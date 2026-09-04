@@ -34,6 +34,10 @@ func isSet(value sql.NullString) bool {
 	return value.Valid && value.String != ""
 }
 
+// MsgNoComputePlan is shared with svc/api, which rebuilds this fault from the
+// create worker's rejection enum.
+const MsgNoComputePlan = "The workspace has no active Compute plan."
+
 // CheckWorkspacePlan validates that a workspace has a Compute plan or manual
 // override. Callers may run this in observe mode while plan enforcement rolls
 // out; spend suspension is checked separately because it is always enforced.
@@ -46,7 +50,7 @@ func CheckWorkspacePlan(plan, override sql.NullString) error {
 		"workspace has no Compute plan",
 		fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
 		fault.Internal("deploygate rejected action: workspace has no Compute plan"),
-		fault.Public("The workspace has no active Compute plan."),
+		fault.Public(MsgNoComputePlan),
 	)
 }
 

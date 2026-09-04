@@ -103,19 +103,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, h.DB.RW(), principal.AuthorizedWorkspaceID)
-	if err != nil && !db.IsNotFound(err) {
-		return fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error loading workspace billing"),
-			fault.Public("Failed to retrieve workspace billing state."),
-		)
-	}
-	if err := deploygate.CheckWorkspacePlan(billing.Plan, billing.PlanOverride); err != nil {
-		return err
-	}
-	if err := deploygate.CheckWorkspaceSpend(billing.SpendSuspended); err != nil {
+	if err := deployment.EnsureWorkspaceCanDeploy(ctx, h.DB, principal.AuthorizedWorkspaceID); err != nil {
 		return err
 	}
 

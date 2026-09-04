@@ -7,10 +7,9 @@ import (
 	"testing"
 	"time"
 
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/stretchr/testify/require"
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
-	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -52,27 +51,10 @@ func deploymentRequest(t *testing.T, project, app, env, deploymentID string) han
 	}
 }
 
-// ctrlCapture records what the handler forwarded to the control plane and lets a
-// test inject an error to exercise the ctrl-error mapping.
-type ctrlCapture struct {
-	called bool
-	req    *ctrlv1.CreateDeploymentRequest
-	err    error
-}
-
-func newRoute(h *testutil.Harness, capture *ctrlCapture) *handler.Handler {
+func newRoute(h *testutil.Harness, restate *restateingress.Client) *handler.Handler {
 	return &handler.Handler{
-		DB: h.DB,
-		CtrlClient: &testutil.MockDeploymentClient{
-			CreateDeploymentFunc: func(ctx context.Context, req *ctrlv1.CreateDeploymentRequest) (*ctrlv1.CreateDeploymentResponse, error) {
-				capture.called = true
-				capture.req = req
-				if capture.err != nil {
-					return nil, capture.err
-				}
-				return &ctrlv1.CreateDeploymentResponse{DeploymentId: "d_test_generated"}, nil
-			},
-		},
+		DB:      h.DB,
+		Restate: restate,
 	}
 }
 
@@ -116,31 +98,6 @@ func seedDeployableRegion(t *testing.T, h *testutil.Harness, setup testutil.Depl
 		CreatedAt:     time.Now().UnixMilli(),
 		UpdatedAt:     sql.NullInt64{Valid: false},
 	}))
-}
-
-// zeroRuntimeSettings overwrites an environment's runtime settings with the
-// undeployable zero defaults a freshly seeded environment used to carry, so the
-// create handler's pre-flight rejects the port/cpu/memory bounds.
-func zeroRuntimeSettings(t *testing.T, h *testutil.Harness, setup testutil.DeploymentTestSetup) {
-	t.Helper()
-	err := db.Query.UpsertAppRuntimeSettings(context.Background(), h.DB.RW(), db.UpsertAppRuntimeSettingsParams{
-		WorkspaceID:      setup.Workspace.ID,
-		AppID:            setup.App.ID,
-		EnvironmentID:    setup.Environment.ID,
-		Port:             0,
-		CpuMillicores:    0,
-		MemoryMib:        0,
-		StorageMib:       0,
-		Command:          nil,
-		Healthcheck:      dbtype.NullHealthcheck{Valid: false},
-		ShutdownSignal:   db.AppRuntimeSettingsShutdownSignalSIGTERM,
-		UpstreamProtocol: db.AppRuntimeSettingsUpstreamProtocolHttp1,
-		SentinelConfig:   []byte("{}"),
-		CreatedAt:        time.Now().UnixMilli(),
-		UpdatedAt:        sql.NullInt64{Valid: false},
-		OpenapiSpecPath:  sql.NullString{Valid: false},
-	})
-	require.NoError(t, err)
 }
 
 // connectRepo attaches a GitHub repository connection to an app so git-sourced

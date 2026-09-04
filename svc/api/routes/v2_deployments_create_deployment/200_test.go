@@ -3,9 +3,11 @@ package handler_test
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -16,8 +18,8 @@ import (
 
 func TestImageSource(t *testing.T) {
 	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{}
-	route := newRoute(h, capture)
+	restate, creates := newRecordingRestate(t)
+	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -32,19 +34,21 @@ func TestImageSource(t *testing.T) {
 	require.NotNil(t, res.Body)
 	require.NotEmpty(t, res.Body.Data.DeploymentId)
 
-	require.True(t, capture.called)
-	require.Equal(t, "nginx:latest", capture.req.DockerImage)
-	require.Equal(t, setup.Project.ID, capture.req.ProjectId)
-	require.Equal(t, setup.App.ID, capture.req.AppId)
-	require.Equal(t, setup.Environment.Slug, capture.req.EnvironmentSlug)
-	require.Nil(t, capture.req.GetGitCommit(), "image source must not send git commit info")
-	require.Equal(t, ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API, capture.req.Trigger)
+	observed := testutil.Receive(t, creates, 10*time.Second)
+	require.Equal(t, res.Body.Data.DeploymentId, observed.virtualObjectKey,
+		"the id in the response must be the object key the create runs on")
+	require.Equal(t, "nginx:latest", observed.request.GetImage().GetImage())
+	require.Equal(t, setup.Project.ID, observed.request.GetProjectId())
+	require.Equal(t, setup.App.ID, observed.request.GetAppId())
+	require.Equal(t, setup.Environment.ID, observed.request.GetEnvironment())
+	require.Nil(t, observed.request.GetGit(), "image source must not send git commit info")
+	require.Equal(t, ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API, observed.request.GetTrigger())
 }
 
 func TestImageSourceCliTrigger(t *testing.T) {
 	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{}
-	route := newRoute(h, capture)
+	restate, creates := newRecordingRestate(t)
+	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -59,14 +63,14 @@ func TestImageSourceCliTrigger(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
-	require.True(t, capture.called)
-	require.Equal(t, ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI, capture.req.Trigger)
+	observed := testutil.Receive(t, creates, 10*time.Second)
+	require.Equal(t, ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI, observed.request.GetTrigger())
 }
 
 func TestGitSource(t *testing.T) {
 	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{}
-	route := newRoute(h, capture)
+	restate, creates := newRecordingRestate(t)
+	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -84,17 +88,17 @@ func TestGitSource(t *testing.T) {
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 	require.NotEmpty(t, res.Body.Data.DeploymentId)
 
-	require.True(t, capture.called)
-	require.NotNil(t, capture.req.GetGitCommit())
-	require.Equal(t, "main", capture.req.GetGitCommit().GetBranch())
-	require.Equal(t, "abc123", capture.req.GetGitCommit().GetCommitSha())
-	require.Empty(t, capture.req.DockerImage)
+	observed := testutil.Receive(t, creates, 10*time.Second)
+	require.NotNil(t, observed.request.GetGit().GetCommit())
+	require.Equal(t, "main", observed.request.GetGit().GetCommit().Branch)
+	require.Equal(t, "abc123", observed.request.GetGit().GetCommit().CommitSha)
+	require.Nil(t, observed.request.GetImage())
 }
 
 func TestGitSourceWithFork(t *testing.T) {
 	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{}
-	route := newRoute(h, capture)
+	restate, creates := newRecordingRestate(t)
+	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -110,16 +114,16 @@ func TestGitSourceWithFork(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
-	require.True(t, capture.called)
-	require.NotNil(t, capture.req.GetGitCommit())
-	require.Equal(t, "contributor/acme-api", capture.req.GetGitCommit().GetForkRepository())
-	require.Equal(t, "9f2c1a7", capture.req.GetGitCommit().GetCommitSha())
+	observed := testutil.Receive(t, creates, 10*time.Second)
+	require.NotNil(t, observed.request.GetGit().GetCommit())
+	require.Equal(t, "contributor/acme-api", observed.request.GetGit().GetCommit().ForkRepository)
+	require.Equal(t, "9f2c1a7", observed.request.GetGit().GetCommit().CommitSha)
 }
 
 func TestRedeployGitApp(t *testing.T) {
 	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{}
-	route := newRoute(h, capture)
+	restate, creates := newRecordingRestate(t)
+	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -141,16 +145,17 @@ func TestRedeployGitApp(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
-	require.True(t, capture.called)
-	require.NotNil(t, capture.req.GetGitCommit(), "git-connected app rebuilds from the recorded commit")
-	require.Equal(t, "main", capture.req.GetGitCommit().GetBranch())
-	require.Empty(t, capture.req.DockerImage)
+	observed := testutil.Receive(t, creates, 10*time.Second)
+	require.Equal(t, dep.ID, observed.request.GetExistingDeployment().GetDeploymentId(),
+		"the source deployment is named by id; what it rebuilds from is the worker's to resolve")
+	require.Nil(t, observed.request.GetGit())
+	require.Nil(t, observed.request.GetImage())
 }
 
 func TestRedeployImageReuse(t *testing.T) {
 	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{}
-	route := newRoute(h, capture)
+	restate, creates := newRecordingRestate(t)
+	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -171,17 +176,18 @@ func TestRedeployImageReuse(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
-	require.True(t, capture.called)
-	require.Nil(t, capture.req.GetGitCommit(), "an app without a repo connection reuses the image instead of rebuilding")
+	observed := testutil.Receive(t, creates, 10*time.Second)
+	require.Equal(t, dep.ID, observed.request.GetExistingDeployment().GetDeploymentId())
 }
 
 // TestRedeployForkDeployment covers redeploying a deployment that was built from
-// a fork. The fork repository and full commit metadata must be carried forward
-// so ctrl resolves the commit against the fork, not the base repo.
+// a fork. Carrying the fork and PR number forward is the worker's
+// (deploy.TestCreateFromExistingDeployment); the handler's part is naming the
+// source rather than flattening it into a commit of its own.
 func TestRedeployForkDeployment(t *testing.T) {
 	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{}
-	route := newRoute(h, capture)
+	restate, creates := newRecordingRestate(t)
+	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -209,25 +215,21 @@ func TestRedeployForkDeployment(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
-	require.True(t, capture.called)
-	require.NotNil(t, capture.req.GetGitCommit())
-	require.Equal(t, "contributor/acme-api", capture.req.GetGitCommit().GetForkRepository(), "fork must be carried forward")
-	require.Equal(t, "9f2c1a7", capture.req.GetGitCommit().GetCommitSha())
-	require.Equal(t, "feature", capture.req.GetGitCommit().GetBranch())
-	require.Equal(t, "add KEBAP endpoint", capture.req.GetGitCommit().GetCommitMessage())
-	require.Equal(t, "contributor", capture.req.GetGitCommit().GetAuthorHandle())
-	require.Equal(t, int64(1700000000), capture.req.GetGitCommit().GetTimestamp())
-	require.Empty(t, capture.req.DockerImage)
+	observed := testutil.Receive(t, creates, 10*time.Second)
+	require.Equal(t, dep.ID, observed.request.GetExistingDeployment().GetDeploymentId())
+	require.Nil(t, observed.request.GetGit())
+	require.Nil(t, observed.request.GetImage())
 }
 
 // TestRedeployImageDeploymentOnConnectedApp covers an image-origin deployment
-// being redeployed after the app later gained a repo connection. The recorded
-// image must be reused; the handler must not fabricate an empty git commit that
-// ctrl would turn into a default-branch build.
+// being redeployed after the app later gained a repo connection. Choosing the
+// image over a default-branch build belongs to the worker
+// (deploy.TestCreateFromExistingDeployment); this pins that the handler forwards
+// the source instead of resolving it and getting that choice wrong itself.
 func TestRedeployImageDeploymentOnConnectedApp(t *testing.T) {
 	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{}
-	route := newRoute(h, capture)
+	restate, creates := newRecordingRestate(t)
+	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -250,18 +252,17 @@ func TestRedeployImageDeploymentOnConnectedApp(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
-	require.True(t, capture.called)
-	require.Nil(t, capture.req.GetGitCommit(), "an image-origin deployment has no commit to rebuild even on a connected app")
-	require.Equal(t, "nginx:latest", capture.req.DockerImage, "must reuse the recorded image")
+	observed := testutil.Receive(t, creates, 10*time.Second)
+	require.Equal(t, dep.ID, observed.request.GetExistingDeployment().GetDeploymentId())
 }
 
 // TestRedeployDeploymentWithoutBuiltImage covers a deployment that never produced
-// an image and has no git commit (e.g. a pending or failed build). It cannot be
-// reproduced, so the handler must refuse rather than send an empty request.
+// an image and has no git commit (e.g. a pending or failed build). Deciding that
+// belongs to the worker, which owns the repository connection; this pins that the
+// caller is told 412 rather than handed an id for a deployment that never builds.
 func TestRedeployDeploymentWithoutBuiltImage(t *testing.T) {
 	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{}
-	route := newRoute(h, capture)
+	route := newRoute(h, newRejectingRestate(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_SOURCE_IMAGE))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -282,13 +283,12 @@ func TestRedeployDeploymentWithoutBuiltImage(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
-	require.False(t, capture.called, "ctrl must not be called for an unreproducible deployment")
 }
 
 func TestSpecificEnvironmentPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
-	capture := &ctrlCapture{}
-	route := newRoute(h, capture)
+	restate, creates := newRecordingRestate(t)
+	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup()
@@ -299,5 +299,6 @@ func TestSpecificEnvironmentPermission(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
-	require.Equal(t, setup.Project.ID, capture.req.ProjectId)
+	observed := testutil.Receive(t, creates, 10*time.Second)
+	require.Equal(t, setup.Project.ID, observed.request.GetProjectId())
 }

@@ -5,15 +5,18 @@ import (
 	"net/http"
 	"strings"
 
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
+	"github.com/unkeyed/unkey/svc/api/internal/deployment"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -23,8 +26,8 @@ type (
 )
 
 type Handler struct {
-	DB         db.Database
-	CtrlClient ctrl.DeployServiceClient
+	DB      db.Database
+	Restate *restateingress.Client
 }
 
 func (h *Handler) Path() string {
@@ -54,13 +57,32 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("project or app not found",
+			return fault.New(
+				"project or app not found",
 				fault.Code(codes.Data.Project.NotFound.URN()),
 				fault.Internal("project or app not found"),
 				fault.Public("The requested project or app does not exist."),
 			)
 		}
 		return fault.Wrap(err, fault.Internal("failed to find project and app"))
+	}
+
+	environment, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
+		WorkspaceID: principal.AuthorizedWorkspaceID,
+		Project:     req.Project,
+		App:         req.App,
+		Environment: req.EnvironmentSlug,
+	})
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New(
+				"environment not found",
+				fault.Code(codes.Data.Environment.NotFound.URN()),
+				fault.Internal("environment did not resolve"),
+				fault.Public("The requested environment does not exist."),
+			)
+		}
+		return fault.Wrap(err, fault.Internal("failed to resolve environment"))
 	}
 
 	err = principal.Authorize(rbac.Or(
@@ -86,25 +108,33 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI
 	}
 
-	// ctrl rejects these too, but ctrlclient.HandleError replaces its message with a
-	// generic one, so the reason reaches the caller only if the check also runs here.
+	// The worker rejects a bad image too, with a coarser message.
 	if err := imageref.Validate(req.DockerImage); err != nil {
 		return err
 	}
 
-	// nolint: exhaustruct // optional proto fields, only setting whats provided
-	ctrlReq := &ctrlv1.CreateDeploymentRequest{
-		ProjectId:       row.ProjectID,
-		AppId:           row.AppID,
-		EnvironmentSlug: req.EnvironmentSlug,
-		DockerImage:     req.DockerImage,
-		Source: &ctrlv1.CreateDeploymentRequest_GitCommit{
-			GitCommit: &ctrlv1.GitCommitInfo{
-				Branch: req.Branch,
-			},
+	actorInfo, err := ctrlclient.Actor(s)
+	if err != nil {
+		return err
+	}
+
+	// The id is the Restate object key the create runs on, so minting it here
+	// lets the response name the deployment without waiting on the worker.
+	deploymentID := uid.New(uid.DeploymentPrefix)
+
+	// nolint: exhaustruct // the source oneof is set below
+	createReq := &hydrav1.DeployCreateRequest{
+		ProjectId:   row.ProjectID,
+		AppId:       row.AppID,
+		Environment: environment.ID,
+		Source: &hydrav1.DeployCreateRequest_Image{
+			Image: &hydrav1.CreateImageSource{Image: req.DockerImage},
 		},
-		Trigger:     trigger,
-		TriggeredBy: principal.Subject.ID,
+		Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
+		Trigger:       trigger,
+		TriggeredBy:   principal.Subject.ID,
+		TriggerReason: "",
+		Actor:         actorInfo,
 	}
 
 	// Add optional keyspace ID for authentication. Verify the keyspace belongs
@@ -115,7 +145,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), *req.KeyspaceId)
 		if err != nil {
 			if db.IsNotFound(err) {
-				return fault.New("keyspace not found",
+				return fault.New(
+					"keyspace not found",
 					fault.Code(codes.Data.KeyAuth.NotFound.URN()),
 					fault.Internal("keyspace not found"),
 					fault.Public("The specified keyspace was not found."),
@@ -125,14 +156,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if keySpace.WorkspaceID != principal.AuthorizedWorkspaceID {
-			return fault.New("keyspace not found",
+			return fault.New(
+				"keyspace not found",
 				fault.Code(codes.Data.KeyAuth.NotFound.URN()),
 				fault.Internal("keyspace belongs to different workspace, masking as 404"),
 				fault.Public("The specified keyspace was not found."),
 			)
 		}
-
-		ctrlReq.KeyspaceId = req.KeyspaceId
 	}
 
 	// Handle optional git commit info
@@ -156,12 +186,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if req.GitCommit.Timestamp != nil {
 			gitCommit.Timestamp = *req.GitCommit.Timestamp
 		}
-		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_GitCommit{GitCommit: gitCommit}
+		createReq.Source = &hydrav1.DeployCreateRequest_Git{
+			Git: &hydrav1.CreateGitSource{Commit: gitCommit, PrNumber: 0},
+		}
 	}
 
-	ctrlResp, err := h.CtrlClient.CreateDeployment(ctx, ctrlReq)
+	// Request, not Send: awaiting the create means the caller can read the
+	// deployment back as soon as this returns, and a rejection can be reported.
+	// A timeout does not undo the create; Restate keeps running it.
+	res, err := hydrav1.NewDeployServiceIngressClient(h.Restate, deploymentID).
+		Create().
+		Request(ctx, createReq)
 	if err != nil {
-		return ctrlclient.HandleError(err, "create deployment")
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("failed to submit deployment create to Restate"),
+			fault.Public("Failed to create deployment."),
+		)
+	}
+	if res.GetOutcome() == hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED {
+		return deployment.RejectionFault(res.GetRejectionReason())
 	}
 
 	return s.JSON(http.StatusCreated, Response{
@@ -169,7 +214,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.V2DeployCreateDeploymentResponseData{
-			DeploymentId: ctrlResp.GetDeploymentId(),
+			DeploymentId: deploymentID,
 		},
 	})
 }

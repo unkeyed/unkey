@@ -56,7 +56,10 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 	if useOCI {
 		image := deployment.ImageRequested
 		if !image.Valid || image.String == "" {
-			image = resolvedDeploymentImage(deployment)
+			image = deployment.ImageResolved
+		}
+		if !image.Valid || image.String == "" {
+			image = deployment.Image
 		}
 		if !image.Valid || image.String == "" {
 			return nil, connect.NewError(connect.CodeFailedPrecondition,

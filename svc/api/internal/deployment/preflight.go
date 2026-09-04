@@ -5,8 +5,30 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
+
+// EnsureWorkspaceCanDeploy refuses a workspace with no Compute plan or one
+// stopped by its spend cap. It reads the primary so a workspace suspended
+// moments ago cannot slip through on a stale replica. No billing row reads as
+// no plan and not suspended.
+func EnsureWorkspaceCanDeploy(ctx context.Context, database db.Database, workspaceID string) error {
+	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, database.RW(), workspaceID)
+	if err != nil && !db.IsNotFound(err) {
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("database error loading workspace billing"),
+			fault.Public("Failed to retrieve workspace billing state."),
+		)
+	}
+
+	if err := deploygate.CheckWorkspacePlan(billing.Plan, billing.PlanOverride); err != nil {
+		return err
+	}
+	return deploygate.CheckWorkspaceSpend(billing.SpendSuspended)
+}
 
 // FindDeployment loads a deployment by ID scoped to the caller's workspace. A
 // cross-workspace match is masked as not found so a caller can't probe for
