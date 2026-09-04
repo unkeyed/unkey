@@ -17,7 +17,7 @@ describe("getAlertSeries", () => {
     ["error_4xx", "frontline_requests_per_5m_v1", "response_status >= 400"],
     ["requests", "frontline_requests_per_5m_v1", "sum(count)"],
     ["egress_bytes", "instance_resources_per_minute_v1", "network_egress_public_bytes_max"],
-    ["cpu_seconds", "instance_resources_per_minute_v1", "sum(container_value) / 1000000"],
+    ["cpu_seconds", "instance_resources_per_minute_v1", "cpu_usage_usec_max"],
     ["memory_utilization", "instance_resources_per_minute_v1", "memory_bytes_max"],
     ["health", "instance_events_raw_v1", "reason = 'OOMKilled'"],
   ] as const)("queries the %s metric from its 5m source", async (metric, table, expression) => {
@@ -52,7 +52,6 @@ describe("getAlertSeries", () => {
 
   it.each([
     ["requests", "frontline_requests_per_hour_v1"],
-    ["egress_bytes", "instance_resources_per_hour_v1"],
     ["memory_utilization", "instance_resources_per_hour_v1"],
   ] as const)("uses hourly rollups for %s", async (metric, table) => {
     const ch = new CapturingQuerier();
@@ -60,6 +59,42 @@ describe("getAlertSeries", () => {
     await getAlertSeries(ch)({ ...baseRequest, metric, resolution: "1h" });
 
     expect(ch.params[0]).toMatchObject({ tableName: table, bucketMs: 3_600_000 });
+  });
+
+  it.each([
+    [
+      "egress_bytes",
+      "greatest(0, max(network_egress_public_bytes_max) - min(network_egress_public_bytes_min))",
+    ],
+    [
+      "cpu_seconds",
+      "greatest(0, max(cpu_usage_usec_max) - min(cpu_usage_usec_min)) / 1000000",
+    ],
+  ] as const)("sums per-container 5-minute %s deltas into hourly values", async (metric, delta) => {
+    const samples = [
+      { container: "a", bucket: 0, minimum: 0, maximum: 10 },
+      { container: "a", bucket: 1, minimum: 20, maximum: 30 },
+      { container: "b", bucket: 0, minimum: 100, maximum: 104 },
+      { container: "b", bucket: 1, minimum: 110, maximum: 116 },
+    ];
+    const hourlyValue = samples.reduce(
+      (sum, sample) => sum + Math.max(0, sample.maximum - sample.minimum),
+      0,
+    );
+    expect(hourlyValue).toBe(30);
+
+    const ch = new CapturingQuerier();
+    await getAlertSeries(ch)({ ...baseRequest, metric, resolution: "1h" });
+
+    const query = ch.queries[0]?.replace(/\s+/g, " ");
+    expect(query).toContain(delta);
+    expect(query).toContain("GROUP BY time, container_uid");
+    expect(query).toContain(`intDiv(five_minute.time, ${60 * 60 * 1000})`);
+    expect(query).toContain("sum(five_minute.value) AS value");
+    expect(ch.params[0]).toMatchObject({
+      tableName: "instance_resources_per_minute_v1",
+      bucketMs: 3_600_000,
+    });
   });
 
   it("computes a trailing 24-hour expected range without the current bucket", async () => {

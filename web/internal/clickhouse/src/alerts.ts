@@ -129,31 +129,37 @@ function frontlineQuery(
 
 function resourceCounterQuery(
   expression: string,
-  aggregate: string,
   resolution: "5m" | "1h",
 ): { query: string; tableName: string } {
-  const bucket =
-    resolution === "5m" ? "toStartOfInterval(time, INTERVAL 5 MINUTE)" : "toStartOfHour(time)";
-  return {
-    query: denseBuckets(`
-      SELECT bucket AS time, ${aggregate} AS value
-      FROM (
+  const fiveMinuteQuery = `
+    SELECT time, sum(container_value) AS value
+    FROM (
+      SELECT
+        toInt64(toUnixTimestamp(toStartOfInterval(time, INTERVAL 5 MINUTE)) * 1000) AS time,
+        container_uid,
+        ${expression} AS container_value
+      FROM {tableName: Identifier}
+      PREWHERE workspace_id = {workspaceId: String}
+        AND app_id = {appId: String}
+        AND environment_id = {environmentId: String}
+        AND resource_type = 'deployment'
+        AND time >= fromUnixTimestamp64Milli({baselineStartMs: Int64})
+        AND time < fromUnixTimestamp64Milli({endMs: Int64})
+      GROUP BY time, container_uid
+    )
+    GROUP BY time`;
+  const displayQuery =
+    resolution === "5m"
+      ? fiveMinuteQuery
+      : `
         SELECT
-          toInt64(toUnixTimestamp(${bucket}) * 1000) AS bucket,
-          container_uid,
-          ${expression} AS container_value
-        FROM {tableName: Identifier}
-        PREWHERE workspace_id = {workspaceId: String}
-          AND app_id = {appId: String}
-          AND environment_id = {environmentId: String}
-          AND resource_type = 'deployment'
-          AND time >= fromUnixTimestamp64Milli({baselineStartMs: Int64})
-          AND time < fromUnixTimestamp64Milli({endMs: Int64})
-        GROUP BY bucket, container_uid
-      )
-      GROUP BY bucket`),
-    tableName:
-      resolution === "5m" ? "instance_resources_per_minute_v1" : "instance_resources_per_hour_v1",
+          intDiv(five_minute.time, ${hourMs}) * ${hourMs} AS time,
+          sum(five_minute.value) AS value
+        FROM (${fiveMinuteQuery}) AS five_minute
+        GROUP BY time`;
+  return {
+    query: denseBuckets(displayQuery),
+    tableName: "instance_resources_per_minute_v1",
   };
 }
 
@@ -400,8 +406,7 @@ export function getAlertSeries(ch: Querier) {
       }
       case "egress_bytes": {
         const source = resourceCounterQuery(
-          "max(network_egress_public_bytes_max) - min(network_egress_public_bytes_min)",
-          "sum(container_value)",
+          "greatest(0, max(network_egress_public_bytes_max) - min(network_egress_public_bytes_min))",
           args.resolution,
         );
         observedQuery = source.query;
@@ -411,8 +416,7 @@ export function getAlertSeries(ch: Querier) {
       }
       case "cpu_seconds": {
         const source = resourceCounterQuery(
-          "max(cpu_usage_usec_max) - min(cpu_usage_usec_min)",
-          "sum(container_value) / 1000000",
+          "greatest(0, max(cpu_usage_usec_max) - min(cpu_usage_usec_min)) / 1000000",
           args.resolution,
         );
         observedQuery = source.query;
