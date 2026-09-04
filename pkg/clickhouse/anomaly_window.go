@@ -23,6 +23,7 @@ type AnomalyGroupKey struct {
 // ClickHouse. Nil disables candidate filtering for diagnostics and tests.
 type AnomalyCandidateFilter struct {
 	SigmaK                    float64
+	MinimumStddevRatio        float64
 	ErrorRatioStddevFloor     float64
 	RequestsStddevFloor       float64
 	EgressBytesStddevFloor    float64
@@ -234,8 +235,8 @@ WITH
 			error_5xx_current - error_5xx_baseline_mean * requests_current AS error_5xx_excess,
 			error_4xx_current - error_4xx_baseline_mean * requests_current AS error_4xx_excess,
 			least(
-				requests_baseline_mean + {sigma_k:Float64} * greatest(requests_baseline_stddev, requests_baseline_mean * 0.1, {requests_stddev_floor:Float64}),
-				requests_full_mean + {sigma_k:Float64} * greatest(requests_full_stddev, requests_full_mean * 0.1, {requests_stddev_floor:Float64})
+				requests_baseline_mean + {sigma_k:Float64} * greatest(requests_baseline_stddev, requests_baseline_mean * {minimum_stddev_ratio:Float64}, {requests_stddev_floor:Float64}),
+				requests_full_mean + {sigma_k:Float64} * greatest(requests_full_stddev, requests_full_mean * {minimum_stddev_ratio:Float64}, {requests_stddev_floor:Float64})
 			) AS requests_candidate_threshold,
 			(recent_requests_sorted[6] + recent_requests_sorted[7]) / 2 AS recent_requests_median,
 			arrayCount(value -> value >= {request_drop_activity:Float64}, recent_requests) AS recent_active_buckets
@@ -269,7 +270,7 @@ WHERE
 	)
 	OR (
 		baseline_buckets >= {baseline_minimum:Int64}
-		AND error_5xx_ratio_current > error_5xx_baseline_mean + {sigma_k:Float64} * greatest(error_5xx_baseline_stddev, error_5xx_baseline_mean * 0.1, {error_ratio_stddev_floor:Float64})
+		AND error_5xx_ratio_current > error_5xx_baseline_mean + {sigma_k:Float64} * greatest(error_5xx_baseline_stddev, error_5xx_baseline_mean * {minimum_stddev_ratio:Float64}, {error_ratio_stddev_floor:Float64})
 		AND error_5xx_excess >= {error_excess_failures:Float64}
 	)
 	OR (
@@ -278,7 +279,7 @@ WHERE
 	)
 	OR (
 		baseline_buckets >= {baseline_minimum:Int64}
-		AND error_4xx_ratio_current > error_4xx_baseline_mean + {sigma_k:Float64} * greatest(error_4xx_baseline_stddev, error_4xx_baseline_mean * 0.1, {error_ratio_stddev_floor:Float64})
+		AND error_4xx_ratio_current > error_4xx_baseline_mean + {sigma_k:Float64} * greatest(error_4xx_baseline_stddev, error_4xx_baseline_mean * {minimum_stddev_ratio:Float64}, {error_ratio_stddev_floor:Float64})
 		AND error_4xx_excess >= {error_excess_failures:Float64}
 	)
 	OR (
@@ -443,12 +444,12 @@ WITH
 			cpu_seconds_baseline_sum / 288. AS cpu_seconds_full_mean,
 			sqrt(greatest(0., cpu_seconds_baseline_square_sum / 288. - cpu_seconds_full_mean * cpu_seconds_full_mean)) AS cpu_seconds_full_stddev,
 			least(
-				egress_bytes_baseline_mean + {sigma_k:Float64} * greatest(egress_bytes_baseline_stddev, egress_bytes_baseline_mean * 0.1, {egress_bytes_stddev_floor:Float64}),
-				egress_bytes_full_mean + {sigma_k:Float64} * greatest(egress_bytes_full_stddev, egress_bytes_full_mean * 0.1, {egress_bytes_stddev_floor:Float64})
+				egress_bytes_baseline_mean + {sigma_k:Float64} * greatest(egress_bytes_baseline_stddev, egress_bytes_baseline_mean * {minimum_stddev_ratio:Float64}, {egress_bytes_stddev_floor:Float64}),
+				egress_bytes_full_mean + {sigma_k:Float64} * greatest(egress_bytes_full_stddev, egress_bytes_full_mean * {minimum_stddev_ratio:Float64}, {egress_bytes_stddev_floor:Float64})
 			) AS egress_bytes_candidate_threshold,
 			least(
-				cpu_seconds_baseline_mean + {sigma_k:Float64} * greatest(cpu_seconds_baseline_stddev, cpu_seconds_baseline_mean * 0.1, {cpu_seconds_stddev_floor:Float64}),
-				cpu_seconds_full_mean + {sigma_k:Float64} * greatest(cpu_seconds_full_stddev, cpu_seconds_full_mean * 0.1, {cpu_seconds_stddev_floor:Float64})
+				cpu_seconds_baseline_mean + {sigma_k:Float64} * greatest(cpu_seconds_baseline_stddev, cpu_seconds_baseline_mean * {minimum_stddev_ratio:Float64}, {cpu_seconds_stddev_floor:Float64}),
+				cpu_seconds_full_mean + {sigma_k:Float64} * greatest(cpu_seconds_full_stddev, cpu_seconds_full_mean * {minimum_stddev_ratio:Float64}, {cpu_seconds_stddev_floor:Float64})
 			) AS cpu_seconds_candidate_threshold
 		FROM aggregated
 	)
@@ -620,6 +621,7 @@ func anomalyWindowParameters(req AnomalyWindowsRequest, batch anomalyWindowBatch
 		"candidate_filter_enabled":    boolParam(req.CandidateFilter != nil),
 		"explicit_batch":              boolParam(!batch.IncludeFleet),
 		"sigma_k":                     strconv.FormatFloat(filter.SigmaK, 'g', -1, 64),
+		"minimum_stddev_ratio":        strconv.FormatFloat(filter.MinimumStddevRatio, 'g', -1, 64),
 		"error_ratio_stddev_floor":    strconv.FormatFloat(filter.ErrorRatioStddevFloor, 'g', -1, 64),
 		"requests_stddev_floor":       strconv.FormatFloat(filter.RequestsStddevFloor, 'g', -1, 64),
 		"egress_bytes_stddev_floor":   strconv.FormatFloat(filter.EgressBytesStddevFloor, 'g', -1, 64),

@@ -327,8 +327,9 @@ func actionableGroups(groups map[anomalyGroup]groupWindow, completeness ingestCo
 
 func candidateFilter(cfg Config) clickhouse.AnomalyCandidateFilter {
 	return clickhouse.AnomalyCandidateFilter{
-		SigmaK: cfg.SigmaK, ErrorRatioStddevFloor: cfg.StddevFloors.ErrorRatio,
-		RequestsStddevFloor: cfg.StddevFloors.Requests, EgressBytesStddevFloor: cfg.StddevFloors.EgressBytes,
+		SigmaK: cfg.SigmaK, MinimumStddevRatio: cfg.MinimumStddevRatio,
+		ErrorRatioStddevFloor: cfg.StddevFloors.ErrorRatio,
+		RequestsStddevFloor:   cfg.StddevFloors.Requests, EgressBytesStddevFloor: cfg.StddevFloors.EgressBytes,
 		CPUSecondsStddevFloor: cfg.StddevFloors.CPUSeconds, ErrorExcessFailures: cfg.ActivityFloors.ErrorExcessFailures,
 		RequestsActivity: cfg.ActivityFloors.Requests, EgressBytesActivity: cfg.ActivityFloors.EgressBytes,
 		CPUSecondsActivity: cfg.ActivityFloors.CPUSeconds, MemoryUtilizationActivity: cfg.ActivityFloors.MemoryUtilization,
