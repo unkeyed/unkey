@@ -16,6 +16,7 @@ const findAppWithSettings = `-- name: FindAppWithSettings :one
 SELECT
     a.id AS app_id,
     a.project_id AS app_project_id,
+    a.source_type AS app_source_type,
     a.default_branch AS app_default_branch,
     a.current_deployment_id AS app_current_deployment_id,
     abs.dockerfile AS build_settings_dockerfile,
@@ -44,6 +45,7 @@ type FindAppWithSettingsParams struct {
 type FindAppWithSettingsRow struct {
 	AppID                           string                             `db:"app_id"`
 	AppProjectID                    string                             `db:"app_project_id"`
+	AppSourceType                   AppsSourceType                     `db:"app_source_type"`
 	AppDefaultBranch                string                             `db:"app_default_branch"`
 	AppCurrentDeploymentID          sql.NullString                     `db:"app_current_deployment_id"`
 	BuildSettingsDockerfile         sql.NullString                     `db:"build_settings_dockerfile"`
@@ -65,6 +67,7 @@ type FindAppWithSettingsRow struct {
 //	SELECT
 //	    a.id AS app_id,
 //	    a.project_id AS app_project_id,
+//	    a.source_type AS app_source_type,
 //	    a.default_branch AS app_default_branch,
 //	    a.current_deployment_id AS app_current_deployment_id,
 //	    abs.dockerfile AS build_settings_dockerfile,
@@ -89,6 +92,7 @@ func (q *Queries) FindAppWithSettings(ctx context.Context, arg FindAppWithSettin
 	err := row.Scan(
 		&i.AppID,
 		&i.AppProjectID,
+		&i.AppSourceType,
 		&i.AppDefaultBranch,
 		&i.AppCurrentDeploymentID,
 		&i.BuildSettingsDockerfile,

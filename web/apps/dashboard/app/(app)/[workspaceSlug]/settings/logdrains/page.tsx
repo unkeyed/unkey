@@ -7,12 +7,15 @@ import {
   PageHeaderActions,
   PageHeaderContent,
   PageHeaderTitle,
-  ResourceList,
 } from "@unkey/ui";
+import { useState } from "react";
 import { CreateLogdrainButton } from "./create-logdrain-button";
+import { CreateLogdrainPanel } from "./create-logdrain-panel";
 import { LogdrainsList } from "./logdrains-list";
 
 export default function LogdrainsPage() {
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
   return (
     <PageContainer>
       <PageHeader>
@@ -20,14 +23,14 @@ export default function LogdrainsPage() {
           <PageHeaderTitle>Log Drains</PageHeaderTitle>
         </PageHeaderContent>
         <PageHeaderActions>
-          <CreateLogdrainButton />
+          <CreateLogdrainButton onClick={() => setIsCreateOpen(true)} />
         </PageHeaderActions>
       </PageHeader>
       <PageBody>
-        <ResourceList>
-          <LogdrainsList />
-        </ResourceList>
+        <LogdrainsList onCreate={() => setIsCreateOpen(true)} />
       </PageBody>
+
+      <CreateLogdrainPanel isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
     </PageContainer>
   );
 }

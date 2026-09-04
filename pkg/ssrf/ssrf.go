@@ -6,9 +6,32 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"time"
 )
+
+// nonPublicNetworks contains special-use global-unicast ranges not classified
+// by netip as private, link-local, loopback, multicast, or unspecified.
+var nonPublicNetworks = []netip.Prefix{
+	netip.MustParsePrefix("0.0.0.0/8"),
+	netip.MustParsePrefix("100.64.0.0/10"),
+	netip.MustParsePrefix("192.0.0.0/24"),
+	netip.MustParsePrefix("192.0.2.0/24"),
+	netip.MustParsePrefix("192.88.99.0/24"),
+	netip.MustParsePrefix("198.18.0.0/15"),
+	netip.MustParsePrefix("198.51.100.0/24"),
+	netip.MustParsePrefix("203.0.113.0/24"),
+	netip.MustParsePrefix("240.0.0.0/4"),
+	netip.MustParsePrefix("::/96"),
+	netip.MustParsePrefix("64:ff9b::/96"),
+	netip.MustParsePrefix("64:ff9b:1::/48"),
+	netip.MustParsePrefix("100::/64"),
+	netip.MustParsePrefix("100:0:0:1::/64"),
+	netip.MustParsePrefix("2001:db8::/32"),
+	netip.MustParsePrefix("2002::/16"),
+	netip.MustParsePrefix("fec0::/10"),
+}
 
 // config collects the option values applied by [New] and [ValidateEndpoint].
 // The zero value is the safe default: guards on, no timeout, no redirects.
@@ -86,11 +109,27 @@ func ValidateEndpoint(raw string, opts ...Option) error {
 }
 
 // IsForbiddenIP reports whether the SSRF guard rejects the resolved address.
-// It rejects nil, loopback, private (RFC 1918 and ULA), link-local,
-// unspecified, and multicast addresses.
+// It rejects nil, private, non-global, and special-use addresses.
 func IsForbiddenIP(ip net.IP) bool {
-	return ip == nil || ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() ||
-		ip.IsLinkLocalMulticast() || ip.IsUnspecified() || ip.IsMulticast()
+	address, ok := netip.AddrFromSlice(ip)
+	return !ok || IsForbiddenAddr(address)
+}
+
+// IsForbiddenAddr reports whether the SSRF guard rejects the resolved address.
+func IsForbiddenAddr(address netip.Addr) bool {
+	if !address.IsValid() {
+		return true
+	}
+	address = address.Unmap()
+	if !address.IsGlobalUnicast() || address.IsPrivate() {
+		return true
+	}
+	for _, network := range nonPublicNetworks {
+		if network.Contains(address) {
+			return true
+		}
+	}
+	return false
 }
 
 // applyOptions folds opts into a config, starting from the safe zero value.

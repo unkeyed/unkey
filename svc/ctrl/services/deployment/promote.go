@@ -50,7 +50,7 @@ func (s *Service) Promote(ctx context.Context, req *connect.Request[ctrlv1.Promo
 	}); err != nil {
 		return nil, gatefault.Connect(err)
 	}
-	if err := s.ensureWorkspaceCanDeploy(ctx, deployment.WorkspaceID, "promote"); err != nil {
+	if err := s.ensureWorkspaceCanDeploy(ctx, deployment.WorkspaceID); err != nil {
 		return nil, err
 	}
 

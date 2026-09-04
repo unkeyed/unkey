@@ -4,7 +4,7 @@ import { deleteLogdrain } from "./delete";
 import { getLogdrain } from "./get";
 import { listLogdrains } from "./list";
 import { getLogdrainMetrics } from "./metrics";
-import { getRecentLogdrainErrors } from "./recent-errors";
+import { getRecentLogdrainDeliveries } from "./recent-deliveries";
 import { updateLogdrain } from "./update";
 
 export const logdrain = t.router({
@@ -14,5 +14,5 @@ export const logdrain = t.router({
   delete: deleteLogdrain,
   list: listLogdrains,
   metrics: getLogdrainMetrics,
-  recentErrors: getRecentLogdrainErrors,
+  recentDeliveries: getRecentLogdrainDeliveries,
 });

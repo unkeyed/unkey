@@ -35,11 +35,6 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   )
     .filter((item) => logdrainsEnabled || item.segment !== "logdrains")
     .filter((item) => currentUser?.role === "admin" || item.segment !== "root-keys");
-  const isLogdrainCreation = segments[0] === "logdrains" && segments[1] === "new";
-
-  if (isLogdrainCreation) {
-    return <div className="flex-1 min-w-0">{children}</div>;
-  }
 
   return (
     <div className="flex flex-col md:flex-row w-full flex-1 min-h-0">

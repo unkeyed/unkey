@@ -3971,15 +3971,27 @@ type V2PermissionsListRolesResponseBody struct {
 // V2PermissionsListRolesResponseData Array of roles with their assigned permissions.
 type V2PermissionsListRolesResponseData = []Role
 
-// V2PermissionsSetRolePermissionsRequestBody defines model for V2PermissionsSetRolePermissionsRequestBody.
+// V2PermissionsSetRolePermissionsRequestBody Provide exactly one of `role` or the deprecated `roleId`.
 type V2PermissionsSetRolePermissionsRequestBody struct {
 	// Permissions The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
 	Permissions []string `json:"permissions"`
 
-	// RoleId Identifies a resource by either its unique ID or its slug.
-	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
-	RoleId ResourceIdentifier `json:"roleId"`
+	// Role The role whose directly assigned permissions will be replaced.
+	// Accepts either the generated role ID or the unique role name.
+	Role *string `json:"role,omitempty"`
+
+	// RoleId Deprecated. Use `role` instead.
+	// Accepts either the generated role ID or the unique role name.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	RoleId *string `json:"roleId,omitempty"`
+	union  json.RawMessage
 }
+
+// V2PermissionsSetRolePermissionsRequestBody0 defines model for .
+type V2PermissionsSetRolePermissionsRequestBody0 = interface{}
+
+// V2PermissionsSetRolePermissionsRequestBody1 defines model for .
+type V2PermissionsSetRolePermissionsRequestBody1 = interface{}
 
 // V2PermissionsSetRolePermissionsResponseBody defines model for V2PermissionsSetRolePermissionsResponseBody.
 type V2PermissionsSetRolePermissionsResponseBody struct {
@@ -5246,6 +5258,130 @@ func (t *V2DeploymentsCreateDeploymentRequestBody) UnmarshalJSON(b []byte) error
 		err = json.Unmarshal(raw, &t.Project)
 		if err != nil {
 			return fmt.Errorf("error reading 'project': %w", err)
+		}
+	}
+
+	return err
+}
+
+// AsV2PermissionsSetRolePermissionsRequestBody0 returns the union data inside the V2PermissionsSetRolePermissionsRequestBody as a V2PermissionsSetRolePermissionsRequestBody0
+func (t V2PermissionsSetRolePermissionsRequestBody) AsV2PermissionsSetRolePermissionsRequestBody0() (V2PermissionsSetRolePermissionsRequestBody0, error) {
+	var body V2PermissionsSetRolePermissionsRequestBody0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2PermissionsSetRolePermissionsRequestBody0 overwrites any union data inside the V2PermissionsSetRolePermissionsRequestBody as the provided V2PermissionsSetRolePermissionsRequestBody0
+func (t *V2PermissionsSetRolePermissionsRequestBody) FromV2PermissionsSetRolePermissionsRequestBody0(v V2PermissionsSetRolePermissionsRequestBody0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2PermissionsSetRolePermissionsRequestBody0 performs a merge with any union data inside the V2PermissionsSetRolePermissionsRequestBody, using the provided V2PermissionsSetRolePermissionsRequestBody0
+func (t *V2PermissionsSetRolePermissionsRequestBody) MergeV2PermissionsSetRolePermissionsRequestBody0(v V2PermissionsSetRolePermissionsRequestBody0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsV2PermissionsSetRolePermissionsRequestBody1 returns the union data inside the V2PermissionsSetRolePermissionsRequestBody as a V2PermissionsSetRolePermissionsRequestBody1
+func (t V2PermissionsSetRolePermissionsRequestBody) AsV2PermissionsSetRolePermissionsRequestBody1() (V2PermissionsSetRolePermissionsRequestBody1, error) {
+	var body V2PermissionsSetRolePermissionsRequestBody1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromV2PermissionsSetRolePermissionsRequestBody1 overwrites any union data inside the V2PermissionsSetRolePermissionsRequestBody as the provided V2PermissionsSetRolePermissionsRequestBody1
+func (t *V2PermissionsSetRolePermissionsRequestBody) FromV2PermissionsSetRolePermissionsRequestBody1(v V2PermissionsSetRolePermissionsRequestBody1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeV2PermissionsSetRolePermissionsRequestBody1 performs a merge with any union data inside the V2PermissionsSetRolePermissionsRequestBody, using the provided V2PermissionsSetRolePermissionsRequestBody1
+func (t *V2PermissionsSetRolePermissionsRequestBody) MergeV2PermissionsSetRolePermissionsRequestBody1(v V2PermissionsSetRolePermissionsRequestBody1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t V2PermissionsSetRolePermissionsRequestBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if t.Permissions != nil {
+		object["permissions"], err = json.Marshal(t.Permissions)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'permissions': %w", err)
+		}
+	}
+
+	if t.Role != nil {
+		object["role"], err = json.Marshal(t.Role)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'role': %w", err)
+		}
+	}
+
+	if t.RoleId != nil {
+		object["roleId"], err = json.Marshal(t.RoleId)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'roleId': %w", err)
+		}
+	}
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *V2PermissionsSetRolePermissionsRequestBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["permissions"]; found {
+		err = json.Unmarshal(raw, &t.Permissions)
+		if err != nil {
+			return fmt.Errorf("error reading 'permissions': %w", err)
+		}
+	}
+
+	if raw, found := object["role"]; found {
+		err = json.Unmarshal(raw, &t.Role)
+		if err != nil {
+			return fmt.Errorf("error reading 'role': %w", err)
+		}
+	}
+
+	if raw, found := object["roleId"]; found {
+		err = json.Unmarshal(raw, &t.RoleId)
+		if err != nil {
+			return fmt.Errorf("error reading 'roleId': %w", err)
 		}
 	}
 
