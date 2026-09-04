@@ -15,7 +15,9 @@
 // deployment runs as its own isolated workflow, so multiple deployments per
 // environment can build in parallel. The contended resource
 // (apps.current_deployment_id) is serialized inside RoutingService via
-// SwapLiveDeployment, which is keyed by env_id.
+// SwapLiveDeployment, which is keyed by env_id. Promotion and rollback, which
+// read that pointer before they swap it, live on the env-keyed
+// EnvironmentService in the environment package.
 //
 // Workspace-wide concurrency is capped by [buildslot.Service].
 //
@@ -62,15 +64,6 @@
 // DeploymentService.ScheduleDesiredStateChange.
 // Preview deployments schedule the deployment displaced from the sticky
 // branch route to stop after a short grace period.
-//
-// [Workflow.Rollback] switches sticky frontline routes (environment and live)
-// from the current live deployment to a previous one, atomically through
-// RoutingService. Because the live pointer now points to an older deployment,
-// subsequent deploys detect the rolled-back state and skip auto-promotion.
-//
-// [Workflow.Promote] reassigns sticky routes to a new target deployment and
-// updates the live pointer, restoring normal auto-promote behavior for future
-// deploys.
 //
 // [cron.Service.RunScaleDownIdlePreviewDeployments] paginates through preview
 // environments and schedules idle deployments to stop when they have received
