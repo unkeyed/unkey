@@ -319,9 +319,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if len(permissionsToFind) > 0 {
-			permissions, err := db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
+			permissions, err := db.Query.FindPermissionsBySlugsInWorkspace(ctx, tx, db.FindPermissionsBySlugsInWorkspaceParams{
 				WorkspaceID: principal.AuthorizedWorkspaceID,
-				ProjectID:   projectID,
 				Slugs:       permissionsToFind,
 			})
 			if err != nil && !db.IsNotFound(err) {
@@ -333,14 +332,20 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			for _, permission := range permissions {
+				if permission.ProjectID != projectID {
+					return fault.New("permission not found",
+						fault.Code(codes.Data.Permission.NotFound.URN()),
+						fault.Internal("permission belongs to a different project"),
+						fault.Public(fmt.Sprintf("Permission '%s' was not found.", permission.Slug)),
+					)
+				}
 				permissionSlugToPermissionId[permission.Slug] = &permission.ID
 			}
 		}
 
 		if len(rolesToFind) > 0 {
-			roles, err := db.Query.FindRolesByNames(ctx, tx, db.FindRolesByNamesParams{
+			roles, err := db.Query.FindRolesByNamesInWorkspace(ctx, tx, db.FindRolesByNamesInWorkspaceParams{
 				WorkspaceID: principal.AuthorizedWorkspaceID,
-				ProjectID:   projectID,
 				Names:       rolesToFind,
 			})
 			if err != nil && !db.IsNotFound(err) {
@@ -352,6 +357,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			for _, role := range roles {
+				if role.ProjectID != projectID {
+					return fault.New("role not found",
+						fault.Code(codes.Data.Role.NotFound.URN()),
+						fault.Internal("role belongs to a different project"),
+						fault.Public(fmt.Sprintf("Role '%s' was not found.", role.Name)),
+					)
+				}
 				roleNameToRoleId[role.Name] = &role.ID
 			}
 		}

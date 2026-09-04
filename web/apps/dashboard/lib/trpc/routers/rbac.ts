@@ -1,7 +1,6 @@
 import { type InsertPermission, type Permission, db, schema } from "@/lib/db";
 
 import type { UnkeyAuditLog } from "@/lib/audit";
-import { ensureDefaultProjectId } from "@/lib/projects/ensure-default-project-id";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import type { Context } from "../context";
@@ -9,13 +8,13 @@ import type { Context } from "../context";
 export async function upsertPermissions(
   ctx: Context,
   workspaceId: string,
+  projectId: string,
   slugs: string[],
 ): Promise<{
   permissions: Omit<Permission, "pk">[];
   auditLogs: UnkeyAuditLog[];
 }> {
   return await db.transaction(async (tx) => {
-    const projectId = await ensureDefaultProjectId(tx, workspaceId);
     const existingPermissions = await tx.query.permissions.findMany({
       where: (table, { inArray, and, eq }) =>
         and(

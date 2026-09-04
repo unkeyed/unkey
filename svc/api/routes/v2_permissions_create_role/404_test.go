@@ -13,12 +13,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_create_role"
 )
 
-// TestPermissionWithSameSlugInAnotherProjectCreatesLocalPermission guarantees
-// role creation resolves permission slugs in the role's project.
-func TestPermissionWithSameSlugInAnotherProjectCreatesLocalPermission(t *testing.T) {
+// TestPermissionFromAnotherProjectIsNotAttached guarantees role creation does
+// not attach a permission owned by another project in the same workspace.
+func TestPermissionFromAnotherProjectIsNotAttached(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
@@ -31,9 +32,8 @@ func TestPermissionWithSameSlugInAnotherProjectCreatesLocalPermission(t *testing
 		Slug:        "other-create-role-project",
 	})
 	permissionSlug := "other.project.create.role.permission"
-	otherPermissionID := uid.New(uid.PermissionPrefix)
 	require.NoError(t, db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
-		PermissionID: otherPermissionID,
+		PermissionID: uid.New(uid.PermissionPrefix),
 		WorkspaceID:  workspace.ID,
 		ProjectID:    otherProject.ID,
 		Name:         permissionSlug,
@@ -53,24 +53,11 @@ func TestPermissionWithSameSlugInAnotherProjectCreatesLocalPermission(t *testing
 	}
 	permissions := []string{permissionSlug}
 
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{
 		Name:        "role-with-other-project-permission",
 		Permissions: &permissions,
 	})
 
-	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
-	role, err := db.Query.FindRoleByID(ctx, h.DB.RO(), res.Body.Data.RoleId)
-	require.NoError(t, err)
-	assigned, err := db.Query.ListDirectPermissionsByRoleID(ctx, h.DB.RO(), role.ID)
-	require.NoError(t, err)
-	require.Len(t, assigned, 1)
-	require.Equal(t, permissionSlug, assigned[0].Slug)
-	require.NotEqual(t, otherPermissionID, assigned[0].ID)
-	localPermission, err := db.Query.FindPermissionBySlugAndProjectID(ctx, h.DB.RO(), db.FindPermissionBySlugAndProjectIDParams{
-		WorkspaceID: workspace.ID,
-		ProjectID:   role.ProjectID,
-		Slug:        permissionSlug,
-	})
-	require.NoError(t, err)
-	require.Equal(t, localPermission.ID, assigned[0].ID)
+	require.Equal(t, http.StatusNotFound, res.Status, res.RawBody)
+	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/permission_not_found", res.Body.Error.Type)
 }
