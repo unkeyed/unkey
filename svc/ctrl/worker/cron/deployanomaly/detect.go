@@ -1,6 +1,8 @@
 package deployanomaly
 
 import (
+	_ "embed"
+	"encoding/json"
 	"fmt"
 	"math"
 	"sort"
@@ -11,6 +13,28 @@ const (
 	bucketDurationMillis   = int64(5 * 60 * 1_000)
 	maximumBaselineBuckets = int64(288)
 )
+
+//go:embed thresholds.json
+var thresholdData []byte
+
+type thresholdFile struct {
+	SigmaK                    float64            `json:"sigmaK"`
+	MinimumLifetimeBuckets    int64              `json:"minimumLifetimeBuckets"`
+	MinimumStddevRatio        float64            `json:"minimumStddevRatio"`
+	RequestDropMedianFraction float64            `json:"requestDropMedianFraction"`
+	StddevFloors              map[Metric]float64 `json:"stddevFloors"`
+	BaselineMinimums          map[Metric]int64   `json:"baselineMinimums"`
+}
+
+var productionThresholds = loadThresholds()
+
+func loadThresholds() thresholdFile {
+	var thresholds thresholdFile
+	if err := json.Unmarshal(thresholdData, &thresholds); err != nil {
+		panic(fmt.Sprintf("parse embedded deploy anomaly thresholds: %s", err))
+	}
+	return thresholds
+}
 
 type Metric string
 
@@ -50,13 +74,13 @@ const (
 func (s Sensitivity) SigmaK() float64 {
 	switch s {
 	case SensitivityLow:
-		return 5
+		return productionThresholds.SigmaK + 1
 	case SensitivityNormal:
-		return 4
+		return productionThresholds.SigmaK
 	case SensitivityHigh:
-		return 3
+		return productionThresholds.SigmaK - 1
 	default:
-		return 4
+		return productionThresholds.SigmaK
 	}
 }
 
@@ -116,13 +140,14 @@ type BaselineMinimums struct {
 // Config holds tunable detection thresholds. Start with [DefaultConfig], then
 // override fields for workspace-specific alert settings.
 type Config struct {
-	SigmaK           float64
-	StddevFloors     StddevFloors
-	ActivityFloors   ActivityFloors
-	BaselineMinimums BaselineMinimums
-	RequestDrop      RequestDropRule
-	Catastrophic     CatastrophicRules
-	Recovery         RecoveryThresholds
+	SigmaK             float64
+	MinimumStddevRatio float64
+	StddevFloors       StddevFloors
+	ActivityFloors     ActivityFloors
+	BaselineMinimums   BaselineMinimums
+	RequestDrop        RequestDropRule
+	Catastrophic       CatastrophicRules
+	Recovery           RecoveryThresholds
 	// MaxOpenDuration closes a sustained level shift after the rolling baseline
 	// has fully adapted, even when the opening snapshot never recovers.
 	MaxOpenDuration time.Duration
@@ -131,12 +156,13 @@ type Config struct {
 // DefaultConfig returns the production defaults for a sensitivity.
 func DefaultConfig(sensitivity Sensitivity) Config {
 	return Config{
-		SigmaK: sensitivity.SigmaK(),
+		SigmaK:             sensitivity.SigmaK(),
+		MinimumStddevRatio: productionThresholds.MinimumStddevRatio,
 		StddevFloors: StddevFloors{
-			ErrorRatio:  0.01,
-			Requests:    20,
-			EgressBytes: 1 << 20,
-			CPUSeconds:  1,
+			ErrorRatio:  productionThresholds.StddevFloors[MetricError5xx],
+			Requests:    productionThresholds.StddevFloors[MetricRequests],
+			EgressBytes: productionThresholds.StddevFloors[MetricEgressBytes],
+			CPUSeconds:  productionThresholds.StddevFloors[MetricCPUSeconds],
 		},
 		ActivityFloors: ActivityFloors{
 			ErrorExcessFailures: 20,
@@ -148,15 +174,15 @@ func DefaultConfig(sensitivity Sensitivity) Config {
 			CrashLoop:           1,
 		},
 		BaselineMinimums: BaselineMinimums{
-			Error5xx:     12,
-			Error4xx:     12,
-			Requests:     12,
-			RequestsDrop: 72,
-			EgressBytes:  12,
-			CPUSeconds:   12,
+			Error5xx:     productionThresholds.BaselineMinimums[MetricError5xx],
+			Error4xx:     productionThresholds.BaselineMinimums[MetricError4xx],
+			Requests:     productionThresholds.BaselineMinimums[MetricRequests],
+			RequestsDrop: productionThresholds.BaselineMinimums[MetricRequestsDrop],
+			EgressBytes:  productionThresholds.BaselineMinimums[MetricEgressBytes],
+			CPUSeconds:   productionThresholds.BaselineMinimums[MetricCPUSeconds],
 		},
 		RequestDrop: RequestDropRule{
-			RecentLevelFraction:  0.25,
+			RecentLevelFraction:  productionThresholds.RequestDropMedianFraction,
 			ActivityPerBucket:    200,
 			MinimumActiveBuckets: 9,
 			MinimumAbsoluteLoss:  200,
@@ -354,7 +380,7 @@ func detectError(input Input, cfg Config) Result {
 	if input.RequestsInWindow > 0 {
 		ratio = input.Current / input.RequestsInWindow
 	}
-	stddev := max(input.BaselineStddev, input.BaselineMean*0.1, cfg.StddevFloors.ErrorRatio)
+	stddev := max(input.BaselineStddev, input.BaselineMean*cfg.MinimumStddevRatio, cfg.StddevFloors.ErrorRatio)
 	threshold := input.BaselineMean + cfg.SigmaK*stddev
 	expected := input.BaselineMean * input.RequestsInWindow
 	excess := input.Current - expected
@@ -449,7 +475,7 @@ func detectRequestsDrop(input Input, cfg Config) Result {
 
 func effectiveBaseline(input Input, cfg Config) (float64, float64) {
 	mean, stddev := paddedBaseline(input)
-	return mean, max(stddev, mean*0.1, stddevFloor(input.Metric, cfg.StddevFloors))
+	return mean, max(stddev, mean*cfg.MinimumStddevRatio, stddevFloor(input.Metric, cfg.StddevFloors))
 }
 
 func paddedBaseline(input Input) (float64, float64) {
