@@ -36,7 +36,6 @@ import { upsertRole } from "./authorization/roles/upsert";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryComputeAllocation } from "./billing/query-compute-allocation";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
-import { queryDeployUsageAnnotations } from "./billing/query-deploy-usage-annotations";
 import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
 import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
 import { queryUsage } from "./billing/query-usage";
@@ -354,7 +353,6 @@ export const router = t.router({
   billing: t.router({
     queryUsage,
     queryDeployUsage,
-    queryDeployUsageAnnotations,
     queryDeployUsageBreakdown,
     queryDeployUsageTimeseries,
     queryComputeAllocation,
