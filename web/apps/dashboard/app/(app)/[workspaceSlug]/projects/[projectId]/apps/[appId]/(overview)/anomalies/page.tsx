@@ -118,7 +118,7 @@ export default function AnomaliesPage() {
     { enabled: Boolean(activeEnvironment), staleTime: 60_000 },
   );
   const alertsQuery = trpc.alerts.list.useQuery(
-    { ...queryScope, ...range, limit: 100 },
+    { ...queryScope, ...range, includeResolved: true, limit: 100 },
     { enabled: Boolean(activeEnvironment), staleTime: 30_000 },
   );
   const deploymentsQuery = trpc.alerts.deployments.useQuery(

@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { ResourceListItem, TimestampInfo } from "@unkey/ui";
+import { formatDistanceToNowStrict } from "date-fns";
 import type { Route } from "next";
 import Link from "next/link";
 import { AlertRowChart } from "./alert-row-chart";
@@ -64,10 +65,15 @@ export function AlertRow({
           {alert.appName} <span aria-hidden="true">›</span> {alert.environmentName}
         </span>
       </div>
-      <div className="flex flex-col items-start gap-1 lg:w-[13%] lg:shrink-0">
+      <div className="flex flex-col items-start gap-1 lg:w-[14%] lg:shrink-0">
         <AlertStatusBadge status={alert.status} />
+        {alert.status === "resolved" && alert.resolvedAt ? (
+          <span className="whitespace-nowrap text-xs text-gray-9">
+            {formatDistanceToNowStrict(alert.resolvedAt, { addSuffix: true })}
+          </span>
+        ) : null}
       </div>
-      <div className="flex min-w-0 flex-col gap-1 lg:w-[27%] lg:shrink-0">
+      <div className="flex min-w-0 flex-col gap-1 lg:w-[26%] lg:shrink-0">
         <span className="truncate text-[13px] font-medium tabular-nums text-accent-12">
           {hasFixedAlertThreshold(alert.metric) ? (
             formatAlertDistance(alert.metric, alert.observedValue, alert.baselineMean)
@@ -95,6 +101,9 @@ export function AlertRow({
             {formatAlertDistance(alert.metric, alert.observedValue, alert.baselineMean)}
           </span>
         )}
+        {alert.status === "resolved" && alert.resolutionMessage ? (
+          <span className="text-xs leading-5 text-success-11">{alert.resolutionMessage}</span>
+        ) : null}
       </div>
       <div className="relative z-20 lg:w-[14%] lg:shrink-0">
         <TimestampInfo
