@@ -20,8 +20,10 @@ import (
 )
 
 const (
-	pendingGroupsStateKey = "pending_groups"
-	metadataBatchSize     = 500
+	evaluatedStateKey        = "evaluated"
+	evaluationResultStateKey = "evaluation_result"
+	metadataBatchSize        = 500
+	catchUpHorizonWindows    = int64(12)
 )
 
 type anomalyGroup struct {
@@ -29,6 +31,27 @@ type anomalyGroup struct {
 	ProjectID     string `json:"project_id"`
 	AppID         string `json:"app_id"`
 	EnvironmentID string `json:"environment_id"`
+}
+
+type shardEvaluationResult struct {
+	GroupsDispatched int32          `json:"groups_dispatched"`
+	GroupsPending    int32          `json:"groups_pending"`
+	PendingGroups    []anomalyGroup `json:"pending_groups"`
+}
+
+func (r shardEvaluationResult) response() *hydrav1.EvaluateDeployAnomalyShardResponse {
+	response := &hydrav1.EvaluateDeployAnomalyShardResponse{
+		GroupsDispatched: r.GroupsDispatched,
+		GroupsPending:    r.GroupsPending,
+		PendingGroups:    make([]*hydrav1.DeployAnomalyGroupKey, len(r.PendingGroups)),
+	}
+	for i, group := range r.PendingGroups {
+		response.PendingGroups[i] = &hydrav1.DeployAnomalyGroupKey{
+			WorkspaceId: group.WorkspaceID, ProjectId: group.ProjectID,
+			AppId: group.AppID, EnvironmentId: group.EnvironmentID,
+		}
+	}
+	return response
 }
 
 func (g anomalyGroup) key() string {
@@ -95,7 +118,7 @@ func NewShardHandler(cfg ShardConfig) (*ShardHandler, error) {
 // groups. Every Restate client call remains outside journaled Run closures.
 func (h *ShardHandler) EvaluateShard(
 	ctx restate.ObjectContext,
-	_ *hydrav1.EvaluateDeployAnomalyShardRequest,
+	req *hydrav1.EvaluateDeployAnomalyShardRequest,
 ) (*hydrav1.EvaluateDeployAnomalyShardResponse, error) {
 	windowStart, shard, shardCount, err := ParseShardKey(restate.Key(ctx))
 	if err != nil {
@@ -103,12 +126,38 @@ func (h *ShardHandler) EvaluateShard(
 	}
 	windowEnd := windowStart + windowDurationMillis
 
-	previous, err := hydrav1.NewDeployAnomalyShardServiceClient(
-		ctx,
-		ShardKey(windowStart-windowDurationMillis, shard, shardCount),
-	).GetPending().Request(&hydrav1.GetPendingDeployAnomalyGroupsRequest{})
+	evaluated, err := restate.Get[bool](ctx, evaluatedStateKey)
 	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("read previous pending anomaly groups"))
+		return nil, fault.Wrap(err, fault.Internal("get anomaly shard evaluation state"))
+	}
+	if evaluated {
+		result, getErr := restate.Get[shardEvaluationResult](ctx, evaluationResultStateKey)
+		if getErr != nil {
+			return nil, fault.Wrap(getErr, fault.Internal("get anomaly shard evaluation result"))
+		}
+		return result.response(), nil
+	}
+
+	catchUpWindowStart := req.GetCatchUpWindowStart()
+	oldestCatchUpWindowStart := windowStart - catchUpHorizonWindows*windowDurationMillis
+	if catchUpWindowStart == 0 || catchUpWindowStart < oldestCatchUpWindowStart {
+		catchUpWindowStart = oldestCatchUpWindowStart
+	}
+	previousGroups := []*hydrav1.DeployAnomalyGroupKey(nil)
+	predecessorWindowStart := windowStart - windowDurationMillis
+	if predecessorWindowStart > 0 && predecessorWindowStart >= catchUpWindowStart {
+		// A shard-count transition intentionally evaluates the predecessor under
+		// the current partition. Group VOs reject any duplicate window as stale.
+		previous, previousErr := hydrav1.NewDeployAnomalyShardServiceClient(
+			ctx,
+			ShardKey(predecessorWindowStart, shard, shardCount),
+		).EvaluateShard().Request(&hydrav1.EvaluateDeployAnomalyShardRequest{
+			CatchUpWindowStart: catchUpWindowStart,
+		})
+		if previousErr != nil {
+			return nil, fault.Wrap(previousErr, fault.Internal("evaluate previous anomaly shard"))
+		}
+		previousGroups = previous.GetPendingGroups()
 	}
 	openGroups, err := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListOpenAlertEventGroupsRow, error) {
 		rows, listErr := h.db.ListOpenAlertEventGroups(rc)
@@ -127,7 +176,7 @@ func (h *ShardHandler) EvaluateShard(
 		return nil, fault.Wrap(err, fault.Internal("list open anomaly groups for shard"))
 	}
 
-	forced := mergeForcedGroups(previous.GetGroups(), openGroups)
+	forced := mergeForcedGroups(previousGroups, openGroups)
 	groupKeys := make([]clickhouse.AnomalyGroupKey, len(forced))
 	for i := range forced {
 		groupKeys[i] = forced[i].clickhouseKey()
@@ -202,31 +251,14 @@ func (h *ShardHandler) EvaluateShard(
 		}
 	}
 	sortGroups(pending)
-	restate.Set(ctx, pendingGroupsStateKey, pending)
-	return &hydrav1.EvaluateDeployAnomalyShardResponse{
+	result := shardEvaluationResult{
 		GroupsDispatched: int32(len(futures)),
 		GroupsPending:    int32(len(pending)),
-	}, nil
-}
-
-// GetPending serializes behind the previous window's evaluation before exposing
-// its small candidate and open-alert set.
-func (h *ShardHandler) GetPending(
-	ctx restate.ObjectContext,
-	_ *hydrav1.GetPendingDeployAnomalyGroupsRequest,
-) (*hydrav1.GetPendingDeployAnomalyGroupsResponse, error) {
-	groups, err := restate.Get[[]anomalyGroup](ctx, pendingGroupsStateKey)
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("get pending anomaly groups"))
+		PendingGroups:    pending,
 	}
-	response := &hydrav1.GetPendingDeployAnomalyGroupsResponse{Groups: make([]*hydrav1.DeployAnomalyGroupKey, len(groups))}
-	for i, group := range groups {
-		response.Groups[i] = &hydrav1.DeployAnomalyGroupKey{
-			WorkspaceId: group.WorkspaceID, ProjectId: group.ProjectID,
-			AppId: group.AppID, EnvironmentId: group.EnvironmentID,
-		}
-	}
-	return response, nil
+	restate.Set(ctx, evaluationResultStateKey, result)
+	restate.Set(ctx, evaluatedStateKey, true)
+	return result.response(), nil
 }
 
 func (h *ShardHandler) resolveMetadata(ctx restate.ObjectContext, groups []anomalyGroup) ([]groupMetadata, error) {
