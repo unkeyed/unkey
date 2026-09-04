@@ -50,6 +50,14 @@ examples:
       slug: payments-api
       git:
         repository: unkeyed/unkey
+  selectRepoLater:
+    summary: Create a Git app before connecting a repository
+    description: Create a Git-sourced app and connect its GitHub repository later.
+    value:
+      project: payments
+      name: Payments API
+      slug: payments-api
+      git: {}
   ociImage:
     summary: Create from an OCI image
     description: Create an OCI-sourced app with a default image reference.

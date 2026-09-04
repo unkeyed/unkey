@@ -239,15 +239,17 @@ type AppGit struct {
 	Repository string `json:"repository"`
 }
 
-// AppGitCreateInput Connect a GitHub repository as the app source on creation.
+// AppGitCreateInput Configure Git as the app source. Provide `repository` to connect it during
+// creation, or use an empty object to connect a repository later.
 type AppGitCreateInput struct {
-	// DefaultBranch The branch this app's deployments track. Omit to adopt the repository's
-	// default branch on GitHub.
+	// DefaultBranch The branch this app's deployments track. This requires `repository`.
+	// Omit it to adopt the repository's default branch on GitHub.
 	DefaultBranch *string `json:"defaultBranch,omitempty"`
 
 	// Repository The GitHub repository to connect, as "owner/repo". The workspace must have
-	// the Unkey GitHub App installed with access to it.
-	Repository string `json:"repository"`
+	// the Unkey GitHub App installed with access to it. Omit this field to create
+	// the Git app before selecting its repository.
+	Repository *string `json:"repository,omitempty"`
 }
 
 // AppGitUpdateInput defines model for AppGitUpdateInput.
@@ -1847,7 +1849,8 @@ type V2ApisListKeysResponseData = []KeyResponseData
 // V2AppsCreateAppRequestBody Create an app with exactly one source: `git` or `oci`. Requests that omit a
 // source or provide both sources are rejected.
 type V2AppsCreateAppRequestBody struct {
-	// Git Connect a GitHub repository as the app source on creation.
+	// Git Configure Git as the app source. Provide `repository` to connect it during
+	// creation, or use an empty object to connect a repository later.
 	Git *AppGitCreateInput `json:"git,omitempty"`
 
 	// Name Human-readable name for this app.

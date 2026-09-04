@@ -11,6 +11,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/db"
 	github "github.com/unkeyed/unkey/pkg/github"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -64,7 +65,7 @@ func TestCreateAppConnectRepository(t *testing.T) {
 		Project: project.ID,
 		Name:    "Payments API",
 		Slug:    slug(),
-		Git:     &openapi.AppGitCreateInput{Repository: "unkeyed/unkey"},
+		Git:     &openapi.AppGitCreateInput{Repository: ptr.P("unkeyed/unkey")},
 	})
 	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, appID, res.Body.Data.AppId)
@@ -87,6 +88,45 @@ func TestCreateAppConnectRepository(t *testing.T) {
 		}
 	}
 	require.True(t, found, "should find an app.connect_repository audit log event")
+}
+
+func TestCreateGitAppWithoutRepository(t *testing.T) {
+	ctx := context.Background()
+	h := testutil.NewHarness(t)
+
+	appID := uid.New(uid.AppPrefix)
+	ctrlClient := &testutil.MockAppClient{
+		CreateAppFunc: func(_ context.Context, _ *ctrlv1.CreateAppRequest) (*ctrlv1.CreateAppResponse, error) {
+			return &ctrlv1.CreateAppResponse{Id: appID}, nil
+		},
+	}
+	route := &handler.Handler{DB: h.DB, CtrlClient: ctrlClient}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	rootKey := h.CreateRootKey(workspace.ID, "project.*.create_app")
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Payments",
+		Slug:        slug(),
+	})
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}, handler.Request{
+		Project: project.ID,
+		Name:    "Payments API",
+		Slug:    slug(),
+		Git:     &openapi.AppGitCreateInput{},
+	})
+
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, ctrlClient.CreateAppCalls, 1)
+	require.NotNil(t, ctrlClient.CreateAppCalls[0].GetGit())
+	_, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), appID)
+	require.True(t, db.IsNotFound(err))
 }
 
 func TestCreateAppConnectRepositoryForbidden(t *testing.T) {
@@ -126,7 +166,7 @@ func TestCreateAppConnectRepositoryForbidden(t *testing.T) {
 		Project: project.ID,
 		Name:    "Payments API",
 		Slug:    slug(),
-		Git:     &openapi.AppGitCreateInput{Repository: "unkeyed/unkey"},
+		Git:     &openapi.AppGitCreateInput{Repository: ptr.P("unkeyed/unkey")},
 	})
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
 }
