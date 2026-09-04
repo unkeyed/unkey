@@ -22,7 +22,7 @@ import (
 )
 
 // Target is one deployment to abort. An empty InvocationID still transitions
-// the row; there is just no invocation to kill.
+// the row. There is just no invocation to kill.
 type Target struct {
 	ID           string
 	InvocationID string
@@ -57,16 +57,18 @@ type Params struct {
 
 // Cancel aborts every target. The order matters.
 //
-// The status flip comes before the invocation cancel because cancelling fires
-// Deploy's compensation stack, which writes failed through the same
-// progressing-only guard; flipping first wins that race. The two row writes are
-// best-effort and only logged: a leaked invocation costs more than a wrong
-// status.
+// The status flips before the invocation is cancelled. A running Deploy takes
+// the cancel as a terminal error and unwinds its compensation stack, which
+// writes failed through the same progressing-only guard, so whichever write
+// lands first stays. The flip has returned before the cancel is sent, so it is
+// always first. A Deploy that has not started yet sees the flipped row at its
+// terminal check instead and never builds.
 //
-// Invocation errors are joined and returned so the caller retries the whole
-// call, which is safe because every write tolerates a row already in its end
-// state. Audit runs last, so a retry that still has cancelling to do cannot
-// write the entries twice.
+// The two row writes are best-effort and only logged, because a leaked
+// invocation costs more than a wrong status. Invocation errors are joined and
+// returned so the caller retries the whole call, which is safe because every
+// write tolerates a row already in its end state. Audit runs last, so a retry
+// that still has cancelling to do cannot write the entries twice.
 func Cancel(ctx context.Context, database db.Database, admin InvocationCanceler, p Params) error {
 	if len(p.Targets) == 0 {
 		return nil
