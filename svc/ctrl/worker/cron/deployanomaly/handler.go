@@ -8,6 +8,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 )
 
@@ -45,7 +46,7 @@ func ParseWindowStart(key string) (int64, error) {
 	value := strings.TrimPrefix(key, "deploy-anomaly-")
 	seconds, err := strconv.ParseInt(value, 10, 64)
 	if err != nil || seconds <= 0 || seconds%300 != 0 {
-		return 0, fmt.Errorf("invalid deploy anomaly window key %q", key)
+		return 0, fault.New(fmt.Sprintf("invalid deploy anomaly window key %q", key))
 	}
 	return seconds * 1_000, nil
 }
@@ -73,7 +74,7 @@ func (h *Handler) Handle(
 	for shard, future := range futures {
 		result, responseErr := future.Response()
 		if responseErr != nil {
-			return nil, fmt.Errorf("evaluate deploy anomaly shard %d: %w", shard, responseErr)
+			return nil, fault.Wrap(responseErr, fault.Internal(fmt.Sprintf("evaluate deploy anomaly shard %d", shard)))
 		}
 		response.GroupsDispatched += result.GetGroupsDispatched()
 		response.GroupsPending += result.GetGroupsPending()
@@ -82,7 +83,7 @@ func (h *Handler) Handle(
 	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
 		return h.heartbeat.Ping(rc)
 	}, restate.WithName("send heartbeat")); err != nil {
-		return nil, fmt.Errorf("send heartbeat: %w", err)
+		return nil, fault.Wrap(err, fault.Internal("send heartbeat"))
 	}
 	return response, nil
 }
@@ -96,19 +97,19 @@ func ShardKey(windowStart int64, shard, shardCount uint64) string {
 func ParseShardKey(key string) (windowStart int64, shard, shardCount uint64, err error) {
 	parts := strings.Split(key, "/")
 	if len(parts) != 3 {
-		return 0, 0, 0, fmt.Errorf("invalid deploy anomaly shard key %q", key)
+		return 0, 0, 0, fault.New(fmt.Sprintf("invalid deploy anomaly shard key %q", key))
 	}
 	windowStart, err = strconv.ParseInt(parts[0], 10, 64)
 	if err != nil || windowStart <= 0 || windowStart%windowDurationMillis != 0 {
-		return 0, 0, 0, fmt.Errorf("invalid deploy anomaly shard window %q", key)
+		return 0, 0, 0, fault.New(fmt.Sprintf("invalid deploy anomaly shard window %q", key))
 	}
 	shard, err = strconv.ParseUint(parts[1], 10, 64)
 	if err != nil {
-		return 0, 0, 0, fmt.Errorf("invalid deploy anomaly shard %q", key)
+		return 0, 0, 0, fault.New(fmt.Sprintf("invalid deploy anomaly shard %q", key))
 	}
 	shardCount, err = strconv.ParseUint(parts[2], 10, 64)
 	if err != nil || shardCount == 0 || shard >= shardCount {
-		return 0, 0, 0, fmt.Errorf("invalid deploy anomaly shard count %q", key)
+		return 0, 0, 0, fault.New(fmt.Sprintf("invalid deploy anomaly shard count %q", key))
 	}
 	return windowStart, shard, shardCount, nil
 }

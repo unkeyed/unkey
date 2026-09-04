@@ -327,12 +327,6 @@ func TestSensitivitySigmaK(t *testing.T) {
 	require.Equal(t, 4.0, Sensitivity("unknown").SigmaK())
 }
 
-func TestShouldResolve(t *testing.T) {
-	require.False(t, ShouldResolve(2))
-	require.True(t, ShouldResolve(3))
-	require.True(t, ShouldResolve(4))
-}
-
 func TestDetectSigmaIsScaleInvariant(t *testing.T) {
 	cfg := Config{SigmaK: 4}
 	base := Input{

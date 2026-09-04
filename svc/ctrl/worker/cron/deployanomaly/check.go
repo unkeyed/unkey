@@ -8,6 +8,7 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -72,7 +73,7 @@ func (h *CheckHandler) Evaluate(
 	for _, metricValue := range req.GetMetrics() {
 		metric := Metric(metricValue.GetMetric())
 		if !validMetric(metric) {
-			return nil, restate.TerminalError(fmt.Errorf("unsupported deploy anomaly metric %q", metric))
+			return nil, restate.TerminalError(fault.New(fmt.Sprintf("unsupported deploy anomaly metric %q", metric)))
 		}
 
 		if metricValue.GetDataState() == hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_INCOMPLETE {
@@ -86,7 +87,7 @@ func (h *CheckHandler) Evaluate(
 
 		openID, err := restate.Get[string](ctx, openAlertKey(metric))
 		if err != nil {
-			return nil, fmt.Errorf("get open alert for %s: %w", metric, err)
+			return nil, fault.Wrap(err, fault.Internal(fmt.Sprintf("get open alert for %s", metric)))
 		}
 		if metric == MetricRequestsDrop && requestDropSuppressed(req) {
 			if err := h.suppressRequestDrop(ctx, req, openID); err != nil {
@@ -97,11 +98,11 @@ func (h *CheckHandler) Evaluate(
 
 		candidate, err := restate.Get[bool](ctx, candidateKey(metric))
 		if err != nil {
-			return nil, fmt.Errorf("get candidate for %s: %w", metric, err)
+			return nil, fault.Wrap(err, fault.Internal(fmt.Sprintf("get candidate for %s", metric)))
 		}
 		candidateWindow, err := restate.Get[int64](ctx, candidateWindowKey(metric))
 		if err != nil {
-			return nil, fmt.Errorf("get candidate window for %s: %w", metric, err)
+			return nil, fault.Wrap(err, fault.Internal(fmt.Sprintf("get candidate window for %s", metric)))
 		}
 		previousCandidate := candidate && candidateWindow == req.GetWindowStart()-windowDurationMillis
 
@@ -109,7 +110,7 @@ func (h *CheckHandler) Evaluate(
 		if metric == MetricRequestsDrop && metricValue.GetDataState() == hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_ZERO_COMPLETE && (candidate || openID != "") {
 			stored, getErr := restate.Get[Input](ctx, detectorInputKey(metric))
 			if getErr != nil {
-				return nil, fmt.Errorf("get stored detector input for %s: %w", metric, getErr)
+				return nil, fault.Wrap(getErr, fault.Internal(fmt.Sprintf("get stored detector input for %s", metric)))
 			}
 			stored.Current = 0
 			stored.RequestsInWindow = 0
@@ -141,7 +142,7 @@ func (h *CheckHandler) Evaluate(
 			restate.Clear(ctx, candidateWindowKey(metric))
 			restate.Clear(ctx, detectorInputKey(metric))
 		default:
-			return nil, restate.TerminalError(fmt.Errorf("unsupported detector outcome %q", result.Outcome))
+			return nil, restate.TerminalError(fault.New(fmt.Sprintf("unsupported detector outcome %q", result.Outcome)))
 		}
 	}
 
@@ -155,7 +156,7 @@ func (h *CheckHandler) Evaluate(
 func (h *CheckHandler) reconcile(ctx restate.ObjectContext, req *hydrav1.EvaluateDeployAnomalyRequest) error {
 	reconciled, err := restate.Get[bool](ctx, "open_alerts_reconciled")
 	if err != nil {
-		return fmt.Errorf("get reconciliation state: %w", err)
+		return fault.Wrap(err, fault.Internal("get reconciliation state"))
 	}
 	if reconciled {
 		return nil
@@ -166,7 +167,7 @@ func (h *CheckHandler) reconcile(ctx restate.ObjectContext, req *hydrav1.Evaluat
 		})
 	}, restate.WithName("reconcile open anomaly alerts"))
 	if err != nil {
-		return fmt.Errorf("reconcile open anomaly alerts: %w", err)
+		return fault.Wrap(err, fault.Internal("reconcile open anomaly alerts"))
 	}
 	cfg := DefaultConfig(SensitivityNormal)
 	for _, row := range rows {
@@ -252,7 +253,7 @@ func (h *CheckHandler) open(ctx restate.ObjectContext, req *hydrav1.EvaluateDepl
 		return openResult{ID: id, FiredAt: req.GetWindowEnd(), Snapshot: result}, err
 	}, restate.WithName("insert anomaly alert"))
 	if err != nil {
-		return fmt.Errorf("insert anomaly alert for %s: %w", input.Metric, err)
+		return fault.Wrap(err, fault.Internal(fmt.Sprintf("insert anomaly alert for %s", input.Metric)))
 	}
 	alertID := opened.ID
 
@@ -278,14 +279,14 @@ func (h *CheckHandler) open(ctx restate.ObjectContext, req *hydrav1.EvaluateDepl
 func (h *CheckHandler) evaluateOpen(ctx restate.ObjectContext, req *hydrav1.EvaluateDeployAnomalyRequest, input Input, alertID string, cfg Config) error {
 	firedAt, err := restate.Get[int64](ctx, firedAtKey(input.Metric))
 	if err != nil {
-		return fmt.Errorf("get fired time for %s: %w", input.Metric, err)
+		return fault.Wrap(err, fault.Internal(fmt.Sprintf("get fired time for %s", input.Metric)))
 	}
 	if maxOpenDurationReached(firedAt, req.GetWindowEnd(), cfg.MaxOpenDuration) {
 		return h.resolve(ctx, req, alertID, input.Metric, baselineAdaptedMessage)
 	}
 	snapshot, err := restate.Get[Result](ctx, snapshotKey(input.Metric))
 	if err != nil {
-		return fmt.Errorf("get opening snapshot for %s: %w", input.Metric, err)
+		return fault.Wrap(err, fault.Internal(fmt.Sprintf("get opening snapshot for %s", input.Metric)))
 	}
 	if !Recovered(input, snapshot, cfg) {
 		restate.Set(ctx, quietKey(input.Metric), 0)
@@ -295,7 +296,7 @@ func (h *CheckHandler) evaluateOpen(ctx restate.ObjectContext, req *hydrav1.Eval
 
 	quiet, err := restate.Get[int](ctx, quietKey(input.Metric))
 	if err != nil {
-		return fmt.Errorf("get quiet windows for %s: %w", input.Metric, err)
+		return fault.Wrap(err, fault.Internal(fmt.Sprintf("get quiet windows for %s", input.Metric)))
 	}
 	quiet++
 	if !ShouldResolve(quiet) {
@@ -328,7 +329,7 @@ func (h *CheckHandler) resolve(ctx restate.ObjectContext, req *hydrav1.EvaluateD
 		})
 	}, restate.WithName("resolve anomaly alert"))
 	if err != nil {
-		return fmt.Errorf("resolve anomaly alert %s: %w", alertID, err)
+		return fault.Wrap(err, fault.Internal(fmt.Sprintf("resolve anomaly alert %s", alertID)))
 	}
 	clearMetricState(ctx, metric)
 	return nil
@@ -378,11 +379,11 @@ func hasPendingState(ctx restate.ObjectContext) (bool, error) {
 	for _, metric := range allMetrics {
 		openID, err := restate.Get[string](ctx, openAlertKey(metric))
 		if err != nil {
-			return false, fmt.Errorf("get open alert for %s: %w", metric, err)
+			return false, fault.Wrap(err, fault.Internal(fmt.Sprintf("get open alert for %s", metric)))
 		}
 		candidate, err := restate.Get[bool](ctx, candidateKey(metric))
 		if err != nil {
-			return false, fmt.Errorf("get candidate for %s: %w", metric, err)
+			return false, fault.Wrap(err, fault.Internal(fmt.Sprintf("get candidate for %s", metric)))
 		}
 		if openID != "" || candidate {
 			return true, nil

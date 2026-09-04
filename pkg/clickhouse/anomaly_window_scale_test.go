@@ -62,10 +62,11 @@ func TestAnomalyWindowsScale(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, conn.Close()) })
 
-	ctx := context.Background()
+	ctx := t.Context()
 	require.NoError(t, conn.Ping(ctx))
 	truncateAnomalyScaleTables(t, ctx, conn)
-	t.Cleanup(func() { truncateAnomalyScaleTables(t, ctx, conn) })
+	cleanupCtx := context.WithoutCancel(ctx)
+	t.Cleanup(func() { truncateAnomalyScaleTables(t, cleanupCtx, conn) })
 
 	windowStart := time.Now().UTC().Truncate(5 * time.Minute).Add(-5 * time.Minute)
 	queryName := os.Getenv(anomalyScaleQueryEnv)
