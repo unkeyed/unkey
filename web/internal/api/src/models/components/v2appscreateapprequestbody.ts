@@ -36,9 +36,10 @@ export type V2AppsCreateAppRequestBody = {
    */
   slug: string;
   /**
-   * Connect a GitHub repository as the app source on creation.
+   * Configure Git as the app source. Provide `repository` to connect it during
    *
    * @remarks
+   * creation, or use an empty object to connect a repository later.
    */
   git?: AppGitCreateInput | undefined;
   /**
