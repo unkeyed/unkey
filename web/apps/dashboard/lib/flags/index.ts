@@ -97,3 +97,17 @@ export const portalManagement = flag<boolean, Entities>({
   identify,
   adapter: adapter(),
 });
+
+// appMetrics gates the per-app Metrics tab. Off until the page leaves
+// prototype; enable per-workspace to test against real traffic first.
+export const appMetrics = flag<boolean, Entities>({
+  key: "app-metrics",
+  description: "Show the app-level Metrics tab (resources, requests, latency with deploy markers).",
+  defaultValue: false,
+  options: [
+    { value: false, label: "Off" },
+    { value: true, label: "On" },
+  ],
+  identify,
+  adapter: adapter(),
+});
