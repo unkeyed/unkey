@@ -119,6 +119,9 @@ func NewDeployAnomalyServiceServer(srv DeployAnomalyServiceServer, opts ...sdk_g
 // DeployAnomalyShardService owns one stable workspace hash partition for one
 // window. The key is "<window_start_ms>/<shard>/<shard_count>". It journals
 // only one shard's SQL candidates and fans those groups out to their evaluators.
+// Each window calls the previous window's exclusive GetPending handler before
+// dispatch, which keeps one shard chronological. EvaluateShard retries are
+// bounded and kill on exhaustion so a failed window cannot wedge the chain.
 type DeployAnomalyShardServiceClient interface {
 	EvaluateShard(opts ...sdk_go.ClientOption) sdk_go.Client[*EvaluateDeployAnomalyShardRequest, *EvaluateDeployAnomalyShardResponse]
 	GetPending(opts ...sdk_go.ClientOption) sdk_go.Client[*GetPendingDeployAnomalyGroupsRequest, *GetPendingDeployAnomalyGroupsResponse]
@@ -193,9 +196,12 @@ func (c *deployAnomalyShardServiceIngressClient) GetPending() ingress.Requester[
 // DeployAnomalyShardService owns one stable workspace hash partition for one
 // window. The key is "<window_start_ms>/<shard>/<shard_count>". It journals
 // only one shard's SQL candidates and fans those groups out to their evaluators.
+// Each window calls the previous window's exclusive GetPending handler before
+// dispatch, which keeps one shard chronological. EvaluateShard retries are
+// bounded and kill on exhaustion so a failed window cannot wedge the chain.
 type DeployAnomalyShardServiceServer interface {
 	EvaluateShard(ctx sdk_go.ObjectContext, req *EvaluateDeployAnomalyShardRequest) (*EvaluateDeployAnomalyShardResponse, error)
-	GetPending(ctx sdk_go.ObjectSharedContext, req *GetPendingDeployAnomalyGroupsRequest) (*GetPendingDeployAnomalyGroupsResponse, error)
+	GetPending(ctx sdk_go.ObjectContext, req *GetPendingDeployAnomalyGroupsRequest) (*GetPendingDeployAnomalyGroupsResponse, error)
 }
 
 // UnimplementedDeployAnomalyShardServiceServer should be embedded to have
@@ -208,7 +214,7 @@ type UnimplementedDeployAnomalyShardServiceServer struct{}
 func (UnimplementedDeployAnomalyShardServiceServer) EvaluateShard(ctx sdk_go.ObjectContext, req *EvaluateDeployAnomalyShardRequest) (*EvaluateDeployAnomalyShardResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method EvaluateShard not implemented"), 501)
 }
-func (UnimplementedDeployAnomalyShardServiceServer) GetPending(ctx sdk_go.ObjectSharedContext, req *GetPendingDeployAnomalyGroupsRequest) (*GetPendingDeployAnomalyGroupsResponse, error) {
+func (UnimplementedDeployAnomalyShardServiceServer) GetPending(ctx sdk_go.ObjectContext, req *GetPendingDeployAnomalyGroupsRequest) (*GetPendingDeployAnomalyGroupsResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method GetPending not implemented"), 501)
 }
 func (UnimplementedDeployAnomalyShardServiceServer) testEmbeddedByValue() {}
@@ -231,6 +237,6 @@ func NewDeployAnomalyShardServiceServer(srv DeployAnomalyShardServiceServer, opt
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewObject("hydra.v1.DeployAnomalyShardService", sOpts...)
 	router = router.Handler("EvaluateShard", sdk_go.NewObjectHandler(srv.EvaluateShard))
-	router = router.Handler("GetPending", sdk_go.NewObjectSharedHandler(srv.GetPending))
+	router = router.Handler("GetPending", sdk_go.NewObjectHandler(srv.GetPending))
 	return router
 }

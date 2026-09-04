@@ -209,10 +209,10 @@ func (h *ShardHandler) EvaluateShard(
 	}, nil
 }
 
-// GetPending exposes the previous window's small candidate and open-alert set
-// without serializing behind its completed exclusive evaluation.
+// GetPending serializes behind the previous window's evaluation before exposing
+// its small candidate and open-alert set.
 func (h *ShardHandler) GetPending(
-	ctx restate.ObjectSharedContext,
+	ctx restate.ObjectContext,
 	_ *hydrav1.GetPendingDeployAnomalyGroupsRequest,
 ) (*hydrav1.GetPendingDeployAnomalyGroupsResponse, error) {
 	groups, err := restate.Get[[]anomalyGroup](ctx, pendingGroupsStateKey)
