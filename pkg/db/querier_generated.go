@@ -883,18 +883,15 @@ type Querier interface {
 	//  WHERE id = ?
 	//  LIMIT 1
 	FindPermissionByID(ctx context.Context, db DBTX, permissionID string) (Permission, error)
-	// FindPermissionByIdOrSlug resolves IDs from any project in the workspace and
-	// resolves slugs only from the requested project.
+	// FindPermissionByIdOrSlug resolves a permission by ID or slug within the requested project.
 	//
 	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
 	//  FROM permissions
 	//  WHERE workspace_id = ?
+	//    AND project_id = ?
 	//    AND (
 	//      id = ?
-	//      OR (
-	//        project_id = ?
-	//        AND slug = ?
-	//      )
+	//      OR slug = ?
 	//    )
 	FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (Permission, error)
 	// FindPermissionBySlugAndProjectID resolves a duplicate insert to the existing
@@ -1103,8 +1100,7 @@ type Querier interface {
 	//  WHERE id = ?
 	//  LIMIT 1
 	FindRoleByID(ctx context.Context, db DBTX, roleID string) (Role, error)
-	// FindRoleByIdOrNameWithPerms resolves IDs from any project in the workspace
-	// and resolves names only from the requested project.
+	// FindRoleByIdOrNameWithPerms resolves a role by ID or name within the requested project.
 	//
 	//  SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -1123,13 +1119,11 @@ type Querier interface {
 	//  ) as permissions
 	//  FROM roles r
 	//  WHERE r.workspace_id = ?
+	//    AND r.project_id = ?
 	//    AND (
 	//      r.id = ?
-	//      OR (
-	//        r.project_id = ?
-	//        AND r.name = ?
-	//      )
-	//  )
+	//      OR r.name = ?
+	//    )
 	FindRoleByIdOrNameWithPerms(ctx context.Context, db DBTX, arg FindRoleByIdOrNameWithPermsParams) (FindRoleByIdOrNameWithPermsRow, error)
 	//FindRolePermissionByRoleAndPermissionID
 	//
