@@ -139,6 +139,58 @@ func TestAnomalyCandidateFilterSuperset(t *testing.T) {
 	require.Equal(t, explicit, requestWindowKey(explicitRows[0]))
 }
 
+func TestAnomalyCandidateFilterIncludesInteriorLifetimeThreshold(t *testing.T) {
+	t.Parallel()
+
+	cfg := containers.ClickHouse(t)
+	client, err := clickhouse.New(clickhouse.Config{URL: cfg.DSN})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	opts, err := ch.ParseDSN(cfg.DSN)
+	require.NoError(t, err)
+	conn, err := ch.Open(opts)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, conn.Close()) })
+
+	ctx := t.Context()
+	windowStart := time.Now().UTC().Truncate(5 * time.Minute).Add(-5 * time.Minute)
+	ids := candidateTestIDs(uid.New("interior"), 0)
+	batch, err := conn.PrepareBatch(ctx, `
+		INSERT INTO default.frontline_requests_per_5m_v1
+			(time, workspace_id, project_id, app_id, environment_id, deployment_id, response_status, count)
+	`)
+	require.NoError(t, err)
+	for bucket := range 100 {
+		require.NoError(t, batch.Append(
+			windowStart.Add(-time.Duration(100-bucket)*5*time.Minute),
+			ids.WorkspaceID, ids.ProjectID, ids.AppID, ids.EnvironmentID, "dep", int32(200), int64(200),
+		))
+	}
+	require.NoError(t, batch.Append(
+		windowStart, ids.WorkspaceID, ids.ProjectID, ids.AppID, ids.EnvironmentID, "dep", int32(200), int64(279),
+	))
+	require.NoError(t, batch.Send())
+
+	detectorConfig := deployanomaly.DefaultConfig(deployanomaly.SensitivityNormal)
+	result := deployanomaly.Detect(deployanomaly.Input{
+		Metric:                  deployanomaly.MetricRequests,
+		Current:                 279,
+		BaselineMean:            200,
+		ObservedBaselineBuckets: 100,
+		BaselineWindowBuckets:   101,
+	}, detectorConfig)
+	require.Equal(t, deployanomaly.OutcomeAnomaly, result.Outcome)
+	require.Less(t, result.ThresholdValue, 279.0)
+
+	filter := candidateTestFilter(detectorConfig)
+	rows, err := client.GetRequestAnomalyWindows(ctx, clickhouse.AnomalyWindowsRequest{
+		WindowStart: windowStart.UnixMilli(), WorkspaceIDs: []string{ids.WorkspaceID}, CandidateFilter: &filter,
+	})
+	require.NoError(t, err)
+	require.Len(t, rows, 1, "SQL candidate filtering must include every possible app lifetime")
+	require.Equal(t, ids, requestWindowKey(rows[0]))
+}
+
 func candidateTestIDs(scope string, group int) clickhouse.AnomalyGroupKey {
 	suffix := fmt.Sprintf("%s-%03d", scope, group)
 	return clickhouse.AnomalyGroupKey{
