@@ -23,6 +23,206 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// CreateDecision is what happens to the row after it is written. The caller
+// decides, because the inputs (watch paths, fork pushes) are only visible to
+// the GitHub webhook. Create does not re-check it.
+type CreateDecision int32
+
+const (
+	CreateDecision_CREATE_DECISION_UNSPECIFIED CreateDecision = 0
+	CreateDecision_CREATE_DECISION_DEPLOY      CreateDecision = 1
+	// Record the commit without building it.
+	CreateDecision_CREATE_DECISION_SKIP CreateDecision = 2
+	// Wait for AuthorizeDeployment before building.
+	CreateDecision_CREATE_DECISION_AWAIT_APPROVAL CreateDecision = 3
+)
+
+// Enum value maps for CreateDecision.
+var (
+	CreateDecision_name = map[int32]string{
+		0: "CREATE_DECISION_UNSPECIFIED",
+		1: "CREATE_DECISION_DEPLOY",
+		2: "CREATE_DECISION_SKIP",
+		3: "CREATE_DECISION_AWAIT_APPROVAL",
+	}
+	CreateDecision_value = map[string]int32{
+		"CREATE_DECISION_UNSPECIFIED":    0,
+		"CREATE_DECISION_DEPLOY":         1,
+		"CREATE_DECISION_SKIP":           2,
+		"CREATE_DECISION_AWAIT_APPROVAL": 3,
+	}
+)
+
+func (x CreateDecision) Enum() *CreateDecision {
+	p := new(CreateDecision)
+	*p = x
+	return p
+}
+
+func (x CreateDecision) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CreateDecision) Descriptor() protoreflect.EnumDescriptor {
+	return file_hydra_v1_deploy_proto_enumTypes[0].Descriptor()
+}
+
+func (CreateDecision) Type() protoreflect.EnumType {
+	return &file_hydra_v1_deploy_proto_enumTypes[0]
+}
+
+func (x CreateDecision) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use CreateDecision.Descriptor instead.
+func (CreateDecision) EnumDescriptor() ([]byte, []int) {
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{0}
+}
+
+// CreateOutcome is what a create did. A refused create returns REJECTED instead
+// of a terminal error, because the Restate ingress flattens errors to text and a
+// one-way caller would otherwise leave a failed invocation behind.
+type CreateOutcome int32
+
+const (
+	CreateOutcome_CREATE_OUTCOME_UNSPECIFIED CreateOutcome = 0
+	// CREATED wrote a new row.
+	CreateOutcome_CREATE_OUTCOME_CREATED CreateOutcome = 1
+	// REJECTED wrote nothing. See rejection_reason.
+	CreateOutcome_CREATE_OUTCOME_REJECTED CreateOutcome = 2
+)
+
+// Enum value maps for CreateOutcome.
+var (
+	CreateOutcome_name = map[int32]string{
+		0: "CREATE_OUTCOME_UNSPECIFIED",
+		1: "CREATE_OUTCOME_CREATED",
+		2: "CREATE_OUTCOME_REJECTED",
+	}
+	CreateOutcome_value = map[string]int32{
+		"CREATE_OUTCOME_UNSPECIFIED": 0,
+		"CREATE_OUTCOME_CREATED":     1,
+		"CREATE_OUTCOME_REJECTED":    2,
+	}
+)
+
+func (x CreateOutcome) Enum() *CreateOutcome {
+	p := new(CreateOutcome)
+	*p = x
+	return p
+}
+
+func (x CreateOutcome) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CreateOutcome) Descriptor() protoreflect.EnumDescriptor {
+	return file_hydra_v1_deploy_proto_enumTypes[1].Descriptor()
+}
+
+func (CreateOutcome) Type() protoreflect.EnumType {
+	return &file_hydra_v1_deploy_proto_enumTypes[1]
+}
+
+func (x CreateOutcome) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use CreateOutcome.Descriptor instead.
+func (CreateOutcome) EnumDescriptor() ([]byte, []int) {
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{1}
+}
+
+// CreateRejectionReason is why a create was refused.
+type CreateRejectionReason int32
+
+const (
+	CreateRejectionReason_CREATE_REJECTION_REASON_UNSPECIFIED CreateRejectionReason = 0
+	// The workspace has no Compute plan.
+	CreateRejectionReason_CREATE_REJECTION_REASON_NO_COMPUTE_PLAN CreateRejectionReason = 1
+	// The workspace is over its Compute spend cap.
+	CreateRejectionReason_CREATE_REJECTION_REASON_SPEND_SUSPENDED CreateRejectionReason = 2
+	// The project, app, or environment does not exist, or they do not belong
+	// together.
+	CreateRejectionReason_CREATE_REJECTION_REASON_TARGET_NOT_FOUND CreateRejectionReason = 3
+	// A git source was requested for an app with no connected repository.
+	CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION CreateRejectionReason = 4
+	// GitHub could not resolve the requested branch or commit.
+	CreateRejectionReason_CREATE_REJECTION_REASON_COMMIT_NOT_RESOLVED CreateRejectionReason = 5
+	// The existing deployment has neither a buildable commit nor an image.
+	CreateRejectionReason_CREATE_REJECTION_REASON_NO_SOURCE_IMAGE CreateRejectionReason = 6
+	// A newer active deployment exists on the same app, environment, and branch.
+	// Only with require_no_newer set.
+	CreateRejectionReason_CREATE_REJECTION_REASON_NEWER_DEPLOYMENT_EXISTS CreateRejectionReason = 7
+	// The image is not a well-formed container reference.
+	CreateRejectionReason_CREATE_REJECTION_REASON_INVALID_IMAGE CreateRejectionReason = 8
+	// The environment's port, cpu, or memory is out of bounds, or it has no
+	// schedulable region.
+	CreateRejectionReason_CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE CreateRejectionReason = 9
+	// existing_deployment does not exist or belongs to another app or
+	// environment. One reason for both, so a caller cannot probe for deployments
+	// it cannot reach.
+	CreateRejectionReason_CREATE_REJECTION_REASON_SOURCE_DEPLOYMENT_NOT_FOUND CreateRejectionReason = 10
+)
+
+// Enum value maps for CreateRejectionReason.
+var (
+	CreateRejectionReason_name = map[int32]string{
+		0:  "CREATE_REJECTION_REASON_UNSPECIFIED",
+		1:  "CREATE_REJECTION_REASON_NO_COMPUTE_PLAN",
+		2:  "CREATE_REJECTION_REASON_SPEND_SUSPENDED",
+		3:  "CREATE_REJECTION_REASON_TARGET_NOT_FOUND",
+		4:  "CREATE_REJECTION_REASON_NO_REPO_CONNECTION",
+		5:  "CREATE_REJECTION_REASON_COMMIT_NOT_RESOLVED",
+		6:  "CREATE_REJECTION_REASON_NO_SOURCE_IMAGE",
+		7:  "CREATE_REJECTION_REASON_NEWER_DEPLOYMENT_EXISTS",
+		8:  "CREATE_REJECTION_REASON_INVALID_IMAGE",
+		9:  "CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE",
+		10: "CREATE_REJECTION_REASON_SOURCE_DEPLOYMENT_NOT_FOUND",
+	}
+	CreateRejectionReason_value = map[string]int32{
+		"CREATE_REJECTION_REASON_UNSPECIFIED":                 0,
+		"CREATE_REJECTION_REASON_NO_COMPUTE_PLAN":             1,
+		"CREATE_REJECTION_REASON_SPEND_SUSPENDED":             2,
+		"CREATE_REJECTION_REASON_TARGET_NOT_FOUND":            3,
+		"CREATE_REJECTION_REASON_NO_REPO_CONNECTION":          4,
+		"CREATE_REJECTION_REASON_COMMIT_NOT_RESOLVED":         5,
+		"CREATE_REJECTION_REASON_NO_SOURCE_IMAGE":             6,
+		"CREATE_REJECTION_REASON_NEWER_DEPLOYMENT_EXISTS":     7,
+		"CREATE_REJECTION_REASON_INVALID_IMAGE":               8,
+		"CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE":  9,
+		"CREATE_REJECTION_REASON_SOURCE_DEPLOYMENT_NOT_FOUND": 10,
+	}
+)
+
+func (x CreateRejectionReason) Enum() *CreateRejectionReason {
+	p := new(CreateRejectionReason)
+	*p = x
+	return p
+}
+
+func (x CreateRejectionReason) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CreateRejectionReason) Descriptor() protoreflect.EnumDescriptor {
+	return file_hydra_v1_deploy_proto_enumTypes[2].Descriptor()
+}
+
+func (CreateRejectionReason) Type() protoreflect.EnumType {
+	return &file_hydra_v1_deploy_proto_enumTypes[2]
+}
+
+func (x CreateRejectionReason) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use CreateRejectionReason.Descriptor instead.
+func (CreateRejectionReason) EnumDescriptor() ([]byte, []int) {
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{2}
+}
+
 // TeardownMode selects whether the stopped deployments are permanently archived
 // (cancel) or left resumable (spend cap). It does not affect the desired state
 // they land in, both stop and drain identically; it selects resumability:
@@ -64,11 +264,11 @@ func (x TeardownMode) String() string {
 }
 
 func (TeardownMode) Descriptor() protoreflect.EnumDescriptor {
-	return file_hydra_v1_deploy_proto_enumTypes[0].Descriptor()
+	return file_hydra_v1_deploy_proto_enumTypes[3].Descriptor()
 }
 
 func (TeardownMode) Type() protoreflect.EnumType {
-	return &file_hydra_v1_deploy_proto_enumTypes[0]
+	return &file_hydra_v1_deploy_proto_enumTypes[3]
 }
 
 func (x TeardownMode) Number() protoreflect.EnumNumber {
@@ -77,7 +277,7 @@ func (x TeardownMode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TeardownMode.Descriptor instead.
 func (TeardownMode) EnumDescriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{0}
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{3}
 }
 
 type StopDeploymentRequest struct {
@@ -530,6 +730,397 @@ func (x *GitSource) GetBuildCommand() string {
 	return ""
 }
 
+// CreateGitSource builds from a commit in the app's connected repository.
+type CreateGitSource struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty fields are filled from GitHub. With neither a sha nor a branch, the
+	// app's default branch is built. A sha alone is built as is; no branch is
+	// inferred for it.
+	Commit *v1.GitCommitInfo `protobuf:"bytes,1,opt,name=commit,proto3" json:"commit,omitempty"`
+	// PR number for fork PRs. BuildKit fetches refs/pull/<number>/head from the
+	// base repository instead of cloning the commit directly.
+	PrNumber      int64 `protobuf:"varint,2,opt,name=pr_number,json=prNumber,proto3" json:"pr_number,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateGitSource) Reset() {
+	*x = CreateGitSource{}
+	mi := &file_hydra_v1_deploy_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateGitSource) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateGitSource) ProtoMessage() {}
+
+func (x *CreateGitSource) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_deploy_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateGitSource.ProtoReflect.Descriptor instead.
+func (*CreateGitSource) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *CreateGitSource) GetCommit() *v1.GitCommitInfo {
+	if x != nil {
+		return x.Commit
+	}
+	return nil
+}
+
+func (x *CreateGitSource) GetPrNumber() int64 {
+	if x != nil {
+		return x.PrNumber
+	}
+	return 0
+}
+
+// CreateImageSource deploys a pre-built container image. No build runs.
+type CreateImageSource struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Image         string                 `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateImageSource) Reset() {
+	*x = CreateImageSource{}
+	mi := &file_hydra_v1_deploy_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateImageSource) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateImageSource) ProtoMessage() {}
+
+func (x *CreateImageSource) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_deploy_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateImageSource.ProtoReflect.Descriptor instead.
+func (*CreateImageSource) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *CreateImageSource) GetImage() string {
+	if x != nil {
+		return x.Image
+	}
+	return ""
+}
+
+// CreateExistingDeploymentSource rebuilds another deployment's commit, or its
+// image when the app has no repository connection. Runtime settings and
+// environment variables come from the app as it is now, not from the source.
+type CreateExistingDeploymentSource struct {
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	DeploymentId string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	// Refuse the rebuild when a newer active deployment exists on the same app,
+	// environment, and branch.
+	RequireNoNewer bool `protobuf:"varint,2,opt,name=require_no_newer,json=requireNoNewer,proto3" json:"require_no_newer,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *CreateExistingDeploymentSource) Reset() {
+	*x = CreateExistingDeploymentSource{}
+	mi := &file_hydra_v1_deploy_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateExistingDeploymentSource) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateExistingDeploymentSource) ProtoMessage() {}
+
+func (x *CreateExistingDeploymentSource) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_deploy_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateExistingDeploymentSource.ProtoReflect.Descriptor instead.
+func (*CreateExistingDeploymentSource) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *CreateExistingDeploymentSource) GetDeploymentId() string {
+	if x != nil {
+		return x.DeploymentId
+	}
+	return ""
+}
+
+func (x *CreateExistingDeploymentSource) GetRequireNoNewer() bool {
+	if x != nil {
+		return x.RequireNoNewer
+	}
+	return false
+}
+
+type DeployCreateRequest struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	ProjectId string                 `protobuf:"bytes,1,opt,name=project_id,json=projectId,proto3" json:"project_id,omitempty"`
+	AppId     string                 `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	// Environment id or slug.
+	Environment string `protobuf:"bytes,3,opt,name=environment,proto3" json:"environment,omitempty"`
+	// Unset means redeploy what the app declares: the default branch head for a
+	// Git app, the configured image for an OCI app. An app with no declared source
+	// uses its repository connection, else the image its current deployment runs.
+	//
+	// Types that are valid to be assigned to Source:
+	//
+	//	*DeployCreateRequest_Git
+	//	*DeployCreateRequest_Image
+	//	*DeployCreateRequest_ExistingDeployment
+	Source   isDeployCreateRequest_Source `protobuf_oneof:"source"`
+	Decision CreateDecision               `protobuf:"varint,8,opt,name=decision,proto3,enum=hydra.v1.CreateDecision" json:"decision,omitempty"`
+	// Attribution persisted on the deployment row.
+	Trigger       v1.DeploymentTrigger `protobuf:"varint,10,opt,name=trigger,proto3,enum=ctrl.v1.DeploymentTrigger" json:"trigger,omitempty"`
+	TriggeredBy   string               `protobuf:"bytes,11,opt,name=triggered_by,json=triggeredBy,proto3" json:"triggered_by,omitempty"`
+	TriggerReason string               `protobuf:"bytes,12,opt,name=trigger_reason,json=triggerReason,proto3" json:"trigger_reason,omitempty"`
+	// Actor on the audit log. Unset falls back to the system actor.
+	Actor         *v1.ActorInfo `protobuf:"bytes,13,opt,name=actor,proto3" json:"actor,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployCreateRequest) Reset() {
+	*x = DeployCreateRequest{}
+	mi := &file_hydra_v1_deploy_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployCreateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployCreateRequest) ProtoMessage() {}
+
+func (x *DeployCreateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_deploy_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployCreateRequest.ProtoReflect.Descriptor instead.
+func (*DeployCreateRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *DeployCreateRequest) GetProjectId() string {
+	if x != nil {
+		return x.ProjectId
+	}
+	return ""
+}
+
+func (x *DeployCreateRequest) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
+}
+
+func (x *DeployCreateRequest) GetEnvironment() string {
+	if x != nil {
+		return x.Environment
+	}
+	return ""
+}
+
+func (x *DeployCreateRequest) GetSource() isDeployCreateRequest_Source {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
+func (x *DeployCreateRequest) GetGit() *CreateGitSource {
+	if x != nil {
+		if x, ok := x.Source.(*DeployCreateRequest_Git); ok {
+			return x.Git
+		}
+	}
+	return nil
+}
+
+func (x *DeployCreateRequest) GetImage() *CreateImageSource {
+	if x != nil {
+		if x, ok := x.Source.(*DeployCreateRequest_Image); ok {
+			return x.Image
+		}
+	}
+	return nil
+}
+
+func (x *DeployCreateRequest) GetExistingDeployment() *CreateExistingDeploymentSource {
+	if x != nil {
+		if x, ok := x.Source.(*DeployCreateRequest_ExistingDeployment); ok {
+			return x.ExistingDeployment
+		}
+	}
+	return nil
+}
+
+func (x *DeployCreateRequest) GetDecision() CreateDecision {
+	if x != nil {
+		return x.Decision
+	}
+	return CreateDecision_CREATE_DECISION_UNSPECIFIED
+}
+
+func (x *DeployCreateRequest) GetTrigger() v1.DeploymentTrigger {
+	if x != nil {
+		return x.Trigger
+	}
+	return v1.DeploymentTrigger(0)
+}
+
+func (x *DeployCreateRequest) GetTriggeredBy() string {
+	if x != nil {
+		return x.TriggeredBy
+	}
+	return ""
+}
+
+func (x *DeployCreateRequest) GetTriggerReason() string {
+	if x != nil {
+		return x.TriggerReason
+	}
+	return ""
+}
+
+func (x *DeployCreateRequest) GetActor() *v1.ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
+}
+
+type isDeployCreateRequest_Source interface {
+	isDeployCreateRequest_Source()
+}
+
+type DeployCreateRequest_Git struct {
+	Git *CreateGitSource `protobuf:"bytes,4,opt,name=git,proto3,oneof"`
+}
+
+type DeployCreateRequest_Image struct {
+	Image *CreateImageSource `protobuf:"bytes,5,opt,name=image,proto3,oneof"`
+}
+
+type DeployCreateRequest_ExistingDeployment struct {
+	ExistingDeployment *CreateExistingDeploymentSource `protobuf:"bytes,6,opt,name=existing_deployment,json=existingDeployment,proto3,oneof"`
+}
+
+func (*DeployCreateRequest_Git) isDeployCreateRequest_Source() {}
+
+func (*DeployCreateRequest_Image) isDeployCreateRequest_Source() {}
+
+func (*DeployCreateRequest_ExistingDeployment) isDeployCreateRequest_Source() {}
+
+type DeployCreateResponse struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Outcome CreateOutcome          `protobuf:"varint,1,opt,name=outcome,proto3,enum=hydra.v1.CreateOutcome" json:"outcome,omitempty"`
+	// Set only when outcome is REJECTED.
+	RejectionReason CreateRejectionReason `protobuf:"varint,2,opt,name=rejection_reason,json=rejectionReason,proto3,enum=hydra.v1.CreateRejectionReason" json:"rejection_reason,omitempty"`
+	// The object key the create ran on, echoed for every outcome.
+	DeploymentId  string `protobuf:"bytes,3,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeployCreateResponse) Reset() {
+	*x = DeployCreateResponse{}
+	mi := &file_hydra_v1_deploy_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeployCreateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeployCreateResponse) ProtoMessage() {}
+
+func (x *DeployCreateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_deploy_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeployCreateResponse.ProtoReflect.Descriptor instead.
+func (*DeployCreateResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *DeployCreateResponse) GetOutcome() CreateOutcome {
+	if x != nil {
+		return x.Outcome
+	}
+	return CreateOutcome_CREATE_OUTCOME_UNSPECIFIED
+}
+
+func (x *DeployCreateResponse) GetRejectionReason() CreateRejectionReason {
+	if x != nil {
+		return x.RejectionReason
+	}
+	return CreateRejectionReason_CREATE_REJECTION_REASON_UNSPECIFIED
+}
+
+func (x *DeployCreateResponse) GetDeploymentId() string {
+	if x != nil {
+		return x.DeploymentId
+	}
+	return ""
+}
+
 type DeployRequest struct {
 	state        protoimpl.MessageState `protogen:"open.v1"`
 	DeploymentId string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
@@ -546,7 +1137,7 @@ type DeployRequest struct {
 
 func (x *DeployRequest) Reset() {
 	*x = DeployRequest{}
-	mi := &file_hydra_v1_deploy_proto_msgTypes[8]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -558,7 +1149,7 @@ func (x *DeployRequest) String() string {
 func (*DeployRequest) ProtoMessage() {}
 
 func (x *DeployRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_proto_msgTypes[8]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -571,7 +1162,7 @@ func (x *DeployRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeployRequest.ProtoReflect.Descriptor instead.
 func (*DeployRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{8}
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *DeployRequest) GetDeploymentId() string {
@@ -637,7 +1228,7 @@ type DeployResponse struct {
 
 func (x *DeployResponse) Reset() {
 	*x = DeployResponse{}
-	mi := &file_hydra_v1_deploy_proto_msgTypes[9]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -649,7 +1240,7 @@ func (x *DeployResponse) String() string {
 func (*DeployResponse) ProtoMessage() {}
 
 func (x *DeployResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_proto_msgTypes[9]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -662,7 +1253,7 @@ func (x *DeployResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeployResponse.ProtoReflect.Descriptor instead.
 func (*DeployResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{9}
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{14}
 }
 
 // RollbackRequest identifies the deployment to roll back from and the
@@ -681,7 +1272,7 @@ type RollbackRequest struct {
 
 func (x *RollbackRequest) Reset() {
 	*x = RollbackRequest{}
-	mi := &file_hydra_v1_deploy_proto_msgTypes[10]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -693,7 +1284,7 @@ func (x *RollbackRequest) String() string {
 func (*RollbackRequest) ProtoMessage() {}
 
 func (x *RollbackRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_proto_msgTypes[10]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -706,7 +1297,7 @@ func (x *RollbackRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RollbackRequest.ProtoReflect.Descriptor instead.
 func (*RollbackRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{10}
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *RollbackRequest) GetSourceDeploymentId() string {
@@ -745,7 +1336,7 @@ type RollbackResponse struct {
 
 func (x *RollbackResponse) Reset() {
 	*x = RollbackResponse{}
-	mi := &file_hydra_v1_deploy_proto_msgTypes[11]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -757,7 +1348,7 @@ func (x *RollbackResponse) String() string {
 func (*RollbackResponse) ProtoMessage() {}
 
 func (x *RollbackResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_proto_msgTypes[11]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -770,7 +1361,7 @@ func (x *RollbackResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RollbackResponse.ProtoReflect.Descriptor instead.
 func (*RollbackResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{11}
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{16}
 }
 
 // PromoteRequest identifies a ready deployment to promote to live.
@@ -785,7 +1376,7 @@ type PromoteRequest struct {
 
 func (x *PromoteRequest) Reset() {
 	*x = PromoteRequest{}
-	mi := &file_hydra_v1_deploy_proto_msgTypes[12]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -797,7 +1388,7 @@ func (x *PromoteRequest) String() string {
 func (*PromoteRequest) ProtoMessage() {}
 
 func (x *PromoteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_proto_msgTypes[12]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -810,7 +1401,7 @@ func (x *PromoteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PromoteRequest.ProtoReflect.Descriptor instead.
 func (*PromoteRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{12}
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *PromoteRequest) GetTargetDeploymentId() string {
@@ -842,7 +1433,7 @@ type PromoteResponse struct {
 
 func (x *PromoteResponse) Reset() {
 	*x = PromoteResponse{}
-	mi := &file_hydra_v1_deploy_proto_msgTypes[13]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -854,7 +1445,7 @@ func (x *PromoteResponse) String() string {
 func (*PromoteResponse) ProtoMessage() {}
 
 func (x *PromoteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_proto_msgTypes[13]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -867,7 +1458,7 @@ func (x *PromoteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PromoteResponse.ProtoReflect.Descriptor instead.
 func (*PromoteResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{13}
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{18}
 }
 
 type TeardownRequest struct {
@@ -880,7 +1471,7 @@ type TeardownRequest struct {
 
 func (x *TeardownRequest) Reset() {
 	*x = TeardownRequest{}
-	mi := &file_hydra_v1_deploy_proto_msgTypes[14]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -892,7 +1483,7 @@ func (x *TeardownRequest) String() string {
 func (*TeardownRequest) ProtoMessage() {}
 
 func (x *TeardownRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_proto_msgTypes[14]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -905,7 +1496,7 @@ func (x *TeardownRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TeardownRequest.ProtoReflect.Descriptor instead.
 func (*TeardownRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{14}
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *TeardownRequest) GetMode() TeardownMode {
@@ -930,7 +1521,7 @@ type TeardownResponse struct {
 
 func (x *TeardownResponse) Reset() {
 	*x = TeardownResponse{}
-	mi := &file_hydra_v1_deploy_proto_msgTypes[15]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -942,7 +1533,7 @@ func (x *TeardownResponse) String() string {
 func (*TeardownResponse) ProtoMessage() {}
 
 func (x *TeardownResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_proto_msgTypes[15]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -955,7 +1546,7 @@ func (x *TeardownResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TeardownResponse.ProtoReflect.Descriptor instead.
 func (*TeardownResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{15}
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *TeardownResponse) GetDeploymentsStopped() int32 {
@@ -980,7 +1571,7 @@ type ResumeRequest struct {
 
 func (x *ResumeRequest) Reset() {
 	*x = ResumeRequest{}
-	mi := &file_hydra_v1_deploy_proto_msgTypes[16]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -992,7 +1583,7 @@ func (x *ResumeRequest) String() string {
 func (*ResumeRequest) ProtoMessage() {}
 
 func (x *ResumeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_proto_msgTypes[16]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1005,7 +1596,7 @@ func (x *ResumeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResumeRequest.ProtoReflect.Descriptor instead.
 func (*ResumeRequest) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{16}
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{21}
 }
 
 type ResumeResponse struct {
@@ -1018,7 +1609,7 @@ type ResumeResponse struct {
 
 func (x *ResumeResponse) Reset() {
 	*x = ResumeResponse{}
-	mi := &file_hydra_v1_deploy_proto_msgTypes[17]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1030,7 +1621,7 @@ func (x *ResumeResponse) String() string {
 func (*ResumeResponse) ProtoMessage() {}
 
 func (x *ResumeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_hydra_v1_deploy_proto_msgTypes[17]
+	mi := &file_hydra_v1_deploy_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1043,7 +1634,7 @@ func (x *ResumeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResumeResponse.ProtoReflect.Descriptor instead.
 func (*ResumeResponse) Descriptor() ([]byte, []int) {
-	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{17}
+	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ResumeResponse) GetDeploymentsResumed() int32 {
@@ -1057,7 +1648,7 @@ var File_hydra_v1_deploy_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\n" +
-	"\x15hydra/v1/deploy.proto\x12\bhydra.v1\x1a\x13ctrl/v1/actor.proto\x1a\x18dev/restate/sdk/go.proto\"\x8d\x01\n" +
+	"\x15hydra/v1/deploy.proto\x12\bhydra.v1\x1a\x13ctrl/v1/actor.proto\x1a\x18ctrl/v1/deployment.proto\x1a\x18dev/restate/sdk/go.proto\"\x8d\x01\n" +
 	"\x15StopDeploymentRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12(\n" +
 	"\x05actor\x18\x02 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\x12%\n" +
@@ -1086,7 +1677,34 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x06branch\x18\x06 \x01(\tR\x06branch\x12\x1b\n" +
 	"\tpr_number\x18\a \x01(\x03R\bprNumber\x12'\n" +
 	"\x0ffork_repository\x18\b \x01(\tR\x0eforkRepository\x12#\n" +
-	"\rbuild_command\x18\t \x01(\tR\fbuildCommand\"\xc7\x01\n" +
+	"\rbuild_command\x18\t \x01(\tR\fbuildCommand\"^\n" +
+	"\x0fCreateGitSource\x12.\n" +
+	"\x06commit\x18\x01 \x01(\v2\x16.ctrl.v1.GitCommitInfoR\x06commit\x12\x1b\n" +
+	"\tpr_number\x18\x02 \x01(\x03R\bprNumber\")\n" +
+	"\x11CreateImageSource\x12\x14\n" +
+	"\x05image\x18\x01 \x01(\tR\x05image\"o\n" +
+	"\x1eCreateExistingDeploymentSource\x12#\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12(\n" +
+	"\x10require_no_newer\x18\x02 \x01(\bR\x0erequireNoNewer\"\x98\x04\n" +
+	"\x13DeployCreateRequest\x12\x1d\n" +
+	"\n" +
+	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x15\n" +
+	"\x06app_id\x18\x02 \x01(\tR\x05appId\x12 \n" +
+	"\venvironment\x18\x03 \x01(\tR\venvironment\x12-\n" +
+	"\x03git\x18\x04 \x01(\v2\x19.hydra.v1.CreateGitSourceH\x00R\x03git\x123\n" +
+	"\x05image\x18\x05 \x01(\v2\x1b.hydra.v1.CreateImageSourceH\x00R\x05image\x12[\n" +
+	"\x13existing_deployment\x18\x06 \x01(\v2(.hydra.v1.CreateExistingDeploymentSourceH\x00R\x12existingDeployment\x124\n" +
+	"\bdecision\x18\b \x01(\x0e2\x18.hydra.v1.CreateDecisionR\bdecision\x124\n" +
+	"\atrigger\x18\n" +
+	" \x01(\x0e2\x1a.ctrl.v1.DeploymentTriggerR\atrigger\x12!\n" +
+	"\ftriggered_by\x18\v \x01(\tR\vtriggeredBy\x12%\n" +
+	"\x0etrigger_reason\x18\f \x01(\tR\rtriggerReason\x12(\n" +
+	"\x05actor\x18\r \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actorB\b\n" +
+	"\x06source\"\xba\x01\n" +
+	"\x14DeployCreateResponse\x121\n" +
+	"\aoutcome\x18\x01 \x01(\x0e2\x17.hydra.v1.CreateOutcomeR\aoutcome\x12J\n" +
+	"\x10rejection_reason\x18\x02 \x01(\x0e2\x1f.hydra.v1.CreateRejectionReasonR\x0frejectionReason\x12#\n" +
+	"\rdeployment_id\x18\x03 \x01(\tR\fdeploymentId\"\xc7\x01\n" +
 	"\rDeployRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12'\n" +
 	"\x03git\x18\x03 \x01(\v2\x13.hydra.v1.GitSourceH\x00R\x03git\x121\n" +
@@ -1112,12 +1730,35 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\adrained\x18\x02 \x01(\bR\adrained\"\x0f\n" +
 	"\rResumeRequest\"A\n" +
 	"\x0eResumeResponse\x12/\n" +
-	"\x13deployments_resumed\x18\x01 \x01(\x05R\x12deploymentsResumed*c\n" +
+	"\x13deployments_resumed\x18\x01 \x01(\x05R\x12deploymentsResumed*\x8b\x01\n" +
+	"\x0eCreateDecision\x12\x1f\n" +
+	"\x1bCREATE_DECISION_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x16CREATE_DECISION_DEPLOY\x10\x01\x12\x18\n" +
+	"\x14CREATE_DECISION_SKIP\x10\x02\x12\"\n" +
+	"\x1eCREATE_DECISION_AWAIT_APPROVAL\x10\x03*h\n" +
+	"\rCreateOutcome\x12\x1e\n" +
+	"\x1aCREATE_OUTCOME_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x16CREATE_OUTCOME_CREATED\x10\x01\x12\x1b\n" +
+	"\x17CREATE_OUTCOME_REJECTED\x10\x02*\xa7\x04\n" +
+	"\x15CreateRejectionReason\x12'\n" +
+	"#CREATE_REJECTION_REASON_UNSPECIFIED\x10\x00\x12+\n" +
+	"'CREATE_REJECTION_REASON_NO_COMPUTE_PLAN\x10\x01\x12+\n" +
+	"'CREATE_REJECTION_REASON_SPEND_SUSPENDED\x10\x02\x12,\n" +
+	"(CREATE_REJECTION_REASON_TARGET_NOT_FOUND\x10\x03\x12.\n" +
+	"*CREATE_REJECTION_REASON_NO_REPO_CONNECTION\x10\x04\x12/\n" +
+	"+CREATE_REJECTION_REASON_COMMIT_NOT_RESOLVED\x10\x05\x12+\n" +
+	"'CREATE_REJECTION_REASON_NO_SOURCE_IMAGE\x10\x06\x123\n" +
+	"/CREATE_REJECTION_REASON_NEWER_DEPLOYMENT_EXISTS\x10\a\x12)\n" +
+	"%CREATE_REJECTION_REASON_INVALID_IMAGE\x10\b\x126\n" +
+	"2CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE\x10\t\x127\n" +
+	"3CREATE_REJECTION_REASON_SOURCE_DEPLOYMENT_NOT_FOUND\x10\n" +
+	"*c\n" +
 	"\fTeardownMode\x12\x1d\n" +
 	"\x19TEARDOWN_MODE_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15TEARDOWN_MODE_ARCHIVE\x10\x01\x12\x19\n" +
-	"\x15TEARDOWN_MODE_SUSPEND\x10\x022\xf6\x03\n" +
-	"\rDeployService\x12=\n" +
+	"\x15TEARDOWN_MODE_SUSPEND\x10\x022\xc1\x04\n" +
+	"\rDeployService\x12I\n" +
+	"\x06Create\x12\x1d.hydra.v1.DeployCreateRequest\x1a\x1e.hydra.v1.DeployCreateResponse\"\x00\x12=\n" +
 	"\x06Deploy\x12\x17.hydra.v1.DeployRequest\x1a\x18.hydra.v1.DeployResponse\"\x00\x12C\n" +
 	"\bRollback\x12\x19.hydra.v1.RollbackRequest\x1a\x1a.hydra.v1.RollbackResponse\"\x00\x12@\n" +
 	"\aPromote\x12\x18.hydra.v1.PromoteRequest\x1a\x19.hydra.v1.PromoteResponse\"\x00\x12U\n" +
@@ -1141,59 +1782,80 @@ func file_hydra_v1_deploy_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_deploy_proto_rawDescData
 }
 
-var file_hydra_v1_deploy_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_hydra_v1_deploy_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_hydra_v1_deploy_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_hydra_v1_deploy_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_hydra_v1_deploy_proto_goTypes = []any{
-	(TeardownMode)(0),                    // 0: hydra.v1.TeardownMode
-	(*StopDeploymentRequest)(nil),        // 1: hydra.v1.StopDeploymentRequest
-	(*StopDeploymentResponse)(nil),       // 2: hydra.v1.StopDeploymentResponse
-	(*WakeDeploymentRequest)(nil),        // 3: hydra.v1.WakeDeploymentRequest
-	(*WakeDeploymentResponse)(nil),       // 4: hydra.v1.WakeDeploymentResponse
-	(*NotifyInstancesReadyRequest)(nil),  // 5: hydra.v1.NotifyInstancesReadyRequest
-	(*NotifyInstancesReadyResponse)(nil), // 6: hydra.v1.NotifyInstancesReadyResponse
-	(*OciImage)(nil),                     // 7: hydra.v1.OciImage
-	(*GitSource)(nil),                    // 8: hydra.v1.GitSource
-	(*DeployRequest)(nil),                // 9: hydra.v1.DeployRequest
-	(*DeployResponse)(nil),               // 10: hydra.v1.DeployResponse
-	(*RollbackRequest)(nil),              // 11: hydra.v1.RollbackRequest
-	(*RollbackResponse)(nil),             // 12: hydra.v1.RollbackResponse
-	(*PromoteRequest)(nil),               // 13: hydra.v1.PromoteRequest
-	(*PromoteResponse)(nil),              // 14: hydra.v1.PromoteResponse
-	(*TeardownRequest)(nil),              // 15: hydra.v1.TeardownRequest
-	(*TeardownResponse)(nil),             // 16: hydra.v1.TeardownResponse
-	(*ResumeRequest)(nil),                // 17: hydra.v1.ResumeRequest
-	(*ResumeResponse)(nil),               // 18: hydra.v1.ResumeResponse
-	(*v1.ActorInfo)(nil),                 // 19: ctrl.v1.ActorInfo
+	(CreateDecision)(0),                    // 0: hydra.v1.CreateDecision
+	(CreateOutcome)(0),                     // 1: hydra.v1.CreateOutcome
+	(CreateRejectionReason)(0),             // 2: hydra.v1.CreateRejectionReason
+	(TeardownMode)(0),                      // 3: hydra.v1.TeardownMode
+	(*StopDeploymentRequest)(nil),          // 4: hydra.v1.StopDeploymentRequest
+	(*StopDeploymentResponse)(nil),         // 5: hydra.v1.StopDeploymentResponse
+	(*WakeDeploymentRequest)(nil),          // 6: hydra.v1.WakeDeploymentRequest
+	(*WakeDeploymentResponse)(nil),         // 7: hydra.v1.WakeDeploymentResponse
+	(*NotifyInstancesReadyRequest)(nil),    // 8: hydra.v1.NotifyInstancesReadyRequest
+	(*NotifyInstancesReadyResponse)(nil),   // 9: hydra.v1.NotifyInstancesReadyResponse
+	(*OciImage)(nil),                       // 10: hydra.v1.OciImage
+	(*GitSource)(nil),                      // 11: hydra.v1.GitSource
+	(*CreateGitSource)(nil),                // 12: hydra.v1.CreateGitSource
+	(*CreateImageSource)(nil),              // 13: hydra.v1.CreateImageSource
+	(*CreateExistingDeploymentSource)(nil), // 14: hydra.v1.CreateExistingDeploymentSource
+	(*DeployCreateRequest)(nil),            // 15: hydra.v1.DeployCreateRequest
+	(*DeployCreateResponse)(nil),           // 16: hydra.v1.DeployCreateResponse
+	(*DeployRequest)(nil),                  // 17: hydra.v1.DeployRequest
+	(*DeployResponse)(nil),                 // 18: hydra.v1.DeployResponse
+	(*RollbackRequest)(nil),                // 19: hydra.v1.RollbackRequest
+	(*RollbackResponse)(nil),               // 20: hydra.v1.RollbackResponse
+	(*PromoteRequest)(nil),                 // 21: hydra.v1.PromoteRequest
+	(*PromoteResponse)(nil),                // 22: hydra.v1.PromoteResponse
+	(*TeardownRequest)(nil),                // 23: hydra.v1.TeardownRequest
+	(*TeardownResponse)(nil),               // 24: hydra.v1.TeardownResponse
+	(*ResumeRequest)(nil),                  // 25: hydra.v1.ResumeRequest
+	(*ResumeResponse)(nil),                 // 26: hydra.v1.ResumeResponse
+	(*v1.ActorInfo)(nil),                   // 27: ctrl.v1.ActorInfo
+	(*v1.GitCommitInfo)(nil),               // 28: ctrl.v1.GitCommitInfo
+	(v1.DeploymentTrigger)(0),              // 29: ctrl.v1.DeploymentTrigger
 }
 var file_hydra_v1_deploy_proto_depIdxs = []int32{
-	19, // 0: hydra.v1.StopDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
-	19, // 1: hydra.v1.WakeDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
-	8,  // 2: hydra.v1.DeployRequest.git:type_name -> hydra.v1.GitSource
-	7,  // 3: hydra.v1.DeployRequest.oci_image:type_name -> hydra.v1.OciImage
-	19, // 4: hydra.v1.RollbackRequest.actor:type_name -> ctrl.v1.ActorInfo
-	19, // 5: hydra.v1.PromoteRequest.actor:type_name -> ctrl.v1.ActorInfo
-	0,  // 6: hydra.v1.TeardownRequest.mode:type_name -> hydra.v1.TeardownMode
-	9,  // 7: hydra.v1.DeployService.Deploy:input_type -> hydra.v1.DeployRequest
-	11, // 8: hydra.v1.DeployService.Rollback:input_type -> hydra.v1.RollbackRequest
-	13, // 9: hydra.v1.DeployService.Promote:input_type -> hydra.v1.PromoteRequest
-	1,  // 10: hydra.v1.DeployService.StopDeployment:input_type -> hydra.v1.StopDeploymentRequest
-	3,  // 11: hydra.v1.DeployService.WakeDeployment:input_type -> hydra.v1.WakeDeploymentRequest
-	5,  // 12: hydra.v1.DeployService.NotifyInstancesReady:input_type -> hydra.v1.NotifyInstancesReadyRequest
-	15, // 13: hydra.v1.DeployTeardownService.Teardown:input_type -> hydra.v1.TeardownRequest
-	17, // 14: hydra.v1.DeployTeardownService.Resume:input_type -> hydra.v1.ResumeRequest
-	10, // 15: hydra.v1.DeployService.Deploy:output_type -> hydra.v1.DeployResponse
-	12, // 16: hydra.v1.DeployService.Rollback:output_type -> hydra.v1.RollbackResponse
-	14, // 17: hydra.v1.DeployService.Promote:output_type -> hydra.v1.PromoteResponse
-	2,  // 18: hydra.v1.DeployService.StopDeployment:output_type -> hydra.v1.StopDeploymentResponse
-	4,  // 19: hydra.v1.DeployService.WakeDeployment:output_type -> hydra.v1.WakeDeploymentResponse
-	6,  // 20: hydra.v1.DeployService.NotifyInstancesReady:output_type -> hydra.v1.NotifyInstancesReadyResponse
-	16, // 21: hydra.v1.DeployTeardownService.Teardown:output_type -> hydra.v1.TeardownResponse
-	18, // 22: hydra.v1.DeployTeardownService.Resume:output_type -> hydra.v1.ResumeResponse
-	15, // [15:23] is the sub-list for method output_type
-	7,  // [7:15] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	27, // 0: hydra.v1.StopDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
+	27, // 1: hydra.v1.WakeDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
+	28, // 2: hydra.v1.CreateGitSource.commit:type_name -> ctrl.v1.GitCommitInfo
+	12, // 3: hydra.v1.DeployCreateRequest.git:type_name -> hydra.v1.CreateGitSource
+	13, // 4: hydra.v1.DeployCreateRequest.image:type_name -> hydra.v1.CreateImageSource
+	14, // 5: hydra.v1.DeployCreateRequest.existing_deployment:type_name -> hydra.v1.CreateExistingDeploymentSource
+	0,  // 6: hydra.v1.DeployCreateRequest.decision:type_name -> hydra.v1.CreateDecision
+	29, // 7: hydra.v1.DeployCreateRequest.trigger:type_name -> ctrl.v1.DeploymentTrigger
+	27, // 8: hydra.v1.DeployCreateRequest.actor:type_name -> ctrl.v1.ActorInfo
+	1,  // 9: hydra.v1.DeployCreateResponse.outcome:type_name -> hydra.v1.CreateOutcome
+	2,  // 10: hydra.v1.DeployCreateResponse.rejection_reason:type_name -> hydra.v1.CreateRejectionReason
+	11, // 11: hydra.v1.DeployRequest.git:type_name -> hydra.v1.GitSource
+	10, // 12: hydra.v1.DeployRequest.oci_image:type_name -> hydra.v1.OciImage
+	27, // 13: hydra.v1.RollbackRequest.actor:type_name -> ctrl.v1.ActorInfo
+	27, // 14: hydra.v1.PromoteRequest.actor:type_name -> ctrl.v1.ActorInfo
+	3,  // 15: hydra.v1.TeardownRequest.mode:type_name -> hydra.v1.TeardownMode
+	15, // 16: hydra.v1.DeployService.Create:input_type -> hydra.v1.DeployCreateRequest
+	17, // 17: hydra.v1.DeployService.Deploy:input_type -> hydra.v1.DeployRequest
+	19, // 18: hydra.v1.DeployService.Rollback:input_type -> hydra.v1.RollbackRequest
+	21, // 19: hydra.v1.DeployService.Promote:input_type -> hydra.v1.PromoteRequest
+	4,  // 20: hydra.v1.DeployService.StopDeployment:input_type -> hydra.v1.StopDeploymentRequest
+	6,  // 21: hydra.v1.DeployService.WakeDeployment:input_type -> hydra.v1.WakeDeploymentRequest
+	8,  // 22: hydra.v1.DeployService.NotifyInstancesReady:input_type -> hydra.v1.NotifyInstancesReadyRequest
+	23, // 23: hydra.v1.DeployTeardownService.Teardown:input_type -> hydra.v1.TeardownRequest
+	25, // 24: hydra.v1.DeployTeardownService.Resume:input_type -> hydra.v1.ResumeRequest
+	16, // 25: hydra.v1.DeployService.Create:output_type -> hydra.v1.DeployCreateResponse
+	18, // 26: hydra.v1.DeployService.Deploy:output_type -> hydra.v1.DeployResponse
+	20, // 27: hydra.v1.DeployService.Rollback:output_type -> hydra.v1.RollbackResponse
+	22, // 28: hydra.v1.DeployService.Promote:output_type -> hydra.v1.PromoteResponse
+	5,  // 29: hydra.v1.DeployService.StopDeployment:output_type -> hydra.v1.StopDeploymentResponse
+	7,  // 30: hydra.v1.DeployService.WakeDeployment:output_type -> hydra.v1.WakeDeploymentResponse
+	9,  // 31: hydra.v1.DeployService.NotifyInstancesReady:output_type -> hydra.v1.NotifyInstancesReadyResponse
+	24, // 32: hydra.v1.DeployTeardownService.Teardown:output_type -> hydra.v1.TeardownResponse
+	26, // 33: hydra.v1.DeployTeardownService.Resume:output_type -> hydra.v1.ResumeResponse
+	25, // [25:34] is the sub-list for method output_type
+	16, // [16:25] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_deploy_proto_init() }
@@ -1201,7 +1863,12 @@ func file_hydra_v1_deploy_proto_init() {
 	if File_hydra_v1_deploy_proto != nil {
 		return
 	}
-	file_hydra_v1_deploy_proto_msgTypes[8].OneofWrappers = []any{
+	file_hydra_v1_deploy_proto_msgTypes[11].OneofWrappers = []any{
+		(*DeployCreateRequest_Git)(nil),
+		(*DeployCreateRequest_Image)(nil),
+		(*DeployCreateRequest_ExistingDeployment)(nil),
+	}
+	file_hydra_v1_deploy_proto_msgTypes[13].OneofWrappers = []any{
 		(*DeployRequest_Git)(nil),
 		(*DeployRequest_OciImage)(nil),
 	}
@@ -1210,8 +1877,8 @@ func file_hydra_v1_deploy_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_deploy_proto_rawDesc), len(file_hydra_v1_deploy_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   18,
+			NumEnums:      4,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

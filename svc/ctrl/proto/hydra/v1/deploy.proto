@@ -2,6 +2,7 @@ syntax = "proto3";
 package hydra.v1;
 
 import "ctrl/v1/actor.proto";
+import "ctrl/v1/deployment.proto";
 import "dev/restate/sdk/go.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
@@ -24,6 +25,10 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 // routes atomically through the routing service.
 service DeployService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // Create writes the deployment row and, for a DEPLOY decision, starts Deploy.
+  // The object key is the deployment id, so the caller chooses it up front.
+  rpc Create(DeployCreateRequest) returns (DeployCreateResponse) {}
 
   // Deploy executes the full deployment workflow: build (if git source), provision
   // containers across regions, wait for health, configure domain routing, and
@@ -122,6 +127,139 @@ message GitSource {
   // Railpack auto-detects the command. Lets monorepos scope the build to a
   // single app. Ignored when dockerfile_path is set.
   string build_command = 9;
+}
+
+// CreateDecision is what happens to the row after it is written. The caller
+// decides, because the inputs (watch paths, fork pushes) are only visible to
+// the GitHub webhook. Create does not re-check it.
+enum CreateDecision {
+  CREATE_DECISION_UNSPECIFIED = 0;
+
+  CREATE_DECISION_DEPLOY = 1;
+
+  // Record the commit without building it.
+  CREATE_DECISION_SKIP = 2;
+
+  // Wait for AuthorizeDeployment before building.
+  CREATE_DECISION_AWAIT_APPROVAL = 3;
+}
+
+// CreateOutcome is what a create did. A refused create returns REJECTED instead
+// of a terminal error, because the Restate ingress flattens errors to text and a
+// one-way caller would otherwise leave a failed invocation behind.
+enum CreateOutcome {
+  CREATE_OUTCOME_UNSPECIFIED = 0;
+
+  // CREATED wrote a new row.
+  CREATE_OUTCOME_CREATED = 1;
+
+  // REJECTED wrote nothing. See rejection_reason.
+  CREATE_OUTCOME_REJECTED = 2;
+}
+
+// CreateRejectionReason is why a create was refused.
+enum CreateRejectionReason {
+  CREATE_REJECTION_REASON_UNSPECIFIED = 0;
+
+  // The workspace has no Compute plan.
+  CREATE_REJECTION_REASON_NO_COMPUTE_PLAN = 1;
+
+  // The workspace is over its Compute spend cap.
+  CREATE_REJECTION_REASON_SPEND_SUSPENDED = 2;
+
+  // The project, app, or environment does not exist, or they do not belong
+  // together.
+  CREATE_REJECTION_REASON_TARGET_NOT_FOUND = 3;
+
+  // A git source was requested for an app with no connected repository.
+  CREATE_REJECTION_REASON_NO_REPO_CONNECTION = 4;
+
+  // GitHub could not resolve the requested branch or commit.
+  CREATE_REJECTION_REASON_COMMIT_NOT_RESOLVED = 5;
+
+  // The existing deployment has neither a buildable commit nor an image.
+  CREATE_REJECTION_REASON_NO_SOURCE_IMAGE = 6;
+
+  // A newer active deployment exists on the same app, environment, and branch.
+  // Only with require_no_newer set.
+  CREATE_REJECTION_REASON_NEWER_DEPLOYMENT_EXISTS = 7;
+
+  // The image is not a well-formed container reference.
+  CREATE_REJECTION_REASON_INVALID_IMAGE = 8;
+
+  // The environment's port, cpu, or memory is out of bounds, or it has no
+  // schedulable region.
+  CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE = 9;
+
+  // existing_deployment does not exist or belongs to another app or
+  // environment. One reason for both, so a caller cannot probe for deployments
+  // it cannot reach.
+  CREATE_REJECTION_REASON_SOURCE_DEPLOYMENT_NOT_FOUND = 10;
+}
+
+// CreateGitSource builds from a commit in the app's connected repository.
+message CreateGitSource {
+  // Empty fields are filled from GitHub. With neither a sha nor a branch, the
+  // app's default branch is built. A sha alone is built as is; no branch is
+  // inferred for it.
+  ctrl.v1.GitCommitInfo commit = 1;
+
+  // PR number for fork PRs. BuildKit fetches refs/pull/<number>/head from the
+  // base repository instead of cloning the commit directly.
+  int64 pr_number = 2;
+}
+
+// CreateImageSource deploys a pre-built container image. No build runs.
+message CreateImageSource {
+  string image = 1;
+}
+
+// CreateExistingDeploymentSource rebuilds another deployment's commit, or its
+// image when the app has no repository connection. Runtime settings and
+// environment variables come from the app as it is now, not from the source.
+message CreateExistingDeploymentSource {
+  string deployment_id = 1;
+
+  // Refuse the rebuild when a newer active deployment exists on the same app,
+  // environment, and branch.
+  bool require_no_newer = 2;
+}
+
+message DeployCreateRequest {
+  string project_id = 1;
+  string app_id = 2;
+
+  // Environment id or slug.
+  string environment = 3;
+
+  // Unset means redeploy what the app declares: the default branch head for a
+  // Git app, the configured image for an OCI app. An app with no declared source
+  // uses its repository connection, else the image its current deployment runs.
+  oneof source {
+    CreateGitSource git = 4;
+    CreateImageSource image = 5;
+    CreateExistingDeploymentSource existing_deployment = 6;
+  }
+
+  CreateDecision decision = 8;
+
+  // Attribution persisted on the deployment row.
+  ctrl.v1.DeploymentTrigger trigger = 10;
+  string triggered_by = 11;
+  string trigger_reason = 12;
+
+  // Actor on the audit log. Unset falls back to the system actor.
+  ctrl.v1.ActorInfo actor = 13;
+}
+
+message DeployCreateResponse {
+  CreateOutcome outcome = 1;
+
+  // Set only when outcome is REJECTED.
+  CreateRejectionReason rejection_reason = 2;
+
+  // The object key the create ran on, echoed for every outcome.
+  string deployment_id = 3;
 }
 
 message DeployRequest {
