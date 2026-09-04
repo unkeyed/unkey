@@ -47,8 +47,6 @@ export const alertEvents = mysqlTable(
     resolvedAt: bigint("resolved_at", { mode: "number" }),
     resolutionMessage: varchar("resolution_message", { length: 1000 }),
     observedValue: double("observed_value").notNull(),
-    // The detector copies its baseline onto each event so the dashboard can
-    // still render the original threshold after ClickHouse rollups expire.
     baselineMean: double("baseline_mean").notNull(),
     baselineStddev: double("baseline_stddev").notNull(),
     thresholdSigma: double("threshold_sigma").notNull(),

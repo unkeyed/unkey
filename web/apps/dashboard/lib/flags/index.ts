@@ -83,8 +83,6 @@ export const logdrains = flag<boolean, Entities>({
   adapter: adapter(),
 });
 
-// deployAnomalyAlerts gates the workspace alerts inbox, the app Anomalies tab,
-// and their navigation. Off until the detector runs in production.
 export const deployAnomalyAlerts = flag<boolean, Entities>({
   key: "deploy-anomaly-alerts",
   description: "Show the deploy anomaly alerts inbox and app Anomalies tab. Off until rollout.",
