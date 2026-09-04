@@ -7,10 +7,10 @@ import { alertSelection } from "./selection";
 export const listAlerts = workspaceProcedure
   .input(listAlertsInput)
   .query(async ({ ctx, input }) => {
-    const filters: SQL[] = [
-      eq(schema.alertEvents.workspaceId, ctx.workspace.id),
-      eq(schema.alertEvents.status, "open"),
-    ];
+    const filters: SQL[] = [eq(schema.alertEvents.workspaceId, ctx.workspace.id)];
+    if (!input.includeResolved) {
+      filters.push(eq(schema.alertEvents.status, "open"));
+    }
     if (input.metric) {
       filters.push(eq(schema.alertEvents.metric, input.metric));
     }

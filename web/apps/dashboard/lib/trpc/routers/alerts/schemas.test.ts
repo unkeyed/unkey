@@ -3,11 +3,19 @@ import { alertDeploymentsInput, alertSeriesInput, listAlertsInput } from "./sche
 
 describe("alert inputs", () => {
   it("applies list defaults", () => {
-    expect(listAlertsInput.parse({})).toEqual({ limit: 50 });
+    expect(listAlertsInput.parse({})).toEqual({ includeResolved: false, limit: 50 });
+  });
+
+  it("allows app views to include resolved alerts", () => {
+    expect(listAlertsInput.parse({ includeResolved: true })).toEqual({
+      includeResolved: true,
+      limit: 50,
+    });
   });
 
   it("accepts traffic drop alerts", () => {
     expect(listAlertsInput.parse({ metric: "requests_drop" })).toEqual({
+      includeResolved: false,
       metric: "requests_drop",
       limit: 50,
     });
