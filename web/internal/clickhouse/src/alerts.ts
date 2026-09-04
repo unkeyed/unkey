@@ -258,7 +258,7 @@ function withExpectedRange(
       : "CAST(NULL, 'Nullable(Float64)')";
   const recentMedian =
     metric === "requests" && includeRequestDropThreshold
-      ? `quantileExact(0.5)(lifetime_value) OVER (
+      ? `quantileExactInclusive(0.5)(lifetime_value) OVER (
           ORDER BY time ROWS BETWEEN 12 PRECEDING AND 1 PRECEDING
         ) AS recent_median,`
       : "";
