@@ -2045,6 +2045,60 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND status = 'open'
 	ResolveAlertEventBySystem(ctx context.Context, arg ResolveAlertEventBySystemParams) (int64, error)
+	// ResolveOpenAlertEventsByApp closes detector alerts for every environment
+	// before app deletion fans out its environment cleanup.
+	//
+	//  UPDATE alert_events
+	//  SET status = 'resolved',
+	//      resolved_at = ?,
+	//      resolution_message = 'Deployment stopped',
+	//      updated_at = ?
+	//  WHERE app_id = ?
+	//    AND status = 'open'
+	ResolveOpenAlertEventsByApp(ctx context.Context, arg ResolveOpenAlertEventsByAppParams) error
+	// ResolveOpenAlertEventsByEnvironment closes detector alerts before their
+	// environment metadata is deleted, preventing invisible open inbox counts.
+	//
+	//  UPDATE alert_events
+	//  SET status = 'resolved',
+	//      resolved_at = ?,
+	//      resolution_message = 'Deployment stopped',
+	//      updated_at = ?
+	//  WHERE environment_id = ?
+	//    AND status = 'open'
+	ResolveOpenAlertEventsByEnvironment(ctx context.Context, arg ResolveOpenAlertEventsByEnvironmentParams) error
+	// ResolveOpenAlertEventsByGroups self-heals detector alerts whose app or
+	// environment metadata was removed before lifecycle cleanup could close them.
+	// The JSON batch matches the metadata lookup boundary, limiting each call to
+	// at most 500 groups.
+	//
+	//  WITH RECURSIVE group_indexes AS (
+	//      SELECT 0 AS group_index
+	//      WHERE JSON_LENGTH(?) > 0
+	//      UNION ALL
+	//      SELECT group_index + 1
+	//      FROM group_indexes
+	//      WHERE group_index + 1 < JSON_LENGTH(?)
+	//  ), requested AS (
+	//      SELECT
+	//          JSON_UNQUOTE(JSON_EXTRACT(?, CONCAT('$[', group_index, '].workspace_id'))) AS workspace_id,
+	//          JSON_UNQUOTE(JSON_EXTRACT(?, CONCAT('$[', group_index, '].project_id'))) AS project_id,
+	//          JSON_UNQUOTE(JSON_EXTRACT(?, CONCAT('$[', group_index, '].app_id'))) AS app_id,
+	//          JSON_UNQUOTE(JSON_EXTRACT(?, CONCAT('$[', group_index, '].environment_id'))) AS environment_id
+	//      FROM group_indexes
+	//  )
+	//  UPDATE alert_events AS ae
+	//  INNER JOIN requested
+	//      ON requested.workspace_id = ae.workspace_id
+	//      AND requested.project_id = ae.project_id
+	//      AND requested.app_id = ae.app_id
+	//      AND requested.environment_id = ae.environment_id
+	//  SET ae.status = 'resolved',
+	//      ae.resolved_at = ?,
+	//      ae.resolution_message = 'Deployment stopped',
+	//      ae.updated_at = ?
+	//  WHERE ae.status = 'open'
+	ResolveOpenAlertEventsByGroups(ctx context.Context, arg ResolveOpenAlertEventsByGroupsParams) error
 	// Restores an app's current deployment on resume (the inverse of
 	// ClearAppCurrentDeployment, which teardown uses on suspend). Sets only
 	// current_deployment_id and updated_at_m; leaves is_rolled_back untouched.

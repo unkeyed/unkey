@@ -114,6 +114,34 @@ func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
 	assertAnomalyShardCompatibility(t, h)
 	assertInstanceEventRecoveryWithoutNewEvents(t, h)
 	assertOutOfOrderAnomalyWindowsIgnored(t, h)
+	assertOrphanAlertSelfHeals(t, h, windowStart.Add(2*time.Hour))
+}
+
+func assertOrphanAlertSelfHeals(t *testing.T, h *harness.Harness, windowStart time.Time) {
+	t.Helper()
+	alertID := uid.New(uid.AlertPrefix)
+	require.NoError(t, h.DB.InsertAlertEvent(h.Ctx, db.InsertAlertEventParams{
+		ID: alertID, WorkspaceID: uid.New(uid.WorkspacePrefix), ProjectID: uid.New(uid.ProjectPrefix),
+		AppID: uid.New("app"), EnvironmentID: uid.New("env"), Metric: db.AlertEventsMetricRequests,
+		FiredAt: windowStart.UnixMilli(), LastSeenAt: windowStart.UnixMilli(),
+		ObservedValue: 10_000, BaselineMean: 1_000, BaselineStddev: 20, ThresholdSigma: 4,
+		WindowStart: windowStart.UnixMilli(), WindowEnd: windowStart.Add(5 * time.Minute).UnixMilli(),
+		CreatedAt: windowStart.UnixMilli(), UpdatedAt: sql.NullInt64{},
+	}))
+
+	runAnomalyWindow(t, h, windowStart)
+
+	var status string
+	var resolvedAt sql.NullInt64
+	var resolutionMessage sql.NullString
+	require.NoError(t, h.DB.RO().QueryRowContext(h.Ctx, `
+		SELECT status, resolved_at, resolution_message
+		FROM alert_events
+		WHERE id = ?
+	`, alertID).Scan(&status, &resolvedAt, &resolutionMessage))
+	require.Equal(t, "resolved", status)
+	require.True(t, resolvedAt.Valid)
+	require.Equal(t, "Deployment stopped", resolutionMessage.String)
 }
 
 func assertIncompleteTelemetryNoop(

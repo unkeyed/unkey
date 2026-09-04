@@ -44,6 +44,15 @@ func (s *Service) Delete(
 		return nil, fmt.Errorf("find environment: %w", err)
 	}
 
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		now := sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true}
+		return s.db.ResolveOpenAlertEventsByEnvironment(runCtx, db.ResolveOpenAlertEventsByEnvironmentParams{
+			ResolvedAt: now, UpdatedAt: now, EnvironmentID: envID,
+		})
+	}, restate.WithName("resolve open deploy anomaly alerts")); err != nil {
+		return nil, fmt.Errorf("resolve open deploy anomaly alerts: %w", err)
+	}
+
 	if err := s.cancelProgressingDeployments(ctx, envID); err != nil {
 		return nil, fmt.Errorf("cancel progressing deployments: %w", err)
 	}

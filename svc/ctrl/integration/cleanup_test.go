@@ -16,6 +16,7 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
 	workerenvironment "github.com/unkeyed/unkey/svc/ctrl/worker/environment"
@@ -36,19 +37,21 @@ import (
 func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	h := New(t)
 	ctx := h.Context()
+	auditService, err := auditlogs.New(auditlogs.Config{DB: h.DB})
+	require.NoError(t, err)
 
 	// The environment delete handler only calls Admin to cancel a deployment's
 	// in-flight Restate invocation, and seeded deployments have no invocation id,
 	// so Admin is never exercised here. It just has to be non-nil.
 	envSvc, err := workerenvironment.New(workerenvironment.Config{
-		DB:    h.DB,
-		Admin: restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:9070", APIKey: ""}),
+		DB: h.DB, Admin: restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:9070", APIKey: ""}),
+		Auditlogs: auditService,
 	})
 	require.NoError(t, err)
 
 	projSvc, err := workerproject.New(workerproject.Config{DB: h.DB})
 	require.NoError(t, err)
-	appSvc, err := workerapp.New(workerapp.Config{DB: h.DB})
+	appSvc, err := workerapp.New(workerapp.Config{DB: h.DB, Auditlogs: auditService})
 	require.NoError(t, err)
 
 	// Start Restate with all three deletion VOs bound.
@@ -253,6 +256,112 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 			return countRows(t, ctx, h.DB, c.query, c.arg) == 0
 		}, 30*time.Second, 250*time.Millisecond, "timed out waiting for: %s", c.query)
 	}
+}
+
+func TestEnvironmentDeletion_ResolvesOpenDeployAnomalyAlerts(t *testing.T) {
+	h := New(t)
+	ctx := h.Context()
+	auditService, err := auditlogs.New(auditlogs.Config{DB: h.DB})
+	require.NoError(t, err)
+	workspaceID := h.Seed.Resources.UserWorkspace.ID
+	project := h.Seed.CreateProject(ctx, seed.CreateProjectRequest{
+		ID: uid.New("prj"), WorkspaceID: workspaceID, Name: "alert-cleanup", Slug: uid.New("slug"),
+	})
+	app := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
+		ID: uid.New("app"), WorkspaceID: workspaceID, ProjectID: project.ID,
+		Name: "alert-cleanup", Slug: "default", DefaultBranch: "main",
+	})
+	environment := h.Seed.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
+		ID: uid.New("env"), WorkspaceID: workspaceID, ProjectID: project.ID, AppID: app.ID,
+		Slug: "production", Kind: mysqltype.EnvironmentKindProduction, SentinelConfig: []byte("{}"),
+	})
+	alertID := insertCleanupAlert(t, ctx, h.DB, workspaceID, project.ID, app.ID, environment.ID)
+
+	environmentService, err := workerenvironment.New(workerenvironment.Config{
+		DB: h.DB, Admin: restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:9070", APIKey: ""}),
+		Auditlogs: auditService,
+	})
+	require.NoError(t, err)
+	tEnv := restatetest.Start(t, hydrav1.NewEnvironmentServiceServer(environmentService))
+	_, err = hydrav1.NewEnvironmentServiceIngressClient(tEnv.Ingress(), environment.ID).
+		Delete().Request(ctx, &hydrav1.DeleteEnvironmentRequest{})
+	require.NoError(t, err)
+	assertCleanupAlertResolved(t, ctx, h.DB, alertID)
+}
+
+func TestAppDeletion_ResolvesOpenDeployAnomalyAlerts(t *testing.T) {
+	h := New(t)
+	ctx := h.Context()
+	auditService, err := auditlogs.New(auditlogs.Config{DB: h.DB})
+	require.NoError(t, err)
+	workspaceID := h.Seed.Resources.UserWorkspace.ID
+	project := h.Seed.CreateProject(ctx, seed.CreateProjectRequest{
+		ID: uid.New("prj"), WorkspaceID: workspaceID, Name: "alert-cleanup", Slug: uid.New("slug"),
+	})
+	app := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
+		ID: uid.New("app"), WorkspaceID: workspaceID, ProjectID: project.ID,
+		Name: "alert-cleanup", Slug: "default", DefaultBranch: "main",
+	})
+	alertIDs := make([]string, 0, 2)
+	for _, slug := range []string{"production", "preview"} {
+		environment := h.Seed.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
+			ID: uid.New("env"), WorkspaceID: workspaceID, ProjectID: project.ID, AppID: app.ID,
+			Slug: slug, Kind: mysqltype.EnvironmentKindProduction, SentinelConfig: []byte("{}"),
+		})
+		alertIDs = append(alertIDs, insertCleanupAlert(t, ctx, h.DB, workspaceID, project.ID, app.ID, environment.ID))
+	}
+
+	environmentService, err := workerenvironment.New(workerenvironment.Config{
+		DB: h.DB, Admin: restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:9070", APIKey: ""}),
+		Auditlogs: auditService,
+	})
+	require.NoError(t, err)
+	appService, err := workerapp.New(workerapp.Config{DB: h.DB, Auditlogs: auditService})
+	require.NoError(t, err)
+	tEnv := restatetest.Start(t,
+		hydrav1.NewAppServiceServer(appService),
+		hydrav1.NewEnvironmentServiceServer(environmentService),
+	)
+	_, err = hydrav1.NewAppServiceIngressClient(tEnv.Ingress(), app.ID).
+		Delete().Request(ctx, &hydrav1.DeleteAppRequest{})
+	require.NoError(t, err)
+	for _, alertID := range alertIDs {
+		assertCleanupAlertResolved(t, ctx, h.DB, alertID)
+	}
+}
+
+func insertCleanupAlert(
+	t *testing.T,
+	ctx context.Context,
+	database db.Database,
+	workspaceID, projectID, appID, environmentID string,
+) string {
+	t.Helper()
+	now := time.Now().UnixMilli()
+	alertID := uid.New(uid.AlertPrefix)
+	require.NoError(t, database.InsertAlertEvent(ctx, db.InsertAlertEventParams{
+		ID: alertID, WorkspaceID: workspaceID, ProjectID: projectID,
+		AppID: appID, EnvironmentID: environmentID, Metric: db.AlertEventsMetricRequests,
+		FiredAt: now, LastSeenAt: now, ObservedValue: 10_000, BaselineMean: 1_000,
+		BaselineStddev: 20, ThresholdSigma: 4, WindowStart: now,
+		WindowEnd: now + int64(5*time.Minute/time.Millisecond), CreatedAt: now,
+	}))
+	return alertID
+}
+
+func assertCleanupAlertResolved(t *testing.T, ctx context.Context, database db.Database, alertID string) {
+	t.Helper()
+	var status string
+	var resolvedAt sql.NullInt64
+	var message sql.NullString
+	require.NoError(t, database.RO().QueryRowContext(ctx, `
+		SELECT status, resolved_at, resolution_message
+		FROM alert_events
+		WHERE id = ?
+	`, alertID).Scan(&status, &resolvedAt, &message))
+	require.Equal(t, "resolved", status)
+	require.True(t, resolvedAt.Valid)
+	require.Equal(t, "Deployment stopped", message.String)
 }
 
 // countRows executes a query that returns a single COUNT(*) value.
