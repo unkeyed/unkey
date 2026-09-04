@@ -26,7 +26,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 
 	conn, err := ch.Open(opts)
 	require.NoError(t, err)
-	defer func() { require.NoError(t, conn.Close()) }()
+	t.Cleanup(func() { require.NoError(t, conn.Close()) })
 
 	err = conn.Ping(context.Background())
 	require.NoError(t, err)
@@ -124,36 +124,58 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 	// Wait for raw data to be available
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		rawCount := uint64(0)
-		err = conn.QueryRow(ctx, "SELECT COUNT(*) FROM default.ratelimits_raw_v2 WHERE workspace_id = ?", workspaceID).Scan(&rawCount)
-		require.NoError(c, err)
+		queryErr := conn.QueryRow(ctx, "SELECT COUNT(*) FROM default.ratelimits_raw_v2 WHERE workspace_id = ?", workspaceID).Scan(&rawCount)
+		require.NoError(c, queryErr)
 		require.Equal(c, len(ratelimits), int(rawCount))
 	}, time.Minute, time.Second)
 
-	t.Run("pass/total counts are correct", func(t *testing.T) {
-		// Calculate expected totals from source data
-		totalPassed := array.Reduce(ratelimits, func(acc int, r schema.Ratelimit) int {
-			if r.Passed {
-				return acc + 1
-			}
-			return acc
-		}, 0)
+	type requestStats struct {
+		passed int
+		total  int
+	}
+	totalStats := requestStats{}
+	namespaceStats := make(map[string]requestStats, len(namespaces))
+	identifierStats := make(map[string]requestStats, len(identifiers))
+	for _, ratelimit := range ratelimits {
+		totalStats.total++
+		if ratelimit.Passed {
+			totalStats.passed++
+		}
 
-		totalRequests := len(ratelimits)
+		stats := namespaceStats[ratelimit.NamespaceID]
+		stats.total++
+		if ratelimit.Passed {
+			stats.passed++
+		}
+		namespaceStats[ratelimit.NamespaceID] = stats
+
+		stats = identifierStats[ratelimit.Identifier]
+		stats.total++
+		if ratelimit.Passed {
+			stats.passed++
+		}
+		identifierStats[ratelimit.Identifier] = stats
+	}
+
+	t.Run("pass/total counts are correct", func(t *testing.T) {
+		t.Parallel()
 
 		for _, table := range []string{"default.ratelimits_per_minute_v2", "default.ratelimits_per_hour_v2", "default.ratelimits_per_day_v2", "default.ratelimits_per_month_v2"} {
 			t.Run(table, func(t *testing.T) {
 				require.EventuallyWithT(t, func(c *assert.CollectT) {
 					var queriedPassed, queriedTotal int64
-					err = conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ?", table), workspaceID).Scan(&queriedPassed, &queriedTotal)
-					require.NoError(c, err)
-					require.Equal(c, totalPassed, int(queriedPassed), "passed count should match")
-					require.Equal(c, totalRequests, int(queriedTotal), "total count should match")
+					queryErr := conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ?", table), workspaceID).Scan(&queriedPassed, &queriedTotal)
+					require.NoError(c, queryErr)
+					require.Equal(c, totalStats.passed, int(queriedPassed), "passed count should match")
+					require.Equal(c, totalStats.total, int(queriedTotal), "total count should match")
 				}, time.Minute, time.Second)
 			})
 		}
 	})
 
 	t.Run("latency aggregates are correct", func(t *testing.T) {
+		t.Parallel()
+
 		latencies := array.Map(ratelimits, func(r schema.Ratelimit) float64 {
 			return r.Latency
 		})
@@ -169,8 +191,8 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 						queriedP75 float32
 						queriedP99 float32
 					)
-					err = conn.QueryRow(ctx, fmt.Sprintf("SELECT avgMerge(latency_avg), quantilesTDigestMerge(0.75)(latency_p75)[1], quantilesTDigestMerge(0.99)(latency_p99)[1] FROM %s WHERE workspace_id = ?", table), workspaceID).Scan(&queriedAvg, &queriedP75, &queriedP99)
-					require.NoError(c, err)
+					queryErr := conn.QueryRow(ctx, fmt.Sprintf("SELECT avgMerge(latency_avg), quantilesTDigestMerge(0.75)(latency_p75)[1], quantilesTDigestMerge(0.99)(latency_p99)[1] FROM %s WHERE workspace_id = ?", table), workspaceID).Scan(&queriedAvg, &queriedP75, &queriedP99)
+					require.NoError(c, queryErr)
 
 					require.InDelta(c, avg, queriedAvg, 0.01, "average latency should match")
 					require.InDelta(c, p75, float64(queriedP75), 0.5, "75th percentile should match")
@@ -181,24 +203,15 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 	})
 
 	t.Run("namespace-level aggregation is correct", func(t *testing.T) {
-		// Group by namespace and calculate expected totals
-		namespaceStats := array.Reduce(ratelimits, func(acc map[string]struct{ passed, total int }, r schema.Ratelimit) map[string]struct{ passed, total int } {
-			stats := acc[r.NamespaceID]
-			stats.total++
-			if r.Passed {
-				stats.passed++
-			}
-			acc[r.NamespaceID] = stats
-			return acc
-		}, make(map[string]struct{ passed, total int }))
+		t.Parallel()
 
 		for _, table := range []string{"default.ratelimits_per_minute_v2", "default.ratelimits_per_hour_v2", "default.ratelimits_per_day_v2", "default.ratelimits_per_month_v2"} {
 			t.Run(table, func(t *testing.T) {
 				for namespaceID, expectedStats := range namespaceStats {
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedPassed, queriedTotal int64
-						err = conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ? AND namespace_id = ?", table), workspaceID, namespaceID).Scan(&queriedPassed, &queriedTotal)
-						require.NoError(c, err)
+						queryErr := conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ? AND namespace_id = ?", table), workspaceID, namespaceID).Scan(&queriedPassed, &queriedTotal)
+						require.NoError(c, queryErr)
 						require.Equal(c, expectedStats.passed, int(queriedPassed), "passed count for namespace %s should match", namespaceID)
 						require.Equal(c, expectedStats.total, int(queriedTotal), "total count for namespace %s should match", namespaceID)
 					}, time.Minute, time.Second)
@@ -208,16 +221,7 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 	})
 
 	t.Run("identifier-level aggregation is correct", func(t *testing.T) {
-		// Group by identifier and calculate expected totals
-		identifierStats := array.Reduce(ratelimits, func(acc map[string]struct{ passed, total int }, r schema.Ratelimit) map[string]struct{ passed, total int } {
-			stats := acc[r.Identifier]
-			stats.total++
-			if r.Passed {
-				stats.passed++
-			}
-			acc[r.Identifier] = stats
-			return acc
-		}, make(map[string]struct{ passed, total int }))
+		t.Parallel()
 
 		// Test a sample of identifiers to avoid overwhelming the test
 		sampleIdentifiers := array.Fill(min(50, len(identifierStats)), func() string {
@@ -234,8 +238,8 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedPassed, queriedTotal int64
-						err = conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ? AND identifier = ?", table), workspaceID, identifier).Scan(&queriedPassed, &queriedTotal)
-						require.NoError(c, err)
+						queryErr := conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ? AND identifier = ?", table), workspaceID, identifier).Scan(&queriedPassed, &queriedTotal)
+						require.NoError(c, queryErr)
 						require.Equal(c, expectedStats.passed, int(queriedPassed), "passed count for identifier %s should match", identifier)
 						require.Equal(c, expectedStats.total, int(queriedTotal), "total count for identifier %s should match", identifier)
 					}, time.Minute, time.Second)
@@ -245,24 +249,17 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 	})
 
 	t.Run("pass rate analysis globally", func(t *testing.T) {
-		// Calculate overall pass rate
-		total := 0
-		passed := 0
-		for _, r := range ratelimits {
-			total++
-			if r.Passed {
-				passed += 1
-			}
-		}
+		t.Parallel()
+
 		for _, table := range []string{"default.ratelimits_per_minute_v2", "default.ratelimits_per_hour_v2", "default.ratelimits_per_day_v2", "default.ratelimits_per_month_v2"} {
 			t.Run(table, func(t *testing.T) {
 				require.EventuallyWithT(t, func(c *assert.CollectT) {
 					var queriedPassed, queriedTotal int64
-					err = conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ?", table), workspaceID).Scan(&queriedPassed, &queriedTotal)
-					require.NoError(c, err)
+					queryErr := conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ?", table), workspaceID).Scan(&queriedPassed, &queriedTotal)
+					require.NoError(c, queryErr)
 
-					require.Equal(c, total, int(queriedTotal), "total queries should match")
-					require.Equal(c, passed, int(queriedPassed), "passed queries should match")
+					require.Equal(c, totalStats.total, int(queriedTotal), "total queries should match")
+					require.Equal(c, totalStats.passed, int(queriedPassed), "passed queries should match")
 
 				}, time.Minute, time.Second)
 			})
@@ -270,27 +267,19 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 	})
 
 	t.Run("pass rate analysis per identifier", func(t *testing.T) {
-		// Calculate overall pass rate
+		t.Parallel()
+
 		for _, identifier := range identifiers[:10] {
-			total := 0
-			passed := 0
-			for _, r := range ratelimits {
-				if r.Identifier == identifier {
-					total++
-					if r.Passed {
-						passed += 1
-					}
-				}
-			}
+			expected := identifierStats[identifier]
 			for _, table := range []string{"default.ratelimits_per_minute_v2", "default.ratelimits_per_hour_v2", "default.ratelimits_per_day_v2", "default.ratelimits_per_month_v2"} {
 				t.Run(table, func(t *testing.T) {
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedPassed, queriedTotal int64
-						err = conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ? AND identifier = ?", table), workspaceID, identifier).Scan(&queriedPassed, &queriedTotal)
-						require.NoError(c, err)
+						queryErr := conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ? AND identifier = ?", table), workspaceID, identifier).Scan(&queriedPassed, &queriedTotal)
+						require.NoError(c, queryErr)
 
-						require.Equal(c, total, int(queriedTotal), "total queries should match")
-						require.Equal(c, passed, int(queriedPassed), "passed queries should match")
+						require.Equal(c, expected.total, int(queriedTotal), "total queries should match")
+						require.Equal(c, expected.passed, int(queriedPassed), "passed queries should match")
 
 					}, time.Minute, time.Second)
 				})
@@ -299,28 +288,19 @@ func TestRatelimits_ComprehensiveLoadTest(t *testing.T) {
 	})
 
 	t.Run("pass rate analysis per namespace", func(t *testing.T) {
+		t.Parallel()
 
 		for _, namespace := range namespaces {
-			// Calculate overall pass rate
-			total := 0
-			passed := 0
-			for _, r := range ratelimits {
-				if r.NamespaceID == namespace {
-					total++
-					if r.Passed {
-						passed += 1
-					}
-				}
-			}
+			expected := namespaceStats[namespace]
 			for _, table := range []string{"default.ratelimits_per_minute_v2", "default.ratelimits_per_hour_v2", "default.ratelimits_per_day_v2", "default.ratelimits_per_month_v2"} {
 				t.Run(table, func(t *testing.T) {
 					require.EventuallyWithT(t, func(c *assert.CollectT) {
 						var queriedPassed, queriedTotal int64
-						err = conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ? AND namespace_id = ?", table), workspaceID, namespace).Scan(&queriedPassed, &queriedTotal)
-						require.NoError(c, err)
+						queryErr := conn.QueryRow(ctx, fmt.Sprintf("SELECT sum(passed), sum(total) FROM %s WHERE workspace_id = ? AND namespace_id = ?", table), workspaceID, namespace).Scan(&queriedPassed, &queriedTotal)
+						require.NoError(c, queryErr)
 
-						require.Equal(c, total, int(queriedTotal), "total queries should match")
-						require.Equal(c, passed, int(queriedPassed), "passed queries should match")
+						require.Equal(c, expected.total, int(queriedTotal), "total queries should match")
+						require.Equal(c, expected.passed, int(queriedPassed), "passed queries should match")
 
 					}, time.Minute, time.Second)
 				})

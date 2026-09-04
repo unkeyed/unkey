@@ -174,6 +174,11 @@ func Run(ctx context.Context, cfg Config) error {
 	ratelimits := batch.NewNoop[schema.Ratelimit]()
 
 	if cfg.ClickHouse.URL != "" {
+		flushInterval := 5 * time.Second
+		if cfg.Test.ClickHouseFlushInterval > 0 {
+			flushInterval = cfg.Test.ClickHouseFlushInterval
+		}
+
 		chClient, chErr := clickhouse.New(clickhouse.Config{
 			URL: cfg.ClickHouse.URL,
 		})
@@ -186,7 +191,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Name:          "api_requests",
 			BatchSize:     10_000,
 			BufferSize:    20_000,
-			FlushInterval: 5 * time.Second,
+			FlushInterval: flushInterval,
 			Consumers:     2,
 			Drop:          true,
 			OnFlushError:  nil,
@@ -204,7 +209,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Name:          "key_verifications",
 			BatchSize:     10_000,
 			BufferSize:    20_000,
-			FlushInterval: 5 * time.Second,
+			FlushInterval: flushInterval,
 			Consumers:     2,
 			Drop:          true,
 			OnFlushError:  nil,
@@ -213,7 +218,7 @@ func Run(ctx context.Context, cfg Config) error {
 			Name:          "ratelimits",
 			BatchSize:     10_000,
 			BufferSize:    20_000,
-			FlushInterval: 5 * time.Second,
+			FlushInterval: flushInterval,
 			Consumers:     2,
 			Drop:          true,
 			OnFlushError:  nil,
