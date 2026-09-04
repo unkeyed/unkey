@@ -2,6 +2,7 @@ import {
   ArrowDottedRotateAnticlockwise,
   ArrowOppositeDirectionY,
   BracketsSquareDots,
+  ChartActivity,
   Cube,
   Fingerprint,
   Gauge,
@@ -17,7 +18,11 @@ import {
 import { routes } from "./routes";
 import type { ResolvedNavLink } from "./types";
 
-export function buildWorkspaceSections(slug: string, segments: string[]): ResolvedNavLink[] {
+export function buildWorkspaceSections(
+  slug: string,
+  segments: string[],
+  metricsEnabled: boolean,
+): ResolvedNavLink[] {
   const top = segments[0];
   return [
     {
@@ -27,6 +32,17 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
       icon: Cube,
       isActive: top === "projects",
     },
+    ...(metricsEnabled
+      ? [
+          {
+            key: "metrics",
+            label: "Metrics",
+            href: routes.metrics.list({ workspaceSlug: slug }),
+            icon: ChartActivity,
+            isActive: top === "metrics",
+          },
+        ]
+      : []),
     {
       key: "apis",
       label: "Keyspaces (APIs)",
