@@ -59,7 +59,11 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 		return nil, err
 	}
 	if rejected != nil {
-		return rejected.response(deploymentID, req.GetAppId()), nil
+		return &hydrav1.DeployCreateResponse{
+			DeploymentId:    deploymentID,
+			Outcome:         hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED,
+			RejectionReason: rejected.Reason,
+		}, nil
 	}
 
 	payload, rejected, err := w.buildPayload(ctx, req, target, status)
@@ -67,7 +71,11 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 		return nil, err
 	}
 	if rejected != nil {
-		return rejected.response(deploymentID, req.GetAppId()), nil
+		return &hydrav1.DeployCreateResponse{
+			DeploymentId:    deploymentID,
+			Outcome:         hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED,
+			RejectionReason: rejected.Reason,
+		}, nil
 	}
 
 	if err := w.recordDeployment(ctx, deploymentID, target, payload, req.GetActor()); err != nil {
@@ -637,21 +645,4 @@ type rejection struct {
 
 func rejectf(reason hydrav1.CreateRejectionReason, format string, args ...any) *rejection {
 	return &rejection{Reason: reason, Detail: fmt.Sprintf(format, args...)}
-}
-
-// response logs the refusal, which is the only trace a rejection leaves, and
-// answers it.
-func (r *rejection) response(deploymentID, appID string) *hydrav1.DeployCreateResponse {
-	logger.Info(
-		"deployment create rejected",
-		"deployment_id", deploymentID,
-		"app_id", appID,
-		"reason", r.Reason.String(),
-		"detail", r.Detail,
-	)
-	return &hydrav1.DeployCreateResponse{
-		DeploymentId:    deploymentID,
-		Outcome:         hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED,
-		RejectionReason: r.Reason,
-	}
 }
