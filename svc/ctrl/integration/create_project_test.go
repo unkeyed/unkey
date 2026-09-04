@@ -35,6 +35,9 @@ func TestCreateProjectWritesAuditLog(t *testing.T) {
 	})
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	_, err = h.DB.RW().ExecContext(ctx,
+		"UPDATE workspace_billing SET plan = ? WHERE workspace_id = ?", "pro", workspaceID)
+	require.NoError(t, err)
 	slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 
 	req := connect.NewRequest(&ctrlv1.CreateProjectRequest{

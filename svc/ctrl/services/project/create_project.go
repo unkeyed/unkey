@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
-	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
@@ -45,8 +44,7 @@ func (s *Service) CreateProject(
 	workspaceID := req.Msg.GetWorkspaceId()
 
 	// Authoritative entitlement gate: CLI, API, and git-triggered deploys skip
-	// the dashboard, so creation is enforced here, not just in the UI. Observe
-	// mode (the default) logs would-block instead of failing.
+	// the dashboard, so creation is enforced here, not just in the UI.
 	entitlement, err := s.db.FindWorkspaceDeployEntitlement(ctx, workspaceID)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -55,15 +53,9 @@ func (s *Service) CreateProject(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load workspace: %w", err))
 	}
 	if !deploygate.Entitled(entitlement.Plan, entitlement.PlanOverride) {
-		if s.enforceDeployGate {
-			return nil, connect.NewError(
-				connect.CodeFailedPrecondition,
-				fmt.Errorf("workspace %q has no Compute plan", workspaceID),
-			)
-		}
-		logger.Warn("deploy gate would block project creation",
-			"event", "deploy_gate.would_block",
-			"workspaceId", workspaceID,
+		return nil, connect.NewError(
+			connect.CodeFailedPrecondition,
+			fmt.Errorf("workspace %q has no Compute plan", workspaceID),
 		)
 	}
 

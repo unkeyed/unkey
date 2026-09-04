@@ -376,7 +376,6 @@ func Run(ctx context.Context, cfg Config) error {
 		RestateAdmin:                    restateAdminClient,
 		DashboardURL:                    cfg.DashboardURL,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
-		EnforceDeployGate:               cfg.DeployGate.Enforce,
 	})))
 
 	projectSvc, err := workerproject.New(workerproject.Config{

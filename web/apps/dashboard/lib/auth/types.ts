@@ -317,17 +317,3 @@ export const errorMessages: Record<AuthErrorCode, string> = {
     "Please enter the verification code sent to your email to continue.",
   [AuthErrorCode.RADAR_SMS_CHALLENGE_REQUIRED]: "Please verify your phone number to continue.",
 };
-
-export interface MiddlewareConfig {
-  enabled: boolean;
-  publicPaths: string[];
-  cookieName: string;
-  loginPath: string;
-}
-
-export const DEFAULT_MIDDLEWARE_CONFIG: MiddlewareConfig = {
-  enabled: true,
-  publicPaths: ["/auth/sign-in", "/auth/sign-up", "/favicon.ico"],
-  cookieName: UNKEY_SESSION_COOKIE,
-  loginPath: "/auth/sign-in",
-};

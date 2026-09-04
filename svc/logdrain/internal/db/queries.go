@@ -9,8 +9,3 @@ type Queries struct {
 func NewQueries(db DBTX) *Queries {
 	return &Queries{db: db}
 }
-
-// WithTx binds generated query methods to tx.
-func (q *Queries) WithTx(tx DBTx) *Queries {
-	return &Queries{db: tx}
-}

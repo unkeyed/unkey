@@ -59,10 +59,6 @@ type lifecycleFixture struct {
 }
 
 func newLifecycleFixture(t *testing.T) *lifecycleFixture {
-	return newLifecycleFixtureWithDeployGate(t, false)
-}
-
-func newLifecycleFixtureWithDeployGate(t *testing.T, enforceDeployGate bool) *lifecycleFixture {
 	t.Helper()
 
 	mock := &mockLifecycleService{
@@ -70,12 +66,14 @@ func newLifecycleFixtureWithDeployGate(t *testing.T, enforceDeployGate bool) *li
 		rollbacks: make(chan *hydrav1.RollbackRequest, 8),
 	}
 	h := newWebhookHarness(t, webhookHarnessConfig{
-		Services:          []restate.ServiceDefinition{hydrav1.NewDeployServiceServer(mock)},
-		EnforceDeployGate: enforceDeployGate,
+		Services: []restate.ServiceDefinition{hydrav1.NewDeployServiceServer(mock)},
 	})
 
 	ctx := h.RequestContext()
 	wsID := h.Seed.Resources.UserWorkspace.ID
+	_, err := h.DB.RW().ExecContext(ctx,
+		"UPDATE workspace_billing SET plan = ? WHERE workspace_id = ?", "pro", wsID)
+	require.NoError(t, err)
 
 	project := h.CreateProject(ctx, seed.CreateProjectRequest{
 		ID: uid.New("prj"), WorkspaceID: wsID, Name: "test-project", Slug: uid.New("slug"),
@@ -175,7 +173,11 @@ func requireConnectError(t *testing.T, err error, code connect.Code, msgSubstr s
 }
 
 func TestDeployment_ActivationRequiresComputePlan(t *testing.T) {
-	f := newLifecycleFixtureWithDeployGate(t, true)
+	f := newLifecycleFixture(t)
+	require.NoError(t, f.db.ClearWorkspaceDeployPlan(f.ctx, db.ClearWorkspaceDeployPlanParams{
+		ID:        f.workspaceID,
+		UpdatedAt: sql.NullInt64{Int64: f.now, Valid: true},
+	}))
 
 	live := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)
 	target := f.deployment(f.prodEnv, mysqltype.DeploymentsStatusReady, mysqltype.DeploymentsDesiredStateRunning)

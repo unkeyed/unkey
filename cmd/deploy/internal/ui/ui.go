@@ -44,8 +44,6 @@ func (ui *UI) Print(message string)             { ui.print(ColorYellow, SymbolBu
 func (ui *UI) PrintSuccess(message string)      { ui.print(ColorGreen, SymbolTick, "", message) }
 func (ui *UI) PrintError(message string)        { ui.print(ColorRed, SymbolCross, "", message) }
 func (ui *UI) PrintErrorDetails(message string) { ui.print(ColorRed, SymbolArrow, "  ", message) }
-func (ui *UI) PrintStepSuccess(message string)  { ui.print(ColorGreen, SymbolTick, "  ", message) }
-func (ui *UI) PrintStepError(message string)    { ui.print(ColorRed, SymbolCross, "  ", message) }
 
 // StartSpinner starts a spinner with the given message and indentation
 func (ui *UI) StartSpinner(message string) {
