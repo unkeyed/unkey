@@ -112,12 +112,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	_, err = hydrav1.NewDeployServiceIngressClient(h.Restate, dep.ID).
-		Promote().
-		Send(ctx, &hydrav1.PromoteRequest{
-			TargetDeploymentId: dep.ID,
-			Actor:              actor,
-			CorrelationId:      auditlog.NewCorrelationID(),
+	_, err = hydrav1.NewEnvironmentServiceIngressClient(h.Restate, dep.EnvironmentID).
+		PromoteDeployment().
+		Send(ctx, &hydrav1.PromoteDeploymentRequest{
+			DeploymentId:  dep.ID,
+			Actor:         actor,
+			CorrelationId: auditlog.NewCorrelationID(),
 		})
 	if err != nil {
 		return fault.Wrap(
