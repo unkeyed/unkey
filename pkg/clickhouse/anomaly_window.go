@@ -308,42 +308,41 @@ func (c *Client) GetRequestAnomalyWindows(ctx context.Context, req AnomalyWindow
 const resourceAnomalyWindowsQuery = `
 WITH
 	fromUnixTimestamp64Milli({window_start_ms:Int64}) AS window_start,
-	resource_buckets AS (
+	container_resources AS (
 		SELECT
 			time AS bucket_time,
 			workspace_id,
 			project_id,
 			app_id,
 			environment_id,
-			toFloat64(sum(egress_bytes)) AS egress_bytes,
-			sum(cpu_seconds) AS cpu_seconds,
-			toFloat64(0) AS memory_utilization,
-			toFloat64(0) AS memory_utilization_max,
-			toUInt8(bucket_time = window_start) AS current_bucket_present
-		FROM default.instance_resources_app_per_5m_v1
+			instance_id,
+			container_uid,
+			toFloat64(greatest(toInt64(0), max(network_egress_public_bytes_max) - min(network_egress_public_bytes_min))) AS egress_bytes,
+			toFloat64(greatest(toInt64(0), max(cpu_usage_usec_max) - min(cpu_usage_usec_min))) / 1e6 AS cpu_seconds,
+			if(sum(utilization_samples) = 0, 0., sum(utilization_sum) / sum(utilization_samples)) AS memory_utilization,
+			max(utilization_max) AS memory_utilization_max,
+			sum(utilization_samples) > 0 AS container_memory_valid
+		FROM default.instance_resources_container_per_5m_v1
 		WHERE time >= window_start - INTERVAL 24 HOUR
 		  AND time < window_start + INTERVAL 5 MINUTE
 		  AND /*ANOMALY_WORKSPACE_FILTER*/
 		  AND /*ANOMALY_GROUP_FILTER*/
-		GROUP BY anomaly_shard, workspace_id, project_id, app_id, environment_id, bucket_time
+		GROUP BY anomaly_shard, workspace_id, project_id, app_id, environment_id, instance_id, container_uid, bucket_time
 	),
-	container_memory AS (
+	resource_buckets AS (
 		SELECT
+			bucket_time,
 			workspace_id,
 			project_id,
 			app_id,
 			environment_id,
-			instance_id,
-			container_uid,
-			if(sum(utilization_samples) = 0, 0., sum(utilization_sum) / sum(utilization_samples)) AS memory_utilization,
-			max(utilization_max) AS memory_utilization_max,
-			sum(utilization_samples) > 0 AS container_memory_valid
-		FROM default.instance_memory_container_per_5m_v1
-		WHERE time >= window_start
-		  AND time < window_start + INTERVAL 5 MINUTE
-		  AND /*ANOMALY_WORKSPACE_FILTER*/
-		  AND /*ANOMALY_GROUP_FILTER*/
-		GROUP BY anomaly_shard, workspace_id, project_id, app_id, environment_id, instance_id, container_uid
+			sum(egress_bytes) AS egress_bytes,
+			sum(cpu_seconds) AS cpu_seconds,
+			toFloat64(0) AS memory_utilization,
+			toFloat64(0) AS memory_utilization_max,
+			toUInt8(bucket_time = window_start) AS current_bucket_present
+		FROM container_resources
+		GROUP BY bucket_time, workspace_id, project_id, app_id, environment_id
 	),
 	instance_memory AS (
 		SELECT
@@ -355,7 +354,8 @@ WITH
 			ifNotFinite(avgIf(memory_utilization, container_memory_valid), 0.) AS memory_utilization,
 			ifNotFinite(maxIf(memory_utilization_max, container_memory_valid), 0.) AS memory_utilization_max,
 			countIf(container_memory_valid) > 0 AS instance_memory_valid
-		FROM container_memory
+		FROM container_resources
+		WHERE bucket_time = window_start
 		GROUP BY workspace_id, project_id, app_id, environment_id, instance_id
 	),
 	memory_current AS (
@@ -487,9 +487,8 @@ SETTINGS optimize_aggregation_in_order = 1
 /*operation='GetResourceAnomalyWindows'*/
 `
 
-// GetResourceAnomalyWindows reads egress and CPU from the app-level 5-minute
-// rollup. Memory keeps container grain in a separate 5-minute rollup so
-// instances receive equal weight without rescanning per-minute rows.
+// GetResourceAnomalyWindows derives counter deltas from mergeable per-container
+// extrema. Memory keeps container grain so instances receive equal weight.
 func (c *Client) GetResourceAnomalyWindows(ctx context.Context, req AnomalyWindowsRequest) ([]ResourceAnomalyWindow, error) {
 	windows, err := selectAnomalyWindows(ctx, c, resourceAnomalyWindowsQuery, req, true, func(row ResourceAnomalyWindow) AnomalyGroupKey {
 		return AnomalyGroupKey{row.WorkspaceID, row.ProjectID, row.AppID, row.EnvironmentID}

@@ -157,9 +157,9 @@ func truncateAnomalyScaleTables(t *testing.T, ctx context.Context, conn ch.Conn)
 	for _, table := range []string{
 		"frontline_requests_per_5m_v1",
 		"frontline_requests_anomaly_per_5m_v1",
+		"instance_checkpoints_v1",
 		"instance_resources_per_minute_v1",
-		"instance_resources_app_per_5m_v1",
-		"instance_memory_container_per_5m_v1",
+		"instance_resources_container_per_5m_v1",
 		"anomaly_source_watermarks_v1",
 		"instance_events_raw_v1",
 	} {
@@ -225,61 +225,46 @@ func seedAnomalyScaleResources(t *testing.T, ctx context.Context, conn ch.Conn, 
 	for start := uint64(0); start < groups; start += anomalyScaleBatchSize {
 		batchSize := min(anomalyScaleBatchSize, groups-start)
 		require.NoError(t, conn.Exec(ctx, fmt.Sprintf(`
-		INSERT INTO default.instance_resources_per_minute_v1 (
-			time, workspace_id, project_id, app_id, environment_id, resource_type,
-			resource_id, container_uid, instance_id, cpu_usage_usec_min,
-			cpu_usage_usec_max, memory_bytes_sum, memory_bytes_max,
-			cpu_allocated_millicores_max, memory_allocated_bytes_max,
-			disk_allocated_bytes_max, disk_used_bytes_max,
-			network_egress_public_bytes_min, network_egress_public_bytes_max,
-			network_egress_private_bytes_min, network_egress_private_bytes_max,
-			network_ingress_public_bytes_min, network_ingress_public_bytes_max,
-			network_ingress_private_bytes_min, network_ingress_private_bytes_max,
-			sample_count)
+		INSERT INTO default.instance_checkpoints_v1 (
+			node_id, workspace_id, project_id, app_id, environment_id, resource_type,
+			resource_id, pod_uid, instance_id, container_uid, ts, cpu_usage_usec,
+			memory_bytes, memory_allocated_bytes, network_egress_public_bytes,
+			region, platform, attributes)
 		SELECT
-			toDateTime(%d) + toIntervalMinute(toInt64(number %% 1440)),
+			'node',
 			concat('ws_', leftPad(toString(intDiv(number, 1440)), 26, '0')),
 			concat('prj_', leftPad(toString(intDiv(number, 1440)), 25, '0')),
 			concat('app_', leftPad(toString(intDiv(number, 1440)), 25, '0')),
 			concat('env_', leftPad(toString(intDiv(number, 1440)), 25, '0')),
 			'deployment', concat('res_', toString(intDiv(number, 1440))),
-			concat('container_', toString(intDiv(number, 1440))), concat('instance_', toString(intDiv(number, 1440))),
-			toInt64((number %% 1440) * 1000000), toInt64((number %% 1440 + 1) * 1000000),
-			toInt64(500000000), toInt64(500000000), toInt32(1000), toInt64(1000000000),
-			toInt64(0), toInt64(0), toInt64((number %% 1440) * 1000),
-			toInt64((number %% 1440 + 1) * 1000), toInt64(0), toInt64(0),
-			toInt64(0), toInt64(0), toInt64(0), toInt64(0), toInt64(1)
+			concat('pod_', toString(intDiv(number, 1440))), concat('instance_', toString(intDiv(number, 1440))),
+			concat('container_', toString(intDiv(number, 1440))),
+			toInt64((%d + toInt64(number %% 1440) * 60) * 1000),
+			toInt64((number %% 1440) * 1000000), toInt64(500000000), toInt64(1000000000),
+			toInt64((number %% 1440) * 1000), 'us-east-1', 'kubernetes', '{}'
 		FROM numbers(%d, %d)
 	`, baselineStartSeconds, start*1440, batchSize*1440)))
 
 		require.NoError(t, conn.Exec(ctx, fmt.Sprintf(`
-		INSERT INTO default.instance_resources_per_minute_v1 (
-			time, workspace_id, project_id, app_id, environment_id, resource_type,
-			resource_id, container_uid, instance_id, cpu_usage_usec_min,
-			cpu_usage_usec_max, memory_bytes_sum, memory_bytes_max,
-			cpu_allocated_millicores_max, memory_allocated_bytes_max,
-			disk_allocated_bytes_max, disk_used_bytes_max,
-			network_egress_public_bytes_min, network_egress_public_bytes_max,
-			network_egress_private_bytes_min, network_egress_private_bytes_max,
-			network_ingress_public_bytes_min, network_ingress_public_bytes_max,
-			network_ingress_private_bytes_min, network_ingress_private_bytes_max,
-			sample_count)
+		INSERT INTO default.instance_checkpoints_v1 (
+			node_id, workspace_id, project_id, app_id, environment_id, resource_type,
+			resource_id, pod_uid, instance_id, container_uid, ts, cpu_usage_usec,
+			memory_bytes, memory_allocated_bytes, network_egress_public_bytes,
+			region, platform, attributes)
 		SELECT
-			toDateTime(%d) + toIntervalMinute(toInt64(number %% 5)),
+			'node',
 			concat('ws_', leftPad(toString(intDiv(number, 5)), 26, '0')),
 			concat('prj_', leftPad(toString(intDiv(number, 5)), 25, '0')),
 			concat('app_', leftPad(toString(intDiv(number, 5)), 25, '0')),
 			concat('env_', leftPad(toString(intDiv(number, 5)), 25, '0')),
 			'deployment', concat('res_', toString(intDiv(number, 5))),
-			concat('container_', toString(intDiv(number, 5))), concat('instance_', toString(intDiv(number, 5))),
-			toInt64((number %% 5) * if(intDiv(number, 5) %% 200 = 0, 50000000, 1000000)),
-			toInt64((number %% 5 + 1) * if(intDiv(number, 5) %% 200 = 0, 50000000, 1000000)),
-			toInt64(if(intDiv(number, 5) %% 200 = 0, 950000000, 500000000)),
-			toInt64(if(intDiv(number, 5) %% 200 = 0, 950000000, 500000000)),
-			toInt32(1000), toInt64(1000000000), toInt64(0), toInt64(0),
-			toInt64((number %% 5) * if(intDiv(number, 5) %% 200 = 0, 50000000, 1000)),
-			toInt64((number %% 5 + 1) * if(intDiv(number, 5) %% 200 = 0, 50000000, 1000)),
-			toInt64(0), toInt64(0), toInt64(0), toInt64(0), toInt64(0), toInt64(0), toInt64(1)
+			concat('pod_', toString(intDiv(number, 5))), concat('instance_', toString(intDiv(number, 5))),
+			concat('container_', toString(intDiv(number, 5))),
+			toInt64((%d + toInt64(number %% 5) * 60) * 1000),
+			toInt64((1440 + number %% 5) * if(intDiv(number, 5) %% 200 = 0, 50000000, 1000000)),
+			toInt64(if(intDiv(number, 5) %% 200 = 0, 950000000, 500000000)), toInt64(1000000000),
+			toInt64((1440 + number %% 5) * if(intDiv(number, 5) %% 200 = 0, 50000000, 1000)),
+			'us-east-1', 'kubernetes', '{}'
 		FROM numbers(%d, %d)
 	`, windowStart.Unix(), start*5, batchSize*5)))
 	}
