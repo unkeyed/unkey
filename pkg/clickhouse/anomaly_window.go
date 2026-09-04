@@ -22,26 +22,30 @@ type AnomalyGroupKey struct {
 // AnomalyCandidateFilter carries the detector's production thresholds into
 // ClickHouse. Nil disables candidate filtering for diagnostics and tests.
 type AnomalyCandidateFilter struct {
-	SigmaK                    float64
-	MinimumStddevRatio        float64
-	Error5xxRatioStddevFloor  float64
-	Error4xxRatioStddevFloor  float64
-	RequestsStddevFloor       float64
-	EgressBytesStddevFloor    float64
-	CPUSecondsStddevFloor     float64
-	ErrorExcessFailures       float64
-	RequestsActivity          float64
-	EgressBytesActivity       float64
-	CPUSecondsActivity        float64
-	MemoryUtilizationActivity float64
-	BaselineMinimum           int64
-	RequestDropBaseline       int64
-	RequestDropFraction       float64
-	RequestDropActivity       float64
-	RequestDropActiveBuckets  int64
-	RequestDropAbsoluteLoss   float64
-	Catastrophic5xxRatio      float64
-	Catastrophic5xxFailures   float64
+	SigmaK                     float64
+	MinimumStddevRatio         float64
+	Error5xxRatioStddevFloor   float64
+	Error4xxRatioStddevFloor   float64
+	RequestsStddevFloor        float64
+	EgressBytesStddevFloor     float64
+	CPUSecondsStddevFloor      float64
+	ErrorExcessFailures        float64
+	RequestsActivity           float64
+	EgressBytesActivity        float64
+	CPUSecondsActivity         float64
+	MemoryUtilizationActivity  float64
+	Error5xxBaselineMinimum    int64
+	Error4xxBaselineMinimum    int64
+	RequestsBaselineMinimum    int64
+	RequestDropBaselineMinimum int64
+	EgressBytesBaselineMinimum int64
+	CPUSecondsBaselineMinimum  int64
+	RequestDropFraction        float64
+	RequestDropActivity        float64
+	RequestDropActiveBuckets   int64
+	RequestDropAbsoluteLoss    float64
+	Catastrophic5xxRatio       float64
+	Catastrophic5xxFailures    float64
 }
 
 // AnomalyWindowsRequest selects one closed 5-minute window. WindowStart is the
@@ -277,12 +281,12 @@ WHERE
 	({candidate_filter_enabled:UInt8} = 0 AND {include_fleet:UInt8} = 1)
 	OR {explicit_batch:UInt8} = 1
 	OR (
-		baseline_buckets >= {baseline_minimum:Int64}
+		baseline_buckets >= {requests_baseline_minimum:Int64}
 		AND requests_current >= {requests_activity:Float64}
 		AND requests_current > requests_candidate_threshold
 	)
 	OR (
-		baseline_buckets >= {baseline_minimum:Int64}
+		baseline_buckets >= {error_5xx_baseline_minimum:Int64}
 		AND error_5xx_ratio_current > error_5xx_baseline_mean + {sigma_k:Float64} * greatest(error_5xx_baseline_stddev, error_5xx_baseline_mean * {minimum_stddev_ratio:Float64}, {error_5xx_ratio_stddev_floor:Float64})
 		AND error_5xx_excess >= {error_excess_failures:Float64}
 	)
@@ -291,12 +295,12 @@ WHERE
 		AND error_5xx_current >= {catastrophic_5xx_failures:Float64}
 	)
 	OR (
-		baseline_buckets >= {baseline_minimum:Int64}
+		baseline_buckets >= {error_4xx_baseline_minimum:Int64}
 		AND error_4xx_ratio_current > error_4xx_baseline_mean + {sigma_k:Float64} * greatest(error_4xx_baseline_stddev, error_4xx_baseline_mean * {minimum_stddev_ratio:Float64}, {error_4xx_ratio_stddev_floor:Float64})
 		AND error_4xx_excess >= {error_excess_failures:Float64}
 	)
 	OR (
-		baseline_buckets >= {request_drop_baseline:Int64}
+		baseline_buckets >= {request_drop_baseline_minimum:Int64}
 		AND recent_active_buckets >= {request_drop_active_buckets:Int64}
 		AND requests_current < recent_requests_median * {request_drop_fraction:Float64}
 		AND recent_requests_median - requests_current >= {request_drop_absolute_loss:Float64}
@@ -505,12 +509,12 @@ WHERE
 	({candidate_filter_enabled:UInt8} = 0 AND {include_fleet:UInt8} = 1)
 	OR {explicit_batch:UInt8} = 1
 	OR (
-		baseline_buckets >= {baseline_minimum:Int64}
+		baseline_buckets >= {egress_bytes_baseline_minimum:Int64}
 		AND egress_bytes_current >= {egress_bytes_activity:Float64}
 		AND egress_bytes_current > egress_bytes_candidate_threshold
 	)
 	OR (
-		baseline_buckets >= {baseline_minimum:Int64}
+		baseline_buckets >= {cpu_seconds_baseline_minimum:Int64}
 		AND cpu_seconds_current >= {cpu_seconds_activity:Float64}
 		AND cpu_seconds_current > cpu_seconds_candidate_threshold
 	)
@@ -641,36 +645,40 @@ func anomalyWindowParameters(req AnomalyWindowsRequest, batch anomalyWindowBatch
 		filter = new(AnomalyCandidateFilter)
 	}
 	return map[string]string{
-		"window_start_ms":              strconv.FormatInt(req.WindowStart, 10),
-		"workspace_ids":                stringArrayParam(req.WorkspaceIDs),
-		"group_keys":                   anomalyGroupKeysParam(batch.GroupKeys),
-		"include_fleet":                boolParam(batch.IncludeFleet),
-		"shard":                        strconv.FormatUint(req.Shard, 10),
-		"shard_count":                  strconv.FormatUint(req.ShardCount, 10),
-		"physical_shards":              physicalShardsParam(req.Shard, req.ShardCount),
-		"group_physical_shards":        groupPhysicalShardsParam(batch.GroupKeys),
-		"candidate_filter_enabled":     boolParam(req.CandidateFilter != nil),
-		"explicit_batch":               boolParam(!batch.IncludeFleet),
-		"sigma_k":                      strconv.FormatFloat(filter.SigmaK, 'g', -1, 64),
-		"minimum_stddev_ratio":         strconv.FormatFloat(filter.MinimumStddevRatio, 'g', -1, 64),
-		"error_5xx_ratio_stddev_floor": strconv.FormatFloat(filter.Error5xxRatioStddevFloor, 'g', -1, 64),
-		"error_4xx_ratio_stddev_floor": strconv.FormatFloat(filter.Error4xxRatioStddevFloor, 'g', -1, 64),
-		"requests_stddev_floor":        strconv.FormatFloat(filter.RequestsStddevFloor, 'g', -1, 64),
-		"egress_bytes_stddev_floor":    strconv.FormatFloat(filter.EgressBytesStddevFloor, 'g', -1, 64),
-		"cpu_seconds_stddev_floor":     strconv.FormatFloat(filter.CPUSecondsStddevFloor, 'g', -1, 64),
-		"error_excess_failures":        strconv.FormatFloat(filter.ErrorExcessFailures, 'g', -1, 64),
-		"requests_activity":            strconv.FormatFloat(filter.RequestsActivity, 'g', -1, 64),
-		"egress_bytes_activity":        strconv.FormatFloat(filter.EgressBytesActivity, 'g', -1, 64),
-		"cpu_seconds_activity":         strconv.FormatFloat(filter.CPUSecondsActivity, 'g', -1, 64),
-		"memory_utilization_activity":  strconv.FormatFloat(filter.MemoryUtilizationActivity, 'g', -1, 64),
-		"baseline_minimum":             strconv.FormatInt(filter.BaselineMinimum, 10),
-		"request_drop_baseline":        strconv.FormatInt(filter.RequestDropBaseline, 10),
-		"request_drop_fraction":        strconv.FormatFloat(filter.RequestDropFraction, 'g', -1, 64),
-		"request_drop_activity":        strconv.FormatFloat(filter.RequestDropActivity, 'g', -1, 64),
-		"request_drop_active_buckets":  strconv.FormatInt(filter.RequestDropActiveBuckets, 10),
-		"request_drop_absolute_loss":   strconv.FormatFloat(filter.RequestDropAbsoluteLoss, 'g', -1, 64),
-		"catastrophic_5xx_ratio":       strconv.FormatFloat(filter.Catastrophic5xxRatio, 'g', -1, 64),
-		"catastrophic_5xx_failures":    strconv.FormatFloat(filter.Catastrophic5xxFailures, 'g', -1, 64),
+		"window_start_ms":               strconv.FormatInt(req.WindowStart, 10),
+		"workspace_ids":                 stringArrayParam(req.WorkspaceIDs),
+		"group_keys":                    anomalyGroupKeysParam(batch.GroupKeys),
+		"include_fleet":                 boolParam(batch.IncludeFleet),
+		"shard":                         strconv.FormatUint(req.Shard, 10),
+		"shard_count":                   strconv.FormatUint(req.ShardCount, 10),
+		"physical_shards":               physicalShardsParam(req.Shard, req.ShardCount),
+		"group_physical_shards":         groupPhysicalShardsParam(batch.GroupKeys),
+		"candidate_filter_enabled":      boolParam(req.CandidateFilter != nil),
+		"explicit_batch":                boolParam(!batch.IncludeFleet),
+		"sigma_k":                       strconv.FormatFloat(filter.SigmaK, 'g', -1, 64),
+		"minimum_stddev_ratio":          strconv.FormatFloat(filter.MinimumStddevRatio, 'g', -1, 64),
+		"error_5xx_ratio_stddev_floor":  strconv.FormatFloat(filter.Error5xxRatioStddevFloor, 'g', -1, 64),
+		"error_4xx_ratio_stddev_floor":  strconv.FormatFloat(filter.Error4xxRatioStddevFloor, 'g', -1, 64),
+		"requests_stddev_floor":         strconv.FormatFloat(filter.RequestsStddevFloor, 'g', -1, 64),
+		"egress_bytes_stddev_floor":     strconv.FormatFloat(filter.EgressBytesStddevFloor, 'g', -1, 64),
+		"cpu_seconds_stddev_floor":      strconv.FormatFloat(filter.CPUSecondsStddevFloor, 'g', -1, 64),
+		"error_excess_failures":         strconv.FormatFloat(filter.ErrorExcessFailures, 'g', -1, 64),
+		"requests_activity":             strconv.FormatFloat(filter.RequestsActivity, 'g', -1, 64),
+		"egress_bytes_activity":         strconv.FormatFloat(filter.EgressBytesActivity, 'g', -1, 64),
+		"cpu_seconds_activity":          strconv.FormatFloat(filter.CPUSecondsActivity, 'g', -1, 64),
+		"memory_utilization_activity":   strconv.FormatFloat(filter.MemoryUtilizationActivity, 'g', -1, 64),
+		"error_5xx_baseline_minimum":    strconv.FormatInt(filter.Error5xxBaselineMinimum, 10),
+		"error_4xx_baseline_minimum":    strconv.FormatInt(filter.Error4xxBaselineMinimum, 10),
+		"requests_baseline_minimum":     strconv.FormatInt(filter.RequestsBaselineMinimum, 10),
+		"request_drop_baseline_minimum": strconv.FormatInt(filter.RequestDropBaselineMinimum, 10),
+		"egress_bytes_baseline_minimum": strconv.FormatInt(filter.EgressBytesBaselineMinimum, 10),
+		"cpu_seconds_baseline_minimum":  strconv.FormatInt(filter.CPUSecondsBaselineMinimum, 10),
+		"request_drop_fraction":         strconv.FormatFloat(filter.RequestDropFraction, 'g', -1, 64),
+		"request_drop_activity":         strconv.FormatFloat(filter.RequestDropActivity, 'g', -1, 64),
+		"request_drop_active_buckets":   strconv.FormatInt(filter.RequestDropActiveBuckets, 10),
+		"request_drop_absolute_loss":    strconv.FormatFloat(filter.RequestDropAbsoluteLoss, 'g', -1, 64),
+		"catastrophic_5xx_ratio":        strconv.FormatFloat(filter.Catastrophic5xxRatio, 'g', -1, 64),
+		"catastrophic_5xx_failures":     strconv.FormatFloat(filter.Catastrophic5xxFailures, 'g', -1, 64),
 	}
 }
 

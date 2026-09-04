@@ -88,6 +88,11 @@ func TestAnomalyCandidateFilterSuperset(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, all, groupCount)
 	detectorConfig := deployanomaly.DefaultConfig(deployanomaly.SensitivityNormal)
+	detectorConfig.BaselineMinimums = deployanomaly.BaselineMinimums{
+		Error5xx: int64(1 + random.Intn(72)), Error4xx: int64(1 + random.Intn(72)),
+		Requests: int64(1 + random.Intn(72)), RequestsDrop: int64(1 + random.Intn(72)),
+		EgressBytes: int64(1 + random.Intn(72)), CPUSeconds: int64(1 + random.Intn(72)),
+	}
 	want := make(map[clickhouse.AnomalyGroupKey]struct{})
 	for _, row := range all {
 		windowBuckets := lifetimeBuckets[row.WorkspaceID]
@@ -198,6 +203,52 @@ func TestAnomalyCandidateFilterIncludesInteriorLifetimeThreshold(t *testing.T) {
 	require.Equal(t, ids, requestWindowKey(rows[0]))
 }
 
+func TestAnomalyCandidateFilterUsesError5xxBaselineMinimum(t *testing.T) {
+	cfg := containers.ClickHouse(t)
+	client, err := clickhouse.New(clickhouse.Config{URL: cfg.DSN})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	opts, err := ch.ParseDSN(cfg.DSN)
+	require.NoError(t, err)
+	conn, err := ch.Open(opts)
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, conn.Close()) })
+
+	ctx := t.Context()
+	windowStart := time.Now().UTC().Truncate(5 * time.Minute).Add(-5 * time.Minute)
+	ids := candidateTestIDs(uid.New("error-minimum"), 0)
+	batch, err := conn.PrepareBatch(ctx, `
+		INSERT INTO default.frontline_requests_per_5m_v1
+			(time, workspace_id, project_id, app_id, environment_id, deployment_id, response_status, count)
+	`)
+	require.NoError(t, err)
+	for bucket := range 6 {
+		timestamp := windowStart.Add(-time.Duration(6-bucket) * 5 * time.Minute)
+		require.NoError(t, batch.Append(timestamp, ids.WorkspaceID, ids.ProjectID, ids.AppID, ids.EnvironmentID, "dep", int32(200), int64(99)))
+		require.NoError(t, batch.Append(timestamp, ids.WorkspaceID, ids.ProjectID, ids.AppID, ids.EnvironmentID, "dep", int32(500), int64(1)))
+	}
+	require.NoError(t, batch.Append(windowStart, ids.WorkspaceID, ids.ProjectID, ids.AppID, ids.EnvironmentID, "dep", int32(200), int64(70)))
+	require.NoError(t, batch.Append(windowStart, ids.WorkspaceID, ids.ProjectID, ids.AppID, ids.EnvironmentID, "dep", int32(500), int64(30)))
+	require.NoError(t, batch.Send())
+
+	detectorConfig := deployanomaly.DefaultConfig(deployanomaly.SensitivityNormal)
+	detectorConfig.BaselineMinimums.Error5xx = 6
+	result := deployanomaly.Detect(deployanomaly.Input{
+		Metric: deployanomaly.MetricError5xx, Current: 30, RequestsInWindow: 100,
+		BaselineMean: 0.01, BaselineStddev: 0.01, ObservedBaselineBuckets: 6,
+		PreviousCandidate: true,
+	}, detectorConfig)
+	require.Equal(t, deployanomaly.OutcomeAnomaly, result.Outcome)
+
+	filter := candidateTestFilter(detectorConfig)
+	rows, err := client.GetRequestAnomalyWindows(ctx, clickhouse.AnomalyWindowsRequest{
+		WindowStart: windowStart.UnixMilli(), WorkspaceIDs: []string{ids.WorkspaceID}, CandidateFilter: &filter,
+	})
+	require.NoError(t, err)
+	require.Len(t, rows, 1, "SQL candidate filtering must use the error_5xx baseline minimum")
+	require.Equal(t, ids, requestWindowKey(rows[0]))
+}
+
 func TestAnomalyCandidateFilterToleratesFloat64Cancellation(t *testing.T) {
 	cfg := containers.ClickHouse(t)
 	client, err := clickhouse.New(clickhouse.Config{URL: cfg.DSN})
@@ -285,7 +336,9 @@ func candidateTestFilter(cfg deployanomaly.Config) clickhouse.AnomalyCandidateFi
 		CPUSecondsStddevFloor: cfg.StddevFloors.CPUSeconds, ErrorExcessFailures: cfg.ActivityFloors.ErrorExcessFailures,
 		RequestsActivity: cfg.ActivityFloors.Requests, EgressBytesActivity: cfg.ActivityFloors.EgressBytes,
 		CPUSecondsActivity: cfg.ActivityFloors.CPUSeconds, MemoryUtilizationActivity: cfg.ActivityFloors.MemoryUtilization,
-		BaselineMinimum: cfg.BaselineMinimums.Requests, RequestDropBaseline: cfg.BaselineMinimums.RequestsDrop,
+		Error5xxBaselineMinimum: cfg.BaselineMinimums.Error5xx, Error4xxBaselineMinimum: cfg.BaselineMinimums.Error4xx,
+		RequestsBaselineMinimum: cfg.BaselineMinimums.Requests, RequestDropBaselineMinimum: cfg.BaselineMinimums.RequestsDrop,
+		EgressBytesBaselineMinimum: cfg.BaselineMinimums.EgressBytes, CPUSecondsBaselineMinimum: cfg.BaselineMinimums.CPUSeconds,
 		RequestDropFraction: cfg.RequestDrop.RecentLevelFraction, RequestDropActivity: cfg.RequestDrop.ActivityPerBucket,
 		RequestDropActiveBuckets: cfg.RequestDrop.MinimumActiveBuckets, RequestDropAbsoluteLoss: cfg.RequestDrop.MinimumAbsoluteLoss,
 		Catastrophic5xxRatio: cfg.Catastrophic.Error5xxRatio, Catastrophic5xxFailures: cfg.Catastrophic.Error5xxFailures,
