@@ -34,6 +34,7 @@ type anomalyTestApp struct {
 var anomalyWindowSequence atomic.Int64
 
 func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
+	anomalyWindowSequence.Store(0)
 	h := harness.New(t)
 	production := createAnomalyTestApp(t, h, mysqltype.EnvironmentKindProduction)
 	preview := createAnomalyTestApp(t, h, mysqltype.EnvironmentKindPreview)
