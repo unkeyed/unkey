@@ -6,8 +6,8 @@ export const requestDropMedianFraction = 0.25;
 export const alertStddevFloors = {
   error_5xx: 0.01,
   error_4xx: 0.01,
-  requests: 5,
-  egress_bytes: 65_536,
+  requests: 20,
+  egress_bytes: 1_048_576,
   cpu_seconds: 1,
 } as const;
 
