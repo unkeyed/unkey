@@ -6,6 +6,7 @@ import (
 	"math"
 	"net/url"
 	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -29,6 +30,8 @@ type anomalyTestApp struct {
 	regionID      string
 	appCreatedAt  int64
 }
+
+var anomalyWindowSequence atomic.Int64
 
 func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
 	h := harness.New(t)
@@ -457,7 +460,7 @@ func assertInstanceEventRecoveryWithoutNewEvents(t *testing.T, h *harness.Harnes
 	maxAgeWindow := maxAgeStart.Add(24 * time.Hour)
 	advanceResourceWatermark(t, h, maxAgeApp, maxAgeWindow)
 	runAnomalyWindow(t, h, maxAgeWindow)
-	requireAnomalyAlertResolution(t, h, maxAgeAlertID, "Baseline adapted after 24 hours")
+	requireAnomalyAlertResolution(t, h, maxAgeAlertID, "Metric returned to baseline for 3 consecutive windows")
 }
 
 func anomalyIngressKey(app anomalyTestApp) string {
@@ -642,6 +645,6 @@ func runAnomalyWindow(t *testing.T, h *harness.Harness, windowStart time.Time) {
 }
 
 func uniqueAnomalyWindowStart() time.Time {
-	offset := city.CH64([]byte(uid.New("window"))) % 96
-	return time.Now().UTC().Truncate(5 * time.Minute).Add(-12*time.Hour + time.Duration(offset)*5*time.Minute)
+	offset := anomalyWindowSequence.Add(1) - 1
+	return time.Now().UTC().Truncate(5 * time.Minute).Add(-20*time.Hour + time.Duration(offset)*4*time.Hour)
 }
