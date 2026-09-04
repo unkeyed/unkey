@@ -97,5 +97,6 @@ export async function createApiCore(
   return {
     id: apiId,
     keyAuthId,
+    projectId,
   };
 }

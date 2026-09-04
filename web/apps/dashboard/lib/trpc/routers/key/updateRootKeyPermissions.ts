@@ -34,6 +34,11 @@ export const updateRootKeyPermissions = workspaceProcedure
             isNull(table.deletedAtM),
           ),
         columns: { id: true, name: true },
+        with: {
+          keyAuth: {
+            columns: { projectId: true },
+          },
+        },
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -74,7 +79,12 @@ export const updateRootKeyPermissions = workspaceProcedure
 
         // Upsert new permissions
         const { permissions: upsertedPermissions, auditLogs: createPermissionLogs } =
-          await upsertPermissions(ctx, env().UNKEY_WORKSPACE_ID, input.permissions);
+          await upsertPermissions(
+            ctx,
+            env().UNKEY_WORKSPACE_ID,
+            key.keyAuth.projectId,
+            input.permissions,
+          );
 
         auditLogs.push(...createPermissionLogs);
 

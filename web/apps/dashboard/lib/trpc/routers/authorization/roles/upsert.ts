@@ -1,38 +1,49 @@
 import { rbacRoleSchema } from "@/app/(app)/[workspaceSlug]/authorization/roles/components/upsert-role/upsert-role.schema";
 import { insertAuditLogs } from "@/lib/audit";
-import { and, db, eq, schema } from "@/lib/db";
+import { and, db, eq, inArray, schema } from "@/lib/db";
 import { ensureDefaultProjectId } from "@/lib/projects/ensure-default-project-id";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import type { Transaction } from "@unkey/db";
 import { newId } from "@unkey/id";
 
-// Without these checks the caller could attach a role to keys or permissions
-// owned by another workspace, which leaks role permissions into a victim's
-// keys at verification time (the Go authoritative join chain has no
-// workspace filter).
-async function assertKeysInWorkspace(tx: Transaction, workspaceId: string, keyIds: string[]) {
+// The association tables do not store a project ID, so every write must prove
+// that both resources belong to the role's project.
+async function assertKeysInProject(
+  tx: Transaction,
+  workspaceId: string,
+  projectId: string,
+  keyIds: string[],
+) {
   if (keyIds.length === 0) {
     return;
   }
-  const found = await tx.query.keys.findMany({
-    where: (table, { and, eq, inArray }) =>
-      and(eq(table.workspaceId, workspaceId), inArray(table.id, keyIds)),
-    columns: { id: true },
-  });
+  const found = await tx
+    .select({ id: schema.keys.id })
+    .from(schema.keys)
+    .innerJoin(schema.keyAuth, eq(schema.keys.keyAuthId, schema.keyAuth.id))
+    .where(
+      and(
+        eq(schema.keys.workspaceId, workspaceId),
+        eq(schema.keyAuth.workspaceId, workspaceId),
+        eq(schema.keyAuth.projectId, projectId),
+        inArray(schema.keys.id, keyIds),
+      ),
+    );
   const foundIds = new Set(found.map((k) => k.id));
   const missing = keyIds.filter((id) => !foundIds.has(id));
   if (missing.length > 0) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: `Key(s) not found or not in this workspace: ${missing.join(", ")}`,
+      message: `Key(s) not found or not in this project: ${missing.join(", ")}`,
     });
   }
 }
 
-async function assertPermissionsInWorkspace(
+async function assertPermissionsInProject(
   tx: Transaction,
   workspaceId: string,
+  projectId: string,
   permissionIds: string[],
 ) {
   if (permissionIds.length === 0) {
@@ -40,7 +51,11 @@ async function assertPermissionsInWorkspace(
   }
   const found = await tx.query.permissions.findMany({
     where: (table, { and, eq, inArray }) =>
-      and(eq(table.workspaceId, workspaceId), inArray(table.id, permissionIds)),
+      and(
+        eq(table.workspaceId, workspaceId),
+        eq(table.projectId, projectId),
+        inArray(table.id, permissionIds),
+      ),
     columns: { id: true },
   });
   const foundIds = new Set(found.map((p) => p.id));
@@ -48,7 +63,7 @@ async function assertPermissionsInWorkspace(
   if (missing.length > 0) {
     throw new TRPCError({
       code: "NOT_FOUND",
-      message: `Permission(s) not found or not in this workspace: ${missing.join(", ")}`,
+      message: `Permission(s) not found or not in this project: ${missing.join(", ")}`,
     });
   }
 }
@@ -91,6 +106,7 @@ export const upsertRole = workspaceProcedure
             and(eq(table.id, updateRoleId), eq(table.workspaceId, ctx.workspace.id)),
           columns: {
             id: true,
+            projectId: true,
             name: true,
           },
         });
@@ -103,10 +119,15 @@ export const upsertRole = workspaceProcedure
         }
 
         if (input.permissionIds && input.permissionIds.length > 0) {
-          await assertPermissionsInWorkspace(tx, ctx.workspace.id, input.permissionIds);
+          await assertPermissionsInProject(
+            tx,
+            ctx.workspace.id,
+            existingRole.projectId,
+            input.permissionIds,
+          );
         }
         if (input.keyIds && input.keyIds.length > 0) {
-          await assertKeysInWorkspace(tx, ctx.workspace.id, input.keyIds);
+          await assertKeysInProject(tx, ctx.workspace.id, existingRole.projectId, input.keyIds);
         }
 
         // Only check for name conflicts if the name is actually changing
@@ -115,6 +136,7 @@ export const upsertRole = workspaceProcedure
             where: (table, { and, eq, ne }) =>
               and(
                 eq(table.workspaceId, ctx.workspace.id),
+                eq(table.projectId, existingRole.projectId),
                 eq(table.name, input.roleName),
                 ne(table.id, updateRoleId),
               ),
@@ -278,7 +300,11 @@ export const upsertRole = workspaceProcedure
         // Create mode - always check for name conflicts
         const nameConflict = await tx.query.roles.findFirst({
           where: (table, { and, eq }) =>
-            and(eq(table.workspaceId, ctx.workspace.id), eq(table.name, input.roleName)),
+            and(
+              eq(table.workspaceId, ctx.workspace.id),
+              eq(table.projectId, projectId),
+              eq(table.name, input.roleName),
+            ),
           columns: { id: true },
         });
 
@@ -290,10 +316,15 @@ export const upsertRole = workspaceProcedure
         }
 
         if (input.permissionIds && input.permissionIds.length > 0) {
-          await assertPermissionsInWorkspace(tx, ctx.workspace.id, input.permissionIds);
+          await assertPermissionsInProject(
+            tx,
+            ctx.workspace.id,
+            projectId,
+            input.permissionIds,
+          );
         }
         if (input.keyIds && input.keyIds.length > 0) {
-          await assertKeysInWorkspace(tx, ctx.workspace.id, input.keyIds);
+          await assertKeysInProject(tx, ctx.workspace.id, projectId, input.keyIds);
         }
 
         // Create new role

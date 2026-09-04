@@ -23,6 +23,7 @@ export const connectPermissionToRole = workspaceProcedure
             columns: {
               id: true,
               name: true,
+              projectId: true,
             },
           },
           permissions: {
@@ -30,6 +31,7 @@ export const connectPermissionToRole = workspaceProcedure
             columns: {
               id: true,
               name: true,
+              projectId: true,
             },
           },
         },
@@ -62,6 +64,13 @@ export const connectPermissionToRole = workspaceProcedure
         code: "NOT_FOUND",
         message:
           "We are unable to find the correct permission. Please try again or contact support@unkey.com.",
+      });
+    }
+
+    if (role.projectId !== permission.projectId) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "The role and permission must belong to the same project.",
       });
     }
 

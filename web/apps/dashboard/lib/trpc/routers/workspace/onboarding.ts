@@ -29,6 +29,7 @@ export const onboardingKeyCreation = workspaceProcedure
           {
             ...keyInput,
             keyAuthId: apiResult.keyAuthId,
+            projectId: apiResult.projectId,
             storeEncryptedKeys: false, // Default for new APIs. Can be activated by unkey with a support ticket.
           },
           ctx,
