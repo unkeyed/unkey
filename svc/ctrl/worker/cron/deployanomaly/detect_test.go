@@ -331,9 +331,18 @@ func TestDefaultConfigMatchesSharedThresholds(t *testing.T) {
 	require.Equal(t, productionThresholds.SigmaK, cfg.SigmaK)
 	require.Equal(t, productionThresholds.MinimumStddevRatio, cfg.MinimumStddevRatio)
 	require.Equal(t, productionThresholds.MinimumLifetimeBuckets, cfg.BaselineMinimums.Requests)
-	require.Equal(t, productionThresholds.RequestDropMedianFraction, cfg.RequestDrop.RecentLevelFraction)
+	require.Equal(t, productionThresholds.StddevFloors[MetricError5xx], cfg.StddevFloors.Error5xxRatio)
+	require.Equal(t, productionThresholds.StddevFloors[MetricError4xx], cfg.StddevFloors.Error4xxRatio)
 	require.Equal(t, productionThresholds.StddevFloors[MetricRequests], cfg.StddevFloors.Requests)
 	require.Equal(t, productionThresholds.StddevFloors[MetricEgressBytes], cfg.StddevFloors.EgressBytes)
+	require.Equal(t, productionThresholds.StddevFloors[MetricCPUSeconds], cfg.StddevFloors.CPUSeconds)
+	require.Equal(t, productionThresholds.ActivityFloors, cfg.ActivityFloors)
+	require.Equal(t, productionThresholds.RequestDrop, cfg.RequestDrop)
+	require.Equal(t, productionThresholds.Catastrophic, cfg.Catastrophic)
+	require.Equal(t, productionThresholds.Recovery, cfg.Recovery)
+	require.Equal(t, time.Duration(productionThresholds.MaxOpenDurationSeconds)*time.Second, cfg.MaxOpenDuration)
+	require.False(t, ShouldResolve(cfg.Recovery.ConsecutiveWindows-1, cfg.Recovery.ConsecutiveWindows))
+	require.True(t, ShouldResolve(cfg.Recovery.ConsecutiveWindows, cfg.Recovery.ConsecutiveWindows))
 }
 
 func TestDetectSigmaIsScaleInvariant(t *testing.T) {

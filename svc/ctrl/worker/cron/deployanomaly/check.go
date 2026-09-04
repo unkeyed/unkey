@@ -304,7 +304,7 @@ func (h *CheckHandler) evaluateOpen(ctx restate.ObjectContext, req *hydrav1.Eval
 		return fault.Wrap(err, fault.Internal(fmt.Sprintf("get quiet windows for %s", input.Metric)))
 	}
 	quiet++
-	if !ShouldResolve(quiet) {
+	if !ShouldResolve(quiet, cfg.Recovery.ConsecutiveWindows) {
 		restate.Set(ctx, quietKey(input.Metric), quiet)
 		return nil
 	}
