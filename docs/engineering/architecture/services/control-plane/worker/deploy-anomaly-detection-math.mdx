@@ -46,6 +46,11 @@ minimums still apply to young apps: spike metrics need 12 observed buckets, or
 The longer request-drop ramp-up avoids treating short test runs followed by
 silence as an outage.
 
+The dashboard uses the same creation-time padding. Eligibility always counts
+observed 5-minute buckets, even when the chart displays hourly points. An hourly
+display still needs 12 observed 5-minute buckets for spike bands and 72 for the
+request-drop band.
+
 ## Apply spike thresholds
 
 `svc/ctrl/worker/cron/deployanomaly/thresholds.json` is the canonical source for
@@ -77,6 +82,23 @@ must also reach the separate activity floor: 200 requests, 100 MiB of egress,
 or 60 CPU seconds. A value can cross the statistical threshold and remain quiet
 when its absolute activity is too small. Equality with the statistical
 threshold still does not fire.
+
+### Aggregate resource counters
+
+The resource rollup retains each container's minimum and maximum counter values
+for the complete 5-minute bucket. The detector calculates:
+
+`container_cpu_seconds = greatest(0, cpu_usage_usec_max - cpu_usage_usec_min) / 1,000,000`
+
+`container_egress_bytes = greatest(0, network_egress_public_bytes_max - network_egress_public_bytes_min)`
+
+It sums every container delta to get the app value for that bucket. The
+dashboard uses the same 5-minute deltas. An hourly chart point is the sum of its
+5-minute app values, not a new difference across an hour.
+
+Keeping counter bounds across the whole 5-minute bucket is required. Computing
+the difference inside an insert block with one 5-second sample makes the
+minimum equal the maximum and incorrectly produces a zero delta.
 
 ## Compare error ratios
 
@@ -155,6 +177,10 @@ provide those guarantees. A variable baseline can have a negative statistical
 lower bound, and a zero request bucket can also mean ingest delay. The explicit
 rule models a sustained loss from a recent, active level instead.
 
+The dashboard draws the request-drop boundary only after the same eligibility
+checks pass: 72 observed 5-minute buckets, at least 9 of the preceding 12
+buckets with 200 or more requests, and at least 200 requests of absolute loss.
+
 The alert stores the recent median in `baseline_mean` and stores zero in
 `baseline_stddev` and `threshold_sigma`. The detector metadata records the last
 condition as `deployment_has_running_region`.
@@ -171,6 +197,11 @@ least one topology region remain active.
 
 Memory and instance health events do not need a historical baseline. Their
 stored `baseline_mean`, `baseline_stddev`, and `threshold_sigma` values are zero.
+
+For memory, each container's 5-minute utilization is its raw utilization sum
+divided by its valid sample count. The detector averages containers into an
+instance, then averages instances with equal weight to get the app value. The
+dashboard uses the same order at both 5-minute and hourly display resolutions.
 
 | Metric | Opening rule | Example |
 | --- | --- | --- |
@@ -240,6 +271,11 @@ the current operating level. The age-based resolution closes that incident and
 lets later departures from the adapted baseline create a new alert. An
 incomplete window remains a strict no-op, so it cannot perform the age-based
 resolution.
+
+App and environment deletion are lifecycle resolutions, not detector recovery.
+Their deletion workflows durably resolve open alerts with `Deployment stopped`
+before removing metadata. Shard reconciliation applies the same resolution to
+an orphaned open group when the app or environment is already missing.
 
 See the [architecture page](/architecture/services/control-plane/worker/deploy-anomaly-detection)
 for orchestration, storage, and dashboard behavior.
