@@ -7,6 +7,9 @@ on:
     types: [closed]
 permissions:
   contents: read
+concurrency:
+  group: planetscale-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 env:
   PSCALE_ORG: unkey
   PSCALE_DB: unkey
@@ -25,16 +28,35 @@ jobs:
     steps:
       - uses: planetscale/setup-pscale-action@b6a50ee45b4b24944e1d8de6e57b3a5f6476a1af # v1
 
-      - name: close open deploy requests
-        # Branch deletion fails while a DR is open, so close them first.
+      - name: delete PlanetScale resources
         run: |
           set -euo pipefail
-          pscale deploy-request list "$PSCALE_DB" --org "$PSCALE_ORG" --format json \
-            | jq -r --arg b "$BRANCH" \
-                '.[] | select(.branch==$b and .state=="open") | .number' \
-            | while read -r num; do
-                pscale deploy-request close "$PSCALE_DB" "$num" --org "$PSCALE_ORG" || true
-              done
 
-      - name: delete branch
-        run: pscale branch delete "$PSCALE_DB" "$BRANCH" --org "$PSCALE_ORG" --force || true
+          BRANCHES=$(pscale branch list "$PSCALE_DB" --org "$PSCALE_ORG" --format json)
+          if ! jq -e 'type == "array"' <<< "$BRANCHES" >/dev/null; then
+            echo "::error::PlanetScale returned an invalid branch list."
+            exit 1
+          fi
+          if ! jq -e --arg b "$BRANCH" 'any(.[]; .name == $b)' <<< "$BRANCHES" >/dev/null; then
+            echo "PlanetScale branch $BRANCH does not exist."
+            exit 0
+          fi
+
+          DEPLOY_REQUESTS=$(pscale deploy-request list "$PSCALE_DB" \
+            --org "$PSCALE_ORG" --format json)
+          if ! jq -e 'type == "array"' <<< "$DEPLOY_REQUESTS" >/dev/null; then
+            echo "::error::PlanetScale returned an invalid deploy request list."
+            exit 1
+          fi
+          mapfile -t OPEN_REQUESTS < <(
+            jq -r --arg b "$BRANCH" \
+              '.[] | select(.branch==$b and .state=="open") | .number' \
+              <<< "$DEPLOY_REQUESTS"
+          )
+          for request in "${OPEN_REQUESTS[@]}"; do
+            echo "Closing deploy request #$request."
+            pscale deploy-request close "$PSCALE_DB" "$request" --org "$PSCALE_ORG"
+          done
+
+          echo "Deleting PlanetScale branch $BRANCH."
+          pscale branch delete "$PSCALE_DB" "$BRANCH" --org "$PSCALE_ORG" --force

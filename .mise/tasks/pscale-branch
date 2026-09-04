@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Create PlanetScale branch and run drizzle migration (BRANCH=name [FROM=staging])"
+#MISE description="Create PlanetScale branch and apply schema (BRANCH=name [FROM=staging] [MIGRATION_FILE=path] [BASE_SNAPSHOT=path HEAD_SNAPSHOT=path RESULT_FILE=path])"
 #MISE depends=["install-web"]
 set -euo pipefail
 
@@ -9,10 +9,124 @@ if [ -z "${BRANCH:-}" ]; then
 fi
 
 FROM="${FROM:-staging}"
+SNAPSHOT_MODE=false
+if [ -n "${BASE_SNAPSHOT:-}" ] || [ -n "${HEAD_SNAPSHOT:-}" ] || [ -n "${RESULT_FILE:-}" ]; then
+  if [ -z "${BASE_SNAPSHOT:-}" ] || [ -z "${HEAD_SNAPSHOT:-}" ] || [ -z "${RESULT_FILE:-}" ]; then
+    echo "Error: BASE_SNAPSHOT, HEAD_SNAPSHOT, and RESULT_FILE must be provided together" >&2
+    exit 1
+  fi
+  if [ -n "${MIGRATION_FILE:-}" ]; then
+    echo "Error: MIGRATION_FILE cannot be combined with schema snapshots" >&2
+    exit 1
+  fi
+  if [ ! -f "$BASE_SNAPSHOT" ] || [ ! -f "$HEAD_SNAPSHOT" ]; then
+    echo "Error: base and head snapshot files must exist" >&2
+    exit 1
+  fi
+  BASE_SNAPSHOT="$(realpath "$BASE_SNAPSHOT")"
+  HEAD_SNAPSHOT="$(realpath "$HEAD_SNAPSHOT")"
+  RESULT_FILE="$(realpath -m "$RESULT_FILE")"
+  SNAPSHOT_MODE=true
+fi
+
 pscale branch create unkey "$BRANCH" --org unkey --from "$FROM" --wait \
   || pscale branch show unkey "$BRANCH" --org unkey >/dev/null
-PW="$(pscale password create unkey "$BRANCH" "local-$(date +%s)" --org unkey --format json)"
-USER="$(echo "$PW" | jq -r '.username | @uri')"
-PASS="$(echo "$PW" | jq -r '.plain_text | @uri')"
-HOST="$(echo "$PW" | jq -r '.access_host_url | @uri')"
-DRIZZLE_DATABASE_URL="mysql://$USER:$PASS@$HOST/unkey?ssl={}" pnpm --dir=web/internal/db run migrate
+PW="$(pscale password create unkey "$BRANCH" "local-$(date +%s)" \
+  --org unkey --ttl 1h --format json)"
+PASSWORD_ID="$(jq -er '.id' <<< "$PW")"
+USER="$(jq -er '.username | @uri' <<< "$PW")"
+PASS="$(jq -er '.plain_text | @uri' <<< "$PW")"
+HOST="$(jq -er '.access_host_url | @uri' <<< "$PW")"
+
+WORK_ROOT=""
+cleanup_password() {
+  status=$?
+  trap - EXIT
+  if [ -n "$WORK_ROOT" ]; then
+    rm -rf "$WORK_ROOT"
+  fi
+  if ! pscale password delete unkey "$BRANCH" "$PASSWORD_ID" \
+      --org unkey --force >/dev/null; then
+    echo "Warning: failed to delete temporary PlanetScale password $PASSWORD_ID" >&2
+  fi
+  exit "$status"
+}
+trap cleanup_password EXIT
+
+DRIZZLE_DATABASE_URL="mysql://$USER:$PASS@$HOST/unkey?ssl={}"
+if [ "$SNAPSHOT_MODE" == "true" ]; then
+  WORK_ROOT="$(mktemp -d web/internal/db/.pscale-merge.XXXXXX)"
+  WORK_REL="${WORK_ROOT#web/internal/db/}"
+  DRIZZLE_DATABASE_URL="$DRIZZLE_DATABASE_URL" pnpm --dir=web/internal/db drizzle-kit introspect \
+    --config=drizzle.config.ts --out="$WORK_REL/introspected" --introspect-casing=preserve
+  if [ ! -f "$WORK_ROOT/introspected/schema.ts" ]; then
+    echo "Error: Drizzle did not generate the current branch schema" >&2
+    exit 1
+  fi
+  pnpm --dir=web/internal/db drizzle-kit generate \
+    --schema="$WORK_REL/introspected/schema.ts" --dialect=mysql \
+    --out="$WORK_REL/current" --name=current --prefix=index --breakpoints
+  mapfile -t CURRENT_SNAPSHOTS < <(
+    find "$WORK_ROOT/current/meta" -maxdepth 1 -type f -name '*_snapshot.json' | sort
+  )
+  if [ "${#CURRENT_SNAPSHOTS[@]}" -ne 1 ]; then
+    echo "Error: expected one current branch snapshot, found ${#CURRENT_SNAPSHOTS[@]}" >&2
+    exit 1
+  fi
+
+  MIGRATION_FILE="$WORK_ROOT/effective.sql"
+  node web/internal/db/scripts/merge-mysql-snapshots.mjs \
+    "$BASE_SNAPSHOT" "$HEAD_SNAPSHOT" "${CURRENT_SNAPSHOTS[0]}" "$MIGRATION_FILE"
+  if [ ! -f "$MIGRATION_FILE" ]; then
+    echo "Error: effective migration generation did not produce an output file" >&2
+    exit 1
+  fi
+  if [ ! -s "$MIGRATION_FILE" ]; then
+    echo "The pull request schema is already present in $FROM."
+    printf 'false\n' > "$RESULT_FILE"
+    exit 0
+  fi
+fi
+
+if [ -z "${MIGRATION_FILE:-}" ]; then
+  DRIZZLE_DATABASE_URL="$DRIZZLE_DATABASE_URL" pnpm --dir=web/internal/db run migrate
+  exit 0
+fi
+
+if [ ! -f "$MIGRATION_FILE" ]; then
+  echo "Error: migration file does not exist: $MIGRATION_FILE" >&2
+  exit 1
+fi
+MIGRATION_FILE="$(realpath "$MIGRATION_FILE")"
+DRIZZLE_DATABASE_URL="$DRIZZLE_DATABASE_URL" MIGRATION_FILE="$MIGRATION_FILE" \
+  pnpm --dir=web/internal/db exec node --input-type=module <<'NODE'
+import { readFile } from "node:fs/promises";
+import mysql from "mysql2/promise";
+
+const databaseUrl = process.env.DRIZZLE_DATABASE_URL;
+const migrationFile = process.env.MIGRATION_FILE;
+if (!databaseUrl || !migrationFile) {
+  throw new Error("DRIZZLE_DATABASE_URL and MIGRATION_FILE are required");
+}
+
+const sql = await readFile(migrationFile, "utf8");
+const statements = sql
+  .split("--> statement-breakpoint")
+  .map((statement) => statement.trim())
+  .filter(Boolean);
+const connection = await mysql.createConnection({
+  uri: databaseUrl,
+  multipleStatements: true,
+});
+try {
+  for (const statement of statements) {
+    await connection.query(statement);
+  }
+} finally {
+  await connection.end();
+}
+NODE
+
+if [ "$SNAPSHOT_MODE" == "true" ]; then
+  printf 'true\n' > "$RESULT_FILE"
+fi
