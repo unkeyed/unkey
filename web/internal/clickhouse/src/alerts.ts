@@ -1,17 +1,25 @@
 import { z } from "zod";
 import {
   type SigmaAlertMetric,
-  alertMinimumLifetimeBuckets,
+  alertBaselineMinimums,
   alertMinimumStddevRatio,
   alertStddevFloors,
   alertThresholdSigma,
+  requestDropActivityFloor,
   requestDropMedianFraction,
+  requestDropMinimumAbsoluteLoss,
+  requestDropMinimumActiveBuckets,
 } from "./alert-thresholds";
 import type { Querier } from "./client";
 
 const fiveMinutesMs = 5 * 60 * 1000;
 const hourMs = 60 * 60 * 1000;
 const baselineMs = 24 * hourMs;
+
+export function alertSeriesBaselineStartMs(startMs: number, appCreatedAtMs: number): number {
+  const alignedAppCreatedAtMs = Math.floor(appCreatedAtMs / fiveMinutesMs) * fiveMinutesMs;
+  return Math.max(startMs - baselineMs, alignedAppCreatedAtMs);
+}
 
 export const alertSeriesMetric = z.enum([
   "error_5xx",
@@ -27,6 +35,7 @@ export const alertSeriesParams = z
   .object({
     workspaceId: z.string(),
     appId: z.string(),
+    appCreatedAtMs: z.int().nonnegative(),
     environmentId: z.string(),
     metric: alertSeriesMetric,
     resolution: z.enum(["5m", "1h"]),
@@ -70,18 +79,29 @@ function denseBuckets(query: string): string {
       STEP {bucketMs: UInt32}`;
 }
 
-function frontlineQuery(
-  metric: "error_5xx" | "error_4xx" | "requests",
-  resolution: "5m" | "1h",
-): { query: string; tableName: string } {
-  const tableName =
-    resolution === "5m" ? "frontline_requests_per_5m_v1" : "frontline_requests_per_hour_v1";
+function denseObservedBuckets(query: string): string {
+  return `
+    SELECT time, toFloat64(value) AS value, toUInt8(bucket_observed) AS bucket_observed
+    FROM (${query})
+    ORDER BY time ASC
+    WITH FILL
+      FROM {baselineStartMs: Int64}
+      TO {endMs: Int64}
+      STEP {bucketMs: UInt32}`;
+}
+
+function frontlineQuery(metric: "error_5xx" | "error_4xx" | "requests"): {
+  query: string;
+  tableName: string;
+} {
+  const tableName = "frontline_requests_per_5m_v1";
   if (metric === "requests") {
     return {
-      query: denseBuckets(`
+      query: denseObservedBuckets(`
         SELECT
           toInt64(toUnixTimestamp(metric_source.time) * 1000) AS time,
-          sum(count) AS value
+          sum(count) AS value,
+          toUInt8(1) AS bucket_observed
         FROM {tableName: Identifier} AS metric_source
         PREWHERE metric_source.workspace_id = {workspaceId: String}
           AND metric_source.app_id = {appId: String}
@@ -104,12 +124,14 @@ function frontlineQuery(
         time,
         if(requests = 0, 0, toFloat64(errors) / requests) AS value,
         toFloat64(errors) AS errors,
-        toFloat64(requests) AS requests
+        toFloat64(requests) AS requests,
+        toUInt8(bucket_observed) AS bucket_observed
       FROM (
         SELECT
           toInt64(toUnixTimestamp(metric_source.time) * 1000) AS time,
           sumIf(count, ${errorFilter}) AS errors,
-          sum(count) AS requests
+          sum(count) AS requests,
+          toUInt8(1) AS bucket_observed
         FROM {tableName: Identifier} AS metric_source
         PREWHERE metric_source.workspace_id = {workspaceId: String}
           AND metric_source.app_id = {appId: String}
@@ -127,15 +149,12 @@ function frontlineQuery(
   };
 }
 
-function resourceCounterQuery(
-  expression: string,
-  resolution: "5m" | "1h",
-): { query: string; tableName: string } {
+function resourceCounterQuery(expression: string): { query: string; tableName: string } {
   const fiveMinuteQuery = `
-    SELECT time, sum(container_value) AS value
+    SELECT bucket AS time, sum(container_value) AS value, toUInt8(1) AS bucket_observed
     FROM (
       SELECT
-        toInt64(toUnixTimestamp(toStartOfInterval(time, INTERVAL 5 MINUTE)) * 1000) AS time,
+        toInt64(toUnixTimestamp(toStartOfInterval(time, INTERVAL 5 MINUTE)) * 1000) AS bucket,
         container_uid,
         ${expression} AS container_value
       FROM {tableName: Identifier}
@@ -145,20 +164,11 @@ function resourceCounterQuery(
         AND resource_type = 'deployment'
         AND time >= fromUnixTimestamp64Milli({baselineStartMs: Int64})
         AND time < fromUnixTimestamp64Milli({endMs: Int64})
-      GROUP BY time, container_uid
+      GROUP BY bucket, container_uid
     )
-    GROUP BY time`;
-  const displayQuery =
-    resolution === "5m"
-      ? fiveMinuteQuery
-      : `
-        SELECT
-          intDiv(five_minute.time, ${hourMs}) * ${hourMs} AS time,
-          sum(five_minute.value) AS value
-        FROM (${fiveMinuteQuery}) AS five_minute
-        GROUP BY time`;
+    GROUP BY bucket`;
   return {
-    query: denseBuckets(displayQuery),
+    query: denseObservedBuckets(fiveMinuteQuery),
     tableName: "instance_resources_per_minute_v1",
   };
 }
@@ -225,59 +235,46 @@ function healthQuery(): string {
     GROUP BY time`);
 }
 
-function firstBucketQuery(metric: SigmaAlertMetric): string {
-  const resourceFilter =
-    metric === "egress_bytes" || metric === "cpu_seconds"
-      ? "AND metric_lifetime.resource_type = 'deployment'"
-      : "";
-  return `
-    SELECT coalesce(
-      toInt64(toUnixTimestamp(minOrNull(metric_lifetime.time)) * 1000),
-      {endMs: Int64}
-    )
-    FROM {tableName: Identifier} AS metric_lifetime
-    PREWHERE metric_lifetime.workspace_id = {workspaceId: String}
-      AND metric_lifetime.app_id = {appId: String}
-      AND metric_lifetime.environment_id = {environmentId: String}
-      ${resourceFilter}
-      AND metric_lifetime.time < fromUnixTimestamp64Milli({endMs: Int64})`;
-}
-
-function withExpectedRange(
-  observedQuery: string,
-  metric: SigmaAlertMetric,
-  windowBuckets: number,
-  includeRequestDropThreshold: boolean,
-): string {
+function withExpectedRange(observedQuery: string, metric: SigmaAlertMetric): string {
+  const trailingWindow = "ORDER BY time ROWS BETWEEN 288 PRECEDING AND 1 PRECEDING";
   const effectiveStddev = `greatest(
     expected_stddev,
     ${alertMinimumStddevRatio} * expected_mean,
     ${alertStddevFloors[metric]}
   )`;
   const lowerBound =
-    metric === "requests" && includeRequestDropThreshold
+    metric === "requests"
       ? `if(
-          lifetime_buckets < ${alertMinimumLifetimeBuckets},
+          observed_baseline_buckets < ${alertBaselineMinimums.requests_drop}
+            OR recent_active_buckets < ${requestDropMinimumActiveBuckets},
           CAST(NULL, 'Nullable(Float64)'),
-          toNullable(greatest(0, recent_median * ${requestDropMedianFraction}))
+          toNullable(greatest(
+            0,
+            least(
+              recent_median * ${requestDropMedianFraction},
+              recent_median - ${requestDropMinimumAbsoluteLoss}
+            )
+          ))
         )`
       : "CAST(NULL, 'Nullable(Float64)')";
-  const recentMedian =
-    metric === "requests" && includeRequestDropThreshold
+  const requestDropStats =
+    metric === "requests"
       ? `quantileExactInclusive(0.5)(lifetime_value) OVER (
           ORDER BY time ROWS BETWEEN 12 PRECEDING AND 1 PRECEDING
-        ) AS recent_median,`
+        ) AS recent_median,
+        countIf(lifetime_value >= ${requestDropActivityFloor}) OVER (
+          ORDER BY time ROWS BETWEEN 12 PRECEDING AND 1 PRECEDING
+        ) AS recent_active_buckets,`
       : "";
 
   return `
-    WITH (${firstBucketQuery(metric)}) AS first_bucket_time
     SELECT
       time,
       value,
       toNullable(expected_mean) AS expectedMean,
       ${lowerBound} AS lowerBound,
       if(
-        lifetime_buckets < ${alertMinimumLifetimeBuckets},
+        observed_baseline_buckets < ${alertBaselineMinimums[metric]},
         CAST(NULL, 'Nullable(Float64)'),
         toNullable(expected_mean + ${alertThresholdSigma} * ${effectiveStddev})
       ) AS upperBound,
@@ -287,24 +284,19 @@ function withExpectedRange(
         time,
         value,
         avg(lifetime_value) OVER (
-          ORDER BY time ROWS BETWEEN ${windowBuckets} PRECEDING AND 1 PRECEDING
+          ${trailingWindow}
         ) AS expected_mean,
         stddevPop(lifetime_value) OVER (
-          ORDER BY time ROWS BETWEEN ${windowBuckets} PRECEDING AND 1 PRECEDING
+          ${trailingWindow}
         ) AS expected_stddev,
-        ${recentMedian}
-        count(lifetime_value) OVER (
-          ORDER BY time ROWS BETWEEN ${windowBuckets} PRECEDING AND 1 PRECEDING
-        ) AS lifetime_buckets
+        ${requestDropStats}
+        sum(lifetime_observed) OVER (${trailingWindow}) AS observed_baseline_buckets
       FROM (
         SELECT
           time,
           value,
-          if(
-            time >= first_bucket_time,
-            toNullable(value),
-            CAST(NULL, 'Nullable(Float64)')
-          ) AS lifetime_value
+          toNullable(value) AS lifetime_value,
+          toUInt64(bucket_observed) AS lifetime_observed
         FROM (${observedQuery})
       )
     )
@@ -315,23 +307,23 @@ function withExpectedRange(
 function withExpectedErrorRatioRange(
   observedQuery: string,
   metric: "error_5xx" | "error_4xx",
-  windowBuckets: number,
 ): string {
-  const trailingWindow = `ORDER BY time ROWS BETWEEN ${windowBuckets} PRECEDING AND 1 PRECEDING`;
+  const trailingWindow = "ORDER BY time ROWS BETWEEN 288 PRECEDING AND 1 PRECEDING";
   const effectiveStddev = `greatest(
     expected_stddev,
     ${alertMinimumStddevRatio} * expected_mean,
     ${alertStddevFloors[metric]}
   )`;
   return `
-    WITH (${firstBucketQuery(metric)}) AS first_bucket_time
     SELECT
       time,
       value,
+      errors,
+      requests,
       toNullable(expected_mean) AS expectedMean,
       CAST(NULL, 'Nullable(Float64)') AS lowerBound,
       if(
-        lifetime_buckets < ${alertMinimumLifetimeBuckets},
+        observed_baseline_buckets < ${alertBaselineMinimums[metric]},
         CAST(NULL, 'Nullable(Float64)'),
         toNullable(expected_mean + ${alertThresholdSigma} * ${effectiveStddev})
       ) AS upperBound,
@@ -340,6 +332,8 @@ function withExpectedErrorRatioRange(
       SELECT
         time,
         value,
+        errors,
+        requests,
         if(
           sum(lifetime_requests) OVER (${trailingWindow}) = 0,
           0,
@@ -347,18 +341,48 @@ function withExpectedErrorRatioRange(
             sum(lifetime_requests) OVER (${trailingWindow})
         ) AS expected_mean,
         stddevPop(lifetime_value) OVER (${trailingWindow}) AS expected_stddev,
-        count(lifetime_value) OVER (${trailingWindow}) AS lifetime_buckets
+        sum(lifetime_observed) OVER (${trailingWindow}) AS observed_baseline_buckets
       FROM (
         SELECT
           time,
           value,
-          if(time >= first_bucket_time AND requests > 0, toNullable(value), CAST(NULL, 'Nullable(Float64)')) AS lifetime_value,
-          if(time >= first_bucket_time, toNullable(errors), CAST(NULL, 'Nullable(Float64)')) AS lifetime_errors,
-          if(time >= first_bucket_time, toNullable(requests), CAST(NULL, 'Nullable(Float64)')) AS lifetime_requests
+          errors,
+          requests,
+          if(requests > 0, toNullable(value), CAST(NULL, 'Nullable(Float64)')) AS lifetime_value,
+          toNullable(errors) AS lifetime_errors,
+          toNullable(requests) AS lifetime_requests,
+          toUInt64(bucket_observed) AS lifetime_observed
         FROM (${observedQuery})
       )
     )
     WHERE time >= {startMs: Int64} AND time < {endMs: Int64}
+    ORDER BY time ASC`;
+}
+
+function aggregateExpectedRangeToHours(
+  fiveMinuteQuery: string,
+  metric: SigmaAlertMetric | "error_5xx" | "error_4xx",
+): string {
+  const errorRatio = metric === "error_5xx" || metric === "error_4xx";
+  const aggregate = errorRatio ? "avg" : "sum";
+  const value = errorRatio
+    ? "if(sum(requests) = 0, 0., sum(errors) / sum(requests))"
+    : "sum(value)";
+  const nullableAggregate = (field: "expectedMean" | "lowerBound" | "upperBound") => `if(
+    count(${field}) < count(),
+    CAST(NULL, 'Nullable(Float64)'),
+    toNullable(${aggregate}(${field}))
+  )`;
+  return `
+    SELECT
+      intDiv(five_minute.time, ${hourMs}) * ${hourMs} AS time,
+      ${value} AS value,
+      ${nullableAggregate("expectedMean")} AS expectedMean,
+      ${nullableAggregate("lowerBound")} AS lowerBound,
+      ${nullableAggregate("upperBound")} AS upperBound,
+      CAST(NULL, 'Nullable(Float64)') AS limit
+    FROM (${fiveMinuteQuery}) AS five_minute
+    GROUP BY time
     ORDER BY time ASC`;
 }
 
@@ -380,8 +404,7 @@ function withFixedLimit(observedQuery: string, limit: number | null): string {
 
 export function getAlertSeries(ch: Querier) {
   return (args: AlertSeriesParams) => {
-    const bucketMs = args.resolution === "5m" ? fiveMinutesMs : hourMs;
-    const windowBuckets = baselineMs / bucketMs;
+    const displayBucketMs = args.resolution === "5m" ? fiveMinutesMs : hourMs;
     let observedQuery: string;
     let tableName: string | undefined;
     let sigmaMetric: SigmaAlertMetric | undefined;
@@ -391,14 +414,14 @@ export function getAlertSeries(ch: Querier) {
     switch (args.metric) {
       case "error_5xx":
       case "error_4xx": {
-        const source = frontlineQuery(args.metric, args.resolution);
+        const source = frontlineQuery(args.metric);
         observedQuery = source.query;
         tableName = source.tableName;
         errorRatioMetric = args.metric;
         break;
       }
       case "requests": {
-        const source = frontlineQuery(args.metric, args.resolution);
+        const source = frontlineQuery(args.metric);
         observedQuery = source.query;
         tableName = source.tableName;
         sigmaMetric = "requests";
@@ -407,7 +430,6 @@ export function getAlertSeries(ch: Querier) {
       case "egress_bytes": {
         const source = resourceCounterQuery(
           "greatest(0, max(network_egress_public_bytes_max) - min(network_egress_public_bytes_min))",
-          args.resolution,
         );
         observedQuery = source.query;
         tableName = source.tableName;
@@ -417,7 +439,6 @@ export function getAlertSeries(ch: Querier) {
       case "cpu_seconds": {
         const source = resourceCounterQuery(
           "greatest(0, max(cpu_usage_usec_max) - min(cpu_usage_usec_min)) / 1000000",
-          args.resolution,
         );
         observedQuery = source.query;
         tableName = source.tableName;
@@ -439,13 +460,26 @@ export function getAlertSeries(ch: Querier) {
         throw new Error(`Unsupported alert series metric: ${args.metric satisfies never}`);
     }
 
+    let queryText: string;
+    if (errorRatioMetric !== undefined) {
+      const expectedRange = withExpectedErrorRatioRange(observedQuery, errorRatioMetric);
+      queryText =
+        args.resolution === "1h"
+          ? aggregateExpectedRangeToHours(expectedRange, errorRatioMetric)
+          : expectedRange;
+    } else if (sigmaMetric !== undefined) {
+      const expectedRange = withExpectedRange(observedQuery, sigmaMetric);
+      queryText =
+        args.resolution === "1h"
+          ? aggregateExpectedRangeToHours(expectedRange, sigmaMetric)
+          : expectedRange;
+    } else {
+      queryText = withFixedLimit(observedQuery, fixedLimit);
+    }
+
+    const hasExpectedRange = errorRatioMetric !== undefined || sigmaMetric !== undefined;
     const query = ch.query({
-      query:
-        errorRatioMetric !== undefined
-          ? withExpectedErrorRatioRange(observedQuery, errorRatioMetric, windowBuckets)
-          : sigmaMetric !== undefined
-            ? withExpectedRange(observedQuery, sigmaMetric, windowBuckets, args.resolution === "5m")
-            : withFixedLimit(observedQuery, fixedLimit),
+      query: queryText,
       params: queryParams,
       schema: alertSeriesPoint,
     });
@@ -455,8 +489,10 @@ export function getAlertSeries(ch: Querier) {
       environmentId: args.environmentId,
       startMs: args.startMs,
       endMs: args.endMs,
-      baselineStartMs: args.startMs - baselineMs,
-      bucketMs,
+      baselineStartMs: hasExpectedRange
+        ? alertSeriesBaselineStartMs(args.startMs, args.appCreatedAtMs)
+        : args.startMs,
+      bucketMs: hasExpectedRange ? fiveMinutesMs : displayBucketMs,
       tableName: tableName ?? "instance_events_raw_v1",
     });
   };

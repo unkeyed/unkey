@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { type AlertSeriesParams, alertSeriesParams, getAlertSeries } from "./alerts";
+import {
+  type AlertSeriesParams,
+  alertSeriesBaselineStartMs,
+  alertSeriesParams,
+  getAlertSeries,
+} from "./alerts";
 import { CapturingQuerier } from "./test-utils";
 
 const baseRequest = {
   workspaceId: "ws_123",
   appId: "app_123",
+  appCreatedAtMs: 0,
   environmentId: "env_123",
   resolution: "5m",
   startMs: 1_000,
@@ -50,15 +56,15 @@ describe("getAlertSeries", () => {
     });
   });
 
-  it.each([
-    ["requests", "frontline_requests_per_hour_v1"],
-    ["memory_utilization", "instance_resources_per_hour_v1"],
-  ] as const)("uses hourly rollups for %s", async (metric, table) => {
+  it("uses the hourly memory rollup for the overview", async () => {
     const ch = new CapturingQuerier();
 
-    await getAlertSeries(ch)({ ...baseRequest, metric, resolution: "1h" });
+    await getAlertSeries(ch)({ ...baseRequest, metric: "memory_utilization", resolution: "1h" });
 
-    expect(ch.params[0]).toMatchObject({ tableName: table, bucketMs: 3_600_000 });
+    expect(ch.params[0]).toMatchObject({
+      tableName: "instance_resources_per_hour_v1",
+      bucketMs: 3_600_000,
+    });
   });
 
   it.each([
@@ -66,10 +72,7 @@ describe("getAlertSeries", () => {
       "egress_bytes",
       "greatest(0, max(network_egress_public_bytes_max) - min(network_egress_public_bytes_min))",
     ],
-    [
-      "cpu_seconds",
-      "greatest(0, max(cpu_usage_usec_max) - min(cpu_usage_usec_min)) / 1000000",
-    ],
+    ["cpu_seconds", "greatest(0, max(cpu_usage_usec_max) - min(cpu_usage_usec_min)) / 1000000"],
   ] as const)("sums per-container 5-minute %s deltas into hourly values", async (metric, delta) => {
     const samples = [
       { container: "a", bucket: 0, minimum: 0, maximum: 10 },
@@ -88,30 +91,83 @@ describe("getAlertSeries", () => {
 
     const query = ch.queries[0]?.replace(/\s+/g, " ");
     expect(query).toContain(delta);
-    expect(query).toContain("GROUP BY time, container_uid");
+    expect(query).toContain("GROUP BY bucket, container_uid");
     expect(query).toContain(`intDiv(five_minute.time, ${60 * 60 * 1000})`);
-    expect(query).toContain("sum(five_minute.value) AS value");
+    expect(query).toContain("sum(value) AS value");
     expect(ch.params[0]).toMatchObject({
       tableName: "instance_resources_per_minute_v1",
-      bucketMs: 3_600_000,
+      bucketMs: 300_000,
     });
   });
 
-  it("computes a trailing 24-hour expected range without the current bucket", async () => {
+  it("computes eligibility and expected ranges from observed 5-minute buckets", async () => {
     const ch = new CapturingQuerier();
 
     await getAlertSeries(ch)({ ...baseRequest, metric: "requests" });
 
     const query = ch.queries[0]?.replace(/\s+/g, " ");
     expect(query).toContain("ROWS BETWEEN 288 PRECEDING AND 1 PRECEDING");
-    expect(query).toContain("minOrNull(metric_lifetime.time)");
-    expect(query).toContain("if( time >= first_bucket_time");
-    expect(query).toContain("count(lifetime_value) OVER");
-    expect(query).toContain("lifetime_buckets < 12");
+    expect(query).toContain("sum(lifetime_observed) OVER");
+    expect(query).toContain("observed_baseline_buckets < 12");
     expect(query).toContain("greatest( expected_stddev, 0.1 * expected_mean, 20 )");
     expect(query).toContain("ROWS BETWEEN 12 PRECEDING AND 1 PRECEDING");
+    expect(query).toContain("observed_baseline_buckets < 72");
+    expect(query).toContain("recent_active_buckets < 9");
     expect(query).toContain("recent_median * 0.25");
+    expect(query).toContain("recent_median - 200");
     expect(query).toContain("expected_mean + 4 * greatest(");
+  });
+
+  it("pads an old sparse app across the full 288-bucket lifetime", async () => {
+    const startMs = Date.UTC(2026, 8, 4, 12);
+    const appCreatedAtMs = startMs - 7 * 24 * 60 * 60 * 1000;
+    const baselineStartMs = alertSeriesBaselineStartMs(startMs, appCreatedAtMs);
+
+    expect((startMs - baselineStartMs) / (5 * 60 * 1000)).toBe(288);
+
+    const ch = new CapturingQuerier();
+    await getAlertSeries(ch)({
+      ...baseRequest,
+      metric: "requests",
+      appCreatedAtMs,
+      startMs,
+      endMs: startMs + 60 * 60 * 1000,
+    });
+    expect(ch.params[0]).toMatchObject({ baselineStartMs: startMs - 24 * 60 * 60 * 1000 });
+  });
+
+  it("pads a new app only from its aligned creation bucket", async () => {
+    const startMs = Date.UTC(2026, 8, 4, 12);
+    const appCreatedAtMs = startMs - 37 * 60 * 1000;
+    const expectedStartMs = Date.UTC(2026, 8, 4, 11, 20);
+
+    expect(alertSeriesBaselineStartMs(startMs, appCreatedAtMs)).toBe(expectedStartMs);
+
+    const ch = new CapturingQuerier();
+    await getAlertSeries(ch)({
+      ...baseRequest,
+      metric: "requests",
+      appCreatedAtMs,
+      startMs,
+      endMs: startMs + 60 * 60 * 1000,
+    });
+    expect(ch.params[0]).toMatchObject({ baselineStartMs: expectedStartMs });
+  });
+
+  it("keeps the request-drop band ineligible below 72 five-minute buckets at hourly resolution", async () => {
+    const ch = new CapturingQuerier();
+
+    await getAlertSeries(ch)({ ...baseRequest, metric: "requests", resolution: "1h" });
+
+    const query = ch.queries[0]?.replace(/\s+/g, " ");
+    expect(query).toContain("ROWS BETWEEN 288 PRECEDING AND 1 PRECEDING");
+    expect(query).toContain("observed_baseline_buckets < 72");
+    expect(query).toContain("recent_active_buckets < 9");
+    expect(query).toContain(`intDiv(five_minute.time, ${60 * 60 * 1000})`);
+    expect(ch.params[0]).toMatchObject({
+      tableName: "frontline_requests_per_5m_v1",
+      bucketMs: 300_000,
+    });
   });
 
   it("averages the two middle values in an even request-drop window", async () => {
@@ -164,10 +220,10 @@ describe("getAlertSeries", () => {
     await getAlertSeries(ch)({ ...baseRequest, metric: "error_5xx" });
 
     const query = ch.queries[0]?.replace(/\s+/g, " ");
-    expect(query).toContain("if(time >= first_bucket_time AND requests > 0, toNullable(value)");
-    expect(query).toContain("count(lifetime_value) OVER");
-    expect(query).toContain("if(time >= first_bucket_time, toNullable(errors)");
-    expect(query).toContain("if(time >= first_bucket_time, toNullable(requests)");
+    expect(query).toContain("if(requests > 0, toNullable(value)");
+    expect(query).toContain("sum(lifetime_observed) OVER");
+    expect(query).toContain("toNullable(errors) AS lifetime_errors");
+    expect(query).toContain("toNullable(requests) AS lifetime_requests");
   });
 
   it("weights instances equally when their container counts differ", async () => {

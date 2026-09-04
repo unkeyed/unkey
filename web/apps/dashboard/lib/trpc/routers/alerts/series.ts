@@ -1,4 +1,5 @@
 import { clickhouse } from "@/lib/clickhouse";
+import { db } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { workspaceProcedure } from "../../trpc";
 import { alertSeriesInput } from "./schemas";
@@ -15,9 +16,19 @@ export const getAlertSeries = workspaceProcedure
       });
     }
 
+    const app = await db.query.apps.findFirst({
+      where: (table, { and, eq }) =>
+        and(eq(table.id, input.appId), eq(table.workspaceId, ctx.workspace.id)),
+      columns: { createdAt: true },
+    });
+    if (!app) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "App not found" });
+    }
+
     const result = await clickhouse.alerts.series({
       workspaceId: ctx.workspace.id,
       appId: input.appId,
+      appCreatedAtMs: app.createdAt,
       environmentId: input.environmentId,
       metric: input.metric,
       resolution: input.resolution,
