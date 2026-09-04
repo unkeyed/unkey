@@ -5,9 +5,8 @@ import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 
 /**
- * Maps each chart window in hours to its ClickHouse bucket width in minutes.
- * For example, a 24-hour window uses one 30-minute bucket per point. These widths keep each
- * response near 40 to 60 points while shorter windows retain more detail.
+ * Maps each window in hours to its ClickHouse bucket width in minutes. The widths keep every
+ * response near 40 to 60 points.
  */
 const bucketMinutesByWindowHours = {
   1: 1,
