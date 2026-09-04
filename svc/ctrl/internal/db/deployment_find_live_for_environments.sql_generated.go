@@ -37,6 +37,7 @@ SELECT
     w.name AS workspace_name,
     w.slug AS workspace_slug,
     a.name AS app_name,
+    a.created_at AS app_created_at,
     e.kind AS environment_kind,
     e.slug AS environment_slug,
     d.id AS deployment_id,
@@ -75,6 +76,7 @@ type FindLiveDeploymentsForEnvironmentsRow struct {
 	WorkspaceName              string                            `db:"workspace_name"`
 	WorkspaceSlug              string                            `db:"workspace_slug"`
 	AppName                    string                            `db:"app_name"`
+	AppCreatedAt               int64                             `db:"app_created_at"`
 	EnvironmentKind            mysqltype.EnvironmentKind         `db:"environment_kind"`
 	EnvironmentSlug            string                            `db:"environment_slug"`
 	DeploymentID               sql.NullString                    `db:"deployment_id"`
@@ -108,6 +110,7 @@ type FindLiveDeploymentsForEnvironmentsRow struct {
 //	    w.name AS workspace_name,
 //	    w.slug AS workspace_slug,
 //	    a.name AS app_name,
+//	    a.created_at AS app_created_at,
 //	    e.kind AS environment_kind,
 //	    e.slug AS environment_slug,
 //	    d.id AS deployment_id,
@@ -156,6 +159,7 @@ func (q *Queries) FindLiveDeploymentsForEnvironments(ctx context.Context, arg Fi
 			&i.WorkspaceName,
 			&i.WorkspaceSlug,
 			&i.AppName,
+			&i.AppCreatedAt,
 			&i.EnvironmentKind,
 			&i.EnvironmentSlug,
 			&i.DeploymentID,

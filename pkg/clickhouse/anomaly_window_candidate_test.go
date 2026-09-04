@@ -33,6 +33,7 @@ func TestAnomalyCandidateFilterSuperset(t *testing.T) {
 	scope := uid.New("candidate")
 	random := rand.New(rand.NewSource(42))
 	workspaceIDs := make([]string, groupCount)
+	lifetimeBuckets := make(map[string]int64, groupCount)
 	batch, err := conn.PrepareBatch(ctx, `
 		INSERT INTO default.frontline_requests_per_5m_v1
 			(time, workspace_id, project_id, app_id, environment_id, deployment_id, response_status, count)
@@ -41,6 +42,7 @@ func TestAnomalyCandidateFilterSuperset(t *testing.T) {
 	for group := range groupCount {
 		ids := candidateTestIDs(scope, group)
 		workspaceIDs[group] = ids.WorkspaceID
+		lifetimeBuckets[ids.WorkspaceID] = int64(72 + random.Intn(217))
 		for bucket := range 72 {
 			timestamp := windowStart.Add(-time.Duration(72-bucket) * 5 * time.Minute)
 			requests := int64(300 + random.Intn(800))
@@ -79,7 +81,7 @@ func TestAnomalyCandidateFilterSuperset(t *testing.T) {
 	detectorConfig := deployanomaly.DefaultConfig(deployanomaly.SensitivityNormal)
 	want := make(map[clickhouse.AnomalyGroupKey]struct{})
 	for _, row := range all {
-		windowBuckets := deployanomaly.BaselineWindowBuckets(windowStart.UnixMilli(), row.FirstBucketTime)
+		windowBuckets := lifetimeBuckets[row.WorkspaceID]
 		inputs := []deployanomaly.Input{
 			{
 				Metric: deployanomaly.MetricError5xx, Current: row.Error5xxCurrent,
