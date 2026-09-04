@@ -214,7 +214,6 @@ func TestCreateSessionAuditsGrantedScopesAndKeyspaces(t *testing.T) {
 		"api.*.read_key",
 		"api.*.read_api",
 		"api.*.create_key",
-		"api.*.read_analytics",
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -225,7 +224,7 @@ func TestCreateSessionAuditsGrantedScopesAndKeyspaces(t *testing.T) {
 		Portal:     "audit-portal",
 		ExternalId: "user_audit",
 		Scopes: []openapi.V2PortalCreateSessionRequestBodyScopes{
-			openapi.KeysRead, openapi.KeysReroll, openapi.AnalyticsRead,
+			openapi.KeysRead, openapi.KeysReroll,
 		},
 	})
 	require.Equal(t, 200, res.Status, "got: %s", res.RawBody)
@@ -247,7 +246,7 @@ func TestCreateSessionAuditsGrantedScopesAndKeyspaces(t *testing.T) {
 	// JSON round-trips these as []any, so compare element-wise rather than
 	// against a []string literal.
 	require.ElementsMatch(t,
-		[]any{"keys:read", "keys:reroll", "analytics:read"},
+		[]any{"keys:read", "keys:reroll"},
 		target.Meta["scopes"],
 		"the audit entry must record every granted scope",
 	)

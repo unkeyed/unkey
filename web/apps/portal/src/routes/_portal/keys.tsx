@@ -10,7 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { TooltipProvider } from "~/components/ui/tooltip";
 import { isUnauthorizedError } from "~/lib/portal-api";
-import { canReadKeys } from "~/lib/scopes";
+import { canReadKeys, canRerollKeys } from "~/lib/scopes";
 
 export const Route = createFileRoute("/_portal/keys")({
   beforeLoad: ({ context }) => {
@@ -58,7 +58,9 @@ function KeysPage() {
             onSortingChange={setSorting}
             pageIndex={page}
             onPageChange={setPage}
-            onReroll={(input) => reroll.mutateAsync(input)}
+            onReroll={
+              canRerollKeys(session.scopes) ? (input) => reroll.mutateAsync(input) : undefined
+            }
           />
         </TooltipProvider>
       )}

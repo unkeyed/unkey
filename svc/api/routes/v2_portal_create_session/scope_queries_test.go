@@ -21,7 +21,7 @@ func TestScopeQueriesDeniesUnmappedScope(t *testing.T) {
 
 	t.Run("known scopes map to a non-empty requirement", func(t *testing.T) {
 		for _, s := range []openapi.V2PortalCreateSessionRequestBodyScopes{
-			openapi.KeysRead, openapi.KeysCreate, openapi.KeysReroll, openapi.AnalyticsRead,
+			openapi.KeysRead, openapi.KeysReroll,
 		} {
 			queries, ok := handler.ScopeQueries(s, apiID, false)
 			require.True(t, ok, "scope %q must map", s)
@@ -33,6 +33,18 @@ func TestScopeQueriesDeniesUnmappedScope(t *testing.T) {
 		queries, ok := handler.ScopeQueries("keys:destroy", apiID, false)
 		require.False(t, ok, "an unmapped scope must deny, not be skipped")
 		require.Empty(t, queries)
+	})
+
+	// These two used to map here. A stale arm would not look like a typo, so
+	// pin them explicitly.
+	t.Run("removed scopes are unknown", func(t *testing.T) {
+		for _, s := range []openapi.V2PortalCreateSessionRequestBodyScopes{
+			"analytics:read", "keys:create",
+		} {
+			queries, ok := handler.ScopeQueries(s, apiID, false)
+			require.False(t, ok, "scope %q is no longer in the vocabulary and must deny", s)
+			require.Empty(t, queries)
+		}
 	})
 
 	t.Run("encryption adds a conjunct for key minting scopes", func(t *testing.T) {

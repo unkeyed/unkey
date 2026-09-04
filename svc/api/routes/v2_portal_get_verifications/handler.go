@@ -34,6 +34,10 @@ type (
 // session's external identity. It deliberately does not reuse the analytics
 // handler, which requires a per-workspace ClickHouse user and a query-language
 // parser that are inappropriate for an end user.
+//
+// Unreachable today: createSession does not accept analytics:read, so nothing
+// can grant the scope this route requires. Kept for whoever finishes the
+// feature. Its tests seed sessions directly, which is why they still pass.
 type Handler struct {
 	ClickHouse  clickhouse.ClickHouse
 	DB          db.Database

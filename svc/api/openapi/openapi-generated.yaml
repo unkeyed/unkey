@@ -3120,32 +3120,23 @@ components:
                         type: string
                         enum:
                             - "keys:read"
-                            - "keys:create"
                             - "keys:reroll"
-                            - "analytics:read"
                     minItems: 1
                     description: |
                         The capabilities granted to the end user in the Portal, from a fixed
                         vocabulary. All capabilities are scoped to this end user: key capabilities
                         (`keys:*`) apply only to keys the end user owns within the keyspace
-                        configured on the portal, and `analytics:read` returns only the end user's
-                        own verification events. An end user can never see another identity's keys
-                        or analytics.
+                        configured on the portal. An end user can never see another identity's
+                        keys.
 
-                        Tab visibility is derived from the scopes:
-                        - Keys tab: any `keys:*` scope
-                        - Analytics tab: `analytics:read`
-                        - Docs tab: visible when any scope is present
-
-                        `keys:create` is accepted but has no portal route behind it yet. It is
-                        still authorized like the others, so a session minted with it required
-                        `create_key` on the keyspace at mint time, and a future portal create-key
-                        route inherits an enforced ceiling rather than trusting sessions minted
-                        while the capability was inert.
+                        The portal currently exposes only the keys page, so these scopes gate
+                        what the end user can do there rather than which pages they see. Because
+                        rerolling is reached from that page, `keys:reroll` requires `keys:read`
+                        in the same session; requesting it alone is rejected.
 
                         Each scope requires the equivalent permission on your own root key. See
                         Required Permissions on this operation.
-                    example: ["keys:read", "keys:reroll", "analytics:read"]
+                    example: ["keys:read", "keys:reroll"]
                 preview:
                     type: boolean
                     default: false
@@ -14364,9 +14355,8 @@ paths:
                 hold. Each requested scope additionally requires the equivalent permission on
                 every keyspace the portal resolves to:
                 - `keys:read` requires `api.<api_id>.read_key` **and** `api.<api_id>.read_api`
-                - `keys:reroll` and `keys:create` require `api.<api_id>.create_key`, plus
+                - `keys:reroll` requires `api.<api_id>.create_key`, plus
                   `api.<api_id>.encrypt_key` when the keyspace stores encrypted keys
-                - `analytics:read` requires `api.<api_id>.read_analytics`
 
                 The `*` form of each is also accepted. Requesting a scope you do not hold
                 returns 403 for the whole request rather than minting a reduced session, so a

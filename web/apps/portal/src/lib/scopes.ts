@@ -11,6 +11,14 @@ export function canReadKeys(scopes: ReadonlyArray<string>): boolean {
 }
 
 /**
+ * Whether a session may reroll a key it owns. `portal.rerollKey` authorizes
+ * `keys:reroll`, so the table must not offer an action the API would refuse.
+ */
+export function canRerollKeys(scopes: ReadonlyArray<string>): boolean {
+  return scopes.includes("keys:reroll");
+}
+
+/**
  * Landing destination after session exchange.
  *
  * The portal currently exposes only the Keys page; Analytics and Docs are
