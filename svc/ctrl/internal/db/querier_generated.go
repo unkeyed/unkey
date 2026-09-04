@@ -1883,6 +1883,12 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND current_deployment_id IS NULL
 	SetAppCurrentDeployment(ctx context.Context, arg SetAppCurrentDeploymentParams) error
+	//SetWorkspaceDeployPlan
+	//
+	//  UPDATE `workspace_billing`
+	//  SET plan = ?
+	//  WHERE workspace_id = ?
+	SetWorkspaceDeployPlan(ctx context.Context, arg SetWorkspaceDeployPlanParams) error
 	// Records whether the spend cap has suspended a workspace's compute. Written by
 	// the spend-cap check on the suspend/resume transition; read by the orchestrator
 	// (to keep checking a suspended workspace even after its budget is removed) and

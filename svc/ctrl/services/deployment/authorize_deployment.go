@@ -42,7 +42,7 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("deployment %s is not awaiting approval (current status: %s)", deploymentID, deployment.Status))
 	}
-	if err := s.ensureWorkspaceCanDeploy(ctx, deployment.WorkspaceID, "authorize"); err != nil {
+	if err := s.ensureWorkspaceCanDeploy(ctx, deployment.WorkspaceID); err != nil {
 		return nil, err
 	}
 

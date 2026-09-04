@@ -107,7 +107,6 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 
 	params := createParams{
 		context:     depCtx,
-		action:      "rebuild",
 		dockerImage: "",
 		gitCommit: &ctrlv1.GitCommitInfo{
 			CommitSha:       src.GitCommitSha.String,
