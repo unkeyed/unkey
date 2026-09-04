@@ -387,7 +387,7 @@ function AppRows({ app }: { app: UsageApp }) {
 
 function Band({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-center gap-3 border-grayA-4 border-y bg-grayA-2 px-4 py-2 font-semibold text-[10px] text-gray-9 uppercase tracking-wider">
+    <div className="flex items-center gap-3 border-gray-4 border-y bg-gray-2 px-4 py-2 font-semibold text-[10px] text-gray-9 uppercase tracking-wider">
       {children}
     </div>
   );
