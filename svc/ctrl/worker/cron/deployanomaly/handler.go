@@ -17,19 +17,16 @@ const (
 	defaultShardCount    = uint64(16)
 )
 
-// HandlerConfig holds the window orchestrator dependencies.
 type HandlerConfig struct {
 	Heartbeat  healthcheck.Heartbeat
 	ShardCount uint64
 }
 
-// Handler fans one closed window out to stable workspace shards.
 type Handler struct {
 	heartbeat  healthcheck.Heartbeat
 	shardCount uint64
 }
 
-// NewHandler constructs the window orchestrator.
 func NewHandler(cfg HandlerConfig) (*Handler, error) {
 	if err := assert.NotNil(cfg.Heartbeat, "Heartbeat must not be nil; use healthcheck.NewNoop()"); err != nil {
 		return nil, err
@@ -51,8 +48,6 @@ func ParseWindowStart(key string) (int64, error) {
 	return seconds * 1_000, nil
 }
 
-// Handle dispatches count-only shard calls, so the window VO never journals
-// fleet metric rows.
 func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunDeployAnomalyCheckRequest,
@@ -88,12 +83,10 @@ func (h *Handler) Handle(
 	return response, nil
 }
 
-// ShardKey returns the deterministic VO key for one window partition.
 func ShardKey(windowStart int64, shard, shardCount uint64) string {
 	return fmt.Sprintf("%d/%d/%d", windowStart, shard, shardCount)
 }
 
-// ParseShardKey validates a shard VO key.
 func ParseShardKey(key string) (windowStart int64, shard, shardCount uint64, err error) {
 	parts := strings.Split(key, "/")
 	if len(parts) != 3 {

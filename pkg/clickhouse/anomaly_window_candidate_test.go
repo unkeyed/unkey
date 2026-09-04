@@ -14,9 +14,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployanomaly"
 )
 
-// TestAnomalyCandidateFilterSuperset compares the production SQL prefilter
-// with the authoritative Go detector across normal, spike, error, and drop
-// groups. SQL may over-include but must return every Go candidate.
 func TestAnomalyCandidateFilterSuperset(t *testing.T) {
 	t.Parallel()
 

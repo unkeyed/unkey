@@ -39,9 +39,6 @@ type anomalyScaleResult struct {
 	MaxShardBytes int
 }
 
-// TestAnomalyWindowsScale measures the production query and Restate journal
-// shape against a generated 24-hour fleet. It is opt-in because 100,000 groups
-// generate more than 200 million source rows.
 func TestAnomalyWindowsScale(t *testing.T) {
 	groupsText := os.Getenv(anomalyScaleGroupsEnv)
 	if groupsText == "" {

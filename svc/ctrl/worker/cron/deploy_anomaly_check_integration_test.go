@@ -26,8 +26,6 @@ type anomalyTestApp struct {
 	regionID      string
 }
 
-// TestRunDeployAnomalyCheck_Integration covers production filtering, alert
-// persistence, snapshot-based recovery, and incomplete telemetry handling.
 func TestRunDeployAnomalyCheck_Integration(t *testing.T) {
 	h := harness.New(t)
 	production := createAnomalyTestApp(t, h, mysqltype.EnvironmentKindProduction)

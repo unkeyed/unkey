@@ -699,9 +699,6 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
-	// Each anomaly tick can be retried from its immutable closed window. Kill
-	// after bounded failures so one bad fleet read does not leave that window's
-	// CronService object paused indefinitely.
 	cronDeployAnomalyRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
@@ -794,8 +791,6 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("CheckWorkspaceSpend", deployspendcheck.RetryPolicy()))
 	logger.Info("DeploySpendCheckService enabled")
 
-	// A shard awaits all of its per-group children. Bound retries and kill on
-	// exhaustion so one partition cannot pause the window orchestrator forever.
 	deployAnomalyShardRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
@@ -807,8 +802,6 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("EvaluateShard", deployAnomalyShardRetry))
 	logger.Info("DeployAnomalyShardService enabled")
 
-	// The shard awaits every per-group evaluation. Bound retries prevent
-	// one permanently failing group from blocking the fleet heartbeat forever.
 	deployAnomalyGroupRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),

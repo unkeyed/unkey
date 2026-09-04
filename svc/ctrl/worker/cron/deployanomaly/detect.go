@@ -12,8 +12,6 @@ const (
 	maximumBaselineBuckets = int64(288)
 )
 
-// Metric identifies a Deploy anomaly signal. These values are also persisted
-// in MySQL and must remain wire-compatible with the alert_events metric enum.
 type Metric string
 
 const (
@@ -28,7 +26,6 @@ const (
 	MetricCrashLoop         Metric = "crash_loop"
 )
 
-// Outcome is the classification of one closed metric window.
 type Outcome string
 
 const (
@@ -286,8 +283,6 @@ func Detect(input Input, cfg Config) Result {
 	}
 }
 
-// detectThreshold applies the direct threshold used by memory and instance
-// lifecycle signals, which do not need a historical baseline.
 func detectThreshold(observed, threshold float64, catastrophic bool, reason string) Result {
 	result := Result{
 		Outcome:        OutcomeNone,
@@ -310,8 +305,6 @@ func detectThreshold(observed, threshold float64, catastrophic bool, reason stri
 	return result
 }
 
-// detectSigma applies zero-padding, variance guards, activity floors, and the
-// strict sigma comparison for count-like metrics.
 func detectSigma(input Input, cfg Config) Result {
 	mean, stddev := effectiveBaseline(input, cfg)
 	threshold := mean + cfg.SigmaK*stddev
@@ -348,9 +341,6 @@ func detectSigma(input Input, cfg Config) Result {
 	return result
 }
 
-// detectError compares the current error ratio with the traffic-weighted
-// baseline ratio. The excess-failure floor makes the crossing actionable
-// without excluding small windows in which nearly every request failed.
 func detectError(input Input, cfg Config) Result {
 	ratio := 0.0
 	if input.RequestsInWindow > 0 {
@@ -404,9 +394,6 @@ func detectError(input Input, cfg Config) Result {
 	return result
 }
 
-// detectRequestsDrop compares current traffic with a robust one-hour level.
-// Requiring activity in 9 of 12 recent buckets rejects bursty schedules whose
-// normal idle buckets would otherwise look like outages.
 func detectRequestsDrop(input Input, cfg Config) Result {
 	threshold := input.RecentMedianRequests * cfg.RequestDrop.RecentLevelFraction
 	loss := input.RecentMedianRequests - input.Current
@@ -452,15 +439,11 @@ func detectRequestsDrop(input Input, cfg Config) Result {
 	return result
 }
 
-// effectiveBaseline returns the zero-padded mean and guarded population
-// standard deviation used by count-like spike rules.
 func effectiveBaseline(input Input, cfg Config) (float64, float64) {
 	mean, stddev := paddedBaseline(input)
 	return mean, max(stddev, mean*0.1, stddevFloor(input.Metric, cfg.StddevFloors))
 }
 
-// paddedBaseline reconstructs population moments after adding zero-valued
-// missing buckets without requiring ClickHouse to return every bucket to Go.
 func paddedBaseline(input Input) (float64, float64) {
 	if input.ObservedBaselineBuckets == 0 || input.BaselineWindowBuckets == 0 {
 		return 0, 0
@@ -474,7 +457,6 @@ func paddedBaseline(input Input) (float64, float64) {
 	return mean, math.Sqrt(variance)
 }
 
-// stddevFloor returns the absolute deviation guard for a sigma metric.
 func stddevFloor(metric Metric, floors StddevFloors) float64 {
 	switch metric {
 	case MetricError5xx, MetricError4xx:
@@ -538,8 +520,6 @@ func minimumBaselineBuckets(metric Metric, minimums BaselineMinimums) int64 {
 	}
 }
 
-// meetsActivityFloor reports whether the window has enough absolute activity
-// to make a sigma crossing actionable.
 func meetsActivityFloor(input Input, floors ActivityFloors) bool {
 	switch input.Metric {
 	case MetricRequests:

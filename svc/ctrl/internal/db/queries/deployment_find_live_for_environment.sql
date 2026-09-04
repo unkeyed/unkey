@@ -1,6 +1,4 @@
 -- name: FindLiveDeploymentForEnvironment :one
--- FindLiveDeploymentForEnvironment resolves customer-facing metadata and the
--- current deployment state used to suppress intentional request drops.
 SELECT
     w.org_id,
     w.name AS workspace_name,
