@@ -25,6 +25,7 @@ import {
   ResourceList,
   ResourceListBody,
   ResourceListContent,
+  ResourceListFooter,
   ResourceListHeader,
   ResourceListItem,
   Select,
@@ -51,6 +52,7 @@ import {
   lastClosedBucketEnd,
   presetRange,
 } from "./range";
+import { useAnomalyAlerts } from "./use-anomaly-alerts";
 
 const rangeOptions: ReadonlyArray<{ value: AnomalyRangePreset; label: string }> = [
   { value: "24h", label: "Last 24 hours" },
@@ -117,15 +119,16 @@ export default function AnomaliesPage() {
     { ...queryScope, metric, resolution: "1h", ...overviewRange },
     { enabled: Boolean(activeEnvironment), staleTime: 60_000 },
   );
-  const alertsQuery = trpc.alerts.list.useQuery(
-    { ...queryScope, ...range, includeResolved: true, limit: 100 },
-    { enabled: Boolean(activeEnvironment), staleTime: 30_000 },
-  );
+  const alertsQuery = useAnomalyAlerts({
+    ...queryScope,
+    ...range,
+    enabled: Boolean(activeEnvironment),
+  });
   const deploymentsQuery = trpc.alerts.deployments.useQuery(
     { ...queryScope, ...range },
     { enabled: Boolean(activeEnvironment), staleTime: 60_000 },
   );
-  const alerts = alertsQuery.data?.alerts ?? [];
+  const alerts = alertsQuery.alerts;
   const chartAlerts =
     focusedAlert && alerts.every((alert) => alert.id !== focusedAlert.id)
       ? [...alerts, focusedAlert]
@@ -292,6 +295,9 @@ export default function AnomaliesPage() {
               </h2>
               <p className="mt-0.5 text-xs text-gray-9">
                 All metrics for {activeEnvironment.slug}.
+                {alertsQuery.hasNextPage
+                  ? ` Showing ${alerts.length} anomalies. More are available.`
+                  : null}
               </p>
             </div>
           </ResourceListHeader>
@@ -330,6 +336,17 @@ export default function AnomaliesPage() {
                 ))}
               </ResourceListBody>
             )}
+            {alertsQuery.hasNextPage ? (
+              <ResourceListFooter className="justify-center">
+                <Button
+                  variant="outline"
+                  loading={alertsQuery.isFetchingNextPage}
+                  onClick={() => alertsQuery.fetchNextPage()}
+                >
+                  Load more
+                </Button>
+              </ResourceListFooter>
+            ) : null}
           </ResourceListContent>
         </ResourceList>
       </PageBody>
