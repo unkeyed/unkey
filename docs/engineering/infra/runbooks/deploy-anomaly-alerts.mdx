@@ -344,9 +344,15 @@ these conditions:
 
 Each 7-day backfill runs over closed buckets before its materialized view is
 created. At most, the in-progress 5-minute bucket at migration time can be
-absent. Backfill retries are safe. Watermarks use max states, and aggregate
-rollups exclude keys that are already present. Investigate migration completion
-instead of inserting replacement rollup rows.
+absent. Apply the migration once in this order. The `NOT IN` replay guard is
+race-free during the initial migration because the matching materialized view
+does not exist yet.
+
+Do not let a migration applier or operator rerun a backfill statement after its
+materialized view exists while ingest continues. A source key that arrives
+between the guard snapshot and insert can be counted by both paths. Stop ingest
+for the rerun or deduplicate the affected rollup keys. Investigate migration
+completion instead of inserting replacement rows without a deduplication plan.
 
 ### Investigate zero CPU or egress
 
@@ -455,9 +461,12 @@ uses 5, and high sensitivity uses 3.
 
 `svc/ctrl/worker/cron/deployanomaly/thresholds.json` is the canonical source for
 the complete production rule inventory. The Go decoder calls
-`DisallowUnknownFields`, rejects trailing JSON values, and validates values that
-must be positive, ratio ranges, and sensitivity offsets. An invalid embedded
-file causes a clear panic during package initialization.
+`DisallowUnknownFields` and rejects trailing JSON values. Configuration loading
+uses per-value range checks and the cross-field invariants listed in the
+[detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math),
+including duration safety, recovery ordering, finite positive sigma values, and
+non-finite number rejection. An invalid embedded file causes a clear panic
+during package initialization.
 
 The dashboard stores one complete typed `deployAnomalyThresholds` mirror in
 `web/internal/clickhouse/src/alert-thresholds.ts`. Its strict
