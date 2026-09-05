@@ -123,8 +123,7 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 ## Documentation conventions
 
 - Follow `docs/engineering/contributing/quality/documentation.mdx` for symbol,
-  package, and site documentation. Inline comments follow the Comments section
-  in `docs/engineering/contributing/quality/code-quality.mdx`.
+  package, and site documentation.
 - Product docs live in `docs/product/` and need `docs/product/docs.json` nav
   entries when adding pages.
 - Engineering docs live in `docs/engineering/` and need
