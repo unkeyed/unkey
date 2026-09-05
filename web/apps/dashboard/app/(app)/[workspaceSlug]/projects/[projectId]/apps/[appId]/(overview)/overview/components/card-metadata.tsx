@@ -228,7 +228,7 @@ export function ProductionCardMetadata() {
             <TimestampInfo
               value={deployment.createdAt}
               displayType="relative"
-              className="text-gray-9 text-[13px] shrink-0"
+              className="text-gray-9 text-[13px] shrink-0 self-start text-left"
             />
           ))
           .exhaustive()}
