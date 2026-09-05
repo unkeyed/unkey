@@ -58,12 +58,11 @@ func TestDeployment_Create_UsesOCIAppDefault(t *testing.T) {
 	envID := uid.New("env")
 
 	app := harness.CreateAppWithSettings(ctx, seed.CreateAppRequest{
-		ID:            uid.New("app"),
-		WorkspaceID:   workspaceID,
-		ProjectID:     project.ID,
-		Name:          "default",
-		Slug:          "default",
-		DefaultBranch: "main",
+		ID:          uid.New("app"),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		Name:        "default",
+		Slug:        "default",
 	}, envID)
 	_, err := harness.DB.RW().ExecContext(ctx, "UPDATE apps SET source_type = ? WHERE id = ?", db.AppsSourceTypeOci, app.ID)
 	require.NoError(t, err)

@@ -48,12 +48,11 @@ func TestDeleteAppSuccessfully(t *testing.T) {
 
 	appSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Doomed",
-		Slug:          appSlug,
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Doomed",
+		Slug:        appSlug,
 	})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{

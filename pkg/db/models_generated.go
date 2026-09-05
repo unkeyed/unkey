@@ -686,7 +686,6 @@ type App struct {
 	Name                string         `db:"name"`
 	Slug                string         `db:"slug"`
 	SourceType          AppsSourceType `db:"source_type"`
-	DefaultBranch       string         `db:"default_branch"`
 	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
 	IsRolledBack        bool           `db:"is_rolled_back"`
 	DeleteProtection    sql.NullBool   `db:"delete_protection"`
@@ -746,7 +745,6 @@ type Deployment struct {
 	AppID                         string                            `db:"app_id"`
 	Source                        DeploymentsSource                 `db:"source"`
 	ImageRequested                sql.NullString                    `db:"image_requested"`
-	Image                         sql.NullString                    `db:"image"`
 	ImageResolved                 sql.NullString                    `db:"image_resolved"`
 	BuildID                       sql.NullString                    `db:"build_id"`
 	GitCommitSha                  sql.NullString                    `db:"git_commit_sha"`

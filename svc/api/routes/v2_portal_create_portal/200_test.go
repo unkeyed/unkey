@@ -172,7 +172,6 @@ func TestCreatePortalWithAppMappingAndBranding(t *testing.T) {
 		ProjectID:        project.ID,
 		Name:             "payments",
 		Slug:             "payments",
-		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
 

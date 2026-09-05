@@ -129,9 +129,9 @@ func TestRedeployOCIUsesResolvedImage(t *testing.T) {
 	resolved := "ghcr.io/acme/api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	_, err := h.DB.RW().ExecContext(context.Background(), `
 		UPDATE deployments
-		SET source = ?, image_requested = ?, image_resolved = ?, image = ?
+		SET source = ?, image_requested = ?, image_resolved = ?
 		WHERE id = ?
-	`, db.DeploymentsSourceOci, requested, resolved, resolved, deployment.ID)
+	`, db.DeploymentsSourceOci, requested, resolved, deployment.ID)
 	require.NoError(t, err)
 
 	var captured *ctrlv1.CreateDeploymentRequest

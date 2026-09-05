@@ -109,7 +109,7 @@ func TestDeploymentRowToState_PopulatesProtoFields(t *testing.T) {
 		ProjectID:                     "prj_sentinel",
 		EnvironmentID:                 "env_sentinel",
 		AppID:                         "app_sentinel",
-		Image:                         sql.NullString{Valid: true, String: "registry.io/sentinel:v1"},
+		ImageResolved:                 sql.NullString{Valid: true, String: "registry.io/sentinel:v1"},
 		CpuMillicores:                 250,
 		MemoryMib:                     256,
 		StorageMib:                    2048,

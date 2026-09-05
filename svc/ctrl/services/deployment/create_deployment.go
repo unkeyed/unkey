@@ -700,7 +700,7 @@ func buildOciSource(
 			fmt.Errorf("failed to lookup current deployment: %w", err))
 	}
 
-	resolvedImage := resolvedDeploymentImage(currentDeployment)
+	resolvedImage := currentDeployment.ImageResolved
 	if !resolvedImage.Valid || resolvedImage.String == "" {
 		return "", connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("current deployment %q has no OCI image; cannot redeploy without git connection",
@@ -718,13 +718,6 @@ func buildOciSource(
 			fmt.Errorf("current deployment %q has an invalid OCI image: %w", currentDeploymentID.String, err))
 	}
 	return imageReference, nil
-}
-
-func resolvedDeploymentImage(deployment db.Deployment) sql.NullString {
-	if deployment.ImageResolved.Valid && deployment.ImageResolved.String != "" {
-		return deployment.ImageResolved
-	}
-	return deployment.Image
 }
 
 // trimLength truncates s to at most maxBytes bytes while preserving valid

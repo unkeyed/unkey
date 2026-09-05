@@ -1,5 +1,5 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
-import { and, db, eq, sql } from "@/lib/db";
+import { and, db, eq } from "@/lib/db";
 import type { LastExit } from "@/lib/types/deploy";
 import { type ContainerStatus, apps, deployments } from "@unkey/db/src/schema";
 import { mapRegionToFlag } from "../network/utils";
@@ -18,9 +18,7 @@ export const deploymentSelectFields = {
   gitCommitTimestamp: deployments.gitCommitTimestamp,
   prNumber: deployments.prNumber,
   forkRepositoryFullName: deployments.forkRepositoryFullName,
-  resolvedImage: sql<
-    string | null
-  >`COALESCE(NULLIF(${deployments.imageResolved}, ''), ${deployments.image})`,
+  resolvedImage: deployments.imageResolved,
   status: deployments.status,
   desiredState: deployments.desiredState,
   trigger: deployments.trigger,
