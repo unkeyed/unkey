@@ -9,6 +9,10 @@ Documentation serves two masters: the engineer who writes it and the engineer wh
 
 The principles in this guide apply to all languages. The examples are in Go since that is most of the backend, but the philosophy is universal.
 
+Default to no new code comments. Make intent clear through names and structure. Add a comment only when explicitly requested or when essential context cannot be expressed in the code. Keep it concise: explain the constraints or tradeoffs a future engineer needs to understand why the solution was written this way. Keep existing comments accurate when changing the code they describe.
+
+This rule applies to symbol, package, SQL, and test documentation. The sections below explain how to write comments when needed, rather than requiring a comment on every declaration. Preserve directives required by tooling, such as SQL query names and Go build tags.
+
 ## Quick checklist
 
 Before submitting documentation, verify each item.
@@ -21,11 +25,11 @@ Before submitting documentation, verify each item.
 - [ ] Constraints documented are enforced, and the docs note when and how
 
 **Completeness**
-- [ ] Every symbol has a doc comment
-- [ ] Package has a `doc.go` if it has non-trivial behavior
+- [ ] Comments add context the code cannot clearly convey or were explicitly requested
+- [ ] Package has a `doc.go` when its purpose or constraints need explanation
 - [ ] Non-obvious behavior is documented (edge cases, nil handling, concurrency)
 - [ ] The why is explained for design choices that are not self-evident
-- [ ] Every named SQL query has a doc comment block
+- [ ] SQL comments explain non-obvious query guarantees and tradeoffs
 
 **Quality**
 - [ ] Doc comments start with the symbol name
@@ -96,11 +100,11 @@ func Validate(req *Request) []ValidationError
 
 ## Public API documentation
 
-Every exported function, type, constant, and variable must be documented. This is the contract with users of the code.
+Document public API contracts when callers need context that names, types, and code cannot clearly convey, such as ownership, concurrency constraints, or surprising failure behavior.
 
-Unexported functions and methods must be documented too. They have no external contract, but the next reader still needs to know what they do and why they exist without reverse-engineering the body. A single sentence is usually enough.
+Apply the same rule to unexported functions and methods. Being exported or unexported does not by itself justify a comment.
 
-The depth of documentation should match complexity. A simple getter needs one line. A distributed algorithm needs paragraphs.
+Match depth to the context a reader needs. A straightforward getter needs no comment. A distributed algorithm may need paragraphs explaining its constraints and tradeoffs.
 
 ### Simple functions
 
@@ -113,7 +117,6 @@ func GetUserID(ctx context.Context) string
 // and background goroutines. After calling Close, the client must not be used.
 func (c *Client) Close() error
 
-// SetTimeout updates the request timeout duration for all future requests.
 func (c *Client) SetTimeout(d time.Duration)
 ```
 
@@ -201,7 +204,7 @@ Do not document implementation details in doc comments. Those belong inside the 
 
 ## Package documentation
 
-Every significant package should have a `doc.go` file with the package comment and declaration. It should explain what the package does, why it exists, how it fits into the system, key concepts, usage, and cross-references.
+Use a `doc.go` file when a package's purpose, constraints, or design tradeoffs need context beyond its code. Include only the concepts, usage examples, and cross-references a reader needs to understand those decisions.
 
 ### Structure of doc.go
 
@@ -325,7 +328,7 @@ Use Go example tests for non-trivial usage patterns. Examples compile and run, s
 
 ## Test documentation
 
-Document test helpers and complex test scenarios so future maintainers understand the purpose.
+Comment on test helpers and scenarios only when names and code cannot explain the guarantee being protected or the reason for unusual setup.
 
 ## Document what not to do
 

@@ -8,7 +8,11 @@ typed, verified, and routed through `mise`.
 - Be concise.
 - Say what changed and how you verified it.
 - If you provide a plan, end with unresolved questions, if any.
-- Do not revert or rewrite work you did not make unless explicitly asked.
+- Preserve pre-existing uncommitted changes and unrelated work. Modify existing
+  code as needed for the requested task.
+- Complete authorized work through verification. Resolve routine implementation
+  choices using repository patterns. Ask only when missing information materially
+  affects scope or correctness; continue independent work while waiting.
 
 ## Source of truth
 
@@ -24,7 +28,8 @@ typed, verified, and routed through `mise`.
 
 ## Repository map
 
-- `cmd/`: Unkey CLI commands and service entrypoints.
+- `cmd/`: development commands and utilities.
+- `build/`: CLI and service entrypoints.
 - `svc/`: Go services (`api`, `ctrl`, `frontline`, `heimdall`, `krane`, `vault`).
 - `pkg/`: shared Go libraries.
 - `internal/services/`: shared internal Go services.
@@ -51,13 +56,14 @@ mise tasks
 mise run help
 ```
 
-Prefer `mise run <task>` when a task exists. Use `mise exec -- <tool>` only for
-direct commands without a task.
+Prefer `mise run <task>` when a task covers the required scope. Use
+`mise exec -- <tool>` when no task applies or a broader task would touch
+unrelated files, such as when formatting changed files.
 
 ### Common tasks
 
 ```bash
-mise run build          # Go build, writes ./bin/unkey
+mise run build          # lint and Go build, writes ./bin/unkey
 mise run lint           # golangci-lint checks
 mise run test           # run Go test suite through Rask
 mise run fmt            # dprint, go fmt, buf format, pnpm fmt
@@ -74,10 +80,9 @@ mise run unkey -- ...   # run the Unkey CLI
 
 ```bash
 mise exec -- rask ./pkg/cache
-mise exec -- go test -run TestCacheName ./pkg/cache
 mise exec -- pnpm --dir=web test
-mise exec -- pnpm --dir=web/apps/api vitest run -c vitest.integration.ts
-mise exec -- go test -fuzz=FuzzParseConfig -fuzztime=30s ./pkg/config/
+mise exec -- pnpm --dir=web/apps/dashboard exec vitest run
+mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 ```
 
 ## Code standards
@@ -90,18 +95,17 @@ mise exec -- go test -fuzz=FuzzParseConfig -fuzztime=30s ./pkg/config/
 - Avoid new dependencies unless the local implementation would be worse.
 - Keep variable scope small. Use clear names with units or bounds where useful.
 - Handle every error. If a state is impossible, assert it rather than ignoring it.
-- Document why non-obvious code exists, not what each line does. Code comments
-  follow `docs/engineering/contributing/quality/documentation.mdx`, which is the
-  standard for code comments as well as for the docs sites. In short: why not
-  what, depth matches complexity, prose over bullet lists, and a clearer name
-  beats a comment. Every sentence must carry non-obvious information; a sentence
-  restating the line below it is noise. A comment that no longer matches the code
-  it describes is a defect, not a nit.
+- Default to no new code comments. Make intent clear through names and structure.
+  Add a comment only when explicitly requested or when essential context cannot
+  be expressed in the code. Keep it concise: explain the constraints or tradeoffs
+  a future engineer needs to understand why the solution was written this way.
+  Keep existing comments accurate when changing the code they describe.
 
 ## Go conventions
 
 - Build Go through `mise run build` and test Go through Rask with
   `mise run test` or `mise exec -- rask ./path`.
+- Use `mise exec -- go test` for targeted fuzzing, which needs Go's fuzz runner.
 - Use `github.com/stretchr/testify/require` in tests.
 - Use `t.Helper()` in test helpers.
 - Use `t.Cleanup()` for resources.
@@ -130,16 +134,21 @@ mise exec -- go test -fuzz=FuzzParseConfig -fuzztime=30s ./pkg/config/
 
 ## Verification
 
-Choose the smallest check that proves the change.
+During development, choose the smallest check that proves the change. The build
+and pre-push requirements below still apply.
 
 - Go source change: targeted `mise exec -- rask ./path`.
-- Go file added or imports changed: `mise run build`.
+- Go file added or imports changed: `mise run build` (includes lint).
 - Shared Go behavior or broad service change: `mise run test` when practical.
 - TypeScript change: targeted `mise exec -- pnpm --dir=web ...` command.
-- Formatting-sensitive change: `mise run fmt` or the narrower formatter task.
+- Formatting-sensitive change: format changed files through `mise exec` or a
+  scoped task. Use repository-wide `mise run fmt` only when that scope is needed.
 - Docs-only change: link/content review. Note if no formatter applies.
+- Before pushing: `mise run test`, as required by the testing standard.
 
-Report failed or skipped verification honestly.
+After applicable checks pass, repeat or broaden verification only for subsequent
+changes, failures, or unresolved risks. Report failed or skipped verification
+honestly.
 
 ## PlanetScale and Query Insights
 
