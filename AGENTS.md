@@ -95,7 +95,7 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 - Avoid new dependencies unless the local implementation would be worse.
 - Keep variable scope small. Use clear names with units or bounds where useful.
 - Handle every error. If a state is impossible, assert it rather than ignoring it.
-- Default to no new code comments. Make intent clear through names and structure.
+- Default to no new inline code comments. Make intent clear through names and structure.
   Add a comment only when explicitly requested or when essential context cannot
   be expressed in the code. Keep it concise: explain the constraints or tradeoffs
   a future engineer needs to understand why the solution was written this way.
@@ -122,8 +122,9 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 
 ## Documentation conventions
 
-- Follow `docs/engineering/contributing/quality/documentation.mdx`. It governs
-  code comments too, not only the pages under `docs/`; see **Code standards**.
+- Follow `docs/engineering/contributing/quality/documentation.mdx` for symbol,
+  package, and site documentation. Inline comments follow the Comments section
+  in `docs/engineering/contributing/quality/code-quality.mdx`.
 - Product docs live in `docs/product/` and need `docs/product/docs.json` nav
   entries when adding pages.
 - Engineering docs live in `docs/engineering/` and need
