@@ -42,6 +42,8 @@ import { Result } from "../types/fp.js";
  * **Authentication**: requires a root key with permission to create deployments.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
+ *
+ * @deprecated method: This will be removed in a future release, please migrate away from it as soon as possible.
  */
 export function deploymentsCreateDeployment(
   client: UnkeyCore,

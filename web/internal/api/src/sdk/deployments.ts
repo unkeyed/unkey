@@ -3,6 +3,7 @@
  */
 
 import { deploymentsCreateDeployment } from "../funcs/deploymentsCreateDeployment.js";
+import { deploymentsCreateDeploymentV3 } from "../funcs/deploymentsCreateDeploymentV3.js";
 import { deploymentsGetDeployment } from "../funcs/deploymentsGetDeployment.js";
 import { deploymentsListDeployments } from "../funcs/deploymentsListDeployments.js";
 import { deploymentsPromoteDeployment } from "../funcs/deploymentsPromoteDeployment.js";
@@ -30,6 +31,8 @@ export class Deployments extends ClientSDK {
    * Returns immediately with a `deploymentId`. The build and rollout run asynchronously — poll `deployments.getDeployment` to watch status until it is ready.
    *
    * **Authentication**: requires a root key with permission to create deployments.
+   *
+   * @deprecated method: This will be removed in a future release, please migrate away from it as soon as possible.
    */
   async createDeployment(
     request: components.V2DeploymentsCreateDeploymentRequestBodyUnion,
@@ -232,6 +235,34 @@ export class Deployments extends ClientSDK {
     options?: RequestOptions,
   ): Promise<components.V2DeploymentsStopDeploymentResponseBody> {
     return unwrapAsync(deploymentsStopDeployment(
+      this,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * Create deployment
+   *
+   * @remarks
+   * Create a deployment for an app in a project.
+   *
+   * Omit the source to use the app's configured default. A Git app builds its default branch. An OCI app deploys its default image.
+   *
+   * Optionally provide one source override:
+   * - `oci`: deploy a prebuilt OCI image without a build. Mutable tags are resolved to immutable digests before rollout.
+   * - `git`: build and deploy from the app's connected GitHub repository, a branch, a specific commit, or a fork commit. Requires the app to have a repository connected.
+   * - `deployment`: re-run an existing deployment by its id. Git deployments rebuild from the recorded commit; OCI deployments reuse the recorded resolved image.
+   *
+   * Returns immediately with a `deploymentId`. The build and rollout run asynchronously. Poll `deployments.getDeployment` to watch status until it is ready.
+   *
+   * **Authentication**: requires a root key with permission to create deployments.
+   */
+  async createDeploymentV3(
+    request: components.V3DeploymentsCreateDeploymentRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V3DeploymentsCreateDeploymentResponseBody> {
+    return unwrapAsync(deploymentsCreateDeploymentV3(
       this,
       request,
       options,
