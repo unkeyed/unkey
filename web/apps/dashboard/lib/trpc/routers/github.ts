@@ -37,6 +37,7 @@ const stateBaseFields = {
   workspaceId: z.string().min(1),
   nonce: z.string().min(1),
   exp: z.number().int().positive(),
+  installationId: z.number().int().positive().optional(),
 };
 
 // Each variant is strict: a state may carry ONLY the fields its flow declares.
@@ -332,14 +333,13 @@ export const githubRouter = t.router({
     .input(
       z.object({
         state: z.string(),
-        installationId: z.number().int(),
+        installationId: z.number().int().positive().optional(),
         // OAuth `code` returned alongside installation_id when the GitHub App
         // requests user authorization during installation. Used to prove the
-        // caller can access the supplied installation before binding it for the
-        // first time. GitHub only issues it on the initial authorization, not
-        // when an already-authorized user returns from editing an existing
-        // installation, so it is optional and only required on first bind
-        // (see the mutation body).
+        // caller can access the supplied installation before binding it to a
+        // workspace. It is optional because GitHub does not issue one when an
+        // existing installation is edited; the mutation starts an explicit
+        // authorization round-trip when a new workspace binding needs proof.
         code: z.string().min(1).optional(),
       }),
     )
@@ -373,6 +373,19 @@ export const githubRouter = t.router({
         });
       }
 
+      const installationId = parsedState.installationId ?? input.installationId;
+      if (
+        !installationId ||
+        (parsedState.installationId !== undefined &&
+          input.installationId !== undefined &&
+          parsedState.installationId !== input.installationId)
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid GitHub installation",
+        });
+      }
+
       // The app to land back on, or null for a workspace-wide install.
       const target =
         parsedState.flow === "app"
@@ -383,52 +396,51 @@ export const githubRouter = t.router({
             }
           : null;
 
-      // Look up any existing binding for this installation id up front; whether
-      // we must re-prove ownership depends on who (if anyone) already owns it.
+      // A GitHub installation belongs to a GitHub account, not an Unkey
+      // workspace. Multiple workspaces may use it, but each new workspace
+      // binding must independently prove that the caller can access it.
       const existing = await db.query.githubAppInstallations.findFirst({
-        where: (table, { eq }) => eq(table.installationId, input.installationId),
-        columns: { workspaceId: true },
+        where: (table, { and, eq }) =>
+          and(eq(table.installationId, installationId), eq(table.workspaceId, ctx.workspace.id)),
+        columns: { pk: true },
       });
 
-      // Refuse to bind the same installation id to multiple workspaces. An
-      // attacker who already owns a workspace could otherwise re-register a
-      // victim org's installation id under their workspace, and use the
-      // resulting Unkey-minted access token to read the victim's repos.
-      if (existing && existing.workspaceId !== ctx.workspace.id) {
-        throw new TRPCError({
-          code: "CONFLICT",
-          message: "GitHub installation is already bound to another workspace",
-        });
-      }
-
       // Verify the caller actually owns/can access this installation on GitHub
-      // before binding it for the first time. installationId comes straight
+      // before binding it to this workspace. installationId comes straight
       // from the callback query string and is a small, enumerable, sequential
       // integer exposed in webhooks/URLs; the signed state only proves who the
       // caller is, not that they performed this installation. Without this a
-      // caller could bind a victim org's unregistered installation to their own
-      // workspace and read its private repos via the app-minted access token.
+      // caller could bind a victim org's installation to their own workspace
+      // and read its private repos via the app-minted access token.
       //
-      // We only require this proof when the installation is not already bound
-      // to the caller's workspace. GitHub issues a fresh OAuth `code` only on
-      // the initial authorization, not when an existing user returns from
-      // editing an already-authorized installation (adding or restricting
-      // repos). Re-demanding a code there would break every existing user and
-      // buys no security: the installation already belongs to this workspace,
-      // so there is nothing to hijack.
-      const alreadyOwnedByCaller = existing?.workspaceId === ctx.workspace.id;
-      if (!alreadyOwnedByCaller) {
-        if (!githubOAuthEnv()) {
+      // GitHub does not return a fresh OAuth code when an existing installation
+      // is edited. Start the normal web authorization flow in that case and
+      // bind the installation id into the refreshed signed state. The next
+      // callback can then prove both user access and callback integrity.
+      if (!existing) {
+        const oauthEnv = githubOAuthEnv();
+        if (!oauthEnv) {
           throw new TRPCError({
             code: "INTERNAL_SERVER_ERROR",
             message: "GitHub App not configured",
           });
         }
         if (!input.code) {
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Missing GitHub authorization",
-          });
+          const authorizationUrl = new URL("https://github.com/login/oauth/authorize");
+          authorizationUrl.searchParams.set("client_id", oauthEnv.GITHUB_CLIENT_ID);
+          authorizationUrl.searchParams.set(
+            "state",
+            signState({
+              ...parsedState,
+              installationId,
+              nonce: crypto.randomBytes(16).toString("base64url"),
+              exp: Date.now() + STATE_TTL_MS,
+            }),
+          );
+          return {
+            status: "authorization_required" as const,
+            authorizationUrl: authorizationUrl.toString(),
+          };
         }
 
         let userToken: string;
@@ -444,7 +456,7 @@ export const githubRouter = t.router({
 
         let canAccessInstallation: boolean;
         try {
-          canAccessInstallation = await userCanAccessInstallation(userToken, input.installationId);
+          canAccessInstallation = await userCanAccessInstallation(userToken, installationId);
         } catch (err) {
           console.error(err);
           throw new TRPCError({
@@ -467,7 +479,7 @@ export const githubRouter = t.router({
         const projectInstallation = await fetchProjectInstallation(
           ctx.workspace.id,
           target.projectId,
-          input.installationId,
+          installationId,
         ).catch((err) => {
           console.error(err);
           throw new TRPCError({
@@ -493,7 +505,7 @@ export const githubRouter = t.router({
             .insert(schema.githubAppInstallations)
             .values({
               workspaceId: ctx.workspace.id,
-              installationId: input.installationId,
+              installationId,
               createdAt: Date.now(),
               updatedAt: null,
             })
@@ -504,14 +516,14 @@ export const githubRouter = t.router({
               workspaceId: ctx.workspace.id,
               actor: { type: "user", id: ctx.user.id },
               event: "workspace.install_github",
-              description: `Bound GitHub installation ${input.installationId}`,
+              description: `Bound GitHub installation ${installationId}`,
               resources: [
                 {
                   type: "workspace",
                   id: ctx.workspace.id,
                   meta: {
                     flow: parsedState.flow,
-                    installationId: input.installationId,
+                    installationId,
                     appId: target?.appId,
                   },
                 },
@@ -529,6 +541,7 @@ export const githubRouter = t.router({
         });
 
       return {
+        status: "registered" as const,
         workspaceSlug: ctx.workspace.slug,
         flow: parsedState.flow,
         projectId: target?.projectId ?? null,
