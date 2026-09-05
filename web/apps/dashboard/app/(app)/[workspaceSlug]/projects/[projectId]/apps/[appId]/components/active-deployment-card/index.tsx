@@ -157,7 +157,7 @@ export function ActiveDeploymentCard({
                 <TimestampInfo
                   value={deployment.createdAt}
                   displayType="relative"
-                  className="text-gray-9 text-xs"
+                  className="text-gray-9 text-xs self-start text-left"
                 />
               ))
               .exhaustive()}
