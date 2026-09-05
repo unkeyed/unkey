@@ -39,7 +39,7 @@ export function PendingRedeployBanner() {
       appId: string;
       environmentId: string;
     }) => {
-      const res = await getUnkeyClient().deployments.createDeployment({
+      const res = await getUnkeyClient().deployments.createDeploymentV3({
         project: deployment.projectId,
         app: deployment.appId,
         environment: deployment.environmentId,

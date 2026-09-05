@@ -1,6 +1,7 @@
 "use client";
 
 import { CodeBranch, Magnifier } from "@unkey/icons";
+import { match } from "@unkey/match";
 import {
   Checkbox,
   InputGroup,
@@ -33,9 +34,13 @@ export function BranchSelect() {
     }
   }
   for (const d of deployments) {
-    if (d.gitBranch && !seen.has(d.gitBranch)) {
-      seen.add(d.gitBranch);
-      branches.push(d.gitBranch);
+    const branch = match(d.source)
+      .with("git", () => d.gitBranch || null)
+      .with("oci", "unknown", () => null)
+      .exhaustive();
+    if (branch && !seen.has(branch)) {
+      seen.add(branch);
+      branches.push(branch);
     }
   }
 

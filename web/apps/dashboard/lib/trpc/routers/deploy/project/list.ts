@@ -8,6 +8,7 @@ import {
   githubRepoConnections,
   projects,
 } from "@unkey/db/src/schema";
+import { match } from "@unkey/match";
 
 export const listProjects = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
@@ -106,6 +107,7 @@ export const listProjects = workspaceProcedure
           projectId: apps.projectId,
           id: apps.id,
           name: apps.name,
+          sourceType: apps.sourceType,
         })
         .from(apps)
         .where(and(eq(apps.workspaceId, workspaceId), inArray(apps.projectId, projectIds)))
@@ -160,7 +162,12 @@ export const listProjects = workspaceProcedure
       list.push({
         id: row.id,
         name: row.name,
-        source: repository ? "github" : "code",
+        source: match(row.sourceType)
+          .returnType<Project["apps"][number]["source"]>()
+          .with("oci", () => "oci")
+          .with("git", () => "github")
+          .with("unknown", () => (repository ? "github" : "code"))
+          .exhaustive(),
         repository,
       });
       appsByProject.set(row.projectId, list);
@@ -203,7 +210,7 @@ export const listProjects = workspaceProcedure
       const currentDeployment = primaryApp
         ? currentDeploymentById.get(primaryApp.currentDeploymentId)
         : undefined;
-      const hasDeployment = currentDeployment?.gitCommitTimestamp != null;
+      const hasDeployment = currentDeployment != null;
       const projectApps = appsByProject.get(project.id) ?? [];
       const repositoryFullName = primaryApp ? (repoByApp.get(primaryApp.appId) ?? null) : null;
 
