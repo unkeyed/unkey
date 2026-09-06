@@ -1,7 +1,8 @@
-// Package deploycancel aborts deployments: stamp the user-visible reason on the
-// in-flight step, move the rows to a terminal status, then kill the Restate
-// invocations. The user cancel RPC, sibling dedup, and environment deletion all
-// go through [Cancel].
+// Package deploycancel aborts deployments: write the user-visible reason on the
+// open deployment step, move the deployment rows to a terminal status, then
+// cancel the Restate invocations running Workflow.Deploy. The CancelDeployment
+// RPC, dedup.CancelOlderSiblings, and the environment Delete workflow all go
+// through [Cancel].
 package deploycancel
 
 import (
@@ -21,21 +22,27 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// Target is one deployment to abort. An empty InvocationID still transitions
-// the row. There is just no invocation to kill.
+// Target is one deployment to abort. InvocationID is the Restate invocation
+// running Workflow.Deploy for it. It is empty when Deploy was sent but its id
+// has not been written to deployments.invocation_id yet. An empty InvocationID
+// still moves the row to Params.Status. If Deploy is running anyway, the status
+// check at the top of Deploy returns early because the status is terminal.
 type Target struct {
 	ID           string
 	InvocationID string
 }
 
-// InvocationCanceler must treat 404 as success: the workflow can finish
-// between lookup and cancel.
+// InvocationCanceler cancels a Restate invocation by id. It must treat a 404
+// from Restate as success: the deployment can finish on its own between the
+// caller reading the invocation id from the row and this call, and Restate
+// answers 404 for a completed invocation.
 type InvocationCanceler interface {
 	CancelInvocation(ctx context.Context, invocationID string) error
 }
 
-// Audit describes the deployment.cancel entry written per target. Nil, or a nil
-// Actor, writes none: a machine-initiated cancel has nobody to attribute.
+// Audit describes the deployment.cancel audit log entry written per target.
+// Nil, or a nil Actor, writes none: a cancel started by the system, such as
+// dedup, has no user to attribute it to.
 type Audit struct {
 	Service       auditlogs.AuditLogService
 	Actor         *ctrlv1.ActorInfo
@@ -48,27 +55,37 @@ type Audit struct {
 // Params describes one [Cancel] call.
 type Params struct {
 	Targets []Target
-	// Reason lands on the in-flight step. The write only hits rows with ended_at
-	// NULL, so Deploy's own step-end afterwards loses and the UI shows the cancel.
+	// Reason is written to deployment_steps.error on each target's step that
+	// has ended_at NULL, and ended_at is set at the same time.
+	// Workflow.DeploymentStep later runs EndDeploymentStep for that same step,
+	// but that query also only updates a row with ended_at NULL, so it changes
+	// nothing and the dashboard keeps showing Reason.
 	Reason string
 	Status mysqltype.DeploymentsStatus
 	Audit  *Audit
 }
 
-// Cancel aborts every target. The order matters.
+// Cancel aborts every target in this order: EndActiveDeploymentStepsForDeployments
+// writes Reason on each target's open step, UpdateDeploymentStatusBatchIfActive
+// moves each row to Status, then admin.CancelInvocation cancels each Restate
+// invocation. The order matters.
 //
-// The status flips before the invocation is cancelled. A running Deploy takes
-// the cancel as a terminal error and unwinds its compensation stack, which
-// writes failed through the same progressing-only guard, so whichever write
-// lands first stays. The flip has returned before the cancel is sent, so it is
-// always first. A Deploy that has not started yet sees the flipped row at its
-// terminal check instead and never builds.
+// When Restate cancels a running Workflow.Deploy, Deploy gets a terminal error
+// and runs its deferred compensations. One of them calls
+// UpdateDeploymentStatusIfActive to set the status to failed. That query and
+// UpdateDeploymentStatusBatchIfActive both change a row only if its status is
+// one of mysqltype.ProgressingDeploymentStatuses. The status is already Status
+// when CancelInvocation is called, so the failed write finds a non-progressing
+// row and changes nothing. A target with an empty InvocationID is not cancelled
+// in Restate at all. Its Deploy stops itself instead, because Deploy checks for
+// a terminal status before it builds.
 //
-// The two row writes are best-effort and only logged, because a leaked
-// invocation costs more than a wrong status. Invocation errors are joined and
-// returned so the caller retries the whole call, which is safe because every
-// write tolerates a row already in its end state. Audit runs last, so a retry
-// that still has cancelling to do cannot write the entries twice.
+// The two database writes only log their errors. A Restate invocation left
+// running is worse than a row with the wrong status. CancelInvocation errors
+// are joined and returned. Cancel is safe to call again: both database writes
+// skip rows that already have ended_at or a terminal status, and
+// CancelInvocation treats 404 as success. Audit entries are written last so a
+// retry does not write them twice.
 func Cancel(ctx context.Context, database db.Database, admin InvocationCanceler, p Params) error {
 	if len(p.Targets) == 0 {
 		return nil

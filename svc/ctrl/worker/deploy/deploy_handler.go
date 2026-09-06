@@ -107,9 +107,11 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	logger.Info("deployment workflow started", "req", fmt.Sprintf("%+v", req))
 
 	compensation.Add("mark deployment as failed", func(runCtx restate.RunContext) error {
-		// Use the conditional update so we don't overwrite a status that was
-		// set intentionally by the dedup path (superseded) or by a successful
-		// completion (ready). Only transitions from active statuses to failed.
+		// UpdateDeploymentStatusIfActive changes the row only if its status is
+		// one of mysqltype.ProgressingDeploymentStatuses. A plain update would
+		// overwrite a status another writer set on purpose: cancelled from
+		// deploycancel.Cancel, superseded from dedup.CancelOlderSiblings, or
+		// ready from the finalize step below.
 		return w.db.UpdateDeploymentStatusIfActive(runCtx, db.UpdateDeploymentStatusIfActiveParams{
 			ID:                  req.GetDeploymentId(),
 			Status:              mysqltype.DeploymentsStatusFailed,
@@ -125,9 +127,15 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
 
-	// A cancel that landed before Deploy started had no invocation to kill, so
-	// this check is what stops the build. Returning nil keeps the compensation
-	// stack out of it: the status is the intended one, not a failure.
+	// Workflow.Create and Service.AuthorizeDeployment both send Deploy first and
+	// write the returned Restate invocation id to deployments.invocation_id
+	// second. deploycancel.Cancel can only call CancelInvocation when that id is
+	// on the row. So a cancel that runs between those two writes sets the status
+	// to cancelled or superseded but leaves this invocation running. This status
+	// check is what stops it.
+	//
+	// Return nil rather than an error: the deployment ended the way it was told
+	// to, so Restate should not count this invocation as failed.
 	if deployment.Status.IsTerminal() {
 		logger.Info("deployment is already terminal, not building",
 			"deployment_id", deployment.ID,
@@ -324,11 +332,17 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// --- Finalize ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepFinalizing, deployment, func(stepCtx restate.ObjectContext) error {
-		// Guarded because cancels write this row from outside this object, so
-		// nothing serializes them against this handler. A cancel that flips the
-		// row while finalizing reaches Restate only at the next journal boundary,
-		// and an unguarded write here would put the row back to ready while its
-		// compute is being torn down.
+		// deploycancel.Cancel writes cancelled to this row straight in the
+		// database, not through this Restate virtual object, so it can land
+		// while this step is running. Cancel then tells Restate to cancel this
+		// invocation, but this handler only finds out at a later Restate call,
+		// which can be after this write has already run. That is why this uses
+		// UpdateDeploymentStatusIfActive, which changes the row only if its
+		// status is one of mysqltype.ProgressingDeploymentStatuses. A plain
+		// UpdateDeploymentStatus would overwrite cancelled with ready. The
+		// cancellation would then run the compensations registered earlier in
+		// Deploy, which set every topology's desired_status to stopped so krane
+		// removes the pods, leaving a row that says ready with no pods behind it.
 		err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
 			return w.db.UpdateDeploymentStatusIfActive(stepCtx, db.UpdateDeploymentStatusIfActiveParams{
 				ID:                  deployment.ID,

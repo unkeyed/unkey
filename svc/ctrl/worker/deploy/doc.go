@@ -36,7 +36,7 @@
 //  1. Self-skip: [Workflow.skipIfSuperseded] checks
 //     [db.Queries.HasNewerActiveDeployment] for a newer sibling on the same
 //     (app, env, branch). If one exists in any non-terminal status, this
-//     deployment marks itself as skipped and returns.
+//     deployment marks itself superseded and returns.
 //  2. Concurrency gate: [Workflow.waitForBuildSlot] creates a Restate
 //     awakeable and calls [hydrav1.BuildSlotService.AcquireOrWait]. The
 //     handler parks on the awakeable until BuildSlotService resolves it —
@@ -44,9 +44,9 @@
 //     later when a held slot is released. Production deployments bypass the limit.
 //
 // On the creation side, [Workflow.Create] calls [dedup.CancelOlderSiblings]
-// right after it inserts the deployment row: it batch-stamps older siblings with the
-// "Superseded by newer commit" marker, batch-transitions them to
-// status=superseded, and cancels their Restate invocations via the admin API.
+// once the new row and its invocation id are recorded: it batch-stamps older
+// siblings with the "Superseded by newer commit" marker, batch-transitions them
+// to status=superseded, and cancels their Restate invocations via the admin API.
 //
 // # Operations
 //
@@ -88,12 +88,14 @@
 // # Cancellation
 //
 // The CancelDeployment RPC, sibling dedup, and environment deletion all abort a
-// deployment through deploycancel.Cancel: stamp the reason on the active step,
-// move the row to cancelled or superseded, then cancel the invocation. Restate
-// injects a TerminalError at the handler's next SDK call, which runs the
-// deferred compensation stack: release the build slot, unwind partial state,
-// and mark the row failed through the progressing-only guard, which leaves the
-// cancelled status alone.
+// deployment through deploycancel.Cancel: write the reason on the open
+// deployment step, move the row to cancelled or superseded, then cancel the
+// Restate invocation running [Workflow.Deploy]. Restate makes Deploy's next SDK
+// call return a TerminalError, which runs the compensations Deploy registered:
+// release the build slot, set every topology's desired_status to stopped, and
+// try to set the status to failed with UpdateDeploymentStatusIfActive. That
+// query changes only a row whose status is still progressing, so the cancelled
+// or superseded status stays.
 //
 // # Image Builds
 //
