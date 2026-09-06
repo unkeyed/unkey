@@ -16,8 +16,8 @@ import (
 // "generate upload URL") and will be used to generate user-facing error messages.
 func HandleError(err error, context string) error {
 	// Convert Connect errors to fault errors
-	var connectErr *connect.Error
-	if !errors.As(err, &connectErr) {
+	connectErr, ok := errors.AsType[*connect.Error](err)
+	if !ok {
 		// Non-Connect errors
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),

@@ -190,8 +190,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		// Map ctrl's precondition failure to a 412 instead of a 500. Keep its
 		// message in the internal error but return a fixed public reason so callers can't probe upstream state.
-		var connectErr *connect.Error
-		if errors.As(err, &connectErr) && connectErr.Code() == connect.CodeFailedPrecondition {
+		if connectErr, ok := errors.AsType[*connect.Error](err); ok && connectErr.Code() == connect.CodeFailedPrecondition {
 			return fault.Wrap(
 				err,
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),

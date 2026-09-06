@@ -22,8 +22,10 @@ func errorReason(err error) string {
 	}
 	// go-redis surfaces a blown deadline as a socket timeout that doesn't unwrap
 	// to context.DeadlineExceeded, so check net.Error too.
-	var netErr net.Error
-	if errors.Is(err, context.DeadlineExceeded) || (errors.As(err, &netErr) && netErr.Timeout()) {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "timeout"
+	}
+	if netErr, ok := errors.AsType[net.Error](err); ok && netErr.Timeout() {
 		return "timeout"
 	}
 	return "other"

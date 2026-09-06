@@ -89,8 +89,7 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 		// Handle read errors (including MaxBytesError)
 		if err != nil {
 			// Check if this is a MaxBytesError from http.MaxBytesReader
-			var maxBytesErr *http.MaxBytesError
-			if errors.As(err, &maxBytesErr) {
+			if maxBytesErr, ok := errors.AsType[*http.MaxBytesError](err); ok {
 				return fault.Wrap(err,
 					fault.Code(codes.User.BadRequest.RequestBodyTooLarge.URN()),
 					fault.Internal(fmt.Sprintf("request body exceeds size limit of %d bytes", maxBytesErr.Limit)),

@@ -185,8 +185,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	ctrlResp, err := h.CtrlClient.CreateDeployment(ctx, ctrlReq)
 	if err != nil {
-		var connectErr *connect.Error
-		if errors.As(err, &connectErr) && connectErr.Code() == connect.CodeFailedPrecondition {
+		if connectErr, ok := errors.AsType[*connect.Error](err); ok && connectErr.Code() == connect.CodeFailedPrecondition {
 			return fault.Wrap(
 				err,
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
