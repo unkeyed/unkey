@@ -304,9 +304,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	})
 
 	var (
-		liveRouteIDs        []string
-		shouldAutoPromote   bool
-		promotionSkipReason hydrav1.AutomaticPromotionSkipReason
+		liveRouteIDs      []string
+		shouldAutoPromote bool
 	)
 
 	// --- Network ---
@@ -323,6 +322,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	}
 
 	// --- Finalize ---
+	var promotionSkipReason hydrav1.AutomaticPromotionSkipReason
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepFinalizing, deployment, func(stepCtx restate.ObjectContext) error {
 		err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
 			return w.db.UpdateDeploymentStatus(stepCtx, db.UpdateDeploymentStatusParams{
@@ -336,7 +336,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		}
 
 		if shouldAutoPromote {
-			promotionSkipReason, err = w.swapLiveDeployment(ctx, deployment, environment, liveRouteIDs)
+			promotionSkipReason, err = w.swapLiveDeployment(stepCtx, deployment, liveRouteIDs)
 			if err != nil {
 				return fault.Wrap(err, fault.Public("Deployment is ready but could not be promoted to live."))
 			}
@@ -744,10 +744,6 @@ func (w *Workflow) createTopologies(
 // URLs), upserts a frontline route record for each domain, and then collects
 // any existing sticky routes (environment-level, and live-level for non-rolled-back
 // production) so they point to the new deployment.
-//
-// Preview and rolled-back production routes are assigned immediately. Normal
-// production routes are returned to the caller so RoutingService can assign
-// them atomically with the guarded live-deployment swap.
 func (w *Workflow) configureRouting(
 	ctx restate.ObjectContext,
 	workspace db.Workspace,
@@ -926,21 +922,15 @@ func (w *Workflow) spinDownPreviousDeployments(
 	return nil
 }
 
-// swapLiveDeployment delegates route reassignment and the live-deployment swap
-// to RoutingService. The environment-keyed handler rejects automatic promotion
-// when a newer deployment is live or the app is rolled back.
 func (w *Workflow) swapLiveDeployment(
 	ctx restate.ObjectContext,
 	deployment db.Deployment,
-	environment db.Environment,
 	frontlineRouteIDs []string,
 ) (hydrav1.AutomaticPromotionSkipReason, error) {
-
-	swapResp, err := hydrav1.NewRoutingServiceClient(ctx, environment.ID).
+	swapResp, err := hydrav1.NewRoutingServiceClient(ctx, deployment.EnvironmentID).
 		SwapLiveDeployment().Request(&hydrav1.SwapLiveDeploymentRequest{
 		DeploymentId:       deployment.ID,
 		FrontlineRouteIds:  frontlineRouteIDs,
-		SetRollbackFlag:    false,
 		AutomaticPromotion: true,
 	})
 	if err != nil {
@@ -965,7 +955,6 @@ func (w *Workflow) swapLiveDeployment(
 	case hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_ROLLED_BACK:
 		return skipReason, nil
 	case hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED:
-		// Continue with successful-promotion cleanup.
 	default:
 		return skipReason, fmt.Errorf("unknown automatic promotion skip reason: %s", skipReason)
 	}

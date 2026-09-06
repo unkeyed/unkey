@@ -60,11 +60,12 @@ func (s *Service) SwapLiveDeployment(
 
 	result, err := restate.Run(ctx, func(runCtx restate.RunContext) (swapLiveDeploymentResult, error) {
 		return db.TxWithResult(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) (swapLiveDeploymentResult, error) {
-			deployment, findErr := db.NewQueries(tx).FindDeploymentById(txCtx, deploymentID)
+			queries := db.NewQueries(tx)
+			deployment, findErr := queries.FindDeploymentById(txCtx, deploymentID)
 			if findErr != nil {
 				return swapLiveDeploymentResult{}, fmt.Errorf("find target deployment: %w", findErr)
 			}
-			currentApp, findErr := db.NewQueries(tx).FindAppById(txCtx, deployment.AppID)
+			currentApp, findErr := queries.FindAppById(txCtx, deployment.AppID)
 			if findErr != nil {
 				return swapLiveDeploymentResult{}, fmt.Errorf("find app: %w", findErr)
 			}
@@ -98,7 +99,7 @@ func (s *Service) SwapLiveDeployment(
 			}
 
 			if req.GetAutomaticPromotion() && currentApp.CurrentDeploymentID.Valid {
-				currentDeployment, currentErr := db.NewQueries(tx).FindDeploymentById(txCtx, currentApp.CurrentDeploymentID.String)
+				currentDeployment, currentErr := queries.FindDeploymentById(txCtx, currentApp.CurrentDeploymentID.String)
 				if currentErr != nil {
 					return swapLiveDeploymentResult{}, fmt.Errorf("find current deployment: %w", currentErr)
 				}
@@ -116,7 +117,7 @@ func (s *Service) SwapLiveDeployment(
 
 			now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
 			for _, frontlineRouteID := range req.GetFrontlineRouteIds() {
-				if reassignErr := db.NewQueries(tx).ReassignFrontlineRoute(txCtx, db.ReassignFrontlineRouteParams{
+				if reassignErr := queries.ReassignFrontlineRoute(txCtx, db.ReassignFrontlineRouteParams{
 					ID:           frontlineRouteID,
 					DeploymentID: deploymentID,
 					UpdatedAt:    now,
@@ -125,7 +126,7 @@ func (s *Service) SwapLiveDeployment(
 				}
 			}
 
-			updateErr := db.NewQueries(tx).UpdateAppDeployments(txCtx, db.UpdateAppDeploymentsParams{
+			updateErr := queries.UpdateAppDeployments(txCtx, db.UpdateAppDeploymentsParams{
 				AppID:               deployment.AppID,
 				CurrentDeploymentID: sql.NullString{Valid: true, String: deploymentID},
 				IsRolledBack:        req.GetSetRollbackFlag(),
@@ -147,36 +148,31 @@ func (s *Service) SwapLiveDeployment(
 		return nil, err
 	}
 
-	if result.AutomaticPromotionSkipReason != hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED {
+	switch {
+	case result.AutomaticPromotionSkipReason != hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED:
 		logger.Info("skipped automatic live deployment swap",
 			"env_id", restate.Key(ctx),
 			"deployment_id", deploymentID,
 			"current_deployment_id", result.CurrentDeploymentID,
 			"reason", result.AutomaticPromotionSkipReason.String(),
 		)
-		return &hydrav1.SwapLiveDeploymentResponse{
-			AutomaticPromotionSkipReason: result.AutomaticPromotionSkipReason,
-		}, nil
-	}
-	if result.AlreadyCurrent {
+	case result.AlreadyCurrent:
 		logger.Info("automatic deployment is already live",
 			"env_id", restate.Key(ctx),
 			"deployment_id", deploymentID,
 			"previous_deployment_id", result.PreviousDeploymentID,
 		)
-		return &hydrav1.SwapLiveDeploymentResponse{
-			PreviousDeploymentId: result.PreviousDeploymentID,
-		}, nil
+	default:
+		logger.Info("swapped live deployment",
+			"env_id", restate.Key(ctx),
+			"new_deployment_id", deploymentID,
+			"previous_deployment_id", result.PreviousDeploymentID,
+			"is_rolled_back", req.GetSetRollbackFlag(),
+		)
 	}
 
-	logger.Info("swapped live deployment",
-		"env_id", restate.Key(ctx),
-		"new_deployment_id", deploymentID,
-		"previous_deployment_id", result.PreviousDeploymentID,
-		"is_rolled_back", req.GetSetRollbackFlag(),
-	)
-
 	return &hydrav1.SwapLiveDeploymentResponse{
-		PreviousDeploymentId: result.PreviousDeploymentID,
+		PreviousDeploymentId:         result.PreviousDeploymentID,
+		AutomaticPromotionSkipReason: result.AutomaticPromotionSkipReason,
 	}, nil
 }
