@@ -382,8 +382,8 @@ func (c *Client) GetScopedInstallationToken(installationID int64, repo string, p
 			var repositories []string
 			if repo != "" {
 				repoName := repo
-				if idx := strings.LastIndex(repo, "/"); idx >= 0 {
-					repoName = repo[idx+1:]
+				if _, name, found := strings.CutLast(repo, "/"); found {
+					repoName = name
 				}
 				repositories = []string{repoName}
 			}
