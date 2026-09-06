@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"context"
+	"time"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -37,13 +38,42 @@ func flush[T schema.Row](c *Client, ctx context.Context, rows []T) error {
 	}))
 
 	query := InsertQuery[T]()
+	var row T
+	started := time.Now()
+	attempt := 0
 
-	doFlush := func() error {
+	doFlush := func() (attemptErr error) {
+		attempt++
+		start := time.Now()
+		stage := "prepare"
+		var prepare, appendTime, send time.Duration
+		before := c.conn.Stats()
+		if c.logInsertTimings {
+			logger.Info("clickhouse insert attempt started", "table", row.Table(), "attempt", attempt,
+				"rows", len(rows), "pool_open", before.Open, "pool_idle", before.Idle, "pool_max", before.MaxOpenConns)
+		}
+		defer func() {
+			if !c.logInsertTimings {
+				return
+			}
+			after := c.conn.Stats()
+			fields := []any{"table", row.Table(), "attempt", attempt, "rows", len(rows), "stage", stage,
+				"elapsed_ms", time.Since(start).Milliseconds(), "prepare_ms", prepare.Milliseconds(),
+				"append_ms", appendTime.Milliseconds(), "send_ms", send.Milliseconds(),
+				"pool_open_before", before.Open, "pool_idle_before", before.Idle,
+				"pool_open", after.Open, "pool_idle", after.Idle, "pool_max", after.MaxOpenConns}
+			if attemptErr != nil {
+				logger.Warn("clickhouse insert attempt failed", append(fields, "error", attemptErr.Error())...)
+			} else {
+				logger.Info("clickhouse insert attempt complete", fields...)
+			}
+		}()
 		batch, err := c.conn.PrepareBatch(
 			ctx,
 			query,
 			driver.WithReleaseConnection(),
 		)
+		prepare = time.Since(start)
 		if err != nil {
 			return fault.Wrap(err, fault.Internal("preparing batch failed"))
 		}
@@ -53,14 +83,21 @@ func flush[T schema.Row](c *Client, ctx context.Context, rows []T) error {
 			}
 		}()
 
+		stage = "append"
+		stageStart := time.Now()
 		for _, row := range rows {
 			err = batch.AppendStruct(&row)
 			if err != nil {
+				appendTime = time.Since(stageStart)
 				return fault.Wrap(err, fault.Internal("appending struct to batch failed"))
 			}
 		}
+		appendTime = time.Since(stageStart)
 
+		stage = "send"
+		stageStart = time.Now()
 		err = batch.Send()
+		send = time.Since(stageStart)
 		if err != nil {
 			return fault.Wrap(err, fault.Internal("committing batch failed"))
 		}
@@ -72,6 +109,10 @@ func flush[T schema.Row](c *Client, ctx context.Context, rows []T) error {
 	_, err := c.circuitBreaker.Do(ctx, func(ctx context.Context) (struct{}, error) {
 		return struct{}{}, c.retry.DoContext(ctx, doFlush)
 	})
+	if c.logInsertTimings {
+		logger.Info("clickhouse flush finished", "table", row.Table(), "rows", len(rows),
+			"attempts", attempt, "elapsed_ms", time.Since(started).Milliseconds(), "error", err)
+	}
 
 	return err
 }

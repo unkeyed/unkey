@@ -19,9 +19,10 @@ import (
 // [NewBuffer] and [NewAuditLogBuffer], which wire a *batch.BatchProcessor to
 // this client's connection, retry policy, and circuit breaker.
 type Client struct {
-	conn           ch.Conn
-	circuitBreaker *circuitbreaker.CB[struct{}]
-	retry          *retry.Retry
+	conn             ch.Conn
+	circuitBreaker   *circuitbreaker.CB[struct{}]
+	retry            *retry.Retry
+	logInsertTimings bool
 }
 
 var (
@@ -51,6 +52,15 @@ type Config struct {
 //	}
 //	buf := clickhouse.NewBuffer[schema.ApiRequest](client, clickhouse.BufferConfig{...})
 func New(config Config) (*Client, error) {
+	return newClient(config, 50, false)
+}
+
+// NewWithDiagnostics enables insert timing and pool logs with the given connection limit.
+func NewWithDiagnostics(config Config, maxOpenConns int) (*Client, error) {
+	return newClient(config, maxOpenConns, true)
+}
+
+func newClient(config Config, maxOpenConns int, logInsertTimings bool) (*Client, error) {
 	opts, err := ch.ParseDSN(config.URL)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("parsing clickhouse DSN failed"))
@@ -71,11 +81,14 @@ func New(config Config) (*Client, error) {
 		}
 	}
 	opts.MaxOpenConns = 50
+	if maxOpenConns > 0 {
+		opts.MaxOpenConns = maxOpenConns
+	}
 	opts.ConnMaxLifetime = time.Hour
 	opts.ConnOpenStrategy = ch.ConnOpenRoundRobin
 	opts.DialTimeout = 5 * time.Second // Fail fast on connection issues
 
-	logger.Info("connecting to clickhouse")
+	logger.Info("connecting to clickhouse", "max_open_conns", opts.MaxOpenConns, "dial_timeout", opts.DialTimeout)
 	conn, err := ch.Open(opts)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("opening clickhouse failed"))
@@ -99,7 +112,8 @@ func New(config Config) (*Client, error) {
 	}
 
 	c := &Client{
-		conn: conn,
+		conn:             conn,
+		logInsertTimings: logInsertTimings,
 		circuitBreaker: circuitbreaker.New[struct{}](
 			"clickhouse_insert",
 			circuitbreaker.WithTripThreshold(5),

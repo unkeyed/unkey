@@ -78,17 +78,17 @@ func New(cfg Config) (*Handler, error) {
 // queue. Each batch is its own restate.Run so a crash mid-drain only
 // replays the last incomplete batch. Within a batch:
 //
-//  1. SELECT outbox rows WHERE deleted_at IS NULL ORDER BY pk LIMIT N FOR UPDATE SKIP LOCKED
+//  1. SELECT outbox rows WHERE deleted_at IS NULL ORDER BY pk LIMIT N (autocommit)
 //  2. Decode the JSON payload into auditlog.Event
 //  3. Map to schema.AuditLogV1 (one CH row per event, Nested targets)
 //  4. Insert into ClickHouse
-//  5. UPDATE deleted_at on the outbox rows (soft delete)
+//  5. UPDATE deleted_at on exactly the selected pks (autocommit soft delete)
 //
 // CH insert before mark means a crash after (4) but before (5) leaves
 // the outbox rows with deleted_at IS NULL; the next run re-inserts the
-// same set in the same order, and CH's block deduplication window
-// collapses the duplicate write into a noop. Marked rows stay in the
-// table for ops to re-queue and as an audit trail of what was exported.
+// pending rows. Consumers must tolerate duplicates: block deduplication
+// has a finite window, and ReplacingMergeTree does not merge across
+// insertion-month partitions. Marked rows remain available for re-queue.
 func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunAuditLogExportRequest,
@@ -129,58 +129,68 @@ func (h *Handler) Handle(
 }
 
 // exportBatch reads one batch of outbox rows, writes them to ClickHouse,
-// then marks them deleted. The whole batch runs inside a single MySQL
-// transaction so SELECT FOR UPDATE SKIP LOCKED and the UPDATE land
-// atomically. Returns 0 when the outbox is empty.
-//
-// Failure modes:
-//   - JSON decode fails on a row: batch fails, the bad row blocks all
-//     progress until investigated. Considered acceptable: malformed
-//     payloads are a writer bug, not transient.
-//   - CH insert fails: tx rolls back, row locks released, rows stay
-//     unmarked, next cron tick retries.
-//   - MySQL commit fails after a successful CH insert: rows stay
-//     unmarked, and the next cron tick inserts them again. This can create
-//     duplicate ClickHouse rows under the at-least-once delivery contract.
-func (h *Handler) exportBatch(ctx context.Context) (batchResult, error) {
-	return db.TxWithResult(ctx, h.db.RW(), func(txCtx context.Context, tx db.DBTX) (batchResult, error) {
-		q := db.NewQueries(tx)
-		rows, err := q.FindClickhouseOutboxBatch(txCtx, db.FindClickhouseOutboxBatchParams{
-			Versions: knownVersions,
-			Limit:    batchLimit,
-		})
-		if err != nil {
-			return batchResult{EventsExported: 0}, fmt.Errorf("find outbox batch: %w", err)
-		}
-		if len(rows) == 0 {
-			return batchResult{EventsExported: 0}, nil
-		}
-
-		events := make([]auditlog.Event, len(rows))
-		pks := make([]uint64, len(rows))
-		for i, row := range rows {
-			if err := json.Unmarshal(row.Payload, &events[i]); err != nil {
-				return batchResult{EventsExported: 0}, fmt.Errorf("decode outbox payload pk=%d: %w", row.Pk, err)
-			}
-			pks[i] = row.Pk
-		}
-
-		chRows, err := clickhouse.EncodeAuditLogEvents(events)
-		if err != nil {
-			return batchResult{EventsExported: 0}, fmt.Errorf("encode clickhouse rows: %w", err)
-		}
-
-		if err := h.clickhouse.InsertAuditLogs(txCtx, chRows); err != nil {
-			return batchResult{EventsExported: 0}, fmt.Errorf("insert clickhouse: %w", err)
-		}
-
-		if err := q.MarkClickhouseOutboxBatchDeleted(txCtx, db.MarkClickhouseOutboxBatchDeletedParams{
-			DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
-			Pks:       pks,
-		}); err != nil {
-			return batchResult{EventsExported: 0}, fmt.Errorf("mark outbox batch deleted: %w", err)
-		}
-
-		return batchResult{EventsExported: int32(len(events))}, nil
+// then marks exactly those rows deleted. No MySQL connection spans the
+// ClickHouse call, so a stalled export cannot gap-lock API outbox inserts.
+// CH failures leave the batch pending. A failed mark can have an unknown
+// outcome after connection loss; any rows still pending will be replayed.
+func (h *Handler) exportBatch(ctx context.Context) (result batchResult, batchErr error) {
+	started := time.Now()
+	stageStarted := started
+	stage := "select"
+	rowCount := 0
+	logger.Info("audit log export stage started", "stage", stage)
+	nextStage := func(next string) {
+		logger.Info("audit log export stage finished", "stage", stage,
+			"elapsed_ms", time.Since(stageStarted).Milliseconds(), "rows", rowCount)
+		stage = next
+		stageStarted = time.Now()
+		logger.Info("audit log export stage started", "stage", stage, "rows", rowCount)
+	}
+	defer func() {
+		logger.Info("audit log export stage finished", "stage", stage,
+			"elapsed_ms", time.Since(stageStarted).Milliseconds(), "rows", rowCount, "error", batchErr)
+		logger.Info("audit log export batch finished", "elapsed_ms", time.Since(started).Milliseconds(),
+			"rows", rowCount, "events_exported", result.EventsExported, "error", batchErr)
+	}()
+	rows, err := h.db.FindClickhouseOutboxBatch(ctx, db.FindClickhouseOutboxBatchParams{
+		Versions: knownVersions,
+		Limit:    batchLimit,
 	})
+	if err != nil {
+		return batchResult{EventsExported: 0}, fmt.Errorf("find outbox batch: %w", err)
+	}
+	rowCount = len(rows)
+	if len(rows) == 0 {
+		return batchResult{EventsExported: 0}, nil
+	}
+
+	nextStage("decode")
+	events := make([]auditlog.Event, len(rows))
+	pks := make([]uint64, len(rows))
+	for i, row := range rows {
+		if err := json.Unmarshal(row.Payload, &events[i]); err != nil {
+			return batchResult{EventsExported: 0}, fmt.Errorf("decode outbox payload pk=%d: %w", row.Pk, err)
+		}
+		pks[i] = row.Pk
+	}
+
+	chRows, err := clickhouse.EncodeAuditLogEvents(events)
+	if err != nil {
+		return batchResult{EventsExported: 0}, fmt.Errorf("encode clickhouse rows: %w", err)
+	}
+
+	nextStage("insert")
+	if err := h.clickhouse.InsertAuditLogs(ctx, chRows); err != nil {
+		return batchResult{EventsExported: 0}, fmt.Errorf("insert clickhouse: %w", err)
+	}
+
+	nextStage("mark")
+	if err := h.db.MarkClickhouseOutboxBatchDeleted(ctx, db.MarkClickhouseOutboxBatchDeletedParams{
+		DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		Pks:       pks,
+	}); err != nil {
+		return batchResult{EventsExported: 0}, fmt.Errorf("mark outbox batch deleted: %w", err)
+	}
+
+	return batchResult{EventsExported: int32(len(events))}, nil
 }

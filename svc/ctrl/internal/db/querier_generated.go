@@ -307,21 +307,10 @@ type Querier interface {
 	//  SELECT certificates.pk, certificates.id, certificates.workspace_id, certificates.hostname, certificates.certificate, certificates.encrypted_private_key, certificates.created_at, certificates.updated_at FROM certificates WHERE hostname = ?
 	FindCertificateByHostname(ctx context.Context, hostname string) (Certificate, error)
 	// FindClickhouseOutboxBatch returns the next batch of unprocessed outbox
-	// rows for a known set of payload versions. Must be called inside a
-	// transaction. FOR UPDATE SKIP LOCKED locks the batch so a second cron tick
-	// (if Restate VO serialization ever fails) silently skips them rather than
-	// re-processing the same set. The lock is released when the caller commits
-	// or rolls back. Ordered by pk so retries see a deterministic row set,
-	// which lets CH's block-level deduplication collapse re-inserts after a
-	// partial failure.
-	//
-	// The version filter means a drainer never reads a payload it can't
-	// decode. Unknown versions stay in the table until a drainer with the
-	// matching handler ships.
-	//
-	// deleted_at IS NULL skips rows the drainer already shipped. Marked rows
-	// stay in the table for re-processing (clear deleted_at to re-queue) and
-	// as an ops audit trail; there's no sweep job today.
+	// rows for known payload versions, ordered by pk. Use an autocommit read:
+	// locking the pending index across a ClickHouse call blocks API inserts.
+	// Restate serializes the exporter key, but overlapping canceled attempts
+	// can still deliver duplicates under the at-least-once contract.
 	//
 	//  SELECT pk, version, workspace_id, event_id, payload, created_at
 	//  FROM clickhouse_outbox
@@ -329,7 +318,6 @@ type Querier interface {
 	//    AND deleted_at IS NULL
 	//  ORDER BY pk
 	//  LIMIT ?
-	//  FOR UPDATE SKIP LOCKED
 	FindClickhouseOutboxBatch(ctx context.Context, arg FindClickhouseOutboxBatchParams) ([]FindClickhouseOutboxBatchRow, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
@@ -1806,16 +1794,21 @@ type Querier interface {
 	//    AND w.deleted_at_m IS NULL
 	ListWorkspacesWithDeployBudget(ctx context.Context) ([]ListWorkspacesWithDeployBudgetRow, error)
 	// MarkClickhouseOutboxBatchDeleted soft-deletes a set of pks after their CH
-	// insert is confirmed. Called inside the same transaction that selected
-	// them, so the row locks held by FOR UPDATE SKIP LOCKED are released as
-	// part of commit. A crash between the CH insert and this UPDATE leaves the
-	// rows with deleted_at IS NULL. The next batch picks them up again, which can
-	// create duplicate ClickHouse rows under the at-least-once delivery contract.
+	// insert is confirmed. It runs as its own short autocommit statement, not in
+	// the transaction that selected the rows, so no MySQL lock spans the
+	// ClickHouse insert. The pk list is exactly the set the drainer read and
+	// ClickHouse acknowledged; rows inserted concurrently are never in it. The
+	// deleted_at IS NULL guard keeps a replayed or overlapping mark from
+	// restamping rows an earlier attempt already marked.
+	//
+	// A crash between the CH insert and this UPDATE leaves the rows with
+	// deleted_at IS NULL. The next batch picks them up again, which can create
+	// duplicate ClickHouse rows under the at-least-once delivery contract.
 	//
 	// We mark instead of hard-delete so ops can re-queue events (clear
 	// deleted_at) without re-reading the original payload from somewhere else,
-	// and so the table doubles as an audit trail of what was exported. There's
-	// no sweep job today; the table grows monotonically.
+	// and so the table doubles as an audit trail of what was exported.
+	// RunAuditLogOutboxCleanup sweeps marked rows after the retention window.
 	//
 	//  UPDATE clickhouse_outbox
 	//  SET deleted_at = ?
