@@ -14,17 +14,20 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploycancel"
 )
 
-// cancelledByUserMessage is stamped on the in-flight step before the invocation
-// is cancelled, so the UI shows it instead of whatever error the cancel causes
-// deeper in the workflow.
+// cancelledByUserMessage is written to deployment_steps.error on the open step
+// before the Restate invocation is cancelled. Cancelling makes Workflow.Deploy
+// fail with a Restate cancellation error, and without this the dashboard would
+// show that error on the step instead.
 const cancelledByUserMessage = "Cancelled by user"
 
 // CancelDeployment aborts an in-flight deployment through deploycancel.Cancel.
 // A request without an actor is not audited.
 //
-// A terminal deployment returns success without touching Restate. One with no
-// invocation id yet is still marked cancelled: the id is persisted after Deploy
-// is sent, and Deploy checks for a terminal status before it builds.
+// A deployment whose status is already terminal returns success without
+// calling Restate. A deployment with an empty deployments.invocation_id is
+// still marked cancelled: Workflow.Create and AuthorizeDeployment write that id
+// only after they have sent Deploy, and Workflow.Deploy checks for a terminal
+// status before it builds, so it stops on its own.
 func (s *Service) CancelDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CancelDeploymentRequest],
@@ -67,8 +70,10 @@ func (s *Service) CancelDeployment(
 			fmt.Errorf("restate admin client is not configured"))
 	}
 
-	// A nil *Client stored in the interface is not a nil interface, so
-	// deploycancel would call it and panic.
+	// Assigning a nil *restateadmin.Client to the interface makes a non-nil
+	// interface holding a nil pointer. deploycancel.Cancel only checks
+	// admin == nil, so it would call CancelInvocation on the nil pointer and
+	// panic.
 	var canceler deploycancel.InvocationCanceler
 	if s.restateAdmin != nil {
 		canceler = s.restateAdmin

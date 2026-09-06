@@ -17,12 +17,11 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploycancel"
 )
 
-// SupersededByNewerCommitMessage is stamped onto the in-flight deployment
-// step of a sibling that is being cancelled because a newer commit for the
-// same branch landed. The frontend matches on this exact string to render
-// the superseded deployment with a dedicated view instead of the red
-// FailedDeploymentBanner. Must stay in sync with SUPERSEDED_BY_NEWER in
-// web/apps/dashboard/.../cancelled-marker.ts.
+// SupersededByNewerCommitMessage is written to deployment_steps.error on the
+// open step of an older deployment that is cancelled because a newer commit
+// landed on the same branch. The dashboard shows this text on that step. The
+// dashboard chooses its superseded view from deployments.status, not from this
+// string, so changing the text is safe.
 const SupersededByNewerCommitMessage = "Superseded by newer commit"
 
 // Service handles cancellation of superseded sibling deployments.
@@ -45,16 +44,22 @@ type Newer struct {
 	CreatedAt     int64
 }
 
-// CancelOlderSiblings supersedes queued deployments (pending or
-// awaiting_approval) on the same app, environment, and branch that were created
-// before newer. A deployment that already holds a build slot is left to finish,
-// so rapid pushes cannot keep cancelling builds and never ship one.
+// CancelOlderSiblings moves older deployments on the same app, environment, and
+// branch to status superseded through deploycancel.Cancel. Only rows whose
+// status is pending or awaiting_approval qualify. A deployment that reached
+// starting already holds a build slot and is left alone; otherwise rapid pushes
+// could keep cancelling builds and never ship one.
 //
-// No audit entries: the cancel is machine-initiated and has no actor. A failed
-// invocation cancel comes back in the error but cannot resurrect a sibling,
-// because the row is already superseded and Deploy refuses a terminal row.
+// No audit entries are written: this cancel is started by the system and has
+// no user to attribute it to.
 //
-// Deployments without a branch (image redeploys) are never deduplicated.
+// When admin.CancelInvocation fails, the sibling's row is already superseded.
+// If its Workflow.Deploy has not yet reached the status check at its top, it
+// stops there. If it is already parked in Workflow.waitForBuildSlot, it keeps
+// running and resumes when a slot frees.
+//
+// Deployments without a branch, such as image redeploys, are never
+// deduplicated.
 func (s *Service) CancelOlderSiblings(ctx context.Context, newer Newer) error {
 	if newer.GitBranch == "" {
 		return nil
@@ -92,8 +97,10 @@ func (s *Service) CancelOlderSiblings(ctx context.Context, newer Newer) error {
 		targets = append(targets, deploycancel.Target{ID: old.ID, InvocationID: invocationID})
 	}
 
-	// A nil *Client stored in the interface is not a nil interface, so
-	// deploycancel would call it and panic.
+	// Assigning a nil *restateadmin.Client to the interface makes a non-nil
+	// interface holding a nil pointer. deploycancel.Cancel only checks
+	// admin == nil, so it would call CancelInvocation on the nil pointer and
+	// panic.
 	var canceler deploycancel.InvocationCanceler
 	if s.admin != nil {
 		canceler = s.admin

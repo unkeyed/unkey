@@ -140,10 +140,11 @@ func (s *Service) Delete(
 	return &hydrav1.DeleteEnvironmentResponse{}, nil
 }
 
-// cancelProgressingDeployments aborts in-flight deployments through
-// deploycancel.Cancel. The list is journaled, so a retry after a failed
-// invocation cancel runs against the same rows instead of re-listing and
-// skipping the ones already flipped terminal.
+// cancelProgressingDeployments aborts every deployment in the environment whose
+// status is still progressing, through deploycancel.Cancel. The list is
+// journaled on purpose: a retry must work on the same rows, because a fresh
+// query would skip the rows Cancel already moved to cancelled and leave their
+// Restate invocations running.
 func (s *Service) cancelProgressingDeployments(
 	ctx restate.ObjectContext,
 	env db.Environment,

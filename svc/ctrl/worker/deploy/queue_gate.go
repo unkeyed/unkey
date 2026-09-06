@@ -24,9 +24,11 @@ import (
 // Returns (false, nil) when the deployment should proceed normally, or
 // (false, err) if the dedup query or status update fails.
 //
-// This catches an older sibling whose row landed after the newer deployment's
-// CancelOlderSiblings query ran. The check sits at the top so the workflow bows
-// out before it takes a build slot.
+// This exists for a race in dedup.CancelOlderSiblings, which lists older
+// siblings by created_at. A sibling whose INSERT committed after that list ran
+// is missed even though its created_at is earlier. That sibling finds the newer
+// deployment here and marks itself superseded. The check runs before
+// waitForBuildSlot so the sibling never takes a build slot.
 func (w *Workflow) skipIfSuperseded(
 	ctx restate.ObjectContext,
 	deployment db.Deployment,
