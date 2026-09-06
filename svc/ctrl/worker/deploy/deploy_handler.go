@@ -310,6 +310,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 
 	// --- Network ---
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepNetwork, deployment, func(stepCtx restate.ObjectContext) error {
+		var err error
 		liveRouteIDs, shouldAutoPromote, err = w.configureRouting(stepCtx, workspace, project, app, environment, deployment)
 		return err
 	})
@@ -324,8 +325,8 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	// --- Finalize ---
 	var promotionSkipReason hydrav1.AutomaticPromotionSkipReason
 	err = w.DeploymentStep(ctx, db.DeploymentStepsStepFinalizing, deployment, func(stepCtx restate.ObjectContext) error {
-		err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
-			return w.db.UpdateDeploymentStatus(stepCtx, db.UpdateDeploymentStatusParams{
+		err := restate.RunVoid(stepCtx, func(runCtx restate.RunContext) error {
+			return w.db.UpdateDeploymentStatus(runCtx, db.UpdateDeploymentStatusParams{
 				ID:        deployment.ID,
 				Status:    mysqltype.DeploymentsStatusReady,
 				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -348,7 +349,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				)
 			}
 			if promotionSkipReason == hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_NEWER_DEPLOYMENT {
-				if err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+				if err := restate.RunVoid(stepCtx, func(runCtx restate.RunContext) error {
 					return w.db.UpdateDeploymentStatus(runCtx, db.UpdateDeploymentStatusParams{
 						ID:        deployment.ID,
 						Status:    mysqltype.DeploymentsStatusSuperseded,
@@ -359,7 +360,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				}
 			}
 		} else if environment.Kind.IsPreview() {
-			if err = w.spinDownPreviousDeployments(ctx, deployment); err != nil {
+			if err := w.spinDownPreviousDeployments(stepCtx, deployment); err != nil {
 				// This isn't a real issue, our cron job will eventually spin the preview deployments down anyways
 				logger.Error("unable to spin down previous preview deployments", "error", err)
 			}

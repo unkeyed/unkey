@@ -12,13 +12,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-type swapLiveDeploymentResult struct {
-	PreviousDeploymentID         string                               `json:"previous_deployment_id"`
-	CurrentDeploymentID          string                               `json:"current_deployment_id"`
-	AutomaticPromotionSkipReason hydrav1.AutomaticPromotionSkipReason `json:"automatic_promotion_skip_reason"`
-	AlreadyCurrent               bool                                 `json:"already_current"`
-}
-
 // SwapLiveDeployment atomically performs the operations that make a deployment
 // the live one for its environment:
 //
@@ -59,90 +52,7 @@ func (s *Service) SwapLiveDeployment(
 	}
 
 	result, err := restate.Run(ctx, func(runCtx restate.RunContext) (swapLiveDeploymentResult, error) {
-		return db.TxWithResult(runCtx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) (swapLiveDeploymentResult, error) {
-			queries := db.NewQueries(tx)
-			deployment, findErr := queries.FindDeploymentById(txCtx, deploymentID)
-			if findErr != nil {
-				return swapLiveDeploymentResult{}, fmt.Errorf("find target deployment: %w", findErr)
-			}
-			currentApp, findErr := queries.FindAppById(txCtx, deployment.AppID)
-			if findErr != nil {
-				return swapLiveDeploymentResult{}, fmt.Errorf("find app: %w", findErr)
-			}
-
-			if req.GetAutomaticPromotion() &&
-				currentApp.CurrentDeploymentID.Valid &&
-				currentApp.CurrentDeploymentID.String == deploymentID {
-				// The transaction may have committed before Restate persisted its
-				// result. A replay recovers the journaled previous deployment. A
-				// separate duplicate invocation journals the target and returns no
-				// previous deployment, so it cannot schedule the target for standby.
-				recoveredPreviousDeploymentID := previousDeploymentID
-				if recoveredPreviousDeploymentID == deploymentID {
-					recoveredPreviousDeploymentID = ""
-				}
-				return swapLiveDeploymentResult{
-					PreviousDeploymentID:         recoveredPreviousDeploymentID,
-					CurrentDeploymentID:          deploymentID,
-					AutomaticPromotionSkipReason: hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED,
-					AlreadyCurrent:               true,
-				}, nil
-			}
-
-			if req.GetAutomaticPromotion() && currentApp.IsRolledBack {
-				return swapLiveDeploymentResult{
-					PreviousDeploymentID:         "",
-					CurrentDeploymentID:          currentApp.CurrentDeploymentID.String,
-					AutomaticPromotionSkipReason: hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_ROLLED_BACK,
-					AlreadyCurrent:               false,
-				}, nil
-			}
-
-			if req.GetAutomaticPromotion() && currentApp.CurrentDeploymentID.Valid {
-				currentDeployment, currentErr := queries.FindDeploymentById(txCtx, currentApp.CurrentDeploymentID.String)
-				if currentErr != nil {
-					return swapLiveDeploymentResult{}, fmt.Errorf("find current deployment: %w", currentErr)
-				}
-				// pk is the database insertion order. Unlike millisecond timestamps,
-				// it provides a strict order when deployments are created together.
-				if currentDeployment.Pk > deployment.Pk {
-					return swapLiveDeploymentResult{
-						PreviousDeploymentID:         "",
-						CurrentDeploymentID:          currentDeployment.ID,
-						AutomaticPromotionSkipReason: hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_NEWER_DEPLOYMENT,
-						AlreadyCurrent:               false,
-					}, nil
-				}
-			}
-
-			now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
-			for _, frontlineRouteID := range req.GetFrontlineRouteIds() {
-				if reassignErr := queries.ReassignFrontlineRoute(txCtx, db.ReassignFrontlineRouteParams{
-					ID:           frontlineRouteID,
-					DeploymentID: deploymentID,
-					UpdatedAt:    now,
-				}); reassignErr != nil {
-					return swapLiveDeploymentResult{}, fmt.Errorf("reassign frontline route %q: %w", frontlineRouteID, reassignErr)
-				}
-			}
-
-			updateErr := queries.UpdateAppDeployments(txCtx, db.UpdateAppDeploymentsParams{
-				AppID:               deployment.AppID,
-				CurrentDeploymentID: sql.NullString{Valid: true, String: deploymentID},
-				IsRolledBack:        req.GetSetRollbackFlag(),
-				UpdatedAt:           now,
-			})
-			if updateErr != nil {
-				return swapLiveDeploymentResult{}, fmt.Errorf("update app deployments: %w", updateErr)
-			}
-
-			return swapLiveDeploymentResult{
-				PreviousDeploymentID:         currentApp.CurrentDeploymentID.String,
-				CurrentDeploymentID:          deploymentID,
-				AutomaticPromotionSkipReason: hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED,
-				AlreadyCurrent:               false,
-			}, nil
-		})
+		return s.swapLiveDeployment(runCtx, req, previousDeploymentID)
 	}, restate.WithName("swap live deployment"))
 	if err != nil {
 		return nil, err
@@ -175,4 +85,99 @@ func (s *Service) SwapLiveDeployment(
 		PreviousDeploymentId:         result.PreviousDeploymentID,
 		AutomaticPromotionSkipReason: result.AutomaticPromotionSkipReason,
 	}, nil
+}
+
+type swapLiveDeploymentResult struct {
+	PreviousDeploymentID         string                               `json:"previous_deployment_id"`
+	CurrentDeploymentID          string                               `json:"current_deployment_id"`
+	AutomaticPromotionSkipReason hydrav1.AutomaticPromotionSkipReason `json:"automatic_promotion_skip_reason"`
+	AlreadyCurrent               bool                                 `json:"already_current"`
+}
+
+func (s *Service) swapLiveDeployment(ctx context.Context, req *hydrav1.SwapLiveDeploymentRequest, previousDeploymentID string) (swapLiveDeploymentResult, error) {
+	deploymentID := req.GetDeploymentId()
+	return db.TxWithResult(ctx, s.db.RW(), func(txCtx context.Context, tx db.DBTX) (swapLiveDeploymentResult, error) {
+		queries := db.NewQueries(tx)
+		deployment, findErr := queries.FindDeploymentById(txCtx, deploymentID)
+		if findErr != nil {
+			return swapLiveDeploymentResult{}, fmt.Errorf("find target deployment: %w", findErr)
+		}
+		currentApp, findErr := queries.FindAppById(txCtx, deployment.AppID)
+		if findErr != nil {
+			return swapLiveDeploymentResult{}, fmt.Errorf("find app: %w", findErr)
+		}
+
+		if req.GetAutomaticPromotion() &&
+			currentApp.CurrentDeploymentID.Valid &&
+			currentApp.CurrentDeploymentID.String == deploymentID {
+			// The transaction may have committed before Restate persisted its
+			// result. A replay recovers the journaled previous deployment. A
+			// separate duplicate invocation journals the target and returns no
+			// previous deployment, so it cannot schedule the target for standby.
+			recoveredPreviousDeploymentID := previousDeploymentID
+			if recoveredPreviousDeploymentID == deploymentID {
+				recoveredPreviousDeploymentID = ""
+			}
+			return swapLiveDeploymentResult{
+				PreviousDeploymentID:         recoveredPreviousDeploymentID,
+				CurrentDeploymentID:          deploymentID,
+				AutomaticPromotionSkipReason: hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED,
+				AlreadyCurrent:               true,
+			}, nil
+		}
+
+		if req.GetAutomaticPromotion() && currentApp.IsRolledBack {
+			return swapLiveDeploymentResult{
+				PreviousDeploymentID:         "",
+				CurrentDeploymentID:          currentApp.CurrentDeploymentID.String,
+				AutomaticPromotionSkipReason: hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_ROLLED_BACK,
+				AlreadyCurrent:               false,
+			}, nil
+		}
+
+		if req.GetAutomaticPromotion() && currentApp.CurrentDeploymentID.Valid {
+			currentDeployment, currentErr := queries.FindDeploymentById(txCtx, currentApp.CurrentDeploymentID.String)
+			if currentErr != nil {
+				return swapLiveDeploymentResult{}, fmt.Errorf("find current deployment: %w", currentErr)
+			}
+			// pk is the database insertion order. Unlike millisecond timestamps,
+			// it provides a strict order when deployments are created together.
+			if currentDeployment.Pk > deployment.Pk {
+				return swapLiveDeploymentResult{
+					PreviousDeploymentID:         "",
+					CurrentDeploymentID:          currentDeployment.ID,
+					AutomaticPromotionSkipReason: hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_NEWER_DEPLOYMENT,
+					AlreadyCurrent:               false,
+				}, nil
+			}
+		}
+
+		now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
+		for _, frontlineRouteID := range req.GetFrontlineRouteIds() {
+			if reassignErr := queries.ReassignFrontlineRoute(txCtx, db.ReassignFrontlineRouteParams{
+				ID:           frontlineRouteID,
+				DeploymentID: deploymentID,
+				UpdatedAt:    now,
+			}); reassignErr != nil {
+				return swapLiveDeploymentResult{}, fmt.Errorf("reassign frontline route %q: %w", frontlineRouteID, reassignErr)
+			}
+		}
+
+		updateErr := queries.UpdateAppDeployments(txCtx, db.UpdateAppDeploymentsParams{
+			AppID:               deployment.AppID,
+			CurrentDeploymentID: sql.NullString{Valid: true, String: deploymentID},
+			IsRolledBack:        req.GetSetRollbackFlag(),
+			UpdatedAt:           now,
+		})
+		if updateErr != nil {
+			return swapLiveDeploymentResult{}, fmt.Errorf("update app deployments: %w", updateErr)
+		}
+
+		return swapLiveDeploymentResult{
+			PreviousDeploymentID:         currentApp.CurrentDeploymentID.String,
+			CurrentDeploymentID:          deploymentID,
+			AutomaticPromotionSkipReason: hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED,
+			AlreadyCurrent:               false,
+		}, nil
+	})
 }
