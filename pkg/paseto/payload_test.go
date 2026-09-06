@@ -40,8 +40,11 @@ func TestPayloadDecoding_RejectsInvalidAuthenticatedJSON(t *testing.T) {
 		{name: "string", payload: []byte(`"payload"`)},
 		{name: "trailing value", payload: []byte(`{} {}`)},
 		{name: "invalid UTF-8", payload: []byte{'{', '"', 'x', '"', ':', '"', 0xff, '"', '}'}},
+		{name: "invalid Unicode escape", payload: []byte(`{"x":"\ud800"}`)},
 		{name: "duplicate top-level key", payload: []byte(`{"role":"reader","role":"admin"}`)},
 		{name: "duplicate nested key", payload: []byte(`{"nested":{"key":1,"key":2}}`)},
+		{name: "duplicate key in array", payload: []byte(`{"nested":[{"key":1,"key":2}]}`)},
+		{name: "escaped duplicate key", payload: []byte(`{"role":"reader","\u0072ole":"admin"}`)},
 		{name: "issuer number", payload: []byte(`{"iss":1}`)},
 		{name: "issuer null", payload: []byte(`{"iss":null}`)},
 		{name: "subject object", payload: []byte(`{"sub":{}}`)},
@@ -89,9 +92,7 @@ func TestPayloadDecoding_RejectsMalformedStringClaim(t *testing.T) {
 	require.Error(t, err)
 }
 
-// TestUniqueJSONObject_RejectsEveryTruncationBoundary guarantees malformed
-// objects fail whether truncation occurs in a value, array, or object.
-func TestUniqueJSONObject_RejectsEveryTruncationBoundary(t *testing.T) {
+func TestPayloadInspection_RejectsEveryTruncationBoundary(t *testing.T) {
 	tests := []struct {
 		name    string
 		payload string
@@ -107,7 +108,8 @@ func TestUniqueJSONObject_RejectsEveryTruncationBoundary(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			require.Error(t, requireUniqueJSONObject([]byte(test.payload)))
+			_, err := inspectPayload([]byte(test.payload))
+			require.Error(t, err)
 		})
 	}
 }
