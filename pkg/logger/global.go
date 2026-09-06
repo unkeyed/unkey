@@ -91,7 +91,7 @@ func GetHandler() slog.Handler {
 }
 
 // AddHandler registers an additional [slog.Handler] to receive log records.
-// Handlers are composed using [MultiHandler], so each log entry is sent to
+// Handlers are composed using [slog.MultiHandler], so each log entry is sent to
 // all registered handlers. This enables simultaneous output to multiple
 // destinations like console and a structured logging backend.
 //
@@ -100,7 +100,7 @@ func GetHandler() slog.Handler {
 func AddHandler(newHandler slog.Handler) {
 	mu.Lock()
 	defer mu.Unlock()
-	innerHandler = &MultiHandler{[]slog.Handler{innerHandler, newHandler}}
+	innerHandler = slog.NewMultiHandler(innerHandler, newHandler)
 	rebuild()
 }
 
