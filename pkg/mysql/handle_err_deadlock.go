@@ -59,8 +59,7 @@ func IsConnectionError(err error) bool {
 		return true
 	}
 
-	var netErr net.Error
-	if errors.As(err, &netErr) {
+	if _, ok := errors.AsType[net.Error](err); ok {
 		return true
 	}
 
@@ -85,10 +84,6 @@ func isMySQLError(err error, number uint16) bool {
 		return false
 	}
 
-	var mysqlErr *mysql.MySQLError
-	if errors.As(err, &mysqlErr) && mysqlErr.Number == number {
-		return true
-	}
-
-	return false
+	mysqlErr, ok := errors.AsType[*mysql.MySQLError](err)
+	return ok && mysqlErr.Number == number
 }

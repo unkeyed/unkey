@@ -90,8 +90,7 @@ func IsUserQueryError(err error) bool {
 	}
 
 	// Check ClickHouse exception codes
-	var chErr *ch.Exception
-	if errors.As(err, &chErr) {
+	if chErr, ok := errors.AsType[*ch.Exception](err); ok {
 		return userErrorCodes[chErr.Code]
 	}
 
@@ -244,8 +243,7 @@ func WrapClickHouseError(err error) error {
 	}
 
 	// Check ClickHouse exception codes for resource errors
-	var chErr *ch.Exception
-	if errors.As(err, &chErr) {
+	if chErr, ok := errors.AsType[*ch.Exception](err); ok {
 		if response, ok := resourceLimitCodes[chErr.Code]; ok {
 			return fault.Wrap(
 				err,
