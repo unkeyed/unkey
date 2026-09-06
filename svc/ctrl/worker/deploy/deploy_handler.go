@@ -231,6 +231,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 
 	// --- Network ---
 	err = DeploymentStep(w, ctx, db.DeploymentStepsStepNetwork, deployment.ID, func(stepCtx restate.WorkflowContext) error {
+		var err error
 		liveRouteIDs, shouldAutoPromote, err = w.configureRouting(stepCtx, deployment)
 		return err
 	})
@@ -249,7 +250,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		// handler only learns of it at its next Restate call. A plain update
 		// would then overwrite cancelled with ready while the compensations
 		// stop the pods
-		err = restate.RunVoid(stepCtx, func(runCtx restate.RunContext) error {
+		err := restate.RunVoid(stepCtx, func(runCtx restate.RunContext) error {
 			return w.db.UpdateDeploymentStatusIfActive(runCtx, db.UpdateDeploymentStatusIfActiveParams{
 				ID:                  deployment.ID,
 				Status:              mysqltype.DeploymentsStatusReady,
@@ -274,7 +275,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 				)
 			}
 			if promotionSkipReason == hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_NEWER_DEPLOYMENT {
-				if err = restate.RunVoid(stepCtx, func(runCtx restate.RunContext) error {
+				if err := restate.RunVoid(stepCtx, func(runCtx restate.RunContext) error {
 					return w.db.UpdateDeploymentStatus(runCtx, db.UpdateDeploymentStatusParams{
 						ID:        deployment.ID,
 						Status:    mysqltype.DeploymentsStatusSuperseded,
@@ -285,7 +286,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 				}
 			}
 		} else if deployment.EnvironmentKind.IsPreview() {
-			if err = w.spinDownPreviousDeployments(stepCtx, deployment); err != nil {
+			if err := w.spinDownPreviousDeployments(stepCtx, deployment); err != nil {
 				// This isn't a real issue, our cron job will eventually spin the preview deployments down anyways
 				logger.Error("unable to spin down previous preview deployments", "error", err)
 			}
