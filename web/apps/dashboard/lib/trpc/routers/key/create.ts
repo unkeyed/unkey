@@ -43,15 +43,16 @@ export const createKey = workspaceProcedure
     }
 
     try {
+      const prepared = await prepareKey(input, ctx.workspace.id, keyAuth.storeEncryptedKeys);
       return await db.transaction(async (tx) => {
         return await createKeyCore(
           {
             ...input,
             keyAuthId: keyAuth.id,
-            storeEncryptedKeys: keyAuth.storeEncryptedKeys,
           },
           ctx,
           tx,
+          prepared,
         );
       });
     } catch (_err) {
@@ -73,10 +74,23 @@ type CreateKeyContext = {
 
 type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
+export async function prepareKey(
+  input: Pick<CreateKeyInput, "prefix" | "bytes">,
+  workspaceId: string,
+  storeEncryptedKeys: boolean,
+) {
+  const generated = await newKey({ prefix: input.prefix, byteLength: input.bytes });
+  const encrypted = storeEncryptedKeys
+    ? await vault.encrypt({ keyring: workspaceId, data: generated.key })
+    : undefined;
+  return { ...generated, encrypted };
+}
+
 export async function createKeyCore(
-  input: CreateKeyInput & { storeEncryptedKeys: boolean },
+  input: CreateKeyInput,
   ctx: CreateKeyContext,
   tx: DatabaseTransaction,
+  prepared: Awaited<ReturnType<typeof prepareKey>>,
 ) {
   // The keys.identity_id column has no FK or workspace predicate. If we
   // accept a client-supplied identityId without verifying it belongs to this
@@ -103,10 +117,7 @@ export async function createKeyCore(
   }
 
   const keyId = newId("key");
-  const { key, hash, prefix, start, end } = await newKey({
-    prefix: input.prefix,
-    byteLength: input.bytes,
-  });
+  const { key, hash, prefix, start, end } = prepared;
 
   await tx.insert(schema.keys).values({
     id: keyId,
@@ -131,11 +142,8 @@ export async function createKeyCore(
     environment: input.environment,
   });
 
-  if (input.storeEncryptedKeys) {
-    const { encrypted, keyId: encryptionKeyId } = await vault.encrypt({
-      keyring: ctx.workspace.id,
-      data: key,
-    });
+  if (prepared.encrypted) {
+    const { encrypted, keyId: encryptionKeyId } = prepared.encrypted;
 
     await tx.insert(schema.encryptedKeys).values({
       encrypted,
