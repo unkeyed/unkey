@@ -17,7 +17,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/keyauth"
@@ -51,9 +50,9 @@ func TestAPIExecutor_VerifiesPolicyAndBuildsPrincipal(t *testing.T) {
 		Locations: []*frontlinev1.KeyLocation{{Location: &frontlinev1.KeyLocation_QueryParam{
 			QueryParam: &frontlinev1.QueryParamKeyLocation{Name: "api_key"},
 		}}},
-		KeySpaceIds: []string{"ks_primary", "ks_secondary"}, Credits: ptr.P(int64(0)),
-		PermissionQuery: ptr.P("orders.read"),
-		Ratelimits:      []*frontlinev1.KeyRatelimit{{Name: "requests", Cost: ptr.P(int64(3)), Limit: ptr.P(int64(17)), Duration: ptr.P(int64(60000))}},
+		KeySpaceIds: []string{"ks_primary", "ks_secondary"}, Credits: new(int64(0)),
+		PermissionQuery: new("orders.read"),
+		Ratelimits:      []*frontlinev1.KeyRatelimit{{Name: "requests", Cost: new(int64(3)), Limit: new(int64(17)), Duration: new(int64(60000))}},
 	})
 	require.NoError(t, err)
 	got := <-requests
@@ -217,8 +216,8 @@ func TestAPIExecutor_RejectsMissingCredentialsAndInvalidPolicyLocally(t *testing
 		code                codes.URN
 	}{
 		{"missing key", "", &frontlinev1.KeyAuth{}, codes.Frontline.Auth.MissingCredentials.URN()},
-		{"negative credits", "Bearer user_test", &frontlinev1.KeyAuth{Credits: ptr.P(int64(-1))}, codes.Frontline.Internal.InvalidConfiguration.URN()},
-		{"invalid permissions", "Bearer user_test", &frontlinev1.KeyAuth{PermissionQuery: ptr.P("orders.read AND (")}, codes.Frontline.Internal.InvalidConfiguration.URN()},
+		{"negative credits", "Bearer user_test", &frontlinev1.KeyAuth{Credits: new(int64(-1))}, codes.Frontline.Internal.InvalidConfiguration.URN()},
+		{"invalid permissions", "Bearer user_test", &frontlinev1.KeyAuth{PermissionQuery: new("orders.read AND (")}, codes.Frontline.Internal.InvalidConfiguration.URN()},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()

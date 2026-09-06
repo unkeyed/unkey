@@ -10,7 +10,6 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
@@ -27,7 +26,7 @@ func TestUpdatePortalRejectsInvalidInput(t *testing.T) {
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := h.SeedPortal(t, workspace.ID, "valid-portal", "valid-portal", mapping,
-		ptr.P("https://cdn.example.com/logo.svg"), ptr.P("#6366f1"))
+		new("https://cdn.example.com/logo.svg"), new("#6366f1"))
 
 	blankKeyspaceID := openapi.PortalKeyspaceId("")
 	someAppID := openapi.PortalAppId("app_1234abcd")
@@ -36,16 +35,16 @@ func TestUpdatePortalRejectsInvalidInput(t *testing.T) {
 		name   string
 		mutate func(handler.Request) handler.Request
 	}{
-		{name: "slug too short", mutate: func(r handler.Request) handler.Request { r.Slug = ptr.P("ab"); return r }},
-		{name: "slug uppercase", mutate: func(r handler.Request) handler.Request { r.Slug = ptr.P("Acme-Portal"); return r }},
-		{name: "slug consecutive hyphens", mutate: func(r handler.Request) handler.Request { r.Slug = ptr.P("acme--portal"); return r }},
-		{name: "slug leading hyphen", mutate: func(r handler.Request) handler.Request { r.Slug = ptr.P("-acme"); return r }},
-		{name: "slug too long", mutate: func(r handler.Request) handler.Request { r.Slug = ptr.P(strings.Repeat("a", 65)); return r }},
+		{name: "slug too short", mutate: func(r handler.Request) handler.Request { r.Slug = new("ab"); return r }},
+		{name: "slug uppercase", mutate: func(r handler.Request) handler.Request { r.Slug = new("Acme-Portal"); return r }},
+		{name: "slug consecutive hyphens", mutate: func(r handler.Request) handler.Request { r.Slug = new("acme--portal"); return r }},
+		{name: "slug leading hyphen", mutate: func(r handler.Request) handler.Request { r.Slug = new("-acme"); return r }},
+		{name: "slug too long", mutate: func(r handler.Request) handler.Request { r.Slug = new(strings.Repeat("a", 65)); return r }},
 		{
 			// The id-or-slug resolver reads one argument as either form, so an
 			// id-shaped slug would make resolution ambiguous.
 			name:   "id-shaped slug",
-			mutate: func(r handler.Request) handler.Request { r.Slug = ptr.P("pc_1234abcd"); return r },
+			mutate: func(r handler.Request) handler.Request { r.Slug = new("pc_1234abcd"); return r },
 		},
 		{
 			name: "blank keyspace id",

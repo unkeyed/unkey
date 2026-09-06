@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_list_apps"
@@ -32,12 +31,12 @@ func TestListAppsValidationErrors(t *testing.T) {
 		name string
 		req  handler.Request
 	}{
-		{name: "missing project", req: handler.Request{Limit: ptr.P(10)}},
+		{name: "missing project", req: handler.Request{Limit: new(10)}},
 		{name: "project invalid chars", req: handler.Request{Project: "payments.service"}},
 		{name: "project too long", req: handler.Request{Project: strings.Repeat("a", 257)}},
-		{name: "limit below minimum", req: handler.Request{Project: validProject, Limit: ptr.P(0)}},
-		{name: "limit above maximum", req: handler.Request{Project: validProject, Limit: ptr.P(101)}},
-		{name: "search above max length", req: handler.Request{Project: validProject, Search: ptr.P(strings.Repeat("a", 257))}},
+		{name: "limit below minimum", req: handler.Request{Project: validProject, Limit: new(0)}},
+		{name: "limit above maximum", req: handler.Request{Project: validProject, Limit: new(101)}},
+		{name: "search above max length", req: handler.Request{Project: validProject, Search: new(strings.Repeat("a", 257))}},
 	}
 
 	for _, tc := range testCases {

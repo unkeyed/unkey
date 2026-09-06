@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -62,7 +61,7 @@ func TestBadRequests(t *testing.T) {
 		metaData := make(map[string]any)
 		entriesNeeded := (handler.MAX_META_LENGTH_MB * 1024 * 1024) / 15
 		for i := range entriesNeeded + 1000 {
-			metaData[fmt.Sprintf("key_%d", i)] = ptr.P(fmt.Sprintf("some_%d", i))
+			metaData[fmt.Sprintf("key_%d", i)] = new(fmt.Sprintf("some_%d", i))
 		}
 
 		req := handler.Request{ExternalId: uid.New("test"), Meta: &metaData}

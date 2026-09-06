@@ -113,7 +113,7 @@ func (p *stripePusher) Push(ctx context.Context, req PushRequest) (int, error) {
 		}
 		_, err := p.client.V1BillingMeterEvents.Create(ctx, &stripe.BillingMeterEventCreateParams{
 			EventName: stripe.String(m.name),
-			Timestamp: stripe.Int64(req.Timestamp),
+			Timestamp: new(req.Timestamp),
 			Payload: map[string]string{
 				payloadKeyCustomer: req.StripeCustomerID,
 				payloadKeyValue:    m.value,

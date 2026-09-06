@@ -308,5 +308,5 @@ func (h *Handler) decryptKey(ctx context.Context, principal *principal.Principal
 		return nil, nil //nolint:nilnil
 	}
 
-	return ptr.P(decrypted.GetPlaintext()), nil
+	return new(decrypted.GetPlaintext()), nil
 }

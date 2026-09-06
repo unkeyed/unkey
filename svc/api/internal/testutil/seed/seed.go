@@ -621,7 +621,7 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 	}
 
 	for _, ratelimit := range req.Ratelimits {
-		ratelimit.KeyID = ptr.P(keyID)
+		ratelimit.KeyID = new(keyID)
 		s.CreateRatelimit(ctx, ratelimit)
 	}
 
@@ -727,7 +727,7 @@ func (s *Seeder) CreateIdentity(ctx context.Context, req CreateIdentityRequest) 
 	require.NoError(s.t, err)
 
 	for _, ratelimit := range req.Ratelimits {
-		ratelimit.IdentityID = ptr.P(identityID)
+		ratelimit.IdentityID = new(identityID)
 		s.CreateRatelimit(ctx, ratelimit)
 	}
 

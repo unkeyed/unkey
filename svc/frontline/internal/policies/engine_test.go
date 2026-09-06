@@ -10,11 +10,9 @@ import (
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 )
 
 type keyAuthenticatorFunc func(context.Context, *zen.Session, *http.Request, string, *frontlinev1.KeyAuth) (*principal.Principal, error)
@@ -44,7 +42,7 @@ func TestEvaluate_UsesKeyAuthenticator(t *testing.T) {
 			w := httptest.NewRecorder()
 			sess := &zen.Session{}
 			require.NoError(t, sess.Init(w, req, 0))
-			cfg := &frontlinev1.KeyAuth{KeySpaceIds: []string{"ks_orders"}, Credits: ptr.P(int64(0))}
+			cfg := &frontlinev1.KeyAuth{KeySpaceIds: []string{"ks_orders"}, Credits: new(int64(0))}
 			engine := &Engine{
 				keyAuth: keyAuthenticatorFunc(func(ctx context.Context, session *zen.Session, request *http.Request, appID string, policy *frontlinev1.KeyAuth) (*principal.Principal, error) {
 					require.Equal(t, t.Context(), ctx)
@@ -58,7 +56,7 @@ func TestEvaluate_UsesKeyAuthenticator(t *testing.T) {
 			}
 
 			result, err := engine.Evaluate(t.Context(), sess, req, "ws_orders", "app_orders", []*frontlinev1.Policy{{
-				Enabled: proto.Bool(true),
+				Enabled: new(true),
 				Config:  &frontlinev1.Policy_Keyauth{Keyauth: cfg},
 			}})
 			require.Equal(t, tt.principal, result.Principal)
@@ -125,7 +123,7 @@ func TestParseMiddleware_WithPolicies(t *testing.T) {
 			{
 				Id:      "p1",
 				Name:    "key auth",
-				Enabled: proto.Bool(true),
+				Enabled: new(true),
 				Match:   nil,
 				Config: &frontlinev1.Policy_Keyauth{
 					//nolint:exhaustruct
@@ -199,9 +197,9 @@ func TestPrincipal_Marshal_WireFormat(t *testing.T) {
 				Key: &principal.KeySource{
 					KeyID:       "key_abc",
 					KeySpaceID:  "ks_456",
-					Name:        ptr.P("prod"),
-					ExpiresAt:   ptr.P(int64(1717200000000)),
-					Credits:     ptr.P(int64(42)),
+					Name:        new("prod"),
+					ExpiresAt:   new(int64(1717200000000)),
+					Credits:     new(int64(42)),
 					Meta:        map[string]any{},
 					Roles:       []string{"admin"},
 					Permissions: []string{"api.read", "api.write"},

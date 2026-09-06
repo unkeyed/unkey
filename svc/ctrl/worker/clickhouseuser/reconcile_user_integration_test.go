@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 )
@@ -25,7 +24,7 @@ func TestReconcileUser_Integration(t *testing.T) {
 	const maxQueriesPerWindow = int32(2_000)
 	userClient := hydrav1.NewClickhouseUserServiceIngressClient(h.Restate, workspace.ID)
 	_, err := userClient.ConfigureUser().Request(h.Ctx, &hydrav1.ConfigureUserRequest{
-		MaxQueriesPerWindow: ptr.P(maxQueriesPerWindow),
+		MaxQueriesPerWindow: new(maxQueriesPerWindow),
 	})
 	require.NoError(t, err)
 

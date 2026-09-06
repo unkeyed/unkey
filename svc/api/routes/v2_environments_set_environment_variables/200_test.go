@@ -43,8 +43,8 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 	t.Run("set on empty environment encrypts and stores values", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
-			{Key: "DATABASE_URL", Value: "postgres://secret", Kind: ptr(openapi.Writeonly)},
-			{Key: "LOG_LEVEL", Value: "debug", Kind: ptr(openapi.Recoverable), Description: ptr("verbosity")},
+			{Key: "DATABASE_URL", Value: "postgres://secret", Kind: new(openapi.Writeonly)},
+			{Key: "LOG_LEVEL", Value: "debug", Kind: new(openapi.Recoverable), Description: new("verbosity")},
 		}))
 
 		raw := listRawVars(t, h, env)
@@ -74,7 +74,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		seedVar(t, h, env, "KEEP_TWO", "y", db.AppEnvironmentVariablesTypeRecoverable)
 
 		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
-			{Key: "KEEP_ONE", Value: "updated", Kind: ptr(openapi.Recoverable)},
+			{Key: "KEEP_ONE", Value: "updated", Kind: new(openapi.Recoverable)},
 		}))
 
 		raw := listRawVars(t, h, env)
@@ -137,7 +137,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		req := makeRequest(env, []openapi.EnvironmentVariableInput{
 			{Key: "NEW_ONE", Value: "z"},
 		})
-		req.Prune = ptr(true)
+		req.Prune = new(true)
 		call(t, req)
 
 		raw := listRawVars(t, h, env)
@@ -152,9 +152,9 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		seedVar(t, h, env, "GONE", "x", db.AppEnvironmentVariablesTypeRecoverable)
 
 		req := makeRequest(env, []openapi.EnvironmentVariableInput{
-			{Key: "KEEP", Value: "new", Kind: ptr(openapi.Recoverable)},
+			{Key: "KEEP", Value: "new", Kind: new(openapi.Recoverable)},
 		})
-		req.Prune = ptr(true)
+		req.Prune = new(true)
 		call(t, req)
 
 		raw := listRawVars(t, h, env)
@@ -175,7 +175,7 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		seedVar(t, h, env, "TWO", "b", db.AppEnvironmentVariablesTypeRecoverable)
 
 		req := makeRequest(env, []openapi.EnvironmentVariableInput{})
-		req.Prune = ptr(true)
+		req.Prune = new(true)
 		call(t, req)
 
 		raw := listRawVars(t, h, env)
@@ -239,8 +239,8 @@ func TestSetEnvironmentVariablesSuccessfully(t *testing.T) {
 		atCap := strings.Repeat("a", 16384)
 
 		call(t, makeRequest(env, []openapi.EnvironmentVariableInput{
-			{Key: "TLS_KEY", Value: pem, Kind: ptr(openapi.Recoverable)},
-			{Key: "BIG_BLOB", Value: atCap, Kind: ptr(openapi.Recoverable)},
+			{Key: "TLS_KEY", Value: pem, Kind: new(openapi.Recoverable)},
+			{Key: "BIG_BLOB", Value: atCap, Kind: new(openapi.Recoverable)},
 		}))
 
 		raw := listRawVars(t, h, env)

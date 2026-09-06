@@ -16,7 +16,6 @@ import (
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func TestCreateDomain(t *testing.T) {
@@ -46,7 +45,7 @@ func TestListDomains(t *testing.T) {
 				Project:     nil,
 				App:         nil,
 				Environment: nil,
-				Limit:       ptr.P(int64(100)),
+				Limit:       new(int64(100)),
 				Cursor:      nil,
 				Search:      nil,
 			},
@@ -56,9 +55,9 @@ func TestListDomains(t *testing.T) {
 			"domains list-domains --app=api",
 			components.V2DomainsListDomainsRequestBody{
 				Project:     nil,
-				App:         ptr.P("api"),
+				App:         new("api"),
 				Environment: nil,
-				Limit:       ptr.P(int64(100)),
+				Limit:       new(int64(100)),
 				Cursor:      nil,
 				Search:      nil,
 			},
@@ -67,12 +66,12 @@ func TestListDomains(t *testing.T) {
 			"all options",
 			"domains list-domains --project=payments --app=api --environment=production --limit=25 --cursor=dom_1234abcd --search=acme.com",
 			components.V2DomainsListDomainsRequestBody{
-				Project:     ptr.P("payments"),
-				App:         ptr.P("api"),
-				Environment: ptr.P("production"),
-				Limit:       ptr.P(int64(25)),
-				Cursor:      ptr.P("dom_1234abcd"),
-				Search:      ptr.P("acme.com"),
+				Project:     new("payments"),
+				App:         new("api"),
+				Environment: new("production"),
+				Limit:       new(int64(25)),
+				Cursor:      new("dom_1234abcd"),
+				Search:      new("acme.com"),
 			},
 		},
 	}

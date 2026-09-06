@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 )
@@ -24,7 +23,7 @@ func TestUpdatePortalRequiresAuthentication(t *testing.T) {
 		nil, nil)
 
 	req := baseRequest(stored.ID)
-	req.Enabled = ptr.P(false)
+	req.Enabled = new(false)
 
 	testCases := map[string]string{
 		"unknown key":   "Bearer unkey_thiskeydoesnotexist",
@@ -57,7 +56,7 @@ func TestUpdatePortalRejectsMalformedAuthorization(t *testing.T) {
 		nil, nil)
 
 	req := baseRequest(stored.ID)
-	req.Enabled = ptr.P(false)
+	req.Enabled = new(false)
 
 	testCases := map[string]http.Header{
 		"no authorization header": {"Content-Type": {"application/json"}},

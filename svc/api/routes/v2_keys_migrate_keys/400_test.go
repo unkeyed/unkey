@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -174,7 +173,7 @@ func TestMigrateKeysBadRequest(t *testing.T) {
 			Keys: []openapi.V2KeysMigrateKeyData{
 				{
 					Hash:  uid.New("prefix Prefix"),
-					Roles: ptr.P([]string{strings.Repeat("a", 513)}),
+					Roles: new([]string{strings.Repeat("a", 513)}),
 				},
 			},
 		}

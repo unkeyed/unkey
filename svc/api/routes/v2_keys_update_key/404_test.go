@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -38,7 +37,7 @@ func TestUpdateKeyNotFound(t *testing.T) {
 		t.Parallel()
 		req := handler.Request{
 			KeyId:   "nonexistent_key",
-			Enabled: ptr.P(false),
+			Enabled: new(false),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
@@ -58,13 +57,13 @@ func TestUpdateKeyNotFound(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			Name:        ptr.P("test"),
+			Name:        new("test"),
 			Deleted:     true, // This will mark the key as deleted
 		})
 
 		req := handler.Request{
 			KeyId:   keyResponse.KeyID,
-			Enabled: ptr.P(false),
+			Enabled: new(false),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)

@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -25,7 +24,7 @@ func TestGetKeyUnauthorized(t *testing.T) {
 
 	req := handler.Request{
 		KeyId:   uid.New(uid.KeyPrefix),
-		Decrypt: ptr.P(false),
+		Decrypt: new(false),
 	}
 
 	t.Run("missing authorization header", func(t *testing.T) {

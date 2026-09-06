@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -27,7 +26,7 @@ func TestVerifyKey(t *testing.T) {
 			args: "keys verify-key --key=sk_1234abcdef --permissions=documents.read",
 			want: openapi.V2KeysVerifyKeyRequestBody{
 				Key:         "sk_1234abcdef",
-				Permissions: ptr.P("documents.read"),
+				Permissions: new("documents.read"),
 			},
 		},
 		{
@@ -35,7 +34,7 @@ func TestVerifyKey(t *testing.T) {
 			args: "keys verify-key --key=sk_1234abcdef --tags=endpoint=/users/profile,method=GET",
 			want: openapi.V2KeysVerifyKeyRequestBody{
 				Key:  "sk_1234abcdef",
-				Tags: ptr.P([]string{"endpoint=/users/profile", "method=GET"}),
+				Tags: new([]string{"endpoint=/users/profile", "method=GET"}),
 			},
 		},
 		{
@@ -53,8 +52,8 @@ func TestVerifyKey(t *testing.T) {
 			args: `keys verify-key --key=sk_1234abcdef --ratelimits='[{"name":"requests","limit":100,"duration":60000}]'`,
 			want: openapi.V2KeysVerifyKeyRequestBody{
 				Key: "sk_1234abcdef",
-				Ratelimits: ptr.P([]openapi.KeysVerifyKeyRatelimit{
-					{Name: "requests", Limit: ptr.P(100), Duration: ptr.P(60000), Cost: ptr.P(1)},
+				Ratelimits: new([]openapi.KeysVerifyKeyRatelimit{
+					{Name: "requests", Limit: new(100), Duration: new(60000), Cost: new(1)},
 				}),
 			},
 		},
