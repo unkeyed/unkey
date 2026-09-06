@@ -16,9 +16,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/routing"
 )
 
-// TestSwapLiveDeployment_OlderCompletionCannotReplaceNewer verifies that the
-// environment-serialized routing transaction keeps both the live pointer and
-// sticky routes on the newest deployment when builds finish out of order.
 func TestSwapLiveDeployment_OlderCompletionCannotReplaceNewer(t *testing.T) {
 	h := New(t)
 	ctx := h.Context()
@@ -118,9 +115,7 @@ func TestSwapLiveDeployment_OlderCompletionCannotReplaceNewer(t *testing.T) {
 	)
 	require.Equal(t, baseline.ID, newerResponse.GetPreviousDeploymentId())
 
-	// A replay after an ambiguous commit must not report the live target as its
-	// own previous deployment, which would schedule it for standby.
-	replayedResponse, err := client.SwapLiveDeployment().Request(ctx, &hydrav1.SwapLiveDeploymentRequest{
+	duplicateResponse, err := client.SwapLiveDeployment().Request(ctx, &hydrav1.SwapLiveDeploymentRequest{
 		DeploymentId:       newer.ID,
 		FrontlineRouteIds:  []string{routeID},
 		AutomaticPromotion: true,
@@ -128,9 +123,9 @@ func TestSwapLiveDeployment_OlderCompletionCannotReplaceNewer(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t,
 		hydrav1.AutomaticPromotionSkipReason_AUTOMATIC_PROMOTION_SKIP_REASON_UNSPECIFIED,
-		replayedResponse.GetAutomaticPromotionSkipReason(),
+		duplicateResponse.GetAutomaticPromotionSkipReason(),
 	)
-	require.Empty(t, replayedResponse.GetPreviousDeploymentId())
+	require.Empty(t, duplicateResponse.GetPreviousDeploymentId())
 
 	olderResponse, err := client.SwapLiveDeployment().Request(ctx, &hydrav1.SwapLiveDeploymentRequest{
 		DeploymentId:       older.ID,
@@ -153,8 +148,6 @@ func TestSwapLiveDeployment_OlderCompletionCannotReplaceNewer(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, newer.ID, gotRoute.DeploymentID)
 
-	// A rollback that wins environment serialization must remain sticky even
-	// when a newer automatic deployment finishes afterwards.
 	rollbackResponse, err := client.SwapLiveDeployment().Request(ctx, &hydrav1.SwapLiveDeploymentRequest{
 		DeploymentId:      baseline.ID,
 		FrontlineRouteIds: []string{routeID},
