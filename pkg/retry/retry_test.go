@@ -273,7 +273,7 @@ func TestDoWithResult(t *testing.T) {
 			}
 
 			calls := 0
-			result, err := DoWithResult(retrier, func() (string, error) {
+			result, err := retrier.DoWithResult(func() (string, error) {
 				idx := calls
 				calls++
 				if idx < len(tt.errorSequence) {
@@ -398,7 +398,7 @@ func TestDoWithResultContext(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 
-		result, err := DoWithResultContext(retrier, ctx, func() (string, error) {
+		result, err := retrier.DoWithResultContext(ctx, func() (string, error) {
 			return "should not return", errors.New("should not be called")
 		})
 
@@ -418,7 +418,7 @@ func TestDoWithResultContext(t *testing.T) {
 		defer cancel()
 
 		attempts := 0
-		result, err := DoWithResultContext(retrier, ctx, func() (string, error) {
+		result, err := retrier.DoWithResultContext(ctx, func() (string, error) {
 			attempts++
 			return fmt.Sprintf("attempt%d", attempts), errors.New("temporary error")
 		})
@@ -443,7 +443,7 @@ func TestDoWithResultContext(t *testing.T) {
 		defer cancel()
 
 		attempts := 0
-		result, err := DoWithResultContext(retrier, ctx, func() (string, error) {
+		result, err := retrier.DoWithResultContext(ctx, func() (string, error) {
 			attempts++
 			return fmt.Sprintf("attempt%d", attempts), errors.New("temporary error")
 		})

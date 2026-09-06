@@ -163,13 +163,13 @@ func (r *Retry) Do(fn func() error) error {
 // Example:
 //
 //	r := retry.New(retry.Attempts(3))
-//	user, err := retry.DoWithResult(r, func() (*User, error) {
+//	user, err := r.DoWithResult(func() (*User, error) {
 //		return fetchUserFromAPI(userID)
 //	})
 //	if err != nil {
 //		log.Printf("failed to fetch user after 3 attempts: %v", err)
 //	}
-func DoWithResult[T any](r *Retry, fn func() (T, error)) (T, error) {
+func (r *Retry) DoWithResult[T any](fn func() (T, error)) (T, error) {
 	var result T
 	err := r.Do(func() error {
 		var retryErr error
@@ -252,7 +252,7 @@ func (r *Retry) DoContext(ctx context.Context, fn func() error) error {
 // DoWithResultContext executes the given function with configured retry behavior, context support, and returns a result.
 // Works like DoContext() but for functions that return a value along with an error.
 // On failure, returns the result from the last attempt along with the final error.
-func DoWithResultContext[T any](r *Retry, ctx context.Context, fn func() (T, error)) (T, error) {
+func (r *Retry) DoWithResultContext[T any](ctx context.Context, fn func() (T, error)) (T, error) {
 	var result T
 	err := r.DoContext(ctx, func() error {
 		var retryErr error
