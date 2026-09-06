@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	"google.golang.org/protobuf/proto"
 )
 
 // ToProto parses request policies into the protos frontline evaluates,
@@ -61,7 +60,7 @@ func PolicyToProto(path string, p openapi.Policy) (*frontlinev1.Policy, error) {
 
 	out := &frontlinev1.Policy{
 		Name:    p.Name,
-		Enabled: proto.Bool(p.Enabled),
+		Enabled: new(p.Enabled),
 	}
 
 	// match is a sibling of the oneof, present on every variant.

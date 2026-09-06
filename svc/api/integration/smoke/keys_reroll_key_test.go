@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -32,7 +31,7 @@ func TestRerollKey_ReturnsNewWorkingKey(t *testing.T) {
 	t.Cleanup(func() {
 		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{
 			KeyID:     rerolled.KeyID,
-			Permanent: ptr.P(true),
+			Permanent: new(true),
 		})
 		require.NoError(t, err)
 	})
@@ -57,7 +56,7 @@ func TestRerollKey_PreservesConfiguration(t *testing.T) {
 		Name:      uid.DNS1035(),
 		Limit:     10,
 		Duration:  60_000,
-		AutoApply: ptr.P(true),
+		AutoApply: new(true),
 	}
 
 	createResponse, err := client.Keys.CreateKey(ctx, components.V2KeysCreateKeyRequestBody{
@@ -83,7 +82,7 @@ func TestRerollKey_PreservesConfiguration(t *testing.T) {
 	t.Cleanup(func() {
 		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{
 			KeyID:     rerolled.KeyID,
-			Permanent: ptr.P(true),
+			Permanent: new(true),
 		})
 		require.NoError(t, err)
 	})

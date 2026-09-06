@@ -9,7 +9,6 @@ import (
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 // portalScopes is the vocabulary createSession accepts. The pinned SDK's Scope
@@ -74,7 +73,7 @@ Your root key must be associated with a workspace that has an enabled portal con
 			for i, value := range values {
 				scopes[i] = components.Scope(value)
 			}
-			req := components.V2PortalCreateSessionRequestBody{Portal: cmd.String("portal"), ExternalID: cmd.String("external-id"), Scopes: scopes, Preview: ptr.P(cmd.Bool("preview")), ReturnURL: nil}
+			req := components.V2PortalCreateSessionRequestBody{Portal: cmd.String("portal"), ExternalID: cmd.String("external-id"), Scopes: scopes, Preview: new(cmd.Bool("preview")), ReturnURL: nil}
 			if v := cmd.String("return-url"); v != "" {
 				req.ReturnURL = &v
 			}

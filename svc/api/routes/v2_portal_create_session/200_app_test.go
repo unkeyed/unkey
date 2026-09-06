@@ -22,7 +22,6 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 )
 
 // seededApp identifies the rows seedAppWithKeyspaces created. The project and
@@ -74,7 +73,7 @@ func seedAppWithKeyspaces(t *testing.T, h *testutil.Harness, workspaceID, slugBa
 			{
 				Id:      "pol_keyauth",
 				Name:    "keyauth",
-				Enabled: proto.Bool(true),
+				Enabled: new(true),
 				Config: &frontlinev1.Policy_Keyauth{
 					Keyauth: &frontlinev1.KeyAuth{
 						KeySpaceIds: keyspaceIDs,

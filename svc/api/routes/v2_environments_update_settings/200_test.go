@@ -60,9 +60,9 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			App:           env.appID,
 			Environment:   env.environmentID,
 			Dockerfile:    nullable.NewNullableWithValue("Dockerfile.prod"),
-			RootDirectory: ptr("app"),
-			WatchPaths:    ptr([]string{"src/**"}),
-			AutoDeploy:    ptr(false),
+			RootDirectory: new("app"),
+			WatchPaths:    new([]string{"src/**"}),
+			AutoDeploy:    new(false),
 		})
 
 		got, err := db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
@@ -113,7 +113,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			WatchPaths:  ptr([]string{"src/**", "lib/**"}),
+			WatchPaths:  new([]string{"src/**", "lib/**"}),
 		})
 		got, err := db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
 			AppID: env.appID, EnvironmentID: env.environmentID,
@@ -126,7 +126,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			AutoDeploy:  ptr(false),
+			AutoDeploy:  new(false),
 		})
 		got, err = db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
 			AppID: env.appID, EnvironmentID: env.environmentID,
@@ -139,7 +139,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			WatchPaths:  ptr([]string{}),
+			WatchPaths:  new([]string{}),
 		})
 		got, err = db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
 			AppID: env.appID, EnvironmentID: env.environmentID,
@@ -155,7 +155,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			Command:     ptr([]string{"./server", "--prod"}),
+			Command:     new([]string{"./server", "--prod"}),
 		})
 		rt, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
 			AppID: env.appID, EnvironmentID: env.environmentID,
@@ -168,7 +168,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			Port:        ptr(9090),
+			Port:        new(9090),
 		})
 		rt, err = db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
 			AppID: env.appID, EnvironmentID: env.environmentID,
@@ -181,7 +181,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			Command:     ptr([]string{}),
+			Command:     new([]string{}),
 		})
 		rt, err = db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
 			AppID: env.appID, EnvironmentID: env.environmentID,
@@ -222,7 +222,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			Port:        ptr(9090),
+			Port:        new(9090),
 		})
 		rt, err = db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
 			AppID: env.appID, EnvironmentID: env.environmentID,
@@ -264,8 +264,8 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			AutoDeploy:  ptr(true),
-			Port:        ptr(9090),
+			AutoDeploy:  new(true),
+			Port:        new(9090),
 		})
 
 		build, err := db.Query.FindAppBuildSettingByAppEnv(ctx, h.DB.RO(), db.FindAppBuildSettingByAppEnvParams{
@@ -291,18 +291,18 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:          env.projectID,
 			App:              env.appID,
 			Environment:      env.environmentID,
-			Port:             ptr(9090),
-			VCpus:            ptr(2.0),
-			MemoryMib:        ptr(1024),
-			StorageMib:       ptr(2048),
-			Command:          ptr([]string{"./server", "--prod"}),
-			ShutdownSignal:   ptr(openapi.SIGINT),
-			UpstreamProtocol: ptr(openapi.H2c),
+			Port:             new(9090),
+			VCpus:            new(2.0),
+			MemoryMib:        new(1024),
+			StorageMib:       new(2048),
+			Command:          new([]string{"./server", "--prod"}),
+			ShutdownSignal:   new(openapi.SIGINT),
+			UpstreamProtocol: new(openapi.H2c),
 			OpenapiSpecPath:  nullable.NewNullableWithValue("/openapi.yaml"),
 			Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{
 				Method:          openapi.EnvironmentHealthcheckMethodGET,
 				Path:            "/health",
-				IntervalSeconds: ptr(15),
+				IntervalSeconds: new(15),
 			}),
 		})
 
@@ -343,10 +343,10 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{
 				Method:              openapi.EnvironmentHealthcheckMethodGET,
 				Path:                "/v1/liveness",
-				IntervalSeconds:     ptr(5),
-				TimeoutSeconds:      ptr(5),
-				FailureThreshold:    ptr(3),
-				InitialDelaySeconds: ptr(0),
+				IntervalSeconds:     new(5),
+				TimeoutSeconds:      new(5),
+				FailureThreshold:    new(3),
+				InitialDelaySeconds: new(0),
 			}),
 		})
 
@@ -395,7 +395,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			VCpus:       ptr(0.5),
+			VCpus:       new(0.5),
 		})
 
 		rt, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{

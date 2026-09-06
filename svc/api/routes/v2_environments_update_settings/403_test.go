@@ -42,7 +42,7 @@ func TestUpdateSettingsForbidden(t *testing.T) {
 				Project:     env.projectID,
 				App:         env.appID,
 				Environment: env.environmentID,
-				AutoDeploy:  ptr(true),
+				AutoDeploy:  new(true),
 			})
 			if tc.shouldPass {
 				require.Equal(t, 200, res.Status, "expected 200 for %v, got: %s", tc.permissions, res.RawBody)

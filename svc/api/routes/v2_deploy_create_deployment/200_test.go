@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment"
@@ -75,11 +74,11 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 			EnvironmentSlug: "production",
 			DockerImage:     "nginx:latest",
 			GitCommit: &openapi.V2DeployGitCommit{
-				AuthorAvatarUrl: ptr.P("https://avatar.example.com/johndoe.jpg"),
-				AuthorHandle:    ptr.P("johndoe"),
-				CommitMessage:   ptr.P("feat: add new feature"),
-				CommitSha:       ptr.P("abc123def456"),
-				Timestamp:       ptr.P(int64(1704067200000)),
+				AuthorAvatarUrl: new("https://avatar.example.com/johndoe.jpg"),
+				AuthorHandle:    new("johndoe"),
+				CommitMessage:   new("feat: add new feature"),
+				CommitSha:       new("abc123def456"),
+				Timestamp:       new(int64(1704067200000)),
 			},
 		}
 

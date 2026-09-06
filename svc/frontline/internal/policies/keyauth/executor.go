@@ -187,13 +187,13 @@ func toVerifyRatelimits(rls []*frontlinev1.KeyRatelimit) []openapi.KeysVerifyKey
 			Limit:    nil,
 		}
 		if rl.Limit != nil {
-			entry.Limit = ptr.P(int(rl.GetLimit()))
+			entry.Limit = new(int(rl.GetLimit()))
 		}
 		if rl.Duration != nil {
-			entry.Duration = ptr.P(int(rl.GetDuration()))
+			entry.Duration = new(int(rl.GetDuration()))
 		}
 		if rl.Cost != nil {
-			entry.Cost = ptr.P(int(rl.GetCost()))
+			entry.Cost = new(int(rl.GetCost()))
 		}
 		out = append(out, entry)
 	}

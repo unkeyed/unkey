@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/prefixedapikey"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -116,7 +115,7 @@ func TestResendDemo(t *testing.T) {
 
 		res1 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Key:         resendKey.Token,
-			MigrationId: ptr.P(migrationID),
+			MigrationId: new(migrationID),
 		})
 
 		require.Equal(t, 200, res1.Status)

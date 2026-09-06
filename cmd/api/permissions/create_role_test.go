@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func TestCreateRole(t *testing.T) {
@@ -27,7 +26,7 @@ func TestCreateRole(t *testing.T) {
 			args: "permissions create-role --name=billing.manager --description=manages-billing-resources",
 			want: components.V2PermissionsCreateRoleRequestBody{
 				Name:        "billing.manager",
-				Description: ptr.P("manages-billing-resources"),
+				Description: new("manages-billing-resources"),
 			},
 		},
 		{

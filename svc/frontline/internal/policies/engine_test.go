@@ -5,10 +5,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 )
 
 func TestParseMiddleware_Nil(t *testing.T) {
@@ -57,7 +55,7 @@ func TestParseMiddleware_WithPolicies(t *testing.T) {
 			{
 				Id:      "p1",
 				Name:    "key auth",
-				Enabled: proto.Bool(true),
+				Enabled: new(true),
 				Match:   nil,
 				Config: &frontlinev1.Policy_Keyauth{
 					//nolint:exhaustruct
@@ -131,9 +129,9 @@ func TestPrincipal_Marshal_WireFormat(t *testing.T) {
 				Key: &principal.KeySource{
 					KeyID:       "key_abc",
 					KeySpaceID:  "ks_456",
-					Name:        ptr.P("prod"),
-					ExpiresAt:   ptr.P(int64(1717200000000)),
-					Credits:     ptr.P(int64(42)),
+					Name:        new("prod"),
+					ExpiresAt:   new(int64(1717200000000)),
+					Credits:     new(int64(42)),
 					Meta:        map[string]any{},
 					Roles:       []string{"admin"},
 					Permissions: []string{"api.read", "api.write"},

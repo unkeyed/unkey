@@ -201,7 +201,7 @@ func TestMap(t *testing.T) {
 	})
 
 	t.Run("works with pointer types", func(t *testing.T) {
-		values := []*int{intPtr(10), intPtr(20), intPtr(30)}
+		values := []*int{new(10), new(20), new(30)}
 		result := Map(values, func(ptr *int) int {
 			if ptr == nil {
 				return 0
@@ -214,7 +214,7 @@ func TestMap(t *testing.T) {
 	})
 
 	t.Run("handles nil pointers in transformation", func(t *testing.T) {
-		values := []*int{intPtr(10), nil, intPtr(30)}
+		values := []*int{new(10), nil, new(30)}
 		result := Map(values, func(ptr *int) int {
 			if ptr == nil {
 				return -1
@@ -225,11 +225,6 @@ func TestMap(t *testing.T) {
 		expected := []int{10, -1, 30}
 		require.Equal(t, expected, result)
 	})
-}
-
-// Helper function for creating int pointers
-func intPtr(i int) *int {
-	return &i
 }
 
 // Example tests for documentation

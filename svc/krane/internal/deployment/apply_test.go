@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -66,19 +65,19 @@ func fullApplyRequest(t *testing.T) *ctrlv1.ApplyDeployment {
 		Image:                         testImage,
 		CpuMillicores:                 testCPUMillicores,
 		MemoryMib:                     testMemoryMib,
-		BuildId:                       ptr.P(testBuildID),
+		BuildId:                       new(testBuildID),
 		EncryptedEnvironmentVariables: []byte("ciphertext-sentinel"),
 		Command:                       testCommand,
 		Port:                          testPort,
 		ShutdownSignal:                testShutdownSignal,
 		Healthcheck:                   hc,
 		AppId:                         testAppID,
-		EnvironmentSlug:               ptr.P(testEnvironmentSlug),
-		Region:                        ptr.P(testRegion),
-		GitCommitSha:                  ptr.P(testGitCommitSha),
-		GitBranch:                     ptr.P(testGitBranch),
-		GitRepo:                       ptr.P(testGitRepo),
-		GitCommitMessage:              ptr.P(testGitCommitMessage),
+		EnvironmentSlug:               new(testEnvironmentSlug),
+		Region:                        new(testRegion),
+		GitCommitSha:                  new(testGitCommitSha),
+		GitBranch:                     new(testGitBranch),
+		GitRepo:                       new(testGitRepo),
+		GitCommitMessage:              new(testGitCommitMessage),
 		Autoscaling:                   &ctrlv1.AutoscalingPolicy{MinReplicas: 2, MaxReplicas: 5},
 		EphemeralStorage:              &ctrlv1.EphemeralStorage{SizeMib: testEphemeralMib},
 	}

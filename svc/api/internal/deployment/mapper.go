@@ -2,7 +2,6 @@ package deployment
 
 import (
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -27,10 +26,10 @@ func ToResponse(in Input) openapi.Deployment {
 		healthcheck = &openapi.EnvironmentHealthcheck{
 			Method:              openapi.EnvironmentHealthcheckMethod(hc.Method),
 			Path:                hc.Path,
-			IntervalSeconds:     ptr.P(hc.IntervalSeconds),
-			TimeoutSeconds:      ptr.P(hc.TimeoutSeconds),
-			FailureThreshold:    ptr.P(hc.FailureThreshold),
-			InitialDelaySeconds: ptr.P(hc.InitialDelaySeconds),
+			IntervalSeconds:     new(hc.IntervalSeconds),
+			TimeoutSeconds:      new(hc.TimeoutSeconds),
+			FailureThreshold:    new(hc.FailureThreshold),
+			InitialDelaySeconds: new(hc.InitialDelaySeconds),
 		}
 	}
 
@@ -74,7 +73,7 @@ func ToResponse(in Input) openapi.Deployment {
 		if d.GitCommitSha.Valid && d.GitCommitSha.String != "" {
 			git := openapi.DeploymentGit{CommitSha: d.GitCommitSha.String, Branch: nil}
 			if d.GitBranch.Valid && d.GitBranch.String != "" {
-				git.Branch = ptr.P(d.GitBranch.String)
+				git.Branch = new(d.GitBranch.String)
 			}
 			dep.Git = &git
 		}
@@ -100,7 +99,7 @@ func ToResponse(in Input) openapi.Deployment {
 	if domains == nil {
 		domains = []string{}
 	}
-	dep.Domains = ptr.P(domains)
+	dep.Domains = new(domains)
 
 	return dep
 }

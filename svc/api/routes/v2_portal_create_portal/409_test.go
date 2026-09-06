@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -38,7 +37,7 @@ func TestCreatePortalConflicts(t *testing.T) {
 			DisplayName: "Acme",
 			KeyspaceId:  ksOf(keyspaceMapping(t, h, workspace.ID)),
 			AppId:       appOf(keyspaceMapping(t, h, workspace.ID)),
-			Enabled:     ptr.P(true),
+			Enabled:     new(true),
 		})
 		require.Equal(t, http.StatusConflict, res.Status, "expected 409, received: %s", res.RawBody)
 		require.Contains(t, res.RawBody, "portal_already_exists")
@@ -53,7 +52,7 @@ func TestCreatePortalConflicts(t *testing.T) {
 			DisplayName: "Acme",
 			KeyspaceId:  ksOf(taken),
 			AppId:       appOf(taken),
-			Enabled:     ptr.P(true),
+			Enabled:     new(true),
 		})
 		require.Equal(t, http.StatusConflict, res.Status, "expected 409, received: %s", res.RawBody)
 		require.Contains(t, res.RawBody, "portal_already_exists")
@@ -91,7 +90,7 @@ func TestCreatePortalConflicts(t *testing.T) {
 			DisplayName: "Acme",
 			KeyspaceId:  ksOf(portal.Mapping{Type: portal.MappingTypeKeyspace, ID: sharedApi.KeyAuthID.String}),
 			AppId:       appOf(portal.Mapping{Type: portal.MappingTypeKeyspace, ID: sharedApi.KeyAuthID.String}),
-			Enabled:     ptr.P(true),
+			Enabled:     new(true),
 		})
 		require.Equal(t, http.StatusNotFound, res.Status,
 			"ownership is checked before availability, so this is a 404: %s", res.RawBody)

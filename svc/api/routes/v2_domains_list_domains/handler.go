@@ -144,10 +144,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 		if row.VerificationError.Valid && row.VerificationError.String != "" {
-			d.VerificationError = ptr.P(row.VerificationError.String)
+			d.VerificationError = new(row.VerificationError.String)
 		}
 		if row.UpdatedAt.Valid {
-			d.UpdatedAt = ptr.P(row.UpdatedAt.Int64)
+			d.UpdatedAt = new(row.UpdatedAt.Int64)
 		}
 		return d
 	})

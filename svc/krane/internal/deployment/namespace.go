@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/unkeyed/unkey/pkg/ptr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,7 +41,7 @@ func (c *Controller) lockdownDefaultServiceAccount(ctx context.Context, namespac
 			Name:      "default",
 			Namespace: namespace,
 		},
-		AutomountServiceAccountToken: ptr.P(false),
+		AutomountServiceAccountToken: new(false),
 	}
 	return serverSideApplyResource(ctx, c.clientSet.CoreV1().RESTClient(), "serviceaccounts", namespace, "default", sa)
 }

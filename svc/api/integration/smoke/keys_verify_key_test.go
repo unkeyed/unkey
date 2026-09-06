@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -59,7 +58,7 @@ func TestVerifyKey_ReturnsMetadataAndIdentity(t *testing.T) {
 	key := created.V2KeysCreateKeyResponseBody.Data
 	waitForPropagation()
 	t.Cleanup(func() {
-		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{KeyID: key.KeyID, Permanent: ptr.P(true)})
+		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{KeyID: key.KeyID, Permanent: new(true)})
 		require.NoError(t, err)
 	})
 	response, err := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{Key: key.Key})
@@ -75,13 +74,13 @@ func TestVerifyKey_ReturnsAutoAppliedRatelimit(t *testing.T) {
 
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
-	limit := components.RatelimitRequest{Name: uid.DNS1035(), Limit: 10, Duration: 60_000, AutoApply: ptr.P(true)}
+	limit := components.RatelimitRequest{Name: uid.DNS1035(), Limit: 10, Duration: 60_000, AutoApply: new(true)}
 	created, err := client.Keys.CreateKey(ctx, components.V2KeysCreateKeyRequestBody{APIID: api.APIID, Ratelimits: []components.RatelimitRequest{limit}})
 	require.NoError(t, err)
 	key := created.V2KeysCreateKeyResponseBody.Data
 	waitForPropagation()
 	t.Cleanup(func() {
-		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{KeyID: key.KeyID, Permanent: ptr.P(true)})
+		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{KeyID: key.KeyID, Permanent: new(true)})
 		require.NoError(t, err)
 	})
 	response, err := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{Key: key.Key})

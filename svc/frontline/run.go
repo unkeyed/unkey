@@ -24,7 +24,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
-	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
+	buildinfometrics "github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -37,7 +37,6 @@ import (
 	pprofRoute "github.com/unkeyed/unkey/pkg/pprof"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
@@ -318,7 +317,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	acmeClient := ctrl.NewConnectAcmeServiceClient(ctrlv1connect.NewAcmeServiceClient(
-		ptr.P(http.Client{}),
+		new(http.Client{}),
 		cfg.Control.URL,
 		connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
 			"Authorization": "Bearer " + cfg.Control.Token,

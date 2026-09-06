@@ -49,7 +49,7 @@ func Paginate[T any](rows []T, p Params, cursor func(T) string) ([]T, openapi.Pa
 	hasMore := len(rows) > p.Limit
 	var next *string
 	if hasMore {
-		next = ptr.P(cursor(rows[p.Limit]))
+		next = new(cursor(rows[p.Limit]))
 		rows = rows[:p.Limit]
 	}
 

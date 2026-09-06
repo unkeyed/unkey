@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/prefixedapikey"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -74,14 +73,14 @@ func TestMigrateKeysSuccess(t *testing.T) {
 		Credits: &openapi.KeyCreditsData{
 			Remaining: nullable.Nullable[int64]{},
 		},
-		Enabled:    ptr.P(false),
+		Enabled:    new(false),
 		Expires:    nil,
-		ExternalId: ptr.P("ext_123"),
-		Meta: ptr.P(map[string]interface{}{
+		ExternalId: new("ext_123"),
+		Meta: new(map[string]interface{}{
 			"key": "value",
 		}),
-		Name:        ptr.P("Migration-Key"),
-		Permissions: ptr.P([]string{"test"}),
+		Name:        new("Migration-Key"),
+		Permissions: new([]string{"test"}),
 		Ratelimits: &[]openapi.RatelimitRequest{
 			{
 				AutoApply: true,
@@ -90,7 +89,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 				Name:      "default",
 			},
 		},
-		Roles: ptr.P([]string{"admin"}),
+		Roles: new([]string{"admin"}),
 	}
 
 	t.Run("rejects identity from another project", func(t *testing.T) {
@@ -113,7 +112,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 			MigrationId: migrationID,
 			Keys: []openapi.V2KeysMigrateKeyData{{
 				Hash:       key.LongTokenHash,
-				ExternalId: ptr.P(externalID),
+				ExternalId: new(externalID),
 			}},
 		})
 
@@ -143,7 +142,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 			MigrationId: migrationID,
 			Keys: []openapi.V2KeysMigrateKeyData{{
 				Hash:        key.LongTokenHash,
-				Permissions: ptr.P([]string{slug}),
+				Permissions: new([]string{slug}),
 			}},
 		})
 
@@ -169,7 +168,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 			MigrationId: migrationID,
 			Keys: []openapi.V2KeysMigrateKeyData{{
 				Hash:  key.LongTokenHash,
-				Roles: ptr.P([]string{name}),
+				Roles: new([]string{name}),
 			}},
 		})
 
@@ -226,7 +225,7 @@ func TestMigrateKeysSuccess(t *testing.T) {
 			Expires:     keyToMigrate.Expires,
 			ExternalId:  keyToMigrate.ExternalId, // Same external ID
 			Meta:        keyToMigrate.Meta,
-			Name:        ptr.P("Migration-Key-2"),
+			Name:        new("Migration-Key-2"),
 			Permissions: keyToMigrate.Permissions, // Same permissions
 			Ratelimits:  keyToMigrate.Ratelimits,
 			Roles:       keyToMigrate.Roles, // Same roles

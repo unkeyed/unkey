@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_reroll_key"
@@ -75,15 +74,15 @@ func TestRerollKeySuccess(t *testing.T) {
 			WorkspaceID:  workspace.ID,
 			Disabled:     false,
 			KeySpaceID:   api.KeyAuthID.String,
-			Remaining:    ptr.P(int64(16)),
-			IdentityID:   ptr.P(identity.ID),
+			Remaining:    new(int64(16)),
+			IdentityID:   new(identity.ID),
 			Meta:         nil,
 			Expires:      nil,
-			Name:         ptr.P("Test-Key"),
+			Name:         new("Test-Key"),
 			Deleted:      false,
 			Recoverable:  true,
-			RefillAmount: ptr.P(int64(100)),
-			RefillDay:    ptr.P(int16(1)),
+			RefillAmount: new(int64(100)),
+			RefillDay:    new(int16(1)),
 			Permissions: []seed.CreatePermissionRequest{
 				{
 					Name:        "Read documents",
