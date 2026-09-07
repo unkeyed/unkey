@@ -53,9 +53,9 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 	resp, err := hydrav1.NewDeployServiceIngressClient(s.restate, deploymentID).
 		Create().
 		Request(ctx, &hydrav1.DeployCreateRequest{
-			ProjectId:   src.ProjectID,
-			AppId:       src.AppID,
-			Environment: src.EnvironmentID,
+			ProjectId:     src.ProjectID,
+			AppId:         src.AppID,
+			EnvironmentId: src.EnvironmentID,
 			Source: &hydrav1.DeployCreateRequest_ExistingDeployment{
 				ExistingDeployment: &hydrav1.CreateExistingDeploymentSource{
 					DeploymentId:   sourceDeploymentID,
@@ -80,10 +80,10 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 			fmt.Errorf("rebuild failed: %w", err))
 	}
 
-	if resp.GetOutcome() == hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED {
+	if outcome := resp.GetOutcome(); outcome != hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED {
 		// The worker logs the detail. Only the enum crosses the wire.
 		return "", connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("rebuild rejected: %s", resp.GetRejectionReason().String()))
+			fmt.Errorf("rebuild rejected: %s", outcome.String()))
 	}
 
 	return deploymentID, nil

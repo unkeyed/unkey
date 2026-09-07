@@ -17,7 +17,7 @@ import (
 
 func TestGitSourceWithoutRepoConnection(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newRejectingRestate(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION))
+	route := newRoute(h, newRejectingRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_REPO_CONNECTION))
 	h.Register(route)
 
 	// No repo connection attached to the app.
@@ -41,7 +41,7 @@ func TestGitSourceWithoutRepoConnection(t *testing.T) {
 // it into a 412 a caller can act on.
 func TestCreateDeploymentRequiresComputePlan(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newRejectingRestate(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_COMPUTE_PLAN))
+	route := newRoute(h, newRejectingRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_COMPUTE_PLAN))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -59,7 +59,7 @@ func TestCreateDeploymentRequiresComputePlan(t *testing.T) {
 
 func TestCreateDeploymentSpendSuspended(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newRejectingRestate(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_SPEND_SUSPENDED))
+	route := newRoute(h, newRejectingRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_SPEND_SUSPENDED))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{

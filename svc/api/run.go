@@ -438,17 +438,6 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	// Initialize control plane deployment client
-	ctrlDeploymentClient := ctrl.NewConnectDeployServiceClient(
-		ctrlv1connect.NewDeployServiceClient(
-			&http.Client{},
-			cfg.Control.URL,
-			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-				"Authorization": fmt.Sprintf("Bearer %s", cfg.Control.Token),
-			})),
-		),
-	)
-
 	ctrlProjectClient := ctrl.NewConnectProjectServiceClient(
 		ctrlv1connect.NewProjectServiceClient(
 			&http.Client{},
@@ -513,26 +502,25 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	routes.Register(srv, &routes.Services{
-		Database:             database,
-		ClickHouse:           ch,
-		ApiRequests:          apiRequests,
-		DirectAuditLogs:      directAuditLogs,
-		RatelimitEvents:      ratelimits,
-		KeyVerifications:     keyVerifications,
-		Clock:                clk,
-		Keys:                 keySvc,
-		Auth:                 authSvc,
-		PortalAuth:           portalAuthSvc,
-		Validator:            validator,
-		Redactor:             redactor,
-		Ratelimit:            rlSvc,
-		Auditlogs:            auditlogSvc,
-		Caches:               caches,
-		Vault:                vaultClient,
-		CtrlDeploymentClient: ctrlDeploymentClient,
-		CtrlProjectClient:    ctrlProjectClient,
-		CtrlAppClient:        ctrlAppClient,
-		Restate:              restateClient,
+		Database:          database,
+		ClickHouse:        ch,
+		ApiRequests:       apiRequests,
+		DirectAuditLogs:   directAuditLogs,
+		RatelimitEvents:   ratelimits,
+		KeyVerifications:  keyVerifications,
+		Clock:             clk,
+		Keys:              keySvc,
+		Auth:              authSvc,
+		PortalAuth:        portalAuthSvc,
+		Validator:         validator,
+		Redactor:          redactor,
+		Ratelimit:         rlSvc,
+		Auditlogs:         auditlogSvc,
+		Caches:            caches,
+		Vault:             vaultClient,
+		CtrlProjectClient: ctrlProjectClient,
+		CtrlAppClient:     ctrlAppClient,
+		Restate:           restateClient,
 
 		CtrlCustomDomainClient: ctrlCustomDomainClient,
 		PprofEnabled:           pprofEnabled,

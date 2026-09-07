@@ -124,9 +124,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// nolint: exhaustruct // the source oneof is set below
 	createReq := &hydrav1.DeployCreateRequest{
-		ProjectId:   row.ProjectID,
-		AppId:       row.AppID,
-		Environment: environment.ID,
+		ProjectId:     row.ProjectID,
+		AppId:         row.AppID,
+		EnvironmentId: environment.ID,
 		Source: &hydrav1.DeployCreateRequest_Image{
 			Image: &hydrav1.CreateImageSource{Image: req.DockerImage},
 		},
@@ -205,8 +205,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to create deployment."),
 		)
 	}
-	if res.GetOutcome() == hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED {
-		return deployment.RejectionFault(res.GetRejectionReason())
+	if err := deployment.OutcomeFault(res.GetOutcome()); err != nil {
+		return err
 	}
 
 	return s.JSON(http.StatusCreated, Response{

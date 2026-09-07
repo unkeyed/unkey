@@ -113,7 +113,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	createReq := &hydrav1.DeployCreateRequest{
 		ProjectId:     environment.ProjectID,
 		AppId:         environment.AppID,
-		Environment:   environment.ID,
+		EnvironmentId: environment.ID,
 		Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
 		Trigger:       trigger,
 		TriggeredBy:   principal.Subject.ID,
@@ -180,8 +180,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to create deployment."),
 		)
 	}
-	if res.GetOutcome() == hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED {
-		return deployment.RejectionFault(res.GetRejectionReason())
+	if err := deployment.OutcomeFault(res.GetOutcome()); err != nil {
+		return err
 	}
 
 	return s.JSON(http.StatusCreated, Response{
