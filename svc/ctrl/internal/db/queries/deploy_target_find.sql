@@ -38,16 +38,7 @@ SELECT
     ) AS has_schedulable_region
 FROM apps a
 INNER JOIN projects p ON p.id = a.project_id
-INNER JOIN environments e ON e.app_id = a.id AND e.project_id = a.project_id
-INNER JOIN (
-    SELECT e1.id
-    FROM environments e1
-    WHERE e1.app_id = sqlc.arg(app_id) AND e1.id = sqlc.arg(environment)
-    UNION ALL
-    SELECT e2.id
-    FROM environments e2
-    WHERE e2.app_id = sqlc.arg(app_id) AND e2.slug = sqlc.arg(environment)
-) AS env_lookup ON env_lookup.id = e.id
+INNER JOIN environments e ON e.id = sqlc.arg(environment_id) AND e.app_id = a.id AND e.project_id = a.project_id
 INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
 LEFT JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
 LEFT JOIN github_repo_connections grc ON grc.app_id = a.id

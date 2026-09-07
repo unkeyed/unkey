@@ -52,16 +52,7 @@ SELECT
     ) AS has_schedulable_region
 FROM apps a
 INNER JOIN projects p ON p.id = a.project_id
-INNER JOIN environments e ON e.app_id = a.id AND e.project_id = a.project_id
-INNER JOIN (
-    SELECT e1.id
-    FROM environments e1
-    WHERE e1.app_id = ? AND e1.id = ?
-    UNION ALL
-    SELECT e2.id
-    FROM environments e2
-    WHERE e2.app_id = ? AND e2.slug = ?
-) AS env_lookup ON env_lookup.id = e.id
+INNER JOIN environments e ON e.id = ? AND e.app_id = a.id AND e.project_id = a.project_id
 INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
 LEFT JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
 LEFT JOIN github_repo_connections grc ON grc.app_id = a.id
@@ -73,9 +64,9 @@ LIMIT 1
 `
 
 type FindDeployTargetParams struct {
-	AppID       string `db:"app_id"`
-	Environment string `db:"environment"`
-	ProjectID   string `db:"project_id"`
+	EnvironmentID string `db:"environment_id"`
+	AppID         string `db:"app_id"`
+	ProjectID     string `db:"project_id"`
 }
 
 type FindDeployTargetRow struct {
@@ -151,16 +142,7 @@ type FindDeployTargetRow struct {
 //	    ) AS has_schedulable_region
 //	FROM apps a
 //	INNER JOIN projects p ON p.id = a.project_id
-//	INNER JOIN environments e ON e.app_id = a.id AND e.project_id = a.project_id
-//	INNER JOIN (
-//	    SELECT e1.id
-//	    FROM environments e1
-//	    WHERE e1.app_id = ? AND e1.id = ?
-//	    UNION ALL
-//	    SELECT e2.id
-//	    FROM environments e2
-//	    WHERE e2.app_id = ? AND e2.slug = ?
-//	) AS env_lookup ON env_lookup.id = e.id
+//	INNER JOIN environments e ON e.id = ? AND e.app_id = a.id AND e.project_id = a.project_id
 //	INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
 //	LEFT JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
 //	LEFT JOIN github_repo_connections grc ON grc.app_id = a.id
@@ -170,14 +152,7 @@ type FindDeployTargetRow struct {
 //	  AND a.project_id = ?
 //	LIMIT 1
 func (q *Queries) FindDeployTarget(ctx context.Context, arg FindDeployTargetParams) (FindDeployTargetRow, error) {
-	row := q.db.QueryRowContext(ctx, findDeployTarget,
-		arg.AppID,
-		arg.Environment,
-		arg.AppID,
-		arg.Environment,
-		arg.AppID,
-		arg.ProjectID,
-	)
+	row := q.db.QueryRowContext(ctx, findDeployTarget, arg.EnvironmentID, arg.AppID, arg.ProjectID)
 	var i FindDeployTargetRow
 	err := row.Scan(
 		&i.WorkspaceID,

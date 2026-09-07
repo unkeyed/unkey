@@ -79,8 +79,7 @@ func TestCreateRejections(t *testing.T) {
 		h.clearComputePlan(t, ctx)
 
 		resp := h.create(t, context.Background(), uid.New(uid.DeploymentPrefix), h.imageRequest())
-		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED, resp.GetOutcome())
-		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_COMPUTE_PLAN, resp.GetRejectionReason())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_COMPUTE_PLAN, resp.GetOutcome())
 		require.Zero(t, h.countDeployments(t, ctx), "a rejected create must write nothing")
 	})
 
@@ -90,8 +89,7 @@ func TestCreateRejections(t *testing.T) {
 		h.suspendSpend(t, ctx)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.imageRequest())
-		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED, resp.GetOutcome())
-		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_SPEND_SUSPENDED, resp.GetRejectionReason())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_SPEND_SUSPENDED, resp.GetOutcome())
 	})
 
 	t.Run("target no longer exists", func(t *testing.T) {
@@ -99,10 +97,10 @@ func TestCreateRejections(t *testing.T) {
 		h := newCreateHarness(t, ctx)
 
 		req := h.imageRequest()
-		req.Environment = uid.New(uid.EnvironmentPrefix)
+		req.EnvironmentId = uid.New(uid.EnvironmentPrefix)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
-		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_TARGET_NOT_FOUND, resp.GetRejectionReason(),
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_TARGET_NOT_FOUND, resp.GetOutcome(),
 			"an environment deleted mid-create is a rejection, not an error: no retry brings it back")
 	})
 
@@ -113,7 +111,7 @@ func TestCreateRejections(t *testing.T) {
 		h := newCreateHarness(t, ctx)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.gitRequest())
-		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION, resp.GetRejectionReason())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_REPO_CONNECTION, resp.GetOutcome())
 		require.Zero(t, h.countDeployments(t, ctx))
 	})
 
@@ -132,7 +130,7 @@ func TestCreateRejections(t *testing.T) {
 		})
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.existingRequest(source.ID, false))
-		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_SOURCE_IMAGE, resp.GetRejectionReason())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE, resp.GetOutcome())
 	})
 
 	// An operator rebuild sets the guardrail; force clears it. Resurrecting a
@@ -156,7 +154,7 @@ func TestCreateRejections(t *testing.T) {
 		})
 
 		guarded := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.existingRequest(source.ID, true))
-		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NEWER_DEPLOYMENT_EXISTS, guarded.GetRejectionReason())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NEWER_DEPLOYMENT_EXISTS, guarded.GetOutcome())
 
 		forced := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.existingRequest(source.ID, false))
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED, forced.GetOutcome(),
@@ -175,7 +173,7 @@ func TestCreateRejections(t *testing.T) {
 		}
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
-		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_INVALID_IMAGE, resp.GetRejectionReason())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE, resp.GetOutcome())
 		require.Zero(t, h.countDeployments(t, ctx))
 	})
 
@@ -189,7 +187,7 @@ func TestCreateRejections(t *testing.T) {
 		}
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
-		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_INVALID_IMAGE, resp.GetRejectionReason())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE, resp.GetOutcome())
 		require.Zero(t, h.countDeployments(t, ctx), "a reference no build could pull must not reach a row")
 	})
 
@@ -201,7 +199,7 @@ func TestCreateRejections(t *testing.T) {
 		h.clearRegions(t, ctx)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.imageRequest())
-		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE, resp.GetRejectionReason())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE, resp.GetOutcome())
 		require.Zero(t, h.countDeployments(t, ctx))
 	})
 
@@ -211,7 +209,7 @@ func TestCreateRejections(t *testing.T) {
 		h.setPort(t, ctx, 0)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.imageRequest())
-		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE, resp.GetRejectionReason())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE, resp.GetOutcome())
 	})
 
 	t.Run("no source named and the app never deployed", func(t *testing.T) {
@@ -222,7 +220,7 @@ func TestCreateRejections(t *testing.T) {
 		req.Source = nil
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
-		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_SOURCE_IMAGE, resp.GetRejectionReason())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE, resp.GetOutcome())
 	})
 }
 
@@ -284,7 +282,7 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceGit, fixtureImage, fixtureImage)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.existingRequest(source.ID, false))
-		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION, resp.GetRejectionReason())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_REPO_CONNECTION, resp.GetOutcome())
 		require.Equal(t, 1, h.countDeployments(t, ctx), "only the seeded source")
 	})
 
@@ -481,8 +479,9 @@ func TestDeployTargetScoping(t *testing.T) {
 
 	// An environment hanging off the right app but stamped with another project,
 	// which only a bug or a half-finished move produces.
+	strayEnvID := uid.New(uid.EnvironmentPrefix)
 	require.NoError(t, h.database.InsertEnvironment(ctx, db.InsertEnvironmentParams{
-		ID:          uid.New(uid.EnvironmentPrefix),
+		ID:          strayEnvID,
 		WorkspaceID: h.workspaceID,
 		ProjectID:   otherProject.ID,
 		AppID:       h.appID,
@@ -494,29 +493,27 @@ func TestDeployTargetScoping(t *testing.T) {
 	}))
 
 	misses := []struct {
-		name      string
-		projectID string
-		appID     string
-		env       string
+		name          string
+		projectID     string
+		appID         string
+		environmentID string
 	}{
-		{name: "unknown project", projectID: uid.New(uid.ProjectPrefix), appID: h.appID, env: "production"},
-		{name: "unknown app", projectID: h.projectID, appID: uid.New(uid.AppPrefix), env: "production"},
-		{name: "app in another project", projectID: h.projectID, appID: otherApp.ID, env: "production"},
-		{name: "unknown environment slug", projectID: h.projectID, appID: h.appID, env: "staging"},
-		{name: "empty environment", projectID: h.projectID, appID: h.appID, env: ""},
-		{name: "environment in another project", projectID: h.projectID, appID: h.appID, env: "stray"},
-		{name: "environment without settings", projectID: h.projectID, appID: h.appID, env: "bare"},
-		{name: "unknown environment id", projectID: h.projectID, appID: h.appID, env: uid.New(uid.EnvironmentPrefix)},
-		{name: "environment id under another app", projectID: h.projectID, appID: h.appID, env: foreignEnv.ID},
-		{name: "environment id without settings", projectID: h.projectID, appID: h.appID, env: bareEnvID},
+		{name: "unknown project", projectID: uid.New(uid.ProjectPrefix), appID: h.appID, environmentID: h.environmentID},
+		{name: "unknown app", projectID: h.projectID, appID: uid.New(uid.AppPrefix), environmentID: h.environmentID},
+		{name: "app in another project", projectID: h.projectID, appID: otherApp.ID, environmentID: h.environmentID},
+		{name: "empty environment", projectID: h.projectID, appID: h.appID, environmentID: ""},
+		{name: "unknown environment", projectID: h.projectID, appID: h.appID, environmentID: uid.New(uid.EnvironmentPrefix)},
+		{name: "environment in another project", projectID: h.projectID, appID: h.appID, environmentID: strayEnvID},
+		{name: "environment under another app", projectID: h.projectID, appID: h.appID, environmentID: foreignEnv.ID},
+		{name: "environment without settings", projectID: h.projectID, appID: h.appID, environmentID: bareEnvID},
 	}
 
 	for _, tt := range misses {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := h.database.FindDeployTarget(ctx, db.FindDeployTargetParams{
-				ProjectID:   tt.projectID,
-				AppID:       tt.appID,
-				Environment: tt.env,
+				ProjectID:     tt.projectID,
+				AppID:         tt.appID,
+				EnvironmentID: tt.environmentID,
 			})
 			require.True(t, db.IsNotFound(err), "want a miss, got %v", err)
 		})
@@ -525,9 +522,9 @@ func TestDeployTargetScoping(t *testing.T) {
 	// The settings a create copies onto the row. A join that dropped one of the
 	// settings tables would still pass every miss above.
 	target, err := h.database.FindDeployTarget(ctx, db.FindDeployTargetParams{
-		ProjectID:   h.projectID,
-		AppID:       h.appID,
-		Environment: "production",
+		ProjectID:     h.projectID,
+		AppID:         h.appID,
+		EnvironmentID: h.environmentID,
 	})
 	require.NoError(t, err)
 	require.Equal(t, h.environmentID, target.EnvironmentID)
@@ -537,16 +534,6 @@ func TestDeployTargetScoping(t *testing.T) {
 	require.Equal(t, int32(8080), target.Port)
 	require.Equal(t, int32(250), target.CpuMillicores)
 	require.Equal(t, int32(256), target.MemoryMib)
-
-	// A rebuild names the environment by id instead, which must land on the same
-	// row: the two lookups differ only in that condition.
-	byID, err := h.database.FindDeployTarget(ctx, db.FindDeployTargetParams{
-		ProjectID:   h.projectID,
-		AppID:       h.appID,
-		Environment: h.environmentID,
-	})
-	require.NoError(t, err)
-	require.Equal(t, target, byID)
 }
 
 // TestCreateWithoutSource covers the arm a caller uses when it knows only that
@@ -597,8 +584,8 @@ func TestCreateWithoutSourceOnConnectedAppResolvesGit(t *testing.T) {
 
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	resp := h.create(t, ctx, deploymentID, req)
-	require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_COMMIT_NOT_RESOLVED,
-		resp.GetRejectionReason(),
+	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_COMMIT_NOT_RESOLVED,
+		resp.GetOutcome(),
 		"a connected app must resolve the branch head, not fall back to the current image")
 
 	// The current deployment carries an image, so the old behavior would have
@@ -632,9 +619,8 @@ func TestCreateFromForeignDeploymentIsRejected(t *testing.T) {
 
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	resp := h.create(t, ctx, deploymentID, h.existingRequest(foreign.ID, false))
-	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED, resp.GetOutcome())
-	require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_SOURCE_DEPLOYMENT_NOT_FOUND,
-		resp.GetRejectionReason(),
+	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_SOURCE_DEPLOYMENT_NOT_FOUND,
+		resp.GetOutcome(),
 		"a deployment under another app must answer exactly like one that does not exist")
 	require.Zero(t, h.countDeployments(t, ctx), "nothing may be written from a foreign source")
 	h.requireNoDeploy(t, deploymentID)
@@ -728,7 +714,7 @@ func TestCreateFollowsAppSource(t *testing.T) {
 		req.Source = nil
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
-		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_SOURCE_IMAGE, resp.GetRejectionReason())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE, resp.GetOutcome())
 		require.Zero(t, h.countDeployments(t, ctx))
 	})
 
@@ -740,7 +726,7 @@ func TestCreateFollowsAppSource(t *testing.T) {
 		h.connectRepo(t, ctx)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.gitRequest())
-		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION, resp.GetRejectionReason())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_REPO_CONNECTION, resp.GetOutcome())
 		require.Zero(t, h.countDeployments(t, ctx))
 	})
 
@@ -758,7 +744,7 @@ func TestCreateFollowsAppSource(t *testing.T) {
 		req.Source = nil
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
-		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION, resp.GetRejectionReason())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_REPO_CONNECTION, resp.GetOutcome())
 		require.Equal(t, 1, h.countDeployments(t, ctx), "only the seeded current deployment")
 	})
 
@@ -770,7 +756,7 @@ func TestCreateFollowsAppSource(t *testing.T) {
 		h.dropBuildSettings(t, ctx)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.gitRequest())
-		require.Equal(t, hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE, resp.GetRejectionReason())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE, resp.GetOutcome())
 		require.Zero(t, h.countDeployments(t, ctx))
 	})
 }
@@ -809,9 +795,9 @@ func TestDeployTargetCarriesSourceColumns(t *testing.T) {
 	require.NoError(t, err)
 
 	target, err := h.database.FindDeployTarget(ctx, db.FindDeployTargetParams{
-		ProjectID:   h.projectID,
-		AppID:       h.appID,
-		Environment: h.environmentID,
+		ProjectID:     h.projectID,
+		AppID:         h.appID,
+		EnvironmentID: h.environmentID,
 	})
 	require.NoError(t, err)
 	require.Equal(t, db.AppsSourceTypeGit, target.SourceType)
@@ -821,9 +807,9 @@ func TestDeployTargetCarriesSourceColumns(t *testing.T) {
 
 	h.dropBuildSettings(t, ctx)
 	target, err = h.database.FindDeployTarget(ctx, db.FindDeployTargetParams{
-		ProjectID:   h.projectID,
-		AppID:       h.appID,
-		Environment: h.environmentID,
+		ProjectID:     h.projectID,
+		AppID:         h.appID,
+		EnvironmentID: h.environmentID,
 	})
 	require.NoError(t, err, "an app without build settings is still a target")
 	require.False(t, target.HasBuildSettings)
@@ -931,9 +917,9 @@ func (h *createHarness) tryCreate(ctx context.Context, deploymentID string, req 
 // so it isolates whatever a test is actually about.
 func (h *createHarness) imageRequest() *hydrav1.DeployCreateRequest {
 	return &hydrav1.DeployCreateRequest{
-		ProjectId:   h.projectID,
-		AppId:       h.appID,
-		Environment: h.environmentID,
+		ProjectId:     h.projectID,
+		AppId:         h.appID,
+		EnvironmentId: h.environmentID,
 		Source: &hydrav1.DeployCreateRequest_Image{
 			Image: &hydrav1.CreateImageSource{Image: fixtureImage},
 		},

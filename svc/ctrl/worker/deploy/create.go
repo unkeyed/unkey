@@ -44,7 +44,7 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 	if err := assert.All(
 		assert.NotEmpty(req.GetProjectId(), "project_id is required"),
 		assert.NotEmpty(req.GetAppId(), "app_id is required"),
-		assert.NotEmpty(req.GetEnvironment(), "environment is required"),
+		assert.NotEmpty(req.GetEnvironmentId(), "environment_id is required"),
 	); err != nil {
 		return nil, restate.TerminalError(err)
 	}
@@ -65,9 +65,8 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 	}
 	if rejection != nil {
 		return &hydrav1.DeployCreateResponse{
-			DeploymentId:    deploymentID,
-			Outcome:         hydrav1.CreateOutcome_CREATE_OUTCOME_REJECTED,
-			RejectionReason: *rejection,
+			DeploymentId: deploymentID,
+			Outcome:      *rejection,
 		}, nil
 	}
 
@@ -84,9 +83,8 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 	}
 
 	return &hydrav1.DeployCreateResponse{
-		DeploymentId:    deploymentID,
-		Outcome:         hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
-		RejectionReason: hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_UNSPECIFIED,
+		DeploymentId: deploymentID,
+		Outcome:      hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
 	}, nil
 }
 
@@ -95,9 +93,9 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 func (w *Workflow) loadDeploymentData(ctx restate.Context, req *hydrav1.DeployCreateRequest) (*db.FindDeployTargetRow, error) {
 	return restate.Run(ctx, func(runCtx restate.RunContext) (*db.FindDeployTargetRow, error) {
 		target, err := w.db.FindDeployTarget(runCtx, db.FindDeployTargetParams{
-			ProjectID:   req.GetProjectId(),
-			AppID:       req.GetAppId(),
-			Environment: req.GetEnvironment(),
+			ProjectID:     req.GetProjectId(),
+			AppID:         req.GetAppId(),
+			EnvironmentID: req.GetEnvironmentId(),
 		})
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -112,7 +110,7 @@ func (w *Workflow) loadDeploymentData(ctx restate.Context, req *hydrav1.DeployCr
 // checkEnvironmentDeployable rejects invalid port, cpu, or memory settings and
 // environments with no schedulable region. Deploy validates the same things,
 // but rejecting here means the caller gets a reason and no row is written.
-func checkEnvironmentDeployable(target db.FindDeployTargetRow) *hydrav1.CreateRejectionReason {
+func checkEnvironmentDeployable(target db.FindDeployTargetRow) *hydrav1.CreateOutcome {
 	messages := make([]string, 0, 2)
 	for _, violation := range deployfail.RuntimeViolations(target.Port, target.CpuMillicores, target.MemoryMib) {
 		messages = append(messages, fmt.Sprintf("%s (is %d)", violation.Message, violation.Actual))
@@ -125,7 +123,7 @@ func checkEnvironmentDeployable(target db.FindDeployTargetRow) *hydrav1.CreateRe
 		return nil
 	}
 	return rejectf(
-		hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE,
+		hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE,
 		"environment %q is not deployable: %s", target.EnvironmentSlug, strings.Join(messages, "; "),
 	)
 }
@@ -134,7 +132,7 @@ func checkEnvironmentDeployable(target db.FindDeployTargetRow) *hydrav1.CreateRe
 // made of. It crosses the Restate journal as JSON, which is why the source and
 // commit are plain structs rather than the proto oneof.
 type deployPayload struct {
-	Rejection *hydrav1.CreateRejectionReason `json:"rejection"`
+	Rejection *hydrav1.CreateOutcome `json:"rejection"`
 
 	Target db.FindDeployTargetRow `json:"target"`
 
@@ -165,7 +163,7 @@ func (w *Workflow) validateAndBuildPayload(
 	req *hydrav1.DeployCreateRequest,
 	target *db.FindDeployTargetRow,
 	status mysqltype.DeploymentsStatus,
-) (deployPayload, *hydrav1.CreateRejectionReason, error) {
+) (deployPayload, *hydrav1.CreateOutcome, error) {
 	built, err := restate.Run(ctx, func(runCtx restate.RunContext) (deployPayload, error) {
 		var payload deployPayload
 
@@ -173,23 +171,23 @@ func (w *Workflow) validateAndBuildPayload(
 		// mid-create.
 		if target == nil {
 			payload.Rejection = rejectf(
-				hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_TARGET_NOT_FOUND,
+				hydrav1.CreateOutcome_CREATE_OUTCOME_TARGET_NOT_FOUND,
 				"no deploy target for project '%s', app '%s', environment '%s'",
-				req.GetProjectId(), req.GetAppId(), req.GetEnvironment(),
+				req.GetProjectId(), req.GetAppId(), req.GetEnvironmentId(),
 			)
 			return payload, nil
 		}
 
 		if !deploygate.Entitled(target.Plan, target.PlanOverride) {
 			payload.Rejection = rejectf(
-				hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_COMPUTE_PLAN,
+				hydrav1.CreateOutcome_CREATE_OUTCOME_NO_COMPUTE_PLAN,
 				"workspace %s has no Compute plan", target.WorkspaceID,
 			)
 			return payload, nil
 		}
 		if target.SpendSuspended.Bool {
 			payload.Rejection = rejectf(
-				hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_SPEND_SUSPENDED,
+				hydrav1.CreateOutcome_CREATE_OUTCOME_SPEND_SUSPENDED,
 				"workspace %s is suspended by its Compute spend cap", target.WorkspaceID,
 			)
 			return payload, nil
@@ -589,16 +587,16 @@ func trimBytes(s string, bytesMax int) string {
 	return s[:cut]
 }
 
-// rejectf logs why a create was refused and returns the reason for the caller.
+// rejectf logs why a create was refused and returns the outcome for the caller.
 // A rejection is a successful response rather than an error because the Restate
 // ingress turns handler errors into plain text, and svc/api needs a structured
-// reason for its 412. The detail stays in the log: it can name repositories and
+// outcome for its 412. The detail stays in the log: it can name repositories and
 // deployments the caller may not be allowed to see.
-func rejectf(reason hydrav1.CreateRejectionReason, format string, args ...any) *hydrav1.CreateRejectionReason {
+func rejectf(outcome hydrav1.CreateOutcome, format string, args ...any) *hydrav1.CreateOutcome {
 	logger.Info(
 		"deployment create rejected",
-		"reason", reason.String(),
+		"outcome", outcome.String(),
 		"detail", fmt.Sprintf(format, args...),
 	)
-	return &reason
+	return &outcome
 }

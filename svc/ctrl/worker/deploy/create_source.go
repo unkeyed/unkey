@@ -41,12 +41,12 @@ type gitSource struct {
 
 // resolvedSource is a source with its completed commit, or a rejection.
 type resolvedSource struct {
-	Source    buildSource                    `json:"source"`
-	Commit    gitCommit                      `json:"commit"`
-	Rejection *hydrav1.CreateRejectionReason `json:"rejection"`
+	Source    buildSource            `json:"source"`
+	Commit    gitCommit              `json:"commit"`
+	Rejection *hydrav1.CreateOutcome `json:"rejection"`
 }
 
-func newRejectedSource(rejected *hydrav1.CreateRejectionReason) resolvedSource {
+func newRejectedSource(rejected *hydrav1.CreateOutcome) resolvedSource {
 	var refused resolvedSource
 	refused.Rejection = rejected
 	return refused
@@ -80,7 +80,7 @@ func (w *Workflow) resolveSource(
 		if target.SourceType == db.AppsSourceTypeOci {
 			if target.OciImageReference.String == "" {
 				return newRejectedSource(rejectf(
-					hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_SOURCE_IMAGE,
+					hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE,
 					"OCI app %s has no image configured", target.AppID,
 				)), nil
 			}
@@ -92,7 +92,7 @@ func (w *Workflow) resolveSource(
 		}
 		if !target.CurrentDeploymentID.Valid || target.CurrentDeploymentID.String == "" {
 			return newRejectedSource(rejectf(
-				hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_SOURCE_IMAGE,
+				hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE,
 				"app %s has no current deployment to redeploy and the request named no source",
 				target.AppID,
 			)), nil
@@ -110,7 +110,7 @@ func imageSource(image string, commit gitCommit, normalize func(string) (string,
 	normalized, err := normalize(image)
 	if err != nil {
 		return newRejectedSource(rejectf(
-			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_INVALID_IMAGE,
+			hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE,
 			"%s", err.Error(),
 		))
 	}
@@ -131,20 +131,20 @@ func (w *Workflow) resolveGitSource(
 	// A connection can outlive a switch to OCI, so the declared source wins.
 	if target.SourceType == db.AppsSourceTypeOci {
 		return newRejectedSource(rejectf(
-			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION,
+			hydrav1.CreateOutcome_CREATE_OUTCOME_NO_REPO_CONNECTION,
 			"app %s deploys an OCI image and has no repository to build from", target.AppID,
 		)), nil
 	}
 	if !target.GithubRepositoryFullName.Valid {
 		return newRejectedSource(rejectf(
-			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION,
+			hydrav1.CreateOutcome_CREATE_OUTCOME_NO_REPO_CONNECTION,
 			"app %s has no GitHub repo connection", target.AppID,
 		)), nil
 	}
 	// An app created as OCI gets no build settings row.
 	if !target.HasBuildSettings {
 		return newRejectedSource(rejectf(
-			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_ENVIRONMENT_NOT_DEPLOYABLE,
+			hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE,
 			"environment %q of app %s has no build settings", target.EnvironmentSlug, target.AppID,
 		)), nil
 	}
@@ -173,7 +173,7 @@ func (w *Workflow) resolveGitSource(
 			"error", fillErr.Error(),
 		)
 		return newRejectedSource(rejectf(
-			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_COMMIT_NOT_RESOLVED,
+			hydrav1.CreateOutcome_CREATE_OUTCOME_COMMIT_NOT_RESOLVED,
 			"could not resolve branch %q or commit %q in %s",
 			commit.Branch, commit.SHA, target.GithubRepositoryFullName.String,
 		)), nil
@@ -211,7 +211,7 @@ func (w *Workflow) resolveExistingDeployment(
 	if err != nil {
 		if db.IsNotFound(err) {
 			return newRejectedSource(rejectf(
-				hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_SOURCE_DEPLOYMENT_NOT_FOUND,
+				hydrav1.CreateOutcome_CREATE_OUTCOME_SOURCE_DEPLOYMENT_NOT_FOUND,
 				"source deployment %s not found", deploymentID,
 			)), nil
 		}
@@ -228,7 +228,7 @@ func (w *Workflow) resolveExistingDeployment(
 	if src.WorkspaceID != target.WorkspaceID || src.ProjectID != target.ProjectID ||
 		src.AppID != target.AppID {
 		return newRejectedSource(rejectf(
-			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_SOURCE_DEPLOYMENT_NOT_FOUND,
+			hydrav1.CreateOutcome_CREATE_OUTCOME_SOURCE_DEPLOYMENT_NOT_FOUND,
 			"source deployment %s does not belong to app %s",
 			deploymentID, target.AppID,
 		)), nil
@@ -247,7 +247,7 @@ func (w *Workflow) resolveExistingDeployment(
 		}
 		if hasNewer {
 			return newRejectedSource(rejectf(
-				hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NEWER_DEPLOYMENT_EXISTS,
+				hydrav1.CreateOutcome_CREATE_OUTCOME_NEWER_DEPLOYMENT_EXISTS,
 				"a newer active deployment exists for app %s, environment %s, branch %q",
 				src.AppID, src.EnvironmentID, src.GitBranch.String,
 			)), nil
@@ -274,7 +274,7 @@ func (w *Workflow) resolveExistingDeployment(
 	// never recorded its source may fall back to one.
 	if src.Source == db.DeploymentsSourceGit {
 		return newRejectedSource(rejectf(
-			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_REPO_CONNECTION,
+			hydrav1.CreateOutcome_CREATE_OUTCOME_NO_REPO_CONNECTION,
 			"git deployment %s has no commit and repository connection to rebuild from", src.ID,
 		)), nil
 	}
@@ -287,7 +287,7 @@ func (w *Workflow) resolveExistingDeployment(
 	}
 	if image == "" {
 		return newRejectedSource(rejectf(
-			hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_NO_SOURCE_IMAGE,
+			hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE,
 			"deployment %s has neither a rebuildable commit nor an image",
 			src.ID,
 		)), nil
