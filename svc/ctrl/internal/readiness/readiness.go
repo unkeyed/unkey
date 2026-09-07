@@ -8,9 +8,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// InstancesHealthy reports whether at least requiredRegions regions have their
-// autoscaling minimum of running instances. Callers pass
-// max(len(regionMinReplicas)-1, 1) so one regional outage does not block
+// InstancesHealthy reports whether at least requiredRegions regions run their
+// minimum replica count
 func InstancesHealthy(
 	ctx context.Context,
 	database db.Database,
