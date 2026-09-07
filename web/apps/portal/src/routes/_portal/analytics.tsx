@@ -77,8 +77,8 @@ function AnalyticsPage() {
       </header>
 
       <section className="rounded-lg border border-primary/10 bg-background">
-        <div className="flex flex-wrap items-center gap-6 border-gray-6 border-b px-5 py-4 sm:gap-8">
-          <HeaderStat label="Total" value={stat(metrics.totalRequests)} />
+        <div className="grid divide-y divide-primary/10 border-primary/10 border-b sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          <HeaderStat label="Total requests" value={stat(metrics.totalRequests)} />
           <HeaderStat label="Valid" value={stat(metrics.validRequests)} swatch={VALID_COLOR} />
           <HeaderStat label="Invalid" value={stat(metrics.errorRequests)} swatch={REJECTED_COLOR} />
         </div>
