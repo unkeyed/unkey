@@ -54,7 +54,6 @@ export const env = () =>
       WORKOS_API_KEY: z.string().optional(),
       WORKOS_CLIENT_ID: z.string().optional(),
       WORKOS_WEBHOOK_SECRET: z.string().optional(),
-      NEXT_PUBLIC_WORKOS_REDIRECT_URI: z.url().optional(),
       WORKOS_COOKIE_PASSWORD: z.string().optional(),
       WORKOS_API_HOSTNAME: z.string().optional(),
 
@@ -74,7 +73,6 @@ const workosAuthSchema = z.object({
   WORKOS_API_KEY: z.string().min(1),
   WORKOS_CLIENT_ID: z.string().min(1),
   WORKOS_COOKIE_PASSWORD: z.string().min(32),
-  NEXT_PUBLIC_WORKOS_REDIRECT_URI: z.url(),
 });
 
 let parsedWorkOSAuthEnv: z.infer<typeof workosAuthSchema> | undefined;
