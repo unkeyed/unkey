@@ -331,6 +331,7 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.PauseOnMaxAttempts(),
 	)
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deployWorkflow, deployRetryPolicy))
+	restateSrv.Bind(hydrav1.NewDeployWorkflowServer(deploy.NewWorkflowServer(deployWorkflow), deployRetryPolicy))
 	deploymentSvc, err := deployment.New(deployment.Config{
 		DB:        database,
 		Auditlogs: auditlogSvc,
