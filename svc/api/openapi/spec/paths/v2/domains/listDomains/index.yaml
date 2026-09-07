@@ -4,11 +4,34 @@ post:
   summary: List domains
   description: |
     List custom domains in your workspace and their verification status. Use the optional
-    project, app, and environment filters to narrow the results.
+    project, app, and environment filters to narrow the results. Each filter accepts an ID or
+    slug without requiring its parent filters, and all supplied filters combine with AND. Missing
+    resources, mismatched parent and child filters, and scopes with no matching domains return an
+    empty list.
 
-    Results are paginated and sorted by their ID. When `hasMore` is true, send the
-    returned `cursor` to get the next page. A workspace or filtered resource with no
-    domains returns an empty array, not a 404.
+    ### Access patterns
+
+    Choose filters for the scope you want to list. These examples use slugs, but each
+    identifier matches both the ID and slug of its resource.
+
+    | Request body | Matching domains |
+    | --- | --- |
+    | `{}` | Across all projects, apps, and environments in your workspace. |
+    | `{"project":"payments"}` | Across all apps and environments in the matching projects. |
+    | `{"app":"api"}` | Across all environments in matching apps, in any project. |
+    | `{"environment":"production"}` | Across all matching environments, in any project or app. |
+    | `{"project":"payments","app":"api"}` | Across all environments in matching apps within the matching projects. |
+    | `{"project":"payments","environment":"production"}` | In matching environments across all apps within the matching projects. |
+    | `{"app":"api","environment":"production"}` | In matching environments within matching apps, in any project. |
+    | `{"project":"payments","app":"api","environment":"production"}` | In environments that match all three identifiers through their parent relationships. |
+
+    Omitting `environment` includes every environment in the selected scope.
+    A slug can match multiple apps or environments. For example,
+    `{"environment":"production"}` selects domains from every environment named `production`
+    in your workspace.
+
+    Results include only domains you have permission to read, sorted by ID.
+    When `hasMore` is true, send the returned `cursor` to get the next page.
 
     `status: verified` means the domain is verified. Unkey has configured routing and requested a
     certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
@@ -18,11 +41,11 @@ post:
 
     **Required Permissions**
 
-    The endpoint accepts a canonical `#read` permission that matches the requested domain
-    collection.
+    Your credential needs a `#read` grant covering the domains you want to list,
+    such as a grant ending in `/domains/<domain_id>#read` for one domain.
 
-    The endpoint also accepts the legacy `environment.*.read_domain` permission. An
-    environment list accepts `environment.<environment_id>.read_domain` too.
+    The legacy `environment.*.read_domain` permission remains supported. A successful request
+    returns an empty list if no matching domains are readable by your credential.
   operationId: domains.listDomains
   x-speakeasy-name-override: listDomains
   x-unkey-idempotency: idempotent
@@ -73,7 +96,8 @@ post:
   responses:
     "200":
       description: |
-        Successfully retrieved the domains that match the filters.
+        Successfully retrieved the permitted domains that match every filter. Missing or
+        mismatched filtered resources return an empty list.
       content:
         application/json:
           schema:
@@ -131,8 +155,8 @@ post:
                 pagination:
                   hasMore: false
             empty:
-              summary: No domains attached
-              description: A workspace or filtered resource with no custom domains returns an empty array, not a 404.
+              summary: No permitted domains match
+              description: Missing or mismatched resources and filters with no permitted matches return an empty array.
               value:
                 meta:
                   requestId: req_1234abcd
@@ -180,9 +204,7 @@ post:
                   type: unauthorized
     "403":
       description: |
-        Forbidden - The root key or its workspace is disabled. An unfiltered workspace list also
-        returns 403 when the root key does not have the required permission. A filtered project,
-        app, or environment list returns 404 for the same permission failure.
+        Forbidden - The root key or its workspace is disabled.
       content:
         application/json:
           schema:
@@ -200,23 +222,12 @@ post:
                   type: forbidden
     "404":
       description: |
-        Not Found - A requested project, app, or environment does not exist in your workspace, or
-        your root key cannot read its domains.
+        The workspace associated with the root key does not exist.
+        Missing or mismatched project, app, and environment filters return an empty list, not 404.
       content:
         application/json:
           schema:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
-          examples:
-            environmentNotFound:
-              summary: Environment not found
-              value:
-                meta:
-                  requestId: req_1234abcd
-                error:
-                  title: Not Found
-                  detail: The requested environment does not exist.
-                  status: 404
-                  type: not-found
     "429":
       description: Too Many Requests
       content:
@@ -251,3 +262,22 @@ post:
                   detail: An unexpected error occurred. Contact support@unkey.com with the requestId.
                   status: 500
                   type: internal-server-error
+    "503":
+      description: |
+        The request could not be completed. No partial result is returned.
+        Narrow the project, app, environment, or search filters before retrying.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ServiceUnavailableErrorResponse.yaml"
+          examples:
+            scanBudgetExhausted:
+              summary: Narrow the request filters
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Service Unavailable
+                  detail: The domain scan limit was reached. Narrow the project, app, environment, or search filters and retry.
+                  status: 503
+                  type: service-unavailable

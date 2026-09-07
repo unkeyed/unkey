@@ -988,23 +988,20 @@ components:
                     allOf:
                         - "$ref": "#/components/schemas/ResourceIdentifier"
                     description: |
-                        Restrict results to one project, identified by its ID or slug.
-                        Set this when an `app` filter uses a slug.
+                        Match domains whose project ID or slug equals this value. This filter does not require
+                        an app or environment filter.
                 app:
                     allOf:
                         - "$ref": "#/components/schemas/ResourceIdentifier"
                     description: |
-                        Restrict results to one app, identified by its ID or slug.
-                        If `project` is omitted, the endpoint treats this opaque value only as an app ID.
-                        Set `project` to use an app slug.
+                        Match domains whose app ID or slug equals this value. This filter does not require a
+                        project or environment filter.
                 environment:
                     allOf:
                         - "$ref": "#/components/schemas/ResourceIdentifier"
                     description: |
-                        Restrict results to one environment, identified by its ID or slug.
-                        If `app` is omitted, the endpoint treats this opaque value only as an environment ID.
-                        Set `app` to use an environment slug.
-                        If the app uses a slug, also set `project`.
+                        Match domains whose environment ID or slug equals this value. This filter does not require
+                        a project or app filter.
                 limit:
                     type: integer
                     description: |
@@ -1026,8 +1023,9 @@ components:
                     example: acme.com
             additionalProperties: false
             description: |
-                Filter domains within a workspace. All filters are optional. With no filters,
-                the endpoint lists custom domains across the workspace.
+                Filter domains within a workspace. All filters are optional and combine with AND. Each resource
+                filter matches its ID or slug directly, even when its parent filters are omitted. A missing
+                resource or a resource that does not match the other filters produces an empty list.
         V2DomainsListDomainsResponseBody:
             type: object
             required:
@@ -1043,10 +1041,15 @@ components:
                     items:
                         "$ref": "#/components/schemas/Domain"
                     description: |
-                        The domains that match the request filters, sorted by their ID.
-                        The array is empty when the workspace or filtered resource has no domains. This is not an error.
+                        Domains that match every request filter and that you have permission to read, sorted by ID.
+                        The array is empty when no readable domains match, including when a filtered resource
+                        is missing or mismatched.
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
+                    description: |
+                        Pagination over permitted domains. When more permitted domains exist, `cursor` identifies
+                        the first permitted domain after this page. A domain the credential cannot read is never
+                        returned as the cursor.
             additionalProperties: false
         V2DomainsVerifyDomainRequestBody:
             type: object
@@ -10222,11 +10225,34 @@ paths:
         post:
             description: |
                 List custom domains in your workspace and their verification status. Use the optional
-                project, app, and environment filters to narrow the results.
+                project, app, and environment filters to narrow the results. Each filter accepts an ID or
+                slug without requiring its parent filters, and all supplied filters combine with AND. Missing
+                resources, mismatched parent and child filters, and scopes with no matching domains return an
+                empty list.
 
-                Results are paginated and sorted by their ID. When `hasMore` is true, send the
-                returned `cursor` to get the next page. A workspace or filtered resource with no
-                domains returns an empty array, not a 404.
+                ### Access patterns
+
+                Choose filters for the scope you want to list. These examples use slugs, but each
+                identifier matches both the ID and slug of its resource.
+
+                | Request body | Matching domains |
+                | --- | --- |
+                | `{}` | Across all projects, apps, and environments in your workspace. |
+                | `{"project":"payments"}` | Across all apps and environments in the matching projects. |
+                | `{"app":"api"}` | Across all environments in matching apps, in any project. |
+                | `{"environment":"production"}` | Across all matching environments, in any project or app. |
+                | `{"project":"payments","app":"api"}` | Across all environments in matching apps within the matching projects. |
+                | `{"project":"payments","environment":"production"}` | In matching environments across all apps within the matching projects. |
+                | `{"app":"api","environment":"production"}` | In matching environments within matching apps, in any project. |
+                | `{"project":"payments","app":"api","environment":"production"}` | In environments that match all three identifiers through their parent relationships. |
+
+                Omitting `environment` includes every environment in the selected scope.
+                A slug can match multiple apps or environments. For example,
+                `{"environment":"production"}` selects domains from every environment named `production`
+                in your workspace.
+
+                Results include only domains you have permission to read, sorted by ID.
+                When `hasMore` is true, send the returned `cursor` to get the next page.
 
                 `status: verified` means the domain is verified. Unkey has configured routing and requested a
                 certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
@@ -10236,11 +10262,11 @@ paths:
 
                 **Required Permissions**
 
-                The endpoint accepts a canonical `#read` permission that matches the requested domain
-                collection.
+                Your credential needs a `#read` grant covering the domains you want to list,
+                such as a grant ending in `/domains/<domain_id>#read` for one domain.
 
-                The endpoint also accepts the legacy `environment.*.read_domain` permission. An
-                environment list accepts `environment.<environment_id>.read_domain` too.
+                The legacy `environment.*.read_domain` permission remains supported. A successful request
+                returns an empty list if no matching domains are readable by your credential.
             operationId: domains.listDomains
             requestBody:
                 content:
@@ -10341,8 +10367,8 @@ paths:
                                         pagination:
                                             hasMore: false
                                 empty:
-                                    description: A workspace or filtered resource with no custom domains returns an empty array, not a 404.
-                                    summary: No domains attached
+                                    description: Missing or mismatched resources and filters with no permitted matches return an empty array.
+                                    summary: No permitted domains match
                                     value:
                                         data: []
                                         meta:
@@ -10353,7 +10379,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/V2DomainsListDomainsResponseBody'
                     description: |
-                        Successfully retrieved the domains that match the filters.
+                        Successfully retrieved the permitted domains that match every filter. Missing or
+                        mismatched filtered resources return an empty list.
                 "400":
                     content:
                         application/json:
@@ -10409,28 +10436,15 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
-                        Forbidden - The root key or its workspace is disabled. An unfiltered workspace list also
-                        returns 403 when the root key does not have the required permission. A filtered project,
-                        app, or environment list returns 404 for the same permission failure.
+                        Forbidden - The root key or its workspace is disabled.
                 "404":
                     content:
                         application/json:
-                            examples:
-                                environmentNotFound:
-                                    summary: Environment not found
-                                    value:
-                                        error:
-                                            detail: The requested environment does not exist.
-                                            status: 404
-                                            title: Not Found
-                                            type: not-found
-                                        meta:
-                                            requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - A requested project, app, or environment does not exist in your workspace, or
-                        your root key cannot read its domains.
+                        The workspace associated with the root key does not exist.
+                        Missing or mismatched project, app, and environment filters return an empty list, not 404.
                 "429":
                     content:
                         application/json:
@@ -10465,6 +10479,25 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
+                "503":
+                    content:
+                        application/json:
+                            examples:
+                                scanBudgetExhausted:
+                                    summary: Narrow the request filters
+                                    value:
+                                        error:
+                                            detail: The domain scan limit was reached. Narrow the project, app, environment, or search filters and retry.
+                                            status: 503
+                                            title: Service Unavailable
+                                            type: service-unavailable
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ServiceUnavailableErrorResponse'
+                    description: |
+                        The request could not be completed. No partial result is returned.
+                        Narrow the project, app, environment, or search filters before retrying.
             security:
                 - bearer: []
             summary: List domains

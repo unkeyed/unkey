@@ -8,6 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"strings"
 )
 
 const listCustomDomains = `-- name: ListCustomDomains :many
@@ -30,9 +31,12 @@ SELECT
     cd.updated_at
 FROM custom_domains cd
 WHERE cd.workspace_id = ?
-  AND (? = '' OR cd.project_id = ?)
-  AND (? = '' OR cd.app_id = ?)
-  AND (? = '' OR cd.environment_id = ?)
+  AND (
+    ? = ''
+    OR (? = 'project' AND cd.project_id IN (/*SLICE:project_ids*/?))
+    OR (? = 'app' AND cd.app_id IN (/*SLICE:app_ids*/?))
+    OR (? = 'environment' AND cd.environment_id IN (/*SLICE:environment_ids*/?))
+  )
   AND cd.id >= ?
   -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
   AND (? IS NULL OR LOWER(cd.id) LIKE LOWER(?) OR LOWER(cd.domain) LIKE LOWER(?))
@@ -41,13 +45,14 @@ LIMIT ?
 `
 
 type ListCustomDomainsParams struct {
-	WorkspaceID   string         `db:"workspace_id"`
-	ProjectID     string         `db:"project_id"`
-	AppID         string         `db:"app_id"`
-	EnvironmentID string         `db:"environment_id"`
-	IDCursor      string         `db:"id_cursor"`
-	Search        sql.NullString `db:"search"`
-	Limit         int32          `db:"limit"`
+	WorkspaceID    string         `db:"workspace_id"`
+	Scope          interface{}    `db:"scope"`
+	ProjectIds     []string       `db:"project_ids"`
+	AppIds         []string       `db:"app_ids"`
+	EnvironmentIds []string       `db:"environment_ids"`
+	IDCursor       string         `db:"id_cursor"`
+	Search         sql.NullString `db:"search"`
+	Limit          int32          `db:"limit"`
 }
 
 type ListCustomDomainsRow struct {
@@ -69,8 +74,8 @@ type ListCustomDomainsRow struct {
 	UpdatedAt             sql.NullInt64                   `db:"updated_at"`
 }
 
-// ListCustomDomains applies optional resource filters cumulatively. Callers resolve
-// each supplied resource to its parent IDs before they run this query.
+// ListCustomDomains filters by IDs resolved at the most specific supplied scope.
+// An empty scope lists the workspace. Callers authorize each returned domain.
 //
 //	SELECT
 //	    cd.id,
@@ -91,29 +96,55 @@ type ListCustomDomainsRow struct {
 //	    cd.updated_at
 //	FROM custom_domains cd
 //	WHERE cd.workspace_id = ?
-//	  AND (? = '' OR cd.project_id = ?)
-//	  AND (? = '' OR cd.app_id = ?)
-//	  AND (? = '' OR cd.environment_id = ?)
+//	  AND (
+//	    ? = ''
+//	    OR (? = 'project' AND cd.project_id IN (/*SLICE:project_ids*/?))
+//	    OR (? = 'app' AND cd.app_id IN (/*SLICE:app_ids*/?))
+//	    OR (? = 'environment' AND cd.environment_id IN (/*SLICE:environment_ids*/?))
+//	  )
 //	  AND cd.id >= ?
 //	  -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 //	  AND (? IS NULL OR LOWER(cd.id) LIKE LOWER(?) OR LOWER(cd.domain) LIKE LOWER(?))
 //	ORDER BY cd.id ASC
 //	LIMIT ?
 func (q *Queries) ListCustomDomains(ctx context.Context, db DBTX, arg ListCustomDomainsParams) ([]ListCustomDomainsRow, error) {
-	rows, err := db.QueryContext(ctx, listCustomDomains,
-		arg.WorkspaceID,
-		arg.ProjectID,
-		arg.ProjectID,
-		arg.AppID,
-		arg.AppID,
-		arg.EnvironmentID,
-		arg.EnvironmentID,
-		arg.IDCursor,
-		arg.Search,
-		arg.Search,
-		arg.Search,
-		arg.Limit,
-	)
+	query := listCustomDomains
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.WorkspaceID)
+	queryParams = append(queryParams, arg.Scope)
+	queryParams = append(queryParams, arg.Scope)
+	if len(arg.ProjectIds) > 0 {
+		for _, v := range arg.ProjectIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:project_ids*/?", strings.Repeat(",?", len(arg.ProjectIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:project_ids*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.Scope)
+	if len(arg.AppIds) > 0 {
+		for _, v := range arg.AppIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:app_ids*/?", strings.Repeat(",?", len(arg.AppIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:app_ids*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.Scope)
+	if len(arg.EnvironmentIds) > 0 {
+		for _, v := range arg.EnvironmentIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:environment_ids*/?", strings.Repeat(",?", len(arg.EnvironmentIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:environment_ids*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.IDCursor)
+	queryParams = append(queryParams, arg.Search)
+	queryParams = append(queryParams, arg.Search)
+	queryParams = append(queryParams, arg.Search)
+	queryParams = append(queryParams, arg.Limit)
+	rows, err := db.QueryContext(ctx, query, queryParams...)
 	if err != nil {
 		return nil, err
 	}

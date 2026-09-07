@@ -2328,30 +2328,28 @@ type V2DomainsGetDomainResponseBody struct {
 	Meta Meta `json:"meta"`
 }
 
-// V2DomainsListDomainsRequestBody Filter domains within a workspace. All filters are optional. With no filters,
-// the endpoint lists custom domains across the workspace.
+// V2DomainsListDomainsRequestBody Filter domains within a workspace. All filters are optional and combine with AND. Each resource
+// filter matches its ID or slug directly, even when its parent filters are omitted. A missing
+// resource or a resource that does not match the other filters produces an empty list.
 type V2DomainsListDomainsRequestBody struct {
-	// App Restrict results to one app, identified by its ID or slug.
-	// If `project` is omitted, the endpoint treats this opaque value only as an app ID.
-	// Set `project` to use an app slug.
+	// App Match domains whose app ID or slug equals this value. This filter does not require a
+	// project or environment filter.
 	App *ResourceIdentifier `json:"app,omitempty"`
 
 	// Cursor The pagination cursor from the response that came before.
 	// Send it to get the next page when that response has `hasMore: true`.
 	Cursor *string `json:"cursor,omitempty"`
 
-	// Environment Restrict results to one environment, identified by its ID or slug.
-	// If `app` is omitted, the endpoint treats this opaque value only as an environment ID.
-	// Set `app` to use an environment slug.
-	// If the app uses a slug, also set `project`.
+	// Environment Match domains whose environment ID or slug equals this value. This filter does not require
+	// a project or app filter.
 	Environment *ResourceIdentifier `json:"environment,omitempty"`
 
 	// Limit The maximum number of domains one response contains.
 	// A small limit makes the response smaller, but makes more requests necessary.
 	Limit *int `json:"limit,omitempty"`
 
-	// Project Restrict results to one project, identified by its ID or slug.
-	// Set this when an `app` filter uses a slug.
+	// Project Match domains whose project ID or slug equals this value. This filter does not require
+	// an app or environment filter.
 	Project *ResourceIdentifier `json:"project,omitempty"`
 
 	// Search Free-form text to filter domains. Returns domains whose ID or name contains the search string. Matching is case-insensitive.
@@ -2360,8 +2358,9 @@ type V2DomainsListDomainsRequestBody struct {
 
 // V2DomainsListDomainsResponseBody defines model for V2DomainsListDomainsResponseBody.
 type V2DomainsListDomainsResponseBody struct {
-	// Data The domains that match the request filters, sorted by their ID.
-	// The array is empty when the workspace or filtered resource has no domains. This is not an error.
+	// Data Domains that match every request filter and that you have permission to read, sorted by ID.
+	// The array is empty when no readable domains match, including when a filtered resource
+	// is missing or mismatched.
 	Data []Domain `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.

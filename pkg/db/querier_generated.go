@@ -2044,8 +2044,8 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  ORDER BY pk
 	ListClickhouseOutboxByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error)
-	// ListCustomDomains applies optional resource filters cumulatively. Callers resolve
-	// each supplied resource to its parent IDs before they run this query.
+	// ListCustomDomains filters by IDs resolved at the most specific supplied scope.
+	// An empty scope lists the workspace. Callers authorize each returned domain.
 	//
 	//  SELECT
 	//      cd.id,
@@ -2066,9 +2066,12 @@ type Querier interface {
 	//      cd.updated_at
 	//  FROM custom_domains cd
 	//  WHERE cd.workspace_id = ?
-	//    AND (? = '' OR cd.project_id = ?)
-	//    AND (? = '' OR cd.app_id = ?)
-	//    AND (? = '' OR cd.environment_id = ?)
+	//    AND (
+	//      ? = ''
+	//      OR (? = 'project' AND cd.project_id IN (/*SLICE:project_ids*/?))
+	//      OR (? = 'app' AND cd.app_id IN (/*SLICE:app_ids*/?))
+	//      OR (? = 'environment' AND cd.environment_id IN (/*SLICE:environment_ids*/?))
+	//    )
 	//    AND cd.id >= ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//    AND (? IS NULL OR LOWER(cd.id) LIKE LOWER(?) OR LOWER(cd.domain) LIKE LOWER(?))
@@ -2615,6 +2618,64 @@ type Querier interface {
 	//      tier = 'Free'
 	//  WHERE workspace_id = ?
 	ResetWorkspaceBilling(ctx context.Context, db DBTX, id string) error
+	// ResolveCustomDomainApps resolves the domain-list scope when app is supplied and
+	// environment is omitted. It returns app IDs, not the IDs of their environments,
+	// so the domain query can select every domain under those apps without parent joins.
+	//
+	// Both app and project match ID or slug, with no preference for ID matches. An empty
+	// project disables that filter. When supplied, project must match the app's actual
+	// parent in the authorized workspace. Missing or incompatible filters return no IDs.
+	// Results are unordered and do not establish permission to read any domain.
+	//
+	// For example, app=api and project=payments returns app_1 when app_1 has slug api
+	// under the project with slug payments. If app_2 also has slug api under billing,
+	// it is excluded. With an empty project, both app_1 and app_2 are returned. Neither case
+	// enumerates environments; the caller loads domains by app_id and authorizes each row.
+	//
+	//  SELECT a.id
+	//  FROM apps a
+	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+	//  WHERE a.workspace_id = ?
+	//    AND (a.id = ? OR a.slug = ?)
+	//    AND (? = '' OR p.id = ? OR p.slug = ?)
+	ResolveCustomDomainApps(ctx context.Context, db DBTX, arg ResolveCustomDomainAppsParams) ([]string, error)
+	// ResolveCustomDomainEnvironments resolves the domain-list scope whenever an
+	// environment identifier is supplied. It returns environment IDs after applying
+	// all supplied filters to the same project/app/environment ancestry in the authorized
+	// workspace. Each identifier matches both ID and slug, with no preference for IDs.
+	// Empty project or app values disable their respective filters. Missing or incompatible
+	// filters return no IDs. Results are unordered and do not authorize domain access.
+	//
+	// For example, environment=production with empty project and app values returns env_1 and
+	// env_2 if both have slug production, even when they belong to different projects.
+	// Adding project=payments and app=api retains only environments under matching apps
+	// in matching projects. The caller then loads domains by environment_id and authorizes
+	// each row without repeating the parent filters in the domain query.
+	//
+	//  SELECT e.id
+	//  FROM environments e
+	//  JOIN apps a ON a.id = e.app_id AND a.project_id = e.project_id AND a.workspace_id = e.workspace_id
+	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = e.workspace_id
+	//  WHERE e.workspace_id = ?
+	//    AND (e.id = ? OR e.slug = ?)
+	//    AND (? = '' OR p.id = ? OR p.slug = ?)
+	//    AND (? = '' OR a.id = ? OR a.slug = ?)
+	ResolveCustomDomainEnvironments(ctx context.Context, db DBTX, arg ResolveCustomDomainEnvironmentsParams) ([]string, error)
+	// ResolveCustomDomainProjects resolves the domain-list scope when only a project
+	// identifier is supplied. It returns every matching project ID in the authorized
+	// workspace without enumerating apps or environments. Missing projects return no IDs.
+	// Results are unordered and do not establish permission to read any domain.
+	//
+	// For example, project=payments returns proj_1 when proj_1 has slug payments.
+	// If another project in the same workspace has ID payments, both IDs are returned:
+	// an ID match does not take precedence over a slug match. The caller loads domains
+	// by project_id and authorizes each row.
+	//
+	//  SELECT p.id
+	//  FROM projects p
+	//  WHERE p.workspace_id = ?
+	//    AND (p.id = ? OR p.slug = ?)
+	ResolveCustomDomainProjects(ctx context.Context, db DBTX, arg ResolveCustomDomainProjectsParams) ([]string, error)
 	// Resolves a project (required) + optional app/environment, each an id or slug, to
 	// their ids in one query. app/environment LEFT JOIN on the parent id, so a value that
 	// doesn't match yields NULL for that level (caller reads NULL as not-found).

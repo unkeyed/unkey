@@ -2,10 +2,12 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/array"
+	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -16,7 +18,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/domain"
-	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -29,6 +30,9 @@ type (
 type Handler struct {
 	DB db.Database
 }
+
+// errScanLimit distinguishes an incomplete authorized scan from a database failure.
+var errScanLimit = errors.New("domain scan budget exhausted")
 
 func (h *Handler) Method() string {
 	return "POST"
@@ -49,43 +53,31 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	scope, err := h.resolveScope(ctx, principal.AuthorizedWorkspaceID, req)
-	if err != nil {
-		return err
-	}
-
-	if err = principal.Authorize(scope.permissionQuery(principal.AuthorizedWorkspaceID)); err != nil {
-		resource, resourceCode := requestedResource(req)
-		if resource != "" {
-			return apierrors.MaskInsufficientPermissionsAsNotFound(
-				err,
-				resourceCode,
-				"The requested "+resource+" does not exist.",
-			)
-		}
-		return err
-	}
+	legacy := rbac.T(rbac.Tuple{ResourceType: rbac.Environment, ResourceID: "*", Action: rbac.ReadDomain})
 
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
-	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
-	limit := p.FetchLimit()
-
-	rows, err := db.Query.ListCustomDomains(ctx, h.DB.RO(), db.ListCustomDomainsParams{
-		WorkspaceID:   principal.AuthorizedWorkspaceID,
-		ProjectID:     scope.projectID,
-		AppID:         scope.appID,
-		EnvironmentID: scope.environmentID,
-		IDCursor:      p.Cursor,
-		Search:        search,
-		Limit:         limit,
-	})
+	params, err := h.resolveDomainFilter(ctx, principal.AuthorizedWorkspaceID, req)
 	if err != nil {
-		return fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error"),
-			fault.Public("Failed to retrieve domains."),
-		)
+		return err
+	}
+	params.IDCursor = p.Cursor
+	params.Search = mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
+	params.Limit = p.FetchLimit()
+	rows, err := h.listAuthorized(ctx, principal, legacy, params)
+	if errors.Is(err, errScanLimit) {
+		s.SetInternalError(err.Error())
+		return s.ProblemJSON(http.StatusServiceUnavailable, openapi.ServiceUnavailableErrorResponse{
+			Meta: openapi.Meta{RequestId: s.RequestID()},
+			Error: openapi.BaseError{
+				Title:  "Service Unavailable",
+				Type:   codes.App.Internal.ServiceUnavailable.DocsURL(),
+				Detail: "The domain scan limit was reached. Narrow the project, app, environment, or search filters and retry.",
+				Status: http.StatusServiceUnavailable,
+			},
+		})
+	}
+	if err != nil {
+		return err
 	}
 
 	rows, pg := pagination.Paginate(rows, p, func(r db.ListCustomDomainsRow) string { return r.ID })
@@ -134,154 +126,96 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-// resolvedScope uses empty IDs to disable the corresponding database filters.
-type resolvedScope struct {
-	projectID     string
-	appID         string
-	environmentID string
-}
-
-// permissionQuery combines legacy grants with the canonical permission for the resolved collection.
-func (s resolvedScope) permissionQuery(workspaceID string) rbac.PermissionQuery {
-	projectID := s.projectID
-	if projectID == "" {
-		projectID = "*"
-	}
-	appID := s.appID
-	if appID == "" {
-		appID = "*"
-	}
-	environmentID := s.environmentID
-	if environmentID == "" {
-		environmentID = "*"
-	}
-
-	queries := []rbac.PermissionQuery{
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Environment,
-			ResourceID:   "*",
-			Action:       rbac.ReadDomain,
-		}),
-		rbac.U(
-			urn.New().Workspace(workspaceID).Project(projectID).App(appID).Environment(environmentID).Domain("*"),
-			permissions.Read,
-		),
-	}
-	if s.environmentID != "" {
-		queries = append(queries, rbac.T(rbac.Tuple{
-			ResourceType: rbac.Environment,
-			ResourceID:   s.environmentID,
-			Action:       rbac.ReadDomain,
-		}))
-	}
-
-	return rbac.Or(queries...)
-}
-
-// resolveScope uses globally unique IDs directly and resolves slugs under their parent scope.
-// It returns not found when supplied parents do not contain the requested child.
-func (h *Handler) resolveScope(ctx context.Context, workspaceID string, req Request) (resolvedScope, error) {
-	var resolved resolvedScope
-	notFoundResource, notFoundCode := requestedResource(req)
-	if req.Project != nil {
-		project, err := db.Query.FindProjectByIdOrSlug(ctx, h.DB.RO(), db.FindProjectByIdOrSlugParams{
+// resolveDomainFilter runs only the most specific lookup. Broader filters constrain
+// that lookup, so refills need only the resolved IDs, not repeated parent joins.
+func (h *Handler) resolveDomainFilter(ctx context.Context, workspaceID string, req Request) (db.ListCustomDomainsParams, error) {
+	var params db.ListCustomDomainsParams
+	params.WorkspaceID = workspaceID
+	params.Scope = ""
+	var err error
+	switch {
+	case req.Environment != nil:
+		params.Scope = "environment"
+		params.EnvironmentIds, err = db.Query.ResolveCustomDomainEnvironments(ctx, h.DB.RO(), db.ResolveCustomDomainEnvironmentsParams{
+			WorkspaceID: workspaceID,
+			Project:     ptr.SafeDeref(req.Project),
+			App:         ptr.SafeDeref(req.App),
+			Environment: *req.Environment,
+		})
+	case req.App != nil:
+		params.Scope = "app"
+		params.AppIds, err = db.Query.ResolveCustomDomainApps(ctx, h.DB.RO(), db.ResolveCustomDomainAppsParams{
+			WorkspaceID: workspaceID,
+			Project:     ptr.SafeDeref(req.Project),
+			App:         *req.App,
+		})
+	case req.Project != nil:
+		params.Scope = "project"
+		params.ProjectIds, err = db.Query.ResolveCustomDomainProjects(ctx, h.DB.RO(), db.ResolveCustomDomainProjectsParams{
 			WorkspaceID: workspaceID,
 			Project:     *req.Project,
 		})
-		if err != nil {
-			if db.IsNotFound(err) {
-				return resolvedScope{}, resourceNotFound(notFoundResource, notFoundCode)
-			}
-			return resolvedScope{}, listDatabaseError(err)
-		}
-		resolved.projectID = project.ID
 	}
-
-	if req.App != nil {
-		var app db.App
-		var err error
-		if resolved.projectID != "" {
-			app, err = db.Query.FindAppByProjectAndIdOrSlug(ctx, h.DB.RO(), db.FindAppByProjectAndIdOrSlugParams{
-				WorkspaceID: workspaceID,
-				Project:     resolved.projectID,
-				App:         *req.App,
-			})
-		} else {
-			app, err = db.Query.FindAppById(ctx, h.DB.RO(), *req.App)
-			if err == nil && app.WorkspaceID != workspaceID {
-				return resolvedScope{}, resourceNotFound(notFoundResource, notFoundCode)
-			}
-		}
-		if err != nil {
-			if db.IsNotFound(err) {
-				return resolvedScope{}, resourceNotFound(notFoundResource, notFoundCode)
-			}
-			return resolvedScope{}, listDatabaseError(err)
-		}
-		resolved.projectID = app.ProjectID
-		resolved.appID = app.ID
+	if err != nil {
+		return db.ListCustomDomainsParams{}, fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("domain filter resolution failed"),
+			fault.Public("Failed to retrieve domains."),
+		)
 	}
-
-	if req.Environment != nil {
-		var environment db.Environment
-		var err error
-		if resolved.appID != "" {
-			environment, err = db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
-				WorkspaceID: workspaceID,
-				Project:     resolved.projectID,
-				App:         resolved.appID,
-				Environment: *req.Environment,
-			})
-		} else {
-			environment, err = db.Query.FindEnvironmentById(ctx, h.DB.RO(), *req.Environment)
-			if err == nil && (environment.WorkspaceID != workspaceID || (resolved.projectID != "" && environment.ProjectID != resolved.projectID)) {
-				return resolvedScope{}, resourceNotFound(notFoundResource, notFoundCode)
-			}
-		}
-		if err != nil {
-			if db.IsNotFound(err) {
-				return resolvedScope{}, resourceNotFound(notFoundResource, notFoundCode)
-			}
-			return resolvedScope{}, listDatabaseError(err)
-		}
-		resolved.projectID = environment.ProjectID
-		resolved.appID = environment.AppID
-		resolved.environmentID = environment.ID
-	}
-
-	return resolved, nil
+	return params, nil
 }
 
-// requestedResource returns the most specific filter so lookup and authorization failures are indistinguishable.
-func requestedResource(req Request) (string, codes.URN) {
-	if req.Environment != nil {
-		return "environment", codes.Data.Environment.NotFound.URN()
+// listAuthorized fills the page and its authorized lookahead without exposing denied row IDs.
+// The raw lookahead remains inclusive so refills neither repeat nor skip candidates.
+func (h *Handler) listAuthorized(ctx context.Context, subject *principal.Principal, legacy rbac.PermissionQuery, params db.ListCustomDomainsParams) ([]db.ListCustomDomainsRow, error) {
+	if params.Scope != "" && len(params.ProjectIds)+len(params.AppIds)+len(params.EnvironmentIds) == 0 {
+		return nil, nil
 	}
-	if req.App != nil {
-		return "app", codes.Data.App.NotFound.URN()
-	}
-	if req.Project != nil {
-		return "project", codes.Data.Project.NotFound.URN()
-	}
-	return "", ""
-}
+	const scanLimit = 10_000
+	wanted := int(params.Limit)
+	rows := make([]db.ListCustomDomainsRow, 0, wanted)
+	batchSize := wanted
+	for scanned := 0; scanned < scanLimit; {
+		batchSize = min(batchSize, scanLimit-scanned)
+		params.Limit = int32(batchSize + 1) // nolint:gosec // bounded by scanLimit
+		batch, err := db.Query.ListCustomDomains(ctx, h.DB.RO(), params)
+		if err != nil {
+			return nil, fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to retrieve domains."),
+			)
+		}
 
-// resourceNotFound keeps public lookup errors consistent with masked authorization failures.
-func resourceNotFound(resource string, code codes.URN) error {
-	return fault.New(
-		resource+" not found",
-		fault.Code(code),
-		fault.Internal(resource+" not found"),
-		fault.Public("The requested "+resource+" does not exist."),
-	)
-}
+		var nextBatchCursor string
+		if len(batch) > batchSize {
+			// The extra row proves another batch exists. Leave it unprocessed because
+			// the next query includes the row at its cursor (id >= cursor).
+			nextBatchCursor = batch[batchSize].ID
+			batch = batch[:batchSize]
+		}
 
-// listDatabaseError prevents database details from reaching the public response.
-func listDatabaseError(err error) error {
-	return fault.Wrap(
-		err,
-		fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-		fault.Internal("database error"),
-		fault.Public("Failed to retrieve domains."),
-	)
+		for _, row := range batch {
+			scanned++
+			query := rbac.Or(legacy, rbac.U(
+				urn.New().Workspace(subject.AuthorizedWorkspaceID).Project(row.ProjectID).App(row.AppID).Environment(row.EnvironmentID).Domain(row.ID),
+				permissions.Read,
+			))
+			if rbac.Check(query, subject.Permissions) != nil {
+				continue
+			}
+			rows = append(rows, row)
+			if len(rows) == wanted {
+				return rows, nil
+			}
+		}
+		if nextBatchCursor == "" {
+			return rows, nil
+		}
+		params.IDCursor = nextBatchCursor
+		// Grow refills to bound database calls for sparse grants; the remaining scan budget caps each batch.
+		batchSize = max(batchSize*2, 100)
+	}
+	return nil, errScanLimit
 }

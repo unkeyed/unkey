@@ -6,21 +6,18 @@ import * as z from "zod/v3";
 
 export type V2DomainsListDomainsRequestBody = {
   /**
-   * Restrict results to one project, identified by its ID or slug.
-   * Set this when an `app` filter uses a slug.
+   * Match domains whose project ID or slug equals this value. This filter does not require
+   * an app or environment filter.
    */
   project?: string | undefined;
   /**
-   * Restrict results to one app, identified by its ID or slug.
-   * If `project` is omitted, the endpoint treats this opaque value only as an app ID.
-   * Set `project` to use an app slug.
+   * Match domains whose app ID or slug equals this value. This filter does not require a
+   * project or environment filter.
    */
   app?: string | undefined;
   /**
-   * Restrict results to one environment, identified by its ID or slug.
-   * If `app` is omitted, the endpoint treats this opaque value only as an environment ID.
-   * Set `app` to use an environment slug.
-   * If the app uses a slug, also set `project`.
+   * Match domains whose environment ID or slug equals this value. This filter does not require
+   * a project or app filter.
    */
   environment?: string | undefined;
   /**

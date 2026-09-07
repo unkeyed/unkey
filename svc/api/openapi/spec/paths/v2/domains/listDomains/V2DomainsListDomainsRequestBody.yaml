@@ -5,23 +5,20 @@ properties:
     allOf:
       - "$ref": "../../../../common/ResourceIdentifier.yaml"
     description: |
-      Restrict results to one project, identified by its ID or slug.
-      Set this when an `app` filter uses a slug.
+      Match domains whose project ID or slug equals this value. This filter does not require
+      an app or environment filter.
   app:
     allOf:
       - "$ref": "../../../../common/ResourceIdentifier.yaml"
     description: |
-      Restrict results to one app, identified by its ID or slug.
-      If `project` is omitted, the endpoint treats this opaque value only as an app ID.
-      Set `project` to use an app slug.
+      Match domains whose app ID or slug equals this value. This filter does not require a
+      project or environment filter.
   environment:
     allOf:
       - "$ref": "../../../../common/ResourceIdentifier.yaml"
     description: |
-      Restrict results to one environment, identified by its ID or slug.
-      If `app` is omitted, the endpoint treats this opaque value only as an environment ID.
-      Set `app` to use an environment slug.
-      If the app uses a slug, also set `project`.
+      Match domains whose environment ID or slug equals this value. This filter does not require
+      a project or app filter.
   limit:
     type: integer
     description: |
@@ -44,8 +41,9 @@ properties:
     example: acme.com
 additionalProperties: false
 description: |
-  Filter domains within a workspace. All filters are optional. With no filters,
-  the endpoint lists custom domains across the workspace.
+  Filter domains within a workspace. All filters are optional and combine with AND. Each resource
+  filter matches its ID or slug directly, even when its parent filters are omitted. A missing
+  resource or a resource that does not match the other filters produces an empty list.
 examples:
   workspaceWide:
     summary: List all domains in the workspace

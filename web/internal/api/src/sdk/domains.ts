@@ -123,11 +123,34 @@ export class Domains extends ClientSDK {
    *
    * @remarks
    * List custom domains in your workspace and their verification status. Use the optional
-   * project, app, and environment filters to narrow the results.
+   * project, app, and environment filters to narrow the results. Each filter accepts an ID or
+   * slug without requiring its parent filters, and all supplied filters combine with AND. Missing
+   * resources, mismatched parent and child filters, and scopes with no matching domains return an
+   * empty list.
    *
-   * Results are paginated and sorted by their ID. When `hasMore` is true, send the
-   * returned `cursor` to get the next page. A workspace or filtered resource with no
-   * domains returns an empty array, not a 404.
+   * ### Access patterns
+   *
+   * Choose filters for the scope you want to list. These examples use slugs, but each
+   * identifier matches both the ID and slug of its resource.
+   *
+   * | Request body | Matching domains |
+   * | --- | --- |
+   * | `{}` | Across all projects, apps, and environments in your workspace. |
+   * | `{"project":"payments"}` | Across all apps and environments in the matching projects. |
+   * | `{"app":"api"}` | Across all environments in matching apps, in any project. |
+   * | `{"environment":"production"}` | Across all matching environments, in any project or app. |
+   * | `{"project":"payments","app":"api"}` | Across all environments in matching apps within the matching projects. |
+   * | `{"project":"payments","environment":"production"}` | In matching environments across all apps within the matching projects. |
+   * | `{"app":"api","environment":"production"}` | In matching environments within matching apps, in any project. |
+   * | `{"project":"payments","app":"api","environment":"production"}` | In environments that match all three identifiers through their parent relationships. |
+   *
+   * Omitting `environment` includes every environment in the selected scope.
+   * A slug can match multiple apps or environments. For example,
+   * `{"environment":"production"}` selects domains from every environment named `production`
+   * in your workspace.
+   *
+   * Results include only domains you have permission to read, sorted by ID.
+   * When `hasMore` is true, send the returned `cursor` to get the next page.
    *
    * `status: verified` means the domain is verified. Unkey has configured routing and requested a
    * certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
@@ -137,11 +160,11 @@ export class Domains extends ClientSDK {
    *
    * **Required Permissions**
    *
-   * The endpoint accepts a canonical `#read` permission that matches the requested domain
-   * collection.
+   * Your credential needs a `#read` grant covering the domains you want to list,
+   * such as a grant ending in `/domains/<domain_id>#read` for one domain.
    *
-   * The endpoint also accepts the legacy `environment.*.read_domain` permission. An
-   * environment list accepts `environment.<environment_id>.read_domain` too.
+   * The legacy `environment.*.read_domain` permission remains supported. A successful request
+   * returns an empty list if no matching domains are readable by your credential.
    */
   async listDomains(
     request: components.V2DomainsListDomainsRequestBody,
