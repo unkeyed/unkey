@@ -1,5 +1,5 @@
 -- name: UpsertPermission :exec
--- UpsertPermission inserts a permission or leaves the existing workspace/slug
+-- UpsertPermission inserts a permission or leaves the existing project/slug
 -- row unchanged.
 -- Use FindPermissionsBySlugsForUpdate after this to get the canonical row from
 -- the requested project.

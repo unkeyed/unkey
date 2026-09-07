@@ -93,7 +93,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				return fault.New("permission already exists",
 					fault.Code(codes.Data.Permission.Duplicate.URN()),
 					fault.Internal("already exists"),
-					fault.Public(fmt.Sprintf("A permission with slug '%s' already exists in this workspace", req.Slug)),
+					fault.Public(fmt.Sprintf("A permission with slug '%s' already exists in this project", req.Slug)),
 				)
 			}
 			return fault.Wrap(err,

@@ -1,6 +1,5 @@
 -- name: FindRoleByIdOrNameWithPerms :one
--- FindRoleByIdOrNameWithPerms resolves a role within a workspace so the caller
--- can authorize access against the role's actual project.
+-- FindRoleByIdOrNameWithPerms resolves a role by ID or name within the requested project.
 SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
         (SELECT JSON_ARRAYAGG(
             json_object(
@@ -18,7 +17,8 @@ SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.create
 ) as permissions
 FROM roles r
 WHERE r.workspace_id = sqlc.arg(workspace_id)
+  AND r.project_id = sqlc.arg('project_id')
   AND (
     r.id = sqlc.arg('search')
     OR r.name = sqlc.arg('search')
-);
+  );

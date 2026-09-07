@@ -1,6 +1,6 @@
 ---
 title: "role_already_exists"
-description: "A role with this name already exists in your Unkey workspace. Use the existing role or choose a different unique name when creating a new one."
+description: "A role with this name already exists in your Unkey project. Use the existing role or choose a different unique name when creating a new one."
 ---
 
 <Danger>err:unkey:data:role_already_exists</Danger>
@@ -11,7 +11,7 @@ description: "A role with this name already exists in your Unkey workspace. Use 
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "A role with name \"admin\" already exists in this workspace",
+    "detail": "A role with name \"admin\" already exists in this project",
     "status": 409,
     "title": "Conflict",
     "type": "https://unkey.com/docs/errors/unkey/data/role/duplicate"
@@ -21,7 +21,7 @@ description: "A role with this name already exists in your Unkey workspace. Use 
 
 ## What Happened?
 
-This error occurs when you're trying to create a role with a name that already exists in your Unkey workspace. Role names must be unique within a workspace to avoid confusion and maintain proper access control.
+This error occurs when you create a role with a name that already exists in the project. Role names must be unique within a project.
 
 Common scenarios that trigger this error:
 
@@ -87,7 +87,7 @@ async function getOrCreateRole(name, description) {
 - **Not checking for existing roles**: Failing to check if a role already exists before creating it
 - **Case sensitivity**: Role names are case-insensitive - "Admin" and "admin" are the same
 - **Retry loops**: Repeatedly trying to create the same role after a failure
-- **Cross-environment duplication**: Using the same role names across development and production without proper namespacing
+- **Cross-project duplication**: Using the same role name twice in one project
 
 ## Related Errors
 
