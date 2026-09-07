@@ -42,6 +42,29 @@ service DeployService {
   }
 }
 
+// DeployWorkflow is the Restate workflow replacing DeployService. One
+// run per deployment id; readiness arrives through a durable promise, so the
+// run keeps no state. Both stay registered until every Deploy started on
+// DeployService has finished.
+service DeployWorkflow {
+  option (dev.restate.sdk.go.service_type) = WORKFLOW;
+
+  // Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
+  // Shared, so it can run before the run exists.
+  rpc Create(DeployCreateRequest) returns (DeployCreateResponse) {}
+
+  // Deploy is the run: build, provision, wait for health, route.
+  rpc Deploy(DeployRequest) returns (DeployResponse) {
+    option (dev.restate.sdk.go.handler_type) = WORKFLOW_RUN;
+  }
+
+  // NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
+  // lands before Deploy awaits is kept.
+  rpc NotifyInstancesReady(NotifyInstancesReadyRequest) returns (NotifyInstancesReadyResponse) {
+    option (dev.restate.sdk.go.handler_type) = SHARED;
+  }
+}
+
 message NotifyInstancesReadyRequest {
   string deployment_id = 1;
 }

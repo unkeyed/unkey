@@ -50,6 +50,12 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, compensation *c
 		"required_regions", requiredRegions,
 	)
 
+	// The object path below stays unchanged until DeployService drains:
+	// in-flight deploys replay this journal
+	if w.asWorkflow {
+		return w.awaitInstancesReady(ctx.(restate.WorkflowSharedContext), deploymentID, regionMinReplicas, requiredRegions)
+	}
+
 	// Create awakeable and stash it in VO state BEFORE doing the initial
 	// health check. This prevents a race where an instance report lands
 	// between our check and the state write, causing NotifyInstancesReady
@@ -97,6 +103,41 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, compensation *c
 		// Clear eagerly on the happy path. The compensation registered
 		// above still runs on any later error in the Deploy workflow.
 		restate.Clear(ctx, instancesReadyAwakeableKey)
+		logger.Info("deployments ready", "deployment_id", deploymentID)
+		return nil
+	}
+
+	return fault.Wrap(
+		restate.TerminalErrorf("not enough regions became healthy in %v, required %d of %d", regionReadyTimeout, requiredRegions, len(regionMinReplicas)),
+		fault.Public("Not enough regions became healthy in time."),
+	)
+}
+
+// awaitInstancesReady has nothing to register or clear: a NotifyInstancesReady
+// that lands before the run reaches WaitFirst is kept by the promise
+func (w *Workflow) awaitInstancesReady(ctx restate.WorkflowSharedContext, deploymentID string, regionMinReplicas map[string]uint32, requiredRegions int) error {
+	alreadyHealthy, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
+		return readiness.InstancesHealthy(runCtx, w.db, deploymentID, regionMinReplicas, requiredRegions)
+	}, restate.WithName("initial healthy-regions check"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	if err != nil {
+		logger.Warn("initial healthy-regions check failed, awaiting NotifyInstancesReady", "deployment_id", deploymentID, "error", err)
+		alreadyHealthy = false
+	}
+	if alreadyHealthy {
+		logger.Info("deployments ready", "deployment_id", deploymentID)
+		return nil
+	}
+
+	ready := restate.Promise[restate.Void](ctx, instancesReadyPromise)
+	timeout := restate.After(ctx, regionReadyTimeout)
+	winner, err := restate.WaitFirst(ctx, ready, timeout)
+	if err != nil {
+		return fmt.Errorf("wait for healthy regions or timeout: %w", err)
+	}
+	if winner == ready {
+		if _, err := ready.Result(); err != nil {
+			return fmt.Errorf("instances ready promise: %w", err)
+		}
 		logger.Info("deployments ready", "deployment_id", deploymentID)
 		return nil
 	}
