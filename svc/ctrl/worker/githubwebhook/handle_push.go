@@ -331,7 +331,7 @@ func (s *Service) startCreate(
 		event = "pull_request"
 	}
 
-	return hydrav1.NewDeployServiceClient(ctx, args.deploymentID).Create().RequestFuture(&hydrav1.DeployCreateRequest{
+	return hydrav1.NewDeployWorkflowClient(ctx, args.deploymentID).Create().RequestFuture(&hydrav1.DeployCreateRequest{
 		ProjectId:     row.ProjectID,
 		AppId:         row.AppID,
 		EnvironmentId: row.EnvironmentID,
