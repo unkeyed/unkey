@@ -44,7 +44,7 @@ export function ActiveBranchRow({
         <BranchCell branch={branch} />
       </span>
       <span className="hidden w-24 shrink-0 items-center sm:flex">
-        {environment && <EnvironmentBadge environment={environment} isCurrent={false} />}
+        {environment && <EnvironmentBadge environment={environment} rollout="none" />}
       </span>
       <span className="flex w-32 shrink-0 items-center">
         <IdChip deployment={deployment} href={href} />

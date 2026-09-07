@@ -84,11 +84,7 @@ function SourceCell() {
         <div className="flex items-center gap-1.5 min-w-0 text-gray-9">
           <CircleXMark iconSize="sm-regular" className="text-error-11 shrink-0" />
           <span className="font-mono text-[13px] line-through shrink-0">
-            {rolledBackFrom.commitSha
-              ? rolledBackFrom.commitSha.slice(0, 7)
-              : rolledBackFrom.image
-                ? imageRefDisplay(rolledBackFrom.image)
-                : "—"}
+            {rolledBackFromLabel(rolledBackFrom)}
           </span>
           {rolledBackFrom.commitMessage && (
             <span className="text-[13px] line-through truncate min-w-0">
@@ -180,4 +176,14 @@ export function ProductionCardMetadata() {
       </MetadataCell>
     </div>
   );
+}
+
+function rolledBackFromLabel(from: { commitSha: string | null; image: string | null }): string {
+  if (from.commitSha) {
+    return from.commitSha.slice(0, 7);
+  }
+  if (from.image) {
+    return imageRefDisplay(from.image);
+  }
+  return "—";
 }

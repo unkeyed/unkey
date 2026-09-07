@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
 import { routes } from "@/lib/navigation/routes";
 import { BookBookmark } from "@unkey/icons";
 import {
@@ -35,15 +36,10 @@ export function DeploymentsCardList() {
 
   const rolledBackFromId =
     isRolledBack && currentDeployment
-      ? rows
-          .map((row) => row.deployment)
-          .filter(
-            (d) =>
-              d.environmentId === currentDeployment.environmentId &&
-              d.status === "ready" &&
-              d.createdAt > currentDeployment.createdAt,
-          )
-          .sort((a, b) => b.createdAt - a.createdAt)[0]?.id
+      ? findRolledBackFrom(
+          rows.map((row) => row.deployment),
+          currentDeployment,
+        )?.id
       : undefined;
 
   if (isLoading) {

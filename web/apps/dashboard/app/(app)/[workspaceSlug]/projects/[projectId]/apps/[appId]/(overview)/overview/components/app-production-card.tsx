@@ -4,6 +4,7 @@ import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_compo
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
+import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -129,9 +130,7 @@ export function AppProductionCard() {
     ? [...readySiblings, deployment].sort((a, b) => b.createdAt - a.createdAt)
     : [];
   const rolledBackFromDeployment = isRolledBack
-    ? readySiblings
-        .filter((d) => d.createdAt > deployment.createdAt)
-        .sort((a, b) => b.createdAt - a.createdAt)[0]
+    ? findRolledBackFrom(deployments, deployment)
     : undefined;
 
   const diagnostic =
