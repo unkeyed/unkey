@@ -38,15 +38,9 @@ type DeployServiceClient interface {
 	// update the app's live deployment pointer for production environments.
 	// Sets deployment status to failed on any error.
 	Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *DeployResponse]
-	// StopDeployment schedules desired_state=stopped for a running deployment.
-	StopDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*StopDeploymentRequest, *StopDeploymentResponse]
-	// WakeDeployment schedules desired_state=running for a stopped deployment
-	// and waits until enough instances are running again.
-	WakeDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*WakeDeploymentRequest, *WakeDeploymentResponse]
 	// NotifyInstancesReady is called by the control plane when enough instances
 	// have become healthy across the required regions. It resolves the awakeable
-	// stored by a suspended Deploy so it can continue. WakeDeployment does not use
-	// it: that handler polls instance health itself.
+	// stored by a suspended Deploy so it can continue.
 	NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
 }
 
@@ -80,22 +74,6 @@ func (c *deployServiceClient) Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[
 	return sdk_go.WithRequestType[*DeployRequest](sdk_go.Object[*DeployResponse](c.ctx, "hydra.v1.DeployService", c.key, "Deploy", cOpts...))
 }
 
-func (c *deployServiceClient) StopDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*StopDeploymentRequest, *StopDeploymentResponse] {
-	cOpts := c.options
-	if len(opts) > 0 {
-		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
-	}
-	return sdk_go.WithRequestType[*StopDeploymentRequest](sdk_go.Object[*StopDeploymentResponse](c.ctx, "hydra.v1.DeployService", c.key, "StopDeployment", cOpts...))
-}
-
-func (c *deployServiceClient) WakeDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*WakeDeploymentRequest, *WakeDeploymentResponse] {
-	cOpts := c.options
-	if len(opts) > 0 {
-		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
-	}
-	return sdk_go.WithRequestType[*WakeDeploymentRequest](sdk_go.Object[*WakeDeploymentResponse](c.ctx, "hydra.v1.DeployService", c.key, "WakeDeployment", cOpts...))
-}
-
 func (c *deployServiceClient) NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
@@ -116,15 +94,9 @@ type DeployServiceIngressClient interface {
 	// update the app's live deployment pointer for production environments.
 	// Sets deployment status to failed on any error.
 	Deploy() ingress.Requester[*DeployRequest, *DeployResponse]
-	// StopDeployment schedules desired_state=stopped for a running deployment.
-	StopDeployment() ingress.Requester[*StopDeploymentRequest, *StopDeploymentResponse]
-	// WakeDeployment schedules desired_state=running for a stopped deployment
-	// and waits until enough instances are running again.
-	WakeDeployment() ingress.Requester[*WakeDeploymentRequest, *WakeDeploymentResponse]
 	// NotifyInstancesReady is called by the control plane when enough instances
 	// have become healthy across the required regions. It resolves the awakeable
-	// stored by a suspended Deploy so it can continue. WakeDeployment does not use
-	// it: that handler polls instance health itself.
+	// stored by a suspended Deploy so it can continue.
 	NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
 }
 
@@ -150,16 +122,6 @@ func (c *deployServiceIngressClient) Create() ingress.Requester[*DeployCreateReq
 func (c *deployServiceIngressClient) Deploy() ingress.Requester[*DeployRequest, *DeployResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*DeployRequest, *DeployResponse](c.client, c.serviceName, "Deploy", &c.key, &codec)
-}
-
-func (c *deployServiceIngressClient) StopDeployment() ingress.Requester[*StopDeploymentRequest, *StopDeploymentResponse] {
-	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*StopDeploymentRequest, *StopDeploymentResponse](c.client, c.serviceName, "StopDeployment", &c.key, &codec)
-}
-
-func (c *deployServiceIngressClient) WakeDeployment() ingress.Requester[*WakeDeploymentRequest, *WakeDeploymentResponse] {
-	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*WakeDeploymentRequest, *WakeDeploymentResponse](c.client, c.serviceName, "WakeDeployment", &c.key, &codec)
 }
 
 func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
@@ -194,15 +156,9 @@ type DeployServiceServer interface {
 	// update the app's live deployment pointer for production environments.
 	// Sets deployment status to failed on any error.
 	Deploy(ctx sdk_go.ObjectContext, req *DeployRequest) (*DeployResponse, error)
-	// StopDeployment schedules desired_state=stopped for a running deployment.
-	StopDeployment(ctx sdk_go.ObjectContext, req *StopDeploymentRequest) (*StopDeploymentResponse, error)
-	// WakeDeployment schedules desired_state=running for a stopped deployment
-	// and waits until enough instances are running again.
-	WakeDeployment(ctx sdk_go.ObjectContext, req *WakeDeploymentRequest) (*WakeDeploymentResponse, error)
 	// NotifyInstancesReady is called by the control plane when enough instances
 	// have become healthy across the required regions. It resolves the awakeable
-	// stored by a suspended Deploy so it can continue. WakeDeployment does not use
-	// it: that handler polls instance health itself.
+	// stored by a suspended Deploy so it can continue.
 	NotifyInstancesReady(ctx sdk_go.ObjectSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error)
 }
 
@@ -218,12 +174,6 @@ func (UnimplementedDeployServiceServer) Create(ctx sdk_go.ObjectContext, req *De
 }
 func (UnimplementedDeployServiceServer) Deploy(ctx sdk_go.ObjectContext, req *DeployRequest) (*DeployResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method Deploy not implemented"), 501)
-}
-func (UnimplementedDeployServiceServer) StopDeployment(ctx sdk_go.ObjectContext, req *StopDeploymentRequest) (*StopDeploymentResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method StopDeployment not implemented"), 501)
-}
-func (UnimplementedDeployServiceServer) WakeDeployment(ctx sdk_go.ObjectContext, req *WakeDeploymentRequest) (*WakeDeploymentResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method WakeDeployment not implemented"), 501)
 }
 func (UnimplementedDeployServiceServer) NotifyInstancesReady(ctx sdk_go.ObjectSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method NotifyInstancesReady not implemented"), 501)
@@ -249,8 +199,6 @@ func NewDeployServiceServer(srv DeployServiceServer, opts ...sdk_go.ServiceDefin
 	router := sdk_go.NewObject("hydra.v1.DeployService", sOpts...)
 	router = router.Handler("Create", sdk_go.NewObjectHandler(srv.Create))
 	router = router.Handler("Deploy", sdk_go.NewObjectHandler(srv.Deploy))
-	router = router.Handler("StopDeployment", sdk_go.NewObjectHandler(srv.StopDeployment))
-	router = router.Handler("WakeDeployment", sdk_go.NewObjectHandler(srv.WakeDeployment))
 	router = router.Handler("NotifyInstancesReady", sdk_go.NewObjectSharedHandler(srv.NotifyInstancesReady))
 	return router
 }
