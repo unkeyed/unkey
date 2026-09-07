@@ -19,9 +19,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/readiness"
 )
 
-// WakeDeployment sets desired_state=running, marks the deployment deploying,
-// and polls instance health until it can be marked ready. The object stays
-// locked for the poll, so a Stop arriving meanwhile waits instead of racing
 func (v *VirtualObject) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDeploymentRequest) (*hydrav1.WakeDeploymentResponse, error) {
 	deploymentID := restate.Key(ctx)
 	if id := req.GetDeploymentId(); id != "" && id != deploymentID {
@@ -94,9 +91,8 @@ func (v *VirtualObject) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.W
 	return &hydrav1.WakeDeploymentResponse{}, nil
 }
 
-// waitUntilHealthy polls until all regions but one have their required running
-// instances, or regionReadyTimeout passes. The deadline comes from the
-// journaled clock so a retry keeps it.
+// waitUntilHealthy tolerates one unhealthy region. The deadline is journaled
+// so a retry keeps it
 func (v *VirtualObject) waitUntilHealthy(ctx restate.ObjectContext, deploymentID string) error {
 	now, err := restateutil.Now(ctx)
 	if err != nil {

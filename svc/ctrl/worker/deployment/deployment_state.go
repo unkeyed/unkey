@@ -89,8 +89,7 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 	}
 
 	if err := v.setDesiredState(ctx, deploymentID, req.GetState()); err != nil {
-		// The rows were deleted while this transition was pending. Nothing is
-		// left to apply, so the delayed call ends cleanly instead of failing
+		// Deleted while pending: nothing left to apply
 		if restate.ErrorCode(err) != 404 {
 			return nil, err
 		}
@@ -101,9 +100,8 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 	return &hydrav1.ChangeDesiredStateResponse{}, nil
 }
 
-// setDesiredState writes the desired state and every region's topology
-// status. It refuses the app's live deployment; a missing deployment is a
-// terminal 404
+// setDesiredState refuses the app's live deployment and returns a terminal 404
+// for a missing one
 func (v *VirtualObject) setDesiredState(ctx restate.ObjectContext, deploymentID string, state hydrav1.DeploymentDesiredState) error {
 	var desiredState mysqltype.DeploymentsDesiredState
 	var topologyDesiredStatus db.DeploymentTopologyDesiredStatus

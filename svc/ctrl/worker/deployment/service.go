@@ -36,7 +36,7 @@ type Config struct {
 	// DB is the main database connection for workspace, project, and deployment data.
 	DB db.Database
 
-	// Auditlogs records API-originated Stop and Wake calls.
+	// Auditlogs records API-originated Stop and Wake calls
 	Auditlogs auditlogs.AuditLogService
 }
 
@@ -67,11 +67,7 @@ func (v *VirtualObject) Definition(opts ...restate.ServiceDefinitionOption) rest
 		Handler("WakeDeployment", restate.NewObjectHandler(v.WakeDeployment))
 }
 
-// loadDeployment reads the deployment with its environment in one query.
-// purpose names the journal entry
 func (v *VirtualObject) loadDeployment(ctx restate.ObjectContext, deploymentID, purpose string) (db.FindDeploymentWithEnvironmentAndAppRow, error) {
-	// Not found is mapped inside the Run: the error that comes back out is
-	// rebuilt from the journal and no longer matches sql.ErrNoRows
 	return restate.Run(ctx, func(runCtx restate.RunContext) (db.FindDeploymentWithEnvironmentAndAppRow, error) {
 		row, err := v.db.FindDeploymentWithEnvironmentAndApp(runCtx, deploymentID)
 		if err != nil {

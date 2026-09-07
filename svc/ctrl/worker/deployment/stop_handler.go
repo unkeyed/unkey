@@ -11,8 +11,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
-// StopDeployment sets desired_state=stopped and drops any pending scheduled
-// transition. See the package doc for why it does not schedule
 func (v *VirtualObject) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDeploymentRequest) (*hydrav1.StopDeploymentResponse, error) {
 	deploymentID := restate.Key(ctx)
 	if id := req.GetDeploymentId(); id != "" && id != deploymentID {
