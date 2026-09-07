@@ -34,13 +34,6 @@ import (
 //     ChangeDesiredState call to itself.
 //  3. When the delay elapses, ChangeDesiredState verifies the nonce still
 //     matches and persists the new desired state to the database.
-//
-// StopDeployment and WakeDeployment are the immediate, user-facing lifecycle
-// operations. They run on this object so a Stop that lands mid-Wake waits for
-// the Wake instead of racing it. They write the desired state directly rather
-// than through ScheduleDesiredStateChange: that handler applies its change by
-// sending ChangeDesiredState to this same key, and a handler already holding
-// the key cannot wait for that send to run.
 type DeploymentServiceClient interface {
 	// ScheduleDesiredStateChange registers a future desired-state transition for
 	// this deployment. It generates a nonce, stores a transition record in Restate
@@ -60,12 +53,10 @@ type DeploymentServiceClient interface {
 	// ChangeDesiredState requires a stored transition to exist.
 	ClearScheduledStateChanges(opts ...sdk_go.ClientOption) sdk_go.Client[*ClearScheduledStateChangesRequest, *ClearScheduledStateChangesResponse]
 	// StopDeployment sets desired_state=stopped on a running, non-production
-	// deployment and clears any pending scheduled transition. Public: called by
-	// the API over the ingress.
+	// deployment and clears any pending scheduled transition.
 	StopDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*StopDeploymentRequest, *StopDeploymentResponse]
 	// WakeDeployment sets desired_state=running on a stopped deployment, marks it
-	// deploying, and returns once enough regions report running instances. Public:
-	// called by the API over the ingress.
+	// deploying, and returns once enough regions report running instances.
 	WakeDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*WakeDeploymentRequest, *WakeDeploymentResponse]
 }
 
@@ -145,12 +136,10 @@ type DeploymentServiceIngressClient interface {
 	// ChangeDesiredState requires a stored transition to exist.
 	ClearScheduledStateChanges() ingress.Requester[*ClearScheduledStateChangesRequest, *ClearScheduledStateChangesResponse]
 	// StopDeployment sets desired_state=stopped on a running, non-production
-	// deployment and clears any pending scheduled transition. Public: called by
-	// the API over the ingress.
+	// deployment and clears any pending scheduled transition.
 	StopDeployment() ingress.Requester[*StopDeploymentRequest, *StopDeploymentResponse]
 	// WakeDeployment sets desired_state=running on a stopped deployment, marks it
-	// deploying, and returns once enough regions report running instances. Public:
-	// called by the API over the ingress.
+	// deploying, and returns once enough regions report running instances.
 	WakeDeployment() ingress.Requester[*WakeDeploymentRequest, *WakeDeploymentResponse]
 }
 
@@ -216,13 +205,6 @@ func (c *deploymentServiceIngressClient) WakeDeployment() ingress.Requester[*Wak
 //     ChangeDesiredState call to itself.
 //  3. When the delay elapses, ChangeDesiredState verifies the nonce still
 //     matches and persists the new desired state to the database.
-//
-// StopDeployment and WakeDeployment are the immediate, user-facing lifecycle
-// operations. They run on this object so a Stop that lands mid-Wake waits for
-// the Wake instead of racing it. They write the desired state directly rather
-// than through ScheduleDesiredStateChange: that handler applies its change by
-// sending ChangeDesiredState to this same key, and a handler already holding
-// the key cannot wait for that send to run.
 type DeploymentServiceServer interface {
 	// ScheduleDesiredStateChange registers a future desired-state transition for
 	// this deployment. It generates a nonce, stores a transition record in Restate
@@ -242,12 +224,10 @@ type DeploymentServiceServer interface {
 	// ChangeDesiredState requires a stored transition to exist.
 	ClearScheduledStateChanges(ctx sdk_go.ObjectContext, req *ClearScheduledStateChangesRequest) (*ClearScheduledStateChangesResponse, error)
 	// StopDeployment sets desired_state=stopped on a running, non-production
-	// deployment and clears any pending scheduled transition. Public: called by
-	// the API over the ingress.
+	// deployment and clears any pending scheduled transition.
 	StopDeployment(ctx sdk_go.ObjectContext, req *StopDeploymentRequest) (*StopDeploymentResponse, error)
 	// WakeDeployment sets desired_state=running on a stopped deployment, marks it
-	// deploying, and returns once enough regions report running instances. Public:
-	// called by the API over the ingress.
+	// deploying, and returns once enough regions report running instances.
 	WakeDeployment(ctx sdk_go.ObjectContext, req *WakeDeploymentRequest) (*WakeDeploymentResponse, error)
 }
 
