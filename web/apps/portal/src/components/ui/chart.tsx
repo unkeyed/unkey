@@ -168,12 +168,12 @@ function ChartTooltipContent({
       ref={ref}
       role="tooltip"
       className={cn(
-        "grid select-none items-start gap-2 rounded-lg border border-gray-6 bg-background pt-4 pb-2 text-xs shadow-md sm:w-fit md:w-fit md:max-w-[360px]",
+        "grid select-none items-start gap-1.5 rounded-lg border border-gray-6 bg-background pt-3 pb-2 text-xs shadow-md sm:w-fit md:w-fit md:max-w-[360px]",
         className,
       )}
     >
       {nestLabel ? null : tooltipLabel}
-      <div className="grid gap-1.5">
+      <div className="grid gap-0.5">
         {payload.map((item: Record<string, unknown>, index: number) => {
           const key = `${nameKey || item?.name || item?.dataKey || "value"}`;
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
@@ -218,7 +218,7 @@ function ChartTooltipContent({
                 )}
                 <div
                   className={cn(
-                    "flex w-full justify-between gap-4 py-2 leading-none",
+                    "flex w-full justify-between gap-4 py-1 leading-none",
                     nestLabel ? "items-end" : "items-center",
                   )}
                 >
