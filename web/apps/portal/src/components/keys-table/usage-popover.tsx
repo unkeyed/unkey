@@ -24,8 +24,8 @@ export function UsagePopover({ buckets, errors }: Props) {
         <span className="text-gray-11 text-xs">Last 30 days</span>
       </div>
       <div className="flex flex-col gap-1 text-xs">
-        <Row label="Valid" count={validTotal} swatch="bg-gray-7" />
-        {errorTotal > 0 && <Row label="Errors" count={errorTotal} swatch="bg-error-9" />}
+        <Row label="Valid" count={validTotal} swatch="bg-accent-4" />
+        {errorTotal > 0 && <Row label="Errors" count={errorTotal} swatch="bg-orange-9" />}
       </div>
     </div>
   );

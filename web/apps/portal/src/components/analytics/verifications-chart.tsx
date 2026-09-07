@@ -9,8 +9,7 @@ import {
 import { formatBucketTime, formatCount } from "./format";
 import type { VerificationBucket } from "./schema/analytics.schema";
 
-// Matches the dashboard's valid bars (`--accent-4`); the portal has no accent scale.
-const VALID_BAR_COLOR = "hsl(240 10% 92%)";
+const VALID_BAR_COLOR = "hsl(var(--accent-4))";
 export const VALID_COLOR = "hsl(var(--gray-8))";
 export const REJECTED_COLOR = "hsl(var(--error-9))";
 const GRID_COLOR = "hsl(var(--gray-6))";

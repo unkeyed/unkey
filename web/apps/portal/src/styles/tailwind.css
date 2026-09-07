@@ -63,6 +63,10 @@
   --color-warningA-3: hsla(var(--warningA-3));
   --color-warningA-11: hsla(var(--warningA-11));
 
+  /* Chart series, mirrored from the dashboard so both products draw usage alike */
+  --color-accent-4: hsl(var(--accent-4));
+  --color-orange-9: hsl(var(--orange-9));
+
   /* Error (Tomato) */
   --color-error-3: hsl(var(--error-3));
   --color-error-9: hsl(var(--error-9));
@@ -135,6 +139,9 @@
     --warning-11: 35, 100%, 34%;
     --warningA-3: 47, 100%, 50%, 0.24;
     --warningA-11: 43, 100%, 30%, 1;
+
+    --accent-4: 240, 10%, 92%;
+    --orange-9: 23, 93%, 53%;
 
     /* Error (Tomato) */
     --error-3: 10, 92%, 95%;

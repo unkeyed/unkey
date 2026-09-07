@@ -56,7 +56,7 @@ export function UsageSparkline({ buckets, errors, maxBars = 30, ariaLabel }: Pro
   }, [recent, errors, maxBars]);
 
   const baseClass = cn(
-    "h-[28px] w-[158px] cursor-pointer overflow-hidden rounded-sm bg-gray-2 px-1 py-0",
+    "h-[28px] w-[158px] cursor-pointer overflow-hidden rounded-sm px-1 py-0",
     "transition-colors hover:bg-gray-3",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-12 focus-visible:ring-offset-1",
   );
@@ -86,8 +86,8 @@ export function UsageSparkline({ buckets, errors, maxBars = 30, ariaLabel }: Pro
             ) : (
               bars.map((bar) => (
                 <div key={bar.key} className="flex flex-col">
-                  <div className="w-[3px] bg-error-9" style={{ height: `${bar.top}px` }} />
-                  <div className="w-[3px] bg-gray-7" style={{ height: `${bar.bottom}px` }} />
+                  <div className="w-[3px] bg-orange-9" style={{ height: `${bar.top}px` }} />
+                  <div className="w-[3px] bg-accent-4" style={{ height: `${bar.bottom}px` }} />
                 </div>
               ))
             )}
