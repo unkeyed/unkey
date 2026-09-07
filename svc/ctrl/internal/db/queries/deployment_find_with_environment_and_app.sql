@@ -3,4 +3,4 @@ SELECT d.*, e.slug AS environment_slug, e.kind AS environment_kind, a.current_de
 FROM deployments d
 JOIN environments e ON e.id = d.environment_id
 JOIN apps a ON a.id = d.app_id
-WHERE d.id = sqlc.arg(id);
+WHERE d.id = sqlc.arg(id) AND d.deleted_at IS NULL;

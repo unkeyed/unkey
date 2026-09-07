@@ -1,5 +1,5 @@
 import type { Project } from "@/lib/collections/deploy/projects";
-import { and, db, desc, eq, inArray, not, sql } from "@/lib/db";
+import { and, db, desc, eq, inArray, isNull, not, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import {
   apps,
@@ -61,7 +61,11 @@ export const listProjects = workspaceProcedure
         })
         .from(deployments)
         .where(
-          and(eq(deployments.workspaceId, workspaceId), inArray(deployments.projectId, projectIds)),
+          and(
+            eq(deployments.workspaceId, workspaceId),
+            inArray(deployments.projectId, projectIds),
+            isNull(deployments.deletedAt),
+          ),
         )
         .orderBy(deployments.projectId, desc(deployments.createdAt), desc(deployments.id)),
       db
@@ -192,6 +196,7 @@ export const listProjects = workspaceProcedure
             and(
               eq(deployments.workspaceId, workspaceId),
               inArray(deployments.id, currentDeploymentIds),
+              isNull(deployments.deletedAt),
             ),
           )
       : [];

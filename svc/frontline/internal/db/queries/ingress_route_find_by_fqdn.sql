@@ -17,4 +17,4 @@ SELECT
 FROM frontline_routes fr
 INNER JOIN deployments d ON d.id = fr.deployment_id
 LEFT JOIN workspace_billing wb ON wb.workspace_id = d.workspace_id
-WHERE fr.fully_qualified_domain_name = sqlc.arg(fqdn);
+WHERE fr.fully_qualified_domain_name = sqlc.arg(fqdn) AND d.deleted_at IS NULL;

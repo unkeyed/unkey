@@ -16,6 +16,7 @@ const insertDeployment = `-- name: InsertDeployment :exec
 INSERT INTO ` + "`" + `deployments` + "`" + ` (
     id,
     k8s_name,
+    image,
     workspace_id,
     project_id,
     app_id,
@@ -75,6 +76,7 @@ VALUES (
     ?,
     ?,
     ?,
+    ?,
     ?
 )
 `
@@ -82,6 +84,7 @@ VALUES (
 type InsertDeploymentParams struct {
 	ID                            string                      `db:"id"`
 	K8sName                       string                      `db:"k8s_name"`
+	Image                         sql.NullString              `db:"image"`
 	WorkspaceID                   string                      `db:"workspace_id"`
 	ProjectID                     string                      `db:"project_id"`
 	AppID                         string                      `db:"app_id"`
@@ -117,6 +120,7 @@ type InsertDeploymentParams struct {
 //	INSERT INTO `deployments` (
 //	    id,
 //	    k8s_name,
+//	    image,
 //	    workspace_id,
 //	    project_id,
 //	    app_id,
@@ -176,12 +180,14 @@ type InsertDeploymentParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertDeployment(ctx context.Context, arg InsertDeploymentParams) error {
 	_, err := q.db.ExecContext(ctx, insertDeployment,
 		arg.ID,
 		arg.K8sName,
+		arg.Image,
 		arg.WorkspaceID,
 		arg.ProjectID,
 		arg.AppID,

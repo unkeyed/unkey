@@ -3,6 +3,7 @@
 package deploymentgc
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"slices"
@@ -156,6 +157,7 @@ func (h *Handler) dispatchExpiredDeployments(ctx restate.ObjectContext, now time
 				ProductionCutoff: productionCutoff,
 				KeepSuccessful:   deploymentretention.Successful,
 				Limit:            limit,
+				RecoveryCutoff:   sql.NullInt64{Int64: now.Add(-deploymentretention.RecoveryAge).UnixMilli(), Valid: true},
 			})
 		}, restate.WithName("list expired deployments"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
@@ -368,7 +370,7 @@ func (h *Handler) deleteOrphanImages(ctx restate.ObjectContext, now time.Time, d
 		}
 		candidate := candidates[tag]
 		image, exists := recheckedImages[tag]
-		deploymentID, managed := managedImageDeploymentID(image.Tag)
+		_, managed := managedImageDeploymentID(image.Tag)
 		if !exists || !managed || image.Digest != candidate.Digest {
 			continue
 		}
@@ -376,34 +378,36 @@ func (h *Handler) deleteOrphanImages(ctx restate.ObjectContext, now time.Time, d
 			continue
 		}
 
-		// A managed image tag contains its owning deployment ID. Rechecking that
-		// row closes the gap between pushing an image and saving its tag in MySQL.
-		ownerExists, lookupErr := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
-			_, findErr := h.db.FindDeploymentById(runCtx, deploymentID)
-			if findErr == nil {
-				return true, nil
-			}
-			if db.IsNotFound(findErr) {
-				return false, nil
-			}
-			return false, findErr
-		}, restate.WithName("recheck Depot image owner"), restate.WithMaxRetryAttempts(runMaxAttempts))
-		if lookupErr != nil {
-			return deleted, fmt.Errorf("recheck Depot image owner %s: %w", tag, lookupErr)
-		}
-		if ownerExists {
-			continue
-		}
-
-		deleteErr := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return h.depot.DeleteImage(runCtx, h.registryProjectID, tag)
+		removed, deleteErr := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
+			return h.deleteUnreferencedImage(runCtx, tag)
 		}, restate.WithName("delete unreferenced Depot image"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if deleteErr != nil {
 			return deleted, fmt.Errorf("delete Depot image %s: %w", tag, deleteErr)
 		}
-		deleted++
+		if removed {
+			deleted++
+		}
 	}
 	return deleted, nil
+}
+
+func (h *Handler) deleteUnreferencedImage(ctx context.Context, tag string) (bool, error) {
+	deploymentID, managed := managedImageDeploymentID(tag)
+	if !managed {
+		return false, nil
+	}
+	ownerExists, err := h.db.DeploymentExistsIncludingDeleted(ctx, deploymentID)
+	if err != nil || ownerExists {
+		return false, err
+	}
+	referenced, err := h.db.DeploymentImageExistsIncludingDeleted(ctx, sql.NullString{String: h.registryRepository + ":" + tag, Valid: true})
+	if err != nil || referenced {
+		return false, err
+	}
+	if err := h.depot.DeleteImage(ctx, h.registryProjectID, tag); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func managedImageDeploymentID(tag string) (string, bool) {

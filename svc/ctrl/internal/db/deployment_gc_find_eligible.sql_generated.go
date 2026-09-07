@@ -11,7 +11,7 @@ import (
 )
 
 const findDeploymentGCEligible = `-- name: FindDeploymentGCEligible :one
-SELECT d.id, d.image
+SELECT d.id, d.image, d.deleted_at
 FROM deployments d
 JOIN environments e ON e.id = d.environment_id
 JOIN apps a ON a.id = d.app_id
@@ -29,14 +29,16 @@ WHERE d.id = ?
       AND fr.sticky IN ('branch', 'environment', 'live')
   )
   AND (
+    d.deleted_at <= ?
+    OR (d.deleted_at IS NULL AND (
     (
       e.kind = 'preview'
-      AND COALESCE(d.updated_at, d.created_at) < CAST(? AS SIGNED)
+      AND GREATEST(COALESCE(d.updated_at, d.created_at), COALESCE(d.restored_at, 0)) < CAST(? AS SIGNED)
     )
     OR
     (
       e.kind = 'production'
-      AND d.created_at < ?
+      AND GREATEST(d.created_at, COALESCE(d.restored_at, 0)) < CAST(? AS SIGNED)
       AND (
         d.status != 'stopped'
         OR (
@@ -44,6 +46,7 @@ WHERE d.id = ?
           FROM deployments newer
           WHERE newer.app_id = d.app_id
             AND newer.environment_id = d.environment_id
+            AND newer.deleted_at IS NULL
             AND newer.status IN ('ready', 'stopped')
             AND (
               newer.created_at > d.created_at
@@ -52,25 +55,29 @@ WHERE d.id = ?
         ) >= CAST(? AS UNSIGNED)
       )
     )
+    ))
   )
+FOR UPDATE
 `
 
 type FindDeploymentGCEligibleParams struct {
-	DeploymentID     string `db:"deployment_id"`
-	PreviewCutoff    int64  `db:"preview_cutoff"`
-	ProductionCutoff int64  `db:"production_cutoff"`
-	KeepSuccessful   int64  `db:"keep_successful"`
+	DeploymentID     string        `db:"deployment_id"`
+	RecoveryCutoff   sql.NullInt64 `db:"recovery_cutoff"`
+	PreviewCutoff    int64         `db:"preview_cutoff"`
+	ProductionCutoff int64         `db:"production_cutoff"`
+	KeepSuccessful   int64         `db:"keep_successful"`
 }
 
 type FindDeploymentGCEligibleRow struct {
-	ID    string         `db:"id"`
-	Image sql.NullString `db:"image"`
+	ID        string         `db:"id"`
+	Image     sql.NullString `db:"image"`
+	DeletedAt sql.NullInt64  `db:"deleted_at"`
 }
 
 // Re-evaluates a deployment immediately before destructive cleanup. This must
 // remain equivalent to ListDeploymentGCCandidates except for pagination.
 //
-//	SELECT d.id, d.image
+//	SELECT d.id, d.image, d.deleted_at
 //	FROM deployments d
 //	JOIN environments e ON e.id = d.environment_id
 //	JOIN apps a ON a.id = d.app_id
@@ -88,14 +95,16 @@ type FindDeploymentGCEligibleRow struct {
 //	      AND fr.sticky IN ('branch', 'environment', 'live')
 //	  )
 //	  AND (
+//	    d.deleted_at <= ?
+//	    OR (d.deleted_at IS NULL AND (
 //	    (
 //	      e.kind = 'preview'
-//	      AND COALESCE(d.updated_at, d.created_at) < CAST(? AS SIGNED)
+//	      AND GREATEST(COALESCE(d.updated_at, d.created_at), COALESCE(d.restored_at, 0)) < CAST(? AS SIGNED)
 //	    )
 //	    OR
 //	    (
 //	      e.kind = 'production'
-//	      AND d.created_at < ?
+//	      AND GREATEST(d.created_at, COALESCE(d.restored_at, 0)) < CAST(? AS SIGNED)
 //	      AND (
 //	        d.status != 'stopped'
 //	        OR (
@@ -103,6 +112,7 @@ type FindDeploymentGCEligibleRow struct {
 //	          FROM deployments newer
 //	          WHERE newer.app_id = d.app_id
 //	            AND newer.environment_id = d.environment_id
+//	            AND newer.deleted_at IS NULL
 //	            AND newer.status IN ('ready', 'stopped')
 //	            AND (
 //	              newer.created_at > d.created_at
@@ -111,15 +121,18 @@ type FindDeploymentGCEligibleRow struct {
 //	        ) >= CAST(? AS UNSIGNED)
 //	      )
 //	    )
+//	    ))
 //	  )
+//	FOR UPDATE
 func (q *Queries) FindDeploymentGCEligible(ctx context.Context, arg FindDeploymentGCEligibleParams) (FindDeploymentGCEligibleRow, error) {
 	row := q.db.QueryRowContext(ctx, findDeploymentGCEligible,
 		arg.DeploymentID,
+		arg.RecoveryCutoff,
 		arg.PreviewCutoff,
 		arg.ProductionCutoff,
 		arg.KeepSuccessful,
 	)
 	var i FindDeploymentGCEligibleRow
-	err := row.Scan(&i.ID, &i.Image)
+	err := row.Scan(&i.ID, &i.Image, &i.DeletedAt)
 	return i, err
 }

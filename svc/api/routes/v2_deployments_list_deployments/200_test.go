@@ -39,6 +39,16 @@ func TestListWorkspaceWide(t *testing.T) {
 		want[dep.ID] = true
 	}
 
+	deleted := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+	})
+	_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE deployments SET deleted_at = 1 WHERE id = ?", deleted.ID)
+	require.NoError(t, err)
+
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.NotNil(t, res.Body)

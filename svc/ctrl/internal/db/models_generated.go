@@ -813,6 +813,8 @@ type Deployment struct {
 	Pk                            uint64                            `db:"pk"`
 	ID                            string                            `db:"id"`
 	K8sName                       string                            `db:"k8s_name"`
+	DeletedAt                     sql.NullInt64                     `db:"deleted_at"`
+	RestoredAt                    sql.NullInt64                     `db:"restored_at"`
 	WorkspaceID                   string                            `db:"workspace_id"`
 	ProjectID                     string                            `db:"project_id"`
 	EnvironmentID                 string                            `db:"environment_id"`

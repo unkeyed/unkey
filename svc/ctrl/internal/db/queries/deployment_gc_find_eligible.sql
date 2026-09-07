@@ -1,7 +1,7 @@
 -- name: FindDeploymentGCEligible :one
 -- Re-evaluates a deployment immediately before destructive cleanup. This must
 -- remain equivalent to ListDeploymentGCCandidates except for pagination.
-SELECT d.id, d.image
+SELECT d.id, d.image, d.deleted_at
 FROM deployments d
 JOIN environments e ON e.id = d.environment_id
 JOIN apps a ON a.id = d.app_id
@@ -19,14 +19,16 @@ WHERE d.id = sqlc.arg(deployment_id)
       AND fr.sticky IN ('branch', 'environment', 'live')
   )
   AND (
+    d.deleted_at <= sqlc.arg(recovery_cutoff)
+    OR (d.deleted_at IS NULL AND (
     (
       e.kind = 'preview'
-      AND COALESCE(d.updated_at, d.created_at) < CAST(sqlc.arg(preview_cutoff) AS SIGNED)
+      AND GREATEST(COALESCE(d.updated_at, d.created_at), COALESCE(d.restored_at, 0)) < CAST(sqlc.arg(preview_cutoff) AS SIGNED)
     )
     OR
     (
       e.kind = 'production'
-      AND d.created_at < sqlc.arg(production_cutoff)
+      AND GREATEST(d.created_at, COALESCE(d.restored_at, 0)) < CAST(sqlc.arg(production_cutoff) AS SIGNED)
       AND (
         d.status != 'stopped'
         OR (
@@ -34,6 +36,7 @@ WHERE d.id = sqlc.arg(deployment_id)
           FROM deployments newer
           WHERE newer.app_id = d.app_id
             AND newer.environment_id = d.environment_id
+            AND newer.deleted_at IS NULL
             AND newer.status IN ('ready', 'stopped')
             AND (
               newer.created_at > d.created_at
@@ -42,4 +45,6 @@ WHERE d.id = sqlc.arg(deployment_id)
         ) >= CAST(sqlc.arg(keep_successful) AS UNSIGNED)
       )
     )
-  );
+    ))
+  )
+FOR UPDATE;

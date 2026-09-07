@@ -184,7 +184,7 @@ func TestDeploymentGarbageCollection_RetainsHistoryAndReconcilesDepot(t *testing
 	setDeploymentImage(t, h, referencedImageDeployment.ID, testRegistryRepository+":"+testReferencedTag)
 	setDeploymentImage(t, h, missingImageDeployment.ID, testRegistryRepository+":missing")
 	restoredImageDeployment := h.Seed.CreateDeployment(h.Ctx, seed.CreateDeploymentRequest{
-		ID:            "d_restoredx",
+		ID:            "d_reusedxx",
 		WorkspaceID:   workspace.ID,
 		ProjectID:     project.ID,
 		AppID:         app.ID,
@@ -275,6 +275,22 @@ func TestDeploymentGarbageCollection_RetainsHistoryAndReconcilesDepot(t *testing
 		assert.True(c, db.IsNotFound(secondErr))
 		assert.True(c, db.IsNotFound(previewErr))
 	}, 30*time.Second, 100*time.Millisecond)
+
+	for _, deploymentID := range []string{productionDeployments[1].ID, productionDeployments[2].ID, oldPreview.ID} {
+		exists, existsErr := h.DB.DeploymentExistsIncludingDeleted(h.Ctx, deploymentID)
+		require.NoError(t, existsErr)
+		require.True(t, exists)
+	}
+	restored, err := hydrav1.NewDeployServiceIngressClient(h.Restate, oldPreview.ID).
+		Restore().Request(h.Ctx, &hydrav1.RestoreDeploymentRequest{DeploymentId: oldPreview.ID})
+	require.NoError(t, err)
+	require.True(t, restored.GetRestored())
+	recovered, err := h.DB.FindDeploymentById(h.Ctx, oldPreview.ID)
+	require.NoError(t, err)
+	require.False(t, recovered.DeletedAt.Valid)
+	require.True(t, recovered.RestoredAt.Valid)
+	require.Equal(t, oldPreview.Status, recovered.Status)
+	require.Equal(t, mysqltype.DeploymentsDesiredStateStopped, recovered.DesiredState)
 
 	_, err = h.DB.FindDeploymentById(h.Ctx, productionDeployments[0].ID)
 	require.NoError(t, err, "the current deployment must be retained")

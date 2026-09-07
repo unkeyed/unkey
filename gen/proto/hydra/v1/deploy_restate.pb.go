@@ -52,6 +52,8 @@ type DeployServiceClient interface {
 	// GarbageCollect deletes a terminal deployment after rechecking its
 	// retention policy. The request ID must match the deployment-keyed object.
 	GarbageCollect(opts ...sdk_go.ClientOption) sdk_go.Client[*GarbageCollectDeploymentRequest, *GarbageCollectDeploymentResponse]
+	// Restore recovers deployment history without starting compute or changing traffic.
+	Restore(opts ...sdk_go.ClientOption) sdk_go.Client[*RestoreDeploymentRequest, *RestoreDeploymentResponse]
 	// NotifyInstancesReady is called by the control plane when enough instances
 	// have become healthy across the required regions. It resolves the awakeable
 	// stored by a suspended deploy or wake workflow so it can continue.
@@ -120,6 +122,14 @@ func (c *deployServiceClient) GarbageCollect(opts ...sdk_go.ClientOption) sdk_go
 	return sdk_go.WithRequestType[*GarbageCollectDeploymentRequest](sdk_go.Object[*GarbageCollectDeploymentResponse](c.ctx, "hydra.v1.DeployService", c.key, "GarbageCollect", cOpts...))
 }
 
+func (c *deployServiceClient) Restore(opts ...sdk_go.ClientOption) sdk_go.Client[*RestoreDeploymentRequest, *RestoreDeploymentResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RestoreDeploymentRequest](sdk_go.Object[*RestoreDeploymentResponse](c.ctx, "hydra.v1.DeployService", c.key, "Restore", cOpts...))
+}
+
 func (c *deployServiceClient) NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
@@ -155,6 +165,8 @@ type DeployServiceIngressClient interface {
 	// GarbageCollect deletes a terminal deployment after rechecking its
 	// retention policy. The request ID must match the deployment-keyed object.
 	GarbageCollect() ingress.Requester[*GarbageCollectDeploymentRequest, *GarbageCollectDeploymentResponse]
+	// Restore recovers deployment history without starting compute or changing traffic.
+	Restore() ingress.Requester[*RestoreDeploymentRequest, *RestoreDeploymentResponse]
 	// NotifyInstancesReady is called by the control plane when enough instances
 	// have become healthy across the required regions. It resolves the awakeable
 	// stored by a suspended deploy or wake workflow so it can continue.
@@ -205,6 +217,11 @@ func (c *deployServiceIngressClient) GarbageCollect() ingress.Requester[*Garbage
 	return ingress.NewRequester[*GarbageCollectDeploymentRequest, *GarbageCollectDeploymentResponse](c.client, c.serviceName, "GarbageCollect", &c.key, &codec)
 }
 
+func (c *deployServiceIngressClient) Restore() ingress.Requester[*RestoreDeploymentRequest, *RestoreDeploymentResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RestoreDeploymentRequest, *RestoreDeploymentResponse](c.client, c.serviceName, "Restore", &c.key, &codec)
+}
+
 func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse](c.client, c.serviceName, "NotifyInstancesReady", &c.key, &codec)
@@ -251,6 +268,8 @@ type DeployServiceServer interface {
 	// GarbageCollect deletes a terminal deployment after rechecking its
 	// retention policy. The request ID must match the deployment-keyed object.
 	GarbageCollect(ctx sdk_go.ObjectContext, req *GarbageCollectDeploymentRequest) (*GarbageCollectDeploymentResponse, error)
+	// Restore recovers deployment history without starting compute or changing traffic.
+	Restore(ctx sdk_go.ObjectContext, req *RestoreDeploymentRequest) (*RestoreDeploymentResponse, error)
 	// NotifyInstancesReady is called by the control plane when enough instances
 	// have become healthy across the required regions. It resolves the awakeable
 	// stored by a suspended deploy or wake workflow so it can continue.
@@ -282,6 +301,9 @@ func (UnimplementedDeployServiceServer) WakeDeployment(ctx sdk_go.ObjectContext,
 func (UnimplementedDeployServiceServer) GarbageCollect(ctx sdk_go.ObjectContext, req *GarbageCollectDeploymentRequest) (*GarbageCollectDeploymentResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method GarbageCollect not implemented"), 501)
 }
+func (UnimplementedDeployServiceServer) Restore(ctx sdk_go.ObjectContext, req *RestoreDeploymentRequest) (*RestoreDeploymentResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method Restore not implemented"), 501)
+}
 func (UnimplementedDeployServiceServer) NotifyInstancesReady(ctx sdk_go.ObjectSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method NotifyInstancesReady not implemented"), 501)
 }
@@ -310,6 +332,7 @@ func NewDeployServiceServer(srv DeployServiceServer, opts ...sdk_go.ServiceDefin
 	router = router.Handler("StopDeployment", sdk_go.NewObjectHandler(srv.StopDeployment))
 	router = router.Handler("WakeDeployment", sdk_go.NewObjectHandler(srv.WakeDeployment))
 	router = router.Handler("GarbageCollect", sdk_go.NewObjectHandler(srv.GarbageCollect))
+	router = router.Handler("Restore", sdk_go.NewObjectHandler(srv.Restore))
 	router = router.Handler("NotifyInstancesReady", sdk_go.NewObjectSharedHandler(srv.NotifyInstancesReady))
 	return router
 }

@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const listDeploymentGCCandidates = `-- name: ListDeploymentGCCandidates :many
@@ -28,14 +29,16 @@ WHERE d.pk > ?
       AND fr.sticky IN ('branch', 'environment', 'live')
   )
   AND (
+    d.deleted_at <= ?
+    OR (d.deleted_at IS NULL AND (
     (
       e.kind = 'preview'
-      AND COALESCE(d.updated_at, d.created_at) < CAST(? AS SIGNED)
+      AND GREATEST(COALESCE(d.updated_at, d.created_at), COALESCE(d.restored_at, 0)) < CAST(? AS SIGNED)
     )
     OR
     (
       e.kind = 'production'
-      AND d.created_at < ?
+      AND GREATEST(d.created_at, COALESCE(d.restored_at, 0)) < CAST(? AS SIGNED)
       AND (
         d.status != 'stopped'
         OR (
@@ -43,6 +46,7 @@ WHERE d.pk > ?
           FROM deployments newer
           WHERE newer.app_id = d.app_id
             AND newer.environment_id = d.environment_id
+            AND newer.deleted_at IS NULL
             AND newer.status IN ('ready', 'stopped')
             AND (
               newer.created_at > d.created_at
@@ -51,17 +55,19 @@ WHERE d.pk > ?
         ) >= CAST(? AS UNSIGNED)
       )
     )
+    ))
   )
 ORDER BY d.pk
 LIMIT ?
 `
 
 type ListDeploymentGCCandidatesParams struct {
-	PaginationCursor uint64 `db:"pagination_cursor"`
-	PreviewCutoff    int64  `db:"preview_cutoff"`
-	ProductionCutoff int64  `db:"production_cutoff"`
-	KeepSuccessful   int64  `db:"keep_successful"`
-	Limit            int32  `db:"limit"`
+	PaginationCursor uint64        `db:"pagination_cursor"`
+	RecoveryCutoff   sql.NullInt64 `db:"recovery_cutoff"`
+	PreviewCutoff    int64         `db:"preview_cutoff"`
+	ProductionCutoff int64         `db:"production_cutoff"`
+	KeepSuccessful   int64         `db:"keep_successful"`
+	Limit            int32         `db:"limit"`
 }
 
 type ListDeploymentGCCandidatesRow struct {
@@ -91,14 +97,16 @@ type ListDeploymentGCCandidatesRow struct {
 //	      AND fr.sticky IN ('branch', 'environment', 'live')
 //	  )
 //	  AND (
+//	    d.deleted_at <= ?
+//	    OR (d.deleted_at IS NULL AND (
 //	    (
 //	      e.kind = 'preview'
-//	      AND COALESCE(d.updated_at, d.created_at) < CAST(? AS SIGNED)
+//	      AND GREATEST(COALESCE(d.updated_at, d.created_at), COALESCE(d.restored_at, 0)) < CAST(? AS SIGNED)
 //	    )
 //	    OR
 //	    (
 //	      e.kind = 'production'
-//	      AND d.created_at < ?
+//	      AND GREATEST(d.created_at, COALESCE(d.restored_at, 0)) < CAST(? AS SIGNED)
 //	      AND (
 //	        d.status != 'stopped'
 //	        OR (
@@ -106,6 +114,7 @@ type ListDeploymentGCCandidatesRow struct {
 //	          FROM deployments newer
 //	          WHERE newer.app_id = d.app_id
 //	            AND newer.environment_id = d.environment_id
+//	            AND newer.deleted_at IS NULL
 //	            AND newer.status IN ('ready', 'stopped')
 //	            AND (
 //	              newer.created_at > d.created_at
@@ -114,12 +123,14 @@ type ListDeploymentGCCandidatesRow struct {
 //	        ) >= CAST(? AS UNSIGNED)
 //	      )
 //	    )
+//	    ))
 //	  )
 //	ORDER BY d.pk
 //	LIMIT ?
 func (q *Queries) ListDeploymentGCCandidates(ctx context.Context, arg ListDeploymentGCCandidatesParams) ([]ListDeploymentGCCandidatesRow, error) {
 	rows, err := q.db.QueryContext(ctx, listDeploymentGCCandidates,
 		arg.PaginationCursor,
+		arg.RecoveryCutoff,
 		arg.PreviewCutoff,
 		arg.ProductionCutoff,
 		arg.KeepSuccessful,

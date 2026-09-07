@@ -15,5 +15,6 @@ INNER JOIN `regions` r ON r.id = dt.region_id
 INNER JOIN `environments` e ON e.id = d.environment_id
 LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
 WHERE r.id = sqlc.arg(region_id) AND dt.pk > sqlc.arg(after_pk) AND dt.desired_status = 'running'
+  AND d.deleted_at IS NULL
 ORDER BY dt.pk ASC
 LIMIT ?;

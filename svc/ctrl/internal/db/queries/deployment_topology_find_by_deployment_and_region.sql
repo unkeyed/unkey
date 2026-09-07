@@ -15,4 +15,5 @@ INNER JOIN `regions` r ON r.id = dt.region_id
 INNER JOIN `environments` e ON e.id = d.environment_id
 LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
 WHERE dt.deployment_id = sqlc.arg(deployment_id) AND dt.region_id = sqlc.arg(region_id)
+  AND d.deleted_at IS NULL
 LIMIT 1;

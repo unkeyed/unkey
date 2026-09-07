@@ -51,6 +51,9 @@ service DeployService {
   // retention policy. The request ID must match the deployment-keyed object.
   rpc GarbageCollect(GarbageCollectDeploymentRequest) returns (GarbageCollectDeploymentResponse) {}
 
+  // Restore recovers deployment history without starting compute or changing traffic.
+  rpc Restore(RestoreDeploymentRequest) returns (RestoreDeploymentResponse) {}
+
   // NotifyInstancesReady is called by the control plane when enough instances
   // have become healthy across the required regions. It resolves the awakeable
   // stored by a suspended deploy or wake workflow so it can continue.
@@ -81,6 +84,14 @@ message GarbageCollectDeploymentRequest {
 
 message GarbageCollectDeploymentResponse {
   bool deleted = 1;
+}
+
+message RestoreDeploymentRequest {
+  string deployment_id = 1;
+}
+
+message RestoreDeploymentResponse {
+  bool restored = 1;
 }
 
 message NotifyInstancesReadyRequest {

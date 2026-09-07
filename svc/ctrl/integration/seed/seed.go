@@ -416,6 +416,7 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 	err := s.DB.InsertDeployment(ctx, db.InsertDeploymentParams{
 		ID:                            id,
 		K8sName:                       uid.New("k8s"),
+		Image:                         sql.NullString{},
 		WorkspaceID:                   req.WorkspaceID,
 		ProjectID:                     req.ProjectID,
 		AppID:                         req.AppID,

@@ -15,6 +15,7 @@ SELECT r.fully_qualified_domain_name AS domain
 FROM frontline_routes r
 JOIN deployments d ON r.deployment_id = d.id
 WHERE d.workspace_id = ?
+  AND d.deleted_at IS NULL
   AND r.deployment_id = ?
 ORDER BY r.fully_qualified_domain_name
 `
@@ -30,6 +31,7 @@ type ListDeploymentDomainsParams struct {
 //	FROM frontline_routes r
 //	JOIN deployments d ON r.deployment_id = d.id
 //	WHERE d.workspace_id = ?
+//	  AND d.deleted_at IS NULL
 //	  AND r.deployment_id = ?
 //	ORDER BY r.fully_qualified_domain_name
 func (q *Queries) ListDeploymentDomains(ctx context.Context, db DBTX, arg ListDeploymentDomainsParams) ([]string, error) {
@@ -60,6 +62,7 @@ SELECT r.deployment_id AS deployment_id, r.fully_qualified_domain_name AS domain
 FROM frontline_routes r
 JOIN deployments d ON r.deployment_id = d.id
 WHERE d.workspace_id = ?
+  AND d.deleted_at IS NULL
   AND r.deployment_id IN (/*SLICE:deployment_ids*/?)
 ORDER BY r.deployment_id, r.fully_qualified_domain_name
 `
@@ -80,6 +83,7 @@ type ListDeploymentDomainsByIdsRow struct {
 //	FROM frontline_routes r
 //	JOIN deployments d ON r.deployment_id = d.id
 //	WHERE d.workspace_id = ?
+//	  AND d.deleted_at IS NULL
 //	  AND r.deployment_id IN (/*SLICE:deployment_ids*/?)
 //	ORDER BY r.deployment_id, r.fully_qualified_domain_name
 func (q *Queries) ListDeploymentDomainsByIds(ctx context.Context, db DBTX, arg ListDeploymentDomainsByIdsParams) ([]ListDeploymentDomainsByIdsRow, error) {

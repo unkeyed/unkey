@@ -218,6 +218,14 @@ type Querier interface {
 	//  LEFT JOIN deployments d ON d.workspace_id = w.id
 	//  WHERE w.id IN (/*SLICE:ids*/?)
 	DeleteWorkspacesWithChildren(ctx context.Context, ids []string) error
+	//DeploymentExistsIncludingDeleted
+	//
+	//  SELECT EXISTS(SELECT 1 FROM deployments WHERE id = ?)
+	DeploymentExistsIncludingDeleted(ctx context.Context, deploymentID string) (bool, error)
+	//DeploymentImageExistsIncludingDeleted
+	//
+	//  SELECT EXISTS(SELECT 1 FROM deployments WHERE image = ?)
+	DeploymentImageExistsIncludingDeleted(ctx context.Context, image sql.NullString) (bool, error)
 	//EndActiveDeploymentStepsForDeployments
 	//
 	//  UPDATE `deployment_steps`
@@ -433,16 +441,16 @@ type Querier interface {
 	FindDeployWorkspaceByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (FindDeployWorkspaceByStripeCustomerIDRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE id = ?
+	//  SELECT pk, id, k8s_name, deleted_at, restored_at, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE id = ? AND deleted_at IS NULL
 	FindDeploymentById(ctx context.Context, id string) (Deployment, error)
 	//FindDeploymentByK8sName
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE k8s_name = ?
+	//  SELECT pk, id, k8s_name, deleted_at, restored_at, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE k8s_name = ? AND deleted_at IS NULL
 	FindDeploymentByK8sName(ctx context.Context, k8sName string) (Deployment, error)
 	// Re-evaluates a deployment immediately before destructive cleanup. This must
 	// remain equivalent to ListDeploymentGCCandidates except for pagination.
 	//
-	//  SELECT d.id, d.image
+	//  SELECT d.id, d.image, d.deleted_at
 	//  FROM deployments d
 	//  JOIN environments e ON e.id = d.environment_id
 	//  JOIN apps a ON a.id = d.app_id
@@ -460,14 +468,16 @@ type Querier interface {
 	//        AND fr.sticky IN ('branch', 'environment', 'live')
 	//    )
 	//    AND (
+	//      d.deleted_at <= ?
+	//      OR (d.deleted_at IS NULL AND (
 	//      (
 	//        e.kind = 'preview'
-	//        AND COALESCE(d.updated_at, d.created_at) < CAST(? AS SIGNED)
+	//        AND GREATEST(COALESCE(d.updated_at, d.created_at), COALESCE(d.restored_at, 0)) < CAST(? AS SIGNED)
 	//      )
 	//      OR
 	//      (
 	//        e.kind = 'production'
-	//        AND d.created_at < ?
+	//        AND GREATEST(d.created_at, COALESCE(d.restored_at, 0)) < CAST(? AS SIGNED)
 	//        AND (
 	//          d.status != 'stopped'
 	//          OR (
@@ -475,6 +485,7 @@ type Querier interface {
 	//            FROM deployments newer
 	//            WHERE newer.app_id = d.app_id
 	//              AND newer.environment_id = d.environment_id
+	//              AND newer.deleted_at IS NULL
 	//              AND newer.status IN ('ready', 'stopped')
 	//              AND (
 	//                newer.created_at > d.created_at
@@ -483,7 +494,9 @@ type Querier interface {
 	//          ) >= CAST(? AS UNSIGNED)
 	//        )
 	//      )
+	//      ))
 	//    )
+	//  FOR UPDATE
 	FindDeploymentGCEligible(ctx context.Context, arg FindDeploymentGCEligibleParams) (FindDeploymentGCEligibleRow, error)
 	// Returns all regions where a deployment is configured.
 	// Used for fan-out: when a deployment changes, emit state_change to each region.
@@ -498,7 +511,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
-	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at,
+	//      d.pk, d.id, d.k8s_name, d.deleted_at, d.restored_at, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at,
 	//      w.k8s_namespace,
 	//      e.slug AS environment_slug,
 	//      r.name AS region_name,
@@ -510,6 +523,7 @@ type Querier interface {
 	//  INNER JOIN `environments` e ON e.id = d.environment_id
 	//  LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
 	//  WHERE dt.deployment_id = ? AND dt.region_id = ?
+	//    AND d.deleted_at IS NULL
 	//  LIMIT 1
 	FindDeploymentTopologyByDeploymentAndRegion(ctx context.Context, arg FindDeploymentTopologyByDeploymentAndRegionParams) (FindDeploymentTopologyByDeploymentAndRegionRow, error)
 	// Returns the per-region minimum replica requirement for a deployment.
@@ -522,11 +536,11 @@ type Querier interface {
 	FindDeploymentTopologyMinReplicas(ctx context.Context, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
 	//FindDeploymentWithEnvironmentAndApp
 	//
-	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, a.current_deployment_id, a.is_rolled_back
+	//  SELECT d.pk, d.id, d.k8s_name, d.deleted_at, d.restored_at, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, a.current_deployment_id, a.is_rolled_back
 	//  FROM deployments d
 	//  JOIN environments e ON e.id = d.environment_id
 	//  JOIN apps a ON a.id = d.app_id
-	//  WHERE d.id = ?
+	//  WHERE d.id = ? AND d.deleted_at IS NULL
 	FindDeploymentWithEnvironmentAndApp(ctx context.Context, id string) (FindDeploymentWithEnvironmentAndAppRow, error)
 	//FindEnvironmentByAppIdAndSlug
 	//
@@ -653,6 +667,7 @@ type Querier interface {
 	//  SELECT id
 	//  FROM deployments
 	//  WHERE app_id = ?
+	//    AND deleted_at IS NULL
 	//    AND environment_id = ?
 	//    AND status = 'ready'
 	//    AND id != ?
@@ -997,6 +1012,7 @@ type Querier interface {
 	//  INSERT INTO `deployments` (
 	//      id,
 	//      k8s_name,
+	//      image,
 	//      workspace_id,
 	//      project_id,
 	//      app_id,
@@ -1027,6 +1043,7 @@ type Querier interface {
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1470,7 +1487,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      dt.pk, dt.workspace_id, dt.deployment_id, dt.region_id, dt.autoscaling_replicas_min, dt.autoscaling_replicas_max, dt.autoscaling_threshold_cpu, dt.autoscaling_threshold_memory, dt.desired_status, dt.created_at, dt.updated_at,
-	//      d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at,
+	//      d.pk, d.id, d.k8s_name, d.deleted_at, d.restored_at, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at,
 	//      w.k8s_namespace,
 	//      e.slug AS environment_slug,
 	//      r.name AS region_name,
@@ -1482,6 +1499,7 @@ type Querier interface {
 	//  INNER JOIN `environments` e ON e.id = d.environment_id
 	//  LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
 	//  WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
+	//    AND d.deleted_at IS NULL
 	//  ORDER BY dt.pk ASC
 	//  LIMIT ?
 	ListAllDeploymentTopologiesByRegion(ctx context.Context, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error)
@@ -1574,14 +1592,16 @@ type Querier interface {
 	//        AND fr.sticky IN ('branch', 'environment', 'live')
 	//    )
 	//    AND (
+	//      d.deleted_at <= ?
+	//      OR (d.deleted_at IS NULL AND (
 	//      (
 	//        e.kind = 'preview'
-	//        AND COALESCE(d.updated_at, d.created_at) < CAST(? AS SIGNED)
+	//        AND GREATEST(COALESCE(d.updated_at, d.created_at), COALESCE(d.restored_at, 0)) < CAST(? AS SIGNED)
 	//      )
 	//      OR
 	//      (
 	//        e.kind = 'production'
-	//        AND d.created_at < ?
+	//        AND GREATEST(d.created_at, COALESCE(d.restored_at, 0)) < CAST(? AS SIGNED)
 	//        AND (
 	//          d.status != 'stopped'
 	//          OR (
@@ -1589,6 +1609,7 @@ type Querier interface {
 	//            FROM deployments newer
 	//            WHERE newer.app_id = d.app_id
 	//              AND newer.environment_id = d.environment_id
+	//              AND newer.deleted_at IS NULL
 	//              AND newer.status IN ('ready', 'stopped')
 	//              AND (
 	//                newer.created_at > d.created_at
@@ -1597,6 +1618,7 @@ type Querier interface {
 	//          ) >= CAST(? AS UNSIGNED)
 	//        )
 	//      )
+	//      ))
 	//    )
 	//  ORDER BY d.pk
 	//  LIMIT ?
@@ -1612,8 +1634,9 @@ type Querier interface {
 	ListDeploymentImagesForGC(ctx context.Context, arg ListDeploymentImagesForGCParams) ([]ListDeploymentImagesForGCRow, error)
 	//ListDeploymentsByEnvironmentIdAndStatus
 	//
-	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments`
+	//  SELECT pk, id, k8s_name, deleted_at, restored_at, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments`
 	//  WHERE environment_id = ?
+	//    AND deleted_at IS NULL
 	//    AND status = ?
 	//    AND created_at < ?
 	//    AND (updated_at IS null OR updated_at < ? )
@@ -1939,6 +1962,12 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	ResetCustomDomainVerification(ctx context.Context, arg ResetCustomDomainVerificationParams) error
+	//RestoreDeployment
+	//
+	//  UPDATE deployments SET deleted_at = NULL, restored_at = ?
+	//  WHERE id = ?
+	//    AND deleted_at > ?
+	RestoreDeployment(ctx context.Context, arg RestoreDeploymentParams) (int64, error)
 	// Restores an app's current deployment on resume (the inverse of
 	// ClearAppCurrentDeployment, which teardown uses on suspend). Sets only
 	// current_deployment_id and updated_at_m; leaves is_rolled_back untouched.
@@ -1968,6 +1997,11 @@ type Querier interface {
 	//  SET k8s_namespace = ?
 	//  WHERE id = ? AND k8s_namespace IS NULL
 	SetWorkspaceK8sNamespace(ctx context.Context, arg SetWorkspaceK8sNamespaceParams) error
+	//SoftDeleteDeploymentForGC
+	//
+	//  UPDATE deployments SET deleted_at = ?
+	//  WHERE id = ? AND deleted_at IS NULL
+	SoftDeleteDeploymentForGC(ctx context.Context, arg SoftDeleteDeploymentForGCParams) (int64, error)
 	//SoftDeleteKeyByID
 	//
 	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?
@@ -2090,7 +2124,7 @@ type Querier interface {
 	//
 	//  UPDATE deployments
 	//  SET desired_state = ?, updated_at = ?
-	//  WHERE id = ?
+	//  WHERE id = ? AND deleted_at IS NULL
 	UpdateDeploymentDesiredState(ctx context.Context, arg UpdateDeploymentDesiredStateParams) error
 	//UpdateDeploymentGithubDeploymentId
 	//

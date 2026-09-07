@@ -13,17 +13,19 @@ import (
 )
 
 const findDeploymentWithEnvironmentAndApp = `-- name: FindDeploymentWithEnvironmentAndApp :one
-SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.` + "`" + `trigger` + "`" + `, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, a.current_deployment_id, a.is_rolled_back
+SELECT d.pk, d.id, d.k8s_name, d.deleted_at, d.restored_at, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.` + "`" + `trigger` + "`" + `, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, a.current_deployment_id, a.is_rolled_back
 FROM deployments d
 JOIN environments e ON e.id = d.environment_id
 JOIN apps a ON a.id = d.app_id
-WHERE d.id = ?
+WHERE d.id = ? AND d.deleted_at IS NULL
 `
 
 type FindDeploymentWithEnvironmentAndAppRow struct {
 	Pk                            uint64                            `db:"pk"`
 	ID                            string                            `db:"id"`
 	K8sName                       string                            `db:"k8s_name"`
+	DeletedAt                     sql.NullInt64                     `db:"deleted_at"`
+	RestoredAt                    sql.NullInt64                     `db:"restored_at"`
 	WorkspaceID                   string                            `db:"workspace_id"`
 	ProjectID                     string                            `db:"project_id"`
 	EnvironmentID                 string                            `db:"environment_id"`
@@ -65,11 +67,11 @@ type FindDeploymentWithEnvironmentAndAppRow struct {
 
 // FindDeploymentWithEnvironmentAndApp
 //
-//	SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, a.current_deployment_id, a.is_rolled_back
+//	SELECT d.pk, d.id, d.k8s_name, d.deleted_at, d.restored_at, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, a.current_deployment_id, a.is_rolled_back
 //	FROM deployments d
 //	JOIN environments e ON e.id = d.environment_id
 //	JOIN apps a ON a.id = d.app_id
-//	WHERE d.id = ?
+//	WHERE d.id = ? AND d.deleted_at IS NULL
 func (q *Queries) FindDeploymentWithEnvironmentAndApp(ctx context.Context, id string) (FindDeploymentWithEnvironmentAndAppRow, error) {
 	row := q.db.QueryRowContext(ctx, findDeploymentWithEnvironmentAndApp, id)
 	var i FindDeploymentWithEnvironmentAndAppRow
@@ -77,6 +79,8 @@ func (q *Queries) FindDeploymentWithEnvironmentAndApp(ctx context.Context, id st
 		&i.Pk,
 		&i.ID,
 		&i.K8sName,
+		&i.DeletedAt,
+		&i.RestoredAt,
 		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.EnvironmentID,

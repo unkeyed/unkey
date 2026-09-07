@@ -381,6 +381,7 @@ func insertDeploymentRecord(
 		if txErr := db.NewQueries(tx).InsertDeployment(txCtx, db.InsertDeploymentParams{
 			ID:                            deploymentID,
 			K8sName:                       uid.DNS1035(12),
+			Image:                         sql.NullString{},
 			WorkspaceID:                   project.WorkspaceID,
 			ProjectID:                     project.ID,
 			AppID:                         app.ID,

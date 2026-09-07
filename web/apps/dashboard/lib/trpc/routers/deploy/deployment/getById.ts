@@ -1,4 +1,4 @@
-import { and, db, eq } from "@/lib/db";
+import { and, db, eq, isNull } from "@/lib/db";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import {
@@ -37,6 +37,7 @@ export const getById = workspaceProcedure
             eq(deployments.id, input.deploymentId),
             eq(deployments.workspaceId, ctx.workspace.id),
             eq(deployments.projectId, input.projectId),
+            isNull(deployments.deletedAt),
           ),
         )
         .limit(1);

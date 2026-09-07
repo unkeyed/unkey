@@ -118,6 +118,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	err := h.DB.InsertDeployment(ctx, db.InsertDeploymentParams{
 		ID:                            deploymentID,
 		K8sName:                       k8sName,
+		Image:                         sql.NullString{},
 		WorkspaceID:                   workspaceID,
 		ProjectID:                     project.ID,
 		AppID:                         app.ID,
