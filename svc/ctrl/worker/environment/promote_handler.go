@@ -8,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
@@ -76,11 +77,18 @@ func (s *Service) PromoteDeployment(ctx restate.ObjectContext, req *hydrav1.Prom
 			})
 	}
 
-	if err := s.insertLifecycleAudit(
+	if err := audit.InsertDeploymentLifecycle(
 		ctx,
+		s.auditlogs,
 		req.GetActor(),
 		req.GetCorrelationId(),
-		deployment,
+		audit.DeploymentRef{
+			ID:            deployment.ID,
+			WorkspaceID:   deployment.WorkspaceID,
+			ProjectID:     deployment.ProjectID,
+			AppID:         deployment.AppID,
+			EnvironmentID: deployment.EnvironmentID,
+		},
 		auditlog.DeploymentPromoteEvent,
 		fmt.Sprintf("Promoted deployment %s", deployment.ID),
 	); err != nil {
