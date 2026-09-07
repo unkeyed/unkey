@@ -101,9 +101,13 @@ Order matters for readability even when it does not affect semantics. In Go file
 
 ### Comments
 
-Comments are sentences. Start with a capital letter and end with a period. Comments explain the reasoning, tradeoffs, and context that future readers need.
+A good code comment should explain the reasoning, tradeoffs, and context that future readers need. 
 
-For documentation guidance, see [Documentation](/contributing/quality/documentation).
+Think of comments as breadcrumbs of context left for future readers. Use them sparingly, and only when the breadcrumb carries enough signal to justify its existence.
+
+Keep existing comments accurate when changing the code they describe.
+
+For symbol and package documentation requirements, see [Documentation](/contributing/quality/documentation).
 
 Test docstrings and comments follow the same rule. They explain the guarantee a test protects, especially for security properties, regressions, invariants, and business rules. They do not repeat the mechanics of setup or assertions.
 

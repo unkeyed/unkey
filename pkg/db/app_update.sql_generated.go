@@ -21,10 +21,6 @@ SET
         WHEN CAST(? AS UNSIGNED) = 1 THEN ?
         ELSE a.slug
     END,
-    default_branch = CASE
-        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-        ELSE a.default_branch
-    END,
     delete_protection = CASE
         WHEN CAST(? AS UNSIGNED) = 1 THEN ?
         ELSE a.delete_protection
@@ -39,8 +35,6 @@ type UpdateAppParams struct {
 	Name                      string        `db:"name"`
 	SlugSpecified             int64         `db:"slug_specified"`
 	Slug                      string        `db:"slug"`
-	DefaultBranchSpecified    int64         `db:"default_branch_specified"`
-	DefaultBranch             string        `db:"default_branch"`
 	DeleteProtectionSpecified int64         `db:"delete_protection_specified"`
 	DeleteProtection          sql.NullBool  `db:"delete_protection"`
 	UpdatedAt                 sql.NullInt64 `db:"updated_at"`
@@ -60,10 +54,6 @@ type UpdateAppParams struct {
 //	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 //	        ELSE a.slug
 //	    END,
-//	    default_branch = CASE
-//	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-//	        ELSE a.default_branch
-//	    END,
 //	    delete_protection = CASE
 //	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 //	        ELSE a.delete_protection
@@ -77,8 +67,6 @@ func (q *Queries) UpdateApp(ctx context.Context, db DBTX, arg UpdateAppParams) e
 		arg.Name,
 		arg.SlugSpecified,
 		arg.Slug,
-		arg.DefaultBranchSpecified,
-		arg.DefaultBranch,
 		arg.DeleteProtectionSpecified,
 		arg.DeleteProtection,
 		arg.UpdatedAt,

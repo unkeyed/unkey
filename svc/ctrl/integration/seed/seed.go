@@ -335,6 +335,7 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 		ProjectID:        req.ProjectID,
 		Name:             req.Name,
 		Slug:             req.Slug,
+		SourceType:       db.AppsSourceTypeUnknown,
 		DefaultBranch:    req.DefaultBranch,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: false},
 		CreatedAt:        now,

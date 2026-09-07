@@ -35,6 +35,9 @@ const (
 const (
 	// AppServiceCreateAppProcedure is the fully-qualified name of the AppService's CreateApp RPC.
 	AppServiceCreateAppProcedure = "/ctrl.v1.AppService/CreateApp"
+	// AppServiceUpdateOciImageSourceProcedure is the fully-qualified name of the AppService's
+	// UpdateOciImageSource RPC.
+	AppServiceUpdateOciImageSourceProcedure = "/ctrl.v1.AppService/UpdateOciImageSource"
 	// AppServiceDeleteAppProcedure is the fully-qualified name of the AppService's DeleteApp RPC.
 	AppServiceDeleteAppProcedure = "/ctrl.v1.AppService/DeleteApp"
 )
@@ -43,6 +46,8 @@ const (
 type AppServiceClient interface {
 	// Create a new app within a project
 	CreateApp(context.Context, *connect.Request[v1.CreateAppRequest]) (*connect.Response[v1.CreateAppResponse], error)
+	// Change the default image reference for an OCI-sourced app.
+	UpdateOciImageSource(context.Context, *connect.Request[v1.UpdateOciImageSourceRequest]) (*connect.Response[v1.UpdateOciImageSourceResponse], error)
 	// Delete an app and all associated resources
 	DeleteApp(context.Context, *connect.Request[v1.DeleteAppRequest]) (*connect.Response[v1.DeleteAppResponse], error)
 }
@@ -64,6 +69,12 @@ func NewAppServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(appServiceMethods.ByName("CreateApp")),
 			connect.WithClientOptions(opts...),
 		),
+		updateOciImageSource: connect.NewClient[v1.UpdateOciImageSourceRequest, v1.UpdateOciImageSourceResponse](
+			httpClient,
+			baseURL+AppServiceUpdateOciImageSourceProcedure,
+			connect.WithSchema(appServiceMethods.ByName("UpdateOciImageSource")),
+			connect.WithClientOptions(opts...),
+		),
 		deleteApp: connect.NewClient[v1.DeleteAppRequest, v1.DeleteAppResponse](
 			httpClient,
 			baseURL+AppServiceDeleteAppProcedure,
@@ -75,13 +86,19 @@ func NewAppServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 
 // appServiceClient implements AppServiceClient.
 type appServiceClient struct {
-	createApp *connect.Client[v1.CreateAppRequest, v1.CreateAppResponse]
-	deleteApp *connect.Client[v1.DeleteAppRequest, v1.DeleteAppResponse]
+	createApp            *connect.Client[v1.CreateAppRequest, v1.CreateAppResponse]
+	updateOciImageSource *connect.Client[v1.UpdateOciImageSourceRequest, v1.UpdateOciImageSourceResponse]
+	deleteApp            *connect.Client[v1.DeleteAppRequest, v1.DeleteAppResponse]
 }
 
 // CreateApp calls ctrl.v1.AppService.CreateApp.
 func (c *appServiceClient) CreateApp(ctx context.Context, req *connect.Request[v1.CreateAppRequest]) (*connect.Response[v1.CreateAppResponse], error) {
 	return c.createApp.CallUnary(ctx, req)
+}
+
+// UpdateOciImageSource calls ctrl.v1.AppService.UpdateOciImageSource.
+func (c *appServiceClient) UpdateOciImageSource(ctx context.Context, req *connect.Request[v1.UpdateOciImageSourceRequest]) (*connect.Response[v1.UpdateOciImageSourceResponse], error) {
+	return c.updateOciImageSource.CallUnary(ctx, req)
 }
 
 // DeleteApp calls ctrl.v1.AppService.DeleteApp.
@@ -93,6 +110,8 @@ func (c *appServiceClient) DeleteApp(ctx context.Context, req *connect.Request[v
 type AppServiceHandler interface {
 	// Create a new app within a project
 	CreateApp(context.Context, *connect.Request[v1.CreateAppRequest]) (*connect.Response[v1.CreateAppResponse], error)
+	// Change the default image reference for an OCI-sourced app.
+	UpdateOciImageSource(context.Context, *connect.Request[v1.UpdateOciImageSourceRequest]) (*connect.Response[v1.UpdateOciImageSourceResponse], error)
 	// Delete an app and all associated resources
 	DeleteApp(context.Context, *connect.Request[v1.DeleteAppRequest]) (*connect.Response[v1.DeleteAppResponse], error)
 }
@@ -110,6 +129,12 @@ func NewAppServiceHandler(svc AppServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(appServiceMethods.ByName("CreateApp")),
 		connect.WithHandlerOptions(opts...),
 	)
+	appServiceUpdateOciImageSourceHandler := connect.NewUnaryHandler(
+		AppServiceUpdateOciImageSourceProcedure,
+		svc.UpdateOciImageSource,
+		connect.WithSchema(appServiceMethods.ByName("UpdateOciImageSource")),
+		connect.WithHandlerOptions(opts...),
+	)
 	appServiceDeleteAppHandler := connect.NewUnaryHandler(
 		AppServiceDeleteAppProcedure,
 		svc.DeleteApp,
@@ -120,6 +145,8 @@ func NewAppServiceHandler(svc AppServiceHandler, opts ...connect.HandlerOption) 
 		switch r.URL.Path {
 		case AppServiceCreateAppProcedure:
 			appServiceCreateAppHandler.ServeHTTP(w, r)
+		case AppServiceUpdateOciImageSourceProcedure:
+			appServiceUpdateOciImageSourceHandler.ServeHTTP(w, r)
 		case AppServiceDeleteAppProcedure:
 			appServiceDeleteAppHandler.ServeHTTP(w, r)
 		default:
@@ -133,6 +160,10 @@ type UnimplementedAppServiceHandler struct{}
 
 func (UnimplementedAppServiceHandler) CreateApp(context.Context, *connect.Request[v1.CreateAppRequest]) (*connect.Response[v1.CreateAppResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.AppService.CreateApp is not implemented"))
+}
+
+func (UnimplementedAppServiceHandler) UpdateOciImageSource(context.Context, *connect.Request[v1.UpdateOciImageSourceRequest]) (*connect.Response[v1.UpdateOciImageSourceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.AppService.UpdateOciImageSource is not implemented"))
 }
 
 func (UnimplementedAppServiceHandler) DeleteApp(context.Context, *connect.Request[v1.DeleteAppRequest]) (*connect.Response[v1.DeleteAppResponse], error) {

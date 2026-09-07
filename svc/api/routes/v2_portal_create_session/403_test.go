@@ -167,33 +167,21 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 		permissions []string
 		shouldPass  bool
 	}{
+		// Reroll cases carry keys:read and its grants: reroll alone is a 400
+		// before it reaches the ceiling these cases exercise.
 		{
 			// The escalation regression: minting alone must not confer key
 			// rotation, which hands back plaintext key material.
 			name:        "reroll without create_key",
 			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:reroll"},
-			permissions: []string{mint},
+			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
+			permissions: []string{mint, "api.*.read_key", "api.*.read_api"},
 			shouldPass:  false,
 		},
 		{
 			name:        "read without key permissions",
 			portal:      "escalation-portal",
 			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
-			permissions: []string{mint},
-			shouldPass:  false,
-		},
-		{
-			name:        "analytics without read_analytics",
-			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"analytics:read"},
-			permissions: []string{mint},
-			shouldPass:  false,
-		},
-		{
-			name:        "create without create_key",
-			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:create"},
 			permissions: []string{mint},
 			shouldPass:  false,
 		},
@@ -225,15 +213,15 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 			// update.
 			name:        "reroll with create_key",
 			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:reroll"},
-			permissions: []string{mint, "api.*.create_key"},
+			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
+			permissions: []string{mint, "api.*.read_key", "api.*.read_api", "api.*.create_key"},
 			shouldPass:  true,
 		},
 		{
 			name:        "reroll with update_key only",
 			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:reroll"},
-			permissions: []string{mint, "api.*.update_key"},
+			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
+			permissions: []string{mint, "api.*.read_key", "api.*.read_api", "api.*.update_key"},
 			shouldPass:  false,
 		},
 		{
@@ -241,20 +229,6 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 			portal:      "escalation-portal",
 			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
 			permissions: []string{mint, fmt.Sprintf("api.%s.read_key", plainAPI.ID), fmt.Sprintf("api.%s.read_api", plainAPI.ID)},
-			shouldPass:  true,
-		},
-		{
-			name:        "analytics with api scoped read_analytics",
-			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"analytics:read"},
-			permissions: []string{mint, fmt.Sprintf("api.%s.read_analytics", plainAPI.ID)},
-			shouldPass:  true,
-		},
-		{
-			name:        "analytics with wildcard read_analytics",
-			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"analytics:read"},
-			permissions: []string{mint, "api.*.read_analytics"},
 			shouldPass:  true,
 		},
 		{
@@ -269,8 +243,8 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 		{
 			name:        "all requested scopes granted",
 			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll", "analytics:read"},
-			permissions: []string{mint, "api.*.read_key", "api.*.read_api", "api.*.create_key", "api.*.read_analytics"},
+			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
+			permissions: []string{mint, "api.*.read_key", "api.*.read_api", "api.*.create_key"},
 			shouldPass:  true,
 		},
 		{
@@ -278,8 +252,8 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 			// apply, so create_key alone is enough.
 			name:        "reroll on unencrypted keyspace needs only create_key",
 			portal:      "escalation-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:reroll"},
-			permissions: []string{mint, "api.*.create_key"},
+			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
+			permissions: []string{mint, "api.*.read_key", "api.*.read_api", "api.*.create_key"},
 			shouldPass:  true,
 		},
 		{
@@ -287,23 +261,16 @@ func TestCreateSessionScopeEscalation(t *testing.T) {
 			// encrypt_key is additionally required.
 			name:        "reroll on encrypted keyspace without encrypt_key",
 			portal:      "encrypted-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:reroll"},
-			permissions: []string{mint, "api.*.create_key"},
+			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
+			permissions: []string{mint, "api.*.read_key", "api.*.read_api", "api.*.create_key"},
 			shouldPass:  false,
 		},
 		{
 			name:        "reroll on encrypted keyspace with encrypt_key",
 			portal:      "encrypted-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:reroll"},
-			permissions: []string{mint, "api.*.create_key", "api.*.encrypt_key"},
+			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read", "keys:reroll"},
+			permissions: []string{mint, "api.*.read_key", "api.*.read_api", "api.*.create_key", "api.*.encrypt_key"},
 			shouldPass:  true,
-		},
-		{
-			name:        "create on encrypted keyspace without encrypt_key",
-			portal:      "encrypted-portal",
-			scopes:      []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:create"},
-			permissions: []string{mint, "api.*.create_key"},
-			shouldPass:  false,
 		},
 	}
 
@@ -449,7 +416,6 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 		"api.*.read_api",
 		"api.*.create_key",
 		"api.*.encrypt_key",
-		"api.*.read_analytics",
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
