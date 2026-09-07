@@ -28,7 +28,7 @@ export function canReadAnalytics(scopes: ReadonlyArray<string>): boolean {
 }
 
 export type PortalTab = {
-  id: string;
+  id: "keys" | "analytics";
   label: string;
   href: string;
 };
