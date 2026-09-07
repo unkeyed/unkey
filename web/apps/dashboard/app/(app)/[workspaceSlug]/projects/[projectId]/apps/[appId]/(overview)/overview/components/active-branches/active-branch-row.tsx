@@ -49,7 +49,7 @@ export function ActiveBranchRow({
       <span className="flex w-32 shrink-0 items-center">
         <IdChip deployment={deployment} href={href} />
       </span>
-      <span className="hidden w-28 min-w-0 shrink-0 items-center md:flex">
+      <span className="hidden w-36 min-w-0 shrink-0 items-center md:flex">
         <SourceChip deployment={deployment} repoFullName={repoFullName} />
       </span>
       <span className="hidden w-40 shrink-0 items-center lg:flex">

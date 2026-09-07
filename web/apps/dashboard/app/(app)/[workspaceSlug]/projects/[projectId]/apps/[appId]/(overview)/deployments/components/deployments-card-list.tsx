@@ -107,6 +107,7 @@ export function DeploymentsCardList() {
             repoFullName={app?.repositoryFullName ?? null}
             currentDeployment={currentDeployment}
             isRolledBack={isRolledBack}
+            liveSince={app?.updatedAt ?? null}
             href={routes.projects.apps.deployment({
               workspaceSlug: workspace.slug,
               projectId,

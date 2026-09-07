@@ -79,3 +79,19 @@ export function expandDeploymentStatusGroups(
 ): DeploymentStatus[] {
   return groups.flatMap((group) => DEPLOYMENT_STATUS_GROUPS[group]);
 }
+
+// A stop or wake only records the desired state up front; the status catches up
+// once the instances have actually scaled, so a row whose status disagrees with
+// its desired state is still moving even though the status itself is terminal.
+export function isDeploymentSettling(deployment: {
+  status: DeploymentStatus;
+  desiredState: "running" | "stopped";
+}): boolean {
+  if (isDeploymentInFlight(deployment.status)) {
+    return true;
+  }
+  return (
+    (deployment.status === "ready" && deployment.desiredState === "stopped") ||
+    (deployment.status === "stopped" && deployment.desiredState === "running")
+  );
+}

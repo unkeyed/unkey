@@ -1,5 +1,5 @@
 import type { Deployment } from "@/lib/collections";
-import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
+import { isDeploymentSettling } from "@/lib/collections/deploy/deployment-status";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
@@ -36,7 +36,7 @@ export function useDeployments() {
       // and post-mutation invalidation. A refetch reloads every opened page,
       // so only the newest page decides.
       refetchInterval: (data) =>
-        data?.pages[0]?.deployments.some((d) => isDeploymentInFlight(d.status)) ? 5_000 : false,
+        data?.pages[0]?.deployments.some(isDeploymentSettling) ? 5_000 : false,
     },
   );
 

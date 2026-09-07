@@ -5,6 +5,7 @@ import { DeploymentStatusDot } from "@/app/(app)/[workspaceSlug]/projects/[proje
 import { EnvironmentBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
 import type { Deployment, Environment } from "@/lib/collections";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
+import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { shortenId } from "@/lib/shorten-id";
 import { ResourceListItem } from "@unkey/ui";
 import type { Route } from "next";
@@ -21,8 +22,6 @@ import {
   RowMenu,
   RowTime,
 } from "./deployment-row-cells";
-import { imageDisplay } from "./image-reference";
-import { EnvStatusBadge } from "./table/components/env-status-badge";
 
 type DeploymentRowProps = {
   deployment: Deployment;
@@ -30,6 +29,7 @@ type DeploymentRowProps = {
   repoFullName: string | null;
   currentDeployment: Deployment | undefined;
   isRolledBack: boolean;
+  liveSince: number | null;
   href: Route;
 };
 
@@ -39,6 +39,7 @@ export function DeploymentRow({
   repoFullName,
   currentDeployment,
   isRolledBack,
+  liveSince,
   href,
 }: DeploymentRowProps) {
   const [approvalOpen, setApprovalOpen] = useState(false);
@@ -80,7 +81,7 @@ export function DeploymentRow({
           title={deployment.gitCommitMessage ?? deployment.image ?? undefined}
         >
           {deployment.gitCommitMessage ??
-            (deployment.image ? imageDisplay(deployment.image) : shortenId(deployment.id))}
+            (deployment.image ? imageRefDisplay(deployment.image) : shortenId(deployment.id))}
         </span>
         {showLastExit && deployment.lastExit && (
           <span className="relative z-20 shrink-0">
@@ -99,8 +100,14 @@ export function DeploymentRow({
         />
       </span>
       <span className="hidden w-32 shrink-0 items-center gap-2 sm:flex">
-        {environment && <EnvironmentBadge environment={environment} isCurrent={isCurrent} />}
-        {isCurrent && isRolledBack && <EnvStatusBadge variant="rolledBack" text="Rolled Back" />}
+        {environment && (
+          <EnvironmentBadge
+            environment={environment}
+            isCurrent={isCurrent}
+            isRolledBack={isRolledBack}
+            liveSince={liveSince}
+          />
+        )}
       </span>
       <span className="hidden w-32 min-w-0 shrink-0 items-center md:flex">
         {deployment.gitCommitSha ? (

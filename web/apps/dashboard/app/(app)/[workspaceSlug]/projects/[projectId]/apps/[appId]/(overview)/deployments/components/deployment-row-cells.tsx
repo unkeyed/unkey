@@ -3,6 +3,7 @@
 import { Avatar } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/git-avatar";
 import type { Deployment, Environment } from "@/lib/collections";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
+import { imageRefTag } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
 import { shortenId } from "@/lib/shorten-id";
 import { cn } from "@/lib/utils";
@@ -23,7 +24,6 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { FC, ReactNode } from "react";
 import { DeploymentStatusIndicator } from "../../../components/deployment-status-dot";
-import { imageTag } from "./image-reference";
 import { ActionColumnSkeleton } from "./table/components/skeletons";
 
 const DeploymentListTableActions = dynamic(
@@ -112,12 +112,15 @@ export function SourceChip({
   if (origin) {
     const Icon = origin.icon;
     return (
-      <span className={CHIP_CLASS}>
+      <InfoTooltip
+        content={origin.tooltip}
+        variant="inverted"
+        position={{ side: "top" }}
+        triggerClassName={cn(CHIP_CLASS, "relative z-20")}
+      >
         <Icon iconSize="sm-regular" className="shrink-0 text-gray-9" />
-        <span className="truncate font-mono" title={origin.label}>
-          {origin.label}
-        </span>
-      </span>
+        <span className="truncate font-mono">{origin.label}</span>
+      </InfoTooltip>
     );
   }
 
@@ -229,7 +232,7 @@ export function ImageRef({ image }: { image: string }) {
   return (
     <span className="flex min-w-0 items-center gap-1.5" title={image}>
       <Layers2 iconSize="sm-regular" className="shrink-0 text-gray-9" />
-      <span className="truncate font-mono text-xs text-accent-12">{imageTag(image)}</span>
+      <span className="truncate font-mono text-xs text-accent-12">{imageRefTag(image)}</span>
     </span>
   );
 }
