@@ -1,37 +1,34 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { AlertTriangle, BarChart3 } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { computeMetrics } from "~/components/analytics/analytics-transform";
+import { formatCount } from "~/components/analytics/format";
+import { HeaderStat } from "~/components/analytics/header-stat";
 import { useVerificationsQuery } from "~/components/analytics/hooks/queries/use-verifications-query";
+import { RangeControl } from "~/components/analytics/range-control";
 import {
   availableAnalyticsPeriods,
   defaultAnalyticsPeriodDays,
 } from "~/components/analytics/schema/analytics.schema";
-import { VerificationsChart } from "~/components/analytics/verifications-chart";
+import {
+  REJECTED_COLOR,
+  VALID_COLOR,
+  VerificationsChart,
+} from "~/components/analytics/verifications-chart";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "~/components/ui/empty";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "~/components/ui/select";
 import { isRetentionExceededError, isUnauthorizedError } from "~/lib/portal-api";
+import { canReadAnalytics, getDefaultTabHref } from "~/lib/scopes";
+
+const CHART_HEIGHT = 280;
+
+type CardState = "loading" | "error" | "empty" | "populated";
 
 export const Route = createFileRoute("/_portal/analytics")({
-  beforeLoad: () => {
-    // Analytics is deferred to v2. The route is kept for reuse but blocked at
-    // the route layer: it must not render even for a session that carries
-    // analytics:read, and direct navigation is redirected away.
-    throw redirect({ to: "/keys" });
+  beforeLoad: ({ context }) => {
+    if (!canReadAnalytics(context.session.scopes)) {
+      throw redirect({ to: getDefaultTabHref(context.session.scopes) ?? "/" });
+    }
   },
   component: AnalyticsPage,
 });
@@ -39,21 +36,35 @@ export const Route = createFileRoute("/_portal/analytics")({
 function AnalyticsPage() {
   const { session, logsRetentionDays } = Route.useRouteContext();
 
-  // Only offer windows the workspace can actually query; a longer one than its
-  // retention would just error server-side. Retention is fixed for the session,
-  // so compute the options and initial window once.
   const periodOptions = useMemo(
     () => availableAnalyticsPeriods(logsRetentionDays),
     [logsRetentionDays],
   );
   const [days, setDays] = useState<number>(() => defaultAnalyticsPeriodDays(logsRetentionDays));
 
-  const { buckets, isInitialLoading, isError, error, refetch } = useVerificationsQuery(days);
+  const { buckets, isInitialLoading, isFetching, isError, error, refetch } =
+    useVerificationsQuery(days);
   const metrics = useMemo(() => computeMetrics(buckets), [buckets]);
+
+  if (isError && isUnauthorizedError(error)) {
+    return (
+      <main className="mx-auto max-w-5xl px-4 pt-8 pb-12 sm:px-8">
+        <SessionExpired returnUrl={session.returnUrl} />
+      </main>
+    );
+  }
+
+  const state = cardState(isInitialLoading, isError, metrics.totalRequests);
+  const stat = (count: number) => {
+    if (state === "loading") {
+      return null;
+    }
+    return state === "populated" ? formatCount(count) : "--";
+  };
 
   return (
     <main className="mx-auto max-w-5xl px-4 pt-8 pb-12 sm:px-8">
-      <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <header className="mb-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="font-semibold text-gray-12 text-xl">Analytics</h1>
           <p className="text-gray-11 text-sm">
@@ -61,107 +72,87 @@ function AnalyticsPage() {
           </p>
         </div>
         {periodOptions.length > 1 && (
-          <Select
-            value={String(days)}
-            onValueChange={(value) => setDays(Number(value))}
-            items={periodOptions.map((option) => ({
-              value: String(option.days),
-              label: option.label,
-            }))}
-          >
-            <SelectTrigger className="w-44" aria-label="Time period">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {periodOptions.map((option) => (
-                <SelectItem key={option.days} value={String(option.days)}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <RangeControl options={periodOptions} value={days} onChange={setDays} />
         )}
       </header>
 
-      {isInitialLoading ? (
-        <AnalyticsLoading />
-      ) : isError && isUnauthorizedError(error) ? (
-        // Expired/invalid session: retrying won't help — send the user back to
-        // the application that launched the portal.
-        <SessionExpired returnUrl={session.returnUrl} />
-      ) : isError && isRetentionExceededError(error) ? (
-        // Window isn't available (e.g. retention lowered mid-session). Options
-        // are gated to what's available, so this is rare; show a neutral,
-        // actionable message rather than the generic error.
-        <AnalyticsError
-          title="Time range unavailable"
-          message="That time range isn't available. Try a shorter range."
-          onRetry={refetch}
-        />
-      ) : isError ? (
-        <AnalyticsError
-          message={error instanceof Error ? error.message : undefined}
-          onRetry={refetch}
-        />
-      ) : metrics.totalRequests === 0 ? (
-        <AnalyticsEmpty />
-      ) : (
-        <div className="flex flex-col gap-6">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <MetricCard label="Total Requests" value={metrics.totalRequests.toLocaleString()} />
-            <MetricCard label="Success Rate" value={formatPercent(metrics.successRate)} />
-            <MetricCard label="Error Rate" value={formatPercent(metrics.errorRate)} />
-          </div>
-          <div className="rounded-lg border border-primary/10 bg-background p-4">
-            <VerificationsChart buckets={buckets} days={days} />
-          </div>
+      <section className="rounded-lg border border-primary/10 bg-background">
+        <div className="flex flex-wrap items-center gap-6 border-gray-6 border-b px-5 py-4 sm:gap-8">
+          <HeaderStat label="Total" value={stat(metrics.totalRequests)} />
+          <HeaderStat label="Valid" value={stat(metrics.validRequests)} swatch={VALID_COLOR} />
+          <HeaderStat label="Invalid" value={stat(metrics.errorRequests)} swatch={REJECTED_COLOR} />
         </div>
-      )}
+
+        <div
+          className={`p-4 transition-opacity ${isFetching && !isInitialLoading ? "opacity-60" : ""}`}
+          style={{ height: CHART_HEIGHT + 32 }}
+        >
+          <ChartSlot
+            state={state}
+            message={
+              isRetentionExceededError(error)
+                ? "That time range isn't available. Try a shorter range."
+                : "Couldn't load your analytics"
+            }
+            onRetry={isRetentionExceededError(error) ? undefined : () => refetch()}
+          >
+            <VerificationsChart buckets={buckets} days={days} />
+          </ChartSlot>
+        </div>
+      </section>
     </main>
   );
 }
 
-/** Render a [0, 1] fraction as a one-decimal percentage. */
-function formatPercent(fraction: number): string {
-  return `${(fraction * 100).toFixed(1)}%`;
+function cardState(loading: boolean, failed: boolean, total: number): CardState {
+  if (loading) {
+    return "loading";
+  }
+  if (failed) {
+    return "error";
+  }
+  return total === 0 ? "empty" : "populated";
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-primary/10 bg-background p-4">
-      <span className="text-gray-11 text-xs">{label}</span>
-      <div className="mt-1 font-semibold text-2xl text-gray-12 tabular-nums">{value}</div>
-    </div>
-  );
-}
-
-function AnalyticsLoading() {
-  return (
-    <div
-      className="flex min-h-64 items-center justify-center text-gray-11 text-sm"
-      aria-busy="true"
-    >
-      Loading analytics…
-    </div>
-  );
-}
-
-function AnalyticsEmpty() {
-  return (
-    <div className="rounded-lg border border-primary/10 bg-background">
-      <Empty>
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <BarChart3 />
-          </EmptyMedia>
-          <EmptyTitle>No verification data yet</EmptyTitle>
-          <EmptyDescription>
-            Once your keys start being verified, usage metrics and trends will appear here.
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
-    </div>
-  );
+function ChartSlot({
+  state,
+  message,
+  onRetry,
+  children,
+}: {
+  state: CardState;
+  message: string;
+  onRetry?: () => void;
+  children: React.ReactNode;
+}) {
+  switch (state) {
+    case "loading":
+      return (
+        <div
+          className="h-full w-full rounded-md bg-gray-3 motion-safe:animate-pulse"
+          aria-busy="true"
+        />
+      );
+    case "error":
+      return (
+        <div className="flex h-full flex-col items-center justify-center gap-3">
+          <p className="text-gray-12 text-sm">{message}</p>
+          {onRetry && (
+            <Button variant="outline" onClick={onRetry}>
+              Try again
+            </Button>
+          )}
+        </div>
+      );
+    case "empty":
+      return (
+        <div className="flex h-full items-center justify-center text-gray-11 text-sm">
+          No data for this time range
+        </div>
+      );
+    case "populated":
+      return children;
+  }
 }
 
 function SessionExpired({ returnUrl }: { returnUrl: string | null }) {
@@ -175,29 +166,6 @@ function SessionExpired({ returnUrl }: { returnUrl: string | null }) {
       {returnUrl && (
         <Button variant="outline" render={<a href={returnUrl}>Back to application</a>} />
       )}
-    </div>
-  );
-}
-
-function AnalyticsError({
-  title = "Couldn't load your analytics",
-  message,
-  onRetry,
-}: {
-  title?: string;
-  message?: string;
-  onRetry: () => void;
-}) {
-  return (
-    <div className="flex flex-col items-center gap-4">
-      <Alert variant="destructive" className="max-w-md">
-        <AlertTriangle />
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{message ?? "Something went wrong. Please try again."}</AlertDescription>
-      </Alert>
-      <Button variant="outline" onClick={onRetry}>
-        Try again
-      </Button>
     </div>
   );
 }

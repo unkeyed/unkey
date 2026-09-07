@@ -13,6 +13,7 @@ import {
   rerollKeyRequestSchema,
 } from "~/components/keys-table/schema/keys.schema";
 import { env } from "./env";
+import { FAKE_ANALYTICS, fakeKeyUsage, fakeVerifications } from "./fake-data";
 import { SESSION_COOKIE_NAME } from "./session";
 
 /**
@@ -171,7 +172,7 @@ export const listKeys = createServerFn({ method: "GET" })
             createdAt: k.createdAt,
             expires: k.expires ?? null,
             enabled: k.enabled,
-            usage: [],
+            ...(FAKE_ANALYTICS ? fakeKeyUsage(k.keyId, FAKE_ANALYTICS) : { usage: [] }),
           })),
           cursor: pagination.cursor ?? null,
           hasMore: pagination.hasMore,
@@ -193,6 +194,10 @@ export const getVerifications = createServerFn({ method: "GET" })
   .handler(
     ({ data }): Promise<VerificationsTimeseries> =>
       withPortalClient(async (client, token) => {
+        if (FAKE_ANALYTICS) {
+          return { days: data.days, buckets: fakeVerifications(data.days, FAKE_ANALYTICS) };
+        }
+
         const endTime = Date.now();
         const startTime = endTime - data.days * MS_PER_DAY;
         const res = await client.portal.getVerifications(

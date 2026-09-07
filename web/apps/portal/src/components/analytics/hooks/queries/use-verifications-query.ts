@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getVerifications } from "~/lib/portal-api";
 import type { VerificationBucket } from "../../schema/analytics.schema";
 
@@ -21,6 +21,7 @@ export function useVerificationsQuery(days: number) {
     queryFn: () => getVerifications({ data: { days } }),
     staleTime: 1000 * 60, // 1 minute
     refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
   });
 
   const buckets: VerificationBucket[] = query.data?.buckets ?? [];

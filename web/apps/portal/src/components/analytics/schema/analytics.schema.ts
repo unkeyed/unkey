@@ -13,6 +13,9 @@ export type AnalyticsPeriod = { days: number; label: string };
  * 365-day TTL — the widest range for which verification data still exists. */
 export const MAX_PERIOD_DAYS = 365;
 
+/** The API buckets hourly up to this many days and daily beyond. */
+export const HOURLY_MAX_DAYS = 4;
+
 /** Fixed ladder rungs, in ascending days. `1` = 24 hours. */
 const PERIOD_LADDER_DAYS = [1, 7, 30, 90] as const;
 

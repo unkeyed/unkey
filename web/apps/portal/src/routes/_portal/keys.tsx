@@ -10,14 +10,12 @@ import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { TooltipProvider } from "~/components/ui/tooltip";
 import { isUnauthorizedError } from "~/lib/portal-api";
-import { canReadKeys, canRerollKeys } from "~/lib/scopes";
+import { canReadKeys, canRerollKeys, getDefaultTabHref } from "~/lib/scopes";
 
 export const Route = createFileRoute("/_portal/keys")({
   beforeLoad: ({ context }) => {
-    // The page lists keys via portal.listKeys (authorized with read_key), so it
-    // must only render for sessions that carry that action.
     if (!canReadKeys(context.session.scopes)) {
-      throw redirect({ to: "/" });
+      throw redirect({ to: getDefaultTabHref(context.session.scopes) ?? "/" });
     }
   },
   component: KeysPage,

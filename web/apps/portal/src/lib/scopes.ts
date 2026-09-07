@@ -19,12 +19,41 @@ export function canRerollKeys(scopes: ReadonlyArray<string>): boolean {
 }
 
 /**
- * Landing destination after session exchange.
- *
- * The portal currently exposes only the Keys page; Analytics and Docs are
- * deferred to v2 and blocked at the route layer. Returns null when the session
- * can't read keys so the caller can surface an appropriate state.
+ * Whether a session may read verification analytics. `portal.getVerifications`
+ * authorizes `read_analytics`, so the analytics page and its tab must only
+ * appear for sessions granted `analytics:read`.
+ */
+export function canReadAnalytics(scopes: ReadonlyArray<string>): boolean {
+  return scopes.includes("analytics:read");
+}
+
+export type PortalTab = {
+  id: string;
+  label: string;
+  href: string;
+};
+
+/**
+ * The header tabs a session can reach, in navigation order. Each tab is gated
+ * on the scope its page's API call needs, so navigation never offers a page the
+ * API would refuse to fill.
+ */
+export function deriveVisibleTabs(scopes: ReadonlyArray<string>): PortalTab[] {
+  const tabs: PortalTab[] = [];
+  if (canReadKeys(scopes)) {
+    tabs.push({ id: "keys", label: "API keys", href: "/keys" });
+  }
+  if (canReadAnalytics(scopes)) {
+    tabs.push({ id: "analytics", label: "Analytics", href: "/analytics" });
+  }
+  return tabs;
+}
+
+/**
+ * Landing destination after session exchange: the first tab the session can
+ * reach. Returns null when it can reach none, so the caller can surface an
+ * appropriate state.
  */
 export function getDefaultTabHref(scopes: ReadonlyArray<string>): string | null {
-  return canReadKeys(scopes) ? "/keys" : null;
+  return deriveVisibleTabs(scopes)[0]?.href ?? null;
 }
