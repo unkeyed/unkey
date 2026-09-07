@@ -8,7 +8,10 @@ import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { OnboardingLinks } from "../onboarding-links";
 
-const formSchema = createAppRequestSchema.omit({ projectId: true, source: true });
+const formSchema = createAppRequestSchema.omit({
+  projectId: true,
+  source: true,
+});
 export type AppDetails = z.infer<typeof formSchema>;
 
 type CreateAppStepProps = {

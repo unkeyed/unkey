@@ -65,7 +65,9 @@ export const projects = createCollection<Project, string>(
       const mutation = transaction.mutations[0];
       const projectId = mutation.original.id;
 
-      const deleteMutation = getUnkeyClient().projects.deleteProject({ project: projectId });
+      const deleteMutation = getUnkeyClient().projects.deleteProject({
+        project: projectId,
+      });
 
       toast.promise(deleteMutation, {
         loading: "Deleting project...",

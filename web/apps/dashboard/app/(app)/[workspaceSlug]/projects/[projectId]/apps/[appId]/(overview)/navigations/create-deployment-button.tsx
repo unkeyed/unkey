@@ -235,7 +235,9 @@ export const CreateDeploymentButton = ({
       toast.success("Deployment has been created");
       reset();
       setIsOpen(false);
-      await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["deployments", projectId],
+      });
       router.push(
         routes.projects.apps.deployment({
           workspaceSlug: params.workspaceSlug,
@@ -257,7 +259,10 @@ export const CreateDeploymentButton = ({
     }
 
     if (deploymentSource === "oci") {
-      createDeployment.mutate({ environment: values.environment, oci: imageRef });
+      createDeployment.mutate({
+        environment: values.environment,
+        oci: imageRef,
+      });
       return;
     }
 

@@ -82,7 +82,9 @@ export const DeployImageCard = ({
           appId,
           environment: environmentSlug,
         });
-        await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
+        await queryClient.invalidateQueries({
+          queryKey: ["deployments", projectId],
+        });
         onBeforeNavigate?.();
         router.push(
           routes.projects.apps.deployment({

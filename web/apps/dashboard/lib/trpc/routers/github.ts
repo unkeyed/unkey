@@ -518,7 +518,10 @@ export const githubRouter = t.router({
                   },
                 },
               ],
-              context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
+              context: {
+                location: ctx.audit.location,
+                userAgent: ctx.audit.userAgent,
+              },
             },
           ]);
         })
@@ -729,7 +732,10 @@ export const githubRouter = t.router({
       for (const b of alphabeticalBranches) {
         if (!seen.has(b.name) && branches.length < MAX_BRANCHES) {
           seen.add(b.name);
-          branches.push({ name: b.name, lastPushDate: activityMap.get(b.name) ?? null });
+          branches.push({
+            name: b.name,
+            lastPushDate: activityMap.get(b.name) ?? null,
+          });
         }
       }
 
@@ -756,7 +762,10 @@ export const githubRouter = t.router({
     .query(async ({ ctx, input }) => {
       const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
       if (!githubContext) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Project not found",
+        });
       }
       const hasInstallation = githubContext.installations.some(
         (i) => i.installationId === input.installationId,

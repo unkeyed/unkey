@@ -38,7 +38,9 @@ export const DeployAction = ({
       return { deploymentId: res.data.deploymentId };
     },
     onSuccess: async (data) => {
-      await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["deployments", projectId],
+      });
       toast.success("Deployment triggered", {
         description: "Your app is being built and deployed",
       });

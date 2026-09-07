@@ -49,7 +49,9 @@ export function PendingRedeployBanner() {
       if (!currentDeployment) {
         return;
       }
-      await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["deployments", projectId],
+      });
       router.push(
         routes.projects.apps.deployment({
           workspaceSlug: workspace.slug,

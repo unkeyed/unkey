@@ -64,7 +64,11 @@ export function mapInstanceRow(row: {
 }) {
   return {
     id: row.id,
-    region: { id: row.regionId, name: row.regionName, platform: row.regionPlatform },
+    region: {
+      id: row.regionId,
+      name: row.regionName,
+      platform: row.regionPlatform,
+    },
     flagCode: mapRegionToFlag(row.regionName),
     status: row.status,
   };

@@ -29,7 +29,12 @@ export const AppsList = () => {
   const openCreateApp = () =>
     gated
       ? openPaywall()
-      : router.push(routes.projects.apps.new({ workspaceSlug: workspace.slug, projectId }));
+      : router.push(
+          routes.projects.apps.new({
+            workspaceSlug: workspace.slug,
+            projectId,
+          }),
+        );
 
   const apps = useLiveQuery(
     (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),

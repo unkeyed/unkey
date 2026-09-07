@@ -120,7 +120,10 @@ export const ChooseSourceStep = ({
     setIsPreparing(true);
     try {
       const appId = await ensureApp({ kind: "git" });
-      const github = await utils.github.getInstallations.fetch({ projectId, appId });
+      const github = await utils.github.getInstallations.fetch({
+        projectId,
+        appId,
+      });
       if ((github?.installations?.length ?? 0) > 0) {
         setIsPreparing(false);
         next();

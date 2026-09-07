@@ -119,9 +119,8 @@ export function SettingsSkeleton() {
     [projectId, appId],
   );
   const app = data.at(0);
-  const sourceRows: Row[] = !app
-    ? []
-    : app.sourceType === "oci"
+  const sourceRows: Row[] = app
+    ? app.sourceType === "oci"
       ? [
           {
             title: "Image",
@@ -131,7 +130,8 @@ export function SettingsSkeleton() {
         ]
       : app.repositoryFullName
         ? BUILD_ROWS
-        : BUILD_ROWS.slice(0, 1);
+        : BUILD_ROWS.slice(0, 1)
+    : [];
 
   return (
     <div className="flex flex-col gap-6" aria-busy="true">
