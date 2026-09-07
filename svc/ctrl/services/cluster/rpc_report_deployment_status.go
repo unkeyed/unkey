@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
@@ -175,8 +176,8 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 }
 
 // maybeNotifyInstancesReady checks whether enough regions are healthy for
-// the given deployment and, if so, calls DeployService.NotifyInstancesReady
-// to unblock the suspended Deploy workflow. Best-effort: errors are logged
+// the given deployment and, if so, sends NotifyInstancesReady to unblock the
+// suspended Deploy. Best-effort: errors are logged
 // but not returned, gating the thundering herd from concurrent retries.
 func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.Deployment) {
 	if !deploymentActiveStatuses[deployment.Status] {
@@ -263,12 +264,38 @@ func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.D
 		return
 	}
 
-	_, err = hydrav1.NewDeployServiceIngressClient(s.restate, deployment.ID).
-		NotifyInstancesReady().
-		Send(ctx, &hydrav1.NotifyInstancesReadyRequest{
-			DeploymentId: deployment.ID,
-		})
+	// Wake also runs with status deploying. Its reports must not resolve a
+	// promise on a DeployWorkflow key whose run already finished
+	if !deployment.InvocationID.Valid {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("no_invocation").Inc()
+		logger.Info("notify instances ready: skipped",
+			"deployment_id", deployment.ID,
+			"outcome", "no_invocation",
+		)
+		return
+	}
+	live, err := s.restateAdmin.FindLiveInvocations(ctx, []string{deployment.InvocationID.String})
 	if err != nil {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("liveness_error").Inc()
+		logger.Error("failed to check deploy invocation liveness, notifying anyway",
+			"deployment_id", deployment.ID,
+			"error", err,
+		)
+	} else if !live[deployment.InvocationID.String] {
+		metrics.NotifyInstancesReadyTotal.WithLabelValues("deploy_not_live").Inc()
+		logger.Info("notify instances ready: skipped",
+			"deployment_id", deployment.ID,
+			"outcome", "deploy_not_live",
+		)
+		return
+	}
+
+	// Both services until DeployService is deleted: a Deploy that started on
+	// it waits on its own awakeable
+	req := &hydrav1.NotifyInstancesReadyRequest{DeploymentId: deployment.ID}
+	_, workflowErr := hydrav1.NewDeployWorkflowIngressClient(s.restate, deployment.ID).NotifyInstancesReady().Send(ctx, req)
+	_, objectErr := hydrav1.NewDeployServiceIngressClient(s.restate, deployment.ID).NotifyInstancesReady().Send(ctx, req)
+	if err := errors.Join(workflowErr, objectErr); err != nil {
 		metrics.NotifyInstancesReadyTotal.WithLabelValues("restate_error").Inc()
 		logger.Error("failed to notify deploy workflow of instance readiness",
 			"deployment_id", deployment.ID,
