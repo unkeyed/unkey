@@ -1,6 +1,6 @@
 "use client";
 
-import { SPEND_BAR_CHART_HEIGHT, SpendBarChart } from "@/components/charts/spend-bar-chart";
+import { SPEND_BAR_CHART_HEIGHT, SpendBarChart } from "./spend-bar-chart";
 import { DEPLOY_METER_RATES } from "@/lib/billing/deployPricing";
 import { formatCompactQuantity, formatPrice } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";

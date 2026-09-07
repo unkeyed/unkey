@@ -1,4 +1,4 @@
-import type { SpendBarPoint, SpendBarSeries } from "@/components/charts/spend-bar-chart";
+import type { SpendBarPoint, SpendBarSeries } from "./spend-bar-chart";
 import type { DeployUsageTimeseries } from "@unkey/clickhouse";
 import { type ComputeTree, priceUsageQuantitiesCents } from "./compute-tree";
 
