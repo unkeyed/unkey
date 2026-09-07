@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { onPrimaryColor } from "@unkey/ui/src/lib/branding";
 import { PortalFooter } from "~/components/portal-footer";
 import { PortalHeader } from "~/components/portal-header";
 import { Button } from "~/components/ui/button";
@@ -17,9 +18,23 @@ export function NotFound() {
   const session = data?.session;
   const appName = data?.config?.displayName;
   const home = session ? deriveVisibleTabs(session.scopes)[0] : undefined;
+  const primaryColor = data?.config?.branding?.primaryColor;
+
+  const brandingStyle: Record<string, string> = {
+    "--portal-primary-foreground": onPrimaryColor(primaryColor),
+  };
+  if (primaryColor) {
+    brandingStyle["--portal-primary"] = primaryColor;
+  }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div style={brandingStyle} className="flex min-h-screen flex-col bg-background">
+      {isPending && (
+        <div
+          className="min-h-14"
+          style={{ backgroundColor: "var(--portal-primary, var(--color-gray-12))" }}
+        />
+      )}
       {session && (
         <PortalHeader
           scopes={session.scopes}
@@ -49,6 +64,7 @@ export function NotFound() {
           </div>
         )}
       </main>
+      {isPending && <div className="min-h-14 bg-gray-3/50" />}
       {session && <PortalFooter />}
     </div>
   );
