@@ -332,6 +332,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc),
 		hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc),
 		hydrav1.NewDeployServiceServer(deploySvc),
+		hydrav1.NewDeployWorkflowServer(deploy.NewWorkflowServer(deploySvc)),
 		hydrav1.NewDeploymentServiceServer(deploymentSvc),
 		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
 		hydrav1.NewBuildSlotServiceServer(buildSlotSvc),
