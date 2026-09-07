@@ -31,8 +31,7 @@ func (service *recordingDeployService) Create(ctx restate.ObjectContext, request
 		request:          request,
 	}
 	return &hydrav1.DeployCreateResponse{
-		Outcome:         hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
-		RejectionReason: hydrav1.CreateRejectionReason_CREATE_REJECTION_REASON_UNSPECIFIED,
+		Outcome: hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
 	}, nil
 }
 

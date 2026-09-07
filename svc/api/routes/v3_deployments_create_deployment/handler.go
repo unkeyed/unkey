@@ -2,25 +2,23 @@ package handler
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/http"
-	"slices"
 	"strings"
 
-	"connectrpc.com/connect"
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
+	"github.com/unkeyed/unkey/svc/api/internal/deployment"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -30,8 +28,8 @@ type (
 )
 
 type Handler struct {
-	DB         db.Database
-	CtrlClient ctrl.DeployServiceClient
+	DB      db.Database
+	Restate *restateingress.Client
 }
 
 func (h *Handler) Path() string {
@@ -123,19 +121,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// nolint: exhaustruct // optional proto fields are set per source below
-	ctrlReq := &ctrlv1.CreateDeploymentRequest{
-		ProjectId:       environment.ProjectID,
-		AppId:           environment.AppID,
-		EnvironmentSlug: environment.Slug,
-		Trigger:         trigger,
-		TriggeredBy:     principal.Subject.ID,
-		Actor:           actorInfo,
+	// The id is the Restate object key the create runs on, so minting it here
+	// lets the response name the deployment without waiting on the worker.
+	deploymentID := uid.New(uid.DeploymentPrefix)
+
+	createReq := &hydrav1.DeployCreateRequest{
+		ProjectId:     environment.ProjectID,
+		AppId:         environment.AppID,
+		EnvironmentId: environment.ID,
+		Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
+		Trigger:       trigger,
+		TriggeredBy:   principal.Subject.ID,
+		TriggerReason: "",
+		Actor:         actorInfo,
 	}
 
+	// No source leaves the oneof unset: the worker then deploys what the app
+	// declares
 	switch {
 	case req.Oci != nil:
-		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_OciImage{OciImage: req.Oci.Image}
+		createReq.Source = &hydrav1.DeployCreateRequest_Image{
+			Image: &hydrav1.CreateImageSource{Image: req.Oci.Image},
+		}
 
 	case req.Git != nil:
 		git := req.Git
@@ -147,73 +154,64 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("repository requires commitSha."),
 			)
 		}
-		if _, err = db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), environment.AppID); err != nil {
-			if db.IsNotFound(err) {
-				return fault.New(
-					"no repo connection",
-					fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-					fault.Internal("app has no github repo connection for git source"),
-					fault.Public("This app has no connected GitHub repository. Deploy a prebuilt image with the OCI source, or connect a repository first."),
-				)
-			}
-			return fault.Wrap(err, fault.Internal("failed to check repo connection"))
-		}
-		// nolint: exhaustruct // ctrl fills the commit metadata it resolves from git
-		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_GitCommit{
-			GitCommit: &ctrlv1.GitCommitInfo{
-				Branch:         ptr.SafeDeref(git.Branch),
-				CommitSha:      ptr.SafeDeref(git.CommitSha),
-				ForkRepository: ptr.SafeDeref(git.Repository),
+		createReq.Source = &hydrav1.DeployCreateRequest_Git{
+			// nolint: exhaustruct // the worker fills the commit metadata it resolves from git
+			Git: &hydrav1.CreateGitSource{
+				Commit: &ctrlv1.GitCommitInfo{
+					Branch:         ptr.SafeDeref(git.Branch),
+					CommitSha:      ptr.SafeDeref(git.CommitSha),
+					ForkRepository: ptr.SafeDeref(git.Repository),
+				},
+				PrNumber: 0,
 			},
 		}
 
 	case req.Deployment != nil:
-		gitCommit, ociImage, resolveErr := h.resolveRedeploy(ctx, principal.AuthorizedWorkspaceID, environment.AppID, environment.ID, req.Deployment.DeploymentId)
-		if resolveErr != nil {
-			return resolveErr
+		if err := h.requireRedeployableSource(ctx, principal.AuthorizedWorkspaceID, environment.AppID, environment.ID, req.Deployment.DeploymentId); err != nil {
+			return err
 		}
-		if gitCommit != nil {
-			ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_GitCommit{GitCommit: gitCommit}
-		} else {
-			ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_OciImage{OciImage: ociImage}
+		createReq.Source = &hydrav1.DeployCreateRequest_ExistingDeployment{
+			ExistingDeployment: &hydrav1.CreateExistingDeploymentSource{
+				DeploymentId:   req.Deployment.DeploymentId,
+				RequireNoNewer: false,
+			},
 		}
 	}
 
-	if err = h.ensureEnvironmentDeployable(ctx, environment); err != nil {
-		return err
-	}
-
-	ctrlResp, err := h.CtrlClient.CreateDeployment(ctx, ctrlReq)
+	res, err := hydrav1.NewDeployServiceIngressClient(h.Restate, deploymentID).
+		Create().
+		Request(ctx, createReq)
 	if err != nil {
-		var connectErr *connect.Error
-		if errors.As(err, &connectErr) && connectErr.Code() == connect.CodeFailedPrecondition {
-			return fault.Wrap(
-				err,
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("ctrl reported a precondition failure: "+connectErr.Message()),
-				fault.Public("The deployment could not be started because a precondition was not met. Verify the app's repository connection, branch, commit, and current deployment, then try again."),
-			)
-		}
-		return ctrlclient.HandleError(err, "create deployment")
+		return fault.Wrap(
+			err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("failed to submit deployment create to Restate"),
+			fault.Public("Failed to create deployment."),
+		)
+	}
+	if err := deployment.OutcomeFault(res.GetOutcome()); err != nil {
+		return err
 	}
 
 	return s.JSON(http.StatusCreated, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
-		Data: openapi.V3DeploymentsCreateDeploymentResponseData{DeploymentId: ctrlResp.GetDeploymentId()},
+		Data: openapi.V3DeploymentsCreateDeploymentResponseData{DeploymentId: deploymentID},
 	})
 }
 
-func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, environmentID, deploymentID string) (*ctrlv1.GitCommitInfo, string, error) {
+// requireRedeployableSource keeps the source deployment's ownership check in the
+// API so a caller cannot learn whether a deployment it cannot read exists
+func (h *Handler) requireRedeployableSource(ctx context.Context, workspaceID, appID, environmentID, deploymentID string) error {
 	deployment, err := db.Query.FindDeploymentById(ctx, h.DB.RO(), deploymentID)
 	if err != nil && !db.IsNotFound(err) {
-		return nil, "", fault.Wrap(err, fault.Internal("failed to find deployment"))
+		return fault.Wrap(err, fault.Internal("failed to find deployment"))
 	}
 
 	if db.IsNotFound(err) ||
 		deployment.WorkspaceID != workspaceID ||
 		deployment.AppID != appID ||
 		deployment.EnvironmentID != environmentID {
-		return nil, "", fault.New(
+		return fault.New(
 			"deployment not found",
 			fault.Code(codes.Data.Deployment.NotFound.URN()),
 			fault.Internal("deployment does not exist or does not match this workspace, app, and environment"),
@@ -221,114 +219,7 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 		)
 	}
 
-	resolvedImage := func() (*ctrlv1.GitCommitInfo, string, error) {
-		image := deployment.ImageResolved
-		if !image.Valid || image.String == "" {
-			return nil, "", fault.New(
-				"deployment not redeployable",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("redeploy target has no resolved image"),
-				fault.Public("This deployment cannot be redeployed because it never produced an image."),
-			)
-		}
-		return nil, image.String, nil
-	}
-	gitCommit := func(requireSHA bool) (*ctrlv1.GitCommitInfo, string, error) {
-		if requireSHA && deployment.GitCommitSha.String == "" {
-			return nil, "", fault.New(
-				"deployment not redeployable",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("git redeploy target has no commit SHA"),
-				fault.Public("This deployment cannot be redeployed because its Git commit is unavailable."),
-			)
-		}
-		_, connectionErr := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), appID)
-		if db.IsNotFound(connectionErr) {
-			return nil, "", fault.New(
-				"deployment not redeployable",
-				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-				fault.Internal("git redeploy target has no repository connection"),
-				fault.Public("This deployment cannot be redeployed because its repository is not connected."),
-			)
-		}
-		if connectionErr != nil {
-			return nil, "", fault.Wrap(connectionErr, fault.Internal("failed to check repo connection"))
-		}
-		return &ctrlv1.GitCommitInfo{
-			CommitSha:       deployment.GitCommitSha.String,
-			Branch:          deployment.GitBranch.String,
-			CommitMessage:   deployment.GitCommitMessage.String,
-			AuthorHandle:    deployment.GitCommitAuthorHandle.String,
-			AuthorAvatarUrl: deployment.GitCommitAuthorAvatarUrl.String,
-			Timestamp:       deployment.GitCommitTimestamp.Int64,
-			ForkRepository:  deployment.ForkRepositoryFullName.String,
-		}, "", nil
-	}
-
-	switch deployment.Source {
-	case db.DeploymentsSourceGit:
-		return gitCommit(true)
-	case db.DeploymentsSourceOci:
-		return resolvedImage()
-	case db.DeploymentsSourceUnknown, "":
-		_, connectionErr := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), appID)
-		if connectionErr == nil && (deployment.GitBranch.String != "" || deployment.GitCommitSha.String != "") {
-			return gitCommit(false)
-		}
-		if connectionErr != nil && !db.IsNotFound(connectionErr) {
-			return nil, "", fault.Wrap(connectionErr, fault.Internal("failed to check repo connection"))
-		}
-		return resolvedImage()
-	default:
-		return nil, "", fault.New(
-			"deployment not redeployable",
-			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-			fault.Internal(fmt.Sprintf("unsupported deployment source %q", deployment.Source)),
-			fault.Public("This deployment has an unsupported source and cannot be redeployed."),
-		)
-	}
-}
-
-func (h *Handler) ensureEnvironmentDeployable(ctx context.Context, environment db.Environment) error {
-	runtime, err := db.Query.FindAppRuntimeSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRuntimeSettingsByAppAndEnvParams{
-		AppID:         environment.AppID,
-		EnvironmentID: environment.ID,
-	})
-	if err != nil && !db.IsNotFound(err) {
-		return fault.Wrap(err, fault.Internal("failed to load runtime settings"))
-	}
-
-	var problems []string
-	if db.IsNotFound(err) {
-		problems = append(problems, "runtime settings are not configured")
-	} else {
-		for _, violation := range deployfail.RuntimeViolations(runtime.Port, runtime.CpuMillicores, runtime.MemoryMib) {
-			problems = append(problems, fmt.Sprintf("%s (is %d)", violation.Message, violation.Actual))
-		}
-	}
-
-	regional, err := db.Query.FindAppRegionalSettingsByAppAndEnv(ctx, h.DB.RO(), db.FindAppRegionalSettingsByAppAndEnvParams{
-		AppID:         environment.AppID,
-		EnvironmentID: environment.ID,
-	})
-	if err != nil {
-		return fault.Wrap(err, fault.Internal("failed to load regional settings"))
-	}
-	if !slices.ContainsFunc(regional, func(region db.FindAppRegionalSettingsByAppAndEnvRow) bool { return region.RegionCanSchedule }) {
-		problems = append(problems, "no schedulable regions are configured")
-	}
-
-	if len(problems) == 0 {
-		return nil
-	}
-
-	joined := strings.Join(problems, "; ")
-	return fault.New(
-		"environment not deployable",
-		fault.Code(codes.App.Validation.InvalidEnvironmentSettings.URN()),
-		fault.Internal(fmt.Sprintf("environment %s fails deploy preconditions: %s", environment.Slug, joined)),
-		fault.Public(fmt.Sprintf("Environment %q cannot be deployed: %s. Update the environment's settings before deploying.", environment.Slug, joined)),
-	)
+	return nil
 }
 
 func hasValue(value *string) bool {
