@@ -38,6 +38,7 @@
             "pages": [
               "contributing/quality/code-quality",
               "contributing/quality/documentation",
+              "contributing/quality/documenting-services",
               "contributing/quality/screenshots-and-recordings",
               {
                 "group": "Testing",
@@ -84,6 +85,7 @@
           },
           {
             "group": "Services",
+            "root": "architecture/services/index",
             "pages": [
               {
                 "group": "API",
@@ -171,7 +173,11 @@
               },
               {
                 "group": "Logdrain",
-                "pages": ["architecture/services/logdrain/overview"]
+                "pages": [
+                  "architecture/services/logdrain/overview",
+                  "architecture/services/logdrain/configuration",
+                  "architecture/services/logdrain/operations"
+                ]
               },
               {
                 "group": "Vault",

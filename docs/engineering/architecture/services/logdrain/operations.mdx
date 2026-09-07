@@ -1,0 +1,146 @@
+---
+title: "Operations"
+description: "Where the logdrain service runs, how it scales, and how to respond when delivery fails"
+---
+
+This page covers the production footprint of `svc/logdrain` and the concrete
+failure sequences an operator needs.
+
+## Where it runs
+
+Logdrain runs on EKS, deployed by ArgoCD from the Helm chart at
+`eks-cluster/helm-chart/logdrain/` in the infra repository. The `canary` and
+`production001` environments each run one replica in `us-east-1`. The image is
+`ghcr.io/unkeyed/logdrain`, built from `build/logdrain/main.go`.
+
+The chart sources secrets through External Secrets from the AWS Secrets
+Manager entry `unkey/logdrain`:
+
+| Secret | Config key |
+| --- | --- |
+| `DATABASE_URL` | `database` |
+| `UNKEY_CLICKHOUSE_URL` | `clickhouse.url` |
+| `UNKEY_VAULT_TOKEN` | `vault.token` |
+
+Non-secret settings arrive as environment variables (`UNKEY_REGION`,
+`UNKEY_VAULT_URL`, `OTEL_EXPORTER_OTLP_ENDPOINT`) expanded into the TOML
+config template. See [Configuration](/architecture/services/logdrain/configuration)
+for every key.
+
+## Scaling
+
+Horizontal scaling is safe at any replica count. MySQL leases partition
+drains between replicas, and fencing tokens reject writes from a replica that
+lost its lease, so two replicas can never both advance one drain's cursor.
+
+Scaling changes throughput, not correctness:
+
+- One drain is always processed by one replica at a time. More replicas do
+  not speed up a single drain.
+- Each replica processes up to `max_concurrent_drains` drains in parallel
+  (default 4). Add replicas or raise that setting when many drains are due
+  at the same time.
+
+The chart ships with autoscaling disabled, one replica, and no
+PodDisruptionBudget. Brief unavailability is acceptable: when the pod is
+evicted, its leases expire within about two minutes, and the restarted pod
+resumes every drain from its committed cursor. Nothing is lost; deliveries
+are delayed by minutes at most.
+
+## Health
+
+The service has one HTTP server, on the metrics port (9090). It serves the
+Prometheus scrape endpoint and the kubelet probe endpoints:
+
+| Path | Used by | Returns 200 when |
+| --- | --- | --- |
+| `/metrics` | Prometheus scrape | Always, once the server is up. |
+| `/health/live` | Liveness probe | Startup completed. |
+| `/health/ready` | Readiness probe | Startup completed and the process is not shutting down. |
+| `/health/startup` | Not wired in the chart | Startup completed. |
+
+The endpoints come from `pkg/runner`, the same package the other services
+use. Startup connects to MySQL, ClickHouse, and Vault synchronously, so a
+200 from `/health/ready` means initialization succeeded. The probes prove
+the process is alive, nothing more. Delivery health is visible only through
+metrics and telemetry, not through probes: the kubelet must not restart a
+pod because a customer endpoint is down.
+
+Watch these signals:
+
+| Signal | Meaning |
+| --- | --- |
+| `unkey_logdrain_drains{status="paused_by_failure"}` above 0 | A drain exhausted its retries. The customer sees stalled delivery until someone resumes it. |
+| `rate(unkey_logdrain_drain_failures_total)` sustained | Deliveries or source reads are failing. Check delivery telemetry for the cause. |
+| `unkey_logdrain_polls_total{result="error"}` increasing | The engine cannot list due drains. Delivery has stopped for every drain. Check MySQL. |
+| `unkey_logdrain_work_queue_depth` near `unkey_logdrain_work_queue_capacity` | Workers cannot keep up. Polls block until workers drain the queue. |
+
+Each delivery attempt also writes one row to the ClickHouse table
+`logdrain_deliveries_raw_v1` (30-day TTL) with the response status, up to
+4 KiB of the response body, and the error message. The dashboard renders this
+table as the drain health charts. For on-call diagnosis, query it directly by
+`workspace_id` and `drain_id`.
+
+## Failure modes
+
+Each failure below states the exact sequence and the recovery path.
+
+### A pod dies
+
+Leases expire 90 to 120 seconds after their last refresh, measured in
+database time. A surviving or restarted replica acquires the expired leases
+with new fencing tokens and resumes from each drain's committed cursor. A
+batch that was acknowledged but not yet committed is sent again. This is the
+at-least-once guarantee, not an incident.
+
+### MySQL is unavailable
+
+Polling, lease acquisition, and lease refresh fail and are logged. Delivery
+stops for every drain. No state is lost: when MySQL returns, leases are
+reacquired and delivery resumes from committed cursors. No operator action is
+needed beyond restoring MySQL.
+
+### ClickHouse or Vault is unavailable
+
+Source reads and credential decryption fail per drain. Each failure
+increments the drain's `consecutive_failures` and schedules a retry with
+exponential backoff, the same path as a destination failure. The failure
+counter pauses a drain only after 50 consecutive failures, and the backoff
+stretches those attempts across roughly 7 days, so only an extreme outage
+pauses drains. After recovery, drains resume on their next scheduled attempt
+without intervention.
+
+### A customer destination fails
+
+The engine retries with exponential backoff (1 minute doubling to 128
+minutes, then every 4 hours) and honors `Retry-After` up to 24 hours. After
+50 consecutive failures the drain moves to `paused_by_failure` and the
+counter metric `unkey_logdrain_drains_paused_total` increments. The customer
+resumes the drain in the dashboard under workspace settings, which resets the
+failure state and continues from the committed cursor. Events older than the
+90-day audit log retention are gone; everything newer is delivered.
+
+### A drain is paused and the customer asks why
+
+Read the drain's recent rows in `logdrain_deliveries_raw_v1` or the delivery
+errors panel in the dashboard. The rows contain the destination's own
+response status and body, which almost always names the cause (expired
+credentials, deleted dataset, TLS failure). The fix belongs to the customer;
+resuming without fixing the destination restarts the same failure sequence.
+
+## Local development
+
+`mise run dev` deploys the service through Tilt using
+`dev/k8s/manifests/logdrain.yaml`. The dev config shortens `poll_interval`
+and `watermark_lag` to 10 seconds so locally created audit logs export
+quickly, and sets `insecure_allow_private_endpoints = true` so drains can
+target cluster-internal endpoints that the SSRF guard would otherwise
+reject. Expect a delivery delay of at least `watermark_lag` plus one poll
+interval after an audit log is written.
+
+## Related pages
+
+- [Overview](/architecture/services/logdrain/overview) for the delivery
+  model, cursor semantics, and guarantees
+- [Configuration](/architecture/services/logdrain/configuration) for
+  settings and defaults

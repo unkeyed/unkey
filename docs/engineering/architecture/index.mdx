@@ -26,6 +26,9 @@ flowchart LR
   ControlWorker -->|B| Vault
 
   Preflight -->|A| Krane
+
+  Logdrain[Logdrain]
+  Logdrain -->|B| Vault
 ```
 
 ### Legend
@@ -33,6 +36,12 @@ flowchart LR
 - **A**: HTTP or HTTPS request.
 - **B**: RPC or service call.
 - **C**: Asynchronous workflow trigger.
+
+Two services work mostly through shared datastores instead of service calls:
+logdrain reads audit logs from ClickHouse and coordinates through MySQL, and
+heimdall writes per-node metering checkpoints to ClickHouse. The
+[services index](/architecture/services) lists every service with its purpose
+and code location.
 
 ## Sections
 
