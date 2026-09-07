@@ -16,27 +16,10 @@ import (
 
 func TestMaxOpenConns(t *testing.T) {
 	chCfg := containers.ClickHouse(t)
-	for _, tc := range []struct {
-		name       string
-		configured int
-		want       int
-	}{
-		{name: "default", want: 50},
-		{name: "worker override", configured: 100, want: 100},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			var client *Client
-			var err error
-			if tc.configured == 0 {
-				client, err = New(Config{URL: chCfg.DSN})
-			} else {
-				client, err = NewWithDiagnostics(Config{URL: chCfg.DSN}, tc.configured)
-			}
-			require.NoError(t, err)
-			t.Cleanup(func() { require.NoError(t, client.Close()) })
-			require.Equal(t, tc.want, client.conn.Stats().MaxOpenConns)
-		})
-	}
+	client, err := New(Config{URL: chCfg.DSN})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	require.Equal(t, 50, client.conn.Stats().MaxOpenConns)
 }
 
 func TestCancelledAcquiresDoNotLeakPoolSlots(t *testing.T) {
@@ -58,9 +41,9 @@ func TestCancelledAcquiresDoNotLeakPoolSlots(t *testing.T) {
 	require.ErrorIs(t, conn.Ping(context.Background()), dialErr, "healthy acquire must reach dial, not time out waiting for a leaked slot")
 }
 
-func TestDiagnosticAuditInsertStoresNestedTargets(t *testing.T) {
+func TestAuditInsertStoresNestedTargets(t *testing.T) {
 	chCfg := containers.ClickHouse(t)
-	client, err := NewWithDiagnostics(Config{URL: chCfg.DSN}, 100)
+	client, err := New(Config{URL: chCfg.DSN})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	event := auditlog.Event{

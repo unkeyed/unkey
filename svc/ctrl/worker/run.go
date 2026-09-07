@@ -188,9 +188,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	if cfg.ClickHouse.URL != "" {
 		var chErr error
-		clickhouseClient, chErr = clickhouse.NewWithDiagnostics(clickhouse.Config{
+		clickhouseClient, chErr = clickhouse.New(clickhouse.Config{
 			URL: cfg.ClickHouse.URL,
-		}, 50)
+		})
 		if chErr != nil {
 			logger.Error("failed to create clickhouse client, continuing with noop", "error", chErr)
 		} else {

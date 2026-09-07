@@ -17,7 +17,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // batchLimit caps the number of outbox rows read per batch. Each row
@@ -134,24 +136,12 @@ func (h *Handler) Handle(
 // CH failures leave the batch pending. A failed mark can have an unknown
 // outcome after connection loss; any rows still pending will be replayed.
 func (h *Handler) exportBatch(ctx context.Context) (result batchResult, batchErr error) {
-	started := time.Now()
-	stageStarted := started
-	stage := "select"
-	rowCount := 0
-	logger.Info("audit log export stage started", "stage", stage)
-	nextStage := func(next string) {
-		logger.Info("audit log export stage finished", "stage", stage,
-			"elapsed_ms", time.Since(stageStarted).Milliseconds(), "rows", rowCount)
-		stage = next
-		stageStarted = time.Now()
-		logger.Info("audit log export stage started", "stage", stage, "rows", rowCount)
-	}
+	ctx, span := tracing.Start(ctx, "auditlogexport.exportBatch")
+	defer span.End()
 	defer func() {
-		logger.Info("audit log export stage finished", "stage", stage,
-			"elapsed_ms", time.Since(stageStarted).Milliseconds(), "rows", rowCount, "error", batchErr)
-		logger.Info("audit log export batch finished", "elapsed_ms", time.Since(started).Milliseconds(),
-			"rows", rowCount, "events_exported", result.EventsExported, "error", batchErr)
+		tracing.RecordError(span, batchErr)
 	}()
+	span.AddEvent("select")
 	rows, err := h.db.FindClickhouseOutboxBatch(ctx, db.FindClickhouseOutboxBatchParams{
 		Versions: knownVersions,
 		Limit:    batchLimit,
@@ -159,12 +149,12 @@ func (h *Handler) exportBatch(ctx context.Context) (result batchResult, batchErr
 	if err != nil {
 		return batchResult{EventsExported: 0}, fmt.Errorf("find outbox batch: %w", err)
 	}
-	rowCount = len(rows)
+	span.SetAttributes(attribute.Int("rows", len(rows)))
 	if len(rows) == 0 {
 		return batchResult{EventsExported: 0}, nil
 	}
 
-	nextStage("decode")
+	span.AddEvent("decode")
 	events := make([]auditlog.Event, len(rows))
 	pks := make([]uint64, len(rows))
 	for i, row := range rows {
@@ -179,12 +169,12 @@ func (h *Handler) exportBatch(ctx context.Context) (result batchResult, batchErr
 		return batchResult{EventsExported: 0}, fmt.Errorf("encode clickhouse rows: %w", err)
 	}
 
-	nextStage("insert")
+	span.AddEvent("insert")
 	if err := h.clickhouse.InsertAuditLogs(ctx, chRows); err != nil {
 		return batchResult{EventsExported: 0}, fmt.Errorf("insert clickhouse: %w", err)
 	}
 
-	nextStage("mark")
+	span.AddEvent("mark")
 	if err := h.db.MarkClickhouseOutboxBatchDeleted(ctx, db.MarkClickhouseOutboxBatchDeletedParams{
 		DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
 		Pks:       pks,

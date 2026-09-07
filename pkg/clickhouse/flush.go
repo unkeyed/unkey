@@ -2,13 +2,14 @@ package clickhouse
 
 import (
 	"context"
-	"time"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // InsertQuery builds "INSERT INTO <table> (<columns>)" from T's generated
@@ -30,6 +31,10 @@ func InsertQuery[T schema.Row]() string {
 //
 // Returns an error if any part of the batch operation fails after all retries.
 func flush[T schema.Row](c *Client, ctx context.Context, rows []T) error {
+	ctx, span := tracing.Start(ctx, "clickhouse.flush")
+	defer span.End()
+	var row T
+	span.SetAttributes(attribute.String("db.collection.name", row.Table()), attribute.Int("rows", len(rows)))
 	// Apply async insert settings
 	ctx = ch.Context(ctx, ch.WithSettings(ch.Settings{
 		"async_insert":             "1",
@@ -38,42 +43,25 @@ func flush[T schema.Row](c *Client, ctx context.Context, rows []T) error {
 	}))
 
 	query := InsertQuery[T]()
-	var row T
-	started := time.Now()
 	attempt := 0
 
 	doFlush := func() (attemptErr error) {
 		attempt++
-		start := time.Now()
-		stage := "prepare"
-		var prepare, appendTime, send time.Duration
-		before := c.conn.Stats()
-		if c.logInsertTimings {
-			logger.Info("clickhouse insert attempt started", "table", row.Table(), "attempt", attempt,
-				"rows", len(rows), "pool_open", before.Open, "pool_idle", before.Idle, "pool_max", before.MaxOpenConns)
-		}
+		ctx, attemptSpan := tracing.Start(ctx, "clickhouse.insert")
+		defer attemptSpan.End()
+		stats := c.conn.Stats()
+		attemptSpan.SetAttributes(attribute.Int("attempt", attempt),
+			attribute.Int("pool.open", stats.Open), attribute.Int("pool.idle", stats.Idle),
+			attribute.Int("pool.max", stats.MaxOpenConns))
 		defer func() {
-			if !c.logInsertTimings {
-				return
-			}
-			after := c.conn.Stats()
-			fields := []any{"table", row.Table(), "attempt", attempt, "rows", len(rows), "stage", stage,
-				"elapsed_ms", time.Since(start).Milliseconds(), "prepare_ms", prepare.Milliseconds(),
-				"append_ms", appendTime.Milliseconds(), "send_ms", send.Milliseconds(),
-				"pool_open_before", before.Open, "pool_idle_before", before.Idle,
-				"pool_open", after.Open, "pool_idle", after.Idle, "pool_max", after.MaxOpenConns}
-			if attemptErr != nil {
-				logger.Warn("clickhouse insert attempt failed", append(fields, "error", attemptErr.Error())...)
-			} else {
-				logger.Info("clickhouse insert attempt complete", fields...)
-			}
+			tracing.RecordError(attemptSpan, attemptErr)
 		}()
+		attemptSpan.AddEvent("prepare")
 		batch, err := c.conn.PrepareBatch(
 			ctx,
 			query,
 			driver.WithReleaseConnection(),
 		)
-		prepare = time.Since(start)
 		if err != nil {
 			return fault.Wrap(err, fault.Internal("preparing batch failed"))
 		}
@@ -83,21 +71,16 @@ func flush[T schema.Row](c *Client, ctx context.Context, rows []T) error {
 			}
 		}()
 
-		stage = "append"
-		stageStart := time.Now()
+		attemptSpan.AddEvent("append")
 		for _, row := range rows {
 			err = batch.AppendStruct(&row)
 			if err != nil {
-				appendTime = time.Since(stageStart)
 				return fault.Wrap(err, fault.Internal("appending struct to batch failed"))
 			}
 		}
-		appendTime = time.Since(stageStart)
 
-		stage = "send"
-		stageStart = time.Now()
+		attemptSpan.AddEvent("send")
 		err = batch.Send()
-		send = time.Since(stageStart)
 		if err != nil {
 			return fault.Wrap(err, fault.Internal("committing batch failed"))
 		}
@@ -109,10 +92,7 @@ func flush[T schema.Row](c *Client, ctx context.Context, rows []T) error {
 	_, err := c.circuitBreaker.Do(ctx, func(ctx context.Context) (struct{}, error) {
 		return struct{}{}, c.retry.DoContext(ctx, doFlush)
 	})
-	if c.logInsertTimings {
-		logger.Info("clickhouse flush finished", "table", row.Table(), "rows", len(rows),
-			"attempts", attempt, "elapsed_ms", time.Since(started).Milliseconds(), "error", err)
-	}
+	tracing.RecordError(span, err)
 
 	return err
 }
