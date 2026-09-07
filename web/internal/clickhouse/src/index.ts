@@ -121,6 +121,7 @@ import {
   getDeploymentRpsTimeseries,
   getInstanceRps,
   getRegionRps,
+  getRequestLogById,
   getRequestLogs,
 } from "./frontline";
 import { getEnvironmentRequests } from "./frontline/environment-requests";
@@ -396,6 +397,7 @@ export class ClickHouse {
   public get frontline() {
     return {
       logs: getRequestLogs(this.querier),
+      requestById: getRequestLogById(this.querier),
       rps: {
         byInstance: getInstanceRps(this.querier),
         byRegion: getRegionRps(this.querier),
