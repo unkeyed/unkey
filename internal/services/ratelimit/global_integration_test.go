@@ -811,11 +811,8 @@ func TestGlobal_BelowUtilizationFloorDoesNotPush(t *testing.T) {
 
 	region.runGlobalPushOnce()
 
-	// Never can return with a query still running, racing database cleanup.
-	for deadline := time.Now().Add(2 * time.Second); time.Now().Before(deadline); time.Sleep(100 * time.Millisecond) {
-		require.False(t, env.hasRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds()),
-			"sub-floor utilization must not write a global-counters row")
-	}
+	require.False(t, env.hasRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds()),
+		"sub-floor utilization must not write a global-counters row")
 }
 
 // TestGlobal_PushUsesConvergedLocalCount asserts that push eligibility is
@@ -1321,12 +1318,8 @@ func TestGlobal_DoesNotPropagateColdOversizedRequest(t *testing.T) {
 
 	region.runGlobalPushOnce()
 
-	// The cold-window denial increments nothing (deny path doesn't bump
-	// val), so val stays 0 and the utilization filter skips the flush.
-	for deadline := time.Now().Add(2 * time.Second); time.Now().Before(deadline); time.Sleep(100 * time.Millisecond) {
-		require.False(t, env.hasRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds()),
-			"cold oversized denial must not write a global-counters row")
-	}
+	require.False(t, env.hasRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds()),
+		"cold oversized denial must not write a global-counters row")
 }
 
 // TestGlobal_EntriesCreatedOnSync asserts that the pull goroutine
