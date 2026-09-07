@@ -1,7 +1,8 @@
 "use client";
 
+import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
-import { CodeBranch, CodeCommit } from "@unkey/icons";
+import { ArrowDotAntiClockwise, CircleXMark, CodeBranch, CodeCommit } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { MetadataCell } from "../../../components/active-deployment-card/components/metadata-cell";
@@ -33,7 +34,8 @@ function StatusCell() {
       <span className="flex items-center gap-2 text-[13px] text-accent-12">
         <StatusDot status={status} />
         {STATUS_META[status].label}
-        <Badge variant="warning" size="sm">
+        <Badge variant="warning" size="sm" className="gap-1">
+          <ArrowDotAntiClockwise iconSize="sm-regular" className="shrink-0" />
           Rolled back
         </Badge>
       </span>
@@ -80,9 +82,13 @@ function SourceCell() {
       )}
       {isRolledBack && rolledBackFrom && (
         <div className="flex items-center gap-1.5 min-w-0 text-gray-9">
-          <CodeCommit iconSize="sm-regular" className="text-gray-9 shrink-0" />
+          <CircleXMark iconSize="sm-regular" className="text-error-11 shrink-0" />
           <span className="font-mono text-[13px] line-through shrink-0">
-            {rolledBackFrom.commitSha ? rolledBackFrom.commitSha.slice(0, 7) : "—"}
+            {rolledBackFrom.commitSha
+              ? rolledBackFrom.commitSha.slice(0, 7)
+              : rolledBackFrom.image
+                ? imageRefDisplay(rolledBackFrom.image)
+                : "—"}
           </span>
           {rolledBackFrom.commitMessage && (
             <span className="text-[13px] line-through truncate min-w-0">

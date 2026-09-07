@@ -179,6 +179,7 @@ export function AppProductionCard() {
       ? {
           commitSha: rolledBackFromDeployment.gitCommitSha,
           commitMessage: rolledBackFromDeployment.gitCommitMessage,
+          image: rolledBackFromDeployment.image,
         }
       : null,
     sourceRepo,
