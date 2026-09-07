@@ -34,7 +34,6 @@ The worker groups multiple Restate services into one process. Each service uses 
 
 | Service | Virtual object key | Responsibility |
 | --- | --- | --- |
-| DeployService | `deployment_id` | Draining: callers moved to DeployWorkflow; deleted once no Deploy runs on it. |
 | DeployWorkflow | `deployment_id` | Workflow: one durable run per deployment, signalled by a promise when instances are ready. |
 | DeploymentService | `deployment_id` | Desired state changes: scheduled transitions with nonce-based last-writer-wins, and immediate stop and wake. |
 | EnvironmentService | `environment_id` | Environment deletion, and promotion and rollback of the environment's live deployment. |
