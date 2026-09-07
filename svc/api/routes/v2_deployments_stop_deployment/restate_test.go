@@ -17,14 +17,14 @@ type observedStopDeployment struct {
 	request          *hydrav1.StopDeploymentRequest
 }
 
-// recordingDeployService captures StopDeployment invocations for assertions.
-type recordingDeployService struct {
-	hydrav1.UnimplementedDeployServiceServer
+// recordingDeploymentService captures StopDeployment invocations for assertions.
+type recordingDeploymentService struct {
+	hydrav1.UnimplementedDeploymentServiceServer
 	stops chan observedStopDeployment
 }
 
 // StopDeployment records the object key and typed payload received through Restate.
-func (service *recordingDeployService) StopDeployment(ctx restate.ObjectContext, request *hydrav1.StopDeploymentRequest) (*hydrav1.StopDeploymentResponse, error) {
+func (service *recordingDeploymentService) StopDeployment(ctx restate.ObjectContext, request *hydrav1.StopDeploymentRequest) (*hydrav1.StopDeploymentResponse, error) {
 	service.stops <- observedStopDeployment{
 		virtualObjectKey: restate.Key(ctx),
 		request:          request,
@@ -32,20 +32,20 @@ func (service *recordingDeployService) StopDeployment(ctx restate.ObjectContext,
 	return &hydrav1.StopDeploymentResponse{}, nil
 }
 
-// newRecordingRestate starts an isolated Restate server whose DeployService
+// newRecordingRestate starts an isolated Restate server whose DeploymentService
 // reports each StopDeployment invocation to the returned channel.
 func newRecordingRestate(t *testing.T) (*restateingress.Client, <-chan observedStopDeployment) {
 	t.Helper()
 
-	recorder := &recordingDeployService{
+	recorder := &recordingDeploymentService{
 		stops: make(chan observedStopDeployment, 1),
 	}
-	restateConfig := containers.Restate(t, hydrav1.NewDeployServiceServer(recorder))
+	restateConfig := containers.Restate(t, hydrav1.NewDeploymentServiceServer(recorder))
 
 	return restateingress.NewClient(restateConfig.IngressURL), recorder.stops
 }
 
-// newUncalledRestate fails during cleanup if DeployService was invoked.
+// newUncalledRestate fails during cleanup if DeploymentService was invoked.
 func newUncalledRestate(t *testing.T) *restateingress.Client {
 	t.Helper()
 
