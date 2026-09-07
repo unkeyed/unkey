@@ -27,15 +27,21 @@ export function PortalHeader({ scopes, logoUrl, returnUrl, appName }: PortalHead
           {(logoUrl || appName) && (
             <div className="flex min-w-0 items-center gap-2.5 sm:max-w-sm">
               {logoUrl && <img src={logoUrl} alt="" className="h-6 w-auto" aria-hidden="true" />}
-              {appName && <span className="truncate font-medium text-sm">{appName}</span>}
+              {appName && (
+                <span className="truncate font-medium text-sm" title={appName}>
+                  {appName}
+                </span>
+              )}
             </div>
           )}
           {returnUrl && (
             <a
               href={returnUrl}
-              className="min-w-0 max-w-[50%] truncate text-[color-mix(in_srgb,var(--portal-primary-foreground,#ffffff)_85%,transparent)] text-sm transition-colors hover:text-[var(--portal-primary-foreground,#ffffff)] sm:order-last sm:max-w-xs"
+              title={`Return to ${appName ?? "application"}`}
+              className="min-w-0 max-w-[50%] truncate rounded-md py-1.5 text-[color-mix(in_srgb,var(--portal-primary-foreground,#ffffff)_85%,transparent)] text-sm transition-colors hover:text-[var(--portal-primary-foreground,#ffffff)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--portal-primary-foreground,#ffffff)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--portal-primary,var(--color-gray-12))] sm:order-last sm:max-w-xs"
             >
-              ← Return to {appName ?? "application"}
+              <span aria-hidden="true">← </span>
+              Return to {appName ?? "application"}
             </a>
           )}
         </div>

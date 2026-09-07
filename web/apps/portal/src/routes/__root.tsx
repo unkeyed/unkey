@@ -1,6 +1,7 @@
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 /// <reference types="vite/client" />
 import type { ReactNode } from "react";
+import { NotFound } from "~/components/not-found";
 import { ReactQueryProvider } from "~/providers/react-query-provider";
 import "~/styles/tailwind.css";
 
@@ -20,6 +21,7 @@ export const Route = createRootRoute({
     ],
   }),
   component: RootComponent,
+  notFoundComponent: NotFound,
 });
 
 function RootComponent() {
