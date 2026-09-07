@@ -50,7 +50,7 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 		"reason", reason,
 	)
 
-	resp, err := hydrav1.NewDeployServiceIngressClient(s.restate, deploymentID).
+	resp, err := hydrav1.NewDeployWorkflowIngressClient(s.restate, deploymentID).
 		Create().
 		Request(ctx, &hydrav1.DeployCreateRequest{
 			ProjectId:     src.ProjectID,
