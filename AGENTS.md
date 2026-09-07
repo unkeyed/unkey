@@ -95,11 +95,15 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 - Avoid new dependencies unless the local implementation would be worse.
 - Keep variable scope small. Use clear names with units or bounds where useful.
 - Handle every error. If a state is impossible, assert it rather than ignoring it.
-- Default to no new inline code comments. Make intent clear through names and structure.
-  Add a comment only when explicitly requested or when essential context cannot
-  be expressed in the code. Keep it concise: explain the constraints or tradeoffs
-  a future engineer needs to understand why the solution was written this way.
-  Keep existing comments accurate when changing the code they describe.
+- Be extremely conservative with code comments. 
+
+## Code comments
+
+- Avoid code comments by default.
+- Only add a comment when the code itself cannot clearly communicate why something is necessary.
+- Never comment what the code does.
+- Comments should be rare and reserved for essential context that a future reader would otherwise be unable to infer, such as non-obvious constraints, intentional trade-offs, or decisions that cannot be expressed through the code itself.
+- Do not add comments solely to explain changes to the current reviewer, unless explicitly asked.
 
 ## Go conventions
 
