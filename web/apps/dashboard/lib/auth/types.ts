@@ -1,3 +1,5 @@
+import type { OrganizationRole } from "./roles";
+
 export const UNKEY_SESSION_COOKIE = "unkey-session";
 export const UNKEY_LAST_ORG_COOKIE = "unkey_last_org_used";
 
@@ -96,6 +98,6 @@ export class OrganizationScopeError extends Error {
 export interface OrgInviteParams {
   orgId: string;
   email: string;
-  role: "basic_member" | "admin";
+  role: OrganizationRole;
   inviterUserId: string;
 }

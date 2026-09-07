@@ -1,3 +1,4 @@
+import { ORGANIZATION_ROLES } from "@/lib/auth/roles";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireOrgAdmin, workspaceProcedure } from "../../trpc";
@@ -9,7 +10,7 @@ export const inviteMember = workspaceProcedure
     z.object({
       email: z.string().email(),
       orgId: z.string(), // needed for the requireOrgAdmin middleware
-      role: z.enum(["basic_member", "admin"]),
+      role: z.enum(ORGANIZATION_ROLES),
     }),
   )
   .mutation(async ({ ctx, input }) => {
