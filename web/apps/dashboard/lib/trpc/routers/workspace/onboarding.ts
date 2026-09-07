@@ -4,7 +4,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 import { createApiCore } from "../api/create";
-import { createKeyCore } from "../key/create";
+import { createKeyCore, prepareKey } from "../key/create";
 
 const createWorkspaceWithApiAndKeyInputSchema = z.object({
   apiName: z
@@ -21,6 +21,7 @@ export const onboardingKeyCreation = workspaceProcedure
     const { apiName, ...keyInput } = input;
 
     try {
+      const prepared = await prepareKey(keyInput, ctx.workspace.id, false);
       return await db.transaction(async (tx) => {
         // Create API
         const apiResult = await createApiCore({ name: apiName }, ctx, tx);
@@ -29,10 +30,10 @@ export const onboardingKeyCreation = workspaceProcedure
           {
             ...keyInput,
             keyAuthId: apiResult.keyAuthId,
-            storeEncryptedKeys: false, // Default for new APIs. Can be activated by unkey with a support ticket.
           },
           ctx,
           tx,
+          prepared,
         );
 
         return {

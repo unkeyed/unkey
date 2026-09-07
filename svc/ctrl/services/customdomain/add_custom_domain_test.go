@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	restateingress "github.com/restatedev/sdk-go/ingress"
@@ -29,6 +30,32 @@ import (
 const testBearer = "test-token"
 
 var errInjectedAuditInsert = errors.New("injected audit insert failure")
+
+func TestAddCustomDomainBoundsIngressWait(t *testing.T) {
+	f := newFixture(t, 1)
+	var submits atomic.Int32
+	stop := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		submits.Add(1)
+		select {
+		case <-r.Context().Done():
+		case <-stop:
+		}
+	}))
+	t.Cleanup(server.Close)
+	defer close(stop)
+	svc := f.newServiceWithRestate(t, server.URL)
+	started := time.Now()
+	_, err := svc.AddCustomDomain(context.Background(), f.request(f.domain))
+	require.Error(t, err)
+	require.Equal(t, int32(1), submits.Load())
+	require.Less(t, time.Since(started), 5*time.Second)
+	require.Equal(t, 0, countRows(t, context.Background(), f.database.RW(),
+		"SELECT COUNT(*) FROM custom_domains WHERE workspace_id = ? AND domain = ?", f.workspaceID, f.domain))
+	rows, err := f.database.ListClickhouseOutboxByWorkspace(context.Background(), f.workspaceID)
+	require.NoError(t, err)
+	require.Empty(t, rows)
+}
 
 // A domain in the database always has a matching outbox row, which is only observable
 // once the insert commits.

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/oapi-codegen/nullable"
@@ -72,7 +73,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// emits under one correlation id.
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 
-	data, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (openapi.App, error) {
+	findApp := func(tx db.DBTX) (db.App, error) {
 		app, err := db.Query.FindAppByProjectAndIdOrSlug(ctx, tx, db.FindAppByProjectAndIdOrSlugParams{
 			WorkspaceID: principal.AuthorizedWorkspaceID,
 			Project:     req.Project,
@@ -80,7 +81,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 		if err != nil {
 			if db.IsNotFound(err) {
-				return openapi.App{}, fault.New(
+				return db.App{}, fault.New(
 					"app not found",
 					fault.Code(codes.Data.App.NotFound.URN()),
 					fault.Internal("app not found"),
@@ -88,7 +89,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				)
 			}
 
-			return openapi.App{}, fault.Wrap(
+			return db.App{}, fault.Wrap(
 				err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error"),
@@ -109,12 +110,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}),
 		))
 		if err != nil {
-			return openapi.App{}, err
+			return db.App{}, err
 		}
 
 		// connect_repository gates every git change, disconnect included.
 		if gitSpecified && app.SourceType == db.AppsSourceTypeOci {
-			return openapi.App{}, fault.New(
+			return db.App{}, fault.New(
 				"git update is incompatible with app source",
 				fault.Code(codes.App.Validation.InvalidInput.URN()),
 				fault.Internal("cannot update git configuration for an OCI-sourced app"),
@@ -122,7 +123,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 		if req.Oci != nil && app.SourceType != db.AppsSourceTypeOci {
-			return openapi.App{}, fault.New(
+			return db.App{}, fault.New(
 				"image update is incompatible with app source",
 				fault.Code(codes.App.Validation.InvalidInput.URN()),
 				fault.Internal("cannot update OCI image configuration for a non-OCI app"),
@@ -143,10 +144,39 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}),
 			))
 			if err != nil {
-				return openapi.App{}, err
+				return db.App{}, err
 			}
 		}
 
+		return app, nil
+	}
+	var resolved githubapp.Resolved
+	if gitSpecified && !req.Git.IsNull() && req.Git.MustGet().Repository != nil {
+		app, err := findApp(h.DB.RW())
+		if err != nil {
+			return err
+		}
+		if h.GitHubAppName == "" {
+			return fault.New("github not configured",
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Public("GitHub repository connection is not enabled."))
+		}
+		installations, lookupErr := db.Query.FindGithubAppInstallationsByWorkspaceId(ctx, h.DB.RW(), app.WorkspaceID)
+		if lookupErr != nil {
+			return fault.Wrap(lookupErr, fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Public("Failed to connect the GitHub repository."))
+		}
+		resolved, err = githubapp.Resolve(h.GitHubClient, h.GitHubAppName, installations, *req.Git.MustGet().Repository)
+		if err != nil {
+			return err
+		}
+	}
+
+	data, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (openapi.App, error) {
+		app, err := findApp(tx)
+		if err != nil {
+			return openapi.App{}, err
+		}
 		updatedAt := time.Now().UnixMilli()
 		update := db.UpdateAppParams{
 			WorkspaceID:               principal.AuthorizedWorkspaceID,
@@ -183,7 +213,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		// gitState is the connection echoed in the response: current when git is
 		// unspecified, nil on disconnect, the new repository on connect.
-		gitState, err := h.applyGitChange(ctx, tx, app, req.Git)
+		gitState, err := h.applyGitChange(ctx, tx, app, req.Git, resolved)
 		if err != nil {
 			return openapi.App{}, err
 		}
@@ -349,6 +379,7 @@ func (h *Handler) applyGitChange(
 	tx db.DBTX,
 	app db.App,
 	git nullable.Nullable[openapi.AppGitUpdateInput],
+	resolved githubapp.Resolved,
 ) (*openapi.AppGit, error) {
 
 	if !git.IsSpecified() {
@@ -430,15 +461,6 @@ func (h *Handler) applyGitChange(
 		return githubapp.GitResponse(conn.RepositoryFullName, branch), nil
 	}
 
-	if h.GitHubAppName == "" {
-		return nil, fault.New(
-			"github not configured",
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("github app credentials are not configured for this deployment"),
-			fault.Public("GitHub repository connection is not enabled."),
-		)
-	}
-
 	installations, err := db.Query.FindGithubAppInstallationsByWorkspaceId(ctx, tx, app.WorkspaceID)
 	if err != nil {
 		return nil, fault.Wrap(
@@ -449,9 +471,10 @@ func (h *Handler) applyGitChange(
 		)
 	}
 
-	resolved, err := githubapp.Resolve(h.GitHubClient, h.GitHubAppName, installations, *requested.Repository)
-	if err != nil {
-		return nil, err
+	if !slices.Contains(installations, resolved.InstallationID) {
+		return nil, fault.New("github installation changed during update",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Public("GitHub installation changed. Please retry the request."))
 	}
 
 	// A fresh connect adopts the repository's GitHub default branch; replacing an
