@@ -94,8 +94,7 @@ export const roles = mysqlTable(
     updatedAtM: bigint("updated_at_m", { mode: "number" }).$onUpdateFn(() => Date.now()),
   },
   (table) => [
-    index("workspace_id_idx").on(table.workspaceId),
-    unique("unique_name_per_workspace_idx").on(table.name, table.workspaceId),
+    unique("unique_name_per_workspace_idx").on(table.workspaceId, table.name),
     unique("unique_name_per_project_idx").on(table.projectId, table.name),
     index("roles_project_id_idx").on(table.projectId),
   ],
