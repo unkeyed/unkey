@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"net/netip"
@@ -121,12 +120,10 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// The captured body therefore always reflects what the *serving*
 	// instance actually saw.
 	if tracking.LogRequestBody && req.Body != nil {
-		var buf bytes.Buffer
-		req.Body = io.NopCloser(io.TeeReader(req.Body, &zen.LimitedWriter{W: &buf, N: zen.MaxBodyCapture}))
+		buf := zen.NewBodyCapture(req.ContentLength)
+		req.Body = io.NopCloser(io.TeeReader(req.Body, buf))
 		defer func() {
-			if buf.Len() > 0 {
-				tracking.RequestBody = buf.Bytes()
-			}
+			tracking.RequestBody = buf.Bytes()
 		}()
 	}
 
