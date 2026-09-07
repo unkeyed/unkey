@@ -254,7 +254,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
 	require.NoError(t, err)
 
-	deployCfg := deploy.Config{
+	deploySvc, err := deploy.New(deploy.Config{
 		DB:            database,
 		Auditlogs:     auditlogSvc,
 		Clickhouse:    chClient,
@@ -281,10 +281,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		// A nil admin client leaves a superseded deployment's row marked while its
 		// invocation keeps running.
 		RestateAdmin: nil,
-	}
-	deploySvc, err := deploy.New(deployCfg)
-	require.NoError(t, err)
-	deployWorkflowServer, err := deploy.NewWorkflowServer(deployCfg)
+	})
 	require.NoError(t, err)
 
 	keyLastUsedPartitionSvc, err := keylastusedsync.NewPartitionService(keylastusedsync.PartitionConfig{
@@ -334,8 +331,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 			ConfigureHandler("CheckWorkspaceSpend", deployspendcheck.RetryPolicy()),
 		hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc),
 		hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc),
-		hydrav1.NewDeployServiceServer(deploySvc),
-		hydrav1.NewDeployWorkflowServer(deployWorkflowServer),
+		hydrav1.NewDeployWorkflowServer(deploySvc),
 		hydrav1.NewDeploymentServiceServer(deploymentSvc),
 		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
 		hydrav1.NewBuildSlotServiceServer(buildSlotSvc),

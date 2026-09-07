@@ -77,12 +77,12 @@ type RegistryConfig struct {
 // domain routing to ensure consistent deployment state. Promotion and rollback
 // live on EnvironmentService.
 //
-// It serves both DeployWorkflow and, until that drains, the DeployService
-// virtual object, each keyed by deployment id. Two deploys of the same app run
-// concurrently; the ordering they need comes from the dedup and supersede
-// checks.
+// The workflow is a Restate workflow keyed by deployment id: one Deploy run per
+// key, signalled by NotifyInstancesReady through a durable promise. Two deploys
+// of the same app run concurrently; the ordering they need comes from the dedup
+// and supersede checks.
 type Workflow struct {
-	hydrav1.UnimplementedDeployServiceServer
+	hydrav1.UnimplementedDeployWorkflowServer
 	db        db.Database
 	auditlogs auditlogs.AuditLogService
 
@@ -104,13 +104,9 @@ type Workflow struct {
 	dashboardURL                    string
 
 	restateAdmin *restateadmin.Client
-
-	// asWorkflow is true for the DeployWorkflow instance and false for the
-	// DeployService one
-	asWorkflow bool
 }
 
-var _ hydrav1.DeployServiceServer = (*Workflow)(nil)
+var _ hydrav1.DeployWorkflowServer = (*Workflow)(nil)
 
 // Config holds the configuration for creating a deployment workflow.
 type Config struct {
@@ -184,11 +180,11 @@ func New(cfg Config) (*Workflow, error) {
 	cleanupStaleRailpackWorkspaces()
 
 	return &Workflow{
-		UnimplementedDeployServiceServer: hydrav1.UnimplementedDeployServiceServer{},
-		db:                               cfg.DB,
-		auditlogs:                        cfg.Auditlogs,
-		defaultDomain:                    cfg.DefaultDomain,
-		vault:                            cfg.Vault,
+		UnimplementedDeployWorkflowServer: hydrav1.UnimplementedDeployWorkflowServer{},
+		db:                                cfg.DB,
+		auditlogs:                         cfg.Auditlogs,
+		defaultDomain:                     cfg.DefaultDomain,
+		vault:                             cfg.Vault,
 
 		github:                          cfg.GitHub,
 		buildConfig:                     cfg.Build,
@@ -202,6 +198,5 @@ func New(cfg Config) (*Workflow, error) {
 		allowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
 		dashboardURL:                    cfg.DashboardURL,
 		restateAdmin:                    cfg.RestateAdmin,
-		asWorkflow:                      false,
 	}, nil
 }

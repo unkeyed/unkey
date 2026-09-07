@@ -14,205 +14,21 @@ import (
 	ingress "github.com/restatedev/sdk-go/ingress"
 )
 
-// DeployServiceClient is the client API for hydra.v1.DeployService service.
-//
-// DeployService orchestrates the lifecycle of application deployments as
-// durable Restate workflows. Each RPC is idempotent and can safely resume from
-// any step after a crash.
-//
-// Every RPC is keyed by the deployment id, so operations on one deployment
-// serialize behind each other while separate deployments of the same app run
-// in parallel. The contended pointer, apps.current_deployment_id, is
-// serialized instead inside RoutingService.SwapLiveDeployment, which is keyed
-// by environment id. Workspace-wide build concurrency is separately enforced
-// by BuildSlotService.
-//
-// Deploy handles the full pipeline from building container images through
-// provisioning containers and configuring domain routing. Promotion and
-// rollback live on EnvironmentService, keyed by environment id.
-type DeployServiceClient interface {
-	// Create writes the deployment row and, for a DEPLOY decision, starts Deploy.
-	// The key is the deployment id, so the caller chooses it up front.
-	Create(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployCreateRequest, *DeployCreateResponse]
-	// Deploy executes the full deployment workflow: build (if git source), provision
-	// containers across regions, wait for health, configure domain routing, and
-	// update the app's live deployment pointer for production environments.
-	// Sets deployment status to failed on any error.
-	Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *DeployResponse]
-	// NotifyInstancesReady is called by the control plane when enough instances
-	// have become healthy across the required regions. It resolves the awakeable
-	// stored by a suspended Deploy so it can continue.
-	NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
-}
-
-type deployServiceClient struct {
-	ctx     sdk_go.Context
-	key     string
-	options []sdk_go.ClientOption
-}
-
-func NewDeployServiceClient(ctx sdk_go.Context, key string, opts ...sdk_go.ClientOption) DeployServiceClient {
-	cOpts := append([]sdk_go.ClientOption{sdk_go.WithProtoJSON}, opts...)
-	return &deployServiceClient{
-		ctx,
-		key,
-		cOpts,
-	}
-}
-func (c *deployServiceClient) Create(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployCreateRequest, *DeployCreateResponse] {
-	cOpts := c.options
-	if len(opts) > 0 {
-		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
-	}
-	return sdk_go.WithRequestType[*DeployCreateRequest](sdk_go.Object[*DeployCreateResponse](c.ctx, "hydra.v1.DeployService", c.key, "Create", cOpts...))
-}
-
-func (c *deployServiceClient) Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *DeployResponse] {
-	cOpts := c.options
-	if len(opts) > 0 {
-		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
-	}
-	return sdk_go.WithRequestType[*DeployRequest](sdk_go.Object[*DeployResponse](c.ctx, "hydra.v1.DeployService", c.key, "Deploy", cOpts...))
-}
-
-func (c *deployServiceClient) NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
-	cOpts := c.options
-	if len(opts) > 0 {
-		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
-	}
-	return sdk_go.WithRequestType[*NotifyInstancesReadyRequest](sdk_go.Object[*NotifyInstancesReadyResponse](c.ctx, "hydra.v1.DeployService", c.key, "NotifyInstancesReady", cOpts...))
-}
-
-// DeployServiceIngressClient is the ingress client API for hydra.v1.DeployService service.
-//
-// This client is used to call the service from outside of a Restate context.
-type DeployServiceIngressClient interface {
-	// Create writes the deployment row and, for a DEPLOY decision, starts Deploy.
-	// The key is the deployment id, so the caller chooses it up front.
-	Create() ingress.Requester[*DeployCreateRequest, *DeployCreateResponse]
-	// Deploy executes the full deployment workflow: build (if git source), provision
-	// containers across regions, wait for health, configure domain routing, and
-	// update the app's live deployment pointer for production environments.
-	// Sets deployment status to failed on any error.
-	Deploy() ingress.Requester[*DeployRequest, *DeployResponse]
-	// NotifyInstancesReady is called by the control plane when enough instances
-	// have become healthy across the required regions. It resolves the awakeable
-	// stored by a suspended Deploy so it can continue.
-	NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
-}
-
-type deployServiceIngressClient struct {
-	client      *ingress.Client
-	serviceName string
-	key         string
-}
-
-func NewDeployServiceIngressClient(client *ingress.Client, key string) DeployServiceIngressClient {
-	return &deployServiceIngressClient{
-		client,
-		"hydra.v1.DeployService",
-		key,
-	}
-}
-
-func (c *deployServiceIngressClient) Create() ingress.Requester[*DeployCreateRequest, *DeployCreateResponse] {
-	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*DeployCreateRequest, *DeployCreateResponse](c.client, c.serviceName, "Create", &c.key, &codec)
-}
-
-func (c *deployServiceIngressClient) Deploy() ingress.Requester[*DeployRequest, *DeployResponse] {
-	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*DeployRequest, *DeployResponse](c.client, c.serviceName, "Deploy", &c.key, &codec)
-}
-
-func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
-	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse](c.client, c.serviceName, "NotifyInstancesReady", &c.key, &codec)
-}
-
-// DeployServiceServer is the server API for hydra.v1.DeployService service.
-// All implementations should embed UnimplementedDeployServiceServer
-// for forward compatibility.
-//
-// DeployService orchestrates the lifecycle of application deployments as
-// durable Restate workflows. Each RPC is idempotent and can safely resume from
-// any step after a crash.
-//
-// Every RPC is keyed by the deployment id, so operations on one deployment
-// serialize behind each other while separate deployments of the same app run
-// in parallel. The contended pointer, apps.current_deployment_id, is
-// serialized instead inside RoutingService.SwapLiveDeployment, which is keyed
-// by environment id. Workspace-wide build concurrency is separately enforced
-// by BuildSlotService.
-//
-// Deploy handles the full pipeline from building container images through
-// provisioning containers and configuring domain routing. Promotion and
-// rollback live on EnvironmentService, keyed by environment id.
-type DeployServiceServer interface {
-	// Create writes the deployment row and, for a DEPLOY decision, starts Deploy.
-	// The key is the deployment id, so the caller chooses it up front.
-	Create(ctx sdk_go.ObjectContext, req *DeployCreateRequest) (*DeployCreateResponse, error)
-	// Deploy executes the full deployment workflow: build (if git source), provision
-	// containers across regions, wait for health, configure domain routing, and
-	// update the app's live deployment pointer for production environments.
-	// Sets deployment status to failed on any error.
-	Deploy(ctx sdk_go.ObjectContext, req *DeployRequest) (*DeployResponse, error)
-	// NotifyInstancesReady is called by the control plane when enough instances
-	// have become healthy across the required regions. It resolves the awakeable
-	// stored by a suspended Deploy so it can continue.
-	NotifyInstancesReady(ctx sdk_go.ObjectSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error)
-}
-
-// UnimplementedDeployServiceServer should be embedded to have
-// forward compatible implementations.
-//
-// NOTE: this should be embedded by value instead of pointer to avoid a nil
-// pointer dereference when methods are called.
-type UnimplementedDeployServiceServer struct{}
-
-func (UnimplementedDeployServiceServer) Create(ctx sdk_go.ObjectContext, req *DeployCreateRequest) (*DeployCreateResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Create not implemented"), 501)
-}
-func (UnimplementedDeployServiceServer) Deploy(ctx sdk_go.ObjectContext, req *DeployRequest) (*DeployResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Deploy not implemented"), 501)
-}
-func (UnimplementedDeployServiceServer) NotifyInstancesReady(ctx sdk_go.ObjectSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method NotifyInstancesReady not implemented"), 501)
-}
-func (UnimplementedDeployServiceServer) testEmbeddedByValue() {}
-
-// UnsafeDeployServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to DeployServiceServer will
-// result in compilation errors.
-type UnsafeDeployServiceServer interface {
-	mustEmbedUnimplementedDeployServiceServer()
-}
-
-func NewDeployServiceServer(srv DeployServiceServer, opts ...sdk_go.ServiceDefinitionOption) sdk_go.ServiceDefinition {
-	// If the following call panics, it indicates UnimplementedDeployServiceServer was
-	// embedded by pointer and is nil.  This will cause panics if an
-	// unimplemented method is ever invoked, so we test this at initialization
-	// time to prevent it from happening at runtime later due to I/O.
-	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
-		t.testEmbeddedByValue()
-	}
-	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
-	router := sdk_go.NewObject("hydra.v1.DeployService", sOpts...)
-	router = router.Handler("Create", sdk_go.NewObjectHandler(srv.Create))
-	router = router.Handler("Deploy", sdk_go.NewObjectHandler(srv.Deploy))
-	router = router.Handler("NotifyInstancesReady", sdk_go.NewObjectSharedHandler(srv.NotifyInstancesReady))
-	return router
-}
-
 // DeployWorkflowClient is the client API for hydra.v1.DeployWorkflow service.
 //
-// DeployWorkflow is the Restate workflow replacing DeployService. One
-// run per deployment id; readiness arrives through a durable promise, so the
-// run keeps no state. Both stay registered until every Deploy started on
-// DeployService has finished.
+// DeployWorkflow runs one deployment from creation to routing. Each RPC is
+// idempotent and can safely resume from any step after a crash.
+//
+// The workflow key is the deployment id: Deploy runs once per key, and
+// readiness arrives through a durable promise that NotifyInstancesReady
+// resolves, so the run keeps no state. The contended pointer,
+// apps.current_deployment_id, is serialized inside
+// RoutingService.SwapLiveDeployment, which is keyed by environment id.
+// Workspace-wide build concurrency is separately enforced by BuildSlotService.
+// Promotion and rollback live on EnvironmentService, keyed by environment id.
 type DeployWorkflowClient interface {
 	// Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
-	// The key is the deployment id, so the caller chooses it up front.
+	// Shared, so it can run before the run exists.
 	Create(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy is the run: build, provision, wait for health, route.
 	Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *DeployResponse]
@@ -264,7 +80,7 @@ func (c *deployWorkflowClient) NotifyInstancesReady(opts ...sdk_go.ClientOption)
 // This client is used to call the service from outside of a Restate context.
 type DeployWorkflowIngressClient interface {
 	// Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
-	// The key is the deployment id, so the caller chooses it up front.
+	// Shared, so it can run before the run exists.
 	Create() ingress.Requester[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy is the run: build, provision, wait for health, route.
 	Submit(ctx context.Context, input *DeployRequest, opts ...sdk_go.IngressSendOption) (ingress.SendResponse[*DeployResponse], error)
@@ -312,13 +128,19 @@ func (c *deployWorkflowIngressClient) Handle() ingress.InvocationHandle[*DeployR
 // All implementations should embed UnimplementedDeployWorkflowServer
 // for forward compatibility.
 //
-// DeployWorkflow is the Restate workflow replacing DeployService. One
-// run per deployment id; readiness arrives through a durable promise, so the
-// run keeps no state. Both stay registered until every Deploy started on
-// DeployService has finished.
+// DeployWorkflow runs one deployment from creation to routing. Each RPC is
+// idempotent and can safely resume from any step after a crash.
+//
+// The workflow key is the deployment id: Deploy runs once per key, and
+// readiness arrives through a durable promise that NotifyInstancesReady
+// resolves, so the run keeps no state. The contended pointer,
+// apps.current_deployment_id, is serialized inside
+// RoutingService.SwapLiveDeployment, which is keyed by environment id.
+// Workspace-wide build concurrency is separately enforced by BuildSlotService.
+// Promotion and rollback live on EnvironmentService, keyed by environment id.
 type DeployWorkflowServer interface {
 	// Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
-	// The key is the deployment id, so the caller chooses it up front.
+	// Shared, so it can run before the run exists.
 	Create(ctx sdk_go.WorkflowSharedContext, req *DeployCreateRequest) (*DeployCreateResponse, error)
 	// Deploy is the run: build, provision, wait for health, route.
 	Deploy(ctx sdk_go.WorkflowContext, req *DeployRequest) (*DeployResponse, error)
