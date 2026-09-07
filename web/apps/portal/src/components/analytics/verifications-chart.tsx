@@ -9,12 +9,14 @@ import {
 import { formatBucketTime, formatCount } from "./format";
 import type { VerificationBucket } from "./schema/analytics.schema";
 
+// Matches the dashboard's valid bars (`--accent-4`); the portal has no accent scale.
+const VALID_BAR_COLOR = "hsl(240 10% 92%)";
 export const VALID_COLOR = "hsl(var(--gray-8))";
 export const REJECTED_COLOR = "hsl(var(--error-9))";
 const GRID_COLOR = "hsl(var(--gray-6))";
 
 const chartConfig: ChartConfig = {
-  valid: { label: "Valid", color: VALID_COLOR },
+  valid: { label: "Valid", color: VALID_BAR_COLOR },
   rejected: { label: "Invalid", color: REJECTED_COLOR },
 };
 
@@ -50,7 +52,13 @@ export function VerificationsChart({ buckets, days }: Props) {
         margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
         barCategoryGap={2}
       >
-        <CartesianGrid horizontal vertical={false} strokeDasharray="3 3" stroke={GRID_COLOR} />
+        <CartesianGrid
+          horizontal
+          vertical={false}
+          strokeDasharray="3 3"
+          stroke={GRID_COLOR}
+          strokeOpacity={0.5}
+        />
         <XAxis
           dataKey="time"
           tickLine={false}
