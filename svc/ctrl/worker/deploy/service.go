@@ -72,7 +72,7 @@ type RegistryConfig struct {
 
 // Workflow orchestrates deployment lifecycle operations.
 //
-// This workflow creates, builds, deploys, stops, and wakes deployments. It
+// This workflow creates, builds, and deploys deployments. It
 // coordinates between container orchestration (Krane), database updates, and
 // domain routing to ensure consistent deployment state. Promotion and rollback
 // live on EnvironmentService.
