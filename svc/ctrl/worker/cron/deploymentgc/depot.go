@@ -24,9 +24,10 @@ type DepotImage struct {
 
 // DepotProject is the build-project identity needed for reconciliation.
 type DepotProject struct {
-	ID        string
-	Name      string
-	CreatedAt time.Time
+	ID                 string
+	Name               string
+	CreatedAt          time.Time
+	CacheRetentionDays int32
 }
 
 // Depot is the narrow subset of the Depot API used by garbage collection.
@@ -41,6 +42,7 @@ type Depot interface {
 	GetProject(ctx context.Context, projectID string) (DepotProject, bool, error)
 	// DeleteProject deletes a project. A missing project must count as success.
 	DeleteProject(ctx context.Context, projectID string) error
+	SetCacheRetention(ctx context.Context, projectID, expectedName string, days int32) (bool, error)
 }
 
 type depotClient struct {
@@ -119,9 +121,10 @@ func (c *depotClient) ListProjects(ctx context.Context, pageToken string) ([]Dep
 	projects := make([]DepotProject, 0, len(response.Msg.GetProjects()))
 	for _, project := range response.Msg.GetProjects() {
 		projects = append(projects, DepotProject{
-			ID:        project.GetProjectId(),
-			Name:      project.GetName(),
-			CreatedAt: validTime(project.GetCreatedAt()),
+			ID:                 project.GetProjectId(),
+			Name:               project.GetName(),
+			CreatedAt:          validTime(project.GetCreatedAt()),
+			CacheRetentionDays: project.GetCachePolicy().GetKeepDays(),
 		})
 	}
 	return projects, response.Msg.GetNextPageToken(), nil
@@ -138,10 +141,42 @@ func (c *depotClient) GetProject(ctx context.Context, projectID string) (DepotPr
 	}
 	project := response.Msg.GetProject()
 	return DepotProject{
-		ID:        project.GetProjectId(),
-		Name:      project.GetName(),
-		CreatedAt: validTime(project.GetCreatedAt()),
+		ID:                 project.GetProjectId(),
+		Name:               project.GetName(),
+		CreatedAt:          validTime(project.GetCreatedAt()),
+		CacheRetentionDays: project.GetCachePolicy().GetKeepDays(),
 	}, true, nil
+}
+
+func (c *depotClient) SetCacheRetention(ctx context.Context, projectID, expectedName string, days int32) (bool, error) {
+	response, err := c.projects.GetProject(ctx, connect.NewRequest(&corev1.GetProjectRequest{ProjectId: projectID}))
+	if connect.CodeOf(err) == connect.CodeNotFound {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	project := response.Msg.GetProject()
+	if project.GetProjectId() != projectID || project.GetName() != expectedName {
+		return false, nil
+	}
+	policy := project.GetCachePolicy()
+	if policy == nil {
+		return false, fmt.Errorf("Depot project %s has no cache policy", projectID)
+	}
+	if policy.GetKeepDays() == days {
+		return false, nil
+	}
+	policy.KeepDays = days
+	request := &corev1.UpdateProjectRequest{
+		ProjectId:   projectID,
+		Name:        nil,
+		RegionId:    nil,
+		CachePolicy: policy,
+		Hardware:    nil,
+	}
+	_, err = c.projects.UpdateProject(ctx, connect.NewRequest(request))
+	return err == nil, err
 }
 
 func (c *depotClient) DeleteProject(ctx context.Context, projectID string) error {

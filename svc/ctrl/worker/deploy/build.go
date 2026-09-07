@@ -34,16 +34,13 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/depotcache"
 )
 
 const (
 	// defaultCacheKeepGB is the maximum cache size in gigabytes for new Depot
 	// projects. Depot evicts least-recently-used cache entries when exceeded.
 	defaultCacheKeepGB = 25
-
-	// defaultCacheKeepDays is the maximum age in days for cached build layers.
-	// Layers older than this are evicted regardless of cache size.
-	defaultCacheKeepDays = 7
 
 	// gitAuthTokenSecretID is the BuildKit session secret holding the GitHub
 	// installation token for git context fetches. The host suffix scopes the
@@ -716,7 +713,7 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 		//nolint: exhaustruct // missing fields is deprecated
 		CachePolicy: &corev1.CachePolicy{
 			KeepGb:   defaultCacheKeepGB,
-			KeepDays: defaultCacheKeepDays,
+			KeepDays: depotcache.RetentionDays,
 		},
 	}))
 	if err != nil {

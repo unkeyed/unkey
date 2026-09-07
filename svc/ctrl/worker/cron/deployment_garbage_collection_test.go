@@ -313,6 +313,14 @@ func TestDeploymentGarbageCollection_RetainsHistoryAndReconcilesDepot(t *testing
 	require.Equal(t, "depot-transient", updatedTransientProject.DepotProjectID.String)
 	require.Equal(t, []string{testOrphanTag}, depot.deletedImageTags())
 	require.Equal(t, []string{"depot-orphan"}, depot.deletedProjectIDs())
+	cacheProject, exists, err := depot.GetProject(h.Ctx, "depot-referenced")
+	require.NoError(t, err)
+	require.True(t, exists)
+	require.Equal(t, int32(3), cacheProject.CacheRetentionDays)
+	registryProject, exists, err := depot.GetProject(h.Ctx, "registry-project")
+	require.NoError(t, err)
+	require.True(t, exists)
+	require.Zero(t, registryProject.CacheRetentionDays)
 	restoredProject, err = h.DB.FindProjectById(h.Ctx, restoredProject.ID)
 	require.NoError(t, err)
 	require.Equal(t, "depot-restored", restoredProject.DepotProjectID.String)
@@ -442,6 +450,18 @@ func (f *fakeDepot) DeleteProject(_ context.Context, projectID string) error {
 	delete(f.projects, projectID)
 	f.deletedProjects = append(f.deletedProjects, projectID)
 	return nil
+}
+
+func (f *fakeDepot) SetCacheRetention(_ context.Context, projectID, expectedName string, days int32) (bool, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	project, exists := f.projects[projectID]
+	if !exists || project.Name != expectedName || project.CacheRetentionDays == days {
+		return false, nil
+	}
+	project.CacheRetentionDays = days
+	f.projects[projectID] = project
+	return true, nil
 }
 
 func (f *fakeDepot) deletedImageTags() []string {

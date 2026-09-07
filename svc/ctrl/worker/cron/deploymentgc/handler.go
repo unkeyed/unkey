@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentretention"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/depotcache"
 )
 
 const (
@@ -125,6 +126,9 @@ func (h *Handler) Handle(ctx restate.ObjectContext, _ *hydrav1.RunDeploymentGarb
 	if err != nil {
 		return nil, err
 	}
+	if err := h.reconcileCacheRetention(ctx, databaseProjects, depotProjects); err != nil {
+		return nil, err
+	}
 	imagesDeleted, err := h.deleteOrphanImages(ctx, now, databaseImages, depotImages, maxDepotResourceDeletes)
 	if err != nil {
 		return nil, err
@@ -142,6 +146,30 @@ func (h *Handler) Handle(ctx restate.ObjectContext, _ *hydrav1.RunDeploymentGarb
 		"depot_resources_deleted", response.GetDepotResourcesDeleted(),
 	)
 	return response, nil
+}
+
+func (h *Handler) reconcileCacheRetention(ctx restate.ObjectContext, references []projectReference, projects map[string]DepotProject) error {
+	var updated int32
+	for _, reference := range references {
+		project, exists := projects[reference.DepotProjectID]
+		if !exists || project.ID == h.registryProjectID || !h.isManagedBuildProject(project.Name) || project.CacheRetentionDays == depotcache.RetentionDays {
+			continue
+		}
+		changed, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
+			return h.depot.SetCacheRetention(runCtx, project.ID, project.Name, depotcache.RetentionDays)
+		}, restate.WithName("reconcile Depot cache retention"), restate.WithMaxRetryAttempts(runMaxAttempts))
+		if err != nil {
+			return fmt.Errorf("update Depot project %s cache retention: %w", project.ID, err)
+		}
+		if changed {
+			updated++
+		}
+		if updated >= maxDepotResourceDeletes {
+			break
+		}
+	}
+	logger.Info("Depot build cache retention reconciled", "projects_updated", updated, "retention_days", depotcache.RetentionDays)
+	return nil
 }
 
 func (h *Handler) dispatchExpiredDeployments(ctx restate.ObjectContext, now time.Time) (int32, error) {
