@@ -4,8 +4,16 @@ import { ChartEmpty } from "@/components/logs/chart/chart-states";
 import { type ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { formatBytesPerSecondParts } from "@/lib/utils/deployment-formatters";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { useEffect, useId, useState } from "react";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { type ReactNode, useEffect, useId, useState } from "react";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  type LabelProps,
+  ReferenceLine,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { resolveXAxisDomain } from "./chart-domain";
 import { ChartError } from "./components/chart-error";
 import { ChartWaveLoading } from "./components/chart-wave-loading";
@@ -51,6 +59,47 @@ const Y_GUTTER_PX = 36;
 
 export type ValueParts = { value: string; unit?: string; hint?: string };
 
+export type AreaChartAnnotation = {
+  timestamp: number;
+  label?: string;
+};
+
+function ChartAnnotationLabel({ viewBox, value }: LabelProps) {
+  if (!viewBox || !("x" in viewBox) || typeof viewBox.x !== "number") {
+    return null;
+  }
+  if (!("y" in viewBox) || typeof viewBox.y !== "number" || typeof value !== "string") {
+    return null;
+  }
+
+  const width = Math.max(48, value.length * 5.5 + 16);
+  return (
+    <g transform={`translate(${viewBox.x}, ${viewBox.y + 7})`} pointerEvents="none">
+      <rect
+        x={-width / 2}
+        y={0}
+        width={width}
+        height={20}
+        rx={10}
+        fill="hsl(var(--gray-2))"
+        stroke="hsl(var(--feature-8))"
+      />
+      <text
+        x={0}
+        y={10.5}
+        dominantBaseline="middle"
+        textAnchor="middle"
+        fill="hsl(var(--gray-12))"
+        fontFamily="var(--font-mono)"
+        fontSize={9}
+        fontWeight={500}
+      >
+        {value}
+      </text>
+    </g>
+  );
+}
+
 export type AreaTimeseriesAxisOptions = {
   visible?: boolean;
   x?: {
@@ -60,6 +109,7 @@ export type AreaTimeseriesAxisOptions = {
   };
   y?: {
     floor?: number;
+    width?: number;
     formatTick?: (value: number) => string;
   };
 };
@@ -76,6 +126,9 @@ type Props = {
   axis?: AreaTimeseriesAxisOptions | null;
   paleFill?: boolean;
   fillColors?: Record<string, string>;
+  incompleteFrom?: number;
+  annotations?: AreaChartAnnotation[];
+  renderTooltipFooter?: (point: AreaChartPoint) => ReactNode;
   onActiveChange?: (point: AreaChartPoint | null) => void;
   hideTooltip?: boolean;
   showZeroLine?: boolean;
@@ -93,6 +146,9 @@ export function AreaTimeseriesChart({
   axis,
   paleFill,
   fillColors,
+  incompleteFrom,
+  annotations,
+  renderTooltipFooter,
   onActiveChange,
   hideTooltip,
   showZeroLine,
@@ -160,6 +216,22 @@ export function AreaTimeseriesChart({
         Math.round(effectiveDomain[0] + (i * (effectiveDomain[1] - effectiveDomain[0])) / 3),
       )
     : undefined;
+  const incompleteIndex =
+    incompleteFrom === undefined
+      ? -1
+      : data.findIndex((point) => point.originalTimestamp >= incompleteFrom);
+  const hasIncompleteSegment = incompleteIndex > 0;
+  const chartData = hasIncompleteSegment
+    ? data.map((point, index) => {
+        const segmentedPoint: AreaChartPoint = { ...point };
+        for (const key of configKeys) {
+          segmentedPoint[completeDataKey(key)] = index < incompleteIndex ? point[key] : undefined;
+          segmentedPoint[incompleteDataKey(key)] =
+            index >= incompleteIndex - 1 ? point[key] : undefined;
+        }
+        return segmentedPoint;
+      })
+    : data;
 
   return (
     <ChartContainer
@@ -168,7 +240,7 @@ export function AreaTimeseriesChart({
       style={{ height, width: "100%" }}
     >
       <AreaChart
-        data={data}
+        data={chartData}
         onMouseMove={handleActive}
         onMouseLeave={onActiveChange ? () => onActiveChange(null) : undefined}
         margin={
@@ -250,7 +322,7 @@ export function AreaTimeseriesChart({
           hide={!showAxes}
         />
         <YAxis
-          width={showAxes ? Y_GUTTER_PX : 0}
+          width={showAxes ? (axis?.y?.width ?? Y_GUTTER_PX) : 0}
           tickLine={false}
           axisLine={false}
           tickFormatter={formatYTick}
@@ -284,6 +356,7 @@ export function AreaTimeseriesChart({
             const rows = configKeys
               .map((key) => ({ key, value: Number(point[key]) || 0 }))
               .sort((a, b) => b.value - a.value);
+            const footer = renderTooltipFooter?.(point);
             return (
               <div
                 role="tooltip"
@@ -312,6 +385,7 @@ export function AreaTimeseriesChart({
                     );
                   })}
                 </div>
+                {footer}
               </div>
             );
           }}
@@ -320,7 +394,7 @@ export function AreaTimeseriesChart({
           configKeys.map((key) => (
             <Area
               key={`${key}-glow`}
-              dataKey={key}
+              dataKey={hasIncompleteSegment ? completeDataKey(key) : key}
               type="monotone"
               stroke={config[key].color}
               strokeWidth={3.5}
@@ -338,9 +412,9 @@ export function AreaTimeseriesChart({
             key={key}
             dataKey={key}
             type="monotone"
-            stroke={config[key].color}
+            stroke={hasIncompleteSegment ? "none" : config[key].color}
             strokeWidth={1.5}
-            fill={`url(#${chartId}-${key})`}
+            fill={hasIncompleteSegment ? "none" : `url(#${chartId}-${key})`}
             fillOpacity={1}
             isAnimationActive={shouldAnimate}
             animationDuration={500}
@@ -366,9 +440,69 @@ export function AreaTimeseriesChart({
             }}
           />
         ))}
+        {hasIncompleteSegment &&
+          configKeys.map((key) => (
+            <Area
+              key={`${key}-complete`}
+              dataKey={completeDataKey(key)}
+              type="monotone"
+              stroke={config[key].color}
+              strokeWidth={1.5}
+              fill={`url(#${chartId}-${key})`}
+              fillOpacity={1}
+              isAnimationActive={shouldAnimate}
+              animationDuration={500}
+              animationEasing="ease-out"
+              dot={false}
+              activeDot={false}
+            />
+          ))}
+        {hasIncompleteSegment &&
+          configKeys.map((key) => (
+            <Area
+              key={`${key}-incomplete`}
+              dataKey={incompleteDataKey(key)}
+              type="monotone"
+              stroke={config[key].color}
+              strokeWidth={1.5}
+              strokeDasharray="4 4"
+              strokeLinecap="round"
+              fill={`url(#${chartId}-${key})`}
+              fillOpacity={1}
+              isAnimationActive={shouldAnimate}
+              animationDuration={500}
+              animationEasing="ease-out"
+              dot={false}
+              activeDot={false}
+            />
+          ))}
+        {annotations?.map((annotation) => (
+          <ReferenceLine
+            key={annotation.timestamp}
+            x={annotation.timestamp}
+            stroke="hsl(var(--feature-8))"
+            strokeWidth={1}
+            strokeDasharray="4 4"
+            strokeOpacity={0.6}
+            label={
+              annotation.label
+                ? { value: annotation.label, content: ChartAnnotationLabel }
+                : undefined
+            }
+            zIndex={500}
+          />
+        ))}
       </AreaChart>
     </ChartContainer>
   );
+}
+
+function completeDataKey(key: string): string {
+  return `__complete_${key}`;
+}
+
+function incompleteDataKey(key: string): string {
+  return `__incomplete_${key}`;
 }
 
 function formatYAxisCompactBytes(v: number): string {
