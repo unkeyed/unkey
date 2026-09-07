@@ -40,7 +40,7 @@ func TestImageSource(t *testing.T) {
 	require.Equal(t, "nginx:latest", observed.request.GetImage().GetImage())
 	require.Equal(t, setup.Project.ID, observed.request.GetProjectId())
 	require.Equal(t, setup.App.ID, observed.request.GetAppId())
-	require.Equal(t, setup.Environment.ID, observed.request.GetEnvironment())
+	require.Equal(t, setup.Environment.ID, observed.request.GetEnvironmentId())
 	require.Nil(t, observed.request.GetGit(), "image source must not send git commit info")
 	require.Equal(t, ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API, observed.request.GetTrigger())
 }
