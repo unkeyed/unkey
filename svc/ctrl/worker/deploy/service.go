@@ -104,6 +104,10 @@ type Workflow struct {
 	dashboardURL                    string
 
 	restateAdmin *restateadmin.Client
+
+	// asWorkflow marks the copy that serves DeployWorkflow. The SDK passes one
+	// context type to every handler, so the service cannot be told from ctx
+	asWorkflow bool
 }
 
 var _ hydrav1.DeployServiceServer = (*Workflow)(nil)
@@ -198,5 +202,6 @@ func New(cfg Config) (*Workflow, error) {
 		allowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
 		dashboardURL:                    cfg.DashboardURL,
 		restateAdmin:                    cfg.RestateAdmin,
+		asWorkflow:                      false,
 	}, nil
 }
