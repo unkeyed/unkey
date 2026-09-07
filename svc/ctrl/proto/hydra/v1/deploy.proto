@@ -7,50 +7,21 @@ import "dev/restate/sdk/go.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 
-// DeployService orchestrates the lifecycle of application deployments as
-// durable Restate workflows. Each RPC is idempotent and can safely resume from
-// any step after a crash.
+// DeployWorkflow runs one deployment from creation to routing. Each RPC is
+// idempotent and can safely resume from any step after a crash.
 //
-// Every RPC is keyed by the deployment id, so operations on one deployment
-// serialize behind each other while separate deployments of the same app run
-// in parallel. The contended pointer, apps.current_deployment_id, is
-// serialized instead inside RoutingService.SwapLiveDeployment, which is keyed
-// by environment id. Workspace-wide build concurrency is separately enforced
-// by BuildSlotService.
-//
-// Deploy handles the full pipeline from building container images through
-// provisioning containers and configuring domain routing. Promotion and
-// rollback live on EnvironmentService, keyed by environment id.
-service DeployService {
-  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
-
-  // Create writes the deployment row and, for a DEPLOY decision, starts Deploy.
-  // The key is the deployment id, so the caller chooses it up front.
-  rpc Create(DeployCreateRequest) returns (DeployCreateResponse) {}
-
-  // Deploy executes the full deployment workflow: build (if git source), provision
-  // containers across regions, wait for health, configure domain routing, and
-  // update the app's live deployment pointer for production environments.
-  // Sets deployment status to failed on any error.
-  rpc Deploy(DeployRequest) returns (DeployResponse) {}
-
-  // NotifyInstancesReady is called by the control plane when enough instances
-  // have become healthy across the required regions. It resolves the awakeable
-  // stored by a suspended Deploy so it can continue.
-  rpc NotifyInstancesReady(NotifyInstancesReadyRequest) returns (NotifyInstancesReadyResponse) {
-    option (dev.restate.sdk.go.handler_type) = SHARED;
-  }
-}
-
-// DeployWorkflow is the Restate workflow replacing DeployService. One
-// run per deployment id; readiness arrives through a durable promise, so the
-// run keeps no state. Both stay registered until every Deploy started on
-// DeployService has finished.
+// The workflow key is the deployment id: Deploy runs once per key, and
+// readiness arrives through a durable promise that NotifyInstancesReady
+// resolves, so the run keeps no state. The contended pointer,
+// apps.current_deployment_id, is serialized inside
+// RoutingService.SwapLiveDeployment, which is keyed by environment id.
+// Workspace-wide build concurrency is separately enforced by BuildSlotService.
+// Promotion and rollback live on EnvironmentService, keyed by environment id.
 service DeployWorkflow {
   option (dev.restate.sdk.go.service_type) = WORKFLOW;
 
   // Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
-  // The key is the deployment id, so the caller chooses it up front.
+  // Shared, so it can run before the run exists.
   rpc Create(DeployCreateRequest) returns (DeployCreateResponse) {}
 
   // Deploy is the run: build, provision, wait for health, route.

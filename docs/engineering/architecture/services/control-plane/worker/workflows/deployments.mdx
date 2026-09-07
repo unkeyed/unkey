@@ -9,7 +9,7 @@ The control plane deployment service creates deployment records and delegates ex
 
 Each Restate VO uses the narrowest key that gives the serialization it needs:
 
-- **`DeployWorkflow`** is keyed by `deployment_id`. Each deployment is one workflow run, so multiple deployments in the same environment can build in parallel. `DeployService`, the virtual object it replaces, stays registered until every Deploy that started on it has finished.
+- **`DeployWorkflow`** is keyed by `deployment_id`. Each deployment is one workflow run, so multiple deployments in the same environment can build in parallel. It is a workflow rather than a virtual object because Deploy has no operations to serialise.
 - **`EnvironmentService`** is keyed by `environment_id`. Promote and rollback run here. Both change which deployment is live in one environment, and both check the live pointer before they swap it. One key holds the check and the swap under one lock. With separate keys, two operations on the same environment can pass their checks against the same live pointer and then swap one after the other.
 - **`RoutingService`** is keyed by `env_id`. Frontline route assignment and the live-deployment swap serialize here. It is the write primitive that `DeployWorkflow` and `EnvironmentService` call.
 - **`BuildSlotService`** is keyed by `workspace_id`. Caps how many deployments build at once across the workspace and prioritises production over preview waiters.
@@ -52,9 +52,9 @@ sequenceDiagram
   Worker->>BuildSlot: AcquireOrWait(deployment_id, awakeable_id, is_production)
   BuildSlot-->>Worker: resolve awakeable when slot available<br/>(prod waiters drained first)
   Worker->>DB: Insert topologies (outbox entries)
-  Worker->>Worker: waitForDeployments creates awakeable
-  Note over Worker: suspended on awakeable
-  DB-->>Worker: ReportDeploymentStatus threshold met<br/>→ NotifyInstancesReady resolves awakeable
+  Worker->>Worker: waitForDeployments awaits promise instances_ready
+  Note over Worker: suspended on promise
+  DB-->>Worker: ReportDeploymentStatus threshold met<br/>→ NotifyInstancesReady resolves promise
   Worker->>DB: Mark deployment ready
   Worker->>BuildSlot: Release(deployment_id)
 ```
@@ -159,20 +159,18 @@ Cancellation happens in three steps, all batched:
 
 Only git-sourced deployments with a branch are deduplicated; Docker-image redeploys bypass this path.
 
-## Instance readiness (awakeable-based)
+## Instance readiness (promise-based)
 
-After `createTopologies`, the Deploy handler enters `waitForDeployments`, which parks on a Restate awakeable until krane reports pod readiness. Krane installs the per-deployment Cilium network policy itself when it applies each deployment, so the handler does not create one.
+After `createTopologies`, the Deploy run enters `waitForDeployments`, which awaits a durable promise named `instances_ready` until krane reports pod readiness. Krane installs the per-deployment Cilium network policy itself when it applies each deployment, so the run does not create one.
 
 `waitForDeployments` flow:
 
-1. Load per-region min replicas via `FindDeploymentTopologyMinReplicas`.
-2. Count running instances per region.
-3. Require `numRegions - 1` healthy regions (minimum 1, tolerating one regional outage).
-4. Repeat the DB check until the threshold is met or `regionReadyTimeout` elapses.
+1. Build per-region min replicas from the topologies just inserted.
+2. Require `numRegions - 1` healthy regions (minimum 1, tolerating one regional outage).
+3. Check the database once for instances that are already healthy.
+4. Otherwise await the promise, racing it against `regionReadyTimeout`.
 
-The awakeable is resolved by `DeployService.NotifyInstancesReady`, a `SHARED` handler that runs concurrently with the suspended Deploy.
-
-`DeployWorkflow`, the Restate workflow replacing `DeployService`, needs no awakeable or object state: its Deploy run awaits a durable promise named `instances_ready`, and its `NotifyInstancesReady` resolves that promise. A report that arrives before the run awaits is kept by the promise. It is a workflow rather than a virtual object because Deploy has no operations to serialise.
+The promise is resolved by `DeployWorkflow.NotifyInstancesReady`, a `SHARED` handler that runs concurrently with the suspended run. A report that arrives before the run awaits is kept by the promise, so there is no awakeable to stash and no state to clear.
 
 Caller: `cluster.Service.ReportDeploymentStatus` (the RPC krane calls to report instance state) runs a thundering-herd gate after the upsert transaction:
 
@@ -181,7 +179,7 @@ Caller: `cluster.Service.ReportDeploymentStatus` (the RPC krane calls to report 
 3. Count running instances per region; require `numRegions - 1` healthy regions (minimum 1 — tolerates one regional outage).
 4. Dedup the notification via an in-process `sync.Map` so we don't re-fire on every subsequent status report once the threshold is met.
 5. Skip if the deployment's Deploy invocation is no longer live in Restate. Wake also reports with status `deploying`, and a notify for a finished run would leave a promise Restate never cleans up.
-6. If threshold met (and not yet notified), send `NotifyInstancesReady(deployment_id)` to `DeployWorkflow` and, until it is deleted, to `DeployService`.
+6. If threshold met (and not yet notified), send `NotifyInstancesReady(deployment_id)` to `DeployWorkflow`.
 
 ## Self-skip (belt-and-suspenders dedup)
 
@@ -193,7 +191,7 @@ Scheduled state changes are serialized via a Restate virtual object keyed by dep
 
 ## Retry policy
 
-`DeployWorkflow`, and `DeployService` while it drains, is registered with an exponential-backoff retry policy: `30s → 1m → 2m → 4m → 5m` (capped), 10 attempts total (~30 minutes). If a deploy can't make progress after 10 retries (persistent MySQL connection errors, Depot outage), Restate kills the invocation, the compensation stack runs, and the deployment is marked failed. This replaces an older 150-attempt policy that could leave a deploy stuck retrying for ~24 hours.
+`DeployWorkflow` is registered with an exponential-backoff retry policy: `2s → 4s → 8s → 16s → 30s` (capped), 15 attempts total (about 5 minutes). Short intervals keep cancel latency low, since a cancel lands at the next attempt boundary. On exhaustion the invocation pauses rather than being killed, so the compensation stack can still run when a `restate.Run` returns a terminal error. This replaces an older 150-attempt policy that could leave a deploy stuck retrying for about 24 hours.
 
 ## Compensation stack
 
