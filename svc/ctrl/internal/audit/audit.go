@@ -55,3 +55,49 @@ func Insert(ctx restate.ObjectContext, svc auditlogs.AuditLogService, e Event) e
 		})
 	}, restate.WithName("insert audit log"))
 }
+
+// DeploymentRef names the deployment a lifecycle entry is about. Handlers read
+// deployments through different queries, so they copy the columns in here
+type DeploymentRef struct {
+	ID            string
+	WorkspaceID   string
+	ProjectID     string
+	AppID         string
+	EnvironmentID string
+}
+
+// InsertDeploymentLifecycle writes the entry for an API-originated stop, wake,
+// promote, or rollback. A nil actor is a retained ctrl RPC that writes its own
+// entry, so nothing is inserted
+func InsertDeploymentLifecycle(
+	ctx restate.ObjectContext,
+	svc auditlogs.AuditLogService,
+	actor *ctrlv1.ActorInfo,
+	correlationID string,
+	ref DeploymentRef,
+	event auditlog.AuditLogEvent,
+	display string,
+) error {
+	if actor == nil {
+		return nil
+	}
+
+	return Insert(ctx, svc, Event{
+		Actor:         actor,
+		CorrelationID: correlationID,
+		WorkspaceID:   ref.WorkspaceID,
+		Event:         event,
+		Display:       display,
+		Resource: auditlog.AuditLogResource{
+			Type:        auditlog.DeploymentResourceType,
+			ID:          ref.ID,
+			Name:        "",
+			DisplayName: ref.ID,
+			Meta: map[string]any{
+				"projectId":     ref.ProjectID,
+				"appId":         ref.AppID,
+				"environmentId": ref.EnvironmentID,
+			},
+		},
+	})
+}

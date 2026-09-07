@@ -3,6 +3,7 @@ syntax = "proto3";
 package hydra.v1;
 
 import "dev/restate/sdk/go.proto";
+import "hydra/v1/deploy.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 
@@ -25,6 +26,13 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 //      ChangeDesiredState call to itself.
 //   3. When the delay elapses, ChangeDesiredState verifies the nonce still
 //      matches and persists the new desired state to the database.
+//
+// StopDeployment and WakeDeployment are the immediate, user-facing lifecycle
+// operations. They run on this object so a Stop that lands mid-Wake waits for
+// the Wake instead of racing it. They write the desired state directly rather
+// than through ScheduleDesiredStateChange: that handler applies its change by
+// sending ChangeDesiredState to this same key, and a handler already holding
+// the key cannot wait for that send to run.
 service DeploymentService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
@@ -47,6 +55,14 @@ service DeploymentService {
   // call. The delayed call may still fire, but it will no-op because
   // ChangeDesiredState requires a stored transition to exist.
   rpc ClearScheduledStateChanges(ClearScheduledStateChangesRequest) returns (ClearScheduledStateChangesResponse) {}
+
+  // StopDeployment sets desired_state=stopped on a running, non-production
+  // deployment and clears any pending scheduled transition.
+  rpc StopDeployment(StopDeploymentRequest) returns (StopDeploymentResponse) {}
+
+  // WakeDeployment sets desired_state=running on a stopped deployment, marks it
+  // deploying, and returns once enough regions report running instances.
+  rpc WakeDeployment(WakeDeploymentRequest) returns (WakeDeploymentResponse) {}
 }
 
 message ClearScheduledStateChangesRequest {}

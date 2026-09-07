@@ -331,9 +331,14 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.PauseOnMaxAttempts(),
 	)
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deployWorkflow, deployRetryPolicy))
-	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{
-		DB: database,
-	}), restate.WithIngressPrivate(true)))
+	deploymentSvc, err := deployment.New(deployment.Config{
+		DB:        database,
+		Auditlogs: auditlogSvc,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create deployment service: %w", err)
+	}
+	restateSrv.Bind(deploymentSvc.Definition())
 
 	// DeployTeardownService stops all of a workspace's running Deploy compute and
 	// confirms it drained. Invoked over Restate ingress by cancel (ARCHIVE) and,
