@@ -1,7 +1,6 @@
 package deploy
 
 import (
-	"context"
 	"fmt"
 
 	restate "github.com/restatedev/sdk-go"
@@ -9,6 +8,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/compensation"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/readiness"
 )
 
 // waitForDeployments blocks until enough regions are healthy, or
@@ -68,7 +68,7 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, compensation *c
 	// Best-effort: on retry exhaustion, log and continue so NotifyInstancesReady
 	// can still complete the wait via the awakeable.
 	alreadyHealthy, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
-		return w.checkInstancesHealthy(runCtx, deploymentID, regionMinReplicas, requiredRegions)
+		return readiness.InstancesHealthy(runCtx, w.db, deploymentID, regionMinReplicas, requiredRegions)
 	}, restate.WithName("initial healthy-regions check"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		logger.Warn(
@@ -105,42 +105,4 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, compensation *c
 		restate.TerminalErrorf("not enough regions became healthy in %v, required %d of %d", regionReadyTimeout, requiredRegions, len(regionMinReplicas)),
 		fault.Public("Not enough regions became healthy in time."),
 	)
-}
-
-// checkInstancesHealthy returns true if the current running-instance counts
-// satisfy the per-region minimum replica requirements for at least
-// requiredRegions. It is the same logic used by ReportDeploymentStatus in
-// services/cluster to decide whether to call NotifyInstancesReady.
-func (w *Workflow) checkInstancesHealthy(
-	ctx context.Context,
-	deploymentID string,
-	regionMinReplicas map[string]uint32,
-	requiredRegions int,
-) (bool, error) {
-	instances, err := w.db.FindInstancesByDeploymentId(ctx, deploymentID)
-	if err != nil {
-		return false, err
-	}
-
-	runningPerRegion := make(map[string]uint32)
-	for _, instance := range instances {
-		if instance.Status == db.InstancesStatusRunning {
-			runningPerRegion[instance.RegionID]++
-		}
-	}
-
-	healthyRegions := 0
-	for regionID, minReplicas := range regionMinReplicas {
-		if runningPerRegion[regionID] >= minReplicas {
-			healthyRegions++
-		}
-	}
-
-	logger.Info(
-		"checked instances",
-		"deployment_id", deploymentID,
-		"healthy_regions", healthyRegions,
-		"required_regions", requiredRegions,
-	)
-	return healthyRegions >= requiredRegions, nil
 }

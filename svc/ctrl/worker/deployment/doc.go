@@ -43,4 +43,15 @@
 // If the deployment row is deleted before a delayed [VirtualObject.ChangeDesiredState]
 // call fires, for example when an environment delete cascades deployment rows,
 // ChangeDesiredState also no-ops and clears any leftover transition state.
+//
+// # Immediate Lifecycle Operations
+//
+// [VirtualObject.StopDeployment] and [VirtualObject.WakeDeployment] are the
+// user-facing stop and start. They live on this object so a Stop that arrives
+// while a Wake is still polling waits for it instead of racing it. Both write
+// the desired state through the same guarded transaction ChangeDesiredState
+// uses, then clear the stored transition so any pending delayed call no-ops.
+// They cannot go through ScheduleDesiredStateChange: it applies its change by
+// sending ChangeDesiredState to this same key, and a handler already holding
+// the key would wait forever for that send to run.
 package deployment
