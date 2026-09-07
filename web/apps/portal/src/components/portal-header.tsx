@@ -17,30 +17,27 @@ export function PortalHeader({ scopes, logoUrl, returnUrl, appName }: PortalHead
   const pathname = useLocation({ select: (location) => location.pathname });
   const tabs = deriveVisibleTabs(scopes);
 
-  const returnLink = (label: string, className: string) =>
-    returnUrl && (
-      <a
-        href={returnUrl}
-        className={`whitespace-nowrap text-[color-mix(in_srgb,var(--portal-primary-foreground,#ffffff)_85%,transparent)] text-sm transition-colors hover:text-[var(--portal-primary-foreground,#ffffff)] ${className}`}
-      >
-        ← {label}
-      </a>
-    );
-
   return (
     <header
       className="w-full text-[var(--portal-primary-foreground,#ffffff)]"
       style={{ backgroundColor: "var(--portal-primary, var(--color-gray-12))" }}
     >
       <div className="flex min-h-14 flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-6 sm:px-8 sm:py-0">
-        <div className="flex items-center justify-between gap-6">
+        <div className="flex min-w-0 items-center justify-between gap-6 sm:contents">
           {(logoUrl || appName) && (
-            <div className="flex items-center gap-2.5">
+            <div className="flex min-w-0 items-center gap-2.5 sm:max-w-sm">
               {logoUrl && <img src={logoUrl} alt="" className="h-6 w-auto" aria-hidden="true" />}
-              {appName && <span className="font-medium text-sm">{appName}</span>}
+              {appName && <span className="truncate font-medium text-sm">{appName}</span>}
             </div>
           )}
-          {returnLink("Go back", "sm:hidden")}
+          {returnUrl && (
+            <a
+              href={returnUrl}
+              className="min-w-0 max-w-[50%] truncate text-[color-mix(in_srgb,var(--portal-primary-foreground,#ffffff)_85%,transparent)] text-sm transition-colors hover:text-[var(--portal-primary-foreground,#ffffff)] sm:order-last sm:max-w-xs"
+            >
+              ← Return to {appName ?? "application"}
+            </a>
+          )}
         </div>
         {tabs.length > 1 && (
           <nav
@@ -66,7 +63,6 @@ export function PortalHeader({ scopes, logoUrl, returnUrl, appName }: PortalHead
             })}
           </nav>
         )}
-        {returnLink(`Return to ${appName ?? "application"}`, "hidden sm:inline")}
       </div>
     </header>
   );
