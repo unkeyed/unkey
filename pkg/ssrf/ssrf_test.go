@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -16,7 +17,8 @@ func TestIsForbiddenIP(t *testing.T) {
 	tests := map[string]bool{
 		"127.0.0.1": true, "10.0.0.1": true, "172.16.0.1": true,
 		"192.168.1.1": true, "169.254.169.254": true, "::1": true,
-		"fe80::1": true, "fc00::1": true, "93.184.216.34": false,
+		"fe80::1": true, "fc00::1": true, "100.64.0.1": true,
+		"64:ff9b::7f00:1": true, "93.184.216.34": false,
 		"2606:2800:220:1:248:1893:25c8:1946": false,
 	}
 	for raw, forbidden := range tests {
@@ -24,6 +26,14 @@ func TestIsForbiddenIP(t *testing.T) {
 			require.Equal(t, forbidden, IsForbiddenIP(net.ParseIP(raw)))
 		})
 	}
+}
+
+// TestIsForbiddenAddr guarantees netip callers get the same private-address
+// protection, including IPv4 addresses represented as IPv6.
+func TestIsForbiddenAddr(t *testing.T) {
+	require.True(t, IsForbiddenAddr(netip.Addr{}))
+	require.True(t, IsForbiddenAddr(netip.MustParseAddr("::ffff:127.0.0.1")))
+	require.False(t, IsForbiddenAddr(netip.MustParseAddr("93.184.216.34")))
 }
 
 // TestRedirectsAreNotFollowedByDefault guarantees that a redirecting endpoint

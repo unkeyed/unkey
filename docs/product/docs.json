@@ -203,7 +203,15 @@
                 "pages": [
                   "platform/workspaces/overview",
                   "platform/workspaces/settings",
-                  "platform/workspaces/billing",
+                  {
+                    "group": "Billing",
+                    "pages": [
+                      "platform/workspaces/billing/overview",
+                      "platform/workspaces/billing/api",
+                      "platform/workspaces/billing/compute",
+                      "platform/workspaces/billing/spend-budget"
+                    ]
+                  },
                   "platform/workspaces/quotas",
                   "platform/workspaces/team-members"
                 ]
@@ -799,6 +807,10 @@
     ]
   },
   "redirects": [
+    {
+      "destination": "/platform/workspaces/billing/overview",
+      "source": "/platform/workspaces/billing"
+    },
     {
       "destination": "/platform/gateway/:slug*",
       "source": "/platform/sentinel/:slug*"

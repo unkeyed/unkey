@@ -1,6 +1,3 @@
-// Package deployment maps a stored deployment row onto the openapi.Deployment
-// wire type shared by the deployment read endpoints (getDeployment,
-// listDeployments).
 package deployment
 
 import (
@@ -9,10 +6,6 @@ import (
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
-// Input is everything ToResponse needs. State carries the env/app columns the
-// wire type needs but the deployments row does not hold (slugs and the app live
-// pointer); both read handlers resolve them (per-deployment on get, batched on
-// list) so the mapper never queries.
 type Input struct {
 	Deployment db.Deployment
 	State      db.ListDeploymentEnvAndAppStateRow
@@ -43,8 +36,6 @@ func ToResponse(in Input) openapi.Deployment {
 
 	isCurrent := in.State.AppCurrentDeploymentID.String != "" && in.State.AppCurrentDeploymentID.String == d.ID
 
-	// regions is a required field, so it must marshal as [] not null when the
-	// deployment has no scheduled regions yet.
 	regions := in.Regions
 	if regions == nil {
 		regions = []string{}
@@ -78,18 +69,27 @@ func ToResponse(in Input) openapi.Deployment {
 		Domains: nil,
 	}
 
-	// A deployment is sourced from either git or a prebuilt image. git_commit_sha
-	// is the discriminator: git builds set it (and also fill image with the built
-	// output), image deploys leave it null.
-	switch {
-	case d.GitCommitSha.Valid && d.GitCommitSha.String != "":
-		git := openapi.DeploymentGit{CommitSha: d.GitCommitSha.String, Branch: nil}
-		if d.GitBranch.Valid && d.GitBranch.String != "" {
-			git.Branch = ptr.P(d.GitBranch.String)
+	switch d.Source {
+	case db.DeploymentsSourceGit:
+		if d.GitCommitSha.Valid && d.GitCommitSha.String != "" {
+			git := openapi.DeploymentGit{CommitSha: d.GitCommitSha.String, Branch: nil}
+			if d.GitBranch.Valid && d.GitBranch.String != "" {
+				git.Branch = ptr.P(d.GitBranch.String)
+			}
+			dep.Git = &git
 		}
-		dep.Git = &git
-	case d.Image.Valid && d.Image.String != "":
-		dep.Docker = &openapi.DeploymentDocker{Image: d.Image.String}
+	case db.DeploymentsSourceOci:
+		image := d.ImageRequested
+		if !image.Valid || image.String == "" {
+			image = d.ImageResolved
+		}
+		if !image.Valid || image.String == "" {
+			image = d.Image
+		}
+		if image.Valid && image.String != "" {
+			dep.Docker = &openapi.DeploymentDocker{Image: image.String}
+		}
+	case db.DeploymentsSourceUnknown:
 	}
 
 	if failure := deriveError(d.Status, in.Steps); failure != nil {

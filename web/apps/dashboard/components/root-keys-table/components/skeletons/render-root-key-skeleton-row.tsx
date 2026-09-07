@@ -27,6 +27,7 @@ export const renderRootKeySkeletonRow = ({ columns, rowHeight }: RenderRootKeySk
       {column.id === ROOT_KEY_COLUMN_IDS.KEY.id && <KeyColumnSkeleton />}
       {column.id === ROOT_KEY_COLUMN_IDS.CREATED_AT.id && <CreatedAtColumnSkeleton />}
       {column.id === ROOT_KEY_COLUMN_IDS.PERMISSIONS.id && <PermissionsColumnSkeleton />}
+      {column.id === ROOT_KEY_COLUMN_IDS.LAST_USED.id && <LastUpdatedColumnSkeleton />}
       {column.id === ROOT_KEY_COLUMN_IDS.LAST_UPDATED.id && <LastUpdatedColumnSkeleton />}
       {column.id === ROOT_KEY_COLUMN_IDS.ACTION.id && <ActionColumnSkeleton />}
     </td>

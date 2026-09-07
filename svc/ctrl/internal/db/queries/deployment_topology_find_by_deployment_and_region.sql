@@ -14,6 +14,7 @@ SELECT
     d.environment_id,
     d.app_id,
     d.image,
+    d.image_resolved,
     d.build_id,
     d.git_commit_sha,
     d.git_branch,

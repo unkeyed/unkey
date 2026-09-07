@@ -44,7 +44,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		return s.db.ListRepoConnectionDeployContexts(runCtx, db.ListRepoConnectionDeployContextsParams{
 			InstallationID: req.GetInstallationId(),
 			RepositoryID:   req.GetRepositoryId(),
-			Branch:         branch,
+			Branch:         sql.NullString{String: branch, Valid: branch != ""},
 			IsForkPr:       boolToInt64(req.GetIsForkPr()),
 		})
 	}, restate.WithName("list deploy contexts"))
@@ -87,23 +87,15 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		}
 
 		if !deploygate.Entitled(entitlement.Plan, entitlement.PlanOverride) {
-			if s.enforceDeployGate {
-				logger.Info("skipping deployment: workspace has no Compute plan",
-					"event", "deploy_gate.blocked",
-					"reason", "no_plan",
-					"workspace_id", row.ProjectWorkspaceID,
-					"project_id", row.ProjectID,
-					"app_id", row.AppID,
-					"delivery_id", req.GetDeliveryId(),
-				)
-				continue
-			}
-			logger.Warn("deploy gate would block GitHub deployment",
-				"event", "deploy_gate.would_block",
-				"workspaceId", row.ProjectWorkspaceID,
-				"projectId", row.ProjectID,
-				"appId", row.AppID,
+			logger.Info("skipping deployment: workspace has no Compute plan",
+				"event", "deploy_gate.blocked",
+				"reason", "no_plan",
+				"workspace_id", row.ProjectWorkspaceID,
+				"project_id", row.ProjectID,
+				"app_id", row.AppID,
+				"delivery_id", req.GetDeliveryId(),
 			)
+			continue
 		}
 		if entitlement.SpendSuspended.Bool {
 			logger.Info("skipping deployment: workspace is spend suspended",
@@ -129,7 +121,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		return s.db.ListEnvVarsForRepoConnections(runCtx, db.ListEnvVarsForRepoConnectionsParams{
 			InstallationID: req.GetInstallationId(),
 			RepositoryID:   req.GetRepositoryId(),
-			Branch:         branch,
+			Branch:         sql.NullString{String: branch, Valid: branch != ""},
 			IsForkPr:       boolToInt64(req.GetIsForkPr()),
 		})
 	}, restate.WithName("list env vars"))
@@ -399,6 +391,8 @@ func insertDeploymentRecord(
 			ProjectID:                     row.ProjectID,
 			AppID:                         row.AppID,
 			EnvironmentID:                 row.EnvironmentID,
+			Source:                        db.DeploymentsSourceGit,
+			ImageRequested:                sql.NullString{Valid: false},
 			SentinelConfig:                row.RuntimeSettingsSentinelConfig,
 			EncryptedEnvironmentVariables: secretsBlob,
 			Command:                       row.RuntimeSettingsCommand,

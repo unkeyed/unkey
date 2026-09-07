@@ -34,7 +34,7 @@ export type V2DeployCreateDeploymentRequestBody = {
    */
   environmentSlug: string;
   /**
-   * Docker image reference to deploy. Accepts a tag or a digest.
+   * Full image reference to deploy. Qualify the version with a tag (ghcr.io/user/app:v1.0.0) or with a digest (ghcr.io/user/app@sha256:...). Without either, the registry serves the latest tag.
    */
   dockerImage: string;
   /**

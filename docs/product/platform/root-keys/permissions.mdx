@@ -212,7 +212,7 @@ Session minting is a separate action from the four management actions, so a back
 <ResponseField name="portal.*.create_portal_session">
   Mint a portal session for an end user. This is the permission a production backend needs.
 
-  Minting is additionally bounded by your own permissions: a session can never carry a capability the calling root key does not itself hold. Each requested scope requires the equivalent permission on every keyspace the portal resolves to, so `keys:read` requires `read_key` and `read_api`, `keys:reroll` and `keys:create` require `create_key` (plus `encrypt_key` when the keyspace stores encrypted keys), and `analytics:read` requires `read_analytics`. Requesting a scope you do not hold returns 403 for the whole request.
+  Minting is additionally bounded by your own permissions: a session can never carry a capability the calling root key does not itself hold. Each requested scope requires the equivalent permission on every keyspace the portal resolves to, so `keys:read` requires `read_key` and `read_api`, and `keys:reroll` requires `create_key` (plus `encrypt_key` when the keyspace stores encrypted keys). Requesting a scope you do not hold returns 403 for the whole request.
 
   Note the breadth of a wildcard grant: holding `api.*.read_key` and `api.*.read_api` lets this key mint a `keys:read` session for **any** portal in the workspace, because a wildcard satisfies every resolved keyspace. That is consistent with what the key can already read directly, but it is not visible when ticking the box.
 </ResponseField>

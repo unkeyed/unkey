@@ -149,6 +149,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// Request shape only, so it runs before the portal lookup.
+	if err = validateScopeCombination(req.Scopes); err != nil {
+		return err
+	}
+
 	workspaceID := principal.AuthorizedWorkspaceID
 
 	portal, err := db.Query.FindPortalByIdOrSlug(ctx, h.DB.RO(), db.FindPortalByIdOrSlugParams{
@@ -226,23 +231,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// insert and the audit log, so a rejection writes nothing.
 	if err = h.authorizeScopes(ctx, principal, workspaceID, keyspaceIDs, req.Scopes); err != nil {
 		return err
-	}
-
-	// Determine the portal URL: prefer a verified custom domain for the app,
-	// fall back to the configured base URL (e.g. https://portal.unkey.com).
-	portalBaseURL := h.PortalBaseURL
-	if portal.AppID.Valid {
-		customDomain, cdErr := db.Query.FindVerifiedCustomDomainByAppID(ctx, h.DB.RO(), portal.AppID.String)
-		if cdErr != nil && !db.IsNotFound(cdErr) {
-			return fault.Wrap(cdErr,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error looking up custom domain for portal app"),
-				fault.Public("Failed to look up portal configuration."),
-			)
-		}
-		if cdErr == nil {
-			portalBaseURL = fmt.Sprintf("https://%s", customDomain.Domain)
-		}
 	}
 
 	now := h.Clock.Now()
@@ -379,7 +367,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	portalURL := fmt.Sprintf("%s/?code=%s", portalBaseURL, exchangeCode)
+	portalURL := fmt.Sprintf("%s/?code=%s", h.PortalBaseURL, exchangeCode)
 
 	s.ResponseWriter().Header().Set("Cache-Control", "no-store")
 	s.ResponseWriter().Header().Set("Pragma", "no-cache")
@@ -393,6 +381,33 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Url: portalURL,
 		},
 	})
+}
+
+// validateScopeCombination rejects a scope set the portal cannot serve.
+//
+// The portal reaches rerolling from the keys page, so a reroll-only session
+// mints fine and then strands the end user with no page to open. The enum
+// constrains each item, not the combination, so the check lives here.
+func validateScopeCombination(scopes []openapi.V2PortalCreateSessionRequestBodyScopes) error {
+	var hasRead, hasReroll bool
+	for _, scope := range scopes {
+		switch scope {
+		case openapi.KeysRead:
+			hasRead = true
+		case openapi.KeysReroll:
+			hasReroll = true
+		}
+	}
+
+	if hasReroll && !hasRead {
+		return fault.New("keys:reroll requires keys:read",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("scopes contained keys:reroll without keys:read"),
+			fault.Public("The \"keys:reroll\" scope requires \"keys:read\" in the same session."),
+		)
+	}
+
+	return nil
 }
 
 // ScopeQueries returns the authorization requirements the *calling* root key
@@ -415,10 +430,10 @@ func ScopeQueries(
 	case openapi.KeysRead:
 		return []rbac.PermissionQuery{listkeys.ReadKeysPermissions(apiID)}, true
 
-	case openapi.KeysCreate, openapi.KeysReroll:
+	case openapi.KeysReroll:
 		// Rerolling is a create, matching what the operator reroll route
 		// requires. The encryption conjunct is keyspace-conditional: a portal
-		// session that can mint a key in a keyspace storing recoverable key
+		// session that can reroll a key in a keyspace storing recoverable key
 		// material also hands out that material.
 		//
 		// The conjunct keys off the keyspace flag rather than an individual
@@ -430,11 +445,10 @@ func ScopeQueries(
 		// make already-existing keys recoverable and gives a live session
 		// nothing new.
 		//
-		// Two paths would escalate once UpdateKeySpaceKeyEncryption gains a
+		// One path would escalate once UpdateKeySpaceKeyEncryption gains a
 		// production caller: a keyspace toggled on, off, then on again around a
-		// mint, and a future portal create-key route where a single flip is
-		// enough. Both belong to the toggle, which must invalidate live portal
-		// sessions on a keyspace when it turns encryption on. Do not close them
+		// mint. That belongs to the toggle, which must invalidate live portal
+		// sessions on a keyspace when it turns encryption on. Do not close it
 		// here by requiring encrypt_key unconditionally: that would make this
 		// ceiling stricter than the operator route it exists to mirror.
 		queries := []rbac.PermissionQuery{rerollkey.CreateKeyPermissions(apiID)}
@@ -442,9 +456,6 @@ func ScopeQueries(
 			queries = append(queries, rerollkey.EncryptKeyPermissions(apiID))
 		}
 		return queries, true
-
-	case openapi.AnalyticsRead:
-		return []rbac.PermissionQuery{readAnalyticsPermissions(apiID)}, true
 
 	default:
 		return nil, false

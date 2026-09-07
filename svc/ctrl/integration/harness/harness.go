@@ -35,6 +35,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
@@ -267,11 +268,14 @@ func New(t *testing.T, opts ...Option) *Harness {
 			Depot:      deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},
 			Kubernetes: deploy.KubernetesBuildConfig{Namespace: "", Image: ""},
 		},
-		K8s:                             nil,
-		BuildSteps:                      batch.NewNoop[schema.BuildStepV1](),
-		BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
-		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
-		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
+		K8s:            nil,
+		BuildSteps:     batch.NewNoop[schema.BuildStepV1](),
+		BuildStepLogs:  batch.NewNoop[schema.BuildStepLogV1](),
+		RegistryConfig: deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
+		BuildPlatform:  deploy.BuildPlatform{Platform: "", Architecture: ""},
+		ImageResolver: deploy.ImageResolverFunc(func(context.Context, string) (string, error) {
+			return "index.docker.io/library/test@sha256:0000000000000000000000000000000000000000000000000000000000000000", nil
+		}),
 		AllowUnauthenticatedDeployments: false,
 	})
 	require.NoError(t, err)
@@ -311,12 +315,14 @@ func New(t *testing.T, opts ...Option) *Harness {
 	// Restate. Use the proto-generated wrappers (same as run.go) to get
 	// correct service names.
 	restateCfg := containers.Restate(t,
-		hydrav1.NewCronServiceServer(cronSvc),
+		hydrav1.NewCronServiceServer(cronSvc).
+			ConfigureHandler("RunDeploySpendCheck", deployspendcheck.RetryPolicy()),
 		// The deploy billing orchestrator (push and close) fans out to this
 		// per-workspace push service, so it must be bound for those handlers to
 		// route end to end.
 		hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer()),
-		hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()),
+		hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()).
+			ConfigureHandler("CheckWorkspaceSpend", deployspendcheck.RetryPolicy()),
 		hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc),
 		hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc),
 		hydrav1.NewDeployServiceServer(deploySvc),

@@ -4,12 +4,14 @@ required:
 properties:
   dockerImage:
     type: string
+    deprecated: true
     minLength: 1
     maxLength: 256
     pattern: "\\S"
     description: >-
-      Full image reference to deploy as-is. Qualify the version with a tag
-      (ghcr.io/acme/api:v1.2.3) or with a digest
+      Deprecated. Use `oci.image` in v3 instead. This field is the full image
+      reference to deploy as-is. Qualify the version with a tag
+      (ghcr.io/acme/api:v1.2.3) or a digest
       (ghcr.io/acme/api@sha256:...). Without either, the registry serves the
       latest tag.
     example: "ghcr.io/acme/api:v1.2.3"

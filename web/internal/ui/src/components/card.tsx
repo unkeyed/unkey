@@ -10,7 +10,7 @@ function Card({
   return (
     <div
       ref={ref}
-      className={cn("w-full rounded-lg border bg-background border-border ", className)}
+      className={cn("w-full rounded-lg border border-gray-4 bg-background", className)}
       {...props}
     />
   );
@@ -64,7 +64,7 @@ function CardFooter({
   return (
     <div
       ref={ref}
-      className={cn(" flex items-center px-6 py-3 mt-3 border-t border-border", className)}
+      className={cn("flex items-center px-6 py-3 mt-3 border-t border-gray-4", className)}
       {...props}
     />
   );

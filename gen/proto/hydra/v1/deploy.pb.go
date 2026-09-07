@@ -360,29 +360,29 @@ func (x *NotifyInstancesReadyResponse) GetResolved() bool {
 	return false
 }
 
-// DockerImage references a pre-built container image to deploy directly,
+// OciImage references a pre-built OCI image to deploy directly,
 // skipping the build step.
-type DockerImage struct {
+type OciImage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Image         string                 `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DockerImage) Reset() {
-	*x = DockerImage{}
+func (x *OciImage) Reset() {
+	*x = OciImage{}
 	mi := &file_hydra_v1_deploy_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DockerImage) String() string {
+func (x *OciImage) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DockerImage) ProtoMessage() {}
+func (*OciImage) ProtoMessage() {}
 
-func (x *DockerImage) ProtoReflect() protoreflect.Message {
+func (x *OciImage) ProtoReflect() protoreflect.Message {
 	mi := &file_hydra_v1_deploy_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -394,19 +394,19 @@ func (x *DockerImage) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DockerImage.ProtoReflect.Descriptor instead.
-func (*DockerImage) Descriptor() ([]byte, []int) {
+// Deprecated: Use OciImage.ProtoReflect.Descriptor instead.
+func (*OciImage) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_deploy_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *DockerImage) GetImage() string {
+func (x *OciImage) GetImage() string {
 	if x != nil {
 		return x.Image
 	}
 	return ""
 }
 
-// GitSource specifies a repository and commit to build a Docker image from.
+// GitSource specifies a repository and commit to build a container image from.
 type GitSource struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// GitHub App installation ID used to clone the repository.
@@ -536,7 +536,7 @@ type DeployRequest struct {
 	// Types that are valid to be assigned to Source:
 	//
 	//	*DeployRequest_Git
-	//	*DeployRequest_DockerImage
+	//	*DeployRequest_OciImage
 	Source isDeployRequest_Source `protobuf_oneof:"source"`
 	// Container command override (e.g., ["./app", "serve"])
 	Command       []string `protobuf:"bytes,5,rep,name=command,proto3" json:"command,omitempty"`
@@ -597,10 +597,10 @@ func (x *DeployRequest) GetGit() *GitSource {
 	return nil
 }
 
-func (x *DeployRequest) GetDockerImage() *DockerImage {
+func (x *DeployRequest) GetOciImage() *OciImage {
 	if x != nil {
-		if x, ok := x.Source.(*DeployRequest_DockerImage); ok {
-			return x.DockerImage
+		if x, ok := x.Source.(*DeployRequest_OciImage); ok {
+			return x.OciImage
 		}
 	}
 	return nil
@@ -621,13 +621,13 @@ type DeployRequest_Git struct {
 	Git *GitSource `protobuf:"bytes,3,opt,name=git,proto3,oneof"`
 }
 
-type DeployRequest_DockerImage struct {
-	DockerImage *DockerImage `protobuf:"bytes,4,opt,name=docker_image,json=dockerImage,proto3,oneof"`
+type DeployRequest_OciImage struct {
+	OciImage *OciImage `protobuf:"bytes,4,opt,name=oci_image,json=ociImage,proto3,oneof"`
 }
 
 func (*DeployRequest_Git) isDeployRequest_Source() {}
 
-func (*DeployRequest_DockerImage) isDeployRequest_Source() {}
+func (*DeployRequest_OciImage) isDeployRequest_Source() {}
 
 type DeployResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1071,8 +1071,8 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x1bNotifyInstancesReadyRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\":\n" +
 	"\x1cNotifyInstancesReadyResponse\x12\x1a\n" +
-	"\bresolved\x18\x01 \x01(\bR\bresolved\"#\n" +
-	"\vDockerImage\x12\x14\n" +
+	"\bresolved\x18\x01 \x01(\bR\bresolved\" \n" +
+	"\bOciImage\x12\x14\n" +
 	"\x05image\x18\x01 \x01(\tR\x05image\"\xc2\x02\n" +
 	"\tGitSource\x12'\n" +
 	"\x0finstallation_id\x18\x01 \x01(\x03R\x0einstallationId\x12\x1e\n" +
@@ -1086,11 +1086,11 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x06branch\x18\x06 \x01(\tR\x06branch\x12\x1b\n" +
 	"\tpr_number\x18\a \x01(\x03R\bprNumber\x12'\n" +
 	"\x0ffork_repository\x18\b \x01(\tR\x0eforkRepository\x12#\n" +
-	"\rbuild_command\x18\t \x01(\tR\fbuildCommand\"\xd0\x01\n" +
+	"\rbuild_command\x18\t \x01(\tR\fbuildCommand\"\xc7\x01\n" +
 	"\rDeployRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12'\n" +
-	"\x03git\x18\x03 \x01(\v2\x13.hydra.v1.GitSourceH\x00R\x03git\x12:\n" +
-	"\fdocker_image\x18\x04 \x01(\v2\x15.hydra.v1.DockerImageH\x00R\vdockerImage\x12\x18\n" +
+	"\x03git\x18\x03 \x01(\v2\x13.hydra.v1.GitSourceH\x00R\x03git\x121\n" +
+	"\toci_image\x18\x04 \x01(\v2\x12.hydra.v1.OciImageH\x00R\bociImage\x12\x18\n" +
 	"\acommand\x18\x05 \x03(\tR\acommandB\b\n" +
 	"\x06sourceJ\x04\b\x02\x10\x03R\vkey_auth_id\"\x10\n" +
 	"\x0eDeployResponse\"\xc6\x01\n" +
@@ -1151,7 +1151,7 @@ var file_hydra_v1_deploy_proto_goTypes = []any{
 	(*WakeDeploymentResponse)(nil),       // 4: hydra.v1.WakeDeploymentResponse
 	(*NotifyInstancesReadyRequest)(nil),  // 5: hydra.v1.NotifyInstancesReadyRequest
 	(*NotifyInstancesReadyResponse)(nil), // 6: hydra.v1.NotifyInstancesReadyResponse
-	(*DockerImage)(nil),                  // 7: hydra.v1.DockerImage
+	(*OciImage)(nil),                     // 7: hydra.v1.OciImage
 	(*GitSource)(nil),                    // 8: hydra.v1.GitSource
 	(*DeployRequest)(nil),                // 9: hydra.v1.DeployRequest
 	(*DeployResponse)(nil),               // 10: hydra.v1.DeployResponse
@@ -1169,7 +1169,7 @@ var file_hydra_v1_deploy_proto_depIdxs = []int32{
 	19, // 0: hydra.v1.StopDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
 	19, // 1: hydra.v1.WakeDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
 	8,  // 2: hydra.v1.DeployRequest.git:type_name -> hydra.v1.GitSource
-	7,  // 3: hydra.v1.DeployRequest.docker_image:type_name -> hydra.v1.DockerImage
+	7,  // 3: hydra.v1.DeployRequest.oci_image:type_name -> hydra.v1.OciImage
 	19, // 4: hydra.v1.RollbackRequest.actor:type_name -> ctrl.v1.ActorInfo
 	19, // 5: hydra.v1.PromoteRequest.actor:type_name -> ctrl.v1.ActorInfo
 	0,  // 6: hydra.v1.TeardownRequest.mode:type_name -> hydra.v1.TeardownMode
@@ -1203,7 +1203,7 @@ func file_hydra_v1_deploy_proto_init() {
 	}
 	file_hydra_v1_deploy_proto_msgTypes[8].OneofWrappers = []any{
 		(*DeployRequest_Git)(nil),
-		(*DeployRequest_DockerImage)(nil),
+		(*DeployRequest_OciImage)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

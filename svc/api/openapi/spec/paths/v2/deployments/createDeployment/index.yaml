@@ -1,4 +1,5 @@
 post:
+  deprecated: true
   tags:
     - deployments
   summary: Create deployment

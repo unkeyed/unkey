@@ -48,9 +48,8 @@ import { Result } from "../types/fp.js";
  * hold. Each requested scope additionally requires the equivalent permission on
  * every keyspace the portal resolves to:
  * - `keys:read` requires `api.<api_id>.read_key` **and** `api.<api_id>.read_api`
- * - `keys:reroll` and `keys:create` require `api.<api_id>.create_key`, plus
+ * - `keys:reroll` requires `api.<api_id>.create_key`, plus
  *   `api.<api_id>.encrypt_key` when the keyspace stores encrypted keys
- * - `analytics:read` requires `api.<api_id>.read_analytics`
  *
  * The `*` form of each is also accepted. Requesting a scope you do not hold
  * returns 403 for the whole request rather than minting a reduced session, so a

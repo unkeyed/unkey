@@ -24,14 +24,14 @@ export function IntegrateDialog({ slug, isOpen, onOpenChange }: Props) {
   -d '{
     "portal": "${slug}",
     "externalId": "user_123",
-    "scopes": ["keys:read", "analytics:read"]
+    "scopes": ["keys:read", "keys:reroll"]
   }'`;
 
   const ts = `// on your server, once the user is signed in
 const { result } = await unkey.portal.createSession({
   portal: "${slug}",
   externalId: user.id,
-  scopes: ["keys:read", "analytics:read"],
+  scopes: ["keys:read", "keys:reroll"],
   // Optional. Your own URL, never one from the request.
   returnUrl: "https://app.example.com/settings/api-keys",
 });
@@ -44,7 +44,7 @@ body := components.V2PortalCreateSessionRequestBody{
 	ExternalID: user.ID,
 	Scopes: []components.Scope{
 		components.ScopeKeysRead,
-		components.ScopeAnalyticsRead,
+		components.ScopeKeysReroll,
 	},
 	// Optional. Your own URL, never one from the request.
 	ReturnURL: unkey.String("https://app.example.com/settings/api-keys"),
@@ -63,10 +63,8 @@ http.Redirect(w, r, url, http.StatusFound)`;
       <div className="flex flex-col gap-5">
         <p className="text-gray-11 text-[13px]">
           Sign the user in yourself, create a session for them, then send them to the portal. Scopes
-          pick the tabs. Any <code>keys:</code> scope shows the keys tab,{" "}
-          <code>analytics:read</code> shows analytics. The four you can pass are{" "}
-          <code>keys:read</code>, <code>keys:create</code>, <code>keys:reroll</code>, and{" "}
-          <code>analytics:read</code>.
+          decide what the user can do there. The two you can pass are <code>keys:read</code> and{" "}
+          <code>keys:reroll</code>.
         </p>
 
         <div className="flex flex-col gap-2">

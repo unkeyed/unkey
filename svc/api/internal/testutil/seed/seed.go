@@ -222,6 +222,8 @@ type CreateAppRequest struct {
 	ProjectID        string
 	Name             string
 	Slug             string
+	SourceType       db.AppsSourceType
+	ImageReference   string
 	DefaultBranch    string
 	DeleteProtection bool
 }
@@ -229,6 +231,10 @@ type CreateAppRequest struct {
 // CreateApp creates an app within a project.
 func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 	now := time.Now().UnixMilli()
+	sourceType := req.SourceType
+	if sourceType == "" {
+		sourceType = db.AppsSourceTypeUnknown
+	}
 
 	err := db.Query.InsertApp(ctx, s.DB.RW(), db.InsertAppParams{
 		ID:               req.ID,
@@ -236,12 +242,23 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 		ProjectID:        req.ProjectID,
 		Name:             req.Name,
 		Slug:             req.Slug,
+		SourceType:       sourceType,
 		DefaultBranch:    req.DefaultBranch,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Valid: false},
 	})
 	require.NoError(s.t, err)
+	if sourceType == db.AppsSourceTypeOci && req.ImageReference != "" {
+		err = db.Query.InsertAppSourceOci(ctx, s.DB.RW(), db.InsertAppSourceOciParams{
+			WorkspaceID:    req.WorkspaceID,
+			AppID:          req.ID,
+			ImageReference: req.ImageReference,
+			CreatedAt:      now,
+			UpdatedAt:      sql.NullInt64{},
+		})
+		require.NoError(s.t, err)
+	}
 
 	app, err := db.Query.FindAppById(ctx, s.DB.RO(), req.ID)
 	require.NoError(s.t, err)
@@ -800,6 +817,7 @@ type CreateDeploymentRequest struct {
 	EnvironmentID          string
 	Status                 mysqltype.DeploymentsStatus
 	DesiredState           mysqltype.DeploymentsDesiredState
+	Source                 db.DeploymentsSource
 	GitBranch              string
 	GitCommitSha           string
 	GitCommitMessage       string
@@ -820,6 +838,10 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 	if status == "" {
 		status = mysqltype.DeploymentsStatusPending
 	}
+	source := req.Source
+	if source == "" {
+		source = db.DeploymentsSourceUnknown
+	}
 
 	createdAt := time.Now().UnixMilli()
 	err := db.Query.InsertDeployment(ctx, s.DB.RW(), db.InsertDeploymentParams{
@@ -829,6 +851,8 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		ProjectID:                     req.ProjectID,
 		AppID:                         req.AppID,
 		EnvironmentID:                 req.EnvironmentID,
+		Source:                        source,
+		ImageRequested:                sql.NullString{Valid: false},
 		GitCommitSha:                  sql.NullString{String: req.GitCommitSha, Valid: req.GitCommitSha != ""},
 		GitBranch:                     sql.NullString{String: req.GitBranch, Valid: req.GitBranch != ""},
 		SentinelConfig:                []byte("{}"),

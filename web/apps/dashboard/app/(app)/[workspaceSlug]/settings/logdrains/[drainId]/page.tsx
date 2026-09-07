@@ -1,54 +1,72 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { Empty, PageBody, PageContainer, PageHeader, PageHeaderContent, Skeleton } from "@unkey/ui";
+import {
+  Button,
+  Card,
+  Empty,
+  PageBody,
+  PageContainer,
+  PageHeader,
+  PageHeaderContent,
+  Skeleton,
+} from "@unkey/ui";
 import { use } from "react";
-import { DrainDetail } from "./drain-detail";
+import { LogdrainDetail } from "./logdrain-detail";
 
 export default function LogdrainDetailPage(props: { params: Promise<{ drainId: string }> }) {
   const { drainId } = use(props.params);
-  const query = trpc.logdrain.get.useQuery({ id: drainId });
-  const metrics = trpc.logdrain.metrics.useQuery({ drainId, hours: 24 });
-  const recentErrors = trpc.logdrain.recentErrors.useQuery({ drainId });
-  const drain = query.data;
+  const utils = trpc.useUtils();
+
+  const cached = utils.logdrain.list.getData()?.find((drain) => drain.id === drainId);
+  const query = trpc.logdrain.get.useQuery(
+    { id: drainId },
+    { initialData: cached, initialDataUpdatedAt: 0 },
+  );
 
   if (query.isLoading) {
     return <DetailSkeleton />;
   }
+
+  if (query.isError && query.error.data?.code === "NOT_FOUND") {
+    return <NotFound />;
+  }
+
   if (query.isError) {
     return (
       <PageContainer>
         <PageBody>
           <Empty>
-            <Empty.Title>Unable to load log drain</Empty.Title>
-            <Empty.Description>{query.error.message}</Empty.Description>
+            <Empty.Title>We couldn't load this log drain</Empty.Title>
+            <Empty.Description>Something went wrong on our side. Try again.</Empty.Description>
+            <Empty.Actions>
+              <Button variant="outline" onClick={() => query.refetch()}>
+                Retry
+              </Button>
+            </Empty.Actions>
           </Empty>
         </PageBody>
       </PageContainer>
     );
   }
-  if (!drain) {
-    return (
-      <PageContainer>
-        <PageBody>
-          <Empty>
-            <Empty.Title>Log drain not found</Empty.Title>
-            <Empty.Description>It may have been deleted.</Empty.Description>
-          </Empty>
-        </PageBody>
-      </PageContainer>
-    );
+
+  if (!query.data) {
+    return <NotFound />;
   }
+
+  return <LogdrainDetail drain={query.data} />;
+}
+
+function NotFound() {
   return (
-    <DrainDetail
-      drain={drain}
-      metricsSeries={metrics.data?.series}
-      metricsLoading={metrics.isLoading}
-      metricsError={metrics.isError}
-      recentErrorEntries={recentErrors.data}
-      recentErrorsLoading={recentErrors.isLoading}
-      recentErrorsError={recentErrors.isError}
-    />
+    <PageContainer>
+      <PageBody>
+        <Empty>
+          <Empty.Title>Log drain not found</Empty.Title>
+          <Empty.Description>It may have been deleted.</Empty.Description>
+        </Empty>
+      </PageBody>
+    </PageContainer>
   );
 }
 
@@ -57,13 +75,25 @@ function DetailSkeleton() {
     <PageContainer>
       <PageHeader>
         <PageHeaderContent>
-          <Skeleton className="h-5 w-48" />
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-6 w-56" />
         </PageHeaderContent>
       </PageHeader>
       <PageBody aria-busy="true" aria-live="polite">
         <output className="sr-only">Loading log drain…</output>
-        <Skeleton className="h-52 rounded-xl" />
-        <Skeleton className="h-96 rounded-xl" />
+        <div aria-hidden="true" className="flex flex-col gap-2">
+          <Skeleton className="h-4 w-24" />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: skeleton cards are static and never reorder
+              <Card key={index} className="flex flex-col gap-2 p-4">
+                <Skeleton className="h-3.5 w-20" />
+                <Skeleton className="h-6 w-14" />
+              </Card>
+            ))}
+          </div>
+        </div>
+        <Skeleton aria-hidden="true" className="h-64 w-full rounded-lg" />
       </PageBody>
     </PageContainer>
   );
