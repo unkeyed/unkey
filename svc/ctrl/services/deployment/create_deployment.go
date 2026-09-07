@@ -475,9 +475,11 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 	// note doesn't bubble up as a 500 from MySQL.
 	triggerReason := trimLength(p.triggerReason, maxTriggerReasonLength)
 
+	image := deployReq.GetDockerImage().GetImage()
 	err := s.db.InsertDeployment(ctx, db.InsertDeploymentParams{
 		ID:                            deploymentID,
 		K8sName:                       uid.DNS1035(12),
+		Image:                         sql.NullString{String: image, Valid: image != ""},
 		WorkspaceID:                   c.workspaceID,
 		ProjectID:                     c.project.ID,
 		AppID:                         c.app.ID,

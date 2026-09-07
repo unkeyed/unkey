@@ -2,6 +2,7 @@
 INSERT INTO `deployments` (
     id,
     k8s_name,
+    image,
     workspace_id,
     project_id,
     app_id,
@@ -34,6 +35,7 @@ INSERT INTO `deployments` (
 VALUES (
     sqlc.arg(id),
     sqlc.arg(k8s_name),
+    sqlc.arg(image),
     sqlc.arg(workspace_id),
     sqlc.arg(project_id),
     sqlc.arg(app_id),

@@ -1,4 +1,4 @@
-import { and, db, desc, eq, gte, inArray, lte, sql } from "@/lib/db";
+import { and, db, desc, eq, gte, inArray, isNull, lte, sql } from "@/lib/db";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
 import type { LastExit } from "@/lib/types/deploy";
 import { TRPCError } from "@trpc/server";
@@ -41,6 +41,7 @@ export const listDeployments = workspaceProcedure
           and(
             eq(deployments.workspaceId, ctx.workspace.id),
             eq(deployments.projectId, input.projectId),
+            isNull(deployments.deletedAt),
             input.appId ? eq(deployments.appId, input.appId) : undefined,
             input.startTime ? gte(deployments.createdAt, input.startTime) : undefined,
             input.endTime ? lte(deployments.createdAt, input.endTime) : undefined,

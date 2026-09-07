@@ -2,6 +2,7 @@
 SELECT id
 FROM deployments
 WHERE app_id = sqlc.arg(app_id)
+  AND deleted_at IS NULL
   AND environment_id = sqlc.arg(environment_id)
   AND status = 'ready'
   AND id != sqlc.arg(exclude_id)

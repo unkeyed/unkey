@@ -1,5 +1,5 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
-import { and, db, eq } from "@/lib/db";
+import { and, db, eq, isNull } from "@/lib/db";
 import type { LastExit } from "@/lib/types/deploy";
 import { type ContainerStatus, apps, deployments } from "@unkey/db/src/schema";
 import { mapRegionToFlag } from "../network/utils";
@@ -137,6 +137,7 @@ export async function fetchCurrentDeploymentOutsideWindow(
         eq(deployments.workspaceId, workspaceId),
         eq(deployments.projectId, input.projectId),
         eq(deployments.id, currentId),
+        isNull(deployments.deletedAt),
       ),
     );
   return deployment ?? null;

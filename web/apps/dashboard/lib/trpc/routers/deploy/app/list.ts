@@ -1,5 +1,5 @@
 import type { App } from "@/lib/collections/deploy/apps";
-import { and, db, desc, eq, inArray, sql } from "@/lib/db";
+import { and, db, desc, eq, inArray, isNull, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { apps, deployments, frontlineRoutes, githubRepoConnections } from "@unkey/db/src/schema";
 import { z } from "zod";
@@ -43,7 +43,13 @@ export const listApps = workspaceProcedure
         ),
       })
       .from(deployments)
-      .where(and(eq(deployments.workspaceId, workspaceId), inArray(deployments.appId, appIds)))
+      .where(
+        and(
+          eq(deployments.workspaceId, workspaceId),
+          inArray(deployments.appId, appIds),
+          isNull(deployments.deletedAt),
+        ),
+      )
       .as("ranked_deployments");
 
     const rankedRoutes = db
@@ -106,6 +112,7 @@ export const listApps = workspaceProcedure
               and(
                 eq(deployments.workspaceId, workspaceId),
                 inArray(deployments.id, currentDeploymentIds),
+                isNull(deployments.deletedAt),
               ),
             )
         : Promise.resolve([]),

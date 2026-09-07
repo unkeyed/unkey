@@ -20,14 +20,16 @@ WHERE d.pk > sqlc.arg(pagination_cursor)
       AND fr.sticky IN ('branch', 'environment', 'live')
   )
   AND (
+    d.deleted_at <= sqlc.arg(recovery_cutoff)
+    OR (d.deleted_at IS NULL AND (
     (
       e.kind = 'preview'
-      AND COALESCE(d.updated_at, d.created_at) < CAST(sqlc.arg(preview_cutoff) AS SIGNED)
+      AND GREATEST(COALESCE(d.updated_at, d.created_at), COALESCE(d.restored_at, 0)) < CAST(sqlc.arg(preview_cutoff) AS SIGNED)
     )
     OR
     (
       e.kind = 'production'
-      AND d.created_at < sqlc.arg(production_cutoff)
+      AND GREATEST(d.created_at, COALESCE(d.restored_at, 0)) < CAST(sqlc.arg(production_cutoff) AS SIGNED)
       AND (
         d.status != 'stopped'
         OR (
@@ -35,6 +37,7 @@ WHERE d.pk > sqlc.arg(pagination_cursor)
           FROM deployments newer
           WHERE newer.app_id = d.app_id
             AND newer.environment_id = d.environment_id
+            AND newer.deleted_at IS NULL
             AND newer.status IN ('ready', 'stopped')
             AND (
               newer.created_at > d.created_at
@@ -43,6 +46,7 @@ WHERE d.pk > sqlc.arg(pagination_cursor)
         ) >= CAST(sqlc.arg(keep_successful) AS UNSIGNED)
       )
     )
+    ))
   )
 ORDER BY d.pk
 LIMIT ?;

@@ -8,6 +8,7 @@ import "time"
 const (
 	ProductionAge = 14 * 24 * time.Hour
 	PreviewAge    = 30 * 24 * time.Hour
+	RecoveryAge   = 7 * 24 * time.Hour
 	Successful    = int64(10)
 )
 

@@ -100,3 +100,78 @@ func (q *Queries) DeleteOpenAPISpecsByDeploymentID(ctx context.Context, deployme
 	_, err := q.db.ExecContext(ctx, deleteOpenAPISpecsByDeploymentID, deploymentID)
 	return err
 }
+
+const deploymentExistsIncludingDeleted = `-- name: DeploymentExistsIncludingDeleted :one
+SELECT EXISTS(SELECT 1 FROM deployments WHERE id = ?)
+`
+
+// DeploymentExistsIncludingDeleted
+//
+//	SELECT EXISTS(SELECT 1 FROM deployments WHERE id = ?)
+func (q *Queries) DeploymentExistsIncludingDeleted(ctx context.Context, deploymentID string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, deploymentExistsIncludingDeleted, deploymentID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const deploymentImageExistsIncludingDeleted = `-- name: DeploymentImageExistsIncludingDeleted :one
+SELECT EXISTS(SELECT 1 FROM deployments WHERE image = ?)
+`
+
+// DeploymentImageExistsIncludingDeleted
+//
+//	SELECT EXISTS(SELECT 1 FROM deployments WHERE image = ?)
+func (q *Queries) DeploymentImageExistsIncludingDeleted(ctx context.Context, image sql.NullString) (bool, error) {
+	row := q.db.QueryRowContext(ctx, deploymentImageExistsIncludingDeleted, image)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const restoreDeployment = `-- name: RestoreDeployment :execrows
+UPDATE deployments SET deleted_at = NULL, restored_at = ?
+WHERE id = ?
+  AND deleted_at > ?
+`
+
+type RestoreDeploymentParams struct {
+	RestoredAt     sql.NullInt64 `db:"restored_at"`
+	DeploymentID   string        `db:"deployment_id"`
+	RecoveryCutoff sql.NullInt64 `db:"recovery_cutoff"`
+}
+
+// RestoreDeployment
+//
+//	UPDATE deployments SET deleted_at = NULL, restored_at = ?
+//	WHERE id = ?
+//	  AND deleted_at > ?
+func (q *Queries) RestoreDeployment(ctx context.Context, arg RestoreDeploymentParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, restoreDeployment, arg.RestoredAt, arg.DeploymentID, arg.RecoveryCutoff)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const softDeleteDeploymentForGC = `-- name: SoftDeleteDeploymentForGC :execrows
+UPDATE deployments SET deleted_at = ?
+WHERE id = ? AND deleted_at IS NULL
+`
+
+type SoftDeleteDeploymentForGCParams struct {
+	DeletedAt    sql.NullInt64 `db:"deleted_at"`
+	DeploymentID string        `db:"deployment_id"`
+}
+
+// SoftDeleteDeploymentForGC
+//
+//	UPDATE deployments SET deleted_at = ?
+//	WHERE id = ? AND deleted_at IS NULL
+func (q *Queries) SoftDeleteDeploymentForGC(ctx context.Context, arg SoftDeleteDeploymentForGCParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, softDeleteDeploymentForGC, arg.DeletedAt, arg.DeploymentID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}

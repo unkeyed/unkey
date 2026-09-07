@@ -15,7 +15,7 @@ import (
 const updateDeploymentDesiredState = `-- name: UpdateDeploymentDesiredState :exec
 UPDATE deployments
 SET desired_state = ?, updated_at = ?
-WHERE id = ?
+WHERE id = ? AND deleted_at IS NULL
 `
 
 type UpdateDeploymentDesiredStateParams struct {
@@ -28,7 +28,7 @@ type UpdateDeploymentDesiredStateParams struct {
 //
 //	UPDATE deployments
 //	SET desired_state = ?, updated_at = ?
-//	WHERE id = ?
+//	WHERE id = ? AND deleted_at IS NULL
 func (q *Queries) UpdateDeploymentDesiredState(ctx context.Context, arg UpdateDeploymentDesiredStateParams) error {
 	_, err := q.db.ExecContext(ctx, updateDeploymentDesiredState, arg.DesiredState, arg.UpdatedAt, arg.ID)
 	return err

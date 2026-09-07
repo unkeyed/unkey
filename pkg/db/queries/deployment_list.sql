@@ -3,6 +3,7 @@
 -- status set as IN (NULL), which matches nothing.
 SELECT d.* FROM `deployments` d
 WHERE d.workspace_id = sqlc.arg(workspace_id)
+  AND d.deleted_at IS NULL
   AND (sqlc.arg(project_id) = '' OR d.project_id = sqlc.arg(project_id))
   AND (sqlc.arg(app_id) = '' OR d.app_id = sqlc.arg(app_id))
   AND (sqlc.arg(environment_id) = '' OR d.environment_id = sqlc.arg(environment_id))

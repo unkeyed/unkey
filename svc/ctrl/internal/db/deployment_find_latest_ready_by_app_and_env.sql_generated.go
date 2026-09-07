@@ -13,6 +13,7 @@ const findLatestReadyDeploymentByAppAndEnv = `-- name: FindLatestReadyDeployment
 SELECT id
 FROM deployments
 WHERE app_id = ?
+  AND deleted_at IS NULL
   AND environment_id = ?
   AND status = 'ready'
   AND id != ?
@@ -31,6 +32,7 @@ type FindLatestReadyDeploymentByAppAndEnvParams struct {
 //	SELECT id
 //	FROM deployments
 //	WHERE app_id = ?
+//	  AND deleted_at IS NULL
 //	  AND environment_id = ?
 //	  AND status = 'ready'
 //	  AND id != ?

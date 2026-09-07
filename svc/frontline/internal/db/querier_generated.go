@@ -61,7 +61,7 @@ type Querier interface {
 	//  FROM frontline_routes fr
 	//  INNER JOIN deployments d ON d.id = fr.deployment_id
 	//  LEFT JOIN workspace_billing wb ON wb.workspace_id = d.workspace_id
-	//  WHERE fr.fully_qualified_domain_name = ?
+	//  WHERE fr.fully_qualified_domain_name = ? AND d.deleted_at IS NULL
 	FindFrontlineRouteByFQDN(ctx context.Context, fqdn string) (FindFrontlineRouteByFQDNRow, error)
 	// FindInstancesByDeploymentID returns all instances for a given deployment
 	// with region metadata for instance-aware routing decisions.

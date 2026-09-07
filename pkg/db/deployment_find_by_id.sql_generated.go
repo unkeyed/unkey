@@ -10,12 +10,12 @@ import (
 )
 
 const findDeploymentById = `-- name: FindDeploymentById :one
-SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, ` + "`" + `trigger` + "`" + `, triggered_by, trigger_reason, created_at, updated_at FROM ` + "`" + `deployments` + "`" + ` WHERE id = ?
+SELECT pk, id, k8s_name, deleted_at, restored_at, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, ` + "`" + `trigger` + "`" + `, triggered_by, trigger_reason, created_at, updated_at FROM ` + "`" + `deployments` + "`" + ` WHERE id = ? AND deleted_at IS NULL
 `
 
 // FindDeploymentById
 //
-//	SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE id = ?
+//	SELECT pk, id, k8s_name, deleted_at, restored_at, workspace_id, project_id, environment_id, app_id, image, build_id, git_commit_sha, git_branch, git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state, encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck, pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status, `trigger`, triggered_by, trigger_reason, created_at, updated_at FROM `deployments` WHERE id = ? AND deleted_at IS NULL
 func (q *Queries) FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error) {
 	row := db.QueryRowContext(ctx, findDeploymentById, id)
 	var i Deployment
@@ -23,6 +23,8 @@ func (q *Queries) FindDeploymentById(ctx context.Context, db DBTX, id string) (D
 		&i.Pk,
 		&i.ID,
 		&i.K8sName,
+		&i.DeletedAt,
+		&i.RestoredAt,
 		&i.WorkspaceID,
 		&i.ProjectID,
 		&i.EnvironmentID,
