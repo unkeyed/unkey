@@ -29,6 +29,7 @@ type DeploymentRowProps = {
   repoFullName: string | null;
   currentDeployment: Deployment | undefined;
   isRolledBack: boolean;
+  isRolledBackFrom: boolean;
   liveSince: number | null;
   href: Route;
 };
@@ -39,6 +40,7 @@ export function DeploymentRow({
   repoFullName,
   currentDeployment,
   isRolledBack,
+  isRolledBackFrom,
   liveSince,
   href,
 }: DeploymentRowProps) {
@@ -105,6 +107,7 @@ export function DeploymentRow({
             environment={environment}
             isCurrent={isCurrent}
             isRolledBack={isRolledBack}
+            isRolledBackFrom={isRolledBackFrom}
             liveSince={liveSince}
           />
         )}

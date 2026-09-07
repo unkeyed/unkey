@@ -33,6 +33,19 @@ export function DeploymentsCardList() {
   const { app, currentDeployment, isRolledBack } = useAppCurrentDeployment();
   const workspace = useWorkspaceNavigation();
 
+  const rolledBackFromId =
+    isRolledBack && currentDeployment
+      ? rows
+          .map((row) => row.deployment)
+          .filter(
+            (d) =>
+              d.environmentId === currentDeployment.environmentId &&
+              d.status === "ready" &&
+              d.createdAt > currentDeployment.createdAt,
+          )
+          .sort((a, b) => b.createdAt - a.createdAt)[0]?.id
+      : undefined;
+
   if (isLoading) {
     return <DeploymentsSkeleton />;
   }
@@ -107,6 +120,7 @@ export function DeploymentsCardList() {
             repoFullName={app?.repositoryFullName ?? null}
             currentDeployment={currentDeployment}
             isRolledBack={isRolledBack}
+            isRolledBackFrom={deployment.id === rolledBackFromId}
             liveSince={app?.updatedAt ?? null}
             href={routes.projects.apps.deployment({
               workspaceSlug: workspace.slug,
