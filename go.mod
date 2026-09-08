@@ -45,7 +45,7 @@ require (
 	github.com/distribution/reference v0.6.0
 	github.com/docker/cli v29.8.0+incompatible
 	github.com/getkin/kin-openapi v0.149.0
-	github.com/go-acme/lego/v4 v4.35.2
+	github.com/go-acme/lego/v5 v5.4.1
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/google/go-containerregistry v0.22.1
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
@@ -352,4 +352,5 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.4.2 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
+	software.sslmate.com/src/go-pkcs12 v0.7.3 // indirect
 )
