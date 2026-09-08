@@ -162,7 +162,7 @@ var allowedTableFunctions = map[string]bool{
 
 func (p *Parser) validateSettings() error {
 	var validationErr error
-	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
+	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
 		selectQuery, ok := node.(*clickhouse.SelectQuery)
 		if !ok || selectQuery.Settings == nil {
 			return true
@@ -184,7 +184,7 @@ func (p *Parser) validateSettings() error {
 // operation with a subquery, whose physical sources are validated normally.
 func (p *Parser) validateSetOperands() error {
 	var validationErr error
-	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
+	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
 		operation, ok := node.(*clickhouse.BinaryOperation)
 		if !ok {
 			return true
@@ -213,7 +213,7 @@ func (p *Parser) validateSetOperands() error {
 func (p *Parser) validateFunctions() error {
 	var validateErr error
 
-	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
+	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
 		// Check regular functions
 		funcExpr, isFuncExpr := node.(*clickhouse.FunctionExpr)
 		if isFuncExpr {
@@ -246,7 +246,7 @@ func (p *Parser) validateFunctions() error {
 			return true
 		}
 
-		funcName := strings.ToLower(tableFuncExpr.Name.String())
+		funcName := strings.ToLower(clickhouse.Format(tableFuncExpr.Name))
 		if funcName == "" {
 			return true
 		}
