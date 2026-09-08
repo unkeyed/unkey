@@ -1,15 +1,3 @@
-// Container lifecycle event capture: walks pod.Status, mirrors each
-// container's corev1.ContainerState into an InstanceEvent.state oneof, and
-// ships the events to ctrl via ReportInstanceEvents. Surfaces user-actionable
-// failures (OOMKilled, exit codes, image-pull errors, pod evictions) the
-// gateway can't currently report, and lets the logs viewer draw lifecycle
-// dividers between runs.
-//
-// This runs alongside reportDeploymentStatus on every pod-watch tick.
-// reportDeploymentStatus produces a coarse instance summary (Running /
-// Pending / Failed); this file produces fine-grained per-container life
-// events for the dashboard timeline.
-
 package deployment
 
 import (
@@ -45,10 +33,6 @@ const (
 	fingerprintMessageMax = 200
 )
 
-// reportInstanceEvents walks the pod's container statuses, builds the set of
-// events not yet seen for this (pod_uid, container_name, restart_count,
-// state, reason) tuple, and ships them in a single batched RPC. Best-effort:
-// errors are logged and surfaced as metrics but do not fail the caller.
 func (c *Controller) reportInstanceEvents(ctx context.Context, pod *corev1.Pod, observedAtUnixNano int64) {
 	if c.eventDedup == nil {
 		return // not configured (tests or environments without ctrl-CH wiring)
@@ -111,25 +95,6 @@ func (c *Controller) reportInstanceEvents(ctx context.Context, pod *corev1.Pod, 
 	}
 }
 
-// scanInstanceEvents inspects a pod's container statuses and returns one
-// event per (container, life, state) tuple we should report. Pure function,
-// no I/O.
-//
-// For each ContainerStatus and InitContainerStatus we look at:
-//   - State.Running: emit a Running event for the current life. Idempotent
-//     across pod-watch ticks via the dedupe cache.
-//   - State.Terminated: the current container life ended at restart_count.
-//   - LastTerminationState.Terminated: the previous life ended at
-//     (restart_count - 1) and the container has since restarted. Skipped
-//     when restart_count == 0 because there is no prior life to describe.
-//   - State.Waiting with an actionable reason: kubelet could not start or
-//     restart the container. Routine progress states such as
-//     ContainerCreating and PodInitializing are omitted.
-//   - Pod phase Failed: emit the pod-level reason and message. This is where
-//     kubelet records eviction details, including ephemeral-storage limits;
-//     the per-container termination often only says "Error".
-//   - PodScheduled=False with reason=Unschedulable: emit scheduler failures
-//     that happen before kubelet creates any container status.
 func scanInstanceEvents(pod *corev1.Pod) []*ctrlv1.InstanceEvent {
 	if pod == nil {
 		return nil
@@ -153,9 +118,6 @@ func scanInstanceEvents(pod *corev1.Pod) []*ctrlv1.InstanceEvent {
 		if cs.RestartCount > 0 && cs.LastTerminationState.Terminated != nil {
 			out = append(out, buildTerminatedEvent(pod, tenant, cs, cs.RestartCount-1, cs.LastTerminationState.Terminated))
 		}
-		// Emit a prior termination before Running. Ctrl advances the stored
-		// restart count while processing Running, which would otherwise make
-		// the immediately preceding life look stale within the same batch.
 		if r := cs.State.Running; r != nil {
 			out = append(out, buildRunningEvent(pod, tenant, cs, r.StartedAt.UnixMilli()))
 		}
@@ -186,9 +148,6 @@ func scanInstanceEvents(pod *corev1.Pod) []*ctrlv1.InstanceEvent {
 	return out
 }
 
-// isActionableWaiting filters out normal startup progress while retaining
-// kubelet errors without relying on a closed list. New error reasons therefore
-// surface automatically instead of requiring a krane release.
 func isActionableWaiting(waiting *corev1.ContainerStateWaiting) bool {
 	if waiting == nil || waiting.Reason == "" {
 		return false
@@ -201,10 +160,6 @@ func isActionableWaiting(waiting *corev1.ContainerStateWaiting) bool {
 	}
 }
 
-// primaryContainerStatus returns the main workload container status used to
-// attribute a pod-level failure to an instance event. A pod can fail before
-// kubelet creates any container status (for example, during admission), so the
-// pod spec is the fallback source for its name and image.
 func primaryContainerStatus(pod *corev1.Pod, statuses []corev1.ContainerStatus) corev1.ContainerStatus {
 	if len(pod.Spec.Containers) > 0 {
 		primary := pod.Spec.Containers[0]
@@ -418,9 +373,6 @@ func fingerprint(imageID string, exitCode int32, reason, message string) string 
 	return hex.EncodeToString(h[:])
 }
 
-// dedupKey is the in-memory dedupe identity for an event. Reason distinguishes
-// transitions within one container life, such as ErrImagePull becoming
-// ImagePullBackOff or a crashlooping pod later being Evicted.
 func dedupKey(ev *ctrlv1.InstanceEvent) string {
 	return strings.Join([]string{
 		ev.GetPodUid(),

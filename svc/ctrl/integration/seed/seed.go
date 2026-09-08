@@ -921,10 +921,6 @@ func (s *Seeder) CreateInstance(ctx context.Context, req CreateInstanceRequest) 
 		MemoryMib:     128,
 		StorageMib:    0,
 		Status:        db.InstancesStatusRunning,
-		// Mirrors the column default applied by UpsertInstance: a fresh
-		// instance has restartCount=0 and no terminations or waiting
-		// reasons. ctrl's RecordInstanceExit / RecordInstanceWaiting
-		// keep this in sync as events arrive.
 		ContainerStatus: dbtype.ContainerStatus{
 			RestartCount:         0,
 			LastTerminationState: nil,

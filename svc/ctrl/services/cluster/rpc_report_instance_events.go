@@ -106,10 +106,6 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 		// not the storage layout.
 		switch event.GetState().(type) {
 		case *ctrlv1.InstanceEvent_Running:
-			// Running carries no exit metadata — the row is identity +
-			// time + attributes, written for the dashboard's "container
-			// booted" timeline divider. Also clear a prior waiting failure:
-			// this running state is kubelet's authoritative recovery signal.
 			row.EventKind = "running"
 			err := s.db.ClearInstanceWaiting(ctx, db.ClearInstanceWaitingParams{
 				K8sName:            event.GetPodName(),
@@ -193,9 +189,6 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 			row.Reason = w.GetReason()
 			row.Message = w.GetMessage()
 
-			// Denormalize every actionable reason so the deployment summary
-			// can show image-pull, config, scheduling, and pod-eviction errors
-			// without querying ClickHouse.
 			err := s.db.RecordInstanceWaiting(ctx, db.RecordInstanceWaitingParams{
 				K8sName:            event.GetPodName(),
 				RegionID:           cluster.RegionID,

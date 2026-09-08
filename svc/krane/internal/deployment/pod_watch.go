@@ -161,10 +161,6 @@ func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventT
 		return
 	}
 
-	// Report detailed lifecycle errors after the coarse status report. The
-	// status RPC creates the instance row for a newly observed pod (including
-	// addressless pending pods), so the event RPC can reliably attach its
-	// image-pull or eviction details on the first watch tick.
 	c.reportInstanceEvents(ctx, pod, observedAtUnixNano)
 
 	if reported {

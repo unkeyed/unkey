@@ -15,10 +15,6 @@ import (
 // buildDeploymentStatus queries the pods belonging to a ReplicaSet and builds a
 // status report for the control plane.
 //
-// Pending pods without an IP remain in the report so ctrl can attach startup
-// failures. Terminal pods are excluded to avoid retaining replaced instances.
-// Addresses use pod IPs so peered clusters do not need cluster-local DNS.
-//
 // Pod phase is mapped to instance status: Running pods with ContainersReady=True
 // become STATUS_RUNNING, Pending pods and Running pods whose ContainersReady
 // condition is missing or False become STATUS_PENDING.
