@@ -199,21 +199,15 @@ function dnsSetupHint(records: DnsRecord[]): string {
 }
 
 async function listProjectDomains(projectId: string): Promise<CustomDomain[]> {
-  const environments = await trpcClient.deploy.environment.list.query({ projectId });
-
-  const [perEnvironment, hints] = await Promise.all([
-    Promise.all(
-      environments.map(async (environment) => {
-        const domains = await listAllDomains(projectId, environment.appId, environment.id);
-        return domains.map((domain) => toCustomDomain(domain));
-      }),
-    ),
+  const [apiDomains, hints] = await Promise.all([
+    listAllDomains(projectId),
     trpcClient.deploy.customDomain.hints.query({ projectId }).catch(() => []),
   ]);
 
   const byDomain = new Map(hints.map((hint) => [hint.domain, hint]));
 
-  return perEnvironment.flat().map((domain) => {
+  return apiDomains.map((apiDomain) => {
+    const domain = toCustomDomain(apiDomain);
     const hint = byDomain.get(domain.domain);
     return hint
       ? { ...domain, domainConnectProvider: hint.provider, domainConnectUrl: hint.url }
@@ -221,19 +215,13 @@ async function listProjectDomains(projectId: string): Promise<CustomDomain[]> {
   });
 }
 
-async function listAllDomains(
-  projectId: string,
-  appId: string,
-  environmentId: string,
-): Promise<ApiDomain[]> {
+async function listAllDomains(projectId: string): Promise<ApiDomain[]> {
   const all: ApiDomain[] = [];
   let cursor: string | undefined;
 
   do {
     const page = await getUnkeyClient().domains.listDomains({
       project: projectId,
-      app: appId,
-      environment: environmentId,
       cursor,
     });
     all.push(...page.data);
