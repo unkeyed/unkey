@@ -8,7 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/maypok86/otter"
+	"github.com/maypok86/otter/v2"
+	"github.com/maypok86/otter/v2/stats"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache/metrics"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -20,7 +21,7 @@ import (
 )
 
 type cache[K comparable, V any] struct {
-	otter    otter.Cache[K, swrEntry[V]]
+	otter    *otter.Cache[K, swrEntry[V]]
 	fresh    time.Duration
 	stale    time.Duration
 	resource string
@@ -58,25 +59,39 @@ var _ Cache[any, any] = (*cache[any, any])(nil)
 func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 	if err := assert.All(
 		assert.NotNil(config.Clock, "clock is required"),
+		assert.Greater(config.MaxSize, 0, "max size must be positive"),
+		assert.Greater(config.Stale, 0, "stale duration must be positive"),
 	); err != nil {
 		return nil, fmt.Errorf("invalid cache config: %w", err)
 	}
 
-	builder, err := otter.NewBuilder[K, swrEntry[V]](config.MaxSize)
-	if err != nil {
-		return nil, err
-	}
-
-	otter, err := builder.
-		CollectStats().
-		Cost(func(key K, value swrEntry[V]) uint32 {
-			return 1
-		}).
-		WithTTL(config.Stale).
-		DeletionListener(func(key K, value swrEntry[V], cause otter.DeletionCause) {
-			metrics.CacheDeleted.WithLabelValues(config.Resource, cause.String()).Inc()
-		}).
-		Build()
+	otter, err := otter.New(&otter.Options[K, swrEntry[V]]{
+		MaximumSize:      config.MaxSize,
+		MaximumWeight:    0,
+		StatsRecorder:    stats.NewCounter(),
+		InitialCapacity:  0,
+		Weigher:          nil,
+		ExpiryCalculator: otter.ExpiryWriting[K, swrEntry[V]](config.Stale),
+		OnDeletion: func(event otter.DeletionEvent[K, swrEntry[V]]) {
+			var cause string
+			switch event.Cause {
+			case otter.CauseInvalidation:
+				cause = "Explicit"
+			case otter.CauseReplacement:
+				cause = "Replaced"
+			case otter.CauseOverflow:
+				cause = "Size"
+			case otter.CauseExpiration:
+				cause = "Expired"
+			}
+			metrics.CacheDeleted.WithLabelValues(config.Resource, cause).Inc()
+		},
+		OnAtomicDeletion:  nil,
+		RefreshCalculator: nil,
+		Executor:          nil,
+		Clock:             nil,
+		Logger:            nil,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -108,8 +123,8 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 	}
 
 	c.stopMetrics = repeat.Every(60*time.Second, func() {
-		metrics.CacheSize.WithLabelValues(c.resource).Set(float64(c.otter.Size()))
-		metrics.CacheCapacity.WithLabelValues(c.resource).Set(float64(c.otter.Capacity()))
+		metrics.CacheSize.WithLabelValues(c.resource).Set(float64(c.otter.EstimatedSize()))
+		metrics.CacheCapacity.WithLabelValues(c.resource).Set(float64(c.otter.GetMaximum()))
 	})
 	return c, nil
 }
@@ -164,7 +179,7 @@ func (c *cache[K, V]) Get(ctx context.Context, key K) (value V, hit CacheHit) {
 		return e.Value, e.Hit
 	}
 
-	c.otter.Delete(key)
+	c.otter.Invalidate(key)
 	c.recordTiming(ctx, "cache_get", "miss", start)
 
 	return value, Miss
@@ -188,7 +203,7 @@ func (c *cache[K, V]) GetMany(ctx context.Context, keys []K) (values map[K]V, hi
 			continue
 		}
 
-		c.otter.Delete(key)
+		c.otter.Invalidate(key)
 		hits[key] = Miss
 	}
 
@@ -246,7 +261,7 @@ func (c *cache[K, V]) SetMany(ctx context.Context, values map[K]V) {
 }
 
 func (c *cache[K, V]) get(_ context.Context, key K) (swrEntry[V], bool) {
-	v, ok := c.otter.Get(key)
+	v, ok := c.otter.GetIfPresent(key)
 
 	metrics.CacheReads.WithLabelValues(c.resource, fmt.Sprintf("%t", ok)).Inc()
 
@@ -255,17 +270,16 @@ func (c *cache[K, V]) get(_ context.Context, key K) (swrEntry[V], bool) {
 
 func (c *cache[K, V]) Remove(ctx context.Context, keys ...K) {
 	for _, key := range keys {
-		c.otter.Delete(key)
+		c.otter.Invalidate(key)
 	}
 }
 
 func (c *cache[K, V]) Dump(ctx context.Context) ([]byte, error) {
 	data := make(map[K]swrEntry[V])
 
-	c.otter.Range(func(key K, entry swrEntry[V]) bool {
+	for key, entry := range c.otter.All() {
 		data[key] = entry
-		return true
-	})
+	}
 
 	b, err := json.Marshal(data)
 	if err != nil {
@@ -294,7 +308,7 @@ func (c *cache[K, V]) Restore(ctx context.Context, b []byte) error {
 }
 
 func (c *cache[K, V]) Clear(ctx context.Context) {
-	c.otter.Clear()
+	c.otter.InvalidateAll()
 }
 
 func (c *cache[K, V]) Name() string {
@@ -367,7 +381,7 @@ func (c *cache[K, V]) SWR(
 		}
 
 		// We have old data, that we should not serve anymore
-		c.otter.Delete(key)
+		c.otter.Invalidate(key)
 	}
 
 	// Cache Miss - measure total time including all overhead
@@ -537,7 +551,7 @@ func (c *cache[K, V]) SWRWithFallback(
 		}
 
 		// Expired - delete and continue checking other candidates
-		c.otter.Delete(key)
+		c.otter.Invalidate(key)
 	}
 
 	// Cache miss on all candidates - fetch from origin
