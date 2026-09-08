@@ -34,7 +34,7 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 
 	result := v.core.Validate(r)
 	if result == nil {
-		//nolint:exhaustruct
+		//nolint:exhaustruct_v5
 		return openapi.BadRequestErrorResponse{}, true
 	}
 
@@ -47,7 +47,7 @@ func (v *Validator) Validate(ctx context.Context, r *http.Request) (openapi.BadR
 		}
 	}
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	return openapi.BadRequestErrorResponse{
 		Meta: openapi.Meta{
 			RequestId: ctxutil.GetRequestID(r.Context()),

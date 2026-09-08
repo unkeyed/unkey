@@ -45,7 +45,7 @@ func TestBufferAuditLog_SkipsNonRootPrincipal(t *testing.T) {
 		require.Zero(t, eventCountFlushed.Load())
 	})
 
-	h := &Handler{DirectAuditLogs: directAuditLogs} //nolint:exhaustruct
+	h := &Handler{DirectAuditLogs: directAuditLogs} //nolint:exhaustruct_v5
 	p := &principal.Principal{
 		Version: principal.Version,
 		Subject: principal.Subject{
@@ -62,7 +62,7 @@ func TestBufferAuditLog_SkipsNonRootPrincipal(t *testing.T) {
 		AuthorizedWorkspaceID: "ws_123",
 		Permissions:           nil,
 	}
-	namespace := db.FindRatelimitNamespace{ //nolint:exhaustruct
+	namespace := db.FindRatelimitNamespace{ //nolint:exhaustruct_v5
 		ID:          "rlns_123",
 		WorkspaceID: "ws_123",
 		Name:        "namespace",

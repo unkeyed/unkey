@@ -102,7 +102,7 @@ func TestWithReservedHeaderStrip_RemovesReservedTrailers(t *testing.T) {
 func newMiddlewareSession(t *testing.T, req *http.Request) *zen.Session {
 	t.Helper()
 	w := httptest.NewRecorder()
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	sess := &zen.Session{}
 	require.NoError(t, sess.Init(w, req, 0))
 	return sess

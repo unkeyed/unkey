@@ -234,7 +234,7 @@ func (f *fakeCloser) GetInvoice(_ context.Context, invoiceID string) (invoiceclo
 			}
 		}
 	}
-	return invoicecloser.DraftInvoice{}, invoicecloser.ErrNotFound //nolint:exhaustruct // zero value on the not-found path
+	return invoicecloser.DraftInvoice{}, invoicecloser.ErrNotFound //nolint:exhaustruct_v5 // zero value on the not-found path
 }
 
 func (f *fakeCloser) setDrafts(subscriptionID string, drafts []invoicecloser.DraftInvoice) {
@@ -296,7 +296,7 @@ func seedBillableWorkspace(t *testing.T, h *harness.Harness, customerID, subscri
 }
 
 func TestDeployBillingClose_Integration(t *testing.T) {
-	reader := &fakeUsageReader{} //nolint:exhaustruct // zero value is an empty reader
+	reader := &fakeUsageReader{} //nolint:exhaustruct_v5 // zero value is an empty reader
 	pusher := newFakePusher()
 	closer := newFakeCloser()
 
@@ -468,7 +468,7 @@ func TestDeployBillingClose_Integration(t *testing.T) {
 }
 
 func TestCloseDeployBillingWorkspace_Integration(t *testing.T) {
-	reader := &fakeUsageReader{} //nolint:exhaustruct
+	reader := &fakeUsageReader{} //nolint:exhaustruct_v5
 	pusher := newFakePusher()
 	closer := newFakeCloser()
 	h := harness.New(t, harness.WithDeployBilling(reader, pusher, closer))

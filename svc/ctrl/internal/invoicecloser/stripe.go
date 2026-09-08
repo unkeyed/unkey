@@ -49,9 +49,9 @@ func (c *stripeCloser) GetInvoice(ctx context.Context, invoiceID string) (DraftI
 	invoice, err := c.client.V1Invoices.Retrieve(ctx, invoiceID, nil)
 	if err != nil {
 		if sErr, ok := errors.AsType[*stripe.Error](err); ok && sErr.Code == stripe.ErrorCodeResourceMissing {
-			return DraftInvoice{}, ErrNotFound //nolint:exhaustruct // zero value on the not-found path
+			return DraftInvoice{}, ErrNotFound //nolint:exhaustruct_v5 // zero value on the not-found path
 		}
-		return DraftInvoice{}, fault.Wrap(err, fault.Internal("failed to read stripe invoice")) //nolint:exhaustruct // zero value on the error path
+		return DraftInvoice{}, fault.Wrap(err, fault.Internal("failed to read stripe invoice")) //nolint:exhaustruct_v5 // zero value on the error path
 	}
 	return DraftInvoice{
 		ID:            invoice.ID,
@@ -73,7 +73,7 @@ func (c *stripeCloser) GetInvoice(ctx context.Context, invoiceID string) (DraftI
 // the customer never billed, which is worse than the stale-usage case this
 // deadline exists to bound.
 func (c *stripeCloser) ClaimInvoice(ctx context.Context, invoiceID string, finalizeAt int64) error {
-	_, err := c.client.V1Invoices.Update(ctx, invoiceID, &stripe.InvoiceUpdateParams{ //nolint:exhaustruct // only finalization scheduling changes
+	_, err := c.client.V1Invoices.Update(ctx, invoiceID, &stripe.InvoiceUpdateParams{ //nolint:exhaustruct_v5 // only finalization scheduling changes
 		AutoAdvance:              new(true),
 		AutomaticallyFinalizesAt: new(finalizeAt),
 	})

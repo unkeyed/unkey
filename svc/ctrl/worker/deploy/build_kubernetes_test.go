@@ -24,14 +24,14 @@ func TestSanitizeK8sName(t *testing.T) {
 }
 
 func TestImageExportsInsecure(t *testing.T) {
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	secure := &Workflow{registryConfig: RegistryConfig{Repository: "registry.acme.com/deployments"}}
 	exports := secure.imageExports("registry.acme.com/deployments:p-d")
 	require.Len(t, exports, 1)
 	require.Equal(t, "registry.acme.com/deployments:p-d", exports[0].Attrs["name"])
 	require.NotContains(t, exports[0].Attrs, "registry.insecure")
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	insecure := &Workflow{registryConfig: RegistryConfig{Repository: "ctlptl-registry:5000/deployments", Insecure: true}}
 	exports = insecure.imageExports("ctlptl-registry:5000/deployments:p-d")
 	require.Equal(t, "true", exports[0].Attrs["registry.insecure"])

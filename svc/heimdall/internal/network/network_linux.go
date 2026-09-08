@@ -174,12 +174,12 @@ func NewReader(criSocket string) (Reader, error) {
 	// than per-pod (every per-pod load below will just re-open the same
 	// pin). Strip the spec's programs for this load — we only want the
 	// map and its pin semantics now.
-	mapOnlySpec := &ebpf.CollectionSpec{ //nolint:exhaustruct // ByteOrder + Types default
+	mapOnlySpec := &ebpf.CollectionSpec{ //nolint:exhaustruct_v5 // ByteOrder + Types default
 		Maps:      spec.Maps,
 		Variables: spec.Variables,
 	}
-	mapColl, err := ebpf.NewCollectionWithOptions(mapOnlySpec, ebpf.CollectionOptions{ //nolint:exhaustruct // Programs optional
-		Maps: ebpf.MapOptions{ //nolint:exhaustruct // LoadPinOptions optional
+	mapColl, err := ebpf.NewCollectionWithOptions(mapOnlySpec, ebpf.CollectionOptions{ //nolint:exhaustruct_v5 // Programs optional
+		Maps: ebpf.MapOptions{ //nolint:exhaustruct_v5 // LoadPinOptions optional
 			PinPath: bpfPinDir,
 		},
 	})
@@ -194,7 +194,7 @@ func NewReader(criSocket string) (Reader, error) {
 		return nil, fmt.Errorf("pod_counters map missing after load")
 	}
 
-	pinOpts := ebpf.MapOptions{ //nolint:exhaustruct // LoadPinOptions optional
+	pinOpts := ebpf.MapOptions{ //nolint:exhaustruct_v5 // LoadPinOptions optional
 		PinPath: bpfPinDir,
 	}
 	r := &linuxReader{

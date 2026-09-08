@@ -65,7 +65,7 @@ func setSpendSuspended(t *testing.T, h *harness.Harness, workspaceID string, sus
 // TestRunDeploySpendCheck_OrchestratorIntegration exercises the fleet scan and
 // fan-out decision without driving the per-workspace check to completion.
 func TestRunDeploySpendCheck_OrchestratorIntegration(t *testing.T) {
-	reader := &fakeUsageReader{} //nolint:exhaustruct // set per subtest
+	reader := &fakeUsageReader{}
 	h := harness.New(t, harness.WithDeployBilling(reader, newFakePusher(), newFakeCloser()), harness.WithIsolatedMySQL())
 
 	period := time.Now().UTC().Format("2006-01")

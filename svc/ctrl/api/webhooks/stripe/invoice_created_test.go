@@ -23,14 +23,13 @@ func renewalInvoice(customer, subscription string) stripesdk.Invoice {
 	now := time.Now().UTC()
 	start := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC).AddDate(0, -1, 0)
 	end := start.AddDate(0, 1, 0)
-	//nolint:exhaustruct // the handler reads only these fields off the SDK invoice
 	return stripesdk.Invoice{
 		ID:            "in_test",
 		BillingReason: stripesdk.InvoiceBillingReasonSubscriptionCycle,
-		Customer:      &stripesdk.Customer{ID: customer}, //nolint:exhaustruct // unexpanded id, as delivered
-		Parent: &stripesdk.InvoiceParent{ //nolint:exhaustruct // only the subscription reference is read
-			SubscriptionDetails: &stripesdk.InvoiceParentSubscriptionDetails{ //nolint:exhaustruct // ditto
-				Subscription: &stripesdk.Subscription{ID: subscription}, //nolint:exhaustruct // unexpanded id, as delivered
+		Customer:      &stripesdk.Customer{ID: customer},
+		Parent: &stripesdk.InvoiceParent{
+			SubscriptionDetails: &stripesdk.InvoiceParentSubscriptionDetails{
+				Subscription: &stripesdk.Subscription{ID: subscription},
 			},
 		},
 		PeriodStart: start.Unix(),
@@ -114,7 +113,7 @@ func TestInvoiceCreated_DecodesSubscription(t *testing.T) {
 func TestInvoiceCreated_IgnoresNonRenewal(t *testing.T) {
 	t.Parallel()
 
-	h := &handler{} //nolint:exhaustruct // early-return paths need no deps
+	h := &handler{}
 	inv := renewalInvoice("cus_test", "sub_test")
 	inv.BillingReason = stripesdk.InvoiceBillingReasonSubscriptionCreate
 	err := h.invoiceCreated(context.Background(), webhook.Event{}, inv)
@@ -129,7 +128,7 @@ func TestInvoiceCreated_IgnoresUnknownCustomer(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 
-	h := &handler{db: database} //nolint:exhaustruct // restate/stripe unused on ignore path
+	h := &handler{db: database}
 	err = h.invoiceCreated(context.Background(), webhook.Event{}, renewalInvoice(uid.New("cus"), uid.New("sub")))
 	require.ErrorIs(t, err, webhook.ErrIgnore)
 }
@@ -137,7 +136,7 @@ func TestInvoiceCreated_IgnoresUnknownCustomer(t *testing.T) {
 func TestInvoiceCreated_IgnoresMissingCustomerOrPeriod(t *testing.T) {
 	t.Parallel()
 
-	h := &handler{} //nolint:exhaustruct // early-return paths need no deps
+	h := &handler{}
 	inv := renewalInvoice("cus_test", "sub_test")
 
 	inv.Customer = nil
@@ -167,7 +166,7 @@ func TestInvoiceCreated_RejectsEmptyBillingReason(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 
-	h := &handler{db: database} //nolint:exhaustruct // stripe/restate unused on ignore path
+	h := &handler{db: database}
 	inv := renewalInvoice(uid.New("cus"), uid.New("sub"))
 	inv.BillingReason = ""
 	err = h.invoiceCreated(context.Background(), webhook.Event{}, inv)
@@ -230,7 +229,7 @@ func TestInvoiceCreated_IgnoresMismatchedSubscription(t *testing.T) {
 		StripeSubscriptionID: subID,
 	}))
 
-	h := &handler{db: database} //nolint:exhaustruct // stripe/restate unused on ignore path
+	h := &handler{db: database}
 	err = h.invoiceCreated(context.Background(), webhook.Event{}, renewalInvoice(customerID, "sub_other_product"))
 	require.ErrorIs(t, err, webhook.ErrIgnore)
 }

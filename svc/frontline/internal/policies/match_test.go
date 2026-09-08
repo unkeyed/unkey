@@ -25,7 +25,7 @@ func TestMatchesRequest_PathExact(t *testing.T) {
 	rc := newRegexCache()
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/api/v1"}, Header: http.Header{}}
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	exprs := []*frontlinev1.MatchExpr{
 		{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 			Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Exact{Exact: "/api/v1"}},
@@ -42,7 +42,7 @@ func TestMatchesRequest_PathExactMismatch(t *testing.T) {
 	rc := newRegexCache()
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/api/v2"}, Header: http.Header{}}
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	exprs := []*frontlinev1.MatchExpr{
 		{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 			Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Exact{Exact: "/api/v1"}},
@@ -59,7 +59,7 @@ func TestMatchesRequest_PathPrefix(t *testing.T) {
 	rc := newRegexCache()
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/api/v1/users"}, Header: http.Header{}}
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	exprs := []*frontlinev1.MatchExpr{
 		{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 			Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/api/v1"}},
@@ -76,7 +76,7 @@ func TestMatchesRequest_PathRegex(t *testing.T) {
 	rc := newRegexCache()
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/api/v2/users/123"}, Header: http.Header{}}
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	exprs := []*frontlinev1.MatchExpr{
 		{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 			Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Regex{Regex: `^/api/v\d+/users/\d+$`}},
@@ -93,7 +93,7 @@ func TestMatchesRequest_PathCaseInsensitive(t *testing.T) {
 	rc := newRegexCache()
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/API/V1"}, Header: http.Header{}}
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	exprs := []*frontlinev1.MatchExpr{
 		{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 			Path: &frontlinev1.StringMatch{
@@ -130,7 +130,7 @@ func TestMatchesRequest_MethodMatch(t *testing.T) {
 			t.Parallel()
 			req := &http.Request{Method: tt.method, URL: &url.URL{Path: "/"}, Header: http.Header{}}
 
-			//nolint:exhaustruct
+			//nolint:exhaustruct_v5
 			exprs := []*frontlinev1.MatchExpr{
 				{Expr: &frontlinev1.MatchExpr_Method{Method: &frontlinev1.MethodMatch{Methods: tt.methods}}},
 			}
@@ -149,7 +149,7 @@ func TestMatchesRequest_HeaderPresent(t *testing.T) {
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/"}, Header: http.Header{}}
 	req.Header.Set("Authorization", "Bearer token")
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	exprs := []*frontlinev1.MatchExpr{
 		{Expr: &frontlinev1.MatchExpr_Header{Header: &frontlinev1.HeaderMatch{
 			Name:  "Authorization",
@@ -168,7 +168,7 @@ func TestMatchesRequest_HeaderNotPresent(t *testing.T) {
 
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/"}, Header: http.Header{}}
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	exprs := []*frontlinev1.MatchExpr{
 		{Expr: &frontlinev1.MatchExpr_Header{Header: &frontlinev1.HeaderMatch{
 			Name:  "Authorization",
@@ -188,7 +188,7 @@ func TestMatchesRequest_HeaderValue(t *testing.T) {
 	req := &http.Request{Method: "GET", URL: &url.URL{Path: "/"}, Header: http.Header{}}
 	req.Header.Set("Content-Type", "application/json")
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	exprs := []*frontlinev1.MatchExpr{
 		{Expr: &frontlinev1.MatchExpr_Header{Header: &frontlinev1.HeaderMatch{
 			Name: "Content-Type",
@@ -213,7 +213,7 @@ func TestMatchesRequest_QueryParamPresent(t *testing.T) {
 		Header: http.Header{},
 	}
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	exprs := []*frontlinev1.MatchExpr{
 		{Expr: &frontlinev1.MatchExpr_QueryParam{QueryParam: &frontlinev1.QueryParamMatch{
 			Name:  "debug",
@@ -236,7 +236,7 @@ func TestMatchesRequest_QueryParamValue(t *testing.T) {
 		Header: http.Header{},
 	}
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	exprs := []*frontlinev1.MatchExpr{
 		{Expr: &frontlinev1.MatchExpr_QueryParam{QueryParam: &frontlinev1.QueryParamMatch{
 			Name: "version",
@@ -258,7 +258,7 @@ func TestMatchesRequest_ANDSemantics(t *testing.T) {
 	// Path matches but method doesn't
 	req := &http.Request{Method: "DELETE", URL: &url.URL{Path: "/api/v1"}, Header: http.Header{}}
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	exprs := []*frontlinev1.MatchExpr{
 		{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 			Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/api"}},
@@ -277,7 +277,7 @@ func TestMatchesRequest_ANDSemanticsAllMatch(t *testing.T) {
 
 	req := &http.Request{Method: "POST", URL: &url.URL{Path: "/api/v1"}, Header: http.Header{}}
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	exprs := []*frontlinev1.MatchExpr{
 		{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 			Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/api"}},

@@ -46,7 +46,7 @@ func newDefaultHandler(out *os.File) slog.Handler {
 	if term.IsTerminal(int(out.Fd())) && os.Getenv("NO_COLOR") == "" {
 		return newPrettyHandler(out, level)
 	}
-	return slog.NewTextHandler(out, &slog.HandlerOptions{ //nolint:exhaustruct // ReplaceAttr default
+	return slog.NewTextHandler(out, &slog.HandlerOptions{ //nolint:exhaustruct_v5 // ReplaceAttr default
 		Level:     level,
 		AddSource: true,
 	})

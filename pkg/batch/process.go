@@ -92,7 +92,7 @@ func New[T any](config Config[T]) *BatchProcessor[T] {
 		config.Consumers = 1
 	}
 
-	bp := &BatchProcessor[T]{ //nolint:exhaustruct // consumers WaitGroup zero-value is the intended initial state
+	bp := &BatchProcessor[T]{ //nolint:exhaustruct_v5 // consumers WaitGroup zero-value is the intended initial state
 		name: config.Name,
 		buffer: buffer.New[T](buffer.Config{
 			Name:     config.Name,

@@ -25,7 +25,7 @@ type registryDialer struct {
 // newRegistryTransport clones the registry client's defaults and replaces its
 // dialer so DNS resolution and the connection use the same approved address.
 func newRegistryTransport(trustedRegistry string) *http.Transport {
-	dialer := &net.Dialer{ //nolint:exhaustruct // Standard-library dialer defaults are intentional.
+	dialer := &net.Dialer{ //nolint:exhaustruct_v5 // Standard-library dialer defaults are intentional.
 		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 	}

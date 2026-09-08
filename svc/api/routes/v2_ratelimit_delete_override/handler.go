@@ -187,20 +187,20 @@ func (h *Handler) getNamespace(ctx context.Context, workspaceID, nameOrID string
 			})
 		})
 		if dbErr != nil {
-			return db.FindRatelimitNamespace{}, dbErr //nolint:exhaustruct
+			return db.FindRatelimitNamespace{}, dbErr //nolint:exhaustruct_v5
 		}
 		return namespace.ParseNamespaceRow(row), nil
 	}, caches.DefaultFindFirstOp)
 
 	if err != nil {
 		if db.IsNotFound(err) {
-			return db.FindRatelimitNamespace{}, false, nil //nolint:exhaustruct
+			return db.FindRatelimitNamespace{}, false, nil //nolint:exhaustruct_v5
 		}
-		return db.FindRatelimitNamespace{}, false, err //nolint:exhaustruct
+		return db.FindRatelimitNamespace{}, false, err //nolint:exhaustruct_v5
 	}
 
 	if hit == cache.Null {
-		return db.FindRatelimitNamespace{}, false, nil //nolint:exhaustruct
+		return db.FindRatelimitNamespace{}, false, nil //nolint:exhaustruct_v5
 	}
 
 	return ns, true, nil

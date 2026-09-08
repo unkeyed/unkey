@@ -18,7 +18,7 @@ func TestFirewallExecutor_Deny(t *testing.T) {
 	e := &Executor{}
 	req := httptest.NewRequest("GET", "/xxx", nil)
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	cfg := &frontlinev1.Firewall{Action: frontlinev1.Action_ACTION_DENY}
 
 	action, err := e.Execute(context.Background(), nil, req, cfg)
@@ -37,7 +37,7 @@ func TestFirewallExecutor_Unspecified(t *testing.T) {
 	e := &Executor{}
 	req := httptest.NewRequest("GET", "/xxx", nil)
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	cfg := &frontlinev1.Firewall{Action: frontlinev1.Action_ACTION_UNSPECIFIED}
 
 	action, err := e.Execute(context.Background(), nil, req, cfg)
@@ -59,7 +59,7 @@ func TestFirewallExecutor_DoesNotTouchRequest(t *testing.T) {
 	e := &Executor{}
 	req := httptest.NewRequest("GET", "/xxx", nil)
 	req.Header.Set("X-Original", "yes")
-	_, _ = e.Execute(context.Background(), nil, req, &frontlinev1.Firewall{ //nolint:exhaustruct
+	_, _ = e.Execute(context.Background(), nil, req, &frontlinev1.Firewall{ //nolint:exhaustruct_v5
 		Action: frontlinev1.Action_ACTION_DENY,
 	})
 	require.Equal(t, "yes", req.Header.Get("X-Original"))
