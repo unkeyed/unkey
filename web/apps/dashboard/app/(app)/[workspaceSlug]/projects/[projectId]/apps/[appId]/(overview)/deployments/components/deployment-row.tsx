@@ -2,6 +2,7 @@
 
 import {
   LastExitBadge,
+  LastPodFailureBadge,
   shouldShowLastExit,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
 import { DeploymentStatusDot } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
@@ -58,7 +59,7 @@ export function DeploymentRow({
   const showLastExit = shouldShowLastExit(deployment);
 
   return (
-    <ResourceListItem className="flex items-center gap-3 overflow-hidden px-4 py-2.5 transition-colors hover:bg-grayA-2">
+    <ResourceListItem className="flex flex-wrap items-center gap-3 overflow-hidden px-4 py-2.5 transition-colors hover:bg-grayA-2">
       {needsApproval ? (
         <button
           type="button"
@@ -89,11 +90,6 @@ export function DeploymentRow({
           {deployment.gitCommitMessage ??
             (deployment.image ? imageRefDisplay(deployment.image) : shortenId(deployment.id))}
         </span>
-        {showLastExit && deployment.lastExit && (
-          <span className="relative z-20 shrink-0">
-            <LastExitBadge lastExit={deployment.lastExit} />
-          </span>
-        )}
       </span>
 
       <span className="flex min-w-0 shrink-0 items-center gap-2 md:w-44">
@@ -138,6 +134,20 @@ export function DeploymentRow({
           isRolledBack={isRolledBack}
         />
       </span>
+      {(showLastExit || deployment.lastPodFailure) && (
+        <div className="flex w-full flex-wrap items-center gap-2">
+          {showLastExit && deployment.lastExit && (
+            <span className="relative z-20">
+              <LastExitBadge lastExit={deployment.lastExit} />
+            </span>
+          )}
+          {deployment.lastPodFailure && (
+            <span className="relative z-20">
+              <LastPodFailureBadge failure={deployment.lastPodFailure} />
+            </span>
+          )}
+        </div>
+      )}
     </ResourceListItem>
   );
 }

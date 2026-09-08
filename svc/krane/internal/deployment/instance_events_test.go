@@ -225,6 +225,22 @@ func TestScanInstanceEvents(t *testing.T) {
 		require.Equal(t, "Error", got[0].GetTerminated().GetReason())
 		require.Equal(t, "Evicted", got[1].GetWaiting().GetReason())
 		require.Contains(t, got[1].GetWaiting().GetMessage(), "128Mi")
+		require.NotContains(t, got[0].GetAttributes(), "pod_phase")
+		require.Equal(t, "Failed", got[1].GetAttributes()["pod_phase"])
+	})
+
+	t.Run("terminal pod without container status retains failure history", func(t *testing.T) {
+		pod := makePod("uid-failed", nil)
+		pod.Status.Phase = corev1.PodFailed
+		pod.Status.Message = "Pod admission failed"
+		got := scanInstanceEvents(pod)
+		require.Len(t, got, 1)
+		require.Equal(t, "PodFailed", got[0].GetWaiting().GetReason())
+		require.Equal(t, pod.Status.Message, got[0].GetWaiting().GetMessage())
+		require.Equal(t, "Failed", got[0].GetAttributes()["pod_phase"])
+		podFailureKey := dedupKey(got[0])
+		delete(got[0].Attributes, "pod_phase")
+		require.NotEqual(t, podFailureKey, dedupKey(got[0]))
 	})
 
 	t.Run("unschedulable pod includes the scheduler message", func(t *testing.T) {

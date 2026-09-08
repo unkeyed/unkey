@@ -189,6 +189,25 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 			row.Reason = w.GetReason()
 			row.Message = w.GetMessage()
 
+			if event.GetAttributes()["pod_phase"] == "Failed" || w.GetReason() == "Evicted" {
+				observedAt := observedAtUnixNano / int64(time.Millisecond)
+				err := s.db.RecordDeploymentPodFailure(ctx, db.RecordDeploymentPodFailureParams{
+					DeploymentID: event.GetDeploymentId(),
+					WorkspaceID:  event.GetWorkspaceId(),
+					PodUid:       event.GetPodUid(),
+					PodName:      event.GetPodName(),
+					RegionID:     cluster.RegionID,
+					Reason:       w.GetReason(),
+					Message:      w.GetMessage(),
+					ObservedAt:   observedAt,
+					ObservedAt_2: observedAt,
+				})
+				if err != nil && firstDenormErr == nil {
+					firstDenormErr = err
+				}
+				break
+			}
+
 			err := s.db.RecordInstanceWaiting(ctx, db.RecordInstanceWaitingParams{
 				K8sName:            event.GetPodName(),
 				RegionID:           cluster.RegionID,

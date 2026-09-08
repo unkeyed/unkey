@@ -115,6 +115,8 @@ func (c *Controller) drainPodWatch(ctx context.Context, w watch.Interface) {
 // handlePodEvent processes a single pod watch event: finds the owning
 // ReplicaSet, builds deployment status, and reports it if changed.
 func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventType watch.EventType, observedAtUnixNano int64) {
+	defer c.reportInstanceEvents(ctx, pod, observedAtUnixNano)
+
 	eventTypeLabel := strings.ToLower(string(eventType))
 	c.lagRecorder.Observe(ctx, pod, eventType)
 	logger.Info("pod watch: event received",
@@ -160,8 +162,6 @@ func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventT
 		logger.Error("pod watch: unable to report status", "error", err.Error(), "replicaSet", rsName)
 		return
 	}
-
-	c.reportInstanceEvents(ctx, pod, observedAtUnixNano)
 
 	if reported {
 		metrics.PodWatchEventsTotal.WithLabelValues("deployment", eventTypeLabel, "reported").Inc()

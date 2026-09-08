@@ -31,6 +31,7 @@ export const deploymentSelectFields = {
   shutdownSignal: deployments.shutdownSignal,
   createdAt: deployments.createdAt,
   updatedAt: deployments.updatedAt,
+  lastPodFailure: deployments.lastPodFailure,
 } as const;
 
 export const deploymentListSelect = {

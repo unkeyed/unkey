@@ -11,6 +11,7 @@ import {
   formatStorageParts,
 } from "@/lib/utils/deployment-formatters";
 import { eq, useLiveQuery } from "@tanstack/react-db";
+import type { LastPodFailure } from "@unkey/db/src/schema";
 import { CodeBranch, CodeCommit } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, InfoTooltip, TimestampInfo } from "@unkey/ui";
@@ -121,6 +122,9 @@ export function ActiveDeploymentCard({
             )}
             {showLastExit && deployment.lastExit && (
               <LastExitBadge lastExit={deployment.lastExit} />
+            )}
+            {deployment.lastPodFailure && (
+              <LastPodFailureBadge failure={deployment.lastPodFailure} />
             )}
             {statusBadge}
           </div>
@@ -276,6 +280,52 @@ export function ActiveDeploymentCard({
 export function shouldShowLastExit({ lastExit, status }: Pick<Deployment, "lastExit" | "status">) {
   return Boolean(
     lastExit && (lastExit.statusReason !== null || (status !== "ready" && status !== "superseded")),
+  );
+}
+
+export function LastPodFailureBadge({ failure }: { failure: LastPodFailure }) {
+  return (
+    <InfoTooltip
+      content={
+        <div className="flex w-full flex-col">
+          <div className="flex flex-col gap-2.5 p-3">
+            <div>
+              <div className="text-[13px] leading-5 font-medium text-gray-12">
+                Historical instance failure
+              </div>
+              <div className="mt-0.5 text-xs leading-5 font-normal text-gray-10">
+                This is the last observed failure, not the deployment's current health.
+              </div>
+            </div>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs leading-5">
+              <dt className="text-gray-9">Instance</dt>
+              <dd className="font-mono text-gray-11 break-all">{failure.podName}</dd>
+              <dt className="text-gray-9">Observed</dt>
+              <dd className="text-gray-11">
+                <time dateTime={new Date(failure.observedAt).toISOString()}>
+                  {new Date(failure.observedAt).toLocaleString()}
+                </time>
+              </dd>
+            </dl>
+          </div>
+          <div className="border-t border-grayA-4 bg-grayA-2 px-3 py-2.5">
+            <div className="text-[10px] leading-4 font-medium uppercase tracking-wide text-gray-9">
+              Technical details
+            </div>
+            <pre className="mt-1 max-h-28 overflow-y-auto whitespace-pre-wrap break-all font-mono text-[11px] leading-4 font-normal text-gray-11 scrollbar-thin">
+              {failure.message}
+            </pre>
+          </div>
+        </div>
+      }
+      variant="primary"
+      className="w-[360px] max-w-[calc(100vw-24px)] overflow-hidden p-0 text-left font-normal"
+      position={{ side: "top", align: "end" }}
+    >
+      <Badge variant="secondary" className="text-xs whitespace-nowrap">
+        Last instance failure · {failure.reason}
+      </Badge>
+    </InfoTooltip>
   );
 }
 

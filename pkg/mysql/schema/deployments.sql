@@ -28,6 +28,7 @@ CREATE TABLE `deployments` (
 	`shutdown_signal` enum('SIGTERM','SIGINT','SIGQUIT','SIGKILL') NOT NULL DEFAULT 'SIGTERM',
 	`upstream_protocol` enum('http1','h2c') NOT NULL DEFAULT 'http1',
 	`healthcheck` json,
+	`last_pod_failure` json,
 	`pr_number` bigint,
 	`fork_repository_full_name` varchar(256),
 	`github_deployment_id` bigint,

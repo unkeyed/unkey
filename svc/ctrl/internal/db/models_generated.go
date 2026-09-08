@@ -893,6 +893,7 @@ type Deployment struct {
 	ShutdownSignal                DeploymentsShutdownSignal         `db:"shutdown_signal"`
 	UpstreamProtocol              DeploymentsUpstreamProtocol       `db:"upstream_protocol"`
 	Healthcheck                   mysqltype.NullHealthcheck         `db:"healthcheck"`
+	LastPodFailure                []byte                            `db:"last_pod_failure"`
 	PrNumber                      sql.NullInt64                     `db:"pr_number"`
 	ForkRepositoryFullName        sql.NullString                    `db:"fork_repository_full_name"`
 	GithubDeploymentID            sql.NullInt64                     `db:"github_deployment_id"`

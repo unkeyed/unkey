@@ -131,10 +131,12 @@ func scanInstanceEvents(pod *corev1.Pod) []*ctrlv1.InstanceEvent {
 		if reason == "" {
 			reason = "PodFailed"
 		}
-		out = append(out, buildWaitingEvent(pod, tenant, primaryContainerStatus(pod, statuses), &corev1.ContainerStateWaiting{
+		event := buildWaitingEvent(pod, tenant, primaryContainerStatus(pod, statuses), &corev1.ContainerStateWaiting{
 			Reason:  reason,
 			Message: pod.Status.Message,
-		}))
+		})
+		event.Attributes["pod_phase"] = string(corev1.PodFailed)
+		out = append(out, event)
 	}
 	for _, condition := range pod.Status.Conditions {
 		if condition.Type == corev1.PodScheduled && condition.Status == corev1.ConditionFalse && condition.Reason == corev1.PodReasonUnschedulable {
@@ -380,5 +382,6 @@ func dedupKey(ev *ctrlv1.InstanceEvent) string {
 		strconv.FormatInt(int64(ev.GetRestartCount()), 10),
 		eventKindOf(ev),
 		reasonOf(ev),
+		ev.GetAttributes()["pod_phase"],
 	}, "|")
 }
