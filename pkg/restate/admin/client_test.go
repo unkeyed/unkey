@@ -95,3 +95,36 @@ func TestFindLiveInvocations_ServerError(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "status 500")
 }
+
+func TestUpsertLimitRule(t *testing.T) {
+	workspaceID := uid.New("ws")
+	var gotMethod, gotPath, gotBody string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		gotBody = string(body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+
+	client := New(Config{BaseURL: server.URL, APIKey: ""})
+	require.NoError(t, client.UpsertLimitRule(context.Background(), workspaceID+"/deploy", 3))
+
+	require.Equal(t, http.MethodPut, gotMethod)
+	require.Equal(t, "/limits/rules", gotPath)
+	require.JSONEq(t, `[{"pattern":"`+workspaceID+`/deploy","limits":{"concurrency":3}}]`, gotBody)
+}
+
+func TestUpsertLimitRule_ServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "KEBAP", http.StatusBadRequest)
+	}))
+	t.Cleanup(server.Close)
+
+	client := New(Config{BaseURL: server.URL, APIKey: ""})
+	err := client.UpsertLimitRule(context.Background(), "*/deploy", 1)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "KEBAP")
+}

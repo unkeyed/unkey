@@ -282,6 +282,12 @@ type Querier interface {
 	//  FROM app_source_oci
 	//  WHERE app_id = ?
 	FindAppSourceOciByAppId(ctx context.Context, appID string) (AppSourceOci, error)
+	//FindBuildsConcurrentMaxByWorkspaceID
+	//
+	//  SELECT builds_concurrent_max
+	//  FROM `limits`
+	//  WHERE workspace_id = ?
+	FindBuildsConcurrentMaxByWorkspaceID(ctx context.Context, workspaceID string) (uint16, error)
 	//FindCertificateByHostname
 	//
 	//  SELECT certificates.pk, certificates.id, certificates.workspace_id, certificates.hostname, certificates.certificate, certificates.encrypted_private_key, certificates.created_at, certificates.updated_at FROM certificates WHERE hostname = ?

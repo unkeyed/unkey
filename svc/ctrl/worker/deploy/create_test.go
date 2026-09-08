@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
@@ -1235,6 +1236,11 @@ type createHarness struct {
 
 func newCreateHarness(t *testing.T, ctx context.Context) *createHarness {
 	t.Helper()
+	return newCreateHarnessWithAdmin(t, ctx, nil)
+}
+
+func newCreateHarnessWithAdmin(t *testing.T, ctx context.Context, admin *restateadmin.Client) *createHarness {
+	t.Helper()
 
 	database, fixture := newDeployFixture(t, ctx)
 
@@ -1260,7 +1266,7 @@ func newCreateHarness(t *testing.T, ctx context.Context) *createHarness {
 		BuildSteps:                      batch.NewNoop[schema.BuildStepV1](),
 		BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
 		AllowUnauthenticatedDeployments: false,
-		RestateAdmin:                    nil,
+		RestateAdmin:                    admin,
 	})
 	require.NoError(t, err)
 
