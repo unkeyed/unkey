@@ -33,3 +33,4 @@ overrides:
   "@types/react-dom": "19.2.3"
   "blume>react": "19.2.3"
   "blume>react-dom": "19.2.3"
+  "qs": "6.16.0"
