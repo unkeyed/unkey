@@ -90,7 +90,7 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 
 	if err := v.setDesiredState(ctx, deploymentID, req.GetState()); err != nil {
 		// Deleted while pending: nothing left to apply
-		if restate.ErrorCode(err) != 404 {
+		if te := restate.AsTerminalError(err); te == nil || te.Code() != 404 {
 			return nil, err
 		}
 	}
@@ -128,7 +128,7 @@ func (v *VirtualObject) setDesiredState(ctx restate.ObjectContext, deploymentID 
 			deployment, err := db.NewQueries(tx).FindDeploymentWithApp(txCtx, deploymentID)
 			if err != nil {
 				if db.IsNotFound(err) {
-					return restate.TerminalError(fmt.Errorf("deployment not found"), 404)
+					return restate.ToTerminalError(fmt.Errorf("deployment not found"), restate.WithErrorCode(404))
 				}
 				return err
 			}

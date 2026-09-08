@@ -88,7 +88,10 @@ services:
     networks:
       - default
     container_name: restate
-    image: docker.io/restatedev/restate:1.6.0@sha256:33f227db946864b5482340a8621e32ec5eaf464f4dc41d5deccfd3282bb930ae
+    image: docker.io/restatedev/restate:1.7.9@sha256:329e32e12059610b681e165161bcd0722d193325b6c893bc46bfec72cd54b595
+    environment:
+      RESTATE_EXPERIMENTAL_ENABLE_VQUEUES: "true"
+      RESTATE_EXPERIMENTAL_ENABLE_PROTOCOL_V7: "true"
     ports:
       - "8081:8080"
       - "9070:9070"
