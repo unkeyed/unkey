@@ -8,7 +8,7 @@ plugins:
       - paths=import
       - module=github.com/unkeyed/unkey/gen/proto
 
-  - remote: buf.build/connectrpc/go:v1.20.0
+  - local: ["go", "tool", "protoc-gen-connect-go"]
     out: ../../../gen/proto
     opt:
       - paths=import
