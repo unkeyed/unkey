@@ -99,21 +99,11 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 
 ## Code comments
 
-- Avoid code comments that explain what the code does. Explain why it matters instead.
+- Avoid code comments by default.
 - Only add a comment when the code itself cannot clearly communicate why something is necessary.
+- Never comment what the code does.
 - Comments should be rare and reserved for essential context that a future reader would otherwise be unable to infer, such as non-obvious constraints, intentional trade-offs, or decisions that cannot be expressed through the code itself.
 - Do not add comments solely to explain changes to the current reviewer, unless explicitly asked.
-
-## Test explanations
-
-- Give every test a short comment that explains the behavior it guarantees and
-  why that behavior matters. A descriptive test name does not replace this comment.
-- When useful, include a concrete input and expected result from the test.
-  For example: "The number parser rejects 'abc' with an error instead of treating
-  it as zero."
-- Explain the guarantee, not the setup or assertion mechanics. For table-driven
-  tests, describe the shared guarantee and use case names for individual variations.
-- Describe the behavior under test, not change history or mutation-testing scores.
 
 ## Go conventions
 

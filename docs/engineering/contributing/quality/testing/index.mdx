@@ -13,18 +13,18 @@ Treat test code as production code. Tests are part of the system contract, not a
 
 Every test must make its guarantee clear to the reader. The guarantee is the production behavior that would break if the test failed. A future reader must be able to understand what risk the test covers without reverse engineering setup, mocks, or fixtures.
 
-Give every test a short docstring or comment that explains its guarantee and why it matters. A descriptive test name does not replace this explanation. Prefer a concrete example from the test: given this input or sequence, expect this result. For table-driven tests, explain the shared guarantee once and use case names to describe individual variations.
+Document non-obvious guarantees with docstrings or comments. Use them when a test protects a security property, regression, invariant, concurrency condition, failure mode, or business rule that the test name cannot fully explain.
 
 ```go
-// TestAuthorizationErrorRetainsLatestDenialAfterSuccess guarantees that a successful
-// check does not erase the last denial needed by request middleware. For example,
-// denied update, denied delete, then allowed read leaves the delete error stored.
-func TestAuthorizationErrorRetainsLatestDenialAfterSuccess(t *testing.T) {
+// TestTokenParserRejectsAlgorithmConfusion guarantees that tokens signed with
+// one algorithm cannot be accepted under another algorithm. This protects the
+// verifier from accepting attacker-controlled headers as trusted policy.
+func TestTokenParserRejectsAlgorithmConfusion(t *testing.T) {
     // ...
 }
 ```
 
-Describe the behavior under test, not change history or mutation-testing scores. Do not document obvious mechanics. A comment that says "creates a workspace" above `createWorkspace(t)` adds noise. A comment that explains why cross-workspace access must return 404 instead of 403 documents a guarantee.
+Do not document obvious mechanics. A comment that says "creates a workspace" above `createWorkspace(t)` adds noise. A comment that explains why cross-workspace access must return 404 instead of 403 documents a guarantee.
 
 ## What to test
 
