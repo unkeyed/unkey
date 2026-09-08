@@ -207,9 +207,9 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 		return e == nil && got.DesiredState == mysqltype.DeploymentsDesiredStateStopped
 	}, 15*time.Second, 200*time.Millisecond, "re-enforcement should stop the leaked app2")
 
-	// 4) Resume with the budget raised above spend. The merged record restores
-	//    BOTH apps; a replace bug would have dropped app1.
-	r, err = client.CheckWorkspaceSpend().Request(ctx, &hydrav1.CheckWorkspaceSpendRequest{
+	// 4) Raise the budget above spend. The first under-budget tick only records
+	//    the resume streak, leaving the workspace and both deployments stopped.
+	raisedBudget := &hydrav1.CheckWorkspaceSpendRequest{
 		Period:             period,
 		BudgetCents:        1_000_000,
 		Stop:               true,
@@ -218,9 +218,33 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 		WorkspaceSlug:      "test",
 		SpendMicroCents:    200 * deploybilling.MicroCentsPerCent,
 		CurrentlySuspended: true,
-	})
+	}
+	r, err = client.CheckWorkspaceSpend().Request(ctx, raisedBudget)
 	require.NoError(t, err)
-	require.False(t, r.GetSuspended(), "budget raised above spend should resume")
+	require.True(t, r.GetSuspended(), "one under-budget tick must not resume")
+
+	billing, err := h.DB.FindWorkspaceBillingByWorkspaceID(ctx, dep1.WorkspaceID)
+	require.NoError(t, err)
+	require.True(t, billing.SpendSuspended, "one under-budget tick must leave spend_suspended set")
+
+	app1, err := h.DB.FindAppById(ctx, dep1.AppID)
+	require.NoError(t, err)
+	require.False(t, app1.CurrentDeploymentID.Valid, "app1 must remain stopped until the second tick")
+	app2, err := h.DB.FindAppById(ctx, dep2.AppID)
+	require.NoError(t, err)
+	require.False(t, app2.CurrentDeploymentID.Valid, "app2 must remain stopped until the second tick")
+	gotDep1, err := h.DB.FindDeploymentById(ctx, dep1.ID)
+	require.NoError(t, err)
+	require.Equal(t, mysqltype.DeploymentsDesiredStateStopped, gotDep1.DesiredState)
+	gotDep2, err := h.DB.FindDeploymentById(ctx, dep2.ID)
+	require.NoError(t, err)
+	require.Equal(t, mysqltype.DeploymentsDesiredStateStopped, gotDep2.DesiredState)
+
+	// 5) The second consecutive under-budget tick resumes. The merged record
+	//    restores BOTH apps; a replace bug would have dropped app1.
+	r, err = client.CheckWorkspaceSpend().Request(ctx, raisedBudget)
+	require.NoError(t, err)
+	require.False(t, r.GetSuspended(), "second under-budget tick should resume")
 	require.Eventually(t, func() bool {
 		a1, e1 := h.DB.FindAppById(ctx, dep1.AppID)
 		a2, e2 := h.DB.FindAppById(ctx, dep2.AppID)
