@@ -7,6 +7,7 @@ import {
   ResourceList,
   ResourceListBody,
   ResourceListContent,
+  ResourceListFooter,
   ResourceListHeader,
 } from "@unkey/ui";
 import Link from "next/link";
@@ -20,7 +21,8 @@ export function ActiveBranches() {
   const workspace = useWorkspaceNavigation();
   const { projectId, environments } = useProjectData();
   const appId = useAppId();
-  const { branches, isLoading, isError, refetch } = useActiveBranches();
+  const { branches, isLoading, isError, refetch, hasNextPage, isFetchingNextPage, fetchNextPage } =
+    useActiveBranches();
   const {
     app,
     currentDeployment,
@@ -88,6 +90,19 @@ export function ActiveBranches() {
                 />
               ))}
             </ResourceListBody>
+          )}
+          {hasNextPage && (
+            <ResourceListFooter>
+              <Button
+                size="md"
+                variant="outline"
+                disabled={isFetchingNextPage}
+                loading={isFetchingNextPage}
+                onClick={() => fetchNextPage()}
+              >
+                Load more
+              </Button>
+            </ResourceListFooter>
           )}
         </ResourceListContent>
       )}
