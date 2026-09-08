@@ -8,6 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestSecurityScopeConstants(t *testing.T) {
+	require.Equal(t, []string{"bearer.Scopes", "portalSession.Scopes"}, []string{BearerScopes, PortalSessionScopes})
+}
+
 func TestBundledErrorSchemaNames(t *testing.T) {
 	document, err := libopenapi.NewDocument(Spec)
 	require.NoError(t, err)
