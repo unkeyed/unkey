@@ -79,7 +79,7 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		return nil
 	}
 
-	// nolint:exhaustruct
+	// nolint:exhaustruct_v5
 	config := &verifyConfig{}
 	for _, opt := range opts {
 		if err := opt(config); err != nil {

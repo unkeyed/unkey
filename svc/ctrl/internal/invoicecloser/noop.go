@@ -15,7 +15,7 @@ func (n *noopCloser) ListDraftInvoices(_ context.Context, _ string) ([]DraftInvo
 }
 
 func (n *noopCloser) GetInvoice(_ context.Context, _ string) (DraftInvoice, error) {
-	return DraftInvoice{}, ErrNotFound //nolint:exhaustruct // nothing exists when Stripe is not configured
+	return DraftInvoice{}, ErrNotFound //nolint:exhaustruct_v5 // nothing exists when Stripe is not configured
 }
 
 func (n *noopCloser) ClaimInvoice(_ context.Context, _ string, _ int64) error {

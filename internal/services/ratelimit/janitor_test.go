@@ -26,12 +26,12 @@ func TestJanitor_EvictsExpiredCounters(t *testing.T) {
 	// Counter for a window that ended 10 minutes ago (far past 3× duration).
 	oldSeq := calculateSequence(clk.Now().Add(-10*time.Minute), duration)
 	oldKey := counterKey{workspaceID: "ws", namespace: "ns", identifier: "expired", durationMs: durationMs, sequence: oldSeq}
-	svc.counters.Store(oldKey, &counterEntry{}) //nolint:exhaustruct
+	svc.counters.Store(oldKey, &counterEntry{}) //nolint:exhaustruct_v5
 
 	// Counter for the current window — should survive.
 	freshSeq := calculateSequence(clk.Now(), duration)
 	freshKey := counterKey{workspaceID: "ws", namespace: "ns", identifier: "fresh", durationMs: durationMs, sequence: freshSeq}
-	svc.counters.Store(freshKey, &counterEntry{}) //nolint:exhaustruct
+	svc.counters.Store(freshKey, &counterEntry{}) //nolint:exhaustruct_v5
 
 	svc.runJanitorOnce()
 

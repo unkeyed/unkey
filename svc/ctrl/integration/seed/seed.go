@@ -45,7 +45,7 @@ func New(t *testing.T, database db.Database, vault vault.VaultServiceClient) *Se
 		t:            t,
 		DB:           database,
 		Vault:        vault,
-		Resources:    Resources{}, //nolint:exhaustruct
+		Resources:    Resources{}, //nolint:exhaustruct_v5
 		workspaceIDs: nil,
 	}
 	t.Cleanup(s.cleanup)
@@ -105,7 +105,7 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 	err = s.DB.UpsertLimit(ctx, db.UpsertLimitParams{
 		WorkspaceID:                           params.ID,
 		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
-		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct_v5
 		LogsRetentionDaysMax:                  30,
 		LogsAuditRetentionDaysMax:             30,
 		TeamEnabled:                           false,
@@ -801,7 +801,7 @@ func (s *Seeder) CreateWorkspaceWithLimits(ctx context.Context, req CreateWorksp
 		err := s.DB.UpsertLimit(ctx, db.UpsertLimitParams{
 			WorkspaceID:                           ws.ID,
 			ApiBillableOperationsCountMaxPerMonth: uint64(req.RequestsPerMonth),
-			ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+			ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct_v5
 			LogsRetentionDaysMax:                  uint16(req.LogsRetentionDays),
 			LogsAuditRetentionDaysMax:             uint16(req.AuditLogsRetentionDays),
 			TeamEnabled:                           req.Team,

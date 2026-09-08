@@ -23,7 +23,7 @@ type memoryCounter struct {
 // NewMemory creates a new in-memory counter.
 // Entries with a TTL are lazily expired on access.
 func NewMemory() Counter {
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	return &memoryCounter{
 		entries: make(map[string]memoryEntry),
 	}

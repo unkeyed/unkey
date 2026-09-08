@@ -113,7 +113,7 @@ func New(config Config) (*Server, error) {
 	// Wrap handler with h2c if enabled for HTTP/2 cleartext support
 	var handler http.Handler = mux
 	if config.EnableH2C {
-		//nolint:exhaustruct
+		//nolint:exhaustruct_v5
 		h2s := &http2.Server{}
 		handler = h2c.NewHandler(mux, h2s)
 	}

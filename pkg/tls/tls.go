@@ -70,7 +70,7 @@ func New(certPEMBlock, keyPEMBlock []byte) (*tls.Config, error) {
 		return nil, fault.Wrap(err, fault.Internal("failed to parse TLS certificate"), fault.Public("Invalid certificate or key format"))
 	}
 
-	// nolint:exhaustruct
+	// nolint:exhaustruct_v5
 	return &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		MinVersion:   tls.VersionTLS13,

@@ -82,7 +82,7 @@ func Restate(t *testing.T, services ...restate.ServiceDefinition) RestateConfig 
 
 	admin := restateAdminClient{
 		baseURL: cfg.AdminURL,
-		http:    &http.Client{Timeout: 10 * time.Second}, //nolint:exhaustruct // Defaults are sufficient for tests.
+		http:    &http.Client{Timeout: 10 * time.Second}, //nolint:exhaustruct_v5 // Defaults are sufficient for tests.
 	}
 	require.Eventually(t, func() bool {
 		healthCtx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
@@ -102,7 +102,7 @@ func Restate(t *testing.T, services ...restate.ServiceDefinition) RestateConfig 
 	require.NoError(t, err)
 	workerListener, err := net.Listen("tcp", "0.0.0.0:0") //nolint:gosec // Restate in Docker must reach the test worker.
 	require.NoError(t, err)
-	worker = httptest.NewUnstartedServer(h2c.NewHandler(restateHandler, &http2.Server{})) //nolint:exhaustruct // Defaults are sufficient for tests.
+	worker = httptest.NewUnstartedServer(h2c.NewHandler(restateHandler, &http2.Server{})) //nolint:exhaustruct_v5 // Defaults are sufficient for tests.
 	require.NoError(t, worker.Listener.Close())
 	worker.Listener = workerListener
 	worker.Start()

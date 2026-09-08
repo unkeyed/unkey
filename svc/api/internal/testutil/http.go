@@ -782,7 +782,7 @@ func (h *Harness) SetupAnalytics(workspaceID string, opts ...SetupAnalyticsOptio
 	err = db.Query.UpsertLimit(ctx, h.DB.RW(), db.UpsertLimitParams{
 		WorkspaceID:                           workspaceID,
 		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
-		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct_v5
 		LogsRetentionDaysMax:                  uint16(config.RetentionDays),
 		LogsAuditRetentionDaysMax:             uint16(config.RetentionDays),
 		TeamEnabled:                           false,

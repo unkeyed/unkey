@@ -97,7 +97,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Public("Failed to retrieve deployment."),
 		)
 	}
-	var state db.ListDeploymentEnvAndAppStateRow //nolint:exhaustruct // zero value when the join misses
+	var state db.ListDeploymentEnvAndAppStateRow //nolint:exhaustruct_v5 // zero value when the join misses
 	if len(states) > 0 {
 		state = states[0]
 	}

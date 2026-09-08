@@ -453,7 +453,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 			return "", connect.NewError(connect.CodeFailedPrecondition,
 				fmt.Errorf("OCI source for app %q is invalid: %w", c.app.ID, imageErr))
 		}
-		commit = commitFields{ //nolint:exhaustruct
+		commit = commitFields{ //nolint:exhaustruct_v5
 		}
 		deploymentSource = db.DeploymentsSourceOci
 		requestedImage = imageReference
@@ -473,7 +473,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		if ociErr != nil {
 			return "", ociErr
 		}
-		commit = commitFields{ //nolint:exhaustruct
+		commit = commitFields{ //nolint:exhaustruct_v5
 		}
 		deploymentSource = db.DeploymentsSourceOci
 		requestedImage = imageReference

@@ -507,9 +507,9 @@ func Default(value any) FlagOption {
 
 // String creates a new string flag with optional configuration
 func String(name, usage string, opts ...FlagOption) *StringFlag {
-	// nolint: exhaustruct
+	// nolint: exhaustruct_v5
 	flag := &StringFlag{
-		// nolint: exhaustruct
+		// nolint: exhaustruct_v5
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -544,9 +544,9 @@ func String(name, usage string, opts ...FlagOption) *StringFlag {
 
 // Duration creates a new duration flag with optional configuration
 func Duration(name, usage string, opts ...FlagOption) *DurationFlag {
-	// nolint: exhaustruct
+	// nolint: exhaustruct_v5
 	flag := &DurationFlag{
-		// nolint: exhaustruct
+		// nolint: exhaustruct_v5
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -585,9 +585,9 @@ func Duration(name, usage string, opts ...FlagOption) *DurationFlag {
 
 // Bool creates a new boolean flag with optional configuration
 func Bool(name, usage string, opts ...FlagOption) *BoolFlag {
-	// nolint: exhaustruct
+	// nolint: exhaustruct_v5
 	flag := &BoolFlag{
-		// nolint: exhaustruct
+		// nolint: exhaustruct_v5
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -626,9 +626,9 @@ func Bool(name, usage string, opts ...FlagOption) *BoolFlag {
 
 // Int creates a new integer flag with optional configuration
 func Int(name, usage string, opts ...FlagOption) *IntFlag {
-	// nolint: exhaustruct
+	// nolint: exhaustruct_v5
 	flag := &IntFlag{
-		// nolint: exhaustruct
+		// nolint: exhaustruct_v5
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -668,9 +668,9 @@ func Int(name, usage string, opts ...FlagOption) *IntFlag {
 
 // Float creates a new float flag with optional configuration
 func Float(name, usage string, opts ...FlagOption) *FloatFlag {
-	// nolint: exhaustruct
+	// nolint: exhaustruct_v5
 	flag := &FloatFlag{
-		// nolint: exhaustruct
+		// nolint: exhaustruct_v5
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -710,9 +710,9 @@ func Float(name, usage string, opts ...FlagOption) *FloatFlag {
 
 // StringSlice creates a new string slice flag with optional configuration
 func StringSlice(name, usage string, opts ...FlagOption) *StringSliceFlag {
-	// nolint: exhaustruct
+	// nolint: exhaustruct_v5
 	flag := &StringSliceFlag{
-		// nolint: exhaustruct
+		// nolint: exhaustruct_v5
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -749,9 +749,9 @@ func StringSlice(name, usage string, opts ...FlagOption) *StringSliceFlag {
 // values are shown in help text and validation errors, so they are declared in
 // a single place.
 func Enum(name, usage string, allowed []string, opts ...FlagOption) *EnumFlag {
-	// nolint: exhaustruct
+	// nolint: exhaustruct_v5
 	flag := &EnumFlag{
-		// nolint: exhaustruct
+		// nolint: exhaustruct_v5
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,
@@ -789,9 +789,9 @@ func Enum(name, usage string, allowed []string, opts ...FlagOption) *EnumFlag {
 
 // Int64 creates a new int64 flag with optional configuration
 func Int64(name, usage string, opts ...FlagOption) *Int64Flag {
-	// nolint: exhaustruct
+	// nolint: exhaustruct_v5
 	flag := &Int64Flag{
-		// nolint: exhaustruct
+		// nolint: exhaustruct_v5
 		baseFlag: baseFlag{
 			name:     name,
 			usage:    usage,

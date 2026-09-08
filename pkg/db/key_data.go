@@ -51,7 +51,7 @@ func ToKeyData[T KeyRow](row T) *KeyData {
 }
 
 func buildKeyDataFromID(r *FindLiveKeyByIDRow) *KeyData {
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	kd := &KeyData{
 		Key: Key{
 			ID:                r.KeyID,
@@ -93,7 +93,7 @@ func buildKeyDataFromID(r *FindLiveKeyByIDRow) *KeyData {
 }
 
 func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	kd := &KeyData{
 		Key: Key{
 			Pk:                 r.Pk,
@@ -135,7 +135,7 @@ func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
 	}
 
 	if r.IdentityID.Valid {
-		//nolint:exhaustruct
+		//nolint:exhaustruct_v5
 		kd.Identity = &Identity{
 			Pk:          r.Pk,
 			ID:          r.IdentityID.String,
@@ -162,7 +162,7 @@ func buildKeyDataFromKeySpace(r *ListLiveKeysByKeySpaceIDRow) *KeyData {
 }
 
 func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	kd := &KeyData{
 		Key: Key{
 			ID:                r.KeyID,
@@ -206,7 +206,7 @@ func populateFindLiveKeyRelationships(kd *KeyData, workspaceID string, identityI
 	identityMeta []byte, roles, permissions, rolePermissions, ratelimits interface{},
 ) {
 	if identityID.Valid {
-		//nolint:exhaustruct
+		//nolint:exhaustruct_v5
 		kd.Identity = &Identity{
 			ID:          identityID.String,
 			ExternalID:  identityExternalID.String,

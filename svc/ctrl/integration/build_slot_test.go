@@ -170,7 +170,7 @@ func TestBuildSlot_ReclaimsSlotOfKilledInvocation(t *testing.T) {
 	require.NoError(t, h.DB.UpsertLimit(ctx, db.UpsertLimitParams{
 		WorkspaceID:                           workspaceID,
 		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
-		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct_v5
 		LogsRetentionDaysMax:                  7,
 		LogsAuditRetentionDaysMax:             7,
 		TeamEnabled:                           false,
@@ -185,7 +185,7 @@ func TestBuildSlot_ReclaimsSlotOfKilledInvocation(t *testing.T) {
 		AutoscalingReplicasMax:                0,
 	}))
 
-	liveness := &lazyLiveness{} //nolint:exhaustruct
+	liveness := &lazyLiveness{} //nolint:exhaustruct_v5
 	slotService := buildslot.New(buildslot.Config{
 		DB:           h.DB,
 		RestateAdmin: liveness,

@@ -41,7 +41,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 	})
 	if err != nil {
 		if mysql.IsNotFound(err) {
-			// nolint:exhaustruct
+			// nolint:exhaustruct_v5
 			return &KeyVerifier{
 				Status:    StatusNotFound,
 				message:   "migration does not exist",
@@ -102,7 +102,7 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 	case keysdb.KeyMigrationsAlgorithmSha256:
 		// If we have a sha256 already migrated key and we didn't find it in the first place
 		// then it doesn't exist, and there is nothing to migrate here.
-		// nolint:exhaustruct
+		// nolint:exhaustruct_v5
 		return &KeyVerifier{
 			Status:    StatusNotFound,
 			message:   "key does not exist",

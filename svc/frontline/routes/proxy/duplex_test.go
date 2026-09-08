@@ -115,7 +115,7 @@ func startH2CDuplexBackend(t *testing.T) (string, func()) {
 		}
 	})
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	srv := &http.Server{Handler: h2c.NewHandler(handler, &http2.Server{})}
 	go func() { _ = srv.Serve(ln) }()
 

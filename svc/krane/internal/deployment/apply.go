@@ -375,12 +375,12 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 	}
 	if policy.MemoryThreshold != nil {
 		metrics = append(metrics,
-			//nolint:exhaustruct
+			//nolint:exhaustruct_v5
 			autoscalingv2.MetricSpec{
 				Type: autoscalingv2.ResourceMetricSourceType,
 				Resource: &autoscalingv2.ResourceMetricSource{
 					Name: corev1.ResourceMemory,
-					//nolint:exhaustruct
+					//nolint:exhaustruct_v5
 					Target: autoscalingv2.MetricTarget{
 						Type:               autoscalingv2.UtilizationMetricType,
 						AverageUtilization: policy.MemoryThreshold,
@@ -392,12 +392,12 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 
 	// CPU is always a scaling signal.
 	metrics = append(metrics,
-		//nolint:exhaustruct
+		//nolint:exhaustruct_v5
 		autoscalingv2.MetricSpec{
 			Type: autoscalingv2.ResourceMetricSourceType,
 			Resource: &autoscalingv2.ResourceMetricSource{
 				Name: corev1.ResourceCPU,
-				//nolint:exhaustruct
+				//nolint:exhaustruct_v5
 				Target: autoscalingv2.MetricTarget{
 					Type:               autoscalingv2.UtilizationMetricType,
 					AverageUtilization: cpuThreshold,
@@ -406,7 +406,7 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 		},
 	)
 
-	//nolint:exhaustruct // k8s API types have many optional fields
+	//nolint:exhaustruct_v5 // k8s API types have many optional fields
 	desired := &autoscalingv2.HorizontalPodAutoscaler{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "autoscaling/v2",
@@ -418,7 +418,7 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 			Labels:          deploymentLabels(req),
 			OwnerReferences: []metav1.OwnerReference{replicaSetOwnerRef(rs)},
 		},
-		//nolint:exhaustruct
+		//nolint:exhaustruct_v5
 		Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
 			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
 				APIVersion: "apps/v1",
@@ -427,9 +427,9 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 			},
 			MinReplicas: new(minReplicas),
 			MaxReplicas: maxReplicas,
-			//nolint:exhaustruct
+			//nolint:exhaustruct_v5
 			Behavior: &autoscalingv2.HorizontalPodAutoscalerBehavior{
-				//nolint:exhaustruct
+				//nolint:exhaustruct_v5
 				ScaleDown: &autoscalingv2.HPAScalingRules{
 					StabilizationWindowSeconds: new(scaleDownStabilizationSeconds),
 				},
@@ -485,7 +485,7 @@ func buildPodDisruptionBudget(req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet
 	maxUnavailable := intstr.FromInt32(1)
 	alwaysAllow := policyv1.AlwaysAllow
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	pdb := &policyv1.PodDisruptionBudget{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "policy/v1",
@@ -497,7 +497,7 @@ func buildPodDisruptionBudget(req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet
 			Labels:          deploymentLabels(req),
 			OwnerReferences: []metav1.OwnerReference{replicaSetOwnerRef(rs)},
 		},
-		//nolint:exhaustruct
+		//nolint:exhaustruct_v5
 		Spec: policyv1.PodDisruptionBudgetSpec{
 			MaxUnavailable:             &maxUnavailable,
 			UnhealthyPodEvictionPolicy: &alwaysAllow,

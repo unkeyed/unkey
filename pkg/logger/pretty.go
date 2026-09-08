@@ -137,7 +137,7 @@ func levelTag(l slog.Level) string {
 // slog.Handler contract.
 func appendAttr(b *strings.Builder, groupPrefix string, a slog.Attr) {
 	a.Value = a.Value.Resolve()
-	if a.Equal(slog.Attr{}) { //nolint:exhaustruct // zero attr is the sentinel per slog docs
+	if a.Equal(slog.Attr{}) { //nolint:exhaustruct_v5 // zero attr is the sentinel per slog docs
 		return
 	}
 	if a.Value.Kind() == slog.KindGroup {

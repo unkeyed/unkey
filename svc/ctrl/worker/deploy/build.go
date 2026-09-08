@@ -557,7 +557,7 @@ func (w *Workflow) imageExports(imageName string) []client.ExportEntry {
 	if w.registryConfig.Insecure {
 		attrs["registry.insecure"] = "true"
 	}
-	//nolint: exhaustruct
+	//nolint: exhaustruct_v5
 	return []client.ExportEntry{
 		{
 			Type:  "image",
@@ -569,7 +569,7 @@ func (w *Workflow) imageExports(imageName string) []client.ExportEntry {
 // registryAuthProvider returns a session attachable that authenticates image
 // pushes to the configured container registry.
 func (w *Workflow) registryAuthProvider() session.Attachable {
-	//nolint: exhaustruct
+	//nolint: exhaustruct_v5
 	return authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
 		AuthConfigProvider: authprovider.LoadAuthConfig(&configfile.ConfigFile{
 			AuthConfigs: map[string]types.AuthConfig{
@@ -709,11 +709,11 @@ func (w *Workflow) getOrCreateDepotProject(ctx context.Context, unkeyProjectID s
 	})
 
 	projectClient := corev1connect.NewProjectServiceClient(httpClient, w.buildConfig.Depot.APIUrl, connect.WithInterceptors(authInterceptor))
-	//nolint: exhaustruct // optional fields
+	//nolint: exhaustruct_v5 // optional fields
 	createResp, err := projectClient.CreateProject(ctx, connect.NewRequest(&corev1.CreateProjectRequest{
 		Name:     projectName,
 		RegionId: w.buildConfig.Depot.ProjectRegion,
-		//nolint: exhaustruct // missing fields is deprecated
+		//nolint: exhaustruct_v5 // missing fields is deprecated
 		CachePolicy: &corev1.CachePolicy{
 			KeepGb:   defaultCacheKeepGB,
 			KeepDays: defaultCacheKeepDays,

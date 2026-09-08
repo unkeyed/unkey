@@ -169,7 +169,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 	}, caches.DefaultFindFirstOp)
 	if err != nil {
 		if mysql.IsNotFound(err) {
-			// nolint:exhaustruct
+			// nolint:exhaustruct_v5
 			return &KeyVerifier{
 				Status:    StatusNotFound,
 				message:   "key does not exist",
@@ -188,7 +188,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 	}
 
 	if hit == cache.Null {
-		// nolint:exhaustruct
+		// nolint:exhaustruct_v5
 		return &KeyVerifier{
 			Status:    StatusNotFound,
 			message:   "key does not exist",
@@ -201,7 +201,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 
 	// ForWorkspace set but that doesn't exist
 	if key.ForWorkspaceID.Valid && !key.ForWorkspaceEnabled.Valid {
-		// nolint:exhaustruct
+		// nolint:exhaustruct_v5
 		return &KeyVerifier{
 			Status:    StatusWorkspaceNotFound,
 			message:   "workspace not found",
@@ -214,7 +214,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 
 	// Workspace is disabled or the key is not allowed to be used for workspace operations
 	if !key.WorkspaceEnabled || (key.ForWorkspaceEnabled.Valid && !key.ForWorkspaceEnabled.Bool) {
-		// nolint:exhaustruct
+		// nolint:exhaustruct_v5
 		kv = &KeyVerifier{
 			Status:                StatusWorkspaceDisabled,
 			message:               "workspace is disabled",
