@@ -1,0 +1,31 @@
+---
+title: "create-domain"
+description: "Attach a custom domain to an environment and start verifying it"
+---
+
+Attach a custom domain to an environment and start verifying it. The domain remains pending until its DNS records are verified.
+
+## Usage
+```bash
+unkey api domains create-domain [flags]
+```
+## Flags
+<ParamField body="--project" type="string" required>Project ID or slug.</ParamField>
+<ParamField body="--app" type="string" required>App ID or slug.</ParamField>
+<ParamField body="--environment" type="string" required>Environment ID or slug.</ParamField>
+<ParamField body="--domain" type="string" required>Fully qualified domain name without a scheme, port, or path.</ParamField>
+
+## Global Flags
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+
+## Examples
+```bash
+unkey api domains create-domain --project=payments --app=api --environment=production --domain=api.acme.com
+```
+See [Custom domains](/networking/domains) for DNS and verification details.

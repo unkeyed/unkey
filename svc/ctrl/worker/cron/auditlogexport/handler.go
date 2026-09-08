@@ -15,10 +15,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
-	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // batchLimit caps the number of outbox rows read per batch. Each row
@@ -79,17 +80,17 @@ func New(cfg Config) (*Handler, error) {
 // queue. Each batch is its own restate.Run so a crash mid-drain only
 // replays the last incomplete batch. Within a batch:
 //
-//  1. SELECT outbox rows WHERE deleted_at IS NULL ORDER BY pk LIMIT N FOR UPDATE SKIP LOCKED
+//  1. SELECT outbox rows WHERE deleted_at IS NULL ORDER BY pk LIMIT N (autocommit)
 //  2. Decode the JSON payload into auditlog.Event
 //  3. Map to schema.AuditLogV1 (one CH row per event, Nested targets)
 //  4. Insert into ClickHouse
-//  5. UPDATE deleted_at on the outbox rows (soft delete)
+//  5. UPDATE deleted_at on exactly the selected pks (autocommit soft delete)
 //
 // CH insert before mark means a crash after (4) but before (5) leaves
 // the outbox rows with deleted_at IS NULL; the next run re-inserts the
-// same set in the same order, and CH's block deduplication window
-// collapses the duplicate write into a noop. Marked rows stay in the
-// table for ops to re-queue and as an audit trail of what was exported.
+// pending rows. Consumers must tolerate duplicates: block deduplication
+// has a finite window, and ReplacingMergeTree does not merge across
+// insertion-month partitions. Marked rows remain available for re-queue.
 func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunAuditLogExportRequest,
@@ -130,138 +131,56 @@ func (h *Handler) Handle(
 }
 
 // exportBatch reads one batch of outbox rows, writes them to ClickHouse,
-// then marks them deleted. The whole batch runs inside a single MySQL
-// transaction so SELECT FOR UPDATE SKIP LOCKED and the UPDATE land
-// atomically. Returns 0 when the outbox is empty.
-//
-// Failure modes:
-//   - JSON decode fails on a row: batch fails, the bad row blocks all
-//     progress until investigated. Considered acceptable: malformed
-//     payloads are a writer bug, not transient.
-//   - CH insert fails: tx rolls back, row locks released, rows stay
-//     unmarked, next cron tick retries.
-//   - MySQL commit fails after a successful CH insert: rows stay
-//     unmarked, next cron re-reads the same set in the same order, re-
-//     inserts an identical block, CH's non_replicated_deduplication_window
-//     collapses it to a noop, then commits.
-func (h *Handler) exportBatch(ctx context.Context) (batchResult, error) {
-	return db.TxWithResult(ctx, h.db.RW(), func(txCtx context.Context, tx db.DBTX) (batchResult, error) {
-		q := db.NewQueries(tx)
-		rows, err := q.FindClickhouseOutboxBatch(txCtx, db.FindClickhouseOutboxBatchParams{
-			Versions: knownVersions,
-			Limit:    batchLimit,
-		})
-		if err != nil {
-			return batchResult{EventsExported: 0}, fmt.Errorf("find outbox batch: %w", err)
-		}
-		if len(rows) == 0 {
-			return batchResult{EventsExported: 0}, nil
-		}
-
-		events := make([]auditlog.Event, len(rows))
-		pks := make([]uint64, len(rows))
-		for i, row := range rows {
-			if err := json.Unmarshal(row.Payload, &events[i]); err != nil {
-				return batchResult{EventsExported: 0}, fmt.Errorf("decode outbox payload pk=%d: %w", row.Pk, err)
-			}
-			pks[i] = row.Pk
-		}
-
-		chRows, err := buildCHRows(events)
-		if err != nil {
-			return batchResult{EventsExported: 0}, fmt.Errorf("build clickhouse rows: %w", err)
-		}
-
-		if err := h.clickhouse.InsertAuditLogs(txCtx, chRows); err != nil {
-			return batchResult{EventsExported: 0}, fmt.Errorf("insert clickhouse: %w", err)
-		}
-
-		if err := q.MarkClickhouseOutboxBatchDeleted(txCtx, db.MarkClickhouseOutboxBatchDeletedParams{
-			DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
-			Pks:       pks,
-		}); err != nil {
-			return batchResult{EventsExported: 0}, fmt.Errorf("mark outbox batch deleted: %w", err)
-		}
-
-		return batchResult{EventsExported: int32(len(events))}, nil
+// then marks exactly those rows deleted. No MySQL connection spans the
+// ClickHouse call, so a stalled export cannot gap-lock API outbox inserts.
+// CH failures leave the batch pending. A failed mark can have an unknown
+// outcome after connection loss; any rows still pending will be replayed.
+func (h *Handler) exportBatch(ctx context.Context) (result batchResult, batchErr error) {
+	ctx, span := tracing.Start(ctx, "auditlogexport.exportBatch")
+	defer span.End()
+	defer func() {
+		tracing.RecordError(span, batchErr)
+	}()
+	span.AddEvent("select")
+	rows, err := h.db.FindClickhouseOutboxBatch(ctx, db.FindClickhouseOutboxBatchParams{
+		Versions: knownVersions,
+		Limit:    batchLimit,
 	})
-}
-
-// buildCHRows maps decoded outbox events to ClickHouse rows. Targets
-// are fanned into parallel arrays so a single event lands as a single
-// CH row with Nested target columns; this avoids GROUP BY
-// reconstruction the previous (one-row-per-target) layout required on
-// read.
-//
-// expires_at is NOT set here — the CH table has it as a MATERIALIZED
-// column derived from `time + dictGet('workspace_quota_dict', ...)` so
-// retention is computed inside CH at INSERT, no per-workspace lookup
-// needed in this writer.
-func buildCHRows(events []auditlog.Event) ([]schema.AuditLogV1, error) {
-	nowMillis := time.Now().UnixMilli()
-	out := make([]schema.AuditLogV1, len(events))
-	for i, e := range events {
-		actorMeta, err := marshalMeta(e.Actor.Meta)
-		if err != nil {
-			return nil, fmt.Errorf("encode actor_meta event_id=%s: %w", e.EventID, err)
-		}
-		topMeta, err := marshalMeta(e.Meta)
-		if err != nil {
-			return nil, fmt.Errorf("encode meta event_id=%s: %w", e.EventID, err)
-		}
-
-		targetTypes := make([]string, len(e.Targets))
-		targetIDs := make([]string, len(e.Targets))
-		targetNames := make([]string, len(e.Targets))
-		targetMetas := make([]json.RawMessage, len(e.Targets))
-		for j, t := range e.Targets {
-			targetTypes[j] = t.Type
-			targetIDs[j] = t.ID
-			targetNames[j] = t.Name
-			tm, err := marshalMeta(t.Meta)
-			if err != nil {
-				return nil, fmt.Errorf("encode target_meta event_id=%s target_id=%s: %w", e.EventID, t.ID, err)
-			}
-			targetMetas[j] = tm
-		}
-
-		source := e.Source
-		if source == "" {
-			source = auditlog.EventSourcePlatform
-		}
-
-		out[i] = schema.AuditLogV1{
-			EventID:       e.EventID,
-			Time:          e.Time,
-			InsertedAt:    nowMillis,
-			WorkspaceID:   e.WorkspaceID,
-			Bucket:        e.Bucket,
-			Source:        source,
-			Event:         e.Event,
-			Description:   e.Description,
-			ActorType:     e.Actor.Type,
-			ActorID:       e.Actor.ID,
-			ActorName:     e.Actor.Name,
-			ActorMeta:     actorMeta,
-			RemoteIP:      e.RemoteIP,
-			UserAgent:     e.UserAgent,
-			Meta:          topMeta,
-			TargetTypes:   targetTypes,
-			TargetIDs:     targetIDs,
-			TargetNames:   targetNames,
-			TargetMetas:   targetMetas,
-			CorrelationID: e.CorrelationID,
-		}
+	if err != nil {
+		return batchResult{EventsExported: 0}, fmt.Errorf("find outbox batch: %w", err)
 	}
-	return out, nil
-}
-
-// marshalMeta returns a JSON object for the CH JSON column. Empty/nil
-// maps collapse to {} so the column always holds a parseable JSON value
-// (the CH JSON type rejects raw nulls in some configurations).
-func marshalMeta(m map[string]any) (json.RawMessage, error) {
-	if len(m) == 0 {
-		return json.RawMessage("{}"), nil
+	span.SetAttributes(attribute.Int("rows", len(rows)))
+	if len(rows) == 0 {
+		return batchResult{EventsExported: 0}, nil
 	}
-	return json.Marshal(m)
+
+	span.AddEvent("decode")
+	events := make([]auditlog.Event, len(rows))
+	pks := make([]uint64, len(rows))
+	for i, row := range rows {
+		if err := json.Unmarshal(row.Payload, &events[i]); err != nil {
+			return batchResult{EventsExported: 0}, fmt.Errorf("decode outbox payload pk=%d: %w", row.Pk, err)
+		}
+		pks[i] = row.Pk
+	}
+
+	chRows, err := clickhouse.EncodeAuditLogEvents(events)
+	if err != nil {
+		return batchResult{EventsExported: 0}, fmt.Errorf("encode clickhouse rows: %w", err)
+	}
+
+	span.AddEvent("insert")
+	if err := h.clickhouse.InsertAuditLogs(ctx, chRows); err != nil {
+		return batchResult{EventsExported: 0}, fmt.Errorf("insert clickhouse: %w", err)
+	}
+
+	span.AddEvent("mark")
+	if err := h.db.MarkClickhouseOutboxBatchDeleted(ctx, db.MarkClickhouseOutboxBatchDeletedParams{
+		DeletedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		Pks:       pks,
+	}); err != nil {
+		return batchResult{EventsExported: 0}, fmt.Errorf("mark outbox batch deleted: %w", err)
+	}
+
+	return batchResult{EventsExported: int32(len(events))}, nil
 }

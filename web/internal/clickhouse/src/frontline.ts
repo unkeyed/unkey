@@ -115,7 +115,7 @@ export const requestLogsResponseSchema = z.object({
   response_status: z.number().int(),
   total_latency: z.number().int(),
   instance_latency: z.number().int(),
-  frontline_latency: z.number().int(),
+  gateway_latency: z.number().int(),
   query_string: z.string(),
   query_params: z.record(z.string(), z.array(z.string())),
   request_headers: z.array(z.string()),
@@ -210,7 +210,7 @@ export function getRequestLogs(ch: Querier) {
     const logsQuery = ch.query({
       query: `
         SELECT request_id, time, deployment_id, region, method, path, host,
-               response_status, total_latency, instance_latency, frontline_latency AS frontline_latency,
+               response_status, total_latency, instance_latency, gateway_latency,
                query_string, query_params, request_headers, request_body,
                response_headers, response_body, user_agent, ip_address
         FROM ${TABLE}

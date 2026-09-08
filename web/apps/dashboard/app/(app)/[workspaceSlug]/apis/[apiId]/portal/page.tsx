@@ -1,5 +1,6 @@
 "use client";
 
+import { useApiKeyAuthId } from "@/hooks/use-api-key-auth-id";
 import { useApiName } from "@/hooks/use-api-name";
 import { use } from "react";
 import { PortalLifecyclePage } from "./components/portal-lifecycle-page";
@@ -10,13 +11,24 @@ type Props = {
 
 export default function ApiPortalPage(props: Props) {
   const { apiId } = use(props.params);
-  const { name, isLoading } = useApiName(apiId);
+  const { name, isLoading: nameLoading } = useApiName(apiId);
+  const {
+    keyAuthId,
+    isLoading: keyAuthIdLoading,
+    isError: keyAuthIdError,
+    refetch: refetchKeyAuthId,
+  } = useApiKeyAuthId(apiId);
 
-  // The config page seeds editable branding state from resourceName, so wait
-  // for a real name instead of rendering with a placeholder that sticks.
-  if (isLoading) {
-    return null;
-  }
-
-  return <PortalLifecyclePage resourceId={apiId} resourceName={name ?? "API"} />;
+  return (
+    <PortalLifecyclePage
+      resourceName={name ?? "API"}
+      keyAuthId={keyAuthId}
+      // The configuration view seeds editable state from the API name, so a
+      // still-resolving name keeps the surface in its loading state rather than
+      // rendering with a placeholder that sticks.
+      keyAuthIdLoading={nameLoading || keyAuthIdLoading}
+      keyAuthIdError={keyAuthIdError}
+      onRetryKeyAuthId={refetchKeyAuthId}
+    />
+  );
 }

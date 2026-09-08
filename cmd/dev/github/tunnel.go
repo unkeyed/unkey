@@ -55,7 +55,7 @@ func startTunnel(_ context.Context, cmd *cli.Command) error {
 
 	// Fail fast if ngrok is not installed
 	if _, err := exec.LookPath("ngrok"); err != nil {
-		panic("ngrok is not installed or not in PATH\n\nInstall it from: https://ngrok.com/download")
+		return fmt.Errorf("ngrok is not installed or not in PATH, install it from https://ngrok.com/download: %w", err)
 	}
 
 	appID, err := readAppID(envFile)
@@ -101,7 +101,9 @@ func startTunnel(_ context.Context, cmd *cli.Command) error {
 	fmt.Printf("✔ Tunnel running (press Ctrl+C to stop)\n\n")
 	fmt.Printf("Inspect traffic at: http://localhost:4040\n")
 
-	// Keep running until killed
+	// Keep running until killed. Ctrl+C signals the whole process group, so
+	// ngrok's exit status is almost always "signal: interrupt" and carries no
+	// actionable information; the tunnel ending is the expected outcome.
 	_ = ngrok.Wait()
 	return nil
 }
@@ -144,7 +146,7 @@ func waitForNgrokURL() (string, error) {
 func readAppID(envFile string) (int64, error) {
 	val, err := readEnvFileValue(envFile, "UNKEY_GITHUB_APP_ID")
 	if err != nil {
-		return 0, fmt.Errorf("%w\n\nRun `go run . dev github setup` first", err)
+		return 0, fmt.Errorf("%w\n\nRun `go run ./build/cli dev github setup` first", err)
 	}
 	id, err := strconv.ParseInt(val, 10, 64)
 	if err != nil {

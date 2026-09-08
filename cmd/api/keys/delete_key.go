@@ -3,9 +3,8 @@ package keys
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -33,12 +32,13 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/del
 			"unkey api keys delete-key --key-id=key_1234abcd --permanent",
 		},
 		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 			util.RootKeyFlag(),
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("key-id", "The key ID to delete.", cli.Required()),
-			cli.Bool("permanent", "Whether to permanently erase the key instead of soft-deleting.", cli.Default(false)),
+			cli.String("key-id", "The key ID to delete.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.Bool("permanent", "Whether to permanently erase the key instead of soft-deleting.", cli.Default(false), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
@@ -46,7 +46,15 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/del
 				return err
 			}
 
-			start := time.Now()
+			if cmd.FlagIsSet("body") {
+				body := cmd.String("body")
+				res, err := util.SendBody(ctx, client.Keys.DeleteKey, body)
+				if err != nil {
+					return err
+				}
+				return util.Output(cmd, res.V2KeysDeleteKeyResponseBody)
+			}
+
 			req := components.V2KeysDeleteKeyRequestBody{
 				KeyID:     cmd.String("key-id"),
 				Permanent: ptr.P(cmd.Bool("permanent")),
@@ -56,7 +64,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/del
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))
 			}
-			return util.Output(cmd, res.V2KeysDeleteKeyResponseBody, time.Since(start))
+			return util.Output(cmd, res.V2KeysDeleteKeyResponseBody)
 		},
 	}
 }

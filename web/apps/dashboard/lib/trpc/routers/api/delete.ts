@@ -22,6 +22,13 @@ export const deleteApi = workspaceProcedure
             eq(table.id, input.apiId),
             isNull(table.deletedAtM),
           ),
+        columns: {
+          id: true,
+          name: true,
+          workspaceId: true,
+          keyAuthId: true,
+          deleteProtection: true,
+        },
       })
       .catch((_err) => {
         throw new TRPCError({

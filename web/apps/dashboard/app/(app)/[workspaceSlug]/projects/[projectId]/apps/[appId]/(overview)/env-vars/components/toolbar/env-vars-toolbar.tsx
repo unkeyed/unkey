@@ -2,7 +2,9 @@
 
 import { BarsFilter, ChevronDown, Layers3, Magnifier } from "@unkey/icons";
 import {
-  FormInput,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
   Select,
   SelectContent,
   SelectItem,
@@ -40,13 +42,17 @@ export function EnvVarsToolbar({
   return (
     <div className="flex flex-col md:flex-row items-stretch gap-2">
       <div className="flex-[50%]">
-        <FormInput
-          placeholder="Search..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="[&_input]:h-9 [&_input]:text-[13px] w-full bg-gray-1 [&_input]:bg-gray-1"
-          leftIcon={<Magnifier iconSize="lg-medium" className="text-gray-9" />}
-        />
+        <InputGroup className="h-9 w-full bg-gray-1">
+          <InputGroupAddon className="pointer-events-none">
+            <Magnifier iconSize="lg-medium" className="text-gray-9" />
+          </InputGroupAddon>
+          <InputGroupInput
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="h-9 text-[13px]"
+          />
+        </InputGroup>
       </div>
       <div className="flex-[25%] max-w-[184px]">
         <Select

@@ -41,20 +41,20 @@ Metadata tags for analytics in `key=value` format. Attaches metadata for analyti
 Permission query to check, supports `AND`/`OR` operators and parentheses for grouping. Examples: `"documents.read"`, `"documents.read AND documents.write"`, `"(documents.read OR documents.write) AND users.view"`. Verification fails if the key lacks the required permissions through direct assignment or role inheritance.
 </ParamField>
 
-<ParamField body="--credits-json" type="string">
+<ParamField body="--credits" type="JSON string">
 JSON object for credit consumption configuration. Controls credit deduction for usage-based billing and quota enforcement. Omitting this field uses the default cost of 1 credit per verification.
 
-<Expandable title="credits-json fields">
+<Expandable title="credits fields">
 <ResponseField name="cost" type="integer" required>
 Sets how many credits to deduct for this verification request. Use `0` for read-only operations or free tier access, higher values for premium features. Credits are deducted after all security checks pass. Min: `0`, max: `1000000000`.
 </ResponseField>
 </Expandable>
 </ParamField>
 
-<ParamField body="--ratelimits-json" type="string">
+<ParamField body="--ratelimits" type="JSON string">
 JSON array of rate limit checks to enforce during verification. Omitting this field skips rate limit checks entirely, relying only on configured key rate limits. Multiple rate limits can be checked simultaneously, each with different costs and temporary overrides.
 
-<Expandable title="ratelimits-json array item fields">
+<Expandable title="ratelimits array item fields">
 <ResponseField name="name" type="string" required>
 References an existing rate limit by its name. Key rate limits take precedence over identifier-based limits.
 </ResponseField>
@@ -82,6 +82,7 @@ Migration provider ID for on-demand key migration from your previous system. Rea
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
 | `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
@@ -96,10 +97,10 @@ unkey api keys verify-key --key=sk_1234abcdef --permissions='documents.read AND 
 unkey api keys verify-key --key=sk_1234abcdef --tags=endpoint=/users/profile,method=GET
 ```
 ```bash With credit cost
-unkey api keys verify-key --key=sk_1234abcdef --credits-json='{"cost":5}'
+unkey api keys verify-key --key=sk_1234abcdef --credits='{"cost":5}'
 ```
 ```bash With rate limits
-unkey api keys verify-key --key=sk_1234abcdef --ratelimits-json='[{"name":"requests","limit":100,"duration":60000}]'
+unkey api keys verify-key --key=sk_1234abcdef --ratelimits='[{"name":"requests","limit":100,"duration":60000}]'
 ```
 ```bash JSON output for scripting
 unkey api keys verify-key --key=sk_1234abcdef --output=json
@@ -112,10 +113,10 @@ if [ "$VALID" = "true" ]; then echo "Key is valid"; fi
 
 ## Output
 
-Default output shows the request ID with latency, followed by the verification result:
+Default output shows the request ID, followed by the verification result:
 
 ```text
-req_2c9a0jf23l4k567 (took 32ms)
+req_2c9a0jf23l4k567
 
 {
   "valid": true,

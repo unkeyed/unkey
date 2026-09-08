@@ -1,0 +1,79 @@
+type: object
+required:
+  - slug
+  - displayName
+properties:
+  slug:
+    type: string
+    minLength: 3
+    maxLength: 64
+    pattern: "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+    description: |
+      URL-safe handle for this portal, unique within your workspace. Lowercase
+      alphanumerics and single hyphens, 3-64 characters, not starting or ending
+      with a hyphen.
+    example: acme-portal
+  displayName:
+    type: string
+    minLength: 1
+    maxLength: 64
+    pattern: "^\\S(.*\\S)?$"
+    description: |
+      Human-readable name your end users see in the portal header and page
+      titles. Unlike `slug` it is not part of any URL, so it can be changed
+      freely.
+    example: Acme
+  keyspaceId:
+    "$ref": "../../../../common/PortalKeyspaceId.yaml"
+  appId:
+    "$ref": "../../../../common/PortalAppId.yaml"
+  enabled:
+    type: boolean
+    default: true
+    description: |
+      Whether sessions can be minted for this portal immediately. Defaults to
+      true; send false to create it dormant and enable it later.
+    example: true
+  logoUrl:
+    type: string
+    format: uri
+    pattern: "^https://"
+    minLength: 1
+    maxLength: 500
+    description: |
+      Absolute `https://` URL of the logo shown in the portal header.
+
+      Loaded by your end users' browsers, so the host you name receives their IP
+      and user agent on every page view.
+    example: https://cdn.example.com/logo.svg
+  primaryColor:
+    type: string
+    pattern: "^#[0-9a-fA-F]{6}$"
+    description: |
+      Six-digit hex colour used for primary actions and accents in the portal.
+    example: "#6366f1"
+additionalProperties: false
+# A portal serves exactly one resource. Encoded here so the validation
+# middleware rejects both-or-neither before the handler runs.
+oneOf:
+  - required: [keyspaceId]
+  - required: [appId]
+examples:
+  keyspacePortal:
+    summary: Create a portal for a keyspace
+    description: The common case, a portal serving one keyspace
+    value:
+      slug: acme-portal
+      displayName: Acme
+      keyspaceId: ks_1234abcd
+      enabled: true
+  brandedAppPortal:
+    summary: Create a branded portal for an app
+    description: Point it at an app and set branding in the same call
+    value:
+      slug: acme-portal
+      displayName: Acme
+      appId: app_1234abcd
+      enabled: true
+      logoUrl: https://cdn.example.com/logo.svg
+      primaryColor: "#6366f1"

@@ -1,6 +1,5 @@
 import { getAuth } from "@/lib/auth/get-auth";
 import { auth as authProvider } from "@/lib/auth/server";
-import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { SignJWT } from "jose";
 import type { NextRequest } from "next/server";
@@ -29,21 +28,15 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
 
   let bearerToken: string | null | undefined = auth.accessToken;
   if (!bearerToken) {
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-      columns: {
-        id: true,
-      },
-    });
-    if (!workspace) {
-      return NextResponse.json({ error: "Workspace not found." }, { status: 403 });
+    if (!auth.role) {
+      return NextResponse.json({ error: "Role required." }, { status: 403 });
     }
 
     const user = await authProvider.getUser(userId);
     const actorName = user?.fullName ?? user?.email ?? userId;
     bearerToken = await mintProxyJWT({
       orgId,
-      permissions: proxyPermissions(workspace.id, auth.permissions ?? []),
+      role: auth.role,
       subject: userId,
       name: actorName,
     }).catch((error) => {
@@ -145,16 +138,13 @@ const hopByHopResponseHeaders = new Set([
 // secrets can remain valid during a rotation window.
 async function mintProxyJWT(params: {
   orgId: string;
-  permissions: readonly string[];
+  role: string;
   subject: string;
   name: string;
 }): Promise<string> {
   const { UNKEY_JWT_SECRET: signingSecret } = env();
   if (!signingSecret) {
     throw new Error("UNKEY_JWT_SECRET must be configured for dashboard proxy signing");
-  }
-  if (params.permissions.length === 0) {
-    throw new Error("permissions are required for dashboard proxy signing");
   }
 
   const key = new TextEncoder().encode(signingSecret);
@@ -166,7 +156,7 @@ async function mintProxyJWT(params: {
         id: params.orgId,
       },
       name: params.name,
-      perms: params.permissions,
+      roles: [params.role],
     })
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
       .setIssuer("app.unkey.com")
@@ -180,13 +170,4 @@ async function mintProxyJWT(params: {
       .setExpirationTime(now + 120)
       .sign(key)
   );
-}
-
-function proxyPermissions(workspaceID: string, permissions: readonly string[]): string[] {
-  return permissions.map((permission) => {
-    if (permission === "admin:*") {
-      return `unkey:v1:${workspaceID}:**#*`;
-    }
-    return permission;
-  });
 }

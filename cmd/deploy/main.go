@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/deploy/internal/errors"
 	"github.com/unkeyed/unkey/cmd/deploy/internal/ui"
 	"github.com/unkeyed/unkey/pkg/cli"
@@ -137,9 +137,9 @@ func executeDeploy(ctx context.Context, opts DeployOptions) error {
 	onStatusChange := func(event DeploymentStatusEvent) error {
 		// nolint: exhaustive // We just need those two for now
 		switch event.CurrentStatus {
-		case components.StatusFailed:
+		case components.V2DeployGetDeploymentResponseDataStatusFailed:
 			return handleDeploymentFailure(controlPlane, event.Deployment, terminal)
-		case components.StatusReady:
+		case components.V2DeployGetDeploymentResponseDataStatusReady:
 			// Store deployment but don't print success, wait for polling to complete
 			finalDeployment = event.Deployment
 		}

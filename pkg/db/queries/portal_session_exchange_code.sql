@@ -13,4 +13,5 @@ SET access_token_hash = sqlc.arg(access_token_hash),
     access_token_expires_at = sqlc.arg(access_token_expires_at)
 WHERE exchange_code_hash = sqlc.arg(exchange_code_hash)
   AND access_token_hash IS NULL
+  AND revoked_at IS NULL
   AND exchange_code_expires_at > sqlc.arg(now);

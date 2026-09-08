@@ -9,7 +9,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
-// BufferConfig configures a batch buffer created via NewBuffer.
+// BufferConfig configures a batch buffer created by [NewBuffer] or
+// [NewAuditLogBuffer].
 type BufferConfig struct {
 	// Name identifies this buffer for logging and metrics.
 	Name string
@@ -58,12 +59,7 @@ func NewBuffer[T schema.Row](c *Client, cfg BufferConfig) *batch.BatchProcessor[
 	var zero T
 	table := zero.Table()
 
-	onErr := cfg.OnFlushError
-	if onErr == nil {
-		onErr = func(_ context.Context, tbl string, _ int, err error) {
-			logger.Error("failed to flush batch", "table", tbl, "error", err.Error())
-		}
-	}
+	onErr := flushErrorHandler(cfg)
 
 	return batch.New(batch.Config[T]{
 		Name:          cfg.Name,
@@ -78,4 +74,16 @@ func NewBuffer[T schema.Row](c *Client, cfg BufferConfig) *batch.BatchProcessor[
 			}
 		},
 	})
+}
+
+// flushErrorHandler returns the configured callback or the default structured
+// logger used by all ClickHouse buffers.
+func flushErrorHandler(cfg BufferConfig) func(context.Context, string, int, error) {
+	if cfg.OnFlushError != nil {
+		return cfg.OnFlushError
+	}
+
+	return func(_ context.Context, table string, _ int, err error) {
+		logger.Error("failed to flush batch", "table", table, "error", err.Error())
+	}
 }

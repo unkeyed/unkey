@@ -54,6 +54,31 @@ func TestParseQuery_Integration(t *testing.T) {
 		require.True(t, result.Valid)
 	})
 
+	t.Run("Parse and evaluate portal query", func(t *testing.T) {
+		query, err := ParseQuery("portal.pc_abc.read_portal AND portal.pc_abc.create_portal_session")
+		require.NoError(t, err)
+
+		userPermissions := []string{
+			"portal.pc_abc.read_portal",
+			"portal.pc_abc.create_portal_session",
+		}
+		result, err := rbac.EvaluatePermissions(query, userPermissions)
+		require.NoError(t, err)
+		require.True(t, result.Valid)
+	})
+
+	t.Run("Parse and evaluate failing portal query", func(t *testing.T) {
+		query, err := ParseQuery("portal.pc_abc.create_portal_session")
+		require.NoError(t, err)
+
+		// Portal management does not imply session minting.
+		userPermissions := []string{"portal.pc_abc.read_portal"}
+		result, err := rbac.EvaluatePermissions(query, userPermissions)
+		require.NoError(t, err)
+		require.False(t, result.Valid)
+		require.Contains(t, result.Message, "Missing permission: 'portal.pc_abc.create_portal_session'")
+	})
+
 	t.Run("Parse and evaluate precedence", func(t *testing.T) {
 		query, err := ParseQuery("perm1 OR perm2 AND perm3")
 		require.NoError(t, err)

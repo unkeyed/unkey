@@ -29,6 +29,7 @@ var supportedServices = []string{
 	"vault",
 	"heimdall",
 	"krane",
+	"logdrain",
 	"control-api",
 	"control-worker",
 	"cli",

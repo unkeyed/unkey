@@ -104,6 +104,7 @@ func (s *Seeder) Seed(ctx context.Context) {
 	s.Resources.RootWorkspace = s.CreateWorkspace(ctx)
 	s.Resources.RootApi = s.CreateAPI(ctx, CreateApiRequest{
 		WorkspaceID:   s.Resources.RootWorkspace.ID,
+		ProjectID:     "",
 		IpWhitelist:   "",
 		EncryptedKeys: false,
 		Name:          nil,
@@ -119,6 +120,7 @@ func (s *Seeder) Seed(ctx context.Context) {
 // CreateApiRequest configures the API to create.
 type CreateApiRequest struct {
 	WorkspaceID   string
+	ProjectID     string
 	IpWhitelist   string
 	EncryptedKeys bool
 	Name          *string
@@ -128,10 +130,14 @@ type CreateApiRequest struct {
 }
 
 // CreateAPI creates an API and its associated key space. The key space is created
-// first since the API references it. Returns the created API which includes the
-// KeyAuthID linking to the key space.
+// first since the API references it. An empty ProjectID uses the workspace's
+// default project. The returned API includes the KeyAuthID that links to the key
+// space.
 func (s *Seeder) CreateAPI(ctx context.Context, req CreateApiRequest) db.Api {
-	projectID := s.defaultProjectID(ctx, req.WorkspaceID)
+	projectID := req.ProjectID
+	if projectID == "" {
+		projectID = s.defaultProjectID(ctx, req.WorkspaceID)
+	}
 	keySpaceID := uid.New(uid.KeySpacePrefix)
 	err := db.Query.InsertKeySpace(ctx, s.DB.RW(), db.InsertKeySpaceParams{
 		ID:                 keySpaceID,
@@ -216,6 +222,8 @@ type CreateAppRequest struct {
 	ProjectID        string
 	Name             string
 	Slug             string
+	SourceType       db.AppsSourceType
+	ImageReference   string
 	DefaultBranch    string
 	DeleteProtection bool
 }
@@ -223,6 +231,10 @@ type CreateAppRequest struct {
 // CreateApp creates an app within a project.
 func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 	now := time.Now().UnixMilli()
+	sourceType := req.SourceType
+	if sourceType == "" {
+		sourceType = db.AppsSourceTypeUnknown
+	}
 
 	err := db.Query.InsertApp(ctx, s.DB.RW(), db.InsertAppParams{
 		ID:               req.ID,
@@ -230,12 +242,23 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 		ProjectID:        req.ProjectID,
 		Name:             req.Name,
 		Slug:             req.Slug,
+		SourceType:       sourceType,
 		DefaultBranch:    req.DefaultBranch,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Valid: false},
 	})
 	require.NoError(s.t, err)
+	if sourceType == db.AppsSourceTypeOci && req.ImageReference != "" {
+		err = db.Query.InsertAppSourceOci(ctx, s.DB.RW(), db.InsertAppSourceOciParams{
+			WorkspaceID:    req.WorkspaceID,
+			AppID:          req.ID,
+			ImageReference: req.ImageReference,
+			CreatedAt:      now,
+			UpdatedAt:      sql.NullInt64{},
+		})
+		require.NoError(s.t, err)
+	}
 
 	app, err := db.Query.FindAppById(ctx, s.DB.RO(), req.ID)
 	require.NoError(s.t, err)
@@ -332,19 +355,21 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 }
 
 type CreateCustomDomainRequest struct {
-	ID                 string
-	WorkspaceID        string
-	ProjectID          string
-	AppID              string
-	EnvironmentID      string
-	Domain             string
-	VerificationStatus db.CustomDomainsVerificationStatus
-	VerificationToken  string
-	TargetCname        string
-	OwnershipVerified  bool
-	CnameVerified      bool
-	VerificationError  string
-	LastCheckedAt      int64
+	ID                    string
+	WorkspaceID           string
+	ProjectID             string
+	AppID                 string
+	EnvironmentID         string
+	Domain                string
+	VerificationStatus    db.CustomDomainsVerificationStatus
+	VerificationToken     string
+	TargetCname           string
+	OwnershipVerified     bool
+	CnameVerified         bool
+	VerificationError     string
+	LastCheckedAt         int64
+	DomainConnectProvider string
+	DomainConnectURL      string
 }
 
 // CreateCustomDomain attaches a custom domain to an environment. Production writes go
@@ -371,21 +396,23 @@ func (s *Seeder) CreateCustomDomain(ctx context.Context, req CreateCustomDomainR
 
 	now := time.Now().UnixMilli()
 	err := db.Query.InsertCustomDomain(ctx, s.DB.RW(), db.InsertCustomDomainParams{
-		ID:                 req.ID,
-		WorkspaceID:        req.WorkspaceID,
-		ProjectID:          req.ProjectID,
-		AppID:              req.AppID,
-		EnvironmentID:      req.EnvironmentID,
-		Domain:             req.Domain,
-		ChallengeType:      db.CustomDomainsChallengeTypeHTTP01,
-		VerificationStatus: status,
-		VerificationToken:  verificationToken,
-		OwnershipVerified:  req.OwnershipVerified,
-		CnameVerified:      req.CnameVerified,
-		TargetCname:        targetCname,
-		VerificationError:  sql.NullString{String: req.VerificationError, Valid: req.VerificationError != ""},
-		LastCheckedAt:      sql.NullInt64{Int64: req.LastCheckedAt, Valid: req.LastCheckedAt != 0},
-		CreatedAt:          now,
+		ID:                    req.ID,
+		WorkspaceID:           req.WorkspaceID,
+		ProjectID:             req.ProjectID,
+		AppID:                 req.AppID,
+		EnvironmentID:         req.EnvironmentID,
+		Domain:                req.Domain,
+		ChallengeType:         db.CustomDomainsChallengeTypeHTTP01,
+		VerificationStatus:    status,
+		VerificationToken:     verificationToken,
+		OwnershipVerified:     req.OwnershipVerified,
+		CnameVerified:         req.CnameVerified,
+		TargetCname:           targetCname,
+		VerificationError:     sql.NullString{String: req.VerificationError, Valid: req.VerificationError != ""},
+		DomainConnectProvider: sql.NullString{String: req.DomainConnectProvider, Valid: req.DomainConnectProvider != ""},
+		DomainConnectUrl:      sql.NullString{String: req.DomainConnectURL, Valid: req.DomainConnectURL != ""},
+		LastCheckedAt:         sql.NullInt64{Int64: req.LastCheckedAt, Valid: req.LastCheckedAt != 0},
+		CreatedAt:             now,
 	})
 	require.NoError(s.t, err)
 
@@ -405,10 +432,12 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 	insertKeyParams := db.InsertKeyParams{
 		ID:                 uid.New("test_root_key"),
 		Hash:               hash.Sha256(key),
+		Prefix:             "",
 		WorkspaceID:        s.Resources.RootWorkspace.ID,
 		ForWorkspaceID:     sql.NullString{String: workspaceID, Valid: true},
 		KeySpaceID:         s.Resources.RootKeySpace.ID,
 		Start:              key[:4],
+		End:                key[len(key)-4:],
 		CreatedAtM:         time.Now().UnixMilli(),
 		Enabled:            true,
 		Name:               sql.NullString{String: "", Valid: false},
@@ -471,6 +500,7 @@ type CreateKeyRequest struct {
 	Disabled       bool
 	WorkspaceID    string
 	KeySpaceID     string
+	Prefix         string
 	Remaining      *int64
 	IdentityID     *string
 	Meta           *string
@@ -505,8 +535,11 @@ type CreateKeyResponse struct {
 // Vault service is configured, the key is encrypted and stored for recovery.
 func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyResponse {
 	keyID := uid.New(uid.KeyPrefix)
-	key := uid.New("")
-	start := key[:4]
+	random := uid.New("")
+	key := random
+	if req.Prefix != "" {
+		key = req.Prefix + "_" + random
+	}
 
 	err := db.Query.InsertKey(ctx, s.DB.RW(), db.InsertKeyParams{
 		ID:                 keyID,
@@ -514,8 +547,10 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		WorkspaceID:        req.WorkspaceID,
 		CreatedAtM:         time.Now().UnixMilli(),
 		Hash:               hash.Sha256(key),
+		Prefix:             req.Prefix,
 		Enabled:            !req.Disabled,
-		Start:              start,
+		Start:              random[:4],
+		End:                key[len(key)-4:],
 		Name:               sql.NullString{String: ptr.SafeDeref(req.Name, "test-key"), Valid: true},
 		ForWorkspaceID:     sql.NullString{String: ptr.SafeDeref(req.ForWorkspaceID, ""), Valid: req.ForWorkspaceID != nil},
 		Meta:               sql.NullString{String: ptr.SafeDeref(req.Meta, ""), Valid: req.Meta != nil},
@@ -782,6 +817,7 @@ type CreateDeploymentRequest struct {
 	EnvironmentID          string
 	Status                 mysqltype.DeploymentsStatus
 	DesiredState           mysqltype.DeploymentsDesiredState
+	Source                 db.DeploymentsSource
 	GitBranch              string
 	GitCommitSha           string
 	GitCommitMessage       string
@@ -802,6 +838,10 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 	if status == "" {
 		status = mysqltype.DeploymentsStatusPending
 	}
+	source := req.Source
+	if source == "" {
+		source = db.DeploymentsSourceUnknown
+	}
 
 	createdAt := time.Now().UnixMilli()
 	err := db.Query.InsertDeployment(ctx, s.DB.RW(), db.InsertDeploymentParams{
@@ -811,6 +851,8 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		ProjectID:                     req.ProjectID,
 		AppID:                         req.AppID,
 		EnvironmentID:                 req.EnvironmentID,
+		Source:                        source,
+		ImageRequested:                sql.NullString{Valid: false},
 		GitCommitSha:                  sql.NullString{String: req.GitCommitSha, Valid: req.GitCommitSha != ""},
 		GitBranch:                     sql.NullString{String: req.GitBranch, Valid: req.GitBranch != ""},
 		SentinelConfig:                []byte("{}"),
@@ -883,4 +925,59 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 		CreatedAtM:  createdAt,
 		UpdatedAtM:  sql.NullInt64{Valid: false, Int64: 0},
 	}
+}
+
+// CreatePortalRequest configures the portal to create.
+//
+// Exactly one of AppID or KeyAuthID is expected: a portal maps to one app or one
+// keyspace. The seeder does not enforce that, so a test can deliberately write an
+// invariant-violating row to prove a handler refuses to serve it.
+type CreatePortalRequest struct {
+	ID           string
+	WorkspaceID  string
+	Slug         string
+	DisplayName  string
+	AppID        sql.NullString
+	KeyAuthID    sql.NullString
+	Enabled      bool
+	LogoUrl      sql.NullString
+	PrimaryColor sql.NullString
+}
+
+// CreatePortal creates a portal. When ID is empty a new one is minted, so a test
+// that does not care about the id can leave it unset.
+func (s *Seeder) CreatePortal(ctx context.Context, req CreatePortalRequest) db.Portal {
+	portalID := req.ID
+	if portalID == "" {
+		portalID = uid.New(uid.PortalPrefix)
+	}
+	now := time.Now().UnixMilli()
+
+	displayName := req.DisplayName
+	if displayName == "" {
+		displayName = req.Slug
+	}
+
+	err := db.Query.InsertPortal(ctx, s.DB.RW(), db.InsertPortalParams{
+		ID:           portalID,
+		WorkspaceID:  req.WorkspaceID,
+		Slug:         req.Slug,
+		DisplayName:  displayName,
+		AppID:        req.AppID,
+		KeyAuthID:    req.KeyAuthID,
+		Enabled:      req.Enabled,
+		LogoUrl:      req.LogoUrl,
+		PrimaryColor: req.PrimaryColor,
+		CreatedAt:    now,
+		UpdatedAt:    sql.NullInt64{Valid: false, Int64: 0},
+	})
+	require.NoError(s.t, err)
+
+	portal, err := db.Query.FindPortalByIdOrSlug(ctx, s.DB.RO(), db.FindPortalByIdOrSlugParams{
+		Portal:      portalID,
+		WorkspaceID: req.WorkspaceID,
+	})
+	require.NoError(s.t, err)
+
+	return portal
 }

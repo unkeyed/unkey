@@ -26,6 +26,7 @@ export const updateApiName = workspaceProcedure
             eq(table.id, input.apiId),
             isNull(table.deletedAtM),
           ),
+        columns: { id: true, name: true },
       })
       .catch((_err) => {
         throw new TRPCError({

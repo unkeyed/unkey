@@ -1,3 +1,5 @@
+//go:build !cli_release
+
 package cli
 
 import (
@@ -312,14 +314,23 @@ func (c *Command) extractFlags() []MDXFlag {
 		if flag == nil {
 			continue
 		}
+		exclusiveNames := c.mutuallyExclusiveNames(flag)
+		description := flag.Usage()
+		if len(exclusiveNames) > 0 {
+			exclusiveFlags := "--" + strings.Join(exclusiveNames, " or --")
+			if flag.Required() {
+				description += fmt.Sprintf(" Required unless %s is set.", exclusiveFlags)
+			}
+			description += fmt.Sprintf(" Mutually exclusive with %s.", exclusiveFlags)
+		}
 
 		mdxFlag := MDXFlag{
 			Name:        flag.Name(),
-			Description: flag.Usage(),
+			Description: description,
 			Type:        c.getTypeString(flag),
 			Default:     c.getDefaultValue(flag),
 			EnvVar:      c.getEnvVar(flag),
-			Required:    flag.Required(),
+			Required:    flag.Required() && len(exclusiveNames) == 0,
 		}
 		flags = append(flags, mdxFlag)
 	}

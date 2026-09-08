@@ -1,5 +1,4 @@
-import { isDuplicateKeyError } from "@/lib/utils/db-errors";
-import { type Transaction, and, eq, schema, sql } from "@unkey/db";
+import { type Transaction, and, eq, isDuplicateKeyError, schema, sql } from "@unkey/db";
 import { newId } from "@unkey/id";
 
 export async function ensureDefaultProjectId(

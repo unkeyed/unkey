@@ -92,6 +92,23 @@ func TestGitFieldValidation_SpecialCharacters(t *testing.T) {
 	}
 }
 
+func TestResolvedDeploymentImage(t *testing.T) {
+	t.Run("prefers additive column", func(t *testing.T) {
+		got := resolvedDeploymentImage(db.Deployment{
+			Image:         sql.NullString{Valid: true, String: "legacy-image"},
+			ImageResolved: sql.NullString{Valid: true, String: "resolved-image"},
+		})
+		require.Equal(t, "resolved-image", got.String)
+	})
+
+	t.Run("falls back to legacy column during rollout", func(t *testing.T) {
+		got := resolvedDeploymentImage(db.Deployment{
+			Image: sql.NullString{Valid: true, String: "legacy-image"},
+		})
+		require.Equal(t, "legacy-image", got.String)
+	})
+}
+
 // TestGitFieldValidation_NullHandling tests NULL value handling
 func TestGitFieldValidation_NullHandling(t *testing.T) {
 	t.Parallel()
@@ -159,11 +176,12 @@ func TestCreateDeploymentTimestampValidation_InvalidSecondsFormat(t *testing.T) 
 	req := &ctrlv1.CreateDeploymentRequest{
 		ProjectId:       "proj_test456",
 		EnvironmentSlug: "production",
-		DockerImage:     "registry.example.com/app:v1.0.0",
-		GitCommit: &ctrlv1.GitCommitInfo{
-			CommitSha: "abc123def456",
-			Branch:    "main",
-			Timestamp: time.Now().Unix(), // This is in seconds - should be rejected
+		Source: &ctrlv1.CreateDeploymentRequest_GitCommit{
+			GitCommit: &ctrlv1.GitCommitInfo{
+				CommitSha: "abc123def456",
+				Branch:    "main",
+				Timestamp: time.Now().Unix(), // This is in seconds - should be rejected
+			},
 		},
 	}
 
@@ -257,14 +275,15 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 			request: &ctrlv1.CreateDeploymentRequest{
 				ProjectId:       "proj_test456",
 				EnvironmentSlug: "production",
-				DockerImage:     "registry.example.com/app:v1.0.0",
-				GitCommit: &ctrlv1.GitCommitInfo{
-					CommitSha:       "abc123def456789",
-					CommitMessage:   "feat: implement new feature",
-					AuthorHandle:    "janedoe",
-					AuthorAvatarUrl: "https://github.com/janedoe.png",
-					Timestamp:       1724251845123, // Fixed millisecond timestamp
-					Branch:          "feature/test-branch",
+				Source: &ctrlv1.CreateDeploymentRequest_GitCommit{
+					GitCommit: &ctrlv1.GitCommitInfo{
+						CommitSha:       "abc123def456789",
+						CommitMessage:   "feat: implement new feature",
+						AuthorHandle:    "janedoe",
+						AuthorAvatarUrl: "https://github.com/janedoe.png",
+						Timestamp:       1724251845123, // Fixed millisecond timestamp
+						Branch:          "feature/test-branch",
+					},
 				},
 			},
 			expected: struct {
@@ -300,14 +319,15 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 			request: &ctrlv1.CreateDeploymentRequest{
 				ProjectId:       "proj_test456",
 				EnvironmentSlug: "production",
-				DockerImage:     "registry.example.com/app:v1.0.0",
-				GitCommit: &ctrlv1.GitCommitInfo{
-					CommitSha:       "",
-					CommitMessage:   "",
-					AuthorHandle:    "",
-					AuthorAvatarUrl: "",
-					Timestamp:       0,
-					Branch:          "main",
+				Source: &ctrlv1.CreateDeploymentRequest_GitCommit{
+					GitCommit: &ctrlv1.GitCommitInfo{
+						CommitSha:       "",
+						CommitMessage:   "",
+						AuthorHandle:    "",
+						AuthorAvatarUrl: "",
+						Timestamp:       0,
+						Branch:          "main",
+					},
 				},
 			},
 			expected: struct {
@@ -343,14 +363,15 @@ func TestCreateDeploymentFieldMapping(t *testing.T) {
 			request: &ctrlv1.CreateDeploymentRequest{
 				ProjectId:       "proj_test456",
 				EnvironmentSlug: "production",
-				DockerImage:     "registry.example.com/app:v1.0.0",
-				GitCommit: &ctrlv1.GitCommitInfo{
-					CommitSha:       "xyz789abc123",
-					CommitMessage:   "fix: critical security issue",
-					AuthorHandle:    "", // Empty
-					AuthorAvatarUrl: "", // Empty
-					Timestamp:       1724251845999,
-					Branch:          "hotfix/urgent-fix",
+				Source: &ctrlv1.CreateDeploymentRequest_GitCommit{
+					GitCommit: &ctrlv1.GitCommitInfo{
+						CommitSha:       "xyz789abc123",
+						CommitMessage:   "fix: critical security issue",
+						AuthorHandle:    "", // Empty
+						AuthorAvatarUrl: "", // Empty
+						Timestamp:       1724251845999,
+						Branch:          "hotfix/urgent-fix",
+					},
 				},
 			},
 			expected: struct {

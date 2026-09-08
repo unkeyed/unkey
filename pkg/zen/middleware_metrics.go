@@ -98,7 +98,7 @@ func WithMetrics(apiRequestBuffer ApiRequestBuffer, info InstanceInfo, redactor 
 
 				workspaceID := ""
 				if principal, err := s.GetPrincipal(); err == nil {
-					workspaceID = principal.WorkspaceID
+					workspaceID = principal.AuthorizedWorkspaceID
 				}
 
 				apiRequestBuffer.Buffer(schema.ApiRequest{

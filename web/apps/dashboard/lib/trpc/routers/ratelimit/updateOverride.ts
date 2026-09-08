@@ -22,6 +22,12 @@ export const updateOverride = workspaceProcedure
             eq(table.id, input.id),
             isNull(table.deletedAtM),
           ),
+        columns: {
+          id: true,
+          identifier: true,
+          limit: true,
+          duration: true,
+        },
         with: {
           namespace: {
             columns: {

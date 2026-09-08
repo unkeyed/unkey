@@ -9,11 +9,12 @@ import (
 )
 
 // bulkUpsertGithubRepoConnection is the base query for bulk insert
-const bulkUpsertGithubRepoConnection = `INSERT INTO github_repo_connections ( workspace_id, project_id, app_id, installation_id, repository_id, repository_full_name, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
+const bulkUpsertGithubRepoConnection = `INSERT INTO github_repo_connections ( workspace_id, project_id, app_id, installation_id, repository_id, repository_full_name, default_branch, created_at, updated_at ) VALUES %s ON DUPLICATE KEY UPDATE
     project_id = VALUES(project_id),
     installation_id = VALUES(installation_id),
     repository_id = VALUES(repository_id),
     repository_full_name = VALUES(repository_full_name),
+    default_branch = VALUES(default_branch),
     updated_at = VALUES(updated_at)`
 
 // UpsertGithubRepoConnection performs bulk insert in a single query
@@ -26,7 +27,7 @@ func (q *BulkQueries) UpsertGithubRepoConnection(ctx context.Context, db DBTX, a
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkUpsertGithubRepoConnection, strings.Join(valueClauses, ", "))
@@ -40,6 +41,7 @@ func (q *BulkQueries) UpsertGithubRepoConnection(ctx context.Context, db DBTX, a
 		allArgs = append(allArgs, arg.InstallationID)
 		allArgs = append(allArgs, arg.RepositoryID)
 		allArgs = append(allArgs, arg.RepositoryFullName)
+		allArgs = append(allArgs, arg.DefaultBranch)
 		allArgs = append(allArgs, arg.CreatedAt)
 		allArgs = append(allArgs, arg.UpdatedAt)
 	}

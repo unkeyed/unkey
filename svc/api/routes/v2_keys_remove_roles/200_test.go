@@ -62,6 +62,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
+			ProjectID:   api.ProjectID,
 			Name:        roleName,
 			Description: sql.NullString{Valid: true, String: "Editor role"},
 		})
@@ -128,6 +129,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
+			ProjectID:   api.ProjectID,
 			Name:        roleName,
 			Description: sql.NullString{Valid: true, String: "Unassigned role"},
 		})

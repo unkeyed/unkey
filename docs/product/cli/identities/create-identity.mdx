@@ -28,7 +28,7 @@ unkey api identities create-identity [flags]
 Your system's unique identifier for the user, organization, or entity. Must be unique across your workspace --- duplicate external IDs return a `409 Conflict` error. This identifier links Unkey identities to your authentication system, database records, or tenant structure. Accepts letters, numbers, underscores, dots, and hyphens (1--255 characters).
 </ParamField>
 
-<ParamField body="--meta-json" type="string">
+<ParamField body="--meta" type="JSON string">
 JSON object of arbitrary metadata stored on the identity. This metadata is returned during key verification, eliminating additional database lookups for contextual information. Useful for subscription details, feature flags, user preferences, and organization information. Avoid storing sensitive data as it is returned in verification responses.
 
 <Expandable title="JSON structure">
@@ -38,7 +38,7 @@ Arbitrary key-value pairs. Values can be strings, numbers, booleans, arrays, or 
 </Expandable>
 </ParamField>
 
-<ParamField body="--ratelimits-json" type="string">
+<ParamField body="--ratelimits" type="JSON string">
 JSON array of shared rate limit configurations for all keys under this identity. Rate limit counters are shared across all keys belonging to this identity, preventing abuse by users with multiple keys. Each named limit can have different thresholds and windows. Maximum of 50 rate limit configurations.
 
 <Expandable title="Array item properties">
@@ -65,6 +65,7 @@ Whether this rate limit should be automatically applied when verifying a key. De
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
 | `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
@@ -73,10 +74,10 @@ Whether this rate limit should be automatically applied when verifying a key. De
 unkey api identities create-identity --external-id=user_123
 ```
 ```bash With metadata
-unkey api identities create-identity --external-id=user_123 --meta-json='{"email":"alice@acme.com","name":"Alice Smith","plan":"premium"}'
+unkey api identities create-identity --external-id=user_123 --meta='{"email":"alice@acme.com","name":"Alice Smith","plan":"premium"}'
 ```
 ```bash With rate limits
-unkey api identities create-identity --external-id=user_123 --ratelimits-json='[{"name":"requests","limit":1000,"duration":60000,"autoApply":false}]'
+unkey api identities create-identity --external-id=user_123 --ratelimits='[{"name":"requests","limit":1000,"duration":60000,"autoApply":false}]'
 ```
 ```bash JSON output for scripting
 unkey api identities create-identity --external-id=user_123 --output=json
@@ -85,10 +86,10 @@ unkey api identities create-identity --external-id=user_123 --output=json
 
 ## Output
 
-Default output shows the request ID with latency, followed by the created identity:
+Default output shows the request ID, followed by the created identity:
 
 ```text
-req_01H9TQPP77V5E48E9SH0BG0ZQX (took 45ms)
+req_01H9TQPP77V5E48E9SH0BG0ZQX
 
 {
   "identityId": "id_1234567890abcdef"

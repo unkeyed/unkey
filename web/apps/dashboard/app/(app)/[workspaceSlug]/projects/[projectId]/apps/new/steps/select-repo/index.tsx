@@ -1,8 +1,15 @@
-import { Combobox } from "@/components/ui/combobox";
 import { trpc } from "@/lib/trpc/client";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Check, Clock, Github, Magnifier, XMark } from "@unkey/icons";
-import { Button, Input, toast, useStepWizard } from "@unkey/ui";
+import {
+  Button,
+  Combobox,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  toast,
+  useStepWizard,
+} from "@unkey/ui";
 import { useMemo, useRef, useState } from "react";
 import { OnboardingLinks } from "../../onboarding-links";
 import { OnboardingStepHint, OnboardingStepHintHighlight } from "../../onboarding-step-hint";
@@ -187,15 +194,16 @@ export const SelectRepo = ({
               searchPlaceholder="Filter accounts..."
               leftIcon={<Github />}
             />
-            <Input
-              className="flex-1 min-w-0 bg-transparent h-9 border-grayA-4"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search repositories..."
-              leftIcon={
+            <InputGroup className="flex-1 min-w-0 bg-transparent h-9 border-grayA-4">
+              <InputGroupAddon>
                 <Magnifier iconSize="sm-regular" className="text-gray-12 shrink-0 size-3" />
-              }
-            />
+              </InputGroupAddon>
+              <InputGroupInput
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search repositories..."
+              />
+            </InputGroup>
           </div>
         ) : null}
       </div>

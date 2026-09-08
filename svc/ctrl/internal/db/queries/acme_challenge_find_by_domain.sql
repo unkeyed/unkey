@@ -3,6 +3,6 @@
 -- acme_challenges, so there is at most one. Used as the idempotency check for
 -- infra certificate provisioning: once a challenge exists the renewal cron owns
 -- issuance, so provisioning is a no-op.
-SELECT ac.* FROM acme_challenges ac
+SELECT ac.domain_id, ac.status FROM acme_challenges ac
 JOIN custom_domains cd ON ac.domain_id = cd.id
 WHERE cd.domain = ?;

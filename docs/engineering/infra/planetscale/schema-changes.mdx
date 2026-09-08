@@ -109,3 +109,149 @@ If you close a GitHub pull request without merging it, the
 job closes its open deploy request and deletes its `pr-<number>` branch. If the
 pull request merges, the job leaves the branch and deploy request available so
 an unfinished database promotion can still be completed.
+
+## Changing an existing column
+
+Adding a column or a table follows the runbook above with no special handling.
+Changing a column that already exists in production needs more care, because
+PlanetScale rejects some shapes of change outright.
+
+### Renames are rejected
+
+Vitess refuses any deploy request whose diff renames a column:
+
+```
+Table `portal_sessions` has a column renamed from `portal_config_id` to `portal_id`.
+Column renames are not supported. Please first add a new column, copy the data
+and then drop the old column.
+```
+
+A deploy request compares the desired end state of its source branch against the
+current state of its target branch, and in an end state comparison "renamed `a`
+to `b`" is indistinguishable from "dropped `a`, added `b`". PlanetScale refuses
+rather than risk discarding the column's data.
+
+Three consequences that are easy to get wrong:
+
+- It fires even when the table is empty. Row count is irrelevant; only the shape
+  of the diff matters.
+- No sequence of statements on the branch avoids it. Dropping and recreating the
+  table on your branch does not help, because only the end state is compared.
+- **It applies to every deploy request, not just the one out of your
+  `pr-<number>` branch.** The `staging` into `main` deploy request is diffed the
+  same way. If `staging` has both the add and the drop while `main` has neither,
+  that diff is rename shaped and is rejected, even though each pass looked clean
+  on its way into `staging`.
+
+Renaming or dropping a *table* is fine. Only column renames are blocked.
+
+### What counts as a rename
+
+The check pairs a dropped column with an added one of the same type. That makes
+some changes rename shaped even when no rename was intended:
+
+- Replacing `branding json` with `logo_url varchar(500)` and
+  `primary_color varchar(7)` is safe, because no dropped column matches an added
+  one by type.
+- But dropping `return_url varchar(500)` from the same table while adding
+  `logo_url varchar(500)` **is** rename shaped, since the types match exactly and
+  the other addition differs in length. Two unrelated changes to one table can
+  pair up by accident.
+
+Moving a column between two tables is not a rename. The check is per table, so
+dropping `portals.return_url` while adding `portal_sessions.return_url` needs no
+special handling.
+
+Do not rely on ambiguity to save you. A drop can slip through unflagged when
+several additions share its type, but that is an accident of the heuristic rather
+than a guarantee.
+
+### Split the change into two deploy requests
+
+The two passes are two separate trips through steps 1 to 8. Take the first one
+all the way to `main` before you start the second:
+
+```
+DR1 (additive):  pr-<a> -> staging -> main
+DR2 (drops):     pr-<b> -> staging -> main
+```
+
+Not `pr-<a>` and `pr-<b>` into `staging`, then one `staging` into `main`. That
+collapses the add and the drop back into a single diff against `main`, and the
+production deploy request is rejected as a rename. Each pass must be present in
+`main` before the next one enters `staging`.
+
+<Steps>
+  <Step title="DR1, additive pass, through to main">
+    Add the new column and keep the old one. Make the new column nullable even
+    when the target schema declares it `NOT NULL`: currently deployed code
+    inserts without mentioning it, so `NOT NULL` with no default breaks those
+    writes as soon as it deploys. Backfill from the old column if the data
+    matters. Run steps 1 to 8, merging into `staging` and then into `main`.
+    Confirm the column exists in `main` before continuing.
+  </Step>
+
+  <Step title="Deploy the code">
+    Ship the code that reads and writes the new column, so nothing depends on the
+    old one.
+  </Step>
+
+  <Step title="DR2, drop pass, through to main">
+    Open a second GitHub pull request that updates the Drizzle schema to its
+    final shape. The diff now drops the old column and tightens the new one to
+    `NOT NULL`. A diff with no additions cannot be read as a rename. Run steps 1
+    to 8 again, `staging` first and then `main`.
+  </Step>
+</Steps>
+
+Tightening to `NOT NULL` fails if the additive pass left NULLs behind, so
+backfill or clear the table before the drop pass.
+
+<Warning>
+  Route both passes through `staging`. Do not shortcut a branch straight into
+  `main`, and do not skip `main` at the end of the additive pass.
+
+  A deploy request needs the source branch's snapshot of its target to be
+  current. `staging` is long lived, so advancing `main` by any other route leaves
+  it behind, and every later `staging` into `main` deploy request fails with
+  ``Table `x` can't be modified because it has changed since this branch was
+  created``. Recovering means refreshing the schema from the deploy request in
+  the PlanetScale UI, or recreating `staging`, which costs its data and its
+  credentials.
+</Warning>
+
+<Note>
+  A deployed deploy request stays in `complete_pending_revert` until its revert
+  window closes. While it does, a second deploy request touching the same tables
+  fails to lint with `table_conflict`, which reads like a schema problem but is
+  not. This bites in the gap between the two passes, since both touch the same
+  table. Finalize the earlier one before opening the next:
+
+  ```bash
+  pscale deploy-request skip-revert unkey <number> --org unkey
+  ```
+</Note>
+
+### Transitional columns reach new databases
+
+`pkg/mysql/schema/*.sql` is both the desired end state and the input to
+`dev/Dockerfile.mysql`, which feeds it to `docker-entrypoint-initdb.d`. A column
+kept only to satisfy the additive pass is therefore created in every new local
+and test database until the drop pass lands. Keep the gap between passes short,
+and comment the column in the Drizzle schema so the next reader knows it is
+scheduled for removal.
+
+### Collation statements in push output are not a diff
+
+`drizzle-kit push` prints `ALTER TABLE ... MODIFY COLUMN ... COLLATE
+utf8mb4_0900_as_cs` for many columns on every run. Its introspection does not
+recognize the collation already applied, so it re-emits the statement. Executing
+it changes nothing.
+
+Do not remove the collation from the Drizzle schema to silence this. The case
+sensitive collation on ids and hashes is deliberate, and dropping it makes key
+lookups case insensitive.
+
+These statements cannot fail the production schema gate, which asserts on
+`pscale branch diff` rather than on push output. If the gate fails, read the
+`Diff check` and `::error::` lines in the job log for the real diff.

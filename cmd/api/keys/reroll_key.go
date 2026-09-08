@@ -3,9 +3,8 @@ package keys
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
@@ -53,12 +52,13 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/rer
 			"unkey api keys reroll-key --key-id=key_1234abcd --expiration=86400000",
 		},
 		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 			util.RootKeyFlag(),
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("key-id", "The key ID to reroll.", cli.Required()),
-			cli.Int64("expiration", "Milliseconds until the original key is revoked. 0 for immediate.", cli.Required()),
+			cli.String("key-id", "The key ID to reroll.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.Int64("expiration", "Milliseconds until the original key is revoked. 0 for immediate.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
@@ -66,7 +66,15 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/rer
 				return err
 			}
 
-			start := time.Now()
+			if cmd.FlagIsSet("body") {
+				body := cmd.String("body")
+				res, err := util.SendBody(ctx, client.Keys.RerollKey, body)
+				if err != nil {
+					return err
+				}
+				return util.Output(cmd, res.V2KeysRerollKeyResponseBody)
+			}
+
 			req := components.V2KeysRerollKeyRequestBody{
 				KeyID:      cmd.String("key-id"),
 				Expiration: cmd.Int64("expiration"),
@@ -76,7 +84,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/rer
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))
 			}
-			return util.Output(cmd, res.V2KeysRerollKeyResponseBody, time.Since(start))
+			return util.Output(cmd, res.V2KeysRerollKeyResponseBody)
 		},
 	}
 }

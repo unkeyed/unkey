@@ -312,6 +312,18 @@ type service struct {
 	// subsequent ticks or back-pressure denials on the request path.
 	globalCircuitBreaker circuitbreaker.CircuitBreaker[any]
 
+	// globalPullMu serializes full and incremental pulls. repeat.Every invokes
+	// them sequentially in production, while the lock also keeps manual pulls in
+	// tests from racing the background startup hydration and regressing cursors.
+	globalPullMu sync.Mutex
+
+	// globalPullInitialized becomes true only after a successful full startup
+	// hydration. The watermark and reconciliation time advance only after all
+	// returned rows have been applied.
+	globalPullInitialized      bool
+	globalPullWatermarkMs      int64
+	globalPullLastReconciledMs int64
+
 	// stopBackground holds the stop functions returned by repeat.Every for
 	// every periodic goroutine the service starts. Close invokes each one
 	// so the push, pull, and janitor loops do not outlive the database
@@ -366,7 +378,7 @@ func New(config Config) (*service, error) {
 		config.Clock = clock.New()
 	}
 
-	s := &service{ //nolint:exhaustruct // stopBackground is appended to as goroutines start
+	s := &service{ //nolint:exhaustruct // background state zero-initializes before goroutines start
 		clock:        config.Clock,
 		counters:     sync.Map{}, //nolint:exhaustruct // sync.Map zero value is ready to use
 		strictUntils: sync.Map{}, //nolint:exhaustruct // sync.Map zero value is ready to use

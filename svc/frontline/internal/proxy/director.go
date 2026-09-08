@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strconv"
 	"time"
 
-	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/timing"
 	"github.com/unkeyed/unkey/pkg/zen"
 )
@@ -18,6 +16,10 @@ import (
 // request — we just forward it along with standard X-Forwarded-* headers.
 func (s *service) makeInstanceDirector(sess *zen.Session, startTime time.Time) func(*http.Request) {
 	return func(req *http.Request) {
+		// Keep this final egress guard even though the handler consumes incoming
+		// metadata before routing.
+		req.Header.Del(HeaderFrontlineMeta)
+		removeUnkeyTrailers(req)
 		req.Header.Set(HeaderFrontlineID, s.instanceID)
 		req.Header.Set(HeaderRegion, fmt.Sprintf("%s::%s", s.platform, s.region))
 		req.Header.Set(HeaderRequestID, sess.RequestID())
@@ -45,11 +47,10 @@ func (s *service) makeInstanceDirector(sess *zen.Session, startTime time.Time) f
 }
 
 // makeRegionDirector creates a Director function for forwarding to a remote region
-func (s *service) makeRegionDirector(sess *zen.Session, startTime time.Time) func(*http.Request) {
+func (s *service) makeRegionDirector(sess *zen.Session, startTime time.Time, signedMetadata string) func(*http.Request) {
 	return func(req *http.Request) {
-		req.Header.Set(HeaderFrontlineID, s.instanceID)
-		req.Header.Set(HeaderRegion, fmt.Sprintf("%s::%s", s.platform, s.region))
-		req.Header.Set(HeaderRequestID, sess.RequestID())
+		removeUnkeyTrailers(req)
+		req.Header.Set(HeaderFrontlineMeta, signedMetadata)
 
 		frontlineRoutingTime := s.clock.Now().Sub(startTime)
 		timing.Write(sess.ResponseWriter(), timing.Entry{
@@ -64,26 +65,15 @@ func (s *service) makeRegionDirector(sess *zen.Session, startTime time.Time) fun
 		req.Host = sess.Request().Host
 		req.Header.Set("Host", sess.Request().Host)
 
-		// Add parent tracking to trace the forwarding chain, might be useful for debugging
-		req.Header.Set(HeaderParentFrontlineID, s.instanceID)
-		req.Header.Set(HeaderParentRequestID, sess.RequestID())
+	}
+}
 
-		// Parse and increment hop count to prevent infinite loops
-		currentHops := 0
-		if hopCountStr := req.Header.Get(HeaderFrontlineHops); hopCountStr != "" {
-			if parsed, err := strconv.Atoi(hopCountStr); err == nil {
-				currentHops = parsed
-			}
-		}
-		currentHops++
-		req.Header.Set(HeaderFrontlineHops, strconv.Itoa(currentHops))
-
-		if currentHops >= s.maxHops-1 {
-			logger.Warn("approaching max hops limit",
-				"currentHops", currentHops,
-				"maxHops", s.maxHops,
-				"hostname", req.Host,
-			)
+// removeUnkeyTrailers prevents client-controlled Frontline fields from leaving
+// the proxy as request trailers.
+func removeUnkeyTrailers(req *http.Request) {
+	for name := range req.Trailer {
+		if IsUnkeyHeader(name) {
+			delete(req.Trailer, name)
 		}
 	}
 }

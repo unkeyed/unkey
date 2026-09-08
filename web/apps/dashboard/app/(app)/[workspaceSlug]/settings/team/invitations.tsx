@@ -40,10 +40,14 @@ export const Invitations = memo<InvitationsProps>(({ organization, isAdmin }) =>
 
   if (!invitations || invitations.length === 0) {
     return (
-      <Empty>
-        <Empty.Title>No pending invitations</Empty.Title>
-        <Empty.Description>Invite members using the form above</Empty.Description>
-      </Empty>
+      <Card>
+        <CardContent className="p-0">
+          <Empty>
+            <Empty.Title>No pending invitations</Empty.Title>
+            <Empty.Description>Invite members using the form above</Empty.Description>
+          </Empty>
+        </CardContent>
+      </Card>
     );
   }
 

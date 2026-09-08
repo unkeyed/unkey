@@ -1,0 +1,28 @@
+---
+title: "list-policies"
+description: "Retrieve gateway policies in evaluation order"
+---
+
+Retrieve an environment's gateway policies in evaluation order. The gateway evaluates policies top to bottom and the first rejection short-circuits the request. The full list is returned in one response.
+
+## Usage
+```bash
+unkey api gateway list-policies [flags]
+```
+## Flags
+<ParamField body="--project" type="string" required>Project ID or slug.</ParamField>
+<ParamField body="--app" type="string" required>Application ID or slug.</ParamField>
+<ParamField body="--environment" type="string" required>Environment ID or slug.</ParamField>
+## Global Flags
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format, use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+## Examples
+```bash
+unkey api gateway list-policies --project=payments --app=payments-api --environment=production
+```
+See the [API reference](/api-reference/gateway/list-policies).

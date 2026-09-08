@@ -10,33 +10,27 @@ import (
 )
 
 const findAcmeChallengeByDomain = `-- name: FindAcmeChallengeByDomain :one
-SELECT ac.pk, ac.domain_id, ac.workspace_id, ac.token, ac.challenge_type, ac.authorization, ac.status, ac.expires_at, ac.created_at, ac.updated_at FROM acme_challenges ac
+SELECT ac.domain_id, ac.status FROM acme_challenges ac
 JOIN custom_domains cd ON ac.domain_id = cd.id
 WHERE cd.domain = ?
 `
+
+type FindAcmeChallengeByDomainRow struct {
+	DomainID string               `db:"domain_id"`
+	Status   AcmeChallengesStatus `db:"status"`
+}
 
 // Returns the challenge row for a domain, if one exists. domain_id is unique on
 // acme_challenges, so there is at most one. Used as the idempotency check for
 // infra certificate provisioning: once a challenge exists the renewal cron owns
 // issuance, so provisioning is a no-op.
 //
-//	SELECT ac.pk, ac.domain_id, ac.workspace_id, ac.token, ac.challenge_type, ac.authorization, ac.status, ac.expires_at, ac.created_at, ac.updated_at FROM acme_challenges ac
+//	SELECT ac.domain_id, ac.status FROM acme_challenges ac
 //	JOIN custom_domains cd ON ac.domain_id = cd.id
 //	WHERE cd.domain = ?
-func (q *Queries) FindAcmeChallengeByDomain(ctx context.Context, domain string) (AcmeChallenge, error) {
+func (q *Queries) FindAcmeChallengeByDomain(ctx context.Context, domain string) (FindAcmeChallengeByDomainRow, error) {
 	row := q.db.QueryRowContext(ctx, findAcmeChallengeByDomain, domain)
-	var i AcmeChallenge
-	err := row.Scan(
-		&i.Pk,
-		&i.DomainID,
-		&i.WorkspaceID,
-		&i.Token,
-		&i.ChallengeType,
-		&i.Authorization,
-		&i.Status,
-		&i.ExpiresAt,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
+	var i FindAcmeChallengeByDomainRow
+	err := row.Scan(&i.DomainID, &i.Status)
 	return i, err
 }

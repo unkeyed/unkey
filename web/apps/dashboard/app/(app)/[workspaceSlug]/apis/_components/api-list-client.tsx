@@ -3,7 +3,7 @@
 import { StatsListCardSkeleton } from "@/components/stats-list-card/skeleton";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { Button, Empty } from "@unkey/ui";
+import { Button, Empty, ResourceListContent } from "@unkey/ui";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type PropsWithChildren, useEffect, useMemo, useState } from "react";
 import { ApiListCard } from "./api-list-card";
@@ -106,10 +106,10 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
         </>
       ) : (
         <EmptyComponentSpacer>
-          <Empty className="m-0 p-0">
-            <Empty.Icon />
+          <Empty className="w-[400px] items-start p-0">
+            <Empty.Icon className="w-auto" />
             <Empty.Title>No keyspaces found</Empty.Title>
-            <Empty.Description>
+            <Empty.Description className="text-left">
               No keyspaces match your search criteria. Try a different search term.
             </Empty.Description>
           </Empty>
@@ -121,8 +121,8 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
 
 const EmptyComponentSpacer = ({ children }: PropsWithChildren) => {
   return (
-    <div className="h-full min-h-[300px] flex items-center justify-center">
-      <div className="flex justify-center items-center">{children}</div>
-    </div>
+    <ResourceListContent>
+      <div className="flex w-full items-center justify-center px-4 py-16">{children}</div>
+    </ResourceListContent>
   );
 };

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/cmd/api/util"
+	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -26,7 +26,7 @@ func TestSetPermissions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := util.CaptureRequestWithData[openapi.V2KeysSetPermissionsRequestBody](t, Cmd(), tt.args, []any{})
+			req := testutil.CaptureRequestWithData[openapi.V2KeysSetPermissionsRequestBody](t, Cmd(), tt.args, []any{})
 			require.Equal(t, tt.want, req)
 		})
 	}

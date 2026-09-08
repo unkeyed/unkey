@@ -3,6 +3,7 @@ CREATE TABLE `portals` (
 	`id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`slug` varchar(64) NOT NULL,
+	`display_name` varchar(64) NOT NULL,
 	`app_id` varchar(48) COLLATE utf8mb4_0900_as_cs,
 	`key_auth_id` varchar(48) COLLATE utf8mb4_0900_as_cs,
 	`enabled` boolean NOT NULL DEFAULT true,

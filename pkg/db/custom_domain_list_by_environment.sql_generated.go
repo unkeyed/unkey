@@ -23,6 +23,8 @@ SELECT
     cname_verified,
     target_cname,
     verification_error,
+    domain_connect_provider,
+    domain_connect_url,
     last_checked_at,
     created_at,
     updated_at
@@ -47,20 +49,22 @@ type ListCustomDomainsByEnvironmentParams struct {
 }
 
 type ListCustomDomainsByEnvironmentRow struct {
-	ID                 string                          `db:"id"`
-	ProjectID          string                          `db:"project_id"`
-	AppID              string                          `db:"app_id"`
-	EnvironmentID      string                          `db:"environment_id"`
-	Domain             string                          `db:"domain"`
-	VerificationStatus CustomDomainsVerificationStatus `db:"verification_status"`
-	VerificationToken  string                          `db:"verification_token"`
-	OwnershipVerified  bool                            `db:"ownership_verified"`
-	CnameVerified      bool                            `db:"cname_verified"`
-	TargetCname        string                          `db:"target_cname"`
-	VerificationError  sql.NullString                  `db:"verification_error"`
-	LastCheckedAt      sql.NullInt64                   `db:"last_checked_at"`
-	CreatedAt          int64                           `db:"created_at"`
-	UpdatedAt          sql.NullInt64                   `db:"updated_at"`
+	ID                    string                          `db:"id"`
+	ProjectID             string                          `db:"project_id"`
+	AppID                 string                          `db:"app_id"`
+	EnvironmentID         string                          `db:"environment_id"`
+	Domain                string                          `db:"domain"`
+	VerificationStatus    CustomDomainsVerificationStatus `db:"verification_status"`
+	VerificationToken     string                          `db:"verification_token"`
+	OwnershipVerified     bool                            `db:"ownership_verified"`
+	CnameVerified         bool                            `db:"cname_verified"`
+	TargetCname           string                          `db:"target_cname"`
+	VerificationError     sql.NullString                  `db:"verification_error"`
+	DomainConnectProvider sql.NullString                  `db:"domain_connect_provider"`
+	DomainConnectUrl      sql.NullString                  `db:"domain_connect_url"`
+	LastCheckedAt         sql.NullInt64                   `db:"last_checked_at"`
+	CreatedAt             int64                           `db:"created_at"`
+	UpdatedAt             sql.NullInt64                   `db:"updated_at"`
 }
 
 // ListCustomDomainsByEnvironment
@@ -77,6 +81,8 @@ type ListCustomDomainsByEnvironmentRow struct {
 //	    cname_verified,
 //	    target_cname,
 //	    verification_error,
+//	    domain_connect_provider,
+//	    domain_connect_url,
 //	    last_checked_at,
 //	    created_at,
 //	    updated_at
@@ -119,6 +125,8 @@ func (q *Queries) ListCustomDomainsByEnvironment(ctx context.Context, db DBTX, a
 			&i.CnameVerified,
 			&i.TargetCname,
 			&i.VerificationError,
+			&i.DomainConnectProvider,
+			&i.DomainConnectUrl,
 			&i.LastCheckedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,

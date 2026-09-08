@@ -3,6 +3,7 @@ import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { assertValidTimeRange } from "../../utils/time-range";
 import { transformRatelimitFilters } from "./utils";
 
 //TODO: Refactor this endpoint once we move to AWS
@@ -10,6 +11,8 @@ export const queryRatelimitLatencyTimeseries = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(ratelimitOverviewQueryTimeseriesPayload)
   .query(async ({ ctx, input }) => {
+    assertValidTimeRange(input.startTime, input.endTime);
+
     const ratelimitNamespaces = await db.query.ratelimitNamespaces
       .findMany({
         where: (table, { and, eq, isNull }) =>
@@ -17,6 +20,7 @@ export const queryRatelimitLatencyTimeseries = workspaceProcedure
             eq(table.workspaceId, ctx.workspace.id),
             and(eq(table.id, input.namespaceId), isNull(table.deletedAtM)),
           ),
+        columns: { id: true },
       })
       .catch((_err) => {
         throw new TRPCError({

@@ -15,6 +15,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -51,7 +53,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	env, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
 		Environment: req.Environment,
@@ -73,6 +75,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	policyURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Gateway().Policy("*")
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Environment,
@@ -84,6 +87,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   env.ID,
 			Action:       rbac.SetPolicies,
 		}),
+		rbac.And(
+			rbac.U(policyURN, permissions.Write),
+			rbac.U(policyURN, permissions.Delete),
+		),
 	))
 	if err != nil {
 		return err
@@ -100,7 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	if len(keyspaceIDs) > 0 {
 		found, err := db.Query.FindKeyAuthsByIdsAndWorkspace(ctx, h.DB.RO(), db.FindKeyAuthsByIdsAndWorkspaceParams{
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			KeyAuthIds:  keyspaceIDs,
 		})
 		if err != nil {
@@ -112,11 +119,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 		for _, id := range keyspaceIDs {
-			if !slices.Contains(found, id) {
+			if !slices.ContainsFunc(found, func(row db.FindKeyAuthsByIdsAndWorkspaceRow) bool {
+				return row.ID == id && row.ProjectID == env.ProjectID
+			}) {
 				return fault.New(
 					"keyspace not found",
 					fault.Code(codes.Data.KeySpace.NotFound.URN()),
-					fault.Internal("keyspace not found in workspace"),
+					fault.Internal("keyspace not found in project"),
 					fault.Public(fmt.Sprintf("Keyspace %q does not exist.", id)),
 				)
 			}
@@ -125,7 +134,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	newLog := func(display string, meta map[string]any) auditlog.AuditLog {
 		return auditlog.AuditLog{
-			WorkspaceID:   principal.WorkspaceID,
+			WorkspaceID:   principal.AuthorizedWorkspaceID,
 			Event:         auditlog.EnvironmentUpdateEvent,
 			Display:       display,
 			ActorID:       principal.Subject.ID,

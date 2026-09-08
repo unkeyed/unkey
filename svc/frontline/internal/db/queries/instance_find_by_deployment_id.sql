@@ -2,7 +2,12 @@
 -- FindInstancesByDeploymentID returns all instances for a given deployment
 -- with region metadata for instance-aware routing decisions.
 SELECT
-  i.*,
+  i.id,
+  i.workspace_id,
+  i.project_id,
+  i.app_id,
+  i.address,
+  i.status,
   r.name AS region_name,
   r.platform AS region_platform
 FROM instances i

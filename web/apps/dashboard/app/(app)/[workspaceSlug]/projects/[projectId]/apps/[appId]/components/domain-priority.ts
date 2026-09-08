@@ -32,22 +32,6 @@ export type DomainPriorityResult = {
   all: ReadonlyArray<DisplayDomain>;
 };
 
-/**
- * Returns the app-level aliases shown on the overview together with immutable
- * URLs for the displayed deployment. The `deployment` sticky value identifies
- * an immutable URL, so routes of that type from older deployments are excluded.
- */
-export function getAppOverviewDomains(
-  domains: ReadonlyArray<Domain>,
-  deploymentId: string,
-): ReadonlyArray<Domain> {
-  return domains.filter(
-    (domain) =>
-      domain.deploymentId === deploymentId ||
-      (domain.sticky !== "none" && domain.sticky !== "deployment"),
-  );
-}
-
 export function getDomainPriority(ctx: DomainPriorityContext): DomainPriorityResult {
   const isCurrentDeployment = ctx.deploymentId === ctx.currentDeploymentId;
 

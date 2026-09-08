@@ -1,0 +1,70 @@
+post:
+  x-excluded: true
+  tags:
+    - portal
+  summary: Get portal
+  description: |
+    Read one portal, by its id or slug, or by the resource it serves.
+
+    Unreleased and subject to change without notice.
+
+    Send exactly one of `portal`, `keyspaceId`, or `appId`. Sending more than one
+    is a **400**.
+
+    **Required Permissions**
+
+    Your root key must have one of:
+    - `portal.*.read_portal` (to read any portal in the workspace)
+    - `portal.<portal_id>.read_portal` (to read a specific portal)
+
+    Without the permission this returns **404**, not 403.
+  operationId: portal.getPortal
+  x-speakeasy-name-override: getPortal
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalGetPortalRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      description: |
+        The portal.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalGetPortalResponseBody.yaml"
+    "400":
+      description: |
+        None of `portal`, `keyspaceId`, or `appId` was given, or more than one was.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: |
+        No portal matches, or your root key may not read it.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

@@ -24,11 +24,10 @@ func TestDeployWorkspaceGate_BlocksCreateAndRebuild(t *testing.T) {
 	ctx := h.Context()
 
 	// Scaffolding: a project/app/env plus a source deployment to rebuild from.
-	created := h.CreateDeployment(ctx, CreateDeploymentRequest{
+	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
 	})
-	dep := created.Deployment
 	region, err := h.DB.FindRegionByPlatformAndName(ctx, db.FindRegionByPlatformAndNameParams{
 		Platform: "test",
 		Name:     "us-east-1",
@@ -60,7 +59,9 @@ func TestDeployWorkspaceGate_BlocksCreateAndRebuild(t *testing.T) {
 			ProjectId:       dep.ProjectID,
 			AppId:           dep.AppID,
 			EnvironmentSlug: "production",
-			DockerImage:     "nginx:latest",
+			Source: &ctrlv1.CreateDeploymentRequest_OciImage{
+				OciImage: "nginx:latest",
+			},
 		})
 		req.Header().Set("Authorization", "Bearer "+bearer)
 
@@ -79,9 +80,6 @@ func TestDeployWorkspaceGate_BlocksCreateAndRebuild(t *testing.T) {
 		require.ErrorContains(t, err, "spend cap")
 	})
 
-	// A cancelled workspace has no plan and is no longer spend-suspended. Both
-	// direct create and the ops rebuild path must still remain blocked when plan
-	// enforcement is enabled.
 	require.NoError(t, h.DB.ClearWorkspaceDeployPlan(ctx, db.ClearWorkspaceDeployPlanParams{
 		ID:        dep.WorkspaceID,
 		UpdatedAt: sql.NullInt64{Int64: h.Now(), Valid: true},
@@ -92,29 +90,25 @@ func TestDeployWorkspaceGate_BlocksCreateAndRebuild(t *testing.T) {
 		ID:        dep.WorkspaceID,
 	}))
 
-	enforced := deployment.New(deployment.Config{
-		Database:          h.DB,
-		Bearer:            bearer,
-		EnforceDeployGate: true,
-	})
-
 	t.Run("CreateDeployment without plan", func(t *testing.T) {
 		req := connect.NewRequest(&ctrlv1.CreateDeploymentRequest{
 			ProjectId:       dep.ProjectID,
 			AppId:           dep.AppID,
 			EnvironmentSlug: "production",
-			DockerImage:     "nginx:latest",
+			Source: &ctrlv1.CreateDeploymentRequest_OciImage{
+				OciImage: "nginx:latest",
+			},
 		})
 		req.Header().Set("Authorization", "Bearer "+bearer)
 
-		_, err := enforced.CreateDeployment(ctx, req)
+		_, err := svc.CreateDeployment(ctx, req)
 		require.Error(t, err)
 		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 		require.ErrorContains(t, err, "no active Compute plan")
 	})
 
 	t.Run("Rebuild without plan", func(t *testing.T) {
-		_, err := enforced.Rebuild(ctx, dep.ID, "plan gate test", true)
+		_, err := svc.Rebuild(ctx, dep.ID, "plan gate test", true)
 		require.Error(t, err)
 		require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
 		require.ErrorContains(t, err, "no active Compute plan")

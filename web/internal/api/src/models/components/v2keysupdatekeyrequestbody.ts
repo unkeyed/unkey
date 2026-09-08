@@ -72,7 +72,7 @@ export type V2KeysUpdateKeyRequestBody = {
    * Unlike credits which track total usage, rate limits reset automatically after each window expires.
    * Multiple rate limits can control different operation types with separate thresholds and windows.
    */
-  ratelimits?: Array<RatelimitRequest> | undefined;
+  ratelimits?: Array<RatelimitRequest> | null | undefined;
   /**
    * Controls whether the key is currently active for verification requests.
    *
@@ -94,7 +94,7 @@ export type V2KeysUpdateKeyRequestBody$Outbound = {
   meta?: { [k: string]: any } | null | undefined;
   expires?: number | null | undefined;
   credits?: UpdateKeyCreditsData$Outbound | null | undefined;
-  ratelimits?: Array<RatelimitRequest$Outbound> | undefined;
+  ratelimits?: Array<RatelimitRequest$Outbound> | null | undefined;
   enabled?: boolean | undefined;
   roles?: Array<string> | undefined;
   permissions?: Array<string> | undefined;
@@ -112,7 +112,7 @@ export const V2KeysUpdateKeyRequestBody$outboundSchema: z.ZodType<
   meta: z.nullable(z.record(z.any())).optional(),
   expires: z.nullable(z.number().int()).optional(),
   credits: z.nullable(UpdateKeyCreditsData$outboundSchema).optional(),
-  ratelimits: z.array(RatelimitRequest$outboundSchema).optional(),
+  ratelimits: z.nullable(z.array(RatelimitRequest$outboundSchema)).optional(),
   enabled: z.boolean().optional(),
   roles: z.array(z.string()).optional(),
   permissions: z.array(z.string()).optional(),

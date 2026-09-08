@@ -11,7 +11,14 @@ import (
 )
 
 const findLiveApiByID = `-- name: FindLiveApiByID :one
-SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
+SELECT
+    apis.id AS api_id,
+    apis.name AS api_name,
+    apis.workspace_id AS api_workspace_id,
+    apis.key_auth_id AS api_key_auth_id,
+    ka.id AS key_auth_id,
+    ka.project_id AS key_auth_project_id,
+    ka.store_encrypted_keys AS key_auth_store_encrypted_keys
 FROM apis
 JOIN key_auth as ka ON ka.id = apis.key_auth_id
 WHERE apis.id = ?
@@ -21,24 +28,25 @@ LIMIT 1
 `
 
 type FindLiveApiByIDRow struct {
-	Pk               uint64           `db:"pk"`
-	ID               string           `db:"id"`
-	Name             string           `db:"name"`
-	WorkspaceID      string           `db:"workspace_id"`
-	ProjectID        string           `db:"project_id"`
-	IpWhitelist      sql.NullString   `db:"ip_whitelist"`
-	AuthType         NullApisAuthType `db:"auth_type"`
-	KeyAuthID        sql.NullString   `db:"key_auth_id"`
-	CreatedAtM       int64            `db:"created_at_m"`
-	UpdatedAtM       sql.NullInt64    `db:"updated_at_m"`
-	DeletedAtM       sql.NullInt64    `db:"deleted_at_m"`
-	DeleteProtection sql.NullBool     `db:"delete_protection"`
-	KeyAuth          KeyAuth          `db:"key_auth"`
+	ApiID                     string         `db:"api_id"`
+	ApiName                   string         `db:"api_name"`
+	ApiWorkspaceID            string         `db:"api_workspace_id"`
+	ApiKeyAuthID              sql.NullString `db:"api_key_auth_id"`
+	KeyAuthID                 string         `db:"key_auth_id"`
+	KeyAuthProjectID          string         `db:"key_auth_project_id"`
+	KeyAuthStoreEncryptedKeys bool           `db:"key_auth_store_encrypted_keys"`
 }
 
 // FindLiveApiByID
 //
-//	SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection, ka.pk, ka.id, ka.workspace_id, ka.project_id, ka.created_at_m, ka.updated_at_m, ka.deleted_at_m, ka.store_encrypted_keys, ka.default_prefix, ka.default_bytes, ka.size_approx, ka.size_last_updated_at
+//	SELECT
+//	    apis.id AS api_id,
+//	    apis.name AS api_name,
+//	    apis.workspace_id AS api_workspace_id,
+//	    apis.key_auth_id AS api_key_auth_id,
+//	    ka.id AS key_auth_id,
+//	    ka.project_id AS key_auth_project_id,
+//	    ka.store_encrypted_keys AS key_auth_store_encrypted_keys
 //	FROM apis
 //	JOIN key_auth as ka ON ka.id = apis.key_auth_id
 //	WHERE apis.id = ?
@@ -49,30 +57,13 @@ func (q *Queries) FindLiveApiByID(ctx context.Context, db DBTX, id string) (Find
 	row := db.QueryRowContext(ctx, findLiveApiByID, id)
 	var i FindLiveApiByIDRow
 	err := row.Scan(
-		&i.Pk,
-		&i.ID,
-		&i.Name,
-		&i.WorkspaceID,
-		&i.ProjectID,
-		&i.IpWhitelist,
-		&i.AuthType,
+		&i.ApiID,
+		&i.ApiName,
+		&i.ApiWorkspaceID,
+		&i.ApiKeyAuthID,
 		&i.KeyAuthID,
-		&i.CreatedAtM,
-		&i.UpdatedAtM,
-		&i.DeletedAtM,
-		&i.DeleteProtection,
-		&i.KeyAuth.Pk,
-		&i.KeyAuth.ID,
-		&i.KeyAuth.WorkspaceID,
-		&i.KeyAuth.ProjectID,
-		&i.KeyAuth.CreatedAtM,
-		&i.KeyAuth.UpdatedAtM,
-		&i.KeyAuth.DeletedAtM,
-		&i.KeyAuth.StoreEncryptedKeys,
-		&i.KeyAuth.DefaultPrefix,
-		&i.KeyAuth.DefaultBytes,
-		&i.KeyAuth.SizeApprox,
-		&i.KeyAuth.SizeLastUpdatedAt,
+		&i.KeyAuthProjectID,
+		&i.KeyAuthStoreEncryptedKeys,
 	)
 	return i, err
 }

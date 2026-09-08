@@ -6,8 +6,8 @@
 -- workspace's compute). The gates treat either plan column being set as
 -- entitled; deployment creation additionally refuses while suspended. Read by
 -- ctrl-api outside the billing hot path, so a single lookup by id is fine.
--- Explicit columns (not SELECT *) so the read is insensitive to workspace
--- column ordering.
+-- The explicit projection keeps the read insensitive to workspace column
+-- ordering.
 SELECT
    b.plan,
    b.plan_override,

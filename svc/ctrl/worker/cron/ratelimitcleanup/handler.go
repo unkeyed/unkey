@@ -12,6 +12,7 @@ import (
 	rldb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/healthcheck"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
@@ -36,12 +37,16 @@ type Config struct {
 	DB *rldb.Database
 	// Clock provides the cutoff timestamp. Must not be nil.
 	Clock clock.Clock
+	// Heartbeat is pinged after a successful sweep. Must not be nil; use
+	// healthcheck.NewNoop() if monitoring is not configured.
+	Heartbeat healthcheck.Heartbeat
 }
 
 // Handler executes RunRatelimitGlobalCountersCleanup.
 type Handler struct {
-	db    *rldb.Database
-	clock clock.Clock
+	db        *rldb.Database
+	clock     clock.Clock
+	heartbeat healthcheck.Heartbeat
 }
 
 // New constructs a Handler.
@@ -49,10 +54,11 @@ func New(cfg Config) (*Handler, error) {
 	if err := assert.All(
 		assert.NotNil(cfg.DB, "DB must not be nil"),
 		assert.NotNil(cfg.Clock, "Clock must not be nil"),
+		assert.NotNil(cfg.Heartbeat, "Heartbeat must not be nil; use healthcheck.NewNoop()"),
 	); err != nil {
 		return nil, err
 	}
-	return &Handler{db: cfg.DB, clock: cfg.Clock}, nil
+	return &Handler{db: cfg.DB, clock: cfg.Clock, heartbeat: cfg.Heartbeat}, nil
 }
 
 // Handle deletes ratelimit_global_counters rows whose expires_at is in the
@@ -109,6 +115,12 @@ func (h *Handler) Handle(
 		"drained", drained,
 		"cutoff_ms", cutoff,
 	)
+
+	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
+		return h.heartbeat.Ping(rc)
+	}, restate.WithName("send heartbeat")); err != nil {
+		return nil, fmt.Errorf("send heartbeat: %w", err)
+	}
 
 	return &hydrav1.RunRatelimitGlobalCountersCleanupResponse{
 		RowsDeleted: totalDeleted,

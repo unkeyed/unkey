@@ -191,7 +191,7 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 	t.Run("update keyauth with owned keyspaces", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		ids := seedFirewallPolicies(t, h, env, 1)
-		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: env.projectID})
 
 		req := makeRequest(env, ids[0])
 		req.Keyauth = &openapi.KeyauthPolicy{

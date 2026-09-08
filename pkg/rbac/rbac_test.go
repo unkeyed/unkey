@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 )
 
 func TestRBAC_EvaluatePermissions(t *testing.T) {
@@ -145,4 +147,171 @@ func TestRBAC_ORFailureMessageDoesNotRevealGrantedPermissions(t *testing.T) {
 	require.NotContains(t, result.Message, "api.api_secret.read_api")
 	require.NotContains(t, result.Message, "{")
 	require.NotContains(t, result.Message, "}")
+}
+
+// TestRBAC_PortalTuplePermissions guarantees portal permissions work in the
+// legacy tuple form, where strings match literally and "*" is not expanded.
+func TestRBAC_PortalTuplePermissions(t *testing.T) {
+	t.Parallel()
+
+	tuple := Tuple{ResourceType: Portal, ResourceID: "pc_abc", Action: CreatePortalSession}
+	require.Equal(t, "portal.pc_abc.create_portal_session", tuple.String())
+
+	parsed, err := TupleFromString("portal.pc_abc.create_portal_session")
+	require.NoError(t, err)
+	require.Equal(t, tuple, parsed)
+
+	tests := []struct {
+		name        string
+		query       PermissionQuery
+		permissions []string
+		wantValid   bool
+	}{
+		{
+			name:        "exact tuple grant",
+			query:       T(tuple),
+			permissions: []string{"portal.pc_abc.create_portal_session"},
+			wantValid:   true,
+		},
+		{
+			name:        "wildcard tuple grant matches the literal wildcard query",
+			query:       T(Tuple{ResourceType: Portal, ResourceID: "*", Action: CreatePortalSession}),
+			permissions: []string{"portal.*.create_portal_session"},
+			wantValid:   true,
+		},
+		{
+			name:        "wildcard tuple grant does not expand to a concrete portal",
+			query:       T(tuple),
+			permissions: []string{"portal.*.create_portal_session"},
+			wantValid:   false,
+		},
+		{
+			name:        "management grant does not satisfy session minting",
+			query:       T(tuple),
+			permissions: []string{"portal.pc_abc.read_portal"},
+			wantValid:   false,
+		},
+	}
+
+	rbac := New()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result, err := rbac.EvaluatePermissions(tt.query, tt.permissions)
+			require.NoError(t, err)
+			require.Equal(t, tt.wantValid, result.Valid, result.Message)
+		})
+	}
+}
+
+// TestRBAC_ProjectUrnPermissions guarantees the canonical URN form scopes
+// permissions to one project, all projects in a workspace, and never across
+// workspaces.
+func TestRBAC_ProjectUrnPermissions(t *testing.T) {
+	t.Parallel()
+
+	query := U(
+		urn.New().Workspace("ws_1").Project("proj_abc"),
+		permissions.Write,
+	)
+	require.Equal(t, "unkey:v1:ws_1:projects/proj_abc#write", query.Value)
+
+	tests := []struct {
+		name        string
+		permissions []string
+		wantValid   bool
+	}{
+		{
+			name:        "exact project grant",
+			permissions: []string{"unkey:v1:ws_1:projects/proj_abc#write"},
+			wantValid:   true,
+		},
+		{
+			name:        "workspace-wide project grant",
+			permissions: []string{"unkey:v1:ws_1:projects/*#write"},
+			wantValid:   true,
+		},
+		{
+			name:        "admin grant",
+			permissions: []string{"unkey:v1:ws_1:**#*"},
+			wantValid:   true,
+		},
+		{
+			name:        "other project grant",
+			permissions: []string{"unkey:v1:ws_1:projects/proj_xyz#write"},
+			wantValid:   false,
+		},
+		{
+			name:        "other workspace grant",
+			permissions: []string{"unkey:v1:ws_2:projects/proj_abc#write"},
+			wantValid:   false,
+		},
+		{
+			name:        "read grant does not satisfy write",
+			permissions: []string{"unkey:v1:ws_1:projects/*#read"},
+			wantValid:   false,
+		},
+	}
+
+	rbac := New()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result, err := rbac.EvaluatePermissions(query, tt.permissions)
+			require.NoError(t, err)
+			require.Equal(t, tt.wantValid, result.Valid, result.Message)
+		})
+	}
+}
+
+// TestRBAC_ProjectUrnSubtreeGrantCoversKeys guarantees a project subtree grant
+// reaches key resources below the project.
+func TestRBAC_ProjectUrnSubtreeGrantCoversKeys(t *testing.T) {
+	t.Parallel()
+
+	required := UnkeyPermission{
+		Resource: urn.V1{WorkspaceID: "ws_1", Resource: "projects/proj_abc/keyspaces/ks_1/keys/key_1"},
+		Action:   ActionType(permissions.Read.String()),
+	}
+	granted := UnkeyPermission{
+		Resource: urn.V1{WorkspaceID: "ws_1", Resource: "projects/proj_abc/**"},
+		Action:   ActionType(permissions.Read.String()),
+	}
+
+	require.True(t, permissionCovers(required, granted))
+}
+
+// TestRBAC_ProjectActionWildcardRejected guarantees a project-scoped action
+// wildcard cannot be granted; only the global "**" resource takes "*".
+func TestRBAC_ProjectActionWildcardRejected(t *testing.T) {
+	t.Parallel()
+
+	_, err := parseUrnPermission("unkey:v1:ws_1:projects/*#*")
+	require.ErrorIs(t, err, errInvalidURNPermission)
+}
+
+// TestRBAC_RecursiveGrantAppliesActionToResourceAndDescendants guarantees a
+// recursive grant uses the same simple action for its base and descendants.
+func TestRBAC_RecursiveGrantAppliesActionToResourceAndDescendants(t *testing.T) {
+	t.Parallel()
+
+	app := urn.New().Workspace("ws_1").Project("proj_1").App("app_1")
+	environment := app.Environment("env_1")
+	grant := U(app.Any(), permissions.Write).Value
+	require.Equal(t, "unkey:v1:ws_1:projects/proj_1/apps/app_1/**#write", grant)
+
+	evaluator := New()
+	for _, query := range []PermissionQuery{
+		U(app, permissions.Write),
+		U(environment, permissions.Write),
+	} {
+		result, err := evaluator.EvaluatePermissions(
+			query,
+			[]string{grant},
+		)
+		require.NoError(t, err)
+		require.True(t, result.Valid, "recursive app grant must cover %s", query.Value)
+	}
 }

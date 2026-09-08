@@ -6,7 +6,7 @@ with support for rate limiting, usage tracking, permissions, and workspace isola
 
 The keys service provides a unified interface for managing API keys throughout their lifecycle:
 
-  - Key Creation: Secure generation of API keys with customizable prefixes and byte lengths
+  - Key Creation: Secure generation of versioned, fixed-entropy API keys, with configurable legacy generation for older routes
   - Key Verification: Multi-stage validation with configurable options for different use cases
   - Key Retrieval: Cached access to key metadata and authorization information
   - Root Key Management: Special handling for workspace-level administrative keys

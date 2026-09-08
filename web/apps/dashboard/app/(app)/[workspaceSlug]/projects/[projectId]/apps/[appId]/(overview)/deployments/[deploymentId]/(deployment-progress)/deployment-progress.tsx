@@ -16,7 +16,6 @@ import { DeploymentBuildStepsTable } from "./build-steps-table/deployment-build-
 import { DeploymentContainerLogsTable } from "./container-logs-table/deployment-container-logs-table";
 import { DeploymentStep } from "./deployment-step";
 import { resolveDeploymentStep } from "./deployment-step-resolution";
-import { FailedDeploymentBanner } from "./failed-deployment-banner";
 
 type RouterOutputs = inferRouterOutputs<Router>;
 export type StepsData = RouterOutputs["deploy"]["deployment"]["steps"];
@@ -64,7 +63,6 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
   const queuedImplicitlyComplete =
     !queued && Boolean(starting ?? building ?? deploying ?? network ?? finalizing);
 
-  const [redeployOpen, setRedeployOpen] = useState(false);
   const domainsForDeployment = getDomainsForDeployment(deployment.id);
 
   // Latch true once we observe the build actively in progress; stays true after it completes
@@ -258,20 +256,6 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
           {...finalizingStep}
         />
       </SettingCardGroup>
-      {isFailed && (
-        <FailedDeploymentBanner
-          steps={[queued, starting, building, deploying, network, finalizing]}
-          settingsUrl={routes.projects.apps.settings({
-            workspaceSlug,
-            projectId,
-            appId: deployment.appId,
-          })}
-          onRedeploy={() => setRedeployOpen(true)}
-          redeployOpen={redeployOpen}
-          onRedeployClose={() => setRedeployOpen(false)}
-          deployment={deployment}
-        />
-      )}
       {network?.completed && (
         <div className="animate-fade-slide-in">
           <DeploymentDomainsCard glow />

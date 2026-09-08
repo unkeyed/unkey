@@ -1,6 +1,7 @@
 "use client";
 
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { type PropsWithChildren, useMemo } from "react";
 import { OnboardingEnvironmentSettingsInner } from "./environment-inner";
 
@@ -18,7 +19,8 @@ export const OnboardingEnvironmentSettingsProvider = ({
   const { environments, isEnvironmentsLoading, projectId, appId } = useProjectData();
 
   const prodEnvId = useMemo(
-    () => (environments.find((e) => e.kind === "production") ?? environments.at(0))?.id,
+    () =>
+      (environments.find((e) => e.kind === ENVIRONMENT_KIND.production) ?? environments.at(0))?.id,
     [environments],
   );
 

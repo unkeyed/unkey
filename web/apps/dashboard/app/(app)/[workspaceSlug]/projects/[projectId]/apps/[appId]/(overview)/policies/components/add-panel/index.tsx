@@ -1,6 +1,6 @@
 "use client";
 
-import type { Policy } from "@/lib/collections/deploy/policies.schema";
+import { type Policy, policyMatchKey } from "@/lib/collections/deploy/policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { match } from "@unkey/match";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
@@ -28,11 +28,16 @@ import {
 } from "./schema";
 
 type CommonProps = {
-  envASlug: string;
-  envBSlug: string;
+  productionSlug: string;
+  previewSlug: string;
   isOpen: boolean;
-  topOffset: number;
   onClose: () => void;
+  /**
+   * `policyMatchKey` of every policy on the page. `mergePolicies` pairs the
+   * two environment copies of a policy on that match key, so a second policy
+   * carrying one is indistinguishable from the first and is rejected here.
+   */
+  existingMatchKeys: string[];
 };
 
 type AddProps = CommonProps & {
@@ -50,13 +55,13 @@ type EditProps = CommonProps & {
 export type PolicyPanelProps = AddProps | EditProps;
 
 export function PolicyPanel(props: PolicyPanelProps) {
-  const { envASlug, envBSlug, isOpen, topOffset, onClose } = props;
+  const { productionSlug, previewSlug, isOpen, onClose, existingMatchKeys } = props;
   const isEdit = props.mode === "edit";
 
   const envOptions = [
     { value: "__all__", label: "All Environments" },
-    { value: envASlug, label: envASlug },
-    { value: envBSlug, label: envBSlug },
+    { value: productionSlug, label: productionSlug },
+    { value: previewSlug, label: previewSlug },
   ];
 
   const form = useForm<PolicyFormValues>({
@@ -69,14 +74,28 @@ export function PolicyPanel(props: PolicyPanelProps) {
   const policyType = useWatch({ control, name: "type" });
 
   const onSubmit = (values: PolicyFormValues) => {
+    const nextMatchKey = policyMatchKey(values.type, values.name);
+    const currentMatchKey = isEdit
+      ? policyMatchKey(props.initialPolicy.type, props.initialPolicy.name)
+      : null;
+    if (nextMatchKey !== currentMatchKey && existingMatchKeys.includes(nextMatchKey)) {
+      const label =
+        POLICY_TYPE_OPTIONS.find((option) => option.value === values.type)?.label ?? values.type;
+      form.setError("name", {
+        type: "manual",
+        message: `A ${label} policy named "${values.name}" already exists. Use the + on its row to add it to another environment.`,
+      });
+      return;
+    }
+
     const id = props.mode === "edit" ? props.initialPolicy.id : undefined;
     const policy = toPolicy(values, id);
     const prodPolicy =
-      values.environmentId === "__all__" || values.environmentId === envASlug
+      values.environmentId === "__all__" || values.environmentId === productionSlug
         ? { ...policy, enabled: true }
         : null;
     const previewPolicy =
-      values.environmentId === "__all__" || values.environmentId === envBSlug
+      values.environmentId === "__all__" || values.environmentId === previewSlug
         ? { ...policy, enabled: true }
         : null;
 
@@ -99,7 +118,6 @@ export function PolicyPanel(props: PolicyPanelProps) {
         </div>
       }
       isOpen={isOpen}
-      topOffset={topOffset}
       onClose={onClose}
       form={form}
       onSubmit={onSubmit}
@@ -196,7 +214,7 @@ export function PolicyPanel(props: PolicyPanelProps) {
       </PolicyForm.Accordion>
       <PolicyForm.Footer>
         <div className="border-t border-grayA-4">
-          <div className="px-8 py-6">
+          <div className="px-6 py-6">
             <Controller
               control={control}
               name="environmentId"
@@ -209,13 +227,14 @@ export function PolicyPanel(props: PolicyPanelProps) {
                   description="Which environments this policy will be added to."
                   descriptionPosition="label"
                   triggerClassName="capitalize"
+                  contentClassName="capitalize"
                 />
               )}
             />
           </div>
         </div>
 
-        <div className="border-t border-gray-4 bg-white dark:bg-black px-8 py-5 flex items-center justify-end">
+        <div className="border-t border-gray-4 bg-white dark:bg-black px-6 py-5 flex items-center justify-end">
           <Button type="submit" variant="primary" size="md" className="px-3">
             {isEdit ? "Save Changes" : "Add Policy"}
           </Button>

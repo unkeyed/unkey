@@ -43,7 +43,7 @@ import { Result } from "../types/fp.js";
  */
 export function permissionsSetRolePermissions(
   client: UnkeyCore,
-  request: components.V2PermissionsSetRolePermissionsRequestBody,
+  request: components.V2PermissionsSetRolePermissionsRequestBodyUnion,
   options?: RequestOptions,
 ): APIPromise<
   Result<
@@ -73,7 +73,7 @@ export function permissionsSetRolePermissions(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2PermissionsSetRolePermissionsRequestBody,
+  request: components.V2PermissionsSetRolePermissionsRequestBodyUnion,
   options?: RequestOptions,
 ): Promise<
   [
@@ -100,7 +100,7 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2PermissionsSetRolePermissionsRequestBody$outboundSchema
+      components.V2PermissionsSetRolePermissionsRequestBodyUnion$outboundSchema
         .parse(value),
     "Input validation failed",
   );

@@ -1,0 +1,53 @@
+---
+title: "list-deployments"
+description: "List deployments with the Unkey API CLI"
+---
+
+List deployments with optional resource and lifecycle status filters.
+
+## Usage
+
+```bash
+unkey api deployments list-deployments [flags]
+```
+
+## Flags
+
+<ParamField body="--project" type="string">
+Project identifier or slug.
+</ParamField>
+<ParamField body="--app" type="string">
+Application identifier or slug.
+</ParamField>
+<ParamField body="--environment" type="string">
+Environment identifier or slug.
+</ParamField>
+<ParamField body="--status" type="string[]">
+Comma-separated lifecycle statuses. Valid choices are `pending`, `starting`, `building`, `deploying`, `network`, `finalizing`, `ready`, `failed`, `skipped`, `awaiting_approval`, `stopped`, `superseded`, and `cancelled`.
+</ParamField>
+<ParamField body="--limit" type="integer">
+Maximum deployments to return per page. The default is 100.
+</ParamField>
+<ParamField body="--cursor" type="string">
+Pagination cursor from a previous response.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format - use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api deployments list-deployments --project=payments --app=payments-api --environment=production --status=ready,failed
+```
+</CodeGroup>
+
+See the [List deployments API reference](https://www.unkey.com/docs/api-reference/v2/deployments/list-deployments).

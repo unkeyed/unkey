@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
+	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -92,7 +93,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
-	buildinfo.RegisterBuildInfoMetrics("krane")
+	buildinfometrics.Register("krane")
 
 	cluster := controlplane.NewClient(controlplane.ClientConfig{
 		URL:         cfg.Control.URL,
@@ -161,6 +162,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create fingerprint cache: %w", err)
 	}
+	r.Defer(func() error { fingerprintCache.Close(); return nil })
 
 	// Cache for deduplicating per-container lifecycle events keyed by
 	// (pod_uid, container_name, restart_count, event_kind). The same life
@@ -176,6 +178,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create instance event dedup cache: %w", err)
 	}
+	r.Defer(func() error { instanceEventDedupCache.Close(); return nil })
 
 	// Cache for deduplicating pod watch lag samples per (pod UID,
 	// transition time). Entries auto-expire so deleted pods don't
@@ -190,6 +193,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create deployment transitions cache: %w", err)
 	}
+	r.Defer(func() error { deploymentTransitionsCache.Close(); return nil })
 
 	// Start the deployment controller (independent control loop)
 	deploymentCtrl := deployment.New(deployment.Config{
@@ -288,9 +292,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Wait for signal and handle shutdown
 	logger.Info("Krane server started successfully")
+	// r.Wait already logs shutdown failures; just add context and propagate.
 	if err := r.Wait(ctx); err != nil {
-		logger.Error("Shutdown failed", "error", err)
-		return err
+		return fmt.Errorf("shutdown failed: %w", err)
 	}
 
 	logger.Info("krane server shut down successfully")

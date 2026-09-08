@@ -1,0 +1,73 @@
+post:
+  x-excluded: true
+  tags:
+    - portal
+  summary: Delete portal
+  description: |
+    Delete a portal and revoke the sessions it minted.
+
+    Unreleased and subject to change without notice.
+
+    Its end users lose access rather than keeping it until their tokens expire.
+    Revocation is not instantaneous: session lookups are cached briefly, so a
+    request already in flight may still succeed.
+
+    The app or keyspace it served is untouched, and its slug becomes free for a
+    new portal.
+
+    **Required Permissions**
+
+    Your root key must have one of:
+    - `portal.*.delete_portal` (to delete any portal in the workspace)
+    - `portal.<portal_id>.delete_portal` (to delete a specific portal)
+
+    Without the permission this returns **404**, not 403.
+  operationId: portal.deletePortal
+  x-speakeasy-name-override: deletePortal
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalDeletePortalRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      description: |
+        Portal deleted and its sessions revoked.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalDeletePortalResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: |
+        No such portal, or your root key may not delete it.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

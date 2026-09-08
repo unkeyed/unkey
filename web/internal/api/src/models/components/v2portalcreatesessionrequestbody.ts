@@ -7,9 +7,7 @@ import { ClosedEnum } from "../../types/enums.js";
 
 export const Scope = {
   KeysRead: "keys:read",
-  KeysCreate: "keys:create",
   KeysReroll: "keys:reroll",
-  AnalyticsRead: "analytics:read",
 } as const;
 export type Scope = ClosedEnum<typeof Scope>;
 
@@ -34,14 +32,16 @@ export type V2PortalCreateSessionRequestBody = {
    * @remarks
    * vocabulary. All capabilities are scoped to this end user: key capabilities
    * (`keys:*`) apply only to keys the end user owns within the keyspace
-   * configured on the portal, and `analytics:read` returns only the end user's
-   * own verification events. An end user can never see another identity's keys
-   * or analytics.
+   * configured on the portal. An end user can never see another identity's
+   * keys.
    *
-   * Tab visibility is derived from the scopes:
-   * - Keys tab: any `keys:*` scope
-   * - Analytics tab: `analytics:read`
-   * - Docs tab: visible when any scope is present
+   * The portal currently exposes only the keys page, so these scopes gate
+   * what the end user can do there rather than which pages they see. Because
+   * rerolling is reached from that page, `keys:reroll` requires `keys:read`
+   * in the same session; requesting it alone is rejected.
+   *
+   * Each scope requires the equivalent permission on your own root key. See
+   * Required Permissions on this operation.
    */
   scopes: Array<Scope>;
   /**
@@ -50,6 +50,17 @@ export type V2PortalCreateSessionRequestBody = {
    * @remarks
    */
   preview?: boolean | undefined;
+  /**
+   * Absolute URL the end user is sent back to when they leave the portal, or
+   *
+   * @remarks
+   * when their session expires mid-visit. Set per session rather than per
+   * portal, so one portal can serve several entry points and return each user
+   * to the page they came from.
+   *
+   * When omitted, the portal shows no return link.
+   */
+  returnUrl?: string | undefined;
 };
 
 /** @internal */
@@ -63,6 +74,7 @@ export type V2PortalCreateSessionRequestBody$Outbound = {
   externalId: string;
   scopes: Array<string>;
   preview: boolean;
+  returnUrl?: string | undefined;
 };
 
 /** @internal */
@@ -75,6 +87,7 @@ export const V2PortalCreateSessionRequestBody$outboundSchema: z.ZodType<
   externalId: z.string(),
   scopes: z.array(Scope$outboundSchema),
   preview: z.boolean().default(false),
+  returnUrl: z.string().optional(),
 });
 
 export function v2PortalCreateSessionRequestBodyToJSON(

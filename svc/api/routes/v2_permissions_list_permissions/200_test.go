@@ -13,6 +13,7 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_list_permissions"
 
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
@@ -28,6 +29,8 @@ func TestSuccess(t *testing.T) {
 
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspace.ID)
+	require.NoError(t, err)
 
 	// Create a root key with appropriate permissions
 	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.read_permission")
@@ -53,9 +56,10 @@ func TestSuccess(t *testing.T) {
 
 	// Insert test permissions into the database
 	for i, perm := range testPermissions {
-		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: perm.ID,
 			WorkspaceID:  workspace.ID,
+			ProjectID:    projectID,
 			Name:         perm.Name,
 			Slug:         fmt.Sprintf("test-permission-%d", i+1),
 			Description:  dbtype.NullString{Valid: true, String: perm.Description},
@@ -66,9 +70,12 @@ func TestSuccess(t *testing.T) {
 
 	// Create permissions in a different workspace to test isolation
 	otherWorkspace := h.CreateWorkspace()
-	err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+	otherProjectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), otherWorkspace.ID)
+	require.NoError(t, err)
+	err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 		PermissionID: uid.New(uid.PermissionPrefix),
 		WorkspaceID:  otherWorkspace.ID,
+		ProjectID:    otherProjectID,
 		Name:         "other.workspace.permission",
 		Slug:         "other-workspace-permission",
 		Description:  dbtype.NullString{Valid: true, String: "This permission is in a different workspace"},
@@ -143,6 +150,7 @@ func TestSuccess(t *testing.T) {
 			err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 				PermissionID: permID,
 				WorkspaceID:  workspace.ID,
+				ProjectID:    projectID,
 				Name:         fmt.Sprintf("bulk.permission.%d", i),
 				Slug:         fmt.Sprintf("bulk-permission-%d", i),
 				Description:  dbtype.NullString{Valid: true, String: fmt.Sprintf("Bulk permission %d", i)},
@@ -194,6 +202,8 @@ func TestSuccess(t *testing.T) {
 	t.Run("search", func(t *testing.T) {
 		// Fresh workspace so search results are not polluted by other subtests
 		searchWorkspace := h.CreateWorkspace()
+		searchProjectID, projectErr := projects.EnsureDefaultProject(ctx, h.DB.RW(), searchWorkspace.ID)
+		require.NoError(t, projectErr)
 		searchKey := h.CreateRootKey(searchWorkspace.ID, "rbac.*.read_permission")
 		searchHeaders := http.Header{
 			"Content-Type":  {"application/json"},
@@ -216,6 +226,7 @@ func TestSuccess(t *testing.T) {
 			err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 				PermissionID: permissionID,
 				WorkspaceID:  searchWorkspace.ID,
+				ProjectID:    searchProjectID,
 				Name:         perm.Name,
 				Slug:         perm.Slug,
 				Description:  dbtype.NullString{Valid: true, String: perm.Description},

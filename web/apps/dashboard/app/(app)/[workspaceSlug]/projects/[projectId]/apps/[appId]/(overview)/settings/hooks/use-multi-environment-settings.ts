@@ -2,6 +2,7 @@
 
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
+import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useAppId, useProjectData } from "../../data-provider";
 
@@ -22,8 +23,8 @@ export function useMultiEnvironmentSettings(): MultiEnvironmentSettings | null {
     [projectId, appId],
   );
 
-  const productionEnvId = environments.find((e) => e.kind === "production")?.id;
-  const previewEnvId = environments.find((e) => e.kind === "preview")?.id;
+  const productionEnvId = environments.find((e) => e.kind === ENVIRONMENT_KIND.production)?.id;
+  const previewEnvId = environments.find((e) => e.kind === ENVIRONMENT_KIND.preview)?.id;
 
   const production = data?.find((s) => s.environmentId === productionEnvId);
   const preview = data?.find((s) => s.environmentId === previewEnvId);

@@ -11,7 +11,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -38,7 +41,6 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.deleteRole")
 
-	// 1. Authentication
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
@@ -49,19 +51,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Rbac,
-			ResourceID:   "*",
-			Action:       rbac.DeleteRole,
-		}),
-	))
-	if err != nil {
-		return err
-	}
-
 	role, err := db.Query.FindRoleByIdOrNameWithPerms(ctx, h.DB.RO(), db.FindRoleByIdOrNameWithPermsParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Search:      req.Role,
 	})
 	if err != nil {
@@ -77,6 +68,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	deleteRole := rbac.U(
+		urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(role.ProjectID).RBAC().Role(role.ID),
+		permissions.Delete,
+	)
+	err = principal.Authorize(rbac.Or(
+		deleteRole,
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Rbac,
+			ResourceID:   "*",
+			Action:       rbac.DeleteRole,
+		}),
+	))
+	if err != nil {
+		return apierrors.MaskInsufficientPermissionsAsNotFound(
+			err,
+			codes.Data.Role.NotFound.URN(),
+			"The requested role does not exist.",
+		)
+	}
+
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err = db.Query.DeleteRoleByID(ctx, tx, role.ID)
 		if err != nil {
@@ -88,7 +99,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.RoleDeleteEvent,
 				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 				ActorID:       principal.Subject.ID,
@@ -122,7 +133,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// 7. Return success response
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),

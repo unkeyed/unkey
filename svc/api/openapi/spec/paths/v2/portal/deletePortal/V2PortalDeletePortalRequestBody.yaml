@@ -1,0 +1,16 @@
+type: object
+required:
+  - portal
+properties:
+  portal:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+additionalProperties: false
+examples:
+  byId:
+    summary: Delete by id
+    value:
+      portal: pc_1234abcd
+  bySlug:
+    summary: Delete by slug
+    value:
+      portal: acme-portal

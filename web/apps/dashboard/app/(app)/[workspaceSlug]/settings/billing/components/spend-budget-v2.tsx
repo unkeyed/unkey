@@ -3,7 +3,15 @@
 import { Switch } from "@/components/ui/switch";
 import { formatDollars } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { Button, DialogContainer, FormInput, toast } from "@unkey/ui";
+import {
+  Button,
+  DialogContainer,
+  FormField,
+  InputGroup,
+  InputGroupInput,
+  InputGroupText,
+  toast,
+} from "@unkey/ui";
 import { useState } from "react";
 import { ALERT_STEPS } from "./constants";
 
@@ -108,26 +116,37 @@ export function SpendBudgetDialog({ open, onOpenChange }: SpendBudgetDialogProps
       }
     >
       <div className="flex flex-col gap-5">
-        <FormInput
+        <FormField
           label="Monthly budget"
           description={`We email you when your usage spend reaches ${ALERT_STEPS_LABEL} of this amount. Leave empty for no budget.`}
-          placeholder="300"
-          prefix="$"
-          inputMode="numeric"
-          value={budgetInput}
-          onChange={(e) => {
-            const next = e.currentTarget.value;
-            setBudgetDraft(next);
-            if (parseDollars(next) === null) {
-              setStopDraft(false);
-            }
-          }}
           error={
             budgetCents === undefined
               ? "Enter a whole dollar amount up to $10,000,000, or leave empty."
               : undefined
           }
-        />
+        >
+          {(field) => (
+            <InputGroup variant={field.variant}>
+              <InputGroupText className="pl-2">$</InputGroupText>
+              <InputGroupInput
+                id={field.id}
+                className="pl-px"
+                placeholder="300"
+                inputMode="numeric"
+                value={budgetInput}
+                aria-describedby={field.describedBy}
+                aria-invalid={field.invalid}
+                onChange={(e) => {
+                  const next = e.currentTarget.value;
+                  setBudgetDraft(next);
+                  if (parseDollars(next) === null) {
+                    setStopDraft(false);
+                  }
+                }}
+              />
+            </InputGroup>
+          )}
+        </FormField>
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
             <span className="text-[13px] text-gray-12">Stop workloads at the budget</span>

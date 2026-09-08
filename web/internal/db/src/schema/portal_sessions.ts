@@ -80,6 +80,22 @@ export const portalSessions = mysqlTable(
     uniqueIndex("idx_exchange_code_hash").on(table.exchangeCodeHash),
     uniqueIndex("idx_access_token_hash").on(table.accessTokenHash),
     index("idx_workspace").on(table.workspaceId),
+    /**
+     * Serves the revocation write that runs when a portal is deleted or
+     * re-pointed at another resource.
+     *
+     * Without it the only usable index is `idx_workspace`, so that UPDATE
+     * examines and locks every session row the workspace has ever created —
+     * including other portals' sessions and already-revoked ones — inside the
+     * same transaction as the delete, on the one table every end-user portal
+     * request reads. Under the route's one-minute budget a large tenant can time
+     * out and roll the whole delete back, leaving the operator unable to delete
+     * the portal or revoke its sessions, on a non-retrying path.
+     *
+     * `revoked_at` is second so the predicate is covered end to end: revocation
+     * filters on it, and the reader checks it on every session lookup.
+     */
+    index("idx_portal_revoked").on(table.portalId, table.revokedAt),
     index("idx_external_id").on(table.externalId),
     index("idx_exchange_code_expires").on(table.exchangeCodeExpiresAt),
     index("idx_access_token_expires").on(table.accessTokenExpiresAt),

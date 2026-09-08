@@ -10,13 +10,13 @@ import (
 )
 
 const findWorkspaceByID = `-- name: FindWorkspaceByID :one
-SELECT pk, id, org_id, name, slug, k8s_namespace, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM ` + "`" + `workspaces` + "`" + `
+SELECT workspaces.pk, workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.beta_features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m FROM ` + "`" + `workspaces` + "`" + `
 WHERE id = ?
 `
 
 // FindWorkspaceByID
 //
-//	SELECT pk, id, org_id, name, slug, k8s_namespace, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+//	SELECT workspaces.pk, workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.beta_features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m FROM `workspaces`
 //	WHERE id = ?
 func (q *Queries) FindWorkspaceByID(ctx context.Context, id string) (Workspace, error) {
 	row := q.db.QueryRowContext(ctx, findWorkspaceByID, id)

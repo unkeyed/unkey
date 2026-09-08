@@ -4,7 +4,7 @@ import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
 import { Check, Minus } from "@unkey/icons";
 import type { IconProps } from "@unkey/icons/src/props";
 import { type VariantProps, cva } from "class-variance-authority";
-import * as React from "react";
+import type * as React from "react";
 import { cn } from "../../lib/utils";
 
 const checkboxVariants = cva(
@@ -290,59 +290,64 @@ export type CheckboxProps = VariantProps<typeof checkboxVariants> &
      * Whether the checkbox is checked. Accepts `"indeterminate"` for the mixed state.
      */
     checked?: CheckedState;
+    ref?: React.Ref<React.ComponentRef<typeof CheckboxPrimitive.Root>>;
   };
 
-const Checkbox = React.forwardRef<React.ComponentRef<typeof CheckboxPrimitive.Root>, CheckboxProps>(
-  ({ className, variant, color = "default", size, checked, ...props }, ref) => {
-    let mappedVariant: CheckboxVariant = "primary";
-    let mappedColor: CheckboxColor = color;
+function Checkbox({
+  className,
+  variant,
+  color = "default",
+  size,
+  checked,
+  ref,
+  ...props
+}: CheckboxProps) {
+  let mappedVariant: CheckboxVariant = "primary";
+  let mappedColor: CheckboxColor = color;
 
-    if (variant === null || variant === undefined) {
-      mappedVariant = "primary";
-    } else if (VARIANT_MAP[variant as keyof typeof VARIANT_MAP]) {
-      const mapping = VARIANT_MAP[variant as keyof typeof VARIANT_MAP];
-      mappedVariant = mapping.variant;
-      if (mapping.color) {
-        mappedColor = mapping.color;
-      }
-    } else {
-      mappedVariant = variant as CheckboxVariant;
+  if (variant === null || variant === undefined) {
+    mappedVariant = "primary";
+  } else if (VARIANT_MAP[variant as keyof typeof VARIANT_MAP]) {
+    const mapping = VARIANT_MAP[variant as keyof typeof VARIANT_MAP];
+    mappedVariant = mapping.variant;
+    if (mapping.color) {
+      mappedColor = mapping.color;
     }
+  } else {
+    mappedVariant = variant as CheckboxVariant;
+  }
 
-    const iconSize = getIconSize(size);
+  const iconSize = getIconSize(size);
 
-    const checkmarkColor =
-      mappedColor === "default" && mappedVariant === "primary"
-        ? "text-white dark:text-black"
-        : "text-white";
+  const checkmarkColor =
+    mappedColor === "default" && mappedVariant === "primary"
+      ? "text-white dark:text-black"
+      : "text-white";
 
-    const indeterminate = checked === "indeterminate";
-    const checkedValue = checked === "indeterminate" ? false : checked;
+  const indeterminate = checked === "indeterminate";
+  const checkedValue = checked === "indeterminate" ? false : checked;
 
-    return (
-      <CheckboxPrimitive.Root
-        ref={ref}
-        checked={checkedValue}
-        indeterminate={indeterminate}
-        className={cn(
-          checkboxVariants({
-            variant: mappedVariant,
-            color: mappedColor,
-            size,
-            className,
-          }),
-        )}
-        {...props}
-      >
-        <CheckboxPrimitive.Indicator className={cn(checkmarkVariants(), checkmarkColor)}>
-          <Check iconSize={iconSize} className="hidden group-data-checked:block" />
-          <Minus iconSize={iconSize} className="hidden group-data-indeterminate:block" />
-        </CheckboxPrimitive.Indicator>
-      </CheckboxPrimitive.Root>
-    );
-  },
-);
-
-Checkbox.displayName = "Checkbox";
+  return (
+    <CheckboxPrimitive.Root
+      ref={ref}
+      checked={checkedValue}
+      indeterminate={indeterminate}
+      className={cn(
+        checkboxVariants({
+          variant: mappedVariant,
+          color: mappedColor,
+          size,
+          className,
+        }),
+      )}
+      {...props}
+    >
+      <CheckboxPrimitive.Indicator className={cn(checkmarkVariants(), checkmarkColor)}>
+        <Check iconSize={iconSize} className="hidden group-data-checked:block" />
+        <Minus iconSize={iconSize} className="hidden group-data-indeterminate:block" />
+      </CheckboxPrimitive.Indicator>
+    </CheckboxPrimitive.Root>
+  );
+}
 
 export { Checkbox, checkboxVariants };

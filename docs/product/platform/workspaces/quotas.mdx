@@ -5,7 +5,7 @@ description: "Review the default limits enforced on your Unkey workspace includi
 
 Every workspace has limits that define its operational boundaries. Limits control how many API requests you can make, how long Unkey retains your data, and how many resources your deployments can consume.
 
-When you [upgrade your plan](/platform/workspaces/billing#upgrade-your-plan), Unkey updates your workspace limits immediately. When you [downgrade or cancel](/platform/workspaces/billing#downgrade-or-cancel), limits revert to Free plan defaults at the end of the billing period.
+When you [upgrade your plan](/platform/workspaces/billing/api#choose-or-change-a-plan), Unkey updates your workspace limits immediately. When you [downgrade or cancel](/platform/workspaces/billing/api#cancel), limits revert to Free plan defaults at the end of the billing period.
 
 
 <Tip>
@@ -53,6 +53,14 @@ If a new deployment would push the workspace's total CPU usage beyond the limit,
 How much memory your workspace can allocate across all running deployments at the same time.
 
 If a new deployment would push the workspace's total memory usage beyond the limit, Unkey rejects the deployment. To free up capacity, scale down or remove existing deployments.
+
+## Custom domains
+
+How many custom domains your workspace can use. The limit applies to the workspace. It does not apply to one app or to one environment.
+
+The Free plan does not include custom domains. The paid plans include custom domains.
+
+Unkey refuses a new domain if the workspace is at the limit. To get free capacity, [remove a custom domain](/networking/domains) that you do not need. You can also upgrade your plan.
 
 ## Workspace API rate limit
 

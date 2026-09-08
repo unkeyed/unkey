@@ -22,6 +22,7 @@ export const setDefaultApiPrefix = workspaceProcedure
             eq(table.id, input.keyAuthId),
             isNull(table.deletedAtM),
           ),
+        columns: { id: true, defaultPrefix: true },
       })
       .catch((_err) => {
         throw new TRPCError({

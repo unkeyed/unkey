@@ -3,9 +3,8 @@ package keys
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
@@ -35,12 +34,13 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/set
 			"unkey api keys set-permissions --key-id=key_1234abcd --permissions=documents.read,documents.write,settings.view",
 		},
 		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 			util.RootKeyFlag(),
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("key-id", "The key ID to set permissions on.", cli.Required()),
-			cli.StringSlice("permissions", "Comma-separated list of permissions. Replaces all existing permissions.", cli.Required()),
+			cli.String("key-id", "The key ID to set permissions on.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.StringSlice("permissions", "Comma-separated list of permissions. Replaces all existing permissions.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
@@ -48,7 +48,15 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/set
 				return err
 			}
 
-			start := time.Now()
+			if cmd.FlagIsSet("body") {
+				body := cmd.String("body")
+				res, err := util.SendBody(ctx, client.Keys.SetPermissions, body)
+				if err != nil {
+					return err
+				}
+				return util.Output(cmd, res.V2KeysSetPermissionsResponseBody)
+			}
+
 			req := components.V2KeysSetPermissionsRequestBody{
 				KeyID:       cmd.String("key-id"),
 				Permissions: cmd.StringSlice("permissions"),
@@ -58,7 +66,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/set
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))
 			}
-			return util.Output(cmd, res.V2KeysSetPermissionsResponseBody, time.Since(start))
+			return util.Output(cmd, res.V2KeysSetPermissionsResponseBody)
 		},
 	}
 }

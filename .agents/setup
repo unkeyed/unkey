@@ -1,15 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if ! command -v setfacl >/dev/null 2>&1; then
-  sudo apt-get update
-  sudo apt-get install -y acl
-fi
+export DEBIAN_FRONTEND=noninteractive
 
 echo "Installing Docker Engine and Compose..."
+docker_started_at=$SECONDS
 if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
-  sudo apt-get update
-  sudo apt-get install -y ca-certificates curl
+  missing_prerequisites=()
+  for package in ca-certificates curl; do
+    if ! dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -Fqx 'install ok installed'; then
+      missing_prerequisites+=("$package")
+    fi
+  done
+  if ((${#missing_prerequisites[@]} > 0)); then
+    sudo apt-get update
+    sudo apt-get install -y "${missing_prerequisites[@]}"
+  fi
+
   sudo install -m 0755 -d /etc/apt/keyrings
   sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
   sudo chmod a+r /etc/apt/keyrings/docker.asc
@@ -24,8 +31,13 @@ if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>
     docker-buildx-plugin \
     docker-ce \
     docker-ce-cli \
-    docker-compose-plugin
+    docker-compose-plugin \
+    acl
+elif ! command -v setfacl >/dev/null 2>&1; then
+  sudo apt-get update
+  sudo apt-get install -y acl
 fi
+echo "Docker installation completed in $((SECONDS - docker_started_at))s."
 
 echo "Starting Docker..."
 sudo systemctl start docker
@@ -38,13 +50,17 @@ sudo setfacl -m "u:$(id -un):rw" /var/run/docker.sock
 printf '1024\n' | sudo tee /proc/sys/fs/inotify/max_user_instances >/dev/null
 
 echo "Installing the pinned mise binary and toolchain..."
+toolchain_started_at=$SECONDS
 ./dev/install-mise
 mise="$HOME/.local/bin/mise"
 "$mise" trust .mise/config.toml
 "$mise" install --locked --yes
+echo "Toolchain installation completed in $((SECONDS - toolchain_started_at))s."
 
 echo "Installing web dependencies..."
+web_started_at=$SECONDS
 "$mise" run install-web
+echo "Web dependency installation completed in $((SECONDS - web_started_at))s."
 
 echo "Creating local web environment files when missing..."
 if [ ! -f web/apps/dashboard/.env ]; then
@@ -64,8 +80,4 @@ if [ ! -f dev/.env.depot ] && [ -n "${UNKEY_DEPOT_TOKEN:-}" ]; then
   )
 fi
 
-echo "Preparing the orb Kubernetes cluster..."
-"$mise" exec -- ctlptl apply -f dev/cluster.orb.yaml
-"$mise" exec -- minikube addons enable metrics-server
-
-echo "Orb setup complete. Run the Go suite with 'mise run test'."
+echo "Orb setup complete. Start the development services with 'amp orb services ensure'."

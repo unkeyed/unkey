@@ -1,6 +1,6 @@
 import type { CustomDomain, Domain } from "@/lib/collections";
 import { describe, expect, test } from "vitest";
-import { getAppOverviewDomains, getDomainPriority } from "./domain-priority";
+import { getDomainPriority } from "./domain-priority";
 
 function makeDomain(overrides: Partial<Domain> = {}): Domain {
   return {
@@ -21,17 +21,11 @@ function makeCustomDomain(overrides: Partial<CustomDomain> = {}): CustomDomain {
   return {
     id: "cd-1",
     domain: "custom.example.com",
-    workspaceId: "ws-1",
     projectId: "proj-1",
     appId: "app-1",
     environmentId: "env-1",
     verificationStatus: "verified",
-    verificationToken: "tok",
-    ownershipVerified: true,
-    cnameVerified: true,
-    targetCname: "target.example.com",
-    checkAttempts: 0,
-    lastCheckedAt: null,
+    dnsRecords: [],
     verificationError: null,
     domainConnectProvider: null,
     domainConnectUrl: null,
@@ -48,26 +42,6 @@ const baseCtx = {
   deploymentId: "dep-current",
   currentDeploymentId: "dep-current" as string | null,
 };
-
-test("getAppOverviewDomains includes app aliases and the displayed deployment's immutable URLs", () => {
-  const domains = [
-    makeDomain({ id: "current-commit", deploymentId: "dep-current", sticky: "none" }),
-    makeDomain({ id: "current-deployment", deploymentId: "dep-current", sticky: "deployment" }),
-    makeDomain({ id: "other-branch", deploymentId: "dep-other", sticky: "branch" }),
-    makeDomain({ id: "other-environment", deploymentId: "dep-other", sticky: "environment" }),
-    makeDomain({ id: "other-live", deploymentId: "dep-other", sticky: "live" }),
-    makeDomain({ id: "other-commit", deploymentId: "dep-other", sticky: "none" }),
-    makeDomain({ id: "other-deployment", deploymentId: "dep-other", sticky: "deployment" }),
-  ];
-
-  expect(getAppOverviewDomains(domains, "dep-current").map((domain) => domain.id)).toEqual([
-    "current-commit",
-    "current-deployment",
-    "other-branch",
-    "other-environment",
-    "other-live",
-  ]);
-});
 
 describe("getDomainPriority", () => {
   const cases = [

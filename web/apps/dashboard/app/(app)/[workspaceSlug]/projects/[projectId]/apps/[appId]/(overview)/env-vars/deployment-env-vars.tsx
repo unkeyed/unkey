@@ -14,10 +14,9 @@ import {
 type EnvVarsBodyProps = {
   isAddOpen: boolean;
   onCloseAdd: () => void;
-  panelTopOffset: number;
 };
 
-export function EnvVarsBody({ isAddOpen, onCloseAdd, panelTopOffset }: EnvVarsBodyProps) {
+export function EnvVarsBody({ isAddOpen, onCloseAdd }: EnvVarsBodyProps) {
   const { projectId, appId, environments } = useProjectData();
   const [searchQuery, setSearchQuery] = useState("");
   const [environmentFilter, setEnvironmentFilter] = useState<EnvironmentFilter>("all");
@@ -32,7 +31,6 @@ export function EnvVarsBody({ isAddOpen, onCloseAdd, panelTopOffset }: EnvVarsBo
       <AddEnvVarExpandable
         projectId={projectId}
         appId={appId}
-        tableDistanceToTop={panelTopOffset}
         isOpen={isAddOpen}
         onClose={onCloseAdd}
       />
@@ -68,11 +66,7 @@ export function DeploymentEnvVars() {
   return (
     <div className="flex flex-col gap-5">
       <EnvVarsHeader isAddOpen={isAddOpen} onToggleAdd={() => setIsAddOpen((prev) => !prev)} />
-      <EnvVarsBody
-        isAddOpen={isAddOpen}
-        onCloseAdd={() => setIsAddOpen(false)}
-        panelTopOffset={0}
-      />
+      <EnvVarsBody isAddOpen={isAddOpen} onCloseAdd={() => setIsAddOpen(false)} />
     </div>
   );
 }

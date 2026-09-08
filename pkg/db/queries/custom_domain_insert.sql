@@ -13,6 +13,8 @@ INSERT INTO custom_domains (
     cname_verified,
     target_cname,
     verification_error,
+    domain_connect_provider,
+    domain_connect_url,
     last_checked_at,
     created_at
 ) VALUES (
@@ -29,6 +31,8 @@ INSERT INTO custom_domains (
     sqlc.arg(cname_verified),
     sqlc.arg(target_cname),
     sqlc.arg(verification_error),
+    sqlc.arg(domain_connect_provider),
+    sqlc.arg(domain_connect_url),
     sqlc.arg(last_checked_at),
     sqlc.arg(created_at)
 );

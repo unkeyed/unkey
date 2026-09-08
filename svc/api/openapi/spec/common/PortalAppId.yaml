@@ -1,0 +1,10 @@
+type: string
+minLength: 1
+maxLength: 255
+pattern: "^[a-zA-Z0-9_-]+$"
+description: |
+  The id of the app this portal serves keys for. Must belong to your workspace.
+
+  A portal serves exactly one resource, so `appId` and `keyspaceId` are mutually
+  exclusive.
+example: app_1234abcd

@@ -28,6 +28,7 @@ export const getDeploymentBuildSteps = workspaceProcedure
     const deployment = await db.query.deployments.findFirst({
       where: (table, { and, eq }) =>
         and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
+      columns: { workspaceId: true, projectId: true },
     });
     if (!deployment) {
       throw new TRPCError({

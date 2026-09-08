@@ -23,6 +23,8 @@ const findCustomDomainByIdentifier = `-- name: FindCustomDomainByIdentifier :one
     cd_by_id.cname_verified,
     cd_by_id.target_cname,
     cd_by_id.verification_error,
+    cd_by_id.domain_connect_provider,
+    cd_by_id.domain_connect_url,
     cd_by_id.last_checked_at,
     cd_by_id.created_at,
     cd_by_id.updated_at
@@ -42,6 +44,8 @@ UNION ALL
     cd_by_name.cname_verified,
     cd_by_name.target_cname,
     cd_by_name.verification_error,
+    cd_by_name.domain_connect_provider,
+    cd_by_name.domain_connect_url,
     cd_by_name.last_checked_at,
     cd_by_name.created_at,
     cd_by_name.updated_at
@@ -57,20 +61,22 @@ type FindCustomDomainByIdentifierParams struct {
 }
 
 type FindCustomDomainByIdentifierRow struct {
-	ID                 string                          `db:"id"`
-	ProjectID          string                          `db:"project_id"`
-	AppID              string                          `db:"app_id"`
-	EnvironmentID      string                          `db:"environment_id"`
-	Domain             string                          `db:"domain"`
-	VerificationStatus CustomDomainsVerificationStatus `db:"verification_status"`
-	VerificationToken  string                          `db:"verification_token"`
-	OwnershipVerified  bool                            `db:"ownership_verified"`
-	CnameVerified      bool                            `db:"cname_verified"`
-	TargetCname        string                          `db:"target_cname"`
-	VerificationError  sql.NullString                  `db:"verification_error"`
-	LastCheckedAt      sql.NullInt64                   `db:"last_checked_at"`
-	CreatedAt          int64                           `db:"created_at"`
-	UpdatedAt          sql.NullInt64                   `db:"updated_at"`
+	ID                    string                          `db:"id"`
+	ProjectID             string                          `db:"project_id"`
+	AppID                 string                          `db:"app_id"`
+	EnvironmentID         string                          `db:"environment_id"`
+	Domain                string                          `db:"domain"`
+	VerificationStatus    CustomDomainsVerificationStatus `db:"verification_status"`
+	VerificationToken     string                          `db:"verification_token"`
+	OwnershipVerified     bool                            `db:"ownership_verified"`
+	CnameVerified         bool                            `db:"cname_verified"`
+	TargetCname           string                          `db:"target_cname"`
+	VerificationError     sql.NullString                  `db:"verification_error"`
+	DomainConnectProvider sql.NullString                  `db:"domain_connect_provider"`
+	DomainConnectUrl      sql.NullString                  `db:"domain_connect_url"`
+	LastCheckedAt         sql.NullInt64                   `db:"last_checked_at"`
+	CreatedAt             int64                           `db:"created_at"`
+	UpdatedAt             sql.NullInt64                   `db:"updated_at"`
 }
 
 // Identifier is either a domain id or a domain name. Each UNION branch hits its own
@@ -91,6 +97,8 @@ type FindCustomDomainByIdentifierRow struct {
 //	    cd_by_id.cname_verified,
 //	    cd_by_id.target_cname,
 //	    cd_by_id.verification_error,
+//	    cd_by_id.domain_connect_provider,
+//	    cd_by_id.domain_connect_url,
 //	    cd_by_id.last_checked_at,
 //	    cd_by_id.created_at,
 //	    cd_by_id.updated_at
@@ -110,6 +118,8 @@ type FindCustomDomainByIdentifierRow struct {
 //	    cd_by_name.cname_verified,
 //	    cd_by_name.target_cname,
 //	    cd_by_name.verification_error,
+//	    cd_by_name.domain_connect_provider,
+//	    cd_by_name.domain_connect_url,
 //	    cd_by_name.last_checked_at,
 //	    cd_by_name.created_at,
 //	    cd_by_name.updated_at
@@ -137,6 +147,8 @@ func (q *Queries) FindCustomDomainByIdentifier(ctx context.Context, db DBTX, arg
 		&i.CnameVerified,
 		&i.TargetCname,
 		&i.VerificationError,
+		&i.DomainConnectProvider,
+		&i.DomainConnectUrl,
 		&i.LastCheckedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,

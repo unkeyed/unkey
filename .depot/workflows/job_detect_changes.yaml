@@ -86,7 +86,6 @@ jobs:
               - 'internal/**'
               - 'proto/**'
               - 'gen/**'
-              - 'demo_api/**'
               - 'test-docker/**'
               - 'go.mod'
               - 'go.sum'

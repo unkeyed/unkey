@@ -26,11 +26,13 @@ sequenceDiagram
   alt local instance available
     Frontline->>Instance: Evaluate policies, then proxy (HTTP)
   else no local instance
-    Frontline->>Remote: Forward to region (HTTPS)
+    Frontline->>Remote: Forward with signed metadata (HTTPS)
   end
 ```
 
 ## Routing decisions
+
+Frontline uses deployment state and regional proximity to select a destination.
 
 - Frontline looks up the route by FQDN in the database and parses the deployment's policies.
 - If the deployment has a running instance in the current region, it proxies locally, trying instances in shuffled order.
@@ -40,17 +42,48 @@ sequenceDiagram
 
 When forwarding to another region, Frontline targets:
 
-```
+```plaintext
 https://frontline.<region>.<apexDomain>
 ```
 
 The original hostname is preserved so the remote Frontline can perform TLS termination, policy evaluation, and instance selection.
 
+Frontline sends `X-Unkey-Frontline-Meta` to the peer. The header contains an
+PASETO v4.public token with an expiry time and an ordered hop history. Each hop
+contains the region, request ID, Frontline ID, and forward time as Unix
+milliseconds. The complete header value cannot exceed 4,096 bytes.
+
+The following flow shows how Frontline handles the metadata.
+
+```mermaid
+flowchart TD
+  request["Receive request"] --> header{"Metadata present?"}
+  header -- No --> zero["Use empty hop history"]
+  header -- Yes --> remove["Remove metadata header"]
+  remove --> verify{"One value with valid signature, expiry, and size?"}
+  verify -- No --> zero
+  verify -- Yes --> read["Read signed hop history"]
+  zero --> route["Route request"]
+  read --> route
+  route --> destination{"Destination?"}
+  destination -- Instance --> strip["Forward without metadata"]
+  destination -- Peer --> limit{"History length at hop limit?"}
+  limit -- Yes --> reject["Return routing limit error"]
+  limit -- No --> sign["Append current hop<br/>Set expiry<br/>Sign metadata"]
+  sign --> peer["Forward to peer Frontline"]
+```
+
 ## Hop limits
 
-Frontline enforces a maximum hop count to prevent routing loops. When the `X-Unkey-Frontline-Hops` header reaches `max_hops`, the request is rejected.
+Frontline enforces a maximum hop count to prevent routing loops. The signed
+`X-Unkey-Frontline-Meta` header carries the hop history. The history length is
+the hop count. Frontline rejects a cross-region forward when the length reaches
+`max_hops`. It preserves duplicate regions because they show routing loops.
+Frontline appends the current hop, replaces the token, and sets the expiry to 1
+minute in the future on each forward.
 
-Hop header: `X-Unkey-Frontline-Hops`.
+Frontline removes invalid metadata and treats it as absent for all requests.
+This rule prevents a client-controlled header from blocking service.
 
 ## TLS certificate selection
 

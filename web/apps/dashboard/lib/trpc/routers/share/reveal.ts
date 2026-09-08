@@ -21,7 +21,11 @@ export const revealSharedSecret = publicProcedure
   .mutation(async ({ ctx, input }): Promise<RevealResult> => {
     return db.transaction(async (tx): Promise<RevealResult> => {
       const [row] = await tx
-        .select()
+        .select({
+          workspaceId: schema.sharedSecrets.workspaceId,
+          expiresAt: schema.sharedSecrets.expiresAt,
+          encrypted: schema.sharedSecrets.encrypted,
+        })
         .from(schema.sharedSecrets)
         .where(eq(schema.sharedSecrets.id, input.id))
         .for("update");

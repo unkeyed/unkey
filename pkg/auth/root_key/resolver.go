@@ -47,9 +47,10 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 		Source: principal.KeySource{
 			KeyID:       key.Key.ID,
 			KeySpaceID:  key.Key.KeyAuthID,
+			WorkspaceID: key.Key.WorkspaceID,
 			Permissions: key.Permissions,
 		},
-		WorkspaceID: key.AuthorizedWorkspaceID,
-		Permissions: key.Permissions,
+		AuthorizedWorkspaceID: key.AuthorizedWorkspaceID,
+		Permissions:           key.Permissions,
 	}, nil
 }

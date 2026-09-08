@@ -18,6 +18,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
+	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -108,7 +109,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
-	buildinfo.RegisterBuildInfoMetrics("ctrl")
+	buildinfometrics.Register("ctrl")
 
 	// Initialize database
 	database, err := db.New(cfg.Database, sqlcomment.ForService("ctrl-api", cfg.Region))
@@ -142,6 +143,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create topology cache: %w", err)
 	}
+	r.Defer(func() error { topologyCache.Close(); return nil })
 
 	// Set up the ClickHouse buffer that absorbs container lifecycle events
 	// reported by krane. Falls back to a noop when no URL is configured so
@@ -197,6 +199,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create domain cache: %w", err)
 	}
+	r.Defer(func() error { domainCache.Close(); return nil })
 
 	challengeCache, err := cache.New(cache.Config[string, db.AcmeChallenge]{
 		Fresh:    10 * time.Second,
@@ -208,6 +211,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create challenge cache: %w", err)
 	}
+	r.Defer(func() error { challengeCache.Close(); return nil })
 
 	// Create GitHub client for deployment authorization (optional)
 	var ghClient githubclient.GitHubClient = githubclient.NewNoop()
@@ -244,7 +248,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Auditlogs:                       auditlogSvc,
 		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
 		Bearer:                          cfg.AuthToken,
-		EnforceDeployGate:               cfg.DeployGate.Enforce,
 	})
 	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deploymentSvc))
 	mux.Handle(ctrlv1connect.NewOpsServiceHandler(ops.New(ops.Config{
@@ -292,11 +295,10 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 	mux.Handle(ctrlv1connect.NewAppServiceHandler(appSvc))
 	mux.Handle(ctrlv1connect.NewProjectServiceHandler(project.New(project.Config{
-		Database:          database,
-		Restate:           restateClient,
-		Bearer:            cfg.AuthToken,
-		EnforceDeployGate: cfg.DeployGate.Enforce,
-		Auditlogs:         auditlogSvc,
+		Database:  database,
+		Restate:   restateClient,
+		Bearer:    cfg.AuthToken,
+		Auditlogs: auditlogSvc,
 	})))
 
 	if cfg.GitHub.WebhookSecret != "" {
@@ -396,9 +398,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Wait for signal and handle shutdown
 	logger.Info("Ctrl server started successfully")
+	// r.Wait already logs shutdown failures; just add context and propagate.
 	if err := r.Wait(ctx); err != nil {
-		logger.Error("Shutdown failed", "error", err)
-		return err
+		return fmt.Errorf("shutdown failed: %w", err)
 	}
 
 	logger.Info("Ctrl server shut down successfully")

@@ -4,6 +4,7 @@ import { getStripeClient } from "@/lib/stripe";
 import { upsertBillingSubscription } from "@/lib/stripe/billingSubscriptions";
 import {
   deployBillingConfig,
+  deployResumeSubscriptionParams,
   deploySubscriptionItems,
   findPlanFeeItem,
 } from "@/lib/stripe/deployBilling";
@@ -139,30 +140,20 @@ export const subscribeDeploy = workspaceProcedure
           });
         }
 
-        // Resume only at the SAME tier that was cancelled: proration "none" below
-        // keeps the plan fee already paid this period from re-invoicing, so
-        // repointing the fee at a different tier under "none" would grant the new
-        // tier for the old tier's payment. Route a tier change through
-        // changeDeployPlan (resume first, then switch) instead.
         const planFeeItem = findPlanFeeItem(config, sub.items.data);
-        if (!planFeeItem || planFeeItem.plan !== input.plan) {
+        if (!planFeeItem) {
           throw new TRPCError({
             code: "PRECONDITION_FAILED",
-            message: planFeeItem
-              ? `Your cancelled Compute plan is ${planFeeItem.plan}. Resume it by subscribing to ${planFeeItem.plan} again, then switch to ${input.plan}.`
-              : "Your cancelled Compute subscription has no plan fee to resume. Contact support@unkey.com.",
+            message:
+              "Your cancelled Compute subscription has no plan fee to resume. Contact support@unkey.com.",
           });
         }
 
         try {
-          await stripe.subscriptions.update(sub.id, {
-            // Clearing the pending cancellation resumes the plan. All items are
-            // still present (Deploy-only cancel keeps them), so nothing is
-            // re-attached; proration "none" keeps the paid fee from re-invoicing.
-            cancel_at_period_end: false,
-            proration_behavior: "none",
-            payment_behavior: "error_if_incomplete",
-          });
+          await stripe.subscriptions.update(
+            sub.id,
+            deployResumeSubscriptionParams(config, planFeeItem, input.plan),
+          );
         } catch (err) {
           throw toBillingError(err);
         }

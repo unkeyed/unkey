@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_list_roles"
@@ -27,11 +28,14 @@ func TestAuthorizationErrors(t *testing.T) {
 
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspace.ID)
+	require.NoError(t, err)
 
 	// Create some test roles to later try to list
-	err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+	err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 		RoleID:      uid.New(uid.TestPrefix),
 		WorkspaceID: workspace.ID,
+		ProjectID:   projectID,
 		Name:        "test.role.auth",
 		Description: sql.NullString{Valid: true, String: "Test role for authorization tests"},
 	})
@@ -66,11 +70,14 @@ func TestAuthorizationErrors(t *testing.T) {
 	t.Run("wrong workspace", func(t *testing.T) {
 		// Create a different workspace
 		otherWorkspace := h.CreateWorkspace()
+		otherProjectID, projectErr := projects.EnsureDefaultProject(ctx, h.DB.RW(), otherWorkspace.ID)
+		require.NoError(t, projectErr)
 
 		// Create roles in the other workspace
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      uid.New(uid.TestPrefix),
 			WorkspaceID: otherWorkspace.ID,
+			ProjectID:   otherProjectID,
 			Name:        "other.workspace.role",
 			Description: sql.NullString{Valid: true, String: "This role is in a different workspace"},
 		})
@@ -104,4 +111,31 @@ func TestAuthorizationErrors(t *testing.T) {
 			require.NotEqual(t, "other.workspace.role", role.Name)
 		}
 	})
+}
+
+// TestAuthorizationFailureDoesNotCreateDefaultProject guarantees that a denied
+// list request cannot mutate project state.
+func TestAuthorizationFailureDoesNotCreateDefaultProject(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	workspace := h.CreateWorkspace()
+	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.create_role")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+		h,
+		route,
+		headers,
+		handler.Request{},
+	)
+
+	require.Equal(t, http.StatusForbidden, res.Status, res.RawBody)
+	_, found, err := projects.FindDefaultProject(t.Context(), h.DB.RW(), workspace.ID)
+	require.NoError(t, err)
+	require.False(t, found)
 }

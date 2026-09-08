@@ -1,0 +1,97 @@
+---
+title: "update-settings"
+description: "Update settings with the Unkey API CLI"
+---
+
+Update selected build and runtime settings for an environment.
+
+## Usage
+
+```bash
+unkey api environments update-settings [flags]
+```
+
+## Flags
+
+<ParamField body="--project" type="string" required>
+Project identifier or slug.
+</ParamField>
+<ParamField body="--app" type="string" required>
+Application identifier or slug.
+</ParamField>
+<ParamField body="--environment" type="string" required>
+Environment identifier or slug.
+</ParamField>
+<ParamField body="--dockerfile" type="string">
+Dockerfile path.
+</ParamField>
+<ParamField body="--root-directory" type="string">
+Build root directory.
+</ParamField>
+<ParamField body="--build-command" type="string">
+Command used to build the app.
+</ParamField>
+<ParamField body="--watch-paths" type="string[]">
+Paths that trigger a deployment. Pass an empty value to clear the current paths.
+</ParamField>
+<ParamField body="--auto-deploy" type="bool">
+Whether pushes deploy automatically.
+</ParamField>
+<ParamField body="--port" type="integer">
+Container port.
+</ParamField>
+<ParamField body="--v-cpus" type="number">
+CPU allocation in vCPUs.
+</ParamField>
+<ParamField body="--memory-mib" type="integer">
+Memory allocation in MiB.
+</ParamField>
+<ParamField body="--storage-mib" type="integer">
+Storage allocation in MiB.
+</ParamField>
+<ParamField body="--command" type="string[]">
+Container command. Pass an empty value to clear the current command.
+</ParamField>
+<ParamField body="--healthcheck" type="JSON string">
+Healthcheck with method, path, intervalSeconds, timeoutSeconds, failureThreshold, and initialDelaySeconds.
+<Expandable title="JSON schema">The JSON object uses the properties and constraints listed above.</Expandable>
+</ParamField>
+<ParamField body="--shutdown-signal" type="string">
+Container shutdown signal. Valid choices are `SIGTERM`, `SIGINT`, `SIGQUIT`, and `SIGKILL`.
+</ParamField>
+<ParamField body="--upstream-protocol" type="string">
+Protocol used to reach the container. Valid choices are `http1` and `h2c`.
+</ParamField>
+<ParamField body="--openapi-spec-path" type="string">
+OpenAPI specification path.
+</ParamField>
+<ParamField body="--regions" type="JSON string">
+Regions with name and min/max replica bounds.
+<Expandable title="JSON schema">The JSON object uses the properties and constraints listed above.</Expandable>
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format - use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api environments update-settings --project=payments --app=payments-api \
+  --environment=production --port=8080 --shutdown-signal=SIGTERM \
+  --upstream-protocol=http1
+```
+</CodeGroup>
+
+<Note>
+  The current Go SDK can't represent explicit `null` values for `dockerfile`, `buildCommand`, `healthcheck`, or `openapiSpecPath`. Use the HTTP API directly to clear these settings.
+</Note>
+
+See the [Update settings API reference](https://www.unkey.com/docs/api-reference/v2/environments/update-settings).

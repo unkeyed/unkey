@@ -20,6 +20,10 @@ export const portals = mysqlTable(
     id: id("id").notNull().unique(),
     workspaceId: id("workspace_id").notNull(),
     slug: varchar("slug", { length: 64 }).notNull(),
+    // What end users see in the portal header and page titles. Held on the row
+    // rather than derived from the mapped app or keyspace, which has no name of
+    // its own that the customer controls.
+    displayName: varchar("display_name", { length: 64 }).notNull(),
     appId: id("app_id"),
     keyAuthId: id("key_auth_id"),
     enabled: boolean("enabled").notNull().default(true),

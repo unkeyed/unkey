@@ -12,12 +12,12 @@ func TestAuthorizeChecksPrincipalPermissions(t *testing.T) {
 
 	// Authorize must accept a principal whose permissions satisfy the query.
 	p := &Principal{
-		Version:     "",
-		Subject:     Subject{ID: "", Name: "", Type: ""},
-		Type:        TypeAPIKey,
-		Source:      KeySource{},
-		WorkspaceID: "",
-		Permissions: []string{"api.*.create_api"},
+		Version:               "",
+		Subject:               Subject{ID: "", Name: "", Type: ""},
+		Type:                  TypeAPIKey,
+		Source:                KeySource{},
+		AuthorizedWorkspaceID: "",
+		Permissions:           []string{"api.*.create_api"},
 	}
 
 	err := p.Authorize(rbac.T(rbac.Tuple{
@@ -27,4 +27,28 @@ func TestAuthorizeChecksPrincipalPermissions(t *testing.T) {
 	}))
 
 	require.NoError(t, err)
+}
+
+// TestAuthorizationErrorReturnsDenial guarantees request middleware can inspect
+// the authorization error after a handler returns it.
+func TestAuthorizationErrorReturnsDenial(t *testing.T) {
+	t.Parallel()
+
+	p := &Principal{
+		Version:               "",
+		Subject:               Subject{ID: "", Name: "", Type: ""},
+		Type:                  TypeAPIKey,
+		Source:                KeySource{},
+		AuthorizedWorkspaceID: "",
+		Permissions:           []string{},
+	}
+
+	err := p.Authorize(rbac.T(rbac.Tuple{
+		ResourceType: rbac.Api,
+		ResourceID:   "*",
+		Action:       rbac.CreateAPI,
+	}))
+
+	require.Error(t, err)
+	require.Equal(t, err, AuthorizationError(p))
 }

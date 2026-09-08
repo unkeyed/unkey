@@ -2,6 +2,7 @@
 
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
+import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useSearchParams } from "next/navigation";
 import { type PropsWithChildren, createContext, useContext, useMemo } from "react";
@@ -35,7 +36,9 @@ export const EnvironmentSettingsProvider = ({ children }: PropsWithChildren) => 
         return match.id;
       }
     }
-    return environments.find((e) => e.kind === "production")?.id ?? environments.at(0)?.id;
+    return (
+      environments.find((e) => e.kind === ENVIRONMENT_KIND.production)?.id ?? environments.at(0)?.id
+    );
   }, [envIdParam, environments]);
 
   if (isEnvironmentsLoading || !activeEnvironmentId || !appId) {

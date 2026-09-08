@@ -1,5 +1,5 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { db, schema } from "@/lib/db";
+import { db, schema, transactionWithRetry } from "@/lib/db";
 import { getStripeClient } from "@/lib/stripe";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -35,8 +35,8 @@ export const updateWorkspaceStripeCustomer = workspaceProcedure
       });
     }
 
-    await db
-      .transaction(async (tx) => {
+    try {
+      await transactionWithRetry(db, async (tx) => {
         // Upsert: binding the Stripe customer is the first billing write a
         // workspace gets, so create the billing row if none exists yet (a
         // workspace created before it had one). On conflict only the customer
@@ -66,15 +66,15 @@ export const updateWorkspaceStripeCustomer = workspaceProcedure
             userAgent: ctx.audit.userAgent,
           },
         });
-      })
-      .catch((err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          // No "contact support" line: /success appends one when it renders.
-          message: "We are unable to update the workspace Stripe customer. Please try again.",
-          cause: err,
-        });
       });
+    } catch (err) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        // No "contact support" line: /success appends one when it renders.
+        message: "We are unable to update the workspace Stripe customer. Please try again.",
+        cause: err,
+      });
+    }
 
     return {
       success: true,

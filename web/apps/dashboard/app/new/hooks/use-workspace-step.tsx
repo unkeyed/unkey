@@ -3,7 +3,15 @@ import { routes } from "@/lib/navigation/routes";
 import { slugify } from "@/lib/slugify";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, FormInput, toast } from "@unkey/ui";
+import {
+  Button,
+  FormField,
+  FormInput,
+  InputGroup,
+  InputGroupInput,
+  InputGroupText,
+  toast,
+} from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -196,27 +204,39 @@ export const useWorkspaceStep = (): WorkspaceStep => {
               error={form.formState.errors.workspaceName?.message}
               disabled={isLoading || workspaceCreated}
             />
-            <FormInput
-              {...form.register("slug", {
-                onChange: (evt) => {
-                  // If we don't clear the manually set error, it will persist even if the user clears
-                  // or changes the input
-                  form.clearErrors("slug");
-                  const v = evt.currentTarget.value;
-                  setSlugManuallyEdited(v.length > 0);
-                  form.setValue("slug", slugify(v), {
-                    shouldValidate: true,
-                  });
-                  form.trigger("slug");
-                },
-              })}
-              placeholder={isMounted ? "enter-a-handle" : ""}
+            <FormField
               label="Workspace URL handle"
               requirement="required"
               error={form.formState.errors.slug?.message}
-              prefix="app.unkey.com/"
-              maxLength={64}
-            />
+            >
+              {(field) => (
+                <InputGroup variant={field.variant}>
+                  <InputGroupText className="pl-2">app.unkey.com/</InputGroupText>
+                  <InputGroupInput
+                    id={field.id}
+                    className="pl-px"
+                    {...form.register("slug", {
+                      onChange: (evt) => {
+                        // If we don't clear the manually set error, it will persist even if the user clears
+                        // or changes the input
+                        form.clearErrors("slug");
+                        const v = evt.currentTarget.value;
+                        setSlugManuallyEdited(v.length > 0);
+                        form.setValue("slug", slugify(v), {
+                          shouldValidate: true,
+                        });
+                        form.trigger("slug");
+                      },
+                    })}
+                    placeholder={isMounted ? "enter-a-handle" : ""}
+                    aria-describedby={field.describedBy}
+                    aria-invalid={field.invalid}
+                    aria-required
+                    maxLength={64}
+                  />
+                </InputGroup>
+              )}
+            </FormField>
           </div>
         </div>
       </form>

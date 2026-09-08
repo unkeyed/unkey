@@ -77,6 +77,8 @@ properties:
       The DNS records this domain needs. Create each record at your DNS provider.
       Each record has a `verified` flag. The flag shows whether Unkey has read that record back,
       so it tells you which records are still missing.
+  domainConnect:
+    "$ref": "./DomainConnect.yaml"
   createdAt:
     type: integer
     format: int64

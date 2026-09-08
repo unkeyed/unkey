@@ -3,14 +3,17 @@ package storage
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"strings"
+	"net/http"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	awsS3 "github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -55,8 +58,11 @@ func NewS3(config S3Config) (Storage, error) {
 	_, err = client.CreateBucket(context.Background(), &awsS3.CreateBucketInput{
 		Bucket: aws.String(config.S3Bucket),
 	})
-	if err != nil && !strings.Contains(err.Error(), "BucketAlreadyOwnedByYou") {
-		return nil, fmt.Errorf("failed to create bucket: %w", err)
+	if err != nil {
+		var alreadyOwned *s3types.BucketAlreadyOwnedByYou
+		if !errors.As(err, &alreadyOwned) {
+			return nil, fmt.Errorf("failed to create bucket: %w", err)
+		}
 	}
 
 	logger.Info("s3 storage initialized")
@@ -90,8 +96,11 @@ func (s *s3) GetObject(ctx context.Context, key string) ([]byte, bool, error) {
 		Key:    aws.String(key),
 	})
 	if err != nil {
-
-		if strings.Contains(err.Error(), "StatusCode: 404") {
+		// A missing key is an expected miss, not an error. S3 reports it as
+		// NoSuchKey; some S3-compatible stores only surface the 404 status.
+		var noSuchKey *s3types.NoSuchKey
+		var respErr *awshttp.ResponseError
+		if errors.As(err, &noSuchKey) || (errors.As(err, &respErr) && respErr.HTTPStatusCode() == http.StatusNotFound) {
 			return nil, false, nil
 		}
 		return nil, false, fmt.Errorf("failed to get object: %w", err)

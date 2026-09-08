@@ -38,6 +38,7 @@ import {
 } from "./keys/active_keys";
 import { getKeysOverviewLogs } from "./keys/keys";
 import { getLatestVerifications } from "./latest_verifications";
+import { getLogdrainMetrics, getRecentLogdrainDeliveries } from "./logdrains";
 import {
   getDailyLogsTimeseries,
   getFifteenMinuteLogsTimeseries,
@@ -424,6 +425,12 @@ export class ClickHouse {
   public get auditLogs() {
     return {
       logs: getAuditLogs(this.querier),
+    };
+  }
+  public get logdrains() {
+    return {
+      metrics: getLogdrainMetrics(this.querier),
+      recentDeliveries: getRecentLogdrainDeliveries(this.querier),
     };
   }
 }

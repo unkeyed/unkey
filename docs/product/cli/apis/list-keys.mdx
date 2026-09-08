@@ -58,6 +58,7 @@ When true, includes the plaintext key value in the response. Only works for keys
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
 | `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
@@ -85,10 +86,10 @@ done
 
 ## Output
 
-Default output shows the request ID with latency, followed by the list of keys:
+Default output shows the request ID, followed by the list of keys:
 
 ```text
-req_1234abcd (took 82ms)
+req_1234abcd
 
 [
   {

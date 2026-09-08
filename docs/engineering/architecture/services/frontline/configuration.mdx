@@ -21,6 +21,7 @@ region = "${UNKEY_REGION}.aws"
 instance_id = "${POD_NAME}"
 apex_domain = "${UNKEY_APEX_DOMAIN}"
 max_hops = 10
+frontline_meta_signing_key = "${UNKEY_FRONTLINE_META_SIGNING_KEY}"
 prometheus_port = 9090
 
 [control]
@@ -61,8 +62,20 @@ token = "${UNKEY_VAULT_TOKEN}"
 </ResponseField>
 
 <ResponseField name="max_hops" type="int" default="10">
-  Maximum number of routing hops.
+  Maximum number of cross-region routing hops.
 </ResponseField>
+
+<ResponseField name="frontline_meta_signing_key" type="string" required>
+  A 64-character hexadecimal Ed25519 seed. Frontline uses the seed to sign
+  PASETO v4.public metadata. Set the same seed in every region in one
+  environment.
+</ResponseField>
+
+Generate the seed with OpenSSL:
+
+```bash
+openssl rand -hex 32
+```
 
 <ResponseField name="control" type="object" required>
   Control API connection settings.
@@ -200,6 +213,11 @@ The Helm chart provides these variables for the default config template:
   Preshared bearer token for authenticated Control API requests.
 </ResponseField>
 
+<ResponseField name="UNKEY_FRONTLINE_META_SIGNING_KEY" type="env" required>
+  A 64-character hexadecimal Ed25519 seed that signs PASETO v4.public metadata
+  between Frontline regions.
+</ResponseField>
+
 <ResponseField name="UNKEY_VAULT_URL" type="env">
   Vault URL.
 </ResponseField>
@@ -234,6 +252,7 @@ region = "${UNKEY_REGION}.aws"
 instance_id = "${POD_NAME}"
 apex_domain = "${UNKEY_APEX_DOMAIN}"
 max_hops = 10
+frontline_meta_signing_key = "${UNKEY_FRONTLINE_META_SIGNING_KEY}"
 prometheus_port = 9090
 request_timeout = "15m"
 

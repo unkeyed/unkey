@@ -130,6 +130,11 @@ type dataAuditLog struct {
 
 // dataPortal defines errors related to portal operations.
 type dataPortal struct {
+	// Duplicate indicates a portal already claims the requested slug or association.
+	//
+	// The app and keyspace unique keys span every workspace, so this can be raised
+	// by a portal the caller cannot see.
+	Duplicate Code
 	// NotFound indicates the requested portal was not found.
 	NotFound Code
 }
@@ -253,7 +258,8 @@ var Data = UnkeyDataErrors{
 	},
 
 	Portal: dataPortal{
-		NotFound: Code{SystemUnkey, CategoryUnkeyData, "portal_not_found"},
+		Duplicate: Code{SystemUnkey, CategoryUnkeyData, "portal_already_exists"},
+		NotFound:  Code{SystemUnkey, CategoryUnkeyData, "portal_not_found"},
 	},
 
 	Analytics: dataAnalytics{

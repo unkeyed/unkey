@@ -115,8 +115,7 @@ type Reader interface {
 	// active set. Call once per collection tick after the informer pod
 	// list is built. Without this, pods whose CRI exit event and
 	// informer status update were both missed accumulate in attached
-	// (leaking BPF program FDs) and terminated (leaking map memory)
-	// until process restart.
+	// (leaking BPF program FDs and map memory) until process restart.
 	Reconcile(active map[types.UID]struct{})
 
 	// Close releases all attach links and frees the BPF map. Idempotent.

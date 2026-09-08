@@ -11,7 +11,7 @@ import (
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/unkeyed/unkey/pkg/buildinfo"
+	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -60,7 +60,7 @@ func Run(ctx context.Context, cfg Config) error {
 	//nolint:exhaustruct
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	lazy.SetRegistry(reg)
-	buildinfo.RegisterBuildInfoMetrics("heimdall")
+	buildinfometrics.Register("heimdall")
 
 	ch, err := clickhouse.New(clickhouse.Config{URL: cfg.ClickHouseURL})
 	if err != nil {

@@ -9,7 +9,6 @@ import { cn } from "@/lib/utils";
 import { CircleCheck, CircleInfo, Clock, Refresh3, TriangleWarning } from "@unkey/icons";
 import { Badge, Button, ConfirmPopover, Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { useRef, useState } from "react";
-import { useProjectData } from "../../../../data-provider";
 import { RemoveButton } from "../../shared/remove-button";
 import { DnsRecordTable } from "./dns-record-table";
 
@@ -73,7 +72,6 @@ function ProviderIcon({ provider, className }: { provider: string; className?: s
 }
 
 export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProps) {
-  const { projectId } = useProjectData();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
@@ -87,7 +85,7 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
   const handleRetry = async () => {
     setIsRetrying(true);
     try {
-      await retryDomainVerification({ domain: domain.domain, projectId });
+      await retryDomainVerification({ domain: domain.domain });
     } finally {
       setIsRetrying(false);
     }
@@ -191,14 +189,7 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
         )}
 
       {domain.verificationStatus !== "verified" && (
-        <DnsRecordTable
-          domain={domain.domain}
-          targetCname={domain.targetCname}
-          verificationToken={domain.verificationToken}
-          ownershipVerified={domain.ownershipVerified}
-          cnameVerified={domain.cnameVerified}
-          isLoading={!domain.targetCname}
-        />
+        <DnsRecordTable records={domain.dnsRecords} isLoading={domain.dnsRecords.length === 0} />
       )}
     </div>
   );

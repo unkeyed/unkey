@@ -52,7 +52,7 @@ func TestResolver_ResolvePortalCookie(t *testing.T) {
 	require.Equal(t, authprincipal.Version, principal.Version)
 	require.Equal(t, authprincipal.TypePortalSession, principal.Type)
 	require.Equal(t, "customer_123", principal.Subject.ID)
-	require.Equal(t, "ws_123", principal.WorkspaceID)
+	require.Equal(t, "ws_123", principal.AuthorizedWorkspaceID)
 	source, ok := principal.Source.(authprincipal.PortalSessionSource)
 	require.True(t, ok)
 	// The row handle, not the cookie value: the cookie carries the bearer token.

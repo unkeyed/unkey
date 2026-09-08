@@ -22,6 +22,7 @@ data:
     issuer = "app.unkey.com"
     audience = "api.unkey.com"
     secrets = ["local-dev-jwt-secret-with-at-least-32-bytes"]
+    provider = "workos"
 
     [[auth]]
     type = "portal_session"

@@ -22,6 +22,7 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
+	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -46,6 +47,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
@@ -135,7 +137,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
-	buildinfo.RegisterBuildInfoMetrics("worker")
+	buildinfometrics.Register("worker")
 
 	// Create vault client for remote vault service
 	var vaultClient vault.VaultServiceClient
@@ -252,11 +254,15 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("invalid build platform: %w", err)
 	}
-
 	buildConfig := deploy.BuildConfig{
 		Backend:    deploy.BuildBackend(cfg.Build.Backend),
 		Depot:      deploy.DepotConfig(cfg.GetDepotConfig()),
 		Kubernetes: deploy.KubernetesBuildConfig(cfg.Build.Kubernetes),
+	}
+	registryConfig := deploy.RegistryConfig(cfg.GetRegistryConfig())
+	imageResolver, err := deploy.NewImageResolver(registryConfig)
+	if err != nil {
+		return fmt.Errorf("configure image resolver: %w", err)
 	}
 
 	// The kubernetes build backend runs build Jobs in the worker's own
@@ -289,11 +295,12 @@ func Run(ctx context.Context, cfg Config) error {
 		GitHub:                          ghClient,
 		Build:                           buildConfig,
 		K8s:                             k8sClient,
-		RegistryConfig:                  deploy.RegistryConfig(cfg.GetRegistryConfig()),
+		RegistryConfig:                  registryConfig,
 		BuildPlatform:                   deploy.BuildPlatform(buildPlatform),
 		Clickhouse:                      ch,
 		BuildSteps:                      buildSteps,
 		BuildStepLogs:                   buildStepLogs,
+		ImageResolver:                   imageResolver,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
 	})
@@ -375,7 +382,6 @@ func Run(ctx context.Context, cfg Config) error {
 		RestateAdmin:                    restateAdminClient,
 		DashboardURL:                    cfg.DashboardURL,
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
-		EnforceDeployGate:               cfg.DeployGate.Enforce,
 	})))
 
 	projectSvc, err := workerproject.New(workerproject.Config{
@@ -464,6 +470,7 @@ func Run(ctx context.Context, cfg Config) error {
 	if domainCacheErr != nil {
 		return fmt.Errorf("failed to create domain cache: %w", domainCacheErr)
 	}
+	r.Defer(func() error { domainCache.Close(); return nil })
 
 	// Setup ACME challenge providers
 	var dnsProvider challenge.Provider
@@ -527,11 +534,20 @@ func Run(ctx context.Context, cfg Config) error {
 				"error", chAdminErr,
 			)
 		} else {
+			// ReconcileUser is awaited by a cron handler. Bound its retries so a
+			// permanently failing workspace cannot wedge the cron VO forever.
+			clickhouseUserReconcileRetry := restate.WithInvocationRetryPolicy(
+				restate.WithInitialInterval(100*time.Millisecond),
+				restate.WithExponentiationFactor(2.0),
+				restate.WithMaxInterval(5*time.Second),
+				restate.WithMaxAttempts(5),
+				restate.KillOnMaxAttempts(),
+			)
 			restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseuser.New(clickhouseuser.Config{
 				DB:         database,
 				Vault:      vaultClient,
 				Clickhouse: chAdmin,
-			})))
+			})).ConfigureHandler("ReconcileUser", clickhouseUserReconcileRetry))
 			logger.Info("ClickhouseUserService enabled")
 		}
 	}
@@ -563,6 +579,7 @@ func Run(ctx context.Context, cfg Config) error {
 			KeyLastUsedSync:    cronHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL),
 			AuditLogExport:     cronHeartbeat(cfg.Heartbeat.AuditLogExportURL),
 			AuditLogCleanup:    cronHeartbeat(cfg.Heartbeat.AuditLogOutboxCleanupURL),
+			RatelimitCleanup:   cronHeartbeat(cfg.Heartbeat.RatelimitGlobalCountersCleanupURL),
 			DeployBillingPush:  cronHeartbeat(cfg.Heartbeat.DeployBillingPushURL),
 			DeployBillingClose: cronHeartbeat(cfg.Heartbeat.DeployBillingCloseURL),
 			DeploySpendCheck:   cronHeartbeat(cfg.Heartbeat.DeploySpendCheckURL),
@@ -676,24 +693,20 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
-	// DeploySpendCheck is the spend-cap orchestrator, keyed by the current
-	// billing period (YYYY-MM) so every tick shares one VO. Its own reads (list
-	// budgeted workspaces, the ClickHouse scan, the heartbeat) can fail
-	// non-terminally, and without a cap that invocation retries forever on the
-	// period VO while later ticks queue behind it. Each tick re-prices from
-	// scratch and the per-workspace children own alert dedup, so kill on
-	// exhaustion and let the next tick retry from a clean slate.
-	cronDeploySpendCheckRetry := restate.WithInvocationRetryPolicy(
+	// Without a cap the SDK default retries a failing quota check forever,
+	// parking its VO for the month. Kill on exhaustion and let the next daily
+	// tick retry; mirrors the billing-push and spend-check policies.
+	cronQuotaCheckRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
 		restate.WithMaxInterval(5*time.Second),
 		restate.WithMaxAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
-	// Without a cap the SDK default retries a failing quota check forever,
-	// parking its VO for the month. Kill on exhaustion and let the next daily
-	// tick retry; mirrors the billing-push and spend-check policies.
-	cronQuotaCheckRetry := restate.WithInvocationRetryPolicy(
+	// The reconciler is idempotent and stores its fingerprint only after all
+	// child users succeed. Kill on exhaustion so the next scheduled tick can
+	// retry instead of remaining queued behind a paused singleton VO.
+	cronClickhouseUserReconcileRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialInterval(100*time.Millisecond),
 		restate.WithExponentiationFactor(2.0),
 		restate.WithMaxInterval(5*time.Second),
@@ -712,7 +725,8 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("RunDeployBillingClose", cronDeployBillingFleetCloseRetry).
 		ConfigureHandler("CloseDeployBillingWorkspace", cronDeployBillingWorkspaceCloseRetry).
 		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry).
-		ConfigureHandler("RunDeploySpendCheck", cronDeploySpendCheckRetry))
+		ConfigureHandler("RunDeploySpendCheck", deployspendcheck.RetryPolicy()).
+		ConfigureHandler("RunClickhouseUserReconcile", cronClickhouseUserReconcileRetry))
 	logger.Info("CronService enabled")
 
 	// KeyLastUsedPartitionService is the per-partition VO fanned out from
@@ -759,15 +773,8 @@ func Run(ctx context.Context, cfg Config) error {
 	// owned by the period-scoped high-water mark and the email idempotency
 	// key, so kill on exhaustion and let the next tick retry from a clean
 	// slate.
-	deploySpendCheckWorkspaceRetry := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(100*time.Millisecond),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(5*time.Second),
-		restate.WithMaxAttempts(5),
-		restate.KillOnMaxAttempts(),
-	)
 	restateSrv.Bind(hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()).
-		ConfigureHandler("CheckWorkspaceSpend", deploySpendCheckWorkspaceRetry))
+		ConfigureHandler("CheckWorkspaceSpend", deployspendcheck.RetryPolicy()))
 	logger.Info("DeploySpendCheckService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint
@@ -851,9 +858,9 @@ func Run(ctx context.Context, cfg Config) error {
 
 	// Wait for signal and handle shutdown
 	logger.Info("Worker started successfully")
+	// r.Wait already logs shutdown failures; just add context and propagate.
 	if err := r.Wait(ctx); err != nil {
-		logger.Error("Shutdown failed", "error", err)
-		return err
+		return fmt.Errorf("shutdown failed: %w", err)
 	}
 
 	logger.Info("Worker shut down successfully")

@@ -37,6 +37,7 @@ func Register(srv *zen.Server, svc *Services) {
 			ProxyService:  svc.ProxyService,
 			Engine:        svc.Engine,
 			Clock:         svc.Clock,
+			Metadata:      svc.Metadata,
 		},
 	)
 }

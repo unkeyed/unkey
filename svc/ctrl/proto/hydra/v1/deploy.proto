@@ -18,7 +18,7 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 // preview build. Workspace-wide concurrency is separately enforced by
 // BuildSlotService.
 //
-// Deploy handles the full pipeline from building Docker images through
+// Deploy handles the full pipeline from building container images through
 // provisioning containers and configuring domain routing. Rollback and Promote
 // manage traffic switching between deployments by reassigning sticky frontline
 // routes atomically through the routing service.
@@ -82,13 +82,13 @@ message NotifyInstancesReadyResponse {
   bool resolved = 1;
 }
 
-// DockerImage references a pre-built container image to deploy directly,
+// OciImage references a pre-built OCI image to deploy directly,
 // skipping the build step.
-message DockerImage {
+message OciImage {
   string image = 1;
 }
 
-// GitSource specifies a repository and commit to build a Docker image from.
+// GitSource specifies a repository and commit to build a container image from.
 message GitSource {
   // GitHub App installation ID used to clone the repository.
   int64 installation_id = 1;
@@ -132,7 +132,7 @@ message DeployRequest {
 
   oneof source {
     GitSource git = 3;
-    DockerImage docker_image = 4;
+    OciImage oci_image = 4;
   }
 
   // Container command override (e.g., ["./app", "serve"])

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/apierrors"
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/apierrors"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
 )
 
 // appendMetadata adds request ID and documentation link to the error message

@@ -1,10 +1,22 @@
 "use client";
 
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
-import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
+import {
+  type CustomDomain,
+  isCustomDomainLimitError,
+} from "@/lib/collections/deploy/custom-domains";
+import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
+import { routes } from "@/lib/navigation/routes";
+import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDown, Link4 } from "@unkey/icons";
 import {
+  AlertBanner,
+  AlertBannerActions,
+  AlertBannerDescription,
+  AlertBannerTitle,
+  Button,
   FormInput,
   Select,
   SelectContent,
@@ -12,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";
@@ -50,7 +63,9 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
   projectId,
   defaultEnvironmentId,
 }) => {
+  const workspace = useWorkspaceNavigation();
   const [expanded, setExpanded] = useState(false);
+  const [limitMessage, setLimitMessage] = useState<string | null>(null);
   useEffect(() => {
     if (window.location.hash.slice(1) === "custom-domains") {
       setExpanded(true);
@@ -73,7 +88,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
     },
   });
 
-  const onSubmit = (values: CustomDomainFormValues) => {
+  const onSubmit = async (values: CustomDomainFormValues) => {
     const trimmedDomain = values.domain.trim();
     if (customDomains.some((d) => d.domain === trimmedDomain)) {
       setError("domain", { message: "Domain already registered" });
@@ -81,27 +96,35 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
     }
     const appId = environments.find((e) => e.id === values.environmentId)?.appId ?? "";
 
-    collection.customDomains.insert({
-      id: crypto.randomUUID(),
-      domain: trimmedDomain,
-      workspaceId: "",
-      projectId,
-      appId,
-      environmentId: values.environmentId,
-      verificationStatus: "pending",
-      verificationToken: "",
-      ownershipVerified: false,
-      cnameVerified: false,
-      targetCname: "",
-      checkAttempts: 0,
-      lastCheckedAt: null,
-      verificationError: null,
-      domainConnectProvider: null,
-      domainConnectUrl: null,
-      createdAt: Date.now(),
-      updatedAt: null,
-    });
-    reset({ environmentId: values.environmentId, domain: "" });
+    setLimitMessage(null);
+    const tx = collection.customDomains.insert(
+      {
+        id: crypto.randomUUID(),
+        domain: trimmedDomain,
+        projectId,
+        appId,
+        environmentId: values.environmentId,
+        verificationStatus: "pending",
+        dnsRecords: [],
+        verificationError: null,
+        domainConnectProvider: null,
+        domainConnectUrl: null,
+        createdAt: Date.now(),
+        updatedAt: null,
+      },
+      { metadata: { workspaceSlug: workspace.slug } },
+    );
+
+    try {
+      await tx.isPersisted.promise;
+      reset({ environmentId: values.environmentId, domain: "" });
+    } catch (err) {
+      if (isCustomDomainLimitError(err)) {
+        setLimitMessage(getErrorMessage(err));
+        return;
+      }
+      console.error("Failed to add custom domain", err);
+    }
   };
 
   const saveState = resolveSaveState([
@@ -129,6 +152,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       saveState={saveState}
       expanded={expanded}
       onExpandedChange={setExpanded}
+      stickyHeader={limitMessage ? <LimitBanner message={limitMessage} /> : undefined}
     >
       <SettingField>
         <div className="flex items-center gap-3">
@@ -182,5 +206,44 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
         )}
       </WideContent>
     </FormSettingCard>
+  );
+};
+
+const LimitBanner = ({ message }: { message: string }) => {
+  const workspace = useWorkspaceNavigation();
+  const billingUpgrades = useBillingUIUpgrades();
+
+  return (
+    <AlertBanner variant="error" className="mb-2">
+      <AlertBannerTitle>Custom domain limit reached</AlertBannerTitle>
+      <AlertBannerDescription>{message}</AlertBannerDescription>
+      <AlertBannerActions>
+        {billingUpgrades && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="px-3"
+            render={<Link href={routes.settings.limits({ workspaceSlug: workspace.slug })} />}
+          >
+            View limits
+          </Button>
+        )}
+        <Button
+          variant="primary"
+          size="sm"
+          className="px-3"
+          render={
+            <Link
+              href={routes.settings.billing({
+                workspaceSlug: workspace.slug,
+                intent: "compute",
+              })}
+            />
+          }
+        >
+          Upgrade plan
+        </Button>
+      </AlertBannerActions>
+    </AlertBanner>
   );
 };

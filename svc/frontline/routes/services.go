@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
+	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 	"github.com/unkeyed/unkey/svc/frontline/internal/router"
@@ -18,6 +19,7 @@ type Services struct {
 	Region            string
 	Platform          string
 	FrontlineID       string
+	Metadata          *meta.Codec
 	RouterService     router.Service
 	ProxyService      proxy.Service
 	Engine            policies.Evaluator

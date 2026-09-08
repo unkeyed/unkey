@@ -101,8 +101,24 @@ export const ExternalIdField = ({
       return;
     }
 
+    const externalId = externalIdValidation.data;
+
+    // Ask the server for this ID once more before creating: the "create"
+    // offer was rendered from whatever results were on screen, which may be
+    // stale. If the ID already exists, select it instead of duplicating it.
+    const fresh = await refetchIdentities();
+    const existing = fresh.data?.pages
+      .flatMap((page) => page.identities)
+      .find((identity) => identity.externalId.toLowerCase() === externalId.toLowerCase());
+    if (existing) {
+      setSelectedIdentity(existing);
+      setSearchValue("");
+      onChange(existing.id, existing.externalId);
+      return;
+    }
+
     try {
-      const data = await createIdentity.mutateAsync({ externalId: externalIdValidation.data });
+      const data = await createIdentity.mutateAsync({ externalId });
       setSelectedIdentity({ id: data.identityId, externalId: data.externalId });
       setSearchValue("");
       onChange(data.identityId, data.externalId);
@@ -147,7 +163,7 @@ export const ExternalIdField = ({
   });
 
   const createOption =
-    externalIdValidation.success && !exactMatch && hasPartialMatches && !isSearching
+    externalIdValidation.success && !exactMatch && hasPartialMatches
       ? {
           label: (
             <div className="flex items-center gap-2 w-full">

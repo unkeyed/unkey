@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_delete_permission"
@@ -29,6 +30,8 @@ func TestNotFoundErrors(t *testing.T) {
 
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspace.ID)
+	require.NoError(t, err)
 
 	// Create a root key with appropriate permissions
 	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.delete_permission")
@@ -86,6 +89,7 @@ func TestNotFoundErrors(t *testing.T) {
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  workspace.ID,
+			ProjectID:    projectID,
 			Name:         "test.permission.to.delete",
 			Slug:         "test-permission-to-delete",
 			Description:  dbtype.NullString{Valid: false},

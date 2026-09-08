@@ -11,7 +11,7 @@ data:
     scrape_configs:
       - job_name: 'unkey-services'
         static_configs:
-          - targets: ['ctrl-api:8084']
+          - targets: ['ctrl-api:8084', 'logdrain:9090']
         metrics_path: /metrics
         scrape_interval: 5s
 
@@ -71,6 +71,26 @@ spec:
   type: NodePort
 
 ---
+# Registers the standalone scrape Prometheus above as a Grafana datasource.
+# The LGTM image only knows its own internal Prometheus (127.0.0.1:9090),
+# which receives OTLP pushes; scraped /metrics series live in the
+# standalone Prometheus and are invisible to Grafana without this.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-extra-datasources
+  namespace: unkey
+data:
+  unkey-scrape-prometheus.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus (scrape)
+        type: prometheus
+        uid: prometheus-scrape
+        url: http://prometheus:9090
+        editable: true
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -101,6 +121,15 @@ spec:
               port: 3000
             initialDelaySeconds: 15
             periodSeconds: 10
+          volumeMounts:
+            - name: grafana-extra-datasources
+              mountPath: /otel-lgtm/grafana/conf/provisioning/datasources/unkey-scrape-prometheus.yaml
+              subPath: unkey-scrape-prometheus.yaml
+              readOnly: true
+      volumes:
+        - name: grafana-extra-datasources
+          configMap:
+            name: grafana-extra-datasources
 
 ---
 apiVersion: v1

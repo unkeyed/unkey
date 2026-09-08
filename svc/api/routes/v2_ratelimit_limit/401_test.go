@@ -13,10 +13,11 @@ func TestUnauthorizedAccess(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{
-		Ratelimit:      h.Ratelimit,
-		DB:             h.DB,
-		NamespaceCache: h.Caches.RatelimitNamespace,
-		Auditlogs:      h.Auditlogs,
+		Ratelimit:       h.Ratelimit,
+		DirectAuditLogs: h.DirectAuditLogs,
+		DB:              h.DB,
+		NamespaceCache:  h.Caches.RatelimitNamespace,
+		Auditlogs:       h.Auditlogs,
 	}
 
 	h.Register(route)

@@ -199,11 +199,11 @@ func setupGitHubApp(_ context.Context, cmd *cli.Command) error {
 	fmt.Println()
 	fmt.Println("Next steps:")
 	fmt.Println("  1. mise run dev")
-	fmt.Println("  2. go run . dev seed local")
-	fmt.Println("  3. go run . dev github tunnel   # each session — starts ngrok and patches the webhook URL")
+	fmt.Println("  2. go run ./build/cli dev seed local")
+	fmt.Println("  3. go run ./build/cli dev github tunnel   # each session — starts ngrok and patches the webhook URL")
 	fmt.Println()
 	fmt.Println("To replay a specific commit manually:")
-	fmt.Println("  go run . dev github trigger-webhook --project <slug> --repository <owner/repo>")
+	fmt.Println("  go run ./build/cli dev github trigger-webhook --project <slug> --repository <owner/repo>")
 
 	return nil
 }
@@ -278,7 +278,7 @@ func writeCredentials(outDir string, app *manifestResponse) error {
 	}
 
 	dashboardVars := fmt.Sprintf(
-		"\n# GitHub App (written by `go run . dev github setup`)\nGITHUB_APP_ID=%d\nNEXT_PUBLIC_GITHUB_APP_NAME=%q\nGITHUB_CLIENT_ID=%q\nGITHUB_CLIENT_SECRET=%q\n",
+		"\n# GitHub App (written by `go run ./build/cli dev github setup`)\nGITHUB_APP_ID=%d\nNEXT_PUBLIC_GITHUB_APP_NAME=%q\nGITHUB_CLIENT_ID=%q\nGITHUB_CLIENT_SECRET=%q\n",
 		app.ID,
 		app.Slug,
 		app.ClientID,

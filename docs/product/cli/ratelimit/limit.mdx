@@ -53,6 +53,7 @@ How much of the rate limit quota this request consumes, enabling weighted rate l
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
 | `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
@@ -73,10 +74,10 @@ unkey api ratelimit limit --namespace=api.requests --identifier=user_abc123 --li
 
 ## Output
 
-Default output shows the request ID with latency, followed by the rate limit result:
+Default output shows the request ID, followed by the rate limit result:
 
 ```text
-req_01H9TQPP77V5E48E9SH0BG0ZQX (took 32ms)
+req_01H9TQPP77V5E48E9SH0BG0ZQX
 
 {
   "limit": 100,

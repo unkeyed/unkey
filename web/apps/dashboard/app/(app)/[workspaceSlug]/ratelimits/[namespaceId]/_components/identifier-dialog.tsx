@@ -5,7 +5,16 @@ import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
-import { Badge, Button, DialogContainer, FormInput } from "@unkey/ui";
+import {
+  Badge,
+  Button,
+  DialogContainer,
+  FormField,
+  FormInput,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type { PropsWithChildren } from "react";
 import type { Resolver } from "react-hook-form";
@@ -156,19 +165,29 @@ export const IdentifierDialog = ({
           placeholder="Enter amount (3, 7, 10, 12…)"
         />
 
-        <FormInput
+        <FormField
           label="Duration"
           description="Duration of each window in milliseconds."
           error={errors.duration?.message}
-          {...register("duration")}
-          type="number"
-          placeholder="Enter milliseconds (60000, 100000, 1200000…)"
-          rightIcon={
-            <Badge className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-md font-mono whitespace-nowrap gap-[6px] font-medium bg-accent-4 text-accent-11 hover:bg-accent-6 ">
-              MS
-            </Badge>
-          }
-        />
+        >
+          {(field) => (
+            <InputGroup variant={field.variant}>
+              <InputGroupInput
+                id={field.id}
+                aria-describedby={field.describedBy}
+                aria-invalid={field.invalid}
+                {...register("duration")}
+                type="number"
+                placeholder="Enter milliseconds (60000, 100000, 1200000…)"
+              />
+              <InputGroupAddon align="inline-end">
+                <Badge className="pointer-events-none rounded-md font-mono whitespace-nowrap gap-[6px] font-medium bg-accent-4 text-accent-11 hover:bg-accent-6">
+                  MS
+                </Badge>
+              </InputGroupAddon>
+            </InputGroup>
+          )}
+        </FormField>
       </form>
     </DialogContainer>
   );

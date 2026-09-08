@@ -11,10 +11,12 @@ import (
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
+	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/auth"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/redaction"
@@ -52,9 +54,15 @@ type Services struct {
 	// RatelimitEvents buffers ratelimit events for ClickHouse.
 	RatelimitEvents *batch.BatchProcessor[schema.Ratelimit]
 
-	// KeyVerifications buffers key verification outcomes for ClickHouse. Owned
-	// by the v2 keys.verifyKey handler.
+	// KeyVerifications buffers API key outcomes and root key usage for ClickHouse.
 	KeyVerifications *batch.BatchProcessor[schema.KeyVerification]
+
+	// DirectAuditLogs buffers high-volume audit logs that bypass the MySQL outbox.
+	DirectAuditLogs *batch.BatchProcessor[auditlog.Event]
+
+	// Clock is the time source handlers read the current time from, so tests can
+	// drive time deterministically instead of racing the system clock.
+	Clock clock.Clock
 
 	// Validator performs request payload validation using struct tags.
 	Validator *validation.Validator
@@ -113,9 +121,9 @@ type Services struct {
 	// for retrieving verification and usage data.
 	AnalyticsConnectionManager analytics.ConnectionManager
 
-	// PortalBaseURL is the default base URL for the customer portal
-	// (e.g. "https://portal.unkey.com"). Used to construct session redirect
-	// URLs when no custom domain is configured for the portal's app.
+	// PortalBaseURL is the base URL for the customer portal
+	// (e.g. "https://portal.unkey.com"). Every portal session redirect URL is
+	// built from it.
 	PortalBaseURL string
 
 	// GitHubAppName is the GitHub App slug used to build the install URL in

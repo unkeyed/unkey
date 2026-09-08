@@ -113,7 +113,7 @@ func seedSentinelConfigBlob(t *testing.T, h *testutil.Harness, env seededEnv, bl
 		EnvironmentID: env.environmentID,
 	})
 	require.NoError(t, err)
-	require.Equal(t, blob, stored.AppRuntimeSetting.SentinelConfig)
+	require.Equal(t, blob, stored.SentinelConfig)
 }
 
 // seedFirewallPolicies stores n firewall policies and returns their ids in
