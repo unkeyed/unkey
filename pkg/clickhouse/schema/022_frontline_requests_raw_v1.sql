@@ -2,6 +2,11 @@ CREATE TABLE frontline_requests_raw_v1 (
   request_id String,
   -- unix milli
   time Int64 CODEC(Delta, LZ4),
+  -- When ClickHouse accepted the row (unix milli). Writers omit it so the
+  -- server clock stamps every row, which gives log drains a cursor that
+  -- cannot lag behind buffered or retried inserts. Rows written before the
+  -- column existed hold 0.
+  inserted_at Int64 DEFAULT toUnixTimestamp64Milli(now64(3)) CODEC(Delta, LZ4),
   workspace_id String,
   project_id String,
   app_id String,
