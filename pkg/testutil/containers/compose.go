@@ -216,9 +216,9 @@ func composePort(output string) (int, error) {
 		return strconv.Atoi(port)
 	}
 
-	idx := strings.LastIndex(line, ":")
-	if idx == -1 || idx == len(line)-1 {
+	_, port, found := strings.CutLast(line, ":")
+	if !found || port == "" {
 		return 0, fmt.Errorf("parse docker compose port output %q: %w", output, err)
 	}
-	return strconv.Atoi(line[idx+1:])
+	return strconv.Atoi(port)
 }
