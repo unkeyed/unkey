@@ -103,8 +103,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 
 	key, hit, err := s.keyCache.SWR(ctx, sha256Hash, func(ctx context.Context) (keysdb.CachedKeyData, error) {
 		// Use database retry with exponential backoff, skipping non-transient errors
-		var row keysdb.FindKeyForVerificationRow
-		row, err = mysql.WithRetryContext(ctx, func() (keysdb.FindKeyForVerificationRow, error) {
+		row, err := mysql.WithRetryContext(ctx, func() (keysdb.FindKeyForVerificationRow, error) {
 			return keysdb.Query.FindKeyForVerification(ctx, s.db.RO(), sha256Hash)
 		})
 		if err != nil {
