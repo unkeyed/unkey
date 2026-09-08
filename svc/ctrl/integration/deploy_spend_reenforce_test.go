@@ -207,8 +207,6 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 		return e == nil && got.DesiredState == mysqltype.DeploymentsDesiredStateStopped
 	}, 15*time.Second, 200*time.Millisecond, "re-enforcement should stop the leaked app2")
 
-	// 4) Raise the budget above spend. The first under-budget tick only records
-	//    the resume streak, leaving the workspace and both deployments stopped.
 	raisedBudget := &hydrav1.CheckWorkspaceSpendRequest{
 		Period:             period,
 		BudgetCents:        1_000_000,
@@ -240,8 +238,6 @@ func TestDeploySpendCheck_ReEnforceMergesSuspensionRecord(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, mysqltype.DeploymentsDesiredStateStopped, gotDep2.DesiredState)
 
-	// 5) The second consecutive under-budget tick resumes. The merged record
-	//    restores BOTH apps; a replace bug would have dropped app1.
 	r, err = client.CheckWorkspaceSpend().Request(ctx, raisedBudget)
 	require.NoError(t, err)
 	require.False(t, r.GetSuspended(), "second under-budget tick should resume")
