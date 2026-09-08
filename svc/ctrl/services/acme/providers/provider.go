@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-acme/lego/v4/challenge"
+	"github.com/go-acme/lego/v5/challenge"
 	"github.com/unkeyed/unkey/internal/services/caches"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -24,8 +24,8 @@ var _ challenge.ProviderTimeout = (*Provider)(nil)
 // DNSProvider is the interface for underlying DNS operations.
 // Lego's route53.DNSProvider implements this.
 type DNSProvider interface {
-	Present(domain, token, keyAuth string) error
-	CleanUp(domain, token, keyAuth string) error
+	Present(ctx context.Context, domain, token, keyAuth string) error
+	CleanUp(ctx context.Context, domain, token, keyAuth string) error
 	Timeout() (timeout, interval time.Duration)
 }
 
@@ -88,9 +88,7 @@ func (p *Provider) resolveDomain(ctx context.Context, domain string) (db.CustomD
 }
 
 // Present creates a DNS TXT record for the ACME challenge and tracks it in the database.
-func (p *Provider) Present(domain, token, keyAuth string) error {
-	ctx := context.Background()
-
+func (p *Provider) Present(ctx context.Context, domain, token, keyAuth string) error {
 	// Find domain - tries exact match first, then wildcard (*.domain)
 	dom, err := p.resolveDomain(ctx, domain)
 	if err != nil {
@@ -99,7 +97,7 @@ func (p *Provider) Present(domain, token, keyAuth string) error {
 
 	logger.Info("presenting dns challenge", "domain", domain, "matched", dom.Domain)
 
-	err = p.dns.Present(domain, token, keyAuth)
+	err = p.dns.Present(ctx, domain, token, keyAuth)
 	if err != nil {
 		return fmt.Errorf("failed to present DNS challenge for domain %s: %w", domain, err)
 	}
@@ -120,10 +118,10 @@ func (p *Provider) Present(domain, token, keyAuth string) error {
 }
 
 // CleanUp removes the DNS TXT record.
-func (p *Provider) CleanUp(domain, token, keyAuth string) error {
+func (p *Provider) CleanUp(ctx context.Context, domain, token, keyAuth string) error {
 	logger.Info("cleaning up dns challenge", "domain", domain)
 
-	err := p.dns.CleanUp(domain, token, keyAuth)
+	err := p.dns.CleanUp(context.WithoutCancel(ctx), domain, token, keyAuth)
 	if err != nil {
 		logger.Warn("failed to clean up dns challenge record", "error", err, "domain", domain)
 	}

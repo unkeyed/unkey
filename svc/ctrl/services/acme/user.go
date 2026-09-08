@@ -10,8 +10,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-acme/lego/v4/lego"
-	"github.com/go-acme/lego/v4/registration"
+	"github.com/go-acme/lego/v5/acme"
+	"github.com/go-acme/lego/v5/lego"
+	"github.com/go-acme/lego/v5/registration"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -22,19 +23,19 @@ import (
 type AcmeUser struct {
 	WorkspaceID  string
 	EmailDomain  string
-	Registration *registration.Resource
-	key          crypto.PrivateKey
+	Registration *acme.ExtendedAccount
+	key          crypto.Signer
 }
 
 func (u *AcmeUser) GetEmail() string {
 	return fmt.Sprintf("%s@%s", u.WorkspaceID, u.EmailDomain)
 }
 
-func (u AcmeUser) GetRegistration() *registration.Resource {
+func (u AcmeUser) GetRegistration() *acme.ExtendedAccount {
 	return u.Registration
 }
 
-func (u *AcmeUser) GetPrivateKey() crypto.PrivateKey {
+func (u *AcmeUser) GetPrivateKey() crypto.Signer {
 	return u.key
 }
 
@@ -77,8 +78,8 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 	// If we have a valid registration URI, use it
 	if foundUser.RegistrationUri.Valid && foundUser.RegistrationUri.String != "" {
 		//nolint:exhaustruct // external library type
-		user.Registration = &registration.Resource{
-			URI: foundUser.RegistrationUri.String,
+		user.Registration = &acme.ExtendedAccount{
+			Location: foundUser.RegistrationUri.String,
 		}
 	}
 
@@ -94,7 +95,7 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 			"workspace_id", cfg.WorkspaceID,
 		)
 
-		reg, regErr := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
+		reg, regErr := client.Registration.Register(ctx, registration.RegisterOptions{TermsOfServiceAgreed: true})
 		if regErr != nil {
 			return nil, fmt.Errorf("failed to complete acme registration: %w", regErr)
 		}
@@ -103,7 +104,7 @@ func GetOrCreateUser(ctx context.Context, cfg UserConfig) (*lego.Client, error) 
 
 		if updateErr := cfg.DB.UpdateAcmeUserRegistrationURI(ctx, db.UpdateAcmeUserRegistrationURIParams{
 			ID:              foundUser.ID,
-			RegistrationUri: sql.NullString{Valid: true, String: reg.URI},
+			RegistrationUri: sql.NullString{Valid: true, String: reg.Location},
 		}); updateErr != nil {
 			logger.Warn("failed to persist registration URI", "error", updateErr)
 		}
@@ -155,7 +156,7 @@ func register(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
 		return nil, fmt.Errorf("failed to create acme client: %w", err)
 	}
 
-	reg, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
+	reg, err := client.Registration.Register(ctx, registration.RegisterOptions{TermsOfServiceAgreed: true})
 	if err != nil {
 		return nil, fmt.Errorf("failed to register acme user: %w", err)
 	}
@@ -164,7 +165,7 @@ func register(ctx context.Context, cfg UserConfig) (*lego.Client, error) {
 
 	err = cfg.DB.UpdateAcmeUserRegistrationURI(ctx, db.UpdateAcmeUserRegistrationURIParams{
 		ID:              id,
-		RegistrationUri: sql.NullString{Valid: true, String: reg.URI},
+		RegistrationUri: sql.NullString{Valid: true, String: reg.Location},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update acme user registration status: %w", err)
