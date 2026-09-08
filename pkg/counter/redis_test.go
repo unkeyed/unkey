@@ -518,7 +518,7 @@ func TestRedisCounterDecrement(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				for range decrementsPerWorker {
-					_, err = ctr.Decrement(ctx, key, 2)
+					_, err := ctr.Decrement(ctx, key, 2)
 					if err != nil {
 						t.Errorf("decrement error: %v", err)
 						return
@@ -617,9 +617,8 @@ func TestRedisCounterDecrementIfExists(t *testing.T) {
 		for range numWorkers {
 			go func() {
 				defer wg.Done()
-				var existed, success bool
 
-				_, existed, success, err = ctr.DecrementIfExists(ctx, key, 1)
+				_, existed, success, err := ctr.DecrementIfExists(ctx, key, 1)
 				if err != nil {
 					t.Errorf("DecrementIfExists error: %v", err)
 					return
@@ -798,11 +797,7 @@ func TestRedisCounterDecrementLogic(t *testing.T) {
 				// Wait for all goroutines to be ready
 				<-startBarrier
 
-				var remaining int64
-				var existed bool
-				var success bool
-
-				remaining, existed, success, err = ctr.DecrementIfExists(ctx, key, decrementAmount)
+				remaining, existed, success, err := ctr.DecrementIfExists(ctx, key, decrementAmount)
 				require.NoError(t, err)
 				require.True(t, existed)
 				require.GreaterOrEqual(t, remaining, int64(0), "decrement should always return non-negative actual count")
@@ -872,11 +867,7 @@ func TestRedisCounterDecrementLogic(t *testing.T) {
 			wg.Go(func() {
 				<-startBarrier
 
-				var remaining int64
-				var existed bool
-				var success bool
-
-				remaining, existed, success, err = ctr.DecrementIfExists(ctx, key, decrementAmount)
+				remaining, existed, success, err := ctr.DecrementIfExists(ctx, key, decrementAmount)
 				require.NoError(t, err)
 				require.True(t, existed)
 				require.GreaterOrEqual(t, remaining, int64(0), "should always return non-negative actual count")
