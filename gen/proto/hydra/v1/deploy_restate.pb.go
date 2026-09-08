@@ -83,7 +83,7 @@ type DeployWorkflowIngressClient interface {
 	// The key is the deployment id, so the caller chooses it up front.
 	Create() ingress.Requester[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy is the run: build, provision, wait for health, route.
-	Submit(ctx context.Context, input *DeployRequest, opts ...sdk_go.IngressSendOption) (ingress.SendResponse[*DeployResponse], error)
+	Submit(ctx context.Context, input *DeployRequest, opts ...ingress.SendOption) (ingress.SendResponse[*DeployResponse], error)
 	// Handle creates an handle to the submitted workflow, useful to retrieve its output or attach to it
 	Handle() ingress.InvocationHandle[*DeployResponse]
 	// NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
@@ -110,7 +110,7 @@ func (c *deployWorkflowIngressClient) Create() ingress.Requester[*DeployCreateRe
 	return ingress.NewRequester[*DeployCreateRequest, *DeployCreateResponse](c.client, c.serviceName, "Create", &c.workflowID, &codec)
 }
 
-func (c *deployWorkflowIngressClient) Submit(ctx context.Context, input *DeployRequest, opts ...sdk_go.IngressSendOption) (ingress.SendResponse[*DeployResponse], error) {
+func (c *deployWorkflowIngressClient) Submit(ctx context.Context, input *DeployRequest, opts ...ingress.SendOption) (ingress.SendResponse[*DeployResponse], error) {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*DeployRequest, *DeployResponse](c.client, c.serviceName, "Deploy", &c.workflowID, &codec).Send(ctx, input, opts...)
 }
@@ -157,13 +157,13 @@ type DeployWorkflowServer interface {
 type UnimplementedDeployWorkflowServer struct{}
 
 func (UnimplementedDeployWorkflowServer) Create(ctx sdk_go.WorkflowSharedContext, req *DeployCreateRequest) (*DeployCreateResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Create not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Create not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployWorkflowServer) Deploy(ctx sdk_go.WorkflowContext, req *DeployRequest) (*DeployResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Deploy not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Deploy not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployWorkflowServer) NotifyInstancesReady(ctx sdk_go.WorkflowSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method NotifyInstancesReady not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method NotifyInstancesReady not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployWorkflowServer) testEmbeddedByValue() {}
 
@@ -307,10 +307,10 @@ type DeployTeardownServiceServer interface {
 type UnimplementedDeployTeardownServiceServer struct{}
 
 func (UnimplementedDeployTeardownServiceServer) Teardown(ctx sdk_go.ObjectContext, req *TeardownRequest) (*TeardownResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Teardown not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Teardown not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployTeardownServiceServer) Resume(ctx sdk_go.ObjectContext, req *ResumeRequest) (*ResumeResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Resume not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Resume not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployTeardownServiceServer) testEmbeddedByValue() {}
 

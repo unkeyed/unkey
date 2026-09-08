@@ -137,7 +137,7 @@ func (p *stripePusher) Push(ctx context.Context, req PushRequest) (int, error) {
 		// is idempotent (absolute values under "last" aggregation) and the retry
 		// will re-attempt the transient meter.
 		if allTerminal {
-			return pushed, restate.TerminalError(wrapped)
+			return pushed, restate.ToTerminalError(wrapped)
 		}
 		return pushed, wrapped
 	}

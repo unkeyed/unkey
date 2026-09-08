@@ -122,10 +122,10 @@ type GitHubStatusServiceServer interface {
 type UnimplementedGitHubStatusServiceServer struct{}
 
 func (UnimplementedGitHubStatusServiceServer) Init(ctx sdk_go.ObjectContext, req *GitHubStatusInitRequest) (*GitHubStatusInitResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Init not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Init not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedGitHubStatusServiceServer) ReportStatus(ctx sdk_go.ObjectContext, req *GitHubStatusReportRequest) (*GitHubStatusReportResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method ReportStatus not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method ReportStatus not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedGitHubStatusServiceServer) testEmbeddedByValue() {}
 

@@ -93,7 +93,7 @@ type AppServiceServer interface {
 type UnimplementedAppServiceServer struct{}
 
 func (UnimplementedAppServiceServer) Delete(ctx sdk_go.ObjectContext, req *DeleteAppRequest) (*DeleteAppResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Delete not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Delete not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedAppServiceServer) testEmbeddedByValue() {}
 
