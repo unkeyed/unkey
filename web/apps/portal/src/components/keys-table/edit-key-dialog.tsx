@@ -13,7 +13,7 @@ import {
 } from "~/components/ui/dialog";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
-import type { Key } from "~/routes/dave-initial-design/-seed";
+import type { Key } from "~/components/keys-table/schema/keys.schema";
 import { ExpirationPicker } from "./expiration-picker";
 import { type KeyFormValues, keyFormSchema } from "./key-form-schema";
 
