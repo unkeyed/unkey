@@ -13,7 +13,7 @@ import (
 func (k *Keyring) DecodeAndDecryptKey(ctx context.Context, b []byte) (*vaultv1.DataEncryptionKey, string, error) {
 	_, span := tracing.Start(ctx, "keyring.DecodeAndDecryptKey")
 	defer span.End()
-	encrypted := &vaultv1.EncryptedDataEncryptionKey{} // nolint:exhaustruct
+	encrypted := &vaultv1.EncryptedDataEncryptionKey{} // nolint:exhaustruct_v5
 	err := proto.Unmarshal(b, encrypted)
 	if err != nil {
 		tracing.RecordError(span, err)
@@ -33,7 +33,7 @@ func (k *Keyring) DecodeAndDecryptKey(ctx context.Context, b []byte) (*vaultv1.D
 		return nil, "", fmt.Errorf("failed to decrypt ciphertext: %w", err)
 	}
 
-	dek := &vaultv1.DataEncryptionKey{} // nolint:exhaustruct
+	dek := &vaultv1.DataEncryptionKey{} // nolint:exhaustruct_v5
 	err = proto.Unmarshal(plaintext, dek)
 	if err != nil {
 		tracing.RecordError(span, err)

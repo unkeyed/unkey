@@ -67,7 +67,7 @@ func (sdkLogger) Errorf(format string, v ...any) {
 // NewStripe builds a Stripe-backed Pusher from a secret key.
 func NewStripe(secretKey string) Pusher {
 	return &stripePusher{client: stripe.NewClient(secretKey, stripe.WithBackends(stripe.NewBackendsWithConfig(&stripe.BackendConfig{
-		//nolint:exhaustruct // defaults are fine for everything but the logger
+		//nolint:exhaustruct_v5 // defaults are fine for everything but the logger
 		LeveledLogger: sdkLogger{},
 	})))}
 }

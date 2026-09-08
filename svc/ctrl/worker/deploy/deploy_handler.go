@@ -434,7 +434,7 @@ func (w *Workflow) createTopologies(
 			autoscalingMax = autoscalingMin
 		}
 
-		//nolint: exhaustruct
+		//nolint: exhaustruct_v5
 		topologies = append(topologies, db.InsertDeploymentTopologyParams{
 			WorkspaceID:                deployment.WorkspaceID,
 			DeploymentID:               deployment.ID,
@@ -801,9 +801,9 @@ func (w *Workflow) initGitHubStatus(
 			if db.IsNotFound(findErr) {
 				// No connection — return zero value, not an error.
 				// Returning an error here would cause Restate to retry forever.
-				return db.GithubRepoConnection{}, nil //nolint:exhaustruct
+				return db.GithubRepoConnection{}, nil //nolint:exhaustruct_v5
 			}
-			return db.GithubRepoConnection{}, findErr //nolint:exhaustruct
+			return db.GithubRepoConnection{}, findErr //nolint:exhaustruct_v5
 		}
 		return found, nil
 	}, restate.WithName("find github repo connection"), restate.WithMaxRetryAttempts(runMaxAttempts))

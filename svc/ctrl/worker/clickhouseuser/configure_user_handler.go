@@ -94,12 +94,12 @@ func (s *Service) configureUser(
 	result, err := restate.Run(ctx, func(rc restate.RunContext) (existingUserResult, error) {
 		row, err := s.db.FindClickhouseWorkspaceSettingsByWorkspaceID(rc, workspaceID)
 		if db.IsNotFound(err) {
-			//nolint:exhaustruct // zero value is intentional for not-found case
+			//nolint:exhaustruct_v5 // zero value is intentional for not-found case
 			return existingUserResult{Found: false}, nil
 		}
 
 		if err != nil {
-			//nolint:exhaustruct // zero value is intentional for error case
+			//nolint:exhaustruct_v5 // zero value is intentional for error case
 			return existingUserResult{Found: false}, err
 		}
 

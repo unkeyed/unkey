@@ -104,7 +104,7 @@ func buildDomains(
 		domains = append(domains,
 			newDomain{
 				domain: fmt.Sprintf("%s-git-%s-%s.%s", prefix, short, workspaceSlug, apex),
-				//nolint: exhaustruct
+				//nolint: exhaustruct_v5
 				sticky: db.FrontlineRoutesStickyNone,
 			},
 		)
@@ -139,7 +139,7 @@ func buildDomains(
 	// deployment-specific domain for stable public access.
 	domains = append(domains, newDomain{
 		domain: fmt.Sprintf("%s-%s-%s.%s", prefix, sluggify(deploymentID), workspaceSlug, apex),
-		//nolint: exhaustruct
+		//nolint: exhaustruct_v5
 		sticky: db.FrontlineRoutesStickyDeployment,
 	})
 

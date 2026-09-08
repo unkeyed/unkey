@@ -59,7 +59,7 @@ func TestExecute_EmptySpec(t *testing.T) {
 	e := newTestExecutor(t)
 	req := httptest.NewRequest("GET", "/anything", nil)
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	redactor, err := e.Execute(context.Background(), nil, req, &frontlinev1.OpenApiRequestValidation{})
 	require.NoError(t, err)
 	require.Nil(t, redactor)

@@ -116,7 +116,7 @@ func (s *service) selectDestination(
 		)
 	}
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	return RouteDecision{
 		Destination:         DestinationRemoteRegion,
 		DeploymentID:        route.DeploymentID,

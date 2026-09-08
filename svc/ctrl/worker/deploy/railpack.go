@@ -268,7 +268,7 @@ func (w *Workflow) buildRailpackPrepareSolverOptions(
 		sessionAttachables = append(sessionAttachables, secretsprovider.FromMap(secrets))
 	}
 
-	//nolint: exhaustruct
+	//nolint: exhaustruct_v5
 	return client.SolveOpt{
 		Frontend: "dockerfile.v0",
 		FrontendAttrs: map[string]string{
@@ -336,7 +336,7 @@ func (w *Workflow) buildRailpackSolverOptions(
 		sessionAttachables = append(sessionAttachables, secretsprovider.FromMap(secrets))
 	}
 
-	//nolint: exhaustruct
+	//nolint: exhaustruct_v5
 	return client.SolveOpt{
 		Frontend:      "gateway.v0",
 		FrontendAttrs: frontendAttrs,

@@ -182,7 +182,7 @@ func (c *Client) ghHeaders(installationID int64) (map[string]string, error) {
 // generateJWT creates a short-lived JWT for GitHub App authentication.
 func (c *Client) generateJWT() (string, error) {
 	now := time.Now()
-	// nolint:exhaustruct
+	// nolint:exhaustruct_v5
 	claims := jwt.RegisteredClaims{
 		IssuedAt:  now.Unix(),
 		ExpiresAt: now.Add(10 * time.Minute).Unix(),

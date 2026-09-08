@@ -190,7 +190,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Meta: metaBytes,
 			})
 			if err != nil {
-				// nolint:exhaustruct
+				// nolint:exhaustruct_v5
 				return txResult{}, fault.Wrap(err,
 					fault.Internal("unable to update metadata"), fault.Public("We're unable to update the identity's metadata."),
 				)
@@ -261,7 +261,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if len(rateLimitsToDelete) > 0 {
 				err = db.Query.DeleteManyRatelimitsByIDs(ctx, tx, rateLimitsToDelete)
 				if err != nil {
-					// nolint:exhaustruct
+					// nolint:exhaustruct_v5
 					return txResult{}, fault.Wrap(err,
 						fault.Internal("unable to delete ratelimits"), fault.Public("We're unable to delete ratelimits."),
 					)
@@ -288,7 +288,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						AutoApply: newRL.AutoApply,
 					})
 					if err != nil {
-						// nolint:exhaustruct
+						// nolint:exhaustruct_v5
 						return txResult{}, fault.Wrap(err,
 							fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 							fault.Internal("database failed to update ratelimit"),
@@ -382,7 +382,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			if len(rateLimitsToInsert) > 0 {
 				err = db.BulkQuery.InsertIdentityRatelimits(ctx, tx, rateLimitsToInsert)
 				if err != nil {
-					// nolint:exhaustruct
+					// nolint:exhaustruct_v5
 					return txResult{}, fault.Wrap(err,
 						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 						fault.Internal("database failed to insert ratelimits"),
@@ -405,7 +405,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, auditLogs)
 		if err != nil {
-			// nolint:exhaustruct
+			// nolint:exhaustruct_v5
 			return txResult{}, err
 		}
 

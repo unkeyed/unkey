@@ -75,7 +75,7 @@ func (k *KeyVerifier) VerifyRootKey(ctx context.Context, opts ...VerifyOption) e
 // For root keys: returns fault errors for validation failures.
 // For normal keys: returns error only for system problems, check k.Valid and k.Status for validation results.
 func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
-	// nolint:exhaustruct
+	// nolint:exhaustruct_v5
 	config := &verifyConfig{}
 	for _, opt := range opts {
 		if err := opt(config); err != nil {

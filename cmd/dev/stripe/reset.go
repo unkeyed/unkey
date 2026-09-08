@@ -101,7 +101,7 @@ func reset(ctx context.Context, cmd *cli.Command) error {
 	if err := db.Query.UpsertLimit(ctx, database.RW(), db.UpsertLimitParams{
 		WorkspaceID:                           workspaceID,
 		ApiBillableOperationsCountMaxPerMonth: 150_000,
-		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct_v5
 		LogsRetentionDaysMax:                  7,
 		LogsAuditRetentionDaysMax:             30,
 		TeamEnabled:                           false,
