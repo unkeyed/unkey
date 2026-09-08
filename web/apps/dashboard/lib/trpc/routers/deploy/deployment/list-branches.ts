@@ -2,6 +2,7 @@ import { and, db, desc, eq, isNotNull, ne, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { deployments } from "@unkey/db/src/schema";
 import { z } from "zod";
+import { excludeSkipped } from "./deployment-query-helpers";
 
 // Branch options for the deployments filter. Derived from the whole history,
 // not from the loaded page, so a branch that last deployed months ago is still
@@ -21,6 +22,7 @@ export const listDeploymentBranches = workspaceProcedure
           eq(deployments.appId, input.appId),
           isNotNull(deployments.gitBranch),
           ne(deployments.gitBranch, ""),
+          excludeSkipped(),
         ),
       )
       .groupBy(deployments.gitBranch)

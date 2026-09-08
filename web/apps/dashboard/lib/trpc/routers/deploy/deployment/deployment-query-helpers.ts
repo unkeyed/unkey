@@ -1,8 +1,16 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
-import type { InferSelectModel } from "@/lib/db";
+import { type InferSelectModel, ne } from "@/lib/db";
 import type { LastExit } from "@/lib/types/deploy";
 import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
 import { mapRegionToFlag } from "../network/utils";
+
+// A skipped row records a push the platform declined to build at all (watch
+// paths didn't match, auto-deploy off). Nothing was ever deployed, so the
+// browsing views leave them out; a lookup by deployment id still returns them
+// so their detail page keeps working.
+export function excludeSkipped() {
+  return ne(deployments.status, "skipped");
+}
 
 export const deploymentSelectFields = {
   id: deployments.id,
