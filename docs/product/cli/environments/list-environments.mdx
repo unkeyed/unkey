@@ -1,0 +1,41 @@
+---
+title: "list-environments"
+description: "List environments with the Unkey API CLI"
+---
+
+List the environments configured for an app.
+
+## Usage
+
+```bash
+unkey api environments list-environments [flags]
+```
+
+## Flags
+
+<ParamField body="--project" type="string" required>
+Project identifier or slug.
+</ParamField>
+<ParamField body="--app" type="string" required>
+Application identifier or slug.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format - use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api environments list-environments --project=payments --app=payments-api
+```
+</CodeGroup>
+
+See the [List environments API reference](https://www.unkey.com/docs/api-reference/v2/environments/list-environments).

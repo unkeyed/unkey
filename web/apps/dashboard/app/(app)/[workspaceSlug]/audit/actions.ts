@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { routes } from "@/lib/navigation/routes";
 import { redirect } from "next/navigation";
 
-export const getWorkspace = async (orgId: string) => {
+export const getWorkspace = async (orgId: string, role: string) => {
   try {
     let members = null;
 
@@ -23,20 +23,23 @@ export const getWorkspace = async (orgId: string) => {
 
     const workspace = await db.query.workspaces.findFirst({
       where: (table, { eq, and, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+      columns: { id: true },
     });
 
     if (!workspace) {
       return redirect(routes.auth.signIn());
     }
 
-    const rootKeys = await db.query.keys.findMany({
-      where: (table, { eq }) => eq(table.forWorkspaceId, workspace?.id),
-
-      columns: {
-        id: true,
-        name: true,
-      },
-    });
+    const rootKeys =
+      role === "admin"
+        ? await db.query.keys.findMany({
+            where: (table, { eq }) => eq(table.forWorkspaceId, workspace.id),
+            columns: {
+              id: true,
+              name: true,
+            },
+          })
+        : [];
 
     return { workspace: { ...workspace, keys: rootKeys }, members };
   } catch (error) {

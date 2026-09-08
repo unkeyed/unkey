@@ -150,9 +150,8 @@ func TestConfig_ValidateJWTIssuer(t *testing.T) {
 	require.Contains(t, err.Error(), "issuer")
 }
 
-// TestConfig_ValidateJWTJWKSAcceptsAnyIssuer guarantees the jwks_url key
-// source is not tied to one identity provider; the provider field, not the
-// issuer, selects provider-specific behavior at resolver wiring time.
+// TestConfig_ValidateJWTJWKSAcceptsAnyIssuer guarantees the jwks_url key source
+// is not tied to one identity provider. The provider field selects role mapping.
 func TestConfig_ValidateJWTJWKSAcceptsAnyIssuer(t *testing.T) {
 	t.Parallel()
 
@@ -164,53 +163,56 @@ func TestConfig_ValidateJWTJWKSAcceptsAnyIssuer(t *testing.T) {
 	require.NoError(t, cfg.Validate())
 }
 
-// TestConfig_ValidateAcceptsWorkOSProvider guarantees a jwt entry can opt into
-// WorkOS permission translation with any issuer, so custom auth domains and
-// environment-scoped issuers select translation the same way.
+// TestConfig_ValidateAcceptsWorkOSProvider guarantees WorkOS role mapping can
+// be selected for JWTs that use either supported verification method.
 func TestConfig_ValidateAcceptsWorkOSProvider(t *testing.T) {
 	t.Parallel()
 
-	cfg := configWithAuth(JWTAuthConfig{
-		Issuer:   "https://auth.acme.com/user_management/client_123",
-		JWKSURL:  "https://auth.acme.com/sso/jwks/client_123",
-		Provider: "workos",
-	})
+	tests := []struct {
+		name string
+		auth JWTAuthConfig
+	}{
+		{
+			name: "JWKS",
+			auth: JWTAuthConfig{
+				Issuer:   "https://auth.acme.com",
+				JWKSURL:  "https://auth.acme.com/.well-known/jwks.json",
+				Provider: "workos",
+			},
+		},
+		{
+			name: "HS256",
+			auth: JWTAuthConfig{
+				Issuer:   "app.unkey.com",
+				Secrets:  []string{strings.Repeat("a", 32)},
+				Provider: "workos",
+			},
+		},
+	}
 
-	require.NoError(t, cfg.Validate())
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			require.NoError(t, configWithAuth(test.auth).Validate())
+		})
+	}
 }
 
-// TestConfig_ValidateRejectsUnknownProvider guarantees a misspelled or
-// unsupported provider fails startup instead of silently skipping permission
-// translation and 403-ing every request.
+// TestConfig_ValidateRejectsUnknownProvider guarantees a misspelled provider
+// fails startup instead of creating JWT principals without permissions.
 func TestConfig_ValidateRejectsUnknownProvider(t *testing.T) {
 	t.Parallel()
 
-	cfg := &Config{Auth: AuthConfigs{JWTAuthConfig{
+	cfg := configWithAuth(JWTAuthConfig{
 		Issuer:   "https://api.workos.com",
 		JWKSURL:  "https://api.workos.com/sso/jwks/test",
 		Provider: "workoss",
-	}}}
+	})
 
 	err := cfg.Validate()
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "provider")
-}
-
-// TestConfig_ValidateWorkOSProviderRequiresJWKSURL guarantees a workos entry
-// paired with shared secrets fails at startup, since WorkOS issues RS256
-// tokens that only a JWKS endpoint can verify.
-func TestConfig_ValidateWorkOSProviderRequiresJWKSURL(t *testing.T) {
-	t.Parallel()
-
-	cfg := &Config{Auth: AuthConfigs{JWTAuthConfig{
-		Issuer:   "https://api.workos.com",
-		Secrets:  []string{strings.Repeat("a", 32)},
-		Provider: "workos",
-	}}}
-
-	err := cfg.Validate()
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "jwks_url")
 }
 
 // TestConfig_ValidateJWTJWKSRequiresIssuer guarantees JWKS auth entries bind

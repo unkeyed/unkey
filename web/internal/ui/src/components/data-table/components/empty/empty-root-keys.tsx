@@ -14,7 +14,7 @@ export function EmptyRootKeys() {
         </Empty.Description>
         <Empty.Actions className="mt-4 justify-start">
           <a
-            href="https://www.unkey.com/docs/security/root-keys"
+            href="https://www.unkey.com/docs/security/overview#root-keys"
             target="_blank"
             rel="noopener noreferrer"
             className={buttonVariants({ variant: "outline" })}

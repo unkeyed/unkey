@@ -24,6 +24,7 @@ import (
 
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
+	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -46,6 +47,7 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/internal/certmanager"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
+	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 	"github.com/unkeyed/unkey/svc/frontline/internal/router"
@@ -119,7 +121,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
-	buildinfo.RegisterBuildInfoMetrics("frontline")
+	buildinfometrics.Register("frontline")
 
 	if cfg.PrometheusPort > 0 {
 		prom, promErr := prometheus.NewWithRegistry(reg)
@@ -253,8 +255,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	cacheSet, err := caches.New(caches.Config{
-		Clock:  clk,
-		NodeID: cfg.InstanceID,
+		Clock: clk,
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create caches: %w", err)
@@ -286,6 +287,10 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	upstreamTransports := proxy.NewTransportRegistry()
+	metadata, err := meta.New(cfg.FrontlineMetaSigningKey)
+	if err != nil {
+		return fmt.Errorf("unable to create Frontline metadata codec: %w", err)
+	}
 
 	// nolint:exhaustruct
 	proxySvc, err := proxy.New(proxy.Config{
@@ -295,6 +300,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ApexDomain:         cfg.ApexDomain,
 		Clock:              clk,
 		MaxHops:            cfg.MaxHops,
+		Metadata:           metadata,
 		UpstreamTransports: upstreamTransports,
 	})
 	if err != nil {
@@ -323,6 +329,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Region:            cfg.Region,
 		Platform:          cfg.Platform,
 		FrontlineID:       cfg.InstanceID,
+		Metadata:          metadata,
 		RouterService:     routerSvc,
 		ProxyService:      proxySvc,
 		Engine:            policyEngine,
@@ -493,6 +500,7 @@ func buildEngine(
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key cache: %w", err)
 	}
+	r.Defer(func() error { keyCache.Close(); return nil })
 
 	keyService, err := keys.New(keys.Config{
 		DB:           pkgdb.ToMySQL(database),

@@ -13,8 +13,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -42,7 +45,6 @@ func (h *Handler) Path() string {
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	logger.Debug("handling request", "requestId", s.RequestID(), "path", "/v2/permissions.listRoles")
 
-	// 1. Authentication
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
@@ -56,7 +58,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
+	projectID, projectFound, err := projects.FindDefaultProject(ctx, h.DB.RW(), principal.AuthorizedWorkspaceID)
+	if err != nil {
+		return err
+	}
+
+	projectIDRequired := projectID
+	if !projectFound {
+		// A missing default project has no concrete ID to authorize. Require a
+		// grant that covers every project before creating the default project.
+		projectIDRequired = "*"
+	}
 	err = principal.Authorize(rbac.Or(
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectIDRequired).RBAC().Role("*"),
+			permissions.Read,
+		),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
 			ResourceID:   "*",
@@ -67,11 +84,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	roles, err := db.Query.ListRoles(
+	if !projectFound {
+		projectID, err = projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.AuthorizedWorkspaceID)
+		if err != nil {
+			return err
+		}
+	}
+
+	rows, err := db.Query.ListRoles(
 		ctx,
 		h.DB.RO(),
 		db.ListRolesParams{
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			ProjectID:   projectID,
 			IDCursor:    p.Cursor,
 			Search:      search,
 			Limit:       p.FetchLimit(),
@@ -84,9 +109,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	roles, pg := pagination.Paginate(roles, p, func(r db.ListRolesRow) string { return r.ID })
+	rows, pg := pagination.Paginate(rows, p, func(r db.ListRolesRow) string { return r.ID })
 
-	roleResponses := array.Map(roles, func(role db.ListRolesRow) openapi.Role {
+	roleResponses := array.Map(rows, func(role db.ListRolesRow) openapi.Role {
 		perms, err := db.UnmarshalNullableJSONTo[[]db.Permission](role.Permissions)
 		if err != nil {
 			logger.Error("Failed to unmarshal permissions", "error", err)

@@ -1,0 +1,13 @@
+type: object
+required:
+  - image
+properties:
+  image:
+    type: string
+    minLength: 1
+    maxLength: 256
+    pattern: "\\S"
+    description: OCI image to deploy. Mutable tags are resolved to immutable digests before rollout.
+    example: "ghcr.io/acme/api:v1.2.3"
+additionalProperties: false
+description: Deploy a prebuilt OCI image without a build.

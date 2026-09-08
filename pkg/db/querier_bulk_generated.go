@@ -13,6 +13,7 @@ type BulkQuerier interface {
 	UpsertAppRegionalSettings(ctx context.Context, db DBTX, args []UpsertAppRegionalSettingsParams) error
 	UpsertAppRuntimeSettings(ctx context.Context, db DBTX, args []UpsertAppRuntimeSettingsParams) error
 	UpsertAppRuntimeSettingsPolicyConfig(ctx context.Context, db DBTX, args []UpsertAppRuntimeSettingsPolicyConfigParams) error
+	InsertAppSourceOcis(ctx context.Context, db DBTX, args []InsertAppSourceOciParams) error
 	InsertClickhouseOutboxes(ctx context.Context, db DBTX, args []InsertClickhouseOutboxParams) error
 	InsertClickhouseWorkspaceSettingses(ctx context.Context, db DBTX, args []InsertClickhouseWorkspaceSettingsParams) error
 	UpsertRegion(ctx context.Context, db DBTX, args []UpsertRegionParams) error

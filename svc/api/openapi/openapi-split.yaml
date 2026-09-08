@@ -169,6 +169,8 @@ paths:
     $ref: "./spec/paths/v2/deployments/promoteDeployment/index.yaml"
   /v2/deployments.rollbackDeployment:
     $ref: "./spec/paths/v2/deployments/rollbackDeployment/index.yaml"
+  /v3/deployments.createDeployment:
+    $ref: "./spec/paths/v3/deployments/createDeployment/index.yaml"
   /v2/deploy.createDeployment:
     $ref: "./spec/paths/v2/deploy/createDeployment/index.yaml"
   /v2/deploy.getDeployment:
@@ -234,6 +236,14 @@ paths:
     $ref: "./spec/paths/v2/ratelimit/deleteOverride/index.yaml"
 
   # Portal Endpoints
+  /v2/portal.createPortal:
+    $ref: "./spec/paths/v2/portal/createPortal/index.yaml"
+  /v2/portal.getPortal:
+    $ref: "./spec/paths/v2/portal/getPortal/index.yaml"
+  /v2/portal.updatePortal:
+    $ref: "./spec/paths/v2/portal/updatePortal/index.yaml"
+  /v2/portal.deletePortal:
+    $ref: "./spec/paths/v2/portal/deletePortal/index.yaml"
   /v2/portal.createSession:
     $ref: "./spec/paths/v2/portal/createSession/index.yaml"
   /v2/portal.exchangeCode:

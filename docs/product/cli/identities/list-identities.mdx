@@ -30,6 +30,10 @@ The maximum number of identities to return in a single request. Use this to cont
 Pagination cursor from a previous response. Use this to fetch subsequent pages of results when the response contains a cursor value.
 </ParamField>
 
+<ParamField body="--search" type="string">
+Free-form text to filter identities. Returns identities whose ID or external ID contains the search string. Matching is case-insensitive.
+</ParamField>
+
 ## Global Flags
 
 | Flag | Type | Description |
@@ -38,6 +42,7 @@ Pagination cursor from a previous response. Use this to fetch subsequent pages o
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
 | `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
@@ -51,6 +56,9 @@ unkey api identities list-identities --limit=50
 ```bash Paginate with cursor
 unkey api identities list-identities --limit=50 --cursor=cursor_eyJrZXkiOiJrZXlfMTIzNCJ9
 ```
+```bash Search identities
+unkey api identities list-identities --search=user_123
+```
 ```bash JSON output for scripting
 unkey api identities list-identities --limit=10 --output=json
 ```
@@ -58,10 +66,10 @@ unkey api identities list-identities --limit=10 --output=json
 
 ## Output
 
-Default output shows the request ID with latency, followed by the list of identities:
+Default output shows the request ID, followed by the list of identities:
 
 ```text
-req_01H9TQPP77V5E48E9SH0BG0ZQX (took 120ms)
+req_01H9TQPP77V5E48E9SH0BG0ZQX
 
 {
   "identities": [

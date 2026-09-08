@@ -1,0 +1,28 @@
+---
+title: "verify-domain"
+description: "Restart verification for a custom domain"
+---
+
+Restart verification after correcting DNS records, or give a pending domain a new 24-hour verification period.
+
+## Usage
+```bash
+unkey api domains verify-domain [flags]
+```
+## Flags
+<ParamField body="--domain" type="string" required>Domain ID or fully qualified domain name.</ParamField>
+
+## Global Flags
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+
+## Examples
+```bash
+unkey api domains verify-domain --domain=api.acme.com
+```
+See [Custom domains](/networking/domains) for DNS and verification details.

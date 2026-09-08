@@ -18,7 +18,7 @@
 //
 //   - Build from source: provide a build context path (S3 key to a tar.gz archive)
 //     and optionally a Dockerfile path (defaults to "./Dockerfile")
-//   - Prebuilt image: provide a Docker image reference directly
+//   - Prebuilt image: provide an OCI image reference directly
 //
 // # Workflow Lifecycle
 //

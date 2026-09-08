@@ -15,6 +15,7 @@ import (
 // Request and response types are plain protobuf messages without connect wrappers.
 type AppServiceClient interface {
 	CreateApp(ctx context.Context, req *v1.CreateAppRequest) (*v1.CreateAppResponse, error)
+	UpdateOciImageSource(ctx context.Context, req *v1.UpdateOciImageSourceRequest) (*v1.UpdateOciImageSourceResponse, error)
 	DeleteApp(ctx context.Context, req *v1.DeleteAppRequest) (*v1.DeleteAppResponse, error)
 }
 
@@ -34,6 +35,19 @@ func (c *ConnectAppServiceClient) CreateApp(ctx context.Context, req *v1.CreateA
 	ctx, span := tracing.Start(ctx, "AppService.CreateApp")
 	defer span.End()
 	resp, err := c.inner.CreateApp(ctx, connect.NewRequest(req))
+	if err != nil {
+		if connect.CodeOf(err) != connect.CodeNotFound {
+			tracing.RecordError(span, err)
+		}
+		return nil, err
+	}
+	return resp.Msg, nil
+}
+
+func (c *ConnectAppServiceClient) UpdateOciImageSource(ctx context.Context, req *v1.UpdateOciImageSourceRequest) (*v1.UpdateOciImageSourceResponse, error) {
+	ctx, span := tracing.Start(ctx, "AppService.UpdateOciImageSource")
+	defer span.End()
+	resp, err := c.inner.UpdateOciImageSource(ctx, connect.NewRequest(req))
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			tracing.RecordError(span, err)

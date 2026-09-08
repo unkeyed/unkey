@@ -1,7 +1,8 @@
 import { ChevronDown } from "@unkey/icons";
+// biome-ignore lint/style/useImportType: this package compiles JSX with the classic runtime, so React must stay a value import
 import * as React from "react";
-import { cn } from "../../lib/utils";
-import { FormDescription, FormLabel, type Requirement } from "./form-helpers";
+import { FormField } from "./form-field";
+import type { Requirement } from "./form-helpers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
 
 export type FormSelectOption = { value: string; label: React.ReactNode };
@@ -45,61 +46,53 @@ function FormSelect({
   disabled,
   rightIcon,
 }: FormSelectProps) {
-  const descriptionAsTooltip = descriptionPosition === "label";
-  const selectVariant = error ? "error" : undefined;
-  const generatedId = React.useId();
-  const selectId = id || generatedId;
-  const descriptionId = `${selectId}-helper`;
-  const errorId = `${selectId}-error`;
-
   return (
-    <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
-      <FormLabel
-        label={label}
-        requirement={requirement}
-        hasError={Boolean(error)}
-        htmlFor={selectId}
-        tooltipContent={descriptionAsTooltip ? description : undefined}
-      />
-      <Select
-        // Base UI's Select.Value renders the raw value unless Root gets an
-        // items map — without this, triggers show e.g. "basic_member" instead
-        // of "Member".
-        items={options.map((opt) => ({ value: opt.value, label: opt.label }))}
-        value={value}
-        onValueChange={(newValue) => {
-          if (newValue !== null) {
-            onValueChange(newValue);
-          }
-        }}
-        disabled={disabled}
-      >
-        <SelectTrigger
-          id={selectId}
-          variant={selectVariant}
-          className={triggerClassName}
-          aria-describedby={error ? errorId : description ? descriptionId : undefined}
-          aria-invalid={!!error}
-          aria-required={requirement === "required"}
-          rightIcon={rightIcon ?? <ChevronDown className="absolute right-2" iconSize="md-medium" />}
+    <FormField
+      label={label}
+      description={description}
+      error={error}
+      requirement={requirement}
+      id={id}
+      className={className}
+      descriptionPosition={descriptionPosition}
+    >
+      {(control) => (
+        <Select
+          // Base UI's Select.Value renders the raw value unless Root gets an
+          // items map — without this, triggers show e.g. "basic_member" instead
+          // of "Member".
+          items={options.map((opt) => ({ value: opt.value, label: opt.label }))}
+          value={value}
+          onValueChange={(newValue) => {
+            if (newValue !== null) {
+              onValueChange(newValue);
+            }
+          }}
+          disabled={disabled}
         >
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent className={contentClassName}>
-          {options.map((opt) => (
-            <SelectItem key={opt.value} value={opt.value}>
-              {opt.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <FormDescription
-        description={descriptionAsTooltip ? undefined : description}
-        error={error}
-        descriptionId={descriptionId}
-        errorId={errorId}
-      />
-    </fieldset>
+          <SelectTrigger
+            id={control.id}
+            variant={control.variant}
+            className={triggerClassName}
+            aria-describedby={control.describedBy}
+            aria-invalid={control.invalid}
+            aria-required={requirement === "required"}
+            rightIcon={
+              rightIcon ?? <ChevronDown className="absolute right-2" iconSize="md-medium" />
+            }
+          >
+            <SelectValue placeholder={placeholder} />
+          </SelectTrigger>
+          <SelectContent className={contentClassName}>
+            {options.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+    </FormField>
   );
 }
 

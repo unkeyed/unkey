@@ -96,8 +96,8 @@ func (w *Workflow) Promote(ctx restate.ObjectContext, req *hydrav1.PromoteReques
 	// the routes already point at the target.
 	var routeIDs []string
 	if !isConfirmingRollback {
-		frontlineRoutes, findErr := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRouteForPromotionRow, error) {
-			return w.db.FindFrontlineRouteForPromotion(stepCtx, db.FindFrontlineRouteForPromotionParams{
+		frontlineRoutes, findErr := restate.Run(ctx, func(stepCtx restate.RunContext) ([]db.FindFrontlineRoutesByEnvironmentAndStickyRow, error) {
+			return w.db.FindFrontlineRoutesByEnvironmentAndSticky(stepCtx, db.FindFrontlineRoutesByEnvironmentAndStickyParams{
 				EnvironmentID: targetDeployment.EnvironmentID,
 				Sticky: []db.FrontlineRoutesSticky{
 					db.FrontlineRoutesStickyLive,

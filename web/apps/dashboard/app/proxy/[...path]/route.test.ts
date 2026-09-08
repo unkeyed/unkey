@@ -17,27 +17,14 @@ vi.mock("@/lib/env", () => ({
   env: vi.fn(),
 }));
 
-vi.mock("@/lib/db", () => ({
-  db: {
-    query: {
-      workspaces: {
-        findFirst: vi.fn(),
-      },
-    },
-  },
-}));
-
 import { getAuth } from "@/lib/auth/get-auth";
 import { auth as authProvider } from "@/lib/auth/server";
-import { LOCAL_AUTH_PERMISSIONS } from "@/lib/auth/types";
-import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { jwtVerify } from "jose";
 import { POST } from "./route";
 
 const mockedGetAuth = vi.mocked(getAuth);
 const mockedAuthProvider = vi.mocked(authProvider);
-const mockedFindWorkspace = vi.mocked(db.query.workspaces.findFirst);
 const mockedEnv = vi.mocked(env);
 
 function makeRequest(headers: Record<string, string> = {}): NextRequest {
@@ -62,9 +49,6 @@ describe("dashboard proxy POST", () => {
       UNKEY_API_URL: "https://api.example.test",
       UNKEY_JWT_SECRET: "test-secret-with-at-least-32-bytes-of-entropy",
     } as ReturnType<typeof env>);
-    mockedFindWorkspace.mockResolvedValue({ id: "ws_123" } as Awaited<
-      ReturnType<typeof mockedFindWorkspace>
-    >);
   });
 
   afterEach(() => {
@@ -105,7 +89,6 @@ describe("dashboard proxy POST", () => {
 
     expect(res.status).toBe(200);
     expect(mockedAuthProvider.getUser).not.toHaveBeenCalled();
-    expect(mockedFindWorkspace).not.toHaveBeenCalled();
     expect(fetch).toHaveBeenCalledOnce();
     const [, init] = vi.mocked(fetch).mock.calls[0];
     expect(init).toBeDefined();
@@ -113,12 +96,11 @@ describe("dashboard proxy POST", () => {
     expect(headers.get("authorization")).toBe("Bearer workos_access_token");
   });
 
-  it("mints a fallback proxy JWT scoped by org id", async () => {
+  it("mints a fallback proxy JWT with roles", async () => {
     mockedGetAuth.mockResolvedValue({
       userId: "user_1",
       orgId: "org_1",
-      permissions: LOCAL_AUTH_PERMISSIONS,
-      role: "owner",
+      role: "admin",
     });
     mockedAuthProvider.getUser.mockResolvedValue({
       fullName: "Test User",
@@ -150,7 +132,9 @@ describe("dashboard proxy POST", () => {
     expect(payload["org.id"]).toBeUndefined();
     expect(payload.wid).toBeUndefined();
     expect(payload.name).toBe("Test User");
-    expect(payload.perms).toEqual(["unkey:v1:ws_123:**#*"]);
+    expect(payload.roles).toEqual(["admin"]);
+    expect(payload.role).toBeUndefined();
+    expect(payload.perms).toBeUndefined();
   });
 
   it.each([
@@ -196,14 +180,12 @@ describe("dashboard proxy POST", () => {
     expect(url.pathname).toBe("/v2/apis.listKeys");
   });
 
-  it("rejects fallback proxy JWT minting when the org has no workspace", async () => {
+  it("rejects fallback proxy JWT minting when the session has no role", async () => {
     mockedGetAuth.mockResolvedValue({
       userId: "user_1",
       orgId: "org_1",
-      permissions: LOCAL_AUTH_PERMISSIONS,
-      role: "owner",
+      role: null,
     });
-    mockedFindWorkspace.mockResolvedValue(undefined);
 
     const res = await POST(makeRequest({ accept: "application/json" }), { params });
 

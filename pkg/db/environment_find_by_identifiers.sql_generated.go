@@ -10,14 +10,14 @@ import (
 )
 
 const findEnvironmentByIdentifiers = `-- name: FindEnvironmentByIdentifiers :one
-SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.kind, e.delete_protection, e.created_at, e.updated_at
-FROM environments e
-JOIN apps a ON e.app_id = a.id AND e.workspace_id = a.workspace_id
+SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
+FROM environments
+JOIN apps a ON environments.app_id = a.id AND environments.workspace_id = a.workspace_id
 JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
-WHERE e.workspace_id = ?
+WHERE environments.workspace_id = ?
   AND (p.id = ? OR p.slug = ?)
   AND (a.id = ? OR a.slug = ?)
-  AND (e.id = ? OR e.slug = ?)
+  AND (environments.id = ? OR environments.slug = ?)
 LIMIT 1
 `
 
@@ -30,14 +30,14 @@ type FindEnvironmentByIdentifiersParams struct {
 
 // FindEnvironmentByIdentifiers
 //
-//	SELECT e.pk, e.id, e.workspace_id, e.project_id, e.app_id, e.slug, e.description, e.kind, e.delete_protection, e.created_at, e.updated_at
-//	FROM environments e
-//	JOIN apps a ON e.app_id = a.id AND e.workspace_id = a.workspace_id
+//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
+//	FROM environments
+//	JOIN apps a ON environments.app_id = a.id AND environments.workspace_id = a.workspace_id
 //	JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
-//	WHERE e.workspace_id = ?
+//	WHERE environments.workspace_id = ?
 //	  AND (p.id = ? OR p.slug = ?)
 //	  AND (a.id = ? OR a.slug = ?)
-//	  AND (e.id = ? OR e.slug = ?)
+//	  AND (environments.id = ? OR environments.slug = ?)
 //	LIMIT 1
 func (q *Queries) FindEnvironmentByIdentifiers(ctx context.Context, db DBTX, arg FindEnvironmentByIdentifiersParams) (Environment, error) {
 	row := db.QueryRowContext(ctx, findEnvironmentByIdentifiers,

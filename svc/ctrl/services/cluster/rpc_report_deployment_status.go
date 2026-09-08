@@ -87,7 +87,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 
 				staleInstances, err := db.NewQueries(tx).FindInstancesByDeploymentIdAndRegionID(ctx, db.FindInstancesByDeploymentIdAndRegionIDParams{
 					DeploymentID: deployment.ID,
-					RegionID:     cluster.Region.ID,
+					RegionID:     cluster.RegionID,
 				})
 				if err != nil {
 					return err
@@ -102,7 +102,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 					if _, ok := wantInstanceNames[staleInstance.K8sName]; !ok {
 						err = db.NewQueries(tx).DeleteInstance(ctx, db.DeleteInstanceParams{
 							K8sName:  staleInstance.K8sName,
-							RegionID: cluster.Region.ID,
+							RegionID: cluster.RegionID,
 						})
 						if err != nil {
 							return err
@@ -117,7 +117,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 						WorkspaceID:   deployment.WorkspaceID,
 						ProjectID:     deployment.ProjectID,
 						AppID:         deployment.AppID,
-						RegionID:      cluster.Region.ID,
+						RegionID:      cluster.RegionID,
 						K8sName:       instance.GetK8SName(),
 						Address:       instance.GetAddress(),
 						CpuMillicores: int32(instance.GetCpuMillicores()),
@@ -139,7 +139,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 
 				if err := db.NewQueries(tx).DeleteDeploymentInstances(ctx, db.DeleteDeploymentInstancesParams{
 					DeploymentID: deployment.ID,
-					RegionID:     cluster.Region.ID,
+					RegionID:     cluster.RegionID,
 				}); err != nil {
 					return err
 				}

@@ -151,11 +151,11 @@ cannot read.
 | `ip_address` | String | IP address of the caller |
 | `total_latency` | Int64 | Full end to end time in milliseconds |
 | `instance_latency` | Int64 | Time your instance used, in milliseconds |
-| `frontline_latency` | Int64 | Time the Unkey gateway added, in milliseconds |
+| `gateway_latency` | Int64 | Time the Unkey gateway added, in milliseconds |
 
 ## Read a latency percentile
 
-The table keeps `total_latency`, `instance_latency`, and `frontline_latency`
+The table keeps `total_latency`, `instance_latency`, and `gateway_latency`
 as plain numbers. Use `quantile` on these columns.
 
 <CodeGroup>

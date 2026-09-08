@@ -183,7 +183,7 @@ During the stale window, Frontline serves old data while refreshing in the backg
 | Error code                 | Response body JSON (`error.code`), trace span attributes                                    |
 | Error type                 | Prometheus `error_type` label (`none`, `user`, `customer`, `platform`)                      |
 | Request details            | ClickHouse `FrontlineRequest` table (30-day TTL, Authorization header redacted)              |
-| Latency breakdown          | `Server-Timing` response header, ClickHouse `FrontlineLatency` / `InstanceLatency` fields    |
+| Latency breakdown          | `Server-Timing` response header, ClickHouse `GatewayLatency` / `InstanceLatency` fields    |
 | Request rate and errors    | Prometheus `unkey_frontline_requests_total` (labels include status_code and error_type)     |
 | Distributed trace          | Span `frontline.proxy` with request_id, status_code, error_type attributes                  |
 | Instance-level failures    | Error context includes instance address, check pod logs for that address                    |

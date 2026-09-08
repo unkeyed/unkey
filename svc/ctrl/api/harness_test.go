@@ -24,9 +24,8 @@ import (
 )
 
 type webhookHarnessConfig struct {
-	Services          []restate.ServiceDefinition
-	WebhookSecret     string
-	EnforceDeployGate bool
+	Services      []restate.ServiceDefinition
+	WebhookSecret string
 }
 
 type webhookHarness struct {
@@ -80,9 +79,6 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 		},
 		GitHub: GitHubConfig{
 			WebhookSecret: secret,
-		},
-		DeployGate: DeployGateConfig{
-			Enforce: cfg.EnforceDeployGate,
 		},
 	}
 

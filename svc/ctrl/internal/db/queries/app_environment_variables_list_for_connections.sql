@@ -8,7 +8,7 @@ WHERE gc.installation_id = sqlc.arg(installation_id)
   AND gc.repository_id = sqlc.arg(repository_id)
   AND CASE
     WHEN CAST(sqlc.arg(is_fork_pr) AS SIGNED) = 1 THEN e.kind = 'preview'
-    WHEN sqlc.arg(branch) = COALESCE(NULLIF(a.default_branch, ''), 'main')
+    WHEN sqlc.arg(branch) = COALESCE(NULLIF(gc.default_branch, ''), 'main')
     THEN e.kind = 'production'
     ELSE e.kind = 'preview'
   END;

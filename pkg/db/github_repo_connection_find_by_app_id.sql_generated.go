@@ -18,6 +18,7 @@ SELECT
     installation_id,
     repository_id,
     repository_full_name,
+    default_branch,
     created_at,
     updated_at
 FROM github_repo_connections
@@ -34,6 +35,7 @@ WHERE app_id = ?
 //	    installation_id,
 //	    repository_id,
 //	    repository_full_name,
+//	    default_branch,
 //	    created_at,
 //	    updated_at
 //	FROM github_repo_connections
@@ -49,6 +51,7 @@ func (q *Queries) FindGithubRepoConnectionByAppId(ctx context.Context, db DBTX, 
 		&i.InstallationID,
 		&i.RepositoryID,
 		&i.RepositoryFullName,
+		&i.DefaultBranch,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

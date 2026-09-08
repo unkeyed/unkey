@@ -38,9 +38,20 @@ export const deployments = mysqlTable(
     // App this deployment belongs to
     appId: id("app_id").notNull(),
 
-    // the docker image
-    // null until the build is done
-    image: varchar("image", { length: 256 }),
+    // How the deployment artifact was produced. "unknown" is retained for
+    // historical rows whose provenance cannot be reconstructed safely.
+    source: mysqlEnum("source", ["unknown", "git", "oci"]).notNull().default("unknown"),
+
+    // The mutable tag or immutable digest requested for an OCI deployment.
+    imageRequested: varchar("image_requested", { length: 512 }),
+
+    // Legacy resolved-image column. Keep dual-writing this while older
+    // deployments and binaries can still read it.
+    image: varchar("image", { length: 512 }),
+
+    // The resolved image deployed to Kubernetes. Git builds populate this after
+    // the build completes; OCI sources populate it after digest resolution.
+    imageResolved: varchar("image_resolved", { length: 512 }),
     buildId: caseSensitiveVarchar("build_id", { length: 128 }).unique(),
 
     // Git information

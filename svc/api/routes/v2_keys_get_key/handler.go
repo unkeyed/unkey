@@ -75,7 +75,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	keyData := db.ToKeyData(key)
 
 	// Validate key belongs to authorized workspace
-	if keyData.Key.WorkspaceID != principal.WorkspaceID {
+	if keyData.Key.WorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -96,8 +96,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.ReadKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(keyData.Key.KeyAuthID).Key(keyData.Key.ID),
-			permissions.ReadKey{},
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keyData.KeyAuth.ProjectID).Keyspace(keyData.Key.KeyAuthID).Key(keyData.Key.ID),
+			permissions.Read,
 		),
 	))
 	if err != nil {
@@ -117,6 +117,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
+	start := keyData.Key.Start
+	if keyData.Key.Prefix != "" {
+		start = keyData.Key.Prefix + "_" + start
+	}
+
 	response := openapi.KeyResponseData{
 		Meta:        nil,
 		Ratelimits:  nil,
@@ -130,7 +135,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		CreatedAt:   keyData.Key.CreatedAtM,
 		Enabled:     keyData.Key.Enabled,
 		KeyId:       keyData.Key.ID,
-		Start:       keyData.Key.Start,
+		Start:       start,
 		Plaintext:   plaintext,
 		LastUsedAt:  int64(keyData.Key.LastUsedAt),
 	}
@@ -269,8 +274,8 @@ func (h *Handler) decryptKey(ctx context.Context, principal *principal.Principal
 			Action:       rbac.DecryptKey,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Keyspace(keyData.Key.KeyAuthID).Key(keyData.Key.ID),
-			permissions.DecryptKey{},
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keyData.KeyAuth.ProjectID).Keyspace(keyData.Key.KeyAuthID).Key(keyData.Key.ID),
+			permissions.Decrypt,
 		),
 	))
 	if err != nil {

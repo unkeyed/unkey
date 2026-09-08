@@ -47,7 +47,7 @@
 //
 // [Workflow.Deploy] is the primary entrypoint. It validates the deployment
 // record, loads workspace/project/environment context, then either builds a
-// Docker image from a Git repository via Depot or accepts a pre-built image.
+// container image from a Git repository via Depot or accepts a pre-built image.
 // It creates deployment topologies for every configured region (each with its
 // own deployment_changes entry) and waits until enough regions report running
 // instances. Once healthy, it generates frontline routes for per-commit,

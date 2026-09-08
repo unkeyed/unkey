@@ -112,4 +112,6 @@ WHERE updated_at is not null;
 --
 
 
-select * from workspaces limit 100;
+SELECT id, created_at, created_at_m, deleted_at, deleted_at_m
+FROM workspaces
+LIMIT 100;

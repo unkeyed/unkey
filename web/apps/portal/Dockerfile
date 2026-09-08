@@ -30,12 +30,12 @@ ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 portal
 
-COPY --from=builder --chown=portal:nodejs /app/apps/portal/dist ./dist
+COPY --from=builder --chown=portal:nodejs /app/apps/portal/.output ./.output
 
 USER portal
 
 EXPOSE 3000
 ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
+ENV HOST="0.0.0.0"
 
-CMD ["node", "dist/server/server.js"]
+CMD ["node", ".output/server/index.mjs"]

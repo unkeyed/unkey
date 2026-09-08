@@ -56,7 +56,7 @@ Spend budgets apply to gross month-to-date metered spend, credits included: a $1
 
 ## Cadence
 
-The local dev cron runs **every 3 minutes** so alerts and enforcement are observable without a long wait. Production runs every 15 minutes (configured in the infra repo). Worst-case detection latency equals the cron cadence plus teardown drain time.
+The local dev cron runs **every 3 minutes** so alerts and enforcement are observable without a long wait. Production runs every minute (configured in the infra repo). Worst-case detection latency equals the cron cadence plus teardown drain time.
 
 ## Configuration
 

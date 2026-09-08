@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Test SQL wildcard lint detection"
+set -euo pipefail
+
+rask ./tools/lintsqlwildcards

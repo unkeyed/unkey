@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_app"
@@ -42,6 +43,35 @@ func TestCreateAppValidationErrors(t *testing.T) {
 		{name: "slug too short", req: handler.Request{Project: validProject, Name: "App", Slug: "ab"}},
 		{name: "slug invalid chars", req: handler.Request{Project: validProject, Name: "App", Slug: "app slug"}},
 		{name: "slug too long", req: handler.Request{Project: validProject, Name: "App", Slug: strings.Repeat("a", 256)}},
+		{name: "missing source", req: handler.Request{Project: validProject, Name: "App", Slug: "app-slug"}},
+		{
+			name: "git default branch without repository",
+			req: handler.Request{
+				Project: validProject,
+				Name:    "App",
+				Slug:    "app-slug",
+				Git:     &openapi.AppGitCreateInput{DefaultBranch: ptr.P("main")},
+			},
+		},
+		{
+			name: "OCI image too long",
+			req: handler.Request{
+				Project: validProject,
+				Name:    "App",
+				Slug:    "app-slug",
+				Oci:     &openapi.AppOCI{Image: strings.Repeat("a", 253) + ":tag"},
+			},
+		},
+		{
+			name: "multiple sources",
+			req: handler.Request{
+				Project: validProject,
+				Name:    "App",
+				Slug:    "app-slug",
+				Git:     &openapi.AppGitCreateInput{Repository: ptr.P("unkeyed/unkey")},
+				Oci:     &openapi.AppOCI{Image: "nginx:stable"},
+			},
+		},
 	}
 
 	for _, tc := range testCases {

@@ -65,7 +65,7 @@ func TestDeploySpendCheck_SuspendThenResume(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 
 	// Make the deployment its app's current deployment so SUSPEND records it and
 	// resume restores it.
@@ -171,7 +171,7 @@ func TestDeploySpendCheck_ResumeOnBudgetRemoved(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
-	}).Deployment
+	})
 
 	// Mark the workspace suspended, as a prior trip would have left it. The app
 	// has no current deployment (suspend cleared it), so resume restores nothing;
@@ -217,7 +217,7 @@ func TestDeploySpendCheck_ResumeOnStopDisabled(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateStopped,
-	}).Deployment
+	})
 
 	err := h.DB.SetWorkspaceDeploySpendSuspended(ctx, db.SetWorkspaceDeploySpendSuspendedParams{
 		Suspended: true,

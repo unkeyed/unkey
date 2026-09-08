@@ -1,0 +1,52 @@
+---
+title: "set-environment-variables"
+description: "Set environment variables with the Unkey API CLI"
+---
+
+Upsert environment variables atomically, with optional pruning.
+
+## Usage
+
+```bash
+unkey api environments set-environment-variables [flags]
+```
+
+## Flags
+
+<ParamField body="--project" type="string" required>
+Project identifier or slug.
+</ParamField>
+<ParamField body="--app" type="string" required>
+Application identifier or slug.
+</ParamField>
+<ParamField body="--environment" type="string" required>
+Environment identifier or slug.
+</ParamField>
+<ParamField body="--variables" type="JSON string" required>
+Variables with key, value, kind, and description.
+<Expandable title="JSON schema">The JSON object uses the properties and constraints listed above.</Expandable>
+</ParamField>
+<ParamField body="--prune" type="bool" default="false">
+Remove existing variables that aren't included in `--variables`.
+</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format - use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+
+## Examples
+
+<CodeGroup>
+```bash Basic
+unkey api environments set-environment-variables --project=payments --app=payments-api \
+  --environment=production --variables='[{"key":"TOKEN","value":"secret"}]'
+```
+</CodeGroup>
+
+See the [Set environment variables API reference](https://www.unkey.com/docs/api-reference/v2/environments/set-environment-variables).

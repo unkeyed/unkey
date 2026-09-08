@@ -50,6 +50,7 @@ func TestCreateAppDuplicateSlug(t *testing.T) {
 		Project: projectSlug,
 		Name:    "Payments API",
 		Slug:    "payments-api",
+		Oci:     &openapi.AppOCI{Image: "nginx:stable"},
 	})
 	require.Equal(t, http.StatusConflict, res.Status, "expected 409, received: %s", res.RawBody)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/app_already_exists", res.Body.Error.Type)

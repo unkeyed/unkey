@@ -73,7 +73,7 @@ func TestDeployTeardown_ClearsCurrentAndStops(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 
 	// Make the deployment its app's current deployment so we exercise the
 	// guard-bypass-by-clearing path.
@@ -145,7 +145,7 @@ func TestDeployTeardown_NoInstancesDrainsImmediately(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 
 	// Model a deployment that never produced instances.
 	require.NoError(t, h.DB.UpdateDeploymentStatus(ctx, db.UpdateDeploymentStatusParams{
@@ -179,7 +179,7 @@ func TestDeployTeardown_SuspendThenResume(t *testing.T) {
 	dep := h.CreateDeployment(ctx, CreateDeploymentRequest{
 		Region:       "us-east-1",
 		DesiredState: mysqltype.DeploymentsDesiredStateRunning,
-	}).Deployment
+	})
 
 	// Make the deployment its app's current deployment so SUSPEND records it.
 	err := h.DB.UpdateAppDeployments(ctx, db.UpdateAppDeploymentsParams{

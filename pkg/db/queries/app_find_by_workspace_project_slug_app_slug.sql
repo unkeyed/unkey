@@ -1,5 +1,7 @@
 -- name: FindAppByWorkspaceAndSlugs :one
-SELECT sqlc.embed(p), sqlc.embed(a)
+SELECT
+  p.id AS project_id,
+  a.id AS app_id
 FROM apps a
 INNER JOIN projects p ON a.project_id = p.id
 WHERE p.workspace_id = sqlc.arg(workspace_id)

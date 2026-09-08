@@ -1,0 +1,33 @@
+---
+title: "list-domains"
+description: "List custom domains attached to an environment"
+---
+
+List an environment's custom domains and their verification status. Results are paginated and sorted by ID.
+
+## Usage
+```bash
+unkey api domains list-domains [flags]
+```
+## Flags
+<ParamField body="--project" type="string" required>Project ID or slug.</ParamField>
+<ParamField body="--app" type="string" required>App ID or slug.</ParamField>
+<ParamField body="--environment" type="string" required>Environment ID or slug.</ParamField>
+<ParamField body="--limit" type="integer" default="100">Maximum domains per response, from 1 to 100.</ParamField>
+<ParamField body="--cursor" type="string">Cursor returned by the previous page when `hasMore` is true.</ParamField>
+<ParamField body="--search" type="string">Case-insensitive filter matching domain IDs or names.</ParamField>
+
+## Global Flags
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+
+## Examples
+```bash
+unkey api domains list-domains --project=payments --app=api --environment=production --limit=25 --search=acme.com
+```
+See [Custom domains](/networking/domains) for DNS and verification details.

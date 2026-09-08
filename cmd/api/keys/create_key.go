@@ -4,9 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -38,28 +37,29 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/cre
 			"unkey api keys create-key --api-id=api_1234abcd",
 			"unkey api keys create-key --api-id=api_1234abcd --prefix=prod --name='Payment Service Key'",
 			"unkey api keys create-key --api-id=api_1234abcd --external-id=user_1234abcd --roles=api_admin,billing_reader",
-			`unkey api keys create-key --api-id=api_1234abcd --meta-json='{"plan":"pro","team":"acme"}'`,
-			`unkey api keys create-key --api-id=api_1234abcd --credits-json='{"remaining":1000,"refill":{"interval":"monthly","amount":100}}'`,
-			`unkey api keys create-key --api-id=api_1234abcd --ratelimits-json='[{"name":"requests","limit":100,"duration":60000,"autoApply":true}]'`,
+			`unkey api keys create-key --api-id=api_1234abcd --meta='{"plan":"pro","team":"acme"}'`,
+			`unkey api keys create-key --api-id=api_1234abcd --credits='{"remaining":1000,"refill":{"interval":"monthly","amount":100}}'`,
+			`unkey api keys create-key --api-id=api_1234abcd --ratelimits='[{"name":"requests","limit":100,"duration":60000,"autoApply":true}]'`,
 		},
 		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 			util.RootKeyFlag(),
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("api-id", "The API namespace this key belongs to.", cli.Required()),
-			cli.String("prefix", "Prefix prepended to the generated key string."),
-			cli.String("name", "Human-readable name for the key."),
-			cli.Int64("byte-length", "Cryptographic key length in bytes."),
-			cli.String("external-id", "Your system's user or entity identifier to link to this key."),
-			cli.String("meta-json", "JSON object of arbitrary metadata returned during verification."),
-			cli.StringSlice("roles", "Comma-separated list of role names to assign."),
-			cli.StringSlice("permissions", "Comma-separated list of permission names to grant."),
-			cli.Int64("expires", "Unix timestamp in milliseconds when the key expires."),
-			cli.String("credits-json", "JSON object of credit and refill configuration."),
-			cli.String("ratelimits-json", "JSON array of rate limit configurations."),
-			cli.Bool("enabled", "Whether the key is active for verification.", cli.Default(true)),
-			cli.Bool("recoverable", "Whether the plaintext key is stored for later retrieval.", cli.Default(false)),
+			cli.String("api-id", "The API namespace this key belongs to.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("prefix", "Prefix prepended to the generated key string.", cli.MutuallyExclusive("body")),
+			cli.String("name", "Human-readable name for the key.", cli.MutuallyExclusive("body")),
+			cli.Int64("byte-length", "Cryptographic key length in bytes.", cli.MutuallyExclusive("body")),
+			cli.String("external-id", "Your system's user or entity identifier to link to this key.", cli.MutuallyExclusive("body")),
+			cli.String("meta", "JSON object of arbitrary metadata returned during verification.", cli.MutuallyExclusive("body")),
+			cli.StringSlice("roles", "Comma-separated list of role names to assign.", cli.MutuallyExclusive("body")),
+			cli.StringSlice("permissions", "Comma-separated list of permission names to grant.", cli.MutuallyExclusive("body")),
+			cli.Int64("expires", "Unix timestamp in milliseconds when the key expires.", cli.MutuallyExclusive("body")),
+			cli.String("credits", "JSON object of credit and refill configuration.", cli.MutuallyExclusive("body")),
+			cli.String("ratelimits", "JSON array of rate limit configurations.", cli.MutuallyExclusive("body")),
+			cli.Bool("enabled", "Whether the key is active for verification.", cli.Default(true), cli.MutuallyExclusive("body")),
+			cli.Bool("recoverable", "Whether the plaintext key is stored for later retrieval.", cli.Default(false), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
@@ -67,7 +67,22 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/cre
 				return err
 			}
 
-			start := time.Now()
+			if cmd.FlagIsSet("body") {
+				body := cmd.String("body")
+				res, err := util.SendBody(ctx, client.Keys.CreateKey, body)
+				if err != nil {
+					return err
+				}
+				return util.Output(cmd, res.V2KeysCreateKeyResponseBody)
+			}
+
+			send := func(req components.V2KeysCreateKeyRequestBody) error {
+				res, err := client.Keys.CreateKey(ctx, req)
+				if err != nil {
+					return fmt.Errorf("%s", util.FormatError(err))
+				}
+				return util.Output(cmd, res.V2KeysCreateKeyResponseBody)
+			}
 			req := components.V2KeysCreateKeyRequestBody{
 				APIID:       cmd.String("api-id"),
 				Prefix:      nil,
@@ -100,10 +115,10 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/cre
 				req.ExternalID = &v
 			}
 
-			if v := cmd.String("meta-json"); v != "" {
+			if v := cmd.String("meta"); v != "" {
 				var meta map[string]any
 				if err := json.Unmarshal([]byte(v), &meta); err != nil {
-					return fmt.Errorf("invalid JSON for --meta-json: %w", err)
+					return fmt.Errorf("invalid JSON for --meta: %w", err)
 				}
 				req.Meta = meta
 			}
@@ -120,27 +135,22 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/cre
 				req.Expires = &v
 			}
 
-			if v := cmd.String("credits-json"); v != "" {
+			if v := cmd.String("credits"); v != "" {
 				var credits components.KeyCreditsData
 				if err := json.Unmarshal([]byte(v), &credits); err != nil {
-					return fmt.Errorf("invalid JSON for --credits-json: %w", err)
+					return fmt.Errorf("invalid JSON for --credits: %w", err)
 				}
 				req.Credits = &credits
 			}
 
-			if v := cmd.String("ratelimits-json"); v != "" {
+			if v := cmd.String("ratelimits"); v != "" {
 				var ratelimits []components.RatelimitRequest
 				if err := json.Unmarshal([]byte(v), &ratelimits); err != nil {
-					return fmt.Errorf("invalid JSON for --ratelimits-json: %w", err)
+					return fmt.Errorf("invalid JSON for --ratelimits: %w", err)
 				}
 				req.Ratelimits = ratelimits
 			}
-
-			res, err := client.Keys.CreateKey(ctx, req)
-			if err != nil {
-				return fmt.Errorf("%s", util.FormatError(err))
-			}
-			return util.Output(cmd, res.V2KeysCreateKeyResponseBody, time.Since(start))
+			return send(req)
 		},
 	}
 }

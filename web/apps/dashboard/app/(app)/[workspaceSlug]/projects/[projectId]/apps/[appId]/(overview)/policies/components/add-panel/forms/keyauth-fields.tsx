@@ -1,6 +1,5 @@
 "use client";
 
-import type { ComboboxOption } from "@/components/ui/combobox";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { Switch } from "@/components/ui/switch";
 import { POLICY_LIMITS } from "@/lib/collections/deploy/policies.schema";
@@ -9,6 +8,7 @@ import { ChevronDown, Plus, Trash, XMark } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   Button,
+  type ComboboxOption,
   FormDescription,
   FormInput,
   Select,
@@ -41,9 +41,9 @@ export function KeyAuthFields() {
   const { errors, isSubmitted } = useFormState({ control });
 
   const {
-    field: { value: keySpaceIds, onChange: setKeySpaceIds },
-    fieldState: { error: keySpaceError },
-  } = useController({ control, name: "keySpaceIds" });
+    field: { value: keyspaceIds, onChange: setKeyspaceIds },
+    fieldState: { error: keyspaceIdsError },
+  } = useController({ control, name: "keyspaceIds" });
 
   const {
     field: { value: locations, onChange: setLocations },
@@ -118,7 +118,7 @@ export function KeyAuthFields() {
   const { data: availableKeyspaces = {} } =
     trpc.deploy.environmentSettings.getAvailableKeyspaces.useQuery();
 
-  const unselected = Object.keys(availableKeyspaces).filter((id) => !keySpaceIds.includes(id));
+  const unselected = Object.keys(availableKeyspaces).filter((id) => !keyspaceIds.includes(id));
   const comboboxOptions: ComboboxOption[] = unselected.map((id) => ({
     value: id,
     searchValue: id,
@@ -151,20 +151,20 @@ export function KeyAuthFields() {
           label="Keyspaces"
           descriptionPosition="label"
           description="API keyspaces used to authenticate incoming requests."
-          error={keySpaceError?.message}
+          error={keyspaceIdsError?.message}
           options={comboboxOptions}
           value=""
           onSelect={(id) => {
-            if (!keySpaceIds.includes(id)) {
-              setKeySpaceIds([...keySpaceIds, id]);
+            if (!keyspaceIds.includes(id)) {
+              setKeyspaceIds([...keyspaceIds, id]);
             }
           }}
           placeholder={
-            keySpaceIds.length === 0 ? (
+            keyspaceIds.length === 0 ? (
               <span className="text-grayA-8 w-full text-left">Select a keyspace</span>
             ) : (
               <div className="w-full flex flex-wrap gap-1.5 py-0.5">
-                {keySpaceIds.map((id) => (
+                {keyspaceIds.map((id) => (
                   <span
                     key={id}
                     className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-grayA-3 border border-grayA-4 text-xs text-accent-12"
@@ -177,12 +177,12 @@ export function KeyAuthFields() {
                       aria-label={`Remove ${availableKeyspaces[id]?.api?.name ?? id}`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        setKeySpaceIds(keySpaceIds.filter((k) => k !== id));
+                        setKeyspaceIds(keyspaceIds.filter((k) => k !== id));
                       }}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.stopPropagation();
-                          setKeySpaceIds(keySpaceIds.filter((k) => k !== id));
+                          setKeyspaceIds(keyspaceIds.filter((k) => k !== id));
                         }
                       }}
                       className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors cursor-pointer"
@@ -490,7 +490,7 @@ export function KeyAuthFields() {
  */
 export function KeyauthPolicySummary() {
   const { control } = useFormContext<KeyauthFormValues>();
-  const keySpaceIds = useWatch({ control, name: "keySpaceIds" });
+  const keyspaceIds = useWatch({ control, name: "keyspaceIds" });
   const locations = useWatch({ control, name: "locations" });
   const ratelimits = useWatch({ control, name: "ratelimits" });
   const credits = useWatch({ control, name: "credits" });
@@ -503,13 +503,13 @@ export function KeyauthPolicySummary() {
 
   return (
     <div className="max-w-75 truncate">
-      {summarizeKeyauth(keySpaceIds, locations, ratelimits, credits, keyspaceNames)}
+      {summarizeKeyauth(keyspaceIds, locations, ratelimits, credits, keyspaceNames)}
     </div>
   );
 }
 
 function summarizeKeyauth(
-  keySpaceIds: string[],
+  keyspaceIds: string[],
   locations: KeyauthFormValues["locations"],
   ratelimits: KeyauthFormValues["ratelimits"],
   credits: KeyauthFormValues["credits"],
@@ -517,15 +517,15 @@ function summarizeKeyauth(
 ): ReactNode {
   return (
     <span className="text-gray-11">
-      {keySpaceIds.length === 0 ? (
+      {keyspaceIds.length === 0 ? (
         <span className="text-gray-9">No keyspace selected</span>
-      ) : keySpaceIds.length > 3 ? (
+      ) : keyspaceIds.length > 3 ? (
         <>
-          <Strong>{keySpaceIds.length}</Strong> keyspaces
+          <Strong>{keyspaceIds.length}</Strong> keyspaces
         </>
       ) : (
         <Strong className="inline-block max-w-50 truncate align-bottom">
-          {keySpaceIds.map((id) => keyspaceNames?.[id] ?? id).join(", ")}
+          {keyspaceIds.map((id) => keyspaceNames?.[id] ?? id).join(", ")}
         </Strong>
       )}
       {locations.length === 1 && (

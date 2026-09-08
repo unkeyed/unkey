@@ -174,7 +174,7 @@ function IdentityResults({ search }: { search: string }) {
                   size="md"
                   render={
                     <Link
-                      href="https://www.unkey.com/docs/concepts/identities/overview"
+                      href="https://www.unkey.com/docs/platform/identities/overview"
                       target="_blank"
                       rel="noopener noreferrer"
                     />

@@ -11,6 +11,8 @@ SELECT
     cname_verified,
     target_cname,
     verification_error,
+    domain_connect_provider,
+    domain_connect_url,
     last_checked_at,
     created_at,
     updated_at

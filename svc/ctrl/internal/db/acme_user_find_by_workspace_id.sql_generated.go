@@ -10,12 +10,12 @@ import (
 )
 
 const findAcmeUserByWorkspaceID = `-- name: FindAcmeUserByWorkspaceID :one
-SELECT pk, id, workspace_id, encrypted_key, registration_uri, created_at, updated_at FROM acme_users WHERE workspace_id = ? LIMIT 1
+SELECT acme_users.pk, acme_users.id, acme_users.workspace_id, acme_users.encrypted_key, acme_users.registration_uri, acme_users.created_at, acme_users.updated_at FROM acme_users WHERE workspace_id = ? LIMIT 1
 `
 
 // FindAcmeUserByWorkspaceID
 //
-//	SELECT pk, id, workspace_id, encrypted_key, registration_uri, created_at, updated_at FROM acme_users WHERE workspace_id = ? LIMIT 1
+//	SELECT acme_users.pk, acme_users.id, acme_users.workspace_id, acme_users.encrypted_key, acme_users.registration_uri, acme_users.created_at, acme_users.updated_at FROM acme_users WHERE workspace_id = ? LIMIT 1
 func (q *Queries) FindAcmeUserByWorkspaceID(ctx context.Context, workspaceID string) (AcmeUser, error) {
 	row := q.db.QueryRowContext(ctx, findAcmeUserByWorkspaceID, workspaceID)
 	var i AcmeUser

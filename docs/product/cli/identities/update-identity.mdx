@@ -9,8 +9,8 @@ Use this for subscription changes, plan upgrades, or updating user information. 
 
 **Important:**
 - Rate limit changes propagate within 30 seconds across all regions
-- Providing `--meta-json` replaces all existing metadata; omitting it preserves current metadata
-- Providing `--ratelimits-json` replaces all existing rate limits; omitting it preserves current rate limits
+- Providing `--meta` replaces all existing metadata; omitting it preserves current metadata
+- Providing `--ratelimits` replaces all existing rate limits; omitting it preserves current rate limits
 
 **Required permissions:**
 - `identity.*.update_identity` (to update identities in any workspace)
@@ -31,11 +31,11 @@ unkey api identities update-identity [flags]
 The ID of the identity to update. Accepts either the externalId (your system-generated identifier) or the identityId (internal identifier returned by the identity service).
 </ParamField>
 
-<ParamField body="--meta-json" type="string">
+<ParamField body="--meta" type="JSON string">
 JSON object of metadata to replace existing metadata. Omitting this flag preserves existing metadata, while providing an empty object `'{}'` clears all metadata. Avoid storing sensitive data here as it is returned in verification responses. Large metadata objects increase verification latency and should stay under 10KB total size.
 </ParamField>
 
-<ParamField body="--ratelimits-json" type="string">
+<ParamField body="--ratelimits" type="JSON string">
 JSON array of rate limit configurations. Replaces all existing identity rate limits with this complete list. Omitting this flag preserves existing rate limits, while providing an empty array `'[]'` removes all rate limits. These limits are shared across all keys belonging to this identity, preventing abuse through multiple keys.
 
 <Expandable title="Rate limit object properties">
@@ -62,27 +62,28 @@ JSON array of rate limit configurations. Replaces all existing identity rate lim
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
 | `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
 <CodeGroup>
 ```bash Update metadata
-unkey api identities update-identity --identity=user_123 --meta-json='{"plan":"premium","name":"Alice Smith"}'
+unkey api identities update-identity --identity=user_123 --meta='{"plan":"premium","name":"Alice Smith"}'
 ```
 ```bash Update rate limits
-unkey api identities update-identity --identity=user_123 --ratelimits-json='[{"name":"requests","limit":1000,"duration":3600000,"autoApply":true}]'
+unkey api identities update-identity --identity=user_123 --ratelimits='[{"name":"requests","limit":1000,"duration":3600000,"autoApply":true}]'
 ```
 ```bash JSON output for scripting
-unkey api identities update-identity --identity=user_123 --meta-json='{"plan":"enterprise"}' --output=json
+unkey api identities update-identity --identity=user_123 --meta='{"plan":"enterprise"}' --output=json
 ```
 </CodeGroup>
 
 ## Output
 
-Default output shows the request ID with latency, followed by the updated identity:
+Default output shows the request ID, followed by the updated identity:
 
 ```text
-req_2c9a0jf23l4k567 (took 52ms)
+req_2c9a0jf23l4k567
 
 {
   "id": "id_1234abcd",

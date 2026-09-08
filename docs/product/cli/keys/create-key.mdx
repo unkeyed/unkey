@@ -47,7 +47,7 @@ Cryptographic key length in bytes. The default of 16 bytes provides 2^128 possib
 Your system's user or entity identifier to link to this key. Returned during verification to identify the key owner without additional database lookups. Accepts letters, numbers, underscores, dots, and hyphens.
 </ParamField>
 
-<ParamField body="--meta-json" type="string">
+<ParamField body="--meta" type="JSON string">
 JSON object of arbitrary metadata returned during key verification. Eliminates additional database lookups during verification, improving performance for stateless services. Avoid storing sensitive data here as it is returned in verification responses.
 
 <Expandable title="JSON schema">
@@ -69,7 +69,7 @@ Comma-separated list of permission names to grant directly to this key. Wildcard
 Unix timestamp in milliseconds when the key expires. Verification fails with `code=EXPIRED` immediately after this time passes. Omit to create a permanent key that never expires.
 </ParamField>
 
-<ParamField body="--credits-json" type="string">
+<ParamField body="--credits" type="JSON string">
 JSON object of credit and refill configuration. Controls usage-based limits through credit consumption with optional automatic refills. Unlike rate limits which control frequency, credits control total usage with global consistency.
 
 <Expandable title="JSON schema">
@@ -93,7 +93,7 @@ JSON object of credit and refill configuration. Controls usage-based limits thro
 </Expandable>
 </ParamField>
 
-<ParamField body="--ratelimits-json" type="string">
+<ParamField body="--ratelimits" type="JSON string">
 JSON array of rate limit configurations. Defines time-based rate limits that protect against abuse by controlling request frequency. Unlike credits which track total usage, rate limits reset automatically after each window expires.
 
 <Expandable title="JSON schema (array of objects)">
@@ -128,6 +128,7 @@ Whether the plaintext key is stored in an encrypted vault for later retrieval. O
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
 | `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
@@ -142,13 +143,13 @@ unkey api keys create-key --api-id=api_1234abcd --prefix=prod --name='Payment Se
 unkey api keys create-key --api-id=api_1234abcd --external-id=user_1234abcd --roles=api_admin,billing_reader
 ```
 ```bash With metadata
-unkey api keys create-key --api-id=api_1234abcd --meta-json='{"plan":"pro","team":"acme"}'
+unkey api keys create-key --api-id=api_1234abcd --meta='{"plan":"pro","team":"acme"}'
 ```
 ```bash With credits and refill
-unkey api keys create-key --api-id=api_1234abcd --credits-json='{"remaining":1000,"refill":{"interval":"monthly","amount":100}}'
+unkey api keys create-key --api-id=api_1234abcd --credits='{"remaining":1000,"refill":{"interval":"monthly","amount":100}}'
 ```
 ```bash With rate limits
-unkey api keys create-key --api-id=api_1234abcd --ratelimits-json='[{"name":"requests","limit":100,"duration":60000,"autoApply":true}]'
+unkey api keys create-key --api-id=api_1234abcd --ratelimits='[{"name":"requests","limit":100,"duration":60000,"autoApply":true}]'
 ```
 ```bash JSON output for scripting
 unkey api keys create-key --api-id=api_1234abcd --output=json
@@ -161,10 +162,10 @@ echo "Created key: $KEY_ID"
 
 ## Output
 
-Default output shows the request ID with latency, followed by the created key:
+Default output shows the request ID, followed by the created key:
 
 ```text
-req_2c9a0jf23l4k567 (took 120ms)
+req_2c9a0jf23l4k567
 
 {
   "keyId": "key_2cGKbMxRyIzhCxo1Idjz8q",

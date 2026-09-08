@@ -1,6 +1,5 @@
 "use client";
 
-import { TOP_NAV_HEIGHT } from "@/components/navigation/top-nav";
 import { Plus } from "@unkey/icons";
 import {
   Button,
@@ -39,11 +38,7 @@ export default function EnvVarsPage() {
         </PageHeaderActions>
       </PageHeader>
       <PageBody>
-        <EnvVarsBody
-          isAddOpen={isAddOpen}
-          onCloseAdd={() => setIsAddOpen(false)}
-          panelTopOffset={TOP_NAV_HEIGHT}
-        />
+        <EnvVarsBody isAddOpen={isAddOpen} onCloseAdd={() => setIsAddOpen(false)} />
       </PageBody>
     </PageContainer>
   );

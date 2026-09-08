@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"golang.org/x/net/publicsuffix"
+
+	"github.com/unkeyed/unkey/pkg/ssrf"
 )
 
 // The _domainconnect TXT value is set by whoever controls DNS for the user-
@@ -163,14 +165,11 @@ func lookupDomainConnectRecord(ctx context.Context, domain string) (string, erro
 	return strings.Join(records, ""), nil
 }
 
-// domainConnectHTTPClient refuses redirects so an allowlisted provider host
-// cannot bounce the request to a non-allowlisted destination.
-var domainConnectHTTPClient = &http.Client{
-	Timeout: 10 * time.Second,
-	CheckRedirect: func(*http.Request, []*http.Request) error {
-		return http.ErrUseLastResponse
-	},
-}
+// domainConnectHTTPClient hardens the settings fetch beyond the host
+// allowlist: [ssrf.New] refuses redirects, so an allowlisted provider host
+// cannot bounce the request to a non-allowlisted destination, and it rejects
+// hosts that resolve to private or loopback addresses.
+var domainConnectHTTPClient = ssrf.New(ssrf.WithTimeout(10 * time.Second))
 
 // doJSON performs a GET request and decodes the JSON response.
 func doJSON(ctx context.Context, url string, result any) error {

@@ -366,9 +366,7 @@ export async function completeOrgSelection(
 
   if (result.success) {
     (await cookies()).delete(PENDING_SESSION_COOKIE);
-    for (const cookie of result.cookies) {
-      (await cookies()).set(cookie.name, cookie.value, cookie.options);
-    }
+    await setCookies(result.cookies);
     // Store the last used organization ID in a cookie for auto-selection on next login
     try {
       await setLastUsedOrgCookie({ orgId });

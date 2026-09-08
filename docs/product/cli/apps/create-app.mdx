@@ -1,0 +1,34 @@
+---
+title: "create-app"
+description: "Create an app within a project"
+---
+
+Create an app within a project. The app is created with default `production` and `preview` environments. The caller-defined slug is stable and must be unique within the project.
+
+## Usage
+```bash
+unkey api apps create-app [flags]
+```
+## Flags
+<ParamField body="--project" type="string" required>Project ID or slug.</ParamField>
+<ParamField body="--name" type="string" required>Human-readable name for this app. Use a descriptive name like 'Payments API' to identify its purpose.</ParamField>
+<ParamField body="--slug" type="string" required>App slug. Accepts a resource ID or slug format.</ParamField>
+<ParamField body="--git" type="JSON string">
+Connect a GitHub repository with a required `repository` field and optional
+`defaultBranch` field.
+</ParamField>
+## Global Flags
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+## Examples
+```bash
+unkey api apps create-app --project=payments --name="Payments API" \
+  --slug=payments-api \
+  --git='{"repository":"unkeyed/api","defaultBranch":"main"}'
+```
+See the [API reference](https://www.unkey.com/docs/api-reference/v2/apps/create-app).

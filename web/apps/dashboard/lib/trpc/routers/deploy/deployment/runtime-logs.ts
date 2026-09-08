@@ -34,6 +34,14 @@ export const getDeploymentRuntimeLogs = workspaceProcedure
     const deployment = await db.query.deployments.findFirst({
       where: (table, { and, eq }) =>
         and(eq(table.id, input.deploymentId), eq(table.workspaceId, ctx.workspace.id)),
+      columns: {
+        id: true,
+        workspaceId: true,
+        projectId: true,
+        environmentId: true,
+        appId: true,
+        createdAt: true,
+      },
     });
     if (!deployment) {
       throw new TRPCError({

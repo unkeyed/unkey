@@ -3,5 +3,5 @@
 -- audit log. Safe to run unconditionally after ExchangePortalSessionCode
 -- reported one affected row: the hash is UNIQUE, so this is the same row, and
 -- the caller already established it won the race.
-SELECT * FROM portal_sessions
+SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 WHERE exchange_code_hash = sqlc.arg(exchange_code_hash);

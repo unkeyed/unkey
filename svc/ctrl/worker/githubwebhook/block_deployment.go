@@ -16,25 +16,26 @@ import (
 func (s *Service) blockDeploymentForApproval(
 	ctx restate.ObjectContext,
 	req *hydrav1.HandlePushRequest,
-	project db.Project,
-	repo db.GithubRepoConnection,
+	workspaceID string,
+	projectID string,
+	installationID int64,
 	deploymentID string,
 ) error {
 	workspace, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
-		return s.db.FindWorkspaceByID(runCtx, project.WorkspaceID)
+		return s.db.FindWorkspaceByID(runCtx, workspaceID)
 	}, restate.WithName("find workspace for approval log url"), restate.WithMaxRetryDuration(30*time.Second))
 	if err != nil {
 		return err
 	}
 
 	logURL := fmt.Sprintf("%s/%s/projects/%s/deployments/%s",
-		s.dashboardURL, workspace.Slug, project.ID, deploymentID,
+		s.dashboardURL, workspace.Slug, projectID, deploymentID,
 	)
 
 	if !s.allowUnauthenticatedDeployments {
 		_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
 			return s.github.CreateCommitStatus(
-				repo.InstallationID,
+				installationID,
 				req.GetRepositoryFullName(),
 				req.GetAfter(),
 				"failure",
@@ -47,7 +48,7 @@ func (s *Service) blockDeploymentForApproval(
 
 	logger.Info("deployment blocked for authorization",
 		"deployment_id", deploymentID,
-		"project_id", project.ID,
+		"project_id", projectID,
 		"sender", req.GetSenderLogin(),
 	)
 

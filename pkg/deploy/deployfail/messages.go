@@ -8,6 +8,9 @@ package deployfail
 const (
 	MsgNoSchedulableRegions = "No regions configured. Please configure at least one region before deploying."
 
+	// The dashboard's limit-failure banner substring-matches the three quota
+	// messages below (web/apps/dashboard/.../deployments/[deploymentId]/
+	// (deployment-progress)/limit-failure.ts) — update that table when rewording.
 	MsgCPUQuotaExceeded     = "We are unable to deploy this application as you have exceeded your CPU quota."
 	MsgMemoryQuotaExceeded  = "We are unable to deploy this application as you have exceeded your Memory quota."
 	MsgStorageQuotaExceeded = "We are unable to deploy this application as you have exceeded your Storage quota."

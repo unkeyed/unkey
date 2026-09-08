@@ -9,6 +9,7 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
@@ -47,7 +48,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Resolve project + app in a single query by workspace + slugs
 	row, err := db.Query.FindAppByWorkspaceAndSlugs(ctx, h.DB.RO(), db.FindAppByWorkspaceAndSlugsParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		ProjectSlug: req.Project,
 		AppSlug:     req.App,
 	})
@@ -70,7 +71,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Project,
-			ResourceID:   row.Project.ID,
+			ResourceID:   row.ProjectID,
 			Action:       rbac.CreateDeployment,
 		}),
 	))
@@ -85,14 +86,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI
 	}
 
+	// ctrl rejects these too, but ctrlclient.HandleError replaces its message with a
+	// generic one, so the reason reaches the caller only if the check also runs here.
+	if err := imageref.Validate(req.DockerImage); err != nil {
+		return err
+	}
+
 	// nolint: exhaustruct // optional proto fields, only setting whats provided
 	ctrlReq := &ctrlv1.CreateDeploymentRequest{
-		ProjectId:       row.Project.ID,
-		AppId:           row.App.ID,
+		ProjectId:       row.ProjectID,
+		AppId:           row.AppID,
 		EnvironmentSlug: req.EnvironmentSlug,
 		DockerImage:     req.DockerImage,
-		GitCommit: &ctrlv1.GitCommitInfo{
-			Branch: req.Branch,
+		Source: &ctrlv1.CreateDeploymentRequest_GitCommit{
+			GitCommit: &ctrlv1.GitCommitInfo{
+				Branch: req.Branch,
+			},
 		},
 		Trigger:     trigger,
 		TriggeredBy: principal.Subject.ID,
@@ -115,7 +124,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.Wrap(err, fault.Internal("failed to find keyspace"))
 		}
 
-		if keySpace.WorkspaceID != principal.WorkspaceID {
+		if keySpace.WorkspaceID != principal.AuthorizedWorkspaceID {
 			return fault.New("keyspace not found",
 				fault.Code(codes.Data.KeyAuth.NotFound.URN()),
 				fault.Internal("keyspace belongs to different workspace, masking as 404"),
@@ -147,7 +156,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if req.GitCommit.Timestamp != nil {
 			gitCommit.Timestamp = *req.GitCommit.Timestamp
 		}
-		ctrlReq.GitCommit = gitCommit
+		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_GitCommit{GitCommit: gitCommit}
 	}
 
 	ctrlResp, err := h.CtrlClient.CreateDeployment(ctx, ctrlReq)

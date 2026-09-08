@@ -1,5 +1,6 @@
 "use client";
 
+import { type OrganizationRole, isOrganizationRole, organizationRoleLabel } from "@/lib/auth/roles";
 import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import {
@@ -23,7 +24,7 @@ type RoleSwitcherProps = {
 
 export const RoleSwitcher = memo<RoleSwitcherProps>(
   ({ member, organization, user, userMembership }) => {
-    const [role, setRole] = useState(member.role);
+    const [role, setRole] = useState(member.role === "basic_member" ? "developer" : member.role);
     const isAdmin = userMembership?.role === "admin";
     const isCurrentUser = member.userId === user.id;
     const utils = trpc.useUtils();
@@ -38,7 +39,7 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
       },
     });
 
-    async function handleRoleUpdate(newRole: string) {
+    async function handleRoleUpdate(newRole: OrganizationRole) {
       if (!organization) {
         return;
       }
@@ -63,11 +64,12 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
             value={role}
             items={[
               { value: "admin", label: "Admin" },
-              { value: "basic_member", label: "Member" },
+              { value: "developer", label: "Developer" },
+              { value: "viewer", label: "Viewer" },
             ]}
             disabled={isCurrentUser || updateMember.isLoading}
             onValueChange={(newRole) => {
-              if (newRole !== null) {
+              if (isOrganizationRole(newRole)) {
                 handleRoleUpdate(newRole);
               }
             }}
@@ -78,7 +80,8 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
             <SelectContent>
               <SelectGroup>
                 <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="basic_member">Member</SelectItem>
+                <SelectItem value="developer">Developer</SelectItem>
+                <SelectItem value="viewer">Viewer</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -86,7 +89,7 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
       );
     }
 
-    return <span className="text-content">{role === "admin" ? "Admin" : "Member"}</span>;
+    return <span className="text-content">{organizationRoleLabel(role)}</span>;
   },
 );
 

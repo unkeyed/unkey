@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/apierrors"
+	"github.com/unkeyed/sdks/api/go/v3/models/apierrors"
 )
 
 // FormatError converts SDK error types into human-readable messages.

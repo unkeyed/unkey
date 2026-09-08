@@ -15,72 +15,68 @@ type DocumentedFormCheckboxProps = {
   descriptionPosition?: "inline" | "label";
 };
 
-type FormCheckboxProps = Omit<CheckboxProps, "size" | "variant" | "color"> &
-  DocumentedFormCheckboxProps;
+type FormCheckboxProps = Omit<CheckboxProps, "size" | "variant" | "color" | "ref"> &
+  DocumentedFormCheckboxProps & {
+    ref?: React.Ref<HTMLButtonElement>;
+  };
 
-const FormCheckbox = React.forwardRef<HTMLButtonElement, FormCheckboxProps>(
-  (
-    {
-      label,
-      description,
-      error,
-      requirement,
-      id,
-      className,
-      variant = "primary",
-      color,
-      size = "md",
-      descriptionPosition = "inline",
-      ...props
-    },
-    ref,
-  ) => {
-    const descriptionAsTooltip = descriptionPosition === "label";
-    const checkboxVariant = error ? "primary" : variant;
-    const checkboxColor = error ? "danger" : color;
-    const generatedId = React.useId();
-    const checkboxId = id || generatedId;
-    const descriptionId = `${checkboxId}-helper`;
-    const errorId = `${checkboxId}-error`;
+function FormCheckbox({
+  label,
+  description,
+  error,
+  requirement,
+  id,
+  className,
+  variant = "primary",
+  color,
+  size = "md",
+  descriptionPosition = "inline",
+  ref,
+  ...props
+}: FormCheckboxProps) {
+  const descriptionAsTooltip = descriptionPosition === "label";
+  const checkboxVariant = error ? "primary" : variant;
+  const checkboxColor = error ? "danger" : color;
+  const generatedId = React.useId();
+  const checkboxId = id || generatedId;
+  const descriptionId = `${checkboxId}-helper`;
+  const errorId = `${checkboxId}-error`;
 
-    return (
-      <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
-        <div className="flex items-center gap-2">
-          <Checkbox
-            ref={ref}
-            id={checkboxId}
-            variant={checkboxVariant}
-            color={checkboxColor}
-            size={size}
-            aria-describedby={error ? errorId : description ? descriptionId : undefined}
-            aria-invalid={Boolean(error)}
-            aria-required={requirement === "required"}
-            {...props}
-          />
-          {label && (
-            <div className="flex flex-col gap-1">
-              <FormLabel
-                label={label}
-                requirement={requirement}
-                hasError={Boolean(error)}
-                htmlFor={checkboxId}
-                tooltipContent={descriptionAsTooltip ? description : undefined}
-              />
-            </div>
-          )}
-        </div>
-        <FormDescription
-          description={descriptionAsTooltip ? undefined : description}
-          error={error}
-          variant={color}
-          descriptionId={descriptionId}
-          errorId={errorId}
+  return (
+    <fieldset className={cn("flex flex-col gap-1.5 border-0 m-0 p-0", className)}>
+      <div className="flex items-center gap-2">
+        <Checkbox
+          ref={ref}
+          id={checkboxId}
+          variant={checkboxVariant}
+          color={checkboxColor}
+          size={size}
+          aria-describedby={error ? errorId : description ? descriptionId : undefined}
+          aria-invalid={Boolean(error)}
+          aria-required={requirement === "required"}
+          {...props}
         />
-      </fieldset>
-    );
-  },
-);
-
-FormCheckbox.displayName = "FormCheckbox";
+        {label && (
+          <div className="flex flex-col gap-1">
+            <FormLabel
+              label={label}
+              requirement={requirement}
+              hasError={Boolean(error)}
+              htmlFor={checkboxId}
+              tooltipContent={descriptionAsTooltip ? description : undefined}
+            />
+          </div>
+        )}
+      </div>
+      <FormDescription
+        description={descriptionAsTooltip ? undefined : description}
+        error={error}
+        variant={color}
+        descriptionId={descriptionId}
+        errorId={errorId}
+      />
+    </fieldset>
+  );
+}
 
 export { FormCheckbox, type FormCheckboxProps, type DocumentedFormCheckboxProps };

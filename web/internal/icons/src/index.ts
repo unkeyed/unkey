@@ -120,6 +120,7 @@ export * from "./icons/lock";
 export * from "./icons/magnifier";
 export * from "./icons/math-function";
 export * from "./icons/maximize";
+export * from "./icons/media-pause";
 export * from "./icons/menu";
 export * from "./icons/message-writing";
 export * from "./icons/minus";

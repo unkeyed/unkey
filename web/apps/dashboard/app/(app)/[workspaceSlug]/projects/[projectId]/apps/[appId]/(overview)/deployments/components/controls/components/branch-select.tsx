@@ -1,7 +1,15 @@
 "use client";
 
 import { CodeBranch, Magnifier } from "@unkey/icons";
-import { Checkbox, FormInput, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import {
+  Checkbox,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@unkey/ui";
 import { useState } from "react";
 import { useProjectData } from "../../../../data-provider";
 import { useFilters } from "../../../hooks/use-filters";
@@ -48,13 +56,17 @@ export function BranchSelect() {
       />
       <PopoverContent align="start" className="w-64 p-1">
         <div className="p-1">
-          <FormInput
-            placeholder="Search branches..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="[&_input]:h-8 [&_input]:text-[13px]"
-            leftIcon={<Magnifier iconSize="md-medium" className="text-gray-9" />}
-          />
+          <InputGroup className="h-8">
+            <InputGroupAddon className="pointer-events-none">
+              <Magnifier iconSize="md-medium" className="text-gray-9" />
+            </InputGroupAddon>
+            <InputGroupInput
+              placeholder="Search branches..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-8 text-[13px]"
+            />
+          </InputGroup>
         </div>
         <div className="max-h-64 overflow-y-auto">
           {visibleBranches.length === 0 ? (

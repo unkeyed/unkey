@@ -1,0 +1,29 @@
+---
+title: "list-apps"
+description: "Retrieve a paginated list of apps within a project"
+---
+
+Retrieve a paginated list of apps within a project. Results are ordered by app ID. When `hasMore` is true, pass the returned `cursor` to fetch the next page.
+
+## Usage
+```bash
+unkey api apps list-apps [flags]
+```
+## Flags
+<ParamField body="--project" type="string" required>Project ID or slug.</ParamField>
+<ParamField body="--limit" type="integer" default="100">Maximum number of apps to return per request. Must be between 1 and 100.</ParamField>
+<ParamField body="--cursor" type="string">Pagination cursor from a previous response to fetch the next page.</ParamField>
+<ParamField body="--search" type="string">Free-form text matching app ID, name, or slug, case-insensitively.</ParamField>
+## Global Flags
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+## Examples
+```bash
+unkey api apps list-apps --project=payments --limit=25 --search=checkout
+```
+See the [API reference](https://www.unkey.com/docs/api-reference/v2/apps/list-apps).

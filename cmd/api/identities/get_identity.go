@@ -3,9 +3,8 @@ package identities
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/unkeyed/sdks/api/go/v2/models/components"
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
 )
@@ -26,11 +25,12 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/identiti
 			"unkey api identities get-identity --identity=user_123",
 		},
 		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
 			util.RootKeyFlag(),
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("identity", "The ID of the identity to retrieve, either externalId or identityId.", cli.Required()),
+			cli.String("identity", "The ID of the identity to retrieve, either externalId or identityId.", cli.Required(), cli.MutuallyExclusive("body")),
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
@@ -38,14 +38,22 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/identiti
 				return err
 			}
 
-			start := time.Now()
+			if cmd.FlagIsSet("body") {
+				body := cmd.String("body")
+				res, err := util.SendBody(ctx, client.Identities.GetIdentity, body)
+				if err != nil {
+					return err
+				}
+				return util.Output(cmd, res.V2IdentitiesGetIdentityResponseBody)
+			}
+
 			res, err := client.Identities.GetIdentity(ctx, components.V2IdentitiesGetIdentityRequestBody{
 				Identity: cmd.String("identity"),
 			})
 			if err != nil {
 				return fmt.Errorf("%s", util.FormatError(err))
 			}
-			return util.Output(cmd, res.V2IdentitiesGetIdentityResponseBody, time.Since(start))
+			return util.Output(cmd, res.V2IdentitiesGetIdentityResponseBody)
 		},
 	}
 }

@@ -28,6 +28,19 @@ export const settingsRoutes = {
     return buildRoute("/[workspaceSlug]/settings/root-keys", { workspaceSlug });
   },
 
+  logdrains: {
+    list({ workspaceSlug }: WorkspaceScope): Route {
+      return buildRoute("/[workspaceSlug]/settings/logdrains", { workspaceSlug });
+    },
+
+    detail({ workspaceSlug, drainId }: WorkspaceScope & { drainId: string }): Route {
+      return buildRoute("/[workspaceSlug]/settings/logdrains/[drainId]", {
+        workspaceSlug,
+        drainId,
+      });
+    },
+  },
+
   billing({ workspaceSlug, intent }: WorkspaceScope & { intent?: "compute" | "api" }): Route {
     return buildRoute(
       "/[workspaceSlug]/settings/billing",

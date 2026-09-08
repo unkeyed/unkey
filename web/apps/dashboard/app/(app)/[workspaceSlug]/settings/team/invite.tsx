@@ -1,5 +1,6 @@
 "use client";
 
+import { ORGANIZATION_ROLES } from "@/lib/auth/roles";
 import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,7 +23,7 @@ import { z } from "zod";
 
 const formSchema = z.object({
   email: z.email(),
-  role: z.enum(["admin", "basic_member"]),
+  role: z.enum(ORGANIZATION_ROLES),
 });
 
 interface InviteButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -43,7 +44,7 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
   } = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      role: "basic_member",
+      role: "developer",
     },
   });
 
@@ -142,7 +143,8 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
                   onValueChange={field.onChange}
                   value={field.value}
                   items={[
-                    { value: "basic_member", label: "Member" },
+                    { value: "developer", label: "Developer" },
+                    { value: "viewer", label: "Viewer" },
                     { value: "admin", label: "Admin" },
                   ]}
                 >
@@ -150,7 +152,8 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent className="border-none rounded-md">
-                    <SelectItem value="basic_member">Member</SelectItem>
+                    <SelectItem value="developer">Developer</SelectItem>
+                    <SelectItem value="viewer">Viewer</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>

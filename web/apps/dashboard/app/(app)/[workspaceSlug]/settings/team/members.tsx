@@ -55,10 +55,14 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
 
   if (!memberships || memberships.length === 0) {
     return (
-      <Empty>
-        <Empty.Title>No team members</Empty.Title>
-        <Empty.Description>Invite members using the form above</Empty.Description>
-      </Empty>
+      <Card>
+        <CardContent className="p-0">
+          <Empty>
+            <Empty.Title>No team members</Empty.Title>
+            <Empty.Description>Invite members using the form above</Empty.Description>
+          </Empty>
+        </CardContent>
+      </Card>
     );
   }
 

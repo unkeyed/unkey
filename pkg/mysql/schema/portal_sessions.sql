@@ -22,6 +22,8 @@ CREATE TABLE `portal_sessions` (
 
 CREATE INDEX `idx_workspace` ON `portal_sessions` (`workspace_id`);
 
+CREATE INDEX `idx_portal_revoked` ON `portal_sessions` (`portal_id`,`revoked_at`);
+
 CREATE INDEX `idx_external_id` ON `portal_sessions` (`external_id`);
 
 CREATE INDEX `idx_exchange_code_expires` ON `portal_sessions` (`exchange_code_expires_at`);

@@ -66,22 +66,23 @@ export async function fetchWorkspaceDetails({
   namespaceId,
   includeOverrides = false,
 }: WorkspaceDetailsOptions): Promise<WorkspaceDetailsResponse> {
-  const workspace = await db.query.workspaces.findFirst({
-    where: (table, { and, eq, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-    columns: {
-      name: true,
-      orgId: true,
-    },
-    with: {
-      ratelimitNamespaces: {
-        where: (table, { isNull }) => isNull(table.deletedAtM),
+  const workspace = includeOverrides
+    ? await db.query.workspaces.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
         columns: {
-          id: true,
-          workspaceId: true,
           name: true,
+          orgId: true,
         },
-        with: includeOverrides
-          ? {
+        with: {
+          ratelimitNamespaces: {
+            where: (table, { isNull }) => isNull(table.deletedAtM),
+            columns: {
+              id: true,
+              workspaceId: true,
+              name: true,
+            },
+            with: {
               overrides: {
                 where: (table, { isNull }) => isNull(table.deletedAtM),
                 columns: {
@@ -91,11 +92,28 @@ export async function fetchWorkspaceDetails({
                   duration: true,
                 },
               },
-            }
-          : undefined,
-      },
-    },
-  });
+            },
+          },
+        },
+      })
+    : await db.query.workspaces.findFirst({
+        where: (table, { and, eq, isNull }) =>
+          and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+        columns: {
+          name: true,
+          orgId: true,
+        },
+        with: {
+          ratelimitNamespaces: {
+            where: (table, { isNull }) => isNull(table.deletedAtM),
+            columns: {
+              id: true,
+              workspaceId: true,
+              name: true,
+            },
+          },
+        },
+      });
 
   if (!workspace) {
     throw new TRPCError({

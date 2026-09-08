@@ -53,6 +53,9 @@ func MaxByteSize(subject string, sizeBytes, limitBytes int) error {
 	)
 }
 
+// MaskInsufficientPermissionsAsNotFound replaces an insufficient-permissions
+// error with a not-found error so callers cannot use response differences to
+// find resources. It returns all other errors unchanged.
 func MaskInsufficientPermissionsAsNotFound(err error, code codes.URN, public string) error {
 	errCode, ok := fault.GetCode(err)
 	if !ok || errCode != codes.Auth.Authorization.InsufficientPermissions.URN() {

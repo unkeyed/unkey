@@ -28,8 +28,8 @@ CREATE TABLE IF NOT EXISTS default.audit_logs_raw_v1
     `time`          Int64 CODEC(Delta, ZSTD(1)),
     -- Wall-clock millis of the CH insert. Drives partitioning so late
     -- events land in the current month's part instead of fragmenting old
-    -- ones. The writer always sets this; no DEFAULT.
-    `inserted_at`   Int64 CODEC(Delta, ZSTD(1)),
+    -- ones. ClickHouse sets this value when it inserts the row.
+    `inserted_at`   Int64 DEFAULT toUnixTimestamp64Milli(now64(3)) CODEC(Delta, ZSTD(1)),
 
     `workspace_id`  String CODEC(ZSTD(1)),
     `bucket`        LowCardinality(String),
@@ -82,7 +82,11 @@ CREATE TABLE IF NOT EXISTS default.audit_logs_raw_v1
     -- Bloom for "all events in this user action" drill-down. Sparse
     -- because correlation_id is empty on most rows; bloom handles that
     -- gracefully (whole-granule no-match for the empty bucket).
-    INDEX idx_correlation_id    correlation_id    TYPE bloom_filter(0.01)      GRANULARITY 4
+    INDEX idx_correlation_id    correlation_id    TYPE bloom_filter(0.01)      GRANULARITY 4,
+    -- Log drains page by inserted_at. The partition key prunes whole months;
+    -- this minmax index prunes granules inside the month because rows in a
+    -- granule were inserted within seconds of each other.
+    INDEX idx_inserted_at       inserted_at       TYPE minmax                  GRANULARITY 1
 )
 ENGINE = ReplacingMergeTree()
 PARTITION BY toYYYYMM(fromUnixTimestamp64Milli(inserted_at))

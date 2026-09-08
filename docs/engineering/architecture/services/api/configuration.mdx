@@ -87,22 +87,17 @@ token = "${UNKEY_VAULT_TOKEN}"
     </ResponseField>
     <ResponseField name="auth.issuer" type="string">
       Expected JWT `iss` claim. Required for `type = "jwt"` entries and rejected
-      as an unknown field on `portal_session` and `root_key` entries. The issuer
-      does not affect permission translation; set `auth.provider` to opt into
-      WorkOS slug translation.
+      as an unknown field on `portal_session` and `root_key` entries.
     </ResponseField>
     <ResponseField name="auth.provider" type="string">
-      Permission dialect carried by this entry's tokens for `type = "jwt"`.
-      Leave unset when tokens already carry canonical Unkey permissions. Set
-      `provider = "workos"` to translate WorkOS permission slugs into canonical
-      Unkey permissions after verification. Translation is selected by this
-      field, not inferred from the issuer, so any issuer (including custom auth
-      domains) can opt in the same way.
+      Optional JWT provider integration. Set `provider = "workos"` to map the
+      `roles` claim to API permissions. The API does not infer the provider from
+      the issuer.
     </ResponseField>
     <ResponseField name="auth.audience" type="string">
       Optional expected JWT `aud` claim for `type = "jwt"`. Verification
-      requires the configured value to appear in the token's `aud` list. The
-      Unkey WorkOS environments use a JWT template that sets `aud` to
+      requires the configured value to appear in the token's `aud` list. Our
+      WorkOS environments use a JWT template that sets `aud` to
       `["api.unkey.com"]`, so set
       `audience = "api.unkey.com"` on the WorkOS entry. Omit this field only
       for providers that do not emit an audience claim. Setting it rejects
@@ -282,10 +277,12 @@ The Helm chart provides these variables for the default config template:
 
 The dashboard proxy forwards the WorkOS access token when a WorkOS session is
 available. The API verifies that token through a `type = "jwt"` auth entry
-configured with the WorkOS issuer and JWKS URL. The WorkOS JWT template includes
-the organization as `org.id`, and the API reads Unkey RBAC permissions from the
-token's `permissions` claim. The template also sets `aud` to
-`["api.unkey.com"]`, and the auth entry pins `audience = "api.unkey.com"`.
+configured with `provider = "workos"`, the WorkOS issuer, and the JWKS URL. The
+WorkOS JWT template includes the organization as `org.id`. WorkOS adds the
+built-in `roles` claim. The provider integration expands those roles into Unkey
+RBAC permissions and ignores the token's `permissions` and singular `role`
+claims. The template also sets `aud` to `["api.unkey.com"]`, and the auth entry
+pins `audience = "api.unkey.com"`.
 
 Each WorkOS environment (production, canary) must configure this JWT template
 in the WorkOS dashboard under Authentication settings:
@@ -306,8 +303,8 @@ audience check the same way.
 Local development still uses a dashboard-minted fallback JWT when no WorkOS
 access token exists. For that path, the dashboard needs a signing secret and the
 API must include the same secret in a `type = "jwt"` auth entry. The local
-fallback JWT includes the dashboard proxy permission set directly, so every
-local dashboard user is effectively an API admin.
+fallback JWT includes `roles: ["admin"]`. Set `provider = "workos"` on the local
+entry to use the same role mapping.
 
 <ResponseField name="UNKEY_API_URL" type="env" default="https://api.unkey.com">
   API base URL that dashboard proxy requests are forwarded to.

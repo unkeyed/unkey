@@ -49,7 +49,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	dep, err := deployment.FindDeployment(ctx, h.DB, principal.WorkspaceID, req.DeploymentId)
+	dep, err := deployment.FindDeployment(ctx, h.DB, principal.AuthorizedWorkspaceID, req.DeploymentId)
 	if err != nil {
 		return err
 	}
@@ -66,8 +66,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.RollbackDeployment,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID).Deployment(dep.ID),
-			permissions.RollbackDeployment{},
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID),
+			permissions.Write,
 		),
 	))
 	if err != nil {
@@ -103,7 +103,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	source, err := deployment.FindDeployment(ctx, h.DB, principal.WorkspaceID, app.CurrentDeploymentID.String)
+	source, err := deployment.FindDeployment(ctx, h.DB, principal.AuthorizedWorkspaceID, app.CurrentDeploymentID.String)
 	if err != nil {
 		return err
 	}
@@ -115,7 +115,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, h.DB.RW(), principal.WorkspaceID)
+	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, h.DB.RW(), principal.AuthorizedWorkspaceID)
 	if err != nil && !db.IsNotFound(err) {
 		return fault.Wrap(
 			err,

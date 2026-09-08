@@ -35,3 +35,21 @@ func TestWrapText_EmptyString(t *testing.T) {
 	lines := wrapText("", 80)
 	require.Equal(t, []string{""}, lines)
 }
+
+func TestBuildFlagUsage_MutuallyExclusive(t *testing.T) {
+	cmd := &Command{Flags: []Flag{
+		String("request", "Request input.", Required(), MutuallyExclusive("body")),
+		String("body", "Body input."),
+	}}
+
+	require.Equal(
+		t,
+		"Request input. (required unless --body is set; mutually exclusive with --body)",
+		cmd.buildFlagUsage(cmd.Flags[0]),
+	)
+	require.Equal(
+		t,
+		"Body input. (mutually exclusive with --request)",
+		cmd.buildFlagUsage(cmd.Flags[1]),
+	)
+}

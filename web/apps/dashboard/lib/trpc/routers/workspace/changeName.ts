@@ -1,6 +1,6 @@
 import { insertAuditLogs } from "@/lib/audit";
 import { auth as authClient } from "@/lib/auth/server";
-import { db, eq, schema } from "@/lib/db";
+import { db, eq, schema, transactionWithRetry } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
@@ -23,21 +23,24 @@ export const changeWorkspaceName = workspaceProcedure
         message: "Invalid workspace ID",
       });
     }
-    await db
-      .transaction(async (tx) => {
+
+    // Auth first: it is the only step that can reject a name, and no
+    // transaction is open during the HTTP call. A later DB failure leaves the
+    // provider one name ahead, which the user's retry overwrites.
+    try {
+      await authClient.updateOrg({
+        id: ctx.tenant.id,
+        name: input.name,
+      });
+
+      await transactionWithRetry(db, async (tx) => {
         await tx
           .update(schema.workspaces)
           .set({
             name: input.name,
           })
-          .where(eq(schema.workspaces.id, input.workspaceId))
-          .catch((_err) => {
-            throw new TRPCError({
-              code: "INTERNAL_SERVER_ERROR",
-              message:
-                "We are unable to update the workspace name. Please try again or contact support@unkey.com",
-            });
-          });
+          .where(eq(schema.workspaces.id, input.workspaceId));
+
         await insertAuditLogs(tx, {
           workspaceId: ctx.workspace.id,
           actor: { type: "user", id: ctx.user.id },
@@ -55,17 +58,13 @@ export const changeWorkspaceName = workspaceProcedure
             userAgent: ctx.audit.userAgent,
           },
         });
-
-        await authClient.updateOrg({
-          id: ctx.tenant.id,
-          name: input.name,
-        });
-      })
-      .catch((_err) => {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to update the workspace name. Please try again or contact support@unkey.com",
-        });
       });
+    } catch (err) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          "We are unable to update the workspace name. Please try again or contact support@unkey.com",
+        cause: err,
+      });
+    }
   });

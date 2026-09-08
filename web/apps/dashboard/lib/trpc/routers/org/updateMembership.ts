@@ -1,3 +1,4 @@
+import { ORGANIZATION_ROLES } from "@/lib/auth/roles";
 import { auth as authProvider } from "@/lib/auth/server";
 import { OrganizationScopeError } from "@/lib/auth/types";
 import { TRPCError } from "@trpc/server";
@@ -10,7 +11,7 @@ export const updateMembership = workspaceProcedure
     z.object({
       membershipId: z.string(),
       orgId: z.string(), // needed for the requireOrgAdmin middleware
-      role: z.string(),
+      role: z.enum(ORGANIZATION_ROLES),
     }),
   )
   .mutation(async ({ ctx, input }) => {

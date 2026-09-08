@@ -100,10 +100,7 @@ function Shell({
     <div className="flex flex-col gap-1.5">
       <div className="flex items-baseline gap-2">
         <span
-          className={cn(
-            "flex-1 truncate text-[11px] transition-colors duration-150 ease-out motion-reduce:transition-none",
-            atRisk ? "text-error-9" : "text-gray-9 group-hover:text-gray-12",
-          )}
+          className={cn("flex-1 truncate text-[11px]", atRisk ? "text-error-9" : "text-gray-9")}
         >
           {label}
         </span>

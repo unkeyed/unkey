@@ -10,7 +10,7 @@ import (
 )
 
 const findKeyRoleByKeyAndRoleID = `-- name: FindKeyRoleByKeyAndRoleID :many
-SELECT pk, key_id, role_id, workspace_id, created_at_m, updated_at_m
+SELECT keys_roles.pk, keys_roles.key_id, keys_roles.role_id, keys_roles.workspace_id, keys_roles.created_at_m, keys_roles.updated_at_m
 FROM keys_roles
 WHERE key_id = ?
   AND role_id = ?
@@ -23,7 +23,7 @@ type FindKeyRoleByKeyAndRoleIDParams struct {
 
 // FindKeyRoleByKeyAndRoleID
 //
-//	SELECT pk, key_id, role_id, workspace_id, created_at_m, updated_at_m
+//	SELECT keys_roles.pk, keys_roles.key_id, keys_roles.role_id, keys_roles.workspace_id, keys_roles.created_at_m, keys_roles.updated_at_m
 //	FROM keys_roles
 //	WHERE key_id = ?
 //	  AND role_id = ?

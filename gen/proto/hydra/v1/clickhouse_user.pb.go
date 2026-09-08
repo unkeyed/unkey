@@ -143,6 +143,78 @@ func (*ConfigureUserResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_clickhouse_user_proto_rawDescGZIP(), []int{1}
 }
 
+type ReconcileUserRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReconcileUserRequest) Reset() {
+	*x = ReconcileUserRequest{}
+	mi := &file_hydra_v1_clickhouse_user_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReconcileUserRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReconcileUserRequest) ProtoMessage() {}
+
+func (x *ReconcileUserRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_clickhouse_user_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReconcileUserRequest.ProtoReflect.Descriptor instead.
+func (*ReconcileUserRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_clickhouse_user_proto_rawDescGZIP(), []int{2}
+}
+
+type ReconcileUserResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReconcileUserResponse) Reset() {
+	*x = ReconcileUserResponse{}
+	mi := &file_hydra_v1_clickhouse_user_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReconcileUserResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReconcileUserResponse) ProtoMessage() {}
+
+func (x *ReconcileUserResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_clickhouse_user_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReconcileUserResponse.ProtoReflect.Descriptor instead.
+func (*ReconcileUserResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_clickhouse_user_proto_rawDescGZIP(), []int{3}
+}
+
 var File_hydra_v1_clickhouse_user_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_clickhouse_user_proto_rawDesc = "" +
@@ -161,9 +233,12 @@ const file_hydra_v1_clickhouse_user_proto_rawDesc = "" +
 	"\x19_max_query_execution_timeB\x19\n" +
 	"\x17_max_query_memory_bytesB\x18\n" +
 	"\x16_max_query_result_rows\"\x17\n" +
-	"\x15ConfigureUserResponse2q\n" +
+	"\x15ConfigureUserResponse\"\x16\n" +
+	"\x14ReconcileUserRequest\"\x17\n" +
+	"\x15ReconcileUserResponse2\xc5\x01\n" +
 	"\x15ClickhouseUserService\x12R\n" +
-	"\rConfigureUser\x12\x1e.hydra.v1.ConfigureUserRequest\x1a\x1f.hydra.v1.ConfigureUserResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x99\x01\n" +
+	"\rConfigureUser\x12\x1e.hydra.v1.ConfigureUserRequest\x1a\x1f.hydra.v1.ConfigureUserResponse\"\x00\x12R\n" +
+	"\rReconcileUser\x12\x1e.hydra.v1.ReconcileUserRequest\x1a\x1f.hydra.v1.ReconcileUserResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x99\x01\n" +
 	"\fcom.hydra.v1B\x13ClickhouseUserProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -178,16 +253,20 @@ func file_hydra_v1_clickhouse_user_proto_rawDescGZIP() []byte {
 	return file_hydra_v1_clickhouse_user_proto_rawDescData
 }
 
-var file_hydra_v1_clickhouse_user_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_hydra_v1_clickhouse_user_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_hydra_v1_clickhouse_user_proto_goTypes = []any{
 	(*ConfigureUserRequest)(nil),  // 0: hydra.v1.ConfigureUserRequest
 	(*ConfigureUserResponse)(nil), // 1: hydra.v1.ConfigureUserResponse
+	(*ReconcileUserRequest)(nil),  // 2: hydra.v1.ReconcileUserRequest
+	(*ReconcileUserResponse)(nil), // 3: hydra.v1.ReconcileUserResponse
 }
 var file_hydra_v1_clickhouse_user_proto_depIdxs = []int32{
 	0, // 0: hydra.v1.ClickhouseUserService.ConfigureUser:input_type -> hydra.v1.ConfigureUserRequest
-	1, // 1: hydra.v1.ClickhouseUserService.ConfigureUser:output_type -> hydra.v1.ConfigureUserResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: hydra.v1.ClickhouseUserService.ReconcileUser:input_type -> hydra.v1.ReconcileUserRequest
+	1, // 2: hydra.v1.ClickhouseUserService.ConfigureUser:output_type -> hydra.v1.ConfigureUserResponse
+	3, // 3: hydra.v1.ClickhouseUserService.ReconcileUser:output_type -> hydra.v1.ReconcileUserResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -205,7 +284,7 @@ func file_hydra_v1_clickhouse_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_clickhouse_user_proto_rawDesc), len(file_hydra_v1_clickhouse_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

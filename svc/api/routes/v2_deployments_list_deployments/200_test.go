@@ -8,6 +8,7 @@ import (
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -33,6 +34,7 @@ func TestListWorkspaceWide(t *testing.T) {
 			ProjectID:     setup.Project.ID,
 			AppID:         setup.App.ID,
 			EnvironmentID: setup.Environment.ID,
+			Source:        db.DeploymentsSourceGit,
 			GitBranch:     "main",
 			GitCommitSha:  "abc123",
 		})

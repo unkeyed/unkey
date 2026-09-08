@@ -45,7 +45,7 @@ properties:
   docker:
     "$ref": "./DeploymentDocker.yaml"
     description: |
-      Present for image-sourced deployments. Mutually exclusive with `git`.
+      Compatibility field present for OCI image-sourced deployments. Mutually exclusive with `git`.
   availableActions:
     type: array
     items:

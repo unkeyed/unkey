@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
-#MISE description="Build and push image to local registry (DOCKERFILE=... NAME=... [TAG=dev])"
+#MISE description="Build and push image to local registry (DOCKERFILE=... NAME=... [CONTEXT=<dockerfile dir>] [TAG=dev])"
 set -euo pipefail
 
 if [ -z "${DOCKERFILE:-}" ]; then
-  echo "Error: DOCKERFILE is required (e.g., DOCKERFILE=./examples/demo_api/Dockerfile)"
+  echo "Error: DOCKERFILE is required (e.g., DOCKERFILE=./svc/kitchensink/Dockerfile CONTEXT=.)"
   exit 1
 fi
 if [ -z "${NAME:-}" ]; then
-  echo "Error: NAME is required (e.g., NAME=demo_api)"
+  echo "Error: NAME is required (e.g., NAME=kitchensink)"
   exit 1
 fi
 
 TAG="${TAG:-dev}"
+# Defaults to the Dockerfile's own directory. Dockerfiles that build a binary
+# from the root Go module (e.g. svc/kitchensink) need CONTEXT=. instead.
 CONTEXT="${CONTEXT:-$(dirname "$DOCKERFILE")/}"
 REGISTRY="$(kubectl get configmap local-registry-hosting -n kube-public -o jsonpath='{.data.localRegistryHosting\.v1}' 2>/dev/null | grep '^host:' | awk '{print $2}')"
 if [ -z "$REGISTRY" ]; then

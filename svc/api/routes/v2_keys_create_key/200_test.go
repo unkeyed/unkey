@@ -69,8 +69,8 @@ func TestCreateKeySuccess(t *testing.T) {
 	require.True(t, key.Enabled)
 }
 
-// TestCreateKeyWithURNPermission guarantees WorkOS-translated `keys:create`
-// permissions authorize basic key creation without legacy API tuple grants.
+// TestCreateKeyWithURNPermission guarantees a workspace-wide key write
+// permission authorizes basic key creation without legacy API permissions.
 func TestCreateKeyWithURNPermission(t *testing.T) {
 	t.Parallel()
 
@@ -91,7 +91,7 @@ func TestCreateKeyWithURNPermission(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
+		createKeyPermission(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -284,9 +284,8 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	require.Equal(t, keyEncryption.WorkspaceID, h.Resources().UserWorkspace.ID)
 }
 
-// TestCreateRecoverableKeyWithURNPermissions guarantees WorkOS-translated
-// `keys:create` and `keys:encrypt` permissions authorize recoverable key
-// creation without legacy API tuple grants.
+// TestCreateRecoverableKeyWithURNPermissions guarantees workspace-wide key
+// permissions authorize recoverable key creation without legacy API permissions.
 func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 	t.Parallel()
 
@@ -308,8 +307,7 @@ func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 	})
 	rootKey := h.CreateRootKey(
 		h.Resources().UserWorkspace.ID,
-		createKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
-		encryptKeyPermission(h.Resources().UserWorkspace.ID, api.KeyAuthID.String),
+		createKeyPermission(h.Resources().UserWorkspace.ID, api.ProjectID, api.KeyAuthID.String),
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -502,6 +500,11 @@ func TestCreateKeyAppliesKeySpaceDefaults(t *testing.T) {
 		require.Equal(t, 200, res.Status)
 		require.True(t, strings.HasPrefix(res.Body.Data.Key, defaultPrefix+"_"),
 			"key %q should start with keyspace default_prefix %q", res.Body.Data.Key, defaultPrefix)
+
+		storedKey, err := db.Query.FindKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+		require.NoError(t, err)
+		require.Equal(t, defaultPrefix, storedKey.Prefix)
+		require.Equal(t, strings.TrimPrefix(res.Body.Data.Key, defaultPrefix+"_")[:4], storedKey.Start)
 	})
 
 	t.Run("default bytes is applied when request omits byteLength", func(t *testing.T) {
@@ -675,14 +678,10 @@ func TestCreateKeyWithRolesAndPermissions(t *testing.T) {
 	require.ElementsMatch(t, permissionSlugs, gotPerms)
 }
 
-func createKeyPermission(workspaceID string, keyspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:keyspaces/%s#create_key", workspaceID, keyspaceID)
+func createKeyPermission(workspaceID string, projectID string, keyspaceID string) string {
+	return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#write", workspaceID, projectID, keyspaceID)
 }
 
 func createAnyKeyPermission(workspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:keyspaces/*#create_key", workspaceID)
-}
-
-func encryptKeyPermission(workspaceID string, keyspaceID string) string {
-	return fmt.Sprintf("unkey:v1:%s:keyspaces/%s/keys/*#encrypt_key", workspaceID, keyspaceID)
+	return fmt.Sprintf("unkey:v1:%s:projects/*/keyspaces/*/keys/*#write", workspaceID)
 }

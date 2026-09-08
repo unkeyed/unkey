@@ -16,12 +16,21 @@ export const connectPermissionToRole = workspaceProcedure
       .findFirst({
         where: (table, { and, eq, isNull }) =>
           and(eq(table.orgId, ctx.tenant.id), isNull(table.deletedAtM)),
+        columns: { id: true },
         with: {
           roles: {
             where: (table, { eq }) => eq(table.id, input.roleId),
+            columns: {
+              id: true,
+              name: true,
+            },
           },
           permissions: {
             where: (table, { eq }) => eq(table.id, input.permissionId),
+            columns: {
+              id: true,
+              name: true,
+            },
           },
         },
       })

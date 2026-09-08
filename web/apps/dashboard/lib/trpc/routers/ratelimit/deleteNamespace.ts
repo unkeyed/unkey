@@ -21,6 +21,11 @@ export const deleteNamespace = workspaceProcedure
             eq(table.id, input.namespaceId),
             isNull(table.deletedAtM),
           ),
+        columns: {
+          id: true,
+          workspaceId: true,
+          name: true,
+        },
       })
       .catch((_err) => {
         throw new TRPCError({

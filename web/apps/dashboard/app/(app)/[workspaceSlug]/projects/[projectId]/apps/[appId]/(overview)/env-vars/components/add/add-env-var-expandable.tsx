@@ -9,7 +9,7 @@ import {
 } from "@/lib/collections/deploy/env-vars";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, CircleInfo, CloudUp, DoubleChevronRight, Plus } from "@unkey/icons";
+import { ChevronDown, CircleInfo, CloudUp, Plus } from "@unkey/icons";
 import {
   Button,
   InfoTooltip,
@@ -19,6 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
   SlidePanel,
+  SlidePanelCloseButton,
+  SlidePanelContent,
+  SlidePanelDescription,
+  SlidePanelHeader,
+  SlidePanelTitle,
   toast,
 } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
@@ -34,7 +39,6 @@ import { trackSave } from "@/lib/collections/deploy/environment-settings";
 type AddEnvVarExpandableProps = {
   projectId: string;
   appId: string;
-  tableDistanceToTop: number;
   isOpen: boolean;
   onClose: () => void;
 };
@@ -42,7 +46,6 @@ type AddEnvVarExpandableProps = {
 export const AddEnvVarExpandable = ({
   projectId,
   appId,
-  tableDistanceToTop,
   isOpen,
   onClose,
 }: AddEnvVarExpandableProps) => {
@@ -224,28 +227,16 @@ export const AddEnvVarExpandable = ({
   };
 
   return (
-    <SlidePanel.Root isOpen={isOpen} onClose={onClose} topOffset={tableDistanceToTop}>
-      <SlidePanel.Header>
-        <div className="flex flex-col">
-          <span className="text-gray-12 font-medium text-base leading-8">
-            Add Environment Variable
-          </span>
-          <span className="text-gray-11 text-[13px] leading-5">
-            Set a key-value pair for your app.
-          </span>
+    <SlidePanel isOpen={isOpen} onClose={onClose}>
+      <SlidePanelHeader>
+        <div className="flex flex-col gap-0.5">
+          <SlidePanelTitle>Add Environment Variable</SlidePanelTitle>
+          <SlidePanelDescription>Set a key-value pair for your app.</SlidePanelDescription>
         </div>
-        <SlidePanel.Close
-          aria-label="Close panel"
-          className="mt-0.5 inline-flex items-center justify-center size-9 rounded-md hover:bg-grayA-3 transition-colors cursor-pointer"
-        >
-          <DoubleChevronRight
-            iconSize="lg-medium"
-            className="text-gray-10 transition-transform duration-300 ease-out group-hover:text-gray-12"
-          />
-        </SlidePanel.Close>
-      </SlidePanel.Header>
+        <SlidePanelCloseButton className="mt-0.5" />
+      </SlidePanelHeader>
 
-      <SlidePanel.Content>
+      <SlidePanelContent>
         <form
           ref={formRef}
           onSubmit={handleSubmit(onSubmit, onInvalid)}
@@ -282,8 +273,8 @@ export const AddEnvVarExpandable = ({
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pt-6 bg-grayA-2">
-            <div className="flex flex-col gap-4 px-8">
+          <div className="flex-1 overflow-y-auto pt-6">
+            <div className="flex flex-col gap-4 px-6">
               {fields.map((field, index) => (
                 <EnvVarRow
                   key={field.id}
@@ -300,7 +291,7 @@ export const AddEnvVarExpandable = ({
               ))}
             </div>
 
-            <div className="flex py-6 px-8">
+            <div className="flex py-6 px-6">
               <Button
                 type="button"
                 variant="outline"
@@ -315,7 +306,7 @@ export const AddEnvVarExpandable = ({
           </div>
 
           <div className="border-t border-grayA-4">
-            <div className="px-8 py-6 space-y-6">
+            <div className="px-6 py-6 space-y-6">
               <Controller
                 control={control}
                 name="environmentId"
@@ -380,7 +371,7 @@ export const AddEnvVarExpandable = ({
             </div>
           </div>
 
-          <div className="border-t border-gray-4 bg-white dark:bg-black px-8 py-5 flex items-center justify-between">
+          <div className="border-t border-gray-4 bg-white dark:bg-black px-6 py-5 flex items-center justify-between">
             <div className="hidden md:flex items-center gap-3">
               <input
                 ref={fileInputRef}
@@ -414,7 +405,7 @@ export const AddEnvVarExpandable = ({
             </Button>
           </div>
         </form>
-      </SlidePanel.Content>
-    </SlidePanel.Root>
+      </SlidePanelContent>
+    </SlidePanel>
   );
 };

@@ -10,14 +10,14 @@ import (
 )
 
 const findWorkspaceByOrgID = `-- name: FindWorkspaceByOrgID :one
-SELECT pk, id, org_id, name, slug, k8s_namespace, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM ` + "`" + `workspaces` + "`" + `
+SELECT workspaces.pk, workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.beta_features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m FROM ` + "`" + `workspaces` + "`" + `
 WHERE org_id = ?
 AND deleted_at_m IS NULL
 `
 
 // FindWorkspaceByOrgID
 //
-//	SELECT pk, id, org_id, name, slug, k8s_namespace, beta_features, subscriptions, enabled, delete_protection, created_at_m, updated_at_m, deleted_at_m FROM `workspaces`
+//	SELECT workspaces.pk, workspaces.id, workspaces.org_id, workspaces.name, workspaces.slug, workspaces.k8s_namespace, workspaces.beta_features, workspaces.subscriptions, workspaces.enabled, workspaces.delete_protection, workspaces.created_at_m, workspaces.updated_at_m, workspaces.deleted_at_m FROM `workspaces`
 //	WHERE org_id = ?
 //	AND deleted_at_m IS NULL
 func (q *Queries) FindWorkspaceByOrgID(ctx context.Context, db DBTX, orgID string) (Workspace, error) {

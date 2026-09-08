@@ -34,6 +34,7 @@ func TestGetDeployment(t *testing.T) {
 		ProjectID:             setup.Project.ID,
 		AppID:                 setup.App.ID,
 		EnvironmentID:         setup.Environment.ID,
+		Source:                db.DeploymentsSourceGit,
 		GitBranch:             "main",
 		GitCommitSha:          "9f2c1a7",
 		GitCommitMessage:      "add KEBAP endpoint",
@@ -61,7 +62,6 @@ func TestGetDeployment(t *testing.T) {
 	require.Equal(t, setup.Project.Slug, d.Project)
 	require.False(t, d.IsCurrent, "app has no current deployment pointing here")
 
-	// git-sourced: git set from the seeded commit, docker absent.
 	require.NotNil(t, d.Git)
 	require.Equal(t, "9f2c1a7", d.Git.CommitSha)
 	require.NotNil(t, d.Git.Branch)

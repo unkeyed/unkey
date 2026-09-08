@@ -48,7 +48,11 @@ CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
     -- ngram bloom filters on lower(...) so lower(col) LIKE '%value%' can use them.
     -- tokenbf_v1 only matches whole tokens, so it never helped substring search.
     INDEX idx_message_text_search lower(message) TYPE ngrambf_v1(3, 32768, 2, 0) GRANULARITY 1,
-    INDEX idx_attributes_text_search lower(attributes_text) TYPE ngrambf_v1(3, 32768, 2, 0) GRANULARITY 1
+    INDEX idx_attributes_text_search lower(attributes_text) TYPE ngrambf_v1(3, 32768, 2, 0) GRANULARITY 1,
+    -- Log drains page by inserted_at. The partition key prunes whole days;
+    -- this minmax index prunes granules inside the day because rows in a
+    -- granule were inserted within seconds of each other.
+    INDEX idx_inserted_at inserted_at TYPE minmax GRANULARITY 1
 )
 ENGINE = MergeTree()
 PARTITION BY toDate(fromUnixTimestamp64Milli(inserted_at))

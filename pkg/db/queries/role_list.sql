@@ -1,5 +1,6 @@
 -- name: ListRoles :many
-SELECT r.*, COALESCE(
+-- ListRoles returns one page of roles and their permissions from one project.
+SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
         (SELECT JSON_ARRAYAGG(
             json_object(
                 'id', permission.id,
@@ -16,6 +17,7 @@ SELECT r.*, COALESCE(
 ) as permissions
 FROM roles r
 WHERE r.workspace_id = sqlc.arg(workspace_id)
+AND r.project_id = sqlc.arg(project_id)
 AND r.id >= sqlc.arg(id_cursor)
 -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 AND (sqlc.narg(search) IS NULL OR LOWER(r.id) LIKE LOWER(sqlc.narg(search)) OR LOWER(r.name) LIKE LOWER(sqlc.narg(search)) OR LOWER(r.description) LIKE LOWER(sqlc.narg(search)))

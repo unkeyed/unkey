@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite dev --port 3100",
     "build": "vite build",
-    "start": "node dist/server/server.js",
+    "start": "node .output/server/index.mjs",
     "test": "vitest run --passWithNoTests",
     "typecheck": "tsc"
   },
@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.2.1",
+    "@tanstack/nitro-v2-vite-plugin": "^1.155.0",
     "@types/node": "22.14.0",
     "@types/react": "19.2.4",
     "@types/react-dom": "19.2.4",

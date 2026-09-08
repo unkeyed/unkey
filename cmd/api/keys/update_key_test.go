@@ -5,7 +5,7 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/cmd/api/util"
+	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -66,7 +66,7 @@ func TestUpdateKey(t *testing.T) {
 		},
 		{
 			name: "with metadata json",
-			args: `keys update-key --key-id=key_123 --meta-json={"tier":"enterprise"}`,
+			args: `keys update-key --key-id=key_123 --meta='{"tier":"enterprise"}'`,
 			want: openapi.V2KeysUpdateKeyRequestBody{
 				KeyId: "key_123",
 				Meta:  nullable.NewNullableWithValue(map[string]any{"tier": "enterprise"}),
@@ -74,7 +74,7 @@ func TestUpdateKey(t *testing.T) {
 		},
 		{
 			name: "multiple fields at once",
-			args: `keys update-key --key-id=key_123 --name=updated --enabled=false --roles=admin --meta-json={"plan":"pro"}`,
+			args: `keys update-key --key-id=key_123 --name=updated --enabled=false --roles=admin --meta='{"plan":"pro"}'`,
 			want: openapi.V2KeysUpdateKeyRequestBody{
 				KeyId:   "key_123",
 				Name:    nullable.NewNullableWithValue("updated"),
@@ -87,7 +87,7 @@ func TestUpdateKey(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := util.CaptureRequest[openapi.V2KeysUpdateKeyRequestBody](t, Cmd(), tt.args)
+			req := testutil.CaptureRequest[openapi.V2KeysUpdateKeyRequestBody](t, Cmd(), tt.args)
 			require.Equal(t, tt.want, req)
 		})
 	}

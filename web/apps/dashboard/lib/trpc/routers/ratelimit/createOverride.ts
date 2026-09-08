@@ -24,6 +24,10 @@ export const createOverride = workspaceProcedure
             eq(table.id, input.namespaceId),
             isNull(table.deletedAtM),
           ),
+        columns: {
+          id: true,
+          name: true,
+        },
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -46,6 +50,7 @@ export const createOverride = workspaceProcedure
         const existing = await tx.query.ratelimitOverrides.findFirst({
           where: (table, { and, eq }) =>
             and(eq(table.namespaceId, namespace.id), eq(table.identifier, input.identifier)),
+          columns: { id: true },
         });
 
         if (existing) {

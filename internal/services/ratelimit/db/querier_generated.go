@@ -46,6 +46,39 @@ type Querier interface {
 	//  WHERE expires_at > ?
 	//  GROUP BY workspace_id, namespace, identifier, duration_ms, sequence
 	GlobalCountersImported(ctx context.Context, arg GlobalCountersImportedParams) ([]GlobalCountersImportedRow, error)
+	// GlobalCountersImportedSince first identifies logical window cells with an
+	// active region row updated inside the overlapped watermark, then aggregates
+	// every active region row for those cells. Filtering only the changed physical
+	// rows would omit unchanged regions and undercount the imported total.
+	//
+	//  SELECT
+	//      counters.workspace_id,
+	//      counters.namespace,
+	//      counters.identifier,
+	//      counters.duration_ms,
+	//      counters.sequence,
+	//      CAST(SUM(CASE WHEN counters.region = ? THEN counters.count ELSE 0 END) AS SIGNED) AS regional,
+	//      CAST(SUM(CASE WHEN counters.region != ? THEN counters.count ELSE 0 END) AS SIGNED) AS imported
+	//  FROM ratelimit_global_counters AS counters
+	//  INNER JOIN (
+	//      SELECT DISTINCT
+	//          recent.workspace_id,
+	//          recent.namespace,
+	//          recent.identifier,
+	//          recent.duration_ms,
+	//          recent.sequence
+	//      FROM ratelimit_global_counters AS recent
+	//      WHERE recent.expires_at > ?
+	//        AND recent.updated_at >= ?
+	//  ) AS changed
+	//      ON changed.workspace_id = counters.workspace_id
+	//      AND changed.namespace = counters.namespace
+	//      AND changed.identifier = counters.identifier
+	//      AND changed.duration_ms = counters.duration_ms
+	//      AND changed.sequence = counters.sequence
+	//  WHERE counters.expires_at > ?
+	//  GROUP BY counters.workspace_id, counters.namespace, counters.identifier, counters.duration_ms, counters.sequence
+	GlobalCountersImportedSince(ctx context.Context, arg GlobalCountersImportedSinceParams) ([]GlobalCountersImportedSinceRow, error)
 	// GlobalCountersListAll returns raw per-region global counter rows for tests
 	// that need to assert which region wrote which observation. Production callers
 	// should use GlobalCountersImported instead so MySQL does the aggregation.

@@ -60,6 +60,31 @@ func (s *Service) ConfigureUser(
 	ctx restate.ObjectContext,
 	req *hydrav1.ConfigureUserRequest,
 ) (*hydrav1.ConfigureUserResponse, error) {
+	if err := s.configureUser(ctx, req, false); err != nil {
+		return nil, err
+	}
+
+	return &hydrav1.ConfigureUserResponse{}, nil
+}
+
+// ReconcileUser reapplies the current ClickHouse configuration without
+// changing the existing workspace's stored quota settings.
+func (s *Service) ReconcileUser(
+	ctx restate.ObjectContext,
+	_ *hydrav1.ReconcileUserRequest,
+) (*hydrav1.ReconcileUserResponse, error) {
+	if err := s.configureUser(ctx, &hydrav1.ConfigureUserRequest{}, true); err != nil {
+		return nil, err
+	}
+
+	return &hydrav1.ReconcileUserResponse{}, nil
+}
+
+func (s *Service) configureUser(
+	ctx restate.ObjectContext,
+	req *hydrav1.ConfigureUserRequest,
+	reconcileExisting bool,
+) error {
 	workspaceID := restate.Key(ctx)
 	logger.Info("configuring clickhouse user", "workspace_id", workspaceID)
 
@@ -81,7 +106,11 @@ func (s *Service) ConfigureUser(
 		return existingUserResult{Row: row, Found: true}, nil
 	}, restate.WithName("check existing"))
 	if err != nil {
-		return nil, fmt.Errorf("check existing user: %w", err)
+		return fmt.Errorf("check existing user: %w", err)
+	}
+	if reconcileExisting && !result.Found {
+		logger.Info("skipping clickhouse user reconciliation because settings no longer exist", "workspace_id", workspaceID)
+		return nil
 	}
 
 	var encryptedPassword string
@@ -95,7 +124,7 @@ func (s *Service) ConfigureUser(
 			return s.db.FindLimitsByWorkspaceID(rc, workspaceID)
 		}, restate.WithName("fetch limits"))
 		if err != nil {
-			return nil, fmt.Errorf("fetch limits: %w", err)
+			return fmt.Errorf("fetch limits: %w", err)
 		}
 		retentionDays = int32(limits.LogsRetentionDaysMax)
 
@@ -153,7 +182,7 @@ func (s *Service) ConfigureUser(
 						return "", fmt.Errorf("update limits after duplicate: %w", updateErr)
 					}
 
-					return existing.ClickhouseWorkspaceSetting.PasswordEncrypted, nil
+					return existing.ClickhousePasswordEncrypted, nil
 				}
 
 				return "", fmt.Errorf("insert settings: %w", err)
@@ -162,29 +191,33 @@ func (s *Service) ConfigureUser(
 			return encrypted, nil
 		}, restate.WithName("store credentials"))
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 	} else {
 		logger.Info("updating existing user", "workspace_id", workspaceID)
-		retentionDays = int32(result.Row.Limit.LogsRetentionDaysMax)
-		encryptedPassword = result.Row.ClickhouseWorkspaceSetting.PasswordEncrypted
+		retentionDays = int32(result.Row.QuotaLogsRetentionDays)
+		encryptedPassword = result.Row.ClickhousePasswordEncrypted
 
-		now := time.Now().UnixMilli()
-		_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
-			return restate.Void{}, s.db.UpdateClickhouseWorkspaceSettingsLimits(rc, db.UpdateClickhouseWorkspaceSettingsLimitsParams{
-				WorkspaceID:               workspaceID,
-				QuotaDurationSeconds:      quotas.quotaDurationSeconds,
-				MaxQueriesPerWindow:       quotas.maxQueriesPerWindow,
-				MaxExecutionTimePerWindow: quotas.maxExecutionTimePerWindow,
-				MaxQueryExecutionTime:     quotas.maxQueryExecutionTime,
-				MaxQueryMemoryBytes:       quotas.maxQueryMemoryBytes,
-				MaxQueryResultRows:        quotas.maxQueryResultRows,
-				UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
-			})
-		}, restate.WithName("update limits"))
-		if err != nil {
-			return nil, fmt.Errorf("update limits: %w", err)
+		if reconcileExisting {
+			quotas = quotaSettingsFromExisting(result.Row)
+		} else {
+			now := time.Now().UnixMilli()
+			_, err = restate.Run(ctx, func(rc restate.RunContext) (restate.Void, error) {
+				return restate.Void{}, s.db.UpdateClickhouseWorkspaceSettingsLimits(rc, db.UpdateClickhouseWorkspaceSettingsLimitsParams{
+					WorkspaceID:               workspaceID,
+					QuotaDurationSeconds:      quotas.quotaDurationSeconds,
+					MaxQueriesPerWindow:       quotas.maxQueriesPerWindow,
+					MaxExecutionTimePerWindow: quotas.maxExecutionTimePerWindow,
+					MaxQueryExecutionTime:     quotas.maxQueryExecutionTime,
+					MaxQueryMemoryBytes:       quotas.maxQueryMemoryBytes,
+					MaxQueryResultRows:        quotas.maxQueryResultRows,
+					UpdatedAt:                 sql.NullInt64{Valid: true, Int64: now},
+				})
+			}, restate.WithName("update limits"))
+			if err != nil {
+				return fmt.Errorf("update limits: %w", err)
+			}
 		}
 	}
 
@@ -213,12 +246,12 @@ func (s *Service) ConfigureUser(
 		})
 	}, restate.WithName("configure clickhouse"))
 	if err != nil {
-		return nil, fmt.Errorf("configure clickhouse: %w", err)
+		return fmt.Errorf("configure clickhouse: %w", err)
 	}
 
 	logger.Info("configured clickhouse user", "workspace_id", workspaceID, "retention_days", retentionDays)
 
-	return &hydrav1.ConfigureUserResponse{}, nil
+	return nil
 }
 
 // resolveQuotaSettings applies defaults to unset quota fields.
@@ -232,6 +265,17 @@ func resolveQuotaSettings(req *hydrav1.ConfigureUserRequest) quotaSettings {
 		maxQueryExecutionTime:     ptr.PositiveOr(req.MaxQueryExecutionTime, defaultMaxQueryExecutionTime),
 		maxQueryMemoryBytes:       ptr.PositiveOr(req.MaxQueryMemoryBytes, defaultMaxQueryMemoryBytes),
 		maxQueryResultRows:        ptr.PositiveOr(req.MaxQueryResultRows, defaultMaxQueryResultRows),
+	}
+}
+
+func quotaSettingsFromExisting(settings db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow) quotaSettings {
+	return quotaSettings{
+		quotaDurationSeconds:      settings.ClickhouseQuotaDurationSeconds,
+		maxQueriesPerWindow:       settings.ClickhouseMaxQueriesPerWindow,
+		maxExecutionTimePerWindow: settings.ClickhouseMaxExecutionTimePerWindow,
+		maxQueryExecutionTime:     settings.ClickhouseMaxQueryExecutionTime,
+		maxQueryMemoryBytes:       settings.ClickhouseMaxQueryMemoryBytes,
+		maxQueryResultRows:        settings.ClickhouseMaxQueryResultRows,
 	}
 }
 

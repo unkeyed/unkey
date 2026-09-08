@@ -8,6 +8,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // InsertQuery builds "INSERT INTO <table> (<columns>)" from T's generated
@@ -29,6 +31,10 @@ func InsertQuery[T schema.Row]() string {
 //
 // Returns an error if any part of the batch operation fails after all retries.
 func flush[T schema.Row](c *Client, ctx context.Context, rows []T) error {
+	ctx, span := tracing.Start(ctx, "clickhouse.flush")
+	defer span.End()
+	var row T
+	span.SetAttributes(attribute.String("db.collection.name", row.Table()), attribute.Int("rows", len(rows)))
 	// Apply async insert settings
 	ctx = ch.Context(ctx, ch.WithSettings(ch.Settings{
 		"async_insert":             "1",
@@ -37,8 +43,20 @@ func flush[T schema.Row](c *Client, ctx context.Context, rows []T) error {
 	}))
 
 	query := InsertQuery[T]()
+	attempt := 0
 
-	doFlush := func() error {
+	doFlush := func() (attemptErr error) {
+		attempt++
+		ctx, attemptSpan := tracing.Start(ctx, "clickhouse.insert")
+		defer attemptSpan.End()
+		stats := c.conn.Stats()
+		attemptSpan.SetAttributes(attribute.Int("attempt", attempt),
+			attribute.Int("pool.open", stats.Open), attribute.Int("pool.idle", stats.Idle),
+			attribute.Int("pool.max", stats.MaxOpenConns))
+		defer func() {
+			tracing.RecordError(attemptSpan, attemptErr)
+		}()
+		attemptSpan.AddEvent("prepare")
 		batch, err := c.conn.PrepareBatch(
 			ctx,
 			query,
@@ -53,6 +71,7 @@ func flush[T schema.Row](c *Client, ctx context.Context, rows []T) error {
 			}
 		}()
 
+		attemptSpan.AddEvent("append")
 		for _, row := range rows {
 			err = batch.AppendStruct(&row)
 			if err != nil {
@@ -60,6 +79,7 @@ func flush[T schema.Row](c *Client, ctx context.Context, rows []T) error {
 			}
 		}
 
+		attemptSpan.AddEvent("send")
 		err = batch.Send()
 		if err != nil {
 			return fault.Wrap(err, fault.Internal("committing batch failed"))
@@ -72,6 +92,7 @@ func flush[T schema.Row](c *Client, ctx context.Context, rows []T) error {
 	_, err := c.circuitBreaker.Do(ctx, func(ctx context.Context) (struct{}, error) {
 		return struct{}{}, c.retry.DoContext(ctx, doFlush)
 	})
+	tracing.RecordError(span, err)
 
 	return err
 }

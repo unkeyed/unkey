@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	drivermysql "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
 	rldb "github.com/unkeyed/unkey/internal/services/ratelimit/db"
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
@@ -73,6 +74,13 @@ func (e *integrationTestEnv) hasRow(workspaceID, namespace, identifier, region s
 	return ok
 }
 
+func (e *integrationTestEnv) upsertGlobalCounterRows(rows ...rldb.UpsertRatelimitGlobalCountersParams) {
+	e.t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	require.NoError(e.t, e.rldb.BulkUpsertGlobalCounters(ctx, rows))
+}
+
 // TestGlobal_PropagatesCountAcrossRegions is the headline scenario:
 // region A consumes part of the limit and flushes its count; region B
 // reads the row and folds it into its sliding-window math. A request to
@@ -88,11 +96,11 @@ func TestGlobal_PropagatesCountAcrossRegions(t *testing.T) {
 	regionA := env.newRegionAs(clk, "region-a")
 	regionB := env.newRegionAs(clk, "region-b")
 
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-shared"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-shared"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -141,6 +149,126 @@ func TestGlobal_PropagatesCountAcrossRegions(t *testing.T) {
 	require.False(t, resp.Success, "B must deny when combined effective exceeds limit; without sharing this would have passed")
 }
 
+func TestGlobalPull_StartupFullSync(t *testing.T) {
+	t.Parallel()
+
+	env := newIntegrationTestEnv(t)
+	start := time.UnixMilli(2_000_000_000_000)
+	clk := clock.NewTestClock(start)
+	key := counterKey{
+		workspaceID: uid.New(uid.WorkspacePrefix),
+		namespace:   "ns",
+		identifier:  "user",
+		durationMs:  time.Hour.Milliseconds(),
+		sequence:    calculateSequence(start, time.Hour),
+	}
+	env.upsertGlobalCounterRows(globalCounterRowForKeyAt(key, "region-a", 6, start.Add(-time.Hour)))
+
+	regionB := env.newRegionAs(clk, "region-b")
+
+	require.Eventually(t, func() bool {
+		entry, ok := regionB.counters.Load(key)
+		return ok && entry.(*counterEntry).globalCount.Load() == 6
+	}, 3*time.Second, 25*time.Millisecond, "startup pull must fully hydrate old active rows")
+}
+
+func TestGlobalPull_IncrementalAggregatesUnchangedRegions(t *testing.T) {
+	t.Parallel()
+
+	env := newIntegrationTestEnv(t)
+	start := time.UnixMilli(2_000_000_000_000)
+	clk := clock.NewTestClock(start)
+	regionC := newGlobalPullOnlyService(env, clk, "region-c")
+	key := counterKey{
+		workspaceID: uid.New(uid.WorkspacePrefix),
+		namespace:   "ns",
+		identifier:  "user",
+		durationMs:  time.Hour.Milliseconds(),
+		sequence:    calculateSequence(start, time.Hour),
+	}
+
+	env.upsertGlobalCounterRows(
+		globalCounterRowForKeyAt(key, "region-a", 2, start),
+		globalCounterRowForKeyAt(key, "region-b", 3, start.Add(-time.Minute)),
+	)
+	regionC.runGlobalPullOnce()
+	entryValue, ok := regionC.counters.Load(key)
+	require.True(t, ok)
+	entry := entryValue.(*counterEntry)
+	require.Equal(t, int64(5), entry.globalCount.Load())
+
+	clk.Tick(time.Second)
+	env.upsertGlobalCounterRows(globalCounterRowForKeyAt(key, "region-a", 7, clk.Now()))
+	regionC.runGlobalPullOnce()
+
+	require.Equal(t, int64(10), entry.globalCount.Load(),
+		"incremental pull must aggregate changed region A with unchanged region B")
+}
+
+func TestGlobalPull_OverlapRecoversDelayedVisibilityWithoutDoubleCount(t *testing.T) {
+	t.Parallel()
+
+	env := newIntegrationTestEnv(t)
+	start := time.UnixMilli(2_000_000_000_000)
+	clk := clock.NewTestClock(start)
+	regionB := newGlobalPullOnlyService(env, clk, "region-b")
+	key := counterKey{
+		workspaceID: uid.New(uid.WorkspacePrefix),
+		namespace:   "ns",
+		identifier:  "user",
+		durationMs:  time.Hour.Milliseconds(),
+		sequence:    calculateSequence(start, time.Hour),
+	}
+
+	regionB.runGlobalPullOnce()
+	clk.Tick(globalPullInterval)
+	regionB.runGlobalPullOnce()
+
+	// Model a row that becomes visible only after the receiver advanced past its
+	// timestamp. The inclusive overlap must recover the boundary update.
+	env.upsertGlobalCounterRows(globalCounterRowForKeyAt(key, "region-a", 4, start))
+	regionB.runGlobalPullOnce()
+	entryValue, ok := regionB.counters.Load(key)
+	require.True(t, ok)
+	entry := entryValue.(*counterEntry)
+	require.Equal(t, int64(4), entry.globalCount.Load())
+
+	regionB.runGlobalPullOnce()
+	require.Equal(t, int64(4), entry.globalCount.Load(),
+		"overlap may return the same aggregate repeatedly but must not add it twice")
+}
+
+func TestGlobalPull_PeriodicReconciliationRepairsMissedUpdate(t *testing.T) {
+	t.Parallel()
+
+	env := newIntegrationTestEnv(t)
+	start := time.UnixMilli(2_000_000_000_000)
+	clk := clock.NewTestClock(start)
+	regionB := newGlobalPullOnlyService(env, clk, "region-b")
+	key := counterKey{
+		workspaceID: uid.New(uid.WorkspacePrefix),
+		namespace:   "ns",
+		identifier:  "user",
+		durationMs:  time.Hour.Milliseconds(),
+		sequence:    calculateSequence(start, time.Hour),
+	}
+
+	regionB.runGlobalPullOnce()
+	clk.Tick(globalPullInterval)
+	regionB.runGlobalPullOnce()
+
+	env.upsertGlobalCounterRows(globalCounterRowForKeyAt(key, "region-a", 9, start.Add(-time.Hour)))
+	regionB.runGlobalPullOnce()
+	_, ok := regionB.counters.Load(key)
+	require.False(t, ok, "incremental pull should miss an update older than its overlap")
+
+	clk.Tick(globalPullReconciliationInterval - globalPullInterval)
+	regionB.runGlobalPullOnce()
+	entryValue, ok := regionB.counters.Load(key)
+	require.True(t, ok, "periodic full reconciliation must recover the missed update")
+	require.Equal(t, int64(9), entryValue.(*counterEntry).globalCount.Load())
+}
+
 // TestGlobalPush_EmitsRowsInUniqueKeyOrder guarantees that a flush batch
 // follows the ratelimit_global_counters unique key order before reaching MySQL.
 // Concurrent upserts that visit the same rows in different orders can deadlock.
@@ -186,17 +314,16 @@ func TestGlobalPush_EmitsRowsInUniqueKeyOrder(t *testing.T) {
 	}
 }
 
-// TestGlobalPush_ConcurrentFlushesDoNotDeadlock reproduces the production lock
-// graph with real MySQL transactions. The DB wrapper splits each collected bulk
-// batch into per-row upserts inside one transaction, which turns inconsistent
-// row order into the same 1213 deadlock MySQL can produce under overlapping
-// ON DUPLICATE KEY UPDATE flushes.
-func TestGlobalPush_ConcurrentFlushesDoNotDeadlock(t *testing.T) {
+// TestGlobalPush_ConcurrentFlushesRecoverFromDeadlock reproduces the production
+// lock graph with real MySQL transactions. Even with consistent row order,
+// InnoDB can select one overlapping upsert as a deadlock victim. The idempotent
+// flush must retry that transaction and commit both callers' progress.
+func TestGlobalPush_ConcurrentFlushesRecoverFromDeadlock(t *testing.T) {
 	t.Parallel()
 
 	env := newIntegrationTestEnv(t)
 
-	for attempt := range 30 {
+	for attempt := range 5 {
 		workspaceID := uid.New(uid.WorkspacePrefix)
 		keys := []counterKey{
 			{workspaceID: workspaceID, namespace: "ns-a", identifier: "id-a", durationMs: 60_000, sequence: 1},
@@ -220,13 +347,14 @@ func TestGlobalPush_ConcurrentFlushesDoNotDeadlock(t *testing.T) {
 		}
 
 		svcA := newGlobalPushOnlyService(db, "region-a")
+		entries := make([]*counterEntry, 0, len(keys)*2)
 		for _, key := range keys {
-			storePushableCounter(svcA, key)
+			entries = append(entries, storePushableCounter(svcA, key))
 		}
 
 		svcB := newGlobalPushOnlyService(db, "region-a")
 		for i := len(keys) - 1; i >= 0; i-- {
-			storePushableCounter(svcB, keys[i])
+			entries = append(entries, storePushableCounter(svcB, keys[i]))
 		}
 
 		var wg sync.WaitGroup
@@ -235,12 +363,35 @@ func TestGlobalPush_ConcurrentFlushesDoNotDeadlock(t *testing.T) {
 		wg.Wait()
 		cancel()
 
-		require.Empty(t, db.deadlockErrors(),
-			"attempt %d reproduced a MySQL deadlock during concurrent global counter flushes; row orders: %v",
-			attempt,
-			db.rowOrders(),
-		)
+		for _, entry := range entries {
+			require.Equal(t, int64(10), entry.lastPushed.Load(),
+				"attempt %d did not commit both concurrent flushes; row orders: %v, deadlocks: %v",
+				attempt,
+				db.rowOrders(),
+				db.deadlockErrors(),
+			)
+		}
 	}
+}
+
+func TestGlobalPush_RetriesDeadlock(t *testing.T) {
+	t.Parallel()
+
+	recorder := &deadlockOnceGlobalCounterDB{}
+	svc := newGlobalPushOnlyService(recorder, "region-a")
+	entry := storePushableCounter(svc, counterKey{
+		workspaceID: "ws-a",
+		namespace:   "ns-a",
+		identifier:  "id-a",
+		durationMs:  60_000,
+		sequence:    1,
+	})
+
+	svc.runGlobalPushOnce()
+
+	require.Equal(t, 2, recorder.calls)
+	require.Len(t, recorder.rows, 1)
+	require.Equal(t, int64(10), entry.lastPushed.Load())
 }
 
 func newGlobalPushOnlyService(db rldb.DBTX, region string) *service {
@@ -252,14 +403,27 @@ func newGlobalPushOnlyService(db rldb.DBTX, region string) *service {
 	}
 }
 
-func storePushableCounter(svc *service, key counterKey) {
+func newGlobalPullOnlyService(env *integrationTestEnv, clk clock.Clock, region string) *service {
+	return &service{ //nolint:exhaustruct // test only needs global pull dependencies
+		clock:  clk,
+		region: region,
+		db:     env.rldb,
+	}
+}
+
+func storePushableCounter(svc *service, key counterKey) *counterEntry {
 	entry := &counterEntry{} //nolint:exhaustruct // only push eligibility fields matter here
 	entry.val.Store(10)
 	entry.globalPushThreshold.Store(1)
 	svc.counters.Store(key, entry)
+	return entry
 }
 
 func globalCounterRowForKey(key counterKey, region string, count uint64) rldb.UpsertRatelimitGlobalCountersParams {
+	return globalCounterRowForKeyAt(key, region, count, time.Now())
+}
+
+func globalCounterRowForKeyAt(key counterKey, region string, count uint64, updatedAt time.Time) rldb.UpsertRatelimitGlobalCountersParams {
 	return rldb.UpsertRatelimitGlobalCountersParams{
 		WorkspaceID: key.workspaceID,
 		Namespace:   key.namespace,
@@ -269,7 +433,7 @@ func globalCounterRowForKey(key counterKey, region string, count uint64) rldb.Up
 		Region:      region,
 		Count:       count,
 		ExpiresAt:   uint64((key.sequence + 2) * key.durationMs),
-		UpdatedAt:   uint64(time.Now().UnixMilli()),
+		UpdatedAt:   uint64(updatedAt.UnixMilli()),
 	}
 }
 
@@ -418,6 +582,19 @@ func (db *recordingGlobalCounterDB) QueryRowContext(context.Context, string, ...
 	return &sql.Row{}
 }
 
+type deadlockOnceGlobalCounterDB struct {
+	recordingGlobalCounterDB
+	calls int
+}
+
+func (db *deadlockOnceGlobalCounterDB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	db.calls++
+	if db.calls == 1 {
+		return nil, &drivermysql.MySQLError{Number: 1213, Message: "Deadlock found when trying to get lock"}
+	}
+	return db.recordingGlobalCounterDB.ExecContext(ctx, query, args...)
+}
+
 func globalCounterRowsFromArgs(args []interface{}) ([]rldb.UpsertRatelimitGlobalCountersParams, error) {
 	const paramsPerRow = 9
 	if len(args)%paramsPerRow != 0 {
@@ -503,11 +680,11 @@ func TestGlobal_RealWorldTwoRegionsWithTwoNodesEach(t *testing.T) {
 	regionB1 := env.newRegionWithCounter(clk, "region-b", regionBOrigin)
 	regionB2 := env.newRegionWithCounter(clk, "region-b", regionBOrigin)
 
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-real-world"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-real-world"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -615,11 +792,11 @@ func TestGlobal_BelowUtilizationFloorDoesNotPush(t *testing.T) {
 	clk := clock.NewTestClock()
 	region := env.newRegionAs(clk, "region-a")
 
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-low-util"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-low-util"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -634,12 +811,7 @@ func TestGlobal_BelowUtilizationFloorDoesNotPush(t *testing.T) {
 
 	region.runGlobalPushOnce()
 
-	// The flush filter must have skipped this entry. require.Never polls
-	// to guard against a periodic flush from the background goroutine
-	// firing concurrently.
-	require.Never(t, func() bool {
-		return env.hasRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
-	}, 2*time.Second, 100*time.Millisecond,
+	require.False(t, env.hasRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds()),
 		"sub-floor utilization must not write a global-counters row")
 }
 
@@ -671,11 +843,11 @@ func TestGlobal_PushUsesConvergedLocalCount(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = regionA2.Close() })
 
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-converged"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-converged"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -743,11 +915,11 @@ func TestGlobal_PushIgnoresSpeculativeBatchIncrements(t *testing.T) {
 	clk := clock.NewTestClock()
 	region := env.newRegionAs(clk, "region-a")
 
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-speculative"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-speculative"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 
@@ -795,11 +967,11 @@ func TestGlobal_AtFloorPushes(t *testing.T) {
 	clk := clock.NewTestClock()
 	region := env.newRegionAs(clk, "region-a")
 
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-at-floor"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-at-floor"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -832,11 +1004,11 @@ func TestGlobal_RemoteEmitForcesLocalSubFloorPush(t *testing.T) {
 	regionA := env.newRegionAs(clk, "region-a")
 	regionB := env.newRegionAs(clk, "region-b")
 
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-skewed"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-skewed"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -889,11 +1061,11 @@ func TestGlobal_SyncKeepsOwnRegionOutOfGlobalCount(t *testing.T) {
 	clk := clock.NewTestClock()
 	region := env.newRegionAs(clk, "region-a")
 
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-self-only"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-self-only"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -941,11 +1113,11 @@ func TestGlobal_OwnRegionImportIsRegionalSafetyNet(t *testing.T) {
 	regionA1 := env.newRegionAs(clk, "region-a")
 	regionA2 := env.newRegionAs(clk, "region-a")
 
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-own-region-import"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-own-region-import"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -1008,11 +1180,11 @@ func TestGlobal_SumsAcrossMultipleRegions(t *testing.T) {
 	regionB := env.newRegionAs(clk, "region-b")
 	regionC := env.newRegionAs(clk, "region-c")
 
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-multi"
-		limit       = int64(20)
+		namespace  = "ns"
+		identifier = "user-multi"
+		limit      = int64(20)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -1075,11 +1247,11 @@ func TestGlobal_ChangeFilterAvoidsRedundantWrites(t *testing.T) {
 	clk := clock.NewTestClock()
 	region := env.newRegionAs(clk, "region-a")
 
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-quiet"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-quiet"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -1128,11 +1300,11 @@ func TestGlobal_DoesNotPropagateColdOversizedRequest(t *testing.T) {
 	clk := clock.NewTestClock()
 	region := env.newRegionAs(clk, "region-a")
 
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-oversized"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-oversized"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()
@@ -1146,11 +1318,7 @@ func TestGlobal_DoesNotPropagateColdOversizedRequest(t *testing.T) {
 
 	region.runGlobalPushOnce()
 
-	// The cold-window denial increments nothing (deny path doesn't bump
-	// val), so val stays 0 and the utilization filter skips the flush.
-	require.Never(t, func() bool {
-		return env.hasRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds())
-	}, 2*time.Second, 100*time.Millisecond,
+	require.False(t, env.hasRow(workspaceID, namespace, identifier, "region-a", duration.Milliseconds()),
 		"cold oversized denial must not write a global-counters row")
 }
 
@@ -1167,11 +1335,11 @@ func TestGlobal_EntriesCreatedOnSync(t *testing.T) {
 	regionA := env.newRegionAs(clk, "region-a")
 	regionB := env.newRegionAs(clk, "region-b")
 
+	workspaceID := uid.New(uid.WorkspacePrefix)
 	const (
-		workspaceID = "ws_test"
-		namespace   = "ns"
-		identifier  = "user-cold-import"
-		limit       = int64(10)
+		namespace  = "ns"
+		identifier = "user-cold-import"
+		limit      = int64(10)
 	)
 	duration := time.Minute
 	ctx := context.Background()

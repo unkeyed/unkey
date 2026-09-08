@@ -10,14 +10,14 @@ import (
 )
 
 const findEnvironmentById = `-- name: FindEnvironmentById :one
-SELECT pk, id, workspace_id, project_id, app_id, slug, description, kind, delete_protection, created_at, updated_at
+SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
 FROM environments
 WHERE id = ?
 `
 
 // FindEnvironmentById
 //
-//	SELECT pk, id, workspace_id, project_id, app_id, slug, description, kind, delete_protection, created_at, updated_at
+//	SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
 //	FROM environments
 //	WHERE id = ?
 func (q *Queries) FindEnvironmentById(ctx context.Context, id string) (Environment, error) {

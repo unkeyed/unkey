@@ -18,6 +18,7 @@ export const getDeploymentNetworkEgressTimeseries = workspaceProcedure
     const resource = await db.query.deployments.findFirst({
       where: (table, { eq, and }) =>
         and(eq(table.id, input.resourceId), eq(table.workspaceId, ctx.workspace.id)),
+      columns: { id: true },
     });
 
     if (!resource) {

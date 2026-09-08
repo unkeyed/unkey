@@ -1,3 +1,5 @@
+//go:build !cli_release
+
 package cli
 
 import (

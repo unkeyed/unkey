@@ -3,10 +3,8 @@ import { flexRender } from "@tanstack/react-table";
 import {
   Fragment,
   type KeyboardEvent,
-  type ReactElement,
   type ReactNode,
   type Ref,
-  forwardRef,
   useCallback,
   useImperativeHandle,
   useMemo,
@@ -34,8 +32,9 @@ export type DataTableRef = {
 /**
  * Main DataTable component with TanStack Table + TanStack Virtual
  */
-function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableRef>) {
+export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<DataTableRef> }) {
   const {
+    ref,
     data: historicData,
     realtimeData = [],
     columns,
@@ -436,10 +435,3 @@ function DataTableInner<TData>(props: DataTableProps<TData>, ref: Ref<DataTableR
     </div>
   );
 }
-
-/**
- * Exported DataTable component with proper generic type support
- */
-export const DataTable = forwardRef(DataTableInner) as <TData>(
-  props: DataTableProps<TData> & { ref?: Ref<DataTableRef> },
-) => ReactElement;

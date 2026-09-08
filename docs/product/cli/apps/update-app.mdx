@@ -1,0 +1,37 @@
+---
+title: "update-app"
+description: "Update an existing app"
+---
+
+Update an app by ID or slug. You can change its name, slug, GitHub repository
+configuration, and delete protection. Omitted fields remain unchanged. A new
+slug must not collide with another app in the project.
+
+## Usage
+```bash
+unkey api apps update-app [flags]
+```
+## Flags
+<ParamField body="--project" type="string" required>Project ID or slug.</ParamField>
+<ParamField body="--app" type="string" required>App ID or slug.</ParamField>
+<ParamField body="--name" type="string">New human-readable name. Omit to leave unchanged.</ParamField>
+<ParamField body="--slug" type="string">New app slug. Omit to leave unchanged.</ParamField>
+<ParamField body="--git" type="JSON string">
+Connect or reconfigure a GitHub repository with `repository` and
+`defaultBranch` fields. Set the value to `null` to disconnect the repository.
+</ParamField>
+<ParamField body="--delete-protection" type="bool">Enable or disable delete protection. Omit to leave unchanged.</ParamField>
+## Global Flags
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+## Examples
+```bash
+unkey api apps update-app --project=payments --app=app_1234abcd \
+  --git='{"repository":"unkeyed/api","defaultBranch":"main"}'
+```
+See the [API reference](https://www.unkey.com/docs/api-reference/v2/apps/update-app).

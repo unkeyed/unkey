@@ -28,6 +28,29 @@ func TestWriteRead(t *testing.T) {
 	require.Equal(t, "value", value)
 }
 
+func TestClose(t *testing.T) {
+
+	c, err := cache.New(cache.Config[string, string]{
+		MaxSize:  10_000,
+		Fresh:    time.Minute,
+		Stale:    time.Minute * 5,
+		Resource: "test",
+		Clock:    clock.New(),
+	})
+	require.NoError(t, err)
+
+	c.Set(context.Background(), "key", "value")
+
+	c.Close()
+	// Close must be idempotent.
+	c.Close()
+
+	// Cached data stays readable after Close.
+	value, hit := c.Get(context.Background(), "key")
+	require.Equal(t, cache.Hit, hit)
+	require.Equal(t, "value", value)
+}
+
 func TestEviction(t *testing.T) {
 
 	clk := clock.NewTestClock()

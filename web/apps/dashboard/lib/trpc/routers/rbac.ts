@@ -19,6 +19,16 @@ export async function upsertPermissions(
     const existingPermissions = await tx.query.permissions.findMany({
       where: (table, { inArray, and, eq }) =>
         and(eq(table.workspaceId, workspaceId), inArray(table.slug, slugs)),
+      columns: {
+        id: true,
+        workspaceId: true,
+        projectId: true,
+        name: true,
+        slug: true,
+        description: true,
+        updatedAtM: true,
+        createdAtM: true,
+      },
     });
 
     const newPermissions: InsertPermission[] = [];

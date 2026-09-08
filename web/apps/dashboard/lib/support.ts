@@ -4,4 +4,7 @@ import type { Route } from "next";
 // asserted. Done once here so call sites stay cast-free.
 export const SUPPORT_MAILTO = "mailto:support@unkey.com" as Route;
 
-export const BILLING_DOCS = "https://www.unkey.com/docs/platform/workspaces/billing" as Route;
+export const BILLING_DOCS =
+  "https://www.unkey.com/docs/platform/workspaces/billing/overview" as Route;
+export const COMPUTE_BILLING_DOCS =
+  "https://www.unkey.com/docs/platform/workspaces/billing/compute" as Route;

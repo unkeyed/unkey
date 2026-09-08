@@ -1,5 +1,5 @@
 import { Magnifier, XMark } from "@unkey/icons";
-import { Button, Input } from "@unkey/ui";
+import { Button, InputGroup, InputGroupAddon, InputGroupInput } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 // import { Search, XMark } from "@unkey/icons";
 import { useEffect, useRef, useState } from "react";
@@ -159,15 +159,29 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
 
   return (
     <div className="flex items-center gap-2 w-full flex-1 h-8">
-      <Input
-        leftIcon={<Magnifier className="text-accent-9 size-4" />}
+      <InputGroup
+        variant="default"
         className={cn(
-          "truncate text-accent-12 font-medium text-[13px] bg-transparent outline-hidden focus:ring-0 focus:outline-hidden placeholder:text-accent-12 selection:bg-gray-6 w-full h-8",
+          "bg-transparent focus-within:ring-0 w-full h-8",
           "border border-solid border-gray-4 rounded-lg hover:bg-gray-3",
           "transition-all duration-200",
         )}
-        rightIcon={
-          searchText && (
+      >
+        <InputGroupAddon className="pointer-events-none">
+          <Magnifier className="text-accent-9 size-4" />
+        </InputGroupAddon>
+        <InputGroupInput
+          className="truncate text-accent-12 font-medium text-[13px] h-8 placeholder:text-accent-12 selection:bg-gray-6"
+          ref={inputRef}
+          type="text"
+          value={searchText}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          maxLength={MAX_QUERY_LENGTH}
+          placeholder={placeholder}
+        />
+        {searchText && (
+          <InputGroupAddon align="inline-end">
             <Button
               variant="ghost"
               onClick={handleClear}
@@ -177,17 +191,9 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
             >
               <XMark className="size-4 cursor-pointer" />
             </Button>
-          )
-        }
-        ref={inputRef}
-        variant="default"
-        type="text"
-        value={searchText}
-        onChange={handleInputChange}
-        onKeyDown={handleKeyDown}
-        maxLength={MAX_QUERY_LENGTH}
-        placeholder={placeholder}
-      />
+          </InputGroupAddon>
+        )}
+      </InputGroup>
     </div>
   );
 };

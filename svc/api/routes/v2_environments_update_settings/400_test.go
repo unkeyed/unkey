@@ -73,6 +73,10 @@ func TestUpdateSettings400(t *testing.T) {
 		{name: "healthcheck path bad chars", req: handler.Request{Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{Method: "GET", Path: "/health check"})}},
 		{name: "healthcheck path traversal", req: handler.Request{Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{Method: "GET", Path: "/../etc/passwd"})}},
 
+		// Watch path glob validation (handler).
+		{name: "watchPaths invalid glob", req: handler.Request{WatchPaths: ptr([]string{"src/["})}},
+		{name: "watchPaths invalid among valid", req: handler.Request{WatchPaths: ptr([]string{"src/**", "{src,lib"})}},
+
 		// Array caps (spec).
 		{name: "watchPaths over limit", req: handler.Request{WatchPaths: ptr(overLimit(11))}},
 		{name: "command over limit", req: handler.Request{Command: ptr(overLimit(11))}},
@@ -105,4 +109,17 @@ func TestUpdateSettings400(t *testing.T) {
 			require.Equal(t, http.StatusBadRequest, res.Status, "expected 400 for %q, got: %s", tc.name, res.RawBody)
 		})
 	}
+
+	t.Run("watchPaths error names the offending pattern", func(t *testing.T) {
+		req := handler.Request{
+			Project:     env.projectID,
+			App:         env.appID,
+			Environment: env.environmentID,
+			WatchPaths:  ptr([]string{"src/["}),
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusBadRequest, res.Status, "raw body: %s", res.RawBody)
+		require.Contains(t, res.Body.Error.Detail, "src/[")
+	})
 }

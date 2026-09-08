@@ -11,7 +11,8 @@
     "migrate": "drizzle-kit push",
     "generate": "drizzle-kit generate",
     "export": "drizzle-kit export",
-    "studio": "dotenv -e .env drizzle-kit studio "
+    "studio": "dotenv -e .env drizzle-kit studio ",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/node": "20.14.9",
@@ -19,7 +20,8 @@
     "dotenv-cli": "7.4.1",
     "drizzle-kit": "0.31.4",
     "mysql2": "catalog:",
-    "typescript": "5.5.3"
+    "typescript": "5.5.3",
+    "vitest": "1.6.1"
   },
   "dependencies": {
     "@unkey/id": "workspace:^",

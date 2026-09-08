@@ -33,12 +33,13 @@ type ValidateFunc func(value string) error
 
 // baseFlag contains common fields and methods shared by all flag types
 type baseFlag struct {
-	name     string       // Flag name
-	usage    string       // Help description
-	envVar   string       // Environment variable to check for default
-	required bool         // Whether flag is mandatory
-	set      bool         // Whether user explicitly provided this flag
-	validate ValidateFunc // Optional validation function
+	name              string       // Flag name
+	usage             string       // Help description
+	envVar            string       // Environment variable to check for default
+	required          bool         // Whether flag is mandatory
+	set               bool         // Whether user explicitly provided this flag
+	validate          ValidateFunc // Optional validation function
+	mutuallyExclusive []string     // Flag names that cannot be explicitly set with this flag
 }
 
 // Name returns the flag name
@@ -356,6 +357,38 @@ func Required() FlagOption {
 		case *EnumFlag:
 			flag.required = true
 		}
+	}
+}
+
+// MutuallyExclusive declares flags that cannot be explicitly supplied with this flag.
+func MutuallyExclusive(otherNames ...string) FlagOption {
+	return func(f any) {
+		if flag, ok := baseFlagOf(f); ok {
+			flag.mutuallyExclusive = append(flag.mutuallyExclusive, otherNames...)
+		}
+	}
+}
+
+func baseFlagOf(f any) (*baseFlag, bool) {
+	switch flag := f.(type) {
+	case *StringFlag:
+		return &flag.baseFlag, true
+	case *BoolFlag:
+		return &flag.baseFlag, true
+	case *IntFlag:
+		return &flag.baseFlag, true
+	case *Int64Flag:
+		return &flag.baseFlag, true
+	case *FloatFlag:
+		return &flag.baseFlag, true
+	case *StringSliceFlag:
+		return &flag.baseFlag, true
+	case *DurationFlag:
+		return &flag.baseFlag, true
+	case *EnumFlag:
+		return &flag.baseFlag, true
+	default:
+		return nil, false
 	}
 }
 

@@ -5,10 +5,11 @@ import { cn } from "../lib/utils";
 const alertBannerVariants = cva(
   [
     "grid w-full grid-cols-[auto_1fr_auto] items-center rounded-lg border px-4 py-3",
-    "has-[>[data-slot=alert-banner-title]]:items-start has-[>[data-slot=alert-banner-title]]:p-4",
     "[&>svg]:col-start-1 [&>svg]:row-start-1 [&>svg]:mr-3 [&>svg]:shrink-0",
-    "has-[>[data-slot=alert-banner-title]]:[&>svg]:translate-y-0.5",
-    "has-[>[data-slot=alert-banner-title]]:has-[>[data-slot=alert-banner-description]]:*:data-[slot=alert-banner-actions]:row-end-3",
+    "has-[>[data-slot=alert-banner-title]+[data-slot=alert-banner-description]]:items-start",
+    "has-[>[data-slot=alert-banner-title]+[data-slot=alert-banner-description]]:p-4",
+    "has-[>[data-slot=alert-banner-title]+[data-slot=alert-banner-description]]:[&>svg]:translate-y-0.5",
+    "has-[>[data-slot=alert-banner-title]+[data-slot=alert-banner-description]]:*:data-[slot=alert-banner-actions]:row-end-3",
   ],
   {
     variants: {

@@ -910,6 +910,7 @@ export const githubRouter = t.router({
         .findFirst({
           where: (table, { and, eq }) =>
             and(eq(table.id, input.appId), eq(table.workspaceId, ctx.workspace.id)),
+          columns: { id: true },
         })
         .catch(() => {
           throw new TRPCError({
@@ -988,6 +989,7 @@ export const githubRouter = t.router({
               eq(table.installationId, input.installationId),
               eq(table.workspaceId, ctx.workspace.id),
             ),
+          columns: { pk: true },
         })
         .catch(() => {
           throw new TRPCError({

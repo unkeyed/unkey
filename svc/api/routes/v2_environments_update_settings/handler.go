@@ -19,6 +19,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -75,7 +76,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	environment, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
 		Environment: req.Environment,
@@ -109,8 +110,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.UpdateEnvironment,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID),
-			permissions.UpdateEnvironment{},
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID),
+			permissions.Write,
 		),
 	))
 	if err != nil {
@@ -133,8 +134,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var limits keysdb.Limit
 	if hasRuntime || req.Regions != nil {
 		var hit cache.CacheHit
-		limits, hit, err = h.LimitsCache.SWR(ctx, principal.WorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
-			return keysdb.Query.FindLimitsByWorkspaceID(ctx, h.DB.RO(), principal.WorkspaceID)
+		limits, hit, err = h.LimitsCache.SWR(ctx, principal.AuthorizedWorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
+			return keysdb.Query.FindLimitsByWorkspaceID(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID)
 		}, caches.DefaultFindFirstOp)
 		if err != nil && !db.IsNotFound(err) {
 			return fault.Wrap(
@@ -194,26 +195,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if hasBuild {
-			if err := h.applyBuildSettings(ctx, tx, principal.WorkspaceID, environment.AppID, environment.ID, req, now); err != nil {
+			if err := h.applyBuildSettings(ctx, tx, principal.AuthorizedWorkspaceID, environment.AppID, environment.ID, req, now); err != nil {
 				return err
 			}
 		}
 
 		if hasRuntime {
-			if err := h.applyRuntimeSettings(ctx, tx, principal.WorkspaceID, environment.AppID, environment.ID, req, now); err != nil {
+			if err := h.applyRuntimeSettings(ctx, tx, principal.AuthorizedWorkspaceID, environment.AppID, environment.ID, req, now); err != nil {
 				return err
 			}
 		}
 
 		if req.Regions != nil {
-			if err := h.applyRegions(ctx, tx, principal.WorkspaceID, environment.AppID, environment.ID, desired, now); err != nil {
+			if err := h.applyRegions(ctx, tx, principal.AuthorizedWorkspaceID, environment.AppID, environment.ID, desired, now); err != nil {
 				return err
 			}
 		}
 
 		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.EnvironmentUpdateEvent,
 				Display:       fmt.Sprintf("Updated settings for environment %s", environment.ID),
 				ActorID:       principal.Subject.ID,
@@ -288,6 +289,9 @@ func (h *Handler) applyBuildSettings(ctx context.Context, tx db.DBTX, workspaceI
 		}
 	}
 	if req.WatchPaths != nil {
+		if err := match.ValidateWatchPaths(*req.WatchPaths); err != nil {
+			return err
+		}
 		params.WatchPathsSpecified = 1
 		params.WatchPaths = dbtype.StringSlice(*req.WatchPaths)
 	}

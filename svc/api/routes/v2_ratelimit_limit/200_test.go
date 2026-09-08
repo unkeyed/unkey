@@ -24,6 +24,7 @@ func TestLimitSuccessfully(t *testing.T) {
 
 	route := &handler.Handler{
 		RatelimitEvents: h.RatelimitEvents,
+		DirectAuditLogs: h.DirectAuditLogs,
 		Ratelimit:       h.Ratelimit,
 		DB:              h.DB,
 		NamespaceCache:  h.Caches.RatelimitNamespace,
@@ -444,6 +445,8 @@ func TestLimitSuccessfully(t *testing.T) {
 }
 
 func createNamespace(t *testing.T, h *testutil.Harness) (id, name string) {
+	t.Helper()
+
 	// Create a namespace
 	namespaceID := uid.New(uid.RatelimitNamespacePrefix)
 	namespaceName := uid.New("test")

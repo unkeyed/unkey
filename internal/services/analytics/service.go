@@ -131,8 +131,8 @@ func (m *connectionManager) createConnection(ctx context.Context, workspaceID st
 
 	// Decrypt password using vault
 	decrypted, err := m.vault.Decrypt(ctx, &vaultv1.DecryptRequest{
-		Encrypted: settings.ClickhouseWorkspaceSetting.PasswordEncrypted,
-		Keyring:   settings.ClickhouseWorkspaceSetting.WorkspaceID,
+		Encrypted: settings.ClickhousePasswordEncrypted,
+		Keyring:   settings.ClickhouseWorkspaceID,
 	})
 	if err != nil {
 		return nil, db.FindClickhouseWorkspaceSettingsByWorkspaceIDRow{}, fault.Wrap(err,
@@ -151,7 +151,7 @@ func (m *connectionManager) createConnection(ctx context.Context, workspaceID st
 	}
 
 	// Inject workspace credentials
-	parsedURL.User = url.UserPassword(settings.ClickhouseWorkspaceSetting.Username, decrypted.GetPlaintext())
+	parsedURL.User = url.UserPassword(settings.ClickhouseUsername, decrypted.GetPlaintext())
 	conn, err := clickhouse.New(clickhouse.Config{
 		URL: parsedURL.String(),
 	})

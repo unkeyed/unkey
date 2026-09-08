@@ -8,16 +8,17 @@
 // # Header Management
 //
 // The service writes identifying headers (frontline ID, region, request ID) on
-// both responses and downstream requests. Timing details are recorded with the
-// shared X-Unkey-Timing header using the timing schema. Forwarding metadata
-// such as parent frontline and hop counts are only attached to peer-frontline
-// requests.
+// responses and deployment instance requests. Timing details are recorded with
+// the shared X-Unkey-Timing header using the timing schema.
+// X-Unkey-Frontline-Meta carries signed forwarding metadata only on peer
+// Frontline requests.
 //
 // # Loop Prevention
 //
-// The service tracks hop count via X-Unkey-Frontline-Hops and enforces a
-// configurable maximum. When a request exceeds MaxHops, it is rejected to
-// prevent infinite routing loops between peer frontlines.
+// The service tracks a signed hop history in X-Unkey-Frontline-Meta and uses
+// its length as the hop count. Each entry records the Frontline ID, region,
+// request ID, and forward time. When a request reaches MaxHops, the service
+// rejects another cross-region forward.
 //
 // # Connection Pooling
 //

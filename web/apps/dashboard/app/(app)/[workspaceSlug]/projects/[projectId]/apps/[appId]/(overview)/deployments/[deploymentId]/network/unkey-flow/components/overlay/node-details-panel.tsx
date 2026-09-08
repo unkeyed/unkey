@@ -1,6 +1,6 @@
 import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
 import { Layers3, TriangleWarning2 } from "@unkey/icons";
-import { SlidePanel, TimestampInfo } from "@unkey/ui";
+import { SlidePanel, SlidePanelContent, TimestampInfo } from "@unkey/ui";
 import { useDeployment } from "../../../../layout-provider";
 import { type DeploymentNode, type InstanceNode, isInstanceNode } from "../nodes/types";
 import { NodeDetailsPanelHeader } from "./node-details-panel/components/header";
@@ -92,20 +92,19 @@ export function NodeDetailsPanel({ node, deploymentId, onClose }: Props) {
   const isOpen = Boolean(node?.id) && node !== null && isInstanceNode(node);
 
   return (
-    <SlidePanel.Root
+    <SlidePanel
       isOpen={isOpen}
       onClose={onClose}
       side="right"
       widthClassName="w-[600px]"
-      backdrop={false}
-      topOffset={140}
+      backdrop="none"
       fitContent
     >
-      <SlidePanel.Content className="overflow-y-auto pb-6" stagger={false}>
+      <SlidePanelContent className="overflow-y-auto pb-6">
         {node && isInstanceNode(node) && (
           <InstanceNodeDetails node={node} deploymentId={deploymentId} onClose={onClose} />
         )}
-      </SlidePanel.Content>
-    </SlidePanel.Root>
+      </SlidePanelContent>
+    </SlidePanel>
   );
 }

@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 )
 
-// Source values for [KeyVerification.Source]: where a verification originated.
-// Billing rollups exclude SourceGateway (gateway traffic is metered
-// separately); analytics keep both.
+// Source values identify where a [KeyVerification] originated. Billing
+// rollups exclude SourceGateway because gateway traffic is metered separately.
 const (
 	SourceAPI     = "api"
 	SourceGateway = "gateway"
@@ -313,33 +312,33 @@ type InstanceEventV1 struct {
 //
 //unkey:table default.frontline_requests_raw_v1
 type FrontlineRequest struct {
-	RequestID        string              `ch:"request_id" json:"request_id"`
-	Time             int64               `ch:"time" json:"time"`
-	WorkspaceID      string              `ch:"workspace_id" json:"workspace_id"`
-	ProjectID        string              `ch:"project_id" json:"project_id"`
-	AppID            string              `ch:"app_id" json:"app_id"`
-	EnvironmentID    string              `ch:"environment_id" json:"environment_id"`
-	FrontlineID      string              `ch:"frontline_id" json:"frontline_id"`
-	DeploymentID     string              `ch:"deployment_id" json:"deployment_id"`
-	InstanceID       string              `ch:"instance_id" json:"instance_id"`
-	InstanceAddress  string              `ch:"instance_address" json:"instance_address"`
-	Region           string              `ch:"region" json:"region"`
-	Platform         string              `ch:"platform" json:"platform"`
-	Method           string              `ch:"method" json:"method"`
-	Host             string              `ch:"host" json:"host"`
-	Path             string              `ch:"path" json:"path"`
-	QueryString      string              `ch:"query_string" json:"query_string"`
-	QueryParams      map[string][]string `ch:"query_params" json:"query_params"`
-	RequestHeaders   []string            `ch:"request_headers" json:"request_headers"`
-	RequestBody      string              `ch:"request_body" json:"request_body"`
-	ResponseStatus   int32               `ch:"response_status" json:"response_status"`
-	ResponseHeaders  []string            `ch:"response_headers" json:"response_headers"`
-	ResponseBody     string              `ch:"response_body" json:"response_body"`
-	UserAgent        string              `ch:"user_agent" json:"user_agent"`
-	IPAddress        string              `ch:"ip_address" json:"ip_address"`
-	TotalLatency     int64               `ch:"total_latency" json:"total_latency"`
-	InstanceLatency  int64               `ch:"instance_latency" json:"instance_latency"`
-	FrontlineLatency int64               `ch:"frontline_latency" json:"frontline_latency"`
+	RequestID       string              `ch:"request_id" json:"request_id"`
+	Time            int64               `ch:"time" json:"time"`
+	WorkspaceID     string              `ch:"workspace_id" json:"workspace_id"`
+	ProjectID       string              `ch:"project_id" json:"project_id"`
+	AppID           string              `ch:"app_id" json:"app_id"`
+	EnvironmentID   string              `ch:"environment_id" json:"environment_id"`
+	FrontlineID     string              `ch:"frontline_id" json:"frontline_id"`
+	DeploymentID    string              `ch:"deployment_id" json:"deployment_id"`
+	InstanceID      string              `ch:"instance_id" json:"instance_id"`
+	InstanceAddress string              `ch:"instance_address" json:"instance_address"`
+	Region          string              `ch:"region" json:"region"`
+	Platform        string              `ch:"platform" json:"platform"`
+	Method          string              `ch:"method" json:"method"`
+	Host            string              `ch:"host" json:"host"`
+	Path            string              `ch:"path" json:"path"`
+	QueryString     string              `ch:"query_string" json:"query_string"`
+	QueryParams     map[string][]string `ch:"query_params" json:"query_params"`
+	RequestHeaders  []string            `ch:"request_headers" json:"request_headers"`
+	RequestBody     string              `ch:"request_body" json:"request_body"`
+	ResponseStatus  int32               `ch:"response_status" json:"response_status"`
+	ResponseHeaders []string            `ch:"response_headers" json:"response_headers"`
+	ResponseBody    string              `ch:"response_body" json:"response_body"`
+	UserAgent       string              `ch:"user_agent" json:"user_agent"`
+	IPAddress       string              `ch:"ip_address" json:"ip_address"`
+	TotalLatency    int64               `ch:"total_latency" json:"total_latency"`
+	InstanceLatency int64               `ch:"instance_latency" json:"instance_latency"`
+	GatewayLatency  int64               `ch:"gateway_latency" json:"gateway_latency"`
 }
 
 // AuditLogV1 represents one logical audit event in audit_logs_raw_v1.
@@ -350,16 +349,16 @@ type FrontlineRequest struct {
 // Source distinguishes platform-emitted events ("platform", default) from
 // customer-emitted events ("customer", once that surface ships).
 //
-// Time fields are unix-milli (Int64), matching the rest of Unkey's CH
-// tables. Meta fields are json.RawMessage so the writer can pass already-
-// encoded JSON bytes through without re-marshaling, and so the JSON column
-// type in CH stores them natively (not as escaped strings).
+// Time is unix-milli (Int64), matching the rest of Unkey's CH tables.
+// ClickHouse assigns inserted_at when it inserts the row. Meta fields are
+// json.RawMessage so the writer can pass already-encoded JSON bytes through
+// without re-marshaling, and so the JSON column type in CH stores them
+// natively (not as escaped strings).
 //
 //unkey:table default.audit_logs_raw_v1
 type AuditLogV1 struct {
 	EventID     string `ch:"event_id" json:"event_id"`
 	Time        int64  `ch:"time" json:"time"`
-	InsertedAt  int64  `ch:"inserted_at" json:"inserted_at"`
 	WorkspaceID string `ch:"workspace_id" json:"workspace_id"`
 	Bucket      string `ch:"bucket" json:"bucket"`
 	Source      string `ch:"source" json:"source"`
@@ -387,4 +386,21 @@ type AuditLogV1 struct {
 	// auditlog.WithCorrelation(ctx, ...) for flows that fan out across
 	// multiple Insert calls.
 	CorrelationID string `ch:"correlation_id" json:"correlation_id"`
+}
+
+// LogdrainDeliveryV1 represents one customer endpoint delivery attempt.
+//
+//unkey:table default.logdrain_deliveries_raw_v1
+type LogdrainDeliveryV1 struct {
+	WorkspaceID       string `ch:"workspace_id" json:"workspace_id"`
+	DrainID           string `ch:"drain_id" json:"drain_id"`
+	Stream            string `ch:"stream" json:"stream"`
+	Time              int64  `ch:"time" json:"time"`
+	Outcome           string `ch:"outcome" json:"outcome"`
+	Events            int64  `ch:"events" json:"events"`
+	WebhookDurationMs int64  `ch:"webhook_duration_ms" json:"webhook_duration_ms"`
+	RequestBodyBytes  int64  `ch:"request_body_bytes" json:"request_body_bytes"`
+	ResponseStatus    int32  `ch:"response_status" json:"response_status"`
+	ResponseBody      string `ch:"response_body" json:"response_body"`
+	Error             string `ch:"error" json:"error"`
 }

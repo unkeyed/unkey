@@ -81,7 +81,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	securityFilters := make([]chquery.SecurityFilter, 0, 1)
 	if !hasWildcard {
-		keySpaces, fetchErr := h.fetchKeyAuthsByAPIIDs(ctx, principal.WorkspaceID, allowedAPIIDs)
+		keySpaces, fetchErr := h.fetchKeyAuthsByAPIIDs(ctx, principal.AuthorizedWorkspaceID, allowedAPIIDs)
 		if fetchErr != nil {
 			return fetchErr
 		}
@@ -94,7 +94,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	verifications, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{
 		Query:           req.Query,
-		WorkspaceID:     principal.WorkspaceID,
+		WorkspaceID:     principal.AuthorizedWorkspaceID,
 		TableAliases:    tableAliases,
 		AllowedTables:   allowedTables,
 		SecurityFilters: securityFilters,

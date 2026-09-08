@@ -23,4 +23,4 @@ if needs_stripe_env "$@"; then
 fi
 set +a
 
-go run . "$@" ${ARGS:-}
+go run ./build/cli "$@" ${ARGS:-}

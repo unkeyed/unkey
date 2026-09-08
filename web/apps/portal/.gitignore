@@ -5,6 +5,9 @@ dist/
 # tanstack router generated
 src/routeTree.gen.ts
 
+# nitro build output
+.nitro/
+
 # tanstack start dev cache
 .tanstack/
 

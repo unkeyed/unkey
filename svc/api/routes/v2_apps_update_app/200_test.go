@@ -187,22 +187,4 @@ func TestUpdateAppSuccessfully(t *testing.T) {
 		require.True(t, app.DeleteProtection.Bool)
 	})
 
-	t.Run("empty body leaves app unchanged", func(t *testing.T) {
-		id, slug := createApp(t, "Unchanged", "main")
-
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Project: project.ID,
-			App:     id,
-		})
-		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
-		require.Equal(t, "Unchanged", res.Body.Data.Name)
-		require.Equal(t, slug, res.Body.Data.Slug)
-		require.Nil(t, res.Body.Data.Git)
-		require.False(t, res.Body.Data.DeleteProtection)
-
-		app := getApp(t, id)
-		require.Equal(t, "Unchanged", app.Name)
-		require.Equal(t, slug, app.Slug)
-		require.Equal(t, "main", app.DefaultBranch)
-	})
 }

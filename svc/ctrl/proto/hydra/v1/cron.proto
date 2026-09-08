@@ -98,6 +98,11 @@ service CronService {
   // per-workspace work prices usage locally from ClickHouse, so the tight
   // cadence costs no Stripe calls.
   rpc RunDeploySpendCheck(RunDeploySpendCheckRequest) returns (RunDeploySpendCheckResponse) {}
+
+  // RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
+  // desired allowed-table fingerprint changes. Key is the fixed slug
+  // "clickhouse-user-reconcile" so Restate state survives worker releases.
+  rpc RunClickhouseUserReconcile(RunClickhouseUserReconcileRequest) returns (RunClickhouseUserReconcileResponse) {}
 }
 
 message RunQuotaCheckRequest {}
@@ -176,4 +181,11 @@ message RunDeploySpendCheckRequest {}
 message RunDeploySpendCheckResponse {
   // Number of budgeted workspaces the orchestrator fanned out a check for.
   int32 workspaces_dispatched = 1;
+}
+
+message RunClickhouseUserReconcileRequest {}
+message RunClickhouseUserReconcileResponse {
+  // Number of existing workspace users configured during this run. Zero means
+  // the desired grants have not changed since the last successful run.
+  int32 users_reconfigured = 1;
 }

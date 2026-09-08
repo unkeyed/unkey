@@ -1,5 +1,5 @@
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
-import { BILLING_DOCS } from "@/lib/support";
+import { COMPUTE_BILLING_DOCS } from "@/lib/support";
 import { ArrowDottedRotateAnticlockwise, ChartActivity, CodeBranch, Eye } from "@unkey/icons";
 import type { IconProps } from "@unkey/icons";
 
@@ -48,5 +48,5 @@ export const FEATURES: ComputeFeature[] = [
 
 export const CREDITS_INFO = "Every plan includes monthly usage credit.";
 export const CREDITS_LINK_LABEL = "See how credits work";
-export const CREDITS_LINK_HREF = BILLING_DOCS;
-export const COMPUTE_PLANS_LINK_HREF = BILLING_DOCS;
+export const CREDITS_LINK_HREF = `${COMPUTE_BILLING_DOCS}#how-the-bill-works`;
+export const COMPUTE_PLANS_LINK_HREF = `${COMPUTE_BILLING_DOCS}#plans`;

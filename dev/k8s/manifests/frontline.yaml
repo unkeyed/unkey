@@ -11,6 +11,7 @@ data:
     http_port = 7070
     https_port = 7443
     apex_domain = "unkey.local"
+    frontline_meta_signing_key = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
 
     [control]
     url = "http://ctrl-api.unkey.svc.cluster.local:7091"

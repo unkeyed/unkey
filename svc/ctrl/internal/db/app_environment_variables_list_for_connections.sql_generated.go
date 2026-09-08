@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
 
 const listEnvVarsForRepoConnections = `-- name: ListEnvVarsForRepoConnections :many
@@ -19,17 +20,17 @@ WHERE gc.installation_id = ?
   AND gc.repository_id = ?
   AND CASE
     WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
-    WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
+    WHEN ? = COALESCE(NULLIF(gc.default_branch, ''), 'main')
     THEN e.kind = 'production'
     ELSE e.kind = 'preview'
   END
 `
 
 type ListEnvVarsForRepoConnectionsParams struct {
-	InstallationID int64  `db:"installation_id"`
-	RepositoryID   int64  `db:"repository_id"`
-	IsForkPr       int64  `db:"is_fork_pr"`
-	Branch         string `db:"branch"`
+	InstallationID int64          `db:"installation_id"`
+	RepositoryID   int64          `db:"repository_id"`
+	IsForkPr       int64          `db:"is_fork_pr"`
+	Branch         sql.NullString `db:"branch"`
 }
 
 type ListEnvVarsForRepoConnectionsRow struct {
@@ -49,7 +50,7 @@ type ListEnvVarsForRepoConnectionsRow struct {
 //	  AND gc.repository_id = ?
 //	  AND CASE
 //	    WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
-//	    WHEN ? = COALESCE(NULLIF(a.default_branch, ''), 'main')
+//	    WHEN ? = COALESCE(NULLIF(gc.default_branch, ''), 'main')
 //	    THEN e.kind = 'production'
 //	    ELSE e.kind = 'preview'
 //	  END

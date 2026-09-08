@@ -27,6 +27,9 @@ type cache[K comparable, V any] struct {
 	clock    clock.Clock
 
 	revalidateC chan func()
+	done        chan struct{}
+	closeOnce   sync.Once
+	stopMetrics func()
 
 	inflightMu        sync.Mutex
 	inflightRefreshes map[K]bool
@@ -84,27 +87,51 @@ func New[K comparable, V any](config Config[K, V]) (Cache[K, V], error) {
 		resource:          config.Resource,
 		clock:             config.Clock,
 		revalidateC:       make(chan func(), 1000),
+		done:              make(chan struct{}),
+		closeOnce:         sync.Once{},
+		stopMetrics:       nil, // set below, needs c
 		inflightMu:        sync.Mutex{},
 		inflightRefreshes: make(map[K]bool),
 	}
 
 	for range 10 {
 		go func() {
-			for revalidate := range c.revalidateC {
-				revalidate()
+			for {
+				select {
+				case <-c.done:
+					return
+				case revalidate := <-c.revalidateC:
+					revalidate()
+				}
 			}
 		}()
 	}
 
-	c.registerMetrics()
-	return c, nil
-}
-
-func (c *cache[K, V]) registerMetrics() {
-	repeat.Every(60*time.Second, func() {
+	c.stopMetrics = repeat.Every(60*time.Second, func() {
 		metrics.CacheSize.WithLabelValues(c.resource).Set(float64(c.otter.Size()))
 		metrics.CacheCapacity.WithLabelValues(c.resource).Set(float64(c.otter.Capacity()))
 	})
+	return c, nil
+}
+
+// Close stops the background revalidation workers and the periodic metrics
+// reporter. Queued revalidations that no worker has picked up yet are
+// dropped; cached data stays readable. Close is idempotent.
+func (c *cache[K, V]) Close() {
+	c.closeOnce.Do(func() {
+		close(c.done)
+		c.stopMetrics()
+	})
+}
+
+// enqueueRevalidation hands fn to a background revalidation worker.
+// After Close it drops fn instead of blocking forever on a channel
+// no worker reads anymore.
+func (c *cache[K, V]) enqueueRevalidation(fn func()) {
+	select {
+	case c.revalidateC <- fn:
+	case <-c.done:
+	}
 }
 
 func (c *cache[K, V]) recordTiming(ctx context.Context, name, status string, start time.Time) {
@@ -330,11 +357,11 @@ func (c *cache[K, V]) SWR(
 		}
 
 		if now.Before(e.Stale) {
-			c.revalidateC <- func() {
+			c.enqueueRevalidation(func() {
 				// If we don't uncancel the context, the revalidation will get canceled when
 				// the api response is returned
 				c.revalidate(context.WithoutCancel(ctx), key, refreshFromOrigin, op)
-			}
+			})
 			c.recordTiming(ctx, "cache_swr", "stale", start)
 			return e.Value, e.Hit, nil
 		}
@@ -420,9 +447,9 @@ func (c *cache[K, V]) SWRMany(
 
 	// Queue stale keys for background refresh
 	if len(staleKeys) > 0 {
-		c.revalidateC <- func() {
+		c.enqueueRevalidation(func() {
 			c.revalidateMany(context.WithoutCancel(ctx), staleKeys, refreshFromOrigin, op)
-		}
+		})
 	}
 
 	// Fetch missing keys synchronously
@@ -500,9 +527,9 @@ func (c *cache[K, V]) SWRWithFallback(
 			if !c.inflightRefreshes[key] {
 				c.inflightRefreshes[key] = true
 				dedupeKey := key // capture for closure
-				c.revalidateC <- func() {
+				c.enqueueRevalidation(func() {
 					c.revalidateWithCanonicalKey(context.WithoutCancel(ctx), dedupeKey, refreshFromOrigin, op)
-				}
+				})
 			}
 			c.inflightMu.Unlock()
 			c.recordTiming(ctx, "cache_swr_fallback", "stale", start)

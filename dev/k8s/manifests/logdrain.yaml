@@ -1,0 +1,132 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logdrain-config
+  namespace: unkey
+  labels:
+    app: logdrain
+data:
+  unkey.toml: |
+    # Top-level keys must stay above the first [section] header; TOML
+    # assigns any key below a header to that table.
+    instance_id = "logdrain-dev"
+    region = "local"
+
+    database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
+
+    # Short intervals for local development. Production defaults are
+    # poll_interval = 60s and watermark_lag = 5m; those would delay every
+    # locally-created audit log by minutes before the drain sees it.
+    poll_interval = "10s"
+    watermark_lag = "10s"
+
+    # Local drains usually target loopback or cluster-internal endpoints,
+    # which the SSRF guard would reject. Development only.
+    insecure_allow_private_endpoints = true
+
+    [clickhouse]
+    url = "clickhouse://default:password@clickhouse:9000?secure=false&skip_verify=true"
+
+    [vault]
+    url = "http://vault:8060"
+    token = "vault-test-token-123"
+
+    # The prometheus server is the only HTTP listener this service has;
+    # the probes below reuse it.
+    [observability.metrics]
+    prometheus_port = 9090
+
+    # Push logs and traces to the local Grafana LGTM stack over OTLP, like
+    # ctrl. Metrics stay scrape-only on /metrics. The endpoint comes from
+    # OTEL_EXPORTER_OTLP_ENDPOINT in the Deployment.
+    [observability.tracing]
+    sample_rate = 1.0
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logdrain
+  namespace: unkey
+  labels:
+    app: logdrain
+    component: unkey
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logdrain
+  template:
+    metadata:
+      labels:
+        app: logdrain
+        component: unkey
+    spec:
+      containers:
+        - name: logdrain
+          image: unkey/logdrain:dev
+          args: ["--config", "/etc/unkey/unkey.toml"]
+          imagePullPolicy: Never
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector:4318"
+          ports:
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          # The service exposes no /health endpoints; /metrics answers once
+          # the process is up, which is good enough for dev.
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/unkey
+              readOnly: true
+      initContainers:
+        - name: wait-for-dependencies
+          image: busybox:1.36@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662
+          command:
+            [
+              "sh",
+              "-c",
+              "until nc -z mysql 3306 && nc -z clickhouse 9000 && nc -z vault 8060; do echo waiting for dependencies; sleep 2; done;",
+            ]
+      volumes:
+        - name: config
+          configMap:
+            name: logdrain-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logdrain
+  namespace: unkey
+  labels:
+    app: logdrain
+    component: unkey
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  selector:
+    app: logdrain

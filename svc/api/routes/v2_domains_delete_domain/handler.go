@@ -12,6 +12,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/domain/domaingate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/customdomain"
@@ -51,7 +53,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	identifier := domaingate.CanonicalizeIdentifier(req.Domain)
 
 	row, err := db.Query.FindCustomDomainByIdentifier(ctx, h.DB.RO(), db.FindCustomDomainByIdentifierParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Domain:      identifier,
 	})
 	if err != nil {
@@ -82,6 +84,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   row.EnvironmentID,
 			Action:       rbac.DeleteDomain,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(row.ProjectID).App(row.AppID).Environment(row.EnvironmentID).Domain(row.ID),
+			permissions.Delete,
+		),
 	)); err != nil {
 		return apierrors.MaskInsufficientPermissionsAsNotFound(
 			err,
@@ -96,7 +102,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	_, err = h.CtrlClient.DeleteCustomDomain(ctx, &ctrlv1.DeleteCustomDomainRequest{
-		WorkspaceId: principal.WorkspaceID,
+		WorkspaceId: principal.AuthorizedWorkspaceID,
 		ProjectId:   row.ProjectID,
 		Domain:      row.Domain,
 		Actor:       actor,

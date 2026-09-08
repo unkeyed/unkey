@@ -226,7 +226,7 @@ const formatLatencyMetrics = (log: RequestLogsResponse): React.ReactNode => {
   const instancePercent =
     log.total_latency > 0 ? ((log.instance_latency / log.total_latency) * 100).toFixed(1) : "0.0";
   const gatewayPercent =
-    log.total_latency > 0 ? ((log.frontline_latency / log.total_latency) * 100).toFixed(1) : "0.0";
+    log.total_latency > 0 ? ((log.gateway_latency / log.total_latency) * 100).toFixed(1) : "0.0";
 
   return (
     <div className="flex flex-col gap-2">
@@ -244,7 +244,7 @@ const formatLatencyMetrics = (log: RequestLogsResponse): React.ReactNode => {
       <div className="flex items-center justify-between">
         <span className="text-gray-11">Gateway Latency:</span>
         <span className="font-mono">
-          {formatLatency(log.frontline_latency)}
+          {formatLatency(log.gateway_latency)}
           <span className="text-grayA-10 ml-1">({gatewayPercent}%)</span>
         </span>
       </div>

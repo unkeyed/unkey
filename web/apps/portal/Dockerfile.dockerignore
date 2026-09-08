@@ -39,7 +39,6 @@
 # Misc
 *.md
 LICENSE
-/demo_api
 /k8s
 /.git
 

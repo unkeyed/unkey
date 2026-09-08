@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"golang.org/x/term"
@@ -168,7 +169,12 @@ func (c *Command) showFlags() {
 		c.showFlag(flag)
 	}
 	for _, group := range c.RequireOneOf {
-		fmt.Printf("   exactly one of --%s is required\n", strings.Join(group, " or --"))
+		waivers := c.commonMutuallyExclusiveNames(group)
+		if len(waivers) > 0 {
+			fmt.Printf("   exactly one of --%s is required unless --%s is set\n", strings.Join(group, " or --"), strings.Join(waivers, " or --"))
+		} else {
+			fmt.Printf("   exactly one of --%s is required\n", strings.Join(group, " or --"))
+		}
 	}
 	fmt.Printf("\n")
 }
@@ -301,10 +307,16 @@ func flagTypeLabel(flag Flag) string {
 // buildFlagUsage constructs the complete usage string for a flag
 func (c *Command) buildFlagUsage(flag Flag) string {
 	usage := flag.Usage()
+	exclusiveNames := c.mutuallyExclusiveNames(flag)
+	exclusiveFlags := "--" + strings.Join(exclusiveNames, " or --")
 
 	// Add required indicator
-	if flag.Required() {
+	if flag.Required() && len(exclusiveNames) > 0 {
+		usage += fmt.Sprintf(" (required unless %s is set; mutually exclusive with %s)", exclusiveFlags, exclusiveFlags)
+	} else if flag.Required() {
 		usage += " (required)"
+	} else if len(exclusiveNames) > 0 {
+		usage += fmt.Sprintf(" (mutually exclusive with %s)", exclusiveFlags)
 	}
 
 	// Add environment variable info if available
@@ -320,6 +332,37 @@ func (c *Command) buildFlagUsage(flag Flag) string {
 	}
 
 	return usage
+}
+
+func (c *Command) flagByName(name string) Flag {
+	for _, flag := range c.Flags {
+		if flag.Name() == name {
+			return flag
+		}
+	}
+	return nil
+}
+
+func (c *Command) commonMutuallyExclusiveNames(group []string) []string {
+	if len(group) == 0 {
+		return nil
+	}
+	first := c.flagByName(group[0])
+	if first == nil {
+		return nil
+	}
+	common := c.mutuallyExclusiveNames(first)
+	for _, name := range group[1:] {
+		flag := c.flagByName(name)
+		if flag == nil {
+			return nil
+		}
+		exclusiveNames := c.mutuallyExclusiveNames(flag)
+		common = slices.DeleteFunc(common, func(candidate string) bool {
+			return !slices.Contains(exclusiveNames, candidate)
+		})
+	}
+	return common
 }
 
 // getEnvVar extracts environment variable name from flag if it supports it
