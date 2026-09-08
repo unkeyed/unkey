@@ -30,32 +30,12 @@ import { Result } from "../types/fp.js";
  * List domains
  *
  * @remarks
- * List custom domains in your workspace and their verification status. Use the optional
- * project, app, and environment filters to narrow the results. Each filter accepts an ID or
- * slug without requiring its parent filters, and all supplied filters combine with AND. Missing
- * resources, mismatched parent and child filters, and scopes with no matching domains return an
- * empty list.
+ * List your custom domains with their verification status and DNS records.
+ * Filter by project, app, or environment using IDs or slugs, or send `{}` to list
+ * domains across your workspace.
  *
- * ### Access patterns
- *
- * Choose filters for the scope you want to list. These examples use slugs, but each
- * identifier matches both the ID and slug of its resource.
- *
- * | Request body | Matching domains |
- * | --- | --- |
- * | `{}` | Across all projects, apps, and environments in your workspace. |
- * | `{"project":"payments"}` | Across all apps and environments in the matching projects. |
- * | `{"app":"api"}` | Across all environments in matching apps, in any project. |
- * | `{"environment":"production"}` | Across all matching environments, in any project or app. |
- * | `{"project":"payments","app":"api"}` | Across all environments in matching apps within the matching projects. |
- * | `{"project":"payments","environment":"production"}` | In matching environments across all apps within the matching projects. |
- * | `{"app":"api","environment":"production"}` | In matching environments within matching apps, in any project. |
- * | `{"project":"payments","app":"api","environment":"production"}` | In environments that match all three identifiers through their parent relationships. |
- *
- * Omitting `environment` includes every environment in the selected scope.
- * A slug can match multiple apps or environments. For example,
- * `{"environment":"production"}` selects domains from every environment named `production`
- * in your workspace.
+ * Use any filter on its own or combine filters to narrow the results.
+ * Results match all supplied filters. Omitting `environment` includes all matching environments.
  *
  * Results include only domains you have permission to read, sorted by ID.
  * When `hasMore` is true, send the returned `cursor` to get the next page.
@@ -68,11 +48,8 @@ import { Result } from "../types/fp.js";
  *
  * **Required Permissions**
  *
- * Your credential needs a `#read` grant covering the domains you want to list,
- * such as a grant ending in `/domains/<domain_id>#read` for one domain.
- *
- * The legacy `environment.*.read_domain` permission remains supported. A successful request
- * returns an empty list if no matching domains are readable by your credential.
+ * Use a root key with the `environment.*.read_domain` permission.
+ * A successful request returns an empty list if no matching domains are readable by your key.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */

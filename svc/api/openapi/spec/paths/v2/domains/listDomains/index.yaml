@@ -3,32 +3,12 @@ post:
     - domains
   summary: List domains
   description: |
-    List custom domains in your workspace and their verification status. Use the optional
-    project, app, and environment filters to narrow the results. Each filter accepts an ID or
-    slug without requiring its parent filters, and all supplied filters combine with AND. Missing
-    resources, mismatched parent and child filters, and scopes with no matching domains return an
-    empty list.
+    List your custom domains with their verification status and DNS records.
+    Filter by project, app, or environment using IDs or slugs, or send `{}` to list
+    domains across your workspace.
 
-    ### Access patterns
-
-    Choose filters for the scope you want to list. These examples use slugs, but each
-    identifier matches both the ID and slug of its resource.
-
-    | Request body | Matching domains |
-    | --- | --- |
-    | `{}` | Across all projects, apps, and environments in your workspace. |
-    | `{"project":"payments"}` | Across all apps and environments in the matching projects. |
-    | `{"app":"api"}` | Across all environments in matching apps, in any project. |
-    | `{"environment":"production"}` | Across all matching environments, in any project or app. |
-    | `{"project":"payments","app":"api"}` | Across all environments in matching apps within the matching projects. |
-    | `{"project":"payments","environment":"production"}` | In matching environments across all apps within the matching projects. |
-    | `{"app":"api","environment":"production"}` | In matching environments within matching apps, in any project. |
-    | `{"project":"payments","app":"api","environment":"production"}` | In environments that match all three identifiers through their parent relationships. |
-
-    Omitting `environment` includes every environment in the selected scope.
-    A slug can match multiple apps or environments. For example,
-    `{"environment":"production"}` selects domains from every environment named `production`
-    in your workspace.
+    Use any filter on its own or combine filters to narrow the results.
+    Results match all supplied filters. Omitting `environment` includes all matching environments.
 
     Results include only domains you have permission to read, sorted by ID.
     When `hasMore` is true, send the returned `cursor` to get the next page.
@@ -41,11 +21,8 @@ post:
 
     **Required Permissions**
 
-    Your credential needs a `#read` grant covering the domains you want to list,
-    such as a grant ending in `/domains/<domain_id>#read` for one domain.
-
-    The legacy `environment.*.read_domain` permission remains supported. A successful request
-    returns an empty list if no matching domains are readable by your credential.
+    Use a root key with the `environment.*.read_domain` permission.
+    A successful request returns an empty list if no matching domains are readable by your key.
   operationId: domains.listDomains
   x-speakeasy-name-override: listDomains
   x-unkey-idempotency: idempotent
@@ -59,14 +36,44 @@ post:
         examples:
           workspaceWide:
             summary: List all domains in the workspace
+            description: Includes domains across all projects, apps, and environments that your key can read.
             value: {}
           byProject:
             summary: List a project's domains
+            description: Includes all apps and environments in projects matching this ID or slug.
             value:
               project: payments
+          byApp:
+            summary: List an app's domains across projects
+            description: Includes all environments in apps matching this ID or slug, without restricting the project.
+            value:
+              app: payments-api
+          byEnvironment:
+            summary: List production domains across the workspace
+            description: Includes every environment with ID or slug production, across all projects and apps.
+            value:
+              environment: production
+          byProjectAndApp:
+            summary: List an app's domains within a project
+            description: Includes all environments in matching apps within matching projects.
+            value:
+              project: payments
+              app: payments-api
+          byProjectAndEnvironment:
+            summary: List a project's production domains
+            description: Includes matching environments across all apps in matching projects.
+            value:
+              project: payments
+              environment: production
+          byAppAndEnvironment:
+            summary: List an app's production domains across projects
+            description: Includes matching environments within matching apps, without restricting the project.
+            value:
+              app: payments-api
+              environment: production
           bySlugs:
             summary: List an environment's domains by slugs
-            description: Uses the project, app, and environment slugs.
+            description: Includes environments matching all three identifiers within the specified project and app.
             value:
               project: payments
               app: payments-api
