@@ -46,10 +46,10 @@ type OpsServiceClient interface {
 	// settings and env vars — config drift since the source applies.
 	//
 	// Source resolution:
-	//  1. If the source has a git_commit_sha AND the app has a github repo
-	//     connection, rebuild from the pinned SHA.
-	//  2. Otherwise reuse the source deployment's OCI image verbatim.
-	//  3. If neither is available, the RPC fails.
+	//   1. If the source has a git_commit_sha AND the app has a github repo
+	//      connection, rebuild from the pinned SHA.
+	//   2. Otherwise reuse the source deployment's OCI image verbatim.
+	//   3. If neither is available, the RPC fails.
 	//
 	// Guardrail (unless `force` is true): no newer active deployment may exist
 	// on the same (app, environment, branch).
@@ -97,10 +97,10 @@ type OpsServiceHandler interface {
 	// settings and env vars — config drift since the source applies.
 	//
 	// Source resolution:
-	//  1. If the source has a git_commit_sha AND the app has a github repo
-	//     connection, rebuild from the pinned SHA.
-	//  2. Otherwise reuse the source deployment's OCI image verbatim.
-	//  3. If neither is available, the RPC fails.
+	//   1. If the source has a git_commit_sha AND the app has a github repo
+	//      connection, rebuild from the pinned SHA.
+	//   2. Otherwise reuse the source deployment's OCI image verbatim.
+	//   3. If neither is available, the RPC fails.
 	//
 	// Guardrail (unless `force` is true): no newer active deployment may exist
 	// on the same (app, environment, branch).
