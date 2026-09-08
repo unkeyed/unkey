@@ -1,6 +1,5 @@
 "use client";
 
-import { SPEND_BAR_CHART_HEIGHT, SpendBarChart } from "./spend-bar-chart";
 import { DEPLOY_METER_RATES } from "@/lib/billing/deployPricing";
 import { formatCompactQuantity, formatPrice } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
@@ -29,6 +28,7 @@ import {
   microCentsToDisplayCents,
   priceUsageQuantitiesCents,
 } from "./compute-tree";
+import { SPEND_BAR_CHART_HEIGHT, SpendBarChart } from "./spend-bar-chart";
 import { buildSpendSeries } from "./spend-series";
 
 const METERS: ReadonlyArray<{

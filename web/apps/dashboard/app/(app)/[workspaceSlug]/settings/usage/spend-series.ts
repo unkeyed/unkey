@@ -1,6 +1,6 @@
-import type { SpendBarPoint, SpendBarSeries } from "./spend-bar-chart";
 import type { DeployUsageTimeseries } from "@unkey/clickhouse";
 import { type ComputeTree, priceUsageQuantitiesCents } from "./compute-tree";
+import type { SpendBarPoint, SpendBarSeries } from "./spend-bar-chart";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
