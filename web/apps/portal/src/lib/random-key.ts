@@ -1,4 +1,4 @@
-import type { Key } from "~/routes/dave-initial-design/-seed";
+import type { Key } from "~/components/keys-table/schema/keys.schema";
 
 const ALPHA62 = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 

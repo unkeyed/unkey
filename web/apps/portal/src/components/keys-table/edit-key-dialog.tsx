@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
+import type { Key } from "~/components/keys-table/schema/keys.schema";
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -13,7 +14,6 @@ import {
 } from "~/components/ui/dialog";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
-import type { Key } from "~/routes/dave-initial-design/-seed";
 import { ExpirationPicker } from "./expiration-picker";
 import { type KeyFormValues, keyFormSchema } from "./key-form-schema";
 
