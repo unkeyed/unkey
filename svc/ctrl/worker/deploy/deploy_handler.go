@@ -89,7 +89,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 	)
 	if err != nil {
 		return nil, fault.Wrap(
-			restate.TerminalError(err),
+			restate.ToTerminalError(err),
 			fault.Public("This deployment request is invalid."),
 		)
 	}
@@ -202,7 +202,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		// read-path classifier maps to InvalidRuntimeSettings.
 		if violations := deployfail.RuntimeViolations(deployment.Port, deployment.CpuMillicores, deployment.MemoryMib); len(violations) > 0 {
 			return fault.Wrap(
-				restate.TerminalError(errors.New(violations[0].Message)),
+				restate.ToTerminalError(errors.New(violations[0].Message)),
 				fault.Public(violations[0].Message),
 			)
 		}
@@ -214,7 +214,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 				if err != nil {
 					if db.IsNotFound(err) {
 						return fault.Wrap(
-							restate.TerminalError(errors.New("workspace not found")),
+							restate.ToTerminalError(errors.New("workspace not found")),
 							fault.Public("The workspace for this deployment no longer exists."),
 						)
 					}
@@ -404,7 +404,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 		requestedImage, err := imageref.Parse(source.OciImage.GetImage())
 		if err != nil {
 			return fault.Wrap(
-				restate.TerminalError(err),
+				restate.ToTerminalError(err),
 				fault.Public("The OCI image reference is invalid."),
 			)
 		}
@@ -426,7 +426,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 
 		if commitSHA == "" {
 			return fault.Wrap(
-				restate.TerminalError(fmt.Errorf("git source missing commit SHA for deployment %q", deployment.ID)),
+				restate.ToTerminalError(fmt.Errorf("git source missing commit SHA for deployment %q", deployment.ID)),
 				fault.Public("Deployment has no resolved commit; cannot build."),
 			)
 		}
@@ -498,7 +498,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 
 	default:
 		return fault.Wrap(
-			restate.TerminalError(fmt.Errorf("unknown source type: %T", source)),
+			restate.ToTerminalError(fmt.Errorf("unknown source type: %T", source)),
 			fault.Public(fmt.Sprintf("Deployment source %s is not supported.", source)),
 		)
 	}
@@ -568,7 +568,7 @@ func (w *Workflow) createTopologies(
 
 	if len(regionalSettings) == 0 {
 		return nil, fault.Wrap(
-			restate.TerminalError(fmt.Errorf("no schedulable regions configured for app %s in environment %s", deployment.AppID, deployment.EnvironmentID), 400),
+			restate.ToTerminalError(fmt.Errorf("no schedulable regions configured for app %s in environment %s", deployment.AppID, deployment.EnvironmentID), restate.WithErrorCode(400)),
 			fault.Public(deployfail.MsgNoSchedulableRegions),
 		)
 	}
@@ -600,19 +600,19 @@ func (w *Workflow) createTopologies(
 	cpuMillicoresMax := int64(limits.CpuCoresMax) * 1_000
 	if allocatedResources.TotalCpuMillicores > cpuMillicoresMax {
 		return nil, fault.Wrap(
-			restate.TerminalError(fmt.Errorf("CPU limit exceeded: consumed %d, limit %d", allocatedResources.TotalCpuMillicores, cpuMillicoresMax)),
+			restate.ToTerminalError(fmt.Errorf("CPU limit exceeded: consumed %d, limit %d", allocatedResources.TotalCpuMillicores, cpuMillicoresMax)),
 			fault.Public(deployfail.MsgCPUQuotaExceeded),
 		)
 	}
 	if allocatedResources.TotalMemoryMib > int64(limits.MemoryMibMax) {
 		return nil, fault.Wrap(
-			restate.TerminalError(fmt.Errorf("Memory limit exceeded: consumed %d, limit %d", allocatedResources.TotalMemoryMib, limits.MemoryMibMax)),
+			restate.ToTerminalError(fmt.Errorf("Memory limit exceeded: consumed %d, limit %d", allocatedResources.TotalMemoryMib, limits.MemoryMibMax)),
 			fault.Public(deployfail.MsgMemoryQuotaExceeded),
 		)
 	}
 	if allocatedResources.TotalStorageMib > int64(limits.StorageMibMax) {
 		return nil, fault.Wrap(
-			restate.TerminalError(fmt.Errorf("Storage limit exceeded: consumed %d, limit %d", allocatedResources.TotalStorageMib, limits.StorageMibMax)),
+			restate.ToTerminalError(fmt.Errorf("Storage limit exceeded: consumed %d, limit %d", allocatedResources.TotalStorageMib, limits.StorageMibMax)),
 			fault.Public(deployfail.MsgStorageQuotaExceeded),
 		)
 	}

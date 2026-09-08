@@ -106,7 +106,7 @@ type GitHubWebhookServiceServer interface {
 type UnimplementedGitHubWebhookServiceServer struct{}
 
 func (UnimplementedGitHubWebhookServiceServer) HandlePush(ctx sdk_go.ObjectContext, req *HandlePushRequest) (*HandlePushResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method HandlePush not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method HandlePush not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedGitHubWebhookServiceServer) testEmbeddedByValue() {}
 
