@@ -5,31 +5,32 @@
 import * as z from "zod/v3";
 
 /**
- * Connect a GitHub repository to the app on creation. Omit to create the app
+ * Configure Git as the app source. Provide `repository` to connect it during
  *
  * @remarks
- * without a repository and connect one later with apps.updateApp.
+ * creation, or use an empty object to connect a repository later.
  */
 export type AppGitCreateInput = {
   /**
    * The GitHub repository to connect, as "owner/repo". The workspace must have
    *
    * @remarks
-   * the Unkey GitHub App installed with access to it.
+   * the Unkey GitHub App installed with access to it. Omit this field to create
+   * the Git app before selecting its repository.
    */
-  repository: string;
+  repository?: string | undefined;
   /**
-   * The branch this app's deployments track. Omit to adopt the repository's
+   * The branch this app's deployments track. This requires `repository`.
    *
    * @remarks
-   * default branch on GitHub.
+   * Omit it to adopt the repository's default branch on GitHub.
    */
   defaultBranch?: string | undefined;
 };
 
 /** @internal */
 export type AppGitCreateInput$Outbound = {
-  repository: string;
+  repository?: string | undefined;
   defaultBranch?: string | undefined;
 };
 
@@ -39,7 +40,7 @@ export const AppGitCreateInput$outboundSchema: z.ZodType<
   z.ZodTypeDef,
   AppGitCreateInput
 > = z.object({
-  repository: z.string(),
+  repository: z.string().optional(),
   defaultBranch: z.string().optional(),
 });
 

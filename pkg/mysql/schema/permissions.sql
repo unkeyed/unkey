@@ -17,3 +17,4 @@ CREATE TABLE `permissions` (
 CREATE INDEX `permissions_workspace_id_idx` ON `permissions` (`workspace_id`);
 
 CREATE INDEX `permissions_project_id_idx` ON `permissions` (`project_id`);
+

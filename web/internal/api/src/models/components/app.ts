@@ -4,9 +4,29 @@
 
 import * as z from "zod/v3";
 import { safeParse } from "../../lib/schemas.js";
+import { ClosedEnum } from "../../types/enums.js";
 import { Result as SafeParseResult } from "../../types/fp.js";
 import { SDKValidationError } from "../errors/sdkvalidationerror.js";
 import { AppGit, AppGit$inboundSchema } from "./appgit.js";
+import { AppOCI, AppOCI$inboundSchema } from "./appoci.js";
+
+/**
+ * The configured source used to create deployments. Omitted for historical
+ *
+ * @remarks
+ * apps whose source could not be classified.
+ */
+export const SourceType = {
+  Git: "git",
+  Oci: "oci",
+} as const;
+/**
+ * The configured source used to create deployments. Omitted for historical
+ *
+ * @remarks
+ * apps whose source could not be classified.
+ */
+export type SourceType = ClosedEnum<typeof SourceType>;
 
 export type App = {
   /**
@@ -29,13 +49,26 @@ export type App = {
    */
   slug: string;
   /**
+   * The configured source used to create deployments. Omitted for historical
+   *
+   * @remarks
+   * apps whose source could not be classified.
+   */
+  sourceType?: SourceType | undefined;
+  /**
    * The connected GitHub repository and the branch its deployments track.
    *
    * @remarks
    * Omitted when the app has no repository connected (for example a
-   * Docker-based app).
+   * prebuilt OCI image app).
    */
   git?: AppGit | undefined;
+  /**
+   * The configured OCI image source. Omitted when the app is not OCI-sourced.
+   *
+   * @remarks
+   */
+  oci?: AppOCI | undefined;
   /**
    * The identifier of the deployment currently serving this app.
    *
@@ -72,12 +105,18 @@ export type App = {
 };
 
 /** @internal */
+export const SourceType$inboundSchema: z.ZodNativeEnum<typeof SourceType> = z
+  .nativeEnum(SourceType);
+
+/** @internal */
 export const App$inboundSchema: z.ZodType<App, z.ZodTypeDef, unknown> = z
   .object({
     id: z.string(),
     name: z.string(),
     slug: z.string(),
+    sourceType: SourceType$inboundSchema.optional(),
     git: AppGit$inboundSchema.optional(),
+    oci: AppOCI$inboundSchema.optional(),
     currentDeploymentId: z.string().optional(),
     isRolledBack: z.boolean(),
     deleteProtection: z.boolean(),
