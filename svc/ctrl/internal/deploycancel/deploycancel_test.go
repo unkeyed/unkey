@@ -3,8 +3,10 @@ package deploycancel
 import (
 	"context"
 	"database/sql"
-	"errors"
+	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -12,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
@@ -32,10 +35,10 @@ func TestCancelAbortsDeployments(t *testing.T) {
 	finished := f.deployment(ctx, mysqltype.DeploymentsStatusReady)
 
 	buildingInvocation := uid.New("inv")
-	canceler := &recordingCanceler{}
+	admin, client := newFakeAdmin(t)
 	actorID := uid.New("user")
 
-	err := Cancel(ctx, f.database, canceler, Params{
+	err := Cancel(ctx, f.database, client, Params{
 		Deployments: []Deployment{
 			{ID: building.ID, InvocationID: buildingInvocation},
 			{ID: pending.ID, InvocationID: ""},
@@ -67,8 +70,8 @@ func TestCancelAbortsDeployments(t *testing.T) {
 	// The ready row's invocation is cancelled too: the guard protects the
 	// terminal status, not the invocation, which may be a compensation still
 	// unwinding.
-	require.Len(t, canceler.cancelled, 2)
-	require.Contains(t, canceler.cancelled, buildingInvocation)
+	require.Len(t, admin.cancelled, 2)
+	require.Contains(t, admin.cancelled, buildingInvocation)
 
 	require.Equal(t, 1, f.countAudits(t, ctx, building.ID, actorID))
 	require.Equal(t, 1, f.countAudits(t, ctx, pending.ID, actorID))
@@ -84,27 +87,28 @@ func TestCancelReturnsInvocationErrorsBeforeAuditing(t *testing.T) {
 
 	deployment := f.deployment(ctx, mysqltype.DeploymentsStatusBuilding)
 	actorID := uid.New("user")
-	canceler := &recordingCanceler{fail: true}
+	admin, client := newFakeAdmin(t)
+	admin.setFail(true)
 
 	params := Params{
 		Deployments: []Deployment{{ID: deployment.ID, InvocationID: uid.New("inv")}},
-		Reason:  "KEBAP",
-		Status:  mysqltype.DeploymentsStatusCancelled,
+		Reason:      "KEBAP",
+		Status:      mysqltype.DeploymentsStatusCancelled,
 		Audit: &Audit{
 			Service:     f.auditlogs,
 			Actor:       &ctrlv1.ActorInfo{Id: actorID, Type: ctrlv1.ActorType_ACTOR_TYPE_USER},
 			WorkspaceID: f.workspaceID,
 		},
 	}
-	require.Error(t, Cancel(ctx, f.database, canceler, params))
+	require.Error(t, Cancel(ctx, f.database, client, params))
 
 	f.requireStatus(t, ctx, deployment.ID, mysqltype.DeploymentsStatusCancelled,
 		"the status flip must land even when the invocation cancel fails")
 	require.Equal(t, 0, f.countAudits(t, ctx, deployment.ID, actorID),
 		"a failed pass must not audit work it did not finish")
 
-	canceler.fail = false
-	require.NoError(t, Cancel(ctx, f.database, canceler, params))
+	admin.setFail(false)
+	require.NoError(t, Cancel(ctx, f.database, client, params))
 	require.Equal(t, 1, f.countAudits(t, ctx, deployment.ID, actorID))
 }
 
@@ -116,11 +120,11 @@ func TestCancelWithoutActorWritesNoAudit(t *testing.T) {
 
 	deployment := f.deployment(ctx, mysqltype.DeploymentsStatusPending)
 
-	require.NoError(t, Cancel(ctx, f.database, &recordingCanceler{}, Params{
+	require.NoError(t, Cancel(ctx, f.database, nil, Params{
 		Deployments: []Deployment{{ID: deployment.ID, InvocationID: ""}},
-		Reason:  "KEBAP",
-		Status:  mysqltype.DeploymentsStatusSuperseded,
-		Audit:   &Audit{Service: f.auditlogs, Actor: nil, WorkspaceID: f.workspaceID},
+		Reason:      "KEBAP",
+		Status:      mysqltype.DeploymentsStatusSuperseded,
+		Audit:       &Audit{Service: f.auditlogs, Actor: nil, WorkspaceID: f.workspaceID},
 	}))
 
 	f.requireStatus(t, ctx, deployment.ID, mysqltype.DeploymentsStatusSuperseded)
@@ -129,18 +133,36 @@ func TestCancelWithoutActorWritesNoAudit(t *testing.T) {
 	require.Empty(t, rows)
 }
 
-// recordingCanceler stands in for the Restate admin API.
-type recordingCanceler struct {
+// fakeAdmin serves the one Restate admin endpoint Cancel uses and records the
+// invocation ids it was asked to cancel.
+type fakeAdmin struct {
+	mu        sync.Mutex
 	cancelled []string
 	fail      bool
 }
 
-func (c *recordingCanceler) CancelInvocation(_ context.Context, invocationID string) error {
-	if c.fail {
-		return errors.New("KEBAP: admin unavailable")
-	}
-	c.cancelled = append(c.cancelled, invocationID)
-	return nil
+func newFakeAdmin(t *testing.T) (*fakeAdmin, *restateadmin.Client) {
+	t.Helper()
+	a := &fakeAdmin{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		a.mu.Lock()
+		defer a.mu.Unlock()
+		if a.fail {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		id := strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, "/invocations/"), "/cancel")
+		a.cancelled = append(a.cancelled, id)
+		w.WriteHeader(http.StatusAccepted)
+	}))
+	t.Cleanup(srv.Close)
+	return a, restateadmin.New(restateadmin.Config{BaseURL: srv.URL, APIKey: ""})
+}
+
+func (a *fakeAdmin) setFail(fail bool) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.fail = fail
 }
 
 type cancelFixture struct {
@@ -176,12 +198,11 @@ func newCancelFixture(t *testing.T, ctx context.Context) *cancelFixture {
 		Slug:        strings.ToLower(strings.ReplaceAll(uid.New(uid.ProjectPrefix), "_", "-")),
 	})
 	app := seeder.CreateApp(ctx, seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspaceID,
-		ProjectID:     project.ID,
-		Name:          "KEBAP",
-		Slug:          strings.ToLower(strings.ReplaceAll(uid.New(uid.AppPrefix), "_", "-")),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		Name:        "KEBAP",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New(uid.AppPrefix), "_", "-")),
 	})
 	environment := seeder.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),

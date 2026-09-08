@@ -45,12 +45,11 @@ func TestDeleteCancelsProgressingDeploymentsAndAuditsThem(t *testing.T) {
 		Slug:        strings.ToLower(strings.ReplaceAll(uid.New(uid.ProjectPrefix), "_", "-")),
 	})
 	app := seeder.CreateApp(ctx, seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspaceID,
-		ProjectID:     project.ID,
-		Name:          "KEBAP",
-		Slug:          strings.ToLower(strings.ReplaceAll(uid.New(uid.AppPrefix), "_", "-")),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		Name:        "KEBAP",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New(uid.AppPrefix), "_", "-")),
 	})
 	env := seeder.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),

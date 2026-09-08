@@ -22,9 +22,9 @@ import (
 // supersession uses its own status here.
 //
 // Returns (false, nil) when the deployment should proceed normally, or
-// (false, err) if the dedup query or status update fails.
+// (false, err) if the sibling query or status update fails.
 //
-// dedup.CancelOlderSiblings can miss a sibling whose insert committed after
+// cancelOlderSiblings can miss a sibling whose insert committed after
 // its list query ran. That sibling catches itself here, before it takes a
 // build slot.
 func (w *Workflow) skipIfSuperseded(

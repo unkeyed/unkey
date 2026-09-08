@@ -43,7 +43,7 @@
 //     either immediately (slot available or the environment is production) or
 //     later when a held slot is released. Production deployments bypass the limit.
 //
-// On the creation side, [Workflow.Create] calls [dedup.CancelOlderSiblings]
+// On the creation side, [Workflow.Create] calls [Workflow.cancelOlderSiblings]
 // once the new row and its invocation id are recorded: it moves older
 // siblings to status=superseded through deploycancel.Cancel.
 //
