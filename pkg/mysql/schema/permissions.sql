@@ -10,7 +10,10 @@ CREATE TABLE `permissions` (
 	`updated_at_m` bigint,
 	CONSTRAINT `permissions_pk` PRIMARY KEY(`pk`),
 	CONSTRAINT `permissions_id_unique` UNIQUE(`id`),
-	CONSTRAINT `unique_slug_per_workspace_idx` UNIQUE(`workspace_id`,`slug`)
+	CONSTRAINT `unique_slug_per_workspace_idx` UNIQUE(`workspace_id`,`slug`),
+	CONSTRAINT `unique_slug_per_project_idx` UNIQUE(`project_id`,`slug`)
 );
+
+CREATE INDEX `permissions_workspace_id_idx` ON `permissions` (`workspace_id`);
 
 CREATE INDEX `permissions_project_id_idx` ON `permissions` (`project_id`);
