@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/db"
+	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
 )
 
 func TestForwardToInstanceReplacesSpoofedForwardedFor(t *testing.T) {
@@ -35,11 +36,14 @@ func TestForwardToInstanceReplacesSpoofedForwardedFor(t *testing.T) {
 		fallback: transport,
 	}
 	clk := clock.NewTestClock(time.Now())
+	metadata, err := meta.New(testMetadataSigningKey)
+	require.NoError(t, err)
 	service, err := New(Config{ //nolint:exhaustruct
 		InstanceID:         "frontline_test",
 		Platform:           "aws",
 		Region:             "us-east-1",
 		Clock:              clk,
+		Metadata:           metadata,
 		UpstreamTransports: transports,
 	})
 	require.NoError(t, err)
