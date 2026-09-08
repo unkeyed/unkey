@@ -100,6 +100,22 @@ function extractNumberFilter(filters: ParsedFilter[], fieldName: string, operato
   return typeof value === "number" ? value : undefined;
 }
 
+// The same reading feeds queryKey and queryFn so the two can never disagree
+// about which server subset a live query maps to. A live query on a single id
+// (the app's current deployment, a request log's deployment) loads that row on
+// its own, however old it is; the paged /deployments list does not go through
+// the collection at all.
+function readDeploymentSubset(opts: Parameters<typeof parseLoadSubsetOptions>[0]) {
+  const { filters } = parseLoadSubsetOptions(opts);
+  return {
+    projectId: extractStringFilter(filters, "projectId"),
+    appId: extractStringFilter(filters, "appId"),
+    deploymentId: extractStringFilter(filters, "id"),
+    startTime: extractNumberFilter(filters, "createdAt", "gte"),
+    endTime: extractNumberFilter(filters, "createdAt", "lte"),
+  };
+}
+
 /**
  * Global deployments collection.
  *
@@ -110,13 +126,16 @@ export const deployments = createCollection<Deployment, string>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {
-      const { filters } = parseLoadSubsetOptions(opts);
-      const projectId = extractStringFilter(filters, "projectId");
-      const appId = extractStringFilter(filters, "appId");
-      const startTime = extractNumberFilter(filters, "createdAt", "gte");
-      const endTime = extractNumberFilter(filters, "createdAt", "lte");
-      return projectId
-        ? ["deployments", projectId, appId ?? null, startTime ?? null, endTime ?? null]
+      const subset = readDeploymentSubset(opts);
+      return subset.projectId
+        ? [
+            "deployments",
+            subset.projectId,
+            subset.appId ?? null,
+            subset.startTime ?? null,
+            subset.endTime ?? null,
+            subset.deploymentId ?? null,
+          ]
         : ["deployments"];
     },
     retry: 3,
@@ -125,23 +144,20 @@ export const deployments = createCollection<Deployment, string>(
       const options = ctx.meta?.loadSubsetOptions;
 
       validateProjectIdInQuery(options?.where);
-      const { filters } = parseLoadSubsetOptions(options);
-      const projectId = extractStringFilter(filters, "projectId");
+      const { projectId, appId, deploymentId, startTime, endTime } = readDeploymentSubset(options);
 
       if (!projectId) {
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");
       }
 
-      const appId = extractStringFilter(filters, "appId");
-      const startTime = extractNumberFilter(filters, "createdAt", "gte");
-      const endTime = extractNumberFilter(filters, "createdAt", "lte");
-
-      return trpcClient.deploy.deployment.list.query({
+      const result = await trpcClient.deploy.deployment.list.query({
         projectId,
         ...(appId !== undefined && { appId }),
+        ...(deploymentId !== undefined && { deploymentIds: [deploymentId] }),
         ...(startTime !== undefined && { startTime }),
         ...(endTime !== undefined && { endTime }),
       });
+      return result.deployments;
     },
     getKey: (item) => item.id,
     id: "deployments",
