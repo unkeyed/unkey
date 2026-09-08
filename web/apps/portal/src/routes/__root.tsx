@@ -1,10 +1,11 @@
-import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
+import { type QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 /// <reference types="vite/client" />
 import type { ReactNode } from "react";
-import { ReactQueryProvider } from "~/providers/react-query-provider";
+import { NotFound } from "~/components/not-found";
 import "~/styles/tailwind.css";
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
@@ -20,14 +21,17 @@ export const Route = createRootRoute({
     ],
   }),
   component: RootComponent,
+  notFoundComponent: NotFound,
 });
 
 function RootComponent() {
+  const { queryClient } = Route.useRouteContext();
+
   return (
     <RootDocument>
-      <ReactQueryProvider>
+      <QueryClientProvider client={queryClient}>
         <Outlet />
-      </ReactQueryProvider>
+      </QueryClientProvider>
     </RootDocument>
   );
 }
