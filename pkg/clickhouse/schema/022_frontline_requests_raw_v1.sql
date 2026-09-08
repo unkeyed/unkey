@@ -6,7 +6,7 @@ CREATE TABLE frontline_requests_raw_v1 (
   -- server clock stamps every row, which gives log drains a cursor that
   -- cannot lag behind buffered or retried inserts. Rows written before the
   -- column existed hold 0.
-  inserted_at Int64 DEFAULT toUnixTimestamp64Milli(now64(3)) CODEC(Delta, LZ4),
+  inserted_at Int64 DEFAULT toUnixTimestamp64Milli(now64(3)) CODEC(Delta, ZSTD(3)),
   workspace_id String,
   project_id String,
   app_id String,

@@ -7,7 +7,7 @@
 ALTER TABLE `default`.`api_requests_raw_v2`
     ADD COLUMN `inserted_at` Int64 DEFAULT toUnixTimestamp64Milli(now64(3)) CODEC(Delta, ZSTD(3)) AFTER `time`;
 ALTER TABLE `default`.`frontline_requests_raw_v1`
-    ADD COLUMN `inserted_at` Int64 DEFAULT toUnixTimestamp64Milli(now64(3)) CODEC(Delta, LZ4) AFTER `time`;
+    ADD COLUMN `inserted_at` Int64 DEFAULT toUnixTimestamp64Milli(now64(3)) CODEC(Delta, ZSTD(3)) AFTER `time`;
 
 -- inserted_at is not in either sorting key. A minmax skip index prunes
 -- granules outside a drain's insertion time window because rows in a granule
