@@ -72,7 +72,10 @@ export const listDeployments = workspaceProcedure
         return { deployments: [], nextCursor: null };
       }
 
-      return { deployments: await enrichDeploymentRows(ctx.workspace.id, deploymentRows), nextCursor };
+      return {
+        deployments: await enrichDeploymentRows(ctx.workspace.id, deploymentRows),
+        nextCursor,
+      };
     } catch (_error) {
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
