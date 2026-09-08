@@ -84,3 +84,9 @@ type AuditLogService interface {
 	// transaction interface information.
 	Insert(ctx context.Context, tx db.DBTX, logs []auditlog.AuditLog) error
 }
+
+// OutboxPreparer is implemented by audit services that can serialize events
+// for a route-owned transactional database batch.
+type OutboxPreparer interface {
+	PrepareOutboxRows(ctx context.Context, logs []auditlog.AuditLog) ([]db.InsertClickhouseOutboxParams, error)
+}
