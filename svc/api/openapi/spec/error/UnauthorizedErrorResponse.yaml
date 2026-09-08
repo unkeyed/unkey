@@ -6,7 +6,7 @@ properties:
   meta:
     $ref: "../common/Meta.yaml"
   error:
-    $ref: "./BaseError.yaml"
+    $ref: "./BaseError.yaml#/components/schemas/BaseError"
 description: |-
   Error response when authentication has failed or credentials are missing. This occurs when:
   - No authentication token is provided in the request

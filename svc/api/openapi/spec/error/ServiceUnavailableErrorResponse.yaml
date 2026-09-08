@@ -6,7 +6,7 @@ properties:
   meta:
     $ref: "../common/Meta.yaml"
   error:
-    $ref: "./BaseError.yaml"
+    $ref: "./BaseError.yaml#/components/schemas/BaseError"
 description: |-
   Error response when a required service is temporarily unavailable. This indicates that the service exists but cannot be reached or is not responding.
 

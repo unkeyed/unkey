@@ -6,7 +6,7 @@ properties:
   meta:
     $ref: "../common/Meta.yaml"
   error:
-    $ref: "./BaseError.yaml"
+    $ref: "./BaseError.yaml#/components/schemas/BaseError"
 description: |-
   Error response when the provided credentials are valid but lack sufficient permissions for the requested operation. This occurs when:
   - The root key doesn't have the required permissions for this endpoint
