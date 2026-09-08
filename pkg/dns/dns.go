@@ -59,8 +59,8 @@ func newResolver(server string, timeout time.Duration) *net.Resolver {
 // (NXDOMAIN, no such host, etc.). These are expected when a record hasn't been
 // configured yet, not actual failures.
 func IsNotFoundError(err error) bool {
-	var dnsErr *net.DNSError
-	return err != nil && errors.As(err, &dnsErr) && dnsErr.IsNotFound
+	dnsErr, ok := errors.AsType[*net.DNSError](err)
+	return ok && dnsErr.IsNotFound
 }
 
 // LookupTXT looks up TXT records for the given domain.

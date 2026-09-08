@@ -18,8 +18,8 @@ import (
 // longer exists. The dev tools treat that as "already done" rather than a
 // failure: deletes and resets must be idempotent to be useful for cleanup.
 func isResourceMissing(err error) bool {
-	var stripeErr *stripesdk.Error
-	return errors.As(err, &stripeErr) && stripeErr.Code == stripesdk.ErrorCodeResourceMissing
+	stripeErr, ok := errors.AsType[*stripesdk.Error](err)
+	return ok && stripeErr.Code == stripesdk.ErrorCodeResourceMissing
 }
 
 // Cmd is the stripe dev-tools namespace.

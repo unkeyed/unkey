@@ -466,8 +466,7 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 				CreatedAtM:   time.Now().UnixMilli(),
 			})
 
-			mysqlErr := &mysql.MySQLError{} // nolint:exhaustruct
-			if errors.As(err, &mysqlErr) {
+			if mysqlErr, ok := errors.AsType[*mysql.MySQLError](err); ok {
 				require.True(s.t, db.IsDuplicateKeyError(err), "Expected duplicate key error, got MySQL error number %d", mysqlErr.Number)
 				existing, findErr := db.Query.FindPermissionByNameAndWorkspaceID(ctx, s.DB.RO(), db.FindPermissionByNameAndWorkspaceIDParams{
 					WorkspaceID: s.Resources.RootWorkspace.ID,

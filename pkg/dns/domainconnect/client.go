@@ -151,8 +151,7 @@ func lookupDomainConnectRecord(ctx context.Context, domain string) (string, erro
 
 	records, err := net.DefaultResolver.LookupTXT(ctx, name)
 	if err != nil {
-		var dnsErr *net.DNSError
-		if errors.As(err, &dnsErr) && dnsErr.IsNotFound {
+		if dnsErr, ok := errors.AsType[*net.DNSError](err); ok && dnsErr.IsNotFound {
 			return "", ErrNoDomainConnectRecord
 		}
 		return "", err

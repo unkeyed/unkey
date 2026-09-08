@@ -48,8 +48,7 @@ func (c *stripeCloser) ListDraftInvoices(ctx context.Context, stripeSubscription
 func (c *stripeCloser) GetInvoice(ctx context.Context, invoiceID string) (DraftInvoice, error) {
 	invoice, err := c.client.V1Invoices.Retrieve(ctx, invoiceID, nil)
 	if err != nil {
-		var sErr *stripe.Error
-		if errors.As(err, &sErr) && sErr.Code == stripe.ErrorCodeResourceMissing {
+		if sErr, ok := errors.AsType[*stripe.Error](err); ok && sErr.Code == stripe.ErrorCodeResourceMissing {
 			return DraftInvoice{}, ErrNotFound //nolint:exhaustruct // zero value on the not-found path
 		}
 		return DraftInvoice{}, fault.Wrap(err, fault.Internal("failed to read stripe invoice")) //nolint:exhaustruct // zero value on the error path
