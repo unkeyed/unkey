@@ -3,7 +3,10 @@ module github.com/unkeyed/unkey
 go 1.27.1
 
 // Generating code
-tool github.com/restatedev/sdk-go/x/protoc-gen-go-restate
+tool (
+	connectrpc.com/connect/cmd/protoc-gen-connect-go
+	github.com/restatedev/sdk-go/x/protoc-gen-go-restate
+)
 
 // Linting
 tool (
