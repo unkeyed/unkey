@@ -3,6 +3,7 @@ package paseto
 import (
 	"bytes"
 	"encoding/json"
+	jsonv2 "encoding/json/v2"
 	"fmt"
 	"io"
 	"reflect"
@@ -43,7 +44,7 @@ func decodePayload[T ClaimSet](encoded []byte) (T, error) {
 	// inspectPayload produced every RawMessage from valid JSON, so this map
 	// cannot contain a value that json.Marshal rejects.
 	customClaims, _ := json.Marshal(object.fields)
-	if err := json.Unmarshal(customClaims, &payload); err != nil {
+	if err := jsonv2.Unmarshal(customClaims, &payload, json.DefaultOptionsV1(), jsonv2.MatchCaseInsensitiveNames(false)); err != nil {
 		return payload, fmt.Errorf("decode payload: %w", err)
 	}
 	if err := setRegisteredClaims(&payload, object.claims); err != nil {
