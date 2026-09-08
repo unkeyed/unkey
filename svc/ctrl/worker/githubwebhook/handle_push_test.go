@@ -49,10 +49,10 @@ const (
 
 var fixtureCommand = mysqltype.StringSlice{"./KEBAP", "serve"}
 
-// TestHandlePushSkipsWhenNotDeployable pins the two reasons a matched app
-// records the push but builds nothing. Both leave a row behind: the dashboard
-// reads deployments to show that a commit arrived, so a silent drop would make
-// the commit invisible to the user.
+// TestHandlePushSkipsWhenNotDeployable pins the reasons a matched app records
+// the push but builds nothing. All leave a row behind: the dashboard reads
+// deployments to show that a commit arrived, so a silent drop would make the
+// commit invisible to the user.
 func TestHandlePushSkipsWhenNotDeployable(t *testing.T) {
 	ctx := context.Background()
 	h := newPushHarness(t, ctx)
@@ -66,6 +66,7 @@ func TestHandlePushSkipsWhenNotDeployable(t *testing.T) {
 		row := h.awaitDeployment(t, ctx, app.id, hasStatus(mysqltype.DeploymentsStatusSkipped))
 		require.Equal(t, app.productionEnvID, row.environmentID,
 			"a push to the default branch belongs to the production environment")
+		require.Equal(t, "Auto deploy is disabled for this environment.", row.triggerReason.String)
 	})
 
 	t.Run("watch paths do not match changed files", func(t *testing.T) {
@@ -76,6 +77,19 @@ func TestHandlePushSkipsWhenNotDeployable(t *testing.T) {
 
 		row := h.awaitDeployment(t, ctx, app.id, hasStatus(mysqltype.DeploymentsStatusSkipped))
 		require.Equal(t, app.productionEnvID, row.environmentID)
+		require.Equal(t, "Watch paths did not match any changed files.", row.triggerReason.String)
+	})
+
+	t.Run("watch path is not a valid glob", func(t *testing.T) {
+		target := h.newTarget(t, ctx)
+		app := h.newApp(t, ctx, target, appOptions{watchPaths: []string{"services/[kebap"}})
+
+		h.push(t, ctx, target.newPush(fixtureDefaultBranch, []string{fixtureMatchingFile}))
+
+		// A broken pattern is indistinguishable from a miss, so the reason has to
+		// name the pattern for the user to find it.
+		row := h.awaitDeployment(t, ctx, app.id, hasStatus(mysqltype.DeploymentsStatusSkipped))
+		require.Contains(t, row.triggerReason.String, "services/[kebap")
 	})
 }
 
@@ -111,6 +125,24 @@ func TestHandlePushQueuesGitDeployment(t *testing.T) {
 
 	require.Equal(t, string(db.DeploymentsTriggerGithub), row.trigger)
 	require.Equal(t, push.GetSenderLogin(), row.triggeredBy.String)
+	require.False(t, row.triggerReason.Valid)
+}
+
+// TestHandlePushRoutesOtherBranchesToPreview pins the other half of the
+// branch to environment rule: anything but the default branch is preview.
+func TestHandlePushRoutesOtherBranchesToPreview(t *testing.T) {
+	ctx := context.Background()
+	h := newPushHarness(t, ctx)
+
+	target := h.newTarget(t, ctx)
+	app := h.newApp(t, ctx, target, appOptions{watchPaths: []string{fixtureMatchingWatchPath}})
+
+	push := target.newPush("feat/"+testSlug(uid.TestPrefix), []string{fixtureMatchingFile})
+	h.push(t, ctx, push)
+
+	row := h.awaitDeployment(t, ctx, app.id, hasStatus(mysqltype.DeploymentsStatusPending))
+	require.Equal(t, app.previewEnvID, row.environmentID)
+	require.Equal(t, push.GetBranch(), row.branch.String)
 }
 
 // TestHandlePushForkPRAwaitsApproval pins the security boundary. A fork PR runs
@@ -197,18 +229,21 @@ func TestHandlePushSurvivesARejectedCreate(t *testing.T) {
 
 // TestHandlePushDecidesEachMatchedAppSeparately pins the monorepo case: one
 // repository feeds several apps, and watch paths are what keeps a commit in one
-// service from rebuilding all of them.
+// service from rebuilding all of them. Two apps match so that their creates
+// actually run concurrently.
 func TestHandlePushDecidesEachMatchedAppSeparately(t *testing.T) {
 	ctx := context.Background()
 	h := newPushHarness(t, ctx)
 
 	target := h.newTarget(t, ctx)
 	matching := h.newApp(t, ctx, target, appOptions{watchPaths: []string{fixtureMatchingWatchPath}})
+	alsoMatching := h.newApp(t, ctx, target, appOptions{watchPaths: []string{"services/**"}})
 	other := h.newApp(t, ctx, target, appOptions{watchPaths: []string{fixtureOtherWatchPath}})
 
 	h.push(t, ctx, target.newPush(fixtureDefaultBranch, []string{fixtureMatchingFile}))
 
 	h.awaitDeployment(t, ctx, matching.id, hasStatus(mysqltype.DeploymentsStatusPending))
+	h.awaitDeployment(t, ctx, alsoMatching.id, hasStatus(mysqltype.DeploymentsStatusPending))
 	h.awaitDeployment(t, ctx, other.id, hasStatus(mysqltype.DeploymentsStatusSkipped))
 }
 
@@ -503,13 +538,14 @@ type deploymentRow struct {
 	forkRepository  sql.NullString
 	trigger         string
 	triggeredBy     sql.NullString
+	triggerReason   sql.NullString
 }
 
 func (h *pushHarness) listDeployments(ctx context.Context, appID string) ([]deploymentRow, error) {
 	rows, err := h.database.RO().QueryContext(ctx,
 		"SELECT id, environment_id, status, git_commit_sha, git_branch, git_commit_message, "+
 			"git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp, "+
-			"pr_number, fork_repository_full_name, `trigger`, triggered_by "+
+			"pr_number, fork_repository_full_name, `trigger`, triggered_by, trigger_reason "+
 			"FROM deployments WHERE app_id = ? ORDER BY pk", appID)
 	if err != nil {
 		return nil, err
@@ -522,7 +558,7 @@ func (h *pushHarness) listDeployments(ctx context.Context, appID string) ([]depl
 		if scanErr := rows.Scan(
 			&row.id, &row.environmentID, &row.status, &row.commitSHA, &row.branch, &row.commitMessage,
 			&row.authorHandle, &row.authorAvatar, &row.commitTimestamp,
-			&row.prNumber, &row.forkRepository, &row.trigger, &row.triggeredBy,
+			&row.prNumber, &row.forkRepository, &row.trigger, &row.triggeredBy, &row.triggerReason,
 		); scanErr != nil {
 			return nil, scanErr
 		}

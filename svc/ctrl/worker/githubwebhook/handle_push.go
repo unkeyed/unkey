@@ -114,13 +114,15 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	for i, row := range contexts {
 		deploymentID := ids[i]
 
-		// The dashboard shows this reason on the skipped deployment.
+		// A skip still goes through Create so the dashboard shows the commit
+		// arrived, with this reason on the row.
 		skipDeployment := func(reason string) {
 			pending = append(pending, pendingCreate{
-				deploymentID: deploymentID,
-				appID:        row.AppID,
-				decision:     hydrav1.CreateDecision_CREATE_DECISION_SKIP,
-				reason:       reason,
+				deploymentID:  deploymentID,
+				appID:         row.AppID,
+				environmentID: row.EnvironmentID,
+				decision:      hydrav1.CreateDecision_CREATE_DECISION_SKIP,
+				reason:        reason,
 				future: s.startCreate(ctx, deploymentID, row, req,
 					hydrav1.CreateDecision_CREATE_DECISION_SKIP, reason),
 			})
@@ -152,45 +154,62 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		}
 
 		pending = append(pending, pendingCreate{
-			deploymentID: deploymentID,
-			appID:        row.AppID,
-			decision:     decision,
-			reason:       "",
-			future:       s.startCreate(ctx, deploymentID, row, req, decision, ""),
+			deploymentID:  deploymentID,
+			appID:         row.AppID,
+			environmentID: row.EnvironmentID,
+			decision:      decision,
+			reason:        "",
+			future:        s.startCreate(ctx, deploymentID, row, req, decision, ""),
 		})
 	}
 
+	// Awaiting here is what orders pushes: this repository's object stays held
+	// until every row is written, so the next push gets a later created_at and
+	// supersedes these rows instead of the other way round.
+	//
+	// Only a terminal error from Create lands here, which is a bug in Create.
+	// Returning it would make Restate retry this handler forever and block every
+	// later push to the repository, so it is logged and the push succeeds.
 	for _, create := range pending {
 		resp, err := create.future.Response()
 		if err != nil {
-			return nil, err
+			logger.Error(
+				"deployment create failed",
+				"deployment_id", create.deploymentID,
+				"delivery_id", req.GetDeliveryId(),
+				"app_id", create.appID,
+				"error", err,
+			)
+			continue
 		}
 
 		logger.Info(
 			"deployment create finished",
 			"deployment_id", create.deploymentID,
 			"delivery_id", req.GetDeliveryId(),
+			"repository", req.GetRepositoryFullName(),
+			"commit_sha", req.GetAfter(),
+			"branch", req.GetBranch(),
 			"app_id", create.appID,
+			"environment_id", create.environmentID,
 			"decision", create.decision.String(),
 			"reason", create.reason,
 			"outcome", resp.GetOutcome().String(),
 		)
 	}
-
 	return &hydrav1.HandlePushResponse{}, nil
 }
 
 type pendingCreate struct {
-	deploymentID string
-	appID        string
-	decision     hydrav1.CreateDecision
-	reason       string
-	future       restate.ResponseFuture[*hydrav1.DeployCreateResponse]
+	deploymentID  string
+	appID         string
+	environmentID string
+	decision      hydrav1.CreateDecision
+	reason        string
+	future        restate.ResponseFuture[*hydrav1.DeployCreateResponse]
 }
 
 // startCreate calls DeployService.Create for one app and returns the future.
-// HandlePush holds this repository's object until every row is written. The next push to the same
-// repository then gets a later created_at, which is what supersedes siblings.
 func (s *Service) startCreate(
 	ctx restate.ObjectContext,
 	deploymentID string,
