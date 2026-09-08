@@ -249,22 +249,22 @@ type DeployServiceServer interface {
 type UnimplementedDeployServiceServer struct{}
 
 func (UnimplementedDeployServiceServer) Deploy(ctx sdk_go.ObjectContext, req *DeployRequest) (*DeployResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Deploy not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Deploy not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployServiceServer) Rollback(ctx sdk_go.ObjectContext, req *RollbackRequest) (*RollbackResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Rollback not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Rollback not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployServiceServer) Promote(ctx sdk_go.ObjectContext, req *PromoteRequest) (*PromoteResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Promote not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Promote not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployServiceServer) StopDeployment(ctx sdk_go.ObjectContext, req *StopDeploymentRequest) (*StopDeploymentResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method StopDeployment not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method StopDeployment not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployServiceServer) WakeDeployment(ctx sdk_go.ObjectContext, req *WakeDeploymentRequest) (*WakeDeploymentResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method WakeDeployment not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method WakeDeployment not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployServiceServer) NotifyInstancesReady(ctx sdk_go.ObjectSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method NotifyInstancesReady not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method NotifyInstancesReady not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployServiceServer) testEmbeddedByValue() {}
 
@@ -411,10 +411,10 @@ type DeployTeardownServiceServer interface {
 type UnimplementedDeployTeardownServiceServer struct{}
 
 func (UnimplementedDeployTeardownServiceServer) Teardown(ctx sdk_go.ObjectContext, req *TeardownRequest) (*TeardownResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Teardown not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Teardown not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployTeardownServiceServer) Resume(ctx sdk_go.ObjectContext, req *ResumeRequest) (*ResumeResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Resume not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Resume not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployTeardownServiceServer) testEmbeddedByValue() {}
 

@@ -37,12 +37,12 @@ func (h *Handler) HandleCloseWorkspace(
 	}
 
 	if req.GetInvoiceId() == "" {
-		return nil, restate.TerminalError(fmt.Errorf("invoice_id is required"))
+		return nil, restate.ToTerminalError(fmt.Errorf("invoice_id is required"))
 	}
 
 	p, err := billingperiod.Parse(period)
 	if err != nil {
-		return nil, restate.TerminalError(fmt.Errorf("invalid billing period %q: %w", period, err))
+		return nil, restate.ToTerminalError(fmt.Errorf("invalid billing period %q: %w", period, err))
 	}
 
 	nowTime, err := restateutil.Now(ctx)
@@ -50,9 +50,9 @@ func (h *Handler) HandleCloseWorkspace(
 		return nil, fmt.Errorf("get current time: %w", err)
 	}
 	if !p.CloseAllowed(nowTime, req.GetPeriodEnd()) {
-		return nil, restate.TerminalError(
-			fmt.Errorf("billing period %s has not ended yet (ends %s)", period, p.End().Format(time.RFC3339)),
-		)
+		return nil, restate.ToTerminalError(
+			fmt.Errorf("billing period %s has not ended yet (ends %s)", period, p.End().Format(time.RFC3339)))
+
 	}
 
 	// Same period-alignment assertion the fleet sweep runs (see closeWorkspace).
@@ -66,14 +66,14 @@ func (h *Handler) HandleCloseWorkspace(
 	}, restate.WithName("read invoice"))
 	if err != nil {
 		if errors.Is(err, invoicecloser.ErrNotFound) {
-			return nil, restate.TerminalError(fmt.Errorf("invoice %s does not exist", req.GetInvoiceId()))
+			return nil, restate.ToTerminalError(fmt.Errorf("invoice %s does not exist", req.GetInvoiceId()))
 		}
 		return nil, fmt.Errorf("read invoice %s: %w", req.GetInvoiceId(), err)
 	}
 	if invoice.BillingReason != "subscription_cycle" {
-		return nil, restate.TerminalError(
-			fmt.Errorf("invoice %s is not a subscription renewal (billing reason %q)", invoice.ID, invoice.BillingReason),
-		)
+		return nil, restate.ToTerminalError(
+			fmt.Errorf("invoice %s is not a subscription renewal (billing reason %q)", invoice.ID, invoice.BillingReason))
+
 	}
 	if invoice.PeriodEnd != p.End().Unix() || invoice.PeriodStart < p.Start().Unix() {
 		logger.Error("deploy invoice period does not align to the calendar month; refusing to finalize",
@@ -84,9 +84,9 @@ func (h *Handler) HandleCloseWorkspace(
 			"expected_period_start", p.Start().Unix(),
 			"expected_period_end", p.End().Unix(),
 		)
-		return nil, restate.TerminalError(
-			fmt.Errorf("invoice %s period does not align to calendar month %s", invoice.ID, period),
-		)
+		return nil, restate.ToTerminalError(
+			fmt.Errorf("invoice %s period does not align to calendar month %s", invoice.ID, period))
+
 	}
 	if invoice.Status != "draft" {
 		logger.Info("deploy renewal invoice already left draft status; skipping close redelivery",

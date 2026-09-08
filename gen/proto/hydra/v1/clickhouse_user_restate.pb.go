@@ -160,10 +160,10 @@ type ClickhouseUserServiceServer interface {
 type UnimplementedClickhouseUserServiceServer struct{}
 
 func (UnimplementedClickhouseUserServiceServer) ConfigureUser(ctx sdk_go.ObjectContext, req *ConfigureUserRequest) (*ConfigureUserResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method ConfigureUser not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method ConfigureUser not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedClickhouseUserServiceServer) ReconcileUser(ctx sdk_go.ObjectContext, req *ReconcileUserRequest) (*ReconcileUserResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method ReconcileUser not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method ReconcileUser not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedClickhouseUserServiceServer) testEmbeddedByValue() {}
 

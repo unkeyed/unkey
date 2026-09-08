@@ -14,7 +14,6 @@ replace cloud.google.com/go/compute => cloud.google.com/go/compute v1.49.1
 tool (
 	github.com/bufbuild/buf/cmd/buf
 	github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
-	github.com/restatedev/sdk-go/protoc-gen-go-restate
 	github.com/sqlc-dev/sqlc/cmd/sqlc
 )
 
@@ -25,6 +24,7 @@ tool (
 	github.com/gordonklaus/ineffassign/pkg/ineffassign
 	github.com/kisielk/errcheck/errcheck
 	github.com/nishanths/exhaustive
+	github.com/restatedev/sdk-go/x/protoc-gen-go-restate
 	honnef.co/go/tools/unused
 )
 
@@ -58,11 +58,15 @@ require (
 	github.com/oapi-codegen/runtime v1.4.2
 	github.com/oasdiff/oasdiff v1.11.8
 	github.com/opencontainers/go-digest v1.0.0
+	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/pb33f/libopenapi v0.38.7
 	github.com/pb33f/libopenapi-validator v0.14.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.17.2
-	github.com/restatedev/sdk-go v0.24.0
+	github.com/restatedev/sdk-go v1.0.4
+	github.com/restatedev/sdk-go/testing v1.0.0
+	github.com/restatedev/sdk-go/x/mocks v0.26.0
+	github.com/restatedev/sdk-go/x/protoc-gen-go-restate v0.26.0
 	github.com/shirou/gopsutil/v4 v4.26.5
 	github.com/sqlc-dev/plugin-sdk-go v1.23.0
 	github.com/stretchr/testify v1.12.1
@@ -219,7 +223,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/in-toto/in-toto-golang v0.9.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/invopop/jsonschema v0.13.0 // indirect
+	github.com/invopop/jsonschema v0.14.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.7.5 // indirect
@@ -264,7 +268,6 @@ require (
 	github.com/oasdiff/yaml3 v0.0.0-20250309153720-d2182401db90 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
-	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/opencontainers/selinux v1.13.1 // indirect
 	github.com/paulmach/orb v0.13.0 // indirect
 	github.com/pb33f/jsonpath v0.8.2 // indirect
@@ -324,7 +327,6 @@ require (
 	github.com/wI2L/jsondiff v0.7.0 // indirect
 	github.com/wasilibs/go-pgquery v0.0.0-20250409022910-10ac41983c07 // indirect
 	github.com/wasilibs/wazero-helpers v0.0.0-20240620070341-3dff1577cd52 // indirect
-	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/woodsbury/decimal128 v1.3.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/yargevad/filepathx v1.0.0 // indirect
