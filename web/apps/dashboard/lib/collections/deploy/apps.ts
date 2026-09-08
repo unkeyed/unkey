@@ -14,6 +14,7 @@ const schema = z.object({
   defaultBranch: z.string(),
   currentDeploymentId: z.string().nullable(),
   isRolledBack: z.boolean(),
+  updatedAt: z.number().nullable(),
   repositoryFullName: z.string().nullable(),
   latestDeploymentId: z.string().nullable(),
   // Flattened current-deployment fields for the shared deployable card.

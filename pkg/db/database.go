@@ -3,10 +3,9 @@ package db
 import (
 	"context"
 	"database/sql"
-	"strings"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
+	mysql "github.com/go-sql-driver/mysql"
 
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -35,17 +34,26 @@ type Config struct {
 // and handling connection lifecycle.
 type database struct {
 	writeReplica *Replica // Primary database connection used for write operations
+	batchReplica *Replica // Isolated primary pool with multi-statement support
 	readReplica  *Replica // Connection used for read operations (may be same as primary)
 }
 
-func open(dsn string) (db *sql.DB, err error) {
-	if !strings.Contains(dsn, "parseTime=true") {
+func open(dsn string, enableMultiStatementBatches bool) (db *sql.DB, err error) {
+	dsnConfig, err := mysql.ParseDSN(dsn)
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Internal("failed to parse database DSN"))
+	}
+	if !dsnConfig.ParseTime {
 		return nil, fault.New("DSN must contain parseTime=true, see https://stackoverflow.com/questions/29341590/how-to-parse-time-from-database/29343013#29343013")
+	}
+	if enableMultiStatementBatches {
+		dsnConfig.MultiStatements = true
+		dsnConfig.InterpolateParams = true
 	}
 
 	// sql.Open only validates the DSN, it doesn't actually connect.
 	// We need to call Ping() to verify connectivity.
-	db, err = sql.Open("mysql", dsn)
+	db, err = sql.Open("mysql", dsnConfig.FormatDSN())
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to open database"))
 	}
@@ -93,7 +101,7 @@ func New(config Config) (*database, error) {
 		return nil, fault.Wrap(err, fault.Internal("invalid configuration"))
 	}
 
-	write, err := open(config.PrimaryDSN)
+	write, err := open(config.PrimaryDSN, false)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("cannot open primary replica"))
 	}
@@ -101,6 +109,17 @@ func New(config Config) (*database, error) {
 	// Initialize primary replica
 	writeReplica := &Replica{
 		db:        write,
+		mode:      "rw",
+		debugLogs: false,
+		tags:      config.Tags,
+	}
+	batch, err := open(config.PrimaryDSN, true)
+	if err != nil {
+		_ = write.Close()
+		return nil, fault.Wrap(err, fault.Internal("cannot open batch primary replica"))
+	}
+	batchReplica := &Replica{
+		db:        batch,
 		mode:      "rw",
 		debugLogs: false,
 		tags:      config.Tags,
@@ -116,8 +135,10 @@ func New(config Config) (*database, error) {
 
 	// If a separate read-only DSN is provided, establish that connection
 	if config.ReadOnlyDSN != "" {
-		read, err := open(config.ReadOnlyDSN)
+		read, err := open(config.ReadOnlyDSN, false)
 		if err != nil {
+			_ = write.Close()
+			_ = batchReplica.db.Close()
 			return nil, fault.Wrap(err, fault.Internal("cannot open read replica"))
 		}
 
@@ -134,6 +155,7 @@ func New(config Config) (*database, error) {
 
 	return &database{
 		writeReplica: writeReplica,
+		batchReplica: batchReplica,
 		readReplica:  readReplica,
 	}, nil
 }
@@ -141,6 +163,11 @@ func New(config Config) (*database, error) {
 // RW returns the write replica for performing database write operations.
 func (d *database) RW() *Replica {
 	return d.writeReplica
+}
+
+// BatchRW returns the isolated primary pool configured for multi-statement batches.
+func (d *database) BatchRW() *Replica {
+	return d.batchReplica
 }
 
 // RO returns the read replica for performing database read operations.
@@ -157,9 +184,15 @@ func (d *database) RO() *Replica {
 func (d *database) Close() error {
 	// Close the write replica connection
 	writeCloseErr := d.writeReplica.db.Close()
+	if d.batchReplica != nil && d.batchReplica.db != d.writeReplica.db {
+		batchCloseErr := d.batchReplica.db.Close()
+		if batchCloseErr != nil {
+			return fault.Wrap(batchCloseErr)
+		}
+	}
 
 	// Only close the read replica if it's a separate connection
-	if d.readReplica != nil {
+	if d.readReplica != nil && d.readReplica.db != d.writeReplica.db {
 		readCloseErr := d.readReplica.db.Close()
 		if readCloseErr != nil {
 			return fault.Wrap(readCloseErr)

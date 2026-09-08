@@ -1,7 +1,7 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
-import { and, db, eq } from "@/lib/db";
+import type { InferSelectModel } from "@/lib/db";
 import type { LastExit } from "@/lib/types/deploy";
-import { type ContainerStatus, apps, deployments } from "@unkey/db/src/schema";
+import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
 import { mapRegionToFlag } from "../network/utils";
 
 export const deploymentSelectFields = {
@@ -32,6 +32,16 @@ export const deploymentSelectFields = {
   createdAt: deployments.createdAt,
   updatedAt: deployments.updatedAt,
 } as const;
+
+export const deploymentListSelect = {
+  ...deploymentSelectFields,
+  appId: deployments.appId,
+} as const;
+
+export type DeploymentListSelection = Pick<
+  InferSelectModel<typeof deployments>,
+  keyof typeof deploymentListSelect
+>;
 
 export function mapInstanceRow(row: {
   id: string;
@@ -106,38 +116,4 @@ export function normalizeDeploymentRow(deployment: {
       deployment.gitCommitAuthorAvatarUrl ?? "https://github.com/identicons/dummy-user.png",
     gitCommitTimestamp: deployment.gitCommitTimestamp,
   };
-}
-
-// The overview resolves the live deployment by id from the collection, so it
-// must be present even when older than the newest-N window the list returns.
-export async function fetchCurrentDeploymentOutsideWindow(
-  workspaceId: string,
-  input: { projectId: string; appId: string },
-  loadedRows: { id: string }[],
-) {
-  const [app] = await db
-    .select({ currentDeploymentId: apps.currentDeploymentId })
-    .from(apps)
-    .where(
-      and(
-        eq(apps.workspaceId, workspaceId),
-        eq(apps.projectId, input.projectId),
-        eq(apps.id, input.appId),
-      ),
-    );
-  const currentId = app?.currentDeploymentId;
-  if (!currentId || loadedRows.some((d) => d.id === currentId)) {
-    return null;
-  }
-  const [deployment] = await db
-    .select({ ...deploymentSelectFields, appId: deployments.appId })
-    .from(deployments)
-    .where(
-      and(
-        eq(deployments.workspaceId, workspaceId),
-        eq(deployments.projectId, input.projectId),
-        eq(deployments.id, currentId),
-      ),
-    );
-  return deployment ?? null;
 }

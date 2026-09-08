@@ -75,7 +75,7 @@ func New(config Config) (*Client, error) {
 	opts.ConnOpenStrategy = ch.ConnOpenRoundRobin
 	opts.DialTimeout = 5 * time.Second // Fail fast on connection issues
 
-	logger.Info("connecting to clickhouse")
+	logger.Info("connecting to clickhouse", "max_open_conns", opts.MaxOpenConns, "dial_timeout", opts.DialTimeout)
 	conn, err := ch.Open(opts)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("opening clickhouse failed"))

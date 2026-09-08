@@ -93,7 +93,7 @@ export function toggleEnvironmentSelection(
   return { appIds, environmentIds: selectedEnvironmentIds };
 }
 
-export function createAppEnvironmentFilters<TFilter>(
+export function createAppEnvironmentUnionFilters<TFilter>(
   selection: AppEnvironmentSelection,
   environmentIdsByApp: EnvironmentIdsByApp,
   createFilter: (field: AppEnvironmentField, value: string) => TFilter,
@@ -113,9 +113,6 @@ export function createAppEnvironmentFilters<TFilter>(
     }
   }
 
-  // The logs query intersects app and environment fields. Express mixed
-  // selections as environment ids so whole apps and individual environments
-  // form a union.
   if (environmentIds.size > 0) {
     for (const appId of appIds) {
       for (const environmentId of environmentIdsByApp.get(appId) ?? []) {
