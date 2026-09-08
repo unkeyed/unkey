@@ -22,3 +22,16 @@ ALTER TABLE `default`.`frontline_requests_raw_v1`
     ADD INDEX `idx_inserted_at` inserted_at TYPE minmax GRANULARITY 1;
 ALTER TABLE `default`.`frontline_requests_raw_v1`
     MATERIALIZE INDEX `idx_inserted_at`;
+
+-- The audit and runtime tables already page by inserted_at but only prune
+-- by partition (month and day). The same minmax index prunes granules
+-- inside a partition. Existing parts hold real insertion times, so
+-- materializing gives them the full benefit.
+ALTER TABLE `default`.`runtime_logs_raw_v1`
+    ADD INDEX `idx_inserted_at` inserted_at TYPE minmax GRANULARITY 1;
+ALTER TABLE `default`.`runtime_logs_raw_v1`
+    MATERIALIZE INDEX `idx_inserted_at`;
+ALTER TABLE `default`.`audit_logs_raw_v1`
+    ADD INDEX `idx_inserted_at` inserted_at TYPE minmax GRANULARITY 1;
+ALTER TABLE `default`.`audit_logs_raw_v1`
+    MATERIALIZE INDEX `idx_inserted_at`;
