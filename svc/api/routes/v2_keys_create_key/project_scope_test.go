@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -89,7 +88,7 @@ func TestCreateKeyRejectsPermissionFromAnotherProject(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}, handler.Request{
 		ApiId:       keyProjectAPI.ID,
-		Permissions: ptr.P([]string{permissionSlug}),
+		Permissions: new([]string{permissionSlug}),
 	})
 
 	require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
@@ -134,7 +133,7 @@ func TestCreateKeyRejectsIdentityFromAnotherProject(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}, handler.Request{ApiId: keyProjectAPI.ID, ExternalId: ptr.P(externalID)})
+	}, handler.Request{ApiId: keyProjectAPI.ID, ExternalId: new(externalID)})
 
 	require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
 	require.Contains(t, res.Body.Error.Detail, externalID)

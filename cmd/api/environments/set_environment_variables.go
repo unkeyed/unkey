@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func setEnvironmentVariablesCmd() *cli.Command {
@@ -36,7 +36,7 @@ func setEnvironmentVariablesCmd() *cli.Command {
 		if err := json.Unmarshal([]byte(cmd.String("variables")), &variables); err != nil {
 			return fmt.Errorf("invalid JSON for --variables: %w", err)
 		}
-		req := components.V2EnvironmentsSetEnvironmentVariablesRequestBody{Project: cmd.String("project"), App: cmd.String("app"), Environment: cmd.String("environment"), Variables: variables, Prune: ptr.P(cmd.Bool("prune"))}
+		req := components.V2EnvironmentsSetEnvironmentVariablesRequestBody{Project: cmd.String("project"), App: cmd.String("app"), Environment: cmd.String("environment"), Variables: variables, Prune: new(cmd.Bool("prune"))}
 		return send(req)
 	}}
 }

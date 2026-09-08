@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -38,7 +37,7 @@ func TestListOverrides_ReturnsPersistedOverride(t *testing.T) {
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		response, err := client.Ratelimit.ListOverrides(ctx, components.V2RatelimitListOverridesRequestBody{
 			Namespace: namespace,
-			Limit:     ptr.P(int64(100)),
+			Limit:     new(int64(100)),
 		})
 		require.NoError(c, err)
 		require.NotNil(c, response.V2RatelimitListOverridesResponseBody)

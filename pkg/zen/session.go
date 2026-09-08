@@ -277,7 +277,7 @@ func (s *Session) BindBody(dst any) error {
 //	// Use params.Limit, params.Cursor, and params.Filter
 func (s *Session) BindQuery(dst interface{}) error {
 	val := reflect.ValueOf(dst)
-	if val.Kind() != reflect.Ptr || val.IsNil() {
+	if val.Kind() != reflect.Pointer || val.IsNil() {
 		return fault.New("destination must be a non-nil pointer")
 	}
 

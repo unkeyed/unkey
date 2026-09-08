@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_portal"
 )
@@ -43,7 +42,7 @@ func TestCreatePortalAuthorizesAdminURNAndLegacyTuple(t *testing.T) {
 				DisplayName: "Acme",
 				KeyspaceId:  ksOf(keyspaceMapping(t, h, workspace.ID)),
 				AppId:       appOf(keyspaceMapping(t, h, workspace.ID)),
-				Enabled:     ptr.P(true),
+				Enabled:     new(true),
 			})
 			require.Equal(t, http.StatusOK, res.Status, "the grant must authorize portal creation: %s", res.RawBody)
 		})

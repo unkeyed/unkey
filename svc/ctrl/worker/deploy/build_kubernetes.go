@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 const (
@@ -77,9 +76,9 @@ func (w *Workflow) withKubernetesBuildkit(
 			},
 		},
 		Spec: batchv1.JobSpec{
-			BackoffLimit:            ptr.P(int32(0)),
-			ActiveDeadlineSeconds:   ptr.P(int64(buildJobDeadlineSeconds)),
-			TTLSecondsAfterFinished: ptr.P(int32(buildJobTTLSeconds)),
+			BackoffLimit:            new(int32(0)),
+			ActiveDeadlineSeconds:   new(int64(buildJobDeadlineSeconds)),
+			TTLSecondsAfterFinished: new(int32(buildJobTTLSeconds)),
 			Template: corev1.PodTemplateSpec{
 				//nolint: exhaustruct
 				ObjectMeta: metav1.ObjectMeta{
@@ -106,7 +105,7 @@ func (w *Workflow) withKubernetesBuildkit(
 							},
 							//nolint: exhaustruct
 							SecurityContext: &corev1.SecurityContext{
-								Privileged: ptr.P(true),
+								Privileged: new(true),
 							},
 							// buildctl talks over the unix socket, so ready
 							// means buildkitd accepts RPCs, not merely that
@@ -140,7 +139,7 @@ func (w *Workflow) withKubernetesBuildkit(
 		delCtx, cancel := context.WithTimeout(context.WithoutCancel(runCtx), 30*time.Second)
 		defer cancel()
 		if delErr := jobs.Delete(delCtx, created.Name, metav1.DeleteOptions{
-			PropagationPolicy: ptr.P(metav1.DeletePropagationBackground),
+			PropagationPolicy: new(metav1.DeletePropagationBackground),
 		}); delErr != nil {
 			logger.Error("unable to delete build job",
 				"job", created.Name,

@@ -75,8 +75,8 @@ func (c *stripeCloser) GetInvoice(ctx context.Context, invoiceID string) (DraftI
 // deadline exists to bound.
 func (c *stripeCloser) ClaimInvoice(ctx context.Context, invoiceID string, finalizeAt int64) error {
 	_, err := c.client.V1Invoices.Update(ctx, invoiceID, &stripe.InvoiceUpdateParams{ //nolint:exhaustruct // only finalization scheduling changes
-		AutoAdvance:              stripe.Bool(true),
-		AutomaticallyFinalizesAt: stripe.Int64(finalizeAt),
+		AutoAdvance:              new(true),
+		AutomaticallyFinalizesAt: new(finalizeAt),
 	})
 	if err != nil {
 		return fault.Wrap(err, fault.Internal("failed to claim stripe invoice"))

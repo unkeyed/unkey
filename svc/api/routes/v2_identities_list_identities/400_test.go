@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_list_identities"
@@ -102,7 +101,7 @@ func TestBadRequests(t *testing.T) {
 			Limit  *int    `json:"limit"`
 			Cursor *string `json:"cursor"`
 		}{
-			Limit: ptr.P(5),
+			Limit: new(5),
 		}
 
 		res := testutil.CallRoute[any, openapi.BadRequestErrorResponse](h, route, customHeaders, badJSONReq)

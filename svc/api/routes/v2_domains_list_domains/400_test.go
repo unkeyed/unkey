@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_list_domains"
@@ -40,9 +39,9 @@ func TestListDomainsBadRequest(t *testing.T) {
 		{name: "empty environment", req: withEnv(func(r *handler.Request) { r.Environment = "" })},
 		{name: "project with illegal character", req: withEnv(func(r *handler.Request) { r.Project = "pay ments" })},
 		{name: "environment with a dot", req: withEnv(func(r *handler.Request) { r.Environment = "prod.uction" })},
-		{name: "search over 256 chars", req: withEnv(func(r *handler.Request) { r.Search = ptr.P(strings.Repeat("a", 257)) })},
-		{name: "limit below minimum", req: withEnv(func(r *handler.Request) { r.Limit = ptr.P(0) })},
-		{name: "limit above maximum", req: withEnv(func(r *handler.Request) { r.Limit = ptr.P(101) })},
+		{name: "search over 256 chars", req: withEnv(func(r *handler.Request) { r.Search = new(strings.Repeat("a", 257)) })},
+		{name: "limit below minimum", req: withEnv(func(r *handler.Request) { r.Limit = new(0) })},
+		{name: "limit above maximum", req: withEnv(func(r *handler.Request) { r.Limit = new(101) })},
 	}
 
 	for _, tc := range testCases {

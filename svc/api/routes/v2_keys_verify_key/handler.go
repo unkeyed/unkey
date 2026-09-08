@@ -176,7 +176,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	keyData := openapi.V2KeysVerifyKeyResponseData{
 		Code:        key.ToOpenAPIStatus(),
 		Valid:       key.Status == keys.StatusValid,
-		Enabled:     ptr.P(key.Key.Enabled),
+		Enabled:     new(key.Key.Enabled),
 		Name:        key.Key.Name.String,
 		KeyId:       key.Key.ID,
 		Permissions: key.Permissions,
@@ -194,7 +194,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	remaining := key.Key.RemainingRequests
 	if remaining.Valid {
-		keyData.Credits = ptr.P(remaining.Int64)
+		keyData.Credits = new(remaining.Int64)
 	}
 
 	if key.Key.Meta.Valid {

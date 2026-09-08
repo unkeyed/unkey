@@ -7,7 +7,6 @@ import (
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func deleteKeyCmd() *cli.Command {
@@ -57,7 +56,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/del
 
 			req := components.V2KeysDeleteKeyRequestBody{
 				KeyID:     cmd.String("key-id"),
-				Permanent: ptr.P(cmd.Bool("permanent")),
+				Permanent: new(cmd.Bool("permanent")),
 			}
 
 			res, err := client.Keys.DeleteKey(ctx, req)

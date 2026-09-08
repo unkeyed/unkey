@@ -9,7 +9,6 @@ import (
 	"github.com/unkeyed/sdks/api/go/v3/optionalnullable"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func updateKeyCmd() *cli.Command {
@@ -130,7 +129,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/upd
 			}
 
 			if cmd.FlagIsSet("enabled") {
-				req.Enabled = ptr.P(cmd.Bool("enabled"))
+				req.Enabled = new(cmd.Bool("enabled"))
 			}
 
 			if v := cmd.StringSlice("roles"); len(v) > 0 {

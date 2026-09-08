@@ -11,7 +11,6 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
@@ -304,10 +303,10 @@ func deploymentRowToState[T deploymentStateRow](row T, version uint64) (*ctrlv1.
 			MaxReplicas: deployment.AutoscalingReplicasMax,
 		}
 		if deployment.AutoscalingThresholdCpu.Valid {
-			policy.CpuThreshold = ptr.P(int32(deployment.AutoscalingThresholdCpu.Int16))
+			policy.CpuThreshold = new(int32(deployment.AutoscalingThresholdCpu.Int16))
 		}
 		if deployment.AutoscalingThresholdMemory.Valid {
-			policy.MemoryThreshold = ptr.P(int32(deployment.AutoscalingThresholdMemory.Int16))
+			policy.MemoryThreshold = new(int32(deployment.AutoscalingThresholdMemory.Int16))
 		}
 		apply.Autoscaling = policy
 

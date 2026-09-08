@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -47,7 +46,7 @@ func TestPreconditionError(t *testing.T) {
 	// Test case for API ID with special characters
 	t.Run("Try getting a recoverable key without being opt-in", func(t *testing.T) {
 		req := handler.Request{
-			Decrypt: ptr.P(true),
+			Decrypt: new(true),
 			KeyId:   key.KeyID,
 		}
 
@@ -92,7 +91,7 @@ func TestPreconditionError(t *testing.T) {
 		h.Register(route)
 
 		req := handler.Request{
-			Decrypt: ptr.P(true),
+			Decrypt: new(true),
 			KeyId:   key.KeyID,
 		}
 
@@ -142,7 +141,7 @@ func TestPreconditionError(t *testing.T) {
 
 		req := handler.Request{
 			KeyId:   key.KeyID,
-			Decrypt: ptr.P(true),
+			Decrypt: new(true),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, routeNoVault, headers, req)

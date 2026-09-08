@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -55,7 +54,7 @@ func TestUpdateKey_PersistsRatelimit(t *testing.T) {
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
 	key := createKey(t, ctx, client, api.APIID)
-	limit := components.RatelimitRequest{Name: uid.DNS1035(), Limit: 15, Duration: 60_000, AutoApply: ptr.P(true)}
+	limit := components.RatelimitRequest{Name: uid.DNS1035(), Limit: 15, Duration: 60_000, AutoApply: new(true)}
 	_, err := client.Keys.UpdateKey(ctx, components.V2KeysUpdateKeyRequestBody{KeyID: key.KeyID, Ratelimits: []components.RatelimitRequest{limit}})
 	require.NoError(t, err)
 	require.EventuallyWithT(t, func(c *assert.CollectT) {

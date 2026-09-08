@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -56,7 +55,7 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 			name: "string match with two modes",
 			policies: []openapi.Policy{{
 				Name: "m", Enabled: true, Firewall: firewall,
-				Match: &[]openapi.MatchExpr{{Path: &openapi.PathMatch{Path: openapi.StringMatch{Exact: ptr.P("/a"), Prefix: ptr.P("/b")}}}},
+				Match: &[]openapi.MatchExpr{{Path: &openapi.PathMatch{Path: openapi.StringMatch{Exact: new("/a"), Prefix: new("/b")}}}},
 			}},
 			wantErr: "policies[0].match[0].path.path must set exactly one of",
 		},
@@ -64,7 +63,7 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 			name: "invalid regex",
 			policies: []openapi.Policy{{
 				Name: "m", Enabled: true, Firewall: firewall,
-				Match: &[]openapi.MatchExpr{{Path: &openapi.PathMatch{Path: openapi.StringMatch{Regex: ptr.P("[unclosed")}}}},
+				Match: &[]openapi.MatchExpr{{Path: &openapi.PathMatch{Path: openapi.StringMatch{Regex: new("[unclosed")}}}},
 			}},
 			wantErr: "policies[0].match[0].path.path.regex is not a valid regular expression",
 		},
@@ -80,7 +79,7 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 			name: "header match with both present and value",
 			policies: []openapi.Policy{{
 				Name: "m", Enabled: true, Firewall: firewall,
-				Match: &[]openapi.MatchExpr{{Header: &openapi.FieldMatch{Name: "x-kebap", Present: &present, Value: &openapi.StringMatch{Exact: ptr.P("v")}}}},
+				Match: &[]openapi.MatchExpr{{Header: &openapi.FieldMatch{Name: "x-kebap", Present: &present, Value: &openapi.StringMatch{Exact: new("v")}}}},
 			}},
 			wantErr: "policies[0].match[0].header must set exactly one of present or value",
 		},
@@ -108,7 +107,7 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 				Name: "k", Enabled: true,
 				Keyauth: &openapi.KeyauthPolicy{
 					Keyspaces:       []string{"ks_1"},
-					PermissionQuery: ptr.P("(documents.read OR documents.list) AND kebap.eat"),
+					PermissionQuery: new("(documents.read OR documents.list) AND kebap.eat"),
 				},
 			}},
 		},
@@ -118,7 +117,7 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 				Name: "k", Enabled: true,
 				Keyauth: &openapi.KeyauthPolicy{
 					Keyspaces:       []string{"ks_1"},
-					PermissionQuery: ptr.P("documents.read AND AND documents.write"),
+					PermissionQuery: new("documents.read AND AND documents.write"),
 				},
 			}},
 			wantErr: "policies[0].keyauth.permissionQuery is not a valid permission query",
@@ -129,7 +128,7 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 				Name: "k", Enabled: true,
 				Keyauth: &openapi.KeyauthPolicy{
 					Keyspaces: []string{"ks_1"},
-					Credits:   ptr.P(int64(0)),
+					Credits:   new(int64(0)),
 				},
 			}},
 		},
@@ -139,7 +138,7 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 				Name: "k", Enabled: true,
 				Keyauth: &openapi.KeyauthPolicy{
 					Keyspaces: []string{"ks_1"},
-					Credits:   ptr.P(int64(-1)),
+					Credits:   new(int64(-1)),
 				},
 			}},
 			wantErr: "policies[0].keyauth.credits must not be negative",
@@ -150,7 +149,7 @@ func TestMapPoliciesToProtoValidation(t *testing.T) {
 				Name: "k", Enabled: true,
 				Keyauth: &openapi.KeyauthPolicy{
 					Keyspaces:  []string{"ks_1"},
-					Ratelimits: &[]openapi.KeyRatelimit{{Name: "requests", Limit: ptr.P(int64(10))}},
+					Ratelimits: &[]openapi.KeyRatelimit{{Name: "requests", Limit: new(int64(10))}},
 				},
 			}},
 			wantErr: "policies[0].keyauth.ratelimits[0] must set limit and duration together",

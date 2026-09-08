@@ -8,7 +8,6 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_create_deployment"
@@ -27,7 +26,7 @@ func TestGitSourceWithoutRepoConnection(t *testing.T) {
 	seedDeployableRegion(t, h, setup)
 
 	req := gitRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, openapi.DeploymentSourceGit{
-		Branch: ptr.P("main"),
+		Branch: new("main"),
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), req)
@@ -56,7 +55,7 @@ func TestControlPlanePreconditionFailure(t *testing.T) {
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
 	req := gitRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, openapi.DeploymentSourceGit{
-		Branch: ptr.P("main"),
+		Branch: new("main"),
 	})
 
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), req)

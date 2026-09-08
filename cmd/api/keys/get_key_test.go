@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -20,7 +19,7 @@ func TestGetKey(t *testing.T) {
 			args: "keys get-key --key-id=key_1234abcd",
 			want: openapi.V2KeysGetKeyRequestBody{
 				KeyId:   "key_1234abcd",
-				Decrypt: ptr.P(false),
+				Decrypt: new(false),
 			},
 		},
 		{
@@ -28,7 +27,7 @@ func TestGetKey(t *testing.T) {
 			args: "keys get-key --key-id=key_1234abcd --decrypt",
 			want: openapi.V2KeysGetKeyRequestBody{
 				KeyId:   "key_1234abcd",
-				Decrypt: ptr.P(true),
+				Decrypt: new(true),
 			},
 		},
 	}

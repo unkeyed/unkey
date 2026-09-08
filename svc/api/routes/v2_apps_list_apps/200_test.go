@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -122,7 +121,7 @@ func TestListAppsSuccessfully(t *testing.T) {
 	t.Run("non-existent cursor returns 200 without error", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Project: project.Slug,
-			Cursor:  ptr.P("app_doesnotexist"),
+			Cursor:  new("app_doesnotexist"),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body.Pagination)
@@ -152,7 +151,7 @@ func TestListAppsSuccessfully(t *testing.T) {
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Project: project.Slug,
-			Cursor:  ptr.P(foreignApp.ID),
+			Cursor:  new(foreignApp.ID),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		for _, a := range res.Body.Data {
@@ -240,7 +239,7 @@ func TestListAppsPagination(t *testing.T) {
 	cursor := (*string)(nil)
 	pages := 0
 	for {
-		req := handler.Request{Project: project.Slug, Limit: ptr.P(2)}
+		req := handler.Request{Project: project.Slug, Limit: new(2)}
 		if cursor != nil {
 			req.Cursor = cursor
 		}
@@ -314,7 +313,7 @@ func TestListAppsSearch(t *testing.T) {
 		t.Helper()
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 			Project: project.ID,
-			Search:  ptr.P(search),
+			Search:  new(search),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		names := make([]string, 0, len(res.Body.Data))

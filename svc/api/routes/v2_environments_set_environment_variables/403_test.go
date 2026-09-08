@@ -48,7 +48,7 @@ func TestSetEnvironmentVariablesForbidden(t *testing.T) {
 			req := makeRequest(env, []openapi.EnvironmentVariableInput{
 				{Key: "KEY", Value: "value"},
 			})
-			req.Prune = ptr(tc.prune)
+			req.Prune = new(tc.prune)
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			if tc.shouldPass {
 				require.Equal(t, 200, res.Status, "expected 200 for %v, got: %s", tc.permissions, res.RawBody)

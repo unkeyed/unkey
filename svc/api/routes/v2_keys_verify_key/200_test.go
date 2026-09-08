@@ -62,7 +62,7 @@ func TestSuccess(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			Expires:     ptr.P(time.Now().Add(time.Second * 3)),
+			Expires:     new(time.Now().Add(time.Second * 3)),
 		})
 
 		req := handler.Request{
@@ -105,7 +105,7 @@ func TestSuccess(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				Remaining:   ptr.P(int64(5)),
+				Remaining:   new(int64(5)),
 			})
 
 			req := handler.Request{
@@ -124,7 +124,7 @@ func TestSuccess(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				Remaining:   ptr.P(int64(0)),
+				Remaining:   new(int64(0)),
 			})
 
 			req := handler.Request{
@@ -143,7 +143,7 @@ func TestSuccess(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				Remaining:   ptr.P(int64(5)),
+				Remaining:   new(int64(5)),
 			})
 
 			req := handler.Request{
@@ -165,7 +165,7 @@ func TestSuccess(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				Remaining:   ptr.P(int64(5)),
+				Remaining:   new(int64(5)),
 			})
 
 			req := handler.Request{
@@ -187,7 +187,7 @@ func TestSuccess(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				Remaining:   ptr.P(int64(0)),
+				Remaining:   new(int64(0)),
 			})
 
 			req := handler.Request{
@@ -262,7 +262,7 @@ func TestSuccess(t *testing.T) {
 
 			req := handler.Request{
 				Key:         key.Key,
-				Permissions: ptr.P("domain.write"),
+				Permissions: new("domain.write"),
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -286,7 +286,7 @@ func TestSuccess(t *testing.T) {
 
 			req := handler.Request{
 				Key:         key.Key,
-				Permissions: ptr.P("domain.read"),
+				Permissions: new("domain.read"),
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -304,7 +304,7 @@ func TestSuccess(t *testing.T) {
 
 			req := handler.Request{
 				Key:         key.Key,
-				Permissions: ptr.P("domain.write"),
+				Permissions: new("domain.write"),
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -335,7 +335,7 @@ func TestSuccess(t *testing.T) {
 
 			req := handler.Request{
 				Key:         key.Key,
-				Permissions: ptr.P("api.read AND api.write"),
+				Permissions: new("api.read AND api.write"),
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -366,7 +366,7 @@ func TestSuccess(t *testing.T) {
 
 			req := handler.Request{
 				Key:         key.Key,
-				Permissions: ptr.P("api.* OR api.edit"),
+				Permissions: new("api.* OR api.edit"),
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -403,7 +403,7 @@ func TestSuccess(t *testing.T) {
 
 			req := handler.Request{
 				Key:         key.Key,
-				Permissions: ptr.P("system:admin:read AND (system:admin:write OR user:basic:read)"),
+				Permissions: new("system:admin:read AND (system:admin:write OR user:basic:read)"),
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -434,7 +434,7 @@ func TestSuccess(t *testing.T) {
 
 			req := handler.Request{
 				Key:         key.Key,
-				Permissions: ptr.P("system:admin:* AND api_v2-test:read"),
+				Permissions: new("system:admin:* AND api_v2-test:read"),
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -487,7 +487,7 @@ func TestSuccess(t *testing.T) {
 
 			req := handler.Request{
 				Key:         key.Key,
-				Permissions: ptr.P(largeQuery),
+				Permissions: new(largeQuery),
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
@@ -572,7 +572,7 @@ func TestSuccess(t *testing.T) {
 		req := handler.Request{
 
 			Key:        key.Key,
-			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "requests", Cost: ptr.P(15), Duration: ptr.P(int(time.Minute.Milliseconds())), Limit: ptr.P(20)}},
+			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "requests", Cost: new(15), Duration: new(int(time.Minute.Milliseconds())), Limit: new(20)}},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -609,13 +609,13 @@ func TestSuccess(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			IdentityID:  ptr.P(identity.ID),
+			IdentityID:  new(identity.ID),
 		})
 
 		req := handler.Request{
 
 			Key:        key.Key,
-			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "tokens", Cost: ptr.P(4)}},
+			Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{{Name: "tokens", Cost: new(4)}},
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -644,8 +644,8 @@ func TestSuccess(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			IdentityID:  ptr.P(identity.ID),
-			Name:        ptr.P(keyName),
+			IdentityID:  new(identity.ID),
+			Name:        new(keyName),
 			Roles: []seed.CreateRoleRequest{{
 				Name:        "read-writer",
 				Description: nil,
