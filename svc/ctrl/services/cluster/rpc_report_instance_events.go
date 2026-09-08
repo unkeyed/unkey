@@ -148,12 +148,8 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 				ContainerStatus: newStatus,
 				K8sName:         event.GetPodName(),
 				RegionID:        cluster.RegionID,
-				// restart_count appears twice in the WHERE clause — sqlc
-				// emits a separate field per positional placeholder. Same
-				// value passed to both.
-				RestartCount:   rc,
-				RestartCount_2: rc,
-				FinishedAt:     when,
+				RestartCount:    rc,
+				FinishedAt:      when,
 			})
 			if err != nil {
 				logger.Error("report instance events: record exit failed",
