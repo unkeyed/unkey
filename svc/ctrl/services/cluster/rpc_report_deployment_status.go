@@ -93,26 +93,38 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 					return err
 				}
 
-				wantInstanceNames := map[string]*ctrlv1.ReportDeploymentStatusRequest_Update_Instance{}
-				for _, instance := range msg.Update.GetInstances() {
-					wantInstanceNames[instance.GetK8SName()] = instance
-				}
+			wantInstanceNames := map[string]*ctrlv1.ReportDeploymentStatusRequest_Update_Instance{}
+			for _, instance := range msg.Update.GetInstances() {
+				wantInstanceNames[instance.GetK8SName()] = instance
+			}
 
-				for _, staleInstance := range staleInstances {
-					if _, ok := wantInstanceNames[staleInstance.K8sName]; !ok {
-						err = db.NewQueries(tx).DeleteInstance(ctx, db.DeleteInstanceParams{
-							K8sName:  staleInstance.K8sName,
-							RegionID: cluster.RegionID,
-						})
-						if err != nil {
-							return err
-						}
+			// Reuse the existing row id for instances that are already known so the
+			// upsert collides on the id unique key and updates in place, instead of
+			// allocating a fresh auto-increment pk (and its gap lock) on every report.
+			existingInstanceIDs := make(map[string]string, len(staleInstances))
+			for _, staleInstance := range staleInstances {
+				existingInstanceIDs[staleInstance.K8sName] = staleInstance.ID
+			}
+
+			for _, staleInstance := range staleInstances {
+				if _, ok := wantInstanceNames[staleInstance.K8sName]; !ok {
+					err = db.NewQueries(tx).DeleteInstance(ctx, db.DeleteInstanceParams{
+						K8sName:  staleInstance.K8sName,
+						RegionID: cluster.RegionID,
+					})
+					if err != nil {
+						return err
 					}
 				}
+			}
 
-				for _, instance := range msg.Update.GetInstances() {
-					err = db.NewQueries(tx).UpsertInstance(ctx, db.UpsertInstanceParams{
-						ID:            uid.New(uid.InstancePrefix),
+			for _, instance := range msg.Update.GetInstances() {
+				instanceID := existingInstanceIDs[instance.GetK8SName()]
+				if instanceID == "" {
+					instanceID = uid.New(uid.InstancePrefix)
+				}
+				err = db.NewQueries(tx).UpsertInstance(ctx, db.UpsertInstanceParams{
+					ID:            instanceID,
 						DeploymentID:  deployment.ID,
 						WorkspaceID:   deployment.WorkspaceID,
 						ProjectID:     deployment.ProjectID,
