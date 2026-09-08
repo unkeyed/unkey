@@ -17,7 +17,7 @@ export type DeploymentListRow = {
 export function useDeployments() {
   const { projectId, environments, isEnvironmentsLoading } = useProjectData();
   const appId = useAppId();
-  const { filters } = useFilters();
+  const { filters, isFiltered } = useFilters();
 
   const { input, cannotMatch } = useMemo(
     () => buildDeploymentListInput(filters, environments),
@@ -55,7 +55,7 @@ export function useDeployments() {
     isLoading: isEnvironmentsLoading || query.isInitialLoading,
     isError: query.isError,
     refetch: query.refetch,
-    isFiltered: filters.length > 0,
+    isFiltered,
     hasNextPage: query.hasNextPage ?? false,
     isFetchingNextPage: query.isFetchingNextPage,
     fetchNextPage: query.fetchNextPage,
