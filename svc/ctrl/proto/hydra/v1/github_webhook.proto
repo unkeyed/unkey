@@ -17,8 +17,8 @@ service GitHubWebhookService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
   // HandlePush processes a GitHub push event: looks up the repo connections,
-  // gates them on the workspace entitlement and each app's watch paths, then
-  // calls DeployService.Create once per app to write the row and start it.
+  // matches each app's watch paths against the changed files, then calls
+  // DeployService.Create once per app to write the row and start it.
   rpc HandlePush(HandlePushRequest) returns (HandlePushResponse) {}
 }
 

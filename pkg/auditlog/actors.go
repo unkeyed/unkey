@@ -20,8 +20,8 @@ const (
 	// system maintenance operations.
 	SystemActor AuditLogActor = "system"
 
-	// GitHubActor is a push or pull request rather than a person using Unkey.
-	// ActorID carries the GitHub login.
+	// GitHubActor is a GitHub push or pull request. ActorID is the sender's
+	// GitHub login.
 	GitHubActor AuditLogActor = "github"
 
 	// PortalEndUserActor indicates the action was performed by an end user

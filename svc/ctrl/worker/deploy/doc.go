@@ -1,8 +1,9 @@
 // Package deploy orchestrates the deployment lifecycle for user applications.
 //
 // [Workflow.Create] is the entry point: it writes the deployment row and starts
-// the pipeline. Callers name a target and a decision rather than a row, so the
-// GitHub webhook and the public API produce identical deployments.
+// the pipeline. Callers pass the app, environment, source, and decision; Create
+// builds the row, so the GitHub webhook and the public API write identical
+// deployments.
 //
 // From there deployments move through a multi-step pipeline that builds
 // container images, provisions infrastructure across regions, waits for health,

@@ -1785,19 +1785,6 @@ type Querier interface {
 	//      OR EXISTS (SELECT 1 FROM instances i WHERE i.deployment_id = d.id)
 	//    )
 	ListRunningDeploymentsByWorkspaceId(ctx context.Context, arg ListRunningDeploymentsByWorkspaceIdParams) ([]ListRunningDeploymentsByWorkspaceIdRow, error)
-	// Batched FindWorkspaceDeployEntitlement, for a push that matches apps across
-	// workspaces. The LEFT JOIN keeps a workspace with no billing row, with NULL
-	// plan columns.
-	//
-	//  SELECT
-	//     w.id AS workspace_id,
-	//     b.plan,
-	//     b.plan_override,
-	//     b.spend_suspended
-	//  FROM `workspaces` w
-	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
-	//  WHERE w.id IN (/*SLICE:workspace_ids*/?)
-	ListWorkspaceDeployEntitlements(ctx context.Context, workspaceIds []string) ([]ListWorkspaceDeployEntitlementsRow, error)
 	// Fetches the Stripe customer identity for a batch of workspaces, used by the
 	// hourly Deploy billing push to decide where each workspace's month-to-date
 	// usage gets reported. The Stripe Billing Meters map usage to a customer by

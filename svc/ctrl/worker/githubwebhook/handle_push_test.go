@@ -72,8 +72,7 @@ func TestHandlePushSkipsWhenNotDeployable(t *testing.T) {
 		require.Equal(t, app.productionEnvID, row.environmentID,
 			"a push to the default branch belongs to the production environment")
 
-		// auto_deploy off is the user asking for manual control, so a build here
-		// would spend their money.
+		// auto_deploy off means the user deploys by hand, so nothing may build.
 		h.requireNoDeploy(t, row.id)
 	})
 
@@ -89,9 +88,9 @@ func TestHandlePushSkipsWhenNotDeployable(t *testing.T) {
 	})
 }
 
-// TestHandlePushQueuesGitDeployment pins the successful path. The part easiest
-// to lose is the invocation id landing back on the row: a cancel needs it, so a
-// deployment created without one can never be stopped.
+// TestHandlePushQueuesGitDeployment pins the successful path. The invocation id
+// must land on the row: cancel needs it, so a deployment without one can never
+// be stopped.
 func TestHandlePushQueuesGitDeployment(t *testing.T) {
 	ctx := context.Background()
 	h := newPushHarness(t, ctx)
@@ -264,10 +263,8 @@ func TestHandlePushDropsIneligibleWorkspaces(t *testing.T) {
 	})
 }
 
-// TestHandlePushSurvivesARejectedCreate covers the one refusal HandlePush does
-// not screen for itself. Its own gate drops ineligible workspaces before Create
-// is ever called, so this uses an environment with nowhere to schedule: the
-// push is eligible, the watch paths match, and Create refuses.
+// TestHandlePushSurvivesARejectedCreate uses an environment with nowhere to
+// schedule: the push is eligible, the watch paths match, and Create refuses.
 //
 // The push must still succeed. A rejection is a successful answer, and failing
 // the whole delivery over one app would leave Restate retrying a repository
@@ -322,8 +319,8 @@ type pushHarness struct {
 	deploys  *deployRecorder
 	github   *fakeGitHub
 
-	// region is what every environment schedules onto. A create refuses an
-	// environment with none.
+	// Every environment is given this region. Create rejects an environment
+	// with no region.
 	region db.Region
 }
 
@@ -345,8 +342,8 @@ func newPushHarness(t *testing.T, ctx context.Context) *pushHarness {
 	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
 	require.NoError(t, err)
 
-	// The real Create, so a push produces a real deployment row. It applies the
-	// same deploy gate the webhook does, and both are enforced here.
+	// The real Create, so a push produces a real deployment row and the
+	// entitlement gate is enforced.
 	workflow, err := deploy.New(deploy.Config{
 		DB:            database,
 		Auditlogs:     auditlogSvc,
@@ -417,8 +414,7 @@ type targetOptions struct {
 	// noComputePlan leaves workspace_billing without a plan, which is what an
 	// unentitled workspace looks like to the deploy gate.
 	noComputePlan bool
-	// spendSuspended is the state the spend cap leaves behind after it tears a
-	// workspace's compute down.
+	// spendSuspended marks the workspace as suspended by its spend cap.
 	spendSuspended bool
 }
 
@@ -435,8 +431,8 @@ func (h *pushHarness) newTarget(t *testing.T, ctx context.Context, opts targetOp
 	})
 
 	if !opts.noComputePlan {
-		// plan_override is the manual-comp column the gate accepts alongside a
-		// Stripe-synced plan. No generated query writes it.
+		// plan_override is a manually granted plan the gate accepts alongside the
+		// Stripe-synced one. No generated query writes it.
 		_, err := h.database.RW().ExecContext(ctx,
 			"UPDATE workspace_billing SET plan_override = ? WHERE workspace_id = ?",
 			"pro", workspace.ID)
@@ -692,8 +688,8 @@ func (h *pushHarness) listDeployments(ctx context.Context, appID string) ([]depl
 }
 
 // awaitDeployment polls for the single deployments row of an app that satisfies
-// ready. The push only sends to Create, so the row is not there yet when the
-// push returns.
+// ready. Create writes the row before the push returns, but Deploy updates it
+// asynchronously, so a status can still be in flight.
 func (h *pushHarness) awaitDeployment(
 	t *testing.T,
 	ctx context.Context,
@@ -720,8 +716,8 @@ func hasStatus(want mysqltype.DeploymentsStatus) func(deploymentRow) bool {
 	return func(row deploymentRow) bool { return row.status == string(want) }
 }
 
-// requireNoDeployment holds the window open long enough that a row from an
-// asynchronous Create would have landed, then fails if one appeared.
+// requireNoDeployment fails if any deployments row appears for the app within
+// the window.
 func (h *pushHarness) requireNoDeployment(t *testing.T, ctx context.Context, appID string) {
 	t.Helper()
 

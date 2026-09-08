@@ -7,7 +7,6 @@ import (
 	restate "github.com/restatedev/sdk-go"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/match"
@@ -16,8 +15,8 @@ import (
 )
 
 // HandlePush processes a GitHub push event: it looks up the repo connections,
-// gates them on the workspace entitlement and each app's watch paths, then
-// calls DeployService.Create once per app.
+// matches each app's watch paths against the changed files, then calls
+// DeployService.Create once per app. Create owns the workspace entitlement gate.
 func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushRequest) (*hydrav1.HandlePushResponse, error) {
 	logger.Info(
 		"handling GitHub push in Restate",
@@ -29,6 +28,10 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	)
 
 	branch := req.GetBranch()
+	isForkPR := int64(0)
+	if req.GetIsForkPr() {
+		isForkPR = 1
+	}
 
 	// The default branch resolves to production, any other branch to preview,
 	// and a fork PR always to preview.
@@ -37,7 +40,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			InstallationID: req.GetInstallationId(),
 			RepositoryID:   req.GetRepositoryId(),
 			Branch:         sql.NullString{String: branch, Valid: branch != ""},
-			IsForkPr:       boolToInt64(req.GetIsForkPr()),
+			IsForkPr:       isForkPR,
 		})
 	}, restate.WithName("list deploy contexts"))
 	if err != nil {
@@ -51,66 +54,6 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			"repository_id", req.GetRepositoryId(),
 			"branch", req.GetBranch(),
 		)
-		return &hydrav1.HandlePushResponse{}, nil
-	}
-
-	// Gate before calling GitHub or writing even a skipped row: an ineligible
-	// workspace is a successful no-op, not something Restate should retry.
-	workspaceIDs := make([]string, 0, len(contexts))
-	seenWorkspace := make(map[string]bool, len(contexts))
-	for _, row := range contexts {
-		if !seenWorkspace[row.ProjectWorkspaceID] {
-			seenWorkspace[row.ProjectWorkspaceID] = true
-			workspaceIDs = append(workspaceIDs, row.ProjectWorkspaceID)
-		}
-	}
-
-	entitlementRows, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListWorkspaceDeployEntitlementsRow, error) {
-		return s.db.ListWorkspaceDeployEntitlements(runCtx, workspaceIDs)
-	}, restate.WithName("load workspace deploy entitlements"))
-	if err != nil {
-		return nil, err
-	}
-
-	entitlements := make(map[string]db.ListWorkspaceDeployEntitlementsRow, len(entitlementRows))
-	for _, entitlement := range entitlementRows {
-		entitlements[entitlement.WorkspaceID] = entitlement
-	}
-
-	eligibleContexts := make([]db.ListRepoConnectionDeployContextsRow, 0, len(contexts))
-	for _, row := range contexts {
-		// A workspace missing from the map reads as no plan and not suspended,
-		// the same as an unbilled one.
-		entitlement := entitlements[row.ProjectWorkspaceID]
-
-		if !deploygate.Entitled(entitlement.Plan, entitlement.PlanOverride) {
-			logger.Info("skipping deployment: workspace has no Compute plan",
-				"event", "deploy_gate.blocked",
-				"reason", "no_plan",
-				"workspace_id", row.ProjectWorkspaceID,
-				"project_id", row.ProjectID,
-				"app_id", row.AppID,
-				"delivery_id", req.GetDeliveryId(),
-			)
-			continue
-		}
-		if entitlement.SpendSuspended.Bool {
-			logger.Info(
-				"skipping deployment: workspace is spend suspended",
-				"event", "deploy_gate.blocked",
-				"reason", "spend_suspended",
-				"workspace_id", row.ProjectWorkspaceID,
-				"project_id", row.ProjectID,
-				"app_id", row.AppID,
-				"delivery_id", req.GetDeliveryId(),
-			)
-			continue
-		}
-
-		eligibleContexts = append(eligibleContexts, row)
-	}
-	contexts = eligibleContexts
-	if len(contexts) == 0 {
 		return &hydrav1.HandlePushResponse{}, nil
 	}
 
@@ -152,8 +95,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		}
 	}
 
-	// uid.New is random, so the ids are journaled, and in one step rather than
-	// one per app.
+	// Ids are minted inside restate.Run so a replay reuses the same ones.
 	ids, err := restate.Run(ctx, func(_ restate.RunContext) ([]string, error) {
 		minted := make([]string, len(contexts))
 		for i := range minted {
@@ -165,8 +107,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		return nil, err
 	}
 
-	// All creates are started before any is awaited so their GitHub lookups
-	// overlap.
+	// Fire every Create first and await them in a second loop, so the apps'
+	// creates run in parallel instead of one after another.
 	pending := make([]pendingCreate, 0, len(contexts))
 
 	for i, row := range contexts {
@@ -177,17 +119,14 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			pending = append(pending, pendingCreate{
 				deploymentID: deploymentID,
 				appID:        row.AppID,
-				future: s.requestCreate(ctx, deploymentID, row, req,
+				decision:     hydrav1.CreateDecision_CREATE_DECISION_SKIP,
+				reason:       reason,
+				future: s.startCreate(ctx, deploymentID, row, req,
 					hydrav1.CreateDecision_CREATE_DECISION_SKIP, reason),
 			})
 		}
 
 		if !row.BuildSettingsAutoDeploy {
-			logger.Info(
-				"skipping deployment: auto_deploy disabled",
-				"app_id", row.AppID,
-				"environment", row.EnvironmentSlug,
-			)
 			skipDeployment("Auto deploy is disabled for this environment.")
 			continue
 		}
@@ -196,22 +135,10 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		if matchErr != nil {
 			// A broken pattern looks exactly like a valid miss, so the reason names
 			// the pattern instead of blaming the changed files.
-			logger.Warn(
-				"skipping deployment: invalid watch path",
-				"app_id", row.AppID,
-				"watch_paths", row.BuildSettingsWatchPaths,
-				"error", matchErr,
-			)
 			skipDeployment(fault.UserFacingMessage(matchErr))
 			continue
 		}
 		if !matched {
-			logger.Info(
-				"skipping deployment: watch paths don't match changed files",
-				"app_id", row.AppID,
-				"watch_paths", row.BuildSettingsWatchPaths,
-				"changed_files", changedFiles,
-			)
 			skipDeployment("Watch paths did not match any changed files.")
 			continue
 		}
@@ -227,7 +154,9 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		pending = append(pending, pendingCreate{
 			deploymentID: deploymentID,
 			appID:        row.AppID,
-			future:       s.requestCreate(ctx, deploymentID, row, req, decision, ""),
+			decision:     decision,
+			reason:       "",
+			future:       s.startCreate(ctx, deploymentID, row, req, decision, ""),
 		})
 	}
 
@@ -237,23 +166,14 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			return nil, err
 		}
 
-		// A rejected create writes no row, so this log is its only trace.
-		if resp.GetOutcome() != hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED {
-			logger.Warn(
-				"deployment create rejected",
-				"deployment_id", create.deploymentID,
-				"delivery_id", req.GetDeliveryId(),
-				"app_id", create.appID,
-				"outcome", resp.GetOutcome().String(),
-			)
-			continue
-		}
-
 		logger.Info(
-			"deployment created",
+			"deployment create finished",
 			"deployment_id", create.deploymentID,
 			"delivery_id", req.GetDeliveryId(),
 			"app_id", create.appID,
+			"decision", create.decision.String(),
+			"reason", create.reason,
+			"outcome", resp.GetOutcome().String(),
 		)
 	}
 
@@ -263,14 +183,15 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 type pendingCreate struct {
 	deploymentID string
 	appID        string
+	decision     hydrav1.CreateDecision
+	reason       string
 	future       restate.ResponseFuture[*hydrav1.DeployCreateResponse]
 }
 
-// requestCreate asks DeployService.Create for one app's deployment. It is a
-// Request rather than a one-way Send: Create stamps created_at, which orders
-// siblings, so awaiting it inside this per-repository object keeps two pushes
-// to one repository in order.
-func (s *Service) requestCreate(
+// startCreate calls DeployService.Create for one app and returns the future.
+// HandlePush holds this repository's object until every row is written. The next push to the same
+// repository then gets a later created_at, which is what supersedes siblings.
+func (s *Service) startCreate(
 	ctx restate.ObjectContext,
 	deploymentID string,
 	row db.ListRepoConnectionDeployContextsRow,
@@ -334,11 +255,4 @@ func (s *Service) requiresApproval(
 	}
 
 	return false
-}
-
-func boolToInt64(b bool) int64 {
-	if b {
-		return 1
-	}
-	return 0
 }

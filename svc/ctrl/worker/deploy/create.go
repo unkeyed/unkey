@@ -93,7 +93,7 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 			return nil, err
 		}
 	case hydrav1.CreateDecision_CREATE_DECISION_AWAIT_APPROVAL:
-		if err := w.requestAuthorization(ctx, deploymentID, req, payload); err != nil {
+		if err := w.postAwaitingApprovalStatus(ctx, deploymentID, req, payload); err != nil {
 			return nil, err
 		}
 	case hydrav1.CreateDecision_CREATE_DECISION_SKIP,
@@ -563,17 +563,15 @@ func (w *Workflow) startDeployment(
 	return nil
 }
 
-// requestAuthorization posts the commit status that tells a contributor their
-// push is waiting for a project member. A GitHub failure is logged, not
-// returned: the row already records the wait and the create has succeeded.
-func (w *Workflow) requestAuthorization(
+// postAwaitingApprovalStatus posts a failing commit status on the pushed commit
+// that links to the dashboard approval page. A GitHub error is logged and
+// dropped: the row is already written, so the create must not fail here.
+func (w *Workflow) postAwaitingApprovalStatus(
 	ctx restate.ObjectContext,
 	deploymentID string,
 	req *hydrav1.DeployCreateRequest,
 	payload deployPayload,
 ) error {
-	// An image has no commit to post against, and without a GitHub App there is
-	// nothing to post through.
 	if payload.Source.Git == nil || w.allowUnauthenticatedDeployments {
 		return nil
 	}
@@ -599,8 +597,7 @@ func (w *Workflow) requestAuthorization(
 			)
 		}
 		return nil
-	}, restate.WithName("create commit status for authorization"),
-		restate.WithMaxRetryAttempts(runMaxAttempts)); err != nil {
+	}, restate.WithName("create commit status for authorization")); err != nil {
 		return err
 	}
 

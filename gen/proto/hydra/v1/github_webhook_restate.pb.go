@@ -24,8 +24,8 @@ import (
 // providing natural deduplication of GitHub's retried deliveries.
 type GitHubWebhookServiceClient interface {
 	// HandlePush processes a GitHub push event: looks up the repo connections,
-	// gates them on the workspace entitlement and each app's watch paths, then
-	// calls DeployService.Create once per app to write the row and start it.
+	// matches each app's watch paths against the changed files, then calls
+	// DeployService.Create once per app to write the row and start it.
 	HandlePush(opts ...sdk_go.ClientOption) sdk_go.Client[*HandlePushRequest, *HandlePushResponse]
 }
 
@@ -56,8 +56,8 @@ func (c *gitHubWebhookServiceClient) HandlePush(opts ...sdk_go.ClientOption) sdk
 // This client is used to call the service from outside of a Restate context.
 type GitHubWebhookServiceIngressClient interface {
 	// HandlePush processes a GitHub push event: looks up the repo connections,
-	// gates them on the workspace entitlement and each app's watch paths, then
-	// calls DeployService.Create once per app to write the row and start it.
+	// matches each app's watch paths against the changed files, then calls
+	// DeployService.Create once per app to write the row and start it.
 	HandlePush() ingress.Requester[*HandlePushRequest, *HandlePushResponse]
 }
 
@@ -93,8 +93,8 @@ func (c *gitHubWebhookServiceIngressClient) HandlePush() ingress.Requester[*Hand
 // providing natural deduplication of GitHub's retried deliveries.
 type GitHubWebhookServiceServer interface {
 	// HandlePush processes a GitHub push event: looks up the repo connections,
-	// gates them on the workspace entitlement and each app's watch paths, then
-	// calls DeployService.Create once per app to write the row and start it.
+	// matches each app's watch paths against the changed files, then calls
+	// DeployService.Create once per app to write the row and start it.
 	HandlePush(ctx sdk_go.ObjectContext, req *HandlePushRequest) (*HandlePushResponse, error)
 }
 
