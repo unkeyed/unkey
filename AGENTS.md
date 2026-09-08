@@ -108,9 +108,9 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 
 - Give every test a short comment that explains the behavior it guarantees and
   why that behavior matters. A descriptive test name does not replace this comment.
-- Prefer a concrete example from the test: given this input or sequence, expect
-  this result. For example, a denied delete followed by an allowed read must leave
-  the delete error available to request middleware.
+- When useful, include a concrete input and expected result from the test.
+  For example: "The number parser rejects 'abc' with an error instead of treating
+  it as zero."
 - Explain the guarantee, not the setup or assertion mechanics. For table-driven
   tests, describe the shared guarantee and use case names for individual variations.
 - Describe the behavior under test, not change history or mutation-testing scores.
