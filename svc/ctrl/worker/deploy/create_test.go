@@ -959,12 +959,12 @@ func (h *createHarness) gitRequest() *hydrav1.DeployCreateRequest {
 	return req
 }
 
-func (h *createHarness) existingRequest(sourceID string, requireNoNewer bool) *hydrav1.DeployCreateRequest {
+func (h *createHarness) existingRequest(sourceID string, requireLatest bool) *hydrav1.DeployCreateRequest {
 	req := h.imageRequest()
 	req.Source = &hydrav1.DeployCreateRequest_ExistingDeployment{
 		ExistingDeployment: &hydrav1.CreateExistingDeploymentSource{
-			DeploymentId:   sourceID,
-			RequireNoNewer: requireNoNewer,
+			DeploymentId:  sourceID,
+			RequireLatest: requireLatest,
 		},
 	}
 	return req

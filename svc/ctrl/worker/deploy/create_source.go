@@ -71,7 +71,7 @@ func (w *Workflow) resolveSource(
 
 	case *hydrav1.DeployCreateRequest_ExistingDeployment:
 		return w.resolveExistingDeployment(ctx, target,
-			source.ExistingDeployment.GetDeploymentId(), source.ExistingDeployment.GetRequireNoNewer())
+			source.ExistingDeployment.GetDeploymentId(), source.ExistingDeployment.GetRequireLatest())
 
 	default:
 		if target.SourceType == db.AppsSourceTypeGit {
@@ -97,7 +97,7 @@ func (w *Workflow) resolveSource(
 				target.AppID,
 			)), nil
 		}
-		// The current deployment is the newest by definition, so requireNoNewer
+		// The current deployment is the newest by definition, so requireLatest
 		// has nothing to check.
 		return w.resolveExistingDeployment(ctx, target, target.CurrentDeploymentID.String, false)
 	}
@@ -203,7 +203,7 @@ func (w *Workflow) resolveExistingDeployment(
 	ctx context.Context,
 	target db.FindDeployTargetRow,
 	deploymentID string,
-	requireNoNewer bool,
+	requireLatest bool,
 ) (resolvedSource, error) {
 	var failed resolvedSource
 
@@ -234,7 +234,7 @@ func (w *Workflow) resolveExistingDeployment(
 		)), nil
 	}
 
-	if requireNoNewer {
+	if requireLatest {
 		hasNewer, newerErr := w.db.HasNewerActiveDeployment(ctx, db.HasNewerActiveDeploymentParams{
 			AppID:         src.AppID,
 			EnvironmentID: src.EnvironmentID,

@@ -104,7 +104,7 @@ const (
 	// The existing deployment has neither a buildable commit nor an image.
 	CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE CreateOutcome = 7
 	// A newer active deployment exists on the same app, environment, and branch.
-	// Only with require_no_newer set.
+	// Only with require_latest set.
 	CreateOutcome_CREATE_OUTCOME_NEWER_DEPLOYMENT_EXISTS CreateOutcome = 8
 	// The image is not a well-formed container reference.
 	CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE CreateOutcome = 9
@@ -794,9 +794,9 @@ type CreateExistingDeploymentSource struct {
 	DeploymentId string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
 	// Refuse the rebuild when a newer active deployment exists on the same app,
 	// environment, and branch.
-	RequireNoNewer bool `protobuf:"varint,2,opt,name=require_no_newer,json=requireNoNewer,proto3" json:"require_no_newer,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	RequireLatest bool `protobuf:"varint,2,opt,name=require_latest,json=requireLatest,proto3" json:"require_latest,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateExistingDeploymentSource) Reset() {
@@ -836,9 +836,9 @@ func (x *CreateExistingDeploymentSource) GetDeploymentId() string {
 	return ""
 }
 
-func (x *CreateExistingDeploymentSource) GetRequireNoNewer() bool {
+func (x *CreateExistingDeploymentSource) GetRequireLatest() bool {
 	if x != nil {
-		return x.RequireNoNewer
+		return x.RequireLatest
 	}
 	return false
 }
@@ -1629,10 +1629,10 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x06commit\x18\x01 \x01(\v2\x16.ctrl.v1.GitCommitInfoR\x06commit\x12\x1b\n" +
 	"\tpr_number\x18\x02 \x01(\x03R\bprNumber\")\n" +
 	"\x11CreateImageSource\x12\x14\n" +
-	"\x05image\x18\x01 \x01(\tR\x05image\"o\n" +
+	"\x05image\x18\x01 \x01(\tR\x05image\"l\n" +
 	"\x1eCreateExistingDeploymentSource\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12(\n" +
-	"\x10require_no_newer\x18\x02 \x01(\bR\x0erequireNoNewer\"\x9d\x04\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12%\n" +
+	"\x0erequire_latest\x18\x02 \x01(\bR\rrequireLatest\"\x9d\x04\n" +
 	"\x13DeployCreateRequest\x12\x1d\n" +
 	"\n" +
 	"project_id\x18\x01 \x01(\tR\tprojectId\x12\x15\n" +

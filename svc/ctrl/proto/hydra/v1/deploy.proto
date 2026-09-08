@@ -174,7 +174,7 @@ enum CreateOutcome {
   CREATE_OUTCOME_NO_SOURCE_IMAGE = 7;
 
   // A newer active deployment exists on the same app, environment, and branch.
-  // Only with require_no_newer set.
+  // Only with require_latest set.
   CREATE_OUTCOME_NEWER_DEPLOYMENT_EXISTS = 8;
 
   // The image is not a well-formed container reference.
@@ -215,7 +215,7 @@ message CreateExistingDeploymentSource {
 
   // Refuse the rebuild when a newer active deployment exists on the same app,
   // environment, and branch.
-  bool require_no_newer = 2;
+  bool require_latest = 2;
 }
 
 message DeployCreateRequest {
