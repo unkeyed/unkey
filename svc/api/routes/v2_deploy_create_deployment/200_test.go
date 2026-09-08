@@ -16,7 +16,7 @@ import (
 func TestCreateDeploymentSuccessfully(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	restate, creates := newRecordingRestate(t)
+	restate, creates := testutil.RecordingDeployRestate(t)
 	route := newRoute(h, restate)
 	h.Register(route)
 
@@ -49,8 +49,8 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.Data.DeploymentId, "deployment ID should not be empty")
 		observed := testutil.Receive(t, creates, 10*time.Second)
-		require.Equal(t, res.Body.Data.DeploymentId, observed.virtualObjectKey,
-			"the id in the response must be the object key the create runs on")
+		require.Equal(t, res.Body.Data.DeploymentId, observed.DeploymentID,
+			"the id in the response must be the id the create ran under")
 	})
 
 	t.Run("create deployment with git commit info", func(t *testing.T) {
@@ -90,8 +90,8 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.NotEmpty(t, res.Body.Data.DeploymentId, "deployment ID should not be empty")
 		observed := testutil.Receive(t, creates, 10*time.Second)
-		require.Equal(t, res.Body.Data.DeploymentId, observed.virtualObjectKey,
-			"the id in the response must be the object key the create runs on")
+		require.Equal(t, res.Body.Data.DeploymentId, observed.DeploymentID,
+			"the id in the response must be the id the create ran under")
 	})
 }
 
@@ -99,7 +99,7 @@ func TestCreateDeploymentWithWildcardPermission(t *testing.T) {
 	t.Parallel()
 	h := testutil.NewHarness(t)
 
-	restate, creates := newRecordingRestate(t)
+	restate, creates := testutil.RecordingDeployRestate(t)
 	route := newRoute(h, restate)
 	h.Register(route)
 
@@ -124,15 +124,15 @@ func TestCreateDeploymentWithWildcardPermission(t *testing.T) {
 	require.Equal(t, http.StatusCreated, res.Status, "Expected 201, got: %d", res.Status)
 	require.NotNil(t, res.Body)
 	observed := testutil.Receive(t, creates, 10*time.Second)
-	require.Equal(t, res.Body.Data.DeploymentId, observed.virtualObjectKey,
-		"the id in the response must be the object key the create runs on")
+	require.Equal(t, res.Body.Data.DeploymentId, observed.DeploymentID,
+		"the id in the response must be the id the create ran under")
 }
 
 func TestCreateDeploymentWithSpecificProjectPermission(t *testing.T) {
 	t.Parallel()
 	h := testutil.NewHarness(t)
 
-	restate, creates := newRecordingRestate(t)
+	restate, creates := testutil.RecordingDeployRestate(t)
 	route := newRoute(h, restate)
 	h.Register(route)
 
@@ -159,6 +159,6 @@ func TestCreateDeploymentWithSpecificProjectPermission(t *testing.T) {
 	require.Equal(t, http.StatusCreated, res.Status, "Expected 201, got: %d", res.Status)
 	require.NotNil(t, res.Body)
 	observed := testutil.Receive(t, creates, 10*time.Second)
-	require.Equal(t, res.Body.Data.DeploymentId, observed.virtualObjectKey,
-		"the id in the response must be the object key the create runs on")
+	require.Equal(t, res.Body.Data.DeploymentId, observed.DeploymentID,
+		"the id in the response must be the id the create ran under")
 }

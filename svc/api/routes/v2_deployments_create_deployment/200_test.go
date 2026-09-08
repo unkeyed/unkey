@@ -18,14 +18,13 @@ import (
 
 func TestImageSource(t *testing.T) {
 	h := testutil.NewHarness(t)
-	restate, creates := newRecordingRestate(t)
+	restate, creates := testutil.RecordingDeployRestate(t)
 	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
-	seedDeployableRegion(t, h, setup)
 
 	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
 
@@ -35,26 +34,25 @@ func TestImageSource(t *testing.T) {
 	require.NotEmpty(t, res.Body.Data.DeploymentId)
 
 	observed := testutil.Receive(t, creates, 10*time.Second)
-	require.Equal(t, res.Body.Data.DeploymentId, observed.virtualObjectKey,
-		"the id in the response must be the object key the create runs on")
-	require.Equal(t, "nginx:latest", observed.request.GetImage().GetImage())
-	require.Equal(t, setup.Project.ID, observed.request.GetProjectId())
-	require.Equal(t, setup.App.ID, observed.request.GetAppId())
-	require.Equal(t, setup.Environment.ID, observed.request.GetEnvironmentId())
-	require.Nil(t, observed.request.GetGit(), "image source must not send git commit info")
-	require.Equal(t, ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API, observed.request.GetTrigger())
+	require.Equal(t, res.Body.Data.DeploymentId, observed.DeploymentID,
+		"the id in the response must be the id the create ran under")
+	require.Equal(t, "nginx:latest", observed.Request.GetImage().GetImage())
+	require.Equal(t, setup.Project.ID, observed.Request.GetProjectId())
+	require.Equal(t, setup.App.ID, observed.Request.GetAppId())
+	require.Equal(t, setup.Environment.ID, observed.Request.GetEnvironmentId())
+	require.Nil(t, observed.Request.GetGit(), "image source must not send git commit info")
+	require.Equal(t, ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API, observed.Request.GetTrigger())
 }
 
 func TestImageSourceCliTrigger(t *testing.T) {
 	h := testutil.NewHarness(t)
-	restate, creates := newRecordingRestate(t)
+	restate, creates := testutil.RecordingDeployRestate(t)
 	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
-	seedDeployableRegion(t, h, setup)
 
 	headers := authHeaders(setup.RootKey)
 	headers.Set("X-Unkey-Client", "unkey-cli/1.2.3")
@@ -64,19 +62,18 @@ func TestImageSourceCliTrigger(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 	observed := testutil.Receive(t, creates, 10*time.Second)
-	require.Equal(t, ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI, observed.request.GetTrigger())
+	require.Equal(t, ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI, observed.Request.GetTrigger())
 }
 
 func TestGitSource(t *testing.T) {
 	h := testutil.NewHarness(t)
-	restate, creates := newRecordingRestate(t)
+	restate, creates := testutil.RecordingDeployRestate(t)
 	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
-	seedDeployableRegion(t, h, setup)
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
 	req := gitRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, openapi.DeploymentSourceGit{
@@ -89,22 +86,21 @@ func TestGitSource(t *testing.T) {
 	require.NotEmpty(t, res.Body.Data.DeploymentId)
 
 	observed := testutil.Receive(t, creates, 10*time.Second)
-	require.NotNil(t, observed.request.GetGit().GetCommit())
-	require.Equal(t, "main", observed.request.GetGit().GetCommit().Branch)
-	require.Equal(t, "abc123", observed.request.GetGit().GetCommit().CommitSha)
-	require.Nil(t, observed.request.GetImage())
+	require.NotNil(t, observed.Request.GetGit().GetCommit())
+	require.Equal(t, "main", observed.Request.GetGit().GetCommit().Branch)
+	require.Equal(t, "abc123", observed.Request.GetGit().GetCommit().CommitSha)
+	require.Nil(t, observed.Request.GetImage())
 }
 
 func TestGitSourceWithFork(t *testing.T) {
 	h := testutil.NewHarness(t)
-	restate, creates := newRecordingRestate(t)
+	restate, creates := testutil.RecordingDeployRestate(t)
 	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
-	seedDeployableRegion(t, h, setup)
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
 	req := gitRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, openapi.DeploymentSourceGit{
@@ -115,21 +111,20 @@ func TestGitSourceWithFork(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 	observed := testutil.Receive(t, creates, 10*time.Second)
-	require.NotNil(t, observed.request.GetGit().GetCommit())
-	require.Equal(t, "contributor/acme-api", observed.request.GetGit().GetCommit().ForkRepository)
-	require.Equal(t, "9f2c1a7", observed.request.GetGit().GetCommit().CommitSha)
+	require.NotNil(t, observed.Request.GetGit().GetCommit())
+	require.Equal(t, "contributor/acme-api", observed.Request.GetGit().GetCommit().ForkRepository)
+	require.Equal(t, "9f2c1a7", observed.Request.GetGit().GetCommit().CommitSha)
 }
 
 func TestRedeployGitApp(t *testing.T) {
 	h := testutil.NewHarness(t)
-	restate, creates := newRecordingRestate(t)
+	restate, creates := testutil.RecordingDeployRestate(t)
 	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
-	seedDeployableRegion(t, h, setup)
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -146,22 +141,21 @@ func TestRedeployGitApp(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 	observed := testutil.Receive(t, creates, 10*time.Second)
-	require.Equal(t, dep.ID, observed.request.GetExistingDeployment().GetDeploymentId(),
+	require.Equal(t, dep.ID, observed.Request.GetExistingDeployment().GetDeploymentId(),
 		"the source deployment is named by id; what it rebuilds from is the worker's to resolve")
-	require.Nil(t, observed.request.GetGit())
-	require.Nil(t, observed.request.GetImage())
+	require.Nil(t, observed.Request.GetGit())
+	require.Nil(t, observed.Request.GetImage())
 }
 
 func TestRedeployImageReuse(t *testing.T) {
 	h := testutil.NewHarness(t)
-	restate, creates := newRecordingRestate(t)
+	restate, creates := testutil.RecordingDeployRestate(t)
 	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
-	seedDeployableRegion(t, h, setup)
 	// No repo connection: redeploy reuses the recorded image rather than rebuilding.
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -177,7 +171,7 @@ func TestRedeployImageReuse(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 	observed := testutil.Receive(t, creates, 10*time.Second)
-	require.Equal(t, dep.ID, observed.request.GetExistingDeployment().GetDeploymentId())
+	require.Equal(t, dep.ID, observed.Request.GetExistingDeployment().GetDeploymentId())
 }
 
 // TestRedeployForkDeployment covers redeploying a deployment that was built from
@@ -186,14 +180,13 @@ func TestRedeployImageReuse(t *testing.T) {
 // source rather than flattening it into a commit of its own.
 func TestRedeployForkDeployment(t *testing.T) {
 	h := testutil.NewHarness(t)
-	restate, creates := newRecordingRestate(t)
+	restate, creates := testutil.RecordingDeployRestate(t)
 	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
-	seedDeployableRegion(t, h, setup)
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -216,9 +209,9 @@ func TestRedeployForkDeployment(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 	observed := testutil.Receive(t, creates, 10*time.Second)
-	require.Equal(t, dep.ID, observed.request.GetExistingDeployment().GetDeploymentId())
-	require.Nil(t, observed.request.GetGit())
-	require.Nil(t, observed.request.GetImage())
+	require.Equal(t, dep.ID, observed.Request.GetExistingDeployment().GetDeploymentId())
+	require.Nil(t, observed.Request.GetGit())
+	require.Nil(t, observed.Request.GetImage())
 }
 
 // TestRedeployImageDeploymentOnConnectedApp covers an image-origin deployment
@@ -228,14 +221,13 @@ func TestRedeployForkDeployment(t *testing.T) {
 // the source instead of resolving it and getting that choice wrong itself.
 func TestRedeployImageDeploymentOnConnectedApp(t *testing.T) {
 	h := testutil.NewHarness(t)
-	restate, creates := newRecordingRestate(t)
+	restate, creates := testutil.RecordingDeployRestate(t)
 	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
-	seedDeployableRegion(t, h, setup)
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
 	// Image-origin deployment: no git commit, but a built image on record.
@@ -253,7 +245,7 @@ func TestRedeployImageDeploymentOnConnectedApp(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 	observed := testutil.Receive(t, creates, 10*time.Second)
-	require.Equal(t, dep.ID, observed.request.GetExistingDeployment().GetDeploymentId())
+	require.Equal(t, dep.ID, observed.Request.GetExistingDeployment().GetDeploymentId())
 }
 
 // TestRedeployDeploymentWithoutBuiltImage covers a deployment that never produced
@@ -262,13 +254,12 @@ func TestRedeployImageDeploymentOnConnectedApp(t *testing.T) {
 // caller is told 412 rather than handed an id for a deployment that never builds.
 func TestRedeployDeploymentWithoutBuiltImage(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newRejectingRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE))
+	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
-	seedDeployableRegion(t, h, setup)
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
 	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
@@ -287,12 +278,11 @@ func TestRedeployDeploymentWithoutBuiltImage(t *testing.T) {
 
 func TestSpecificEnvironmentPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
-	restate, creates := newRecordingRestate(t)
+	restate, creates := testutil.RecordingDeployRestate(t)
 	route := newRoute(h, restate)
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup()
-	seedDeployableRegion(t, h, setup)
 	rootKey := h.CreateRootKey(setup.Workspace.ID, "environment."+setup.Environment.ID+".create_deployment")
 
 	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
@@ -300,5 +290,5 @@ func TestSpecificEnvironmentPermission(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 	observed := testutil.Receive(t, creates, 10*time.Second)
-	require.Equal(t, setup.Project.ID, observed.request.GetProjectId())
+	require.Equal(t, setup.Project.ID, observed.Request.GetProjectId())
 }

@@ -10,7 +10,6 @@ import (
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_create_deployment"
@@ -77,31 +76,7 @@ func setDeploymentImage(t *testing.T, h *testutil.Harness, deploymentID, image s
 	require.NoError(t, err)
 }
 
-// seedDeployableRegion attaches a schedulable region to the setup's environment
-// so it clears the create handler's deployability pre-flight and reaches ctrl.
-// The seeder gives an environment sane runtime settings but no region.
-func seedDeployableRegion(t *testing.T, h *testutil.Harness, setup testutil.DeploymentTestSetup) {
-	t.Helper()
-	ctx := context.Background()
-	regionID := uid.New(uid.RegionPrefix)
-	require.NoError(t, db.Query.UpsertRegion(ctx, h.DB.RW(), db.UpsertRegionParams{
-		ID:       regionID,
-		Name:     uid.New(uid.RegionPrefix),
-		Platform: "test",
-	}))
-	require.NoError(t, db.Query.UpsertAppRegionalSettings(ctx, h.DB.RW(), db.UpsertAppRegionalSettingsParams{
-		WorkspaceID:   setup.Workspace.ID,
-		AppID:         setup.App.ID,
-		EnvironmentID: setup.Environment.ID,
-		RegionID:      regionID,
-		Replicas:      1,
-		CreatedAt:     time.Now().UnixMilli(),
-		UpdatedAt:     sql.NullInt64{Valid: false},
-	}))
-}
-
-// connectRepo attaches a GitHub repository connection to an app so git-sourced
-// deployments pass the handler's precondition check.
+// connectRepo attaches a GitHub repository connection to an app.
 func connectRepo(t *testing.T, h *testutil.Harness, workspaceID, projectID, appID string) {
 	t.Helper()
 	err := db.Query.InsertGithubRepoConnection(context.Background(), h.DB.RW(), db.InsertGithubRepoConnectionParams{

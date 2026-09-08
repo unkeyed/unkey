@@ -14,7 +14,7 @@ import (
 
 func TestEnvironmentNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newUncalledRestate(t))
+	route := newRoute(h, testutil.UncalledDeployRestate(t))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -40,7 +40,7 @@ func TestEnvironmentNotFound(t *testing.T) {
 
 func TestRedeployDeploymentNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newUncalledRestate(t))
+	route := newRoute(h, testutil.UncalledDeployRestate(t))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -59,7 +59,7 @@ func TestRedeployDeploymentNotFound(t *testing.T) {
 // confirm the existence of another tenant's deployment.
 func TestRedeployCrossWorkspaceMasked(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newUncalledRestate(t))
+	route := newRoute(h, testutil.UncalledDeployRestate(t))
 	h.Register(route)
 
 	victim := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -92,7 +92,7 @@ func TestRedeployCrossWorkspaceMasked(t *testing.T) {
 // caller may not have access to.
 func TestRedeployWrongAppOrEnvironmentMasked(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newUncalledRestate(t))
+	route := newRoute(h, testutil.UncalledDeployRestate(t))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{

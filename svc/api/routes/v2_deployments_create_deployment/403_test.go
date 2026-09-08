@@ -11,7 +11,7 @@ import (
 
 func TestInsufficientPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newUncalledRestate(t))
+	route := newRoute(h, testutil.UncalledDeployRestate(t))
 	h.Register(route)
 
 	// A key with an unrelated permission on the project.

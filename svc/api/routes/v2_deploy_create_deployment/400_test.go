@@ -14,7 +14,7 @@ import (
 func TestBadRequests(t *testing.T) {
 	h := testutil.NewHarness(t)
 
-	route := newRoute(h, newUncalledRestate(t))
+	route := newRoute(h, testutil.UncalledDeployRestate(t))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
