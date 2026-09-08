@@ -3,8 +3,8 @@ import { UnkeyLogo } from "~/components/ui/unkey-logo";
 export function PortalFooter() {
   return (
     <footer className="w-full bg-gray-3/50">
-      <div className="flex items-center justify-between px-4 py-5 text-gray-11 text-xs sm:px-8">
-        <span className="inline-flex items-center gap-1.5">
+      <div className="flex flex-col gap-3 px-4 py-5 text-gray-11 text-xs sm:flex-row sm:items-center sm:justify-between sm:px-8">
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
           Powered by
           <a
             href="https://unkey.com"
@@ -13,7 +13,7 @@ export function PortalFooter() {
             <UnkeyLogo className="h-3.5 w-auto" />
           </a>
         </span>
-        <nav className="flex items-center gap-5">
+        <nav className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <a href="https://unkey.com/portal" className="transition-colors hover:text-gray-12">
             Learn about Unkey Portal
           </a>

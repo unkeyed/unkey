@@ -144,6 +144,16 @@
     --errorA-4: 12, 100%, 50%, 0.17;
     --errorA-11: 11, 100%, 40%, 0.91;
   }
+
+  /* Declared here rather than on :root because var() inside a custom property
+     is substituted where the property is declared: at :root these would resolve
+     against the unbranded fallbacks, ignoring the branding the shell sets
+     inline on this element. */
+  .portal-shell {
+    --portal-header-bg: var(--portal-primary, var(--color-gray-12));
+    --portal-header-fg: var(--portal-primary-foreground, #ffffff);
+    --portal-header-muted: color-mix(in srgb, var(--portal-header-fg) 85%, transparent);
+  }
 }
 
 @layer base {
