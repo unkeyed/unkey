@@ -3,6 +3,11 @@ set -euo pipefail
 
 export DEBIAN_FRONTEND=noninteractive
 
+if ! command -v rsync >/dev/null 2>&1; then
+  sudo apt-get update
+  sudo apt-get install -y rsync
+fi
+
 echo "Installing Docker Engine and Compose..."
 docker_started_at=$SECONDS
 if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
