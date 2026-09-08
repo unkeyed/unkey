@@ -49,6 +49,7 @@ func main() {
 	config := datamodel.NewDocumentConfiguration()
 	config.BasePath = "."
 	config.ExtractRefsSequentially = true
+	config.TransformSiblingRefs = false
 
 	// Parse the preprocessed specification
 	document, err := libopenapi.NewDocumentWithConfiguration(preprocessedSpec, config)
