@@ -3,7 +3,7 @@ import { getCookie } from "@tanstack/react-start/server";
 import type { Unkey } from "@unkey/api";
 import { mapVerificationsResponse } from "~/components/analytics/analytics-transform";
 import {
-  type VerificationsTimeseries,
+  type VerificationBucket,
   getVerificationsQuerySchema,
 } from "~/components/analytics/schema/analytics.schema";
 import {
@@ -171,7 +171,6 @@ export const listKeys = createServerFn({ method: "GET" })
             createdAt: k.createdAt,
             expires: k.expires ?? null,
             enabled: k.enabled,
-            usage: [],
           })),
           cursor: pagination.cursor ?? null,
           hasMore: pagination.hasMore,
@@ -179,27 +178,19 @@ export const listKeys = createServerFn({ method: "GET" })
       }),
   );
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
 /**
- * Fetch the session end user's verification analytics for a time window. The
- * window is derived server-side from the requested day count (so the client
- * sends only `days`, keeping the react-query key stable across renders); the API
- * scopes results to the session identity, enforces its own retention cap, and
- * picks bucket granularity from the window size.
+ * Fetch the session end user's verification analytics for a window, optionally
+ * narrowed to one key. The API scopes results to the session identity, rejects
+ * windows wider than the workspace's retention, and picks bucket granularity
+ * from the window size.
  */
 export const getVerifications = createServerFn({ method: "GET" })
   .inputValidator((query: unknown) => getVerificationsQuerySchema.parse(query))
   .handler(
-    ({ data }): Promise<VerificationsTimeseries> =>
+    ({ data }): Promise<VerificationBucket[]> =>
       withPortalClient(async (client, token) => {
-        const endTime = Date.now();
-        const startTime = endTime - data.days * MS_PER_DAY;
-        const res = await client.portal.getVerifications(
-          { portalSession: token },
-          { startTime, endTime },
-        );
-        return { days: data.days, buckets: mapVerificationsResponse(res.data) };
+        const res = await client.portal.getVerifications({ portalSession: token }, data);
+        return mapVerificationsResponse(res.data);
       }),
   );
 
