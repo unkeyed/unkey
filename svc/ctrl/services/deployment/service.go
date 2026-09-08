@@ -8,7 +8,6 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/deploycancel"
 )
 
 // Service implements the DeployService ConnectRPC API. It coordinates
@@ -19,7 +18,7 @@ type Service struct {
 	db           db.Database
 	auditlogs    auditlogs.AuditLogService
 	restate      *restateingress.Client
-	restateAdmin deploycancel.InvocationCanceler
+	restateAdmin *restateadmin.Client
 	github       githubclient.GitHubClient
 	bearer       string
 }
@@ -52,17 +51,13 @@ type Config struct {
 
 // New creates a new [Service] with the given configuration.
 func New(cfg Config) *Service {
-	s := &Service{
+	return &Service{
 		UnimplementedDeployServiceHandler: ctrlv1connect.UnimplementedDeployServiceHandler{},
 		db:                                cfg.Database,
 		auditlogs:                         cfg.Auditlogs,
 		restate:                           cfg.Restate,
-		restateAdmin:                      nil,
+		restateAdmin:                      cfg.RestateAdmin,
 		github:                            cfg.GitHub,
 		bearer:                            cfg.Bearer,
 	}
-	if cfg.RestateAdmin != nil {
-		s.restateAdmin = cfg.RestateAdmin
-	}
-	return s
 }

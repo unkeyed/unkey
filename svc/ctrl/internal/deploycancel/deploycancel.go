@@ -1,5 +1,5 @@
 // Package deploycancel aborts deployments. The CancelDeployment RPC,
-// dedup.CancelOlderSiblings, and the environment Delete workflow all go
+// deploy.Workflow.cancelOlderSiblings, and the environment Delete workflow all go
 // through [Cancel].
 package deploycancel
 
@@ -15,6 +15,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/logger"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -26,12 +27,6 @@ import (
 type Deployment struct {
 	ID           string
 	InvocationID string
-}
-
-// InvocationCanceler must treat a 404 from Restate as success, because the
-// invocation can complete between reading its id and cancelling it.
-type InvocationCanceler interface {
-	CancelInvocation(ctx context.Context, invocationID string) error
 }
 
 // Audit describes the deployment.cancel entry written per deployment. Nil, or
@@ -58,9 +53,10 @@ type Params struct {
 // only touches progressing rows, so the status written here survives.
 //
 // Database errors are logged and the invocations are still cancelled; a
-// running invocation is worse than a wrong status. Audit entries are written
-// last so a retry after a cancel error does not duplicate them.
-func Cancel(ctx context.Context, database db.Database, admin InvocationCanceler, p Params) error {
+// running invocation is worse than a wrong status. A nil admin skips Restate
+// and only moves the rows. Audit entries are written last so a retry after a
+// cancel error does not duplicate them.
+func Cancel(ctx context.Context, database db.Database, admin *restateadmin.Client, p Params) error {
 	if len(p.Deployments) == 0 {
 		return nil
 	}
