@@ -58,8 +58,8 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 			EnvironmentId: src.EnvironmentID,
 			Source: &hydrav1.DeployCreateRequest_ExistingDeployment{
 				ExistingDeployment: &hydrav1.CreateExistingDeploymentSource{
-					DeploymentId:   sourceDeploymentID,
-					RequireNoNewer: !force,
+					DeploymentId:  sourceDeploymentID,
+					RequireLatest: !force,
 				},
 			},
 			Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,

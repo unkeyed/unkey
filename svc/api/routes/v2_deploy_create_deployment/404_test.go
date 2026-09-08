@@ -20,7 +20,7 @@ func TestProjectNotFound(t *testing.T) {
 		Permissions: []string{"project.*.create_deployment"},
 	})
 
-	route := newRoute(h, newUncalledRestate(t))
+	route := newRoute(h, testutil.UncalledDeployRestate(t))
 	h.Register(route)
 
 	headers := http.Header{
@@ -61,7 +61,7 @@ func TestCrossWorkspaceProjectIsolation(t *testing.T) {
 		Permissions: []string{"project.*.create_deployment"},
 	})
 
-	restate, creates := newRecordingRestate(t)
+	restate, creates := testutil.RecordingDeployRestate(t)
 	route := newRoute(h, restate)
 	h.Register(route)
 
@@ -84,7 +84,7 @@ func TestCrossWorkspaceProjectIsolation(t *testing.T) {
 
 	// The resolved project ID must be the attacker's, not the victim's.
 	observed := testutil.Receive(t, creates, 10*time.Second)
-	require.Equal(t, attackerSetup.Project.ID, observed.request.GetProjectId(),
+	require.Equal(t, attackerSetup.Project.ID, observed.Request.GetProjectId(),
 		"slug resolved to wrong workspace's project")
 }
 
@@ -103,7 +103,7 @@ func TestCrossWorkspaceKeyspaceIsolation(t *testing.T) {
 	})
 	victimKeyspaceID := victimApi.KeyAuthID.String
 
-	route := newRoute(h, newUncalledRestate(t))
+	route := newRoute(h, testutil.UncalledDeployRestate(t))
 	h.Register(route)
 
 	headers := http.Header{
@@ -134,7 +134,7 @@ func TestKeyspaceNotFound(t *testing.T) {
 		Permissions: []string{"project.*.create_deployment"},
 	})
 
-	route := newRoute(h, newUncalledRestate(t))
+	route := newRoute(h, testutil.UncalledDeployRestate(t))
 	h.Register(route)
 
 	headers := http.Header{
@@ -165,7 +165,7 @@ func TestEnvironmentNotFound(t *testing.T) {
 		Permissions: []string{"project.*.create_deployment"},
 	})
 
-	route := newRoute(h, newUncalledRestate(t))
+	route := newRoute(h, testutil.UncalledDeployRestate(t))
 	h.Register(route)
 
 	headers := http.Header{

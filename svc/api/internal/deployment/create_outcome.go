@@ -7,11 +7,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
-// OutcomeFault maps a create outcome onto the error the caller sees, nil for a
-// created row. Only the enum crosses the wire, because the worker's detail can
+// errorForOutcome maps a create outcome onto the error the caller sees, nil for
+// a created row. Only the enum crosses the wire, because the worker's detail can
 // name repositories and deployments the caller may not read, so each message is
 // written from the outcome alone.
-func OutcomeFault(outcome hydrav1.CreateOutcome) error {
+func errorForOutcome(outcome hydrav1.CreateOutcome) error {
 	switch outcome {
 	case hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED:
 		return nil

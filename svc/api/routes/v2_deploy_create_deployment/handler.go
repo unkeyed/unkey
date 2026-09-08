@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -13,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
 	"github.com/unkeyed/unkey/svc/api/internal/deployment"
@@ -101,13 +99,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// CLI announces itself via X-Unkey-Client: unkey-cli/<version>.
-	// Anything else (or absent) is attributed to the API.
-	trigger := ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API
-	if strings.HasPrefix(s.Request().Header.Get("X-Unkey-Client"), "unkey-cli/") {
-		trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI
-	}
-
 	// The worker rejects a bad image too, with a coarser message.
 	if err := imageref.Validate(req.DockerImage); err != nil {
 		return err
@@ -118,10 +109,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// The id is the Restate object key the create runs on, so minting it here
-	// lets the response name the deployment without waiting on the worker.
-	deploymentID := uid.New(uid.DeploymentPrefix)
-
 	// nolint: exhaustruct // the source oneof is set below
 	createReq := &hydrav1.DeployCreateRequest{
 		ProjectId:     row.ProjectID,
@@ -131,7 +118,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Image: &hydrav1.CreateImageSource{Image: req.DockerImage},
 		},
 		Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
-		Trigger:       trigger,
+		Trigger:       deployment.TriggerFromClient(s),
 		TriggeredBy:   principal.Subject.ID,
 		TriggerReason: "",
 		Actor:         actorInfo,
@@ -191,21 +178,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	// Request, not Send: awaiting the create means the caller can read the
-	// deployment back as soon as this returns, and a rejection can be reported.
-	// A timeout does not undo the create; Restate keeps running it.
-	res, err := hydrav1.NewDeployServiceIngressClient(h.Restate, deploymentID).
-		Create().
-		Request(ctx, createReq)
+	deploymentID, err := deployment.Submit(ctx, h.Restate, createReq)
 	if err != nil {
-		return fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("failed to submit deployment create to Restate"),
-			fault.Public("Failed to create deployment."),
-		)
-	}
-	if err := deployment.OutcomeFault(res.GetOutcome()); err != nil {
 		return err
 	}
 

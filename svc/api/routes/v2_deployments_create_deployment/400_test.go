@@ -14,7 +14,7 @@ import (
 
 func TestValidationErrors(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newUncalledRestate(t))
+	route := newRoute(h, testutil.UncalledDeployRestate(t))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -77,7 +77,7 @@ func TestValidationErrors(t *testing.T) {
 // message here names no field.
 func TestInvalidEnvironmentSettings(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newRejectingRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE))
+	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -97,7 +97,7 @@ func TestInvalidEnvironmentSettings(t *testing.T) {
 // an id for a deployment that would only ever fail to pull.
 func TestMalformedImageReference(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newRejectingRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE))
+	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{

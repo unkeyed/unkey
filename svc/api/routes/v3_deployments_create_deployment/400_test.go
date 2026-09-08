@@ -16,7 +16,7 @@ func TestRequestValidation(t *testing.T) {
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
-	route := &handler.Handler{DB: h.DB, Restate: newUncalledRestate(t)}
+	route := &handler.Handler{DB: h.DB, Restate: testutil.UncalledDeployRestate(t)}
 	h.Register(route)
 
 	base := map[string]any{

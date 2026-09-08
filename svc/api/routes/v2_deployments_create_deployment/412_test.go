@@ -3,11 +3,9 @@ package handler_test
 import (
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -17,14 +15,13 @@ import (
 
 func TestGitSourceWithoutRepoConnection(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newRejectingRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_REPO_CONNECTION))
+	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_REPO_CONNECTION))
 	h.Register(route)
 
 	// No repo connection attached to the app.
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
-	seedDeployableRegion(t, h, setup)
 
 	req := gitRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, openapi.DeploymentSourceGit{
 		Branch: ptr.P("main"),
@@ -35,20 +32,16 @@ func TestGitSourceWithoutRepoConnection(t *testing.T) {
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/application/precondition_failed", res.Body.Error.Type)
 }
 
-// TestCreateDeploymentRequiresComputePlan and TestCreateDeploymentSpendSuspended
-// cover the billing gate. The gate itself belongs to the create worker, which
-// answers a refusal as an enum; this route awaits that answer and is what turns
-// it into a 412 a caller can act on.
-func TestCreateDeploymentRequiresComputePlan(t *testing.T) {
+// The billing gate lives in the create worker and answers a refusal as an
+// outcome. These pin the 412 and message the route turns each outcome into.
+func TestNoComputePlanOutcomeIs412(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newRejectingRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_COMPUTE_PLAN))
+	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_COMPUTE_PLAN))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
-	seedDeployableRegion(t, h, setup)
-	h.ClearComputePlanOverride(setup.Workspace.ID)
 
 	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
 
@@ -57,21 +50,14 @@ func TestCreateDeploymentRequiresComputePlan(t *testing.T) {
 	require.Equal(t, "The workspace has no active Compute plan.", res.Body.Error.Detail)
 }
 
-func TestCreateDeploymentSpendSuspended(t *testing.T) {
+func TestSpendSuspendedOutcomeIs412(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, newRejectingRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_SPEND_SUSPENDED))
+	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_SPEND_SUSPENDED))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
-	seedDeployableRegion(t, h, setup)
-
-	require.NoError(t, db.Query.UpsertWorkspaceBillingSpendSuspended(t.Context(), h.DB.RW(), db.UpsertWorkspaceBillingSpendSuspendedParams{
-		WorkspaceID:    setup.Workspace.ID,
-		SpendSuspended: true,
-		CreatedAtM:     time.Now().UnixMilli(),
-	}))
 
 	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
 
