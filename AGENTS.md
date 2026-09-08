@@ -99,9 +99,8 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 
 ## Code comments
 
-- Avoid production code comments by default. Test explanations are required.
+- Avoid code comments that explain what the code does. Explain why it matters instead.
 - Only add a comment when the code itself cannot clearly communicate why something is necessary.
-- Never comment what the code does.
 - Comments should be rare and reserved for essential context that a future reader would otherwise be unable to infer, such as non-obvious constraints, intentional trade-offs, or decisions that cannot be expressed through the code itself.
 - Do not add comments solely to explain changes to the current reviewer, unless explicitly asked.
 
