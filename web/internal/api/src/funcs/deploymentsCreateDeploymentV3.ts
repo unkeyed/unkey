@@ -27,37 +27,36 @@ import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
 
 /**
- * Create app
+ * Create deployment
  *
  * @remarks
- * Create an app within a project. The app is created with default `production` and `preview` environments.
+ * Create a deployment for an app in a project.
  *
- * Set exactly one source. Use `git` to create a GitHub-sourced app and connect its repository. Use `oci` to create an app from a prebuilt OCI image.
+ * Omit the source to use the app's configured default. A Git app builds its default branch. An OCI app deploys its default image.
  *
- * The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
+ * Optionally provide one source override:
+ * - `oci`: deploy a prebuilt OCI image without a build. Mutable tags are resolved to immutable digests before rollout.
+ * - `git`: build and deploy from the app's connected GitHub repository, a branch, a specific commit, or a fork commit. Requires the app to have a repository connected.
+ * - `deployment`: re-run an existing deployment by its id. Git deployments rebuild from the recorded commit; OCI deployments reuse the recorded resolved image.
  *
- * **Important**: The slug cannot collide with an existing app in the same project. A duplicate slug returns a 409 conflict.
+ * Returns immediately with a `deploymentId`. The build and rollout run asynchronously. Poll `deployments.getDeployment` to watch status until it is ready.
  *
- * **Required Permissions**
- *
- * Your root key must have one of the following permissions:
- * - `project.*.create_app` (to create apps in any project)
- * - `project.<project_id>.create_app` (to create apps in a specific project)
+ * **Authentication**: requires a root key with permission to create deployments.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
-export function appsCreateApp(
+export function deploymentsCreateDeploymentV3(
   client: UnkeyCore,
-  request: components.V2AppsCreateAppRequestBodyUnion,
+  request: components.V3DeploymentsCreateDeploymentRequestBody,
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    components.V2AppsCreateAppResponseBody,
+    components.V3DeploymentsCreateDeploymentResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
-    | errors.ConflictErrorResponse
+    | errors.PreconditionFailedErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -79,17 +78,17 @@ export function appsCreateApp(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2AppsCreateAppRequestBodyUnion,
+  request: components.V3DeploymentsCreateDeploymentRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
     Result<
-      components.V2AppsCreateAppResponseBody,
+      components.V3DeploymentsCreateDeploymentResponseBody,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
       | errors.ForbiddenErrorResponse
       | errors.NotFoundErrorResponse
-      | errors.ConflictErrorResponse
+      | errors.PreconditionFailedErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
       | UnkeyError
@@ -107,7 +106,9 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2AppsCreateAppRequestBodyUnion$outboundSchema.parse(value),
+      components.V3DeploymentsCreateDeploymentRequestBody$outboundSchema.parse(
+        value,
+      ),
     "Input validation failed",
   );
   if (!parsed.ok) {
@@ -116,7 +117,7 @@ async function $do(
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
 
-  const path = pathToFunc("/v2/apps.createApp")();
+  const path = pathToFunc("/v3/deployments.createDeployment")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
@@ -130,7 +131,7 @@ async function $do(
   const context = {
     options: client._options,
     baseURL: options?.serverURL ?? client._baseURL ?? "",
-    operationID: "apps.createApp",
+    operationID: "deployments.createDeploymentV3",
     oAuth2Scopes: null,
 
     resolvedSecurity: requestSecurity,
@@ -184,12 +185,12 @@ async function $do(
   };
 
   const [result] = await M.match<
-    components.V2AppsCreateAppResponseBody,
+    components.V3DeploymentsCreateDeploymentResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.ForbiddenErrorResponse
     | errors.NotFoundErrorResponse
-    | errors.ConflictErrorResponse
+    | errors.PreconditionFailedErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -201,12 +202,15 @@ async function $do(
     | UnexpectedClientError
     | SDKValidationError
   >(
-    M.json(200, components.V2AppsCreateAppResponseBody$inboundSchema),
+    M.json(
+      201,
+      components.V3DeploymentsCreateDeploymentResponseBody$inboundSchema,
+    ),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
     M.jsonErr(403, errors.ForbiddenErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
-    M.jsonErr(409, errors.ConflictErrorResponse$inboundSchema),
+    M.jsonErr(412, errors.PreconditionFailedErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
       ctype: "application/problem+json",
     }),
