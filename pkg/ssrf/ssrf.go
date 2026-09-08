@@ -145,7 +145,7 @@ func applyOptions(opts []Option) config {
 // guard. It resolves the host itself and dials resolved IPs directly, so the
 // address that passed the check is exactly the address that is dialed.
 func dialContext(cfg config) func(context.Context, string, string) (net.Conn, error) {
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	dialer := &net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
 	return func(ctx context.Context, network, address string) (net.Conn, error) {
 		host, port, err := net.SplitHostPort(address)

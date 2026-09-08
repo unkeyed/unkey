@@ -65,7 +65,7 @@ func resolveTarget(ctx context.Context, database db.Database, cmd *cli.Command) 
 		return target{}, err
 	}
 
-	t := target{workspaceID: workspaceID, projectID: projectID, appID: appID, environmentID: envID} //nolint:exhaustruct
+	t := target{workspaceID: workspaceID, projectID: projectID, appID: appID, environmentID: envID} //nolint:exhaustruct_v5
 
 	if deploymentID := cmd.String("deployment"); deploymentID != "" {
 		t.resourceID = deploymentID

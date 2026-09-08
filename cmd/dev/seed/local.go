@@ -360,7 +360,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			{
 				WorkspaceID:                           workspaceID,
 				ApiBillableOperationsCountMaxPerMonth: 150_000,
-				ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+				ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct_v5
 				LogsRetentionDaysMax:                  7,
 				LogsAuditRetentionDaysMax:             30,
 				TeamEnabled:                           false,
@@ -377,7 +377,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			{
 				WorkspaceID:                           rootWorkspaceID,
 				ApiBillableOperationsCountMaxPerMonth: 150_000,
-				ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+				ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct_v5
 				LogsRetentionDaysMax:                  7,
 				LogsAuditRetentionDaysMax:             30,
 				TeamEnabled:                           false,

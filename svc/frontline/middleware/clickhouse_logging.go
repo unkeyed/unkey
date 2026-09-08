@@ -23,7 +23,7 @@ import (
 func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], clk clock.Clock, frontlineID, region, platform string) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
-			//nolint:exhaustruct
+			//nolint:exhaustruct_v5
 			tracking := &proxy.RequestTracking{
 				StartTime: clk.Now(),
 			}

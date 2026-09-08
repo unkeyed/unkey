@@ -52,7 +52,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// nolint:exhaustruct
+	// nolint:exhaustruct_v5
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err

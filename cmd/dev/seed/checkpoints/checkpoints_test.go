@@ -71,8 +71,8 @@ func TestGeneratorMatchesBillingMath(t *testing.T) {
 	}{
 		{
 			name: "24/7 single replica",
-			g: generator{ //nolint:exhaustruct
-				target:        target{workspaceID: "ws", projectID: "proj", environmentID: "env", resourceID: "d_1"}, //nolint:exhaustruct
+			g: generator{ //nolint:exhaustruct_v5
+				target:        target{workspaceID: "ws", projectID: "proj", environmentID: "env", resourceID: "d_1"}, //nolint:exhaustruct_v5
 				vcpu:          0.5,
 				memoryBytes:   512 * 1024 * 1024,
 				diskBytes:     1024 * 1024 * 1024,
@@ -87,8 +87,8 @@ func TestGeneratorMatchesBillingMath(t *testing.T) {
 		},
 		{
 			name: "partial uptime, multi replica",
-			g: generator{ //nolint:exhaustruct
-				target:        target{workspaceID: "ws", projectID: "proj", environmentID: "env", resourceID: "d_2"}, //nolint:exhaustruct
+			g: generator{ //nolint:exhaustruct_v5
+				target:        target{workspaceID: "ws", projectID: "proj", environmentID: "env", resourceID: "d_2"}, //nolint:exhaustruct_v5
 				vcpu:          2,
 				memoryBytes:   1024 * 1024 * 1024,
 				diskBytes:     0,
@@ -106,8 +106,8 @@ func TestGeneratorMatchesBillingMath(t *testing.T) {
 			// index-based counters, which must still bill exactly what
 			// expected() predicts (no compounding per-tick truncation).
 			name: "fractional vcpu",
-			g: generator{ //nolint:exhaustruct
-				target:        target{workspaceID: "ws", projectID: "proj", environmentID: "env", resourceID: "d_3"}, //nolint:exhaustruct
+			g: generator{ //nolint:exhaustruct_v5
+				target:        target{workspaceID: "ws", projectID: "proj", environmentID: "env", resourceID: "d_3"}, //nolint:exhaustruct_v5
 				vcpu:          0.333,
 				memoryBytes:   256 * 1024 * 1024,
 				diskBytes:     0,

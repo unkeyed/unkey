@@ -106,7 +106,7 @@ unkey version list --branch main --status active --limit 3  # Combine filters`,
 	},
 }
 
-// nolint: exhaustruct
+// nolint: exhaustruct_v5
 var rollbackCmd = &cli.Command{
 	AcceptsArgs: true,
 	Name:        "rollback",

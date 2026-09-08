@@ -162,7 +162,7 @@ func parseFlags(cmd *cli.Command) (generator, error) {
 		return generator{}, fmt.Errorf("invalid --egress-per-day: %w", err)
 	}
 
-	return generator{ //nolint:exhaustruct // target and allocation fields are filled by the caller.
+	return generator{ //nolint:exhaustruct_v5 // target and allocation fields are filled by the caller.
 		vcpu:         vcpu,
 		memoryBytes:  memoryBytes,
 		diskBytes:    diskBytes,

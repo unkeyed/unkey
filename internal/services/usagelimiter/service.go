@@ -56,7 +56,7 @@ func New(config Config) (*service, error) {
 //   - Service: Counter-based Redis implementation (recommended)
 //   - error: Any initialization errors
 func NewRedisWithCounter(config RedisConfig) (Service, error) {
-	//nolint:exhaustruct // ReplayWorkers defaults to 8 in NewCounter when unset
+	//nolint:exhaustruct_v5 // ReplayWorkers defaults to 8 in NewCounter when unset
 	return NewCounter(CounterConfig{
 		FindKeyCredits:      config.FindKeyCredits,
 		DecrementKeyCredits: config.DecrementKeyCredits,

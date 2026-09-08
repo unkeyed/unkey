@@ -56,7 +56,7 @@ func NewCachedClock(resolution time.Duration) *CachedClock {
 }
 
 // Ensure CachedClock implements the Clock interface
-// nolint:exhaustruct
+// nolint:exhaustruct_v5
 var _ Clock = &CachedClock{}
 
 // Now returns the current system time.
