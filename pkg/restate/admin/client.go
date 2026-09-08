@@ -142,6 +142,23 @@ func (c *Client) FindLiveInvocations(ctx context.Context, invocationIDs []string
 	return live, nil
 }
 
+type limits struct {
+	Concurrency uint32 `json:"concurrency"`
+}
+type rule struct {
+	Pattern string `json:"pattern"`
+	Limits  limits `json:"limits"`
+}
+
+// UpsertLimitRule sets the concurrency limit for one flow control pattern,
+// such as "<workspace_id>/deploy". Other rules are left untouched, and
+// Restate rejects a concurrency of zero.
+func (c *Client) UpsertLimitRule(ctx context.Context, pattern string, concurrency uint32) error {
+	_, err := c.send(ctx, "upsert limit rule", http.MethodPut, "/limits/rules",
+		[]rule{{Pattern: pattern, Limits: limits{Concurrency: concurrency}}}, nil)
+	return err
+}
+
 // call sends one admin API request through [Client.send] and decodes the
 // JSON response body into Resp.
 func call[Resp any](

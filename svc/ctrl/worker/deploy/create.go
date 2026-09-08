@@ -494,15 +494,21 @@ func createAuditLogs(
 	return []auditlog.AuditLog{entry}
 }
 
-// startDeployment sends Deploy, records its invocation id, then supersedes older
-// queued siblings on the branch.
+// startDeployment sends Deploy scoped to the workspace so Restate flow
+// control caps concurrent deploys per workspace, records its invocation id,
+// then supersedes older queued siblings on the branch.
 func (w *Workflow) startDeployment(
 	ctx restate.WorkflowSharedContext,
 	deploymentID string,
 	payload deployPayload,
 ) error {
 	target := payload.Target
-	invocation := hydrav1.NewDeployWorkflowClient(ctx, deploymentID).Deploy().Send(payload.toDeployRequest(deploymentID))
+	if err := w.syncDeployConcurrencyRule(ctx, target.WorkspaceID); err != nil {
+		return err
+	}
+	invocation := hydrav1.NewDeployWorkflowClient(ctx, deploymentID, restate.WithScope(target.WorkspaceID)).
+		Deploy().
+		Send(payload.toDeployRequest(deploymentID), restate.WithLimitKey(ConcurrencyLimitKey))
 
 	// An empty id would leave a deployment nothing can cancel. Only a Restate
 	// bug produces one, since any other malformed value panics, and the id is
