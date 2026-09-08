@@ -14,20 +14,12 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploycancel"
 )
 
-// cancelledByUserMessage is written to deployment_steps.error on the open step
-// before the Restate invocation is cancelled. Cancelling makes Workflow.Deploy
-// fail with a Restate cancellation error, and without this the dashboard would
-// show that error on the step instead.
+// Written on the open step so the dashboard shows this instead of the Restate
+// cancellation error
 const cancelledByUserMessage = "Cancelled by user"
 
 // CancelDeployment aborts an in-flight deployment through deploycancel.Cancel.
 // A request without an actor is not audited.
-//
-// A deployment whose status is already terminal returns success without
-// calling Restate. A deployment with an empty deployments.invocation_id is
-// still marked cancelled: Workflow.Create and AuthorizeDeployment write that id
-// only after they have sent Deploy, and Workflow.Deploy checks for a terminal
-// status before it builds, so it stops on its own.
 func (s *Service) CancelDeployment(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.CancelDeploymentRequest],
@@ -53,7 +45,7 @@ func (s *Service) CancelDeployment(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get deployment: %w", err))
 	}
 
-	if isTerminalDeploymentStatus(deployment.Status) {
+	if deployment.Status.IsTerminal() {
 		logger.Info("cancel is a no-op: deployment already terminal",
 			"deployment_id", deploymentID,
 			"status", deployment.Status,
@@ -70,19 +62,10 @@ func (s *Service) CancelDeployment(
 			fmt.Errorf("restate admin client is not configured"))
 	}
 
-	// Assigning a nil *restateadmin.Client to the interface makes a non-nil
-	// interface holding a nil pointer. deploycancel.Cancel only checks
-	// admin == nil, so it would call CancelInvocation on the nil pointer and
-	// panic.
-	var canceler deploycancel.InvocationCanceler
-	if s.restateAdmin != nil {
-		canceler = s.restateAdmin
-	}
-
-	if err := deploycancel.Cancel(ctx, s.db, canceler, deploycancel.Params{
-		Targets: []deploycancel.Target{{ID: deploymentID, InvocationID: invocationID}},
-		Reason:  cancelledByUserMessage,
-		Status:  mysqltype.DeploymentsStatusCancelled,
+	if err := deploycancel.Cancel(ctx, s.db, s.restateAdmin, deploycancel.Params{
+		Deployments: []deploycancel.Deployment{{ID: deploymentID, InvocationID: invocationID}},
+		Reason:      cancelledByUserMessage,
+		Status:      mysqltype.DeploymentsStatusCancelled,
 		Audit: &deploycancel.Audit{
 			Service:       s.auditlogs,
 			Actor:         req.Msg.GetActor(),
@@ -111,29 +94,4 @@ func (s *Service) CancelDeployment(
 	}
 
 	return connect.NewResponse(&ctrlv1.CancelDeploymentResponse{}), nil
-}
-
-// isTerminalDeploymentStatus reports whether a deployment status is one
-// from which no further state transitions will happen. Cancelling a
-// terminal deployment is a no-op.
-func isTerminalDeploymentStatus(status mysqltype.DeploymentsStatus) bool {
-	switch status {
-	case mysqltype.DeploymentsStatusReady,
-		mysqltype.DeploymentsStatusFailed,
-		mysqltype.DeploymentsStatusSkipped,
-		mysqltype.DeploymentsStatusStopped,
-		mysqltype.DeploymentsStatusSuperseded,
-		mysqltype.DeploymentsStatusCancelled:
-		return true
-	case mysqltype.DeploymentsStatusPending,
-		mysqltype.DeploymentsStatusStarting,
-		mysqltype.DeploymentsStatusBuilding,
-		mysqltype.DeploymentsStatusDeploying,
-		mysqltype.DeploymentsStatusNetwork,
-		mysqltype.DeploymentsStatusFinalizing,
-		mysqltype.DeploymentsStatusAwaitingApproval:
-		return false
-	default:
-		return false
-	}
 }

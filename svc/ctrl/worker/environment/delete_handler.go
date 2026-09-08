@@ -14,7 +14,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploycancel"
 )
 
-// envDeletedMessage is stamped onto in-flight deployment steps when an
+// envDeletedMessage is written on open deployment steps when an
 // environment is being deleted. The environment (and its deployment views)
 // are gone by the time anyone could look, so this is never user-visible.
 const envDeletedMessage = "Environment deleted"
@@ -164,23 +164,23 @@ func (s *Service) cancelProgressingDeployments(
 		return nil
 	}
 
-	targets := make([]deploycancel.Target, 0, len(active))
+	deployments := make([]deploycancel.Deployment, 0, len(active))
 	for _, d := range active {
 		invocationID := ""
 		if d.InvocationID.Valid {
 			invocationID = d.InvocationID.String
 		}
-		targets = append(targets, deploycancel.Target{ID: d.ID, InvocationID: invocationID})
+		deployments = append(deployments, deploycancel.Deployment{ID: d.ID, InvocationID: invocationID})
 	}
 
 	logger.Info("cancelling in-flight deployments for environment deletion",
 		"environment_id", env.ID,
-		"count", len(targets),
+		"count", len(deployments),
 	)
 
 	return restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return deploycancel.Cancel(runCtx, s.db, s.admin, deploycancel.Params{
-			Targets: targets,
+			Deployments: deployments,
 			Reason:  envDeletedMessage,
 			Status:  mysqltype.DeploymentsStatusCancelled,
 			Audit: &deploycancel.Audit{
