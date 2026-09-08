@@ -10,7 +10,7 @@ dprint fmt --config dev/dprint.json
 go fmt ./...
 
 # format protos
-go tool buf format -w
+go tool -modfile=tools/buf/go.mod buf format -w
 
 # format ts
 pnpm --dir=web fmt
