@@ -66,7 +66,7 @@ fmt-yaml: ## Format YAML files
 .PHONY: fmt
 fmt: fmt-yaml ## Format code
 	go fmt ./...
-	go tool buf format -w
+	go tool -modfile=tools/buf/go.mod buf format -w
 
 	cd web && pnpm fmt
 
