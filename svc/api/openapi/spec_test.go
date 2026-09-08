@@ -1,6 +1,7 @@
 package openapi
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/pb33f/libopenapi"
@@ -29,6 +30,29 @@ func TestBundledErrorSchemaNames(t *testing.T) {
 			errorSchema := schema.Schema().Properties.GetOrZero("error")
 			require.NotNil(t, errorSchema)
 			require.Equal(t, "#/components/schemas/BaseError", errorSchema.GetReference())
+		})
+	}
+}
+
+func TestOptionalResponseObjectsRemainOmitted(t *testing.T) {
+	var key KeyResponseData
+	var verification V2KeysVerifyKeyResponseData
+	var credits KeyCreditsData
+	for _, tc := range []struct {
+		name  string
+		value any
+		field string
+	}{
+		{"key identity", key, "identity"},
+		{"verification identity", verification, "identity"},
+		{"credit refill", credits, "refill"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			body, err := json.Marshal(tc.value)
+			require.NoError(t, err)
+			var fields map[string]json.RawMessage
+			require.NoError(t, json.Unmarshal(body, &fields))
+			require.NotContains(t, fields, tc.field)
 		})
 	}
 }
