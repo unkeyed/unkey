@@ -4,7 +4,7 @@ import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { deployments } from "@unkey/db/src/schema";
 import { z } from "zod";
-import { deploymentListSelect } from "./deployment-query-helpers";
+import { deploymentListSelect, excludeSkipped } from "./deployment-query-helpers";
 import { enrichDeploymentRows } from "./enrich-deployment-rows";
 
 const MAX_LIMIT = 500;
@@ -41,7 +41,7 @@ export const listDeployments = workspaceProcedure
             eq(deployments.workspaceId, ctx.workspace.id),
             eq(deployments.projectId, input.projectId),
             input.appId !== undefined ? eq(deployments.appId, input.appId) : undefined,
-            input.deploymentIds ? inArray(deployments.id, input.deploymentIds) : undefined,
+            input.deploymentIds ? inArray(deployments.id, input.deploymentIds) : excludeSkipped(),
             input.environmentIds
               ? inArray(deployments.environmentId, input.environmentIds)
               : undefined,

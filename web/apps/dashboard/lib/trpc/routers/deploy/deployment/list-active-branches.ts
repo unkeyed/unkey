@@ -2,7 +2,7 @@ import { and, db, desc, eq, isNotNull, lt, ne, or, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { deployments, environments } from "@unkey/db/src/schema";
 import { z } from "zod";
-import { deploymentListSelect } from "./deployment-query-helpers";
+import { deploymentListSelect, excludeSkipped } from "./deployment-query-helpers";
 import { enrichDeploymentRows } from "./enrich-deployment-rows";
 
 const MAX_LIMIT = 100;
@@ -33,6 +33,10 @@ export const listActiveBranches = workspaceProcedure
           eq(deployments.appId, input.appId),
           isNotNull(deployments.gitBranch),
           ne(deployments.gitBranch, ""),
+          // Filtered before the row number is assigned, so a branch whose most
+          // recent push was skipped still shows the deployment actually live on
+          // it instead of dropping off the list entirely.
+          excludeSkipped(),
         ),
       )
       .as("ranked");
