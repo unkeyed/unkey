@@ -72,43 +72,43 @@ url = "https://github.com/FiloSottile/mkcert/releases/download/v1.4.4/mkcert-v1.
 url_api = "https://api.github.com/repos/FiloSottile/mkcert/releases/assets/63709958"
 
 [[tools."github:bufbuild/buf"]]
-version = "1.64.0"
+version = "1.72.0"
 backend = "github:bufbuild/buf"
 
 [tools."github:bufbuild/buf"."platforms.linux-arm64"]
-checksum = "sha256:209897ab67512d1053d9edd23c28f4698406c376c2bea04e235df1e088bc573a"
-url = "https://github.com/bufbuild/buf/releases/download/v1.64.0/buf-Linux-aarch64.tar.gz"
-url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/342895479"
+checksum = "sha256:7641bd7e06a37a54cbb8c789f53465899def96196ab5c08057432f781a15d517"
+url = "https://github.com/bufbuild/buf/releases/download/v1.72.0/buf-Linux-aarch64.tar.gz"
+url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/480772526"
 
 [tools."github:bufbuild/buf"."platforms.linux-arm64-musl"]
-checksum = "sha256:209897ab67512d1053d9edd23c28f4698406c376c2bea04e235df1e088bc573a"
-url = "https://github.com/bufbuild/buf/releases/download/v1.64.0/buf-Linux-aarch64.tar.gz"
-url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/342895479"
+checksum = "sha256:7641bd7e06a37a54cbb8c789f53465899def96196ab5c08057432f781a15d517"
+url = "https://github.com/bufbuild/buf/releases/download/v1.72.0/buf-Linux-aarch64.tar.gz"
+url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/480772526"
 
 [tools."github:bufbuild/buf"."platforms.linux-x64"]
-checksum = "sha256:e4d2aa7f83e00678a5d7a84949a566a477e9249df35fade57c61feafe3766fa4"
-url = "https://github.com/bufbuild/buf/releases/download/v1.64.0/buf-Linux-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/342895499"
+checksum = "sha256:a9c6186cf6fcf062b247345e1b7b12c26f580c1b2a4bbf4d3fe080abf85ceee8"
+url = "https://github.com/bufbuild/buf/releases/download/v1.72.0/buf-Linux-x86_64.tar.gz"
+url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/480772583"
 
 [tools."github:bufbuild/buf"."platforms.linux-x64-musl"]
-checksum = "sha256:e4d2aa7f83e00678a5d7a84949a566a477e9249df35fade57c61feafe3766fa4"
-url = "https://github.com/bufbuild/buf/releases/download/v1.64.0/buf-Linux-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/342895499"
+checksum = "sha256:a9c6186cf6fcf062b247345e1b7b12c26f580c1b2a4bbf4d3fe080abf85ceee8"
+url = "https://github.com/bufbuild/buf/releases/download/v1.72.0/buf-Linux-x86_64.tar.gz"
+url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/480772583"
 
 [tools."github:bufbuild/buf"."platforms.macos-arm64"]
-checksum = "sha256:d4e5b687b6271f20a0e2dde03b959fd052e00a5fad7810aa4611cc0d5ef56fa2"
-url = "https://github.com/bufbuild/buf/releases/download/v1.64.0/buf-Darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/342895472"
+checksum = "sha256:be040ae0ca381103dfda68a36738695c4db3e48de8e91412acdc3d991f39b91e"
+url = "https://github.com/bufbuild/buf/releases/download/v1.72.0/buf-Darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/480772487"
 
 [tools."github:bufbuild/buf"."platforms.macos-x64"]
-checksum = "sha256:7262a948a4c6fa4f4a9b685556e3f9f0b3e0fc5f6982016d91a36a6d59b12b9c"
-url = "https://github.com/bufbuild/buf/releases/download/v1.64.0/buf-Darwin-x86_64.tar.gz"
-url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/342895469"
+checksum = "sha256:8b87e66786b46b20e7f7e328c9e15f64f636041acfdbf93374873d9014a62d30"
+url = "https://github.com/bufbuild/buf/releases/download/v1.72.0/buf-Darwin-x86_64.tar.gz"
+url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/480772489"
 
 [tools."github:bufbuild/buf"."platforms.windows-x64"]
-checksum = "sha256:097b0ba51f424fc6811ea30ba3a0a70a75c457126ca09fa45cc5da4cfefcb26e"
-url = "https://github.com/bufbuild/buf/releases/download/v1.64.0/buf-Windows-x86_64.zip"
-url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/342895506"
+checksum = "sha256:0332d8d1bf062c95a0418081b7e574551032ee72064af05e304e3a1454f8cf11"
+url = "https://github.com/bufbuild/buf/releases/download/v1.72.0/buf-Windows-x86_64.zip"
+url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/480772631"
 
 [[tools."github:depot/cli"]]
 version = "2.101.67"

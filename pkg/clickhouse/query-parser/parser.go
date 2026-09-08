@@ -24,30 +24,6 @@ func NewParser(config Config) *Parser {
 	}
 }
 
-// walkQueryIncludingExcept traverses the complete query tree, including the
-// right side of EXCEPT expressions omitted by the upstream Walk function.
-func walkQueryIncludingExcept(node clickhouse.Expr, visit clickhouse.WalkFunc) bool {
-	exceptBranches := make([]*clickhouse.SelectQuery, 0)
-	if !clickhouse.Walk(node, func(current clickhouse.Expr) bool {
-		if !visit(current) {
-			return false
-		}
-		if query, ok := current.(*clickhouse.SelectQuery); ok && query.Except != nil {
-			exceptBranches = append(exceptBranches, query.Except)
-		}
-		return true
-	}) {
-		return false
-	}
-
-	for _, branch := range exceptBranches {
-		if !walkQueryIncludingExcept(branch, visit) {
-			return false
-		}
-	}
-	return true
-}
-
 // Parse parses and rewrites a query
 func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 	if len(query) > queryBytesMax {
@@ -123,14 +99,14 @@ func (p *Parser) Parse(ctx context.Context, query string) (string, error) {
 		return "", err
 	}
 
-	return p.stmt.String(), nil
+	return clickhouse.Format(p.stmt), nil
 }
 
 func (p *Parser) validateComplexity() error {
 	astNodesCount := 0
 	projectedColumnsCount := 0
 	var errLimit error
-	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
+	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
 		astNodesCount++
 		if astNodesCount > astNodesMax {
 			errLimit = newQueryLimitError("query is too complex", "Analytics query is too complex")

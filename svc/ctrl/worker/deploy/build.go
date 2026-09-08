@@ -571,14 +571,14 @@ func (w *Workflow) imageExports(imageName string) []client.ExportEntry {
 func (w *Workflow) registryAuthProvider() session.Attachable {
 	//nolint: exhaustruct
 	return authprovider.NewDockerAuthProvider(authprovider.DockerAuthProviderConfig{
-		ConfigFile: &configfile.ConfigFile{
+		AuthConfigProvider: authprovider.LoadAuthConfig(&configfile.ConfigFile{
 			AuthConfigs: map[string]types.AuthConfig{
 				w.registryConfig.Repository: {
 					Username: w.registryConfig.Username,
 					Password: w.registryConfig.Password,
 				},
 			},
-		},
+		}),
 	})
 }
 
