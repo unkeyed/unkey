@@ -79,7 +79,7 @@ func (w *Workflow) Create(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		}, nil
 	}
 
-	if err := w.insertDeployment(ctx, deploymentID, payload, req.GetActor()); err != nil {
+	if err := w.insertDeployment(ctx, deploymentID, payload, req.GetTrigger().GetActor()); err != nil {
 		return nil, err
 	}
 
@@ -251,7 +251,7 @@ func (w *Workflow) validateAndBuildPayload(
 			assert.LessOrEqual(utf8.RuneCountInString(commit.SHA), commitSHACharsMax, "commit sha is too long"),
 			assert.LessOrEqual(utf8.RuneCountInString(commit.Branch), branchCharsMax, "branch is too long"),
 			assert.LessOrEqual(utf8.RuneCountInString(commit.ForkRepository), forkRepositoryCharsMax, "fork repository is too long"),
-			assert.LessOrEqual(utf8.RuneCountInString(req.GetTriggeredBy()), triggeredByCharsMax, "triggered_by is too long"),
+			assert.LessOrEqual(utf8.RuneCountInString(req.GetTrigger().GetActor().GetId()), triggeredByCharsMax, "triggered_by is too long"),
 		); tooLong != nil {
 			return payload, restate.ToTerminalError(tooLong)
 		}
@@ -299,9 +299,10 @@ func (w *Workflow) validateAndBuildPayload(
 		if source.Git != nil || req.GetImage() != nil {
 			payload.RequestedBranch = commit.Branch
 		}
-		payload.Trigger = triggerFromProto(req.GetTrigger())
-		payload.TriggeredBy = req.GetTriggeredBy()
-		payload.TriggerReason = trimBytes(req.GetTriggerReason(), triggerReasonBytesMax)
+		trigger := req.GetTrigger()
+		payload.Trigger = triggerFromProto(trigger.GetSource())
+		payload.TriggeredBy = trigger.GetActor().GetId()
+		payload.TriggerReason = trimBytes(trigger.GetReason(), triggerReasonBytesMax)
 		payload.RebuildSourceID = req.GetExistingDeployment().GetDeploymentId()
 		return payload, nil
 	}, restate.WithName("validate and build deploy payload"), restate.WithMaxRetryAttempts(runMaxAttempts))
