@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v91/github"
 	"github.com/spf13/cobra"
 )
 
@@ -67,9 +67,13 @@ func runCommand(cmd *cobra.Command, args []string) error {
 	token := loadToken()
 
 	ctx := context.Background()
-	client := github.NewClient(nil)
+	var options []github.ClientOptionsFunc
 	if token != "" {
-		client = client.WithAuthToken(token)
+		options = append(options, github.WithAuthToken(token))
+	}
+	client, err := github.NewClient(options...)
+	if err != nil {
+		return fmt.Errorf("create GitHub client: %w", err)
 	}
 
 	selectedTag, err := fetchTag(ctx, client, owner, repo)
@@ -131,11 +135,11 @@ func fetchTag(ctx context.Context, client *github.Client, owner, repo string) (s
 		return "", fmt.Errorf("error fetching latest release: %w", err)
 	}
 
-	if release.TagName == nil {
+	if release.TagName == "" {
 		return "", fmt.Errorf("latest release has no tag name")
 	}
 
-	return *release.TagName, nil
+	return release.TagName, nil
 }
 
 func fetchCommitSHA(ctx context.Context, client *github.Client, owner, repo, tag string) (string, error) {
