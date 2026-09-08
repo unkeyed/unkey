@@ -44,9 +44,8 @@
 //     later when a held slot is released. Production deployments bypass the limit.
 //
 // On the creation side, [Workflow.Create] calls [dedup.CancelOlderSiblings]
-// once the new row and its invocation id are recorded: it batch-stamps older
-// siblings with the "Superseded by newer commit" marker, batch-transitions them
-// to status=superseded, and cancels their Restate invocations via the admin API.
+// once the new row and its invocation id are recorded: it moves older
+// siblings to status=superseded through deploycancel.Cancel.
 //
 // # Operations
 //

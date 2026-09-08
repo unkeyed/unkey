@@ -8,6 +8,7 @@ import (
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploycancel"
 )
 
 // Service implements the DeployService ConnectRPC API. It coordinates
@@ -18,7 +19,7 @@ type Service struct {
 	db           db.Database
 	auditlogs    auditlogs.AuditLogService
 	restate      *restateingress.Client
-	restateAdmin *restateadmin.Client
+	restateAdmin deploycancel.InvocationCanceler
 	github       githubclient.GitHubClient
 	bearer       string
 }
@@ -40,8 +41,7 @@ type Config struct {
 	Auditlogs auditlogs.AuditLogService
 	// Restate is the ingress client for triggering durable workflows.
 	Restate *restateingress.Client
-	// RestateAdmin cancels in-flight invocations when a user aborts a
-	// deployment. Optional. When nil, CancelDeployment fails closed for
+	// RestateAdmin is optional. When nil, CancelDeployment fails closed for
 	// deployments that have an invocation.
 	RestateAdmin *restateadmin.Client
 	// GitHub is the client for GitHub API operations (fetching HEAD, etc.).
@@ -52,13 +52,17 @@ type Config struct {
 
 // New creates a new [Service] with the given configuration.
 func New(cfg Config) *Service {
-	return &Service{
+	s := &Service{
 		UnimplementedDeployServiceHandler: ctrlv1connect.UnimplementedDeployServiceHandler{},
 		db:                                cfg.Database,
 		auditlogs:                         cfg.Auditlogs,
 		restate:                           cfg.Restate,
-		restateAdmin:                      cfg.RestateAdmin,
+		restateAdmin:                      nil,
 		github:                            cfg.GitHub,
 		bearer:                            cfg.Bearer,
 	}
+	if cfg.RestateAdmin != nil {
+		s.restateAdmin = cfg.RestateAdmin
+	}
+	return s
 }

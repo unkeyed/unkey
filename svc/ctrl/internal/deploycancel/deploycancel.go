@@ -1,7 +1,5 @@
-// Package deploycancel aborts deployments: write the user-visible reason on the
-// open deployment step, move the deployment rows to a terminal status, then
-// cancel the Restate invocations running Workflow.Deploy. The CancelDeployment
-// RPC, dedup.CancelOlderSiblings, and the environment Delete workflow all go
+// Package deploycancel aborts deployments. The CancelDeployment RPC,
+// dedup.CancelOlderSiblings, and the environment Delete workflow all go
 // through [Cancel].
 package deploycancel
 
@@ -22,79 +20,55 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// Target is one deployment to abort. InvocationID is the Restate invocation
-// running Workflow.Deploy for it. It is empty when Deploy was sent but its id
-// has not been written to deployments.invocation_id yet. An empty InvocationID
-// still moves the row to Params.Status. If Deploy is running anyway, the status
-// check at the top of Deploy returns early because the status is terminal.
-type Target struct {
+// Deployment is one deployment to abort. InvocationID is empty when Deploy
+// was sent but its id is not on the row yet; the row still transitions and
+// Deploy stops itself on the terminal status.
+type Deployment struct {
 	ID           string
 	InvocationID string
 }
 
-// InvocationCanceler cancels a Restate invocation by id. It must treat a 404
-// from Restate as success: the deployment can finish on its own between the
-// caller reading the invocation id from the row and this call, and Restate
-// answers 404 for a completed invocation.
+// InvocationCanceler must treat a 404 from Restate as success, because the
+// invocation can complete between reading its id and cancelling it.
 type InvocationCanceler interface {
 	CancelInvocation(ctx context.Context, invocationID string) error
 }
 
-// Audit describes the deployment.cancel audit log entry written per target.
-// Nil, or a nil Actor, writes none: a cancel started by the system, such as
-// dedup, has no user to attribute it to.
+// Audit describes the deployment.cancel entry written per deployment. Nil, or
+// a nil Actor, writes none.
 type Audit struct {
 	Service       auditlogs.AuditLogService
 	Actor         *ctrlv1.ActorInfo
 	CorrelationID string
 	WorkspaceID   string
-	// Meta is attached to every entry's deployment resource.
-	Meta map[string]any
+	Meta          map[string]any
 }
 
-// Params describes one [Cancel] call.
 type Params struct {
-	Targets []Target
-	// Reason is written to deployment_steps.error on each target's step that
-	// has ended_at NULL, and ended_at is set at the same time.
-	// Workflow.DeploymentStep later runs EndDeploymentStep for that same step,
-	// but that query also only updates a row with ended_at NULL, so it changes
-	// nothing and the dashboard keeps showing Reason.
+	Deployments []Deployment
+	// Reason is shown on the deployment's open step in the dashboard.
 	Reason string
 	Status mysqltype.DeploymentsStatus
 	Audit  *Audit
 }
 
-// Cancel aborts every target in this order: EndActiveDeploymentStepsForDeployments
-// writes Reason on each target's open step, UpdateDeploymentStatusBatchIfActive
-// moves each row to Status, then admin.CancelInvocation cancels each Restate
-// invocation. The order matters.
+// Cancel writes Reason on each open step, moves each row to Status, and only
+// then cancels the Restate invocations. The order matters: cancelling makes
+// Deploy run its compensations, and the one that marks the deployment failed
+// only touches progressing rows, so the status written here survives.
 //
-// When Restate cancels a running Workflow.Deploy, Deploy gets a terminal error
-// and runs its deferred compensations. One of them calls
-// UpdateDeploymentStatusIfActive to set the status to failed. That query and
-// UpdateDeploymentStatusBatchIfActive both change a row only if its status is
-// one of mysqltype.ProgressingDeploymentStatuses. The status is already Status
-// when CancelInvocation is called, so the failed write finds a non-progressing
-// row and changes nothing. A target with an empty InvocationID is not cancelled
-// in Restate at all. Its Deploy stops itself instead, because Deploy checks for
-// a terminal status before it builds.
-//
-// The two database writes only log their errors. A Restate invocation left
-// running is worse than a row with the wrong status. CancelInvocation errors
-// are joined and returned. Cancel is safe to call again: both database writes
-// skip rows that already have ended_at or a terminal status, and
-// CancelInvocation treats 404 as success. Audit entries are written last so a
-// retry does not write them twice.
+// Database errors are logged and the invocations are still cancelled; a
+// running invocation is worse than a wrong status. Audit entries are written
+// last so a retry after a cancel error does not duplicate them.
 func Cancel(ctx context.Context, database db.Database, admin InvocationCanceler, p Params) error {
-	if len(p.Targets) == 0 {
+	if len(p.Deployments) == 0 {
 		return nil
 	}
 
 	now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
-	ids := make([]string, 0, len(p.Targets))
-	for _, target := range p.Targets {
-		ids = append(ids, target.ID)
+	ids := make([]string, 0, len(p.Deployments))
+	for _, d := range p.Deployments {
+		ids = append(ids, d.ID)
 	}
 
 	if err := database.EndActiveDeploymentStepsForDeployments(ctx, db.EndActiveDeploymentStepsForDeploymentsParams{
@@ -102,7 +76,7 @@ func Cancel(ctx context.Context, database db.Database, admin InvocationCanceler,
 		Error:         sql.NullString{Valid: true, String: p.Reason},
 		DeploymentIds: ids,
 	}); err != nil {
-		logger.Warn("failed to stamp cancel reason on deployment steps",
+		logger.Warn("failed to write cancel reason on deployment steps",
 			"deployment_ids", ids,
 			"reason", p.Reason,
 			"error", err,
@@ -115,7 +89,7 @@ func Cancel(ctx context.Context, database db.Database, admin InvocationCanceler,
 		Ids:                 ids,
 		ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
 	}); err != nil {
-		logger.Warn("failed to transition deployments for cancel",
+		logger.Warn("failed to update deployment status for cancel",
 			"deployment_ids", ids,
 			"status", p.Status,
 			"error", err,
@@ -123,13 +97,13 @@ func Cancel(ctx context.Context, database db.Database, admin InvocationCanceler,
 	}
 
 	var cancelErrs error
-	for _, target := range p.Targets {
-		if target.InvocationID == "" || admin == nil {
+	for _, d := range p.Deployments {
+		if d.InvocationID == "" || admin == nil {
 			continue
 		}
-		if err := admin.CancelInvocation(ctx, target.InvocationID); err != nil {
+		if err := admin.CancelInvocation(ctx, d.InvocationID); err != nil {
 			cancelErrs = errors.Join(cancelErrs, fmt.Errorf(
-				"cancel invocation %s for deployment %s: %w", target.InvocationID, target.ID, err))
+				"cancel invocation %s for deployment %s: %w", d.InvocationID, d.ID, err))
 		}
 	}
 	if cancelErrs != nil {
@@ -140,12 +114,12 @@ func Cancel(ctx context.Context, database db.Database, admin InvocationCanceler,
 		return nil
 	}
 
-	entries := make([]auditlog.AuditLog, 0, len(p.Targets))
-	for _, target := range p.Targets {
+	entries := make([]auditlog.AuditLog, 0, len(p.Deployments))
+	for _, d := range p.Deployments {
 		entries = append(entries, auditlog.AuditLog{
 			WorkspaceID:   p.Audit.WorkspaceID,
 			Event:         auditlog.DeploymentCancelEvent,
-			Display:       fmt.Sprintf("Cancelled deployment %s", target.ID),
+			Display:       fmt.Sprintf("Cancelled deployment %s", d.ID),
 			ActorID:       p.Audit.Actor.GetId(),
 			ActorName:     p.Audit.Actor.GetName(),
 			ActorType:     actor.AuditType(p.Audit.Actor.GetType()),
@@ -156,9 +130,9 @@ func Cancel(ctx context.Context, database db.Database, admin InvocationCanceler,
 			Resources: []auditlog.AuditLogResource{
 				{
 					Type:        auditlog.DeploymentResourceType,
-					ID:          target.ID,
+					ID:          d.ID,
 					Name:        "",
-					DisplayName: target.ID,
+					DisplayName: d.ID,
 					Meta:        p.Audit.Meta,
 				},
 			},

@@ -19,10 +19,10 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// TestCancelAbortsTargets covers one Cancel call over a mix of rows: the
+// TestCancelAbortsDeployments covers one Cancel call over a mix of rows: the
 // in-flight step carries the reason, active rows transition while a terminal
 // row is left alone, and each transitioned target gets one audit entry.
-func TestCancelAbortsTargets(t *testing.T) {
+func TestCancelAbortsDeployments(t *testing.T) {
 	ctx := context.Background()
 	f := newCancelFixture(t, ctx)
 
@@ -36,7 +36,7 @@ func TestCancelAbortsTargets(t *testing.T) {
 	actorID := uid.New("user")
 
 	err := Cancel(ctx, f.database, canceler, Params{
-		Targets: []Target{
+		Deployments: []Deployment{
 			{ID: building.ID, InvocationID: buildingInvocation},
 			{ID: pending.ID, InvocationID: ""},
 			{ID: finished.ID, InvocationID: uid.New("inv")},
@@ -87,7 +87,7 @@ func TestCancelReturnsInvocationErrorsBeforeAuditing(t *testing.T) {
 	canceler := &recordingCanceler{fail: true}
 
 	params := Params{
-		Targets: []Target{{ID: deployment.ID, InvocationID: uid.New("inv")}},
+		Deployments: []Deployment{{ID: deployment.ID, InvocationID: uid.New("inv")}},
 		Reason:  "KEBAP",
 		Status:  mysqltype.DeploymentsStatusCancelled,
 		Audit: &Audit{
@@ -117,7 +117,7 @@ func TestCancelWithoutActorWritesNoAudit(t *testing.T) {
 	deployment := f.deployment(ctx, mysqltype.DeploymentsStatusPending)
 
 	require.NoError(t, Cancel(ctx, f.database, &recordingCanceler{}, Params{
-		Targets: []Target{{ID: deployment.ID, InvocationID: ""}},
+		Deployments: []Deployment{{ID: deployment.ID, InvocationID: ""}},
 		Reason:  "KEBAP",
 		Status:  mysqltype.DeploymentsStatusSuperseded,
 		Audit:   &Audit{Service: f.auditlogs, Actor: nil, WorkspaceID: f.workspaceID},

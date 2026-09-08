@@ -27,12 +27,16 @@ const SupersededByNewerCommitMessage = "Superseded by newer commit"
 // Service handles cancellation of superseded sibling deployments.
 type Service struct {
 	db    db.Database
-	admin *restateadmin.Client
+	admin deploycancel.InvocationCanceler
 }
 
-// New creates a dedup Service.
+// New creates a dedup Service. A nil admin skips invocation cancellation.
 func New(database db.Database, admin *restateadmin.Client) *Service {
-	return &Service{db: database, admin: admin}
+	s := &Service{db: database, admin: nil}
+	if admin != nil {
+		s.admin = admin
+	}
+	return s
 }
 
 // Newer identifies the deployment that triggered sibling cancellation.
@@ -88,28 +92,19 @@ func (s *Service) CancelOlderSiblings(ctx context.Context, newer Newer) error {
 		"branch", newer.GitBranch,
 	)
 
-	targets := make([]deploycancel.Target, 0, len(older))
+	deployments := make([]deploycancel.Deployment, 0, len(older))
 	for _, old := range older {
 		invocationID := ""
 		if old.InvocationID.Valid {
 			invocationID = old.InvocationID.String
 		}
-		targets = append(targets, deploycancel.Target{ID: old.ID, InvocationID: invocationID})
+		deployments = append(deployments, deploycancel.Deployment{ID: old.ID, InvocationID: invocationID})
 	}
 
-	// Assigning a nil *restateadmin.Client to the interface makes a non-nil
-	// interface holding a nil pointer. deploycancel.Cancel only checks
-	// admin == nil, so it would call CancelInvocation on the nil pointer and
-	// panic.
-	var canceler deploycancel.InvocationCanceler
-	if s.admin != nil {
-		canceler = s.admin
-	}
-
-	return deploycancel.Cancel(ctx, s.db, canceler, deploycancel.Params{
-		Targets: targets,
-		Reason:  SupersededByNewerCommitMessage,
-		Status:  mysqltype.DeploymentsStatusSuperseded,
-		Audit:   nil,
+	return deploycancel.Cancel(ctx, s.db, s.admin, deploycancel.Params{
+		Deployments: deployments,
+		Reason:      SupersededByNewerCommitMessage,
+		Status:      mysqltype.DeploymentsStatusSuperseded,
+		Audit:       nil,
 	})
 }
