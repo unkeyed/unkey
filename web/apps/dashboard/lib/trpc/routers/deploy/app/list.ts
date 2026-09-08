@@ -19,6 +19,7 @@ export const listApps = workspaceProcedure
         defaultBranch: apps.defaultBranch,
         currentDeploymentId: apps.currentDeploymentId,
         isRolledBack: apps.isRolledBack,
+        updatedAt: apps.updatedAt,
       })
       .from(apps)
       .where(and(eq(apps.workspaceId, workspaceId), eq(apps.projectId, input.projectId)))
@@ -134,6 +135,7 @@ export const listApps = workspaceProcedure
         defaultBranch: app.defaultBranch,
         currentDeploymentId: app.currentDeploymentId ?? null,
         isRolledBack: Boolean(app.isRolledBack),
+        updatedAt: app.updatedAt ?? null,
         repositoryFullName,
         latestDeploymentId: latestDeploymentByApp.get(app.id)?.id ?? null,
         commitTitle: currentDeployment?.gitCommitMessage ?? null,

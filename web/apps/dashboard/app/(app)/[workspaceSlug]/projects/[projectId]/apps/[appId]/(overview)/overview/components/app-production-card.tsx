@@ -4,6 +4,7 @@ import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_compo
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
+import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -129,9 +130,7 @@ export function AppProductionCard() {
     ? [...readySiblings, deployment].sort((a, b) => b.createdAt - a.createdAt)
     : [];
   const rolledBackFromDeployment = isRolledBack
-    ? readySiblings
-        .filter((d) => d.createdAt > deployment.createdAt)
-        .sort((a, b) => b.createdAt - a.createdAt)[0]
+    ? findRolledBackFrom(deployments, deployment)
     : undefined;
 
   const diagnostic =
@@ -179,6 +178,7 @@ export function AppProductionCard() {
       ? {
           commitSha: rolledBackFromDeployment.gitCommitSha,
           commitMessage: rolledBackFromDeployment.gitCommitMessage,
+          image: rolledBackFromDeployment.image,
         }
       : null,
     sourceRepo,
@@ -186,6 +186,12 @@ export function AppProductionCard() {
     additionalDomains: additional.map((d) => ({ hostname: d.hostname, url: d.url })),
     addCustomDomainHref,
     diagnostic,
+    deploymentHref: routes.projects.apps.deployment({
+      workspaceSlug: workspace.slug,
+      projectId,
+      appId,
+      deploymentId: deployment.id,
+    }),
     logsHref: routes.projects.logs({ workspaceSlug: workspace.slug, projectId, appId }),
     requestsHref: routes.projects.requests({
       workspaceSlug: workspace.slug,

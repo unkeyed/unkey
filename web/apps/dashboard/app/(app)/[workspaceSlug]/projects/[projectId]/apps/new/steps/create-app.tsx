@@ -55,6 +55,7 @@ export const CreateAppStep = ({ projectId, onAppCreated }: CreateAppStepProps) =
         repositoryFullName: null,
         currentDeploymentId: null,
         isRolledBack: false,
+        updatedAt: null,
         id: SERVER_PLACEHOLDER,
         latestDeploymentId: null,
         author: SERVER_PLACEHOLDER,

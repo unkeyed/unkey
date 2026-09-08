@@ -1,5 +1,5 @@
 import type { Deployment } from "@/lib/collections";
-import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
+import { isDeploymentSettling } from "@/lib/collections/deploy/deployment-status";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
@@ -7,14 +7,14 @@ import { useAppId, useProjectData } from "../../data-provider";
 import { buildDeploymentListInput } from "./deployment-list-input";
 import { useFilters } from "./use-filters";
 
-export const DEPLOYMENTS_PAGE_SIZE = 25;
+const PAGE_SIZE = 25;
 
 export type DeploymentListRow = {
   deployment: Deployment;
   environment: Environment | undefined;
 };
 
-export function useDeployments(pageSize: number = DEPLOYMENTS_PAGE_SIZE) {
+export function useDeployments() {
   const { projectId, environments, isEnvironmentsLoading } = useProjectData();
   const appId = useAppId();
   const { filters } = useFilters();
@@ -25,7 +25,7 @@ export function useDeployments(pageSize: number = DEPLOYMENTS_PAGE_SIZE) {
   );
 
   const query = trpc.deploy.deployment.list.useInfiniteQuery(
-    { projectId, appId, ...input, limit: pageSize },
+    { projectId, appId, ...input, limit: PAGE_SIZE },
     {
       enabled: !isEnvironmentsLoading && !cannotMatch,
       // Filters are part of the query input, so a change starts a new query;
@@ -36,7 +36,7 @@ export function useDeployments(pageSize: number = DEPLOYMENTS_PAGE_SIZE) {
       // and post-mutation invalidation. A refetch reloads every opened page,
       // so only the newest page decides.
       refetchInterval: (data) =>
-        data?.pages[0]?.deployments.some((d) => isDeploymentInFlight(d.status)) ? 5_000 : false,
+        data?.pages[0]?.deployments.some(isDeploymentSettling) ? 5_000 : false,
     },
   );
 

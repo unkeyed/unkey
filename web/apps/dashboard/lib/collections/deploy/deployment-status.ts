@@ -79,3 +79,18 @@ export function expandDeploymentStatusGroups(
 ): DeploymentStatus[] {
   return groups.flatMap((group) => DEPLOYMENT_STATUS_GROUPS[group]);
 }
+
+// Stop and wake record the desired state first and flip the status only once the
+// instances have scaled, so a mismatch between the two means the row is still moving.
+export function isDeploymentSettling(deployment: {
+  status: DeploymentStatus;
+  desiredState: "running" | "stopped";
+}): boolean {
+  if (isDeploymentInFlight(deployment.status)) {
+    return true;
+  }
+  return (
+    (deployment.status === "ready" && deployment.desiredState === "stopped") ||
+    (deployment.status === "stopped" && deployment.desiredState === "running")
+  );
+}
