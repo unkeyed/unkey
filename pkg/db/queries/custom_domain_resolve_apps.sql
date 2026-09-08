@@ -3,8 +3,9 @@
 -- environment is omitted. It returns app IDs, not the IDs of their environments,
 -- so the domain query can select every domain under those apps without parent joins.
 --
--- Both app and project match ID or slug, with no preference for ID matches. An empty
--- project disables that filter. When supplied, project must match the app's actual
+-- App matches are resolved through separate ID and slug index lookups, and both matches
+-- are returned when an ID collides with another app's slug. An empty project disables
+-- that filter. When supplied, project must match the app's actual
 -- parent in the authorized workspace. Missing or incompatible filters return no IDs.
 -- Results are unordered and do not establish permission to read any domain.
 --
@@ -16,5 +17,13 @@ SELECT a.id
 FROM apps a
 JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
 WHERE a.workspace_id = sqlc.arg(workspace_id)
-  AND (a.id = sqlc.arg(app) OR a.slug = sqlc.arg(app))
+  AND a.id = sqlc.arg(app)
+  AND (sqlc.arg(project) = '' OR p.id = sqlc.arg(project) OR p.slug = sqlc.arg(project))
+UNION ALL
+SELECT a.id
+FROM apps a
+JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+WHERE a.workspace_id = sqlc.arg(workspace_id)
+  AND a.slug = sqlc.arg(app)
+  AND a.id <> sqlc.arg(app)
   AND (sqlc.arg(project) = '' OR p.id = sqlc.arg(project) OR p.slug = sqlc.arg(project));

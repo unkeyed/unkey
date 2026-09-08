@@ -14,7 +14,15 @@ SELECT a.id
 FROM apps a
 JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
 WHERE a.workspace_id = ?
-  AND (a.id = ? OR a.slug = ?)
+  AND a.id = ?
+  AND (? = '' OR p.id = ? OR p.slug = ?)
+UNION ALL
+SELECT a.id
+FROM apps a
+JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+WHERE a.workspace_id = ?
+  AND a.slug = ?
+  AND a.id <> ?
   AND (? = '' OR p.id = ? OR p.slug = ?)
 `
 
@@ -28,8 +36,9 @@ type ResolveCustomDomainAppsParams struct {
 // environment is omitted. It returns app IDs, not the IDs of their environments,
 // so the domain query can select every domain under those apps without parent joins.
 //
-// Both app and project match ID or slug, with no preference for ID matches. An empty
-// project disables that filter. When supplied, project must match the app's actual
+// App matches are resolved through separate ID and slug index lookups, and both matches
+// are returned when an ID collides with another app's slug. An empty project disables
+// that filter. When supplied, project must match the app's actual
 // parent in the authorized workspace. Missing or incompatible filters return no IDs.
 // Results are unordered and do not establish permission to read any domain.
 //
@@ -42,10 +51,23 @@ type ResolveCustomDomainAppsParams struct {
 //	FROM apps a
 //	JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
 //	WHERE a.workspace_id = ?
-//	  AND (a.id = ? OR a.slug = ?)
+//	  AND a.id = ?
+//	  AND (? = '' OR p.id = ? OR p.slug = ?)
+//	UNION ALL
+//	SELECT a.id
+//	FROM apps a
+//	JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+//	WHERE a.workspace_id = ?
+//	  AND a.slug = ?
+//	  AND a.id <> ?
 //	  AND (? = '' OR p.id = ? OR p.slug = ?)
 func (q *Queries) ResolveCustomDomainApps(ctx context.Context, db DBTX, arg ResolveCustomDomainAppsParams) ([]string, error) {
 	rows, err := db.QueryContext(ctx, resolveCustomDomainApps,
+		arg.WorkspaceID,
+		arg.App,
+		arg.Project,
+		arg.Project,
+		arg.Project,
 		arg.WorkspaceID,
 		arg.App,
 		arg.App,

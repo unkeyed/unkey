@@ -2664,8 +2664,9 @@ type Querier interface {
 	// environment is omitted. It returns app IDs, not the IDs of their environments,
 	// so the domain query can select every domain under those apps without parent joins.
 	//
-	// Both app and project match ID or slug, with no preference for ID matches. An empty
-	// project disables that filter. When supplied, project must match the app's actual
+	// App matches are resolved through separate ID and slug index lookups, and both matches
+	// are returned when an ID collides with another app's slug. An empty project disables
+	// that filter. When supplied, project must match the app's actual
 	// parent in the authorized workspace. Missing or incompatible filters return no IDs.
 	// Results are unordered and do not establish permission to read any domain.
 	//
@@ -2678,13 +2679,22 @@ type Querier interface {
 	//  FROM apps a
 	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
 	//  WHERE a.workspace_id = ?
-	//    AND (a.id = ? OR a.slug = ?)
+	//    AND a.id = ?
+	//    AND (? = '' OR p.id = ? OR p.slug = ?)
+	//  UNION ALL
+	//  SELECT a.id
+	//  FROM apps a
+	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+	//  WHERE a.workspace_id = ?
+	//    AND a.slug = ?
+	//    AND a.id <> ?
 	//    AND (? = '' OR p.id = ? OR p.slug = ?)
 	ResolveCustomDomainApps(ctx context.Context, db DBTX, arg ResolveCustomDomainAppsParams) ([]string, error)
 	// ResolveCustomDomainEnvironments resolves the domain-list scope whenever an
 	// environment identifier is supplied. It returns environment IDs after applying
 	// all supplied filters to the same project/app/environment ancestry in the authorized
-	// workspace. Each identifier matches both ID and slug, with no preference for IDs.
+	// workspace. Environment ID and slug use separate index lookups, and both matches are
+	// returned when an ID collides with another environment's slug.
 	// Empty project or app values disable their respective filters. Missing or incompatible
 	// filters return no IDs. Results are unordered and do not authorize domain access.
 	//
@@ -2699,7 +2709,17 @@ type Querier interface {
 	//  JOIN apps a ON a.id = e.app_id AND a.project_id = e.project_id AND a.workspace_id = e.workspace_id
 	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = e.workspace_id
 	//  WHERE e.workspace_id = ?
-	//    AND (e.id = ? OR e.slug = ?)
+	//    AND e.id = ?
+	//    AND (? = '' OR p.id = ? OR p.slug = ?)
+	//    AND (? = '' OR a.id = ? OR a.slug = ?)
+	//  UNION ALL
+	//  SELECT e.id
+	//  FROM environments e
+	//  JOIN apps a ON a.id = e.app_id AND a.project_id = e.project_id AND a.workspace_id = e.workspace_id
+	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = e.workspace_id
+	//  WHERE e.workspace_id = ?
+	//    AND e.slug = ?
+	//    AND e.id <> ?
 	//    AND (? = '' OR p.id = ? OR p.slug = ?)
 	//    AND (? = '' OR a.id = ? OR a.slug = ?)
 	ResolveCustomDomainEnvironments(ctx context.Context, db DBTX, arg ResolveCustomDomainEnvironmentsParams) ([]string, error)
