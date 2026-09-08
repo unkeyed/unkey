@@ -1,5 +1,5 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
-import { type InferSelectModel, ne, sql } from "@/lib/db";
+import { type InferSelectModel, ne } from "@/lib/db";
 import type { LastExit } from "@/lib/types/deploy";
 import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
 import { mapRegionToFlag } from "../network/utils";
