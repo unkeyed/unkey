@@ -83,7 +83,9 @@ export function DeploymentsCardList() {
               <Empty.Icon className="w-auto" />
               <Empty.Title>No Active Deployments</Empty.Title>
               <Empty.Description className="text-left">
-                Push to your connected repository or trigger a manual deployment to get started.
+                {app?.sourceType === "oci"
+                  ? "Deploy the configured image or enter another image reference to get started."
+                  : "Push to your connected repository or trigger a manual deployment to get started."}{" "}
                 Cancelled, superseded and stopped deployments are hidden by default.
               </Empty.Description>
               <Empty.Actions className="mt-4 justify-start">

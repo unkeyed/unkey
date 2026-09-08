@@ -1,5 +1,5 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
-import { type InferSelectModel, ne } from "@/lib/db";
+import { type InferSelectModel, ne, sql } from "@/lib/db";
 import type { LastExit } from "@/lib/types/deploy";
 import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
 import { mapRegionToFlag } from "../network/utils";
@@ -52,8 +52,8 @@ export const deploymentListSelect = {
 
 export type DeploymentListSelection = Pick<
   InferSelectModel<typeof deployments>,
-  keyof typeof deploymentListSelect
->;
+  Exclude<keyof typeof deploymentListSelect, "requestedImage" | "resolvedImage">
+> & { requestedImage: string | null; resolvedImage: string | null };
 
 export function mapInstanceRow(row: {
   id: string;

@@ -64,6 +64,7 @@ export const ChooseSourceStep = ({
         repositoryFullName: null,
         currentDeploymentId: null,
         isRolledBack: false,
+        updatedAt: null,
         id: SERVER_PLACEHOLDER,
         latestDeploymentId: null,
         author: null,
