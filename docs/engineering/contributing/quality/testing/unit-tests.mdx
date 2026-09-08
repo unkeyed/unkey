@@ -39,12 +39,13 @@ Name test functions `Test<Type>_<Behavior>` or `Test<Function>_<Scenario>`. Name
 
 Prefer names that state the guarantee under test. `TestParseURN_RejectsCrossWorkspaceResources` is better than `TestParseURN_InvalidInput` because it tells the reader which production boundary the test protects.
 
-Add a docstring when the guarantee is not obvious from the name. Use the docstring to explain the invariant, regression, or business rule, not the steps the test performs.
+Add a short docstring to every test, even when its name is descriptive. Explain the guarantee and why it matters, not the steps the test performs. Prefer a concrete input and expected result from the test, as described in the [testing standard](/contributing/quality/testing/index).
 
 ```go
 // TestAuthorizeRejectsCrossWorkspaceAccess guarantees that a valid key from one
 // workspace cannot authorize reads in another workspace. Returning not found
 // prevents callers from discovering that the target resource exists.
+// For example, a key for workspace A receives 404 when it reads workspace B's API.
 func TestAuthorizeRejectsCrossWorkspaceAccess(t *testing.T) {
     // ...
 }
