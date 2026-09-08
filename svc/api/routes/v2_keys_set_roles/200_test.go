@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -390,7 +389,7 @@ func TestSetRolesConcurrent(t *testing.T) {
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Name:        ptr.P("concurrent-set-roles-test-key"),
+		Name:        new("concurrent-set-roles-test-key"),
 	})
 
 	// Create roles that will be set concurrently
@@ -400,7 +399,7 @@ func TestSetRolesConcurrent(t *testing.T) {
 		role := h.CreateRole(seed.CreateRoleRequest{
 			WorkspaceID: workspace.ID,
 			Name:        fmt.Sprintf("concurrent.set.role.%d", i),
-			Description: ptr.P(fmt.Sprintf("Concurrent role %d", i)),
+			Description: new(fmt.Sprintf("Concurrent role %d", i)),
 		})
 		roles[i] = role.Name
 	}

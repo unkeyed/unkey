@@ -94,10 +94,6 @@ func authHeaders(rootKey string) http.Header {
 	}
 }
 
-func ptr[T any](v T) *T {
-	return &v
-}
-
 func regionSetting(name string, minReplicas, maxReplicas int) openapi.EnvironmentRegion {
 	return openapi.EnvironmentRegion{
 		Name:     name,

@@ -4,7 +4,6 @@ package domain
 import (
 	"github.com/unkeyed/unkey/pkg/dns"
 	"github.com/unkeyed/unkey/pkg/dns/domainconnect"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -41,7 +40,7 @@ func DnsRecords(in DnsRecordsInput) []openapi.DnsRecord {
 		Value:    in.TargetCname,
 		Ttl:      dnsRecordTTLSeconds,
 		Verified: in.RoutingVerified,
-		Note:     ptr.P("Create as DNS-only if your provider offers the choice."),
+		Note:     new("Create as DNS-only if your provider offers the choice."),
 	}
 	txt := openapi.DnsRecord{
 		Type:     openapi.TXT,
@@ -49,13 +48,13 @@ func DnsRecords(in DnsRecordsInput) []openapi.DnsRecord {
 		Value:    dns.OwnershipTXTValue(in.VerificationToken),
 		Ttl:      dnsRecordTTLSeconds,
 		Verified: in.OwnershipVerified,
-		Note:     ptr.P("Proves ownership. Create it alongside the routing record."),
+		Note:     new("Proves ownership. Create it alongside the routing record."),
 	}
 
 	if domainconnect.IsApexDomain(in.Domain) {
 		routing.Type = openapi.ALIAS
-		routing.Note = ptr.P("Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.")
-		txt.Note = ptr.P("Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.")
+		routing.Note = new("Apex domains cannot hold a CNAME. Use ALIAS, ANAME, or a flattened CNAME depending on your provider.")
+		txt.Note = new("Proves ownership. An apex domain cannot be verified through its routing record, so this is the only proof available.")
 	}
 
 	return []openapi.DnsRecord{routing, txt}

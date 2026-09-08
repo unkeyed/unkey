@@ -11,7 +11,6 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -257,9 +256,9 @@ func TestCreateKeyWithEncryption(t *testing.T) {
 	req := handler.Request{
 		ApiId:       api.ID,
 		Name:        &name,
-		ExternalId:  ptr.P("user_123"),
-		Enabled:     ptr.P(true),
-		Recoverable: ptr.P(true),
+		ExternalId:  new("user_123"),
+		Enabled:     new(true),
+		Recoverable: new(true),
 	}
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -316,7 +315,7 @@ func TestCreateRecoverableKeyWithURNPermissions(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		ApiId:       api.ID,
-		Recoverable: ptr.P(true),
+		Recoverable: new(true),
 	})
 	require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 	require.NotNil(t, res.Body)
@@ -656,8 +655,8 @@ func TestCreateKeyWithRolesAndPermissions(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		ApiId:       api.ID,
-		Roles:       ptr.P(roleNames),
-		Permissions: ptr.P(permissionSlugs),
+		Roles:       new(roleNames),
+		Permissions: new(permissionSlugs),
 	})
 	require.Equal(t, 200, res.Status, "expected 200, received: %#v", res)
 	require.NotEmpty(t, res.Body.Data.KeyId)

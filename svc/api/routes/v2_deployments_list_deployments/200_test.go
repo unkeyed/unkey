@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -251,13 +250,13 @@ func TestListFilterByStatus(t *testing.T) {
 	})
 
 	pending := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{
-		Status: ptr.P([]openapi.DeploymentStatus{openapi.DeploymentStatusPending}),
+		Status: new([]openapi.DeploymentStatus{openapi.DeploymentStatusPending}),
 	})
 	require.Equal(t, http.StatusOK, pending.Status, "expected 200, received: %s", pending.RawBody)
 	require.Len(t, pending.Body.Data, 1)
 
 	failed := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{
-		Status: ptr.P([]openapi.DeploymentStatus{openapi.DeploymentStatusFailed}),
+		Status: new([]openapi.DeploymentStatus{openapi.DeploymentStatusFailed}),
 	})
 	require.Equal(t, http.StatusOK, failed.Status, "expected 200, received: %s", failed.RawBody)
 	require.Empty(t, failed.Body.Data)
@@ -286,7 +285,7 @@ func TestListEmptyStatusFilter(t *testing.T) {
 	}
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{
-		Status: ptr.P([]openapi.DeploymentStatus{}),
+		Status: new([]openapi.DeploymentStatus{}),
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Len(t, res.Body.Data, total, "empty status array must not filter anything out")
@@ -330,7 +329,7 @@ func TestListFilterByMultipleStatuses(t *testing.T) {
 	})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), handler.Request{
-		Status: ptr.P([]openapi.DeploymentStatus{openapi.DeploymentStatusPending, openapi.DeploymentStatusFailed}),
+		Status: new([]openapi.DeploymentStatus{openapi.DeploymentStatusPending, openapi.DeploymentStatusFailed}),
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Len(t, res.Body.Data, 2)
@@ -459,7 +458,7 @@ func TestListPagination(t *testing.T) {
 	var cursor *string
 	pages := 0
 	for {
-		req := handler.Request{Limit: ptr.P(2), Cursor: cursor}
+		req := handler.Request{Limit: new(2), Cursor: cursor}
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 		require.LessOrEqual(t, len(res.Body.Data), 2)

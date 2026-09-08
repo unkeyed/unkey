@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -118,7 +117,7 @@ func TestListDomainsPagination(t *testing.T) {
 	pages := 0
 	for {
 		req := makeRequest(env)
-		req.Limit = ptr.P(2)
+		req.Limit = new(2)
 		req.Cursor = cursor
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -157,7 +156,7 @@ func TestListDomainsUnknownCursor(t *testing.T) {
 	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
 
 	req := makeRequest(env)
-	req.Cursor = ptr.P("dom_doesnotexist")
+	req.Cursor = new("dom_doesnotexist")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -201,7 +200,7 @@ func TestListDomainsCursorStaysScoped(t *testing.T) {
 	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
 
 	req := makeRequest(env)
-	req.Cursor = ptr.P(siblingDomain.ID)
+	req.Cursor = new(siblingDomain.ID)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -424,7 +423,7 @@ func TestListDomainsSearch(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			req := makeRequest(env)
-			req.Search = ptr.P(tc.search)
+			req.Search = new(tc.search)
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)

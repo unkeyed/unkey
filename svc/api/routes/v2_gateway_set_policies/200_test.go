@@ -10,14 +10,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_gateway_set_policies"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 )
 
 func TestSetPoliciesSuccessfully(t *testing.T) {
@@ -145,7 +143,7 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 		seedSentinelConfig(t, h, env, &frontlinev1.Config{Policies: []*frontlinev1.Policy{{
 			Id:      legacyPolicyID,
 			Name:    "legacy jwt",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config:  &frontlinev1.Policy_Jwtauth{Jwtauth: &frontlinev1.JWTAuth{}},
 		}}})
 
@@ -210,29 +208,29 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 			Name:    "kitchen-sink",
 			Enabled: true,
 			Match: &[]openapi.MatchExpr{
-				{Path: &openapi.PathMatch{Path: openapi.StringMatch{Exact: ptr.P("/v1/kebap"), IgnoreCase: ptr.P(false)}}},
-				{Path: &openapi.PathMatch{Path: openapi.StringMatch{Prefix: ptr.P("/api/"), IgnoreCase: ptr.P(true)}}},
-				{Path: &openapi.PathMatch{Path: openapi.StringMatch{Regex: ptr.P("^/a/[0-9]+$")}}},
+				{Path: &openapi.PathMatch{Path: openapi.StringMatch{Exact: new("/v1/kebap"), IgnoreCase: new(false)}}},
+				{Path: &openapi.PathMatch{Path: openapi.StringMatch{Prefix: new("/api/"), IgnoreCase: new(true)}}},
+				{Path: &openapi.PathMatch{Path: openapi.StringMatch{Regex: new("^/a/[0-9]+$")}}},
 				{Method: &openapi.MethodMatch{Methods: []openapi.MethodMatchMethods{"GET", "POST"}}},
 				{Header: &openapi.FieldMatch{Name: "x-kebap", Present: &present}},
-				{Header: &openapi.FieldMatch{Name: "x-token", Value: &openapi.StringMatch{Prefix: ptr.P("tok_")}}},
+				{Header: &openapi.FieldMatch{Name: "x-token", Value: &openapi.StringMatch{Prefix: new("tok_")}}},
 				{QueryParam: &openapi.FieldMatch{Name: "debug", Present: &present}},
-				{QueryParam: &openapi.FieldMatch{Name: "v", Value: &openapi.StringMatch{Exact: ptr.P("1")}}},
+				{QueryParam: &openapi.FieldMatch{Name: "v", Value: &openapi.StringMatch{Exact: new("1")}}},
 			},
 			Keyauth: &openapi.KeyauthPolicy{
 				Keyspaces: []string{apiA.KeyAuthID.String, apiB.KeyAuthID.String},
 				Locations: &[]openapi.KeyLocation{
 					{Bearer: &openapi.BearerTokenLocation{}},
-					{Header: &openapi.HeaderKeyLocation{Name: "x-api-key", StripPrefix: ptr.P("Key ")}},
+					{Header: &openapi.HeaderKeyLocation{Name: "x-api-key", StripPrefix: new("Key ")}},
 					{Header: &openapi.HeaderKeyLocation{Name: "x-plain"}},
 					{QueryParam: &openapi.QueryParamKeyLocation{Name: "api_key"}},
 				},
-				PermissionQuery: ptr.P("documents.read AND (billing.read OR billing.admin)"),
+				PermissionQuery: new("documents.read AND (billing.read OR billing.admin)"),
 				Ratelimits: &[]openapi.KeyRatelimit{
 					{Name: "requests"},
-					{Name: "burst", Limit: ptr.P(int64(10)), Duration: ptr.P(int64(1000))},
-					{Name: "heavy", Limit: ptr.P(int64(5)), Duration: ptr.P(int64(60000)), Cost: ptr.P(int64(2))},
-					{Name: "kebap", Cost: ptr.P(int64(3))},
+					{Name: "burst", Limit: new(int64(10)), Duration: new(int64(1000))},
+					{Name: "heavy", Limit: new(int64(5)), Duration: new(int64(60000)), Cost: new(int64(2))},
+					{Name: "kebap", Cost: new(int64(3))},
 				},
 			},
 		}

@@ -89,8 +89,7 @@ func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64
 		// Handle read errors (including MaxBytesError)
 		if err != nil {
 			// Check if this is a MaxBytesError from http.MaxBytesReader
-			var maxBytesErr *http.MaxBytesError
-			if errors.As(err, &maxBytesErr) {
+			if maxBytesErr, ok := errors.AsType[*http.MaxBytesError](err); ok {
 				return fault.Wrap(err,
 					fault.Code(codes.User.BadRequest.RequestBodyTooLarge.URN()),
 					fault.Internal(fmt.Sprintf("request body exceeds size limit of %d bytes", maxBytesErr.Limit)),
@@ -277,7 +276,7 @@ func (s *Session) BindBody(dst any) error {
 //	// Use params.Limit, params.Cursor, and params.Filter
 func (s *Session) BindQuery(dst interface{}) error {
 	val := reflect.ValueOf(dst)
-	if val.Kind() != reflect.Ptr || val.IsNil() {
+	if val.Kind() != reflect.Pointer || val.IsNil() {
 		return fault.New("destination must be a non-nil pointer")
 	}
 

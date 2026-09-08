@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -115,7 +114,7 @@ func TestCreatePortalWithKeyspaceMapping(t *testing.T) {
 		DisplayName: "Acme",
 		KeyspaceId:  ksOf(mapping),
 		AppId:       appOf(mapping),
-		Enabled:     ptr.P(true),
+		Enabled:     new(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.NotNil(t, res.Body)
@@ -180,9 +179,9 @@ func TestCreatePortalWithAppMappingAndBranding(t *testing.T) {
 		DisplayName:  "Acme",
 		KeyspaceId:   ksOf(portal.Mapping{Type: portal.MappingTypeApp, ID: app.ID}),
 		AppId:        appOf(portal.Mapping{Type: portal.MappingTypeApp, ID: app.ID}),
-		Enabled:      ptr.P(false),
-		LogoUrl:      ptr.P("https://cdn.example.com/logo.svg"),
-		PrimaryColor: ptr.P("#6366f1"),
+		Enabled:      new(false),
+		LogoUrl:      new("https://cdn.example.com/logo.svg"),
+		PrimaryColor: new("#6366f1"),
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 
@@ -226,7 +225,7 @@ func TestCreatePortalAllowsSameSlugInAnotherWorkspace(t *testing.T) {
 		DisplayName: "Acme",
 		KeyspaceId:  ksOf(keyspaceMapping(t, h, workspace.ID)),
 		AppId:       appOf(keyspaceMapping(t, h, workspace.ID)),
-		Enabled:     ptr.P(true),
+		Enabled:     new(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status,
 		"a slug held by another workspace must not block this one: %s", res.RawBody)
@@ -243,7 +242,7 @@ func TestCreatePortalWritesOneAuditEntry(t *testing.T) {
 		DisplayName: "Acme",
 		KeyspaceId:  ksOf(mapping),
 		AppId:       appOf(mapping),
-		Enabled:     ptr.P(true),
+		Enabled:     new(true),
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 

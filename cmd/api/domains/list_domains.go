@@ -7,7 +7,6 @@ import (
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func listDomainsCmd() *cli.Command {
@@ -33,7 +32,7 @@ For full documentation, see https://www.unkey.com/docs/networking/domains` + uti
 			}
 			return util.Output(cmd, res.V2DomainsListDomainsResponseBody)
 		}
-		req := components.V2DomainsListDomainsRequestBody{Project: cmd.String("project"), App: cmd.String("app"), Environment: cmd.String("environment"), Limit: ptr.P(cmd.Int64("limit")), Cursor: nil, Search: nil}
+		req := components.V2DomainsListDomainsRequestBody{Project: cmd.String("project"), App: cmd.String("app"), Environment: cmd.String("environment"), Limit: new(cmd.Int64("limit")), Cursor: nil, Search: nil}
 		if v := cmd.String("cursor"); v != "" {
 			req.Cursor = &v
 		}

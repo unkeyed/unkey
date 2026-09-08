@@ -131,9 +131,8 @@ func (h *Handler) RerollKey(
 	length := 16
 	prefix := keyData.Key.Prefix
 	if prefix == "" {
-		separator := strings.LastIndex(keyData.Key.Start, "_")
-		if separator >= 0 {
-			prefix = keyData.Key.Start[:separator]
+		if legacyPrefix, _, found := strings.CutLast(keyData.Key.Start, "_"); found {
+			prefix = legacyPrefix
 		}
 	}
 

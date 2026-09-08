@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -23,7 +22,7 @@ func TestLimit(t *testing.T) {
 				Identifier: "user_abc123",
 				Limit:      100,
 				Duration:   60000,
-				Cost:       ptr.P(int64(1)),
+				Cost:       new(int64(1)),
 			},
 		},
 		{
@@ -34,7 +33,7 @@ func TestLimit(t *testing.T) {
 				Identifier: "user_def456",
 				Limit:      50,
 				Duration:   3600000,
-				Cost:       ptr.P(int64(5)),
+				Cost:       new(int64(5)),
 			},
 		},
 	}

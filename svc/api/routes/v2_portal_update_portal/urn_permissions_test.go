@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 )
@@ -25,7 +24,7 @@ func TestUpdatePortalAuthorizesAdminURN(t *testing.T) {
 
 	rootKey := h.CreateRootKey(workspace.ID, fmt.Sprintf("unkey:v1:%s:**#*", workspace.ID))
 	req := baseRequest(stored.Slug)
-	req.Slug = ptr.P("updated-urn-portal")
+	req.Slug = new("updated-urn-portal")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), req)
 	require.Equal(t, http.StatusOK, res.Status, "the admin grant must authorize updating a portal: %s", res.RawBody)

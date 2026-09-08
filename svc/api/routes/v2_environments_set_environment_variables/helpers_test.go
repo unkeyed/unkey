@@ -132,7 +132,3 @@ func authHeaders(rootKey string) http.Header {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 }
-
-func ptr[T any](v T) *T {
-	return &v
-}

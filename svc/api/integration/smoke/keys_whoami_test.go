@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -17,13 +16,13 @@ func TestWhoami_ReturnsKeyConfiguration(t *testing.T) {
 	identity := createIdentity(t, ctx, client)
 	name := uid.DNS1035()
 	meta := map[string]any{"smokeTest": uid.DNS1035()}
-	created, err := client.Keys.CreateKey(ctx, components.V2KeysCreateKeyRequestBody{APIID: api.APIID, Name: &name, ExternalID: &identity.ExternalID, Meta: meta, Enabled: ptr.P(true)})
+	created, err := client.Keys.CreateKey(ctx, components.V2KeysCreateKeyRequestBody{APIID: api.APIID, Name: &name, ExternalID: &identity.ExternalID, Meta: meta, Enabled: new(true)})
 	require.NoError(t, err)
 	require.NotNil(t, created.V2KeysCreateKeyResponseBody)
 	key := created.V2KeysCreateKeyResponseBody.Data
 	waitForPropagation()
 	t.Cleanup(func() {
-		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{KeyID: key.KeyID, Permanent: ptr.P(true)})
+		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{KeyID: key.KeyID, Permanent: new(true)})
 		require.NoError(t, err)
 	})
 	response, err := client.Keys.Whoami(ctx, components.V2KeysWhoamiRequestBody{Key: key.Key})

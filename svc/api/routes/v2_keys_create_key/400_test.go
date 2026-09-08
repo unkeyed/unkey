@@ -8,7 +8,6 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -160,7 +159,7 @@ func TestCreateKeyBadRequest(t *testing.T) {
 		// Create a role string that's longer than 512 characters
 		req := handler.Request{
 			ApiId: api.ID,
-			Roles: ptr.P([]string{strings.Repeat("a", 513)}),
+			Roles: new([]string{strings.Repeat("a", 513)}),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)

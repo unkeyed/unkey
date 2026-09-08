@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -120,7 +119,7 @@ func TestGetKeyForbidden(t *testing.T) {
 
 	req := handler.Request{
 		KeyId:   keyID,
-		Decrypt: ptr.P(true),
+		Decrypt: new(true),
 	}
 
 	t.Run("no permissions", func(t *testing.T) {
@@ -209,7 +208,7 @@ func TestGetKeyForbidden(t *testing.T) {
 		// Try to get key
 		readReq := handler.Request{
 			KeyId:   keyID,
-			Decrypt: ptr.P(false), // Even without decrypt, should fail on read permission
+			Decrypt: new(false), // Even without decrypt, should fail on read permission
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, readReq)

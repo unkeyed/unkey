@@ -59,8 +59,7 @@ func NewS3(config S3Config) (Storage, error) {
 		Bucket: aws.String(config.S3Bucket),
 	})
 	if err != nil {
-		var alreadyOwned *s3types.BucketAlreadyOwnedByYou
-		if !errors.As(err, &alreadyOwned) {
+		if _, ok := errors.AsType[*s3types.BucketAlreadyOwnedByYou](err); !ok {
 			return nil, fmt.Errorf("failed to create bucket: %w", err)
 		}
 	}
@@ -98,9 +97,10 @@ func (s *s3) GetObject(ctx context.Context, key string) ([]byte, bool, error) {
 	if err != nil {
 		// A missing key is an expected miss, not an error. S3 reports it as
 		// NoSuchKey; some S3-compatible stores only surface the 404 status.
-		var noSuchKey *s3types.NoSuchKey
-		var respErr *awshttp.ResponseError
-		if errors.As(err, &noSuchKey) || (errors.As(err, &respErr) && respErr.HTTPStatusCode() == http.StatusNotFound) {
+		if _, ok := errors.AsType[*s3types.NoSuchKey](err); ok {
+			return nil, false, nil
+		}
+		if respErr, ok := errors.AsType[*awshttp.ResponseError](err); ok && respErr.HTTPStatusCode() == http.StatusNotFound {
 			return nil, false, nil
 		}
 		return nil, false, fmt.Errorf("failed to get object: %w", err)

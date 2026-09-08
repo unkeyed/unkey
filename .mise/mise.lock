@@ -110,40 +110,6 @@ checksum = "sha256:097b0ba51f424fc6811ea30ba3a0a70a75c457126ca09fa45cc5da4cfefcb
 url = "https://github.com/bufbuild/buf/releases/download/v1.64.0/buf-Windows-x86_64.zip"
 url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/342895506"
 
-[[tools."github:chronark/rask"]]
-version = "0.5.0"
-backend = "github:chronark/rask"
-
-[tools."github:chronark/rask"."platforms.linux-arm64"]
-checksum = "sha256:0de4922f59e4d02b1b6e293febf0c6525453b587609dc333eab14257b964eb3c"
-url = "https://github.com/chronark/rask/releases/download/v0.5.0/rask_0.5.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/468973768"
-
-[tools."github:chronark/rask"."platforms.linux-arm64-musl"]
-checksum = "sha256:0de4922f59e4d02b1b6e293febf0c6525453b587609dc333eab14257b964eb3c"
-url = "https://github.com/chronark/rask/releases/download/v0.5.0/rask_0.5.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/468973768"
-
-[tools."github:chronark/rask"."platforms.linux-x64"]
-checksum = "sha256:27bbeda829f94cce12c329bfa4787fac0d2db7cb4c6a116d10d72b27fbc7db57"
-url = "https://github.com/chronark/rask/releases/download/v0.5.0/rask_0.5.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/468973767"
-
-[tools."github:chronark/rask"."platforms.linux-x64-musl"]
-checksum = "sha256:27bbeda829f94cce12c329bfa4787fac0d2db7cb4c6a116d10d72b27fbc7db57"
-url = "https://github.com/chronark/rask/releases/download/v0.5.0/rask_0.5.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/468973767"
-
-[tools."github:chronark/rask"."platforms.macos-arm64"]
-checksum = "sha256:82f0ee979293d4f2a1fa36108b5cad5fc5e68dc9f0c6e4972f3ce06f560d3a50"
-url = "https://github.com/chronark/rask/releases/download/v0.5.0/rask_0.5.0_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/468973769"
-
-[tools."github:chronark/rask"."platforms.macos-x64"]
-checksum = "sha256:265ef927f7f69d0115c1cdfc097a88be0553f8db1d0fec4129873494c86d559d"
-url = "https://github.com/chronark/rask/releases/download/v0.5.0/rask_0.5.0_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/468973766"
-
 [[tools."github:depot/cli"]]
 version = "2.101.67"
 backend = "github:depot/cli"
@@ -223,49 +189,49 @@ url = "https://github.com/dprint/dprint/releases/download/0.51.1/dprint-x86_64-p
 url_api = "https://api.github.com/repos/dprint/dprint/releases/assets/333853235"
 
 [[tools."github:golangci/golangci-lint"]]
-version = "2.12.2"
+version = "2.13.2"
 backend = "github:golangci/golangci-lint"
 
 [tools."github:golangci/golangci-lint"."platforms.linux-arm64"]
-checksum = "sha256:44cd40a8c76c86755375adfeea52cfd3533cb43d7bd647771e0ae065e166df3a"
-url = "https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/413470996"
+checksum = "sha256:a2a4e0065aa41be71f7c5ac90f271b61751331e5d04314e62afe4027855f0893"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.13.2/golangci-lint-2.13.2-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/532995442"
 provenance = "github-attestations"
 
 [tools."github:golangci/golangci-lint"."platforms.linux-arm64-musl"]
-checksum = "sha256:44cd40a8c76c86755375adfeea52cfd3533cb43d7bd647771e0ae065e166df3a"
-url = "https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/413470996"
+checksum = "sha256:a2a4e0065aa41be71f7c5ac90f271b61751331e5d04314e62afe4027855f0893"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.13.2/golangci-lint-2.13.2-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/532995442"
 provenance = "github-attestations"
 
 [tools."github:golangci/golangci-lint"."platforms.linux-x64"]
-checksum = "sha256:8df580d2670fed8fa984aac0507099af8df275e665215f5c7a2ae3943893a553"
-url = "https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/413471054"
+checksum = "sha256:2277d43b98ec0054280f2ac26b53268bae97682444678a59a657dd565da021d6"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.13.2/golangci-lint-2.13.2-linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/532995333"
 provenance = "github-attestations"
 
 [tools."github:golangci/golangci-lint"."platforms.linux-x64-musl"]
-checksum = "sha256:8df580d2670fed8fa984aac0507099af8df275e665215f5c7a2ae3943893a553"
-url = "https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/413471054"
+checksum = "sha256:2277d43b98ec0054280f2ac26b53268bae97682444678a59a657dd565da021d6"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.13.2/golangci-lint-2.13.2-linux-amd64.tar.gz"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/532995333"
 provenance = "github-attestations"
 
 [tools."github:golangci/golangci-lint"."platforms.macos-arm64"]
-checksum = "sha256:a9c54498731b3128f79e090be6110f3e5fffccc617b08142ed244d4126c73f29"
-url = "https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/413470950"
+checksum = "sha256:f4bf83f0b64f055c42b28fc9a38861839f69c096e61c788e72dfaae412011789"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.13.2/golangci-lint-2.13.2-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/532995398"
 provenance = "github-attestations"
 
 [tools."github:golangci/golangci-lint"."platforms.macos-x64"]
-checksum = "sha256:f6f06d94b6241521c53d15450c5209b028270bf966f842afb11c030c79f5bc16"
-url = "https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-darwin-amd64.tar.gz"
-url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/413470980"
+checksum = "sha256:8a13aaf9cbbb1dee52824e862cf0d0720e5bb97c1f4260d1e51623a09492b57b"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.13.2/golangci-lint-2.13.2-darwin-amd64.tar.gz"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/532995222"
 provenance = "github-attestations"
 
 [tools."github:golangci/golangci-lint"."platforms.windows-x64"]
-checksum = "sha256:bd42e3ebc8cb4ececb86941983baaf1dc221bbb04d838e94ce63b49cc91e02bb"
-url = "https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golangci-lint-2.12.2-windows-amd64.zip"
-url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/413471017"
+checksum = "sha256:4735fdc8e84a0cfb7a15a1c364a650942f88215e0d36c674ebc4024f7b554524"
+url = "https://github.com/golangci/golangci-lint/releases/download/v2.13.2/golangci-lint-2.13.2-windows-amd64.zip"
+url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/532995335"
 provenance = "github-attestations"
 
 [[tools."github:jqlang/jq"]]
@@ -556,36 +522,40 @@ url = "https://github.com/tilt-dev/tilt/releases/download/v0.37.3/tilt.0.37.3.wi
 url_api = "https://api.github.com/repos/tilt-dev/tilt/releases/assets/409071129"
 
 [[tools.go]]
-version = "1.25.10"
+version = "1.27.1"
 backend = "core:go"
 
 [tools.go."platforms.linux-arm64"]
-checksum = "sha256:654da1f9b50a5d1c2a85ccf8ed405aa89c06e94d18384628bf186f7712677b08"
-url = "https://dl.google.com/go/go1.25.10.linux-arm64.tar.gz"
+checksum = "sha256:3450b45a3f9ee8568792736a5c5e70a1f2e9b36c35a8f74958c03e51d7d92bec"
+url = "https://dl.google.com/go/go1.27.1.linux-arm64.tar.gz"
 
 [tools.go."platforms.linux-arm64-musl"]
-checksum = "sha256:654da1f9b50a5d1c2a85ccf8ed405aa89c06e94d18384628bf186f7712677b08"
-url = "https://dl.google.com/go/go1.25.10.linux-arm64.tar.gz"
+checksum = "sha256:3450b45a3f9ee8568792736a5c5e70a1f2e9b36c35a8f74958c03e51d7d92bec"
+url = "https://dl.google.com/go/go1.27.1.linux-arm64.tar.gz"
 
 [tools.go."platforms.linux-x64"]
-checksum = "sha256:42d4f7a32316aa66591eca7e89867256057a4264451aca10570a715b3637ba70"
-url = "https://dl.google.com/go/go1.25.10.linux-amd64.tar.gz"
+checksum = "sha256:63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445"
+url = "https://dl.google.com/go/go1.27.1.linux-amd64.tar.gz"
 
 [tools.go."platforms.linux-x64-musl"]
-checksum = "sha256:42d4f7a32316aa66591eca7e89867256057a4264451aca10570a715b3637ba70"
-url = "https://dl.google.com/go/go1.25.10.linux-amd64.tar.gz"
+checksum = "sha256:63d339f0da5ab53635a56f2490a7984dfe12dfcff22ad749f63edaf590168445"
+url = "https://dl.google.com/go/go1.27.1.linux-amd64.tar.gz"
 
 [tools.go."platforms.macos-arm64"]
-checksum = "sha256:795691a425de7e7cdba3544f354dcd2cebcf52e87dc6898193878f34eb6d634f"
-url = "https://dl.google.com/go/go1.25.10.darwin-arm64.tar.gz"
+checksum = "sha256:ee215d57e0ec269c60cc9ceca68e6bda321ba9ee5afe24f4b0988703c2d87d12"
+url = "https://dl.google.com/go/go1.27.1.darwin-arm64.tar.gz"
 
 [tools.go."platforms.macos-x64"]
-checksum = "sha256:52321165a3146cd91865ef98371506a846ed4dc4f9f1c9323e5ad90d2a411e06"
-url = "https://dl.google.com/go/go1.25.10.darwin-amd64.tar.gz"
+checksum = "sha256:8f8f52c6649542cf027bbc9b9c68d1ec042f9f34808a40413f0b8b3f66f3caa4"
+url = "https://dl.google.com/go/go1.27.1.darwin-amd64.tar.gz"
 
 [tools.go."platforms.windows-x64"]
-checksum = "sha256:ca37af2dadd8544464f1a9ca7c3886499d1cdfcb263855d0a1d71f194b2bd222"
-url = "https://dl.google.com/go/go1.25.10.windows-amd64.zip"
+checksum = "sha256:a3911b5e0e1b1053f25ed0675f4c1c6aad1e2bfcf253df2b9be4caabd2edd95d"
+url = "https://dl.google.com/go/go1.27.1.windows-amd64.zip"
+
+[[tools."go:github.com/chronark/rask"]]
+version = "0.6.0"
+backend = "go:github.com/chronark/rask"
 
 [[tools."http:helm"]]
 version = "3.21.0"

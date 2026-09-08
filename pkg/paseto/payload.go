@@ -1,14 +1,12 @@
 package paseto
 
 import (
-	"bytes"
 	"encoding/json"
+	jsonv2 "encoding/json/v2"
 	"fmt"
-	"io"
 	"reflect"
 	"regexp"
 	"time"
-	"unicode/utf8"
 )
 
 var rfc3339DateTimePattern = regexp.MustCompile(
@@ -43,7 +41,7 @@ func decodePayload[T ClaimSet](encoded []byte) (T, error) {
 	// inspectPayload produced every RawMessage from valid JSON, so this map
 	// cannot contain a value that json.Marshal rejects.
 	customClaims, _ := json.Marshal(object.fields)
-	if err := json.Unmarshal(customClaims, &payload); err != nil {
+	if err := jsonv2.Unmarshal(customClaims, &payload, json.DefaultOptionsV1(), jsonv2.MatchCaseInsensitiveNames(false)); err != nil {
 		return payload, fmt.Errorf("decode payload: %w", err)
 	}
 	if err := setRegisteredClaims(&payload, object.claims); err != nil {
@@ -53,92 +51,18 @@ func decodePayload[T ClaimSet](encoded []byte) (T, error) {
 }
 
 func inspectPayload(encoded []byte) (payloadObject, error) {
-	if !utf8.Valid(encoded) {
-		return payloadObject{}, fmt.Errorf("payload is not valid UTF-8")
-	}
-	object := map[string]json.RawMessage{}
-	if err := json.Unmarshal(encoded, &object); err != nil {
+	var object map[string]json.RawMessage
+	if err := jsonv2.Unmarshal(encoded, &object); err != nil {
 		return payloadObject{}, fmt.Errorf("decode payload object: %w", err)
 	}
-	if err := requireUniqueJSONObject(encoded); err != nil {
-		return payloadObject{}, err
+	if object == nil {
+		return payloadObject{}, fmt.Errorf("payload must be a JSON object")
 	}
 	claims, err := parseRegisteredClaims(object)
 	if err != nil {
 		return payloadObject{}, err
 	}
 	return payloadObject{claims: claims, fields: object}, nil
-}
-
-func requireUniqueJSONObject(encoded []byte) error {
-	decoder := json.NewDecoder(bytes.NewReader(encoded))
-	decoder.UseNumber()
-	first, err := decoder.Token()
-	if err != nil {
-		return fmt.Errorf("decode payload: %w", err)
-	}
-	delimiter, ok := first.(json.Delim)
-	if !ok || delimiter != '{' {
-		return fmt.Errorf("payload must be a JSON object")
-	}
-	if err := inspectJSONObject(decoder); err != nil {
-		return err
-	}
-	if _, err := decoder.Token(); err != io.EOF {
-		if err == nil {
-			return fmt.Errorf("payload contains data after the JSON object")
-		}
-		return fmt.Errorf("decode payload: %w", err)
-	}
-	return nil
-}
-
-func inspectJSONValue(decoder *json.Decoder) error {
-	token, err := decoder.Token()
-	if err != nil {
-		return fmt.Errorf("decode JSON value: %w", err)
-	}
-	delimiter, ok := token.(json.Delim)
-	if !ok {
-		return nil
-	}
-	if delimiter == '{' {
-		return inspectJSONObject(decoder)
-	}
-	// At a value boundary, the decoder can return only an opening object or
-	// array delimiter. The object case returned above, so this is an array.
-	for decoder.More() {
-		if err := inspectJSONValue(decoder); err != nil {
-			return err
-		}
-	}
-	if _, err := decoder.Token(); err != nil {
-		return fmt.Errorf("decode JSON array: %w", err)
-	}
-	return nil
-}
-
-func inspectJSONObject(decoder *json.Decoder) error {
-	seen := map[string]struct{}{}
-	for decoder.More() {
-		token, err := decoder.Token()
-		if err != nil {
-			return fmt.Errorf("decode JSON object key: %w", err)
-		}
-		// A decoder inside an object returns a string token for every key.
-		key := token.(string)
-		if _, duplicate := seen[key]; duplicate {
-			return fmt.Errorf("payload contains duplicate key %q", key)
-		}
-		seen[key] = struct{}{}
-		if err := inspectJSONValue(decoder); err != nil {
-			return err
-		}
-	}
-	if _, err := decoder.Token(); err != nil {
-		return fmt.Errorf("decode JSON object: %w", err)
-	}
-	return nil
 }
 
 func parseRegisteredClaims(object map[string]json.RawMessage) (Claims, error) {

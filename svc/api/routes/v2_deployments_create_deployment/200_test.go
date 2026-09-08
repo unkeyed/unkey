@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -76,8 +75,8 @@ func TestGitSource(t *testing.T) {
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
 	req := gitRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, openapi.DeploymentSourceGit{
-		Branch:    ptr.P("main"),
-		CommitSha: ptr.P("abc123"),
+		Branch:    new("main"),
+		CommitSha: new("abc123"),
 	})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)
@@ -104,8 +103,8 @@ func TestGitSourceWithFork(t *testing.T) {
 	connectRepo(t, h, setup.Workspace.ID, setup.Project.ID, setup.App.ID)
 
 	req := gitRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, openapi.DeploymentSourceGit{
-		CommitSha:  ptr.P("9f2c1a7"),
-		Repository: ptr.P("contributor/acme-api"),
+		CommitSha:  new("9f2c1a7"),
+		Repository: new("contributor/acme-api"),
 	})
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(setup.RootKey), req)

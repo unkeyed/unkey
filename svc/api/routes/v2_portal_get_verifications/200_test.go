@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -69,7 +68,7 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 	keyA := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		IdentityID:  ptr.P(identityA.ID),
+		IdentityID:  new(identityA.ID),
 	})
 
 	// A also has a soft-deleted key; its events carry A's external_id and must
@@ -77,7 +76,7 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 	keyADeleted := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		IdentityID:  ptr.P(identityA.ID),
+		IdentityID:  new(identityA.ID),
 	})
 	require.NoError(t, db.Query.SoftDeleteKeyByID(context.Background(), h.DB.RW(), db.SoftDeleteKeyByIDParams{
 		Now: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
@@ -92,7 +91,7 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 	keyB := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		IdentityID:  ptr.P(identityB.ID),
+		IdentityID:  new(identityB.ID),
 	})
 
 	now := time.Now().UnixMilli()
@@ -159,12 +158,12 @@ func TestPortalSessionAnalyticsKeyIdFilter(t *testing.T) {
 	targetKey := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		IdentityID:  ptr.P(identityA.ID),
+		IdentityID:  new(identityA.ID),
 	})
 	otherKey := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		IdentityID:  ptr.P(identityA.ID),
+		IdentityID:  new(identityA.ID),
 	})
 
 	now := time.Now().UnixMilli()
@@ -202,7 +201,7 @@ func TestPortalSessionAnalyticsKeyIdFilter(t *testing.T) {
 	req := Request{
 		StartTime: now - int64(time.Hour/time.Millisecond),
 		EndTime:   now + int64(time.Minute/time.Millisecond),
-		KeyId:     ptr.P(targetKey.KeyID),
+		KeyId:     new(targetKey.KeyID),
 	}
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
