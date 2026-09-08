@@ -116,7 +116,7 @@ func (h *Handler) Run(ctx restate.Context, req *hydrav1.LegacyBillingRunRequest)
 		return nil, fmt.Errorf("get current time: %w", err)
 	}
 	if err = validateRequestAt(workspaceID, year, month, now); err != nil {
-		return nil, restate.TerminalError(err)
+		return nil, restate.ToTerminalError(err)
 	}
 	logger.Info("legacy billing workflow started", "workspace_id", workspaceID, "year", year, "month", month)
 
@@ -124,11 +124,11 @@ func (h *Handler) Run(ctx restate.Context, req *hydrav1.LegacyBillingRunRequest)
 		return loadWorkspaceInput(rc, h.db, workspaceID)
 	}, restate.WithName("load billing state"), restate.WithMaxRetryDuration(providerRetryDuration))
 	if err != nil {
-		return nil, restate.TerminalError(err)
+		return nil, restate.ToTerminalError(err)
 	}
 	subs, err := parseSubscriptions(workspace.Subscriptions)
 	if err != nil {
-		return nil, restate.TerminalError(fmt.Errorf("parse subscriptions for workspace %q: %w", workspaceID, err))
+		return nil, restate.ToTerminalError(fmt.Errorf("parse subscriptions for workspace %q: %w", workspaceID, err))
 	}
 	var input invoiceInput
 	input.workspaceName = workspace.Name
@@ -155,10 +155,10 @@ func (h *Handler) Run(ctx restate.Context, req *hydrav1.LegacyBillingRunRequest)
 	}
 	input.items, err = buildInvoiceItems(subs, input.verifications, input.ratelimits)
 	if err != nil {
-		return nil, restate.TerminalError(err)
+		return nil, restate.ToTerminalError(err)
 	}
 	if err = validateInvoiceItemCount(input.items); err != nil {
-		return nil, restate.TerminalError(err)
+		return nil, restate.ToTerminalError(err)
 	}
 	input.period = fmt.Sprintf("%04d-%02d", year, month)
 	input.periodStart = time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
@@ -183,32 +183,32 @@ func loadWorkspaceInput(ctx context.Context, database db.Database, workspaceID s
 	workspace, err := database.FindWorkspaceByID(ctx, workspaceID)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return workspaceInput{}, restate.TerminalError(fmt.Errorf("workspace %q does not exist", workspaceID))
+			return workspaceInput{}, restate.ToTerminalError(fmt.Errorf("workspace %q does not exist", workspaceID))
 		}
 		return workspaceInput{}, fmt.Errorf("load workspace %q: %w", workspaceID, err)
 	}
 	if workspace.DeletedAtM.Valid {
-		return workspaceInput{}, restate.TerminalError(fmt.Errorf("workspace %q is deleted", workspaceID))
+		return workspaceInput{}, restate.ToTerminalError(fmt.Errorf("workspace %q is deleted", workspaceID))
 	}
 
 	billing, err := database.FindWorkspaceBillingByWorkspaceID(ctx, workspaceID)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return workspaceInput{}, restate.TerminalError(fmt.Errorf("workspace %q has no billing configuration", workspaceID))
+			return workspaceInput{}, restate.ToTerminalError(fmt.Errorf("workspace %q has no billing configuration", workspaceID))
 		}
 		return workspaceInput{}, fmt.Errorf("load billing configuration for workspace %q: %w", workspaceID, err)
 	}
 	if billing.DeletedAtM.Valid {
-		return workspaceInput{}, restate.TerminalError(fmt.Errorf("billing configuration for workspace %q is deleted", workspaceID))
+		return workspaceInput{}, restate.ToTerminalError(fmt.Errorf("billing configuration for workspace %q is deleted", workspaceID))
 	}
 	if !billing.StripeCustomerID.Valid || strings.TrimSpace(billing.StripeCustomerID.String) == "" {
-		return workspaceInput{}, restate.TerminalError(fmt.Errorf("workspace %q has no Stripe customer ID", workspaceID))
+		return workspaceInput{}, restate.ToTerminalError(fmt.Errorf("workspace %q has no Stripe customer ID", workspaceID))
 	}
 	if billing.StripeSubscriptionID.Valid && strings.TrimSpace(billing.StripeSubscriptionID.String) != "" {
-		return workspaceInput{}, restate.TerminalError(fmt.Errorf("workspace %q has an active API Stripe subscription", workspaceID))
+		return workspaceInput{}, restate.ToTerminalError(fmt.Errorf("workspace %q has an active API Stripe subscription", workspaceID))
 	}
 	if billing.StripeDeploySubscriptionID.Valid && strings.TrimSpace(billing.StripeDeploySubscriptionID.String) != "" {
-		return workspaceInput{}, restate.TerminalError(fmt.Errorf("workspace %q has an active Compute Stripe subscription", workspaceID))
+		return workspaceInput{}, restate.ToTerminalError(fmt.Errorf("workspace %q has an active Compute Stripe subscription", workspaceID))
 	}
 	return workspaceInput{
 		Name:          workspace.Name,

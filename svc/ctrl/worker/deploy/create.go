@@ -54,7 +54,7 @@ func (w *Workflow) Create(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		assert.NotEmpty(req.GetAppId(), "app_id is required"),
 		assert.NotEmpty(req.GetEnvironmentId(), "environment_id is required"),
 	); err != nil {
-		return nil, restate.TerminalError(err)
+		return nil, restate.ToTerminalError(err)
 	}
 
 	status, err := statusForDecision(req.GetDecision())
@@ -275,7 +275,7 @@ func (w *Workflow) validateAndBuildPayload(
 				return payload, nil
 			}
 			if resolved.Source.Git == nil && resolved.Source.Image == "" {
-				return payload, restate.TerminalError(errors.New("no build source: set git, image, or existing_deployment"))
+				return payload, restate.ToTerminalError(errors.New("no build source: set git, image, or existing_deployment"))
 			}
 			source, commit = resolved.Source, resolved.Commit
 			if source.Git != nil {
@@ -602,9 +602,9 @@ func statusForDecision(decision hydrav1.CreateDecision) (mysqltype.DeploymentsSt
 	case hydrav1.CreateDecision_CREATE_DECISION_AWAIT_APPROVAL:
 		return mysqltype.DeploymentsStatusAwaitingApproval, nil
 	case hydrav1.CreateDecision_CREATE_DECISION_UNSPECIFIED:
-		return "", restate.TerminalError(errors.New("decision is required"))
+		return "", restate.ToTerminalError(errors.New("decision is required"))
 	default:
-		return "", restate.TerminalError(fmt.Errorf("unknown decision %q", decision.String()))
+		return "", restate.ToTerminalError(fmt.Errorf("unknown decision %q", decision.String()))
 	}
 }
 
@@ -643,7 +643,7 @@ func (w *Workflow) loadSecrets(ctx context.Context, appID, environmentID string)
 	for _, ev := range envVars {
 		// An invalid key is corrupt stored data. No retry fixes it.
 		if !validation.IsValidEnvVarKey(ev.Key) {
-			return nil, restate.TerminalError(fmt.Errorf(
+			return nil, restate.ToTerminalError(fmt.Errorf(
 				"environment variable key %q is invalid: %s", ev.Key, validation.ErrMsgInvalidEnvVarKey,
 			))
 		}
