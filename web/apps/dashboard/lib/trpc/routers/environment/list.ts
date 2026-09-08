@@ -20,9 +20,13 @@ export const listEnvironments = workspaceProcedure
         columns: {
           id: true,
           projectId: true,
-          appId: true,
           slug: true,
           kind: true,
+        },
+        with: {
+          app: {
+            columns: { id: true },
+          },
         },
       });
 
@@ -31,7 +35,7 @@ export const listEnvironments = workspaceProcedure
         projectId: row.projectId,
         slug: row.slug,
         kind: row.kind,
-        appId: row.appId,
+        appId: row.app?.id ?? "",
       }));
     } catch (error) {
       if (error instanceof TRPCError) {
