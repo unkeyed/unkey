@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 	"time"
 
@@ -195,7 +196,7 @@ func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 				FlushInterval: time.Hour,
 				Consumers:     1,
 				Flush: func(_ context.Context, rows []schema.KeyVerification) {
-					flushed <- rows
+					flushed <- slices.Clone(rows)
 				},
 			})
 			t.Cleanup(verifications.Close)
@@ -259,7 +260,7 @@ func TestWithAuthentication_RejectsRootPrincipalWithoutKeySource(t *testing.T) {
 		FlushInterval: time.Hour,
 		Consumers:     1,
 		Flush: func(_ context.Context, rows []schema.KeyVerification) {
-			flushed <- rows
+			flushed <- slices.Clone(rows)
 		},
 	})
 
@@ -338,7 +339,7 @@ func TestWithAuthentication_EnforcesWorkspaceRateLimit(t *testing.T) {
 		FlushInterval: time.Hour,
 		Consumers:     1,
 		Flush: func(_ context.Context, rows []schema.KeyVerification) {
-			flushed <- rows
+			flushed <- slices.Clone(rows)
 		},
 	})
 	t.Cleanup(verifications.Close)
