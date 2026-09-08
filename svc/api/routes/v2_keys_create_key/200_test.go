@@ -363,9 +363,11 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 	var mu sync.Mutex
 	keyIDs := make([]string, 0, numConcurrent)
 
+	start := make(chan struct{})
 	g := errgroup.Group{}
 	for range numConcurrent {
 		g.Go(func() error {
+			<-start
 			req := handler.Request{
 				ApiId:      api.ID,
 				ExternalId: &externalID,
@@ -380,6 +382,7 @@ func TestCreateKeyConcurrentWithSameExternalId(t *testing.T) {
 			return nil
 		})
 	}
+	close(start)
 
 	err := g.Wait()
 	require.NoError(t, err, "All concurrent creates should succeed without deadlock")
