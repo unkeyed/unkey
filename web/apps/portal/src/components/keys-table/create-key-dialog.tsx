@@ -14,7 +14,7 @@ import {
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { makeKey } from "~/lib/random-key";
-import type { Key } from "~/routes/dave-initial-design/-seed";
+import type { Key } from "~/components/keys-table/schema/keys.schema";
 import { ExpirationPicker, formatDate } from "./expiration-picker";
 import { type KeyFormValues, keyFormSchema } from "./key-form-schema";
 import { DiscardSecretConfirm, SecretRevealCard, useSecretCloseGate } from "./secret-reveal-card";
