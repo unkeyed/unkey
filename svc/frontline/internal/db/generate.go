@@ -8,7 +8,7 @@ package db
 
 // Step 2: run sqlc, which reads sqlc.json, parses queries/, and emits
 //         typed Go code plus a scaffold db file named "deleteme.go".
-//go:generate go tool sqlc generate
+//go:generate go tool -modfile=../../../../tools/sqlc/go.mod sqlc generate
 
 // Step 3: delete deleteme.go because database.go already provides the
 //         [DBTX] interface, [Queries] struct, and [New] constructor that
