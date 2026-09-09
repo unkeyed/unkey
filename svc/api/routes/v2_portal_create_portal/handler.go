@@ -111,8 +111,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		// The resolved project is discarded until portals has a column to store it.
-		if _, err := portal.ResolveMappingProject(ctx, tx, principal.AuthorizedWorkspaceID, mapping); err != nil {
+		projectID, err := portal.ResolveMappingProject(ctx, tx, principal.AuthorizedWorkspaceID, mapping)
+		if err != nil {
 			return err
 		}
 
@@ -124,9 +124,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
-		err := db.Query.InsertPortal(ctx, tx, db.InsertPortalParams{
+		err = db.Query.InsertPortal(ctx, tx, db.InsertPortalParams{
 			ID:           portalID,
 			WorkspaceID:  principal.AuthorizedWorkspaceID,
+			ProjectID:    projectID,
 			Slug:         req.Slug,
 			DisplayName:  req.DisplayName,
 			AppID:        appID,

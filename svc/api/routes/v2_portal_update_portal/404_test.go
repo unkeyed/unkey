@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"database/sql"
 	"net/http"
 	"testing"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 )
 
@@ -33,16 +31,7 @@ func TestUpdatePortalMasksEveryMiss(t *testing.T) {
 
 	other := h.CreateWorkspace()
 	otherKeyspace := keyspaceMapping(t, h, other.ID)
-	otherPortal := h.CreatePortal(seed.CreatePortalRequest{
-		ID:           "",
-		WorkspaceID:  other.ID,
-		Slug:         "theirs",
-		AppID:        sql.NullString{String: "", Valid: false},
-		KeyAuthID:    sql.NullString{String: otherKeyspace.ID, Valid: true},
-		Enabled:      true,
-		LogoUrl:      sql.NullString{String: "", Valid: false},
-		PrimaryColor: sql.NullString{String: "", Valid: false},
-	})
+	otherPortal := h.SeedPortal(t, other.ID, "theirs", "theirs", otherKeyspace, nil, nil)
 
 	testCases := map[string]string{
 		"unknown id":                  uid.New(uid.PortalPrefix),
@@ -157,4 +146,45 @@ func TestUpdatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 		"a foreign keyspace must look identical to an absent one")
 	require.Equal(t, bodies["app that exists nowhere"], bodies["app owned by another workspace"],
 		"a foreign app must look identical to an absent one")
+}
+
+// A portal's URN names its project, so a remap that would move the portal into
+// another project is refused rather than silently re-parenting it: the portal
+// would keep its id while falling under a different set of grants.
+//
+// Reported as the same not-found a mapping the caller does not own gets, because
+// from the caller's side the mapping is simply not available to this portal.
+func TestUpdatePortalRejectsMappingInAnotherProject(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route, headers := newRoute(t, h, "portal.*.update_portal")
+	workspace := h.Resources().UserWorkspace
+
+	homeProject, _, homeKeyspace := mappingsInOneProject(t, h, workspace.ID, "home")
+	stored := h.SeedPortal(t, workspace.ID, "homebound", "homebound", homeKeyspace, nil, nil)
+	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{homeKeyspace.ID}, []string{"keys.read"})
+
+	_, elsewhereApp, elsewhereKeyspace := mappingsInOneProject(t, h, workspace.ID, "elsewhere")
+
+	testCases := map[string]portal.Mapping{
+		"keyspace in another project": elsewhereKeyspace,
+		"app in another project":      elsewhereApp,
+	}
+
+	for name, requested := range testCases {
+		t.Run(name, func(t *testing.T) {
+			req := baseRequest(stored.ID)
+			req.KeyspaceId = ksOf(requested)
+			req.AppId = appOf(requested)
+
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
+
+			row := fetchPortal(t, h, workspace.ID, stored.ID)
+			require.Equal(t, homeKeyspace.ID, row.KeyAuthID.String, "the association must not change")
+			require.False(t, row.AppID.Valid)
+			require.Equal(t, homeProject, row.ProjectID, "the portal must stay in its own project")
+			require.Equal(t, 1, liveSessions(t, h, stored.ID),
+				"a rejected re-point must not revoke sessions")
+		})
+	}
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_code"
 )
 
@@ -53,8 +54,11 @@ func TestExchangeCodeSuccess(t *testing.T) {
 	h.Register(route, h.PublicMiddleware()...)
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	// A real api, so the portal maps to a keyspace that exists and carries a
+	// project of its own.
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
 	portalID := h.SeedPortal(t, workspaceID, "test-portal", "test-portal",
-		portal.Mapping{Type: portal.MappingTypeKeyspace, ID: uid.New(uid.KeySpacePrefix)},
+		portal.Mapping{Type: portal.MappingTypeKeyspace, ID: api.KeyAuthID.String},
 		nil, nil).ID
 
 	headers := http.Header{
