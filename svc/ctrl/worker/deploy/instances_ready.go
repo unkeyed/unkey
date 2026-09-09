@@ -8,6 +8,4 @@ package deploy
 // awakeable for exactly one deployment — no cross-deployment guard needed.
 const instancesReadyAwakeableKey = "instances_ready_awakeable"
 
-// instancesReadyPromise is awaited by the Deploy run and resolved by
-// NotifyInstancesReady
 const instancesReadyPromise = "instances_ready"

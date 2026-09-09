@@ -14,13 +14,16 @@ type WorkflowServer struct {
 
 var _ hydrav1.DeployWorkflowServer = (*WorkflowServer)(nil)
 
-func NewWorkflowServer(w *Workflow) *WorkflowServer {
-	wf := *w
-	wf.asWorkflow = true
+func NewWorkflowServer(cfg Config) (*WorkflowServer, error) {
+	w, err := New(cfg)
+	if err != nil {
+		return nil, err
+	}
+	w.asWorkflow = true
 	return &WorkflowServer{
 		UnimplementedDeployWorkflowServer: hydrav1.UnimplementedDeployWorkflowServer{},
-		w:                                 &wf,
-	}
+		w:                                 w,
+	}, nil
 }
 
 func (s *WorkflowServer) Create(ctx restate.WorkflowSharedContext, req *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {

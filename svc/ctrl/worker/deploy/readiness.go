@@ -50,8 +50,8 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, compensation *c
 		"required_regions", requiredRegions,
 	)
 
-	// The object path below stays unchanged until DeployService drains:
-	// in-flight deploys replay this journal
+	// Deploys that started on DeployService replay the awakeable path below, so
+	// it must not change until that service is deleted
 	if w.asWorkflow {
 		return w.awaitInstancesReady(ctx.(restate.WorkflowSharedContext), deploymentID, regionMinReplicas, requiredRegions)
 	}
@@ -113,8 +113,8 @@ func (w *Workflow) waitForDeployments(ctx restate.ObjectContext, compensation *c
 	)
 }
 
-// awaitInstancesReady has nothing to register or clear: a NotifyInstancesReady
-// that lands before the run reaches WaitFirst is kept by the promise
+// Restate keeps a promise resolved before it is awaited, so there is no state
+// to register or clear here, unlike the awakeable path
 func (w *Workflow) awaitInstancesReady(ctx restate.WorkflowSharedContext, deploymentID string, regionMinReplicas map[string]uint32, requiredRegions int) error {
 	alreadyHealthy, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
 		return readiness.InstancesHealthy(runCtx, w.db, deploymentID, regionMinReplicas, requiredRegions)
