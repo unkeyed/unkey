@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
@@ -109,13 +110,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// nolint: exhaustruct // the source oneof is set below
+	// The CLI built the image itself, so the commit is metadata to record, not
+	// something to build. The branch alone still scopes sibling dedup.
+	// nolint: exhaustruct // optional fields, only what the caller sent
+	commit := &ctrlv1.GitCommitInfo{Branch: req.Branch}
+	if req.GitCommit != nil {
+		commit.CommitSha = ptr.SafeDeref(req.GitCommit.CommitSha)
+		commit.CommitMessage = ptr.SafeDeref(req.GitCommit.CommitMessage)
+		commit.AuthorHandle = ptr.SafeDeref(req.GitCommit.AuthorHandle)
+		commit.AuthorAvatarUrl = ptr.SafeDeref(req.GitCommit.AuthorAvatarUrl)
+		commit.Timestamp = ptr.SafeDeref(req.GitCommit.Timestamp)
+	}
+
+	// nolint: exhaustruct // the source oneof is set above
 	createReq := &hydrav1.DeployCreateRequest{
 		ProjectId:     row.ProjectID,
 		AppId:         row.AppID,
 		EnvironmentId: environment.ID,
 		Source: &hydrav1.DeployCreateRequest_Image{
-			Image: &hydrav1.CreateImageSource{Image: req.DockerImage},
+			Image: &hydrav1.CreateImageSource{Image: req.DockerImage, Commit: commit},
 		},
 		Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
 		Trigger:       deployment.TriggerFromClient(s),
@@ -149,32 +162,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Internal("keyspace belongs to different workspace, masking as 404"),
 				fault.Public("The specified keyspace was not found."),
 			)
-		}
-	}
-
-	// Handle optional git commit info
-	if req.GitCommit != nil {
-		// nolint: exhaustruct // optional proto fields, only setting whats provided
-		gitCommit := &ctrlv1.GitCommitInfo{
-			Branch: req.Branch,
-		}
-		if req.GitCommit.CommitSha != nil {
-			gitCommit.CommitSha = *req.GitCommit.CommitSha
-		}
-		if req.GitCommit.CommitMessage != nil {
-			gitCommit.CommitMessage = *req.GitCommit.CommitMessage
-		}
-		if req.GitCommit.AuthorHandle != nil {
-			gitCommit.AuthorHandle = *req.GitCommit.AuthorHandle
-		}
-		if req.GitCommit.AuthorAvatarUrl != nil {
-			gitCommit.AuthorAvatarUrl = *req.GitCommit.AuthorAvatarUrl
-		}
-		if req.GitCommit.Timestamp != nil {
-			gitCommit.Timestamp = *req.GitCommit.Timestamp
-		}
-		createReq.Source = &hydrav1.DeployCreateRequest_Git{
-			Git: &hydrav1.CreateGitSource{Commit: gitCommit, PrNumber: 0},
 		}
 	}
 
