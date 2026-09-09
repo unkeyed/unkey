@@ -1,6 +1,8 @@
 package handler_test
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
@@ -8,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
@@ -192,6 +195,27 @@ func TestGetPortalByMapping(t *testing.T) {
 			requireServes(t, tc.mapping, res.Body.Data)
 		})
 	}
+
+	// A caller reaching a portal through its mapping never holds a portal id, so
+	// these two finders are the only route to the project the portal is
+	// authorized under. Asserted against the row rather than through the response,
+	// which does not carry the project.
+	ctx := context.Background()
+	byKeyspace, err := db.Query.FindPortalByKeyspace(ctx, h.DB.RO(), db.FindPortalByKeyspaceParams{
+		KeyAuthID:   sql.NullString{String: keyspace.ID, Valid: true},
+		WorkspaceID: workspace.ID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, keyspacePortal.ProjectID, byKeyspace.ProjectID)
+	require.NotEmpty(t, byKeyspace.ProjectID)
+
+	byApp, err := db.Query.FindPortalByApp(ctx, h.DB.RO(), db.FindPortalByAppParams{
+		AppID:       sql.NullString{String: app.ID, Valid: true},
+		WorkspaceID: workspace.ID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, appPortal.ProjectID, byApp.ProjectID)
+	require.NotEmpty(t, byApp.ProjectID)
 }
 
 // Branding is omitted rather than returned as two empty strings, so a client can

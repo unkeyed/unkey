@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
 
 // TestExchangeAlreadyClaimed pins the check that keeps a retried exchange from
@@ -34,8 +35,11 @@ func TestExchangeAlreadyClaimed(t *testing.T) {
 	workspaceID := h.Resources().UserWorkspace.ID
 	now := time.Now().UnixMilli()
 
+	// A real api, so the portal maps to a keyspace that exists and carries a
+	// project of its own.
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
 	portalID := h.SeedPortal(t, workspaceID, "replay-portal", "replay-portal",
-		portal.Mapping{Type: portal.MappingTypeKeyspace, ID: uid.New(uid.KeySpacePrefix)},
+		portal.Mapping{Type: portal.MappingTypeKeyspace, ID: api.KeyAuthID.String},
 		nil, nil).ID
 
 	scopes, err := json.Marshal(map[string]any{

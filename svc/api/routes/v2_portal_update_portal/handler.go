@@ -186,10 +186,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
+		mappingProjectID := ""
 		if repoint {
-			// The resolved project is discarded until portals has a column to
-			// store it and compare a remap against.
-			if _, err = portal.ResolveMappingProject(ctx, tx, principal.AuthorizedWorkspaceID, mapping); err != nil {
+			mappingProjectID, err = portal.ResolveMappingProject(ctx, tx, principal.AuthorizedWorkspaceID, mapping)
+			if err != nil {
+				return empty, err
+			}
+
+			if err = portal.VerifyMappingInProject(found.ProjectID, mappingProjectID); err != nil {
 				return empty, err
 			}
 
@@ -214,6 +218,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			AppID:                 sql.NullString{String: "", Valid: false},
 			KeyAuthIDSpecified:    0,
 			KeyAuthID:             sql.NullString{String: "", Valid: false},
+			ProjectIDSpecified:    0,
+			ProjectID:             "",
 			EnabledSpecified:      0,
 			Enabled:               false,
 			LogoUrlSpecified:      0,
@@ -246,17 +252,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			after.Enabled = *req.Enabled
 		}
 
-		// Both flags are set together or neither is. Setting one alone is the write
-		// that could produce a row with both associations, which the application is
-		// solely responsible for preventing.
+		// The association flags are set together or neither is. Setting one alone is
+		// the write that could produce a row with both associations, which the
+		// application is solely responsible for preventing. `project_id` rides with
+		// them for the same reason: a row whose project disagrees with its mapping
+		// would be authorized under a project it does not belong to.
 		mappingChanged := false
 		if repoint {
 			params.AppID = mappingAppID
 			params.AppIDSpecified = 1
 			params.KeyAuthID = mappingKeyAuthID
 			params.KeyAuthIDSpecified = 1
+			// Written from the same resolve the associations came from, so the row's
+			// project can only ever be the project of the resource it names.
+			params.ProjectID = mappingProjectID
+			params.ProjectIDSpecified = 1
 			after.AppID = mappingAppID
 			after.KeyAuthID = mappingKeyAuthID
+			after.ProjectID = mappingProjectID
 			// Compared through the same absent-semantics the rest of the package
 			// uses, not raw NullString equality: a legacy row can hold a Valid but
 			// empty column, and treating that as different from NULL would report a

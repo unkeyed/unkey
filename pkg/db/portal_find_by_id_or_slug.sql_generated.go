@@ -10,7 +10,7 @@ import (
 )
 
 const findPortalByIdOrSlug = `-- name: FindPortalByIdOrSlug :one
-SELECT p.pk, p.id, p.workspace_id, p.slug, p.display_name, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
+SELECT p.pk, p.id, p.workspace_id, p.project_id, p.slug, p.display_name, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
 FROM portals p
 JOIN (
     SELECT p1.id
@@ -35,7 +35,7 @@ type FindPortalByIdOrSlugParams struct {
 // UNION ALL of two index seeks instead of `id = ? OR slug = ?`, which would
 // force a scan: `portals_id_unique` and `idx_workspace_slug` each serve one arm.
 //
-//	SELECT p.pk, p.id, p.workspace_id, p.slug, p.display_name, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
+//	SELECT p.pk, p.id, p.workspace_id, p.project_id, p.slug, p.display_name, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
 //	FROM portals p
 //	JOIN (
 //	    SELECT p1.id
@@ -59,6 +59,7 @@ func (q *Queries) FindPortalByIdOrSlug(ctx context.Context, db DBTX, arg FindPor
 		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
+		&i.ProjectID,
 		&i.Slug,
 		&i.DisplayName,
 		&i.AppID,

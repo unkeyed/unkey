@@ -389,6 +389,7 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 	h.CreatePortal(seed.CreatePortalRequest{
 		ID:           uid.New(uid.PortalPrefix),
 		WorkspaceID:  workspace.ID,
+		ProjectID:    api.ProjectID,
 		Slug:         "disabled-portal",
 		DisplayName:  "disabled-portal",
 		AppID:        sql.NullString{Valid: false, String: ""},
@@ -437,11 +438,20 @@ func TestCreateSessionKeyspaceWithoutAPI(t *testing.T) {
 
 	workspace := h.Resources().UserWorkspace
 
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:               uid.New(uid.ProjectPrefix),
+		WorkspaceID:      workspace.ID,
+		Name:             "orphan",
+		Slug:             "orphan",
+		DeleteProtection: false,
+	})
+
 	// A keyspace with no api row pointing at it.
 	orphanKeyspaceID := uid.New(uid.KeySpacePrefix)
 	require.NoError(t, db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:            orphanKeyspaceID,
 		WorkspaceID:   workspace.ID,
+		ProjectID:     project.ID,
 		CreatedAtM:    time.Now().UnixMilli(),
 		DefaultPrefix: sql.NullString{Valid: false},
 		DefaultBytes:  sql.NullInt32{Valid: false},

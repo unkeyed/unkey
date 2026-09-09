@@ -13,9 +13,12 @@
 -- remove the row between resolving it and this statement.
 --
 -- Each field carries a `_specified` flag so an omitted field keeps its stored
--- value. `slug`, `display_name` and `enabled` are NOT NULL and take sqlc.arg; the two
--- associations and the two branding columns are nullable and take sqlc.narg, so
--- an explicit null clears them.
+-- value. `slug`, `display_name`, `project_id` and `enabled` are NOT NULL and take
+-- sqlc.arg; the two associations and the two branding columns are nullable and
+-- take sqlc.narg, so an explicit null clears them.
+--
+-- `project_id` moves with the associations rather than on its own, so a remap
+-- can never leave the row naming a project its mapping no longer belongs to.
 UPDATE portals p
 SET
     slug = CASE
@@ -33,6 +36,10 @@ SET
     key_auth_id = CASE
         WHEN CAST(sqlc.arg('key_auth_id_specified') AS UNSIGNED) = 1 THEN sqlc.narg('key_auth_id')
         ELSE p.key_auth_id
+    END,
+    project_id = CASE
+        WHEN CAST(sqlc.arg('project_id_specified') AS UNSIGNED) = 1 THEN sqlc.arg('project_id')
+        ELSE p.project_id
     END,
     enabled = CASE
         WHEN CAST(sqlc.arg('enabled_specified') AS UNSIGNED) = 1 THEN sqlc.arg('enabled')
