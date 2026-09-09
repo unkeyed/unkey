@@ -241,14 +241,20 @@ func TestCreateRejections(t *testing.T) {
 		require.Zero(t, h.countDeployments(t, ctx))
 	})
 
+	// Every violation is reported at once, so an operator fixing three settings
+	// does not need three deploys to discover them.
 	t.Run("environment runtime settings are out of bounds", func(t *testing.T) {
 		ctx := context.Background()
 		h := newCreateHarness(t, ctx)
-		h.setPort(t, ctx, 0)
+		h.setRuntimeBounds(t, ctx, 0, 0, 0)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.imageRequest())
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE, resp.GetOutcome())
-		require.Contains(t, resp.GetDetail(), "Port must be between 1 and 65535 (is 0)")
+		require.Contains(t, resp.GetDetail(), deployfail.MsgPortOutOfRange)
+		require.Contains(t, resp.GetDetail(), deployfail.MsgCPUTooLow)
+		require.Contains(t, resp.GetDetail(), deployfail.MsgMemoryTooLow)
+		require.NotContains(t, resp.GetDetail(), deployfail.MsgNoSchedulableRegions,
+			"the fixture has a schedulable region, so naming regions would misdirect the fix")
 	})
 
 	t.Run("no source named and the app never deployed", func(t *testing.T) {
@@ -1467,10 +1473,11 @@ func (h *createHarness) clearRegions(t *testing.T, ctx context.Context) {
 	require.NoError(t, err)
 }
 
-func (h *createHarness) setPort(t *testing.T, ctx context.Context, port int32) {
+func (h *createHarness) setRuntimeBounds(t *testing.T, ctx context.Context, port, cpuMillicores, memoryMib int32) {
 	t.Helper()
 	_, err := h.database.RW().ExecContext(ctx,
-		"UPDATE app_runtime_settings SET port = ? WHERE app_id = ?", port, h.appID)
+		"UPDATE app_runtime_settings SET port = ?, cpu_millicores = ?, memory_mib = ? WHERE app_id = ?",
+		port, cpuMillicores, memoryMib, h.appID)
 	require.NoError(t, err)
 }
 
