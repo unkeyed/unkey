@@ -13,6 +13,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 )
 
+const blockBodyBytesMax = 1 << 20
+
 // InsertQuery builds "INSERT INTO <table> (<columns>)" from T's generated
 // table name and column list (see schema.Row). Naming the columns explicitly
 // means the server fills omitted columns from their DEFAULT expressions, so a
@@ -99,7 +101,6 @@ func flush[T schema.Row](c *Client, ctx context.Context, rows []T) error {
 }
 
 func appendRows[T schema.Row](batch driver.Batch, rows []T) error {
-	const blockBodyBytesMax = 1 << 20
 	blockBodyBytes := 0
 	for i := range rows {
 		if request, ok := any(rows[i]).(schema.FrontlineRequest); ok {
