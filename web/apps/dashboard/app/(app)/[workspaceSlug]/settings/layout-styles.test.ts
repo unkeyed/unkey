@@ -82,5 +82,8 @@ describe("Settings widget styles", () => {
     expect(styles).toMatch(
       /\.woswidgets-save-button\[data-save-state="loading"\],\s*\.woswidgets-save-button\[data-save-state="done"\]\s*\{[^}]*color:\s*transparent;/,
     );
+    expect(styles).toMatch(
+      /\.woswidgets-save-button\s*\{[^}]*--accent-contrast:\s*hsl\(var\(--background\)\);/,
+    );
   });
 });

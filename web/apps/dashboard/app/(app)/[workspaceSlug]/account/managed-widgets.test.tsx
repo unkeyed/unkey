@@ -109,7 +109,7 @@ describe("ManagedUserWidgets", () => {
 
       if (url.pathname.endsWith("/send-email-change")) {
         return Response.json(
-          { message: "This email is not available" },
+          { code: "email_not_available", message: "This email is not available." },
           { status: 422, statusText: "Unprocessable Entity" },
         );
       }
@@ -118,7 +118,7 @@ describe("ManagedUserWidgets", () => {
     });
 
     const onMutationError = vi.fn((error: unknown) => {
-      if (error instanceof Error && error.message === "This email is not available") {
+      if (error instanceof Error && error.message === "This email is not available.") {
         error.message =
           "We couldn't update your email. Try again or contact support if the problem continues.";
       }
@@ -152,7 +152,7 @@ describe("ManagedUserWidgets", () => {
         "We couldn't update your email. Try again or contact support if the problem continues.",
       ),
     ).toBeTruthy();
-    expect(screen.queryByText("This email is not available")).toBeNull();
+    expect(screen.queryByText("This email is not available.")).toBeNull();
     expect(onMutationError).toHaveBeenCalledWith(expect.any(Error));
     await waitFor(() =>
       expect(fetchSpy).toHaveBeenCalledWith(

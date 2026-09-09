@@ -505,6 +505,10 @@
   border-radius: 0.25rem;
 }
 
+.woswidgets-save-button {
+  --accent-contrast: hsl(var(--background));
+}
+
 .woswidgets-save-button[data-save-state="loading"],
 .woswidgets-save-button[data-save-state="done"] {
   color: transparent;

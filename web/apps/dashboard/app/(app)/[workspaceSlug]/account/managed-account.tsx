@@ -14,12 +14,17 @@ import { AccountUnavailable } from "./account-unavailable";
 
 type RefreshIdentity = () => Promise<boolean>;
 
-const DUPLICATE_EMAIL_ERROR = "This email is not available";
+const DUPLICATE_EMAIL_ERROR_CODE = "email_not_available";
+const DUPLICATE_EMAIL_ERROR_MESSAGE = "This email is not available";
 const GENERIC_EMAIL_UPDATE_ERROR =
   "We couldn't update your email. Try again or contact support if the problem continues.";
 
 function redactAccountWidgetError(error: unknown) {
-  if (error instanceof Error && error.message === DUPLICATE_EMAIL_ERROR) {
+  if (
+    error instanceof Error &&
+    (("code" in error && error.code === DUPLICATE_EMAIL_ERROR_CODE) ||
+      error.message.replace(/\.$/, "") === DUPLICATE_EMAIL_ERROR_MESSAGE)
+  ) {
     // WorkOS renders mutation errors directly, so redact account-existence details first.
     error.message = GENERIC_EMAIL_UPDATE_ERROR;
   }

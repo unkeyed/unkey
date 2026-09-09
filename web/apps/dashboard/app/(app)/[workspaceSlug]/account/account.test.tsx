@@ -126,9 +126,22 @@ describe("Account", () => {
     expect(mocks.logManagedAuthOutcome).toHaveBeenCalledWith("widget_token", "success");
   });
 
-  it("redacts duplicate-email errors before the account widget displays them", () => {
+  it("redacts the current WorkOS duplicate-email message before the widget displays it", () => {
     render(<ManagedAccount />);
-    const error = new Error("This email is not available");
+    const error = new Error("This email is not available.");
+
+    mocks.widgetMutationErrorHandler?.(error);
+
+    expect(error.message).toBe(
+      "We couldn't update your email. Try again or contact support if the problem continues.",
+    );
+  });
+
+  it("redacts duplicate-email errors by code when WorkOS preserves it", () => {
+    render(<ManagedAccount />);
+    const error = Object.assign(new Error("Duplicate email"), {
+      code: "email_not_available",
+    });
 
     mocks.widgetMutationErrorHandler?.(error);
 
