@@ -32,12 +32,11 @@ func TestListAppsForbidden(t *testing.T) {
 		Slug:        projectSlug,
 	})
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Payments API",
-		Slug:          strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Payments API",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 	})
 
 	testCases := []struct {
@@ -101,12 +100,11 @@ func TestListAppsExistenceNotLeaked(t *testing.T) {
 		Slug:        realSlug,
 	})
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Payments API",
-		Slug:          strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Payments API",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 	})
 
 	missingSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))

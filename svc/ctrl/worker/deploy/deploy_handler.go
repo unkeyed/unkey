@@ -491,9 +491,9 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return w.db.UpdateDeploymentImage(runCtx, db.UpdateDeploymentImageParams{
-			ID:        deployment.ID,
-			Image:     sql.NullString{Valid: true, String: resolvedImage},
-			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			ID:            deployment.ID,
+			ImageResolved: sql.NullString{Valid: true, String: resolvedImage},
+			UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 	}, restate.WithName("update deployment image"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {

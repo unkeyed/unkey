@@ -47,7 +47,6 @@ func TestDeleteAppDeleteProtection(t *testing.T) {
 		ProjectID:        project.ID,
 		Name:             "Protected",
 		Slug:             appSlug,
-		DefaultBranch:    "main",
 		DeleteProtection: true,
 	})
 

@@ -76,7 +76,10 @@ func TestToResponseSource(t *testing.T) {
 			Source:       db.DeploymentsSourceGit,
 			GitCommitSha: sql.NullString{Valid: true, String: "9f2c1a7d3b"},
 			GitBranch:    sql.NullString{Valid: true, String: "main"},
-			Image:        sql.NullString{Valid: true, String: "ghcr.io/built/output:sha"},
+			ImageResolved: sql.NullString{
+				Valid:  true,
+				String: "ghcr.io/built/output:sha",
+			},
 		}})
 		require.NotNil(t, got.Git)
 		require.Equal(t, "9f2c1a7d3b", got.Git.CommitSha)
@@ -90,18 +93,17 @@ func TestToResponseSource(t *testing.T) {
 			ID:             uid.New(uid.DeploymentPrefix),
 			Source:         db.DeploymentsSourceOci,
 			ImageRequested: sql.NullString{Valid: true, String: "ghcr.io/acme/api:v1.2.3"},
-			Image:          sql.NullString{Valid: true, String: "ghcr.io/acme/api@sha256:resolved"},
+			ImageResolved:  sql.NullString{Valid: true, String: "ghcr.io/acme/api@sha256:resolved"},
 		}})
 		require.NotNil(t, got.Docker)
 		require.Equal(t, "ghcr.io/acme/api:v1.2.3", got.Docker.Image)
 		require.Nil(t, got.Git)
 	})
 
-	t.Run("resolved image prefers additive column", func(t *testing.T) {
+	t.Run("resolved image is used when requested image is absent", func(t *testing.T) {
 		got := ToResponse(Input{Deployment: db.Deployment{
 			ID:            uid.New(uid.DeploymentPrefix),
 			Source:        db.DeploymentsSourceOci,
-			Image:         sql.NullString{Valid: true, String: "ghcr.io/acme/api@sha256:legacy"},
 			ImageResolved: sql.NullString{Valid: true, String: "ghcr.io/acme/api@sha256:resolved"},
 		}})
 		require.NotNil(t, got.Docker)
@@ -135,7 +137,7 @@ func TestToResponseSource(t *testing.T) {
 			GitCommitSha:   sql.NullString{Valid: true, String: "abc"},
 			Source:         db.DeploymentsSourceUnknown,
 			ImageRequested: sql.NullString{Valid: true, String: "nginx:stable"},
-			Image:          sql.NullString{Valid: true, String: "nginx@sha256:resolved"},
+			ImageResolved:  sql.NullString{Valid: true, String: "nginx@sha256:resolved"},
 		}})
 		require.Nil(t, got.Git)
 		require.Nil(t, got.Docker)
@@ -147,7 +149,7 @@ func TestToResponseSource(t *testing.T) {
 			Source:         db.DeploymentsSource("future_source"),
 			GitCommitSha:   sql.NullString{Valid: true, String: "abc"},
 			ImageRequested: sql.NullString{Valid: true, String: "nginx:stable"},
-			Image:          sql.NullString{Valid: true, String: "nginx@sha256:resolved"},
+			ImageResolved:  sql.NullString{Valid: true, String: "nginx@sha256:resolved"},
 		}})
 		require.Nil(t, got.Git)
 		require.Nil(t, got.Docker)

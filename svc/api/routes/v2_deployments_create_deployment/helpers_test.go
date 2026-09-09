@@ -88,9 +88,9 @@ func authHeaders(rootKey string) http.Header {
 func setDeploymentImage(t *testing.T, h *testutil.Harness, deploymentID, image string) {
 	t.Helper()
 	err := db.Query.UpdateDeploymentImage(context.Background(), h.DB.RW(), db.UpdateDeploymentImageParams{
-		Image:     sql.NullString{String: image, Valid: true},
-		UpdatedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
-		ID:        deploymentID,
+		ImageResolved: sql.NullString{String: image, Valid: true},
+		UpdatedAt:     sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		ID:            deploymentID,
 	})
 	require.NoError(t, err)
 }

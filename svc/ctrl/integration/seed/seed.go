@@ -318,12 +318,11 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 }
 
 type CreateAppRequest struct {
-	ID            string
-	WorkspaceID   string
-	ProjectID     string
-	Name          string
-	Slug          string
-	DefaultBranch string
+	ID          string
+	WorkspaceID string
+	ProjectID   string
+	Name        string
+	Slug        string
 }
 
 func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
@@ -336,7 +335,6 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 		Name:             req.Name,
 		Slug:             req.Slug,
 		SourceType:       db.AppsSourceTypeUnknown,
-		DefaultBranch:    req.DefaultBranch,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: false},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Valid: false},
