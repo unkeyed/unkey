@@ -18,7 +18,6 @@ SELECT
     p.id AS project_id,
     a.id AS app_id,
     a.source_type AS source_type,
-    a.default_branch AS default_branch,
     a.current_deployment_id AS current_deployment_id,
     e.id AS environment_id,
     e.slug AS environment_slug,
@@ -74,7 +73,6 @@ type FindDeployTargetRow struct {
 	ProjectID                string                             `db:"project_id"`
 	AppID                    string                             `db:"app_id"`
 	SourceType               AppsSourceType                     `db:"source_type"`
-	DefaultBranch            string                             `db:"default_branch"`
 	CurrentDeploymentID      sql.NullString                     `db:"current_deployment_id"`
 	EnvironmentID            string                             `db:"environment_id"`
 	EnvironmentSlug          string                             `db:"environment_slug"`
@@ -108,7 +106,6 @@ type FindDeployTargetRow struct {
 //	    p.id AS project_id,
 //	    a.id AS app_id,
 //	    a.source_type AS source_type,
-//	    a.default_branch AS default_branch,
 //	    a.current_deployment_id AS current_deployment_id,
 //	    e.id AS environment_id,
 //	    e.slug AS environment_slug,
@@ -159,7 +156,6 @@ func (q *Queries) FindDeployTarget(ctx context.Context, arg FindDeployTargetPara
 		&i.ProjectID,
 		&i.AppID,
 		&i.SourceType,
-		&i.DefaultBranch,
 		&i.CurrentDeploymentID,
 		&i.EnvironmentID,
 		&i.EnvironmentSlug,

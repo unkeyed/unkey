@@ -152,12 +152,7 @@ func (w *Workflow) resolveGitSource(
 	// A sha alone gets no default branch: it may not be on it, and sibling dedup
 	// keys on branch, so a wrong branch is worse than none.
 	if commit.SHA == "" && commit.Branch == "" {
-		// GitHub reported the connection's branch. apps.default_branch is a
-		// placeholder on newer apps.
 		commit.Branch = target.GithubDefaultBranch.String
-		if commit.Branch == "" {
-			commit.Branch = target.DefaultBranch
-		}
 		if commit.Branch == "" {
 			commit.Branch = "main"
 		}
@@ -279,12 +274,7 @@ func (w *Workflow) resolveExistingDeployment(
 		)), nil
 	}
 
-	// Deploy pins the digest it ran into image_resolved. Rows from before that
-	// hold only image, possibly with an implicit tag.
 	image := src.ImageResolved.String
-	if image == "" {
-		image = src.Image.String
-	}
 	if image == "" {
 		return newRejectedSource(rejectf(
 			hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE,

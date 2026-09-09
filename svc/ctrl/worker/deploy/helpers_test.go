@@ -44,12 +44,11 @@ func newDeployFixture(t *testing.T, ctx context.Context) (db.Database, deployFix
 		Slug:        deploySlug(uid.ProjectPrefix),
 	})
 	app := seeder.CreateApp(ctx, seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspaceID,
-		ProjectID:     project.ID,
-		Name:          "KEBAP",
-		Slug:          deploySlug(uid.AppPrefix),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		Name:        "KEBAP",
+		Slug:        deploySlug(uid.AppPrefix),
 	})
 	environment := seeder.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),

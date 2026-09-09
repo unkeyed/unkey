@@ -4,7 +4,6 @@ SELECT
     p.id AS project_id,
     a.id AS app_id,
     a.source_type AS source_type,
-    a.default_branch AS default_branch,
     a.current_deployment_id AS current_deployment_id,
     e.id AS environment_id,
     e.slug AS environment_slug,

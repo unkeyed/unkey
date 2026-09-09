@@ -279,7 +279,7 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		h := newCreateHarness(t, ctx)
 
 		source := h.commitDeployment(t, ctx)
-		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceGit, fixtureImage, fixtureImage)
+		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceGit, fixtureImage)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.existingRequest(source.ID, false))
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_REPO_CONNECTION, resp.GetOutcome())
@@ -294,7 +294,7 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		h.connectRepo(t, ctx)
 
 		source := h.commitDeployment(t, ctx)
-		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceOci, fixtureImage, fixtureImage)
+		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceOci, fixtureImage)
 
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		h.create(t, ctx, deploymentID, h.existingRequest(source.ID, false))
@@ -313,7 +313,7 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 
 		digest := "ghcr.io/unkey/kebap@sha256:" + strings.Repeat("ab", 32)
 		source := h.imageDeployment(t, ctx, 0)
-		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceOci, fixtureImage, digest)
+		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceOci, digest)
 
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		h.create(t, ctx, deploymentID, h.existingRequest(source.ID, false))
@@ -331,7 +331,7 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		h := newCreateHarness(t, ctx)
 
 		source := h.imageDeployment(t, ctx, 0)
-		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceUnknown, "nginx", "")
+		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceUnknown, "nginx")
 
 		deploymentID := uid.New(uid.DeploymentPrefix)
 		h.create(t, ctx, deploymentID, h.existingRequest(source.ID, false))
@@ -446,12 +446,11 @@ func TestDeployTargetScoping(t *testing.T) {
 		Slug:        deploySlug(uid.ProjectPrefix),
 	})
 	otherApp := h.seeder.CreateApp(ctx, seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   h.workspaceID,
-		ProjectID:     otherProject.ID,
-		Name:          "KEBAP",
-		Slug:          deploySlug(uid.AppPrefix),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: h.workspaceID,
+		ProjectID:   otherProject.ID,
+		Name:        "KEBAP",
+		Slug:        deploySlug(uid.AppPrefix),
 	})
 	foreignEnv := h.seeder.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),
@@ -528,7 +527,6 @@ func TestDeployTargetScoping(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, h.environmentID, target.EnvironmentID)
-	require.Equal(t, "main", target.DefaultBranch)
 	require.Equal(t, "Dockerfile", target.Dockerfile.String)
 	require.Equal(t, ".", target.DockerContext.String)
 	require.Equal(t, int32(8080), target.Port)
@@ -612,9 +610,9 @@ func TestCreateFromForeignDeploymentIsRejected(t *testing.T) {
 		Status:        mysqltype.DeploymentsStatusReady,
 	})
 	require.NoError(t, h.database.UpdateDeploymentImage(ctx, db.UpdateDeploymentImageParams{
-		Image:     sql.NullString{Valid: true, String: "ghcr.io/someone-else/private:v1"},
-		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		ID:        foreign.ID,
+		ImageResolved: sql.NullString{Valid: true, String: "ghcr.io/someone-else/private:v1"},
+		UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ID:            foreign.ID,
 	}))
 
 	deploymentID := uid.New(uid.DeploymentPrefix)
@@ -984,9 +982,9 @@ func (h *createHarness) imageDeployment(t *testing.T, ctx context.Context, creat
 		CreatedAt:     createdAt,
 	})
 	require.NoError(t, h.database.UpdateDeploymentImage(ctx, db.UpdateDeploymentImageParams{
-		Image:     sql.NullString{Valid: true, String: fixtureImage},
-		UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-		ID:        row.ID,
+		ImageResolved: sql.NullString{Valid: true, String: fixtureImage},
+		UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ID:            row.ID,
 	}))
 	return row
 }
@@ -1140,12 +1138,11 @@ func (h *createHarness) seedEnvVar(t *testing.T, ctx context.Context, key, value
 func (h *createHarness) newApp(t *testing.T, ctx context.Context) deployFixture {
 	t.Helper()
 	app := h.seeder.CreateApp(ctx, seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   h.workspaceID,
-		ProjectID:     h.projectID,
-		Name:          "KEBAP",
-		Slug:          deploySlug(uid.AppPrefix),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: h.workspaceID,
+		ProjectID:   h.projectID,
+		Name:        "KEBAP",
+		Slug:        deploySlug(uid.AppPrefix),
 	})
 	environment := h.seeder.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),
@@ -1188,12 +1185,12 @@ func (h *createHarness) setDeploymentImages(
 	ctx context.Context,
 	deploymentID string,
 	source db.DeploymentsSource,
-	image, resolved string,
+	resolved string,
 ) {
 	t.Helper()
 	_, err := h.database.RW().ExecContext(ctx,
-		"UPDATE deployments SET source = ?, image = ?, image_resolved = NULLIF(?, '') WHERE id = ?",
-		string(source), image, resolved, deploymentID)
+		"UPDATE deployments SET source = ?, image_resolved = ? WHERE id = ?",
+		string(source), resolved, deploymentID)
 	require.NoError(t, err)
 }
 
