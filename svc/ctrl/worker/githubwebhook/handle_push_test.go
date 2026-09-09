@@ -388,12 +388,11 @@ func (h *pushHarness) newApp(t *testing.T, ctx context.Context, target deployTar
 	t.Helper()
 
 	app := h.seeder.CreateApp(ctx, seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   target.workspaceID,
-		ProjectID:     target.projectID,
-		Name:          "KEBAP",
-		Slug:          testSlug(uid.AppPrefix),
-		DefaultBranch: fixtureDefaultBranch,
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: target.workspaceID,
+		ProjectID:   target.projectID,
+		Name:        "KEBAP",
+		Slug:        testSlug(uid.AppPrefix),
 	})
 
 	result := targetApp{
