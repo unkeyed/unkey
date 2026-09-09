@@ -53,20 +53,6 @@ func New(cfg Config) (*VirtualObject, error) {
 	}, nil
 }
 
-// Definition replaces the generated NewDeploymentServiceServer, which cannot
-// mark single handlers ingress-private. Only handlers the API calls are public
-func (v *VirtualObject) Definition(opts ...restate.ServiceDefinitionOption) restate.ServiceDefinition {
-	sOpts := append([]restate.ServiceDefinitionOption{restate.WithProtoJSON}, opts...)
-	private := restate.WithIngressPrivate(true)
-
-	return restate.NewObject("hydra.v1.DeploymentService", sOpts...).
-		Handler("ScheduleDesiredStateChange", restate.NewObjectHandler(v.ScheduleDesiredStateChange, private)).
-		Handler("ChangeDesiredState", restate.NewObjectHandler(v.ChangeDesiredState, private)).
-		Handler("ClearScheduledStateChanges", restate.NewObjectHandler(v.ClearScheduledStateChanges, private)).
-		Handler("StopDeployment", restate.NewObjectHandler(v.StopDeployment)).
-		Handler("WakeDeployment", restate.NewObjectHandler(v.WakeDeployment))
-}
-
 func (v *VirtualObject) loadDeployment(ctx restate.ObjectContext, deploymentID, purpose string) (db.FindDeploymentWithEnvironmentAndAppRow, error) {
 	return restate.Run(ctx, func(runCtx restate.RunContext) (db.FindDeploymentWithEnvironmentAndAppRow, error) {
 		row, err := v.db.FindDeploymentWithEnvironmentAndApp(runCtx, deploymentID)
