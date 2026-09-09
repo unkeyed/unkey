@@ -63,6 +63,7 @@ export const unkeyAuditLogEvents = z.enum([
   "app.disconnect_repository",
   "environment.create",
   "environment.update",
+  "environment.delete",
   "deployment.rollback",
   "deployment.promote",
   "deployment.redeploy",
@@ -75,6 +76,11 @@ export const unkeyAuditLogEvents = z.enum([
   "domain.create",
   "domain.delete",
   "domain.verify",
+  "portal.create",
+  "portal.update",
+  "portal.delete",
+  "portal.session.create",
+  "portal.session.exchange",
 ]);
 
 export const auditLogSchemaV1 = z.object({

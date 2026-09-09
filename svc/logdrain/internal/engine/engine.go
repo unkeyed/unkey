@@ -277,7 +277,18 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 		if watermark <= current.Time {
 			break
 		}
-		page, err := reader.Read(ctx, drain.WorkspaceID, current)
+		cfg := &logdrainv1.Config{}
+		var page batchPage
+		if err = proto.Unmarshal(drain.Config, cfg); err != nil {
+			err = fmt.Errorf("decode logdrain config: %w", err)
+		} else {
+			switch cfg.GetStream().(type) {
+			case nil, *logdrainv1.Config_AuditLogs:
+				page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg.GetAuditLogs().GetEventTypes())
+			default:
+				err = fmt.Errorf("unsupported logdrain stream config %T", cfg.GetStream())
+			}
+		}
 		if err != nil {
 			if ctx.Err() != nil {
 				return

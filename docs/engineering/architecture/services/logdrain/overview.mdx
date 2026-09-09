@@ -29,6 +29,21 @@ plaintext credentials. The Vault ciphertext includes the key ID that the
 service needs for decryption. HTTP header names stay in plaintext. Each HTTP
 header value has separate Vault ciphertext.
 
+The `stream` oneof identifies the stream and contains its typed configuration,
+independently of the destination. `audit_logs` selects `AuditLogStreamConfig`.
+Its `event_types` list selects exact audit event names. An empty list means all
+audit events, including event types added later. Existing protobuf configs with
+no stream retain the legacy audit-log behavior without filters. The MySQL
+`stream` column remains the scheduling index and must agree with the config.
+Deploy workers that understand the stream config before enabling the dashboard
+selector; older workers ignore it.
+
+ClickHouse applies the filter before ordering and limiting each batch. Windows
+with no matching events still advance the cursor. Editing the filter expires
+the lease and resumes from the committed cursor with a new fencing token. It
+does not replay events skipped by the previous filter. A request already in
+flight can still reach the destination, but its old fence cannot commit.
+
 The worker does not hold a MySQL transaction while it calls the customer
 destination. A fencing token protects each state read and write instead.
 

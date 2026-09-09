@@ -33,13 +33,14 @@ services:
       dockerfile: dev/Dockerfile.clickhouse
     container_name: clickhouse
     environment:
-      CLICKHOUSE_ADMIN_USER: default
-      CLICKHOUSE_ADMIN_PASSWORD: password
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: password
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
     ports:
       - "8123:8123"
       - "9000:9000"
     volumes:
-      - clickhouse:/bitnami/clickhouse
+      - clickhouse:/var/lib/clickhouse
     healthcheck:
       test: [
         "CMD",

@@ -10,7 +10,9 @@ export type EncryptedHttpHeader = {
 };
 
 /** LogdrainConfig is the typed dashboard representation of the stored provider config. */
-export type LogdrainConfig =
+export type LogdrainConfig = {
+  stream: { kind: "audit_logs"; eventTypes: string[] };
+} & (
   | {
       kind: "http";
       url: string;
@@ -21,7 +23,8 @@ export type LogdrainConfig =
       kind: "axiom";
       dataset: string;
       encryptedToken: string;
-    };
+    }
+);
 
 /** encodeLogdrainConfig encodes the complete provider configuration as protobuf. */
 export function encodeLogdrainConfig(config: LogdrainConfig): Buffer {
@@ -31,6 +34,7 @@ export function encodeLogdrainConfig(config: LogdrainConfig): Buffer {
         toBinary(
           ConfigSchema,
           create(ConfigSchema, {
+            stream: { case: "auditLogs", value: { eventTypes: config.stream.eventTypes } },
             destination: {
               case: config.kind,
               value: {
@@ -47,6 +51,7 @@ export function encodeLogdrainConfig(config: LogdrainConfig): Buffer {
         toBinary(
           ConfigSchema,
           create(ConfigSchema, {
+            stream: { case: "auditLogs", value: { eventTypes: config.stream.eventTypes } },
             destination: {
               case: config.kind,
               value: {
@@ -64,11 +69,24 @@ export function encodeLogdrainConfig(config: LogdrainConfig): Buffer {
 
 /** decodeLogdrainConfig decodes a stored provider configuration. */
 export function decodeLogdrainConfig(raw: Uint8Array): LogdrainConfig {
-  const { destination } = fromBinary(ConfigSchema, raw);
+  const config = fromBinary(ConfigSchema, raw);
+  const { destination } = config;
+  let stream: LogdrainConfig["stream"];
+  switch (config.stream.case) {
+    case "auditLogs":
+      stream = { kind: "audit_logs", eventTypes: config.stream.value.eventTypes };
+      break;
+    case undefined:
+      stream = { kind: "audit_logs", eventTypes: [] };
+      break;
+    default:
+      throw new Error(`Unsupported log drain stream: ${config.stream satisfies never}`);
+  }
   switch (destination.case) {
     case "http":
       return {
         kind: destination.case,
+        stream,
         url: destination.value.url,
         format: decodeHttpFormat(destination.value.format),
         headers: destination.value.headers.map(({ name, encryptedValue }) => ({
@@ -79,6 +97,7 @@ export function decodeLogdrainConfig(raw: Uint8Array): LogdrainConfig {
     case "axiom":
       return {
         kind: destination.case,
+        stream,
         dataset: destination.value.dataset,
         encryptedToken: destination.value.encryptedToken,
       };

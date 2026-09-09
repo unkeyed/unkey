@@ -29,6 +29,7 @@ export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
           return {
             ...row,
             kind: destination.kind,
+            eventTypes: destination.stream.eventTypes,
             stream,
             config: {
               url: destination.url,
@@ -40,6 +41,7 @@ export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
           return {
             ...row,
             kind: destination.kind,
+            eventTypes: destination.stream.eventTypes,
             stream,
             config: {
               dataset: destination.dataset,

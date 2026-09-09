@@ -87,6 +87,7 @@ const baseSchema = z.object({
   headers: z.array(headerRowSchema).max(32, "A maximum of 32 headers is supported"),
   dataset: z.string(),
   token: z.string(),
+  eventTypes: z.array(z.string().trim().min(1).max(256)).max(256),
 });
 
 export type DrainFormValues = z.infer<typeof baseSchema>;
@@ -141,6 +142,7 @@ export const emptyDrainForm: DrainFormValues = {
   headers: [{ ...emptyHeaderRow }],
   dataset: "",
   token: "",
+  eventTypes: [],
 };
 
 export function drainToFormValues(drain: DrainDetail): DrainFormValues {
@@ -148,6 +150,7 @@ export function drainToFormValues(drain: DrainDetail): DrainFormValues {
     ...emptyDrainForm,
     kind: drain.kind,
     name: drain.name,
+    eventTypes: drain.eventTypes,
     url: drain.kind === "http" ? drain.config.url : "",
     format: drain.kind === "http" ? drain.config.format : "json",
     headers:

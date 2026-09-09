@@ -53,21 +53,71 @@ func TestAuditLogsRead_CursorBounds(t *testing.T) {
 	auditLogs := source.NewAuditLogs(client)
 	cursor := source.Cursor{Time: insertedAt, EventID: "b"}
 	toExclusive := insertedAt + 2
-	firstPage, cursor, err := auditLogs.Read(ctx, workspaceID, cursor, toExclusive, 2)
+	firstPage, cursor, err := auditLogs.Read(ctx, workspaceID, cursor, toExclusive, 2, nil)
 	require.NoError(t, err)
 	require.Len(t, firstPage, 2)
 	require.Equal(t, "c", firstPage[0].EventID)
 	require.Equal(t, "d", firstPage[1].EventID)
 	require.Equal(t, source.Cursor{Time: insertedAt, EventID: "d"}, cursor)
 
-	secondPage, cursor, err := auditLogs.Read(ctx, workspaceID, cursor, toExclusive, 2)
+	secondPage, cursor, err := auditLogs.Read(ctx, workspaceID, cursor, toExclusive, 2, nil)
 	require.NoError(t, err)
 	require.Len(t, secondPage, 1)
 	require.Equal(t, "a", secondPage[0].EventID)
 	require.Equal(t, source.Cursor{Time: insertedAt + 1, EventID: "a"}, cursor)
 
-	emptyPage, finalCursor, err := auditLogs.Read(ctx, workspaceID, cursor, toExclusive, 2)
+	emptyPage, finalCursor, err := auditLogs.Read(ctx, workspaceID, cursor, toExclusive, 2, nil)
 	require.NoError(t, err)
 	require.Empty(t, emptyPage)
 	require.Equal(t, cursor, finalCursor)
+}
+
+// TestAuditLogsRead_EventTypes filters before pagination without losing timestamp ties.
+func TestAuditLogsRead_EventTypes(t *testing.T) {
+	cfg := containers.ClickHouse(t)
+	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	ctx := context.Background()
+	workspaceID := uid.New("workspace")
+	insertedAt := time.Now().Add(-time.Minute).UnixMilli()
+	t.Cleanup(func() {
+		require.NoError(t, client.Conn().Exec(ctx, `ALTER TABLE audit_logs_raw_v1 DELETE WHERE workspace_id = ? SETTINGS mutations_sync = 1`, workspaceID))
+	})
+	for _, event := range []struct{ id, eventType string }{
+		{"a", "key.verify"},
+		{"b", "key.create"},
+		{"c", "key.verify"},
+		{"d", "key.delete"},
+		{"e", "key.create"},
+		{"f", "key.verify"},
+		{"g", `custom.'\event`},
+	} {
+		require.NoError(t, client.Conn().Exec(ctx, `
+			INSERT INTO audit_logs_raw_v1 (workspace_id, bucket, event_id, time, inserted_at, event)
+			VALUES (?, 'audit', ?, ?, ?, ?)
+		`, workspaceID, event.id, insertedAt, insertedAt, event.eventType))
+	}
+	auditLogs := source.NewAuditLogs(client)
+	from := source.Cursor{Time: insertedAt}
+	filter := []string{"key.create", "key.delete"}
+	page, cursor, err := auditLogs.Read(ctx, workspaceID, from, insertedAt+1, 2, filter)
+	require.NoError(t, err)
+	require.Len(t, page, 2)
+	require.Equal(t, "b", page[0].EventID)
+	require.Equal(t, "d", page[1].EventID)
+	page, cursor, err = auditLogs.Read(ctx, workspaceID, cursor, insertedAt+1, 2, filter)
+	require.NoError(t, err)
+	require.Len(t, page, 1)
+	require.Equal(t, "e", page[0].EventID)
+	require.Equal(t, source.Cursor{Time: insertedAt, EventID: "e"}, cursor)
+	page, finalCursor, err := auditLogs.Read(ctx, workspaceID, cursor, insertedAt+1, 2, filter)
+	require.NoError(t, err)
+	require.Empty(t, page)
+	require.Equal(t, cursor, finalCursor)
+
+	page, _, err = auditLogs.Read(ctx, workspaceID, from, insertedAt+1, 2, []string{`custom.'\event`})
+	require.NoError(t, err)
+	require.Len(t, page, 1)
+	require.Equal(t, "g", page[0].EventID)
 }
