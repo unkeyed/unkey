@@ -329,6 +329,13 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 		if len(events) > 0 && !delivery.completed.IsZero() {
 			// The delivery succeeded and its new offset is now committed.
 			e.recordDelivery(drain, stream, delivery.completed, "success", len(events), delivery.duration, delivery.result, nil)
+			logger.Info("logdrain batch delivered",
+				"drain_id", drain.ID,
+				"stream", stream,
+				"events", len(events),
+				"cursor_time", time.UnixMilli(page.next.Time).UTC(),
+				"lag_ms", e.cfg.Clock.Now().UnixMilli()-page.next.Time,
+			)
 		}
 		delivered += len(events)
 		current = page.next

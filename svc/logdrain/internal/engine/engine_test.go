@@ -5,11 +5,14 @@ import (
 	"database/sql"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"os/exec"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/db"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
@@ -82,6 +85,46 @@ func TestProcess_DeliveryFailure(t *testing.T) {
 	require.Len(t, database.failures, 1)
 	require.Empty(t, database.commits)
 	require.Equal(t, start, database.drain.CommittedOffsetInsertedAt)
+}
+
+// TestProcess_LogsCommittedBatch captures process output without changing the global logger.
+func TestProcess_LogsCommittedBatch(t *testing.T) {
+	if os.Getenv("TEST_LOGDRAIN_BATCH_LOG") != "1" {
+		binary, err := os.Executable()
+		require.NoError(t, err)
+		cmd := exec.Command(binary, "-test.run=^TestProcess_LogsCommittedBatch$")
+		cmd.Env = append(os.Environ(), "TEST_LOGDRAIN_BATCH_LOG=1", "NO_COLOR=1", "UNKEY_LOG_LEVEL=info")
+		output, err := cmd.CombinedOutput()
+		require.NoError(t, err, string(output))
+		require.Contains(t, string(output), `msg="logdrain batch delivered"`)
+		require.Contains(t, string(output), "drain_id=drain stream=audit_logs events=1")
+		require.Contains(t, string(output), "cursor_time=2026-09-09T12:01:00.000Z")
+		require.Contains(t, string(output), "lag_ms=7140000")
+		return
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+	encoded, err := proto.Marshal(&logdrainv1.Config{Destination: &logdrainv1.Config_Http{Http: &logdrainv1.HttpConfig{
+		Url: server.URL, Format: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON,
+	}}})
+	require.NoError(t, err)
+	start := time.Date(2026, 9, 9, 12, 0, 0, 0, time.UTC)
+	database := &windowDatabase{drain: db.GetLeasedAndDueLogdrainRow{
+		ID: "drain", WorkspaceID: "workspace", Stream: db.LogdrainsStreamAuditLogs,
+		CommittedOffsetInsertedAt: start.UnixMilli(), Config: encoded,
+	}}
+	reader := windowSource{read: func(_ context.Context, _ string, from source.Cursor, _ int64, _ int) ([]sink.Event, source.Cursor, error) {
+		return []sink.Event{{EventID: "event", Stream: "audit_logs", Time: start.UnixMilli(), Payload: sink.AuditLogPayload{ID: "event"}}}, from, nil
+	}}
+	eng, err := New(Config{
+		DB: database, LeaseID: "lease", Source: reader, PollInterval: time.Minute, BatchSize: 2,
+		Clock: clock.NewTestClock(start.Add(2 * time.Hour)), UnsafeAllowPrivateEndpoints: true,
+	})
+	require.NoError(t, err)
+	eng.process(context.Background(), workItem{id: "drain", now: start.Add(time.Minute)})
+	require.Len(t, database.commits, 1)
 }
 
 // TestProcess_ZeroCursor advances through empty history using ordinary windows.
