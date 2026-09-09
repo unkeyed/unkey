@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Area, AreaChart, CartesianGrid, ReferenceArea, YAxis } from "recharts";
+import { ChartEmpty, ChartError, ChartLoading } from "@/components/logs/chart/chart-states";
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
 import { formatTooltipInterval } from "@/components/logs/utils";
@@ -12,11 +15,7 @@ import {
 import { formatNumber } from "@/lib/fmt";
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { cn } from "@/lib/utils";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Area, AreaChart, CartesianGrid, ReferenceArea, YAxis } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";
-
-import { ChartEmpty, ChartError, ChartLoading } from "@/components/logs/chart/chart-states";
 import type { Selection, TimeseriesData } from "./types";
 
 export type ChartMetric = {
@@ -418,7 +417,7 @@ export const OverviewAreaChart = ({
                   ? parseTimestamp(lastItem.originalTimestamp)
                   : Date.now(),
               ).map((time, i) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                // biome-ignore lint/suspicious/noArrayIndexKey: index is the stable identity for this list
                 <div key={i} className="z-10 text-center">
                   {formatTimestampLabel(time)}
                 </div>

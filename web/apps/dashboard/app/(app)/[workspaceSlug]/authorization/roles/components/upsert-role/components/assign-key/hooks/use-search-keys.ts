@@ -1,5 +1,5 @@
-import { trpc } from "@/lib/trpc/client";
 import { useEffect, useMemo, useState } from "react";
+import { trpc } from "@/lib/trpc/client";
 
 export const useSearchKeys = (query: string, debounceMs = 300) => {
   const [debouncedQuery, setDebouncedQuery] = useState("");

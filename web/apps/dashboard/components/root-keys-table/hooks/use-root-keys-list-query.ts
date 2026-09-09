@@ -1,8 +1,8 @@
+import type { RootKeysFilterValue } from "@/app/(app)/[workspaceSlug]/settings/root-keys/filters.schema";
 import {
   rootKeysFilterFieldConfig,
   rootKeysListFilterFieldNames,
 } from "@/app/(app)/[workspaceSlug]/settings/root-keys/filters.schema";
-import type { RootKeysFilterValue } from "@/app/(app)/[workspaceSlug]/settings/root-keys/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/settings/root-keys/hooks/use-filters";
 import {
   PAGINATED_LIST_PREFETCH_OPTIONS,

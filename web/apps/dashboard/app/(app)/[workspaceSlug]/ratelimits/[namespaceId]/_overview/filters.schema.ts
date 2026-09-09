@@ -1,10 +1,10 @@
+import { z } from "zod";
 import type {
   FilterValue,
   NumberConfig,
   StringConfig,
 } from "@/components/logs/validation/filter.types";
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
-import { z } from "zod";
 
 // Configuration
 export const ratelimitOverviewFilterFieldConfig: FilterFieldConfigs = {

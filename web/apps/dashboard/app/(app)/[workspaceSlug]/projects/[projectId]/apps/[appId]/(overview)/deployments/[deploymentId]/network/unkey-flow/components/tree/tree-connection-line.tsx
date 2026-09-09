@@ -1,12 +1,12 @@
 import { useMemo, useRef } from "react";
 import type { Point } from "../../layout-engine";
 import {
-  type LineTo,
-  type PathCommand,
-  type QuadraticCurve,
   curve,
+  type LineTo,
   line,
   move,
+  type PathCommand,
+  type QuadraticCurve,
   renderPath,
 } from "./tree-path-command";
 

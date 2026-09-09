@@ -1,5 +1,4 @@
 "use client";
-import { ProtectionSwitch } from "@/components/dashboard/metadata/protection-switch";
 import {
   FormInput,
   Select,
@@ -11,13 +10,10 @@ import {
 import { FormDescription } from "@unkey/ui/src/components/form/form-helpers";
 import { IconChartPieOutline18 } from "nucleo-ui-outline-18";
 import { Controller, useController, useFormContext, useWatch } from "react-hook-form";
+import { ProtectionSwitch } from "@/components/dashboard/metadata/protection-switch";
 import type { CreditsFormValues } from "../create-key.schema";
 
-export const UsageSetup = ({
-  overrideEnabled = false,
-}: {
-  overrideEnabled?: boolean;
-}) => {
+export const UsageSetup = ({ overrideEnabled = false }: { overrideEnabled?: boolean }) => {
   const {
     register,
     formState: { errors },

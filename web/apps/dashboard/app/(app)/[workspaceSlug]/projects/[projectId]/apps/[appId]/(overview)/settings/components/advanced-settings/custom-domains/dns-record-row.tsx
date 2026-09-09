@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { CopyButton } from "@unkey/ui";
 import { IconCircleCheckOutline18, IconClockOutline18 } from "nucleo-ui-outline-18";
+import { cn } from "@/lib/utils";
 
 type DnsRecordRowProps = {
   type: string;

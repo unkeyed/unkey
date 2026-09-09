@@ -1,7 +1,7 @@
-import { auth as authProvider } from "@/lib/auth/server";
-import { OrganizationScopeError } from "@/lib/auth/types";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { auth as authProvider } from "@/lib/auth/server";
+import { OrganizationScopeError } from "@/lib/auth/types";
 import { requireOrgAdmin, workspaceProcedure } from "../../trpc";
 
 export const revokeInvitation = workspaceProcedure

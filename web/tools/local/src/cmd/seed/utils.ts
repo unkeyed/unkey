@@ -23,7 +23,7 @@ export async function connectDatabase<
   db: DrizzleReturnType<TSchema>;
   conn: mysql.Connection;
 }> {
-  let err: Error | undefined = undefined;
+  let err: Error | undefined;
   for (let i = 1; i <= 10; i++) {
     try {
       const conn = await mysql.createConnection(env().DB_URL);

@@ -1,7 +1,7 @@
-import { ORGANIZATION_ROLES } from "@/lib/auth/roles";
-import { auth as authProvider } from "@/lib/auth/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { ORGANIZATION_ROLES } from "@/lib/auth/roles";
+import { auth as authProvider } from "@/lib/auth/server";
 import { requireOrgAdmin, workspaceProcedure } from "../../trpc";
 
 export const inviteMember = workspaceProcedure

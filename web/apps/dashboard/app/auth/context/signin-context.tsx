@@ -1,4 +1,4 @@
-import { type ReactNode, createContext, useState } from "react";
+import { createContext, type ReactNode, useState } from "react";
 
 interface SignInContext {
   error: string | null;

@@ -1,5 +1,4 @@
 "use client";
-import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import {
   PageBody,
   PageContainer,
@@ -9,6 +8,7 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import { use } from "react";
+import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
 import { SettingsClient } from "./components/settings-client";
 
 type Props = {

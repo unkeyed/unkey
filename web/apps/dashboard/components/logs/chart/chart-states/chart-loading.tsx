@@ -1,11 +1,11 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Area, AreaChart, Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
 import { useWaveAnimation } from "@/components/logs/overview-charts/hooks";
 import { cn } from "@/lib/utils";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Area, AreaChart, Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
 import type { ChartLoadingProps } from "./types";
 
 /**

@@ -1,8 +1,8 @@
+import type { KeysListFilterValue } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/filters.schema";
 import {
   keysListFilterFieldConfig,
   keysListFilterFieldNames,
 } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/filters.schema";
-import type { KeysListFilterValue } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/hooks/use-filters";
 import {
   PAGINATED_LIST_PREFETCH_OPTIONS,

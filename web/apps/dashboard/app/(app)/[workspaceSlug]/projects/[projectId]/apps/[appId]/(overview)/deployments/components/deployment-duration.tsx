@@ -1,9 +1,9 @@
 "use client";
 
-import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
-import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
 import { Loading } from "@unkey/ui";
 import { useEffect, useState } from "react";
+import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
+import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
 
 type DurationDisplay = "hidden" | "terminal" | "live";
 

@@ -1,10 +1,10 @@
+import { act, renderHook } from "@testing-library/react";
+import { useQueryStates } from "nuqs";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   parseAsFilterValueArray,
   parseAsRelativeTime,
 } from "@/components/logs/validation/utils/nuqs-parsers";
-import { act, renderHook } from "@testing-library/react";
-import { useQueryStates } from "nuqs";
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useFilters } from "./use-filters";
 
 const parseAsFilterValArray = parseAsFilterValueArray(["is", "contains"]);

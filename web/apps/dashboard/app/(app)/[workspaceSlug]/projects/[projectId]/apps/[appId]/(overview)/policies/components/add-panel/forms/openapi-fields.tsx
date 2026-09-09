@@ -1,8 +1,8 @@
 "use client";
 
-import { routes } from "@/lib/navigation/routes";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { routes } from "@/lib/navigation/routes";
 import { Strong } from "./summary-helpers";
 
 export function OpenApiFields() {

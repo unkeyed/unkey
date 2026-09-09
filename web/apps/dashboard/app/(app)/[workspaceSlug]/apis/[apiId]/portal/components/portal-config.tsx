@@ -1,14 +1,5 @@
 "use client";
 
-import { buildPortalUpdate, portalFormValues } from "@/lib/portal/build-update";
-import { SLUG_CONFLICT_DETAIL, portalConflict } from "@/lib/portal/conflicts";
-import { useUpdatePortal } from "@/lib/portal/use-portal";
-import {
-  logoUrlSchema,
-  portalDisplayNameSchema,
-  portalSlugSchema,
-  primaryColorSchema,
-} from "@/lib/portal/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Portal } from "@unkey/api/models/components";
 import {
@@ -26,6 +17,15 @@ import {
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { buildPortalUpdate, portalFormValues } from "@/lib/portal/build-update";
+import { portalConflict, SLUG_CONFLICT_DETAIL } from "@/lib/portal/conflicts";
+import { useUpdatePortal } from "@/lib/portal/use-portal";
+import {
+  logoUrlSchema,
+  portalDisplayNameSchema,
+  portalSlugSchema,
+  primaryColorSchema,
+} from "@/lib/portal/validation";
 import { DeletePortalRow } from "./delete-portal-row";
 import { BrandColorField } from "./portal-branding";
 import { PortalPreview } from "./portal-preview";

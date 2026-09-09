@@ -10,14 +10,13 @@ import {
 import { appSourceOci } from "./app_source_oci";
 import { environments } from "./environments";
 import { githubRepoConnections } from "./github_app";
-import { deleteProtection } from "./util/delete_protection";
-import { lifecycleDates } from "./util/lifecycle_dates";
-import { workspaces } from "./workspaces";
-
 import { projects } from "./projects";
 import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
+import { deleteProtection } from "./util/delete_protection";
 import { id } from "./util/id";
+import { lifecycleDates } from "./util/lifecycle_dates";
 import { primaryKey } from "./util/primary_key";
+import { workspaces } from "./workspaces";
 
 export const apps = mysqlTable(
   "apps",

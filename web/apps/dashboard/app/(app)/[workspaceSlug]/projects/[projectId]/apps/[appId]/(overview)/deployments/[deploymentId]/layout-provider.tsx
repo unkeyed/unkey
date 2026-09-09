@@ -1,11 +1,11 @@
 "use client";
 
+import { notFound, useParams } from "next/navigation";
+import { createContext, useContext } from "react";
 import { LoadingState } from "@/components/loading-state";
 import { TOP_NAV_HEIGHT } from "@/components/navigation/top-nav";
 import { type Deployment, deploymentSchema } from "@/lib/collections/deploy/deployments";
 import { trpc } from "@/lib/trpc/client";
-import { notFound, useParams } from "next/navigation";
-import { createContext, useContext } from "react";
 import { useProjectData } from "../../data-provider";
 
 type DeploymentLayoutContextType = {

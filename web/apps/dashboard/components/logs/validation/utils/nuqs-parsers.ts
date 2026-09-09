@@ -1,5 +1,5 @@
-import { getTimestampFromRelative } from "@/lib/utils";
 import type { Parser } from "nuqs";
+import { getTimestampFromRelative } from "@/lib/utils";
 import type { FilterOperator, FilterUrlValue } from "../filter.types";
 
 export const parseAsRelativeTime: Parser<string | null> = {

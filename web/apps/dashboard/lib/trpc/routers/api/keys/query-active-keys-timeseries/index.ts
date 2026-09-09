@@ -1,7 +1,7 @@
+import { TRPCError } from "@trpc/server";
 import { keysOverviewQueryTimeseriesPayload } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_overview/components/charts/bar-chart/query-timeseries.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
 import { assertValidTimeRange } from "../../../utils/time-range";
 import { getApi, queryApiKeys } from "../api-query";
 import { transformVerificationFilters } from "../timeseries.utils";
@@ -13,7 +13,7 @@ export const activeKeysTimeseries = workspaceProcedure
     assertValidTimeRange(input.startTime, input.endTime);
 
     const api = await getApi(input.apiId, ctx.workspace.id);
-    if (!api || !api.keyAuth?.id) {
+    if (!api?.keyAuth?.id) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "API not found or does not have key authentication enabled",

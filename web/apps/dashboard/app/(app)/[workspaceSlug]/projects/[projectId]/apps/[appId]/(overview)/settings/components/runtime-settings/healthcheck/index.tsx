@@ -18,7 +18,7 @@ import { SettingField } from "../../shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "../../shared/form-setting-card";
 import { RemoveButton } from "../../shared/remove-button";
 import { MethodBadge } from "./method-badge";
-import { HTTP_METHODS, type HealthcheckFormValues, healthcheckSchema } from "./schema";
+import { type HealthcheckFormValues, HTTP_METHODS, healthcheckSchema } from "./schema";
 import { intervalToSeconds, secondsToInterval } from "./utils";
 
 export const Healthcheck = () => {

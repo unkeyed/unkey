@@ -1,5 +1,4 @@
 "use client";
-import { policyMatchKey } from "@/lib/collections/deploy/policies.schema";
 import {
   Button,
   PageBody,
@@ -11,6 +10,7 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import { IconPlusOutline18 } from "nucleo-ui-outline-18";
+import { policyMatchKey } from "@/lib/collections/deploy/policies.schema";
 import { useAppId, useProjectData } from "../data-provider";
 import { PolicyPanel } from "./components/add-panel";
 import { PoliciesList } from "./components/list";

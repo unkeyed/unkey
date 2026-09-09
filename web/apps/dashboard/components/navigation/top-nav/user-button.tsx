@@ -1,4 +1,12 @@
 "use client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useTheme } from "next-themes";
+import {
+  IconLaptop2Outline18,
+  IconMoonStarsOutline18,
+  IconSunOutline18,
+} from "nucleo-ui-outline-18";
+import type React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -13,14 +21,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { signOut } from "@/lib/auth/utils";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { useQueryClient } from "@tanstack/react-query";
-import { useTheme } from "next-themes";
-import {
-  IconLaptop2Outline18,
-  IconMoonStarsOutline18,
-  IconSunOutline18,
-} from "nucleo-ui-outline-18";
-import type React from "react";
 
 type UserButtonProps = {
   isCollapsed?: boolean;

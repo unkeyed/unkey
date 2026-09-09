@@ -1,10 +1,10 @@
 "use client";
 
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { type PropsWithChildren, useEffect, useMemo } from "react";
 import { EnvironmentContext } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/environment-provider";
 import { collection } from "@/lib/collections";
 import { useSettingsIsSaving } from "@/lib/collections/deploy/environment-settings";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { type PropsWithChildren, useEffect, useMemo } from "react";
 
 export const OnboardingEnvironmentSettingsInner = ({
   children,
@@ -63,7 +63,11 @@ const EnvironmentSettingsPreloader = ({
   projectId,
   appId,
   envId,
-}: { projectId: string; appId: string; envId: string }) => {
+}: {
+  projectId: string;
+  appId: string;
+  envId: string;
+}) => {
   useLiveQuery(
     (q) =>
       q

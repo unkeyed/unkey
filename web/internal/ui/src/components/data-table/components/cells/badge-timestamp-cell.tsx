@@ -1,8 +1,7 @@
 "use client";
-// biome-ignore lint/correctness/noUnusedImports: React is needed for JSX
-import React from "react";
 import type { ReactNode } from "react";
-import { useRef, useState } from "react";
+// biome-ignore lint/correctness/noUnusedImports: React is needed for JSX
+import React, { useRef, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Badge } from "../../../badge";
 import { TimestampInfo } from "../../../timestamp-info";

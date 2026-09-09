@@ -1,3 +1,6 @@
+import { cn } from "@unkey/ui/src/lib/utils";
+import type { IconProps } from "nucleo-ui-outline-18";
+import type { ComponentType } from "react";
 import {
   type AreaChartPoint,
   type AreaTimeseriesAxisOptions,
@@ -5,9 +8,6 @@ import {
   type ValueParts,
 } from "@/components/charts/area-timeseries";
 import { LogsTimeseriesBarChart } from "@/components/charts/logs-timeseries-bar";
-import { cn } from "@unkey/ui/src/lib/utils";
-import type { IconProps } from "nucleo-ui-outline-18";
-import type { ComponentType } from "react";
 import { MetricSelect } from "./metric-select";
 
 type MetricType = "latency" | "rps" | "cpu" | "memory";

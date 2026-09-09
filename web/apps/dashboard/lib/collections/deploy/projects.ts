@@ -1,8 +1,8 @@
-import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { queryClient, trpcClient } from "../client";
 
 const schema = z.object({

@@ -1,5 +1,5 @@
-import { trpc } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
+import { trpc } from "@/lib/trpc/client";
 
 export const useRotateRootKey = () => {
   return trpc.rootKey.reroll.useMutation({

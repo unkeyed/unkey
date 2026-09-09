@@ -9,7 +9,7 @@
  * page, never threaded through a navigation call, so they are not builder args.
  */
 import type { Route } from "next";
-import { type WorkspaceScope, buildRoute } from "./shared";
+import { buildRoute, type WorkspaceScope } from "./shared";
 
 type NamespaceScope = WorkspaceScope & { namespaceId: string };
 

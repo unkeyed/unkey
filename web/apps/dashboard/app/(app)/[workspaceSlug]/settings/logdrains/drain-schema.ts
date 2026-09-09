@@ -1,6 +1,6 @@
-import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
 import { z } from "zod";
+import type { Router } from "@/lib/trpc/routers";
 import { headerNamePattern, isValidHttpHeaderValue } from "./header-fields";
 
 type Outputs = inferRouterOutputs<Router>;

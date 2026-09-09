@@ -1,10 +1,10 @@
 "use client";
 
-import { EnvironmentBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
-import type { Deployment, Environment } from "@/lib/collections";
 import { ResourceListItem } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
+import { EnvironmentBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
+import type { Deployment, Environment } from "@/lib/collections";
 import {
   AuthorCell,
   BranchCell,

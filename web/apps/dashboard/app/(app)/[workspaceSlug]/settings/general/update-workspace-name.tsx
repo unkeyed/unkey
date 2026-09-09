@@ -1,12 +1,12 @@
 "use client";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, FormInput, InfoTooltip, SettingCard, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { trpc } from "@/lib/trpc/client";
 
 export function UpdateWorkspaceName() {
   const workspace = useWorkspaceNavigation();

@@ -1,10 +1,10 @@
 "use client";
 import {
+  getCoreRowModel,
+  getSortedRowModel,
   type OnChangeFn,
   type RowSelectionState,
   type SortingState,
-  getCoreRowModel,
-  getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 import { useState } from "react";

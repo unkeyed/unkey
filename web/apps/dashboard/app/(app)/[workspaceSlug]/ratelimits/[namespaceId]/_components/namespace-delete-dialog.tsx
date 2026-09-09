@@ -1,19 +1,19 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
-import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, Input, Loading } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { Suspense } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { collection } from "@/lib/collections";
+import { routes } from "@/lib/navigation/routes";
 
 const formSchema = z.object({
   name: z
     .string()
-    // biome-ignore lint/suspicious/noSelfCompare: <explanation>
+    // biome-ignore lint/suspicious/noSelfCompare: refine always passes, it only carries the message
     .refine((v) => v === v, "Please confirm the namespace name"),
 });
 

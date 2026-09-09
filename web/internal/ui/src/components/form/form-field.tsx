@@ -69,4 +69,4 @@ function FormField({
   );
 }
 
-export { FormField, type FormFieldProps, type DocumentedFormFieldProps };
+export { type DocumentedFormFieldProps, FormField, type FormFieldProps };

@@ -1,6 +1,5 @@
 "use client";
 
-import { githubUrl } from "@/lib/github-url";
 import { match } from "@unkey/match";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import Link from "next/link";
@@ -10,6 +9,7 @@ import {
   IconPlusOutline18,
   IconTriangleWarningOutline18,
 } from "nucleo-ui-outline-18";
+import { githubUrl } from "@/lib/github-url";
 import { ProductionCardActionsMenu } from "./production-card-actions-menu";
 import { useProductionCard } from "./production-card-context";
 

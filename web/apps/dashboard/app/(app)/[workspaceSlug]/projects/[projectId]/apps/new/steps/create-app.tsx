@@ -1,11 +1,11 @@
 "use client";
-import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
-import { createAppRequestSchema } from "@/lib/collections/deploy/apps";
-import { slugify } from "@/lib/slugify";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, FormInput, useStepWizard } from "@unkey/ui";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
+import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
+import { createAppRequestSchema } from "@/lib/collections/deploy/apps";
+import { slugify } from "@/lib/slugify";
 import { OnboardingLinks } from "../onboarding-links";
 
 const formSchema = createAppRequestSchema.omit({

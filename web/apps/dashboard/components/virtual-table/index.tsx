@@ -1,16 +1,16 @@
-import { cn } from "@/lib/utils";
 import { useIsMobile } from "@unkey/ui";
 import { IconCaretDownOutline12, IconCaretUpOutline12 } from "nucleo-ui-outline-12";
 import { IconCaretExpandYOutline18, IconCircleCaretRightOutline18 } from "nucleo-ui-outline-18";
 import {
   Fragment,
-  type Ref,
   forwardRef,
+  type Ref,
   useImperativeHandle,
   useMemo,
   useRef,
   useState,
 } from "react";
+import { cn } from "@/lib/utils";
 import { EmptyState } from "./components/empty-state";
 import { LoadMoreFooter } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
@@ -529,7 +529,7 @@ function HeaderCell<T>({ column }: { column: Column<T> }) {
   };
 
   return (
-    // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
+    // biome-ignore lint/a11y/useKeyWithClickEvents: wrapper only intercepts pointer events
     <div
       className={cn(
         "flex items-center gap-1 truncate text-accent-12",

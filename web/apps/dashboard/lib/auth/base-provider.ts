@@ -2,6 +2,7 @@ import {
   AuthErrorCode,
   type AuthErrorResponse,
   type EmailAuthResult,
+  errorMessages,
   type Invitation,
   type InvitationListResponse,
   type Membership,
@@ -10,8 +11,8 @@ import {
   type MfaFactor,
   type NavigationResponse,
   type OAuthResult,
-  type OrgInviteParams,
   type Organization,
+  type OrgInviteParams,
   type SessionRefreshResult,
   type SessionValidationResult,
   type SignInViaOAuthOptions,
@@ -21,7 +22,6 @@ import {
   type User,
   type UserData,
   type VerificationResult,
-  errorMessages,
 } from "./types";
 
 /**
@@ -153,10 +153,7 @@ export abstract class BaseAuthProvider {
    * @param params - The challenge ID and the user-entered code
    * @returns Whether the code was valid
    */
-  abstract verifyMfaEnrollment(params: {
-    challengeId: string;
-    code: string;
-  }): Promise<boolean>;
+  abstract verifyMfaEnrollment(params: { challengeId: string; code: string }): Promise<boolean>;
 
   /**
    * Lists the MFA factors enrolled for a user.
@@ -279,10 +276,7 @@ export abstract class BaseAuthProvider {
    * @param params - Parameters containing organization name and user ID
    * @returns The ID of the newly created organization
    */
-  abstract createTenant(params: {
-    name: string;
-    userId: string;
-  }): Promise<string>;
+  abstract createTenant(params: { name: string; userId: string }): Promise<string>;
 
   /**
    * Updates an existing organization's information.

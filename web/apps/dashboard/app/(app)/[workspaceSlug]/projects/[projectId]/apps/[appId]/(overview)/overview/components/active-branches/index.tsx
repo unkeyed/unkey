@@ -1,7 +1,5 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
 import {
   Button,
   ResourceList,
@@ -11,6 +9,8 @@ import {
   ResourceListHeader,
 } from "@unkey/ui";
 import Link from "next/link";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { routes } from "@/lib/navigation/routes";
 import { useAppId, useProjectData } from "../../../data-provider";
 import { DeploymentsSkeleton } from "../../../deployments/components/deployments-skeleton";
 import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";

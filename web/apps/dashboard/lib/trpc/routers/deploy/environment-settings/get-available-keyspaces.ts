@@ -1,5 +1,5 @@
-import { and, db, isNull } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
+import { and, db, isNull } from "@/lib/db";
 import { workspaceProcedure } from "../../../trpc";
 
 export const getAvailableKeyspaces = workspaceProcedure.query(async ({ ctx }) => {

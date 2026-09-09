@@ -1,7 +1,5 @@
 "use client";
 
-import { imageRefDisplay } from "@/lib/docker-image-ref";
-import { githubUrl } from "@/lib/github-url";
 import { Badge, CopyButton, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import {
   IconArrowDotRotateAnticlockwiseOutline12,
@@ -13,6 +11,8 @@ import {
   IconLayers2Outline18,
 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
+import { imageRefDisplay } from "@/lib/docker-image-ref";
+import { githubUrl } from "@/lib/github-url";
 import { MetadataCell } from "../../../components/active-deployment-card/components/metadata-cell";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
 import { DottedLink } from "../../../components/dotted-link";

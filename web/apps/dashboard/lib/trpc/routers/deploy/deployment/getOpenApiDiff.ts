@@ -1,9 +1,9 @@
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { OpenApiService } from "@/gen/proto/ctrl/v1/openapi_pb";
 import { createCtrlClient } from "@/lib/ctrl-client";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 
 export const getOpenApiDiff = workspaceProcedure
   .use(withRatelimit(ratelimit.read))

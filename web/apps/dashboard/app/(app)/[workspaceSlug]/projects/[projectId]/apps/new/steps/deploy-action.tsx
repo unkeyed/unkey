@@ -1,11 +1,11 @@
 "use client";
 
+import { useMutation } from "@tanstack/react-query";
+import { Button, toast, useStepWizard } from "@unkey/ui";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { queryClient } from "@/lib/collections/client";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
-import { useMutation } from "@tanstack/react-query";
-import { Button, toast, useStepWizard } from "@unkey/ui";
 import { useProjectData } from "../../[appId]/(overview)/data-provider";
 
 type DeployActionProps = {

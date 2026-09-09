@@ -1,16 +1,16 @@
 "use client";
+import type { RowSelectionState } from "@tanstack/react-table";
+import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
+import { DataTable, PaginationFooter } from "@unkey/ui";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  EmptyKeyDetailsLogs,
   createKeyDetailsLogsColumns,
+  EmptyKeyDetailsLogs,
   getRowClassName,
   useKeyDetailsLogsQuery,
 } from "@/components/key-details-logs-table";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
-import type { RowSelectionState } from "@tanstack/react-table";
-import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
-import { DataTable, PaginationFooter } from "@unkey/ui";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useKeyDetailsLogsContext } from "../../context/logs";
 
 type Props = {

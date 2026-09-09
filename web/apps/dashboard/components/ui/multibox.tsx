@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
 import {
   IconCheckOutline12,
@@ -8,6 +7,7 @@ import {
   IconXmarkOutline12,
 } from "nucleo-ui-outline-12";
 import * as React from "react";
+import { cn } from "@/lib/utils";
 
 /**
  * Multi-select combobox built on Base UI's Combobox primitive, following

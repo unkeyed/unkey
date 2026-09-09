@@ -1,6 +1,6 @@
+import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { TeamPageClient } from "./client";
 
 export const revalidate = 0;

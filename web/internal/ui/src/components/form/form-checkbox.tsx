@@ -79,4 +79,4 @@ function FormCheckbox({
   );
 }
 
-export { FormCheckbox, type FormCheckboxProps, type DocumentedFormCheckboxProps };
+export { type DocumentedFormCheckboxProps, FormCheckbox, type FormCheckboxProps };

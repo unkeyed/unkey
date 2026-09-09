@@ -1,7 +1,4 @@
 "use client";
-import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
-import { shortenId } from "@/lib/shorten-id";
-import { trpc } from "@/lib/trpc/client";
 import {
   PageContainer,
   PageHeader,
@@ -10,6 +7,9 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import { use } from "react";
+import { CopyableIDButton } from "@/components/navigation/copyable-id-button";
+import { shortenId } from "@/lib/shorten-id";
+import { trpc } from "@/lib/trpc/client";
 import { KeySettingsDialog } from "../../../_components/key-settings-dialog";
 import { KeyDetailsLogsClient } from "./logs-client";
 

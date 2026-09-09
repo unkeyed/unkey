@@ -1,11 +1,11 @@
-import { MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";
-import { RatelimitSetup } from "@/components/dashboard/ratelimits/ratelimit-setup";
 import type { StepNamesFrom } from "@unkey/ui";
 import {
   IconCodeOutline18,
   IconFingerprintOutline18,
   IconGaugeOutline18,
 } from "nucleo-ui-outline-18";
+import { MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";
+import { RatelimitSetup } from "@/components/dashboard/ratelimits/ratelimit-setup";
 import { GeneralSetup } from "./general-setup";
 
 export const SECTIONS = [

@@ -1,8 +1,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import type { Portal } from "@unkey/api/models/components";
-import { createElement } from "react";
 import type { ReactNode } from "react";
+import { createElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 const getPortalByKeyspace = vi.fn();

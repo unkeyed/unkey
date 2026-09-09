@@ -1,6 +1,5 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlertDialog,
@@ -25,24 +24,19 @@ import {
 } from "@unkey/ui";
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
+import { trpc } from "@/lib/trpc/client";
 import { DESTINATIONS, DrainMedia } from "./drain-destinations";
 import { DestinationFields, NameField, StartFromField } from "./drain-fields";
 import {
+  createDrainSchema,
   type DrainFormValues,
   type DrainKind,
-  createDrainSchema,
   emptyDrainForm,
 } from "./drain-schema";
 import { DrainStepCard } from "./drain-step-card";
 import { toHeaderRecord } from "./header-fields";
 
-export function CreateLogdrainPanel({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
+export function CreateLogdrainPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const utils = trpc.useUtils();
   const [kind, setKind] = useState<DrainKind | null>(null);
   const [confirmChange, setConfirmChange] = useState(false);

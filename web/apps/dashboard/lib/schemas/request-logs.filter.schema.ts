@@ -1,7 +1,7 @@
+import { z } from "zod";
 import type { FilterValue } from "@/components/logs/validation/filter.types";
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
 import { logsFilterFieldConfig, logsFilterFieldEnum } from "@/lib/schemas/logs.filter.schema";
-import { z } from "zod";
 
 export const requestLogsFilterOperatorEnum = z.enum(["is", "contains", "startsWith"]);
 export type RequestLogsFilterOperator = z.infer<typeof requestLogsFilterOperatorEnum>;

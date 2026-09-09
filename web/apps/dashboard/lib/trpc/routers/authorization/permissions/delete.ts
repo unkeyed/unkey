@@ -1,8 +1,8 @@
+import { TRPCError } from "@trpc/server";
+import { z } from "zod";
 import { insertAuditLogs } from "@/lib/audit";
 import { and, db, eq, inArray, schema } from "@/lib/db";
 import { workspaceProcedure } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
-import { z } from "zod";
 
 export const deletePermissionWithRelations = workspaceProcedure
   .input(

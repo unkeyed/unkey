@@ -1,6 +1,6 @@
+import type { KeyDetailsLogsParams } from "@unkey/clickhouse/src/verifications";
 import type { KeyDetailsLogsPayload } from "@/components/key-details-logs-table/schema/query-logs.schema";
 import { getTimestampFromRelative } from "@/lib/utils";
-import type { KeyDetailsLogsParams } from "@unkey/clickhouse/src/verifications";
 
 export function transformKeyDetailsFilters(
   params: KeyDetailsLogsPayload,

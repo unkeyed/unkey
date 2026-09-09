@@ -1,6 +1,5 @@
 "use client";
 
-import { formatDollars, formatNumber, formatPrice } from "@/lib/fmt";
 import {
   Item,
   ItemActions,
@@ -21,6 +20,7 @@ import {
 } from "@unkey/ui";
 import { IconGaugeOutline18, IconKey2Outline18, IconNodesOutline18 } from "nucleo-ui-outline-18";
 import { Fragment, type ReactNode } from "react";
+import { formatDollars, formatNumber, formatPrice } from "@/lib/fmt";
 
 type ApiCardProps = {
   verifications: number | null;

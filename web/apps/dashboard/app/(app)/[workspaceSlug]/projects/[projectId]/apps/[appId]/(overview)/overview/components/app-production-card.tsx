@@ -1,5 +1,8 @@
 "use client";
 
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import dynamic from "next/dynamic";
+import { useState } from "react";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
@@ -8,9 +11,6 @@ import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import dynamic from "next/dynamic";
-import { useState } from "react";
 import { ActiveDeploymentCardEmpty } from "../../../components/active-deployment-card/components/active-deployment-card-empty";
 import { getDomainPriority } from "../../../components/domain-priority";
 import { Card } from "../../components/card";

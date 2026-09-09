@@ -1,15 +1,15 @@
 "use client";
-import { collection } from "@/lib/collections";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, DialogContainer, Input } from "@unkey/ui";
 import type { PropsWithChildren } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { collection } from "@/lib/collections";
 
 const formSchema = z.object({
   identifier: z
     .string()
-    // biome-ignore lint/suspicious/noSelfCompare: <explanation>
+    // biome-ignore lint/suspicious/noSelfCompare: refine always passes, it only carries the message
     .refine((v) => v === v, "Please confirm the identifier"),
 });
 

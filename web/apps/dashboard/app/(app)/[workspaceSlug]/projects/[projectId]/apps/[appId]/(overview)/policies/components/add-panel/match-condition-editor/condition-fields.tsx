@@ -1,8 +1,5 @@
 "use client";
 
-import type { StringMatchMode } from "@/lib/collections/deploy/policies.schema";
-import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { match } from "@unkey/match";
 import {
   Button,
@@ -18,6 +15,9 @@ import { FormDescription, FormLabel } from "@unkey/ui/src/components/form/form-h
 import { IconChevronDownOutline18, IconSparkle3Outline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
+import type { StringMatchMode } from "@/lib/collections/deploy/policies.schema";
+import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
 import type { MatchConditionFormValues, PolicyFormValues } from "../schema";
 import { HTTP_METHODS, STRING_MATCH_MODES, validateRegexSyntax } from "./constants";
 

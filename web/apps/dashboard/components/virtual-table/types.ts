@@ -64,10 +64,7 @@ export type VirtualTableProps<TTableData> = {
     hasMore?: boolean;
     hide?: boolean;
   };
-  renderSkeletonRow?: (props: {
-    columns: Column<TTableData>[];
-    rowHeight: number;
-  }) => ReactNode;
+  renderSkeletonRow?: (props: { columns: Column<TTableData>[]; rowHeight: number }) => ReactNode;
   /**
    * Callback when mouse enters a row
    */

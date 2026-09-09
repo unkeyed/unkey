@@ -1,7 +1,7 @@
-import { cn } from "@/lib/utils";
 import { Badge, Checkbox, TimestampInfo } from "@unkey/ui";
 import { IconChartActivity2Outline12 } from "nucleo-ui-outline-12";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 type EnvVarBaseRowProps = {
   nameCell: ReactNode;

@@ -1,5 +1,5 @@
 "use client";
-import type { ChangelogEntry } from "@/gen/proto/ctrl/v1/openapi_pb";
+import type { BadgeProps } from "@unkey/ui";
 import {
   Badge,
   Button,
@@ -12,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
-import type { BadgeProps } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import {
   IconChevronDownOutline12,
@@ -23,6 +22,7 @@ import {
 import { IconCircleInfoOutline18, IconInputSearchOutline18 } from "nucleo-ui-outline-18";
 import type React from "react";
 import { useMemo, useState } from "react";
+import type { ChangelogEntry } from "@/gen/proto/ctrl/v1/openapi_pb";
 
 type DiffViewerContentProps = {
   changelog: ChangelogEntry[];
@@ -286,6 +286,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                           <div className="flex flex-col gap-1">
                             {changes.map((change, index) => (
                               <div
+                                // biome-ignore lint/suspicious/noArrayIndexKey: composite key, the index only disambiguates repeats
                                 key={`${change.id}-${index}`}
                                 className={cn(
                                   "px-2 py-1.5 rounded-sm",

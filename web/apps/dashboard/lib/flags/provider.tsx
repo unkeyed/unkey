@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, createContext, useContext } from "react";
+import { createContext, type ReactNode, useContext } from "react";
 import type { Flags } from "./resolve";
 
 const FlagsContext = createContext<Flags | null>(null);

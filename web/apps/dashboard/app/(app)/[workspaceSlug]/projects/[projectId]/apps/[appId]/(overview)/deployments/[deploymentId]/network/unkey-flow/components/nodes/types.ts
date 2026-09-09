@@ -101,22 +101,22 @@ const NODE_SIZES: Record<DeploymentNode["metadata"]["type"], NodeSize> = {
 } as const;
 
 export type {
-  DeploymentNode,
-  OriginNode,
-  RegionNode,
-  InstanceNode,
-  SkeletonNode,
-  HealthStatus,
-  RegionInfo,
   BaseMetrics,
+  DeploymentNode,
+  HealthStatus,
+  InstanceNode,
+  OriginNode,
+  RegionInfo,
+  RegionNode,
+  SkeletonNode,
 };
 
 export {
+  DEFAULT_NODE_WIDTH,
+  isInstanceNode,
   isOriginNode,
   isRegionNode,
-  isInstanceNode,
   isSkeletonNode,
-  DEFAULT_NODE_WIDTH,
-  REGION_INFO,
   NODE_SIZES,
+  REGION_INFO,
 };

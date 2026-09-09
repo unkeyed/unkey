@@ -1,15 +1,15 @@
 "use client";
 
+import { DataTable, Empty, PaginationFooter } from "@unkey/ui";
+import { useMemo } from "react";
 import {
-  type RuntimeLogRow,
   createRuntimeLogsColumns,
   getLogKey,
   getRowClassName,
   getSelectedClassName,
+  type RuntimeLogRow,
   useRuntimeLogsQuery,
 } from "@/components/runtime-logs-table";
-import { DataTable, Empty, PaginationFooter } from "@unkey/ui";
-import { useMemo } from "react";
 import { useRuntimeLogs } from "../../context/runtime-logs-provider";
 
 export function RuntimeLogsTable() {

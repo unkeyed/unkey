@@ -1,10 +1,9 @@
 import { TRPCError } from "@trpc/server";
+import { newId } from "@unkey/id";
 import { z } from "zod";
-
 import { insertAuditLogs } from "@/lib/audit";
 import { db, schema } from "@/lib/db";
 import { ensureDefaultProjectId } from "@/lib/projects/ensure-default-project-id";
-import { newId } from "@unkey/id";
 import { workspaceProcedure } from "../../trpc";
 export const createNamespace = workspaceProcedure
   .input(

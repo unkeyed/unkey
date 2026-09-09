@@ -1,6 +1,6 @@
+import { type NextRequest, NextResponse } from "next/server";
 import { processPostAuthInvitation } from "@/lib/auth";
 import { getAuth } from "@/lib/auth/get-auth";
-import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {

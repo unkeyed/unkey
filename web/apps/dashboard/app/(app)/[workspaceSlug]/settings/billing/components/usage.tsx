@@ -1,7 +1,7 @@
 "use client";
+import { SettingCard } from "@unkey/ui";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { SettingCard } from "@unkey/ui";
 
 export const Usage: React.FC<{
   quota: number;

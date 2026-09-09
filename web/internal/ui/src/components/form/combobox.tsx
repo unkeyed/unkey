@@ -1,7 +1,7 @@
 "use client";
 
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
-import { type VariantProps, cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 import {
   IconCheckOutline12,
   IconChevronExpandYOutline12,
@@ -10,12 +10,12 @@ import {
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
   fieldBaseClasses,
   fieldInvalidClasses,
   fieldSurfaceClasses,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
 } from "./input-group";
 
 const comboboxTriggerVariants = cva(
@@ -430,27 +430,27 @@ export {
   ComboboxClear,
   ComboboxCollection,
   ComboboxContent,
+  type ComboboxContentProps,
   ComboboxEmpty,
   ComboboxGroup,
   ComboboxGroupLabel,
   ComboboxIcon,
   ComboboxInput,
+  type ComboboxInputProps,
   ComboboxItem,
   ComboboxItemIndicator,
   ComboboxList,
   ComboboxPopup,
   ComboboxPortal,
   ComboboxPositioner,
+  type ComboboxProps,
   ComboboxRoot,
   ComboboxRow,
   ComboboxStatus,
   ComboboxTrigger,
+  type ComboboxTriggerProps,
   ComboboxValue,
   comboboxTriggerVariants,
-  type ComboboxContentProps,
-  type ComboboxInputProps,
-  type ComboboxProps,
-  type ComboboxTriggerProps,
   type DocumentedComboboxProps,
   type DocumentedComboboxTriggerProps,
 };

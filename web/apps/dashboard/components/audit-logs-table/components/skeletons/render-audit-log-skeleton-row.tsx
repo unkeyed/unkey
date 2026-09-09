@@ -1,7 +1,7 @@
-import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
-import { cn } from "@/lib/utils";
 import type { DataTableColumnDef } from "@unkey/ui";
 import { CreatedAtColumnSkeleton } from "@unkey/ui";
+import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
+import { cn } from "@/lib/utils";
 import { AUDIT_LOG_COLUMN_IDS } from "../../columns/create-audit-log-columns";
 
 type RenderAuditLogSkeletonRowProps = {

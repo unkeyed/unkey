@@ -1,5 +1,5 @@
-import type { Router } from "@/lib/trpc/routers";
 import type { TRPCClientErrorLike } from "@trpc/client";
+import type { Router } from "@/lib/trpc/routers";
 
 /**
  * Check if a tRPC error is a WorkOS redirect (307) that should be ignored

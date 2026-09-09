@@ -1,7 +1,7 @@
-import { db } from "@/lib/db";
-import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { db } from "@/lib/db";
+import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 
 const workspaceDetailsInput = z.object({
   namespaceId: z.string(),

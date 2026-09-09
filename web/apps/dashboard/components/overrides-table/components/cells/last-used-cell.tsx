@@ -1,8 +1,8 @@
-import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { Badge, STATUS_STYLES, TimestampInfo } from "@unkey/ui";
 import { IconChartActivity2Outline12 } from "nucleo-ui-outline-12";
 import { useRef, useState } from "react";
+import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
 
 type LastUsedCellProps = {
   namespaceId: string;

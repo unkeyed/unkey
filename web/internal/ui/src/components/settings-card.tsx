@@ -290,7 +290,10 @@ SettingsZone.displayName = "SettingsZone";
 function SettingsDangerZone({
   children,
   className,
-}: { children: React.ReactNode; className?: string }) {
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <SettingsZone variant="danger" title="Danger Zone" className={className}>
       {children}

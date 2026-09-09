@@ -1,7 +1,7 @@
 "use client";
 
 import { Checkbox as CheckboxPrimitive } from "@base-ui/react/checkbox";
-import { type VariantProps, cva } from "class-variance-authority";
+import { cva, type VariantProps } from "class-variance-authority";
 import { IconCheckOutline12, IconMinusOutline12 } from "nucleo-ui-outline-12";
 import { IconCheckOutline18, IconMinusOutline18 } from "nucleo-ui-outline-18";
 import type * as React from "react";

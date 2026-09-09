@@ -1,11 +1,10 @@
 "use client";
 
+import { Button, Card, CardContent, ConfirmPopover, Empty, Loading, toast } from "@unkey/ui";
+import { memo, useMemo, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
-import { Card, CardContent } from "@unkey/ui";
-import { Button, ConfirmPopover, Empty, Loading, toast } from "@unkey/ui";
-import { memo, useMemo, useState } from "react";
 import { RoleSwitcher } from "./role-switcher";
 
 type MembersProps = {

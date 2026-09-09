@@ -1,10 +1,7 @@
 "use client";
 
-import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
-import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
-import { P, match } from "@unkey/match";
+import { match, P } from "@unkey/match";
 import { SettingCardGroup } from "@unkey/ui";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import {
@@ -16,6 +13,9 @@ import {
   IconSparkle3Outline18,
 } from "nucleo-ui-outline-18";
 import { useEffect, useRef, useState } from "react";
+import { routes } from "@/lib/navigation/routes";
+import { trpc } from "@/lib/trpc/client";
+import type { Router } from "@/lib/trpc/routers";
 import { DeploymentDomainsCard } from "../../../../components/deployment-domains-card";
 import { useProjectData } from "../../../data-provider";
 import { useDeployment } from "../layout-provider";

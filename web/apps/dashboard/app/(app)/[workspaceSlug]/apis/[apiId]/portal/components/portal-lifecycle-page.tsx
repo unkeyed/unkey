@@ -1,11 +1,5 @@
 "use client";
 
-import {
-  type PortalState,
-  portalQueryKey,
-  usePortal,
-  useUpdatePortal,
-} from "@/lib/portal/use-portal";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Portal } from "@unkey/api/models/components";
 import { match } from "@unkey/match";
@@ -30,6 +24,12 @@ import {
 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import {
+  type PortalState,
+  portalQueryKey,
+  usePortal,
+  useUpdatePortal,
+} from "@/lib/portal/use-portal";
 import { CreatePortalDialog } from "./create-portal-dialog";
 import { IntegrateDialog } from "./integrate-dialog";
 import { PortalConfig } from "./portal-config";

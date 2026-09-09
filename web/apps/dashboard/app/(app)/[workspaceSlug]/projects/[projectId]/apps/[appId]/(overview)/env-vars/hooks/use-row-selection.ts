@@ -1,8 +1,8 @@
+import { toast } from "@unkey/ui";
+import { useCallback, useRef, useState } from "react";
 import { collection } from "@/lib/collections";
 import type { EnvVar } from "@/lib/collections/deploy/env-vars";
 import { trpc } from "@/lib/trpc/client";
-import { toast } from "@unkey/ui";
-import { useCallback, useRef, useState } from "react";
 import type { DisplayRow } from "../components/list/env-var-item-row";
 
 function getRowIds(row: DisplayRow): string[] {

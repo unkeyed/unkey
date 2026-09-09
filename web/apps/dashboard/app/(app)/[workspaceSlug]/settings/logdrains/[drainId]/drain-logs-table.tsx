@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, Button, Card, CopyButton, Skeleton, TimestampInfo, cn } from "@unkey/ui";
+import { Badge, Button, Card, CopyButton, cn, Skeleton, TimestampInfo } from "@unkey/ui";
 import { IconCircleXmarkOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 import { type Delivery, detailText, isFailure, useDeliveries } from "./use-deliveries";
@@ -94,6 +94,7 @@ function LogRows({
       <tbody className="divide-y divide-gray-4">
         {deliveries.map((delivery, index) => (
           <tr
+            // biome-ignore lint/suspicious/noArrayIndexKey: deliveries carry no id and never reorder
             key={`${delivery.time}-${index}`}
             className="group transition-colors hover:bg-grayA-2"
           >

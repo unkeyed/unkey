@@ -1,25 +1,32 @@
 "use client";
 
-import { collection } from "@/lib/collections";
-import { ociImageReferenceSchema } from "@/lib/collections/deploy/apps";
-import { trpc } from "@/lib/trpc/client";
-import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
 import { match } from "@unkey/match";
 import { FormInput, SettingCardGroup, toast } from "@unkey/ui";
+import {
+  IconCircleHalfDottedClockOutline18,
+  IconGearOutline18,
+  IconLayers2Outline18,
+} from "nucleo-ui-outline-18";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
+import { collection } from "@/lib/collections";
+import { ociImageReferenceSchema } from "@/lib/collections/deploy/apps";
+import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useAppId, useProjectData } from "../data-provider";
+import { CustomDomains } from "./components/advanced-settings/custom-domains";
+import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
+import { UpstreamProtocol } from "./components/advanced-settings/upstream-protocol";
 import { AutoDeploy } from "./components/build-settings/auto-deploy-settings";
 import { BuildCommand } from "./components/build-settings/build-command-settings";
 import { Dockerfile } from "./components/build-settings/dockerfile-settings";
 import { GitHub } from "./components/build-settings/github-settings";
 import { RootDirectory } from "./components/build-settings/root-directory-settings";
 import { WatchPaths } from "./components/build-settings/watch-paths-settings";
-
 import { Command } from "./components/runtime-settings/command";
 import { Cpu } from "./components/runtime-settings/cpu";
 import { Healthcheck } from "./components/runtime-settings/healthcheck";
@@ -28,15 +35,6 @@ import { Memory } from "./components/runtime-settings/memory";
 import { Port } from "./components/runtime-settings/port-settings";
 import { Regions } from "./components/runtime-settings/regions";
 import { Storage } from "./components/runtime-settings/storage";
-
-import {
-  IconCircleHalfDottedClockOutline18,
-  IconGearOutline18,
-  IconLayers2Outline18,
-} from "nucleo-ui-outline-18";
-import { CustomDomains } from "./components/advanced-settings/custom-domains";
-import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
-import { UpstreamProtocol } from "./components/advanced-settings/upstream-protocol";
 import { SettingField } from "./components/shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "./components/shared/form-setting-card";
 import { SettingsGroup } from "./components/shared/settings-group";
@@ -158,7 +156,11 @@ const OCIImage = ({
   projectId,
   appId,
   imageReference,
-}: { projectId: string; appId: string; imageReference: string }) => {
+}: {
+  projectId: string;
+  appId: string;
+  imageReference: string;
+}) => {
   const updateImage = useMutation({
     mutationFn: (image: string) =>
       getUnkeyClient().apps.updateApp({

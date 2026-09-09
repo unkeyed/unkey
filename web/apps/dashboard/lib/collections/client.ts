@@ -1,9 +1,9 @@
 "use client";
 
-import type { Router } from "@/lib/trpc/routers";
 import { QueryClient } from "@tanstack/query-core";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
+import type { Router } from "@/lib/trpc/routers";
 import { getBaseUrl } from "../utils";
 
 export const queryClient = new QueryClient();

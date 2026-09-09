@@ -1,6 +1,6 @@
+import { z } from "zod";
 import { permissionSlugPattern } from "@/app/(app)/[workspaceSlug]/authorization/permissions/components/upsert-permission/upsert-permission.schema";
 import { createConditionalSchema, metadataSchema } from "@/lib/schemas/metadata";
-import { z } from "zod";
 
 // Basic schemas
 export const keyPrefixSchema = z

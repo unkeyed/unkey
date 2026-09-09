@@ -56,5 +56,5 @@ function PopoverContent({
   );
 }
 
-export { Popover, PopoverTrigger, PopoverClose, PopoverContent };
 export type { PopoverContentProps };
+export { Popover, PopoverClose, PopoverContent, PopoverTrigger };

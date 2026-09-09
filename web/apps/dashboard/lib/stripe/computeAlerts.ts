@@ -1,5 +1,5 @@
-import { formatPrice } from "@/lib/fmt";
 import type Stripe from "stripe";
+import { formatPrice } from "@/lib/fmt";
 import type { DeployBillingConfig } from "./deployBilling";
 import { planForPlanFeePriceId } from "./deployBilling";
 import { DEPLOY_PLANS, type DeployPlan, detectDeployPlan } from "./deployPlan";

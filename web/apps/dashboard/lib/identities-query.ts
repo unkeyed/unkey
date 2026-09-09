@@ -1,7 +1,5 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { getUnkeyClient } from "@/lib/unkey-client";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   Identity,
@@ -9,6 +7,8 @@ import type {
   V2IdentitiesUpdateIdentityRequestBody,
 } from "@unkey/api/models/components";
 import { NotFoundErrorResponse } from "@unkey/api/models/errors";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { getUnkeyClient } from "@/lib/unkey-client";
 
 const IDENTITY_PAGE_SIZE = 50;
 

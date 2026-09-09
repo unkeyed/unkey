@@ -12,7 +12,7 @@ import { cn } from "@unkey/ui/src/lib/utils";
 import type { Route } from "next";
 import Link from "next/link";
 import { IconDotsOutline18 } from "nucleo-ui-outline-18";
-import { type FC, type PropsWithChildren, forwardRef, useEffect, useRef, useState } from "react";
+import { type FC, forwardRef, type PropsWithChildren, useEffect, useRef, useState } from "react";
 
 export type ActionComponentProps = {
   isOpen: boolean;
@@ -128,7 +128,7 @@ export const TableActionPopover = ({
           }}
           finalFocus={false}
         >
-          {/* biome-ignore lint/a11y/useKeyWithClickEvents: <explanation> */}
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: wrapper only intercepts pointer events */}
           <div role="menu" onClick={(e) => e.stopPropagation()} className="py-2">
             {items.map((item, index) => {
               const disabled = isItemDisabled(item);

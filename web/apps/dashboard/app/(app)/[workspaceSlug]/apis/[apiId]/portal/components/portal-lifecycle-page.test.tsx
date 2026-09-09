@@ -1,8 +1,8 @@
-import type { PortalState } from "@/lib/portal/use-portal";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { Portal } from "@unkey/api/models/components";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { type Mock, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
+import type { PortalState } from "@/lib/portal/use-portal";
 import { PortalLifecyclePage } from "./portal-lifecycle-page";
 
 const mocks = vi.hoisted(
@@ -28,13 +28,9 @@ vi.mock("@tanstack/react-query", () => ({
 }));
 
 vi.mock("./portal-config", () => ({
-  PortalConfig: ({
-    portal: configPortal,
-    keyAuthId,
-  }: {
-    portal: Portal;
-    keyAuthId: string;
-  }) => <div data-testid="portal-config">{`${configPortal.slug}|${keyAuthId}`}</div>,
+  PortalConfig: ({ portal: configPortal, keyAuthId }: { portal: Portal; keyAuthId: string }) => (
+    <div data-testid="portal-config">{`${configPortal.slug}|${keyAuthId}`}</div>
+  ),
 }));
 
 vi.mock("./integrate-dialog", () => ({

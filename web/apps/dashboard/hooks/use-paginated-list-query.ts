@@ -1,10 +1,10 @@
-import {
-  type SortUrlValue,
-  parseAsSortArray,
-} from "@/components/logs/validation/utils/nuqs-parsers";
 import type { SortingState } from "@tanstack/react-table";
 import { parseAsInteger, useQueryState } from "nuqs";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  parseAsSortArray,
+  type SortUrlValue,
+} from "@/components/logs/validation/utils/nuqs-parsers";
 
 const PREFETCH_PAGES_AHEAD = 2;
 
@@ -393,7 +393,7 @@ export function usePaginatedListQuery<
   // methods as valid columns when a crafted URL references them.
   const validSortParams = useMemo<SortUrlValue<TSortField>[]>(() => {
     const firstValid = effectiveSortParams.find((s) =>
-      Object.prototype.hasOwnProperty.call(sortFieldToColumnId, s.column),
+      Object.hasOwn(sortFieldToColumnId, s.column),
     );
     return firstValid ? [firstValid] : defaultSortParams;
   }, [effectiveSortParams, sortFieldToColumnId, defaultSortParams]);
@@ -412,9 +412,7 @@ export function usePaginatedListQuery<
   const onSortingChange = useCallback(
     (updater: SortingState | ((old: SortingState) => SortingState)) => {
       const next = typeof updater === "function" ? updater(sorting) : updater;
-      const firstValid = next.find((s) =>
-        Object.prototype.hasOwnProperty.call(columnIdToSortField, s.id),
-      );
+      const firstValid = next.find((s) => Object.hasOwn(columnIdToSortField, s.id));
       if (firstValid) {
         setSortParams([
           {
@@ -448,7 +446,7 @@ export function usePaginatedListQuery<
         continue;
       }
       const fieldConfig = filterFieldConfig[filter.field];
-      if (!fieldConfig || !fieldConfig.operators.includes(filter.operator)) {
+      if (!fieldConfig?.operators.includes(filter.operator)) {
         continue;
       }
       if (typeof filter.value === "string") {

@@ -1,10 +1,10 @@
+import { TRPCError } from "@trpc/server";
+import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
+import { z } from "zod";
 import { keyDetailsLogsPayload } from "@/components/key-details-logs-table/schema/query-logs.schema";
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { TRPCError } from "@trpc/server";
-import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
-import { z } from "zod";
 import { transformKeyDetailsFilters } from "./utils";
 
 const keyDetailsLogsResponse = z.object({

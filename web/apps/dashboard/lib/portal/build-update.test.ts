@@ -1,9 +1,9 @@
 import type { Portal } from "@unkey/api/models/components";
 import { describe, expect, it } from "vitest";
 import {
+  buildPortalUpdate,
   type PortalDirtyFields,
   type PortalFormValues,
-  buildPortalUpdate,
   portalFormValues,
 } from "./build-update";
 

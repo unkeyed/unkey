@@ -1,7 +1,7 @@
 "use client";
 
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { CopyWorkspaceId } from "./copy-workspace-id";
 import { GithubConnection } from "./github-connection";
 import { UpdateWorkspaceName } from "./update-workspace-name";

@@ -1,11 +1,11 @@
-import type { ActionComponentProps } from "@/components/logs/table-action.popover";
-import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, ConfirmPopover, DialogContainer, FormCheckbox } from "@unkey/ui";
 import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
 import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
+import type { ActionComponentProps } from "@/components/logs/table-action.popover";
+import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
 import { useDeletePermission } from "./hooks/use-delete-permission";
 import { PermissionInfo } from "./permission-info";
 

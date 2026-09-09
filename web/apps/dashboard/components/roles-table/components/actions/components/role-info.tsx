@@ -1,6 +1,6 @@
-import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { InfoTooltip } from "@unkey/ui";
 import { IconKey2Outline12 } from "nucleo-ui-outline-12";
+import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 
 export const RoleInfo = ({ roleDetails }: { roleDetails: RoleBasic }) => {
   return (

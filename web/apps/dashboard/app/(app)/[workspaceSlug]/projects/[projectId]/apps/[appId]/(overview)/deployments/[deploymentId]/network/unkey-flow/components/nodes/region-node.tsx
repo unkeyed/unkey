@@ -1,6 +1,6 @@
+import { InfoTooltip } from "@unkey/ui";
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
 import { trpc } from "@/lib/trpc/client";
-import { InfoTooltip } from "@unkey/ui";
 import { CardFooter } from "./components/card-footer";
 import { CardHeader } from "./components/card-header";
 import { NodeWrapper } from "./node-wrapper/node-wrapper";

@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import type React from "react";
+import { cn } from "@/lib/utils";
 
 export function OnboardingCard({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("border border-gray-5 rounded-lg w-full p-8", className)} {...props} />;

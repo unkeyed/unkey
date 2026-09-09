@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 // Adds bottom spacing to prevent the table from extending to the edge of the viewport
 const BREATHING_SPACE = 20;
 export const useTableHeight = (containerRef: React.RefObject<HTMLDivElement>) => {

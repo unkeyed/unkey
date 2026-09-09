@@ -1,4 +1,7 @@
 "use client";
+import { Button, DataTable, Empty, getSelectableRowClassName, PaginationFooter } from "@unkey/ui";
+import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
+import { useCallback, useMemo, useState } from "react";
 import {
   createRolesColumns,
   renderRolesSkeletonRow,
@@ -7,9 +10,6 @@ import {
 import { EditRole } from "@/components/roles-table/components/actions/components/edit-role";
 import { SelectionControls } from "@/components/roles-table/components/selection-controls";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
-import { Button, DataTable, Empty, PaginationFooter, getSelectableRowClassName } from "@unkey/ui";
-import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
-import { useCallback, useMemo, useState } from "react";
 
 export const RolesList = () => {
   const {

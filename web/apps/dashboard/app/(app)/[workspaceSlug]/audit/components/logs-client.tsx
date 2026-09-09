@@ -1,7 +1,7 @@
 "use client";
 
-import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import { useCallback, useState } from "react";
+import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
 import { AuditLogsControlCloud } from "./control-cloud";
 import { AuditLogsControls } from "./controls";
 import { AuditLogDetails } from "./table/log-details";

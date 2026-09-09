@@ -1,15 +1,15 @@
 "use client";
+import { DataTable, type DataTableRef, PaginationFooter } from "@unkey/ui";
+import { useEffect, useMemo, useRef } from "react";
 import {
-  EmptyAuditLogs,
   createAuditLogColumns,
+  EmptyAuditLogs,
   getAuditRowClassName,
   getAuditSelectedClassName,
   renderAuditLogSkeletonRow,
   useAuditLogsQuery,
 } from "@/components/audit-logs-table";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
-import { DataTable, type DataTableRef, PaginationFooter } from "@unkey/ui";
-import { useEffect, useMemo, useRef } from "react";
 
 type Props = {
   selectedLog: AuditLog | null;

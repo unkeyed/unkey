@@ -1,8 +1,5 @@
 "use client";
 
-import { type OrganizationRole, isOrganizationRole, organizationRoleLabel } from "@/lib/auth/roles";
-import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
-import { trpc } from "@/lib/trpc/client";
 import {
   Loading,
   Select,
@@ -14,6 +11,9 @@ import {
   toast,
 } from "@unkey/ui";
 import { memo, useState } from "react";
+import { isOrganizationRole, type OrganizationRole, organizationRoleLabel } from "@/lib/auth/roles";
+import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
+import { trpc } from "@/lib/trpc/client";
 
 type RoleSwitcherProps = {
   member: { id: string; role: string; userId: string };

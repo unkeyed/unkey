@@ -70,7 +70,7 @@ class MatchBuilder<TInput, TOutput, TRemaining, TConstraint = never> {
 
     const handler = args[args.length - 1] as (value: unknown) => unknown;
     const patterns: unknown[] = [args[0]];
-    let predicate: ((value: unknown) => unknown) | undefined = undefined;
+    let predicate: ((value: unknown) => unknown) | undefined;
 
     if (args.length === 3 && typeof args[1] === "function") {
       predicate = args[1] as (value: unknown) => unknown;

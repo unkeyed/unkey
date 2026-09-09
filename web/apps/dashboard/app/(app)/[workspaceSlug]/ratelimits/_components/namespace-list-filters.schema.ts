@@ -1,7 +1,7 @@
-import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs-parsers";
-import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
 import type { FilterValue, StringConfig } from "@unkey/ui/src/validation/filter.types";
 import { z } from "zod";
+import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs-parsers";
+import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
 
 export const commonStringOperators = ["contains"] as const;
 export const namespaceFilterOperatorEnum = z.enum(commonStringOperators);

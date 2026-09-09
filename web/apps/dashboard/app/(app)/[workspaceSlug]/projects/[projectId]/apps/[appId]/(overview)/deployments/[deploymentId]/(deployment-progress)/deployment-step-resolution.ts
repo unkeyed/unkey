@@ -1,4 +1,4 @@
-import { P, match } from "@unkey/match";
+import { match, P } from "@unkey/match";
 
 type StepData = {
   startedAt: number;

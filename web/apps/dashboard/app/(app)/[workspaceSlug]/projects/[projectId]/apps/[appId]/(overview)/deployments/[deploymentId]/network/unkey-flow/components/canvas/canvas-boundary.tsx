@@ -1,10 +1,10 @@
-import { ErrorBoundary } from "@/components/error-boundary";
 import { Button } from "@unkey/ui";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconTriangleWarningOutline18,
 } from "nucleo-ui-outline-18";
 import type { PropsWithChildren } from "react";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { TreeElementNode } from "../tree/tree-element-node";
 
 export const CanvasBoundary = ({ children }: PropsWithChildren) => {

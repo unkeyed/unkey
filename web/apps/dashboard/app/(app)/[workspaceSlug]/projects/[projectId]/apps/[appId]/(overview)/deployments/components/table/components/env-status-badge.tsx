@@ -1,6 +1,6 @@
-import { TagBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/tag-badge";
 import { InfoTooltip } from "@unkey/ui";
 import type { HTMLAttributes, ReactNode } from "react";
+import { TagBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/tag-badge";
 
 const tooltipContent = {
   enabled: "This environment is enabled and ready to receive deployments.",

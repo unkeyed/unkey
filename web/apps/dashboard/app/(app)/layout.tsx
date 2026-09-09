@@ -1,19 +1,18 @@
 "use client";
 
+import { Empty } from "@unkey/ui";
+import type { Route } from "next";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { LoadingState } from "@/components/loading-state";
 import { ComputePausedBanner } from "@/components/navigation/compute-paused-banner";
 import { SIDEBAR_WIDTH_VARS, SidebarV2 } from "@/components/navigation/sidebar-v2";
 import { MobileNavDrawer } from "@/components/navigation/sidebar-v2/mobile-nav-drawer";
 import { TopNav } from "@/components/navigation/top-nav";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import type { Route } from "next";
-
-import { LoadingState } from "@/components/loading-state";
 import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Empty } from "@unkey/ui";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { QueryTimeProvider } from "../../providers/query-time-provider";
 
 interface LayoutProps {

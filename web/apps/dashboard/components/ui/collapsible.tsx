@@ -8,4 +8,4 @@ const CollapsibleTrigger = CollapsiblePrimitive.Trigger;
 
 const CollapsibleContent = CollapsiblePrimitive.Panel;
 
-export { Collapsible, CollapsibleTrigger, CollapsibleContent };
+export { Collapsible, CollapsibleContent, CollapsibleTrigger };

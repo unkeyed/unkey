@@ -6,11 +6,14 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "a11y": {
         "noSvgWithoutTitle": "off",
         "useSemanticElements": "warn",
-        "useFocusableInteractive": "warn"
+        "useFocusableInteractive": "warn",
+        "noStaticElementInteractions": "off",
+        "useAriaPropsSupportedByRole": "off",
+        "noAmbiguousAnchorText": "off"
       },
       "correctness": {
         "noUnusedVariables": "error",
@@ -35,12 +38,11 @@
         "useTemplate": "error",
         "noYodaExpression": "error",
         "noUnusedTemplateLiteral": "error",
-        "noNegationElse": "error",
+        "noNegationElse": "off",
         "useSelfClosingElements": "error",
         "useShorthandAssign": "error",
         "noParameterAssign": "error",
         "useNumberNamespace": "error",
-        "noVar": "error",
         "useSingleVarDeclarator": "error",
         "noDefaultExport": "error",
         "useExportType": "error",
@@ -56,8 +58,34 @@
         "useIsArray": "error",
         "noFallthroughSwitchClause": "error",
         "noExplicitAny": "error",
-        "noConsoleLog": "warn",
-        "recommended": true
+        "useIterableCallbackReturn": "off",
+        "preset": "recommended",
+        "noVar": "error",
+        "noConsole": {
+          "level": "warn",
+          "options": {
+            "allow": [
+              "assert",
+              "clear",
+              "count",
+              "countReset",
+              "debug",
+              "dir",
+              "dirxml",
+              "error",
+              "group",
+              "groupCollapsed",
+              "groupEnd",
+              "info",
+              "table",
+              "time",
+              "timeEnd",
+              "timeLog",
+              "trace",
+              "warn"
+            ]
+          }
+        }
       },
       "complexity": {
         "noForEach": "off",
@@ -69,26 +97,27 @@
         "useDateNow": "error"
       }
     },
-    "ignore": [
-      ".vitest",
-      "node_modules",
-      ".next",
-      "dist",
-      ".nuxt",
-      "./apps/docs/docs.json",
-      "./internal/api/",
-      "./internal/auth-migrator/",
-      "./apps/dashboard/gen/proto/**/*.ts",
-      "**/routeTree.gen.ts",
-      ".wrangler",
-      ".react-email",
-      ".content-collections",
-      ".source",
-      ".trigger",
-      "**/*.css",
-      "**/*.astro",
-      "**/.blume/**",
-      "**/.blume-verify/**"
+    "includes": [
+      "**",
+      "!**/.vitest",
+      "!**/node_modules",
+      "!**/.next",
+      "!**/dist",
+      "!**/.nuxt",
+      "!apps/docs/docs.json",
+      "!internal/api/**",
+      "!internal/auth-migrator/**",
+      "!apps/dashboard/gen/proto/**/*.ts",
+      "!**/routeTree.gen.ts",
+      "!**/.wrangler",
+      "!**/.react-email",
+      "!**/.content-collections",
+      "!**/.source",
+      "!**/.trigger",
+      "!**/*.css",
+      "!**/*.astro",
+      "!**/.blume/**",
+      "!**/.blume-verify/**"
     ]
   },
   "formatter": {
@@ -96,68 +125,71 @@
     "indentWidth": 2,
     "enabled": true,
     "lineWidth": 100,
-    "ignore": [
-      "node_modules",
-      ".next",
-      "dist",
-      ".nuxt",
-      ".wrangler",
-      ".react-email",
-      ".content-collections",
-      ".source",
-      ".trigger",
-      "./internal/api/",
-      "./internal/auth-migrator",
-      "./internal/proto/generated/**/*.ts",
-      "./apps/dashboard/gen/proto/**/*.ts",
-      "./apps/docs/docs.json",
-      "**/routeTree.gen.ts",
-      "**/*.css",
-      "**/*.astro",
-      "**/.blume/**",
-      "**/.blume-verify/**"
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/.next",
+      "!**/dist",
+      "!**/.nuxt",
+      "!**/.wrangler",
+      "!**/.react-email",
+      "!**/.content-collections",
+      "!**/.source",
+      "!**/.trigger",
+      "!internal/api/**",
+      "!internal/auth-migrator/**",
+      "!internal/proto/generated/**/*.ts",
+      "!apps/dashboard/gen/proto/**/*.ts",
+      "!apps/docs/docs.json",
+      "!**/routeTree.gen.ts",
+      "!**/*.css",
+      "!**/*.astro",
+      "!**/.blume/**",
+      "!**/.blume-verify/**"
     ]
   },
-  "organizeImports": {
-    "enabled": true,
-    "ignore": [
-      "node_modules",
-      ".next",
-      "dist",
-      ".nuxt",
-      ".wrangler",
-      ".react-email",
-      ".content-collections",
-      "./internal/api/",
-      "./internal/auth-migrator",
-      "./internal/proto/generated/**/*.ts",
-      "./apps/dashboard/gen/proto/**/*.ts",
-      "./apps/docs/docs.json",
-      "**/routeTree.gen.ts",
-      "**/*.astro",
-      "**/.blume/**",
-      "**/.blume-verify/**"
+  "assist": {
+    "actions": { "source": { "organizeImports": "on" } },
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/.next",
+      "!**/dist",
+      "!**/.nuxt",
+      "!**/.wrangler",
+      "!**/.react-email",
+      "!**/.content-collections",
+      "!internal/api/**",
+      "!internal/auth-migrator/**",
+      "!internal/proto/generated/**/*.ts",
+      "!apps/dashboard/gen/proto/**/*.ts",
+      "!apps/docs/docs.json",
+      "!**/routeTree.gen.ts",
+      "!**/*.astro",
+      "!**/.blume/**",
+      "!**/.blume-verify/**"
     ]
   },
   "css": {
     "parser": {
-      "cssModules": true
+      "cssModules": true,
+      "tailwindDirectives": true
     }
   },
   "overrides": [
     {
-      "include": ["cmd/**"],
+      "includes": ["**/cmd/**"],
       "linter": {
         "rules": {
           "suspicious": {
-            "noConsoleLog": "off",
-            "noExplicitAny": "off"
+            "noExplicitAny": "off",
+            "noConsole": "off"
           }
         }
       }
     },
     {
-      "include": [
+      "includes": [
         "**/*.test.*",
         "**/*.spec.*",
         "**/__tests__/**",
@@ -169,8 +201,8 @@
       "linter": {
         "rules": {
           "suspicious": {
-            "noConsoleLog": "off",
-            "noExplicitAny": "off"
+            "noExplicitAny": "off",
+            "noConsole": "off"
           },
           "style": {
             "noNonNullAssertion": "off"
@@ -179,7 +211,7 @@
       }
     },
     {
-      "include": [
+      "includes": [
         "**/page.tsx",
         "**/layout.tsx",
         "**/loading.tsx",
@@ -197,7 +229,7 @@
       }
     },
     {
-      "include": ["./apps/design/examples/**", "./apps/design/docs/**/meta.ts"],
+      "includes": ["apps/design/examples/**", "apps/design/docs/**/meta.ts"],
       "linter": {
         "rules": {
           "style": {
@@ -207,7 +239,7 @@
       }
     },
     {
-      "include": ["./apps/portal/**", "./apps/design/**"],
+      "includes": ["apps/portal/**", "apps/design/**"],
       "linter": {
         "rules": {
           "nursery": {

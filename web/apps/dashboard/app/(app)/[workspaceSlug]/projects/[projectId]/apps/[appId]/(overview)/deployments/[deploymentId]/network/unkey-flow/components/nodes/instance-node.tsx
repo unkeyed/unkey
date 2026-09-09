@@ -1,6 +1,6 @@
+import { IconLayers3Outline18 } from "nucleo-ui-outline-18";
 import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
 import { trpc } from "@/lib/trpc/client";
-import { IconLayers3Outline18 } from "nucleo-ui-outline-18";
 import { CardFooter } from "./components/card-footer";
 import { CardHeader } from "./components/card-header";
 import { NodeWrapper } from "./node-wrapper/node-wrapper";

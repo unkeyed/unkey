@@ -2,9 +2,16 @@
 
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
-import { type VariantProps, cva } from "class-variance-authority";
+import {
+  Separator,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+  useIsMobile,
+} from "@unkey/ui";
+import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
-
 import {
   Sheet,
   SheetContent,
@@ -13,9 +20,6 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@unkey/ui";
-import { Separator } from "@unkey/ui";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;

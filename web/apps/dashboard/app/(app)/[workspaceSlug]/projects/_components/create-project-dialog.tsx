@@ -1,13 +1,5 @@
 "use client";
 
-import { collection } from "@/lib/collections";
-import {
-  type CreateProjectRequestSchema,
-  createProjectRequestSchema,
-} from "@/lib/collections/deploy/projects";
-import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
-import { routes } from "@/lib/navigation/routes";
-import { slugify } from "@/lib/slugify";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { DuplicateKeyError } from "@tanstack/react-db";
 import { Button, FormInput } from "@unkey/ui";
@@ -16,6 +8,14 @@ import { useRouter } from "next/navigation";
 import type React from "react";
 import { useTransition } from "react";
 import { useForm } from "react-hook-form";
+import { collection } from "@/lib/collections";
+import {
+  type CreateProjectRequestSchema,
+  createProjectRequestSchema,
+} from "@/lib/collections/deploy/projects";
+import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
+import { routes } from "@/lib/navigation/routes";
+import { slugify } from "@/lib/slugify";
 
 const DynamicDialogContainer = dynamic(
   () =>

@@ -1,6 +1,6 @@
 import type { UnkeyPermission } from "@unkey/rbac";
 import { useCallback, useMemo } from "react";
-import { type PermissionScope, getScopedPermissions } from "../permissions";
+import { getScopedPermissions, type PermissionScope } from "../permissions";
 import {
   computeCheckedStates,
   filterPermissionList,

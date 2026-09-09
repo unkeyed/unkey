@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Fragment, type ReactNode, useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
 import type { Column } from "../virtual-table/types";
 
 const ROW_HEIGHT_PX = 26;

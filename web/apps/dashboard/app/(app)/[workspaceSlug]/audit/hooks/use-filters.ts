@@ -1,9 +1,9 @@
+import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
+import { useCallback, useMemo } from "react";
 import {
   parseAsFilterValueArray,
   parseAsRelativeTime,
 } from "@/components/logs/validation/utils/nuqs-parsers";
-import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
-import { useCallback, useMemo } from "react";
 import type {
   AuditLogsFilterField,
   AuditLogsFilterOperator,

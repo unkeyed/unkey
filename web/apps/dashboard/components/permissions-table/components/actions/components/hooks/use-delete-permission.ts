@@ -1,11 +1,8 @@
-import { trpc } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
+import { trpc } from "@/lib/trpc/client";
 
 export const useDeletePermission = (
-  onSuccess: (data: {
-    permissionIds: string[] | string;
-    message: string;
-  }) => void,
+  onSuccess: (data: { permissionIds: string[] | string; message: string }) => void,
 ) => {
   const trpcUtils = trpc.useUtils();
   const deletePermission = trpc.authorization.permissions.delete.useMutation({
