@@ -147,7 +147,6 @@ func mappingsInOneProject(
 		ProjectID:        project.ID,
 		Name:             slug,
 		Slug:             slug,
-		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
 	api := h.CreateApi(seed.CreateApiRequest{

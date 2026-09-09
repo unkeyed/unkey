@@ -186,12 +186,11 @@ func TestCreatePortalAuthorizesAppMappingUnderItsProject(t *testing.T) {
 		Slug:        "portal-app",
 	})
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "portal-app",
-		Slug:          "portal-app",
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "portal-app",
+		Slug:        "portal-app",
 	})
 	mapping := portal.Mapping{Type: portal.MappingTypeApp, ID: app.ID}
 
