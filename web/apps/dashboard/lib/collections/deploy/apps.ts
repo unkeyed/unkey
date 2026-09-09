@@ -102,6 +102,7 @@ export const apps = createCollection<App, string>(
         project: createInput.projectId,
         name: createInput.name,
         slug: createInput.slug,
+        git: {},
       });
 
       toast.promise(mutation, {
