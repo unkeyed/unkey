@@ -82,19 +82,19 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			)
 		}, restate.WithName("list commit files"))
 		if filesErr != nil {
-			logger.Error(
-				"failed to list commit files, proceeding with empty changed files",
-				"commit_sha", req.GetAfter(),
-				"error", filesErr,
-			)
-		} else {
-			logger.Info(
-				"fetched commit files",
-				"commit_sha", req.GetAfter(),
-				"changed_files", files,
-			)
-			changedFiles = files
+			// GitHub never told us which files changed. Carrying on with an empty
+			// list makes every watch path look like a miss, so the push would be
+			// recorded as "Watch paths did not match any changed files", blaming the
+			// user's build settings for a failure of ours.
+			return nil, filesErr
 		}
+
+		logger.Info(
+			"fetched commit files",
+			"commit_sha", req.GetAfter(),
+			"changed_files", files,
+		)
+		changedFiles = files
 	}
 
 	// Ids are minted inside restate.Run so a replay reuses the same ones.

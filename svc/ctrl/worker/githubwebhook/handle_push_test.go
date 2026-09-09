@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -79,6 +80,44 @@ func TestHandlePushSkipsWhenNotDeployable(t *testing.T) {
 		row := h.awaitDeployment(t, ctx, app.id, hasStatus(mysqltype.DeploymentsStatusSkipped))
 		require.Equal(t, app.productionEnvID, row.environmentID)
 		require.Equal(t, "Watch paths did not match any changed files.", row.triggerReason.String)
+	})
+
+	// The lookup carries no retry limit, so Restate keeps retrying a GitHub 5xx
+	// or rate limit rather than handing the handler an error. This is what makes
+	// the skip below unreachable in practice, and why a push survives a GitHub
+	// wobble instead of being recorded as skipped.
+	t.Run("a transient github failure is retried, not skipped", func(t *testing.T) {
+		target := h.newTarget(t, ctx)
+		app := h.newApp(t, ctx, target, appOptions{watchPaths: []string{fixtureMatchingWatchPath}})
+
+		h.github.setCommitFiles([]string{fixtureMatchingFile})
+		before := h.github.commitFilesCallCount()
+		h.github.failCommitFilesTimes(2)
+
+		h.push(t, ctx, target.newPush(fixtureDefaultBranch, nil))
+
+		h.awaitDeployment(t, ctx, app.id, hasStatus(mysqltype.DeploymentsStatusPending))
+		require.Greater(t, h.github.commitFilesCallCount()-before, 1,
+			"the lookup has to be retried, not answered with an empty file list")
+	})
+
+	// Without a file list every watch path misses, so proceeding would record
+	// the push as deliberately skipped over a failure of ours. The handler has
+	// to fail instead and leave no row behind.
+	t.Run("changed files could not be fetched", func(t *testing.T) {
+		target := h.newTarget(t, ctx)
+		app := h.newApp(t, ctx, target, appOptions{watchPaths: []string{fixtureOtherWatchPath}})
+
+		h.github.setCommitFilesErr(restate.TerminalError(errors.New("KEBAP")))
+		t.Cleanup(func() { h.github.setCommitFilesErr(nil) })
+
+		key := fmt.Sprintf("%d:%d", target.installationID, target.repositoryID)
+		_, err := hydrav1.NewGitHubWebhookServiceIngressClient(h.ingress.IngressClient, key).
+			HandlePush().
+			Request(ctx, target.newPush(fixtureDefaultBranch, nil))
+		require.Error(t, err, "a push whose files cannot be read must not be answered with a skip")
+
+		h.requireNoDeployment(t, ctx, app.id)
 	})
 
 	t.Run("watch path is not a valid glob", func(t *testing.T) {
@@ -634,9 +673,12 @@ func (s *deployStub) Deploy(_ restate.ObjectContext, _ *hydrav1.DeployRequest) (
 // fails loudly instead of passing silently.
 type fakeGitHub struct {
 	*githubclient.Noop
-	mu          sync.Mutex
-	commitFiles []string
-	statuses    []commitStatus
+	mu                  sync.Mutex
+	commitFiles         []string
+	commitFilesErr      error
+	commitFilesFailures int
+	commitFilesCalls    int
+	statuses            []commitStatus
 }
 
 type commitStatus struct {
@@ -655,10 +697,37 @@ func (f *fakeGitHub) setCommitFiles(files []string) {
 	f.commitFiles = files
 }
 
+// setCommitFilesErr makes the lookup fail terminally. A retryable failure would
+// be retried by Restate forever and hang the test instead of failing it.
+func (f *fakeGitHub) setCommitFilesErr(err error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.commitFilesErr = err
+}
+
+// failCommitFilesTimes makes the next n lookups fail retryably, the way a
+// GitHub 5xx or rate limit arrives.
+func (f *fakeGitHub) failCommitFilesTimes(n int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.commitFilesFailures = n
+}
+
+func (f *fakeGitHub) commitFilesCallCount() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.commitFilesCalls
+}
+
 func (f *fakeGitHub) ListCommitFiles(_ int64, _ string, _ string) ([]string, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return f.commitFiles, nil
+	f.commitFilesCalls++
+	if f.commitFilesFailures > 0 {
+		f.commitFilesFailures--
+		return nil, errors.New("KEBAP is temporarily unavailable")
+	}
+	return f.commitFiles, f.commitFilesErr
 }
 
 func (f *fakeGitHub) CreateCommitStatus(_ int64, repo, sha, state, _ string, description, context string) error {
