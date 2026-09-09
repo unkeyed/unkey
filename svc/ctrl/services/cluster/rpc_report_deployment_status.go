@@ -290,8 +290,8 @@ func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.D
 		return
 	}
 
-	// Both services until DeployService is deleted: a Deploy that started on
-	// it waits on its own awakeable
+	// A Deploy that started on DeployService before the DeployWorkflow rollout
+	// is still waiting on that service, so both are notified until it is deleted
 	req := &hydrav1.NotifyInstancesReadyRequest{DeploymentId: deployment.ID}
 	_, workflowErr := hydrav1.NewDeployWorkflowIngressClient(s.restate, deployment.ID).NotifyInstancesReady().Send(ctx, req)
 	_, objectErr := hydrav1.NewDeployServiceIngressClient(s.restate, deployment.ID).NotifyInstancesReady().Send(ctx, req)

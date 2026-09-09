@@ -10,11 +10,12 @@
 // and configures domain routing, all durably, so a crash at any point resumes
 // from the last completed step rather than restarting from scratch.
 //
-// # Virtual Object Keying
+// # Keying
 //
-// DeployService is a Restate virtual object keyed by deployment_id. Each
-// deployment runs as its own isolated workflow, so multiple deployments per
-// environment can build in parallel. The contended resource
+// DeployWorkflow is a Restate workflow keyed by deployment_id. Each deployment
+// is one workflow run, so multiple deployments per environment can build in
+// parallel. DeployService, the virtual object it replaces, serves the same
+// handlers until every Deploy that started on it has finished. The contended resource
 // (apps.current_deployment_id) is serialized inside RoutingService via
 // SwapLiveDeployment, which is keyed by env_id. Promotion and rollback, which
 // read that pointer before they swap it, live on the env-keyed
