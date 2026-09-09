@@ -238,7 +238,7 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 	switch {
 	case err == nil:
 		if deployment.GitBranch.String == "" && deployment.GitCommitSha.String == "" {
-			if deployment.Image.String == "" {
+			if deployment.ImageResolved.String == "" {
 				return nil, "", fault.New(
 					"deployment not redeployable",
 					fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
@@ -246,7 +246,7 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 					fault.Public("This deployment cannot be redeployed because it never produced an image."),
 				)
 			}
-			return nil, deployment.Image.String, nil
+			return nil, deployment.ImageResolved.String, nil
 		}
 		return &ctrlv1.GitCommitInfo{
 			CommitSha:       deployment.GitCommitSha.String,
@@ -258,7 +258,7 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 			ForkRepository:  deployment.ForkRepositoryFullName.String,
 		}, "", nil
 	case db.IsNotFound(err):
-		return nil, deployment.Image.String, nil
+		return nil, deployment.ImageResolved.String, nil
 	default:
 		return nil, "", fault.Wrap(err, fault.Internal("failed to check repo connection"))
 	}

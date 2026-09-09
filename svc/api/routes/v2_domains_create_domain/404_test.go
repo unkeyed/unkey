@@ -25,12 +25,11 @@ func TestCreateDomainNotFound(t *testing.T) {
 	// A second app under the same project, so the "environment belongs to another
 	// app" case exercises a real environment reached through the wrong parent.
 	otherApp := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   env.workspaceID,
-		ProjectID:     env.projectID,
-		Name:          "Billing API",
-		Slug:          randomSlug(),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: env.workspaceID,
+		ProjectID:   env.projectID,
+		Name:        "Billing API",
+		Slug:        randomSlug(),
 	})
 
 	// A whole chain in another workspace, unreachable with this root key.
@@ -42,12 +41,11 @@ func TestCreateDomainNotFound(t *testing.T) {
 		Slug:        randomSlug(),
 	})
 	otherWorkspaceApp := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   otherWorkspace.ID,
-		ProjectID:     otherProject.ID,
-		Name:          "Other Workspace App",
-		Slug:          randomSlug(),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: otherWorkspace.ID,
+		ProjectID:   otherProject.ID,
+		Name:        "Other Workspace App",
+		Slug:        randomSlug(),
 	})
 	otherWorkspaceEnv := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),

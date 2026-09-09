@@ -42,12 +42,11 @@ func TestUpdateAppDuplicateSlug(t *testing.T) {
 		t.Helper()
 		slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 		app := h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   workspace.ID,
-			ProjectID:     project.ID,
-			Name:          "App",
-			Slug:          slug,
-			DefaultBranch: "main",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: workspace.ID,
+			ProjectID:   project.ID,
+			Name:        "App",
+			Slug:        slug,
 		})
 		return app.ID, slug
 	}
