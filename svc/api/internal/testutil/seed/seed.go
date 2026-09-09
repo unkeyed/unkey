@@ -952,9 +952,8 @@ func (s *Seeder) CreatePortal(ctx context.Context, req CreatePortalRequest) db.P
 	}
 	now := time.Now().UnixMilli()
 
-	// A portal is addressed as projects/{project_id}/portals/{portal_id}, so a row
-	// with no project cannot be authorized at all. Enforced here because every
-	// seeding path funnels through this literal.
+	// A portal with no project cannot be authorized at all, and every seeding
+	// path funnels through this literal.
 	require.NotEmpty(s.t, req.ProjectID, "a seeded portal needs the project of the resource it maps to")
 
 	displayName := req.DisplayName

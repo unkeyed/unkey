@@ -255,19 +255,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			after.Enabled = *req.Enabled
 		}
 
-		// The association flags are set together or neither is. Setting one alone is
-		// the write that could produce a row with both associations, which the
-		// application is solely responsible for preventing. `project_id` rides with
-		// them for the same reason: a row whose project disagrees with its mapping
-		// would be authorized under a project it does not belong to.
+		// The association flags are set together or not at all, since setting one
+		// alone is the write that could leave a row with both associations, which
+		// only the application prevents. `project_id` rides with them: a row whose
+		// project disagreed with its mapping would be authorized under a project
+		// it does not belong to.
 		mappingChanged := false
 		if repoint {
 			params.AppID = mappingAppID
 			params.AppIDSpecified = 1
 			params.KeyAuthID = mappingKeyAuthID
 			params.KeyAuthIDSpecified = 1
-			// Written from the same resolve the associations came from, so the row's
-			// project can only ever be the project of the resource it names.
 			params.ProjectID = mappingProjectID
 			params.ProjectIDSpecified = 1
 			after.AppID = mappingAppID

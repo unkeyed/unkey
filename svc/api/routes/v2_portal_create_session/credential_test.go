@@ -22,11 +22,8 @@ import (
 )
 
 // dashboardAdminPrincipal is the principal a WorkOS admin's dashboard token
-// produces: a JWT credential whose only grant is the workspace-wide admin URN.
-//
-// That grant satisfies the portal session URN stage 1 evaluates, so nothing in
-// the permission vocabulary keeps this principal from minting. The credential
-// check is what does.
+// produces. Its workspace-wide admin URN satisfies the portal session URN stage
+// 1 evaluates, so only the credential check keeps it from minting.
 func dashboardAdminPrincipal(workspaceID string) *authprincipal.Principal {
 	return &authprincipal.Principal{
 		Version: authprincipal.Version,
@@ -43,11 +40,8 @@ func dashboardAdminPrincipal(workspaceID string) *authprincipal.Principal {
 }
 
 // withPrincipal authenticates every request on the stack as the given principal.
-//
-// The harness's protected stack resolves bearer root keys only, mirroring
-// production's root-key resolver, so a dashboard JWT principal cannot be
-// produced by sending a header. Injecting it is the only way to exercise the
-// credential type this route has to refuse.
+// The harness's protected stack resolves bearer root keys only, so injecting the
+// principal is the only way to exercise the credential types this route refuses.
 func withPrincipal(p *authprincipal.Principal) zen.Middleware {
 	return func(next zen.HandleFunc) zen.HandleFunc {
 		return func(ctx context.Context, s *zen.Session) error {
@@ -66,7 +60,7 @@ func principalMiddleware(h *testutil.Harness, p *authprincipal.Principal) []zen.
 
 // jwtHeaders carry a bearer token the injected principal stands in for. The
 // spec's security requirement is validated before any handler runs, so the
-// header has to be present even though nothing resolves it here.
+// header must be present even though nothing resolves it.
 func jwtHeaders() http.Header {
 	return http.Header{
 		"Content-Type":  {"application/json"},
@@ -74,13 +68,10 @@ func jwtHeaders() http.Header {
 	}
 }
 
-// TestCreateSessionRefusesDashboardTokens pins the control that replaced an
-// accident. Before stage 1 evaluated URNs, a dashboard token was refused only
-// because the two permission vocabularies did not meet; the admin grant covers
-// the session URN, so from here on the credential type is the whole defence.
-//
-// A dashboard admin who could mint would receive a URL that authenticates as an
-// arbitrary end user, which is impersonation rather than administration.
+// TestCreateSessionRefusesDashboardTokens guarantees the credential type is the
+// whole defence now that the admin grant covers the session URN. A dashboard
+// admin who could mint would receive a URL authenticating as an arbitrary end
+// user.
 func TestCreateSessionRefusesDashboardTokens(t *testing.T) {
 	h := testutil.NewHarness(t)
 
@@ -115,9 +106,8 @@ func TestCreateSessionRefusesDashboardTokens(t *testing.T) {
 			"a refused credential must write no audit entry")
 	})
 
-	// Behind the portal lookup this same call would answer 404 for an absent
-	// portal and 403 for a present one, which turns the route into an existence
-	// and slug oracle for any authenticated dashboard user.
+	// Past the portal lookup an absent portal answers 404 and a present one 403,
+	// making the route an existence and slug oracle.
 	t.Run("a portal that does not exist", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, jwtHeaders(), handler.Request{
 			Portal:     "no-such-portal",
@@ -129,9 +119,9 @@ func TestCreateSessionRefusesDashboardTokens(t *testing.T) {
 	})
 }
 
-// TestDashboardTokensStillManagePortals is the other half of the restriction.
-// Refusing dashboard tokens at the mint must not cost the dashboard its portal
-// administration, which runs on the same credential.
+// TestDashboardTokensStillManagePortals guarantees refusing dashboard tokens at
+// the mint does not cost the dashboard portal administration, which runs on the
+// same credential.
 func TestDashboardTokensStillManagePortals(t *testing.T) {
 	h := testutil.NewHarness(t)
 
@@ -174,10 +164,9 @@ func TestDashboardTokensStillManagePortals(t *testing.T) {
 	require.Equal(t, http.StatusOK, deleteRes.Status, "got: %s", deleteRes.RawBody)
 }
 
-// TestCreateSessionRefusesNonRootApiKey guards the two-hop guarantee the
-// credential switch relies on: it admits principal.TypeAPIKey, which is only a
-// root key because the resolver producing that type rejects everything else.
-// The linter cannot see that hop, so it is pinned here.
+// TestCreateSessionRefusesNonRootApiKey guarantees the hop the credential switch
+// relies on: it admits principal.TypeAPIKey, which is only ever a root key
+// because the resolver producing that type rejects everything else.
 func TestCreateSessionRefusesNonRootApiKey(t *testing.T) {
 	h := testutil.NewHarness(t)
 

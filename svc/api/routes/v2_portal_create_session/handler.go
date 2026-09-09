@@ -158,12 +158,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Repeated at the mint seam below, and both placements are load-bearing. The
-	// seam is what makes the restriction a property of the capability; here it is
-	// what keeps a refused credential from learning which portals exist. Behind
-	// the lookup this call would answer 404 for an absent portal and 403 for a
-	// present one, which is a portal existence and slug oracle for any
-	// authenticated dashboard user.
+	// Also enforced at the mint seam. Running it before the lookup keeps a
+	// refused credential from learning which portals exist, since past this
+	// point an absent portal answers 404 and a present one 403.
 	if err = requireRootKeyCredential(principal); err != nil {
 		return err
 	}
@@ -198,19 +195,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// The wildcard tuple branch is spelled out for the same reason: `*` in a
 	// stored legacy grant is matched literally, it does not expand.
 	//
-	// The canonical arm is a write on the portal's session sub-resource, with a
-	// wildcard session id because the session does not exist yet. The legacy
-	// tuple arms stay until callers have migrated.
-	//
-	// There is deliberately no arm on the portal resource itself: administering a
-	// portal must not imply minting sessions for its end users. A grant naming
-	// the portal does not cover its sessions child, so that separation holds.
-	//
-	// A workspace-wide grant is a different matter, and worth being precise
-	// about: one is not spelled out here, but a stored `**#*` satisfies the
-	// canonical arm anyway, because URN evaluation expands it over any
-	// descendant. Nothing in this Or withholds it. What keeps a dashboard admin
-	// from minting is requireRootKeyCredential above, and only that.
+	// No arm names the portal resource itself: administering a portal must not
+	// imply minting sessions for its end users. A stored `**#*` still satisfies
+	// the canonical arm, so requireRootKeyCredential above is what actually
+	// keeps a dashboard admin from minting.
 	if err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Portal,
@@ -334,41 +322,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 }
 
-// mintRequest carries everything one portal session row and its audit record
-// need, already resolved and authorized by the caller.
+// mintRequest carries one portal session's row and audit fields, already
+// resolved and authorized by the caller.
 type mintRequest struct {
-	// Portal is the row the session belongs to, re-read inside the write
-	// transaction before anything is inserted.
-	Portal db.Portal
-
-	// ExternalID is the end user the minted session authenticates as.
-	ExternalID string
-
-	// Scopes are the granted portal verbs, recorded in the audit entry.
-	Scopes []string
-
-	// KeyspaceIDs are the keyspaces the session is bound to.
+	Portal      db.Portal
+	ExternalID  string
+	Scopes      []string
 	KeyspaceIDs []string
-
-	// ScopesJSON is the serialized grant stored on the row.
-	ScopesJSON []byte
-
-	// Preview marks a session minted for the dashboard's portal preview.
-	Preview bool
-
-	// ReturnURL is the optional link the portal renders back to the operator.
-	ReturnURL sql.NullString
-
-	// Now anchors the row's creation and the exchange code's expiry.
-	Now time.Time
+	ScopesJSON  []byte
+	Preview     bool
+	ReturnURL   sql.NullString
+	Now         time.Time
 }
 
-// mintSession writes a portal session row and its audit record, returning the
-// session's non-secret handle and its one-time exchange code.
-//
-// Every portal session is minted through here so [requireRootKeyCredential]
-// applies to the capability rather than to one route: a second mint path
-// inherits the restriction by calling this.
+// mintSession is the single seam every portal session is minted through, so
+// [requireRootKeyCredential] restricts the capability rather than one route.
 func (h *Handler) mintSession(
 	ctx context.Context,
 	s *zen.Session,
@@ -435,9 +403,9 @@ func (h *Handler) mintSession(
 			)
 		}
 
-		// The actor is the minting root key, the target the session it minted.
 		// A reroll performed later inside the session is attributed to the end
-		// user, so this entry is the only place the two are joined.
+		// user, so this entry is the only place the root key and the end user
+		// it acts for are joined.
 		if txErr := h.Auditlogs.Insert(txCtx, tx, []auditlog.AuditLog{
 			{
 				Event:         auditlog.PortalSessionCreateEvent,
@@ -484,18 +452,12 @@ func (h *Handler) mintSession(
 
 // requireRootKeyCredential admits only a root key to mint a portal session.
 //
-// It is an allow-list over the credential type, and the switch names every
-// member of the enum so that a fourth credential type fails the exhaustive
-// linter until someone decides explicitly whether it may mint.
-//
-// The two refused arms are not equivalent. A portal session cannot reach the
-// createSession route at all, because route registration authenticates it on
-// the root-key stack only, so that arm is defence in depth. A dashboard token
-// does reach it, and for that credential this check is the only control: the
+// This is the only control standing between a dashboard token and minting: the
 // WorkOS admin role grants unkey:v1:{workspace}:**#*, which covers the portal
-// session URN stage 1 evaluates. Without this, any workspace admin could mint a
-// session for an arbitrary external id and receive a URL that authenticates as
-// that end user.
+// session URN stage 1 evaluates, so without this any workspace admin could mint
+// a session authenticating as an arbitrary end user. Naming every enum member
+// keeps a future credential type failing the exhaustive linter until someone
+// decides whether it may mint.
 func requireRootKeyCredential(principal *authprincipal.Principal) error {
 	var mayMint bool
 	switch principal.Type {
@@ -597,16 +559,16 @@ func ScopeQueries(
 	}
 }
 
-// CanonicalScopeQueries returns the canonical form of the same requirement
-// [ScopeQueries] expresses in legacy tuples, for one scope on one keyspace. It
-// mirrors [ScopeQueries] down to the ok flag: rbac.And over zero children
-// evaluates to valid, so an unmapped scope must report ok=false and be dropped
-// from the composition rather than contributing an empty conjunction.
+// CanonicalScopeQueries returns the canonical form of the requirement
+// [ScopeQueries] expresses in legacy tuples, for one scope on one keyspace.
 //
-// The arms are hand-written rather than borrowed from the operator routes the
-// way the legacy arms are, so the coupling is manual: the routes mirrored here
-// are v2_apis_list_keys for read and v2_keys_reroll_key for reroll, and this
-// function can drift weaker than either of them without anything failing.
+// The ok flag is load-bearing: rbac.And over zero children evaluates to valid,
+// so an unmapped scope must be dropped from the composition rather than
+// contribute an empty conjunction.
+//
+// Unlike the legacy arms, these are hand-written rather than borrowed from the
+// operator routes they mirror (v2_apis_list_keys for read, v2_keys_reroll_key
+// for reroll), so they can drift weaker than those routes without failing.
 func CanonicalScopeQueries(
 	scope openapi.V2PortalCreateSessionRequestBodyScopes,
 	workspaceID string,
@@ -616,9 +578,8 @@ func CanonicalScopeQueries(
 ) ([]rbac.PermissionQuery, bool) {
 	keyspace := urn.New().Workspace(workspaceID).Project(projectID).Keyspace(keyspaceID)
 
-	// Mint time has no key id, so every key-scoped requirement here is a
-	// wildcard. That is stricter than a grant on one key and weaker than
-	// nothing: a caller holding a single concrete key cannot mint.
+	// Mint time has no key id, so key-scoped requirements are wildcards: a
+	// caller holding a grant on one concrete key cannot mint.
 	anyKey := keyspace.Key(permissions.Wildcard)
 
 	switch scope {
@@ -629,15 +590,10 @@ func CanonicalScopeQueries(
 		}, true
 
 	case openapi.KeysReroll:
-		// The reroll route's canonical create arm and its canonical encryption
-		// arm are the same key-write leaf, so the encryption conjunct is
-		// degenerate in this vocabulary. It is spelled out anyway to mirror the
-		// route faithfully: making the ceiling stricter than the route it
-		// mirrors would refuse mints the operator endpoint would allow.
-		//
-		// The condition is the keyspace flag rather than a key's encryption row
-		// for the reason [ScopeQueries] gives: mint time cannot know which key
-		// a session will later reroll.
+		// The reroll route's canonical create and encryption arms are the same
+		// key-write leaf, so the encryption conjunct is degenerate here. It is
+		// spelled out anyway to mirror the route: a ceiling stricter than the
+		// route would refuse mints the operator endpoint allows.
 		queries := []rbac.PermissionQuery{rbac.U(anyKey, permissions.Write)}
 		if storeEncryptedKeys {
 			queries = append(queries, rbac.U(anyKey, permissions.Write))
@@ -706,10 +662,9 @@ func (h *Handler) authorizeScopes(
 				)
 			}
 
-			// One disjunction per keyspace, rather than one flat conjunction over
-			// all of them: flattening would let a caller satisfy one keyspace in
-			// legacy tuples and another canonically in a combination neither
-			// grant intends.
+			// One disjunction per keyspace rather than a flat conjunction over
+			// all of them: flattening would let a caller satisfy one keyspace
+			// in legacy tuples and another canonically.
 			arms := []rbac.PermissionQuery{rbac.And(legacy...)}
 			if canonical, hasCanonical := CanonicalScopeQueries(
 				scope, workspaceID, owner.ProjectID, keyspaceID, encrypted[keyspaceID],
@@ -743,15 +698,14 @@ func (h *Handler) authorizeScopes(
 	return nil
 }
 
-// requireSameProject refuses a portal whose resolved keyspaces reach outside its
-// own project. Without it the portal's stored project could not be trusted as
-// the project segment of the canonical requirements above, and a deployment
-// naming another project's keyspace would have its capabilities checked against,
-// and granted under, the wrong project.
+// requireSameProject refuses a portal whose resolved keyspaces reach outside
+// its own project, so the portal's stored project can be trusted as the project
+// segment of the canonical requirements above. Otherwise a deployment naming
+// another project's keyspace would be checked, and granted, under the wrong
+// project.
 //
-// The ids stay out of the public message: this runs before the per-keyspace
-// check, so the caller has proven no grant on the keyspace it would otherwise
-// learn the id of.
+// Ids stay out of the public message because this runs before the per-keyspace
+// check, so the caller has proven no grant on the keyspace it names.
 func requireSameProject(portal db.Portal, keyspaceIDs []string, owners map[string]keyspaceOwner) error {
 	for _, keyspaceID := range keyspaceIDs {
 		owner := owners[keyspaceID]
@@ -780,9 +734,7 @@ func requireSameProject(portal db.Portal, keyspaceIDs []string, owners map[strin
 	return nil
 }
 
-// keyspaceOwner is the api and project that own one resolved keyspace. The api
-// scopes the legacy requirements; the project is the segment the canonical ones
-// carry, and what [requireSameProject] compares against the portal.
+// keyspaceOwner is the api and project that own one resolved keyspace.
 type keyspaceOwner struct {
 	APIID     string
 	ProjectID string

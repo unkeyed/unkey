@@ -196,10 +196,9 @@ func TestGetPortalByMapping(t *testing.T) {
 		})
 	}
 
-	// A caller reaching a portal through its mapping never holds a portal id, so
-	// these two finders are the only route to the project the portal is
-	// authorized under. Asserted against the row rather than through the response,
-	// which does not carry the project.
+	// A caller reaching a portal through its mapping holds no portal id, so these
+	// two finders are its only route to the project the portal is authorized
+	// under. Asserted against the row, since the response omits the project.
 	ctx := context.Background()
 	byKeyspace, err := db.Query.FindPortalByKeyspace(ctx, h.DB.RO(), db.FindPortalByKeyspaceParams{
 		KeyAuthID:   sql.NullString{String: keyspace.ID, Valid: true},

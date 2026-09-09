@@ -267,10 +267,9 @@ func DescribeMapping(p db.Portal) (mappingType string, mappingID string) {
 // lookup on the session path is not workspace-scoped, a squatted app id would
 // steer session URLs onto the victim's domain.
 //
-// The project comes back with the ownership answer because a portal is addressed
-// as projects/{project_id}/portals/{portal_id}: every path that authorizes or
-// stores a portal needs the project of whatever the portal maps to, and it is
-// the mapped resource that decides it.
+// The project comes back with the ownership answer because it is the mapped
+// resource that decides a portal's project, and every path that authorizes or
+// stores a portal needs it.
 //
 // Runs inside the caller's transaction so the row cannot disappear between this
 // check and the write.
@@ -316,10 +315,9 @@ func ResolveMappingProject(ctx context.Context, tx db.DBTX, workspaceID string, 
 		return "", ErrUnknownMappingType(m.Type)
 	}
 
-	// Both source columns are non-nullable, so this is unreachable. Asserted
-	// here rather than at each caller because an empty project id still builds a
-	// portal URN that parses, and one that parses is one that gets granted
-	// against.
+	// Unreachable while both source columns stay non-nullable, but an empty
+	// project id still builds a portal URN that parses, and one that parses is
+	// one that gets granted against.
 	if err := assert.NotEmpty(projectID, "mapped portal resource has no project"); err != nil {
 		return "", fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -339,16 +337,10 @@ func ResolveMappingProject(ctx context.Context, tx db.DBTX, workspaceID string, 
 // that changed project would silently fall under a different set of grants while
 // keeping its id.
 //
-// This deliberately does not reuse mappingNotFound. That masking exists so an
-// unowned mapping and an absent one stay indistinguishable, which protects
-// against enumerating another tenant's resources. Nothing needs protecting here:
-// the caller has already proved update rights on this portal, the mapping is
-// confirmed to be in the caller's own workspace, and read rights on the target
-// are checked separately by AuthorizeMappingTarget. Reporting not-found for a
-// resource the caller can see is a false answer, and the caller cannot act on it
-// because the request carries no project field to correct.
-//
-// Both projects are already resolved by the caller, so this does no lookup.
+// It reports the real reason rather than reusing [mappingNotFound]: that masking
+// guards against cross-tenant enumeration, and there is nothing to guard here
+// once the caller has proved update rights on the portal and the mapping is
+// known to be in its own workspace.
 func VerifyMappingInProject(portalProjectID string, mappingProjectID string) error {
 	if mappingProjectID == portalProjectID {
 		return nil
@@ -383,12 +375,6 @@ func mappingNotFound(detail string) error {
 // including ones it has no rights over: the customer's own backend then re-mints
 // sessions against the new resource, and that portal's end users see keys the
 // remapping key could never have read itself.
-//
-// It resolves the owning api itself rather than taking the project a caller
-// already has from [ResolveMappingProject]. The legacy tuple arm needs the api
-// id, which only that lookup returns, so passing the project in would remove no
-// query -- and the check reads better answering the whole question from its own
-// arguments.
 //
 // The mint path enforces its own ceiling — `authorizeScopes` in
 // portal.createSession requires the minting principal to hold the equivalent

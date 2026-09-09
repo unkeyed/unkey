@@ -28,9 +28,9 @@ func canonicalRerollGrant(workspaceID, projectID, keyspaceID string) string {
 	return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#write", workspaceID, projectID, keyspaceID)
 }
 
-// TestCreateSessionCeilingAcceptsCanonicalGrants covers the mint-time ceiling in
-// its canonical form on a single keyspace. The legacy rows are unchanged
-// behaviour and stand as the regression guard for them.
+// TestCreateSessionCeilingAcceptsCanonicalGrants guarantees the mint-time
+// ceiling accepts its canonical form on a single keyspace, with the legacy rows
+// standing as the regression guard for unchanged behaviour.
 func TestCreateSessionCeilingAcceptsCanonicalGrants(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
@@ -46,8 +46,8 @@ func TestCreateSessionCeilingAcceptsCanonicalGrants(t *testing.T) {
 	keyspaceID := api.KeyAuthID.String
 	insertKeyspacePortal(t, h, workspaceID, "canonical-ceiling-portal", keyspaceID)
 
-	// A key that exists in the keyspace, so the concrete-key case names a real
-	// id rather than a shape the evaluator might treat differently.
+	// A real key id, so the concrete-key case is not a shape the evaluator might
+	// treat differently.
 	concreteKey := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspaceID,
 		KeySpaceID:  keyspaceID,
@@ -72,7 +72,7 @@ func TestCreateSessionCeilingAcceptsCanonicalGrants(t *testing.T) {
 		},
 		{
 			// The canonical arm is itself a conjunction, so either half alone
-			// must fail rather than falling back to the other.
+			// must fail.
 			name:       "canonical key read alone does not satisfy read",
 			scopes:     read,
 			grants:     []string{mint, canonicalRead[0]},
@@ -85,8 +85,6 @@ func TestCreateSessionCeilingAcceptsCanonicalGrants(t *testing.T) {
 			shouldPass: false,
 		},
 		{
-			// Unchanged behaviour: this row passes before and after the
-			// canonical arm was added.
 			name:       "legacy tuples still satisfy read",
 			scopes:     read,
 			grants:     []string{mint, "api.*.read_key", "api.*.read_api"},
@@ -99,18 +97,15 @@ func TestCreateSessionCeilingAcceptsCanonicalGrants(t *testing.T) {
 			shouldPass: true,
 		},
 		{
-			// The ceiling's key segment is a wildcard, and a wildcard
-			// requirement is not met by a grant naming one key. Rerolling from
-			// a session reaches every key in the keyspace, so a caller holding
-			// one key must not be able to mint it.
+			// Rerolling from a session reaches every key in the keyspace, so a
+			// caller granted one key must not be able to mint it.
 			name:       "a grant on one concrete key does not satisfy reroll",
 			scopes:     reroll,
 			grants:     append([]string{mint, fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspaceID, api.ProjectID, keyspaceID, concreteKey.KeyID)}, canonicalRead...),
 			shouldPass: false,
 		},
 		{
-			// The disjunction is per keyspace and per scope, so one scope may
-			// be satisfied canonically and another legacy.
+			// The disjunction is per scope as well as per keyspace.
 			name:       "canonical read mixes with a legacy reroll grant",
 			scopes:     reroll,
 			grants:     append([]string{mint, "api.*.create_key"}, canonicalRead...),
@@ -140,12 +135,11 @@ func TestCreateSessionCeilingAcceptsCanonicalGrants(t *testing.T) {
 	}
 }
 
-// TestCreateSessionCeilingInheritsRerollURNWeakness pins a deliberate weakness.
-// The operator reroll route resolves both its create arm and its encryption arm
-// to the same key-write leaf in canonical form, so canonical key write alone
-// mints a reroll session on a keyspace storing recoverable key material. The
-// ceiling mirrors the route rather than being stricter than it; the legacy form
-// still demands encrypt_key separately.
+// TestCreateSessionCeilingInheritsRerollURNWeakness pins a deliberate weakness:
+// the operator reroll route resolves its create and encryption arms to the same
+// canonical key-write leaf, so key write alone mints a reroll session on a
+// keyspace storing recoverable key material. The ceiling mirrors the route
+// rather than being stricter; the legacy form still demands encrypt_key.
 func TestCreateSessionCeilingInheritsRerollURNWeakness(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
@@ -181,10 +175,9 @@ func TestCreateSessionCeilingInheritsRerollURNWeakness(t *testing.T) {
 		"the canonical arm mirrors the reroll route, whose encryption conjunct is the same key-write leaf, got: %s", res.RawBody)
 }
 
-// TestCreateSessionCeilingComposesPerKeyspace covers the composition across the
-// several keyspaces an app-mapped portal resolves to: a conjunction over
-// keyspaces of a per-keyspace disjunction between the legacy and the canonical
-// form.
+// TestCreateSessionCeilingComposesPerKeyspace guarantees the composition across
+// an app-mapped portal's several keyspaces: a conjunction over keyspaces of a
+// per-keyspace disjunction between the legacy and canonical forms.
 func TestCreateSessionCeilingComposesPerKeyspace(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
@@ -222,8 +215,7 @@ func TestCreateSessionCeilingComposesPerKeyspace(t *testing.T) {
 		shouldPass bool
 	}{
 		{
-			// The disjunction is per keyspace, so the two forms may be mixed
-			// across keyspaces.
+			// The two forms may be mixed across keyspaces.
 			name: "legacy on one keyspace and canonical on the other",
 			grants: append([]string{
 				mint,
@@ -243,8 +235,8 @@ func TestCreateSessionCeilingComposesPerKeyspace(t *testing.T) {
 			shouldPass: false,
 		},
 		{
-			// The canonical side is itself a conjunction, so a complete set on
-			// one keyspace plus half a set on the other is short.
+			// A complete canonical set on one keyspace plus half a set on the
+			// other is short.
 			name:       "complete canonical on one keyspace and partial on the other",
 			grants:     append(append([]string{mint}, canonicalFirst...), canonicalSecond[0]),
 			shouldPass: false,

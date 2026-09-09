@@ -100,14 +100,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return err
 		}
 
-		// Authorized here, after the project behind the mapping is known and before
-		// checkSlugAndResourceFree runs: that check is deliberately unscoped by
-		// workspace and reports that an app or keyspace is already claimed, so a
-		// caller short of a portal grant must not reach it.
+		// After the project behind the mapping is known and before
+		// checkSlugAndResourceFree, which is unscoped by workspace and reports
+		// that an app or keyspace is already claimed: a caller short of a portal
+		// grant must not reach it.
 		//
-		// Only a wildcard portal grant can carry a create, because the portal ID is
-		// minted above and no grant can name it yet. The legacy tuple arm stays
-		// until callers have migrated to portal URNs.
+		// Only a wildcard portal grant can carry a create, since the portal ID is
+		// minted above and no grant can name it yet.
 		err = principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Portal,
