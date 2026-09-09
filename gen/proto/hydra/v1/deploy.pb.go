@@ -743,8 +743,12 @@ func (x *CreateGitSource) GetPrNumber() int64 {
 
 // CreateImageSource deploys a pre-built container image. No build runs.
 type CreateImageSource struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Image         string                 `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Image string                 `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
+	// What the image was built from, recorded as given. Nothing is looked up.
+	// The branch also scopes sibling dedup, so an image deploy without one
+	// never cancels an older deployment.
+	Commit        *v1.GitCommitInfo `protobuf:"bytes,2,opt,name=commit,proto3" json:"commit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -784,6 +788,13 @@ func (x *CreateImageSource) GetImage() string {
 		return x.Image
 	}
 	return ""
+}
+
+func (x *CreateImageSource) GetCommit() *v1.GitCommitInfo {
+	if x != nil {
+		return x.Commit
+	}
+	return nil
 }
 
 // CreateExistingDeploymentSource rebuilds another deployment's commit, or its
@@ -1638,9 +1649,10 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\rbuild_command\x18\t \x01(\tR\fbuildCommand\"^\n" +
 	"\x0fCreateGitSource\x12.\n" +
 	"\x06commit\x18\x01 \x01(\v2\x16.ctrl.v1.GitCommitInfoR\x06commit\x12\x1b\n" +
-	"\tpr_number\x18\x02 \x01(\x03R\bprNumber\")\n" +
+	"\tpr_number\x18\x02 \x01(\x03R\bprNumber\"Y\n" +
 	"\x11CreateImageSource\x12\x14\n" +
-	"\x05image\x18\x01 \x01(\tR\x05image\"l\n" +
+	"\x05image\x18\x01 \x01(\tR\x05image\x12.\n" +
+	"\x06commit\x18\x02 \x01(\v2\x16.ctrl.v1.GitCommitInfoR\x06commit\"l\n" +
 	"\x1eCreateExistingDeploymentSource\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12%\n" +
 	"\x0erequire_latest\x18\x02 \x01(\bR\rrequireLatest\"\x9d\x04\n" +
@@ -1774,41 +1786,42 @@ var file_hydra_v1_deploy_proto_depIdxs = []int32{
 	26, // 0: hydra.v1.StopDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
 	26, // 1: hydra.v1.WakeDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
 	27, // 2: hydra.v1.CreateGitSource.commit:type_name -> ctrl.v1.GitCommitInfo
-	11, // 3: hydra.v1.DeployCreateRequest.git:type_name -> hydra.v1.CreateGitSource
-	12, // 4: hydra.v1.DeployCreateRequest.image:type_name -> hydra.v1.CreateImageSource
-	13, // 5: hydra.v1.DeployCreateRequest.existing_deployment:type_name -> hydra.v1.CreateExistingDeploymentSource
-	0,  // 6: hydra.v1.DeployCreateRequest.decision:type_name -> hydra.v1.CreateDecision
-	28, // 7: hydra.v1.DeployCreateRequest.trigger:type_name -> ctrl.v1.DeploymentTrigger
-	26, // 8: hydra.v1.DeployCreateRequest.actor:type_name -> ctrl.v1.ActorInfo
-	1,  // 9: hydra.v1.DeployCreateResponse.outcome:type_name -> hydra.v1.CreateOutcome
-	10, // 10: hydra.v1.DeployRequest.git:type_name -> hydra.v1.GitSource
-	9,  // 11: hydra.v1.DeployRequest.oci_image:type_name -> hydra.v1.OciImage
-	26, // 12: hydra.v1.RollbackRequest.actor:type_name -> ctrl.v1.ActorInfo
-	26, // 13: hydra.v1.PromoteRequest.actor:type_name -> ctrl.v1.ActorInfo
-	2,  // 14: hydra.v1.TeardownRequest.mode:type_name -> hydra.v1.TeardownMode
-	14, // 15: hydra.v1.DeployService.Create:input_type -> hydra.v1.DeployCreateRequest
-	16, // 16: hydra.v1.DeployService.Deploy:input_type -> hydra.v1.DeployRequest
-	18, // 17: hydra.v1.DeployService.Rollback:input_type -> hydra.v1.RollbackRequest
-	20, // 18: hydra.v1.DeployService.Promote:input_type -> hydra.v1.PromoteRequest
-	3,  // 19: hydra.v1.DeployService.StopDeployment:input_type -> hydra.v1.StopDeploymentRequest
-	5,  // 20: hydra.v1.DeployService.WakeDeployment:input_type -> hydra.v1.WakeDeploymentRequest
-	7,  // 21: hydra.v1.DeployService.NotifyInstancesReady:input_type -> hydra.v1.NotifyInstancesReadyRequest
-	22, // 22: hydra.v1.DeployTeardownService.Teardown:input_type -> hydra.v1.TeardownRequest
-	24, // 23: hydra.v1.DeployTeardownService.Resume:input_type -> hydra.v1.ResumeRequest
-	15, // 24: hydra.v1.DeployService.Create:output_type -> hydra.v1.DeployCreateResponse
-	17, // 25: hydra.v1.DeployService.Deploy:output_type -> hydra.v1.DeployResponse
-	19, // 26: hydra.v1.DeployService.Rollback:output_type -> hydra.v1.RollbackResponse
-	21, // 27: hydra.v1.DeployService.Promote:output_type -> hydra.v1.PromoteResponse
-	4,  // 28: hydra.v1.DeployService.StopDeployment:output_type -> hydra.v1.StopDeploymentResponse
-	6,  // 29: hydra.v1.DeployService.WakeDeployment:output_type -> hydra.v1.WakeDeploymentResponse
-	8,  // 30: hydra.v1.DeployService.NotifyInstancesReady:output_type -> hydra.v1.NotifyInstancesReadyResponse
-	23, // 31: hydra.v1.DeployTeardownService.Teardown:output_type -> hydra.v1.TeardownResponse
-	25, // 32: hydra.v1.DeployTeardownService.Resume:output_type -> hydra.v1.ResumeResponse
-	24, // [24:33] is the sub-list for method output_type
-	15, // [15:24] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	27, // 3: hydra.v1.CreateImageSource.commit:type_name -> ctrl.v1.GitCommitInfo
+	11, // 4: hydra.v1.DeployCreateRequest.git:type_name -> hydra.v1.CreateGitSource
+	12, // 5: hydra.v1.DeployCreateRequest.image:type_name -> hydra.v1.CreateImageSource
+	13, // 6: hydra.v1.DeployCreateRequest.existing_deployment:type_name -> hydra.v1.CreateExistingDeploymentSource
+	0,  // 7: hydra.v1.DeployCreateRequest.decision:type_name -> hydra.v1.CreateDecision
+	28, // 8: hydra.v1.DeployCreateRequest.trigger:type_name -> ctrl.v1.DeploymentTrigger
+	26, // 9: hydra.v1.DeployCreateRequest.actor:type_name -> ctrl.v1.ActorInfo
+	1,  // 10: hydra.v1.DeployCreateResponse.outcome:type_name -> hydra.v1.CreateOutcome
+	10, // 11: hydra.v1.DeployRequest.git:type_name -> hydra.v1.GitSource
+	9,  // 12: hydra.v1.DeployRequest.oci_image:type_name -> hydra.v1.OciImage
+	26, // 13: hydra.v1.RollbackRequest.actor:type_name -> ctrl.v1.ActorInfo
+	26, // 14: hydra.v1.PromoteRequest.actor:type_name -> ctrl.v1.ActorInfo
+	2,  // 15: hydra.v1.TeardownRequest.mode:type_name -> hydra.v1.TeardownMode
+	14, // 16: hydra.v1.DeployService.Create:input_type -> hydra.v1.DeployCreateRequest
+	16, // 17: hydra.v1.DeployService.Deploy:input_type -> hydra.v1.DeployRequest
+	18, // 18: hydra.v1.DeployService.Rollback:input_type -> hydra.v1.RollbackRequest
+	20, // 19: hydra.v1.DeployService.Promote:input_type -> hydra.v1.PromoteRequest
+	3,  // 20: hydra.v1.DeployService.StopDeployment:input_type -> hydra.v1.StopDeploymentRequest
+	5,  // 21: hydra.v1.DeployService.WakeDeployment:input_type -> hydra.v1.WakeDeploymentRequest
+	7,  // 22: hydra.v1.DeployService.NotifyInstancesReady:input_type -> hydra.v1.NotifyInstancesReadyRequest
+	22, // 23: hydra.v1.DeployTeardownService.Teardown:input_type -> hydra.v1.TeardownRequest
+	24, // 24: hydra.v1.DeployTeardownService.Resume:input_type -> hydra.v1.ResumeRequest
+	15, // 25: hydra.v1.DeployService.Create:output_type -> hydra.v1.DeployCreateResponse
+	17, // 26: hydra.v1.DeployService.Deploy:output_type -> hydra.v1.DeployResponse
+	19, // 27: hydra.v1.DeployService.Rollback:output_type -> hydra.v1.RollbackResponse
+	21, // 28: hydra.v1.DeployService.Promote:output_type -> hydra.v1.PromoteResponse
+	4,  // 29: hydra.v1.DeployService.StopDeployment:output_type -> hydra.v1.StopDeploymentResponse
+	6,  // 30: hydra.v1.DeployService.WakeDeployment:output_type -> hydra.v1.WakeDeploymentResponse
+	8,  // 31: hydra.v1.DeployService.NotifyInstancesReady:output_type -> hydra.v1.NotifyInstancesReadyResponse
+	23, // 32: hydra.v1.DeployTeardownService.Teardown:output_type -> hydra.v1.TeardownResponse
+	25, // 33: hydra.v1.DeployTeardownService.Resume:output_type -> hydra.v1.ResumeResponse
+	25, // [25:34] is the sub-list for method output_type
+	16, // [16:25] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_deploy_proto_init() }

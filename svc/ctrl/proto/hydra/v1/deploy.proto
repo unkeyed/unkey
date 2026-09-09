@@ -205,6 +205,11 @@ message CreateGitSource {
 // CreateImageSource deploys a pre-built container image. No build runs.
 message CreateImageSource {
   string image = 1;
+
+  // What the image was built from, recorded as given. Nothing is looked up.
+  // The branch also scopes sibling dedup, so an image deploy without one
+  // never cancels an older deployment.
+  ctrl.v1.GitCommitInfo commit = 2;
 }
 
 // CreateExistingDeploymentSource rebuilds another deployment's commit, or its

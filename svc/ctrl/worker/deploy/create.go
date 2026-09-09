@@ -218,7 +218,11 @@ func (w *Workflow) validateAndBuildPayload(
 
 		// Empty fields are filled from GitHub in resolveSource.
 		var commit gitCommit
-		if gc := req.GetGit().GetCommit(); gc != nil {
+		gc := req.GetGit().GetCommit()
+		if gc == nil {
+			gc = req.GetImage().GetCommit()
+		}
+		if gc != nil {
 			commit = gitCommit{
 				SHA:             gc.GetCommitSha(),
 				Branch:          strings.TrimSpace(gc.GetBranch()),

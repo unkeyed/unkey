@@ -73,6 +73,39 @@ func TestCreateWritesRowAndStartsDeploy(t *testing.T) {
 // carrying a reason rather than a failure: the GitHub webhook sends Create
 // one-way, so a workspace that will never be eligible must not leave a failed
 // invocation behind every push.
+// A CLI deploy pushes an image but says which commit it built. The row keeps
+// that so the dashboard can show it and dedup can key on the branch.
+func TestCreateImageRecordsCommit(t *testing.T) {
+	ctx := context.Background()
+	h := newCreateHarness(t, ctx)
+
+	req := h.imageRequest()
+	req.Source = &hydrav1.DeployCreateRequest_Image{
+		Image: &hydrav1.CreateImageSource{
+			Image: fixtureImage,
+			Commit: &ctrlv1.GitCommitInfo{
+				Branch:        "release",
+				CommitSha:     fixtureCommitSHA,
+				CommitMessage: "ship KEBAP",
+				AuthorHandle:  "kebap",
+			},
+		},
+	}
+
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	resp := h.create(t, ctx, deploymentID, req)
+	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED, resp.GetOutcome())
+
+	sent := h.awaitDeploy(t, deploymentID)
+	require.Equal(t, fixtureImage, sent.GetOciImage().GetImage(), "an image with a commit is still deployed, not built")
+
+	row := h.deployment(t, ctx, deploymentID)
+	require.Equal(t, "release", row.GitBranch.String)
+	require.Equal(t, fixtureCommitSHA, row.GitCommitSha.String)
+	require.Equal(t, "ship KEBAP", row.GitCommitMessage.String)
+	require.Equal(t, "kebap", row.GitCommitAuthorHandle.String)
+}
+
 func TestCreateRejections(t *testing.T) {
 	t.Run("workspace has no Compute plan", func(t *testing.T) {
 		ctx := context.Background()
