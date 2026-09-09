@@ -1017,9 +1017,13 @@ func (*DeployCreateRequest_Image) isDeployCreateRequest_Source() {}
 func (*DeployCreateRequest_ExistingDeployment) isDeployCreateRequest_Source() {}
 
 type DeployCreateResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Outcome       CreateOutcome          `protobuf:"varint,1,opt,name=outcome,proto3,enum=hydra.v1.CreateOutcome" json:"outcome,omitempty"`
-	DeploymentId  string                 `protobuf:"bytes,2,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Outcome      CreateOutcome          `protobuf:"varint,1,opt,name=outcome,proto3,enum=hydra.v1.CreateOutcome" json:"outcome,omitempty"`
+	DeploymentId string                 `protobuf:"bytes,2,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	// Why the create was refused, for the caller. Set only on a rejection, and
+	// only when the outcome describes the caller's own input or settings, never
+	// something it may not be allowed to see.
+	Detail        string `protobuf:"bytes,3,opt,name=detail,proto3" json:"detail,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1064,6 +1068,13 @@ func (x *DeployCreateResponse) GetOutcome() CreateOutcome {
 func (x *DeployCreateResponse) GetDeploymentId() string {
 	if x != nil {
 		return x.DeploymentId
+	}
+	return ""
+}
+
+func (x *DeployCreateResponse) GetDetail() string {
+	if x != nil {
+		return x.Detail
 	}
 	return ""
 }
@@ -1647,10 +1658,11 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\ftriggered_by\x18\v \x01(\tR\vtriggeredBy\x12%\n" +
 	"\x0etrigger_reason\x18\f \x01(\tR\rtriggerReason\x12(\n" +
 	"\x05actor\x18\r \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actorB\b\n" +
-	"\x06source\"n\n" +
+	"\x06source\"\x86\x01\n" +
 	"\x14DeployCreateResponse\x121\n" +
 	"\aoutcome\x18\x01 \x01(\x0e2\x17.hydra.v1.CreateOutcomeR\aoutcome\x12#\n" +
-	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\"\xc7\x01\n" +
+	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\x12\x16\n" +
+	"\x06detail\x18\x03 \x01(\tR\x06detail\"\xc7\x01\n" +
 	"\rDeployRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12'\n" +
 	"\x03git\x18\x03 \x01(\v2\x13.hydra.v1.GitSourceH\x00R\x03git\x121\n" +

@@ -66,7 +66,8 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 	if rejection != nil {
 		return &hydrav1.DeployCreateResponse{
 			DeploymentId: deploymentID,
-			Outcome:      *rejection,
+			Outcome:      rejection.Outcome,
+			Detail:       rejection.Detail,
 		}, nil
 	}
 
@@ -85,6 +86,7 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 	return &hydrav1.DeployCreateResponse{
 		DeploymentId: deploymentID,
 		Outcome:      hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
+		Detail:       "",
 	}, nil
 }
 
@@ -110,7 +112,7 @@ func (w *Workflow) loadDeploymentData(ctx restate.Context, req *hydrav1.DeployCr
 // checkEnvironmentDeployable rejects invalid port, cpu, or memory settings and
 // environments with no schedulable region. Deploy validates the same things,
 // but rejecting here means the caller gets a reason and no row is written.
-func checkEnvironmentDeployable(target db.FindDeployTargetRow) *hydrav1.CreateOutcome {
+func checkEnvironmentDeployable(target db.FindDeployTargetRow) *rejection {
 	messages := make([]string, 0, 2)
 	for _, violation := range deployfail.RuntimeViolations(target.Port, target.CpuMillicores, target.MemoryMib) {
 		messages = append(messages, fmt.Sprintf("%s (is %d)", violation.Message, violation.Actual))
@@ -124,7 +126,7 @@ func checkEnvironmentDeployable(target db.FindDeployTargetRow) *hydrav1.CreateOu
 	}
 	return rejectf(
 		hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE,
-		"environment %q is not deployable: %s", target.EnvironmentSlug, strings.Join(messages, "; "),
+		"%s", strings.Join(messages, "; "),
 	)
 }
 
@@ -132,7 +134,7 @@ func checkEnvironmentDeployable(target db.FindDeployTargetRow) *hydrav1.CreateOu
 // made of. It crosses the Restate journal as JSON, which is why the source and
 // commit are plain structs rather than the proto oneof.
 type deployPayload struct {
-	Rejection *hydrav1.CreateOutcome `json:"rejection"`
+	Rejection *rejection `json:"rejection"`
 
 	Target db.FindDeployTargetRow `json:"target"`
 
@@ -163,7 +165,7 @@ func (w *Workflow) validateAndBuildPayload(
 	req *hydrav1.DeployCreateRequest,
 	target *db.FindDeployTargetRow,
 	status mysqltype.DeploymentsStatus,
-) (deployPayload, *hydrav1.CreateOutcome, error) {
+) (deployPayload, *rejection, error) {
 	built, err := restate.Run(ctx, func(runCtx restate.RunContext) (deployPayload, error) {
 		var payload deployPayload
 
@@ -587,16 +589,22 @@ func trimBytes(s string, bytesMax int) string {
 	return s[:cut]
 }
 
-// rejectf logs why a create was refused and returns the outcome for the caller.
-// A rejection is a successful response rather than an error because the Restate
-// ingress turns handler errors into plain text, and svc/api needs a structured
-// outcome for its 412. The detail stays in the log: it can name repositories and
-// deployments the caller may not be allowed to see.
-func rejectf(outcome hydrav1.CreateOutcome, format string, args ...any) *hydrav1.CreateOutcome {
+// rejection is why a create was refused. It is a successful response rather
+// than an error because the Restate ingress turns handler errors into plain
+// text, and svc/api needs a structured outcome for its status code. The detail
+// can name repositories and deployments the caller may not be allowed to see,
+// so svc/api decides per outcome whether to show it.
+type rejection struct {
+	Outcome hydrav1.CreateOutcome `json:"outcome"`
+	Detail  string                `json:"detail"`
+}
+
+func rejectf(outcome hydrav1.CreateOutcome, format string, args ...any) *rejection {
+	detail := fmt.Sprintf(format, args...)
 	logger.Info(
 		"deployment create rejected",
 		"outcome", outcome.String(),
-		"detail", fmt.Sprintf(format, args...),
+		"detail", detail,
 	)
-	return &outcome
+	return &rejection{Outcome: outcome, Detail: detail}
 }

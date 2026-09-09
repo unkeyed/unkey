@@ -2,6 +2,7 @@ package deploy
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -41,12 +42,12 @@ type gitSource struct {
 
 // resolvedSource is a source with its completed commit, or a rejection.
 type resolvedSource struct {
-	Source    buildSource            `json:"source"`
-	Commit    gitCommit              `json:"commit"`
-	Rejection *hydrav1.CreateOutcome `json:"rejection"`
+	Source    buildSource `json:"source"`
+	Commit    gitCommit   `json:"commit"`
+	Rejection *rejection  `json:"rejection"`
 }
 
-func newRejectedSource(rejected *hydrav1.CreateOutcome) resolvedSource {
+func newRejectedSource(rejected *rejection) resolvedSource {
 	var refused resolvedSource
 	refused.Rejection = rejected
 	return refused
@@ -169,7 +170,7 @@ func (w *Workflow) resolveGitSource(
 		)
 		return newRejectedSource(rejectf(
 			hydrav1.CreateOutcome_CREATE_OUTCOME_COMMIT_NOT_RESOLVED,
-			"could not resolve branch %q or commit %q in %s",
+			"branch %q or commit %q not found in %s",
 			commit.Branch, commit.SHA, target.GithubRepositoryFullName.String,
 		)), nil
 	}
@@ -241,10 +242,13 @@ func (w *Workflow) resolveExistingDeployment(
 			return failed, newerErr
 		}
 		if hasNewer {
+			scope := "for this app and environment"
+			if src.GitBranch.String != "" {
+				scope = fmt.Sprintf("on branch %q", src.GitBranch.String)
+			}
 			return newRejectedSource(rejectf(
 				hydrav1.CreateOutcome_CREATE_OUTCOME_NEWER_DEPLOYMENT_EXISTS,
-				"a newer active deployment exists for app %s, environment %s, branch %q",
-				src.AppID, src.EnvironmentID, src.GitBranch.String,
+				"a newer active deployment exists %s", scope,
 			)), nil
 		}
 	}

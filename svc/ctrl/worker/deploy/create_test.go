@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
@@ -155,6 +156,7 @@ func TestCreateRejections(t *testing.T) {
 
 		guarded := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.existingRequest(source.ID, true))
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NEWER_DEPLOYMENT_EXISTS, guarded.GetOutcome())
+		require.Equal(t, "a newer active deployment exists for this app and environment", guarded.GetDetail())
 
 		forced := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.existingRequest(source.ID, false))
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED, forced.GetOutcome(),
@@ -188,6 +190,7 @@ func TestCreateRejections(t *testing.T) {
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE, resp.GetOutcome())
+		require.Contains(t, resp.GetDetail(), "ghcr.io/unkey/KEBAP:v1")
 		require.Zero(t, h.countDeployments(t, ctx), "a reference no build could pull must not reach a row")
 	})
 
@@ -200,6 +203,7 @@ func TestCreateRejections(t *testing.T) {
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.imageRequest())
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE, resp.GetOutcome())
+		require.Equal(t, deployfail.MsgNoSchedulableRegions, resp.GetDetail())
 		require.Zero(t, h.countDeployments(t, ctx))
 	})
 
@@ -210,6 +214,7 @@ func TestCreateRejections(t *testing.T) {
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.imageRequest())
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE, resp.GetOutcome())
+		require.Contains(t, resp.GetDetail(), "Port must be between 1 and 65535 (is 0)")
 	})
 
 	t.Run("no source named and the app never deployed", func(t *testing.T) {
@@ -585,6 +590,7 @@ func TestCreateWithoutSourceOnConnectedAppResolvesGit(t *testing.T) {
 	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_COMMIT_NOT_RESOLVED,
 		resp.GetOutcome(),
 		"a connected app must resolve the branch head, not fall back to the current image")
+	require.Contains(t, resp.GetDetail(), `branch "main"`)
 
 	// The current deployment carries an image, so the old behavior would have
 	// written a row and dispatched it.

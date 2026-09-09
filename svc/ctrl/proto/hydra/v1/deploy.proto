@@ -252,6 +252,11 @@ message DeployCreateResponse {
   CreateOutcome outcome = 1;
 
   string deployment_id = 2;
+
+  // Why the create was refused, for the caller. Set only on a rejection, and
+  // only when the outcome describes the caller's own input or settings, never
+  // something it may not be allowed to see.
+  string detail = 3;
 }
 
 message DeployRequest {
