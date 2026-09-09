@@ -28,7 +28,7 @@ func Create(ctx context.Context, client *restateingress.Client, req *hydrav1.Dep
 			fault.Public("Failed to create deployment."),
 		)
 	}
-	if err := errorForOutcome(res.GetOutcome()); err != nil {
+	if err := errorForOutcome(res.GetOutcome(), res.GetDetail()); err != nil {
 		return "", err
 	}
 	return deploymentID, nil

@@ -1,6 +1,8 @@
 package deployment
 
 import (
+	"fmt"
+
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
@@ -8,10 +10,10 @@ import (
 )
 
 // errorForOutcome maps a create outcome onto the error the caller sees, nil for
-// a created row. Only the enum crosses the wire, because the worker's detail can
-// name repositories and deployments the caller may not read, so each message is
-// written from the outcome alone.
-func errorForOutcome(outcome hydrav1.CreateOutcome) error {
+// a created row. The worker's detail can name repositories and deployments the
+// caller may not read, so it is shown only for outcomes about the caller's own
+// input or settings; every other message is written from the outcome alone.
+func errorForOutcome(outcome hydrav1.CreateOutcome, detail string) error {
 	switch outcome {
 	case hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED:
 		return nil
@@ -44,8 +46,8 @@ func errorForOutcome(outcome hydrav1.CreateOutcome) error {
 		return fault.New(
 			"commit not resolved",
 			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-			fault.Internal("create rejected: github could not resolve the branch or commit"),
-			fault.Public("GitHub could not find that branch or commit. Check the name, and that Unkey still has access to the repository."),
+			fault.Internal("create rejected: github could not resolve the branch or commit: "+detail),
+			fault.Public(fmt.Sprintf("GitHub could not find the branch or commit: %s. Check the name, and that Unkey still has access to the repository.", detail)),
 		)
 
 	case hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE:
@@ -60,24 +62,24 @@ func errorForOutcome(outcome hydrav1.CreateOutcome) error {
 		return fault.New(
 			"newer deployment exists",
 			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
-			fault.Internal("create rejected: a newer active deployment exists"),
-			fault.Public("A newer deployment has already shipped for this app, environment, and branch."),
+			fault.Internal("create rejected: "+detail),
+			fault.Public(fmt.Sprintf("A newer deployment has already shipped: %s.", detail)),
 		)
 
 	case hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE:
 		return fault.New(
 			"environment not deployable",
 			fault.Code(codes.App.Validation.InvalidEnvironmentSettings.URN()),
-			fault.Internal("create rejected: environment runtime or regional settings are out of bounds"),
-			fault.Public("This environment cannot be deployed yet. Check its port, CPU, memory, and region settings."),
+			fault.Internal("create rejected: environment runtime or regional settings are out of bounds: "+detail),
+			fault.Public(fmt.Sprintf("This environment cannot be deployed: %s. Update the environment's settings before deploying.", detail)),
 		)
 
 	case hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE:
 		return fault.New(
 			"invalid image",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("create rejected: image is not a well-formed container reference"),
-			fault.Public("The docker image is not valid. Expected [registry/]repository[:tag][@digest], for example ghcr.io/acme/api:v1.2.3."),
+			fault.Internal("create rejected: image is not a well-formed container reference: "+detail),
+			fault.Public(fmt.Sprintf("The docker image is not valid: %s. Expected [registry/]repository[:tag][@digest], for example ghcr.io/acme/api:v1.2.3.", detail)),
 		)
 
 	// One answer for both, so neither confirms that something the caller cannot

@@ -15,7 +15,7 @@ import (
 
 func TestGitSourceWithoutRepoConnection(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_REPO_CONNECTION))
+	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_REPO_CONNECTION, ""))
 	h.Register(route)
 
 	// No repo connection attached to the app.
@@ -36,7 +36,7 @@ func TestGitSourceWithoutRepoConnection(t *testing.T) {
 // outcome. These pin the 412 and message the route turns each outcome into.
 func TestNoComputePlanOutcomeIs412(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_COMPUTE_PLAN))
+	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_COMPUTE_PLAN, ""))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -52,7 +52,7 @@ func TestNoComputePlanOutcomeIs412(t *testing.T) {
 
 func TestSpendSuspendedOutcomeIs412(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_SPEND_SUSPENDED))
+	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_SPEND_SUSPENDED, ""))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -64,4 +64,38 @@ func TestSpendSuspendedOutcomeIs412(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
 	require.Equal(t, deploygate.StartSpendSuspended.Message(), res.Body.Error.Detail)
+}
+
+func TestCommitNotResolvedOutcomeIs412(t *testing.T) {
+	const detail = `branch "release" or commit "" not found in acme/api`
+	h := testutil.NewHarness(t)
+	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_COMMIT_NOT_RESOLVED, detail))
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+
+	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
+
+	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), req)
+	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
+	require.Contains(t, res.Body.Error.Detail, detail)
+}
+
+func TestNewerDeploymentOutcomeIs412(t *testing.T) {
+	const detail = `a newer active deployment exists on branch "main"`
+	h := testutil.NewHarness(t)
+	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NEWER_DEPLOYMENT_EXISTS, detail))
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{"environment.*.create_deployment"},
+	})
+
+	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
+
+	res := testutil.CallRoute[handler.Request, openapi.PreconditionFailedErrorResponse](h, route, authHeaders(setup.RootKey), req)
+	require.Equal(t, http.StatusPreconditionFailed, res.Status, "expected 412, received: %s", res.RawBody)
+	require.Contains(t, res.Body.Error.Detail, detail)
 }
