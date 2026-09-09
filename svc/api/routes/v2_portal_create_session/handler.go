@@ -20,7 +20,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/internal/policyconfig"
@@ -154,6 +156,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	// Repeated at the mint seam below, and both placements are load-bearing. The
+	// seam is what makes the restriction a property of the capability; here it is
+	// what keeps a refused credential from learning which portals exist. Behind
+	// the lookup this call would answer 404 for an absent portal and 403 for a
+	// present one, which is a portal existence and slug oracle for any
+	// authenticated dashboard user.
+	if err = requireRootKeyCredential(principal); err != nil {
+		return err
+	}
+
 	workspaceID := principal.AuthorizedWorkspaceID
 
 	portal, err := db.Query.FindPortalByIdOrSlug(ctx, h.DB.RO(), db.FindPortalByIdOrSlugParams{
@@ -181,8 +193,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// and it is built from portal.ID rather than req.Portal: req.Portal accepts
 	// an id or a slug, legacy tuples match literally, and a slug-shaped tuple
 	// could never match a dashboard-granted portal.pc_*.create_portal_session.
-	// The wildcard branch is spelled out for the same reason: `*` in a stored
-	// grant is matched literally, it does not expand.
+	// The wildcard tuple branch is spelled out for the same reason: `*` in a
+	// stored legacy grant is matched literally, it does not expand.
+	//
+	// The canonical arm is a write on the portal's session sub-resource, with a
+	// wildcard session id because the session does not exist yet. The legacy
+	// tuple arms stay until callers have migrated.
+	//
+	// There is deliberately no arm on the portal resource itself: administering a
+	// portal must not imply minting sessions for its end users. A grant naming
+	// the portal does not cover its sessions child, so that separation holds.
+	//
+	// A workspace-wide grant is a different matter, and worth being precise
+	// about: one is not spelled out here, but a stored `**#*` satisfies the
+	// canonical arm anyway, because URN evaluation expands it over any
+	// descendant. Nothing in this Or withholds it. What keeps a dashboard admin
+	// from minting is requireRootKeyCredential above, and only that.
 	if err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Portal,
@@ -194,6 +220,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   portal.ID,
 			Action:       rbac.CreatePortalSession,
 		}),
+		rbac.U(
+			urn.New().Workspace(workspaceID).Project(portal.ProjectID).Portal(portal.ID).Session("*"),
+			permissions.Write,
+		),
 	)); err != nil {
 		// Masked as 404 so a caller short of the minting permission cannot tell an
 		// existing portal from an absent one, or learn the resolved portal id --
@@ -234,12 +264,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	now := h.Clock.Now()
-	sessionID := uid.New(uid.PortalSessionPrefix)
-
-	// The exchange code is a bearer credential: it is returned to the caller
-	// once, embedded in the redirect URL, and stored only as a hash.
-	exchangeCode := string(uid.PortalExchangeCodePrefix) + "_" + uid.Secure()
-	exchangeCodeExpiresAt := now.Add(15 * time.Minute).UnixMilli()
 
 	verbs := make([]string, len(req.Scopes))
 	for i, p := range req.Scopes {
@@ -278,90 +302,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		returnURL = sql.NullString{Valid: true, String: *req.ReturnUrl}
 	}
 
-	err = db.Tx(ctx, h.DB.RW(), func(txCtx context.Context, tx db.DBTX) error {
-		// Re-read on the primary inside the write transaction. The resolve above
-		// runs on the read-only connection, so a portal deleted moments earlier can
-		// still appear live there.
-		//
-		// This matters because deleting a portal revokes its sessions: revocation
-		// only touches rows that exist when it runs, so a session minted in the
-		// replica-lag window would survive the delete, and once the portal row is
-		// gone nothing can revoke it afterwards. Losing the race here costs the
-		// caller a retry; losing it silently costs an end user access that was
-		// supposed to be cut.
-		if _, txErr := db.Query.FindPortalByIdOrSlug(txCtx, tx, db.FindPortalByIdOrSlugParams{
-			WorkspaceID: workspaceID,
-			Portal:      portal.ID,
-		}); txErr != nil {
-			if db.IsNotFound(txErr) {
-				return fault.New("portal not found",
-					fault.Code(codes.Data.Portal.NotFound.URN()),
-					fault.Internal(fmt.Sprintf("portal %s was deleted between the replica read and the session insert", portal.ID)),
-					fault.Public("Portal not found."),
-				)
-			}
-			return fault.Wrap(txErr,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database error re-reading portal before minting a session"),
-				fault.Public("Failed to create session."),
-			)
-		}
-
-		if txErr := db.Query.InsertPortalSession(txCtx, tx, db.InsertPortalSessionParams{
-			ID:                    sessionID,
-			WorkspaceID:           workspaceID,
-			PortalID:              portal.ID,
-			ExternalID:            req.ExternalId,
-			Scopes:                scopesJSON,
-			Preview:               preview,
-			ExchangeCodeHash:      hash.Sha256(exchangeCode),
-			ExchangeCodeExpiresAt: exchangeCodeExpiresAt,
-			ReturnUrl:             returnURL,
-			CreatedAt:             now.UnixMilli(),
-		}); txErr != nil {
-			return fault.Wrap(txErr,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("failed to insert portal session"),
-				fault.Public("Failed to create session."),
-			)
-		}
-
-		if txErr := h.Auditlogs.Insert(txCtx, tx, []auditlog.AuditLog{
-			{
-				Event:         auditlog.PortalSessionCreateEvent,
-				WorkspaceID:   workspaceID,
-				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
-				ActorID:       principal.Subject.ID,
-				ActorName:     principal.Subject.Name,
-				ActorMeta:     map[string]any{},
-				Display:       fmt.Sprintf("Created portal session for %s", req.ExternalId),
-				RemoteIP:      s.Location(),
-				UserAgent:     s.UserAgent(),
-				CorrelationID: "",
-				Resources: []auditlog.AuditLogResource{
-					{
-						ID:          sessionID,
-						DisplayName: req.ExternalId,
-						Name:        req.ExternalId,
-						Meta: map[string]any{
-							"portalId":    portal.ID,
-							"slug":        portal.Slug,
-							"scopes":      verbs,
-							"keyspaceIds": keyspaceIDs,
-						},
-						Type: auditlog.PortalSessionResourceType,
-					},
-				},
-			},
-		}); txErr != nil {
-			return fault.Wrap(txErr,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("failed to insert audit log"),
-				fault.Public("Failed to create session."),
-			)
-		}
-
-		return nil
+	sessionID, exchangeCode, err := h.mintSession(ctx, s, principal, mintRequest{
+		Portal:      portal,
+		ExternalID:  req.ExternalId,
+		Scopes:      verbs,
+		KeyspaceIDs: keyspaceIDs,
+		ScopesJSON:  scopesJSON,
+		Preview:     preview,
+		ReturnURL:   returnURL,
+		Now:         now,
 	})
 	if err != nil {
 		return err
@@ -381,6 +330,190 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Url: portalURL,
 		},
 	})
+}
+
+// mintRequest carries everything one portal session row and its audit record
+// need, already resolved and authorized by the caller.
+type mintRequest struct {
+	// Portal is the row the session belongs to, re-read inside the write
+	// transaction before anything is inserted.
+	Portal db.Portal
+
+	// ExternalID is the end user the minted session authenticates as.
+	ExternalID string
+
+	// Scopes are the granted portal verbs, recorded in the audit entry.
+	Scopes []string
+
+	// KeyspaceIDs are the keyspaces the session is bound to.
+	KeyspaceIDs []string
+
+	// ScopesJSON is the serialized grant stored on the row.
+	ScopesJSON []byte
+
+	// Preview marks a session minted for the dashboard's portal preview.
+	Preview bool
+
+	// ReturnURL is the optional link the portal renders back to the operator.
+	ReturnURL sql.NullString
+
+	// Now anchors the row's creation and the exchange code's expiry.
+	Now time.Time
+}
+
+// mintSession writes a portal session row and its audit record, returning the
+// session's non-secret handle and its one-time exchange code.
+//
+// Every portal session is minted through here so [requireRootKeyCredential]
+// applies to the capability rather than to one route: a second mint path
+// inherits the restriction by calling this.
+func (h *Handler) mintSession(
+	ctx context.Context,
+	s *zen.Session,
+	principal *authprincipal.Principal,
+	req mintRequest,
+) (string, string, error) {
+	if err := requireRootKeyCredential(principal); err != nil {
+		return "", "", err
+	}
+
+	workspaceID := principal.AuthorizedWorkspaceID
+	sessionID := uid.New(uid.PortalSessionPrefix)
+
+	// The exchange code is a bearer credential: it is returned to the caller
+	// once, embedded in the redirect URL, and stored only as a hash.
+	exchangeCode := string(uid.PortalExchangeCodePrefix) + "_" + uid.Secure()
+	exchangeCodeExpiresAt := req.Now.Add(15 * time.Minute).UnixMilli()
+
+	err := db.Tx(ctx, h.DB.RW(), func(txCtx context.Context, tx db.DBTX) error {
+		// Re-read on the primary inside the write transaction. The resolve above
+		// runs on the read-only connection, so a portal deleted moments earlier can
+		// still appear live there.
+		//
+		// This matters because deleting a portal revokes its sessions: revocation
+		// only touches rows that exist when it runs, so a session minted in the
+		// replica-lag window would survive the delete, and once the portal row is
+		// gone nothing can revoke it afterwards. Losing the race here costs the
+		// caller a retry; losing it silently costs an end user access that was
+		// supposed to be cut.
+		if _, txErr := db.Query.FindPortalByIdOrSlug(txCtx, tx, db.FindPortalByIdOrSlugParams{
+			WorkspaceID: workspaceID,
+			Portal:      req.Portal.ID,
+		}); txErr != nil {
+			if db.IsNotFound(txErr) {
+				return fault.New("portal not found",
+					fault.Code(codes.Data.Portal.NotFound.URN()),
+					fault.Internal(fmt.Sprintf("portal %s was deleted between the replica read and the session insert", req.Portal.ID)),
+					fault.Public("Portal not found."),
+				)
+			}
+			return fault.Wrap(txErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error re-reading portal before minting a session"),
+				fault.Public("Failed to create session."),
+			)
+		}
+
+		if txErr := db.Query.InsertPortalSession(txCtx, tx, db.InsertPortalSessionParams{
+			ID:                    sessionID,
+			WorkspaceID:           workspaceID,
+			PortalID:              req.Portal.ID,
+			ExternalID:            req.ExternalID,
+			Scopes:                req.ScopesJSON,
+			Preview:               req.Preview,
+			ExchangeCodeHash:      hash.Sha256(exchangeCode),
+			ExchangeCodeExpiresAt: exchangeCodeExpiresAt,
+			ReturnUrl:             req.ReturnURL,
+			CreatedAt:             req.Now.UnixMilli(),
+		}); txErr != nil {
+			return fault.Wrap(txErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("failed to insert portal session"),
+				fault.Public("Failed to create session."),
+			)
+		}
+
+		// The actor is the minting root key, the target the session it minted.
+		// A reroll performed later inside the session is attributed to the end
+		// user, so this entry is the only place the two are joined.
+		if txErr := h.Auditlogs.Insert(txCtx, tx, []auditlog.AuditLog{
+			{
+				Event:         auditlog.PortalSessionCreateEvent,
+				WorkspaceID:   workspaceID,
+				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+				ActorID:       principal.Subject.ID,
+				ActorName:     principal.Subject.Name,
+				ActorMeta:     map[string]any{},
+				Display:       fmt.Sprintf("Created portal session for %s", req.ExternalID),
+				RemoteIP:      s.Location(),
+				UserAgent:     s.UserAgent(),
+				CorrelationID: "",
+				Resources: []auditlog.AuditLogResource{
+					{
+						ID:          sessionID,
+						DisplayName: req.ExternalID,
+						Name:        req.ExternalID,
+						Meta: map[string]any{
+							"portalId":    req.Portal.ID,
+							"slug":        req.Portal.Slug,
+							"scopes":      req.Scopes,
+							"keyspaceIds": req.KeyspaceIDs,
+						},
+						Type: auditlog.PortalSessionResourceType,
+					},
+				},
+			},
+		}); txErr != nil {
+			return fault.Wrap(txErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("failed to insert audit log"),
+				fault.Public("Failed to create session."),
+			)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return "", "", err
+	}
+
+	return sessionID, exchangeCode, nil
+}
+
+// requireRootKeyCredential admits only a root key to mint a portal session.
+//
+// It is an allow-list over the credential type, and the switch names every
+// member of the enum so that a fourth credential type fails the exhaustive
+// linter until someone decides explicitly whether it may mint.
+//
+// The two refused arms are not equivalent. A portal session cannot reach the
+// createSession route at all, because route registration authenticates it on
+// the root-key stack only, so that arm is defence in depth. A dashboard token
+// does reach it, and for that credential this check is the only control: the
+// WorkOS admin role grants unkey:v1:{workspace}:**#*, which covers the portal
+// session URN stage 1 evaluates. Without this, any workspace admin could mint a
+// session for an arbitrary external id and receive a URL that authenticates as
+// that end user.
+func requireRootKeyCredential(principal *authprincipal.Principal) error {
+	var mayMint bool
+	switch principal.Type {
+	case authprincipal.TypeAPIKey:
+		// Only root keys carry this type in svc/api: the resolver that produces
+		// it rejects any key that is not a root key.
+		mayMint = true
+	case authprincipal.TypeJWT, authprincipal.TypePortalSession:
+		mayMint = false
+	}
+
+	if mayMint {
+		return nil
+	}
+
+	return fault.New("portal session minting requires a root key",
+		fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+		fault.Internal(fmt.Sprintf("credential type %q may not mint portal sessions", principal.Type)),
+		fault.Public("Portal sessions can only be created with a root key."),
+	)
 }
 
 // validateScopeCombination rejects a scope set the portal cannot serve.

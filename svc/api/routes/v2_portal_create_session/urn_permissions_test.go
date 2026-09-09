@@ -13,43 +13,25 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_create_session"
 )
 
-// This file pins the inverse of what most urn_permissions_test.go files assert.
-// Elsewhere a canonical URN grant is expected to authorize a route. Portal
-// session minting evaluates legacy tuples only, so a URN grant -- including the
-// global permission produced by the JWT admin role -- is denied here.
-//
-// That is a deliberate, accepted consequence rather than an oversight: a
-// separate migration moves all of authorization to URN-only, and half-converting
-// it from this route would leave call sites in two different worlds. The
-// practical effect is that no dashboard JWT principal can mint a portal session
-// until that migration lands.
-//
-// These tests are the signal for that migration. When URN arms are added here
-// they will fail, and each expectation flips from denied to allowed.
-
-// urnDenialFixture seeds a keyspace-mapped portal, under the given slug, whose
+// sessionURNFixture seeds a keyspace-mapped portal, under the given slug, whose
 // keyspace has an owning API. Stage 2 needs that API to express its API-scoped
 // checks, so a portal without one would fail for the wrong reason. It returns
-// the project and keyspace IDs for canonical URN grants.
-func urnDenialFixture(t *testing.T, h *testutil.Harness, slug string) (string, string) {
+// the project and portal ids a canonical session grant names.
+func sessionURNFixture(t *testing.T, h *testutil.Harness, slug string) (string, string) {
 	t.Helper()
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	api := h.CreateApi(seed.CreateApiRequest{
-		WorkspaceID:   workspaceID,
-		IpWhitelist:   "",
-		EncryptedKeys: false,
-		Name:          nil,
-		CreatedAt:     nil,
-		DefaultPrefix: nil,
-		DefaultBytes:  nil,
-	})
-	insertKeyspacePortal(t, h, workspaceID, slug, api.KeyAuthID.String)
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
+	portalID := insertKeyspacePortal(t, h, workspaceID, slug, api.KeyAuthID.String)
 
-	return api.ProjectID, api.KeyAuthID.String
+	return api.ProjectID, portalID
 }
 
-func TestCreateSessionDeniesURNGrants(t *testing.T) {
+// TestCreateSessionAuthorizesCanonicalSessionURNs pins which canonical grants
+// reach stage 1. The requirement is write on the portal's session sub-resource
+// with a wildcard session id, because the session does not exist at check time,
+// so a grant that stops at the portal itself is not enough.
+func TestCreateSessionAuthorizesCanonicalSessionURNs(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
 		DB:            h.DB,
@@ -60,71 +42,98 @@ func TestCreateSessionDeniesURNGrants(t *testing.T) {
 	h.Register(route)
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	projectID, portalID := sessionURNFixture(t, h, "urn-session-portal")
+	otherProjectID := uid.New(uid.ProjectPrefix)
 
-	t.Run("admin grant cannot mint", func(t *testing.T) {
-		slug := "urn-admin-portal"
-		_, _ = urnDenialFixture(t, h, slug)
+	// Stage 2 still evaluates legacy tuples only, so every case carries the
+	// keys:read requirements as tuples. Stage 1 is what is under test.
+	keyGrants := []string{"api.*.read_key", "api.*.read_api"}
 
-		// This is exactly what the JWT admin role expands to, so this case
-		// also asserts that dashboard JWT principals cannot mint.
-		rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:**#*", workspaceID))
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
+	testCases := []struct {
+		name       string
+		resource   string
+		action     string
+		shouldPass bool
+	}{
+		{name: "sessions of this portal", resource: fmt.Sprintf("projects/%s/portals/%s/sessions/*", projectID, portalID), action: "write", shouldPass: true},
+		{name: "this portal subtree", resource: fmt.Sprintf("projects/%s/portals/%s/**", projectID, portalID), action: "write", shouldPass: true},
+		{name: "project subtree", resource: fmt.Sprintf("projects/%s/**", projectID), action: "write", shouldPass: true},
+		{name: "workspace-wide write", resource: "**", action: "write", shouldPass: true},
+		{name: "workspace-wide admin", resource: "**", action: "*", shouldPass: true},
 
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{
-			Portal:     slug,
-			ExternalId: uid.New(uid.TestPrefix),
-			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead},
+		// The portal resource governs administering the portal. Minting a
+		// session is a write on its session sub-resource, so a grant that stops
+		// at the portal must not reach here.
+		{name: "the portal itself", resource: fmt.Sprintf("projects/%s/portals/%s", projectID, portalID), action: "write", shouldPass: false},
+		{name: "every portal in the project", resource: fmt.Sprintf("projects/%s/portals/*", projectID), action: "write", shouldPass: false},
+
+		{name: "sessions of this portal in another project", resource: fmt.Sprintf("projects/%s/portals/%s/sessions/*", otherProjectID, portalID), action: "write", shouldPass: false},
+		{name: "one concrete session", resource: fmt.Sprintf("projects/%s/portals/%s/sessions/%s", projectID, portalID, uid.New(uid.PortalSessionPrefix)), action: "write", shouldPass: false},
+		{name: "reading sessions", resource: fmt.Sprintf("projects/%s/portals/%s/sessions/*", projectID, portalID), action: "read", shouldPass: false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			grants := append([]string{fmt.Sprintf("unkey:v1:%s:%s#%s", workspaceID, tc.resource, tc.action)}, keyGrants...)
+			rootKey := h.CreateRootKey(workspaceID, grants...)
+			headers := http.Header{
+				"Content-Type":  {"application/json"},
+				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+			}
+
+			externalID := uid.New(uid.TestPrefix)
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+				Portal:     "urn-session-portal",
+				ExternalId: externalID,
+				Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead},
+			})
+
+			if tc.shouldPass {
+				require.Equal(t, http.StatusOK, res.Status, "the grant must authorize minting: %s", res.RawBody)
+				return
+			}
+
+			// Stage-1 denials stay masked as 404 whichever vocabulary they were
+			// evaluated in.
+			require.Equal(t, http.StatusNotFound, res.Status, "expected a masked denial, got: %s", res.RawBody)
+			require.NotContains(t, res.RawBody, portalID, "a denial must not disclose the resolved portal id")
+			require.Zero(t, countPortalSessions(t, h, workspaceID, externalID), "a denial must write no session row")
+			require.Zero(t, countAuditEntriesMentioning(t, h, workspaceID, externalID), "a denial must write no audit entry")
 		})
-		require.Equal(t, http.StatusNotFound, res.Status, "a stage-1 denial is masked as 404, got: %s", res.RawBody)
+	}
+}
+
+// TestCreateSessionKeepsGrantVocabulariesSeparate pins that the two grant forms
+// are not interchangeable across stages: stage 1 accepting a canonical URN does
+// not make stage 2 accept one.
+func TestCreateSessionKeepsGrantVocabulariesSeparate(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{
+		DB:            h.DB,
+		Auditlogs:     h.Auditlogs,
+		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
+	}
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
+	insertKeyspacePortal(t, h, workspaceID, "urn-mixed-portal", api.KeyAuthID.String)
+
+	rootKey := h.CreateRootKey(workspaceID,
+		"portal.*.create_portal_session",
+		fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read", workspaceID, api.ProjectID, api.KeyAuthID.String),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read", workspaceID, api.ProjectID, api.KeyAuthID.String),
+	)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, handler.Request{
+		Portal:     "urn-mixed-portal",
+		ExternalId: uid.New(uid.TestPrefix),
+		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead},
 	})
-
-	t.Run("canonical URN grants cannot mint", func(t *testing.T) {
-		slug := "urn-portal-portal"
-		projectID, keyspaceID := urnDenialFixture(t, h, slug)
-
-		// Valid project-scoped URN grants do not satisfy the legacy portal tuple.
-		// Stage 1 refuses them first.
-		rootKey := h.CreateRootKey(workspaceID,
-			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read", workspaceID, projectID, keyspaceID),
-			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read", workspaceID, projectID, keyspaceID),
-		)
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, handler.Request{
-			Portal:     slug,
-			ExternalId: uid.New(uid.TestPrefix),
-			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead},
-		})
-		require.Equal(t, http.StatusNotFound, res.Status, "a stage-1 denial is masked as 404, got: %s", res.RawBody)
-	})
-
-	t.Run("legacy portal tuple with URN-only scope grant is refused at stage 2", func(t *testing.T) {
-		slug := "urn-mixed-portal"
-		projectID, keyspaceID := urnDenialFixture(t, h, slug)
-
-		// Stage 1 passes on the legacy tuple, so this isolates stage 2 and shows
-		// the two grant forms are not interchangeable there either.
-		rootKey := h.CreateRootKey(workspaceID,
-			"portal.*.create_portal_session",
-			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read", workspaceID, projectID, keyspaceID),
-			fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read", workspaceID, projectID, keyspaceID),
-		)
-		headers := http.Header{
-			"Content-Type":  {"application/json"},
-			"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-		}
-
-		res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, handler.Request{
-			Portal:     slug,
-			ExternalId: uid.New(uid.TestPrefix),
-			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead},
-		})
-		require.Equal(t, http.StatusForbidden, res.Status, "got: %s", res.RawBody)
-	})
+	require.Equal(t, http.StatusForbidden, res.Status, "got: %s", res.RawBody)
 }
