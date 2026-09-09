@@ -105,8 +105,8 @@ type Workflow struct {
 
 	restateAdmin *restateadmin.Client
 
-	// asWorkflow marks the instance bound as DeployWorkflow. The SDK passes one
-	// context type to every handler, so the service cannot be told from ctx
+	// asWorkflow is true for the DeployWorkflow instance and false for the
+	// DeployService one
 	asWorkflow bool
 }
 
