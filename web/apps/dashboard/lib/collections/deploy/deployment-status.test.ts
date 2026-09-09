@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  DEFAULT_DEPLOYMENT_STATUS_GROUPS,
   DEPLOYMENT_STATUSES,
   DEPLOYMENT_STATUS_GROUPS,
   DEPLOYMENT_STATUS_GROUP_NAMES,
@@ -36,6 +37,18 @@ describe("DEPLOYMENT_STATUS_GROUPS", () => {
       "cancelled",
       "superseded",
       "stopped",
+    ]);
+  });
+});
+
+describe("DEFAULT_DEPLOYMENT_STATUS_GROUPS", () => {
+  test("holds every group except the ones out of play", () => {
+    expect(DEFAULT_DEPLOYMENT_STATUS_GROUPS).toEqual([
+      "ready",
+      "failed",
+      "building",
+      "queued",
+      "blocked",
     ]);
   });
 });
