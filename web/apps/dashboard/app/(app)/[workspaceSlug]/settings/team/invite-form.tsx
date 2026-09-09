@@ -195,7 +195,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                     onClick={() => remove(index)}
                     aria-label={`Remove invite ${index + 1}`}
                   >
-                    <IconXmarkOutline18 className="w-4 h-4" aria-hidden="true" />
+                    <IconXmarkOutline18 className="size-4" aria-hidden="true" />
                   </Button>
                 )}
               </div>
@@ -210,7 +210,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                 size="sm"
                 onClick={() => append({ email: "", role: "developer" as const })}
               >
-                <IconPlusOutline18 className="w-4 h-4" />
+                <IconPlusOutline18 className="size-4" />
                 <span>Add more</span>
               </Button>
 

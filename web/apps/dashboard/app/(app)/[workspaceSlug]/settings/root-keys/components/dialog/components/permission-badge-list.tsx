@@ -126,7 +126,7 @@ const CollapsibleList = ({
         )}
       >
         <ListTitle title={title} count={info.length} category={name} />
-        <IconCaretRightOutline18 className="w-4 h-4 transition-transform duration-200 ml-auto text-grayA-7" />
+        <IconCaretRightOutline18 className="size-4 transition-transform duration-200 ml-auto text-grayA-7" />
       </CollapsibleTrigger>
       <CollapsibleContent>
         <ListBadges info={info} removePermission={removePermission} />
