@@ -32,6 +32,8 @@ var resourcePathShapes = [][]string{
 	{"projects", resourceIDSegment, "keyspaces", resourceIDSegment},
 	{"projects", resourceIDSegment, "keyspaces", resourceIDSegment, "logs"},
 	{"projects", resourceIDSegment, "keyspaces", resourceIDSegment, "keys", resourceIDSegment},
+	{"projects", resourceIDSegment, "portals", resourceIDSegment},
+	{"projects", resourceIDSegment, "portals", resourceIDSegment, "sessions", resourceIDSegment},
 	{"projects", resourceIDSegment, "ratelimits", "namespaces", resourceIDSegment},
 	{"projects", resourceIDSegment, "ratelimits", "namespaces", resourceIDSegment, "logs"},
 	{"projects", resourceIDSegment, "ratelimits", "namespaces", resourceIDSegment, "overrides", resourceIDSegment},

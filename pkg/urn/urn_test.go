@@ -30,6 +30,11 @@ func TestParseV1AllowsCanonicalPatterns(t *testing.T) {
 	for _, value := range []string{
 		"unkey:v1:ws_123:github/apps/*",
 		"unkey:v1:ws_123:projects/*",
+		"unkey:v1:ws_123:projects/*/portals/*",
+		"unkey:v1:ws_123:projects/*/portals/*/sessions/*",
+		"unkey:v1:ws_123:projects/proj_123/portals/portal_123",
+		"unkey:v1:ws_123:projects/proj_123/portals/portal_123/sessions/sess_123",
+		"unkey:v1:ws_123:projects/proj_123/portals/portal_123/**",
 		"unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*/logs",
 		"unkey:v1:ws_123:projects/*/apps/*/environments/*/gateway/logs",
 		"unkey:v1:ws_123:projects/*/keyspaces/*/logs",
@@ -74,6 +79,9 @@ func TestParseV1RejectsInvalidValues(t *testing.T) {
 		"unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway",
 		"unkey:v1:ws_123:projects/proj_123/rbac",
 		"unkey:v1:ws_123:projects/*/apps/app_123",
+		"unkey:v1:ws_123:projects/*/portals/portal_123",
+		"unkey:v1:ws_123:projects/*/portals/*/sessions/sess_123",
+		"unkey:v1:ws_123:projects/proj_123/portals/portal_123/sessions",
 		"unkey:v1:ws_123:projects/proj_123/apps/*/environments/env_123",
 		"unkey:v1:ws_123:projects/proj_123/keyspaces/*/keys/key_123",
 		"unkey:v1:ws_123:projects/proj_123/apps/**/environments/*",
@@ -103,6 +111,7 @@ func TestResourceCatalogBuilders(t *testing.T) {
 	deployment := environment.Deployment("dep_123")
 	keyspace := project.Keyspace("ks_123")
 	namespace := project.RatelimitNamespace("ns_123")
+	portal := project.Portal("portal_123")
 
 	tests := []struct {
 		name string
@@ -126,6 +135,10 @@ func TestResourceCatalogBuilders(t *testing.T) {
 		{name: "rate limit namespace", got: namespace.String(), want: "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123"},
 		{name: "rate limit logs", got: namespace.Logs().String(), want: "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/logs"},
 		{name: "rate limit override", got: namespace.Override("ov_123").String(), want: "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/overrides/ov_123"},
+		{name: "portal", got: portal.String(), want: "unkey:v1:ws_123:projects/proj_123/portals/portal_123"},
+		{name: "portal session", got: portal.Session("sess_123").String(), want: "unkey:v1:ws_123:projects/proj_123/portals/portal_123/sessions/sess_123"},
+		{name: "wildcard portal", got: project.Portal("*").String(), want: "unkey:v1:ws_123:projects/proj_123/portals/*"},
+		{name: "wildcard portal session", got: portal.Session("*").String(), want: "unkey:v1:ws_123:projects/proj_123/portals/portal_123/sessions/*"},
 		{name: "role", got: project.RBAC().Role("role_123").String(), want: "unkey:v1:ws_123:projects/proj_123/rbac/roles/role_123"},
 		{name: "permission", got: project.RBAC().Permission("perm_123").String(), want: "unkey:v1:ws_123:projects/proj_123/rbac/permissions/perm_123"},
 	}
@@ -158,9 +171,32 @@ func TestResourceCatalogDescendantBuilders(t *testing.T) {
 		environment.Deployment("dep_123").Any().String(),
 		project.Keyspace("ks_123").Any().String(),
 		project.RatelimitNamespace("ns_123").Any().String(),
+		project.Portal("portal_123").Any().String(),
 	} {
 		_, err := ParseV1(value)
 		require.NoError(t, err, value)
+	}
+}
+
+// TestBuiltNamesWithReservedCharactersDoNotParse guarantees a builder cannot
+// smuggle a reserved character past the parser by hiding it in an ID segment.
+func TestBuiltNamesWithReservedCharactersDoNotParse(t *testing.T) {
+	t.Parallel()
+
+	workspace := New().Workspace("ws_123")
+	for _, value := range []string{
+		workspace.Project("proj:123").Portal("portal_123").String(),
+		workspace.Project("proj#123").Portal("portal_123").String(),
+		workspace.Project("proj/123").Portal("portal_123").String(),
+		workspace.Project("proj_123").Portal("portal:123").Session("sess_123").String(),
+	} {
+		value := value
+		t.Run(value, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := ParseV1(value)
+			require.ErrorIs(t, err, ErrInvalidResourceName)
+		})
 	}
 }
 
