@@ -58,6 +58,30 @@ func errorForOutcome(outcome hydrav1.CreateOutcome, detail string) error {
 			fault.Public("That deployment never finished building, so there is nothing to redeploy. Choose a deployment that succeeded, or deploy an image."),
 		)
 
+	case hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_COMMIT:
+		return fault.New(
+			"no source commit",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Internal("create rejected: git deployment recorded no commit"),
+			fault.Public("That deployment was a Git build but recorded no commit, so there is nothing to rebuild. Choose another deployment, or deploy a branch or commit."),
+		)
+
+	case hydrav1.CreateOutcome_CREATE_OUTCOME_NO_IMAGE_CONFIGURED:
+		return fault.New(
+			"no image configured",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Internal("create rejected: OCI app has no image configured"),
+			fault.Public("This app deploys a container image but none is configured. Set an image on the app, or pass one in the request."),
+		)
+
+	case hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE:
+		return fault.New(
+			"no source",
+			fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+			fault.Internal("create rejected: no source in the request and nothing to fall back to"),
+			fault.Public("Nothing to deploy. Pass a git, image, or deployment source; this app has no repository connected and has never deployed."),
+		)
+
 	case hydrav1.CreateOutcome_CREATE_OUTCOME_NEWER_DEPLOYMENT_EXISTS:
 		return fault.New(
 			"newer deployment exists",

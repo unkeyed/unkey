@@ -61,6 +61,27 @@ func TestWorkerRejections(t *testing.T) {
 			wantDetail: "That deployment never finished building, so there is nothing to redeploy.",
 		},
 		{
+			name:       "no source commit",
+			outcome:    hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_COMMIT,
+			status:     http.StatusPreconditionFailed,
+			docs:       "https://unkey.com/docs/errors/unkey/application/precondition_failed",
+			wantDetail: "That deployment was a Git build but recorded no commit, so there is nothing to rebuild.",
+		},
+		{
+			name:       "no image configured",
+			outcome:    hydrav1.CreateOutcome_CREATE_OUTCOME_NO_IMAGE_CONFIGURED,
+			status:     http.StatusPreconditionFailed,
+			docs:       "https://unkey.com/docs/errors/unkey/application/precondition_failed",
+			wantDetail: "This app deploys a container image but none is configured.",
+		},
+		{
+			name:       "no source",
+			outcome:    hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE,
+			status:     http.StatusPreconditionFailed,
+			docs:       "https://unkey.com/docs/errors/unkey/application/precondition_failed",
+			wantDetail: "Nothing to deploy. Pass a git, image, or deployment source",
+		},
+		{
 			name:       "commit not resolved shows the branch and commit",
 			outcome:    hydrav1.CreateOutcome_CREATE_OUTCOME_COMMIT_NOT_RESOLVED,
 			detail:     `branch "release" or commit "" not found in acme/api`,
