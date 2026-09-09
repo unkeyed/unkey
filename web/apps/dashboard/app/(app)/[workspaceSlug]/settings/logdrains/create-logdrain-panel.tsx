@@ -26,7 +26,7 @@ import {
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { DESTINATIONS, DrainMedia } from "./drain-destinations";
-import { DestinationFields, NameField, StartFromField } from "./drain-fields";
+import { DestinationFields, NameField } from "./drain-fields";
 import {
   type DrainFormValues,
   type DrainKind,
@@ -101,7 +101,6 @@ export function CreateLogdrainPanel({
     create.mutate({
       name: values.name.trim(),
       stream: "audit_logs",
-      startFrom: values.startFrom,
       ...destination,
     });
   });
@@ -169,7 +168,6 @@ export function CreateLogdrainPanel({
                 <div className="flex flex-col gap-6">
                   <NameField />
                   <DestinationFields tokenRequired />
-                  <StartFromField />
                 </div>
               </DrainStepCard>
             </div>

@@ -36,7 +36,6 @@ export const createLogdrain = workspaceProcedure
       .object({
         name: z.string().trim().min(1).max(128),
         stream: streamSchema.default("audit_logs"),
-        startFrom: z.enum(["now", "beginning"]).default("now"),
       })
       .and(destinationSchema),
   )
@@ -67,7 +66,6 @@ export const createLogdrain = workspaceProcedure
           throw new Error(`Unsupported log drain sink: ${input satisfies never}`);
       }
       const now = Date.now();
-      const initialOffset = input.startFrom === "beginning" ? 0 : now;
 
       await db.transaction(async (tx) => {
         await tx.insert(schema.logdrains).values({
@@ -76,7 +74,7 @@ export const createLogdrain = workspaceProcedure
           name: input.name,
           stream: input.stream,
           config,
-          committedOffsetInsertedAt: initialOffset,
+          committedOffsetInsertedAt: now,
           leaseId: "",
           fencingToken: "",
           createdAt: now,

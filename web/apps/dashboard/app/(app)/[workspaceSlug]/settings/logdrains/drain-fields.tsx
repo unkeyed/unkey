@@ -2,7 +2,7 @@
 
 import { Plus, Trash } from "@unkey/icons";
 import { Button, FormInput } from "@unkey/ui";
-import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
+import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { DrainEndpointRow } from "./drain-endpoint-row";
 import { type DrainFormValues, emptyHeaderRow } from "./drain-schema";
 
@@ -18,47 +18,6 @@ export function NameField() {
       placeholder="Production audit logs"
       error={formState.errors.name?.message}
       {...register("name")}
-    />
-  );
-}
-
-const START_FROM_OPTIONS: ReadonlyArray<{
-  value: DrainFormValues["startFrom"];
-  label: string;
-}> = [
-  { value: "now", label: "New audit logs" },
-  { value: "beginning", label: "All retained audit logs" },
-];
-
-export function StartFromField() {
-  const { control } = useFormContext<DrainFormValues>();
-
-  return (
-    <Controller
-      control={control}
-      name="startFrom"
-      render={({ field }) => (
-        <fieldset className="flex flex-col gap-1.5">
-          <legend className="text-[13px] text-gray-11">Start delivery from</legend>
-          <span className="text-xs text-gray-9">
-            Choose how far back Unkey sends retained audit logs.
-          </span>
-          <div className="flex w-fit rounded-lg border border-grayA-4 p-1">
-            {START_FROM_OPTIONS.map((option) => (
-              <Button
-                type="button"
-                key={option.value}
-                size="sm"
-                variant={field.value === option.value ? "primary" : "ghost"}
-                aria-pressed={field.value === option.value}
-                onClick={() => field.onChange(option.value)}
-              >
-                {option.label}
-              </Button>
-            ))}
-          </div>
-        </fieldset>
-      )}
     />
   );
 }

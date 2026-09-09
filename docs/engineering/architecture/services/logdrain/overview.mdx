@@ -47,43 +47,113 @@ svc/logdrain process
 
 ## Delivery cycle
 
-On each poll, the delivery engine finds enabled, active drains assigned to its
+On each poll, the delivery engine finds running drains assigned to its
 lease ID that have reached `next_attempt_at`. It passes the drain ID and
 fencing token to a worker. The worker reads the drain only if that token still
 identifies a valid lease. If the lease expired or another process acquired it,
 the worker stops.
 
-For a valid lease, the worker reads events between the committed cursor and a
-safe upper time boundary. It sends the events as one batch. After a successful
-request, a fenced write advances the cursor only if the lease is still valid.
-An unacknowledged response records its status and body in delivery telemetry.
-An unexpected delivery failure records its error in delivery telemetry. Both
-cases schedule a retry without advancing the cursor. If a full batch succeeds,
-the worker reads the next batch immediately. A short or empty batch means the
-worker reached the safe upper time boundary. The worker commits that boundary,
-schedules the next attempt after `PollInterval`, and returns to the pool.
+The engine owns leases, delivery, and durable progress. A `batchReader` owns
+source queries and adaptive windows. It returns a page containing events, a
+proposed next cursor, and a `caughtUp` flag. Reading a page does not commit its
+cursor. The engine commits only after the destination acknowledges all events
+in that page. Empty pages need no destination request.
 
-```plaintext
-poll due leases
-      │
-      ▼
-enqueue drain ID and fencing token
-      │
-      ▼
-read drain with fencing token ── stale lease ──▶ stop
-      │
-      ▼
-read next ClickHouse batch ───── no events ───▶ advance safe boundary
-      │
-      ▼
-send batch to destination ── rejected or error ──▶ retry or pause
-      │
-      ▼
-advance cursor with fencing token
-      │
-      ├── full batch ──▶ read next batch
-      └── short or empty batch ──▶ wait PollInterval
+After each commit, the engine immediately reads another page unless
+`caughtUp` is true. A partial or empty page can exhaust one window without
+reaching the watermark. It does not cause a poll delay while a backlog remains.
+
+```mermaid
+stateDiagram-v2
+    state "Queue drain and fix watermark" as Queued
+    state "Read configuration and committed cursor with lease fence" as CheckLease
+    state "Read page through batchReader" as ReadPage
+    state "Send events to destination" as Deliver
+    state "Commit proposed cursor with lease fence" as Commit
+    state "Wait PollInterval" as Wait
+    state "Record retry or pause without advancing cursor" as Failure
+    state "Stop this cycle" as Stop
+
+    [*] --> Queued
+    Queued --> CheckLease: worker starts with a 1-minute window
+    CheckLease --> ReadPage: valid, due, cursor before watermark
+    CheckLease --> Stop: not eligible, read error, or already caught up
+    ReadPage --> Deliver: page contains events
+    ReadPage --> Commit: empty page
+    ReadPage --> Failure: source error
+    Deliver --> Commit: acknowledged
+    Deliver --> Failure: rejected or failed
+    Commit --> CheckLease: committed and not caught up / no delay
+    Commit --> Wait: committed and caught up
+    Commit --> Stop: write error or fence rejects update
+    Failure --> Stop
+    Wait --> [*]
+    Stop --> [*]
+
+    note right of Commit
+        No backlog: next_attempt_at = MySQL now + PollInterval.
+        Backlog remains: next_attempt_at = MySQL now.
+        An acknowledged but uncommitted batch can be delivered again.
+    end note
 ```
+
+Cancellation stops the cycle. It does not mark a source cancellation as a
+retryable failure. If the failure-state write fails or loses its fence, the
+worker also stops. These exits never authorize a cursor advance.
+
+### Adaptive read windows
+
+Each cycle starts with a 1-minute window and one fixed watermark. The reader
+sets `windowEnd = min(cursor.Time + windowSize, watermark)`. Its query reads
+after the composite cursor and strictly before `windowEnd`, with at most
+`BatchSize` events.
+
+```mermaid
+stateDiagram-v2
+    state "Start from committed cursor" as Start
+    state "Read through windowEnd, excluding the boundary" as Query
+    state "Full batch" as Full
+    state "Partial batch" as Partial
+    state "Empty batch" as Empty
+    state "Return proposed page to engine" as Page
+    state "Return empty, caught-up page" as CaughtUp
+    state "Return source error" as Error
+
+    [*] --> Start
+    Start --> Query: cursor before watermark
+    Start --> CaughtUp: cursor at or beyond watermark
+    Query --> Full: count equals BatchSize
+    Query --> Partial: count above zero and below BatchSize
+    Query --> Empty: count is zero
+    Query --> Error: query fails
+    Full --> Page: last-event cursor / not caught up / reset size to 1 minute
+    Partial --> Page: window-end cursor / keep size
+    Empty --> Page: window-end cursor / double size up to 1 hour
+    Page --> [*]
+    CaughtUp --> [*]
+    Error --> [*]
+
+    note right of Start
+        Creation initializes the cursor to creation time.
+    end note
+    note right of Page
+        A window-end cursor has an empty event ID.
+        Partial and empty pages are caught up only at the watermark.
+        The engine must deliver and commit before reading another page.
+    end note
+```
+
+Empty windows grow through 1, 2, 4, 8, 16, 32, and 60 minutes. Further empty
+windows stay at 60 minutes. A full batch resets the next query to 1 minute
+from the last event's cursor, including its event ID. A partial batch keeps
+the window size. Every query is capped at the fixed watermark, even when the
+chosen window is larger than the remaining interval.
+
+Window size lives only in the reader for that cycle. It is not stored in
+MySQL. A restart, retry, or later poll starts at 1 minute again, using the
+committed cursor. A larger window can still be expensive when an empty period
+is followed by a burst. Adaptation limits the time range, not query duration
+or rows scanned.
 
 ## Cursor and watermark
 
@@ -91,6 +161,14 @@ Each drain subscribes to one stream. The supported stream is `audit_logs`,
 backed by the ClickHouse table `audit_logs_raw_v1`. The cursor is the pair
 `(inserted_at, event_id)`. MySQL stores it as
 `committed_offset_inserted_at` and `committed_offset_event_id`.
+
+Creation sets the cursor to the drain's creation time with an empty event ID.
+Historical backfill before creation is not supported. Pauses, failures, and
+outages resume from the committed cursor and still catch up normally.
+
+A zero cursor follows the same adaptive window path from the Unix epoch.
+It eventually catches up without a separate history lookup, but can require
+many empty-window queries.
 
 MySQL and ClickHouse must order `event_id` values the same way. ClickHouse
 compares `String` values byte by byte, so the MySQL
@@ -114,13 +192,14 @@ before `evt_d`. A cursor that stored only `1000` would start the next query
 after that millisecond and skip `evt_c`.
 
 A full batch advances the cursor to its last event. A short or empty batch
-advances the cursor to the safe upper time boundary with an empty event ID.
+advances the cursor to that window's exclusive end with an empty event ID.
 The empty event ID keeps events at that exact boundary eligible for the next
-cycle.
+read, which can happen in the same cycle.
 
-The upper boundary stays behind the process clock by `WatermarkLag`. This
-settling period gives late ClickHouse inserts time to arrive before the cursor
-passes their timestamp.
+The watermark is the poll's enqueue timestamp minus `WatermarkLag`. It stays
+fixed while the worker catches up, rather than moving forward with every
+batch. This settling period gives late ClickHouse inserts time to arrive
+before the cursor passes their timestamp.
 
 ## Leasing and fencing
 
@@ -141,9 +220,8 @@ started before the lease expired.
 
 ## Disablement, retries, and pauses
 
-The `logdrains.enabled` Boolean records whether the user enabled the drain.
-The `logdrains.status` field is `active` or `paused_by_failure`. The engine
-processes a drain only when it is enabled and active.
+The `logdrains.status` field is `running`, `paused_by_user`, or
+`paused_by_failure`. The engine processes a drain only when it is running.
 
 A destination rejection, such as HTTP 400 or HTTP 500, leaves the cursor
 unchanged. An unexpected delivery error, such as a timeout or DNS failure,
@@ -164,11 +242,11 @@ The failure update query increments `consecutive_failures` and writes an
 absolute retry time to `next_attempt_at`. It calculates that timestamp from
 MySQL time, not process time. The due-drain queries return the drain only after
 `next_attempt_at` has passed. A successful cursor update resets the failure
-count. A full batch remains due immediately. A short or empty batch becomes due
-after `PollInterval`.
+count. A page remains due immediately while a backlog remains. Only a page
+that reaches the watermark schedules the next attempt after `PollInterval`.
 
 The engine pauses the drain only after it reaches the configured failure
-threshold. Re-enabling a drain or changing its destination makes it active. The
+threshold. Re-enabling a drain or changing its destination makes it running. The
 change resets its failure count and retry time. It preserves the cursor.
 Delivery resumes from that cursor, subject to the 90-day ClickHouse retention
 period for audit logs.
