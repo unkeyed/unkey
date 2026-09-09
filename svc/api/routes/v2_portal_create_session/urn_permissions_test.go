@@ -45,8 +45,8 @@ func TestCreateSessionAuthorizesCanonicalSessionURNs(t *testing.T) {
 	projectID, portalID := sessionURNFixture(t, h, "urn-session-portal")
 	otherProjectID := uid.New(uid.ProjectPrefix)
 
-	// Stage 2 still evaluates legacy tuples only, so every case carries the
-	// keys:read requirements as tuples. Stage 1 is what is under test.
+	// Every case carries the keys:read ceiling as legacy tuples so stage 2 is
+	// never what refuses. Stage 1 is what is under test.
 	keyGrants := []string{"api.*.read_key", "api.*.read_api"}
 
 	testCases := []struct {
@@ -101,39 +101,4 @@ func TestCreateSessionAuthorizesCanonicalSessionURNs(t *testing.T) {
 			require.Zero(t, countAuditEntriesMentioning(t, h, workspaceID, externalID), "a denial must write no audit entry")
 		})
 	}
-}
-
-// TestCreateSessionKeepsGrantVocabulariesSeparate pins that the two grant forms
-// are not interchangeable across stages: stage 1 accepting a canonical URN does
-// not make stage 2 accept one.
-func TestCreateSessionKeepsGrantVocabulariesSeparate(t *testing.T) {
-	h := testutil.NewHarness(t)
-	route := &handler.Handler{
-		DB:            h.DB,
-		Auditlogs:     h.Auditlogs,
-		PortalBaseURL: "https://portal.unkey.com",
-		Clock:         h.Clock,
-	}
-	h.Register(route)
-
-	workspaceID := h.Resources().UserWorkspace.ID
-	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
-	insertKeyspacePortal(t, h, workspaceID, "urn-mixed-portal", api.KeyAuthID.String)
-
-	rootKey := h.CreateRootKey(workspaceID,
-		"portal.*.create_portal_session",
-		fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#read", workspaceID, api.ProjectID, api.KeyAuthID.String),
-		fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#read", workspaceID, api.ProjectID, api.KeyAuthID.String),
-	)
-	headers := http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}
-
-	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, handler.Request{
-		Portal:     "urn-mixed-portal",
-		ExternalId: uid.New(uid.TestPrefix),
-		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead},
-	})
-	require.Equal(t, http.StatusForbidden, res.Status, "got: %s", res.RawBody)
 }

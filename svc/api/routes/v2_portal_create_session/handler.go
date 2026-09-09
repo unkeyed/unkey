@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -259,7 +261,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Stage 2: a minted session may never carry a capability the calling root
 	// key does not itself hold. This precedes the exchange code, the session
 	// insert and the audit log, so a rejection writes nothing.
-	if err = h.authorizeScopes(ctx, principal, workspaceID, keyspaceIDs, req.Scopes); err != nil {
+	if err = h.authorizeScopes(ctx, principal, portal, keyspaceIDs, req.Scopes); err != nil {
 		return err
 	}
 
@@ -595,6 +597,58 @@ func ScopeQueries(
 	}
 }
 
+// CanonicalScopeQueries returns the canonical form of the same requirement
+// [ScopeQueries] expresses in legacy tuples, for one scope on one keyspace. It
+// mirrors [ScopeQueries] down to the ok flag: rbac.And over zero children
+// evaluates to valid, so an unmapped scope must report ok=false and be dropped
+// from the composition rather than contributing an empty conjunction.
+//
+// The arms are hand-written rather than borrowed from the operator routes the
+// way the legacy arms are, so the coupling is manual: the routes mirrored here
+// are v2_apis_list_keys for read and v2_keys_reroll_key for reroll, and this
+// function can drift weaker than either of them without anything failing.
+func CanonicalScopeQueries(
+	scope openapi.V2PortalCreateSessionRequestBodyScopes,
+	workspaceID string,
+	projectID string,
+	keyspaceID string,
+	storeEncryptedKeys bool,
+) ([]rbac.PermissionQuery, bool) {
+	keyspace := urn.New().Workspace(workspaceID).Project(projectID).Keyspace(keyspaceID)
+
+	// Mint time has no key id, so every key-scoped requirement here is a
+	// wildcard. That is stricter than a grant on one key and weaker than
+	// nothing: a caller holding a single concrete key cannot mint.
+	anyKey := keyspace.Key(permissions.Wildcard)
+
+	switch scope {
+	case openapi.KeysRead:
+		return []rbac.PermissionQuery{
+			rbac.U(anyKey, permissions.Read),
+			rbac.U(keyspace, permissions.Read),
+		}, true
+
+	case openapi.KeysReroll:
+		// The reroll route's canonical create arm and its canonical encryption
+		// arm are the same key-write leaf, so the encryption conjunct is
+		// degenerate in this vocabulary. It is spelled out anyway to mirror the
+		// route faithfully: making the ceiling stricter than the route it
+		// mirrors would refuse mints the operator endpoint would allow.
+		//
+		// The condition is the keyspace flag rather than a key's encryption row
+		// for the reason [ScopeQueries] gives: mint time cannot know which key
+		// a session will later reroll.
+		queries := []rbac.PermissionQuery{rbac.U(anyKey, permissions.Write)}
+		if storeEncryptedKeys {
+			queries = append(queries, rbac.U(anyKey, permissions.Write))
+		}
+		return queries, true
+
+	default:
+		return nil, false
+	}
+}
+
 // authorizeScopes enforces the mint-time ceiling: for every requested scope, the
 // caller must hold the equivalent operator permission on every keyspace the
 // session will be scoped to. A caller short of any one of them is refused
@@ -603,10 +657,12 @@ func ScopeQueries(
 func (h *Handler) authorizeScopes(
 	ctx context.Context,
 	principal *authprincipal.Principal,
-	workspaceID string,
+	portal db.Portal,
 	keyspaceIDs []string,
 	scopes []openapi.V2PortalCreateSessionRequestBodyScopes,
 ) error {
+	workspaceID := portal.WorkspaceID
+
 	// Fail closed. Every check below is a conjunction, and rbac.And over an
 	// empty child list is valid, so an empty keyspace or scope list would mint
 	// an unchecked session.
@@ -618,8 +674,12 @@ func (h *Handler) authorizeScopes(
 		)
 	}
 
-	apiIDs, err := h.apiIDsByKeyspace(ctx, workspaceID, keyspaceIDs)
+	owners, err := h.ownersByKeyspace(ctx, workspaceID, keyspaceIDs)
 	if err != nil {
+		return err
+	}
+
+	if err = requireSameProject(portal, keyspaceIDs, owners); err != nil {
 		return err
 	}
 
@@ -632,9 +692,11 @@ func (h *Handler) authorizeScopes(
 		var checks []rbac.PermissionQuery
 
 		for _, keyspaceID := range keyspaceIDs {
-			queries, ok := ScopeQueries(scope, apiIDs[keyspaceID], encrypted[keyspaceID])
+			owner := owners[keyspaceID]
+
+			legacy, ok := ScopeQueries(scope, owner.APIID, encrypted[keyspaceID])
 			if !ok {
-				// Reaching this means the request enum and the mapping below have
+				// Reaching this means the request enum and the mapping have
 				// diverged, which is a server bug rather than a caller problem.
 				// Same defect class as the empty-checks guard below, so same code.
 				return fault.New("unmapped portal scope",
@@ -643,7 +705,19 @@ func (h *Handler) authorizeScopes(
 					fault.Public("Portal configuration is invalid."),
 				)
 			}
-			checks = append(checks, queries...)
+
+			// One disjunction per keyspace, rather than one flat conjunction over
+			// all of them: flattening would let a caller satisfy one keyspace in
+			// legacy tuples and another canonically in a combination neither
+			// grant intends.
+			arms := []rbac.PermissionQuery{rbac.And(legacy...)}
+			if canonical, hasCanonical := CanonicalScopeQueries(
+				scope, workspaceID, owner.ProjectID, keyspaceID, encrypted[keyspaceID],
+			); hasCanonical {
+				arms = append(arms, rbac.And(canonical...))
+			}
+
+			checks = append(checks, rbac.Or(arms...))
 		}
 
 		if len(checks) == 0 {
@@ -669,13 +743,59 @@ func (h *Handler) authorizeScopes(
 	return nil
 }
 
-// apiIDsByKeyspace maps each resolved keyspace to the api that owns it.
+// requireSameProject refuses a portal whose resolved keyspaces reach outside its
+// own project. Without it the portal's stored project could not be trusted as
+// the project segment of the canonical requirements above, and a deployment
+// naming another project's keyspace would have its capabilities checked against,
+// and granted under, the wrong project.
 //
-// Every stage-2 requirement is api-scoped, so a keyspace with no api admits no
-// expressible check. That is a misconfiguration rather than a caller error:
-// skipping such a keyspace would leave it unchecked, so it fails loudly and
-// names the keyspace.
-func (h *Handler) apiIDsByKeyspace(ctx context.Context, workspaceID string, keyspaceIDs []string) (map[string]string, error) {
+// The ids stay out of the public message: this runs before the per-keyspace
+// check, so the caller has proven no grant on the keyspace it would otherwise
+// learn the id of.
+func requireSameProject(portal db.Portal, keyspaceIDs []string, owners map[string]keyspaceOwner) error {
+	for _, keyspaceID := range keyspaceIDs {
+		owner := owners[keyspaceID]
+		if owner.ProjectID == portal.ProjectID {
+			continue
+		}
+
+		logger.Error("portal resolved a keyspace outside its project",
+			slog.String("workspace_id", portal.WorkspaceID),
+			slog.String("portal_id", portal.ID),
+			slog.String("portal_project_id", portal.ProjectID),
+			slog.String("keyspace_id", keyspaceID),
+			slog.String("keyspace_project_id", owner.ProjectID),
+		)
+
+		return fault.New("portal keyspace belongs to another project",
+			fault.Code(codes.Auth.Authorization.Forbidden.URN()),
+			fault.Internal(fmt.Sprintf(
+				"portal %s in project %s resolved keyspace %s owned by project %s",
+				portal.ID, portal.ProjectID, keyspaceID, owner.ProjectID,
+			)),
+			fault.Public("Portal is not available: it serves a keyspace outside its project. Fix the app's deployment configuration."),
+		)
+	}
+
+	return nil
+}
+
+// keyspaceOwner is the api and project that own one resolved keyspace. The api
+// scopes the legacy requirements; the project is the segment the canonical ones
+// carry, and what [requireSameProject] compares against the portal.
+type keyspaceOwner struct {
+	APIID     string
+	ProjectID string
+}
+
+// ownersByKeyspace maps each resolved keyspace to the api and project that own
+// it.
+//
+// Every legacy stage-2 requirement is api-scoped, so a keyspace with no api
+// admits no expressible check. That is a misconfiguration rather than a caller
+// error: skipping such a keyspace would leave it unchecked, so it fails loudly
+// and names the keyspace.
+func (h *Handler) ownersByKeyspace(ctx context.Context, workspaceID string, keyspaceIDs []string) (map[string]keyspaceOwner, error) {
 	rows, err := db.Query.FindApisByKeyAuthIds(ctx, h.DB.RO(), db.FindApisByKeyAuthIdsParams{
 		WorkspaceID: workspaceID,
 		KeyAuthIds:  keyspaceIDs,
@@ -688,17 +808,17 @@ func (h *Handler) apiIDsByKeyspace(ctx context.Context, workspaceID string, keys
 		)
 	}
 
-	apiIDs := make(map[string]string, len(rows))
+	owners := make(map[string]keyspaceOwner, len(rows))
 	for _, row := range rows {
-		apiIDs[row.KeyAuthID] = row.ApiID
+		owners[row.KeyAuthID] = keyspaceOwner{APIID: row.ApiID, ProjectID: row.ProjectID}
 	}
 
 	for _, keyspaceID := range keyspaceIDs {
-		if apiIDs[keyspaceID] == "" {
+		if owners[keyspaceID].APIID == "" {
 			// Reachable without any misconfiguration on our side: apis.deleteApi
 			// soft-deletes the api row and leaves key_auth live, so a customer
 			// deleting their own api orphans the keyspace this portal resolves to.
-			// Every stage-2 requirement is api-scoped, so the mint cannot be
+			// Every legacy stage-2 requirement is api-scoped, so the mint cannot be
 			// authorized -- but that is the portal being unavailable, not an
 			// internal fault, so it mirrors the no-active-deployment branch above.
 			return nil, fault.New("portal keyspace has no api",
@@ -709,7 +829,7 @@ func (h *Handler) apiIDsByKeyspace(ctx context.Context, workspaceID string, keys
 		}
 	}
 
-	return apiIDs, nil
+	return owners, nil
 }
 
 // encryptionByKeyspace reports, per resolved keyspace, whether it stores

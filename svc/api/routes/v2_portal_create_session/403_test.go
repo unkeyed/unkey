@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/logger/loggertest"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -344,7 +345,7 @@ func TestCreateSessionMultiKeyspacePartialGrant(t *testing.T) {
 
 	// A deployed app maps to exactly one keyspace today, so the multi-keyspace
 	// shape is constructed directly rather than through app provisioning.
-	appID := seedAppWithKeyspaces(t, h, workspace.ID, "multi-keyspace", []string{
+	appID := seedAppWithKeyspaces(t, h, workspace.ID, "multi-keyspace", granted.ProjectID, []string{
 		granted.KeyAuthID.String,
 		ungranted.KeyAuthID.String,
 	}).AppID
@@ -473,4 +474,137 @@ func TestCreateSessionKeyspaceWithoutAPI(t *testing.T) {
 	require.Equal(t, http.StatusForbidden, res.Status, "got: %s", res.RawBody)
 	require.Equal(t, 0, countPortalSessions(t, h, workspace.ID, externalID))
 	require.Equal(t, 0, countAuditEntriesMentioning(t, h, workspace.ID, externalID))
+}
+
+// TestCreateSessionCrossProjectKeyspace covers the tenancy gate that makes the
+// portal's stored project trustworthy as the project segment of the canonical
+// requirements: a keyspace resolved from the app's deployment must belong to the
+// portal's own project.
+//
+// The caller holds every legacy grant, so nothing but the gate can refuse it.
+func TestCreateSessionCrossProjectKeyspace(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:            h.DB,
+		Auditlogs:     h.Auditlogs,
+		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
+	}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	// The keyspace lives in the workspace's default project; the empty project
+	// id puts the app, and therefore the portal, in a fresh one.
+	outsider := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	app := seedAppWithKeyspaces(t, h, workspace.ID, "cross-project", "", []string{outsider.KeyAuthID.String})
+	portalID := h.SeedPortal(t, workspace.ID, "cross-project-portal", "cross-project-portal", appMapping(app.AppID), nil, nil).ID
+
+	rootKey := h.CreateRootKey(workspace.ID,
+		"portal.*.create_portal_session",
+		"api.*.read_key",
+		"api.*.read_api",
+		"api.*.create_key",
+		"api.*.encrypt_key",
+	)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	logs := loggertest.Install(t)
+	snapshot := logs.Snapshot()
+
+	externalID := "user_cross_project_" + uid.New(uid.TestPrefix)
+	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, handler.Request{
+		Portal:     "cross-project-portal",
+		ExternalId: externalID,
+		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
+	})
+	require.Equal(t, http.StatusForbidden, res.Status, "got: %s", res.RawBody)
+	require.Equal(t, 0, countPortalSessions(t, h, workspace.ID, externalID), "a refused mint must write no session")
+	require.Equal(t, 0, countAuditEntriesMentioning(t, h, workspace.ID, externalID), "a refused mint must write no audit entry")
+
+	// The gate runs before the per-keyspace check, so the caller has proven no
+	// grant on the keyspace whose id it would otherwise learn here.
+	require.NotContains(t, res.RawBody, outsider.KeyAuthID.String, "the refusal must not disclose the keyspace id")
+	require.NotContains(t, res.RawBody, outsider.ProjectID, "the refusal must not disclose the keyspace's project id")
+	require.NotContains(t, res.RawBody, app.ProjectID, "the refusal must not disclose the portal's project id")
+
+	found := false
+	for _, record := range logs.Since(snapshot) {
+		if record.Message != "portal resolved a keyspace outside its project" {
+			continue
+		}
+		found = true
+		attrs := loggertest.FlatAttrs(record)
+		require.Equal(t, portalID, attrs["portal_id"])
+		require.Equal(t, app.ProjectID, attrs["portal_project_id"])
+		require.Equal(t, outsider.KeyAuthID.String, attrs["keyspace_id"])
+		require.Equal(t, outsider.ProjectID, attrs["keyspace_project_id"])
+	}
+	require.True(t, found, "the refusal must log the portal, its project, and the offending keyspace and its project")
+}
+
+// TestCreateSessionCrossProjectKeyspaceAfterRedeploy pins that the gate is
+// evaluated against the keyspaces the app verifies now: a portal that mints
+// today stops minting once a redeploy adds a keyspace from another project.
+func TestCreateSessionCrossProjectKeyspaceAfterRedeploy(t *testing.T) {
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:            h.DB,
+		Auditlogs:     h.Auditlogs,
+		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
+	}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:               uid.New(uid.ProjectPrefix),
+		WorkspaceID:      workspace.ID,
+		Name:             "redeploy",
+		Slug:             "redeploy-" + uid.DNS1035(),
+		DeleteProtection: false,
+	})
+	inside := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: project.ID})
+	outsider := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+
+	app := seedAppWithKeyspaces(t, h, workspace.ID, "redeploy", project.ID, []string{inside.KeyAuthID.String})
+	h.SeedPortal(t, workspace.ID, "redeploy-portal", "redeploy-portal", appMapping(app.AppID), nil, nil)
+
+	rootKey := h.CreateRootKey(workspace.ID,
+		"portal.*.create_portal_session",
+		"api.*.read_key",
+		"api.*.read_api",
+	)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+	req := handler.Request{
+		Portal:     "redeploy-portal",
+		ExternalId: "user_redeploy",
+		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	require.Equal(t, http.StatusOK, res.Status, "got: %s", res.RawBody)
+
+	redeployAppWithKeyspaces(t, h, workspace.ID, app, []string{
+		inside.KeyAuthID.String,
+		outsider.KeyAuthID.String,
+	})
+
+	logs := loggertest.Install(t)
+	snapshot := logs.Snapshot()
+
+	after := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
+	require.Equal(t, http.StatusForbidden, after.Status,
+		"a redeploy adding a cross-project keyspace must stop the mint, got: %s", after.RawBody)
+
+	record := logs.Find(t, "portal resolved a keyspace outside its project")
+	require.Equal(t, outsider.KeyAuthID.String, loggertest.FlatAttrs(record)["keyspace_id"])
+	require.GreaterOrEqual(t, logs.Snapshot(), snapshot+1)
 }
