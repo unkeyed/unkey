@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -31,6 +32,11 @@ type seededApp struct {
 	AppID         string
 	ProjectID     string
 	EnvironmentID string
+}
+
+// appMapping addresses a portal at an app rather than a keyspace.
+func appMapping(appID string) portal.Mapping {
+	return portal.Mapping{Type: portal.MappingTypeApp, ID: appID}
 }
 
 // seedAppWithKeyspaces creates a project, app, environment and current
@@ -146,15 +152,7 @@ func TestCreateSessionAppMapped(t *testing.T) {
 
 	appID := seedAppWithKeyspaces(t, h, workspaceID, "portal-app", []string{keySpaceID}).AppID
 
-	// App-mapped portal: app_id set, key_auth_id left null.
-	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
-		ID:          uid.New(uid.PortalPrefix),
-		WorkspaceID: workspaceID,
-		Slug:        "app-portal",
-		AppID:       sql.NullString{Valid: true, String: appID},
-		Enabled:     true,
-		CreatedAt:   time.Now().UnixMilli(),
-	}))
+	h.SeedPortal(t, workspaceID, "app-portal", "app-portal", appMapping(appID), nil, nil)
 
 	rootKey := h.CreateRootKey(workspaceID,
 		"portal.*.create_portal_session",
@@ -234,14 +232,7 @@ func TestCreateSessionAppMappedIgnoresAppCustomDomain(t *testing.T) {
 		CreatedAt:             time.Now().UnixMilli(),
 	}))
 
-	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
-		ID:          uid.New(uid.PortalPrefix),
-		WorkspaceID: workspaceID,
-		Slug:        "branded-portal",
-		AppID:       sql.NullString{Valid: true, String: app.AppID},
-		Enabled:     true,
-		CreatedAt:   time.Now().UnixMilli(),
-	}))
+	h.SeedPortal(t, workspaceID, "branded-portal", "branded-portal", appMapping(app.AppID), nil, nil)
 
 	rootKey := h.CreateRootKey(workspaceID,
 		"portal.*.create_portal_session",
@@ -273,7 +264,6 @@ func TestCreateSessionAppMappedIgnoresAppCustomDomain(t *testing.T) {
 // the app started verifying a second keyspace stops succeeding afterwards.
 func TestCreateSessionAppMappedKeyspaceGrowth(t *testing.T) {
 	h := testutil.NewHarness(t)
-	ctx := context.Background()
 
 	route := &handler.Handler{
 		DB:            h.DB,
@@ -288,14 +278,7 @@ func TestCreateSessionAppMappedKeyspaceGrowth(t *testing.T) {
 	added := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
 
 	appID := seedAppWithKeyspaces(t, h, workspaceID, "growth", []string{granted.KeyAuthID.String}).AppID
-	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
-		ID:          uid.New(uid.PortalPrefix),
-		WorkspaceID: workspaceID,
-		Slug:        "growth-portal",
-		AppID:       sql.NullString{Valid: true, String: appID},
-		Enabled:     true,
-		CreatedAt:   time.Now().UnixMilli(),
-	}))
+	h.SeedPortal(t, workspaceID, "growth-portal", "growth-portal", appMapping(appID), nil, nil)
 
 	// The grant covers only the keyspace the app verifies today.
 	rootKey := h.CreateRootKey(workspaceID,
@@ -321,14 +304,7 @@ func TestCreateSessionAppMappedKeyspaceGrowth(t *testing.T) {
 		granted.KeyAuthID.String,
 		added.KeyAuthID.String,
 	}).AppID
-	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
-		ID:          uid.New(uid.PortalPrefix),
-		WorkspaceID: workspaceID,
-		Slug:        "growth-portal-2",
-		AppID:       sql.NullString{Valid: true, String: secondAppID},
-		Enabled:     true,
-		CreatedAt:   time.Now().UnixMilli(),
-	}))
+	h.SeedPortal(t, workspaceID, "growth-portal-2", "growth-portal-2", appMapping(secondAppID), nil, nil)
 
 	grown := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Portal:     "growth-portal-2",

@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -22,16 +23,8 @@ import (
 func insertKeyspacePortal(t *testing.T, h *testutil.Harness, workspaceID, slug, keyspaceID string) string {
 	t.Helper()
 
-	portalID := uid.New(uid.PortalPrefix)
-	require.NoError(t, db.Query.InsertPortal(context.Background(), h.DB.RW(), db.InsertPortalParams{
-		ID:          portalID,
-		WorkspaceID: workspaceID,
-		Slug:        slug,
-		KeyAuthID:   sql.NullString{Valid: true, String: keyspaceID},
-		Enabled:     true,
-		CreatedAt:   time.Now().UnixMilli(),
-	}))
-	return portalID
+	mapping := portal.Mapping{Type: portal.MappingTypeKeyspace, ID: keyspaceID}
+	return h.SeedPortal(t, workspaceID, slug, slug, mapping, nil, nil).ID
 }
 
 // countPortalSessions counts the sessions minted for one external id. The
@@ -336,7 +329,6 @@ func TestCreateSessionRejectionWritesNothing(t *testing.T) {
 // *every* resolved keyspace, not just one of them.
 func TestCreateSessionMultiKeyspacePartialGrant(t *testing.T) {
 	h := testutil.NewHarness(t)
-	ctx := context.Background()
 
 	route := &handler.Handler{
 		DB:            h.DB,
@@ -357,14 +349,7 @@ func TestCreateSessionMultiKeyspacePartialGrant(t *testing.T) {
 		ungranted.KeyAuthID.String,
 	}).AppID
 
-	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
-		ID:          uid.New(uid.PortalPrefix),
-		WorkspaceID: workspace.ID,
-		Slug:        "multi-keyspace-portal",
-		AppID:       sql.NullString{Valid: true, String: appID},
-		Enabled:     true,
-		CreatedAt:   time.Now().UnixMilli(),
-	}))
+	h.SeedPortal(t, workspace.ID, "multi-keyspace-portal", "multi-keyspace-portal", appMapping(appID), nil, nil)
 
 	rootKey := h.CreateRootKey(workspace.ID,
 		"portal.*.create_portal_session",
@@ -388,7 +373,6 @@ func TestCreateSessionMultiKeyspacePartialGrant(t *testing.T) {
 // reached with the permission granted, so it is not shadowed by authorization.
 func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 	h := testutil.NewHarness(t)
-	ctx := context.Background()
 
 	route := &handler.Handler{
 		DB:            h.DB,
@@ -401,14 +385,18 @@ func TestCreateSessionForbiddenDisabledPortal(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
 
-	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
-		ID:          uid.New(uid.PortalPrefix),
-		WorkspaceID: workspace.ID,
-		Slug:        "disabled-portal",
-		KeyAuthID:   sql.NullString{Valid: true, String: api.KeyAuthID.String},
-		Enabled:     false,
-		CreatedAt:   time.Now().UnixMilli(),
-	}))
+	// SeedPortal always enables, so a disabled row goes through the seeder directly.
+	h.CreatePortal(seed.CreatePortalRequest{
+		ID:           uid.New(uid.PortalPrefix),
+		WorkspaceID:  workspace.ID,
+		Slug:         "disabled-portal",
+		DisplayName:  "disabled-portal",
+		AppID:        sql.NullString{Valid: false, String: ""},
+		KeyAuthID:    sql.NullString{Valid: true, String: api.KeyAuthID.String},
+		Enabled:      false,
+		LogoUrl:      sql.NullString{Valid: false, String: ""},
+		PrimaryColor: sql.NullString{Valid: false, String: ""},
+	})
 
 	rootKey := h.CreateRootKey(workspace.ID,
 		"portal.*.create_portal_session",
