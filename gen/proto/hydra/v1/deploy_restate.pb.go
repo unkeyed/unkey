@@ -28,7 +28,7 @@ import (
 // Promotion and rollback live on EnvironmentService, keyed by environment id.
 type DeployWorkflowClient interface {
 	// Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
-	// Shared, so it can run before the run exists.
+	// The key is the deployment id, so the caller chooses it up front.
 	Create(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy is the run: build, provision, wait for health, route.
 	Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *DeployResponse]
@@ -80,7 +80,7 @@ func (c *deployWorkflowClient) NotifyInstancesReady(opts ...sdk_go.ClientOption)
 // This client is used to call the service from outside of a Restate context.
 type DeployWorkflowIngressClient interface {
 	// Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
-	// Shared, so it can run before the run exists.
+	// The key is the deployment id, so the caller chooses it up front.
 	Create() ingress.Requester[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy is the run: build, provision, wait for health, route.
 	Submit(ctx context.Context, input *DeployRequest, opts ...sdk_go.IngressSendOption) (ingress.SendResponse[*DeployResponse], error)
@@ -140,7 +140,7 @@ func (c *deployWorkflowIngressClient) Handle() ingress.InvocationHandle[*DeployR
 // Promotion and rollback live on EnvironmentService, keyed by environment id.
 type DeployWorkflowServer interface {
 	// Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
-	// Shared, so it can run before the run exists.
+	// The key is the deployment id, so the caller chooses it up front.
 	Create(ctx sdk_go.WorkflowSharedContext, req *DeployCreateRequest) (*DeployCreateResponse, error)
 	// Deploy is the run: build, provision, wait for health, route.
 	Deploy(ctx sdk_go.WorkflowContext, req *DeployRequest) (*DeployResponse, error)

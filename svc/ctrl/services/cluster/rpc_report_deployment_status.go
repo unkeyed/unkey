@@ -163,7 +163,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 	// After the tx commits, if an Update just upserted instances for an
 	// active deployment, check whether the per-region healthy threshold is
 	// met and notify the suspended Deploy workflow. This is the feedback
-	// loop that unblocks waitForDeployments's awakeable. Any errors here
+	// loop that resolves the promise waitForDeployments awaits. Any errors here
 	// are logged but don't fail the RPC — krane retrying wouldn't help, and
 	// the Deploy workflow will eventually hit its own timeout if nobody
 	// ever notifies it.
