@@ -30,7 +30,7 @@ Please find the license under the [LICENSE](./LICENSE) file.
 
 ## Security Issue
 
-Please find what is in scope in the [SECURITY](./SECURITY) file.
+Please find what is in scope in the [SECURITY](./SECURITY.md) file.
 
 ## Pull requests
 
