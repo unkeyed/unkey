@@ -51,8 +51,13 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 		observed := testutil.Receive(t, creates, 10*time.Second)
 		require.Equal(t, res.Body.Data.DeploymentId, observed.DeploymentID,
 			"the id in the response must be the id the create ran under")
+		require.Equal(t, "nginx:latest", observed.Request.GetImage().GetImage())
+		require.Equal(t, "main", observed.Request.GetImage().GetCommit().GetBranch(),
+			"the branch scopes sibling dedup, so an image deploy must still carry it")
 	})
 
+	// The CLI built and pushed the image itself. The commit is what it was built
+	// from, not something to build again.
 	t.Run("create deployment with git commit info", func(t *testing.T) {
 		setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 			ProjectName: "test-git-project",
@@ -92,6 +97,15 @@ func TestCreateDeploymentSuccessfully(t *testing.T) {
 		observed := testutil.Receive(t, creates, 10*time.Second)
 		require.Equal(t, res.Body.Data.DeploymentId, observed.DeploymentID,
 			"the id in the response must be the id the create ran under")
+		require.Nil(t, observed.Request.GetGit(), "a pushed image must not be sent as a git build")
+		require.Equal(t, "nginx:latest", observed.Request.GetImage().GetImage())
+		commit := observed.Request.GetImage().GetCommit()
+		require.Equal(t, "main", commit.GetBranch())
+		require.Equal(t, "abc123def456", commit.GetCommitSha())
+		require.Equal(t, "feat: add new feature", commit.GetCommitMessage())
+		require.Equal(t, "johndoe", commit.GetAuthorHandle())
+		require.Equal(t, "https://avatar.example.com/johndoe.jpg", commit.GetAuthorAvatarUrl())
+		require.Equal(t, int64(1704067200000), commit.GetTimestamp())
 	})
 }
 
