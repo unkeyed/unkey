@@ -187,7 +187,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if repoint {
-			if err = portal.VerifyMappingOwned(ctx, tx, principal.AuthorizedWorkspaceID, mapping); err != nil {
+			// The resolved project is discarded until portals has a column to
+			// store it and compare a remap against.
+			if _, err = portal.ResolveMappingProject(ctx, tx, principal.AuthorizedWorkspaceID, mapping); err != nil {
 				return empty, err
 			}
 

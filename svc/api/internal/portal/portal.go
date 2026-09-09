@@ -1,13 +1,15 @@
 // Package portal holds the rules and mapping the operator-facing portal routes
 // share: what a portal may be mapped to, whether the caller owns that mapping,
-// how branding input is validated, and how a stored row becomes the public
-// shape.
+// which project that mapping puts the portal in, how branding input is
+// validated, and how a stored row becomes the public shape.
 //
 // These live together because each one is an invariant rather than a
 // convenience. A portal maps to exactly one app or keyspace and the database
 // cannot enforce it (Vitess has no CHECK constraint), the app and keyspace
 // unique keys span every workspace so an unvalidated mapping is a cross-tenant
-// claim, and branding strings are rendered in end users' browsers with no
+// claim, a portal is authorized as projects/{project_id}/portals/{portal_id} so
+// its project must always be the project of the resource it maps to, and
+// branding strings are rendered in end users' browsers with no
 // Content-Security-Policy behind them. A second copy of any of these drifting
 // out of step with the first is the failure this package exists to prevent.
 package portal
@@ -19,6 +21,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/unkeyed/unkey/pkg/assert"
 	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -253,8 +256,8 @@ func DescribeMapping(p db.Portal) (mappingType string, mappingID string) {
 	}
 }
 
-// VerifyMappingOwned reports whether the mapped app or keyspace exists in this
-// workspace.
+// ResolveMappingProject returns the project owning the mapped app or keyspace,
+// and fails unless that resource is in this workspace.
 //
 // This is the check that keeps a portal from claiming another tenant's resource.
 // `idx_app_id` and `idx_key_auth_id` are unique across the whole table, so an
@@ -263,34 +266,33 @@ func DescribeMapping(p db.Portal) (mappingType string, mappingID string) {
 // lookup on the session path is not workspace-scoped, a squatted app id would
 // steer session URLs onto the victim's domain.
 //
+// The project comes back with the ownership answer because a portal is addressed
+// as projects/{project_id}/portals/{portal_id}: every path that authorizes or
+// stores a portal needs the project of whatever the portal maps to, and it is
+// the mapped resource that decides it.
+//
 // Runs inside the caller's transaction so the row cannot disappear between this
 // check and the write.
-func VerifyMappingOwned(ctx context.Context, tx db.DBTX, workspaceID string, m Mapping) error {
-	notFound := func(detail string) error {
-		return fault.New("portal mapping not found",
-			fault.Code(codes.Data.Portal.NotFound.URN()),
-			fault.Internal(detail),
-			fault.Public(ErrMsgMappingNotFound),
-		)
-	}
+func ResolveMappingProject(ctx context.Context, tx db.DBTX, workspaceID string, m Mapping) (string, error) {
+	var projectID string
 
 	switch m.Type {
 	case MappingTypeApp:
-		_, err := db.Query.FindAppByIdAndWorkspace(ctx, tx, db.FindAppByIdAndWorkspaceParams{
+		app, err := db.Query.FindAppByIdAndWorkspace(ctx, tx, db.FindAppByIdAndWorkspaceParams{
 			ID:          m.ID,
 			WorkspaceID: workspaceID,
 		})
 		if err != nil {
 			if db.IsNotFound(err) {
-				return notFound(fmt.Sprintf("app %s is not in workspace %s", m.ID, workspaceID))
+				return "", mappingNotFound(fmt.Sprintf("app %s is not in workspace %s", m.ID, workspaceID))
 			}
-			return fault.Wrap(err,
+			return "", fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error looking up app"),
 				fault.Public("Failed to look up the app."),
 			)
 		}
-		return nil
+		projectID = app.ProjectID
 
 	case MappingTypeKeyspace:
 		rows, err := db.Query.FindKeyAuthsByIdsAndWorkspace(ctx, tx, db.FindKeyAuthsByIdsAndWorkspaceParams{
@@ -298,31 +300,82 @@ func VerifyMappingOwned(ctx context.Context, tx db.DBTX, workspaceID string, m M
 			KeyAuthIds:  []string{m.ID},
 		})
 		if err != nil {
-			return fault.Wrap(err,
+			return "", fault.Wrap(err,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Internal("database error looking up keyspace"),
 				fault.Public("Failed to look up the keyspace."),
 			)
 		}
 		if len(rows) == 0 {
-			return notFound(fmt.Sprintf("keyspace %s is not in workspace %s", m.ID, workspaceID))
+			return "", mappingNotFound(fmt.Sprintf("keyspace %s is not in workspace %s", m.ID, workspaceID))
 		}
-		return nil
+		projectID = rows[0].ProjectID
 
 	default:
-		return ErrUnknownMappingType(m.Type)
+		return "", ErrUnknownMappingType(m.Type)
 	}
+
+	// Both source columns are non-nullable, so this is unreachable. Asserted
+	// here rather than at each caller because an empty project id still builds a
+	// portal URN that parses, and one that parses is one that gets granted
+	// against.
+	if err := assert.NotEmpty(projectID, "mapped portal resource has no project"); err != nil {
+		return "", fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal(fmt.Sprintf("%s %s in workspace %s has an empty project id", m.Type, m.ID, workspaceID)),
+			fault.Public("Portal is misconfigured."),
+		)
+	}
+
+	return projectID, nil
+}
+
+// VerifyMappingInProject rejects a mapping that belongs to a different project
+// than the portal does.
+//
+// A remap changes which resource a portal serves, but it must not move the
+// portal between projects: the portal's own URN names its project, so a portal
+// that changed project would silently fall under a different set of grants while
+// keeping its id.
+//
+// Both projects are already resolved by the caller, so this does no lookup and
+// reports the same not-found a mapping the caller does not own reports.
+func VerifyMappingInProject(portalProjectID string, mappingProjectID string) error {
+	if mappingProjectID == portalProjectID {
+		return nil
+	}
+	return mappingNotFound(fmt.Sprintf(
+		"mapping belongs to project %s, portal belongs to project %s",
+		mappingProjectID,
+		portalProjectID,
+	))
+}
+
+// mappingNotFound is the single construction of the mapping not-found chain, so
+// an unowned mapping and an absent one stay indistinguishable to the caller.
+func mappingNotFound(detail string) error {
+	return fault.New("portal mapping not found",
+		fault.Code(codes.Data.Portal.NotFound.URN()),
+		fault.Internal(detail),
+		fault.Public(ErrMsgMappingNotFound),
+	)
 }
 
 // AuthorizeMappingTarget requires the caller to hold read permission on the
 // resource a portal is being pointed at.
 //
-// [VerifyMappingOwned] asks only whether the resource is in the caller's
+// [ResolveMappingProject] asks only whether the resource is in the caller's
 // workspace, which is not the same question. Without this, a key holding nothing
 // but `update_portal` could re-point a portal at any keyspace in the workspace,
 // including ones it has no rights over: the customer's own backend then re-mints
 // sessions against the new resource, and that portal's end users see keys the
 // remapping key could never have read itself.
+//
+// It resolves the owning api itself rather than taking the project a caller
+// already has from [ResolveMappingProject]. The legacy tuple arm needs the api
+// id, which only that lookup returns, so passing the project in would remove no
+// query -- and the check reads better answering the whole question from its own
+// arguments.
 //
 // The mint path enforces its own ceiling — `authorizeScopes` in
 // portal.createSession requires the minting principal to hold the equivalent
