@@ -152,7 +152,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	deploymentID, err := deployment.Submit(ctx, h.Restate, createReq)
+	deploymentID, err := deployment.Create(ctx, h.Restate, createReq)
 	if err != nil {
 		return err
 	}

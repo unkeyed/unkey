@@ -14,7 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 )
 
-func Submit(ctx context.Context, client *restateingress.Client, req *hydrav1.DeployCreateRequest) (string, error) {
+func Create(ctx context.Context, client *restateingress.Client, req *hydrav1.DeployCreateRequest) (string, error) {
 	deploymentID := uid.New(uid.DeploymentPrefix)
 
 	res, err := hydrav1.NewDeployServiceIngressClient(client, deploymentID).
