@@ -56,10 +56,12 @@ type Session struct {
 
 	principal         *principal.Principal
 	trustedProxyCIDRs []netip.Prefix
+	clientIP          netip.Addr
 }
 
 func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64) error {
 	s.requestID = uid.New(uid.RequestPrefix)
+	s.clientIP = netip.Addr{}
 
 	// Wrap ResponseWriter with status recorder
 	s.w = &statusRecorder{
@@ -174,11 +176,14 @@ func (s *Session) UserAgent() string {
 	return s.r.UserAgent()
 }
 
-// Location returns the client IP reported by a trusted direct proxy, or the
-// connection peer's IP when the peer is not trusted. The trusted proxy's
+// Location returns the authenticated client IP, or the IP reported by a trusted
+// direct proxy, or the connection peer's IP. The trusted proxy's
 // rightmost X-Forwarded-For entry is authoritative because proxies append it
 // after any client-supplied values.
 func (s *Session) Location() string {
+	if s.clientIP.IsValid() {
+		return s.clientIP.String()
+	}
 	peerIP, ok := parseIP(s.r.RemoteAddr)
 	if !ok {
 		return ""
@@ -203,6 +208,11 @@ func (s *Session) Location() string {
 	}
 
 	return clientIP.String()
+}
+
+// SetClientIP sets the client address after peer metadata has been authenticated.
+func (s *Session) SetClientIP(ip netip.Addr) {
+	s.clientIP = ip.Unmap()
 }
 
 func parseIP(value string) (netip.Addr, bool) {

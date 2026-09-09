@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"strings"
 	"sync"
 	"testing"
@@ -31,6 +32,19 @@ func (m *mockEventBuffer) getRequests() []schema.ApiRequest {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	return append([]schema.ApiRequest{}, m.requests...)
+}
+
+func TestSessionClientIPResetsOnReuse(t *testing.T) {
+	sess := &Session{}
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "198.51.100.42:12345"
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	sess.SetClientIP(netip.MustParseAddr("2001:db8::42"))
+	require.Equal(t, "2001:db8::42", sess.Location())
+	req = httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "203.0.113.19:12345"
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	require.Equal(t, "203.0.113.19", sess.Location())
 }
 
 func TestNewRejectsInvalidTrustedProxyCIDR(t *testing.T) {

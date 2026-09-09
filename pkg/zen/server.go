@@ -171,6 +171,7 @@ func New(config Config) (*Server, error) {
 					logRequestToClickHouse: true,
 					streamRequestBody:      config.StreamRequestBody,
 					trustedProxyCIDRs:      trustedProxyCIDRs,
+					clientIP:               netip.Addr{},
 					principal:              nil,
 					requestID:              "",
 					internalError:          "",

@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"testing"
 	"time"
 
@@ -63,6 +64,13 @@ func TestForwardToInstanceReplacesSpoofedForwardedFor(t *testing.T) {
 	require.Equal(t, clientIP, forwarded.Get("X-Forwarded-For"))
 	require.Equal(t, "customer.example", forwarded.Get("X-Forwarded-Host"))
 	require.Equal(t, "https", forwarded.Get("X-Forwarded-Proto"))
+
+	sess.SetClientIP(netip.MustParseAddr("2001:db8::42"))
+	err = service.ForwardToInstance(ctx, sess, db.DeploymentsUpstreamProtocolHttp1, db.FindInstancesByDeploymentIDRow{ //nolint:exhaustruct
+		Address: "customer.internal:8080",
+	})
+	require.NoError(t, err)
+	require.Equal(t, "2001:db8::42", forwarded.Get("X-Forwarded-For"))
 }
 
 type roundTripperFunc func(*http.Request) (*http.Response, error)
