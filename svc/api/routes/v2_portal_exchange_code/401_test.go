@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_exchange_code"
@@ -25,19 +26,11 @@ func TestExchangeCodeUnauthorized(t *testing.T) {
 	h.Register(route, h.PublicMiddleware()...)
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	portalID := uid.New(uid.PortalPrefix)
 	now := time.Now().UnixMilli()
 
-	// Seed the portal the sessions belong to.
-	err := db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
-		ID:          portalID,
-		WorkspaceID: workspaceID,
-		Slug:        "test-portal",
-		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
-		Enabled:     true,
-		CreatedAt:   now,
-	})
-	require.NoError(t, err)
+	portalID := h.SeedPortal(t, workspaceID, "test-portal", "test-portal",
+		portal.Mapping{Type: portal.MappingTypeKeyspace, ID: uid.New(uid.KeySpacePrefix)},
+		nil, nil).ID
 
 	headers := http.Header{
 		"Content-Type": {"application/json"},

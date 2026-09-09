@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
@@ -31,17 +32,11 @@ func TestExchangeAlreadyClaimed(t *testing.T) {
 	ctx := context.Background()
 
 	workspaceID := h.Resources().UserWorkspace.ID
-	portalID := uid.New(uid.PortalPrefix)
 	now := time.Now().UnixMilli()
 
-	require.NoError(t, db.Query.InsertPortal(ctx, h.DB.RW(), db.InsertPortalParams{
-		ID:          portalID,
-		WorkspaceID: workspaceID,
-		Slug:        "replay-portal",
-		KeyAuthID:   sql.NullString{Valid: true, String: uid.New(uid.KeySpacePrefix)},
-		Enabled:     true,
-		CreatedAt:   now,
-	}))
+	portalID := h.SeedPortal(t, workspaceID, "replay-portal", "replay-portal",
+		portal.Mapping{Type: portal.MappingTypeKeyspace, ID: uid.New(uid.KeySpacePrefix)},
+		nil, nil).ID
 
 	scopes, err := json.Marshal(map[string]any{
 		"keyspaceIds": []string{uid.New(uid.KeySpacePrefix)},
