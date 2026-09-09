@@ -2,6 +2,7 @@
 
 import { TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
+import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { shortenId } from "@/lib/shorten-id";
 import { ArrowDottedRotateAnticlockwise, Ban, Dots } from "@unkey/icons";
 import { match } from "@unkey/match";
@@ -53,7 +54,11 @@ function DeploymentDetailHeaderContent({ deployment }: { deployment: Deployment 
 
   const title = match(deployment.source)
     .with("git", () => deployment.gitCommitMessage || shortenId(deployment.id))
-    .with("oci", "unknown", () => shortenId(deployment.id))
+    .with("oci", () => {
+      const image = deployment.requestedImage ?? deployment.resolvedImage;
+      return image ? imageRefDisplay(image) : shortenId(deployment.id);
+    })
+    .with("unknown", () => shortenId(deployment.id))
     .exhaustive();
   const environment = environments.find((env) => env.id === deployment.environmentId);
 
