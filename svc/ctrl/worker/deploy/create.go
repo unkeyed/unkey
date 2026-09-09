@@ -31,6 +31,14 @@ const (
 	commitAuthorHandleBytesMax    = 256
 	commitAuthorAvatarURLBytesMax = 512
 	triggerReasonBytesMax         = 512
+
+	// Column widths for the values that cannot be trimmed, because a cut sha or
+	// branch names something other than what the caller sent.
+	commitSHABytesMax      = 40
+	branchBytesMax         = 256
+	forkRepositoryBytesMax = 256
+	triggeredByBytesMax    = 256
+	imageBytesMax          = 512
 )
 
 // Create writes a deployment row and starts its pipeline. See the proto for the
@@ -109,10 +117,27 @@ func (w *Workflow) loadDeploymentData(ctx restate.Context, req *hydrav1.DeployCr
 	}, restate.WithName("load deployment data"), restate.WithMaxRetryAttempts(runMaxAttempts))
 }
 
-// checkEnvironmentDeployable rejects invalid port, cpu, or memory settings and
-// environments with no schedulable region. Deploy validates the same things,
-// but rejecting here means the caller gets a reason and no row is written.
-func checkEnvironmentDeployable(target db.FindDeployTargetRow) *rejection {
+// checkCreatable returns why a create is refused, or nil. Billing applies to
+// every create; only the settings a build needs are gated on willBuild.
+func checkCreatable(target db.FindDeployTargetRow, willBuild bool) *rejection {
+	if !deploygate.Entitled(target.Plan, target.PlanOverride) {
+		return rejectf(
+			hydrav1.CreateOutcome_CREATE_OUTCOME_NO_COMPUTE_PLAN,
+			"workspace %s has no Compute plan", target.WorkspaceID,
+		)
+	}
+	if target.SpendSuspended.Bool {
+		return rejectf(
+			hydrav1.CreateOutcome_CREATE_OUTCOME_SPEND_SUSPENDED,
+			"workspace %s is suspended by its Compute spend cap", target.WorkspaceID,
+		)
+	}
+	if !willBuild {
+		return nil
+	}
+
+	// Deploy validates port, cpu, memory and regions too, but rejecting here
+	// means the caller gets a reason and no row is written.
 	messages := make([]string, 0, 2)
 	for _, violation := range deployfail.RuntimeViolations(target.Port, target.CpuMillicores, target.MemoryMib) {
 		messages = append(messages, fmt.Sprintf("%s (is %d)", violation.Message, violation.Actual))
@@ -128,6 +153,31 @@ func checkEnvironmentDeployable(target db.FindDeployTargetRow) *rejection {
 		hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE,
 		"%s", strings.Join(messages, "; "),
 	)
+}
+
+// commitFromRequest reads the commit the caller supplied on whichever source
+// arm carries one. Empty fields are filled from GitHub in resolveSource.
+func commitFromRequest(req *hydrav1.DeployCreateRequest) gitCommit {
+	var commit gitCommit
+
+	gc := req.GetGit().GetCommit()
+	if gc == nil {
+		gc = req.GetImage().GetCommit()
+	}
+	if gc == nil {
+		return commit
+	}
+
+	commit = gitCommit{
+		SHA:             gc.GetCommitSha(),
+		Branch:          strings.TrimSpace(gc.GetBranch()),
+		Message:         gc.GetCommitMessage(),
+		AuthorHandle:    strings.TrimSpace(gc.GetAuthorHandle()),
+		AuthorAvatarURL: strings.TrimSpace(gc.GetAuthorAvatarUrl()),
+		Timestamp:       gc.GetTimestamp(),
+		ForkRepository:  gc.GetForkRepository(),
+	}
+	return commit
 }
 
 // deployPayload is everything the deployment row and the Deploy request are
@@ -149,6 +199,10 @@ type deployPayload struct {
 
 	Source buildSource `json:"source"`
 	Commit gitCommit   `json:"commit"`
+
+	// The branch dedup may supersede on. Empty for an inherited image, unlike
+	// Commit.Branch.
+	RequestedBranch string `json:"requested_branch"`
 
 	Trigger       db.DeploymentsTrigger `json:"trigger"`
 	TriggeredBy   string                `json:"triggered_by"`
@@ -180,63 +234,35 @@ func (w *Workflow) validateAndBuildPayload(
 			return payload, nil
 		}
 
-		if !deploygate.Entitled(target.Plan, target.PlanOverride) {
-			payload.Rejection = rejectf(
-				hydrav1.CreateOutcome_CREATE_OUTCOME_NO_COMPUTE_PLAN,
-				"workspace %s has no Compute plan", target.WorkspaceID,
-			)
-			return payload, nil
-		}
-		if target.SpendSuspended.Bool {
-			payload.Rejection = rejectf(
-				hydrav1.CreateOutcome_CREATE_OUTCOME_SPEND_SUSPENDED,
-				"workspace %s is suspended by its Compute spend cap", target.WorkspaceID,
-			)
-			return payload, nil
-		}
-
 		// A skip never builds: it needs no deployable environment, repository
 		// connection, or GitHub answer, and refusing it would leave the push with
 		// no record.
 		willBuild := status != mysqltype.DeploymentsStatusSkipped
 
-		if willBuild {
-			if rejection := checkEnvironmentDeployable(*target); rejection != nil {
-				payload.Rejection = rejection
-				return payload, nil
-			}
+		if payload.Rejection = checkCreatable(*target, willBuild); payload.Rejection != nil {
+			return payload, nil
 		}
 
-		secrets := []byte{}
-		if willBuild {
-			var err error
-			secrets, err = w.loadSecrets(runCtx, target.AppID, target.EnvironmentID)
-			if err != nil {
-				return payload, err
-			}
+		commit := commitFromRequest(req)
+		if tooLong := assert.All(
+			assert.LessOrEqual(len(commit.SHA), commitSHABytesMax, "commit sha is too long"),
+			assert.LessOrEqual(len(commit.Branch), branchBytesMax, "branch is too long"),
+			assert.LessOrEqual(len(commit.ForkRepository), forkRepositoryBytesMax, "fork repository is too long"),
+			assert.LessOrEqual(len(req.GetTriggeredBy()), triggeredByBytesMax, "triggered_by is too long"),
+		); tooLong != nil {
+			return payload, restate.TerminalError(tooLong)
 		}
 
-		// Empty fields are filled from GitHub in resolveSource.
-		var commit gitCommit
-		gc := req.GetGit().GetCommit()
-		if gc == nil {
-			gc = req.GetImage().GetCommit()
-		}
-		if gc != nil {
-			commit = gitCommit{
-				SHA:             gc.GetCommitSha(),
-				Branch:          strings.TrimSpace(gc.GetBranch()),
-				Message:         gc.GetCommitMessage(),
-				AuthorHandle:    strings.TrimSpace(gc.GetAuthorHandle()),
-				AuthorAvatarURL: strings.TrimSpace(gc.GetAuthorAvatarUrl()),
-				Timestamp:       gc.GetTimestamp(),
-				ForkRepository:  gc.GetForkRepository(),
-			}
-		}
 		prNumber := req.GetGit().GetPrNumber()
 		source := buildSource{Image: "", Git: nil}
+		secrets := []byte{}
 
 		if willBuild {
+			var err error
+			if secrets, err = w.loadSecrets(runCtx, target.AppID, target.EnvironmentID); err != nil {
+				return payload, err
+			}
+
 			resolved, err := w.resolveSource(runCtx, *target, req, commit)
 			if err != nil {
 				return payload, err
@@ -267,6 +293,9 @@ func (w *Workflow) validateAndBuildPayload(
 		payload.PRNumber = prNumber
 		payload.Source = source
 		payload.Commit = commit
+		if source.Git != nil || req.GetImage() != nil {
+			payload.RequestedBranch = commit.Branch
+		}
 		payload.Trigger = triggerFromProto(req.GetTrigger())
 		payload.TriggeredBy = req.GetTriggeredBy()
 		payload.TriggerReason = trimBytes(req.GetTriggerReason(), triggerReasonBytesMax)
@@ -385,14 +414,17 @@ func (w *Workflow) insertDeployment(
 			return w.auditlogs.Insert(txCtx, tx, createAuditLogs(payload, deploymentID, a))
 		})
 
-		// A duplicate key means an earlier attempt committed but its acknowledgement
-		// was lost, and TxRetry or Restate ran the transaction again. Treat it as
-		// success: no retry can clear it, and failing would leave a row that never
-		// builds and, with no invocation id, can never be cancelled.
-		if insertErr != nil && !db.IsDuplicateKeyError(insertErr) {
-			return insertErr
+		// A duplicate key is only this create's own committed row, which no retry
+		// can clear. Any other row on this id never passed the checks above, and
+		// deploying it would skip the gates it is owed, approval included.
+		if insertErr != nil && db.IsDuplicateKeyError(insertErr) {
+			existing, findErr := w.db.FindDeploymentById(runCtx, deploymentID)
+			if findErr != nil || existing.AppID != target.AppID || existing.Status != payload.Status {
+				return restate.TerminalError(fmt.Errorf("deployment id %s is not available", deploymentID))
+			}
+			return nil
 		}
-		return nil
+		return insertErr
 	}, restate.WithName("insert deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 }
 
@@ -469,10 +501,14 @@ func (w *Workflow) startDeployment(
 		Deploy().
 		Send(payload.toDeployRequest(deploymentID))
 
-	// An empty id would leave a deployment nothing can cancel.
+	// An empty id would leave a deployment nothing can cancel. Only a Restate
+	// bug produces one, since any other malformed value panics, and the id is
+	// journaled so a retry would replay it: terminal rather than forever.
 	invocationID := invocation.GetInvocationId()
 	if invocationID == "" {
-		return fmt.Errorf("restate returned an empty invocation id for deployment %s", deploymentID)
+		return restate.TerminalError(
+			fmt.Errorf("restate returned an empty invocation id for deployment %s", deploymentID),
+		)
 	}
 
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
@@ -493,7 +529,7 @@ func (w *Workflow) startDeployment(
 			ID:            deploymentID,
 			AppID:         target.AppID,
 			EnvironmentID: target.EnvironmentID,
-			GitBranch:     payload.Commit.Branch,
+			GitBranch:     payload.RequestedBranch,
 			CreatedAt:     payload.CreatedAt,
 		}); cancelErr != nil {
 			logger.Error(

@@ -3,6 +3,7 @@ package deploy_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -596,6 +597,31 @@ func TestCreateWithoutSource(t *testing.T) {
 	require.Equal(t, fixtureImage, image.OciImage.GetImage())
 }
 
+// TestCreateWithoutSourceReusesTheImageOfAGitDeployment redeploys an app whose
+// current deployment was built from git but whose repository is gone. Naming a
+// deployment asks to reproduce it, so a git build there must rebuild; naming no
+// source asks for what the app runs, which is the image.
+func TestCreateWithoutSourceReusesTheImageOfAGitDeployment(t *testing.T) {
+	ctx := context.Background()
+	h := newCreateHarness(t, ctx)
+
+	current := h.commitDeployment(t, ctx)
+	h.setDeploymentImages(t, ctx, current.ID, db.DeploymentsSourceGit, fixtureImage)
+	h.setCurrentDeployment(t, ctx, current.ID)
+
+	req := h.imageRequest()
+	req.Source = nil
+
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
+		h.create(t, ctx, deploymentID, req).GetOutcome())
+
+	sent := h.awaitDeploy(t, deploymentID)
+	image, ok := sent.GetSource().(*hydrav1.DeployRequest_OciImage)
+	require.True(t, ok, "with no repository there is nothing to rebuild from")
+	require.Equal(t, fixtureImage, image.OciImage.GetImage())
+}
+
 // TestCreateWithoutSourceOnConnectedAppResolvesGit is the other half, and the
 // rejection is the assertion. The harness has no GitHub, so resolving the head
 // of the default branch necessarily fails there, which is exactly what proves
@@ -852,6 +878,231 @@ func TestDeployTargetCarriesSourceColumns(t *testing.T) {
 	require.False(t, target.HasBuildSettings)
 }
 
+// TestCreateDedupsOnlyTheBranchTheCallerNamed pins which creates supersede a
+// queued sibling. A git build and an explicit image both name their branch, so
+// they dedup on it. A rebuild that reuses an existing deployment's image names
+// none: the branch on its row is inherited so the dashboard can show what the
+// image was built from, and superseding on it would cancel builds the caller
+// never spoke about.
+func TestCreateDedupsOnlyTheBranchTheCallerNamed(t *testing.T) {
+	t.Run("an inherited image supersedes nothing", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+		now := time.Now().UnixMilli()
+
+		source := h.imageDeploymentOnBranch(t, ctx, "main", now-60_000)
+		sibling := h.queuedSibling(t, ctx, "main", now-30_000)
+
+		deploymentID := uid.New(uid.DeploymentPrefix)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
+			h.create(t, ctx, deploymentID, h.existingRequest(source.ID, false)).GetOutcome())
+		h.awaitDeploy(t, deploymentID)
+
+		require.Equal(t, "main", h.deployment(t, ctx, deploymentID).GitBranch.String,
+			"the row still records the branch the image was built from")
+		h.requireNotSuperseded(t, ctx, sibling.ID)
+	})
+
+	t.Run("an explicit image supersedes its branch", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+		sibling := h.queuedSibling(t, ctx, "main", time.Now().UnixMilli()-30_000)
+
+		req := h.imageRequest()
+		req.Source = &hydrav1.DeployCreateRequest_Image{
+			Image: &hydrav1.CreateImageSource{
+				Image: fixtureImage,
+				Commit: &ctrlv1.GitCommitInfo{
+					CommitSha:       fixtureCommitSHA,
+					Branch:          "main",
+					CommitMessage:   fixtureCommitMessage,
+					AuthorHandle:    "",
+					AuthorAvatarUrl: "",
+					Timestamp:       0,
+					ForkRepository:  "",
+				},
+			},
+		}
+
+		deploymentID := uid.New(uid.DeploymentPrefix)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
+			h.create(t, ctx, deploymentID, req).GetOutcome())
+		h.awaitDeploy(t, deploymentID)
+		h.requireSuperseded(t, ctx, sibling.ID)
+	})
+
+	t.Run("a git build supersedes its branch", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+		h.setAppSource(t, ctx, db.AppsSourceTypeGit)
+		h.connectRepo(t, ctx)
+		sibling := h.queuedSibling(t, ctx, "main", time.Now().UnixMilli()-30_000)
+
+		deploymentID := uid.New(uid.DeploymentPrefix)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
+			h.create(t, ctx, deploymentID, h.gitRequest()).GetOutcome())
+		h.awaitDeploy(t, deploymentID)
+		h.requireSuperseded(t, ctx, sibling.ID)
+	})
+}
+
+// TestCreateRefusesAnIdOwnedByAnotherRow covers the object key, which the
+// caller picks. Every gate runs against the request's target, so a key that
+// already names a row must never adopt it: the gates never saw it.
+func TestCreateRefusesAnIdOwnedByAnotherRow(t *testing.T) {
+	t.Run("a deployment belonging to another app", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+
+		other := h.newApp(t, ctx)
+		victim := h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+			ID:            uid.New(uid.DeploymentPrefix),
+			WorkspaceID:   other.workspaceID,
+			ProjectID:     other.projectID,
+			AppID:         other.appID,
+			EnvironmentID: other.environmentID,
+			Status:        mysqltype.DeploymentsStatusReady,
+			CreatedAt:     time.Now().UnixMilli(),
+		})
+
+		_, err := h.tryCreate(ctx, victim.ID, h.imageRequest())
+		require.Error(t, err, "an id owned by another app must not be adopted")
+
+		h.requireNoDeploy(t, victim.ID)
+		after := h.deployment(t, ctx, victim.ID)
+		require.False(t, after.InvocationID.Valid, "the other app's invocation id must be untouched")
+		require.Equal(t, other.appID, after.AppID, "the row must still belong to the other app")
+		require.Equal(t, 0, h.countDeployments(t, ctx), "no row for this app")
+	})
+
+	// The tuple matches here, so only the created_at this create journaled
+	// separates the row it wrote from one that was already there.
+	t.Run("an awaiting-approval row in the same app", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+
+		blocked := h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+			ID:            uid.New(uid.DeploymentPrefix),
+			WorkspaceID:   h.workspaceID,
+			ProjectID:     h.projectID,
+			AppID:         h.appID,
+			EnvironmentID: h.environmentID,
+			Status:        mysqltype.DeploymentsStatusAwaitingApproval,
+			CreatedAt:     time.Now().UnixMilli(),
+		})
+
+		_, err := h.tryCreate(ctx, blocked.ID, h.imageRequest())
+		require.Error(t, err, "a create must not adopt a row waiting for approval")
+
+		h.requireNoDeploy(t, blocked.ID)
+		require.Equal(t, mysqltype.DeploymentsStatusAwaitingApproval,
+			h.deployment(t, ctx, blocked.ID).Status, "the approval gate must still hold")
+	})
+}
+
+// TestForeignAndMissingSourceDeploymentsAnswerAlike pins the masking. The id is
+// caller-supplied, so a foreign deployment has to answer like a miss, or the
+// reason lets a caller probe for deployments it cannot reach.
+func TestForeignAndMissingSourceDeploymentsAnswerAlike(t *testing.T) {
+	ctx := context.Background()
+	h := newCreateHarness(t, ctx)
+
+	other := h.newApp(t, ctx)
+	foreign := h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   h.workspaceID,
+		ProjectID:     h.projectID,
+		AppID:         other.appID,
+		EnvironmentID: other.environmentID,
+		Status:        mysqltype.DeploymentsStatusReady,
+		CreatedAt:     time.Now().UnixMilli(),
+	})
+
+	missingID := uid.New(uid.DeploymentPrefix)
+	missing := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.existingRequest(missingID, false))
+	present := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.existingRequest(foreign.ID, false))
+
+	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_SOURCE_DEPLOYMENT_NOT_FOUND, missing.GetOutcome())
+	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_SOURCE_DEPLOYMENT_NOT_FOUND, present.GetOutcome())
+
+	// One template for both, so the only thing that differs is the id the caller
+	// already knew.
+	require.Equal(t, fmt.Sprintf("source deployment %s not found", missingID), missing.GetDetail())
+	require.Equal(t, fmt.Sprintf("source deployment %s not found", foreign.ID), present.GetDetail())
+}
+
+// TestCreateRefusesOversizedIdentifiers covers the columns a commit message
+// cannot be trimmed like: a cut sha or branch names something else, so the
+// create is refused instead. The row must never reach MySQL and fail there.
+func TestCreateRefusesOversizedIdentifiers(t *testing.T) {
+	ctx := context.Background()
+	h := newCreateHarness(t, ctx)
+
+	// Valid syntax, 530 characters, and imageref puts no bound on total length.
+	t.Run("an image reference wider than its column", func(t *testing.T) {
+		req := h.imageRequest()
+		req.Source = &hydrav1.DeployCreateRequest_Image{
+			Image: &hydrav1.CreateImageSource{
+				Image:  strings.Repeat("a.", 260) + "com/foo:v1",
+				Commit: nil,
+			},
+		}
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE, resp.GetOutcome())
+		require.Equal(t, 0, h.countDeployments(t, ctx), "no row for a refused image")
+	})
+
+	t.Run("a branch wider than its column", func(t *testing.T) {
+		req := h.imageRequest()
+		req.Source = &hydrav1.DeployCreateRequest_Image{
+			Image: &hydrav1.CreateImageSource{
+				Image: fixtureImage,
+				Commit: &ctrlv1.GitCommitInfo{
+					CommitSha:       fixtureCommitSHA,
+					Branch:          strings.Repeat("b", 300),
+					CommitMessage:   fixtureCommitMessage,
+					AuthorHandle:    "",
+					AuthorAvatarUrl: "",
+					Timestamp:       0,
+					ForkRepository:  "",
+				},
+			},
+		}
+
+		_, err := h.tryCreate(ctx, uid.New(uid.DeploymentPrefix), req)
+		require.Error(t, err, "a branch that cannot be stored must not be truncated")
+		require.NotContains(t, err.Error(), "Data too long",
+			"the create has to refuse the branch itself, not spend its retries losing to MySQL")
+		require.Equal(t, 0, h.countDeployments(t, ctx), "no row for a refused branch")
+	})
+
+	// A full sha is exactly the column width, so the bound has to admit it.
+	t.Run("a full length sha is accepted", func(t *testing.T) {
+		sha := strings.Repeat("a", 40)
+		req := h.imageRequest()
+		req.Source = &hydrav1.DeployCreateRequest_Image{
+			Image: &hydrav1.CreateImageSource{
+				Image: fixtureImage,
+				Commit: &ctrlv1.GitCommitInfo{
+					CommitSha:       sha,
+					Branch:          "main",
+					CommitMessage:   fixtureCommitMessage,
+					AuthorHandle:    "",
+					AuthorAvatarUrl: "",
+					Timestamp:       0,
+					ForkRepository:  "",
+				},
+			},
+		}
+
+		deploymentID := uid.New(uid.DeploymentPrefix)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
+			h.create(t, ctx, deploymentID, req).GetOutcome())
+		require.Equal(t, sha, h.deployment(t, ctx, deploymentID).GitCommitSha.String)
+	})
+}
+
 // createHarness is one MySQL database and one Restate server hosting the real
 // Create next to a stand-in for Deploy.
 type createHarness struct {
@@ -1026,6 +1277,63 @@ func (h *createHarness) imageDeployment(t *testing.T, ctx context.Context, creat
 		ID:            row.ID,
 	}))
 	return row
+}
+
+// imageDeploymentOnBranch is an image deployment that recorded the branch its
+// image was built from, which is what the legacy RPC wrote for an oci_image
+// create that carried a commit.
+func (h *createHarness) imageDeploymentOnBranch(t *testing.T, ctx context.Context, branch string, createdAt int64) db.Deployment {
+	t.Helper()
+	row := h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+		ID:               uid.New(uid.DeploymentPrefix),
+		WorkspaceID:      h.workspaceID,
+		ProjectID:        h.projectID,
+		AppID:            h.appID,
+		EnvironmentID:    h.environmentID,
+		Status:           mysqltype.DeploymentsStatusReady,
+		CreatedAt:        createdAt,
+		GitBranch:        sql.NullString{Valid: true, String: branch},
+		GitCommitSha:     sql.NullString{Valid: true, String: fixtureCommitSHA},
+		GitCommitMessage: sql.NullString{Valid: true, String: fixtureCommitMessage},
+	})
+	require.NoError(t, h.database.UpdateDeploymentImage(ctx, db.UpdateDeploymentImageParams{
+		ImageResolved: sql.NullString{Valid: true, String: fixtureImage},
+		UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		ID:            row.ID,
+	}))
+	return row
+}
+
+// queuedSibling is a deployment still in the build queue on a branch, which is
+// the only thing dedup is allowed to supersede.
+func (h *createHarness) queuedSibling(t *testing.T, ctx context.Context, branch string, createdAt int64) db.Deployment {
+	t.Helper()
+	return h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   h.workspaceID,
+		ProjectID:     h.projectID,
+		AppID:         h.appID,
+		EnvironmentID: h.environmentID,
+		Status:        mysqltype.DeploymentsStatusPending,
+		CreatedAt:     createdAt,
+		GitBranch:     sql.NullString{Valid: true, String: branch},
+	})
+}
+
+func (h *createHarness) requireSuperseded(t *testing.T, ctx context.Context, deploymentID string) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		return h.deployment(t, ctx, deploymentID).Status == mysqltype.DeploymentsStatusSuperseded
+	}, 15*time.Second, 100*time.Millisecond, "deployment %s must be superseded", deploymentID)
+}
+
+// requireNotSuperseded has to outlast the dedup step, or it passes for the
+// wrong reason: dedup runs after Create has already dispatched Deploy.
+func (h *createHarness) requireNotSuperseded(t *testing.T, ctx context.Context, deploymentID string) {
+	t.Helper()
+	require.Never(t, func() bool {
+		return h.deployment(t, ctx, deploymentID).Status == mysqltype.DeploymentsStatusSuperseded
+	}, 5*time.Second, 200*time.Millisecond, "deployment %s must not be superseded", deploymentID)
 }
 
 func (h *createHarness) awaitDeploy(t *testing.T, deploymentID string) *hydrav1.DeployRequest {

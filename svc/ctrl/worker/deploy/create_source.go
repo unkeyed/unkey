@@ -72,7 +72,8 @@ func (w *Workflow) resolveSource(
 
 	case *hydrav1.DeployCreateRequest_ExistingDeployment:
 		return w.resolveExistingDeployment(ctx, target,
-			source.ExistingDeployment.GetDeploymentId(), source.ExistingDeployment.GetRequireLatest())
+			source.ExistingDeployment.GetDeploymentId(), source.ExistingDeployment.GetRequireLatest(),
+			rebuild)
 
 	default:
 		if target.SourceType == db.AppsSourceTypeGit {
@@ -100,7 +101,8 @@ func (w *Workflow) resolveSource(
 		}
 		// The current deployment is the newest by definition, so requireLatest
 		// has nothing to check.
-		return w.resolveExistingDeployment(ctx, target, target.CurrentDeploymentID.String, false)
+		return w.resolveExistingDeployment(ctx, target, target.CurrentDeploymentID.String, false,
+			redeploy)
 	}
 }
 
@@ -113,6 +115,14 @@ func imageSource(image string, commit gitCommit, normalize func(string) (string,
 		return newRejectedSource(rejectf(
 			hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE,
 			"%s", err.Error(),
+		))
+	}
+	// A reference is syntactically valid at any length, so the column is the
+	// only bound on it.
+	if len(normalized) > imageBytesMax {
+		return newRejectedSource(rejectf(
+			hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE,
+			"image reference must be at most %d characters", imageBytesMax,
 		))
 	}
 	return resolvedSource{
@@ -192,6 +202,15 @@ func (w *Workflow) resolveGitSource(
 	}, nil
 }
 
+// intent separates a rebuild, which reproduces one named deployment and so has
+// to build its commit, from a redeploy, which runs what the app runs now.
+type intent int
+
+const (
+	rebuild intent = iota
+	redeploy
+)
+
 // resolveExistingDeployment reproduces what another deployment ran. The row's
 // recorded source decides: a git build is rebuilt from its commit, an image
 // deployment redeploys its image even if it recorded the commit it came from.
@@ -200,18 +219,13 @@ func (w *Workflow) resolveExistingDeployment(
 	target db.FindDeployTargetRow,
 	deploymentID string,
 	requireLatest bool,
+	asked intent,
 ) (resolvedSource, error) {
 	var failed resolvedSource
 
-	src, err := w.db.FindDeploymentById(ctx, deploymentID)
-	if err != nil {
-		if db.IsNotFound(err) {
-			return newRejectedSource(rejectf(
-				hydrav1.CreateOutcome_CREATE_OUTCOME_SOURCE_DEPLOYMENT_NOT_FOUND,
-				"source deployment %s not found", deploymentID,
-			)), nil
-		}
-		return failed, err
+	src, findErr := w.db.FindDeploymentById(ctx, deploymentID)
+	if findErr != nil && !db.IsNotFound(findErr) {
+		return failed, fmt.Errorf("failed to lookup source deployment: %w", findErr)
 	}
 
 	// The lookup is by primary key alone, so this is what stops a request from
@@ -221,12 +235,11 @@ func (w *Workflow) resolveExistingDeployment(
 	// Environment is not compared. A request with no source rebuilds the app's
 	// current deployment, which is always a production one, into whatever
 	// environment the request targets.
-	if src.WorkspaceID != target.WorkspaceID || src.ProjectID != target.ProjectID ||
-		src.AppID != target.AppID {
+	if findErr != nil || src.WorkspaceID != target.WorkspaceID ||
+		src.ProjectID != target.ProjectID || src.AppID != target.AppID {
 		return newRejectedSource(rejectf(
 			hydrav1.CreateOutcome_CREATE_OUTCOME_SOURCE_DEPLOYMENT_NOT_FOUND,
-			"source deployment %s does not belong to app %s",
-			deploymentID, target.AppID,
+			"source deployment %s not found", deploymentID,
 		)), nil
 	}
 
@@ -239,7 +252,7 @@ func (w *Workflow) resolveExistingDeployment(
 			DeploymentID:  src.ID,
 		})
 		if newerErr != nil {
-			return failed, newerErr
+			return failed, fmt.Errorf("failed to check for a newer deployment: %w", newerErr)
 		}
 		if hasNewer {
 			scope := "for this app and environment"
@@ -269,12 +282,12 @@ func (w *Workflow) resolveExistingDeployment(
 	if gitBuild && commit.SHA != "" && target.GithubRepositoryFullName.Valid {
 		return w.resolveGitSource(target, commit, src.PrNumber.Int64)
 	}
-	// A rebuild that reused the image would rebuild nothing. Only a row that
-	// never recorded its source may fall back to one.
-	if src.Source == db.DeploymentsSourceGit {
+	// Reproducing a named git build by reusing its image would rebuild nothing.
+	// A redeploy asked for the image, so it takes it.
+	if src.Source == db.DeploymentsSourceGit && asked == rebuild {
 		return newRejectedSource(rejectf(
 			hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_COMMIT,
-			"git deployment %s has no commit and repository connection to rebuild from", src.ID,
+			"git deployment %s needs both a commit and a repository connection to rebuild from", src.ID,
 		)), nil
 	}
 
