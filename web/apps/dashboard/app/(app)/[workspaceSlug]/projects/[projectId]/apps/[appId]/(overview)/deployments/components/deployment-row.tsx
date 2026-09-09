@@ -52,6 +52,9 @@ export function DeploymentRow({
   const isCurrent = currentDeployment?.id === deployment.id;
   const rollout = badgeRollout({ isCurrent, isRolledBack, isRolledBackFrom });
   const statusLabel = DEPLOYMENT_STATUS_LABELS[deployment.status];
+  const isGit = deployment.source === "git";
+  const image = deployment.requestedImage ?? deployment.resolvedImage;
+  const title = isGit ? deployment.gitCommitMessage : null;
   const showLastExit =
     deployment.lastExit !== null &&
     deployment.status !== "ready" &&
@@ -84,10 +87,12 @@ export function DeploymentRow({
       <span className="flex min-w-0 flex-1 items-center gap-2">
         <span
           className="min-w-0 truncate text-[13px] text-accent-12"
-          title={deployment.gitCommitMessage ?? deployment.image ?? undefined}
+          title={title ?? (deployment.source === "oci" ? image : null) ?? undefined}
         >
-          {deployment.gitCommitMessage ??
-            (deployment.image ? imageRefDisplay(deployment.image) : shortenId(deployment.id))}
+          {title ??
+            (deployment.source === "oci" && image
+              ? imageRefDisplay(image)
+              : shortenId(deployment.id))}
         </span>
         {showLastExit && deployment.lastExit && (
           <span className="relative z-20 shrink-0">
@@ -111,14 +116,14 @@ export function DeploymentRow({
         )}
       </span>
       <span className="hidden w-32 min-w-0 shrink-0 items-center md:flex">
-        {deployment.gitCommitSha ? (
+        {isGit && deployment.gitCommitSha ? (
           <CommitSha deployment={deployment} repoFullName={repoFullName} />
-        ) : deployment.image ? (
-          <ImageRef image={deployment.image} />
+        ) : deployment.source === "oci" && image ? (
+          <ImageRef image={image} />
         ) : null}
       </span>
       <span className="hidden w-40 min-w-0 shrink-0 items-center lg:flex">
-        {deployment.gitBranch ? (
+        {isGit && deployment.gitBranch ? (
           <BranchCell branch={deployment.gitBranch} repoFullName={repoFullName} />
         ) : (
           <OriginCell deployment={deployment} />

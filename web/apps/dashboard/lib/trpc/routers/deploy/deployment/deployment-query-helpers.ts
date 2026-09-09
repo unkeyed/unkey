@@ -1,5 +1,5 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
-import { type InferSelectModel, ne } from "@/lib/db";
+import { type InferSelectModel, ne, sql } from "@/lib/db";
 import type { LastExit } from "@/lib/types/deploy";
 import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
 import { mapRegionToFlag } from "../network/utils";
@@ -16,6 +16,8 @@ export const deploymentSelectFields = {
   id: deployments.id,
   projectId: deployments.projectId,
   environmentId: deployments.environmentId,
+  source: deployments.source,
+  requestedImage: deployments.imageRequested,
   gitCommitSha: deployments.gitCommitSha,
   gitBranch: deployments.gitBranch,
   gitCommitMessage: deployments.gitCommitMessage,
@@ -24,7 +26,9 @@ export const deploymentSelectFields = {
   gitCommitTimestamp: deployments.gitCommitTimestamp,
   prNumber: deployments.prNumber,
   forkRepositoryFullName: deployments.forkRepositoryFullName,
-  image: deployments.image,
+  resolvedImage: sql<
+    string | null
+  >`COALESCE(NULLIF(${deployments.imageResolved}, ''), ${deployments.image})`,
   status: deployments.status,
   desiredState: deployments.desiredState,
   trigger: deployments.trigger,
@@ -48,8 +52,8 @@ export const deploymentListSelect = {
 
 export type DeploymentListSelection = Pick<
   InferSelectModel<typeof deployments>,
-  keyof typeof deploymentListSelect
->;
+  Exclude<keyof typeof deploymentListSelect, "requestedImage" | "resolvedImage">
+> & { requestedImage: string | null; resolvedImage: string | null };
 
 export function mapInstanceRow(row: {
   id: string;
@@ -60,7 +64,11 @@ export function mapInstanceRow(row: {
 }) {
   return {
     id: row.id,
-    region: { id: row.regionId, name: row.regionName, platform: row.regionPlatform },
+    region: {
+      id: row.regionId,
+      name: row.regionName,
+      platform: row.regionPlatform,
+    },
     flagCode: mapRegionToFlag(row.regionName),
     status: row.status,
   };
@@ -110,6 +118,7 @@ export function computeLastExit(
 }
 
 export function normalizeDeploymentRow(deployment: {
+  source: "unknown" | "git" | "oci";
   gitBranch: string | null;
   prNumber: number | null;
   forkRepositoryFullName: string | null;
@@ -117,6 +126,7 @@ export function normalizeDeploymentRow(deployment: {
   gitCommitTimestamp: number | null;
 }) {
   return {
+    source: deployment.source,
     gitBranch: deployment.gitBranch ?? "",
     prNumber: deployment.prNumber ?? null,
     forkRepositoryFullName: deployment.forkRepositoryFullName ?? null,
