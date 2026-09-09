@@ -2,8 +2,8 @@
 
 import { ErrorBoundary } from "@/components/error-boundary";
 import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
-import { Refresh3, TriangleWarning } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { IconRefresh3Outline18, IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import { useCallback, useState } from "react";
 import { IdentityDetailsLogsChart } from "./components/charts";
 import { IdentityDetailsLogsControlCloud } from "./components/control-cloud";
@@ -31,11 +31,11 @@ export const IdentityDetailsLogsClient = ({
   const createErrorFallback = (componentName: string) => (error: Error, reset: () => void) => (
     <div className="flex items-center justify-center w-full h-32 bg-error-2 border border-error-6 rounded-lg">
       <div className="text-center p-4">
-        <TriangleWarning className="w-8 h-8 text-error-9 mx-auto mb-2" />
+        <IconTriangleWarningOutline18 className="w-8 h-8 text-error-9 mx-auto mb-2" />
         <h3 className="text-sm font-medium text-error-11 mb-1">{componentName} Error</h3>
         <p className="text-xs text-gray-11 mb-3">{error.message}</p>
         <Button variant="outline" size="sm" onClick={reset} className="text-xs">
-          <Refresh3 className="w-3 h-3 mr-1" />
+          <IconRefresh3Outline18 className="w-3 h-3 mr-1" />
           Retry
         </Button>
       </div>

@@ -1,8 +1,8 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowUpRight, TriangleWarning2 } from "@unkey/icons";
 import { Button, DialogContainer, InlineLink, Input, SettingsZoneRow } from "@unkey/ui";
+import { IconArrowUpRightOutline18, IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -70,7 +70,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
             <StatusBadge
               variant={api.deleteProtection ? "enabled" : "disabled"}
               text={api.deleteProtection ? "Enabled" : "Disabled"}
-              icon={<TriangleWarning2 iconSize="sm-regular" />}
+              icon={<IconTriangleWarningOutline18 />}
             />
           </div>
         }
@@ -121,7 +121,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
               target="_blank"
               rel="noopener noreferrer"
               href="https://www.unkey.com/docs/security/delete-protection"
-              icon={<ArrowUpRight iconSize="sm-thin" />}
+              icon={<IconArrowUpRightOutline18 />}
             />
           </p>
           <form id="delete-protection-form" onSubmit={handleSubmit(onSubmit)}>

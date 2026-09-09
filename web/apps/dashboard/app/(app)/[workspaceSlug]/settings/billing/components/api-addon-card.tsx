@@ -6,7 +6,6 @@ import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
-import { Nodes, TriangleWarning2 } from "@unkey/icons";
 import {
   Button,
   DialogContainer,
@@ -20,6 +19,8 @@ import {
   toast,
 } from "@unkey/ui";
 import { useRouter } from "next/navigation";
+import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
+import { IconNodesOutline18, IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { PlanChangeModal } from "./plan-change-modal";
@@ -158,7 +159,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
   return (
     <>
       <ProductCard
-        icon={<Nodes iconSize="md-regular" />}
+        icon={<IconNodesOutline18 className="size-4" />}
         iconClassName="bg-infoA-3 text-info-11"
         name="API Management"
         tag={currentProduct ? currentProduct.name : "Free"}
@@ -225,7 +226,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
           {cancelAt ? (
             <div className="flex items-center justify-between gap-4 rounded-lg border border-warningA-6 bg-warningA-2 px-4 py-3">
               <div className="flex min-w-0 items-center gap-3">
-                <TriangleWarning2 iconSize="md-regular" className="shrink-0 text-warning-11" />
+                <IconTriangleWarningOutline18 className="size-4 shrink-0 text-warning-11" />
                 <p className="truncate text-[13px] text-gray-11">
                   Your API plan ends in {formatMs(cancelAt - Date.now(), { long: true })} on{" "}
                   {new Date(cancelAt).toLocaleDateString()}; the workspace then downgrades to the
@@ -321,7 +322,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
       >
         <div className="flex items-center gap-4 rounded-xl border border-errorA-3 bg-errorA-2 px-[22px] py-6 dark:bg-black">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-error-9">
-            <TriangleWarning2 iconSize="sm-regular" className="text-white" />
+            <IconTriangleWarningOutline12 className="text-white" />
           </div>
           <div className="text-[13px] text-error-12 leading-6">
             <span className="font-medium">Warning:</span> cancelling your API plan will downgrade

@@ -1,6 +1,12 @@
-import { ChevronDown, CircleCheck, CodeBranch, CodeCommit, FolderCloud } from "@unkey/icons";
 import { Badge, Card } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import {
+  IconChevronDownOutline18,
+  IconCircleCheckOutline18,
+  IconCodeBranchOutline18,
+  IconCodeCommitOutline18,
+  IconFolderCloudOutline18,
+} from "nucleo-ui-outline-18";
 import { StatusIndicator } from "../../../components/status-indicator";
 
 export function ActiveDeploymentCardSkeleton() {
@@ -17,7 +23,7 @@ export function ActiveDeploymentCardSkeleton() {
         <div className="flex items-center gap-4">
           <Badge variant="success" className="text-successA-11 font-medium">
             <div className="flex items-center gap-2">
-              {<CircleCheck />}
+              {<IconCircleCheckOutline18 />}
               Loading
             </div>
           </Badge>
@@ -41,17 +47,17 @@ export function ActiveDeploymentCardSkeleton() {
             <div className="h-2.5 w-16 bg-grayA-3 rounded-sm animate-pulse" />
             <div className="flex items-center gap-1.5">
               <div className="bg-grayA-3 items-center flex gap-1.5 p-1.5 rounded-md w-fit animate-pulse h-[22px]">
-                <CodeBranch iconSize="sm-regular" className="text-gray-12 opacity-50" />
+                <IconCodeBranchOutline18 className="size-3 text-gray-12 opacity-50" />
                 <div className="h-2 w-12 bg-grayA-4 rounded-sm" />
               </div>
               <div className="bg-grayA-3 items-center flex gap-1.5 p-1.5 rounded-md w-fit animate-pulse h-[22px]">
-                <CodeCommit iconSize="sm-regular" className="text-gray-12 opacity-50" />
+                <IconCodeCommitOutline18 className="size-3 text-gray-12 opacity-50" />
                 <div className="h-2 w-16 bg-grayA-4 rounded-sm" />
               </div>
             </div>
             <div className="text-grayA-9 text-xs">using image</div>
             <div className="bg-grayA-3 items-center flex gap-1.5 p-1.5 rounded-md w-fit animate-pulse h-[22px]">
-              <FolderCloud iconSize="sm-regular" className="text-gray-12 opacity-50" />
+              <IconFolderCloudOutline18 className="size-3 text-gray-12 opacity-50" />
               <div className="h-2 w-24 bg-grayA-4 rounded-sm" />
             </div>
           </div>
@@ -60,7 +66,7 @@ export function ActiveDeploymentCardSkeleton() {
             <span className="text-grayA-6">|</span>
             <span className="text-xs text-grayA-9">Logs</span>
             <span className="inline-flex items-center justify-center size-7">
-              <ChevronDown
+              <IconChevronDownOutline18
                 className={cn("text-grayA-9 size-3! transition-transform duration-200")}
               />
             </span>

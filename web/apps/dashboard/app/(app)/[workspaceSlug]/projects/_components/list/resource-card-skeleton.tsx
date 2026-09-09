@@ -1,4 +1,4 @@
-import { Cube } from "@unkey/icons";
+import { IconCubeOutline18 } from "nucleo-ui-outline-18";
 
 export const ResourceCardSkeleton = () => {
   return (
@@ -6,7 +6,7 @@ export const ResourceCardSkeleton = () => {
       {/* Top Section */}
       <div className="flex gap-4 items-center min-h-11">
         <div className="size-10 bg-gray-3 rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4">
-          <Cube iconSize="xl-medium" className="text-gray-11 opacity-30 shrink-0 size-5" />
+          <IconCubeOutline18 className="text-gray-11 opacity-30 shrink-0 size-5" />
         </div>
         <div className="flex flex-col w-full gap-2 py-[5px] min-w-0">
           <div className="h-[14px] w-24 bg-grayA-3 rounded-sm animate-pulse" />

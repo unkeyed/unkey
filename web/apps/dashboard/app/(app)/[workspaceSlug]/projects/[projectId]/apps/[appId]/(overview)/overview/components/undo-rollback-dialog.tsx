@@ -5,9 +5,9 @@ import { shortenId } from "@/lib/shorten-id";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
-import { CodeBranch, Layers2 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, Button, DialogContainer, TimestampInfo, toast } from "@unkey/ui";
+import { IconCodeBranchOutline18, IconLayers2Outline18 } from "nucleo-ui-outline-18";
 import { useEffect, useState } from "react";
 import { Avatar } from "../../../components/git-avatar";
 
@@ -170,7 +170,7 @@ function DeploymentSource({ deployment }: { deployment: Deployment }) {
   return match(deployment.source)
     .with("oci", () => (
       <span className="flex items-center gap-1.5 min-w-0">
-        <Layers2 iconSize="sm-regular" className="shrink-0 text-gray-12" />
+        <IconLayers2Outline18 className="shrink-0 text-gray-12" />
         <span
           className="truncate"
           title={deployment.requestedImage ?? deployment.resolvedImage ?? undefined}
@@ -183,7 +183,7 @@ function DeploymentSource({ deployment }: { deployment: Deployment }) {
       <>
         {deployment.gitBranch && (
           <span className="flex items-center gap-1.5 min-w-0">
-            <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
+            <IconCodeBranchOutline18 className="shrink-0 text-gray-12" />
             <span className="truncate">{deployment.gitBranch}</span>
           </span>
         )}
@@ -201,7 +201,7 @@ function DeploymentSource({ deployment }: { deployment: Deployment }) {
     ))
     .with("unknown", () => (
       <span className="flex items-center gap-1.5 min-w-0">
-        <Layers2 iconSize="sm-regular" className="shrink-0 text-gray-12" />
+        <IconLayers2Outline18 className="shrink-0 text-gray-12" />
         <span>Deployment artifact</span>
       </span>
     ))

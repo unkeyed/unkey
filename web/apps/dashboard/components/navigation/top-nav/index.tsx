@@ -5,8 +5,8 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { type BreadcrumbDescriptor, useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { Menu } from "@unkey/icons";
 import Link from "next/link";
+import { IconMenuOutline18 } from "nucleo-ui-outline-18";
 import { Fragment } from "react";
 import { ApiCrumb } from "./api-crumb";
 import { AppCrumb } from "./app-crumb";
@@ -57,7 +57,7 @@ export function TopNav() {
           aria-label="Open navigation"
           className="flex size-8 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-accent-12 md:hidden"
         >
-          <Menu className="size-4" iconSize="md-regular" />
+          <IconMenuOutline18 className="size-4" />
         </button>
       </div>
     </header>

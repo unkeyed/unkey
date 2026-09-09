@@ -5,7 +5,6 @@ import { useDeleteIdentityMutation } from "@/lib/identities-query";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Identity } from "@unkey/api/models/components";
-import { TriangleWarning2 } from "@unkey/icons";
 import {
   Alert,
   AlertDescription,
@@ -15,6 +14,7 @@ import {
   DialogContainer,
   FormCheckbox,
 } from "@unkey/ui";
+import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
 import { useId, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -140,7 +140,7 @@ export const DeleteIdentityDialog = ({
             </div>
             <div className="rounded-xl bg-errorA-2 dark:bg-black border border-errorA-3 flex items-center gap-4 px-[22px] py-6">
               <div className="bg-error-9 size-8 rounded-full flex items-center justify-center shrink-0">
-                <TriangleWarning2 iconSize="sm-regular" className="text-white" />
+                <IconTriangleWarningOutline12 className="text-white" />
               </div>
               <div className="text-error-12 text-[13px] leading-6">
                 <span className="font-medium">Warning:</span> deleting this identity will remove all

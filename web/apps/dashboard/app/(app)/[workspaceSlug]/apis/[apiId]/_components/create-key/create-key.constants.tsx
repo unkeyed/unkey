@@ -1,5 +1,12 @@
-import { CalendarClock, ChartPie, Code, Gauge, Key2, ShieldKey } from "@unkey/icons";
 import type { StepNamesFrom } from "@unkey/ui";
+import {
+  IconCalendarClockOutline18,
+  IconChartPieOutline18,
+  IconCodeOutline18,
+  IconGaugeOutline18,
+  IconKey2Outline18,
+  IconShieldKeyOutline18,
+} from "nucleo-ui-outline-18";
 import type { SectionState } from "./types";
 
 import { MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";
@@ -14,37 +21,37 @@ export const SECTIONS = [
   {
     id: "general",
     label: "General Setup",
-    icon: Key2,
+    icon: IconKey2Outline18,
     content: () => <GeneralSetup />,
   },
   {
     id: "ratelimit",
     label: "Ratelimit",
-    icon: Gauge,
+    icon: IconGaugeOutline18,
     content: () => <RatelimitSetup />,
   },
   {
     id: "credits",
     label: "Credits",
-    icon: ChartPie,
+    icon: IconChartPieOutline18,
     content: () => <UsageSetup />,
   },
   {
     id: "expiration",
     label: "Expiration",
-    icon: CalendarClock,
+    icon: IconCalendarClockOutline18,
     content: () => <ExpirationSetup />,
   },
   {
     id: "rbac",
     label: "Permissions",
-    icon: ShieldKey,
+    icon: IconShieldKeyOutline18,
     content: () => <RbacSetup />,
   },
   {
     id: "metadata",
     label: "Metadata",
-    icon: Code,
+    icon: IconCodeOutline18,
     content: () => <MetadataSetup entityType="key" />,
   },
 ] as const;

@@ -1,4 +1,4 @@
-import { CaretRightOutline, CircleInfoSparkle } from "@unkey/icons";
+import { IconCaretRightOutline18, IconCircleInfoSparkleOutline18 } from "nucleo-ui-outline-18";
 import type React from "react";
 import { InfoTooltip } from "../../info-tooltip";
 
@@ -28,7 +28,7 @@ export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({
           <ul className="space-y-1.5 pl-1 [&_svg]:size-[10px] ">
             {examples.map((example) => (
               <li key={example} className="flex items-center gap-2">
-                <CaretRightOutline className="text-accent-9" />
+                <IconCaretRightOutline18 className="text-accent-9" />
                 <button
                   type="button"
                   className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
@@ -45,7 +45,7 @@ export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({
       delayDuration={150}
     >
       <div data-testid="info-icon">
-        <CircleInfoSparkle className="size-4 text-accent-9" />
+        <IconCircleInfoSparkleOutline18 className="size-4 text-accent-9" />
       </div>
     </InfoTooltip>
   );

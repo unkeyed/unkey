@@ -8,10 +8,16 @@ import { collection } from "@/lib/collections";
 import { githubUrl } from "@/lib/github-url";
 import { routes } from "@/lib/navigation/routes";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Dots, Github, Layers2, Plus, Terminal } from "@unkey/icons";
+import { Github } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Button, Empty } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
+import {
+  IconDotsOutline18,
+  IconLayers2Outline18,
+  IconPlusOutline18,
+  IconTerminalOutline18,
+} from "nucleo-ui-outline-18";
 import { AppActions } from "./app-actions";
 
 // One row at the 3-column desktop width so loading doesn't tower over the
@@ -60,7 +66,7 @@ export const AppsList = () => {
             </Empty.Description>
             <Empty.Actions className="mt-4 justify-start">
               <Button size="md" onClick={openCreateApp}>
-                <Plus />
+                <IconPlusOutline18 />
                 Create app
               </Button>
             </Empty.Actions>
@@ -70,13 +76,13 @@ export const AppsList = () => {
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           {apps.data.map((app) => {
             const icon = match(app.sourceType)
-              .with("git", () => <Github iconSize="xl-medium" className="shrink-0 size-5" />)
-              .with("oci", () => <Layers2 iconSize="xl-medium" className="shrink-0 size-5" />)
+              .with("git", () => <Github className="shrink-0 size-5" />)
+              .with("oci", () => <IconLayers2Outline18 className="shrink-0 size-5" />)
               .with("unknown", () =>
                 app.repositoryFullName ? (
-                  <Github iconSize="xl-medium" className="shrink-0 size-5" />
+                  <Github className="shrink-0 size-5" />
                 ) : (
-                  <Terminal iconSize="xl-medium" className="shrink-0 size-5" />
+                  <IconTerminalOutline18 className="shrink-0 size-5" />
                 ),
               )
               .exhaustive();
@@ -130,7 +136,7 @@ export const AppsList = () => {
                       className="mb-auto shrink-0"
                       title="App actions"
                     >
-                      <Dots iconSize="sm-regular" />
+                      <IconDotsOutline18 />
                     </Button>
                   </AppActions>
                 }

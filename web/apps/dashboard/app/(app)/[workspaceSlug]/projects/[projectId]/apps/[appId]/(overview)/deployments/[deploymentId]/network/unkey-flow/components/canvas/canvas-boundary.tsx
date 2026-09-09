@@ -1,6 +1,9 @@
 import { ErrorBoundary } from "@/components/error-boundary";
-import { ArrowDottedRotateAnticlockwise, TriangleWarning } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import {
+  IconArrowDottedRotateAnticlockwiseOutline18,
+  IconTriangleWarningOutline18,
+} from "nucleo-ui-outline-18";
 import type { PropsWithChildren } from "react";
 import { TreeElementNode } from "../tree/tree-element-node";
 
@@ -26,7 +29,7 @@ export const CanvasBoundary = ({ children }: PropsWithChildren) => {
               <div className="h-12 border-b border-grayA-4 flex items-center px-4 gap-3">
                 {/* Icon container */}
                 <div className="size-6 rounded-md bg-redA-3 border border-grayA-4 flex items-center justify-center shrink-0">
-                  <TriangleWarning className="text-red-11" iconSize="md-medium" />
+                  <IconTriangleWarningOutline18 className="size-4 text-red-11" />
                 </div>
                 {/* Title */}
                 <span className="text-sm font-medium text-gray-12">
@@ -57,7 +60,7 @@ export const CanvasBoundary = ({ children }: PropsWithChildren) => {
                   variant="outline"
                   className="w-full h-8 px-3 bg-grayA-3 hover:bg-grayA-4 border border-grayA-5 text-gray-12 text-xs font-medium rounded-lg transition-all duration-200 ease-out hover:ring-1 hover:ring-gray-7 flex items-center justify-center gap-2"
                 >
-                  <ArrowDottedRotateAnticlockwise />
+                  <IconArrowDottedRotateAnticlockwiseOutline18 />
                   Retry Layout
                 </Button>
               </div>

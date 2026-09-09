@@ -1,4 +1,3 @@
-import { ChartUsage, Gauge, Key2 } from "@unkey/icons";
 import {
   Button,
   Item,
@@ -10,6 +9,11 @@ import {
   SettingCard,
   SettingCardGroup,
 } from "@unkey/ui";
+import {
+  IconChartUsageOutline18,
+  IconGaugeOutline18,
+  IconKey2Outline18,
+} from "nucleo-ui-outline-18";
 
 export default function SettingsGroupExample() {
   return (
@@ -17,7 +21,7 @@ export default function SettingsGroupExample() {
       <SettingCard
         title="Spend cap"
         description="Compute stops when the month reaches this amount."
-        icon={<Key2 />}
+        icon={<IconKey2Outline18 />}
         contentWidth="w-fit"
         className="w-full flex-row items-center justify-between"
       >
@@ -25,7 +29,7 @@ export default function SettingsGroupExample() {
       </SettingCard>
       <Item>
         <ItemMedia>
-          <ChartUsage />
+          <IconChartUsageOutline18 />
         </ItemMedia>
         <ItemContent>
           <ItemTitle>Key verifications</ItemTitle>
@@ -35,7 +39,7 @@ export default function SettingsGroupExample() {
       </Item>
       <Item>
         <ItemMedia>
-          <Gauge />
+          <IconGaugeOutline18 />
         </ItemMedia>
         <ItemContent>
           <ItemTitle>Compute</ItemTitle>

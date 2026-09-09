@@ -1,6 +1,6 @@
 import type { Header } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
-import { ChevronDown, ChevronUp } from "@unkey/icons";
+import { IconChevronDownOutline18, IconChevronUpOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 import { cn } from "../../../../lib/utils";
 
@@ -54,8 +54,12 @@ export function SortableHeader<TData>({ header, children }: SortableHeaderProps<
 function SortIcon({ sorted }: { sorted: false | "asc" | "desc" }) {
   return (
     <div>
-      <ChevronUp className={cn("color-gray-9 size-2", sorted === "desc" && "invisible")} />
-      <ChevronDown className={cn("color-gray-9 size-2", sorted === "asc" && "invisible")} />
+      <IconChevronUpOutline18
+        className={cn("color-gray-9 size-2", sorted === "desc" && "invisible")}
+      />
+      <IconChevronDownOutline18
+        className={cn("color-gray-9 size-2", sorted === "asc" && "invisible")}
+      />
     </div>
   );
 }

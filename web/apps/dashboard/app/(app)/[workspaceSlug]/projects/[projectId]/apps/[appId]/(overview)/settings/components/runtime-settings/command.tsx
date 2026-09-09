@@ -1,8 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SquareTerminal } from "@unkey/icons";
 import { FormTextarea, InfoTooltip } from "@unkey/ui";
+import { IconSquareTerminalOutline18 } from "nucleo-ui-outline-18";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -58,7 +58,7 @@ export const Command = () => {
 
   return (
     <FormSettingCard
-      icon={<SquareTerminal className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconSquareTerminalOutline18 className="text-gray-12" />}
       title="Command"
       description="The command to start your application. Changes apply on next deploy."
       displayValue={

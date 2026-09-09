@@ -1,6 +1,6 @@
 "use client";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
-import { TriangleWarning2 } from "@unkey/icons";
+import { IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import React from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "../buttons/button";
@@ -28,13 +28,13 @@ const VARIANT_STYLES = {
     iconBg: "bg-warningA-4",
     iconColor: "text-warning-11",
     buttonColor: "warning" as const,
-    icon: TriangleWarning2,
+    icon: IconTriangleWarningOutline18,
   },
   danger: {
     iconBg: "bg-error-4",
     iconColor: "text-error-11",
     buttonColor: "danger" as const,
-    icon: TriangleWarning2,
+    icon: IconTriangleWarningOutline18,
   },
 };
 
@@ -96,7 +96,7 @@ export const ConfirmPopover = ({
                 iconColor,
               )}
             >
-              <Icon iconSize="sm-regular" />
+              <Icon className="size-3" />
             </div>
             <div className="font-medium text-[13px] leading-7 text-gray-12">{title}</div>
           </div>

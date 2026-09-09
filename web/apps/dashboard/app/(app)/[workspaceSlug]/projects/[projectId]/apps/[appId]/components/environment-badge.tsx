@@ -2,10 +2,15 @@
 
 import { ENVIRONMENT_KIND, type Environment } from "@/lib/collections/deploy/environments";
 import { cn } from "@/lib/utils";
-import { ArrowDotAntiClockwise, CircleXMark, Cloud, Eye } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { InfoTooltip } from "@unkey/ui";
 import { format } from "date-fns";
+import { IconEyeOutline12 } from "nucleo-ui-outline-12";
+import {
+  IconArrowDotRotateAnticlockwiseOutline18,
+  IconCircleXmarkOutline18,
+  IconCloudOutline18,
+} from "nucleo-ui-outline-18";
 
 export type EnvironmentBadgeRollout = "none" | "live" | "liveAfterRollback" | "rolledBackFrom";
 
@@ -29,7 +34,7 @@ export function EnvironmentBadge({
   if (environment.kind !== ENVIRONMENT_KIND.production) {
     return (
       <span className={cn(BASE_CLASS, OUTLINED_CLASS)}>
-        <Eye iconSize="sm-regular" className="shrink-0" />
+        <IconEyeOutline12 className="shrink-0" />
         <span className="capitalize">{environment.slug}</span>
       </span>
     );
@@ -40,25 +45,25 @@ export function EnvironmentBadge({
 
   const { Icon, className, title, detail } = match(rollout)
     .with("none", () => ({
-      Icon: Cloud,
+      Icon: IconCloudOutline18,
       className: OUTLINED_CLASS,
       title: "Production environment",
       detail: "Not receiving production traffic.",
     }))
     .with("live", () => ({
-      Icon: Cloud,
+      Icon: IconCloudOutline18,
       className: LIVE_CLASS,
       title: liveLabel,
       detail: "Receiving production traffic.",
     }))
     .with("liveAfterRollback", () => ({
-      Icon: ArrowDotAntiClockwise,
+      Icon: IconArrowDotRotateAnticlockwiseOutline18,
       className: LIVE_CLASS,
       title: `${liveLabel} (rollback)`,
       detail: "Receiving production traffic.",
     }))
     .with("rolledBackFrom", () => ({
-      Icon: CircleXMark,
+      Icon: IconCircleXmarkOutline18,
       className: ROLLED_BACK_FROM_CLASS,
       title: "This deployment was rolled back",
       detail: "Traffic moved back to an earlier deployment.",
@@ -78,7 +83,7 @@ export function EnvironmentBadge({
       triggerClassName="relative z-20 inline-flex items-center"
     >
       <span className={cn(BASE_CLASS, className)}>
-        <Icon iconSize="sm-regular" className="shrink-0" />
+        <Icon className="shrink-0" />
         <span className="capitalize">{environment.slug}</span>
       </span>
     </InfoTooltip>

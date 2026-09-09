@@ -1,13 +1,11 @@
-import { ChartActivity2, Dots, Key2, Page2 } from "@unkey/icons";
+import { IconChartActivity2Outline12, IconDotsOutline12 } from "nucleo-ui-outline-12";
+import { IconKey2Outline18, IconPage2Outline18 } from "nucleo-ui-outline-18";
 import { cn } from "../../../../lib/utils";
 import { DashedBadgeSkeleton } from "./dashed-badge-skeleton";
 import { NameColumnSkeleton } from "./name-column-skeleton";
 
 export const RootKeyColumnSkeleton = () => (
-  <NameColumnSkeleton
-    icon={<Key2 iconSize="sm-regular" className="text-gray-12 opacity-50" />}
-    lines={1}
-  />
+  <NameColumnSkeleton icon={<IconKey2Outline18 className="text-gray-12 opacity-50" />} lines={1} />
 );
 
 export const CreatedAtColumnSkeleton = () => (
@@ -23,12 +21,12 @@ export const KeyColumnSkeleton = () => (
 );
 
 export const PermissionsColumnSkeleton = () => (
-  <DashedBadgeSkeleton icon={<Page2 iconSize="md-medium" className="opacity-50" />} />
+  <DashedBadgeSkeleton icon={<IconPage2Outline18 className="size-4 opacity-50" />} />
 );
 
 export const LastUpdatedColumnSkeleton = () => (
   <div className="px-1.5 rounded-md flex gap-2 items-center max-w-min h-[22px] bg-grayA-3 border-none animate-pulse">
-    <ChartActivity2 iconSize="sm-regular" className="opacity-50" />
+    <IconChartActivity2Outline12 className="opacity-50" />
     <div className="h-2 w-16 bg-grayA-3 rounded-sm animate-pulse" />
   </div>
 );
@@ -41,6 +39,6 @@ export const ActionColumnSkeleton = () => (
       "border border-gray-6",
     )}
   >
-    <Dots className="text-gray-11" iconSize="sm-regular" />
+    <IconDotsOutline12 className="text-gray-11" />
   </button>
 );

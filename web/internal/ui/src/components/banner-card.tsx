@@ -1,4 +1,4 @@
-import { XMark } from "@unkey/icons";
+import { IconXmarkOutline18 } from "nucleo-ui-outline-18";
 import type * as React from "react";
 
 import { cn } from "../lib/utils";
@@ -42,7 +42,7 @@ export function BannerCard({
             onClick={onDismiss}
             className="absolute right-2 top-2"
           >
-            <XMark />
+            <IconXmarkOutline18 />
           </Button>
         ) : null}
         {children}

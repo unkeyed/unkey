@@ -1,4 +1,4 @@
-import { Key2 } from "@unkey/icons";
+import { IconKey2Outline12 } from "nucleo-ui-outline-12";
 import { cn } from "../../../../lib/utils";
 
 export type RootKeyNameCellProps = {
@@ -17,7 +17,7 @@ export const RootKeyNameCell = ({ name, isSelected = false }: RootKeyNameCellPro
             isSelected && "bg-grayA-5",
           )}
         >
-          <Key2 iconSize="sm-regular" className="text-gray-12" />
+          <IconKey2Outline12 className="text-gray-12" />
         </div>
         <div className="w-[150px]">
           <div
