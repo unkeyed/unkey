@@ -66,12 +66,11 @@ func newFixture(t *testing.T) *fixture {
 		Slug:        slugFrom(uid.New(uid.ProjectPrefix)),
 	})
 	app := seeder.CreateApp(ctx, seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspaceID,
-		ProjectID:     project.ID,
-		Name:          "KEBAP",
-		Slug:          slugFrom(uid.New(uid.AppPrefix)),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		Name:        "KEBAP",
+		Slug:        slugFrom(uid.New(uid.AppPrefix)),
 	})
 
 	f := &fixture{
