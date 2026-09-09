@@ -267,7 +267,7 @@ func TestRerollKeySuccess(t *testing.T) {
 			WorkspaceID: workspace.ID,
 			Disabled:    false,
 			KeySpaceID:  api.KeyAuthID.String,
-		}) // nolint:exhaustruct
+		}) // nolint:exhaustruct_v5
 
 		req := handler.Request{
 			KeyId:      key.KeyID,

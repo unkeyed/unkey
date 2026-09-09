@@ -35,6 +35,6 @@ func New(apiKey string) Resolver {
 	return &client{
 		apiKey:  apiKey,
 		baseURL: baseURL,
-		http:    &http.Client{Timeout: requestTimeout}, //nolint:exhaustruct // default transport, only the timeout matters
+		http:    &http.Client{Timeout: requestTimeout}, //nolint:exhaustruct_v5 // default transport, only the timeout matters
 	}
 }

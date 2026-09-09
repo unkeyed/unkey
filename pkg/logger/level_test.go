@@ -11,7 +11,7 @@ import (
 
 func TestAtLevel(t *testing.T) {
 	var buf bytes.Buffer
-	//nolint:exhaustruct // only Level matters here
+	//nolint:exhaustruct_v5 // only Level matters here
 	base := slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug})
 	h := AtLevel(base, slog.LevelWarn)
 	log := slog.New(h)

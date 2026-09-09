@@ -101,7 +101,7 @@ func loadMasterKeys(masterKey string, previousMasterKey *string) (*vaultv1.KeyEn
 }
 
 func parseMasterKey(masterKey string) (*vaultv1.KeyEncryptionKey, error) {
-	kek := &vaultv1.KeyEncryptionKey{} // nolint:exhaustruct
+	kek := &vaultv1.KeyEncryptionKey{} // nolint:exhaustruct_v5
 	b, err := base64.StdEncoding.DecodeString(masterKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode master key: %w", err)

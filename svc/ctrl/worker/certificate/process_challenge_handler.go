@@ -257,7 +257,7 @@ func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.Custom
 
 	// Request certificate from Let's Encrypt
 	// Restate handles retries - we return TerminalError for non-retryable errors
-	//nolint:exhaustruct // external library type
+	//nolint:exhaustruct_v5 // external library type
 	request := certificate.ObtainRequest{
 		Domains:          []string{domain},
 		Bundle:           true,

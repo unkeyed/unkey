@@ -378,10 +378,10 @@ func New(config Config) (*service, error) {
 		config.Clock = clock.New()
 	}
 
-	s := &service{ //nolint:exhaustruct // background state zero-initializes before goroutines start
+	s := &service{ //nolint:exhaustruct_v5 // background state zero-initializes before goroutines start
 		clock:        config.Clock,
-		counters:     sync.Map{}, //nolint:exhaustruct // sync.Map zero value is ready to use
-		strictUntils: sync.Map{}, //nolint:exhaustruct // sync.Map zero value is ready to use
+		counters:     sync.Map{}, //nolint:exhaustruct_v5 // sync.Map zero value is ready to use
+		strictUntils: sync.Map{}, //nolint:exhaustruct_v5 // sync.Map zero value is ready to use
 		origin:       config.Counter,
 		region:       config.Region,
 		replayBuffer: buffer.New[RatelimitRequest](buffer.Config{
@@ -469,7 +469,7 @@ func (s *service) findOrCreateCounter(key counterKey) (*counterEntry, bool) {
 	if v, ok := s.counters.Load(key); ok {
 		return v.(*counterEntry), false
 	}
-	fresh := &counterEntry{ //nolint:exhaustruct // other fields zero-initialize correctly
+	fresh := &counterEntry{ //nolint:exhaustruct_v5 // other fields zero-initialize correctly
 		fetch: func(ctx context.Context, op string) (int64, bool) { return s.fetchFromOrigin(ctx, key, op) },
 	}
 	actual, loaded := s.counters.LoadOrStore(key, fresh)

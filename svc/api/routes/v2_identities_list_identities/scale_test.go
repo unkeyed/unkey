@@ -179,7 +179,7 @@ func seedScaleLimits(t *testing.T, ctx context.Context, h *testutil.Harness) {
 	err := db.Query.UpsertLimit(ctx, h.DB.RW(), db.UpsertLimitParams{
 		WorkspaceID:                           scaleWorkspaceID,
 		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
-		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct_v5
 		LogsRetentionDaysMax:                  30,
 		LogsAuditRetentionDaysMax:             30,
 		TeamEnabled:                           false,

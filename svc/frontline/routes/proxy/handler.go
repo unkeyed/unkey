@@ -63,7 +63,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 		// middleware before this handler, so this branch is unreachable
 		// in production. Allocate one so the engine + proxy don't panic
 		// if someone reorders middleware.
-		//nolint:exhaustruct
+		//nolint:exhaustruct_v5
 		tracking = &proxy.RequestTracking{StartTime: startTime}
 		ctx = proxy.WithRequestTracking(ctx, tracking)
 	}

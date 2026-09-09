@@ -58,7 +58,7 @@ func TestParseMiddleware_WithPolicies(t *testing.T) {
 				Enabled: new(true),
 				Match:   nil,
 				Config: &frontlinev1.Policy_Keyauth{
-					//nolint:exhaustruct
+					//nolint:exhaustruct_v5
 					Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{"ks_123"}},
 				},
 			},

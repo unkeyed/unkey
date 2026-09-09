@@ -63,7 +63,7 @@ func (w *Workflow) withKubernetesBuildkit(
 ) (string, error) {
 	jobs := w.k8s.BatchV1().Jobs(w.buildConfig.Kubernetes.Namespace)
 
-	//nolint: exhaustruct
+	//nolint: exhaustruct_v5
 	job := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			// GenerateName gives every attempt a fresh Job, so a Restate
@@ -80,18 +80,18 @@ func (w *Workflow) withKubernetesBuildkit(
 			ActiveDeadlineSeconds:   new(int64(buildJobDeadlineSeconds)),
 			TTLSecondsAfterFinished: new(int32(buildJobTTLSeconds)),
 			Template: corev1.PodTemplateSpec{
-				//nolint: exhaustruct
+				//nolint: exhaustruct_v5
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"app":                     "buildkit",
 						"unkey.com/deployment-id": params.DeploymentID,
 					},
 				},
-				//nolint: exhaustruct
+				//nolint: exhaustruct_v5
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyNever,
 					Containers: []corev1.Container{
-						//nolint: exhaustruct
+						//nolint: exhaustruct_v5
 						{
 							Name:  "buildkitd",
 							Image: w.buildConfig.Kubernetes.Image,
@@ -100,20 +100,20 @@ func (w *Workflow) withKubernetesBuildkit(
 								"--addr", fmt.Sprintf("tcp://0.0.0.0:%d", buildkitPort),
 							},
 							Ports: []corev1.ContainerPort{
-								//nolint: exhaustruct
+								//nolint: exhaustruct_v5
 								{ContainerPort: buildkitPort},
 							},
-							//nolint: exhaustruct
+							//nolint: exhaustruct_v5
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: new(true),
 							},
 							// buildctl talks over the unix socket, so ready
 							// means buildkitd accepts RPCs, not merely that
 							// the process started.
-							//nolint: exhaustruct
+							//nolint: exhaustruct_v5
 							ReadinessProbe: &corev1.Probe{
 								ProbeHandler: corev1.ProbeHandler{
-									//nolint: exhaustruct
+									//nolint: exhaustruct_v5
 									Exec: &corev1.ExecAction{
 										Command: []string{"buildctl", "debug", "workers"},
 									},

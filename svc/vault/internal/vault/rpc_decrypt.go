@@ -41,7 +41,7 @@ func (s *Service) decrypt(
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode encrypted data: %w", err)
 	}
-	encrypted := vaultv1.Encrypted{} // nolint:exhaustruct
+	encrypted := vaultv1.Encrypted{} // nolint:exhaustruct_v5
 	err = proto.Unmarshal(b, &encrypted)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal encrypted data: %w", err)

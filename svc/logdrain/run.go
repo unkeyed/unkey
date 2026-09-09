@@ -43,7 +43,7 @@ func Run(ctx context.Context, cfg Config) error {
 	leaseID := uid.New("")
 	reg := promclient.NewRegistry()
 	reg.MustRegister(collectors.NewGoCollector())
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
@@ -87,7 +87,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// not restart a pod because a customer endpoint is down.
 	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
 		mux := http.NewServeMux()
-		//nolint:exhaustruct
+		//nolint:exhaustruct_v5
 		mux.Handle("GET /metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 		r.RegisterHealth(mux, "/health")
 

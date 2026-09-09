@@ -196,7 +196,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				RemainingRequests:  sql.NullInt64{Valid: false, Int64: 0},
 				RefillDay:          sql.NullInt16{Valid: false, Int16: 0},
 				RefillAmount:       sql.NullInt64{Valid: false, Int64: 0},
-			} // nolint:exhaustruct
+			} // nolint:exhaustruct_v5
 
 			if key.Meta != nil {
 				metaBytes, marshalErr := json.Marshal(*key.Meta)

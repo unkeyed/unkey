@@ -121,7 +121,7 @@ func runFrontlineProxy(args []string) error {
 		routeMu:        sync.Mutex{},
 		// Amp terminates public TLS. Frontline uses a self-signed development
 		// certificate on loopback, so the bridge must not verify that certificate.
-		tlsConfig: &tls.Config{ //nolint:exhaustruct,gosec
+		tlsConfig: &tls.Config{ //nolint:exhaustruct_v5,gosec
 			MinVersion:         tls.VersionTLS12,
 			ServerName:         sourceHostname,
 			InsecureSkipVerify: true,

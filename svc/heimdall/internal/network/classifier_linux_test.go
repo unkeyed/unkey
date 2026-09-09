@@ -119,13 +119,13 @@ func loadTestObjects(t *testing.T) *bpfObjects {
 	if err := rlimit.RemoveMemlock(); err != nil {
 		t.Skipf("rlimit.RemoveMemlock unavailable (likely no CAP_SYS_RESOURCE): %v", err)
 	}
-	objs := &bpfObjects{} //nolint:exhaustruct // populated by loadBpfObjects
+	objs := &bpfObjects{} //nolint:exhaustruct_v5 // populated by loadBpfObjects
 	// The BPF program declares `pod_counters` with LIBBPF_PIN_BY_NAME,
 	// which requires a PinPath when loading. The kernel rejects pin paths
 	// not on a bpffs, so t.TempDir() (tmpfs/ext4) is wrong; use a unique
 	// directory under /sys/fs/bpf instead. Skip on hosts without bpffs.
-	opts := &ebpf.CollectionOptions{ //nolint:exhaustruct
-		Maps: ebpf.MapOptions{PinPath: bpffsTempDir(t)}, //nolint:exhaustruct
+	opts := &ebpf.CollectionOptions{ //nolint:exhaustruct_v5
+		Maps: ebpf.MapOptions{PinPath: bpffsTempDir(t)}, //nolint:exhaustruct_v5
 	}
 	if err := loadBpfObjects(objs, opts); err != nil {
 		// Only skip on kernel/privilege errors; let verifier failures and
@@ -146,7 +146,7 @@ func loadTestObjects(t *testing.T) *bpfObjects {
 // is an observer and must be non-terminating in the TCX chain.
 func runProg(t *testing.T, prog *ebpf.Program, frame []byte) {
 	t.Helper()
-	ret, err := prog.Run(&ebpf.RunOptions{Data: frame}) //nolint:exhaustruct
+	ret, err := prog.Run(&ebpf.RunOptions{Data: frame}) //nolint:exhaustruct_v5
 	require.NoError(t, err, "prog.Run")
 	require.Equal(t, int32(-1), int32(ret), "observer must return TC_ACT_UNSPEC")
 }

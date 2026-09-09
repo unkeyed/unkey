@@ -123,7 +123,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// nolint: exhaustruct // optional proto fields are set per source below
+	// nolint: exhaustruct_v5 // optional proto fields are set per source below
 	ctrlReq := &ctrlv1.CreateDeploymentRequest{
 		ProjectId:       environment.ProjectID,
 		AppId:           environment.AppID,
@@ -158,7 +158,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 			return fault.Wrap(err, fault.Internal("failed to check repo connection"))
 		}
-		// nolint: exhaustruct // ctrl fills the commit metadata it resolves from git
+		// nolint: exhaustruct_v5 // ctrl fills the commit metadata it resolves from git
 		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_GitCommit{
 			GitCommit: &ctrlv1.GitCommitInfo{
 				Branch:         ptr.SafeDeref(git.Branch),

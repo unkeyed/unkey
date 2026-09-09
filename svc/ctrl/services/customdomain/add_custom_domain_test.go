@@ -472,7 +472,7 @@ func newFixture(t *testing.T, customDomainsMax uint32) fixture {
 	f := fixture{
 		database: database,
 		seeder:   seeder,
-		chain:    chain{}, //nolint:exhaustruct
+		chain:    chain{}, //nolint:exhaustruct_v5
 		domain:   randomDomain(),
 	}
 	f.chain = f.seedChain(t, seeder.Resources.UserWorkspace.ID, customDomainsMax)
@@ -514,7 +514,7 @@ func (f fixture) seedChain(t *testing.T, workspaceID string, customDomainsMax ui
 	require.NoError(t, f.database.UpsertLimit(ctx, db.UpsertLimitParams{
 		WorkspaceID:                           workspaceID,
 		ApiBillableOperationsCountMaxPerMonth: 150_000,
-		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct_v5
 		LogsRetentionDaysMax:                  7,
 		LogsAuditRetentionDaysMax:             30,
 		TeamEnabled:                           false,
