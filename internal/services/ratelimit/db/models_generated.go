@@ -1342,6 +1342,7 @@ type Deployment struct {
 	ShutdownSignal                DeploymentsShutdownSignal   `db:"shutdown_signal"`
 	UpstreamProtocol              DeploymentsUpstreamProtocol `db:"upstream_protocol"`
 	Healthcheck                   json.RawMessage             `db:"healthcheck"`
+	LastPodFailure                json.RawMessage             `db:"last_pod_failure"`
 	PrNumber                      sql.NullInt64               `db:"pr_number"`
 	ForkRepositoryFullName        sql.NullString              `db:"fork_repository_full_name"`
 	GithubDeploymentID            sql.NullInt64               `db:"github_deployment_id"`

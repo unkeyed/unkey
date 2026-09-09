@@ -2,6 +2,7 @@
 import { flagCodes } from "@/lib/trpc/routers/deploy/network/utils";
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
+import type { LastPodFailure } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
 import { DEPLOYMENT_STATUSES } from "./deployment-status";
@@ -73,6 +74,16 @@ export const deploymentSchema = z.object({
   // timing stop/wake don't mutate). Null while a build is still in progress or
   // when a deployment has no steps. Powers the row's duration display.
   buildEndedAt: z.number().nullable(),
+  lastPodFailure: z
+    .object({
+      podUid: z.string(),
+      podName: z.string(),
+      regionId: z.string(),
+      reason: z.string(),
+      message: z.string(),
+      observedAt: z.number().int(),
+    })
+    .nullable() satisfies z.ZodType<LastPodFailure | null>,
   // Most-recent exit info across the deployment's instances. Null when
   // no instance has reported a termination yet (healthy deployments).
   // Powers the header "OOMKilled · exit=137" badge — see
@@ -87,6 +98,7 @@ export const deploymentSchema = z.object({
       reason: z.string().nullable(),
       finishedAt: z.number().nullable(),
       statusReason: z.string().nullable(),
+      statusMessage: z.string().nullable(),
     })
     .nullable(),
 });

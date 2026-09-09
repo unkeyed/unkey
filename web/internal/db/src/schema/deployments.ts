@@ -22,6 +22,15 @@ import { longblob } from "./util/longblob";
 import { primaryKey } from "./util/primary_key";
 import { workspaces } from "./workspaces";
 
+export type LastPodFailure = {
+  podUid: string;
+  podName: string;
+  regionId: string;
+  reason: string;
+  message: string;
+  observedAt: number;
+};
+
 export const deployments = mysqlTable(
   "deployments",
   {
@@ -94,6 +103,8 @@ export const deployments = mysqlTable(
 
     // HTTP healthcheck configuration (null = no healthcheck)
     healthcheck: json("healthcheck").$type<import("./app_runtime_settings").Healthcheck>(),
+
+    lastPodFailure: json("last_pod_failure").$type<LastPodFailure>(),
 
     // PR number (for fork PRs, used to build refs/pull/N/head for BuildKit)
     prNumber: bigint("pr_number", { mode: "number" }),

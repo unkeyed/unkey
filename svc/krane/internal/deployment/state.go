@@ -15,14 +15,6 @@ import (
 // buildDeploymentStatus queries the pods belonging to a ReplicaSet and builds a
 // status report for the control plane.
 //
-// The report includes each active pod's IP address, CPU and memory
-// limits, and health status. Pods without an IP address are excluded since they
-// can't receive traffic yet. Failed and succeeded pods are also excluded because
-// the ReplicaSet replaces them but Kubernetes retains their objects for garbage
-// collection. Reporting them would retain a stale instance for every replacement.
-// The address format is "{pod-ip}:{port}" so instances are reachable from peered
-// clusters without relying on cluster-local DNS.
-//
 // Pod phase is mapped to instance status: Running pods with ContainersReady=True
 // become STATUS_RUNNING, Pending pods and Running pods whose ContainersReady
 // condition is missing or False become STATUS_PENDING.
@@ -53,16 +45,15 @@ func (c *Controller) buildDeploymentStatus(ctx context.Context, replicaset *apps
 	}
 
 	for _, pod := range pods.Items {
-		if pod.Status.PodIP == "" {
-			continue
-		}
-
 		instance := &ctrlv1.ReportDeploymentStatusRequest_Update_Instance{
 			K8SName:       pod.GetName(),
-			Address:       net.JoinHostPort(pod.Status.PodIP, strconv.Itoa(int(containerPort))),
+			Address:       "",
 			CpuMillicores: 0,
 			MemoryMib:     0,
 			Status:        ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_UNSPECIFIED,
+		}
+		if pod.Status.PodIP != "" {
+			instance.Address = net.JoinHostPort(pod.Status.PodIP, strconv.Itoa(int(containerPort)))
 		}
 		if containers := pod.Spec.Containers; len(containers) > 0 {
 			if limits := containers[0].Resources.Limits; limits != nil {

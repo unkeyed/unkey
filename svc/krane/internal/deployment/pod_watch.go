@@ -84,6 +84,7 @@ func (c *Controller) watchPods(ctx context.Context) (watch.Interface, error) {
 // control plane RPC for one ReplicaSet does not delay reporting for others.
 func (c *Controller) drainPodWatch(ctx context.Context, w watch.Interface) {
 	sem := conc.NewSem(conc.DefaultConcurrency)
+	lastObservedAtUnixNano := time.Now().UnixNano()
 
 	for event := range w.ResultChan() {
 		switch event.Type {
@@ -96,9 +97,14 @@ func (c *Controller) drainPodWatch(ctx context.Context, w watch.Interface) {
 				logger.Error("unable to cast object to pod")
 				continue
 			}
+			observedAtUnixNano := time.Now().UnixNano()
+			if observedAtUnixNano <= lastObservedAtUnixNano {
+				observedAtUnixNano = lastObservedAtUnixNano + 1
+			}
+			lastObservedAtUnixNano = observedAtUnixNano
 
 			sem.Go(ctx, func(ctx context.Context) {
-				c.handlePodEvent(ctx, pod, event.Type)
+				c.handlePodEvent(ctx, pod, event.Type, observedAtUnixNano)
 			})
 		}
 	}
@@ -108,7 +114,9 @@ func (c *Controller) drainPodWatch(ctx context.Context, w watch.Interface) {
 
 // handlePodEvent processes a single pod watch event: finds the owning
 // ReplicaSet, builds deployment status, and reports it if changed.
-func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventType watch.EventType) {
+func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventType watch.EventType, observedAtUnixNano int64) {
+	defer c.reportInstanceEvents(ctx, pod, observedAtUnixNano)
+
 	eventTypeLabel := strings.ToLower(string(eventType))
 	c.lagRecorder.Observe(ctx, pod, eventType)
 	logger.Info("pod watch: event received",
@@ -120,13 +128,6 @@ func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventT
 		"containers_ready", podstatus.ReadyStatus(pod),
 		"ready_lag_seconds", podstatus.ReadyLagSeconds(pod),
 	)
-
-	// Capture per-container lifecycle events independent of the coarse
-	// status report below. Runs before any early-return path so a missing
-	// ReplicaSet, transient RS-get failure, or buildDeploymentStatus error
-	// doesn't suppress exit/crashloop events the dashboard needs to show.
-	// Best-effort: errors are logged inside, never returned.
-	c.reportInstanceEvents(ctx, pod)
 
 	rsName := owningReplicaSet(pod)
 	if rsName == "" {
@@ -161,6 +162,7 @@ func (c *Controller) handlePodEvent(ctx context.Context, pod *corev1.Pod, eventT
 		logger.Error("pod watch: unable to report status", "error", err.Error(), "replicaSet", rsName)
 		return
 	}
+
 	if reported {
 		metrics.PodWatchEventsTotal.WithLabelValues("deployment", eventTypeLabel, "reported").Inc()
 		logger.Info("pod watch: reported changed status", "replicaSet", rsName, "pod", pod.Name, "instances", len(status.GetUpdate().GetInstances()))

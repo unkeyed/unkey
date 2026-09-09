@@ -20,10 +20,12 @@ import (
 //     never exited within retention.
 //   - Waiting: current kubelet waiting reason (CrashLoopBackOff,
 //     ImagePullBackOff, …). Nil when the container is running normally.
+//   - StatusObservedAt: Unix nanoseconds used to order concurrent watch reports.
 type ContainerStatus struct {
 	RestartCount         uint32           `json:"restartCount"`
 	LastTerminationState *TerminatedState `json:"lastTerminationState,omitempty"`
 	Waiting              *WaitingState    `json:"waiting,omitempty"`
+	StatusObservedAt     int64            `json:"statusObservedAt,omitempty"`
 }
 
 // TerminatedState carries the kubelet-supplied exit metadata for a
@@ -36,12 +38,12 @@ type TerminatedState struct {
 	FinishedAt int64  `json:"finishedAt"`
 }
 
-// WaitingState carries the kubelet-supplied waiting reason. The reason
-// string is whatever kubelet publishes — krane currently only reports
-// CrashLoopBackOff but the column can hold any future kind without a
-// schema change.
+// WaitingState carries the kubelet-supplied waiting or pod failure reason
+// and its exact diagnostic message. The reason string is whatever kubelet
+// publishes, so future kinds require no schema change.
 type WaitingState struct {
-	Reason string `json:"reason"`
+	Reason  string `json:"reason"`
+	Message string `json:"message,omitempty"`
 }
 
 // Scan implements [sql.Scanner] for reading the JSON column into a typed
@@ -53,6 +55,7 @@ func (cs *ContainerStatus) Scan(value interface{}) error {
 			RestartCount:         0,
 			LastTerminationState: nil,
 			Waiting:              nil,
+			StatusObservedAt:     0,
 		}
 		return nil
 	}
@@ -72,6 +75,7 @@ func (cs *ContainerStatus) Scan(value interface{}) error {
 			RestartCount:         0,
 			LastTerminationState: nil,
 			Waiting:              nil,
+			StatusObservedAt:     0,
 		}
 		return nil
 	}
