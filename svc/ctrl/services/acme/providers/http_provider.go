@@ -1,9 +1,10 @@
 package providers
 
 import (
+	"context"
 	"time"
 
-	"github.com/go-acme/lego/v4/challenge"
+	"github.com/go-acme/lego/v5/challenge"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -21,14 +22,14 @@ type httpDNS struct {
 // Present stores the challenge token in the database for the gateway to serve.
 // The gateway will intercept requests to /.well-known/acme-challenge/{token}
 // and respond with the keyAuth value.
-func (h *httpDNS) Present(domain, token, keyAuth string) error {
+func (h *httpDNS) Present(_ context.Context, domain, token, keyAuth string) error {
 	logger.Info("presenting http-01 challenge", "domain", domain)
 	// The actual DB update is handled by the generic Provider wrapper
 	return nil
 }
 
 // CleanUp is a no-op for HTTP-01 - the token remains in DB until overwritten
-func (h *httpDNS) CleanUp(domain, token, keyAuth string) error {
+func (h *httpDNS) CleanUp(_ context.Context, domain, token, keyAuth string) error {
 	logger.Info("cleaning up http-01 challenge", "domain", domain)
 	return nil
 }

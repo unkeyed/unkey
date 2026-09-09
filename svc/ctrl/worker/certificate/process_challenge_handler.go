@@ -7,8 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-acme/lego/v4/certificate"
-	"github.com/go-acme/lego/v4/lego"
+	"github.com/go-acme/lego/v5/certcrypto"
+	"github.com/go-acme/lego/v5/certificate"
+	"github.com/go-acme/lego/v5/challenge/dns01"
+	"github.com/go-acme/lego/v5/lego"
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
@@ -227,7 +229,7 @@ func (s *Service) getOrCreateAcmeClient(ctx context.Context, domain string) (*le
 		if s.dnsProvider == nil {
 			return nil, fmt.Errorf("DNS provider required for wildcard certificate: %s", domain)
 		}
-		if err := client.Challenge.SetDNS01Provider(s.dnsProvider); err != nil {
+		if err := client.Challenge.SetDNS01Provider(s.dnsProvider, dns01.DisableRecursiveNSsPropagationRequirement()); err != nil {
 			return nil, fmt.Errorf("failed to set DNS-01 provider: %w", err)
 		}
 		logger.Info("using DNS-01 challenge for wildcard domain", "domain", domain)
@@ -257,11 +259,13 @@ func (s *Service) obtainCertificate(ctx context.Context, _ string, dom db.Custom
 	// Restate handles retries - we return TerminalError for non-retryable errors
 	//nolint:exhaustruct // external library type
 	request := certificate.ObtainRequest{
-		Domains: []string{domain},
-		Bundle:  true,
+		Domains:          []string{domain},
+		Bundle:           true,
+		KeyType:          certcrypto.RSA2048,
+		EnableCommonName: true,
 	}
 
-	certificates, err := client.Certificate.Obtain(request)
+	certificates, err := client.Certificate.Obtain(ctx, request)
 	if err != nil {
 		parsed := acme.ParseACMEError(err)
 		logger.Error("certificate obtain failed",
