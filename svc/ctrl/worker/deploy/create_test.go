@@ -311,16 +311,39 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		require.Equal(t, fixtureImage, image.OciImage.GetImage())
 	})
 
-	// The row says it was built from git. Reusing its image would rebuild
-	// nothing, which is not what the operator asked for.
-	t.Run("a git build is not rebuilt from its image once the repository is gone", func(t *testing.T) {
+	// A user redeploying asked for what that deployment runs. The repository is
+	// gone so its commit cannot be rebuilt, and the legacy API answered this with
+	// the recorded image rather than a refusal.
+	t.Run("a user redeploy falls back to the image once the repository is gone", func(t *testing.T) {
 		ctx := context.Background()
 		h := newCreateHarness(t, ctx)
 
 		source := h.commitDeployment(t, ctx)
 		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceGit, fixtureImage)
 
-		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.existingRequest(source.ID, false))
+		deploymentID := uid.New(uid.DeploymentPrefix)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
+			h.create(t, ctx, deploymentID, h.existingRequest(source.ID, false)).GetOutcome())
+
+		sent := h.awaitDeploy(t, deploymentID)
+		image, ok := sent.GetSource().(*hydrav1.DeployRequest_OciImage)
+		require.True(t, ok, "with no repository there is nothing to rebuild")
+		require.Equal(t, fixtureImage, image.OciImage.GetImage())
+	})
+
+	// An operator rebuild is asking for the commit specifically, so reusing the
+	// image would rebuild nothing and quietly ship the same code again.
+	t.Run("an operator rebuild is refused once the repository is gone", func(t *testing.T) {
+		ctx := context.Background()
+		h := newCreateHarness(t, ctx)
+
+		source := h.commitDeployment(t, ctx)
+		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceGit, fixtureImage)
+
+		req := h.existingRequest(source.ID, false)
+		req.Trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY
+
+		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_COMMIT, resp.GetOutcome())
 		require.Equal(t, 1, h.countDeployments(t, ctx), "only the seeded source")
 	})

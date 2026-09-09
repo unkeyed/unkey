@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
@@ -71,9 +72,16 @@ func (w *Workflow) resolveSource(
 		return w.resolveGitSource(target, commit, source.Git.GetPrNumber())
 
 	case *hydrav1.DeployCreateRequest_ExistingDeployment:
+		// An operator rebuild has to build the commit, since reusing the image
+		// would rebuild nothing. A user redeploying asked for what that deployment
+		// runs, which is its image once the repository is gone.
+		asked := redeploy
+		if req.GetTrigger() == ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY {
+			asked = rebuild
+		}
 		return w.resolveExistingDeployment(ctx, target,
 			source.ExistingDeployment.GetDeploymentId(), source.ExistingDeployment.GetRequireLatest(),
-			rebuild)
+			asked)
 
 	default:
 		if target.SourceType == db.AppsSourceTypeGit {
