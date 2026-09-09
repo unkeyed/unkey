@@ -13,6 +13,7 @@ import (
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/customdomain"
 )
@@ -35,9 +36,12 @@ func TestDeleteCustomDomain_DoesNotDeleteOtherWorkspaceFrontlineRoute(t *testing
 
 	const fqdn = "victim.example.com"
 
+	logs, err := auditlogs.New(auditlogs.Config{DB: h.DB})
+	require.NoError(t, err)
 	svc := customdomain.New(customdomain.Config{
-		Database: h.DB,
-		Bearer:   testBearer,
+		Database:  h.DB,
+		Bearer:    testBearer,
+		Auditlogs: logs,
 	})
 
 	// --- Victim workspace B: verified domain + live frontline route ---
@@ -142,7 +146,7 @@ func TestDeleteCustomDomain_DoesNotDeleteOtherWorkspaceFrontlineRoute(t *testing
 	})
 	req.Header().Set("Authorization", "Bearer "+testBearer)
 
-	_, err := svc.DeleteCustomDomain(ctx, req)
+	_, err = svc.DeleteCustomDomain(ctx, req)
 	require.NoError(t, err)
 
 	// The victim's live frontline route must still exist and be unchanged.
@@ -165,9 +169,12 @@ func TestDeleteCustomDomain_DeletesOwnFrontlineRoute(t *testing.T) {
 
 	const fqdn = "owned.example.com"
 
+	logs, err := auditlogs.New(auditlogs.Config{DB: h.DB})
+	require.NoError(t, err)
 	svc := customdomain.New(customdomain.Config{
-		Database: h.DB,
-		Bearer:   testBearer,
+		Database:  h.DB,
+		Bearer:    testBearer,
+		Auditlogs: logs,
 	})
 
 	ws := h.Seed.Resources.UserWorkspace.ID
@@ -228,7 +235,7 @@ func TestDeleteCustomDomain_DeletesOwnFrontlineRoute(t *testing.T) {
 	})
 	req.Header().Set("Authorization", "Bearer "+testBearer)
 
-	_, err := svc.DeleteCustomDomain(ctx, req)
+	_, err = svc.DeleteCustomDomain(ctx, req)
 	require.NoError(t, err)
 
 	_, err = h.DB.FindFrontlineRouteByFQDN(ctx, fqdn)

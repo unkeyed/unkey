@@ -78,12 +78,12 @@ func startSpendCheckCapturing(t *testing.T, database db.Database, sender email.S
 
 // TestDeploySpendCheck_ReAlertAfterBudgetChange walks the user's reported flow:
 // spend hits a $100 budget with stop set (stopped email, suspend), the budget is
-// raised to $200 (compute resumes), then spend climbs into the new budget's
-// thresholds. The warning at 75% of the raised budget and the second stopped
-// email must both fire. On the pre-fix code the raised-budget warning never fires
-// because the high-water mark is pinned at 100% from the first suspension, and
-// even if it did the idempotency key (period+threshold only) would dedup it
-// against the old budget's 75% warning.
+// raised to $200 (compute resumes after confirmation), then spend climbs into
+// the new budget's thresholds. The warning at 75% of the raised budget and the
+// second stopped email must both fire. On the pre-fix code the raised-budget
+// warning never fires because the high-water mark is pinned at 100% from the
+// first suspension, and even if it did the idempotency key (period+threshold
+// only) would dedup it against the old budget's 75% warning.
 func TestDeploySpendCheck_ReAlertAfterBudgetChange(t *testing.T) {
 	h := New(t)
 	ctx := h.Context()
@@ -139,9 +139,10 @@ func TestDeploySpendCheck_ReAlertAfterBudgetChange(t *testing.T) {
 	tick(budgetLow, 10_000, true) // 100% of $100 -> stopped email #1, suspend
 	require.True(t, suspended, "spend at budget with stop set should suspend")
 
-	// Raise the budget to $200: spend ($100) is now under it, so compute resumes.
-	tick(budgetHigh, 10_000, true) // 50% of $200 -> resume, no email
-	require.False(t, suspended, "raising the budget above spend should resume")
+	tick(budgetHigh, 10_000, true)
+	require.True(t, suspended, "one under-budget tick must not resume")
+	tick(budgetHigh, 10_000, true)
+	require.False(t, suspended, "second under-budget tick should resume")
 
 	// Spend climbs into the raised budget's thresholds.
 	tick(budgetHigh, 15_000, true) // 75% of $200 -> 75% warning at the NEW budget
