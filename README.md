@@ -28,6 +28,10 @@
 
 Please find the license under the [LICENSE](./LICENSE) file.
 
+## Security Issue
+
+Please find what is in scope in the [SECURITY](./SECURITY) file.
+
 ## Pull requests
 
 **Unkey is not accepting external pull requests at this time.**
@@ -35,8 +39,6 @@ Please find the license under the [LICENSE](./LICENSE) file.
 Unkey has paused external code contributions while the team focuses on platform direction and stability. Pull requests opened by people outside the Unkey team will not be reviewed or merged.
 
 Issues remain open for bug reports, feature requests, and documentation feedback. This repository remains public and source-available so you can read the code, fork it under the terms of the AGPL, and self-host. Unkey may revisit this policy in the future, and any change will be announced here.
-
-If you've found a security issue, please email [security@unkey.com](mailto:security@unkey.com) instead of opening a public issue.
 
 ## Let's Talk
 
