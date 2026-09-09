@@ -7,6 +7,10 @@ import "time"
 // the resolving status must both use this value.
 const DeployAuthorizationContext = "Unkey Deploy Authorization"
 
+// DeployRejectedContext is the commit status context for a push that Unkey
+// refused to turn into a deployment, so the reason is visible on the commit.
+const DeployRejectedContext = "Unkey Deploy"
+
 // GitHubClient defines the interface for GitHub API operations.
 type GitHubClient interface {
 	// GetInstallationToken retrieves an access token for a specific installation.

@@ -17,6 +17,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
@@ -222,9 +223,21 @@ func TestHandlePushSurvivesARejectedCreate(t *testing.T) {
 
 	// require.NoError inside push is the assertion that matters: a rejected
 	// create is logged and skipped, never propagated as a handler failure.
-	h.push(t, ctx, target.newPush(fixtureDefaultBranch, []string{fixtureMatchingFile}))
+	push := target.newPush(fixtureDefaultBranch, []string{fixtureMatchingFile})
+	h.push(t, ctx, push)
 
 	h.requireNoDeployment(t, ctx, app.id)
+
+	// No row means nothing in the dashboard, so the commit itself has to say why.
+	statuses := h.github.commitStatuses()
+	require.Len(t, statuses, 1)
+	require.Equal(t, commitStatus{
+		repo:        push.GetRepositoryFullName(),
+		sha:         push.GetAfter(),
+		state:       "error",
+		description: deployfail.MsgNoSchedulableRegions,
+		context:     githubclient.DeployRejectedContext,
+	}, statuses[0])
 }
 
 // TestHandlePushDecidesEachMatchedAppSeparately pins the monorepo case: one
@@ -623,6 +636,17 @@ type fakeGitHub struct {
 	*githubclient.Noop
 	mu          sync.Mutex
 	commitFiles []string
+	statuses    []commitStatus
+}
+
+type commitStatus struct {
+	repo, sha, state, description, context string
+}
+
+func (f *fakeGitHub) commitStatuses() []commitStatus {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]commitStatus(nil), f.statuses...)
 }
 
 func (f *fakeGitHub) setCommitFiles(files []string) {
@@ -637,7 +661,10 @@ func (f *fakeGitHub) ListCommitFiles(_ int64, _ string, _ string) ([]string, err
 	return f.commitFiles, nil
 }
 
-func (f *fakeGitHub) CreateCommitStatus(_ int64, _ string, _ string, _ string, _ string, _ string, _ string) error {
+func (f *fakeGitHub) CreateCommitStatus(_ int64, repo, sha, state, _ string, description, context string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.statuses = append(f.statuses, commitStatus{repo: repo, sha: sha, state: state, description: description, context: context})
 	return nil
 }
 

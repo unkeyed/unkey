@@ -3,11 +3,13 @@ package githubwebhook
 import (
 	"database/sql"
 	"os"
+	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/fault"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -207,8 +209,54 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			"reason", create.reason,
 			"outcome", resp.GetOutcome().String(),
 		)
+
+		if resp.GetOutcome() != hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED {
+			s.postRejectedStatus(ctx, req, create.deploymentID, resp.GetDetail())
+		}
 	}
 	return &hydrav1.HandlePushResponse{}, nil
+}
+
+// commitStatusDescriptionMax is the limit the Status API enforces. It is not in
+// the public docs; a longer description fails with "description is too long
+// (maximum is 140 characters)", see github.com/zalando/zappr/issues/378
+const commitStatusDescriptionMax = 140
+
+// postRejectedStatus puts the worker's reason on the pushed commit. A rejected
+// create writes no row, so without this the push disappears without a trace
+// anywhere the developer looks. GitHub errors are retried for a bounded time,
+// then logged and dropped: the reason is already in the log above.
+func (s *Service) postRejectedStatus(ctx restate.ObjectContext, req *hydrav1.HandlePushRequest, deploymentID, detail string) {
+	if s.allowUnauthenticatedDeployments {
+		return
+	}
+
+	err := restate.RunVoid(ctx, func(_ restate.RunContext) error {
+		return s.github.CreateCommitStatus(
+			req.GetInstallationId(),
+			req.GetRepositoryFullName(),
+			req.GetAfter(),
+			"error",
+			"",
+			truncate(detail, commitStatusDescriptionMax),
+			githubclient.DeployRejectedContext,
+		)
+	}, restate.WithName("create commit status for rejected create"), restate.WithMaxRetryDuration(30*time.Second))
+	if err != nil {
+		logger.Error(
+			"failed to post rejected commit status",
+			"deployment_id", deploymentID,
+			"delivery_id", req.GetDeliveryId(),
+			"error", err,
+		)
+	}
+}
+
+func truncate(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max-1] + "…"
 }
 
 type pendingCreate struct {
