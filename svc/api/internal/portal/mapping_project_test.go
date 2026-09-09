@@ -183,10 +183,18 @@ func TestVerifyMappingInProject(t *testing.T) {
 		require.NoError(t, portal.VerifyMappingInProject(portalProject, portalProject))
 	})
 
-	t.Run("rejects a mapping in another project", func(t *testing.T) {
+	// Deliberately not the mapping-not-found shape. The caller can see this
+	// resource, so answering not-found would be false, and the request has no
+	// project field they could correct.
+	t.Run("rejects a mapping in another project as a precondition failure", func(t *testing.T) {
 		t.Parallel()
 
 		err := portal.VerifyMappingInProject(portalProject, uid.New(uid.ProjectPrefix))
-		requireMappingNotFound(t, err)
+		require.Error(t, err)
+		code, ok := fault.GetCode(err)
+		require.True(t, ok)
+		require.Equal(t, codes.App.Precondition.PreconditionFailed.URN(), code)
+		require.Equal(t, portal.ErrMsgMappingOtherProject, fault.UserFacingMessage(err))
+		require.NotEqual(t, portal.ErrMsgMappingNotFound, fault.UserFacingMessage(err))
 	})
 }
