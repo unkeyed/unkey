@@ -10,8 +10,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/readiness"
 )
 
-// instancesReadyPromise is awaited by the Deploy run and resolved by
-// NotifyInstancesReady
 const instancesReadyPromise = "instances_ready"
 
 // waitForDeployments blocks until enough regions are healthy, or

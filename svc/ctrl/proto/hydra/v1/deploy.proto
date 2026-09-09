@@ -21,7 +21,7 @@ service DeployWorkflow {
   option (dev.restate.sdk.go.service_type) = WORKFLOW;
 
   // Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
-  // Shared, so it can run before the run exists.
+  // The key is the deployment id, so the caller chooses it up front.
   rpc Create(DeployCreateRequest) returns (DeployCreateResponse) {}
 
   // Deploy is the run: build, provision, wait for health, route.
