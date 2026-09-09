@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -104,6 +105,17 @@ func TestWorkerRejections(t *testing.T) {
 			status:     http.StatusBadRequest,
 			docs:       "https://unkey.com/docs/errors/unkey/application/invalid_environment_settings",
 			wantDetail: "Port must be between 1 and 65535 (is 0); no schedulable regions are configured",
+		},
+		{
+			// The real region violation is a whole sentence ending in a period, so
+			// this is the detail the worker actually sends. Interpolating it raw
+			// produced "before deploying.. Update the environment's settings".
+			name:       "environment not deployable with no region reads as one sentence",
+			outcome:    hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE,
+			detail:     deployfail.MsgNoSchedulableRegions,
+			status:     http.StatusBadRequest,
+			docs:       "https://unkey.com/docs/errors/unkey/application/invalid_environment_settings",
+			wantDetail: "before deploying. Update the environment's settings before deploying.",
 		},
 		{
 			name:       "invalid image shows the parser error",

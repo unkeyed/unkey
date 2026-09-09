@@ -2,6 +2,7 @@ package deployment
 
 import (
 	"fmt"
+	"strings"
 
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -95,7 +96,10 @@ func errorForOutcome(outcome hydrav1.CreateOutcome, detail string) error {
 			"environment not deployable",
 			fault.Code(codes.App.Validation.InvalidEnvironmentSettings.URN()),
 			fault.Internal("create rejected: environment runtime or regional settings are out of bounds: "+detail),
-			fault.Public(fmt.Sprintf("This environment cannot be deployed: %s. Update the environment's settings before deploying.", detail)),
+			// The region violation is a whole sentence and ends in a period, while
+			// the runtime ones do not, so the period goes back in here.
+			fault.Public(fmt.Sprintf("This environment cannot be deployed: %s. Update the environment's settings before deploying.",
+				strings.TrimSuffix(detail, "."))),
 		)
 
 	case hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE:
