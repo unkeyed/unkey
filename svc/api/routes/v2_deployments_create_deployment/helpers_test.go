@@ -1,15 +1,10 @@
 package handler_test
 
 import (
-	"context"
-	"database/sql"
 	"net/http"
 	"testing"
-	"time"
 
 	restateingress "github.com/restatedev/sdk-go/ingress"
-	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_create_deployment"
@@ -62,32 +57,4 @@ func authHeaders(rootKey string) http.Header {
 		"Content-Type":  {"application/json"},
 		"Authorization": {"Bearer " + rootKey},
 	}
-}
-
-// setDeploymentImage records a built container image on a deployment, mimicking
-// what ctrl persists after a successful build.
-func setDeploymentImage(t *testing.T, h *testutil.Harness, deploymentID, image string) {
-	t.Helper()
-	err := db.Query.UpdateDeploymentImage(context.Background(), h.DB.RW(), db.UpdateDeploymentImageParams{
-		ImageResolved: sql.NullString{String: image, Valid: true},
-		UpdatedAt:     sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
-		ID:            deploymentID,
-	})
-	require.NoError(t, err)
-}
-
-// connectRepo attaches a GitHub repository connection to an app.
-func connectRepo(t *testing.T, h *testutil.Harness, workspaceID, projectID, appID string) {
-	t.Helper()
-	err := db.Query.InsertGithubRepoConnection(context.Background(), h.DB.RW(), db.InsertGithubRepoConnectionParams{
-		WorkspaceID:        workspaceID,
-		ProjectID:          projectID,
-		AppID:              appID,
-		InstallationID:     12345,
-		RepositoryID:       67890,
-		RepositoryFullName: "acme/api",
-		CreatedAt:          time.Now().UnixMilli(),
-		UpdatedAt:          sql.NullInt64{Valid: false},
-	})
-	require.NoError(t, err)
 }

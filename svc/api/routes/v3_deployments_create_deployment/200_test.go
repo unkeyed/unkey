@@ -1,14 +1,11 @@
 package handler_test
 
 import (
-	"context"
 	"net/http"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -96,14 +93,6 @@ func TestRedeploySendsExistingDeployment(t *testing.T) {
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
 	})
-	resolved := "ghcr.io/acme/api@sha256:" + strings.Repeat("a", 64)
-	_, err := h.DB.RW().ExecContext(context.Background(), `
-		UPDATE deployments
-		SET source = ?, image_requested = ?, image_resolved = ?
-		WHERE id = ?
-	`, db.DeploymentsSourceOci, "ghcr.io/acme/api:stable", resolved, deployment.ID)
-	require.NoError(t, err)
-
 	restateClient, creates := testutil.RecordingDeployRestate(t)
 	route := &handler.Handler{DB: h.DB, Restate: restateClient}
 	h.Register(route)
@@ -116,7 +105,6 @@ func TestRedeploySendsExistingDeployment(t *testing.T) {
 	})
 	require.Equal(t, http.StatusCreated, res.Status, "received: %s", res.RawBody)
 
-	// The worker resolves the image from the source row; the API only names it
 	observed := testutil.Receive(t, creates, 10*time.Second)
 	require.Equal(t, deployment.ID, observed.Request.GetExistingDeployment().GetDeploymentId())
 	require.Nil(t, observed.Request.GetImage())
