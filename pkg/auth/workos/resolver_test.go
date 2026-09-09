@@ -40,6 +40,7 @@ func TestResolverWithRolesMapsRoles(t *testing.T) {
 	p, err := resolver.Resolve(context.Background(), nil)
 	require.NoError(t, err)
 	require.Contains(t, p.Permissions, "unkey:v1:ws_123:projects/*#read")
+	require.Contains(t, p.Permissions, "unkey:v1:ws_123:projects/*/portals/*#read")
 	require.Contains(t, p.Permissions, "unkey:v1:ws_123:**#*")
 }
 
