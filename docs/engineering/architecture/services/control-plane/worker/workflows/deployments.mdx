@@ -172,7 +172,7 @@ After `createTopologies`, the Deploy handler enters `waitForDeployments`, which 
 
 The awakeable is resolved by `DeployService.NotifyInstancesReady`, a `SHARED` handler that runs concurrently with the suspended Deploy.
 
-`DeployWorkflow`, the Restate workflow replacing `DeployService`, needs no awakeable or object state: its Deploy run awaits a durable promise named `instances_ready`, and its `NotifyInstancesReady` resolves that promise. A report that arrives before the run awaits is kept by the promise. It is a workflow rather than a virtual object because Deploy has no operations to serialise, and Restate flow control, planned for per-workspace deploy limits, is native on workflows but experimental on virtual objects.
+`DeployWorkflow`, the Restate workflow replacing `DeployService`, needs no awakeable or object state: its Deploy run awaits a durable promise named `instances_ready`, and its `NotifyInstancesReady` resolves that promise. A report that arrives before the run awaits is kept by the promise. It is a workflow rather than a virtual object because Deploy has no operations to serialise.
 
 Caller: `cluster.Service.ReportDeploymentStatus` (the RPC krane calls to report instance state) runs a thundering-herd gate after the upsert transaction:
 
