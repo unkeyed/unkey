@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -127,10 +128,10 @@ func imageSource(image string, commit gitCommit, normalize func(string) (string,
 	}
 	// A reference is syntactically valid at any length, so the column is the
 	// only bound on it.
-	if len(normalized) > imageBytesMax {
+	if utf8.RuneCountInString(normalized) > imageCharsMax {
 		return newRejectedSource(rejectf(
 			hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE,
-			"image reference must be at most %d characters", imageBytesMax,
+			"image reference must be at most %d characters", imageCharsMax,
 		))
 	}
 	return resolvedSource{

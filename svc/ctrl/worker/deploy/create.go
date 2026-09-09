@@ -33,12 +33,15 @@ const (
 	triggerReasonBytesMax         = 512
 
 	// Column widths for the values that cannot be trimmed, because a cut sha or
-	// branch names something other than what the caller sent.
-	commitSHABytesMax      = 40
-	branchBytesMax         = 256
-	forkRepositoryBytesMax = 256
-	triggeredByBytesMax    = 256
-	imageBytesMax          = 512
+	// branch names something other than what the caller sent. These count
+	// characters, not bytes: the columns are utf8mb4 varchars, so a branch of
+	// 256 multi-byte characters fits, and the API validates the same limits in
+	// runes.
+	commitSHACharsMax      = 40
+	branchCharsMax         = 256
+	forkRepositoryCharsMax = 256
+	triggeredByCharsMax    = 256
+	imageCharsMax          = 512
 )
 
 // Create writes a deployment row and starts its pipeline. See the proto for the
@@ -245,10 +248,10 @@ func (w *Workflow) validateAndBuildPayload(
 
 		commit := commitFromRequest(req)
 		if tooLong := assert.All(
-			assert.LessOrEqual(len(commit.SHA), commitSHABytesMax, "commit sha is too long"),
-			assert.LessOrEqual(len(commit.Branch), branchBytesMax, "branch is too long"),
-			assert.LessOrEqual(len(commit.ForkRepository), forkRepositoryBytesMax, "fork repository is too long"),
-			assert.LessOrEqual(len(req.GetTriggeredBy()), triggeredByBytesMax, "triggered_by is too long"),
+			assert.LessOrEqual(utf8.RuneCountInString(commit.SHA), commitSHACharsMax, "commit sha is too long"),
+			assert.LessOrEqual(utf8.RuneCountInString(commit.Branch), branchCharsMax, "branch is too long"),
+			assert.LessOrEqual(utf8.RuneCountInString(commit.ForkRepository), forkRepositoryCharsMax, "fork repository is too long"),
+			assert.LessOrEqual(utf8.RuneCountInString(req.GetTriggeredBy()), triggeredByCharsMax, "triggered_by is too long"),
 		); tooLong != nil {
 			return payload, restate.TerminalError(tooLong)
 		}

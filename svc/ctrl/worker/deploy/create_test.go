@@ -1124,6 +1124,32 @@ func TestCreateRefusesOversizedIdentifiers(t *testing.T) {
 			h.create(t, ctx, deploymentID, req).GetOutcome())
 		require.Equal(t, sha, h.deployment(t, ctx, deploymentID).GitCommitSha.String)
 	})
+
+	// git_branch is a utf8mb4 varchar(256), so the column counts characters. A
+	// byte count here would refuse a branch that stores fine.
+	t.Run("a multi byte branch is measured in characters", func(t *testing.T) {
+		branch := strings.Repeat("ケバブ", 80) // 240 characters, 720 bytes
+		req := h.imageRequest()
+		req.Source = &hydrav1.DeployCreateRequest_Image{
+			Image: &hydrav1.CreateImageSource{
+				Image: fixtureImage,
+				Commit: &ctrlv1.GitCommitInfo{
+					CommitSha:       fixtureCommitSHA,
+					Branch:          branch,
+					CommitMessage:   fixtureCommitMessage,
+					AuthorHandle:    "",
+					AuthorAvatarUrl: "",
+					Timestamp:       0,
+					ForkRepository:  "",
+				},
+			},
+		}
+
+		deploymentID := uid.New(uid.DeploymentPrefix)
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
+			h.create(t, ctx, deploymentID, req).GetOutcome())
+		require.Equal(t, branch, h.deployment(t, ctx, deploymentID).GitBranch.String)
+	})
 }
 
 // createHarness is one MySQL database and one Restate server hosting the real
