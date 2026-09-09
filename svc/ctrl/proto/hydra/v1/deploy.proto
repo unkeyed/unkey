@@ -170,7 +170,8 @@ enum CreateOutcome {
   // GitHub could not resolve the requested branch or commit.
   CREATE_OUTCOME_COMMIT_NOT_RESOLVED = 6;
 
-  // The existing deployment has neither a buildable commit nor an image.
+  // The existing deployment recorded no source and has neither a commit nor an
+  // image to reproduce.
   CREATE_OUTCOME_NO_SOURCE_IMAGE = 7;
 
   // A newer active deployment exists on the same app, environment, and branch.
@@ -188,6 +189,17 @@ enum CreateOutcome {
   // environment. One outcome for both, so a caller cannot probe for deployments
   // it cannot reach.
   CREATE_OUTCOME_SOURCE_DEPLOYMENT_NOT_FOUND = 11;
+
+  // The app deploys an OCI image but none is configured.
+  CREATE_OUTCOME_NO_IMAGE_CONFIGURED = 12;
+
+  // The request named no source and the app has nothing to fall back to: no
+  // declared source, no repository, and no current deployment.
+  CREATE_OUTCOME_NO_SOURCE = 13;
+
+  // The existing deployment was a git build but recorded no commit, so there is
+  // nothing to rebuild.
+  CREATE_OUTCOME_NO_SOURCE_COMMIT = 14;
 }
 
 // CreateGitSource builds from a commit in the app's connected repository.

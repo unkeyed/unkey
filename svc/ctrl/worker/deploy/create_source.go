@@ -81,7 +81,7 @@ func (w *Workflow) resolveSource(
 		if target.SourceType == db.AppsSourceTypeOci {
 			if target.OciImageReference.String == "" {
 				return newRejectedSource(rejectf(
-					hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE,
+					hydrav1.CreateOutcome_CREATE_OUTCOME_NO_IMAGE_CONFIGURED,
 					"OCI app %s has no image configured", target.AppID,
 				)), nil
 			}
@@ -93,7 +93,7 @@ func (w *Workflow) resolveSource(
 		}
 		if !target.CurrentDeploymentID.Valid || target.CurrentDeploymentID.String == "" {
 			return newRejectedSource(rejectf(
-				hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE,
+				hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE,
 				"app %s has no current deployment to redeploy and the request named no source",
 				target.AppID,
 			)), nil
@@ -273,7 +273,7 @@ func (w *Workflow) resolveExistingDeployment(
 	// never recorded its source may fall back to one.
 	if src.Source == db.DeploymentsSourceGit {
 		return newRejectedSource(rejectf(
-			hydrav1.CreateOutcome_CREATE_OUTCOME_NO_REPO_CONNECTION,
+			hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_COMMIT,
 			"git deployment %s has no commit and repository connection to rebuild from", src.ID,
 		)), nil
 	}

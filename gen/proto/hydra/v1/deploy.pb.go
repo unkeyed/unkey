@@ -101,7 +101,8 @@ const (
 	CreateOutcome_CREATE_OUTCOME_NO_REPO_CONNECTION CreateOutcome = 5
 	// GitHub could not resolve the requested branch or commit.
 	CreateOutcome_CREATE_OUTCOME_COMMIT_NOT_RESOLVED CreateOutcome = 6
-	// The existing deployment has neither a buildable commit nor an image.
+	// The existing deployment recorded no source and has neither a commit nor an
+	// image to reproduce.
 	CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE CreateOutcome = 7
 	// A newer active deployment exists on the same app, environment, and branch.
 	// Only with require_latest set.
@@ -115,6 +116,14 @@ const (
 	// environment. One outcome for both, so a caller cannot probe for deployments
 	// it cannot reach.
 	CreateOutcome_CREATE_OUTCOME_SOURCE_DEPLOYMENT_NOT_FOUND CreateOutcome = 11
+	// The app deploys an OCI image but none is configured.
+	CreateOutcome_CREATE_OUTCOME_NO_IMAGE_CONFIGURED CreateOutcome = 12
+	// The request named no source and the app has nothing to fall back to: no
+	// declared source, no repository, and no current deployment.
+	CreateOutcome_CREATE_OUTCOME_NO_SOURCE CreateOutcome = 13
+	// The existing deployment was a git build but recorded no commit, so there is
+	// nothing to rebuild.
+	CreateOutcome_CREATE_OUTCOME_NO_SOURCE_COMMIT CreateOutcome = 14
 )
 
 // Enum value maps for CreateOutcome.
@@ -132,6 +141,9 @@ var (
 		9:  "CREATE_OUTCOME_INVALID_IMAGE",
 		10: "CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE",
 		11: "CREATE_OUTCOME_SOURCE_DEPLOYMENT_NOT_FOUND",
+		12: "CREATE_OUTCOME_NO_IMAGE_CONFIGURED",
+		13: "CREATE_OUTCOME_NO_SOURCE",
+		14: "CREATE_OUTCOME_NO_SOURCE_COMMIT",
 	}
 	CreateOutcome_value = map[string]int32{
 		"CREATE_OUTCOME_UNSPECIFIED":                 0,
@@ -146,6 +158,9 @@ var (
 		"CREATE_OUTCOME_INVALID_IMAGE":               9,
 		"CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE":  10,
 		"CREATE_OUTCOME_SOURCE_DEPLOYMENT_NOT_FOUND": 11,
+		"CREATE_OUTCOME_NO_IMAGE_CONFIGURED":         12,
+		"CREATE_OUTCOME_NO_SOURCE":                   13,
+		"CREATE_OUTCOME_NO_SOURCE_COMMIT":            14,
 	}
 )
 
@@ -1705,7 +1720,7 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x1bCREATE_DECISION_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16CREATE_DECISION_DEPLOY\x10\x01\x12\x18\n" +
 	"\x14CREATE_DECISION_SKIP\x10\x02\x12\"\n" +
-	"\x1eCREATE_DECISION_AWAIT_APPROVAL\x10\x03*\xd8\x03\n" +
+	"\x1eCREATE_DECISION_AWAIT_APPROVAL\x10\x03*\xc3\x04\n" +
 	"\rCreateOutcome\x12\x1e\n" +
 	"\x1aCREATE_OUTCOME_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16CREATE_OUTCOME_CREATED\x10\x01\x12\"\n" +
@@ -1719,7 +1734,10 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\x1cCREATE_OUTCOME_INVALID_IMAGE\x10\t\x12-\n" +
 	")CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE\x10\n" +
 	"\x12.\n" +
-	"*CREATE_OUTCOME_SOURCE_DEPLOYMENT_NOT_FOUND\x10\v*c\n" +
+	"*CREATE_OUTCOME_SOURCE_DEPLOYMENT_NOT_FOUND\x10\v\x12&\n" +
+	"\"CREATE_OUTCOME_NO_IMAGE_CONFIGURED\x10\f\x12\x1c\n" +
+	"\x18CREATE_OUTCOME_NO_SOURCE\x10\r\x12#\n" +
+	"\x1fCREATE_OUTCOME_NO_SOURCE_COMMIT\x10\x0e*c\n" +
 	"\fTeardownMode\x12\x1d\n" +
 	"\x19TEARDOWN_MODE_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15TEARDOWN_MODE_ARCHIVE\x10\x01\x12\x19\n" +

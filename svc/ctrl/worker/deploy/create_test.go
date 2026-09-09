@@ -258,7 +258,7 @@ func TestCreateRejections(t *testing.T) {
 		req.Source = nil
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
-		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE, resp.GetOutcome())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE, resp.GetOutcome())
 	})
 }
 
@@ -320,7 +320,7 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceGit, fixtureImage)
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), h.existingRequest(source.ID, false))
-		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_REPO_CONNECTION, resp.GetOutcome())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_COMMIT, resp.GetOutcome())
 		require.Equal(t, 1, h.countDeployments(t, ctx), "only the seeded source")
 	})
 
@@ -751,7 +751,7 @@ func TestCreateFollowsAppSource(t *testing.T) {
 		req.Source = nil
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
-		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE, resp.GetOutcome())
+		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_IMAGE_CONFIGURED, resp.GetOutcome())
 		require.Zero(t, h.countDeployments(t, ctx))
 	})
 
