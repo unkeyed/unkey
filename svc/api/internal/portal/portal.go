@@ -37,11 +37,12 @@ import (
 // not exist anywhere: a caller must not be able to use the difference to learn
 // that another workspace holds it.
 const (
-	ErrMsgInvalidMapping   = "A portal must map to exactly one app or one keyspace."
-	ErrMsgMappingNotFound  = "The app or keyspace was not found."
-	ErrMsgInvalidLogoURL   = "logoUrl must be an absolute https:// URL of at most 500 characters."
-	ErrMsgInvalidColor     = "primaryColor must be a six-digit hex colour, for example #6366f1."
-	ErrMsgInvalidReturnURL = "returnUrl must be an absolute https:// URL of at most 500 characters."
+	ErrMsgInvalidMapping      = "A portal must map to exactly one app or one keyspace."
+	ErrMsgMappingNotFound     = "The app or keyspace was not found."
+	ErrMsgMappingOtherProject = "A portal cannot be moved to a different project. The app or keyspace you named belongs to another project, so create a portal there instead."
+	ErrMsgInvalidLogoURL      = "logoUrl must be an absolute https:// URL of at most 500 characters."
+	ErrMsgInvalidColor        = "primaryColor must be a six-digit hex colour, for example #6366f1."
+	ErrMsgInvalidReturnURL    = "returnUrl must be an absolute https:// URL of at most 500 characters."
 )
 
 // LogoURLMaxLength matches the column width. Enforced here so an over-long value
@@ -338,17 +339,29 @@ func ResolveMappingProject(ctx context.Context, tx db.DBTX, workspaceID string, 
 // that changed project would silently fall under a different set of grants while
 // keeping its id.
 //
-// Both projects are already resolved by the caller, so this does no lookup and
-// reports the same not-found a mapping the caller does not own reports.
+// This deliberately does not reuse mappingNotFound. That masking exists so an
+// unowned mapping and an absent one stay indistinguishable, which protects
+// against enumerating another tenant's resources. Nothing needs protecting here:
+// the caller has already proved update rights on this portal, the mapping is
+// confirmed to be in the caller's own workspace, and read rights on the target
+// are checked separately by AuthorizeMappingTarget. Reporting not-found for a
+// resource the caller can see is a false answer, and the caller cannot act on it
+// because the request carries no project field to correct.
+//
+// Both projects are already resolved by the caller, so this does no lookup.
 func VerifyMappingInProject(portalProjectID string, mappingProjectID string) error {
 	if mappingProjectID == portalProjectID {
 		return nil
 	}
-	return mappingNotFound(fmt.Sprintf(
-		"mapping belongs to project %s, portal belongs to project %s",
-		mappingProjectID,
-		portalProjectID,
-	))
+	return fault.New("portal mapping belongs to another project",
+		fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
+		fault.Internal(fmt.Sprintf(
+			"mapping belongs to project %s, portal belongs to project %s",
+			mappingProjectID,
+			portalProjectID,
+		)),
+		fault.Public(ErrMsgMappingOtherProject),
+	)
 }
 
 // mappingNotFound is the single construction of the mapping not-found chain, so
