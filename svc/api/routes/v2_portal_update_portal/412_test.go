@@ -11,12 +11,11 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
 )
 
-// Re-pointing a portal at a resource in another project is refused, and the
-// refusal says so rather than masking as not-found. The caller has proved update
-// rights on this portal and the resource is in their own workspace, so there is
-// nothing to conceal, and the request carries no project field they could
-// correct. Both cases below cross projects in ordinary use: keyspaces land in
-// the workspace default project while apps take a caller-named one.
+// Re-pointing a portal at a resource in another project is refused, and says so
+// rather than masking as not-found: the caller has proved update rights and the
+// resource is in its own workspace, so there is nothing to conceal. Both cases
+// cross projects in ordinary use, since keyspaces land in the workspace default
+// project while apps take a caller-named one.
 func TestUpdatePortalRejectsMappingInAnotherProject(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, "portal.*.update_portal")

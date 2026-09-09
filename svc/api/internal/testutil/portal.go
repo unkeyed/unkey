@@ -18,10 +18,8 @@ import (
 // depends on the mapping kind, so every portal route test needs the same
 // derivation. It lives here rather than being copied into each package.
 //
-// The portal's project is derived from the mapping rather than passed in, so a
-// seeded row satisfies the invariant the routes enforce: a portal's project is
-// always the project of the resource it serves. It also means the mapped
-// resource has to exist.
+// The project is derived from the mapping rather than passed in, so a seeded row
+// satisfies the invariant the routes enforce, and the mapped resource must exist.
 //
 // A nil logoURL or primaryColor leaves that branding column absent, which is
 // distinct from present-but-empty.

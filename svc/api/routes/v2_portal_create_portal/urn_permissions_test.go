@@ -130,8 +130,8 @@ func TestCreatePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// A mapping per case, so a passing case cannot make the next one report a
-			// conflict instead of an authorization result.
+			// A mapping per case, so a passing case cannot make the next one
+			// report a conflict instead of an authorization result.
 			mapping, projectID := keyspaceMappingWithProject(t, h, workspace.ID)
 			rootKey := h.CreateRootKey(workspace.ID, append([]string{
 				fmt.Sprintf("unkey:v1:%s:%s#%s", workspace.ID, tc.resource(projectID), tc.action),
@@ -159,9 +159,8 @@ func TestCreatePortalAuthorizesCanonicalPortalURNs(t *testing.T) {
 			require.Equal(t, http.StatusForbidden, res.Status,
 				"expected 403 for %s, got: %s", tc.name, res.RawBody)
 			// Unlike the masked routes, create names the grant the caller is short
-			// of, project id included. That project is in the caller's own workspace
-			// and behind the mapping the caller itself named, so the alternative is a
-			// 403 an operator cannot act on.
+			// of, project id included: that project is in the caller's own
+			// workspace, behind a mapping the caller named.
 			require.Contains(t, res.RawBody,
 				fmt.Sprintf("projects/%s/portals/*#write", projectID),
 				"a denial must name the grant the caller lacks")

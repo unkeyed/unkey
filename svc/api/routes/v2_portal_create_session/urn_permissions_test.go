@@ -33,15 +33,10 @@ func sessionURNFixture(t *testing.T, h *testutil.Harness, slug string) (string, 
 	return api.ProjectID, portalID
 }
 
-// TestCreateSessionAuthorizesCanonicalSessionURNs pins which canonical grants
-// reach stage 1. The requirement is write on the portal's session sub-resource
-// with a wildcard session id, because the session does not exist at check time,
-// so a grant that stops at the portal itself is not enough.
-//
-// Every case here authenticates with a root key. A dashboard token carrying the
-// workspace-wide admin URN satisfies the same stage-1 arm, so what stops it
-// minting is requireRootKeyCredential, not anything in this vocabulary; that is
-// pinned in credential_test.go rather than here.
+// TestCreateSessionAuthorizesCanonicalSessionURNs guarantees stage 1 requires
+// write on the portal's session sub-resource with a wildcard session id, so a
+// grant stopping at the portal itself is not enough. Every case authenticates
+// with a root key; credential_test.go covers the other credential types.
 func TestCreateSessionAuthorizesCanonicalSessionURNs(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
@@ -56,8 +51,8 @@ func TestCreateSessionAuthorizesCanonicalSessionURNs(t *testing.T) {
 	projectID, portalID := sessionURNFixture(t, h, "urn-session-portal")
 	otherProjectID := uid.New(uid.ProjectPrefix)
 
-	// Every case carries the keys:read ceiling as legacy tuples so stage 2 is
-	// never what refuses. Stage 1 is what is under test.
+	// Legacy tuples for the keys:read ceiling, so stage 2 never refuses and
+	// stage 1 is what is under test.
 	keyGrants := []string{"api.*.read_key", "api.*.read_api"}
 
 	testCases := []struct {
@@ -72,9 +67,8 @@ func TestCreateSessionAuthorizesCanonicalSessionURNs(t *testing.T) {
 		{name: "workspace-wide write", resource: "**", action: "write", shouldPass: true},
 		{name: "workspace-wide admin", resource: "**", action: "*", shouldPass: true},
 
-		// The portal resource governs administering the portal. Minting a
-		// session is a write on its session sub-resource, so a grant that stops
-		// at the portal must not reach here.
+		// A grant on the portal itself administers it; minting is a write on the
+		// session sub-resource.
 		{name: "the portal itself", resource: fmt.Sprintf("projects/%s/portals/%s", projectID, portalID), action: "write", shouldPass: false},
 		{name: "every portal in the project", resource: fmt.Sprintf("projects/%s/portals/*", projectID), action: "write", shouldPass: false},
 
@@ -104,8 +98,7 @@ func TestCreateSessionAuthorizesCanonicalSessionURNs(t *testing.T) {
 				return
 			}
 
-			// Stage-1 denials stay masked as 404 whichever vocabulary they were
-			// evaluated in.
+			// Stage-1 denials stay masked as 404 in either vocabulary.
 			require.Equal(t, http.StatusNotFound, res.Status, "expected a masked denial, got: %s", res.RawBody)
 			require.NotContains(t, res.RawBody, portalID, "a denial must not disclose the resolved portal id")
 			require.Zero(t, countPortalSessions(t, h, workspaceID, externalID), "a denial must write no session row")
@@ -114,10 +107,9 @@ func TestCreateSessionAuthorizesCanonicalSessionURNs(t *testing.T) {
 	}
 }
 
-// projectWideGrants is what a trailing-wildcard grant at the project level looks
-// like. Actions are flat, with no implication between them, so the set carries
-// one per action each portal route names: read for get, write for create, update
-// and mint, delete for delete.
+// projectWideGrants is a trailing-wildcard grant at the project level. Actions
+// are flat with no implication between them, so the set carries one per action
+// the portal routes name.
 func projectWideGrants(workspaceID, projectID string) []string {
 	return []string{
 		fmt.Sprintf("unkey:v1:%s:projects/%s/**#read", workspaceID, projectID),
@@ -127,19 +119,12 @@ func projectWideGrants(workspaceID, projectID string) []string {
 }
 
 // TestProjectWideGrantsDeliberatelyReachPortals accepts a consequence of putting
-// portals in the canonical URN catalog: a grant of projects/{id}/** now covers
-// portal resources, and through the session sub-resource, session minting.
-// V1.Covers strips a trailing "**" and prefix-matches, so nothing had to name
-// portals for this to happen.
+// portals in the URN catalog: projects/{id}/** now covers portal resources and,
+// through the session sub-resource, minting. Nothing had to name portals for
+// that, since V1.Covers strips a trailing "**" and prefix-matches.
 //
-// This is deliberate. It is also forward-looking rather than a description of
-// production: the dashboard's root-key permission validator accepts three-part
-// dotted tuples only, so no root key carries a URN today. The grants this widens
-// are the ones the pending migration and any future issuance UI will create.
-//
-// The value is in failing later. If someone narrows Covers or adds a portal
-// exclusion, this breaks and says they are revoking grants customers hold,
-// instead of that happening silently.
+// Pinned so that narrowing Covers or excluding portals later fails here and says
+// it is revoking grants customers hold, rather than doing it silently.
 func TestProjectWideGrantsDeliberatelyReachPortals(t *testing.T) {
 	h := testutil.NewHarness(t)
 
@@ -161,11 +146,10 @@ func TestProjectWideGrantsDeliberatelyReachPortals(t *testing.T) {
 	projectID := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID}).ProjectID
 
 	testCases := []struct {
-		name string
-		// grantedProject is the project the wildcard grant names.
+		name           string
 		grantedProject string
-		// createStatus differs from the rest because create names the grant the
-		// caller is short of instead of masking the denial as a 404.
+		// Create names the grant the caller is short of instead of masking the
+		// denial as a 404.
 		createStatus int
 		otherStatus  int
 	}{
@@ -185,9 +169,8 @@ func TestProjectWideGrantsDeliberatelyReachPortals(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Two keyspaces per case: one the create leg claims, one already behind
-			// a seeded portal, since a keyspace backs at most one portal and the
-			// create leg is denied in the second case.
+			// A keyspace backs at most one portal, so the create leg needs its
+			// own separate from the one already behind a seeded portal.
 			target := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
 			existing := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
 			slug := fmt.Sprintf("project-wide-%d", i)
@@ -218,8 +201,8 @@ func TestProjectWideGrantsDeliberatelyReachPortals(t *testing.T) {
 			})
 			require.Equal(t, tc.otherStatus, updateRes.Status, "update: %s", updateRes.RawBody)
 
-			// Minting from a root key, because the credential restriction refuses
-			// every other credential type before any grant is read.
+			// The credential restriction refuses every other type before any
+			// grant is read.
 			externalID := uid.New(uid.TestPrefix)
 			mintRes := testutil.CallRoute[handler.Request, handler.Response](h, mint, headers, handler.Request{
 				Portal:     slug,

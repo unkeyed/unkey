@@ -43,10 +43,9 @@ func appMapping(appID string) portal.Mapping {
 // gateway policy config verifies keys against the given keyspaces. This is the
 // shape an app-mapped portal resolves its keyspaces from.
 //
-// projectID is the project the app lives in, which is also the project the
-// portal derives. Pass the project owning the keyspaces unless the test is
-// exercising the cross-project refusal; an empty value creates a fresh project,
-// which puts the app in a different project from any keyspace seeded elsewhere.
+// Pass the project owning the keyspaces unless the test exercises the
+// cross-project refusal; an empty projectID creates a fresh one, putting the app
+// in a different project from any keyspace seeded elsewhere.
 func seedAppWithKeyspaces(t *testing.T, h *testutil.Harness, workspaceID, slugBase, projectID string, keyspaceIDs []string) seededApp {
 	t.Helper()
 

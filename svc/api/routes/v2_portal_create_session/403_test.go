@@ -476,12 +476,10 @@ func TestCreateSessionKeyspaceWithoutAPI(t *testing.T) {
 	require.Equal(t, 0, countAuditEntriesMentioning(t, h, workspace.ID, externalID))
 }
 
-// TestCreateSessionCrossProjectKeyspace covers the tenancy gate that makes the
-// portal's stored project trustworthy as the project segment of the canonical
-// requirements: a keyspace resolved from the app's deployment must belong to the
-// portal's own project.
-//
-// The caller holds every legacy grant, so nothing but the gate can refuse it.
+// TestCreateSessionCrossProjectKeyspace guarantees a keyspace resolved from the
+// app's deployment belongs to the portal's own project, which is what makes the
+// stored project trustworthy as a canonical project segment. The caller holds
+// every legacy grant, so nothing but the gate can refuse it.
 func TestCreateSessionCrossProjectKeyspace(t *testing.T) {
 	h := testutil.NewHarness(t)
 
