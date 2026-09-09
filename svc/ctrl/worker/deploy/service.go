@@ -77,10 +77,10 @@ type RegistryConfig struct {
 // domain routing to ensure consistent deployment state. Promotion and rollback
 // live on EnvironmentService.
 //
-// The workflow is a Restate virtual object keyed by deployment id, so operations
-// on one deployment serialize while deployments proceed in parallel. Two deploys
-// of the same app run concurrently; the ordering they need comes from the dedup
-// and supersede checks.
+// It serves both DeployWorkflow and, until that drains, the DeployService
+// virtual object, each keyed by deployment id. Two deploys of the same app run
+// concurrently; the ordering they need comes from the dedup and supersede
+// checks.
 type Workflow struct {
 	hydrav1.UnimplementedDeployServiceServer
 	db        db.Database
@@ -105,7 +105,7 @@ type Workflow struct {
 
 	restateAdmin *restateadmin.Client
 
-	// asWorkflow marks the copy that serves DeployWorkflow. The SDK passes one
+	// asWorkflow marks the instance bound as DeployWorkflow. The SDK passes one
 	// context type to every handler, so the service cannot be told from ctx
 	asWorkflow bool
 }
