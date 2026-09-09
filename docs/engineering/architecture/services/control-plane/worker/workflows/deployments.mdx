@@ -195,7 +195,7 @@ Scheduled state changes are serialized via a Restate virtual object keyed by dep
 
 ## Compensation stack
 
-The Deploy handler maintains a LIFO compensation stack registered via `Compensation.Add` (for side-effects wrapped in `restate.RunVoid`) and `Compensation.AddCtx` (for raw `ObjectContext` operations like `BuildSlotService.Release().Send`). The stack fires on any error or cancellation:
+The Deploy handler maintains a LIFO compensation stack registered via `Compensation.Add` (for side-effects wrapped in `restate.RunVoid`) and `Compensation.AddCtx` (for raw Restate context operations like `BuildSlotService.Release().Send`). The stack fires on any error or cancellation:
 
 - Release the build slot
 - Mark the deployment as `failed` (only if still in an active status — the conditional `UpdateDeploymentStatusIfActive` query prevents overwriting `superseded` or `ready`)
