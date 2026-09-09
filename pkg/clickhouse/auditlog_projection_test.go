@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -48,7 +49,6 @@ func TestAuditLogProjection(t *testing.T) {
 	toExclusive := insertedAt + 2072
 	// Permit projection analysis for this small fixture without forcing selection.
 	query := `
-		EXPLAIN projections=1, indexes=1
 		SELECT
 			event_id, time, inserted_at, event, description,
 			actor_type, actor_id, actor_name,
@@ -69,7 +69,7 @@ func TestAuditLogProjection(t *testing.T) {
 	var plan []struct {
 		Explain string `ch:"explain"`
 	}
-	require.NoError(t, client.conn.Select(ctx, &plan, query, fromTime, fromID, toExclusive))
+	require.NoError(t, client.conn.Select(ctx, &plan, "EXPLAIN projections=1, indexes=1 "+query, fromTime, fromID, toExclusive))
 
 	var explanation strings.Builder
 	for _, line := range plan {
@@ -77,4 +77,38 @@ func TestAuditLogProjection(t *testing.T) {
 	}
 	require.Contains(t, explanation.String(), "Name: proj_logdrain\n"+
 		"Description: Projection has been analyzed and will be applied during reading")
+
+	// Filtering-only projections are not listed in query_log.projections.
+	// Compare actual reads with filtering off and on, without query-condition caching.
+	readRows := func(projectionFiltering bool) uint64 {
+		t.Helper()
+		queryID := uid.New("query")
+		queryCtx := ch.Context(ctx, ch.WithQueryID(queryID), ch.WithSettings(ch.Settings{
+			"optimize_use_projection_filtering": projectionFiltering,
+			"use_query_condition_cache":         false,
+		}))
+		rows, err := client.conn.Query(queryCtx, query, fromTime, fromID, toExclusive)
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, rows.Close()) })
+		var returnedRows int
+		for rows.Next() {
+			returnedRows++
+		}
+		require.NoError(t, rows.Err())
+		require.Equal(t, 1000, returnedRows)
+
+		require.NoError(t, client.conn.Exec(ctx, "SYSTEM FLUSH LOGS"))
+		var rowsRead uint64
+		require.NoError(t, client.conn.QueryRow(ctx, `
+			SELECT read_rows
+			FROM system.query_log
+			WHERE query_id = ? AND type = 'QueryFinish'
+		`, queryID).Scan(&rowsRead))
+		return rowsRead
+	}
+
+	rowsWithoutProjection := readRows(false)
+	rowsWithProjection := readRows(true)
+	require.Positive(t, rowsWithProjection)
+	require.Less(t, rowsWithProjection, rowsWithoutProjection)
 }
