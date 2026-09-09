@@ -44,9 +44,9 @@ func TestAuditLogProjection(t *testing.T) {
 		FROM numbers(?)`
 	require.NoError(t, client.conn.Exec(ctx, insertLogs, rowsPerBucket, insertedAt, insertedAt, rowCount))
 
-	fromTime := insertedAt + 1000
-	fromID := "event_001000"
-	toExclusive := insertedAt + 2072
+	fromTime := insertedAt + 130000
+	fromID := "event_130000"
+	toExclusive := insertedAt + rowCount
 	// Permit projection analysis for this small fixture without forcing selection.
 	query := `
 		SELECT
@@ -62,14 +62,14 @@ func TestAuditLogProjection(t *testing.T) {
 			correlation_id
 		FROM ` + table + `
 		WHERE workspace_id = 'projection_workspace'
-			AND (inserted_at, event_id) > (?, ?)
+			AND (inserted_at > ? OR (inserted_at = ? AND event_id > ?))
 			AND inserted_at < ?
 		ORDER BY inserted_at, event_id LIMIT 1000
 		SETTINGS min_table_rows_to_use_projection_index = 0`
 	var plan []struct {
 		Explain string `ch:"explain"`
 	}
-	require.NoError(t, client.conn.Select(ctx, &plan, "EXPLAIN projections=1, indexes=1 "+query, fromTime, fromID, toExclusive))
+	require.NoError(t, client.conn.Select(ctx, &plan, "EXPLAIN projections=1, indexes=1 "+query, fromTime, fromTime, fromID, toExclusive))
 
 	var explanation strings.Builder
 	for _, line := range plan {
@@ -87,7 +87,7 @@ func TestAuditLogProjection(t *testing.T) {
 			"optimize_use_projection_filtering": projectionFiltering,
 			"use_query_condition_cache":         false,
 		}))
-		rows, err := client.conn.Query(queryCtx, query, fromTime, fromID, toExclusive)
+		rows, err := client.conn.Query(queryCtx, query, fromTime, fromTime, fromID, toExclusive)
 		require.NoError(t, err)
 		t.Cleanup(func() { require.NoError(t, rows.Close()) })
 		var returnedRows int

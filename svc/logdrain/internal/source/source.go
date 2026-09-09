@@ -89,7 +89,10 @@ func (s *AuditLogs) Read(ctx context.Context, workspaceID string, from Cursor, t
 			correlation_id
 		FROM audit_logs_raw_v1
 		WHERE workspace_id = {workspace:String}
-			AND (inserted_at, event_id) > ({from_time:Int64}, {from_id:String})
+			AND (
+				inserted_at > {from_time:Int64}
+				OR (inserted_at = {from_time:Int64} AND event_id > {from_id:String})
+			)
 			AND inserted_at < {to:Int64}
 		ORDER BY inserted_at, event_id
 		LIMIT {batch_size:UInt64}`
