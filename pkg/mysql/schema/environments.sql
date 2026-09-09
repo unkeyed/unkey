@@ -16,4 +16,4 @@ CREATE TABLE `environments` (
 );
 
 CREATE INDEX `environments_project_idx` ON `environments` (`project_id`);
-
+CREATE INDEX `environments_workspace_slug_idx` ON `environments` (`workspace_id`,`slug`);

@@ -17,5 +17,4 @@ CREATE TABLE `apps` (
 	CONSTRAINT `apps_project_slug_idx` UNIQUE(`project_id`,`slug`)
 );
 
-CREATE INDEX `apps_workspace_idx` ON `apps` (`workspace_id`);
-
+CREATE INDEX `apps_workspace_slug_idx` ON `apps` (`workspace_id`,`slug`);

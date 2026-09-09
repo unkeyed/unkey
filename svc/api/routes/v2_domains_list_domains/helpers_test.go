@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -26,14 +27,14 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	workspace := h.Resources().UserWorkspace
 
 	project := h.CreateProject(seed.CreateProjectRequest{
-		ID:          uid.New(uid.ProjectPrefix),
+		ID:          randomSlug(),
 		WorkspaceID: workspace.ID,
 		Name:        "Payments Service",
 		Slug:        randomSlug(),
 	})
 
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
+		ID:            randomSlug(),
 		WorkspaceID:   workspace.ID,
 		ProjectID:     project.ID,
 		Name:          "Payments API",
@@ -42,7 +43,7 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	})
 
 	environment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
-		ID:          uid.New(uid.EnvironmentPrefix),
+		ID:          randomSlug(),
 		WorkspaceID: workspace.ID,
 		ProjectID:   project.ID,
 		AppID:       app.ID,
@@ -90,9 +91,9 @@ func attachDomain(t *testing.T, h *testutil.Harness, env seededEnv, mutate func(
 
 func makeRequest(env seededEnv) handler.Request {
 	return handler.Request{
-		Project:     env.projectID,
-		App:         env.appID,
-		Environment: env.environmentID,
+		Project:     ptr.P(env.projectID),
+		App:         ptr.P(env.appID),
+		Environment: ptr.P(env.environmentID),
 		Search:      nil,
 	}
 }
