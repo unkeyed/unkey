@@ -93,9 +93,7 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 			return nil, err
 		}
 	case hydrav1.CreateDecision_CREATE_DECISION_AWAIT_APPROVAL:
-		if err := w.postAwaitingApprovalStatus(ctx, deploymentID, req, payload); err != nil {
-			return nil, err
-		}
+		w.postAwaitingApprovalStatus(ctx, deploymentID, req, payload)
 	case hydrav1.CreateDecision_CREATE_DECISION_SKIP,
 		hydrav1.CreateDecision_CREATE_DECISION_UNSPECIFIED:
 	}
@@ -564,24 +562,25 @@ func (w *Workflow) startDeployment(
 }
 
 // postAwaitingApprovalStatus posts a failing commit status on the pushed commit
-// that links to the dashboard approval page. A GitHub error is logged and
-// dropped: the row is already written, so the create must not fail here.
+// that links to the dashboard approval page. GitHub errors are retried for a
+// bounded time, then logged and dropped: the row is already written, so the
+// create must not fail here.
 func (w *Workflow) postAwaitingApprovalStatus(
 	ctx restate.ObjectContext,
 	deploymentID string,
 	req *hydrav1.DeployCreateRequest,
 	payload deployPayload,
-) error {
+) {
 	if payload.Source.Git == nil || w.allowUnauthenticatedDeployments {
-		return nil
+		return
 	}
 
 	logURL := fmt.Sprintf("%s/%s/projects/%s/deployments/%s",
 		w.dashboardURL, payload.Target.WorkspaceSlug, req.GetProjectId(), deploymentID,
 	)
 
-	if err := restate.RunVoid(ctx, func(_ restate.RunContext) error {
-		if statusErr := w.github.CreateCommitStatus(
+	err := restate.RunVoid(ctx, func(_ restate.RunContext) error {
+		return w.github.CreateCommitStatus(
 			payload.Source.Git.InstallationID,
 			payload.Source.Git.Repository,
 			payload.Commit.SHA,
@@ -589,16 +588,14 @@ func (w *Workflow) postAwaitingApprovalStatus(
 			logURL,
 			"Awaiting authorization from a project member",
 			githubclient.DeployAuthorizationContext,
-		); statusErr != nil {
-			logger.Error(
-				"failed to post authorization commit status",
-				"deployment_id", deploymentID,
-				"error", statusErr,
-			)
-		}
-		return nil
-	}, restate.WithName("create commit status for authorization")); err != nil {
-		return err
+		)
+	}, restate.WithName("create commit status for authorization"), restate.WithMaxRetryDuration(30*time.Second))
+	if err != nil {
+		logger.Error(
+			"failed to post authorization commit status",
+			"deployment_id", deploymentID,
+			"error", err,
+		)
 	}
 
 	logger.Info(
@@ -606,7 +603,6 @@ func (w *Workflow) postAwaitingApprovalStatus(
 		"deployment_id", deploymentID,
 		"project_id", req.GetProjectId(),
 	)
-	return nil
 }
 
 func statusForDecision(decision hydrav1.CreateDecision) (mysqltype.DeploymentsStatus, error) {

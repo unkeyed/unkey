@@ -123,8 +123,13 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 				environmentID: row.EnvironmentID,
 				decision:      hydrav1.CreateDecision_CREATE_DECISION_SKIP,
 				reason:        reason,
-				future: s.startCreate(ctx, deploymentID, row, req,
-					hydrav1.CreateDecision_CREATE_DECISION_SKIP, reason),
+				future: s.startCreate(ctx, createArgs{
+					deploymentID: deploymentID,
+					row:          row,
+					req:          req,
+					decision:     hydrav1.CreateDecision_CREATE_DECISION_SKIP,
+					reason:       reason,
+				}),
 			})
 		}
 
@@ -159,7 +164,13 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			environmentID: row.EnvironmentID,
 			decision:      decision,
 			reason:        "",
-			future:        s.startCreate(ctx, deploymentID, row, req, decision, ""),
+			future: s.startCreate(ctx, createArgs{
+				deploymentID: deploymentID,
+				row:          row,
+				req:          req,
+				decision:     decision,
+				reason:       "",
+			}),
 		})
 	}
 
@@ -209,16 +220,45 @@ type pendingCreate struct {
 	future        restate.ResponseFuture[*hydrav1.DeployCreateResponse]
 }
 
+type createArgs struct {
+	deploymentID string
+	row          db.ListRepoConnectionDeployContextsRow
+	req          *hydrav1.HandlePushRequest
+	decision     hydrav1.CreateDecision
+	reason       string
+}
+
 // startCreate calls DeployService.Create for one app and returns the future.
+//
+// Why RequestFuture and not Send or Request:
+//
+// Supersede logic is decided by created_at. Create inserts the row then cancels
+// siblings with a smaller timestamp, so the newer push has to insert later.
+// This used to be guaranteed because HandlePush owned the row insert, but that
+// part moved to Create. From GitHub's point of view nothing changed, the
+// webhook handler calls HandlePush async anyway.
+//
+// If we Send, Push A returns as soon as the send is journaled, Push B starts,
+// and Create A and Create B race. If B lands first, A supersedes B and we
+// deploy the older commit. Awaiting keeps Push A alive until every row is
+// stamped, so B can't slip in.
+//
+// Plain Request would fix ordering too but runs the apps one after another.
+// RequestFuture lets us fire every app's create first and await them after, so
+// they still run concurrently like the old Send.
 func (s *Service) startCreate(
 	ctx restate.ObjectContext,
-	deploymentID string,
-	row db.ListRepoConnectionDeployContextsRow,
-	req *hydrav1.HandlePushRequest,
-	decision hydrav1.CreateDecision,
-	reason string,
+	args createArgs,
 ) restate.ResponseFuture[*hydrav1.DeployCreateResponse] {
-	return hydrav1.NewDeployServiceClient(ctx, deploymentID).Create().RequestFuture(&hydrav1.DeployCreateRequest{
+	row := args.row
+	req := args.req
+
+	event := "push"
+	if req.GetIsForkPr() {
+		event = "pull_request"
+	}
+
+	return hydrav1.NewDeployServiceClient(ctx, args.deploymentID).Create().RequestFuture(&hydrav1.DeployCreateRequest{
 		ProjectId:     row.ProjectID,
 		AppId:         row.AppID,
 		EnvironmentId: row.EnvironmentID,
@@ -236,17 +276,21 @@ func (s *Service) startCreate(
 				PrNumber: req.GetPrNumber(),
 			},
 		},
-		Decision:      decision,
+		Decision:      args.decision,
 		Trigger:       ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_GITHUB,
 		TriggeredBy:   req.GetSenderLogin(),
-		TriggerReason: reason,
+		TriggerReason: args.reason,
 		Actor: &ctrlv1.ActorInfo{
 			Id:        req.GetSenderLogin(),
 			Name:      req.GetSenderLogin(),
 			Type:      ctrlv1.ActorType_ACTOR_TYPE_GITHUB,
 			RemoteIp:  "",
 			UserAgent: "",
-			Meta:      nil,
+			Meta: map[string]string{
+				"delivery_id": req.GetDeliveryId(),
+				"event":       event,
+				"repository":  req.GetRepositoryFullName(),
+			},
 		},
 	})
 }
