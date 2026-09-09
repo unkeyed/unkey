@@ -103,6 +103,18 @@ export const projectRoutes = {
       );
     },
 
+    metrics({
+      environmentId,
+      v,
+      ...scope
+    }: AppScope & { environmentId?: string; v?: string }): Route {
+      return buildRoute(
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/metrics",
+        appParams(scope),
+        { environmentId, v },
+      );
+    },
+
     deployment({
       deploymentId,
       build,

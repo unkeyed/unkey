@@ -13,6 +13,7 @@ export async function resolveAll() {
     logdrains,
     portalManagement,
     projectsNav,
+    appMetrics,
   ] = await Promise.all([
     flags.helloWorld(),
     flags.deployBilling(),
@@ -21,6 +22,7 @@ export async function resolveAll() {
     flags.logdrains(),
     flags.portalManagement(),
     flags.projectsNav(),
+    flags.appMetrics(),
   ]);
   return {
     helloWorld,
@@ -30,6 +32,7 @@ export async function resolveAll() {
     logdrains,
     portalManagement,
     projectsNav,
+    appMetrics,
   };
 }
 
