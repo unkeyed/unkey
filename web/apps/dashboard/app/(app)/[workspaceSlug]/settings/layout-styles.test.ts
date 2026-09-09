@@ -79,5 +79,8 @@ describe("Settings widget styles", () => {
     expect(styles).toContain("hsl(var(--error-");
     expect(styles).toContain(":focus-visible");
     expect(styles).toContain(":disabled");
+    expect(styles).toMatch(
+      /\.woswidgets-save-button\[data-save-state="loading"\],\s*\.woswidgets-save-button\[data-save-state="done"\]\s*\{[^}]*color:\s*transparent;/,
+    );
   });
 });

@@ -505,6 +505,11 @@
   border-radius: 0.25rem;
 }
 
+.woswidgets-save-button[data-save-state="loading"],
+.woswidgets-save-button[data-save-state="done"] {
+  color: transparent;
+}
+
 .woswidgets-save-button[data-save-state="loading"] {
   background-color: hsla(var(--grayA-8));
 }
