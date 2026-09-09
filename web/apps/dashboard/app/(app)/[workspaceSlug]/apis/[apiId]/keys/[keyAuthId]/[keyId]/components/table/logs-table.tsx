@@ -5,6 +5,7 @@ import {
   getRowClassName,
   useKeyDetailsLogsQuery,
 } from "@/components/key-details-logs-table";
+import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { RowSelectionState } from "@tanstack/react-table";
@@ -68,7 +69,7 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
           utils.logs.queryLogs.prefetch(
             {
               limit: 1,
-              startTime: 0,
+              startTime: timestamp - HISTORICAL_DATA_WINDOW,
               endTime: timestamp,
               host: { filters: [] },
               method: { filters: [] },
