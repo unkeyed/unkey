@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import {
   UserProfile,
   UserSecurity,
@@ -8,6 +9,7 @@ import {
   type WorkOsWidgetsProps,
 } from "@workos-inc/widgets";
 import type React from "react";
+import { useEffect } from "react";
 
 const UNKEY_WORKOS_THEME = {
   accentColor: "gray",
@@ -108,13 +110,38 @@ const UNKEY_WORKOS_ELEMENTS = {
   dropdown: { position: "popper" };
 };
 
-function UnkeyWorkOsWidgets({ children }: { children: React.ReactNode }) {
+function WorkOsMutationErrorListener({
+  onMutationError,
+}: {
+  onMutationError: (error: unknown) => void;
+}) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    return queryClient.getMutationCache().subscribe((event) => {
+      if (event.type === "updated" && event.action.type === "error") {
+        onMutationError(event.action.error);
+      }
+    });
+  }, [onMutationError, queryClient]);
+
+  return null;
+}
+
+function UnkeyWorkOsWidgets({
+  children,
+  onMutationError,
+}: {
+  children: React.ReactNode;
+  onMutationError?: (error: unknown) => void;
+}) {
   return (
     <WorkOsWidgets
       className="unkey-workos-widgets"
       elements={UNKEY_WORKOS_ELEMENTS}
       theme={UNKEY_WORKOS_THEME}
     >
+      {onMutationError ? <WorkOsMutationErrorListener onMutationError={onMutationError} /> : null}
       {children}
     </WorkOsWidgets>
   );
@@ -128,11 +155,13 @@ function UnkeyWorkOsWidgets({ children }: { children: React.ReactNode }) {
  */
 export function ManagedUserWidgets({
   getAccessToken,
+  onMutationError,
 }: {
   getAccessToken: () => Promise<string>;
+  onMutationError?: (error: unknown) => void;
 }) {
   return (
-    <UnkeyWorkOsWidgets>
+    <UnkeyWorkOsWidgets onMutationError={onMutationError}>
       <div className="flex flex-col gap-8">
         <section aria-labelledby="profile-settings-heading" className="flex flex-col gap-3">
           <h2

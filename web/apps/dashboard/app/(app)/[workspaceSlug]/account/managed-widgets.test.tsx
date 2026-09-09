@@ -1,8 +1,11 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ManagedUserWidgets, ManagedUsersWidget } from "@unkey/workos-widgets";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 beforeAll(() => {
   vi.stubGlobal(
@@ -45,6 +48,117 @@ describe("ManagedUserWidgets", () => {
     expect(widgetTheme?.getAttribute("data-scaling")).toBe("100%");
     expect(widgetTheme?.getAttribute("style")).toContain(
       "--default-font-family: var(--font-geist-sans)",
+    );
+  });
+
+  it("does not expose whether an email already belongs to another account", async () => {
+    const tokenPayload = btoa(
+      JSON.stringify({ permissions: [], exp: Math.floor(Date.now() / 1000) + 3600 }),
+    );
+    const getAccessToken = vi
+      .fn<[], Promise<string>>()
+      .mockResolvedValue(`header.${tokenPayload}.sig`);
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      const url = new URL(input instanceof Request ? input.url : input.toString());
+
+      if (url.pathname.endsWith("/me")) {
+        return Response.json({
+          id: "user_123",
+          email: "owner@example.com",
+          firstName: "Test",
+          lastName: "User",
+          oauthProfiles: null,
+        });
+      }
+
+      if (url.pathname.endsWith("/authentication-information")) {
+        return Response.json({
+          data: {
+            verificationMethods: {
+              Password: {
+                provider: "Password",
+                isSetUp: true,
+                isCurrentSession: true,
+              },
+            },
+            passwordSettings: {
+              isPasswordNumberRequired: false,
+              isPasswordPwnedRequired: false,
+              isPasswordSymbolRequired: false,
+              isPasswordUppercaseRequired: false,
+              passwordMinimumLength: 8,
+              passwordMinimumStrength: 1,
+            },
+          },
+        });
+      }
+
+      if (url.pathname.endsWith("/send-verification")) {
+        return Response.json({
+          authenticationChallenge: "challenge_123",
+          type: "EmailVerification",
+        });
+      }
+
+      if (url.pathname.endsWith("/verify")) {
+        return Response.json({
+          elevatedAccessToken: "elevated_token",
+          expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        });
+      }
+
+      if (url.pathname.endsWith("/send-email-change")) {
+        return Response.json(
+          { message: "This email is not available" },
+          { status: 422, statusText: "Unprocessable Entity" },
+        );
+      }
+
+      throw new Error(`Unexpected WorkOS request: ${init?.method ?? "GET"} ${url.pathname}`);
+    });
+
+    const onMutationError = vi.fn((error: unknown) => {
+      if (error instanceof Error && error.message === "This email is not available") {
+        error.message =
+          "We couldn't update your email. Try again or contact support if the problem continues.";
+      }
+    });
+
+    render(
+      <ManagedUserWidgets getAccessToken={getAccessToken} onMutationError={onMutationError} />,
+    );
+
+    await screen.findByText("owner@example.com");
+    const emailEditButton = screen.getAllByRole("button", { name: "Edit" }).at(1);
+    if (!emailEditButton) {
+      throw new Error("Email edit button was not rendered");
+    }
+    fireEvent.click(emailEditButton);
+    fireEvent.click(await screen.findByRole("button", { name: "Send verification code" }));
+
+    const otpInputs = await screen.findAllByRole("textbox");
+    for (const [index, input] of otpInputs.entries()) {
+      fireEvent.change(input, { target: { value: String(index + 1) } });
+    }
+
+    await screen.findByRole("heading", { name: "Change email address" });
+    fireEvent.change(screen.getByRole("textbox", { name: "New email address" }), {
+      target: { value: "existing@example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send verification code" }));
+
+    expect(
+      await screen.findByText(
+        "We couldn't update your email. Try again or contact support if the problem continues.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText("This email is not available")).toBeNull();
+    expect(onMutationError).toHaveBeenCalledWith(expect.any(Error));
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ pathname: expect.stringContaining("/send-email-change") }),
+        expect.anything(),
+      ),
     );
   });
 });

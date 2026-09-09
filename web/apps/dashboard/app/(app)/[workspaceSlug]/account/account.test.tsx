@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => {
       },
     },
     widgetTokenGetter: null as null | (() => Promise<string>),
+    widgetMutationErrorHandler: null as null | ((error: unknown) => void),
   };
 });
 
@@ -56,8 +57,15 @@ vi.mock("@/lib/trpc/client", () => ({
 }));
 
 vi.mock("@unkey/workos-widgets", () => ({
-  ManagedUserWidgets: ({ getAccessToken }: { getAccessToken: () => Promise<string> }) => {
+  ManagedUserWidgets: ({
+    getAccessToken,
+    onMutationError,
+  }: {
+    getAccessToken: () => Promise<string>;
+    onMutationError?: (error: unknown) => void;
+  }) => {
     mocks.widgetTokenGetter = getAccessToken;
+    mocks.widgetMutationErrorHandler = onMutationError ?? null;
     return (
       <div data-testid="managed-widgets">
         <h2 id="profile-settings-heading">Profile</h2>
@@ -103,6 +111,7 @@ describe("Account", () => {
     mocks.refreshAuth.mockResolvedValue(undefined);
     mocks.invalidateCurrentUser.mockResolvedValue(undefined);
     mocks.widgetTokenGetter = null;
+    mocks.widgetMutationErrorHandler = null;
   });
 
   it("mounts the managed account widgets with the AuthKit token getter", async () => {
@@ -115,6 +124,17 @@ describe("Account", () => {
     expect(await mocks.widgetTokenGetter?.()).toBe("access_token");
     expect(mocks.getAccessToken).toHaveBeenCalledOnce();
     expect(mocks.logManagedAuthOutcome).toHaveBeenCalledWith("widget_token", "success");
+  });
+
+  it("redacts duplicate-email errors before the account widget displays them", () => {
+    render(<ManagedAccount />);
+    const error = new Error("This email is not available");
+
+    mocks.widgetMutationErrorHandler?.(error);
+
+    expect(error.message).toBe(
+      "We couldn't update your email. Try again or contact support if the problem continues.",
+    );
   });
 
   it("shows profile and security skeletons while the AuthKit identity loads", () => {

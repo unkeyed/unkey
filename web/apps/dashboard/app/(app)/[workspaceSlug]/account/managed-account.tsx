@@ -14,6 +14,17 @@ import { AccountUnavailable } from "./account-unavailable";
 
 type RefreshIdentity = () => Promise<boolean>;
 
+const DUPLICATE_EMAIL_ERROR = "This email is not available";
+const GENERIC_EMAIL_UPDATE_ERROR =
+  "We couldn't update your email. Try again or contact support if the problem continues.";
+
+function redactAccountWidgetError(error: unknown) {
+  if (error instanceof Error && error.message === DUPLICATE_EMAIL_ERROR) {
+    // WorkOS renders mutation errors directly, so redact account-existence details first.
+    error.message = GENERIC_EMAIL_UPDATE_ERROR;
+  }
+}
+
 export function ManagedAccount() {
   const { user, impersonator, loading, getAuth, refreshAuth } = useAuth();
   const utils = trpc.useUtils();
@@ -156,7 +167,12 @@ function ManagedAccountWidgets({
     );
   }
 
-  return <ManagedUserWidgets getAccessToken={getWidgetAccessToken} />;
+  return (
+    <ManagedUserWidgets
+      getAccessToken={getWidgetAccessToken}
+      onMutationError={redactAccountWidgetError}
+    />
+  );
 }
 
 function AccountError({
