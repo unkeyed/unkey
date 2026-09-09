@@ -1,0 +1,48 @@
+---
+title: Icons
+description: How to use Icons when designing interfaces on Unkey.
+---
+
+Unkey uses [Nucleo](https://nucleoapp.com) icons for its product iconography.
+
+To browse the icons available, head to [The Nucleo Web App](https://nucleoapp.com/app) and sign in. 
+If you are a member of the Unkey team and require a license key to use Nucleo, please ask in Slack.
+
+## Usage
+
+Some common rules and do's and dont's for working with icons inside Unkey:
+
+- We use icons from the `UI` family of Nucleo icons.
+- We use the `Outline` variety of icons at all times.
+- We tend to use their `18px` sized icons as much as possible.
+- Where appropriate, if icons have a corresponding `12px` variant, we'll use those when our icons are being sized lower than `size-3`.
+- In extremely rare cases, we'll also make use of the `Filled` family of icons, but usage of this is discouraged and should be easily justifiable to the team during review.
+
+
+
+```tsx
+import { IconEarthOutline18 } from "nucleo-ui-outline-18";
+```
+
+## Linting
+
+A lint rule has been set up to discourage the use of the following things:
+
+1. Modifying the size prop of an icon directly. Instead - use `className` to define your icon sizes.
+2. Modifying the `strokeWidth` of an icon. This causes inconsistencies within the dashboard, and is banned.
+3. Rendering an `18px` icon at `size-3` or smaller when a `12px` variant of it exists. If there is no `12px` variant, the `18px` icon is fine.
+4. Sizing an icon with `h-` and `w-` classes. Icons are always square, so pass `size-` only.
+
+## Buttons
+
+
+The `Button` button component is set to display all icons at 16px. You should not need to size or edit the height of your button unless it's to do specifically break out of the established pattern.
+
+```tsx
+<Button>
+  <IconPlusOutline18 />
+  Create key
+</Button>
+```
+
+
