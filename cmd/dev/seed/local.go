@@ -558,6 +558,11 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			// portal that sets both. App-mapping additionally resolves its
 			// keyspaces from the app's current deployment, which this seed does
 			// not create, so the keyspace is the only mapping that works here.
+			// ProjectID must be the project of the mapped keyspace, which the
+			// handlers derive through portal.ResolveMappingProject. That package
+			// is internal to svc/api and unreachable from here, so this passes
+			// the same variable the keyspace above was created with. Change one
+			// and you must change the other.
 			err = db.Query.InsertPortal(ctx, tx, db.InsertPortalParams{
 				ID:           portalID,
 				WorkspaceID:  workspaceID,
