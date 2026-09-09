@@ -49,21 +49,23 @@ func RecordingDeployRestate(t *testing.T) (*restateingress.Client, <-chan Observ
 type rejectingDeployService struct {
 	hydrav1.UnimplementedDeployServiceServer
 	outcome hydrav1.CreateOutcome
+	detail  string
 }
 
 func (service *rejectingDeployService) Create(_ restate.ObjectContext, _ *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
-	return &hydrav1.DeployCreateResponse{Outcome: service.outcome}, nil
+	return &hydrav1.DeployCreateResponse{Outcome: service.outcome, Detail: service.detail, DeploymentId: ""}, nil
 }
 
 // RejectingDeployRestate starts a Restate whose Create answers every call with
-// outcome. The gates live in the worker and are tested there; a route test uses
-// this to pin what a caller is told when one refuses.
-func RejectingDeployRestate(t *testing.T, outcome hydrav1.CreateOutcome) *restateingress.Client {
+// outcome and detail. The gates live in the worker and are tested there; a route
+// test uses this to pin what a caller is told when one refuses.
+func RejectingDeployRestate(t *testing.T, outcome hydrav1.CreateOutcome, detail string) *restateingress.Client {
 	t.Helper()
 
 	restateConfig := containers.Restate(t, hydrav1.NewDeployServiceServer(&rejectingDeployService{
 		UnimplementedDeployServiceServer: hydrav1.UnimplementedDeployServiceServer{},
 		outcome:                          outcome,
+		detail:                           detail,
 	}))
 
 	return restateingress.NewClient(restateConfig.IngressURL)

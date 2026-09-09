@@ -3,6 +3,7 @@ package handler_test
 import (
 	"context"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -95,11 +96,12 @@ func TestRedeploySendsExistingDeployment(t *testing.T) {
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
 	})
+	resolved := "ghcr.io/acme/api@sha256:" + strings.Repeat("a", 64)
 	_, err := h.DB.RW().ExecContext(context.Background(), `
 		UPDATE deployments
 		SET source = ?, image_requested = ?, image_resolved = ?
 		WHERE id = ?
-	`, db.DeploymentsSourceOci, requested, resolved, deployment.ID)
+	`, db.DeploymentsSourceOci, "ghcr.io/acme/api:stable", resolved, deployment.ID)
 	require.NoError(t, err)
 
 	restateClient, creates := testutil.RecordingDeployRestate(t)

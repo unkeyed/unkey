@@ -254,7 +254,7 @@ func TestRedeployImageDeploymentOnConnectedApp(t *testing.T) {
 // caller is told 412 rather than handed an id for a deployment that never builds.
 func TestRedeployDeploymentWithoutBuiltImage(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE))
+	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_IMAGE, ""))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{

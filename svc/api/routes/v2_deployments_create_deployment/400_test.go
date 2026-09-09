@@ -73,11 +73,11 @@ func TestValidationErrors(t *testing.T) {
 // TestInvalidEnvironmentSettings pins what a caller is told when the worker
 // refuses an environment whose runtime or regional settings the deploy pipeline
 // cannot satisfy. Which settings are wrong is the worker's to decide
-// (deploy.TestCreateRejections); a refusal reaches the caller as an enum, so the
-// message here names no field.
+// (deploy.TestCreateRejections); the caller must still see every field it named.
 func TestInvalidEnvironmentSettings(t *testing.T) {
+	const detail = "Port must be between 1 and 65535 (is 0); no schedulable regions are configured"
 	h := testutil.NewHarness(t)
-	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE))
+	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE, detail))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -89,6 +89,7 @@ func TestInvalidEnvironmentSettings(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_environment_settings", res.Body.Error.Type)
+	require.Contains(t, res.Body.Error.Detail, detail)
 }
 
 // TestMalformedImageReference covers references the request schema accepts but a
@@ -96,8 +97,9 @@ func TestInvalidEnvironmentSettings(t *testing.T) {
 // before writing a row; this pins that the caller still gets a 400 rather than
 // an id for a deployment that would only ever fail to pull.
 func TestMalformedImageReference(t *testing.T) {
+	const detail = `invalid image reference "Acme/Api:v1": repository name must be lowercase`
 	h := testutil.NewHarness(t)
-	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE))
+	route := newRoute(h, testutil.RejectingDeployRestate(t, hydrav1.CreateOutcome_CREATE_OUTCOME_INVALID_IMAGE, detail))
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -109,4 +111,5 @@ func TestMalformedImageReference(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, authHeaders(setup.RootKey), req)
 	require.Equal(t, http.StatusBadRequest, res.Status, "expected 400, received: %s", res.RawBody)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/application/invalid_input", res.Body.Error.Type)
+	require.Contains(t, res.Body.Error.Detail, detail)
 }
