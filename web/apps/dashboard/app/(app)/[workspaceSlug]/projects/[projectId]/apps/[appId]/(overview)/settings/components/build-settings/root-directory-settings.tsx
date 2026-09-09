@@ -1,6 +1,6 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { FolderLink } from "@unkey/icons";
+import { IconFolderLinkOutline18 } from "nucleo-ui-outline-18";
 import { useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -114,7 +114,7 @@ export const RootDirectory = () => {
 
   return (
     <FormSettingCard
-      icon={<FolderLink className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconFolderLinkOutline18 className="text-gray-12" />}
       title="Root directory"
       description="The directory your app lives in. Unkey builds from here. Set it when your app is in a subdirectory (e.g., services/api)."
       displayValue={defaultValue || "."}

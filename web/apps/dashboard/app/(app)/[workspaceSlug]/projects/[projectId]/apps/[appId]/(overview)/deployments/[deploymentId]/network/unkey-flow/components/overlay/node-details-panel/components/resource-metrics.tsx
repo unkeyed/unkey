@@ -15,15 +15,14 @@ import {
   formatTooltipPercent,
 } from "@/lib/utils/deployment-formatters";
 import type { TimeWindow } from "@unkey/clickhouse";
-import {
-  ArrowOppositeDirectionY,
-  ChevronExpandY,
-  Grid,
-  Harddrive,
-  Microchip,
-  Ram,
-} from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
+import { IconArrowsOppositeDirectionYOutline12, IconGridOutline12 } from "nucleo-ui-outline-12";
+import {
+  IconChevronExpandYOutline18,
+  IconHardDriveOutline18,
+  IconMicrochipOutline18,
+  IconRamOutline18,
+} from "nucleo-ui-outline-18";
 import { useEffect, useRef, useState } from "react";
 import { useDeployment } from "../../../../../../layout-provider";
 
@@ -190,7 +189,7 @@ export function ResourceMetrics({ resourceId, storageMib, instanceName }: Resour
           <SelectTrigger
             wrapperClassName="w-fit shrink-0"
             className="h-7 min-h-0! rounded-lg border-grayA-4 bg-transparent shadow-sm text-gray-12 text-xs focus:ring-0"
-            rightIcon={<ChevronExpandY className="absolute right-2.5 text-gray-9 size-3" />}
+            rightIcon={<IconChevronExpandYOutline18 className="absolute right-2.5 text-gray-9" />}
           >
             <SelectValue className="text-xs" />
           </SelectTrigger>
@@ -336,7 +335,7 @@ function NetworkSection({
     <div className="flex flex-col gap-3 px-4 w-full border-t border-grayA-3 pt-6 mt-2">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="bg-error-3 text-error-11 rounded-md size-[22px] items-center flex justify-center">
-          <ArrowOppositeDirectionY iconSize="sm-regular" className="shrink-0" />
+          <IconArrowsOppositeDirectionYOutline12 className="shrink-0" />
         </div>
         <span className="text-gray-12 text-[13px]">Network</span>
         <div className="ml-auto flex items-center gap-3 text-[12px] tabular-nums">
@@ -409,7 +408,7 @@ function InstancesSection({
     <div className="flex flex-col gap-3 px-4 w-full mt-6">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="bg-error-3 text-error-11 rounded-md size-[22px] items-center flex justify-center">
-          <Grid iconSize="sm-regular" className="shrink-0" />
+          <IconGridOutline12 className="shrink-0" />
         </div>
         <span className="text-gray-12 text-[13px]">Active instances</span>
         <div className="ml-auto">
@@ -479,7 +478,7 @@ function CpuSection({
     >
       <div className="flex items-center gap-3 flex-wrap">
         <div className="bg-feature-3 text-feature-11 rounded-md size-[22px] items-center flex justify-center">
-          <Microchip iconSize="sm-regular" className="shrink-0" />
+          <IconMicrochipOutline18 className="size-3 shrink-0" />
         </div>
         <span className="text-gray-12 text-[13px]">CPU usage</span>
         <div className="ml-auto">
@@ -553,7 +552,7 @@ function MemorySection({
     <div className="flex flex-col gap-3 px-4 w-full border-t border-grayA-3 pt-6 mt-2">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="bg-info-3 text-info-11 rounded-md size-[22px] items-center flex justify-center">
-          <Ram iconSize="sm-regular" className="shrink-0" />
+          <IconRamOutline18 className="size-3 shrink-0" />
         </div>
         <span className="text-gray-12 text-[13px]">Memory usage</span>
         <div className="ml-auto">
@@ -626,7 +625,7 @@ function DiskSection({
     <div className="flex flex-col gap-3 px-4 w-full border-t border-grayA-3 pt-6 mt-2">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="bg-warning-3 text-warning-11 rounded-md size-[22px] items-center flex justify-center">
-          <Harddrive iconSize="sm-regular" className="shrink-0" />
+          <IconHardDriveOutline18 className="size-3 shrink-0" />
         </div>
         <span className="text-gray-12 text-[13px]">Disk usage</span>
         <div className="ml-auto">

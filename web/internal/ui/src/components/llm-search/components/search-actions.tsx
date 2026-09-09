@@ -1,4 +1,4 @@
-import { XMark } from "@unkey/icons";
+import { IconXmarkOutline18 } from "nucleo-ui-outline-18";
 import type React from "react";
 import { SearchExampleTooltip } from "./search-example-tooltip";
 
@@ -40,7 +40,7 @@ export const SearchActions: React.FC<SearchActionsProps> = ({
         type="button"
         data-testid="clear-search-button"
       >
-        <XMark className="size-4 text-accent-9" />
+        <IconXmarkOutline18 className="size-4 text-accent-9" />
       </button>
     );
   }

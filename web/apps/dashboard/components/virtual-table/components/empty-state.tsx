@@ -1,5 +1,5 @@
-import { BookBookmark } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
+import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
 
 export const EmptyState = ({ content }: { content?: React.ReactNode }) => (
   <div className="flex-1 flex items-center justify-center">
@@ -14,7 +14,7 @@ export const EmptyState = ({ content }: { content?: React.ReactNode }) => (
           <Empty.Actions className="mt-4 justify-start">
             <a href="https://www.unkey.com/docs" target="_blank" rel="noopener noreferrer">
               <Button>
-                <BookBookmark />
+                <IconBookBookmarkOutline18 />
                 Documentation
               </Button>
             </a>

@@ -1,5 +1,5 @@
 "use client";
-import { ChevronRight } from "@unkey/icons";
+import { IconChevronRightOutline18 } from "nucleo-ui-outline-18";
 import type * as React from "react";
 import { cn } from "../../../../lib/utils";
 import { Badge } from "../../../badge";
@@ -109,7 +109,7 @@ export function OutcomePopoverCell({
                 <span className="overflow-hidden text-ellipsis whitespace-nowrap pr-1 max-w-[90px]">
                   +{nonValidOutcomes.length} Outcomes
                 </span>
-                <ChevronRight iconSize="sm-regular" className="shrink-0" />
+                <IconChevronRightOutline18 className="shrink-0" />
               </div>
             </Button>
           }

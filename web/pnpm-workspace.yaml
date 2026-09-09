@@ -11,6 +11,9 @@ allowBuilds:
   "@sentry/cli": true
   cpu-features: true
   esbuild: true
+  nucleo-ui-fill-18: true
+  nucleo-ui-outline-12: true
+  nucleo-ui-outline-18: true
   sharp: true
   ssh2: true
 

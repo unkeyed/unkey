@@ -3,7 +3,6 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
 import { routes } from "@/lib/navigation/routes";
-import { BookBookmark } from "@unkey/icons";
 import {
   Button,
   Empty,
@@ -11,6 +10,7 @@ import {
   ResourceListContent,
   ResourceListFooter,
 } from "@unkey/ui";
+import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
 import { useProjectData } from "../../data-provider";
 import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
 import { useDeployments } from "../hooks/use-deployments";
@@ -95,7 +95,7 @@ export function DeploymentsCardList() {
                   rel="noopener noreferrer"
                 >
                   <Button size="md">
-                    <BookBookmark />
+                    <IconBookBookmarkOutline18 />
                     Learn about Deployments
                   </Button>
                 </a>

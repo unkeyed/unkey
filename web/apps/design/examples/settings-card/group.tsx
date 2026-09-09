@@ -1,5 +1,5 @@
-import { Earth, Key2 } from "@unkey/icons";
 import { Button, SettingCard, SettingCardGroup } from "@unkey/ui";
+import { IconEarthOutline18, IconKey2Outline18 } from "nucleo-ui-outline-18";
 
 export default function SettingCardGroupExample() {
   return (
@@ -7,7 +7,7 @@ export default function SettingCardGroupExample() {
       <SettingCard
         title="Workspace name"
         description="Shown across the dashboard and in invoices."
-        icon={<Key2 />}
+        icon={<IconKey2Outline18 />}
         contentWidth="w-fit"
         className="w-full flex-row items-center justify-between"
       >
@@ -16,7 +16,7 @@ export default function SettingCardGroupExample() {
       <SettingCard
         title="Custom domain"
         description="Serve your gateway from a domain you own."
-        icon={<Earth />}
+        icon={<IconEarthOutline18 />}
         contentWidth="w-fit"
         className="w-full flex-row items-center justify-between"
       >

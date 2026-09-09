@@ -1,5 +1,5 @@
 // Create a shared FormHelper component
-import { CircleInfo, TriangleWarning2 } from "@unkey/icons";
+import { IconCircleInfoOutline18, IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 // biome-ignore lint/style/useImportType: Reqired for silencing Biome
 import React from "react";
 import { cn } from "../../lib/utils";
@@ -30,9 +30,8 @@ export const FormDescription = ({
     <div className="text-[13px] leading-5">
       {error ? (
         <div id={errorId} role="alert" className="text-error-11 flex gap-2 items-center">
-          <TriangleWarning2
-            iconSize="md-medium"
-            className="shrink-0 -ml-px mr-px"
+          <IconTriangleWarningOutline18
+            className="size-4 shrink-0 -ml-px mr-px"
             aria-hidden="true"
           />
           <span className="flex-1">{error}</span>
@@ -50,13 +49,9 @@ export const FormDescription = ({
           )}
         >
           {variant === "warning" ? (
-            <TriangleWarning2
-              iconSize="md-medium"
-              className="shrink-0 mt-[3px]"
-              aria-hidden="true"
-            />
+            <IconTriangleWarningOutline18 className="size-4 shrink-0 mt-[3px]" aria-hidden="true" />
           ) : (
-            <CircleInfo iconSize="md-medium" className="shrink-0 mt-[3px]" aria-hidden="true" />
+            <IconCircleInfoOutline18 className="size-4 shrink-0 mt-[3px]" aria-hidden="true" />
           )}
           <span
             className={cn("flex-1", variant === "warning" ? "text-warning-11" : "text-gray-10")}
@@ -102,7 +97,7 @@ export const FormLabel = ({
       {tooltipContent && (
         <InfoTooltip content={tooltipContent} asChild>
           <span className="ml-1.5 inline-flex items-center text-gray-9 hover:text-gray-11">
-            <CircleInfo iconSize="md-medium" aria-hidden="true" />
+            <IconCircleInfoOutline18 className="size-4" aria-hidden="true" />
             <span className="sr-only">More info</span>
           </span>
         </InfoTooltip>

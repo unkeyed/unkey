@@ -1,11 +1,12 @@
-import { Cloud, Cube, Dots } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { IconCloudOutline12, IconDotsOutline12 } from "nucleo-ui-outline-12";
+import { IconCubeOutline18 } from "nucleo-ui-outline-18";
 
 export const DeploymentIdColumnSkeleton = () => (
   <div className="flex flex-col items-start px-[18px] py-[12px]">
     <div className="flex gap-5 items-center w-full">
       <div className="size-5 rounded-sm flex items-center justify-center border border-grayA-3 bg-grayA-3 animate-pulse">
-        <Cloud iconSize="sm-regular" className="text-gray-12 opacity-50" />
+        <IconCloudOutline12 className="text-gray-12 opacity-50" />
       </div>
       <div className="w-[200px]">
         <div className="h-4 w-32 bg-grayA-3 rounded-sm animate-pulse mb-1" />
@@ -30,7 +31,7 @@ export const StatusColumnSkeleton = () => (
 
 export const InstancesColumnSkeleton = () => (
   <div className="bg-grayA-3 font-mono text-xs items-center flex gap-2 p-1.5 rounded-md relative text-grayA-11 w-fit">
-    <Cube className="text-gray-12 opacity-50" iconSize="sm-regular" />
+    <IconCubeOutline18 className="size-3 text-gray-12 opacity-50" />
     <div className="flex gap-0.5">
       <div className="h-3 w-4 bg-grayA-4 rounded-sm tabular-nums" />
       <div className="h-3 w-6 bg-grayA-4 rounded-sm" />
@@ -51,7 +52,7 @@ export const ActionColumnSkeleton = () => (
     )}
     disabled
   >
-    <Dots className="text-gray-11 opacity-50" iconSize="sm-regular" />
+    <IconDotsOutline12 className="text-gray-11 opacity-50" />
   </button>
 );
 

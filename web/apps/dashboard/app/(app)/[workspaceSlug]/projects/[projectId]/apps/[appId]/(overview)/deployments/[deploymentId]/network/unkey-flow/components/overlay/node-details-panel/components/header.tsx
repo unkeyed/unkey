@@ -1,4 +1,5 @@
-import { DoubleChevronRight, type IconProps } from "@unkey/icons";
+import type { IconProps } from "nucleo-ui-outline-18";
+import { IconDoubleChevronRightOutline18 } from "nucleo-ui-outline-18";
 import type { FC } from "react";
 import { CardHeader, type CardHeaderProps } from "../../../nodes/components/card-header";
 
@@ -10,7 +11,7 @@ type Props = {
 
 export const NodeDetailsPanelHeader = ({
   onClose,
-  CloseIcon = DoubleChevronRight,
+  CloseIcon = IconDoubleChevronRightOutline18,
   subSection,
 }: Props) => {
   return (
@@ -29,7 +30,7 @@ export const NodeDetailsPanelHeader = ({
         aria-label="Close details panel"
         className="shrink-0 p-1 rounded-md hover:bg-grayA-3 transition-colors"
       >
-        <CloseIcon className="text-gray-9 shrink-0" iconSize="md-regular" />
+        <CloseIcon className="size-4 text-gray-9 shrink-0" />
       </button>
     </div>
   );

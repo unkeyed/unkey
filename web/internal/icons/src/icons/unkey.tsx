@@ -1,13 +1,11 @@
-import { type IconProps, sizeMap } from "../props";
+import type { IconProps } from "../props";
 
-export function Unkey({ iconSize = "xl-thin", ...props }: IconProps) {
-  const { iconSize: pixelSize } = sizeMap[iconSize];
-
+export function Unkey(props: IconProps) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width={pixelSize}
-      height={pixelSize}
+      width="18"
+      height="18"
       viewBox="100 100 310 310"
       {...props}
     >

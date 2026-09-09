@@ -1,10 +1,10 @@
 "use client";
 
-import { Dots } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { Route } from "next";
 import Link from "next/link";
+import { IconDotsOutline18 } from "nucleo-ui-outline-18";
 import React from "react";
 
 type BaseProps = React.PropsWithChildren<React.HTMLAttributes<HTMLElement>>;
@@ -89,7 +89,7 @@ const BreadcrumbsEllipsis = React.forwardRef<HTMLLIElement, React.HTMLAttributes
   ({ className, ...props }, ref) => (
     <li ref={ref} className={cn("flex gap-3 items-end", className)} {...props}>
       <span className="text-sm text-accent-10" aria-label="More pages">
-        <Dots className="h-4 w-4 text-accent-10" />
+        <IconDotsOutline18 className="h-4 w-4 text-accent-10" />
       </span>
       <div className="text-accent-10" aria-hidden="true">
         /

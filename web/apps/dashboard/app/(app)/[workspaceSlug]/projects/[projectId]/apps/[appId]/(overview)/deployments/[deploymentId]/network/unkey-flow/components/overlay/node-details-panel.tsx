@@ -1,6 +1,7 @@
 import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
-import { Layers3, TriangleWarning2 } from "@unkey/icons";
 import { SlidePanel, SlidePanelContent, TimestampInfo } from "@unkey/ui";
+import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
+import { IconLayers3Outline18 } from "nucleo-ui-outline-18";
 import { useDeployment } from "../../../../layout-provider";
 import { type DeploymentNode, type InstanceNode, isInstanceNode } from "../nodes/types";
 import { NodeDetailsPanelHeader } from "./node-details-panel/components/header";
@@ -25,7 +26,7 @@ const InstanceNodeDetails = ({ node, deploymentId, onClose }: InstanceNodeDetail
           variant: "panel",
           icon: (
             <div className="border rounded-[10px] size-9 flex items-center justify-center border-grayA-5 bg-grayA-2">
-              <Layers3 iconSize="lg-medium" className="text-gray-11" />
+              <IconLayers3Outline18 className="size-4 text-gray-11" />
             </div>
           ),
           title: node.label,
@@ -55,7 +56,7 @@ function LastExitSection({
     <div className="flex flex-col gap-2 px-4 w-full mt-5">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="bg-grayA-3 text-gray-12 rounded-md size-[22px] items-center flex justify-center">
-          <TriangleWarning2 iconSize="sm-regular" className="shrink-0" />
+          <IconTriangleWarningOutline12 className="shrink-0" />
         </div>
         <span className="text-gray-11 text-xs">Last exit</span>
         <div className="ml-auto">

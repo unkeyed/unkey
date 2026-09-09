@@ -1,8 +1,8 @@
 "use client";
 
 import { Dialog as SheetPrimitive } from "@base-ui/react/dialog";
-import { XMark } from "@unkey/icons";
 import { type VariantProps, cva } from "class-variance-authority";
+import { IconXmarkOutline18 } from "nucleo-ui-outline-18";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
@@ -78,7 +78,7 @@ const SheetContent = React.forwardRef<
           {children}
           {!disableClose && (
             <SheetPrimitive.Close className="absolute right-4 top-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-open:bg-secondary">
-              {closeIcon ? closeIcon : <XMark className="h-4 w-4 text-grayA-11" />}
+              {closeIcon ? closeIcon : <IconXmarkOutline18 className="h-4 w-4 text-grayA-11" />}
               <span className="sr-only">Close</span>
             </SheetPrimitive.Close>
           )}

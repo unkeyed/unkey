@@ -1,16 +1,8 @@
-import { type IconProps, sizeMap } from "../props";
+import type { IconProps } from "../props";
 
-export function LangElixir({ iconSize = "xl-thin", ...props }: IconProps) {
-  const { iconSize: pixelSize } = sizeMap[iconSize];
-
+export function LangElixir(props: IconProps) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={pixelSize}
-      height={pixelSize}
-      viewBox="0 0 128 128"
-      {...props}
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 128 128" {...props}>
       <linearGradient
         id="elixir-original-a"
         gradientUnits="userSpaceOnUse"

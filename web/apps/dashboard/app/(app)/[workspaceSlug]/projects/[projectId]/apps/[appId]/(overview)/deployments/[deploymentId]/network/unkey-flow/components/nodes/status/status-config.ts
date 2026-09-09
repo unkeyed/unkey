@@ -1,4 +1,4 @@
-import { CircleCheck, TriangleWarning2 } from "@unkey/icons";
+import { IconCircleCheckOutline18, IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import type { HealthStatus } from "../types";
 
 type StatusColors = {
@@ -14,7 +14,7 @@ type StatusColors = {
 
 type StatusConfig = {
   label: string;
-  icon: typeof TriangleWarning2;
+  icon: typeof IconTriangleWarningOutline18;
   message: string;
   colors: StatusColors;
   showBanner: boolean;
@@ -23,7 +23,7 @@ type StatusConfig = {
 const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
   normal: {
     label: "Normal",
-    icon: CircleCheck,
+    icon: IconCircleCheckOutline18,
     message: "",
     showBanner: false,
     colors: {
@@ -39,7 +39,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
   },
   unhealthy: {
     label: "Unhealthy",
-    icon: TriangleWarning2,
+    icon: IconTriangleWarningOutline18,
     message: "Instance crashed or unavailable.",
     showBanner: true,
     colors: {
@@ -55,7 +55,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
   },
   health_syncing: {
     label: "Starting",
-    icon: TriangleWarning2,
+    icon: IconTriangleWarningOutline18,
     message: "Instance is starting up.",
     showBanner: true,
     colors: {
@@ -71,7 +71,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
   },
   unknown: {
     label: "Unknown",
-    icon: TriangleWarning2,
+    icon: IconTriangleWarningOutline18,
     message: "Unable to determine health status. Investigating.",
     showBanner: true,
     colors: {
@@ -87,7 +87,7 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
   },
   disabled: {
     label: "Disabled",
-    icon: TriangleWarning2,
+    icon: IconTriangleWarningOutline18,
     message: "Instance is inactive or unavailable.",
     showBanner: true,
     colors: {

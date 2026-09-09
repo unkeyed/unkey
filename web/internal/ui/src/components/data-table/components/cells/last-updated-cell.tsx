@@ -1,5 +1,5 @@
 "use client";
-import { ChartActivity2 } from "@unkey/icons";
+import { IconChartActivity2Outline18 } from "nucleo-ui-outline-18";
 // biome-ignore lint/correctness/noUnusedImports: React is needed for JSX
 import React from "react";
 import { BadgeTimestampCell } from "./badge-timestamp-cell";
@@ -13,7 +13,7 @@ export const LastUpdatedCell = ({ isSelected, lastUpdated }: LastUpdatedCellProp
   <BadgeTimestampCell
     isSelected={isSelected}
     timestamp={lastUpdated}
-    icon={<ChartActivity2 iconSize="sm-regular" />}
+    icon={<IconChartActivity2Outline18 />}
     emptyText="Never used"
   />
 );

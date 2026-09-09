@@ -1,7 +1,7 @@
 "use client";
 
 import { formatMemoryParts } from "@/lib/utils/deployment-formatters";
-import { Ram } from "@unkey/icons";
+import { IconRamOutline18 } from "nucleo-ui-outline-18";
 import { ResourceSliderSetting, defineResourceSlider } from "../shared/resource-slider";
 
 // Memory tiers on the slider. resolveStrategy bounds these to the workspace limit
@@ -18,7 +18,7 @@ const MEMORY_OPTIONS = [
 ] as const;
 
 const memoryConfig = defineResourceSlider({
-  icon: <Ram className="text-gray-12" iconSize="xl-medium" />,
+  icon: <IconRamOutline18 className="text-gray-12" />,
   title: "Memory",
   description: "Memory allocation for each instance",
   settingDescription:

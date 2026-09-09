@@ -1,5 +1,5 @@
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
-import { Calendar } from "@unkey/icons";
+import { IconCalendarOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import type { DeploymentListFilterValue } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
@@ -56,7 +56,7 @@ export const DeploymentListDatetime = () => {
         aria-label="Filter deployments by time"
         aria-haspopup="true"
         disabled={isLoading}
-        icon={<Calendar iconSize="md-medium" className="text-gray-9 shrink-0" />}
+        icon={<IconCalendarOutline18 className="size-4 text-gray-9 shrink-0" />}
         label={displayTitle}
         isActive={hasTimeFilters}
       />
