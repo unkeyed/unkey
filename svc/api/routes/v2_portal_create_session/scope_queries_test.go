@@ -21,7 +21,7 @@ func TestScopeQueriesDeniesUnmappedScope(t *testing.T) {
 
 	t.Run("known scopes map to a non-empty requirement", func(t *testing.T) {
 		for _, s := range []openapi.V2PortalCreateSessionRequestBodyScopes{
-			openapi.KeysRead, openapi.KeysReroll,
+			openapi.KeysRead, openapi.KeysReroll, openapi.AnalyticsRead,
 		} {
 			queries, ok := handler.ScopeQueries(s, apiID, false)
 			require.True(t, ok, "scope %q must map", s)
@@ -35,11 +35,11 @@ func TestScopeQueriesDeniesUnmappedScope(t *testing.T) {
 		require.Empty(t, queries)
 	})
 
-	// These two used to map here. A stale arm would not look like a typo, so
-	// pin them explicitly.
+	// This used to map here. A stale arm would not look like a typo, so pin it
+	// explicitly.
 	t.Run("removed scopes are unknown", func(t *testing.T) {
 		for _, s := range []openapi.V2PortalCreateSessionRequestBodyScopes{
-			"analytics:read", "keys:create",
+			"keys:create",
 		} {
 			queries, ok := handler.ScopeQueries(s, apiID, false)
 			require.False(t, ok, "scope %q is no longer in the vocabulary and must deny", s)
@@ -70,7 +70,7 @@ func TestCanonicalScopeQueriesDeniesUnmappedScope(t *testing.T) {
 
 	t.Run("known scopes map to a non-empty requirement", func(t *testing.T) {
 		for _, s := range []openapi.V2PortalCreateSessionRequestBodyScopes{
-			openapi.KeysRead, openapi.KeysReroll,
+			openapi.KeysRead, openapi.KeysReroll, openapi.AnalyticsRead,
 		} {
 			queries, ok := handler.CanonicalScopeQueries(s, workspaceID, projectID, keyspaceID, false)
 			require.True(t, ok, "scope %q must map", s)
@@ -80,7 +80,7 @@ func TestCanonicalScopeQueriesDeniesUnmappedScope(t *testing.T) {
 
 	t.Run("unknown and removed scopes deny", func(t *testing.T) {
 		for _, s := range []openapi.V2PortalCreateSessionRequestBodyScopes{
-			"keys:destroy", "analytics:read", "keys:create",
+			"keys:destroy", "keys:create",
 		} {
 			queries, ok := handler.CanonicalScopeQueries(s, workspaceID, projectID, keyspaceID, false)
 			require.False(t, ok, "scope %q must deny, not be skipped", s)
