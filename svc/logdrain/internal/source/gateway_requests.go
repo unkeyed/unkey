@@ -40,10 +40,17 @@ func (s *GatewayRequests) Read(ctx context.Context, workspaceID string, from Cur
 	filters := cfg.GetGatewayRequests()
 	statuses := make([]string, len(filters.GetStatusClasses()))
 	for i, status := range filters.GetStatusClasses() {
-		if status < 2 || status > 5 {
+		switch status {
+		case logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_2XX,
+			logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_3XX,
+			logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_4XX,
+			logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_5XX:
+			statuses[i] = strconv.FormatInt(int64(status), 10)
+		case logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_UNSPECIFIED:
+			return nil, from, fmt.Errorf("status class must be between 2 and 5: %d", status)
+		default:
 			return nil, from, fmt.Errorf("status class must be between 2 and 5: %d", status)
 		}
-		statuses[i] = strconv.FormatInt(int64(status), 10)
 	}
 	rows, err := clickhouse.Select[row](ctx, s.client.Conn(), query, map[string]string{
 		"workspace":    workspaceID,

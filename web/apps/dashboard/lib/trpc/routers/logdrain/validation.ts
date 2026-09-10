@@ -1,10 +1,20 @@
+import { HttpStatusClass } from "@/gen/proto/logdrain/v1/config_pb";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
 
 export const eventTypesSchema = z.array(z.string().trim().min(1).max(256)).max(256);
 export const outcomesSchema = z.array(z.enum(KEY_VERIFICATION_OUTCOMES)).max(256);
 export const keySpaceIdsSchema = z.array(z.string().trim().min(1).max(256)).max(256);
-export const statusClassesSchema = z.array(z.number().int().min(2).max(5)).max(4);
+export const statusClassesSchema = z
+  .array(
+    z.union([
+      z.literal(HttpStatusClass.HTTP_STATUS_CLASS_2XX),
+      z.literal(HttpStatusClass.HTTP_STATUS_CLASS_3XX),
+      z.literal(HttpStatusClass.HTTP_STATUS_CLASS_4XX),
+      z.literal(HttpStatusClass.HTTP_STATUS_CLASS_5XX),
+    ]),
+  )
+  .max(4);
 export const resourceIdsSchema = z.array(z.string().trim().min(1).max(256)).max(256);
 
 /** Matches the RFC 9110 token characters that are valid in an HTTP field name. */

@@ -22,12 +22,20 @@ message Config {
 
 // GatewayRequestStreamConfig combines resource and response status filters.
 message GatewayRequestStreamConfig {
-  // Values 2 through 5 select 2xx through 5xx. Empty selects all statuses.
-  repeated int32 status_classes = 1;
+  // Empty selects all statuses.
+  repeated HttpStatusClass status_classes = 1;
   // Each empty list selects all values. Nonempty dimensions are combined with AND.
   repeated string project_ids = 2;
   repeated string app_ids = 3;
   repeated string environment_ids = 4;
+}
+
+enum HttpStatusClass {
+  HTTP_STATUS_CLASS_UNSPECIFIED = 0;
+  HTTP_STATUS_CLASS_2XX = 2;
+  HTTP_STATUS_CLASS_3XX = 3;
+  HTTP_STATUS_CLASS_4XX = 4;
+  HTTP_STATUS_CLASS_5XX = 5;
 }
 
 // KeyVerificationStreamConfig selects verification outcomes, not audit event types.

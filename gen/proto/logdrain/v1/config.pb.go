@@ -21,6 +21,61 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type HttpStatusClass int32
+
+const (
+	HttpStatusClass_HTTP_STATUS_CLASS_UNSPECIFIED HttpStatusClass = 0
+	HttpStatusClass_HTTP_STATUS_CLASS_2XX         HttpStatusClass = 2
+	HttpStatusClass_HTTP_STATUS_CLASS_3XX         HttpStatusClass = 3
+	HttpStatusClass_HTTP_STATUS_CLASS_4XX         HttpStatusClass = 4
+	HttpStatusClass_HTTP_STATUS_CLASS_5XX         HttpStatusClass = 5
+)
+
+// Enum value maps for HttpStatusClass.
+var (
+	HttpStatusClass_name = map[int32]string{
+		0: "HTTP_STATUS_CLASS_UNSPECIFIED",
+		2: "HTTP_STATUS_CLASS_2XX",
+		3: "HTTP_STATUS_CLASS_3XX",
+		4: "HTTP_STATUS_CLASS_4XX",
+		5: "HTTP_STATUS_CLASS_5XX",
+	}
+	HttpStatusClass_value = map[string]int32{
+		"HTTP_STATUS_CLASS_UNSPECIFIED": 0,
+		"HTTP_STATUS_CLASS_2XX":         2,
+		"HTTP_STATUS_CLASS_3XX":         3,
+		"HTTP_STATUS_CLASS_4XX":         4,
+		"HTTP_STATUS_CLASS_5XX":         5,
+	}
+)
+
+func (x HttpStatusClass) Enum() *HttpStatusClass {
+	p := new(HttpStatusClass)
+	*p = x
+	return p
+}
+
+func (x HttpStatusClass) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (HttpStatusClass) Descriptor() protoreflect.EnumDescriptor {
+	return file_logdrain_v1_config_proto_enumTypes[0].Descriptor()
+}
+
+func (HttpStatusClass) Type() protoreflect.EnumType {
+	return &file_logdrain_v1_config_proto_enumTypes[0]
+}
+
+func (x HttpStatusClass) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use HttpStatusClass.Descriptor instead.
+func (HttpStatusClass) EnumDescriptor() ([]byte, []int) {
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{0}
+}
+
 // HttpBodyFormat selects the HTTP request body encoding.
 type HttpBodyFormat int32
 
@@ -55,11 +110,11 @@ func (x HttpBodyFormat) String() string {
 }
 
 func (HttpBodyFormat) Descriptor() protoreflect.EnumDescriptor {
-	return file_logdrain_v1_config_proto_enumTypes[0].Descriptor()
+	return file_logdrain_v1_config_proto_enumTypes[1].Descriptor()
 }
 
 func (HttpBodyFormat) Type() protoreflect.EnumType {
-	return &file_logdrain_v1_config_proto_enumTypes[0]
+	return &file_logdrain_v1_config_proto_enumTypes[1]
 }
 
 func (x HttpBodyFormat) Number() protoreflect.EnumNumber {
@@ -68,7 +123,7 @@ func (x HttpBodyFormat) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use HttpBodyFormat.Descriptor instead.
 func (HttpBodyFormat) EnumDescriptor() ([]byte, []int) {
-	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{0}
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{1}
 }
 
 // Config contains the stream and destination configuration for one log drain.
@@ -222,8 +277,8 @@ func (*Config_GatewayRequests) isConfig_Stream() {}
 // GatewayRequestStreamConfig combines resource and response status filters.
 type GatewayRequestStreamConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Values 2 through 5 select 2xx through 5xx. Empty selects all statuses.
-	StatusClasses []int32 `protobuf:"varint,1,rep,packed,name=status_classes,json=statusClasses,proto3" json:"status_classes,omitempty"`
+	// Empty selects all statuses.
+	StatusClasses []HttpStatusClass `protobuf:"varint,1,rep,packed,name=status_classes,json=statusClasses,proto3,enum=logdrain.v1.HttpStatusClass" json:"status_classes,omitempty"`
 	// Each empty list selects all values. Nonempty dimensions are combined with AND.
 	ProjectIds     []string `protobuf:"bytes,2,rep,name=project_ids,json=projectIds,proto3" json:"project_ids,omitempty"`
 	AppIds         []string `protobuf:"bytes,3,rep,name=app_ids,json=appIds,proto3" json:"app_ids,omitempty"`
@@ -262,7 +317,7 @@ func (*GatewayRequestStreamConfig) Descriptor() ([]byte, []int) {
 	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *GatewayRequestStreamConfig) GetStatusClasses() []int32 {
+func (x *GatewayRequestStreamConfig) GetStatusClasses() []HttpStatusClass {
 	if x != nil {
 		return x.StatusClasses
 	}
@@ -571,9 +626,9 @@ const file_logdrain_v1_config_proto_rawDesc = "" +
 	"\x11key_verifications\x18\x04 \x01(\v2(.logdrain.v1.KeyVerificationStreamConfigH\x01R\x10keyVerifications\x12T\n" +
 	"\x10gateway_requests\x18\x05 \x01(\v2'.logdrain.v1.GatewayRequestStreamConfigH\x01R\x0fgatewayRequestsB\r\n" +
 	"\vdestinationB\b\n" +
-	"\x06stream\"\xa6\x01\n" +
-	"\x1aGatewayRequestStreamConfig\x12%\n" +
-	"\x0estatus_classes\x18\x01 \x03(\x05R\rstatusClasses\x12\x1f\n" +
+	"\x06stream\"\xc4\x01\n" +
+	"\x1aGatewayRequestStreamConfig\x12C\n" +
+	"\x0estatus_classes\x18\x01 \x03(\x0e2\x1c.logdrain.v1.HttpStatusClassR\rstatusClasses\x12\x1f\n" +
 	"\vproject_ids\x18\x02 \x03(\tR\n" +
 	"projectIds\x12\x17\n" +
 	"\aapp_ids\x18\x03 \x03(\tR\x06appIds\x12'\n" +
@@ -595,7 +650,13 @@ const file_logdrain_v1_config_proto_rawDesc = "" +
 	"\x0fencrypted_value\x18\x02 \x01(\tR\x0eencryptedValue\"P\n" +
 	"\vAxiomConfig\x12\x18\n" +
 	"\adataset\x18\x01 \x01(\tR\adataset\x12'\n" +
-	"\x0fencrypted_token\x18\x03 \x01(\tR\x0eencryptedToken*j\n" +
+	"\x0fencrypted_token\x18\x03 \x01(\tR\x0eencryptedToken*\xa0\x01\n" +
+	"\x0fHttpStatusClass\x12!\n" +
+	"\x1dHTTP_STATUS_CLASS_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15HTTP_STATUS_CLASS_2XX\x10\x02\x12\x19\n" +
+	"\x15HTTP_STATUS_CLASS_3XX\x10\x03\x12\x19\n" +
+	"\x15HTTP_STATUS_CLASS_4XX\x10\x04\x12\x19\n" +
+	"\x15HTTP_STATUS_CLASS_5XX\x10\x05*j\n" +
 	"\x0eHttpBodyFormat\x12 \n" +
 	"\x1cHTTP_BODY_FORMAT_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15HTTP_BODY_FORMAT_JSON\x10\x01\x12\x1b\n" +
@@ -614,31 +675,33 @@ func file_logdrain_v1_config_proto_rawDescGZIP() []byte {
 	return file_logdrain_v1_config_proto_rawDescData
 }
 
-var file_logdrain_v1_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_logdrain_v1_config_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_logdrain_v1_config_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_logdrain_v1_config_proto_goTypes = []any{
-	(HttpBodyFormat)(0),                 // 0: logdrain.v1.HttpBodyFormat
-	(*Config)(nil),                      // 1: logdrain.v1.Config
-	(*GatewayRequestStreamConfig)(nil),  // 2: logdrain.v1.GatewayRequestStreamConfig
-	(*KeyVerificationStreamConfig)(nil), // 3: logdrain.v1.KeyVerificationStreamConfig
-	(*AuditLogStreamConfig)(nil),        // 4: logdrain.v1.AuditLogStreamConfig
-	(*HttpConfig)(nil),                  // 5: logdrain.v1.HttpConfig
-	(*HttpHeader)(nil),                  // 6: logdrain.v1.HttpHeader
-	(*AxiomConfig)(nil),                 // 7: logdrain.v1.AxiomConfig
+	(HttpStatusClass)(0),                // 0: logdrain.v1.HttpStatusClass
+	(HttpBodyFormat)(0),                 // 1: logdrain.v1.HttpBodyFormat
+	(*Config)(nil),                      // 2: logdrain.v1.Config
+	(*GatewayRequestStreamConfig)(nil),  // 3: logdrain.v1.GatewayRequestStreamConfig
+	(*KeyVerificationStreamConfig)(nil), // 4: logdrain.v1.KeyVerificationStreamConfig
+	(*AuditLogStreamConfig)(nil),        // 5: logdrain.v1.AuditLogStreamConfig
+	(*HttpConfig)(nil),                  // 6: logdrain.v1.HttpConfig
+	(*HttpHeader)(nil),                  // 7: logdrain.v1.HttpHeader
+	(*AxiomConfig)(nil),                 // 8: logdrain.v1.AxiomConfig
 }
 var file_logdrain_v1_config_proto_depIdxs = []int32{
-	5, // 0: logdrain.v1.Config.http:type_name -> logdrain.v1.HttpConfig
-	7, // 1: logdrain.v1.Config.axiom:type_name -> logdrain.v1.AxiomConfig
-	4, // 2: logdrain.v1.Config.audit_logs:type_name -> logdrain.v1.AuditLogStreamConfig
-	3, // 3: logdrain.v1.Config.key_verifications:type_name -> logdrain.v1.KeyVerificationStreamConfig
-	2, // 4: logdrain.v1.Config.gateway_requests:type_name -> logdrain.v1.GatewayRequestStreamConfig
-	0, // 5: logdrain.v1.HttpConfig.format:type_name -> logdrain.v1.HttpBodyFormat
-	6, // 6: logdrain.v1.HttpConfig.headers:type_name -> logdrain.v1.HttpHeader
-	7, // [7:7] is the sub-list for method output_type
-	7, // [7:7] is the sub-list for method input_type
-	7, // [7:7] is the sub-list for extension type_name
-	7, // [7:7] is the sub-list for extension extendee
-	0, // [0:7] is the sub-list for field type_name
+	6, // 0: logdrain.v1.Config.http:type_name -> logdrain.v1.HttpConfig
+	8, // 1: logdrain.v1.Config.axiom:type_name -> logdrain.v1.AxiomConfig
+	5, // 2: logdrain.v1.Config.audit_logs:type_name -> logdrain.v1.AuditLogStreamConfig
+	4, // 3: logdrain.v1.Config.key_verifications:type_name -> logdrain.v1.KeyVerificationStreamConfig
+	3, // 4: logdrain.v1.Config.gateway_requests:type_name -> logdrain.v1.GatewayRequestStreamConfig
+	0, // 5: logdrain.v1.GatewayRequestStreamConfig.status_classes:type_name -> logdrain.v1.HttpStatusClass
+	1, // 6: logdrain.v1.HttpConfig.format:type_name -> logdrain.v1.HttpBodyFormat
+	7, // 7: logdrain.v1.HttpConfig.headers:type_name -> logdrain.v1.HttpHeader
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_logdrain_v1_config_proto_init() }
@@ -658,7 +721,7 @@ func file_logdrain_v1_config_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_logdrain_v1_config_proto_rawDesc), len(file_logdrain_v1_config_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      2,
 			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,

@@ -1,4 +1,8 @@
-import { ConfigSchema, HttpBodyFormat } from "@/gen/proto/logdrain/v1/config_pb";
+import {
+  ConfigSchema,
+  HttpBodyFormat,
+  type HttpStatusClass,
+} from "@/gen/proto/logdrain/v1/config_pb";
 import { VaultService } from "@/gen/proto/vault/v1/service_pb";
 import { createVaultClient } from "@/lib/vault-client";
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
@@ -16,7 +20,7 @@ export type LogdrainConfig = {
     | { kind: "key_verifications"; outcomes: string[]; keySpaceIds: string[] }
     | {
         kind: "gateway_requests";
-        statusClasses: number[];
+        statusClasses: HttpStatusClass[];
         projectIds: string[];
         appIds: string[];
         environmentIds: string[];
@@ -180,6 +184,37 @@ function encodeStream(stream: LogdrainConfig["stream"]) {
       };
     default:
       throw new Error(`Unsupported log drain stream: ${stream satisfies never}`);
+  }
+}
+
+export function toPublicLogdrainConfig(config: LogdrainConfig) {
+  const { kind: stream, ...streamFilters } = config.stream;
+  const fields = {
+    stream,
+    eventTypes: [],
+    outcomes: [],
+    keySpaceIds: [],
+    statusClasses: [],
+    projectIds: [],
+    appIds: [],
+    environmentIds: [],
+    ...streamFilters,
+  };
+  switch (config.kind) {
+    case "http":
+      return {
+        ...fields,
+        kind: config.kind,
+        config: {
+          url: config.url,
+          format: config.format,
+          headers: config.headers.map((header) => header.name),
+        },
+      };
+    case "axiom":
+      return { ...fields, kind: config.kind, config: { dataset: config.dataset } };
+    default:
+      throw new Error(`Unsupported log drain sink: ${config satisfies never}`);
   }
 }
 

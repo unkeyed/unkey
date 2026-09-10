@@ -68,7 +68,7 @@ func TestGatewayRequestsRead_FilteredCursorBounds(t *testing.T) {
 	}
 	reader := source.NewGatewayRequests(client)
 	from := source.Cursor{Time: now, EventID: "a"}
-	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{StatusClasses: []int32{4, 5}}}}
+	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{StatusClasses: []logdrainv1.HttpStatusClass{logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_4XX, logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_5XX}}}}
 	page, next, err := reader.Read(t.Context(), workspace, from, now+2, 2, filter)
 	require.NoError(t, err)
 	require.Len(t, page, 2)
@@ -114,7 +114,7 @@ func TestGatewayRequestsRead_ResourceFiltersBeforeLimit(t *testing.T) {
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, workspace, row.id, now, now, row.project, row.app, row.environment, row.status))
 	}
 	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{
-		StatusClasses: []int32{5}, ProjectIds: []string{"project"}, AppIds: []string{"app", "app2"}, EnvironmentIds: []string{"env", "env2"},
+		StatusClasses: []logdrainv1.HttpStatusClass{logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_5XX}, ProjectIds: []string{"project"}, AppIds: []string{"app", "app2"}, EnvironmentIds: []string{"env", "env2"},
 	}}}
 	reader := source.NewGatewayRequests(client)
 	page, next, err := reader.Read(t.Context(), workspace, source.Cursor{Time: now}, now+1, 1, filter)
@@ -135,10 +135,10 @@ func TestGatewayRequestsRead_ResourceFiltersBeforeLimit(t *testing.T) {
 }
 
 func TestGatewayRequestsRead_RejectsInvalidStatuses(t *testing.T) {
-	for _, status := range []int32{-1, 0, 1, 6, 200, 503} {
+	for _, status := range []logdrainv1.HttpStatusClass{-1, logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_UNSPECIFIED, 1, 6, 200, 503} {
 		t.Run(strconv.Itoa(int(status)), func(t *testing.T) {
 			from := source.Cursor{Time: 123, EventID: "retained"}
-			filter := &logdrainv1.Config{Stream: &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{StatusClasses: []int32{status}}}}
+			filter := &logdrainv1.Config{Stream: &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{StatusClasses: []logdrainv1.HttpStatusClass{status}}}}
 			events, next, err := source.NewGatewayRequests(nil).Read(t.Context(), "workspace", from, 456, 10, filter)
 			require.ErrorContains(t, err, "status class must be between 2 and 5")
 			require.Nil(t, events)

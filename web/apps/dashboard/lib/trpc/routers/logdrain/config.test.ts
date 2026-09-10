@@ -6,12 +6,99 @@ import {
   decodeLogdrainConfig,
   encodeLogdrainConfig,
   encryptHttpHeaders,
+  toPublicLogdrainConfig,
 } from "./config";
 
 const vault = vi.hoisted(() => ({ encryptBulk: vi.fn() }));
 vi.mock("@/lib/vault-client", () => ({ createVaultClient: () => vault }));
 
 describe("log drain protobuf config", () => {
+  it("projects stream filters independently of the destination without exposing credentials", () => {
+    const stream = {
+      kind: "gateway_requests" as const,
+      statusClasses: [4, 5],
+      projectIds: ["project"],
+      appIds: ["app"],
+      environmentIds: ["env"],
+    };
+    const filters = {
+      stream: "gateway_requests",
+      eventTypes: [],
+      outcomes: [],
+      keySpaceIds: [],
+      statusClasses: [4, 5],
+      projectIds: ["project"],
+      appIds: ["app"],
+      environmentIds: ["env"],
+    };
+    expect(
+      toPublicLogdrainConfig({
+        kind: "http",
+        stream,
+        url: "https://example.com",
+        format: "ndjson",
+        headers: [{ name: "Authorization", encryptedValue: "secret" }],
+      }),
+    ).toEqual({
+      ...filters,
+      kind: "http",
+      config: { url: "https://example.com", format: "ndjson", headers: ["Authorization"] },
+    });
+    expect(
+      toPublicLogdrainConfig({
+        kind: "axiom",
+        stream,
+        dataset: "requests",
+        encryptedToken: "secret",
+      }),
+    ).toEqual({ ...filters, kind: "axiom", config: { dataset: "requests" } });
+  });
+
+  it("keeps audit and verification public fields unchanged", () => {
+    expect(
+      toPublicLogdrainConfig({
+        kind: "axiom",
+        dataset: "audit",
+        encryptedToken: "secret",
+        stream: { kind: "audit_logs", eventTypes: ["key.create"] },
+      }),
+    ).toEqual({
+      kind: "axiom",
+      config: { dataset: "audit" },
+      stream: "audit_logs",
+      eventTypes: ["key.create"],
+      outcomes: [],
+      keySpaceIds: [],
+      statusClasses: [],
+      projectIds: [],
+      appIds: [],
+      environmentIds: [],
+    });
+    expect(
+      toPublicLogdrainConfig({
+        kind: "axiom",
+        dataset: "verification",
+        encryptedToken: "secret",
+        stream: {
+          kind: "key_verifications",
+          outcomes: ["RATE_LIMITED"],
+          keySpaceIds: ["ks_primary"],
+        },
+      }),
+    ).toEqual({
+      kind: "axiom",
+      config: { dataset: "verification" },
+      stream: "key_verifications",
+      eventTypes: [],
+      outcomes: ["RATE_LIMITED"],
+      keySpaceIds: ["ks_primary"],
+      statusClasses: [],
+      projectIds: [],
+      appIds: [],
+      environmentIds: [],
+    });
+  });
+
   it("round trips gateway resource and status class filters", () => {
     const config = {
       kind: "axiom" as const,

@@ -2,7 +2,7 @@ import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
-import { decodeLogdrainConfig } from "./config";
+import { decodeLogdrainConfig, toPublicLogdrainConfig } from "./config";
 
 const streamSchema = z.enum(["audit_logs", "key_verifications", "gateway_requests"]);
 
@@ -21,67 +21,11 @@ export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
       })
       .from(schema.logdrains)
       .where(eq(schema.logdrains.workspaceId, ctx.workspace.id));
-    const parsed = rows.map(({ config, ...row }) => {
-      const stream = streamSchema.parse(row.stream);
-      const destination = decodeLogdrainConfig(config);
-      switch (destination.kind) {
-        case "http":
-          return {
-            ...row,
-            kind: destination.kind,
-            eventTypes:
-              destination.stream.kind === "audit_logs" ? destination.stream.eventTypes : [],
-            outcomes:
-              destination.stream.kind === "key_verifications" ? destination.stream.outcomes : [],
-            keySpaceIds:
-              destination.stream.kind === "key_verifications" ? destination.stream.keySpaceIds : [],
-            statusClasses:
-              destination.stream.kind === "gateway_requests"
-                ? destination.stream.statusClasses
-                : [],
-            projectIds:
-              destination.stream.kind === "gateway_requests" ? destination.stream.projectIds : [],
-            appIds: destination.stream.kind === "gateway_requests" ? destination.stream.appIds : [],
-            environmentIds:
-              destination.stream.kind === "gateway_requests"
-                ? destination.stream.environmentIds
-                : [],
-            stream,
-            config: {
-              url: destination.url,
-              format: destination.format,
-              headers: destination.headers.map((header) => header.name),
-            },
-          };
-        case "axiom":
-          return {
-            ...row,
-            kind: destination.kind,
-            eventTypes:
-              destination.stream.kind === "audit_logs" ? destination.stream.eventTypes : [],
-            outcomes:
-              destination.stream.kind === "key_verifications" ? destination.stream.outcomes : [],
-            keySpaceIds:
-              destination.stream.kind === "key_verifications" ? destination.stream.keySpaceIds : [],
-            statusClasses:
-              destination.stream.kind === "gateway_requests"
-                ? destination.stream.statusClasses
-                : [],
-            projectIds:
-              destination.stream.kind === "gateway_requests" ? destination.stream.projectIds : [],
-            appIds: destination.stream.kind === "gateway_requests" ? destination.stream.appIds : [],
-            environmentIds:
-              destination.stream.kind === "gateway_requests"
-                ? destination.stream.environmentIds
-                : [],
-            stream,
-            config: {
-              dataset: destination.dataset,
-            },
-          };
-      }
-    });
-    return parsed;
+    return rows.map(({ config, ...row }) => ({
+      ...row,
+      ...toPublicLogdrainConfig(decodeLogdrainConfig(config)),
+      stream: streamSchema.parse(row.stream),
+    }));
   } catch (error) {
     console.error("Failed to list log drains", error);
     throw new TRPCError({

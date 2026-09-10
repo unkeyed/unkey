@@ -269,7 +269,7 @@ func TestEngine_Integration(t *testing.T) {
 				}
 			}
 			if stream == "gateway_requests" {
-				config.Stream = &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{StatusClasses: []int32{5}, ProjectIds: []string{"_c"}, AppIds: []string{"_c"}, EnvironmentIds: []string{"_c"}}}
+				config.Stream = &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{StatusClasses: []logdrainv1.HttpStatusClass{logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_5XX}, ProjectIds: []string{"_c"}, AppIds: []string{"_c"}, EnvironmentIds: []string{"_c"}}}
 				for _, event := range []struct {
 					id     string
 					status int32
@@ -356,7 +356,7 @@ func TestEngine_Integration(t *testing.T) {
 			} else if filterMode == "keyspaces" {
 				config.GetKeyVerifications().KeySpaceIds = []string{"_b"}
 			} else if stream == "gateway_requests" {
-				config.GetGatewayRequests().StatusClasses = []int32{2}
+				config.GetGatewayRequests().StatusClasses = []logdrainv1.HttpStatusClass{logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_2XX}
 				config.GetGatewayRequests().ProjectIds = []string{"_b"}
 				config.GetGatewayRequests().AppIds = []string{"_b"}
 				config.GetGatewayRequests().EnvironmentIds = []string{"_b"}

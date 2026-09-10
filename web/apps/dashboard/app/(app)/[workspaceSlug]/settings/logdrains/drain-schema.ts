@@ -188,7 +188,7 @@ export function drainToFormValues(drain: DrainDetail): DrainFormValues {
     stream: drain.stream,
     outcomes: outcomesSchema.parse(drain.outcomes),
     keySpaceIds: drain.keySpaceIds,
-    statusClasses: drain.statusClasses,
+    statusClasses: statusClassesSchema.parse(drain.statusClasses),
     projectIds: drain.projectIds,
     appIds: drain.appIds,
     environmentIds: drain.environmentIds,

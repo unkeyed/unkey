@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file logdrain/v1/config.proto.
  */
 export const file_logdrain_v1_config: GenFile = /*@__PURE__*/
-  fileDesc("Chhsb2dkcmFpbi92MS9jb25maWcucHJvdG8SC2xvZ2RyYWluLnYxIroCCgZDb25maWcSJwoEaHR0cBgBIAEoCzIXLmxvZ2RyYWluLnYxLkh0dHBDb25maWdIABIpCgVheGlvbRgCIAEoCzIYLmxvZ2RyYWluLnYxLkF4aW9tQ29uZmlnSAASNwoKYXVkaXRfbG9ncxgDIAEoCzIhLmxvZ2RyYWluLnYxLkF1ZGl0TG9nU3RyZWFtQ29uZmlnSAESRQoRa2V5X3ZlcmlmaWNhdGlvbnMYBCABKAsyKC5sb2dkcmFpbi52MS5LZXlWZXJpZmljYXRpb25TdHJlYW1Db25maWdIARJDChBnYXRld2F5X3JlcXVlc3RzGAUgASgLMicubG9nZHJhaW4udjEuR2F0ZXdheVJlcXVlc3RTdHJlYW1Db25maWdIAUINCgtkZXN0aW5hdGlvbkIICgZzdHJlYW0icwoaR2F0ZXdheVJlcXVlc3RTdHJlYW1Db25maWcSFgoOc3RhdHVzX2NsYXNzZXMYASADKAUSEwoLcHJvamVjdF9pZHMYAiADKAkSDwoHYXBwX2lkcxgDIAMoCRIXCg9lbnZpcm9ubWVudF9pZHMYBCADKAkiRgobS2V5VmVyaWZpY2F0aW9uU3RyZWFtQ29uZmlnEhAKCG91dGNvbWVzGAEgAygJEhUKDWtleV9zcGFjZV9pZHMYAiADKAkiKwoUQXVkaXRMb2dTdHJlYW1Db25maWcSEwoLZXZlbnRfdHlwZXMYASADKAkicAoKSHR0cENvbmZpZxILCgN1cmwYASABKAkSKwoGZm9ybWF0GAIgASgOMhsubG9nZHJhaW4udjEuSHR0cEJvZHlGb3JtYXQSKAoHaGVhZGVycxgDIAMoCzIXLmxvZ2RyYWluLnYxLkh0dHBIZWFkZXIiMwoKSHR0cEhlYWRlchIMCgRuYW1lGAEgASgJEhcKD2VuY3J5cHRlZF92YWx1ZRgCIAEoCSI3CgtBeGlvbUNvbmZpZxIPCgdkYXRhc2V0GAEgASgJEhcKD2VuY3J5cHRlZF90b2tlbhgDIAEoCSpqCg5IdHRwQm9keUZvcm1hdBIgChxIVFRQX0JPRFlfRk9STUFUX1VOU1BFQ0lGSUVEEAASGQoVSFRUUF9CT0RZX0ZPUk1BVF9KU09OEAESGwoXSFRUUF9CT0RZX0ZPUk1BVF9OREpTT04QAkKmAQoPY29tLmxvZ2RyYWluLnYxQgtDb25maWdQcm90b1ABWjlnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2xvZ2RyYWluL3YxO2xvZ2RyYWludjGiAgNMWFiqAgtMb2dkcmFpbi5WMcoCC0xvZ2RyYWluXFYx4gIXTG9nZHJhaW5cVjFcR1BCTWV0YWRhdGHqAgxMb2dkcmFpbjo6VjFiBnByb3RvMw");
+  fileDesc("Chhsb2dkcmFpbi92MS9jb25maWcucHJvdG8SC2xvZ2RyYWluLnYxIroCCgZDb25maWcSJwoEaHR0cBgBIAEoCzIXLmxvZ2RyYWluLnYxLkh0dHBDb25maWdIABIpCgVheGlvbRgCIAEoCzIYLmxvZ2RyYWluLnYxLkF4aW9tQ29uZmlnSAASNwoKYXVkaXRfbG9ncxgDIAEoCzIhLmxvZ2RyYWluLnYxLkF1ZGl0TG9nU3RyZWFtQ29uZmlnSAESRQoRa2V5X3ZlcmlmaWNhdGlvbnMYBCABKAsyKC5sb2dkcmFpbi52MS5LZXlWZXJpZmljYXRpb25TdHJlYW1Db25maWdIARJDChBnYXRld2F5X3JlcXVlc3RzGAUgASgLMicubG9nZHJhaW4udjEuR2F0ZXdheVJlcXVlc3RTdHJlYW1Db25maWdIAUINCgtkZXN0aW5hdGlvbkIICgZzdHJlYW0ikQEKGkdhdGV3YXlSZXF1ZXN0U3RyZWFtQ29uZmlnEjQKDnN0YXR1c19jbGFzc2VzGAEgAygOMhwubG9nZHJhaW4udjEuSHR0cFN0YXR1c0NsYXNzEhMKC3Byb2plY3RfaWRzGAIgAygJEg8KB2FwcF9pZHMYAyADKAkSFwoPZW52aXJvbm1lbnRfaWRzGAQgAygJIkYKG0tleVZlcmlmaWNhdGlvblN0cmVhbUNvbmZpZxIQCghvdXRjb21lcxgBIAMoCRIVCg1rZXlfc3BhY2VfaWRzGAIgAygJIisKFEF1ZGl0TG9nU3RyZWFtQ29uZmlnEhMKC2V2ZW50X3R5cGVzGAEgAygJInAKCkh0dHBDb25maWcSCwoDdXJsGAEgASgJEisKBmZvcm1hdBgCIAEoDjIbLmxvZ2RyYWluLnYxLkh0dHBCb2R5Rm9ybWF0EigKB2hlYWRlcnMYAyADKAsyFy5sb2dkcmFpbi52MS5IdHRwSGVhZGVyIjMKCkh0dHBIZWFkZXISDAoEbmFtZRgBIAEoCRIXCg9lbmNyeXB0ZWRfdmFsdWUYAiABKAkiNwoLQXhpb21Db25maWcSDwoHZGF0YXNldBgBIAEoCRIXCg9lbmNyeXB0ZWRfdG9rZW4YAyABKAkqoAEKD0h0dHBTdGF0dXNDbGFzcxIhCh1IVFRQX1NUQVRVU19DTEFTU19VTlNQRUNJRklFRBAAEhkKFUhUVFBfU1RBVFVTX0NMQVNTXzJYWBACEhkKFUhUVFBfU1RBVFVTX0NMQVNTXzNYWBADEhkKFUhUVFBfU1RBVFVTX0NMQVNTXzRYWBAEEhkKFUhUVFBfU1RBVFVTX0NMQVNTXzVYWBAFKmoKDkh0dHBCb2R5Rm9ybWF0EiAKHEhUVFBfQk9EWV9GT1JNQVRfVU5TUEVDSUZJRUQQABIZChVIVFRQX0JPRFlfRk9STUFUX0pTT04QARIbChdIVFRQX0JPRFlfRk9STUFUX05ESlNPThACQqYBCg9jb20ubG9nZHJhaW4udjFCC0NvbmZpZ1Byb3RvUAFaOWdpdGh1Yi5jb20vdW5rZXllZC91bmtleS9nZW4vcHJvdG8vbG9nZHJhaW4vdjE7bG9nZHJhaW52MaICA0xYWKoCC0xvZ2RyYWluLlYxygILTG9nZHJhaW5cVjHiAhdMb2dkcmFpblxWMVxHUEJNZXRhZGF0YeoCDExvZ2RyYWluOjpWMWIGcHJvdG8z");
 
 /**
  * Config contains the stream and destination configuration for one log drain.
@@ -76,11 +76,11 @@ export const ConfigSchema: GenMessage<Config> = /*@__PURE__*/
  */
 export type GatewayRequestStreamConfig = Message<"logdrain.v1.GatewayRequestStreamConfig"> & {
   /**
-   * Values 2 through 5 select 2xx through 5xx. Empty selects all statuses.
+   * Empty selects all statuses.
    *
-   * @generated from field: repeated int32 status_classes = 1;
+   * @generated from field: repeated logdrain.v1.HttpStatusClass status_classes = 1;
    */
-  statusClasses: number[];
+  statusClasses: HttpStatusClass[];
 
   /**
    * Each empty list selects all values. Nonempty dimensions are combined with AND.
@@ -234,6 +234,42 @@ export const AxiomConfigSchema: GenMessage<AxiomConfig> = /*@__PURE__*/
   messageDesc(file_logdrain_v1_config, 6);
 
 /**
+ * @generated from enum logdrain.v1.HttpStatusClass
+ */
+export enum HttpStatusClass {
+  /**
+   * @generated from enum value: HTTP_STATUS_CLASS_UNSPECIFIED = 0;
+   */
+  HTTP_STATUS_CLASS_UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: HTTP_STATUS_CLASS_2XX = 2;
+   */
+  HTTP_STATUS_CLASS_2XX = 2,
+
+  /**
+   * @generated from enum value: HTTP_STATUS_CLASS_3XX = 3;
+   */
+  HTTP_STATUS_CLASS_3XX = 3,
+
+  /**
+   * @generated from enum value: HTTP_STATUS_CLASS_4XX = 4;
+   */
+  HTTP_STATUS_CLASS_4XX = 4,
+
+  /**
+   * @generated from enum value: HTTP_STATUS_CLASS_5XX = 5;
+   */
+  HTTP_STATUS_CLASS_5XX = 5,
+}
+
+/**
+ * Describes the enum logdrain.v1.HttpStatusClass.
+ */
+export const HttpStatusClassSchema: GenEnum<HttpStatusClass> = /*@__PURE__*/
+  enumDesc(file_logdrain_v1_config, 0);
+
+/**
  * HttpBodyFormat selects the HTTP request body encoding.
  *
  * @generated from enum logdrain.v1.HttpBodyFormat
@@ -259,5 +295,5 @@ export enum HttpBodyFormat {
  * Describes the enum logdrain.v1.HttpBodyFormat.
  */
 export const HttpBodyFormatSchema: GenEnum<HttpBodyFormat> = /*@__PURE__*/
-  enumDesc(file_logdrain_v1_config, 0);
+  enumDesc(file_logdrain_v1_config, 1);
 
