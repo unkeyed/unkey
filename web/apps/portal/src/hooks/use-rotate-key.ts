@@ -21,6 +21,9 @@ export function useRotateKey() {
     // before the dialog mounts, which otherwise leaves the page uninteractable.
     start: (key: Key) => requestAnimationFrame(() => setRotating(key)),
     close: () => {
+      if (reroll.isPending) {
+        return;
+      }
       setGrace(DEFAULT_GRACE);
       setHasCopied(false);
       reroll.reset();

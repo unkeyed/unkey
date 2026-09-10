@@ -151,7 +151,7 @@ async function toPortalApiError(err: unknown): Promise<PortalApiError> {
  * List the session end user's keys (one page). Scoping to the end user and the
  * portal's keyspaces happens server-side in the API from the session cookie.
  * `listKeys` returns an auto-paginating iterator whose resolved value is the
- * first page; the caller's `useInfiniteQuery` drives the cursor from there.
+ * first page; the caller walks the cursor from there.
  */
 export const listKeys = createServerFn({ method: "GET" })
   .inputValidator((query: unknown) => listKeysQuerySchema.parse(query))
