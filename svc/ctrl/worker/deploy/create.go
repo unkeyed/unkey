@@ -253,7 +253,7 @@ func (w *Workflow) validateAndBuildPayload(
 			assert.LessOrEqual(utf8.RuneCountInString(commit.ForkRepository), forkRepositoryCharsMax, "fork repository is too long"),
 			assert.LessOrEqual(utf8.RuneCountInString(req.GetTriggeredBy()), triggeredByCharsMax, "triggered_by is too long"),
 		); tooLong != nil {
-			return payload, restate.TerminalError(tooLong)
+			return payload, restate.ToTerminalError(tooLong)
 		}
 
 		prNumber := req.GetGit().GetPrNumber()
@@ -425,7 +425,7 @@ func (w *Workflow) insertDeployment(
 		if insertErr != nil && db.IsDuplicateKeyError(insertErr) {
 			existing, findErr := w.db.FindDeploymentById(runCtx, deploymentID)
 			if findErr != nil || existing.AppID != target.AppID || existing.Status != payload.Status {
-				return restate.TerminalError(fmt.Errorf("deployment id %s is not available", deploymentID))
+				return restate.ToTerminalError(fmt.Errorf("deployment id %s is not available", deploymentID))
 			}
 			return nil
 		}
@@ -509,7 +509,7 @@ func (w *Workflow) startDeployment(
 	// journaled so a retry would replay it: terminal rather than forever.
 	invocationID := invocation.GetInvocationId()
 	if invocationID == "" {
-		return restate.TerminalError(
+		return restate.ToTerminalError(
 			fmt.Errorf("restate returned an empty invocation id for deployment %s", deploymentID),
 		)
 	}
