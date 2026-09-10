@@ -27,7 +27,7 @@ import (
 // runs (dev/k8s/manifests/restate.yaml). The stale-slot reproduction
 // depends on real kill and purge semantics, so the test must not float
 // on :latest.
-const restateImage = "docker.io/restatedev/restate:1.6.0@sha256:33f227db946864b5482340a8621e32ec5eaf464f4dc41d5deccfd3282bb930ae"
+const restateImage = "docker.io/restatedev/restate:1.7.8@sha256:fe23d866cc625a745f73f14e05ee6ca5b26441af3b18df8c54dfda4e1bb1d52d"
 
 // lazyLiveness lets the test bind BuildSlotService before the Restate
 // container exists. The admin port is only known after the container
@@ -196,6 +196,10 @@ func TestBuildSlot_ReclaimsSlotOfKilledInvocation(t *testing.T) {
 			Bind(hydrav1.NewBuildSlotServiceServer(slotService)).
 			Bind(restate.Reflect(SlotGate{db: h.DB})),
 		restatetest.WithRestateImage(restateImage),
+		restatetest.WithRestateEnv(map[string]string{
+			"RESTATE_EXPERIMENTAL_ENABLE_VQUEUES":     "true",
+			"RESTATE_EXPERIMENTAL_ENABLE_PROTOCOL_V7": "true",
+		}),
 	)
 
 	adminURL := fmt.Sprintf("http://localhost:%d", tEnv.AdminPort())

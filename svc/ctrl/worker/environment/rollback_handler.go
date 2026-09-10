@@ -19,7 +19,7 @@ import (
 // decided on a state that has since changed, so the rollback is refused.
 func (s *Service) RollbackDeployment(ctx restate.ObjectContext, req *hydrav1.RollbackDeploymentRequest) (*hydrav1.RollbackDeploymentResponse, error) {
 	if req.GetFromDeploymentId() == req.GetToDeploymentId() {
-		return nil, restate.TerminalError(errors.New("from and to must be different deployments"), 400)
+		return nil, restate.ToTerminalError(errors.New("from and to must be different deployments"), restate.WithErrorCode(400))
 	}
 
 	deployments, err := s.loadDeployments(ctx, req.GetFromDeploymentId(), req.GetToDeploymentId())
@@ -30,11 +30,11 @@ func (s *Service) RollbackDeployment(ctx restate.ObjectContext, req *hydrav1.Rol
 	to := deployments[req.GetToDeploymentId()]
 
 	if err := assert.Equal(to.AppID, from.AppID, "deployments must be in the same app"); err != nil {
-		return nil, restate.TerminalError(err, 400)
+		return nil, restate.ToTerminalError(err, restate.WithErrorCode(400))
 	}
 
 	if !from.CurrentDeploymentID.Valid || from.CurrentDeploymentID.String != from.ID {
-		return nil, restate.TerminalError(errors.New("the deployment being rolled back from is no longer live"), 400)
+		return nil, restate.ToTerminalError(errors.New("the deployment being rolled back from is no longer live"), restate.WithErrorCode(400))
 	}
 
 	if err := deploygate.CheckRollbackTarget(deploygate.RollbackInput{

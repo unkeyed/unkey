@@ -42,10 +42,10 @@ const runMaxAttempts = 5
 // period or workspace virtual object can process the next scheduled check.
 func RetryPolicy() restate.HandlerOption {
 	return restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(100*time.Millisecond),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(5*time.Second),
-		restate.WithMaxAttempts(runMaxAttempts),
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(runMaxAttempts),
 		restate.KillOnMaxAttempts(),
 	)
 }
@@ -110,7 +110,7 @@ func (h *Handler) Handle(
 	// live VO. Journaled Now() so replays agree; heartbeat still pings.
 	p, err := billingperiod.Parse(period)
 	if err != nil {
-		return nil, restate.TerminalError(fmt.Errorf("invalid billing period %q: %w", period, err))
+		return nil, restate.ToTerminalError(fmt.Errorf("invalid billing period %q: %w", period, err))
 	}
 	now, err := restateutil.Now(ctx)
 	if err != nil {
