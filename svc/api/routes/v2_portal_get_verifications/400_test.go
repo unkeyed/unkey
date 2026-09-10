@@ -72,6 +72,34 @@ func TestPortalSessionAnalyticsRejectsOversizedWindow(t *testing.T) {
 	require.Equal(t, 200, okRes.Status, "window within retention must be accepted")
 }
 
+// TestPortalSessionAnalyticsRejectsOverflowingWindow pins that the retention
+// ceiling cannot be stepped over by making the window arithmetic overflow. A
+// large negative start with a large positive end wraps endTime-startTime
+// negative, which reads as "smaller than retention" and would otherwise select
+// minute granularity over an unbounded range on the shared connection.
+func TestPortalSessionAnalyticsRejectsOverflowingWindow(t *testing.T) {
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
+
+	workspace := h.CreateWorkspace()
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+	h.SetupAnalytics(workspace.ID)
+
+	route := newHandler(h)
+	h.Register(route, h.PortalMiddleware()...)
+
+	headers := h.CreatePortalSession(workspace.ID, "portal_user_A", []string{api.KeyAuthID.String}, []string{"analytics:read"})
+
+	res := testutil.CallRoute[Request, openapi.BadRequestErrorResponse](h, route, headers, Request{
+		StartTime: -8_000_000_000_000_000_000,
+		EndTime:   8_000_000_000_000_000_000,
+	})
+	require.Equal(t, 400, res.Status, "an overflowing window must be rejected, not served")
+	require.NotNil(t, res.Body)
+	require.Equal(t, codes.App.Validation.InvalidInput.DocsURL(), res.Body.Error.Type)
+}
+
 // TestPortalSessionAnalyticsRejectsOversizedPerKeyBreakout verifies the per-key
 // breakout is rejected rather than truncated once the session has more keys with
 // traffic than the cap allows. A short array would be indistinguishable from
