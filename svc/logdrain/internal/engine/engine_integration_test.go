@@ -140,6 +140,7 @@ func (s *sink) snapshot() []capturedRequest {
 
 type auditEvent struct {
 	id            string
+	eventType     string
 	insertedAt    int64
 	actorMeta     string
 	targetTypes   []string
@@ -216,6 +217,120 @@ func TestEngine_Integration(t *testing.T) {
 		require.EventuallyWithT(t, func(c *assert.CollectT) {
 			require.True(c, hasDelivery(deliveries.snapshot(), drainID, "success", 3))
 		}, 5*time.Second, 100*time.Millisecond)
+	})
+
+	t.Run("filter change fences an in-flight delivery and resumes from the same cursor", func(t *testing.T) {
+		workspaceID, drainID := uniqueIDs()
+		requests := make(chan []byte, 2)
+		acknowledge := make(chan struct{})
+		httpSink := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			body, readErr := io.ReadAll(r.Body)
+			if readErr != nil {
+				http.Error(w, readErr.Error(), http.StatusBadRequest)
+				return
+			}
+			select {
+			case requests <- body:
+			case <-r.Context().Done():
+				return
+			}
+			select {
+			case <-acknowledge:
+				w.WriteHeader(http.StatusOK)
+			case <-r.Context().Done():
+			}
+		}))
+		t.Cleanup(httpSink.Close)
+		insertedAt := time.Now().Add(-time.Second).UnixMilli()
+		insertAuditEvents(t, chConn, workspaceID, []auditEvent{
+			{id: drainID + "_a", eventType: "key.create", insertedAt: insertedAt, actorMeta: `{}`},
+			{id: drainID + "_b", eventType: "key.create", insertedAt: insertedAt, actorMeta: `{}`},
+			{id: drainID + "_c", eventType: "key.delete", insertedAt: insertedAt, actorMeta: `{}`},
+		})
+		seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.URL, insertedAt)
+		cleanupDrain(t, mysqlDB, drainID)
+		config := &logdrainv1.Config{
+			Destination: &logdrainv1.Config_Http{Http: &logdrainv1.HttpConfig{Url: httpSink.URL, Format: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON}},
+			Stream:      &logdrainv1.Config_AuditLogs{AuditLogs: &logdrainv1.AuditLogStreamConfig{EventTypes: []string{"key.delete"}}},
+		}
+		encoded, err := proto.Marshal(config)
+		require.NoError(t, err)
+		_, err = mysqlDB.Exec("UPDATE logdrains SET config = ?, committed_offset_event_id = ? WHERE id = ?", encoded, drainID+"_a", drainID)
+		require.NoError(t, err)
+
+		database, err := db.New(mysqlCfg.DSN, sqlcomment.ForService("logdrain-integration-test", "test"))
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, database.Close()) })
+		chClient, err := clickhouse.New(clickhouse.Config{URL: clickhouseCfg.HTTPDSN})
+		require.NoError(t, err)
+		t.Cleanup(func() { require.NoError(t, chClient.Close()) })
+		leaseID := uid.New("")
+		acquireLease := func() {
+			t.Helper()
+			rows, acquireErr := database.AcquireLogdrainLease(t.Context(), db.AcquireLogdrainLeaseParams{
+				LeaseID: leaseID, FencingToken: uid.New(""), TtlMillis: time.Minute.Milliseconds(), LogdrainID: drainID,
+			})
+			require.NoError(t, acquireErr)
+			require.EqualValues(t, 1, rows)
+		}
+		// Acquire explicitly so no lease service can renew ownership before the stale commit is checked.
+		acquireLease()
+		deliveries := &collector{}
+		eng, err := engine.New(engine.Config{
+			DB: database, LeaseID: leaseID, Source: source.NewAuditLogs(chClient), Vault: stubVault{},
+			Deliveries: deliveries, PollInterval: 200 * time.Millisecond, BatchSize: 1,
+			PauseThreshold: 5, UnsafeAllowPrivateEndpoints: true,
+		})
+		require.NoError(t, err)
+		ctx, cancel := context.WithCancel(t.Context())
+		done := make(chan error, 1)
+		go func() { done <- eng.Run(ctx) }()
+		t.Cleanup(func() {
+			cancel()
+			require.NoError(t, <-done)
+		})
+		t.Cleanup(func() { close(acknowledge) })
+		receiveEvent := func(wantID, wantAction string) {
+			t.Helper()
+			select {
+			case body := <-requests:
+				events, decodeErr := decodeDeliveredEvents(body)
+				require.NoError(t, decodeErr)
+				require.Len(t, events, 1)
+				require.Equal(t, wantID, events[0]["id"])
+				require.Equal(t, wantAction, events[0]["action"])
+			case <-time.After(30 * time.Second):
+				t.Fatal("timed out waiting for delivery")
+			}
+		}
+		receiveEvent(drainID+"_c", "key.delete")
+
+		config.GetAuditLogs().EventTypes = []string{"key.create"}
+		encoded, err = proto.Marshal(config)
+		require.NoError(t, err)
+		_, err = mysqlDB.Exec("UPDATE logdrains SET config = ?, lease_expires_at = 0, consecutive_failures = 0, next_attempt_at = 0 WHERE id = ?", encoded, drainID)
+		require.NoError(t, err)
+		acknowledge <- struct{}{}
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			attempts := deliveries.snapshot()
+			require.Len(c, attempts, 1)
+			require.Equal(c, "error", attempts[0].Outcome)
+			require.Contains(c, attempts[0].Error, "logdrain lease lost")
+		}, 5*time.Second, 20*time.Millisecond)
+		var cursorTime int64
+		var cursorID string
+		require.NoError(t, mysqlDB.QueryRow("SELECT committed_offset_inserted_at, committed_offset_event_id FROM logdrains WHERE id = ?", drainID).Scan(&cursorTime, &cursorID))
+		require.Equal(t, insertedAt, cursorTime)
+		require.Equal(t, drainID+"_a", cursorID)
+
+		acquireLease()
+		receiveEvent(drainID+"_b", "key.create")
+		acknowledge <- struct{}{}
+		require.EventuallyWithT(t, func(c *assert.CollectT) {
+			require.True(c, hasDelivery(deliveries.snapshot(), drainID, "success", 1))
+			require.Greater(c, readDrainStateCollect(c, mysqlDB, drainID).committedOffsetInsertedAt, insertedAt)
+		}, 5*time.Second, 20*time.Millisecond)
+		require.Empty(t, requests)
 	})
 
 	t.Run("failed response retries without advancing offset", func(t *testing.T) {
@@ -437,8 +552,12 @@ func insertAuditEvents(t *testing.T, conn ch.Conn, workspaceID string, events []
 	t.Helper()
 	ctx := context.Background()
 	for _, event := range events {
+		eventType := event.eventType
+		if eventType == "" {
+			eventType = "integration.test"
+		}
 		err := conn.Exec(ctx, "INSERT INTO audit_logs_raw_v1 (workspace_id, bucket, event_id, event, time, inserted_at, source, description, actor_type, actor_id, actor_name, actor_meta, remote_ip, user_agent, meta, `targets.type`, `targets.id`, `targets.name`, `targets.meta`, correlation_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-			workspaceID, "integration", event.id, "integration.test", event.insertedAt, event.insertedAt, "platform", "integration test event", "user", "actor_1", "Integration Tester", event.actorMeta, "127.0.0.1", "integration-test", `{}`, event.targetTypes, event.targetIDs, event.targetNames, event.targetMetas, event.correlationID)
+			workspaceID, "integration", event.id, eventType, event.insertedAt, event.insertedAt, "platform", "integration test event", "user", "actor_1", "Integration Tester", event.actorMeta, "127.0.0.1", "integration-test", `{}`, event.targetTypes, event.targetIDs, event.targetNames, event.targetMetas, event.correlationID)
 		require.NoError(t, err)
 	}
 }

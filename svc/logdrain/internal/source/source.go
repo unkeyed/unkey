@@ -21,7 +21,8 @@ type Source interface {
 	// Read returns events after from with inserted_at before toExclusive,
 	// ordered by (inserted_at, event_id), and capped at limit rows. The returned
 	// cursor identifies the last row; empty results and errors return from unchanged.
-	Read(ctx context.Context, workspaceID string, from Cursor, toExclusive int64, limit int) ([]sink.Event, Cursor, error)
+	// An empty eventTypes list selects all events; otherwise only exact matches are returned.
+	Read(ctx context.Context, workspaceID string, from Cursor, toExclusive int64, limit int, eventTypes []string) ([]sink.Event, Cursor, error)
 }
 
 // AuditLogs reads the audit_logs stream from ClickHouse.
@@ -65,7 +66,7 @@ type auditRow struct {
 }
 
 // Read preserves deterministic timestamp paging while converting ClickHouse rows into the public audit-log shape.
-func (s *AuditLogs) Read(ctx context.Context, workspaceID string, from Cursor, toExclusive int64, limit int) ([]sink.Event, Cursor, error) {
+func (s *AuditLogs) Read(ctx context.Context, workspaceID string, from Cursor, toExclusive int64, limit int, eventTypes []string) ([]sink.Event, Cursor, error) {
 	// query orders by inserted_at and event_id so paging stays deterministic
 	// when many rows share one inserted_at millisecond.
 	const query = `
@@ -89,19 +90,24 @@ func (s *AuditLogs) Read(ctx context.Context, workspaceID string, from Cursor, t
 			correlation_id
 		FROM audit_logs_raw_v1
 		WHERE workspace_id = {workspace:String}
-			AND (inserted_at, event_id) > ({from_time:Int64}, {from_id:String})
+			AND (
+				inserted_at > {from_time:Int64}
+				OR (inserted_at = {from_time:Int64} AND event_id > {from_id:String})
+			)
 			AND inserted_at < {to:Int64}
+			AND (empty({event_types:Array(String)}) OR event IN {event_types:Array(String)})
 		ORDER BY inserted_at, event_id
 		LIMIT {batch_size:UInt64}`
 	// The parameter is named batch_size because a query parameter named
 	// "limit" collides with the ClickHouse server setting of the same name
 	// and fails with CANNOT_PARSE_QUOTED_STRING.
 	rows, err := clickhouse.Select[auditRow](ctx, s.client.Conn(), query, map[string]string{
-		"workspace":  workspaceID,
-		"from_time":  strconv.FormatInt(from.Time, 10),
-		"from_id":    from.EventID,
-		"to":         strconv.FormatInt(toExclusive, 10),
-		"batch_size": strconv.Itoa(limit),
+		"workspace":   workspaceID,
+		"from_time":   strconv.FormatInt(from.Time, 10),
+		"from_id":     from.EventID,
+		"to":          strconv.FormatInt(toExclusive, 10),
+		"batch_size":  strconv.Itoa(limit),
+		"event_types": clickhouse.StringArrayParam(eventTypes),
 	})
 	if err != nil {
 		return nil, from, fmt.Errorf("read audit logs: %w", err)

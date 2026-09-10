@@ -59,7 +59,7 @@ func (c *Client) GetActiveKeysUsage(
 		"year":          strconv.Itoa(req.Year),
 		"month":         strconv.Itoa(int(req.Month)),
 		"workspace_id":  req.WorkspaceID,
-		"workspace_ids": stringArrayParam(req.WorkspaceIDs),
+		"workspace_ids": StringArrayParam(req.WorkspaceIDs),
 	})
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query active keys usage"))

@@ -57,7 +57,8 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
     form.handleSubmit((submitted) => {
       const name = submitted.name.trim();
       const destination = changedDestination(submitted, values);
-      if (name === drain.name && destination === undefined) {
+      const eventTypesChanged = !sameEventTypes(submitted.eventTypes, values.eventTypes);
+      if (name === drain.name && destination === undefined && !eventTypesChanged) {
         onSaved();
         return;
       }
@@ -65,6 +66,7 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
         {
           id: drain.id,
           ...(name !== drain.name ? { name } : {}),
+          ...(eventTypesChanged ? { eventTypes: submitted.eventTypes } : {}),
           ...(destination !== undefined ? { destination } : {}),
         },
         { onSuccess: onSaved },
@@ -93,6 +95,10 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
 export type DrainSettings = ReturnType<typeof useDrainSettings>;
 
 type UpdateDestination = inferRouterInputs<Router>["logdrain"]["update"]["destination"];
+
+function sameEventTypes(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((eventType) => right.includes(eventType));
+}
 
 function changedDestination(
   submitted: DrainFormValues,
