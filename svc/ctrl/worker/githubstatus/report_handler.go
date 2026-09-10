@@ -29,7 +29,6 @@ func (s *Service) ReportStatus(ctx restate.ObjectContext, req *hydrav1.GitHubSta
 	}
 
 	ghDeploymentID, _ := restate.Get[int64](ctx, stateGHDeploymentID)
-	commentID, _ := restate.Get[int64](ctx, statePRCommentID)
 	prNumber, _ := restate.Get[int](ctx, statePRNumber)
 
 	stateStr, ok := githubDeploymentStateToString[req.GetState()]
@@ -51,22 +50,8 @@ func (s *Service) ReportStatus(ctx restate.ObjectContext, req *hydrav1.GitHubSta
 		}
 	}
 
-	// --- PR Comment ---
-	if commentID > 0 && prNumber > 0 {
-		label := stateLabel(stateStr)
-		row := buildRow(config.GetProjectSlug(), config.GetAppSlug(), config.GetEnvSlug(), config.GetEnvironmentUrl(), config.GetLogUrl(), label)
-
-		current, findErr := restate.Run(ctx, func(_ restate.RunContext) (findResult, error) {
-			id, body, e := s.github.FindBotComment(config.GetInstallationId(), config.GetRepo(), prNumber, prCommentMainMarker)
-			return findResult{ID: id, Body: body}, e
-		}, restate.WithName("read deploy comment"), restate.WithMaxRetryDuration(5*time.Second))
-		if findErr != nil || current.ID == 0 {
-			return &hydrav1.GitHubStatusReportResponse{}, nil
-		}
-
-		_ = restate.RunVoid(ctx, func(_ restate.RunContext) error {
-			return s.github.UpdateIssueComment(config.GetInstallationId(), config.GetRepo(), commentID, upsertRow(config.GetAppSlug(), config.GetEnvSlug(), current.Body, row))
-		}, restate.WithName(fmt.Sprintf("update deploy comment: %s", stateStr)), restate.WithMaxRetryDuration(5*time.Second))
+	if prNumber > 0 {
+		sendPullRequestCommentUpdate(ctx, config, int32(prNumber), stateLabel(stateStr))
 	}
 
 	return &hydrav1.GitHubStatusReportResponse{}, nil

@@ -88,9 +88,9 @@ func (GitHubDeploymentState) EnumDescriptor() ([]byte, []int) {
 	return file_hydra_v1_github_status_proto_rawDescGZIP(), []int{0}
 }
 
-// GitHubStatusInitRequest carries all context the virtual object needs to
-// create the GitHub deployment and PR comment. The deploy workflow populates
-// this after the build step so the commit SHA is resolved.
+// GitHubStatusInitRequest carries the context needed to create the GitHub
+// deployment and PR row. The deploy workflow populates it after the build step
+// so the commit SHA is resolved.
 type GitHubStatusInitRequest struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	InstallationId   int64                  `protobuf:"varint,1,opt,name=installation_id,json=installationId,proto3" json:"installation_id,omitempty"`
@@ -109,8 +109,14 @@ type GitHubStatusInitRequest struct {
 	// Reuse an existing GitHub deployment (e.g. created during approval flow).
 	// If > 0, Init skips CreateDeployment and uses this ID directly.
 	ExistingGithubDeploymentId int64 `protobuf:"varint,13,opt,name=existing_github_deployment_id,json=existingGithubDeploymentId,proto3" json:"existing_github_deployment_id,omitempty"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+	// Stable workspace/project/app/environment identity for the shared PR
+	// comment row. Display slugs are not unique across workspaces.
+	CommentRowKey string `protobuf:"bytes,14,opt,name=comment_row_key,json=commentRowKey,proto3" json:"comment_row_key,omitempty"`
+	// GitHub's stable repository ID keeps comment updates serialized across
+	// repository renames.
+	RepositoryId  int64 `protobuf:"varint,15,opt,name=repository_id,json=repositoryId,proto3" json:"repository_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GitHubStatusInitRequest) Reset() {
@@ -230,6 +236,20 @@ func (x *GitHubStatusInitRequest) GetPrNumber() int32 {
 func (x *GitHubStatusInitRequest) GetExistingGithubDeploymentId() int64 {
 	if x != nil {
 		return x.ExistingGithubDeploymentId
+	}
+	return 0
+}
+
+func (x *GitHubStatusInitRequest) GetCommentRowKey() string {
+	if x != nil {
+		return x.CommentRowKey
+	}
+	return ""
+}
+
+func (x *GitHubStatusInitRequest) GetRepositoryId() int64 {
+	if x != nil {
+		return x.RepositoryId
 	}
 	return 0
 }
@@ -358,11 +378,107 @@ func (*GitHubStatusReportResponse) Descriptor() ([]byte, []int) {
 	return file_hydra_v1_github_status_proto_rawDescGZIP(), []int{3}
 }
 
+type GitHubPullRequestCommentRequest struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Config        *GitHubStatusInitRequest `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	PrNumber      int32                    `protobuf:"varint,2,opt,name=pr_number,json=prNumber,proto3" json:"pr_number,omitempty"`
+	Status        string                   `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GitHubPullRequestCommentRequest) Reset() {
+	*x = GitHubPullRequestCommentRequest{}
+	mi := &file_hydra_v1_github_status_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GitHubPullRequestCommentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GitHubPullRequestCommentRequest) ProtoMessage() {}
+
+func (x *GitHubPullRequestCommentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_github_status_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GitHubPullRequestCommentRequest.ProtoReflect.Descriptor instead.
+func (*GitHubPullRequestCommentRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_github_status_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GitHubPullRequestCommentRequest) GetConfig() *GitHubStatusInitRequest {
+	if x != nil {
+		return x.Config
+	}
+	return nil
+}
+
+func (x *GitHubPullRequestCommentRequest) GetPrNumber() int32 {
+	if x != nil {
+		return x.PrNumber
+	}
+	return 0
+}
+
+func (x *GitHubPullRequestCommentRequest) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+type GitHubPullRequestCommentResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GitHubPullRequestCommentResponse) Reset() {
+	*x = GitHubPullRequestCommentResponse{}
+	mi := &file_hydra_v1_github_status_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GitHubPullRequestCommentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GitHubPullRequestCommentResponse) ProtoMessage() {}
+
+func (x *GitHubPullRequestCommentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_github_status_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GitHubPullRequestCommentResponse.ProtoReflect.Descriptor instead.
+func (*GitHubPullRequestCommentResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_github_status_proto_rawDescGZIP(), []int{5}
+}
+
 var File_hydra_v1_github_status_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_github_status_proto_rawDesc = "" +
 	"\n" +
-	"\x1chydra/v1/github_status.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xda\x03\n" +
+	"\x1chydra/v1/github_status.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"\xa7\x04\n" +
 	"\x17GitHubStatusInitRequest\x12'\n" +
 	"\x0finstallation_id\x18\x01 \x01(\x03R\x0einstallationId\x12\x12\n" +
 	"\x04repo\x18\x02 \x01(\tR\x04repo\x12\x1d\n" +
@@ -378,12 +494,19 @@ const file_hydra_v1_github_status_proto_rawDesc = "" +
 	" \x01(\tR\aappSlug\x12\x19\n" +
 	"\benv_slug\x18\v \x01(\tR\aenvSlug\x12\x1b\n" +
 	"\tpr_number\x18\f \x01(\x05R\bprNumber\x12A\n" +
-	"\x1dexisting_github_deployment_id\x18\r \x01(\x03R\x1aexistingGithubDeploymentId\"\x1a\n" +
+	"\x1dexisting_github_deployment_id\x18\r \x01(\x03R\x1aexistingGithubDeploymentId\x12&\n" +
+	"\x0fcomment_row_key\x18\x0e \x01(\tR\rcommentRowKey\x12#\n" +
+	"\rrepository_id\x18\x0f \x01(\x03R\frepositoryId\"\x1a\n" +
 	"\x18GitHubStatusInitResponse\"t\n" +
 	"\x19GitHubStatusReportRequest\x125\n" +
 	"\x05state\x18\x01 \x01(\x0e2\x1f.hydra.v1.GitHubDeploymentStateR\x05state\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\"\x1c\n" +
-	"\x1aGitHubStatusReportResponse*\xc5\x02\n" +
+	"\x1aGitHubStatusReportResponse\"\x91\x01\n" +
+	"\x1fGitHubPullRequestCommentRequest\x129\n" +
+	"\x06config\x18\x01 \x01(\v2!.hydra.v1.GitHubStatusInitRequestR\x06config\x12\x1b\n" +
+	"\tpr_number\x18\x02 \x01(\x05R\bprNumber\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\"\"\n" +
+	" GitHubPullRequestCommentResponse*\xc5\x02\n" +
 	"\x15GitHubDeploymentState\x12'\n" +
 	"#GITHUB_DEPLOYMENT_STATE_UNSPECIFIED\x10\x00\x12#\n" +
 	"\x1fGITHUB_DEPLOYMENT_STATE_PENDING\x10\x01\x12'\n" +
@@ -395,7 +518,9 @@ const file_hydra_v1_github_status_proto_rawDesc = "" +
 	"\x1eGITHUB_DEPLOYMENT_STATE_QUEUED\x10\a2\xc9\x01\n" +
 	"\x13GitHubStatusService\x12O\n" +
 	"\x04Init\x12!.hydra.v1.GitHubStatusInitRequest\x1a\".hydra.v1.GitHubStatusInitResponse\"\x00\x12[\n" +
-	"\fReportStatus\x12#.hydra.v1.GitHubStatusReportRequest\x1a$.hydra.v1.GitHubStatusReportResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x97\x01\n" +
+	"\fReportStatus\x12#.hydra.v1.GitHubStatusReportRequest\x1a$.hydra.v1.GitHubStatusReportResponse\"\x00\x1a\x04\x98\x80\x01\x012\x9c\x01\n" +
+	"\x1fGitHubPullRequestCommentService\x12s\n" +
+	"\x18UpsertPullRequestComment\x12).hydra.v1.GitHubPullRequestCommentRequest\x1a*.hydra.v1.GitHubPullRequestCommentResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x97\x01\n" +
 	"\fcom.hydra.v1B\x11GithubStatusProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -411,25 +536,30 @@ func file_hydra_v1_github_status_proto_rawDescGZIP() []byte {
 }
 
 var file_hydra_v1_github_status_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_hydra_v1_github_status_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_hydra_v1_github_status_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_hydra_v1_github_status_proto_goTypes = []any{
-	(GitHubDeploymentState)(0),         // 0: hydra.v1.GitHubDeploymentState
-	(*GitHubStatusInitRequest)(nil),    // 1: hydra.v1.GitHubStatusInitRequest
-	(*GitHubStatusInitResponse)(nil),   // 2: hydra.v1.GitHubStatusInitResponse
-	(*GitHubStatusReportRequest)(nil),  // 3: hydra.v1.GitHubStatusReportRequest
-	(*GitHubStatusReportResponse)(nil), // 4: hydra.v1.GitHubStatusReportResponse
+	(GitHubDeploymentState)(0),               // 0: hydra.v1.GitHubDeploymentState
+	(*GitHubStatusInitRequest)(nil),          // 1: hydra.v1.GitHubStatusInitRequest
+	(*GitHubStatusInitResponse)(nil),         // 2: hydra.v1.GitHubStatusInitResponse
+	(*GitHubStatusReportRequest)(nil),        // 3: hydra.v1.GitHubStatusReportRequest
+	(*GitHubStatusReportResponse)(nil),       // 4: hydra.v1.GitHubStatusReportResponse
+	(*GitHubPullRequestCommentRequest)(nil),  // 5: hydra.v1.GitHubPullRequestCommentRequest
+	(*GitHubPullRequestCommentResponse)(nil), // 6: hydra.v1.GitHubPullRequestCommentResponse
 }
 var file_hydra_v1_github_status_proto_depIdxs = []int32{
 	0, // 0: hydra.v1.GitHubStatusReportRequest.state:type_name -> hydra.v1.GitHubDeploymentState
-	1, // 1: hydra.v1.GitHubStatusService.Init:input_type -> hydra.v1.GitHubStatusInitRequest
-	3, // 2: hydra.v1.GitHubStatusService.ReportStatus:input_type -> hydra.v1.GitHubStatusReportRequest
-	2, // 3: hydra.v1.GitHubStatusService.Init:output_type -> hydra.v1.GitHubStatusInitResponse
-	4, // 4: hydra.v1.GitHubStatusService.ReportStatus:output_type -> hydra.v1.GitHubStatusReportResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	1, // 1: hydra.v1.GitHubPullRequestCommentRequest.config:type_name -> hydra.v1.GitHubStatusInitRequest
+	1, // 2: hydra.v1.GitHubStatusService.Init:input_type -> hydra.v1.GitHubStatusInitRequest
+	3, // 3: hydra.v1.GitHubStatusService.ReportStatus:input_type -> hydra.v1.GitHubStatusReportRequest
+	5, // 4: hydra.v1.GitHubPullRequestCommentService.UpsertPullRequestComment:input_type -> hydra.v1.GitHubPullRequestCommentRequest
+	2, // 5: hydra.v1.GitHubStatusService.Init:output_type -> hydra.v1.GitHubStatusInitResponse
+	4, // 6: hydra.v1.GitHubStatusService.ReportStatus:output_type -> hydra.v1.GitHubStatusReportResponse
+	6, // 7: hydra.v1.GitHubPullRequestCommentService.UpsertPullRequestComment:output_type -> hydra.v1.GitHubPullRequestCommentResponse
+	5, // [5:8] is the sub-list for method output_type
+	2, // [2:5] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_github_status_proto_init() }
@@ -443,9 +573,9 @@ func file_hydra_v1_github_status_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_github_status_proto_rawDesc), len(file_hydra_v1_github_status_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
 		GoTypes:           file_hydra_v1_github_status_proto_goTypes,
 		DependencyIndexes: file_hydra_v1_github_status_proto_depIdxs,

@@ -15,17 +15,15 @@ import (
 
 // GitHubStatusServiceClient is the client API for hydra.v1.GitHubStatusService service.
 //
-// GitHubStatusService is a Restate virtual object keyed by deployment ID that
-// owns all GitHub deployment status reporting (Deployments API + PR comments).
-// Any service can fire-and-forget status updates to it without needing GitHub
-// credentials or state about the deployment.
+// GitHubStatusService tracks one deployment's GitHub deployment status and
+// dispatches its PR comment updates. Any service can send status updates
+// without carrying GitHub credentials or deployment state.
 type GitHubStatusServiceClient interface {
-	// Init sets up the virtual object with deployment context and creates the
-	// GitHub deployment + PR comment. Called once by the deploy workflow after
-	// the build step completes.
+	// Init sets up the virtual object, GitHub deployment, and initial PR row.
+	// The deploy workflow calls it once after the build step completes.
 	Init(opts ...sdk_go.ClientOption) sdk_go.Client[*GitHubStatusInitRequest, *GitHubStatusInitResponse]
-	// ReportStatus updates both the GitHub deployment status and the PR comment.
-	// Fire-and-forget — errors are logged, never propagated.
+	// ReportStatus updates the GitHub deployment and queues its PR row update.
+	// Errors are logged and never propagated.
 	ReportStatus(opts ...sdk_go.ClientOption) sdk_go.Client[*GitHubStatusReportRequest, *GitHubStatusReportResponse]
 }
 
@@ -63,12 +61,11 @@ func (c *gitHubStatusServiceClient) ReportStatus(opts ...sdk_go.ClientOption) sd
 //
 // This client is used to call the service from outside of a Restate context.
 type GitHubStatusServiceIngressClient interface {
-	// Init sets up the virtual object with deployment context and creates the
-	// GitHub deployment + PR comment. Called once by the deploy workflow after
-	// the build step completes.
+	// Init sets up the virtual object, GitHub deployment, and initial PR row.
+	// The deploy workflow calls it once after the build step completes.
 	Init() ingress.Requester[*GitHubStatusInitRequest, *GitHubStatusInitResponse]
-	// ReportStatus updates both the GitHub deployment status and the PR comment.
-	// Fire-and-forget — errors are logged, never propagated.
+	// ReportStatus updates the GitHub deployment and queues its PR row update.
+	// Errors are logged and never propagated.
 	ReportStatus() ingress.Requester[*GitHubStatusReportRequest, *GitHubStatusReportResponse]
 }
 
@@ -100,17 +97,15 @@ func (c *gitHubStatusServiceIngressClient) ReportStatus() ingress.Requester[*Git
 // All implementations should embed UnimplementedGitHubStatusServiceServer
 // for forward compatibility.
 //
-// GitHubStatusService is a Restate virtual object keyed by deployment ID that
-// owns all GitHub deployment status reporting (Deployments API + PR comments).
-// Any service can fire-and-forget status updates to it without needing GitHub
-// credentials or state about the deployment.
+// GitHubStatusService tracks one deployment's GitHub deployment status and
+// dispatches its PR comment updates. Any service can send status updates
+// without carrying GitHub credentials or deployment state.
 type GitHubStatusServiceServer interface {
-	// Init sets up the virtual object with deployment context and creates the
-	// GitHub deployment + PR comment. Called once by the deploy workflow after
-	// the build step completes.
+	// Init sets up the virtual object, GitHub deployment, and initial PR row.
+	// The deploy workflow calls it once after the build step completes.
 	Init(ctx sdk_go.ObjectContext, req *GitHubStatusInitRequest) (*GitHubStatusInitResponse, error)
-	// ReportStatus updates both the GitHub deployment status and the PR comment.
-	// Fire-and-forget — errors are logged, never propagated.
+	// ReportStatus updates the GitHub deployment and queues its PR row update.
+	// Errors are logged and never propagated.
 	ReportStatus(ctx sdk_go.ObjectContext, req *GitHubStatusReportRequest) (*GitHubStatusReportResponse, error)
 }
 
@@ -148,5 +143,104 @@ func NewGitHubStatusServiceServer(srv GitHubStatusServiceServer, opts ...sdk_go.
 	router := sdk_go.NewObject("hydra.v1.GitHubStatusService", sOpts...)
 	router = router.Handler("Init", sdk_go.NewObjectHandler(srv.Init))
 	router = router.Handler("ReportStatus", sdk_go.NewObjectHandler(srv.ReportStatus))
+	return router
+}
+
+// GitHubPullRequestCommentServiceClient is the client API for hydra.v1.GitHubPullRequestCommentService service.
+//
+// GitHubPullRequestCommentService serializes updates to the shared deployment
+// comment for one installation, repository, and pull request.
+type GitHubPullRequestCommentServiceClient interface {
+	UpsertPullRequestComment(opts ...sdk_go.ClientOption) sdk_go.Client[*GitHubPullRequestCommentRequest, *GitHubPullRequestCommentResponse]
+}
+
+type gitHubPullRequestCommentServiceClient struct {
+	ctx     sdk_go.Context
+	key     string
+	options []sdk_go.ClientOption
+}
+
+func NewGitHubPullRequestCommentServiceClient(ctx sdk_go.Context, key string, opts ...sdk_go.ClientOption) GitHubPullRequestCommentServiceClient {
+	cOpts := append([]sdk_go.ClientOption{sdk_go.WithProtoJSON}, opts...)
+	return &gitHubPullRequestCommentServiceClient{
+		ctx,
+		key,
+		cOpts,
+	}
+}
+func (c *gitHubPullRequestCommentServiceClient) UpsertPullRequestComment(opts ...sdk_go.ClientOption) sdk_go.Client[*GitHubPullRequestCommentRequest, *GitHubPullRequestCommentResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*GitHubPullRequestCommentRequest](sdk_go.Object[*GitHubPullRequestCommentResponse](c.ctx, "hydra.v1.GitHubPullRequestCommentService", c.key, "UpsertPullRequestComment", cOpts...))
+}
+
+// GitHubPullRequestCommentServiceIngressClient is the ingress client API for hydra.v1.GitHubPullRequestCommentService service.
+//
+// This client is used to call the service from outside of a Restate context.
+type GitHubPullRequestCommentServiceIngressClient interface {
+	UpsertPullRequestComment() ingress.Requester[*GitHubPullRequestCommentRequest, *GitHubPullRequestCommentResponse]
+}
+
+type gitHubPullRequestCommentServiceIngressClient struct {
+	client      *ingress.Client
+	serviceName string
+	key         string
+}
+
+func NewGitHubPullRequestCommentServiceIngressClient(client *ingress.Client, key string) GitHubPullRequestCommentServiceIngressClient {
+	return &gitHubPullRequestCommentServiceIngressClient{
+		client,
+		"hydra.v1.GitHubPullRequestCommentService",
+		key,
+	}
+}
+
+func (c *gitHubPullRequestCommentServiceIngressClient) UpsertPullRequestComment() ingress.Requester[*GitHubPullRequestCommentRequest, *GitHubPullRequestCommentResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*GitHubPullRequestCommentRequest, *GitHubPullRequestCommentResponse](c.client, c.serviceName, "UpsertPullRequestComment", &c.key, &codec)
+}
+
+// GitHubPullRequestCommentServiceServer is the server API for hydra.v1.GitHubPullRequestCommentService service.
+// All implementations should embed UnimplementedGitHubPullRequestCommentServiceServer
+// for forward compatibility.
+//
+// GitHubPullRequestCommentService serializes updates to the shared deployment
+// comment for one installation, repository, and pull request.
+type GitHubPullRequestCommentServiceServer interface {
+	UpsertPullRequestComment(ctx sdk_go.ObjectContext, req *GitHubPullRequestCommentRequest) (*GitHubPullRequestCommentResponse, error)
+}
+
+// UnimplementedGitHubPullRequestCommentServiceServer should be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedGitHubPullRequestCommentServiceServer struct{}
+
+func (UnimplementedGitHubPullRequestCommentServiceServer) UpsertPullRequestComment(ctx sdk_go.ObjectContext, req *GitHubPullRequestCommentRequest) (*GitHubPullRequestCommentResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method UpsertPullRequestComment not implemented"), 501)
+}
+func (UnimplementedGitHubPullRequestCommentServiceServer) testEmbeddedByValue() {}
+
+// UnsafeGitHubPullRequestCommentServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to GitHubPullRequestCommentServiceServer will
+// result in compilation errors.
+type UnsafeGitHubPullRequestCommentServiceServer interface {
+	mustEmbedUnimplementedGitHubPullRequestCommentServiceServer()
+}
+
+func NewGitHubPullRequestCommentServiceServer(srv GitHubPullRequestCommentServiceServer, opts ...sdk_go.ServiceDefinitionOption) sdk_go.ServiceDefinition {
+	// If the following call panics, it indicates UnimplementedGitHubPullRequestCommentServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
+	router := sdk_go.NewObject("hydra.v1.GitHubPullRequestCommentService", sOpts...)
+	router = router.Handler("UpsertPullRequestComment", sdk_go.NewObjectHandler(srv.UpsertPullRequestComment))
 	return router
 }

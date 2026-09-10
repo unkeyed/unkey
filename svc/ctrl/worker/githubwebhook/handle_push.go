@@ -247,7 +247,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		)
 
 		if needsApproval {
-			if blockErr := s.blockDeploymentForApproval(ctx, req, row.ProjectWorkspaceID, row.ProjectID, row.ConnectionInstallationID, deploymentID); blockErr != nil {
+			if blockErr := s.blockDeploymentForApproval(ctx, req, row.ProjectWorkspaceID, row.ProjectID, row.AppID, row.EnvironmentID, row.ConnectionInstallationID, deploymentID); blockErr != nil {
 				return nil, blockErr
 			}
 			continue

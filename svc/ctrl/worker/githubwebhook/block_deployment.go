@@ -6,6 +6,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -18,6 +19,8 @@ func (s *Service) blockDeploymentForApproval(
 	req *hydrav1.HandlePushRequest,
 	workspaceID string,
 	projectID string,
+	appID string,
+	environmentID string,
 	installationID int64,
 	deploymentID string,
 ) error {
@@ -41,7 +44,7 @@ func (s *Service) blockDeploymentForApproval(
 				"failure",
 				logURL,
 				"Awaiting authorization from a project member",
-				"Unkey Deploy Authorization",
+				githubclient.DeployAuthorizationStatusContext(appID, environmentID),
 			)
 		}, restate.WithName("create commit status for authorization"), restate.WithMaxRetryDuration(30*time.Second))
 	}
