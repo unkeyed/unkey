@@ -57,6 +57,7 @@ func TestEngine_StreamWatermarkAndCatchup(t *testing.T) {
 		{"verification", &logdrainv1.Config{Stream: &logdrainv1.Config_KeyVerifications{KeyVerifications: &logdrainv1.KeyVerificationStreamConfig{}}}, 15 * time.Second, 5 * time.Second},
 		{"gateway", &logdrainv1.Config{Stream: &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{}}}, 15 * time.Second, 5 * time.Second},
 		{"runtime", &logdrainv1.Config{Stream: &logdrainv1.Config_RuntimeLogs{RuntimeLogs: &logdrainv1.RuntimeLogStreamConfig{}}}, 15 * time.Second, 5 * time.Second},
+		{"ratelimit", &logdrainv1.Config{Stream: &logdrainv1.Config_Ratelimits{Ratelimits: &logdrainv1.RatelimitStreamConfig{}}}, 15 * time.Second, 5 * time.Second},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			encoded, err := proto.Marshal(test.config)
@@ -70,7 +71,7 @@ func TestEngine_StreamWatermarkAndCatchup(t *testing.T) {
 				clock:     serviceClock,
 			}
 			reader := &scheduleSource{clock: serviceClock}
-			eng, err := engine.New(engine.Config{DB: database, LeaseID: "lease", Clock: tickerClock, AuditLogs: reader, KeyVerifications: reader, GatewayRequests: reader, RuntimeLogs: reader, PollInterval: time.Minute, WatermarkLag: 5 * time.Minute, BatchSize: 100})
+			eng, err := engine.New(engine.Config{DB: database, LeaseID: "lease", Clock: tickerClock, AuditLogs: reader, KeyVerifications: reader, GatewayRequests: reader, RuntimeLogs: reader, Ratelimits: reader, PollInterval: time.Minute, WatermarkLag: 5 * time.Minute, BatchSize: 100})
 			require.NoError(t, err)
 			ctx, cancel := context.WithCancel(t.Context())
 			done := make(chan error, 1)

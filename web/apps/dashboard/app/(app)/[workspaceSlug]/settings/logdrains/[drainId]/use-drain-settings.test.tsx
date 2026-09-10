@@ -19,7 +19,7 @@ afterEach(() => {
   update.mockClear();
 });
 
-const drain: DrainDetail = {
+const drain = {
   id: "drain",
   name: "Runtime",
   status: "running",
@@ -36,7 +36,7 @@ const drain: DrainDetail = {
   projectIds: ["deleted-project"],
   appIds: [],
   environmentIds: ["deleted-environment"],
-};
+} satisfies DrainDetail;
 
 it("submits unrestricted runtime sources without using retained gateway selections", async () => {
   const { result } = renderHook(() => useDrainSettings(drain, { onDeleted: vi.fn() }));
