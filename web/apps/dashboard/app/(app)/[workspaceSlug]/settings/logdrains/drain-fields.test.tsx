@@ -9,6 +9,7 @@ import { type DrainFormValues, createDrainSchema, emptyDrainForm } from "./drain
 
 vi.stubGlobal("React", React);
 vi.stubGlobal("PointerEvent", MouseEvent);
+const sourceState = vi.hoisted(() => ({ loading: false, failed: false, combined: false }));
 vi.mock("@/lib/trpc/client", () => ({
   trpc: {
     deploy: {
@@ -16,14 +17,22 @@ vi.mock("@/lib/trpc/client", () => ({
         list: {
           useQuery: () => ({
             data: [
-              { id: "project", name: "Store", apps: [{ id: "app", name: "Backend" }] },
+              {
+                id: "project",
+                name: "Store",
+                apps: [
+                  { id: "app", name: "Backend" },
+                  ...(sourceState.combined ? [{ id: "other-app", name: "Reports" }] : []),
+                ],
+              },
               {
                 id: "other-project",
                 name: "Analytics",
-                apps: [{ id: "other-app", name: "Reports" }],
+                apps: sourceState.combined ? [] : [{ id: "other-app", name: "Reports" }],
               },
             ],
-            isLoading: false,
+            isLoading: sourceState.loading,
+            error: sourceState.failed ? new Error("Unavailable") : null,
           }),
         },
       },
@@ -57,7 +66,12 @@ vi.mock("@/lib/trpc/client", () => ({
     },
   },
 }));
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  sourceState.loading = false;
+  sourceState.failed = false;
+  sourceState.combined = false;
+});
 
 function Form() {
   const form = useForm<DrainFormValues>({
@@ -209,6 +223,30 @@ it("shows nothing selected after clearing every source", () => {
   expect(screen.getByRole("checkbox", { name: /Store/ }).getAttribute("aria-checked")).toBe(
     "false",
   );
+});
+
+it.each(["loading", "failed"] as const)("does not change sources while queries are %s", (state) => {
+  sourceState[state] = true;
+  render(<Form />);
+  fireEvent.click(screen.getByText("Gateway"));
+  fireEvent.click(screen.getByRole("checkbox", { name: /Store/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  expect(screen.getByText("All 3 environments")).toBeTruthy();
+});
+
+it("keeps a searched project checkbox bound to every app in that project", () => {
+  sourceState.combined = true;
+  render(<Form />);
+  fireEvent.click(screen.getByText("Gateway"));
+  fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /Backend/ }));
+  fireEvent.change(screen.getByLabelText("Search sources"), { target: { value: "Backend" } });
+  expect(screen.queryByRole("checkbox", { name: /Reports/ })).toBeNull();
+  expect(screen.getByRole("checkbox", { name: /Store/ }).getAttribute("aria-checked")).toBe(
+    "mixed",
+  );
+  fireEvent.click(screen.getByRole("checkbox", { name: /Store/ }));
+  expect(screen.getByText("All 3 environments")).toBeTruthy();
 });
 
 function SubmitForm({

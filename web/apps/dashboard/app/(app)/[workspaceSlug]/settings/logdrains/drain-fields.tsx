@@ -109,8 +109,13 @@ function GatewaySourcesField() {
     tickedEnvironmentIds(tree, sourceMode, { projectIds, appIds, environmentIds }),
   );
   const error = formState.errors.environmentIds?.message;
+  const unavailable =
+    Boolean(projects.error || environments.error) || projects.isLoading || environments.isLoading;
 
   const choose = (next: Set<string>) => {
+    if (unavailable) {
+      return;
+    }
     const everything = next.size === allIds.length;
     const encoded = everything
       ? { projectIds: [], appIds: [], environmentIds: [] }
@@ -140,7 +145,7 @@ function GatewaySourcesField() {
   const matches = (text: string) => text.toLowerCase().includes(term);
   const visible = tree
     .map((project) => ({
-      ...project,
+      project,
       apps: project.apps.filter(
         (app) =>
           term === "" ||
@@ -149,7 +154,7 @@ function GatewaySourcesField() {
           app.environments.some((environment) => matches(environment.name)),
       ),
     }))
-    .filter((project) => project.apps.length > 0);
+    .filter(({ apps }) => apps.length > 0);
 
   const notice = sourcesNotice({
     failed: Boolean(projects.error || environments.error),
@@ -158,7 +163,7 @@ function GatewaySourcesField() {
   });
 
   return (
-    <fieldset className="flex flex-col gap-1.5">
+    <fieldset disabled={unavailable} className="flex flex-col gap-1.5">
       <legend className="text-[13px] text-gray-11">Sources</legend>
       <span className="text-xs text-gray-9">
         Tick the projects, apps or environments whose requests this drain receives.
@@ -178,7 +183,7 @@ function GatewaySourcesField() {
 
         <div className="max-h-[264px] overflow-y-auto py-1">
           {notice ? <p className="px-3 py-2 text-xs text-gray-9">{notice}</p> : null}
-          {visible.map((project) => {
+          {visible.map(({ project, apps }) => {
             const projectEnvironmentIds = project.apps.flatMap((app) =>
               app.environments.map((environment) => environment.id),
             );
@@ -201,7 +206,7 @@ function GatewaySourcesField() {
                   onToggle={() => toggle(projectEnvironmentIds)}
                 />
                 {expanded
-                  ? project.apps.map((app) => (
+                  ? apps.map((app) => (
                       <div key={app.id}>
                         <SourceRow
                           depth={1}
