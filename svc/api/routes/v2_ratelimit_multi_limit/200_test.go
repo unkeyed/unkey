@@ -214,7 +214,6 @@ func TestLimitSuccessfully(t *testing.T) {
 			require.Equal(t, identifier, row.Identifier)
 			require.Equal(t, res.Body.Data.Limits[i].Passed, row.Passed)
 			require.Equal(t, res.Body.Meta.RequestId, row.RequestID)
-			require.EqualValues(t, i, row.CheckIndex)
 		}
 	})
 

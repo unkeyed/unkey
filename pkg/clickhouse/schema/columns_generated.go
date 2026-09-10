@@ -19,7 +19,7 @@ func (Ratelimit) Table() string {
 
 // InsertColumns implements [Row]; derived from Ratelimit's ch tags.
 func (Ratelimit) InsertColumns() string {
-	return "`request_id`, `check_index`, `time`, `workspace_id`, `namespace_id`, `identifier`, `passed`, `latency`, `override_id`, `limit`, `remaining`, `reset_at`, `tokens`"
+	return "`request_id`, `time`, `workspace_id`, `namespace_id`, `identifier`, `passed`, `latency`, `override_id`, `limit`, `remaining`, `reset_at`, `tokens`"
 }
 
 // Table implements [Row].

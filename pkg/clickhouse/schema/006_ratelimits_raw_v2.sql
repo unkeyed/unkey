@@ -1,8 +1,6 @@
 CREATE TABLE ratelimits_raw_v2 (
   -- the request id for correlation with traces and logs
   request_id String,
-  check_index UInt32 DEFAULT 0,
-  event_id String MATERIALIZED concat(request_id, ':', toString(check_index)),
   -- unix milli
   time Int64 CODEC (Delta, LZ4),
   inserted_at Int64 DEFAULT toUnixTimestamp64Milli(now64(3)) CODEC(Delta, ZSTD(1)),
@@ -28,8 +26,8 @@ CREATE TABLE ratelimits_raw_v2 (
   INDEX idx_identifier (identifier) TYPE bloom_filter GRANULARITY 1,
   PROJECTION proj_logdrain
   (
-    SELECT workspace_id, inserted_at, event_id, _part_offset
-    ORDER BY workspace_id, inserted_at, event_id
+    SELECT workspace_id, inserted_at, request_id, _part_offset
+    ORDER BY workspace_id, inserted_at, request_id
   )
 ) ENGINE = MergeTree ()
 ORDER BY

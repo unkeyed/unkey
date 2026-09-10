@@ -285,7 +285,6 @@ func TestEngine_Integration(t *testing.T) {
 			}
 			initialID := drainID + "_a"
 			if stream == "ratelimits" {
-				initialID += ":0"
 				config.Stream = &logdrainv1.Config_Ratelimits{Ratelimits: &logdrainv1.RatelimitStreamConfig{Passed: []bool{false}}}
 				for _, event := range []struct {
 					id     string

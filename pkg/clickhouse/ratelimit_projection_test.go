@@ -27,15 +27,15 @@ func TestRatelimitProjection_FullPayload(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, client.conn.Exec(context.Background(), "DROP TABLE "+table)) })
 	now := time.Now().UnixMilli()
 	require.NoError(t, client.conn.Exec(ctx, `INSERT INTO `+table+`
-		(workspace_id, request_id, check_index, time, inserted_at, namespace_id, identifier, passed, override_id, limit, remaining, reset_at, tokens)
-		SELECT 'workspace', toString(number), 0, ? - number, ? + number, toString(number % 3), 'customer', number % 2 = 0, 'override', 100, 7, 123456, 3 FROM numbers(1048576)`, now, now))
-	query := `SELECT inserted_at, time, event_id, request_id, check_index, namespace_id, identifier, passed, override_id, limit, remaining, reset_at, tokens
+		(workspace_id, request_id, time, inserted_at, namespace_id, identifier, passed, override_id, limit, remaining, reset_at, tokens)
+		SELECT 'workspace', toString(number), ? - number, ? + number, toString(number % 3), 'customer', number % 2 = 0, 'override', 100, 7, 123456, 3 FROM numbers(1048576)`, now, now))
+	query := `SELECT inserted_at, time, request_id, namespace_id, identifier, passed, override_id, limit, remaining, reset_at, tokens
 		FROM ` + table + ` WHERE workspace_id = 'workspace'
-		AND (inserted_at > {from_time:Int64} OR (inserted_at = {from_time:Int64} AND event_id > '1000000:0'))
+		AND (inserted_at > {from_time:Int64} OR (inserted_at = {from_time:Int64} AND request_id > '1000000'))
 		AND inserted_at < {to:Int64}
 		AND (empty({namespaces:Array(String)}) OR namespace_id IN {namespaces:Array(String)})
 		AND (empty({passed:Array(Bool)}) OR passed IN {passed:Array(Bool)})
-		ORDER BY inserted_at, event_id LIMIT 1000`
+		ORDER BY inserted_at, request_id LIMIT 1000`
 	for _, tt := range []struct {
 		name, namespaces, passed, first string
 		count                           int
@@ -65,16 +65,13 @@ func TestRatelimitProjection_FullPayload(t *testing.T) {
 				count := 0
 				for rows.Next() {
 					var insertedAt, eventTime, resetAt int64
-					var eventID, requestID, namespace, identifier, override string
-					var index uint32
+					var requestID, namespace, identifier, override string
 					var passed bool
 					var limit, remaining, tokens uint64
-					require.NoError(t, rows.Scan(&insertedAt, &eventTime, &eventID, &requestID, &index, &namespace, &identifier, &passed, &override, &limit, &remaining, &resetAt, &tokens))
+					require.NoError(t, rows.Scan(&insertedAt, &eventTime, &requestID, &namespace, &identifier, &passed, &override, &limit, &remaining, &resetAt, &tokens))
 					if count == 0 {
 						require.Equal(t, tt.first, requestID)
 					}
-					require.Equal(t, requestID+":0", eventID)
-					require.Zero(t, index)
 					require.Equal(t, "customer", identifier)
 					require.Equal(t, "override", override)
 					require.EqualValues(t, 100, limit)
@@ -133,10 +130,10 @@ func TestRatelimitMigration_FreezesHistory(t *testing.T) {
 		require.Zero(t, row.InsertedAt)
 		require.Equal(t, now, row.Time)
 	}
-	require.NoError(t, client.conn.Exec(ctx, `INSERT INTO `+table+` (workspace_id, request_id, check_index, time) VALUES ('workspace', 'new', 0, ?), ('workspace', 'new', 1, ?)`, now-60000, now-60000))
+	require.NoError(t, client.conn.Exec(ctx, `INSERT INTO `+table+` (workspace_id, request_id, time) VALUES ('workspace', 'new', ?), ('workspace', 'new', ?)`, now-60000, now-60000))
 	var insertedAt int64
 	var ids uint64
-	require.NoError(t, client.conn.QueryRow(ctx, `SELECT min(inserted_at), uniqExact(event_id) FROM `+table+` WHERE request_id = 'new'`).Scan(&insertedAt, &ids))
+	require.NoError(t, client.conn.QueryRow(ctx, `SELECT min(inserted_at), count() FROM `+table+` WHERE request_id = 'new'`).Scan(&insertedAt, &ids))
 	require.GreaterOrEqual(t, insertedAt, now)
 	require.EqualValues(t, 2, ids)
 	var ddl string

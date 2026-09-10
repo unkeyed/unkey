@@ -21,28 +21,26 @@ func TestRatelimitsRead_PayloadAndRepeatedChecks(t *testing.T) {
 	t.Cleanup(func() { require.NoError(t, client.Close()) })
 	workspace := uid.New("workspace")
 	now := time.Now().UnixMilli()
-	for index := range 2 {
-		require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO ratelimits_raw_v2
-			(workspace_id, request_id, check_index, time, namespace_id, identifier, passed,
-			latency, override_id, limit, remaining, reset_at, tokens)
-			VALUES (?, 'req_1', ?, ?, 'ns_1', 'customer@example.com', false, 1.5, '', 100, 0, ?, 3)`,
-			workspace, index, now-3600000, now+60000))
-	}
+	require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO ratelimits_raw_v2
+		(workspace_id, request_id, time, namespace_id, identifier, passed,
+		latency, override_id, limit, remaining, reset_at, tokens)
+		SELECT ?, 'req_1', ?, 'ns_1', 'customer@example.com', false, 1.5, '', 100, 0, ?, 3 FROM numbers(2)`,
+		workspace, now-3600000, now+60000))
 	reader := source.NewRatelimits(client)
-	events, cursor, err := reader.Read(t.Context(), workspace, source.Cursor{Time: now - 1}, time.Now().UnixMilli()+1000, 1, nil)
+	events, cursor, err := reader.Read(t.Context(), workspace, source.Cursor{Time: now - 1}, time.Now().UnixMilli()+1000, 2, nil)
 	require.NoError(t, err)
-	require.Len(t, events, 1)
+	require.Len(t, events, 2)
 	require.Equal(t, "ratelimits", events[0].Stream)
 	require.Equal(t, now-3600000, events[0].Time)
 	require.GreaterOrEqual(t, cursor.Time, now)
-	require.Equal(t, "req_1:0", cursor.EventID)
+	require.Equal(t, "req_1", cursor.EventID)
 	encoded, err := json.Marshal(events[0].Payload)
 	require.NoError(t, err)
-	require.JSONEq(t, `{"request_id":"req_1","check_index":0,"namespace_id":"ns_1","identifier":"customer@example.com","passed":false,"limit":100,"remaining":0,"tokens":3,"reset_at":`+strconv.FormatInt(now+60000, 10)+`,"source":"api"}`, string(encoded))
+	require.JSONEq(t, `{"request_id":"req_1","namespace_id":"ns_1","identifier":"customer@example.com","passed":false,"limit":100,"remaining":0,"tokens":3,"reset_at":`+strconv.FormatInt(now+60000, 10)+`,"source":"api"}`, string(encoded))
 	events, cursor, err = reader.Read(t.Context(), workspace, cursor, time.Now().UnixMilli()+1000, 1, nil)
 	require.NoError(t, err)
-	require.Len(t, events, 1)
-	require.Equal(t, "req_1:1", cursor.EventID)
+	require.Empty(t, events)
+	require.Equal(t, "req_1", cursor.EventID)
 }
 
 func TestRatelimitsRead_CombinedFiltersBeforeLimit(t *testing.T) {
@@ -76,14 +74,14 @@ func TestRatelimitsRead_CombinedFiltersBeforeLimit(t *testing.T) {
 	page, next, err := reader.Read(t.Context(), workspace, source.Cursor{Time: now}, now+1, 1, filter)
 	require.NoError(t, err)
 	require.Len(t, page, 1)
-	require.Equal(t, "e:0", page[0].EventID)
+	require.Equal(t, "e", page[0].EventID)
 	encoded, err := json.Marshal(page[0].Payload)
 	require.NoError(t, err)
 	require.Contains(t, string(encoded), `"override_id":"override_1"`)
 	page, next, err = reader.Read(t.Context(), workspace, next, now+1, 1, filter)
 	require.NoError(t, err)
 	require.Len(t, page, 1)
-	require.Equal(t, source.Cursor{Time: now, EventID: "f:0"}, next)
+	require.Equal(t, source.Cursor{Time: now, EventID: "f"}, next)
 	page, final, err := reader.Read(t.Context(), workspace, next, now+1, 1, filter)
 	require.NoError(t, err)
 	require.Empty(t, page)
@@ -91,5 +89,5 @@ func TestRatelimitsRead_CombinedFiltersBeforeLimit(t *testing.T) {
 	page, next, err = reader.Read(t.Context(), workspace, next, now+2, 1, filter)
 	require.NoError(t, err)
 	require.Len(t, page, 1)
-	require.Equal(t, source.Cursor{Time: now + 1, EventID: "g:0"}, next)
+	require.Equal(t, source.Cursor{Time: now + 1, EventID: "g"}, next)
 }

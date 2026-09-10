@@ -28,7 +28,8 @@ retries the same batch.
 Log drains provide at-least-once delivery. A destination can receive an event
 more than once after a retry. Use `event.id` for audit logs or `event.request_id`
 for key verifications and gateway requests. Use `event.log_id` for runtime logs.
-For rate limits, use the pair of `event.request_id` and `event.check_index`.
+Rate-limit checks in a multi-limit request share `event.request_id`, so it
+does not uniquely identify each decision.
 Deduplicate within each stream.
 
 A drain starts at its creation time. Historical backfill is not supported.
@@ -294,9 +295,8 @@ ClickHouse deletes whole parts, so deletion can occur later.
 ### Read a rate-limit payload
 
 Rate-limit drains export recorded decisions from `ratelimit.limit` and
-`ratelimit.multiLimit`, not audit events for configuration changes. Each check
-in a multi-limit request has a zero-based `check_index`. A single-limit check
-has index zero. HTTP JSON sends an array such as:
+`ratelimit.multiLimit`, not audit events for configuration changes.
+HTTP JSON sends an array such as:
 
 ```json
 [
@@ -305,7 +305,6 @@ has index zero. HTTP JSON sends an array such as:
     "timestamp": "2026-09-10T10:00:00.123Z",
     "event": {
       "request_id": "req_123",
-      "check_index": 0,
       "namespace_id": "rl_namespace",
       "identifier": "customer_123",
       "passed": false,
@@ -327,6 +326,8 @@ NDJSON sends the same record on one line. Axiom uses `event` and
 `stream: "ratelimits"`, with `_time` instead of `timestamp`.
 
 Identifiers are forwarded as stored and can contain sensitive customer data.
+The drain cursor uses insertion time and request ID. If a batch ends between
+multi-limit rows that share both values, the remaining tied rows can be skipped.
 The stream includes only completed API decisions. Failed requests and
 single-limit requests with `X-Unkey-Metrics: disabled` are not recorded.
 Gateway policy decisions and SDK cache hits that do not call these API endpoints

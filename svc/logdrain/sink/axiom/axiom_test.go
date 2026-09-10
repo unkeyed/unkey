@@ -20,12 +20,12 @@ func TestDeliverRatelimit(t *testing.T) {
 		require.Len(t, record, 3)
 		require.JSONEq(t, `"ratelimits"`, string(record["stream"]))
 		require.JSONEq(t, `"1970-01-01T00:00:00.123Z"`, string(record["_time"]))
-		require.JSONEq(t, `{"request_id":"req","check_index":2,"namespace_id":"ns","identifier":"customer\n1","passed":true,"override_id":"override","limit":100,"remaining":97,"tokens":3,"reset_at":10000,"source":"api"}`, string(record["event"]))
+		require.JSONEq(t, `{"request_id":"req","namespace_id":"ns","identifier":"customer\n1","passed":true,"override_id":"override","limit":100,"remaining":97,"tokens":3,"reset_at":10000,"source":"api"}`, string(record["event"]))
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	t.Cleanup(server.Close)
 	batch := testBatch()
-	batch.Events = []sink.Event{{EventID: "req:2", Stream: "ratelimits", Time: 123, Payload: sink.RatelimitPayload{RequestID: "req", CheckIndex: 2, NamespaceID: "ns", Identifier: "customer\n1", Passed: true, OverrideID: "override", Limit: 100, Remaining: 97, Tokens: 3, ResetAt: 10000, Source: "api"}}}
+	batch.Events = []sink.Event{{EventID: "req", Stream: "ratelimits", Time: 123, Payload: sink.RatelimitPayload{RequestID: "req", NamespaceID: "ns", Identifier: "customer\n1", Passed: true, OverrideID: "override", Limit: 100, Remaining: 97, Tokens: 3, ResetAt: 10000, Source: "api"}}}
 	result, err := newTestDrain(t, server.URL, "decisions", "token").Deliver(t.Context(), batch)
 	require.NoError(t, err)
 	require.True(t, result.Acknowledged)

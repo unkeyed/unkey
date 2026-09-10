@@ -18,21 +18,19 @@ func NewRatelimits(client *clickhouse.Client) *Ratelimits {
 }
 
 func (s *Ratelimits) Read(ctx context.Context, workspaceID string, from Cursor, toExclusive int64, limit int, cfg *logdrainv1.Config) ([]sink.Event, Cursor, error) {
-	const query = `SELECT inserted_at, time, event_id, request_id, check_index,
+	const query = `SELECT inserted_at, time, request_id,
 		namespace_id, identifier, passed, override_id, limit, remaining, reset_at, tokens
 		FROM ratelimits_raw_v2 WHERE workspace_id = {workspace:String}
 		AND (inserted_at > {from_time:Int64}
-		  OR (inserted_at = {from_time:Int64} AND event_id > {from_id:String}))
+		  OR (inserted_at = {from_time:Int64} AND request_id > {from_id:String}))
 		AND inserted_at < {to:Int64}
 		AND (empty({namespaces:Array(String)}) OR namespace_id IN {namespaces:Array(String)})
 		AND (empty({passed:Array(Bool)}) OR passed IN {passed:Array(Bool)})
-		ORDER BY inserted_at, event_id LIMIT {batch_size:UInt64}`
+		ORDER BY inserted_at, request_id LIMIT {batch_size:UInt64}`
 	type row struct {
 		InsertedAt  int64  `ch:"inserted_at"`
 		Time        int64  `ch:"time"`
-		EventID     string `ch:"event_id"`
 		RequestID   string `ch:"request_id"`
-		CheckIndex  uint32 `ch:"check_index"`
 		NamespaceID string `ch:"namespace_id"`
 		Identifier  string `ch:"identifier"`
 		Passed      bool   `ch:"passed"`
@@ -67,13 +65,13 @@ func (s *Ratelimits) Read(ctx context.Context, workspaceID string, from Cursor, 
 	next := from
 	for _, row := range rows {
 		payload := sink.RatelimitPayload{
-			RequestID: row.RequestID, CheckIndex: row.CheckIndex,
+			RequestID:   row.RequestID,
 			NamespaceID: row.NamespaceID, Identifier: row.Identifier,
 			Passed: row.Passed, OverrideID: row.OverrideID, Limit: row.Limit,
 			Remaining: row.Remaining, ResetAt: row.ResetAt, Tokens: row.Tokens, Source: "api",
 		}
-		events = append(events, sink.Event{EventID: row.EventID, Stream: "ratelimits", Time: row.Time, Payload: payload})
-		next = Cursor{Time: row.InsertedAt, EventID: row.EventID}
+		events = append(events, sink.Event{EventID: row.RequestID, Stream: "ratelimits", Time: row.Time, Payload: payload})
+		next = Cursor{Time: row.InsertedAt, EventID: row.RequestID}
 	}
 	return events, next, nil
 }

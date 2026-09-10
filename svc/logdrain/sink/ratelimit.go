@@ -3,7 +3,6 @@ package sink
 // RatelimitPayload exports one API rate-limit decision, not configuration audit events.
 type RatelimitPayload struct {
 	RequestID   string `json:"request_id"`
-	CheckIndex  uint32 `json:"check_index"`
 	NamespaceID string `json:"namespace_id"`
 	Identifier  string `json:"identifier"`
 	Passed      bool   `json:"passed"`
