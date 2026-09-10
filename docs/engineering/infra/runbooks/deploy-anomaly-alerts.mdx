@@ -88,10 +88,10 @@ approval. A manual call creates shared state and can overlap scheduled work.
 
 ## Diagnose incomplete windows
 
-Start with the structured warning from shard 0. It emits one warning per
-incomplete source and window with `source`, `region`, `watermark`, and
-`window_end`. The source values are `requests` and `resources`. Compare the
-named region's watermark with `window_end`.
+Start with the structured shard warning. It identifies the affected workspace,
+app, environment, source, and running region with `shard`, `source`, `region`,
+`watermark`, and `window_end`. The source values are `requests` and `resources`.
+Compare the named region's watermark with `window_end`.
 
 `GetAnomalySourceWatermarks` reads `{Source, Region, Watermark}` rows from
 `anomaly_source_watermarks_v1`. Inspect every region directly:
@@ -115,11 +115,12 @@ GROUP BY source, region
 ORDER BY source, region;
 ```
 
-A region is active for a source when its latest ingest is within the last 2
-hours. For each source, compare the minimum watermark across active regions
-with the expected window end. Every active region must have reached the end. A
-source with no active region is incomplete. A region with no ingest for more
-than 2 hours is inactive and does not block detection.
+A watermark row is available when that source and region received ingest in the
+last 2 hours. Compare the expected window end with every running topology region
+for the affected deployment. Every running region must have a watermark that
+reaches the end. A missing row is incomplete. Do not include regions that do not
+run the affected deployment. This scope prevents an unrelated sparse region
+from blocking healthy groups.
 
 The table is keyed by `(source, region)` and receives rows through materialized
 views on these raw sources:
@@ -149,10 +150,13 @@ The combined results must contain these seven objects:
 
 There is no instance-event watermark materialized view.
 
-Inspect the producer and materialized view for the delayed pair. If a region is
-unexpectedly inactive, check why it has produced no ingest for 2 hours. Do not
-reinterpret `INCOMPLETE` as `ZERO_COMPLETE`. An incomplete metric cannot open,
-advance, touch, or resolve an alert.
+Inspect the producer and materialized view for the delayed pair. If a running
+region has no row, check why it has produced no ingest for 2 hours. Confirm that
+the Frontline and Heimdall region configurations match `regions.name`. Confirm
+that decommissioned regions are stopped or removed from deployment topology. Do
+not reinterpret `INCOMPLETE` as `ZERO_COMPLETE`. An incomplete metric cannot
+open, advance, touch, or resolve an alert from telemetry. A stopped deployment
+can still resolve a request-drop alert at or after its firing time.
 
 Instance-event completeness is different because OOM and crash-loop rows are
 sparse. A row in `instance_events_raw_v1` is actionable even when the resources
@@ -247,9 +251,10 @@ restate kv get hydra.v1.DeployAnomalyService "${group_key}"
 ```
 
 Expected state keys are `candidate:<metric>`, `candidate_window:<metric>`,
-`open_alert:<metric>`, `fired_at:<metric>`, `quiet:<metric>`,
+`open_alert:<metric>`, `fired_at:<metric>`, `progress:<metric>`,
 `snapshot:<metric>`, and `open_alerts_reconciled`, plus the group-level
-`last_window_end`.
+`last_window_end`. `quiet:<metric>` can remain while older state migrates into
+`progress:<metric>`.
 
 The evaluator does not persist a prior detector `Input`. For a `ZERO_COMPLETE`
 request window, inspect the current rolling median and active-bucket count in
@@ -314,9 +319,9 @@ fields before recalculating the rule:
 Use `window_start` and `window_end` to query the metric source. Confirm all of
 these conditions:
 
-1. At least one region was active for the request or resource source, and every
-   active region had reached the window end. For a lifecycle event row, confirm
-   that the detector treated it as actionable without a separate event
+1. Every running topology region had a request or resource watermark that
+   reached the window end. Ignore unrelated regions. For a lifecycle event row,
+   confirm that the detector treated it as actionable without a separate event
    watermark.
 2. The environment was production.
 3. ClickHouse grouping removed deployment identity but retained the correct
