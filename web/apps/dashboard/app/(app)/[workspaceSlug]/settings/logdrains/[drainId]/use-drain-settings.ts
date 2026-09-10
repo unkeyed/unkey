@@ -70,14 +70,7 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
       const environmentField =
         drain.stream === "runtime_logs" ? "runtimeEnvironmentIds" : "environmentIds";
       const statusClasses = submittedStatusClasses(submitted);
-      const sources =
-        drain.stream === "runtime_logs"
-          ? {
-              projectIds: submitted.runtimeProjectIds,
-              appIds: submitted.runtimeAppIds,
-              environmentIds: submitted.runtimeEnvironmentIds,
-            }
-          : submittedSources(submitted);
+      const sources = submittedSources(submitted);
       const statusesChanged = !sameEventTypes(statusClasses, values.statusClasses);
       const projectsChanged = !sameEventTypes(sources.projectIds, values[projectField]);
       const appsChanged = !sameEventTypes(sources.appIds, values[appField]);

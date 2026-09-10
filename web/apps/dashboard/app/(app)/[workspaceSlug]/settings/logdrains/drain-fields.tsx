@@ -86,7 +86,7 @@ export function EventTypesField() {
     ))
     .with("gateway_requests", () => (
       <>
-        <GatewaySourcesField />
+        <SourcesField stream="gateway_requests" />
         <GatewayStatusesField />
       </>
     ))
@@ -98,11 +98,7 @@ function RuntimeFields() {
   const { control } = useFormContext<DrainFormValues>();
   return (
     <>
-      <ResourceFields
-        projectField="runtimeProjectIds"
-        appField="runtimeAppIds"
-        environmentField="runtimeEnvironmentIds"
-      />
+      <SourcesField stream="runtime_logs" />
       <Controller
         control={control}
         name="severities"
@@ -122,119 +118,16 @@ function RuntimeFields() {
   );
 }
 
-function ResourceFields({
-  projectField,
-  appField,
-  environmentField,
-}: {
-  projectField: "projectIds" | "runtimeProjectIds";
-  appField: "appIds" | "runtimeAppIds";
-  environmentField: "environmentIds" | "runtimeEnvironmentIds";
-}) {
-  const { control, getValues, setValue } = useFormContext<DrainFormValues>();
-  const projectIds = useWatch({ control, name: projectField });
-  const projects = trpc.deploy.project.list.useQuery();
-  const environments = trpc.deploy.environment.listAll.useQuery();
-  const projectLabels = new Map(projects.data?.map((project) => [project.id, project.name]));
-  const appLabels = new Map(
-    projects.data?.flatMap((project) =>
-      project.apps.map((app) => [app.id, `${project.name} / ${app.name}`] as const),
-    ),
-  );
-  const choices = [
-    {
-      name: projectField,
-      label: "Projects",
-      searchLabel: "Search projects",
-      placeholder: "All projects",
-      labels: projectLabels,
-      loading: projects.isLoading,
-      error: projects.error,
-    },
-    {
-      name: appField,
-      label: "Apps",
-      searchLabel: "Search apps",
-      placeholder: "All apps",
-      labels: new Map(
-        projects.data
-          ?.filter((project) => projectIds.length === 0 || projectIds.includes(project.id))
-          .flatMap((project) =>
-            project.apps.map((app) => [app.id, `${project.name} / ${app.name}`] as const),
-          ),
-      ),
-      loading: projects.isLoading,
-      error: projects.error,
-    },
-    {
-      name: environmentField,
-      label: "Environments",
-      searchLabel: "Search environments",
-      placeholder: "All environments",
-      labels: new Map(
-        environments.data?.map((environment) => [
-          environment.id,
-          `${appLabels.get(environment.appId) ?? environment.appId} / ${environment.name}`,
-        ]),
-      ),
-      loading: environments.isLoading,
-      error: environments.error,
-    },
-  ] as const;
-  return (
-    <>
-      <p className="text-xs text-gray-9">
-        Logs must match each selected filter. Leave a filter empty to send all values.
-      </p>
-      {choices.map((choice) => (
-        <Controller
-          key={choice.name}
-          control={control}
-          name={choice.name}
-          render={({ field }) => (
-            <FilterChoices
-              {...field}
-              onChange={(values) => {
-                field.onChange(values);
-                if (choice.name === projectField && values.length > 0 && projects.data) {
-                  const appIds = new Set(
-                    projects.data
-                      .filter((project) => values.includes(project.id))
-                      .flatMap((project) => project.apps.map((app) => app.id)),
-                  );
-                  setValue(
-                    appField,
-                    getValues(appField).filter((id) => appIds.has(id)),
-                    { shouldDirty: true, shouldValidate: true },
-                  );
-                }
-              }}
-              options={[...choice.labels.keys()]}
-              label={choice.label}
-              searchLabel={choice.searchLabel}
-              placeholder={choice.placeholder}
-              emptyMessage={
-                choice.error
-                  ? `Unable to load ${choice.label.toLowerCase()}.`
-                  : choice.loading
-                    ? "Loading…"
-                    : "No matches found."
-              }
-              getLabel={(id) => (choice.labels.has(id) ? `${choice.labels.get(id)} (${id})` : id)}
-            />
-          )}
-        />
-      ))}
-    </>
-  );
-}
-
-function GatewaySourcesField() {
+function SourcesField({ stream }: { stream: "gateway_requests" | "runtime_logs" }) {
+  const modeField = stream === "runtime_logs" ? "runtimeSourceMode" : "sourceMode";
+  const projectField = stream === "runtime_logs" ? "runtimeProjectIds" : "projectIds";
+  const appField = stream === "runtime_logs" ? "runtimeAppIds" : "appIds";
+  const environmentField = stream === "runtime_logs" ? "runtimeEnvironmentIds" : "environmentIds";
   const { control, formState, setValue } = useFormContext<DrainFormValues>();
-  const sourceMode = useWatch({ control, name: "sourceMode" });
-  const projectIds = useWatch({ control, name: "projectIds" });
-  const appIds = useWatch({ control, name: "appIds" });
-  const environmentIds = useWatch({ control, name: "environmentIds" });
+  const sourceMode = useWatch({ control, name: modeField });
+  const projectIds = useWatch({ control, name: projectField });
+  const appIds = useWatch({ control, name: appField });
+  const environmentIds = useWatch({ control, name: environmentField });
   const [query, setQuery] = useState("");
   const [collapsed, setCollapsed] = useState<string[]>([]);
   const projects = trpc.deploy.project.list.useQuery();
@@ -244,7 +137,7 @@ function GatewaySourcesField() {
   const selected = new Set(
     tickedEnvironmentIds(tree, sourceMode, { projectIds, appIds, environmentIds }),
   );
-  const error = formState.errors.environmentIds?.message;
+  const error = formState.errors[environmentField]?.message;
   const unavailable =
     Boolean(projects.error || environments.error) || projects.isLoading || environments.isLoading;
 
@@ -252,15 +145,15 @@ function GatewaySourcesField() {
     if (unavailable) {
       return;
     }
-    const everything = next.size === allIds.length;
+    const everything = next.size > 0 && next.size === allIds.length;
     const encoded = everything
       ? { projectIds: [], appIds: [], environmentIds: [] }
       : encodeSources(tree, next);
     const options = { shouldDirty: true, shouldValidate: true } as const;
-    setValue("sourceMode", everything ? "all" : "some", options);
-    setValue("projectIds", encoded.projectIds, options);
-    setValue("appIds", encoded.appIds, options);
-    setValue("environmentIds", encoded.environmentIds, options);
+    setValue(modeField, everything ? "all" : "some", options);
+    setValue(projectField, encoded.projectIds, options);
+    setValue(appField, encoded.appIds, options);
+    setValue(environmentField, encoded.environmentIds, options);
   };
 
   const toggle = (ids: string[]) => {
@@ -302,7 +195,9 @@ function GatewaySourcesField() {
     <fieldset disabled={unavailable} className="flex flex-col gap-1.5">
       <legend className="text-[13px] text-gray-11">Sources</legend>
       <span className="text-xs text-gray-9">
-        Tick the projects, apps or environments whose requests this drain receives.
+        {stream === "runtime_logs"
+          ? "Tick the projects, apps or environments whose logs this drain receives."
+          : "Tick the projects, apps or environments whose requests this drain receives."}
       </span>
 
       <div className="mt-1.5 overflow-hidden rounded-lg border border-gray-5">

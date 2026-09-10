@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   type DrainFormValues,
   createDrainSchema,
+  drainToFormValues,
   editDrainSchema,
   emptyDrainForm,
   submittedEventTypes,
@@ -21,6 +22,22 @@ const httpDrain = {
 } satisfies Partial<DrainFormValues>;
 
 describe("createDrainSchema", () => {
+  it.each([createDrainSchema, editDrainSchema])(
+    "rejects an empty runtime selection without using gateway sources",
+    (schema) => {
+      expect(
+        messagesFor(schema, {
+          ...httpDrain,
+          stream: "runtime_logs",
+          runtimeSourceMode: "some",
+          sourceMode: "some",
+          projectIds: ["gateway-project"],
+          statusMode: "custom",
+        }),
+      ).toEqual(["Choose at least one source"]);
+    },
+  );
+
   it("does not accept a historical delivery start offset", () => {
     const result = createDrainSchema.safeParse({
       ...emptyDrainForm,
@@ -154,6 +171,50 @@ describe("submittedStatusClasses", () => {
 });
 
 describe("submittedSources", () => {
+  it("initializes stored runtime restrictions in the runtime mode", () => {
+    const values = drainToFormValues({
+      id: "drain",
+      name: "Runtime",
+      status: "running",
+      kind: "http",
+      stream: "runtime_logs",
+      config: { url: "https://example.com/ingest", format: "ndjson", headers: ["Authorization"] },
+      eventTypes: [],
+      outcomes: [],
+      keySpaceIds: [],
+      statusClasses: [],
+      severities: ["warn"],
+      projectIds: ["deleted-project"],
+      appIds: [],
+      environmentIds: [],
+    });
+    expect(values.runtimeSourceMode).toBe("some");
+    expect(values.sourceMode).toBe("all");
+    expect(submittedSources(values)).toEqual({
+      projectIds: ["deleted-project"],
+      appIds: [],
+      environmentIds: [],
+    });
+  });
+
+  it("uses runtime sources even when the gateway mode is all", () => {
+    expect(
+      submittedSources({
+        ...emptyDrainForm,
+        stream: "runtime_logs",
+        runtimeSourceMode: "some",
+        runtimeProjectIds: ["runtime-project"],
+        runtimeEnvironmentIds: ["deleted-environment"],
+        sourceMode: "all",
+        projectIds: ["gateway-project"],
+      }),
+    ).toEqual({
+      projectIds: ["runtime-project"],
+      appIds: [],
+      environmentIds: ["deleted-environment"],
+    });
+  });
+
   it("sends no filter in all mode, whatever the kept selection is", () => {
     expect(
       submittedSources({ ...emptyDrainForm, sourceMode: "all", projectIds: ["project"] }),

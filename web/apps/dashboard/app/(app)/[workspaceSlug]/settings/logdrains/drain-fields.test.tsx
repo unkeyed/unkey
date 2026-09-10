@@ -4,33 +4,44 @@ import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import React from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { afterEach, expect, it, vi } from "vitest";
+import { CreateLogdrainPanel } from "./create-logdrain-panel";
 import { EventTypesField } from "./drain-fields";
 import { type DrainFormValues, createDrainSchema, emptyDrainForm } from "./drain-schema";
 
 vi.stubGlobal("React", React);
 vi.stubGlobal("PointerEvent", MouseEvent);
-const sourceState = vi.hoisted(() => ({ loading: false, failed: false, combined: false }));
+const sourceState = vi.hoisted(() => ({
+  loading: false,
+  failed: false,
+  combined: false,
+  empty: false,
+}));
+const createDrain = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/trpc/client", () => ({
   trpc: {
+    useUtils: () => ({ logdrain: { list: { invalidate: vi.fn() } } }),
+    logdrain: { create: { useMutation: () => ({ mutate: createDrain, isLoading: false }) } },
     deploy: {
       project: {
         list: {
           useQuery: () => ({
-            data: [
-              {
-                id: "project",
-                name: "Store",
-                apps: [
-                  { id: "app", name: "Backend" },
-                  ...(sourceState.combined ? [{ id: "other-app", name: "Reports" }] : []),
+            data: sourceState.empty
+              ? []
+              : [
+                  {
+                    id: "project",
+                    name: "Store",
+                    apps: [
+                      { id: "app", name: "Backend" },
+                      ...(sourceState.combined ? [{ id: "other-app", name: "Reports" }] : []),
+                    ],
+                  },
+                  {
+                    id: "other-project",
+                    name: "Analytics",
+                    apps: sourceState.combined ? [] : [{ id: "other-app", name: "Reports" }],
+                  },
                 ],
-              },
-              {
-                id: "other-project",
-                name: "Analytics",
-                apps: sourceState.combined ? [] : [{ id: "other-app", name: "Reports" }],
-              },
-            ],
             isLoading: sourceState.loading,
             error: sourceState.failed ? new Error("Unavailable") : null,
           }),
@@ -71,6 +82,50 @@ afterEach(() => {
   sourceState.loading = false;
   sourceState.failed = false;
   sourceState.combined = false;
+  sourceState.empty = false;
+  createDrain.mockClear();
+});
+
+it("submits only runtime filters after switching from a restricted gateway", async () => {
+  render(<CreateLogdrainPanel isOpen onClose={() => {}} />);
+  fireEvent.click(screen.getByRole("button", { name: /HTTP POST batches/ }));
+  fireEvent.change(screen.getByRole("textbox", { name: "Name Required" }), {
+    target: { value: "Runtime export" },
+  });
+  fireEvent.change(screen.getByRole("textbox", { name: "URL" }), {
+    target: { value: "https://example.com/ingest" },
+  });
+  fireEvent.click(screen.getByRole("combobox", { name: "Stream" }));
+  fireEvent.keyDown(await screen.findByRole("option", { name: "Gateway HTTP requests" }), {
+    key: "Enter",
+  });
+  fireEvent.click(await screen.findByRole("checkbox", { name: /Analytics/ }));
+  fireEvent.click(screen.getByRole("radio", { name: "Errors only" }));
+  fireEvent.click(screen.getByRole("combobox", { name: "Stream" }));
+  fireEvent.keyDown(await screen.findByRole("option", { name: "Runtime logs" }), { key: "Enter" });
+  expect(await screen.findByText("All 3 environments")).toBeTruthy();
+  fireEvent.click(screen.getByRole("checkbox", { name: /Store/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Create Log Drain" }));
+  await waitFor(() =>
+    expect(createDrain.mock.calls[0]?.[0]).toEqual({
+      name: "Runtime export",
+      stream: "runtime_logs",
+      severities: [],
+      projectIds: ["other-project"],
+      appIds: [],
+      environmentIds: [],
+      kind: "http",
+      config: { url: "https://example.com/ingest", format: "json", headers: {} },
+    }),
+  );
+});
+
+it("clears an empty source tree without treating it as unrestricted", () => {
+  sourceState.empty = true;
+  render(<Form />);
+  fireEvent.click(screen.getByText("Runtime"));
+  fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  expect(screen.getByText("0 of 0 environments")).toBeTruthy();
 });
 
 function Form() {
@@ -107,7 +162,7 @@ it("keeps runtime severity separate and preserves clearing across stream changes
   render(<Form />);
   fireEvent.click(screen.getByText("Runtime"));
   expect(screen.getByText("error")).toBeTruthy();
-  expect(screen.getByPlaceholderText("All projects")).toBeTruthy();
+  expect(screen.getByLabelText("Search sources")).toBeTruthy();
   expect(screen.queryByLabelText("Search HTTP statuses")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Remove" }));
   expect(screen.getByPlaceholderText("All severities")).toBeTruthy();

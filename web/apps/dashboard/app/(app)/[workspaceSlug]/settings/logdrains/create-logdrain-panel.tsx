@@ -107,9 +107,7 @@ export function CreateLogdrainPanel({
       ...(values.stream === "runtime_logs"
         ? {
             severities: values.severities,
-            projectIds: values.runtimeProjectIds,
-            appIds: values.runtimeAppIds,
-            environmentIds: values.runtimeEnvironmentIds,
+            ...submittedSources(values),
           }
         : values.stream === "audit_logs"
           ? { eventTypes: submittedEventTypes(values) }
