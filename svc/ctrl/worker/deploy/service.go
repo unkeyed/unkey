@@ -103,6 +103,8 @@ type Workflow struct {
 	allowUnauthenticatedDeployments bool
 	dashboardURL                    string
 
+	// restateAdmin also writes the per workspace deploy concurrency rule
+	// before each Deploy send. Optional: when nil, no rule is written
 	restateAdmin *restateadmin.Client
 }
 

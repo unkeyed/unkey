@@ -3,7 +3,6 @@ package deployment
 import (
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
-	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
@@ -21,15 +20,6 @@ type Service struct {
 	restateAdmin *restateadmin.Client
 	github       githubclient.GitHubClient
 	bearer       string
-}
-
-// deploymentClient creates a typed Restate ingress client for the DeployWorkflow
-// keyed by deployment_id. Each deployment runs as its own workflow, so multiple
-// deployments per environment can build in parallel. The contended resource
-// (apps.current_deployment_id) is serialized inside RoutingService via
-// SwapLiveDeployment.
-func (s *Service) deploymentClient(deploymentID string) hydrav1.DeployWorkflowIngressClient {
-	return hydrav1.NewDeployWorkflowIngressClient(s.restate, deploymentID)
 }
 
 // Config holds the configuration for creating a new [Service].

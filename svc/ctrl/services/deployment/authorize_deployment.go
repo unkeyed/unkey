@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 )
 
 // AuthorizeDeployment authorizes a deployment that is awaiting approval.
@@ -128,9 +129,7 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 			fmt.Errorf("deployment %s is no longer awaiting approval (concurrent update)", deploymentID))
 	}
 
-	// Keyed by deployment_id — each deployment runs as its own isolated
-	// workflow so multiple deployments can build in parallel.
-	invocation, sendErr := s.deploymentClient(deploymentID).Submit(ctx, deployReq)
+	invocation, sendErr := deploy.SendDeploy(ctx, s.restate, deployment.WorkspaceID, deployReq)
 	if sendErr != nil {
 		// Revert status back to awaiting_approval since the deploy failed.
 		if _, revertErr := s.db.CompareAndSwapDeploymentStatus(ctx, db.CompareAndSwapDeploymentStatusParams{
