@@ -17,7 +17,7 @@ const (
 	// CapKeysReroll lets the end user rotate the secret of an existing key.
 	CapKeysReroll = "keys:reroll"
 
-	// CapAnalyticsRead is half built: v2_portal_get_verifications authorizes it,
-	// but there is no analytics view and createSession does not accept the scope.
+	// CapAnalyticsRead lets the end user read a verification timeseries for their
+	// own keys. It is granted alongside keys:read, never on its own.
 	CapAnalyticsRead = "analytics:read"
 )
