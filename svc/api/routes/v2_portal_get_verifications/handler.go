@@ -116,7 +116,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if limits.LogsRetentionDaysMax > 0 && req.EndTime-req.StartTime > int64(limits.LogsRetentionDaysMax)*millisPerDay {
 		return fault.New("time window too large",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Code(codes.User.BadRequest.QueryRangeExceedsRetention.URN()),
 			fault.Internal("requested window exceeds workspace log retention"),
 			fault.Public(fmt.Sprintf("The requested time window is too large. The maximum window is %d days.", limits.LogsRetentionDaysMax)),
 		)

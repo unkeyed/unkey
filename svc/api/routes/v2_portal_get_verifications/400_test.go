@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -44,6 +45,23 @@ func TestPortalSessionAnalyticsRejectsOversizedWindow(t *testing.T) {
 
 	res := testutil.CallRoute[Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 	require.Equal(t, 400, res.Status, "window wider than retention must be rejected")
+
+	// The retention ceiling carries its own code, so a client can branch on it
+	// without matching the human message. It is the same code the operator
+	// analytics path raises against the same limit.
+	require.NotNil(t, res.Body)
+	require.Equal(t, codes.User.BadRequest.QueryRangeExceedsRetention.DocsURL(), res.Body.Error.Type,
+		"retention rejection must be distinguishable from ordinary input validation")
+
+	// An inverted window is ordinary input validation, not a retention ceiling,
+	// so the two stay distinguishable.
+	inverted := testutil.CallRoute[Request, openapi.BadRequestErrorResponse](h, route, headers, Request{
+		StartTime: now,
+		EndTime:   now - dayMs,
+	})
+	require.Equal(t, 400, inverted.Status)
+	require.NotNil(t, inverted.Body)
+	require.Equal(t, codes.App.Validation.InvalidInput.DocsURL(), inverted.Body.Error.Type)
 
 	// A window within retention is accepted.
 	ok := Request{
