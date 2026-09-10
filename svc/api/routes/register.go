@@ -834,9 +834,10 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		portalMiddlewares,
 		&v2PortalGetVerifications.Handler{
-			ClickHouse:  svc.ClickHouse,
-			DB:          svc.Database,
-			LimitsCache: svc.Caches.WorkspaceLimits,
+			ClickHouse:      svc.ClickHouse,
+			DB:              svc.Database,
+			LimitsCache:     svc.Caches.WorkspaceLimits,
+			MaxPerKeySeries: v2PortalGetVerifications.DefaultMaxPerKeySeries,
 		},
 	)
 
