@@ -27,17 +27,24 @@ type (
 // newHandler builds the standalone portal.getVerifications handler backed by the
 // harness's shared ClickHouse client.
 func newHandler(h *testutil.Harness) *handler.Handler {
-	return newHandlerWithKeyCap(h, handler.DefaultMaxPerKeySeries)
+	return newHandlerWithLimits(h, handler.DefaultMaxPerKeySeries, handler.DefaultMaxResponseBytes)
 }
 
 // newHandlerWithKeyCap builds the handler with an explicit per-key breakout cap
 // so a test can reach it without seeding the production number of keys.
 func newHandlerWithKeyCap(h *testutil.Harness, maxPerKeySeries int) *handler.Handler {
+	return newHandlerWithLimits(h, maxPerKeySeries, handler.DefaultMaxResponseBytes)
+}
+
+// newHandlerWithLimits builds the handler with explicit ceilings so a test can
+// reach either one without seeding production-scale data.
+func newHandlerWithLimits(h *testutil.Harness, maxPerKeySeries, maxResponseBytes int) *handler.Handler {
 	return &handler.Handler{
-		ClickHouse:      h.ClickHouse,
-		DB:              h.DB,
-		LimitsCache:     h.Caches.WorkspaceLimits,
-		MaxPerKeySeries: maxPerKeySeries,
+		ClickHouse:       h.ClickHouse,
+		DB:               h.DB,
+		LimitsCache:      h.Caches.WorkspaceLimits,
+		MaxPerKeySeries:  maxPerKeySeries,
+		MaxResponseBytes: maxResponseBytes,
 	}
 }
 
