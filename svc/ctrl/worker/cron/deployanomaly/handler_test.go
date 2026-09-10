@@ -87,8 +87,6 @@ func TestNewHandlerDefaultsShardCount(t *testing.T) {
 func TestActionableGroups(t *testing.T) {
 	t.Parallel()
 
-	windowStart := int64(2_000_000)
-	windowEnd := windowStart + windowDurationMillis
 	spike := anomalyGroup{"ws-b", "p", "app", "env"}
 	open := anomalyGroup{"ws-a", "p", "app", "env"}
 	incomplete := anomalyGroup{"ws-c", "p", "app", "env"}
@@ -104,9 +102,7 @@ func TestActionableGroups(t *testing.T) {
 		incomplete: {request: &clickhouse.RequestAnomalyWindow{RequestsCurrent: 1_000, CurrentBucketPresent: true}},
 	}
 
-	got := actionableGroups(groups, ingestCompleteness{
-		Requests: sourceStatus{Complete: true, Watermark: windowEnd},
-	})
+	got := actionableGroups(groups)
 	require.Equal(t, []anomalyGroup{open, spike, incomplete}, got)
 }
 
@@ -114,31 +110,40 @@ func TestSourceCompleteness(t *testing.T) {
 	t.Parallel()
 
 	const windowEnd = int64(2_000_000)
-	t.Run("one active lagging region is incomplete", func(t *testing.T) {
+	t.Run("relevant lagging region is incomplete", func(t *testing.T) {
 		status := sourceStatusFor(clickhouse.AnomalySourceWatermarks{
 			{Source: clickhouse.AnomalySourceRequests, Region: "us-east-1", Watermark: windowEnd},
 			{Source: clickhouse.AnomalySourceRequests, Region: "eu-west-1", Watermark: windowEnd - 1},
-		}, clickhouse.AnomalySourceRequests, windowEnd)
+		}, clickhouse.AnomalySourceRequests, []string{"us-east-1", "eu-west-1"}, windowEnd)
 
 		require.False(t, status.Complete)
 		require.Equal(t, "eu-west-1", status.LaggingRegion)
 		require.Equal(t, windowEnd-1, status.Watermark)
 	})
 
-	t.Run("inactive region is absent and does not block", func(t *testing.T) {
+	t.Run("unrelated lagging region does not block", func(t *testing.T) {
 		status := sourceStatusFor(clickhouse.AnomalySourceWatermarks{
 			{Source: clickhouse.AnomalySourceRequests, Region: "us-east-1", Watermark: windowEnd},
-		}, clickhouse.AnomalySourceRequests, windowEnd)
+			{Source: clickhouse.AnomalySourceRequests, Region: "eu-west-1", Watermark: windowEnd - 1},
+		}, clickhouse.AnomalySourceRequests, []string{"us-east-1"}, windowEnd)
 
 		require.True(t, status.Complete)
 		require.Equal(t, "us-east-1", status.LaggingRegion)
 	})
 
-	t.Run("no active region is incomplete", func(t *testing.T) {
-		status := sourceStatusFor(nil, clickhouse.AnomalySourceRequests, windowEnd)
+	t.Run("missing relevant watermark is incomplete", func(t *testing.T) {
+		status := sourceStatusFor(nil, clickhouse.AnomalySourceRequests, []string{"us-east-1"}, windowEnd)
 
 		require.False(t, status.Complete)
-		require.Equal(t, "none-active", status.LaggingRegion)
+		require.Equal(t, "us-east-1", status.LaggingRegion)
+		require.Zero(t, status.Watermark)
+	})
+
+	t.Run("no running region is incomplete", func(t *testing.T) {
+		status := sourceStatusFor(nil, clickhouse.AnomalySourceRequests, nil, windowEnd)
+
+		require.False(t, status.Complete)
+		require.Equal(t, "none-running", status.LaggingRegion)
 	})
 }
 

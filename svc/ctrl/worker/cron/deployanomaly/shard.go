@@ -88,6 +88,7 @@ type groupMetadata struct {
 	DeploymentID               string
 	DeploymentDesiredState     string
 	DeploymentHasRunningRegion bool
+	DeploymentRunningRegions   []string
 }
 
 type ShardConfig struct {
@@ -187,16 +188,12 @@ func (h *ShardHandler) EvaluateShard(
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("read anomaly ingest watermarks"))
 	}
-	completeness := sourceCompleteness(watermarks, windowEnd)
-	logIncompleteSources(shard, windowEnd, completeness)
-
 	filter := candidateFilter(DefaultConfig(SensitivityNormal))
 	baseRequest := clickhouse.AnomalyWindowsRequest{
 		WindowStart: windowStart, WorkspaceIDs: nil, GroupKeys: groupKeys,
 		Shard: shard, ShardCount: shardCount, SkipFleet: false, CandidateFilter: &filter,
 	}
 	requestQuery := baseRequest
-	requestQuery.SkipFleet = !completeness.Requests.Complete
 	requestWindows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.RequestAnomalyWindow, error) {
 		return h.clickhouse.GetRequestAnomalyWindows(rc, requestQuery)
 	}, restate.WithName("read request anomaly candidates"))
@@ -204,7 +201,6 @@ func (h *ShardHandler) EvaluateShard(
 		return nil, fault.Wrap(err, fault.Internal("read request anomaly candidates"))
 	}
 	resourceQuery := baseRequest
-	resourceQuery.SkipFleet = !completeness.Resources.Complete
 	resourceWindows, err := restate.Run(ctx, func(rc restate.RunContext) ([]clickhouse.ResourceAnomalyWindow, error) {
 		return h.clickhouse.GetResourceAnomalyWindows(rc, resourceQuery)
 	}, restate.WithName("read resource anomaly candidates"))
@@ -221,7 +217,7 @@ func (h *ShardHandler) EvaluateShard(
 	}
 
 	groups := mergeGroupWindows(requestWindows, resourceWindows, eventWindows, forced)
-	keys := actionableGroups(groups, completeness)
+	keys := actionableGroups(groups)
 	metadata, err := h.resolveMetadata(ctx, keys)
 	if err != nil {
 		return nil, err
@@ -234,6 +230,8 @@ func (h *ShardHandler) EvaluateShard(
 		if item.EnvironmentKind != mysqltype.EnvironmentKindProduction {
 			continue
 		}
+		completeness := sourceCompleteness(watermarks, item.DeploymentRunningRegions, windowEnd)
+		logIncompleteSources(shard, item.Group, windowEnd, completeness)
 		request := evaluateRequest(item, groups[item.Group], windowStart, windowEnd, completeness)
 		futures = append(futures, hydrav1.NewDeployAnomalyServiceClient(ctx, item.Group.key()).
 			Evaluate().RequestFuture(request))
@@ -278,13 +276,23 @@ func (h *ShardHandler) resolveMetadata(ctx restate.ObjectContext, groups []anoma
 		if err != nil {
 			return nil, fault.Wrap(err, fault.Internal("resolve anomaly group metadata"))
 		}
-		found := make(map[anomalyGroup]struct{}, len(rows))
+		found := make(map[anomalyGroup]int, len(rows))
 		for _, row := range rows {
 			group := anomalyGroup{
 				WorkspaceID: row.WorkspaceID, ProjectID: row.ProjectID,
 				AppID: row.AppID, EnvironmentID: row.EnvironmentID,
 			}
-			found[group] = struct{}{}
+			if index, ok := found[group]; ok {
+				if row.DeploymentRunningRegion != "" {
+					metadata[index].DeploymentRunningRegions = append(metadata[index].DeploymentRunningRegions, row.DeploymentRunningRegion)
+				}
+				continue
+			}
+			found[group] = len(metadata)
+			runningRegions := []string(nil)
+			if row.DeploymentRunningRegion != "" {
+				runningRegions = []string{row.DeploymentRunningRegion}
+			}
 			metadata = append(metadata, groupMetadata{
 				Group: group,
 				OrgID: row.OrgID, WorkspaceName: row.WorkspaceName,
@@ -293,6 +301,7 @@ func (h *ShardHandler) resolveMetadata(ctx restate.ObjectContext, groups []anoma
 				EnvironmentKind: row.EnvironmentKind, EnvironmentSlug: row.EnvironmentSlug,
 				DeploymentID: row.DeploymentID.String, DeploymentDesiredState: string(row.DeploymentDesiredState),
 				DeploymentHasRunningRegion: row.DeploymentHasRunningRegion,
+				DeploymentRunningRegions:   runningRegions,
 			})
 		}
 		missing := make([]anomalyGroup, 0, len(batch)-len(found))
@@ -374,12 +383,10 @@ func mergeGroupWindows(
 	return groups
 }
 
-func actionableGroups(groups map[anomalyGroup]groupWindow, completeness ingestCompleteness) []anomalyGroup {
+func actionableGroups(groups map[anomalyGroup]groupWindow) []anomalyGroup {
 	actionable := make([]anomalyGroup, 0, len(groups))
 	for group, values := range groups {
-		if values.forced || values.events != nil ||
-			(values.request != nil && completeness.Requests.Complete) ||
-			(values.resource != nil && completeness.Resources.Complete) {
+		if values.forced || values.events != nil || values.request != nil || values.resource != nil {
 			actionable = append(actionable, group)
 		}
 	}
@@ -488,34 +495,38 @@ type ingestCompleteness struct {
 	Resources sourceStatus
 }
 
-func sourceCompleteness(watermarks clickhouse.AnomalySourceWatermarks, windowEnd int64) ingestCompleteness {
+func sourceCompleteness(watermarks clickhouse.AnomalySourceWatermarks, regions []string, windowEnd int64) ingestCompleteness {
 	return ingestCompleteness{
-		Requests:  sourceStatusFor(watermarks, clickhouse.AnomalySourceRequests, windowEnd),
-		Resources: sourceStatusFor(watermarks, clickhouse.AnomalySourceResources, windowEnd),
+		Requests:  sourceStatusFor(watermarks, clickhouse.AnomalySourceRequests, regions, windowEnd),
+		Resources: sourceStatusFor(watermarks, clickhouse.AnomalySourceResources, regions, windowEnd),
 	}
 }
 
-func sourceStatusFor(watermarks clickhouse.AnomalySourceWatermarks, source string, windowEnd int64) sourceStatus {
-	status := sourceStatus{Complete: false, LaggingRegion: "none-active", Watermark: 0}
-	found := false
+func sourceStatusFor(watermarks clickhouse.AnomalySourceWatermarks, source string, regions []string, windowEnd int64) sourceStatus {
+	status := sourceStatus{Complete: len(regions) > 0, LaggingRegion: "none-running", Watermark: 0}
+	byRegion := make(map[string]int64, len(watermarks))
 	for _, watermark := range watermarks {
-		if watermark.Source != source {
-			continue
+		if watermark.Source == source {
+			byRegion[watermark.Region] = watermark.Watermark
 		}
-		if !found || watermark.Watermark < status.Watermark || (watermark.Watermark == status.Watermark && watermark.Region < status.LaggingRegion) {
-			status.LaggingRegion = watermark.Region
-			status.Watermark = watermark.Watermark
-		}
-		found = true
 	}
-	status.Complete = found && status.Watermark >= windowEnd
+	selected := false
+	for _, region := range regions {
+		watermark, found := byRegion[region]
+		if !selected || watermark < status.Watermark ||
+			(watermark == status.Watermark && region < status.LaggingRegion) {
+			status.LaggingRegion = region
+			status.Watermark = watermark
+			selected = true
+		}
+		if !found || watermark < windowEnd {
+			status.Complete = false
+		}
+	}
 	return status
 }
 
-func logIncompleteSources(shard uint64, windowEnd int64, completeness ingestCompleteness) {
-	if shard != 0 {
-		return
-	}
+func logIncompleteSources(shard uint64, group anomalyGroup, windowEnd int64, completeness ingestCompleteness) {
 	for _, item := range []struct {
 		source string
 		status sourceStatus
@@ -526,7 +537,9 @@ func logIncompleteSources(shard uint64, windowEnd int64, completeness ingestComp
 		if item.status.Complete {
 			continue
 		}
-		logger.Warn("deploy anomaly source incomplete in active region",
+		logger.Warn("deploy anomaly source incomplete in running region",
+			"shard", shard, "workspace_id", group.WorkspaceID,
+			"app_id", group.AppID, "environment_id", group.EnvironmentID,
 			"source", item.source, "region", item.status.LaggingRegion,
 			"watermark", item.status.Watermark, "window_end", windowEnd,
 		)

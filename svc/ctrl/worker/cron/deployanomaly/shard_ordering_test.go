@@ -117,9 +117,10 @@ func TestReverseDeliveryWaitsForPreviousAnomalyShard(t *testing.T) {
 type shardTestDB struct {
 	db.Database
 
-	mu           sync.Mutex
-	inserted     []db.InsertAlertEventParams
-	listOpenRuns atomic.Int32
+	mu            sync.Mutex
+	inserted      []db.InsertAlertEventParams
+	listOpenRuns  atomic.Int32
+	runningRegion string
 }
 
 func (d *shardTestDB) ListOpenAlertEventGroups(context.Context) ([]db.ListOpenAlertEventGroupsRow, error) {
@@ -138,6 +139,7 @@ func (d *shardTestDB) FindLiveDeploymentsForEnvironments(
 		DeploymentID:               sql.NullString{String: "deployment", Valid: true},
 		DeploymentDesiredState:     mysqltype.DeploymentsDesiredStateRunning,
 		DeploymentHasRunningRegion: true,
+		DeploymentRunningRegion:    d.runningRegion,
 	}}, nil
 }
 
@@ -164,12 +166,17 @@ func (d *shardTestDB) insertedAlerts() []db.InsertAlertEventParams {
 type shardTestClickhouse struct {
 	clickhouse.ClickHouse
 
-	returnAnomaly bool
-	queryRuns     atomic.Int32
+	returnAnomaly    bool
+	immediateAnomaly bool
+	queryRuns        atomic.Int32
+	watermarks       clickhouse.AnomalySourceWatermarks
 }
 
 func (c *shardTestClickhouse) GetAnomalySourceWatermarks(context.Context) (clickhouse.AnomalySourceWatermarks, error) {
 	c.queryRuns.Add(1)
+	if c.watermarks != nil {
+		return c.watermarks, nil
+	}
 	return clickhouse.AnomalySourceWatermarks{
 		{Source: clickhouse.AnomalySourceRequests, Region: "test", Watermark: int64(^uint64(0) >> 1)},
 		{Source: clickhouse.AnomalySourceResources, Region: "test", Watermark: int64(^uint64(0) >> 1)},
@@ -184,9 +191,13 @@ func (c *shardTestClickhouse) GetRequestAnomalyWindows(
 	if !c.returnAnomaly {
 		return nil, nil
 	}
+	error5xxCurrent := float64(40)
+	if c.immediateAnomaly {
+		error5xxCurrent = 50
+	}
 	return []clickhouse.RequestAnomalyWindow{{
 		WorkspaceID: "ws", ProjectID: "project", AppID: "app", EnvironmentID: "env",
-		Error5xxCurrent: 40, Error5xxBaselineMean: 0.1, Error5xxBaselineStddev: 0.01,
+		Error5xxCurrent: error5xxCurrent, Error5xxBaselineMean: 0.1, Error5xxBaselineStddev: 0.01,
 		RequestsCurrent: 100, BaselineBuckets: 12, CurrentBucketPresent: true,
 	}}, nil
 }
@@ -212,7 +223,7 @@ func startShardTestEnvironment(
 	returnAnomaly bool,
 ) (containers.RestateConfig, *shardTestDB, *shardTestClickhouse) {
 	t.Helper()
-	database := &shardTestDB{}
+	database := &shardTestDB{runningRegion: "test"}
 	ch := &shardTestClickhouse{ClickHouse: clickhouse.NewNoop(), returnAnomaly: returnAnomaly}
 	shardHandler, err := deployanomaly.NewShardHandler(deployanomaly.ShardConfig{DB: database, Clickhouse: ch})
 	require.NoError(t, err)
@@ -223,6 +234,42 @@ func startShardTestEnvironment(
 		hydrav1.NewDeployAnomalyServiceServer(checkHandler),
 	)
 	return testEnv, database, ch
+}
+
+func TestShardScopesCompletenessToDeploymentRegions(t *testing.T) {
+	windowStart := time.Now().UTC().Add(-15 * time.Minute).Truncate(5 * time.Minute).UnixMilli()
+	windowEnd := windowStart + 5*time.Minute.Milliseconds()
+
+	t.Run("unrelated lagging region does not suppress candidate", func(t *testing.T) {
+		testEnv, database, ch := startShardTestEnvironment(t, true)
+		ch.immediateAnomaly = true
+		ch.watermarks = clickhouse.AnomalySourceWatermarks{
+			{Source: clickhouse.AnomalySourceRequests, Region: "test", Watermark: windowEnd},
+			{Source: clickhouse.AnomalySourceRequests, Region: "sparse", Watermark: windowEnd - 35*time.Minute.Milliseconds()},
+			{Source: clickhouse.AnomalySourceResources, Region: "test", Watermark: windowEnd},
+		}
+
+		response := invokeShard(t, testEnv, windowStart, windowStart)
+
+		require.Equal(t, int32(1), response.GetGroupsDispatched())
+		require.Len(t, database.insertedAlerts(), 1)
+	})
+
+	t.Run("lagging deployment region suppresses candidate", func(t *testing.T) {
+		testEnv, database, ch := startShardTestEnvironment(t, true)
+		ch.immediateAnomaly = true
+		database.runningRegion = "sparse"
+		ch.watermarks = clickhouse.AnomalySourceWatermarks{
+			{Source: clickhouse.AnomalySourceRequests, Region: "test", Watermark: windowEnd},
+			{Source: clickhouse.AnomalySourceRequests, Region: "sparse", Watermark: windowEnd - 35*time.Minute.Milliseconds()},
+			{Source: clickhouse.AnomalySourceResources, Region: "sparse", Watermark: windowEnd},
+		}
+
+		response := invokeShard(t, testEnv, windowStart, windowStart)
+
+		require.Equal(t, int32(1), response.GetGroupsDispatched())
+		require.Empty(t, database.insertedAlerts())
+	})
 }
 
 func invokeShard(
