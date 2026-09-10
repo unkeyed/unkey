@@ -47,8 +47,8 @@ func (w *Workflow) syncDeployConcurrencyRule(ctx restate.Context, workspaceID st
 		if err != nil && !db.IsNotFound(err) {
 			return fmt.Errorf("failed to load workspace build limit: %w", err)
 		}
-		// incase someone or something accidentally, puts "0" as concurreny limit.
-		// Restate doesn't allow that, but its easier to fail fast here.
+		// Restate rejects a rule with concurrency zero, so a zero row would
+		// fail every sync for the workspace instead of writing a limit
 		concurrency := max(defaultDeployConcurrency, uint32(limit))
 		return w.restateAdmin.UpsertLimitRule(runCtx, workspaceID+"/"+ConcurrencyLimitKey, concurrency)
 	}, restate.WithName("sync deploy concurrency rule"), restate.WithMaxRetryAttempts(runMaxAttempts))
