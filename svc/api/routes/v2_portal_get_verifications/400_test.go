@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_verifications"
 )
 
 // TestPortalSessionAnalyticsRejectsOversizedWindow verifies the query window is
@@ -164,4 +165,76 @@ func TestPortalSessionAnalyticsRejectsOversizedPerKeyBreakout(t *testing.T) {
 	require.Equal(t, 200, res.Status, "the account-wide series still answers past the per-key cap")
 	require.Equal(t, int64(2), sumTotals(res.Body.Data))
 	require.Nil(t, res.Body.Keys)
+}
+
+// TestPortalSessionAnalyticsRejectsOversizedResponse pins the response-size
+// ceiling. The key cap bounds how many series a breakout carries, not how large
+// they are, so a body past the shared analytics limit is refused rather than
+// serialized off the shared connection.
+func TestPortalSessionAnalyticsRejectsOversizedResponse(t *testing.T) {
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
+
+	workspace := h.CreateWorkspace()
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+	h.SetupAnalytics(workspace.ID)
+
+	route := newHandlerWithLimits(h, handler.DefaultMaxPerKeySeries, 4096)
+	h.Register(route, h.PortalMiddleware()...)
+
+	externalA := "portal_user_A"
+	identityA := h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: workspace.ID,
+		ExternalID:  externalA,
+	})
+
+	// A minute-granularity window over several keys is what makes the body grow:
+	// every key carries a bucket per minute it saw traffic. The ceiling is
+	// lowered rather than seeding a production-scale body.
+	now := time.Now().UnixMilli()
+	minuteMs := int64(time.Minute / time.Millisecond)
+	for range 8 {
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			IdentityID:  ptr.P(identityA.ID),
+		})
+		for i := range 10 {
+			h.KeyVerifications.Buffer(schema.KeyVerification{
+				RequestID:   uid.New(uid.RequestPrefix),
+				Time:        now - int64(i)*minuteMs,
+				WorkspaceID: workspace.ID,
+				KeySpaceID:  api.KeyAuthID.String,
+				KeyID:       key.KeyID,
+				Region:      "us-west-1",
+				Outcome:     "VALID",
+				IdentityID:  identityA.ID,
+				ExternalID:  externalA,
+				Tags:        []string{},
+			})
+		}
+	}
+
+	headers := h.CreatePortalSession(workspace.ID, externalA, []string{api.KeyAuthID.String}, []string{"analytics:read"})
+
+	// A ten-minute window keeps the account-wide series small while the per-key
+	// breakout multiplies it by the key count, so the ceiling is crossed only by
+	// the breakout.
+	req := Request{
+		StartTime: now - 10*minuteMs,
+		EndTime:   now + minuteMs,
+		PerKey:    ptr.P(true),
+	}
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		res := testutil.CallRoute[Request, openapi.UnprocessableEntityErrorResponse](h, route, headers, req)
+		require.Equal(c, 422, res.Status, "a body past the analytics size ceiling must be refused")
+	}, 60*time.Second, time.Second)
+
+	// The account-wide series is small and still answers.
+	withoutBreakout := req
+	withoutBreakout.PerKey = nil
+	ok := testutil.CallRoute[Request, Response](h, route, headers, withoutBreakout)
+	require.Equal(t, 200, ok.Status, "the account-wide series still answers past the size ceiling")
 }

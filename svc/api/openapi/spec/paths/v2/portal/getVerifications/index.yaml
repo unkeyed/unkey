@@ -58,6 +58,12 @@ post:
         application/json:
           schema:
             $ref: "../../../../error/NotFoundErrorResponse.yaml"
+    "422":
+      description: Query exceeds the maximum response size
+      content:
+        application/json:
+          schema:
+            $ref: "../../../../error/UnprocessableEntityErrorResponse.yaml"
     "429":
       description: Too Many Requests
       content:

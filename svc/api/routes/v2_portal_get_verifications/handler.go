@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -30,6 +31,11 @@ const millisPerDay = 24 * 60 * 60 * 1000
 // thousand keys with traffic in one window is far outside real usage.
 const DefaultMaxPerKeySeries = 1000
 
+// DefaultMaxResponseBytes is the encoded response ceiling, shared with the
+// operator analytics routes so one end user cannot pull an arbitrarily large
+// body off the connection those routes also use.
+const DefaultMaxResponseBytes = clickhouse.AnalyticsResultBytesMax
+
 type (
 	Request  = openapi.V2PortalGetVerificationsRequestBody
 	Response = openapi.V2PortalGetVerificationsResponseBody
@@ -42,10 +48,11 @@ type (
 // handler, which requires a per-workspace ClickHouse user and a query-language
 // parser that are inappropriate for an end user.
 type Handler struct {
-	ClickHouse      clickhouse.ClickHouse
-	DB              db.Database
-	LimitsCache     cache.Cache[string, keysdb.Limit]
-	MaxPerKeySeries int
+	ClickHouse       clickhouse.ClickHouse
+	DB               db.Database
+	LimitsCache      cache.Cache[string, keysdb.Limit]
+	MaxPerKeySeries  int
+	MaxResponseBytes int
 }
 
 // Method returns the HTTP method this route responds to.
@@ -173,7 +180,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		response.Keys = &keys
 	}
 
-	return s.JSON(http.StatusOK, response)
+	// The key cap bounds how many series a breakout carries, not how large they
+	// are: a window at minute granularity multiplies each key by its buckets.
+	responseBytes, err := json.Marshal(response)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("failed to encode verification timeseries"),
+			fault.Public("An internal error occurred."),
+		)
+	}
+
+	if len(responseBytes) > h.MaxResponseBytes {
+		return fault.New("verification response byte limit exceeded",
+			fault.Code(codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN()),
+			fault.Public("Query result exceeds the maximum response size. Request a narrower window or a single `keyId`."),
+		)
+	}
+
+	s.AddHeader("Content-Type", "application/json")
+	return s.Send(http.StatusOK, responseBytes)
 }
 
 // toDataPoints converts a ClickHouse timeseries into its API representation.
