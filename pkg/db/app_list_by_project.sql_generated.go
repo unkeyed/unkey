@@ -19,7 +19,6 @@ SELECT
   apps.name,
   apps.slug,
   apps.source_type,
-  apps.default_branch,
   apps.current_deployment_id,
   apps.is_rolled_back,
   apps.delete_protection,
@@ -54,7 +53,6 @@ type ListAppsByProjectRow struct {
 	Name                string         `db:"name"`
 	Slug                string         `db:"slug"`
 	SourceType          AppsSourceType `db:"source_type"`
-	DefaultBranch       string         `db:"default_branch"`
 	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
 	IsRolledBack        bool           `db:"is_rolled_back"`
 	DeleteProtection    sql.NullBool   `db:"delete_protection"`
@@ -75,7 +73,6 @@ type ListAppsByProjectRow struct {
 //	  apps.name,
 //	  apps.slug,
 //	  apps.source_type,
-//	  apps.default_branch,
 //	  apps.current_deployment_id,
 //	  apps.is_rolled_back,
 //	  apps.delete_protection,
@@ -118,7 +115,6 @@ func (q *Queries) ListAppsByProject(ctx context.Context, db DBTX, arg ListAppsBy
 			&i.Name,
 			&i.Slug,
 			&i.SourceType,
-			&i.DefaultBranch,
 			&i.CurrentDeploymentID,
 			&i.IsRolledBack,
 			&i.DeleteProtection,

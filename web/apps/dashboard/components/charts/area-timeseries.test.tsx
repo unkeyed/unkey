@@ -4,14 +4,25 @@ import { describe, expect, it, vi } from "vitest";
 import { AreaTimeseriesChart } from "./area-timeseries";
 
 vi.mock("recharts", () => ({
-  Area: () => null,
-  AreaChart: ({ children }: PropsWithChildren) => <svg>{children}</svg>,
+  Area: ({ dataKey, fill, stroke }: { dataKey: string; fill: string; stroke: string }) => (
+    <path data-testid="area" data-data-key={dataKey} data-fill={fill} data-stroke={stroke} />
+  ),
+  AreaChart: ({ children, data }: PropsWithChildren<{ data: unknown }>) => (
+    <svg data-testid="area-chart" data-chart-data={JSON.stringify(data)}>
+      {children}
+    </svg>
+  ),
   CartesianGrid: () => null,
   XAxis: ({ domain, hide }: { domain: unknown; hide: boolean }) => (
     <g data-testid="x-axis" data-domain={JSON.stringify(domain)} data-hidden={hide} />
   ),
-  YAxis: ({ domain, hide }: { domain: unknown; hide: boolean }) => (
-    <g data-testid="y-axis" data-domain={JSON.stringify(domain)} data-hidden={hide} />
+  YAxis: ({ domain, hide, width }: { domain: unknown; hide: boolean; width: number }) => (
+    <g
+      data-testid="y-axis"
+      data-domain={JSON.stringify(domain)}
+      data-hidden={hide}
+      data-width={width}
+    />
   ),
 }));
 
@@ -52,9 +63,9 @@ describe("AreaTimeseriesChart axis configuration", () => {
       />,
     );
 
-    expect(container.querySelector('[data-testid="y-axis"]')?.getAttribute("data-domain")).toBe(
-      "[0,11]",
-    );
+    const yAxis = container.querySelector('[data-testid="y-axis"]');
+    expect(yAxis?.getAttribute("data-domain")).toBe("[0,11]");
+    expect(yAxis?.getAttribute("data-width")).toBe("36");
   });
 
   it("retains configured domains when the axes are hidden", () => {

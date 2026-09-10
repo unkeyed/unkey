@@ -13,6 +13,7 @@ import {
 } from "./config";
 import {
   type HttpHeaderUpdate,
+  eventTypesSchema,
   httpFormatSchema,
   httpHeaderUpdatesSchema,
   httpsUrl,
@@ -55,11 +56,15 @@ export const updateLogdrain = workspaceProcedure
         id: z.string().min(1),
         name: z.string().trim().min(1).max(128).optional(),
         status: z.enum(["running", "paused_by_user"]).optional(),
+        eventTypes: eventTypesSchema.optional(),
         destination: updateDestinationSchema.optional(),
       })
       .refine(
         (input) =>
-          input.name !== undefined || input.status !== undefined || input.destination !== undefined,
+          input.name !== undefined ||
+          input.status !== undefined ||
+          input.eventTypes !== undefined ||
+          input.destination !== undefined,
         "At least one update is required",
       ),
   )
@@ -112,7 +117,17 @@ export const updateLogdrain = workspaceProcedure
           throw new TRPCError({ code: "NOT_FOUND", message: "Log drain not found" });
         }
         const existing = decodeLogdrainConfig(drain.config);
-        let config = drain.config;
+        const stream = {
+          ...existing.stream,
+          eventTypes: input.eventTypes ?? existing.stream.eventTypes,
+        };
+        let config =
+          input.eventTypes === undefined
+            ? drain.config
+            : encodeLogdrainConfig({
+                ...existing,
+                stream,
+              });
         switch (destination?.kind) {
           case "http":
             switch (existing.kind) {
@@ -130,6 +145,7 @@ export const updateLogdrain = workspaceProcedure
                 }
                 config = encodeLogdrainConfig({
                   kind: destination.kind,
+                  stream,
                   url: destination.config.url ?? existing.url,
                   format: destination.config.format ?? existing.format,
                   headers,
@@ -155,6 +171,7 @@ export const updateLogdrain = workspaceProcedure
               case "axiom":
                 config = encodeLogdrainConfig({
                   kind: destination.kind,
+                  stream,
                   dataset: destination.config.dataset ?? existing.dataset,
                   encryptedToken: encryptedToken ?? existing.encryptedToken,
                 });
@@ -169,19 +186,18 @@ export const updateLogdrain = workspaceProcedure
             throw new Error(`Unsupported log drain sink: ${destination satisfies never}`);
         }
 
-        const resetFailureState = input.status === "running" || destination !== undefined;
-        const expireLease = input.status !== undefined || destination !== undefined;
+        const changesDelivery = destination !== undefined || input.eventTypes !== undefined;
+        const resetFailureState = input.status === "running" || changesDelivery;
+        const expireLease = input.status !== undefined || changesDelivery;
         const status =
           input.status ??
-          (destination !== undefined && drain.status === "paused_by_failure"
-            ? "running"
-            : undefined);
+          (changesDelivery && drain.status === "paused_by_failure" ? "running" : undefined);
         await tx
           .update(schema.logdrains)
           .set({
             ...(input.name !== undefined ? { name: input.name } : {}),
             ...(status !== undefined ? { status } : {}),
-            ...(destination ? { config } : {}),
+            ...(changesDelivery ? { config } : {}),
             // Expire the current lease so in-flight state writes fail and a
             // worker must acquire a new fencing token.
             ...(expireLease ? { leaseExpiresAt: 0 } : {}),

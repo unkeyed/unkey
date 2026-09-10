@@ -1,26 +1,75 @@
-import { TRPCError } from "@trpc/server";
+import { TRPCError, type inferProcedureInput } from "@trpc/server";
 import { describe, expect, it, vi } from "vitest";
-import { applyHttpHeaderUpdates } from "./update";
+import { decodeLogdrainConfig, encodeLogdrainConfig } from "./config";
+import { applyHttpHeaderUpdates, type updateLogdrain } from "./update";
+
+type Mutation = (options: {
+  input: inferProcedureInput<typeof updateLogdrain>;
+  ctx: {
+    workspace: { id: string };
+    user: { id: string };
+    audit: { location: string; userAgent: string };
+  };
+}) => Promise<unknown>;
 
 const procedure = vi.hoisted(() => ({
   safeParse: (_input: unknown): { success: boolean } => {
     throw new Error("Input schema was not registered");
   },
+  mutate: async (_options: Parameters<Mutation>[0]): Promise<unknown> => {
+    throw new Error("Mutation was not registered");
+  },
 }));
 
+const database = vi.hoisted(() => {
+  const read = vi.fn();
+  const write = vi
+    .fn<[Record<string, unknown> & { config: Uint8Array }], { where: ReturnType<typeof vi.fn> }>()
+    .mockReturnValue({ where: vi.fn() });
+  const tx = {
+    select: () => ({ from: () => ({ where: () => ({ for: read }) }) }),
+    update: () => ({ set: write }),
+  };
+  return { read, write, transaction: async (run: (value: typeof tx) => Promise<void>) => run(tx) };
+});
+
 vi.mock("@/lib/audit", () => ({ insertAuditLogs: vi.fn() }));
-vi.mock("@/lib/db", () => ({ and: vi.fn(), db: {}, eq: vi.fn(), schema: {} }));
+vi.mock("@/lib/db", () => ({
+  and: vi.fn(),
+  db: database,
+  eq: vi.fn(),
+  schema: {
+    logdrains: {
+      id: "id",
+      name: "name",
+      config: "config",
+      status: "status",
+      workspaceId: "workspaceId",
+    },
+  },
+}));
 vi.mock("@/lib/vault-client", () => ({ createVaultClient: vi.fn(() => ({})) }));
 vi.mock("../../trpc", () => ({
   workspaceProcedure: {
     input: vi.fn((schema: { safeParse: (input: unknown) => { success: boolean } }) => {
       procedure.safeParse = (input) => schema.safeParse(input);
-      return { mutation: vi.fn(() => ({})) };
+      return {
+        mutation: (mutation: Mutation) => {
+          procedure.mutate = mutation;
+          return {};
+        },
+      };
     }),
   },
 }));
 
 describe("updateLogdrain input", () => {
+  it("accepts a filter-only update including future event names", () => {
+    expect(
+      procedure.safeParse({ id: "ld_test", eventTypes: ["key.create", "future.event"] }).success,
+    ).toBe(true);
+  });
+
   it.each([
     {
       field: "HTTP URL",
@@ -45,6 +94,71 @@ describe("updateLogdrain input", () => {
       false,
     );
   });
+});
+
+describe("updateLogdrain event filters", () => {
+  it.each([
+    {
+      name: "preserves filters on a destination edit",
+      eventTypes: undefined,
+      destination: { kind: "http" as const, config: { format: "ndjson" as const } },
+      expected: ["key.create"],
+    },
+    {
+      name: "clears filters without changing the destination",
+      eventTypes: [],
+      destination: undefined,
+      expected: [],
+    },
+    {
+      name: "replaces filters without changing the destination",
+      eventTypes: ["key.delete"],
+      destination: undefined,
+      expected: ["key.delete"],
+    },
+  ])(
+    "$name and fences in-flight work without resetting the cursor",
+    async ({ eventTypes, destination, expected }) => {
+      database.read.mockResolvedValue([
+        {
+          id: "ld_test",
+          name: "Audit",
+          status: "running",
+          config: encodeLogdrainConfig({
+            kind: "http",
+            stream: { kind: "audit_logs", eventTypes: ["key.create"] },
+            url: "https://example.com",
+            format: "json",
+            headers: [],
+          }),
+        },
+      ]);
+      database.write.mockClear();
+      await procedure.mutate({
+        input: { id: "ld_test", eventTypes, destination },
+        ctx: {
+          workspace: { id: "ws_test" },
+          user: { id: "user_test" },
+          audit: { location: "127.0.0.1", userAgent: "test" },
+        },
+      });
+      expect(database.write).toHaveBeenCalledOnce();
+      const saved = database.write.mock.calls[0]?.[0];
+      if (!saved) {
+        throw new Error("No drain update was persisted");
+      }
+      expect(decodeLogdrainConfig(saved.config)).toEqual({
+        kind: "http",
+        stream: { kind: "audit_logs", eventTypes: expected },
+        url: "https://example.com",
+        format: destination ? "ndjson" : "json",
+        headers: [],
+      });
+      expect(saved).toMatchObject({ leaseExpiresAt: 0, consecutiveFailures: 0, nextAttemptAt: 0 });
+      expect(saved).not.toHaveProperty("committedOffsetInsertedAt");
+      expect(saved).not.toHaveProperty("committedOffsetEventId");
+    },
+  );
 });
 
 describe("applyHttpHeaderUpdates", () => {

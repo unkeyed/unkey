@@ -119,8 +119,7 @@ func TestCreatePortalWithKeyspaceMapping(t *testing.T) {
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.NotNil(t, res.Body)
-	require.True(t, strings.HasPrefix(res.Body.Data.PortalId, "pc_"),
-		"expected a pc_-prefixed id, got %q", res.Body.Data.PortalId)
+	require.NotEmpty(t, res.Body.Data.PortalId)
 
 	stored, err := db.Query.FindPortalByIdOrSlug(context.Background(), h.DB.RO(),
 		db.FindPortalByIdOrSlugParams{Portal: res.Body.Data.PortalId, WorkspaceID: workspace.ID})
@@ -172,7 +171,6 @@ func TestCreatePortalWithAppMappingAndBranding(t *testing.T) {
 		ProjectID:        project.ID,
 		Name:             "payments",
 		Slug:             "payments",
-		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
 

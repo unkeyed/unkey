@@ -18,6 +18,16 @@ const httpDrain = {
 } satisfies Partial<DrainFormValues>;
 
 describe("createDrainSchema", () => {
+  it("does not accept a historical delivery start offset", () => {
+    const result = createDrainSchema.safeParse({
+      ...emptyDrainForm,
+      ...httpDrain,
+      startFrom: "beginning",
+    });
+
+    expect(result.success && "startFrom" in result.data).toBe(false);
+  });
+
   it("accepts an HTTP drain with a single blank header row", () => {
     expect(messagesFor(createDrainSchema, httpDrain)).toEqual([]);
   });

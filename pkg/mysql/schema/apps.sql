@@ -6,7 +6,6 @@ CREATE TABLE `apps` (
 	`name` varchar(256) NOT NULL,
 	`slug` varchar(256) NOT NULL,
 	`source_type` enum('unknown','git','oci') NOT NULL DEFAULT 'unknown',
-	`default_branch` varchar(256) COLLATE utf8mb4_0900_as_cs NOT NULL DEFAULT 'main',
 	`current_deployment_id` varchar(48) COLLATE utf8mb4_0900_as_cs,
 	`is_rolled_back` boolean NOT NULL DEFAULT false,
 	`delete_protection` boolean DEFAULT false,
@@ -17,5 +16,4 @@ CREATE TABLE `apps` (
 	CONSTRAINT `apps_project_slug_idx` UNIQUE(`project_id`,`slug`)
 );
 
-CREATE INDEX `apps_workspace_idx` ON `apps` (`workspace_id`);
-
+CREATE INDEX `apps_workspace_slug_idx` ON `apps` (`workspace_id`,`slug`);

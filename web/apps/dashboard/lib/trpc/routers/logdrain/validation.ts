@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const eventTypesSchema = z.array(z.string().trim().min(1).max(256)).max(256);
+
 /** Matches the RFC 9110 token characters that are valid in an HTTP field name. */
 const httpHeaderNamePattern = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/;
 

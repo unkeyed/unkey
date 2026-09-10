@@ -6,9 +6,6 @@ export const unkeyAuditLogEvents = z.enum([
   "workspace.delete",
   "workspace.opt_in",
   "workspace.install_github",
-  "sentinel.create",
-  "llmSentinel.create",
-  "llmSentinel.delete",
   "api.create",
   "api.update",
   "api.delete",
@@ -41,7 +38,6 @@ export const unkeyAuditLogEvents = z.enum([
   "webhook.create",
   "webhook.update",
   "webhook.delete",
-  "reporter.create",
   "identity.create",
   "identity.update",
   "identity.delete",
@@ -63,6 +59,7 @@ export const unkeyAuditLogEvents = z.enum([
   "app.disconnect_repository",
   "environment.create",
   "environment.update",
+  "environment.delete",
   "deployment.rollback",
   "deployment.promote",
   "deployment.redeploy",
@@ -75,6 +72,11 @@ export const unkeyAuditLogEvents = z.enum([
   "domain.create",
   "domain.delete",
   "domain.verify",
+  "portal.create",
+  "portal.update",
+  "portal.delete",
+  "portal.session.create",
+  "portal.session.exchange",
 ]);
 
 export const auditLogSchemaV1 = z.object({

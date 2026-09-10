@@ -233,7 +233,7 @@ type Querier interface {
 	FindAppBuildSettingByAppEnv(ctx context.Context, arg FindAppBuildSettingByAppEnvParams) (AppBuildSetting, error)
 	//FindAppById
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
 	//  WHERE id = ?
 	FindAppById(ctx context.Context, id string) (App, error)
@@ -307,21 +307,10 @@ type Querier interface {
 	//  SELECT certificates.pk, certificates.id, certificates.workspace_id, certificates.hostname, certificates.certificate, certificates.encrypted_private_key, certificates.created_at, certificates.updated_at FROM certificates WHERE hostname = ?
 	FindCertificateByHostname(ctx context.Context, hostname string) (Certificate, error)
 	// FindClickhouseOutboxBatch returns the next batch of unprocessed outbox
-	// rows for a known set of payload versions. Must be called inside a
-	// transaction. FOR UPDATE SKIP LOCKED locks the batch so a second cron tick
-	// (if Restate VO serialization ever fails) silently skips them rather than
-	// re-processing the same set. The lock is released when the caller commits
-	// or rolls back. Ordered by pk so retries see a deterministic row set,
-	// which lets CH's block-level deduplication collapse re-inserts after a
-	// partial failure.
-	//
-	// The version filter means a drainer never reads a payload it can't
-	// decode. Unknown versions stay in the table until a drainer with the
-	// matching handler ships.
-	//
-	// deleted_at IS NULL skips rows the drainer already shipped. Marked rows
-	// stay in the table for re-processing (clear deleted_at to re-queue) and
-	// as an ops audit trail; there's no sweep job today.
+	// rows for known payload versions, ordered by pk. Use an autocommit read:
+	// locking the pending index across a ClickHouse call blocks API inserts.
+	// Restate serializes the exporter key, but overlapping canceled attempts
+	// can still deliver duplicates under the at-least-once contract.
 	//
 	//  SELECT pk, version, workspace_id, event_id, payload, created_at
 	//  FROM clickhouse_outbox
@@ -329,7 +318,6 @@ type Querier interface {
 	//    AND deleted_at IS NULL
 	//  ORDER BY pk
 	//  LIMIT ?
-	//  FOR UPDATE SKIP LOCKED
 	FindClickhouseOutboxBatch(ctx context.Context, arg FindClickhouseOutboxBatchParams) ([]FindClickhouseOutboxBatchRow, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
@@ -437,11 +425,11 @@ type Querier interface {
 	FindDeployWorkspaceByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (FindDeployWorkspaceByStripeCustomerIDRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE id = ?
+	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, id string) (Deployment, error)
 	//FindDeploymentByK8sName
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE k8s_name = ?
+	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, k8sName string) (Deployment, error)
 	// Returns all regions where a deployment is configured.
 	// Used for fan-out: when a deployment changes, emit state_change to each region.
@@ -466,7 +454,6 @@ type Querier interface {
 	//      d.project_id,
 	//      d.environment_id,
 	//      d.app_id,
-	//      d.image,
 	//      d.image_resolved,
 	//      d.build_id,
 	//      d.git_commit_sha,
@@ -503,7 +490,7 @@ type Querier interface {
 	FindDeploymentTopologyMinReplicas(ctx context.Context, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
 	//FindDeploymentWithEnvironmentAndApp
 	//
-	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, a.current_deployment_id, a.is_rolled_back
+	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, a.current_deployment_id, a.is_rolled_back
 	//  FROM deployments d
 	//  JOIN environments e ON e.id = d.environment_id
 	//  JOIN apps a ON a.id = d.app_id
@@ -843,12 +830,10 @@ type Querier interface {
 	//      name,
 	//      slug,
 	//      source_type,
-	//      default_branch,
 	//      delete_protection,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1479,7 +1464,6 @@ type Querier interface {
 	//      d.project_id AS deployment_project_id,
 	//      d.environment_id AS deployment_environment_id,
 	//      d.app_id AS deployment_app_id,
-	//      d.image AS deployment_image,
 	//      d.image_resolved AS deployment_image_resolved,
 	//      d.build_id AS deployment_build_id,
 	//      d.git_commit_sha AS deployment_git_commit_sha,
@@ -1582,7 +1566,7 @@ type Querier interface {
 	ListDeploymentChangesByRegionAll(ctx context.Context, arg ListDeploymentChangesByRegionAllParams) ([]DeploymentChange, error)
 	//ListDeploymentsByEnvironmentIdAndStatus
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments`
+	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments`
 	//  WHERE environment_id = ?
 	//    AND status = ?
 	//    AND created_at < ?
@@ -1806,16 +1790,21 @@ type Querier interface {
 	//    AND w.deleted_at_m IS NULL
 	ListWorkspacesWithDeployBudget(ctx context.Context) ([]ListWorkspacesWithDeployBudgetRow, error)
 	// MarkClickhouseOutboxBatchDeleted soft-deletes a set of pks after their CH
-	// insert is confirmed. Called inside the same transaction that selected
-	// them, so the row locks held by FOR UPDATE SKIP LOCKED are released as
-	// part of commit. A crash between the CH insert and this UPDATE leaves the
-	// rows with deleted_at IS NULL. The next batch picks them up again, which can
-	// create duplicate ClickHouse rows under the at-least-once delivery contract.
+	// insert is confirmed. It runs as its own short autocommit statement, not in
+	// the transaction that selected the rows, so no MySQL lock spans the
+	// ClickHouse insert. The pk list is exactly the set the drainer read and
+	// ClickHouse acknowledged; rows inserted concurrently are never in it. The
+	// deleted_at IS NULL guard keeps a replayed or overlapping mark from
+	// restamping rows an earlier attempt already marked.
+	//
+	// A crash between the CH insert and this UPDATE leaves the rows with
+	// deleted_at IS NULL. The next batch picks them up again, which can create
+	// duplicate ClickHouse rows under the at-least-once delivery contract.
 	//
 	// We mark instead of hard-delete so ops can re-queue events (clear
 	// deleted_at) without re-reading the original payload from somewhere else,
-	// and so the table doubles as an audit trail of what was exported. There's
-	// no sweep job today; the table grows monotonically.
+	// and so the table doubles as an audit trail of what was exported.
+	// RunAuditLogOutboxCleanup sweeps marked rows after the retention window.
 	//
 	//  UPDATE clickhouse_outbox
 	//  SET deleted_at = ?
@@ -2084,8 +2073,7 @@ type Querier interface {
 	//UpdateDeploymentImage
 	//
 	//  UPDATE deployments
-	//  SET image = ?,
-	//      image_resolved = ?,
+	//  SET image_resolved = ?,
 	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentImage(ctx context.Context, arg UpdateDeploymentImageParams) error

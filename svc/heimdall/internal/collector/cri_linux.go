@@ -169,6 +169,9 @@ func (w *criWatcher) handle(ctx context.Context, topic string, raw typeurl.Any) 
 		containerID = evt.GetContainerID()
 		metrics.CRIEventsReceived.WithLabelValues("start").Inc()
 	case *eventstypes.TaskExit:
+		if evt.GetID() != evt.GetContainerID() {
+			return
+		}
 		kind = criExit
 		containerID = evt.GetContainerID()
 		metrics.CRIEventsReceived.WithLabelValues("exit").Inc()

@@ -3,11 +3,15 @@ post:
     - domains
   summary: List domains
   description: |
-    List the custom domains attached to an environment and their verification status.
+    List your custom domains with their verification status and DNS records.
+    Filter by project, app, or environment using IDs or slugs, or send `{}` to list
+    domains across your workspace.
 
-    Results are paginated and sorted by their id. When `hasMore` is true, send the
-    returned `cursor` to get the next page. An environment with no domains returns an
-    empty array, not a 404.
+    Use any filter on its own or combine filters to narrow the results.
+    Results match all supplied filters. Omitting `environment` includes all matching environments.
+
+    Results include only domains you have permission to read, sorted by ID.
+    When `hasMore` is true, send the returned `cursor` to get the next page.
 
     `status: verified` means the domain is verified. Unkey has configured routing and requested a
     certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
@@ -17,9 +21,8 @@ post:
 
     **Required Permissions**
 
-    Your root key must have one of the following permissions:
-    - `environment.*.read_domain` (to read domains in any environment)
-    - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
+    Use a root key with the `environment.*.read_domain` permission.
+    A successful request returns an empty list if no matching domains are readable by your key.
   operationId: domains.listDomains
   x-speakeasy-name-override: listDomains
   x-unkey-idempotency: idempotent
@@ -31,19 +34,53 @@ post:
         schema:
           "$ref": "./V2DomainsListDomainsRequestBody.yaml"
         examples:
+          workspaceWide:
+            summary: List all domains in the workspace
+            description: Includes domains across all projects, apps, and environments that your key can read.
+            value: {}
+          byProject:
+            summary: List a project's domains
+            description: Includes all apps and environments in projects matching this ID or slug.
+            value:
+              project: payments
+          byApp:
+            summary: List an app's domains across projects
+            description: Includes all environments in apps matching this ID or slug, without restricting the project.
+            value:
+              app: payments-api
+          byEnvironment:
+            summary: List production domains across the workspace
+            description: Includes every environment with ID or slug production, across all projects and apps.
+            value:
+              environment: production
+          byProjectAndApp:
+            summary: List an app's domains within a project
+            description: Includes all environments in matching apps within matching projects.
+            value:
+              project: payments
+              app: payments-api
+          byProjectAndEnvironment:
+            summary: List a project's production domains
+            description: Includes matching environments across all apps in matching projects.
+            value:
+              project: payments
+              environment: production
+          byAppAndEnvironment:
+            summary: List an app's production domains across projects
+            description: Includes matching environments within matching apps, without restricting the project.
+            value:
+              app: payments-api
+              environment: production
           bySlugs:
             summary: List an environment's domains by slugs
-            description: Uses the project, app, and environment slugs.
+            description: Includes environments matching all three identifiers within the specified project and app.
             value:
               project: payments
               app: payments-api
               environment: production
           byIds:
-            summary: List an environment's domains by ID
-            description: Uses the ids returned by the corresponding list endpoints.
+            summary: List an environment's domains by its ID
             value:
-              project: proj_1234abcd
-              app: app_1234abcd
               environment: env_1234abcd
           search:
             summary: Filter by name
@@ -66,7 +103,8 @@ post:
   responses:
     "200":
       description: |
-        Successfully retrieved the environment's domains.
+        Successfully retrieved the permitted domains that match every filter. Missing or
+        mismatched filtered resources return an empty list.
       content:
         application/json:
           schema:
@@ -124,8 +162,8 @@ post:
                 pagination:
                   hasMore: false
             empty:
-              summary: No domains attached
-              description: An environment with no custom domains returns an empty array, not a 404.
+              summary: No permitted domains match
+              description: Missing or mismatched resources and filters with no permitted matches return an empty array.
               value:
                 meta:
                   requestId: req_1234abcd
@@ -153,7 +191,7 @@ post:
                   errors:
                     - location: body.search
                       message: must be at most 256 characters
-                      fix: Shorten the search string, or omit it to return the environment's domains unfiltered
+                      fix: Shorten the search string, or omit it to return domains without a search filter
     "401":
       description: Unauthorized
       content:
@@ -173,9 +211,7 @@ post:
                   type: unauthorized
     "403":
       description: |
-        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
-        `environment.*.read_domain` receives a 404 instead, so permissions cannot be used to discover
-        which environments exist.
+        Forbidden - The root key or its workspace is disabled.
       content:
         application/json:
           schema:
@@ -193,22 +229,12 @@ post:
                   type: forbidden
     "404":
       description: |
-        Not Found - The environment does not exist in your workspace, or your root key may not read it.
+        The workspace associated with the root key does not exist.
+        Missing or mismatched project, app, and environment filters return an empty list, not 404.
       content:
         application/json:
           schema:
             "$ref": "../../../../error/NotFoundErrorResponse.yaml"
-          examples:
-            environmentNotFound:
-              summary: Environment not found
-              value:
-                meta:
-                  requestId: req_1234abcd
-                error:
-                  title: Not Found
-                  detail: The requested environment does not exist.
-                  status: 404
-                  type: not-found
     "429":
       description: Too Many Requests
       content:
@@ -243,3 +269,22 @@ post:
                   detail: An unexpected error occurred. Contact support@unkey.com with the requestId.
                   status: 500
                   type: internal-server-error
+    "503":
+      description: |
+        The request could not be completed. No partial result is returned.
+        Narrow the project, app, environment, or search filters before retrying.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/ServiceUnavailableErrorResponse.yaml"
+          examples:
+            scanBudgetExhausted:
+              summary: Narrow the request filters
+              value:
+                meta:
+                  requestId: req_1234abcd
+                error:
+                  title: Service Unavailable
+                  detail: The domain scan limit was reached. Narrow the project, app, environment, or search filters and retry.
+                  status: 503
+                  type: service-unavailable

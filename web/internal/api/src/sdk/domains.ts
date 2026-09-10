@@ -122,11 +122,15 @@ export class Domains extends ClientSDK {
    * List domains
    *
    * @remarks
-   * List the custom domains attached to an environment and their verification status.
+   * List your custom domains with their verification status and DNS records.
+   * Filter by project, app, or environment using IDs or slugs, or send `{}` to list
+   * domains across your workspace.
    *
-   * Results are paginated and sorted by their id. When `hasMore` is true, send the
-   * returned `cursor` to get the next page. An environment with no domains returns an
-   * empty array, not a 404.
+   * Use any filter on its own or combine filters to narrow the results.
+   * Results match all supplied filters. Omitting `environment` includes all matching environments.
+   *
+   * Results include only domains you have permission to read, sorted by ID.
+   * When `hasMore` is true, send the returned `cursor` to get the next page.
    *
    * `status: verified` means the domain is verified. Unkey has configured routing and requested a
    * certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
@@ -136,9 +140,8 @@ export class Domains extends ClientSDK {
    *
    * **Required Permissions**
    *
-   * Your root key must have one of the following permissions:
-   * - `environment.*.read_domain` (to read domains in any environment)
-   * - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
+   * Use a root key with the `environment.*.read_domain` permission.
+   * A successful request returns an empty list if no matching domains are readable by your key.
    */
   async listDomains(
     request: components.V2DomainsListDomainsRequestBody,
