@@ -207,7 +207,9 @@ func (*Config_KeyVerifications) isConfig_Stream() {}
 type KeyVerificationStreamConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Empty selects all outcomes, including outcomes added later.
-	Outcomes      []string `protobuf:"bytes,1,rep,name=outcomes,proto3" json:"outcomes,omitempty"`
+	Outcomes []string `protobuf:"bytes,1,rep,name=outcomes,proto3" json:"outcomes,omitempty"`
+	// Empty selects all keyspaces in the workspace.
+	KeySpaceIds   []string `protobuf:"bytes,2,rep,name=key_space_ids,json=keySpaceIds,proto3" json:"key_space_ids,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -245,6 +247,13 @@ func (*KeyVerificationStreamConfig) Descriptor() ([]byte, []int) {
 func (x *KeyVerificationStreamConfig) GetOutcomes() []string {
 	if x != nil {
 		return x.Outcomes
+	}
+	return nil
+}
+
+func (x *KeyVerificationStreamConfig) GetKeySpaceIds() []string {
+	if x != nil {
+		return x.KeySpaceIds
 	}
 	return nil
 }
@@ -474,9 +483,10 @@ const file_logdrain_v1_config_proto_rawDesc = "" +
 	"audit_logs\x18\x03 \x01(\v2!.logdrain.v1.AuditLogStreamConfigH\x01R\tauditLogs\x12W\n" +
 	"\x11key_verifications\x18\x04 \x01(\v2(.logdrain.v1.KeyVerificationStreamConfigH\x01R\x10keyVerificationsB\r\n" +
 	"\vdestinationB\b\n" +
-	"\x06stream\"9\n" +
+	"\x06stream\"]\n" +
 	"\x1bKeyVerificationStreamConfig\x12\x1a\n" +
-	"\boutcomes\x18\x01 \x03(\tR\boutcomes\"7\n" +
+	"\boutcomes\x18\x01 \x03(\tR\boutcomes\x12\"\n" +
+	"\rkey_space_ids\x18\x02 \x03(\tR\vkeySpaceIds\"7\n" +
 	"\x14AuditLogStreamConfig\x12\x1f\n" +
 	"\vevent_types\x18\x01 \x03(\tR\n" +
 	"eventTypes\"\x86\x01\n" +

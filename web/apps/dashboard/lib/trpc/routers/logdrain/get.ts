@@ -23,7 +23,10 @@ export const getLogdrain = workspaceProcedure
           ),
         );
       if (!row) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Log drain not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Log drain not found",
+        });
       }
 
       const destination = decodeLogdrainConfig(row.config);
@@ -38,6 +41,8 @@ export const getLogdrain = workspaceProcedure
               destination.stream.kind === "audit_logs" ? destination.stream.eventTypes : [],
             outcomes:
               destination.stream.kind === "key_verifications" ? destination.stream.outcomes : [],
+            keySpaceIds:
+              destination.stream.kind === "key_verifications" ? destination.stream.keySpaceIds : [],
             status: row.status,
             config: {
               url: destination.url,
@@ -55,6 +60,8 @@ export const getLogdrain = workspaceProcedure
               destination.stream.kind === "audit_logs" ? destination.stream.eventTypes : [],
             outcomes:
               destination.stream.kind === "key_verifications" ? destination.stream.outcomes : [],
+            keySpaceIds:
+              destination.stream.kind === "key_verifications" ? destination.stream.keySpaceIds : [],
             status: row.status,
             config: {
               dataset: destination.dataset,
@@ -66,6 +73,9 @@ export const getLogdrain = workspaceProcedure
         throw error;
       }
       console.error("Failed to get log drain", error);
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to get log drain" });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to get log drain",
+      });
     }
   });

@@ -13,6 +13,7 @@ import {
   MultiboxTrigger,
   useMultiboxAnchor,
 } from "@/components/ui/multibox";
+import { trpc } from "@/lib/trpc/client";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { Plus, Trash } from "@unkey/icons";
 import { match } from "@unkey/match";
@@ -67,7 +68,12 @@ export function EventTypesField() {
 
   return match(stream)
     .with("audit_logs", () => <AuditEventTypesField />)
-    .with("key_verifications", () => <VerificationOutcomesField />)
+    .with("key_verifications", () => (
+      <>
+        <VerificationOutcomesField />
+        <VerificationKeyspacesField />
+      </>
+    ))
     .exhaustive();
 }
 
@@ -125,6 +131,39 @@ function VerificationOutcomesField() {
   );
 }
 
+function VerificationKeyspacesField() {
+  const { control } = useFormContext<DrainFormValues>();
+  const {
+    data: keyspaces = {},
+    isLoading,
+    error,
+  } = trpc.deploy.environmentSettings.getAvailableKeyspaces.useQuery();
+  return (
+    <Controller
+      control={control}
+      name="keySpaceIds"
+      render={({ field }) => (
+        <FilterChoices
+          {...field}
+          options={Object.keys(keyspaces)}
+          label="Keyspaces"
+          description="Choose which keyspaces to send verifications from. Leave empty to send all keyspaces."
+          searchLabel="Search keyspaces"
+          placeholder="All keyspaces"
+          emptyMessage={
+            error
+              ? "Unable to load keyspaces."
+              : isLoading
+                ? "Loading keyspaces…"
+                : "No keyspaces found."
+          }
+          getLabel={(id) => (keyspaces[id] ? `${keyspaces[id].api.name} (${id})` : id)}
+        />
+      )}
+    />
+  );
+}
+
 function FilterChoices({
   value,
   onChange,
@@ -135,6 +174,7 @@ function FilterChoices({
   searchLabel,
   placeholder,
   emptyMessage,
+  getLabel = (choice) => choice || "Unspecified",
 }: {
   value: string[];
   onChange: (value: string[]) => void;
@@ -145,6 +185,7 @@ function FilterChoices({
   searchLabel: string;
   placeholder: string;
   emptyMessage: string;
+  getLabel?: (choice: string) => string;
 }) {
   const anchor = useMultiboxAnchor();
   const choices = Array.from(new Set([...options, ...value]));
@@ -153,11 +194,11 @@ function FilterChoices({
     <fieldset className="flex flex-col gap-1.5">
       <legend className="text-[13px] text-gray-11">{label}</legend>
       <span className="text-xs text-gray-9">{description}</span>
-      <Multibox items={choices} value={value} onValueChange={onChange}>
+      <Multibox items={choices} value={value} onValueChange={onChange} itemToStringLabel={getLabel}>
         <MultiboxChips ref={anchor} className="mt-1.5">
           {value.map((choice) => (
             <MultiboxChip key={choice}>
-              <span className="font-mono">{choice || "Unspecified"}</span>
+              <span className="font-mono">{getLabel(choice)}</span>
               <MultiboxChipRemove />
             </MultiboxChip>
           ))}
@@ -173,7 +214,7 @@ function FilterChoices({
           <MultiboxList>
             {(choice: string) => (
               <MultiboxItem key={choice} value={choice}>
-                <span className="font-mono text-xs">{choice || "Unspecified"}</span>
+                <span className="font-mono text-xs">{getLabel(choice)}</span>
               </MultiboxItem>
             )}
           </MultiboxList>
@@ -185,7 +226,10 @@ function FilterChoices({
 
 export function HeaderFields() {
   const { control, register, formState } = useFormContext<DrainFormValues>();
-  const { fields, append, remove } = useFieldArray({ control, name: "headers" });
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "headers",
+  });
   const errors = formState.errors.headers;
 
   return (

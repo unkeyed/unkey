@@ -23,6 +23,8 @@ message Config {
 message KeyVerificationStreamConfig {
   // Empty selects all outcomes, including outcomes added later.
   repeated string outcomes = 1;
+  // Empty selects all keyspaces in the workspace.
+  repeated string key_space_ids = 2;
 }
 
 // AuditLogStreamConfig selects audit logs and their stream-specific filters.

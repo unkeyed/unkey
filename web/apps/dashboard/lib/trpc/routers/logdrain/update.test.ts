@@ -30,7 +30,11 @@ const database = vi.hoisted(() => {
     select: () => ({ from: () => ({ where: () => ({ for: read }) }) }),
     update: () => ({ set: write }),
   };
-  return { read, write, transaction: async (run: (value: typeof tx) => Promise<void>) => run(tx) };
+  return {
+    read,
+    write,
+    transaction: async (run: (value: typeof tx) => Promise<void>) => run(tx),
+  };
 });
 
 vi.mock("@/lib/audit", () => ({ insertAuditLogs: vi.fn() }));
@@ -71,7 +75,10 @@ describe("updateLogdrain input", () => {
 
   it("accepts a filter-only update including future event names", () => {
     expect(
-      procedure.safeParse({ id: "ld_test", eventTypes: ["key.create", "future.event"] }).success,
+      procedure.safeParse({
+        id: "ld_test",
+        eventTypes: ["key.create", "future.event"],
+      }).success,
     ).toBe(true);
   });
 
@@ -80,7 +87,10 @@ describe("updateLogdrain input", () => {
       field: "HTTP URL",
       destination: { kind: "http", config: { url: "https://new.example.com" } },
     },
-    { field: "HTTP format", destination: { kind: "http", config: { format: "ndjson" } } },
+    {
+      field: "HTTP format",
+      destination: { kind: "http", config: { format: "ndjson" } },
+    },
     {
       field: "HTTP headers",
       destination: {
@@ -88,23 +98,37 @@ describe("updateLogdrain input", () => {
         config: { headers: [{ mode: "preserve", name: "Authorization" }] },
       },
     },
-    { field: "Axiom dataset", destination: { kind: "axiom", config: { dataset: "new-dataset" } } },
-    { field: "Axiom token", destination: { kind: "axiom", config: { token: "new-token" } } },
+    {
+      field: "Axiom dataset",
+      destination: { kind: "axiom", config: { dataset: "new-dataset" } },
+    },
+    {
+      field: "Axiom token",
+      destination: { kind: "axiom", config: { token: "new-token" } },
+    },
   ])("accepts a partial $field update without stale sibling fields", ({ destination }) => {
     expect(procedure.safeParse({ id: "ld_test", destination }).success).toBe(true);
   });
 
   it.each(["http", "axiom"])("rejects an empty %s destination update", (kind) => {
-    expect(procedure.safeParse({ id: "ld_test", destination: { kind, config: {} } }).success).toBe(
-      false,
-    );
+    expect(
+      procedure.safeParse({
+        id: "ld_test",
+        destination: { kind, config: {} },
+      }).success,
+    ).toBe(false);
   });
 });
 
 describe("updateLogdrain event filters", () => {
-  it.each([{ outcomes: [] }, { outcomes: ["EXPIRED" as const] }])(
-    "updates verification outcomes without replay and rejects audit filters",
-    async ({ outcomes }) => {
+  it.each([
+    { outcomes: [], keySpaceIds: undefined },
+    { outcomes: ["EXPIRED" as const], keySpaceIds: ["ks_other"] },
+    { outcomes: undefined, keySpaceIds: [] },
+    { outcomes: undefined, keySpaceIds: ["ks_other"] },
+  ])(
+    "updates verification filters without replay and rejects audit filters",
+    async ({ outcomes, keySpaceIds }) => {
       database.read.mockResolvedValue([
         {
           id: "ld_test",
@@ -112,7 +136,11 @@ describe("updateLogdrain event filters", () => {
           status: "running",
           config: encodeLogdrainConfig({
             kind: "http",
-            stream: { kind: "key_verifications", outcomes: ["VALID"] },
+            stream: {
+              kind: "key_verifications",
+              outcomes: ["VALID"],
+              keySpaceIds: ["ks_initial"],
+            },
             url: "https://example.com",
             format: "json",
             headers: [],
@@ -125,16 +153,24 @@ describe("updateLogdrain event filters", () => {
         audit: { location: "", userAgent: "test" },
       };
       database.write.mockClear();
-      await procedure.mutate({ input: { id: "ld_test", outcomes }, ctx });
+      await procedure.mutate({
+        input: { id: "ld_test", outcomes, keySpaceIds },
+        ctx,
+      });
       const saved = database.write.mock.calls[0]?.[0];
       if (!saved) {
         throw new Error("No drain update was persisted");
       }
       expect(decodeLogdrainConfig(saved.config).stream).toEqual({
         kind: "key_verifications",
-        outcomes,
+        outcomes: outcomes ?? ["VALID"],
+        keySpaceIds: keySpaceIds ?? ["ks_initial"],
       });
-      expect(saved).toMatchObject({ leaseExpiresAt: 0, consecutiveFailures: 0, nextAttemptAt: 0 });
+      expect(saved).toMatchObject({
+        leaseExpiresAt: 0,
+        consecutiveFailures: 0,
+        nextAttemptAt: 0,
+      });
       expect(saved).not.toHaveProperty("committedOffsetInsertedAt");
       expect(saved).not.toHaveProperty("committedOffsetEventId");
       database.write.mockClear();
@@ -149,7 +185,10 @@ describe("updateLogdrain event filters", () => {
     {
       name: "preserves filters on a destination edit",
       eventTypes: undefined,
-      destination: { kind: "http" as const, config: { format: "ndjson" as const } },
+      destination: {
+        kind: "http" as const,
+        config: { format: "ndjson" as const },
+      },
       expected: ["key.create"],
     },
     {
@@ -202,7 +241,11 @@ describe("updateLogdrain event filters", () => {
         format: destination ? "ndjson" : "json",
         headers: [],
       });
-      expect(saved).toMatchObject({ leaseExpiresAt: 0, consecutiveFailures: 0, nextAttemptAt: 0 });
+      expect(saved).toMatchObject({
+        leaseExpiresAt: 0,
+        consecutiveFailures: 0,
+        nextAttemptAt: 0,
+      });
       expect(saved).not.toHaveProperty("committedOffsetInsertedAt");
       expect(saved).not.toHaveProperty("committedOffsetEventId");
     },

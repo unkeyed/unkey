@@ -13,7 +13,7 @@ export type EncryptedHttpHeader = {
 export type LogdrainConfig = {
   stream:
     | { kind: "audit_logs"; eventTypes: string[] }
-    | { kind: "key_verifications"; outcomes: string[] };
+    | { kind: "key_verifications"; outcomes: string[]; keySpaceIds: string[] };
 } & (
   | {
       kind: "http";
@@ -38,8 +38,17 @@ export function encodeLogdrainConfig(config: LogdrainConfig): Buffer {
           create(ConfigSchema, {
             stream:
               config.stream.kind === "audit_logs"
-                ? { case: "auditLogs", value: { eventTypes: config.stream.eventTypes } }
-                : { case: "keyVerifications", value: { outcomes: config.stream.outcomes } },
+                ? {
+                    case: "auditLogs",
+                    value: { eventTypes: config.stream.eventTypes },
+                  }
+                : {
+                    case: "keyVerifications",
+                    value: {
+                      outcomes: config.stream.outcomes,
+                      keySpaceIds: config.stream.keySpaceIds,
+                    },
+                  },
             destination: {
               case: config.kind,
               value: {
@@ -58,8 +67,17 @@ export function encodeLogdrainConfig(config: LogdrainConfig): Buffer {
           create(ConfigSchema, {
             stream:
               config.stream.kind === "audit_logs"
-                ? { case: "auditLogs", value: { eventTypes: config.stream.eventTypes } }
-                : { case: "keyVerifications", value: { outcomes: config.stream.outcomes } },
+                ? {
+                    case: "auditLogs",
+                    value: { eventTypes: config.stream.eventTypes },
+                  }
+                : {
+                    case: "keyVerifications",
+                    value: {
+                      outcomes: config.stream.outcomes,
+                      keySpaceIds: config.stream.keySpaceIds,
+                    },
+                  },
             destination: {
               case: config.kind,
               value: {
@@ -82,10 +100,17 @@ export function decodeLogdrainConfig(raw: Uint8Array): LogdrainConfig {
   let stream: LogdrainConfig["stream"];
   switch (config.stream.case) {
     case "keyVerifications":
-      stream = { kind: "key_verifications", outcomes: config.stream.value.outcomes };
+      stream = {
+        kind: "key_verifications",
+        outcomes: config.stream.value.outcomes,
+        keySpaceIds: config.stream.value.keySpaceIds,
+      };
       break;
     case "auditLogs":
-      stream = { kind: "audit_logs", eventTypes: config.stream.value.eventTypes };
+      stream = {
+        kind: "audit_logs",
+        eventTypes: config.stream.value.eventTypes,
+      };
       break;
     case undefined:
       stream = { kind: "audit_logs", eventTypes: [] };

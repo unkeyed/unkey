@@ -219,8 +219,12 @@ func TestEngine_Integration(t *testing.T) {
 		}, 5*time.Second, 100*time.Millisecond)
 	})
 
-	for _, stream := range []string{"audit_logs", "key_verifications"} {
-		t.Run(stream+" filter change fences an in-flight delivery and resumes from the same cursor", func(t *testing.T) {
+	for _, filterMode := range []string{"audit_logs", "key_verifications", "keyspaces"} {
+		stream := filterMode
+		if filterMode == "keyspaces" {
+			stream = "key_verifications"
+		}
+		t.Run(filterMode+" filter change fences an in-flight delivery and resumes from the same cursor", func(t *testing.T) {
 			workspaceID, drainID := uniqueIDs()
 			requests := make(chan []byte, 2)
 			acknowledge := make(chan struct{})
@@ -256,8 +260,12 @@ func TestEngine_Integration(t *testing.T) {
 			}
 			if stream == "key_verifications" {
 				config.Stream = &logdrainv1.Config_KeyVerifications{KeyVerifications: &logdrainv1.KeyVerificationStreamConfig{Outcomes: []string{"EXPIRED"}}}
+				if filterMode == "keyspaces" {
+					config.GetKeyVerifications().Outcomes = nil
+					config.GetKeyVerifications().KeySpaceIds = []string{"_c"}
+				}
 				for _, event := range []struct{ id, outcome string }{{"_a", "VALID"}, {"_b", "VALID"}, {"_c", "EXPIRED"}} {
-					require.NoError(t, chConn.Exec(t.Context(), `INSERT INTO key_verifications_raw_v2 (workspace_id, request_id, inserted_at, time, outcome) VALUES (?, ?, ?, ?, ?)`, workspaceID, drainID+event.id, insertedAt, insertedAt-60000, event.outcome))
+					require.NoError(t, chConn.Exec(t.Context(), `INSERT INTO key_verifications_raw_v2 (workspace_id, request_id, inserted_at, time, outcome, key_space_id) VALUES (?, ?, ?, ?, ?, ?)`, workspaceID, drainID+event.id, insertedAt, insertedAt-60000, event.outcome, event.id))
 				}
 			}
 			encoded, err := proto.Marshal(config)
@@ -324,6 +332,8 @@ func TestEngine_Integration(t *testing.T) {
 
 			if stream == "audit_logs" {
 				config.GetAuditLogs().EventTypes = []string{"key.create"}
+			} else if filterMode == "keyspaces" {
+				config.GetKeyVerifications().KeySpaceIds = []string{"_b"}
 			} else {
 				config.GetKeyVerifications().Outcomes = []string{"VALID"}
 			}

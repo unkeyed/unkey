@@ -6,6 +6,22 @@ import { EventTypesField } from "./drain-fields";
 import { type DrainFormValues, emptyDrainForm } from "./drain-schema";
 
 vi.stubGlobal("React", React);
+vi.mock("@/lib/trpc/client", () => ({
+  trpc: {
+    deploy: {
+      environmentSettings: {
+        getAvailableKeyspaces: {
+          useQuery: () => ({
+            data: {
+              ks_primary: { id: "ks_primary", api: { name: "Production" } },
+            },
+            isLoading: false,
+          }),
+        },
+      },
+    },
+  },
+}));
 afterEach(cleanup);
 
 function Form() {
@@ -43,6 +59,7 @@ it("keeps each stream filter bound to its own values when switching streams", ()
   expect(screen.getByLabelText("Search outcomes")).toBeTruthy();
   expect(screen.getByText("RATE_LIMITED")).toBeTruthy();
   expect(screen.queryByText("key.create")).toBeNull();
+  expect(screen.getByPlaceholderText("All keyspaces")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Remove" }));
   expect(screen.queryByText("RATE_LIMITED")).toBeNull();
   expect(screen.getByPlaceholderText("All outcomes")).toBeTruthy();

@@ -12,6 +12,7 @@ import {
   httpFormatSchema,
   httpHeadersSchema,
   httpsUrl,
+  keySpaceIdsSchema,
   outcomesSchema,
 } from "./validation";
 
@@ -44,11 +45,12 @@ export const createLogdrain = workspaceProcedure
         stream: streamSchema.default("audit_logs"),
         eventTypes: eventTypesSchema.optional(),
         outcomes: outcomesSchema.optional(),
+        keySpaceIds: keySpaceIdsSchema.optional(),
       })
       .refine(
         (input) =>
           input.stream === "audit_logs"
-            ? input.outcomes === undefined
+            ? input.outcomes === undefined && input.keySpaceIds === undefined
             : input.eventTypes === undefined,
         "Filters must match the drain stream.",
       )
@@ -66,7 +68,11 @@ export const createLogdrain = workspaceProcedure
             stream:
               input.stream === "audit_logs"
                 ? { kind: input.stream, eventTypes: input.eventTypes ?? [] }
-                : { kind: input.stream, outcomes: input.outcomes ?? [] },
+                : {
+                    kind: input.stream,
+                    outcomes: input.outcomes ?? [],
+                    keySpaceIds: input.keySpaceIds ?? [],
+                  },
             url: input.config.url,
             format: input.config.format,
             headers: await encryptHttpHeaders(ctx.workspace.id, input.config.headers ?? {}),
@@ -78,10 +84,17 @@ export const createLogdrain = workspaceProcedure
             stream:
               input.stream === "audit_logs"
                 ? { kind: input.stream, eventTypes: input.eventTypes ?? [] }
-                : { kind: input.stream, outcomes: input.outcomes ?? [] },
+                : {
+                    kind: input.stream,
+                    outcomes: input.outcomes ?? [],
+                    keySpaceIds: input.keySpaceIds ?? [],
+                  },
             dataset: input.config.dataset,
             encryptedToken: (
-              await vault.encrypt({ keyring: ctx.workspace.id, data: input.config.token })
+              await vault.encrypt({
+                keyring: ctx.workspace.id,
+                data: input.config.token,
+              })
             ).encrypted,
           });
           break;
@@ -109,13 +122,19 @@ export const createLogdrain = workspaceProcedure
           event: "logdrain.create",
           description: `Created log drain ${id}`,
           resources: [{ type: "logdrain", id, name: input.name }],
-          context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
         });
       });
 
       return { id };
     } catch (error) {
       console.error("Failed to create log drain", error);
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create log drain" });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to create log drain",
+      });
     }
   });

@@ -278,11 +278,11 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			case nil, *logdrainv1.Config_AuditLogs:
 				stream = db.LogdrainsStreamAuditLogs
 				reader.source = e.cfg.AuditLogs
-				page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg.GetAuditLogs().GetEventTypes())
+				page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg)
 			case *logdrainv1.Config_KeyVerifications:
 				stream = db.LogdrainsStreamKeyVerifications
 				reader.source = e.cfg.KeyVerifications
-				page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg.GetKeyVerifications().GetOutcomes())
+				page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg)
 			default:
 				err = fmt.Errorf("unsupported logdrain stream config %T", cfg.GetStream())
 			}

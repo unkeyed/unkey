@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -38,7 +39,8 @@ func TestKeyVerificationsRead_Payload(t *testing.T) {
 	require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO key_verifications_raw_v2
 		(workspace_id, request_id, time, source, app_id, outcome)
 		VALUES (?, 'req_api', ?, 'api', 'ignored_app', 'NOT_FOUND')`, workspaceID, now))
-	events, _, err = source.NewKeyVerifications(client).Read(t.Context(), workspaceID, source.Cursor{Time: now - 1}, time.Now().UnixMilli()+1000, 10, []string{"NOT_FOUND"})
+	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_KeyVerifications{KeyVerifications: &logdrainv1.KeyVerificationStreamConfig{Outcomes: []string{"NOT_FOUND"}}}}
+	events, _, err = source.NewKeyVerifications(client).Read(t.Context(), workspaceID, source.Cursor{Time: now - 1}, time.Now().UnixMilli()+1000, 10, filter)
 	require.NoError(t, err)
 	require.Len(t, events, 1)
 	encoded, err = json.Marshal(events[0].Payload)
@@ -74,13 +76,14 @@ func TestKeyVerificationsRead_FilteredCursorBounds(t *testing.T) {
 	}
 	reader := source.NewKeyVerifications(client)
 	from := source.Cursor{Time: now, EventID: "a"}
-	page, next, err := reader.Read(t.Context(), workspaceID, from, now+2, 2, []string{"RATE_LIMITED", "EXPIRED"})
+	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_KeyVerifications{KeyVerifications: &logdrainv1.KeyVerificationStreamConfig{Outcomes: []string{"RATE_LIMITED", "EXPIRED"}}}}
+	page, next, err := reader.Read(t.Context(), workspaceID, from, now+2, 2, filter)
 	require.NoError(t, err)
 	require.Len(t, page, 2)
 	require.Equal(t, "c", page[0].EventID)
 	require.Equal(t, "d", page[1].EventID)
 	require.Equal(t, source.Cursor{Time: now, EventID: "d"}, next)
-	page, next, err = reader.Read(t.Context(), workspaceID, next, now+2, 2, []string{"RATE_LIMITED", "EXPIRED"})
+	page, next, err = reader.Read(t.Context(), workspaceID, next, now+2, 2, filter)
 	require.NoError(t, err)
 	require.Len(t, page, 2)
 	require.Equal(t, "e", page[0].EventID)
@@ -95,4 +98,46 @@ func TestKeyVerificationsRead_FilteredCursorBounds(t *testing.T) {
 	require.Len(t, page, 2)
 	require.Equal(t, "b", page[0].EventID)
 	require.Equal(t, "c", page[1].EventID)
+}
+
+func TestKeyVerificationsRead_KeySpacesBeforeLimit(t *testing.T) {
+	cfg := containers.ClickHouse(t)
+	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	workspaceID := uid.New("workspace")
+	now := time.Now().UnixMilli()
+	for _, row := range []struct{ id, keyspace, outcome string }{
+		{"a", "excluded", "RATE_LIMITED"},
+		{"b", "selected", "VALID"},
+		{"c", "selected", "RATE_LIMITED"},
+		{"d", "also_selected", "RATE_LIMITED"},
+		{"e", "excluded", "RATE_LIMITED"},
+	} {
+		require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO key_verifications_raw_v2
+			(workspace_id, request_id, inserted_at, time, key_space_id, outcome)
+			VALUES (?, ?, ?, ?, ?, ?)`, workspaceID, row.id, now, now, row.keyspace, row.outcome))
+	}
+	reader := source.NewKeyVerifications(client)
+	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_KeyVerifications{KeyVerifications: &logdrainv1.KeyVerificationStreamConfig{
+		KeySpaceIds: []string{"selected", "also_selected"},
+	}}}
+	page, _, err := reader.Read(t.Context(), workspaceID, source.Cursor{Time: now}, now+1, 2, filter)
+	require.NoError(t, err)
+	require.Len(t, page, 2)
+	require.Equal(t, "b", page[0].EventID)
+	require.Equal(t, "c", page[1].EventID)
+	filter.GetKeyVerifications().Outcomes = []string{"RATE_LIMITED"}
+	page, cursor, err := reader.Read(t.Context(), workspaceID, source.Cursor{Time: now}, now+1, 1, filter)
+	require.NoError(t, err)
+	require.Len(t, page, 1)
+	require.Equal(t, "c", page[0].EventID)
+	page, cursor, err = reader.Read(t.Context(), workspaceID, cursor, now+1, 1, filter)
+	require.NoError(t, err)
+	require.Len(t, page, 1)
+	require.Equal(t, "d", page[0].EventID)
+	page, final, err := reader.Read(t.Context(), workspaceID, cursor, now+1, 1, filter)
+	require.NoError(t, err)
+	require.Empty(t, page)
+	require.Equal(t, cursor, final)
 }

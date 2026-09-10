@@ -17,6 +17,7 @@ import {
   httpFormatSchema,
   httpHeaderUpdatesSchema,
   httpsUrl,
+  keySpaceIdsSchema,
   outcomesSchema,
 } from "./validation";
 
@@ -59,6 +60,7 @@ export const updateLogdrain = workspaceProcedure
         status: z.enum(["running", "paused_by_user"]).optional(),
         eventTypes: eventTypesSchema.optional(),
         outcomes: outcomesSchema.optional(),
+        keySpaceIds: keySpaceIdsSchema.optional(),
         destination: updateDestinationSchema.optional(),
       })
       .refine(
@@ -67,6 +69,7 @@ export const updateLogdrain = workspaceProcedure
           input.status !== undefined ||
           input.eventTypes !== undefined ||
           input.outcomes !== undefined ||
+          input.keySpaceIds !== undefined ||
           input.destination !== undefined,
         "At least one update is required",
       ),
@@ -91,7 +94,10 @@ export const updateLogdrain = workspaceProcedure
         case "axiom":
           if (destination.config.token !== undefined) {
             encryptedToken = (
-              await vault.encrypt({ keyring: ctx.workspace.id, data: destination.config.token })
+              await vault.encrypt({
+                keyring: ctx.workspace.id,
+                data: destination.config.token,
+              })
             ).encrypted;
           }
           break;
@@ -117,11 +123,15 @@ export const updateLogdrain = workspaceProcedure
           )
           .for("update");
         if (!drain) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Log drain not found" });
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Log drain not found",
+          });
         }
         const existing = decodeLogdrainConfig(drain.config);
         if (
-          (existing.stream.kind === "audit_logs" && input.outcomes !== undefined) ||
+          (existing.stream.kind === "audit_logs" &&
+            (input.outcomes !== undefined || input.keySpaceIds !== undefined)) ||
           (existing.stream.kind === "key_verifications" && input.eventTypes !== undefined)
         ) {
           throw new TRPCError({
@@ -131,10 +141,19 @@ export const updateLogdrain = workspaceProcedure
         }
         const stream =
           existing.stream.kind === "audit_logs"
-            ? { ...existing.stream, eventTypes: input.eventTypes ?? existing.stream.eventTypes }
-            : { ...existing.stream, outcomes: input.outcomes ?? existing.stream.outcomes };
+            ? {
+                ...existing.stream,
+                eventTypes: input.eventTypes ?? existing.stream.eventTypes,
+              }
+            : {
+                ...existing.stream,
+                outcomes: input.outcomes ?? existing.stream.outcomes,
+                keySpaceIds: input.keySpaceIds ?? existing.stream.keySpaceIds,
+              };
         let config =
-          input.eventTypes === undefined && input.outcomes === undefined
+          input.eventTypes === undefined &&
+          input.outcomes === undefined &&
+          input.keySpaceIds === undefined
             ? drain.config
             : encodeLogdrainConfig({
                 ...existing,
@@ -201,7 +220,8 @@ export const updateLogdrain = workspaceProcedure
         const changesDelivery =
           destination !== undefined ||
           input.eventTypes !== undefined ||
-          input.outcomes !== undefined;
+          input.outcomes !== undefined ||
+          input.keySpaceIds !== undefined;
         const resetFailureState = input.status === "running" || changesDelivery;
         const expireLease = input.status !== undefined || changesDelivery;
         const status =
@@ -235,7 +255,10 @@ export const updateLogdrain = workspaceProcedure
           event: "logdrain.update",
           description: `Updated log drain ${input.id}`,
           resources: [{ type: "logdrain", id: drain.id, name: input.name ?? drain.name }],
-          context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
         });
       });
       return { id: input.id };
@@ -244,7 +267,10 @@ export const updateLogdrain = workspaceProcedure
         throw error;
       }
       console.error("Failed to update log drain", error);
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update log drain" });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to update log drain",
+      });
     }
   });
 
@@ -278,7 +304,10 @@ export function applyHttpHeaderUpdates({
         if (!header) {
           throw new Error(`Encrypted HTTP header ${update.name} is missing`);
         }
-        return { ...header, name: existingByName.get(normalizedName)?.name ?? header.name };
+        return {
+          ...header,
+          name: existingByName.get(normalizedName)?.name ?? header.name,
+        };
       }
     }
   });

@@ -59,11 +59,13 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
       const destination = changedDestination(submitted, values);
       const eventTypesChanged = !sameEventTypes(submitted.eventTypes, values.eventTypes);
       const outcomesChanged = !sameEventTypes(submitted.outcomes, values.outcomes);
+      const keySpacesChanged = !sameEventTypes(submitted.keySpaceIds, values.keySpaceIds);
       if (
         name === drain.name &&
         destination === undefined &&
         !eventTypesChanged &&
-        !outcomesChanged
+        !outcomesChanged &&
+        !keySpacesChanged
       ) {
         onSaved();
         return;
@@ -74,6 +76,7 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
           ...(name !== drain.name ? { name } : {}),
           ...(eventTypesChanged ? { eventTypes: submitted.eventTypes } : {}),
           ...(outcomesChanged ? { outcomes: submitted.outcomes } : {}),
+          ...(keySpacesChanged ? { keySpaceIds: submitted.keySpaceIds } : {}),
           ...(destination !== undefined ? { destination } : {}),
         },
         { onSuccess: onSaved },
@@ -134,7 +137,11 @@ function changedDestination(
                 headers: headers.map((header) =>
                   header.stored && header.value === ""
                     ? { mode: "preserve" as const, name: header.name.trim() }
-                    : { mode: "set" as const, name: header.name.trim(), value: header.value },
+                    : {
+                        mode: "set" as const,
+                        name: header.name.trim(),
+                        value: header.value,
+                      },
                 ),
               }
             : {}),

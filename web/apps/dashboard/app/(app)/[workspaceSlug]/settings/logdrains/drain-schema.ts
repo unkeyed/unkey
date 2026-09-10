@@ -1,5 +1,5 @@
 import type { Router } from "@/lib/trpc/routers";
-import { outcomesSchema } from "@/lib/trpc/routers/logdrain/validation";
+import { keySpaceIdsSchema, outcomesSchema } from "@/lib/trpc/routers/logdrain/validation";
 import type { inferRouterOutputs } from "@trpc/server";
 import { z } from "zod";
 import { headerNamePattern, isValidHttpHeaderValue } from "./header-fields";
@@ -35,7 +35,11 @@ function refineHeaderRows(rows: HeaderRow[], context: z.RefinementCtx) {
       continue;
     }
     if (name === "") {
-      context.addIssue({ code: "custom", path: at(index, "name"), message: "Enter a header name" });
+      context.addIssue({
+        code: "custom",
+        path: at(index, "name"),
+        message: "Enter a header name",
+      });
       continue;
     }
     if (!headerNamePattern.test(name)) {
@@ -76,7 +80,10 @@ const httpsUrlSchema = z
       context.addIssue({ code: "custom", message: "URL must use HTTPS" });
     }
     if (url.username !== "" || url.password !== "") {
-      context.addIssue({ code: "custom", message: "URL must not contain credentials" });
+      context.addIssue({
+        code: "custom",
+        message: "URL must not contain credentials",
+      });
     }
   });
 
@@ -84,6 +91,7 @@ const baseSchema = z.object({
   kind: z.enum(["http", "axiom"]),
   stream: z.enum(["audit_logs", "key_verifications"]),
   outcomes: outcomesSchema,
+  keySpaceIds: keySpaceIdsSchema,
   name: z.string().trim().min(1, "Enter a name").max(128, "Name must be 128 characters or less"),
   url: z.string(),
   format: z.enum(["json", "ndjson"]),
@@ -115,10 +123,18 @@ function refineDestination(
     }
     case "axiom":
       if (values.dataset.trim() === "") {
-        context.addIssue({ code: "custom", path: ["dataset"], message: "Enter a dataset" });
+        context.addIssue({
+          code: "custom",
+          path: ["dataset"],
+          message: "Enter a dataset",
+        });
       }
       if (tokenRequired && values.token.trim() === "") {
-        context.addIssue({ code: "custom", path: ["token"], message: "Enter a token" });
+        context.addIssue({
+          code: "custom",
+          path: ["token"],
+          message: "Enter a token",
+        });
       }
       break;
     default:
@@ -141,6 +157,7 @@ export const emptyDrainForm: DrainFormValues = {
   kind: "http",
   stream: "audit_logs",
   outcomes: [],
+  keySpaceIds: [],
   name: "",
   url: "",
   format: "json",
@@ -157,12 +174,17 @@ export function drainToFormValues(drain: DrainDetail): DrainFormValues {
     name: drain.name,
     stream: drain.stream,
     outcomes: outcomesSchema.parse(drain.outcomes),
+    keySpaceIds: drain.keySpaceIds,
     eventTypes: drain.eventTypes,
     url: drain.kind === "http" ? drain.config.url : "",
     format: drain.kind === "http" ? drain.config.format : "json",
     headers:
       drain.kind === "http"
-        ? drain.config.headers.map((name) => ({ name, value: "", stored: true }))
+        ? drain.config.headers.map((name) => ({
+            name,
+            value: "",
+            stored: true,
+          }))
         : [],
     dataset: drain.kind === "axiom" ? drain.config.dataset : "",
   };

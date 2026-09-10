@@ -33,6 +33,8 @@ export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
               destination.stream.kind === "audit_logs" ? destination.stream.eventTypes : [],
             outcomes:
               destination.stream.kind === "key_verifications" ? destination.stream.outcomes : [],
+            keySpaceIds:
+              destination.stream.kind === "key_verifications" ? destination.stream.keySpaceIds : [],
             stream,
             config: {
               url: destination.url,
@@ -48,6 +50,8 @@ export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
               destination.stream.kind === "audit_logs" ? destination.stream.eventTypes : [],
             outcomes:
               destination.stream.kind === "key_verifications" ? destination.stream.outcomes : [],
+            keySpaceIds:
+              destination.stream.kind === "key_verifications" ? destination.stream.keySpaceIds : [],
             stream,
             config: {
               dataset: destination.dataset,
@@ -58,6 +62,9 @@ export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
     return parsed;
   } catch (error) {
     console.error("Failed to list log drains", error);
-    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to list log drains" });
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "Failed to list log drains",
+    });
   }
 });

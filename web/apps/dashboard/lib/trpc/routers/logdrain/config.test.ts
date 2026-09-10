@@ -1,5 +1,5 @@
 import { ConfigSchema } from "@/gen/proto/logdrain/v1/config_pb";
-import { fromBinary } from "@bufbuild/protobuf";
+import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { describe, expect, it, vi } from "vitest";
 import {
   type LogdrainConfig,
@@ -15,7 +15,10 @@ describe("log drain protobuf config", () => {
   const configs = [
     {
       kind: "http",
-      stream: { kind: "audit_logs", eventTypes: ["key.create", "future.event"] },
+      stream: {
+        kind: "audit_logs",
+        eventTypes: ["key.create", "future.event"],
+      },
       url: "https://example.com/logs",
       format: "ndjson",
       headers: [
@@ -49,16 +52,38 @@ describe("log drain protobuf config", () => {
   it("round trips verification outcomes independently of the destination", () => {
     const config = {
       kind: "axiom" as const,
-      stream: { kind: "key_verifications" as const, outcomes: ["RATE_LIMITED", "EXPIRED"] },
+      stream: {
+        kind: "key_verifications" as const,
+        outcomes: ["RATE_LIMITED", "EXPIRED"],
+        keySpaceIds: ["ks_primary", "ks_secondary"],
+      },
       dataset: "verifications",
       encryptedToken: "ciphertext",
     };
     const encoded = encodeLogdrainConfig(config);
     expect(fromBinary(ConfigSchema, encoded).stream).toMatchObject({
       case: "keyVerifications",
-      value: { outcomes: ["RATE_LIMITED", "EXPIRED"] },
+      value: {
+        outcomes: ["RATE_LIMITED", "EXPIRED"],
+        keySpaceIds: ["ks_primary", "ks_secondary"],
+      },
     });
     expect(decodeLogdrainConfig(encoded)).toEqual(config);
+  });
+
+  it("keeps older verification configs unfiltered by keyspace", () => {
+    const encoded = toBinary(
+      ConfigSchema,
+      create(ConfigSchema, {
+        stream: { case: "keyVerifications", value: { outcomes: ["VALID"] } },
+        destination: { case: "axiom", value: { dataset: "verifications" } },
+      }),
+    );
+    expect(decodeLogdrainConfig(encoded).stream).toEqual({
+      kind: "key_verifications",
+      outcomes: ["VALID"],
+      keySpaceIds: [],
+    });
   });
 
   it("decodes configs without event types as all events", () => {

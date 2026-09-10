@@ -29,28 +29,33 @@ func TestKeyVerificationProjection(t *testing.T) {
 	now := time.Now().UnixMilli()
 	// The base key orders event time in the opposite direction to ingestion.
 	require.NoError(t, client.conn.Exec(ctx, `INSERT INTO `+table+`
-		(workspace_id, request_id, time, inserted_at, outcome)
+		(workspace_id, request_id, time, inserted_at, outcome, key_space_id)
 		SELECT 'projection_workspace', leftPad(toString(number), 6, '0'),
 		? - number, ? + number,
-		if(number % 2 = 0, 'VALID', 'RATE_LIMITED') FROM numbers(?)`, now, now, rowCount))
+		if(number % 2 = 0, 'VALID', 'RATE_LIMITED'),
+		if(number % 3 = 0, 'selected', 'other') FROM numbers(?)`, now, now, rowCount))
 	query := `SELECT inserted_at, time, request_id, key_space_id,
 		identity_id, external_id, key_id, region, source, app_id, outcome, tags, spent_credits
 		FROM ` + table + ` WHERE workspace_id = 'projection_workspace'
 		AND (inserted_at > {from_time:Int64} OR (inserted_at = {from_time:Int64} AND request_id > '130000'))
 		AND inserted_at < {to:Int64}
 		AND (empty({outcomes:Array(String)}) OR outcome IN {outcomes:Array(String)})
+		AND (empty({key_space_ids:Array(String)}) OR key_space_id IN {key_space_ids:Array(String)})
 		ORDER BY inserted_at, request_id LIMIT 1000
 		SETTINGS min_table_rows_to_use_projection_index = 0`
 	for _, tt := range []struct {
-		name     string
-		outcomes []string
-		wantRows int
+		name      string
+		outcomes  []string
+		keySpaces []string
+		wantRows  int
 	}{
 		{name: "all outcomes", wantRows: 1000},
 		{name: "selected outcome", outcomes: []string{"VALID"}, wantRows: 535},
+		{name: "selected keyspace", keySpaces: []string{"selected"}, wantRows: 357},
+		{name: "selected keyspace and outcome", outcomes: []string{"VALID"}, keySpaces: []string{"selected"}, wantRows: 179},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			params := map[string]string{"from_time": strconv.FormatInt(now+130000, 10), "to": strconv.FormatInt(now+rowCount, 10), "outcomes": StringArrayParam(tt.outcomes)}
+			params := map[string]string{"from_time": strconv.FormatInt(now+130000, 10), "to": strconv.FormatInt(now+rowCount, 10), "outcomes": StringArrayParam(tt.outcomes), "key_space_ids": StringArrayParam(tt.keySpaces)}
 			queryCtx := ch.Context(ctx, ch.WithParameters(params))
 			var plan []struct {
 				Explain string `ch:"explain"`
