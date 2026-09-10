@@ -33,6 +33,7 @@ export const getLogdrain = workspaceProcedure
             id: row.id,
             name: row.name,
             kind: destination.kind,
+            eventTypes: destination.stream.eventTypes,
             status: row.status,
             config: {
               url: destination.url,
@@ -45,6 +46,7 @@ export const getLogdrain = workspaceProcedure
             id: row.id,
             name: row.name,
             kind: destination.kind,
+            eventTypes: destination.stream.eventTypes,
             status: row.status,
             config: {
               dataset: destination.dataset,
