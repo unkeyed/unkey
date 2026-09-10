@@ -77,3 +77,23 @@ services:
     portal:
       title: Design System
       description: Unkey UI components and design patterns.
+
+  product-docs:
+    command: >-
+      cd docs/product &&
+      "$HOME/.local/bin/mise" exec --
+      mint dev --no-open --port "$PORT"
+    port: 3300
+    portal:
+      title: Product Docs
+      description: Local Mintlify preview of the product documentation.
+
+  engineering-docs:
+    command: >-
+      cd docs/engineering &&
+      "$HOME/.local/bin/mise" exec --
+      mint dev --no-open --port "$PORT"
+    port: 3301
+    portal:
+      title: Engineering Docs
+      description: Local Mintlify preview of the engineering documentation.
