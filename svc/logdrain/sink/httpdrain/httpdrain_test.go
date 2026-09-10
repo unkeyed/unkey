@@ -16,6 +16,33 @@ import (
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
 
+func TestDeliverRuntimeLog(t *testing.T) {
+	for _, format := range []logdrainv1.HttpBodyFormat{logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED, logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON, logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON} {
+		t.Run(format.String(), func(t *testing.T) {
+			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				body, err := io.ReadAll(r.Body)
+				require.NoError(t, err)
+				if format != logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON {
+					var records []json.RawMessage
+					require.NoError(t, json.Unmarshal(body, &records))
+					require.Len(t, records, 1)
+					body = records[0]
+				} else {
+					require.Equal(t, 1, strings.Count(string(body), "\n"))
+				}
+				require.JSONEq(t, `{"stream":"runtime_logs","timestamp":"1970-01-01T00:00:00.123Z","event":{"log_id":"rlog_1","severity":"error","message":"first\nsecond","attributes":{"order":{"id":42}},"project_id":"project","app_id":"app","environment_id":"env","deployment_id":"deployment","region":"local"}}`, string(body))
+				w.WriteHeader(http.StatusNoContent)
+			}))
+			t.Cleanup(server.Close)
+			batch := testBatch()
+			batch.Events = []sink.Event{{EventID: "rlog_1", Stream: "runtime_logs", Time: 123, Payload: sink.RuntimeLogPayload{LogID: "rlog_1", Severity: "error", Message: "first\nsecond", Attributes: json.RawMessage(`{"order":{"id":42}}`), ProjectID: "project", AppID: "app", EnvironmentID: "env", DeploymentID: "deployment", Region: "local"}}}
+			result, err := newTestSink(t, Config{Endpoint: server.URL, Format: format}).Deliver(t.Context(), batch)
+			require.NoError(t, err)
+			require.True(t, result.Acknowledged)
+		})
+	}
+}
+
 func TestDeliverGatewayRequest(t *testing.T) {
 	for _, format := range []logdrainv1.HttpBodyFormat{logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED, logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON, logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON} {
 		t.Run(format.String(), func(t *testing.T) {

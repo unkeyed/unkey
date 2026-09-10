@@ -52,10 +52,17 @@ CREATE TABLE IF NOT EXISTS default.runtime_logs_raw_v1
     -- Log drains page by inserted_at. The partition key prunes whole days;
     -- this minmax index prunes granules inside the day because rows in a
     -- granule were inserted within seconds of each other.
-    INDEX idx_inserted_at inserted_at TYPE minmax GRANULARITY 1
+    INDEX idx_inserted_at inserted_at TYPE minmax GRANULARITY 1,
+    PROJECTION proj_logdrain
+    (
+        SELECT workspace_id, inserted_at, log_id, _part_offset
+        ORDER BY workspace_id, inserted_at, log_id
+    )
 )
 ENGINE = MergeTree()
 PARTITION BY toDate(fromUnixTimestamp64Milli(inserted_at))
 ORDER BY (workspace_id, project_id, environment_id, app_id, time, deployment_id, log_id)
 TTL expires_at + INTERVAL 7 DAY
-SETTINGS index_granularity = 8192, ttl_only_drop_parts = 1;
+SETTINGS index_granularity = 8192, ttl_only_drop_parts = 1,
+    allow_part_offset_column_in_projections = 1,
+    deduplicate_merge_projection_mode = 'rebuild';

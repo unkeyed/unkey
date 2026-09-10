@@ -152,6 +152,7 @@ func Run(ctx context.Context, cfg Config) error {
 		AuditLogs:                   source.NewAuditLogs(ch),
 		KeyVerifications:            source.NewKeyVerifications(ch),
 		GatewayRequests:             source.NewGatewayRequests(ch),
+		RuntimeLogs:                 source.NewRuntimeLogs(ch),
 		Vault:                       vaultClient,
 		Deliveries:                  deliveries,
 		Clock:                       serviceClock,

@@ -6,7 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
-import { encodeLogdrainConfig, encryptHttpHeaders } from "./config";
+import { type LogdrainConfig, encodeLogdrainConfig, encryptHttpHeaders } from "./config";
 import {
   eventTypesSchema,
   httpFormatSchema,
@@ -15,11 +15,17 @@ import {
   keySpaceIdsSchema,
   outcomesSchema,
   resourceIdsSchema,
+  severitiesSchema,
   statusClassesSchema,
 } from "./validation";
 
 const vault = createVaultClient(VaultService);
-const streamSchema = z.enum(["audit_logs", "key_verifications", "gateway_requests"]);
+const streamSchema = z.enum([
+  "audit_logs",
+  "key_verifications",
+  "gateway_requests",
+  "runtime_logs",
+]);
 
 const destinationSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -49,6 +55,7 @@ export const createLogdrain = workspaceProcedure
         outcomes: outcomesSchema.optional(),
         keySpaceIds: keySpaceIdsSchema.optional(),
         statusClasses: statusClassesSchema.optional(),
+        severities: severitiesSchema.optional(),
         projectIds: resourceIdsSchema.optional(),
         appIds: resourceIdsSchema.optional(),
         environmentIds: resourceIdsSchema.optional(),
@@ -58,9 +65,11 @@ export const createLogdrain = workspaceProcedure
           (input.stream === "key_verifications" ||
             (input.outcomes === undefined && input.keySpaceIds === undefined)) &&
           (input.stream === "audit_logs" || input.eventTypes === undefined) &&
+          (input.stream === "gateway_requests" || input.statusClasses === undefined) &&
+          (input.stream === "runtime_logs" || input.severities === undefined) &&
           (input.stream === "gateway_requests" ||
-            (input.statusClasses === undefined &&
-              input.projectIds === undefined &&
+            input.stream === "runtime_logs" ||
+            (input.projectIds === undefined &&
               input.appIds === undefined &&
               input.environmentIds === undefined)),
         "Filters must match the drain stream.",
@@ -71,27 +80,45 @@ export const createLogdrain = workspaceProcedure
     const id = newId("logdrain");
 
     try {
+      let stream: LogdrainConfig["stream"];
+      switch (input.stream) {
+        case "audit_logs":
+          stream = { kind: input.stream, eventTypes: input.eventTypes ?? [] };
+          break;
+        case "key_verifications":
+          stream = {
+            kind: input.stream,
+            outcomes: input.outcomes ?? [],
+            keySpaceIds: input.keySpaceIds ?? [],
+          };
+          break;
+        case "gateway_requests":
+          stream = {
+            kind: input.stream,
+            statusClasses: input.statusClasses ?? [],
+            projectIds: input.projectIds ?? [],
+            appIds: input.appIds ?? [],
+            environmentIds: input.environmentIds ?? [],
+          };
+          break;
+        case "runtime_logs":
+          stream = {
+            kind: input.stream,
+            severities: input.severities ?? [],
+            projectIds: input.projectIds ?? [],
+            appIds: input.appIds ?? [],
+            environmentIds: input.environmentIds ?? [],
+          };
+          break;
+        default:
+          throw new Error(`Unsupported log drain stream: ${input.stream satisfies never}`);
+      }
       let config: Buffer;
       switch (input.kind) {
         case "http":
           config = encodeLogdrainConfig({
             kind: input.kind,
-            stream:
-              input.stream === "audit_logs"
-                ? { kind: input.stream, eventTypes: input.eventTypes ?? [] }
-                : input.stream === "gateway_requests"
-                  ? {
-                      kind: input.stream,
-                      statusClasses: input.statusClasses ?? [],
-                      projectIds: input.projectIds ?? [],
-                      appIds: input.appIds ?? [],
-                      environmentIds: input.environmentIds ?? [],
-                    }
-                  : {
-                      kind: input.stream,
-                      outcomes: input.outcomes ?? [],
-                      keySpaceIds: input.keySpaceIds ?? [],
-                    },
+            stream,
             url: input.config.url,
             format: input.config.format,
             headers: await encryptHttpHeaders(ctx.workspace.id, input.config.headers ?? {}),
@@ -100,22 +127,7 @@ export const createLogdrain = workspaceProcedure
         case "axiom":
           config = encodeLogdrainConfig({
             kind: input.kind,
-            stream:
-              input.stream === "audit_logs"
-                ? { kind: input.stream, eventTypes: input.eventTypes ?? [] }
-                : input.stream === "gateway_requests"
-                  ? {
-                      kind: input.stream,
-                      statusClasses: input.statusClasses ?? [],
-                      projectIds: input.projectIds ?? [],
-                      appIds: input.appIds ?? [],
-                      environmentIds: input.environmentIds ?? [],
-                    }
-                  : {
-                      kind: input.stream,
-                      outcomes: input.outcomes ?? [],
-                      keySpaceIds: input.keySpaceIds ?? [],
-                    },
+            stream,
             dataset: input.config.dataset,
             encryptedToken: (
               await vault.encrypt({

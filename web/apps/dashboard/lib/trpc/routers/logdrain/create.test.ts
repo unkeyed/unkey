@@ -46,6 +46,34 @@ vi.mock("../../trpc", () => ({
 }));
 
 describe("create gateway log drain", () => {
+  it.each(["http", "axiom"])("creates runtime drains without backfill for %s", async (kind) => {
+    saved.mockClear();
+    await mutation.run({
+      name: "Runtime",
+      stream: "runtime_logs",
+      severities: ["error", "warn"],
+      projectIds: ["project"],
+      appIds: ["app"],
+      environmentIds: [],
+      kind,
+      config:
+        kind === "http" ? { url: "https://example.com" } : { dataset: "runtime", token: "secret" },
+    });
+    const row = saved.mock.calls[0]?.[0];
+    if (!row) {
+      throw new Error("No drain was persisted");
+    }
+    expect(row.stream).toBe("runtime_logs");
+    expect(row.committedOffsetInsertedAt).toBe(row.createdAt);
+    expect(decodeLogdrainConfig(row.config).stream).toEqual({
+      kind: "runtime_logs",
+      severities: ["error", "warn"],
+      projectIds: ["project"],
+      appIds: ["app"],
+      environmentIds: [],
+    });
+  });
+
   it.each(["http", "axiom"])(
     "persists typed statuses and starts at creation time for %s",
     async (kind) => {

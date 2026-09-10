@@ -17,7 +17,17 @@ message Config {
     AuditLogStreamConfig audit_logs = 3;
     KeyVerificationStreamConfig key_verifications = 4;
     GatewayRequestStreamConfig gateway_requests = 5;
+    RuntimeLogStreamConfig runtime_logs = 6;
   }
+}
+
+// RuntimeLogStreamConfig combines exact severity and customer resource filters.
+message RuntimeLogStreamConfig {
+  // Each empty list selects all values. Nonempty dimensions are combined with AND.
+  repeated string severities = 1;
+  repeated string project_ids = 2;
+  repeated string app_ids = 3;
+  repeated string environment_ids = 4;
 }
 
 // GatewayRequestStreamConfig combines resource and response status filters.

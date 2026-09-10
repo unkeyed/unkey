@@ -101,16 +101,23 @@ export function CreateLogdrainPanel({
     create.mutate({
       name: values.name.trim(),
       stream: values.stream,
-      ...(values.stream === "audit_logs"
-        ? { eventTypes: values.eventTypes }
-        : values.stream === "gateway_requests"
-          ? {
-              statusClasses: values.statusClasses,
-              projectIds: values.projectIds,
-              appIds: values.appIds,
-              environmentIds: values.environmentIds,
-            }
-          : { outcomes: values.outcomes, keySpaceIds: values.keySpaceIds }),
+      ...(values.stream === "runtime_logs"
+        ? {
+            severities: values.severities,
+            projectIds: values.runtimeProjectIds,
+            appIds: values.runtimeAppIds,
+            environmentIds: values.runtimeEnvironmentIds,
+          }
+        : values.stream === "audit_logs"
+          ? { eventTypes: values.eventTypes }
+          : values.stream === "gateway_requests"
+            ? {
+                statusClasses: values.statusClasses,
+                projectIds: values.projectIds,
+                appIds: values.appIds,
+                environmentIds: values.environmentIds,
+              }
+            : { outcomes: values.outcomes, keySpaceIds: values.keySpaceIds }),
       ...destination,
     });
   });

@@ -20,6 +20,7 @@ import {
   keySpaceIdsSchema,
   outcomesSchema,
   resourceIdsSchema,
+  severitiesSchema,
   statusClassesSchema,
 } from "./validation";
 
@@ -64,6 +65,7 @@ export const updateLogdrain = workspaceProcedure
         outcomes: outcomesSchema.optional(),
         keySpaceIds: keySpaceIdsSchema.optional(),
         statusClasses: statusClassesSchema.optional(),
+        severities: severitiesSchema.optional(),
         projectIds: resourceIdsSchema.optional(),
         appIds: resourceIdsSchema.optional(),
         environmentIds: resourceIdsSchema.optional(),
@@ -77,6 +79,7 @@ export const updateLogdrain = workspaceProcedure
           input.outcomes !== undefined ||
           input.keySpaceIds !== undefined ||
           input.statusClasses !== undefined ||
+          input.severities !== undefined ||
           input.projectIds !== undefined ||
           input.appIds !== undefined ||
           input.environmentIds !== undefined ||
@@ -143,9 +146,11 @@ export const updateLogdrain = workspaceProcedure
           (existing.stream.kind !== "key_verifications" &&
             (input.outcomes !== undefined || input.keySpaceIds !== undefined)) ||
           (existing.stream.kind !== "audit_logs" && input.eventTypes !== undefined) ||
+          (existing.stream.kind !== "gateway_requests" && input.statusClasses !== undefined) ||
+          (existing.stream.kind !== "runtime_logs" && input.severities !== undefined) ||
           (existing.stream.kind !== "gateway_requests" &&
-            (input.statusClasses !== undefined ||
-              input.projectIds !== undefined ||
+            existing.stream.kind !== "runtime_logs" &&
+            (input.projectIds !== undefined ||
               input.appIds !== undefined ||
               input.environmentIds !== undefined))
         ) {
@@ -155,28 +160,37 @@ export const updateLogdrain = workspaceProcedure
           });
         }
         const stream =
-          existing.stream.kind === "audit_logs"
+          existing.stream.kind === "runtime_logs"
             ? {
                 ...existing.stream,
-                eventTypes: input.eventTypes ?? existing.stream.eventTypes,
+                severities: input.severities ?? existing.stream.severities,
+                projectIds: input.projectIds ?? existing.stream.projectIds,
+                appIds: input.appIds ?? existing.stream.appIds,
+                environmentIds: input.environmentIds ?? existing.stream.environmentIds,
               }
-            : existing.stream.kind === "gateway_requests"
+            : existing.stream.kind === "audit_logs"
               ? {
                   ...existing.stream,
-                  statusClasses: input.statusClasses ?? existing.stream.statusClasses,
-                  projectIds: input.projectIds ?? existing.stream.projectIds,
-                  appIds: input.appIds ?? existing.stream.appIds,
-                  environmentIds: input.environmentIds ?? existing.stream.environmentIds,
+                  eventTypes: input.eventTypes ?? existing.stream.eventTypes,
                 }
-              : {
-                  ...existing.stream,
-                  outcomes: input.outcomes ?? existing.stream.outcomes,
-                  keySpaceIds: input.keySpaceIds ?? existing.stream.keySpaceIds,
-                };
+              : existing.stream.kind === "gateway_requests"
+                ? {
+                    ...existing.stream,
+                    statusClasses: input.statusClasses ?? existing.stream.statusClasses,
+                    projectIds: input.projectIds ?? existing.stream.projectIds,
+                    appIds: input.appIds ?? existing.stream.appIds,
+                    environmentIds: input.environmentIds ?? existing.stream.environmentIds,
+                  }
+                : {
+                    ...existing.stream,
+                    outcomes: input.outcomes ?? existing.stream.outcomes,
+                    keySpaceIds: input.keySpaceIds ?? existing.stream.keySpaceIds,
+                  };
         let config =
           input.eventTypes === undefined &&
           input.outcomes === undefined &&
           input.statusClasses === undefined &&
+          input.severities === undefined &&
           input.projectIds === undefined &&
           input.appIds === undefined &&
           input.environmentIds === undefined &&
@@ -249,6 +263,7 @@ export const updateLogdrain = workspaceProcedure
           input.eventTypes !== undefined ||
           input.outcomes !== undefined ||
           input.statusClasses !== undefined ||
+          input.severities !== undefined ||
           input.projectIds !== undefined ||
           input.appIds !== undefined ||
           input.environmentIds !== undefined ||

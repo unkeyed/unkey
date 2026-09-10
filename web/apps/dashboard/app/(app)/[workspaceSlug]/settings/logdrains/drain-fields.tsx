@@ -56,6 +56,7 @@ export function StreamField({ disabled = false }: { disabled?: boolean }) {
             { value: "audit_logs", label: "Audit logs" },
             { value: "key_verifications", label: "Key verifications" },
             { value: "gateway_requests", label: "Gateway HTTP requests" },
+            { value: "runtime_logs", label: "Runtime logs" },
           ]}
         />
       )}
@@ -81,12 +82,55 @@ export function EventTypesField() {
         <GatewayStatusesField />
       </>
     ))
+    .with("runtime_logs", () => <RuntimeFields />)
     .exhaustive();
 }
 
 function GatewayResourcesFields() {
+  return (
+    <ResourceFields projectField="projectIds" appField="appIds" environmentField="environmentIds" />
+  );
+}
+
+function RuntimeFields() {
+  const { control } = useFormContext<DrainFormValues>();
+  return (
+    <>
+      <ResourceFields
+        projectField="runtimeProjectIds"
+        appField="runtimeAppIds"
+        environmentField="runtimeEnvironmentIds"
+      />
+      <Controller
+        control={control}
+        name="severities"
+        render={({ field }) => (
+          <FilterChoices
+            {...field}
+            options={["error", "warn", "info", "debug"]}
+            label="Severity"
+            description="Choose exact severities. Leave empty to send all severities."
+            searchLabel="Search severities"
+            placeholder="All severities"
+            emptyMessage="No severities found."
+          />
+        )}
+      />
+    </>
+  );
+}
+
+function ResourceFields({
+  projectField,
+  appField,
+  environmentField,
+}: {
+  projectField: "projectIds" | "runtimeProjectIds";
+  appField: "appIds" | "runtimeAppIds";
+  environmentField: "environmentIds" | "runtimeEnvironmentIds";
+}) {
   const { control, getValues, setValue } = useFormContext<DrainFormValues>();
-  const projectIds = useWatch({ control, name: "projectIds" });
+  const projectIds = useWatch({ control, name: projectField });
   const projects = trpc.deploy.project.list.useQuery();
   const environments = trpc.deploy.environment.listAll.useQuery();
   const projectLabels = new Map(projects.data?.map((project) => [project.id, project.name]));
@@ -97,7 +141,7 @@ function GatewayResourcesFields() {
   );
   const choices = [
     {
-      name: "projectIds",
+      name: projectField,
       label: "Projects",
       searchLabel: "Search projects",
       placeholder: "All projects",
@@ -106,7 +150,7 @@ function GatewayResourcesFields() {
       error: projects.error,
     },
     {
-      name: "appIds",
+      name: appField,
       label: "Apps",
       searchLabel: "Search apps",
       placeholder: "All apps",
@@ -121,7 +165,7 @@ function GatewayResourcesFields() {
       error: projects.error,
     },
     {
-      name: "environmentIds",
+      name: environmentField,
       label: "Environments",
       searchLabel: "Search environments",
       placeholder: "All environments",
@@ -138,7 +182,7 @@ function GatewayResourcesFields() {
   return (
     <>
       <p className="text-xs text-gray-9">
-        Requests must match each selected filter. Leave a filter empty to send all values.
+        Logs must match each selected filter. Leave a filter empty to send all values.
       </p>
       {choices.map((choice) => (
         <Controller
@@ -150,15 +194,15 @@ function GatewayResourcesFields() {
               {...field}
               onChange={(values) => {
                 field.onChange(values);
-                if (choice.name === "projectIds" && values.length > 0 && projects.data) {
+                if (choice.name === projectField && values.length > 0 && projects.data) {
                   const appIds = new Set(
                     projects.data
                       .filter((project) => values.includes(project.id))
                       .flatMap((project) => project.apps.map((app) => app.id)),
                   );
                   setValue(
-                    "appIds",
-                    getValues("appIds").filter((id) => appIds.has(id)),
+                    appField,
+                    getValues(appField).filter((id) => appIds.has(id)),
                     { shouldDirty: true, shouldValidate: true },
                   );
                 }

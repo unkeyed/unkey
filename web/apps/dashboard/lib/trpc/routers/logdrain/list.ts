@@ -4,7 +4,12 @@ import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 import { decodeLogdrainConfig, toPublicLogdrainConfig } from "./config";
 
-const streamSchema = z.enum(["audit_logs", "key_verifications", "gateway_requests"]);
+const streamSchema = z.enum([
+  "audit_logs",
+  "key_verifications",
+  "gateway_requests",
+  "runtime_logs",
+]);
 
 export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
   try {

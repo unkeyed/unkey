@@ -13,6 +13,23 @@ import (
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
 
+func TestDeliverRuntimeLog(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var record map[string]json.RawMessage
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&record))
+		require.JSONEq(t, `"runtime_logs"`, string(record["stream"]))
+		require.JSONEq(t, `"1970-01-01T00:00:00.123Z"`, string(record["_time"]))
+		require.JSONEq(t, `{"log_id":"rlog_1","severity":"error","message":"first\nsecond","attributes":{"order":{"id":42}},"project_id":"project","app_id":"app","environment_id":"env","deployment_id":"deployment","region":"local"}`, string(record["event"]))
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(server.Close)
+	batch := testBatch()
+	batch.Events = []sink.Event{{EventID: "rlog_1", Stream: "runtime_logs", Time: 123, Payload: sink.RuntimeLogPayload{LogID: "rlog_1", Severity: "error", Message: "first\nsecond", Attributes: json.RawMessage(`{"order":{"id":42}}`), ProjectID: "project", AppID: "app", EnvironmentID: "env", DeploymentID: "deployment", Region: "local"}}}
+	result, err := newTestDrain(t, server.URL, "runtime", "token").Deliver(t.Context(), batch)
+	require.NoError(t, err)
+	require.True(t, result.Acknowledged)
+}
+
 func TestDeliverGatewayRequest(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var line struct {

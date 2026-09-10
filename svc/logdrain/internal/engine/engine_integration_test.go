@@ -219,7 +219,7 @@ func TestEngine_Integration(t *testing.T) {
 		}, 5*time.Second, 100*time.Millisecond)
 	})
 
-	for _, filterMode := range []string{"audit_logs", "key_verifications", "keyspaces", "gateway_requests"} {
+	for _, filterMode := range []string{"audit_logs", "key_verifications", "keyspaces", "gateway_requests", "runtime_logs"} {
 		stream := filterMode
 		if filterMode == "keyspaces" {
 			stream = "key_verifications"
@@ -277,10 +277,16 @@ func TestEngine_Integration(t *testing.T) {
 					require.NoError(t, chConn.Exec(t.Context(), `INSERT INTO frontline_requests_raw_v1 (workspace_id, request_id, inserted_at, time, response_status, project_id, app_id, environment_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, workspaceID, drainID+event.id, insertedAt, insertedAt-60000, event.status, event.id, event.id, event.id))
 				}
 			}
+			if stream == "runtime_logs" {
+				config.Stream = &logdrainv1.Config_RuntimeLogs{RuntimeLogs: &logdrainv1.RuntimeLogStreamConfig{Severities: []string{"error"}}}
+				for _, event := range []struct{ id, severity string }{{"_a", "info"}, {"_b", "info"}, {"_c", "error"}} {
+					require.NoError(t, chConn.Exec(t.Context(), `INSERT INTO runtime_logs_raw_v1 (workspace_id, log_id, inserted_at, time, severity) VALUES (?, ?, ?, ?, ?)`, workspaceID, drainID+event.id, insertedAt, insertedAt-60000, event.severity))
+				}
+			}
 			encoded, err := proto.Marshal(config)
 			require.NoError(t, err)
 			storedStream := stream
-			if stream == "gateway_requests" {
+			if stream == "gateway_requests" || stream == "runtime_logs" {
 				storedStream = "audit_logs"
 			}
 			_, err = mysqlDB.Exec("UPDATE logdrains SET stream = ?, config = ?, committed_offset_event_id = ? WHERE id = ?", storedStream, encoded, drainID+"_a", drainID)
@@ -308,6 +314,7 @@ func TestEngine_Integration(t *testing.T) {
 				DB: database, LeaseID: leaseID, AuditLogs: source.NewAuditLogs(chClient), Vault: stubVault{},
 				KeyVerifications: source.NewKeyVerifications(chClient),
 				GatewayRequests:  source.NewGatewayRequests(chClient),
+				RuntimeLogs:      source.NewRuntimeLogs(chClient),
 				Deliveries:       deliveries, PollInterval: 200 * time.Millisecond, BatchSize: 1,
 				PauseThreshold: 5, UnsafeAllowPrivateEndpoints: true,
 			})
@@ -330,6 +337,13 @@ func TestEngine_Integration(t *testing.T) {
 					if stream == "audit_logs" {
 						require.Equal(t, wantID, events[0]["id"])
 						require.Equal(t, wantAction, events[0]["action"])
+					} else if stream == "runtime_logs" {
+						require.Equal(t, wantID, events[0]["log_id"])
+						severity := "info"
+						if wantAction == "key.delete" {
+							severity = "error"
+						}
+						require.Equal(t, severity, events[0]["severity"])
 					} else if stream == "gateway_requests" {
 						require.Equal(t, wantID, events[0]["request_id"])
 						status := float64(201)
@@ -353,6 +367,8 @@ func TestEngine_Integration(t *testing.T) {
 
 			if stream == "audit_logs" {
 				config.GetAuditLogs().EventTypes = []string{"key.create"}
+			} else if stream == "runtime_logs" {
+				config.GetRuntimeLogs().Severities = []string{"info"}
 			} else if filterMode == "keyspaces" {
 				config.GetKeyVerifications().KeySpaceIds = []string{"_b"}
 			} else if stream == "gateway_requests" {

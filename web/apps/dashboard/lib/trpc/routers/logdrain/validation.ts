@@ -5,6 +5,7 @@ import { z } from "zod";
 export const eventTypesSchema = z.array(z.string().trim().min(1).max(256)).max(256);
 export const outcomesSchema = z.array(z.enum(KEY_VERIFICATION_OUTCOMES)).max(256);
 export const keySpaceIdsSchema = z.array(z.string().trim().min(1).max(256)).max(256);
+export const severitiesSchema = z.array(z.string().trim().min(1).max(256)).max(256);
 export const statusClassesSchema = z
   .array(
     z.union([

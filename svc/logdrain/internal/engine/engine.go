@@ -46,6 +46,7 @@ type Config struct {
 	AuditLogs        source.Source
 	KeyVerifications source.Source
 	GatewayRequests  source.Source
+	RuntimeLogs      source.Source
 	// Vault decrypts destination credentials for each attempt.
 	Vault vault.VaultServiceClient
 	// Deliveries accepts delivery telemetry and may be nil to disable it.
@@ -182,7 +183,7 @@ func (e *Engine) poll(ctx context.Context) error {
 		db.LogdrainsStatusPausedByUser,
 		db.LogdrainsStatusPausedByFailure,
 	} {
-		for _, stream := range []db.LogdrainsStream{db.LogdrainsStreamAuditLogs, db.LogdrainsStreamKeyVerifications, db.LogdrainsStreamGatewayRequests} {
+		for _, stream := range []db.LogdrainsStream{db.LogdrainsStreamAuditLogs, db.LogdrainsStreamKeyVerifications, db.LogdrainsStreamGatewayRequests, db.LogdrainsStreamRuntimeLogs} {
 			counts[drainGroup{status: status, stream: stream}] = 0
 		}
 	}
@@ -295,6 +296,10 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 		case *logdrainv1.Config_GatewayRequests:
 			stream = db.LogdrainsStreamGatewayRequests
 			reader.source = e.cfg.GatewayRequests
+			page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg)
+		case *logdrainv1.Config_RuntimeLogs:
+			stream = db.LogdrainsStreamRuntimeLogs
+			reader.source = e.cfg.RuntimeLogs
 			page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg)
 		default:
 			err = fmt.Errorf("unsupported logdrain stream config %T", cfg.GetStream())

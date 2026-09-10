@@ -61,9 +61,17 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
       const outcomesChanged = !sameEventTypes(submitted.outcomes, values.outcomes);
       const keySpacesChanged = !sameEventTypes(submitted.keySpaceIds, values.keySpaceIds);
       const statusesChanged = !sameEventTypes(submitted.statusClasses, values.statusClasses);
-      const projectsChanged = !sameEventTypes(submitted.projectIds, values.projectIds);
-      const appsChanged = !sameEventTypes(submitted.appIds, values.appIds);
-      const environmentsChanged = !sameEventTypes(submitted.environmentIds, values.environmentIds);
+      const severitiesChanged = !sameEventTypes(submitted.severities, values.severities);
+      const projectField = drain.stream === "runtime_logs" ? "runtimeProjectIds" : "projectIds";
+      const appField = drain.stream === "runtime_logs" ? "runtimeAppIds" : "appIds";
+      const environmentField =
+        drain.stream === "runtime_logs" ? "runtimeEnvironmentIds" : "environmentIds";
+      const projectsChanged = !sameEventTypes(submitted[projectField], values[projectField]);
+      const appsChanged = !sameEventTypes(submitted[appField], values[appField]);
+      const environmentsChanged = !sameEventTypes(
+        submitted[environmentField],
+        values[environmentField],
+      );
       if (
         name === drain.name &&
         destination === undefined &&
@@ -71,6 +79,7 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
         !outcomesChanged &&
         !keySpacesChanged &&
         !statusesChanged &&
+        !severitiesChanged &&
         !projectsChanged &&
         !appsChanged &&
         !environmentsChanged
@@ -86,9 +95,10 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
           ...(outcomesChanged ? { outcomes: submitted.outcomes } : {}),
           ...(keySpacesChanged ? { keySpaceIds: submitted.keySpaceIds } : {}),
           ...(statusesChanged ? { statusClasses: submitted.statusClasses } : {}),
-          ...(projectsChanged ? { projectIds: submitted.projectIds } : {}),
-          ...(appsChanged ? { appIds: submitted.appIds } : {}),
-          ...(environmentsChanged ? { environmentIds: submitted.environmentIds } : {}),
+          ...(severitiesChanged ? { severities: submitted.severities } : {}),
+          ...(projectsChanged ? { projectIds: submitted[projectField] } : {}),
+          ...(appsChanged ? { appIds: submitted[appField] } : {}),
+          ...(environmentsChanged ? { environmentIds: submitted[environmentField] } : {}),
           ...(destination !== undefined ? { destination } : {}),
         },
         { onSuccess: onSaved },

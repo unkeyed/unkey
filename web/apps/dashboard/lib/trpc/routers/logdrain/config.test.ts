@@ -27,6 +27,7 @@ describe("log drain protobuf config", () => {
       outcomes: [],
       keySpaceIds: [],
       statusClasses: [4, 5],
+      severities: [],
       projectIds: ["project"],
       appIds: ["app"],
       environmentIds: ["env"],
@@ -70,6 +71,7 @@ describe("log drain protobuf config", () => {
       outcomes: [],
       keySpaceIds: [],
       statusClasses: [],
+      severities: [],
       projectIds: [],
       appIds: [],
       environmentIds: [],
@@ -93,6 +95,7 @@ describe("log drain protobuf config", () => {
       outcomes: ["RATE_LIMITED"],
       keySpaceIds: ["ks_primary"],
       statusClasses: [],
+      severities: [],
       projectIds: [],
       appIds: [],
       environmentIds: [],
@@ -160,6 +163,22 @@ describe("log drain protobuf config", () => {
 
   it("rejects config without a provider", () => {
     expect(() => decodeLogdrainConfig(new Uint8Array())).toThrow("provider is not set");
+  });
+
+  it("round trips runtime severities and resources", () => {
+    const config = {
+      kind: "axiom" as const,
+      stream: {
+        kind: "runtime_logs" as const,
+        severities: ["warn", "error"],
+        projectIds: ["project"],
+        appIds: ["app", "other-app"],
+        environmentIds: [],
+      },
+      dataset: "runtime",
+      encryptedToken: "ciphertext",
+    };
+    expect(decodeLogdrainConfig(encodeLogdrainConfig(config))).toEqual(config);
   });
 
   it("round trips verification outcomes independently of the destination", () => {

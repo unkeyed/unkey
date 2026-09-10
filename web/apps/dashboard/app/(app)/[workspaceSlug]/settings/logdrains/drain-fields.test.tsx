@@ -54,6 +54,7 @@ function Form() {
       eventTypes: ["key.create"],
       outcomes: ["RATE_LIMITED"],
       statusClasses: [4],
+      severities: ["error"],
     },
   });
   return (
@@ -68,9 +69,26 @@ function Form() {
       <button type="button" onClick={() => form.setValue("stream", "gateway_requests")}>
         Gateway
       </button>
+      <button type="button" onClick={() => form.setValue("stream", "runtime_logs")}>
+        Runtime
+      </button>
     </FormProvider>
   );
 }
+
+it("keeps runtime severity separate and preserves clearing across stream changes", () => {
+  render(<Form />);
+  fireEvent.click(screen.getByText("Runtime"));
+  expect(screen.getByText("error")).toBeTruthy();
+  expect(screen.getByPlaceholderText("All projects")).toBeTruthy();
+  expect(screen.queryByLabelText("Search HTTP statuses")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+  expect(screen.getByPlaceholderText("All severities")).toBeTruthy();
+  fireEvent.click(screen.getByText("Gateway"));
+  expect(screen.getByText("4xx")).toBeTruthy();
+  fireEvent.click(screen.getByText("Runtime"));
+  expect(screen.getByPlaceholderText("All severities")).toBeTruthy();
+});
 
 it("keeps each stream filter bound to its own values when switching streams", () => {
   render(<Form />);
