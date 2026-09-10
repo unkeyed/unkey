@@ -63,6 +63,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	keySpaceIDs, err := portalscope.KeyspaceIDs(s)
+	if err != nil {
+		return err
+	}
+
 	// Capability and identity scope are separate: this gates the action while the
 	// ClickHouse query below fixes the visible data to the session external ID.
 	err = principal.Authorize(rbac.S(portalrbac.CapAnalyticsRead))
@@ -111,6 +116,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	points, err := h.ClickHouse.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
 		WorkspaceID: principal.AuthorizedWorkspaceID,
 		ExternalID:  externalID,
+		KeySpaceIDs: keySpaceIDs,
 		KeyID:       ptr.SafeDeref(req.KeyId),
 		StartTime:   req.StartTime,
 		EndTime:     req.EndTime,

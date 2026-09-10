@@ -29,8 +29,10 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 	extA := "ext_" + uid.New("")
 	extB := "ext_" + uid.New("")
 	keySpaceID := uid.New(uid.KeySpacePrefix)
+	otherKeySpaceID := uid.New(uid.KeySpacePrefix)
 	targetKey := uid.New(uid.KeyPrefix)
 	otherKey := uid.New(uid.KeyPrefix)
+	outOfScopeKey := uid.New(uid.KeyPrefix)
 
 	// Anchor inside per_day retention (365d) and in the past. Day granularity is
 	// selected for windows > 4 days, so use a 10-day window over two active days.
@@ -38,19 +40,23 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 	dayA := base.Add(12 * time.Hour)
 	dayB := base.Add(2*24*time.Hour + 12*time.Hour)
 
-	mk := func(extID, keyID, outcome string, ts time.Time) schema.KeyVerification {
+	mkIn := func(keySpace, extID, keyID, outcome string, ts time.Time) schema.KeyVerification {
 		return schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        ts.UnixMilli(),
 			WorkspaceID: workspaceID,
 			IdentityID:  uid.New(uid.IdentityPrefix),
 			ExternalID:  extID,
-			KeySpaceID:  keySpaceID,
+			KeySpaceID:  keySpace,
 			Outcome:     outcome,
 			Region:      "test",
 			Tags:        []string{},
 			KeyID:       keyID,
 		}
+	}
+
+	mk := func(extID, keyID, outcome string, ts time.Time) schema.KeyVerification {
+		return mkIn(keySpaceID, extID, keyID, outcome, ts)
 	}
 
 	rows := []schema.KeyVerification{
@@ -68,6 +74,9 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 		mk(extB, otherKey, "VALID", dayA),
 		mk(extB, otherKey, "VALID", dayA),
 		mk(extB, otherKey, "VALID", dayA),
+		// extA in a second keyspace: visible only to a session scoped to it.
+		mkIn(otherKeySpaceID, extA, outOfScopeKey, "VALID", dayA),
+		mkIn(otherKeySpaceID, extA, outOfScopeKey, "VALID", dayB),
 	}
 
 	batch, err := client.Conn().PrepareBatch(ctx, clickhouse.InsertQuery[schema.KeyVerification]())
@@ -77,7 +86,8 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 	}
 	require.NoError(t, batch.Send())
 
-	// Wait for the per_day materialized view to catch up (extA has 6 events).
+	// Wait for the per_day materialized view to catch up (extA has 8 events
+	// across both keyspaces).
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		var got int64
 		err := client.Conn().QueryRow(ctx,
@@ -85,7 +95,7 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 			workspaceID, extA,
 		).Scan(&got)
 		assert.NoError(c, err)
-		assert.Equal(c, int64(6), got)
+		assert.Equal(c, int64(8), got)
 	}, time.Minute, time.Second)
 
 	startMs := base.UnixMilli()
@@ -105,6 +115,7 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 		points, err := client.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
 			WorkspaceID: workspaceID,
 			ExternalID:  extA,
+			KeySpaceIDs: []string{keySpaceID},
 			StartTime:   startMs,
 			EndTime:     endMs,
 		})
@@ -117,7 +128,8 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 		require.Equal(t, int64(1), m[dayBBucket].Total)
 		require.Equal(t, int64(1), m[dayBBucket].Valid)
 
-		// extB's 5 events on day A must not leak into extA's totals.
+		// extB's 5 events on day A and extA's 2 events in the other keyspace must
+		// not leak into the scoped totals.
 		var grand int64
 		for _, p := range points {
 			grand += p.Total
@@ -129,6 +141,7 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 		points, err := client.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
 			WorkspaceID: workspaceID,
 			ExternalID:  extA,
+			KeySpaceIDs: []string{keySpaceID},
 			StartTime:   startMs,
 			EndTime:     endMs,
 		})
@@ -146,6 +159,7 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 		points, err := client.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
 			WorkspaceID: workspaceID,
 			ExternalID:  extA,
+			KeySpaceIDs: []string{keySpaceID},
 			KeyID:       targetKey,
 			StartTime:   startMs,
 			EndTime:     endMs,
@@ -156,5 +170,57 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 		require.Equal(t, int64(1), m[dayABucket].Total)
 		require.Equal(t, int64(1), m[dayABucket].Valid)
 		require.Equal(t, int64(0), m[dayBBucket].Total)
+	})
+
+	t.Run("scoped to the session's keyspaces", func(t *testing.T) {
+		points, err := client.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
+			WorkspaceID: workspaceID,
+			ExternalID:  extA,
+			KeySpaceIDs: []string{otherKeySpaceID},
+			KeyID:       "",
+			StartTime:   startMs,
+			EndTime:     endMs,
+		})
+		require.NoError(t, err)
+
+		m := byTime(points)
+		require.Equal(t, int64(1), m[dayABucket].Total)
+		require.Equal(t, int64(1), m[dayBBucket].Total)
+
+		var grand int64
+		for _, p := range points {
+			grand += p.Total
+		}
+		require.Equal(t, int64(2), grand)
+	})
+
+	t.Run("multiple keyspaces sum", func(t *testing.T) {
+		points, err := client.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
+			WorkspaceID: workspaceID,
+			ExternalID:  extA,
+			KeySpaceIDs: []string{keySpaceID, otherKeySpaceID},
+			KeyID:       "",
+			StartTime:   startMs,
+			EndTime:     endMs,
+		})
+		require.NoError(t, err)
+
+		var grand int64
+		for _, p := range points {
+			grand += p.Total
+		}
+		require.Equal(t, int64(8), grand)
+	})
+
+	t.Run("empty keyspace list is an error", func(t *testing.T) {
+		_, err := client.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
+			WorkspaceID: workspaceID,
+			ExternalID:  extA,
+			KeySpaceIDs: nil,
+			KeyID:       "",
+			StartTime:   startMs,
+			EndTime:     endMs,
+		})
+		require.Error(t, err)
 	})
 }
