@@ -110,6 +110,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 	// nolint:exhaustruct
 	proxy := &httputil.ReverseProxy{
 		Transport:     cfg.transport,
+		BufferPool:    responseCopyBuffers,
 		FlushInterval: -1, // flush immediately for streaming
 		Rewrite: func(proxyReq *httputil.ProxyRequest) {
 			proxyStartTime = s.clock.Now()

@@ -224,7 +224,6 @@ type CreateAppRequest struct {
 	Slug             string
 	SourceType       db.AppsSourceType
 	ImageReference   string
-	DefaultBranch    string
 	DeleteProtection bool
 }
 
@@ -243,7 +242,6 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 		Name:             req.Name,
 		Slug:             req.Slug,
 		SourceType:       sourceType,
-		DefaultBranch:    req.DefaultBranch,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Valid: false},

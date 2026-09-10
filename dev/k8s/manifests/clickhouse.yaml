@@ -41,15 +41,15 @@ spec:
             - containerPort: 9000
               name: native
           env:
-            - name: CLICKHOUSE_ADMIN_USER
+            - name: CLICKHOUSE_USER
               value: "default"
-            - name: CLICKHOUSE_ADMIN_PASSWORD
+            - name: CLICKHOUSE_PASSWORD
               value: "password"
-            - name: ALLOW_EMPTY_PASSWORD
-              value: "no"
+            - name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT
+              value: "1"
           volumeMounts:
             - name: clickhouse-storage
-              mountPath: /bitnami/clickhouse
+              mountPath: /var/lib/clickhouse
           lifecycle:
             preStop:
               exec:

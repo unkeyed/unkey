@@ -1,6 +1,20 @@
 "use client";
 
+import {
+  Multibox,
+  MultiboxChip,
+  MultiboxChipRemove,
+  MultiboxChips,
+  MultiboxContent,
+  MultiboxEmpty,
+  MultiboxInput,
+  MultiboxItem,
+  MultiboxList,
+  MultiboxTrigger,
+  useMultiboxAnchor,
+} from "@/components/ui/multibox";
 import { Plus, Trash } from "@unkey/icons";
+import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { Button, FormInput } from "@unkey/ui";
 import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { DrainEndpointRow } from "./drain-endpoint-row";
@@ -22,43 +36,52 @@ export function NameField() {
   );
 }
 
-const START_FROM_OPTIONS: ReadonlyArray<{
-  value: DrainFormValues["startFrom"];
-  label: string;
-}> = [
-  { value: "now", label: "New audit logs" },
-  { value: "beginning", label: "All retained audit logs" },
-];
-
-export function StartFromField() {
+export function EventTypesField() {
   const { control } = useFormContext<DrainFormValues>();
+  const anchor = useMultiboxAnchor();
 
   return (
     <Controller
       control={control}
-      name="startFrom"
-      render={({ field }) => (
-        <fieldset className="flex flex-col gap-1.5">
-          <legend className="text-[13px] text-gray-11">Start delivery from</legend>
-          <span className="text-xs text-gray-9">
-            Choose how far back Unkey sends retained audit logs.
-          </span>
-          <div className="flex w-fit rounded-lg border border-grayA-4 p-1">
-            {START_FROM_OPTIONS.map((option) => (
-              <Button
-                type="button"
-                key={option.value}
-                size="sm"
-                variant={field.value === option.value ? "primary" : "ghost"}
-                aria-pressed={field.value === option.value}
-                onClick={() => field.onChange(option.value)}
-              >
-                {option.label}
-              </Button>
-            ))}
-          </div>
-        </fieldset>
-      )}
+      name="eventTypes"
+      render={({ field }) => {
+        const choices = Array.from(new Set([...unkeyAuditLogEvents.options, ...field.value]));
+        return (
+          <fieldset className="flex flex-col gap-1.5">
+            <legend className="text-[13px] text-gray-11">Event types</legend>
+            <span className="text-xs text-gray-9">
+              Choose which audit events to send. Leave empty to send all events, including new event
+              types added later.
+            </span>
+            <Multibox items={choices} value={field.value} onValueChange={field.onChange}>
+              <MultiboxChips ref={anchor} className="mt-1.5">
+                {field.value.map((eventType) => (
+                  <MultiboxChip key={eventType}>
+                    <span className="font-mono">{eventType}</span>
+                    <MultiboxChipRemove />
+                  </MultiboxChip>
+                ))}
+                <MultiboxInput
+                  aria-label="Search event types"
+                  placeholder={field.value.length === 0 ? "All event types" : "Search events"}
+                  onBlur={field.onBlur}
+                />
+                <MultiboxTrigger />
+              </MultiboxChips>
+              <MultiboxContent anchor={anchor}>
+                <MultiboxEmpty>No event types found.</MultiboxEmpty>
+                <MultiboxList>
+                  {(eventType: string) => (
+                    <MultiboxItem key={eventType} value={eventType}>
+                      <span className="font-mono text-xs">{eventType}</span>
+                    </MultiboxItem>
+                  )}
+                </MultiboxList>
+              </MultiboxContent>
+            </Multibox>
+          </fieldset>
+        );
+      }}
     />
   );
 }

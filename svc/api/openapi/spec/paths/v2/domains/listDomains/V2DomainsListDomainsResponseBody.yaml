@@ -12,10 +12,15 @@ properties:
     items:
       "$ref": "../../../../common/Domain.yaml"
     description: |
-      The domains attached to the environment, sorted by their id.
-      The array is empty when the environment has no domains. This is not an error.
+      Domains that match every request filter and that you have permission to read, sorted by ID.
+      The array is empty when no readable domains match, including when a filtered resource
+      is missing or mismatched.
   pagination:
     "$ref": "../../../../common/Pagination.yaml"
+    description: |
+      Pagination over permitted domains. When more permitted domains exist, `cursor` identifies
+      the first permitted domain after this page. A domain the credential cannot read is never
+      returned as the cursor.
 additionalProperties: false
 examples:
   domainList:
@@ -73,7 +78,7 @@ examples:
         hasMore: false
   paginatedResponse:
     summary: Paginated domain listing with more results
-    description: The response when the environment has more domains than the limit.
+    description: The response when the filtered scope has more domains than the limit.
     value:
       meta:
         requestId: req_5678efgh
@@ -102,8 +107,8 @@ examples:
         cursor: dom_5678efgh
         hasMore: true
   empty:
-    summary: No domains attached
-    description: An environment with no custom domains returns an empty array, not a 404.
+    summary: No permitted domains match
+    description: Missing or mismatched resources and filters with no permitted matches return an empty array.
     value:
       meta:
         requestId: req_1234abcd

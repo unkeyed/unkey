@@ -116,12 +116,11 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 		// Seed a branch that differs from the repo's GitHub default ("main") so we
 		// can prove a replace keeps it instead of silently adopting the default.
 		app := h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   workspace.ID,
-			ProjectID:     project.ID,
-			Name:          "App",
-			Slug:          appSlug(),
-			DefaultBranch: "stale-app-value",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: workspace.ID,
+			ProjectID:   project.ID,
+			Name:        "App",
+			Slug:        appSlug(),
 		})
 		id := app.ID
 
@@ -181,10 +180,6 @@ func TestUpdateAppConnectRepository(t *testing.T) {
 		conn, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), id)
 		require.NoError(t, err)
 		require.Equal(t, "release", conn.DefaultBranch.String)
-
-		app, err := db.Query.FindAppById(ctx, h.DB.RO(), id)
-		require.NoError(t, err)
-		require.Empty(t, app.DefaultBranch, "branch updates must not write the legacy app column")
 	})
 
 	t.Run("retarget branch without a connection fails", func(t *testing.T) {
@@ -225,12 +220,11 @@ func TestUpdateAppDisconnectRepository(t *testing.T) {
 		Slug:        appSlug(),
 	})
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "App",
-		Slug:          appSlug(),
-		DefaultBranch: "stale-app-value",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "App",
+		Slug:        appSlug(),
 	})
 
 	require.NoError(t, db.Query.InsertGithubRepoConnection(ctx, h.DB.RW(), db.InsertGithubRepoConnectionParams{
@@ -255,10 +249,6 @@ func TestUpdateAppDisconnectRepository(t *testing.T) {
 
 	_, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), app.ID)
 	require.True(t, db.IsNotFound(err), "connection row should be deleted")
-
-	unchanged, err := db.Query.FindAppById(ctx, h.DB.RO(), app.ID)
-	require.NoError(t, err)
-	require.Equal(t, "stale-app-value", unchanged.DefaultBranch, "disconnect must not write the legacy app column")
 
 	requireAuditEvent(ctx, t, h, app.ID, "app.disconnect_repository")
 }

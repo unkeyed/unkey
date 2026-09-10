@@ -32,6 +32,9 @@ export function ActiveBranches() {
 
   const loading = isLoading || isAppLoading;
   const repoFullName = app?.repositoryFullName ?? null;
+  if (app?.sourceType === "oci") {
+    return null;
+  }
   if (!loading && !isError && repoFullName === null && branches.length === 0) {
     return null;
   }

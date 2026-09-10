@@ -176,9 +176,18 @@ export function AppProductionCard() {
     isRolledBack,
     rolledBackFrom: rolledBackFromDeployment
       ? {
-          commitSha: rolledBackFromDeployment.gitCommitSha,
-          commitMessage: rolledBackFromDeployment.gitCommitMessage,
-          image: rolledBackFromDeployment.image,
+          commitSha:
+            rolledBackFromDeployment.source === "git"
+              ? rolledBackFromDeployment.gitCommitSha
+              : null,
+          commitMessage:
+            rolledBackFromDeployment.source === "git"
+              ? rolledBackFromDeployment.gitCommitMessage
+              : null,
+          image:
+            rolledBackFromDeployment.source === "oci"
+              ? (rolledBackFromDeployment.requestedImage ?? rolledBackFromDeployment.resolvedImage)
+              : null,
         }
       : null,
     sourceRepo,

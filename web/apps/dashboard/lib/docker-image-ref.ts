@@ -35,7 +35,7 @@ const MAX_PATH_LENGTH = 255;
 /** reference/regexp.go tag bound. */
 const MAX_TAG_LENGTH = 128;
 
-/** deployments.image is varchar(256), so a longer reference cannot be stored. */
+/** The public API contracts cap image references at 256 characters. */
 const MAX_REFERENCE_LENGTH = 256;
 
 /**

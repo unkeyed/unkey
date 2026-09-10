@@ -41,7 +41,7 @@ func TestValidate(t *testing.T) {
 		"ghcr.io/acme/api:",
 		"ghcr.io/acme/api@sha256:abc123",
 		"ghcr.io//acme/api",
-		// One character over what deployments.image holds.
+		// One character over the public API limit.
 		"ghcr.io/acme/" + strings.Repeat("a", 244),
 	}
 	for _, image := range invalid {

@@ -30,17 +30,17 @@ export const DeployAction = ({
 
   const deploy = useMutation({
     mutationFn: async (environment: string) => {
-      const res = await getUnkeyClient().deployments.createDeployment({
+      const res = await getUnkeyClient().deployments.createDeploymentV3({
         project: projectId,
         app: appId,
         environment,
-        // No branch or commitSha: the API builds the app's default branch.
-        git: {},
       });
       return { deploymentId: res.data.deploymentId };
     },
     onSuccess: async (data) => {
-      await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["deployments", projectId],
+      });
       toast.success("Deployment triggered", {
         description: "Your app is being built and deployed",
       });

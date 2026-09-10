@@ -124,6 +124,10 @@ export function SourceChip({
     );
   }
 
+  if (deployment.source !== "git") {
+    return null;
+  }
+
   const href = githubUrl.deployment({
     repoFullName,
     forkRepoFullName: deployment.forkRepositoryFullName,
@@ -194,7 +198,7 @@ export function CommitSha({
   deployment: Deployment;
   repoFullName: string | null;
 }) {
-  if (!deployment.gitCommitSha) {
+  if (deployment.source !== "git" || !deployment.gitCommitSha) {
     return null;
   }
   const href = githubUrl.commit(
@@ -244,7 +248,7 @@ export function AuthorCell({
   deployment: Deployment;
   withHandle?: boolean;
 }) {
-  if (nonGitOrigin(deployment)) {
+  if (deployment.source !== "git" || nonGitOrigin(deployment)) {
     return null;
   }
 

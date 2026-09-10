@@ -37,7 +37,7 @@ export function PendingRedeployBanner() {
       appId: string;
       environmentId: string;
     }) => {
-      const res = await getUnkeyClient().deployments.createDeployment({
+      const res = await getUnkeyClient().deployments.createDeploymentV3({
         project: deployment.projectId,
         app: deployment.appId,
         environment: deployment.environmentId,
@@ -49,7 +49,9 @@ export function PendingRedeployBanner() {
       if (!currentDeployment) {
         return;
       }
-      await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["deployments", projectId],
+      });
       router.push(
         routes.projects.apps.deployment({
           workspaceSlug: workspace.slug,

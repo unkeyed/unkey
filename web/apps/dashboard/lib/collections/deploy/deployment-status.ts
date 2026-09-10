@@ -70,6 +70,19 @@ export const DEPLOYMENT_STATUS_GROUP_NAMES = Object.keys(
   DEPLOYMENT_STATUS_GROUPS,
 ) as DeploymentStatusGroup[];
 
+// Groups holding deployments that are out of play. They accumulate on an active
+// app and bury the rows a user came to look at, so the list starts with them
+// filtered out; selecting them in the status filter brings them back.
+const DEPLOYMENT_STATUS_GROUPS_HIDDEN_BY_DEFAULT = new Set<DeploymentStatusGroup>([
+  "cancelled",
+  "superseded",
+  "stopped",
+]);
+
+export const DEFAULT_DEPLOYMENT_STATUS_GROUPS = DEPLOYMENT_STATUS_GROUP_NAMES.filter(
+  (group) => !DEPLOYMENT_STATUS_GROUPS_HIDDEN_BY_DEFAULT.has(group),
+);
+
 export function isDeploymentStatusGroup(value: string): value is DeploymentStatusGroup {
   return Object.hasOwn(DEPLOYMENT_STATUS_GROUPS, value);
 }

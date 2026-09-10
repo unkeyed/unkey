@@ -111,12 +111,11 @@ func TestRedeployWrongAppOrEnvironmentMasked(t *testing.T) {
 
 	// A second app + environment + deployment in the SAME workspace.
 	otherApp := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   setup.Workspace.ID,
-		ProjectID:     setup.Project.ID,
-		Name:          "Other",
-		Slug:          "other",
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: setup.Workspace.ID,
+		ProjectID:   setup.Project.ID,
+		Name:        "Other",
+		Slug:        "other",
 	})
 	otherEnv := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),

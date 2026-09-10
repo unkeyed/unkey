@@ -1,14 +1,15 @@
 services:
   clickhouse:
-    image: bitnamilegacy/clickhouse:25.6.4
+    image: clickhouse/clickhouse-server:26.2.1.1139@sha256:f57ed23ab5c4ee0e9a05c2e811bb3580ead222cea30421b3e66234c32e272bce
     environment:
-      CLICKHOUSE_ADMIN_USER: default
-      CLICKHOUSE_ADMIN_PASSWORD: password
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: password
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
     ports:
       - "8123"
       - "9000"
     volumes:
-      - clickhouse:/bitnami/clickhouse
+      - clickhouse:/var/lib/clickhouse
     healthcheck:
       test:
         [

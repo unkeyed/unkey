@@ -45,12 +45,11 @@ func TestGetAppNotFound(t *testing.T) {
 		})
 		otherAppSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 		otherApp := h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   otherWorkspace.ID,
-			ProjectID:     otherProject.ID,
-			Name:          "Theirs",
-			Slug:          otherAppSlug,
-			DefaultBranch: "main",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: otherWorkspace.ID,
+			ProjectID:   otherProject.ID,
+			Name:        "Theirs",
+			Slug:        otherAppSlug,
 		})
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
@@ -70,12 +69,11 @@ func TestGetAppNotFound(t *testing.T) {
 		})
 		appSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 		app := h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   workspace.ID,
-			ProjectID:     project.ID,
-			Name:          "Mine",
-			Slug:          appSlug,
-			DefaultBranch: "main",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: workspace.ID,
+			ProjectID:   project.ID,
+			Name:        "Mine",
+			Slug:        appSlug,
 		})
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
