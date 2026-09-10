@@ -45,7 +45,7 @@ func TestKeyVerificationsRead_Payload(t *testing.T) {
 	require.Len(t, events, 1)
 	encoded, err = json.Marshal(events[0].Payload)
 	require.NoError(t, err)
-	require.JSONEq(t, `{"request_id":"req_api","key_space_id":"","identity":{"id":"","externalId":""},"key_id":"","region":"","source":{"type":"api"},"outcome":"NOT_FOUND","tags":[],"spent_credits":0}`, string(encoded))
+	require.JSONEq(t, `{"request_id":"req_api","key_space_id":"","key_id":"","region":"","source":{"type":"api"},"outcome":"NOT_FOUND","tags":[],"spent_credits":0}`, string(encoded))
 }
 
 func TestKeyVerificationsRead_FilteredCursorBounds(t *testing.T) {

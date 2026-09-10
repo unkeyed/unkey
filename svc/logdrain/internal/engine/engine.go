@@ -270,22 +270,29 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			break
 		}
 		cfg := &logdrainv1.Config{}
-		var page batchPage
-		if err = proto.Unmarshal(drain.Config, cfg); err != nil {
-			err = fmt.Errorf("decode logdrain config: %w", err)
-		} else {
-			switch cfg.GetStream().(type) {
-			case nil, *logdrainv1.Config_AuditLogs:
-				stream = db.LogdrainsStreamAuditLogs
-				reader.source = e.cfg.AuditLogs
-				page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg)
-			case *logdrainv1.Config_KeyVerifications:
-				stream = db.LogdrainsStreamKeyVerifications
-				reader.source = e.cfg.KeyVerifications
-				page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg)
-			default:
-				err = fmt.Errorf("unsupported logdrain stream config %T", cfg.GetStream())
+		if err := proto.Unmarshal(drain.Config, cfg); err != nil {
+			if ctx.Err() != nil {
+				return
 			}
+			logger.Error("decode logdrain config failed", "error", err, "drain_id", item.id)
+			drain.Stream = stream
+			if failErr := e.recordFailure(ctx, drain, 0); failErr != nil {
+				logger.Error("record logdrain failure state failed", "error", failErr, "drain_id", item.id)
+			}
+			return
+		}
+		var page batchPage
+		switch cfg.GetStream().(type) {
+		case nil, *logdrainv1.Config_AuditLogs:
+			stream = db.LogdrainsStreamAuditLogs
+			reader.source = e.cfg.AuditLogs
+			page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg)
+		case *logdrainv1.Config_KeyVerifications:
+			stream = db.LogdrainsStreamKeyVerifications
+			reader.source = e.cfg.KeyVerifications
+			page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg)
+		default:
+			err = fmt.Errorf("unsupported logdrain stream config %T", cfg.GetStream())
 		}
 		drain.Stream = stream
 		if err != nil {

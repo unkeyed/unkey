@@ -149,6 +149,19 @@ func TestProcess_ZeroCursor(t *testing.T) {
 	require.Equal(t, watermark, database.drain.CommittedOffsetInsertedAt)
 }
 
+func TestProcess_InvalidConfigRecordsFailureWithoutReading(t *testing.T) {
+	database := &windowDatabase{drain: db.GetLeasedAndDueLogdrainRow{
+		ID: "drain", WorkspaceID: "workspace", Config: []byte{0xff},
+		CommittedOffsetInsertedAt: 1000000,
+	}}
+	eng, err := New(Config{DB: database, LeaseID: "lease", PollInterval: time.Minute})
+	require.NoError(t, err)
+	eng.process(t.Context(), workItem{id: "drain", now: time.UnixMilli(1180000)})
+	require.Len(t, database.failures, 1)
+	require.Empty(t, database.commits)
+	require.Equal(t, int64(1000000), database.drain.CommittedOffsetInsertedAt)
+}
+
 // TestProcess_EventTypes passes persisted filters through every window and advances empty ones.
 func TestProcess_EventTypes(t *testing.T) {
 	for _, eventTypes := range [][]string{nil, {"key.create", "key.delete"}} {

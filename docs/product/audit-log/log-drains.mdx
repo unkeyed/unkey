@@ -1,11 +1,11 @@
 ---
 title: Log drains
-description: "Stream workspace audit logs to external destinations, configure delivery, and diagnose failed requests."
+description: "Send audit logs and key verifications to HTTPS endpoints or Axiom, filter events, and diagnose failed deliveries."
 ---
 
-A log drain sends workspace audit logs to a destination that you control. Use
-log drains to archive security events, send events to a security information
-and event management (SIEM) service, or process events with your own tools.
+A log drain sends workspace audit logs or key verifications to a destination
+that you control. Use log drains to archive events or process them with your
+own tools.
 
 <Note>
   Log drains are in private preview. Contact
@@ -13,12 +13,12 @@ and event management (SIEM) service, or process events with your own tools.
 </Note>
 
 Unkey supports generic HTTPS endpoints and
-<a href="https://axiom.co" target="_blank">Axiom</a> datasets. See [Event
-types](/audit-log/types) for the events that Unkey can send.
+<a href="https://axiom.co" target="_blank">Axiom</a> datasets. Each drain sends
+one stream: audit logs or key verifications.
 
 ## How delivery works
 
-Unkey sends audit logs asynchronously in batches. A destination must accept the
+Unkey sends events asynchronously in batches. A destination must accept the
 complete batch before Unkey marks the delivery as successful.
 
 HTTP destinations must return a `2xx` status within 30 seconds. Return a
@@ -26,16 +26,19 @@ non-`2xx` status if your endpoint cannot process the complete batch. Unkey then
 retries the same batch.
 
 Log drains provide at-least-once delivery. A destination can receive an event
-more than once after a retry. Use `event.id` as the deduplication key.
+more than once after a retry. Use `event.id` for audit logs or `event.request_id`
+for key verifications as the deduplication key within each stream.
 
-When you create a log drain, choose whether to send new audit logs only or all
-retained audit logs. The available history depends on your workspace's [audit
-log retention](/audit-log/introduction#retention).
+A drain starts at its creation time. Historical backfill is not supported.
+After a pause or failure, delivery resumes from the last committed position,
+subject to the stream's retention period. Verification logs are retained for
+90 days. See [audit log retention](/audit-log/introduction#retention) for audit
+logs.
 
 | Destination | Use case | Configuration |
 | --- | --- | --- |
-| HTTP | Send audit logs to an HTTP collector | Public HTTPS URL, encoding, and optional headers |
-| Axiom | Send audit logs to an Axiom dataset | Dataset name and an API token with ingest permission |
+| HTTP | Send events to an HTTP collector | Public HTTPS URL, encoding, and optional headers |
+| Axiom | Send events to an Axiom dataset | Dataset name and an API token with ingest permission |
 
 ## Configure a log drain
 
@@ -46,11 +49,29 @@ Create a log drain from your workspace settings.
 3. Click **Create Log Drain**.
 4. Select **HTTP** or **Axiom**.
 5. Enter a descriptive name.
-6. Enter the destination settings.
-7. Select **New audit logs** or **All retained audit logs**.
-8. Click **Create Log Drain**.
+6. Select **Audit logs** or **Key verifications** in **Stream**.
+7. Optional: Select the stream filters described below.
+8. Enter the destination settings.
+9. Click **Create Log Drain**.
 
 Delivery is asynchronous and can take several minutes.
+
+### Filter a stream
+
+Leave a filter empty to send all values for that filter.
+
+| Stream | Filters |
+| --- | --- |
+| Audit logs | **Event types** selects [audit event names](/audit-log/types). |
+| Key verifications | **Keyspaces** selects one or more workspace keyspaces. **Outcomes** selects verification results, such as `VALID`, `RATE_LIMITED`, or `EXPIRED`. |
+
+When you select both keyspaces and outcomes, a verification must match both
+filters. **Unspecified** matches an empty verification outcome. Tags remain in
+the payload for filtering at your destination.
+
+Filter changes apply from the drain's committed position. They do not replay
+events skipped by an earlier filter. An in-flight request can still arrive
+with the previous filters. To export another stream, create a separate drain.
 
 ## Configure an HTTP destination
 
@@ -88,7 +109,7 @@ Unkey adds these headers to every delivery request:
 | `User-Agent` | `unkey-logdrain/1` |
 | `X-Unkey-Schema-Version` | The payload schema version, such as `v1` |
 | `X-Unkey-Drain-Id` | The ID of the log drain |
-| `X-Unkey-Workspace-Id` | The ID of the workspace that owns the audit logs |
+| `X-Unkey-Workspace-Id` | The ID of the workspace that owns the events |
 
 To request a longer retry delay, return a standard `Retry-After` header. Set
 the value to a number of seconds or an HTTP date. Unkey applies the requested
@@ -97,7 +118,8 @@ delay is 24 hours.
 
 ### Read the HTTP payload
 
-Choose the format that matches your destination.
+Choose the format that matches your destination. These examples contain an
+audit event:
 
 <CodeGroup>
 
@@ -143,6 +165,45 @@ Choose the format that matches your destination.
 
 Both `occurred_at` and `timestamp` use RFC 3339 UTC strings with millisecond
 precision.
+
+### Read a key verification payload
+
+For a verification drain, `event` contains the verification fields. The HTTP
+`timestamp` is the verification's occurrence time, not its delivery time.
+
+```json
+[
+  {
+    "event": {
+      "request_id": "req_123",
+      "key_space_id": "ks_production",
+      "key_id": "key_123",
+      "identity": { "id": "id_123", "externalId": "customer_123" },
+      "region": "eu-west-1",
+      "source": { "type": "api" },
+      "outcome": "VALID",
+      "tags": ["paid"],
+      "spent_credits": 1
+    },
+    "timestamp": "2026-09-10T12:34:56.789Z"
+  }
+]
+```
+
+| Field | Description |
+| --- | --- |
+| `request_id` | Request correlation and deduplication ID |
+| `key_space_id`, `key_id` | Keyspace and key identifiers |
+| `identity` | Identity `id` and `externalId`. The object is omitted when both are absent. |
+| `region` | Region where the verification ran |
+| `source` | `{ "type": "api" }` or `{ "type": "gateway", "appId": "app_123" }` |
+| `outcome` | Verification result |
+| `tags` | Verification tags as an array of strings |
+| `spent_credits` | Credits spent on the verification |
+
+NDJSON uses the same record shape, with one record per line. Axiom uses the
+same `event` object with `stream: "key_verifications"` and `_time` in place of
+the HTTP `timestamp`.
 
 ## Configure an Axiom destination
 
@@ -209,8 +270,8 @@ maximum wait of 4 hours between attempts. After 50 consecutive failures, Unkey
 pauses the log drain. Retries continue for about 7 days.
 
 A successful delivery resets the failure count. Changing the destination or
-resuming the drain also resets the failure count. Delivery continues from the
-last successful batch.
+filters, or resuming the drain, also resets the failure count. Delivery
+continues from the last successful batch.
 
 ## Debug a log drain
 

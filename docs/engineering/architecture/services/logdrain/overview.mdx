@@ -34,21 +34,9 @@ independently of the destination. `audit_logs` selects `AuditLogStreamConfig`.
 Its `event_types` list selects exact audit event names. An empty list means all
 audit events, including event types added later. Existing protobuf configs with
 no stream retain the legacy audit-log behavior without filters.
-`key_verifications` selects `KeyVerificationStreamConfig`. Its `outcomes` list
-matches exact verification outcomes, such as `VALID`, `RATE_LIMITED`, and
-`EXPIRED`. Empty selects all outcomes, including future outcomes. The dashboard
-uses the existing verification outcome catalog, including the empty outcome
-shown as “Unspecified”. Audit event names are not verification outcomes.
-Its `key_space_ids` list selects exact keyspace IDs within the workspace. Empty
-selects all keyspaces. When both lists are set, a verification must match both
-its outcome and keyspace. Changing either filter retains the composite cursor
-and fences in-flight acknowledgments; skipped history is not replayed.
-Tags remain in the payload for destination-side filtering.
 
 The protobuf stream selects the source. The MySQL `stream` column remains for
 drain counts and listing, but does not control source selection.
-Deploy workers that understand the stream config before enabling the dashboard
-selector. Older workers do not support verification drains.
 
 ClickHouse applies the filter before ordering and limiting each batch. Windows
 with no matching events still advance the cursor. Editing the filter expires
@@ -205,16 +193,6 @@ payload reads depend on base-table granularity: matching rows scattered across
 every granule can still require a full payload read. Outcome and keyspace filters run
 before `LIMIT`, but are not part of the projection ordering.
 
-Before enabling verification drains, apply ClickHouse migration
-`20260910000000.sql` and the MySQL stream enum change. The ClickHouse migration
-materializes zero insertion timestamps for historical rows, then enables the
-server timestamp default and materializes the projection. Historical rows do
-not become newly ingested events. This mutation reads existing parts and needs
-capacity planning. It requires the same `_part_offset` projection support and
-settings as audit logs; local tests use ClickHouse 26.2. Deploy workers before
-the dashboard can create verification drains. Existing drains cannot change
-streams; create a separate drain instead.
-
 Creation sets the cursor to the drain's creation time with an empty event ID.
 Historical backfill before creation is not supported. Pauses, failures, and
 outages resume from the committed cursor and still catch up normally.
@@ -334,7 +312,7 @@ The verification payload contains these fields from the raw verification row:
 | --- | --- |
 | `request_id` | Request correlation and deduplication ID. |
 | `key_space_id`, `key_id` | Verified key and key space. |
-| `identity` | Object with `id` and `externalId`, both empty when absent. |
+| `identity` | Object with `id` and `externalId`. Omitted when both identifiers are absent. |
 | `region` | Verification region. |
 | `source` | Object with `type`: `api` or `gateway`. Gateway sources also include `appId`; API sources omit it. |
 | `outcome` | Verification outcome, not an audit event type. |

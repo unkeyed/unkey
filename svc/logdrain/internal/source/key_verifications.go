@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
+	"github.com/unkeyed/unkey/pkg/array"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
@@ -46,17 +47,19 @@ func (s *KeyVerifications) Read(ctx context.Context, workspaceID string, from Cu
 	if err != nil {
 		return nil, from, fmt.Errorf("read key verifications: %w", err)
 	}
-	events := make([]sink.Event, 0, len(rows))
-	next := from
-	for _, row := range rows {
+	events := array.Map(rows, func(row row) sink.Event {
 		origin := sink.KeyVerificationSource{Type: row.Source, AppID: ""}
 		if row.Source == schema.SourceGateway {
 			origin.AppID = row.AppID
 		}
+		var identity *sink.KeyVerificationIdentity
+		if row.IdentityID != "" || row.ExternalID != "" {
+			identity = &sink.KeyVerificationIdentity{ID: row.IdentityID, ExternalID: row.ExternalID}
+		}
 		payload := sink.KeyVerificationPayload{
 			RequestID:    row.RequestID,
 			KeySpaceID:   row.KeySpaceID,
-			Identity:     sink.KeyVerificationIdentity{ID: row.IdentityID, ExternalID: row.ExternalID},
+			Identity:     identity,
 			KeyID:        row.KeyID,
 			Region:       row.Region,
 			Source:       origin,
@@ -64,8 +67,12 @@ func (s *KeyVerifications) Read(ctx context.Context, workspaceID string, from Cu
 			Tags:         row.Tags,
 			SpentCredits: row.SpentCredits,
 		}
-		events = append(events, sink.Event{EventID: row.RequestID, Stream: "key_verifications", Time: row.Time, Payload: payload})
-		next = Cursor{Time: row.InsertedAt, EventID: row.RequestID}
+		return sink.Event{EventID: row.RequestID, Stream: "key_verifications", Time: row.Time, Payload: payload}
+	})
+	next := from
+	if len(rows) > 0 {
+		last := rows[len(rows)-1]
+		next = Cursor{Time: last.InsertedAt, EventID: last.RequestID}
 	}
 	return events, next, nil
 }
