@@ -85,11 +85,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	if req.EndTime <= req.StartTime {
+	// Both bounds must be non-negative before the retention check below, which
+	// compares their difference: a large negative start against a large positive
+	// end overflows int64 and wraps negative, reading as a window smaller than
+	// retention and selecting minute granularity over an unbounded range.
+	if req.StartTime < 0 || req.EndTime <= req.StartTime {
 		return fault.New("invalid time window",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("endTime must be greater than startTime"),
-			fault.Public("`endTime` must be greater than `startTime`."),
+			fault.Internal("startTime must be non-negative and endTime must be greater than startTime"),
+			fault.Public("`startTime` must be a non-negative unix timestamp and `endTime` must be greater than `startTime`."),
 		)
 	}
 

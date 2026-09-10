@@ -198,6 +198,18 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 	require.NotContains(t, totals, keyAOutOfScope.KeyID, "an out-of-scope keyspace's key must not appear")
 	require.Len(t, totals, 2, "keys with no traffic in the window are omitted")
 
+	// Naming the out-of-scope key directly is the direct form of the leak the
+	// keyspace bound closes: the key belongs to this identity, so only the
+	// keyspace predicate keeps its events out.
+	namedReq := req
+	namedReq.KeyId = ptr.P(keyAOutOfScope.KeyID)
+	namedReq.PerKey = ptr.P(true)
+
+	named := testutil.CallRoute[Request, Response](h, route, headers, namedReq)
+	require.Equal(t, 200, named.Status)
+	require.Zero(t, sumTotals(named.Body.Data), "an out-of-scope key must return no events even when named")
+	require.Empty(t, sumKeyTotals(*named.Body.Keys), "an out-of-scope key must produce no per-key series")
+
 	var perKeyGrand int64
 	for _, total := range totals {
 		perKeyGrand += total

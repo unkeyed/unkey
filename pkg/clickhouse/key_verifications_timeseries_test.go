@@ -300,6 +300,25 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 		require.Error(t, err)
 	})
 
+	// An unset cap means a caller wired the handler without one; serving it
+	// would put an unbounded per-key read on the shared connection.
+	t.Run("missing key cap is an error", func(t *testing.T) {
+		for _, maxKeys := range []int{0, -1} {
+			_, err := client.GetVerificationsByExternalIDPerKey(ctx, clickhouse.VerificationTimeseriesPerKeyRequest{
+				VerificationTimeseriesRequest: clickhouse.VerificationTimeseriesRequest{
+					WorkspaceID: workspaceID,
+					ExternalID:  extA,
+					KeySpaceIDs: []string{keySpaceID},
+					KeyID:       "",
+					StartTime:   startMs,
+					EndTime:     endMs,
+				},
+				MaxKeys: maxKeys,
+			})
+			require.Error(t, err, "MaxKeys %d must be refused", maxKeys)
+		}
+	})
+
 	t.Run("empty keyspace list is an error", func(t *testing.T) {
 		_, err := client.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
 			WorkspaceID: workspaceID,
