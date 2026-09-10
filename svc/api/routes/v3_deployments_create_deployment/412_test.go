@@ -10,7 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_create_deployment"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v3_deployments_create_deployment"
 )
 
 // TestWorkerRejections pins what a caller is told when the worker refuses a
@@ -146,7 +146,7 @@ func TestWorkerRejections(t *testing.T) {
 				Project:     setup.Project.Slug,
 				App:         setup.App.Slug,
 				Environment: setup.Environment.Slug,
-				Image:       &openapi.DeploymentSourceImage{DockerImage: "nginx:latest"},
+				Oci:         &openapi.DeploymentSourceOCI{Image: "nginx:latest"},
 			})
 			require.Equal(t, tc.status, res.Status, "received: %s", res.RawBody)
 			require.Equal(t, tc.docs, res.Body.Error.Type)

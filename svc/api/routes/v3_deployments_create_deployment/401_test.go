@@ -6,25 +6,29 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_create_deployment"
+	"github.com/unkeyed/unkey/svc/api/openapi"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v3_deployments_create_deployment"
 )
 
-func TestUnauthorized(t *testing.T) {
+func TestInvalidRootKey(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, testutil.UncalledDeployRestate(t))
+	route := &handler.Handler{DB: h.DB, Restate: testutil.UncalledDeployRestate(t)}
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
 
-	req := imageRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "nginx:latest")
-
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {"Bearer invalid_token"},
 	}
 
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		Project:     setup.Project.Slug,
+		App:         setup.App.Slug,
+		Environment: setup.Environment.Slug,
+		Oci:         &openapi.DeploymentSourceOCI{Image: "nginx:latest"},
+	})
 	require.Equal(t, http.StatusUnauthorized, res.Status, "expected 401, received: %s", res.RawBody)
 }

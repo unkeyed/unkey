@@ -241,13 +241,11 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	deploymentSvc := deployment.New(deployment.Config{
-		Database:                        database,
-		Restate:                         restateClient,
-		RestateAdmin:                    restateAdminClient,
-		GitHub:                          ghClient,
-		Auditlogs:                       auditlogSvc,
-		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
-		Bearer:                          cfg.AuthToken,
+		Database:     database,
+		Restate:      restateClient,
+		RestateAdmin: restateAdminClient,
+		GitHub:       ghClient,
+		Bearer:       cfg.AuthToken,
 	})
 	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deploymentSvc))
 	mux.Handle(ctrlv1connect.NewOpsServiceHandler(ops.New(ops.Config{

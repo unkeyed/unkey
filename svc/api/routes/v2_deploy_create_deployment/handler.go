@@ -3,17 +3,19 @@ package handler
 import (
 	"context"
 	"net/http"
-	"strings"
 
+	restateingress "github.com/restatedev/sdk-go/ingress"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/gen/rpc/ctrl"
+	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/ctrlclient"
+	"github.com/unkeyed/unkey/svc/api/internal/deployment"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -23,8 +25,8 @@ type (
 )
 
 type Handler struct {
-	DB         db.Database
-	CtrlClient ctrl.DeployServiceClient
+	DB      db.Database
+	Restate *restateingress.Client
 }
 
 func (h *Handler) Path() string {
@@ -54,13 +56,32 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	})
 	if err != nil {
 		if db.IsNotFound(err) {
-			return fault.New("project or app not found",
+			return fault.New(
+				"project or app not found",
 				fault.Code(codes.Data.Project.NotFound.URN()),
 				fault.Internal("project or app not found"),
 				fault.Public("The requested project or app does not exist."),
 			)
 		}
 		return fault.Wrap(err, fault.Internal("failed to find project and app"))
+	}
+
+	environment, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
+		WorkspaceID: principal.AuthorizedWorkspaceID,
+		Project:     req.Project,
+		App:         req.App,
+		Environment: req.EnvironmentSlug,
+	})
+	if err != nil {
+		if db.IsNotFound(err) {
+			return fault.New(
+				"environment not found",
+				fault.Code(codes.Data.Environment.NotFound.URN()),
+				fault.Internal("environment did not resolve"),
+				fault.Public("The requested environment does not exist."),
+			)
+		}
+		return fault.Wrap(err, fault.Internal("failed to resolve environment"))
 	}
 
 	err = principal.Authorize(rbac.Or(
@@ -79,32 +100,41 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// CLI announces itself via X-Unkey-Client: unkey-cli/<version>.
-	// Anything else (or absent) is attributed to the API.
-	trigger := ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API
-	if strings.HasPrefix(s.Request().Header.Get("X-Unkey-Client"), "unkey-cli/") {
-		trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI
-	}
-
-	// ctrl rejects these too, but ctrlclient.HandleError replaces its message with a
-	// generic one, so the reason reaches the caller only if the check also runs here.
+	// The worker rejects a bad image too, with a coarser message.
 	if err := imageref.Validate(req.DockerImage); err != nil {
 		return err
 	}
 
-	// nolint: exhaustruct // optional proto fields, only setting whats provided
-	ctrlReq := &ctrlv1.CreateDeploymentRequest{
-		ProjectId:       row.ProjectID,
-		AppId:           row.AppID,
-		EnvironmentSlug: req.EnvironmentSlug,
-		DockerImage:     req.DockerImage,
-		Source: &ctrlv1.CreateDeploymentRequest_GitCommit{
-			GitCommit: &ctrlv1.GitCommitInfo{
-				Branch: req.Branch,
-			},
+	actorInfo, err := ctrlclient.Actor(s)
+	if err != nil {
+		return err
+	}
+
+	// The CLI built the image itself, so the commit is metadata to record, not
+	// something to build. The branch alone still scopes sibling dedup.
+	// nolint: exhaustruct // optional fields, only what the caller sent
+	commit := &ctrlv1.GitCommitInfo{Branch: req.Branch}
+	if req.GitCommit != nil {
+		commit.CommitSha = ptr.SafeDeref(req.GitCommit.CommitSha)
+		commit.CommitMessage = ptr.SafeDeref(req.GitCommit.CommitMessage)
+		commit.AuthorHandle = ptr.SafeDeref(req.GitCommit.AuthorHandle)
+		commit.AuthorAvatarUrl = ptr.SafeDeref(req.GitCommit.AuthorAvatarUrl)
+		commit.Timestamp = ptr.SafeDeref(req.GitCommit.Timestamp)
+	}
+
+	// nolint: exhaustruct // the source oneof is set above
+	createReq := &hydrav1.DeployCreateRequest{
+		ProjectId:     row.ProjectID,
+		AppId:         row.AppID,
+		EnvironmentId: environment.ID,
+		Source: &hydrav1.DeployCreateRequest_Image{
+			Image: &hydrav1.CreateImageSource{Image: req.DockerImage, Commit: commit},
 		},
-		Trigger:     trigger,
-		TriggeredBy: principal.Subject.ID,
+		Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
+		Trigger:       deployment.TriggerFromClient(s),
+		TriggeredBy:   principal.Subject.ID,
+		TriggerReason: "",
+		Actor:         actorInfo,
 	}
 
 	// Add optional keyspace ID for authentication. Verify the keyspace belongs
@@ -115,7 +145,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), *req.KeyspaceId)
 		if err != nil {
 			if db.IsNotFound(err) {
-				return fault.New("keyspace not found",
+				return fault.New(
+					"keyspace not found",
 					fault.Code(codes.Data.KeyAuth.NotFound.URN()),
 					fault.Internal("keyspace not found"),
 					fault.Public("The specified keyspace was not found."),
@@ -125,43 +156,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if keySpace.WorkspaceID != principal.AuthorizedWorkspaceID {
-			return fault.New("keyspace not found",
+			return fault.New(
+				"keyspace not found",
 				fault.Code(codes.Data.KeyAuth.NotFound.URN()),
 				fault.Internal("keyspace belongs to different workspace, masking as 404"),
 				fault.Public("The specified keyspace was not found."),
 			)
 		}
-
-		ctrlReq.KeyspaceId = req.KeyspaceId
 	}
 
-	// Handle optional git commit info
-	if req.GitCommit != nil {
-		// nolint: exhaustruct // optional proto fields, only setting whats provided
-		gitCommit := &ctrlv1.GitCommitInfo{
-			Branch: req.Branch,
-		}
-		if req.GitCommit.CommitSha != nil {
-			gitCommit.CommitSha = *req.GitCommit.CommitSha
-		}
-		if req.GitCommit.CommitMessage != nil {
-			gitCommit.CommitMessage = *req.GitCommit.CommitMessage
-		}
-		if req.GitCommit.AuthorHandle != nil {
-			gitCommit.AuthorHandle = *req.GitCommit.AuthorHandle
-		}
-		if req.GitCommit.AuthorAvatarUrl != nil {
-			gitCommit.AuthorAvatarUrl = *req.GitCommit.AuthorAvatarUrl
-		}
-		if req.GitCommit.Timestamp != nil {
-			gitCommit.Timestamp = *req.GitCommit.Timestamp
-		}
-		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_GitCommit{GitCommit: gitCommit}
-	}
-
-	ctrlResp, err := h.CtrlClient.CreateDeployment(ctx, ctrlReq)
+	deploymentID, err := deployment.Create(ctx, h.Restate, createReq)
 	if err != nil {
-		return ctrlclient.HandleError(err, "create deployment")
+		return err
 	}
 
 	return s.JSON(http.StatusCreated, Response{
@@ -169,7 +175,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			RequestId: s.RequestID(),
 		},
 		Data: openapi.V2DeployCreateDeploymentResponseData{
-			DeploymentId: ctrlResp.GetDeploymentId(),
+			DeploymentId: deploymentID,
 		},
 	})
 }
