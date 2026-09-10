@@ -12,7 +12,7 @@ import (
 )
 
 const findManyRatelimitNamespaces = `-- name: FindManyRatelimitNamespaces :many
-SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m,
+SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
        coalesce(
                (select json_arrayagg(
                                json_object(
@@ -49,7 +49,7 @@ type FindManyRatelimitNamespacesRow struct {
 
 // FindManyRatelimitNamespaces
 //
-//	SELECT pk, id, workspace_id, project_id, name, created_at_m, updated_at_m, deleted_at_m,
+//	SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
 //	       coalesce(
 //	               (select json_arrayagg(
 //	                               json_object(

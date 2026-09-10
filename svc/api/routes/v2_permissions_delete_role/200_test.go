@@ -13,6 +13,7 @@ import (
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_delete_role"
 )
@@ -30,6 +31,8 @@ func TestSuccess(t *testing.T) {
 
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspace.ID)
+	require.NoError(t, err)
 
 	// Create a root key with appropriate permissions
 	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.delete_role")
@@ -50,6 +53,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
+			ProjectID:   projectID,
 			Name:        roleName,
 			Description: sql.NullString{Valid: true, String: roleDesc},
 		})
@@ -61,6 +65,7 @@ func TestSuccess(t *testing.T) {
 			err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 				PermissionID: permID,
 				WorkspaceID:  workspace.ID,
+				ProjectID:    projectID,
 				Name:         fmt.Sprintf("test.perm.%d", i),
 				Slug:         fmt.Sprintf("test-perm-%d", i),
 				Description:  dbtype.NullString{Valid: true, String: fmt.Sprintf("Test permission %d", i)},
@@ -155,6 +160,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      roleID,
 			WorkspaceID: workspace.ID,
+			ProjectID:   projectID,
 			Name:        roleName,
 			Description: sql.NullString{Valid: true, String: roleDesc},
 		})

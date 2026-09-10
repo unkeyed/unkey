@@ -62,7 +62,7 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 			KeyspaceIDs: session.KeyspaceIDs,
 			Scopes:      session.Scopes,
 		},
-		WorkspaceID: session.WorkspaceID,
-		Permissions: session.Scopes,
+		AuthorizedWorkspaceID: session.WorkspaceID,
+		Permissions:           session.Scopes,
 	}, nil
 }

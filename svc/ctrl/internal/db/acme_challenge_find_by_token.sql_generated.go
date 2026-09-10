@@ -10,7 +10,7 @@ import (
 )
 
 const findAcmeChallengeByToken = `-- name: FindAcmeChallengeByToken :one
-SELECT pk, domain_id, workspace_id, token, challenge_type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
+SELECT acme_challenges.pk, acme_challenges.domain_id, acme_challenges.workspace_id, acme_challenges.token, acme_challenges.challenge_type, acme_challenges.authorization, acme_challenges.status, acme_challenges.expires_at, acme_challenges.created_at, acme_challenges.updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
 `
 
 type FindAcmeChallengeByTokenParams struct {
@@ -21,7 +21,7 @@ type FindAcmeChallengeByTokenParams struct {
 
 // FindAcmeChallengeByToken
 //
-//	SELECT pk, domain_id, workspace_id, token, challenge_type, authorization, status, expires_at, created_at, updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
+//	SELECT acme_challenges.pk, acme_challenges.domain_id, acme_challenges.workspace_id, acme_challenges.token, acme_challenges.challenge_type, acme_challenges.authorization, acme_challenges.status, acme_challenges.expires_at, acme_challenges.created_at, acme_challenges.updated_at FROM acme_challenges WHERE workspace_id = ? AND domain_id = ? AND token = ?
 func (q *Queries) FindAcmeChallengeByToken(ctx context.Context, arg FindAcmeChallengeByTokenParams) (AcmeChallenge, error) {
 	row := q.db.QueryRowContext(ctx, findAcmeChallengeByToken, arg.WorkspaceID, arg.DomainID, arg.Token)
 	var i AcmeChallenge

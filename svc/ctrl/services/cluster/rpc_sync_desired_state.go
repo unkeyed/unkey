@@ -32,7 +32,7 @@ func (s *Service) SyncDesiredState(
 
 	fullSyncStart := time.Now()
 
-	if err := s.syncDeployments(ctx, stream, cluster.Region.ID); err != nil {
+	if err := s.syncDeployments(ctx, stream, cluster.RegionID); err != nil {
 		metrics.SyncDesiredStateTotal.WithLabelValues("error").Inc()
 		return err
 	}
@@ -61,7 +61,7 @@ func (s *Service) syncDeployments(
 			return connect.NewError(connect.CodeInternal, err)
 		}
 		for _, row := range rows {
-			afterPk = row.DeploymentTopology.Pk
+			afterPk = row.TopologyPk
 			state, err := deploymentRowToState(row, 0)
 			if err != nil {
 				logger.Error("full sync: failed to convert deployment row", "error", err)

@@ -27,7 +27,7 @@ import (
 func errorLogAttrs(s *zen.Session, err error, status int, urn codes.URN) []any {
 	workspaceID := ""
 	if principal, principalErr := s.GetPrincipal(); principalErr == nil {
-		workspaceID = principal.WorkspaceID
+		workspaceID = principal.AuthorizedWorkspaceID
 	}
 
 	return []any{

@@ -434,15 +434,23 @@ components:
                     type: string
                     minLength: 1
                     maxLength: 256
-                    description: |
-                        Human-readable name for this app.
-                        Use a descriptive name like 'Payments API' to identify its purpose.
+                    description: Human-readable name for this app.
                     example: Payments API
                 slug:
                     "$ref": "#/components/schemas/ResourceIdentifier"
                 git:
                     "$ref": "#/components/schemas/AppGitCreateInput"
+                oci:
+                    "$ref": "#/components/schemas/AppOCI"
             additionalProperties: false
+            oneOf:
+                - required:
+                    - git
+                - required:
+                    - oci
+            description: |
+                Create an app with exactly one source: `git` or `oci`. Requests that omit a
+                source or provide both sources are rejected.
         V2AppsCreateAppResponseBody:
             type: object
             required:
@@ -589,6 +597,13 @@ components:
                     anyOf:
                         - "$ref": "#/components/schemas/AppGitUpdateInput"
                         - type: "null"
+                oci:
+                    description: |
+                        Change the default image reference for an OCI-sourced app. This does not
+                        create a deployment. It can be combined with other app settings. Source
+                        switching is not supported.
+                    allOf:
+                        - "$ref": "#/components/schemas/AppOCI"
                 deleteProtection:
                     type: boolean
                     description: |
@@ -596,6 +611,7 @@ components:
                         Omit this field to leave the current setting unchanged.
                     example: true
             additionalProperties: false
+            description: Provide at least one field to update. Omitted fields remain unchanged.
         V2AppsUpdateAppResponseBody:
             type: object
             required:
@@ -642,8 +658,11 @@ components:
                     example: "production"
                 dockerImage:
                     type: string
+                    deprecated: true
                     minLength: 1
-                    description: Docker image reference to deploy
+                    maxLength: 256
+                    description: >-
+                        Deprecated. Use `oci.image` in v3 instead. This field is the full image reference to deploy. Qualify the version with a tag (ghcr.io/user/app:v1.0.0) or a digest (ghcr.io/user/app@sha256:...). Without either, the registry serves the latest tag.
                     example: "ghcr.io/user/app:v1.0.0"
                 gitCommit:
                     $ref: "#/components/schemas/V2DeployGitCommit"
@@ -981,17 +1000,25 @@ components:
             additionalProperties: false
         V2DomainsListDomainsRequestBody:
             type: object
-            required:
-                - project
-                - app
-                - environment
             properties:
                 project:
-                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    allOf:
+                        - "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: |
+                        Match domains whose project ID or slug equals this value. This filter does not require
+                        an app or environment filter.
                 app:
-                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    allOf:
+                        - "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: |
+                        Match domains whose app ID or slug equals this value. This filter does not require a
+                        project or environment filter.
                 environment:
-                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    allOf:
+                        - "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: |
+                        Match domains whose environment ID or slug equals this value. This filter does not require
+                        a project or app filter.
                 limit:
                     type: integer
                     description: |
@@ -1012,6 +1039,10 @@ components:
                     description: Free-form text to filter domains. Returns domains whose ID or name contains the search string. Matching is case-insensitive.
                     example: acme.com
             additionalProperties: false
+            description: |
+                Filter domains within a workspace. All filters are optional and combine with AND. Each resource
+                filter matches its ID or slug directly, even when its parent filters are omitted. A missing
+                resource or a resource that does not match the other filters produces an empty list.
         V2DomainsListDomainsResponseBody:
             type: object
             required:
@@ -1027,10 +1058,15 @@ components:
                     items:
                         "$ref": "#/components/schemas/Domain"
                     description: |
-                        The domains attached to the environment, sorted by their id.
-                        The array is empty when the environment has no domains. This is not an error.
+                        Domains that match every request filter and that you have permission to read, sorted by ID.
+                        The array is empty when no readable domains match, including when a filtered resource
+                        is missing or mismatched.
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
+                    description: |
+                        Pagination over permitted domains. When more permitted domains exist, `cursor` identifies
+                        the first permitted domain after this page. A domain the credential cannot read is never
+                        returned as the cursor.
             additionalProperties: false
         V2DomainsVerifyDomainRequestBody:
             type: object
@@ -1302,8 +1338,11 @@ components:
                         type: string
                         maxLength: 500
                     description: |
-                        Glob paths that trigger auto-deploys when changed.
-                        Omit to leave unchanged.
+                        Glob patterns that trigger auto-deploys when matching files change.
+                        Do not start a pattern with "/" or "./".
+                        Use "src/**" for everything under a directory and "**/*.go" for a file type.
+                        A pattern with no wildcard matches only that exact file, so "src" is not "src/**".
+                        Omit to leave unchanged. Invalid patterns are rejected with a 400.
                 autoDeploy:
                     type: boolean
                     description: |
@@ -2960,13 +2999,25 @@ components:
             additionalProperties: false
         V2PermissionsSetRolePermissionsRequestBody:
             type: object
+            description: Provide exactly one of `role` or the deprecated `roleId`.
             required:
-                - roleId
                 - permissions
             properties:
+                role:
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                    description: |
+                        The role whose directly assigned permissions will be replaced.
+                        Accepts either the generated role ID or the unique role name.
                 roleId:
-                    "$ref": "#/components/schemas/ResourceIdentifier"
-                    description: The ID of the role whose directly assigned permissions will be replaced.
+                    type: string
+                    minLength: 1
+                    maxLength: 128
+                    deprecated: true
+                    description: |
+                        Deprecated. Use `role` instead.
+                        Accepts either the generated role ID or the unique role name.
                 permissions:
                     type: array
                     description: The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
@@ -2976,6 +3027,11 @@ components:
                         maxLength: 128
                         pattern: ^[a-zA-Z0-9_:\-\.\*]+$
             additionalProperties: false
+            oneOf:
+                - required:
+                    - role
+                - required:
+                    - roleId
         V2PermissionsSetRolePermissionsResponseBody:
             type: object
             required:
@@ -3081,32 +3137,23 @@ components:
                         type: string
                         enum:
                             - "keys:read"
-                            - "keys:create"
                             - "keys:reroll"
-                            - "analytics:read"
                     minItems: 1
                     description: |
                         The capabilities granted to the end user in the Portal, from a fixed
                         vocabulary. All capabilities are scoped to this end user: key capabilities
                         (`keys:*`) apply only to keys the end user owns within the keyspace
-                        configured on the portal, and `analytics:read` returns only the end user's
-                        own verification events. An end user can never see another identity's keys
-                        or analytics.
+                        configured on the portal. An end user can never see another identity's
+                        keys.
 
-                        Tab visibility is derived from the scopes:
-                        - Keys tab: any `keys:*` scope
-                        - Analytics tab: `analytics:read`
-                        - Docs tab: visible when any scope is present
-
-                        `keys:create` is accepted but has no portal route behind it yet. It is
-                        still authorized like the others, so a session minted with it required
-                        `create_key` on the keyspace at mint time, and a future portal create-key
-                        route inherits an enforced ceiling rather than trusting sessions minted
-                        while the capability was inert.
+                        The portal currently exposes only the keys page, so these scopes gate
+                        what the end user can do there rather than which pages they see. Because
+                        rerolling is reached from that page, `keys:reroll` requires `keys:read`
+                        in the same session; requesting it alone is rejected.
 
                         Each scope requires the equivalent permission on your own root key. See
                         Required Permissions on this operation.
-                    example: ["keys:read", "keys:reroll", "analytics:read"]
+                    example: ["keys:read", "keys:reroll"]
                 preview:
                     type: boolean
                     default: false
@@ -3167,7 +3214,7 @@ components:
                     description: |
                         The exchange code carried by the portal URL from `portal.createSession`.
                         Must be valid, unexpired, and not previously redeemed.
-                    example: pst_abc123def456
+                    example: pec_abc123def456
             additionalProperties: false
         V2PortalExchangeCodeResponseBody:
             type: object
@@ -3821,6 +3868,38 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2RatelimitSetOverrideResponseData"
+        V3DeploymentsCreateDeploymentRequestBody:
+            type: object
+            required:
+                - project
+                - app
+                - environment
+            properties:
+                project:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                app:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                environment:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                git:
+                    "$ref": "#/components/schemas/DeploymentSourceGit"
+                oci:
+                    "$ref": "#/components/schemas/DeploymentSourceOCI"
+                deployment:
+                    "$ref": "#/components/schemas/DeploymentSourceDeployment"
+            additionalProperties: false
+            description: Create a deployment. Omit the source to use the app default, or provide one source override.
+        V3DeploymentsCreateDeploymentResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V3DeploymentsCreateDeploymentResponseData"
+            additionalProperties: false
         Meta:
             type: object
             required:
@@ -4274,10 +4353,8 @@ components:
         AppGitCreateInput:
             type: object
             description: |
-                Connect a GitHub repository to the app on creation. Omit to create the app
-                without a repository and connect one later with apps.updateApp.
-            required:
-                - repository
+                Configure Git as the app source. Provide `repository` to connect it during
+                creation, or use an empty object to connect a repository later.
             properties:
                 repository:
                     type: string
@@ -4285,16 +4362,31 @@ components:
                     maxLength: 255
                     description: |
                         The GitHub repository to connect, as "owner/repo". The workspace must have
-                        the Unkey GitHub App installed with access to it.
+                        the Unkey GitHub App installed with access to it. Omit this field to create
+                        the Git app before selecting its repository.
                     example: unkeyed/unkey
                 defaultBranch:
                     type: string
                     minLength: 1
                     maxLength: 256
                     description: |
-                        The branch this app's deployments track. Omit to adopt the repository's
-                        default branch on GitHub.
+                        The branch this app's deployments track. This requires `repository`.
+                        Omit it to adopt the repository's default branch on GitHub.
                     example: main
+            additionalProperties: false
+        AppOCI:
+            type: object
+            description: An app's OCI image source.
+            required:
+                - image
+            properties:
+                image:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    pattern: "\\S"
+                    description: The configured default OCI image reference for new deployments. It must include an explicit tag or digest.
+                    example: ghcr.io/acme/api:v1.2.3
             additionalProperties: false
         V2AppsCreateAppResponseData:
             type: object
@@ -4337,13 +4429,29 @@ components:
                         URL-safe handle for this app, unique within its project.
                         Chosen at creation time.
                     example: payments-api
+                sourceType:
+                    type: string
+                    enum:
+                        - git
+                        - oci
+                    description: |
+                        The configured source used to create deployments. Omitted for historical
+                        apps whose source could not be classified.
+                    example: oci
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 git:
                     description: |
                         The connected GitHub repository and the branch its deployments track.
                         Omitted when the app has no repository connected (for example a
-                        Docker-based app).
+                        prebuilt OCI image app).
                     allOf:
                         - "$ref": "#/components/schemas/AppGit"
+                oci:
+                    description: |
+                        The configured OCI image source. Omitted when the app is not OCI-sourced.
+                    allOf:
+                        - "$ref": "#/components/schemas/AppOCI"
                 currentDeploymentId:
                     type: string
                     description: |
@@ -4551,9 +4659,12 @@ components:
             properties:
                 dockerImage:
                     type: string
+                    deprecated: true
                     minLength: 1
+                    maxLength: 256
                     pattern: "\\S"
-                    description: Docker image to deploy as-is.
+                    description: >-
+                        Deprecated. Use `oci.image` in v3 instead. This field is the full image reference to deploy as-is. Qualify the version with a tag (ghcr.io/acme/api:v1.2.3) or a digest (ghcr.io/acme/api@sha256:...). Without either, the registry serves the latest tag.
                     example: "ghcr.io/acme/api:v1.2.3"
             description: Deploy a prebuilt Docker image as-is.
         DeploymentSourceDeployment:
@@ -4621,7 +4732,7 @@ components:
                 docker:
                     "$ref": "#/components/schemas/DeploymentDocker"
                     description: |
-                        Present for image-sourced deployments. Mutually exclusive with `git`.
+                        Compatibility field present for OCI image-sourced deployments. Mutually exclusive with `git`.
                 availableActions:
                     type: array
                     items:
@@ -4727,7 +4838,7 @@ components:
             properties:
                 image:
                     type: string
-                    description: The Docker image this deployment runs.
+                    description: The OCI image reference requested for this deployment.
                     example: ghcr.io/acme/api:v1.2.3
             additionalProperties: false
         DeploymentAction:
@@ -6772,8 +6883,8 @@ components:
                     type: string
                     description: |
                         The unique identifier of the newly created portal, generated by Unkey.
-                        Always begins with 'pc_' followed by a unique alphanumeric sequence.
-                    example: pc_1234abcd
+                        Always begins with 'prt_' followed by a unique alphanumeric sequence.
+                    example: prt_1234abcd
             additionalProperties: false
         V2PortalCreateSessionResponseData:
             type: object
@@ -6794,7 +6905,7 @@ components:
                     description: |
                         The full portal URL to redirect the end user to. Carries a single-use
                         exchange code that is valid for 15 minutes.
-                    example: "https://portal.unkey.com/?code=pst_abc123def456"
+                    example: "https://portal.unkey.com/?code=pec_abc123def456"
             additionalProperties: false
         V2PortalExchangeCodeResponseData:
             type: object
@@ -7248,6 +7359,30 @@ components:
                     type: string
             required:
                 - overrideId
+        DeploymentSourceOCI:
+            type: object
+            required:
+                - image
+            properties:
+                image:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    pattern: "\\S"
+                    description: OCI image to deploy. Mutable tags are resolved to immutable digests before rollout.
+                    example: "ghcr.io/acme/api:v1.2.3"
+            additionalProperties: false
+            description: Deploy a prebuilt OCI image without a build.
+        V3DeploymentsCreateDeploymentResponseData:
+            type: object
+            required:
+                - deploymentId
+            properties:
+                deploymentId:
+                    type: string
+                    description: Unique deployment identifier
+                    example: "d_abc123xyz"
+            additionalProperties: false
 info:
     description: |-
         Unkey's API provides programmatic access for all resources within our platform.
@@ -7923,6 +8058,8 @@ paths:
             description: |
                 Create an app within a project. The app is created with default `production` and `preview` environments.
 
+                Set exactly one source. Use `git` to create a GitHub-sourced app and connect its repository. Use `oci` to create an app from a prebuilt OCI image.
+
                 The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
 
                 **Important**: The slug cannot collide with an existing app in the same project. A duplicate slug returns a 409 conflict.
@@ -7937,11 +8074,22 @@ paths:
                 content:
                     application/json:
                         examples:
-                            basic:
-                                description: Create an app within a project
-                                summary: Basic app creation
+                            git:
+                                description: Create an app connected to a GitHub repository
+                                summary: GitHub app
+                                value:
+                                    git:
+                                        repository: unkeyed/unkey
+                                    name: Payments API
+                                    project: payments
+                                    slug: payments-api
+                            ociImage:
+                                description: Create an app from an OCI image
+                                summary: OCI image app
                                 value:
                                     name: Payments API
+                                    oci:
+                                        image: ghcr.io/acme/payments:v1.2.3
                                     project: payments
                                     slug: payments-api
                         schema:
@@ -8724,6 +8872,7 @@ paths:
             x-speakeasy-name-override: getDeployment
     /v2/deployments.createDeployment:
         post:
+            deprecated: true
             description: |
                 Create a deployment for an app in a project.
 
@@ -10183,11 +10332,15 @@ paths:
     /v2/domains.listDomains:
         post:
             description: |
-                List the custom domains attached to an environment and their verification status.
+                List your custom domains with their verification status and DNS records.
+                Filter by project, app, or environment using IDs or slugs, or send `{}` to list
+                domains across your workspace.
 
-                Results are paginated and sorted by their id. When `hasMore` is true, send the
-                returned `cursor` to get the next page. An environment with no domains returns an
-                empty array, not a 404.
+                Use any filter on its own or combine filters to narrow the results.
+                Results match all supplied filters. Omitting `environment` includes all matching environments.
+
+                Results include only domains you have permission to read, sorted by ID.
+                When `hasMore` is true, send the returned `cursor` to get the next page.
 
                 `status: verified` means the domain is verified. Unkey has configured routing and requested a
                 certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
@@ -10197,23 +10350,52 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `environment.*.read_domain` (to read domains in any environment)
-                - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
+                Use a root key with the `environment.*.read_domain` permission.
+                A successful request returns an empty list if no matching domains are readable by your key.
             operationId: domains.listDomains
             requestBody:
                 content:
                     application/json:
                         examples:
-                            byIds:
-                                description: Uses the ids returned by the corresponding list endpoints.
-                                summary: List an environment's domains by ID
+                            byApp:
+                                description: Includes all environments in apps matching this ID or slug, without restricting the project.
+                                summary: List an app's domains across projects
                                 value:
-                                    app: app_1234abcd
+                                    app: payments-api
+                            byAppAndEnvironment:
+                                description: Includes matching environments within matching apps, without restricting the project.
+                                summary: List an app's production domains across projects
+                                value:
+                                    app: payments-api
+                                    environment: production
+                            byEnvironment:
+                                description: Includes every environment with ID or slug production, across all projects and apps.
+                                summary: List production domains across the workspace
+                                value:
+                                    environment: production
+                            byIds:
+                                summary: List an environment's domains by its ID
+                                value:
                                     environment: env_1234abcd
-                                    project: proj_1234abcd
+                            byProject:
+                                description: Includes all apps and environments in projects matching this ID or slug.
+                                summary: List a project's domains
+                                value:
+                                    project: payments
+                            byProjectAndApp:
+                                description: Includes all environments in matching apps within matching projects.
+                                summary: List an app's domains within a project
+                                value:
+                                    app: payments-api
+                                    project: payments
+                            byProjectAndEnvironment:
+                                description: Includes matching environments across all apps in matching projects.
+                                summary: List a project's production domains
+                                value:
+                                    environment: production
+                                    project: payments
                             bySlugs:
-                                description: Uses the project, app, and environment slugs.
+                                description: Includes environments matching all three identifiers within the specified project and app.
                                 summary: List an environment's domains by slugs
                                 value:
                                     app: payments-api
@@ -10236,6 +10418,10 @@ paths:
                                     environment: production
                                     project: payments
                                     search: acme.com
+                            workspaceWide:
+                                description: Includes domains across all projects, apps, and environments that your key can read.
+                                summary: List all domains in the workspace
+                                value: {}
                         schema:
                             $ref: '#/components/schemas/V2DomainsListDomainsRequestBody'
                 required: true
@@ -10296,8 +10482,8 @@ paths:
                                         pagination:
                                             hasMore: false
                                 empty:
-                                    description: An environment with no custom domains returns an empty array, not a 404.
-                                    summary: No domains attached
+                                    description: Missing or mismatched resources and filters with no permitted matches return an empty array.
+                                    summary: No permitted domains match
                                     value:
                                         data: []
                                         meta:
@@ -10308,7 +10494,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/V2DomainsListDomainsResponseBody'
                     description: |
-                        Successfully retrieved the environment's domains.
+                        Successfully retrieved the permitted domains that match every filter. Missing or
+                        mismatched filtered resources return an empty list.
                 "400":
                     content:
                         application/json:
@@ -10319,7 +10506,7 @@ paths:
                                         error:
                                             detail: The search string must be at most 256 characters.
                                             errors:
-                                                - fix: Shorten the search string, or omit it to return the environment's domains unfiltered
+                                                - fix: Shorten the search string, or omit it to return domains without a search filter
                                                   location: body.search
                                                   message: must be at most 256 characters
                                             status: 400
@@ -10364,27 +10551,15 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
-                        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
-                        `environment.*.read_domain` receives a 404 instead, so permissions cannot be used to discover
-                        which environments exist.
+                        Forbidden - The root key or its workspace is disabled.
                 "404":
                     content:
                         application/json:
-                            examples:
-                                environmentNotFound:
-                                    summary: Environment not found
-                                    value:
-                                        error:
-                                            detail: The requested environment does not exist.
-                                            status: 404
-                                            title: Not Found
-                                            type: not-found
-                                        meta:
-                                            requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The environment does not exist in your workspace, or your root key may not read it.
+                        The workspace associated with the root key does not exist.
+                        Missing or mismatched project, app, and environment filters return an empty list, not 404.
                 "429":
                     content:
                         application/json:
@@ -10419,6 +10594,25 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
+                "503":
+                    content:
+                        application/json:
+                            examples:
+                                scanBudgetExhausted:
+                                    summary: Narrow the request filters
+                                    value:
+                                        error:
+                                            detail: The domain scan limit was reached. Narrow the project, app, environment, or search filters and retry.
+                                            status: 503
+                                            title: Service Unavailable
+                                            type: service-unavailable
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ServiceUnavailableErrorResponse'
+                    description: |
+                        The request could not be completed. No partial result is returned.
+                        Narrow the project, app, environment, or search filters before retrying.
             security:
                 - bearer: []
             summary: List domains
@@ -14223,9 +14417,8 @@ paths:
                 hold. Each requested scope additionally requires the equivalent permission on
                 every keyspace the portal resolves to:
                 - `keys:read` requires `api.<api_id>.read_key` **and** `api.<api_id>.read_api`
-                - `keys:reroll` and `keys:create` require `api.<api_id>.create_key`, plus
+                - `keys:reroll` requires `api.<api_id>.create_key`, plus
                   `api.<api_id>.encrypt_key` when the keyspace stores encrypted keys
-                - `analytics:read` requires `api.<api_id>.read_analytics`
 
                 The `*` form of each is also accepted. Requesting a scope you do not hold
                 returns 403 for the whole request rather than minting a reduced session, so a
@@ -16137,6 +16330,83 @@ paths:
             tags:
                 - ratelimit
             x-speakeasy-name-override: setOverride
+    /v3/deployments.createDeployment:
+        post:
+            description: |
+                Create a deployment for an app in a project.
+
+                Omit the source to use the app's configured default. A Git app builds its default branch. An OCI app deploys its default image.
+
+                Optionally provide one source override:
+                - `oci`: deploy a prebuilt OCI image without a build. Mutable tags are resolved to immutable digests before rollout.
+                - `git`: build and deploy from the app's connected GitHub repository, a branch, a specific commit, or a fork commit. Requires the app to have a repository connected.
+                - `deployment`: re-run an existing deployment by its id. Git deployments rebuild from the recorded commit; OCI deployments reuse the recorded resolved image.
+
+                Returns immediately with a `deploymentId`. The build and rollout run asynchronously. Poll `deployments.getDeployment` to watch status until it is ready.
+
+                **Authentication**: requires a root key with permission to create deployments.
+            operationId: deployments.createDeploymentV3
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V3DeploymentsCreateDeploymentRequestBody'
+                required: true
+            responses:
+                "201":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V3DeploymentsCreateDeploymentResponseBody'
+                    description: Deployment created successfully
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Forbidden
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: Not found
+                "412":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/PreconditionFailedErrorResponse'
+                    description: Precondition failed
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Create deployment
+            tags:
+                - deployments
+            x-speakeasy-name-override: createDeploymentV3
 security:
     - bearer: []
 servers:

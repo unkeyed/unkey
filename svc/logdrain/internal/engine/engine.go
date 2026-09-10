@@ -250,7 +250,8 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 	delivered := 0
 	current := source.Cursor{Time: 0, EventID: ""}
 	stream := db.LogdrainsStream("")
-	windowEnd := item.now.Add(-e.cfg.WatermarkLag).UnixMilli()
+	watermark := item.now.Add(-e.cfg.WatermarkLag).UnixMilli()
+	reader := newBatchReader(e.cfg.Source, watermark, e.cfg.BatchSize)
 	for {
 		drain, err := e.cfg.DB.GetLeasedAndDueLogdrain(ctx, db.GetLeasedAndDueLogdrainParams{
 			LogdrainID:   item.id,
@@ -273,10 +274,21 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			return
 		}
 		current = source.Cursor{Time: drain.CommittedOffsetInsertedAt, EventID: drain.CommittedOffsetEventID}
-		if windowEnd <= current.Time {
+		if watermark <= current.Time {
 			break
 		}
-		events, advance, err := e.cfg.Source.Read(ctx, drain.WorkspaceID, current, windowEnd, e.cfg.BatchSize)
+		cfg := &logdrainv1.Config{}
+		var page batchPage
+		if err = proto.Unmarshal(drain.Config, cfg); err != nil {
+			err = fmt.Errorf("decode logdrain config: %w", err)
+		} else {
+			switch cfg.GetStream().(type) {
+			case nil, *logdrainv1.Config_AuditLogs:
+				page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg.GetAuditLogs().GetEventTypes())
+			default:
+				err = fmt.Errorf("unsupported logdrain stream config %T", cfg.GetStream())
+			}
+		}
 		if err != nil {
 			if ctx.Err() != nil {
 				return
@@ -287,11 +299,9 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			}
 			return
 		}
-		caughtUp := len(events) < e.cfg.BatchSize
+		events := page.events
 		nextAttemptDelay := time.Duration(0)
-		if caughtUp {
-			// An empty event ID leaves events exactly at the next window boundary unread.
-			advance = source.Cursor{Time: windowEnd, EventID: ""}
+		if page.caughtUp {
 			nextAttemptDelay = e.cfg.PollInterval
 		}
 		var delivery deliveryAttempt
@@ -306,8 +316,8 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			}
 		}
 		rowsAffected, err := e.cfg.DB.RecordLogdrainSuccess(ctx, db.RecordLogdrainSuccessParams{
-			CommittedOffsetInsertedAt: advance.Time,
-			CommittedOffsetEventID:    advance.EventID,
+			CommittedOffsetInsertedAt: page.next.Time,
+			CommittedOffsetEventID:    page.next.EventID,
 			NextAttemptDelayMillis:    nextAttemptDelay.Milliseconds(),
 			LogdrainID:                drain.ID,
 			FencingToken:              drain.FencingToken,
@@ -320,7 +330,7 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			return
 		}
 		if rowsAffected == 0 {
-			cause := fmt.Errorf("%w before cursor advance to (%d, %q)", errLeaseLost, advance.Time, advance.EventID)
+			cause := fmt.Errorf("%w before cursor advance to (%d, %q)", errLeaseLost, page.next.Time, page.next.EventID)
 			if len(events) > 0 && !delivery.completed.IsZero() {
 				e.recordDelivery(drain, stream, delivery.completed, "error", len(events), delivery.duration, delivery.result, cause)
 			}
@@ -330,10 +340,17 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 		if len(events) > 0 && !delivery.completed.IsZero() {
 			// The delivery succeeded and its new offset is now committed.
 			e.recordDelivery(drain, stream, delivery.completed, "success", len(events), delivery.duration, delivery.result, nil)
+			logger.Info("logdrain batch delivered",
+				"drain_id", drain.ID,
+				"stream", stream,
+				"events", len(events),
+				"cursor_time", time.UnixMilli(page.next.Time).UTC(),
+				"lag_ms", e.cfg.Clock.Now().UnixMilli()-page.next.Time,
+			)
 		}
 		delivered += len(events)
-		current = advance
-		if caughtUp {
+		current = page.next
+		if page.caughtUp {
 			break
 		}
 	}

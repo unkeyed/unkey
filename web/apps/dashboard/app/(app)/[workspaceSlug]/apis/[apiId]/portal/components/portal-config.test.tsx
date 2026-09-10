@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { Portal } from "@unkey/api/models/components";
 import { ConflictErrorResponse } from "@unkey/api/models/errors";
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
 import { forwardRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PortalConfig } from "./portal-config";
@@ -62,8 +62,62 @@ vi.mock("@unkey/ui", () => {
   const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
     (props, ref) => <input ref={ref} {...props} />,
   );
+  const InputGroupInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
+    (props, ref) => <input ref={ref} {...props} />,
+  );
   return {
     Input,
+    InputGroup: ({
+      children,
+      variant: _variant,
+      ...props
+    }: HTMLAttributes<HTMLDivElement> & { variant?: string }) => <div {...props}>{children}</div>,
+    InputGroupInput,
+    InputGroupAddon: ({
+      children,
+      align: _align,
+    }: {
+      children?: ReactNode;
+      align?: string;
+    }) => <span>{children}</span>,
+    FormLabel: ({
+      label,
+      htmlFor,
+    }: {
+      label?: string;
+      htmlFor?: string;
+      hasError?: boolean;
+      tooltipContent?: ReactNode;
+    }) => <label htmlFor={htmlFor}>{label}</label>,
+    FormDescription: ({ error }: { error?: string; descriptionId?: string; errorId?: string }) =>
+      error ? <span data-testid="slug-error">{error}</span> : null,
+    FormField: ({
+      label,
+      error,
+      children,
+    }: {
+      label?: string;
+      description?: ReactNode;
+      descriptionPosition?: string;
+      error?: string;
+      children: (field: {
+        id: string;
+        describedBy: string | undefined;
+        invalid: boolean;
+        variant: "error" | undefined;
+      }) => ReactNode;
+    }) => (
+      <fieldset>
+        <label htmlFor="form-field">{label}</label>
+        {children({
+          id: "form-field",
+          describedBy: error ? "form-field-error" : undefined,
+          invalid: Boolean(error),
+          variant: error ? "error" : undefined,
+        })}
+        {error ? <span data-testid="slug-error">{error}</span> : null}
+      </fieldset>
+    ),
     Button: ({
       children,
       loading: _loading,

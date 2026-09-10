@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"unicode/utf8"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
@@ -13,6 +14,7 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -42,7 +44,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		return s.db.ListRepoConnectionDeployContexts(runCtx, db.ListRepoConnectionDeployContextsParams{
 			InstallationID: req.GetInstallationId(),
 			RepositoryID:   req.GetRepositoryId(),
-			Branch:         branch,
+			Branch:         sql.NullString{String: branch, Valid: branch != ""},
 			IsForkPr:       boolToInt64(req.GetIsForkPr()),
 		})
 	}, restate.WithName("list deploy contexts"))
@@ -65,12 +67,10 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	entitlements := make(map[string]db.FindWorkspaceDeployEntitlementRow)
 	eligibleContexts := make([]db.ListRepoConnectionDeployContextsRow, 0, len(contexts))
 	for _, row := range contexts {
-		project := row.Project
-		app := row.App
-		entitlement, ok := entitlements[project.WorkspaceID]
+		entitlement, ok := entitlements[row.ProjectWorkspaceID]
 		if !ok {
 			entitlement, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.FindWorkspaceDeployEntitlementRow, error) {
-				loaded, loadErr := s.db.FindWorkspaceDeployEntitlement(runCtx, project.WorkspaceID)
+				loaded, loadErr := s.db.FindWorkspaceDeployEntitlement(runCtx, row.ProjectWorkspaceID)
 				if db.IsNotFound(loadErr) {
 					return db.FindWorkspaceDeployEntitlementRow{
 						Plan:           sql.NullString{},
@@ -79,39 +79,31 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 					}, nil
 				}
 				return loaded, loadErr
-			}, restate.WithName("load workspace deploy entitlement "+project.WorkspaceID))
+			}, restate.WithName("load workspace deploy entitlement "+row.ProjectWorkspaceID))
 			if err != nil {
 				return nil, err
 			}
-			entitlements[project.WorkspaceID] = entitlement
+			entitlements[row.ProjectWorkspaceID] = entitlement
 		}
 
 		if !deploygate.Entitled(entitlement.Plan, entitlement.PlanOverride) {
-			if s.enforceDeployGate {
-				logger.Info("skipping deployment: workspace has no Compute plan",
-					"event", "deploy_gate.blocked",
-					"reason", "no_plan",
-					"workspace_id", project.WorkspaceID,
-					"project_id", project.ID,
-					"app_id", app.ID,
-					"delivery_id", req.GetDeliveryId(),
-				)
-				continue
-			}
-			logger.Warn("deploy gate would block GitHub deployment",
-				"event", "deploy_gate.would_block",
-				"workspaceId", project.WorkspaceID,
-				"projectId", project.ID,
-				"appId", app.ID,
+			logger.Info("skipping deployment: workspace has no Compute plan",
+				"event", "deploy_gate.blocked",
+				"reason", "no_plan",
+				"workspace_id", row.ProjectWorkspaceID,
+				"project_id", row.ProjectID,
+				"app_id", row.AppID,
+				"delivery_id", req.GetDeliveryId(),
 			)
+			continue
 		}
 		if entitlement.SpendSuspended.Bool {
 			logger.Info("skipping deployment: workspace is spend suspended",
 				"event", "deploy_gate.blocked",
 				"reason", "spend_suspended",
-				"workspace_id", project.WorkspaceID,
-				"project_id", project.ID,
-				"app_id", app.ID,
+				"workspace_id", row.ProjectWorkspaceID,
+				"project_id", row.ProjectID,
+				"app_id", row.AppID,
 				"delivery_id", req.GetDeliveryId(),
 			)
 			continue
@@ -129,7 +121,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		return s.db.ListEnvVarsForRepoConnections(runCtx, db.ListEnvVarsForRepoConnectionsParams{
 			InstallationID: req.GetInstallationId(),
 			RepositoryID:   req.GetRepositoryId(),
-			Branch:         branch,
+			Branch:         sql.NullString{String: branch, Valid: branch != ""},
 			IsForkPr:       boolToInt64(req.GetIsForkPr()),
 		})
 	}, restate.WithName("list env vars"))
@@ -175,47 +167,51 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	}
 
 	for _, row := range contexts {
-		project := row.Project
-		env := row.Environment
-		app := row.App
-		repo := row.GithubRepoConnection
-
-		buildSettings := row.AppBuildSetting
-
-		if !buildSettings.AutoDeploy {
-			logger.Info("skipping deployment: auto_deploy disabled",
-				"app_id", app.ID,
-				"environment", env.Slug,
-			)
+		// The dashboard reads this reason off the skipped deployment, so every skip
+		// says why rather than leaving the push with no record at all.
+		skipDeployment := func(reason string) {
 			if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, mysqltype.DeploymentsStatusSkipped)
+				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, mysqltype.DeploymentsStatusSkipped, reason)
 				return err
 			}, restate.WithName("insert skipped deployment")); err != nil {
-				logger.Error("failed to insert skipped deployment", "app_id", app.ID, "error", err)
+				logger.Error("failed to insert skipped deployment", "app_id", row.AppID, "error", err)
 			}
+		}
+
+		if !row.BuildSettingsAutoDeploy {
+			logger.Info("skipping deployment: auto_deploy disabled",
+				"app_id", row.AppID,
+				"environment", row.EnvironmentSlug,
+			)
+			skipDeployment("Auto deploy is disabled for this environment.")
 			continue
 		}
 
-		// Watch paths: skip if configured patterns don't match changed files
-		if !match.MatchWatchPaths(buildSettings.WatchPaths, changedFiles) {
+		matched, matchErr := match.MatchWatchPaths(row.BuildSettingsWatchPaths, changedFiles)
+		if matchErr != nil {
+			// A broken pattern looks exactly like a valid miss, so the reason names
+			// the pattern instead of blaming the changed files.
+			logger.Warn("skipping deployment: invalid watch path",
+				"app_id", row.AppID,
+				"watch_paths", row.BuildSettingsWatchPaths,
+				"error", matchErr,
+			)
+			skipDeployment(fault.UserFacingMessage(matchErr))
+			continue
+		}
+		if !matched {
 			logger.Info("skipping deployment: watch paths don't match changed files",
-				"app_id", app.ID,
-				"watch_paths", buildSettings.WatchPaths,
+				"app_id", row.AppID,
+				"watch_paths", row.BuildSettingsWatchPaths,
 				"changed_files", changedFiles,
 			)
-
-			if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, mysqltype.DeploymentsStatusSkipped)
-				return err
-			}, restate.WithName("insert skipped deployment")); err != nil {
-				logger.Error("failed to insert skipped deployment", "app_id", app.ID, "error", err)
-			}
+			skipDeployment("Watch paths did not match any changed files.")
 			continue
 		}
 
-		secretsBlob, marshalErr := buildSecretsBlob(envVarsByApp[app.ID])
+		secretsBlob, marshalErr := buildSecretsBlob(envVarsByApp[row.AppID])
 		if marshalErr != nil {
-			logger.Error("failed to marshal secrets config", "appId", app.ID, "error", marshalErr)
+			logger.Error("failed to marshal secrets config", "appId", row.AppID, "error", marshalErr)
 			continue
 		}
 
@@ -223,7 +219,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		// the flag only controls whether we reach out to GitHub (e.g. to post
 		// the "awaiting authorization" commit status — see blockDeploymentForApproval).
 		// Fork PRs run external code and must always be gated, even in dev.
-		needsApproval := s.requiresApproval(ctx, req, repo)
+		needsApproval := s.requiresApproval(req)
 
 		status := mysqltype.DeploymentsStatusPending
 		if needsApproval {
@@ -231,27 +227,27 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		}
 
 		deploymentID, insertErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-			return insertDeploymentRecord(runCtx, s.db.RW(), row, req, secretsBlob, status)
+			return insertDeploymentRecord(runCtx, s.db.RW(), row, req, secretsBlob, status, "")
 		}, restate.WithName("insert deployment"))
 		if insertErr != nil {
-			logger.Error("failed to insert deployment", "appId", app.ID, "error", insertErr)
+			logger.Error("failed to insert deployment", "appId", row.AppID, "error", insertErr)
 			continue
 		}
 
 		logger.Info("created deployment record",
 			"deployment_id", deploymentID,
 			"delivery_id", req.GetDeliveryId(),
-			"project_id", project.ID,
-			"app_id", app.ID,
+			"project_id", row.ProjectID,
+			"app_id", row.AppID,
 			"repository", req.GetRepositoryFullName(),
 			"commit_sha", req.GetAfter(),
 			"branch", req.GetBranch(),
-			"environment", env.Slug,
+			"environment", row.EnvironmentSlug,
 			"needs_approval", needsApproval,
 		)
 
 		if needsApproval {
-			if blockErr := s.blockDeploymentForApproval(ctx, req, project, app, env, repo, deploymentID); blockErr != nil {
+			if blockErr := s.blockDeploymentForApproval(ctx, req, row.ProjectWorkspaceID, row.ProjectID, row.AppID, row.EnvironmentID, row.ConnectionInstallationID, deploymentID); blockErr != nil {
 				return nil, blockErr
 			}
 			continue
@@ -264,12 +260,12 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 			DeploymentId: deploymentID,
 			Source: &hydrav1.DeployRequest_Git{
 				Git: &hydrav1.GitSource{
-					InstallationId: repo.InstallationID,
-					Repository:     repo.RepositoryFullName,
+					InstallationId: row.ConnectionInstallationID,
+					Repository:     row.ConnectionRepositoryFullName,
 					CommitSha:      req.GetAfter(),
-					ContextPath:    row.AppBuildSetting.DockerContext,
-					DockerfilePath: row.AppBuildSetting.Dockerfile.String,
-					BuildCommand:   row.AppBuildSetting.BuildCommand.String,
+					ContextPath:    row.BuildSettingsDockerContext,
+					DockerfilePath: row.BuildSettingsDockerfile.String,
+					BuildCommand:   row.BuildSettingsBuildCommand.String,
 					PrNumber:       req.GetPrNumber(),
 					ForkRepository: req.GetForkRepositoryFullName(),
 				},
@@ -299,8 +295,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		logger.Info("deployment workflow started",
 			"deployment_id", deploymentID,
 			"delivery_id", req.GetDeliveryId(),
-			"project_id", project.ID,
-			"app_id", app.ID,
+			"project_id", row.ProjectID,
+			"app_id", row.AppID,
 			"repository", req.GetRepositoryFullName(),
 			"commit_sha", req.GetAfter(),
 			"invocation_id", invocationID,
@@ -313,8 +309,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		if runErr := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			if cancelErr := s.dedup.CancelOlderSiblings(runCtx, dedup.Newer{
 				ID:            deploymentID,
-				AppID:         app.ID,
-				EnvironmentID: env.ID,
+				AppID:         row.AppID,
+				EnvironmentID: row.EnvironmentID,
 				GitBranch:     req.GetBranch(),
 				CreatedAt:     time.Now().UnixMilli(),
 			}); cancelErr != nil {
@@ -340,9 +336,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 // Set FORCE_DEPLOYMENT_APPROVAL=true to require approval for all pushes.
 // This is useful for testing the approval flow locally.
 func (s *Service) requiresApproval(
-	_ restate.ObjectContext,
 	req *hydrav1.HandlePushRequest,
-	_ db.GithubRepoConnection,
 ) bool {
 	if os.Getenv("FORCE_DEPLOYMENT_APPROVAL") == "true" {
 		logger.Info("FORCE_DEPLOYMENT_APPROVAL is set, requiring approval",
@@ -364,6 +358,10 @@ func (s *Service) requiresApproval(
 	return false
 }
 
+// triggerReasonBytesMax mirrors the deployments.trigger_reason column width.
+// The column counts characters, so a byte budget always fits.
+const triggerReasonBytesMax = 512
+
 // insertDeploymentRecord creates a deployment and its initial queued step in a single transaction.
 func insertDeploymentRecord(
 	ctx context.Context,
@@ -372,14 +370,11 @@ func insertDeploymentRecord(
 	req *hydrav1.HandlePushRequest,
 	secretsBlob []byte,
 	status mysqltype.DeploymentsStatus,
+	triggerReason string,
 ) (string, error) {
+	triggerReason = trimLength(triggerReason, triggerReasonBytesMax)
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	now := time.Now().UnixMilli()
-
-	project := row.Project
-	env := row.Environment
-	app := row.App
-	runtimeSettings := row.AppRuntimeSetting
 
 	commitSHA := req.GetAfter()
 	branch := req.GetBranch()
@@ -392,13 +387,15 @@ func insertDeploymentRecord(
 		if txErr := db.NewQueries(tx).InsertDeployment(txCtx, db.InsertDeploymentParams{
 			ID:                            deploymentID,
 			K8sName:                       uid.DNS1035(12),
-			WorkspaceID:                   project.WorkspaceID,
-			ProjectID:                     project.ID,
-			AppID:                         app.ID,
-			EnvironmentID:                 env.ID,
-			SentinelConfig:                runtimeSettings.SentinelConfig,
+			WorkspaceID:                   row.ProjectWorkspaceID,
+			ProjectID:                     row.ProjectID,
+			AppID:                         row.AppID,
+			EnvironmentID:                 row.EnvironmentID,
+			Source:                        db.DeploymentsSourceGit,
+			ImageRequested:                sql.NullString{Valid: false},
+			SentinelConfig:                row.RuntimeSettingsSentinelConfig,
 			EncryptedEnvironmentVariables: secretsBlob,
-			Command:                       runtimeSettings.Command,
+			Command:                       row.RuntimeSettingsCommand,
 			Status:                        status,
 			CreatedAt:                     now,
 			UpdatedAt:                     sql.NullInt64{Valid: false},
@@ -408,27 +405,27 @@ func insertDeploymentRecord(
 			GitCommitAuthorHandle:         sql.NullString{String: authorHandle, Valid: authorHandle != ""},
 			GitCommitAuthorAvatarUrl:      sql.NullString{String: authorAvatarURL, Valid: authorAvatarURL != ""},
 			GitCommitTimestamp:            sql.NullInt64{Int64: commitTimestamp, Valid: commitTimestamp != 0},
-			CpuMillicores:                 runtimeSettings.CpuMillicores,
-			MemoryMib:                     runtimeSettings.MemoryMib,
-			StorageMib:                    runtimeSettings.StorageMib,
-			Port:                          runtimeSettings.Port,
-			ShutdownSignal:                db.DeploymentsShutdownSignal(runtimeSettings.ShutdownSignal),
-			UpstreamProtocol:              db.DeploymentsUpstreamProtocol(runtimeSettings.UpstreamProtocol),
-			Healthcheck:                   runtimeSettings.Healthcheck,
+			CpuMillicores:                 row.RuntimeSettingsCpuMillicores,
+			MemoryMib:                     row.RuntimeSettingsMemoryMib,
+			StorageMib:                    row.RuntimeSettingsStorageMib,
+			Port:                          row.RuntimeSettingsPort,
+			ShutdownSignal:                db.DeploymentsShutdownSignal(row.RuntimeSettingsShutdownSignal),
+			UpstreamProtocol:              db.DeploymentsUpstreamProtocol(row.RuntimeSettingsUpstreamProtocol),
+			Healthcheck:                   row.RuntimeSettingsHealthcheck,
 			PrNumber:                      sql.NullInt64{Int64: req.GetPrNumber(), Valid: req.GetPrNumber() != 0},
 			ForkRepositoryFullName:        sql.NullString{String: req.GetForkRepositoryFullName(), Valid: req.GetForkRepositoryFullName() != ""},
 			DeploymentTrigger:             db.DeploymentsTriggerGithub,
 			TriggeredBy:                   sql.NullString{String: req.GetSenderLogin(), Valid: req.GetSenderLogin() != ""},
-			TriggerReason:                 sql.NullString{Valid: false},
+			TriggerReason:                 sql.NullString{String: triggerReason, Valid: triggerReason != ""},
 		}); txErr != nil {
 			return txErr
 		}
 
 		return db.NewQueries(tx).InsertDeploymentStep(txCtx, db.InsertDeploymentStepParams{
-			WorkspaceID:   app.WorkspaceID,
-			ProjectID:     app.ProjectID,
-			AppID:         app.ID,
-			EnvironmentID: env.ID,
+			WorkspaceID:   row.ProjectWorkspaceID,
+			ProjectID:     row.ProjectID,
+			AppID:         row.AppID,
+			EnvironmentID: row.EnvironmentID,
 			DeploymentID:  deploymentID,
 			Step:          db.DeploymentStepsStepQueued,
 			StartedAt:     uint64(now),
@@ -469,4 +466,19 @@ func boolToInt64(b bool) int64 {
 		return 1
 	}
 	return 0
+}
+
+// trimLength truncates s to at most maxBytes bytes while preserving valid
+// UTF-8: if the byte limit lands inside a multi-byte rune, the truncation
+// happens at the previous rune boundary instead. MySQL strict mode rejects
+// malformed UTF-8, and a single invalid watch path can exceed the column width.
+func trimLength(s string, maxBytes int) string {
+	if len(s) <= maxBytes {
+		return s
+	}
+	cut := maxBytes
+	for cut > 0 && !utf8.RuneStart(s[cut]) {
+		cut--
+	}
+	return s[:cut]
 }

@@ -16,19 +16,17 @@ import { Button, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useProjectData } from "../(overview)/data-provider";
+import { useAppCurrentDeployment } from "../(overview)/hooks/use-app-current-deployment";
 import { GlowIcon } from "../components/glow-icon";
 
 export function PendingRedeployBanner() {
-  const { project, deployments, projectId } = useProjectData();
+  const { projectId } = useProjectData();
+  const { app, currentDeployment } = useAppCurrentDeployment();
+  const currentDeploymentId = app?.currentDeploymentId ?? null;
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const visible = useSettingsBannerVisible();
-  const currentDeploymentId = project?.currentDeploymentId;
-
-  const currentDeployment = currentDeploymentId
-    ? deployments.find((d) => d.id === currentDeploymentId)
-    : undefined;
 
   const show = visible && !!currentDeployment;
 
@@ -39,7 +37,7 @@ export function PendingRedeployBanner() {
       appId: string;
       environmentId: string;
     }) => {
-      const res = await getUnkeyClient().deployments.createDeployment({
+      const res = await getUnkeyClient().deployments.createDeploymentV3({
         project: deployment.projectId,
         app: deployment.appId,
         environment: deployment.environmentId,
@@ -51,7 +49,9 @@ export function PendingRedeployBanner() {
       if (!currentDeployment) {
         return;
       }
-      await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
+      await queryClient.invalidateQueries({
+        queryKey: ["deployments", projectId],
+      });
       router.push(
         routes.projects.apps.deployment({
           workspaceSlug: workspace.slug,

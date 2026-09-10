@@ -49,12 +49,11 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	})
 
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Payments API",
-		Slug:          strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Payments API",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 	})
 
 	environment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
@@ -113,7 +112,7 @@ func seedSentinelConfigBlob(t *testing.T, h *testutil.Harness, env seededEnv, bl
 		EnvironmentID: env.environmentID,
 	})
 	require.NoError(t, err)
-	require.Equal(t, blob, stored.AppRuntimeSetting.SentinelConfig)
+	require.Equal(t, blob, stored.SentinelConfig)
 }
 
 // seedFirewallPolicies stores n firewall policies and returns their ids in

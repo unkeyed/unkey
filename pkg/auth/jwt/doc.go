@@ -13,7 +13,8 @@
 //
 // The package uses the repository's local
 // [github.com/unkeyed/unkey/pkg/jwt] verifier instead of adding another JWT
-// dependency. Tokens must carry standard temporal claims and enough identity,
-// organization, and permission data to construct a
-// [github.com/unkeyed/unkey/pkg/auth/principal.Principal].
+// dependency. Tokens must carry standard temporal claims and enough identity
+// and organization data to construct a
+// [github.com/unkeyed/unkey/pkg/auth/principal.Principal]. The resolver preserves
+// the roles claim for provider-specific authorization policy.
 package jwt

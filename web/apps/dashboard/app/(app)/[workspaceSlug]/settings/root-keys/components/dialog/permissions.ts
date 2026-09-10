@@ -136,6 +136,10 @@ export const workspacePermissions = {
       description: "Read roles in this workspace",
       permission: "rbac.*.read_role",
     },
+    update_role: {
+      description: "Update roles in this workspace",
+      permission: "rbac.*.update_role",
+    },
     delete_role: {
       description: "Delete a role in this workspace",
       permission: "rbac.*.delete_role",
@@ -147,6 +151,10 @@ export const workspacePermissions = {
     read_permission: {
       description: "Read permissions in this workspace",
       permission: "rbac.*.read_permission",
+    },
+    update_permission: {
+      description: "Update permissions in this workspace",
+      permission: "rbac.*.update_permission",
     },
     delete_permission: {
       description: "Delete a permission in this workspace",
@@ -167,6 +175,14 @@ export const workspacePermissions = {
     remove_role_from_key: {
       description: "Remove a role from a key",
       permission: "rbac.*.remove_role_from_key",
+    },
+    add_permission_to_role: {
+      description: "Add permissions to roles in this workspace",
+      permission: "rbac.*.add_permission_to_role",
+    },
+    remove_permission_from_role: {
+      description: "Remove permissions from roles in this workspace",
+      permission: "rbac.*.remove_permission_from_role",
     },
   },
   Identities: {
@@ -211,6 +227,20 @@ export const workspacePermissions = {
     read_runtime_logs: {
       description: "Query deployment runtime logs for all projects in this workspace using SQL.",
       permission: "project.*.read_runtime_logs",
+    },
+  },
+  "Project Deployments": {
+    create_deployment: {
+      description: "Create deployments in any project in this workspace",
+      permission: "project.*.create_deployment",
+    },
+    read_deployment: {
+      description: "Read deployments in any project in this workspace",
+      permission: "project.*.read_deployment",
+    },
+    generate_upload_url: {
+      description: "Generate upload URLs for deployments in this workspace",
+      permission: "project.*.generate_upload_url",
     },
   },
   Portals: {
@@ -402,10 +432,34 @@ export function projectPermissions(projectId: string): {
   [category: string]: UnkeyPermissions;
 } {
   return {
+    Projects: {
+      read_project: {
+        description: "Read this project.",
+        permission: `project.${projectId}.read_project`,
+      },
+      update_project: {
+        description: "Update this project.",
+        permission: `project.${projectId}.update_project`,
+      },
+      delete_project: {
+        description: "Delete this project.",
+        permission: `project.${projectId}.delete_project`,
+      },
+    },
     Apps: {
       create_app: {
         description: "Create new apps in this project.",
         permission: `project.${projectId}.create_app`,
+      },
+    },
+    Deployments: {
+      create_deployment: {
+        description: "Create deployments in this project.",
+        permission: `project.${projectId}.create_deployment`,
+      },
+      read_deployment: {
+        description: "Read deployments in this project.",
+        permission: `project.${projectId}.read_deployment`,
       },
     },
   };
@@ -427,6 +481,10 @@ export function appPermissions(appId: string): {
       delete_app: {
         description: "Delete apps in this project.",
         permission: `app.${appId}.delete_app`,
+      },
+      connect_repository: {
+        description: "Connect or disconnect a GitHub repository for this app.",
+        permission: `app.${appId}.connect_repository`,
       },
     },
   };

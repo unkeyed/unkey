@@ -1,5 +1,5 @@
 ---
-title: Unkey MCP (Model Context Protocol)
+title: "Unkey MCP (Model Context Protocol)"
 description: "Use the Unkey MCP server to connect AI coding assistants to Unkey APIs. Manage API keys, rate limits, and permissions directly from your IDE."
 ---
 
@@ -11,18 +11,19 @@ Model Context Protocol (MCP) is an open standard that allows AI applications to 
 
 ## Available MCP Servers
 
-Unkey provides two MCP servers:
+Unkey provides three MCP servers:
 
 <CardGroup cols={2}>
   <Card title="Unkey API MCP" icon="key" href="#unkey-api-mcp">
     Full access to Unkey's API management capabilities
   </Card>
-  <Card
-    title="Unkey Ratelimiting MCP"
-    icon="gauge"
-    href="#unkey-rate-limiting-mcp"
-  >
+
+  <Card title="Unkey Ratelimiting MCP" icon="gauge" href="#unkey-rate-limiting-mcp">
     Specialized server for rate limiting operations
+  </Card>
+
+  <Card title="Unkey Compute MCP" icon="gauge" href="#unkey-compute-mcp">
+    Specialized MCP built for deploying and scaling your applications
   </Card>
 </CardGroup>
 
@@ -41,15 +42,11 @@ Below is an example of using Unkey MCP with Claude but it can also be used with 
 The main Unkey MCP server provides access to the complete Unkey API:
 
 1. **Open Claude Desktop Configuration**
-
    Navigate to your Claude Desktop configuration file:
    - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
    - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-
 2. **Add the MCP Server Configuration**
-
    Add the following configuration to your `claude_desktop_config.json`:
-
    ```json
    {
      "mcpServers": {
@@ -65,21 +62,15 @@ The main Unkey MCP server provides access to the complete Unkey API:
      }
    }
    ```
-
 3. **Set Environment Variable**
-
    Set your Unkey root key as an environment variable:
-
    ```bash
    # macOS/Linux
    export UNKEY_ROOT_KEY="unkey_xxx"
-
    # Windows
    set UNKEY_ROOT_KEY=unkey_xxx
    ```
-
 4. **Restart Claude Desktop**
-
    Close and restart Claude Desktop to load the MCP server.
 
 ### Unkey Ratelimiting MCP
@@ -87,9 +78,7 @@ The main Unkey MCP server provides access to the complete Unkey API:
 For specialized rate limiting operations, use the dedicated ratelimiting MCP server:
 
 1. **Add Ratelimiting MCP Configuration**
-
    Add this configuration to your `claude_desktop_config.json`:
-
    ```json
    {
      "mcpServers": {
@@ -105,11 +94,8 @@ For specialized rate limiting operations, use the dedicated ratelimiting MCP ser
      }
    }
    ```
-
 2. **Use Both Servers**
-
    You can configure both MCP servers simultaneously:
-
    ```json
    {
      "mcpServers": {
@@ -135,26 +121,43 @@ For specialized rate limiting operations, use the dedicated ratelimiting MCP ser
    }
    ```
 
+### Unkey Compute MCP 
+For specialized operations for deploying, securing and scaling your applications use the dedicated compute MCP server:
+
+You can find all the install instructions here https://mcp.unkey.com/mcp/compute
+
+1. **Add Unkey Compute MCP Configuration**
+   Add this configuration to your `claude_desktop_config.json`:
+   ```json
+   {
+     "mcpServers": {
+       "UnkeyCompute": {
+         "command": "npx",
+         "args": [
+           "mcp-remote",
+           "https://mcp.unkey.com/mcp/compute/",
+           "--header",
+           "MCP-UNKEY-V2-ROOT-KEY:${UNKEY_ROOT_KEY}"
+         ]
+       }
+     }
+   }
+   ```
+
 ## Getting Your Root Key
 
 To use the MCP servers, you need an Unkey root key with appropriate permissions:
 
 <Steps>
-<Step title="Navigate to Root Keys" stepNumber={1}>
-Go to [Settings > Root Keys](https://app.unkey.com/settings/root-keys) in your Unkey dashboard.
-</Step>
-
-<Step title="Create New Root Key" stepNumber={2}>
-  Click "Create New Root Key" and select the permissions you need:
-
-  - **API Key Management**: For creating, updating, and deleting API keys
-  - **Rate Limiting**: For configuring rate limits
-  - **Analytics**: For querying usage data
-</Step>
-
-<Step title="Copy and Secure Your Key" stepNumber={3}>
-Copy your root key and store it securely. You'll use this as your environment variable.
-</Step>
+  <Step title="Navigate to Root Keys" stepNumber={1}>
+    Go to [Settings \> Root Keys](https://app.unkey.com/settings/root-keys) in your Unkey dashboard.
+  </Step>
+  <Step title="Create New Root Key" stepNumber={2}>
+    Click "Create New Root Key" and select the permissions for all the compute related items.
+  </Step>
+  <Step title="Copy and Secure Your Key" stepNumber={3}>
+    Copy your root key and store it securely. You'll use this as your environment variable.
+  </Step>
 </Steps>
 
 ## Using MCP with Claude Desktop
@@ -280,12 +283,10 @@ The API ID is: api_xxx
    - Check that Node.js is installed and accessible
    - Verify your configuration file syntax
    - Ensure environment variables are set correctly
-
 2. **Authentication Errors**
    - Verify your root key is correct and has proper permissions
    - Check that the environment variable is set
    - Confirm your root key hasn't expired
-
 3. **Connection Issues**
    - Ensure you have internet connectivity
    - Check if your firewall is blocking connections
@@ -350,14 +351,3 @@ Configure multiple Unkey workspaces:
   }
 }
 ```
-
-## Next Steps
-
-- Explore [Cursor with Unkey](/ai-code-gen/cursor) for IDE-based AI assistance
-- Check out [Windsurf with Unkey](/ai-code-gen/windsurf) for collaborative development
-
-## Resources
-
-- [Unkey API Reference](/api-reference/auth)
-- [Unkey Dashboard](https://app.unkey.com)
-- [Community Discord](https://go.unkey.com/discord)

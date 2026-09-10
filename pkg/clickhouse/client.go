@@ -16,8 +16,8 @@ import (
 
 // Client represents a client for interacting with a ClickHouse database.
 // Batch processing for different event types is handled externally via
-// NewBuffer[T], which wires a *batch.BatchProcessor to this client's
-// connection, retry policy, and circuit breaker.
+// [NewBuffer] and [NewAuditLogBuffer], which wire a *batch.BatchProcessor to
+// this client's connection, retry policy, and circuit breaker.
 type Client struct {
 	conn           ch.Conn
 	circuitBreaker *circuitbreaker.CB[struct{}]
@@ -38,8 +38,8 @@ type Config struct {
 
 // New creates a new ClickHouse client with the provided configuration.
 // It establishes a connection to the ClickHouse server but does not create
-// any batch processors. Use NewBuffer[T] to create type-safe batch processors
-// for specific event types.
+// any batch processors. Use [NewBuffer] or [NewAuditLogBuffer] to create a
+// type-safe batch processor for a specific event type.
 //
 // Example:
 //
@@ -75,7 +75,7 @@ func New(config Config) (*Client, error) {
 	opts.ConnOpenStrategy = ch.ConnOpenRoundRobin
 	opts.DialTimeout = 5 * time.Second // Fail fast on connection issues
 
-	logger.Info("connecting to clickhouse")
+	logger.Info("connecting to clickhouse", "max_open_conns", opts.MaxOpenConns, "dial_timeout", opts.DialTimeout)
 	conn, err := ch.Open(opts)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("opening clickhouse failed"))
@@ -194,8 +194,8 @@ func (c *Client) Ping(ctx context.Context) error {
 }
 
 // Close shuts down the ClickHouse connection.
-// Any batch processors created via NewBuffer must be closed separately
-// (and before this call) to ensure buffered rows are flushed.
+// Close any batch processors created by [NewBuffer] or [NewAuditLogBuffer]
+// before this call to ensure buffered rows are flushed.
 func (c *Client) Close() error {
 	err := c.conn.Close()
 	if err != nil {

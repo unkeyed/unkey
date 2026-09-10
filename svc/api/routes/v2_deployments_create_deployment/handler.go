@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
+	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -54,7 +55,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	environment, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
 		Environment: req.Environment,
@@ -83,8 +84,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.CreateDeployment,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID).Deployment("*"),
-			permissions.CreateDeployment{},
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(environment.ProjectID).App(environment.AppID).Environment(environment.ID).Deployment("*"),
+			permissions.Write,
 		),
 	))
 	if err != nil {
@@ -120,6 +121,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	switch {
 	case req.Image != nil:
+		if err := imageref.Validate(req.Image.DockerImage); err != nil {
+			return err
+		}
 		ctrlReq.DockerImage = req.Image.DockerImage
 
 	case req.Git != nil:
@@ -147,19 +151,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.Wrap(err, fault.Internal("failed to check repo connection"))
 		}
 		// nolint: exhaustruct // ctrl fills the commit metadata it resolves from git
-		ctrlReq.GitCommit = &ctrlv1.GitCommitInfo{
-			Branch:         ptr.SafeDeref(git.Branch),
-			CommitSha:      ptr.SafeDeref(git.CommitSha),
-			ForkRepository: ptr.SafeDeref(git.Repository),
+		ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_GitCommit{
+			GitCommit: &ctrlv1.GitCommitInfo{
+				Branch:         ptr.SafeDeref(git.Branch),
+				CommitSha:      ptr.SafeDeref(git.CommitSha),
+				ForkRepository: ptr.SafeDeref(git.Repository),
+			},
 		}
 
 	case req.Deployment != nil:
-		gitCommit, dockerImage, err := h.resolveRedeploy(ctx, principal.WorkspaceID, environment.AppID, environment.ID, req.Deployment.DeploymentId)
+		gitCommit, dockerImage, err := h.resolveRedeploy(ctx, principal.AuthorizedWorkspaceID, environment.AppID, environment.ID, req.Deployment.DeploymentId)
 		if err != nil {
 			return err
 		}
-		ctrlReq.GitCommit = gitCommit
-		ctrlReq.DockerImage = dockerImage
+		if gitCommit != nil {
+			ctrlReq.Source = &ctrlv1.CreateDeploymentRequest_GitCommit{GitCommit: gitCommit}
+		} else {
+			ctrlReq.DockerImage = dockerImage
+		}
 
 	default:
 		return fault.New(
@@ -229,7 +238,7 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 	switch {
 	case err == nil:
 		if deployment.GitBranch.String == "" && deployment.GitCommitSha.String == "" {
-			if deployment.Image.String == "" {
+			if deployment.ImageResolved.String == "" {
 				return nil, "", fault.New(
 					"deployment not redeployable",
 					fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
@@ -237,7 +246,7 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 					fault.Public("This deployment cannot be redeployed because it never produced an image."),
 				)
 			}
-			return nil, deployment.Image.String, nil
+			return nil, deployment.ImageResolved.String, nil
 		}
 		return &ctrlv1.GitCommitInfo{
 			CommitSha:       deployment.GitCommitSha.String,
@@ -249,7 +258,7 @@ func (h *Handler) resolveRedeploy(ctx context.Context, workspaceID, appID, envir
 			ForkRepository:  deployment.ForkRepositoryFullName.String,
 		}, "", nil
 	case db.IsNotFound(err):
-		return nil, deployment.Image.String, nil
+		return nil, deployment.ImageResolved.String, nil
 	default:
 		return nil, "", fault.Wrap(err, fault.Internal("failed to check repo connection"))
 	}
@@ -273,7 +282,7 @@ func (h *Handler) ensureEnvironmentDeployable(ctx context.Context, environment d
 	if db.IsNotFound(err) {
 		problems = append(problems, "runtime settings are not configured")
 	} else {
-		s := runtime.AppRuntimeSetting
+		s := runtime
 		for _, v := range deployfail.RuntimeViolations(s.Port, s.CpuMillicores, s.MemoryMib) {
 			problems = append(problems, fmt.Sprintf("%s (is %d)", v.Message, v.Actual))
 		}

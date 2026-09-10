@@ -1,6 +1,5 @@
 "use client";
 
-import type { ComboboxOption } from "@/components/ui/combobox";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { Switch } from "@/components/ui/switch";
 import { POLICY_LIMITS } from "@/lib/collections/deploy/policies.schema";
@@ -9,6 +8,7 @@ import { ChevronDown, Plus, Trash, XMark } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   Button,
+  type ComboboxOption,
   FormDescription,
   FormInput,
   Select,

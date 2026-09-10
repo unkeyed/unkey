@@ -61,7 +61,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	api, hit, err := h.ApiCache.SWR(ctx, cache.ScopedKey{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Key:         req.ApiId,
 	}, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
 		return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiId)
@@ -93,7 +93,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Check if API belongs to the authorized workspace
-	if api.WorkspaceID != principal.WorkspaceID {
+	if api.ApiWorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New(
 			"wrong workspace",
 			fault.Code(codes.Data.Api.NotFound.URN()),
@@ -101,7 +101,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	if !api.KeyAuthID.Valid {
+	if !api.ApiKeyAuthID.Valid {
 		return fault.New(
 			"api missing keyspace",
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -113,12 +113,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = principal.Authorize(rbac.Or(
 		rbac.And(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String).Key("*"),
-				permissions.ReadKey{},
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String).Key("*"),
+				permissions.Read,
 			),
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String),
-				permissions.ReadKeyspace{},
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String),
+				permissions.Read,
 			),
 		),
 		ReadKeysPermissions(req.ApiId),
@@ -152,19 +152,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}),
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Api,
-				ResourceID:   api.ID,
+				ResourceID:   api.ApiID,
 				Action:       rbac.DecryptKey,
 			}),
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Keyspace(api.KeyAuthID.String).Key("*"),
-				permissions.DecryptKey{},
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String).Key("*"),
+				permissions.Decrypt,
 			),
 		))
 		if err != nil {
 			return err
 		}
 
-		if !api.KeyAuth.StoreEncryptedKeys {
+		if !api.KeyAuthStoreEncryptedKeys {
 			return fault.New(
 				"api not set up for key encryption",
 				fault.Code(codes.App.Precondition.PreconditionFailed.URN()),
@@ -201,7 +201,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var identityID sql.NullString
 	if req.ExternalId != nil && *req.ExternalId != "" {
 		identity, identityErr := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			ExternalID:  *req.ExternalId,
 			Deleted:     false,
 		})
@@ -234,7 +234,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		ctx,
 		h.DB.RO(),
 		db.ListLiveKeysByKeySpaceIDParams{
-			KeySpaceID: api.KeyAuthID.String,
+			KeySpaceID: api.ApiKeyAuthID.String,
 			IDCursor:   p.Cursor,
 			IdentityID: identityID,
 			Limit:      p.FetchLimit(),
@@ -261,7 +261,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 	}
 
-	plaintextMap := h.decryptKeys(ctx, req, keyResults, principal.WorkspaceID)
+	plaintextMap := h.decryptKeys(ctx, req, keyResults, principal.AuthorizedWorkspaceID)
 
 	responseData := array.Map(keyResults, func(key db.ListLiveKeysByKeySpaceIDRow) openapi.KeyResponseData {
 		return BuildKeyResponseData(db.ToKeyData(key), plaintextMap[key.ID])
@@ -307,6 +307,11 @@ func (h *Handler) decryptKeys(ctx context.Context, req Request, keys []db.ListLi
 // is exported so the portal listKeys route can reuse the exact response shape
 // without depending on the rest of this handler.
 func BuildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResponseData {
+	start := keyData.Key.Start
+	if keyData.Key.Prefix != "" {
+		start = keyData.Key.Prefix + "_" + start
+	}
+
 	response := openapi.KeyResponseData{
 		Meta:        nil,
 		Ratelimits:  nil,
@@ -322,7 +327,7 @@ func BuildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResp
 		CreatedAt:   keyData.Key.CreatedAtM,
 		Enabled:     keyData.Key.Enabled,
 		KeyId:       keyData.Key.ID,
-		Start:       keyData.Key.Start,
+		Start:       start,
 	}
 
 	if keyData.Key.Expires.Valid {

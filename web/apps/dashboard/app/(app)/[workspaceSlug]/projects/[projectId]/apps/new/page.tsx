@@ -1,4 +1,6 @@
 "use client";
+import { OnboardingStepContainer } from "@/components/onboarding/step-container";
+import { OnboardingStepHeader } from "@/components/onboarding/step-header";
 import { usePreventLeave } from "@/hooks/use-prevent-leave";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
@@ -6,11 +8,9 @@ import { trpc } from "@/lib/trpc/client";
 import { StepWizard } from "@unkey/ui";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { OnboardingStepContainer } from "./onboarding-step-container";
-import { OnboardingStepHeader } from "./onboarding-step-header";
 import { ChooseSourceStep } from "./steps/choose-source";
 import { ConfigureDeploymentStep } from "./steps/configure-deployment";
-import { CreateAppStep } from "./steps/create-app";
+import { type AppDetails, CreateAppStep } from "./steps/create-app";
 import { DeploymentLiveStep } from "./steps/deployment-live";
 import { EnvVarsStep } from "./steps/env-vars";
 import { SelectRepo } from "./steps/select-repo";
@@ -33,6 +33,7 @@ export default function AppSetupPage() {
   const initialAppId = searchParams.get("appId") ?? undefined;
 
   const [appId, setAppId] = useState<string | null>(initialAppId ?? null);
+  const [appDetails, setAppDetails] = useState<AppDetails | null>(null);
   const [deploymentId, setDeploymentId] = useState<string | null>(null);
 
   const { bypass } = usePreventLeave(!deploymentId);
@@ -47,14 +48,19 @@ export default function AppSetupPage() {
       <StepWizard.Step id="create-app" label="Create app">
         <OnboardingStepContainer>
           {deployYourAppHeader}
-          <CreateAppStep projectId={projectId} onAppCreated={setAppId} />
+          <CreateAppStep onAppDetailsSubmitted={setAppDetails} />
         </OnboardingStepContainer>
       </StepWizard.Step>
       <StepWizard.Step id="choose-source" label="Choose source">
-        {appId ? (
+        {appDetails ? (
           <OnboardingStepContainer>
             {deployYourAppHeader}
-            <ChooseSourceStep projectId={projectId} appId={appId} onBeforeNavigate={bypass} />
+            <ChooseSourceStep
+              projectId={projectId}
+              appDetails={appDetails}
+              onAppCreated={setAppId}
+              onBeforeNavigate={bypass}
+            />
           </OnboardingStepContainer>
         ) : null}
       </StepWizard.Step>

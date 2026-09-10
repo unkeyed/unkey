@@ -37,6 +37,7 @@ import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryComputeAllocation } from "./billing/query-compute-allocation";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
+import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
 import { queryUsage } from "./billing/query-usage";
 import { listApps } from "./deploy/app/list";
 import { countCustomDomains } from "./deploy/custom-domains/count";
@@ -49,6 +50,8 @@ import { getById as getDeploymentById } from "./deploy/deployment/getById";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { getDeploymentInstanceEvents } from "./deploy/deployment/instance-events";
 import { listDeployments } from "./deploy/deployment/list";
+import { listActiveBranches } from "./deploy/deployment/list-active-branches";
+import { listDeploymentBranches } from "./deploy/deployment/list-branches";
 import { searchDeployments } from "./deploy/deployment/llm-search";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
@@ -98,6 +101,7 @@ import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
 import { rerollRootKey } from "./key/reroll";
 import { updateRootKeyName } from "./key/updateRootKeyName";
 import { updateRootKeyPermissions } from "./key/updateRootKeyPermissions";
+import { logdrain } from "./logdrain";
 import { llmSearch } from "./logs/llm-search";
 import { queryLogs } from "./logs/query-logs";
 import { queryTimeseries } from "./logs/query-timeseries";
@@ -176,6 +180,7 @@ import { getCurrentWorkspace } from "./workspace/getCurrent";
 import { onboardingKeyCreation } from "./workspace/onboarding";
 
 export const router = t.router({
+  logdrain,
   share: t.router({
     create: createSharedSecret,
     reveal: revealSharedSecret,
@@ -351,6 +356,7 @@ export const router = t.router({
     queryUsage,
     queryDeployUsage,
     queryDeployUsageBreakdown,
+    queryDeployUsageTimeseries,
     queryComputeAllocation,
     getDeployBudget,
     setDeployBudget,
@@ -427,6 +433,8 @@ export const router = t.router({
     }),
     deployment: t.router({
       list: listDeployments,
+      listBranches: listDeploymentBranches,
+      listActiveBranches,
       getById: getDeploymentById,
       buildSteps: getDeploymentBuildSteps,
       runtimeLogs: getDeploymentRuntimeLogs,

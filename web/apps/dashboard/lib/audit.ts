@@ -42,16 +42,15 @@ export type UnkeyAuditLog = {
       | "ratelimitOverride"
       | "ratelimit"
       | "sentinel"
-      | "llmSentinel"
       | "webhook"
-      | "reporter"
       | "secret"
       | "project"
       | "app"
       | "identity"
       | "auditLogBucket"
       | "environment"
-      | "deployment";
+      | "deployment"
+      | "logdrain";
 
     id: string;
     name?: string;

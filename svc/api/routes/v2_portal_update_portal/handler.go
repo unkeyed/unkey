@@ -13,8 +13,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
-	"github.com/unkeyed/unkey/pkg/rbac/permissions"
-	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
@@ -134,7 +132,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		found, err := db.Query.FindPortalByIdOrSlug(ctx, tx, db.FindPortalByIdOrSlugParams{
 			Portal:      req.Portal,
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 		})
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -151,16 +149,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		// Resolved first, then authorized, so the query can name the concrete id a
+		// Resolved first, then authorized, so the query can name the concrete ID a
 		// scoped grant would carry. Safe because the resolve is workspace-scoped --
 		// a foreign portal is already absent above -- Authorize is an in-memory
 		// check over already-loaded permissions, and nothing has been written yet.
 		// The wildcard arm is spelled out separately because a stored `*` matches
 		// literally and does not expand.
 		//
-		// The URN arms are what let the dashboard reach this route: its proxy mints
-		// a token whose admin grant is a URN, so a legacy-only check would deny the
-		// only operator surface there is.
+		// Portals are not in the canonical URN catalog, so scoped access uses legacy
+		// tuples. The exact admin permission lets the dashboard use this route. The
+		// JWT admin role produces it.
 		err = principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Portal,
@@ -172,14 +170,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   found.ID,
 				Action:       rbac.UpdatePortal,
 			}),
-			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Portal("*"),
-				permissions.UpdatePortal{},
-			),
-			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Portal(found.ID),
-				permissions.UpdatePortal{},
-			),
+			rbac.S(fmt.Sprintf("unkey:v1:%s:**#*", principal.AuthorizedWorkspaceID)),
 		))
 		if err != nil {
 			// A fresh chain, not a wrap: UserFacingMessage concatenates every public
@@ -196,21 +187,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if repoint {
-			if err = portal.VerifyMappingOwned(ctx, tx, principal.WorkspaceID, mapping); err != nil {
+			if err = portal.VerifyMappingOwned(ctx, tx, principal.AuthorizedWorkspaceID, mapping); err != nil {
 				return empty, err
 			}
 
-			if err = portal.AuthorizeMappingTarget(ctx, tx, principal, principal.WorkspaceID, mapping); err != nil {
+			if err = portal.AuthorizeMappingTarget(ctx, tx, principal, principal.AuthorizedWorkspaceID, mapping); err != nil {
 				return empty, err
 			}
 		}
 
-		if err = h.checkPortalConflicts(ctx, tx, principal.WorkspaceID, found, req, repoint, mapping); err != nil {
+		if err = h.checkPortalConflicts(ctx, tx, principal.AuthorizedWorkspaceID, found, req, repoint, mapping); err != nil {
 			return empty, err
 		}
 
 		params := db.UpdatePortalParams{
-			WorkspaceID:           principal.WorkspaceID,
+			WorkspaceID:           principal.AuthorizedWorkspaceID,
 			ID:                    found.ID,
 			UpdatedAt:             sql.NullInt64{Valid: true, Int64: now},
 			SlugSpecified:         0,
@@ -313,7 +304,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if affected == 0 {
 			if _, err := db.Query.FindPortalByIdOrSlug(ctx, tx, db.FindPortalByIdOrSlugParams{
 				Portal:      found.ID,
-				WorkspaceID: principal.WorkspaceID,
+				WorkspaceID: principal.AuthorizedWorkspaceID,
 			}); err != nil {
 				if !db.IsNotFound(err) {
 					return empty, fault.Wrap(err,
@@ -341,7 +332,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			revoked, err = db.Query.RevokePortalSessionsByPortal(ctx, tx, db.RevokePortalSessionsByPortalParams{
 				RevokedAt:   sql.NullInt64{Valid: true, Int64: now},
 				PortalID:    found.ID,
-				WorkspaceID: principal.WorkspaceID,
+				WorkspaceID: principal.AuthorizedWorkspaceID,
 			})
 			if err != nil {
 				return empty, fault.Wrap(err,
@@ -357,7 +348,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.PortalUpdateEvent,
 				Display:       fmt.Sprintf("Updated portal %s", found.ID),
 				ActorID:       principal.Subject.ID,

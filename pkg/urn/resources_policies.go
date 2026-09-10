@@ -8,7 +8,8 @@ package urn
 //	└── projects/{project_id}
 //	    └── apps/{app_id}
 //	        └── environments/{environment_id}
-//	            └── gateway/policies/{policy_id}
+//	            └── gateway
+//	                └── policies/{policy_id}
 type GatewayPolicy struct {
 	workspaceID string
 	path        string

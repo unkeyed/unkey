@@ -25,6 +25,10 @@ export const deleteRoleWithRelations = workspaceProcedure
       const roles = await tx.query.roles.findMany({
         where: (table, { and, eq, inArray }) =>
           and(eq(table.workspaceId, ctx.workspace.id), inArray(table.id, input.roleIds)),
+        columns: {
+          id: true,
+          name: true,
+        },
       });
 
       if (roles.length !== input.roleIds.length) {

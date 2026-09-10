@@ -2,18 +2,134 @@ package handler_test
 
 import (
 	"net/http"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_domains_list_domains"
 )
+
+// TestListDomainsRefillsAuthorizedPages guarantees denied rows do not consume
+// the public page limit or leak through pagination cursors.
+func TestListDomainsRefillsAuthorizedPages(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+	env := seedEnvironment(t, h)
+	var allowed []string
+	for i := 0; i < 8; i++ {
+		d := attachDomain(t, h, env, func(req *seed.CreateCustomDomainRequest) {
+			req.ID = strings.ToLower(req.ID)
+		})
+		allowed = append(allowed, d.ID)
+	}
+	slices.Sort(allowed)
+	grants := []string{}
+	for _, id := range []string{allowed[3], allowed[7]} {
+		grants = append(grants, rbac.U(urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain(id), permissions.Read).Value)
+	}
+	headers := authHeaders(h.CreateRootKey(env.workspaceID, grants...))
+	for _, tc := range []struct {
+		name string
+		req  handler.Request
+	}{
+		{name: "workspace", req: handler.Request{}},
+		{name: "project", req: handler.Request{Project: ptr.P(env.projectSlug)}},
+		{name: "app", req: handler.Request{Project: ptr.P(env.projectSlug), App: ptr.P(env.appSlug)}},
+		{name: "environment", req: handler.Request{Environment: ptr.P("production")}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			req := tc.req
+			req.Limit = ptr.P(1)
+			first := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, http.StatusOK, first.Status, "%s", first.RawBody)
+			require.Len(t, first.Body.Data, 1)
+			require.Equal(t, allowed[3], first.Body.Data[0].Id)
+			require.True(t, first.Body.Pagination.HasMore)
+			require.Equal(t, ptr.P(allowed[7]), first.Body.Pagination.Cursor)
+			req.Cursor = first.Body.Pagination.Cursor
+			last := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+			require.Equal(t, http.StatusOK, last.Status, "%s", last.RawBody)
+			require.Len(t, last.Body.Data, 1)
+			require.Equal(t, allowed[7], last.Body.Data[0].Id)
+			require.False(t, last.Body.Pagination.HasMore)
+			require.Nil(t, last.Body.Pagination.Cursor)
+		})
+	}
+}
+
+// TestListDomainsCanonicalGrantsFilterRows guarantees narrow canonical grants
+// return the authorized subset instead of denying the whole collection.
+func TestListDomainsCanonicalGrantsFilterRows(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	env := seedEnvironment(t, h)
+	allowed := attachDomain(t, h, env, nil)
+	denied := attachDomain(t, h, env, nil)
+	grant := rbac.U(
+		urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain(allowed.ID),
+		permissions.Read,
+	).Value
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(h.CreateRootKey(env.workspaceID, grant)), handler.Request{})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	require.Len(t, res.Body.Data, 1, "%s", res.RawBody)
+	require.Equal(t, allowed.ID, res.Body.Data[0].Id)
+	require.NotContains(t, res.RawBody, denied.ID)
+}
+
+// TestListDomainsDescendantGrantFiltersRows guarantees a descendant wildcard
+// grants domains below one project without exposing domains below its sibling.
+func TestListDomainsDescendantGrantFiltersRows(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	allowedEnv := seedEnvironment(t, h)
+	allowed := attachDomain(t, h, allowedEnv, nil)
+	deniedEnv := seedEnvironment(t, h)
+	denied := attachDomain(t, h, deniedEnv, nil)
+	grant := urn.New().Workspace(allowedEnv.workspaceID).Project(allowedEnv.projectID).String() + "/**#read"
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(h.CreateRootKey(allowedEnv.workspaceID, grant)), handler.Request{})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	require.Len(t, res.Body.Data, 1, "%s", res.RawBody)
+	require.Equal(t, allowed.ID, res.Body.Data[0].Id)
+	require.NotContains(t, res.RawBody, denied.ID)
+}
+
+// TestListDomainsCanonicalGrantWithNoAllowedRows guarantees possession of a
+// domain-read capability returns an empty collection when no selected row is allowed.
+func TestListDomainsCanonicalGrantWithNoAllowedRows(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	env := seedEnvironment(t, h)
+	domain := attachDomain(t, h, env, nil)
+	grant := rbac.U(
+		urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain(uid.New(uid.DomainPrefix)),
+		permissions.Read,
+	).Value
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(h.CreateRootKey(env.workspaceID, grant)), handler.Request{})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	require.Empty(t, res.Body.Data, "%s", res.RawBody)
+	require.NotContains(t, res.RawBody, domain.ID)
+}
 
 func TestListDomains(t *testing.T) {
 	h := testutil.NewHarness(t)
@@ -55,6 +171,96 @@ func TestListDomains(t *testing.T) {
 	require.False(t, pending.DnsRecords[0].Verified)
 	require.False(t, pending.DnsRecords[1].Verified)
 	require.Nil(t, pending.VerificationError)
+}
+
+// TestListDomainsOptionalScopes guarantees that omitted filters widen the list
+// only to child resources in the caller's workspace.
+func TestListDomainsOptionalScopes(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	env := seedEnvironment(t, h)
+	first := attachDomain(t, h, env, nil)
+
+	siblingApp := h.CreateApp(seed.CreateAppRequest{
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: env.workspaceID,
+		ProjectID:   env.projectID,
+		Name:        "Sibling API",
+		Slug:        randomSlug(),
+	})
+	siblingEnvironment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
+		ID:          uid.New(uid.EnvironmentPrefix),
+		WorkspaceID: env.workspaceID,
+		ProjectID:   env.projectID,
+		AppID:       siblingApp.ID,
+		Slug:        "production",
+		Description: "Production environment",
+	})
+	sibling := attachDomain(t, h, seededEnv{
+		workspaceID:   env.workspaceID,
+		projectID:     env.projectID,
+		appID:         siblingApp.ID,
+		environmentID: siblingEnvironment.ID,
+	}, nil)
+
+	otherProject := seedEnvironment(t, h)
+	other := attachDomain(t, h, otherProject, nil)
+	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
+
+	testCases := []struct {
+		name    string
+		req     handler.Request
+		wantIDs []string
+	}{
+		{name: "workspace", req: handler.Request{}, wantIDs: []string{first.ID, sibling.ID, other.ID}},
+		{name: "standalone project slug", req: handler.Request{Project: ptr.P(env.projectSlug)}, wantIDs: []string{first.ID, sibling.ID}},
+		{name: "project", req: handler.Request{Project: ptr.P(env.projectID)}, wantIDs: []string{first.ID, sibling.ID}},
+		{name: "app ID without project", req: handler.Request{App: ptr.P(env.appID)}, wantIDs: []string{first.ID}},
+		{name: "app slug without project", req: handler.Request{App: ptr.P(env.appSlug)}, wantIDs: []string{first.ID}},
+		{name: "app slug with project", req: handler.Request{Project: ptr.P(env.projectSlug), App: ptr.P(env.appSlug)}, wantIDs: []string{first.ID}},
+		{name: "environment ID without parents", req: handler.Request{Environment: ptr.P(env.environmentID)}, wantIDs: []string{first.ID}},
+		{name: "environment slug without parents", req: handler.Request{Environment: ptr.P("production")}, wantIDs: []string{first.ID, sibling.ID, other.ID}},
+		{name: "environment ID with project", req: handler.Request{Project: ptr.P(env.projectID), Environment: ptr.P(env.environmentID)}, wantIDs: []string{first.ID}},
+		{name: "environment slug with app ID", req: handler.Request{App: ptr.P(env.appID), Environment: ptr.P("production")}, wantIDs: []string{first.ID}},
+		{name: "environment with all parents", req: makeRequest(env), wantIDs: []string{first.ID}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), tc.req)
+			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+			gotIDs := make([]string, len(res.Body.Data))
+			for i, domain := range res.Body.Data {
+				gotIDs[i] = domain.Id
+			}
+			require.ElementsMatch(t, tc.wantIDs, gotIDs)
+		})
+	}
+}
+
+// TestListDomainsFiltersAreCumulative guarantees every supplied filter must
+// match the same row, even when each value independently identifies a resource.
+func TestListDomainsFiltersAreCumulative(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	first := seedEnvironment(t, h)
+	firstDomain := attachDomain(t, h, first, nil)
+	second := seedEnvironment(t, h)
+	secondDomain := attachDomain(t, h, second, nil)
+	headers := authHeaders(h.CreateRootKey(first.workspaceID, "environment.*.read_domain"))
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		Project: ptr.P(first.projectID),
+		App:     ptr.P(second.appID),
+	})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	require.Empty(t, res.Body.Data, "%s", res.RawBody)
+	require.NotContains(t, res.RawBody, firstDomain.ID)
+	require.NotContains(t, res.RawBody, secondDomain.ID)
 }
 
 // TestListDomainsStableOrder pins that every seeded domain comes back, in the same
@@ -234,9 +440,9 @@ func TestListDomainsBySlugs(t *testing.T) {
 	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
-		Project:     env.projectSlug,
-		App:         env.appSlug,
-		Environment: "production",
+		Project:     ptr.P(env.projectSlug),
+		App:         ptr.P(env.appSlug),
+		Environment: ptr.P("production"),
 		Search:      nil,
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -460,18 +666,4 @@ func TestListDomainsFailedReportsError(t *testing.T) {
 	require.Equal(t, openapi.DomainStatusFailed, res.Body.Data[0].Status)
 	require.NotNil(t, res.Body.Data[0].VerificationError, "a failed domain must say why, received: %s", res.RawBody)
 	require.Equal(t, verificationError, *res.Body.Data[0].VerificationError)
-}
-
-func TestListDomainsWithSpecificEnvironmentPermission(t *testing.T) {
-	h := testutil.NewHarness(t)
-	route := &handler.Handler{DB: h.DB}
-	h.Register(route)
-
-	env := seedEnvironment(t, h)
-	attachDomain(t, h, env, nil)
-	rootKey := h.CreateRootKey(env.workspaceID, "environment."+env.environmentID+".read_domain")
-
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), makeRequest(env))
-	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
-	require.Len(t, res.Body.Data, 1, "received: %s", res.RawBody)
 }

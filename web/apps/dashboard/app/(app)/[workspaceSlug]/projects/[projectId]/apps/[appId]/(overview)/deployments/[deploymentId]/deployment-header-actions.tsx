@@ -1,5 +1,5 @@
 "use client";
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { useAppCurrentDeployment } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/hooks/use-app-current-deployment";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import type { MenuItem } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
@@ -66,12 +66,10 @@ export function useDeploymentHeaderActions({
   status,
 }: UseDeploymentHeaderActionsProps): DeploymentHeaderActions {
   const workspace = useWorkspaceNavigation();
-  const { getDeploymentById, project } = useProjectData();
+  const { currentDeployment, isRolledBack } = useAppCurrentDeployment();
   const { gated, openPaywall, planGate } = useDeployActionGate();
 
-  const currentDeploymentId = project?.currentDeploymentId ?? null;
-  const isRolledBack = Boolean(project?.isRolledBack);
-  const currentDeployment = getDeploymentById(currentDeploymentId ?? "");
+  const currentDeploymentId = currentDeployment?.id ?? null;
   const hasCurrentDeployment = currentDeployment !== undefined;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: matches the list menu

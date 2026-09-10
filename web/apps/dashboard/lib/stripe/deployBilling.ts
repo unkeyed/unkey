@@ -1,5 +1,6 @@
 import { stripeEnv } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
+import type Stripe from "stripe";
 import { DEPLOY_PLANS, type DeployPlan } from "./deployPlan";
 
 /**
@@ -162,6 +163,38 @@ export function deploySubscriptionItems(
     { price: config.planFeePriceIds[plan] },
     ...config.meteredPriceIds.map((price) => ({ price })),
   ];
+}
+
+/**
+ * deployResumeSubscriptionParams builds the atomic Stripe update that resumes a
+ * cancelled Compute subscription on the selected tier. A failed upgrade charge
+ * must leave both the cancellation and old tier unchanged, while downgrades
+ * preserve the paid period.
+ */
+export function deployResumeSubscriptionParams(
+  config: DeployBillingConfig,
+  currentPlanFee: { id: string; plan: DeployPlan },
+  selectedPlan: DeployPlan,
+): Stripe.SubscriptionUpdateParams {
+  const changesPlan = currentPlanFee.plan !== selectedPlan;
+  const isDowngrade =
+    DEPLOY_PLANS.indexOf(selectedPlan) < DEPLOY_PLANS.indexOf(currentPlanFee.plan);
+
+  return {
+    cancel_at_period_end: false,
+    ...(changesPlan
+      ? {
+          items: [
+            {
+              id: currentPlanFee.id,
+              price: config.planFeePriceIds[selectedPlan],
+            },
+          ],
+        }
+      : {}),
+    proration_behavior: changesPlan && !isDowngrade ? "always_invoice" : "none",
+    payment_behavior: "error_if_incomplete",
+  };
 }
 
 /**

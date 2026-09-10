@@ -1,35 +1,35 @@
 "use client";
 
+import { trpc } from "@/lib/trpc/client";
 import { CodeBranch, Magnifier } from "@unkey/icons";
-import { Checkbox, FormInput, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import {
+  Checkbox,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@unkey/ui";
 import { useState } from "react";
-import { useProjectData } from "../../../../data-provider";
+import { useAppId, useProjectData } from "../../../../data-provider";
 import { useFilters } from "../../../hooks/use-filters";
 import { FilterTriggerButton } from "./filter-trigger-button";
 
 export function BranchSelect() {
-  const { deployments } = useProjectData();
+  const { projectId } = useProjectData();
+  const appId = useAppId();
   const { filters, toggleArrayFilter } = useFilters();
   const [search, setSearch] = useState("");
+  const branchesQuery = trpc.deploy.deployment.listBranches.useQuery({ projectId, appId });
 
   const selectedBranches = filters.flatMap((f) =>
     f.field === "branch" && typeof f.value === "string" ? [f.value] : [],
   );
 
-  const branches: string[] = [];
-  const seen = new Set<string>();
-  for (const b of selectedBranches) {
-    if (!seen.has(b)) {
-      seen.add(b);
-      branches.push(b);
-    }
-  }
-  for (const d of deployments) {
-    if (d.gitBranch && !seen.has(d.gitBranch)) {
-      seen.add(d.gitBranch);
-      branches.push(d.gitBranch);
-    }
-  }
+  // A selected branch stays listed even when the options have not loaded or no
+  // longer include it, so it can be unticked.
+  const branches = [...new Set([...selectedBranches, ...(branchesQuery.data ?? [])])];
 
   const q = search.trim().toLowerCase();
   const visibleBranches = q ? branches.filter((b) => b.toLowerCase().includes(q)) : branches;
@@ -48,13 +48,17 @@ export function BranchSelect() {
       />
       <PopoverContent align="start" className="w-64 p-1">
         <div className="p-1">
-          <FormInput
-            placeholder="Search branches..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="[&_input]:h-8 [&_input]:text-[13px]"
-            leftIcon={<Magnifier iconSize="md-medium" className="text-gray-9" />}
-          />
+          <InputGroup className="h-8">
+            <InputGroupAddon className="pointer-events-none">
+              <Magnifier iconSize="md-medium" className="text-gray-9" />
+            </InputGroupAddon>
+            <InputGroupInput
+              placeholder="Search branches..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-8 text-[13px]"
+            />
+          </InputGroup>
         </div>
         <div className="max-h-64 overflow-y-auto">
           {visibleBranches.length === 0 ? (

@@ -11,6 +11,10 @@ type Database interface {
 	// RW returns the write (primary) replica for write operations
 	RW() *Replica
 
+	// BatchRW returns the isolated write pool for route-owned multi-statement
+	// batches. Databases created without batch support return the regular writer.
+	BatchRW() *Replica
+
 	// RO returns the read replica for read operations
 	// If no read replica is configured, it returns the write replica
 	RO() *Replica

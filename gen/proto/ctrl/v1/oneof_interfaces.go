@@ -2,6 +2,9 @@
 
 package ctrlv1
 
+// IsCreateAppRequest_Source is the exported form of the protobuf oneof interface isCreateAppRequest_Source.
+type IsCreateAppRequest_Source = isCreateAppRequest_Source
+
 // IsDeploymentChangeEvent_Event is the exported form of the protobuf oneof interface isDeploymentChangeEvent_Event.
 type IsDeploymentChangeEvent_Event = isDeploymentChangeEvent_Event
 
@@ -13,3 +16,6 @@ type IsInstanceEvent_State = isInstanceEvent_State
 
 // IsDeploymentState_State is the exported form of the protobuf oneof interface isDeploymentState_State.
 type IsDeploymentState_State = isDeploymentState_State
+
+// IsCreateDeploymentRequest_Source is the exported form of the protobuf oneof interface isCreateDeploymentRequest_Source.
+type IsCreateDeploymentRequest_Source = isCreateDeploymentRequest_Source

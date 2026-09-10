@@ -67,6 +67,7 @@
                 "pages": [
                   "architecture/resources/unkey-resource-names",
                   "architecture/authorization/resource-permissions",
+                  "architecture/authorization/resource-permission-catalog",
                   "architecture/authorization/workos-permissions"
                 ]
               },
@@ -167,6 +168,10 @@
                   "architecture/services/krane/secrets",
                   "architecture/services/krane/configuration"
                 ]
+              },
+              {
+                "group": "Logdrain",
+                "pages": ["architecture/services/logdrain/overview"]
               },
               {
                 "group": "Vault",

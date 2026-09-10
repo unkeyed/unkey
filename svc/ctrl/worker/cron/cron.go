@@ -28,6 +28,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/workos"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogcleanup"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/auditlogexport"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/clickhouseuserreconcile"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/idlepreview"
@@ -47,17 +48,18 @@ import (
 type Service struct {
 	hydrav1.UnimplementedCronServiceServer
 
-	auditLogCleanup      *auditlogcleanup.Handler
-	auditLogExport       *auditlogexport.Handler
-	deployBilling        *deploybilling.Handler
-	deployBillingPush    *deploybilling.PushHandler
-	deploySpendCheck     *deployspendcheck.Handler
-	deploySpendCheckWork *deployspendcheck.CheckHandler
-	idlePreview          *idlepreview.Handler
-	keyLastUsedSync      *keylastusedsync.Handler
-	keyRefill            *keyrefill.Handler
-	quotaCheck           *quotacheck.Handler
-	ratelimitCleanup     *ratelimitcleanup.Handler
+	auditLogCleanup         *auditlogcleanup.Handler
+	auditLogExport          *auditlogexport.Handler
+	clickhouseUserReconcile *clickhouseuserreconcile.Handler
+	deployBilling           *deploybilling.Handler
+	deployBillingPush       *deploybilling.PushHandler
+	deploySpendCheck        *deployspendcheck.Handler
+	deploySpendCheckWork    *deployspendcheck.CheckHandler
+	idlePreview             *idlepreview.Handler
+	keyLastUsedSync         *keylastusedsync.Handler
+	keyRefill               *keyrefill.Handler
+	quotaCheck              *quotacheck.Handler
+	ratelimitCleanup        *ratelimitcleanup.Handler
 }
 
 var _ hydrav1.CronServiceServer = (*Service)(nil)
@@ -209,6 +211,10 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	clickhouseUserReconcileH, err := clickhouseuserreconcile.New(clickhouseuserreconcile.Config{DB: cfg.DB})
+	if err != nil {
+		return nil, err
+	}
 
 	// The push is enabled only when ClickHouse (usage source) and Stripe
 	// (sink) are both configured; otherwise it runs as a no-op so the cron
@@ -310,6 +316,7 @@ func New(cfg Config) (*Service, error) {
 		UnimplementedCronServiceServer: hydrav1.UnimplementedCronServiceServer{},
 		auditLogCleanup:                auditLogCleanupH,
 		auditLogExport:                 auditLogExportH,
+		clickhouseUserReconcile:        clickhouseUserReconcileH,
 		deployBilling:                  deployBillingH,
 		deployBillingPush:              deployBillingPushH,
 		deploySpendCheck:               deploySpendCheckH,
@@ -396,4 +403,11 @@ func (s *Service) RunDeploySpendCheck(
 	req *hydrav1.RunDeploySpendCheckRequest,
 ) (*hydrav1.RunDeploySpendCheckResponse, error) {
 	return s.deploySpendCheck.Handle(ctx, req)
+}
+
+func (s *Service) RunClickhouseUserReconcile(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunClickhouseUserReconcileRequest,
+) (*hydrav1.RunClickhouseUserReconcileResponse, error) {
+	return s.clickhouseUserReconcile.Handle(ctx, req)
 }

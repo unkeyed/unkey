@@ -51,7 +51,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	data, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (openapi.Project, error) {
 		project, err := db.Query.FindProjectByIdOrSlug(ctx, tx, db.FindProjectByIdOrSlugParams{
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			Project:     req.Project,
 		})
 		if err != nil {
@@ -93,8 +93,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Action:       rbac.UpdateProject,
 			}),
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project(project.ID),
-				permissions.UpdateProject{},
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(project.ID),
+				permissions.Write,
 			),
 		))
 		if err != nil {
@@ -109,7 +109,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		updatedAt := time.Now().UnixMilli()
 		update := db.UpdateProjectParams{
-			WorkspaceID:               principal.WorkspaceID,
+			WorkspaceID:               principal.AuthorizedWorkspaceID,
 			ID:                        project.ID,
 			UpdatedAt:                 sql.NullInt64{Valid: true, Int64: updatedAt},
 			NameSpecified:             0,
@@ -171,7 +171,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.ProjectUpdateEvent,
 				Display:       fmt.Sprintf("Updated project %s", project.ID),
 				ActorID:       principal.Subject.ID,

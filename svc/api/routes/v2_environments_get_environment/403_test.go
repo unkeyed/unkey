@@ -33,12 +33,11 @@ func TestGetEnvironmentForbidden(t *testing.T) {
 	})
 	appSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Payments API",
-		Slug:          appSlug,
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Payments API",
+		Slug:        appSlug,
 	})
 	environment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),
@@ -113,12 +112,11 @@ func TestGetEnvironmentExistenceNotLeaked(t *testing.T) {
 	})
 	appSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Payments API",
-		Slug:          appSlug,
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Payments API",
+		Slug:        appSlug,
 	})
 	environment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),

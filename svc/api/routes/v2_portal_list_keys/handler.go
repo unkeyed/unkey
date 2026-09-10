@@ -84,7 +84,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Scope to the end user's own keys. If the identity does not exist yet, the
 	// user simply has no keys.
 	identity, err := db.Query.FindIdentityByExternalID(ctx, h.DB.RO(), db.FindIdentityByExternalIDParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		ExternalID:  externalID,
 		Deleted:     false,
 	})

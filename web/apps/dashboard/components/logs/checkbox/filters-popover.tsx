@@ -1,6 +1,6 @@
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { CaretRight, Check, Magnifier } from "@unkey/icons";
-import { Drover, Input, KeyboardButton } from "@unkey/ui";
+import { Drover, InputGroup, InputGroupAddon, InputGroupInput, KeyboardButton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import React, {
   type KeyboardEvent,
@@ -301,51 +301,56 @@ export const FiltersPopover = ({
         <div className="flex w-full flex-col">
           {searchItems ? (
             <div className="border-b border-gray-4 p-2">
-              <Input
-                autoFocus
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setFocusedSearchIndex(0);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Escape") {
-                    return;
-                  }
-                  // With no query the main filter list owns navigation keys;
-                  // with a query the search results own them.
-                  if (!search.trim()) {
-                    return;
-                  }
-                  event.stopPropagation();
-
-                  if (activeSearchIndex === null) {
-                    return;
-                  }
-                  if (event.key === "ArrowDown") {
-                    event.preventDefault();
-                    setFocusedSearchIndex((activeSearchIndex + 1) % matchingSearchItems.length);
-                  } else if (event.key === "ArrowUp") {
-                    event.preventDefault();
-                    setFocusedSearchIndex(
-                      (activeSearchIndex - 1 + matchingSearchItems.length) %
-                        matchingSearchItems.length,
-                    );
-                  } else if (event.key === "Enter") {
-                    event.preventDefault();
-                    const item = matchingSearchItems[activeSearchIndex];
-                    if (item) {
-                      activateSearchItem(item);
+              <InputGroup variant="ghost" className="h-8">
+                <InputGroupAddon className="pointer-events-none">
+                  <Magnifier className="size-3.5 text-gray-9" />
+                </InputGroupAddon>
+                <InputGroupInput
+                  autoFocus
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setFocusedSearchIndex(0);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Escape") {
+                      return;
                     }
-                  }
-                }}
-                placeholder={searchPlaceholder}
-                aria-label="Search filters and values"
-                variant="ghost"
-                className="h-8 text-xs"
-                leftIcon={<Magnifier className="size-3.5 text-gray-9" />}
-                rightIcon={<KeyboardButton shortcut="F" />}
-              />
+                    // With no query the main filter list owns navigation keys;
+                    // with a query the search results own them.
+                    if (!search.trim()) {
+                      return;
+                    }
+                    event.stopPropagation();
+
+                    if (activeSearchIndex === null) {
+                      return;
+                    }
+                    if (event.key === "ArrowDown") {
+                      event.preventDefault();
+                      setFocusedSearchIndex((activeSearchIndex + 1) % matchingSearchItems.length);
+                    } else if (event.key === "ArrowUp") {
+                      event.preventDefault();
+                      setFocusedSearchIndex(
+                        (activeSearchIndex - 1 + matchingSearchItems.length) %
+                          matchingSearchItems.length,
+                      );
+                    } else if (event.key === "Enter") {
+                      event.preventDefault();
+                      const item = matchingSearchItems[activeSearchIndex];
+                      if (item) {
+                        activateSearchItem(item);
+                      }
+                    }
+                  }}
+                  placeholder={searchPlaceholder}
+                  aria-label="Search filters and values"
+                  className="h-8 text-xs"
+                />
+                <InputGroupAddon align="inline-end">
+                  <KeyboardButton shortcut="F" />
+                </InputGroupAddon>
+              </InputGroup>
             </div>
           ) : (
             <PopoverHeader />

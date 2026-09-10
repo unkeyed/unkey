@@ -30,12 +30,20 @@ SELECT
         JSON_ARRAY()
     ) as ratelimits
 FROM (
-    SELECT id1.pk, id1.id, id1.external_id, id1.workspace_id, id1.project_id, id1.environment, id1.meta, id1.deleted, id1.created_at, id1.updated_at, 0 AS lookup_priority FROM identities id1
+    SELECT
+        id1.pk, id1.id, id1.external_id, id1.workspace_id, id1.project_id,
+        id1.environment, id1.meta, id1.deleted, id1.created_at, id1.updated_at,
+        0 AS lookup_priority
+    FROM identities id1
     WHERE id1.id = ?
       AND id1.workspace_id = ?
       AND id1.deleted = ?
     UNION ALL
-    SELECT id2.pk, id2.id, id2.external_id, id2.workspace_id, id2.project_id, id2.environment, id2.meta, id2.deleted, id2.created_at, id2.updated_at, 1 AS lookup_priority FROM identities id2
+    SELECT
+        id2.pk, id2.id, id2.external_id, id2.workspace_id, id2.project_id,
+        id2.environment, id2.meta, id2.deleted, id2.created_at, id2.updated_at,
+        1 AS lookup_priority
+    FROM identities id2
     WHERE id2.workspace_id = ?
       AND id2.external_id = ?
       AND id2.deleted = ?
@@ -85,12 +93,20 @@ type FindIdentityRow struct {
 //	        JSON_ARRAY()
 //	    ) as ratelimits
 //	FROM (
-//	    SELECT id1.pk, id1.id, id1.external_id, id1.workspace_id, id1.project_id, id1.environment, id1.meta, id1.deleted, id1.created_at, id1.updated_at, 0 AS lookup_priority FROM identities id1
+//	    SELECT
+//	        id1.pk, id1.id, id1.external_id, id1.workspace_id, id1.project_id,
+//	        id1.environment, id1.meta, id1.deleted, id1.created_at, id1.updated_at,
+//	        0 AS lookup_priority
+//	    FROM identities id1
 //	    WHERE id1.id = ?
 //	      AND id1.workspace_id = ?
 //	      AND id1.deleted = ?
 //	    UNION ALL
-//	    SELECT id2.pk, id2.id, id2.external_id, id2.workspace_id, id2.project_id, id2.environment, id2.meta, id2.deleted, id2.created_at, id2.updated_at, 1 AS lookup_priority FROM identities id2
+//	    SELECT
+//	        id2.pk, id2.id, id2.external_id, id2.workspace_id, id2.project_id,
+//	        id2.environment, id2.meta, id2.deleted, id2.created_at, id2.updated_at,
+//	        1 AS lookup_priority
+//	    FROM identities id2
 //	    WHERE id2.workspace_id = ?
 //	      AND id2.external_id = ?
 //	      AND id2.deleted = ?

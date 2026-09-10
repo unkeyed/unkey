@@ -1,5 +1,5 @@
 -- name: FindRatelimitNamespace :one
-SELECT *,
+SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
        coalesce(
                (select json_arrayagg(
                                json_object(

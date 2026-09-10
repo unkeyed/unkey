@@ -148,7 +148,7 @@ const fetchGithubContext = async (workspaceId: string, projectId: string, appId?
       },
       with: {
         apps: {
-          columns: { id: true, defaultBranch: true },
+          columns: { id: true },
           with: {
             githubRepoConnection: {
               columns: {
@@ -156,6 +156,7 @@ const fetchGithubContext = async (workspaceId: string, projectId: string, appId?
                 repositoryId: true,
                 repositoryFullName: true,
                 installationId: true,
+                defaultBranch: true,
               },
             },
           },
@@ -194,13 +195,14 @@ const fetchGithubContext = async (workspaceId: string, projectId: string, appId?
 
   return {
     appId: app?.id ?? null,
-    defaultBranch: app?.defaultBranch ?? "main",
+    defaultBranch: app?.githubRepoConnection?.defaultBranch ?? "main",
     repoConnection: app?.githubRepoConnection
       ? {
           pk: app.githubRepoConnection.pk,
           repositoryId: app.githubRepoConnection.repositoryId,
           repositoryFullName: app.githubRepoConnection.repositoryFullName,
           installationId: app.githubRepoConnection.installationId,
+          defaultBranch: app.githubRepoConnection.defaultBranch,
         }
       : null,
     installations: project.workspace?.githubAppInstallations ?? [],
@@ -528,7 +530,10 @@ export const githubRouter = t.router({
                   },
                 },
               ],
-              context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
+              context: {
+                location: ctx.audit.location,
+                userAgent: ctx.audit.userAgent,
+              },
             },
           ]);
         })
@@ -740,7 +745,10 @@ export const githubRouter = t.router({
       for (const b of alphabeticalBranches) {
         if (!seen.has(b.name) && branches.length < MAX_BRANCHES) {
           seen.add(b.name);
-          branches.push({ name: b.name, lastPushDate: activityMap.get(b.name) ?? null });
+          branches.push({
+            name: b.name,
+            lastPushDate: activityMap.get(b.name) ?? null,
+          });
         }
       }
 
@@ -767,7 +775,10 @@ export const githubRouter = t.router({
     .query(async ({ ctx, input }) => {
       const githubContext = await fetchGithubContext(ctx.workspace.id, input.projectId);
       if (!githubContext) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Project not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Project not found",
+        });
       }
       const hasInstallation = githubContext.installations.some(
         (i) => i.installationId === input.installationId,
@@ -830,12 +841,18 @@ export const githubRouter = t.router({
               eq(table.workspaceId, ctx.workspace.id),
               eq(table.projectId, input.projectId),
             ),
-          columns: { id: true },
+          columns: { id: true, sourceType: true },
         });
         if (!app) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "App not found for this project",
+          });
+        }
+        if (app.sourceType === "oci") {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "Container image apps cannot connect a GitHub repository",
           });
         }
         appId = app.id;
@@ -847,12 +864,18 @@ export const githubRouter = t.router({
               eq(table.workspaceId, ctx.workspace.id),
               eq(table.slug, "default"),
             ),
-          columns: { id: true },
+          columns: { id: true, sourceType: true },
         });
         if (!app) {
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "No default app found for this project",
+          });
+        }
+        if (app.sourceType === "oci") {
+          throw new TRPCError({
+            code: "PRECONDITION_FAILED",
+            message: "Container image apps cannot connect a GitHub repository",
           });
         }
         appId = app.id;
@@ -874,25 +897,32 @@ export const githubRouter = t.router({
         });
       }
 
+      const branchToStore = input.selectedBranch ?? verifiedRepo.default_branch;
       await db
-        .insert(schema.githubRepoConnections)
-        .values({
-          workspaceId: ctx.workspace.id,
-          projectId: input.projectId,
-          appId,
-          installationId: input.installationId,
-          repositoryId: verifiedRepo.id,
-          repositoryFullName: verifiedRepo.full_name,
-          createdAt: Date.now(),
-          updatedAt: null,
-        })
-        .onDuplicateKeyUpdate({
-          set: {
-            installationId: input.installationId,
-            repositoryId: verifiedRepo.id,
-            repositoryFullName: verifiedRepo.full_name,
-            updatedAt: Date.now(),
-          },
+        .transaction(async (tx) => {
+          const updatedAt = Date.now();
+          await tx
+            .insert(schema.githubRepoConnections)
+            .values({
+              workspaceId: ctx.workspace.id,
+              projectId: input.projectId,
+              appId,
+              installationId: input.installationId,
+              repositoryId: verifiedRepo.id,
+              repositoryFullName: verifiedRepo.full_name,
+              defaultBranch: branchToStore,
+              createdAt: updatedAt,
+              updatedAt: null,
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                installationId: input.installationId,
+                repositoryId: verifiedRepo.id,
+                repositoryFullName: verifiedRepo.full_name,
+                defaultBranch: branchToStore,
+                updatedAt,
+              },
+            });
         })
         .catch(() => {
           throw new TRPCError({
@@ -900,14 +930,6 @@ export const githubRouter = t.router({
             message: "Failed to save GitHub repository connection",
           });
         });
-
-      const branchToStore = input.selectedBranch ?? verifiedRepo.default_branch;
-      if (branchToStore) {
-        await db
-          .update(schema.apps)
-          .set({ defaultBranch: branchToStore, updatedAt: Date.now() })
-          .where(eq(schema.apps.id, appId));
-      }
 
       return { success: true };
     }),
@@ -923,6 +945,7 @@ export const githubRouter = t.router({
         .findFirst({
           where: (table, { and, eq }) =>
             and(eq(table.id, input.appId), eq(table.workspaceId, ctx.workspace.id)),
+          columns: { id: true },
         })
         .catch(() => {
           throw new TRPCError({
@@ -979,10 +1002,13 @@ export const githubRouter = t.router({
         });
       }
 
-      await db
-        .update(schema.apps)
-        .set({ defaultBranch: input.defaultBranch, updatedAt: Date.now() })
-        .where(eq(schema.apps.id, input.appId));
+      await db.transaction(async (tx) => {
+        const updatedAt = Date.now();
+        await tx
+          .update(schema.githubRepoConnections)
+          .set({ defaultBranch: input.defaultBranch, updatedAt })
+          .where(eq(schema.githubRepoConnections.appId, input.appId));
+      });
 
       return { success: true };
     }),
@@ -1001,6 +1027,7 @@ export const githubRouter = t.router({
               eq(table.installationId, input.installationId),
               eq(table.workspaceId, ctx.workspace.id),
             ),
+          columns: { pk: true },
         })
         .catch(() => {
           throw new TRPCError({

@@ -11,6 +11,7 @@ import (
 	"connectrpc.com/connect"
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
@@ -67,22 +68,44 @@ func Run(ctx context.Context, cfg Config) error {
 	r := runner.New()
 	defer r.Recover()
 	r.DeferCtx(shutdown)
+	// Single HTTP server on the metrics port serving both Prometheus metrics
+	// and the kubelet probe endpoints, like heimdall. Logdrain receives no
+	// traffic, so the probes share the metrics port instead of a dedicated
+	// listener.
+	//
+	// Paths:
+	//   GET /metrics        Prometheus scrape endpoint (serves reg)
+	//   GET /health/live    kubelet liveness probe
+	//   GET /health/ready   kubelet readiness probe
+	//   GET /health/startup kubelet startup probe
+	//
+	// Startup (config validation, MySQL, ClickHouse, Vault client) runs
+	// synchronously before r.Wait() flips health.started to true, so no
+	// extra readiness checks are registered: /ready returning 200 already
+	// means the process initialized and is not shutting down. Delivery
+	// health stays a metrics concern, not a probe concern; the kubelet must
+	// not restart a pod because a customer endpoint is down.
 	if cfg.Observability.Metrics != nil && cfg.Observability.Metrics.PrometheusPort > 0 {
-		prom, promErr := prometheus.NewWithRegistry(reg)
-		if promErr != nil {
-			return fmt.Errorf("create prometheus server: %w", promErr)
-		}
+		mux := http.NewServeMux()
+		//nolint:exhaustruct
+		mux.Handle("GET /metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
+		r.RegisterHealth(mux, "/health")
+
 		port := cfg.Observability.Metrics.PrometheusPort
 		listener, listenErr := net.Listen("tcp", fmt.Sprintf(":%d", port))
 		if listenErr != nil {
-			return fmt.Errorf("listen on prometheus port %d: %w", port, listenErr)
+			return fmt.Errorf("listen on metrics port %d: %w", port, listenErr)
 		}
-		r.DeferCtx(prom.Shutdown)
-		r.Go(func(ctx context.Context) error {
-			logger.Info("prometheus started", "port", port)
-			serveErr := prom.Serve(ctx, listener)
-			if serveErr != nil && !errors.Is(serveErr, context.Canceled) {
-				return fmt.Errorf("prometheus server failed: %w", serveErr)
+		server := &http.Server{
+			Handler:           mux,
+			ReadHeaderTimeout: 5 * time.Second,
+		}
+		r.DeferCtx(server.Shutdown)
+		r.Go(func(_ context.Context) error {
+			logger.Info("metrics+health server started", "port", port)
+			serveErr := server.Serve(listener)
+			if serveErr != nil && !errors.Is(serveErr, http.ErrServerClosed) {
+				return fmt.Errorf("metrics+health server failed: %w", serveErr)
 			}
 			return nil
 		})

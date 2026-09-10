@@ -248,7 +248,6 @@ func Run(ctx context.Context, cfg Config) error {
 		Auditlogs:                       auditlogSvc,
 		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
 		Bearer:                          cfg.AuthToken,
-		EnforceDeployGate:               cfg.DeployGate.Enforce,
 	})
 	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deploymentSvc))
 	mux.Handle(ctrlv1connect.NewOpsServiceHandler(ops.New(ops.Config{
@@ -296,11 +295,10 @@ func Run(ctx context.Context, cfg Config) error {
 	})
 	mux.Handle(ctrlv1connect.NewAppServiceHandler(appSvc))
 	mux.Handle(ctrlv1connect.NewProjectServiceHandler(project.New(project.Config{
-		Database:          database,
-		Restate:           restateClient,
-		Bearer:            cfg.AuthToken,
-		EnforceDeployGate: cfg.DeployGate.Enforce,
-		Auditlogs:         auditlogSvc,
+		Database:  database,
+		Restate:   restateClient,
+		Bearer:    cfg.AuthToken,
+		Auditlogs: auditlogSvc,
 	})))
 
 	if cfg.GitHub.WebhookSecret != "" {

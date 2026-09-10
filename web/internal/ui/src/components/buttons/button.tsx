@@ -281,6 +281,7 @@ export type ButtonProps = VariantProps<typeof buttonVariants> &
      * Optional label for screen readers when in loading state
      */
     loadingLabel?: string;
+    ref?: React.Ref<HTMLButtonElement>;
   };
 
 const keyboardIconVariants = cva(
@@ -313,94 +314,72 @@ const VARIANT_MAP: Record<string, { variant: ButtonVariant; color?: ButtonColor 
   destructive: { variant: "primary", color: "danger" },
 };
 
-const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  (
-    {
-      className,
-      variant,
-      color = "default",
-      size,
-      render,
-      loading,
-      disabled,
-      loadingLabel = "Loading, please wait",
-      ...props
-    },
-    ref,
-  ) => {
-    let mappedVariant: ButtonVariant = "primary";
-    let mappedColor: ButtonColor = color;
-    if (variant === null || variant === undefined) {
-      mappedVariant = "primary";
-    } else if (VARIANT_MAP[variant as keyof typeof VARIANT_MAP]) {
-      const mapping = VARIANT_MAP[variant as keyof typeof VARIANT_MAP];
-      mappedVariant = mapping.variant;
-      if (mapping.color) {
-        mappedColor = mapping.color;
-      }
-    } else {
-      mappedVariant = variant as ButtonVariant;
+function Button({
+  className,
+  variant,
+  color = "default",
+  size,
+  render,
+  loading,
+  disabled,
+  loadingLabel = "Loading, please wait",
+  ref,
+  ...props
+}: ButtonProps) {
+  let mappedVariant: ButtonVariant = "primary";
+  let mappedColor: ButtonColor = color;
+  if (variant === null || variant === undefined) {
+    mappedVariant = "primary";
+  } else if (VARIANT_MAP[variant as keyof typeof VARIANT_MAP]) {
+    const mapping = VARIANT_MAP[variant as keyof typeof VARIANT_MAP];
+    mappedVariant = mapping.variant;
+    if (mapping.color) {
+      mappedColor = mapping.color;
     }
-    // Only disable the click behavior, not the visual appearance
-    const isClickDisabled = disabled || loading;
-    // Keep separate flag for actual visual disabled state
-    const isVisuallyDisabled = disabled;
-    // Width reference for consistent sizing during loading state
-    const buttonRef = React.useRef<HTMLButtonElement>(null);
-    const [buttonWidth, setButtonWidth] = React.useState<number | undefined>(undefined);
-    // Capture initial width when entering loading state
-    React.useEffect(() => {
-      if (loading && buttonRef.current && !buttonWidth) {
-        setButtonWidth(buttonRef.current.offsetWidth);
-      } else if (!loading) {
-        setButtonWidth(undefined);
-      }
-    }, [loading, buttonWidth]);
-    // Keyboard handler
-    React.useEffect(() => {
-      if (!props.keyboard || isClickDisabled) {
+  } else {
+    mappedVariant = variant as ButtonVariant;
+  }
+  // Only disable the click behavior, not the visual appearance
+  const isClickDisabled = disabled || loading;
+  // Keep separate flag for actual visual disabled state
+  const isVisuallyDisabled = disabled;
+  // Width reference for consistent sizing during loading state
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
+  const [buttonWidth, setButtonWidth] = React.useState<number | undefined>(undefined);
+  // Capture initial width when entering loading state
+  React.useEffect(() => {
+    if (loading && buttonRef.current && !buttonWidth) {
+      setButtonWidth(buttonRef.current.offsetWidth);
+    } else if (!loading) {
+      setButtonWidth(undefined);
+    }
+  }, [loading, buttonWidth]);
+  // Keyboard handler
+  React.useEffect(() => {
+    if (!props.keyboard || isClickDisabled) {
+      return;
+    }
+    const down = (e: KeyboardEvent) => {
+      if (!props.keyboard?.trigger(e)) {
         return;
       }
-      const down = (e: KeyboardEvent) => {
-        if (!props.keyboard?.trigger(e)) {
-          return;
-        }
-        e.preventDefault();
-        props.keyboard?.callback(e);
-      };
-      document.addEventListener("keydown", down);
-      return () => document.removeEventListener("keydown", down);
-    }, [props.keyboard, isClickDisabled]);
+      e.preventDefault();
+      props.keyboard?.callback(e);
+    };
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, [props.keyboard, isClickDisabled]);
 
-    // When `render` is provided (custom element/component, typically a link),
-    // compose it directly with the button's visual classes — no Base UI Button
-    // primitive, so the link keeps link semantics (no role="button", no
-    // synthetic keyboard handlers, no disabled-button behavior). Only the
-    // children render — the loading spinner and keyboard hint are omitted,
-    // matching the previous `asChild` behavior.
-    if (render) {
-      return (
-        <ButtonRenderSlot
-          render={render as React.ReactElement}
-          className={cn(
-            buttonVariants({
-              variant: mappedVariant,
-              color: mappedColor,
-              size,
-              className,
-            }),
-          )}
-          onClick={loading ? undefined : props.onClick}
-          aria-disabled={isClickDisabled || undefined}
-          aria-busy={loading || undefined}
-          ref={ref as React.Ref<HTMLElement>}
-          {...(props as React.HTMLAttributes<HTMLElement>)}
-        />
-      );
-    }
-
+  // When `render` is provided (custom element/component, typically a link),
+  // compose it directly with the button's visual classes — no Base UI Button
+  // primitive, so the link keeps link semantics (no role="button", no
+  // synthetic keyboard handlers, no disabled-button behavior). Only the
+  // children render — the loading spinner and keyboard hint are omitted,
+  // matching the previous `asChild` behavior.
+  if (render) {
     return (
-      <ButtonPrimitive
+      <ButtonRenderSlot
+        render={render as React.ReactElement}
         className={cn(
           buttonVariants({
             variant: mappedVariant,
@@ -410,48 +389,66 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           }),
         )}
         onClick={loading ? undefined : props.onClick}
-        disabled={isVisuallyDisabled} // Only apply disabled attribute when explicitly disabled
-        aria-disabled={isClickDisabled} // For accessibility, still indicate it can't be clicked
-        aria-busy={loading}
-        ref={ref}
-        {...props}
-      >
-        {loading && (
-          <div
-            className="absolute inset-0 flex items-center justify-center w-full h-full transition-opacity duration-200"
-            aria-hidden="true"
-          >
-            <AnimatedLoadingSpinner />
-            <span className="sr-only">{loadingLabel}</span>
-          </div>
-        )}
-        <div
-          className={cn(
-            "w-full h-full flex items-center justify-center gap-2 transition-opacity duration-200",
-            {
-              "opacity-0": loading,
-              "opacity-100": !loading,
-            },
-          )}
-        >
-          {props.children}
-          {props.keyboard ? (
-            <kbd
-              className={cn(
-                keyboardIconVariants({
-                  variant:
-                    variant === "primary" ? "primary" : variant === "outline" ? "default" : "ghost",
-                }),
-              )}
-            >
-              {props.keyboard.display}
-            </kbd>
-          ) : null}{" "}
-        </div>
-      </ButtonPrimitive>
+        aria-disabled={isClickDisabled || undefined}
+        aria-busy={loading || undefined}
+        ref={ref as React.Ref<HTMLElement>}
+        {...(props as React.HTMLAttributes<HTMLElement>)}
+      />
     );
-  },
-);
+  }
+
+  return (
+    <ButtonPrimitive
+      className={cn(
+        buttonVariants({
+          variant: mappedVariant,
+          color: mappedColor,
+          size,
+          className,
+        }),
+      )}
+      onClick={loading ? undefined : props.onClick}
+      disabled={isVisuallyDisabled} // Only apply disabled attribute when explicitly disabled
+      aria-disabled={isClickDisabled} // For accessibility, still indicate it can't be clicked
+      aria-busy={loading}
+      ref={ref}
+      {...props}
+    >
+      {loading && (
+        <div
+          className="absolute inset-0 flex items-center justify-center w-full h-full transition-opacity duration-200"
+          aria-hidden="true"
+        >
+          <AnimatedLoadingSpinner />
+          <span className="sr-only">{loadingLabel}</span>
+        </div>
+      )}
+      <div
+        className={cn(
+          "w-full h-full flex items-center justify-center gap-2 transition-opacity duration-200",
+          {
+            "opacity-0": loading,
+            "opacity-100": !loading,
+          },
+        )}
+      >
+        {props.children}
+        {props.keyboard ? (
+          <kbd
+            className={cn(
+              keyboardIconVariants({
+                variant:
+                  variant === "primary" ? "primary" : variant === "outline" ? "default" : "ghost",
+              }),
+            )}
+          >
+            {props.keyboard.display}
+          </kbd>
+        ) : null}{" "}
+      </div>
+    </ButtonPrimitive>
+  );
+}
 
 // Add CSS for respecting reduced motion preference and adding the spin-slow animation
 if (typeof document !== "undefined") {
@@ -479,7 +476,5 @@ if (typeof document !== "undefined") {
   `;
   document.head.appendChild(style);
 }
-
-Button.displayName = "Button";
 
 export { Button, buttonVariants };

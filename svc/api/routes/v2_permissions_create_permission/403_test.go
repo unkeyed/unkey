@@ -49,7 +49,8 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, res.Status)
 		require.NotNil(t, res.Body)
 		require.NotNil(t, res.Body.Error)
-		require.Equal(t, "Missing permission: 'rbac.*.create_permission'", res.Body.Error.Detail)
+		require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions")
+		require.Contains(t, res.Body.Error.Detail, "#write")
 	})
 
 	// Test case for wrong workspace

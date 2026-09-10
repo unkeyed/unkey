@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_delete_permission"
 )
@@ -28,6 +29,8 @@ func TestSuccess(t *testing.T) {
 
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspace.ID)
+	require.NoError(t, err)
 
 	// Create a root key with appropriate permissions
 	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.delete_permission")
@@ -48,6 +51,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  workspace.ID,
+			ProjectID:    projectID,
 			Name:         permissionName,
 			Slug:         "test-delete-permission",
 			Description:  dbtype.NullString{Valid: true, String: permissionDesc},
@@ -104,6 +108,7 @@ func TestSuccess(t *testing.T) {
 		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: permissionID,
 			WorkspaceID:  workspace.ID,
+			ProjectID:    projectID,
 			Name:         permissionName,
 			Slug:         "test-delete-permission-with-description",
 			Description:  dbtype.NullString{Valid: true, String: permissionDesc},

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Querier } from "./client/interface";
+import { assertOrderedTimeRange } from "./util";
 
 export const getLogsClickhousePayload = z.object({
   workspaceId: z.string(),
@@ -420,6 +421,8 @@ function getLogsTimeseriesWhereClause(
 
 function createTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: LogsTimeseriesParams) => {
+    assertOrderedTimeRange(args.startTime, args.endTime);
+
     const { whereClause, paramSchema } = getLogsTimeseriesWhereClause(args, [
       "time >= fromUnixTimestamp64Milli({startTime: Int64})",
       "time <= fromUnixTimestamp64Milli({endTime: Int64})",

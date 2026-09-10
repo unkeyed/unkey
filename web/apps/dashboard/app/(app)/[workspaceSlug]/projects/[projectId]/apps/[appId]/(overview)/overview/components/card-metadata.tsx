@@ -1,8 +1,9 @@
 "use client";
 
+import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
-import { CodeBranch, CodeCommit } from "@unkey/icons";
-import { Badge, TimestampInfo } from "@unkey/ui";
+import { ArrowDotAntiClockwise, CircleXMark, CodeBranch, CodeCommit, Layers2 } from "@unkey/icons";
+import { Badge, CopyButton, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { MetadataCell } from "../../../components/active-deployment-card/components/metadata-cell";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
@@ -33,7 +34,8 @@ function StatusCell() {
       <span className="flex items-center gap-2 text-[13px] text-accent-12">
         <StatusDot status={status} />
         {STATUS_META[status].label}
-        <Badge variant="warning" size="sm">
+        <Badge variant="warning" size="sm" className="gap-1">
+          <ArrowDotAntiClockwise iconSize="sm-regular" className="shrink-0" />
           Rolled back
         </Badge>
       </span>
@@ -49,9 +51,10 @@ function StatusCell() {
 
 function SourceCell() {
   const { deployment, sourceRepo, isRolledBack, rolledBackFrom } = useProductionCard();
+  const image = deployment.requestedImage ?? deployment.resolvedImage;
   return (
     <div className="flex flex-col gap-1 min-w-0">
-      {deployment.gitBranch && (
+      {deployment.source === "git" && deployment.gitBranch && (
         <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>
           <span className="flex items-center gap-1.5">
             <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
@@ -61,7 +64,7 @@ function SourceCell() {
           </span>
         </GitHubLink>
       )}
-      {deployment.gitCommitSha && (
+      {deployment.source === "git" && deployment.gitCommitSha && (
         <div className="flex items-center gap-1.5 min-w-0">
           <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
             <span className="flex items-center gap-1.5">
@@ -80,9 +83,9 @@ function SourceCell() {
       )}
       {isRolledBack && rolledBackFrom && (
         <div className="flex items-center gap-1.5 min-w-0 text-gray-9">
-          <CodeCommit iconSize="sm-regular" className="text-gray-9 shrink-0" />
+          <CircleXMark iconSize="sm-regular" className="text-error-11 shrink-0" />
           <span className="font-mono text-[13px] line-through shrink-0">
-            {rolledBackFrom.commitSha ? rolledBackFrom.commitSha.slice(0, 7) : "—"}
+            {rolledBackFromLabel(rolledBackFrom)}
           </span>
           {rolledBackFrom.commitMessage && (
             <span className="text-[13px] line-through truncate min-w-0">
@@ -91,9 +94,26 @@ function SourceCell() {
           )}
         </div>
       )}
-      {!deployment.gitBranch && !deployment.gitCommitSha && (
-        <span className="font-mono text-[13px] text-accent-12 truncate">
-          {deployment.image ?? "—"}
+      {deployment.source !== "git" && (
+        <span className="flex items-center gap-1.5 min-w-0">
+          <Layers2 iconSize="sm-regular" className="shrink-0 text-gray-9" />
+          <span
+            className="font-mono text-[13px] text-accent-12 truncate"
+            title={image ?? undefined}
+          >
+            {deployment.source === "oci" ? (image ?? "No image available") : "Unknown source"}
+          </span>
+          {deployment.source === "oci" && deployment.resolvedImage && (
+            <InfoTooltip content="Copy resolved image" asChild>
+              <CopyButton
+                value={deployment.resolvedImage}
+                variant="ghost"
+                className="size-5 shrink-0"
+                toastMessage={deployment.resolvedImage}
+                src="production-deployment-source"
+              />
+            </InfoTooltip>
+          )}
         </span>
       )}
     </div>
@@ -159,8 +179,10 @@ export function ProductionCardMetadata() {
 
       <MetadataCell label="Created">
         <div className="flex items-center gap-2">
-          <Avatar src={deployment.gitCommitAuthorAvatarUrl} alt="Author" />
-          {deployment.gitCommitAuthorHandle && (
+          {deployment.source === "git" && (
+            <Avatar src={deployment.gitCommitAuthorAvatarUrl} alt="Author" />
+          )}
+          {deployment.source === "git" && deployment.gitCommitAuthorHandle && (
             <span className="font-medium text-accent-12 text-[13px] truncate">
               {deployment.gitCommitAuthorHandle}
             </span>
@@ -174,4 +196,14 @@ export function ProductionCardMetadata() {
       </MetadataCell>
     </div>
   );
+}
+
+function rolledBackFromLabel(from: { commitSha: string | null; image: string | null }): string {
+  if (from.commitSha) {
+    return from.commitSha.slice(0, 7);
+  }
+  if (from.image) {
+    return imageRefDisplay(from.image);
+  }
+  return "—";
 }

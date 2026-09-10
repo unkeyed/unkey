@@ -71,7 +71,7 @@ func (HttpBodyFormat) EnumDescriptor() ([]byte, []int) {
 	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{0}
 }
 
-// Config contains the complete destination configuration for one log drain.
+// Config contains the stream and destination configuration for one log drain.
 // Exactly one destination must be set. Secret fields contain Vault ciphertext.
 type Config struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -79,7 +79,13 @@ type Config struct {
 	//
 	//	*Config_Http
 	//	*Config_Axiom
-	Destination   isConfig_Destination `protobuf_oneof:"destination"`
+	Destination isConfig_Destination `protobuf_oneof:"destination"`
+	// An absent stream preserves legacy audit-log drains with no filters.
+	//
+	// Types that are valid to be assigned to Stream:
+	//
+	//	*Config_AuditLogs
+	Stream        isConfig_Stream `protobuf_oneof:"stream"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -139,6 +145,22 @@ func (x *Config) GetAxiom() *AxiomConfig {
 	return nil
 }
 
+func (x *Config) GetStream() isConfig_Stream {
+	if x != nil {
+		return x.Stream
+	}
+	return nil
+}
+
+func (x *Config) GetAuditLogs() *AuditLogStreamConfig {
+	if x != nil {
+		if x, ok := x.Stream.(*Config_AuditLogs); ok {
+			return x.AuditLogs
+		}
+	}
+	return nil
+}
+
 type isConfig_Destination interface {
 	isConfig_Destination()
 }
@@ -155,6 +177,62 @@ func (*Config_Http) isConfig_Destination() {}
 
 func (*Config_Axiom) isConfig_Destination() {}
 
+type isConfig_Stream interface {
+	isConfig_Stream()
+}
+
+type Config_AuditLogs struct {
+	AuditLogs *AuditLogStreamConfig `protobuf:"bytes,3,opt,name=audit_logs,json=auditLogs,proto3,oneof"`
+}
+
+func (*Config_AuditLogs) isConfig_Stream() {}
+
+// AuditLogStreamConfig selects audit logs and their stream-specific filters.
+type AuditLogStreamConfig struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty selects all audit event types, including event types added later.
+	EventTypes    []string `protobuf:"bytes,1,rep,name=event_types,json=eventTypes,proto3" json:"event_types,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuditLogStreamConfig) Reset() {
+	*x = AuditLogStreamConfig{}
+	mi := &file_logdrain_v1_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuditLogStreamConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuditLogStreamConfig) ProtoMessage() {}
+
+func (x *AuditLogStreamConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_logdrain_v1_config_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuditLogStreamConfig.ProtoReflect.Descriptor instead.
+func (*AuditLogStreamConfig) Descriptor() ([]byte, []int) {
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *AuditLogStreamConfig) GetEventTypes() []string {
+	if x != nil {
+		return x.EventTypes
+	}
+	return nil
+}
+
 // HttpConfig configures a generic HTTPS destination.
 type HttpConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -167,7 +245,7 @@ type HttpConfig struct {
 
 func (x *HttpConfig) Reset() {
 	*x = HttpConfig{}
-	mi := &file_logdrain_v1_config_proto_msgTypes[1]
+	mi := &file_logdrain_v1_config_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -179,7 +257,7 @@ func (x *HttpConfig) String() string {
 func (*HttpConfig) ProtoMessage() {}
 
 func (x *HttpConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_logdrain_v1_config_proto_msgTypes[1]
+	mi := &file_logdrain_v1_config_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -192,7 +270,7 @@ func (x *HttpConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HttpConfig.ProtoReflect.Descriptor instead.
 func (*HttpConfig) Descriptor() ([]byte, []int) {
-	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{1}
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *HttpConfig) GetUrl() string {
@@ -227,7 +305,7 @@ type HttpHeader struct {
 
 func (x *HttpHeader) Reset() {
 	*x = HttpHeader{}
-	mi := &file_logdrain_v1_config_proto_msgTypes[2]
+	mi := &file_logdrain_v1_config_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -239,7 +317,7 @@ func (x *HttpHeader) String() string {
 func (*HttpHeader) ProtoMessage() {}
 
 func (x *HttpHeader) ProtoReflect() protoreflect.Message {
-	mi := &file_logdrain_v1_config_proto_msgTypes[2]
+	mi := &file_logdrain_v1_config_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -252,7 +330,7 @@ func (x *HttpHeader) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HttpHeader.ProtoReflect.Descriptor instead.
 func (*HttpHeader) Descriptor() ([]byte, []int) {
-	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{2}
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *HttpHeader) GetName() string {
@@ -280,7 +358,7 @@ type AxiomConfig struct {
 
 func (x *AxiomConfig) Reset() {
 	*x = AxiomConfig{}
-	mi := &file_logdrain_v1_config_proto_msgTypes[3]
+	mi := &file_logdrain_v1_config_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -292,7 +370,7 @@ func (x *AxiomConfig) String() string {
 func (*AxiomConfig) ProtoMessage() {}
 
 func (x *AxiomConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_logdrain_v1_config_proto_msgTypes[3]
+	mi := &file_logdrain_v1_config_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -305,7 +383,7 @@ func (x *AxiomConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AxiomConfig.ProtoReflect.Descriptor instead.
 func (*AxiomConfig) Descriptor() ([]byte, []int) {
-	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{3}
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *AxiomConfig) GetDataset() string {
@@ -326,11 +404,17 @@ var File_logdrain_v1_config_proto protoreflect.FileDescriptor
 
 const file_logdrain_v1_config_proto_rawDesc = "" +
 	"\n" +
-	"\x18logdrain/v1/config.proto\x12\vlogdrain.v1\"x\n" +
+	"\x18logdrain/v1/config.proto\x12\vlogdrain.v1\"\xc6\x01\n" +
 	"\x06Config\x12-\n" +
 	"\x04http\x18\x01 \x01(\v2\x17.logdrain.v1.HttpConfigH\x00R\x04http\x120\n" +
-	"\x05axiom\x18\x02 \x01(\v2\x18.logdrain.v1.AxiomConfigH\x00R\x05axiomB\r\n" +
-	"\vdestination\"\x86\x01\n" +
+	"\x05axiom\x18\x02 \x01(\v2\x18.logdrain.v1.AxiomConfigH\x00R\x05axiom\x12B\n" +
+	"\n" +
+	"audit_logs\x18\x03 \x01(\v2!.logdrain.v1.AuditLogStreamConfigH\x01R\tauditLogsB\r\n" +
+	"\vdestinationB\b\n" +
+	"\x06stream\"7\n" +
+	"\x14AuditLogStreamConfig\x12\x1f\n" +
+	"\vevent_types\x18\x01 \x03(\tR\n" +
+	"eventTypes\"\x86\x01\n" +
 	"\n" +
 	"HttpConfig\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x123\n" +
@@ -362,24 +446,26 @@ func file_logdrain_v1_config_proto_rawDescGZIP() []byte {
 }
 
 var file_logdrain_v1_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_logdrain_v1_config_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_logdrain_v1_config_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_logdrain_v1_config_proto_goTypes = []any{
-	(HttpBodyFormat)(0), // 0: logdrain.v1.HttpBodyFormat
-	(*Config)(nil),      // 1: logdrain.v1.Config
-	(*HttpConfig)(nil),  // 2: logdrain.v1.HttpConfig
-	(*HttpHeader)(nil),  // 3: logdrain.v1.HttpHeader
-	(*AxiomConfig)(nil), // 4: logdrain.v1.AxiomConfig
+	(HttpBodyFormat)(0),          // 0: logdrain.v1.HttpBodyFormat
+	(*Config)(nil),               // 1: logdrain.v1.Config
+	(*AuditLogStreamConfig)(nil), // 2: logdrain.v1.AuditLogStreamConfig
+	(*HttpConfig)(nil),           // 3: logdrain.v1.HttpConfig
+	(*HttpHeader)(nil),           // 4: logdrain.v1.HttpHeader
+	(*AxiomConfig)(nil),          // 5: logdrain.v1.AxiomConfig
 }
 var file_logdrain_v1_config_proto_depIdxs = []int32{
-	2, // 0: logdrain.v1.Config.http:type_name -> logdrain.v1.HttpConfig
-	4, // 1: logdrain.v1.Config.axiom:type_name -> logdrain.v1.AxiomConfig
-	0, // 2: logdrain.v1.HttpConfig.format:type_name -> logdrain.v1.HttpBodyFormat
-	3, // 3: logdrain.v1.HttpConfig.headers:type_name -> logdrain.v1.HttpHeader
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	3, // 0: logdrain.v1.Config.http:type_name -> logdrain.v1.HttpConfig
+	5, // 1: logdrain.v1.Config.axiom:type_name -> logdrain.v1.AxiomConfig
+	2, // 2: logdrain.v1.Config.audit_logs:type_name -> logdrain.v1.AuditLogStreamConfig
+	0, // 3: logdrain.v1.HttpConfig.format:type_name -> logdrain.v1.HttpBodyFormat
+	4, // 4: logdrain.v1.HttpConfig.headers:type_name -> logdrain.v1.HttpHeader
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_logdrain_v1_config_proto_init() }
@@ -390,6 +476,7 @@ func file_logdrain_v1_config_proto_init() {
 	file_logdrain_v1_config_proto_msgTypes[0].OneofWrappers = []any{
 		(*Config_Http)(nil),
 		(*Config_Axiom)(nil),
+		(*Config_AuditLogs)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -397,7 +484,7 @@ func file_logdrain_v1_config_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_logdrain_v1_config_proto_rawDesc), len(file_logdrain_v1_config_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

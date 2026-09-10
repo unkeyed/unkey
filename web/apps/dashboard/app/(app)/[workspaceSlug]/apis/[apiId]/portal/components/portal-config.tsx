@@ -15,7 +15,11 @@ import {
   Button,
   CopyButton,
   DialogContainer,
+  FormField,
   FormInput,
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
   SettingsDangerZone,
   toast,
 } from "@unkey/ui";
@@ -130,17 +134,29 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
                 {...register("displayName")}
               />
               <div className="flex flex-col gap-1.5">
-                <FormInput
+                <FormField
                   label="Slug"
                   description="Lowercase letters, numbers, and hyphens. 3-64 characters."
                   descriptionPosition="label"
-                  placeholder="acme"
                   error={errors.slug?.message}
-                  // The saved slug, not the draft: an unsaved slug is a value
-                  // `createSession` rejects.
-                  rightIcon={<CopyButton value={portal.slug} variant="ghost" />}
-                  {...register("slug")}
-                />
+                >
+                  {(field) => (
+                    <InputGroup variant={field.variant}>
+                      <InputGroupInput
+                        id={field.id}
+                        placeholder="acme"
+                        aria-describedby={field.describedBy}
+                        aria-invalid={field.invalid}
+                        {...register("slug")}
+                      />
+                      {/* The saved slug, not the draft: an unsaved slug is a value
+                          `createSession` rejects. */}
+                      <InputGroupAddon align="inline-end">
+                        <CopyButton value={portal.slug} variant="ghost" />
+                      </InputGroupAddon>
+                    </InputGroup>
+                  )}
+                </FormField>
                 {dirtyFields.slug ? (
                   <p className="text-[13px] leading-5 text-warning-11">
                     Changing the slug breaks every <span className="font-mono">createSession</span>{" "}

@@ -36,6 +36,10 @@ type ClickhouseUserServiceClient interface {
 	// - Updates quotas and settings as specified
 	// - Reapplies ClickHouse permissions and row policies
 	ConfigureUser(opts ...sdk_go.ClientOption) sdk_go.Client[*ConfigureUserRequest, *ConfigureUserResponse]
+	// ReconcileUser reapplies the current permissions and row policies to an
+	// existing workspace user without changing its stored quota settings.
+	// Key: workspace_id.
+	ReconcileUser(opts ...sdk_go.ClientOption) sdk_go.Client[*ReconcileUserRequest, *ReconcileUserResponse]
 }
 
 type clickhouseUserServiceClient struct {
@@ -60,6 +64,14 @@ func (c *clickhouseUserServiceClient) ConfigureUser(opts ...sdk_go.ClientOption)
 	return sdk_go.WithRequestType[*ConfigureUserRequest](sdk_go.Object[*ConfigureUserResponse](c.ctx, "hydra.v1.ClickhouseUserService", c.key, "ConfigureUser", cOpts...))
 }
 
+func (c *clickhouseUserServiceClient) ReconcileUser(opts ...sdk_go.ClientOption) sdk_go.Client[*ReconcileUserRequest, *ReconcileUserResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*ReconcileUserRequest](sdk_go.Object[*ReconcileUserResponse](c.ctx, "hydra.v1.ClickhouseUserService", c.key, "ReconcileUser", cOpts...))
+}
+
 // ClickhouseUserServiceIngressClient is the ingress client API for hydra.v1.ClickhouseUserService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -79,6 +91,10 @@ type ClickhouseUserServiceIngressClient interface {
 	// - Updates quotas and settings as specified
 	// - Reapplies ClickHouse permissions and row policies
 	ConfigureUser() ingress.Requester[*ConfigureUserRequest, *ConfigureUserResponse]
+	// ReconcileUser reapplies the current permissions and row policies to an
+	// existing workspace user without changing its stored quota settings.
+	// Key: workspace_id.
+	ReconcileUser() ingress.Requester[*ReconcileUserRequest, *ReconcileUserResponse]
 }
 
 type clickhouseUserServiceIngressClient struct {
@@ -98,6 +114,11 @@ func NewClickhouseUserServiceIngressClient(client *ingress.Client, key string) C
 func (c *clickhouseUserServiceIngressClient) ConfigureUser() ingress.Requester[*ConfigureUserRequest, *ConfigureUserResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*ConfigureUserRequest, *ConfigureUserResponse](c.client, c.serviceName, "ConfigureUser", &c.key, &codec)
+}
+
+func (c *clickhouseUserServiceIngressClient) ReconcileUser() ingress.Requester[*ReconcileUserRequest, *ReconcileUserResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*ReconcileUserRequest, *ReconcileUserResponse](c.client, c.serviceName, "ReconcileUser", &c.key, &codec)
 }
 
 // ClickhouseUserServiceServer is the server API for hydra.v1.ClickhouseUserService service.
@@ -125,6 +146,10 @@ type ClickhouseUserServiceServer interface {
 	// - Updates quotas and settings as specified
 	// - Reapplies ClickHouse permissions and row policies
 	ConfigureUser(ctx sdk_go.ObjectContext, req *ConfigureUserRequest) (*ConfigureUserResponse, error)
+	// ReconcileUser reapplies the current permissions and row policies to an
+	// existing workspace user without changing its stored quota settings.
+	// Key: workspace_id.
+	ReconcileUser(ctx sdk_go.ObjectContext, req *ReconcileUserRequest) (*ReconcileUserResponse, error)
 }
 
 // UnimplementedClickhouseUserServiceServer should be embedded to have
@@ -136,6 +161,9 @@ type UnimplementedClickhouseUserServiceServer struct{}
 
 func (UnimplementedClickhouseUserServiceServer) ConfigureUser(ctx sdk_go.ObjectContext, req *ConfigureUserRequest) (*ConfigureUserResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method ConfigureUser not implemented"), 501)
+}
+func (UnimplementedClickhouseUserServiceServer) ReconcileUser(ctx sdk_go.ObjectContext, req *ReconcileUserRequest) (*ReconcileUserResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method ReconcileUser not implemented"), 501)
 }
 func (UnimplementedClickhouseUserServiceServer) testEmbeddedByValue() {}
 
@@ -157,5 +185,6 @@ func NewClickhouseUserServiceServer(srv ClickhouseUserServiceServer, opts ...sdk
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewObject("hydra.v1.ClickhouseUserService", sOpts...)
 	router = router.Handler("ConfigureUser", sdk_go.NewObjectHandler(srv.ConfigureUser))
+	router = router.Handler("ReconcileUser", sdk_go.NewObjectHandler(srv.ReconcileUser))
 	return router
 }

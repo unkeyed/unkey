@@ -1,4 +1,5 @@
 import type { Cookie } from "./cookies";
+import type { OrganizationRole } from "./roles";
 
 // Core Types
 export const UNKEY_SESSION_COOKIE = "unkey-session";
@@ -18,7 +19,6 @@ export const SIGN_UP_URL = "/auth/sign-up";
 export const LOCAL_USER_ID = "user_local_admin";
 export const LOCAL_ORG_ID = "org_localdefault"; // org IDs can only have one underscore
 export const LOCAL_ORG_ROLE = "admin";
-export const LOCAL_AUTH_PERMISSIONS = ["admin:*"] as const;
 
 export interface User {
   id: string;
@@ -165,7 +165,6 @@ export interface SessionValidationResult {
   shouldRefresh: boolean;
   token?: string;
   accessToken?: string;
-  permissions?: readonly string[];
   userId?: string;
   orgId?: string | null;
   role?: string | null;
@@ -192,7 +191,6 @@ export interface SessionData {
   userId: string;
   orgId: string | null;
   accessToken?: string;
-  permissions?: readonly string[];
   role?: string | null;
   // See SessionValidationResult.user
   user?: User | null;
@@ -235,7 +233,7 @@ export interface UpdateOrgParams {
 
 export interface UpdateMembershipParams {
   membershipId: string;
-  role: string;
+  role: OrganizationRole;
   /**
    * The organization the caller is scoped to. The provider asserts the target
    * membership belongs to this organization before mutating it, preventing
@@ -262,7 +260,7 @@ export class OrganizationScopeError extends Error {
 export interface OrgInviteParams {
   orgId: string;
   email: string;
-  role: "basic_member" | "admin";
+  role: OrganizationRole;
 }
 
 export interface UserData {

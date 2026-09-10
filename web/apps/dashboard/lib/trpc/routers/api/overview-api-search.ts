@@ -21,6 +21,11 @@ export const overviewApiSearch = workspaceProcedure
           ),
           isNull(table.deletedAtM),
         ),
+      columns: {
+        id: true,
+        name: true,
+        keyAuthId: true,
+      },
     });
 
     return attachKeyCounts(

@@ -4,13 +4,24 @@ package logdrain.v1;
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/logdrain/v1;logdrainv1";
 
-// Config contains the complete destination configuration for one log drain.
+// Config contains the stream and destination configuration for one log drain.
 // Exactly one destination must be set. Secret fields contain Vault ciphertext.
 message Config {
   oneof destination {
     HttpConfig http = 1;
     AxiomConfig axiom = 2;
   }
+
+  // An absent stream preserves legacy audit-log drains with no filters.
+  oneof stream {
+    AuditLogStreamConfig audit_logs = 3;
+  }
+}
+
+// AuditLogStreamConfig selects audit logs and their stream-specific filters.
+message AuditLogStreamConfig {
+  // Empty selects all audit event types, including event types added later.
+  repeated string event_types = 1;
 }
 
 // HttpConfig configures a generic HTTPS destination.

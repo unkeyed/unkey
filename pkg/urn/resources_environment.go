@@ -10,6 +10,10 @@ import "fmt"
 //	└── projects/{project_id}
 //	    └── apps/{app_id}
 //	        └── environments/{environment_id}
+//	            ├── deployments/{deployment_id}
+//	            ├── domains/{domain_id}
+//	            ├── variables/{variable_id}
+//	            └── gateway
 type Environment struct {
 	workspaceID string
 	path        string
@@ -55,16 +59,16 @@ func (e Environment) Gateway() gateway {
 	return gateway{workspaceID: e.workspaceID, path: e.path + "/gateway"}
 }
 
-// Variable returns a variable resource path.
+// Variable returns an environment variable resource path.
 //
 // Subresource:
 //
 //	environments/{environment_id}
 //	└── variables/{variable_id}
-func (e Environment) Variable(variableID string) V1 {
-	return V1{
-		WorkspaceID: e.workspaceID,
-		Resource:    fmt.Sprintf("%s/variables/%s", e.path, variableID),
+func (e Environment) Variable(variableID string) EnvironmentVariable {
+	return EnvironmentVariable{
+		workspaceID: e.workspaceID,
+		path:        fmt.Sprintf("%s/variables/%s", e.path, variableID),
 	}
 }
 
@@ -74,4 +78,23 @@ func (e Environment) Any() V1 {
 		WorkspaceID: e.workspaceID,
 		Resource:    e.path + "/**",
 	}
+}
+
+// EnvironmentVariable builds environment variable resource paths.
+//
+// Hierarchy:
+//
+//	workspace
+//	└── projects/{project_id}
+//	    └── apps/{app_id}
+//	        └── environments/{environment_id}
+//	            └── variables/{variable_id}
+type EnvironmentVariable struct {
+	workspaceID string
+	path        string
+}
+
+// String returns this environment variable resource path.
+func (e EnvironmentVariable) String() string {
+	return V1{WorkspaceID: e.workspaceID, Resource: e.path}.String()
 }

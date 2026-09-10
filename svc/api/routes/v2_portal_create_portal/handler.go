@@ -13,9 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
-	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
@@ -90,19 +88,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Only a wildcard grant can authorize a create: the portal id is minted below,
-	// so no grant can name it yet. The URN arm is what lets the dashboard reach
-	// this route, because its proxy mints a token whose admin grant is a URN.
+	// Only a wildcard grant can authorize a create because the portal ID is
+	// minted below. Portals are not in the canonical URN catalog, so scoped
+	// access uses the legacy tuple. The exact admin permission lets the dashboard
+	// use this route. The JWT admin role produces it.
 	err = principal.Authorize(rbac.Or(
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Portal,
 			ResourceID:   "*",
 			Action:       rbac.CreatePortal,
 		}),
-		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Portal("*"),
-			permissions.CreatePortal{},
-		),
+		rbac.S(fmt.Sprintf("unkey:v1:%s:**#*", principal.AuthorizedWorkspaceID)),
 	))
 	if err != nil {
 		// Returned as-is rather than masked as a 404: there is no portal yet whose
@@ -115,21 +111,21 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		if err := portal.VerifyMappingOwned(ctx, tx, principal.WorkspaceID, mapping); err != nil {
+		if err := portal.VerifyMappingOwned(ctx, tx, principal.AuthorizedWorkspaceID, mapping); err != nil {
 			return err
 		}
 
-		if err := portal.AuthorizeMappingTarget(ctx, tx, principal, principal.WorkspaceID, mapping); err != nil {
+		if err := portal.AuthorizeMappingTarget(ctx, tx, principal, principal.AuthorizedWorkspaceID, mapping); err != nil {
 			return err
 		}
 
-		if err := h.checkSlugAndResourceFree(ctx, tx, principal.WorkspaceID, req.Slug, mapping); err != nil {
+		if err := h.checkSlugAndResourceFree(ctx, tx, principal.AuthorizedWorkspaceID, req.Slug, mapping); err != nil {
 			return err
 		}
 
 		err := db.Query.InsertPortal(ctx, tx, db.InsertPortalParams{
 			ID:           portalID,
-			WorkspaceID:  principal.WorkspaceID,
+			WorkspaceID:  principal.AuthorizedWorkspaceID,
 			Slug:         req.Slug,
 			DisplayName:  req.DisplayName,
 			AppID:        appID,
@@ -162,7 +158,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.PortalCreateEvent,
 				Display:       fmt.Sprintf("Created portal %s", portalID),
 				ActorID:       principal.Subject.ID,

@@ -29,7 +29,7 @@ func TestGetDomainPermissions(t *testing.T) {
 	}{
 		{name: "wildcard permission", permissions: []string{"environment.*.read_domain"}, shouldPass: true},
 		{name: "specific environment permission", permissions: []string{fmt.Sprintf("environment.%s.read_domain", seeded.environmentID)}, shouldPass: true},
-		{name: "canonical urn grant", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/domains/*#read_domain", seeded.workspaceID, seeded.projectID, seeded.appID, seeded.environmentID)}, shouldPass: true},
+		{name: "canonical urn grant", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s/environments/%s/domains/*#read", seeded.workspaceID, seeded.projectID, seeded.appID, seeded.environmentID)}, shouldPass: true},
 		{name: "permission alongside unrelated grants", permissions: []string{"api.*.read_api", "environment.*.read_domain"}, shouldPass: true},
 		{name: "create action is not enough", permissions: []string{"environment.*.create_domain"}, shouldPass: false},
 		{name: "read_environment is not enough", permissions: []string{"environment.*.read_environment"}, shouldPass: false},
@@ -38,7 +38,7 @@ func TestGetDomainPermissions(t *testing.T) {
 		{name: "action scoped to the wrong resource type", permissions: []string{"app.*.read_domain"}, shouldPass: false},
 		{name: "parent-scoped grant does not cascade", permissions: []string{fmt.Sprintf("app.%s.read_app", seeded.appID)}, shouldPass: false},
 		{name: "other environment id does not match", permissions: []string{fmt.Sprintf("environment.%s.read_domain", uid.New(uid.EnvironmentPrefix))}, shouldPass: false},
-		{name: "urn missing the project and app segments", permissions: []string{fmt.Sprintf("unkey:v1:%s:environments/*#read_domain", seeded.workspaceID)}, shouldPass: false},
+		{name: "urn missing the project and app segments", permissions: []string{fmt.Sprintf("unkey:v1:%s:environments/*#read", seeded.workspaceID)}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}

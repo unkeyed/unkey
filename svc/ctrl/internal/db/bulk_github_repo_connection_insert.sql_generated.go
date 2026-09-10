@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertGithubRepoConnection is the base query for bulk insert
-const bulkInsertGithubRepoConnection = `INSERT INTO github_repo_connections ( workspace_id, project_id, app_id, installation_id, repository_id, repository_full_name, created_at, updated_at ) VALUES %s`
+const bulkInsertGithubRepoConnection = `INSERT INTO github_repo_connections ( workspace_id, project_id, app_id, installation_id, repository_id, repository_full_name, default_branch, created_at, updated_at ) VALUES %s`
 
 // InsertGithubRepoConnections performs bulk insert in a single query
 
@@ -22,7 +22,7 @@ func (q *BulkQueries) InsertGithubRepoConnections(ctx context.Context, args []In
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertGithubRepoConnection, strings.Join(valueClauses, ", "))
@@ -36,6 +36,7 @@ func (q *BulkQueries) InsertGithubRepoConnections(ctx context.Context, args []In
 		allArgs = append(allArgs, arg.InstallationID)
 		allArgs = append(allArgs, arg.RepositoryID)
 		allArgs = append(allArgs, arg.RepositoryFullName)
+		allArgs = append(allArgs, arg.DefaultBranch)
 		allArgs = append(allArgs, arg.CreatedAt)
 		allArgs = append(allArgs, arg.UpdatedAt)
 	}

@@ -5,8 +5,8 @@ import { z } from "zod";
 // Basic schemas
 export const keyPrefixSchema = z
   .string()
-  .max(8, {
-    error: "Prefixes cannot be longer than 8 characters",
+  .max(16, {
+    error: "Prefixes cannot be longer than 16 characters",
   })
   .trim()
   .refine((prefix) => !prefix.includes(" "), {

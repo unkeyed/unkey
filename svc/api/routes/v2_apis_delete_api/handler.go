@@ -83,7 +83,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Check if API belongs to the authorized workspace
-	if api.WorkspaceID != principal.WorkspaceID {
+	if api.WorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New("wrong workspace",
 			fault.Code(codes.Data.Api.NotFound.URN()),
 			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
@@ -123,7 +123,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		// Create audit log for API deletion
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			Event:       auditlog.APIDeleteEvent,
 			ActorType:   auditlog.AuditLogActor(principal.Subject.Type),
 			ActorID:     principal.Subject.ID,
@@ -153,7 +153,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	h.Caches.LiveApiByID.SetNull(ctx, cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: req.ApiId})
+	h.Caches.LiveApiByID.SetNull(ctx, cache.ScopedKey{WorkspaceID: principal.AuthorizedWorkspaceID, Key: req.ApiId})
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

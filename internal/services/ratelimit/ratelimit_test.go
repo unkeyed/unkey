@@ -400,12 +400,10 @@ func TestRatelimit_MidWindowBurstWhenLocalCurIsStale(t *testing.T) {
 		passed, cost, wantMaxPasses)
 }
 
-// TestRatelimit_MultiReplicaMidWindowBurstExceedsLimit keeps the production
-// burst shape that originally exposed stale local replicas. The limiter is
-// still best-effort rather than a Redis reservation on every request, but replay
-// freshness plus aggressive stale reads should bound the overshoot well below
-// the unsynchronized case where every replica independently spends a full local
-// window.
+// TestRatelimit_MultiReplicaMidWindowBurstExceedsLimit bounds overshoot when
+// replay catches up between bursts. Simulated request time does not schedule
+// replay workers: without a replay barrier, every replica may spend its entire
+// local allowance before any increment reaches the shared origin.
 func TestRatelimit_MultiReplicaMidWindowBurstExceedsLimit(t *testing.T) {
 	t.Parallel()
 
@@ -436,6 +434,10 @@ func TestRatelimit_MultiReplicaMidWindowBurstExceedsLimit(t *testing.T) {
 	workspaceID := uid.New(uid.WorkspacePrefix)
 	namespace := uid.New(uid.TestPrefix)
 	identifier := uid.New(uid.TestPrefix)
+	key := counterKey{
+		workspaceID: workspaceID, namespace: namespace, identifier: identifier,
+		durationMs: duration.Milliseconds(), sequence: calculateSequence(windowStart, duration),
+	}
 	// Advance request time through the burst so the test exercises replay-updated
 	// freshness and repeated stale refreshes rather than a Redis reservation model.
 	makeReq := func() RatelimitRequest {
@@ -453,26 +455,38 @@ func TestRatelimit_MultiReplicaMidWindowBurstExceedsLimit(t *testing.T) {
 
 	clk.Tick(30 * time.Second)
 
-	var (
-		passedRequests atomic.Int64
-		wg             sync.WaitGroup
-		start          = make(chan struct{})
-	)
-	for _, svc := range services {
-		wg.Add(1)
-		go func(svc *service) {
-			defer wg.Done()
-			<-start
-			for range burstRequestsPerNode {
-				resp, err := svc.Ratelimit(ctx, makeReq())
-				if err == nil && resp.Success {
-					passedRequests.Add(1)
+	var passedRequests atomic.Int64
+	const requestsPerBatch = 10
+	for range burstRequestsPerNode / requestsPerBatch {
+		var wg sync.WaitGroup
+		start := make(chan struct{})
+		errors := make(chan error, replicas*requestsPerBatch)
+		for _, svc := range services {
+			wg.Add(1)
+			go func(svc *service) {
+				defer wg.Done()
+				<-start
+				for range requestsPerBatch {
+					resp, err := svc.Ratelimit(ctx, makeReq())
+					if err != nil {
+						errors <- err
+					} else if resp.Success {
+						passedRequests.Add(1)
+					}
 				}
-			}
-		}(svc)
+			}(svc)
+		}
+		close(start)
+		wg.Wait()
+		close(errors)
+		for err := range errors {
+			require.NoError(t, err)
+		}
+		require.Eventually(t, func() bool {
+			count, err := origin.Get(ctx, key.redisKey())
+			return err == nil && count == (passedRequests.Load()+replicas)*cost
+		}, time.Second, time.Millisecond, "accepted requests must reach the shared origin before the next batch")
 	}
-	close(start)
-	wg.Wait()
 
 	passedTokens := passedRequests.Load() * cost
 	require.LessOrEqual(t, passedTokens, 3*limit,

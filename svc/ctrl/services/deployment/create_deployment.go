@@ -16,6 +16,7 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
+	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -56,17 +57,10 @@ type commitFields struct {
 	ForkRepository  string
 }
 
-// dockerSourceInfo holds the Docker image and inherited git metadata from a
-// current deployment, used when redeploying a non-git project.
-type dockerSourceInfo struct {
-	commitFields
-	dockerImage string
-}
-
 // CreateDeployment creates a new deployment record and initiates an async Restate
-// workflow. When source is omitted, the handler auto-detects: git-connected
-// apps deploy HEAD of their default branch, non-git apps reuse the live
-// deployment's Docker image.
+// workflow. When source is omitted, Git apps deploy HEAD of their default branch,
+// OCI apps deploy their configured default image, and historical untyped apps
+// infer a source from their repository or current deployment.
 //
 // The workflow runs asynchronously keyed by {app, environment}, so different
 // environments (e.g. prod vs preview) for the same app deploy in parallel while
@@ -97,10 +91,18 @@ func (s *Service) CreateDeployment(
 		return nil, err
 	}
 
+	ociImage := req.Msg.GetOciImage()
+	if ociImage != "" && req.Msg.GetDockerImage() != "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument,
+			fmt.Errorf("oci_image and deprecated docker_image are mutually exclusive"))
+	}
+	if ociImage == "" {
+		ociImage = req.Msg.GetDockerImage()
+	}
+
 	deploymentID, err := s.createAndDeploy(ctx, createParams{
 		context:       ctxLoad,
-		action:        "create",
-		dockerImage:   req.Msg.GetDockerImage(),
+		ociImage:      ociImage,
 		gitCommit:     req.Msg.GetGitCommit(),
 		command:       req.Msg.GetCommand(),
 		trigger:       triggerFromProto(req.Msg.GetTrigger()),
@@ -143,7 +145,7 @@ func (s *Service) ensureEnvironmentDeployable(ctx context.Context, dctx deployme
 
 	regional, err := s.db.FindAppRegionalSettingsByAppAndEnv(ctx, db.FindAppRegionalSettingsByAppAndEnvParams{
 		AppID:         dctx.app.ID,
-		EnvironmentID: dctx.env.Environment.ID,
+		EnvironmentID: dctx.env.ID,
 	})
 	if err != nil {
 		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load regional settings: %w", err))
@@ -156,7 +158,7 @@ func (s *Service) ensureEnvironmentDeployable(ctx context.Context, dctx deployme
 		return nil
 	}
 	return connect.NewError(connect.CodeFailedPrecondition,
-		fmt.Errorf("environment %q is not deployable: %s", dctx.env.Environment.Slug, strings.Join(messages, "; ")))
+		fmt.Errorf("environment %q is not deployable: %s", dctx.env.Slug, strings.Join(messages, "; ")))
 }
 
 // recordCreateAudit writes a deployment.create audit log attributed to the
@@ -190,7 +192,7 @@ func (s *Service) recordCreateAudit(
 					Meta: map[string]any{
 						"projectId":   dctx.project.ID,
 						"appId":       dctx.app.ID,
-						"environment": dctx.env.Environment.Slug,
+						"environment": dctx.env.Slug,
 					},
 				},
 			},
@@ -204,11 +206,33 @@ func (s *Service) recordCreateAudit(
 type deploymentContext struct {
 	project            db.Project
 	workspaceID        string
-	env                db.FindEnvironmentByAppIdAndSlugRow
-	app                db.App
-	appBuildSettings   db.AppBuildSetting
-	appRuntimeSettings db.AppRuntimeSetting
+	env                deploymentEnvironment
+	app                deploymentApp
+	appRuntimeSettings appRuntimeSettings
 	secretsBlob        []byte
+}
+
+type deploymentEnvironment struct {
+	ID   string
+	Slug string
+}
+
+type deploymentApp struct {
+	ID                  string
+	SourceType          db.AppsSourceType
+	CurrentDeploymentID sql.NullString
+}
+
+type appRuntimeSettings struct {
+	Port             int32
+	CpuMillicores    int32
+	MemoryMib        int32
+	StorageMib       uint32
+	Command          mysqltype.StringSlice
+	Healthcheck      mysqltype.NullHealthcheck
+	ShutdownSignal   db.AppRuntimeSettingsShutdownSignal
+	UpstreamProtocol db.AppRuntimeSettingsUpstreamProtocol
+	SentinelConfig   []byte
 }
 
 // loadDeploymentContext resolves project, app, environment, settings, and
@@ -241,9 +265,9 @@ func (s *Service) loadDeploymentContext(
 			fmt.Errorf("failed to lookup environment: %w", err))
 	}
 
-	appWithSettings, err := s.db.FindAppWithSettings(ctx, db.FindAppWithSettingsParams{
+	appWithSettings, err := s.db.FindAppWithRuntimeSettings(ctx, db.FindAppWithRuntimeSettingsParams{
 		ID:            appID,
-		EnvironmentID: env.Environment.ID,
+		EnvironmentID: env.ID,
 	})
 	if err != nil && db.IsNotFound(err) {
 		return deploymentContext{}, connect.NewError(connect.CodeNotFound,
@@ -254,23 +278,20 @@ func (s *Service) loadDeploymentContext(
 			fmt.Errorf("failed to lookup app: %w", err))
 	}
 
-	// All three records are resolved independently, so verify they belong to
-	// the same project before letting a deployment row inherit a mismatched
-	// (project_id, app_id, environment_id) triple. External entry points
-	// (v2 API, webhook, dashboard) already guarantee this via workspace-scoped
-	// joins; the guard catches future internal callers that pass IDs directly.
-	if appWithSettings.App.ProjectID != project.ID {
+	// These records are resolved independently, so verify their ownership
+	// before persisting a mismatched project/app/environment tuple.
+	if appWithSettings.AppProjectID != project.ID {
 		return deploymentContext{}, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("app %q does not belong to project %q", appID, project.ID))
 	}
-	if env.Environment.ProjectID != project.ID {
+	if env.ProjectID != project.ID {
 		return deploymentContext{}, connect.NewError(connect.CodeInvalidArgument,
 			fmt.Errorf("environment %q does not belong to project %q", envSlug, project.ID))
 	}
 
 	appEnvVars, err := s.db.FindAppEnvVarsByAppAndEnv(ctx, db.FindAppEnvVarsByAppAndEnvParams{
-		AppID:         appWithSettings.App.ID,
-		EnvironmentID: env.Environment.ID,
+		AppID:         appWithSettings.AppID,
+		EnvironmentID: env.ID,
 	})
 	if err != nil {
 		return deploymentContext{}, connect.NewError(connect.CodeInternal,
@@ -298,27 +319,32 @@ func (s *Service) loadDeploymentContext(
 	}
 
 	return deploymentContext{
-		project:            project,
-		workspaceID:        project.WorkspaceID,
-		env:                env,
-		app:                appWithSettings.App,
-		appBuildSettings:   appWithSettings.AppBuildSetting,
-		appRuntimeSettings: appWithSettings.AppRuntimeSetting,
-		secretsBlob:        secretsBlob,
+		project:     project,
+		workspaceID: project.WorkspaceID,
+		env:         deploymentEnvironment{ID: env.ID, Slug: envSlug},
+		app: deploymentApp{
+			ID:                  appWithSettings.AppID,
+			SourceType:          appWithSettings.AppSourceType,
+			CurrentDeploymentID: appWithSettings.AppCurrentDeploymentID,
+		},
+		appRuntimeSettings: appRuntimeSettings{
+			Port: appWithSettings.RuntimeSettingsPort, CpuMillicores: appWithSettings.RuntimeSettingsCpuMillicores,
+			MemoryMib: appWithSettings.RuntimeSettingsMemoryMib, StorageMib: appWithSettings.RuntimeSettingsStorageMib,
+			Command: appWithSettings.RuntimeSettingsCommand, Healthcheck: appWithSettings.RuntimeSettingsHealthcheck,
+			ShutdownSignal: appWithSettings.RuntimeSettingsShutdownSignal, UpstreamProtocol: appWithSettings.RuntimeSettingsUpstreamProtocol,
+			SentinelConfig: appWithSettings.RuntimeSettingsSentinelConfig,
+		},
+		secretsBlob: secretsBlob,
 	}, nil
 }
 
 // createParams carries everything createAndDeploy needs from a caller.
 type createParams struct {
 	context deploymentContext
-	action  string
 
-	// Source overrides. dockerImage wins if set; otherwise we auto-detect
-	// from git repo connection (using gitCommit.commit_sha if provided) or
-	// fall back to the live deployment's image.
-	dockerImage string
-	gitCommit   *ctrlv1.GitCommitInfo
-	command     []string
+	ociImage  string
+	gitCommit *ctrlv1.GitCommitInfo
+	command   []string
 
 	// Attribution persisted on the deployment row.
 	trigger       db.DeploymentsTrigger
@@ -326,14 +352,9 @@ type createParams struct {
 	triggerReason string
 }
 
-// createAndDeploy is the shared path used by both CreateDeployment and
-// RebuildDeployment. It checks workspace access and environment deployability,
-// resolves the source (docker image / git / fallback), inserts the deployment
-// row, kicks off the Restate workflow, persists the invocation id, and cancels
-// superseded siblings.
 func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, error) {
 	c := p.context
-	if err := s.ensureWorkspaceCanDeploy(ctx, c.workspaceID, p.action); err != nil {
+	if err := s.ensureWorkspaceCanDeploy(ctx, c.workspaceID); err != nil {
 		return "", err
 	}
 	if err := s.ensureEnvironmentDeployable(ctx, c); err != nil {
@@ -352,10 +373,9 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 	}
 
 	var deployReq *hydrav1.DeployRequest
+	deploymentSource := db.DeploymentsSourceUnknown
+	requestedImage := ""
 
-	// Populate caller-provided commit metadata. Branch defaulting and GitHub
-	// fill-in happen later, only when we're actually building from git — we
-	// don't want to synthesize git metadata on docker-image redeploys.
 	var commit commitFields
 	gc := p.gitCommit
 	explicitGit := gc != nil
@@ -369,8 +389,6 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		commit.ForkRepository = gc.GetForkRepository()
 	}
 
-	// Look up the GitHub repo connection once. Used both to decide source type
-	// (git vs docker) and to resolve missing commit metadata synchronously.
 	repoConn, repoErr := s.db.FindGithubRepoConnectionByAppId(ctx, c.app.ID)
 	hasRepoConnection := repoErr == nil
 	if repoErr != nil && !db.IsNotFound(repoErr) {
@@ -378,42 +396,111 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 			fmt.Errorf("failed to lookup github repo connection: %w", repoErr))
 	}
 
+	useGit := false
 	switch {
-	case p.dockerImage != "":
-		// Explicit docker image (CLI, REST API): skip rebuild, redeploy as-is.
-		// Don't touch git metadata — the caller owns whatever they passed.
+	case p.ociImage != "":
+		imageReference, imageErr := imageref.Normalize(p.ociImage)
+		if imageErr != nil {
+			return "", connect.NewError(connect.CodeInvalidArgument, imageErr)
+		}
+		deploymentSource = db.DeploymentsSourceOci
+		requestedImage = imageReference
 		logger.Info("deployment will use prebuilt image",
 			"deployment_id", deploymentID,
 			"app_id", c.app.ID,
-			"image", p.dockerImage)
+			"image", requestedImage)
 
 		deployReq = &hydrav1.DeployRequest{
 			DeploymentId: deploymentID,
 			Command:      command,
-			Source: &hydrav1.DeployRequest_DockerImage{
-				DockerImage: &hydrav1.DockerImage{
-					Image: p.dockerImage,
+			Source: &hydrav1.DeployRequest_OciImage{
+				OciImage: &hydrav1.OciImage{
+					Image: requestedImage,
 				},
 			},
 		}
 
+	case explicitGit && c.app.SourceType == db.AppsSourceTypeOci:
+		return "", connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("OCI-sourced app %q cannot deploy a Git commit", c.app.ID))
+
 	case explicitGit && !hasRepoConnection:
-		// Caller asked for a specific commit, but the app has no git
-		// connection. Refuse rather than silently redeploying the current
-		// image (a different artifact than what was requested).
 		return "", connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("app %q has no GitHub repo connection; cannot deploy requested git commit", c.app.ID))
 
+	case explicitGit:
+		useGit = true
+
+	case c.app.SourceType == db.AppsSourceTypeGit:
+		if !hasRepoConnection {
+			return "", connect.NewError(connect.CodeFailedPrecondition,
+				fmt.Errorf("GitHub-sourced app %q has no repository connection", c.app.ID))
+		}
+		useGit = true
+
+	case c.app.SourceType == db.AppsSourceTypeOci:
+		ociSource, ociErr := s.db.FindAppSourceOciByAppId(ctx, c.app.ID)
+		if ociErr != nil {
+			if db.IsNotFound(ociErr) {
+				return "", connect.NewError(connect.CodeFailedPrecondition,
+					fmt.Errorf("OCI-sourced app %q has no source configuration", c.app.ID))
+			}
+			return "", connect.NewError(connect.CodeInternal,
+				fmt.Errorf("failed to load OCI source: %w", ociErr))
+		}
+		imageReference, imageErr := imageref.Normalize(ociSource.ImageReference)
+		if imageErr != nil {
+			return "", connect.NewError(connect.CodeFailedPrecondition,
+				fmt.Errorf("OCI source for app %q is invalid: %w", c.app.ID, imageErr))
+		}
+		commit = commitFields{ //nolint:exhaustruct
+		}
+		deploymentSource = db.DeploymentsSourceOci
+		requestedImage = imageReference
+		deployReq = &hydrav1.DeployRequest{
+			DeploymentId: deploymentID,
+			Command:      command,
+			Source: &hydrav1.DeployRequest_OciImage{
+				OciImage: &hydrav1.OciImage{Image: requestedImage},
+			},
+		}
+
 	case hasRepoConnection:
-		// Git-connected app: fill missing commit metadata synchronously so
-		// the deployment row is complete at insert time and buildImage can
-		// run without any GitHub calls.
-		// Only default to the app's default branch when neither SHA nor branch
-		// were provided. If the caller pinned a SHA without a branch, that SHA
-		// may live on a non-default branch: defaulting would record a wrong
-		// branch alongside the right SHA.
+		useGit = true
+
+	default:
+		imageReference, ociErr := buildOciSource(ctx, s.db, c.app.ID, c.app.CurrentDeploymentID, deploymentID)
+		if ociErr != nil {
+			return "", ociErr
+		}
+		commit = commitFields{ //nolint:exhaustruct
+		}
+		deploymentSource = db.DeploymentsSourceOci
+		requestedImage = imageReference
+		deployReq = &hydrav1.DeployRequest{
+			DeploymentId: deploymentID,
+			Command:      command,
+			Source: &hydrav1.DeployRequest_OciImage{
+				OciImage: &hydrav1.OciImage{Image: requestedImage},
+			},
+		}
+	}
+
+	if useGit {
+		buildSettings, buildErr := s.db.FindAppBuildSettingByAppEnv(ctx, db.FindAppBuildSettingByAppEnvParams{
+			AppID:         c.app.ID,
+			EnvironmentID: c.env.ID,
+		})
+		if buildErr != nil {
+			if db.IsNotFound(buildErr) {
+				return "", connect.NewError(connect.CodeFailedPrecondition,
+					fmt.Errorf("GitHub-sourced app %q has no build settings for environment %q", c.app.ID, c.env.Slug))
+			}
+			return "", connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load build settings: %w", buildErr))
+		}
+
 		if commit.SHA == "" && commit.Branch == "" {
-			commit.Branch = defaultBranch(c.app.DefaultBranch)
+			commit.Branch = defaultBranch(repoConn.DefaultBranch)
 		}
 		if err := commit.fillFromGitHub(
 			s.github, repoConn.InstallationID, repoConn.RepositoryFullName,
@@ -436,34 +523,16 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 					InstallationId: repoConn.InstallationID,
 					Repository:     repoConn.RepositoryFullName,
 					CommitSha:      commit.SHA,
-					ContextPath:    c.appBuildSettings.DockerContext,
-					DockerfilePath: c.appBuildSettings.Dockerfile.String,
-					BuildCommand:   c.appBuildSettings.BuildCommand.String,
+					ContextPath:    buildSettings.DockerContext,
+					DockerfilePath: buildSettings.Dockerfile.String,
+					BuildCommand:   buildSettings.BuildCommand.String,
 					Branch:         commit.Branch,
 					ForkRepository: commit.ForkRepository,
 					PrNumber:       0,
 				},
 			},
 		}
-
-	default:
-		// No docker image, no git commit, no repo connection: reuse current
-		// deployment's image.
-		dockerInfo, dockerErr := buildDockerSource(ctx, s.db, c.app, deploymentID)
-		if dockerErr != nil {
-			return "", dockerErr
-		}
-		commit = dockerInfo.commitFields
-
-		deployReq = &hydrav1.DeployRequest{
-			DeploymentId: deploymentID,
-			Command:      command,
-			Source: &hydrav1.DeployRequest_DockerImage{
-				DockerImage: &hydrav1.DockerImage{
-					Image: dockerInfo.dockerImage,
-				},
-			},
-		}
+		deploymentSource = db.DeploymentsSourceGit
 	}
 
 	trigger := p.trigger
@@ -481,7 +550,9 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		WorkspaceID:                   c.workspaceID,
 		ProjectID:                     c.project.ID,
 		AppID:                         c.app.ID,
-		EnvironmentID:                 c.env.Environment.ID,
+		EnvironmentID:                 c.env.ID,
+		Source:                        deploymentSource,
+		ImageRequested:                sql.NullString{String: requestedImage, Valid: requestedImage != ""},
 		SentinelConfig:                c.appRuntimeSettings.SentinelConfig,
 		EncryptedEnvironmentVariables: c.secretsBlob,
 		Command:                       command,
@@ -518,7 +589,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 		"workspace_id", c.workspaceID,
 		"project_id", c.project.ID,
 		"app_id", c.app.ID,
-		"environment", c.env.Environment.ID,
+		"environment", c.env.ID,
 		"trigger", string(trigger),
 	)
 
@@ -565,7 +636,7 @@ func (s *Service) createAndDeploy(ctx context.Context, p createParams) (string, 
 	if cancelErr := s.dedup.CancelOlderSiblings(ctx, dedup.Newer{
 		ID:            deploymentID,
 		AppID:         c.app.ID,
-		EnvironmentID: c.env.Environment.ID,
+		EnvironmentID: c.env.ID,
 		GitBranch:     commit.Branch,
 		CreatedAt:     now,
 	}); cancelErr != nil {
@@ -600,61 +671,53 @@ func triggerFromProto(t ctrlv1.DeploymentTrigger) db.DeploymentsTrigger {
 	}
 }
 
-// defaultBranch returns the app's configured default branch, falling back
-// to "main" when unset.
-func defaultBranch(appDefault string) string {
-	if appDefault != "" {
-		return appDefault
+func defaultBranch(connectionDefault sql.NullString) string {
+	if connectionDefault.Valid && connectionDefault.String != "" {
+		return connectionDefault.String
 	}
 	return "main"
 }
 
-// buildDockerSource looks up the app's current deployment's Docker image and carries
-// over its git metadata for the new deployment record.
-func buildDockerSource(
+func buildOciSource(
 	ctx context.Context,
 	database db.Database,
-	app db.App,
+	appID string,
+	currentDeploymentID sql.NullString,
 	deploymentID string,
-) (dockerSourceInfo, error) {
-	if !app.CurrentDeploymentID.Valid || app.CurrentDeploymentID.String == "" {
-		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("app %q has no current deployment and no git connection; cannot redeploy", app.ID))
+) (string, error) {
+	if !currentDeploymentID.Valid || currentDeploymentID.String == "" {
+		return "", connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("app %q has no current deployment and no git connection; cannot redeploy", appID))
 	}
 
-	currentDeployment, err := database.FindDeploymentById(ctx, app.CurrentDeploymentID.String)
+	currentDeployment, err := database.FindDeploymentById(ctx, currentDeploymentID.String)
 	if err != nil {
 		if db.IsNotFound(err) {
-			return dockerSourceInfo{}, connect.NewError(connect.CodeNotFound,
-				fmt.Errorf("current deployment %q not found", app.CurrentDeploymentID.String))
+			return "", connect.NewError(connect.CodeNotFound,
+				fmt.Errorf("current deployment %q not found", currentDeploymentID.String))
 		}
-		return dockerSourceInfo{}, connect.NewError(connect.CodeInternal,
+		return "", connect.NewError(connect.CodeInternal,
 			fmt.Errorf("failed to lookup current deployment: %w", err))
 	}
 
-	if !currentDeployment.Image.Valid || currentDeployment.Image.String == "" {
-		return dockerSourceInfo{}, connect.NewError(connect.CodeFailedPrecondition,
-			fmt.Errorf("current deployment %q has no Docker image; cannot redeploy without git connection",
-				app.CurrentDeploymentID.String))
+	resolvedImage := currentDeployment.ImageResolved
+	if !resolvedImage.Valid || resolvedImage.String == "" {
+		return "", connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("current deployment %q has no OCI image; cannot redeploy without git connection",
+				currentDeploymentID.String))
 	}
 
 	logger.Info("deployment will reuse current deployment image",
 		"deployment_id", deploymentID,
-		"current_deployment_id", app.CurrentDeploymentID.String,
-		"image", currentDeployment.Image.String)
+		"current_deployment_id", currentDeploymentID.String,
+		"image", resolvedImage.String)
 
-	return dockerSourceInfo{
-		dockerImage: currentDeployment.Image.String,
-		commitFields: commitFields{
-			SHA:             currentDeployment.GitCommitSha.String,
-			Branch:          currentDeployment.GitBranch.String,
-			Message:         currentDeployment.GitCommitMessage.String,
-			AuthorHandle:    currentDeployment.GitCommitAuthorHandle.String,
-			AuthorAvatarURL: currentDeployment.GitCommitAuthorAvatarUrl.String,
-			Timestamp:       currentDeployment.GitCommitTimestamp.Int64,
-			ForkRepository:  currentDeployment.ForkRepositoryFullName.String,
-		},
-	}, nil
+	imageReference, err := imageref.NormalizeHistorical(resolvedImage.String)
+	if err != nil {
+		return "", connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("current deployment %q has an invalid OCI image: %w", currentDeploymentID.String, err))
+	}
+	return imageReference, nil
 }
 
 // trimLength truncates s to at most maxBytes bytes while preserving valid

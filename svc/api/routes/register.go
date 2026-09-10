@@ -31,6 +31,7 @@ import (
 	v2DeploymentsRollbackDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_rollback_deployment"
 	v2DeploymentsStartDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_start_deployment"
 	v2DeploymentsStopDeployment "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_stop_deployment"
+	v3DeploymentsCreateDeployment "github.com/unkeyed/unkey/svc/api/routes/v3_deployments_create_deployment"
 
 	v2IdentitiesCreateIdentity "github.com/unkeyed/unkey/svc/api/routes/v2_identities_create_identity"
 	v2IdentitiesDeleteIdentity "github.com/unkeyed/unkey/svc/api/routes/v2_identities_delete_identity"
@@ -129,16 +130,20 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	withValidation := zen.WithValidation(svc.Validator)
 	withTimeout := zen.WithTimeout(time.Minute)
 	withAuthentication := middleware.WithAuthentication(middleware.AuthenticationConfig{
-		Auth:        svc.Auth,
-		Database:    svc.Database,
-		LimitsCache: svc.Caches.WorkspaceLimits,
-		Ratelimit:   svc.Ratelimit,
+		Auth:             svc.Auth,
+		KeyVerifications: svc.KeyVerifications,
+		Region:           info.Region,
+		Database:         svc.Database,
+		LimitsCache:      svc.Caches.WorkspaceLimits,
+		Ratelimit:        svc.Ratelimit,
 	})
 	withPortalAuthentication := middleware.WithAuthentication(middleware.AuthenticationConfig{
-		Auth:        svc.PortalAuth,
-		Database:    svc.Database,
-		LimitsCache: svc.Caches.WorkspaceLimits,
-		Ratelimit:   svc.Ratelimit,
+		Auth:             svc.PortalAuth,
+		KeyVerifications: nil,
+		Region:           "",
+		Database:         svc.Database,
+		LimitsCache:      svc.Caches.WorkspaceLimits,
+		Ratelimit:        svc.Ratelimit,
 	})
 
 	publicMiddlewares := []zen.Middleware{
@@ -206,6 +211,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2RatelimitLimit.Handler{
 			DB:              svc.Database,
 			RatelimitEvents: svc.RatelimitEvents,
+			DirectAuditLogs: svc.DirectAuditLogs,
 			Ratelimit:       svc.Ratelimit,
 			NamespaceCache:  svc.Caches.RatelimitNamespace,
 			Auditlogs:       svc.Auditlogs,
@@ -364,6 +370,15 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(
 		protectedMiddlewares,
 		&v2DeploymentsCreateDeployment.Handler{
+			DB:         svc.Database,
+			CtrlClient: svc.CtrlDeploymentClient,
+		},
+	)
+
+	// v3/deployments.createDeployment
+	srv.RegisterRoute(
+		protectedMiddlewares,
+		&v3DeploymentsCreateDeployment.Handler{
 			DB:         svc.Database,
 			CtrlClient: svc.CtrlDeploymentClient,
 		},
@@ -535,7 +550,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2KeysVerifyKey.Handler{
 			DB:               svc.Database,
 			Keys:             svc.Keys,
-			Auditlogs:        svc.Auditlogs,
+			DirectAuditLogs:  svc.DirectAuditLogs,
 			KeyVerifications: svc.KeyVerifications,
 		},
 	)
@@ -911,6 +926,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 		&v2AppsUpdateApp.Handler{
 			DB:            svc.Database,
 			Auditlogs:     svc.Auditlogs,
+			CtrlClient:    svc.CtrlAppClient,
 			GitHubClient:  svc.GitHubClient,
 			GitHubAppName: svc.GitHubAppName,
 		},

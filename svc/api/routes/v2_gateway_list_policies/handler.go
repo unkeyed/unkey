@@ -44,7 +44,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	env, err := db.Query.FindEnvironmentByIdentifiers(ctx, h.DB.RO(), db.FindEnvironmentByIdentifiersParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Project:     req.Project,
 		App:         req.App,
 		Environment: req.Environment,
@@ -78,8 +78,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.ReadPolicies,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Gateway().Policy("*"),
-			permissions.ReadPolicy{},
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(env.ProjectID).App(env.AppID).Environment(env.ID).Gateway().Policy("*"),
+			permissions.Read,
 		),
 	))
 	if err != nil {
@@ -107,7 +107,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Frontline tolerates a broken blob by skipping it to stay up, but we
 	// must surface the failure rather than pass an unreadable
 	// config off as "no policies".
-	cfg, err := policyconfig.Parse(settings.AppRuntimeSetting.SentinelConfig)
+	cfg, err := policyconfig.Parse(settings.SentinelConfig)
 	if err != nil {
 		return fault.Wrap(
 			err,

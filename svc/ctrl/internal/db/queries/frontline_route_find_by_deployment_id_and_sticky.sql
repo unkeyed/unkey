@@ -1,2 +1,2 @@
 -- name: FindFrontlineRouteByDeploymentIDAndSticky :one
-SELECT * FROM frontline_routes WHERE deployment_id = ? AND sticky = ?;
+SELECT frontline_routes.pk, frontline_routes.id, frontline_routes.project_id, frontline_routes.app_id, frontline_routes.deployment_id, frontline_routes.environment_id, frontline_routes.fully_qualified_domain_name, frontline_routes.sticky, frontline_routes.created_at, frontline_routes.updated_at FROM frontline_routes WHERE deployment_id = ? AND sticky = ?;

@@ -1,5 +1,5 @@
 -- name: ListRolesByKeyID :many
-SELECT r.*, COALESCE(
+SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
         (SELECT JSON_ARRAYAGG(
             json_object(
                 'id', permission.id,

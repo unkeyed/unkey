@@ -1,90 +1,88 @@
 ---
-title: "WorkOS permissions"
-description: "How WorkOS permission strings map to Unkey resource permissions"
+title: "WorkOS roles"
+description: "How WorkOS roles map to Unkey resource permissions"
 ---
 
-WorkOS is authoritative for user roles and permission strings. Unkey uses WorkOS
-for authentication and role assignment, then translates the WorkOS permission
-strings from the access token into canonical Unkey resource permissions before
-the API constructs the principal.
+WorkOS is authoritative for a user's assigned organization roles. We define the
+permissions for each role in the API.
 
-This translation exists because WorkOS permission strings cannot represent
-Unkey resource permissions directly. WorkOS permission slugs are capped at 48
-characters and cannot contain `/`, so they cannot encode canonical Unkey
-resource paths. The WorkOS permission model is intentionally much smaller than
-Unkey's resource permission model.
+The WorkOS session cookie contains a sealed access token. Assigning every Unkey
+permission to a WorkOS role adds every permission slug to that token. The token
+can then exceed the browser's cookie size limit. We avoid this limit by
+transporting role claims instead of permission claims. The API expands the
+roles into permissions.
 
-The exact list of supported WorkOS permissions and their Unkey translations is
-defined in
-[`pkg/auth/workos/permissions.go`](https://github.com/unkeyed/unkey/blob/main/pkg/auth/workos/permissions.go).
-That Go file is the source of truth.
+## Role claims
 
-## Permission shape
+WorkOS access tokens contain the built-in `roles` claim. It contains all
+organization membership roles assigned to the user.
 
-WorkOS recommends clear, concise permission slugs with a resource and action
-delimiter. Unkey follows that shape and keeps WorkOS permissions broad:
+The API does not read the singular `role` claim. An absent or empty `roles`
+claim maps to no permissions.
+
+Set `provider = "workos"` on the JWT authentication entry to enable role
+mapping. The API does not infer the provider from the issuer.
+
+## Configure WorkOS roles
+
+Create the roles manually in each WorkOS environment. Open the
+<a
+  href="https://dashboard.workos.com/environment/authorization/"
+  target="_blank"
+>
+  Authorization page
+</a>
+in the WorkOS Dashboard.
+
+1. Select the WorkOS environment.
+2. Click **Create role**.
+3. Create **Developer** with the immutable slug `developer`.
+4. Create **Viewer** with the immutable slug `viewer`.
+5. Leave both roles without WorkOS permissions.
+6. Repeat these steps for every WorkOS environment.
+
+## Role policy
+
+The WorkOS role policy lives in
+<a
+  href="https://github.com/unkeyed/unkey/blob/main/pkg/auth/workos/permissions.go"
+  target="_blank"
+>
+  `pkg/auth/workos/permissions.go`
+</a>.
+
+| Role | Unkey permissions |
+| --- | --- |
+| `admin` | Full product control through `unkey:v1:{workspace_id}:**#*`, including root keys |
+| `developer` | Normal product access, including API key decryption, but no root keys |
+| `viewer` | Read-only product access, with no API key decryption |
+
+The `developer` and `viewer` mappings list each permission. They do not use a
+recursive wildcard. A new catalog entry requires an explicit policy update
+before either role receives it.
+
+Each JWT authentication entry with `provider = "workos"` uses this role policy.
+The configured issuer does not select role mapping.
+
+We intend to add an `owner` role. This role will hold workspace-level
+actions such as workspace deletion. The dashboard will reject attempts to
+remove an owner from the team.
+
+## Expansion
+
+The JWT resolver verifies the issuer, audience, signature, and time claims. It
+preserves the `roles` claim. The WorkOS provider integration then sets the
+principal's permissions. It adds the resolved workspace ID to each permission:
 
 ```plaintext
-{area}:{action}
+Role: developer
+Unkey permission: unkey:v1:{workspace_id}:projects/*/keyspaces/*/keys/*#read
 ```
 
-For example:
+Handlers receive API-owned resource permissions. Handlers do not depend on
+WorkOS role names.
 
-```plaintext
-keys:create
-```
+## Unknown roles
 
-The WorkOS slug is intentionally not a Unkey resource permission. It is stable
-input from the identity provider. The API translates it after token verification
-because only Unkey owns the resource-name contract.
-
-## Translation
-
-The WorkOS resolver wraps the generic JWT JWKS resolver. The generic resolver
-verifies issuer, audience, signature, and time claims, and builds the initial
-JWT principal. The WorkOS wrapper then replaces the raw WorkOS permission
-strings with canonical permissions in this format:
-
-```plaintext
-unkey:v1:{workspace_id}:{resource_path}#{action}
-```
-
-A WorkOS permission string such as:
-
-```plaintext
-deployments:create
-```
-
-becomes a resource permission for the principal's workspace:
-
-```plaintext
-unkey:v1:{workspace_id}:projects/**#create_deployment
-```
-
-The translated permission is the only value handlers see. Handler authorization
-does not depend on WorkOS permission names.
-
-## Unknown permissions
-
-Unknown WorkOS permission strings are ignored during translation. They don't
-grant access, and they don't fall back to legacy wildcard permissions.
-
-This makes WorkOS safe to contain permissions that are not yet understood by
-the API. Adding a new permission requires updating the mapping table in
-`pkg/auth/workos/permissions.go` and adding tests for the resulting Unkey
-resource permission.
-
-## Ownership boundaries
-
-The generic JWT package must stay provider-neutral. It verifies JWTs and
-returns claims as-is.
-
-WorkOS-specific behavior belongs in `pkg/auth/workos`:
-
-- the WorkOS issuer constant,
-- the WorkOS JWKS resolver wrapper,
-- the WorkOS permission mapping table, and
-- tests for WorkOS permission translation.
-
-API configuration uses the WorkOS wrapper only for JWKS-backed WorkOS access
-tokens. HMAC JWT auth continues to use the generic JWT resolver directly.
+An unknown or empty role maps to no permissions. The resolver logs the role and
+continues with the known roles from the same token.
