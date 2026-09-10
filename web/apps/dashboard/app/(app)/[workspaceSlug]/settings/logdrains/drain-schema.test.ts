@@ -4,6 +4,9 @@ import {
   createDrainSchema,
   editDrainSchema,
   emptyDrainForm,
+  submittedEventTypes,
+  submittedSources,
+  submittedStatusClasses,
 } from "./drain-schema";
 
 function messagesFor(schema: typeof createDrainSchema, values: Partial<DrainFormValues>): string[] {
@@ -72,6 +75,110 @@ describe("createDrainSchema", () => {
   it("ignores the unused destination's fields", () => {
     expect(messagesFor(createDrainSchema, { ...httpDrain, dataset: "", token: "" })).toEqual([]);
   });
+
+  it("rejects a gateway drain whose sources are all unticked", () => {
+    expect(
+      messagesFor(createDrainSchema, {
+        ...httpDrain,
+        stream: "gateway_requests",
+        sourceMode: "some",
+      }),
+    ).toContain("Choose at least one source");
+  });
+
+  it("accepts a gateway drain with a chosen source", () => {
+    expect(
+      messagesFor(createDrainSchema, {
+        ...httpDrain,
+        stream: "gateway_requests",
+        sourceMode: "some",
+        projectIds: ["project"],
+      }),
+    ).toEqual([]);
+  });
+
+  it("rejects specific event types with an empty list", () => {
+    expect(messagesFor(createDrainSchema, { ...httpDrain, eventTypesMode: "specific" })).toContain(
+      "Choose at least one event type",
+    );
+  });
+
+  it("accepts specific event types with a chosen type", () => {
+    expect(
+      messagesFor(createDrainSchema, {
+        ...httpDrain,
+        eventTypesMode: "specific",
+        eventTypes: ["key.create"],
+      }),
+    ).toEqual([]);
+  });
+
+  it("rejects custom statuses with an empty list", () => {
+    expect(
+      messagesFor(createDrainSchema, {
+        ...httpDrain,
+        stream: "gateway_requests",
+        statusMode: "custom",
+      }),
+    ).toContain("Choose at least one status class");
+  });
+
+  it("ignores the gateway modes on other streams", () => {
+    expect(
+      messagesFor(createDrainSchema, {
+        ...httpDrain,
+        stream: "audit_logs",
+        sourceMode: "some",
+        statusMode: "custom",
+      }),
+    ).toEqual([]);
+  });
+});
+
+describe("submittedStatusClasses", () => {
+  it("sends nothing in all mode", () => {
+    expect(
+      submittedStatusClasses({ ...emptyDrainForm, statusMode: "all", statusClasses: [2] }),
+    ).toEqual([]);
+  });
+
+  it("sends 4xx and 5xx in errors mode", () => {
+    expect(submittedStatusClasses({ ...emptyDrainForm, statusMode: "errors" })).toEqual([4, 5]);
+  });
+
+  it("sends the chosen classes in custom mode", () => {
+    expect(
+      submittedStatusClasses({ ...emptyDrainForm, statusMode: "custom", statusClasses: [3] }),
+    ).toEqual([3]);
+  });
+});
+
+describe("submittedSources", () => {
+  it("sends no filter in all mode, whatever the kept selection is", () => {
+    expect(
+      submittedSources({ ...emptyDrainForm, sourceMode: "all", projectIds: ["project"] }),
+    ).toEqual({ projectIds: [], appIds: [], environmentIds: [] });
+  });
+
+  it("sends the encoded selection in some mode", () => {
+    expect(submittedSources({ ...emptyDrainForm, sourceMode: "some", appIds: ["app"] })).toEqual({
+      projectIds: [],
+      appIds: ["app"],
+      environmentIds: [],
+    });
+  });
+});
+
+describe("event type validation", () => {
+  it("ignores the event type mode on the key verifications stream", () => {
+    expect(
+      messagesFor(createDrainSchema, {
+        ...httpDrain,
+        stream: "key_verifications",
+        eventTypesMode: "specific",
+      }),
+    ).toEqual([]);
+  });
 });
 
 describe("editDrainSchema", () => {
@@ -84,5 +191,27 @@ describe("editDrainSchema", () => {
     expect(
       messagesFor(editDrainSchema, { kind: "axiom", name: "Axiom", dataset: "audit-logs" }),
     ).toEqual([]);
+  });
+});
+
+describe("submittedEventTypes", () => {
+  it("sends no event types in all mode, whatever the kept selection is", () => {
+    expect(
+      submittedEventTypes({
+        ...emptyDrainForm,
+        eventTypesMode: "all",
+        eventTypes: ["key.create", "key.delete"],
+      }),
+    ).toEqual([]);
+  });
+
+  it("sends the chosen event types in specific mode", () => {
+    expect(
+      submittedEventTypes({
+        ...emptyDrainForm,
+        eventTypesMode: "specific",
+        eventTypes: ["key.create"],
+      }),
+    ).toEqual(["key.create"]);
   });
 });

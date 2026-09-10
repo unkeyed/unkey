@@ -13,6 +13,9 @@ import {
   drainToFormValues,
   editDrainSchema,
   emptyDrainForm,
+  submittedEventTypes,
+  submittedSources,
+  submittedStatusClasses,
 } from "../drain-schema";
 
 export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted: () => void }) {
@@ -57,21 +60,28 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
     form.handleSubmit((submitted) => {
       const name = submitted.name.trim();
       const destination = changedDestination(submitted, values);
-      const eventTypesChanged = !sameEventTypes(submitted.eventTypes, values.eventTypes);
+      const eventTypes = submittedEventTypes(submitted);
+      const eventTypesChanged = !sameEventTypes(eventTypes, values.eventTypes);
       const outcomesChanged = !sameEventTypes(submitted.outcomes, values.outcomes);
       const keySpacesChanged = !sameEventTypes(submitted.keySpaceIds, values.keySpaceIds);
-      const statusesChanged = !sameEventTypes(submitted.statusClasses, values.statusClasses);
       const severitiesChanged = !sameEventTypes(submitted.severities, values.severities);
       const projectField = drain.stream === "runtime_logs" ? "runtimeProjectIds" : "projectIds";
       const appField = drain.stream === "runtime_logs" ? "runtimeAppIds" : "appIds";
       const environmentField =
         drain.stream === "runtime_logs" ? "runtimeEnvironmentIds" : "environmentIds";
-      const projectsChanged = !sameEventTypes(submitted[projectField], values[projectField]);
-      const appsChanged = !sameEventTypes(submitted[appField], values[appField]);
-      const environmentsChanged = !sameEventTypes(
-        submitted[environmentField],
-        values[environmentField],
-      );
+      const statusClasses = submittedStatusClasses(submitted);
+      const sources =
+        drain.stream === "runtime_logs"
+          ? {
+              projectIds: submitted.runtimeProjectIds,
+              appIds: submitted.runtimeAppIds,
+              environmentIds: submitted.runtimeEnvironmentIds,
+            }
+          : submittedSources(submitted);
+      const statusesChanged = !sameEventTypes(statusClasses, values.statusClasses);
+      const projectsChanged = !sameEventTypes(sources.projectIds, values[projectField]);
+      const appsChanged = !sameEventTypes(sources.appIds, values[appField]);
+      const environmentsChanged = !sameEventTypes(sources.environmentIds, values[environmentField]);
       if (
         name === drain.name &&
         destination === undefined &&
@@ -91,14 +101,14 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
         {
           id: drain.id,
           ...(name !== drain.name ? { name } : {}),
-          ...(eventTypesChanged ? { eventTypes: submitted.eventTypes } : {}),
+          ...(eventTypesChanged ? { eventTypes } : {}),
           ...(outcomesChanged ? { outcomes: submitted.outcomes } : {}),
           ...(keySpacesChanged ? { keySpaceIds: submitted.keySpaceIds } : {}),
-          ...(statusesChanged ? { statusClasses: submitted.statusClasses } : {}),
           ...(severitiesChanged ? { severities: submitted.severities } : {}),
-          ...(projectsChanged ? { projectIds: submitted[projectField] } : {}),
-          ...(appsChanged ? { appIds: submitted[appField] } : {}),
-          ...(environmentsChanged ? { environmentIds: submitted[environmentField] } : {}),
+          ...(statusesChanged ? { statusClasses } : {}),
+          ...(projectsChanged ? { projectIds: sources.projectIds } : {}),
+          ...(appsChanged ? { appIds: sources.appIds } : {}),
+          ...(environmentsChanged ? { environmentIds: sources.environmentIds } : {}),
           ...(destination !== undefined ? { destination } : {}),
         },
         { onSuccess: onSaved },
