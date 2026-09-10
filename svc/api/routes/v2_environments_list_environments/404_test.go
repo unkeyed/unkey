@@ -32,12 +32,11 @@ func TestListEnvironmentsNotFound(t *testing.T) {
 		Slug:        slug(t),
 	})
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Payments API",
-		Slug:          slug(t),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Payments API",
+		Slug:        slug(t),
 	})
 
 	t.Run("unknown app slug returns 404", func(t *testing.T) {
@@ -59,12 +58,11 @@ func TestListEnvironmentsNotFound(t *testing.T) {
 			Slug:        slug(t),
 		})
 		otherApp := h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   otherWorkspace.ID,
-			ProjectID:     otherProject.ID,
-			Name:          "Theirs",
-			Slug:          slug(t),
-			DefaultBranch: "main",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: otherWorkspace.ID,
+			ProjectID:   otherProject.ID,
+			Name:        "Theirs",
+			Slug:        slug(t),
 		})
 		h.CreateEnvironment(seed.CreateEnvironmentRequest{
 			ID:          uid.New(uid.EnvironmentPrefix),

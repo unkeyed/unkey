@@ -34,12 +34,11 @@ func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	})
 
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            randomSlug(),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Payments API",
-		Slug:          randomSlug(),
-		DefaultBranch: "main",
+		ID:          randomSlug(),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Payments API",
+		Slug:        randomSlug(),
 	})
 
 	environment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
