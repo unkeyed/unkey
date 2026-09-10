@@ -70,8 +70,8 @@ export function EventTypesField() {
     .with("audit_logs", () => <AuditEventTypesField />)
     .with("key_verifications", () => (
       <>
-        <VerificationOutcomesField />
         <VerificationKeyspacesField />
+        <VerificationOutcomesField />
       </>
     ))
     .exhaustive();
