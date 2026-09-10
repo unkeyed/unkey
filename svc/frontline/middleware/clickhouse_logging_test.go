@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"net/url"
 	"testing"
 	"time"
@@ -18,6 +19,7 @@ import (
 )
 
 type captureFlags struct {
+	clientIP        string
 	requestHeaders  bool
 	responseHeaders bool
 	requestBody     bool
@@ -47,6 +49,9 @@ func runClickHouseLoggingRequest(t *testing.T, capture captureFlags) []schema.Fr
 
 	mw := WithClickHouseLogging(buf, clock.NewTestClock(), "fl_test", "us-east-1", "test")
 	handler := mw(func(ctx context.Context, s *zen.Session) error {
+		if capture.clientIP != "" {
+			s.SetClientIP(netip.MustParseAddr(capture.clientIP))
+		}
 		tracking, ok := proxy.RequestTrackingFromContext(ctx)
 		require.True(t, ok)
 		tracking.DeploymentID = "dep_123"
@@ -106,6 +111,15 @@ func TestClickHouseLogging_AlwaysEmitsBaseRow(t *testing.T) {
 	require.Empty(t, rows[0].ResponseBody)
 	require.Empty(t, rows[0].UserAgent, "user agent identifies the client and rides on the request-headers opt-in")
 	require.Empty(t, rows[0].IPAddress, "client IP identifies the client and rides on the request-headers opt-in")
+}
+
+func TestClickHouseLogging_AuthenticatedClientIP(t *testing.T) {
+	rows := runClickHouseLoggingRequest(t, captureFlags{requestHeaders: true, clientIP: "2001:db8::42"})
+	require.Len(t, rows, 1)
+	require.Equal(t, "2001:db8::42", rows[0].IPAddress)
+	rows = runClickHouseLoggingRequest(t, captureFlags{clientIP: "2001:db8::42"})
+	require.Len(t, rows, 1)
+	require.Empty(t, rows[0].IPAddress)
 }
 
 func TestClickHouseLogging_RequestHeadersCaptureIsOptIn(t *testing.T) {
