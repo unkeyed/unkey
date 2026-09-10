@@ -1,4 +1,4 @@
-import { QueryCache, QueryClient } from "@tanstack/react-query";
+import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { isUnauthorizedError } from "~/lib/portal-api";
 import { sessionQueryKey } from "~/lib/session";
@@ -10,17 +10,17 @@ import { routeTree } from "./routeTree.gen";
  * aggressively.
  */
 function createQueryClient(): QueryClient {
+  // The cookie this tab cached a session for is gone. Dropped rather than
+  // invalidated: `ensureQueryData` hands back cached data however stale it
+  // is, so only an absent entry makes the next navigation ask the server.
+  const dropSessionOnUnauthorized = (error: unknown) => {
+    if (isUnauthorizedError(error)) {
+      client.removeQueries({ queryKey: sessionQueryKey });
+    }
+  };
   const client: QueryClient = new QueryClient({
-    queryCache: new QueryCache({
-      onError: (error) => {
-        // The cookie this tab cached a session for is gone. Dropped rather than
-        // invalidated: `ensureQueryData` hands back cached data however stale it
-        // is, so only an absent entry makes the next navigation ask the server.
-        if (isUnauthorizedError(error)) {
-          client.removeQueries({ queryKey: sessionQueryKey });
-        }
-      },
-    }),
+    queryCache: new QueryCache({ onError: dropSessionOnUnauthorized }),
+    mutationCache: new MutationCache({ onError: dropSessionOnUnauthorized }),
     defaultOptions: {
       queries: {
         staleTime: 1000 * 60 * 2, // 2 minutes

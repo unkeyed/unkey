@@ -27,7 +27,7 @@ function PortalEntry() {
       }
       const sessionData = await queryClient.fetchQuery({ ...sessionQueryOptions, staleTime: 0 });
       const defaultTab = sessionData ? getDefaultTabHref(sessionData.session.scopes) : null;
-      await navigate({ to: defaultTab ?? "/keys" });
+      await navigate({ to: defaultTab ?? "/keys", replace: true });
       return result;
     },
     enabled: Boolean(code),
