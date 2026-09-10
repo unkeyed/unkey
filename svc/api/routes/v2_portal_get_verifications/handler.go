@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -23,6 +24,12 @@ import (
 // millisPerDay is the width of one retention day in unix milliseconds.
 const millisPerDay = 24 * 60 * 60 * 1000
 
+// DefaultMaxPerKeySeries bounds how many keys a single per-key breakout may
+// return. It exists to cap what one session can pull over the shared ClickHouse
+// connection, not to express a product limit: a portal end user holding a
+// thousand keys with traffic in one window is far outside real usage.
+const DefaultMaxPerKeySeries = 1000
+
 type (
 	Request  = openapi.V2PortalGetVerificationsRequestBody
 	Response = openapi.V2PortalGetVerificationsResponseBody
@@ -39,9 +46,10 @@ type (
 // can grant the scope this route requires. Kept for whoever finishes the
 // feature. Its tests seed sessions directly, which is why they still pass.
 type Handler struct {
-	ClickHouse  clickhouse.ClickHouse
-	DB          db.Database
-	LimitsCache cache.Cache[string, keysdb.Limit]
+	ClickHouse      clickhouse.ClickHouse
+	DB              db.Database
+	LimitsCache     cache.Cache[string, keysdb.Limit]
+	MaxPerKeySeries int
 }
 
 // Method returns the HTTP method this route responds to.
@@ -51,7 +59,8 @@ func (h *Handler) Method() string { return "POST" }
 func (h *Handler) Path() string { return "/v2/portal.getVerifications" }
 
 // Handle returns a verification timeseries scoped to the portal session's
-// external identity.
+// external identity, plus a per-key breakout of the same window when the
+// request asks for one.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
@@ -125,6 +134,52 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
+	response := Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		Data: toDataPoints(points),
+		Keys: nil,
+	}
+
+	if ptr.SafeDeref(req.PerKey) {
+		perKey, err := h.ClickHouse.GetVerificationsByExternalIDPerKey(ctx, clickhouse.VerificationTimeseriesPerKeyRequest{
+			VerificationTimeseriesRequest: clickhouse.VerificationTimeseriesRequest{
+				WorkspaceID: principal.AuthorizedWorkspaceID,
+				ExternalID:  externalID,
+				KeySpaceIDs: keySpaceIDs,
+				KeyID:       ptr.SafeDeref(req.KeyId),
+				StartTime:   req.StartTime,
+				EndTime:     req.EndTime,
+			},
+			MaxKeys: h.MaxPerKeySeries,
+		})
+		if errors.Is(err, clickhouse.ErrTooManyVerificationKeys) {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Internal("per-key breakout exceeds the key cap"),
+				fault.Public(fmt.Sprintf("The per-key breakout is limited to %d keys. Request a narrower window or a single `keyId`.", h.MaxPerKeySeries)),
+			)
+		}
+		if err != nil {
+			return err
+		}
+
+		keys := make([]openapi.V2PortalGetVerificationsKeySeries, len(perKey))
+		for i, series := range perKey {
+			keys[i] = openapi.V2PortalGetVerificationsKeySeries{
+				KeyId: series.KeyID,
+				Data:  toDataPoints(series.Data),
+			}
+		}
+		response.Keys = &keys
+	}
+
+	return s.JSON(http.StatusOK, response)
+}
+
+// toDataPoints converts a ClickHouse timeseries into its API representation.
+func toDataPoints(points []clickhouse.VerificationTimeseriesDataPoint) []openapi.V2PortalGetVerificationsDataPoint {
 	data := make([]openapi.V2PortalGetVerificationsDataPoint, len(points))
 	for i, p := range points {
 		data[i] = openapi.V2PortalGetVerificationsDataPoint{
@@ -139,11 +194,5 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			UsageExceeded:           p.UsageExceeded,
 		}
 	}
-
-	return s.JSON(http.StatusOK, Response{
-		Meta: openapi.Meta{
-			RequestId: s.RequestID(),
-		},
-		Data: data,
-	})
+	return data
 }

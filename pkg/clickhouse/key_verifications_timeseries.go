@@ -2,12 +2,20 @@ package clickhouse
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
+
+// ErrTooManyVerificationKeys is returned by
+// [Client.GetVerificationsByExternalIDPerKey] when the end user has more keys
+// with traffic in the window than the caller allowed. Callers turn this into a
+// user-facing rejection; a truncated breakout is indistinguishable from those
+// keys having no traffic, so it is never returned.
+var ErrTooManyVerificationKeys = errors.New("too many keys for a per-key verification breakout")
 
 // VerificationTimeseriesRequest scopes a verification timeseries to a single
 // portal end user. WorkspaceID, ExternalID and KeySpaceIDs are required; KeyID
@@ -61,6 +69,16 @@ func selectVerificationInterval(windowMs int64) verificationInterval {
 	}
 }
 
+// verificationScopePredicates is the WHERE body shared by the account-wide and
+// per-key reads. Keeping one copy is what stops the identity and keyspace
+// scoping from drifting between them.
+const verificationScopePredicates = `workspace_id = {workspace_id:String}
+		AND external_id = {external_id:String}
+		AND key_space_id IN {key_space_ids:Array(String)}
+		AND time >= fromUnixTimestamp64Milli({start:Int64})
+		AND time < fromUnixTimestamp64Milli({end:Int64})
+		AND ({key_id:String} = '' OR key_id = {key_id:String})`
+
 // GetVerificationsByExternalID returns a zero-filled verification timeseries for
 // one end user (workspace_id + external_id), optionally narrowed to a single
 // key. Bucket granularity is chosen from the window size. Empty buckets are
@@ -105,32 +123,158 @@ func (c *Client) GetVerificationsByExternalID(ctx context.Context, req Verificat
 		toInt64(SUM(IF(outcome = 'EXPIRED', count, 0))) AS expired,
 		toInt64(SUM(IF(outcome = 'USAGE_EXCEEDED', count, 0))) AS usage_exceeded
 	FROM %[2]s
-	WHERE workspace_id = {workspace_id:String}
-		AND external_id = {external_id:String}
-		AND key_space_id IN {key_space_ids:Array(String)}
-		AND time >= fromUnixTimestamp64Milli({start:Int64})
-		AND time < fromUnixTimestamp64Milli({end:Int64})
-		AND ({key_id:String} = '' OR key_id = {key_id:String})
+	WHERE %[4]s
 	GROUP BY x
 	ORDER BY x ASC
 	WITH FILL
 		FROM toUnixTimestamp64Milli(CAST(toStartOfInterval(fromUnixTimestamp64Milli({start:Int64}), INTERVAL 1 %[1]s) AS DateTime64(3)))
 		TO toUnixTimestamp64Milli(CAST(toStartOfInterval(fromUnixTimestamp64Milli({end:Int64}), INTERVAL 1 %[1]s) AS DateTime64(3))) + %[3]d
 		STEP %[3]d`,
-		iv.unit, iv.table, iv.stepMs,
+		iv.unit, iv.table, iv.stepMs, verificationScopePredicates,
 	)
 
-	results, err := Select[VerificationTimeseriesDataPoint](ctx, c.conn, query, map[string]string{
+	results, err := Select[VerificationTimeseriesDataPoint](ctx, c.conn, query, verificationScopeParams(req))
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Internal("failed to query verification timeseries"))
+	}
+
+	return results, nil
+}
+
+// verificationScopeParams binds the values [verificationScopePredicates] reads.
+func verificationScopeParams(req VerificationTimeseriesRequest) map[string]string {
+	return map[string]string{
 		"workspace_id":  req.WorkspaceID,
 		"external_id":   req.ExternalID,
 		"key_space_ids": StringArrayParam(req.KeySpaceIDs),
 		"key_id":        req.KeyID,
 		"start":         strconv.FormatInt(req.StartTime, 10),
 		"end":           strconv.FormatInt(req.EndTime, 10),
-	})
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to query verification timeseries"))
+	}
+}
+
+// VerificationTimeseriesPerKeyRequest is a [VerificationTimeseriesRequest] plus
+// the largest number of distinct keys the caller is willing to receive.
+type VerificationTimeseriesPerKeyRequest struct {
+	VerificationTimeseriesRequest
+	MaxKeys int
+}
+
+// VerificationTimeseriesPerKey is one key's verification series. Data is sparse
+// and ordered by time ascending.
+type VerificationTimeseriesPerKey struct {
+	KeyID string
+	Data  []VerificationTimeseriesDataPoint
+}
+
+// verificationTimeseriesPerKeyRow is one (key, bucket) row as ClickHouse
+// returns it, before grouping into [VerificationTimeseriesPerKey].
+type verificationTimeseriesPerKeyRow struct {
+	KeyID                   string `ch:"key_id"`
+	Time                    int64  `ch:"x"`
+	Total                   int64  `ch:"total"`
+	Valid                   int64  `ch:"valid"`
+	RateLimited             int64  `ch:"rate_limited"`
+	InsufficientPermissions int64  `ch:"insufficient_permissions"`
+	Forbidden               int64  `ch:"forbidden"`
+	Disabled                int64  `ch:"disabled"`
+	Expired                 int64  `ch:"expired"`
+	UsageExceeded           int64  `ch:"usage_exceeded"`
+}
+
+// GetVerificationsByExternalIDPerKey returns the same window as
+// [Client.GetVerificationsByExternalID], broken out per key, under identical
+// workspace, identity, keyspace and window scoping.
+//
+// The series are sparse: only buckets with traffic are returned, and a key with
+// no traffic in the window is absent entirely. Zero-filling a grouped result
+// multiplies rows by the bucket count for every key, and callers already sum
+// arbitrary bucket sets.
+//
+// req.MaxKeys bounds how many distinct keys a session can pull over the shared
+// connection. Exceeding it returns [ErrTooManyVerificationKeys] rather than a
+// short array, which a caller could not tell apart from those keys being idle.
+func (c *Client) GetVerificationsByExternalIDPerKey(ctx context.Context, req VerificationTimeseriesPerKeyRequest) ([]VerificationTimeseriesPerKey, error) {
+	if len(req.KeySpaceIDs) == 0 {
+		return nil, fault.New("missing keyspace scope",
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("per-key verification timeseries requested with no key spaces"),
+			fault.Public("An internal error occurred."),
+		)
 	}
 
-	return results, nil
+	if req.MaxKeys <= 0 {
+		return nil, fault.New("missing key cap",
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("per-key verification timeseries requested with no key cap"),
+			fault.Public("An internal error occurred."),
+		)
+	}
+
+	iv := selectVerificationInterval(req.EndTime - req.StartTime)
+
+	// The inner scan restricts the outer one to the first MaxKeys+1 keys, so an
+	// over-cap request is detected without ever materializing every key's series.
+	query := fmt.Sprintf(`
+	SELECT
+		key_id,
+		toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL 1 %[1]s) AS DateTime64(3))) AS x,
+		toInt64(SUM(count)) AS total,
+		toInt64(SUM(IF(outcome = 'VALID', count, 0))) AS valid,
+		toInt64(SUM(IF(outcome = 'RATE_LIMITED', count, 0))) AS rate_limited,
+		toInt64(SUM(IF(outcome = 'INSUFFICIENT_PERMISSIONS', count, 0))) AS insufficient_permissions,
+		toInt64(SUM(IF(outcome = 'FORBIDDEN', count, 0))) AS forbidden,
+		toInt64(SUM(IF(outcome = 'DISABLED', count, 0))) AS disabled,
+		toInt64(SUM(IF(outcome = 'EXPIRED', count, 0))) AS expired,
+		toInt64(SUM(IF(outcome = 'USAGE_EXCEEDED', count, 0))) AS usage_exceeded
+	FROM %[2]s
+	WHERE %[3]s
+		AND key_id IN (
+			SELECT key_id
+			FROM %[2]s
+			WHERE %[3]s
+			GROUP BY key_id
+			ORDER BY key_id ASC
+			LIMIT {max_keys_probe:UInt64}
+		)
+	GROUP BY key_id, x
+	ORDER BY key_id ASC, x ASC`,
+		iv.unit, iv.table, verificationScopePredicates,
+	)
+
+	params := verificationScopeParams(req.VerificationTimeseriesRequest)
+	params["max_keys_probe"] = strconv.Itoa(req.MaxKeys + 1)
+
+	rows, err := Select[verificationTimeseriesPerKeyRow](ctx, c.conn, query, params)
+	if err != nil {
+		return nil, fault.Wrap(err, fault.Internal("failed to query per-key verification timeseries"))
+	}
+
+	series := make([]VerificationTimeseriesPerKey, 0)
+	for _, row := range rows {
+		if len(series) == 0 || series[len(series)-1].KeyID != row.KeyID {
+			if len(series) == req.MaxKeys {
+				return nil, ErrTooManyVerificationKeys
+			}
+			series = append(series, VerificationTimeseriesPerKey{
+				KeyID: row.KeyID,
+				Data:  nil,
+			})
+		}
+
+		current := &series[len(series)-1]
+		current.Data = append(current.Data, VerificationTimeseriesDataPoint{
+			Time:                    row.Time,
+			Total:                   row.Total,
+			Valid:                   row.Valid,
+			RateLimited:             row.RateLimited,
+			InsufficientPermissions: row.InsufficientPermissions,
+			Forbidden:               row.Forbidden,
+			Disabled:                row.Disabled,
+			Expired:                 row.Expired,
+			UsageExceeded:           row.UsageExceeded,
+		})
+	}
+
+	return series, nil
 }

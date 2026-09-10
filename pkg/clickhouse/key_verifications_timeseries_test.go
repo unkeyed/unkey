@@ -212,6 +212,94 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 		require.Equal(t, int64(8), grand)
 	})
 
+	t.Run("per key breakout splits the account-wide series", func(t *testing.T) {
+		series, err := client.GetVerificationsByExternalIDPerKey(ctx, clickhouse.VerificationTimeseriesPerKeyRequest{
+			VerificationTimeseriesRequest: clickhouse.VerificationTimeseriesRequest{
+				WorkspaceID: workspaceID,
+				ExternalID:  extA,
+				KeySpaceIDs: []string{keySpaceID},
+				KeyID:       "",
+				StartTime:   startMs,
+				EndTime:     endMs,
+			},
+			MaxKeys: 10,
+		})
+		require.NoError(t, err)
+
+		totals := make(map[string]int64, len(series))
+		var grand int64
+		for _, s := range series {
+			for _, p := range s.Data {
+				totals[s.KeyID] += p.Total
+				grand += p.Total
+			}
+		}
+
+		require.Len(t, series, 2)
+		require.Equal(t, int64(1), totals[targetKey])
+		require.Equal(t, int64(5), totals[otherKey])
+		require.Equal(t, int64(6), grand, "per-key totals must sum to the account-wide total")
+		require.NotContains(t, totals, outOfScopeKey, "a key outside the session keyspaces must not appear")
+	})
+
+	t.Run("per key series are sparse", func(t *testing.T) {
+		series, err := client.GetVerificationsByExternalIDPerKey(ctx, clickhouse.VerificationTimeseriesPerKeyRequest{
+			VerificationTimeseriesRequest: clickhouse.VerificationTimeseriesRequest{
+				WorkspaceID: workspaceID,
+				ExternalID:  extA,
+				KeySpaceIDs: []string{keySpaceID},
+				KeyID:       targetKey,
+				StartTime:   startMs,
+				EndTime:     endMs,
+			},
+			MaxKeys: 10,
+		})
+		require.NoError(t, err)
+
+		require.Len(t, series, 1)
+		require.Equal(t, targetKey, series[0].KeyID)
+		require.Len(t, series[0].Data, 1, "only the bucket with traffic is returned")
+		require.Equal(t, dayABucket, series[0].Data[0].Time)
+		require.Equal(t, int64(1), series[0].Data[0].Total)
+	})
+
+	t.Run("per key breakout is capped rather than truncated", func(t *testing.T) {
+		req := clickhouse.VerificationTimeseriesPerKeyRequest{
+			VerificationTimeseriesRequest: clickhouse.VerificationTimeseriesRequest{
+				WorkspaceID: workspaceID,
+				ExternalID:  extA,
+				KeySpaceIDs: []string{keySpaceID},
+				KeyID:       "",
+				StartTime:   startMs,
+				EndTime:     endMs,
+			},
+			MaxKeys: 1,
+		}
+
+		_, err := client.GetVerificationsByExternalIDPerKey(ctx, req)
+		require.ErrorIs(t, err, clickhouse.ErrTooManyVerificationKeys)
+
+		req.MaxKeys = 2
+		series, err := client.GetVerificationsByExternalIDPerKey(ctx, req)
+		require.NoError(t, err)
+		require.Len(t, series, 2, "a request exactly at the cap is served")
+	})
+
+	t.Run("empty keyspace list is an error for the per key read", func(t *testing.T) {
+		_, err := client.GetVerificationsByExternalIDPerKey(ctx, clickhouse.VerificationTimeseriesPerKeyRequest{
+			VerificationTimeseriesRequest: clickhouse.VerificationTimeseriesRequest{
+				WorkspaceID: workspaceID,
+				ExternalID:  extA,
+				KeySpaceIDs: nil,
+				KeyID:       "",
+				StartTime:   startMs,
+				EndTime:     endMs,
+			},
+			MaxKeys: 10,
+		})
+		require.Error(t, err)
+	})
+
 	t.Run("empty keyspace list is an error", func(t *testing.T) {
 		_, err := client.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
 			WorkspaceID: workspaceID,
