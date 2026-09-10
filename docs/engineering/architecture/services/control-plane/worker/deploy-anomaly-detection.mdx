@@ -86,16 +86,22 @@ materialized views update the table from
 `frontline_requests_raw_v1` and `instance_checkpoints_v1`.
 
 `GetAnomalySourceWatermarks` returns `{Source, Region, Watermark}` rows. A region
-is active for a source when it received ingest during the latest 2 hours. The
-source is complete when at least one region is active and the minimum watermark
-across all active regions is at or after the window end. A source with no active
-region is incomplete. A region with no ingest for 2 hours becomes inactive and
-does not let a decommissioned region stall detection.
+is available for a source when it received ingest during the latest 2 hours.
+The shard always scans for candidates, resolves each candidate's running
+deployment topology, and checks only the regions that can serve that group. A
+group's source is complete when every running region has a watermark at or
+after the window end. A missing or older watermark is incomplete. A sparse
+region cannot block a group that does not run there.
 
-Shard 0 logs one structured warning for each incomplete source and window. The
-warning includes `source`, `region`, `watermark`, and `window_end` so operators
-can identify the lagging region without collecting duplicate warnings from all
-shards.
+This boundary depends on the Frontline and Heimdall region configurations
+matching `regions.name`. Frontline records a cross-region request in the region
+that serves it. A running region with no recent source watermark remains
+incomplete. Operators must stop or remove decommissioned topology instead of
+relying on the 2-hour watermark activity cutoff.
+
+Each shard logs a structured warning for an incomplete group source. The
+warning includes the shard and group identity, `source`, `region`, `watermark`,
+and `window_end`.
 
 Each metric input in `deploy_anomaly_check.proto` has one of these states:
 
@@ -103,11 +109,13 @@ Each metric input in `deploy_anomaly_check.proto` has one of these states:
 | --- | --- | --- |
 | `PRESENT` | The group has a row. For sparse instance events, the row is actionable even when the resources source is incomplete. | Evaluate the supplied value. |
 | `ZERO_COMPLETE` | The relevant completeness source is complete and the group has no row. | Evaluate the current zero with fresh rolling values. |
-| `INCOMPLETE` | An active region has not reached the window end, or the source has no active region. | Make no state or database change for that metric. |
+| `INCOMPLETE` | A running region has not reached the window end or has no recent watermark. | Make no telemetry-driven state or database change for that metric. |
 
-`INCOMPLETE` is a strict no-op. It cannot open an alert, advance a two-window
+`INCOMPLETE` is a strict telemetry no-op. It cannot open an alert, advance a two-window
 candidate, update `last_seen_at`, increment recovery state, or resolve an
-alert. One delayed source does not stop complete metrics from other sources.
+alert from metric values. Deployment topology can still resolve a request-drop
+alert after its firing time. One delayed source does not stop complete metrics
+from other sources or groups.
 
 Instance events are sparse and do not have a separate watermark. An OOM or
 crash-loop row in the selected window is immediately `PRESENT`. When no event
@@ -400,6 +408,10 @@ After an evaluation processes at least one complete metric, the virtual object
 stores its end in `last_window_end`. Any later delivery with
 `window_end <= last_window_end` is a strict no-op. This guard prevents a retried
 or delayed older window from changing candidate, open-alert, or recovery state.
+Each metric also stores its completed window and quiet count together. If an
+invocation is killed after one metric finishes but before `last_window_end` is
+stored, a fresh dispatch resumes the unfinished metrics without counting the
+finished window twice.
 
 `DefaultConfig` decodes `maxOpenDurationSeconds = 86400` into the 24-hour
 `Config.MaxOpenDuration`. At the first complete evaluation at or after that
@@ -415,6 +427,8 @@ detection is suppressed when the group has no `deployment_id`,
 `deployments.desired_state = 'stopped'`, or every topology region is stopped.
 The same conditions resolve an open request-drop alert with
 `Deployment stopped` or clear candidate state when no alert is open.
+Historical catch-up windows that end before the alert's `fired_at` value cannot
+resolve it through this topology path.
 
 `autoscaling_replicas_min = 0` does not suppress request-drop detection.
 Scale-to-zero capability does not mean that a traffic drop is expected while a
@@ -436,7 +450,8 @@ and Go enum values.
 | `candidate_window:<metric>` | Proves that the next candidate window is consecutive. |
 | `open_alert:<metric>` | Stores the open `alert_events.id`. |
 | `fired_at:<metric>` | Stores the opening time used by `Config.MaxOpenDuration`. |
-| `quiet:<metric>` | Counts consecutive complete recovered windows. |
+| `progress:<metric>` | Stores the latest completed metric window and its consecutive quiet count atomically. |
+| `quiet:<metric>` | Legacy quiet count read during state migration. |
 | `snapshot:<metric>` | Stores the opening baseline and threshold for recovery. |
 | `open_alerts_reconciled` | Records that open MySQL rows were loaded into this object. |
 | `last_window_end` | Rejects duplicate and out-of-order group windows. |
