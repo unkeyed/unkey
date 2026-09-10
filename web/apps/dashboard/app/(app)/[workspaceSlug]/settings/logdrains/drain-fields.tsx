@@ -14,12 +14,14 @@ import {
   useMultiboxAnchor,
 } from "@/components/ui/multibox";
 import { trpc } from "@/lib/trpc/client";
+import { Radio } from "@base-ui/react/radio";
+import { RadioGroup } from "@base-ui/react/radio-group";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { Plus, Trash } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
-import { Button, FormInput, FormSelect } from "@unkey/ui";
-import type { ReactNode } from "react";
+import { Button, FormInput, FormSelect, cn } from "@unkey/ui";
+import { type ReactNode, useId } from "react";
 import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { DrainEndpointRow } from "./drain-endpoint-row";
 import { type DrainFormValues, emptyHeaderRow } from "./drain-schema";
@@ -77,36 +79,88 @@ export function EventTypesField() {
     .exhaustive();
 }
 
+const eventTypeModes = [
+  { id: "all", title: "All event types" },
+  { id: "specific", title: "Specific event types" },
+] satisfies { id: DrainFormValues["eventTypesMode"]; title: string }[];
+
 function AuditEventTypesField() {
-  const { control } = useFormContext<DrainFormValues>();
+  const { control, formState, setValue } = useFormContext<DrainFormValues>();
+  const mode = useWatch({ control, name: "eventTypesMode" });
+  const eventTypes = useWatch({ control, name: "eventTypes" });
+  const error = formState.errors.eventTypes?.message;
+  const statusId = useId();
+  const sendingSummary =
+    eventTypes.length > 0
+      ? `Sending ${eventTypes.length} of ${unkeyAuditLogEvents.options.length} event types.`
+      : null;
+  const status = error ?? sendingSummary;
+
   return (
-    <Controller
-      control={control}
-      name="eventTypes"
-      render={({ field }) => (
-        <FilterChoices
-          {...field}
-          options={unkeyAuditLogEvents.options}
-          label="Event types"
-          description={
-            <>
-              Choose which audit events to send.{" "}
-              <a
-                href="https://www.unkey.com/docs/audit-log/types"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-2"
-              >
-                View event types
-              </a>
-            </>
-          }
-          searchLabel="Search event types"
-          placeholder="All event types"
-          emptyMessage="No event types found."
-        />
-      )}
-    />
+    <fieldset className="flex flex-col gap-1.5">
+      <legend className="text-[13px] text-gray-11">Event types</legend>
+      <span className="text-xs text-gray-9">
+        Choose which audit events to send.{" "}
+        <a
+          href="https://www.unkey.com/docs/audit-log/types"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2"
+        >
+          View event types
+        </a>
+      </span>
+      <RadioGroup
+        aria-label="Event type scope"
+        value={mode}
+        onValueChange={(next) =>
+          setValue("eventTypesMode", next, { shouldValidate: true, shouldDirty: true })
+        }
+        className="mt-1.5 grid gap-2 sm:grid-cols-2"
+      >
+        {eventTypeModes.map((option) => (
+          <Radio.Root
+            key={option.id}
+            value={option.id}
+            className="group flex items-center gap-3 rounded-lg border border-grayA-4 px-3 py-2.5 transition-colors duration-150 ease-out focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-7 data-checked:border-grayA-8 data-checked:bg-grayA-2"
+          >
+            <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-gray-7 transition-colors duration-150 ease-out group-data-checked:border-accent-12">
+              <Radio.Indicator className="size-2 rounded-full bg-accent-12" />
+            </span>
+            <span className="text-[13px] text-accent-12">{option.title}</span>
+          </Radio.Root>
+        ))}
+      </RadioGroup>
+
+      {mode === "specific" ? (
+        <div className="mt-1.5 flex flex-col gap-1.5 duration-200 ease-out animate-in fade-in motion-reduce:animate-none">
+          <Controller
+            control={control}
+            name="eventTypes"
+            render={({ field }) => (
+              <ChoiceMultibox
+                {...field}
+                options={unkeyAuditLogEvents.options}
+                searchLabel="Search event types"
+                placeholder="Choose event types"
+                emptyMessage="No event types found."
+                invalid={Boolean(error)}
+                describedBy={status ? statusId : undefined}
+              />
+            )}
+          />
+          {status ? (
+            <span
+              id={statusId}
+              role={error ? "alert" : undefined}
+              className={cn("text-xs", error ? "text-error-11" : "text-gray-9")}
+            >
+              {status}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+    </fieldset>
   );
 }
 
@@ -164,62 +218,81 @@ function VerificationKeyspacesField() {
   );
 }
 
-function FilterChoices({
-  value,
-  onChange,
-  onBlur,
-  options,
-  label,
-  description,
-  searchLabel,
-  placeholder,
-  emptyMessage,
-  getLabel = (choice) => choice || "Unspecified",
-}: {
+type ChoiceMultiboxProps = {
   value: string[];
   onChange: (value: string[]) => void;
   onBlur: () => void;
   options: readonly string[];
-  label: string;
-  description: ReactNode;
   searchLabel: string;
   placeholder: string;
   emptyMessage: string;
   getLabel?: (choice: string) => string;
-}) {
+  invalid?: boolean;
+  describedBy?: string;
+};
+
+function ChoiceMultibox({
+  value,
+  onChange,
+  onBlur,
+  options,
+  searchLabel,
+  placeholder,
+  emptyMessage,
+  getLabel = (choice) => choice || "Unspecified",
+  invalid,
+  describedBy,
+}: ChoiceMultiboxProps) {
   const anchor = useMultiboxAnchor();
   const choices = Array.from(new Set([...options, ...value]));
 
   return (
+    <Multibox items={choices} value={value} onValueChange={onChange} itemToStringLabel={getLabel}>
+      <MultiboxChips ref={anchor}>
+        {value.map((choice) => (
+          <MultiboxChip key={choice}>
+            <span className="font-mono">{getLabel(choice)}</span>
+            <MultiboxChipRemove />
+          </MultiboxChip>
+        ))}
+        <MultiboxInput
+          aria-label={searchLabel}
+          aria-invalid={invalid}
+          aria-describedby={describedBy}
+          placeholder={value.length === 0 ? placeholder : "Search"}
+          onBlur={onBlur}
+        />
+        <MultiboxTrigger />
+      </MultiboxChips>
+      <MultiboxContent anchor={anchor}>
+        <MultiboxEmpty>{emptyMessage}</MultiboxEmpty>
+        <MultiboxList>
+          {(choice: string) => (
+            <MultiboxItem key={choice} value={choice}>
+              <span className="font-mono text-xs">{getLabel(choice)}</span>
+            </MultiboxItem>
+          )}
+        </MultiboxList>
+      </MultiboxContent>
+    </Multibox>
+  );
+}
+
+function FilterChoices({
+  label,
+  description,
+  ...choices
+}: ChoiceMultiboxProps & {
+  label: string;
+  description: ReactNode;
+}) {
+  return (
     <fieldset className="flex flex-col gap-1.5">
       <legend className="text-[13px] text-gray-11">{label}</legend>
       <span className="text-xs text-gray-9">{description}</span>
-      <Multibox items={choices} value={value} onValueChange={onChange} itemToStringLabel={getLabel}>
-        <MultiboxChips ref={anchor} className="mt-1.5">
-          {value.map((choice) => (
-            <MultiboxChip key={choice}>
-              <span className="font-mono">{getLabel(choice)}</span>
-              <MultiboxChipRemove />
-            </MultiboxChip>
-          ))}
-          <MultiboxInput
-            aria-label={searchLabel}
-            placeholder={value.length === 0 ? placeholder : "Search"}
-            onBlur={onBlur}
-          />
-          <MultiboxTrigger />
-        </MultiboxChips>
-        <MultiboxContent anchor={anchor}>
-          <MultiboxEmpty>{emptyMessage}</MultiboxEmpty>
-          <MultiboxList>
-            {(choice: string) => (
-              <MultiboxItem key={choice} value={choice}>
-                <span className="font-mono text-xs">{getLabel(choice)}</span>
-              </MultiboxItem>
-            )}
-          </MultiboxList>
-        </MultiboxContent>
-      </Multibox>
+      <div className="mt-1.5">
+        <ChoiceMultibox {...choices} />
+      </div>
     </fieldset>
   );
 }

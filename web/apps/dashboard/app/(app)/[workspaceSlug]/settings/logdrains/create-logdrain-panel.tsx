@@ -32,6 +32,7 @@ import {
   type DrainKind,
   createDrainSchema,
   emptyDrainForm,
+  submittedEventTypes,
 } from "./drain-schema";
 import { DrainStepCard } from "./drain-step-card";
 import { toHeaderRecord } from "./header-fields";
@@ -102,7 +103,7 @@ export function CreateLogdrainPanel({
       name: values.name.trim(),
       stream: values.stream,
       ...(values.stream === "audit_logs"
-        ? { eventTypes: values.eventTypes }
+        ? { eventTypes: submittedEventTypes(values) }
         : { outcomes: values.outcomes, keySpaceIds: values.keySpaceIds }),
       ...destination,
     });

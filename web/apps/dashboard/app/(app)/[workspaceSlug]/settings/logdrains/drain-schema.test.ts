@@ -4,6 +4,7 @@ import {
   createDrainSchema,
   editDrainSchema,
   emptyDrainForm,
+  submittedEventTypes,
 } from "./drain-schema";
 
 function messagesFor(schema: typeof createDrainSchema, values: Partial<DrainFormValues>): string[] {
@@ -72,6 +73,32 @@ describe("createDrainSchema", () => {
   it("ignores the unused destination's fields", () => {
     expect(messagesFor(createDrainSchema, { ...httpDrain, dataset: "", token: "" })).toEqual([]);
   });
+
+  it("rejects specific event types with an empty list", () => {
+    expect(messagesFor(createDrainSchema, { ...httpDrain, eventTypesMode: "specific" })).toContain(
+      "Choose at least one event type",
+    );
+  });
+
+  it("accepts specific event types with a chosen type", () => {
+    expect(
+      messagesFor(createDrainSchema, {
+        ...httpDrain,
+        eventTypesMode: "specific",
+        eventTypes: ["key.create"],
+      }),
+    ).toEqual([]);
+  });
+
+  it("ignores the event type mode on the key verifications stream", () => {
+    expect(
+      messagesFor(createDrainSchema, {
+        ...httpDrain,
+        stream: "key_verifications",
+        eventTypesMode: "specific",
+      }),
+    ).toEqual([]);
+  });
 });
 
 describe("editDrainSchema", () => {
@@ -84,5 +111,27 @@ describe("editDrainSchema", () => {
     expect(
       messagesFor(editDrainSchema, { kind: "axiom", name: "Axiom", dataset: "audit-logs" }),
     ).toEqual([]);
+  });
+});
+
+describe("submittedEventTypes", () => {
+  it("sends no event types in all mode, whatever the kept selection is", () => {
+    expect(
+      submittedEventTypes({
+        ...emptyDrainForm,
+        eventTypesMode: "all",
+        eventTypes: ["key.create", "key.delete"],
+      }),
+    ).toEqual([]);
+  });
+
+  it("sends the chosen event types in specific mode", () => {
+    expect(
+      submittedEventTypes({
+        ...emptyDrainForm,
+        eventTypesMode: "specific",
+        eventTypes: ["key.create"],
+      }),
+    ).toEqual(["key.create"]);
   });
 });

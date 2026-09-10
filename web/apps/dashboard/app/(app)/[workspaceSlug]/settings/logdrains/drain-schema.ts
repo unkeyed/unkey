@@ -99,6 +99,7 @@ const baseSchema = z.object({
   dataset: z.string(),
   token: z.string(),
   eventTypes: z.array(z.string().trim().min(1).max(256)).max(256),
+  eventTypesMode: z.enum(["all", "specific"]),
 });
 
 export type DrainFormValues = z.infer<typeof baseSchema>;
@@ -142,14 +143,31 @@ function refineDestination(
   }
 }
 
-export const createDrainSchema = baseSchema.superRefine((values, context) =>
-  refineDestination(values, context, { tokenRequired: true }),
-);
+function drainSchema({ tokenRequired }: { tokenRequired: boolean }) {
+  return baseSchema.superRefine((values, context) => {
+    refineDestination(values, context, { tokenRequired });
+    if (
+      values.stream === "audit_logs" &&
+      values.eventTypesMode === "specific" &&
+      values.eventTypes.length === 0
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["eventTypes"],
+        message: "Choose at least one event type",
+      });
+    }
+  });
+}
+
+export const createDrainSchema = drainSchema({ tokenRequired: true });
 
 /** Editing keeps the stored token when the field is left blank. */
-export const editDrainSchema = baseSchema.superRefine((values, context) =>
-  refineDestination(values, context, { tokenRequired: false }),
-);
+export const editDrainSchema = drainSchema({ tokenRequired: false });
+
+export function submittedEventTypes(values: DrainFormValues): string[] {
+  return values.eventTypesMode === "all" ? [] : values.eventTypes;
+}
 
 export const emptyHeaderRow = { name: "", value: "", stored: false };
 
@@ -165,6 +183,7 @@ export const emptyDrainForm: DrainFormValues = {
   dataset: "",
   token: "",
   eventTypes: [],
+  eventTypesMode: "all",
 };
 
 export function drainToFormValues(drain: DrainDetail): DrainFormValues {
@@ -176,6 +195,7 @@ export function drainToFormValues(drain: DrainDetail): DrainFormValues {
     outcomes: outcomesSchema.parse(drain.outcomes),
     keySpaceIds: drain.keySpaceIds,
     eventTypes: drain.eventTypes,
+    eventTypesMode: drain.eventTypes.length > 0 ? "specific" : "all",
     url: drain.kind === "http" ? drain.config.url : "",
     format: drain.kind === "http" ? drain.config.format : "json",
     headers:
