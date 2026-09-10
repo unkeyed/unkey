@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"os"
 	"time"
+	"unicode/utf8"
 
 	restate "github.com/restatedev/sdk-go"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -15,6 +16,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
+
+// The service is keyed per repository, so an unbounded retry holds every later
+// push behind this one
+const changedFilesRetryDuration = 2 * time.Minute
 
 // HandlePush processes a GitHub push event: it looks up the repo connections,
 // matches each app's watch paths against the changed files, then calls
@@ -80,7 +85,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 				req.GetRepositoryFullName(),
 				req.GetAfter(),
 			)
-		}, restate.WithName("list commit files"))
+		}, restate.WithName("list commit files"), restate.WithMaxRetryDuration(changedFilesRetryDuration))
 		if filesErr != nil {
 			// GitHub never told us which files changed. Carrying on with an empty
 			// list makes every watch path look like a miss, so the push would be
@@ -180,9 +185,10 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	// until every row is written, so the next push gets a later created_at and
 	// supersedes these rows instead of the other way round.
 	//
-	// Only a terminal error from Create lands here, which is a bug in Create.
+	// Only a terminal error lands here: corrupt stored data, or a bug in Create.
 	// Returning it would make Restate retry this handler forever and block every
-	// later push to the repository, so it is logged and the push succeeds.
+	// later push to the repository, so it is reported on the commit and the push
+	// succeeds.
 	for _, create := range pending {
 		resp, err := create.future.Response()
 		if err != nil {
@@ -193,6 +199,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 				"app_id", create.appID,
 				"error", err,
 			)
+			s.postRejectedStatus(ctx, req, create.deploymentID,
+				hydrav1.CreateOutcome_CREATE_OUTCOME_UNSPECIFIED, "")
 			continue
 		}
 
@@ -211,7 +219,7 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		)
 
 		if resp.GetOutcome() != hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED {
-			s.postRejectedStatus(ctx, req, create.deploymentID, resp.GetDetail())
+			s.postRejectedStatus(ctx, req, create.deploymentID, resp.GetOutcome(), resp.GetDetail())
 		}
 	}
 	return &hydrav1.HandlePushResponse{}, nil
@@ -226,9 +234,25 @@ const commitStatusDescriptionMax = 140
 // create writes no row, so without this the push disappears without a trace
 // anywhere the developer looks. GitHub errors are retried for a bounded time,
 // then logged and dropped: the reason is already in the log above.
-func (s *Service) postRejectedStatus(ctx restate.ObjectContext, req *hydrav1.HandlePushRequest, deploymentID, detail string) {
+//
+// A status is world-readable on a public repo, so only details about the push
+// itself go out; the rest name internal ids.
+func (s *Service) postRejectedStatus(
+	ctx restate.ObjectContext,
+	req *hydrav1.HandlePushRequest,
+	deploymentID string,
+	outcome hydrav1.CreateOutcome,
+	detail string,
+) {
 	if s.allowUnauthenticatedDeployments {
 		return
+	}
+
+	description := "Unkey did not deploy this commit. Open the Unkey dashboard for the reason."
+	if outcome == hydrav1.CreateOutcome_CREATE_OUTCOME_COMMIT_NOT_RESOLVED ||
+		outcome == hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE ||
+		outcome == hydrav1.CreateOutcome_CREATE_OUTCOME_NEWER_DEPLOYMENT_EXISTS {
+		description = detail
 	}
 
 	err := restate.RunVoid(ctx, func(_ restate.RunContext) error {
@@ -238,7 +262,7 @@ func (s *Service) postRejectedStatus(ctx restate.ObjectContext, req *hydrav1.Han
 			req.GetAfter(),
 			"error",
 			"",
-			truncate(detail, commitStatusDescriptionMax),
+			truncate(description, commitStatusDescriptionMax),
 			githubclient.DeployRejectedContext,
 		)
 	}, restate.WithName("create commit status for rejected create"), restate.WithMaxRetryDuration(30*time.Second))
@@ -252,11 +276,12 @@ func (s *Service) postRejectedStatus(ctx restate.ObjectContext, req *hydrav1.Han
 	}
 }
 
+// GitHub counts a description in characters, not bytes
 func truncate(s string, max int) string {
-	if len(s) <= max {
+	if utf8.RuneCountInString(s) <= max {
 		return s
 	}
-	return s[:max-1] + "…"
+	return string([]rune(s)[:max-1]) + "…"
 }
 
 type pendingCreate struct {

@@ -82,10 +82,11 @@ func TestHandlePushSkipsWhenNotDeployable(t *testing.T) {
 		require.Equal(t, "Watch paths did not match any changed files.", row.triggerReason.String)
 	})
 
-	// The lookup carries no retry limit, so Restate keeps retrying a GitHub 5xx
-	// or rate limit rather than handing the handler an error. This is what makes
-	// the skip below unreachable in practice, and why a push survives a GitHub
-	// wobble instead of being recorded as skipped.
+	// The lookup is retried for changedFilesRetryDuration, so a GitHub 5xx or
+	// rate limit is ridden out rather than handed to the handler as an error.
+	// That is why a push survives a GitHub wobble instead of being recorded as
+	// skipped, and why the failure below needs a terminal error to reach the
+	// handler at all.
 	t.Run("a transient github failure is retried, not skipped", func(t *testing.T) {
 		target := h.newTarget(t, ctx)
 		app := h.newApp(t, ctx, target, appOptions{watchPaths: []string{fixtureMatchingWatchPath}})
@@ -277,6 +278,71 @@ func TestHandlePushSurvivesARejectedCreate(t *testing.T) {
 		description: deployfail.MsgNoSchedulableRegions,
 		context:     githubclient.DeployRejectedContext,
 	}, statuses[0])
+}
+
+// TestHandlePushKeepsInternalIdsOffTheCommitStatus pins the allowlist in
+// postRejectedStatus. Everyone with read access to the repository reads a
+// commit status, a fork PR's outside author included, so only an outcome whose
+// detail describes the push carries that detail. A workspace-level refusal
+// names the workspace, so it gets the fixed line instead.
+func TestHandlePushKeepsInternalIdsOffTheCommitStatus(t *testing.T) {
+	ctx := context.Background()
+	h := newPushHarness(t, ctx)
+
+	target := h.newTarget(t, ctx)
+	app := h.newApp(t, ctx, target, appOptions{})
+
+	// Dropping the granted plan is what makes Create answer NO_COMPUTE_PLAN,
+	// whose detail names the workspace.
+	_, err := h.database.RW().ExecContext(ctx,
+		"UPDATE workspace_billing SET plan_override = NULL WHERE workspace_id = ?", target.workspaceID)
+	require.NoError(t, err)
+
+	push := target.newPush(fixtureDefaultBranch, []string{fixtureMatchingFile})
+	h.push(t, ctx, push)
+
+	h.requireNoDeployment(t, ctx, app.id)
+
+	statuses := h.github.commitStatuses()
+	require.Len(t, statuses, 1)
+	require.NotContains(t, statuses[0].description, target.workspaceID,
+		"the workspace id must never reach the commit status")
+	require.Equal(t,
+		"Unkey did not deploy this commit. Open the Unkey dashboard for the reason.",
+		statuses[0].description)
+}
+
+// TestHandlePushReportsACreateThatNeverAnswered pins the commit status for a
+// create that failed instead of answering. It writes no row, so the status is
+// the only place the push is visible.
+func TestHandlePushReportsACreateThatNeverAnswered(t *testing.T) {
+	ctx := context.Background()
+	h := newPushHarness(t, ctx)
+
+	target := h.newTarget(t, ctx)
+	app := h.newApp(t, ctx, target, appOptions{})
+
+	// A key no validation would ever accept is corrupt stored data, which Create
+	// answers with a terminal error rather than an outcome.
+	require.NoError(t, h.database.InsertAppEnvironmentVariable(ctx, db.InsertAppEnvironmentVariableParams{
+		ID:            uid.New(uid.EnvironmentVariablePrefix),
+		WorkspaceID:   target.workspaceID,
+		AppID:         app.id,
+		EnvironmentID: app.productionEnvID,
+		EnvKey:        "KEBAP-INVALID",
+		Value:         "KEBAP",
+		CreatedAt:     time.Now().UnixMilli(),
+	}))
+
+	h.push(t, ctx, target.newPush(fixtureDefaultBranch, []string{fixtureMatchingFile}))
+
+	h.requireNoDeployment(t, ctx, app.id)
+
+	statuses := h.github.commitStatuses()
+	require.Len(t, statuses, 1)
+	require.Equal(t,
+		"Unkey did not deploy this commit. Open the Unkey dashboard for the reason.",
+		statuses[0].description)
 }
 
 // TestHandlePushDecidesEachMatchedAppSeparately pins the monorepo case: one
