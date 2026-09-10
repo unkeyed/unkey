@@ -2,6 +2,7 @@ syntax = "proto3";
 package hydra.v1;
 
 import "ctrl/v1/actor.proto";
+import "ctrl/v1/deployment.proto";
 import "dev/restate/sdk/go.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
@@ -24,6 +25,10 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 // routes atomically through the routing service.
 service DeployService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+
+  // Create writes the deployment row and, for a DEPLOY decision, starts Deploy.
+  // The object key is the deployment id, so the caller chooses it up front.
+  rpc Create(DeployCreateRequest) returns (DeployCreateResponse) {}
 
   // Deploy executes the full deployment workflow: build (if git source), provision
   // containers across regions, wait for health, configure domain routing, and
@@ -122,6 +127,153 @@ message GitSource {
   // Railpack auto-detects the command. Lets monorepos scope the build to a
   // single app. Ignored when dockerfile_path is set.
   string build_command = 9;
+}
+
+// CreateDecision is what happens to the row after it is written. The caller
+// decides, because the inputs (watch paths, fork pushes) are only visible to
+// the GitHub webhook. Create does not re-check it.
+enum CreateDecision {
+  CREATE_DECISION_UNSPECIFIED = 0;
+
+  CREATE_DECISION_DEPLOY = 1;
+
+  // Record the commit without building it.
+  CREATE_DECISION_SKIP = 2;
+
+  // Wait for AuthorizeDeployment before building.
+  CREATE_DECISION_AWAIT_APPROVAL = 3;
+}
+
+// CreateOutcome is what a create did. Every value other than CREATED is a
+// refusal that wrote nothing. A refusal is a response rather than a terminal
+// error because the Restate ingress flattens errors to text, and a one-way
+// caller would otherwise leave a failed invocation behind.
+enum CreateOutcome {
+  CREATE_OUTCOME_UNSPECIFIED = 0;
+
+  // CREATED wrote a new row.
+  CREATE_OUTCOME_CREATED = 1;
+
+  // The workspace has no Compute plan.
+  CREATE_OUTCOME_NO_COMPUTE_PLAN = 2;
+
+  // The workspace is over its Compute spend cap.
+  CREATE_OUTCOME_SPEND_SUSPENDED = 3;
+
+  // The project, app, or environment does not exist, or they do not belong
+  // together.
+  CREATE_OUTCOME_TARGET_NOT_FOUND = 4;
+
+  // A git source was requested for an app with no connected repository.
+  CREATE_OUTCOME_NO_REPO_CONNECTION = 5;
+
+  // GitHub could not resolve the requested branch or commit.
+  CREATE_OUTCOME_COMMIT_NOT_RESOLVED = 6;
+
+  // The existing deployment recorded no source and has neither a commit nor an
+  // image to reproduce.
+  CREATE_OUTCOME_NO_SOURCE_IMAGE = 7;
+
+  // A newer active deployment exists on the same app, environment, and branch.
+  // Only with require_latest set.
+  CREATE_OUTCOME_NEWER_DEPLOYMENT_EXISTS = 8;
+
+  // The image is not a well-formed container reference.
+  CREATE_OUTCOME_INVALID_IMAGE = 9;
+
+  // The environment's port, cpu, or memory is out of bounds, or it has no
+  // schedulable region.
+  CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE = 10;
+
+  // existing_deployment does not exist or belongs to another app or
+  // environment. One outcome for both, so a caller cannot probe for deployments
+  // it cannot reach.
+  CREATE_OUTCOME_SOURCE_DEPLOYMENT_NOT_FOUND = 11;
+
+  // The app deploys an OCI image but none is configured.
+  CREATE_OUTCOME_NO_IMAGE_CONFIGURED = 12;
+
+  // The request named no source and the app has nothing to fall back to: no
+  // declared source, no repository, and no current deployment.
+  CREATE_OUTCOME_NO_SOURCE = 13;
+
+  // The existing deployment was a git build but recorded no commit, so there is
+  // nothing to rebuild.
+  CREATE_OUTCOME_NO_SOURCE_COMMIT = 14;
+}
+
+// CreateGitSource builds from a commit in the app's connected repository.
+message CreateGitSource {
+  // Empty fields are filled from GitHub. With neither a sha nor a branch, the
+  // app's default branch is built. A sha alone is built as is; no branch is
+  // inferred for it.
+  ctrl.v1.GitCommitInfo commit = 1;
+
+  // PR number for fork PRs. BuildKit fetches refs/pull/<number>/head from the
+  // base repository instead of cloning the commit directly.
+  int64 pr_number = 2;
+}
+
+// CreateImageSource deploys a pre-built container image. No build runs.
+message CreateImageSource {
+  string image = 1;
+
+  // What the image was built from, recorded as given. Nothing is looked up.
+  // The branch also scopes sibling dedup, so an image deploy without one
+  // never cancels an older deployment.
+  ctrl.v1.GitCommitInfo commit = 2;
+}
+
+// CreateExistingDeploymentSource rebuilds another deployment's commit, or its
+// image when the app has no repository connection. Runtime settings and
+// environment variables come from the app as it is now, not from the source.
+message CreateExistingDeploymentSource {
+  string deployment_id = 1;
+
+  // Refuse the rebuild when a newer active deployment exists on the same app,
+  // environment, and branch.
+  bool require_latest = 2;
+}
+
+message DeployCreateRequest {
+  string project_id = 1;
+  string app_id = 2;
+  string environment_id = 3;
+
+  // Unset means redeploy what the app declares: the default branch head for a
+  // Git app, the configured image for an OCI app. An app with no declared source
+  // uses its repository connection, else the image its current deployment runs.
+  oneof source {
+    CreateGitSource git = 4;
+    CreateImageSource image = 5;
+    CreateExistingDeploymentSource existing_deployment = 6;
+  }
+
+  CreateDecision decision = 8;
+
+  // The three trigger columns on the deployment row. The dashboard badge shows
+  // them as separate things: the surface, who acted on it, and why.
+  ctrl.v1.DeploymentTrigger trigger = 10;
+  // Whose action this was, read against trigger: a user id for dashboard and
+  // unkey, a root key id for api and cli, the sender login for github.
+  string triggered_by = 11;
+  // Why the row exists when that is not obvious: the skip reason for a
+  // decision of SKIP, or the cause of an internal rebuild.
+  string trigger_reason = 12;
+
+  // Actor on the audit log only. Unset falls back to the system actor.
+  ctrl.v1.ActorInfo actor = 13;
+}
+
+message DeployCreateResponse {
+  CreateOutcome outcome = 1;
+
+  string deployment_id = 2;
+
+  // Why the create was refused, for the caller. Set only on a rejection, and
+  // only when the outcome describes the caller's own input or settings, never
+  // something it may not be allowed to see.
+  string detail = 3;
 }
 
 message DeployRequest {
