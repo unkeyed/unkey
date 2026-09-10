@@ -66,8 +66,7 @@ Leave a filter empty to send all values for that filter.
 | Key verifications | **Keyspaces** selects one or more workspace keyspaces. **Outcomes** selects verification results, such as `VALID`, `RATE_LIMITED`, or `EXPIRED`. |
 
 When you select both keyspaces and outcomes, a verification must match both
-filters. **Unspecified** matches an empty verification outcome. Tags remain in
-the payload for filtering at your destination.
+filters. **Unspecified** matches an empty verification outcome.
 
 Filter changes apply from the drain's committed position. They do not replay
 events skipped by an earlier filter. An in-flight request can still arrive
@@ -119,7 +118,7 @@ delay is 24 hours.
 ### Read the HTTP payload
 
 Choose the format that matches your destination. These examples contain an
-audit event:
+audit event. Each record includes `stream` to identify its event type:
 
 <CodeGroup>
 
@@ -152,13 +151,14 @@ audit event:
       "description": "Created a key for Production API",
       "correlation_id": "req_01J6Z70J4V9R2K8M5N3P7QSTUW"
     },
+    "stream": "audit_logs",
     "timestamp": "2026-08-27T12:34:56.789Z"
   }
 ]
 ```
 
 ```json NDJSON
-{"event":{"id":"evt_01J6Z6X8KZQ1V9X4R7Y2W3ABCD","action":"key.create","occurred_at":"2026-08-27T12:34:56.789Z","actor":{"id":"user_01J6Z6WZ4F8M5N2K7P3Q9RSTUV","type":"user","name":"Ada","metadata":null},"targets":[{"id":"api_01J6Z6VQ9K2T4M8N5P7R3STUVW","type":"api","name":"Production API","metadata":null}],"context":{"location":"203.0.113.10","user_agent":"Mozilla/5.0"},"metadata":null,"description":"Created a key for Production API","correlation_id":"req_01J6Z70J4V9R2K8M5N3P7QSTUW"},"timestamp":"2026-08-27T12:34:56.789Z"}
+{"event":{"id":"evt_01J6Z6X8KZQ1V9X4R7Y2W3ABCD","action":"key.create","occurred_at":"2026-08-27T12:34:56.789Z","actor":{"id":"user_01J6Z6WZ4F8M5N2K7P3Q9RSTUV","type":"user","name":"Ada","metadata":null},"targets":[{"id":"api_01J6Z6VQ9K2T4M8N5P7R3STUVW","type":"api","name":"Production API","metadata":null}],"context":{"location":"203.0.113.10","user_agent":"Mozilla/5.0"},"metadata":null,"description":"Created a key for Production API","correlation_id":"req_01J6Z70J4V9R2K8M5N3P7QSTUW"},"stream":"audit_logs","timestamp":"2026-08-27T12:34:56.789Z"}
 ```
 
 </CodeGroup>
@@ -185,6 +185,7 @@ For a verification drain, `event` contains the verification fields. The HTTP
       "tags": ["paid"],
       "spent_credits": 1
     },
+    "stream": "key_verifications",
     "timestamp": "2026-09-10T12:34:56.789Z"
   }
 ]
@@ -202,7 +203,7 @@ For a verification drain, `event` contains the verification fields. The HTTP
 | `spent_credits` | Credits spent on the verification |
 
 NDJSON uses the same record shape, with one record per line. Axiom uses the
-same `event` object with `stream: "key_verifications"` and `_time` in place of
+same `event` and `stream` fields with `_time` in place of
 the HTTP `timestamp`.
 
 ## Configure an Axiom destination

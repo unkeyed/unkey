@@ -17,7 +17,7 @@ import (
 )
 
 // TestDeliverSuccess guarantees the default format delivers one JSON array of
-// WorkOS-shaped objects with batch metadata in X-Unkey-* headers, and that
+// event envelopes with batch metadata in X-Unkey-* headers, and that
 // 2xx counts as acknowledgment.
 func TestDeliverSuccess(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +55,7 @@ func TestDeliverSuccess(t *testing.T) {
 }
 
 // TestDeliverNDJSONFormat guarantees the NDJSON format delivers one
-// WorkOS-shaped JSON object per line with Content-Type application/x-ndjson.
+// JSON envelope per line with Content-Type application/x-ndjson.
 func TestDeliverNDJSONFormat(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, "application/x-ndjson", r.Header.Get("Content-Type"))
@@ -87,6 +87,48 @@ func TestNewRejectsUnknownFormat(t *testing.T) {
 	_, err := New(Config{Endpoint: "https://example.com/logs", Format: logdrainv1.HttpBodyFormat(99)})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unknown http drain format")
+}
+
+func TestDeliverIncludesStream(t *testing.T) {
+	for _, format := range []logdrainv1.HttpBodyFormat{
+		logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED,
+		logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON,
+		logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON,
+	} {
+		t.Run(format.String(), func(t *testing.T) {
+			for _, stream := range []string{"audit_logs", "key_verifications"} {
+				t.Run(stream, func(t *testing.T) {
+					server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						var records []map[string]any
+						decoder := json.NewDecoder(r.Body)
+						switch format {
+						case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED,
+							logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON:
+							require.NoError(t, decoder.Decode(&records))
+						case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON:
+							var record map[string]any
+							require.NoError(t, decoder.Decode(&record))
+							records = append(records, record)
+						}
+						require.Len(t, records, 1)
+						require.Equal(t, stream, records[0]["stream"])
+						w.WriteHeader(http.StatusNoContent)
+					}))
+					t.Cleanup(server.Close)
+					drain := newTestSink(t, Config{Endpoint: server.URL, Format: format, Timeout: time.Second})
+					batch := testBatch()
+					batch.Events = batch.Events[:1]
+					batch.Events[0].Stream = stream
+					if stream == "key_verifications" {
+						batch.Events[0].Payload = sink.KeyVerificationPayload{RequestID: "req_1", Outcome: "VALID"}
+					}
+					result, err := drain.Deliver(context.Background(), batch)
+					require.NoError(t, err)
+					require.True(t, result.Acknowledged)
+				})
+			}
+		})
+	}
 }
 
 // TestRejectedResponses guarantees that every non-2xx response returns a

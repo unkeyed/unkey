@@ -300,7 +300,8 @@ or the verification `request_id` as a deduplication key within its stream.
 
 ## Verification payload
 
-Each HTTP record contains `event` (the verification payload) and `timestamp`
+Each HTTP record contains `event` (the verification payload),
+`stream: "key_verifications"`, and `timestamp`
 (occurrence time in UTC RFC3339 with millisecond precision). Batch metadata
 stays in request headers. Axiom contains `event`, `stream: "key_verifications"`,
 and `_time` with the same occurrence time. HTTP JSON sends an array; NDJSON
