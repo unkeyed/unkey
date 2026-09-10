@@ -12,7 +12,7 @@ const vault = vi.hoisted(() => ({ encryptBulk: vi.fn() }));
 vi.mock("@/lib/vault-client", () => ({ createVaultClient: () => vault }));
 
 describe("log drain protobuf config", () => {
-  const configs: LogdrainConfig[] = [
+  const configs = [
     {
       kind: "http",
       stream: { kind: "audit_logs", eventTypes: ["key.create", "future.event"] },
@@ -29,7 +29,7 @@ describe("log drain protobuf config", () => {
       dataset: "audit-logs",
       encryptedToken: "encrypted-axiom-token",
     },
-  ];
+  ] satisfies LogdrainConfig[];
 
   for (const config of configs) {
     it(`round trips ${config.kind} config`, () => {
@@ -44,6 +44,21 @@ describe("log drain protobuf config", () => {
 
   it("rejects config without a provider", () => {
     expect(() => decodeLogdrainConfig(new Uint8Array())).toThrow("provider is not set");
+  });
+
+  it("round trips verification outcomes independently of the destination", () => {
+    const config = {
+      kind: "axiom" as const,
+      stream: { kind: "key_verifications" as const, outcomes: ["RATE_LIMITED", "EXPIRED"] },
+      dataset: "verifications",
+      encryptedToken: "ciphertext",
+    };
+    const encoded = encodeLogdrainConfig(config);
+    expect(fromBinary(ConfigSchema, encoded).stream).toMatchObject({
+      case: "keyVerifications",
+      value: { outcomes: ["RATE_LIMITED", "EXPIRED"] },
+    });
+    expect(decodeLogdrainConfig(encoded)).toEqual(config);
   });
 
   it("decodes configs without event types as all events", () => {

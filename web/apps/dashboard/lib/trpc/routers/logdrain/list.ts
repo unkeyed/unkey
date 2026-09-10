@@ -4,7 +4,7 @@ import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 import { decodeLogdrainConfig } from "./config";
 
-const streamSchema = z.enum(["audit_logs"]);
+const streamSchema = z.enum(["audit_logs", "key_verifications"]);
 
 export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
   try {
@@ -29,7 +29,10 @@ export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
           return {
             ...row,
             kind: destination.kind,
-            eventTypes: destination.stream.eventTypes,
+            eventTypes:
+              destination.stream.kind === "audit_logs" ? destination.stream.eventTypes : [],
+            outcomes:
+              destination.stream.kind === "key_verifications" ? destination.stream.outcomes : [],
             stream,
             config: {
               url: destination.url,
@@ -41,7 +44,10 @@ export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
           return {
             ...row,
             kind: destination.kind,
-            eventTypes: destination.stream.eventTypes,
+            eventTypes:
+              destination.stream.kind === "audit_logs" ? destination.stream.eventTypes : [],
+            outcomes:
+              destination.stream.kind === "key_verifications" ? destination.stream.outcomes : [],
             stream,
             config: {
               dataset: destination.dataset,

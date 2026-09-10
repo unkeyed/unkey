@@ -58,7 +58,13 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
       const name = submitted.name.trim();
       const destination = changedDestination(submitted, values);
       const eventTypesChanged = !sameEventTypes(submitted.eventTypes, values.eventTypes);
-      if (name === drain.name && destination === undefined && !eventTypesChanged) {
+      const outcomesChanged = !sameEventTypes(submitted.outcomes, values.outcomes);
+      if (
+        name === drain.name &&
+        destination === undefined &&
+        !eventTypesChanged &&
+        !outcomesChanged
+      ) {
         onSaved();
         return;
       }
@@ -67,6 +73,7 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
           id: drain.id,
           ...(name !== drain.name ? { name } : {}),
           ...(eventTypesChanged ? { eventTypes: submitted.eventTypes } : {}),
+          ...(outcomesChanged ? { outcomes: submitted.outcomes } : {}),
           ...(destination !== undefined ? { destination } : {}),
         },
         { onSuccess: onSaved },

@@ -33,7 +33,11 @@ export const getLogdrain = workspaceProcedure
             id: row.id,
             name: row.name,
             kind: destination.kind,
-            eventTypes: destination.stream.eventTypes,
+            stream: destination.stream.kind,
+            eventTypes:
+              destination.stream.kind === "audit_logs" ? destination.stream.eventTypes : [],
+            outcomes:
+              destination.stream.kind === "key_verifications" ? destination.stream.outcomes : [],
             status: row.status,
             config: {
               url: destination.url,
@@ -46,7 +50,11 @@ export const getLogdrain = workspaceProcedure
             id: row.id,
             name: row.name,
             kind: destination.kind,
-            eventTypes: destination.stream.eventTypes,
+            stream: destination.stream.kind,
+            eventTypes:
+              destination.stream.kind === "audit_logs" ? destination.stream.eventTypes : [],
+            outcomes:
+              destination.stream.kind === "key_verifications" ? destination.stream.outcomes : [],
             status: row.status,
             config: {
               dataset: destination.dataset,

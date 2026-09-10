@@ -3,7 +3,7 @@ CREATE TABLE `logdrains` (
 	`id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`workspace_id` varchar(48) COLLATE utf8mb4_0900_as_cs NOT NULL,
 	`name` varchar(128) NOT NULL,
-	`stream` enum('audit_logs') NOT NULL,
+	`stream` enum('audit_logs','key_verifications') NOT NULL,
 	`config` longblob NOT NULL,
 	`status` enum('running','paused_by_user','paused_by_failure') NOT NULL DEFAULT 'running',
 	`consecutive_failures` int NOT NULL DEFAULT 0,

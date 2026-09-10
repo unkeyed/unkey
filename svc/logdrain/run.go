@@ -149,7 +149,8 @@ func Run(ctx context.Context, cfg Config) error {
 	delivery, err := engine.New(engine.Config{
 		DB:                          database,
 		LeaseID:                     leaseID,
-		Source:                      source.NewAuditLogs(ch),
+		AuditLogs:                   source.NewAuditLogs(ch),
+		KeyVerifications:            source.NewKeyVerifications(ch),
 		Vault:                       vaultClient,
 		Deliveries:                  deliveries,
 		Clock:                       serviceClock,

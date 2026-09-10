@@ -26,7 +26,7 @@ import {
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { DESTINATIONS, DrainMedia } from "./drain-destinations";
-import { DestinationFields, EventTypesField, NameField } from "./drain-fields";
+import { DestinationFields, EventTypesField, NameField, StreamField } from "./drain-fields";
 import {
   type DrainFormValues,
   type DrainKind,
@@ -100,8 +100,10 @@ export function CreateLogdrainPanel({
 
     create.mutate({
       name: values.name.trim(),
-      stream: "audit_logs",
-      eventTypes: values.eventTypes,
+      stream: values.stream,
+      ...(values.stream === "audit_logs"
+        ? { eventTypes: values.eventTypes }
+        : { outcomes: values.outcomes }),
       ...destination,
     });
   });
@@ -168,6 +170,7 @@ export function CreateLogdrainPanel({
               >
                 <div className="flex flex-col gap-6">
                   <NameField />
+                  <StreamField />
                   <EventTypesField />
                   <DestinationFields tokenRequired />
                 </div>

@@ -11,7 +11,9 @@ export type EncryptedHttpHeader = {
 
 /** LogdrainConfig is the typed dashboard representation of the stored provider config. */
 export type LogdrainConfig = {
-  stream: { kind: "audit_logs"; eventTypes: string[] };
+  stream:
+    | { kind: "audit_logs"; eventTypes: string[] }
+    | { kind: "key_verifications"; outcomes: string[] };
 } & (
   | {
       kind: "http";
@@ -34,7 +36,10 @@ export function encodeLogdrainConfig(config: LogdrainConfig): Buffer {
         toBinary(
           ConfigSchema,
           create(ConfigSchema, {
-            stream: { case: "auditLogs", value: { eventTypes: config.stream.eventTypes } },
+            stream:
+              config.stream.kind === "audit_logs"
+                ? { case: "auditLogs", value: { eventTypes: config.stream.eventTypes } }
+                : { case: "keyVerifications", value: { outcomes: config.stream.outcomes } },
             destination: {
               case: config.kind,
               value: {
@@ -51,7 +56,10 @@ export function encodeLogdrainConfig(config: LogdrainConfig): Buffer {
         toBinary(
           ConfigSchema,
           create(ConfigSchema, {
-            stream: { case: "auditLogs", value: { eventTypes: config.stream.eventTypes } },
+            stream:
+              config.stream.kind === "audit_logs"
+                ? { case: "auditLogs", value: { eventTypes: config.stream.eventTypes } }
+                : { case: "keyVerifications", value: { outcomes: config.stream.outcomes } },
             destination: {
               case: config.kind,
               value: {
@@ -73,6 +81,9 @@ export function decodeLogdrainConfig(raw: Uint8Array): LogdrainConfig {
   const { destination } = config;
   let stream: LogdrainConfig["stream"];
   switch (config.stream.case) {
+    case "keyVerifications":
+      stream = { kind: "key_verifications", outcomes: config.stream.value.outcomes };
+      break;
     case "auditLogs":
       stream = { kind: "audit_logs", eventTypes: config.stream.value.eventTypes };
       break;

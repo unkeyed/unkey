@@ -85,6 +85,7 @@ type Config struct {
 	// Types that are valid to be assigned to Stream:
 	//
 	//	*Config_AuditLogs
+	//	*Config_KeyVerifications
 	Stream        isConfig_Stream `protobuf_oneof:"stream"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -161,6 +162,15 @@ func (x *Config) GetAuditLogs() *AuditLogStreamConfig {
 	return nil
 }
 
+func (x *Config) GetKeyVerifications() *KeyVerificationStreamConfig {
+	if x != nil {
+		if x, ok := x.Stream.(*Config_KeyVerifications); ok {
+			return x.KeyVerifications
+		}
+	}
+	return nil
+}
+
 type isConfig_Destination interface {
 	isConfig_Destination()
 }
@@ -185,7 +195,59 @@ type Config_AuditLogs struct {
 	AuditLogs *AuditLogStreamConfig `protobuf:"bytes,3,opt,name=audit_logs,json=auditLogs,proto3,oneof"`
 }
 
+type Config_KeyVerifications struct {
+	KeyVerifications *KeyVerificationStreamConfig `protobuf:"bytes,4,opt,name=key_verifications,json=keyVerifications,proto3,oneof"`
+}
+
 func (*Config_AuditLogs) isConfig_Stream() {}
+
+func (*Config_KeyVerifications) isConfig_Stream() {}
+
+// KeyVerificationStreamConfig selects verification outcomes, not audit event types.
+type KeyVerificationStreamConfig struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty selects all outcomes, including outcomes added later.
+	Outcomes      []string `protobuf:"bytes,1,rep,name=outcomes,proto3" json:"outcomes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KeyVerificationStreamConfig) Reset() {
+	*x = KeyVerificationStreamConfig{}
+	mi := &file_logdrain_v1_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KeyVerificationStreamConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KeyVerificationStreamConfig) ProtoMessage() {}
+
+func (x *KeyVerificationStreamConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_logdrain_v1_config_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KeyVerificationStreamConfig.ProtoReflect.Descriptor instead.
+func (*KeyVerificationStreamConfig) Descriptor() ([]byte, []int) {
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *KeyVerificationStreamConfig) GetOutcomes() []string {
+	if x != nil {
+		return x.Outcomes
+	}
+	return nil
+}
 
 // AuditLogStreamConfig selects audit logs and their stream-specific filters.
 type AuditLogStreamConfig struct {
@@ -198,7 +260,7 @@ type AuditLogStreamConfig struct {
 
 func (x *AuditLogStreamConfig) Reset() {
 	*x = AuditLogStreamConfig{}
-	mi := &file_logdrain_v1_config_proto_msgTypes[1]
+	mi := &file_logdrain_v1_config_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -210,7 +272,7 @@ func (x *AuditLogStreamConfig) String() string {
 func (*AuditLogStreamConfig) ProtoMessage() {}
 
 func (x *AuditLogStreamConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_logdrain_v1_config_proto_msgTypes[1]
+	mi := &file_logdrain_v1_config_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -223,7 +285,7 @@ func (x *AuditLogStreamConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditLogStreamConfig.ProtoReflect.Descriptor instead.
 func (*AuditLogStreamConfig) Descriptor() ([]byte, []int) {
-	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{1}
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *AuditLogStreamConfig) GetEventTypes() []string {
@@ -245,7 +307,7 @@ type HttpConfig struct {
 
 func (x *HttpConfig) Reset() {
 	*x = HttpConfig{}
-	mi := &file_logdrain_v1_config_proto_msgTypes[2]
+	mi := &file_logdrain_v1_config_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -257,7 +319,7 @@ func (x *HttpConfig) String() string {
 func (*HttpConfig) ProtoMessage() {}
 
 func (x *HttpConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_logdrain_v1_config_proto_msgTypes[2]
+	mi := &file_logdrain_v1_config_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -270,7 +332,7 @@ func (x *HttpConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HttpConfig.ProtoReflect.Descriptor instead.
 func (*HttpConfig) Descriptor() ([]byte, []int) {
-	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{2}
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *HttpConfig) GetUrl() string {
@@ -305,7 +367,7 @@ type HttpHeader struct {
 
 func (x *HttpHeader) Reset() {
 	*x = HttpHeader{}
-	mi := &file_logdrain_v1_config_proto_msgTypes[3]
+	mi := &file_logdrain_v1_config_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -317,7 +379,7 @@ func (x *HttpHeader) String() string {
 func (*HttpHeader) ProtoMessage() {}
 
 func (x *HttpHeader) ProtoReflect() protoreflect.Message {
-	mi := &file_logdrain_v1_config_proto_msgTypes[3]
+	mi := &file_logdrain_v1_config_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -330,7 +392,7 @@ func (x *HttpHeader) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HttpHeader.ProtoReflect.Descriptor instead.
 func (*HttpHeader) Descriptor() ([]byte, []int) {
-	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{3}
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *HttpHeader) GetName() string {
@@ -358,7 +420,7 @@ type AxiomConfig struct {
 
 func (x *AxiomConfig) Reset() {
 	*x = AxiomConfig{}
-	mi := &file_logdrain_v1_config_proto_msgTypes[4]
+	mi := &file_logdrain_v1_config_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -370,7 +432,7 @@ func (x *AxiomConfig) String() string {
 func (*AxiomConfig) ProtoMessage() {}
 
 func (x *AxiomConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_logdrain_v1_config_proto_msgTypes[4]
+	mi := &file_logdrain_v1_config_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -383,7 +445,7 @@ func (x *AxiomConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AxiomConfig.ProtoReflect.Descriptor instead.
 func (*AxiomConfig) Descriptor() ([]byte, []int) {
-	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{4}
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *AxiomConfig) GetDataset() string {
@@ -404,14 +466,17 @@ var File_logdrain_v1_config_proto protoreflect.FileDescriptor
 
 const file_logdrain_v1_config_proto_rawDesc = "" +
 	"\n" +
-	"\x18logdrain/v1/config.proto\x12\vlogdrain.v1\"\xc6\x01\n" +
+	"\x18logdrain/v1/config.proto\x12\vlogdrain.v1\"\x9f\x02\n" +
 	"\x06Config\x12-\n" +
 	"\x04http\x18\x01 \x01(\v2\x17.logdrain.v1.HttpConfigH\x00R\x04http\x120\n" +
 	"\x05axiom\x18\x02 \x01(\v2\x18.logdrain.v1.AxiomConfigH\x00R\x05axiom\x12B\n" +
 	"\n" +
-	"audit_logs\x18\x03 \x01(\v2!.logdrain.v1.AuditLogStreamConfigH\x01R\tauditLogsB\r\n" +
+	"audit_logs\x18\x03 \x01(\v2!.logdrain.v1.AuditLogStreamConfigH\x01R\tauditLogs\x12W\n" +
+	"\x11key_verifications\x18\x04 \x01(\v2(.logdrain.v1.KeyVerificationStreamConfigH\x01R\x10keyVerificationsB\r\n" +
 	"\vdestinationB\b\n" +
-	"\x06stream\"7\n" +
+	"\x06stream\"9\n" +
+	"\x1bKeyVerificationStreamConfig\x12\x1a\n" +
+	"\boutcomes\x18\x01 \x03(\tR\boutcomes\"7\n" +
 	"\x14AuditLogStreamConfig\x12\x1f\n" +
 	"\vevent_types\x18\x01 \x03(\tR\n" +
 	"eventTypes\"\x86\x01\n" +
@@ -446,26 +511,28 @@ func file_logdrain_v1_config_proto_rawDescGZIP() []byte {
 }
 
 var file_logdrain_v1_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_logdrain_v1_config_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_logdrain_v1_config_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_logdrain_v1_config_proto_goTypes = []any{
-	(HttpBodyFormat)(0),          // 0: logdrain.v1.HttpBodyFormat
-	(*Config)(nil),               // 1: logdrain.v1.Config
-	(*AuditLogStreamConfig)(nil), // 2: logdrain.v1.AuditLogStreamConfig
-	(*HttpConfig)(nil),           // 3: logdrain.v1.HttpConfig
-	(*HttpHeader)(nil),           // 4: logdrain.v1.HttpHeader
-	(*AxiomConfig)(nil),          // 5: logdrain.v1.AxiomConfig
+	(HttpBodyFormat)(0),                 // 0: logdrain.v1.HttpBodyFormat
+	(*Config)(nil),                      // 1: logdrain.v1.Config
+	(*KeyVerificationStreamConfig)(nil), // 2: logdrain.v1.KeyVerificationStreamConfig
+	(*AuditLogStreamConfig)(nil),        // 3: logdrain.v1.AuditLogStreamConfig
+	(*HttpConfig)(nil),                  // 4: logdrain.v1.HttpConfig
+	(*HttpHeader)(nil),                  // 5: logdrain.v1.HttpHeader
+	(*AxiomConfig)(nil),                 // 6: logdrain.v1.AxiomConfig
 }
 var file_logdrain_v1_config_proto_depIdxs = []int32{
-	3, // 0: logdrain.v1.Config.http:type_name -> logdrain.v1.HttpConfig
-	5, // 1: logdrain.v1.Config.axiom:type_name -> logdrain.v1.AxiomConfig
-	2, // 2: logdrain.v1.Config.audit_logs:type_name -> logdrain.v1.AuditLogStreamConfig
-	0, // 3: logdrain.v1.HttpConfig.format:type_name -> logdrain.v1.HttpBodyFormat
-	4, // 4: logdrain.v1.HttpConfig.headers:type_name -> logdrain.v1.HttpHeader
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	4, // 0: logdrain.v1.Config.http:type_name -> logdrain.v1.HttpConfig
+	6, // 1: logdrain.v1.Config.axiom:type_name -> logdrain.v1.AxiomConfig
+	3, // 2: logdrain.v1.Config.audit_logs:type_name -> logdrain.v1.AuditLogStreamConfig
+	2, // 3: logdrain.v1.Config.key_verifications:type_name -> logdrain.v1.KeyVerificationStreamConfig
+	0, // 4: logdrain.v1.HttpConfig.format:type_name -> logdrain.v1.HttpBodyFormat
+	5, // 5: logdrain.v1.HttpConfig.headers:type_name -> logdrain.v1.HttpHeader
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_logdrain_v1_config_proto_init() }
@@ -477,6 +544,7 @@ func file_logdrain_v1_config_proto_init() {
 		(*Config_Http)(nil),
 		(*Config_Axiom)(nil),
 		(*Config_AuditLogs)(nil),
+		(*Config_KeyVerifications)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -484,7 +552,7 @@ func file_logdrain_v1_config_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_logdrain_v1_config_proto_rawDesc), len(file_logdrain_v1_config_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -37,7 +37,7 @@ func TestProcess_CatchesUpEmptyWindows(t *testing.T) {
 		ends = append(ends, time.Duration(to-start)*time.Millisecond)
 		return nil, from, nil
 	}}
-	eng, err := New(Config{DB: database, LeaseID: "lease", Source: reader, PollInterval: time.Hour, WatermarkLag: 5 * time.Minute, BatchSize: 100})
+	eng, err := New(Config{DB: database, LeaseID: "lease", AuditLogs: reader, PollInterval: time.Hour, WatermarkLag: 5 * time.Minute, BatchSize: 100})
 	require.NoError(t, err)
 	eng.process(ctx, workItem{id: "drain", now: time.UnixMilli(watermark).Add(5 * time.Minute)})
 	require.Equal(t, []time.Duration{
@@ -79,7 +79,7 @@ func TestProcess_DeliveryFailure(t *testing.T) {
 		require.Equal(t, 2, limit)
 		return []sink.Event{{EventID: "event", Stream: "audit_logs", Time: start, Payload: sink.AuditLogPayload{ID: "event"}}}, source.Cursor{Time: start, EventID: "event"}, nil
 	}}
-	eng, err := New(Config{DB: database, LeaseID: "lease", Source: reader, PollInterval: time.Hour, BatchSize: 2, PauseThreshold: 5, UnsafeAllowPrivateEndpoints: true})
+	eng, err := New(Config{DB: database, LeaseID: "lease", AuditLogs: reader, PollInterval: time.Hour, BatchSize: 2, PauseThreshold: 5, UnsafeAllowPrivateEndpoints: true})
 	require.NoError(t, err)
 	eng.process(context.Background(), workItem{id: "drain", now: time.UnixMilli(start + 6*minute)})
 	require.Equal(t, 1, reads)
@@ -120,7 +120,7 @@ func TestProcess_LogsCommittedBatch(t *testing.T) {
 		return []sink.Event{{EventID: "event", Stream: "audit_logs", Time: start.UnixMilli(), Payload: sink.AuditLogPayload{ID: "event"}}}, from, nil
 	}}
 	eng, err := New(Config{
-		DB: database, LeaseID: "lease", Source: reader, PollInterval: time.Minute, BatchSize: 2,
+		DB: database, LeaseID: "lease", AuditLogs: reader, PollInterval: time.Minute, BatchSize: 2,
 		Clock: clock.NewTestClock(start.Add(2 * time.Hour)), UnsafeAllowPrivateEndpoints: true,
 	})
 	require.NoError(t, err)
@@ -139,7 +139,7 @@ func TestProcess_ZeroCursor(t *testing.T) {
 			return nil, from, nil
 		},
 	}
-	eng, err := New(Config{DB: database, LeaseID: "lease", Source: reader, PollInterval: time.Hour, BatchSize: 100})
+	eng, err := New(Config{DB: database, LeaseID: "lease", AuditLogs: reader, PollInterval: time.Hour, BatchSize: 100})
 	require.NoError(t, err)
 	eng.process(context.Background(), workItem{id: "drain", now: time.UnixMilli(watermark)})
 	require.Empty(t, database.failures)
@@ -165,13 +165,34 @@ func TestProcess_EventTypes(t *testing.T) {
 				require.Equal(t, eventTypes, filter)
 				return nil, from, nil
 			}}
-			eng, err := New(Config{DB: database, LeaseID: "lease", Source: reader, PollInterval: time.Minute, BatchSize: 2})
+			eng, err := New(Config{DB: database, LeaseID: "lease", AuditLogs: reader, PollInterval: time.Minute, BatchSize: 2})
 			require.NoError(t, err)
 			eng.process(context.Background(), workItem{id: "drain", now: time.UnixMilli(1180000)})
 			require.Len(t, database.commits, 2)
 			require.Equal(t, int64(1180000), database.drain.CommittedOffsetInsertedAt)
 		})
 	}
+}
+
+func TestProcess_KeyVerificationOutcomes(t *testing.T) {
+	encoded, err := proto.Marshal(&logdrainv1.Config{Stream: &logdrainv1.Config_KeyVerifications{
+		KeyVerifications: &logdrainv1.KeyVerificationStreamConfig{Outcomes: []string{"RATE_LIMITED"}},
+	}})
+	require.NoError(t, err)
+	database := &windowDatabase{drain: db.GetLeasedAndDueLogdrainRow{
+		ID: "drain", WorkspaceID: "workspace", Stream: db.LogdrainsStreamAuditLogs,
+		CommittedOffsetInsertedAt: 1000000, Config: encoded,
+	}}
+	reader := windowSource{read: func(_ context.Context, _ string, from source.Cursor, _ int64, _ int, filter []string) ([]sink.Event, source.Cursor, error) {
+		require.Equal(t, []string{"RATE_LIMITED"}, filter)
+		return nil, from, nil
+	}}
+	eng, err := New(Config{DB: database, LeaseID: "lease", KeyVerifications: reader, PollInterval: time.Minute, BatchSize: 2})
+	require.NoError(t, err)
+	eng.process(t.Context(), workItem{id: "drain", now: time.UnixMilli(1180000)})
+	require.Empty(t, database.failures)
+	require.Len(t, database.commits, 2)
+	require.Equal(t, int64(1180000), database.drain.CommittedOffsetInsertedAt)
 }
 
 // windowDatabase models cursor persistence and due-time gating between reads.

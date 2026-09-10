@@ -1,9 +1,9 @@
 ---
 title: "Overview"
-description: "How the logdrain service streams audit logs to customer destinations"
+description: "How the logdrain service streams audit logs and key verifications to customer destinations"
 ---
 
-The logdrain service (`svc/logdrain`) streams audit logs from ClickHouse to
+The logdrain service (`svc/logdrain`) streams audit logs and key verifications from ClickHouse to
 customer-owned destinations: generic HTTP endpoints and Axiom.
 Under one valid lease, it sends events in cursor order. It provides
 at-least-once delivery. MySQL stores configuration and delivery progress. The
@@ -17,7 +17,7 @@ engine polls for assigned drains that are due, then gives them to a worker
 pool.
 
 A worker first confirms its assignment in MySQL. It then reads the drain's
-configuration and cursor, queries the next audit log batch from ClickHouse,
+configuration and cursor, queries the next stream batch from ClickHouse,
 and sends that batch to the customer destination. After the destination
 acknowledges the batch, the worker advances the cursor in MySQL. A failed
 delivery leaves the cursor unchanged.
@@ -33,10 +33,18 @@ The `stream` oneof identifies the stream and contains its typed configuration,
 independently of the destination. `audit_logs` selects `AuditLogStreamConfig`.
 Its `event_types` list selects exact audit event names. An empty list means all
 audit events, including event types added later. Existing protobuf configs with
-no stream retain the legacy audit-log behavior without filters. The MySQL
-`stream` column remains the scheduling index and must agree with the config.
+no stream retain the legacy audit-log behavior without filters.
+`key_verifications` selects `KeyVerificationStreamConfig`. Its `outcomes` list
+matches exact verification outcomes, such as `VALID`, `RATE_LIMITED`, and
+`EXPIRED`. Empty selects all outcomes, including future outcomes. The dashboard
+uses the existing verification outcome catalog, including the empty outcome
+shown as “Unspecified”. Audit event names are not verification outcomes.
+Tags remain in the payload for destination-side filtering.
+
+The protobuf stream selects the source. The MySQL `stream` column remains for
+drain counts and listing, but does not control source selection.
 Deploy workers that understand the stream config before enabling the dashboard
-selector; older workers ignore it.
+selector. Older workers do not support verification drains.
 
 ClickHouse applies the filter before ordering and limiting each batch. Windows
 with no matching events still advance the cursor. Editing the filter expires
@@ -55,7 +63,7 @@ svc/logdrain process
     ├── polls due leases from MySQL
     └── workers
         ├── read config and cursor from MySQL
-        ├── read audit logs from ClickHouse
+        ├── read the configured stream from ClickHouse
         ├── send batches to the customer destination
         └── write delivery state to MySQL and telemetry to ClickHouse
 ```
@@ -172,10 +180,36 @@ or rows scanned.
 
 ## Cursor and watermark
 
-Each drain subscribes to one stream. The supported stream is `audit_logs`,
-backed by the ClickHouse table `audit_logs_raw_v1`. The cursor is the pair
-`(inserted_at, event_id)`. MySQL stores it as
+Each drain subscribes to one stream. `audit_logs` reads `audit_logs_raw_v1`
+with cursor `(inserted_at, event_id)`. `key_verifications` reads
+`key_verifications_raw_v2` with cursor `(inserted_at, request_id)`.
+The existing request ID identifies the verification and is the export event ID.
+MySQL stores either cursor as
 `committed_offset_inserted_at` and `committed_offset_event_id`.
+
+ClickHouse stamps verification `inserted_at` when it inserts the row. Writers
+omit that column. The event's `time` stays unchanged, so buffered or retried
+events with older occurrence times remain eligible for later insertion windows.
+The service retains the existing 90-day event-time TTL for verifications.
+Events older than that retention period are not guaranteed to remain available.
+
+Both streams have a lightweight `proj_logdrain` projection. The verification
+projection orders `(workspace_id, inserted_at, request_id)` and stores
+`_part_offset` rather than duplicating payload columns. The query uses expanded
+cursor OR predicates so ClickHouse can prune the insertion range. Reduced
+payload reads depend on base-table granularity: matching rows scattered across
+every granule can still require a full payload read. Exact outcome filters run
+before `LIMIT`, but are not part of the projection ordering.
+
+Before enabling verification drains, apply ClickHouse migration
+`20260910000000.sql` and the MySQL stream enum change. The ClickHouse migration
+materializes zero insertion timestamps for historical rows, then enables the
+server timestamp default and materializes the projection. Historical rows do
+not become newly ingested events. This mutation reads existing parts and needs
+capacity planning. It requires the same `_part_offset` projection support and
+settings as audit logs; local tests use ClickHouse 26.2. Deploy workers before
+the dashboard can create verification drains. Existing drains cannot change
+streams; create a separate drain instead.
 
 Creation sets the cursor to the drain's creation time with an empty event ID.
 Historical backfill before creation is not supported. Pauses, failures, and
@@ -280,7 +314,28 @@ The cursor, lease, and fencing token define the delivery semantics:
   an external request after a worker completes its fenced read.
 
 Customers must handle duplicate events. They can use the audit log event `id`
-as a deduplication key.
+or the verification `request_id` as a deduplication key within its stream.
+
+## Verification payload
+
+Each HTTP record contains `event` (the verification payload) and `timestamp`
+(occurrence time in UTC RFC3339 with millisecond precision). Batch metadata
+stays in request headers. Axiom contains `event`, `stream: "key_verifications"`,
+and `_time` with the same occurrence time. HTTP JSON sends an array; NDJSON
+sends one record per line. `inserted_at` is only an internal cursor field.
+
+The verification payload contains these fields from the raw verification row:
+
+| Fields | Meaning |
+| --- | --- |
+| `request_id` | Request correlation and deduplication ID. |
+| `key_space_id`, `key_id` | Verified key and key space. |
+| `identity` | Object with `id` and `externalId`, both empty when absent. |
+| `region` | Verification region. |
+| `source` | Object with `type`: `api` or `gateway`. Gateway sources also include `appId`; API sources omit it. |
+| `outcome` | Verification outcome, not an audit event type. |
+| `tags` | String array of verification tags. |
+| `spent_credits` | Credits spent on this verification. |
 
 ## Health telemetry
 

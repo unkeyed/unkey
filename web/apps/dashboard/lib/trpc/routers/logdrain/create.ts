@@ -7,10 +7,16 @@ import { newId } from "@unkey/id";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 import { encodeLogdrainConfig, encryptHttpHeaders } from "./config";
-import { eventTypesSchema, httpFormatSchema, httpHeadersSchema, httpsUrl } from "./validation";
+import {
+  eventTypesSchema,
+  httpFormatSchema,
+  httpHeadersSchema,
+  httpsUrl,
+  outcomesSchema,
+} from "./validation";
 
 const vault = createVaultClient(VaultService);
-const streamSchema = z.enum(["audit_logs"]);
+const streamSchema = z.enum(["audit_logs", "key_verifications"]);
 
 const destinationSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -37,7 +43,15 @@ export const createLogdrain = workspaceProcedure
         name: z.string().trim().min(1).max(128),
         stream: streamSchema.default("audit_logs"),
         eventTypes: eventTypesSchema.optional(),
+        outcomes: outcomesSchema.optional(),
       })
+      .refine(
+        (input) =>
+          input.stream === "audit_logs"
+            ? input.outcomes === undefined
+            : input.eventTypes === undefined,
+        "Filters must match the drain stream.",
+      )
       .and(destinationSchema),
   )
   .mutation(async ({ ctx, input }) => {
@@ -49,7 +63,10 @@ export const createLogdrain = workspaceProcedure
         case "http":
           config = encodeLogdrainConfig({
             kind: input.kind,
-            stream: { kind: input.stream, eventTypes: input.eventTypes ?? [] },
+            stream:
+              input.stream === "audit_logs"
+                ? { kind: input.stream, eventTypes: input.eventTypes ?? [] }
+                : { kind: input.stream, outcomes: input.outcomes ?? [] },
             url: input.config.url,
             format: input.config.format,
             headers: await encryptHttpHeaders(ctx.workspace.id, input.config.headers ?? {}),
@@ -58,7 +75,10 @@ export const createLogdrain = workspaceProcedure
         case "axiom":
           config = encodeLogdrainConfig({
             kind: input.kind,
-            stream: { kind: input.stream, eventTypes: input.eventTypes ?? [] },
+            stream:
+              input.stream === "audit_logs"
+                ? { kind: input.stream, eventTypes: input.eventTypes ?? [] }
+                : { kind: input.stream, outcomes: input.outcomes ?? [] },
             dataset: input.config.dataset,
             encryptedToken: (
               await vault.encrypt({ keyring: ctx.workspace.id, data: input.config.token })

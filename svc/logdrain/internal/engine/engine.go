@@ -42,8 +42,9 @@ type Config struct {
 	// LeaseID selects leases assigned to this process. It must be unique among
 	// running processes. Fencing tokens authorize state writes.
 	LeaseID string
-	// Source reads the event stream being exported.
-	Source source.Source
+	// AuditLogs reads audit events, including legacy drains without a stream config.
+	AuditLogs        source.Source
+	KeyVerifications source.Source
 	// Vault decrypts destination credentials for each attempt.
 	Vault vault.VaultServiceClient
 	// Deliveries accepts delivery telemetry and may be nil to disable it.
@@ -180,7 +181,7 @@ func (e *Engine) poll(ctx context.Context) error {
 		db.LogdrainsStatusPausedByUser,
 		db.LogdrainsStatusPausedByFailure,
 	} {
-		for _, stream := range []db.LogdrainsStream{db.LogdrainsStreamAuditLogs} {
+		for _, stream := range []db.LogdrainsStream{db.LogdrainsStreamAuditLogs, db.LogdrainsStreamKeyVerifications} {
 			counts[drainGroup{status: status, stream: stream}] = 0
 		}
 	}
@@ -251,7 +252,7 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 	current := source.Cursor{Time: 0, EventID: ""}
 	stream := db.LogdrainsStream("")
 	watermark := item.now.Add(-e.cfg.WatermarkLag).UnixMilli()
-	reader := newBatchReader(e.cfg.Source, watermark, e.cfg.BatchSize)
+	reader := newBatchReader(e.cfg.AuditLogs, watermark, e.cfg.BatchSize)
 	for {
 		drain, err := e.cfg.DB.GetLeasedAndDueLogdrain(ctx, db.GetLeasedAndDueLogdrainParams{
 			LogdrainID:   item.id,
@@ -262,15 +263,6 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 		}
 		if err != nil {
 			logger.Error("read leased logdrain failed", "error", err, "drain_id", item.id)
-			return
-		}
-		stream = drain.Stream
-		if stream != db.LogdrainsStreamAuditLogs {
-			cause := fmt.Errorf("unsupported stream %q", stream)
-			logger.Error("unsupported logdrain stream", "error", cause, "drain_id", item.id)
-			if failErr := e.recordFailure(ctx, drain, 0); failErr != nil {
-				logger.Error("record logdrain failure state failed", "error", failErr, "drain_id", item.id)
-			}
 			return
 		}
 		current = source.Cursor{Time: drain.CommittedOffsetInsertedAt, EventID: drain.CommittedOffsetEventID}
@@ -284,11 +276,18 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 		} else {
 			switch cfg.GetStream().(type) {
 			case nil, *logdrainv1.Config_AuditLogs:
+				stream = db.LogdrainsStreamAuditLogs
+				reader.source = e.cfg.AuditLogs
 				page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg.GetAuditLogs().GetEventTypes())
+			case *logdrainv1.Config_KeyVerifications:
+				stream = db.LogdrainsStreamKeyVerifications
+				reader.source = e.cfg.KeyVerifications
+				page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg.GetKeyVerifications().GetOutcomes())
 			default:
 				err = fmt.Errorf("unsupported logdrain stream config %T", cfg.GetStream())
 			}
 		}
+		drain.Stream = stream
 		if err != nil {
 			if ctx.Err() != nil {
 				return

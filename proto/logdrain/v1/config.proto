@@ -15,7 +15,14 @@ message Config {
   // An absent stream preserves legacy audit-log drains with no filters.
   oneof stream {
     AuditLogStreamConfig audit_logs = 3;
+    KeyVerificationStreamConfig key_verifications = 4;
   }
+}
+
+// KeyVerificationStreamConfig selects verification outcomes, not audit event types.
+message KeyVerificationStreamConfig {
+  // Empty selects all outcomes, including outcomes added later.
+  repeated string outcomes = 1;
 }
 
 // AuditLogStreamConfig selects audit logs and their stream-specific filters.

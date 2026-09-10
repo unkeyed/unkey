@@ -1,4 +1,5 @@
 import type { Router } from "@/lib/trpc/routers";
+import { outcomesSchema } from "@/lib/trpc/routers/logdrain/validation";
 import type { inferRouterOutputs } from "@trpc/server";
 import { z } from "zod";
 import { headerNamePattern, isValidHttpHeaderValue } from "./header-fields";
@@ -81,6 +82,8 @@ const httpsUrlSchema = z
 
 const baseSchema = z.object({
   kind: z.enum(["http", "axiom"]),
+  stream: z.enum(["audit_logs", "key_verifications"]),
+  outcomes: outcomesSchema,
   name: z.string().trim().min(1, "Enter a name").max(128, "Name must be 128 characters or less"),
   url: z.string(),
   format: z.enum(["json", "ndjson"]),
@@ -136,6 +139,8 @@ export const emptyHeaderRow = { name: "", value: "", stored: false };
 
 export const emptyDrainForm: DrainFormValues = {
   kind: "http",
+  stream: "audit_logs",
+  outcomes: [],
   name: "",
   url: "",
   format: "json",
@@ -150,6 +155,8 @@ export function drainToFormValues(drain: DrainDetail): DrainFormValues {
     ...emptyDrainForm,
     kind: drain.kind,
     name: drain.name,
+    stream: drain.stream,
+    outcomes: outcomesSchema.parse(drain.outcomes),
     eventTypes: drain.eventTypes,
     url: drain.kind === "http" ? drain.config.url : "",
     format: drain.kind === "http" ? drain.config.format : "json",

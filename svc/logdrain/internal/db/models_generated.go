@@ -55,7 +55,8 @@ func (ns NullLogdrainsStatus) Value() (driver.Value, error) {
 type LogdrainsStream string
 
 const (
-	LogdrainsStreamAuditLogs LogdrainsStream = "audit_logs"
+	LogdrainsStreamAuditLogs        LogdrainsStream = "audit_logs"
+	LogdrainsStreamKeyVerifications LogdrainsStream = "key_verifications"
 )
 
 func (e *LogdrainsStream) Scan(src interface{}) error {

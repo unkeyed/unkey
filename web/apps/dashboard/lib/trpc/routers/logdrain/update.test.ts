@@ -64,6 +64,11 @@ vi.mock("../../trpc", () => ({
 }));
 
 describe("updateLogdrain input", () => {
+  it("accepts verification outcomes and rejects audit event names as outcomes", () => {
+    expect(procedure.safeParse({ id: "ld_test", outcomes: ["RATE_LIMITED"] }).success).toBe(true);
+    expect(procedure.safeParse({ id: "ld_test", outcomes: ["key.create"] }).success).toBe(false);
+  });
+
   it("accepts a filter-only update including future event names", () => {
     expect(
       procedure.safeParse({ id: "ld_test", eventTypes: ["key.create", "future.event"] }).success,
@@ -97,6 +102,49 @@ describe("updateLogdrain input", () => {
 });
 
 describe("updateLogdrain event filters", () => {
+  it.each([{ outcomes: [] }, { outcomes: ["EXPIRED" as const] }])(
+    "updates verification outcomes without replay and rejects audit filters",
+    async ({ outcomes }) => {
+      database.read.mockResolvedValue([
+        {
+          id: "ld_test",
+          name: "Verifications",
+          status: "running",
+          config: encodeLogdrainConfig({
+            kind: "http",
+            stream: { kind: "key_verifications", outcomes: ["VALID"] },
+            url: "https://example.com",
+            format: "json",
+            headers: [],
+          }),
+        },
+      ]);
+      const ctx = {
+        workspace: { id: "ws_test" },
+        user: { id: "user_test" },
+        audit: { location: "", userAgent: "test" },
+      };
+      database.write.mockClear();
+      await procedure.mutate({ input: { id: "ld_test", outcomes }, ctx });
+      const saved = database.write.mock.calls[0]?.[0];
+      if (!saved) {
+        throw new Error("No drain update was persisted");
+      }
+      expect(decodeLogdrainConfig(saved.config).stream).toEqual({
+        kind: "key_verifications",
+        outcomes,
+      });
+      expect(saved).toMatchObject({ leaseExpiresAt: 0, consecutiveFailures: 0, nextAttemptAt: 0 });
+      expect(saved).not.toHaveProperty("committedOffsetInsertedAt");
+      expect(saved).not.toHaveProperty("committedOffsetEventId");
+      database.write.mockClear();
+      await expect(
+        procedure.mutate({ input: { id: "ld_test", eventTypes: [] }, ctx }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      expect(database.write).not.toHaveBeenCalled();
+    },
+  );
+
   it.each([
     {
       name: "preserves filters on a destination edit",

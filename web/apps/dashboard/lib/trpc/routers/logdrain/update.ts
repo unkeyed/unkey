@@ -17,6 +17,7 @@ import {
   httpFormatSchema,
   httpHeaderUpdatesSchema,
   httpsUrl,
+  outcomesSchema,
 } from "./validation";
 
 const vault = createVaultClient(VaultService);
@@ -57,6 +58,7 @@ export const updateLogdrain = workspaceProcedure
         name: z.string().trim().min(1).max(128).optional(),
         status: z.enum(["running", "paused_by_user"]).optional(),
         eventTypes: eventTypesSchema.optional(),
+        outcomes: outcomesSchema.optional(),
         destination: updateDestinationSchema.optional(),
       })
       .refine(
@@ -64,6 +66,7 @@ export const updateLogdrain = workspaceProcedure
           input.name !== undefined ||
           input.status !== undefined ||
           input.eventTypes !== undefined ||
+          input.outcomes !== undefined ||
           input.destination !== undefined,
         "At least one update is required",
       ),
@@ -117,12 +120,21 @@ export const updateLogdrain = workspaceProcedure
           throw new TRPCError({ code: "NOT_FOUND", message: "Log drain not found" });
         }
         const existing = decodeLogdrainConfig(drain.config);
-        const stream = {
-          ...existing.stream,
-          eventTypes: input.eventTypes ?? existing.stream.eventTypes,
-        };
+        if (
+          (existing.stream.kind === "audit_logs" && input.outcomes !== undefined) ||
+          (existing.stream.kind === "key_verifications" && input.eventTypes !== undefined)
+        ) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Filters must match the drain stream.",
+          });
+        }
+        const stream =
+          existing.stream.kind === "audit_logs"
+            ? { ...existing.stream, eventTypes: input.eventTypes ?? existing.stream.eventTypes }
+            : { ...existing.stream, outcomes: input.outcomes ?? existing.stream.outcomes };
         let config =
-          input.eventTypes === undefined
+          input.eventTypes === undefined && input.outcomes === undefined
             ? drain.config
             : encodeLogdrainConfig({
                 ...existing,
@@ -186,7 +198,10 @@ export const updateLogdrain = workspaceProcedure
             throw new Error(`Unsupported log drain sink: ${destination satisfies never}`);
         }
 
-        const changesDelivery = destination !== undefined || input.eventTypes !== undefined;
+        const changesDelivery =
+          destination !== undefined ||
+          input.eventTypes !== undefined ||
+          input.outcomes !== undefined;
         const resetFailureState = input.status === "running" || changesDelivery;
         const expireLease = input.status !== undefined || changesDelivery;
         const status =
