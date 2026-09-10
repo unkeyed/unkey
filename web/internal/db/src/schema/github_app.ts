@@ -62,7 +62,7 @@ export const githubRepoConnectionsRelations = relations(githubRepoConnections, (
     references: [apps.id],
   }),
   installation: one(githubAppInstallations, {
-    fields: [githubRepoConnections.installationId],
-    references: [githubAppInstallations.installationId],
+    fields: [githubRepoConnections.workspaceId, githubRepoConnections.installationId],
+    references: [githubAppInstallations.workspaceId, githubAppInstallations.installationId],
   }),
 }));
