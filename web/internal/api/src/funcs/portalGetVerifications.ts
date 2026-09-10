@@ -39,6 +39,10 @@ import { Result } from "../types/fp.js";
  * `analytics.getVerifications`, this endpoint takes a fixed time window (no
  * query language) and returns a zero-filled, outcome-broken-out timeseries.
  * Bucket granularity is chosen automatically from the window size.
+ *
+ * Setting `perKey` additionally returns the same window broken out per key, so
+ * a client can render both an account-wide chart and a per-key table from one
+ * call. The per-key series are sparse rather than zero-filled.
  */
 export function portalGetVerifications(
   client: UnkeyCore,

@@ -27,11 +27,29 @@ type (
 // newHandler builds the standalone portal.getVerifications handler backed by the
 // harness's shared ClickHouse client.
 func newHandler(h *testutil.Harness) *handler.Handler {
+	return newHandlerWithKeyCap(h, handler.DefaultMaxPerKeySeries)
+}
+
+// newHandlerWithKeyCap builds the handler with an explicit per-key breakout cap
+// so a test can reach it without seeding the production number of keys.
+func newHandlerWithKeyCap(h *testutil.Harness, maxPerKeySeries int) *handler.Handler {
 	return &handler.Handler{
-		ClickHouse:  h.ClickHouse,
-		DB:          h.DB,
-		LimitsCache: h.Caches.WorkspaceLimits,
+		ClickHouse:      h.ClickHouse,
+		DB:              h.DB,
+		LimitsCache:     h.Caches.WorkspaceLimits,
+		MaxPerKeySeries: maxPerKeySeries,
 	}
+}
+
+// sumKeyTotals maps each per-key entry to the total across its buckets.
+func sumKeyTotals(keys []openapi.V2PortalGetVerificationsKeySeries) map[string]int64 {
+	totals := make(map[string]int64, len(keys))
+	for _, k := range keys {
+		for _, p := range k.Data {
+			totals[k.KeyId] += p.Total
+		}
+	}
+	return totals
 }
 
 // sumTotals adds up the Total across every bucket in the timeseries.
@@ -158,6 +176,34 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 		require.Equal(c, int64(9), sumTotals(res.Body.Data),
 			"a session scoped to both keyspaces should see the sum of both")
 	}, 30*time.Second, time.Second)
+
+	// Without the flag the response is unchanged: no per-key array at all.
+	plain := testutil.CallRoute[Request, Response](h, route, headers, req)
+	require.Equal(t, 200, plain.Status)
+	require.Nil(t, plain.Body.Keys, "the per-key breakout is opt-in")
+
+	// With the flag the same window is broken out per key, under the same
+	// identity and keyspace scoping as the account-wide series.
+	perKeyReq := req
+	perKeyReq.PerKey = ptr.P(true)
+
+	res := testutil.CallRoute[Request, Response](h, route, headers, perKeyReq)
+	require.Equal(t, 200, res.Status)
+	require.NotNil(t, res.Body.Keys)
+
+	totals := sumKeyTotals(*res.Body.Keys)
+	require.Equal(t, int64(3), totals[keyA.KeyID])
+	require.Equal(t, int64(2), totals[keyADeleted.KeyID])
+	require.NotContains(t, totals, keyB.KeyID, "another identity's key must not appear")
+	require.NotContains(t, totals, keyAOutOfScope.KeyID, "an out-of-scope keyspace's key must not appear")
+	require.Len(t, totals, 2, "keys with no traffic in the window are omitted")
+
+	var perKeyGrand int64
+	for _, total := range totals {
+		perKeyGrand += total
+	}
+	require.Equal(t, sumTotals(res.Body.Data), perKeyGrand,
+		"per-key totals must sum to the account-wide total")
 }
 
 // TestPortalSessionAnalyticsKeyIdFilter verifies the optional keyId narrows the
@@ -235,6 +281,15 @@ func TestPortalSessionAnalyticsKeyIdFilter(t *testing.T) {
 		require.Equal(c, int64(4), sumTotals(res.Body.Data),
 			"keyId filter should return only the target key's events")
 	}, 30*time.Second, time.Second)
+
+	perKeyReq := req
+	perKeyReq.PerKey = ptr.P(true)
+
+	res := testutil.CallRoute[Request, Response](h, route, headers, perKeyReq)
+	require.Equal(t, 200, res.Status)
+	require.NotNil(t, res.Body.Keys)
+	require.Equal(t, map[string]int64{targetKey.KeyID: 4}, sumKeyTotals(*res.Body.Keys),
+		"keyId narrows the per-key breakout as well as the account-wide series")
 }
 
 // TestPortalSessionAnalyticsRequiresAnalyticsRead verifies that reading keys

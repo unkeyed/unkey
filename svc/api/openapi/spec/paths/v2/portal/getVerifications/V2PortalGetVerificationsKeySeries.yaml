@@ -1,0 +1,18 @@
+type: object
+required:
+  - keyId
+  - data
+properties:
+  keyId:
+    type: string
+    description: The key these buckets belong to.
+    example: key_1234abcd
+  data:
+    type: array
+    description: |
+      Sparse verification timeseries for this key, ordered by time ascending.
+      Unlike the account-wide series this is not zero-filled: buckets with no
+      verifications are omitted.
+    items:
+      $ref: "./V2PortalGetVerificationsDataPoint.yaml"
+additionalProperties: false

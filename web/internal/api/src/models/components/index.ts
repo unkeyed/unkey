@@ -243,6 +243,7 @@ export * from "./v2portalexchangecoderesponsedata.js";
 export * from "./v2portalgetportalrequestbodyunion.js";
 export * from "./v2portalgetportalresponsebody.js";
 export * from "./v2portalgetverificationsdatapoint.js";
+export * from "./v2portalgetverificationskeyseries.js";
 export * from "./v2portalgetverificationsrequestbody.js";
 export * from "./v2portalgetverificationsresponsebody.js";
 export * from "./v2portallistkeysrequestbody.js";

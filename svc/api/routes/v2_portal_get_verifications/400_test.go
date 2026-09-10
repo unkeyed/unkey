@@ -4,7 +4,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -48,4 +52,70 @@ func TestPortalSessionAnalyticsRejectsOversizedWindow(t *testing.T) {
 	}
 	okRes := testutil.CallRoute[Request, Response](h, route, headers, ok)
 	require.Equal(t, 200, okRes.Status, "window within retention must be accepted")
+}
+
+// TestPortalSessionAnalyticsRejectsOversizedPerKeyBreakout verifies the per-key
+// breakout is rejected rather than truncated once the session has more keys with
+// traffic than the cap allows. A short array would be indistinguishable from
+// those keys being idle, so the client would render a wrong answer. The
+// account-wide series is unaffected and still answers.
+func TestPortalSessionAnalyticsRejectsOversizedPerKeyBreakout(t *testing.T) {
+	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
+
+	workspace := h.CreateWorkspace()
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+	h.SetupAnalytics(workspace.ID)
+
+	route := newHandlerWithKeyCap(h, 1)
+	h.Register(route, h.PortalMiddleware()...)
+
+	externalA := "portal_user_A"
+	identityA := h.CreateIdentity(seed.CreateIdentityRequest{
+		WorkspaceID: workspace.ID,
+		ExternalID:  externalA,
+	})
+
+	now := time.Now().UnixMilli()
+	for range 2 {
+		key := h.CreateKey(seed.CreateKeyRequest{
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			IdentityID:  ptr.P(identityA.ID),
+		})
+		h.KeyVerifications.Buffer(schema.KeyVerification{
+			RequestID:   uid.New(uid.RequestPrefix),
+			Time:        now,
+			WorkspaceID: workspace.ID,
+			KeySpaceID:  api.KeyAuthID.String,
+			KeyID:       key.KeyID,
+			Region:      "us-west-1",
+			Outcome:     "VALID",
+			IdentityID:  identityA.ID,
+			ExternalID:  externalA,
+			Tags:        []string{},
+		})
+	}
+
+	headers := h.CreatePortalSession(workspace.ID, externalA, []string{api.KeyAuthID.String}, []string{"analytics:read"})
+
+	req := Request{
+		StartTime: now - int64(time.Hour/time.Millisecond),
+		EndTime:   now + int64(time.Minute/time.Millisecond),
+		PerKey:    ptr.P(true),
+	}
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		res := testutil.CallRoute[Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(c, 400, res.Status, "a breakout past the cap must be rejected, not truncated")
+	}, 30*time.Second, time.Second)
+
+	withoutBreakout := req
+	withoutBreakout.PerKey = nil
+
+	res := testutil.CallRoute[Request, Response](h, route, headers, withoutBreakout)
+	require.Equal(t, 200, res.Status, "the account-wide series still answers past the per-key cap")
+	require.Equal(t, int64(2), sumTotals(res.Body.Data))
+	require.Nil(t, res.Body.Keys)
 }

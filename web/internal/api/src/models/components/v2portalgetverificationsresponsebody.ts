@@ -11,6 +11,10 @@ import {
   V2PortalGetVerificationsDataPoint,
   V2PortalGetVerificationsDataPoint$inboundSchema,
 } from "./v2portalgetverificationsdatapoint.js";
+import {
+  V2PortalGetVerificationsKeySeries,
+  V2PortalGetVerificationsKeySeries$inboundSchema,
+} from "./v2portalgetverificationskeyseries.js";
 
 export type V2PortalGetVerificationsResponseBody = {
   /**
@@ -25,6 +29,14 @@ export type V2PortalGetVerificationsResponseBody = {
    * counts so the series is contiguous across the requested window.
    */
   data: Array<V2PortalGetVerificationsDataPoint>;
+  /**
+   * Per-key breakout of the same window, present only when `perKey` was
+   *
+   * @remarks
+   * requested. Keys with no verifications in the window are omitted, as are
+   * empty buckets within a key's series.
+   */
+  keys?: Array<V2PortalGetVerificationsKeySeries> | undefined;
 };
 
 /** @internal */
@@ -35,6 +47,7 @@ export const V2PortalGetVerificationsResponseBody$inboundSchema: z.ZodType<
 > = z.object({
   meta: Meta$inboundSchema,
   data: z.array(V2PortalGetVerificationsDataPoint$inboundSchema),
+  keys: z.array(V2PortalGetVerificationsKeySeries$inboundSchema).optional(),
 });
 
 export function v2PortalGetVerificationsResponseBodyFromJSON(

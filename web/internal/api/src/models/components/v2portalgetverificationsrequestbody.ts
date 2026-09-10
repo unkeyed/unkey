@@ -27,6 +27,15 @@ export type V2PortalGetVerificationsRequestBody = {
    * regardless of this value.
    */
   keyId?: string | undefined;
+  /**
+   * Optional. When true the response additionally carries a per-key breakout
+   *
+   * @remarks
+   * of the same window in `keys`. The account-wide `data` series is returned
+   * either way. Rejected with 400 when the session's keys with traffic in the
+   * window exceed the server-side breakout limit.
+   */
+  perKey?: boolean | undefined;
 };
 
 /** @internal */
@@ -34,6 +43,7 @@ export type V2PortalGetVerificationsRequestBody$Outbound = {
   startTime: number;
   endTime: number;
   keyId?: string | undefined;
+  perKey?: boolean | undefined;
 };
 
 /** @internal */
@@ -45,6 +55,7 @@ export const V2PortalGetVerificationsRequestBody$outboundSchema: z.ZodType<
   startTime: z.number().int(),
   endTime: z.number().int(),
   keyId: z.string().optional(),
+  perKey: z.boolean().optional(),
 });
 
 export function v2PortalGetVerificationsRequestBodyToJSON(

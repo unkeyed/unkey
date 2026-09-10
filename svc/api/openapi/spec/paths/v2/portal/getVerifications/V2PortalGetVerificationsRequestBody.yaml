@@ -24,4 +24,12 @@ properties:
       authenticated end user; results are always scoped to the session identity
       regardless of this value.
     example: key_1234abcd
+  perKey:
+    type: boolean
+    description: |
+      Optional. When true the response additionally carries a per-key breakout
+      of the same window in `keys`. The account-wide `data` series is returned
+      either way. Rejected with 400 when the session's keys with traffic in the
+      window exceed the server-side breakout limit.
+    example: true
 additionalProperties: false
