@@ -1,8 +1,11 @@
 CREATE TABLE ratelimits_raw_v2 (
   -- the request id for correlation with traces and logs
   request_id String,
+  check_index UInt32 DEFAULT 0,
+  event_id String MATERIALIZED concat(request_id, ':', toString(check_index)),
   -- unix milli
   time Int64 CODEC (Delta, LZ4),
+  inserted_at Int64 DEFAULT toUnixTimestamp64Milli(now64(3)) CODEC(Delta, ZSTD(1)),
   workspace_id String,
   namespace_id String,
   identifier String,
@@ -22,10 +25,16 @@ CREATE TABLE ratelimits_raw_v2 (
   -- recorded before token tracking shipped)
   tokens UInt64,
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
-  INDEX idx_identifier (identifier) TYPE bloom_filter GRANULARITY 1
+  INDEX idx_identifier (identifier) TYPE bloom_filter GRANULARITY 1,
+  PROJECTION proj_logdrain
+  (
+    SELECT workspace_id, inserted_at, event_id, _part_offset
+    ORDER BY workspace_id, inserted_at, event_id
+  )
 ) ENGINE = MergeTree ()
 ORDER BY
   (workspace_id, time, namespace_id)
 TTL toDateTime (fromUnixTimestamp64Milli (time)) + INTERVAL 1 MONTH DELETE
-SETTINGS non_replicated_deduplication_window = 10000;
-
+SETTINGS non_replicated_deduplication_window = 10000,
+  allow_part_offset_column_in_projections = 1,
+  deduplicate_merge_projection_mode = 'rebuild';

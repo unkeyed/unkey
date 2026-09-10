@@ -18,7 +18,16 @@ message Config {
     KeyVerificationStreamConfig key_verifications = 4;
     GatewayRequestStreamConfig gateway_requests = 5;
     RuntimeLogStreamConfig runtime_logs = 6;
+    RatelimitStreamConfig ratelimits = 7;
   }
+}
+
+// RatelimitStreamConfig selects stored API decisions using exact matches.
+message RatelimitStreamConfig {
+  // Each empty list selects all values. Nonempty dimensions are combined with AND.
+  repeated string namespace_ids = 1;
+  repeated string identifiers = 2;
+  repeated bool passed = 3;
 }
 
 // RuntimeLogStreamConfig combines exact severity and customer resource filters.

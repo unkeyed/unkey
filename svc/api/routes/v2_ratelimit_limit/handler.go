@@ -187,6 +187,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if s.ShouldLogRequestToClickHouse() {
 		h.RatelimitEvents.Buffer(schema.Ratelimit{
 			RequestID:   s.RequestID(),
+			CheckIndex:  0,
 			WorkspaceID: principal.AuthorizedWorkspaceID,
 			Time:        nowMillis,
 			NamespaceID: ns.ID,

@@ -8,6 +8,11 @@ import { type DrainFormValues, emptyDrainForm } from "./drain-schema";
 vi.stubGlobal("React", React);
 vi.mock("@/lib/trpc/client", () => ({
   trpc: {
+    ratelimit: {
+      namespace: {
+        list: { useQuery: () => ({ data: [{ id: "ns", name: "Payments" }], isLoading: false }) },
+      },
+    },
     deploy: {
       project: {
         list: {
@@ -55,6 +60,7 @@ function Form() {
       outcomes: ["RATE_LIMITED"],
       statusClasses: [4],
       severities: ["error"],
+      passed: [false],
     },
   });
   return (
@@ -72,9 +78,25 @@ function Form() {
       <button type="button" onClick={() => form.setValue("stream", "runtime_logs")}>
         Runtime
       </button>
+      <button type="button" onClick={() => form.setValue("stream", "ratelimits")}>
+        Rate limits
+      </button>
     </FormProvider>
   );
 }
+
+it("keeps rate-limit results separate and preserves clearing across stream changes", () => {
+  render(<Form />);
+  fireEvent.click(screen.getByText("Rate limits"));
+  expect(screen.getByText("Blocked")).toBeTruthy();
+  expect(screen.getByPlaceholderText("All namespaces")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+  expect(screen.getByPlaceholderText("All results")).toBeTruthy();
+  fireEvent.click(screen.getByText("Runtime"));
+  expect(screen.getByText("error")).toBeTruthy();
+  fireEvent.click(screen.getByText("Rate limits"));
+  expect(screen.getByPlaceholderText("All results")).toBeTruthy();
+});
 
 it("keeps runtime severity separate and preserves clearing across stream changes", () => {
   render(<Form />);

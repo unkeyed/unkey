@@ -44,6 +44,7 @@ type KeyVerification struct {
 //unkey:table default.ratelimits_raw_v2
 type Ratelimit struct {
 	RequestID   string  `ch:"request_id" json:"request_id"`
+	CheckIndex  uint32  `ch:"check_index" json:"check_index"`
 	Time        int64   `ch:"time" json:"time"`
 	WorkspaceID string  `ch:"workspace_id" json:"workspace_id"`
 	NamespaceID string  `ch:"namespace_id" json:"namespace_id"`

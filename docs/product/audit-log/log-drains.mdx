@@ -1,9 +1,9 @@
 ---
 title: Log drains
-description: "Send audit logs, key verifications, gateway HTTP requests, and runtime logs to HTTPS endpoints or Axiom."
+description: "Send audit logs, key verifications, gateway requests, runtime logs, and rate-limit decisions to HTTPS endpoints or Axiom."
 ---
 
-A log drain sends workspace audit logs, key verifications, gateway HTTP requests, or runtime logs to a destination
+A log drain sends workspace audit logs, key verifications, gateway HTTP requests, runtime logs, or rate-limit decisions to a destination
 that you control. Use log drains to archive events or process them with your
 own tools.
 
@@ -14,7 +14,7 @@ own tools.
 
 Unkey supports generic HTTPS endpoints and
 <a href="https://axiom.co" target="_blank">Axiom</a> datasets. Each drain sends
-one stream: audit logs, key verifications, gateway HTTP requests, or runtime logs.
+one stream: audit logs, key verifications, gateway HTTP requests, runtime logs, or rate limits.
 
 ## How delivery works
 
@@ -28,6 +28,7 @@ retries the same batch.
 Log drains provide at-least-once delivery. A destination can receive an event
 more than once after a retry. Use `event.id` for audit logs or `event.request_id`
 for key verifications and gateway requests. Use `event.log_id` for runtime logs.
+For rate limits, use the pair of `event.request_id` and `event.check_index`.
 Deduplicate within each stream.
 
 A drain starts at its creation time. Historical backfill is not supported.
@@ -50,7 +51,7 @@ Create a log drain from your workspace settings.
 3. Click **Create Log Drain**.
 4. Select **HTTP** or **Axiom**.
 5. Enter a descriptive name.
-6. Select **Audit logs**, **Key verifications**, **Gateway HTTP requests**, or **Runtime logs** in **Stream**.
+6. Select **Audit logs**, **Key verifications**, **Gateway HTTP requests**, **Runtime logs**, or **Rate limits** in **Stream**.
 7. Optional: Select the stream filters described below.
 8. Enter the destination settings.
 9. Click **Create Log Drain**.
@@ -67,6 +68,7 @@ Leave a filter empty to send all values for that filter.
 | Key verifications | **Keyspaces** selects one or more workspace keyspaces. **Outcomes** selects verification results, such as `VALID`, `RATE_LIMITED`, or `EXPIRED`. |
 | Gateway HTTP requests | **Projects**, **Apps**, and **Environments** select workspace resources. **HTTP statuses** selects `2xx`, `3xx`, `4xx`, or `5xx`. |
 | Runtime logs | **Projects**, **Apps**, and **Environments** select workspace resources. **Severity** selects exact collected values: `error`, `warn`, `info`, or `debug`. Leave it empty to include all severities, including other values from structured logs. |
+| Rate limits | **Namespaces** selects workspace namespaces. **Results** selects **Passed** or **Blocked**. **Identifiers** matches exact customer identifiers, including spaces. |
 
 When you select both keyspaces and outcomes, a verification must match both
 filters. **Unspecified** matches an empty verification outcome.
@@ -88,6 +90,11 @@ with the previous filters. To export another stream, create a separate drain.
 Runtime filters follow the same resource selection rules. A log must match every
 nonempty filter and any selected value within each filter. Severity matching is
 exact, not a minimum threshold.
+
+Rate-limit decisions must match every nonempty filter and any selected value
+within each filter. For example, select the `payments` namespace, **Blocked**,
+and identifier `customer_123` to export only blocked checks for that customer
+in that namespace. Clearing **Results** includes both passed and blocked checks.
 
 ## Configure an HTTP destination
 
@@ -283,6 +290,49 @@ secrets that you do not want forwarded. Kubernetes pod names and platform metada
 are not exported. Runtime retention is unchanged: rows become eligible for deletion
 seven days after their `expires_at` value, which defaults to 90 days after insertion.
 ClickHouse deletes whole parts, so deletion can occur later.
+
+### Read a rate-limit payload
+
+Rate-limit drains export recorded decisions from `ratelimit.limit` and
+`ratelimit.multiLimit`, not audit events for configuration changes. Each check
+in a multi-limit request has a zero-based `check_index`. A single-limit check
+has index zero. HTTP JSON sends an array such as:
+
+```json
+[
+  {
+    "stream": "ratelimits",
+    "timestamp": "2026-09-10T10:00:00.123Z",
+    "event": {
+      "request_id": "req_123",
+      "check_index": 0,
+      "namespace_id": "rl_namespace",
+      "identifier": "customer_123",
+      "passed": false,
+      "limit": 100,
+      "remaining": 0,
+      "reset_at": 1789034460123,
+      "tokens": 3,
+      "source": "api"
+    }
+  }
+]
+```
+
+The envelope timestamp is the recorded occurrence time, not the insertion
+cursor or delivery time. `reset_at` is an absolute Unix timestamp in
+milliseconds. `tokens` is the requested cost, including blocked checks.
+`override_id` is present only when an override was used. Latency is not exported.
+NDJSON sends the same record on one line. Axiom uses `event` and
+`stream: "ratelimits"`, with `_time` instead of `timestamp`.
+
+Identifiers are forwarded as stored and can contain sensitive customer data.
+The stream includes only completed API decisions. Failed requests and
+single-limit requests with `X-Unkey-Metrics: disabled` are not recorded.
+Gateway policy decisions and SDK cache hits that do not call these API endpoints
+are not included. Stored rate-limit logs become eligible for deletion one
+calendar month after their occurrence time. Deletion is asynchronous, and
+drains cannot recover logs that have expired.
 
 ## Configure an Axiom destination
 

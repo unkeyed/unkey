@@ -2,6 +2,7 @@
 
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { match } from "@unkey/match";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -101,23 +102,30 @@ export function CreateLogdrainPanel({
     create.mutate({
       name: values.name.trim(),
       stream: values.stream,
-      ...(values.stream === "runtime_logs"
-        ? {
-            severities: values.severities,
-            projectIds: values.runtimeProjectIds,
-            appIds: values.runtimeAppIds,
-            environmentIds: values.runtimeEnvironmentIds,
-          }
-        : values.stream === "audit_logs"
-          ? { eventTypes: values.eventTypes }
-          : values.stream === "gateway_requests"
-            ? {
-                statusClasses: values.statusClasses,
-                projectIds: values.projectIds,
-                appIds: values.appIds,
-                environmentIds: values.environmentIds,
-              }
-            : { outcomes: values.outcomes, keySpaceIds: values.keySpaceIds }),
+      ...match(values.stream)
+        .with("ratelimits", () => ({
+          namespaceIds: values.namespaceIds,
+          identifiers: values.identifiers,
+          passed: values.passed,
+        }))
+        .with("runtime_logs", () => ({
+          severities: values.severities,
+          projectIds: values.runtimeProjectIds,
+          appIds: values.runtimeAppIds,
+          environmentIds: values.runtimeEnvironmentIds,
+        }))
+        .with("audit_logs", () => ({ eventTypes: values.eventTypes }))
+        .with("gateway_requests", () => ({
+          statusClasses: values.statusClasses,
+          projectIds: values.projectIds,
+          appIds: values.appIds,
+          environmentIds: values.environmentIds,
+        }))
+        .with("key_verifications", () => ({
+          outcomes: values.outcomes,
+          keySpaceIds: values.keySpaceIds,
+        }))
+        .exhaustive(),
       ...destination,
     });
   });

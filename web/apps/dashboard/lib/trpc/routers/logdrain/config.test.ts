@@ -13,6 +13,30 @@ const vault = vi.hoisted(() => ({ encryptBulk: vi.fn() }));
 vi.mock("@/lib/vault-client", () => ({ createVaultClient: () => vault }));
 
 describe("log drain protobuf config", () => {
+  it("round trips exact rate-limit filters and hides destination credentials", () => {
+    const config = {
+      kind: "axiom" as const,
+      dataset: "decisions",
+      encryptedToken: "secret",
+      stream: {
+        kind: "ratelimits" as const,
+        namespaceIds: ["ns"],
+        identifiers: [" customer "],
+        passed: [false],
+      },
+    };
+    const decoded = decodeLogdrainConfig(encodeLogdrainConfig(config));
+    expect(decoded).toEqual(config);
+    const publicConfig = toPublicLogdrainConfig(decoded);
+    expect(publicConfig).toMatchObject({
+      stream: "ratelimits",
+      namespaceIds: ["ns"],
+      identifiers: [" customer "],
+      passed: [false],
+    });
+    expect(JSON.stringify(publicConfig)).not.toContain("secret");
+  });
+
   it("projects stream filters independently of the destination without exposing credentials", () => {
     const stream = {
       kind: "gateway_requests" as const,

@@ -62,6 +62,9 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
       const keySpacesChanged = !sameEventTypes(submitted.keySpaceIds, values.keySpaceIds);
       const statusesChanged = !sameEventTypes(submitted.statusClasses, values.statusClasses);
       const severitiesChanged = !sameEventTypes(submitted.severities, values.severities);
+      const namespacesChanged = !sameEventTypes(submitted.namespaceIds, values.namespaceIds);
+      const identifiersChanged = !sameEventTypes(submitted.identifiers, values.identifiers);
+      const passedChanged = !sameEventTypes(submitted.passed, values.passed);
       const projectField = drain.stream === "runtime_logs" ? "runtimeProjectIds" : "projectIds";
       const appField = drain.stream === "runtime_logs" ? "runtimeAppIds" : "appIds";
       const environmentField =
@@ -80,6 +83,9 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
         !keySpacesChanged &&
         !statusesChanged &&
         !severitiesChanged &&
+        !namespacesChanged &&
+        !identifiersChanged &&
+        !passedChanged &&
         !projectsChanged &&
         !appsChanged &&
         !environmentsChanged
@@ -96,6 +102,9 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
           ...(keySpacesChanged ? { keySpaceIds: submitted.keySpaceIds } : {}),
           ...(statusesChanged ? { statusClasses: submitted.statusClasses } : {}),
           ...(severitiesChanged ? { severities: submitted.severities } : {}),
+          ...(namespacesChanged ? { namespaceIds: submitted.namespaceIds } : {}),
+          ...(identifiersChanged ? { identifiers: submitted.identifiers } : {}),
+          ...(passedChanged ? { passed: submitted.passed } : {}),
           ...(projectsChanged ? { projectIds: submitted[projectField] } : {}),
           ...(appsChanged ? { appIds: submitted[appField] } : {}),
           ...(environmentsChanged ? { environmentIds: submitted[environmentField] } : {}),
@@ -128,7 +137,7 @@ export type DrainSettings = ReturnType<typeof useDrainSettings>;
 
 type UpdateDestination = inferRouterInputs<Router>["logdrain"]["update"]["destination"];
 
-function sameEventTypes<T extends string | number>(left: T[], right: T[]): boolean {
+function sameEventTypes<T extends string | number | boolean>(left: T[], right: T[]): boolean {
   return left.length === right.length && left.every((eventType) => right.includes(eventType));
 }
 

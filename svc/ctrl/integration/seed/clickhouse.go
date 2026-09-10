@@ -78,6 +78,7 @@ func (s *ClickHouseSeeder) InsertRatelimits(ctx context.Context, workspaceID str
 		for j := range batchCount {
 			ratelimits[j] = schema.Ratelimit{
 				RequestID:   uid.New(uid.RequestPrefix),
+				CheckIndex:  0,
 				Time:        timestamp.Add(time.Duration(i+j) * time.Millisecond).UnixMilli(),
 				WorkspaceID: workspaceID,
 				NamespaceID: uid.New(uid.RatelimitNamespacePrefix),

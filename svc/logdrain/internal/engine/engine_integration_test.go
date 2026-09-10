@@ -219,7 +219,7 @@ func TestEngine_Integration(t *testing.T) {
 		}, 5*time.Second, 100*time.Millisecond)
 	})
 
-	for _, filterMode := range []string{"audit_logs", "key_verifications", "keyspaces", "gateway_requests", "runtime_logs"} {
+	for _, filterMode := range []string{"audit_logs", "key_verifications", "keyspaces", "gateway_requests", "runtime_logs", "ratelimits"} {
 		stream := filterMode
 		if filterMode == "keyspaces" {
 			stream = "key_verifications"
@@ -283,13 +283,24 @@ func TestEngine_Integration(t *testing.T) {
 					require.NoError(t, chConn.Exec(t.Context(), `INSERT INTO runtime_logs_raw_v1 (workspace_id, log_id, inserted_at, time, severity) VALUES (?, ?, ?, ?, ?)`, workspaceID, drainID+event.id, insertedAt, insertedAt-60000, event.severity))
 				}
 			}
+			initialID := drainID + "_a"
+			if stream == "ratelimits" {
+				initialID += ":0"
+				config.Stream = &logdrainv1.Config_Ratelimits{Ratelimits: &logdrainv1.RatelimitStreamConfig{Passed: []bool{false}}}
+				for _, event := range []struct {
+					id     string
+					passed bool
+				}{{"_a", true}, {"_b", true}, {"_c", false}} {
+					require.NoError(t, chConn.Exec(t.Context(), `INSERT INTO ratelimits_raw_v2 (workspace_id, request_id, inserted_at, time, passed) VALUES (?, ?, ?, ?, ?)`, workspaceID, drainID+event.id, insertedAt, insertedAt-60000, event.passed))
+				}
+			}
 			encoded, err := proto.Marshal(config)
 			require.NoError(t, err)
 			storedStream := stream
-			if stream == "gateway_requests" || stream == "runtime_logs" {
+			if stream == "gateway_requests" || stream == "runtime_logs" || stream == "ratelimits" {
 				storedStream = "audit_logs"
 			}
-			_, err = mysqlDB.Exec("UPDATE logdrains SET stream = ?, config = ?, committed_offset_event_id = ? WHERE id = ?", storedStream, encoded, drainID+"_a", drainID)
+			_, err = mysqlDB.Exec("UPDATE logdrains SET stream = ?, config = ?, committed_offset_event_id = ? WHERE id = ?", storedStream, encoded, initialID, drainID)
 			require.NoError(t, err)
 
 			database, err := db.New(mysqlCfg.DSN, sqlcomment.ForService("logdrain-integration-test", "test"))
@@ -315,6 +326,7 @@ func TestEngine_Integration(t *testing.T) {
 				KeyVerifications: source.NewKeyVerifications(chClient),
 				GatewayRequests:  source.NewGatewayRequests(chClient),
 				RuntimeLogs:      source.NewRuntimeLogs(chClient),
+				Ratelimits:       source.NewRatelimits(chClient),
 				Deliveries:       deliveries, PollInterval: 200 * time.Millisecond, BatchSize: 1,
 				PauseThreshold: 5, UnsafeAllowPrivateEndpoints: true,
 			})
@@ -337,6 +349,9 @@ func TestEngine_Integration(t *testing.T) {
 					if stream == "audit_logs" {
 						require.Equal(t, wantID, events[0]["id"])
 						require.Equal(t, wantAction, events[0]["action"])
+					} else if stream == "ratelimits" {
+						require.Equal(t, wantID, events[0]["request_id"])
+						require.Equal(t, wantAction == "key.create", events[0]["passed"])
 					} else if stream == "runtime_logs" {
 						require.Equal(t, wantID, events[0]["log_id"])
 						severity := "info"
@@ -367,6 +382,8 @@ func TestEngine_Integration(t *testing.T) {
 
 			if stream == "audit_logs" {
 				config.GetAuditLogs().EventTypes = []string{"key.create"}
+			} else if stream == "ratelimits" {
+				config.GetRatelimits().Passed = []bool{true}
 			} else if stream == "runtime_logs" {
 				config.GetRuntimeLogs().Severities = []string{"info"}
 			} else if filterMode == "keyspaces" {
@@ -395,7 +412,7 @@ func TestEngine_Integration(t *testing.T) {
 			var cursorID string
 			require.NoError(t, mysqlDB.QueryRow("SELECT committed_offset_inserted_at, committed_offset_event_id FROM logdrains WHERE id = ?", drainID).Scan(&cursorTime, &cursorID))
 			require.Equal(t, insertedAt, cursorTime)
-			require.Equal(t, drainID+"_a", cursorID)
+			require.Equal(t, initialID, cursorID)
 
 			acquireLease()
 			receiveEvent(drainID+"_b", "key.create")

@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file logdrain/v1/config.proto.
  */
 export const file_logdrain_v1_config: GenFile = /*@__PURE__*/
-  fileDesc("Chhsb2dkcmFpbi92MS9jb25maWcucHJvdG8SC2xvZ2RyYWluLnYxIvcCCgZDb25maWcSJwoEaHR0cBgBIAEoCzIXLmxvZ2RyYWluLnYxLkh0dHBDb25maWdIABIpCgVheGlvbRgCIAEoCzIYLmxvZ2RyYWluLnYxLkF4aW9tQ29uZmlnSAASNwoKYXVkaXRfbG9ncxgDIAEoCzIhLmxvZ2RyYWluLnYxLkF1ZGl0TG9nU3RyZWFtQ29uZmlnSAESRQoRa2V5X3ZlcmlmaWNhdGlvbnMYBCABKAsyKC5sb2dkcmFpbi52MS5LZXlWZXJpZmljYXRpb25TdHJlYW1Db25maWdIARJDChBnYXRld2F5X3JlcXVlc3RzGAUgASgLMicubG9nZHJhaW4udjEuR2F0ZXdheVJlcXVlc3RTdHJlYW1Db25maWdIARI7CgxydW50aW1lX2xvZ3MYBiABKAsyIy5sb2dkcmFpbi52MS5SdW50aW1lTG9nU3RyZWFtQ29uZmlnSAFCDQoLZGVzdGluYXRpb25CCAoGc3RyZWFtImsKFlJ1bnRpbWVMb2dTdHJlYW1Db25maWcSEgoKc2V2ZXJpdGllcxgBIAMoCRITCgtwcm9qZWN0X2lkcxgCIAMoCRIPCgdhcHBfaWRzGAMgAygJEhcKD2Vudmlyb25tZW50X2lkcxgEIAMoCSKRAQoaR2F0ZXdheVJlcXVlc3RTdHJlYW1Db25maWcSNAoOc3RhdHVzX2NsYXNzZXMYASADKA4yHC5sb2dkcmFpbi52MS5IdHRwU3RhdHVzQ2xhc3MSEwoLcHJvamVjdF9pZHMYAiADKAkSDwoHYXBwX2lkcxgDIAMoCRIXCg9lbnZpcm9ubWVudF9pZHMYBCADKAkiRgobS2V5VmVyaWZpY2F0aW9uU3RyZWFtQ29uZmlnEhAKCG91dGNvbWVzGAEgAygJEhUKDWtleV9zcGFjZV9pZHMYAiADKAkiKwoUQXVkaXRMb2dTdHJlYW1Db25maWcSEwoLZXZlbnRfdHlwZXMYASADKAkicAoKSHR0cENvbmZpZxILCgN1cmwYASABKAkSKwoGZm9ybWF0GAIgASgOMhsubG9nZHJhaW4udjEuSHR0cEJvZHlGb3JtYXQSKAoHaGVhZGVycxgDIAMoCzIXLmxvZ2RyYWluLnYxLkh0dHBIZWFkZXIiMwoKSHR0cEhlYWRlchIMCgRuYW1lGAEgASgJEhcKD2VuY3J5cHRlZF92YWx1ZRgCIAEoCSI3CgtBeGlvbUNvbmZpZxIPCgdkYXRhc2V0GAEgASgJEhcKD2VuY3J5cHRlZF90b2tlbhgDIAEoCSqgAQoPSHR0cFN0YXR1c0NsYXNzEiEKHUhUVFBfU1RBVFVTX0NMQVNTX1VOU1BFQ0lGSUVEEAASGQoVSFRUUF9TVEFUVVNfQ0xBU1NfMlhYEAISGQoVSFRUUF9TVEFUVVNfQ0xBU1NfM1hYEAMSGQoVSFRUUF9TVEFUVVNfQ0xBU1NfNFhYEAQSGQoVSFRUUF9TVEFUVVNfQ0xBU1NfNVhYEAUqagoOSHR0cEJvZHlGb3JtYXQSIAocSFRUUF9CT0RZX0ZPUk1BVF9VTlNQRUNJRklFRBAAEhkKFUhUVFBfQk9EWV9GT1JNQVRfSlNPThABEhsKF0hUVFBfQk9EWV9GT1JNQVRfTkRKU09OEAJCpgEKD2NvbS5sb2dkcmFpbi52MUILQ29uZmlnUHJvdG9QAVo5Z2l0aHViLmNvbS91bmtleWVkL3Vua2V5L2dlbi9wcm90by9sb2dkcmFpbi92MTtsb2dkcmFpbnYxogIDTFhYqgILTG9nZHJhaW4uVjHKAgtMb2dkcmFpblxWMeICF0xvZ2RyYWluXFYxXEdQQk1ldGFkYXRh6gIMTG9nZHJhaW46OlYxYgZwcm90bzM");
+  fileDesc("Chhsb2dkcmFpbi92MS9jb25maWcucHJvdG8SC2xvZ2RyYWluLnYxIrEDCgZDb25maWcSJwoEaHR0cBgBIAEoCzIXLmxvZ2RyYWluLnYxLkh0dHBDb25maWdIABIpCgVheGlvbRgCIAEoCzIYLmxvZ2RyYWluLnYxLkF4aW9tQ29uZmlnSAASNwoKYXVkaXRfbG9ncxgDIAEoCzIhLmxvZ2RyYWluLnYxLkF1ZGl0TG9nU3RyZWFtQ29uZmlnSAESRQoRa2V5X3ZlcmlmaWNhdGlvbnMYBCABKAsyKC5sb2dkcmFpbi52MS5LZXlWZXJpZmljYXRpb25TdHJlYW1Db25maWdIARJDChBnYXRld2F5X3JlcXVlc3RzGAUgASgLMicubG9nZHJhaW4udjEuR2F0ZXdheVJlcXVlc3RTdHJlYW1Db25maWdIARI7CgxydW50aW1lX2xvZ3MYBiABKAsyIy5sb2dkcmFpbi52MS5SdW50aW1lTG9nU3RyZWFtQ29uZmlnSAESOAoKcmF0ZWxpbWl0cxgHIAEoCzIiLmxvZ2RyYWluLnYxLlJhdGVsaW1pdFN0cmVhbUNvbmZpZ0gBQg0KC2Rlc3RpbmF0aW9uQggKBnN0cmVhbSJTChVSYXRlbGltaXRTdHJlYW1Db25maWcSFQoNbmFtZXNwYWNlX2lkcxgBIAMoCRITCgtpZGVudGlmaWVycxgCIAMoCRIOCgZwYXNzZWQYAyADKAgiawoWUnVudGltZUxvZ1N0cmVhbUNvbmZpZxISCgpzZXZlcml0aWVzGAEgAygJEhMKC3Byb2plY3RfaWRzGAIgAygJEg8KB2FwcF9pZHMYAyADKAkSFwoPZW52aXJvbm1lbnRfaWRzGAQgAygJIpEBChpHYXRld2F5UmVxdWVzdFN0cmVhbUNvbmZpZxI0Cg5zdGF0dXNfY2xhc3NlcxgBIAMoDjIcLmxvZ2RyYWluLnYxLkh0dHBTdGF0dXNDbGFzcxITCgtwcm9qZWN0X2lkcxgCIAMoCRIPCgdhcHBfaWRzGAMgAygJEhcKD2Vudmlyb25tZW50X2lkcxgEIAMoCSJGChtLZXlWZXJpZmljYXRpb25TdHJlYW1Db25maWcSEAoIb3V0Y29tZXMYASADKAkSFQoNa2V5X3NwYWNlX2lkcxgCIAMoCSIrChRBdWRpdExvZ1N0cmVhbUNvbmZpZxITCgtldmVudF90eXBlcxgBIAMoCSJwCgpIdHRwQ29uZmlnEgsKA3VybBgBIAEoCRIrCgZmb3JtYXQYAiABKA4yGy5sb2dkcmFpbi52MS5IdHRwQm9keUZvcm1hdBIoCgdoZWFkZXJzGAMgAygLMhcubG9nZHJhaW4udjEuSHR0cEhlYWRlciIzCgpIdHRwSGVhZGVyEgwKBG5hbWUYASABKAkSFwoPZW5jcnlwdGVkX3ZhbHVlGAIgASgJIjcKC0F4aW9tQ29uZmlnEg8KB2RhdGFzZXQYASABKAkSFwoPZW5jcnlwdGVkX3Rva2VuGAMgASgJKqABCg9IdHRwU3RhdHVzQ2xhc3MSIQodSFRUUF9TVEFUVVNfQ0xBU1NfVU5TUEVDSUZJRUQQABIZChVIVFRQX1NUQVRVU19DTEFTU18yWFgQAhIZChVIVFRQX1NUQVRVU19DTEFTU18zWFgQAxIZChVIVFRQX1NUQVRVU19DTEFTU180WFgQBBIZChVIVFRQX1NUQVRVU19DTEFTU181WFgQBSpqCg5IdHRwQm9keUZvcm1hdBIgChxIVFRQX0JPRFlfRk9STUFUX1VOU1BFQ0lGSUVEEAASGQoVSFRUUF9CT0RZX0ZPUk1BVF9KU09OEAESGwoXSFRUUF9CT0RZX0ZPUk1BVF9OREpTT04QAkKmAQoPY29tLmxvZ2RyYWluLnYxQgtDb25maWdQcm90b1ABWjlnaXRodWIuY29tL3Vua2V5ZWQvdW5rZXkvZ2VuL3Byb3RvL2xvZ2RyYWluL3YxO2xvZ2RyYWludjGiAgNMWFiqAgtMb2dkcmFpbi5WMcoCC0xvZ2RyYWluXFYx4gIXTG9nZHJhaW5cVjFcR1BCTWV0YWRhdGHqAgxMb2dkcmFpbjo6VjFiBnByb3RvMw");
 
 /**
  * Config contains the stream and destination configuration for one log drain.
@@ -65,6 +65,12 @@ export type Config = Message<"logdrain.v1.Config"> & {
      */
     value: RuntimeLogStreamConfig;
     case: "runtimeLogs";
+  } | {
+    /**
+     * @generated from field: logdrain.v1.RatelimitStreamConfig ratelimits = 7;
+     */
+    value: RatelimitStreamConfig;
+    case: "ratelimits";
   } | { case: undefined; value?: undefined };
 };
 
@@ -74,6 +80,37 @@ export type Config = Message<"logdrain.v1.Config"> & {
  */
 export const ConfigSchema: GenMessage<Config> = /*@__PURE__*/
   messageDesc(file_logdrain_v1_config, 0);
+
+/**
+ * RatelimitStreamConfig selects stored API decisions using exact matches.
+ *
+ * @generated from message logdrain.v1.RatelimitStreamConfig
+ */
+export type RatelimitStreamConfig = Message<"logdrain.v1.RatelimitStreamConfig"> & {
+  /**
+   * Each empty list selects all values. Nonempty dimensions are combined with AND.
+   *
+   * @generated from field: repeated string namespace_ids = 1;
+   */
+  namespaceIds: string[];
+
+  /**
+   * @generated from field: repeated string identifiers = 2;
+   */
+  identifiers: string[];
+
+  /**
+   * @generated from field: repeated bool passed = 3;
+   */
+  passed: boolean[];
+};
+
+/**
+ * Describes the message logdrain.v1.RatelimitStreamConfig.
+ * Use `create(RatelimitStreamConfigSchema)` to create a new message.
+ */
+export const RatelimitStreamConfigSchema: GenMessage<RatelimitStreamConfig> = /*@__PURE__*/
+  messageDesc(file_logdrain_v1_config, 1);
 
 /**
  * RuntimeLogStreamConfig combines exact severity and customer resource filters.
@@ -109,7 +146,7 @@ export type RuntimeLogStreamConfig = Message<"logdrain.v1.RuntimeLogStreamConfig
  * Use `create(RuntimeLogStreamConfigSchema)` to create a new message.
  */
 export const RuntimeLogStreamConfigSchema: GenMessage<RuntimeLogStreamConfig> = /*@__PURE__*/
-  messageDesc(file_logdrain_v1_config, 1);
+  messageDesc(file_logdrain_v1_config, 2);
 
 /**
  * GatewayRequestStreamConfig combines resource and response status filters.
@@ -147,7 +184,7 @@ export type GatewayRequestStreamConfig = Message<"logdrain.v1.GatewayRequestStre
  * Use `create(GatewayRequestStreamConfigSchema)` to create a new message.
  */
 export const GatewayRequestStreamConfigSchema: GenMessage<GatewayRequestStreamConfig> = /*@__PURE__*/
-  messageDesc(file_logdrain_v1_config, 2);
+  messageDesc(file_logdrain_v1_config, 3);
 
 /**
  * KeyVerificationStreamConfig selects verification outcomes, not audit event types.
@@ -175,7 +212,7 @@ export type KeyVerificationStreamConfig = Message<"logdrain.v1.KeyVerificationSt
  * Use `create(KeyVerificationStreamConfigSchema)` to create a new message.
  */
 export const KeyVerificationStreamConfigSchema: GenMessage<KeyVerificationStreamConfig> = /*@__PURE__*/
-  messageDesc(file_logdrain_v1_config, 3);
+  messageDesc(file_logdrain_v1_config, 4);
 
 /**
  * AuditLogStreamConfig selects audit logs and their stream-specific filters.
@@ -196,7 +233,7 @@ export type AuditLogStreamConfig = Message<"logdrain.v1.AuditLogStreamConfig"> &
  * Use `create(AuditLogStreamConfigSchema)` to create a new message.
  */
 export const AuditLogStreamConfigSchema: GenMessage<AuditLogStreamConfig> = /*@__PURE__*/
-  messageDesc(file_logdrain_v1_config, 4);
+  messageDesc(file_logdrain_v1_config, 5);
 
 /**
  * HttpConfig configures a generic HTTPS destination.
@@ -225,7 +262,7 @@ export type HttpConfig = Message<"logdrain.v1.HttpConfig"> & {
  * Use `create(HttpConfigSchema)` to create a new message.
  */
 export const HttpConfigSchema: GenMessage<HttpConfig> = /*@__PURE__*/
-  messageDesc(file_logdrain_v1_config, 5);
+  messageDesc(file_logdrain_v1_config, 6);
 
 /**
  * HttpHeader contains one header name and its Vault-encrypted value.
@@ -249,7 +286,7 @@ export type HttpHeader = Message<"logdrain.v1.HttpHeader"> & {
  * Use `create(HttpHeaderSchema)` to create a new message.
  */
 export const HttpHeaderSchema: GenMessage<HttpHeader> = /*@__PURE__*/
-  messageDesc(file_logdrain_v1_config, 6);
+  messageDesc(file_logdrain_v1_config, 7);
 
 /**
  * AxiomConfig configures an Axiom dataset destination.
@@ -273,7 +310,7 @@ export type AxiomConfig = Message<"logdrain.v1.AxiomConfig"> & {
  * Use `create(AxiomConfigSchema)` to create a new message.
  */
 export const AxiomConfigSchema: GenMessage<AxiomConfig> = /*@__PURE__*/
-  messageDesc(file_logdrain_v1_config, 7);
+  messageDesc(file_logdrain_v1_config, 8);
 
 /**
  * @generated from enum logdrain.v1.HttpStatusClass

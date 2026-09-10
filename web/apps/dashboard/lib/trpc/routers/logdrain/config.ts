@@ -18,6 +18,7 @@ export type LogdrainConfig = {
   stream:
     | { kind: "audit_logs"; eventTypes: string[] }
     | { kind: "key_verifications"; outcomes: string[]; keySpaceIds: string[] }
+    | { kind: "ratelimits"; namespaceIds: string[]; identifiers: string[]; passed: boolean[] }
     | {
         kind: "runtime_logs";
         severities: string[];
@@ -94,6 +95,14 @@ export function decodeLogdrainConfig(raw: Uint8Array): LogdrainConfig {
   const { destination } = config;
   let stream: LogdrainConfig["stream"];
   switch (config.stream.case) {
+    case "ratelimits":
+      stream = {
+        kind: "ratelimits",
+        namespaceIds: config.stream.value.namespaceIds,
+        identifiers: config.stream.value.identifiers,
+        passed: config.stream.value.passed,
+      };
+      break;
     case "runtimeLogs":
       stream = {
         kind: "runtime_logs",
@@ -181,6 +190,15 @@ export async function encryptHttpHeaders(
 
 function encodeStream(stream: LogdrainConfig["stream"]) {
   switch (stream.kind) {
+    case "ratelimits":
+      return {
+        case: "ratelimits" as const,
+        value: {
+          namespaceIds: stream.namespaceIds,
+          identifiers: stream.identifiers,
+          passed: stream.passed,
+        },
+      };
     case "runtime_logs":
       return {
         case: "runtimeLogs" as const,

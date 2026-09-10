@@ -196,7 +196,7 @@ func TestLimitSuccessfully(t *testing.T) {
 				data, err := clickhouse.Select[schema.Ratelimit](
 					ctx,
 					h.ClickHouse.Conn(),
-					"SELECT * FROM default.ratelimits_raw_v2 WHERE workspace_id = {workspace_id:String} AND namespace_id = {namespace_id:String}",
+					"SELECT "+row.InsertColumns()+" FROM default.ratelimits_raw_v2 WHERE workspace_id = {workspace_id:String} AND namespace_id = {namespace_id:String}",
 					map[string]string{
 						"workspace_id": h.Resources().UserWorkspace.ID,
 						"namespace_id": nsID,
@@ -214,6 +214,7 @@ func TestLimitSuccessfully(t *testing.T) {
 			require.Equal(t, identifier, row.Identifier)
 			require.Equal(t, res.Body.Data.Limits[i].Passed, row.Passed)
 			require.Equal(t, res.Body.Meta.RequestId, row.RequestID)
+			require.EqualValues(t, i, row.CheckIndex)
 		}
 	})
 

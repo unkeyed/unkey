@@ -7,6 +7,7 @@ import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 import {
   type EncryptedHttpHeader,
+  type LogdrainConfig,
   decodeLogdrainConfig,
   encodeLogdrainConfig,
   encryptHttpHeaders,
@@ -17,8 +18,10 @@ import {
   httpFormatSchema,
   httpHeaderUpdatesSchema,
   httpsUrl,
+  identifiersSchema,
   keySpaceIdsSchema,
   outcomesSchema,
+  passedSchema,
   resourceIdsSchema,
   severitiesSchema,
   statusClassesSchema,
@@ -61,6 +64,9 @@ export const updateLogdrain = workspaceProcedure
         id: z.string().min(1),
         name: z.string().trim().min(1).max(128).optional(),
         status: z.enum(["running", "paused_by_user"]).optional(),
+        namespaceIds: resourceIdsSchema.optional(),
+        identifiers: identifiersSchema.optional(),
+        passed: passedSchema.optional(),
         eventTypes: eventTypesSchema.optional(),
         outcomes: outcomesSchema.optional(),
         keySpaceIds: keySpaceIdsSchema.optional(),
@@ -75,6 +81,9 @@ export const updateLogdrain = workspaceProcedure
         (input) =>
           input.name !== undefined ||
           input.status !== undefined ||
+          input.namespaceIds !== undefined ||
+          input.identifiers !== undefined ||
+          input.passed !== undefined ||
           input.eventTypes !== undefined ||
           input.outcomes !== undefined ||
           input.keySpaceIds !== undefined ||
@@ -143,6 +152,10 @@ export const updateLogdrain = workspaceProcedure
         }
         const existing = decodeLogdrainConfig(drain.config);
         if (
+          (existing.stream.kind !== "ratelimits" &&
+            (input.namespaceIds !== undefined ||
+              input.identifiers !== undefined ||
+              input.passed !== undefined)) ||
           (existing.stream.kind !== "key_verifications" &&
             (input.outcomes !== undefined || input.keySpaceIds !== undefined)) ||
           (existing.stream.kind !== "audit_logs" && input.eventTypes !== undefined) ||
@@ -159,34 +172,54 @@ export const updateLogdrain = workspaceProcedure
             message: "Filters must match the drain stream.",
           });
         }
-        const stream =
-          existing.stream.kind === "runtime_logs"
-            ? {
-                ...existing.stream,
-                severities: input.severities ?? existing.stream.severities,
-                projectIds: input.projectIds ?? existing.stream.projectIds,
-                appIds: input.appIds ?? existing.stream.appIds,
-                environmentIds: input.environmentIds ?? existing.stream.environmentIds,
-              }
-            : existing.stream.kind === "audit_logs"
-              ? {
-                  ...existing.stream,
-                  eventTypes: input.eventTypes ?? existing.stream.eventTypes,
-                }
-              : existing.stream.kind === "gateway_requests"
-                ? {
-                    ...existing.stream,
-                    statusClasses: input.statusClasses ?? existing.stream.statusClasses,
-                    projectIds: input.projectIds ?? existing.stream.projectIds,
-                    appIds: input.appIds ?? existing.stream.appIds,
-                    environmentIds: input.environmentIds ?? existing.stream.environmentIds,
-                  }
-                : {
-                    ...existing.stream,
-                    outcomes: input.outcomes ?? existing.stream.outcomes,
-                    keySpaceIds: input.keySpaceIds ?? existing.stream.keySpaceIds,
-                  };
+        let stream: LogdrainConfig["stream"];
+        switch (existing.stream.kind) {
+          case "ratelimits":
+            stream = {
+              ...existing.stream,
+              namespaceIds: input.namespaceIds ?? existing.stream.namespaceIds,
+              identifiers: input.identifiers ?? existing.stream.identifiers,
+              passed: input.passed ?? existing.stream.passed,
+            };
+            break;
+          case "runtime_logs":
+            stream = {
+              ...existing.stream,
+              severities: input.severities ?? existing.stream.severities,
+              projectIds: input.projectIds ?? existing.stream.projectIds,
+              appIds: input.appIds ?? existing.stream.appIds,
+              environmentIds: input.environmentIds ?? existing.stream.environmentIds,
+            };
+            break;
+          case "audit_logs":
+            stream = {
+              ...existing.stream,
+              eventTypes: input.eventTypes ?? existing.stream.eventTypes,
+            };
+            break;
+          case "gateway_requests":
+            stream = {
+              ...existing.stream,
+              statusClasses: input.statusClasses ?? existing.stream.statusClasses,
+              projectIds: input.projectIds ?? existing.stream.projectIds,
+              appIds: input.appIds ?? existing.stream.appIds,
+              environmentIds: input.environmentIds ?? existing.stream.environmentIds,
+            };
+            break;
+          case "key_verifications":
+            stream = {
+              ...existing.stream,
+              outcomes: input.outcomes ?? existing.stream.outcomes,
+              keySpaceIds: input.keySpaceIds ?? existing.stream.keySpaceIds,
+            };
+            break;
+          default:
+            throw new Error(`Unsupported log drain stream: ${existing.stream satisfies never}`);
+        }
         let config =
+          input.namespaceIds === undefined &&
+          input.identifiers === undefined &&
+          input.passed === undefined &&
           input.eventTypes === undefined &&
           input.outcomes === undefined &&
           input.statusClasses === undefined &&
@@ -260,6 +293,9 @@ export const updateLogdrain = workspaceProcedure
 
         const changesDelivery =
           destination !== undefined ||
+          input.namespaceIds !== undefined ||
+          input.identifiers !== undefined ||
+          input.passed !== undefined ||
           input.eventTypes !== undefined ||
           input.outcomes !== undefined ||
           input.statusClasses !== undefined ||

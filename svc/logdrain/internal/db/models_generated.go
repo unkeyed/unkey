@@ -59,6 +59,7 @@ const (
 	LogdrainsStreamKeyVerifications LogdrainsStream = "key_verifications"
 	LogdrainsStreamGatewayRequests  LogdrainsStream = "gateway_requests"
 	LogdrainsStreamRuntimeLogs      LogdrainsStream = "runtime_logs"
+	LogdrainsStreamRatelimits       LogdrainsStream = "ratelimits"
 )
 
 func (e *LogdrainsStream) Scan(src interface{}) error {

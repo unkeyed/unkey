@@ -19,7 +19,7 @@ import { Plus, Trash } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import { Button, FormInput, FormSelect } from "@unkey/ui";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { DrainEndpointRow } from "./drain-endpoint-row";
 import { type DrainFormValues, emptyHeaderRow } from "./drain-schema";
@@ -57,6 +57,7 @@ export function StreamField({ disabled = false }: { disabled?: boolean }) {
             { value: "key_verifications", label: "Key verifications" },
             { value: "gateway_requests", label: "Gateway HTTP requests" },
             { value: "runtime_logs", label: "Runtime logs" },
+            { value: "ratelimits", label: "Rate limits" },
           ]}
         />
       )}
@@ -83,7 +84,101 @@ export function EventTypesField() {
       </>
     ))
     .with("runtime_logs", () => <RuntimeFields />)
+    .with("ratelimits", () => <RatelimitFields />)
     .exhaustive();
+}
+
+function RatelimitFields() {
+  const { control } = useFormContext<DrainFormValues>();
+  const namespaces = trpc.ratelimit.namespace.list.useQuery();
+  const labels = new Map(namespaces.data?.map((namespace) => [namespace.id, namespace.name]));
+  const [identifier, setIdentifier] = useState("");
+  return (
+    <>
+      <p className="text-xs text-gray-9">
+        Logs must match each selected filter. Leave a filter empty to send all values.
+      </p>
+      <Controller
+        control={control}
+        name="namespaceIds"
+        render={({ field }) => (
+          <FilterChoices
+            {...field}
+            options={[...labels.keys()]}
+            label="Namespaces"
+            searchLabel="Search namespaces"
+            placeholder="All namespaces"
+            emptyMessage={
+              namespaces.error
+                ? "Unable to load namespaces."
+                : namespaces.isLoading
+                  ? "Loading…"
+                  : "No namespaces found."
+            }
+            getLabel={(id) => (labels.has(id) ? `${labels.get(id)} (${id})` : id)}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="passed"
+        render={({ field }) => (
+          <FilterChoices
+            value={field.value.map(String)}
+            onChange={(values) => field.onChange(values.map((value) => value === "true"))}
+            onBlur={field.onBlur}
+            options={["true", "false"]}
+            getLabel={(value) => (value === "true" ? "Passed" : "Blocked")}
+            label="Results"
+            searchLabel="Search results"
+            placeholder="All results"
+            emptyMessage="No results found."
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name="identifiers"
+        render={({ field }) => (
+          <>
+            <FilterChoices
+              {...field}
+              options={field.value}
+              label="Identifiers"
+              description="Match exact identifiers, including spaces. Identifiers may contain customer data."
+              searchLabel="Search selected identifiers"
+              placeholder="All identifiers"
+              emptyMessage="Add an identifier below."
+            />
+            <div className="flex items-end gap-2">
+              <FormInput
+                label="Identifier to add"
+                value={identifier}
+                onChange={(event) => setIdentifier(event.target.value)}
+                maxLength={256}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={
+                  identifier.length === 0 ||
+                  field.value.includes(identifier) ||
+                  field.value.length >= 256
+                }
+                onClick={() => {
+                  field.onChange([...field.value, identifier]);
+                  setIdentifier("");
+                }}
+              >
+                Add identifier
+              </Button>
+            </div>
+          </>
+        )}
+      />
+    </>
+  );
 }
 
 function GatewayResourcesFields() {

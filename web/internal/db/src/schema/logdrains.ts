@@ -30,6 +30,7 @@ export const logdrains = mysqlTable(
       "key_verifications",
       "gateway_requests",
       "runtime_logs",
+      "ratelimits",
     ]).notNull(),
 
     // Serialized logdrain.v1.Config. The destination stores its Vault

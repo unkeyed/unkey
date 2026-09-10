@@ -46,6 +46,31 @@ vi.mock("../../trpc", () => ({
 }));
 
 describe("create gateway log drain", () => {
+  it("creates rate-limit drains with exact filters and no backfill", async () => {
+    saved.mockClear();
+    await mutation.run({
+      name: "Decisions",
+      stream: "ratelimits",
+      namespaceIds: ["ns"],
+      identifiers: [" customer "],
+      passed: [false],
+      kind: "http",
+      config: { url: "https://example.com" },
+    });
+    const row = saved.mock.calls[0]?.[0];
+    if (!row) {
+      throw new Error("No drain was persisted");
+    }
+    expect(row.stream).toBe("ratelimits");
+    expect(row.committedOffsetInsertedAt).toBe(row.createdAt);
+    expect(decodeLogdrainConfig(row.config).stream).toEqual({
+      kind: "ratelimits",
+      namespaceIds: ["ns"],
+      identifiers: [" customer "],
+      passed: [false],
+    });
+  });
+
   it.each(["http", "axiom"])("creates runtime drains without backfill for %s", async (kind) => {
     saved.mockClear();
     await mutation.run({

@@ -224,6 +224,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			meta := checkMetadata[i]
 			h.RatelimitEvents.Buffer(schema.Ratelimit{
 				RequestID:   s.RequestID(),
+				CheckIndex:  uint32(i),
 				WorkspaceID: principal.AuthorizedWorkspaceID,
 				Time:        startMillis,
 				NamespaceID: meta.namespaceID,

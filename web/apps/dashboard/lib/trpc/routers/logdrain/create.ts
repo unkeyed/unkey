@@ -12,8 +12,10 @@ import {
   httpFormatSchema,
   httpHeadersSchema,
   httpsUrl,
+  identifiersSchema,
   keySpaceIdsSchema,
   outcomesSchema,
+  passedSchema,
   resourceIdsSchema,
   severitiesSchema,
   statusClassesSchema,
@@ -25,6 +27,7 @@ const streamSchema = z.enum([
   "key_verifications",
   "gateway_requests",
   "runtime_logs",
+  "ratelimits",
 ]);
 
 const destinationSchema = z.discriminatedUnion("kind", [
@@ -51,6 +54,9 @@ export const createLogdrain = workspaceProcedure
       .object({
         name: z.string().trim().min(1).max(128),
         stream: streamSchema.default("audit_logs"),
+        namespaceIds: resourceIdsSchema.optional(),
+        identifiers: identifiersSchema.optional(),
+        passed: passedSchema.optional(),
         eventTypes: eventTypesSchema.optional(),
         outcomes: outcomesSchema.optional(),
         keySpaceIds: keySpaceIdsSchema.optional(),
@@ -62,6 +68,10 @@ export const createLogdrain = workspaceProcedure
       })
       .refine(
         (input) =>
+          (input.stream === "ratelimits" ||
+            (input.namespaceIds === undefined &&
+              input.identifiers === undefined &&
+              input.passed === undefined)) &&
           (input.stream === "key_verifications" ||
             (input.outcomes === undefined && input.keySpaceIds === undefined)) &&
           (input.stream === "audit_logs" || input.eventTypes === undefined) &&
@@ -82,6 +92,14 @@ export const createLogdrain = workspaceProcedure
     try {
       let stream: LogdrainConfig["stream"];
       switch (input.stream) {
+        case "ratelimits":
+          stream = {
+            kind: input.stream,
+            namespaceIds: input.namespaceIds ?? [],
+            identifiers: input.identifiers ?? [],
+            passed: input.passed ?? [],
+          };
+          break;
         case "audit_logs":
           stream = { kind: input.stream, eventTypes: input.eventTypes ?? [] };
           break;

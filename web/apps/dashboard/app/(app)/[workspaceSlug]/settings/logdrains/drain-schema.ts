@@ -1,7 +1,9 @@
 import type { Router } from "@/lib/trpc/routers";
 import {
+  identifiersSchema,
   keySpaceIdsSchema,
   outcomesSchema,
+  passedSchema,
   resourceIdsSchema,
   severitiesSchema,
   statusClassesSchema,
@@ -95,7 +97,16 @@ const httpsUrlSchema = z
 
 const baseSchema = z.object({
   kind: z.enum(["http", "axiom"]),
-  stream: z.enum(["audit_logs", "key_verifications", "gateway_requests", "runtime_logs"]),
+  stream: z.enum([
+    "audit_logs",
+    "key_verifications",
+    "gateway_requests",
+    "runtime_logs",
+    "ratelimits",
+  ]),
+  namespaceIds: resourceIdsSchema,
+  identifiers: identifiersSchema,
+  passed: passedSchema,
   outcomes: outcomesSchema,
   keySpaceIds: keySpaceIdsSchema,
   statusClasses: statusClassesSchema,
@@ -170,6 +181,9 @@ export const emptyHeaderRow = { name: "", value: "", stored: false };
 export const emptyDrainForm: DrainFormValues = {
   kind: "http",
   stream: "audit_logs",
+  namespaceIds: [],
+  identifiers: [],
+  passed: [],
   outcomes: [],
   keySpaceIds: [],
   statusClasses: [],
@@ -195,6 +209,9 @@ export function drainToFormValues(drain: DrainDetail): DrainFormValues {
     kind: drain.kind,
     name: drain.name,
     stream: drain.stream,
+    namespaceIds: "namespaceIds" in drain ? drain.namespaceIds : [],
+    identifiers: "identifiers" in drain ? drain.identifiers : [],
+    passed: "passed" in drain ? drain.passed : [],
     outcomes: outcomesSchema.parse(drain.outcomes),
     keySpaceIds: drain.keySpaceIds,
     statusClasses: statusClassesSchema.parse(drain.statusClasses),
