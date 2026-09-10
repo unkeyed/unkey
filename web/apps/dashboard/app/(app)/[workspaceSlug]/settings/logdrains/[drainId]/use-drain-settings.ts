@@ -60,12 +60,20 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
       const eventTypesChanged = !sameEventTypes(submitted.eventTypes, values.eventTypes);
       const outcomesChanged = !sameEventTypes(submitted.outcomes, values.outcomes);
       const keySpacesChanged = !sameEventTypes(submitted.keySpaceIds, values.keySpaceIds);
+      const statusesChanged = !sameEventTypes(submitted.statusClasses, values.statusClasses);
+      const projectsChanged = !sameEventTypes(submitted.projectIds, values.projectIds);
+      const appsChanged = !sameEventTypes(submitted.appIds, values.appIds);
+      const environmentsChanged = !sameEventTypes(submitted.environmentIds, values.environmentIds);
       if (
         name === drain.name &&
         destination === undefined &&
         !eventTypesChanged &&
         !outcomesChanged &&
-        !keySpacesChanged
+        !keySpacesChanged &&
+        !statusesChanged &&
+        !projectsChanged &&
+        !appsChanged &&
+        !environmentsChanged
       ) {
         onSaved();
         return;
@@ -77,6 +85,10 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
           ...(eventTypesChanged ? { eventTypes: submitted.eventTypes } : {}),
           ...(outcomesChanged ? { outcomes: submitted.outcomes } : {}),
           ...(keySpacesChanged ? { keySpaceIds: submitted.keySpaceIds } : {}),
+          ...(statusesChanged ? { statusClasses: submitted.statusClasses } : {}),
+          ...(projectsChanged ? { projectIds: submitted.projectIds } : {}),
+          ...(appsChanged ? { appIds: submitted.appIds } : {}),
+          ...(environmentsChanged ? { environmentIds: submitted.environmentIds } : {}),
           ...(destination !== undefined ? { destination } : {}),
         },
         { onSuccess: onSaved },
@@ -106,7 +118,7 @@ export type DrainSettings = ReturnType<typeof useDrainSettings>;
 
 type UpdateDestination = inferRouterInputs<Router>["logdrain"]["update"]["destination"];
 
-function sameEventTypes(left: string[], right: string[]): boolean {
+function sameEventTypes<T extends string | number>(left: T[], right: T[]): boolean {
   return left.length === right.length && left.every((eventType) => right.includes(eventType));
 }
 

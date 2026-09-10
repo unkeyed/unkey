@@ -12,6 +12,32 @@ const vault = vi.hoisted(() => ({ encryptBulk: vi.fn() }));
 vi.mock("@/lib/vault-client", () => ({ createVaultClient: () => vault }));
 
 describe("log drain protobuf config", () => {
+  it("round trips gateway resource and status class filters", () => {
+    const config = {
+      kind: "axiom" as const,
+      stream: {
+        kind: "gateway_requests" as const,
+        statusClasses: [4, 5],
+        projectIds: ["project"],
+        appIds: ["app"],
+        environmentIds: ["env"],
+      },
+      dataset: "requests",
+      encryptedToken: "ciphertext",
+    };
+    const encoded = encodeLogdrainConfig(config);
+    expect(fromBinary(ConfigSchema, encoded).stream).toMatchObject({
+      case: "gatewayRequests",
+      value: {
+        statusClasses: [4, 5],
+        projectIds: ["project"],
+        appIds: ["app"],
+        environmentIds: ["env"],
+      },
+    });
+    expect(decodeLogdrainConfig(encoded)).toEqual(config);
+  });
+
   const configs = [
     {
       kind: "http",

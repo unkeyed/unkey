@@ -43,6 +43,17 @@ export const getLogdrain = workspaceProcedure
               destination.stream.kind === "key_verifications" ? destination.stream.outcomes : [],
             keySpaceIds:
               destination.stream.kind === "key_verifications" ? destination.stream.keySpaceIds : [],
+            statusClasses:
+              destination.stream.kind === "gateway_requests"
+                ? destination.stream.statusClasses
+                : [],
+            projectIds:
+              destination.stream.kind === "gateway_requests" ? destination.stream.projectIds : [],
+            appIds: destination.stream.kind === "gateway_requests" ? destination.stream.appIds : [],
+            environmentIds:
+              destination.stream.kind === "gateway_requests"
+                ? destination.stream.environmentIds
+                : [],
             status: row.status,
             config: {
               url: destination.url,
@@ -62,6 +73,17 @@ export const getLogdrain = workspaceProcedure
               destination.stream.kind === "key_verifications" ? destination.stream.outcomes : [],
             keySpaceIds:
               destination.stream.kind === "key_verifications" ? destination.stream.keySpaceIds : [],
+            statusClasses:
+              destination.stream.kind === "gateway_requests"
+                ? destination.stream.statusClasses
+                : [],
+            projectIds:
+              destination.stream.kind === "gateway_requests" ? destination.stream.projectIds : [],
+            appIds: destination.stream.kind === "gateway_requests" ? destination.stream.appIds : [],
+            environmentIds:
+              destination.stream.kind === "gateway_requests"
+                ? destination.stream.environmentIds
+                : [],
             status: row.status,
             config: {
               dataset: destination.dataset,

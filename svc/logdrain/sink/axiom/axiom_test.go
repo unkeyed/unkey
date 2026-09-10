@@ -13,6 +13,29 @@ import (
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
 
+func TestDeliverGatewayRequest(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var line struct {
+			Time   string         `json:"_time"`
+			Stream string         `json:"stream"`
+			Event  map[string]any `json:"event"`
+		}
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&line))
+		require.Equal(t, "1970-01-01T00:00:00.123Z", line.Time)
+		require.Equal(t, "gateway_requests", line.Stream)
+		require.Equal(t, "req_gateway", line.Event["request_id"])
+		require.Equal(t, float64(503), line.Event["response_status"])
+		require.Equal(t, float64(41), line.Event["instance_latency"])
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(server.Close)
+	batch := testBatch()
+	batch.Events = []sink.Event{{EventID: "req_gateway", Stream: "gateway_requests", Time: 123, Payload: sink.GatewayRequestPayload{RequestID: "req_gateway", ResponseStatus: 503, InstanceLatency: 41}}}
+	result, err := newTestDrain(t, server.URL, "gateway", "token").Deliver(t.Context(), batch)
+	require.NoError(t, err)
+	require.True(t, result.Acknowledged)
+}
+
 // TestDeliverSuccess guarantees acknowledged events use Axiom NDJSON and that
 // dataset names are percent-escaped in the ingest path.
 func TestDeliverSuccess(t *testing.T) {

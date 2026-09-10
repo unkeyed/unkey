@@ -13,7 +13,14 @@ export type EncryptedHttpHeader = {
 export type LogdrainConfig = {
   stream:
     | { kind: "audit_logs"; eventTypes: string[] }
-    | { kind: "key_verifications"; outcomes: string[]; keySpaceIds: string[] };
+    | { kind: "key_verifications"; outcomes: string[]; keySpaceIds: string[] }
+    | {
+        kind: "gateway_requests";
+        statusClasses: number[];
+        projectIds: string[];
+        appIds: string[];
+        environmentIds: string[];
+      };
 } & (
   | {
       kind: "http";
@@ -30,25 +37,14 @@ export type LogdrainConfig = {
 
 /** encodeLogdrainConfig encodes the complete provider configuration as protobuf. */
 export function encodeLogdrainConfig(config: LogdrainConfig): Buffer {
+  const stream = encodeStream(config.stream);
   switch (config.kind) {
     case "http":
       return Buffer.from(
         toBinary(
           ConfigSchema,
           create(ConfigSchema, {
-            stream:
-              config.stream.kind === "audit_logs"
-                ? {
-                    case: "auditLogs",
-                    value: { eventTypes: config.stream.eventTypes },
-                  }
-                : {
-                    case: "keyVerifications",
-                    value: {
-                      outcomes: config.stream.outcomes,
-                      keySpaceIds: config.stream.keySpaceIds,
-                    },
-                  },
+            stream,
             destination: {
               case: config.kind,
               value: {
@@ -65,19 +61,7 @@ export function encodeLogdrainConfig(config: LogdrainConfig): Buffer {
         toBinary(
           ConfigSchema,
           create(ConfigSchema, {
-            stream:
-              config.stream.kind === "audit_logs"
-                ? {
-                    case: "auditLogs",
-                    value: { eventTypes: config.stream.eventTypes },
-                  }
-                : {
-                    case: "keyVerifications",
-                    value: {
-                      outcomes: config.stream.outcomes,
-                      keySpaceIds: config.stream.keySpaceIds,
-                    },
-                  },
+            stream,
             destination: {
               case: config.kind,
               value: {
@@ -99,6 +83,15 @@ export function decodeLogdrainConfig(raw: Uint8Array): LogdrainConfig {
   const { destination } = config;
   let stream: LogdrainConfig["stream"];
   switch (config.stream.case) {
+    case "gatewayRequests":
+      stream = {
+        kind: "gateway_requests",
+        statusClasses: config.stream.value.statusClasses,
+        projectIds: config.stream.value.projectIds,
+        appIds: config.stream.value.appIds,
+        environmentIds: config.stream.value.environmentIds,
+      };
+      break;
     case "keyVerifications":
       stream = {
         kind: "key_verifications",
@@ -164,6 +157,30 @@ export async function encryptHttpHeaders(
     }
     return { name, encryptedValue: item.encrypted };
   });
+}
+
+function encodeStream(stream: LogdrainConfig["stream"]) {
+  switch (stream.kind) {
+    case "audit_logs":
+      return { case: "auditLogs" as const, value: { eventTypes: stream.eventTypes } };
+    case "key_verifications":
+      return {
+        case: "keyVerifications" as const,
+        value: { outcomes: stream.outcomes, keySpaceIds: stream.keySpaceIds },
+      };
+    case "gateway_requests":
+      return {
+        case: "gatewayRequests" as const,
+        value: {
+          statusClasses: stream.statusClasses,
+          projectIds: stream.projectIds,
+          appIds: stream.appIds,
+          environmentIds: stream.environmentIds,
+        },
+      };
+    default:
+      throw new Error(`Unsupported log drain stream: ${stream satisfies never}`);
+  }
 }
 
 function decodeHttpFormat(format: HttpBodyFormat): "json" | "ndjson" {

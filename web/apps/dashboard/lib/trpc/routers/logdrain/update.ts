@@ -19,6 +19,8 @@ import {
   httpsUrl,
   keySpaceIdsSchema,
   outcomesSchema,
+  resourceIdsSchema,
+  statusClassesSchema,
 } from "./validation";
 
 const vault = createVaultClient(VaultService);
@@ -61,6 +63,10 @@ export const updateLogdrain = workspaceProcedure
         eventTypes: eventTypesSchema.optional(),
         outcomes: outcomesSchema.optional(),
         keySpaceIds: keySpaceIdsSchema.optional(),
+        statusClasses: statusClassesSchema.optional(),
+        projectIds: resourceIdsSchema.optional(),
+        appIds: resourceIdsSchema.optional(),
+        environmentIds: resourceIdsSchema.optional(),
         destination: updateDestinationSchema.optional(),
       })
       .refine(
@@ -70,6 +76,10 @@ export const updateLogdrain = workspaceProcedure
           input.eventTypes !== undefined ||
           input.outcomes !== undefined ||
           input.keySpaceIds !== undefined ||
+          input.statusClasses !== undefined ||
+          input.projectIds !== undefined ||
+          input.appIds !== undefined ||
+          input.environmentIds !== undefined ||
           input.destination !== undefined,
         "At least one update is required",
       ),
@@ -130,9 +140,14 @@ export const updateLogdrain = workspaceProcedure
         }
         const existing = decodeLogdrainConfig(drain.config);
         if (
-          (existing.stream.kind === "audit_logs" &&
+          (existing.stream.kind !== "key_verifications" &&
             (input.outcomes !== undefined || input.keySpaceIds !== undefined)) ||
-          (existing.stream.kind === "key_verifications" && input.eventTypes !== undefined)
+          (existing.stream.kind !== "audit_logs" && input.eventTypes !== undefined) ||
+          (existing.stream.kind !== "gateway_requests" &&
+            (input.statusClasses !== undefined ||
+              input.projectIds !== undefined ||
+              input.appIds !== undefined ||
+              input.environmentIds !== undefined))
         ) {
           throw new TRPCError({
             code: "BAD_REQUEST",
@@ -145,14 +160,26 @@ export const updateLogdrain = workspaceProcedure
                 ...existing.stream,
                 eventTypes: input.eventTypes ?? existing.stream.eventTypes,
               }
-            : {
-                ...existing.stream,
-                outcomes: input.outcomes ?? existing.stream.outcomes,
-                keySpaceIds: input.keySpaceIds ?? existing.stream.keySpaceIds,
-              };
+            : existing.stream.kind === "gateway_requests"
+              ? {
+                  ...existing.stream,
+                  statusClasses: input.statusClasses ?? existing.stream.statusClasses,
+                  projectIds: input.projectIds ?? existing.stream.projectIds,
+                  appIds: input.appIds ?? existing.stream.appIds,
+                  environmentIds: input.environmentIds ?? existing.stream.environmentIds,
+                }
+              : {
+                  ...existing.stream,
+                  outcomes: input.outcomes ?? existing.stream.outcomes,
+                  keySpaceIds: input.keySpaceIds ?? existing.stream.keySpaceIds,
+                };
         let config =
           input.eventTypes === undefined &&
           input.outcomes === undefined &&
+          input.statusClasses === undefined &&
+          input.projectIds === undefined &&
+          input.appIds === undefined &&
+          input.environmentIds === undefined &&
           input.keySpaceIds === undefined
             ? drain.config
             : encodeLogdrainConfig({
@@ -221,6 +248,10 @@ export const updateLogdrain = workspaceProcedure
           destination !== undefined ||
           input.eventTypes !== undefined ||
           input.outcomes !== undefined ||
+          input.statusClasses !== undefined ||
+          input.projectIds !== undefined ||
+          input.appIds !== undefined ||
+          input.environmentIds !== undefined ||
           input.keySpaceIds !== undefined;
         const resetFailureState = input.status === "running" || changesDelivery;
         const expireLease = input.status !== undefined || changesDelivery;

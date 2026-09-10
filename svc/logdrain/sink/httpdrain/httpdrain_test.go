@@ -16,6 +16,45 @@ import (
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
 
+func TestDeliverGatewayRequest(t *testing.T) {
+	for _, format := range []logdrainv1.HttpBodyFormat{logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED, logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON, logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON} {
+		t.Run(format.String(), func(t *testing.T) {
+			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				body, err := io.ReadAll(r.Body)
+				require.NoError(t, err)
+				if format != logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON {
+					require.Equal(t, "application/json", r.Header.Get("Content-Type"))
+					var records []json.RawMessage
+					require.NoError(t, json.Unmarshal(body, &records))
+					require.Len(t, records, 1)
+					body = records[0]
+				} else {
+					require.Equal(t, "application/x-ndjson", r.Header.Get("Content-Type"))
+					require.True(t, strings.HasSuffix(string(body), "\n"))
+				}
+				var event struct {
+					Timestamp string         `json:"timestamp"`
+					Stream    string         `json:"stream"`
+					Event     map[string]any `json:"event"`
+				}
+				require.NoError(t, json.Unmarshal(body, &event))
+				require.Equal(t, "gateway_requests", event.Stream)
+				require.Equal(t, "1970-01-01T00:00:00.123Z", event.Timestamp)
+				require.Equal(t, "req_gateway", event.Event["request_id"])
+				require.Equal(t, float64(503), event.Event["response_status"])
+				require.Equal(t, float64(53), event.Event["total_latency"])
+				w.WriteHeader(http.StatusNoContent)
+			}))
+			t.Cleanup(server.Close)
+			batch := testBatch()
+			batch.Events = []sink.Event{{EventID: "req_gateway", Stream: "gateway_requests", Time: 123, Payload: sink.GatewayRequestPayload{RequestID: "req_gateway", ResponseStatus: 503, TotalLatency: 53}}}
+			result, err := newTestSink(t, Config{Endpoint: server.URL, Format: format}).Deliver(t.Context(), batch)
+			require.NoError(t, err)
+			require.True(t, result.Acknowledged)
+		})
+	}
+}
+
 // TestDeliverSuccess guarantees the default format delivers one JSON array of
 // event envelopes with batch metadata in X-Unkey-* headers, and that
 // 2xx counts as acknowledgment.

@@ -1,9 +1,9 @@
 ---
 title: "Overview"
-description: "How the logdrain service streams audit logs and key verifications to customer destinations"
+description: "How the logdrain service streams audit logs, key verifications, and gateway HTTP requests to customer destinations"
 ---
 
-The logdrain service (`svc/logdrain`) streams audit logs and key verifications from ClickHouse to
+The logdrain service (`svc/logdrain`) streams audit logs, key verifications, and gateway HTTP requests from ClickHouse to
 customer-owned destinations: generic HTTP endpoints and Axiom.
 Under one valid lease, it sends events in cursor order. It provides
 at-least-once delivery. MySQL stores configuration and delivery progress. The
@@ -185,7 +185,7 @@ events with older occurrence times remain eligible for later insertion windows.
 The service retains the existing 90-day event-time TTL for verifications.
 Events older than that retention period are not guaranteed to remain available.
 
-Both streams have a lightweight `proj_logdrain` projection. The verification
+All streams have a lightweight `proj_logdrain` projection. The verification
 projection orders `(workspace_id, inserted_at, request_id)` and stores
 `_part_offset` rather than duplicating payload columns. The query uses expanded
 cursor OR predicates so ClickHouse can prune the insertion range. Reduced
@@ -296,7 +296,7 @@ The cursor, lease, and fencing token define the delivery semantics:
   an external request after a worker completes its fenced read.
 
 Customers must handle duplicate events. They can use the audit log event `id`
-or the verification `request_id` as a deduplication key within its stream.
+or the verification or gateway `request_id` as a deduplication key within its stream.
 
 ## Verification payload
 
@@ -319,6 +319,70 @@ The verification payload contains these fields from the raw verification row:
 | `outcome` | Verification outcome, not an audit event type. |
 | `tags` | String array of verification tags. |
 | `spent_credits` | Credits spent on this verification. |
+
+## Gateway request payload and filtering
+
+The `gateway_requests` stream reads `frontline_requests_raw_v1`. It exports
+the base request metadata collected on the local-instance proxy path. Requests
+forwarded to another region are logged by that region. Requests without a
+deployment and instance, or requests excluded from ClickHouse logging, do not
+produce a row in this stream.
+
+HTTP JSON sends an array of records with `event`, `stream: "gateway_requests"`,
+and `timestamp`. HTTP NDJSON sends one such record per line. Axiom sends `event`,
+`stream: "gateway_requests"`, and `_time`. The timestamp is the request's occurrence time, not insertion time.
+Use `request_id` to deduplicate gateway request records.
+
+| Fields | Meaning |
+| --- | --- |
+| `request_id` | Request correlation and deduplication ID. |
+| `project_id`, `app_id`, `environment_id`, `deployment_id` | Customer resources that served the request. |
+| `region` | Gateway region. |
+| `method`, `host`, `path` | HTTP method, host, and path without the query string. |
+| `response_status` | HTTP response status. |
+| `total_latency`, `instance_latency`, `gateway_latency` | End-to-end, instance, and gateway durations in milliseconds. |
+
+The payload excludes headers, bodies, query strings and parameters, user agent,
+client IP address, internal instance addresses, frontline IDs, instance IDs,
+and platform metadata. Captured request material requires logging-policy opt-in
+and only configured secrets have redaction guarantees. Its presence in the raw
+table does not authorize export. Paths and host names remain customer-visible
+request metadata and can contain application-specific data.
+
+`GatewayRequestStreamConfig.status_classes` accepts integers 2 through 5,
+selecting the corresponding 2xx through 5xx classes. Exact codes and arbitrary
+ranges are not supported. The `project_ids`, `app_ids`, and `environment_ids`
+allowlists match exact resource IDs. Each empty list is unrestricted; nonempty
+dimensions combine with AND, with OR within each list. All filters run before
+`LIMIT`. Resource selections remain independent, so incompatible combinations
+match no rows. Resource filters do not change projection ordering.
+
+The cursor is `(inserted_at, request_id)`, scoped by `workspace_id`. The
+lightweight `proj_logdrain` orders `(workspace_id, inserted_at, request_id)`
+and stores `_part_offset`. It preserves the base sorting key and existing
+indexes. No status-first projection is added. Full-payload reads can still
+touch every base granule when matching requests span many projects. Local
+projection tests lower `min_table_rows_to_use_projection_index` to zero for
+diagnostics. Explicit application under that override does not prove that
+production queries use the projection or read fewer payload rows.
+
+Gateway requests retain their existing seven-day event-time TTL. Late inserts
+remain eligible by insertion time only while the raw event survives retention.
+An outage or pause longer than retention can lose undelivered events. Creation
+starts at creation time with no backfill. Filter edits preserve the committed
+cursor and expire the lease; skipped history is not replayed, and an old HTTP
+acknowledgment cannot commit after the edit.
+
+Before enabling gateway request drains:
+
+1. Confirm ClickHouse migration `20260908000000.sql` has completed.
+2. Apply `20260910010000.sql` to add and materialize the projection. It preserves
+   existing insertion timestamps and the server-default timestamp expression.
+   Plan capacity for reading existing parts during materialization. Use the
+   required `_part_offset` support and settings; local tests use ClickHouse 26.2.
+3. Add `gateway_requests` to the MySQL `logdrains.stream` enum.
+4. Deploy workers that understand the gateway stream before enabling its
+   dashboard selector. Keep the stream immutable after creation.
 
 ## Health telemetry
 

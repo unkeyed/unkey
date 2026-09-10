@@ -1,5 +1,10 @@
 import type { Router } from "@/lib/trpc/routers";
-import { keySpaceIdsSchema, outcomesSchema } from "@/lib/trpc/routers/logdrain/validation";
+import {
+  keySpaceIdsSchema,
+  outcomesSchema,
+  resourceIdsSchema,
+  statusClassesSchema,
+} from "@/lib/trpc/routers/logdrain/validation";
 import type { inferRouterOutputs } from "@trpc/server";
 import { z } from "zod";
 import { headerNamePattern, isValidHttpHeaderValue } from "./header-fields";
@@ -89,9 +94,13 @@ const httpsUrlSchema = z
 
 const baseSchema = z.object({
   kind: z.enum(["http", "axiom"]),
-  stream: z.enum(["audit_logs", "key_verifications"]),
+  stream: z.enum(["audit_logs", "key_verifications", "gateway_requests"]),
   outcomes: outcomesSchema,
   keySpaceIds: keySpaceIdsSchema,
+  statusClasses: statusClassesSchema,
+  projectIds: resourceIdsSchema,
+  appIds: resourceIdsSchema,
+  environmentIds: resourceIdsSchema,
   name: z.string().trim().min(1, "Enter a name").max(128, "Name must be 128 characters or less"),
   url: z.string(),
   format: z.enum(["json", "ndjson"]),
@@ -158,6 +167,10 @@ export const emptyDrainForm: DrainFormValues = {
   stream: "audit_logs",
   outcomes: [],
   keySpaceIds: [],
+  statusClasses: [],
+  projectIds: [],
+  appIds: [],
+  environmentIds: [],
   name: "",
   url: "",
   format: "json",
@@ -175,6 +188,10 @@ export function drainToFormValues(drain: DrainDetail): DrainFormValues {
     stream: drain.stream,
     outcomes: outcomesSchema.parse(drain.outcomes),
     keySpaceIds: drain.keySpaceIds,
+    statusClasses: drain.statusClasses,
+    projectIds: drain.projectIds,
+    appIds: drain.appIds,
+    environmentIds: drain.environmentIds,
     eventTypes: drain.eventTypes,
     url: drain.kind === "http" ? drain.config.url : "",
     format: drain.kind === "http" ? drain.config.format : "json",

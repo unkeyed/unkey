@@ -11,7 +11,7 @@ var (
 	//
 	// Labels:
 	//   - "status": "running", "paused_by_user", or "paused_by_failure"
-	//   - "stream": "audit_logs" or "key_verifications"
+	//   - "stream": "audit_logs", "key_verifications", or "gateway_requests"
 	Drains = lazy.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
@@ -64,7 +64,7 @@ var (
 	//
 	// Labels:
 	//   - "kind": "http" or "axiom"
-	//   - "stream": "audit_logs" or "key_verifications"
+	//   - "stream": "audit_logs", "key_verifications", or "gateway_requests"
 	//   - "outcome": "success" or "error"
 	DeliveriesTotal = lazy.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "unkey",
@@ -77,7 +77,7 @@ var (
 	//
 	// Labels:
 	//   - "kind": "http" or "axiom"
-	//   - "stream": "audit_logs" or "key_verifications"
+	//   - "stream": "audit_logs", "key_verifications", or "gateway_requests"
 	EventsDeliveredTotal = lazy.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
@@ -89,7 +89,7 @@ var (
 	//
 	// Labels:
 	//   - "kind": "http" or "axiom"
-	//   - "stream": "audit_logs" or "key_verifications"
+	//   - "stream": "audit_logs", "key_verifications", or "gateway_requests"
 	//   - "outcome": "success" or "error"
 	DeliveryDurationSeconds = lazy.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "unkey",
@@ -102,7 +102,7 @@ var (
 	// DrainFailuresTotal counts failures recorded by the engine.
 	//
 	// Labels:
-	//   - "stream": "audit_logs" or "key_verifications"
+	//   - "stream": "audit_logs", "key_verifications", or "gateway_requests"
 	DrainFailuresTotal = lazy.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",
@@ -113,7 +113,7 @@ var (
 	// DrainsPausedTotal counts drains paused after reaching the failure threshold.
 	//
 	// Labels:
-	//   - "stream": "audit_logs" or "key_verifications"
+	//   - "stream": "audit_logs", "key_verifications", or "gateway_requests"
 	DrainsPausedTotal = lazy.NewCounterVec(prometheus.CounterOpts{
 		Namespace: "unkey",
 		Subsystem: "logdrain",

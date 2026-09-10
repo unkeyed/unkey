@@ -108,7 +108,8 @@ export function LogdrainsList({ onCreate }: { onCreate: () => void }) {
         </EmptyHero.Icons>
         <EmptyHero.Title>Create your first log drain</EmptyHero.Title>
         <EmptyHero.Description>
-          Send audit logs or key verifications to an HTTPS endpoint or an Axiom dataset.
+          Send audit logs, key verifications, or gateway HTTP requests to an HTTPS endpoint or an
+          Axiom dataset.
         </EmptyHero.Description>
         <EmptyHero.Actions>
           <CreateLogdrainButton onClick={onCreate} />

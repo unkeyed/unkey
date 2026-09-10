@@ -55,6 +55,7 @@ export function StreamField({ disabled = false }: { disabled?: boolean }) {
           options={[
             { value: "audit_logs", label: "Audit logs" },
             { value: "key_verifications", label: "Key verifications" },
+            { value: "gateway_requests", label: "Gateway HTTP requests" },
           ]}
         />
       )}
@@ -74,7 +75,136 @@ export function EventTypesField() {
         <VerificationOutcomesField />
       </>
     ))
+    .with("gateway_requests", () => (
+      <>
+        <GatewayResourcesFields />
+        <GatewayStatusesField />
+      </>
+    ))
     .exhaustive();
+}
+
+function GatewayResourcesFields() {
+  const { control, getValues, setValue } = useFormContext<DrainFormValues>();
+  const projectIds = useWatch({ control, name: "projectIds" });
+  const projects = trpc.deploy.project.list.useQuery();
+  const environments = trpc.deploy.environment.listAll.useQuery();
+  const projectLabels = new Map(projects.data?.map((project) => [project.id, project.name]));
+  const appLabels = new Map(
+    projects.data?.flatMap((project) =>
+      project.apps.map((app) => [app.id, `${project.name} / ${app.name}`] as const),
+    ),
+  );
+  const choices = [
+    {
+      name: "projectIds",
+      label: "Projects",
+      searchLabel: "Search projects",
+      placeholder: "All projects",
+      labels: projectLabels,
+      loading: projects.isLoading,
+      error: projects.error,
+    },
+    {
+      name: "appIds",
+      label: "Apps",
+      searchLabel: "Search apps",
+      placeholder: "All apps",
+      labels: new Map(
+        projects.data
+          ?.filter((project) => projectIds.length === 0 || projectIds.includes(project.id))
+          .flatMap((project) =>
+            project.apps.map((app) => [app.id, `${project.name} / ${app.name}`] as const),
+          ),
+      ),
+      loading: projects.isLoading,
+      error: projects.error,
+    },
+    {
+      name: "environmentIds",
+      label: "Environments",
+      searchLabel: "Search environments",
+      placeholder: "All environments",
+      labels: new Map(
+        environments.data?.map((environment) => [
+          environment.id,
+          `${appLabels.get(environment.appId) ?? environment.appId} / ${environment.name}`,
+        ]),
+      ),
+      loading: environments.isLoading,
+      error: environments.error,
+    },
+  ] as const;
+  return (
+    <>
+      <p className="text-xs text-gray-9">
+        Requests must match each selected filter. Leave a filter empty to send all values.
+      </p>
+      {choices.map((choice) => (
+        <Controller
+          key={choice.name}
+          control={control}
+          name={choice.name}
+          render={({ field }) => (
+            <FilterChoices
+              {...field}
+              onChange={(values) => {
+                field.onChange(values);
+                if (choice.name === "projectIds" && values.length > 0 && projects.data) {
+                  const appIds = new Set(
+                    projects.data
+                      .filter((project) => values.includes(project.id))
+                      .flatMap((project) => project.apps.map((app) => app.id)),
+                  );
+                  setValue(
+                    "appIds",
+                    getValues("appIds").filter((id) => appIds.has(id)),
+                    { shouldDirty: true, shouldValidate: true },
+                  );
+                }
+              }}
+              options={[...choice.labels.keys()]}
+              label={choice.label}
+              searchLabel={choice.searchLabel}
+              placeholder={choice.placeholder}
+              emptyMessage={
+                choice.error
+                  ? `Unable to load ${choice.label.toLowerCase()}.`
+                  : choice.loading
+                    ? "Loading…"
+                    : "No matches found."
+              }
+              getLabel={(id) => (choice.labels.has(id) ? `${choice.labels.get(id)} (${id})` : id)}
+            />
+          )}
+        />
+      ))}
+    </>
+  );
+}
+
+function GatewayStatusesField() {
+  const { control } = useFormContext<DrainFormValues>();
+  return (
+    <Controller
+      control={control}
+      name="statusClasses"
+      render={({ field }) => (
+        <FilterChoices
+          value={field.value.map(String)}
+          onChange={(values) => field.onChange(values.map(Number))}
+          onBlur={field.onBlur}
+          options={["2", "3", "4", "5"]}
+          getLabel={(value) => `${value}xx`}
+          label="HTTP statuses"
+          description="Choose status classes. Leave empty to send all statuses."
+          searchLabel="Search HTTP statuses"
+          placeholder="All HTTP statuses"
+          emptyMessage="No HTTP statuses found."
+        />
+      )}
+    />
+  );
 }
 
 function AuditEventTypesField() {
@@ -181,7 +311,7 @@ function FilterChoices({
   onBlur: () => void;
   options: readonly string[];
   label: string;
-  description: ReactNode;
+  description?: ReactNode;
   searchLabel: string;
   placeholder: string;
   emptyMessage: string;
@@ -193,7 +323,7 @@ function FilterChoices({
   return (
     <fieldset className="flex flex-col gap-1.5">
       <legend className="text-[13px] text-gray-11">{label}</legend>
-      <span className="text-xs text-gray-9">{description}</span>
+      {description ? <span className="text-xs text-gray-9">{description}</span> : null}
       <Multibox items={choices} value={value} onValueChange={onChange} itemToStringLabel={getLabel}>
         <MultiboxChips ref={anchor} className="mt-1.5">
           {value.map((choice) => (

@@ -68,6 +68,21 @@ vi.mock("../../trpc", () => ({
 }));
 
 describe("updateLogdrain input", () => {
+  it("accepts only status classes and bounded resource ID lists", () => {
+    expect(procedure.safeParse({ id: "ld_test", statusClasses: [2, 3, 4, 5] }).success).toBe(true);
+    for (const status of [1, 6, 4.5, 200, 503, "4", "4xx", "400-499"]) {
+      expect(procedure.safeParse({ id: "ld_test", statusClasses: [status] }).success).toBe(false);
+    }
+    expect(procedure.safeParse({ id: "ld_test", statusClasses: [] }).success).toBe(true);
+    for (const field of ["projectIds", "appIds", "environmentIds"]) {
+      expect(procedure.safeParse({ id: "ld_test", [field]: ["resource"] }).success).toBe(true);
+      expect(procedure.safeParse({ id: "ld_test", [field]: [] }).success).toBe(true);
+      for (const ids of [[""], [" "], [5], ["x".repeat(257)], Array(257).fill("id")]) {
+        expect(procedure.safeParse({ id: "ld_test", [field]: ids }).success).toBe(false);
+      }
+    }
+  });
+
   it("accepts verification outcomes and rejects audit event names as outcomes", () => {
     expect(procedure.safeParse({ id: "ld_test", outcomes: ["RATE_LIMITED"] }).success).toBe(true);
     expect(procedure.safeParse({ id: "ld_test", outcomes: ["key.create"] }).success).toBe(false);
@@ -121,6 +136,64 @@ describe("updateLogdrain input", () => {
 });
 
 describe("updateLogdrain event filters", () => {
+  it.each([
+    { statusClasses: [4, 5] },
+    { statusClasses: [] },
+    { projectIds: ["new-project"] },
+    { projectIds: [] },
+    { appIds: ["new-app"] },
+    { appIds: [] },
+    { environmentIds: ["new-env"] },
+    { environmentIds: [] },
+  ])("updates gateway filters and fences delivery without replay: %j", async (filters) => {
+    const existingFilters = {
+      statusClasses: [5],
+      projectIds: ["project"],
+      appIds: ["app"],
+      environmentIds: ["env"],
+    };
+    database.read.mockResolvedValue([
+      {
+        id: "ld_test",
+        name: "Requests",
+        status: "running",
+        config: encodeLogdrainConfig({
+          kind: "http",
+          stream: { kind: "gateway_requests", ...existingFilters },
+          url: "https://example.com",
+          format: "json",
+          headers: [],
+        }),
+      },
+    ]);
+    const ctx = {
+      workspace: { id: "ws_test" },
+      user: { id: "user_test" },
+      audit: { location: "", userAgent: "test" },
+    };
+    database.write.mockClear();
+    await procedure.mutate({ input: { id: "ld_test", ...filters }, ctx });
+    const saved = database.write.mock.calls[0]?.[0];
+    if (!saved) {
+      throw new Error("No drain update was persisted");
+    }
+    expect(decodeLogdrainConfig(saved.config).stream).toEqual({
+      kind: "gateway_requests",
+      ...existingFilters,
+      ...filters,
+    });
+    expect(saved).toMatchObject({ leaseExpiresAt: 0, consecutiveFailures: 0, nextAttemptAt: 0 });
+    expect(saved).not.toHaveProperty("committedOffsetInsertedAt");
+    expect(saved).not.toHaveProperty("committedOffsetEventId");
+    for (const filters of [{ eventTypes: [] }, { outcomes: [] }, { keySpaceIds: [] }]) {
+      database.write.mockClear();
+      await expect(
+        procedure.mutate({ input: { id: "ld_test", ...filters }, ctx }),
+      ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+      expect(database.write).not.toHaveBeenCalled();
+    }
+  });
+
   it.each([
     { outcomes: [], keySpaceIds: undefined },
     { outcomes: ["EXPIRED" as const], keySpaceIds: ["ks_other"] },

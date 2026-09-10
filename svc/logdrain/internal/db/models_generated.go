@@ -57,6 +57,7 @@ type LogdrainsStream string
 const (
 	LogdrainsStreamAuditLogs        LogdrainsStream = "audit_logs"
 	LogdrainsStreamKeyVerifications LogdrainsStream = "key_verifications"
+	LogdrainsStreamGatewayRequests  LogdrainsStream = "gateway_requests"
 )
 
 func (e *LogdrainsStream) Scan(src interface{}) error {

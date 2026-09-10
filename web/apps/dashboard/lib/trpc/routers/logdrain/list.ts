@@ -4,7 +4,7 @@ import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 import { decodeLogdrainConfig } from "./config";
 
-const streamSchema = z.enum(["audit_logs", "key_verifications"]);
+const streamSchema = z.enum(["audit_logs", "key_verifications", "gateway_requests"]);
 
 export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
   try {
@@ -35,6 +35,17 @@ export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
               destination.stream.kind === "key_verifications" ? destination.stream.outcomes : [],
             keySpaceIds:
               destination.stream.kind === "key_verifications" ? destination.stream.keySpaceIds : [],
+            statusClasses:
+              destination.stream.kind === "gateway_requests"
+                ? destination.stream.statusClasses
+                : [],
+            projectIds:
+              destination.stream.kind === "gateway_requests" ? destination.stream.projectIds : [],
+            appIds: destination.stream.kind === "gateway_requests" ? destination.stream.appIds : [],
+            environmentIds:
+              destination.stream.kind === "gateway_requests"
+                ? destination.stream.environmentIds
+                : [],
             stream,
             config: {
               url: destination.url,
@@ -52,6 +63,17 @@ export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
               destination.stream.kind === "key_verifications" ? destination.stream.outcomes : [],
             keySpaceIds:
               destination.stream.kind === "key_verifications" ? destination.stream.keySpaceIds : [],
+            statusClasses:
+              destination.stream.kind === "gateway_requests"
+                ? destination.stream.statusClasses
+                : [],
+            projectIds:
+              destination.stream.kind === "gateway_requests" ? destination.stream.projectIds : [],
+            appIds: destination.stream.kind === "gateway_requests" ? destination.stream.appIds : [],
+            environmentIds:
+              destination.stream.kind === "gateway_requests"
+                ? destination.stream.environmentIds
+                : [],
             stream,
             config: {
               dataset: destination.dataset,

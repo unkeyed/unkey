@@ -219,7 +219,7 @@ func TestEngine_Integration(t *testing.T) {
 		}, 5*time.Second, 100*time.Millisecond)
 	})
 
-	for _, filterMode := range []string{"audit_logs", "key_verifications", "keyspaces"} {
+	for _, filterMode := range []string{"audit_logs", "key_verifications", "keyspaces", "gateway_requests"} {
 		stream := filterMode
 		if filterMode == "keyspaces" {
 			stream = "key_verifications"
@@ -268,9 +268,22 @@ func TestEngine_Integration(t *testing.T) {
 					require.NoError(t, chConn.Exec(t.Context(), `INSERT INTO key_verifications_raw_v2 (workspace_id, request_id, inserted_at, time, outcome, key_space_id) VALUES (?, ?, ?, ?, ?, ?)`, workspaceID, drainID+event.id, insertedAt, insertedAt-60000, event.outcome, event.id))
 				}
 			}
+			if stream == "gateway_requests" {
+				config.Stream = &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{StatusClasses: []int32{5}, ProjectIds: []string{"_c"}, AppIds: []string{"_c"}, EnvironmentIds: []string{"_c"}}}
+				for _, event := range []struct {
+					id     string
+					status int32
+				}{{"_a", 200}, {"_b", 201}, {"_c", 503}} {
+					require.NoError(t, chConn.Exec(t.Context(), `INSERT INTO frontline_requests_raw_v1 (workspace_id, request_id, inserted_at, time, response_status, project_id, app_id, environment_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, workspaceID, drainID+event.id, insertedAt, insertedAt-60000, event.status, event.id, event.id, event.id))
+				}
+			}
 			encoded, err := proto.Marshal(config)
 			require.NoError(t, err)
-			_, err = mysqlDB.Exec("UPDATE logdrains SET stream = ?, config = ?, committed_offset_event_id = ? WHERE id = ?", stream, encoded, drainID+"_a", drainID)
+			storedStream := stream
+			if stream == "gateway_requests" {
+				storedStream = "audit_logs"
+			}
+			_, err = mysqlDB.Exec("UPDATE logdrains SET stream = ?, config = ?, committed_offset_event_id = ? WHERE id = ?", storedStream, encoded, drainID+"_a", drainID)
 			require.NoError(t, err)
 
 			database, err := db.New(mysqlCfg.DSN, sqlcomment.ForService("logdrain-integration-test", "test"))
@@ -294,6 +307,7 @@ func TestEngine_Integration(t *testing.T) {
 			eng, err := engine.New(engine.Config{
 				DB: database, LeaseID: leaseID, AuditLogs: source.NewAuditLogs(chClient), Vault: stubVault{},
 				KeyVerifications: source.NewKeyVerifications(chClient),
+				GatewayRequests:  source.NewGatewayRequests(chClient),
 				Deliveries:       deliveries, PollInterval: 200 * time.Millisecond, BatchSize: 1,
 				PauseThreshold: 5, UnsafeAllowPrivateEndpoints: true,
 			})
@@ -316,6 +330,13 @@ func TestEngine_Integration(t *testing.T) {
 					if stream == "audit_logs" {
 						require.Equal(t, wantID, events[0]["id"])
 						require.Equal(t, wantAction, events[0]["action"])
+					} else if stream == "gateway_requests" {
+						require.Equal(t, wantID, events[0]["request_id"])
+						status := float64(201)
+						if wantAction == "key.delete" {
+							status = 503
+						}
+						require.Equal(t, status, events[0]["response_status"])
 					} else {
 						require.Equal(t, wantID, events[0]["request_id"])
 						outcome := "VALID"
@@ -334,6 +355,11 @@ func TestEngine_Integration(t *testing.T) {
 				config.GetAuditLogs().EventTypes = []string{"key.create"}
 			} else if filterMode == "keyspaces" {
 				config.GetKeyVerifications().KeySpaceIds = []string{"_b"}
+			} else if stream == "gateway_requests" {
+				config.GetGatewayRequests().StatusClasses = []int32{2}
+				config.GetGatewayRequests().ProjectIds = []string{"_b"}
+				config.GetGatewayRequests().AppIds = []string{"_b"}
+				config.GetGatewayRequests().EnvironmentIds = []string{"_b"}
 			} else {
 				config.GetKeyVerifications().Outcomes = []string{"VALID"}
 			}

@@ -1,9 +1,9 @@
 ---
 title: Log drains
-description: "Send audit logs and key verifications to HTTPS endpoints or Axiom, filter events, and diagnose failed deliveries."
+description: "Send audit logs, key verifications, and gateway HTTP requests to HTTPS endpoints or Axiom, filter events, and diagnose failed deliveries."
 ---
 
-A log drain sends workspace audit logs or key verifications to a destination
+A log drain sends workspace audit logs, key verifications, or gateway HTTP requests to a destination
 that you control. Use log drains to archive events or process them with your
 own tools.
 
@@ -14,7 +14,7 @@ own tools.
 
 Unkey supports generic HTTPS endpoints and
 <a href="https://axiom.co" target="_blank">Axiom</a> datasets. Each drain sends
-one stream: audit logs or key verifications.
+one stream: audit logs, key verifications, or gateway HTTP requests.
 
 ## How delivery works
 
@@ -27,12 +27,12 @@ retries the same batch.
 
 Log drains provide at-least-once delivery. A destination can receive an event
 more than once after a retry. Use `event.id` for audit logs or `event.request_id`
-for key verifications as the deduplication key within each stream.
+for key verifications and gateway requests as the deduplication key within each stream.
 
 A drain starts at its creation time. Historical backfill is not supported.
 After a pause or failure, delivery resumes from the last committed position,
 subject to the stream's retention period. Verification logs are retained for
-90 days. See [audit log retention](/audit-log/introduction#retention) for audit
+90 days; gateway requests are retained for seven days. See [audit log retention](/audit-log/introduction#retention) for audit
 logs.
 
 | Destination | Use case | Configuration |
@@ -49,7 +49,7 @@ Create a log drain from your workspace settings.
 3. Click **Create Log Drain**.
 4. Select **HTTP** or **Axiom**.
 5. Enter a descriptive name.
-6. Select **Audit logs** or **Key verifications** in **Stream**.
+6. Select **Audit logs**, **Key verifications**, or **Gateway HTTP requests** in **Stream**.
 7. Optional: Select the stream filters described below.
 8. Enter the destination settings.
 9. Click **Create Log Drain**.
@@ -64,9 +64,20 @@ Leave a filter empty to send all values for that filter.
 | --- | --- |
 | Audit logs | **Event types** selects [audit event names](/audit-log/types). |
 | Key verifications | **Keyspaces** selects one or more workspace keyspaces. **Outcomes** selects verification results, such as `VALID`, `RATE_LIMITED`, or `EXPIRED`. |
+| Gateway HTTP requests | **Projects**, **Apps**, and **Environments** select workspace resources. **HTTP statuses** selects `2xx`, `3xx`, `4xx`, or `5xx`. |
 
 When you select both keyspaces and outcomes, a verification must match both
 filters. **Unspecified** matches an empty verification outcome.
+
+Gateway requests must match every nonempty filter. Multiple selections within
+one filter match any selected value. For example, select a project, its production
+environment, and `5xx` to send server errors from that environment. Empty resource
+filters include current and future resources. Selecting projects limits the app
+choices to those projects. Changing projects clears selected apps outside that
+scope. With no projects selected, all workspace apps are available. Environments
+remain independently selectable; incompatible environment selections match no requests.
+Status filters select whole classes only. Exact codes and arbitrary ranges are
+not supported.
 
 Filter changes apply from the drain's committed position. They do not replay
 events skipped by an earlier filter. An in-flight request can still arrive
@@ -205,6 +216,30 @@ For a verification drain, `event` contains the verification fields. The HTTP
 NDJSON uses the same record shape, with one record per line. Axiom uses the
 same `event` and `stream` fields with `_time` in place of
 the HTTP `timestamp`.
+
+### Read a gateway request payload
+
+For a gateway request drain, `event` contains these fields. The HTTP `timestamp`
+is the request's occurrence time, not its delivery time.
+
+| Field | Description |
+| --- | --- |
+| `request_id` | Request correlation and deduplication ID |
+| `project_id`, `app_id`, `environment_id`, `deployment_id` | Resources that served the request |
+| `region` | Gateway region |
+| `method`, `host`, `path` | HTTP method, host, and path without the query string |
+| `response_status` | HTTP response status |
+| `total_latency`, `instance_latency`, `gateway_latency` | End-to-end, instance, and gateway durations in milliseconds |
+
+The payload excludes request and response headers and bodies, query strings,
+client IP addresses, user agents, and internal instance addresses. Host names
+and paths can still contain application-specific data.
+
+HTTP JSON sends an array of records with `event`, `stream: "gateway_requests"`,
+and `timestamp`. NDJSON sends one such record per line. Axiom uses the same
+`event` and `stream` with `_time` in place of the HTTP `timestamp`.
+Only requests recorded in gateway request logs are eligible. Requests that do
+not reach a deployment instance or are excluded from logging are not exported.
 
 ## Configure an Axiom destination
 

@@ -16,7 +16,18 @@ message Config {
   oneof stream {
     AuditLogStreamConfig audit_logs = 3;
     KeyVerificationStreamConfig key_verifications = 4;
+    GatewayRequestStreamConfig gateway_requests = 5;
   }
+}
+
+// GatewayRequestStreamConfig combines resource and response status filters.
+message GatewayRequestStreamConfig {
+  // Values 2 through 5 select 2xx through 5xx. Empty selects all statuses.
+  repeated int32 status_classes = 1;
+  // Each empty list selects all values. Nonempty dimensions are combined with AND.
+  repeated string project_ids = 2;
+  repeated string app_ids = 3;
+  repeated string environment_ids = 4;
 }
 
 // KeyVerificationStreamConfig selects verification outcomes, not audit event types.

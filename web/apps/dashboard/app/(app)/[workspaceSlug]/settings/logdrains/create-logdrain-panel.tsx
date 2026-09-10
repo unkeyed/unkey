@@ -103,7 +103,14 @@ export function CreateLogdrainPanel({
       stream: values.stream,
       ...(values.stream === "audit_logs"
         ? { eventTypes: values.eventTypes }
-        : { outcomes: values.outcomes, keySpaceIds: values.keySpaceIds }),
+        : values.stream === "gateway_requests"
+          ? {
+              statusClasses: values.statusClasses,
+              projectIds: values.projectIds,
+              appIds: values.appIds,
+              environmentIds: values.environmentIds,
+            }
+          : { outcomes: values.outcomes, keySpaceIds: values.keySpaceIds }),
       ...destination,
     });
   });
