@@ -5,16 +5,18 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
 // VerificationTimeseriesRequest scopes a verification timeseries to a single
-// portal end user. WorkspaceID and ExternalID are required; KeyID optionally
-// narrows to one key. StartTime and EndTime bound the window in unix
+// portal end user. WorkspaceID, ExternalID and KeySpaceIDs are required; KeyID
+// optionally narrows to one key. StartTime and EndTime bound the window in unix
 // milliseconds (StartTime inclusive, EndTime exclusive).
 type VerificationTimeseriesRequest struct {
 	WorkspaceID string
 	ExternalID  string
+	KeySpaceIDs []string
 	KeyID       string
 	StartTime   int64
 	EndTime     int64
@@ -66,17 +68,31 @@ func selectVerificationInterval(windowMs int64) verificationInterval {
 //
 // The query runs on the shared ClickHouse connection (not a per-workspace user)
 // and filters on external_id, which is denormalized onto each event at write
-// time. This is the portal-scoped read: the workspace and identity are pinned by
-// the caller, so no query DSL or per-workspace connection is involved.
+// time. This is the portal-scoped read: the workspace, identity and keyspaces
+// are pinned by the caller, so no query DSL or per-workspace connection is
+// involved.
+//
+// An empty KeySpaceIDs is an error rather than "all keyspaces": the only caller
+// derives the list from the session, so an empty one means the scope was lost
+// and answering it would widen the read past the portal.
 func (c *Client) GetVerificationsByExternalID(ctx context.Context, req VerificationTimeseriesRequest) ([]VerificationTimeseriesDataPoint, error) {
+	if len(req.KeySpaceIDs) == 0 {
+		return nil, fault.New("missing keyspace scope",
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("verification timeseries requested with no key spaces"),
+			fault.Public("An internal error occurred."),
+		)
+	}
+
 	iv := selectVerificationInterval(req.EndTime - req.StartTime)
 
 	// iv.unit, iv.table and iv.stepMs come from selectVerificationInterval — a
 	// fixed switch over the window size, never caller input — so they are safe to
-	// interpolate. Every caller-supplied value (workspace, identity, key, window
-	// bounds) goes through a typed named parameter instead. SUM results are cast
-	// to Int64 so they scan into the int64 struct fields. An empty key_id means
-	// "all keys": the OR short-circuits the filter rather than binding it.
+	// interpolate. Every caller-supplied value (workspace, identity, keyspaces,
+	// key, window bounds) goes through a typed named parameter instead. SUM
+	// results are cast to Int64 so they scan into the int64 struct fields. An
+	// empty key_id means "all keys": the OR short-circuits the filter rather
+	// than binding it.
 	query := fmt.Sprintf(`
 	SELECT
 		toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL 1 %[1]s) AS DateTime64(3))) AS x,
@@ -91,6 +107,7 @@ func (c *Client) GetVerificationsByExternalID(ctx context.Context, req Verificat
 	FROM %[2]s
 	WHERE workspace_id = {workspace_id:String}
 		AND external_id = {external_id:String}
+		AND key_space_id IN {key_space_ids:Array(String)}
 		AND time >= fromUnixTimestamp64Milli({start:Int64})
 		AND time < fromUnixTimestamp64Milli({end:Int64})
 		AND ({key_id:String} = '' OR key_id = {key_id:String})
@@ -104,11 +121,12 @@ func (c *Client) GetVerificationsByExternalID(ctx context.Context, req Verificat
 	)
 
 	results, err := Select[VerificationTimeseriesDataPoint](ctx, c.conn, query, map[string]string{
-		"workspace_id": req.WorkspaceID,
-		"external_id":  req.ExternalID,
-		"key_id":       req.KeyID,
-		"start":        strconv.FormatInt(req.StartTime, 10),
-		"end":          strconv.FormatInt(req.EndTime, 10),
+		"workspace_id":  req.WorkspaceID,
+		"external_id":   req.ExternalID,
+		"key_space_ids": StringArrayParam(req.KeySpaceIDs),
+		"key_id":        req.KeyID,
+		"start":         strconv.FormatInt(req.StartTime, 10),
+		"end":           strconv.FormatInt(req.EndTime, 10),
 	})
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query verification timeseries"))
