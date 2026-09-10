@@ -277,6 +277,10 @@ func New(t *testing.T, opts ...Option) *Harness {
 			return "index.docker.io/library/test@sha256:0000000000000000000000000000000000000000000000000000000000000000", nil
 		}),
 		AllowUnauthenticatedDeployments: false,
+
+		// A nil admin client leaves a superseded deployment's row marked while its
+		// invocation keeps running.
+		RestateAdmin: nil,
 	})
 	require.NoError(t, err)
 
