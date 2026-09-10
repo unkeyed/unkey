@@ -3,32 +3,13 @@ title: Shared Rate Limits
 description: "Create your first identity in Unkey and attach shared rate limits across multiple API keys. Group keys by user, team, or organization."
 ---
 
-This quickstart creates an identity, connects an API key to it, and configures rate limits shared by all keys connected to that identity.
+This quickstart will guide you through creating your first identity with shared ratelimits and a key that is connected to the identity.
 
-Use curl to make HTTP requests or the TypeScript SDK for typed requests and responses. Follow the examples in order.
+The examples use curl and the TypeScript SDK. You can use any language or library to make requests to the Unkey API.
 
-## Requirements
+### Requirements
 
-Get your API ID and root key from the Unkey dashboard. The root key needs these permissions:
-
-- `identity.*.create_identity`
-- `identity.*.read_identity`
-- `identity.*.update_identity`
-- `api.*.create_key`
-- `api.*.verify_key`
-
-<Warning>
-  Keep your root key secret. Run these examples on the server, not in a browser.
-  Do not commit your root key to version control.
-</Warning>
-
-For TypeScript, install the SDK:
-
-```bash
-npm install @unkey/api
-```
-
-Configure your credentials. Replace `api_XXX` with your API ID and `unkey_XXX` with your root key.
+You will need your api id and root key to make requests to the Unkey API. You can find these in the Unkey dashboard.
 
 <CodeGroup>
 
@@ -37,6 +18,7 @@ export UNKEY_ROOT_KEY="unkey_XXX"
 ```
 
 ```typescript TypeScript
+// Install with: npm install @unkey/api
 import { Unkey } from "@unkey/api";
 
 const apiId = "api_XXX";
@@ -45,11 +27,21 @@ const unkey = new Unkey({ rootKey: "unkey_XXX" });
 
 </CodeGroup>
 
-The TypeScript examples use top-level `await`. The SDK throws on API request errors. A completed key verification can still return `data.valid: false`, so check that value before granting access.
+The root key requires the following permissions:
 
-## Create an identity
+```ts
+"identity.*.create_identity";
+"identity.*.read_identity";
+"identity.*.update_identity";
+"api.*.create_key";
+"api.*.verify_key";
+```
 
-Create an identity with an `externalId` from your system. It must be unique within your workspace. Use `meta` to store additional information about the identity.
+### Create an Identity
+
+To create an identity, you need to make a request to the `/v2/identities.createIdentity` endpoint. You can specify an `externalId` and `meta` object to store additional information about the identity.
+
+Unkey does not care what the `externalId` is, but it must be unique for each identity. Commonly used are user or organization ids. The `meta` object can be used to store any additional information you want to associate with the identity.
 
 <CodeGroup>
 
@@ -80,15 +72,14 @@ const { data: createdIdentity } =
 
 </CodeGroup>
 
-For curl, copy `data.identityId` from the response. Use it in place of `IDENTITY_ID` in the following requests.
+### Retrieve an Identity
 
-## Retrieve an identity
-
-Retrieve the identity to confirm that it was created.
+Let's retrieve the identity to make sure it got created successfully:
 
 <CodeGroup>
 
 ```bash cURL
+# Replace IDENTITY_ID with data.identityId from the create response.
 curl --fail-with-body \
   https://api.unkey.com/v2/identities.getIdentity \
   -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
@@ -108,9 +99,9 @@ console.log(identity);
 
 </CodeGroup>
 
-## Create a key
+### Create a Key
 
-Use the same `externalId` to connect the key to the identity. All keys connected to this identity share its rate limits.
+Let's create a key and connect it to the identity:
 
 <CodeGroup>
 
@@ -136,15 +127,14 @@ const { data: key } = await unkey.keys.createKey({
 
 </CodeGroup>
 
-For curl, copy `data.key` from the response. Use it in place of `API_KEY` in the verification requests. This is the key value, not the key ID.
+### Verify the Key
 
-## Verify the key
-
-Verify the key and inspect the connected identity. Only grant access when `valid` is `true`.
+When you verify the key, you will receive the identity that the key is connected to and can act accordingly in your API handler.
 
 <CodeGroup>
 
 ```bash cURL
+# Replace API_KEY with data.key from the create key response.
 curl --fail-with-body \
   https://api.unkey.com/v2/keys.verifyKey \
   -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
@@ -168,9 +158,9 @@ console.log(verified.identity);
 
 </CodeGroup>
 
-## Configure shared rate limits
+### Ratelimits
 
-Set two limits on the identity: 10 requests per day and 1,000 tokens per minute. Durations are in milliseconds. Updating `ratelimits` replaces the identity's existing rate limits.
+Ratelimits can be set on the identity level. Ratelimits set on the identity level are shared across all keys connected to the identity.
 
 <CodeGroup>
 
@@ -216,9 +206,11 @@ await unkey.identities.updateIdentity({
 
 </CodeGroup>
 
-## Verify the key with rate limits
+### Verify the Key with Ratelimits
 
-Specify both named limits during verification. This request consumes one request and 200 tokens from the identity's shared limits. If either limit is exceeded, verification returns `valid: false` with the code `RATE_LIMITED`.
+Now let's verify the key again and specify the limits
+
+In this case, we pretend like a user is requesting to use 200 tokens. We specify the `requests` ratelimit to enforce a limit of 10 requests per day and the `tokens` ratelimit to enforce a limit of 1000 tokens per minute. Additionally we specify the cost of the tokens to be 200.
 
 <CodeGroup>
 
@@ -260,4 +252,4 @@ console.log(limited.identity);
 
 </CodeGroup>
 
-You can now verify requests and enforce shared rate limits for keys connected to this identity.
+That's it, you have successfully created an identity and key with shared ratelimits. You can now use the key to verify requests and enforce ratelimits in your API handler.
