@@ -133,6 +133,119 @@ it("clears an empty source tree without treating it as unrestricted", () => {
   expect(screen.getByText("0 of 0 environments")).toBeTruthy();
 });
 
+function SourceEditForm({
+  defaults,
+  onSave,
+}: {
+  defaults: Partial<DrainFormValues>;
+  onSave: (values: DrainFormValues) => void;
+}) {
+  const form = useForm<DrainFormValues>({ defaultValues: { ...emptyDrainForm, ...defaults } });
+  return (
+    <FormProvider {...form}>
+      <form onSubmit={form.handleSubmit(onSave)}>
+        <EventTypesField />
+        <button type="button" onClick={() => form.setValue("stream", "gateway_requests")}>
+          Gateway
+        </button>
+        <button type="button" onClick={() => form.setValue("stream", "runtime_logs")}>
+          Runtime
+        </button>
+        <button type="submit">Save</button>
+      </form>
+    </FormProvider>
+  );
+}
+
+it("keeps unavailable gateway constraints when a loaded selection change is cancelled", async () => {
+  const onSave = vi.fn();
+  render(
+    <SourceEditForm
+      defaults={{
+        stream: "gateway_requests",
+        sourceMode: "some",
+        projectIds: ["project"],
+        environmentIds: ["env", "deleted-env"],
+      }}
+      onSave={onSave}
+    />,
+  );
+  fireEvent.click(screen.getByRole("checkbox", { name: /Preview/ }));
+  expect(screen.getByRole("alertdialog")).toBeTruthy();
+  expect(screen.getByText("deleted-env")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Keep current filters" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() =>
+    expect(onSave.mock.calls[0]?.[0]).toMatchObject({
+      sourceMode: "some",
+      projectIds: ["project"],
+      appIds: [],
+      environmentIds: ["env", "deleted-env"],
+    }),
+  );
+});
+
+it.each([
+  {
+    projectIds: ["other-project", "missing-project"],
+    appIds: ["other-app"],
+    missing: "missing-project",
+  },
+  { projectIds: ["other-project"], appIds: ["other-app", "missing-app"], missing: "missing-app" },
+])(
+  "requires confirmation to replace $missing without changing gateway constraints",
+  async ({ projectIds, appIds, missing }) => {
+    const onSave = vi.fn();
+    render(
+      <SourceEditForm
+        defaults={{
+          stream: "runtime_logs",
+          sourceMode: "some",
+          environmentIds: ["env", "gateway-missing"],
+          runtimeSourceMode: "some",
+          runtimeProjectIds: projectIds,
+          runtimeAppIds: appIds,
+          runtimeEnvironmentIds: ["other-env"],
+        }}
+        onSave={onSave}
+      />,
+    );
+    fireEvent.click(screen.getByRole("checkbox", { name: /Preview/ }));
+    expect(screen.getByText(missing)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Keep current filters" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(onSave.mock.calls[0]?.[0]).toMatchObject({
+        runtimeProjectIds: projectIds,
+        runtimeAppIds: appIds,
+        runtimeEnvironmentIds: ["other-env"],
+      }),
+    );
+    fireEvent.click(screen.getByRole("checkbox", { name: /Preview/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Replace filters" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(onSave.mock.calls[1]?.[0]).toMatchObject({
+        runtimeSourceMode: "some",
+        runtimeProjectIds: [],
+        runtimeAppIds: [],
+        runtimeEnvironmentIds: ["env_preview", "other-env"],
+        sourceMode: "some",
+        projectIds: [],
+        appIds: [],
+        environmentIds: ["env", "gateway-missing"],
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Gateway" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /Preview/ }));
+    expect(screen.getByText("gateway-missing")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Keep current filters" }));
+    fireEvent.click(screen.getByRole("button", { name: "Runtime" }));
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(screen.getByText("2 of 3 environments")).toBeTruthy();
+  },
+);
+
 function Form() {
   const form = useForm<DrainFormValues>({
     defaultValues: {

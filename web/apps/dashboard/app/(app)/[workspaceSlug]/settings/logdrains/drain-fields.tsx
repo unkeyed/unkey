@@ -20,12 +20,26 @@ import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { CaretRight, Check, Magnifier, Minus, Plus, Trash } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
-import { Button, FormInput, FormSelect, cn } from "@unkey/ui";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  Button,
+  FormInput,
+  FormSelect,
+  cn,
+} from "@unkey/ui";
 import { type ReactNode, useId, useState } from "react";
 import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { DrainEndpointRow } from "./drain-endpoint-row";
 import { type DrainFormValues, emptyHeaderRow } from "./drain-schema";
 import {
+  type SourceFilters,
   buildSourceTree,
   encodeSources,
   environmentIdsOf,
@@ -183,16 +197,52 @@ function SourcesField({ stream }: { stream: "gateway_requests" | "runtime_logs" 
   const environmentIds = useWatch({ control, name: environmentField });
   const [query, setQuery] = useState("");
   const [collapsed, setCollapsed] = useState<string[]>([]);
+  const [replacement, setReplacement] = useState<(SourceFilters & { mode: "all" | "some" }) | null>(
+    null,
+  );
   const projects = trpc.deploy.project.list.useQuery();
   const environments = trpc.deploy.environment.listAll.useQuery();
   const tree = buildSourceTree(projects.data ?? [], environments.data ?? []);
   const allIds = environmentIdsOf(tree);
+  const unavailableFilters = [
+    ...projectIds
+      .filter(
+        (id) =>
+          !tree.some(
+            (project) =>
+              project.id === id && project.apps.some((app) => app.environments.length > 0),
+          ),
+      )
+      .map((id) => ({ type: "Project", id })),
+    ...appIds
+      .filter(
+        (id) =>
+          !tree.some((project) =>
+            project.apps.some((app) => app.id === id && app.environments.length > 0),
+          ),
+      )
+      .map((id) => ({ type: "App", id })),
+    ...environmentIds
+      .filter((id) => !allIds.includes(id))
+      .map((id) => ({ type: "Environment", id })),
+  ];
   const selected = new Set(
     tickedEnvironmentIds(tree, sourceMode, { projectIds, appIds, environmentIds }),
   );
   const error = formState.errors[environmentField]?.message;
   const unavailable =
     Boolean(projects.error || environments.error) || projects.isLoading || environments.isLoading;
+
+  const applySelection = (selection: SourceFilters & { mode: "all" | "some" }) => {
+    if (unavailable) {
+      return;
+    }
+    const options = { shouldDirty: true, shouldValidate: true } as const;
+    setValue(modeField, selection.mode, options);
+    setValue(projectField, selection.projectIds, options);
+    setValue(appField, selection.appIds, options);
+    setValue(environmentField, selection.environmentIds, options);
+  };
 
   const choose = (next: Set<string>) => {
     if (unavailable) {
@@ -202,11 +252,12 @@ function SourcesField({ stream }: { stream: "gateway_requests" | "runtime_logs" 
     const encoded = everything
       ? { projectIds: [], appIds: [], environmentIds: [] }
       : encodeSources(tree, next);
-    const options = { shouldDirty: true, shouldValidate: true } as const;
-    setValue(modeField, everything ? "all" : "some", options);
-    setValue(projectField, encoded.projectIds, options);
-    setValue(appField, encoded.appIds, options);
-    setValue(environmentField, encoded.environmentIds, options);
+    const selection = { ...encoded, mode: everything ? ("all" as const) : ("some" as const) };
+    if (sourceMode === "some" && unavailableFilters.length > 0) {
+      setReplacement(selection);
+      return;
+    }
+    applySelection(selection);
   };
 
   const toggle = (ids: string[]) => {
@@ -342,6 +393,45 @@ function SourcesField({ stream }: { stream: "gateway_requests" | "runtime_logs" 
           {error}
         </span>
       ) : null}
+      <AlertDialog
+        open={replacement !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReplacement(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Replace source filters?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Some saved resources are unavailable in this tree. This change replaces your current
+              source filters, including the unavailable filters below. Future deliveries may include
+              different resources or skip retained logs. Changes take effect when you save.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <ul className="max-h-40 overflow-y-auto text-xs text-gray-11">
+            {unavailableFilters.map(({ type, id }) => (
+              <li key={`${type}:${id}`}>
+                {type}: <code className="break-all">{id}</code>
+              </li>
+            ))}
+          </ul>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep current filters</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={unavailable}
+              onClick={() => {
+                if (replacement) {
+                  applySelection(replacement);
+                }
+              }}
+            >
+              Replace filters
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </fieldset>
   );
 }

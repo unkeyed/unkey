@@ -9,6 +9,7 @@ const streamSchema = z.enum([
   "key_verifications",
   "gateway_requests",
   "runtime_logs",
+  "ratelimits",
 ]);
 
 export const listLogdrains = workspaceProcedure.query(async ({ ctx }) => {
