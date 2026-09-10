@@ -43,11 +43,14 @@ func TestDeliverGatewayRequest(t *testing.T) {
 				require.Equal(t, "req_gateway", event.Event["request_id"])
 				require.Equal(t, float64(503), event.Event["response_status"])
 				require.Equal(t, float64(53), event.Event["total_latency"])
+				require.Equal(t, []any{"Authorization: [REDACTED]"}, event.Event["request_headers"])
+				require.Equal(t, "request\nbody", event.Event["request_body"])
+				require.Equal(t, "response\nbody", event.Event["response_body"])
 				w.WriteHeader(http.StatusNoContent)
 			}))
 			t.Cleanup(server.Close)
 			batch := testBatch()
-			batch.Events = []sink.Event{{EventID: "req_gateway", Stream: "gateway_requests", Time: 123, Payload: sink.GatewayRequestPayload{RequestID: "req_gateway", ResponseStatus: 503, TotalLatency: 53}}}
+			batch.Events = []sink.Event{{EventID: "req_gateway", Stream: "gateway_requests", Time: 123, Payload: sink.GatewayRequestPayload{RequestID: "req_gateway", ResponseStatus: 503, TotalLatency: 53, RequestHeaders: []string{"Authorization: [REDACTED]"}, RequestBody: "request\nbody", ResponseBody: "response\nbody"}}}
 			result, err := newTestSink(t, Config{Endpoint: server.URL, Format: format}).Deliver(t.Context(), batch)
 			require.NoError(t, err)
 			require.True(t, result.Acknowledged)

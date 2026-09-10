@@ -26,11 +26,14 @@ func TestDeliverGatewayRequest(t *testing.T) {
 		require.Equal(t, "req_gateway", line.Event["request_id"])
 		require.Equal(t, float64(503), line.Event["response_status"])
 		require.Equal(t, float64(41), line.Event["instance_latency"])
+		require.Equal(t, []any{"Content-Type: application/json"}, line.Event["response_headers"])
+		require.Equal(t, "response\nbody", line.Event["response_body"])
+		require.Equal(t, map[string]any{"tag": []any{"a", "b"}}, line.Event["query_params"])
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	t.Cleanup(server.Close)
 	batch := testBatch()
-	batch.Events = []sink.Event{{EventID: "req_gateway", Stream: "gateway_requests", Time: 123, Payload: sink.GatewayRequestPayload{RequestID: "req_gateway", ResponseStatus: 503, InstanceLatency: 41}}}
+	batch.Events = []sink.Event{{EventID: "req_gateway", Stream: "gateway_requests", Time: 123, Payload: sink.GatewayRequestPayload{RequestID: "req_gateway", ResponseStatus: 503, InstanceLatency: 41, ResponseHeaders: []string{"Content-Type: application/json"}, ResponseBody: "response\nbody", QueryParams: map[string][]string{"tag": {"a", "b"}}}}}
 	result, err := newTestDrain(t, server.URL, "gateway", "token").Deliver(t.Context(), batch)
 	require.NoError(t, err)
 	require.True(t, result.Acknowledged)

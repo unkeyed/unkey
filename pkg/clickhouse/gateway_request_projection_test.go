@@ -30,14 +30,18 @@ func TestGatewayRequestProjection(t *testing.T) {
 	require.NoError(t, client.conn.Exec(ctx, `INSERT INTO `+table+`
 		(workspace_id, request_id, time, inserted_at, project_id, response_status,
 		app_id, environment_id, deployment_id, region, method, host, path,
-		total_latency, instance_latency, gateway_latency)
+		total_latency, instance_latency, gateway_latency, query_string, query_params,
+		request_headers, request_body, response_headers, response_body, user_agent, ip_address)
 		SELECT 'projection_workspace', leftPad(toString(number), 6, '0'),
 		? - number, ? + number, toString(number % 32), if(number % 2 = 0, 201, 503),
 		'app', 'env', 'deployment', 'eu-west-1', 'POST', 'api.example.com',
-		concat('/orders/', toString(number)), 53, 41, 12 FROM numbers(?)`, now, now, rowCount))
+		concat('/orders/', toString(number)), 53, 41, 12, 'tag=a&tag=b', map('tag', ['a','b']),
+		['Authorization: [REDACTED]'], repeat('request', 32), ['Content-Type: text/plain'], repeat('response', 32),
+		'test-agent', '192.0.2.1' FROM numbers(?)`, now, now, rowCount))
 	query := `SELECT inserted_at, time, request_id, project_id, app_id,
 		environment_id, deployment_id, region, method, host, path, response_status,
-		total_latency, instance_latency, gateway_latency
+		total_latency, instance_latency, gateway_latency, query_string, query_params,
+		request_headers, request_body, response_headers, response_body, user_agent, ip_address
 		FROM ` + table + ` WHERE workspace_id = 'projection_workspace'
 		AND (inserted_at > {from_time:Int64} OR (inserted_at = {from_time:Int64} AND request_id > '130000'))
 		AND inserted_at < {to:Int64}

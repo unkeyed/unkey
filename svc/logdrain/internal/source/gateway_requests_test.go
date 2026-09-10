@@ -24,10 +24,12 @@ func TestGatewayRequestsRead_Payload(t *testing.T) {
 	require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO frontline_requests_raw_v1
 		(workspace_id, request_id, time, project_id, app_id, environment_id, deployment_id,
 		region, method, host, path, response_status, total_latency, instance_latency, gateway_latency,
-		instance_address, request_headers, request_body, query_string, ip_address)
+		instance_address, request_headers, request_body, query_string, ip_address,
+		query_params, response_headers, response_body, user_agent)
 		VALUES (?, 'req_1', ?, 'project_1', 'app_1', 'env_1', 'deployment_1',
 		'eu-west-1', 'POST', 'api.example.com', '/orders', 201, 53, 41, 12,
-		'10.0.0.1', ['Cookie: secret'], 'secret', 'token=secret', '192.0.2.1')`, workspaceID, now-3600000))
+		'10.0.0.1', ['Authorization: [REDACTED]', 'X-Custom: value'], ?, 'tag=a&tag=b', '192.0.2.1',
+		map('tag', ['a', 'b']), ['Content-Type: application/json'], ?, 'test-agent')`, workspaceID, now-3600000, `{"input":"[REDACTED]"}`, `{"ok":true}`))
 	events, cursor, err := source.NewGatewayRequests(client).Read(t.Context(), workspaceID, source.Cursor{Time: now - 1}, time.Now().UnixMilli()+1000, 10, nil)
 	require.NoError(t, err)
 	require.Len(t, events, 1)
@@ -37,7 +39,10 @@ func TestGatewayRequestsRead_Payload(t *testing.T) {
 	require.Equal(t, "req_1", cursor.EventID)
 	encoded, err := json.Marshal(events[0].Payload)
 	require.NoError(t, err)
-	require.JSONEq(t, `{"request_id":"req_1","project_id":"project_1","app_id":"app_1","environment_id":"env_1","deployment_id":"deployment_1","region":"eu-west-1","method":"POST","host":"api.example.com","path":"/orders","response_status":201,"total_latency":53,"instance_latency":41,"gateway_latency":12}`, string(encoded))
+	require.JSONEq(t, `{"request_id":"req_1","project_id":"project_1","app_id":"app_1","environment_id":"env_1","deployment_id":"deployment_1","region":"eu-west-1","method":"POST","host":"api.example.com","path":"/orders","response_status":201,"total_latency":53,"instance_latency":41,"gateway_latency":12,
+		"request_headers":["Authorization: [REDACTED]", "X-Custom: value"], "request_body":"{\"input\":\"[REDACTED]\"}",
+		"response_headers":["Content-Type: application/json"], "response_body":"{\"ok\":true}",
+		"query_string":"tag=a&tag=b", "query_params":{"tag":["a","b"]}, "ip_address":"192.0.2.1", "user_agent":"test-agent"}`, string(encoded))
 }
 
 func TestGatewayRequestsRead_FilteredCursorBounds(t *testing.T) {

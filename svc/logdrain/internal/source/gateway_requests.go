@@ -22,7 +22,8 @@ func NewGatewayRequests(client *clickhouse.Client) *GatewayRequests {
 func (s *GatewayRequests) Read(ctx context.Context, workspaceID string, from Cursor, toExclusive int64, limit int, cfg *logdrainv1.Config) ([]sink.Event, Cursor, error) {
 	const query = `SELECT inserted_at, time, request_id, project_id, app_id,
 		environment_id, deployment_id, region, method, host, path, response_status,
-		total_latency, instance_latency, gateway_latency
+		total_latency, instance_latency, gateway_latency, query_string, query_params,
+		request_headers, request_body, response_headers, response_body, user_agent, ip_address
 		FROM frontline_requests_raw_v1
 		WHERE workspace_id = {workspace:String}
 		AND (inserted_at > {from_time:Int64}
@@ -79,6 +80,14 @@ func (s *GatewayRequests) Read(ctx context.Context, workspaceID string, from Cur
 			Method:          row.Method,
 			Host:            row.Host,
 			Path:            row.Path,
+			QueryString:     row.QueryString,
+			QueryParams:     row.QueryParams,
+			RequestHeaders:  row.RequestHeaders,
+			RequestBody:     row.RequestBody,
+			ResponseHeaders: row.ResponseHeaders,
+			ResponseBody:    row.ResponseBody,
+			UserAgent:       row.UserAgent,
+			IPAddress:       row.IPAddress,
 			ResponseStatus:  row.ResponseStatus,
 			TotalLatency:    row.TotalLatency,
 			InstanceLatency: row.InstanceLatency,
