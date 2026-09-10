@@ -10,11 +10,11 @@ import (
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
-	restatetest "github.com/restatedev/sdk-go/testing"
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
+	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployanomaly"
 )
@@ -65,7 +65,7 @@ func TestReverseDeliveryWaitsForPreviousAnomalyShard(t *testing.T) {
 		secondStarted: make(chan struct{}),
 		release:       make(chan struct{}),
 	}
-	testEnv := restatetest.Start(t, hydrav1.NewDeployAnomalyShardServiceServer(server))
+	testEnv := containers.Restate(t, hydrav1.NewDeployAnomalyShardServiceServer(server))
 
 	type result struct {
 		response *hydrav1.EvaluateDeployAnomalyShardResponse
@@ -73,7 +73,7 @@ func TestReverseDeliveryWaitsForPreviousAnomalyShard(t *testing.T) {
 	}
 	firstResult := make(chan result, 1)
 	go func() {
-		response, err := hydrav1.NewDeployAnomalyShardServiceIngressClient(testEnv.Ingress(), url.PathEscape(firstKey)).
+		response, err := hydrav1.NewDeployAnomalyShardServiceIngressClient(testEnv.IngressClient, url.PathEscape(firstKey)).
 			EvaluateShard().Request(t.Context(), &hydrav1.EvaluateDeployAnomalyShardRequest{})
 		firstResult <- result{response: response, err: err}
 	}()
@@ -85,7 +85,7 @@ func TestReverseDeliveryWaitsForPreviousAnomalyShard(t *testing.T) {
 
 	secondResult := make(chan result, 1)
 	go func() {
-		response, err := hydrav1.NewDeployAnomalyShardServiceIngressClient(testEnv.Ingress(), url.PathEscape(secondKey)).
+		response, err := hydrav1.NewDeployAnomalyShardServiceIngressClient(testEnv.IngressClient, url.PathEscape(secondKey)).
 			EvaluateShard().Request(t.Context(), &hydrav1.EvaluateDeployAnomalyShardRequest{})
 		secondResult <- result{response: response, err: err}
 	}()
@@ -210,7 +210,7 @@ func (c *shardTestClickhouse) GetInstanceEventAnomalyWindows(
 func startShardTestEnvironment(
 	t *testing.T,
 	returnAnomaly bool,
-) (*restatetest.TestEnvironment, *shardTestDB, *shardTestClickhouse) {
+) (containers.RestateConfig, *shardTestDB, *shardTestClickhouse) {
 	t.Helper()
 	database := &shardTestDB{}
 	ch := &shardTestClickhouse{ClickHouse: clickhouse.NewNoop(), returnAnomaly: returnAnomaly}
@@ -218,7 +218,7 @@ func startShardTestEnvironment(
 	require.NoError(t, err)
 	checkHandler, err := deployanomaly.NewCheckHandler(deployanomaly.CheckConfig{DB: database})
 	require.NoError(t, err)
-	testEnv := restatetest.Start(t,
+	testEnv := containers.Restate(t,
 		hydrav1.NewDeployAnomalyShardServiceServer(shardHandler),
 		hydrav1.NewDeployAnomalyServiceServer(checkHandler),
 	)
@@ -227,13 +227,13 @@ func startShardTestEnvironment(
 
 func invokeShard(
 	t *testing.T,
-	testEnv *restatetest.TestEnvironment,
+	testEnv containers.RestateConfig,
 	windowStart int64,
 	catchUpWindowStart int64,
 ) *hydrav1.EvaluateDeployAnomalyShardResponse {
 	t.Helper()
 	key := deployanomaly.ShardKey(windowStart, 0, 1)
-	response, err := hydrav1.NewDeployAnomalyShardServiceIngressClient(testEnv.Ingress(), url.PathEscape(key)).
+	response, err := hydrav1.NewDeployAnomalyShardServiceIngressClient(testEnv.IngressClient, url.PathEscape(key)).
 		EvaluateShard().Request(t.Context(), &hydrav1.EvaluateDeployAnomalyShardRequest{
 		CatchUpWindowStart: catchUpWindowStart,
 	})
