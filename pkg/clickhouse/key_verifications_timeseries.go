@@ -90,16 +90,9 @@ const verificationScopePredicates = `workspace_id = {workspace_id:String}
 // are pinned by the caller, so no query DSL or per-workspace connection is
 // involved.
 //
-// An empty KeySpaceIDs is an error rather than "all keyspaces": the only caller
-// derives the list from the session, so an empty one means the scope was lost
-// and answering it would widen the read past the portal.
 func (c *Client) GetVerificationsByExternalID(ctx context.Context, req VerificationTimeseriesRequest) ([]VerificationTimeseriesDataPoint, error) {
-	if len(req.KeySpaceIDs) == 0 {
-		return nil, fault.New("missing keyspace scope",
-			fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("verification timeseries requested with no key spaces"),
-			fault.Public("An internal error occurred."),
-		)
+	if err := req.requireKeySpaceScope(); err != nil {
+		return nil, err
 	}
 
 	iv := selectVerificationInterval(req.EndTime - req.StartTime)
@@ -139,6 +132,21 @@ func (c *Client) GetVerificationsByExternalID(ctx context.Context, req Verificat
 	}
 
 	return results, nil
+}
+
+// requireKeySpaceScope rejects a read that lost its keyspace scope. Callers
+// derive the list from the portal session, so an empty one is a broken
+// invariant, and answering it would widen the read past the portal.
+func (req VerificationTimeseriesRequest) requireKeySpaceScope() error {
+	if len(req.KeySpaceIDs) > 0 {
+		return nil
+	}
+
+	return fault.New("missing keyspace scope",
+		fault.Code(codes.App.Internal.UnexpectedError.URN()),
+		fault.Internal("verification timeseries requested with no key spaces"),
+		fault.Public("An internal error occurred."),
+	)
 }
 
 // verificationScopeParams binds the values [verificationScopePredicates] reads.
@@ -195,12 +203,8 @@ type verificationTimeseriesPerKeyRow struct {
 // connection. Exceeding it returns [ErrTooManyVerificationKeys] rather than a
 // short array, which a caller could not tell apart from those keys being idle.
 func (c *Client) GetVerificationsByExternalIDPerKey(ctx context.Context, req VerificationTimeseriesPerKeyRequest) ([]VerificationTimeseriesPerKey, error) {
-	if len(req.KeySpaceIDs) == 0 {
-		return nil, fault.New("missing keyspace scope",
-			fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("per-key verification timeseries requested with no key spaces"),
-			fault.Public("An internal error occurred."),
-		)
+	if err := req.requireKeySpaceScope(); err != nil {
+		return nil, err
 	}
 
 	if req.MaxKeys <= 0 {
