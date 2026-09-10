@@ -81,7 +81,7 @@ services:
       start_period: 5s
 
   restate:
-    image: docker.io/restatedev/restate:1.7.9@sha256:329e32e12059610b681e165161bcd0722d193325b6c893bc46bfec72cd54b595
+    image: docker.io/restatedev/restate:1.7.8@sha256:fe23d866cc625a745f73f14e05ee6ca5b26441af3b18df8c54dfda4e1bb1d52d
     environment:
       # Provision a single partition. Restate routes keyed invocations to a
       # partition by hashing the object key, and each partition processor takes
