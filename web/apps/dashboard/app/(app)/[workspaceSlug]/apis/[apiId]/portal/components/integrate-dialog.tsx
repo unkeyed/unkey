@@ -24,14 +24,14 @@ export function IntegrateDialog({ slug, isOpen, onOpenChange }: Props) {
   -d '{
     "portal": "${slug}",
     "externalId": "user_123",
-    "scopes": ["keys:read", "keys:reroll"]
+    "scopes": ["keys:read", "keys:reroll", "analytics:read"]
   }'`;
 
   const ts = `// on your server, once the user is signed in
 const { result } = await unkey.portal.createSession({
   portal: "${slug}",
   externalId: user.id,
-  scopes: ["keys:read", "keys:reroll"],
+  scopes: ["keys:read", "keys:reroll", "analytics:read"],
   // Optional. Your own URL, never one from the request.
   returnUrl: "https://app.example.com/settings/api-keys",
 });
@@ -45,6 +45,7 @@ body := components.V2PortalCreateSessionRequestBody{
 	Scopes: []components.Scope{
 		components.ScopeKeysRead,
 		components.ScopeKeysReroll,
+		components.ScopeAnalyticsRead,
 	},
 	// Optional. Your own URL, never one from the request.
 	ReturnURL: unkey.String("https://app.example.com/settings/api-keys"),
@@ -63,8 +64,19 @@ http.Redirect(w, r, url, http.StatusFound)`;
       <div className="flex flex-col gap-5">
         <p className="text-gray-11 text-[13px]">
           Sign the user in yourself, create a session for them, then send them to the portal. Scopes
-          decide what the user can do there. The two you can pass are <code>keys:read</code> and{" "}
-          <code>keys:reroll</code>.
+          decide what the user can do there. <code>keys:read</code> shows them their own keys,{" "}
+          <code>keys:reroll</code> lets them roll one, and <code>analytics:read</code> shows them
+          their own key usage over time. Rerolling and usage are both reached from the keys page, so{" "}
+          <code>keys:reroll</code> and <code>analytics:read</code> each require{" "}
+          <code>keys:read</code> in the same session.
+        </p>
+
+        <p className="text-gray-11 text-[13px]">
+          Every scope also needs the matching permission on the root key you sign with:{" "}
+          <code>keys:read</code> needs <code>read_key</code> and <code>read_api</code>,{" "}
+          <code>keys:reroll</code> needs <code>create_key</code>, and <code>analytics:read</code>{" "}
+          needs <code>read_analytics</code>, each on this API. Requesting a scope your root key does
+          not hold rejects the whole request.
         </p>
 
         <div className="flex flex-col gap-2">

@@ -40,6 +40,7 @@ describe("IntegrateDialog", () => {
     expect(curl).toContain('"scopes"');
     expect(curl).toContain("keys:read");
     expect(curl).toContain("keys:reroll");
+    expect(curl).toContain("analytics:read");
     // The prototype's field names would 400 against the real endpoint.
     expect(curl).not.toContain("permissions");
     expect(curl).not.toContain("portalId");
@@ -58,19 +59,33 @@ describe("IntegrateDialog", () => {
     }
   });
 
-  // A snippet naming either one hands out a payload createSession refuses.
-  it("offers only the scopes createSession still accepts", () => {
+  // A snippet naming a scope outside this set hands out a payload createSession refuses.
+  it("offers exactly the scopes createSession accepts", () => {
     renderDialog();
 
-    for (const language of ["curl", "ts", "go"]) {
+    for (const language of ["curl", "ts"]) {
       const snippet = screen.getByTestId(`panel-${language}`).textContent ?? "";
-      expect(snippet).not.toContain("analytics:read");
+      expect(snippet).toContain("keys:read");
+      expect(snippet).toContain("keys:reroll");
+      expect(snippet).toContain("analytics:read");
       expect(snippet).not.toContain("keys:create");
-      expect(snippet).not.toContain("AnalyticsRead");
-      expect(snippet).not.toContain("KeysCreate");
     }
 
-    expect(screen.queryByText(/analytics/i)).toBeNull();
+    const go = screen.getByTestId("panel-go").textContent ?? "";
+    expect(go).toContain("ScopeKeysRead");
+    expect(go).toContain("ScopeKeysReroll");
+    expect(go).toContain("ScopeAnalyticsRead");
+    expect(go).not.toContain("ScopeKeysCreate");
+  });
+
+  // Prose spans <code> children, so it is read off the container rather than by text node.
+  it("explains what analytics:read grants and that it needs keys:read alongside it", () => {
+    const { container } = renderDialog();
+    const prose = container.textContent ?? "";
+
+    expect(prose).toContain("analytics:read shows them their own key usage over time");
+    expect(prose).toContain("each require keys:read in the same session");
+    expect(prose).toContain("analytics:read needs read_analytics");
   });
 
   it("documents returnUrl with the trust caveat that stops an open redirect", () => {
