@@ -31,13 +31,13 @@ func TestProcess_CatchesUpEmptyWindows(t *testing.T) {
 		CommittedOffsetInsertedAt: start,
 	}}
 	var ends []time.Duration
-	reader := windowSource{read: func(_ context.Context, _ string, from source.Cursor, to int64, _ int, _ []string) ([]sink.Event, source.Cursor, error) {
+	reader := windowSource{read: func(_ context.Context, _ string, from source.Cursor, to int64, _ int, _ *logdrainv1.Config) ([]sink.Event, source.Cursor, error) {
 		require.Positive(t, to-from.Time)
 		require.LessOrEqual(t, to-from.Time, time.Hour.Milliseconds())
 		ends = append(ends, time.Duration(to-start)*time.Millisecond)
 		return nil, from, nil
 	}}
-	eng, err := New(Config{DB: database, LeaseID: "lease", Source: reader, PollInterval: time.Hour, WatermarkLag: 5 * time.Minute, BatchSize: 100})
+	eng, err := New(Config{DB: database, LeaseID: "lease", AuditLogs: reader, PollInterval: time.Hour, WatermarkLag: 5 * time.Minute, BatchSize: 100})
 	require.NoError(t, err)
 	eng.process(ctx, workItem{id: "drain", now: time.UnixMilli(watermark).Add(5 * time.Minute)})
 	require.Equal(t, []time.Duration{
@@ -71,7 +71,7 @@ func TestProcess_DeliveryFailure(t *testing.T) {
 		CommittedOffsetInsertedAt: start, Config: encoded,
 	}}
 	reads := 0
-	reader := windowSource{read: func(_ context.Context, _ string, from source.Cursor, to int64, limit int, _ []string) ([]sink.Event, source.Cursor, error) {
+	reader := windowSource{read: func(_ context.Context, _ string, from source.Cursor, to int64, limit int, _ *logdrainv1.Config) ([]sink.Event, source.Cursor, error) {
 		reads++
 		require.Equal(t, 1, reads)
 		require.Equal(t, source.Cursor{Time: start}, from)
@@ -79,7 +79,7 @@ func TestProcess_DeliveryFailure(t *testing.T) {
 		require.Equal(t, 2, limit)
 		return []sink.Event{{EventID: "event", Stream: "audit_logs", Time: start, Payload: sink.AuditLogPayload{ID: "event"}}}, source.Cursor{Time: start, EventID: "event"}, nil
 	}}
-	eng, err := New(Config{DB: database, LeaseID: "lease", Source: reader, PollInterval: time.Hour, BatchSize: 2, PauseThreshold: 5, UnsafeAllowPrivateEndpoints: true})
+	eng, err := New(Config{DB: database, LeaseID: "lease", AuditLogs: reader, PollInterval: time.Hour, BatchSize: 2, PauseThreshold: 5, UnsafeAllowPrivateEndpoints: true})
 	require.NoError(t, err)
 	eng.process(context.Background(), workItem{id: "drain", now: time.UnixMilli(start + 6*minute)})
 	require.Equal(t, 1, reads)
@@ -98,9 +98,10 @@ func TestProcess_LogsCommittedBatch(t *testing.T) {
 		output, err := cmd.CombinedOutput()
 		require.NoError(t, err, string(output))
 		require.Contains(t, string(output), `msg="logdrain batch delivered"`)
-		require.Contains(t, string(output), "drain_id=drain stream=audit_logs events=1")
+		require.Contains(t, string(output), "drain_id=drain stream=audit_logs events=3")
 		require.Contains(t, string(output), "cursor_time=2026-09-09T12:01:00.000Z")
 		require.Contains(t, string(output), "lag_ms=7140000")
+		require.Contains(t, string(output), "oldest_event_age_ms=7200000")
 		return
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -116,11 +117,15 @@ func TestProcess_LogsCommittedBatch(t *testing.T) {
 		ID: "drain", WorkspaceID: "workspace", Stream: db.LogdrainsStreamAuditLogs,
 		CommittedOffsetInsertedAt: start.UnixMilli(), Config: encoded,
 	}}
-	reader := windowSource{read: func(_ context.Context, _ string, from source.Cursor, _ int64, _ int, _ []string) ([]sink.Event, source.Cursor, error) {
-		return []sink.Event{{EventID: "event", Stream: "audit_logs", Time: start.UnixMilli(), Payload: sink.AuditLogPayload{ID: "event"}}}, from, nil
+	reader := windowSource{read: func(_ context.Context, _ string, from source.Cursor, _ int64, _ int, _ *logdrainv1.Config) ([]sink.Event, source.Cursor, error) {
+		return []sink.Event{
+			{EventID: "first", Stream: "audit_logs", Time: start.Add(20 * time.Second).UnixMilli(), Payload: sink.AuditLogPayload{ID: "first"}},
+			{EventID: "oldest", Stream: "audit_logs", Time: start.UnixMilli(), Payload: sink.AuditLogPayload{ID: "oldest"}},
+			{EventID: "last", Stream: "audit_logs", Time: start.Add(10 * time.Second).UnixMilli(), Payload: sink.AuditLogPayload{ID: "last"}},
+		}, from, nil
 	}}
 	eng, err := New(Config{
-		DB: database, LeaseID: "lease", Source: reader, PollInterval: time.Minute, BatchSize: 2,
+		DB: database, LeaseID: "lease", AuditLogs: reader, PollInterval: time.Minute, BatchSize: 4,
 		Clock: clock.NewTestClock(start.Add(2 * time.Hour)), UnsafeAllowPrivateEndpoints: true,
 	})
 	require.NoError(t, err)
@@ -135,11 +140,11 @@ func TestProcess_ZeroCursor(t *testing.T) {
 		ID: "drain", WorkspaceID: "workspace", Stream: db.LogdrainsStreamAuditLogs,
 	}}
 	reader := windowSource{
-		read: func(_ context.Context, _ string, from source.Cursor, _ int64, _ int, _ []string) ([]sink.Event, source.Cursor, error) {
+		read: func(_ context.Context, _ string, from source.Cursor, _ int64, _ int, _ *logdrainv1.Config) ([]sink.Event, source.Cursor, error) {
 			return nil, from, nil
 		},
 	}
-	eng, err := New(Config{DB: database, LeaseID: "lease", Source: reader, PollInterval: time.Hour, BatchSize: 100})
+	eng, err := New(Config{DB: database, LeaseID: "lease", AuditLogs: reader, PollInterval: time.Hour, BatchSize: 100})
 	require.NoError(t, err)
 	eng.process(context.Background(), workItem{id: "drain", now: time.UnixMilli(watermark)})
 	require.Empty(t, database.failures)
@@ -147,6 +152,19 @@ func TestProcess_ZeroCursor(t *testing.T) {
 	require.Equal(t, int64(60000), database.commits[0].CommittedOffsetInsertedAt)
 	require.Zero(t, database.commits[0].NextAttemptDelayMillis)
 	require.Equal(t, watermark, database.drain.CommittedOffsetInsertedAt)
+}
+
+func TestProcess_InvalidConfigRecordsFailureWithoutReading(t *testing.T) {
+	database := &windowDatabase{drain: db.GetLeasedAndDueLogdrainRow{
+		ID: "drain", WorkspaceID: "workspace", Config: []byte{0xff},
+		CommittedOffsetInsertedAt: 1000000,
+	}}
+	eng, err := New(Config{DB: database, LeaseID: "lease", PollInterval: time.Minute})
+	require.NoError(t, err)
+	eng.process(t.Context(), workItem{id: "drain", now: time.UnixMilli(1180000)})
+	require.Len(t, database.failures, 1)
+	require.Empty(t, database.commits)
+	require.Equal(t, int64(1000000), database.drain.CommittedOffsetInsertedAt)
 }
 
 // TestProcess_EventTypes passes persisted filters through every window and advances empty ones.
@@ -161,17 +179,39 @@ func TestProcess_EventTypes(t *testing.T) {
 				ID: "drain", WorkspaceID: "workspace", Stream: db.LogdrainsStreamAuditLogs,
 				CommittedOffsetInsertedAt: 1000000, Config: encoded,
 			}}
-			reader := windowSource{read: func(_ context.Context, _ string, from source.Cursor, _ int64, _ int, filter []string) ([]sink.Event, source.Cursor, error) {
-				require.Equal(t, eventTypes, filter)
+			reader := windowSource{read: func(_ context.Context, _ string, from source.Cursor, _ int64, _ int, filter *logdrainv1.Config) ([]sink.Event, source.Cursor, error) {
+				require.Equal(t, eventTypes, filter.GetAuditLogs().GetEventTypes())
 				return nil, from, nil
 			}}
-			eng, err := New(Config{DB: database, LeaseID: "lease", Source: reader, PollInterval: time.Minute, BatchSize: 2})
+			eng, err := New(Config{DB: database, LeaseID: "lease", AuditLogs: reader, PollInterval: time.Minute, BatchSize: 2})
 			require.NoError(t, err)
 			eng.process(context.Background(), workItem{id: "drain", now: time.UnixMilli(1180000)})
 			require.Len(t, database.commits, 2)
 			require.Equal(t, int64(1180000), database.drain.CommittedOffsetInsertedAt)
 		})
 	}
+}
+
+func TestProcess_KeyVerificationOutcomes(t *testing.T) {
+	encoded, err := proto.Marshal(&logdrainv1.Config{Stream: &logdrainv1.Config_KeyVerifications{
+		KeyVerifications: &logdrainv1.KeyVerificationStreamConfig{Outcomes: []string{"RATE_LIMITED"}, KeySpaceIds: []string{"ks_1", "ks_2"}},
+	}})
+	require.NoError(t, err)
+	database := &windowDatabase{drain: db.GetLeasedAndDueLogdrainRow{
+		ID: "drain", WorkspaceID: "workspace", Stream: db.LogdrainsStreamAuditLogs,
+		CommittedOffsetInsertedAt: 1000000, Config: encoded,
+	}}
+	reader := windowSource{read: func(_ context.Context, _ string, from source.Cursor, _ int64, _ int, filter *logdrainv1.Config) ([]sink.Event, source.Cursor, error) {
+		require.Equal(t, []string{"RATE_LIMITED"}, filter.GetKeyVerifications().GetOutcomes())
+		require.Equal(t, []string{"ks_1", "ks_2"}, filter.GetKeyVerifications().GetKeySpaceIds())
+		return nil, from, nil
+	}}
+	eng, err := New(Config{DB: database, LeaseID: "lease", KeyVerifications: reader, PollInterval: time.Minute, BatchSize: 2})
+	require.NoError(t, err)
+	eng.process(t.Context(), workItem{id: "drain", now: time.UnixMilli(1180000)})
+	require.Empty(t, database.failures)
+	require.Len(t, database.commits, 2)
+	require.Equal(t, int64(1165000), database.drain.CommittedOffsetInsertedAt)
 }
 
 // windowDatabase models cursor persistence and due-time gating between reads.

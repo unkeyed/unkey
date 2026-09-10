@@ -16,8 +16,104 @@ import (
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
 
+func TestDeliverRatelimit(t *testing.T) {
+	for _, format := range []logdrainv1.HttpBodyFormat{logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED, logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON, logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON} {
+		t.Run(format.String(), func(t *testing.T) {
+			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				body, err := io.ReadAll(r.Body)
+				require.NoError(t, err)
+				if format != logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON {
+					var records []json.RawMessage
+					require.NoError(t, json.Unmarshal(body, &records))
+					require.Len(t, records, 1)
+					body = records[0]
+				} else {
+					require.Equal(t, 1, strings.Count(string(body), "\n"))
+				}
+				require.JSONEq(t, `{"stream":"ratelimits","timestamp":"1970-01-01T00:00:00.123Z","event":{"request_id":"req","namespace_id":"ns","identifier":"customer\n1","passed":false,"limit":100,"remaining":0,"tokens":3,"reset_at":10000,"source":"api"}}`, string(body))
+				w.WriteHeader(http.StatusNoContent)
+			}))
+			t.Cleanup(server.Close)
+			batch := testBatch()
+			batch.Events = []sink.Event{{EventID: "req", Stream: "ratelimits", Time: 123, Payload: sink.RatelimitPayload{RequestID: "req", NamespaceID: "ns", Identifier: "customer\n1", Passed: false, Limit: 100, Tokens: 3, ResetAt: 10000, Source: "api"}}}
+			result, err := newTestSink(t, Config{Endpoint: server.URL, Format: format}).Deliver(t.Context(), batch)
+			require.NoError(t, err)
+			require.True(t, result.Acknowledged)
+		})
+	}
+}
+
+func TestDeliverRuntimeLog(t *testing.T) {
+	for _, format := range []logdrainv1.HttpBodyFormat{logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED, logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON, logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON} {
+		t.Run(format.String(), func(t *testing.T) {
+			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				body, err := io.ReadAll(r.Body)
+				require.NoError(t, err)
+				if format != logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON {
+					var records []json.RawMessage
+					require.NoError(t, json.Unmarshal(body, &records))
+					require.Len(t, records, 1)
+					body = records[0]
+				} else {
+					require.Equal(t, 1, strings.Count(string(body), "\n"))
+				}
+				require.JSONEq(t, `{"stream":"runtime_logs","timestamp":"1970-01-01T00:00:00.123Z","event":{"log_id":"rlog_1","severity":"error","message":"first\nsecond","attributes":{"order":{"id":42}},"project_id":"project","app_id":"app","environment_id":"env","deployment_id":"deployment","region":"local"}}`, string(body))
+				w.WriteHeader(http.StatusNoContent)
+			}))
+			t.Cleanup(server.Close)
+			batch := testBatch()
+			batch.Events = []sink.Event{{EventID: "rlog_1", Stream: "runtime_logs", Time: 123, Payload: sink.RuntimeLogPayload{LogID: "rlog_1", Severity: "error", Message: "first\nsecond", Attributes: json.RawMessage(`{"order":{"id":42}}`), ProjectID: "project", AppID: "app", EnvironmentID: "env", DeploymentID: "deployment", Region: "local"}}}
+			result, err := newTestSink(t, Config{Endpoint: server.URL, Format: format}).Deliver(t.Context(), batch)
+			require.NoError(t, err)
+			require.True(t, result.Acknowledged)
+		})
+	}
+}
+
+func TestDeliverGatewayRequest(t *testing.T) {
+	for _, format := range []logdrainv1.HttpBodyFormat{logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED, logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON, logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON} {
+		t.Run(format.String(), func(t *testing.T) {
+			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				body, err := io.ReadAll(r.Body)
+				require.NoError(t, err)
+				if format != logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON {
+					require.Equal(t, "application/json", r.Header.Get("Content-Type"))
+					var records []json.RawMessage
+					require.NoError(t, json.Unmarshal(body, &records))
+					require.Len(t, records, 1)
+					body = records[0]
+				} else {
+					require.Equal(t, "application/x-ndjson", r.Header.Get("Content-Type"))
+					require.True(t, strings.HasSuffix(string(body), "\n"))
+				}
+				var event struct {
+					Timestamp string         `json:"timestamp"`
+					Stream    string         `json:"stream"`
+					Event     map[string]any `json:"event"`
+				}
+				require.NoError(t, json.Unmarshal(body, &event))
+				require.Equal(t, "gateway_requests", event.Stream)
+				require.Equal(t, "1970-01-01T00:00:00.123Z", event.Timestamp)
+				require.Equal(t, "req_gateway", event.Event["request_id"])
+				require.Equal(t, float64(503), event.Event["response_status"])
+				require.Equal(t, float64(53), event.Event["total_latency"])
+				require.Equal(t, []any{"Authorization: [REDACTED]"}, event.Event["request_headers"])
+				require.Equal(t, "request\nbody", event.Event["request_body"])
+				require.Equal(t, "response\nbody", event.Event["response_body"])
+				w.WriteHeader(http.StatusNoContent)
+			}))
+			t.Cleanup(server.Close)
+			batch := testBatch()
+			batch.Events = []sink.Event{{EventID: "req_gateway", Stream: "gateway_requests", Time: 123, Payload: sink.GatewayRequestPayload{RequestID: "req_gateway", ResponseStatus: 503, TotalLatency: 53, RequestHeaders: []string{"Authorization: [REDACTED]"}, RequestBody: "request\nbody", ResponseBody: "response\nbody"}}}
+			result, err := newTestSink(t, Config{Endpoint: server.URL, Format: format}).Deliver(t.Context(), batch)
+			require.NoError(t, err)
+			require.True(t, result.Acknowledged)
+		})
+	}
+}
+
 // TestDeliverSuccess guarantees the default format delivers one JSON array of
-// WorkOS-shaped objects with batch metadata in X-Unkey-* headers, and that
+// event envelopes with batch metadata in X-Unkey-* headers, and that
 // 2xx counts as acknowledgment.
 func TestDeliverSuccess(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +151,7 @@ func TestDeliverSuccess(t *testing.T) {
 }
 
 // TestDeliverNDJSONFormat guarantees the NDJSON format delivers one
-// WorkOS-shaped JSON object per line with Content-Type application/x-ndjson.
+// JSON envelope per line with Content-Type application/x-ndjson.
 func TestDeliverNDJSONFormat(t *testing.T) {
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, "application/x-ndjson", r.Header.Get("Content-Type"))
@@ -87,6 +183,48 @@ func TestNewRejectsUnknownFormat(t *testing.T) {
 	_, err := New(Config{Endpoint: "https://example.com/logs", Format: logdrainv1.HttpBodyFormat(99)})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "unknown http drain format")
+}
+
+func TestDeliverIncludesStream(t *testing.T) {
+	for _, format := range []logdrainv1.HttpBodyFormat{
+		logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED,
+		logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON,
+		logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON,
+	} {
+		t.Run(format.String(), func(t *testing.T) {
+			for _, stream := range []string{"audit_logs", "key_verifications"} {
+				t.Run(stream, func(t *testing.T) {
+					server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						var records []map[string]any
+						decoder := json.NewDecoder(r.Body)
+						switch format {
+						case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED,
+							logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON:
+							require.NoError(t, decoder.Decode(&records))
+						case logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON:
+							var record map[string]any
+							require.NoError(t, decoder.Decode(&record))
+							records = append(records, record)
+						}
+						require.Len(t, records, 1)
+						require.Equal(t, stream, records[0]["stream"])
+						w.WriteHeader(http.StatusNoContent)
+					}))
+					t.Cleanup(server.Close)
+					drain := newTestSink(t, Config{Endpoint: server.URL, Format: format, Timeout: time.Second})
+					batch := testBatch()
+					batch.Events = batch.Events[:1]
+					batch.Events[0].Stream = stream
+					if stream == "key_verifications" {
+						batch.Events[0].Payload = sink.KeyVerificationPayload{RequestID: "req_1", Outcome: "VALID"}
+					}
+					result, err := drain.Deliver(context.Background(), batch)
+					require.NoError(t, err)
+					require.True(t, result.Acknowledged)
+				})
+			}
+		})
+	}
 }
 
 // TestRejectedResponses guarantees that every non-2xx response returns a

@@ -1,7 +1,7 @@
 // Package httpdrain delivers log batches to generic HTTPS endpoints. Each
-// event is one object in the WorkOS log stream shape:
+// event is one object containing its payload, stream, and occurrence time:
 //
-//	{"event":{...},"timestamp":"2024-01-15T10:30:00.123Z"}
+//	{"event":{...},"stream":"audit_logs","timestamp":"2024-01-15T10:30:00.123Z"}
 //
 // The body is either one JSON array of those objects (the default) or
 // newline-delimited JSON (one object per line), selected by [Config.Format].
@@ -40,7 +40,7 @@ type Config struct {
 	UnsafeAllowTestEndpoint bool
 }
 
-// Sink delivers WorkOS-shaped event envelopes to one customer HTTP endpoint.
+// Sink delivers event envelopes to one customer HTTP endpoint.
 type Sink struct {
 	cfg    Config
 	client *http.Client
@@ -117,10 +117,10 @@ func (a *Sink) Deliver(ctx context.Context, batch sink.Batch) (sink.Result, erro
 	return result, nil
 }
 
-// batchLine is one event in the WorkOS log stream shape. Batch metadata
-// travels in request headers, so the body stays pure event data.
+// batchLine is one exported event. Batch metadata travels in request headers.
 type batchLine struct {
 	Event     sink.Payload `json:"event"`
+	Stream    string       `json:"stream"`
 	Timestamp string       `json:"timestamp"`
 }
 
@@ -131,7 +131,7 @@ func marshalBatch(batch sink.Batch, format logdrainv1.HttpBodyFormat) ([]byte, e
 		var body bytes.Buffer
 		encoder := json.NewEncoder(&body)
 		for _, event := range batch.Events {
-			if err := encoder.Encode(batchLine{event.Payload, sink.FormatTime(event.Time)}); err != nil {
+			if err := encoder.Encode(batchLine{event.Payload, event.Stream, sink.FormatTime(event.Time)}); err != nil {
 				return nil, err
 			}
 		}
@@ -139,7 +139,7 @@ func marshalBatch(batch sink.Batch, format logdrainv1.HttpBodyFormat) ([]byte, e
 	}
 	lines := make([]batchLine, len(batch.Events))
 	for i, event := range batch.Events {
-		lines[i] = batchLine{event.Payload, sink.FormatTime(event.Time)}
+		lines[i] = batchLine{event.Payload, event.Stream, sink.FormatTime(event.Time)}
 	}
 	return json.Marshal(lines)
 }

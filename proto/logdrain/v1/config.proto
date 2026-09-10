@@ -15,7 +15,55 @@ message Config {
   // An absent stream preserves legacy audit-log drains with no filters.
   oneof stream {
     AuditLogStreamConfig audit_logs = 3;
+    KeyVerificationStreamConfig key_verifications = 4;
+    GatewayRequestStreamConfig gateway_requests = 5;
+    RuntimeLogStreamConfig runtime_logs = 6;
+    RatelimitStreamConfig ratelimits = 7;
   }
+}
+
+// RatelimitStreamConfig selects stored API decisions using exact matches.
+message RatelimitStreamConfig {
+  // Each empty list selects all values. Nonempty dimensions are combined with AND.
+  repeated string namespace_ids = 1;
+  reserved 2;
+  reserved "identifiers";
+  repeated bool passed = 3;
+}
+
+// RuntimeLogStreamConfig combines exact severity and customer resource filters.
+message RuntimeLogStreamConfig {
+  // Each empty list selects all values. Nonempty dimensions are combined with AND.
+  repeated string severities = 1;
+  repeated string project_ids = 2;
+  repeated string app_ids = 3;
+  repeated string environment_ids = 4;
+}
+
+// GatewayRequestStreamConfig combines resource and response status filters.
+message GatewayRequestStreamConfig {
+  // Empty selects all statuses.
+  repeated HttpStatusClass status_classes = 1;
+  // Each empty list selects all values. Nonempty dimensions are combined with AND.
+  repeated string project_ids = 2;
+  repeated string app_ids = 3;
+  repeated string environment_ids = 4;
+}
+
+enum HttpStatusClass {
+  HTTP_STATUS_CLASS_UNSPECIFIED = 0;
+  HTTP_STATUS_CLASS_2XX = 2;
+  HTTP_STATUS_CLASS_3XX = 3;
+  HTTP_STATUS_CLASS_4XX = 4;
+  HTTP_STATUS_CLASS_5XX = 5;
+}
+
+// KeyVerificationStreamConfig selects verification outcomes, not audit event types.
+message KeyVerificationStreamConfig {
+  // Empty selects all outcomes, including outcomes added later.
+  repeated string outcomes = 1;
+  // Empty selects all keyspaces in the workspace.
+  repeated string key_space_ids = 2;
 }
 
 // AuditLogStreamConfig selects audit logs and their stream-specific filters.

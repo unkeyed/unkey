@@ -21,6 +21,61 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type HttpStatusClass int32
+
+const (
+	HttpStatusClass_HTTP_STATUS_CLASS_UNSPECIFIED HttpStatusClass = 0
+	HttpStatusClass_HTTP_STATUS_CLASS_2XX         HttpStatusClass = 2
+	HttpStatusClass_HTTP_STATUS_CLASS_3XX         HttpStatusClass = 3
+	HttpStatusClass_HTTP_STATUS_CLASS_4XX         HttpStatusClass = 4
+	HttpStatusClass_HTTP_STATUS_CLASS_5XX         HttpStatusClass = 5
+)
+
+// Enum value maps for HttpStatusClass.
+var (
+	HttpStatusClass_name = map[int32]string{
+		0: "HTTP_STATUS_CLASS_UNSPECIFIED",
+		2: "HTTP_STATUS_CLASS_2XX",
+		3: "HTTP_STATUS_CLASS_3XX",
+		4: "HTTP_STATUS_CLASS_4XX",
+		5: "HTTP_STATUS_CLASS_5XX",
+	}
+	HttpStatusClass_value = map[string]int32{
+		"HTTP_STATUS_CLASS_UNSPECIFIED": 0,
+		"HTTP_STATUS_CLASS_2XX":         2,
+		"HTTP_STATUS_CLASS_3XX":         3,
+		"HTTP_STATUS_CLASS_4XX":         4,
+		"HTTP_STATUS_CLASS_5XX":         5,
+	}
+)
+
+func (x HttpStatusClass) Enum() *HttpStatusClass {
+	p := new(HttpStatusClass)
+	*p = x
+	return p
+}
+
+func (x HttpStatusClass) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (HttpStatusClass) Descriptor() protoreflect.EnumDescriptor {
+	return file_logdrain_v1_config_proto_enumTypes[0].Descriptor()
+}
+
+func (HttpStatusClass) Type() protoreflect.EnumType {
+	return &file_logdrain_v1_config_proto_enumTypes[0]
+}
+
+func (x HttpStatusClass) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use HttpStatusClass.Descriptor instead.
+func (HttpStatusClass) EnumDescriptor() ([]byte, []int) {
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{0}
+}
+
 // HttpBodyFormat selects the HTTP request body encoding.
 type HttpBodyFormat int32
 
@@ -55,11 +110,11 @@ func (x HttpBodyFormat) String() string {
 }
 
 func (HttpBodyFormat) Descriptor() protoreflect.EnumDescriptor {
-	return file_logdrain_v1_config_proto_enumTypes[0].Descriptor()
+	return file_logdrain_v1_config_proto_enumTypes[1].Descriptor()
 }
 
 func (HttpBodyFormat) Type() protoreflect.EnumType {
-	return &file_logdrain_v1_config_proto_enumTypes[0]
+	return &file_logdrain_v1_config_proto_enumTypes[1]
 }
 
 func (x HttpBodyFormat) Number() protoreflect.EnumNumber {
@@ -68,7 +123,7 @@ func (x HttpBodyFormat) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use HttpBodyFormat.Descriptor instead.
 func (HttpBodyFormat) EnumDescriptor() ([]byte, []int) {
-	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{0}
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{1}
 }
 
 // Config contains the stream and destination configuration for one log drain.
@@ -85,6 +140,10 @@ type Config struct {
 	// Types that are valid to be assigned to Stream:
 	//
 	//	*Config_AuditLogs
+	//	*Config_KeyVerifications
+	//	*Config_GatewayRequests
+	//	*Config_RuntimeLogs
+	//	*Config_Ratelimits
 	Stream        isConfig_Stream `protobuf_oneof:"stream"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -161,6 +220,42 @@ func (x *Config) GetAuditLogs() *AuditLogStreamConfig {
 	return nil
 }
 
+func (x *Config) GetKeyVerifications() *KeyVerificationStreamConfig {
+	if x != nil {
+		if x, ok := x.Stream.(*Config_KeyVerifications); ok {
+			return x.KeyVerifications
+		}
+	}
+	return nil
+}
+
+func (x *Config) GetGatewayRequests() *GatewayRequestStreamConfig {
+	if x != nil {
+		if x, ok := x.Stream.(*Config_GatewayRequests); ok {
+			return x.GatewayRequests
+		}
+	}
+	return nil
+}
+
+func (x *Config) GetRuntimeLogs() *RuntimeLogStreamConfig {
+	if x != nil {
+		if x, ok := x.Stream.(*Config_RuntimeLogs); ok {
+			return x.RuntimeLogs
+		}
+	}
+	return nil
+}
+
+func (x *Config) GetRatelimits() *RatelimitStreamConfig {
+	if x != nil {
+		if x, ok := x.Stream.(*Config_Ratelimits); ok {
+			return x.Ratelimits
+		}
+	}
+	return nil
+}
+
 type isConfig_Destination interface {
 	isConfig_Destination()
 }
@@ -185,7 +280,281 @@ type Config_AuditLogs struct {
 	AuditLogs *AuditLogStreamConfig `protobuf:"bytes,3,opt,name=audit_logs,json=auditLogs,proto3,oneof"`
 }
 
+type Config_KeyVerifications struct {
+	KeyVerifications *KeyVerificationStreamConfig `protobuf:"bytes,4,opt,name=key_verifications,json=keyVerifications,proto3,oneof"`
+}
+
+type Config_GatewayRequests struct {
+	GatewayRequests *GatewayRequestStreamConfig `protobuf:"bytes,5,opt,name=gateway_requests,json=gatewayRequests,proto3,oneof"`
+}
+
+type Config_RuntimeLogs struct {
+	RuntimeLogs *RuntimeLogStreamConfig `protobuf:"bytes,6,opt,name=runtime_logs,json=runtimeLogs,proto3,oneof"`
+}
+
+type Config_Ratelimits struct {
+	Ratelimits *RatelimitStreamConfig `protobuf:"bytes,7,opt,name=ratelimits,proto3,oneof"`
+}
+
 func (*Config_AuditLogs) isConfig_Stream() {}
+
+func (*Config_KeyVerifications) isConfig_Stream() {}
+
+func (*Config_GatewayRequests) isConfig_Stream() {}
+
+func (*Config_RuntimeLogs) isConfig_Stream() {}
+
+func (*Config_Ratelimits) isConfig_Stream() {}
+
+// RatelimitStreamConfig selects stored API decisions using exact matches.
+type RatelimitStreamConfig struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Each empty list selects all values. Nonempty dimensions are combined with AND.
+	NamespaceIds  []string `protobuf:"bytes,1,rep,name=namespace_ids,json=namespaceIds,proto3" json:"namespace_ids,omitempty"`
+	Passed        []bool   `protobuf:"varint,3,rep,packed,name=passed,proto3" json:"passed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RatelimitStreamConfig) Reset() {
+	*x = RatelimitStreamConfig{}
+	mi := &file_logdrain_v1_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RatelimitStreamConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RatelimitStreamConfig) ProtoMessage() {}
+
+func (x *RatelimitStreamConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_logdrain_v1_config_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RatelimitStreamConfig.ProtoReflect.Descriptor instead.
+func (*RatelimitStreamConfig) Descriptor() ([]byte, []int) {
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *RatelimitStreamConfig) GetNamespaceIds() []string {
+	if x != nil {
+		return x.NamespaceIds
+	}
+	return nil
+}
+
+func (x *RatelimitStreamConfig) GetPassed() []bool {
+	if x != nil {
+		return x.Passed
+	}
+	return nil
+}
+
+// RuntimeLogStreamConfig combines exact severity and customer resource filters.
+type RuntimeLogStreamConfig struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Each empty list selects all values. Nonempty dimensions are combined with AND.
+	Severities     []string `protobuf:"bytes,1,rep,name=severities,proto3" json:"severities,omitempty"`
+	ProjectIds     []string `protobuf:"bytes,2,rep,name=project_ids,json=projectIds,proto3" json:"project_ids,omitempty"`
+	AppIds         []string `protobuf:"bytes,3,rep,name=app_ids,json=appIds,proto3" json:"app_ids,omitempty"`
+	EnvironmentIds []string `protobuf:"bytes,4,rep,name=environment_ids,json=environmentIds,proto3" json:"environment_ids,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *RuntimeLogStreamConfig) Reset() {
+	*x = RuntimeLogStreamConfig{}
+	mi := &file_logdrain_v1_config_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RuntimeLogStreamConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RuntimeLogStreamConfig) ProtoMessage() {}
+
+func (x *RuntimeLogStreamConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_logdrain_v1_config_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RuntimeLogStreamConfig.ProtoReflect.Descriptor instead.
+func (*RuntimeLogStreamConfig) Descriptor() ([]byte, []int) {
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RuntimeLogStreamConfig) GetSeverities() []string {
+	if x != nil {
+		return x.Severities
+	}
+	return nil
+}
+
+func (x *RuntimeLogStreamConfig) GetProjectIds() []string {
+	if x != nil {
+		return x.ProjectIds
+	}
+	return nil
+}
+
+func (x *RuntimeLogStreamConfig) GetAppIds() []string {
+	if x != nil {
+		return x.AppIds
+	}
+	return nil
+}
+
+func (x *RuntimeLogStreamConfig) GetEnvironmentIds() []string {
+	if x != nil {
+		return x.EnvironmentIds
+	}
+	return nil
+}
+
+// GatewayRequestStreamConfig combines resource and response status filters.
+type GatewayRequestStreamConfig struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty selects all statuses.
+	StatusClasses []HttpStatusClass `protobuf:"varint,1,rep,packed,name=status_classes,json=statusClasses,proto3,enum=logdrain.v1.HttpStatusClass" json:"status_classes,omitempty"`
+	// Each empty list selects all values. Nonempty dimensions are combined with AND.
+	ProjectIds     []string `protobuf:"bytes,2,rep,name=project_ids,json=projectIds,proto3" json:"project_ids,omitempty"`
+	AppIds         []string `protobuf:"bytes,3,rep,name=app_ids,json=appIds,proto3" json:"app_ids,omitempty"`
+	EnvironmentIds []string `protobuf:"bytes,4,rep,name=environment_ids,json=environmentIds,proto3" json:"environment_ids,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GatewayRequestStreamConfig) Reset() {
+	*x = GatewayRequestStreamConfig{}
+	mi := &file_logdrain_v1_config_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GatewayRequestStreamConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GatewayRequestStreamConfig) ProtoMessage() {}
+
+func (x *GatewayRequestStreamConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_logdrain_v1_config_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GatewayRequestStreamConfig.ProtoReflect.Descriptor instead.
+func (*GatewayRequestStreamConfig) Descriptor() ([]byte, []int) {
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GatewayRequestStreamConfig) GetStatusClasses() []HttpStatusClass {
+	if x != nil {
+		return x.StatusClasses
+	}
+	return nil
+}
+
+func (x *GatewayRequestStreamConfig) GetProjectIds() []string {
+	if x != nil {
+		return x.ProjectIds
+	}
+	return nil
+}
+
+func (x *GatewayRequestStreamConfig) GetAppIds() []string {
+	if x != nil {
+		return x.AppIds
+	}
+	return nil
+}
+
+func (x *GatewayRequestStreamConfig) GetEnvironmentIds() []string {
+	if x != nil {
+		return x.EnvironmentIds
+	}
+	return nil
+}
+
+// KeyVerificationStreamConfig selects verification outcomes, not audit event types.
+type KeyVerificationStreamConfig struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty selects all outcomes, including outcomes added later.
+	Outcomes []string `protobuf:"bytes,1,rep,name=outcomes,proto3" json:"outcomes,omitempty"`
+	// Empty selects all keyspaces in the workspace.
+	KeySpaceIds   []string `protobuf:"bytes,2,rep,name=key_space_ids,json=keySpaceIds,proto3" json:"key_space_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KeyVerificationStreamConfig) Reset() {
+	*x = KeyVerificationStreamConfig{}
+	mi := &file_logdrain_v1_config_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KeyVerificationStreamConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KeyVerificationStreamConfig) ProtoMessage() {}
+
+func (x *KeyVerificationStreamConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_logdrain_v1_config_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KeyVerificationStreamConfig.ProtoReflect.Descriptor instead.
+func (*KeyVerificationStreamConfig) Descriptor() ([]byte, []int) {
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *KeyVerificationStreamConfig) GetOutcomes() []string {
+	if x != nil {
+		return x.Outcomes
+	}
+	return nil
+}
+
+func (x *KeyVerificationStreamConfig) GetKeySpaceIds() []string {
+	if x != nil {
+		return x.KeySpaceIds
+	}
+	return nil
+}
 
 // AuditLogStreamConfig selects audit logs and their stream-specific filters.
 type AuditLogStreamConfig struct {
@@ -198,7 +567,7 @@ type AuditLogStreamConfig struct {
 
 func (x *AuditLogStreamConfig) Reset() {
 	*x = AuditLogStreamConfig{}
-	mi := &file_logdrain_v1_config_proto_msgTypes[1]
+	mi := &file_logdrain_v1_config_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -210,7 +579,7 @@ func (x *AuditLogStreamConfig) String() string {
 func (*AuditLogStreamConfig) ProtoMessage() {}
 
 func (x *AuditLogStreamConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_logdrain_v1_config_proto_msgTypes[1]
+	mi := &file_logdrain_v1_config_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -223,7 +592,7 @@ func (x *AuditLogStreamConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditLogStreamConfig.ProtoReflect.Descriptor instead.
 func (*AuditLogStreamConfig) Descriptor() ([]byte, []int) {
-	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{1}
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *AuditLogStreamConfig) GetEventTypes() []string {
@@ -245,7 +614,7 @@ type HttpConfig struct {
 
 func (x *HttpConfig) Reset() {
 	*x = HttpConfig{}
-	mi := &file_logdrain_v1_config_proto_msgTypes[2]
+	mi := &file_logdrain_v1_config_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -257,7 +626,7 @@ func (x *HttpConfig) String() string {
 func (*HttpConfig) ProtoMessage() {}
 
 func (x *HttpConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_logdrain_v1_config_proto_msgTypes[2]
+	mi := &file_logdrain_v1_config_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -270,7 +639,7 @@ func (x *HttpConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HttpConfig.ProtoReflect.Descriptor instead.
 func (*HttpConfig) Descriptor() ([]byte, []int) {
-	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{2}
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *HttpConfig) GetUrl() string {
@@ -305,7 +674,7 @@ type HttpHeader struct {
 
 func (x *HttpHeader) Reset() {
 	*x = HttpHeader{}
-	mi := &file_logdrain_v1_config_proto_msgTypes[3]
+	mi := &file_logdrain_v1_config_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -317,7 +686,7 @@ func (x *HttpHeader) String() string {
 func (*HttpHeader) ProtoMessage() {}
 
 func (x *HttpHeader) ProtoReflect() protoreflect.Message {
-	mi := &file_logdrain_v1_config_proto_msgTypes[3]
+	mi := &file_logdrain_v1_config_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -330,7 +699,7 @@ func (x *HttpHeader) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HttpHeader.ProtoReflect.Descriptor instead.
 func (*HttpHeader) Descriptor() ([]byte, []int) {
-	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{3}
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *HttpHeader) GetName() string {
@@ -358,7 +727,7 @@ type AxiomConfig struct {
 
 func (x *AxiomConfig) Reset() {
 	*x = AxiomConfig{}
-	mi := &file_logdrain_v1_config_proto_msgTypes[4]
+	mi := &file_logdrain_v1_config_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -370,7 +739,7 @@ func (x *AxiomConfig) String() string {
 func (*AxiomConfig) ProtoMessage() {}
 
 func (x *AxiomConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_logdrain_v1_config_proto_msgTypes[4]
+	mi := &file_logdrain_v1_config_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -383,7 +752,7 @@ func (x *AxiomConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AxiomConfig.ProtoReflect.Descriptor instead.
 func (*AxiomConfig) Descriptor() ([]byte, []int) {
-	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{4}
+	return file_logdrain_v1_config_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *AxiomConfig) GetDataset() string {
@@ -404,14 +773,40 @@ var File_logdrain_v1_config_proto protoreflect.FileDescriptor
 
 const file_logdrain_v1_config_proto_rawDesc = "" +
 	"\n" +
-	"\x18logdrain/v1/config.proto\x12\vlogdrain.v1\"\xc6\x01\n" +
+	"\x18logdrain/v1/config.proto\x12\vlogdrain.v1\"\x85\x04\n" +
 	"\x06Config\x12-\n" +
 	"\x04http\x18\x01 \x01(\v2\x17.logdrain.v1.HttpConfigH\x00R\x04http\x120\n" +
 	"\x05axiom\x18\x02 \x01(\v2\x18.logdrain.v1.AxiomConfigH\x00R\x05axiom\x12B\n" +
 	"\n" +
-	"audit_logs\x18\x03 \x01(\v2!.logdrain.v1.AuditLogStreamConfigH\x01R\tauditLogsB\r\n" +
+	"audit_logs\x18\x03 \x01(\v2!.logdrain.v1.AuditLogStreamConfigH\x01R\tauditLogs\x12W\n" +
+	"\x11key_verifications\x18\x04 \x01(\v2(.logdrain.v1.KeyVerificationStreamConfigH\x01R\x10keyVerifications\x12T\n" +
+	"\x10gateway_requests\x18\x05 \x01(\v2'.logdrain.v1.GatewayRequestStreamConfigH\x01R\x0fgatewayRequests\x12H\n" +
+	"\fruntime_logs\x18\x06 \x01(\v2#.logdrain.v1.RuntimeLogStreamConfigH\x01R\vruntimeLogs\x12D\n" +
+	"\n" +
+	"ratelimits\x18\a \x01(\v2\".logdrain.v1.RatelimitStreamConfigH\x01R\n" +
+	"ratelimitsB\r\n" +
 	"\vdestinationB\b\n" +
-	"\x06stream\"7\n" +
+	"\x06stream\"g\n" +
+	"\x15RatelimitStreamConfig\x12#\n" +
+	"\rnamespace_ids\x18\x01 \x03(\tR\fnamespaceIds\x12\x16\n" +
+	"\x06passed\x18\x03 \x03(\bR\x06passedJ\x04\b\x02\x10\x03R\videntifiers\"\x9b\x01\n" +
+	"\x16RuntimeLogStreamConfig\x12\x1e\n" +
+	"\n" +
+	"severities\x18\x01 \x03(\tR\n" +
+	"severities\x12\x1f\n" +
+	"\vproject_ids\x18\x02 \x03(\tR\n" +
+	"projectIds\x12\x17\n" +
+	"\aapp_ids\x18\x03 \x03(\tR\x06appIds\x12'\n" +
+	"\x0fenvironment_ids\x18\x04 \x03(\tR\x0eenvironmentIds\"\xc4\x01\n" +
+	"\x1aGatewayRequestStreamConfig\x12C\n" +
+	"\x0estatus_classes\x18\x01 \x03(\x0e2\x1c.logdrain.v1.HttpStatusClassR\rstatusClasses\x12\x1f\n" +
+	"\vproject_ids\x18\x02 \x03(\tR\n" +
+	"projectIds\x12\x17\n" +
+	"\aapp_ids\x18\x03 \x03(\tR\x06appIds\x12'\n" +
+	"\x0fenvironment_ids\x18\x04 \x03(\tR\x0eenvironmentIds\"]\n" +
+	"\x1bKeyVerificationStreamConfig\x12\x1a\n" +
+	"\boutcomes\x18\x01 \x03(\tR\boutcomes\x12\"\n" +
+	"\rkey_space_ids\x18\x02 \x03(\tR\vkeySpaceIds\"7\n" +
 	"\x14AuditLogStreamConfig\x12\x1f\n" +
 	"\vevent_types\x18\x01 \x03(\tR\n" +
 	"eventTypes\"\x86\x01\n" +
@@ -426,7 +821,13 @@ const file_logdrain_v1_config_proto_rawDesc = "" +
 	"\x0fencrypted_value\x18\x02 \x01(\tR\x0eencryptedValue\"P\n" +
 	"\vAxiomConfig\x12\x18\n" +
 	"\adataset\x18\x01 \x01(\tR\adataset\x12'\n" +
-	"\x0fencrypted_token\x18\x03 \x01(\tR\x0eencryptedToken*j\n" +
+	"\x0fencrypted_token\x18\x03 \x01(\tR\x0eencryptedToken*\xa0\x01\n" +
+	"\x0fHttpStatusClass\x12!\n" +
+	"\x1dHTTP_STATUS_CLASS_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15HTTP_STATUS_CLASS_2XX\x10\x02\x12\x19\n" +
+	"\x15HTTP_STATUS_CLASS_3XX\x10\x03\x12\x19\n" +
+	"\x15HTTP_STATUS_CLASS_4XX\x10\x04\x12\x19\n" +
+	"\x15HTTP_STATUS_CLASS_5XX\x10\x05*j\n" +
 	"\x0eHttpBodyFormat\x12 \n" +
 	"\x1cHTTP_BODY_FORMAT_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15HTTP_BODY_FORMAT_JSON\x10\x01\x12\x1b\n" +
@@ -445,27 +846,37 @@ func file_logdrain_v1_config_proto_rawDescGZIP() []byte {
 	return file_logdrain_v1_config_proto_rawDescData
 }
 
-var file_logdrain_v1_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_logdrain_v1_config_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_logdrain_v1_config_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_logdrain_v1_config_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_logdrain_v1_config_proto_goTypes = []any{
-	(HttpBodyFormat)(0),          // 0: logdrain.v1.HttpBodyFormat
-	(*Config)(nil),               // 1: logdrain.v1.Config
-	(*AuditLogStreamConfig)(nil), // 2: logdrain.v1.AuditLogStreamConfig
-	(*HttpConfig)(nil),           // 3: logdrain.v1.HttpConfig
-	(*HttpHeader)(nil),           // 4: logdrain.v1.HttpHeader
-	(*AxiomConfig)(nil),          // 5: logdrain.v1.AxiomConfig
+	(HttpStatusClass)(0),                // 0: logdrain.v1.HttpStatusClass
+	(HttpBodyFormat)(0),                 // 1: logdrain.v1.HttpBodyFormat
+	(*Config)(nil),                      // 2: logdrain.v1.Config
+	(*RatelimitStreamConfig)(nil),       // 3: logdrain.v1.RatelimitStreamConfig
+	(*RuntimeLogStreamConfig)(nil),      // 4: logdrain.v1.RuntimeLogStreamConfig
+	(*GatewayRequestStreamConfig)(nil),  // 5: logdrain.v1.GatewayRequestStreamConfig
+	(*KeyVerificationStreamConfig)(nil), // 6: logdrain.v1.KeyVerificationStreamConfig
+	(*AuditLogStreamConfig)(nil),        // 7: logdrain.v1.AuditLogStreamConfig
+	(*HttpConfig)(nil),                  // 8: logdrain.v1.HttpConfig
+	(*HttpHeader)(nil),                  // 9: logdrain.v1.HttpHeader
+	(*AxiomConfig)(nil),                 // 10: logdrain.v1.AxiomConfig
 }
 var file_logdrain_v1_config_proto_depIdxs = []int32{
-	3, // 0: logdrain.v1.Config.http:type_name -> logdrain.v1.HttpConfig
-	5, // 1: logdrain.v1.Config.axiom:type_name -> logdrain.v1.AxiomConfig
-	2, // 2: logdrain.v1.Config.audit_logs:type_name -> logdrain.v1.AuditLogStreamConfig
-	0, // 3: logdrain.v1.HttpConfig.format:type_name -> logdrain.v1.HttpBodyFormat
-	4, // 4: logdrain.v1.HttpConfig.headers:type_name -> logdrain.v1.HttpHeader
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	8,  // 0: logdrain.v1.Config.http:type_name -> logdrain.v1.HttpConfig
+	10, // 1: logdrain.v1.Config.axiom:type_name -> logdrain.v1.AxiomConfig
+	7,  // 2: logdrain.v1.Config.audit_logs:type_name -> logdrain.v1.AuditLogStreamConfig
+	6,  // 3: logdrain.v1.Config.key_verifications:type_name -> logdrain.v1.KeyVerificationStreamConfig
+	5,  // 4: logdrain.v1.Config.gateway_requests:type_name -> logdrain.v1.GatewayRequestStreamConfig
+	4,  // 5: logdrain.v1.Config.runtime_logs:type_name -> logdrain.v1.RuntimeLogStreamConfig
+	3,  // 6: logdrain.v1.Config.ratelimits:type_name -> logdrain.v1.RatelimitStreamConfig
+	0,  // 7: logdrain.v1.GatewayRequestStreamConfig.status_classes:type_name -> logdrain.v1.HttpStatusClass
+	1,  // 8: logdrain.v1.HttpConfig.format:type_name -> logdrain.v1.HttpBodyFormat
+	9,  // 9: logdrain.v1.HttpConfig.headers:type_name -> logdrain.v1.HttpHeader
+	10, // [10:10] is the sub-list for method output_type
+	10, // [10:10] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_logdrain_v1_config_proto_init() }
@@ -477,14 +888,18 @@ func file_logdrain_v1_config_proto_init() {
 		(*Config_Http)(nil),
 		(*Config_Axiom)(nil),
 		(*Config_AuditLogs)(nil),
+		(*Config_KeyVerifications)(nil),
+		(*Config_GatewayRequests)(nil),
+		(*Config_RuntimeLogs)(nil),
+		(*Config_Ratelimits)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_logdrain_v1_config_proto_rawDesc), len(file_logdrain_v1_config_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   5,
+			NumEnums:      2,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

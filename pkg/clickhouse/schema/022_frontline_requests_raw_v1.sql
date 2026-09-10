@@ -51,8 +51,15 @@ CREATE TABLE frontline_requests_raw_v1 (
   -- inserted_at is not in the sorting key, but rows in a granule were
   -- inserted within seconds of each other, so a minmax index prunes almost
   -- every granule outside a log drain's insertion time window.
-  INDEX idx_inserted_at inserted_at TYPE minmax GRANULARITY 1
+  INDEX idx_inserted_at inserted_at TYPE minmax GRANULARITY 1,
+  PROJECTION proj_logdrain
+  (
+    SELECT workspace_id, inserted_at, request_id, _part_offset
+    ORDER BY workspace_id, inserted_at, request_id
+  )
 ) ENGINE = MergeTree()
 ORDER BY (`workspace_id`, `project_id`, `app_id`, `environment_id`, `time`, `deployment_id`)
 TTL toDateTime(fromUnixTimestamp64Milli(time)) + toIntervalDay(7)
-SETTINGS index_granularity = 8192, non_replicated_deduplication_window = 10000;
+SETTINGS index_granularity = 8192, non_replicated_deduplication_window = 10000,
+  allow_part_offset_column_in_projections = 1,
+  deduplicate_merge_projection_mode = 'rebuild';

@@ -13,6 +13,67 @@ import (
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
 
+func TestDeliverRatelimit(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var record map[string]json.RawMessage
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&record))
+		require.Len(t, record, 3)
+		require.JSONEq(t, `"ratelimits"`, string(record["stream"]))
+		require.JSONEq(t, `"1970-01-01T00:00:00.123Z"`, string(record["_time"]))
+		require.JSONEq(t, `{"request_id":"req","namespace_id":"ns","identifier":"customer\n1","passed":true,"override_id":"override","limit":100,"remaining":97,"tokens":3,"reset_at":10000,"source":"api"}`, string(record["event"]))
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(server.Close)
+	batch := testBatch()
+	batch.Events = []sink.Event{{EventID: "req", Stream: "ratelimits", Time: 123, Payload: sink.RatelimitPayload{RequestID: "req", NamespaceID: "ns", Identifier: "customer\n1", Passed: true, OverrideID: "override", Limit: 100, Remaining: 97, Tokens: 3, ResetAt: 10000, Source: "api"}}}
+	result, err := newTestDrain(t, server.URL, "decisions", "token").Deliver(t.Context(), batch)
+	require.NoError(t, err)
+	require.True(t, result.Acknowledged)
+}
+
+func TestDeliverRuntimeLog(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var record map[string]json.RawMessage
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&record))
+		require.JSONEq(t, `"runtime_logs"`, string(record["stream"]))
+		require.JSONEq(t, `"1970-01-01T00:00:00.123Z"`, string(record["_time"]))
+		require.JSONEq(t, `{"log_id":"rlog_1","severity":"error","message":"first\nsecond","attributes":{"order":{"id":42}},"project_id":"project","app_id":"app","environment_id":"env","deployment_id":"deployment","region":"local"}`, string(record["event"]))
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(server.Close)
+	batch := testBatch()
+	batch.Events = []sink.Event{{EventID: "rlog_1", Stream: "runtime_logs", Time: 123, Payload: sink.RuntimeLogPayload{LogID: "rlog_1", Severity: "error", Message: "first\nsecond", Attributes: json.RawMessage(`{"order":{"id":42}}`), ProjectID: "project", AppID: "app", EnvironmentID: "env", DeploymentID: "deployment", Region: "local"}}}
+	result, err := newTestDrain(t, server.URL, "runtime", "token").Deliver(t.Context(), batch)
+	require.NoError(t, err)
+	require.True(t, result.Acknowledged)
+}
+
+func TestDeliverGatewayRequest(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var line struct {
+			Time   string         `json:"_time"`
+			Stream string         `json:"stream"`
+			Event  map[string]any `json:"event"`
+		}
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&line))
+		require.Equal(t, "1970-01-01T00:00:00.123Z", line.Time)
+		require.Equal(t, "gateway_requests", line.Stream)
+		require.Equal(t, "req_gateway", line.Event["request_id"])
+		require.Equal(t, float64(503), line.Event["response_status"])
+		require.Equal(t, float64(41), line.Event["instance_latency"])
+		require.Equal(t, []any{"Content-Type: application/json"}, line.Event["response_headers"])
+		require.Equal(t, "response\nbody", line.Event["response_body"])
+		require.Equal(t, map[string]any{"tag": []any{"a", "b"}}, line.Event["query_params"])
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(server.Close)
+	batch := testBatch()
+	batch.Events = []sink.Event{{EventID: "req_gateway", Stream: "gateway_requests", Time: 123, Payload: sink.GatewayRequestPayload{RequestID: "req_gateway", ResponseStatus: 503, InstanceLatency: 41, ResponseHeaders: []string{"Content-Type: application/json"}, ResponseBody: "response\nbody", QueryParams: map[string][]string{"tag": {"a", "b"}}}}}
+	result, err := newTestDrain(t, server.URL, "gateway", "token").Deliver(t.Context(), batch)
+	require.NoError(t, err)
+	require.True(t, result.Acknowledged)
+}
+
 // TestDeliverSuccess guarantees acknowledged events use Axiom NDJSON and that
 // dataset names are percent-escaped in the ingest path.
 func TestDeliverSuccess(t *testing.T) {

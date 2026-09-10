@@ -219,119 +219,210 @@ func TestEngine_Integration(t *testing.T) {
 		}, 5*time.Second, 100*time.Millisecond)
 	})
 
-	t.Run("filter change fences an in-flight delivery and resumes from the same cursor", func(t *testing.T) {
-		workspaceID, drainID := uniqueIDs()
-		requests := make(chan []byte, 2)
-		acknowledge := make(chan struct{})
-		httpSink := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			body, readErr := io.ReadAll(r.Body)
-			if readErr != nil {
-				http.Error(w, readErr.Error(), http.StatusBadRequest)
-				return
-			}
-			select {
-			case requests <- body:
-			case <-r.Context().Done():
-				return
-			}
-			select {
-			case <-acknowledge:
-				w.WriteHeader(http.StatusOK)
-			case <-r.Context().Done():
-			}
-		}))
-		t.Cleanup(httpSink.Close)
-		insertedAt := time.Now().Add(-time.Second).UnixMilli()
-		insertAuditEvents(t, chConn, workspaceID, []auditEvent{
-			{id: drainID + "_a", eventType: "key.create", insertedAt: insertedAt, actorMeta: `{}`},
-			{id: drainID + "_b", eventType: "key.create", insertedAt: insertedAt, actorMeta: `{}`},
-			{id: drainID + "_c", eventType: "key.delete", insertedAt: insertedAt, actorMeta: `{}`},
-		})
-		seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.URL, insertedAt)
-		cleanupDrain(t, mysqlDB, drainID)
-		config := &logdrainv1.Config{
-			Destination: &logdrainv1.Config_Http{Http: &logdrainv1.HttpConfig{Url: httpSink.URL, Format: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON}},
-			Stream:      &logdrainv1.Config_AuditLogs{AuditLogs: &logdrainv1.AuditLogStreamConfig{EventTypes: []string{"key.delete"}}},
+	for _, filterMode := range []string{"audit_logs", "key_verifications", "keyspaces", "gateway_requests", "runtime_logs", "ratelimits"} {
+		stream := filterMode
+		if filterMode == "keyspaces" {
+			stream = "key_verifications"
 		}
-		encoded, err := proto.Marshal(config)
-		require.NoError(t, err)
-		_, err = mysqlDB.Exec("UPDATE logdrains SET config = ?, committed_offset_event_id = ? WHERE id = ?", encoded, drainID+"_a", drainID)
-		require.NoError(t, err)
-
-		database, err := db.New(mysqlCfg.DSN, sqlcomment.ForService("logdrain-integration-test", "test"))
-		require.NoError(t, err)
-		t.Cleanup(func() { require.NoError(t, database.Close()) })
-		chClient, err := clickhouse.New(clickhouse.Config{URL: clickhouseCfg.HTTPDSN})
-		require.NoError(t, err)
-		t.Cleanup(func() { require.NoError(t, chClient.Close()) })
-		leaseID := uid.New("")
-		acquireLease := func() {
-			t.Helper()
-			rows, acquireErr := database.AcquireLogdrainLease(t.Context(), db.AcquireLogdrainLeaseParams{
-				LeaseID: leaseID, FencingToken: uid.New(""), TtlMillis: time.Minute.Milliseconds(), LogdrainID: drainID,
+		t.Run(filterMode+" filter change fences an in-flight delivery and resumes from the same cursor", func(t *testing.T) {
+			workspaceID, drainID := uniqueIDs()
+			requests := make(chan []byte, 2)
+			acknowledge := make(chan struct{})
+			httpSink := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				body, readErr := io.ReadAll(r.Body)
+				if readErr != nil {
+					http.Error(w, readErr.Error(), http.StatusBadRequest)
+					return
+				}
+				select {
+				case requests <- body:
+				case <-r.Context().Done():
+					return
+				}
+				select {
+				case <-acknowledge:
+					w.WriteHeader(http.StatusOK)
+				case <-r.Context().Done():
+				}
+			}))
+			t.Cleanup(httpSink.Close)
+			insertedAt := time.Now().Add(-time.Second).UnixMilli()
+			insertAuditEvents(t, chConn, workspaceID, []auditEvent{
+				{id: drainID + "_a", eventType: "key.create", insertedAt: insertedAt, actorMeta: `{}`},
+				{id: drainID + "_b", eventType: "key.create", insertedAt: insertedAt, actorMeta: `{}`},
+				{id: drainID + "_c", eventType: "key.delete", insertedAt: insertedAt, actorMeta: `{}`},
 			})
-			require.NoError(t, acquireErr)
-			require.EqualValues(t, 1, rows)
-		}
-		// Acquire explicitly so no lease service can renew ownership before the stale commit is checked.
-		acquireLease()
-		deliveries := &collector{}
-		eng, err := engine.New(engine.Config{
-			DB: database, LeaseID: leaseID, Source: source.NewAuditLogs(chClient), Vault: stubVault{},
-			Deliveries: deliveries, PollInterval: 200 * time.Millisecond, BatchSize: 1,
-			PauseThreshold: 5, UnsafeAllowPrivateEndpoints: true,
-		})
-		require.NoError(t, err)
-		ctx, cancel := context.WithCancel(t.Context())
-		done := make(chan error, 1)
-		go func() { done <- eng.Run(ctx) }()
-		t.Cleanup(func() {
-			cancel()
-			require.NoError(t, <-done)
-		})
-		t.Cleanup(func() { close(acknowledge) })
-		receiveEvent := func(wantID, wantAction string) {
-			t.Helper()
-			select {
-			case body := <-requests:
-				events, decodeErr := decodeDeliveredEvents(body)
-				require.NoError(t, decodeErr)
-				require.Len(t, events, 1)
-				require.Equal(t, wantID, events[0]["id"])
-				require.Equal(t, wantAction, events[0]["action"])
-			case <-time.After(30 * time.Second):
-				t.Fatal("timed out waiting for delivery")
+			seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.URL, insertedAt)
+			cleanupDrain(t, mysqlDB, drainID)
+			config := &logdrainv1.Config{
+				Destination: &logdrainv1.Config_Http{Http: &logdrainv1.HttpConfig{Url: httpSink.URL, Format: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON}},
+				Stream:      &logdrainv1.Config_AuditLogs{AuditLogs: &logdrainv1.AuditLogStreamConfig{EventTypes: []string{"key.delete"}}},
 			}
-		}
-		receiveEvent(drainID+"_c", "key.delete")
+			if stream == "key_verifications" {
+				config.Stream = &logdrainv1.Config_KeyVerifications{KeyVerifications: &logdrainv1.KeyVerificationStreamConfig{Outcomes: []string{"EXPIRED"}}}
+				if filterMode == "keyspaces" {
+					config.GetKeyVerifications().Outcomes = nil
+					config.GetKeyVerifications().KeySpaceIds = []string{"_c"}
+				}
+				for _, event := range []struct{ id, outcome string }{{"_a", "VALID"}, {"_b", "VALID"}, {"_c", "EXPIRED"}} {
+					require.NoError(t, chConn.Exec(t.Context(), `INSERT INTO key_verifications_raw_v2 (workspace_id, request_id, inserted_at, time, outcome, key_space_id) VALUES (?, ?, ?, ?, ?, ?)`, workspaceID, drainID+event.id, insertedAt, insertedAt-60000, event.outcome, event.id))
+				}
+			}
+			if stream == "gateway_requests" {
+				config.Stream = &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{StatusClasses: []logdrainv1.HttpStatusClass{logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_5XX}, ProjectIds: []string{"_c"}, AppIds: []string{"_c"}, EnvironmentIds: []string{"_c"}}}
+				for _, event := range []struct {
+					id     string
+					status int32
+				}{{"_a", 200}, {"_b", 201}, {"_c", 503}} {
+					require.NoError(t, chConn.Exec(t.Context(), `INSERT INTO frontline_requests_raw_v1 (workspace_id, request_id, inserted_at, time, response_status, project_id, app_id, environment_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, workspaceID, drainID+event.id, insertedAt, insertedAt-60000, event.status, event.id, event.id, event.id))
+				}
+			}
+			if stream == "runtime_logs" {
+				config.Stream = &logdrainv1.Config_RuntimeLogs{RuntimeLogs: &logdrainv1.RuntimeLogStreamConfig{Severities: []string{"error"}}}
+				for _, event := range []struct{ id, severity string }{{"_a", "info"}, {"_b", "info"}, {"_c", "error"}} {
+					require.NoError(t, chConn.Exec(t.Context(), `INSERT INTO runtime_logs_raw_v1 (workspace_id, log_id, inserted_at, time, severity) VALUES (?, ?, ?, ?, ?)`, workspaceID, drainID+event.id, insertedAt, insertedAt-60000, event.severity))
+				}
+			}
+			initialID := drainID + "_a"
+			if stream == "ratelimits" {
+				config.Stream = &logdrainv1.Config_Ratelimits{Ratelimits: &logdrainv1.RatelimitStreamConfig{Passed: []bool{false}}}
+				for _, event := range []struct {
+					id     string
+					passed bool
+				}{{"_a", true}, {"_b", true}, {"_c", false}} {
+					require.NoError(t, chConn.Exec(t.Context(), `INSERT INTO ratelimits_raw_v2 (workspace_id, request_id, inserted_at, time, passed) VALUES (?, ?, ?, ?, ?)`, workspaceID, drainID+event.id, insertedAt, insertedAt-60000, event.passed))
+				}
+			}
+			encoded, err := proto.Marshal(config)
+			require.NoError(t, err)
+			storedStream := stream
+			if stream == "gateway_requests" || stream == "runtime_logs" || stream == "ratelimits" {
+				storedStream = "audit_logs"
+			}
+			_, err = mysqlDB.Exec("UPDATE logdrains SET stream = ?, config = ?, committed_offset_event_id = ? WHERE id = ?", storedStream, encoded, initialID, drainID)
+			require.NoError(t, err)
 
-		config.GetAuditLogs().EventTypes = []string{"key.create"}
-		encoded, err = proto.Marshal(config)
-		require.NoError(t, err)
-		_, err = mysqlDB.Exec("UPDATE logdrains SET config = ?, lease_expires_at = 0, consecutive_failures = 0, next_attempt_at = 0 WHERE id = ?", encoded, drainID)
-		require.NoError(t, err)
-		acknowledge <- struct{}{}
-		require.EventuallyWithT(t, func(c *assert.CollectT) {
-			attempts := deliveries.snapshot()
-			require.Len(c, attempts, 1)
-			require.Equal(c, "error", attempts[0].Outcome)
-			require.Contains(c, attempts[0].Error, "logdrain lease lost")
-		}, 5*time.Second, 20*time.Millisecond)
-		var cursorTime int64
-		var cursorID string
-		require.NoError(t, mysqlDB.QueryRow("SELECT committed_offset_inserted_at, committed_offset_event_id FROM logdrains WHERE id = ?", drainID).Scan(&cursorTime, &cursorID))
-		require.Equal(t, insertedAt, cursorTime)
-		require.Equal(t, drainID+"_a", cursorID)
+			database, err := db.New(mysqlCfg.DSN, sqlcomment.ForService("logdrain-integration-test", "test"))
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, database.Close()) })
+			chClient, err := clickhouse.New(clickhouse.Config{URL: clickhouseCfg.HTTPDSN})
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, chClient.Close()) })
+			leaseID := uid.New("")
+			acquireLease := func() {
+				t.Helper()
+				rows, acquireErr := database.AcquireLogdrainLease(t.Context(), db.AcquireLogdrainLeaseParams{
+					LeaseID: leaseID, FencingToken: uid.New(""), TtlMillis: time.Minute.Milliseconds(), LogdrainID: drainID,
+				})
+				require.NoError(t, acquireErr)
+				require.EqualValues(t, 1, rows)
+			}
+			// Acquire explicitly so no lease service can renew ownership before the stale commit is checked.
+			acquireLease()
+			deliveries := &collector{}
+			eng, err := engine.New(engine.Config{
+				DB: database, LeaseID: leaseID, AuditLogs: source.NewAuditLogs(chClient), Vault: stubVault{},
+				KeyVerifications: source.NewKeyVerifications(chClient),
+				GatewayRequests:  source.NewGatewayRequests(chClient),
+				RuntimeLogs:      source.NewRuntimeLogs(chClient),
+				Ratelimits:       source.NewRatelimits(chClient),
+				Deliveries:       deliveries, PollInterval: 200 * time.Millisecond, BatchSize: 1,
+				PauseThreshold: 5, UnsafeAllowPrivateEndpoints: true,
+			})
+			require.NoError(t, err)
+			ctx, cancel := context.WithCancel(t.Context())
+			done := make(chan error, 1)
+			go func() { done <- eng.Run(ctx) }()
+			t.Cleanup(func() {
+				cancel()
+				require.NoError(t, <-done)
+			})
+			t.Cleanup(func() { close(acknowledge) })
+			receiveEvent := func(wantID, wantAction string) {
+				t.Helper()
+				select {
+				case body := <-requests:
+					events, decodeErr := decodeDeliveredEvents(body)
+					require.NoError(t, decodeErr)
+					require.Len(t, events, 1)
+					if stream == "audit_logs" {
+						require.Equal(t, wantID, events[0]["id"])
+						require.Equal(t, wantAction, events[0]["action"])
+					} else if stream == "ratelimits" {
+						require.Equal(t, wantID, events[0]["request_id"])
+						require.Equal(t, wantAction == "key.create", events[0]["passed"])
+					} else if stream == "runtime_logs" {
+						require.Equal(t, wantID, events[0]["log_id"])
+						severity := "info"
+						if wantAction == "key.delete" {
+							severity = "error"
+						}
+						require.Equal(t, severity, events[0]["severity"])
+					} else if stream == "gateway_requests" {
+						require.Equal(t, wantID, events[0]["request_id"])
+						status := float64(201)
+						if wantAction == "key.delete" {
+							status = 503
+						}
+						require.Equal(t, status, events[0]["response_status"])
+					} else {
+						require.Equal(t, wantID, events[0]["request_id"])
+						outcome := "VALID"
+						if wantAction == "key.delete" {
+							outcome = "EXPIRED"
+						}
+						require.Equal(t, outcome, events[0]["outcome"])
+					}
+				case <-time.After(30 * time.Second):
+					t.Fatal("timed out waiting for delivery")
+				}
+			}
+			receiveEvent(drainID+"_c", "key.delete")
 
-		acquireLease()
-		receiveEvent(drainID+"_b", "key.create")
-		acknowledge <- struct{}{}
-		require.EventuallyWithT(t, func(c *assert.CollectT) {
-			require.True(c, hasDelivery(deliveries.snapshot(), drainID, "success", 1))
-			require.Greater(c, readDrainStateCollect(c, mysqlDB, drainID).committedOffsetInsertedAt, insertedAt)
-		}, 5*time.Second, 20*time.Millisecond)
-		require.Empty(t, requests)
-	})
+			if stream == "audit_logs" {
+				config.GetAuditLogs().EventTypes = []string{"key.create"}
+			} else if stream == "ratelimits" {
+				config.GetRatelimits().Passed = []bool{true}
+			} else if stream == "runtime_logs" {
+				config.GetRuntimeLogs().Severities = []string{"info"}
+			} else if filterMode == "keyspaces" {
+				config.GetKeyVerifications().KeySpaceIds = []string{"_b"}
+			} else if stream == "gateway_requests" {
+				config.GetGatewayRequests().StatusClasses = []logdrainv1.HttpStatusClass{logdrainv1.HttpStatusClass_HTTP_STATUS_CLASS_2XX}
+				config.GetGatewayRequests().ProjectIds = []string{"_b"}
+				config.GetGatewayRequests().AppIds = []string{"_b"}
+				config.GetGatewayRequests().EnvironmentIds = []string{"_b"}
+			} else {
+				config.GetKeyVerifications().Outcomes = []string{"VALID"}
+			}
+			encoded, err = proto.Marshal(config)
+			require.NoError(t, err)
+			_, err = mysqlDB.Exec("UPDATE logdrains SET config = ?, lease_expires_at = 0, consecutive_failures = 0, next_attempt_at = 0 WHERE id = ?", encoded, drainID)
+			require.NoError(t, err)
+			acknowledge <- struct{}{}
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				attempts := deliveries.snapshot()
+				require.Len(c, attempts, 1)
+				require.Equal(c, "error", attempts[0].Outcome)
+				require.Equal(c, stream, attempts[0].Stream)
+				require.Contains(c, attempts[0].Error, "logdrain lease lost")
+			}, 5*time.Second, 20*time.Millisecond)
+			var cursorTime int64
+			var cursorID string
+			require.NoError(t, mysqlDB.QueryRow("SELECT committed_offset_inserted_at, committed_offset_event_id FROM logdrains WHERE id = ?", drainID).Scan(&cursorTime, &cursorID))
+			require.Equal(t, insertedAt, cursorTime)
+			require.Equal(t, initialID, cursorID)
+
+			acquireLease()
+			receiveEvent(drainID+"_b", "key.create")
+			acknowledge <- struct{}{}
+			require.EventuallyWithT(t, func(c *assert.CollectT) {
+				require.True(c, hasDelivery(deliveries.snapshot(), drainID, "success", 1))
+				require.Greater(c, readDrainStateCollect(c, mysqlDB, drainID).committedOffsetInsertedAt, insertedAt)
+			}, 5*time.Second, 20*time.Millisecond)
+			require.Empty(t, requests)
+		})
+	}
 
 	t.Run("failed response retries without advancing offset", func(t *testing.T) {
 		workspaceID, drainID := uniqueIDs()
@@ -646,7 +737,7 @@ func startEngineConfiguredWithBatchSize(t *testing.T, mysqlDSN, clickhouseDSN st
 	eng, err := engine.New(engine.Config{
 		DB:                          database,
 		LeaseID:                     leaseID,
-		Source:                      source.NewAuditLogs(chClient),
+		AuditLogs:                   source.NewAuditLogs(chClient),
 		Vault:                       stubVault{},
 		Deliveries:                  deliveries,
 		PollInterval:                200 * time.Millisecond,

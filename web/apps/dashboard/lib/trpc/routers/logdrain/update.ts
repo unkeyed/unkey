@@ -7,6 +7,7 @@ import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
 import {
   type EncryptedHttpHeader,
+  type LogdrainConfig,
   decodeLogdrainConfig,
   encodeLogdrainConfig,
   encryptHttpHeaders,
@@ -17,6 +18,12 @@ import {
   httpFormatSchema,
   httpHeaderUpdatesSchema,
   httpsUrl,
+  keySpaceIdsSchema,
+  outcomesSchema,
+  passedSchema,
+  resourceIdsSchema,
+  severitiesSchema,
+  statusClassesSchema,
 } from "./validation";
 
 const vault = createVaultClient(VaultService);
@@ -56,14 +63,32 @@ export const updateLogdrain = workspaceProcedure
         id: z.string().min(1),
         name: z.string().trim().min(1).max(128).optional(),
         status: z.enum(["running", "paused_by_user"]).optional(),
+        namespaceIds: resourceIdsSchema.optional(),
+        passed: passedSchema.optional(),
         eventTypes: eventTypesSchema.optional(),
+        outcomes: outcomesSchema.optional(),
+        keySpaceIds: keySpaceIdsSchema.optional(),
+        statusClasses: statusClassesSchema.optional(),
+        severities: severitiesSchema.optional(),
+        projectIds: resourceIdsSchema.optional(),
+        appIds: resourceIdsSchema.optional(),
+        environmentIds: resourceIdsSchema.optional(),
         destination: updateDestinationSchema.optional(),
       })
       .refine(
         (input) =>
           input.name !== undefined ||
           input.status !== undefined ||
+          input.namespaceIds !== undefined ||
+          input.passed !== undefined ||
           input.eventTypes !== undefined ||
+          input.outcomes !== undefined ||
+          input.keySpaceIds !== undefined ||
+          input.statusClasses !== undefined ||
+          input.severities !== undefined ||
+          input.projectIds !== undefined ||
+          input.appIds !== undefined ||
+          input.environmentIds !== undefined ||
           input.destination !== undefined,
         "At least one update is required",
       ),
@@ -88,7 +113,10 @@ export const updateLogdrain = workspaceProcedure
         case "axiom":
           if (destination.config.token !== undefined) {
             encryptedToken = (
-              await vault.encrypt({ keyring: ctx.workspace.id, data: destination.config.token })
+              await vault.encrypt({
+                keyring: ctx.workspace.id,
+                data: destination.config.token,
+              })
             ).encrypted;
           }
           break;
@@ -114,15 +142,85 @@ export const updateLogdrain = workspaceProcedure
           )
           .for("update");
         if (!drain) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Log drain not found" });
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Log drain not found",
+          });
         }
         const existing = decodeLogdrainConfig(drain.config);
-        const stream = {
-          ...existing.stream,
-          eventTypes: input.eventTypes ?? existing.stream.eventTypes,
-        };
+        if (
+          (existing.stream.kind !== "ratelimits" &&
+            (input.namespaceIds !== undefined || input.passed !== undefined)) ||
+          (existing.stream.kind !== "key_verifications" &&
+            (input.outcomes !== undefined || input.keySpaceIds !== undefined)) ||
+          (existing.stream.kind !== "audit_logs" && input.eventTypes !== undefined) ||
+          (existing.stream.kind !== "gateway_requests" && input.statusClasses !== undefined) ||
+          (existing.stream.kind !== "runtime_logs" && input.severities !== undefined) ||
+          (existing.stream.kind !== "gateway_requests" &&
+            existing.stream.kind !== "runtime_logs" &&
+            (input.projectIds !== undefined ||
+              input.appIds !== undefined ||
+              input.environmentIds !== undefined))
+        ) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Filters must match the drain stream.",
+          });
+        }
+        let stream: LogdrainConfig["stream"];
+        switch (existing.stream.kind) {
+          case "ratelimits":
+            stream = {
+              ...existing.stream,
+              namespaceIds: input.namespaceIds ?? existing.stream.namespaceIds,
+              passed: input.passed ?? existing.stream.passed,
+            };
+            break;
+          case "runtime_logs":
+            stream = {
+              ...existing.stream,
+              severities: input.severities ?? existing.stream.severities,
+              projectIds: input.projectIds ?? existing.stream.projectIds,
+              appIds: input.appIds ?? existing.stream.appIds,
+              environmentIds: input.environmentIds ?? existing.stream.environmentIds,
+            };
+            break;
+          case "audit_logs":
+            stream = {
+              ...existing.stream,
+              eventTypes: input.eventTypes ?? existing.stream.eventTypes,
+            };
+            break;
+          case "gateway_requests":
+            stream = {
+              ...existing.stream,
+              statusClasses: input.statusClasses ?? existing.stream.statusClasses,
+              projectIds: input.projectIds ?? existing.stream.projectIds,
+              appIds: input.appIds ?? existing.stream.appIds,
+              environmentIds: input.environmentIds ?? existing.stream.environmentIds,
+            };
+            break;
+          case "key_verifications":
+            stream = {
+              ...existing.stream,
+              outcomes: input.outcomes ?? existing.stream.outcomes,
+              keySpaceIds: input.keySpaceIds ?? existing.stream.keySpaceIds,
+            };
+            break;
+          default:
+            throw new Error(`Unsupported log drain stream: ${existing.stream satisfies never}`);
+        }
         let config =
-          input.eventTypes === undefined
+          input.namespaceIds === undefined &&
+          input.passed === undefined &&
+          input.eventTypes === undefined &&
+          input.outcomes === undefined &&
+          input.statusClasses === undefined &&
+          input.severities === undefined &&
+          input.projectIds === undefined &&
+          input.appIds === undefined &&
+          input.environmentIds === undefined &&
+          input.keySpaceIds === undefined
             ? drain.config
             : encodeLogdrainConfig({
                 ...existing,
@@ -186,7 +284,18 @@ export const updateLogdrain = workspaceProcedure
             throw new Error(`Unsupported log drain sink: ${destination satisfies never}`);
         }
 
-        const changesDelivery = destination !== undefined || input.eventTypes !== undefined;
+        const changesDelivery =
+          destination !== undefined ||
+          input.namespaceIds !== undefined ||
+          input.passed !== undefined ||
+          input.eventTypes !== undefined ||
+          input.outcomes !== undefined ||
+          input.statusClasses !== undefined ||
+          input.severities !== undefined ||
+          input.projectIds !== undefined ||
+          input.appIds !== undefined ||
+          input.environmentIds !== undefined ||
+          input.keySpaceIds !== undefined;
         const resetFailureState = input.status === "running" || changesDelivery;
         const expireLease = input.status !== undefined || changesDelivery;
         const status =
@@ -220,7 +329,10 @@ export const updateLogdrain = workspaceProcedure
           event: "logdrain.update",
           description: `Updated log drain ${input.id}`,
           resources: [{ type: "logdrain", id: drain.id, name: input.name ?? drain.name }],
-          context: { location: ctx.audit.location, userAgent: ctx.audit.userAgent },
+          context: {
+            location: ctx.audit.location,
+            userAgent: ctx.audit.userAgent,
+          },
         });
       });
       return { id: input.id };
@@ -229,7 +341,10 @@ export const updateLogdrain = workspaceProcedure
         throw error;
       }
       console.error("Failed to update log drain", error);
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update log drain" });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to update log drain",
+      });
     }
   });
 
@@ -263,7 +378,10 @@ export function applyHttpHeaderUpdates({
         if (!header) {
           throw new Error(`Encrypted HTTP header ${update.name} is missing`);
         }
-        return { ...header, name: existingByName.get(normalizedName)?.name ?? header.name };
+        return {
+          ...header,
+          name: existingByName.get(normalizedName)?.name ?? header.name,
+        };
       }
     }
   });

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -100,7 +101,7 @@ func TestAuditLogsRead_EventTypes(t *testing.T) {
 	}
 	auditLogs := source.NewAuditLogs(client)
 	from := source.Cursor{Time: insertedAt}
-	filter := []string{"key.create", "key.delete"}
+	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_AuditLogs{AuditLogs: &logdrainv1.AuditLogStreamConfig{EventTypes: []string{"key.create", "key.delete"}}}}
 	page, cursor, err := auditLogs.Read(ctx, workspaceID, from, insertedAt+1, 2, filter)
 	require.NoError(t, err)
 	require.Len(t, page, 2)
@@ -116,7 +117,8 @@ func TestAuditLogsRead_EventTypes(t *testing.T) {
 	require.Empty(t, page)
 	require.Equal(t, cursor, finalCursor)
 
-	page, _, err = auditLogs.Read(ctx, workspaceID, from, insertedAt+1, 2, []string{`custom.'\event`})
+	filter.GetAuditLogs().EventTypes = []string{`custom.'\event`}
+	page, _, err = auditLogs.Read(ctx, workspaceID, from, insertedAt+1, 2, filter)
 	require.NoError(t, err)
 	require.Len(t, page, 1)
 	require.Equal(t, "g", page[0].EventID)

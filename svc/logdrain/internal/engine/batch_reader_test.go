@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
@@ -40,7 +41,7 @@ func TestBatchReader_AdaptsWindows(t *testing.T) {
 				events = append(events, sink.Event{EventID: id})
 				advance.EventID = id
 			}
-			src.read = func(_ context.Context, _ string, from source.Cursor, to int64, limit int, _ []string) ([]sink.Event, source.Cursor, error) {
+			src.read = func(_ context.Context, _ string, from source.Cursor, to int64, limit int, _ *logdrainv1.Config) ([]sink.Event, source.Cursor, error) {
 				require.Equal(t, tc.from, from)
 				require.Equal(t, tc.end, to)
 				require.Equal(t, 2, limit)
@@ -61,7 +62,7 @@ func TestBatchReader_ReadFailure(t *testing.T) {
 	from := source.Cursor{Time: 1000000}
 	failure := errors.New("source unavailable")
 	calls := 0
-	src := windowSource{read: func(_ context.Context, _ string, cursor source.Cursor, to int64, _ int, _ []string) ([]sink.Event, source.Cursor, error) {
+	src := windowSource{read: func(_ context.Context, _ string, cursor source.Cursor, to int64, _ int, _ *logdrainv1.Config) ([]sink.Event, source.Cursor, error) {
 		calls++
 		require.Equal(t, from, cursor)
 		require.Equal(t, from.Time+time.Minute.Milliseconds(), to)
@@ -78,10 +79,10 @@ func TestBatchReader_ReadFailure(t *testing.T) {
 
 // windowSource exposes the source boundary without a ClickHouse server.
 type windowSource struct {
-	read func(context.Context, string, source.Cursor, int64, int, []string) ([]sink.Event, source.Cursor, error)
+	read func(context.Context, string, source.Cursor, int64, int, *logdrainv1.Config) ([]sink.Event, source.Cursor, error)
 }
 
 // Read delegates bounded reads to the test fixture.
-func (s windowSource) Read(ctx context.Context, workspaceID string, from source.Cursor, to int64, limit int, eventTypes []string) ([]sink.Event, source.Cursor, error) {
-	return s.read(ctx, workspaceID, from, to, limit, eventTypes)
+func (s windowSource) Read(ctx context.Context, workspaceID string, from source.Cursor, to int64, limit int, config *logdrainv1.Config) ([]sink.Event, source.Cursor, error) {
+	return s.read(ctx, workspaceID, from, to, limit, config)
 }

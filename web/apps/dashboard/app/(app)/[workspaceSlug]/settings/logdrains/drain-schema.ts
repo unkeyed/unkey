@@ -1,4 +1,12 @@
 import type { Router } from "@/lib/trpc/routers";
+import {
+  keySpaceIdsSchema,
+  outcomesSchema,
+  passedSchema,
+  resourceIdsSchema,
+  severitiesSchema,
+  statusClassesSchema,
+} from "@/lib/trpc/routers/logdrain/validation";
 import type { inferRouterOutputs } from "@trpc/server";
 import { z } from "zod";
 import { headerNamePattern, isValidHttpHeaderValue } from "./header-fields";
@@ -34,7 +42,11 @@ function refineHeaderRows(rows: HeaderRow[], context: z.RefinementCtx) {
       continue;
     }
     if (name === "") {
-      context.addIssue({ code: "custom", path: at(index, "name"), message: "Enter a header name" });
+      context.addIssue({
+        code: "custom",
+        path: at(index, "name"),
+        message: "Enter a header name",
+      });
       continue;
     }
     if (!headerNamePattern.test(name)) {
@@ -75,12 +87,35 @@ const httpsUrlSchema = z
       context.addIssue({ code: "custom", message: "URL must use HTTPS" });
     }
     if (url.username !== "" || url.password !== "") {
-      context.addIssue({ code: "custom", message: "URL must not contain credentials" });
+      context.addIssue({
+        code: "custom",
+        message: "URL must not contain credentials",
+      });
     }
   });
 
 const baseSchema = z.object({
   kind: z.enum(["http", "axiom"]),
+  stream: z.enum([
+    "audit_logs",
+    "key_verifications",
+    "gateway_requests",
+    "runtime_logs",
+    "ratelimits",
+  ]),
+  namespaceIds: resourceIdsSchema,
+  passed: passedSchema,
+  outcomes: outcomesSchema,
+  keySpaceIds: keySpaceIdsSchema,
+  statusClasses: statusClassesSchema,
+  severities: severitiesSchema,
+  runtimeProjectIds: resourceIdsSchema,
+  runtimeAppIds: resourceIdsSchema,
+  runtimeEnvironmentIds: resourceIdsSchema,
+  runtimeSourceMode: z.enum(["all", "some"]),
+  projectIds: resourceIdsSchema,
+  appIds: resourceIdsSchema,
+  environmentIds: resourceIdsSchema,
   name: z.string().trim().min(1, "Enter a name").max(128, "Name must be 128 characters or less"),
   url: z.string(),
   format: z.enum(["json", "ndjson"]),
@@ -88,6 +123,9 @@ const baseSchema = z.object({
   dataset: z.string(),
   token: z.string(),
   eventTypes: z.array(z.string().trim().min(1).max(256)).max(256),
+  sourceMode: z.enum(["all", "some"]),
+  statusMode: z.enum(["all", "errors", "custom"]),
+  eventTypesMode: z.enum(["all", "specific"]),
 });
 
 export type DrainFormValues = z.infer<typeof baseSchema>;
@@ -112,10 +150,18 @@ function refineDestination(
     }
     case "axiom":
       if (values.dataset.trim() === "") {
-        context.addIssue({ code: "custom", path: ["dataset"], message: "Enter a dataset" });
+        context.addIssue({
+          code: "custom",
+          path: ["dataset"],
+          message: "Enter a dataset",
+        });
       }
       if (tokenRequired && values.token.trim() === "") {
-        context.addIssue({ code: "custom", path: ["token"], message: "Enter a token" });
+        context.addIssue({
+          code: "custom",
+          path: ["token"],
+          message: "Enter a token",
+        });
       }
       break;
     default:
@@ -123,19 +169,121 @@ function refineDestination(
   }
 }
 
-export const createDrainSchema = baseSchema.superRefine((values, context) =>
-  refineDestination(values, context, { tokenRequired: true }),
-);
+function drainSchema({ tokenRequired }: { tokenRequired: boolean }) {
+  return baseSchema.superRefine((values, context) => {
+    refineDestination(values, context, { tokenRequired });
+    if (
+      values.stream === "audit_logs" &&
+      values.eventTypesMode === "specific" &&
+      values.eventTypes.length === 0
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["eventTypes"],
+        message: "Choose at least one event type",
+      });
+    }
+    if (values.stream !== "gateway_requests" && values.stream !== "runtime_logs") {
+      return;
+    }
+    const runtime = values.stream === "runtime_logs";
+    const sources = submittedSources(values);
+    const chosen =
+      sources.projectIds.length + sources.appIds.length + sources.environmentIds.length;
+    if ((runtime ? values.runtimeSourceMode : values.sourceMode) === "some" && chosen === 0) {
+      context.addIssue({
+        code: "custom",
+        path: [runtime ? "runtimeEnvironmentIds" : "environmentIds"],
+        message: "Choose at least one source",
+      });
+    }
+    if (!runtime && values.statusMode === "custom" && values.statusClasses.length === 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["statusClasses"],
+        message: "Choose at least one status class",
+      });
+    }
+  });
+}
+
+export const createDrainSchema = drainSchema({ tokenRequired: true });
 
 /** Editing keeps the stored token when the field is left blank. */
-export const editDrainSchema = baseSchema.superRefine((values, context) =>
-  refineDestination(values, context, { tokenRequired: false }),
-);
+export const editDrainSchema = drainSchema({ tokenRequired: false });
+
+export const ERROR_STATUS_CLASSES = [4, 5];
+
+export function submittedStatusClasses(values: DrainFormValues): number[] {
+  switch (values.statusMode) {
+    case "all":
+      return [];
+    case "errors":
+      return [...ERROR_STATUS_CLASSES];
+    case "custom":
+      return values.statusClasses;
+    default:
+      throw new Error(`Unsupported status mode: ${values.statusMode satisfies never}`);
+  }
+}
+
+export function submittedSources(values: DrainFormValues): {
+  projectIds: string[];
+  appIds: string[];
+  environmentIds: string[];
+} {
+  if (values.stream === "runtime_logs") {
+    return values.runtimeSourceMode === "all"
+      ? { projectIds: [], appIds: [], environmentIds: [] }
+      : {
+          projectIds: values.runtimeProjectIds,
+          appIds: values.runtimeAppIds,
+          environmentIds: values.runtimeEnvironmentIds,
+        };
+  }
+  if (values.sourceMode === "all") {
+    return { projectIds: [], appIds: [], environmentIds: [] };
+  }
+  return {
+    projectIds: values.projectIds,
+    appIds: values.appIds,
+    environmentIds: values.environmentIds,
+  };
+}
+
+function statusModeFor(statusClasses: number[]): DrainFormValues["statusMode"] {
+  if (statusClasses.length === 0) {
+    return "all";
+  }
+  const sorted = [...statusClasses].sort();
+  return sorted.length === ERROR_STATUS_CLASSES.length &&
+    sorted.every((statusClass, index) => statusClass === ERROR_STATUS_CLASSES[index])
+    ? "errors"
+    : "custom";
+}
+
+export function submittedEventTypes(values: DrainFormValues): string[] {
+  return values.eventTypesMode === "all" ? [] : values.eventTypes;
+}
 
 export const emptyHeaderRow = { name: "", value: "", stored: false };
 
 export const emptyDrainForm: DrainFormValues = {
   kind: "http",
+  stream: "audit_logs",
+  namespaceIds: [],
+  passed: [],
+  outcomes: [],
+  keySpaceIds: [],
+  statusClasses: [],
+  severities: [],
+  runtimeProjectIds: [],
+  runtimeAppIds: [],
+  runtimeEnvironmentIds: [],
+  runtimeSourceMode: "all",
+  projectIds: [],
+  appIds: [],
+  environmentIds: [],
   name: "",
   url: "",
   format: "json",
@@ -143,6 +291,9 @@ export const emptyDrainForm: DrainFormValues = {
   dataset: "",
   token: "",
   eventTypes: [],
+  sourceMode: "all",
+  statusMode: "all",
+  eventTypesMode: "all",
 };
 
 export function drainToFormValues(drain: DrainDetail): DrainFormValues {
@@ -150,12 +301,41 @@ export function drainToFormValues(drain: DrainDetail): DrainFormValues {
     ...emptyDrainForm,
     kind: drain.kind,
     name: drain.name,
+    stream: drain.stream,
+    namespaceIds: "namespaceIds" in drain ? drain.namespaceIds : [],
+    passed: "passed" in drain ? drain.passed : [],
+    outcomes: outcomesSchema.parse(drain.outcomes),
+    keySpaceIds: drain.keySpaceIds,
+    statusClasses: statusClassesSchema.parse(drain.statusClasses),
+    severities: drain.severities,
+    runtimeProjectIds: drain.stream === "runtime_logs" ? drain.projectIds : [],
+    runtimeAppIds: drain.stream === "runtime_logs" ? drain.appIds : [],
+    runtimeEnvironmentIds: drain.stream === "runtime_logs" ? drain.environmentIds : [],
+    runtimeSourceMode:
+      drain.stream === "runtime_logs" &&
+      drain.projectIds.length + drain.appIds.length + drain.environmentIds.length > 0
+        ? "some"
+        : "all",
+    projectIds: drain.stream === "gateway_requests" ? drain.projectIds : [],
+    appIds: drain.stream === "gateway_requests" ? drain.appIds : [],
+    environmentIds: drain.stream === "gateway_requests" ? drain.environmentIds : [],
+    sourceMode:
+      drain.stream === "gateway_requests" &&
+      drain.projectIds.length + drain.appIds.length + drain.environmentIds.length > 0
+        ? "some"
+        : "all",
+    statusMode: statusModeFor(statusClassesSchema.parse(drain.statusClasses)),
     eventTypes: drain.eventTypes,
+    eventTypesMode: drain.eventTypes.length > 0 ? "specific" : "all",
     url: drain.kind === "http" ? drain.config.url : "",
     format: drain.kind === "http" ? drain.config.format : "json",
     headers:
       drain.kind === "http"
-        ? drain.config.headers.map((name) => ({ name, value: "", stored: true }))
+        ? drain.config.headers.map((name) => ({
+            name,
+            value: "",
+            stored: true,
+          }))
         : [],
     dataset: drain.kind === "axiom" ? drain.config.dataset : "",
   };

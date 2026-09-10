@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
+	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
@@ -21,8 +22,8 @@ type Source interface {
 	// Read returns events after from with inserted_at before toExclusive,
 	// ordered by (inserted_at, event_id), and capped at limit rows. The returned
 	// cursor identifies the last row; empty results and errors return from unchanged.
-	// An empty eventTypes list selects all events; otherwise only exact matches are returned.
-	Read(ctx context.Context, workspaceID string, from Cursor, toExclusive int64, limit int, eventTypes []string) ([]sink.Event, Cursor, error)
+	// Empty stream filters select all events; otherwise only exact matches are returned.
+	Read(ctx context.Context, workspaceID string, from Cursor, toExclusive int64, limit int, config *logdrainv1.Config) ([]sink.Event, Cursor, error)
 }
 
 // AuditLogs reads the audit_logs stream from ClickHouse.
@@ -66,7 +67,7 @@ type auditRow struct {
 }
 
 // Read preserves deterministic timestamp paging while converting ClickHouse rows into the public audit-log shape.
-func (s *AuditLogs) Read(ctx context.Context, workspaceID string, from Cursor, toExclusive int64, limit int, eventTypes []string) ([]sink.Event, Cursor, error) {
+func (s *AuditLogs) Read(ctx context.Context, workspaceID string, from Cursor, toExclusive int64, limit int, config *logdrainv1.Config) ([]sink.Event, Cursor, error) {
 	// query orders by inserted_at and event_id so paging stays deterministic
 	// when many rows share one inserted_at millisecond.
 	const query = `
@@ -107,7 +108,7 @@ func (s *AuditLogs) Read(ctx context.Context, workspaceID string, from Cursor, t
 		"from_id":     from.EventID,
 		"to":          strconv.FormatInt(toExclusive, 10),
 		"batch_size":  strconv.Itoa(limit),
-		"event_types": clickhouse.StringArrayParam(eventTypes),
+		"event_types": clickhouse.StringArrayParam(config.GetAuditLogs().GetEventTypes()),
 	})
 	if err != nil {
 		return nil, from, fmt.Errorf("read audit logs: %w", err)

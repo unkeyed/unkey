@@ -1,9 +1,9 @@
 ---
 title: "Overview"
-description: "How the logdrain service streams audit logs to customer destinations"
+description: "How the logdrain service streams audit logs, key verifications, gateway HTTP requests, and runtime logs to customer destinations"
 ---
 
-The logdrain service (`svc/logdrain`) streams audit logs from ClickHouse to
+The logdrain service (`svc/logdrain`) streams audit logs, key verifications, gateway HTTP requests, and runtime logs from ClickHouse to
 customer-owned destinations: generic HTTP endpoints and Axiom.
 Under one valid lease, it sends events in cursor order. It provides
 at-least-once delivery. MySQL stores configuration and delivery progress. The
@@ -17,7 +17,7 @@ engine polls for assigned drains that are due, then gives them to a worker
 pool.
 
 A worker first confirms its assignment in MySQL. It then reads the drain's
-configuration and cursor, queries the next audit log batch from ClickHouse,
+configuration and cursor, queries the next stream batch from ClickHouse,
 and sends that batch to the customer destination. After the destination
 acknowledges the batch, the worker advances the cursor in MySQL. A failed
 delivery leaves the cursor unchanged.
@@ -33,10 +33,23 @@ The `stream` oneof identifies the stream and contains its typed configuration,
 independently of the destination. `audit_logs` selects `AuditLogStreamConfig`.
 Its `event_types` list selects exact audit event names. An empty list means all
 audit events, including event types added later. Existing protobuf configs with
-no stream retain the legacy audit-log behavior without filters. The MySQL
-`stream` column remains the scheduling index and must agree with the config.
-Deploy workers that understand the stream config before enabling the dashboard
-selector; older workers ignore it.
+no stream retain the legacy audit-log behavior without filters.
+
+`runtime_logs` selects `RuntimeLogStreamConfig`. Its `severities`, `project_ids`,
+`app_ids`, and `environment_ids` lists match exact collected values. Lists combine
+with AND, values within a list with OR, and empty lists are unrestricted.
+The payload contains `log_id`, `severity`, `message`, nested `attributes`, customer
+resource IDs, and `region`. Vector parses application output before insertion.
+The drain preserves that output and omits Kubernetes pod names and platform metadata.
+
+The dashboard uses the same source tree for gateway requests and runtime logs.
+Whole-project and whole-app selections keep their IDs, so they include future
+environments. Mixed selections use environment IDs and do not include future
+environments automatically. Selecting every current environment removes the
+source restriction. Clearing every source blocks submission.
+
+The protobuf stream selects the source. The MySQL `stream` column remains for
+drain counts and listing, but does not control source selection.
 
 ClickHouse applies the filter before ordering and limiting each batch. Windows
 with no matching events still advance the cursor. Editing the filter expires
@@ -55,7 +68,7 @@ svc/logdrain process
     ├── polls due leases from MySQL
     └── workers
         ├── read config and cursor from MySQL
-        ├── read audit logs from ClickHouse
+        ├── read the configured stream from ClickHouse
         ├── send batches to the customer destination
         └── write delivery state to MySQL and telemetry to ClickHouse
 ```
@@ -80,12 +93,12 @@ reaching the watermark. It does not cause a poll delay while a backlog remains.
 
 ```mermaid
 stateDiagram-v2
-    state "Queue drain and fix watermark" as Queued
+    state "Queue drain with poll timestamp" as Queued
     state "Read configuration and committed cursor with lease fence" as CheckLease
     state "Read page through batchReader" as ReadPage
     state "Send events to destination" as Deliver
     state "Commit proposed cursor with lease fence" as Commit
-    state "Wait PollInterval" as Wait
+    state "Wait stream poll interval" as Wait
     state "Record retry or pause without advancing cursor" as Failure
     state "Stop this cycle" as Stop
 
@@ -106,7 +119,7 @@ stateDiagram-v2
     Stop --> [*]
 
     note right of Commit
-        No backlog: next_attempt_at = MySQL now + PollInterval.
+        No backlog: next_attempt_at = MySQL now + stream poll interval.
         Backlog remains: next_attempt_at = MySQL now.
         An acknowledged but uncommitted batch can be delivered again.
     end note
@@ -172,10 +185,31 @@ or rows scanned.
 
 ## Cursor and watermark
 
-Each drain subscribes to one stream. The supported stream is `audit_logs`,
-backed by the ClickHouse table `audit_logs_raw_v1`. The cursor is the pair
-`(inserted_at, event_id)`. MySQL stores it as
+Each drain subscribes to one stream. `audit_logs` reads `audit_logs_raw_v1`
+with cursor `(inserted_at, event_id)`. `key_verifications` reads
+`key_verifications_raw_v2` with cursor `(inserted_at, request_id)`.
+The existing request ID identifies the verification and is the export event ID.
+`runtime_logs` reads `runtime_logs_raw_v1` with `(inserted_at, log_id)`, reusing
+Vector's stable ID and ClickHouse's insertion timestamp. Its time-first projection
+orders `(workspace_id, inserted_at, log_id)` and stores `_part_offset`.
+Runtime retention remains `expires_at + INTERVAL 7 DAY`, with the existing
+90-day insertion-time default for `expires_at` and whole-part deletion.
+MySQL stores each cursor as
 `committed_offset_inserted_at` and `committed_offset_event_id`.
+
+ClickHouse stamps verification `inserted_at` when it inserts the row. Writers
+omit that column. The event's `time` stays unchanged, so buffered or retried
+events with older occurrence times remain eligible for later insertion windows.
+The service retains the existing 90-day event-time TTL for verifications.
+Events older than that retention period are not guaranteed to remain available.
+
+All streams have a lightweight `proj_logdrain` projection. The verification
+projection orders `(workspace_id, inserted_at, request_id)` and stores
+`_part_offset` rather than duplicating payload columns. The query uses expanded
+cursor OR predicates so ClickHouse can prune the insertion range. Reduced
+payload reads depend on base-table granularity: matching rows scattered across
+every granule can still require a full payload read. Outcome and keyspace filters run
+before `LIMIT`, but are not part of the projection ordering.
 
 Creation sets the cursor to the drain's creation time with an empty event ID.
 Historical backfill before creation is not supported. Pauses, failures, and
@@ -211,10 +245,50 @@ advances the cursor to that window's exclusive end with an empty event ID.
 The empty event ID keeps events at that exact boundary eligible for the next
 read, which can happen in the same cycle.
 
-The watermark is the poll's enqueue timestamp minus `WatermarkLag`. It stays
-fixed while the worker catches up, rather than moving forward with every
-batch. This settling period gives late ClickHouse inserts time to arrive
-before the cursor passes their timestamp.
+The watermark is the poll's enqueue timestamp minus the configured stream lag.
+The worker selects that lag from the protobuf stream before it chooses the
+watermark. A missing stream keeps the legacy audit policy. The watermark stays
+fixed while the worker catches up, including time spent waiting in the queue.
+This settling period gives late ClickHouse inserts time to become query-visible
+before the cursor passes their insertion timestamp.
+
+### Stream timing
+
+Audit logs default to a 5-minute watermark lag and a 60-second poll interval.
+Key verifications, gateway HTTP requests, and runtime logs use a fixed
+15-second lag and a 5-second interval. Future non-audit sources use the same
+non-audit timing policy when their source dispatch is added.
+
+The existing `poll_interval` and `watermark_lag` settings control audits only.
+Non-audit timing is defined by engine constants and has no operator settings.
+The audit defaults are:
+
+```toml
+poll_interval = "60s"
+watermark_lag = "5m"
+```
+
+The audit poll interval must be at least 1ms. Its watermark lag must not be negative.
+The engine scans MySQL at the shorter poll interval. A caught-up drain remains
+ineligible until database commit time plus its stream's poll interval. Thus,
+5-second discovery does not repeatedly read caught-up audits from ClickHouse.
+Query window sizes are not sleep intervals. Backlog pages continue immediately
+on the same worker.
+
+For a healthy, caught-up non-audit drain, roughly 15–25 seconds after insertion
+is an expectation, not a guaranteed end-to-end SLO. The target is delivery
+within a minute of occurrence. Queue delay, backlog, destination failures, and
+collection buffering can exceed it. API and frontline buffers flush every
+5 seconds; the local Vector ClickHouse sink batches for up to 3 seconds.
+Production collector settings require a separate check.
+
+The shorter lag accepts more risk of missing rows that become query-visible
+after the cursor passes their insertion timestamp. It does not drop failed
+batches or change retries, fencing, or audit timing. The committed-batch log
+reports insertion-cursor age as `lag_ms` and the oldest delivered occurrence's
+age at commit as `oldest_event_age_ms`. Event timestamps and service clock skew
+affect the latter. Delivery-duration metrics measure destination request time,
+not end-to-end event age.
 
 ## Leasing and fencing
 
@@ -258,7 +332,8 @@ absolute retry time to `next_attempt_at`. It calculates that timestamp from
 MySQL time, not process time. The due-drain queries return the drain only after
 `next_attempt_at` has passed. A successful cursor update resets the failure
 count. A page remains due immediately while a backlog remains. Only a page
-that reaches the watermark schedules the next attempt after `PollInterval`.
+that reaches the watermark schedules the next attempt after its stream's
+poll interval.
 
 The engine pauses the drain only after it reaches the configured failure
 threshold. Re-enabling a drain or changing its destination makes it running. The
@@ -280,33 +355,26 @@ The cursor, lease, and fencing token define the delivery semantics:
   an external request after a worker completes its fenced read.
 
 Customers must handle duplicate events. They can use the audit log event `id`
-as a deduplication key.
+or the verification or gateway `request_id` as a deduplication key within its stream.
 
-## Health telemetry
+## Verification payload
 
-Each destination attempt writes one row to the ClickHouse table
-`logdrain_deliveries_raw_v1`. The row contains the outcome (`success` or
-`error`), event count, `webhook_duration_ms`, `request_body_bytes`, and a
-truncated error message. `request_body_bytes` contains the uncompressed encoded
-body size. It does not include request headers. A rejected HTTP response also
-includes the response status and up to 4 KiB of the response body. The duration
-measures only the destination request. The dashboard reads this table for the
-drain health charts and delivery errors.
+Each HTTP record contains `event` (the verification payload),
+`stream: "key_verifications"`, and `timestamp`
+(occurrence time in UTC RFC3339 with millisecond precision). Batch metadata
+stays in request headers. Axiom contains `event`, `stream: "key_verifications"`,
+and `_time` with the same occurrence time. HTTP JSON sends an array; NDJSON
+sends one record per line. `inserted_at` is only an internal cursor field.
 
-### Prometheus metrics
+The verification payload contains these fields from the raw verification row:
 
-The Prometheus endpoint reports scheduling, delivery, and failure health for
-the service.
-
-| Metric name | Type | Labels | Meaning |
-| --- | --- | --- | --- |
-| `unkey_logdrain_drains` | Gauge | `status`, `stream` | Configured drains by status and stream. |
-| `unkey_logdrain_work_queue_depth` | Gauge | None | Items waiting in the work queue. |
-| `unkey_logdrain_work_queue_capacity` | Gauge | None | Work queue capacity. |
-| `unkey_logdrain_inflight_drains` | Gauge | None | Drains queued or processing. |
-| `unkey_logdrain_polls_total` | Counter | `result` | Poll outcomes. |
-| `unkey_logdrain_deliveries_total` | Counter | `kind`, `stream`, `outcome` | Delivery attempt outcomes. |
-| `unkey_logdrain_events_delivered_total` | Counter | `kind`, `stream` | Events in committed deliveries. |
-| `unkey_logdrain_delivery_duration_seconds` | Histogram | `kind`, `stream`, `outcome` | Delivery attempt latency. |
-| `unkey_logdrain_drain_failures_total` | Counter | `stream` | Failures recorded by the engine. |
-| `unkey_logdrain_drains_paused_total` | Counter | `stream` | Drains paused after they reach the failure threshold. |
+| Fields | Meaning |
+| --- | --- |
+| `request_id` | Request correlation and deduplication ID. |
+| `key_space_id`, `key_id` | Verified key and key space. |
+| `identity` | Object with `id` and `externalId`. Omitted when both identifiers are absent. |
+| `region` | Verification region. |
+| `source` | Object with `type`: `api` or `gateway`. Gateway sources also include `appId`; API sources omit it. |
+| `outcome` | Verification outcome, not an audit event type. |
+| `tags` | String array of verification tags. |
+| `spent_credits` | Credits spent on this verification. |
