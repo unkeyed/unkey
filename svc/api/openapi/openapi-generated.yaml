@@ -14816,6 +14816,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
+                    description: Query exceeds the maximum response size
                 "429":
                     content:
                         application/problem+json:
