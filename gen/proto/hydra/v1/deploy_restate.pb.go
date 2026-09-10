@@ -27,9 +27,8 @@ import (
 // by BuildSlotService.
 //
 // Deploy handles the full pipeline from building container images through
-// provisioning containers and configuring domain routing. Rollback and Promote
-// manage traffic switching between deployments by reassigning sticky frontline
-// routes atomically through the routing service.
+// provisioning containers and configuring domain routing. Promotion and
+// rollback live on EnvironmentService, keyed by environment id.
 type DeployServiceClient interface {
 	// Create writes the deployment row and, for a DEPLOY decision, starts Deploy.
 	// The object key is the deployment id, so the caller chooses it up front.
@@ -39,18 +38,6 @@ type DeployServiceClient interface {
 	// update the app's live deployment pointer for production environments.
 	// Sets deployment status to failed on any error.
 	Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *DeployResponse]
-	// Rollback switches sticky frontline routes (environment and live) from the
-	// current live deployment back to a previous one. Marks the app as rolled
-	// back so future deploys don't automatically reclaim live routes.
-	// Source must be the current live deployment; both must share the same app
-	// and environment.
-	Rollback(opts ...sdk_go.ClientOption) sdk_go.Client[*RollbackRequest, *RollbackResponse]
-	// Promote reassigns sticky frontline routes to a target deployment and clears
-	// the rolled-back flag, restoring normal deployment flow.
-	// Target must be in ready status. A normal promotion also requires that it is
-	// not already the live deployment; when the app is rolled back and the target
-	// is already live, Promote only clears the flag and leaves routes alone.
-	Promote(opts ...sdk_go.ClientOption) sdk_go.Client[*PromoteRequest, *PromoteResponse]
 	// StopDeployment schedules desired_state=stopped for a running deployment.
 	StopDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*StopDeploymentRequest, *StopDeploymentResponse]
 	// WakeDeployment schedules desired_state=running for a stopped deployment
@@ -93,22 +80,6 @@ func (c *deployServiceClient) Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[
 	return sdk_go.WithRequestType[*DeployRequest](sdk_go.Object[*DeployResponse](c.ctx, "hydra.v1.DeployService", c.key, "Deploy", cOpts...))
 }
 
-func (c *deployServiceClient) Rollback(opts ...sdk_go.ClientOption) sdk_go.Client[*RollbackRequest, *RollbackResponse] {
-	cOpts := c.options
-	if len(opts) > 0 {
-		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
-	}
-	return sdk_go.WithRequestType[*RollbackRequest](sdk_go.Object[*RollbackResponse](c.ctx, "hydra.v1.DeployService", c.key, "Rollback", cOpts...))
-}
-
-func (c *deployServiceClient) Promote(opts ...sdk_go.ClientOption) sdk_go.Client[*PromoteRequest, *PromoteResponse] {
-	cOpts := c.options
-	if len(opts) > 0 {
-		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
-	}
-	return sdk_go.WithRequestType[*PromoteRequest](sdk_go.Object[*PromoteResponse](c.ctx, "hydra.v1.DeployService", c.key, "Promote", cOpts...))
-}
-
 func (c *deployServiceClient) StopDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*StopDeploymentRequest, *StopDeploymentResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
@@ -145,18 +116,6 @@ type DeployServiceIngressClient interface {
 	// update the app's live deployment pointer for production environments.
 	// Sets deployment status to failed on any error.
 	Deploy() ingress.Requester[*DeployRequest, *DeployResponse]
-	// Rollback switches sticky frontline routes (environment and live) from the
-	// current live deployment back to a previous one. Marks the app as rolled
-	// back so future deploys don't automatically reclaim live routes.
-	// Source must be the current live deployment; both must share the same app
-	// and environment.
-	Rollback() ingress.Requester[*RollbackRequest, *RollbackResponse]
-	// Promote reassigns sticky frontline routes to a target deployment and clears
-	// the rolled-back flag, restoring normal deployment flow.
-	// Target must be in ready status. A normal promotion also requires that it is
-	// not already the live deployment; when the app is rolled back and the target
-	// is already live, Promote only clears the flag and leaves routes alone.
-	Promote() ingress.Requester[*PromoteRequest, *PromoteResponse]
 	// StopDeployment schedules desired_state=stopped for a running deployment.
 	StopDeployment() ingress.Requester[*StopDeploymentRequest, *StopDeploymentResponse]
 	// WakeDeployment schedules desired_state=running for a stopped deployment
@@ -193,16 +152,6 @@ func (c *deployServiceIngressClient) Deploy() ingress.Requester[*DeployRequest, 
 	return ingress.NewRequester[*DeployRequest, *DeployResponse](c.client, c.serviceName, "Deploy", &c.key, &codec)
 }
 
-func (c *deployServiceIngressClient) Rollback() ingress.Requester[*RollbackRequest, *RollbackResponse] {
-	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*RollbackRequest, *RollbackResponse](c.client, c.serviceName, "Rollback", &c.key, &codec)
-}
-
-func (c *deployServiceIngressClient) Promote() ingress.Requester[*PromoteRequest, *PromoteResponse] {
-	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*PromoteRequest, *PromoteResponse](c.client, c.serviceName, "Promote", &c.key, &codec)
-}
-
 func (c *deployServiceIngressClient) StopDeployment() ingress.Requester[*StopDeploymentRequest, *StopDeploymentResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*StopDeploymentRequest, *StopDeploymentResponse](c.client, c.serviceName, "StopDeployment", &c.key, &codec)
@@ -234,9 +183,8 @@ func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*N
 // by BuildSlotService.
 //
 // Deploy handles the full pipeline from building container images through
-// provisioning containers and configuring domain routing. Rollback and Promote
-// manage traffic switching between deployments by reassigning sticky frontline
-// routes atomically through the routing service.
+// provisioning containers and configuring domain routing. Promotion and
+// rollback live on EnvironmentService, keyed by environment id.
 type DeployServiceServer interface {
 	// Create writes the deployment row and, for a DEPLOY decision, starts Deploy.
 	// The object key is the deployment id, so the caller chooses it up front.
@@ -246,18 +194,6 @@ type DeployServiceServer interface {
 	// update the app's live deployment pointer for production environments.
 	// Sets deployment status to failed on any error.
 	Deploy(ctx sdk_go.ObjectContext, req *DeployRequest) (*DeployResponse, error)
-	// Rollback switches sticky frontline routes (environment and live) from the
-	// current live deployment back to a previous one. Marks the app as rolled
-	// back so future deploys don't automatically reclaim live routes.
-	// Source must be the current live deployment; both must share the same app
-	// and environment.
-	Rollback(ctx sdk_go.ObjectContext, req *RollbackRequest) (*RollbackResponse, error)
-	// Promote reassigns sticky frontline routes to a target deployment and clears
-	// the rolled-back flag, restoring normal deployment flow.
-	// Target must be in ready status. A normal promotion also requires that it is
-	// not already the live deployment; when the app is rolled back and the target
-	// is already live, Promote only clears the flag and leaves routes alone.
-	Promote(ctx sdk_go.ObjectContext, req *PromoteRequest) (*PromoteResponse, error)
 	// StopDeployment schedules desired_state=stopped for a running deployment.
 	StopDeployment(ctx sdk_go.ObjectContext, req *StopDeploymentRequest) (*StopDeploymentResponse, error)
 	// WakeDeployment schedules desired_state=running for a stopped deployment
@@ -282,12 +218,6 @@ func (UnimplementedDeployServiceServer) Create(ctx sdk_go.ObjectContext, req *De
 }
 func (UnimplementedDeployServiceServer) Deploy(ctx sdk_go.ObjectContext, req *DeployRequest) (*DeployResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method Deploy not implemented"), 501)
-}
-func (UnimplementedDeployServiceServer) Rollback(ctx sdk_go.ObjectContext, req *RollbackRequest) (*RollbackResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Rollback not implemented"), 501)
-}
-func (UnimplementedDeployServiceServer) Promote(ctx sdk_go.ObjectContext, req *PromoteRequest) (*PromoteResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Promote not implemented"), 501)
 }
 func (UnimplementedDeployServiceServer) StopDeployment(ctx sdk_go.ObjectContext, req *StopDeploymentRequest) (*StopDeploymentResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method StopDeployment not implemented"), 501)
@@ -319,8 +249,6 @@ func NewDeployServiceServer(srv DeployServiceServer, opts ...sdk_go.ServiceDefin
 	router := sdk_go.NewObject("hydra.v1.DeployService", sOpts...)
 	router = router.Handler("Create", sdk_go.NewObjectHandler(srv.Create))
 	router = router.Handler("Deploy", sdk_go.NewObjectHandler(srv.Deploy))
-	router = router.Handler("Rollback", sdk_go.NewObjectHandler(srv.Rollback))
-	router = router.Handler("Promote", sdk_go.NewObjectHandler(srv.Promote))
 	router = router.Handler("StopDeployment", sdk_go.NewObjectHandler(srv.StopDeployment))
 	router = router.Handler("WakeDeployment", sdk_go.NewObjectHandler(srv.WakeDeployment))
 	router = router.Handler("NotifyInstancesReady", sdk_go.NewObjectSharedHandler(srv.NotifyInstancesReady))
