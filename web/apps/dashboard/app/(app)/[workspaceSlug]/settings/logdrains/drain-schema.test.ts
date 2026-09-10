@@ -4,6 +4,7 @@ import {
   createDrainSchema,
   editDrainSchema,
   emptyDrainForm,
+  submittedEventTypes,
   submittedSources,
   submittedStatusClasses,
 } from "./drain-schema";
@@ -96,6 +97,22 @@ describe("createDrainSchema", () => {
     ).toEqual([]);
   });
 
+  it("rejects specific event types with an empty list", () => {
+    expect(messagesFor(createDrainSchema, { ...httpDrain, eventTypesMode: "specific" })).toContain(
+      "Choose at least one event type",
+    );
+  });
+
+  it("accepts specific event types with a chosen type", () => {
+    expect(
+      messagesFor(createDrainSchema, {
+        ...httpDrain,
+        eventTypesMode: "specific",
+        eventTypes: ["key.create"],
+      }),
+    ).toEqual([]);
+  });
+
   it("rejects custom statuses with an empty list", () => {
     expect(
       messagesFor(createDrainSchema, {
@@ -152,6 +169,18 @@ describe("submittedSources", () => {
   });
 });
 
+describe("event type validation", () => {
+  it("ignores the event type mode on the key verifications stream", () => {
+    expect(
+      messagesFor(createDrainSchema, {
+        ...httpDrain,
+        stream: "key_verifications",
+        eventTypesMode: "specific",
+      }),
+    ).toEqual([]);
+  });
+});
+
 describe("editDrainSchema", () => {
   it("keeps a stored header whose value is left blank", () => {
     const headers = [{ name: "Authorization", value: "", stored: true }];
@@ -162,5 +191,27 @@ describe("editDrainSchema", () => {
     expect(
       messagesFor(editDrainSchema, { kind: "axiom", name: "Axiom", dataset: "audit-logs" }),
     ).toEqual([]);
+  });
+});
+
+describe("submittedEventTypes", () => {
+  it("sends no event types in all mode, whatever the kept selection is", () => {
+    expect(
+      submittedEventTypes({
+        ...emptyDrainForm,
+        eventTypesMode: "all",
+        eventTypes: ["key.create", "key.delete"],
+      }),
+    ).toEqual([]);
+  });
+
+  it("sends the chosen event types in specific mode", () => {
+    expect(
+      submittedEventTypes({
+        ...emptyDrainForm,
+        eventTypesMode: "specific",
+        eventTypes: ["key.create"],
+      }),
+    ).toEqual(["key.create"]);
   });
 });

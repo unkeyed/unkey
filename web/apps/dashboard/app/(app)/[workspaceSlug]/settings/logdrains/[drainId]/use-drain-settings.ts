@@ -13,6 +13,7 @@ import {
   drainToFormValues,
   editDrainSchema,
   emptyDrainForm,
+  submittedEventTypes,
   submittedSources,
   submittedStatusClasses,
 } from "../drain-schema";
@@ -59,7 +60,8 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
     form.handleSubmit((submitted) => {
       const name = submitted.name.trim();
       const destination = changedDestination(submitted, values);
-      const eventTypesChanged = !sameEventTypes(submitted.eventTypes, values.eventTypes);
+      const eventTypes = submittedEventTypes(submitted);
+      const eventTypesChanged = !sameEventTypes(eventTypes, values.eventTypes);
       const outcomesChanged = !sameEventTypes(submitted.outcomes, values.outcomes);
       const keySpacesChanged = !sameEventTypes(submitted.keySpaceIds, values.keySpaceIds);
       const statusClasses = submittedStatusClasses(submitted);
@@ -86,7 +88,7 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
         {
           id: drain.id,
           ...(name !== drain.name ? { name } : {}),
-          ...(eventTypesChanged ? { eventTypes: submitted.eventTypes } : {}),
+          ...(eventTypesChanged ? { eventTypes } : {}),
           ...(outcomesChanged ? { outcomes: submitted.outcomes } : {}),
           ...(keySpacesChanged ? { keySpaceIds: submitted.keySpaceIds } : {}),
           ...(statusesChanged ? { statusClasses } : {}),

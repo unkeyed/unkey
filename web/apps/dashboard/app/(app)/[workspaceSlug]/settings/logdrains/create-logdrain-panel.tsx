@@ -32,6 +32,7 @@ import {
   type DrainKind,
   createDrainSchema,
   emptyDrainForm,
+  submittedEventTypes,
   submittedSources,
   submittedStatusClasses,
 } from "./drain-schema";
@@ -104,7 +105,7 @@ export function CreateLogdrainPanel({
       name: values.name.trim(),
       stream: values.stream,
       ...(values.stream === "audit_logs"
-        ? { eventTypes: values.eventTypes }
+        ? { eventTypes: submittedEventTypes(values) }
         : values.stream === "gateway_requests"
           ? {
               statusClasses: submittedStatusClasses(values),

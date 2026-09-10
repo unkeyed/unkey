@@ -110,6 +110,7 @@ const baseSchema = z.object({
   eventTypes: z.array(z.string().trim().min(1).max(256)).max(256),
   sourceMode: z.enum(["all", "some"]),
   statusMode: z.enum(["all", "errors", "custom"]),
+  eventTypesMode: z.enum(["all", "specific"]),
 });
 
 export type DrainFormValues = z.infer<typeof baseSchema>;
@@ -156,6 +157,17 @@ function refineDestination(
 function drainSchema({ tokenRequired }: { tokenRequired: boolean }) {
   return baseSchema.superRefine((values, context) => {
     refineDestination(values, context, { tokenRequired });
+    if (
+      values.stream === "audit_logs" &&
+      values.eventTypesMode === "specific" &&
+      values.eventTypes.length === 0
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["eventTypes"],
+        message: "Choose at least one event type",
+      });
+    }
     if (values.stream !== "gateway_requests") {
       return;
     }
@@ -225,6 +237,10 @@ function statusModeFor(statusClasses: number[]): DrainFormValues["statusMode"] {
     : "custom";
 }
 
+export function submittedEventTypes(values: DrainFormValues): string[] {
+  return values.eventTypesMode === "all" ? [] : values.eventTypes;
+}
+
 export const emptyHeaderRow = { name: "", value: "", stored: false };
 
 export const emptyDrainForm: DrainFormValues = {
@@ -245,6 +261,7 @@ export const emptyDrainForm: DrainFormValues = {
   eventTypes: [],
   sourceMode: "all",
   statusMode: "all",
+  eventTypesMode: "all",
 };
 
 export function drainToFormValues(drain: DrainDetail): DrainFormValues {
@@ -265,6 +282,7 @@ export function drainToFormValues(drain: DrainDetail): DrainFormValues {
         : "all",
     statusMode: statusModeFor(statusClassesSchema.parse(drain.statusClasses)),
     eventTypes: drain.eventTypes,
+    eventTypesMode: drain.eventTypes.length > 0 ? "specific" : "all",
     url: drain.kind === "http" ? drain.config.url : "",
     format: drain.kind === "http" ? drain.config.format : "json",
     headers:
