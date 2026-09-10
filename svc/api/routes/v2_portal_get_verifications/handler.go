@@ -118,14 +118,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	points, err := h.ClickHouse.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
+	// Built once and shared by both reads below: the per-key breakout must be
+	// scoped identically to the account-wide series, and two literals would
+	// drift the next time a scoping field is added.
+	scope := clickhouse.VerificationTimeseriesRequest{
 		WorkspaceID: principal.AuthorizedWorkspaceID,
 		ExternalID:  externalID,
 		KeySpaceIDs: keySpaceIDs,
 		KeyID:       ptr.SafeDeref(req.KeyId),
 		StartTime:   req.StartTime,
 		EndTime:     req.EndTime,
-	})
+	}
+
+	points, err := h.ClickHouse.GetVerificationsByExternalID(ctx, scope)
 	if err != nil {
 		return err
 	}
@@ -140,15 +145,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if ptr.SafeDeref(req.PerKey) {
 		perKey, err := h.ClickHouse.GetVerificationsByExternalIDPerKey(ctx, clickhouse.VerificationTimeseriesPerKeyRequest{
-			VerificationTimeseriesRequest: clickhouse.VerificationTimeseriesRequest{
-				WorkspaceID: principal.AuthorizedWorkspaceID,
-				ExternalID:  externalID,
-				KeySpaceIDs: keySpaceIDs,
-				KeyID:       ptr.SafeDeref(req.KeyId),
-				StartTime:   req.StartTime,
-				EndTime:     req.EndTime,
-			},
-			MaxKeys: h.MaxPerKeySeries,
+			VerificationTimeseriesRequest: scope,
+			MaxKeys:                       h.MaxPerKeySeries,
 		})
 		if errors.Is(err, clickhouse.ErrTooManyVerificationKeys) {
 			return fault.Wrap(err,
