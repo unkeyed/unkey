@@ -162,6 +162,9 @@ func TestWithMetrics_IPAddressExtraction(t *testing.T) {
 					WithMetrics(eventBuffer, InstanceInfo{Region: "test-region"}, redaction.New([]string{"key", "plaintext", "variables[].value"})),
 				},
 				NewRoute(http.MethodGet, "/ip-test", func(ctx context.Context, s *Session) error {
+					s.Request().RemoteAddr = "203.0.113.88:4567"
+					s.Request().Header.Set("X-Forwarded-For", "203.0.113.99")
+					require.Equal(t, tt.expectedIP, s.Location())
 					return s.JSON(http.StatusOK, map[string]string{"status": "ok"})
 				}),
 			)

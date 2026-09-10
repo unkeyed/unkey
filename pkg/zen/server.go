@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"strings"
 	"sync"
 	"time"
 
@@ -32,7 +33,8 @@ type Server struct {
 	flags       Flags
 	config      Config
 
-	sessions sync.Pool
+	trustedProxyCIDRs []netip.Prefix
+	sessions          sync.Pool
 }
 
 // Flags configures the behavior of a Server instance.
@@ -159,18 +161,18 @@ func New(config Config) (*Server, error) {
 		flags = *config.Flags
 	}
 	s := &Server{
-		mu:          sync.Mutex{},
-		isListening: false,
-		mux:         mux,
-		srv:         srv,
-		flags:       flags,
-		config:      config,
+		mu:                sync.Mutex{},
+		isListening:       false,
+		mux:               mux,
+		srv:               srv,
+		flags:             flags,
+		config:            config,
+		trustedProxyCIDRs: trustedProxyCIDRs,
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
 					logRequestToClickHouse: true,
 					streamRequestBody:      config.StreamRequestBody,
-					trustedProxyCIDRs:      trustedProxyCIDRs,
 					clientIP:               netip.Addr{},
 					principal:              nil,
 					requestID:              "",
@@ -330,6 +332,7 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 			handleFn := route.Handle
 
 			err := sess.Init(w, r, s.config.MaxRequestBodySize)
+			s.setForwardedClientIP(sess)
 			if err != nil {
 				logger.Error("failed to init session", "error", err)
 				handleFn = func(_ context.Context, _ *Session) error {
@@ -349,6 +352,25 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 				panic(err)
 			}
 		})
+}
+
+func (s *Server) setForwardedClientIP(sess *Session) {
+	if !containsIP(s.trustedProxyCIDRs, sess.clientIP) {
+		return
+	}
+	values := sess.Request().Header.Values("X-Forwarded-For")
+	if len(values) == 0 {
+		return
+	}
+	// This assumes exactly one trusted HTTP proxy appends X-Forwarded-For.
+	// If we add more HTTP proxy hops, change this selection to validate the chain.
+	candidate := values[len(values)-1]
+	if comma := strings.LastIndexByte(candidate, ','); comma >= 0 {
+		candidate = candidate[comma+1:]
+	}
+	if ip, valid := parseIP(candidate); valid {
+		sess.clientIP = ip
+	}
 }
 
 // Shutdown gracefully stops the HTTP server, allowing in-flight requests

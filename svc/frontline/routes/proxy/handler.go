@@ -39,7 +39,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	ctx = proxy.WithRequestStartTime(ctx, startTime)
 
 	req := sess.Request()
-	hops, err := requestHops(sess, h.Metadata, startTime)
+	hops, err := applyPeerMetadata(sess, h.Metadata, startTime)
 	if err != nil {
 		return err
 	}
@@ -200,9 +200,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	return forwardErr
 }
 
-// requestHops verifies and removes metadata sent by a peer Frontline. Requests
-// without peer metadata start with an empty hop history.
-func requestHops(sess *zen.Session, codec *meta.Codec, now time.Time) ([]meta.Hop, error) {
+func applyPeerMetadata(sess *zen.Session, codec *meta.Codec, now time.Time) ([]meta.Hop, error) {
 	req := sess.Request()
 	values := req.Header.Values(proxy.HeaderFrontlineMeta)
 	if len(values) == 0 {

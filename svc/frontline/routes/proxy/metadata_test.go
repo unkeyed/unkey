@@ -25,7 +25,7 @@ func TestRequestHops_WithoutMetadataStartsWithEmptyHistory(t *testing.T) {
 	t.Parallel()
 
 	req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
-	hops, err := requestHops(newMetadataSession(t, req), nil, metadataRequestTime())
+	hops, err := applyPeerMetadata(newMetadataSession(t, req), nil, metadataRequestTime())
 	require.NoError(t, err)
 	require.Empty(t, hops)
 }
@@ -37,7 +37,7 @@ func TestRequestHops_VerifiesAndRemovesMetadata(t *testing.T) {
 	metadata := validMetadata()
 	req := requestWithMetadata(t, codec, metadata)
 
-	hops, err := requestHops(newMetadataSession(t, req), codec, metadataRequestTime())
+	hops, err := applyPeerMetadata(newMetadataSession(t, req), codec, metadataRequestTime())
 	require.NoError(t, err)
 	require.Equal(t, metadata.Hops, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
@@ -50,7 +50,7 @@ func TestRequestHops_IgnoresMalformedMetadata(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
 	req.Header.Set(proxy.HeaderFrontlineMeta, "client-controlled-value")
 
-	hops, err := requestHops(newMetadataSession(t, req), codec, metadataRequestTime())
+	hops, err := applyPeerMetadata(newMetadataSession(t, req), codec, metadataRequestTime())
 	require.NoError(t, err)
 	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
@@ -63,7 +63,7 @@ func TestRequestHops_IgnoresWrongSigningKey(t *testing.T) {
 	verifier := newMetadataCodec(t, alternateMetadataSigningKey)
 	req := requestWithMetadata(t, signer, validMetadata())
 
-	hops, err := requestHops(newMetadataSession(t, req), verifier, metadataRequestTime())
+	hops, err := applyPeerMetadata(newMetadataSession(t, req), verifier, metadataRequestTime())
 	require.NoError(t, err)
 	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
@@ -77,7 +77,7 @@ func TestRequestHops_IgnoresMissingExpiry(t *testing.T) {
 	metadata.ExpiresAt = time.Time{}
 	req := requestWithMetadata(t, codec, metadata)
 
-	hops, err := requestHops(newMetadataSession(t, req), codec, metadataRequestTime())
+	hops, err := applyPeerMetadata(newMetadataSession(t, req), codec, metadataRequestTime())
 	require.NoError(t, err)
 	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
@@ -91,7 +91,7 @@ func TestRequestHops_IgnoresExpiredMetadata(t *testing.T) {
 	metadata.ExpiresAt = metadataRequestTime().Add(-time.Minute)
 	req := requestWithMetadata(t, codec, metadata)
 
-	hops, err := requestHops(newMetadataSession(t, req), codec, metadataRequestTime())
+	hops, err := applyPeerMetadata(newMetadataSession(t, req), codec, metadataRequestTime())
 	require.NoError(t, err)
 	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
@@ -105,7 +105,7 @@ func TestRequestHops_IgnoresMetadataAtExpiry(t *testing.T) {
 	metadata.ExpiresAt = metadataRequestTime()
 	req := requestWithMetadata(t, codec, metadata)
 
-	hops, err := requestHops(newMetadataSession(t, req), codec, metadataRequestTime())
+	hops, err := applyPeerMetadata(newMetadataSession(t, req), codec, metadataRequestTime())
 	require.NoError(t, err)
 	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
@@ -118,7 +118,7 @@ func TestRequestHops_IgnoresDuplicateHeaders(t *testing.T) {
 	req := requestWithMetadata(t, codec, validMetadata())
 	req.Header.Add(proxy.HeaderFrontlineMeta, req.Header.Get(proxy.HeaderFrontlineMeta))
 
-	hops, err := requestHops(newMetadataSession(t, req), codec, metadataRequestTime())
+	hops, err := applyPeerMetadata(newMetadataSession(t, req), codec, metadataRequestTime())
 	require.NoError(t, err)
 	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
@@ -130,7 +130,7 @@ func TestRequestHops_IgnoresEmptyHeader(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
 	req.Header.Set(proxy.HeaderFrontlineMeta, "")
 
-	hops, err := requestHops(newMetadataSession(t, req), nil, metadataRequestTime())
+	hops, err := applyPeerMetadata(newMetadataSession(t, req), nil, metadataRequestTime())
 	require.NoError(t, err)
 	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
@@ -143,7 +143,7 @@ func TestRequestHops_IgnoresOversizedHeader(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
 	req.Header.Set(proxy.HeaderFrontlineMeta, strings.Repeat("a", 4097))
 
-	hops, err := requestHops(newMetadataSession(t, req), codec, metadataRequestTime())
+	hops, err := applyPeerMetadata(newMetadataSession(t, req), codec, metadataRequestTime())
 	require.NoError(t, err)
 	require.Empty(t, hops)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
@@ -155,7 +155,7 @@ func TestRequestHops_RejectsMetadataWithoutCodec(t *testing.T) {
 	codec := newMetadataCodec(t, metadataSigningKey)
 	req := requestWithMetadata(t, codec, validMetadata())
 
-	_, err := requestHops(newMetadataSession(t, req), nil, metadataRequestTime())
+	_, err := applyPeerMetadata(newMetadataSession(t, req), nil, metadataRequestTime())
 	requireFrontlineMetadataError(t, err)
 	require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
 }
@@ -185,7 +185,7 @@ func TestRequestHops_ClientIP(t *testing.T) {
 			req.RemoteAddr = "10.1.2.3:443"
 			req.Header.Set("X-Forwarded-For", "203.0.113.77")
 			sess := newMetadataSession(t, req)
-			_, err := requestHops(sess, newMetadataCodec(t, metadataSigningKey), metadataRequestTime())
+			_, err := applyPeerMetadata(sess, newMetadataCodec(t, metadataSigningKey), metadataRequestTime())
 			require.NoError(t, err)
 			require.Equal(t, tt.want, sess.Location())
 			require.Equal(t, "10.1.2.3:443", req.RemoteAddr)

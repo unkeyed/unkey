@@ -1,11 +1,13 @@
 package proxy
 
 import (
+	"bytes"
 	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"net/url"
 	"testing"
 	"time"
 
@@ -71,6 +73,62 @@ func TestForwardToInstanceReplacesSpoofedForwardedFor(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, "2001:db8::42", forwarded.Get("X-Forwarded-For"))
+}
+
+func TestForwardPreservesRequestAndResponse(t *testing.T) {
+	const requestURI = "/items/a%2Fb?q=a+b&q=a%20b&token=%2B%2F%3D&empty="
+	body := []byte{0, 1, 255, '\r', '\n', '&', '='}
+	type receivedRequest struct {
+		uri, host, method, contentType string
+		body                           []byte
+		err                            error
+	}
+	for _, destination := range []string{"instance", "region"} {
+		t.Run(destination, func(t *testing.T) {
+			received := make(chan receivedRequest, 1)
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				data, err := io.ReadAll(r.Body)
+				received <- receivedRequest{r.RequestURI, r.Host, r.Method, r.Header.Get("Content-Type"), data, err}
+				w.Header().Set("X-Customer-Response", "preserved")
+				w.WriteHeader(http.StatusCreated)
+			}))
+			t.Cleanup(upstream.Close)
+			target, err := url.Parse(upstream.URL)
+			require.NoError(t, err)
+			svc := &service{clock: clock.NewTestClock(), instanceID: "test", platform: "aws", region: "us-east-1"} //nolint:exhaustruct
+			server, err := zen.New(zen.Config{StreamRequestBody: true})                                            //nolint:exhaustruct
+			require.NoError(t, err)
+			server.RegisterRoute(nil, zen.NewRoute(http.MethodPost, "/", func(ctx context.Context, sess *zen.Session) error {
+				start := svc.clock.Now()
+				director := svc.makeInstanceDirector(sess, start)
+				if destination == "region" {
+					director = svc.makeRegionDirector(sess, start, "signed-metadata")
+				}
+				return svc.forward(ctx, sess, forwardConfig{
+					targetURL: target, startTime: start, directorFunc: director,
+					destination: destination, transport: http.DefaultTransport,
+				})
+			}))
+			frontline := httptest.NewServer(server.Mux())
+			t.Cleanup(frontline.Close)
+			req, err := http.NewRequest(http.MethodPost, frontline.URL+requestURI, bytes.NewReader(body))
+			require.NoError(t, err)
+			req.Host = "customer.example"
+			req.Header.Set("Content-Type", "application/octet-stream")
+			response, err := frontline.Client().Do(req)
+			require.NoError(t, err)
+			require.NoError(t, response.Body.Close())
+			require.Equal(t, http.StatusCreated, response.StatusCode)
+			require.Equal(t, "preserved", response.Header.Get("X-Customer-Response"))
+			got := <-received
+			require.NoError(t, got.err)
+			require.Equal(t, requestURI, got.uri)
+			require.Equal(t, "customer.example", got.host)
+			require.Equal(t, http.MethodPost, got.method)
+			require.Equal(t, "application/octet-stream", got.contentType)
+			require.Equal(t, body, got.body)
+		})
+	}
 }
 
 type roundTripperFunc func(*http.Request) (*http.Response, error)

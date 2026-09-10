@@ -28,7 +28,7 @@ func FuzzRequestHops(f *testing.F) {
 		req := httptest.NewRequest(http.MethodGet, "https://example.com", nil)
 		req.Header.Set(proxy.HeaderFrontlineMeta, headerValue)
 
-		hops, err := requestHops(newMetadataSession(t, req), codec, metadataRequestTime())
+		hops, err := applyPeerMetadata(newMetadataSession(t, req), codec, metadataRequestTime())
 		require.NoError(t, err)
 		require.Empty(t, req.Header.Values(proxy.HeaderFrontlineMeta))
 

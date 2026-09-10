@@ -54,14 +54,13 @@ type Session struct {
 	// to an HTTP response, allowing the metrics middleware to log the full error.
 	internalError string
 
-	principal         *principal.Principal
-	trustedProxyCIDRs []netip.Prefix
-	clientIP          netip.Addr
+	principal *principal.Principal
+	clientIP  netip.Addr
 }
 
 func (s *Session) Init(w http.ResponseWriter, r *http.Request, maxBodySize int64) error {
 	s.requestID = uid.New(uid.RequestPrefix)
-	s.clientIP = netip.Addr{}
+	s.clientIP, _ = parseIP(r.RemoteAddr)
 
 	// Wrap ResponseWriter with status recorder
 	s.w = &statusRecorder{
@@ -176,38 +175,13 @@ func (s *Session) UserAgent() string {
 	return s.r.UserAgent()
 }
 
-// Location returns the authenticated client IP, or the IP reported by a trusted
-// direct proxy, or the connection peer's IP. The trusted proxy's
-// rightmost X-Forwarded-For entry is authoritative because proxies append it
-// after any client-supplied values.
+// Location returns the client IP captured at initialization or replaced by
+// authenticated peer metadata.
 func (s *Session) Location() string {
 	if s.clientIP.IsValid() {
 		return s.clientIP.String()
 	}
-	peerIP, ok := parseIP(s.r.RemoteAddr)
-	if !ok {
-		return ""
-	}
-
-	if !containsIP(s.trustedProxyCIDRs, peerIP) {
-		return peerIP.String()
-	}
-
-	values := s.r.Header.Values("X-Forwarded-For")
-	if len(values) == 0 {
-		return peerIP.String()
-	}
-
-	candidate := values[len(values)-1]
-	if comma := strings.LastIndexByte(candidate, ','); comma >= 0 {
-		candidate = candidate[comma+1:]
-	}
-	clientIP, valid := parseIP(candidate)
-	if !valid {
-		return peerIP.String()
-	}
-
-	return clientIP.String()
+	return ""
 }
 
 // SetClientIP sets the client address after peer metadata has been authenticated.
