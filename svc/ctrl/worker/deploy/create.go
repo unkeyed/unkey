@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -86,12 +87,15 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 		return nil, err
 	}
 
-	// An AWAIT_APPROVAL row gets its commit status from
-	// githubwebhook.blockDeploymentForApproval until the webhook moves over.
-	if req.GetDecision() == hydrav1.CreateDecision_CREATE_DECISION_DEPLOY {
+	switch req.GetDecision() {
+	case hydrav1.CreateDecision_CREATE_DECISION_DEPLOY:
 		if err := w.startDeployment(ctx, deploymentID, payload); err != nil {
 			return nil, err
 		}
+	case hydrav1.CreateDecision_CREATE_DECISION_AWAIT_APPROVAL:
+		w.postAwaitingApprovalStatus(ctx, deploymentID, req, payload)
+	case hydrav1.CreateDecision_CREATE_DECISION_SKIP,
+		hydrav1.CreateDecision_CREATE_DECISION_UNSPECIFIED:
 	}
 
 	return &hydrav1.DeployCreateResponse{
@@ -555,6 +559,50 @@ func (w *Workflow) startDeployment(
 		"invocation_id", invocationID,
 	)
 	return nil
+}
+
+// postAwaitingApprovalStatus posts a failing commit status on the pushed commit
+// that links to the dashboard approval page. GitHub errors are retried for a
+// bounded time, then logged and dropped: the row is already written, so the
+// create must not fail here.
+func (w *Workflow) postAwaitingApprovalStatus(
+	ctx restate.ObjectContext,
+	deploymentID string,
+	req *hydrav1.DeployCreateRequest,
+	payload deployPayload,
+) {
+	if payload.Source.Git == nil || w.allowUnauthenticatedDeployments {
+		return
+	}
+
+	logURL := fmt.Sprintf("%s/%s/projects/%s/deployments/%s",
+		w.dashboardURL, payload.Target.WorkspaceSlug, req.GetProjectId(), deploymentID,
+	)
+
+	err := restate.RunVoid(ctx, func(_ restate.RunContext) error {
+		return w.github.CreateCommitStatus(
+			payload.Source.Git.InstallationID,
+			payload.Source.Git.Repository,
+			payload.Commit.SHA,
+			"failure",
+			logURL,
+			"Awaiting authorization from a project member",
+			githubclient.DeployAuthorizationContext,
+		)
+	}, restate.WithName("create commit status for authorization"), restate.WithMaxRetryDuration(30*time.Second))
+	if err != nil {
+		logger.Error(
+			"failed to post authorization commit status",
+			"deployment_id", deploymentID,
+			"error", err,
+		)
+	}
+
+	logger.Info(
+		"deployment awaiting authorization",
+		"deployment_id", deploymentID,
+		"project_id", req.GetProjectId(),
+	)
 }
 
 func statusForDecision(decision hydrav1.CreateDecision) (mysqltype.DeploymentsStatus, error) {

@@ -411,6 +411,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      p.workspace_id AS workspace_id,
+	//      w.slug AS workspace_slug,
 	//      p.id AS project_id,
 	//      a.id AS app_id,
 	//      a.source_type AS source_type,
@@ -447,6 +448,7 @@ type Querier interface {
 	//      ) AS has_schedulable_region
 	//  FROM apps a
 	//  INNER JOIN projects p ON p.id = a.project_id
+	//  INNER JOIN workspaces w ON w.id = p.workspace_id
 	//  INNER JOIN environments e ON e.id = ? AND e.app_id = a.id AND e.project_id = a.project_id
 	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
 	//  LEFT JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
@@ -1622,22 +1624,6 @@ type Querier interface {
 	//    AND created_at < ?
 	//    AND (updated_at IS null OR updated_at < ? )
 	ListDeploymentsByEnvironmentIdAndStatus(ctx context.Context, arg ListDeploymentsByEnvironmentIdAndStatusParams) ([]Deployment, error)
-	//ListEnvVarsForRepoConnections
-	//
-	//  SELECT aev.app_id, aev.`key`, aev.value
-	//  FROM app_environment_variables aev
-	//  INNER JOIN apps a ON aev.app_id = a.id
-	//  INNER JOIN environments e ON a.id = e.app_id AND e.id = aev.environment_id
-	//  INNER JOIN github_repo_connections gc ON gc.app_id = a.id
-	//  WHERE gc.installation_id = ?
-	//    AND gc.repository_id = ?
-	//    AND CASE
-	//      WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
-	//      WHEN ? = COALESCE(NULLIF(gc.default_branch, ''), 'main')
-	//      THEN e.kind = 'production'
-	//      ELSE e.kind = 'preview'
-	//    END
-	ListEnvVarsForRepoConnections(ctx context.Context, arg ListEnvVarsForRepoConnectionsParams) ([]ListEnvVarsForRepoConnectionsRow, error)
 	//ListEnvironmentIdsByApp
 	//
 	//  SELECT id FROM environments WHERE app_id = ?
@@ -1721,27 +1707,11 @@ type Querier interface {
 	//ListRepoConnectionDeployContexts
 	//
 	//  SELECT
-	//      gc.installation_id AS connection_installation_id,
-	//      gc.repository_full_name AS connection_repository_full_name,
 	//      p.id AS project_id,
-	//      p.workspace_id AS project_workspace_id,
 	//      e.id AS environment_id,
-	//      e.slug AS environment_slug,
 	//      a.id AS app_id,
 	//      abs.auto_deploy AS build_settings_auto_deploy,
-	//      abs.watch_paths AS build_settings_watch_paths,
-	//      abs.docker_context AS build_settings_docker_context,
-	//      abs.dockerfile AS build_settings_dockerfile,
-	//      abs.build_command AS build_settings_build_command,
-	//      ars.port AS runtime_settings_port,
-	//      ars.cpu_millicores AS runtime_settings_cpu_millicores,
-	//      ars.memory_mib AS runtime_settings_memory_mib,
-	//      ars.storage_mib AS runtime_settings_storage_mib,
-	//      ars.command AS runtime_settings_command,
-	//      ars.healthcheck AS runtime_settings_healthcheck,
-	//      ars.shutdown_signal AS runtime_settings_shutdown_signal,
-	//      ars.upstream_protocol AS runtime_settings_upstream_protocol,
-	//      ars.sentinel_config AS runtime_settings_sentinel_config
+	//      abs.watch_paths AS build_settings_watch_paths
 	//  FROM github_repo_connections gc
 	//  INNER JOIN apps a ON a.id = gc.app_id
 	//  INNER JOIN projects p ON p.id = gc.project_id

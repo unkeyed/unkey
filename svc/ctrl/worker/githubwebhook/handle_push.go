@@ -1,33 +1,32 @@
 package githubwebhook
 
 import (
-	"context"
 	"database/sql"
-	"fmt"
 	"os"
 	"time"
 	"unicode/utf8"
 
-	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
-
 	restate "github.com/restatedev/sdk-go"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/fault"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/svc/ctrl/dedup"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// HandlePush processes a GitHub push event durably via Restate. It looks up
-// repo connections with full deploy context (project, environment, app, settings)
-// in a single query, creates deployment records, and fires off DeployService.Deploy().
+// The service is keyed per repository, so an unbounded retry holds every later
+// push behind this one
+const changedFilesRetryDuration = 2 * time.Minute
+
+// HandlePush processes a GitHub push event: it looks up the repo connections,
+// matches each app's watch paths against the changed files, then calls
+// DeployService.Create once per app. Create owns the workspace entitlement gate.
 func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushRequest) (*hydrav1.HandlePushResponse, error) {
-	logger.Info("handling GitHub push in Restate",
+	logger.Info(
+		"handling GitHub push in Restate",
 		"delivery_id", req.GetDeliveryId(),
 		"repository", req.GetRepositoryFullName(),
 		"branch", req.GetBranch(),
@@ -36,16 +35,19 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	)
 
 	branch := req.GetBranch()
+	isForkPR := int64(0)
+	if req.GetIsForkPr() {
+		isForkPR = 1
+	}
 
-	// Single query: connections + apps + projects + environments + build/runtime settings
-	// Selects the production environment for the default branch and preview for others.
-	// Fork PRs always go to preview via the is_fork_pr flag.
+	// The default branch resolves to production, any other branch to preview,
+	// and a fork PR always to preview.
 	contexts, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListRepoConnectionDeployContextsRow, error) {
 		return s.db.ListRepoConnectionDeployContexts(runCtx, db.ListRepoConnectionDeployContextsParams{
 			InstallationID: req.GetInstallationId(),
 			RepositoryID:   req.GetRepositoryId(),
 			Branch:         sql.NullString{String: branch, Valid: branch != ""},
-			IsForkPr:       boolToInt64(req.GetIsForkPr()),
+			IsForkPr:       isForkPR,
 		})
 	}, restate.WithName("list deploy contexts"))
 	if err != nil {
@@ -53,83 +55,14 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	}
 
 	if len(contexts) == 0 {
-		logger.Info("no deploy contexts found",
+		logger.Info(
+			"no deploy contexts found",
 			"installation_id", req.GetInstallationId(),
 			"repository_id", req.GetRepositoryId(),
 			"branch", req.GetBranch(),
 		)
 		return &hydrav1.HandlePushResponse{}, nil
 	}
-
-	// Gate before loading env vars, calling GitHub, or writing even a skipped
-	// deployment row. A policy rejection is a successful no-op so Restate does
-	// not retry a permanently ineligible workspace and stall the repository.
-	entitlements := make(map[string]db.FindWorkspaceDeployEntitlementRow)
-	eligibleContexts := make([]db.ListRepoConnectionDeployContextsRow, 0, len(contexts))
-	for _, row := range contexts {
-		entitlement, ok := entitlements[row.ProjectWorkspaceID]
-		if !ok {
-			entitlement, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.FindWorkspaceDeployEntitlementRow, error) {
-				loaded, loadErr := s.db.FindWorkspaceDeployEntitlement(runCtx, row.ProjectWorkspaceID)
-				if db.IsNotFound(loadErr) {
-					return db.FindWorkspaceDeployEntitlementRow{
-						Plan:           sql.NullString{},
-						PlanOverride:   sql.NullString{},
-						SpendSuspended: sql.NullBool{},
-					}, nil
-				}
-				return loaded, loadErr
-			}, restate.WithName("load workspace deploy entitlement "+row.ProjectWorkspaceID))
-			if err != nil {
-				return nil, err
-			}
-			entitlements[row.ProjectWorkspaceID] = entitlement
-		}
-
-		if !deploygate.Entitled(entitlement.Plan, entitlement.PlanOverride) {
-			logger.Info("skipping deployment: workspace has no Compute plan",
-				"event", "deploy_gate.blocked",
-				"reason", "no_plan",
-				"workspace_id", row.ProjectWorkspaceID,
-				"project_id", row.ProjectID,
-				"app_id", row.AppID,
-				"delivery_id", req.GetDeliveryId(),
-			)
-			continue
-		}
-		if entitlement.SpendSuspended.Bool {
-			logger.Info("skipping deployment: workspace is spend suspended",
-				"event", "deploy_gate.blocked",
-				"reason", "spend_suspended",
-				"workspace_id", row.ProjectWorkspaceID,
-				"project_id", row.ProjectID,
-				"app_id", row.AppID,
-				"delivery_id", req.GetDeliveryId(),
-			)
-			continue
-		}
-
-		eligibleContexts = append(eligibleContexts, row)
-	}
-	contexts = eligibleContexts
-	if len(contexts) == 0 {
-		return &hydrav1.HandlePushResponse{}, nil
-	}
-
-	// Single query: all env vars for the matched apps
-	allEnvVars, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]db.ListEnvVarsForRepoConnectionsRow, error) {
-		return s.db.ListEnvVarsForRepoConnections(runCtx, db.ListEnvVarsForRepoConnectionsParams{
-			InstallationID: req.GetInstallationId(),
-			RepositoryID:   req.GetRepositoryId(),
-			Branch:         sql.NullString{String: branch, Valid: branch != ""},
-			IsForkPr:       boolToInt64(req.GetIsForkPr()),
-		})
-	}, restate.WithName("list env vars"))
-	if err != nil {
-		return nil, err
-	}
-
-	envVarsByApp := groupEnvVarsByApp(allEnvVars)
 
 	// Webhook payloads don't always include per-commit file lists:
 	//   - Fork PRs come through the pull_request webhook which has no commits.
@@ -139,7 +72,8 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 	// matching doesn't skip deploys for lack of a diff.
 	changedFiles := req.GetChangedFiles()
 	if len(changedFiles) == 0 && req.GetAfter() != "" && !s.allowUnauthenticatedDeployments {
-		logger.Info("fetching commit files from GitHub",
+		logger.Info(
+			"fetching commit files from GitHub",
 			"commit_sha", req.GetAfter(),
 			"repo", req.GetRepositoryFullName(),
 			"installation_id", req.GetInstallationId(),
@@ -151,38 +85,62 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 				req.GetRepositoryFullName(),
 				req.GetAfter(),
 			)
-		}, restate.WithName("list commit files"))
+		}, restate.WithName("list commit files"), restate.WithMaxRetryDuration(changedFilesRetryDuration))
 		if filesErr != nil {
-			logger.Error("failed to list commit files, proceeding with empty changed files",
-				"commit_sha", req.GetAfter(),
-				"error", filesErr,
-			)
-		} else {
-			logger.Info("fetched commit files",
-				"commit_sha", req.GetAfter(),
-				"changed_files", files,
-			)
-			changedFiles = files
+			// GitHub never told us which files changed. Carrying on with an empty
+			// list makes every watch path look like a miss, so the push would be
+			// recorded as "Watch paths did not match any changed files", blaming the
+			// user's build settings for a failure of ours.
+			return nil, filesErr
 		}
+
+		logger.Info(
+			"fetched commit files",
+			"commit_sha", req.GetAfter(),
+			"changed_files", files,
+		)
+		changedFiles = files
 	}
 
-	for _, row := range contexts {
-		// The dashboard reads this reason off the skipped deployment, so every skip
-		// says why rather than leaving the push with no record at all.
+	// Ids are minted inside restate.Run so a replay reuses the same ones.
+	ids, err := restate.Run(ctx, func(_ restate.RunContext) ([]string, error) {
+		minted := make([]string, len(contexts))
+		for i := range minted {
+			minted[i] = uid.New(uid.DeploymentPrefix)
+		}
+		return minted, nil
+	}, restate.WithName("mint deployment ids"))
+	if err != nil {
+		return nil, err
+	}
+
+	// Fire every Create first and await them in a second loop, so the apps'
+	// creates run in parallel instead of one after another.
+	pending := make([]pendingCreate, 0, len(contexts))
+
+	for i, row := range contexts {
+		deploymentID := ids[i]
+
+		// A skip still goes through Create so the dashboard shows the commit
+		// arrived, with this reason on the row.
 		skipDeployment := func(reason string) {
-			if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-				_, err := insertDeploymentRecord(runCtx, s.db.RW(), row, req, []byte{}, mysqltype.DeploymentsStatusSkipped, reason)
-				return err
-			}, restate.WithName("insert skipped deployment")); err != nil {
-				logger.Error("failed to insert skipped deployment", "app_id", row.AppID, "error", err)
-			}
+			pending = append(pending, pendingCreate{
+				deploymentID:  deploymentID,
+				appID:         row.AppID,
+				environmentID: row.EnvironmentID,
+				decision:      hydrav1.CreateDecision_CREATE_DECISION_SKIP,
+				reason:        reason,
+				future: s.startCreate(ctx, createArgs{
+					deploymentID: deploymentID,
+					row:          row,
+					req:          req,
+					decision:     hydrav1.CreateDecision_CREATE_DECISION_SKIP,
+					reason:       reason,
+				}),
+			})
 		}
 
 		if !row.BuildSettingsAutoDeploy {
-			logger.Info("skipping deployment: auto_deploy disabled",
-				"app_id", row.AppID,
-				"environment", row.EnvironmentSlug,
-			)
 			skipDeployment("Auto deploy is disabled for this environment.")
 			continue
 		}
@@ -191,294 +149,246 @@ func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushR
 		if matchErr != nil {
 			// A broken pattern looks exactly like a valid miss, so the reason names
 			// the pattern instead of blaming the changed files.
-			logger.Warn("skipping deployment: invalid watch path",
-				"app_id", row.AppID,
-				"watch_paths", row.BuildSettingsWatchPaths,
-				"error", matchErr,
-			)
 			skipDeployment(fault.UserFacingMessage(matchErr))
 			continue
 		}
 		if !matched {
-			logger.Info("skipping deployment: watch paths don't match changed files",
-				"app_id", row.AppID,
-				"watch_paths", row.BuildSettingsWatchPaths,
-				"changed_files", changedFiles,
-			)
 			skipDeployment("Watch paths did not match any changed files.")
 			continue
 		}
 
-		secretsBlob, marshalErr := buildSecretsBlob(envVarsByApp[row.AppID])
-		if marshalErr != nil {
-			logger.Error("failed to marshal secrets config", "appId", row.AppID, "error", marshalErr)
+		// Approval is independent of allowUnauthenticatedDeployments: that flag only
+		// decides whether Unkey talks to GitHub. Fork PRs run external code and are
+		// gated even in local development.
+		decision := hydrav1.CreateDecision_CREATE_DECISION_DEPLOY
+		if s.requiresApproval(req) {
+			decision = hydrav1.CreateDecision_CREATE_DECISION_AWAIT_APPROVAL
+		}
+
+		pending = append(pending, pendingCreate{
+			deploymentID:  deploymentID,
+			appID:         row.AppID,
+			environmentID: row.EnvironmentID,
+			decision:      decision,
+			reason:        "",
+			future: s.startCreate(ctx, createArgs{
+				deploymentID: deploymentID,
+				row:          row,
+				req:          req,
+				decision:     decision,
+				reason:       "",
+			}),
+		})
+	}
+
+	// Awaiting here is what orders pushes: this repository's object stays held
+	// until every row is written, so the next push gets a later created_at and
+	// supersedes these rows instead of the other way round.
+	//
+	// Only a terminal error lands here: corrupt stored data, or a bug in Create.
+	// Returning it would make Restate retry this handler forever and block every
+	// later push to the repository, so it is reported on the commit and the push
+	// succeeds.
+	for _, create := range pending {
+		resp, err := create.future.Response()
+		if err != nil {
+			logger.Error(
+				"deployment create failed",
+				"deployment_id", create.deploymentID,
+				"delivery_id", req.GetDeliveryId(),
+				"app_id", create.appID,
+				"error", err,
+			)
+			s.postRejectedStatus(ctx, req, create.deploymentID,
+				hydrav1.CreateOutcome_CREATE_OUTCOME_UNSPECIFIED, "")
 			continue
 		}
 
-		// Approval decision is independent of allowUnauthenticatedDeployments:
-		// the flag only controls whether we reach out to GitHub (e.g. to post
-		// the "awaiting authorization" commit status — see blockDeploymentForApproval).
-		// Fork PRs run external code and must always be gated, even in dev.
-		needsApproval := s.requiresApproval(req)
-
-		status := mysqltype.DeploymentsStatusPending
-		if needsApproval {
-			status = mysqltype.DeploymentsStatusAwaitingApproval
-		}
-
-		deploymentID, insertErr := restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-			return insertDeploymentRecord(runCtx, s.db.RW(), row, req, secretsBlob, status, "")
-		}, restate.WithName("insert deployment"))
-		if insertErr != nil {
-			logger.Error("failed to insert deployment", "appId", row.AppID, "error", insertErr)
-			continue
-		}
-
-		logger.Info("created deployment record",
-			"deployment_id", deploymentID,
+		logger.Info(
+			"deployment create finished",
+			"deployment_id", create.deploymentID,
 			"delivery_id", req.GetDeliveryId(),
-			"project_id", row.ProjectID,
-			"app_id", row.AppID,
 			"repository", req.GetRepositoryFullName(),
 			"commit_sha", req.GetAfter(),
 			"branch", req.GetBranch(),
-			"environment", row.EnvironmentSlug,
-			"needs_approval", needsApproval,
+			"app_id", create.appID,
+			"environment_id", create.environmentID,
+			"decision", create.decision.String(),
+			"reason", create.reason,
+			"outcome", resp.GetOutcome().String(),
 		)
 
-		if needsApproval {
-			if blockErr := s.blockDeploymentForApproval(ctx, req, row.ProjectWorkspaceID, row.ProjectID, row.ConnectionInstallationID, deploymentID); blockErr != nil {
-				return nil, blockErr
-			}
-			continue
-		}
-
-		// Keyed by deployment_id — each deployment is its own isolated workflow.
-		// Workspace-wide build concurrency is capped by BuildSlotService.
-		deployClient := hydrav1.NewDeployServiceClient(ctx, deploymentID)
-		invocation := deployClient.Deploy().Send(&hydrav1.DeployRequest{
-			DeploymentId: deploymentID,
-			Source: &hydrav1.DeployRequest_Git{
-				Git: &hydrav1.GitSource{
-					InstallationId: row.ConnectionInstallationID,
-					Repository:     row.ConnectionRepositoryFullName,
-					CommitSha:      req.GetAfter(),
-					ContextPath:    row.BuildSettingsDockerContext,
-					DockerfilePath: row.BuildSettingsDockerfile.String,
-					BuildCommand:   row.BuildSettingsBuildCommand.String,
-					PrNumber:       req.GetPrNumber(),
-					ForkRepository: req.GetForkRepositoryFullName(),
-				},
-			},
-		})
-
-		// Persist the invocation ID so the deployment can be cancelled later.
-		// Restate always returns a non-empty invocation ID on a successful Send;
-		// an empty value indicates a bug in our send path or the SDK.
-		invocationID := invocation.GetInvocationId()
-		if invocationID == "" {
-			return nil, fmt.Errorf("restate returned empty invocation id for deployment %s", deploymentID)
-		}
-		if persistErr := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return s.db.UpdateDeploymentInvocationID(runCtx, db.UpdateDeploymentInvocationIDParams{
-				ID:           deploymentID,
-				InvocationID: sql.NullString{Valid: true, String: invocationID},
-				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			})
-		}, restate.WithName("persist invocation id")); persistErr != nil {
-			// Without the invocation ID the deployment can never be
-			// cancelled, so fail the handler and let Restate retry from
-			// the journal (the Send above is journaled and not repeated).
-			return nil, persistErr
-		}
-
-		logger.Info("deployment workflow started",
-			"deployment_id", deploymentID,
-			"delivery_id", req.GetDeliveryId(),
-			"project_id", row.ProjectID,
-			"app_id", row.AppID,
-			"repository", req.GetRepositoryFullName(),
-			"commit_sha", req.GetAfter(),
-			"invocation_id", invocationID,
-		)
-
-		// Cancelling superseded siblings is best-effort: the closure logs
-		// and returns nil on failure. The RunVoid error itself must still
-		// be propagated because it can carry Restate protocol signals
-		// (suspension, cancellation), not just closure failures.
-		if runErr := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			if cancelErr := s.dedup.CancelOlderSiblings(runCtx, dedup.Newer{
-				ID:            deploymentID,
-				AppID:         row.AppID,
-				EnvironmentID: row.EnvironmentID,
-				GitBranch:     req.GetBranch(),
-				CreatedAt:     time.Now().UnixMilli(),
-			}); cancelErr != nil {
-				logger.Error("failed to cancel superseded siblings",
-					"deployment_id", deploymentID,
-					"error", cancelErr,
-				)
-			}
-			return nil
-		}, restate.WithName("cancel superseded siblings")); runErr != nil {
-			return nil, runErr
+		if resp.GetOutcome() != hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED {
+			s.postRejectedStatus(ctx, req, create.deploymentID, resp.GetOutcome(), resp.GetDetail())
 		}
 	}
-
 	return &hydrav1.HandlePushResponse{}, nil
 }
 
-// requiresApproval determines whether a push needs manual approval.
-// Fork PRs always require approval. Non-fork pushes are auto-approved because
-// GitHub already enforces write access — if someone can push to the repo, they
-// are authorized.
+// commitStatusDescriptionMax is the limit the Status API enforces. It is not in
+// the public docs; a longer description fails with "description is too long
+// (maximum is 140 characters)", see github.com/zalando/zappr/issues/378
+const commitStatusDescriptionMax = 140
+
+// postRejectedStatus puts the worker's reason on the pushed commit. A rejected
+// create writes no row, so without this the push disappears without a trace
+// anywhere the developer looks. GitHub errors are retried for a bounded time,
+// then logged and dropped: the reason is already in the log above.
 //
-// Set FORCE_DEPLOYMENT_APPROVAL=true to require approval for all pushes.
-// This is useful for testing the approval flow locally.
+// A status is world-readable on a public repo, so only details about the push
+// itself go out; the rest name internal ids.
+func (s *Service) postRejectedStatus(
+	ctx restate.ObjectContext,
+	req *hydrav1.HandlePushRequest,
+	deploymentID string,
+	outcome hydrav1.CreateOutcome,
+	detail string,
+) {
+	if s.allowUnauthenticatedDeployments {
+		return
+	}
+
+	description := "Unkey did not deploy this commit. Open the Unkey dashboard for the reason."
+	if outcome == hydrav1.CreateOutcome_CREATE_OUTCOME_COMMIT_NOT_RESOLVED ||
+		outcome == hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE ||
+		outcome == hydrav1.CreateOutcome_CREATE_OUTCOME_NEWER_DEPLOYMENT_EXISTS {
+		description = detail
+	}
+
+	err := restate.RunVoid(ctx, func(_ restate.RunContext) error {
+		return s.github.CreateCommitStatus(
+			req.GetInstallationId(),
+			req.GetRepositoryFullName(),
+			req.GetAfter(),
+			"error",
+			"",
+			truncate(description, commitStatusDescriptionMax),
+			githubclient.DeployRejectedContext,
+		)
+	}, restate.WithName("create commit status for rejected create"), restate.WithMaxRetryDuration(30*time.Second))
+	if err != nil {
+		logger.Error(
+			"failed to post rejected commit status",
+			"deployment_id", deploymentID,
+			"delivery_id", req.GetDeliveryId(),
+			"error", err,
+		)
+	}
+}
+
+// GitHub counts a description in characters, not bytes
+func truncate(s string, max int) string {
+	if utf8.RuneCountInString(s) <= max {
+		return s
+	}
+	return string([]rune(s)[:max-1]) + "…"
+}
+
+type pendingCreate struct {
+	deploymentID  string
+	appID         string
+	environmentID string
+	decision      hydrav1.CreateDecision
+	reason        string
+	future        restate.ResponseFuture[*hydrav1.DeployCreateResponse]
+}
+
+type createArgs struct {
+	deploymentID string
+	row          db.ListRepoConnectionDeployContextsRow
+	req          *hydrav1.HandlePushRequest
+	decision     hydrav1.CreateDecision
+	reason       string
+}
+
+// startCreate calls DeployService.Create for one app and returns the future.
+//
+// Why RequestFuture and not Send or Request:
+//
+// Supersede logic is decided by created_at. Create inserts the row then cancels
+// siblings with a smaller timestamp, so the newer push has to insert later.
+// This used to be guaranteed because HandlePush owned the row insert, but that
+// part moved to Create. From GitHub's point of view nothing changed, the
+// webhook handler calls HandlePush async anyway.
+//
+// If we Send, Push A returns as soon as the send is journaled, Push B starts,
+// and Create A and Create B race. If B lands first, A supersedes B and we
+// deploy the older commit. Awaiting keeps Push A alive until every row is
+// stamped, so B can't slip in.
+//
+// Plain Request would fix ordering too but runs the apps one after another.
+// RequestFuture lets us fire every app's create first and await them after, so
+// they still run concurrently like the old Send.
+func (s *Service) startCreate(
+	ctx restate.ObjectContext,
+	args createArgs,
+) restate.ResponseFuture[*hydrav1.DeployCreateResponse] {
+	row := args.row
+	req := args.req
+
+	event := "push"
+	if req.GetIsForkPr() {
+		event = "pull_request"
+	}
+
+	return hydrav1.NewDeployServiceClient(ctx, args.deploymentID).Create().RequestFuture(&hydrav1.DeployCreateRequest{
+		ProjectId:     row.ProjectID,
+		AppId:         row.AppID,
+		EnvironmentId: row.EnvironmentID,
+		Source: &hydrav1.DeployCreateRequest_Git{
+			Git: &hydrav1.CreateGitSource{
+				Commit: &ctrlv1.GitCommitInfo{
+					CommitSha:       req.GetAfter(),
+					Branch:          req.GetBranch(),
+					CommitMessage:   req.GetCommitMessage(),
+					AuthorHandle:    req.GetCommitAuthorHandle(),
+					AuthorAvatarUrl: req.GetCommitAuthorAvatarUrl(),
+					Timestamp:       req.GetCommitTimestamp(),
+					ForkRepository:  req.GetForkRepositoryFullName(),
+				},
+				PrNumber: req.GetPrNumber(),
+			},
+		},
+		Decision:      args.decision,
+		Trigger:       ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_GITHUB,
+		TriggeredBy:   req.GetSenderLogin(),
+		TriggerReason: args.reason,
+		Actor: &ctrlv1.ActorInfo{
+			Id:        req.GetSenderLogin(),
+			Name:      req.GetSenderLogin(),
+			Type:      ctrlv1.ActorType_ACTOR_TYPE_GITHUB,
+			RemoteIp:  "",
+			UserAgent: "",
+			Meta: map[string]string{
+				"delivery_id": req.GetDeliveryId(),
+				"event":       event,
+				"repository":  req.GetRepositoryFullName(),
+			},
+		},
+	})
+}
+
+// requiresApproval is true for a fork PR, whose code comes from someone without
+// write access. A direct push is already authorized by GitHub.
+// FORCE_DEPLOYMENT_APPROVAL=true gates every push, for testing the flow locally.
 func (s *Service) requiresApproval(
 	req *hydrav1.HandlePushRequest,
 ) bool {
 	if os.Getenv("FORCE_DEPLOYMENT_APPROVAL") == "true" {
-		logger.Info("FORCE_DEPLOYMENT_APPROVAL is set, requiring approval",
+		logger.Info(
+			"FORCE_DEPLOYMENT_APPROVAL is set, requiring approval",
 			"sender", req.GetSenderLogin(),
 		)
 		return true
 	}
 
-	// Fork PRs always require approval — external code must never auto-deploy.
 	if req.GetIsForkPr() {
-		logger.Info("fork PR deployment requires approval",
+		logger.Info(
+			"fork PR deployment requires approval",
 			"sender", req.GetSenderLogin(),
 		)
 		return true
 	}
 
-	// Non-fork pushes: GitHub already verified the pusher has write access to
-	// the repo, so there is no reason to gate the deployment behind approval.
 	return false
-}
-
-// triggerReasonBytesMax mirrors the deployments.trigger_reason column width.
-// The column counts characters, so a byte budget always fits.
-const triggerReasonBytesMax = 512
-
-// insertDeploymentRecord creates a deployment and its initial queued step in a single transaction.
-func insertDeploymentRecord(
-	ctx context.Context,
-	rw *db.Replica,
-	row db.ListRepoConnectionDeployContextsRow,
-	req *hydrav1.HandlePushRequest,
-	secretsBlob []byte,
-	status mysqltype.DeploymentsStatus,
-	triggerReason string,
-) (string, error) {
-	triggerReason = trimLength(triggerReason, triggerReasonBytesMax)
-	deploymentID := uid.New(uid.DeploymentPrefix)
-	now := time.Now().UnixMilli()
-
-	commitSHA := req.GetAfter()
-	branch := req.GetBranch()
-	commitMessage := req.GetCommitMessage()
-	authorHandle := req.GetCommitAuthorHandle()
-	authorAvatarURL := req.GetCommitAuthorAvatarUrl()
-	commitTimestamp := req.GetCommitTimestamp()
-
-	err := db.Tx(ctx, rw, func(txCtx context.Context, tx db.DBTX) error {
-		if txErr := db.NewQueries(tx).InsertDeployment(txCtx, db.InsertDeploymentParams{
-			ID:                            deploymentID,
-			K8sName:                       uid.DNS1035(12),
-			WorkspaceID:                   row.ProjectWorkspaceID,
-			ProjectID:                     row.ProjectID,
-			AppID:                         row.AppID,
-			EnvironmentID:                 row.EnvironmentID,
-			Source:                        db.DeploymentsSourceGit,
-			ImageRequested:                sql.NullString{Valid: false},
-			SentinelConfig:                row.RuntimeSettingsSentinelConfig,
-			EncryptedEnvironmentVariables: secretsBlob,
-			Command:                       row.RuntimeSettingsCommand,
-			Status:                        status,
-			CreatedAt:                     now,
-			UpdatedAt:                     sql.NullInt64{Valid: false},
-			GitCommitSha:                  sql.NullString{String: commitSHA, Valid: commitSHA != ""},
-			GitBranch:                     sql.NullString{String: branch, Valid: branch != ""},
-			GitCommitMessage:              sql.NullString{String: commitMessage, Valid: commitMessage != ""},
-			GitCommitAuthorHandle:         sql.NullString{String: authorHandle, Valid: authorHandle != ""},
-			GitCommitAuthorAvatarUrl:      sql.NullString{String: authorAvatarURL, Valid: authorAvatarURL != ""},
-			GitCommitTimestamp:            sql.NullInt64{Int64: commitTimestamp, Valid: commitTimestamp != 0},
-			CpuMillicores:                 row.RuntimeSettingsCpuMillicores,
-			MemoryMib:                     row.RuntimeSettingsMemoryMib,
-			StorageMib:                    row.RuntimeSettingsStorageMib,
-			Port:                          row.RuntimeSettingsPort,
-			ShutdownSignal:                db.DeploymentsShutdownSignal(row.RuntimeSettingsShutdownSignal),
-			UpstreamProtocol:              db.DeploymentsUpstreamProtocol(row.RuntimeSettingsUpstreamProtocol),
-			Healthcheck:                   row.RuntimeSettingsHealthcheck,
-			PrNumber:                      sql.NullInt64{Int64: req.GetPrNumber(), Valid: req.GetPrNumber() != 0},
-			ForkRepositoryFullName:        sql.NullString{String: req.GetForkRepositoryFullName(), Valid: req.GetForkRepositoryFullName() != ""},
-			DeploymentTrigger:             db.DeploymentsTriggerGithub,
-			TriggeredBy:                   sql.NullString{String: req.GetSenderLogin(), Valid: req.GetSenderLogin() != ""},
-			TriggerReason:                 sql.NullString{String: triggerReason, Valid: triggerReason != ""},
-		}); txErr != nil {
-			return txErr
-		}
-
-		return db.NewQueries(tx).InsertDeploymentStep(txCtx, db.InsertDeploymentStepParams{
-			WorkspaceID:   row.ProjectWorkspaceID,
-			ProjectID:     row.ProjectID,
-			AppID:         row.AppID,
-			EnvironmentID: row.EnvironmentID,
-			DeploymentID:  deploymentID,
-			Step:          db.DeploymentStepsStepQueued,
-			StartedAt:     uint64(now),
-		})
-	})
-	if err != nil {
-		return "", err
-	}
-	return deploymentID, nil
-}
-
-// buildSecretsBlob marshals environment variables into a protobuf SecretsConfig blob.
-func buildSecretsBlob(envVars []db.ListEnvVarsForRepoConnectionsRow) ([]byte, error) {
-	if len(envVars) == 0 {
-		return []byte{}, nil
-	}
-
-	secretsConfig := &ctrlv1.SecretsConfig{
-		Secrets: make(map[string]string, len(envVars)),
-	}
-	for _, ev := range envVars {
-		secretsConfig.Secrets[ev.Key] = ev.Value
-	}
-	return protojson.Marshal(secretsConfig)
-}
-
-// groupEnvVarsByApp groups environment variables by app ID for efficient lookup.
-func groupEnvVarsByApp(envVars []db.ListEnvVarsForRepoConnectionsRow) map[string][]db.ListEnvVarsForRepoConnectionsRow {
-	result := make(map[string][]db.ListEnvVarsForRepoConnectionsRow)
-	for _, ev := range envVars {
-		result[ev.AppID] = append(result[ev.AppID], ev)
-	}
-	return result
-}
-
-func boolToInt64(b bool) int64 {
-	if b {
-		return 1
-	}
-	return 0
-}
-
-// trimLength truncates s to at most maxBytes bytes while preserving valid
-// UTF-8: if the byte limit lands inside a multi-byte rune, the truncation
-// happens at the previous rune boundary instead. MySQL strict mode rejects
-// malformed UTF-8, and a single invalid watch path can exceed the column width.
-func trimLength(s string, maxBytes int) string {
-	if len(s) <= maxBytes {
-		return s
-	}
-	cut := maxBytes
-	for cut > 0 && !utf8.RuneStart(s[cut]) {
-		cut--
-	}
-	return s[:cut]
 }

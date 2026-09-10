@@ -165,7 +165,7 @@ func (w *Workflow) resolveGitSource(
 	if !target.HasBuildSettings {
 		return newRejectedSource(rejectf(
 			hydrav1.CreateOutcome_CREATE_OUTCOME_ENVIRONMENT_NOT_DEPLOYABLE,
-			"environment %q of app %s has no build settings", target.EnvironmentSlug, target.AppID,
+			"environment %q has no build settings", target.EnvironmentSlug,
 		)), nil
 	}
 
