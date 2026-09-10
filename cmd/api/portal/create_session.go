@@ -13,10 +13,11 @@ import (
 )
 
 // portalScopes is the vocabulary createSession accepts. The pinned SDK's Scope
-// enum is wider because it predates this cleanup; the API no longer knows those
-// values.
+// enum is still wider: it also carries keys:create, which no route serves yet.
 var portalScopes = []string{
-	string(components.ScopeKeysRead), string(components.ScopeKeysReroll),
+	string(components.ScopeKeysRead),
+	string(components.ScopeKeysReroll),
+	string(components.ScopeAnalyticsRead),
 }
 
 func validatePortalScopes(value string) error {
@@ -34,8 +35,12 @@ func validatePortalScopes(value string) error {
 
 	// Mirrors the API, so the failure lands on the command rather than a round
 	// trip later.
-	if slices.Contains(scopes, "keys:reroll") && !slices.Contains(scopes, "keys:read") {
-		return fmt.Errorf("scope %q requires %q in the same session", "keys:reroll", "keys:read")
+	if !slices.Contains(scopes, "keys:read") {
+		for _, dependent := range []string{"keys:reroll", "analytics:read"} {
+			if slices.Contains(scopes, dependent) {
+				return fmt.Errorf("scope %q requires %q in the same session", dependent, "keys:read")
+			}
+		}
 	}
 
 	return nil
@@ -51,7 +56,7 @@ Required Permissions
 Your root key must be associated with a workspace that has an enabled portal configuration.
 
 ` + util.Disclaimer,
-		Examples: []string{"unkey api portal create-session --portal=my-portal --external-id=user_123 --scopes=keys:read,keys:reroll", "unkey api portal create-session --portal=my-portal --external-id=user_123 --scopes=keys:read --return-url=https://app.example.com/settings/api-keys"},
+		Examples: []string{"unkey api portal create-session --portal=my-portal --external-id=user_123 --scopes=keys:read,keys:reroll", "unkey api portal create-session --portal=my-portal --external-id=user_123 --scopes=keys:read,analytics:read --return-url=https://app.example.com/settings/api-keys"},
 		Flags: []cli.Flag{
 			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("portal", "Portal configuration ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("external-id", "End user's identifier in your system.", cli.Required(), cli.MutuallyExclusive("body")),
 			cli.StringSlice("scopes", "Portal capabilities. Valid choices: "+strings.Join(portalScopes, ", ")+".", cli.Required(), cli.Validate(validatePortalScopes), cli.MutuallyExclusive("body")), cli.Bool("preview", "Create a preview session.", cli.Default(false), cli.MutuallyExclusive("body")), cli.String("return-url", "Absolute URL to return the end user to after the portal.", cli.MutuallyExclusive("body"))},
