@@ -264,7 +264,8 @@ buckets and at least 9 of the preceding 12 buckets with 200 or more requests.
 The boundary value combines the 25% recent-level fraction with the 200-request
 minimum absolute loss. It is the level below which the detector's drop rule
 would fire. The dashboard does not inspect the current value's loss before it
-draws the boundary.
+draws the boundary. The upper spike band appears after its independent
+12-bucket requirement, even when the request-drop boundary is not eligible.
 
 The alert stores the recent median in `baseline_mean` and stores zero in
 `baseline_stddev` and `threshold_sigma`. The detector metadata records the last
@@ -272,7 +273,8 @@ condition as `deployment_has_running_region`.
 
 No `deployment_id`, `deployments.desired_state = 'stopped'`, or every topology
 region being stopped suppresses the rule. Any of those conditions resolves an
-open drop alert with `Deployment stopped`.
+open drop alert with `Deployment stopped`, but only for a window at or after the
+alert's firing time.
 
 A complete window with no request row is `ZERO_COMPLETE`. The evaluator builds
 a fresh `Input` with the current recent median, recent active-bucket count, and
@@ -332,6 +334,9 @@ loops, and catastrophic 5xx errors open after one complete window.
 The virtual object also stores `last_window_end`. An evaluation with a window
 end equal to or older than that value is a strict no-op. A delayed retry cannot
 recreate an old candidate or change recovery state after a newer window.
+Per-metric progress stores the completed window and quiet count in one state
+value. A killed invocation can resume unfinished metrics without counting a
+completed recovery window again.
 
 ## Recover against the opening snapshot
 

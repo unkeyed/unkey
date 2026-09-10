@@ -65,12 +65,12 @@ Error alerts use the percentage of requests that failed. They also require at
 least 20 more failures than the recent baseline predicts. This avoids an alert
 when a large percentage change affects only a few requests.
 
-Unkey tracks request and resource completeness separately for every region
-active during the latest 2 hours. A source is complete only when every active
-region has finished the window. A region with no telemetry for 2 hours becomes
-inactive, so a decommissioned region does not block detection. A source with no
-active region is incomplete. An incomplete window cannot open or resolve an
-alert.
+Unkey tracks request and resource completeness separately for the regions where
+each deployment runs. A source is complete only when every running region has
+finished the window. An unrelated sparse region does not block the deployment.
+A missing or delayed watermark in a running region keeps that source incomplete,
+so missing data cannot look like zero traffic. An incomplete window cannot open
+or resolve an alert from metric values.
 
 Instance failures are sparse events. A received OOM or crash-loop event can
 open an alert immediately. When there is no event, resource completeness tells
@@ -108,7 +108,8 @@ The expected spike band needs 12 observed buckets. The request lower boundary
 appears after 72 observed buckets and 9 active buckets among the previous 12.
 It combines the 25% recent-level fraction and 200-request minimum loss into the
 boundary value. The chart does not inspect the current value's loss before it
-draws the line.
+draws the line. The upper spike band remains visible before the lower boundary
+becomes eligible.
 
 Error variation excludes buckets with no requests. The request lower boundary
 uses the inclusive median of the previous 12 buckets, which averages the two
@@ -180,8 +181,8 @@ baseline.
 
 An open request-drop alert resolves with `Deployment stopped` when there is no
 deployment ID, the deployment is stopped, or every topology region is stopped.
-A normal recovery uses
-`Metric returned to baseline for 3 consecutive windows`.
+A historical window from before the alert fired does not resolve it. A normal
+recovery uses `Metric returned to baseline for 3 consecutive windows`.
 
 Deleting an app or environment also resolves its open alerts with
 `Deployment stopped` before removing it. If metadata is already missing, the
