@@ -12,9 +12,11 @@ import {
 } from "@/components/alerts/format";
 import { AlertStatusBadge } from "@/components/alerts/status-badge";
 import type { AlertListItem, AlertSeriesData, AlertSeriesMetric } from "@/components/alerts/types";
-import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
+import { ChartError } from "@/components/charts/components/chart-error";
+import { ChartWaveLoading } from "@/components/charts/components/chart-wave-loading";
+import { ChartEmpty } from "@/components/logs/chart/chart-states";
+import { type ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { alertFixedThresholds } from "@unkey/clickhouse/src/alert-thresholds";
-import { Empty, Skeleton } from "@unkey/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Area,
@@ -26,7 +28,6 @@ import {
   ReferenceArea,
   ReferenceDot,
   ReferenceLine,
-  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
@@ -53,10 +54,12 @@ type HoveredAnnotation = {
 };
 
 const chartHeightPx = 380;
-const plotTopPx = 8;
-const plotRightPx = 16;
-const plotBottomPx = 38;
-const plotLeftPx = 80;
+const plotTopPx = 16;
+const plotRightPx = 24;
+const plotBottomPx = 30;
+const yAxisWidthPx = 44;
+const plotLeftPx = yAxisWidthPx;
+const axisTick = { fill: "hsl(var(--gray-10))", fontSize: 10 };
 
 export function AnomalyChart({
   metric,
@@ -105,6 +108,8 @@ export function AnomalyChart({
       }),
     [alerts, buckets, metric],
   );
+  const yTop = useMemo(() => yAxisTop(metric, buckets), [buckets, metric]);
+  const yTicks = [0, yTop / 3, (2 * yTop) / 3, yTop];
   const [chartWidthPx, setChartWidthPx] = useState(1_000);
   const [hoveredAnnotation, setHoveredAnnotation] = useState<HoveredAnnotation | null>(null);
 
@@ -128,23 +133,44 @@ export function AnomalyChart({
     [chartWidthPx, data, deployments],
   );
 
-  if (loading) {
-    return <Skeleton className="h-[430px] w-full rounded-lg" />;
-  }
-  if (error) {
+  const header = (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-grayA-4 px-5 py-3">
+      <div>
+        <h2 className="text-sm font-semibold text-gray-12">{alertSeriesMetricLabel(metric)}</h2>
+        <p className="text-xs text-gray-9">Five-minute production buckets · drag to zoom</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-4 text-xs text-gray-9">
+        <ChartLegend color="bg-info-9" label="Observed" />
+        {metric === "health" ? null : metric === "memory_utilization" ? (
+          <ChartLegend color="border-t-2 border-dashed border-warning-9" label="Limit" stroke />
+        ) : (
+          <>
+            <ChartLegend color="border-t-2 border-dashed border-gray-10" label="Expected" stroke />
+            <ChartLegend color="bg-infoA-3" label="Expected range" />
+          </>
+        )}
+        <ChartLegend color="bg-errorA-4" label="Anomaly" />
+      </div>
+    </div>
+  );
+
+  if (loading || error || !data || buckets.length === 0) {
     return (
-      <Empty className="h-[430px] w-full rounded-lg border border-grayA-4">
-        <Empty.Title>Chart unavailable</Empty.Title>
-        <Empty.Description>We could not load telemetry for this range.</Empty.Description>
-      </Empty>
-    );
-  }
-  if (!data || buckets.length === 0) {
-    return (
-      <Empty className="h-[430px] w-full rounded-lg border border-grayA-4">
-        <Empty.Title>No telemetry</Empty.Title>
-        <Empty.Description>No closed metric buckets exist in this range.</Empty.Description>
-      </Empty>
+      <div className="overflow-hidden rounded-lg border border-grayA-4 bg-gray-1">
+        {header}
+        {loading ? (
+          <ChartWaveLoading height={chartHeightPx} color="hsl(var(--info-9))" />
+        ) : error ? (
+          <ChartError height={chartHeightPx} />
+        ) : (
+          <ChartEmpty
+            variant="wave"
+            color="hsl(var(--info-9))"
+            height={chartHeightPx}
+            message="No closed metric buckets in this range"
+          />
+        )}
+      </div>
     );
   }
 
@@ -154,8 +180,8 @@ export function AnomalyChart({
       return null;
     }
     const bounds = element.getBoundingClientRect();
-    const x = Math.max(0, Math.min(event.clientX - bounds.left - 72, bounds.width - 96));
-    const plotWidth = Math.max(bounds.width - 96, 1);
+    const plotWidth = Math.max(bounds.width - plotLeftPx - plotRightPx, 1);
+    const x = clamp(event.clientX - bounds.left - plotLeftPx, 0, plotWidth);
     return Math.min(Math.floor((x / plotWidth) * buckets.length), buckets.length - 1);
   };
   const handleMouseDown = (event: React.MouseEvent) => {
@@ -212,239 +238,291 @@ export function AnomalyChart({
 
   return (
     <div className="overflow-hidden rounded-lg border border-grayA-4 bg-gray-1">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-grayA-4 px-5 py-3">
-        <div>
-          <h2 className="text-sm font-semibold text-gray-12">{alertSeriesMetricLabel(metric)}</h2>
-          <p className="text-xs text-gray-9">Five-minute production buckets · drag to zoom</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-4 text-xs text-gray-10">
-          <ChartLegend color="bg-info-9" label="Observed" />
-          {metric === "health" ? null : metric === "memory_utilization" ? (
-            <ChartLegend color="border-t-2 border-dashed border-warning-9" label="Limit" stroke />
-          ) : (
-            <>
-              <ChartLegend
-                color="border-t-2 border-dashed border-gray-10"
-                label="Expected"
-                stroke
-              />
-              <ChartLegend color="bg-infoA-3" label="Expected range" />
-            </>
-          )}
-          <ChartLegend color="bg-errorA-4" label="Anomaly" />
-        </div>
-      </div>
-      <div
-        ref={chartAreaRef}
-        className="relative cursor-crosshair select-none"
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={() => {
-          dragStart.current = null;
-          setSelection(null);
-        }}
-      >
-        <ChartContainer
-          config={chartConfig}
-          className="h-[380px] w-full aspect-auto"
-          aria-label={`${alertSeriesMetricLabel(metric)} anomaly chart`}
+      {header}
+      <div className="px-4">
+        <div
+          ref={chartAreaRef}
+          className="relative cursor-crosshair select-none"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={() => {
+            dragStart.current = null;
+            setSelection(null);
+          }}
         >
-          <ComposedChart
-            data={buckets}
-            accessibilityLayer
-            margin={{ top: plotTopPx, right: plotRightPx, bottom: 8, left: 8 }}
+          <ChartContainer
+            config={chartConfig}
+            className="h-[380px] w-full aspect-auto"
+            aria-label={`${alertSeriesMetricLabel(metric)} anomaly chart`}
           >
-            <CartesianGrid
-              vertical={false}
-              stroke="hsl(var(--gray-6))"
-              strokeDasharray="3 3"
-              strokeOpacity={0.45}
-            />
-            <XAxis
-              dataKey="time"
-              type="number"
-              scale="time"
-              domain={["dataMin", "dataMax"]}
-              tickLine={false}
-              axisLine={false}
-              minTickGap={48}
-              tickFormatter={(value) => formatChartTime(Number(value), data.endMs - data.startMs)}
-            />
-            <YAxis
-              width={72}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={(value) => formatAlertSeriesAxisValue(metric, Number(value))}
-            />
-            <Tooltip
-              cursor={{ stroke: "hsl(var(--gray-8))", strokeDasharray: "4 4" }}
-              contentStyle={{
-                border: "1px solid hsl(var(--gray-6))",
-                borderRadius: 8,
-                background: "hsl(var(--gray-2))",
-                color: "hsl(var(--gray-12))",
-                fontSize: 12,
-              }}
-              labelFormatter={(value) => formatChartTooltipTime(Number(value))}
-              formatter={(value, name) => [
-                formatAlertSeriesValue(metric, Number(value ?? 0)),
-                name === "expectedMean" ? "Expected" : "Observed",
-              ]}
-            />
-            <Area
-              dataKey="expectedBand"
-              fill="hsl(var(--info-9))"
-              fillOpacity={0.1}
-              stroke="none"
-              activeDot={false}
-              tooltipType="none"
-              isAnimationActive={false}
-            />
-            {alerts.map((alert) => {
-              const selectedMetric = seriesMetricForAlert(alert.metric) === metric;
-              const windowAlerts = alertsInWindow(alerts, alert);
-              return (
-                <ReferenceArea
-                  key={alert.id}
-                  x1={alert.windowStart}
-                  x2={alert.windowEnd}
-                  fill="hsl(var(--error-9))"
-                  fillOpacity={alert.id === selectedAlertId ? 0.22 : 0.1}
-                  stroke="none"
-                  label={selectedMetric ? false : <AnomalyTopTick />}
-                  style={{ pointerEvents: selectedMetric ? "none" : "auto", cursor: "help" }}
-                  onMouseEnter={(event) =>
-                    showAnnotationTooltip(windowAlerts, event.currentTarget, "window")
+            <ComposedChart
+              data={buckets}
+              accessibilityLayer
+              margin={{ top: plotTopPx, right: plotRightPx, bottom: 0, left: 0 }}
+            >
+              <CartesianGrid
+                vertical={false}
+                stroke="hsl(var(--gray-4))"
+                strokeDasharray="3 3"
+                strokeOpacity={0.6}
+              />
+              <XAxis
+                dataKey="time"
+                type="number"
+                scale="time"
+                domain={["dataMin", "dataMax"]}
+                tick={axisTick}
+                tickLine={false}
+                axisLine={false}
+                minTickGap={48}
+                tickFormatter={(value) => formatChartTime(Number(value), data.endMs - data.startMs)}
+              />
+              <YAxis
+                width={yAxisWidthPx}
+                tick={axisTick}
+                tickLine={false}
+                axisLine={false}
+                ticks={yTicks}
+                domain={[0, yTop]}
+                allowDataOverflow
+                tickFormatter={(value) => formatAlertSeriesAxisValue(metric, Number(value))}
+              />
+              <ChartTooltip
+                allowEscapeViewBox={{ x: false, y: true }}
+                wrapperStyle={{ zIndex: 1000, pointerEvents: "none" }}
+                cursor={{
+                  stroke: "hsl(var(--accent-9))",
+                  strokeWidth: 1,
+                  strokeDasharray: "3 3",
+                  strokeOpacity: 0.5,
+                }}
+                content={({ active, payload }) => {
+                  const point = active ? payload?.[0]?.payload : undefined;
+                  if (!isBucket(point)) {
+                    return null;
                   }
-                  onMouseMove={(event) =>
-                    showAnnotationTooltip(windowAlerts, event.currentTarget, "window")
+                  const rows: Array<{ key: "value" | "expectedMean"; value: number }> = [
+                    { key: "value", value: point.value },
+                  ];
+                  if (point.expectedMean !== null) {
+                    rows.push({ key: "expectedMean", value: point.expectedMean });
                   }
-                  onMouseLeave={() => setHoveredAnnotation(null)}
-                />
-              );
-            })}
-            {showDeployments
-              ? deployments.map((deployment) => {
-                  const label = deploymentLabels.get(deployment.id);
                   return (
-                    <ReferenceLine
-                      key={deployment.id}
-                      x={deployment.createdAt}
-                      stroke="hsl(var(--gray-9))"
-                      strokeDasharray="4 4"
-                      strokeOpacity={0.7}
-                      label={
-                        label ? (
-                          <DeploymentTagLabel label={label} chartWidthPx={chartWidthPx} />
-                        ) : (
-                          false
-                        )
-                      }
-                      style={{ pointerEvents: "none" }}
-                    />
+                    <div
+                      role="tooltip"
+                      className="grid w-max max-w-[300px] animate-in items-start gap-1.5 rounded-xl border border-gray-4/50 bg-gray-1/80 px-3 py-2.5 text-xs shadow-2xl backdrop-blur-md duration-150 fade-in-0 zoom-in-95 select-none"
+                    >
+                      <div className="font-medium text-[11px] text-accent-11">
+                        {formatChartTooltipTime(point.time)}
+                      </div>
+                      <div className="grid gap-1">
+                        {rows.map(({ key, value }) => (
+                          <div key={key} className="flex items-center gap-2">
+                            <div
+                              className="shrink-0 rounded-[2px] h-2 w-2"
+                              style={{ backgroundColor: chartConfig[key].color }}
+                            />
+                            <span className="text-accent-12">{chartConfig[key].label}</span>
+                            <span className="font-mono tabular-nums text-accent-12 ml-auto">
+                              {formatAlertSeriesValue(metric, value)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   );
-                })
-              : null}
-            {selection ? (
-              <ReferenceArea
-                x1={buckets[Math.min(selection.start, selection.end)]?.time}
-                x2={buckets[Math.max(selection.start, selection.end)]?.time}
+                }}
+              />
+              <Area
+                dataKey="expectedBand"
                 fill="hsl(var(--info-9))"
-                fillOpacity={0.16}
-                stroke="hsl(var(--info-8))"
+                fillOpacity={0.1}
+                stroke="none"
+                activeDot={false}
+                tooltipType="none"
+                isAnimationActive={false}
               />
-            ) : null}
-            {metric === "memory_utilization" ? (
-              <ReferenceLine
-                y={alertFixedThresholds.memory_utilization}
-                stroke="hsl(var(--warning-9))"
-                strokeWidth={1.5}
-                strokeDasharray="5 5"
-              />
-            ) : null}
-            {metric === "health" ? (
-              <Bar
-                dataKey="value"
-                fill="var(--color-value)"
-                maxBarSize={12}
-                radius={[2, 2, 0, 0]}
-              />
-            ) : (
-              <>
-                <Line
-                  type="monotone"
-                  dataKey="expectedMean"
-                  stroke="var(--color-expectedMean)"
+              {alerts.map((alert) => {
+                const selectedMetric = seriesMetricForAlert(alert.metric) === metric;
+                const windowAlerts = alertsInWindow(alerts, alert);
+                return (
+                  <ReferenceArea
+                    key={alert.id}
+                    x1={alert.windowStart}
+                    x2={alert.windowEnd}
+                    fill="hsl(var(--error-9))"
+                    fillOpacity={alert.id === selectedAlertId ? 0.22 : 0.1}
+                    stroke="none"
+                    label={selectedMetric ? false : <AnomalyTopTick />}
+                    style={{ pointerEvents: selectedMetric ? "none" : "auto", cursor: "help" }}
+                    onMouseEnter={(event) =>
+                      showAnnotationTooltip(windowAlerts, event.currentTarget, "window")
+                    }
+                    onMouseMove={(event) =>
+                      showAnnotationTooltip(windowAlerts, event.currentTarget, "window")
+                    }
+                    onMouseLeave={() => setHoveredAnnotation(null)}
+                  />
+                );
+              })}
+              {showDeployments
+                ? deployments.map((deployment) => {
+                    const label = deploymentLabels.get(deployment.id);
+                    return (
+                      <ReferenceLine
+                        key={deployment.id}
+                        x={deployment.createdAt}
+                        stroke="hsl(var(--gray-9))"
+                        strokeDasharray="4 4"
+                        strokeOpacity={0.7}
+                        label={
+                          label ? (
+                            <DeploymentTagLabel label={label} chartWidthPx={chartWidthPx} />
+                          ) : (
+                            false
+                          )
+                        }
+                        style={{ pointerEvents: "none" }}
+                      />
+                    );
+                  })
+                : null}
+              {selection ? (
+                <ReferenceArea
+                  x1={buckets[Math.min(selection.start, selection.end)]?.time}
+                  x2={buckets[Math.max(selection.start, selection.end)]?.time}
+                  fill="hsl(var(--info-9))"
+                  fillOpacity={0.16}
+                  stroke="hsl(var(--info-8))"
+                />
+              ) : null}
+              {metric === "memory_utilization" ? (
+                <ReferenceLine
+                  y={alertFixedThresholds.memory_utilization}
+                  stroke="hsl(var(--warning-9))"
                   strokeWidth={1.5}
                   strokeDasharray="5 5"
-                  dot={false}
-                  activeDot={false}
-                  isAnimationActive={false}
                 />
-                {metric === "requests" ? (
+              ) : null}
+              {metric === "health" ? (
+                <Bar
+                  dataKey="value"
+                  fill="var(--color-value)"
+                  maxBarSize={12}
+                  radius={[2, 2, 0, 0]}
+                />
+              ) : (
+                <>
                   <Line
                     type="monotone"
-                    dataKey="lowerBound"
+                    dataKey="expectedMean"
                     stroke="var(--color-expectedMean)"
-                    strokeWidth={1}
-                    strokeDasharray="2 4"
-                    strokeOpacity={0.7}
+                    strokeWidth={1.5}
+                    strokeDasharray="5 5"
                     dot={false}
                     activeDot={false}
-                    tooltipType="none"
                     isAnimationActive={false}
                   />
-                ) : null}
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke="var(--color-value)"
-                  strokeWidth={2}
-                  dot={false}
-                  activeDot={false}
-                  isAnimationActive={false}
-                />
-              </>
-            )}
-            {alertDots.map(({ alert, point }) => (
-              <ReferenceDot
-                key={alert.id}
-                x={point.time}
-                y={point.value}
-                r={4}
-                fill="hsl(var(--error-9))"
-                stroke="white"
-                strokeWidth={2}
-                shape={
-                  <AlertDotShape
-                    label={`${alertMetricLabel(alert.metric)} anomaly`}
-                    onHover={(element) =>
-                      showAnnotationTooltip(alertsInWindow(alerts, alert), element, "dot")
-                    }
-                    onLeave={() => setHoveredAnnotation(null)}
-                  />
-                }
-                label={
-                  alert.id === selectedAlertId ? (
-                    <FocusedAlertDotLabel
-                      label={alertMetricLabel(alert.metric)}
-                      chartWidthPx={chartWidthPx}
+                  {metric === "requests" ? (
+                    <Line
+                      type="monotone"
+                      dataKey="lowerBound"
+                      stroke="var(--color-expectedMean)"
+                      strokeWidth={1}
+                      strokeDasharray="2 4"
+                      strokeOpacity={0.7}
+                      dot={false}
+                      activeDot={false}
+                      tooltipType="none"
+                      isAnimationActive={false}
                     />
-                  ) : (
-                    false
-                  )
-                }
-              />
-            ))}
-          </ComposedChart>
-        </ChartContainer>
-        {hoveredAnnotation ? (
-          <AnomalyWindowTooltip hovered={hoveredAnnotation} chartWidthPx={chartWidthPx} />
-        ) : null}
+                  ) : null}
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="var(--color-value)"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={false}
+                    isAnimationActive={false}
+                  />
+                </>
+              )}
+              {alertDots.map(({ alert, point }) => (
+                <ReferenceDot
+                  key={alert.id}
+                  x={point.time}
+                  y={point.value}
+                  r={4}
+                  fill="hsl(var(--error-9))"
+                  stroke="white"
+                  strokeWidth={2}
+                  shape={
+                    <AlertDotShape
+                      label={`${alertMetricLabel(alert.metric)} anomaly`}
+                      onHover={(element) =>
+                        showAnnotationTooltip(alertsInWindow(alerts, alert), element, "dot")
+                      }
+                      onLeave={() => setHoveredAnnotation(null)}
+                    />
+                  }
+                  label={
+                    alert.id === selectedAlertId ? (
+                      <FocusedAlertDotLabel
+                        label={alertMetricLabel(alert.metric)}
+                        chartWidthPx={chartWidthPx}
+                      />
+                    ) : (
+                      false
+                    )
+                  }
+                />
+              ))}
+            </ComposedChart>
+          </ChartContainer>
+          {hoveredAnnotation ? (
+            <AnomalyWindowTooltip hovered={hoveredAnnotation} chartWidthPx={chartWidthPx} />
+          ) : null}
+        </div>
       </div>
     </div>
   );
+}
+
+type SeriesBucket = AlertSeriesData["buckets"][number];
+
+function isBucket(point: unknown): point is SeriesBucket {
+  return (
+    typeof point === "object" &&
+    point !== null &&
+    "time" in point &&
+    typeof point.time === "number" &&
+    "expectedMean" in point
+  );
+}
+
+function yAxisTop(
+  metric: AlertSeriesMetric,
+  buckets: Array<SeriesBucket & { expectedBand: unknown[] | null }>,
+): number {
+  if (metric === "memory_utilization") {
+    return 1;
+  }
+  const dataMax = buckets.reduce(
+    (maximum, point) =>
+      Math.max(
+        maximum,
+        point.value,
+        point.expectedMean ?? 0,
+        point.expectedBand === null ? 0 : (point.upperBound ?? 0),
+      ),
+    0,
+  );
+  if (dataMax <= 0) {
+    return 1;
+  }
+  return dataMax * 1.1;
 }
 
 function extremePointInAlertWindow(
