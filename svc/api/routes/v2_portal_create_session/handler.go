@@ -570,13 +570,10 @@ func ScopeQueries(
 		return queries, true
 
 	case openapi.AnalyticsRead:
-		// The tuple the operator analytics endpoint requires. That endpoint is
-		// otherwise nothing like this one: it runs customer SQL against the
-		// shared ClickHouse tables, so whether a caller may write raw queries
-		// there says nothing about whether they may hand one end user a graph
-		// of that user's own key usage. The portal route is what this ceiling
-		// mirrors; the tuple is borrowed only because it is the vocabulary the
-		// dashboard already issues.
+		// Borrowed vocabulary, not a semantic match: read_analytics gates raw
+		// ClickHouse SQL on the operator endpoint, which is a different question
+		// from handing one end user a graph of their own usage. The route this
+		// ceiling mirrors is v2_portal_get_verifications.
 		return []rbac.PermissionQuery{
 			rbac.Or(
 				rbac.T(rbac.Tuple{
