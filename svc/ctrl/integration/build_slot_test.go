@@ -27,7 +27,7 @@ import (
 // runs (dev/k8s/manifests/restate.yaml). The stale-slot reproduction
 // depends on real kill and purge semantics, so the test must not float
 // on :latest.
-const restateImage = "docker.io/restatedev/restate:1.7.9@sha256:329e32e12059610b681e165161bcd0722d193325b6c893bc46bfec72cd54b595"
+const restateImage = "docker.io/restatedev/restate:1.7.8@sha256:fe23d866cc625a745f73f14e05ee6ca5b26441af3b18df8c54dfda4e1bb1d52d"
 
 // lazyLiveness lets the test bind BuildSlotService before the Restate
 // container exists. The admin port is only known after the container
