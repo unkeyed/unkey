@@ -89,7 +89,6 @@ const verificationScopePredicates = `workspace_id = {workspace_id:String}
 // time. This is the portal-scoped read: the workspace, identity and keyspaces
 // are pinned by the caller, so no query DSL or per-workspace connection is
 // involved.
-//
 func (c *Client) GetVerificationsByExternalID(ctx context.Context, req VerificationTimeseriesRequest) ([]VerificationTimeseriesDataPoint, error) {
 	if err := req.requireKeySpaceScope(); err != nil {
 		return nil, err
@@ -178,16 +177,8 @@ type VerificationTimeseriesPerKey struct {
 // verificationTimeseriesPerKeyRow is one (key, bucket) row as ClickHouse
 // returns it, before grouping into [VerificationTimeseriesPerKey].
 type verificationTimeseriesPerKeyRow struct {
-	KeyID                   string `ch:"key_id"`
-	Time                    int64  `ch:"x"`
-	Total                   int64  `ch:"total"`
-	Valid                   int64  `ch:"valid"`
-	RateLimited             int64  `ch:"rate_limited"`
-	InsufficientPermissions int64  `ch:"insufficient_permissions"`
-	Forbidden               int64  `ch:"forbidden"`
-	Disabled                int64  `ch:"disabled"`
-	Expired                 int64  `ch:"expired"`
-	UsageExceeded           int64  `ch:"usage_exceeded"`
+	KeyID string `ch:"key_id"`
+	VerificationTimeseriesDataPoint
 }
 
 // GetVerificationsByExternalIDPerKey returns the same window as
@@ -267,17 +258,7 @@ func (c *Client) GetVerificationsByExternalIDPerKey(ctx context.Context, req Ver
 		}
 
 		current := &series[len(series)-1]
-		current.Data = append(current.Data, VerificationTimeseriesDataPoint{
-			Time:                    row.Time,
-			Total:                   row.Total,
-			Valid:                   row.Valid,
-			RateLimited:             row.RateLimited,
-			InsufficientPermissions: row.InsufficientPermissions,
-			Forbidden:               row.Forbidden,
-			Disabled:                row.Disabled,
-			Expired:                 row.Expired,
-			UsageExceeded:           row.UsageExceeded,
-		})
+		current.Data = append(current.Data, row.VerificationTimeseriesDataPoint)
 	}
 
 	return series, nil
