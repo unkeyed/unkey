@@ -1327,7 +1327,11 @@ const file_hydra_v1_deploy_proto_rawDesc = "" +
 	"\rDeployService\x12I\n" +
 	"\x06Create\x12\x1d.hydra.v1.DeployCreateRequest\x1a\x1e.hydra.v1.DeployCreateResponse\"\x00\x12=\n" +
 	"\x06Deploy\x12\x17.hydra.v1.DeployRequest\x1a\x18.hydra.v1.DeployResponse\"\x00\x12k\n" +
-	"\x14NotifyInstancesReady\x12%.hydra.v1.NotifyInstancesReadyRequest\x1a&.hydra.v1.NotifyInstancesReadyResponse\"\x04\x98\x80\x01\x02\x1a\x04\x98\x80\x01\x012\xa1\x01\n" +
+	"\x14NotifyInstancesReady\x12%.hydra.v1.NotifyInstancesReadyRequest\x1a&.hydra.v1.NotifyInstancesReadyResponse\"\x04\x98\x80\x01\x02\x1a\x04\x98\x80\x01\x012\x91\x02\n" +
+	"\x0eDeployWorkflow\x12I\n" +
+	"\x06Create\x12\x1d.hydra.v1.DeployCreateRequest\x1a\x1e.hydra.v1.DeployCreateResponse\"\x00\x12A\n" +
+	"\x06Deploy\x12\x17.hydra.v1.DeployRequest\x1a\x18.hydra.v1.DeployResponse\"\x04\x98\x80\x01\x03\x12k\n" +
+	"\x14NotifyInstancesReady\x12%.hydra.v1.NotifyInstancesReadyRequest\x1a&.hydra.v1.NotifyInstancesReadyResponse\"\x04\x98\x80\x01\x02\x1a\x04\x98\x80\x01\x022\xa1\x01\n" +
 	"\x15DeployTeardownService\x12C\n" +
 	"\bTeardown\x12\x19.hydra.v1.TeardownRequest\x1a\x1a.hydra.v1.TeardownResponse\"\x00\x12=\n" +
 	"\x06Resume\x12\x17.hydra.v1.ResumeRequest\x1a\x18.hydra.v1.ResumeResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x91\x01\n" +
@@ -1386,15 +1390,21 @@ var file_hydra_v1_deploy_proto_depIdxs = []int32{
 	10, // 12: hydra.v1.DeployService.Create:input_type -> hydra.v1.DeployCreateRequest
 	12, // 13: hydra.v1.DeployService.Deploy:input_type -> hydra.v1.DeployRequest
 	3,  // 14: hydra.v1.DeployService.NotifyInstancesReady:input_type -> hydra.v1.NotifyInstancesReadyRequest
-	14, // 15: hydra.v1.DeployTeardownService.Teardown:input_type -> hydra.v1.TeardownRequest
-	16, // 16: hydra.v1.DeployTeardownService.Resume:input_type -> hydra.v1.ResumeRequest
-	11, // 17: hydra.v1.DeployService.Create:output_type -> hydra.v1.DeployCreateResponse
-	13, // 18: hydra.v1.DeployService.Deploy:output_type -> hydra.v1.DeployResponse
-	4,  // 19: hydra.v1.DeployService.NotifyInstancesReady:output_type -> hydra.v1.NotifyInstancesReadyResponse
-	15, // 20: hydra.v1.DeployTeardownService.Teardown:output_type -> hydra.v1.TeardownResponse
-	17, // 21: hydra.v1.DeployTeardownService.Resume:output_type -> hydra.v1.ResumeResponse
-	17, // [17:22] is the sub-list for method output_type
-	12, // [12:17] is the sub-list for method input_type
+	10, // 15: hydra.v1.DeployWorkflow.Create:input_type -> hydra.v1.DeployCreateRequest
+	12, // 16: hydra.v1.DeployWorkflow.Deploy:input_type -> hydra.v1.DeployRequest
+	3,  // 17: hydra.v1.DeployWorkflow.NotifyInstancesReady:input_type -> hydra.v1.NotifyInstancesReadyRequest
+	14, // 18: hydra.v1.DeployTeardownService.Teardown:input_type -> hydra.v1.TeardownRequest
+	16, // 19: hydra.v1.DeployTeardownService.Resume:input_type -> hydra.v1.ResumeRequest
+	11, // 20: hydra.v1.DeployService.Create:output_type -> hydra.v1.DeployCreateResponse
+	13, // 21: hydra.v1.DeployService.Deploy:output_type -> hydra.v1.DeployResponse
+	4,  // 22: hydra.v1.DeployService.NotifyInstancesReady:output_type -> hydra.v1.NotifyInstancesReadyResponse
+	11, // 23: hydra.v1.DeployWorkflow.Create:output_type -> hydra.v1.DeployCreateResponse
+	13, // 24: hydra.v1.DeployWorkflow.Deploy:output_type -> hydra.v1.DeployResponse
+	4,  // 25: hydra.v1.DeployWorkflow.NotifyInstancesReady:output_type -> hydra.v1.NotifyInstancesReadyResponse
+	15, // 26: hydra.v1.DeployTeardownService.Teardown:output_type -> hydra.v1.TeardownResponse
+	17, // 27: hydra.v1.DeployTeardownService.Resume:output_type -> hydra.v1.ResumeResponse
+	20, // [20:28] is the sub-list for method output_type
+	12, // [12:20] is the sub-list for method input_type
 	12, // [12:12] is the sub-list for extension type_name
 	12, // [12:12] is the sub-list for extension extendee
 	0,  // [0:12] is the sub-list for field type_name
@@ -1422,7 +1432,7 @@ func file_hydra_v1_deploy_proto_init() {
 			NumEnums:      3,
 			NumMessages:   15,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   3,
 		},
 		GoTypes:           file_hydra_v1_deploy_proto_goTypes,
 		DependencyIndexes: file_hydra_v1_deploy_proto_depIdxs,

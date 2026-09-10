@@ -17,7 +17,7 @@ import (
 func Create(ctx context.Context, client *restateingress.Client, req *hydrav1.DeployCreateRequest) (string, error) {
 	deploymentID := uid.New(uid.DeploymentPrefix)
 
-	res, err := hydrav1.NewDeployServiceIngressClient(client, deploymentID).
+	res, err := hydrav1.NewDeployWorkflowIngressClient(client, deploymentID).
 		Create().
 		Request(ctx, req)
 	if err != nil {

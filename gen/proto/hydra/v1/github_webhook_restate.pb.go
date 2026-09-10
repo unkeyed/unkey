@@ -25,7 +25,7 @@ import (
 type GitHubWebhookServiceClient interface {
 	// HandlePush processes a GitHub push event: looks up the repo connections,
 	// matches each app's watch paths against the changed files, then calls
-	// DeployService.Create once per app to write the row and start it.
+	// DeployWorkflow.Create once per app to write the row and start it.
 	HandlePush(opts ...sdk_go.ClientOption) sdk_go.Client[*HandlePushRequest, *HandlePushResponse]
 }
 
@@ -57,7 +57,7 @@ func (c *gitHubWebhookServiceClient) HandlePush(opts ...sdk_go.ClientOption) sdk
 type GitHubWebhookServiceIngressClient interface {
 	// HandlePush processes a GitHub push event: looks up the repo connections,
 	// matches each app's watch paths against the changed files, then calls
-	// DeployService.Create once per app to write the row and start it.
+	// DeployWorkflow.Create once per app to write the row and start it.
 	HandlePush() ingress.Requester[*HandlePushRequest, *HandlePushResponse]
 }
 
@@ -94,7 +94,7 @@ func (c *gitHubWebhookServiceIngressClient) HandlePush() ingress.Requester[*Hand
 type GitHubWebhookServiceServer interface {
 	// HandlePush processes a GitHub push event: looks up the repo connections,
 	// matches each app's watch paths against the changed files, then calls
-	// DeployService.Create once per app to write the row and start it.
+	// DeployWorkflow.Create once per app to write the row and start it.
 	HandlePush(ctx sdk_go.ObjectContext, req *HandlePushRequest) (*HandlePushResponse, error)
 }
 
