@@ -309,54 +309,58 @@ func assertIncompleteTelemetryNoop(
 
 func assertStoppedDeploymentSuppression(t *testing.T, h *harness.Harness) {
 	t.Helper()
-	app := createAnomalyTestApp(t, h, mysqltype.EnvironmentKindProduction)
-	windowStart := time.Now().UTC().Truncate(5 * time.Minute)
-	alertID := uid.New(uid.AlertPrefix)
-	require.NoError(t, h.DB.InsertAlertEvent(h.Ctx, db.InsertAlertEventParams{
-		ID: alertID, WorkspaceID: app.workspaceID, ProjectID: app.projectID,
-		AppID: app.appID, EnvironmentID: app.environmentID,
-		DeploymentID: sql.NullString{String: app.deploymentID, Valid: true},
-		Metric:       db.AlertEventsMetricRequestsDrop, FiredAt: windowStart.UnixMilli(),
-		LastSeenAt: windowStart.UnixMilli(), ObservedValue: 0, BaselineMean: 1_000,
-		BaselineStddev: 0, ThresholdSigma: 0, WindowStart: windowStart.UnixMilli(),
-		WindowEnd: windowStart.Add(5 * time.Minute).UnixMilli(), CreatedAt: windowStart.UnixMilli(),
-		UpdatedAt: sql.NullInt64{},
-	}))
+	for _, test := range []struct {
+		name             string
+		deploymentID     func(anomalyTestApp) string
+		desiredState     string
+		hasRunningRegion bool
+	}{
+		{name: "missing deployment", deploymentID: func(anomalyTestApp) string { return "" }, desiredState: "running", hasRunningRegion: true},
+		{name: "stopped deployment", deploymentID: func(app anomalyTestApp) string { return app.deploymentID }, desiredState: "stopped", hasRunningRegion: true},
+		{name: "no running region", deploymentID: func(app anomalyTestApp) string { return app.deploymentID }, desiredState: "running"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			app := createAnomalyTestApp(t, h, mysqltype.EnvironmentKindProduction)
+			firedAt := uniqueAnomalyWindowStart().Add(time.Hour)
+			alertID := uid.New(uid.AlertPrefix)
+			require.NoError(t, h.DB.InsertAlertEvent(h.Ctx, db.InsertAlertEventParams{
+				ID: alertID, WorkspaceID: app.workspaceID, ProjectID: app.projectID,
+				AppID: app.appID, EnvironmentID: app.environmentID,
+				DeploymentID: sql.NullString{String: app.deploymentID, Valid: true},
+				Metric:       db.AlertEventsMetricRequestsDrop, FiredAt: firedAt.UnixMilli(),
+				LastSeenAt: firedAt.UnixMilli(), ObservedValue: 0, BaselineMean: 1_000,
+				BaselineStddev: 0, ThresholdSigma: 0, WindowStart: firedAt.Add(-5 * time.Minute).UnixMilli(),
+				WindowEnd: firedAt.UnixMilli(), CreatedAt: firedAt.UnixMilli(), UpdatedAt: sql.NullInt64{},
+			}))
 
-	client := hydrav1.NewDeployAnomalyServiceIngressClient(h.Restate,
-		anomalyIngressKey(app))
-	request := &hydrav1.EvaluateDeployAnomalyRequest{
-		WindowStart: windowStart.Add(5 * time.Minute).UnixMilli(),
-		WindowEnd:   windowStart.Add(10 * time.Minute).UnixMilli(),
-		WorkspaceId: app.workspaceID, ProjectId: app.projectID,
-		AppId: app.appID, EnvironmentId: app.environmentID,
-		DeploymentId: app.deploymentID, DeploymentDesiredState: "stopped",
-		Metrics: []*hydrav1.DeployAnomalyMetricInput{{
-			Metric:    string(db.AlertEventsMetricRequestsDrop),
-			DataState: hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT,
-			Current:   0, BaselineMean: 1_000, ObservedBaselineBuckets: 288,
-			RecentMedianRequests: 1_000, RecentActiveBuckets: 12,
-		}},
+			client := hydrav1.NewDeployAnomalyServiceIngressClient(h.Restate, anomalyIngressKey(app))
+			request := &hydrav1.EvaluateDeployAnomalyRequest{
+				WindowStart: firedAt.Add(-time.Hour).UnixMilli(),
+				WindowEnd:   firedAt.Add(-55 * time.Minute).UnixMilli(),
+				WorkspaceId: app.workspaceID, ProjectId: app.projectID,
+				AppId: app.appID, EnvironmentId: app.environmentID,
+				DeploymentId: test.deploymentID(app), DeploymentDesiredState: test.desiredState,
+				DeploymentHasRunningRegion: test.hasRunningRegion,
+				Metrics: []*hydrav1.DeployAnomalyMetricInput{{
+					Metric:    string(db.AlertEventsMetricRequestsDrop),
+					DataState: hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_INCOMPLETE,
+				}},
+			}
+			_, err := client.Evaluate().Request(h.Ctx, request)
+			require.NoError(t, err)
+
+			var status string
+			require.NoError(t, h.DB.RO().QueryRowContext(h.Ctx,
+				"SELECT status FROM alert_events WHERE id = ?", alertID).Scan(&status))
+			require.Equal(t, "open", status, "a historical topology window must not resolve a future alert")
+
+			request.WindowStart = firedAt.UnixMilli()
+			request.WindowEnd = firedAt.Add(5 * time.Minute).UnixMilli()
+			_, err = client.Evaluate().Request(h.Ctx, request)
+			require.NoError(t, err)
+			requireAnomalyAlertResolution(t, h, alertID, "Deployment stopped")
+		})
 	}
-	_, err := client.Evaluate().Request(h.Ctx, request)
-	require.NoError(t, err)
-
-	var status string
-	var resolutionMessage sql.NullString
-	require.NoError(t, h.DB.RO().QueryRowContext(h.Ctx,
-		"SELECT status, resolution_message FROM alert_events WHERE id = ?", alertID).
-		Scan(&status, &resolutionMessage))
-	require.Equal(t, "resolved", status)
-	require.Equal(t, "Deployment stopped", resolutionMessage.String)
-
-	request.WindowStart += int64(5 * time.Minute / time.Millisecond)
-	request.WindowEnd += int64(5 * time.Minute / time.Millisecond)
-	_, err = client.Evaluate().Request(h.Ctx, request)
-	require.NoError(t, err)
-	var alerts int
-	require.NoError(t, h.DB.RO().QueryRowContext(h.Ctx,
-		"SELECT COUNT(*) FROM alert_events WHERE app_id = ?", app.appID).Scan(&alerts))
-	require.Equal(t, 1, alerts, "a stopped deployment must not open a replacement request-drop alert")
 }
 
 func assertBaselineAdaptedResolution(t *testing.T, h *harness.Harness) {
@@ -420,6 +424,7 @@ func assertDeploymentTopologyMetadata(t *testing.T, h *harness.Harness) {
 
 	require.Equal(t, app.appCreatedAt, find().AppCreatedAt)
 	require.True(t, find().DeploymentHasRunningRegion)
+	require.Equal(t, "anomaly-integration", find().DeploymentRunningRegion)
 	secondRegion := uid.New(uid.RegionPrefix)
 	require.NoError(t, h.DB.InsertDeploymentTopology(h.Ctx, db.InsertDeploymentTopologyParams{
 		WorkspaceID: app.workspaceID, DeploymentID: app.deploymentID, RegionID: secondRegion,
@@ -637,15 +642,17 @@ func createAnomalyTestApp(t *testing.T, h *harness.Harness, kind mysqltype.Envir
 		CurrentDeploymentID: sql.NullString{String: deployment.ID, Valid: true},
 		IsRolledBack:        false, UpdatedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true}, AppID: app.ID,
 	}))
-	regionID := uid.New(uid.RegionPrefix)
+	region := h.Seed.CreateRegion(h.Ctx, seed.CreateRegionRequest{
+		Name: "anomaly-integration", Platform: "test",
+	})
 	require.NoError(t, h.DB.InsertDeploymentTopology(h.Ctx, db.InsertDeploymentTopologyParams{
-		WorkspaceID: workspace.ID, DeploymentID: deployment.ID, RegionID: regionID,
+		WorkspaceID: workspace.ID, DeploymentID: deployment.ID, RegionID: region.ID,
 		AutoscalingReplicasMin: 0, AutoscalingReplicasMax: 1,
 		DesiredStatus: db.DeploymentTopologyDesiredStatusRunning, CreatedAt: time.Now().UnixMilli(),
 	}))
 	return anomalyTestApp{
 		workspaceID: workspace.ID, projectID: project.ID, appID: app.ID,
-		environmentID: environment.ID, deploymentID: deployment.ID, regionID: regionID,
+		environmentID: environment.ID, deploymentID: deployment.ID, regionID: region.ID,
 		appCreatedAt: appCreatedAt,
 	}
 }

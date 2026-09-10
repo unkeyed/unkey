@@ -41,7 +41,13 @@ func candidateWindowKey(metric Metric) string { return "candidate_window:" + str
 func openAlertKey(metric Metric) string       { return "open_alert:" + string(metric) }
 func firedAtKey(metric Metric) string         { return "fired_at:" + string(metric) }
 func quietKey(metric Metric) string           { return "quiet:" + string(metric) }
+func progressKey(metric Metric) string        { return "progress:" + string(metric) }
 func snapshotKey(metric Metric) string        { return "snapshot:" + string(metric) }
+
+type metricProgress struct {
+	WindowEnd    int64 `json:"window_end"`
+	QuietWindows int   `json:"quiet_windows"`
+}
 
 var allMetrics = []Metric{
 	MetricError5xx,
@@ -56,8 +62,6 @@ var allMetrics = []Metric{
 }
 
 // Evaluate applies complete metric windows to candidate and open-alert state.
-// Incomplete sources are strict no-ops so ingest lag cannot generate or resolve
-// a customer alert.
 func (h *CheckHandler) Evaluate(
 	ctx restate.ObjectContext,
 	req *hydrav1.EvaluateDeployAnomalyRequest,
@@ -91,7 +95,12 @@ func (h *CheckHandler) Evaluate(
 			return nil, restate.TerminalError(fault.New(fmt.Sprintf("unsupported deploy anomaly metric %q", metric)))
 		}
 
-		if metricValue.GetDataState() == hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_INCOMPLETE {
+		openID, err := restate.Get[string](ctx, openAlertKey(metric))
+		if err != nil {
+			return nil, fault.Wrap(err, fault.Internal(fmt.Sprintf("get open alert for %s", metric)))
+		}
+		if metricValue.GetDataState() == hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_INCOMPLETE &&
+			!(metric == MetricRequestsDrop && requestDropSuppressed(req)) {
 			logger.Warn("deploy anomaly metric skipped because ingest is incomplete",
 				"workspace_id", req.GetWorkspaceId(), "app_id", req.GetAppId(),
 				"environment_id", req.GetEnvironmentId(), "metric", metric,
@@ -101,14 +110,20 @@ func (h *CheckHandler) Evaluate(
 		}
 		processed = true
 
-		openID, err := restate.Get[string](ctx, openAlertKey(metric))
+		progress, err := h.metricProgress(ctx, metric)
 		if err != nil {
-			return nil, fault.Wrap(err, fault.Internal(fmt.Sprintf("get open alert for %s", metric)))
+			return nil, err
+		}
+		if req.GetWindowEnd() <= progress.WindowEnd {
+			continue
 		}
 		if metric == MetricRequestsDrop && requestDropSuppressed(req) {
 			if err := h.suppressRequestDrop(ctx, req, openID); err != nil {
 				return nil, err
 			}
+			restate.Set(ctx, progressKey(metric), metricProgress{
+				WindowEnd: req.GetWindowEnd(), QuietWindows: 0,
+			})
 			continue
 		}
 
@@ -125,9 +140,13 @@ func (h *CheckHandler) Evaluate(
 		input := detectorInput(metricValue, req.GetWindowStart(), req.GetAppCreatedAt(), previousCandidate)
 
 		if openID != "" {
-			if err := h.evaluateOpen(ctx, req, input, openID, cfg); err != nil {
-				return nil, err
+			quietWindows, evaluateErr := h.evaluateOpen(ctx, req, input, openID, progress.QuietWindows, cfg)
+			if evaluateErr != nil {
+				return nil, evaluateErr
 			}
+			restate.Set(ctx, progressKey(metric), metricProgress{
+				WindowEnd: req.GetWindowEnd(), QuietWindows: quietWindows,
+			})
 			continue
 		}
 
@@ -148,6 +167,9 @@ func (h *CheckHandler) Evaluate(
 		default:
 			return nil, restate.TerminalError(fault.New(fmt.Sprintf("unsupported detector outcome %q", result.Outcome)))
 		}
+		restate.Set(ctx, progressKey(metric), metricProgress{
+			WindowEnd: req.GetWindowEnd(), QuietWindows: 0,
+		})
 	}
 	if processed {
 		restate.Set(ctx, lastWindowEndStateKey, req.GetWindowEnd())
@@ -282,39 +304,49 @@ func (h *CheckHandler) open(ctx restate.ObjectContext, req *hydrav1.EvaluateDepl
 	return nil
 }
 
-func (h *CheckHandler) evaluateOpen(ctx restate.ObjectContext, req *hydrav1.EvaluateDeployAnomalyRequest, input Input, alertID string, cfg Config) error {
+func (h *CheckHandler) evaluateOpen(ctx restate.ObjectContext, req *hydrav1.EvaluateDeployAnomalyRequest, input Input, alertID string, quietWindows int, cfg Config) (int, error) {
 	firedAt, err := restate.Get[int64](ctx, firedAtKey(input.Metric))
 	if err != nil {
-		return fault.Wrap(err, fault.Internal(fmt.Sprintf("get fired time for %s", input.Metric)))
+		return quietWindows, fault.Wrap(err, fault.Internal(fmt.Sprintf("get fired time for %s", input.Metric)))
 	}
 	// Reconciliation adopts every open row, including alerts that fired after
 	// the window now being caught up. A window that ended before the alert
 	// existed carries no evidence about it and must not count as quiet.
 	if req.GetWindowEnd() < firedAt {
-		return nil
+		return quietWindows, nil
 	}
 	if maxOpenDurationReached(firedAt, req.GetWindowEnd(), cfg.MaxOpenDuration) {
-		return h.resolve(ctx, req, alertID, input.Metric, baselineAdaptedMessage)
+		return 0, h.resolve(ctx, req, alertID, input.Metric, baselineAdaptedMessage)
 	}
 	snapshot, err := restate.Get[Result](ctx, snapshotKey(input.Metric))
 	if err != nil {
-		return fault.Wrap(err, fault.Internal(fmt.Sprintf("get opening snapshot for %s", input.Metric)))
+		return quietWindows, fault.Wrap(err, fault.Internal(fmt.Sprintf("get opening snapshot for %s", input.Metric)))
 	}
 	if !Recovered(input, snapshot, cfg) {
-		restate.Set(ctx, quietKey(input.Metric), 0)
-		return h.touch(ctx, alertID, req.GetWindowEnd(), observedValue(input))
+		return 0, h.touch(ctx, alertID, req.GetWindowEnd(), observedValue(input))
 	}
 
-	quiet, err := restate.Get[int](ctx, quietKey(input.Metric))
+	quietWindows++
+	if !ShouldResolve(quietWindows, cfg.Recovery.ConsecutiveWindows) {
+		return quietWindows, nil
+	}
+	return 0, h.resolve(ctx, req, alertID, input.Metric, autoResolveMessage)
+}
+
+func (h *CheckHandler) metricProgress(ctx restate.ObjectContext, metric Metric) (metricProgress, error) {
+	progress, err := restate.Get[metricProgress](ctx, progressKey(metric))
 	if err != nil {
-		return fault.Wrap(err, fault.Internal(fmt.Sprintf("get quiet windows for %s", input.Metric)))
+		return metricProgress{}, fault.Wrap(err, fault.Internal(fmt.Sprintf("get progress for %s", metric)))
 	}
-	quiet++
-	if !ShouldResolve(quiet, cfg.Recovery.ConsecutiveWindows) {
-		restate.Set(ctx, quietKey(input.Metric), quiet)
-		return nil
+	if progress.WindowEnd != 0 {
+		return progress, nil
 	}
-	return h.resolve(ctx, req, alertID, input.Metric, autoResolveMessage)
+	quietWindows, err := restate.Get[int](ctx, quietKey(metric))
+	if err != nil {
+		return metricProgress{}, fault.Wrap(err, fault.Internal(fmt.Sprintf("get quiet windows for %s", metric)))
+	}
+	progress.QuietWindows = quietWindows
+	return progress, nil
 }
 
 func maxOpenDurationReached(firedAt, windowEnd int64, duration time.Duration) bool {
@@ -357,6 +389,13 @@ func (h *CheckHandler) suppressRequestDrop(ctx restate.ObjectContext, req *hydra
 		clearMetricState(ctx, MetricRequestsDrop)
 		return nil
 	}
+	firedAt, err := restate.Get[int64](ctx, firedAtKey(MetricRequestsDrop))
+	if err != nil {
+		return fault.Wrap(err, fault.Internal("get fired time for requests_drop"))
+	}
+	if req.GetWindowEnd() < firedAt {
+		return nil
+	}
 	return h.resolve(ctx, req, openID, MetricRequestsDrop, stoppedMessage)
 }
 
@@ -380,6 +419,7 @@ func clearMetricState(ctx restate.ObjectContext, metric Metric) {
 	restate.Clear(ctx, openAlertKey(metric))
 	restate.Clear(ctx, firedAtKey(metric))
 	restate.Clear(ctx, quietKey(metric))
+	restate.Clear(ctx, progressKey(metric))
 	restate.Clear(ctx, snapshotKey(metric))
 }
 

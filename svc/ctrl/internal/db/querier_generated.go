@@ -721,7 +721,8 @@ type Querier interface {
 	//          FROM deployment_topology dt
 	//          WHERE dt.deployment_id = d.id
 	//            AND dt.desired_status = 'running'
-	//      ) AS deployment_has_running_region
+	//      ) AS deployment_has_running_region,
+	//      COALESCE(r.name, '') AS deployment_running_region
 	//  FROM requested
 	//  INNER JOIN environments e
 	//      ON BINARY e.id = BINARY requested.environment_id
@@ -733,8 +734,12 @@ type Querier interface {
 	//  LEFT JOIN deployments d
 	//      ON d.id = a.current_deployment_id
 	//      AND d.environment_id = e.id
+	//  LEFT JOIN deployment_topology dt
+	//      ON dt.deployment_id = d.id
+	//      AND dt.desired_status = 'running'
+	//  LEFT JOIN regions r ON r.id = dt.region_id
 	//  WHERE w.deleted_at_m IS NULL
-	//  ORDER BY requested.workspace_id, requested.project_id, requested.app_id, requested.environment_id
+	//  ORDER BY requested.workspace_id, requested.project_id, requested.app_id, requested.environment_id, r.name
 	FindLiveDeploymentsForEnvironments(ctx context.Context, arg FindLiveDeploymentsForEnvironmentsParams) ([]FindLiveDeploymentsForEnvironmentsRow, error)
 	//FindOpenAlertEventsByGroup
 	//

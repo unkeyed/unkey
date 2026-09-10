@@ -535,9 +535,8 @@ func (c *Client) GetResourceAnomalyWindows(ctx context.Context, req AnomalyWindo
 	return windows, nil
 }
 
-// GetAnomalySourceWatermarks returns one completeness bound per active source
-// region. Regions without ingest in the two-hour bound are inactive rather
-// than lagging, so a decommissioned region cannot block detection forever.
+// GetAnomalySourceWatermarks returns one completeness bound per source and
+// region with ingest during the two-hour activity window.
 func (c *Client) GetAnomalySourceWatermarks(ctx context.Context) (AnomalySourceWatermarks, error) {
 	query := `
 	SELECT
