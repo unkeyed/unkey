@@ -33,6 +33,9 @@ import {
   type DrainKind,
   createDrainSchema,
   emptyDrainForm,
+  submittedEventTypes,
+  submittedSources,
+  submittedStatusClasses,
 } from "./drain-schema";
 import { DrainStepCard } from "./drain-step-card";
 import { toHeaderRecord } from "./header-fields";
@@ -109,16 +112,12 @@ export function CreateLogdrainPanel({
         }))
         .with("runtime_logs", () => ({
           severities: values.severities,
-          projectIds: values.runtimeProjectIds,
-          appIds: values.runtimeAppIds,
-          environmentIds: values.runtimeEnvironmentIds,
+          ...submittedSources(values),
         }))
-        .with("audit_logs", () => ({ eventTypes: values.eventTypes }))
+        .with("audit_logs", () => ({ eventTypes: submittedEventTypes(values) }))
         .with("gateway_requests", () => ({
-          statusClasses: values.statusClasses,
-          projectIds: values.projectIds,
-          appIds: values.appIds,
-          environmentIds: values.environmentIds,
+          statusClasses: submittedStatusClasses(values),
+          ...submittedSources(values),
         }))
         .with("key_verifications", () => ({
           outcomes: values.outcomes,

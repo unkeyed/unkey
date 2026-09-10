@@ -112,6 +112,7 @@ const baseSchema = z.object({
   runtimeProjectIds: resourceIdsSchema,
   runtimeAppIds: resourceIdsSchema,
   runtimeEnvironmentIds: resourceIdsSchema,
+  runtimeSourceMode: z.enum(["all", "some"]),
   projectIds: resourceIdsSchema,
   appIds: resourceIdsSchema,
   environmentIds: resourceIdsSchema,
@@ -122,6 +123,9 @@ const baseSchema = z.object({
   dataset: z.string(),
   token: z.string(),
   eventTypes: z.array(z.string().trim().min(1).max(256)).max(256),
+  sourceMode: z.enum(["all", "some"]),
+  statusMode: z.enum(["all", "errors", "custom"]),
+  eventTypesMode: z.enum(["all", "specific"]),
 });
 
 export type DrainFormValues = z.infer<typeof baseSchema>;
@@ -165,14 +169,102 @@ function refineDestination(
   }
 }
 
-export const createDrainSchema = baseSchema.superRefine((values, context) =>
-  refineDestination(values, context, { tokenRequired: true }),
-);
+function drainSchema({ tokenRequired }: { tokenRequired: boolean }) {
+  return baseSchema.superRefine((values, context) => {
+    refineDestination(values, context, { tokenRequired });
+    if (
+      values.stream === "audit_logs" &&
+      values.eventTypesMode === "specific" &&
+      values.eventTypes.length === 0
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["eventTypes"],
+        message: "Choose at least one event type",
+      });
+    }
+    if (values.stream !== "gateway_requests" && values.stream !== "runtime_logs") {
+      return;
+    }
+    const runtime = values.stream === "runtime_logs";
+    const sources = submittedSources(values);
+    const chosen =
+      sources.projectIds.length + sources.appIds.length + sources.environmentIds.length;
+    if ((runtime ? values.runtimeSourceMode : values.sourceMode) === "some" && chosen === 0) {
+      context.addIssue({
+        code: "custom",
+        path: [runtime ? "runtimeEnvironmentIds" : "environmentIds"],
+        message: "Choose at least one source",
+      });
+    }
+    if (!runtime && values.statusMode === "custom" && values.statusClasses.length === 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["statusClasses"],
+        message: "Choose at least one status class",
+      });
+    }
+  });
+}
+
+export const createDrainSchema = drainSchema({ tokenRequired: true });
 
 /** Editing keeps the stored token when the field is left blank. */
-export const editDrainSchema = baseSchema.superRefine((values, context) =>
-  refineDestination(values, context, { tokenRequired: false }),
-);
+export const editDrainSchema = drainSchema({ tokenRequired: false });
+
+export const ERROR_STATUS_CLASSES = [4, 5];
+
+export function submittedStatusClasses(values: DrainFormValues): number[] {
+  switch (values.statusMode) {
+    case "all":
+      return [];
+    case "errors":
+      return [...ERROR_STATUS_CLASSES];
+    case "custom":
+      return values.statusClasses;
+    default:
+      throw new Error(`Unsupported status mode: ${values.statusMode satisfies never}`);
+  }
+}
+
+export function submittedSources(values: DrainFormValues): {
+  projectIds: string[];
+  appIds: string[];
+  environmentIds: string[];
+} {
+  if (values.stream === "runtime_logs") {
+    return values.runtimeSourceMode === "all"
+      ? { projectIds: [], appIds: [], environmentIds: [] }
+      : {
+          projectIds: values.runtimeProjectIds,
+          appIds: values.runtimeAppIds,
+          environmentIds: values.runtimeEnvironmentIds,
+        };
+  }
+  if (values.sourceMode === "all") {
+    return { projectIds: [], appIds: [], environmentIds: [] };
+  }
+  return {
+    projectIds: values.projectIds,
+    appIds: values.appIds,
+    environmentIds: values.environmentIds,
+  };
+}
+
+function statusModeFor(statusClasses: number[]): DrainFormValues["statusMode"] {
+  if (statusClasses.length === 0) {
+    return "all";
+  }
+  const sorted = [...statusClasses].sort();
+  return sorted.length === ERROR_STATUS_CLASSES.length &&
+    sorted.every((statusClass, index) => statusClass === ERROR_STATUS_CLASSES[index])
+    ? "errors"
+    : "custom";
+}
+
+export function submittedEventTypes(values: DrainFormValues): string[] {
+  return values.eventTypesMode === "all" ? [] : values.eventTypes;
+}
 
 export const emptyHeaderRow = { name: "", value: "", stored: false };
 
@@ -188,6 +280,7 @@ export const emptyDrainForm: DrainFormValues = {
   runtimeProjectIds: [],
   runtimeAppIds: [],
   runtimeEnvironmentIds: [],
+  runtimeSourceMode: "all",
   projectIds: [],
   appIds: [],
   environmentIds: [],
@@ -198,6 +291,9 @@ export const emptyDrainForm: DrainFormValues = {
   dataset: "",
   token: "",
   eventTypes: [],
+  sourceMode: "all",
+  statusMode: "all",
+  eventTypesMode: "all",
 };
 
 export function drainToFormValues(drain: DrainDetail): DrainFormValues {
@@ -215,10 +311,22 @@ export function drainToFormValues(drain: DrainDetail): DrainFormValues {
     runtimeProjectIds: drain.stream === "runtime_logs" ? drain.projectIds : [],
     runtimeAppIds: drain.stream === "runtime_logs" ? drain.appIds : [],
     runtimeEnvironmentIds: drain.stream === "runtime_logs" ? drain.environmentIds : [],
+    runtimeSourceMode:
+      drain.stream === "runtime_logs" &&
+      drain.projectIds.length + drain.appIds.length + drain.environmentIds.length > 0
+        ? "some"
+        : "all",
     projectIds: drain.stream === "gateway_requests" ? drain.projectIds : [],
     appIds: drain.stream === "gateway_requests" ? drain.appIds : [],
     environmentIds: drain.stream === "gateway_requests" ? drain.environmentIds : [],
+    sourceMode:
+      drain.stream === "gateway_requests" &&
+      drain.projectIds.length + drain.appIds.length + drain.environmentIds.length > 0
+        ? "some"
+        : "all",
+    statusMode: statusModeFor(statusClassesSchema.parse(drain.statusClasses)),
     eventTypes: drain.eventTypes,
+    eventTypesMode: drain.eventTypes.length > 0 ? "specific" : "all",
     url: drain.kind === "http" ? drain.config.url : "",
     format: drain.kind === "http" ? drain.config.format : "json",
     headers:
