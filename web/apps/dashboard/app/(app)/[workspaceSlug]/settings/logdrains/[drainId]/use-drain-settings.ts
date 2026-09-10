@@ -13,6 +13,8 @@ import {
   drainToFormValues,
   editDrainSchema,
   emptyDrainForm,
+  submittedSources,
+  submittedStatusClasses,
 } from "../drain-schema";
 
 export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted: () => void }) {
@@ -60,10 +62,12 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
       const eventTypesChanged = !sameEventTypes(submitted.eventTypes, values.eventTypes);
       const outcomesChanged = !sameEventTypes(submitted.outcomes, values.outcomes);
       const keySpacesChanged = !sameEventTypes(submitted.keySpaceIds, values.keySpaceIds);
-      const statusesChanged = !sameEventTypes(submitted.statusClasses, values.statusClasses);
-      const projectsChanged = !sameEventTypes(submitted.projectIds, values.projectIds);
-      const appsChanged = !sameEventTypes(submitted.appIds, values.appIds);
-      const environmentsChanged = !sameEventTypes(submitted.environmentIds, values.environmentIds);
+      const statusClasses = submittedStatusClasses(submitted);
+      const sources = submittedSources(submitted);
+      const statusesChanged = !sameEventTypes(statusClasses, values.statusClasses);
+      const projectsChanged = !sameEventTypes(sources.projectIds, values.projectIds);
+      const appsChanged = !sameEventTypes(sources.appIds, values.appIds);
+      const environmentsChanged = !sameEventTypes(sources.environmentIds, values.environmentIds);
       if (
         name === drain.name &&
         destination === undefined &&
@@ -85,10 +89,10 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
           ...(eventTypesChanged ? { eventTypes: submitted.eventTypes } : {}),
           ...(outcomesChanged ? { outcomes: submitted.outcomes } : {}),
           ...(keySpacesChanged ? { keySpaceIds: submitted.keySpaceIds } : {}),
-          ...(statusesChanged ? { statusClasses: submitted.statusClasses } : {}),
-          ...(projectsChanged ? { projectIds: submitted.projectIds } : {}),
-          ...(appsChanged ? { appIds: submitted.appIds } : {}),
-          ...(environmentsChanged ? { environmentIds: submitted.environmentIds } : {}),
+          ...(statusesChanged ? { statusClasses } : {}),
+          ...(projectsChanged ? { projectIds: sources.projectIds } : {}),
+          ...(appsChanged ? { appIds: sources.appIds } : {}),
+          ...(environmentsChanged ? { environmentIds: sources.environmentIds } : {}),
           ...(destination !== undefined ? { destination } : {}),
         },
         { onSuccess: onSaved },

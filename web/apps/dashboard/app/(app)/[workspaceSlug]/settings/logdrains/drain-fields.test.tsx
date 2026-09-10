@@ -27,7 +27,16 @@ vi.mock("@/lib/trpc/client", () => ({
       environment: {
         listAll: {
           useQuery: () => ({
-            data: [{ id: "env", name: "Production", projectId: "project", appId: "app" }],
+            data: [
+              { id: "env", name: "Production", projectId: "project", appId: "app" },
+              { id: "env_preview", name: "Preview", projectId: "project", appId: "app" },
+              {
+                id: "other-env",
+                name: "Production",
+                projectId: "other-project",
+                appId: "other-app",
+              },
+            ],
             isLoading: false,
           }),
         },
@@ -101,76 +110,88 @@ it("keeps each stream filter bound to its own values when switching streams", ()
   expect(screen.queryByText("RATE_LIMITED")).toBeNull();
 });
 
-it("keeps gateway status selection separate and retains clearing after switching", () => {
+it("keeps gateway statuses on all until a mode asks for more", () => {
   render(<Form />);
   fireEvent.click(screen.getByText("Gateway"));
+  expect(screen.getByRole("radio", { name: "All statuses" }).getAttribute("aria-checked")).toBe(
+    "true",
+  );
+  expect(screen.queryByLabelText("Search HTTP statuses")).toBeNull();
+
+  fireEvent.click(screen.getByRole("radio", { name: "Custom" }));
   expect(screen.getByLabelText("Search HTTP statuses")).toBeTruthy();
   expect(screen.getByText("4xx")).toBeTruthy();
-  expect(screen.queryByText("key.create")).toBeNull();
+
+  fireEvent.click(screen.getByRole("radio", { name: "Errors only" }));
+  expect(screen.queryByLabelText("Search HTTP statuses")).toBeNull();
   fireEvent.click(screen.getByText("Verifications"));
   expect(screen.getByText("RATE_LIMITED")).toBeTruthy();
   fireEvent.click(screen.getByText("Gateway"));
-  expect(screen.getByText("4xx")).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "Remove" }));
-  expect(screen.getByPlaceholderText("All HTTP statuses")).toBeTruthy();
-  fireEvent.click(screen.getByText("Audit"));
-  expect(screen.getByText("key.create")).toBeTruthy();
-  fireEvent.click(screen.getByText("Gateway"));
-  expect(screen.getByPlaceholderText("All HTTP statuses")).toBeTruthy();
+  expect(screen.getByRole("radio", { name: "Errors only" }).getAttribute("aria-checked")).toBe(
+    "true",
+  );
 });
 
-it("retains resource selections across streams and clears each independently", () => {
-  function SelectedForm() {
+it("ticks a whole project and reports a partial one", () => {
+  const values: DrainFormValues[] = [];
+  function TreeForm() {
+    const form = useForm<DrainFormValues>({
+      defaultValues: { ...emptyDrainForm, stream: "gateway_requests" },
+    });
+    values[0] = form.watch();
+    return (
+      <FormProvider {...form}>
+        <EventTypesField />
+      </FormProvider>
+    );
+  }
+  render(<TreeForm />);
+  expect(screen.getByText("All 3 environments")).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("checkbox", { name: /Analytics/ }));
+  expect(screen.getByText("2 of 3 environments")).toBeTruthy();
+  expect(values[0].sourceMode).toBe("some");
+  expect(values[0].projectIds).toEqual(["project"]);
+  expect(values[0].environmentIds).toEqual([]);
+
+  fireEvent.click(screen.getByRole("checkbox", { name: /Preview/ }));
+  expect(screen.getByRole("checkbox", { name: /Store/ }).getAttribute("aria-checked")).toBe(
+    "mixed",
+  );
+  expect(values[0].environmentIds).toEqual(["env"]);
+});
+
+it("returns to every source when all of them are ticked again", () => {
+  const values: DrainFormValues[] = [];
+  function TreeForm() {
     const form = useForm<DrainFormValues>({
       defaultValues: {
         ...emptyDrainForm,
         stream: "gateway_requests",
-        projectIds: ["project"],
+        sourceMode: "some",
         appIds: ["app"],
-        environmentIds: ["env"],
-        statusClasses: [5],
       },
     });
+    values[0] = form.watch();
     return (
       <FormProvider {...form}>
-        <button type="button" onClick={() => form.setValue("stream", "audit_logs")}>
-          Audit
-        </button>
-        <button type="button" onClick={() => form.setValue("stream", "gateway_requests")}>
-          Gateway
-        </button>
         <EventTypesField />
       </FormProvider>
     );
   }
-  render(<SelectedForm />);
-  expect(screen.getByText("Store (project)")).toBeTruthy();
-  expect(screen.getByText("Store / Backend (app)")).toBeTruthy();
-  expect(screen.getByText("Store / Backend / Production (env)")).toBeTruthy();
-  fireEvent.click(screen.getByText("Audit"));
-  expect(screen.queryByLabelText("Search projects")).toBeNull();
-  fireEvent.click(screen.getByText("Gateway"));
-  expect(screen.getByText("Store (project)")).toBeTruthy();
-  for (const label of ["Search projects", "Search apps", "Search environments"]) {
-    const fieldset = screen.getByLabelText(label).closest("fieldset");
-    const button = fieldset?.querySelector("button[aria-label='Remove']");
-    if (!button) {
-      throw new Error(`Missing remove button for ${label}`);
-    }
-    fireEvent.click(button);
-  }
-  expect(screen.getByText("5xx")).toBeTruthy();
-  fireEvent.click(screen.getByText("Audit"));
-  fireEvent.click(screen.getByText("Gateway"));
-  expect(screen.getByPlaceholderText("All projects")).toBeTruthy();
-  expect(screen.getByPlaceholderText("All apps")).toBeTruthy();
-  expect(screen.getByPlaceholderText("All environments")).toBeTruthy();
+  render(<TreeForm />);
+  expect(screen.getByText("2 of 3 environments")).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("checkbox", { name: /Analytics/ }));
+  expect(screen.getByText("All 3 environments")).toBeTruthy();
+  expect(values[0].sourceMode).toBe("all");
+  expect(values[0].appIds).toEqual([]);
 });
 
-it("scopes apps to selected projects and removes selected apps outside that scope", async () => {
-  function SelectedForm() {
+it("shows nothing selected after clearing every source", () => {
+  function TreeForm() {
     const form = useForm<DrainFormValues>({
-      defaultValues: { ...emptyDrainForm, stream: "gateway_requests", appIds: ["other-app"] },
+      defaultValues: { ...emptyDrainForm, stream: "gateway_requests" },
     });
     return (
       <FormProvider {...form}>
@@ -178,26 +199,10 @@ it("scopes apps to selected projects and removes selected apps outside that scop
       </FormProvider>
     );
   }
-  render(<SelectedForm />);
-  expect(screen.getByText("Analytics / Reports (other-app)")).toBeTruthy();
-  fireEvent.keyDown(screen.getByLabelText("Search projects"), { key: "ArrowDown" });
-  fireEvent.click(await screen.findByRole("option", { name: "Store (project)" }));
-  expect(screen.queryByText("Analytics / Reports (other-app)")).toBeNull();
-  fireEvent.keyDown(screen.getByLabelText("Search apps"), { key: "ArrowDown" });
-  expect(await screen.findByRole("option", { name: "Store / Backend (app)" })).toBeTruthy();
-  expect(screen.queryByRole("option", { name: "Analytics / Reports (other-app)" })).toBeNull();
-  fireEvent.keyDown(screen.getByLabelText("Search apps"), { key: "Escape" });
-  const remove = screen
-    .getByLabelText("Search projects")
-    .closest("fieldset")
-    ?.querySelector("button[aria-label='Remove']");
-  if (!remove) {
-    throw new Error("Missing project remove button");
-  }
-  fireEvent.click(remove);
-  fireEvent.keyDown(screen.getByLabelText("Search apps"), { key: "ArrowDown" });
-  expect(
-    await screen.findByRole("option", { name: "Analytics / Reports (other-app)" }),
-  ).toBeTruthy();
-  expect(screen.getByRole("option", { name: "Store / Backend (app)" })).toBeTruthy();
+  render(<TreeForm />);
+  fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  expect(screen.getByText("0 of 3 environments")).toBeTruthy();
+  expect(screen.getByRole("checkbox", { name: /Store/ }).getAttribute("aria-checked")).toBe(
+    "false",
+  );
 });

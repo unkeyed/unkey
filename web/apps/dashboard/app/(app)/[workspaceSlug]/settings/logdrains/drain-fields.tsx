@@ -15,14 +15,20 @@ import {
 } from "@/components/ui/multibox";
 import { trpc } from "@/lib/trpc/client";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import { Plus, Trash } from "@unkey/icons";
+import { CaretRight, Check, Magnifier, Minus, Plus, Trash } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
-import { Button, FormInput, FormSelect } from "@unkey/ui";
-import type { ReactNode } from "react";
+import { Button, FormInput, FormSelect, cn } from "@unkey/ui";
+import { type ReactNode, useState } from "react";
 import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { DrainEndpointRow } from "./drain-endpoint-row";
 import { type DrainFormValues, emptyHeaderRow } from "./drain-schema";
+import {
+  buildSourceTree,
+  encodeSources,
+  environmentIdsOf,
+  tickedEnvironmentIds,
+} from "./gateway-sources";
 
 export function NameField() {
   const { register, formState } = useFormContext<DrainFormValues>();
@@ -77,133 +83,376 @@ export function EventTypesField() {
     ))
     .with("gateway_requests", () => (
       <>
-        <GatewayResourcesFields />
+        <GatewaySourcesField />
         <GatewayStatusesField />
       </>
     ))
     .exhaustive();
 }
 
-function GatewayResourcesFields() {
-  const { control, getValues, setValue } = useFormContext<DrainFormValues>();
+function GatewaySourcesField() {
+  const { control, formState, setValue } = useFormContext<DrainFormValues>();
+  const sourceMode = useWatch({ control, name: "sourceMode" });
   const projectIds = useWatch({ control, name: "projectIds" });
+  const appIds = useWatch({ control, name: "appIds" });
+  const environmentIds = useWatch({ control, name: "environmentIds" });
+  const [query, setQuery] = useState("");
+  const [collapsed, setCollapsed] = useState<string[]>([]);
+
   const projects = trpc.deploy.project.list.useQuery();
   const environments = trpc.deploy.environment.listAll.useQuery();
-  const projectLabels = new Map(projects.data?.map((project) => [project.id, project.name]));
-  const appLabels = new Map(
-    projects.data?.flatMap((project) =>
-      project.apps.map((app) => [app.id, `${project.name} / ${app.name}`] as const),
-    ),
+  const tree = buildSourceTree(projects.data ?? [], environments.data ?? []);
+  const allIds = environmentIdsOf(tree);
+  const selected = new Set(
+    tickedEnvironmentIds(tree, sourceMode, { projectIds, appIds, environmentIds }),
   );
-  const choices = [
-    {
-      name: "projectIds",
-      label: "Projects",
-      searchLabel: "Search projects",
-      placeholder: "All projects",
-      labels: projectLabels,
-      loading: projects.isLoading,
-      error: projects.error,
-    },
-    {
-      name: "appIds",
-      label: "Apps",
-      searchLabel: "Search apps",
-      placeholder: "All apps",
-      labels: new Map(
-        projects.data
-          ?.filter((project) => projectIds.length === 0 || projectIds.includes(project.id))
-          .flatMap((project) =>
-            project.apps.map((app) => [app.id, `${project.name} / ${app.name}`] as const),
-          ),
+  const error = formState.errors.environmentIds?.message;
+
+  const choose = (next: Set<string>) => {
+    const everything = next.size === allIds.length;
+    const encoded = everything
+      ? { projectIds: [], appIds: [], environmentIds: [] }
+      : encodeSources(tree, next);
+    const options = { shouldDirty: true, shouldValidate: true } as const;
+    setValue("sourceMode", everything ? "all" : "some", options);
+    setValue("projectIds", encoded.projectIds, options);
+    setValue("appIds", encoded.appIds, options);
+    setValue("environmentIds", encoded.environmentIds, options);
+  };
+
+  const toggle = (ids: string[]) => {
+    const next = new Set(selected);
+    if (ids.every((id) => next.has(id))) {
+      for (const id of ids) {
+        next.delete(id);
+      }
+    } else {
+      for (const id of ids) {
+        next.add(id);
+      }
+    }
+    choose(next);
+  };
+
+  const term = query.trim().toLowerCase();
+  const matches = (text: string) => text.toLowerCase().includes(term);
+  const visible = tree
+    .map((project) => ({
+      ...project,
+      apps: project.apps.filter(
+        (app) =>
+          term === "" ||
+          matches(project.name) ||
+          matches(app.name) ||
+          app.environments.some((environment) => matches(environment.name)),
       ),
-      loading: projects.isLoading,
-      error: projects.error,
-    },
-    {
-      name: "environmentIds",
-      label: "Environments",
-      searchLabel: "Search environments",
-      placeholder: "All environments",
-      labels: new Map(
-        environments.data?.map((environment) => [
-          environment.id,
-          `${appLabels.get(environment.appId) ?? environment.appId} / ${environment.name}`,
-        ]),
-      ),
-      loading: environments.isLoading,
-      error: environments.error,
-    },
-  ] as const;
+    }))
+    .filter((project) => project.apps.length > 0);
+
+  const notice = sourcesNotice({
+    failed: Boolean(projects.error || environments.error),
+    loading: projects.isLoading || environments.isLoading,
+    empty: visible.length === 0,
+  });
+
   return (
-    <>
-      <p className="text-xs text-gray-9">
-        Requests must match each selected filter. Leave a filter empty to send all values.
-      </p>
-      {choices.map((choice) => (
-        <Controller
-          key={choice.name}
-          control={control}
-          name={choice.name}
-          render={({ field }) => (
-            <FilterChoices
-              {...field}
-              onChange={(values) => {
-                field.onChange(values);
-                if (choice.name === "projectIds" && values.length > 0 && projects.data) {
-                  const appIds = new Set(
-                    projects.data
-                      .filter((project) => values.includes(project.id))
-                      .flatMap((project) => project.apps.map((app) => app.id)),
-                  );
-                  setValue(
-                    "appIds",
-                    getValues("appIds").filter((id) => appIds.has(id)),
-                    { shouldDirty: true, shouldValidate: true },
-                  );
-                }
-              }}
-              options={[...choice.labels.keys()]}
-              label={choice.label}
-              searchLabel={choice.searchLabel}
-              placeholder={choice.placeholder}
-              emptyMessage={
-                choice.error
-                  ? `Unable to load ${choice.label.toLowerCase()}.`
-                  : choice.loading
-                    ? "Loading…"
-                    : "No matches found."
-              }
-              getLabel={(id) => (choice.labels.has(id) ? `${choice.labels.get(id)} (${id})` : id)}
-            />
-          )}
-        />
-      ))}
-    </>
+    <fieldset className="flex flex-col gap-1.5">
+      <legend className="text-[13px] text-gray-11">Sources</legend>
+      <span className="text-xs text-gray-9">
+        Tick the projects, apps or environments whose requests this drain receives.
+      </span>
+
+      <div className="mt-1.5 overflow-hidden rounded-lg border border-gray-5">
+        <div className="flex items-center gap-2 border-b border-gray-4 px-2.5 py-2">
+          <Magnifier iconSize="sm-regular" className="shrink-0 text-gray-9" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search projects, apps, environments"
+            aria-label="Search sources"
+            className="w-full bg-transparent text-[13px] text-accent-12 placeholder:text-gray-9 focus:outline-hidden"
+          />
+        </div>
+
+        <div className="max-h-[264px] overflow-y-auto py-1">
+          {notice ? <p className="px-3 py-2 text-xs text-gray-9">{notice}</p> : null}
+          {visible.map((project) => {
+            const projectEnvironmentIds = project.apps.flatMap((app) =>
+              app.environments.map((environment) => environment.id),
+            );
+            const expanded = !collapsed.includes(project.id) || term !== "";
+            return (
+              <div key={project.id}>
+                <SourceRow
+                  depth={0}
+                  checked={checkedState(projectEnvironmentIds, selected)}
+                  label={project.name}
+                  meta={countLabel(project.apps.length, "app")}
+                  expanded={expanded}
+                  onExpand={() =>
+                    setCollapsed(
+                      collapsed.includes(project.id)
+                        ? collapsed.filter((id) => id !== project.id)
+                        : [...collapsed, project.id],
+                    )
+                  }
+                  onToggle={() => toggle(projectEnvironmentIds)}
+                />
+                {expanded
+                  ? project.apps.map((app) => (
+                      <div key={app.id}>
+                        <SourceRow
+                          depth={1}
+                          checked={checkedState(
+                            app.environments.map((environment) => environment.id),
+                            selected,
+                          )}
+                          label={app.name}
+                          meta={countLabel(app.environments.length, "environment")}
+                          onToggle={() =>
+                            toggle(app.environments.map((environment) => environment.id))
+                          }
+                        />
+                        {app.environments.map((environment) => (
+                          <SourceRow
+                            key={environment.id}
+                            depth={2}
+                            checked={selected.has(environment.id) ? "on" : "off"}
+                            label={environment.name}
+                            onToggle={() => toggle([environment.id])}
+                          />
+                        ))}
+                      </div>
+                    ))
+                  : null}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center justify-between border-t border-gray-4 bg-grayA-2 px-3 py-2">
+          <span className="text-xs text-gray-11">
+            {sourceMode === "all"
+              ? `All ${countLabel(allIds.length, "environment")}`
+              : `${selected.size} of ${countLabel(allIds.length, "environment")}`}
+          </span>
+          <button
+            type="button"
+            onClick={() => choose(sourceMode === "all" ? new Set() : new Set(allIds))}
+            className="text-xs text-gray-11 underline underline-offset-2 hover:text-accent-12"
+          >
+            {sourceMode === "all" ? "Clear all" : "Select all"}
+          </button>
+        </div>
+      </div>
+
+      {error ? (
+        <span role="alert" className="text-xs text-error-11">
+          {error}
+        </span>
+      ) : null}
+    </fieldset>
   );
 }
 
-function GatewayStatusesField() {
-  const { control } = useFormContext<DrainFormValues>();
+function sourcesNotice({
+  failed,
+  loading,
+  empty,
+}: {
+  failed: boolean;
+  loading: boolean;
+  empty: boolean;
+}): string | null {
+  if (failed) {
+    return "Unable to load sources.";
+  }
+  if (loading) {
+    return "Loading sources…";
+  }
+  if (empty) {
+    return "No matches found.";
+  }
+  return null;
+}
+
+function countLabel(count: number, noun: string) {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+type CheckedState = "on" | "off" | "some";
+
+function checkedState(ids: string[], selected: Set<string>): CheckedState {
+  const on = ids.filter((id) => selected.has(id)).length;
+  if (on === 0) {
+    return "off";
+  }
+  return on === ids.length ? "on" : "some";
+}
+
+function SourceRow({
+  depth,
+  checked,
+  label,
+  meta,
+  expanded,
+  onExpand,
+  onToggle,
+}: {
+  depth: number;
+  checked: CheckedState;
+  label: string;
+  meta?: string;
+  expanded?: boolean;
+  onExpand?: () => void;
+  onToggle: () => void;
+}) {
   return (
-    <Controller
-      control={control}
-      name="statusClasses"
-      render={({ field }) => (
-        <FilterChoices
-          value={field.value.map(String)}
-          onChange={(values) => field.onChange(values.map(Number))}
-          onBlur={field.onBlur}
-          options={["2", "3", "4", "5"]}
-          getLabel={(value) => `${value}xx`}
-          label="HTTP statuses"
-          description="Choose status classes. Leave empty to send all statuses."
-          searchLabel="Search HTTP statuses"
-          placeholder="All HTTP statuses"
-          emptyMessage="No HTTP statuses found."
-        />
+    <div
+      className="flex items-center gap-2 py-1 pr-3 hover:bg-grayA-2"
+      style={{ paddingLeft: 10 + depth * 18 }}
+    >
+      {onExpand ? (
+        <button
+          type="button"
+          aria-label={expanded ? `Collapse ${label}` : `Expand ${label}`}
+          onClick={onExpand}
+          className="flex size-4 shrink-0 items-center justify-center text-gray-9 hover:text-accent-12"
+        >
+          <CaretRight
+            iconSize="sm-regular"
+            className={cn("transition-transform duration-150 ease-out", expanded && "rotate-90")}
+          />
+        </button>
+      ) : (
+        <span className="size-4 shrink-0" />
       )}
-    />
+
+      <button
+        type="button"
+        // biome-ignore lint/a11y/useSemanticElements: a native checkbox cannot carry the indeterminate styling this row needs
+        role="checkbox"
+        aria-checked={checked === "some" ? "mixed" : checked === "on"}
+        onClick={onToggle}
+        className="flex min-w-0 flex-1 items-center gap-2 py-0.5 text-left"
+      >
+        <span
+          className={cn(
+            "flex size-4 shrink-0 items-center justify-center rounded border transition-colors duration-150 ease-out",
+            checked === "off"
+              ? "border-gray-7"
+              : "border-accent-12 bg-accent-12 text-white dark:text-black",
+          )}
+        >
+          {checked === "on" ? <Check iconSize="sm-regular" /> : null}
+          {checked === "some" ? <Minus iconSize="sm-regular" /> : null}
+        </span>
+        <span
+          className={cn("truncate text-[13px]", depth === 0 ? "text-accent-12" : "text-gray-11")}
+        >
+          {label}
+        </span>
+        {meta ? <span className="ml-auto shrink-0 text-[11px] text-gray-9">{meta}</span> : null}
+      </button>
+    </div>
+  );
+}
+
+const STATUS_MODES: { id: DrainFormValues["statusMode"]; title: string }[] = [
+  { id: "all", title: "All statuses" },
+  { id: "errors", title: "Errors only" },
+  { id: "custom", title: "Custom" },
+];
+
+function GatewayStatusesField() {
+  const { control, formState, setValue } = useFormContext<DrainFormValues>();
+  const mode = useWatch({ control, name: "statusMode" });
+  const error = formState.errors.statusClasses?.message;
+
+  const chooseMode = (next: DrainFormValues["statusMode"]) => {
+    const options = { shouldDirty: true, shouldValidate: true } as const;
+    setValue("statusMode", next, options);
+    if (next !== "custom") {
+      setValue("statusClasses", [], options);
+    }
+  };
+
+  return (
+    <fieldset className="flex flex-col gap-1.5">
+      <legend className="text-[13px] text-gray-11">HTTP statuses</legend>
+      <span className="text-xs text-gray-9">Errors only sends 4xx and 5xx responses.</span>
+
+      <div role="radiogroup" aria-label="Status scope" className="mt-1.5 grid grid-cols-3 gap-2">
+        {STATUS_MODES.map((option) => (
+          <ModeCard
+            key={option.id}
+            active={option.id === mode}
+            title={option.title}
+            onSelect={() => chooseMode(option.id)}
+          />
+        ))}
+      </div>
+
+      {mode === "custom" ? (
+        <div className="mt-2 flex flex-col gap-1.5 duration-200 ease-out animate-in fade-in motion-reduce:animate-none">
+          <Controller
+            control={control}
+            name="statusClasses"
+            render={({ field }) => (
+              <ChoiceMultibox
+                value={field.value.map(String)}
+                onChange={(values) => field.onChange(values.map(Number))}
+                onBlur={field.onBlur}
+                options={["2", "3", "4", "5"]}
+                getLabel={(value) => `${value}xx`}
+                searchLabel="Search HTTP statuses"
+                placeholder="Choose status classes"
+                emptyMessage="No HTTP statuses found."
+              />
+            )}
+          />
+          {error ? (
+            <span role="alert" className="text-xs text-error-11">
+              {error}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+    </fieldset>
+  );
+}
+
+function ModeCard({
+  active,
+  title,
+  onSelect,
+}: {
+  active: boolean;
+  title: string;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      // biome-ignore lint/a11y/useSemanticElements: a native radio cannot carry the card styling this control needs
+      role="radio"
+      aria-checked={active}
+      onClick={onSelect}
+      className={cn(
+        "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition-colors duration-150 ease-out focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-7",
+        active ? "border-grayA-8 bg-grayA-2" : "border-grayA-4",
+      )}
+    >
+      <span
+        className={cn(
+          "flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors duration-150 ease-out",
+          active ? "border-accent-12" : "border-gray-7",
+        )}
+      >
+        {active ? <span className="size-2 rounded-full bg-accent-12" /> : null}
+      </span>
+      <span className="truncate text-[13px] text-accent-12">{title}</span>
+    </button>
   );
 }
 
@@ -294,62 +543,75 @@ function VerificationKeyspacesField() {
   );
 }
 
-function FilterChoices({
-  value,
-  onChange,
-  onBlur,
-  options,
-  label,
-  description,
-  searchLabel,
-  placeholder,
-  emptyMessage,
-  getLabel = (choice) => choice || "Unspecified",
-}: {
+type ChoiceMultiboxProps = {
   value: string[];
   onChange: (value: string[]) => void;
   onBlur: () => void;
   options: readonly string[];
-  label: string;
-  description?: ReactNode;
   searchLabel: string;
   placeholder: string;
   emptyMessage: string;
   getLabel?: (choice: string) => string;
-}) {
+  className?: string;
+};
+
+function ChoiceMultibox({
+  value,
+  onChange,
+  onBlur,
+  options,
+  searchLabel,
+  placeholder,
+  emptyMessage,
+  getLabel = (choice) => choice || "Unspecified",
+  className,
+}: ChoiceMultiboxProps) {
   const anchor = useMultiboxAnchor();
   const choices = Array.from(new Set([...options, ...value]));
 
   return (
+    <Multibox items={choices} value={value} onValueChange={onChange} itemToStringLabel={getLabel}>
+      <MultiboxChips ref={anchor} className={className}>
+        {value.map((choice) => (
+          <MultiboxChip key={choice}>
+            <span className="font-mono">{getLabel(choice)}</span>
+            <MultiboxChipRemove />
+          </MultiboxChip>
+        ))}
+        <MultiboxInput
+          aria-label={searchLabel}
+          placeholder={value.length === 0 ? placeholder : "Search"}
+          onBlur={onBlur}
+        />
+        <MultiboxTrigger />
+      </MultiboxChips>
+      <MultiboxContent anchor={anchor}>
+        <MultiboxEmpty>{emptyMessage}</MultiboxEmpty>
+        <MultiboxList>
+          {(choice: string) => (
+            <MultiboxItem key={choice} value={choice}>
+              <span className="font-mono text-xs">{getLabel(choice)}</span>
+            </MultiboxItem>
+          )}
+        </MultiboxList>
+      </MultiboxContent>
+    </Multibox>
+  );
+}
+
+function FilterChoices({
+  label,
+  description,
+  ...choices
+}: ChoiceMultiboxProps & {
+  label: string;
+  description?: ReactNode;
+}) {
+  return (
     <fieldset className="flex flex-col gap-1.5">
       <legend className="text-[13px] text-gray-11">{label}</legend>
       {description ? <span className="text-xs text-gray-9">{description}</span> : null}
-      <Multibox items={choices} value={value} onValueChange={onChange} itemToStringLabel={getLabel}>
-        <MultiboxChips ref={anchor} className="mt-1.5">
-          {value.map((choice) => (
-            <MultiboxChip key={choice}>
-              <span className="font-mono">{getLabel(choice)}</span>
-              <MultiboxChipRemove />
-            </MultiboxChip>
-          ))}
-          <MultiboxInput
-            aria-label={searchLabel}
-            placeholder={value.length === 0 ? placeholder : "Search"}
-            onBlur={onBlur}
-          />
-          <MultiboxTrigger />
-        </MultiboxChips>
-        <MultiboxContent anchor={anchor}>
-          <MultiboxEmpty>{emptyMessage}</MultiboxEmpty>
-          <MultiboxList>
-            {(choice: string) => (
-              <MultiboxItem key={choice} value={choice}>
-                <span className="font-mono text-xs">{getLabel(choice)}</span>
-              </MultiboxItem>
-            )}
-          </MultiboxList>
-        </MultiboxContent>
-      </Multibox>
+      <ChoiceMultibox {...choices} className="mt-1.5" />
     </fieldset>
   );
 }
