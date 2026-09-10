@@ -26,7 +26,8 @@ message Config {
 message RatelimitStreamConfig {
   // Each empty list selects all values. Nonempty dimensions are combined with AND.
   repeated string namespace_ids = 1;
-  repeated string identifiers = 2;
+  reserved 2;
+  reserved "identifiers";
   repeated bool passed = 3;
 }
 

@@ -21,7 +21,6 @@ describe("log drain protobuf config", () => {
       stream: {
         kind: "ratelimits" as const,
         namespaceIds: ["ns"],
-        identifiers: [" customer "],
         passed: [false],
       },
     };
@@ -31,7 +30,6 @@ describe("log drain protobuf config", () => {
     expect(publicConfig).toMatchObject({
       stream: "ratelimits",
       namespaceIds: ["ns"],
-      identifiers: [" customer "],
       passed: [false],
     });
     expect(JSON.stringify(publicConfig)).not.toContain("secret");

@@ -18,7 +18,6 @@ import {
   httpFormatSchema,
   httpHeaderUpdatesSchema,
   httpsUrl,
-  identifiersSchema,
   keySpaceIdsSchema,
   outcomesSchema,
   passedSchema,
@@ -65,7 +64,6 @@ export const updateLogdrain = workspaceProcedure
         name: z.string().trim().min(1).max(128).optional(),
         status: z.enum(["running", "paused_by_user"]).optional(),
         namespaceIds: resourceIdsSchema.optional(),
-        identifiers: identifiersSchema.optional(),
         passed: passedSchema.optional(),
         eventTypes: eventTypesSchema.optional(),
         outcomes: outcomesSchema.optional(),
@@ -82,7 +80,6 @@ export const updateLogdrain = workspaceProcedure
           input.name !== undefined ||
           input.status !== undefined ||
           input.namespaceIds !== undefined ||
-          input.identifiers !== undefined ||
           input.passed !== undefined ||
           input.eventTypes !== undefined ||
           input.outcomes !== undefined ||
@@ -153,9 +150,7 @@ export const updateLogdrain = workspaceProcedure
         const existing = decodeLogdrainConfig(drain.config);
         if (
           (existing.stream.kind !== "ratelimits" &&
-            (input.namespaceIds !== undefined ||
-              input.identifiers !== undefined ||
-              input.passed !== undefined)) ||
+            (input.namespaceIds !== undefined || input.passed !== undefined)) ||
           (existing.stream.kind !== "key_verifications" &&
             (input.outcomes !== undefined || input.keySpaceIds !== undefined)) ||
           (existing.stream.kind !== "audit_logs" && input.eventTypes !== undefined) ||
@@ -178,7 +173,6 @@ export const updateLogdrain = workspaceProcedure
             stream = {
               ...existing.stream,
               namespaceIds: input.namespaceIds ?? existing.stream.namespaceIds,
-              identifiers: input.identifiers ?? existing.stream.identifiers,
               passed: input.passed ?? existing.stream.passed,
             };
             break;
@@ -218,7 +212,6 @@ export const updateLogdrain = workspaceProcedure
         }
         let config =
           input.namespaceIds === undefined &&
-          input.identifiers === undefined &&
           input.passed === undefined &&
           input.eventTypes === undefined &&
           input.outcomes === undefined &&
@@ -294,7 +287,6 @@ export const updateLogdrain = workspaceProcedure
         const changesDelivery =
           destination !== undefined ||
           input.namespaceIds !== undefined ||
-          input.identifiers !== undefined ||
           input.passed !== undefined ||
           input.eventTypes !== undefined ||
           input.outcomes !== undefined ||

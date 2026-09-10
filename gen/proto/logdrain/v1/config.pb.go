@@ -311,7 +311,6 @@ type RatelimitStreamConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Each empty list selects all values. Nonempty dimensions are combined with AND.
 	NamespaceIds  []string `protobuf:"bytes,1,rep,name=namespace_ids,json=namespaceIds,proto3" json:"namespace_ids,omitempty"`
-	Identifiers   []string `protobuf:"bytes,2,rep,name=identifiers,proto3" json:"identifiers,omitempty"`
 	Passed        []bool   `protobuf:"varint,3,rep,packed,name=passed,proto3" json:"passed,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -350,13 +349,6 @@ func (*RatelimitStreamConfig) Descriptor() ([]byte, []int) {
 func (x *RatelimitStreamConfig) GetNamespaceIds() []string {
 	if x != nil {
 		return x.NamespaceIds
-	}
-	return nil
-}
-
-func (x *RatelimitStreamConfig) GetIdentifiers() []string {
-	if x != nil {
-		return x.Identifiers
 	}
 	return nil
 }
@@ -794,11 +786,10 @@ const file_logdrain_v1_config_proto_rawDesc = "" +
 	"ratelimits\x18\a \x01(\v2\".logdrain.v1.RatelimitStreamConfigH\x01R\n" +
 	"ratelimitsB\r\n" +
 	"\vdestinationB\b\n" +
-	"\x06stream\"v\n" +
+	"\x06stream\"g\n" +
 	"\x15RatelimitStreamConfig\x12#\n" +
-	"\rnamespace_ids\x18\x01 \x03(\tR\fnamespaceIds\x12 \n" +
-	"\videntifiers\x18\x02 \x03(\tR\videntifiers\x12\x16\n" +
-	"\x06passed\x18\x03 \x03(\bR\x06passed\"\x9b\x01\n" +
+	"\rnamespace_ids\x18\x01 \x03(\tR\fnamespaceIds\x12\x16\n" +
+	"\x06passed\x18\x03 \x03(\bR\x06passedJ\x04\b\x02\x10\x03R\videntifiers\"\x9b\x01\n" +
 	"\x16RuntimeLogStreamConfig\x12\x1e\n" +
 	"\n" +
 	"severities\x18\x01 \x03(\tR\n" +

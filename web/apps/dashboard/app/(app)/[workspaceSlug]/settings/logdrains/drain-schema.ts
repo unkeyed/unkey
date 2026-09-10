@@ -1,6 +1,5 @@
 import type { Router } from "@/lib/trpc/routers";
 import {
-  identifiersSchema,
   keySpaceIdsSchema,
   outcomesSchema,
   passedSchema,
@@ -105,7 +104,6 @@ const baseSchema = z.object({
     "ratelimits",
   ]),
   namespaceIds: resourceIdsSchema,
-  identifiers: identifiersSchema,
   passed: passedSchema,
   outcomes: outcomesSchema,
   keySpaceIds: keySpaceIdsSchema,
@@ -182,7 +180,6 @@ export const emptyDrainForm: DrainFormValues = {
   kind: "http",
   stream: "audit_logs",
   namespaceIds: [],
-  identifiers: [],
   passed: [],
   outcomes: [],
   keySpaceIds: [],
@@ -210,7 +207,6 @@ export function drainToFormValues(drain: DrainDetail): DrainFormValues {
     name: drain.name,
     stream: drain.stream,
     namespaceIds: "namespaceIds" in drain ? drain.namespaceIds : [],
-    identifiers: "identifiers" in drain ? drain.identifiers : [],
     passed: "passed" in drain ? drain.passed : [],
     outcomes: outcomesSchema.parse(drain.outcomes),
     keySpaceIds: drain.keySpaceIds,

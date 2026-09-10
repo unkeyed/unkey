@@ -105,7 +105,6 @@ export function CreateLogdrainPanel({
       ...match(values.stream)
         .with("ratelimits", () => ({
           namespaceIds: values.namespaceIds,
-          identifiers: values.identifiers,
           passed: values.passed,
         }))
         .with("runtime_logs", () => ({

@@ -25,7 +25,6 @@ func (s *Ratelimits) Read(ctx context.Context, workspaceID string, from Cursor, 
 		  OR (inserted_at = {from_time:Int64} AND event_id > {from_id:String}))
 		AND inserted_at < {to:Int64}
 		AND (empty({namespaces:Array(String)}) OR namespace_id IN {namespaces:Array(String)})
-		AND (empty({identifiers:Array(String)}) OR identifier IN {identifiers:Array(String)})
 		AND (empty({passed:Array(Bool)}) OR passed IN {passed:Array(Bool)})
 		ORDER BY inserted_at, event_id LIMIT {batch_size:UInt64}`
 	type row struct {
@@ -53,14 +52,13 @@ func (s *Ratelimits) Read(ctx context.Context, workspaceID string, from Cursor, 
 		passed = string(encoded)
 	}
 	rows, err := clickhouse.Select[row](ctx, s.client.Conn(), query, map[string]string{
-		"workspace":   workspaceID,
-		"from_time":   strconv.FormatInt(from.Time, 10),
-		"from_id":     from.EventID,
-		"to":          strconv.FormatInt(toExclusive, 10),
-		"batch_size":  strconv.Itoa(limit),
-		"namespaces":  clickhouse.StringArrayParam(filters.GetNamespaceIds()),
-		"identifiers": clickhouse.StringArrayParam(filters.GetIdentifiers()),
-		"passed":      passed,
+		"workspace":  workspaceID,
+		"from_time":  strconv.FormatInt(from.Time, 10),
+		"from_id":    from.EventID,
+		"to":         strconv.FormatInt(toExclusive, 10),
+		"batch_size": strconv.Itoa(limit),
+		"namespaces": clickhouse.StringArrayParam(filters.GetNamespaceIds()),
+		"passed":     passed,
 	})
 	if err != nil {
 		return nil, from, fmt.Errorf("read rate limits: %w", err)

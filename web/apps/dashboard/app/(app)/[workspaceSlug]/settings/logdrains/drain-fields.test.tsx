@@ -90,12 +90,24 @@ it("keeps rate-limit results separate and preserves clearing across stream chang
   fireEvent.click(screen.getByText("Rate limits"));
   expect(screen.getByText("Blocked")).toBeTruthy();
   expect(screen.getByPlaceholderText("All namespaces")).toBeTruthy();
+  expect(screen.queryByText("Identifiers")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Remove" }));
   expect(screen.getByPlaceholderText("All results")).toBeTruthy();
   fireEvent.click(screen.getByText("Runtime"));
   expect(screen.getByText("error")).toBeTruthy();
   fireEvent.click(screen.getByText("Rate limits"));
   expect(screen.getByPlaceholderText("All results")).toBeTruthy();
+});
+
+it("shows namespace names without IDs in choices and selections", async () => {
+  render(<Form />);
+  fireEvent.click(screen.getByText("Rate limits"));
+  fireEvent.keyDown(screen.getByLabelText("Search namespaces"), { key: "ArrowDown" });
+  fireEvent.click(await screen.findByRole("option", { name: "Payments" }));
+  expect(screen.getByRole("option", { name: "Payments" }).getAttribute("aria-selected")).toBe(
+    "true",
+  );
+  expect(screen.queryByText(/\(ns\)/)).toBeNull();
 });
 
 it("keeps runtime severity separate and preserves clearing across stream changes", () => {

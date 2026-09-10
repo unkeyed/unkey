@@ -136,50 +136,47 @@ describe("updateLogdrain input", () => {
 });
 
 describe("updateLogdrain event filters", () => {
-  it.each([
-    { namespaceIds: [] },
-    { identifiers: [" new customer "] },
-    { passed: [] },
-    { passed: [true] },
-  ])("edits rate-limit filters without resetting the cursor: %j", async (filters) => {
-    const stream = {
-      kind: "ratelimits" as const,
-      namespaceIds: ["ns"],
-      identifiers: ["customer"],
-      passed: [false],
-    };
-    database.read.mockResolvedValue([
-      {
-        id: "ld_test",
-        name: "Decisions",
-        status: "running",
-        config: encodeLogdrainConfig({
-          kind: "http",
-          stream,
-          url: "https://example.com",
-          format: "json",
-          headers: [],
-        }),
-      },
-    ]);
-    database.write.mockClear();
-    await procedure.mutate({
-      input: { id: "ld_test", ...filters },
-      ctx: {
-        workspace: { id: "ws_test" },
-        user: { id: "user_test" },
-        audit: { location: "", userAgent: "test" },
-      },
-    });
-    const saved = database.write.mock.calls[0]?.[0];
-    if (!saved) {
-      throw new Error("No drain update was persisted");
-    }
-    expect(decodeLogdrainConfig(saved.config).stream).toEqual({ ...stream, ...filters });
-    expect(saved).toMatchObject({ leaseExpiresAt: 0, consecutiveFailures: 0, nextAttemptAt: 0 });
-    expect(saved).not.toHaveProperty("committedOffsetInsertedAt");
-    expect(saved).not.toHaveProperty("committedOffsetEventId");
-  });
+  it.each([{ namespaceIds: [] }, { passed: [] }, { passed: [true] }])(
+    "edits rate-limit filters without resetting the cursor: %j",
+    async (filters) => {
+      const stream = {
+        kind: "ratelimits" as const,
+        namespaceIds: ["ns"],
+        passed: [false],
+      };
+      database.read.mockResolvedValue([
+        {
+          id: "ld_test",
+          name: "Decisions",
+          status: "running",
+          config: encodeLogdrainConfig({
+            kind: "http",
+            stream,
+            url: "https://example.com",
+            format: "json",
+            headers: [],
+          }),
+        },
+      ]);
+      database.write.mockClear();
+      await procedure.mutate({
+        input: { id: "ld_test", ...filters },
+        ctx: {
+          workspace: { id: "ws_test" },
+          user: { id: "user_test" },
+          audit: { location: "", userAgent: "test" },
+        },
+      });
+      const saved = database.write.mock.calls[0]?.[0];
+      if (!saved) {
+        throw new Error("No drain update was persisted");
+      }
+      expect(decodeLogdrainConfig(saved.config).stream).toEqual({ ...stream, ...filters });
+      expect(saved).toMatchObject({ leaseExpiresAt: 0, consecutiveFailures: 0, nextAttemptAt: 0 });
+      expect(saved).not.toHaveProperty("committedOffsetInsertedAt");
+      expect(saved).not.toHaveProperty("committedOffsetEventId");
+    },
+  );
 
   it.each([{ severities: [] }, { projectIds: [] }, { appIds: ["other"] }, { environmentIds: [] }])(
     "updates runtime filters without changing sibling filters or cursor: %j",

@@ -58,10 +58,10 @@ func TestRatelimitsRead_CombinedFiltersBeforeLimit(t *testing.T) {
 		insertedAt                                int64
 	}{
 		{workspace, "a", "other", "customer", false, now},
-		{workspace, "b", "ns", "other", false, now},
+		{workspace, "b", "ns", "other", true, now},
 		{workspace, "c", "ns", "customer", true, now},
 		{uid.New("workspace"), "d", "ns", "customer", false, now},
-		{workspace, "e", "ns", "customer", false, now},
+		{workspace, "e", "ns", "other", false, now},
 		{workspace, "f", "ns2", "customer2", false, now},
 		{workspace, "g", "ns", "customer", false, now + 1},
 	} {
@@ -70,7 +70,7 @@ func TestRatelimitsRead_CombinedFiltersBeforeLimit(t *testing.T) {
 			VALUES (?, ?, ?, ?, ?, ?, ?, 'override_1')`, row.workspace, row.request, now-60000, row.insertedAt, row.namespace, row.identifier, row.passed))
 	}
 	filter := &logdrainv1.Config{Stream: &logdrainv1.Config_Ratelimits{Ratelimits: &logdrainv1.RatelimitStreamConfig{
-		NamespaceIds: []string{"ns", "ns2"}, Identifiers: []string{"customer", "customer2"}, Passed: []bool{false},
+		NamespaceIds: []string{"ns", "ns2"}, Passed: []bool{false},
 	}}}
 	reader := source.NewRatelimits(client)
 	page, next, err := reader.Read(t.Context(), workspace, source.Cursor{Time: now}, now+1, 1, filter)

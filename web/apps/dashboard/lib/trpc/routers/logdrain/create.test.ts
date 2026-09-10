@@ -52,7 +52,6 @@ describe("create gateway log drain", () => {
       name: "Decisions",
       stream: "ratelimits",
       namespaceIds: ["ns"],
-      identifiers: [" customer "],
       passed: [false],
       kind: "http",
       config: { url: "https://example.com" },
@@ -66,7 +65,6 @@ describe("create gateway log drain", () => {
     expect(decodeLogdrainConfig(row.config).stream).toEqual({
       kind: "ratelimits",
       namespaceIds: ["ns"],
-      identifiers: [" customer "],
       passed: [false],
     });
   });

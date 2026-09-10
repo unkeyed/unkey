@@ -34,20 +34,19 @@ func TestRatelimitProjection_FullPayload(t *testing.T) {
 		AND (inserted_at > {from_time:Int64} OR (inserted_at = {from_time:Int64} AND event_id > '1000000:0'))
 		AND inserted_at < {to:Int64}
 		AND (empty({namespaces:Array(String)}) OR namespace_id IN {namespaces:Array(String)})
-		AND (empty({identifiers:Array(String)}) OR identifier IN {identifiers:Array(String)})
 		AND (empty({passed:Array(Bool)}) OR passed IN {passed:Array(Bool)})
 		ORDER BY inserted_at, event_id LIMIT 1000`
 	for _, tt := range []struct {
-		name, namespaces, identifiers, passed, first string
-		count                                        int
+		name, namespaces, passed, first string
+		count                           int
 	}{
-		{"all", "[]", "[]", "[]", "1000001", 1000},
-		{"combined", "['1']", "['customer']", "[true]", "1000006", 166},
+		{"all", "[]", "[]", "1000001", 1000},
+		{"combined", "['1']", "[true]", "1000006", 166},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			queryCtx := ch.Context(ctx, ch.WithParameters(map[string]string{
 				"from_time": strconv.FormatInt(now+1000000, 10), "to": strconv.FormatInt(now+1001001, 10),
-				"namespaces": tt.namespaces, "identifiers": tt.identifiers, "passed": tt.passed,
+				"namespaces": tt.namespaces, "passed": tt.passed,
 			}))
 			var plan []struct {
 				Explain string `ch:"explain"`
