@@ -89,11 +89,7 @@ export function AnomalyChart({
     () =>
       (data?.buckets ?? []).map((point) => ({
         ...point,
-        expectedBand:
-          (metric === "requests" ? point.lowerBound : point.expectedMean) === null ||
-          point.upperBound === null
-            ? null
-            : [metric === "requests" ? point.lowerBound : point.expectedMean, point.upperBound],
+        expectedBand: expectedBandForPoint(metric, point),
       })),
     [data?.buckets, metric],
   );
@@ -491,6 +487,15 @@ export function AnomalyChart({
 }
 
 type SeriesBucket = AlertSeriesData["buckets"][number];
+
+export function expectedBandForPoint(
+  metric: AlertSeriesMetric,
+  point: Pick<SeriesBucket, "expectedMean" | "lowerBound" | "upperBound">,
+): [number, number] | null {
+  const lower =
+    metric === "requests" ? (point.lowerBound ?? point.expectedMean) : point.expectedMean;
+  return lower === null || point.upperBound === null ? null : [lower, point.upperBound];
+}
 
 function isBucket(point: unknown): point is SeriesBucket {
   return (
