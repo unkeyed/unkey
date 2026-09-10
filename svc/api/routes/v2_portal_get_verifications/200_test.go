@@ -44,15 +44,18 @@ func sumTotals(points []openapi.V2PortalGetVerificationsDataPoint) int64 {
 }
 
 // TestPortalSessionAnalyticsScopedToOwnKeys verifies a portal session only sees
-// verification events attributed to its own externalId, even when another
-// identity in the same workspace has its own events, and that events for a
-// soft-deleted key still count (scoping is by external_id at write time, not by
-// current key ownership).
+// verification events attributed to its own externalId and to a keyspace the
+// session is scoped to, even when another identity in the same workspace has its
+// own events, and that events for a soft-deleted key still count (scoping is by
+// external_id at write time, not by current key ownership).
 func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
 	workspace := h.CreateWorkspace()
 	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+	otherApi := h.CreateApi(seed.CreateApiRequest{
 		WorkspaceID: workspace.ID,
 	})
 	h.SetupAnalytics(workspace.ID)
@@ -95,15 +98,22 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 		IdentityID:  ptr.P(identityB.ID),
 	})
 
+	// A also owns a key in a keyspace the session is not scoped to.
+	keyAOutOfScope := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  otherApi.KeyAuthID.String,
+		IdentityID:  ptr.P(identityA.ID),
+	})
+
 	now := time.Now().UnixMilli()
 
-	buffer := func(keyID, externalID, identityID string, n int) {
+	buffer := func(keySpaceID, keyID, externalID, identityID string, n int) {
 		for i := range n {
 			h.KeyVerifications.Buffer(schema.KeyVerification{
 				RequestID:   uid.New(uid.RequestPrefix),
 				Time:        now - int64(i*1000),
 				WorkspaceID: workspace.ID,
-				KeySpaceID:  api.KeyAuthID.String,
+				KeySpaceID:  keySpaceID,
 				KeyID:       keyID,
 				Region:      "us-west-1",
 				Outcome:     "VALID",
@@ -114,9 +124,11 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 		}
 	}
 
-	buffer(keyA.KeyID, externalA, identityA.ID, 3)            // A live key
-	buffer(keyADeleted.KeyID, externalA, identityA.ID, 2)     // A deleted key
-	buffer(keyB.KeyID, identityB.ExternalID, identityB.ID, 5) // B key (must not leak)
+	inScope := api.KeyAuthID.String
+	buffer(inScope, keyA.KeyID, externalA, identityA.ID, 3)                             // A live key
+	buffer(inScope, keyADeleted.KeyID, externalA, identityA.ID, 2)                      // A deleted key
+	buffer(inScope, keyB.KeyID, identityB.ExternalID, identityB.ID, 5)                  // B key (must not leak)
+	buffer(otherApi.KeyAuthID.String, keyAOutOfScope.KeyID, externalA, identityA.ID, 4) // A, out-of-scope keyspace
 
 	headers := h.CreatePortalSession(workspace.ID, externalA, []string{api.KeyAuthID.String}, []string{"analytics:read"})
 
@@ -133,7 +145,18 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 
 		// A's 3 live-key events + 2 deleted-key events = 5, never B's 5.
 		require.Equal(c, int64(5), sumTotals(res.Body.Data),
-			"portal session should see its own keys' events (including deleted keys) but never another identity's")
+			"portal session should see its own keys' events (including deleted keys) but never another identity's or another keyspace's")
+	}, 30*time.Second, time.Second)
+
+	// A session scoped to both keyspaces sees both keyspaces' events.
+	bothHeaders := h.CreatePortalSession(workspace.ID, externalA, []string{inScope, otherApi.KeyAuthID.String}, []string{"analytics:read"})
+
+	require.EventuallyWithT(t, func(c *assert.CollectT) {
+		res := testutil.CallRoute[Request, Response](h, route, bothHeaders, req)
+		require.Equal(c, 200, res.Status)
+		require.NotNil(c, res.Body)
+		require.Equal(c, int64(9), sumTotals(res.Body.Data),
+			"a session scoped to both keyspaces should see the sum of both")
 	}, 30*time.Second, time.Second)
 }
 
