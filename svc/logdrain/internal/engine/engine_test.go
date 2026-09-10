@@ -98,9 +98,10 @@ func TestProcess_LogsCommittedBatch(t *testing.T) {
 		output, err := cmd.CombinedOutput()
 		require.NoError(t, err, string(output))
 		require.Contains(t, string(output), `msg="logdrain batch delivered"`)
-		require.Contains(t, string(output), "drain_id=drain stream=audit_logs events=1")
+		require.Contains(t, string(output), "drain_id=drain stream=audit_logs events=3")
 		require.Contains(t, string(output), "cursor_time=2026-09-09T12:01:00.000Z")
 		require.Contains(t, string(output), "lag_ms=7140000")
+		require.Contains(t, string(output), "oldest_event_age_ms=7200000")
 		return
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -117,10 +118,14 @@ func TestProcess_LogsCommittedBatch(t *testing.T) {
 		CommittedOffsetInsertedAt: start.UnixMilli(), Config: encoded,
 	}}
 	reader := windowSource{read: func(_ context.Context, _ string, from source.Cursor, _ int64, _ int, _ *logdrainv1.Config) ([]sink.Event, source.Cursor, error) {
-		return []sink.Event{{EventID: "event", Stream: "audit_logs", Time: start.UnixMilli(), Payload: sink.AuditLogPayload{ID: "event"}}}, from, nil
+		return []sink.Event{
+			{EventID: "first", Stream: "audit_logs", Time: start.Add(20 * time.Second).UnixMilli(), Payload: sink.AuditLogPayload{ID: "first"}},
+			{EventID: "oldest", Stream: "audit_logs", Time: start.UnixMilli(), Payload: sink.AuditLogPayload{ID: "oldest"}},
+			{EventID: "last", Stream: "audit_logs", Time: start.Add(10 * time.Second).UnixMilli(), Payload: sink.AuditLogPayload{ID: "last"}},
+		}, from, nil
 	}}
 	eng, err := New(Config{
-		DB: database, LeaseID: "lease", AuditLogs: reader, PollInterval: time.Minute, BatchSize: 2,
+		DB: database, LeaseID: "lease", AuditLogs: reader, PollInterval: time.Minute, BatchSize: 4,
 		Clock: clock.NewTestClock(start.Add(2 * time.Hour)), UnsafeAllowPrivateEndpoints: true,
 	})
 	require.NoError(t, err)
@@ -206,7 +211,7 @@ func TestProcess_KeyVerificationOutcomes(t *testing.T) {
 	eng.process(t.Context(), workItem{id: "drain", now: time.UnixMilli(1180000)})
 	require.Empty(t, database.failures)
 	require.Len(t, database.commits, 2)
-	require.Equal(t, int64(1180000), database.drain.CommittedOffsetInsertedAt)
+	require.Equal(t, int64(1165000), database.drain.CommittedOffsetInsertedAt)
 }
 
 // windowDatabase models cursor persistence and due-time gating between reads.

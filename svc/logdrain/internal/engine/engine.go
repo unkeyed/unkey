@@ -32,6 +32,11 @@ const maxRetryHint = 24 * time.Hour
 // workQueueSize is the default bound for queued drains.
 const workQueueSize = 1024
 
+const (
+	nonAuditPollInterval = 5 * time.Second
+	nonAuditWatermarkLag = 15 * time.Second
+)
+
 // errLeaseLost means a state mutation was rejected by the lease fence.
 var errLeaseLost = errors.New("logdrain lease lost")
 
@@ -53,9 +58,9 @@ type Config struct {
 	Deliveries deliveryBuffer
 	// Clock provides time for watermarks and telemetry; tests inject a mock. Nil defaults to the real clock.
 	Clock clock.Clock
-	// PollInterval controls how often the engine scans for due drains.
+	// PollInterval delays caught-up audits. Discovery uses the shorter stream interval.
 	PollInterval time.Duration
-	// WatermarkLag protects against late ClickHouse inserts by delaying timestamp windows.
+	// WatermarkLag protects audits against late ClickHouse inserts.
 	WatermarkLag time.Duration
 	// BatchSize caps the number of events shipped in one attempt.
 	BatchSize int
@@ -146,7 +151,7 @@ func (e *Engine) Run(ctx context.Context) error {
 	if err := e.poll(ctx); err != nil {
 		logger.Error("logdrain poll failed", "error", err)
 	}
-	ticker := e.cfg.Clock.NewTicker(e.cfg.PollInterval)
+	ticker := e.cfg.Clock.NewTicker(min(e.cfg.PollInterval, nonAuditPollInterval))
 	defer ticker.Stop()
 	for {
 		select {
@@ -253,8 +258,8 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 	delivered := 0
 	current := source.Cursor{Time: 0, EventID: ""}
 	stream := db.LogdrainsStream("")
-	watermark := item.now.Add(-e.cfg.WatermarkLag).UnixMilli()
-	reader := newBatchReader(e.cfg.AuditLogs, watermark, e.cfg.BatchSize)
+	var reader *batchReader
+	var pollInterval time.Duration
 	for {
 		drain, err := e.cfg.DB.GetLeasedAndDueLogdrain(ctx, db.GetLeasedAndDueLogdrainParams{
 			LogdrainID:   item.id,
@@ -268,9 +273,6 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			return
 		}
 		current = source.Cursor{Time: drain.CommittedOffsetInsertedAt, EventID: drain.CommittedOffsetEventID}
-		if watermark <= current.Time {
-			break
-		}
 		cfg := &logdrainv1.Config{}
 		if err := proto.Unmarshal(drain.Config, cfg); err != nil {
 			if ctx.Err() != nil {
@@ -283,28 +285,40 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			}
 			return
 		}
-		var page batchPage
+		if reader == nil {
+			pollInterval = nonAuditPollInterval
+			lag := nonAuditWatermarkLag
+			switch cfg.GetStream().(type) {
+			case nil, *logdrainv1.Config_AuditLogs:
+				pollInterval = e.cfg.PollInterval
+				lag = e.cfg.WatermarkLag
+			}
+			reader = newBatchReader(nil, item.now.Add(-lag).UnixMilli(), e.cfg.BatchSize)
+		}
 		switch cfg.GetStream().(type) {
 		case nil, *logdrainv1.Config_AuditLogs:
 			stream = db.LogdrainsStreamAuditLogs
 			reader.source = e.cfg.AuditLogs
-			page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg)
 		case *logdrainv1.Config_KeyVerifications:
 			stream = db.LogdrainsStreamKeyVerifications
 			reader.source = e.cfg.KeyVerifications
-			page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg)
 		case *logdrainv1.Config_GatewayRequests:
 			stream = db.LogdrainsStreamGatewayRequests
 			reader.source = e.cfg.GatewayRequests
-			page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg)
 		case *logdrainv1.Config_RuntimeLogs:
 			stream = db.LogdrainsStreamRuntimeLogs
 			reader.source = e.cfg.RuntimeLogs
-			page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg)
 		default:
 			err = fmt.Errorf("unsupported logdrain stream config %T", cfg.GetStream())
 		}
 		drain.Stream = stream
+		var page batchPage
+		if err == nil {
+			if reader.watermark <= current.Time {
+				break
+			}
+			page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg)
+		}
 		if err != nil {
 			if ctx.Err() != nil {
 				return
@@ -318,7 +332,7 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 		events := page.events
 		nextAttemptDelay := time.Duration(0)
 		if page.caughtUp {
-			nextAttemptDelay = e.cfg.PollInterval
+			nextAttemptDelay = pollInterval
 		}
 		var delivery deliveryAttempt
 		if len(events) > 0 {
@@ -356,12 +370,17 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 		if len(events) > 0 && !delivery.completed.IsZero() {
 			// The delivery succeeded and its new offset is now committed.
 			e.recordDelivery(drain, stream, delivery.completed, "success", len(events), delivery.duration, delivery.result, nil)
+			oldestEventTime := events[0].Time
+			for _, event := range events[1:] {
+				oldestEventTime = min(oldestEventTime, event.Time)
+			}
 			logger.Info("logdrain batch delivered",
 				"drain_id", drain.ID,
 				"stream", stream,
 				"events", len(events),
 				"cursor_time", time.UnixMilli(page.next.Time).UTC(),
 				"lag_ms", e.cfg.Clock.Now().UnixMilli()-page.next.Time,
+				"oldest_event_age_ms", e.cfg.Clock.Now().UnixMilli()-oldestEventTime,
 			)
 		}
 		delivered += len(events)
