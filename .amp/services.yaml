@@ -82,7 +82,7 @@ services:
     command: >-
       cd docs/product &&
       "$HOME/.local/bin/mise" exec --
-      mint dev --no-open --port "$PORT"
+      mint dev --no-open --disable-prefetch --port "$PORT"
     port: 3300
     portal:
       title: Product Docs
@@ -92,7 +92,7 @@ services:
     command: >-
       cd docs/engineering &&
       "$HOME/.local/bin/mise" exec --
-      mint dev --no-open --port "$PORT"
+      mint dev --no-open --disable-prefetch --port "$PORT"
     port: 3301
     portal:
       title: Engineering Docs
