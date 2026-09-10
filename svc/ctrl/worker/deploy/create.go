@@ -353,14 +353,16 @@ func (w *Workflow) insertDeployment(
 	return restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		target, commit := payload.Target, payload.Commit
 
-		// A skip resolves no source and records unknown, the same as a row that
-		// predates source tracking.
+		// A skip resolves no source, so the commit it recorded is what says the
+		// push it skipped was a git one.
 		source := db.DeploymentsSourceUnknown
 		switch {
 		case payload.Source.Git != nil:
 			source = db.DeploymentsSourceGit
 		case payload.Source.Image != "":
 			source = db.DeploymentsSourceOci
+		case commit.SHA != "":
+			source = db.DeploymentsSourceGit
 		}
 
 		insertErr := db.TxRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {

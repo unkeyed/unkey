@@ -464,6 +464,7 @@ func TestCreateSkipWritesRowWithoutBuilding(t *testing.T) {
 	row := h.deployment(t, ctx, deploymentID)
 	require.Equal(t, mysqltype.DeploymentsStatusSkipped, row.Status)
 	require.Equal(t, fixtureCommitSHA, row.GitCommitSha.String, "the row records the commit it skipped")
+	require.Equal(t, db.DeploymentsSourceGit, row.Source, "a skipped push is still a git row")
 
 	// A row that never builds has no business holding the environment's secrets.
 	require.NotContains(t, string(row.EncryptedEnvironmentVariables), "KEBAP")
