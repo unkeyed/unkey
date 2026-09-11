@@ -11,6 +11,7 @@ import type { AlertSeriesMetric } from "@/components/alerts/types";
 import { Switch } from "@/components/ui/switch";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { trpc } from "@/lib/trpc/client";
+import { cn } from "@/lib/utils";
 import { ChevronDown, Layers3 } from "@unkey/icons";
 import {
   Button,
@@ -84,6 +85,7 @@ export default function AnomaliesPage() {
     return { startMs: endMs - 7 * dayMs, endMs };
   });
   const [showDeployments, setShowDeployments] = useState(true);
+  const [overviewExpanded, setOverviewExpanded] = useState(false);
   const [zoomed, setZoomed] = useState(false);
   const [selectedAlertId, setSelectedAlertId] = useState<string | null>(alertId);
   const appliedFocus = useRef<string | null>(null);
@@ -187,49 +189,76 @@ export default function AnomaliesPage() {
         </PageHeaderActions>
       </PageHeader>
       <PageBody>
-        <section className="flex flex-col gap-3 rounded-lg border border-grayA-4 bg-gray-1 p-4">
+        <section className="flex flex-col gap-3 rounded-lg border border-grayA-4 bg-gray-1 p-3 sm:p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
+            <div className="min-w-0 flex-1">
               <h2 className="text-sm font-semibold text-gray-12">Seven-day overview</h2>
-              <p className="text-xs text-gray-9">Select a day or choose a recent range.</p>
-            </div>
-            <Select
-              value={preset}
-              items={rangeOptions}
-              onValueChange={(value) => {
-                if (value && isRangePreset(value)) {
-                  updatePreset(value);
-                }
-              }}
-            >
-              <SelectTrigger
-                className="h-9 w-44 bg-gray-1"
-                rightIcon={<ChevronDown iconSize="md-medium" className="absolute right-2" />}
+              <p
+                className={cn(
+                  "text-xs text-gray-9",
+                  overviewExpanded ? "block" : "hidden md:block",
+                )}
               >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {rangeOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                Select a day or choose a recent range.
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-expanded={overviewExpanded}
+              aria-controls="seven-day-overview"
+              onClick={() => setOverviewExpanded((expanded) => !expanded)}
+              className="flex h-8 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-medium text-gray-11 hover:bg-grayA-3 hover:text-accent-12 md:hidden"
+            >
+              {overviewExpanded ? "Hide" : "Show"}
+              <ChevronDown
+                iconSize="sm-regular"
+                className={cn("transition-transform", overviewExpanded && "rotate-180")}
+              />
+            </button>
+            <div className={cn("w-full md:block md:w-auto", overviewExpanded ? "block" : "hidden")}>
+              <Select
+                value={preset}
+                items={rangeOptions}
+                onValueChange={(value) => {
+                  if (value && isRangePreset(value)) {
+                    updatePreset(value);
+                  }
+                }}
+              >
+                <SelectTrigger
+                  className="h-9 w-full bg-gray-1 md:w-44"
+                  rightIcon={<ChevronDown iconSize="md-medium" className="absolute right-2" />}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {rangeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <AnomalyOverview
-            buckets={overviewQuery.data?.buckets ?? []}
-            selectedRange={range}
-            loading={overviewQuery.isLoading}
-            onSelectRange={(nextRange) => {
-              setRange({
-                startMs: nextRange.startMs,
-                endMs: Math.min(nextRange.endMs, lastClosedBucketEnd(Date.now())),
-              });
-              setZoomed(true);
-              setSelectedAlertId(null);
-            }}
-          />
+          <div
+            id="seven-day-overview"
+            className={cn("md:block", overviewExpanded ? "block" : "hidden")}
+          >
+            <AnomalyOverview
+              buckets={overviewQuery.data?.buckets ?? []}
+              selectedRange={range}
+              loading={overviewQuery.isLoading}
+              onSelectRange={(nextRange) => {
+                setRange({
+                  startMs: nextRange.startMs,
+                  endMs: Math.min(nextRange.endMs, lastClosedBucketEnd(Date.now())),
+                });
+                setZoomed(true);
+                setSelectedAlertId(null);
+              }}
+            />
+          </div>
         </section>
 
         <section className="flex flex-col gap-3">

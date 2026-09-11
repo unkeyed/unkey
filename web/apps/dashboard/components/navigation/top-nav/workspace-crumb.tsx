@@ -10,7 +10,13 @@ import { useMemo, useState } from "react";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 
-export function WorkspaceCrumb({ href }: { href: string }) {
+export function WorkspaceCrumb({
+  href,
+  compactOnMobile,
+}: {
+  href: string;
+  compactOnMobile: boolean;
+}) {
   const workspace = useWorkspaceNavigation();
   const available = trpc.workspace.listAvailable.useQuery();
   const orgs = available.isError ? [] : (available.data ?? []);
@@ -43,6 +49,7 @@ export function WorkspaceCrumb({ href }: { href: string }) {
         </Avatar>
       }
       label={workspace.name}
+      compactOnMobile={compactOnMobile}
       href={href}
       items={items}
       currentId={workspace.orgId}

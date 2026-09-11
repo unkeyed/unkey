@@ -9,7 +9,13 @@ import { IconCubeOutline18, IconPlusOutline18 } from "@unkey/icons";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 
-export function ProjectCrumb({ owner }: { owner: ProjectOwner }) {
+export function ProjectCrumb({
+  owner,
+  compactOnMobile,
+}: {
+  owner: ProjectOwner;
+  compactOnMobile: boolean;
+}) {
   const workspace = useWorkspaceNavigation();
   const projectsQuery = useVisibleProjects();
   const projects = projectsQuery.data ?? [];
@@ -27,6 +33,7 @@ export function ProjectCrumb({ owner }: { owner: ProjectOwner }) {
     <Crumb
       icon={<IconCubeOutline18 className="size-3.5 text-gray-11" />}
       label={current ? projectDisplayName(current, workspace.name) : (projectId ?? "Project")}
+      compactOnMobile={compactOnMobile}
       loading={loading}
       href={
         projectId

@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { IconChevronExpandYOutline12 } from "@unkey/icons";
 import { Skeleton } from "@unkey/ui";
 import type { Route } from "next";
@@ -18,6 +19,7 @@ type CrumbProps = {
   footer: CrumbPopoverFooter;
   loading?: boolean;
   listStatus?: ReactNode;
+  compactOnMobile?: boolean;
 };
 
 export function Crumb({
@@ -31,10 +33,17 @@ export function Crumb({
   footer,
   loading = false,
   listStatus,
+  compactOnMobile = false,
 }: CrumbProps) {
   return (
     <div className="flex min-w-0 items-center gap-0.5">
-      <CrumbLink icon={icon} label={label} href={href} loading={loading} />
+      <CrumbLink
+        icon={icon}
+        label={label}
+        href={href}
+        loading={loading}
+        compactOnMobile={compactOnMobile}
+      />
       <CrumbPopover
         items={items}
         currentId={currentId}
@@ -61,12 +70,14 @@ export function CrumbLink({
   href,
   loading = false,
   current = false,
+  compactOnMobile = false,
 }: {
   icon: ReactNode;
   label: string;
   href: string;
   loading?: boolean;
   current?: boolean;
+  compactOnMobile?: boolean;
 }) {
   return (
     <Link
@@ -77,9 +88,13 @@ export function CrumbLink({
     >
       {icon}
       {loading ? (
-        <Skeleton className="h-3 w-20 bg-gray-4" />
+        <Skeleton className={cn("h-3 w-20 bg-gray-4", compactOnMobile && "hidden md:block")} />
       ) : (
-        <span className="truncate max-w-[120px] md:max-w-[180px]">{label}</span>
+        <span
+          className={cn("truncate max-w-[120px] md:max-w-[180px]", compactOnMobile && "hidden md:inline")}
+        >
+          {label}
+        </span>
       )}
     </Link>
   );
