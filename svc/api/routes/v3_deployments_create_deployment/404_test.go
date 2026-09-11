@@ -9,12 +9,12 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_create_deployment"
+	handler "github.com/unkeyed/unkey/svc/api/routes/v3_deployments_create_deployment"
 )
 
 func TestEnvironmentNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, testutil.UncalledDeployRestate(t))
+	route := &handler.Handler{DB: h.DB, Restate: testutil.UncalledDeployRestate(t)}
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -22,17 +22,23 @@ func TestEnvironmentNotFound(t *testing.T) {
 	})
 
 	t.Run("unknown environment", func(t *testing.T) {
-		req := imageRequest(t, setup.Project.Slug, setup.App.Slug, "does-not-exist", "nginx:latest")
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), req)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{
+			Project:     setup.Project.Slug,
+			App:         setup.App.Slug,
+			Environment: "does-not-exist",
+			Oci:         &openapi.DeploymentSourceOCI{Image: "nginx:latest"},
+		})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/environment_not_found", res.Body.Error.Type)
 	})
 
 	t.Run("unknown project resolves to environment not found", func(t *testing.T) {
-		req := imageRequest(t, "does-not-exist", setup.App.Slug, setup.Environment.Slug, "nginx:latest")
-
-		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), req)
+		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{
+			Project:     "does-not-exist",
+			App:         setup.App.Slug,
+			Environment: setup.Environment.Slug,
+			Oci:         &openapi.DeploymentSourceOCI{Image: "nginx:latest"},
+		})
 		require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 		require.Equal(t, "https://unkey.com/docs/errors/unkey/data/environment_not_found", res.Body.Error.Type)
 	})
@@ -40,16 +46,19 @@ func TestEnvironmentNotFound(t *testing.T) {
 
 func TestRedeployDeploymentNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, testutil.UncalledDeployRestate(t))
+	route := &handler.Handler{DB: h.DB, Restate: testutil.UncalledDeployRestate(t)}
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
 
-	req := deploymentRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, "d_does_not_exist")
-
-	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), req)
+	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{
+		Project:     setup.Project.Slug,
+		App:         setup.App.Slug,
+		Environment: setup.Environment.Slug,
+		Deployment:  &openapi.DeploymentSourceDeployment{DeploymentId: "d_does_not_exist"},
+	})
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/deployment_not_found", res.Body.Error.Type)
 }
@@ -59,7 +68,7 @@ func TestRedeployDeploymentNotFound(t *testing.T) {
 // confirm the existence of another tenant's deployment.
 func TestRedeployCrossWorkspaceMasked(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, testutil.UncalledDeployRestate(t))
+	route := &handler.Handler{DB: h.DB, Restate: testutil.UncalledDeployRestate(t)}
 	h.Register(route)
 
 	victim := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -71,7 +80,6 @@ func TestRedeployCrossWorkspaceMasked(t *testing.T) {
 		ProjectID:     victim.Project.ID,
 		AppID:         victim.App.ID,
 		EnvironmentID: victim.Environment.ID,
-		GitBranch:     "main",
 	})
 
 	attacker := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
@@ -79,9 +87,12 @@ func TestRedeployCrossWorkspaceMasked(t *testing.T) {
 		Permissions: []string{"environment.*.create_deployment"},
 	})
 
-	req := deploymentRequest(t, attacker.Project.Slug, attacker.App.Slug, attacker.Environment.Slug, victimDep.ID)
-
-	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(attacker.RootKey), req)
+	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(attacker.RootKey), handler.Request{
+		Project:     attacker.Project.Slug,
+		App:         attacker.App.Slug,
+		Environment: attacker.Environment.Slug,
+		Deployment:  &openapi.DeploymentSourceDeployment{DeploymentId: victimDep.ID},
+	})
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/deployment_not_found", res.Body.Error.Type)
 }
@@ -92,14 +103,13 @@ func TestRedeployCrossWorkspaceMasked(t *testing.T) {
 // caller may not have access to.
 func TestRedeployWrongAppOrEnvironmentMasked(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := newRoute(h, testutil.UncalledDeployRestate(t))
+	route := &handler.Handler{DB: h.DB, Restate: testutil.UncalledDeployRestate(t)}
 	h.Register(route)
 
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{"environment.*.create_deployment"},
 	})
 
-	// A second app + environment + deployment in the SAME workspace.
 	otherApp := h.CreateApp(seed.CreateAppRequest{
 		ID:          uid.New(uid.AppPrefix),
 		WorkspaceID: setup.Workspace.ID,
@@ -121,13 +131,14 @@ func TestRedeployWrongAppOrEnvironmentMasked(t *testing.T) {
 		ProjectID:     setup.Project.ID,
 		AppID:         otherApp.ID,
 		EnvironmentID: otherEnv.ID,
-		GitBranch:     "main",
 	})
 
-	// Redeploy that deployment while targeting the first app/environment.
-	req := deploymentRequest(t, setup.Project.Slug, setup.App.Slug, setup.Environment.Slug, otherDep.ID)
-
-	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), req)
+	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(setup.RootKey), handler.Request{
+		Project:     setup.Project.Slug,
+		App:         setup.App.Slug,
+		Environment: setup.Environment.Slug,
+		Deployment:  &openapi.DeploymentSourceDeployment{DeploymentId: otherDep.ID},
+	})
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/deployment_not_found", res.Body.Error.Type)
 }
