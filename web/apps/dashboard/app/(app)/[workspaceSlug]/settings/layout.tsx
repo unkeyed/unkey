@@ -1,7 +1,6 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { useFlag } from "@/lib/flags/provider";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -28,13 +27,10 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   const segments = useSelectedLayoutSegments();
   const active = segments[0] ?? "general";
   const billingUpgrades = useBillingUIUpgrades();
-  const logdrainsEnabled = useFlag("logdrains");
   const { data: currentUser } = trpc.user.getCurrentUser.useQuery();
   const items = ITEMS.filter(
     (item) => billingUpgrades || !BILLING_UPGRADE_SEGMENTS.has(item.segment),
-  )
-    .filter((item) => logdrainsEnabled || item.segment !== "logdrains")
-    .filter((item) => currentUser?.role === "admin" || item.segment !== "root-keys");
+  ).filter((item) => currentUser?.role === "admin" || item.segment !== "root-keys");
 
   return (
     <div className="flex flex-col md:flex-row w-full flex-1 min-h-0">

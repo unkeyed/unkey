@@ -73,7 +73,13 @@ function DrainListSkeleton() {
   );
 }
 
-export function LogdrainsList({ onCreate }: { onCreate: () => void }) {
+export function LogdrainsList({
+  onCreate,
+  canCreate,
+}: {
+  onCreate: () => void;
+  canCreate: boolean;
+}) {
   const workspace = useWorkspaceNavigation();
   const query = trpc.logdrain.list.useQuery();
 
@@ -112,7 +118,7 @@ export function LogdrainsList({ onCreate }: { onCreate: () => void }) {
           endpoint or an Axiom dataset.
         </EmptyHero.Description>
         <EmptyHero.Actions>
-          <CreateLogdrainButton onClick={onCreate} />
+          <CreateLogdrainButton onClick={onCreate} disabled={!canCreate} />
         </EmptyHero.Actions>
       </EmptyHero>
     );

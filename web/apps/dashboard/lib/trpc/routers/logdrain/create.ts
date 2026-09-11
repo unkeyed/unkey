@@ -1,6 +1,6 @@
 import { VaultService } from "@/gen/proto/vault/v1/service_pb";
 import { insertAuditLogs } from "@/lib/audit";
-import { db, schema } from "@/lib/db";
+import { db, eq, schema } from "@/lib/db";
 import { createVaultClient } from "@/lib/vault-client";
 import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
@@ -159,6 +159,31 @@ export const createLogdrain = workspaceProcedure
       const now = Date.now();
 
       await db.transaction(async (tx) => {
+        const [limits] = await tx
+          .select({ logdrainsMax: schema.limits.logdrainsMax })
+          .from(schema.limits)
+          .where(eq(schema.limits.workspaceId, ctx.workspace.id))
+          .for("update");
+        if (!limits || limits.logdrainsMax === 0) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Contact support to enable log drains for this workspace.",
+          });
+        }
+
+        const drains = await tx
+          .select({ id: schema.logdrains.id })
+          .from(schema.logdrains)
+          .where(eq(schema.logdrains.workspaceId, ctx.workspace.id))
+          .for("update");
+        if (drains.length >= limits.logdrainsMax) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message:
+              "Log drain limit reached. Contact support to increase this workspace's allowance.",
+          });
+        }
+
         await tx.insert(schema.logdrains).values({
           id,
           workspaceId: ctx.workspace.id,
@@ -186,6 +211,9 @@ export const createLogdrain = workspaceProcedure
 
       return { id };
     } catch (error) {
+      if (error instanceof TRPCError) {
+        throw error;
+      }
       console.error("Failed to create log drain", error);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
