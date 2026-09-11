@@ -76,7 +76,7 @@ export const useWorkspaceStep = (): WorkspaceStep => {
     onSuccess: async (sessionData) => {
       if (!sessionData.expiresAt) {
         console.error("Missing session data: ", sessionData);
-        toast.error(`Failed to switch organizations: ${sessionData.error}`);
+        toast.error("Unable to switch workspace");
         return;
       }
 
@@ -88,6 +88,7 @@ export const useWorkspaceStep = (): WorkspaceStep => {
       // invalidate the user cache and workspace cache.
       await utils.user.getCurrentUser.invalidate();
       await utils.workspace.getCurrent.invalidate();
+      await utils.workspace.listAvailable.invalidate();
       await utils.api.invalidate();
       await utils.ratelimit.invalidate();
       await utils.stripe.invalidate();

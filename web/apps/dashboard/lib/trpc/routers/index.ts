@@ -177,6 +177,7 @@ import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { getWorkspaceById } from "./workspace/getById";
 import { getCurrentWorkspace } from "./workspace/getCurrent";
+import { listAvailable } from "./workspace/listAvailable";
 import { onboardingKeyCreation } from "./workspace/onboarding";
 
 export const router = t.router({
@@ -249,6 +250,7 @@ export const router = t.router({
   workspace: t.router({
     create: createWorkspace,
     getCurrent: getCurrentWorkspace,
+    listAvailable,
     getById: getWorkspaceById,
     updateName: changeWorkspaceName,
     onboarding: onboardingKeyCreation,
