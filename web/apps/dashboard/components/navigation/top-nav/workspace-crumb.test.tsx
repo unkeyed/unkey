@@ -1,3 +1,4 @@
+import { routes } from "@/lib/navigation/routes";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -72,7 +73,7 @@ beforeEach(() => {
 
 describe("workspace selector", () => {
   it("keeps disabled workspaces selectable but never writes cookies when the server rejects the switch", () => {
-    render(<WorkspaceCrumb href="/" />);
+    render(<WorkspaceCrumb href={routes.workspaces.root()} />);
     fireEvent.click(screen.getByRole("button", { name: "Disabled workspace" }));
     expect(mocks.mutate).toHaveBeenCalledWith("org_disabled");
     expect(mocks.error).toHaveBeenCalled();
@@ -82,7 +83,7 @@ describe("workspace selector", () => {
 
   it("shows a retry action rather than stale workspaces or an empty state on failure", () => {
     mocks.query.isError = true;
-    render(<WorkspaceCrumb href="/" />);
+    render(<WorkspaceCrumb href={routes.workspaces.root()} />);
     expect(screen.getByRole("alert").textContent).toContain("Unable to load workspaces");
     expect(screen.queryByText("Disabled workspace")).toBeNull();
     expect(screen.queryByText("No workspaces found")).toBeNull();
@@ -92,10 +93,10 @@ describe("workspace selector", () => {
 
   it("distinguishes an empty result from loading", () => {
     mocks.query.data = [];
-    const view = render(<WorkspaceCrumb href="/" />);
+    const view = render(<WorkspaceCrumb href={routes.workspaces.root()} />);
     expect(screen.getByRole("status").textContent).toBe("No workspaces found");
     mocks.query.isLoading = true;
-    view.rerender(<WorkspaceCrumb href="/" />);
+    view.rerender(<WorkspaceCrumb href={routes.workspaces.root()} />);
     expect(screen.getByRole("status").textContent).toBe("Loading workspaces...");
   });
 });
