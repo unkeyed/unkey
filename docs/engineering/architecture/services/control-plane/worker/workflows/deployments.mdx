@@ -23,7 +23,7 @@ Key components:
 - `RoutingService` (route assignment + live swap) — [`svc/ctrl/worker/routing`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/routing)
 - `DeploymentService` VO for delayed desired-state transitions — [`svc/ctrl/worker/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment)
 - `BuildSlotService` VO for per-workspace build concurrency — [`svc/ctrl/worker/buildslot`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/buildslot)
-- Dedup helper for cancelling superseded queued siblings — [`svc/ctrl/dedup`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/dedup)
+- Superseded sibling cancellation — [`svc/ctrl/worker/deploy/supersede.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy/supersede.go)
 
 ## Flow: create deployment
 
@@ -35,7 +35,7 @@ sequenceDiagram
   participant Restate as Restate
   participant BuildSlot as BuildSlotService<br/>(keyed by workspace)
   participant Worker as DeployService<br/>(keyed by deployment_id)
-  participant Dedup as dedup.CancelOlderSiblings
+  participant Dedup as Workflow.cancelOlderSiblings
 
   Client->>CtrlAPI: CreateDeployment(project_id, source, env)
   CtrlAPI->>DB: Find project + environment + app
@@ -144,7 +144,7 @@ This gives push-based slot hand-off with priority — no polling. The concurrenc
 
 ## Commit deduplication
 
-When a new deployment is created, `dedup.CancelOlderSiblings` looks for older deployments on the same `(app, environment, branch)` that are still in the build queue (`pending` or `awaiting_approval`) and cancels them.
+When a new deployment is created, `Workflow.cancelOlderSiblings` looks for older deployments on the same `(app, environment, branch)` that are still in the build queue (`pending` or `awaiting_approval`) and cancels them.
 
 Once a deployment acquires a build slot and transitions to `starting`, it is **committed** — newer commits will not supersede it. This avoids the pathological case where rapid pushes keep cancelling builds and nothing ever finishes.
 
