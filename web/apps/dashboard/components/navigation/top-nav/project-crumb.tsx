@@ -8,7 +8,13 @@ import { Cube, Plus } from "@unkey/icons";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 
-export function ProjectCrumb({ projectId }: { projectId: string }) {
+export function ProjectCrumb({
+  projectId,
+  compactOnMobile,
+}: {
+  projectId: string;
+  compactOnMobile: boolean;
+}) {
   const workspace = useWorkspaceNavigation();
   const projectsQuery = useLiveQuery((q) =>
     q.from({ project: collection.projects }).select(({ project }) => ({
@@ -30,6 +36,7 @@ export function ProjectCrumb({ projectId }: { projectId: string }) {
     <Crumb
       icon={<Cube className="size-3.5 text-accent-11" iconSize="sm-regular" />}
       label={current?.name ?? projectId}
+      compactOnMobile={compactOnMobile}
       loading={loading}
       href={routes.projects.detail({ workspaceSlug: workspace.slug, projectId })}
       items={items}

@@ -39,7 +39,7 @@ export function AlertRow({
   return (
     <ResourceListItem
       className={cn(
-        "group relative flex flex-col gap-3 px-4 py-3 transition-colors hover:bg-grayA-2 lg:flex-row lg:items-center lg:gap-0",
+        "group relative grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 px-4 py-3 transition-colors hover:bg-grayA-2 lg:flex lg:items-center lg:gap-0",
         selected && "bg-errorA-2 ring-1 ring-inset ring-errorA-6",
       )}
     >
@@ -65,16 +65,21 @@ export function AlertRow({
           {alert.appName} <span aria-hidden="true">›</span> {alert.environmentName}
         </span>
       </div>
-      <div className="flex flex-col items-start gap-1 lg:w-[14%] lg:shrink-0">
+      <div className="flex flex-col items-end gap-1 lg:w-[14%] lg:shrink-0 lg:items-start">
         <AlertStatusBadge status={alert.status} />
         {alert.status === "resolved" && alert.resolvedAt ? (
           <span className="whitespace-nowrap text-xs text-gray-9">
             {formatDistanceToNowStrict(alert.resolvedAt, { addSuffix: true })}
           </span>
         ) : null}
+        <TimestampInfo
+          value={alert.firedAt}
+          displayType="relative"
+          className="relative z-20 text-xs text-gray-9 underline decoration-dotted lg:hidden"
+        />
       </div>
       <div className="flex min-w-0 flex-col gap-1 lg:w-[26%] lg:shrink-0">
-        <span className="truncate text-[13px] font-medium tabular-nums text-accent-12">
+        <span className="text-[13px] font-medium tabular-nums text-accent-12 lg:truncate">
           {hasFixedAlertThreshold(alert.metric) ? (
             formatAlertDistance(alert.metric, alert.observedValue, alert.baselineMean)
           ) : alert.metric === "requests_drop" ? (
@@ -105,14 +110,14 @@ export function AlertRow({
           <span className="text-xs leading-5 text-success-11">{alert.resolutionMessage}</span>
         ) : null}
       </div>
-      <div className="relative z-20 lg:w-[14%] lg:shrink-0">
+      <div className="relative z-20 hidden lg:block lg:w-[14%] lg:shrink-0">
         <TimestampInfo
           value={alert.firedAt}
           displayType="relative"
           className="text-xs text-gray-9 underline decoration-dotted"
         />
       </div>
-      <div className="flex items-center gap-3 lg:w-[23%] lg:shrink-0 lg:justify-end">
+      <div className="flex items-center justify-self-end lg:w-[23%] lg:shrink-0 lg:justify-end">
         {href ? (
           <Link
             href={href}

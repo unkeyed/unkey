@@ -11,7 +11,13 @@ import { useMemo } from "react";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 
-export function WorkspaceCrumb({ href }: { href: string }) {
+export function WorkspaceCrumb({
+  href,
+  compactOnMobile,
+}: {
+  href: string;
+  compactOnMobile: boolean;
+}) {
   const workspace = useWorkspaceNavigation();
   const { data: user } = trpc.user.getCurrentUser.useQuery();
   const { data: memberships } = trpc.user.listMemberships.useQuery(user?.id ?? "", {
@@ -70,6 +76,7 @@ export function WorkspaceCrumb({ href }: { href: string }) {
         </Avatar>
       }
       label={workspace.name}
+      compactOnMobile={compactOnMobile}
       href={href}
       items={items}
       currentId={workspace.orgId}

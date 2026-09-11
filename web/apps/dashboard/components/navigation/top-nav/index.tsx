@@ -43,7 +43,7 @@ export function TopNav() {
         {crumbs.map((descriptor, i) => (
           <Fragment key={crumbKey(descriptor)}>
             {i > 0 && <CrumbSeparator />}
-            <CrumbForDescriptor descriptor={descriptor} />
+            <CrumbForDescriptor descriptor={descriptor} compactOnMobile={i < crumbs.length - 1} />
           </Fragment>
         ))}
       </div>
@@ -64,12 +64,18 @@ export function TopNav() {
   );
 }
 
-function CrumbForDescriptor({ descriptor }: { descriptor: BreadcrumbDescriptor }) {
+function CrumbForDescriptor({
+  descriptor,
+  compactOnMobile,
+}: {
+  descriptor: BreadcrumbDescriptor;
+  compactOnMobile: boolean;
+}) {
   switch (descriptor.type) {
     case "workspace":
-      return <WorkspaceCrumb href={descriptor.href} />;
+      return <WorkspaceCrumb href={descriptor.href} compactOnMobile={compactOnMobile} />;
     case "project":
-      return <ProjectCrumb projectId={descriptor.projectId} />;
+      return <ProjectCrumb projectId={descriptor.projectId} compactOnMobile={compactOnMobile} />;
     case "app":
       return <AppCrumb projectId={descriptor.projectId} appId={descriptor.appId} />;
     case "api":

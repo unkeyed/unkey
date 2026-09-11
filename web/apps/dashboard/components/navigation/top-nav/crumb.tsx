@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { ChevronExpandY } from "@unkey/icons";
 import type { Route } from "next";
 import Link from "next/link";
@@ -16,6 +17,7 @@ type CrumbProps = {
   emptyText: string;
   footer: CrumbPopoverFooter;
   loading?: boolean;
+  compactOnMobile?: boolean;
 };
 
 export function Crumb({
@@ -28,6 +30,7 @@ export function Crumb({
   emptyText,
   footer,
   loading = false,
+  compactOnMobile = false,
 }: CrumbProps) {
   return (
     <div className="flex min-w-0 items-center gap-0.5">
@@ -38,9 +41,22 @@ export function Crumb({
       >
         {icon}
         {loading ? (
-          <span aria-hidden="true" className="h-3 w-20 rounded-sm bg-gray-4 animate-pulse" />
+          <span
+            aria-hidden="true"
+            className={cn(
+              "h-3 w-20 rounded-sm bg-gray-4 animate-pulse",
+              compactOnMobile && "hidden md:block",
+            )}
+          />
         ) : (
-          <span className="truncate max-w-[120px] md:max-w-[180px]">{label}</span>
+          <span
+            className={cn(
+              "max-w-[120px] truncate md:max-w-[180px]",
+              compactOnMobile && "hidden md:inline",
+            )}
+          >
+            {label}
+          </span>
         )}
       </Link>
       <CrumbPopover
