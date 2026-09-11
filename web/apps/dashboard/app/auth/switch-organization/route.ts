@@ -15,9 +15,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const returnTo = sanitizeRedirectPath(request.nextUrl.searchParams.get("return_to"));
   try {
     const { userId } = await getAuth(request);
-    const workspaces = userId
-      ? await getAvailableWorkspaces(userId, organizationIds[0])
-      : [];
+    const workspaces = userId ? await getAvailableWorkspaces(userId, organizationIds[0]) : [];
     if (!workspaces.some((workspace) => workspace.orgId === organizationIds[0])) {
       return NextResponse.redirect(new URL("/auth/error?reason=session", request.url));
     }

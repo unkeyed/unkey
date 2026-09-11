@@ -52,7 +52,12 @@ export function WorkspaceCrumb({ href }: { href: string }) {
         available.isError ? (
           <div role="alert" className="flex flex-col items-center gap-2 px-3 py-4 text-sm">
             <span>Unable to load workspaces</span>
-            <Button variant="outline" size="sm" disabled={available.isFetching} onClick={() => available.refetch()}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={available.isFetching}
+              onClick={() => available.refetch()}
+            >
               Try again
             </Button>
           </div>
