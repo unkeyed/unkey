@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -77,7 +76,7 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 		})
 	}()
 
-	var responseBuf bytes.Buffer
+	var responseBuf *zen.BodyCapture
 
 	wrapper := zen.NewErrorCapturingWriter(sess.ResponseWriter())
 
@@ -165,8 +164,11 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 			// capture (no matching logging policy with responseBody enabled):
 			// the buffered copy would never be persisted.
 			if hasTracking && tracking.LogResponseBody && resp.Body != nil && resp.StatusCode != http.StatusSwitchingProtocols {
-				responseBuf.Reset()
-				resp.Body = io.NopCloser(io.TeeReader(resp.Body, &zen.LimitedWriter{W: &responseBuf, N: zen.MaxBodyCapture}))
+				responseBuf = zen.NewBodyCapture(resp.ContentLength)
+				resp.Body = struct {
+					io.Reader
+					io.Closer
+				}{Reader: io.TeeReader(resp.Body, responseBuf), Closer: resp.Body}
 			}
 
 			return nil
@@ -195,17 +197,22 @@ func (s *service) forward(ctx context.Context, sess *zen.Session, cfg forwardCon
 	// already published from the pre-response failure path, this is a no-op.
 	publishUpstream(s.clock.Now())
 
+	var responseBody []byte
+	if responseBuf != nil {
+		responseBody = responseBuf.Bytes()
+	}
+
 	// Mark the true end of the upstream interaction (full stream completed).
 	if hasTracking {
 		tracking.InstanceEnd = s.clock.Now()
-		if responseBuf.Len() > 0 {
-			tracking.ResponseBody = responseBuf.Bytes()
+		if len(responseBody) > 0 {
+			tracking.ResponseBody = responseBody
 		}
 	}
 
 	// Feed captured response body back into the session for zen middleware logging.
-	if responseBuf.Len() > 0 {
-		sess.SetResponseBody(responseBuf.Bytes())
+	if len(responseBody) > 0 {
+		sess.SetResponseBody(responseBody)
 	}
 
 	// If error was captured, return it to middleware for consistent error handling
