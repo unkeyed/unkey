@@ -52,6 +52,8 @@ export const limits = mysqlTable("limits", {
     unsigned: true,
   }).notNull(),
 
+  logdrainsMax: int("logdrains_max", { unsigned: true }).notNull().default(0),
+
   /**
    * Controls whether the workspace can use team features.
    * Unit: boolean enabled/disabled.

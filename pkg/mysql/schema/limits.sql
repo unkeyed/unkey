@@ -5,6 +5,7 @@ CREATE TABLE `limits` (
 	`api_requests_count_max_per_minute` int unsigned,
 	`logs_retention_days_max` smallint unsigned NOT NULL,
 	`logs_audit_retention_days_max` smallint unsigned NOT NULL,
+	`logdrains_max` int unsigned NOT NULL DEFAULT 0,
 	`team_enabled` boolean NOT NULL,
 	`cpu_cores_max` int unsigned NOT NULL,
 	`cpu_cores_max_per_instance` int unsigned NOT NULL,
