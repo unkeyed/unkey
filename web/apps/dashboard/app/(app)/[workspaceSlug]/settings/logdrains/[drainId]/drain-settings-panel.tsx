@@ -10,7 +10,7 @@ import {
   SlidePanelTitle,
 } from "@unkey/ui";
 import { FormProvider } from "react-hook-form";
-import { DestinationFields, EventTypesField, NameField } from "../drain-fields";
+import { DestinationFields, EventTypesField, NameField, StreamField } from "../drain-fields";
 import type { DrainSettings } from "./use-drain-settings";
 
 export function DrainSettingsPanel({
@@ -36,6 +36,7 @@ export function DrainSettingsPanel({
           <form onSubmit={save(onClose)} className="flex min-h-0 flex-1 flex-col">
             <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-6 py-5">
               <NameField />
+              <StreamField disabled />
               <EventTypesField />
               <DestinationFields tokenRequired={false} />
             </div>

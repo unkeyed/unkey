@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
@@ -24,11 +25,12 @@ func TestBatchReader_AdaptsWindows(t *testing.T) {
 		next source.Cursor
 	}{
 		{"empty", source.Cursor{Time: start}, start + minute, nil, source.Cursor{Time: start + minute}},
-		{"partial", source.Cursor{Time: start + minute}, start + 3*minute, []string{"a"}, source.Cursor{Time: start + 3*minute}},
-		{"full", source.Cursor{Time: start + 3*minute}, start + 5*minute, []string{"b", "c"}, source.Cursor{Time: start + 3*minute, EventID: "c"}},
-		{"timestamp tie", source.Cursor{Time: start + 3*minute, EventID: "c"}, start + 4*minute, []string{"d"}, source.Cursor{Time: start + 4*minute}},
-		{"empty after partial", source.Cursor{Time: start + 4*minute}, start + 5*minute, nil, source.Cursor{Time: start + 5*minute}},
-		{"watermark", source.Cursor{Time: start + 5*minute}, start + 6*minute, nil, source.Cursor{Time: start + 6*minute}},
+		{"partial", source.Cursor{Time: start + minute}, start + 3*minute, []string{"a"}, source.Cursor{Time: start + minute, EventID: "a"}},
+		{"full", source.Cursor{Time: start + minute, EventID: "a"}, start + 2*minute, []string{"b", "c"}, source.Cursor{Time: start + minute, EventID: "c"}},
+		{"timestamp tie", source.Cursor{Time: start + minute, EventID: "c"}, start + 2*minute, []string{"d"}, source.Cursor{Time: start + minute, EventID: "d"}},
+		{"empty after partial", source.Cursor{Time: start + minute, EventID: "d"}, start + 2*minute, nil, source.Cursor{Time: start + 2*minute}},
+		{"empty expansion", source.Cursor{Time: start + 2*minute}, start + 4*minute, nil, source.Cursor{Time: start + 4*minute}},
+		{"watermark", source.Cursor{Time: start + 4*minute}, start + 6*minute, nil, source.Cursor{Time: start + 6*minute}},
 	}
 	var src windowSource
 	reader := newBatchReader(&src, start+6*minute, 2)
@@ -40,7 +42,7 @@ func TestBatchReader_AdaptsWindows(t *testing.T) {
 				events = append(events, sink.Event{EventID: id})
 				advance.EventID = id
 			}
-			src.read = func(_ context.Context, _ string, from source.Cursor, to int64, limit int, _ []string) ([]sink.Event, source.Cursor, error) {
+			src.read = func(_ context.Context, _ string, from source.Cursor, to int64, limit int, _ *logdrainv1.Config) ([]sink.Event, source.Cursor, error) {
 				require.Equal(t, tc.from, from)
 				require.Equal(t, tc.end, to)
 				require.Equal(t, 2, limit)
@@ -61,7 +63,7 @@ func TestBatchReader_ReadFailure(t *testing.T) {
 	from := source.Cursor{Time: 1000000}
 	failure := errors.New("source unavailable")
 	calls := 0
-	src := windowSource{read: func(_ context.Context, _ string, cursor source.Cursor, to int64, _ int, _ []string) ([]sink.Event, source.Cursor, error) {
+	src := windowSource{read: func(_ context.Context, _ string, cursor source.Cursor, to int64, _ int, _ *logdrainv1.Config) ([]sink.Event, source.Cursor, error) {
 		calls++
 		require.Equal(t, from, cursor)
 		require.Equal(t, from.Time+time.Minute.Milliseconds(), to)
@@ -78,10 +80,10 @@ func TestBatchReader_ReadFailure(t *testing.T) {
 
 // windowSource exposes the source boundary without a ClickHouse server.
 type windowSource struct {
-	read func(context.Context, string, source.Cursor, int64, int, []string) ([]sink.Event, source.Cursor, error)
+	read func(context.Context, string, source.Cursor, int64, int, *logdrainv1.Config) ([]sink.Event, source.Cursor, error)
 }
 
 // Read delegates bounded reads to the test fixture.
-func (s windowSource) Read(ctx context.Context, workspaceID string, from source.Cursor, to int64, limit int, eventTypes []string) ([]sink.Event, source.Cursor, error) {
-	return s.read(ctx, workspaceID, from, to, limit, eventTypes)
+func (s windowSource) Read(ctx context.Context, workspaceID string, from source.Cursor, to int64, limit int, config *logdrainv1.Config) ([]sink.Event, source.Cursor, error) {
+	return s.read(ctx, workspaceID, from, to, limit, config)
 }

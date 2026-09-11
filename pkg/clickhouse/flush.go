@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"context"
+	"errors"
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -11,6 +12,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 	"go.opentelemetry.io/otel/attribute"
 )
+
+const blockBodyBytesMax = 1 << 20
 
 // InsertQuery builds "INSERT INTO <table> (<columns>)" from T's generated
 // table name and column list (see schema.Row). Naming the columns explicitly
@@ -72,11 +75,11 @@ func flush[T schema.Row](c *Client, ctx context.Context, rows []T) error {
 		}()
 
 		attemptSpan.AddEvent("append")
-		for _, row := range rows {
-			err = batch.AppendStruct(&row)
-			if err != nil {
-				return fault.Wrap(err, fault.Internal("appending struct to batch failed"))
+		if err = appendRows(batch, rows); err != nil {
+			if abortErr := batch.Abort(); abortErr != nil {
+				return errors.Join(err, fault.Wrap(abortErr, fault.Internal("aborting batch failed")))
 			}
+			return err
 		}
 
 		attemptSpan.AddEvent("send")
@@ -95,4 +98,24 @@ func flush[T schema.Row](c *Client, ctx context.Context, rows []T) error {
 	tracing.RecordError(span, err)
 
 	return err
+}
+
+func appendRows[T schema.Row](batch driver.Batch, rows []T) error {
+	blockBodyBytes := 0
+	for i := range rows {
+		if request, ok := any(rows[i]).(schema.FrontlineRequest); ok {
+			bodyBytes := len(request.RequestBody) + len(request.ResponseBody)
+			if blockBodyBytes > 0 && bodyBytes > blockBodyBytesMax-blockBodyBytes {
+				if err := batch.Flush(); err != nil {
+					return fault.Wrap(err, fault.Internal("flushing body block failed"))
+				}
+				blockBodyBytes = 0
+			}
+			blockBodyBytes += bodyBytes
+		}
+		if err := batch.AppendStruct(&rows[i]); err != nil {
+			return fault.Wrap(err, fault.Internal("appending struct to batch failed"))
+		}
+	}
+	return nil
 }

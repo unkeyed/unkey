@@ -1,6 +1,4 @@
 import { RefreshCw } from "lucide-react";
-import { useState } from "react";
-import type { Key, RerollKeyResult } from "~/components/keys-table/schema/keys.schema";
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -20,7 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { DiscardSecretConfirm, SecretRevealCard, useSecretCloseGate } from "./secret-reveal-card";
+import type { RotateKeyController } from "~/hooks/use-rotate-key";
+import { useSecretCloseGate } from "~/hooks/use-secret-close-gate";
+import { DiscardSecretConfirm, SecretRevealCard } from "./secret-reveal-card";
 
 const GRACE_PERIODS = [
   { value: "0", label: "Revoke immediately" },
@@ -31,76 +31,46 @@ const GRACE_PERIODS = [
   { value: "86400000", label: "24 hours" },
 ] as const;
 
-const DEFAULT_GRACE = "60000";
-
-/** Performs the reroll and resolves with the one-time secret. */
-export type RerollFn = (input: { keyId: string; expiration: number }) => Promise<RerollKeyResult>;
+function rotateErrorMessage(error: unknown): string | null {
+  if (!error) {
+    return null;
+  }
+  return error instanceof Error ? error.message : "Failed to rotate key. Please try again.";
+}
 
 type RotateKeyDialogProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  keyToRotate: Key | null;
-  onReroll: RerollFn;
-  onRerolled?: (result: RerollKeyResult) => void;
+  rotate: RotateKeyController;
 };
 
-export function RotateKeyDialog({
-  open,
-  onOpenChange,
-  keyToRotate,
-  onReroll,
-  onRerolled,
-}: RotateKeyDialogProps) {
-  const [grace, setGrace] = useState<string>(DEFAULT_GRACE);
-  const [rotated, setRotated] = useState<RerollKeyResult | null>(null);
-  const [hasCopied, setHasCopied] = useState(false);
-  const [isRerolling, setIsRerolling] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const close = () => {
-    if (rotated) {
-      onRerolled?.(rotated);
-    }
-    setGrace(DEFAULT_GRACE);
-    setRotated(null);
-    setHasCopied(false);
-    setIsRerolling(false);
-    setError(null);
-    onOpenChange(false);
-  };
+export function RotateKeyDialog({ rotate }: RotateKeyDialogProps) {
+  const keyToRotate = rotate.rotating;
+  const rotated = rotate.data ?? null;
+  const isRerolling = rotate.isPending;
+  const error = rotateErrorMessage(rotate.error);
 
   const { tryClose, discardConfirm } = useSecretCloseGate({
     hasSecret: rotated !== null,
-    hasCopied,
-    onClose: close,
+    hasCopied: rotate.hasCopied,
+    onClose: rotate.close,
   });
 
-  const handleRotate = async () => {
-    if (!keyToRotate || isRerolling) {
-      return;
-    }
-    setError(null);
-    setIsRerolling(true);
-    try {
-      const result = await onReroll({ keyId: keyToRotate.id, expiration: Number(grace) });
-      setRotated(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to rotate key. Please try again.");
-    } finally {
-      setIsRerolling(false);
-    }
-  };
-
   return (
-    <Dialog open={open} onOpenChange={(next) => (next ? onOpenChange(true) : tryClose())}>
+    <Dialog
+      open={keyToRotate !== null}
+      onOpenChange={(next) => {
+        if (!next) {
+          tryClose();
+        }
+      }}
+    >
       {keyToRotate ? (
         <DialogContent>
           {rotated === null ? (
             <ConfigureCard
-              grace={grace}
-              onGraceChange={setGrace}
+              grace={rotate.grace}
+              onGraceChange={rotate.setGrace}
               onCancel={tryClose}
-              onRotate={handleRotate}
+              onRotate={rotate.rotate}
               isRerolling={isRerolling}
               error={error}
             />
@@ -110,7 +80,7 @@ export function RotateKeyDialog({
               description="A new secret has been generated. Copy it before closing."
               secretLabel="New secret"
               plaintext={rotated.plaintext}
-              onCopied={() => setHasCopied(true)}
+              onCopied={rotate.markCopied}
               onDone={tryClose}
             />
           )}

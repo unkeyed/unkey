@@ -369,8 +369,13 @@
             "icon": "scroll",
             "pages": [
               "audit-log/introduction",
-              "audit-log/log-drains",
               "audit-log/types"
+            ]
+          },
+          {
+            "group": "Log Drains",
+            "pages": [
+              "log-drains/overview"
             ]
           },
           {
