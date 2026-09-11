@@ -82,6 +82,7 @@ export const DeleteRootKey = ({ rootKeyDetails, isOpen, onClose }: DeleteRootKey
       <FormProvider {...methods}>
         <form id="delete-root-key-form">
           <DialogContainer
+            data-docs-target="root-key-delete"
             isOpen={isOpen}
             subTitle="Delete the key permanently"
             onOpenChange={handleDialogOpenChange}

@@ -3,6 +3,8 @@ title: Overview
 description: "Create and manage root keys for programmatic access to the Unkey API. Root keys authenticate CLI tools, SDKs, and server-side requests."
 ---
 
+import { DashboardScreenshot } from "/snippets/dashboard-screenshot.jsx";
+
 Root keys authenticate your requests to the Unkey API. Each root key belongs to a single workspace and can only access resources within that workspace. Use them to create API keys, manage identities, configure rate limits, and perform other administrative operations from your server.
 
 <Warning>
@@ -10,8 +12,14 @@ Root keys authenticate your requests to the Unkey API. Each root key belongs to 
 </Warning>
 
 <Frame>
-  <img className="block dark:hidden" src="/platform/root-keys/root-key-list-light.png" alt="Root key list" />
-  <img className="hidden dark:block" src="/platform/root-keys/root-key-list-dark.png" alt="Root key list" />
+  <DashboardScreenshot
+    target="root-key-list"
+    capture="viewport"
+    capturedAt="2026-09-11T07:11:42Z"
+    description="In a disposable local workspace, open Settings, Root Keys. Show several synthetic root keys with distinct service names, permission counts, and expiration states. Keep all key values masked. Leave filters empty and close dialogs and menus. Use a 1440 by 1000 viewport. Capture the dashboard in light and dark themes, including navigation and the table headers."
+    src="/platform/root-keys/root-key-list"
+    alt="Root key list"
+  />
 </Frame>
 
 ## Root keys vs API keys
@@ -58,15 +66,29 @@ UNKEY_ROOT_KEY=unkey_...
 5. Click **Update root key**.
 
 <Frame>
-  <img className="block dark:hidden" src="/platform/root-keys/root-key-edit-light.png" alt="Edit root key dialog" />
-  <img className="hidden dark:block" src="/platform/root-keys/root-key-edit-dark.png" alt="Edit root key dialog" />
+  <DashboardScreenshot
+    target="root-key-edit"
+    capture="target"
+    capturedAt="2026-09-11T10:01:18Z"
+    description="In a disposable local workspace, open Settings, Root Keys and edit a synthetic root key with existing keyspace-scoped permissions. Show its name and selected permissions, including create_key and verify_key for a Billing keyspace. Keep the permission sheet closed. Use a 1440 by 1000 viewport. Capture only the Edit root key dialog in both themes at 2x with a transparent background, no outer dialog shadow, and 24 CSS px transparent padding on every side. Preserve the actual dialog radius, borders, layout, and child controls. Do not submit changes."
+    src="/platform/root-keys/root-key-edit"
+    width={508}
+    alt="Edit root key dialog"
+  />
 </Frame>
 
 ## Delete a root key
 
 <Frame>
-  <img className="block dark:hidden" src="/platform/root-keys/root-key-delete-light.png" alt="Delete root key confirmation" />
-  <img className="hidden dark:block" src="/platform/root-keys/root-key-delete-dark.png" alt="Delete root key confirmation" />
+  <DashboardScreenshot
+    target="root-key-delete"
+    capture="target"
+    capturedAt="2026-09-11T10:00:32Z"
+    description="In a disposable local workspace, open Settings, Root Keys and choose Delete root key for a synthetic key named demo. Show the Revoke Root Key dialog with its warning, an unchecked acknowledgment checkbox, and the disabled Delete permanently button. Keep the key value masked. Use a 1440 by 1000 viewport. Capture only this dialog in both themes at 2x with a transparent background, no outer dialog shadow, and 24 CSS px transparent padding on every side. Preserve the actual dialog radius, borders, layout, and child controls. Do not confirm or delete the key."
+    src="/platform/root-keys/root-key-delete"
+    width={648}
+    alt="Delete root key confirmation"
+  />
 </Frame>
 
 1. Navigate to **Settings > Root Keys**.

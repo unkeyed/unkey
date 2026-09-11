@@ -267,6 +267,7 @@ export const RootKeyDialog = ({
         )}
       {!key.data?.key && (
         <DynamicDialogContainer
+          data-docs-target={editMode ? "root-key-edit" : undefined}
           isOpen={isOpen}
           onOpenChange={handleDialogOpenChange}
           title={title}
