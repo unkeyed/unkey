@@ -6,7 +6,7 @@ export const EmptyAuditLogs = () => {
     <div className="w-full flex justify-center items-center h-full">
       <Empty className="w-100 flex items-start">
         <Empty.Icon className="w-auto" />
-        <Empty.Title>No Audit Logs Found</Empty.Title>
+        <Empty.Title>No audit logs found</Empty.Title>
         <Empty.Description className="text-left">
           There are no audit logs matching your filters. Adjust your search criteria or check back
           later.

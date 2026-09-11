@@ -162,7 +162,7 @@ function IdentityResults({ search }: { search: string }) {
         <div className="flex w-full items-center justify-center px-4 py-16">
           <Empty className="w-[400px] items-start">
             <Empty.Icon className="w-auto" />
-            <Empty.Title>No Identities Found</Empty.Title>
+            <Empty.Title>No identities found</Empty.Title>
             <Empty.Description className="text-left">
               {search
                 ? "Try adjusting your search query"

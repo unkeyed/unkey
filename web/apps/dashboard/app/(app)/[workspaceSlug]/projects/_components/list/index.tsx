@@ -35,7 +35,7 @@ export const ProjectsList = () => {
       <div className="w-full flex justify-center items-center h-full">
         <Empty className="w-[400px] flex items-start">
           <Empty.Icon className="w-auto" />
-          <Empty.Title>No Projects Found</Empty.Title>
+          <Empty.Title>No projects found</Empty.Title>
           <Empty.Description className="text-left">
             This workspace has no projects yet.
           </Empty.Description>

@@ -54,7 +54,7 @@ export const AppsList = () => {
         <div className="flex-1 flex justify-center items-center px-4 py-16 border border-grayA-4 rounded-lg overflow-hidden">
           <Empty className="w-[400px] flex items-start">
             <Empty.Icon className="w-auto" />
-            <Empty.Title>No Apps Found</Empty.Title>
+            <Empty.Title>No apps found</Empty.Title>
             <Empty.Description className="text-left">
               This project has no apps yet. Create an app to start deploying.
             </Empty.Description>
