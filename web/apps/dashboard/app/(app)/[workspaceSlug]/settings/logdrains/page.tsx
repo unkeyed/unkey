@@ -50,8 +50,10 @@ export default function LogdrainsPage() {
           <AlertBanner variant="warning">
             <AlertBannerTitle>Log drain limit reached</AlertBannerTitle>
             <AlertBannerDescription>
-              Contact support to enable log drains or increase this workspace's allowance. Existing
-              log drains remain available.
+              {(limits?.logdrainsMax ?? 0) === 0
+                ? "Contact support to enable log drains for this workspace."
+                : "Contact support to increase this workspace's log drain allowance."}{" "}
+              Existing log drains remain available.
             </AlertBannerDescription>
             <AlertBannerActions>
               <Button variant="outline" size="sm" render={<Link href={SUPPORT_MAILTO} />}>
