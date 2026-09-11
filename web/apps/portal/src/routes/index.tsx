@@ -1,8 +1,8 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { z } from "zod";
 import { getDefaultTabHref } from "~/lib/scopes";
-import { exchangeCode, getSessionWithConfig } from "~/lib/session";
+import { exchangeCode, sessionQueryOptions } from "~/lib/session";
 
 const searchSchema = z.object({
   code: z.string().optional(),
@@ -13,49 +13,45 @@ export const Route = createFileRoute("/")({
   component: PortalEntry,
 });
 
-type ExchangeState = { status: "loading" } | { status: "error"; message: string };
-
 function PortalEntry() {
   const { code } = Route.useSearch();
   const navigate = useNavigate();
-  const [state, setState] = useState<ExchangeState>({ status: "loading" });
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!code) {
-      setState({
-        status: "error",
-        message: "No session provided. Please access this portal through your application.",
-      });
-      return;
-    }
+  const exchange = useQuery({
+    queryKey: ["portal", "exchange", code],
+    queryFn: async () => {
+      const result = await exchangeCode({ data: code ?? "" });
+      if (!result.success) {
+        return result;
+      }
+      const sessionData = await queryClient.fetchQuery({ ...sessionQueryOptions, staleTime: 0 });
+      const defaultTab = sessionData ? getDefaultTabHref(sessionData.session.scopes) : null;
+      await navigate({ to: defaultTab ?? "/keys", replace: true });
+      return result;
+    },
+    enabled: Boolean(code),
+    retry: false,
+    staleTime: Number.POSITIVE_INFINITY,
+    gcTime: 0,
+  });
 
-    exchangeCode({ data: code })
-      .then(async (result) => {
-        if (!result.success) {
-          setState({ status: "error", message: result.error });
-          return;
-        }
-        // Code exchanged — resolve scopes to pick the correct landing tab.
-        const sessionData = await getSessionWithConfig();
-        const defaultTab = sessionData ? getDefaultTabHref(sessionData.session.scopes) : "/keys";
-        navigate({ to: defaultTab ?? "/keys" });
-      })
-      .catch(() => {
-        setState({
-          status: "error",
-          message: "Something went wrong. Please try again.",
-        });
-      });
-  }, [code, navigate]);
+  const message = code
+    ? exchange.isError
+      ? "Something went wrong. Please try again."
+      : exchange.data && !exchange.data.success
+        ? exchange.data.error
+        : null
+    : "No session provided. Please access this portal through your application.";
 
-  if (state.status === "error") {
+  if (message) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="max-w-md px-4 text-center">
           <h1 className="font-semibold text-2xl text-gray-12">
             {code ? "Session expired or invalid" : "Invalid access"}
           </h1>
-          <p className="mt-2 text-gray-11">{state.message}</p>
+          <p className="mt-2 text-gray-11">{message}</p>
         </div>
       </div>
     );
