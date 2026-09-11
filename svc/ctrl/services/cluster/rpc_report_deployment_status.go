@@ -9,12 +9,12 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 )
 
 // deploymentActiveStatuses are the non-terminal statuses where a Deploy
@@ -289,8 +289,7 @@ func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.D
 		return
 	}
 
-	req := &hydrav1.NotifyInstancesReadyRequest{DeploymentId: deployment.ID}
-	if _, err := hydrav1.NewDeployWorkflowIngressClient(s.restate, deployment.ID).NotifyInstancesReady().Send(ctx, req); err != nil {
+	if err := deploy.SendNotifyInstancesReady(ctx, s.restate, deployment.WorkspaceID, deployment.ID); err != nil {
 		metrics.NotifyInstancesReadyTotal.WithLabelValues("restate_error").Inc()
 		logger.Error("failed to notify deploy workflow of instance readiness",
 			"deployment_id", deployment.ID,

@@ -159,8 +159,10 @@ type Config struct {
 	DashboardURL string
 
 	// RestateAdmin cancels the in-flight Deploy invocations of deployments a
-	// newer create supersedes. Optional: when nil, superseded rows are still
-	// marked but their invocations keep running.
+	// newer create supersedes, and writes the workspace's deploy concurrency
+	// rule before each Deploy send. Optional: when nil, superseded rows are
+	// still marked but their invocations keep running, and no concurrency
+	// rule is written.
 	RestateAdmin *restateadmin.Client
 }
 
