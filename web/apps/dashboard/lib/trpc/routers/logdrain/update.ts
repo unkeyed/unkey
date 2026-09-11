@@ -62,6 +62,7 @@ export const updateLogdrain = workspaceProcedure
       .object({
         id: z.string().min(1),
         name: z.string().trim().min(1).max(128).optional(),
+        batchSize: z.number().int().min(1).max(4_294_967_295).optional(),
         status: z.enum(["running", "paused_by_user"]).optional(),
         namespaceIds: resourceIdsSchema.optional(),
         passed: passedSchema.optional(),
@@ -78,6 +79,7 @@ export const updateLogdrain = workspaceProcedure
       .refine(
         (input) =>
           input.name !== undefined ||
+          input.batchSize !== undefined ||
           input.status !== undefined ||
           input.namespaceIds !== undefined ||
           input.passed !== undefined ||
@@ -148,6 +150,7 @@ export const updateLogdrain = workspaceProcedure
           });
         }
         const existing = decodeLogdrainConfig(drain.config);
+        const batchSize = input.batchSize ?? existing.batchSize;
         if (
           (existing.stream.kind !== "ratelimits" &&
             (input.namespaceIds !== undefined || input.passed !== undefined)) ||
@@ -211,6 +214,7 @@ export const updateLogdrain = workspaceProcedure
             throw new Error(`Unsupported log drain stream: ${existing.stream satisfies never}`);
         }
         let config =
+          input.batchSize === undefined &&
           input.namespaceIds === undefined &&
           input.passed === undefined &&
           input.eventTypes === undefined &&
@@ -225,6 +229,7 @@ export const updateLogdrain = workspaceProcedure
             : encodeLogdrainConfig({
                 ...existing,
                 stream,
+                batchSize,
               });
         switch (destination?.kind) {
           case "http":
@@ -244,6 +249,7 @@ export const updateLogdrain = workspaceProcedure
                 config = encodeLogdrainConfig({
                   kind: destination.kind,
                   stream,
+                  batchSize,
                   url: destination.config.url ?? existing.url,
                   format: destination.config.format ?? existing.format,
                   headers,
@@ -270,6 +276,7 @@ export const updateLogdrain = workspaceProcedure
                 config = encodeLogdrainConfig({
                   kind: destination.kind,
                   stream,
+                  batchSize,
                   dataset: destination.config.dataset ?? existing.dataset,
                   encryptedToken: encryptedToken ?? existing.encryptedToken,
                 });
@@ -286,6 +293,7 @@ export const updateLogdrain = workspaceProcedure
 
         const changesDelivery =
           destination !== undefined ||
+          input.batchSize !== undefined ||
           input.namespaceIds !== undefined ||
           input.passed !== undefined ||
           input.eventTypes !== undefined ||

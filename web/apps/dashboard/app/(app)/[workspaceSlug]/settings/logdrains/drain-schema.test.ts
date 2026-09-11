@@ -159,8 +159,25 @@ describe("submittedStatusClasses", () => {
     ).toEqual([]);
   });
 
-  it("sends 4xx and 5xx in errors mode", () => {
-    expect(submittedStatusClasses({ ...emptyDrainForm, statusMode: "errors" })).toEqual([4, 5]);
+  it("loads saved 5xx and 4xx filters as custom without changing them", () => {
+    const values = drainToFormValues({
+      id: "drain",
+      name: "Gateway",
+      status: "running",
+      kind: "http",
+      stream: "gateway_requests",
+      config: { url: "https://example.com/ingest", format: "ndjson", headers: [] },
+      eventTypes: [],
+      outcomes: [],
+      keySpaceIds: [],
+      statusClasses: [5, 4],
+      severities: [],
+      projectIds: [],
+      appIds: [],
+      environmentIds: [],
+    });
+    expect(values.statusMode).toBe("custom");
+    expect(submittedStatusClasses(values)).toEqual([5, 4]);
   });
 
   it("sends the chosen classes in custom mode", () => {

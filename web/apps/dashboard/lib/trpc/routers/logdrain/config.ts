@@ -15,6 +15,7 @@ export type EncryptedHttpHeader = {
 
 /** LogdrainConfig is the typed dashboard representation of the stored provider config. */
 export type LogdrainConfig = {
+  batchSize?: number;
   stream:
     | { kind: "audit_logs"; eventTypes: string[] }
     | { kind: "key_verifications"; outcomes: string[]; keySpaceIds: string[] }
@@ -57,6 +58,7 @@ export function encodeLogdrainConfig(config: LogdrainConfig): Buffer {
           ConfigSchema,
           create(ConfigSchema, {
             stream,
+            batchSize: config.batchSize,
             destination: {
               case: config.kind,
               value: {
@@ -74,6 +76,7 @@ export function encodeLogdrainConfig(config: LogdrainConfig): Buffer {
           ConfigSchema,
           create(ConfigSchema, {
             stream,
+            batchSize: config.batchSize,
             destination: {
               case: config.kind,
               value: {
@@ -142,6 +145,7 @@ export function decodeLogdrainConfig(raw: Uint8Array): LogdrainConfig {
   switch (destination.case) {
     case "http":
       return {
+        ...(config.batchSize > 0 ? { batchSize: config.batchSize } : {}),
         kind: destination.case,
         stream,
         url: destination.value.url,
@@ -153,6 +157,7 @@ export function decodeLogdrainConfig(raw: Uint8Array): LogdrainConfig {
       };
     case "axiom":
       return {
+        ...(config.batchSize > 0 ? { batchSize: config.batchSize } : {}),
         kind: destination.case,
         stream,
         dataset: destination.value.dataset,

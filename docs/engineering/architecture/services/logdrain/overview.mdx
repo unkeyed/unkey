@@ -87,9 +87,31 @@ proposed next cursor, and a `caughtUp` flag. Reading a page does not commit its
 cursor. The engine commits only after the destination acknowledges all events
 in that page. Empty pages need no destination request.
 
+The stored protobuf `batch_size` limits events per page for each drain. Zero
+or an omitted value uses 10,000 events. Backend create and update inputs accept
+`batchSize`; the dashboard has no batch-size control. This is an event-count
+limit, not a byte limit on the destination request.
+
+Gateway reads also enforce a conservative 16 MiB serialized-size budget before
+ClickHouse returns payload rows to Go. Each row is charged six times the JSON
+length of its selected values, plus 1,024 bytes for field names and destination
+envelopes. The factor covers worst-case JSON escaping. An ordered cumulative
+sum selects a contiguous prefix. Identical cursor groups stay together at both
+the row and byte limits. This bounds returned payloads, not ClickHouse query
+memory or total process memory. Concurrent workers and encoding buffers need
+additional memory.
+
+An empty gateway result requires a metadata-only probe to distinguish an empty
+window from a first cursor group that cannot fit. An oversized group returns an
+error without returning its payload or advancing the cursor. It follows the
+existing retry and pause policy. Neither a payload nor a cursor group is split
+or truncated. If the probe observes a fitting group after an empty result, the
+source returns a retryable error rather than declaring the window exhausted.
+
 After each commit, the engine immediately reads another page unless
-`caughtUp` is true. A partial or empty page can exhaust one window without
-reaching the watermark. It does not cause a poll delay while a backlog remains.
+`caughtUp` is true. Only an empty page confirms window exhaustion. A nonempty
+page always continues from its last event, even below the event-count limit.
+It does not cause a poll delay while a backlog remains.
 
 ```mermaid
 stateDiagram-v2
@@ -155,7 +177,7 @@ stateDiagram-v2
     Query --> Empty: count is zero
     Query --> Error: query fails
     Full --> Page: last-event cursor / not caught up / reset size to 1 minute
-    Partial --> Page: window-end cursor / keep size
+    Partial --> Page: last-event cursor / not caught up / reset size to 1 minute
     Empty --> Page: window-end cursor / double size up to 1 hour
     Page --> [*]
     CaughtUp --> [*]
@@ -166,16 +188,16 @@ stateDiagram-v2
     end note
     note right of Page
         A window-end cursor has an empty event ID.
-        Partial and empty pages are caught up only at the watermark.
+        Only empty pages can be caught up at the watermark.
         The engine must deliver and commit before reading another page.
     end note
 ```
 
 Empty windows grow through 1, 2, 4, 8, 16, 32, and 60 minutes. Further empty
-windows stay at 60 minutes. A full batch resets the next query to 1 minute
-from the last event's cursor, including its event ID. A partial batch keeps
-the window size. Every query is capped at the fixed watermark, even when the
-chosen window is larger than the remaining interval.
+windows stay at 60 minutes. Every nonempty batch resets the next query to
+1 minute from the last event's cursor, including its event ID. Every query is
+capped at the fixed watermark, even when the chosen window is larger than the
+remaining interval.
 
 Window size lives only in the reader for that cycle. It is not stored in
 MySQL. A restart, retry, or later poll starts at 1 minute again, using the
@@ -240,12 +262,12 @@ The first query returns `evt_a` and `evt_b`, then commits the cursor
 before `evt_d`. A cursor that stored only `1000` would start the next query
 after that millisecond and skip `evt_c`.
 
-A full batch advances the cursor to its last event. A short or empty batch
+A nonempty batch advances the cursor to its last event. Only an empty batch
 advances the cursor to that window's exclusive end with an empty event ID.
 The empty event ID keeps events at that exact boundary eligible for the next
 read, which can happen in the same cycle.
 
-The watermark is the poll's enqueue timestamp minus the configured stream lag.
+The watermark is the poll's enqueue timestamp minus the fixed stream lag.
 The worker selects that lag from the protobuf stream before it chooses the
 watermark. A missing stream keeps the legacy audit policy. The watermark stays
 fixed while the worker catches up, including time spent waiting in the queue.
@@ -254,22 +276,13 @@ before the cursor passes their insertion timestamp.
 
 ### Stream timing
 
-Audit logs default to a 5-minute watermark lag and a 60-second poll interval.
-Key verifications, gateway HTTP requests, and runtime logs use a fixed
+Audit logs use a fixed 5-minute watermark lag and a 60-second poll interval.
+Key verifications, gateway HTTP requests, runtime logs, and rate limits use a fixed
 15-second lag and a 5-second interval. Future non-audit sources use the same
 non-audit timing policy when their source dispatch is added.
 
-The existing `poll_interval` and `watermark_lag` settings control audits only.
-Non-audit timing is defined by engine constants and has no operator settings.
-The audit defaults are:
-
-```toml
-poll_interval = "60s"
-watermark_lag = "5m"
-```
-
-The audit poll interval must be at least 1ms. Its watermark lag must not be negative.
-The engine scans MySQL at the shorter poll interval. A caught-up drain remains
+Timing has no operator settings. Local development uses the same timing policy.
+The engine scans MySQL every 5 seconds. A caught-up drain remains
 ineligible until database commit time plus its stream's poll interval. Thus,
 5-second discovery does not repeatedly read caught-up audits from ClickHouse.
 Query window sizes are not sleep intervals. Backlog pages continue immediately

@@ -22,6 +22,8 @@ type Source interface {
 	// Read returns events after from with inserted_at before toExclusive,
 	// ordered by (inserted_at, event_id), and capped at limit rows. The returned
 	// cursor identifies the last row; empty results and errors return from unchanged.
+	// Nonempty pages may stop at a byte limit and do not prove window exhaustion.
+	// Only an empty successful result confirms there are no remaining matching events.
 	// Empty stream filters select all events; otherwise only exact matches are returned.
 	Read(ctx context.Context, workspaceID string, from Cursor, toExclusive int64, limit int, config *logdrainv1.Config) ([]sink.Event, Cursor, error)
 }

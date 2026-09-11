@@ -33,8 +33,11 @@ const maxRetryHint = 24 * time.Hour
 const workQueueSize = 1024
 
 const (
-	nonAuditPollInterval = 5 * time.Second
-	nonAuditWatermarkLag = 15 * time.Second
+	batchSizeDefault     = 10_000
+	pollIntervalAudit    = time.Minute
+	pollIntervalNonAudit = 5 * time.Second
+	watermarkLagAudit    = 5 * time.Minute
+	watermarkLagNonAudit = 15 * time.Second
 )
 
 // errLeaseLost means a state mutation was rejected by the lease fence.
@@ -59,12 +62,6 @@ type Config struct {
 	Deliveries deliveryBuffer
 	// Clock provides time for watermarks and telemetry; tests inject a mock. Nil defaults to the real clock.
 	Clock clock.Clock
-	// PollInterval delays caught-up audits. Discovery uses the shorter stream interval.
-	PollInterval time.Duration
-	// WatermarkLag protects audits against late ClickHouse inserts.
-	WatermarkLag time.Duration
-	// BatchSize caps the number of events shipped in one attempt.
-	BatchSize int
 	// PauseThreshold caps consecutive failures before pausing a drain.
 	PauseThreshold int
 	// MaxConcurrentDrains sizes the drain worker pool. Values below 1 are treated as 1.
@@ -152,7 +149,7 @@ func (e *Engine) Run(ctx context.Context) error {
 	if err := e.poll(ctx); err != nil {
 		logger.Error("logdrain poll failed", "error", err)
 	}
-	ticker := e.cfg.Clock.NewTicker(min(e.cfg.PollInterval, nonAuditPollInterval))
+	ticker := e.cfg.Clock.NewTicker(min(pollIntervalAudit, pollIntervalNonAudit))
 	defer ticker.Stop()
 	for {
 		select {
@@ -287,14 +284,18 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			return
 		}
 		if reader == nil {
-			pollInterval = nonAuditPollInterval
-			lag := nonAuditWatermarkLag
+			pollInterval = pollIntervalNonAudit
+			lag := watermarkLagNonAudit
 			switch cfg.GetStream().(type) {
 			case nil, *logdrainv1.Config_AuditLogs:
-				pollInterval = e.cfg.PollInterval
-				lag = e.cfg.WatermarkLag
+				pollInterval = pollIntervalAudit
+				lag = watermarkLagAudit
 			}
-			reader = newBatchReader(nil, item.now.Add(-lag).UnixMilli(), e.cfg.BatchSize)
+			batchSize := int(cfg.GetBatchSize())
+			if batchSize == 0 {
+				batchSize = batchSizeDefault
+			}
+			reader = newBatchReader(nil, item.now.Add(-lag).UnixMilli(), batchSize)
 		}
 		switch cfg.GetStream().(type) {
 		case nil, *logdrainv1.Config_AuditLogs:

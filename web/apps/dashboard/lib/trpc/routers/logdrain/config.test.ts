@@ -13,6 +13,17 @@ const vault = vi.hoisted(() => ({ encryptBulk: vi.fn() }));
 vi.mock("@/lib/vault-client", () => ({ createVaultClient: () => vault }));
 
 describe("log drain protobuf config", () => {
+  it("preserves a per-drain batch size through a config round trip", () => {
+    const config = {
+      kind: "axiom" as const,
+      dataset: "decisions",
+      encryptedToken: "secret",
+      batchSize: 137,
+      stream: { kind: "audit_logs" as const, eventTypes: [] },
+    };
+    expect(decodeLogdrainConfig(encodeLogdrainConfig(config))).toEqual(config);
+  });
+
   it("round trips exact rate-limit filters and hides destination credentials", () => {
     const config = {
       kind: "axiom" as const,

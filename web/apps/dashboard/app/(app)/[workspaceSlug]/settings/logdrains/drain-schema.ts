@@ -124,7 +124,7 @@ const baseSchema = z.object({
   token: z.string(),
   eventTypes: z.array(z.string().trim().min(1).max(256)).max(256),
   sourceMode: z.enum(["all", "some"]),
-  statusMode: z.enum(["all", "errors", "custom"]),
+  statusMode: z.enum(["all", "custom"]),
   eventTypesMode: z.enum(["all", "specific"]),
 });
 
@@ -212,14 +212,10 @@ export const createDrainSchema = drainSchema({ tokenRequired: true });
 /** Editing keeps the stored token when the field is left blank. */
 export const editDrainSchema = drainSchema({ tokenRequired: false });
 
-export const ERROR_STATUS_CLASSES = [4, 5];
-
 export function submittedStatusClasses(values: DrainFormValues): number[] {
   switch (values.statusMode) {
     case "all":
       return [];
-    case "errors":
-      return [...ERROR_STATUS_CLASSES];
     case "custom":
       return values.statusClasses;
     default:
@@ -252,14 +248,7 @@ export function submittedSources(values: DrainFormValues): {
 }
 
 function statusModeFor(statusClasses: number[]): DrainFormValues["statusMode"] {
-  if (statusClasses.length === 0) {
-    return "all";
-  }
-  const sorted = [...statusClasses].sort();
-  return sorted.length === ERROR_STATUS_CLASSES.length &&
-    sorted.every((statusClass, index) => statusClass === ERROR_STATUS_CLASSES[index])
-    ? "errors"
-    : "custom";
+  return statusClasses.length === 0 ? "all" : "custom";
 }
 
 export function submittedEventTypes(values: DrainFormValues): string[] {

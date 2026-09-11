@@ -68,6 +68,13 @@ vi.mock("../../trpc", () => ({
 }));
 
 describe("updateLogdrain input", () => {
+  it("accepts batch-size-only updates and rejects invalid sizes", () => {
+    expect(procedure.safeParse({ id: "ld_test", batchSize: 137 }).success).toBe(true);
+    for (const batchSize of [0, -1, 1.5, 4_294_967_296]) {
+      expect(procedure.safeParse({ id: "ld_test", batchSize }).success).toBe(false);
+    }
+  });
+
   it("accepts only status classes and bounded resource ID lists", () => {
     expect(procedure.safeParse({ id: "ld_test", statusClasses: [2, 3, 4, 5] }).success).toBe(true);
     for (const status of [1, 6, 4.5, 200, 503, "4", "4xx", "400-499"]) {
@@ -136,6 +143,47 @@ describe("updateLogdrain input", () => {
 });
 
 describe("updateLogdrain event filters", () => {
+  it.each([
+    { batchSize: 7 },
+    { destination: { kind: "http" as const, config: { url: "https://changed.example.com" } } },
+    { batchSize: 7, destination: { kind: "http" as const, config: { format: "ndjson" as const } } },
+  ])("updates or preserves batch size without resetting the cursor: %j", async (input) => {
+    database.read.mockResolvedValue([
+      {
+        id: "ld_test",
+        name: "Audit",
+        status: "running",
+        config: encodeLogdrainConfig({
+          kind: "http",
+          batchSize: 137,
+          stream: { kind: "audit_logs", eventTypes: ["key.create"] },
+          url: "https://example.com",
+          format: "json",
+          headers: [],
+        }),
+      },
+    ]);
+    database.write.mockClear();
+    await procedure.mutate({
+      input: { id: "ld_test", ...input },
+      ctx: {
+        workspace: { id: "ws_test" },
+        user: { id: "user_test" },
+        audit: { location: "", userAgent: "test" },
+      },
+    });
+    const saved = database.write.mock.calls[0]?.[0];
+    if (!saved) {
+      throw new Error("No drain update was persisted");
+    }
+    expect(decodeLogdrainConfig(saved.config)).toMatchObject({
+      batchSize: "batchSize" in input ? 7 : 137,
+      stream: { kind: "audit_logs", eventTypes: ["key.create"] },
+    });
+    expect(saved).not.toHaveProperty("committedOffsetInsertedAt");
+    expect(saved).not.toHaveProperty("committedOffsetEventId");
+  });
+
   it.each([{ namespaceIds: [] }, { passed: [] }, { passed: [true] }])(
     "edits rate-limit filters without resetting the cursor: %j",
     async (filters) => {

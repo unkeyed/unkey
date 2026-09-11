@@ -105,7 +105,7 @@ it("submits only runtime filters after switching from a restricted gateway", asy
     key: "Enter",
   });
   fireEvent.click(await screen.findByRole("checkbox", { name: /Analytics/ }));
-  fireEvent.click(screen.getByRole("radio", { name: "Errors only" }));
+  fireEvent.click(screen.getByRole("radio", { name: "Custom" }));
   fireEvent.click(screen.getByRole("combobox", { name: "Stream" }));
   fireEvent.keyDown(await screen.findByRole("option", { name: "Runtime logs" }), { key: "Enter" });
   expect(await screen.findByText("All 3 environments")).toBeTruthy();
@@ -323,7 +323,10 @@ it("keeps runtime severity separate and preserves clearing across stream changes
 it("keeps each stream filter bound to its own values when switching streams", () => {
   render(<Form />);
   expect(screen.getByLabelText("Search event types")).toBeTruthy();
-  expect(screen.getByText("key.create")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Expand key" }));
+  expect(screen.getByRole("checkbox", { name: "key.create" }).getAttribute("aria-checked")).toBe(
+    "true",
+  );
   expect(screen.queryByText("RATE_LIMITED")).toBeNull();
   const docs = screen.getByRole("link", { name: "View event types" });
   expect(docs.getAttribute("href")).toBe("https://www.unkey.com/docs/audit-log/types");
@@ -341,7 +344,10 @@ it("keeps each stream filter bound to its own values when switching streams", ()
 
   fireEvent.click(screen.getByText("Audit"));
   expect(screen.getByLabelText("Search event types")).toBeTruthy();
-  expect(screen.getByText("key.create")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Expand key" }));
+  expect(screen.getByRole("checkbox", { name: "key.create" }).getAttribute("aria-checked")).toBe(
+    "true",
+  );
   expect(screen.queryByText("RATE_LIMITED")).toBeNull();
 
   fireEvent.click(screen.getByText("Verifications"));
@@ -352,6 +358,7 @@ it("keeps each stream filter bound to its own values when switching streams", ()
 it("keeps gateway statuses on all until a mode asks for more", () => {
   render(<Form />);
   fireEvent.click(screen.getByText("Gateway"));
+  expect(screen.queryByRole("radio", { name: "Errors only" })).toBeNull();
   expect(screen.getByRole("radio", { name: "All statuses" }).getAttribute("aria-checked")).toBe(
     "true",
   );
@@ -361,12 +368,12 @@ it("keeps gateway statuses on all until a mode asks for more", () => {
   expect(screen.getByLabelText("Search HTTP statuses")).toBeTruthy();
   expect(screen.getByText("4xx")).toBeTruthy();
 
-  fireEvent.click(screen.getByRole("radio", { name: "Errors only" }));
+  fireEvent.click(screen.getByRole("radio", { name: "All statuses" }));
   expect(screen.queryByLabelText("Search HTTP statuses")).toBeNull();
   fireEvent.click(screen.getByText("Verifications"));
   expect(screen.getByText("RATE_LIMITED")).toBeTruthy();
   fireEvent.click(screen.getByText("Gateway"));
-  expect(screen.getByRole("radio", { name: "Errors only" }).getAttribute("aria-checked")).toBe(
+  expect(screen.getByRole("radio", { name: "All statuses" }).getAttribute("aria-checked")).toBe(
     "true",
   );
 });
@@ -506,6 +513,33 @@ function chooseMode(name: string) {
   fireEvent.click(screen.getByRole("radio", { name }));
 }
 
+it("selects the full audit category during search and submits individual actions", async () => {
+  const onValid = vi.fn();
+  render(<SubmitForm onValid={onValid} eventTypes={["key.delete", "api.update"]} />);
+
+  expect(screen.getByRole("checkbox", { name: "key 5 actions" }).getAttribute("aria-checked")).toBe(
+    "mixed",
+  );
+  fireEvent.change(screen.getByLabelText("Search event types"), {
+    target: { value: "key.create" },
+  });
+  fireEvent.click(screen.getByRole("checkbox", { name: "key 5 actions" }));
+  fireEvent.change(screen.getByLabelText("Search event types"), { target: { value: "" } });
+  fireEvent.click(screen.getByRole("button", { name: "Expand key" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: "key.reroll" }));
+  expect(screen.getByText("key.create")).toBeTruthy();
+  clickCreate();
+
+  await waitFor(() => expect(onValid).toHaveBeenCalledTimes(1));
+  expect(onValid.mock.calls[0]?.[0].eventTypes.sort()).toEqual([
+    "api.update",
+    "key.create",
+    "key.delete",
+    "key.update",
+    "key.verify",
+  ]);
+});
+
 it("blocks submit when specific event types has no chosen type", async () => {
   const onValid = vi.fn();
   render(<SubmitForm onValid={onValid} />);
@@ -556,7 +590,12 @@ it("keeps the chosen event types when switching to all and back", async () => {
   expect(screen.queryByLabelText("Search event types")).toBeNull();
 
   chooseMode("Specific event types");
-  expect(screen.getByText("key.create")).toBeTruthy();
-  expect(screen.getByText("key.delete")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Expand key" }));
+  expect(screen.getByRole("checkbox", { name: "key.create" }).getAttribute("aria-checked")).toBe(
+    "true",
+  );
+  expect(screen.getByRole("checkbox", { name: "key.delete" }).getAttribute("aria-checked")).toBe(
+    "true",
+  );
   await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
 });

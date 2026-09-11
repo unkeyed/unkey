@@ -28,7 +28,7 @@ func TestEngine_NonAuditSourceFailureKeepsRetryAndCursor(t *testing.T) {
 		drain: db.GetLeasedAndDueLogdrainRow{ID: "drain", Config: encoded, Stream: db.LogdrainsStreamAuditLogs, CommittedOffsetInsertedAt: now.Add(-time.Minute).UnixMilli()},
 		clock: serviceClock, committed: make(chan db.RecordLogdrainSuccessParams, 1), failures: make(chan db.RecordLogdrainFailureParams, 1),
 	}
-	eng, err := engine.New(engine.Config{DB: database, LeaseID: "lease", Clock: serviceClock, RuntimeLogs: &scheduleSource{clock: serviceClock, failure: errors.New("source unavailable")}, PollInterval: time.Minute, WatermarkLag: 5 * time.Minute, BatchSize: 100, PauseThreshold: 50})
+	eng, err := engine.New(engine.Config{DB: database, LeaseID: "lease", Clock: serviceClock, RuntimeLogs: &scheduleSource{clock: serviceClock, failure: errors.New("source unavailable")}, PauseThreshold: 50})
 	require.NoError(t, err)
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
@@ -71,7 +71,7 @@ func TestEngine_StreamWatermarkAndCatchup(t *testing.T) {
 				clock:     serviceClock,
 			}
 			reader := &scheduleSource{clock: serviceClock}
-			eng, err := engine.New(engine.Config{DB: database, LeaseID: "lease", Clock: tickerClock, AuditLogs: reader, KeyVerifications: reader, GatewayRequests: reader, RuntimeLogs: reader, Ratelimits: reader, PollInterval: time.Minute, WatermarkLag: 5 * time.Minute, BatchSize: 100})
+			eng, err := engine.New(engine.Config{DB: database, LeaseID: "lease", Clock: tickerClock, AuditLogs: reader, KeyVerifications: reader, GatewayRequests: reader, RuntimeLogs: reader, Ratelimits: reader})
 			require.NoError(t, err)
 			ctx, cancel := context.WithCancel(t.Context())
 			done := make(chan error, 1)

@@ -25,11 +25,12 @@ func TestBatchReader_AdaptsWindows(t *testing.T) {
 		next source.Cursor
 	}{
 		{"empty", source.Cursor{Time: start}, start + minute, nil, source.Cursor{Time: start + minute}},
-		{"partial", source.Cursor{Time: start + minute}, start + 3*minute, []string{"a"}, source.Cursor{Time: start + 3*minute}},
-		{"full", source.Cursor{Time: start + 3*minute}, start + 5*minute, []string{"b", "c"}, source.Cursor{Time: start + 3*minute, EventID: "c"}},
-		{"timestamp tie", source.Cursor{Time: start + 3*minute, EventID: "c"}, start + 4*minute, []string{"d"}, source.Cursor{Time: start + 4*minute}},
-		{"empty after partial", source.Cursor{Time: start + 4*minute}, start + 5*minute, nil, source.Cursor{Time: start + 5*minute}},
-		{"watermark", source.Cursor{Time: start + 5*minute}, start + 6*minute, nil, source.Cursor{Time: start + 6*minute}},
+		{"partial", source.Cursor{Time: start + minute}, start + 3*minute, []string{"a"}, source.Cursor{Time: start + minute, EventID: "a"}},
+		{"full", source.Cursor{Time: start + minute, EventID: "a"}, start + 2*minute, []string{"b", "c"}, source.Cursor{Time: start + minute, EventID: "c"}},
+		{"timestamp tie", source.Cursor{Time: start + minute, EventID: "c"}, start + 2*minute, []string{"d"}, source.Cursor{Time: start + minute, EventID: "d"}},
+		{"empty after partial", source.Cursor{Time: start + minute, EventID: "d"}, start + 2*minute, nil, source.Cursor{Time: start + 2*minute}},
+		{"empty expansion", source.Cursor{Time: start + 2*minute}, start + 4*minute, nil, source.Cursor{Time: start + 4*minute}},
+		{"watermark", source.Cursor{Time: start + 4*minute}, start + 6*minute, nil, source.Cursor{Time: start + 6*minute}},
 	}
 	var src windowSource
 	reader := newBatchReader(&src, start+6*minute, 2)

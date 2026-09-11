@@ -65,22 +65,40 @@ Leave a filter empty to send all values for that filter.
 
 | Stream | Filters |
 | --- | --- |
-| Audit logs | **Event types** selects [audit event names](/audit-log/types). |
+| Audit logs | **Event types** selects all events or specific [audit event names](/audit-log/types) grouped by category. |
 | Key verifications | **Keyspaces** selects one or more workspace keyspaces. **Outcomes** selects verification results, such as `VALID`, `RATE_LIMITED`, or `EXPIRED`. |
-| Gateway HTTP requests | **Projects**, **Apps**, and **Environments** select workspace resources. **HTTP statuses** selects `2xx`, `3xx`, `4xx`, or `5xx`. |
-| Runtime logs | **Projects**, **Apps**, and **Environments** select workspace resources. **Severity** selects exact collected values: `error`, `warn`, `info`, or `debug`. Leave it empty to include all severities, including other values from structured logs. |
+| Gateway HTTP requests | **Sources** selects projects, apps, and environments in a tree. **HTTP statuses** selects `2xx`, `3xx`, `4xx`, or `5xx`. |
+| Runtime logs | **Sources** selects projects, apps, and environments in a tree. **Severity** selects exact collected values: `error`, `warn`, `info`, or `debug`. Leave it empty to include all severities, including other values from structured logs. |
 | Rate limits | **Namespaces** selects workspace namespaces. **Results** selects **Passed** or **Blocked**. |
+
+For audit logs, select **Specific event types** to open the category tree.
+Categories use the event prefix, such as `key`. Expand a category to select
+individual actions, shown with their full event type, such as `key.create`.
+Checking a category selects all its listed actions, even when search hides some
+actions. **All event types** also includes event types added later.
 
 When you select both keyspaces and outcomes, a verification must match both
 filters. **Unspecified** matches an empty verification outcome.
 
-Gateway requests must match every nonempty filter. Multiple selections within
-one filter match any selected value. For example, select a project, its production
-environment, and `5xx` to send server errors from that environment. Empty resource
-filters include current and future resources. Selecting projects limits the app
-choices to those projects. Changing projects clears selected apps outside that
-scope. With no projects selected, all workspace apps are available. Environments
-remain independently selectable; incompatible environment selections match no requests.
+For gateway requests and runtime logs, expand a project in **Sources** to view
+its apps and environments. Check a project or app to select its environments.
+A partially checked parent has some, but not all, environments selected. Search
+changes the visible rows, not the scope of a project or app checkbox.
+
+Selections consisting entirely of whole projects or whole apps include future
+environments in those resources. Mixed selections are saved as specific
+environment IDs and do not automatically include future environments.
+**Select all**, or checking every current environment, removes the source
+restriction and includes future resources. **Clear all** requires you to select
+at least one source before saving.
+
+If saved source filters contain unavailable resources, changing the tree opens
+**Replace source filters?**. Review the listed filters before confirming their
+replacement. **Keep current filters** cancels that tree change. Editing the drain's
+name or destination alone preserves unavailable source filters.
+
+Gateway requests must match the selected sources and HTTP status classes.
+For example, select a production environment and `5xx` to send its server errors.
 Status filters select whole classes only. Exact codes and arbitrary ranges are
 not supported.
 
@@ -241,17 +259,25 @@ is the request's occurrence time, not its delivery time.
 | `request_id` | Request correlation and deduplication ID |
 | `project_id`, `app_id`, `environment_id`, `deployment_id` | Resources that served the request |
 | `region` | Gateway region |
-| `method`, `host`, `path` | HTTP method, host, and path without the query string |
-| `response_status` | HTTP response status |
-| `total_latency`, `instance_latency`, `gateway_latency` | End-to-end, instance, and gateway durations in milliseconds |
-| `request_headers`, `response_headers` | Captured headers as arrays of `Name: value` strings |
-| `request_body`, `response_body` | Captured bodies as strings |
-| `query_string`, `query_params` | Captured query string and parameter values; each parameter maps to an array |
-| `user_agent`, `ip_address` | Captured user agent and client IP address |
+| `request.method`, `request.host`, `request.path` | HTTP method, host, and path without the query string |
+| `response.status` | HTTP response status |
+| `latency.total`, `latency.instance`, `latency.gateway` | End-to-end, instance, and gateway durations in milliseconds |
+| `request.headers`, `response.headers` | Captured headers as arrays of `Name: value` strings |
+| `request.body`, `response.body` | Captured bodies as strings |
+| `request.query_string`, `request.query_params` | Captured query string and parameter values; each parameter maps to an array |
+| `request.user_agent`, `request.ip_address` | Captured user agent and client IP address |
 
 Captured details follow your logging policy. The drain forwards stored values,
 including any redaction already applied when the request was logged. Fields
 that were not captured remain empty. Internal routing addresses are not exported.
+
+Gateway batches use a conservative 16 MiB serialized-size budget in addition to
+the drain's event-count limit. A batch can contain fewer events when it reaches
+that budget. Unkey continues from the last delivered event without truncating
+captured fields. If one event, or a group with an identical cursor, cannot fit,
+delivery stops before it. The cursor stays unchanged, and the drain follows its
+retry and automatic-pause policy. Contact support to investigate an oversized
+event before the logs expire.
 
 HTTP JSON sends an array of records with `event`, `stream: "gateway_requests"`,
 and `timestamp`. NDJSON sends one such record per line. Axiom uses the same

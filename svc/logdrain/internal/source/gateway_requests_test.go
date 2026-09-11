@@ -3,16 +3,148 @@ package source_test
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
+	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/stretchr/testify/require"
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
+	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
+
+func TestGatewayRequestsRead_ByteBoundedPrefix(t *testing.T) {
+	cfg := containers.ClickHouse(t)
+	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	workspace := uid.New("workspace")
+	now := time.Now().UnixMilli()
+	body := strings.Repeat("<", 1<<20)
+	for _, row := range []struct{ id, request, response string }{
+		{"a", body, body}, {"b", body, ""}, {"c", "tail", ""},
+	} {
+		require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO frontline_requests_raw_v1
+			(workspace_id, request_id, inserted_at, time, request_body, response_body)
+			VALUES (?, ?, ?, ?, ?, ?)`, workspace, row.id, now, now, row.request, row.response))
+	}
+	reader := source.NewGatewayRequests(client)
+	queryID := uid.New("query")
+	ctx := ch.Context(t.Context(), ch.WithQueryID(queryID), ch.WithSettings(ch.Settings{"log_queries": 1}))
+	events, next, err := reader.Read(ctx, workspace, source.Cursor{Time: now}, now+1, 10_000, nil)
+	require.NoError(t, err)
+	require.Len(t, events, 1)
+	require.Equal(t, source.Cursor{Time: now, EventID: "a"}, next)
+	payload, ok := events[0].Payload.(sink.GatewayRequestPayload)
+	require.True(t, ok)
+	require.Equal(t, body, payload.Request.Body)
+	require.Equal(t, body, payload.Response.Body)
+	encoded, err := json.Marshal(events)
+	require.NoError(t, err)
+	require.Less(t, len(encoded), 16<<20)
+
+	// Server result counters distinguish a bounded fetch from truncation after Select.
+	require.NoError(t, client.Conn().Exec(t.Context(), "SYSTEM FLUSH LOGS"))
+	var resultRows, resultBytes uint64
+	require.NoError(t, client.Conn().QueryRow(t.Context(), `SELECT result_rows, result_bytes
+		FROM system.query_log WHERE query_id = ? AND type = 'QueryFinish'`, queryID).Scan(&resultRows, &resultBytes))
+	require.Equal(t, uint64(1), resultRows)
+	require.Less(t, resultBytes, uint64(16<<20))
+
+	events, next, err = reader.Read(t.Context(), workspace, next, now+1, 10_000, nil)
+	require.NoError(t, err)
+	require.Len(t, events, 2)
+	require.Equal(t, "b", events[0].EventID)
+	require.Equal(t, "c", events[1].EventID)
+	require.Equal(t, source.Cursor{Time: now, EventID: "c"}, next)
+	events, final, err := reader.Read(t.Context(), workspace, next, now+1, 10_000, nil)
+	require.NoError(t, err)
+	require.Empty(t, events)
+	require.Equal(t, next, final)
+}
+
+func TestGatewayRequestsRead_OversizedEventBlocksCursor(t *testing.T) {
+	cfg := containers.ClickHouse(t)
+	client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	workspace := uid.New("workspace")
+	now := time.Now().UnixMilli()
+	for _, row := range []struct {
+		id    string
+		bytes int
+	}{{"a", 5}, {"b", 3 << 20}, {"c", 7}} {
+		require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO frontline_requests_raw_v1
+			(workspace_id, request_id, inserted_at, time, query_params)
+			VALUES (?, ?, ?, ?, map('captured', [?]))`, workspace, row.id, now, now, strings.Repeat("x", row.bytes)))
+	}
+	reader := source.NewGatewayRequests(client)
+	events, next, err := reader.Read(t.Context(), workspace, source.Cursor{Time: now}, now+1, 10_000, nil)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(events))
+	require.Equal(t, source.Cursor{Time: now, EventID: "a"}, next)
+	for range 2 {
+		queryID := uid.New("query")
+		ctx := ch.Context(t.Context(), ch.WithQueryID(queryID), ch.WithSettings(ch.Settings{"log_queries": 1}))
+		events, cursor, err := reader.Read(ctx, workspace, next, now+1, 10_000, nil)
+		require.ErrorContains(t, err, "gateway cursor group exceeds batch limits")
+		require.Nil(t, events)
+		require.Equal(t, next, cursor)
+		require.NoError(t, client.Conn().Exec(t.Context(), "SYSTEM FLUSH LOGS"))
+		var resultBytes uint64
+		require.NoError(t, client.Conn().QueryRow(t.Context(), `SELECT sum(result_bytes)
+			FROM system.query_log WHERE query_id = ? AND type = 'QueryFinish'`, queryID).Scan(&resultBytes))
+		require.Less(t, resultBytes, uint64(64<<10))
+	}
+}
+
+func TestGatewayRequestsRead_KeepsCursorGroupsTogether(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		limit int
+		bytes int
+	}{
+		{"row boundary", 2, 1},
+		{"byte boundary", 10_000, 1 << 20},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := containers.ClickHouse(t)
+			client, err := clickhouse.New(clickhouse.Config{URL: cfg.HTTPDSN})
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, client.Close()) })
+			workspace := uid.New("workspace")
+			now := time.Now().UnixMilli()
+			for i, id := range []string{"a", "b", "b", "c"} {
+				require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO frontline_requests_raw_v1
+					(workspace_id, request_id, inserted_at, time, request_body, path)
+					VALUES (?, ?, ?, ?, ?, ?)`, workspace, id, now, now, strings.Repeat("x", tc.bytes), strconv.Itoa(i)))
+			}
+			reader := source.NewGatewayRequests(client)
+			events, next, err := reader.Read(t.Context(), workspace, source.Cursor{Time: now}, now+1, tc.limit, nil)
+			require.NoError(t, err)
+			require.Equal(t, 1, len(events))
+			require.Equal(t, source.Cursor{Time: now, EventID: "a"}, next)
+			events, next, err = reader.Read(t.Context(), workspace, next, now+1, tc.limit, nil)
+			require.NoError(t, err)
+			require.Equal(t, 2, len(events))
+			require.Equal(t, "b", events[0].EventID)
+			require.Equal(t, "b", events[1].EventID)
+			require.Equal(t, source.Cursor{Time: now, EventID: "b"}, next)
+			events, _, err = reader.Read(t.Context(), workspace, next, now+1, tc.limit, nil)
+			require.NoError(t, err)
+			require.Equal(t, 1, len(events))
+			require.Equal(t, "c", events[0].EventID)
+			events, unchanged, err := reader.Read(t.Context(), workspace, source.Cursor{Time: now, EventID: "a"}, now+1, 1, nil)
+			require.ErrorContains(t, err, "gateway cursor group exceeds batch limits")
+			require.Nil(t, events)
+			require.Equal(t, source.Cursor{Time: now, EventID: "a"}, unchanged)
+		})
+	}
+}
 
 func TestGatewayRequestsRead_Payload(t *testing.T) {
 	cfg := containers.ClickHouse(t)
@@ -39,10 +171,12 @@ func TestGatewayRequestsRead_Payload(t *testing.T) {
 	require.Equal(t, "req_1", cursor.EventID)
 	encoded, err := json.Marshal(events[0].Payload)
 	require.NoError(t, err)
-	require.JSONEq(t, `{"request_id":"req_1","project_id":"project_1","app_id":"app_1","environment_id":"env_1","deployment_id":"deployment_1","region":"eu-west-1","method":"POST","host":"api.example.com","path":"/orders","response_status":201,"total_latency":53,"instance_latency":41,"gateway_latency":12,
-		"request_headers":["Authorization: [REDACTED]", "X-Custom: value"], "request_body":"{\"input\":\"[REDACTED]\"}",
-		"response_headers":["Content-Type: application/json"], "response_body":"{\"ok\":true}",
-		"query_string":"tag=a&tag=b", "query_params":{"tag":["a","b"]}, "ip_address":"192.0.2.1", "user_agent":"test-agent"}`, string(encoded))
+	require.JSONEq(t, `{"request_id":"req_1","project_id":"project_1","app_id":"app_1","environment_id":"env_1","deployment_id":"deployment_1","region":"eu-west-1",
+		"request":{"method":"POST","host":"api.example.com","path":"/orders",
+		"headers":["Authorization: [REDACTED]", "X-Custom: value"], "body":"{\"input\":\"[REDACTED]\"}",
+		"query_string":"tag=a&tag=b", "query_params":{"tag":["a","b"]}, "ip_address":"192.0.2.1", "user_agent":"test-agent"},
+		"response":{"status":201,"headers":["Content-Type: application/json"],"body":"{\"ok\":true}"},
+		"latency":{"total":53,"instance":41,"gateway":12}}`, string(encoded))
 }
 
 func TestGatewayRequestsRead_FilteredCursorBounds(t *testing.T) {

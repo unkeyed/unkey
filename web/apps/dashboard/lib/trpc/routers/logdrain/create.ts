@@ -52,6 +52,7 @@ export const createLogdrain = workspaceProcedure
     z
       .object({
         name: z.string().trim().min(1).max(128),
+        batchSize: z.number().int().min(1).max(4_294_967_295).optional(),
         stream: streamSchema.default("audit_logs"),
         namespaceIds: resourceIdsSchema.optional(),
         passed: passedSchema.optional(),
@@ -132,6 +133,7 @@ export const createLogdrain = workspaceProcedure
           config = encodeLogdrainConfig({
             kind: input.kind,
             stream,
+            batchSize: input.batchSize,
             url: input.config.url,
             format: input.config.format,
             headers: await encryptHttpHeaders(ctx.workspace.id, input.config.headers ?? {}),
@@ -141,6 +143,7 @@ export const createLogdrain = workspaceProcedure
           config = encodeLogdrainConfig({
             kind: input.kind,
             stream,
+            batchSize: input.batchSize,
             dataset: input.config.dataset,
             encryptedToken: (
               await vault.encrypt({

@@ -20,14 +20,15 @@ message Config {
     RuntimeLogStreamConfig runtime_logs = 6;
     RatelimitStreamConfig ratelimits = 7;
   }
+
+  // Zero uses the default of 10,000 events per batch.
+  uint32 batch_size = 8;
 }
 
 // RatelimitStreamConfig selects stored API decisions using exact matches.
 message RatelimitStreamConfig {
   // Each empty list selects all values. Nonempty dimensions are combined with AND.
   repeated string namespace_ids = 1;
-  reserved 2;
-  reserved "identifiers";
   repeated bool passed = 3;
 }
 

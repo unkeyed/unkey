@@ -541,7 +541,6 @@ function SourceRow({
 
 const STATUS_MODES: { id: DrainFormValues["statusMode"]; title: string }[] = [
   { id: "all", title: "All statuses" },
-  { id: "errors", title: "Errors only" },
   { id: "custom", title: "Custom" },
 ];
 
@@ -561,9 +560,8 @@ function GatewayStatusesField() {
   return (
     <fieldset className="flex flex-col gap-1.5">
       <legend className="text-[13px] text-gray-11">HTTP statuses</legend>
-      <span className="text-xs text-gray-9">Errors only sends 4xx and 5xx responses.</span>
 
-      <div role="radiogroup" aria-label="Status scope" className="mt-1.5 grid grid-cols-3 gap-2">
+      <div role="radiogroup" aria-label="Status scope" className="mt-1.5 grid grid-cols-2 gap-2">
         {STATUS_MODES.map((option) => (
           <ModeCard
             key={option.id}
@@ -647,6 +645,38 @@ function AuditEventTypesField() {
   const eventTypes = useWatch({ control, name: "eventTypes" });
   const error = formState.errors.eventTypes?.message;
   const statusId = useId();
+  const [query, setQuery] = useState("");
+  const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
+  const categories = new Map<string, string[]>();
+  for (const eventType of new Set([...unkeyAuditLogEvents.options, ...eventTypes])) {
+    const separator = eventType.indexOf(".");
+    const category = separator === -1 ? eventType : eventType.slice(0, separator);
+    const actions = categories.get(category) ?? [];
+    actions.push(eventType);
+    categories.set(category, actions);
+  }
+  const selected = new Set(eventTypes);
+  const term = query.trim().toLowerCase();
+  const visibleCategories = [...categories]
+    .map(([category, actions]) => ({
+      category,
+      actions,
+      visibleActions: actions.filter((action) => action.toLowerCase().includes(term)),
+    }))
+    .filter(({ visibleActions }) => visibleActions.length > 0);
+  const toggle = (actions: string[]) => {
+    const next = new Set(selected);
+    if (actions.every((action) => next.has(action))) {
+      for (const action of actions) {
+        next.delete(action);
+      }
+    } else {
+      for (const action of actions) {
+        next.add(action);
+      }
+    }
+    setValue("eventTypes", [...next], { shouldDirty: true, shouldValidate: true });
+  };
   const sendingSummary =
     eventTypes.length > 0
       ? `Sending ${eventTypes.length} of ${unkeyAuditLogEvents.options.length} event types.`
@@ -691,21 +721,58 @@ function AuditEventTypesField() {
 
       {mode === "specific" ? (
         <div className="mt-1.5 flex flex-col gap-1.5 duration-200 ease-out animate-in fade-in motion-reduce:animate-none">
-          <Controller
-            control={control}
-            name="eventTypes"
-            render={({ field }) => (
-              <ChoiceMultibox
-                {...field}
-                options={unkeyAuditLogEvents.options}
-                searchLabel="Search event types"
-                placeholder="Choose event types"
-                emptyMessage="No event types found."
-                invalid={Boolean(error)}
-                describedBy={status ? statusId : undefined}
+          <div className="overflow-hidden rounded-lg border border-gray-5">
+            <div className="flex items-center gap-2 border-b border-gray-4 px-2.5 py-2">
+              <Magnifier iconSize="sm-regular" className="shrink-0 text-gray-9" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search categories and actions"
+                aria-label="Search event types"
+                aria-invalid={Boolean(error)}
+                aria-describedby={status ? statusId : undefined}
+                className="w-full bg-transparent text-[13px] text-accent-12 placeholder:text-gray-9 focus:outline-hidden"
               />
-            )}
-          />
+            </div>
+            <div className="max-h-[264px] overflow-y-auto py-1">
+              {visibleCategories.length === 0 ? (
+                <p className="px-3 py-2 text-xs text-gray-9">No event types found.</p>
+              ) : null}
+              {visibleCategories.map(({ category, actions, visibleActions }) => {
+                const expanded = expandedCategories.includes(category) || term !== "";
+                return (
+                  <div key={category}>
+                    <SourceRow
+                      depth={0}
+                      checked={checkedState(actions, selected)}
+                      label={category}
+                      meta={countLabel(actions.length, "action")}
+                      expanded={expanded}
+                      onExpand={() =>
+                        setExpandedCategories(
+                          expandedCategories.includes(category)
+                            ? expandedCategories.filter((value) => value !== category)
+                            : [...expandedCategories, category],
+                        )
+                      }
+                      onToggle={() => toggle(actions)}
+                    />
+                    {expanded
+                      ? visibleActions.map((action) => (
+                          <SourceRow
+                            key={action}
+                            depth={1}
+                            checked={selected.has(action) ? "on" : "off"}
+                            label={action}
+                            onToggle={() => toggle([action])}
+                          />
+                        ))
+                      : null}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
           {status ? (
             <span
               id={statusId}

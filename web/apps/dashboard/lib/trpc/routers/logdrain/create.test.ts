@@ -74,6 +74,7 @@ describe("create gateway log drain", () => {
     await mutation.run({
       name: "Runtime",
       stream: "runtime_logs",
+      batchSize: 137,
       severities: ["error", "warn"],
       projectIds: ["project"],
       appIds: ["app"],
@@ -87,6 +88,7 @@ describe("create gateway log drain", () => {
       throw new Error("No drain was persisted");
     }
     expect(row.stream).toBe("runtime_logs");
+    expect(decodeLogdrainConfig(row.config).batchSize).toBe(137);
     expect(row.committedOffsetInsertedAt).toBe(row.createdAt);
     expect(decodeLogdrainConfig(row.config).stream).toEqual({
       kind: "runtime_logs",

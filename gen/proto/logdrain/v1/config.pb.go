@@ -144,7 +144,9 @@ type Config struct {
 	//	*Config_GatewayRequests
 	//	*Config_RuntimeLogs
 	//	*Config_Ratelimits
-	Stream        isConfig_Stream `protobuf_oneof:"stream"`
+	Stream isConfig_Stream `protobuf_oneof:"stream"`
+	// Zero uses the default of 10,000 events per batch.
+	BatchSize     uint32 `protobuf:"varint,8,opt,name=batch_size,json=batchSize,proto3" json:"batch_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -254,6 +256,13 @@ func (x *Config) GetRatelimits() *RatelimitStreamConfig {
 		}
 	}
 	return nil
+}
+
+func (x *Config) GetBatchSize() uint32 {
+	if x != nil {
+		return x.BatchSize
+	}
+	return 0
 }
 
 type isConfig_Destination interface {
@@ -773,7 +782,7 @@ var File_logdrain_v1_config_proto protoreflect.FileDescriptor
 
 const file_logdrain_v1_config_proto_rawDesc = "" +
 	"\n" +
-	"\x18logdrain/v1/config.proto\x12\vlogdrain.v1\"\x85\x04\n" +
+	"\x18logdrain/v1/config.proto\x12\vlogdrain.v1\"\xa4\x04\n" +
 	"\x06Config\x12-\n" +
 	"\x04http\x18\x01 \x01(\v2\x17.logdrain.v1.HttpConfigH\x00R\x04http\x120\n" +
 	"\x05axiom\x18\x02 \x01(\v2\x18.logdrain.v1.AxiomConfigH\x00R\x05axiom\x12B\n" +
@@ -784,12 +793,14 @@ const file_logdrain_v1_config_proto_rawDesc = "" +
 	"\fruntime_logs\x18\x06 \x01(\v2#.logdrain.v1.RuntimeLogStreamConfigH\x01R\vruntimeLogs\x12D\n" +
 	"\n" +
 	"ratelimits\x18\a \x01(\v2\".logdrain.v1.RatelimitStreamConfigH\x01R\n" +
-	"ratelimitsB\r\n" +
+	"ratelimits\x12\x1d\n" +
+	"\n" +
+	"batch_size\x18\b \x01(\rR\tbatchSizeB\r\n" +
 	"\vdestinationB\b\n" +
-	"\x06stream\"g\n" +
+	"\x06stream\"T\n" +
 	"\x15RatelimitStreamConfig\x12#\n" +
 	"\rnamespace_ids\x18\x01 \x03(\tR\fnamespaceIds\x12\x16\n" +
-	"\x06passed\x18\x03 \x03(\bR\x06passedJ\x04\b\x02\x10\x03R\videntifiers\"\x9b\x01\n" +
+	"\x06passed\x18\x03 \x03(\bR\x06passed\"\x9b\x01\n" +
 	"\x16RuntimeLogStreamConfig\x12\x1e\n" +
 	"\n" +
 	"severities\x18\x01 \x03(\tR\n" +
