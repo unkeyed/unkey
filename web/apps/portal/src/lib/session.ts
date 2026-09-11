@@ -1,3 +1,4 @@
+import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server";
 import { sha256 } from "@unkey/hash";
@@ -117,16 +118,18 @@ export const exchangeCode = createServerFn({ method: "POST" })
     return { success: true };
   });
 
+export type SessionWithConfig = {
+  session: SessionData;
+  config: Portal | null;
+  logsRetentionDays: number;
+};
+
 /**
  * Load the session + portal config from the database. Returns both in one
  * server function call so the route only needs a single round-trip.
  */
 export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
-  async (): Promise<{
-    session: SessionData;
-    config: Portal | null;
-    logsRetentionDays: number;
-  } | null> => {
+  async (): Promise<SessionWithConfig | null> => {
     const accessToken = getCookie(SESSION_COOKIE_NAME);
     if (!accessToken) {
       return null;
@@ -214,9 +217,25 @@ export const getSessionWithConfig = createServerFn({ method: "GET" }).handler(
   },
 );
 
+export const sessionQueryKey = ["portal", "session"] as const;
+
 /**
- * Clear the portal session cookie.
+ * The portal layout's `beforeLoad` runs again on every navigation, a filter
+ * click included, so the session row is read through the router's query client
+ * and every consumer shares that one entry. On the server the client is built
+ * per request, so nothing is held across requests.
  */
-export const clearSession = createServerFn({ method: "POST" }).handler(async () => {
+export const sessionQueryOptions = queryOptions({
+  queryKey: sessionQueryKey,
+  queryFn: () => getSessionWithConfig(),
+  staleTime: 1000 * 60,
+  refetchOnWindowFocus: false,
+});
+
+const deleteSessionCookie = createServerFn({ method: "POST" }).handler(async () => {
   deleteCookie(SESSION_COOKIE_NAME);
 });
+
+export async function clearSession(): Promise<void> {
+  await deleteSessionCookie();
+}

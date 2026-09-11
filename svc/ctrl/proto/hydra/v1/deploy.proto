@@ -11,13 +11,12 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 // durable Restate workflows. Each RPC is idempotent and can safely resume from
 // any step after a crash.
 //
-// Deploy, Rollback, and Promote are keyed by {app_id}:{environment_id} so
-// that lifecycle operations within a single environment are serialized
-// (preventing e.g. a rollback from racing with an in-flight deploy) while
-// different environments of the same app — e.g. production vs preview — can
-// deploy in parallel. This means a production push never waits behind a
-// preview build. Workspace-wide concurrency is separately enforced by
-// BuildSlotService.
+// Every RPC is keyed by the deployment id, so operations on one deployment
+// serialize behind each other while separate deployments of the same app run
+// in parallel. The contended pointer, apps.current_deployment_id, is
+// serialized instead inside RoutingService.SwapLiveDeployment, which is keyed
+// by environment id. Workspace-wide build concurrency is separately enforced
+// by BuildSlotService.
 //
 // Deploy handles the full pipeline from building container images through
 // provisioning containers and configuring domain routing. Rollback and Promote
@@ -32,20 +31,22 @@ service DeployService {
 
   // Deploy executes the full deployment workflow: build (if git source), provision
   // containers across regions, wait for health, configure domain routing, and
-  // update the project's live deployment pointer for production environments.
+  // update the app's live deployment pointer for production environments.
   // Sets deployment status to failed on any error.
   rpc Deploy(DeployRequest) returns (DeployResponse) {}
 
   // Rollback switches sticky frontline routes (environment and live) from the
-  // current live deployment back to a previous one. Marks the project as rolled
+  // current live deployment back to a previous one. Marks the app as rolled
   // back so future deploys don't automatically reclaim live routes.
-  // Source must be the current live deployment; both must share the same project
+  // Source must be the current live deployment; both must share the same app
   // and environment.
   rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
 
   // Promote reassigns sticky frontline routes to a target deployment and clears
   // the rolled-back flag, restoring normal deployment flow.
-  // Target must be in ready status and not already the live deployment.
+  // Target must be in ready status. A normal promotion also requires that it is
+  // not already the live deployment; when the app is rolled back and the target
+  // is already live, Promote only clears the flag and leaves routes alone.
   rpc Promote(PromoteRequest) returns (PromoteResponse) {}
 
   // StopDeployment schedules desired_state=stopped for a running deployment.
@@ -57,7 +58,8 @@ service DeployService {
 
   // NotifyInstancesReady is called by the control plane when enough instances
   // have become healthy across the required regions. It resolves the awakeable
-  // stored by a suspended deploy or wake workflow so it can continue.
+  // stored by a suspended Deploy so it can continue. WakeDeployment does not use
+  // it: that handler polls instance health itself.
   rpc NotifyInstancesReady(NotifyInstancesReadyRequest) returns (NotifyInstancesReadyResponse) {
     option (dev.restate.sdk.go.handler_type) = SHARED;
   }
@@ -111,8 +113,8 @@ message GitSource {
   // Dockerfile is configured and the image is built with Railpack instead.
   string dockerfile_path = 5;
 
-  // Branch name used to resolve commit_sha when it is empty. The deploy worker
-  // calls GitHub to look up the HEAD commit of this branch.
+  // Branch the commit was resolved from, carried for context only. The build
+  // reads commit_sha, which Create always resolves before sending this request.
   string branch = 6;
 
   // PR number for fork PRs. When set, BuildKit fetches refs/pull/<number>/head

@@ -14,27 +14,11 @@ import (
 
 const listRepoConnectionDeployContexts = `-- name: ListRepoConnectionDeployContexts :many
 SELECT
-    gc.installation_id AS connection_installation_id,
-    gc.repository_full_name AS connection_repository_full_name,
     p.id AS project_id,
-    p.workspace_id AS project_workspace_id,
     e.id AS environment_id,
-    e.slug AS environment_slug,
     a.id AS app_id,
     abs.auto_deploy AS build_settings_auto_deploy,
-    abs.watch_paths AS build_settings_watch_paths,
-    abs.docker_context AS build_settings_docker_context,
-    abs.dockerfile AS build_settings_dockerfile,
-    abs.build_command AS build_settings_build_command,
-    ars.port AS runtime_settings_port,
-    ars.cpu_millicores AS runtime_settings_cpu_millicores,
-    ars.memory_mib AS runtime_settings_memory_mib,
-    ars.storage_mib AS runtime_settings_storage_mib,
-    ars.command AS runtime_settings_command,
-    ars.healthcheck AS runtime_settings_healthcheck,
-    ars.shutdown_signal AS runtime_settings_shutdown_signal,
-    ars.upstream_protocol AS runtime_settings_upstream_protocol,
-    ars.sentinel_config AS runtime_settings_sentinel_config
+    abs.watch_paths AS build_settings_watch_paths
 FROM github_repo_connections gc
 INNER JOIN apps a ON a.id = gc.app_id
 INNER JOIN projects p ON p.id = gc.project_id
@@ -59,53 +43,21 @@ type ListRepoConnectionDeployContextsParams struct {
 }
 
 type ListRepoConnectionDeployContextsRow struct {
-	ConnectionInstallationID        int64                              `db:"connection_installation_id"`
-	ConnectionRepositoryFullName    string                             `db:"connection_repository_full_name"`
-	ProjectID                       string                             `db:"project_id"`
-	ProjectWorkspaceID              string                             `db:"project_workspace_id"`
-	EnvironmentID                   string                             `db:"environment_id"`
-	EnvironmentSlug                 string                             `db:"environment_slug"`
-	AppID                           string                             `db:"app_id"`
-	BuildSettingsAutoDeploy         bool                               `db:"build_settings_auto_deploy"`
-	BuildSettingsWatchPaths         mysqltype.StringSlice              `db:"build_settings_watch_paths"`
-	BuildSettingsDockerContext      string                             `db:"build_settings_docker_context"`
-	BuildSettingsDockerfile         sql.NullString                     `db:"build_settings_dockerfile"`
-	BuildSettingsBuildCommand       sql.NullString                     `db:"build_settings_build_command"`
-	RuntimeSettingsPort             int32                              `db:"runtime_settings_port"`
-	RuntimeSettingsCpuMillicores    int32                              `db:"runtime_settings_cpu_millicores"`
-	RuntimeSettingsMemoryMib        int32                              `db:"runtime_settings_memory_mib"`
-	RuntimeSettingsStorageMib       uint32                             `db:"runtime_settings_storage_mib"`
-	RuntimeSettingsCommand          mysqltype.StringSlice              `db:"runtime_settings_command"`
-	RuntimeSettingsHealthcheck      mysqltype.NullHealthcheck          `db:"runtime_settings_healthcheck"`
-	RuntimeSettingsShutdownSignal   AppRuntimeSettingsShutdownSignal   `db:"runtime_settings_shutdown_signal"`
-	RuntimeSettingsUpstreamProtocol AppRuntimeSettingsUpstreamProtocol `db:"runtime_settings_upstream_protocol"`
-	RuntimeSettingsSentinelConfig   []byte                             `db:"runtime_settings_sentinel_config"`
+	ProjectID               string                `db:"project_id"`
+	EnvironmentID           string                `db:"environment_id"`
+	AppID                   string                `db:"app_id"`
+	BuildSettingsAutoDeploy bool                  `db:"build_settings_auto_deploy"`
+	BuildSettingsWatchPaths mysqltype.StringSlice `db:"build_settings_watch_paths"`
 }
 
 // ListRepoConnectionDeployContexts
 //
 //	SELECT
-//	    gc.installation_id AS connection_installation_id,
-//	    gc.repository_full_name AS connection_repository_full_name,
 //	    p.id AS project_id,
-//	    p.workspace_id AS project_workspace_id,
 //	    e.id AS environment_id,
-//	    e.slug AS environment_slug,
 //	    a.id AS app_id,
 //	    abs.auto_deploy AS build_settings_auto_deploy,
-//	    abs.watch_paths AS build_settings_watch_paths,
-//	    abs.docker_context AS build_settings_docker_context,
-//	    abs.dockerfile AS build_settings_dockerfile,
-//	    abs.build_command AS build_settings_build_command,
-//	    ars.port AS runtime_settings_port,
-//	    ars.cpu_millicores AS runtime_settings_cpu_millicores,
-//	    ars.memory_mib AS runtime_settings_memory_mib,
-//	    ars.storage_mib AS runtime_settings_storage_mib,
-//	    ars.command AS runtime_settings_command,
-//	    ars.healthcheck AS runtime_settings_healthcheck,
-//	    ars.shutdown_signal AS runtime_settings_shutdown_signal,
-//	    ars.upstream_protocol AS runtime_settings_upstream_protocol,
-//	    ars.sentinel_config AS runtime_settings_sentinel_config
+//	    abs.watch_paths AS build_settings_watch_paths
 //	FROM github_repo_connections gc
 //	INNER JOIN apps a ON a.id = gc.app_id
 //	INNER JOIN projects p ON p.id = gc.project_id
@@ -135,27 +87,11 @@ func (q *Queries) ListRepoConnectionDeployContexts(ctx context.Context, arg List
 	for rows.Next() {
 		var i ListRepoConnectionDeployContextsRow
 		if err := rows.Scan(
-			&i.ConnectionInstallationID,
-			&i.ConnectionRepositoryFullName,
 			&i.ProjectID,
-			&i.ProjectWorkspaceID,
 			&i.EnvironmentID,
-			&i.EnvironmentSlug,
 			&i.AppID,
 			&i.BuildSettingsAutoDeploy,
 			&i.BuildSettingsWatchPaths,
-			&i.BuildSettingsDockerContext,
-			&i.BuildSettingsDockerfile,
-			&i.BuildSettingsBuildCommand,
-			&i.RuntimeSettingsPort,
-			&i.RuntimeSettingsCpuMillicores,
-			&i.RuntimeSettingsMemoryMib,
-			&i.RuntimeSettingsStorageMib,
-			&i.RuntimeSettingsCommand,
-			&i.RuntimeSettingsHealthcheck,
-			&i.RuntimeSettingsShutdownSignal,
-			&i.RuntimeSettingsUpstreamProtocol,
-			&i.RuntimeSettingsSentinelConfig,
 		); err != nil {
 			return nil, err
 		}

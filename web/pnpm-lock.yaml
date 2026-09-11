@@ -337,9 +337,6 @@ importers:
       '@base-ui/react':
         specifier: 1.6.0
         version: 1.6.0(@date-fns/tz@1.4.1)(@types/react@19.2.4)(date-fns@4.1.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      '@hookform/resolvers':
-        specifier: 5.2.2
-        version: 5.2.2(react-hook-form@7.55.0(react@19.2.4))
       '@tanstack/react-query':
         specifier: 5.87.1
         version: 5.87.1(react@19.2.4)
@@ -349,9 +346,6 @@ importers:
       '@tanstack/react-start':
         specifier: 1.168.6
         version: 1.168.6(crossws@0.4.10(srvx@0.11.15))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vite@6.3.5(@types/node@22.14.0)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.47.1)(tsx@4.19.1)(yaml@2.9.0))(webpack@5.107.0(esbuild@0.28.1)(lightningcss@1.33.0))
-      '@tanstack/react-table':
-        specifier: 8.21.3
-        version: 8.21.3(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@unkey/api':
         specifier: workspace:*
         version: link:../../internal/api
@@ -382,9 +376,6 @@ importers:
       react:
         specifier: 19.2.4
         version: 19.2.4
-      react-day-picker:
-        specifier: 9.13.0
-        version: 9.13.0(react@19.2.4)
       react-dom:
         specifier: 19.2.4
         version: 19.2.4(react@19.2.4)
@@ -14078,12 +14069,6 @@ snapshots:
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@tanstack/react-table@8.21.3(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
-    dependencies:
-      '@tanstack/table-core': 8.21.3
-      react: 19.2.4
-      react-dom: 19.2.4(react@19.2.4)
-
   '@tanstack/react-virtual@3.10.9(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
       '@tanstack/virtual-core': 3.10.9
@@ -19022,13 +19007,6 @@ snapshots:
       date-fns: 4.1.0
       date-fns-jalali: 4.1.0-0
       react: 19.2.3
-
-  react-day-picker@9.13.0(react@19.2.4):
-    dependencies:
-      '@date-fns/tz': 1.4.1
-      date-fns: 4.1.0
-      date-fns-jalali: 4.1.0-0
-      react: 19.2.4
 
   react-dom@18.3.1(react@18.3.1):
     dependencies:
