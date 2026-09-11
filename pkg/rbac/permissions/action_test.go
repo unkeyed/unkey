@@ -24,6 +24,8 @@ func TestActions_BuildPlatformPermissions(t *testing.T) {
 	domain := environment.Domain("dom_123")
 	variable := environment.Variable("var_123")
 	gateway := environment.Gateway()
+	portal := project.Portal("portal_123")
+	portalSession := portal.Session("sess_123")
 
 	requirePermission(t, githubApp, permissions.Read, "unkey:v1:ws_123:github/apps/gh_123#read")
 	requirePermission(t, githubApp, permissions.Write, "unkey:v1:ws_123:github/apps/gh_123#write")
@@ -51,6 +53,12 @@ func TestActions_BuildPlatformPermissions(t *testing.T) {
 	requirePermission(t, gateway.Policy("pol_123"), permissions.Read, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway/policies/pol_123#read")
 	requirePermission(t, gateway.Policy("pol_123"), permissions.Write, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway/policies/pol_123#write")
 	requirePermission(t, gateway.Policy("pol_123"), permissions.Delete, "unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway/policies/pol_123#delete")
+	requirePermission(t, portal, permissions.Read, "unkey:v1:ws_123:projects/proj_123/portals/portal_123#read")
+	requirePermission(t, portal, permissions.Write, "unkey:v1:ws_123:projects/proj_123/portals/portal_123#write")
+	requirePermission(t, portal, permissions.Delete, "unkey:v1:ws_123:projects/proj_123/portals/portal_123#delete")
+	requirePermission(t, portalSession, permissions.Read, "unkey:v1:ws_123:projects/proj_123/portals/portal_123/sessions/sess_123#read")
+	requirePermission(t, portalSession, permissions.Write, "unkey:v1:ws_123:projects/proj_123/portals/portal_123/sessions/sess_123#write")
+	requirePermission(t, portalSession, permissions.Delete, "unkey:v1:ws_123:projects/proj_123/portals/portal_123/sessions/sess_123#delete")
 }
 
 // TestActions_BuildDataPermissions pins every data resource and action pair and

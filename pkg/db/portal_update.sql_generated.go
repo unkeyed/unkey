@@ -80,9 +80,13 @@ type UpdatePortalParams struct {
 // remove the row between resolving it and this statement.
 //
 // Each field carries a `_specified` flag so an omitted field keeps its stored
-// value. `slug`, `display_name` and `enabled` are NOT NULL and take sqlc.arg; the two
-// associations and the two branding columns are nullable and take sqlc.narg, so
-// an explicit null clears them.
+// value. `slug`, `display_name` and `enabled` are NOT NULL and take sqlc.arg;
+// the two associations and the two branding columns are nullable and take
+// sqlc.narg, so an explicit null clears them.
+//
+// `project_id` is absent because a portal cannot change project: a remap to
+// another project is refused before this runs, so the stored value always
+// already matches the mapping.
 //
 //	UPDATE portals p
 //	SET

@@ -14,6 +14,7 @@ const insertPortal = `-- name: InsertPortal :exec
 INSERT INTO portals (
     id,
     workspace_id,
+    project_id,
     slug,
     display_name,
     app_id,
@@ -34,6 +35,7 @@ INSERT INTO portals (
     ?,
     ?,
     ?,
+    ?,
     ?
 )
 `
@@ -41,6 +43,7 @@ INSERT INTO portals (
 type InsertPortalParams struct {
 	ID           string         `db:"id"`
 	WorkspaceID  string         `db:"workspace_id"`
+	ProjectID    string         `db:"project_id"`
 	Slug         string         `db:"slug"`
 	DisplayName  string         `db:"display_name"`
 	AppID        sql.NullString `db:"app_id"`
@@ -57,6 +60,7 @@ type InsertPortalParams struct {
 //	INSERT INTO portals (
 //	    id,
 //	    workspace_id,
+//	    project_id,
 //	    slug,
 //	    display_name,
 //	    app_id,
@@ -77,12 +81,14 @@ type InsertPortalParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertPortal(ctx context.Context, db DBTX, arg InsertPortalParams) error {
 	_, err := db.ExecContext(ctx, insertPortal,
 		arg.ID,
 		arg.WorkspaceID,
+		arg.ProjectID,
 		arg.Slug,
 		arg.DisplayName,
 		arg.AppID,

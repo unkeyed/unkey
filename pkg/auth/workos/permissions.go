@@ -24,6 +24,12 @@ var developerPermissions = []resourcePermission{
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Write)},
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Delete)},
 
+	// Portal sessions are deliberately absent: a session URL authenticates as an
+	// arbitrary end user, so minting one is impersonation and ships separately.
+	{resource: "projects/*/portals/*", action: rbac.ActionType(rbacpermissions.Read)},
+	{resource: "projects/*/portals/*", action: rbac.ActionType(rbacpermissions.Write)},
+	{resource: "projects/*/portals/*", action: rbac.ActionType(rbacpermissions.Delete)},
+
 	{resource: "projects/*/apps/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*", action: rbac.ActionType(rbacpermissions.Write)},
 	{resource: "projects/*/apps/*", action: rbac.ActionType(rbacpermissions.Delete)},
@@ -85,6 +91,7 @@ var developerPermissions = []resourcePermission{
 var viewerPermissions = []resourcePermission{
 	{resource: "github/apps/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*", action: rbac.ActionType(rbacpermissions.Read)},
+	{resource: "projects/*/portals/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*/environments/*", action: rbac.ActionType(rbacpermissions.Read)},
 	{resource: "projects/*/apps/*/environments/*/deployments/*", action: rbac.ActionType(rbacpermissions.Read)},

@@ -121,6 +121,50 @@ func appMapping(t *testing.T, h *testutil.Harness, workspaceID, slug string) por
 	return portal.Mapping{Type: portal.MappingTypeApp, ID: app.ID}
 }
 
+// mappingsInOneProject seeds one project holding both an app and an api, and
+// returns a mapping for each.
+//
+// A remap may not move a portal between projects, so a test that re-points a
+// portal cannot combine [appMapping] with [keyspaceMapping]: those seed
+// different projects.
+func mappingsInOneProject(
+	t *testing.T,
+	h *testutil.Harness,
+	workspaceID, slug string,
+) (projectID string, app portal.Mapping, keyspace portal.Mapping) {
+	t.Helper()
+
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:               uid.New(uid.ProjectPrefix),
+		WorkspaceID:      workspaceID,
+		Name:             slug,
+		Slug:             slug,
+		DeleteProtection: false,
+	})
+	seededApp := h.CreateApp(seed.CreateAppRequest{
+		ID:               uid.New(uid.AppPrefix),
+		WorkspaceID:      workspaceID,
+		ProjectID:        project.ID,
+		Name:             slug,
+		Slug:             slug,
+		DeleteProtection: false,
+	})
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID:   workspaceID,
+		ProjectID:     project.ID,
+		IpWhitelist:   "",
+		EncryptedKeys: false,
+		Name:          nil,
+		CreatedAt:     nil,
+		DefaultPrefix: nil,
+		DefaultBytes:  nil,
+	})
+
+	return project.ID,
+		portal.Mapping{Type: portal.MappingTypeApp, ID: seededApp.ID},
+		portal.Mapping{Type: portal.MappingTypeKeyspace, ID: api.KeyAuthID.String}
+}
+
 // fetchPortal reads a row back so a response can be checked against what was
 // actually stored.
 func fetchPortal(t *testing.T, h *testutil.Harness, workspaceID, portalID string) db.Portal {
@@ -378,9 +422,8 @@ func TestUpdatePortalRepointsMappingAndRevokesSessions(t *testing.T) {
 	route, headers := newRoute(t, h, "portal.*.update_portal")
 	workspace := h.Resources().UserWorkspace
 
-	app := appMapping(t, h, workspace.ID, "payments")
+	project, app, keyspace := mappingsInOneProject(t, h, workspace.ID, "payments")
 	stored := h.SeedPortal(t, workspace.ID, "repointed", "repointed", app, nil, nil)
-	keyspace := keyspaceMapping(t, h, workspace.ID)
 
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{keyspace.ID}, []string{"keys.read"})
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_2", []string{keyspace.ID}, []string{"keys.read"})
@@ -402,6 +445,8 @@ func TestUpdatePortalRepointsMappingAndRevokesSessions(t *testing.T) {
 	row := fetchPortal(t, h, workspace.ID, stored.ID)
 	require.Equal(t, keyspace.ID, row.KeyAuthID.String)
 	require.False(t, row.AppID.Valid, "the app column must be cleared in the same write")
+	require.Equal(t, project, row.ProjectID,
+		"a remap within the project leaves the stored project alone")
 
 	require.Equal(t, 0, liveSessions(t, h, stored.ID),
 		"re-pointing the mapping revokes the portal's sessions")
@@ -484,9 +529,8 @@ func TestUpdatePortalWritesOneAuditEntry(t *testing.T) {
 	route, headers := newRoute(t, h, "portal.*.update_portal")
 	workspace := h.Resources().UserWorkspace
 
-	app := appMapping(t, h, workspace.ID, "audited")
+	_, app, keyspace := mappingsInOneProject(t, h, workspace.ID, "audited")
 	stored := h.SeedPortal(t, workspace.ID, "audited-portal", "audited-portal", app, nil, nil)
-	keyspace := keyspaceMapping(t, h, workspace.ID)
 	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{keyspace.ID}, []string{"keys.read"})
 
 	req := baseRequest(stored.ID)

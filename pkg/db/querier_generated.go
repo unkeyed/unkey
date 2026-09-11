@@ -206,13 +206,15 @@ type Querier interface {
 	// Anything validating that a caller owns the app it named must scope the lookup,
 	// so this exists as the scoped single-app read.
 	//
-	// Selects the id alone: every caller discards the row and keeps only whether it
-	// exists, so there is no reason to carry the rest of the columns.
+	// The project id comes back with it because an app's resource permissions are
+	// addressed as projects/{project_id}/apps/{app_id}: a caller that arrived with
+	// an app id alone would otherwise need a second read to say anything about the
+	// app it just proved it owns.
 	//
-	//  SELECT id FROM apps
+	//  SELECT id, project_id FROM apps
 	//  WHERE id = ?
 	//    AND workspace_id = ?
-	FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (string, error)
+	FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (FindAppByIdAndWorkspaceRow, error)
 	//FindAppByProjectAndIdOrSlug
 	//
 	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
@@ -957,7 +959,7 @@ type Querier interface {
 	// Workspace-scoped on purpose: `idx_app_id` is unique across the whole table, so
 	// an unscoped lookup would return another workspace's portal.
 	//
-	//  SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
+	//  SELECT pk, id, workspace_id, project_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
 	//  WHERE app_id = ?
 	//    AND workspace_id = ?
 	//  LIMIT 1
@@ -968,7 +970,7 @@ type Querier interface {
 	// UNION ALL of two index seeks instead of `id = ? OR slug = ?`, which would
 	// force a scan: `portals_id_unique` and `idx_workspace_slug` each serve one arm.
 	//
-	//  SELECT p.pk, p.id, p.workspace_id, p.slug, p.display_name, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
+	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.slug, p.display_name, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
 	//  FROM portals p
 	//  JOIN (
 	//      SELECT p1.id
@@ -984,7 +986,7 @@ type Querier interface {
 	// Resolves the portal mapped to a keyspace within a workspace. See
 	// portal_find_by_app.sql for why this is workspace-scoped.
 	//
-	//  SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
+	//  SELECT pk, id, workspace_id, project_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
 	//  WHERE key_auth_id = ?
 	//    AND workspace_id = ?
 	//  LIMIT 1
@@ -1804,6 +1806,7 @@ type Querier interface {
 	//  INSERT INTO portals (
 	//      id,
 	//      workspace_id,
+	//      project_id,
 	//      slug,
 	//      display_name,
 	//      app_id,
@@ -1814,6 +1817,7 @@ type Querier interface {
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -3059,9 +3063,13 @@ type Querier interface {
 	// remove the row between resolving it and this statement.
 	//
 	// Each field carries a `_specified` flag so an omitted field keeps its stored
-	// value. `slug`, `display_name` and `enabled` are NOT NULL and take sqlc.arg; the two
-	// associations and the two branding columns are nullable and take sqlc.narg, so
-	// an explicit null clears them.
+	// value. `slug`, `display_name` and `enabled` are NOT NULL and take sqlc.arg;
+	// the two associations and the two branding columns are nullable and take
+	// sqlc.narg, so an explicit null clears them.
+	//
+	// `project_id` is absent because a portal cannot change project: a remap to
+	// another project is refused before this runs, so the stored value always
+	// already matches the mapping.
 	//
 	//  UPDATE portals p
 	//  SET
