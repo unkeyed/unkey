@@ -28,7 +28,7 @@ RUN apt-get update -qq \
 # Match go.mod's Go version exactly. Go's reproducible-build
 # story plus a fixed bpf2go version (resolved from go.mod) makes the
 # generated bindings + .o stable across hosts.
-ARG GO_VERSION=1.25.10
+ARG GO_VERSION=1.26.8
 RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" \
     | tar -C /usr/local -xz
 
