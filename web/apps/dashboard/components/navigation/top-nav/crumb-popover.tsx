@@ -41,6 +41,7 @@ type CrumbPopoverProps = {
   emptyText: string;
   footer: CrumbPopoverFooter;
   children: ReactNode;
+  listStatus?: ReactNode;
 };
 
 export function CrumbPopover({
@@ -50,6 +51,7 @@ export function CrumbPopover({
   emptyText,
   footer,
   children,
+  listStatus,
 }: CrumbPopoverProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -83,7 +85,7 @@ export function CrumbPopover({
             className="text-[13px] placeholder:text-[13px] placeholder:text-accent-8"
           />
           <CommandList>
-            <CommandEmpty className="py-6">{emptyText}</CommandEmpty>
+            {listStatus ?? <CommandEmpty className="py-6">{emptyText}</CommandEmpty>}
             <CommandGroup>
               {items.map((item) => {
                 const isCurrent = item.id === currentId;

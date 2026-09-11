@@ -6,18 +6,15 @@ import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies-actio
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { Plus } from "@unkey/icons";
-import { toast } from "@unkey/ui";
+import { Button, toast } from "@unkey/ui";
 import { useMemo } from "react";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 
 export function WorkspaceCrumb({ href }: { href: string }) {
   const workspace = useWorkspaceNavigation();
-  const { data: user } = trpc.user.getCurrentUser.useQuery();
-  const { data: memberships } = trpc.user.listMemberships.useQuery(user?.id ?? "", {
-    enabled: !!user?.id,
-  });
-  const orgs = memberships?.data ?? [];
+  const available = trpc.workspace.listAvailable.useQuery();
+  const orgs = available.isError ? [] : (available.data ?? []);
 
   const switchOrg = trpc.user.switchOrg.useMutation({
     async onSuccess(sessionData, orgId) {
@@ -51,11 +48,11 @@ export function WorkspaceCrumb({ href }: { href: string }) {
   const items: CrumbPopoverItem[] = useMemo(
     () =>
       orgs.map((m) => ({
-        id: m.organization.id,
-        label: m.organization.name,
+        id: m.orgId,
+        label: m.name,
         onClick: () => {
-          if (m.organization.id !== workspace.orgId && !switchOrgLoading) {
-            switchOrgMutate(m.organization.id);
+          if (m.orgId !== workspace.orgId && !switchOrgLoading) {
+            switchOrgMutate(m.orgId);
           }
         },
       })),
@@ -75,6 +72,25 @@ export function WorkspaceCrumb({ href }: { href: string }) {
       currentId={workspace.orgId}
       searchPlaceholder="Find workspace..."
       emptyText="No workspaces found"
+      listStatus={
+        available.isError ? (
+          <div role="alert" className="flex flex-col items-center gap-2 px-3 py-4 text-sm">
+            <span>Unable to load workspaces</span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={available.isFetching}
+              onClick={() => available.refetch()}
+            >
+              Try again
+            </Button>
+          </div>
+        ) : available.isLoading ? (
+          <output className="block px-3 py-4 text-sm">Loading workspaces...</output>
+        ) : orgs.length === 0 ? (
+          <output className="block px-3 py-4 text-sm">No workspaces found</output>
+        ) : undefined
+      }
       footer={{ icon: Plus, label: "New workspace", href: routes.workspaces.create() }}
     />
   );

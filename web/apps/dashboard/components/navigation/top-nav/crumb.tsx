@@ -16,6 +16,7 @@ type CrumbProps = {
   emptyText: string;
   footer: CrumbPopoverFooter;
   loading?: boolean;
+  listStatus?: ReactNode;
 };
 
 export function Crumb({
@@ -28,6 +29,7 @@ export function Crumb({
   emptyText,
   footer,
   loading = false,
+  listStatus,
 }: CrumbProps) {
   return (
     <div className="flex min-w-0 items-center gap-0.5">
@@ -49,6 +51,7 @@ export function Crumb({
         searchPlaceholder={searchPlaceholder}
         emptyText={emptyText}
         footer={footer}
+        listStatus={listStatus}
       >
         <button
           type="button"

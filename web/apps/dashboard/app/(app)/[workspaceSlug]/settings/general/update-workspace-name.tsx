@@ -57,6 +57,7 @@ export function UpdateWorkspaceName() {
         utils.user.getCurrentUser.refetch(),
         utils.workspace.getCurrent.refetch(),
         utils.user.listMemberships.refetch(),
+        utils.workspace.listAvailable.invalidate(),
       ]);
       setName(watch("workspaceName"));
       router.refresh();
