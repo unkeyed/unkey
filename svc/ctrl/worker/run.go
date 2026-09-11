@@ -286,7 +286,7 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create audit log service: %w", err)
 	}
 
-	deployWorkflow, err := deploy.New(deploy.Config{
+	deployCfg := deploy.Config{
 		DB:            database,
 		Auditlogs:     auditlogSvc,
 		DefaultDomain: cfg.DefaultDomain,
@@ -304,9 +304,14 @@ func Run(ctx context.Context, cfg Config) error {
 		AllowUnauthenticatedDeployments: ptr.SafeDeref(cfg.GitHub).AllowUnauthenticatedDeployments,
 		DashboardURL:                    cfg.DashboardURL,
 		RestateAdmin:                    restateAdminClient,
-	})
+	}
+	deployWorkflow, err := deploy.New(deployCfg)
 	if err != nil {
 		return fmt.Errorf("failed to create deploy workflow: %w", err)
+	}
+	deployWorkflowServer, err := deploy.NewWorkflowServer(deployCfg)
+	if err != nil {
+		return fmt.Errorf("failed to create deploy workflow server: %w", err)
 	}
 
 	// Retry with exponential backoff: 2s → 4s → 8s → 16s → 30s (capped),
@@ -331,6 +336,7 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.PauseOnMaxAttempts(),
 	)
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deployWorkflow, deployRetryPolicy))
+	restateSrv.Bind(hydrav1.NewDeployWorkflowServer(deployWorkflowServer, deployRetryPolicy))
 	deploymentSvc, err := deployment.New(deployment.Config{
 		DB:        database,
 		Auditlogs: auditlogSvc,

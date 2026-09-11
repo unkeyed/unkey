@@ -9,16 +9,16 @@ The control plane deployment service creates deployment records and delegates ex
 
 Each Restate VO uses the narrowest key that gives the serialization it needs:
 
-- **`DeployService`** is keyed by `deployment_id`. Each deployment runs as its own isolated workflow, so multiple deployments in the same environment can build in parallel.
+- **`DeployWorkflow`** is keyed by `deployment_id`. Each deployment is one workflow run, so multiple deployments in the same environment can build in parallel. `DeployService`, the virtual object it replaces, stays registered until every Deploy that started on it has finished.
 - **`EnvironmentService`** is keyed by `environment_id`. Promote and rollback run here. Both change which deployment is live in one environment, and both check the live pointer before they swap it. One key holds the check and the swap under one lock. With separate keys, two operations on the same environment can pass their checks against the same live pointer and then swap one after the other.
-- **`RoutingService`** is keyed by `env_id`. Frontline route assignment and the live-deployment swap serialize here. It is the write primitive that `DeployService` and `EnvironmentService` call.
+- **`RoutingService`** is keyed by `env_id`. Frontline route assignment and the live-deployment swap serialize here. It is the write primitive that `DeployWorkflow` and `EnvironmentService` call.
 - **`BuildSlotService`** is keyed by `workspace_id`. Caps how many deployments build at once across the workspace and prioritises production over preview waiters.
 - **`DeploymentService`** (desired-state transitions, scheduled and immediate) is keyed by `deployment_id`.
 
 Key components:
 
 - Control API deployment service — [`svc/ctrl/services/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/services/deployment)
-- `DeployService` Restate workflow — [`svc/ctrl/worker/deploy`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy)
+- `DeployWorkflow` Restate workflow — [`svc/ctrl/worker/deploy`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy)
 - `EnvironmentService` (promote, rollback, environment deletion): [`svc/ctrl/worker/environment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/environment)
 - `RoutingService` (route assignment + live swap) — [`svc/ctrl/worker/routing`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/routing)
 - `DeploymentService` VO for scheduled and immediate desired-state transitions — [`svc/ctrl/worker/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment)
@@ -34,13 +34,13 @@ sequenceDiagram
   participant DB as MySQL
   participant Restate as Restate
   participant BuildSlot as BuildSlotService<br/>(keyed by workspace)
-  participant Worker as DeployService<br/>(keyed by deployment_id)
+  participant Worker as DeployWorkflow<br/>(keyed by deployment_id)
   participant Dedup as Workflow.cancelOlderSiblings
 
   Client->>CtrlAPI: CreateDeployment(project_id, source, env)
   CtrlAPI->>DB: Find project + environment + app
   CtrlAPI->>DB: Insert deployment (status=pending)
-  CtrlAPI->>Restate: DeployService.Deploy (key: deployment_id, async)
+  CtrlAPI->>Restate: DeployWorkflow.Deploy (key: deployment_id, async)
   Restate-->>CtrlAPI: invocation_id
   CtrlAPI->>DB: UpdateDeploymentInvocationID
   CtrlAPI->>Dedup: Cancel older queued siblings (status=pending|awaiting_approval)
@@ -67,7 +67,7 @@ sequenceDiagram
   participant CtrlAPI as Control API
   participant DB as MySQL
   participant RestateAdmin as Restate Admin API
-  participant Worker as DeployService
+  participant Worker as DeployWorkflow
   participant BuildSlot as BuildSlotService
 
   Client->>CtrlAPI: CancelDeployment(deployment_id)
@@ -172,13 +172,16 @@ After `createTopologies`, the Deploy handler enters `waitForDeployments`, which 
 
 The awakeable is resolved by `DeployService.NotifyInstancesReady`, a `SHARED` handler that runs concurrently with the suspended Deploy.
 
+`DeployWorkflow`, the Restate workflow replacing `DeployService`, needs no awakeable or object state: its Deploy run awaits a durable promise named `instances_ready`, and its `NotifyInstancesReady` resolves that promise. A report that arrives before the run awaits is kept by the promise. It is a workflow rather than a virtual object because Deploy has no operations to serialise.
+
 Caller: `cluster.Service.ReportDeploymentStatus` (the RPC krane calls to report instance state) runs a thundering-herd gate after the upsert transaction:
 
 1. Deployment must be in an active status (`starting | building | deploying | network | finalizing`).
 2. Look up per-region min replicas via `FindDeploymentTopologyMinReplicas`.
 3. Count running instances per region; require `numRegions - 1` healthy regions (minimum 1 — tolerates one regional outage).
 4. Dedup the notification via an in-process `sync.Map` so we don't re-fire on every subsequent status report once the threshold is met.
-5. If threshold met (and not yet notified), send `DeployService.NotifyInstancesReady(deployment_id)` via the ingress client, keyed by `deployment_id`.
+5. Skip if the deployment's Deploy invocation is no longer live in Restate. Wake also reports with status `deploying`, and a notify for a finished run would leave a promise Restate never cleans up.
+6. If threshold met (and not yet notified), send `NotifyInstancesReady(deployment_id)` to `DeployWorkflow` and, until it is deleted, to `DeployService`.
 
 ## Self-skip (belt-and-suspenders dedup)
 
@@ -190,7 +193,7 @@ Scheduled state changes are serialized via a Restate virtual object keyed by dep
 
 ## Retry policy
 
-The `DeployService` is registered with an exponential-backoff retry policy: `30s → 1m → 2m → 4m → 5m` (capped), 10 attempts total (~30 minutes). If a deploy can't make progress after 10 retries (persistent MySQL connection errors, Depot outage), Restate kills the invocation, the compensation stack runs, and the deployment is marked failed. This replaces an older 150-attempt policy that could leave a deploy stuck retrying for ~24 hours.
+`DeployWorkflow`, and `DeployService` while it drains, is registered with an exponential-backoff retry policy: `30s → 1m → 2m → 4m → 5m` (capped), 10 attempts total (~30 minutes). If a deploy can't make progress after 10 retries (persistent MySQL connection errors, Depot outage), Restate kills the invocation, the compensation stack runs, and the deployment is marked failed. This replaces an older 150-attempt policy that could leave a deploy stuck retrying for ~24 hours.
 
 ## Compensation stack
 
