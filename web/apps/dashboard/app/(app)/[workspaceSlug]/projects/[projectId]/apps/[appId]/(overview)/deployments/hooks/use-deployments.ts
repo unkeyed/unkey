@@ -1,5 +1,4 @@
 import type { Deployment } from "@/lib/collections";
-import { isDeploymentSettling } from "@/lib/collections/deploy/deployment-status";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
@@ -32,11 +31,6 @@ export function useDeployments() {
       // the previous rows stay on screen instead of a skeleton flash.
       keepPreviousData: true,
       getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-      // Polling is opt-in while a build runs; idle pages rely on focus refetch
-      // and post-mutation invalidation. A refetch reloads every opened page,
-      // so only the newest page decides.
-      refetchInterval: (data) =>
-        data?.pages[0]?.deployments.some(isDeploymentSettling) ? 5_000 : false,
     },
   );
 

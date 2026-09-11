@@ -6,6 +6,7 @@ import { collection } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
 import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
 import { routes } from "@/lib/navigation/routes";
+import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { ChevronLeft, Layers2 } from "@unkey/icons";
@@ -33,6 +34,7 @@ export const DeployImageCard = ({
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
   const { gated, openPaywall, planGate } = useDeployActionGate();
+  const utils = trpc.useUtils();
   const [image, setImage] = useState("");
   const [isSubmitting, startSubmit] = useTransition();
   const hintId = useId();
@@ -85,6 +87,8 @@ export const DeployImageCard = ({
         await queryClient.invalidateQueries({
           queryKey: ["deployments", projectId],
         });
+        await utils.deploy.deployment.invalidate();
+        await collection.apps.utils.refetch();
         onBeforeNavigate?.();
         router.push(
           routes.projects.apps.deployment({
