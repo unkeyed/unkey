@@ -2,7 +2,7 @@ import { and, db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { workspaceProcedure } from "../../trpc";
-import { decodeLogdrainConfig } from "./config";
+import { decodeLogdrainConfig, toPublicLogdrainConfig } from "./config";
 
 export const getLogdrain = workspaceProcedure
   .input(z.object({ id: z.string().min(1) }))
@@ -23,41 +23,26 @@ export const getLogdrain = workspaceProcedure
           ),
         );
       if (!row) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Log drain not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Log drain not found",
+        });
       }
 
-      const destination = decodeLogdrainConfig(row.config);
-      switch (destination.kind) {
-        case "http":
-          return {
-            id: row.id,
-            name: row.name,
-            kind: destination.kind,
-            eventTypes: destination.stream.eventTypes,
-            status: row.status,
-            config: {
-              url: destination.url,
-              format: destination.format,
-              headers: destination.headers.map((header) => header.name),
-            },
-          };
-        case "axiom":
-          return {
-            id: row.id,
-            name: row.name,
-            kind: destination.kind,
-            eventTypes: destination.stream.eventTypes,
-            status: row.status,
-            config: {
-              dataset: destination.dataset,
-            },
-          };
-      }
+      return {
+        id: row.id,
+        name: row.name,
+        status: row.status,
+        ...toPublicLogdrainConfig(decodeLogdrainConfig(row.config)),
+      };
     } catch (error) {
       if (error instanceof TRPCError) {
         throw error;
       }
       console.error("Failed to get log drain", error);
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to get log drain" });
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Failed to get log drain",
+      });
     }
   });

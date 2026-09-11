@@ -2,6 +2,7 @@
 
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { match } from "@unkey/match";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,12 +27,15 @@ import {
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { DESTINATIONS, DrainMedia } from "./drain-destinations";
-import { DestinationFields, EventTypesField, NameField } from "./drain-fields";
+import { DestinationFields, EventTypesField, NameField, StreamField } from "./drain-fields";
 import {
   type DrainFormValues,
   type DrainKind,
   createDrainSchema,
   emptyDrainForm,
+  submittedEventTypes,
+  submittedSources,
+  submittedStatusClasses,
 } from "./drain-schema";
 import { DrainStepCard } from "./drain-step-card";
 import { toHeaderRecord } from "./header-fields";
@@ -100,8 +104,26 @@ export function CreateLogdrainPanel({
 
     create.mutate({
       name: values.name.trim(),
-      stream: "audit_logs",
-      eventTypes: values.eventTypes,
+      stream: values.stream,
+      ...match(values.stream)
+        .with("ratelimits", () => ({
+          namespaceIds: values.namespaceIds,
+          passed: values.passed,
+        }))
+        .with("runtime_logs", () => ({
+          severities: values.severities,
+          ...submittedSources(values),
+        }))
+        .with("audit_logs", () => ({ eventTypes: submittedEventTypes(values) }))
+        .with("gateway_requests", () => ({
+          statusClasses: submittedStatusClasses(values),
+          ...submittedSources(values),
+        }))
+        .with("key_verifications", () => ({
+          outcomes: values.outcomes,
+          keySpaceIds: values.keySpaceIds,
+        }))
+        .exhaustive(),
       ...destination,
     });
   });
@@ -168,6 +190,7 @@ export function CreateLogdrainPanel({
               >
                 <div className="flex flex-col gap-6">
                   <NameField />
+                  <StreamField />
                   <EventTypesField />
                   <DestinationFields tokenRequired />
                 </div>
