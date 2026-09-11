@@ -7,6 +7,7 @@ import type { ProcessedTimeseriesDataPoint } from "../use-fetch-timeseries";
 type OutcomeExplainerProps = {
   children: React.ReactNode;
   timeseries: ProcessedTimeseriesDataPoint[];
+  title: string;
 };
 
 type ErrorType = {
@@ -15,7 +16,11 @@ type ErrorType = {
   color: string;
 };
 
-export function OutcomeExplainer({ children, timeseries }: OutcomeExplainerProps): JSX.Element {
+export function OutcomeExplainer({
+  children,
+  timeseries,
+  title,
+}: OutcomeExplainerProps): JSX.Element {
   // Aggregate all timeseries data for the tooltip
   const aggregatedData = useMemo(() => {
     if (!timeseries || timeseries.length === 0) {
@@ -108,7 +113,7 @@ export function OutcomeExplainer({ children, timeseries }: OutcomeExplainerProps
       position={{ side: "bottom" }}
       content={
         <div className="flex flex-col gap-1 min-w-64 justify-start ">
-          <div className="text-gray-12 font-medium text-[13px] pr-2">API Key Activity</div>
+          <div className="text-gray-12 font-medium text-[13px] pr-2">{title}</div>
           <div className="text-xs text-grayA-9 pr-2 font-normal">Last 36 hours</div>
 
           {/* Valid count */}

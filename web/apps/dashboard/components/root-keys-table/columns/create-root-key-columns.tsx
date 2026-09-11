@@ -1,3 +1,5 @@
+import { VerificationBarChart } from "@/components/api-keys-table/components/bar-chart";
+import { LastUsedCell } from "@/components/api-keys-table/components/last-used";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { cn } from "@/lib/utils";
 import { ChartActivity2, Page2 } from "@unkey/icons";
@@ -28,6 +30,8 @@ const RootKeysTableActions = dynamic(
 export const ROOT_KEY_COLUMN_IDS = {
   ROOT_KEY: { id: "root_key", accessorKey: "name", header: "Name" },
   KEY: { id: "key", accessorKey: "start", header: "Key" },
+  USAGE: { id: "usage", accessorKey: "usage", header: "Usage in last 36h" },
+  LAST_USED: { id: "last_used", accessorKey: "lastUsedAt", header: "Last Used" },
   PERMISSIONS: { id: "permissions", accessorKey: "permissions", header: "Permissions" },
   CREATED_AT: { id: "created_at", accessorKey: "created_at", header: "Created At" },
   LAST_USED: {
@@ -99,6 +103,53 @@ export const createRootKeyColumns = ({
             selected={selectedRootKeyId === rootKey.id}
           />
         </InfoTooltip>
+      );
+    },
+  },
+  {
+    id: ROOT_KEY_COLUMN_IDS.USAGE.id,
+    header: ROOT_KEY_COLUMN_IDS.USAGE.header,
+    enableSorting: false,
+    meta: {
+      width: {
+        min: 200,
+        max: 400,
+      },
+    },
+    cell: ({ row }) => {
+      const rootKey = row.original;
+      return (
+        <VerificationBarChart
+          keyAuthId={rootKey.keyAuthId}
+          keyId={rootKey.id}
+          activityTitle="Root Key Activity"
+          selected={rootKey.id === selectedRootKeyId}
+        />
+      );
+    },
+  },
+  {
+    id: ROOT_KEY_COLUMN_IDS.LAST_USED.id,
+    accessorKey: ROOT_KEY_COLUMN_IDS.LAST_USED.accessorKey,
+    sortDescFirst: true,
+    header: ({ header }) => (
+      <SortableHeader key={ROOT_KEY_COLUMN_IDS.LAST_USED.id} header={header}>
+        {ROOT_KEY_COLUMN_IDS.LAST_USED.header}
+      </SortableHeader>
+    ),
+    meta: {
+      width: {
+        min: 140,
+        max: 400,
+      },
+    },
+    cell: ({ row }) => {
+      const rootKey = row.original;
+      return (
+        <LastUsedCell
+          lastUsedAt={rootKey.lastUsedAt}
+          isSelected={rootKey.id === selectedRootKeyId}
+        />
       );
     },
   },

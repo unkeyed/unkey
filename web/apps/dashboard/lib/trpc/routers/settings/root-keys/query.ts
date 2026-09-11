@@ -16,6 +16,7 @@ const PermissionResponse = z.object({
 
 const RootKeyResponse = z.object({
   id: z.string(),
+  keyAuthId: z.string(),
   start: z.string(),
   createdAt: z.number(),
   lastUsedAt: z.number(),
@@ -170,6 +171,7 @@ export const queryRootKeys = workspaceProcedure
           offset: (page - 1) * pageSize,
           columns: {
             id: true,
+            keyAuthId: true,
             start: true,
             createdAtM: true,
             lastUsedAt: true,
@@ -209,6 +211,7 @@ export const queryRootKeys = workspaceProcedure
 
         return {
           id: key.id,
+          keyAuthId: key.keyAuthId,
           start: key.start,
           createdAt: key.createdAtM,
           lastUsedAt: key.lastUsedAt,
