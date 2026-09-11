@@ -23,11 +23,17 @@ export const connectRoleToKey = workspaceProcedure
             columns: {
               id: true,
               name: true,
+              projectId: true,
             },
           },
           keys: {
             where: (table, { eq }) => eq(table.id, input.keyId),
             columns: { id: true, name: true },
+            with: {
+              keyAuth: {
+                columns: { projectId: true },
+              },
+            },
           },
         },
       })
@@ -59,6 +65,13 @@ export const connectRoleToKey = workspaceProcedure
         code: "NOT_FOUND",
         message:
           "We are unable to find the correct key. Please try again or contact support@unkey.com.",
+      });
+    }
+
+    if (role.projectId !== key.keyAuth.projectId) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "The role and key must belong to the same project.",
       });
     }
 

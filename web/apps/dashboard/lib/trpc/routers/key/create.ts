@@ -23,6 +23,7 @@ export const createKey = workspaceProcedure
           and(eq(table.workspaceId, ctx.workspace.id), eq(table.id, input.keyAuthId)),
         columns: {
           id: true,
+          projectId: true,
           storeEncryptedKeys: true,
         },
       })
@@ -48,6 +49,7 @@ export const createKey = workspaceProcedure
           {
             ...input,
             keyAuthId: keyAuth.id,
+            projectId: keyAuth.projectId,
             storeEncryptedKeys: keyAuth.storeEncryptedKeys,
           },
           ctx,
@@ -74,15 +76,12 @@ type CreateKeyContext = {
 type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function createKeyCore(
-  input: CreateKeyInput & { storeEncryptedKeys: boolean },
+  input: CreateKeyInput & { projectId: string; storeEncryptedKeys: boolean },
   ctx: CreateKeyContext,
   tx: DatabaseTransaction,
 ) {
-  // The keys.identity_id column has no FK or workspace predicate. If we
-  // accept a client-supplied identityId without verifying it belongs to this
-  // workspace, an attacker can later call /v2/keys.verifyKey on the key and
-  // exfiltrate the foreign identity's external_id and meta via the LEFT
-  // JOIN in key_find_for_verification.sql.
+  // The keys.identity_id column has no foreign key or project predicate. A
+  // cross-project identity would expose its data through key verification.
   const requestedIdentityId = input.identityId;
   if (requestedIdentityId) {
     const identity = await tx.query.identities.findFirst({
@@ -90,11 +89,12 @@ export async function createKeyCore(
         and(
           eq(table.id, requestedIdentityId),
           eq(table.workspaceId, ctx.workspace.id),
+          eq(table.projectId, input.projectId),
           eq(table.deleted, false),
         ),
-      columns: { id: true },
+      columns: { id: true, projectId: true },
     });
-    if (!identity) {
+    if (!identity || identity.projectId !== input.projectId) {
       throw new TRPCError({
         code: "NOT_FOUND",
         message: "Identity not found",

@@ -54,7 +54,7 @@ SELECT
             )
         )
         FROM keys_roles kr
-        JOIN roles r ON r.id = kr.role_id
+        JOIN roles r ON r.id = kr.role_id AND r.project_id = ka.project_id
         WHERE k.id = kr.key_id),
         JSON_ARRAY()
     ) as roles,
@@ -70,7 +70,7 @@ SELECT
             )
         )
         FROM keys_permissions kp
-        JOIN permissions p ON kp.permission_id = p.id
+        JOIN permissions p ON kp.permission_id = p.id AND p.project_id = ka.project_id
         WHERE k.id = kp.key_id),
         JSON_ARRAY()
     ) as permissions,
@@ -86,8 +86,9 @@ SELECT
             )
         )
         FROM keys_roles kr
+        JOIN roles r ON kr.role_id = r.id AND r.project_id = ka.project_id
         JOIN roles_permissions rp ON kr.role_id = rp.role_id
-        JOIN permissions p ON rp.permission_id = p.id
+        JOIN permissions p ON rp.permission_id = p.id AND p.project_id = ka.project_id
         WHERE k.id = kr.key_id),
         JSON_ARRAY()
     ) as role_permissions,
@@ -115,7 +116,7 @@ FROM ` + "`" + `keys` + "`" + ` k
 JOIN apis a ON a.key_auth_id = k.key_auth_id
 JOIN key_auth ka ON ka.id = k.key_auth_id
 JOIN workspaces ws ON k.workspace_id = ws.id
-LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
+LEFT JOIN identities i ON k.identity_id = i.id AND i.project_id = ka.project_id AND i.deleted = false
 LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
 WHERE k.id = ?
     AND k.deleted_at_m IS NULL
@@ -162,7 +163,8 @@ type FindLiveKeyByIDRow struct {
 	Ratelimits                interface{}    `db:"ratelimits"`
 }
 
-// FindLiveKeyByID
+// FindLiveKeyByID loads a live key and project-local associations for API operations.
+// Project predicates prevent malformed associations from crossing the keyspace boundary.
 //
 //	SELECT
 //	    k.id AS key_id,
@@ -207,7 +209,7 @@ type FindLiveKeyByIDRow struct {
 //	            )
 //	        )
 //	        FROM keys_roles kr
-//	        JOIN roles r ON r.id = kr.role_id
+//	        JOIN roles r ON r.id = kr.role_id AND r.project_id = ka.project_id
 //	        WHERE k.id = kr.key_id),
 //	        JSON_ARRAY()
 //	    ) as roles,
@@ -223,7 +225,7 @@ type FindLiveKeyByIDRow struct {
 //	            )
 //	        )
 //	        FROM keys_permissions kp
-//	        JOIN permissions p ON kp.permission_id = p.id
+//	        JOIN permissions p ON kp.permission_id = p.id AND p.project_id = ka.project_id
 //	        WHERE k.id = kp.key_id),
 //	        JSON_ARRAY()
 //	    ) as permissions,
@@ -239,8 +241,9 @@ type FindLiveKeyByIDRow struct {
 //	            )
 //	        )
 //	        FROM keys_roles kr
+//	        JOIN roles r ON kr.role_id = r.id AND r.project_id = ka.project_id
 //	        JOIN roles_permissions rp ON kr.role_id = rp.role_id
-//	        JOIN permissions p ON rp.permission_id = p.id
+//	        JOIN permissions p ON rp.permission_id = p.id AND p.project_id = ka.project_id
 //	        WHERE k.id = kr.key_id),
 //	        JSON_ARRAY()
 //	    ) as role_permissions,
@@ -268,7 +271,7 @@ type FindLiveKeyByIDRow struct {
 //	JOIN apis a ON a.key_auth_id = k.key_auth_id
 //	JOIN key_auth ka ON ka.id = k.key_auth_id
 //	JOIN workspaces ws ON k.workspace_id = ws.id
-//	LEFT JOIN identities i ON k.identity_id = i.id AND i.deleted = false
+//	LEFT JOIN identities i ON k.identity_id = i.id AND i.project_id = ka.project_id AND i.deleted = false
 //	LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
 //	WHERE k.id = ?
 //	    AND k.deleted_at_m IS NULL

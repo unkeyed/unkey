@@ -127,6 +127,10 @@ func (h *Handler) RerollKey(
 
 	actor := auditactor.FromPrincipal(principal)
 	keyData := db.ToKeyData(key)
+	identityID := sql.NullString{Valid: false}
+	if keyData.Identity != nil {
+		identityID = sql.NullString{String: keyData.Identity.ID, Valid: true}
+	}
 
 	length := 16
 	prefix := keyData.Key.Prefix
@@ -210,7 +214,7 @@ func (h *Handler) RerollKey(
 				RefillDay:          keyData.Key.RefillDay,
 				RefillAmount:       keyData.Key.RefillAmount,
 				Name:               keyData.Key.Name,
-				IdentityID:         keyData.Key.IdentityID,
+				IdentityID:         identityID,
 				Meta:               keyData.Key.Meta,
 				Expires:            keyData.Key.Expires,
 				PendingMigrationID: sql.NullString{Valid: false, String: ""},
