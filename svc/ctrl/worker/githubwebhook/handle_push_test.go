@@ -398,7 +398,7 @@ func newPushHarness(t *testing.T, ctx context.Context) *pushHarness {
 
 	// The real Create, so a push produces a real deployment row and the
 	// entitlement gate is enforced.
-	workflow, err := deploy.NewWorkflowServer(deploy.Config{
+	workflow, err := deploy.New(deploy.Config{
 		DB:            database,
 		Auditlogs:     auditlogSvc,
 		DefaultDomain: "test.example.com",
@@ -433,7 +433,7 @@ func newPushHarness(t *testing.T, ctx context.Context) *pushHarness {
 	// through the GitHub client above, not through another service.
 	ingressCfg := containers.Restate(t,
 		hydrav1.NewGitHubWebhookServiceServer(svc),
-		hydrav1.NewDeployWorkflowServer(&deployStub{WorkflowServer: workflow}),
+		hydrav1.NewDeployWorkflowServer(&deployStub{Workflow: workflow}),
 	)
 
 	seeder := seed.New(t, database, nil)
@@ -725,9 +725,9 @@ func (h *pushHarness) requireNoDeployment(t *testing.T, ctx context.Context, app
 
 // deployStub is the real DeployWorkflow with only Deploy stubbed out, since
 // building is not what these tests observe. Every other handler, Create above
-// all, keeps its real behavior through the embedded server.
+// all, keeps its real behavior through the embedded workflow.
 type deployStub struct {
-	*deploy.WorkflowServer
+	*deploy.Workflow
 }
 
 func (s *deployStub) Deploy(_ restate.WorkflowContext, _ *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {

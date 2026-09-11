@@ -9,7 +9,7 @@ const restateInvokePrefix = "/invoke/"
 
 // WrapRestateInvokeHandler annotates MySQL queries during a Restate handler with
 // route=<service>/<method> and source=restate. Restate ingress uses paths like
-// /invoke/hydra.v1.DeployService/Deploy.
+// /invoke/hydra.v1.DeployWorkflow/Deploy.
 func WrapRestateInvokeHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if route, ok := restateInvokeRoute(r.URL.Path); ok {

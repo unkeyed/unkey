@@ -3,7 +3,6 @@ package cluster
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"time"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
@@ -19,7 +18,7 @@ import (
 )
 
 // deploymentActiveStatuses are the non-terminal statuses where a Deploy
-// handler may be parked on the instances-ready awakeable. If the deployment
+// run may be awaiting the instances-ready promise. If the deployment
 // is outside this set (ready, failed, cancelled, superseded, skipped,
 // stopped, awaiting_approval), there's nothing to notify.
 var deploymentActiveStatuses = map[mysqltype.DeploymentsStatus]bool{
@@ -164,7 +163,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 	// After the tx commits, if an Update just upserted instances for an
 	// active deployment, check whether the per-region healthy threshold is
 	// met and notify the suspended Deploy workflow. This is the feedback
-	// loop that unblocks waitForDeployments's awakeable. Any errors here
+	// loop that resolves the promise waitForDeployments awaits. Any errors here
 	// are logged but don't fail the RPC — krane retrying wouldn't help, and
 	// the Deploy workflow will eventually hit its own timeout if nobody
 	// ever notifies it.
@@ -290,12 +289,8 @@ func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.D
 		return
 	}
 
-	// A Deploy that started on DeployService before the DeployWorkflow rollout
-	// is still waiting on that service, so both are notified until it is deleted
 	req := &hydrav1.NotifyInstancesReadyRequest{DeploymentId: deployment.ID}
-	_, workflowErr := hydrav1.NewDeployWorkflowIngressClient(s.restate, deployment.ID).NotifyInstancesReady().Send(ctx, req)
-	_, objectErr := hydrav1.NewDeployServiceIngressClient(s.restate, deployment.ID).NotifyInstancesReady().Send(ctx, req)
-	if err := errors.Join(workflowErr, objectErr); err != nil {
+	if _, err := hydrav1.NewDeployWorkflowIngressClient(s.restate, deployment.ID).NotifyInstancesReady().Send(ctx, req); err != nil {
 		metrics.NotifyInstancesReadyTotal.WithLabelValues("restate_error").Inc()
 		logger.Error("failed to notify deploy workflow of instance readiness",
 			"deployment_id", deployment.ID,

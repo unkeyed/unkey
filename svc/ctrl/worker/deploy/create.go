@@ -46,11 +46,7 @@ const (
 
 // Create writes a deployment row and starts its pipeline. See the proto for the
 // contract.
-func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
-	return w.create(ctx, req)
-}
-
-func (w *Workflow) create(ctx restate.ObjectSharedContext, req *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
+func (w *Workflow) Create(ctx restate.WorkflowSharedContext, req *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
 	deploymentID := restate.Key(ctx)
 
 	if err := assert.All(
@@ -501,12 +497,12 @@ func createAuditLogs(
 // startDeployment sends Deploy, records its invocation id, then supersedes older
 // queued siblings on the branch.
 func (w *Workflow) startDeployment(
-	ctx restate.ObjectSharedContext,
+	ctx restate.WorkflowSharedContext,
 	deploymentID string,
 	payload deployPayload,
 ) error {
 	target := payload.Target
-	invocation := w.sendDeploy(ctx, deploymentID, payload.toDeployRequest(deploymentID))
+	invocation := hydrav1.NewDeployWorkflowClient(ctx, deploymentID).Deploy().Send(payload.toDeployRequest(deploymentID))
 
 	// An empty id would leave a deployment nothing can cancel. Only a Restate
 	// bug produces one, since any other malformed value panics, and the id is
@@ -551,15 +547,6 @@ func (w *Workflow) startDeployment(
 		"invocation_id", invocationID,
 	)
 	return nil
-}
-
-// sendDeploy keeps Deploy on the service Create ran on until DeployService is
-// deleted
-func (w *Workflow) sendDeploy(ctx restate.ObjectSharedContext, deploymentID string, req *hydrav1.DeployRequest) restate.Invocation {
-	if w.asWorkflow {
-		return hydrav1.NewDeployWorkflowClient(ctx, deploymentID).Deploy().Send(req)
-	}
-	return hydrav1.NewDeployServiceClient(ctx, deploymentID).Deploy().Send(req)
 }
 
 // postAwaitingApprovalStatus posts a failing commit status on the pushed commit

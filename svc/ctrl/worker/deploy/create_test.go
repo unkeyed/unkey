@@ -1269,7 +1269,7 @@ func newCreateHarness(t *testing.T, ctx context.Context) *createHarness {
 		requests: make(map[string]*hydrav1.DeployRequest),
 	}
 
-	cfg := containers.Restate(t, hydrav1.NewDeployServiceServer(recorder))
+	cfg := containers.Restate(t, hydrav1.NewDeployWorkflowServer(recorder))
 
 	h := &createHarness{
 		database:      database,
@@ -1293,7 +1293,7 @@ type createDeployRecorder struct {
 	requests map[string]*hydrav1.DeployRequest
 }
 
-func (r *createDeployRecorder) Deploy(_ restate.ObjectContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
+func (r *createDeployRecorder) Deploy(_ restate.WorkflowContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.requests[req.GetDeploymentId()] = req
@@ -1314,7 +1314,7 @@ func (h *createHarness) create(t *testing.T, ctx context.Context, deploymentID s
 }
 
 func (h *createHarness) tryCreate(ctx context.Context, deploymentID string, req *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
-	return hydrav1.NewDeployServiceIngressClient(h.client, deploymentID).Create().Request(ctx, req)
+	return hydrav1.NewDeployWorkflowIngressClient(h.client, deploymentID).Create().Request(ctx, req)
 }
 
 // imageRequest is a create that needs no GitHub and no repository connection,

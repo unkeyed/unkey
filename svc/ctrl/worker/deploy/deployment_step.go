@@ -14,10 +14,10 @@ import (
 )
 
 func (w *Workflow) DeploymentStep(
-	ctx restate.ObjectContext,
+	ctx restate.WorkflowContext,
 	step db.DeploymentStepsStep,
 	deployment db.Deployment,
-	fn func(innerCtx restate.ObjectContext) error,
+	fn func(innerCtx restate.WorkflowContext) error,
 ) error {
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		now := time.Now().UnixMilli()

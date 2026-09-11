@@ -83,7 +83,7 @@ const (
 //
 // Returns terminal errors for validation failures and retryable errors for
 // transient system failures.
-func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest) (_ *hydrav1.DeployResponse, retErr error) {
+func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployRequest) (_ *hydrav1.DeployResponse, retErr error) {
 	err := assert.All(
 		assert.NotEmpty(req.GetDeploymentId(), "deployment_id is required"),
 	)
@@ -196,7 +196,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	)
 
 	// --- Starting ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepStarting, deployment, func(stepCtx restate.ObjectContext) error {
+	err = w.DeploymentStep(ctx, db.DeploymentStepsStepStarting, deployment, func(stepCtx restate.WorkflowContext) error {
 		// Backstop only: the create-time gates (API, ctrl) reject these before
 		// enqueue. If one is ever reached here, fail the step with a message the
 		// read-path classifier maps to InvalidRuntimeSettings.
@@ -268,7 +268,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	}
 
 	// --- Build ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepBuilding, deployment, func(stepCtx restate.ObjectContext) error {
+	err = w.DeploymentStep(ctx, db.DeploymentStepsStepBuilding, deployment, func(stepCtx restate.WorkflowContext) error {
 		return w.buildImage(stepCtx, req, &deployment)
 	})
 	if err != nil {
@@ -285,13 +285,13 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	})
 
 	// --- Deploy ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepDeploying, deployment, func(stepCtx restate.ObjectContext) error {
+	err = w.DeploymentStep(ctx, db.DeploymentStepsStepDeploying, deployment, func(stepCtx restate.WorkflowContext) error {
 		topologies, err := w.createTopologies(stepCtx, compensation, workspace, deployment)
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Regional deployment targets could not be prepared."))
 		}
 
-		if err = w.waitForDeployments(stepCtx, compensation, deployment.ID, topologies); err != nil {
+		if err = w.waitForDeployments(stepCtx, deployment.ID, topologies); err != nil {
 			return fault.Wrap(err, fault.Public("Instances did not become healthy in time."))
 		}
 		return nil
@@ -310,7 +310,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	})
 
 	// --- Network ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepNetwork, deployment, func(stepCtx restate.ObjectContext) error {
+	err = w.DeploymentStep(ctx, db.DeploymentStepsStepNetwork, deployment, func(stepCtx restate.WorkflowContext) error {
 		return w.configureRouting(stepCtx, workspace, project, app, environment, deployment)
 	})
 	if err != nil {
@@ -322,7 +322,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	}
 
 	// --- Finalize ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepFinalizing, deployment, func(stepCtx restate.ObjectContext) error {
+	err = w.DeploymentStep(ctx, db.DeploymentStepsStepFinalizing, deployment, func(stepCtx restate.WorkflowContext) error {
 		// A cancel can land in the database while this step runs and this
 		// handler only learns of it at its next Restate call. A plain update
 		// would then overwrite cancelled with ready while the compensations
