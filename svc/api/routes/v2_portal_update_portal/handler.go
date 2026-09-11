@@ -189,9 +189,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		mappingProjectID := ""
 		if repoint {
-			mappingProjectID, err = portal.ResolveMappingProject(ctx, tx, principal.AuthorizedWorkspaceID, mapping)
+			mappingProjectID, err := portal.ResolveMappingProject(ctx, tx, principal.AuthorizedWorkspaceID, mapping)
 			if err != nil {
 				return empty, err
 			}
@@ -221,8 +220,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			AppID:                 sql.NullString{String: "", Valid: false},
 			KeyAuthIDSpecified:    0,
 			KeyAuthID:             sql.NullString{String: "", Valid: false},
-			ProjectIDSpecified:    0,
-			ProjectID:             "",
 			EnabledSpecified:      0,
 			Enabled:               false,
 			LogoUrlSpecified:      0,
@@ -257,20 +254,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		// The association flags are set together or not at all, since setting one
 		// alone is the write that could leave a row with both associations, which
-		// only the application prevents. `project_id` rides with them: a row whose
-		// project disagreed with its mapping would be authorized under a project
-		// it does not belong to.
+		// only the application prevents.
 		mappingChanged := false
 		if repoint {
 			params.AppID = mappingAppID
 			params.AppIDSpecified = 1
 			params.KeyAuthID = mappingKeyAuthID
 			params.KeyAuthIDSpecified = 1
-			params.ProjectID = mappingProjectID
-			params.ProjectIDSpecified = 1
 			after.AppID = mappingAppID
 			after.KeyAuthID = mappingKeyAuthID
-			after.ProjectID = mappingProjectID
 			// Compared through the same absent-semantics the rest of the package
 			// uses, not raw NullString equality: a legacy row can hold a Valid but
 			// empty column, and treating that as different from NULL would report a

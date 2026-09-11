@@ -253,8 +253,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	now := h.Clock.Now()
-
 	verbs := make([]string, len(req.Scopes))
 	for i, p := range req.Scopes {
 		verbs[i] = string(p)
@@ -300,7 +298,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		ScopesJSON:  scopesJSON,
 		Preview:     preview,
 		ReturnURL:   returnURL,
-		Now:         now,
 	})
 	if err != nil {
 		return err
@@ -332,7 +329,6 @@ type mintRequest struct {
 	ScopesJSON  []byte
 	Preview     bool
 	ReturnURL   sql.NullString
-	Now         time.Time
 }
 
 // mintSession is the single seam every portal session is minted through, so
@@ -347,13 +343,13 @@ func (h *Handler) mintSession(
 		return "", "", err
 	}
 
-	workspaceID := principal.AuthorizedWorkspaceID
 	sessionID := uid.New(uid.PortalSessionPrefix)
 
 	// The exchange code is a bearer credential: it is returned to the caller
 	// once, embedded in the redirect URL, and stored only as a hash.
 	exchangeCode := string(uid.PortalExchangeCodePrefix) + "_" + uid.Secure()
-	exchangeCodeExpiresAt := req.Now.Add(15 * time.Minute).UnixMilli()
+	now := h.Clock.Now()
+	exchangeCodeExpiresAt := now.Add(15 * time.Minute).UnixMilli()
 
 	err := db.Tx(ctx, h.DB.RW(), func(txCtx context.Context, tx db.DBTX) error {
 		// Re-read on the primary inside the write transaction. The resolve above
@@ -367,7 +363,7 @@ func (h *Handler) mintSession(
 		// caller a retry; losing it silently costs an end user access that was
 		// supposed to be cut.
 		if _, txErr := db.Query.FindPortalByIdOrSlug(txCtx, tx, db.FindPortalByIdOrSlugParams{
-			WorkspaceID: workspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			Portal:      req.Portal.ID,
 		}); txErr != nil {
 			if db.IsNotFound(txErr) {
@@ -386,7 +382,7 @@ func (h *Handler) mintSession(
 
 		if txErr := db.Query.InsertPortalSession(txCtx, tx, db.InsertPortalSessionParams{
 			ID:                    sessionID,
-			WorkspaceID:           workspaceID,
+			WorkspaceID:           principal.AuthorizedWorkspaceID,
 			PortalID:              req.Portal.ID,
 			ExternalID:            req.ExternalID,
 			Scopes:                req.ScopesJSON,
@@ -394,7 +390,7 @@ func (h *Handler) mintSession(
 			ExchangeCodeHash:      hash.Sha256(exchangeCode),
 			ExchangeCodeExpiresAt: exchangeCodeExpiresAt,
 			ReturnUrl:             req.ReturnURL,
-			CreatedAt:             req.Now.UnixMilli(),
+			CreatedAt:             now.UnixMilli(),
 		}); txErr != nil {
 			return fault.Wrap(txErr,
 				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
@@ -409,7 +405,7 @@ func (h *Handler) mintSession(
 		if txErr := h.Auditlogs.Insert(txCtx, tx, []auditlog.AuditLog{
 			{
 				Event:         auditlog.PortalSessionCreateEvent,
-				WorkspaceID:   workspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 				ActorID:       principal.Subject.ID,
 				ActorName:     principal.Subject.Name,
@@ -574,7 +570,6 @@ func CanonicalScopeQueries(
 	workspaceID string,
 	projectID string,
 	keyspaceID string,
-	storeEncryptedKeys bool,
 ) ([]rbac.PermissionQuery, bool) {
 	keyspace := urn.New().Workspace(workspaceID).Project(projectID).Keyspace(keyspaceID)
 
@@ -590,15 +585,10 @@ func CanonicalScopeQueries(
 		}, true
 
 	case openapi.KeysReroll:
-		// The reroll route's canonical create and encryption arms are the same
-		// key-write leaf, so the encryption conjunct is degenerate here. It is
-		// spelled out anyway to mirror the route: a ceiling stricter than the
-		// route would refuse mints the operator endpoint allows.
-		queries := []rbac.PermissionQuery{rbac.U(anyKey, permissions.Write)}
-		if storeEncryptedKeys {
-			queries = append(queries, rbac.U(anyKey, permissions.Write))
-		}
-		return queries, true
+		// There is no separate encryption requirement canonically: the reroll
+		// route resolves both create_key and encrypt_key to key write, so this
+		// is weaker than the legacy form it sits beside.
+		return []rbac.PermissionQuery{rbac.U(anyKey, permissions.Write)}, true
 
 	default:
 		return nil, false
@@ -617,8 +607,6 @@ func (h *Handler) authorizeScopes(
 	keyspaceIDs []string,
 	scopes []openapi.V2PortalCreateSessionRequestBodyScopes,
 ) error {
-	workspaceID := portal.WorkspaceID
-
 	// Fail closed. Every check below is a conjunction, and rbac.And over an
 	// empty child list is valid, so an empty keyspace or scope list would mint
 	// an unchecked session.
@@ -630,7 +618,7 @@ func (h *Handler) authorizeScopes(
 		)
 	}
 
-	owners, err := h.ownersByKeyspace(ctx, workspaceID, keyspaceIDs)
+	owners, err := h.ownersByKeyspace(ctx, portal.WorkspaceID, keyspaceIDs)
 	if err != nil {
 		return err
 	}
@@ -639,7 +627,7 @@ func (h *Handler) authorizeScopes(
 		return err
 	}
 
-	encrypted, err := h.encryptionByKeyspace(ctx, workspaceID, keyspaceIDs)
+	encrypted, err := h.encryptionByKeyspace(ctx, portal.WorkspaceID, keyspaceIDs)
 	if err != nil {
 		return err
 	}
@@ -667,7 +655,7 @@ func (h *Handler) authorizeScopes(
 			// in legacy tuples and another canonically.
 			arms := []rbac.PermissionQuery{rbac.And(legacy...)}
 			if canonical, hasCanonical := CanonicalScopeQueries(
-				scope, workspaceID, owner.ProjectID, keyspaceID, encrypted[keyspaceID],
+				scope, portal.WorkspaceID, owner.ProjectID, keyspaceID,
 			); hasCanonical {
 				arms = append(arms, rbac.And(canonical...))
 			}
@@ -713,7 +701,7 @@ func requireSameProject(portal db.Portal, keyspaceIDs []string, owners map[strin
 			continue
 		}
 
-		logger.Error("portal resolved a keyspace outside its project",
+		logger.Warn("portal resolved a keyspace outside its project",
 			slog.String("workspace_id", portal.WorkspaceID),
 			slog.String("portal_id", portal.ID),
 			slog.String("portal_project_id", portal.ProjectID),

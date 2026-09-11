@@ -72,7 +72,7 @@ func TestCanonicalScopeQueriesDeniesUnmappedScope(t *testing.T) {
 		for _, s := range []openapi.V2PortalCreateSessionRequestBodyScopes{
 			openapi.KeysRead, openapi.KeysReroll,
 		} {
-			queries, ok := handler.CanonicalScopeQueries(s, workspaceID, projectID, keyspaceID, false)
+			queries, ok := handler.CanonicalScopeQueries(s, workspaceID, projectID, keyspaceID)
 			require.True(t, ok, "scope %q must map", s)
 			require.NotEmpty(t, queries, "scope %q must produce at least one check", s)
 		}
@@ -82,14 +82,14 @@ func TestCanonicalScopeQueriesDeniesUnmappedScope(t *testing.T) {
 		for _, s := range []openapi.V2PortalCreateSessionRequestBodyScopes{
 			"keys:destroy", "analytics:read", "keys:create",
 		} {
-			queries, ok := handler.CanonicalScopeQueries(s, workspaceID, projectID, keyspaceID, false)
+			queries, ok := handler.CanonicalScopeQueries(s, workspaceID, projectID, keyspaceID)
 			require.False(t, ok, "scope %q must deny, not be skipped", s)
 			require.Empty(t, queries)
 		}
 	})
 
 	t.Run("the read requirement is a conjunction of key and keyspace read", func(t *testing.T) {
-		queries, ok := handler.CanonicalScopeQueries(openapi.KeysRead, workspaceID, projectID, keyspaceID, false)
+		queries, ok := handler.CanonicalScopeQueries(openapi.KeysRead, workspaceID, projectID, keyspaceID)
 		require.True(t, ok)
 		require.Len(t, queries, 2)
 	})

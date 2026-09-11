@@ -29,10 +29,6 @@ SET
         WHEN CAST(? AS UNSIGNED) = 1 THEN ?
         ELSE p.key_auth_id
     END,
-    project_id = CASE
-        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-        ELSE p.project_id
-    END,
     enabled = CASE
         WHEN CAST(? AS UNSIGNED) = 1 THEN ?
         ELSE p.enabled
@@ -59,8 +55,6 @@ type UpdatePortalParams struct {
 	AppID                 sql.NullString `db:"app_id"`
 	KeyAuthIDSpecified    int64          `db:"key_auth_id_specified"`
 	KeyAuthID             sql.NullString `db:"key_auth_id"`
-	ProjectIDSpecified    int64          `db:"project_id_specified"`
-	ProjectID             string         `db:"project_id"`
 	EnabledSpecified      int64          `db:"enabled_specified"`
 	Enabled               bool           `db:"enabled"`
 	LogoUrlSpecified      int64          `db:"logo_url_specified"`
@@ -86,12 +80,13 @@ type UpdatePortalParams struct {
 // remove the row between resolving it and this statement.
 //
 // Each field carries a `_specified` flag so an omitted field keeps its stored
-// value. `slug`, `display_name`, `project_id` and `enabled` are NOT NULL and take
-// sqlc.arg; the two associations and the two branding columns are nullable and
-// take sqlc.narg, so an explicit null clears them.
+// value. `slug`, `display_name` and `enabled` are NOT NULL and take sqlc.arg;
+// the two associations and the two branding columns are nullable and take
+// sqlc.narg, so an explicit null clears them.
 //
-// `project_id` moves with the associations rather than on its own, so a remap
-// can never leave the row naming a project its mapping no longer belongs to.
+// `project_id` is absent because a portal cannot change project: a remap to
+// another project is refused before this runs, so the stored value always
+// already matches the mapping.
 //
 //	UPDATE portals p
 //	SET
@@ -110,10 +105,6 @@ type UpdatePortalParams struct {
 //	    key_auth_id = CASE
 //	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 //	        ELSE p.key_auth_id
-//	    END,
-//	    project_id = CASE
-//	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-//	        ELSE p.project_id
 //	    END,
 //	    enabled = CASE
 //	        WHEN CAST(? AS UNSIGNED) = 1 THEN ?
@@ -140,8 +131,6 @@ func (q *Queries) UpdatePortal(ctx context.Context, db DBTX, arg UpdatePortalPar
 		arg.AppID,
 		arg.KeyAuthIDSpecified,
 		arg.KeyAuthID,
-		arg.ProjectIDSpecified,
-		arg.ProjectID,
 		arg.EnabledSpecified,
 		arg.Enabled,
 		arg.LogoUrlSpecified,
