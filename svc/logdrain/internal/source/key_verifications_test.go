@@ -30,6 +30,7 @@ func TestKeyVerificationsRead_Payload(t *testing.T) {
 	require.Len(t, events, 1)
 	require.Equal(t, "req_1", events[0].EventID)
 	require.Equal(t, "key_verifications", events[0].Stream)
+	require.Equal(t, now-3600000, events[0].Time)
 	require.GreaterOrEqual(t, cursor.Time, now)
 	require.Equal(t, events[0].EventID, cursor.EventID)
 	encoded, err := json.Marshal(events[0].Payload)

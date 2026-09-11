@@ -248,11 +248,7 @@ function SourcesField({ stream }: { stream: "gateway_requests" | "runtime_logs" 
     if (unavailable) {
       return;
     }
-    const everything = next.size > 0 && next.size === allIds.length;
-    const encoded = everything
-      ? { projectIds: [], appIds: [], environmentIds: [] }
-      : encodeSources(tree, next);
-    const selection = { ...encoded, mode: everything ? ("all" as const) : ("some" as const) };
+    const selection = { ...encodeSources(tree, next), mode: "some" as const };
     if (sourceMode === "some" && unavailableFilters.length > 0) {
       setReplacement(selection);
       return;
@@ -299,95 +295,137 @@ function SourcesField({ stream }: { stream: "gateway_requests" | "runtime_logs" 
     <fieldset disabled={unavailable} className="flex flex-col gap-1.5">
       <legend className="text-[13px] text-gray-11">Sources</legend>
       <span className="text-xs text-gray-9">
+        {sourceMode === "all"
+          ? "All sources in this workspace. No project, app, or environment restrictions."
+          : "Select at least one project, app, or environment."}{" "}
         {stream === "runtime_logs"
-          ? "Tick the projects, apps or environments whose logs this drain receives."
-          : "Tick the projects, apps or environments whose requests this drain receives."}
+          ? "Severity filters still apply."
+          : "HTTP status filters still apply."}
       </span>
-
-      <div className="mt-1.5 overflow-hidden rounded-lg border border-gray-5">
-        <div className="flex items-center gap-2 border-b border-gray-4 px-2.5 py-2">
-          <Magnifier iconSize="sm-regular" className="shrink-0 text-gray-9" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search projects, apps, environments"
-            aria-label="Search sources"
-            className="w-full bg-transparent text-[13px] text-accent-12 placeholder:text-gray-9 focus:outline-hidden"
-          />
-        </div>
-
-        <div className="max-h-[264px] overflow-y-auto py-1">
-          {notice ? <p className="px-3 py-2 text-xs text-gray-9">{notice}</p> : null}
-          {visible.map(({ project, apps }) => {
-            const projectEnvironmentIds = project.apps.flatMap((app) =>
-              app.environments.map((environment) => environment.id),
-            );
-            const expanded = !collapsed.includes(project.id) || term !== "";
-            return (
-              <div key={project.id}>
-                <SourceRow
-                  depth={0}
-                  checked={checkedState(projectEnvironmentIds, selected)}
-                  label={project.name}
-                  meta={countLabel(project.apps.length, "app")}
-                  expanded={expanded}
-                  onExpand={() =>
-                    setCollapsed(
-                      collapsed.includes(project.id)
-                        ? collapsed.filter((id) => id !== project.id)
-                        : [...collapsed, project.id],
-                    )
-                  }
-                  onToggle={() => toggle(projectEnvironmentIds)}
-                />
-                {expanded
-                  ? apps.map((app) => (
-                      <div key={app.id}>
-                        <SourceRow
-                          depth={1}
-                          checked={checkedState(
-                            app.environments.map((environment) => environment.id),
-                            selected,
-                          )}
-                          label={app.name}
-                          meta={countLabel(app.environments.length, "environment")}
-                          onToggle={() =>
-                            toggle(app.environments.map((environment) => environment.id))
-                          }
-                        />
-                        {app.environments.map((environment) => (
-                          <SourceRow
-                            key={environment.id}
-                            depth={2}
-                            checked={selected.has(environment.id) ? "on" : "off"}
-                            label={environment.name}
-                            onToggle={() => toggle([environment.id])}
-                          />
-                        ))}
-                      </div>
-                    ))
-                  : null}
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="flex items-center justify-between border-t border-gray-4 bg-grayA-2 px-3 py-2">
-          <span className="text-xs text-gray-11">
-            {sourceMode === "all"
-              ? `All ${countLabel(allIds.length, "environment")}`
-              : `${selected.size} of ${countLabel(allIds.length, "environment")}`}
-          </span>
-          <button
-            type="button"
-            onClick={() => choose(sourceMode === "all" ? new Set() : new Set(allIds))}
-            className="text-xs text-gray-11 underline underline-offset-2 hover:text-accent-12"
+      <RadioGroup
+        aria-label="Source scope"
+        value={sourceMode}
+        onValueChange={(mode) => {
+          if (mode !== "all" && mode !== "some") {
+            return;
+          }
+          const selection = { projectIds, appIds, environmentIds, mode };
+          if (mode === "all" && sourceMode === "some" && unavailableFilters.length > 0) {
+            setReplacement(selection);
+          } else {
+            applySelection(selection);
+          }
+        }}
+        className="mt-1.5 grid gap-2 sm:grid-cols-2"
+      >
+        {[
+          { id: "all", title: "All sources" },
+          { id: "some", title: "Specific sources" },
+        ].map((option) => (
+          <Radio.Root
+            key={option.id}
+            value={option.id}
+            className="group flex items-center gap-3 rounded-lg border border-grayA-4 px-3 py-2.5 transition-colors duration-150 ease-out focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-7 data-checked:border-grayA-8 data-checked:bg-grayA-2"
           >
-            {sourceMode === "all" ? "Clear all" : "Select all"}
-          </button>
-        </div>
-      </div>
+            <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-gray-7 transition-colors duration-150 ease-out group-data-checked:border-accent-12">
+              <Radio.Indicator className="size-2 rounded-full bg-accent-12" />
+            </span>
+            <span className="text-[13px] text-accent-12">{option.title}</span>
+          </Radio.Root>
+        ))}
+      </RadioGroup>
+      {sourceMode === "some" ? (
+        <div className="mt-1.5 overflow-hidden rounded-lg border border-gray-5">
+          <div className="flex items-center gap-2 border-b border-gray-4 px-2.5 py-2">
+            <Magnifier iconSize="sm-regular" className="shrink-0 text-gray-9" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search projects, apps, environments"
+              aria-label="Search sources"
+              className="w-full bg-transparent text-[13px] text-accent-12 placeholder:text-gray-9 focus:outline-hidden"
+            />
+          </div>
 
+          <div className="max-h-[264px] overflow-y-auto py-1">
+            {notice ? <p className="px-3 py-2 text-xs text-gray-9">{notice}</p> : null}
+            {visible.map(({ project, apps }) => {
+              const projectEnvironmentIds = project.apps.flatMap((app) =>
+                app.environments.map((environment) => environment.id),
+              );
+              const expanded = !collapsed.includes(project.id) || term !== "";
+              return (
+                <div key={project.id}>
+                  <SourceRow
+                    depth={0}
+                    checked={checkedState(projectEnvironmentIds, selected)}
+                    label={project.name}
+                    meta={countLabel(project.apps.length, "app")}
+                    expanded={expanded}
+                    onExpand={() =>
+                      setCollapsed(
+                        collapsed.includes(project.id)
+                          ? collapsed.filter((id) => id !== project.id)
+                          : [...collapsed, project.id],
+                      )
+                    }
+                    onToggle={() => toggle(projectEnvironmentIds)}
+                  />
+                  {expanded
+                    ? apps.map((app) => (
+                        <div key={app.id}>
+                          <SourceRow
+                            depth={1}
+                            checked={checkedState(
+                              app.environments.map((environment) => environment.id),
+                              selected,
+                            )}
+                            label={app.name}
+                            meta={countLabel(app.environments.length, "environment")}
+                            onToggle={() =>
+                              toggle(app.environments.map((environment) => environment.id))
+                            }
+                          />
+                          {app.environments.map((environment) => (
+                            <SourceRow
+                              key={environment.id}
+                              depth={2}
+                              checked={selected.has(environment.id) ? "on" : "off"}
+                              label={environment.name}
+                              onToggle={() => toggle([environment.id])}
+                            />
+                          ))}
+                        </div>
+                      ))
+                    : null}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center justify-between border-t border-gray-4 bg-grayA-2 px-3 py-2">
+            <span className="text-xs text-gray-11">
+              {`${selected.size} of ${countLabel(allIds.length, "environment")}`}
+            </span>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => choose(new Set(allIds))}
+                className="text-xs text-gray-11 underline underline-offset-2 hover:text-accent-12"
+              >
+                Select all
+              </button>
+              <button
+                type="button"
+                onClick={() => choose(new Set())}
+                className="text-xs text-gray-11 underline underline-offset-2 hover:text-accent-12"
+              >
+                Clear all
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {error ? (
         <span role="alert" className="text-xs text-error-11">
           {error}

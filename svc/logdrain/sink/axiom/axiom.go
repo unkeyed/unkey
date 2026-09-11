@@ -121,11 +121,10 @@ func marshalEvents(events []sink.Event) ([]byte, error) {
 	var body bytes.Buffer
 	encoder := json.NewEncoder(&body)
 	for _, event := range events {
-		line := struct {
-			Timestamp string       `json:"_time"`
-			Stream    string       `json:"stream"`
-			Event     sink.Payload `json:"event"`
-		}{sink.FormatTime(event.Time), event.Stream, event.Payload}
+		line, err := event.MarshalRecord(true)
+		if err != nil {
+			return nil, err
+		}
 		if err := encoder.Encode(line); err != nil {
 			return nil, err
 		}

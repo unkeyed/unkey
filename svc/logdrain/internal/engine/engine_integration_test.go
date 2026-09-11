@@ -203,6 +203,10 @@ func TestEngine_Integration(t *testing.T) {
 			require.Equal(c, events[0].id, event["id"])
 			require.NotEmpty(c, event["action"])
 			require.NotNil(c, event["occurred_at"])
+			require.Equal(c, event["occurred_at"], event["time"])
+			require.Equal(c, "audit_logs", event["stream"])
+			require.NotContains(c, event, "event")
+			require.NotContains(c, event, "timestamp")
 			actor := event["actor"].(map[string]any)
 			require.Equal(c, "user", actor["type"])
 			require.Equal(c, "actor_1", actor["id"])
@@ -848,21 +852,11 @@ func hasDelivery(deliveries []schema.LogdrainDeliveryV1, drainID, outcome string
 	return false
 }
 
-// decodeDeliveredEvents parses the default HTTP drain body: one JSON array of
-// {"event":...,"timestamp":...} objects.
+// decodeDeliveredEvents parses the default HTTP drain body: one JSON array of flat records.
 func decodeDeliveredEvents(body []byte) ([]map[string]any, error) {
-	var lines []struct {
-		Event map[string]any `json:"event"`
-	}
-	if err := json.Unmarshal(body, &lines); err != nil {
+	var events []map[string]any
+	if err := json.Unmarshal(body, &events); err != nil {
 		return nil, fmt.Errorf("decode JSON body: %w", err)
-	}
-	events := make([]map[string]any, 0, len(lines))
-	for _, line := range lines {
-		if line.Event == nil {
-			return nil, errors.New("delivered event is not an object")
-		}
-		events = append(events, line.Event)
 	}
 	return events, nil
 }

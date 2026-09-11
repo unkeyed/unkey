@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
+	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
 
 // TestAuditLogsRead_CursorBounds preserves timestamp ties across pages without
@@ -24,6 +25,7 @@ func TestAuditLogsRead_CursorBounds(t *testing.T) {
 	workspaceID := uid.New("workspace")
 	otherWorkspaceID := uid.New("workspace")
 	insertedAt := time.Now().Add(-time.Minute).UnixMilli()
+	occurredAt := time.Now().UTC().Truncate(time.Second).Add(-time.Hour + 123*time.Millisecond)
 
 	t.Cleanup(func() {
 		require.NoError(t, client.Conn().Exec(ctx, `
@@ -48,7 +50,7 @@ func TestAuditLogsRead_CursorBounds(t *testing.T) {
 		require.NoError(t, client.Conn().Exec(ctx, `
 			INSERT INTO audit_logs_raw_v1 (workspace_id, bucket, event_id, time, inserted_at)
 			VALUES (?, 'audit', ?, ?, ?)
-		`, event.workspaceID, event.id, event.insertedAt, event.insertedAt))
+		`, event.workspaceID, event.id, occurredAt.UnixMilli(), event.insertedAt))
 	}
 
 	auditLogs := source.NewAuditLogs(client)
@@ -59,6 +61,10 @@ func TestAuditLogsRead_CursorBounds(t *testing.T) {
 	require.Len(t, firstPage, 2)
 	require.Equal(t, "c", firstPage[0].EventID)
 	require.Equal(t, "d", firstPage[1].EventID)
+	require.Equal(t, occurredAt.UnixMilli(), firstPage[0].Time)
+	payload, ok := firstPage[0].Payload.(sink.AuditLogPayload)
+	require.True(t, ok)
+	require.Equal(t, occurredAt.Format(time.RFC3339Nano), payload.OccurredAt)
 	require.Equal(t, source.Cursor{Time: insertedAt, EventID: "d"}, cursor)
 
 	secondPage, cursor, err := auditLogs.Read(ctx, workspaceID, cursor, toExclusive, 2, nil)

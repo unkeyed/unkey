@@ -17,10 +17,12 @@ func TestDeliverRatelimit(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var record map[string]json.RawMessage
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&record))
-		require.Len(t, record, 3)
 		require.JSONEq(t, `"ratelimits"`, string(record["stream"]))
 		require.JSONEq(t, `"1970-01-01T00:00:00.123Z"`, string(record["_time"]))
-		require.JSONEq(t, `{"request_id":"req","namespace_id":"ns","identifier":"customer\n1","passed":true,"override_id":"override","limit":100,"remaining":97,"tokens":3,"reset_at":10000,"source":"api"}`, string(record["event"]))
+		require.Equal(t, record["_time"], record["time"])
+		body, err := json.Marshal(record)
+		require.NoError(t, err)
+		require.JSONEq(t, `{"stream":"ratelimits","time":"1970-01-01T00:00:00.123Z","_time":"1970-01-01T00:00:00.123Z","request_id":"req","namespace_id":"ns","identifier":"customer\n1","passed":true,"override_id":"override","limit":100,"remaining":97,"tokens":3,"reset_at":10000,"source":"api"}`, string(body))
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	t.Cleanup(server.Close)
@@ -37,7 +39,9 @@ func TestDeliverRuntimeLog(t *testing.T) {
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&record))
 		require.JSONEq(t, `"runtime_logs"`, string(record["stream"]))
 		require.JSONEq(t, `"1970-01-01T00:00:00.123Z"`, string(record["_time"]))
-		require.JSONEq(t, `{"log_id":"rlog_1","severity":"error","message":"first\nsecond","attributes":{"order":{"id":42}},"project_id":"project","app_id":"app","environment_id":"env","deployment_id":"deployment","region":"local"}`, string(record["event"]))
+		body, err := json.Marshal(record)
+		require.NoError(t, err)
+		require.JSONEq(t, `{"stream":"runtime_logs","time":"1970-01-01T00:00:00.123Z","_time":"1970-01-01T00:00:00.123Z","log_id":"rlog_1","severity":"error","message":"first\nsecond","attributes":{"order":{"id":42}},"project_id":"project","app_id":"app","environment_id":"env","deployment_id":"deployment","region":"local"}`, string(body))
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	t.Cleanup(server.Close)
@@ -50,18 +54,17 @@ func TestDeliverRuntimeLog(t *testing.T) {
 
 func TestDeliverGatewayRequest(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var line struct {
-			Time   string         `json:"_time"`
-			Stream string         `json:"stream"`
-			Event  map[string]any `json:"event"`
-		}
+		var line map[string]any
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&line))
-		require.Equal(t, "1970-01-01T00:00:00.123Z", line.Time)
-		require.Equal(t, "gateway_requests", line.Stream)
-		require.Equal(t, "req_gateway", line.Event["request_id"])
-		require.Equal(t, map[string]any{"status": float64(503), "headers": []any{"Content-Type: application/json"}, "body": "response\nbody"}, line.Event["response"])
-		require.Equal(t, map[string]any{"total": float64(0), "instance": float64(41), "gateway": float64(0)}, line.Event["latency"])
-		request, ok := line.Event["request"].(map[string]any)
+		require.Equal(t, "1970-01-01T00:00:00.123Z", line["_time"])
+		require.Equal(t, line["_time"], line["time"])
+		require.NotContains(t, line, "event")
+		require.NotContains(t, line, "timestamp")
+		require.Equal(t, "gateway_requests", line["stream"])
+		require.Equal(t, "req_gateway", line["request_id"])
+		require.Equal(t, map[string]any{"status": float64(503), "headers": []any{"Content-Type: application/json"}, "body": "response\nbody"}, line["response"])
+		require.Equal(t, map[string]any{"total": float64(0), "instance": float64(41), "gateway": float64(0)}, line["latency"])
+		request, ok := line["request"].(map[string]any)
 		require.True(t, ok)
 		require.Equal(t, map[string]any{"tag": []any{"a", "b"}}, request["query_params"])
 		w.WriteHeader(http.StatusNoContent)
@@ -88,11 +91,22 @@ func TestDeliverSuccess(t *testing.T) {
 		require.NoError(t, json.Unmarshal(scanner.Bytes(), &line))
 		require.Equal(t, "1970-01-01T00:00:00.123Z", line["_time"])
 		require.Equal(t, "audit_logs", line["stream"])
-		event, ok := line["event"].(map[string]any)
-		require.True(t, ok)
+		require.Equal(t, line["_time"], line["time"])
+		require.NotContains(t, line, "event")
+		require.Empty(t, r.URL.RawQuery)
+		event := line
 		require.Equal(t, "created", event["action"])
 		require.Equal(t, "evt_1", event["id"])
 		require.True(t, scanner.Scan())
+		var verification map[string]any
+		require.NoError(t, json.Unmarshal(scanner.Bytes(), &verification))
+		require.Equal(t, "key_verifications", verification["stream"])
+		require.Equal(t, "1970-01-01T00:00:00.456Z", verification["time"])
+		require.Equal(t, verification["time"], verification["_time"])
+		require.Equal(t, "req_2", verification["request_id"])
+		require.Equal(t, "VALID", verification["outcome"])
+		require.NotContains(t, verification, "event")
+		require.NotContains(t, verification, "timestamp")
 		require.False(t, scanner.Scan())
 		_, err := w.Write([]byte(`{"ingested":2,"failed":0}`))
 		require.NoError(t, err)
@@ -100,6 +114,7 @@ func TestDeliverSuccess(t *testing.T) {
 	t.Cleanup(server.Close)
 	drain := newTestDrain(t, server.URL, "a dataset", "token")
 	batch := testBatch()
+	batch.Events[1] = sink.Event{EventID: "req_2", Stream: "key_verifications", Time: 456, Payload: sink.KeyVerificationPayload{RequestID: "req_2", Outcome: "VALID"}}
 	expectedBody, err := marshalEvents(batch.Events)
 	require.NoError(t, err)
 	result, err := drain.Deliver(context.Background(), batch)

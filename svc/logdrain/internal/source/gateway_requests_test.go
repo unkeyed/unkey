@@ -43,9 +43,11 @@ func TestGatewayRequestsRead_ByteBoundedPrefix(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, body, payload.Request.Body)
 	require.Equal(t, body, payload.Response.Body)
-	encoded, err := json.Marshal(events)
-	require.NoError(t, err)
-	require.Less(t, len(encoded), 16<<20)
+	for _, axiom := range []bool{false, true} {
+		encoded, err := events[0].MarshalRecord(axiom)
+		require.NoError(t, err)
+		require.Less(t, len(encoded)+2, 16<<20)
+	}
 
 	// Server result counters distinguish a bounded fetch from truncation after Select.
 	require.NoError(t, client.Conn().Exec(t.Context(), "SYSTEM FLUSH LOGS"))

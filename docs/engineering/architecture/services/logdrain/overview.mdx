@@ -372,11 +372,11 @@ or the verification or gateway `request_id` as a deduplication key within its st
 
 ## Verification payload
 
-Each HTTP record contains `event` (the verification payload),
-`stream: "key_verifications"`, and `timestamp`
+Each HTTP record contains the verification fields at the top level,
+`stream: "key_verifications"`, and `time`
 (occurrence time in UTC RFC3339 with millisecond precision). Batch metadata
-stays in request headers. Axiom contains `event`, `stream: "key_verifications"`,
-and `_time` with the same occurrence time. HTTP JSON sends an array; NDJSON
+stays in request headers. Axiom adds `_time` equal to `time` to the same flat
+record. HTTP JSON sends an array; NDJSON
 sends one record per line. `inserted_at` is only an internal cursor field.
 
 The verification payload contains these fields from the raw verification row:

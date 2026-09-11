@@ -30,7 +30,7 @@ func TestDeliverRatelimit(t *testing.T) {
 				} else {
 					require.Equal(t, 1, strings.Count(string(body), "\n"))
 				}
-				require.JSONEq(t, `{"stream":"ratelimits","timestamp":"1970-01-01T00:00:00.123Z","event":{"request_id":"req","namespace_id":"ns","identifier":"customer\n1","passed":false,"limit":100,"remaining":0,"tokens":3,"reset_at":10000,"source":"api"}}`, string(body))
+				require.JSONEq(t, `{"stream":"ratelimits","time":"1970-01-01T00:00:00.123Z","request_id":"req","namespace_id":"ns","identifier":"customer\n1","passed":false,"limit":100,"remaining":0,"tokens":3,"reset_at":10000,"source":"api"}`, string(body))
 				w.WriteHeader(http.StatusNoContent)
 			}))
 			t.Cleanup(server.Close)
@@ -57,7 +57,7 @@ func TestDeliverRuntimeLog(t *testing.T) {
 				} else {
 					require.Equal(t, 1, strings.Count(string(body), "\n"))
 				}
-				require.JSONEq(t, `{"stream":"runtime_logs","timestamp":"1970-01-01T00:00:00.123Z","event":{"log_id":"rlog_1","severity":"error","message":"first\nsecond","attributes":{"order":{"id":42}},"project_id":"project","app_id":"app","environment_id":"env","deployment_id":"deployment","region":"local"}}`, string(body))
+				require.JSONEq(t, `{"stream":"runtime_logs","time":"1970-01-01T00:00:00.123Z","log_id":"rlog_1","severity":"error","message":"first\nsecond","attributes":{"order":{"id":42}},"project_id":"project","app_id":"app","environment_id":"env","deployment_id":"deployment","region":"local"}`, string(body))
 				w.WriteHeader(http.StatusNoContent)
 			}))
 			t.Cleanup(server.Close)
@@ -86,18 +86,16 @@ func TestDeliverGatewayRequest(t *testing.T) {
 					require.Equal(t, "application/x-ndjson", r.Header.Get("Content-Type"))
 					require.True(t, strings.HasSuffix(string(body), "\n"))
 				}
-				var event struct {
-					Timestamp string         `json:"timestamp"`
-					Stream    string         `json:"stream"`
-					Event     map[string]any `json:"event"`
-				}
+				var event map[string]any
 				require.NoError(t, json.Unmarshal(body, &event))
-				require.Equal(t, "gateway_requests", event.Stream)
-				require.Equal(t, "1970-01-01T00:00:00.123Z", event.Timestamp)
-				require.Equal(t, "req_gateway", event.Event["request_id"])
-				require.Equal(t, map[string]any{"status": float64(503), "headers": nil, "body": "response\nbody"}, event.Event["response"])
-				require.Equal(t, map[string]any{"total": float64(53), "instance": float64(0), "gateway": float64(0)}, event.Event["latency"])
-				request, ok := event.Event["request"].(map[string]any)
+				require.Equal(t, "gateway_requests", event["stream"])
+				require.Equal(t, "1970-01-01T00:00:00.123Z", event["time"])
+				require.NotContains(t, event, "event")
+				require.NotContains(t, event, "timestamp")
+				require.Equal(t, "req_gateway", event["request_id"])
+				require.Equal(t, map[string]any{"status": float64(503), "headers": nil, "body": "response\nbody"}, event["response"])
+				require.Equal(t, map[string]any{"total": float64(53), "instance": float64(0), "gateway": float64(0)}, event["latency"])
+				request, ok := event["request"].(map[string]any)
 				require.True(t, ok)
 				require.Equal(t, []any{"Authorization: [REDACTED]"}, request["headers"])
 				require.Equal(t, "request\nbody", request["body"])
@@ -131,9 +129,9 @@ func TestDeliverSuccess(t *testing.T) {
 		var events []map[string]any
 		require.NoError(t, json.Unmarshal(body, &events))
 		require.Len(t, events, 2)
-		require.Equal(t, "1970-01-01T00:00:00.123Z", events[0]["timestamp"])
-		payload, ok := events[0]["event"].(map[string]any)
-		require.True(t, ok)
+		require.Equal(t, "1970-01-01T00:00:00.123Z", events[0]["time"])
+		require.NotContains(t, events[0], "event")
+		payload := events[0]
 		require.Equal(t, "created", payload["action"])
 		require.Equal(t, "evt_1", payload["id"])
 		w.WriteHeader(http.StatusNoContent)
@@ -163,9 +161,9 @@ func TestDeliverNDJSONFormat(t *testing.T) {
 		require.Len(t, lines, 2)
 		var event map[string]any
 		require.NoError(t, json.Unmarshal([]byte(lines[0]), &event))
-		require.Equal(t, "1970-01-01T00:00:00.123Z", event["timestamp"])
-		payload, ok := event["event"].(map[string]any)
-		require.True(t, ok)
+		require.Equal(t, "1970-01-01T00:00:00.123Z", event["time"])
+		require.NotContains(t, event, "event")
+		payload := event
 		require.Equal(t, "created", payload["action"])
 		require.Equal(t, "evt_1", payload["id"])
 		w.WriteHeader(http.StatusNoContent)
@@ -209,6 +207,10 @@ func TestDeliverIncludesStream(t *testing.T) {
 						}
 						require.Len(t, records, 1)
 						require.Equal(t, stream, records[0]["stream"])
+						require.Equal(t, "1970-01-01T00:00:00.123Z", records[0]["time"])
+						require.NotContains(t, records[0], "event")
+						require.NotContains(t, records[0], "timestamp")
+						require.NotContains(t, records[0], "_time")
 						w.WriteHeader(http.StatusNoContent)
 					}))
 					t.Cleanup(server.Close)

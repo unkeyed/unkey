@@ -104,12 +104,16 @@ it("submits only runtime filters after switching from a restricted gateway", asy
   fireEvent.keyDown(await screen.findByRole("option", { name: "Gateway HTTP requests" }), {
     key: "Enter",
   });
-  fireEvent.click(await screen.findByRole("checkbox", { name: /Analytics/ }));
+  fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
+  fireEvent.click(await screen.findByRole("checkbox", { name: /Store/ }));
   fireEvent.click(screen.getByRole("radio", { name: "Custom" }));
   fireEvent.click(screen.getByRole("combobox", { name: "Stream" }));
   fireEvent.keyDown(await screen.findByRole("option", { name: "Runtime logs" }), { key: "Enter" });
-  expect(await screen.findByText("All 3 environments")).toBeTruthy();
-  fireEvent.click(screen.getByRole("checkbox", { name: /Store/ }));
+  expect(screen.getByRole("radio", { name: "All sources" }).getAttribute("aria-checked")).toBe(
+    "true",
+  );
+  fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
+  fireEvent.click(screen.getByRole("checkbox", { name: /Analytics/ }));
   fireEvent.click(screen.getByRole("button", { name: "Create Log Drain" }));
   await waitFor(() =>
     expect(createDrain.mock.calls[0]?.[0]).toEqual({
@@ -125,11 +129,62 @@ it("submits only runtime filters after switching from a restricted gateway", asy
   );
 });
 
+it.each(["Gateway HTTP requests", "Runtime logs"])(
+  "retains Specific selections but submits no resource restrictions in All for %s",
+  async (stream) => {
+    render(<CreateLogdrainPanel isOpen onClose={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /HTTP POST batches/ }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Name Required" }), {
+      target: { value: "Export" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "URL" }), {
+      target: { value: "https://example.com/ingest" },
+    });
+    fireEvent.click(screen.getByRole("combobox", { name: "Stream" }));
+    fireEvent.keyDown(await screen.findByRole("option", { name: stream }), { key: "Enter" });
+    expect(screen.getByRole("radio", { name: "All sources" }).getAttribute("aria-checked")).toBe(
+      "true",
+    );
+    expect(screen.getByText(/All sources in this workspace/)).toBeTruthy();
+    expect(screen.queryByLabelText("Search sources")).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create Log Drain" }));
+    expect(await screen.findByText("Choose at least one source")).toBeTruthy();
+    expect(createDrain).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("checkbox", { name: /Store/ }));
+    fireEvent.click(screen.getByRole("radio", { name: "All sources" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create Log Drain" }));
+    await waitFor(() =>
+      expect(createDrain.mock.calls[0]?.[0]).toMatchObject({
+        projectIds: [],
+        appIds: [],
+        environmentIds: [],
+      }),
+    );
+    fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
+    expect(screen.getByRole("checkbox", { name: /Store/ }).getAttribute("aria-checked")).toBe(
+      "true",
+    );
+    expect(screen.getByRole("checkbox", { name: /Analytics/ }).getAttribute("aria-checked")).toBe(
+      "false",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Create Log Drain" }));
+    await waitFor(() =>
+      expect(createDrain.mock.calls[1]?.[0]).toMatchObject({
+        projectIds: ["project"],
+        appIds: [],
+        environmentIds: [],
+      }),
+    );
+  },
+);
+
 it("clears an empty source tree without treating it as unrestricted", () => {
   sourceState.empty = true;
   render(<Form />);
   fireEvent.click(screen.getByText("Runtime"));
-  fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  expect(screen.getByText(/All sources in this workspace/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
   expect(screen.getByText("0 of 0 environments")).toBeTruthy();
 });
 
@@ -180,6 +235,26 @@ it("keeps unavailable gateway constraints when a loaded selection change is canc
       sourceMode: "some",
       projectIds: ["project"],
       appIds: [],
+      environmentIds: ["env", "deleted-env"],
+    }),
+  );
+  fireEvent.click(screen.getByRole("radio", { name: "All sources" }));
+  expect(screen.getByRole("alertdialog")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Keep current filters" }));
+  expect(screen.getByRole("radio", { name: "Specific sources" }).getAttribute("aria-checked")).toBe(
+    "true",
+  );
+  fireEvent.click(screen.getByRole("radio", { name: "All sources" }));
+  fireEvent.click(screen.getByRole("button", { name: "Replace filters" }));
+  expect(screen.getByRole("radio", { name: "All sources" }).getAttribute("aria-checked")).toBe(
+    "true",
+  );
+  fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
+  fireEvent.click(screen.getByRole("button", { name: "Save" }));
+  await waitFor(() =>
+    expect(onSave.mock.calls[1]?.[0]).toMatchObject({
+      sourceMode: "some",
+      projectIds: ["project"],
       environmentIds: ["env", "deleted-env"],
     }),
   );
@@ -309,6 +384,7 @@ it("keeps runtime severity separate and preserves clearing across stream changes
   render(<Form />);
   fireEvent.click(screen.getByText("Runtime"));
   expect(screen.getByText("error")).toBeTruthy();
+  fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
   expect(screen.getByLabelText("Search sources")).toBeTruthy();
   expect(screen.queryByLabelText("Search HTTP statuses")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Remove" }));
@@ -392,7 +468,9 @@ it("ticks a whole project and reports a partial one", () => {
     );
   }
   render(<TreeForm />);
-  expect(screen.getByText("All 3 environments")).toBeTruthy();
+  fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
+  fireEvent.click(screen.getByRole("button", { name: "Select all" }));
+  expect(screen.getByText("3 of 3 environments")).toBeTruthy();
 
   fireEvent.click(screen.getByRole("checkbox", { name: /Analytics/ }));
   expect(screen.getByText("2 of 3 environments")).toBeTruthy();
@@ -407,7 +485,7 @@ it("ticks a whole project and reports a partial one", () => {
   expect(values[0].environmentIds).toEqual(["env"]);
 });
 
-it("returns to every source when all of them are ticked again", () => {
+it("keeps Specific mode when every current source is ticked", () => {
   const values: DrainFormValues[] = [];
   function TreeForm() {
     const form = useForm<DrainFormValues>({
@@ -429,8 +507,9 @@ it("returns to every source when all of them are ticked again", () => {
   expect(screen.getByText("2 of 3 environments")).toBeTruthy();
 
   fireEvent.click(screen.getByRole("checkbox", { name: /Analytics/ }));
-  expect(screen.getByText("All 3 environments")).toBeTruthy();
-  expect(values[0].sourceMode).toBe("all");
+  expect(screen.getByText("3 of 3 environments")).toBeTruthy();
+  expect(values[0].sourceMode).toBe("some");
+  expect(values[0].projectIds).toEqual(["project", "other-project"]);
   expect(values[0].appIds).toEqual([]);
 });
 
@@ -446,6 +525,8 @@ it("shows nothing selected after clearing every source", () => {
     );
   }
   render(<TreeForm />);
+  fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
+  fireEvent.click(screen.getByRole("button", { name: "Select all" }));
   fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
   expect(screen.getByText("0 of 3 environments")).toBeTruthy();
   expect(screen.getByRole("checkbox", { name: /Store/ }).getAttribute("aria-checked")).toBe(
@@ -457,16 +538,17 @@ it.each(["loading", "failed"] as const)("does not change sources while queries a
   sourceState[state] = true;
   render(<Form />);
   fireEvent.click(screen.getByText("Gateway"));
-  fireEvent.click(screen.getByRole("checkbox", { name: /Store/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
-  expect(screen.getByText("All 3 environments")).toBeTruthy();
+  fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
+  expect(screen.getByRole("radio", { name: "All sources" }).getAttribute("aria-checked")).toBe(
+    "true",
+  );
 });
 
 it("keeps a searched project checkbox bound to every app in that project", () => {
   sourceState.combined = true;
   render(<Form />);
   fireEvent.click(screen.getByText("Gateway"));
-  fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
   fireEvent.click(screen.getByRole("checkbox", { name: /Backend/ }));
   fireEvent.change(screen.getByLabelText("Search sources"), { target: { value: "Backend" } });
   expect(screen.queryByRole("checkbox", { name: /Reports/ })).toBeNull();
@@ -474,7 +556,7 @@ it("keeps a searched project checkbox bound to every app in that project", () =>
     "mixed",
   );
   fireEvent.click(screen.getByRole("checkbox", { name: /Store/ }));
-  expect(screen.getByText("All 3 environments")).toBeTruthy();
+  expect(screen.getByText("3 of 3 environments")).toBeTruthy();
 });
 
 function SubmitForm({
