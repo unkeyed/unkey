@@ -19,11 +19,11 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
 } from "react";
-
-const LIVE_SWAP_POLL_INTERVAL_MS = 2_000;
-const LIVE_SWAP_TIMEOUT_MS = 60_000;
+import {
+  type LiveDeploymentTarget,
+  useAwaitLiveDeployment,
+} from "./hooks/use-await-live-deployment";
 
 type ProjectDataContextType = {
   projectId: string;
@@ -54,16 +54,7 @@ type ProjectDataContextType = {
   refetchDeployments: () => void;
   refetchCustomDomains: () => void;
   refetchAll: () => void;
-  // Promote, rollback and undo-rollback return 202 and swap the live deployment
-  // in a Restate workflow after the response. Call this with the state the app
-  // should reach; the provider polls the app until it does, then refreshes
-  // every cache that shows the live deployment.
   awaitLiveDeployment: (target: LiveDeploymentTarget) => void;
-};
-
-type LiveDeploymentTarget = {
-  deploymentId: string;
-  rolledBack: boolean;
 };
 
 const ProjectDataContext = createContext<ProjectDataContextType | null>(null);
@@ -145,36 +136,7 @@ export const ProjectDataProvider = ({
     collection.customDomains.utils.refetch();
   }, [refetchDeployments]);
 
-  const [liveTarget, setLiveTarget] = useState<LiveDeploymentTarget | null>(null);
-  const awaitLiveDeployment = useCallback((target: LiveDeploymentTarget) => {
-    setLiveTarget(target);
-    collection.apps.utils.refetch();
-  }, []);
-  useCollectionPolling(() => collection.apps.utils.refetch(), {
-    intervalMs: LIVE_SWAP_POLL_INTERVAL_MS,
-    enabled: liveTarget !== null,
-  });
-  const liveTargetReached =
-    liveTarget !== null &&
-    app?.currentDeploymentId === liveTarget.deploymentId &&
-    app.isRolledBack === liveTarget.rolledBack;
-  useEffect(() => {
-    if (!liveTargetReached) {
-      return;
-    }
-    setLiveTarget(null);
-    refetchAll();
-  }, [liveTargetReached, refetchAll]);
-  useEffect(() => {
-    if (liveTarget === null) {
-      return;
-    }
-    const id = setTimeout(() => {
-      setLiveTarget(null);
-      refetchAll();
-    }, LIVE_SWAP_TIMEOUT_MS);
-    return () => clearTimeout(id);
-  }, [liveTarget, refetchAll]);
+  const awaitLiveDeployment = useAwaitLiveDeployment(app, refetchAll);
 
   // refetch domains only when current deployment actually changes (not on initial mount/hydration)
   const prevDeploymentIdRef = useRef(currentDeploymentId);
@@ -218,13 +180,13 @@ export const ProjectDataProvider = ({
     [projectId, appId],
   );
 
-  const hasInFlightDeployment = (deploymentsQuery.data ?? []).some(isDeploymentSettling);
+  const hasSettlingDeployment = (deploymentsQuery.data ?? []).some(isDeploymentSettling);
   const hasPendingDomain = (customDomainsQuery.data ?? []).some(
     (d) => d.verificationStatus === "pending" || d.verificationStatus === "verifying",
   );
   useCollectionPolling(() => collection.deployments.utils.refetch(), {
     intervalMs: 5000,
-    enabled: hasInFlightDeployment,
+    enabled: hasSettlingDeployment,
   });
   useCollectionPolling(() => collection.customDomains.utils.refetch(), {
     intervalMs: 5000,
