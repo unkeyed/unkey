@@ -1,0 +1,20 @@
+type: object
+additionalProperties: false
+properties:
+  http:
+    type: object
+    required: [url, format, headers]
+    additionalProperties: false
+    properties:
+      url: { type: string }
+      format: { type: string, enum: [json, ndjson] }
+      headers:
+        type: array
+        description: Header names only. Values remain encrypted and are never returned.
+        items: { type: string }
+  axiom:
+    type: object
+    required: [dataset]
+    additionalProperties: false
+    properties:
+      dataset: { type: string }

@@ -27,7 +27,7 @@ func TestService_LeaseOwnership(t *testing.T) {
 	nodeTime := time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
 	nodeTimeMillis := nodeTime.UnixMilli()
 	testClock := clock.NewTestClock(nodeTime)
-	mysqlConfig := containers.MySQL(t)
+	mysqlConfig := containers.MySQLIsolated(t)
 	database, err := db.New(mysqlConfig.DSN, sqlcomment.ForService("logdrain-lease-integration-test", "test"))
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })

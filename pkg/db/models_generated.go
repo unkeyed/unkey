@@ -663,6 +663,94 @@ func (ns NullKeyMigrationsAlgorithm) Value() (driver.Value, error) {
 	return string(ns.KeyMigrationsAlgorithm), nil
 }
 
+type LogdrainsStatus string
+
+const (
+	LogdrainsStatusRunning         LogdrainsStatus = "running"
+	LogdrainsStatusPausedByUser    LogdrainsStatus = "paused_by_user"
+	LogdrainsStatusPausedByFailure LogdrainsStatus = "paused_by_failure"
+)
+
+func (e *LogdrainsStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = LogdrainsStatus(s)
+	case string:
+		*e = LogdrainsStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for LogdrainsStatus: %T", src)
+	}
+	return nil
+}
+
+type NullLogdrainsStatus struct {
+	LogdrainsStatus LogdrainsStatus
+	Valid           bool // Valid is true if LogdrainsStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullLogdrainsStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.LogdrainsStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.LogdrainsStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullLogdrainsStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.LogdrainsStatus), nil
+}
+
+type LogdrainsStream string
+
+const (
+	LogdrainsStreamAuditLogs        LogdrainsStream = "audit_logs"
+	LogdrainsStreamKeyVerifications LogdrainsStream = "key_verifications"
+	LogdrainsStreamGatewayRequests  LogdrainsStream = "gateway_requests"
+	LogdrainsStreamRuntimeLogs      LogdrainsStream = "runtime_logs"
+	LogdrainsStreamRatelimits       LogdrainsStream = "ratelimits"
+)
+
+func (e *LogdrainsStream) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = LogdrainsStream(s)
+	case string:
+		*e = LogdrainsStream(s)
+	default:
+		return fmt.Errorf("unsupported scan type for LogdrainsStream: %T", src)
+	}
+	return nil
+}
+
+type NullLogdrainsStream struct {
+	LogdrainsStream LogdrainsStream
+	Valid           bool // Valid is true if LogdrainsStream is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullLogdrainsStream) Scan(value interface{}) error {
+	if value == nil {
+		ns.LogdrainsStream, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.LogdrainsStream.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullLogdrainsStream) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.LogdrainsStream), nil
+}
+
 type Api struct {
 	Pk               uint64           `db:"pk"`
 	ID               string           `db:"id"`
@@ -901,6 +989,25 @@ type KeysRole struct {
 	WorkspaceID string        `db:"workspace_id"`
 	CreatedAtM  int64         `db:"created_at_m"`
 	UpdatedAtM  sql.NullInt64 `db:"updated_at_m"`
+}
+
+type Logdrain struct {
+	Pk                        uint64          `db:"pk"`
+	ID                        string          `db:"id"`
+	WorkspaceID               string          `db:"workspace_id"`
+	Name                      string          `db:"name"`
+	Stream                    LogdrainsStream `db:"stream"`
+	Config                    []byte          `db:"config"`
+	Status                    LogdrainsStatus `db:"status"`
+	ConsecutiveFailures       int32           `db:"consecutive_failures"`
+	CommittedOffsetInsertedAt int64           `db:"committed_offset_inserted_at"`
+	CommittedOffsetEventID    string          `db:"committed_offset_event_id"`
+	NextAttemptAt             int64           `db:"next_attempt_at"`
+	LeaseID                   string          `db:"lease_id"`
+	FencingToken              string          `db:"fencing_token"`
+	LeaseExpiresAt            int64           `db:"lease_expires_at"`
+	CreatedAt                 int64           `db:"created_at"`
+	UpdatedAt                 sql.NullInt64   `db:"updated_at"`
 }
 
 type Permission struct {

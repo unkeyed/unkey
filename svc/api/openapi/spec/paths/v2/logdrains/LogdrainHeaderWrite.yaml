@@ -1,0 +1,15 @@
+type: object
+additionalProperties: false
+required: [name, mode]
+properties:
+  name: { type: string, minLength: 1, maxLength: 256 }
+  mode:
+    type: string
+    enum: [set, preserve]
+    x-enum-varnames: [LogdrainHeaderSet, LogdrainHeaderPreserve]
+  value:
+    type: string
+    minLength: 1
+    maxLength: 8192
+    writeOnly: true
+    x-unkey-redact: true

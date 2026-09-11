@@ -1,0 +1,13 @@
+type: object
+required: [logdrainId]
+minProperties: 2
+additionalProperties: false
+properties:
+  logdrainId: { type: string, minLength: 1, maxLength: 48 }
+  name: { type: string, minLength: 1, maxLength: 128 }
+  status: { type: string, enum: [running, paused_by_user] }
+  batchSize: { type: integer, format: int64, minimum: 1, maximum: 4294967295 }
+  filters:
+    $ref: LogdrainFilters.yaml
+  destination:
+    $ref: LogdrainDestinationWrite.yaml
