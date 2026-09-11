@@ -113,8 +113,20 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       if (!user) {
         return { data: [], metadata: {} };
       }
+      const allMemberships = [...memberships.data];
+      let after = memberships.listMetadata?.after;
+      while (after) {
+        const page = await provider.userManagement.listOrganizationMemberships({
+          userId,
+          limit: 100,
+          statuses: ["active"],
+          after,
+        });
+        allMemberships.push(...page.data);
+        after = page.listMetadata?.after;
+      }
       return {
-        data: memberships.data.map((membership) => ({
+        data: allMemberships.map((membership) => ({
           id: membership.id,
           user,
           organization: {
@@ -126,7 +138,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
           updatedAt: membership.updatedAt,
           status: membership.status,
         })),
-        metadata: memberships.listMetadata ?? {},
+        metadata: {},
       };
     } catch (error) {
       throw this.providerError(error);
