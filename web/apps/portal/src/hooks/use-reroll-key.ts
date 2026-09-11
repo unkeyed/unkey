@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { RerollKeyRequest, RerollKeyResult } from "~/components/keys-table/schema/keys.schema";
+import { keysListQueryKey } from "~/hooks/use-keys-list-query";
 import { rerollKey } from "~/lib/portal-api";
-import type { RerollKeyRequest, RerollKeyResult } from "../schema/keys.schema";
-import { keysListQueryKey } from "./queries/use-keys-list-query";
 
 /**
  * Rerolls a key via `v2/portal.rerollKey` and invalidates the keys list so the
