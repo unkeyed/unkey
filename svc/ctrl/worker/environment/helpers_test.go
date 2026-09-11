@@ -100,11 +100,14 @@ func newFixture(t *testing.T) *fixture {
 	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
 	require.NoError(t, err)
 
+	deploymentSvc, err := deployment.New(deployment.Config{DB: database, Auditlogs: auditlogSvc})
+	require.NoError(t, err)
+
 	var svc *environment.Service
 	f.restate = containers.Restate(t,
 		hydrav1.NewEnvironmentServiceServer(&lazyEnvironmentService{svc: &svc}),
 		hydrav1.NewRoutingServiceServer(routing.New(routing.Config{DB: database, DefaultDomain: "kebap.test"})),
-		hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{DB: database})),
+		hydrav1.NewDeploymentServiceServer(deploymentSvc),
 	)
 	svc, err = environment.New(environment.Config{
 		DB:        database,

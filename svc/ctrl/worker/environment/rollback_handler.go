@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
 )
 
@@ -71,11 +72,18 @@ func (s *Service) RollbackDeployment(ctx restate.ObjectContext, req *hydrav1.Rol
 		return nil, fmt.Errorf("swap live deployment: %w", err)
 	}
 
-	if err := s.insertLifecycleAudit(
+	if err := audit.InsertDeploymentLifecycle(
 		ctx,
+		s.auditlogs,
 		req.GetActor(),
 		req.GetCorrelationId(),
-		to,
+		audit.DeploymentRef{
+			ID:            to.ID,
+			WorkspaceID:   to.WorkspaceID,
+			ProjectID:     to.ProjectID,
+			AppID:         to.AppID,
+			EnvironmentID: to.EnvironmentID,
+		},
 		auditlog.DeploymentRollbackEvent,
 		fmt.Sprintf("Rolled back to deployment %s", to.ID),
 	); err != nil {
