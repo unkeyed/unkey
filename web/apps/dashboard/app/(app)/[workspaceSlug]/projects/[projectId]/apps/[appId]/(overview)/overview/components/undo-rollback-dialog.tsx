@@ -1,6 +1,6 @@
 "use client";
 
-import { type Deployment, collection } from "@/lib/collections";
+import type { Deployment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ import { match } from "@unkey/match";
 import { Badge, Button, DialogContainer, TimestampInfo, toast } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { Avatar } from "../../../components/git-avatar";
+import { useProjectData } from "../../data-provider";
 
 type UndoRollbackDialogProps = {
   isOpen: boolean;
@@ -35,21 +36,15 @@ export function UndoRollbackDialog({
     }
   }, [isOpen]);
 
+  const { awaitLiveDeployment } = useProjectData();
   const promote = useMutation({
     mutationFn: (deploymentId: string) =>
       getUnkeyClient().deployments.promoteDeployment({ deploymentId }),
-    onSuccess: () => {
+    onSuccess: (_result, deploymentId) => {
+      awaitLiveDeployment({ deploymentId, rolledBack: false });
       toast.success("Rollback undone", {
         description: "Automatic production deploys have resumed.",
       });
-      try {
-        collection.projects.utils.refetch();
-        collection.apps.utils.refetch();
-        collection.deployments.utils.refetch();
-        collection.domains.utils.refetch();
-      } catch (error) {
-        console.error("Refetch error:", error);
-      }
       onClose();
     },
     onError: (error) => {

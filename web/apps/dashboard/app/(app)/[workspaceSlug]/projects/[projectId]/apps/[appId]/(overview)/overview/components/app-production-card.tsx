@@ -3,6 +3,7 @@
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { isDeploymentSettling } from "@/lib/collections/deploy/deployment-status";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
@@ -84,7 +85,10 @@ export function AppProductionCard() {
   const productionStatus = deployment ? deriveProductionStatus(deployment) : undefined;
   useCollectionPolling(() => collection.deployments.utils.refetch(), {
     intervalMs: 10_000,
-    enabled: productionStatus === "live" || productionStatus === "crashing",
+    enabled:
+      productionStatus === "live" ||
+      productionStatus === "crashing" ||
+      (deployment !== undefined && isDeploymentSettling(deployment)),
   });
 
   if (isDeploymentsLoading || isCurrentDeploymentLoading || liveDomainsQuery.isLoading) {

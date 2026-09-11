@@ -4,7 +4,6 @@ import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_compo
 import { RepoDisplay } from "@/app/(app)/[workspaceSlug]/projects/_components/list/repo-display";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { collection } from "@/lib/collections";
-import { queryClient } from "@/lib/collections/client";
 import { UnsupportedDeployRefError, parseDeployRef } from "@/lib/deploy-ref";
 import { sanitizeImageRef, validateImageRef } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
@@ -114,7 +113,7 @@ export const CreateDeploymentButton = ({
   const router = useRouter();
   const params = useParams<{ workspaceSlug: string }>();
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
-  const { projectId, environments, deployments } = useProjectData();
+  const { projectId, environments, deployments, refetchDeployments } = useProjectData();
   const appId = useAppId();
   const { gated, openPaywall, planGate } = useDeployActionGate();
 
@@ -235,9 +234,8 @@ export const CreateDeploymentButton = ({
       toast.success("Deployment has been created");
       reset();
       setIsOpen(false);
-      await queryClient.invalidateQueries({
-        queryKey: ["deployments", projectId],
-      });
+      refetchDeployments();
+      await collection.apps.utils.refetch();
       router.push(
         routes.projects.apps.deployment({
           workspaceSlug: params.workspaceSlug,

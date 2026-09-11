@@ -5,7 +5,6 @@ import {
   useProjectData,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { type Deployment, collection } from "@/lib/collections";
-import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { and, eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
@@ -26,9 +25,7 @@ export const RollbackDialog = ({
   targetDeployment,
   currentDeployment,
 }: RollbackDialogProps) => {
-  const utils = trpc.useUtils();
-
-  const { projectId } = useProjectData();
+  const { projectId, awaitLiveDeployment } = useProjectData();
   const appId = useAppId();
   const domains = useLiveQuery(
     (q) =>
@@ -43,20 +40,10 @@ export const RollbackDialog = ({
     mutationFn: (deploymentId: string) =>
       getUnkeyClient().deployments.rollbackDeployment({ deploymentId }),
     onSuccess: () => {
-      utils.invalidate();
+      awaitLiveDeployment({ deploymentId: targetDeployment.id, rolledBack: true });
       toast.success("Rollback completed", {
         description: `Successfully rolled back to deployment ${targetDeployment.id}`,
       });
-      // hack to revalidate
-      try {
-        collection.projects.utils.refetch();
-        collection.apps.utils.refetch();
-        collection.deployments.utils.refetch();
-        collection.domains.utils.refetch();
-      } catch (error) {
-        console.error("Refetch error:", error);
-      }
-
       onClose();
     },
     onError: (error) => {
