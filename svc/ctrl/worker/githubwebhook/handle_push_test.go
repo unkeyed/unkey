@@ -109,7 +109,7 @@ func TestHandlePushSkipsWhenNotDeployable(t *testing.T) {
 		target := h.newTarget(t, ctx)
 		app := h.newApp(t, ctx, target, appOptions{watchPaths: []string{fixtureOtherWatchPath}})
 
-		h.github.setCommitFilesErr(restate.TerminalError(errors.New("KEBAP")))
+		h.github.setCommitFilesErr(restate.ToTerminalError(errors.New("KEBAP")))
 		t.Cleanup(func() { h.github.setCommitFilesErr(nil) })
 
 		key := fmt.Sprintf("%d:%d", target.installationID, target.repositoryID)
