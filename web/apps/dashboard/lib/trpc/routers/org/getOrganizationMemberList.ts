@@ -1,11 +1,12 @@
-import { auth as authProvider } from "@/lib/auth/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
+import { getLocalTeamProvider } from "./local-team-provider";
 
 export const getOrganizationMemberList = protectedProcedure
   .input(z.string())
   .query(async ({ ctx }) => {
+    const authProvider = getLocalTeamProvider();
     try {
       return await authProvider.getOrganizationMemberList(ctx.tenant.id);
     } catch (error) {

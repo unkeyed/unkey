@@ -1,12 +1,13 @@
-import { auth as authProvider } from "@/lib/auth/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { requireOrgAdmin, workspaceProcedure } from "../../trpc";
+import { getLocalTeamProvider } from "./local-team-provider";
 
 export const getInvitationList = workspaceProcedure
   .use(requireOrgAdmin)
   .input(z.string())
   .query(async ({ ctx, input: orgId }) => {
+    const authProvider = getLocalTeamProvider();
     try {
       if (orgId !== ctx.workspace?.orgId) {
         throw new TRPCError({

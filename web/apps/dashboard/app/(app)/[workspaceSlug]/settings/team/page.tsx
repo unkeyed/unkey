@@ -1,7 +1,7 @@
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { env, workosAuthEnv } from "@/lib/env";
 import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
-import { TeamPageClient } from "./client";
 
 export const revalidate = 0;
 
@@ -18,6 +18,22 @@ export default async function SettingTeamPage() {
   });
 
   const team = workspace?.limits?.teamEnabled ?? false;
+  let teamContent: React.ReactNode = <div>Workspace not found</div>;
+
+  if (workspace) {
+    if (env().AUTH_PROVIDER === "local") {
+      const { TeamPageClient } = await import("./client");
+      teamContent = (
+        <div className="flex w-full flex-col">
+          <TeamPageClient team={team} />
+        </div>
+      );
+    } else {
+      workosAuthEnv();
+      const { ManagedTeam } = await import("./managed-team");
+      teamContent = <ManagedTeam team={team} />;
+    }
+  }
 
   return (
     <PageContainer>
@@ -26,15 +42,7 @@ export default async function SettingTeamPage() {
           <PageHeaderTitle>Team</PageHeaderTitle>
         </PageHeaderContent>
       </PageHeader>
-      <PageBody>
-        {workspace ? (
-          <div className="w-full flex flex-col">
-            <TeamPageClient team={team} />
-          </div>
-        ) : (
-          <div>Workspace not found</div>
-        )}
-      </PageBody>
+      <PageBody>{teamContent}</PageBody>
     </PageContainer>
   );
 }

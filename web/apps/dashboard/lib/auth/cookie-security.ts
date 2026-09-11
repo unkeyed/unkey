@@ -30,18 +30,6 @@ export function shouldUseSecureCookies(): boolean {
 }
 
 /**
- * Get default cookie options with environment-appropriate security settings
- */
-export function getDefaultCookieOptions() {
-  return {
-    httpOnly: true,
-    secure: shouldUseSecureCookies(),
-    sameSite: "strict" as const,
-    path: "/",
-  };
-}
-
-/**
  * Get cookie options for authentication flows (typically uses "lax" sameSite for OAuth)
  */
 export function getAuthCookieOptions() {

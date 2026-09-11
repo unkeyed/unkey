@@ -1,6 +1,6 @@
 import { env } from "@/lib/env";
 import { Resend } from "@unkey/resend";
-import { WorkOS } from "@workos-inc/node";
+import { getWorkOS } from "@workos-inc/authkit-nextjs";
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -22,10 +22,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ Error: "Empty payload" }, { status: 400 });
   }
 
-  const workos = new WorkOS(WORKOS_API_KEY);
-
   try {
-    const webhook = await workos.webhooks.constructEvent({
+    const webhook = await getWorkOS().webhooks.constructEvent({
       payload,
       sigHeader,
       secret: WORKOS_WEBHOOK_SECRET,

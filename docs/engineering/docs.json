@@ -28,7 +28,8 @@
                   "contributing/tooling/builds",
                   "contributing/tooling/releases",
                   "contributing/tooling/feature-flags",
-                  "contributing/tooling/emails"
+                  "contributing/tooling/emails",
+                  "contributing/tooling/dashboard-auth"
                 ]
               }
             ]
