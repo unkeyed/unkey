@@ -25,6 +25,23 @@ import {
 } from "react";
 import { useAwaitTarget } from "./hooks/use-await-target";
 
+// Deploys arrive from GitHub, the CLI and other people, so every app page
+// refreshes on a slow cadence. It speeds up while a row is moving and again
+// while this tab waits on an action of its own.
+const IDLE_POLL_MS = 20_000;
+const SETTLING_POLL_MS = 5_000;
+const AWAITING_POLL_MS = 2_000;
+
+function pollIntervalMs(awaiting: boolean, settling: boolean): number {
+  if (awaiting) {
+    return AWAITING_POLL_MS;
+  }
+  if (settling) {
+    return SETTLING_POLL_MS;
+  }
+  return IDLE_POLL_MS;
+}
+
 type LiveDeploymentTarget = {
   deploymentId: string;
   rolledBack: boolean;
@@ -147,16 +164,14 @@ export const ProjectDataProvider = ({
     collection.customDomains.utils.refetch();
   }, [refetchDeployments]);
 
-  const awaitLiveDeployment = useAwaitTarget<LiveDeploymentTarget>({
+  const liveDeployment = useAwaitTarget<LiveDeploymentTarget>({
     isReached: (target) =>
       app?.currentDeploymentId === target.deploymentId && app.isRolledBack === target.rolledBack,
-    poll: () => collection.apps.utils.refetch(),
     onSettled: refetchAll,
   });
-  const awaitDeploymentStatus = useAwaitTarget<DeploymentStatusTarget>({
+  const deploymentStatus = useAwaitTarget<DeploymentStatusTarget>({
     isReached: (target) =>
       deploymentsQuery.data?.find((d) => d.id === target.deploymentId)?.status === target.status,
-    poll: refetchDeployments,
     onSettled: refetchAll,
   });
 
@@ -206,9 +221,13 @@ export const ProjectDataProvider = ({
   const hasPendingDomain = (customDomainsQuery.data ?? []).some(
     (d) => d.verificationStatus === "pending" || d.verificationStatus === "verifying",
   );
-  useCollectionPolling(() => collection.deployments.utils.refetch(), {
-    intervalMs: 5000,
-    enabled: hasSettlingDeployment,
+  useCollectionPolling(refetchDeployments, {
+    intervalMs: pollIntervalMs(deploymentStatus.waiting, hasSettlingDeployment),
+    enabled: true,
+  });
+  useCollectionPolling(() => collection.apps.utils.refetch(), {
+    intervalMs: pollIntervalMs(liveDeployment.waiting, false),
+    enabled: appId !== undefined,
   });
   useCollectionPolling(() => collection.customDomains.utils.refetch(), {
     intervalMs: 5000,
@@ -255,8 +274,8 @@ export const ProjectDataProvider = ({
       refetchDeployments,
       refetchCustomDomains: () => collection.customDomains.utils.refetch(),
       refetchAll,
-      awaitLiveDeployment,
-      awaitDeploymentStatus,
+      awaitLiveDeployment: liveDeployment.start,
+      awaitDeploymentStatus: deploymentStatus.start,
     };
   }, [
     projectId,
@@ -268,8 +287,8 @@ export const ProjectDataProvider = ({
     customDomainsQuery,
     refetchDeployments,
     refetchAll,
-    awaitLiveDeployment,
-    awaitDeploymentStatus,
+    liveDeployment.start,
+    deploymentStatus.start,
   ]);
 
   // The projects collection holds every project in the workspace, so once it has
