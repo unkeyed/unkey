@@ -18,8 +18,8 @@ export const WakeDialog = ({ isOpen, onClose, deployment }: WakeDialogProps) => 
   const wake = useMutation({
     mutationFn: (deploymentId: string) =>
       getUnkeyClient().deployments.startDeployment({ deploymentId }),
-    onSuccess: (_result, deploymentId) => {
-      awaitDeploymentStatus({ deploymentId, status: "ready" });
+    onSuccess: () => {
+      awaitDeploymentStatus({ deploymentId: deployment.id, status: "ready" });
       onClose();
     },
   });

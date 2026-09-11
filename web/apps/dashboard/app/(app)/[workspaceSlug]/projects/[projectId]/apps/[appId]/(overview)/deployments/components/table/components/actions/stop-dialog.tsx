@@ -18,8 +18,8 @@ export const StopDialog = ({ isOpen, onClose, deployment }: StopDialogProps) => 
   const stop = useMutation({
     mutationFn: (deploymentId: string) =>
       getUnkeyClient().deployments.stopDeployment({ deploymentId }),
-    onSuccess: (_result, deploymentId) => {
-      awaitDeploymentStatus({ deploymentId, status: "stopped" });
+    onSuccess: () => {
+      awaitDeploymentStatus({ deploymentId: deployment.id, status: "stopped" });
       onClose();
     },
   });
