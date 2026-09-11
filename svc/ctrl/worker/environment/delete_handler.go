@@ -181,8 +181,8 @@ func (s *Service) cancelProgressingDeployments(
 	return restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return deploycancel.Cancel(runCtx, s.db, s.admin, deploycancel.Params{
 			Deployments: deployments,
-			Reason:  envDeletedMessage,
-			Status:  mysqltype.DeploymentsStatusCancelled,
+			Reason:      envDeletedMessage,
+			Status:      mysqltype.DeploymentsStatusCancelled,
 			Audit: &deploycancel.Audit{
 				Service:       s.auditlogs,
 				Actor:         req.GetActor(),
