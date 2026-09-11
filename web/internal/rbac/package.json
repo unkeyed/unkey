@@ -21,7 +21,7 @@
     "@types/node": "20.14.9",
     "@unkey/tsconfig": "workspace:*",
     "typescript": "5.5.3",
-    "vitest": "1.6.1"
+    "vitest": "3.2.6"
   },
   "dependencies": {
     "@unkey/error": "workspace:^",
