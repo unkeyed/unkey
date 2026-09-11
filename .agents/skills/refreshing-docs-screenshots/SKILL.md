@@ -127,7 +127,8 @@ For each declaration:
    it and its `capturedAt` unchanged.
 7. Capture both light and dark variants before replacing either. Switch themes
    through the app or its supported system-theme behavior. Do not recolor an
-   image or alter application CSS to fabricate a state.
+   image or alter application CSS to fabricate a state. For isolated dialogs,
+   use the capture-only adjustments below.
 8. Inspect both captures with the media tool. Check the intended content, crop,
    readability, theme, and absence of secrets. Keep the existing pair if either
    capture fails. Do not make docs prose agree with a wrong screenshot.
@@ -138,6 +139,36 @@ For each declaration:
 Save review images in `.amp/in/artifacts/` in an orb. Keep temporary comparison
 files elsewhere and remove them when finished. Do not use image generation for
 dashboard screenshots.
+
+### Capture isolated dialogs
+
+For dialog `target` captures, use a transparent PNG without outer shadows and
+24 CSS pixels of transparent padding on each side. If the description explicitly
+needs the surrounding dashboard, retain that context instead. Do not apply this
+treatment to `viewport` or `full-page` captures.
+
+- Record the target's bounds and original inline styles before changing anything.
+  Keep the real target in place. Temporarily hide surrounding sibling branches
+  and clear ancestor backgrounds without changing layout. Include portaled
+  overlays and ancestor pseudo-elements when they paint behind the target.
+- Remove only the target's outer `box-shadow` and `drop-shadow()` filters for
+  capture. Preserve other filters, child control shadows, borders, background,
+  and the target's actual corner radius. Never add a fixed radius in docs.
+- Capture with the browser's transparent background option. Clearing HTML and
+  body backgrounds alone does not make a PNG transparent. If the browser CLI
+  lacks this option, use its existing Chromium CDP connection with
+  `Emulation.setDefaultBackgroundColorOverride` (alpha 0) and
+  `Page.captureScreenshot`. Confirm the PNG dimensions are twice the padded
+  CSS bounds; device scale alone may not set the CDP clip scale.
+- Restore every changed style and the browser background override in `finally`,
+  including on failure. Confirm the target's bounds and appearance are restored.
+- Check that exterior pixels have alpha 0 and no shadow remains. Inspect both
+  themes over the real docs frame, not only in an image viewer that may display
+  transparency as black. Keep `width` at the target's CSS width plus 48 pixels.
+
+If isolation changes layout, content, or the target's appearance beyond removing
+its outer shadows, report the capture as blocked. Do not flatten the image onto
+a solid color or use background-removal image processing to hide a failed capture.
 
 ## Verify and report
 

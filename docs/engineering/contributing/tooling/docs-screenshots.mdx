@@ -75,9 +75,10 @@ import { DashboardScreenshot } from "/snippets/dashboard-screenshot.jsx";
     description="In a disposable local workspace, edit a synthetic Billing
       Service root key. Show Billing create_key and verify_key permissions.
       Keep the permission sheet closed. Capture the edit dialog in both
-      themes. Do not submit changes."
+      themes with a transparent background, no outer shadow, and 24 CSS
+      pixels of padding. Do not submit changes."
     src="/platform/root-keys/root-key-edit"
-    width={460}
+    width={508}
     alt="Edit root key dialog"
   />
 </Frame>
@@ -100,6 +101,22 @@ Specify viewport constraints in the description when they matter.
 
 The component renders only the saved images. Capture metadata stays in the MDX
 source and is not emitted as `data-*` attributes in the docs HTML.
+
+### Capture dialogs without a backdrop
+
+Isolated dialog captures use a transparent PNG with no outer shadow and 24 CSS
+pixels of transparent padding on each side. The image keeps the dialog's actual
+corner radius, borders, and control styling. No radius is hard-coded in docs.
+Set `width` to the dialog's CSS width plus 48 pixels to preserve its display scale.
+
+Amp temporarily hides the surrounding dashboard, clears ancestor backgrounds,
+and removes the dialog's outer shadows during capture. It restores those styles
+afterward. These changes affect only the capture session, not dashboard code.
+Both theme images must have real transparency and pass inspection in the docs
+frame. If isolation changes the layout or content, the capture is blocked.
+
+If an illustration needs the surrounding dashboard, say so in its description.
+Viewport and full-page captures keep their normal backgrounds and shadows.
 
 ## Track capture age without creating unnecessary changes
 
