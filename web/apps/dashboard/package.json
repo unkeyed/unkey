@@ -94,6 +94,6 @@
     "postcss": "8.4.38",
     "tailwindcss": "catalog:",
     "typescript": "5.1.3",
-    "vitest": "1.6.1"
+    "vitest": "4.1.11"
   }
 }
