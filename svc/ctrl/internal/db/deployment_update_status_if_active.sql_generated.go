@@ -17,40 +17,37 @@ const updateDeploymentStatusIfActive = `-- name: UpdateDeploymentStatusIfActive 
 UPDATE deployments
 SET status = ?, updated_at = ?
 WHERE id = ?
-  AND status NOT IN (/*SLICE:terminal_statuses*/?)
+  AND status IN (/*SLICE:progressing_statuses*/?)
 `
 
 type UpdateDeploymentStatusIfActiveParams struct {
-	Status           mysqltype.DeploymentsStatus   `db:"status"`
-	UpdatedAt        sql.NullInt64                 `db:"updated_at"`
-	ID               string                        `db:"id"`
-	TerminalStatuses []mysqltype.DeploymentsStatus `db:"terminal_statuses"`
+	Status              mysqltype.DeploymentsStatus   `db:"status"`
+	UpdatedAt           sql.NullInt64                 `db:"updated_at"`
+	ID                  string                        `db:"id"`
+	ProgressingStatuses []mysqltype.DeploymentsStatus `db:"progressing_statuses"`
 }
 
-// Transition a deployment's status only when its current status is still
-// "active" (non-terminal). Prevents the Deploy handler's compensation
-// stack from overwriting a status that was set intentionally by the dedup
-// path (e.g. superseded) or by a successful completion (ready). Callers
-// pass db.TerminalDeploymentStatuses so the terminal set has a single
-// source of truth.
+// Only progressing rows transition, so a compensation cannot overwrite a status
+// set on purpose: superseded, cancelled, or ready. Callers pass
+// mysqltype.ProgressingDeploymentStatuses.
 //
 //	UPDATE deployments
 //	SET status = ?, updated_at = ?
 //	WHERE id = ?
-//	  AND status NOT IN (/*SLICE:terminal_statuses*/?)
+//	  AND status IN (/*SLICE:progressing_statuses*/?)
 func (q *Queries) UpdateDeploymentStatusIfActive(ctx context.Context, arg UpdateDeploymentStatusIfActiveParams) error {
 	query := updateDeploymentStatusIfActive
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.Status)
 	queryParams = append(queryParams, arg.UpdatedAt)
 	queryParams = append(queryParams, arg.ID)
-	if len(arg.TerminalStatuses) > 0 {
-		for _, v := range arg.TerminalStatuses {
+	if len(arg.ProgressingStatuses) > 0 {
+		for _, v := range arg.ProgressingStatuses {
 			queryParams = append(queryParams, v)
 		}
-		query = strings.Replace(query, "/*SLICE:terminal_statuses*/?", strings.Repeat(",?", len(arg.TerminalStatuses))[1:], 1)
+		query = strings.Replace(query, "/*SLICE:progressing_statuses*/?", strings.Repeat(",?", len(arg.ProgressingStatuses))[1:], 1)
 	} else {
-		query = strings.Replace(query, "/*SLICE:terminal_statuses*/?", "NULL", 1)
+		query = strings.Replace(query, "/*SLICE:progressing_statuses*/?", "NULL", 1)
 	}
 	_, err := q.db.ExecContext(ctx, query, queryParams...)
 	return err

@@ -1,3 +1,4 @@
+import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { Combobox, toast } from "@unkey/ui";
 import { useMemo } from "react";
@@ -42,6 +43,7 @@ export const GitHubConnected = ({
       toast.success("Repository connected");
       await utils.github.getInstallations.invalidate();
       await utils.github.getRepoTree.invalidate();
+      await collection.apps.utils.refetch();
     },
     onError: (error) => {
       toast.error(error.message);

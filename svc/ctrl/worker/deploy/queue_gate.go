@@ -22,13 +22,11 @@ import (
 // supersession uses its own status here.
 //
 // Returns (false, nil) when the deployment should proceed normally, or
-// (false, err) if the dedup query or status update fails.
+// (false, err) if the sibling query or status update fails.
 //
-// This catches the race where the proactive dedup in
-// services/deployment.create_deployment didn't manage to cancel the older
-// sibling before it started running (e.g. invocation_id hadn't been
-// persisted yet). The workflow self-checks at the top so it can bow out
-// before acquiring a build slot.
+// cancelOlderSiblings can miss a sibling whose insert committed after
+// its list query ran. That sibling catches itself here, before it takes a
+// build slot.
 func (w *Workflow) skipIfSuperseded(
 	ctx restate.ObjectContext,
 	deployment db.Deployment,

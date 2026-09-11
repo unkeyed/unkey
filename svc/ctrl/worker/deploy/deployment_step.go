@@ -40,6 +40,19 @@ func (w *Workflow) DeploymentStep(
 		}
 
 		return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			current, err := db.NewQueries(tx).FindDeploymentById(txCtx, deployment.ID)
+			if err != nil {
+				return err
+			}
+			// A cancel between two steps has already ended the deployment. Reviving
+			// it here would let the compensation stack later mark it failed
+			if current.Status.IsTerminal() {
+				return restate.TerminalError(
+					fmt.Errorf("deployment %s is already %s, not starting step %s", deployment.ID, current.Status, step),
+					409,
+				)
+			}
+
 			if err := db.NewQueries(tx).InsertDeploymentStep(txCtx, db.InsertDeploymentStepParams{
 				WorkspaceID:   deployment.WorkspaceID,
 				ProjectID:     deployment.ProjectID,
@@ -52,14 +65,12 @@ func (w *Workflow) DeploymentStep(
 				return err
 			}
 
-			if err := db.NewQueries(tx).UpdateDeploymentStatus(txCtx, db.UpdateDeploymentStatusParams{
-				ID:        deployment.ID,
-				Status:    deploymentStatus,
-				UpdatedAt: sql.NullInt64{Valid: true, Int64: now},
-			}); err != nil {
-				return err
-			}
-			return nil
+			return db.NewQueries(tx).UpdateDeploymentStatusIfActive(txCtx, db.UpdateDeploymentStatusIfActiveParams{
+				ID:                  deployment.ID,
+				Status:              deploymentStatus,
+				UpdatedAt:           sql.NullInt64{Valid: true, Int64: now},
+				ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
+			})
 		})
 	}, restate.WithName(fmt.Sprintf("starting step: %s", step)), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {

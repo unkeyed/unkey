@@ -2,7 +2,10 @@
 
 import { collection } from "@/lib/collections";
 import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
-import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
+import {
+  type DeploymentStatus,
+  isDeploymentSettling,
+} from "@/lib/collections/deploy/deployment-status";
 import { DEPLOYMENTS_DEFAULT_LIMIT, type Deployment } from "@/lib/collections/deploy/deployments";
 import type { Domain } from "@/lib/collections/deploy/domains";
 import type { Environment } from "@/lib/collections/deploy/environments";
@@ -14,11 +17,40 @@ import { notFound, useParams } from "next/navigation";
 import {
   type PropsWithChildren,
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
   useRef,
 } from "react";
+import { useAwaitTarget } from "./hooks/use-await-target";
+
+// Deploys arrive from GitHub, the CLI and other people, so every app page
+// refreshes on a slow cadence. It speeds up while a row is moving and again
+// while this tab waits on an action of its own.
+const IDLE_POLL_MS = 20_000;
+const SETTLING_POLL_MS = 5_000;
+const AWAITING_POLL_MS = 2_000;
+
+function pollIntervalMs(awaiting: boolean, settling: boolean): number {
+  if (awaiting) {
+    return AWAITING_POLL_MS;
+  }
+  if (settling) {
+    return SETTLING_POLL_MS;
+  }
+  return IDLE_POLL_MS;
+}
+
+type LiveDeploymentTarget = {
+  deploymentId: string;
+  rolledBack: boolean;
+};
+
+type DeploymentStatusTarget = {
+  deploymentId: string;
+  status: DeploymentStatus;
+};
 
 type ProjectDataContextType = {
   projectId: string;
@@ -49,6 +81,8 @@ type ProjectDataContextType = {
   refetchDeployments: () => void;
   refetchCustomDomains: () => void;
   refetchAll: () => void;
+  awaitLiveDeployment: (target: LiveDeploymentTarget) => void;
+  awaitDeploymentStatus: (target: DeploymentStatusTarget) => void;
 };
 
 const ProjectDataContext = createContext<ProjectDataContextType | null>(null);
@@ -92,6 +126,18 @@ export const ProjectDataProvider = ({
   );
 
   const project = projectQuery.data?.at(0);
+  const appQuery = useLiveQuery(
+    (q) =>
+      appId
+        ? q
+            .from({ app: collection.apps })
+            .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId)))
+        : null,
+    [projectId, appId],
+  );
+  const app = appQuery.data?.at(0);
+  const currentDeploymentId = appId ? app?.currentDeploymentId : project?.currentDeploymentId;
+
   const domainsQuery = useLiveQuery(
     (q) =>
       q
@@ -104,19 +150,47 @@ export const ProjectDataProvider = ({
         .orderBy(({ domain }) => domain.createdAt, "desc"),
     [projectId, appId],
   );
+  const refetchDeployments = useCallback(() => {
+    collection.deployments.utils.refetch();
+    trpcUtils.deploy.deployment.invalidate();
+  }, [trpcUtils]);
+
+  const refetchAll = useCallback(() => {
+    collection.projects.utils.refetch();
+    collection.apps.utils.refetch();
+    refetchDeployments();
+    collection.domains.utils.refetch();
+    collection.environments.utils.refetch();
+    collection.customDomains.utils.refetch();
+  }, [refetchDeployments]);
+
+  const liveDeployment = useAwaitTarget<LiveDeploymentTarget>({
+    isReached: (target) =>
+      app?.currentDeploymentId === target.deploymentId && app.isRolledBack === target.rolledBack,
+    onSettled: refetchAll,
+  });
+  const deploymentStatus = useAwaitTarget<DeploymentStatusTarget>({
+    isReached: (target) =>
+      deploymentsQuery.data?.find((d) => d.id === target.deploymentId)?.status === target.status,
+    onSettled: refetchAll,
+  });
+
   // refetch domains only when current deployment actually changes (not on initial mount/hydration)
-  const prevDeploymentIdRef = useRef(project?.currentDeploymentId);
+  const prevDeploymentIdRef = useRef(currentDeploymentId);
   const mountedRef = useRef(false);
   useEffect(() => {
     mountedRef.current = true;
   }, []);
   useEffect(() => {
-    const currentId = project?.currentDeploymentId;
-    if (mountedRef.current && currentId && prevDeploymentIdRef.current !== currentId) {
+    if (
+      mountedRef.current &&
+      currentDeploymentId &&
+      prevDeploymentIdRef.current !== currentDeploymentId
+    ) {
       collection.domains.utils.refetch();
     }
-    prevDeploymentIdRef.current = currentId;
-  }, [project?.currentDeploymentId]);
+    prevDeploymentIdRef.current = currentDeploymentId;
+  }, [currentDeploymentId]);
 
   const environmentsQuery = useLiveQuery(
     (q) =>
@@ -143,15 +217,17 @@ export const ProjectDataProvider = ({
     [projectId, appId],
   );
 
-  const hasInFlightDeployment = (deploymentsQuery.data ?? []).some((d) =>
-    isDeploymentInFlight(d.status),
-  );
+  const hasSettlingDeployment = (deploymentsQuery.data ?? []).some(isDeploymentSettling);
   const hasPendingDomain = (customDomainsQuery.data ?? []).some(
     (d) => d.verificationStatus === "pending" || d.verificationStatus === "verifying",
   );
-  useCollectionPolling(() => collection.deployments.utils.refetch(), {
-    intervalMs: 5000,
-    enabled: hasInFlightDeployment,
+  useCollectionPolling(refetchDeployments, {
+    intervalMs: pollIntervalMs(deploymentStatus.waiting, hasSettlingDeployment),
+    enabled: true,
+  });
+  useCollectionPolling(() => collection.apps.utils.refetch(), {
+    intervalMs: pollIntervalMs(liveDeployment.waiting, false),
+    enabled: appId !== undefined,
   });
   useCollectionPolling(() => collection.customDomains.utils.refetch(), {
     intervalMs: 5000,
@@ -195,21 +271,11 @@ export const ProjectDataProvider = ({
       getDeploymentById: (id: string) => deployments.find((d) => d.id === id),
 
       refetchDomains: () => collection.domains.utils.refetch(),
-      // Deployments live in two caches: the collection here and the tRPC
-      // queries behind the paged list and Active Branches.
-      refetchDeployments: () => {
-        collection.deployments.utils.refetch();
-        trpcUtils.deploy.deployment.invalidate();
-      },
+      refetchDeployments,
       refetchCustomDomains: () => collection.customDomains.utils.refetch(),
-      refetchAll: () => {
-        collection.projects.utils.refetch();
-        collection.deployments.utils.refetch();
-        trpcUtils.deploy.deployment.invalidate();
-        collection.domains.utils.refetch();
-        collection.environments.utils.refetch();
-        collection.customDomains.utils.refetch();
-      },
+      refetchAll,
+      awaitLiveDeployment: liveDeployment.start,
+      awaitDeploymentStatus: deploymentStatus.start,
     };
   }, [
     projectId,
@@ -219,7 +285,10 @@ export const ProjectDataProvider = ({
     projectQuery,
     environmentsQuery,
     customDomainsQuery,
-    trpcUtils,
+    refetchDeployments,
+    refetchAll,
+    liveDeployment.start,
+    deploymentStatus.start,
   ]);
 
   // The projects collection holds every project in the workspace, so once it has
