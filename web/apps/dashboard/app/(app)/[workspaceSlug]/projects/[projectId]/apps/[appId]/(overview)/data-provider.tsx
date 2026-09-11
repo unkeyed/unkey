@@ -2,7 +2,10 @@
 
 import { collection } from "@/lib/collections";
 import type { CustomDomain } from "@/lib/collections/deploy/custom-domains";
-import { isDeploymentSettling } from "@/lib/collections/deploy/deployment-status";
+import {
+  type DeploymentStatus,
+  isDeploymentSettling,
+} from "@/lib/collections/deploy/deployment-status";
 import { DEPLOYMENTS_DEFAULT_LIMIT, type Deployment } from "@/lib/collections/deploy/deployments";
 import type { Domain } from "@/lib/collections/deploy/domains";
 import type { Environment } from "@/lib/collections/deploy/environments";
@@ -20,10 +23,17 @@ import {
   useMemo,
   useRef,
 } from "react";
-import {
-  type LiveDeploymentTarget,
-  useAwaitLiveDeployment,
-} from "./hooks/use-await-live-deployment";
+import { useAwaitTarget } from "./hooks/use-await-target";
+
+type LiveDeploymentTarget = {
+  deploymentId: string;
+  rolledBack: boolean;
+};
+
+type DeploymentStatusTarget = {
+  deploymentId: string;
+  status: DeploymentStatus;
+};
 
 type ProjectDataContextType = {
   projectId: string;
@@ -55,6 +65,7 @@ type ProjectDataContextType = {
   refetchCustomDomains: () => void;
   refetchAll: () => void;
   awaitLiveDeployment: (target: LiveDeploymentTarget) => void;
+  awaitDeploymentStatus: (target: DeploymentStatusTarget) => void;
 };
 
 const ProjectDataContext = createContext<ProjectDataContextType | null>(null);
@@ -136,7 +147,18 @@ export const ProjectDataProvider = ({
     collection.customDomains.utils.refetch();
   }, [refetchDeployments]);
 
-  const awaitLiveDeployment = useAwaitLiveDeployment(app, refetchAll);
+  const awaitLiveDeployment = useAwaitTarget<LiveDeploymentTarget>({
+    isReached: (target) =>
+      app?.currentDeploymentId === target.deploymentId && app.isRolledBack === target.rolledBack,
+    poll: () => collection.apps.utils.refetch(),
+    onSettled: refetchAll,
+  });
+  const awaitDeploymentStatus = useAwaitTarget<DeploymentStatusTarget>({
+    isReached: (target) =>
+      deploymentsQuery.data?.find((d) => d.id === target.deploymentId)?.status === target.status,
+    poll: refetchDeployments,
+    onSettled: refetchAll,
+  });
 
   // refetch domains only when current deployment actually changes (not on initial mount/hydration)
   const prevDeploymentIdRef = useRef(currentDeploymentId);
@@ -234,6 +256,7 @@ export const ProjectDataProvider = ({
       refetchCustomDomains: () => collection.customDomains.utils.refetch(),
       refetchAll,
       awaitLiveDeployment,
+      awaitDeploymentStatus,
     };
   }, [
     projectId,
@@ -246,6 +269,7 @@ export const ProjectDataProvider = ({
     refetchDeployments,
     refetchAll,
     awaitLiveDeployment,
+    awaitDeploymentStatus,
   ]);
 
   // The projects collection holds every project in the workspace, so once it has
