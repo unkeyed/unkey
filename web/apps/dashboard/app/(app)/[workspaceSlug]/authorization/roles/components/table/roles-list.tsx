@@ -72,7 +72,7 @@ export const RolesList = () => {
           <div className="w-full flex justify-center items-center h-full">
             <Empty className="w-[400px] flex items-start">
               <Empty.Icon className="w-auto" />
-              <Empty.Title>No Roles Found</Empty.Title>
+              <Empty.Title>No roles found</Empty.Title>
               <Empty.Description className="text-left">
                 There are no roles configured yet. Create your first role to start managing
                 permissions and access control.
