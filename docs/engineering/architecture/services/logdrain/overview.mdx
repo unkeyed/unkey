@@ -45,8 +45,11 @@ The drain preserves that output and omits Kubernetes pod names and platform meta
 The dashboard uses the same source tree for gateway requests and runtime logs.
 Whole-project and whole-app selections keep their IDs, so they include future
 environments. Mixed selections use environment IDs and do not include future
-environments automatically. Selecting every current environment removes the
-source restriction. Clearing every source blocks submission.
+environments automatically. Selecting every current environment keeps
+**Specific sources** mode and its resource restrictions. Clearing every source
+in **Specific sources** mode blocks submission. Only **All sources** mode removes
+resource restrictions. HTTP status and severity filters still apply. Switching modes
+retains each stream's selections independently.
 
 The protobuf stream selects the source. The MySQL `stream` column remains for
 drain counts and listing, but does not control source selection.
