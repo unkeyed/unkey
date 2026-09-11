@@ -1,0 +1,54 @@
+post:
+  tags: [logdrains]
+  summary: Get recent log drain deliveries
+  description: |
+    Return the newest 20 delivery attempts from the last 24 hours, including
+    destination response diagnostics. Requires
+    `unkey:v1:{workspaceId}:logdrains/{logdrainId}#read`.
+  operationId: logdrains.getRecentDeliveries
+  x-speakeasy-name-override: getRecentDeliveries
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../LogdrainIdRequest.yaml
+  responses:
+    "200":
+      description: Recent delivery attempts for this log drain.
+      content:
+        application/json:
+          schema:
+            $ref: ../LogdrainDeliveriesResponse.yaml
+    "400":
+      description: Invalid input.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Missing or invalid credentials.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: Insufficient permission.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "404":
+      description: No log drain with this ID exists in the authorized workspace.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/NotFoundErrorResponse.yaml
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

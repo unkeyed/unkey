@@ -74,6 +74,11 @@ type Querier interface {
 	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
 	//  WHERE k.id = ?
 	DeleteKeyByID(ctx context.Context, db DBTX, id string) error
+	// Caller holds the drain lock and inserts its audit event in this transaction.
+	// Worker state updates cannot recreate a deleted drain.
+	//
+	//  DELETE FROM logdrains WHERE workspace_id = ? AND id = ?
+	DeleteLogdrain(ctx context.Context, db DBTX, arg DeleteLogdrainParams) error
 	//DeleteManyKeyPermissionByKeyAndPermissionIDs
 	//
 	//  DELETE FROM keys_permissions
@@ -847,6 +852,14 @@ type Querier interface {
 	//      AND ka.deleted_at_m IS NULL
 	//      AND ws.deleted_at_m IS NULL
 	FindLiveKeyByID(ctx context.Context, db DBTX, id string) (FindLiveKeyByIDRow, error)
+	// Scope reads to the authorized workspace so foreign IDs are indistinguishable
+	// from missing drains. Credentials stay in the stored protobuf.
+	//
+	//  SELECT pk, id, workspace_id, name, stream, config, status, consecutive_failures,
+	//    committed_offset_inserted_at, committed_offset_event_id, next_attempt_at,
+	//    lease_id, fencing_token, lease_expires_at, created_at, updated_at
+	//  FROM logdrains WHERE workspace_id = ? AND id = ?
+	FindLogdrain(ctx context.Context, db DBTX, arg FindLogdrainParams) (Logdrain, error)
 	//FindManyRatelimitNamespaces
 	//
 	//  SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,
@@ -1778,6 +1791,12 @@ type Querier interface {
 	//      0
 	//  )
 	InsertKeySpace(ctx context.Context, db DBTX, arg InsertKeySpaceParams) error
+	// The caller holds the workspace limits lock and has checked current capacity.
+	// Initialize the cursor at creation time so historical records are not exported.
+	//
+	//  INSERT INTO logdrains (id, workspace_id, name, stream, config, committed_offset_inserted_at, lease_id, fencing_token, created_at, updated_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, '', '', ?, ?)
+	InsertLogdrain(ctx context.Context, db DBTX, arg InsertLogdrainParams) error
 	//InsertPermission
 	//
 	//  INSERT INTO permissions (
@@ -2459,6 +2478,15 @@ type Querier interface {
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListLiveKeysByKeySpaceIDs(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDsParams) ([]ListLiveKeysByKeySpaceIDsRow, error)
+	// Stable ID ordering supports pagination without crossing the workspace boundary.
+	// Fetch one extra row to determine whether another page exists.
+	//
+	//  SELECT pk, id, workspace_id, name, stream, config, status, consecutive_failures,
+	//    committed_offset_inserted_at, committed_offset_event_id, next_attempt_at,
+	//    lease_id, fencing_token, lease_expires_at, created_at, updated_at
+	//  FROM logdrains WHERE workspace_id = ? AND id > ?
+	//  ORDER BY id ASC LIMIT ?
+	ListLogdrains(ctx context.Context, db DBTX, arg ListLogdrainsParams) ([]Logdrain, error)
 	// ListPermissions returns one page of permission definitions from one project.
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
@@ -2636,6 +2664,19 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
+	// Serialize configuration, status, and delete operations with worker writes.
+	// The workspace predicate prevents locking or reading a foreign drain.
+	//
+	//  SELECT pk, id, workspace_id, name, stream, config, status, consecutive_failures,
+	//    committed_offset_inserted_at, committed_offset_event_id, next_attempt_at,
+	//    lease_id, fencing_token, lease_expires_at, created_at, updated_at
+	//  FROM logdrains WHERE workspace_id = ? AND id = ? FOR UPDATE
+	LockLogdrain(ctx context.Context, db DBTX, arg LockLogdrainParams) (Logdrain, error)
+	// Serialize log drain creation against the unique workspace limits row, including
+	// when the workspace has no drains. Support-granted allowances are authoritative.
+	//
+	//  SELECT logdrains_max FROM `limits` WHERE workspace_id = ? FOR UPDATE
+	LockLogdrainLimit(ctx context.Context, db DBTX, workspaceID string) (uint32, error)
 	//LockRoleByIDOrNameAndWorkspaceID
 	//
 	//  SELECT id, project_id, name
@@ -2644,6 +2685,11 @@ type Querier interface {
 	//    AND (id = ? OR name = ?)
 	//  FOR UPDATE
 	LockRoleByIDOrNameAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDOrNameAndWorkspaceIDParams) (LockRoleByIDOrNameAndWorkspaceIDRow, error)
+	// Current reads prevent stale snapshots after acquiring the workspace limits lock.
+	// Create uses this count under the lock shared with dashboard creation.
+	//
+	//  SELECT id FROM logdrains WHERE workspace_id = ? FOR UPDATE
+	LockWorkspaceLogdrains(ctx context.Context, db DBTX, workspaceID string) ([]string, error)
 	// Clears the workspace_billing linkage on a workspace, returning it to the
 	// Free tier. Mirrors what the customer.subscription.deleted webhook writes,
 	// plus stripe_customer_id, which no webhook ever clears. Stripe subscription
@@ -3045,6 +3091,14 @@ type Querier interface {
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
 	UpdateKeySpaceKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeySpaceKeyEncryptionParams) error
+	// Caller holds the drain lock. Keep the committed cursor unchanged and expire
+	// leases for delivery changes so in-flight workers cannot commit stale state.
+	//
+	//  UPDATE logdrains SET name = ?, config = ?, status = ?,
+	//    lease_expires_at = ?, consecutive_failures = ?,
+	//    next_attempt_at = ?, updated_at = ?
+	//  WHERE workspace_id = ? AND id = ?
+	UpdateLogdrain(ctx context.Context, db DBTX, arg UpdateLogdrainParams) error
 	// Updates a portal's mutable fields, scoped to the workspace so one workspace can
 	// never mutate another's portal.
 	//

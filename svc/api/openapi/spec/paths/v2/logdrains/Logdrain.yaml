@@ -1,0 +1,47 @@
+type: object
+required: [
+  id,
+  name,
+  stream,
+  status,
+  batchSize,
+  filters,
+  destination,
+  consecutiveFailures,
+  committedOffsetInsertedAt,
+  createdAt,
+]
+additionalProperties: false
+properties:
+  id:
+    type: string
+  name:
+    type: string
+  stream:
+    type: string
+    enum: [
+      audit_logs,
+      key_verifications,
+      gateway_requests,
+      runtime_logs,
+      ratelimits,
+    ]
+  status:
+    type: string
+    enum: [running, paused_by_user, paused_by_failure]
+  batchSize:
+    type: integer
+    format: int64
+    description: Effective maximum events per delivery. Defaults to 10000.
+  filters:
+    $ref: LogdrainFilters.yaml
+  destination:
+    $ref: LogdrainDestination.yaml
+  consecutiveFailures:
+    type: integer
+  committedOffsetInsertedAt:
+    type: integer
+    format: int64
+  createdAt:
+    type: integer
+    format: int64

@@ -1,0 +1,54 @@
+post:
+  tags: [logdrains]
+  summary: Get log drain metrics
+  description: |
+    Return zero-filled delivery metrics for the last 1, 24, or 168 hours with
+    1, 30, or 240 minute buckets. Requires
+    `unkey:v1:{workspaceId}:logdrains/{logdrainId}#read`.
+  operationId: logdrains.getMetrics
+  x-speakeasy-name-override: getMetrics
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../LogdrainMetricsRequest.yaml
+  responses:
+    "200":
+      description: Delivery metrics for this log drain.
+      content:
+        application/json:
+          schema:
+            $ref: ../LogdrainMetricsResponse.yaml
+    "400":
+      description: Invalid input.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Missing or invalid credentials.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: Insufficient permission.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "404":
+      description: No log drain with this ID exists in the authorized workspace.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/NotFoundErrorResponse.yaml
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

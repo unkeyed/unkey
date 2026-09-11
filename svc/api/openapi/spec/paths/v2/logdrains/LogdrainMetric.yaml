@@ -1,0 +1,19 @@
+type: object
+required: [
+  ts,
+  successCount,
+  transientErrorCount,
+  permanentErrorCount,
+  eventsDelivered,
+  avgDurationMs,
+  lastSuccessMs,
+]
+additionalProperties: false
+properties:
+  ts: { type: integer, format: int64 }
+  successCount: { type: integer, format: int64 }
+  transientErrorCount: { type: integer, format: int64 }
+  permanentErrorCount: { type: integer, format: int64 }
+  eventsDelivered: { type: integer, format: int64 }
+  avgDurationMs: { type: number, format: double }
+  lastSuccessMs: { type: integer, format: int64 }

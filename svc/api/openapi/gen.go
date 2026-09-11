@@ -22,6 +22,15 @@ const (
 	Oci AppSourceType = "oci"
 )
 
+// Defines values for CreateLogdrainRequestStream.
+const (
+	CreateLogdrainRequestStreamAuditLogs        CreateLogdrainRequestStream = "audit_logs"
+	CreateLogdrainRequestStreamGatewayRequests  CreateLogdrainRequestStream = "gateway_requests"
+	CreateLogdrainRequestStreamKeyVerifications CreateLogdrainRequestStream = "key_verifications"
+	CreateLogdrainRequestStreamRatelimits       CreateLogdrainRequestStream = "ratelimits"
+	CreateLogdrainRequestStreamRuntimeLogs      CreateLogdrainRequestStream = "runtime_logs"
+)
+
 // Defines values for DeploymentAction.
 const (
 	DeploymentActionPromote  DeploymentAction = "promote"
@@ -121,6 +130,63 @@ const (
 	KeyCreditsRefillIntervalMonthly KeyCreditsRefillInterval = "monthly"
 )
 
+// Defines values for LogdrainStatus.
+const (
+	LogdrainStatusPausedByFailure LogdrainStatus = "paused_by_failure"
+	LogdrainStatusPausedByUser    LogdrainStatus = "paused_by_user"
+	LogdrainStatusRunning         LogdrainStatus = "running"
+)
+
+// Defines values for LogdrainStream.
+const (
+	LogdrainStreamAuditLogs        LogdrainStream = "audit_logs"
+	LogdrainStreamGatewayRequests  LogdrainStream = "gateway_requests"
+	LogdrainStreamKeyVerifications LogdrainStream = "key_verifications"
+	LogdrainStreamRatelimits       LogdrainStream = "ratelimits"
+	LogdrainStreamRuntimeLogs      LogdrainStream = "runtime_logs"
+)
+
+// Defines values for LogdrainDeliveryOutcome.
+const (
+	Error          LogdrainDeliveryOutcome = "error"
+	PermanentError LogdrainDeliveryOutcome = "permanent_error"
+	Success        LogdrainDeliveryOutcome = "success"
+	TransientError LogdrainDeliveryOutcome = "transient_error"
+)
+
+// Defines values for LogdrainDestinationHttpFormat.
+const (
+	LogdrainDestinationHttpFormatJson   LogdrainDestinationHttpFormat = "json"
+	LogdrainDestinationHttpFormatNdjson LogdrainDestinationHttpFormat = "ndjson"
+)
+
+// Defines values for LogdrainFiltersStatusClasses.
+const (
+	N2 LogdrainFiltersStatusClasses = 2
+	N3 LogdrainFiltersStatusClasses = 3
+	N4 LogdrainFiltersStatusClasses = 4
+	N5 LogdrainFiltersStatusClasses = 5
+)
+
+// Defines values for LogdrainHeaderWriteMode.
+const (
+	LogdrainHeaderPreserve LogdrainHeaderWriteMode = "preserve"
+	LogdrainHeaderSet      LogdrainHeaderWriteMode = "set"
+)
+
+// Defines values for LogdrainHttpWriteFormat.
+const (
+	LogdrainHttpWriteFormatJson   LogdrainHttpWriteFormat = "json"
+	LogdrainHttpWriteFormatNdjson LogdrainHttpWriteFormat = "ndjson"
+)
+
+// Defines values for LogdrainMetricsRequestHours.
+const (
+	N1   LogdrainMetricsRequestHours = 1
+	N168 LogdrainMetricsRequestHours = 168
+	N24  LogdrainMetricsRequestHours = 24
+)
+
 // Defines values for MethodMatchMethods.
 const (
 	MethodMatchMethodsDELETE  MethodMatchMethods = "DELETE"
@@ -136,6 +202,12 @@ const (
 const (
 	UpdateKeyCreditsRefillIntervalDaily   UpdateKeyCreditsRefillInterval = "daily"
 	UpdateKeyCreditsRefillIntervalMonthly UpdateKeyCreditsRefillInterval = "monthly"
+)
+
+// Defines values for UpdateLogdrainRequestStatus.
+const (
+	UpdateLogdrainRequestStatusPausedByUser UpdateLogdrainRequestStatus = "paused_by_user"
+	UpdateLogdrainRequestStatusRunning      UpdateLogdrainRequestStatus = "running"
 )
 
 // Defines values for V2DeployGetDeploymentResponseDataStatus.
@@ -331,6 +403,24 @@ type ConflictErrorResponse struct {
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
+
+// CreateLogdrainRequest defines model for CreateLogdrainRequest.
+type CreateLogdrainRequest struct {
+	BatchSize *int64 `json:"batchSize,omitempty"`
+
+	// Destination Exactly one destination. Creation requires an HTTP URL or an Axiom dataset and
+	// token. Updates preserve omitted fields and cannot change destination kind.
+	Destination LogdrainDestinationWrite `json:"destination"`
+
+	// Filters Only filters for the selected stream are accepted. Empty arrays select all
+	// values. Nonempty dimensions are combined with AND.
+	Filters *LogdrainFilters            `json:"filters,omitempty"`
+	Name    string                      `json:"name"`
+	Stream  CreateLogdrainRequestStream `json:"stream"`
+}
+
+// CreateLogdrainRequestStream defines model for CreateLogdrainRequest.Stream.
+type CreateLogdrainRequestStream string
 
 // Deployment defines model for Deployment.
 type Deployment struct {
@@ -1030,6 +1120,194 @@ type KeysVerifyKeyRatelimit struct {
 	Name string `json:"name"`
 }
 
+// ListLogdrainsRequest defines model for ListLogdrainsRequest.
+type ListLogdrainsRequest struct {
+	Cursor *string `json:"cursor,omitempty"`
+	Limit  *int    `json:"limit,omitempty"`
+}
+
+// ListLogdrainsResponse defines model for ListLogdrainsResponse.
+type ListLogdrainsResponse struct {
+	Data []Logdrain `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
+// Logdrain defines model for Logdrain.
+type Logdrain struct {
+	// BatchSize Effective maximum events per delivery. Defaults to 10000.
+	BatchSize                 int64               `json:"batchSize"`
+	CommittedOffsetInsertedAt int64               `json:"committedOffsetInsertedAt"`
+	ConsecutiveFailures       int                 `json:"consecutiveFailures"`
+	CreatedAt                 int64               `json:"createdAt"`
+	Destination               LogdrainDestination `json:"destination"`
+
+	// Filters Only filters for the selected stream are accepted. Empty arrays select all
+	// values. Nonempty dimensions are combined with AND.
+	Filters LogdrainFilters `json:"filters"`
+	Id      string          `json:"id"`
+	Name    string          `json:"name"`
+	Status  LogdrainStatus  `json:"status"`
+	Stream  LogdrainStream  `json:"stream"`
+}
+
+// LogdrainStatus defines model for Logdrain.Status.
+type LogdrainStatus string
+
+// LogdrainStream defines model for Logdrain.Stream.
+type LogdrainStream string
+
+// LogdrainAxiomWrite defines model for LogdrainAxiomWrite.
+type LogdrainAxiomWrite struct {
+	Dataset *string `json:"dataset,omitempty"`
+	Token   *string `json:"token,omitempty"`
+}
+
+// LogdrainDeliveriesResponse defines model for LogdrainDeliveriesResponse.
+type LogdrainDeliveriesResponse struct {
+	Data []LogdrainDelivery `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// LogdrainDelivery defines model for LogdrainDelivery.
+type LogdrainDelivery struct {
+	DurationMs     int64                   `json:"durationMs"`
+	Error          string                  `json:"error"`
+	Events         int64                   `json:"events"`
+	Outcome        LogdrainDeliveryOutcome `json:"outcome"`
+	ResponseBody   string                  `json:"responseBody"`
+	ResponseStatus int                     `json:"responseStatus"`
+	Time           int64                   `json:"time"`
+}
+
+// LogdrainDeliveryOutcome defines model for LogdrainDelivery.Outcome.
+type LogdrainDeliveryOutcome string
+
+// LogdrainDestination defines model for LogdrainDestination.
+type LogdrainDestination struct {
+	Axiom *struct {
+		Dataset string `json:"dataset"`
+	} `json:"axiom,omitempty"`
+	Http *struct {
+		Format LogdrainDestinationHttpFormat `json:"format"`
+
+		// Headers Header names only. Values remain encrypted and are never returned.
+		Headers []string `json:"headers"`
+		Url     string   `json:"url"`
+	} `json:"http,omitempty"`
+}
+
+// LogdrainDestinationHttpFormat defines model for LogdrainDestination.Http.Format.
+type LogdrainDestinationHttpFormat string
+
+// LogdrainDestinationWrite Exactly one destination. Creation requires an HTTP URL or an Axiom dataset and
+// token. Updates preserve omitted fields and cannot change destination kind.
+type LogdrainDestinationWrite struct {
+	Axiom *LogdrainAxiomWrite `json:"axiom,omitempty"`
+	Http  *LogdrainHttpWrite  `json:"http,omitempty"`
+}
+
+// LogdrainFilters Only filters for the selected stream are accepted. Empty arrays select all
+// values. Nonempty dimensions are combined with AND.
+type LogdrainFilters struct {
+	AppIds         *[]string                       `json:"appIds,omitempty"`
+	EnvironmentIds *[]string                       `json:"environmentIds,omitempty"`
+	EventTypes     *[]string                       `json:"eventTypes,omitempty"`
+	KeySpaceIds    *[]string                       `json:"keySpaceIds,omitempty"`
+	NamespaceIds   *[]string                       `json:"namespaceIds,omitempty"`
+	Outcomes       *[]string                       `json:"outcomes,omitempty"`
+	Passed         *[]bool                         `json:"passed,omitempty"`
+	ProjectIds     *[]string                       `json:"projectIds,omitempty"`
+	Severities     *[]string                       `json:"severities,omitempty"`
+	StatusClasses  *[]LogdrainFiltersStatusClasses `json:"statusClasses,omitempty"`
+}
+
+// LogdrainFiltersStatusClasses defines model for LogdrainFilters.StatusClasses.
+type LogdrainFiltersStatusClasses int
+
+// LogdrainHeaderWrite defines model for LogdrainHeaderWrite.
+type LogdrainHeaderWrite struct {
+	Mode  LogdrainHeaderWriteMode `json:"mode"`
+	Name  string                  `json:"name"`
+	Value *string                 `json:"value,omitempty"`
+}
+
+// LogdrainHeaderWriteMode defines model for LogdrainHeaderWrite.Mode.
+type LogdrainHeaderWriteMode string
+
+// LogdrainHttpWrite defines model for LogdrainHttpWrite.
+type LogdrainHttpWrite struct {
+	Format *LogdrainHttpWriteFormat `json:"format,omitempty"`
+
+	// Headers The complete desired header set. Omit to preserve all headers, or send an
+	// empty array to remove all headers. Preserve is valid only for existing headers.
+	Headers *[]LogdrainHeaderWrite `json:"headers,omitempty"`
+	Url     *string                `json:"url,omitempty"`
+}
+
+// LogdrainHttpWriteFormat defines model for LogdrainHttpWrite.Format.
+type LogdrainHttpWriteFormat string
+
+// LogdrainIdRequest defines model for LogdrainIdRequest.
+type LogdrainIdRequest struct {
+	LogdrainId string `json:"logdrainId"`
+}
+
+// LogdrainMetric defines model for LogdrainMetric.
+type LogdrainMetric struct {
+	AvgDurationMs       float64 `json:"avgDurationMs"`
+	EventsDelivered     int64   `json:"eventsDelivered"`
+	LastSuccessMs       int64   `json:"lastSuccessMs"`
+	PermanentErrorCount int64   `json:"permanentErrorCount"`
+	SuccessCount        int64   `json:"successCount"`
+	TransientErrorCount int64   `json:"transientErrorCount"`
+	Ts                  int64   `json:"ts"`
+}
+
+// LogdrainMetricsRequest defines model for LogdrainMetricsRequest.
+type LogdrainMetricsRequest struct {
+	Hours      LogdrainMetricsRequestHours `json:"hours"`
+	LogdrainId string                      `json:"logdrainId"`
+}
+
+// LogdrainMetricsRequestHours defines model for LogdrainMetricsRequest.Hours.
+type LogdrainMetricsRequestHours int
+
+// LogdrainMetricsResponse defines model for LogdrainMetricsResponse.
+type LogdrainMetricsResponse struct {
+	Data struct {
+		BucketMinutes int              `json:"bucketMinutes"`
+		Series        []LogdrainMetric `json:"series"`
+	} `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// LogdrainMutationResponse defines model for LogdrainMutationResponse.
+type LogdrainMutationResponse struct {
+	Data struct {
+		Id string `json:"id"`
+	} `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// LogdrainResponse defines model for LogdrainResponse.
+type LogdrainResponse struct {
+	Data Logdrain `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
 // LoggingPolicy Adds request data to the log entries of matching requests. The gateway
 // always records a basic log entry for every request: method, host, path,
 // status, and latency. Each capture setting is a separate opt-in: request
@@ -1636,6 +1914,25 @@ type UpdateKeyCreditsRefill struct {
 
 // UpdateKeyCreditsRefillInterval How often credits are automatically refilled.
 type UpdateKeyCreditsRefillInterval string
+
+// UpdateLogdrainRequest defines model for UpdateLogdrainRequest.
+type UpdateLogdrainRequest struct {
+	BatchSize *int64 `json:"batchSize,omitempty"`
+
+	// Destination Exactly one destination. Creation requires an HTTP URL or an Axiom dataset and
+	// token. Updates preserve omitted fields and cannot change destination kind.
+	Destination *LogdrainDestinationWrite `json:"destination,omitempty"`
+
+	// Filters Only filters for the selected stream are accepted. Empty arrays select all
+	// values. Nonempty dimensions are combined with AND.
+	Filters    *LogdrainFilters             `json:"filters,omitempty"`
+	LogdrainId string                       `json:"logdrainId"`
+	Name       *string                      `json:"name,omitempty"`
+	Status     *UpdateLogdrainRequestStatus `json:"status,omitempty"`
+}
+
+// UpdateLogdrainRequestStatus defines model for UpdateLogdrainRequest.Status.
+type UpdateLogdrainRequestStatus string
 
 // V2AnalyticsGetGatewayRequestsRequestBody defines model for V2AnalyticsGetGatewayRequestsRequestBody.
 type V2AnalyticsGetGatewayRequestsRequestBody struct {
@@ -5077,6 +5374,27 @@ type KeysVerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody
 
 // KeysWhoamiJSONRequestBody defines body for KeysWhoami for application/json ContentType.
 type KeysWhoamiJSONRequestBody = V2KeysWhoamiRequestBody
+
+// LogdrainsCreateLogdrainJSONRequestBody defines body for LogdrainsCreateLogdrain for application/json ContentType.
+type LogdrainsCreateLogdrainJSONRequestBody = CreateLogdrainRequest
+
+// LogdrainsDeleteLogdrainJSONRequestBody defines body for LogdrainsDeleteLogdrain for application/json ContentType.
+type LogdrainsDeleteLogdrainJSONRequestBody = LogdrainIdRequest
+
+// LogdrainsGetLogdrainJSONRequestBody defines body for LogdrainsGetLogdrain for application/json ContentType.
+type LogdrainsGetLogdrainJSONRequestBody = LogdrainIdRequest
+
+// LogdrainsGetMetricsJSONRequestBody defines body for LogdrainsGetMetrics for application/json ContentType.
+type LogdrainsGetMetricsJSONRequestBody = LogdrainMetricsRequest
+
+// LogdrainsGetRecentDeliveriesJSONRequestBody defines body for LogdrainsGetRecentDeliveries for application/json ContentType.
+type LogdrainsGetRecentDeliveriesJSONRequestBody = LogdrainIdRequest
+
+// LogdrainsListLogdrainsJSONRequestBody defines body for LogdrainsListLogdrains for application/json ContentType.
+type LogdrainsListLogdrainsJSONRequestBody = ListLogdrainsRequest
+
+// LogdrainsUpdateLogdrainJSONRequestBody defines body for LogdrainsUpdateLogdrain for application/json ContentType.
+type LogdrainsUpdateLogdrainJSONRequestBody = UpdateLogdrainRequest
 
 // PermissionsCreatePermissionJSONRequestBody defines body for PermissionsCreatePermission for application/json ContentType.
 type PermissionsCreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody

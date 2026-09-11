@@ -1,0 +1,22 @@
+type: object
+required: [
+  time,
+  outcome,
+  events,
+  durationMs,
+  responseStatus,
+  responseBody,
+  error,
+]
+additionalProperties: false
+properties:
+  time: { type: integer, format: int64 }
+  outcome: {
+    type: string,
+    enum: [success, error, transient_error, permanent_error],
+  }
+  events: { type: integer, format: int64 }
+  durationMs: { type: integer, format: int64 }
+  responseStatus: { type: integer }
+  responseBody: { type: string }
+  error: { type: string }

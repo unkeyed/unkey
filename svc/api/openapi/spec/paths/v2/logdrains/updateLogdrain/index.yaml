@@ -1,0 +1,57 @@
+post:
+  tags: [logdrains]
+  summary: Update log drain
+  description: |
+    Patch configuration or pause/resume a log drain. Requires
+    `unkey:v1:{workspaceId}:logdrains/{logdrainId}#write`.
+    Omitted fields remain unchanged. Empty filter arrays remove that filter.
+    Delivery changes reset failures and resume failure-paused drains, but keep
+    user-paused drains paused. The committed cursor never resets.
+    Existing drains remain manageable at or above the workspace allowance.
+  operationId: logdrains.updateLogdrain
+  x-speakeasy-name-override: updateLogdrain
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../UpdateLogdrainRequest.yaml
+  responses:
+    "200":
+      description: Log drain updated.
+      content:
+        application/json:
+          schema:
+            $ref: ../LogdrainMutationResponse.yaml
+    "400":
+      description: Invalid input.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Missing or invalid credentials.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: Insufficient permission.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "404":
+      description: No log drain with this ID exists in the authorized workspace.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/NotFoundErrorResponse.yaml
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

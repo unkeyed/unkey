@@ -193,6 +193,11 @@ const (
 	// NotFound indicates the requested portal was not found.
 	UnkeyDataErrorsPortalNotFound URN = "err:unkey:data:portal_not_found"
 
+	// Logdrain
+
+	// NotFound indicates the requested log drain was not found.
+	UnkeyDataErrorsLogdrainNotFound URN = "err:unkey:data:logdrain_not_found"
+
 	// Analytics
 
 	// NotConfigured indicates analytics is not configured for the workspace.

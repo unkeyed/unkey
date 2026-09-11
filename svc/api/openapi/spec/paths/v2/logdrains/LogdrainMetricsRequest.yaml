@@ -1,0 +1,6 @@
+type: object
+required: [logdrainId, hours]
+additionalProperties: false
+properties:
+  logdrainId: { type: string, minLength: 1, maxLength: 48 }
+  hours: { type: integer, enum: [1, 24, 168] }

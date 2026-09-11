@@ -19,6 +19,7 @@ var ErrInvalidResourceName = errors.New("invalid resource name")
 // resourceIDSegment marks a segment that accepts one concrete ID or "*".
 var resourcePathShapes = [][]string{
 	{"github", "apps", resourceIDSegment},
+	{"logdrains", resourceIDSegment},
 	{"projects", resourceIDSegment},
 	{"projects", resourceIDSegment, "apps", resourceIDSegment},
 	{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment},

@@ -1,0 +1,19 @@
+type: object
+required: [name, stream, destination]
+additionalProperties: false
+properties:
+  name: { type: string, minLength: 1, maxLength: 128 }
+  stream:
+    type: string
+    enum: [
+      audit_logs,
+      key_verifications,
+      gateway_requests,
+      runtime_logs,
+      ratelimits,
+    ]
+  batchSize: { type: integer, format: int64, minimum: 1, maximum: 4294967295 }
+  filters:
+    $ref: LogdrainFilters.yaml
+  destination:
+    $ref: LogdrainDestinationWrite.yaml

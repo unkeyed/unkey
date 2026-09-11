@@ -1,0 +1,8 @@
+type: object
+required: [logdrainId]
+additionalProperties: false
+properties:
+  logdrainId:
+    type: string
+    minLength: 1
+    maxLength: 48

@@ -1,0 +1,68 @@
+type: object
+additionalProperties: false
+description: |
+  Only filters for the selected stream are accepted. Empty arrays select all
+  values. Nonempty dimensions are combined with AND.
+properties:
+  eventTypes:
+    type: array
+    maxItems: 256
+    items: { type: string, minLength: 1, maxLength: 256 }
+  outcomes:
+    type: array
+    maxItems: 256
+    items:
+      type: string
+      x-go-type: string
+      enum: [
+        VALID,
+        INSUFFICIENT_PERMISSIONS,
+        RATE_LIMITED,
+        FORBIDDEN,
+        DISABLED,
+        EXPIRED,
+        USAGE_EXCEEDED,
+        "",
+      ]
+      x-enum-varnames: [
+        LogdrainOutcomeValid,
+        LogdrainOutcomeInsufficientPermissions,
+        LogdrainOutcomeRateLimited,
+        LogdrainOutcomeForbidden,
+        LogdrainOutcomeDisabled,
+        LogdrainOutcomeExpired,
+        LogdrainOutcomeUsageExceeded,
+        LogdrainOutcomeUnknown,
+      ]
+  keySpaceIds:
+    type: array
+    maxItems: 256
+    items: { type: string, minLength: 1, maxLength: 256 }
+  namespaceIds:
+    type: array
+    maxItems: 256
+    items: { type: string, minLength: 1, maxLength: 256 }
+  passed:
+    type: array
+    maxItems: 2
+    items: { type: boolean }
+  statusClasses:
+    type: array
+    maxItems: 4
+    items: { type: integer, enum: [2, 3, 4, 5] }
+  severities:
+    type: array
+    maxItems: 256
+    items: { type: string, minLength: 1, maxLength: 256 }
+  projectIds:
+    type: array
+    maxItems: 256
+    items: { type: string, minLength: 1, maxLength: 256 }
+  appIds:
+    type: array
+    maxItems: 256
+    items: { type: string, minLength: 1, maxLength: 256 }
+  environmentIds:
+    type: array
+    maxItems: 256
+    items: { type: string, minLength: 1, maxLength: 256 }

@@ -1,0 +1,16 @@
+type: object
+required: [meta, data]
+additionalProperties: false
+properties:
+  meta:
+    $ref: ../../../common/Meta.yaml
+  data:
+    type: object
+    required: [series, bucketMinutes]
+    additionalProperties: false
+    properties:
+      bucketMinutes: { type: integer }
+      series:
+        type: array
+        items:
+          $ref: LogdrainMetric.yaml
