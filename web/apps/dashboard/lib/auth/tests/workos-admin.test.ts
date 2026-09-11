@@ -43,19 +43,32 @@ describe("WorkOSAuthProvider server-side membership operations", () => {
   it("lists all active membership pages without returning a stale cursor", async () => {
     const provider = new WorkOSAuthProvider();
     vi.spyOn(provider, "getUser").mockResolvedValue({
-      id: "user_123", email: "user@example.com", firstName: null, lastName: null,
-      avatarUrl: null, fullName: null,
+      id: "user_123",
+      email: "user@example.com",
+      firstName: null,
+      lastName: null,
+      avatarUrl: null,
+      fullName: null,
     });
     const member = (organizationId: string) => ({
-      id: `mem_${organizationId}`, organizationId, organizationName: organizationId,
-      role: { slug: "admin" }, status: "active", createdAt: "2026-01-01", updatedAt: "2026-01-01",
+      id: `mem_${organizationId}`,
+      organizationId,
+      organizationName: organizationId,
+      role: { slug: "admin" },
+      status: "active",
+      createdAt: "2026-01-01",
+      updatedAt: "2026-01-01",
     });
     mocks.listOrganizationMemberships
       .mockResolvedValueOnce({ data: [member("org_first")], listMetadata: { after: "cursor_1" } })
       .mockResolvedValueOnce({ data: [member("org_second")], listMetadata: { after: "cursor_2" } })
       .mockResolvedValueOnce({ data: [member("org_last")], listMetadata: { after: null } });
     const result = await provider.listMemberships("user_123");
-    expect(result.data.map((item) => item.organization.id)).toEqual(["org_first", "org_second", "org_last"]);
+    expect(result.data.map((item) => item.organization.id)).toEqual([
+      "org_first",
+      "org_second",
+      "org_last",
+    ]);
     expect(result.metadata).toEqual({});
     expect(mocks.listOrganizationMemberships.mock.calls).toEqual([
       [{ userId: "user_123", limit: 100, statuses: ["active"] }],
