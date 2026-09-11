@@ -1,0 +1,129 @@
+---
+title: "Refresh docs screenshots"
+description: "Use Amp to check and refresh product documentation screenshots from the real dashboard."
+---
+
+The `refreshing-docs-screenshots` repository skill reads screenshot descriptions
+from product docs, prepares synthetic data in the local dashboard, and captures
+the requested UI. It keeps accurate images unchanged.
+
+The skill lives in `.agents/skills/refreshing-docs-screenshots/SKILL.md` and is
+available to teammates who use Amp with this checkout. It is an agent workflow,
+not a command run by the docs build.
+
+## Run a check
+
+Open an Amp thread in the repository. Use a local environment that follows the
+[development guide](/contributing/local/development), or an orb with the
+repository's service configuration. Amp can prepare the local environment when
+needed. Never point the workflow at production or a shared database.
+
+To check all declared screenshots, send:
+
+> Use refreshing-docs-screenshots in all mode to check the product docs.
+
+To check one screenshot, send:
+
+> Use refreshing-docs-screenshots in specific mode for root-key-edit.
+
+Specific mode accepts a unique dashboard target or an image `src`. If several
+illustrations use the same target, specify the image path:
+
+> Use refreshing-docs-screenshots in specific mode for
+> /platform/root-keys/root-key-edit.
+
+Amp reports each illustration as current, refreshed, or blocked. Missing targets,
+ambiguous matches, and unavailable local services are blockers, not reasons to
+capture a different screen. `all` covers `DashboardScreenshot` declarations;
+ordinary Markdown images and `<img>` tags are not included.
+
+A refresh leaves changes local. Ask explicitly to open a draft PR when the result
+is ready to share. A monthly check can use `all`, but the skill does not install
+a schedule. Ask Amp to schedule the monthly run separately if needed.
+
+## Register an illustration
+
+A dashboard marker defines where to capture. A product docs declaration defines
+what the image needs to show.
+
+### Mark the existing dashboard element
+
+Add a stable `data-docs-target` to an existing container. Do not introduce a
+wrapper, new route, or mock UI for the screenshot.
+
+```tsx
+<PageContainer width="full" data-docs-target="root-key-list">
+  {/* Existing dashboard content */}
+</PageContainer>
+```
+
+Custom React components must forward the attribute to a DOM element. Mark the
+content of a portaled dialog, not its trigger. In this repository,
+`DialogContainer` forwards `data-docs-target` to its dialog content.
+
+### Describe the state in product docs
+
+Import the shared snippet into the MDX page and keep Mintlify's `Frame` around it:
+
+```mdx
+import { DashboardScreenshot } from "/snippets/dashboard-screenshot.jsx";
+
+<Frame>
+  <DashboardScreenshot
+    target="root-key-edit"
+    capture="target"
+    description="In a disposable local workspace, edit a synthetic Billing
+      Service root key. Show Billing create_key and verify_key permissions.
+      Keep the permission sheet closed. Capture the edit dialog in both
+      themes. Do not submit changes."
+    src="/platform/root-keys/root-key-edit"
+    width={460}
+    alt="Edit root key dialog"
+  />
+</Frame>
+```
+
+Write a description that explains the data, visible state, and boundaries. Name
+actions that must not happen, such as submitting an edit or confirming deletion.
+Amp chooses the seed data and browser steps; fixed scripts are not required.
+
+The `src` identifies the saved illustration. The component displays
+`${src}-light.png` and `${src}-dark.png` from `docs/product/`. Several illustrations
+can use the same `target` with different `src` paths and descriptions. No separate
+image ID is needed. Keep an existing image pair when converting an old screenshot.
+
+Use `capture="target"` for the element's bounds, `capture="viewport"` for the
+visible browser page, or `capture="full-page"` for the scrollable document. The
+default is `target`. A full-page capture does not expand scrollable panels.
+The optional `width` controls image display in docs, not the capture viewport.
+Specify viewport constraints in the description when they matter.
+
+The component renders only the saved images. Capture metadata stays in the MDX
+source and is not emitted as `data-*` attributes in the docs HTML.
+
+## Track capture age without creating unnecessary changes
+
+After saving and inspecting both themes, Amp records their capture time in UTC:
+
+```mdx
+capturedAt="2026-09-11T07:07:49Z"
+```
+
+Leave `capturedAt` absent when an existing image's capture date is unknown. Do not
+use the migration date or the current render time. A check that leaves the images
+unchanged also leaves their timestamp unchanged.
+
+Age helps prioritize review, but it does not prove an image is outdated. A recent
+image can be wrong after a UI change, and an older image can still be accurate.
+The skill checks the rendered dashboard against the description and nearby docs.
+
+## Review the result
+
+Check that both theme images show the intended state and contain no exposed
+credentials or customer data. Verify the crop, readable text, and image scale in
+the real product docs preview. Review any changed timestamp with its image pair.
+
+The skill runs Mintlify validation and reports its verification. It does not
+publish changes without approval. For PR review images, follow the
+[screenshots and recordings guide](/contributing/quality/screenshots-and-recordings);
+those full-context review images are separate from tightly cropped docs assets.

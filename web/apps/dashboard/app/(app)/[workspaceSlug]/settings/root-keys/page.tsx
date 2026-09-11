@@ -14,7 +14,7 @@ import { RootKeysList } from "./components/table/root-keys-list";
 
 export default function RootKeysPage() {
   return (
-    <PageContainer width="full">
+    <PageContainer width="full" data-docs-target="root-key-list">
       <PageHeader>
         <PageHeaderContent>
           <PageHeaderTitle>Root Keys</PageHeaderTitle>

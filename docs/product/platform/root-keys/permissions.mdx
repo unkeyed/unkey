@@ -3,6 +3,8 @@ title: Permissions
 description: "Complete reference of all root key permissions in Unkey. Control which API operations each root key can perform across your workspace."
 ---
 
+import { DashboardScreenshot } from "/snippets/dashboard-screenshot.jsx";
+
 Each root key has a set of permissions that control which API operations it can perform.
 
 ## Permission format
@@ -27,8 +29,15 @@ You can mix wildcards and specific IDs on the same root key. For example, a key 
 When configuring a root key in the dashboard, workspace-wide permissions (using `*`) are listed at the top under "Workspace." Below them, under "From APIs," each keyspace in your workspace is listed so you can grant keyspace-scoped permissions selectively.
 
 <Frame>
-  <img className="block dark:hidden" src="/platform/root-keys/root-key-permissions-light.png" alt="Permission selection sheet" />
-  <img className="hidden dark:block" src="/platform/root-keys/root-key-permissions-dark.png" alt="Permission selection sheet" />
+  <DashboardScreenshot
+    target="root-key-permissions"
+    capture="target"
+    capturedAt="2026-09-11T04:48:23Z"
+    description="In a local workspace with a Billing keyspace, open Settings, Root Keys, New root key, then Select Permissions. Leave the search empty. Expand Workspace to show its permission groups. Keep Billing visible under From APIs. Do not select any permissions or create a root key. Use a 1440 by 1000 viewport. Capture only the permission sheet in light and dark themes."
+    src="/platform/root-keys/root-key-permissions"
+    width={384}
+    alt="Root key permission sheet showing workspace-wide permission groups and the Billing keyspace under From APIs"
+  />
 </Frame>
 
 ### Insufficient permissions
