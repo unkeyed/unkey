@@ -13,6 +13,103 @@ defines the pipeline. The
 [detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math)
 defines every expected threshold.
 
+## Enable the fast instance-failure beta
+
+This opt-in path opens dashboard alerts for `OOMKilled` and `CrashLoopBackOff`
+without waiting for the normal 5-minute evaluator. It does not add generic
+restart alerts, statistical fast paths, or notifications. Both allowlists
+default to empty, and the local CronJob defaults to suspended. Obtain rollout
+approval for a named environment and workspace cohort before these steps.
+
+1. Apply the additive MySQL schema through the approved schema workflow:
+   `deploy_anomaly_events` with its unique identity and pending indexes, and
+   nullable `alert_events.last_observed_event_at`. The Drizzle sources are
+   `web/internal/db/src/schema/{deploy_anomaly_events,alert_events}.ts`.
+   Do not enable code that queries the column before the schema is present.
+2. Deploy compatible ctrl API and worker versions with empty allowlists. Keep
+   the regular anomaly evaluator running and confirm its heartbeat.
+3. Set the same top-level `deploy_anomaly_fast_workspaces` list on ctrl API and
+   worker. Start with an internal workspace. This flag is separate from the
+   dashboard's `deploy-anomaly-alerts` feature flag, which must also be enabled
+   for participants to see alerts.
+
+   ```toml
+   deploy_anomaly_fast_workspaces = ["ws_APPROVED_BETA"]
+   ```
+
+4. Configure the worker's `[heartbeat].deploy_anomaly_fast_url` with a dedicated
+   health check. Alert on a missing successful tick for 3 minutes. Do not treat
+   the Kubernetes `/send` response as successful processing.
+5. Configure one caller in the approved environment. Use schedule
+   `* * * * *`, fixed path
+   `hydra.v1.CronService/deploy-anomaly-events/RunDeployAnomalyEvents/send`,
+   and idempotency key `deploy-anomaly-events-YYYY-MM-DDTHH:MM` for each UTC
+   minute. The local reference is `jobs.deploy-anomaly-events` in
+   `dev/k8s/charts/restate-cronjobs/values.yaml`. Production callers belong in
+   the selected `unkeyed/infra` environment, not every environment.
+6. In the approved test app, generate one OOM and one crash-loop event. Verify
+   durable inbox rows, one open alert per metric, and the dashboard deep link.
+   Replay the same identity and confirm no duplicate. Record source-to-receipt
+   and receipt-to-processing times separately. Do not promise a 60-second
+   end-to-end bound from a 1-minute polling schedule.
+
+### Check the backlog and retained identities
+
+Read pending rows for each opted-in workspace. `received_at` and `processed_at`
+are Unix milliseconds. Event-time age does not exclude a pending row.
+
+```sql
+SELECT COUNT(*) AS pending,
+       MIN(received_at) AS oldest_received_at
+FROM deploy_anomaly_events
+WHERE workspace_id = 'ws_APPROVED_BETA' AND processed_at IS NULL;
+
+SELECT pk, id, app_id, environment_id, deployment_id, metric,
+       event_time, received_at, processed_at
+FROM deploy_anomaly_events
+WHERE workspace_id = 'ws_APPROVED_BETA' AND processed_at IS NULL
+ORDER BY pk
+LIMIT 100;
+```
+
+Investigate pending age above 2 minutes, missed heartbeats, the warning
+`fast anomaly event scan reached per-tick capacity`, or repeated
+`report instance events: insert anomaly event failed` errors. The nominal cap
+is 1,000 scanned events per workspace per invocation, not a throughput SLA.
+Group queueing and retries can extend a tick beyond one minute. Do not expand
+the cohort while backlog age grows.
+
+Inspect `RunDeployAnomalyEvents` on key `deploy-anomaly-events` and
+`OpenObservedEvents` on the normal group key. Both must kill after five failed
+attempts. The `events_cursor:<workspace_id>` fields `after` and `through` mark
+scan position and the sweep's fixed upper bound, not acknowledgement. Failed
+rows remain pending and return in the next sweep. A successful heartbeat proves
+the scanned work completed, not that the backlog is empty.
+
+Processed identities are retained without TTL for this beta. Do not delete
+them, including after disabling the feature: deleting a handled identity can
+let an old report reopen an alert. Monitor table row count, data/index size,
+and MySQL write latency daily. Storage follows unique container failure lives,
+not HTTP request volume. Expansion requires a measured storage budget; this
+beta makes no capacity claim for 1 million requests per second.
+
+### Disable or roll back the fast path
+
+For a controlled stop, remove the cohort from the API allowlist first, let
+pending rows drain, then suspend the caller and clear the worker allowlist.
+For an immediate stop, suspend the caller and clear both allowlists. Pending
+rows remain durable and can run after re-enablement if their deployment is
+still active. In-flight invocations can finish during either procedure.
+
+Leave the additive schema and handled identities in place when rolling back
+code. Keep the regular 5-minute evaluator running for recovery. Disabling the
+fast path does not resolve existing alerts or disable normal health alerts.
+
+The chart event buffer remains lossy. A durable alert need not have a matching
+ClickHouse bar. Krane can retry an RPC failure on a later pod-watch tick, but
+capture before the control-plane acknowledgement is not durable. A deleted pod
+or overwritten container state can still hide an event.
+
 ## Identify the expected window
 
 Calculate the window that a cron tick must evaluate. All values are UTC Unix
@@ -163,8 +260,10 @@ sparse. A row in `instance_events_raw_v1` is actionable even when the resources
 watermark is incomplete. When no event row exists, the resources source
 watermark decides whether the zero is complete. The ctrl API instance-event
 buffer uses `Drop: true`. If a known lifecycle event has no raw row, inspect
-buffer pressure and flush errors. A dropped event causes a missed alert. It
-does not create a stuck incomplete source.
+buffer pressure and flush errors. A dropped event can cause a missed alert on
+the standard path. It does not create a stuck incomplete source. For a fast-path
+workspace, inspect the durable inbox as well: a dropped chart event does not
+erase an acknowledged inbox identity.
 
 ## Diagnose a failed shard or child
 
@@ -252,7 +351,8 @@ restate kv get hydra.v1.DeployAnomalyService "${group_key}"
 
 Expected state keys are `candidate:<metric>`, `candidate_window:<metric>`,
 `open_alert:<metric>`, `fired_at:<metric>`, `progress:<metric>`,
-`snapshot:<metric>`, and `open_alerts_reconciled`, plus the group-level
+`snapshot:<metric>`, `observed_event_at:<metric>` for fast evidence, and
+`open_alerts_reconciled`, plus the group-level
 `last_window_end`. `quiet:<metric>` can remain while older state migrates into
 `progress:<metric>`.
 
@@ -290,6 +390,7 @@ SELECT
   status,
   fired_at,
   last_seen_at,
+  last_observed_event_at,
   window_start,
   window_end,
   observed_value,
@@ -302,8 +403,14 @@ FROM alert_events
 WHERE id = 'alert_XXX';
 ```
 
-Find the `deploy anomaly alert opened` log for the ID. Record these structured
-fields before recalculating the rule:
+For fast-path alerts, compare the group's inbox identities and processing times
+with `last_observed_event_at`. Opening time is processing time, not event time.
+The observed count describes novel events in that processed batch, not a
+5-minute chart total. Confirm that the deployment was active and the environment
+was production when the handler processed the row.
+
+For regular window alerts, find the `deploy anomaly alert opened` log for the ID.
+Record these structured fields before recalculating the rule:
 
 - `alert_id`
 - `metric`

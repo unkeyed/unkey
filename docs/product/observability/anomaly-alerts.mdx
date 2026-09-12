@@ -65,16 +65,18 @@ Error alerts use the percentage of requests that failed. They also require at
 least 20 more failures than the recent baseline predicts. This avoids an alert
 when a large percentage change affects only a few requests.
 
-Unkey tracks request and resource completeness separately for the regions where
-each deployment runs. A source is complete only when every running region has
-finished the window. An unrelated sparse region does not block the deployment.
-A missing or delayed watermark in a running region keeps that source incomplete,
-so missing data cannot look like zero traffic. An incomplete window cannot open
-or resolve an alert from metric values.
+Unkey tracks request and resource ingestion progress separately for the regions
+where each deployment runs. Every running region must have a watermark that
+reaches the window end. An unrelated sparse region does not block the deployment.
+A missing or delayed watermark keeps that source incomplete. An incomplete
+window cannot open or resolve an alert from metric values. A recent watermark
+does not prove that all earlier data arrived.
 
 Instance failures are sparse events. A received OOM or crash-loop event can
-open an alert immediately. When there is no event, resource completeness tells
-the detector whether the empty window is safe to use for recovery.
+open an alert without a baseline or a second confirming window. The standard
+path still waits for its scheduled 5-minute evaluation. When there is no event,
+resource completeness tells the detector whether to use the empty window for
+recovery. Watermarks track recent ingestion, not lossless delivery.
 
 Request-drop alerts require an active deployment ID and at least one topology
 region set to running. No deployment ID, a stopped deployment, or every
@@ -86,6 +88,25 @@ When a complete window has no requests, Unkey recalculates the drop rule from
 the latest rolling values. Old active buckets can age out of the 12-bucket
 window and remove drop eligibility. Unkey does not reuse eligibility from an
 earlier zero-request window.
+
+### Faster instance-failure beta
+
+Separately opted-in workspaces use a 1-minute poll for `OOMKilled` and
+`CrashLoopBackOff`. The control plane stores reported failures before
+acknowledging them, so alert creation does not depend on the chart event buffer.
+A successfully stored failure is normally processed at the next poll. Queueing,
+retries, and source delivery can add delay. This is not an end-to-end latency
+guarantee.
+
+The faster path opens alerts only for the active production deployment with a
+running region. Duplicate reports do not reopen resolved alerts. A new failure
+resets recovery evidence, but resolution still requires three complete quiet
+5-minute windows. Request, error-ratio, CPU, egress, and memory detection keep
+their existing cadence. Generic restart-count alerts are not included.
+
+Health charts still use ClickHouse event history. A failure alert can appear
+before its chart bar, or without a bar if that separate history write was lost.
+The faster path adds no email, Slack, or webhook notifications.
 
 ## Read the Anomalies tab
 
@@ -205,9 +226,10 @@ This beta does not include:
 - A sensitivity control in the dashboard.
 - Seasonal baselines for daily or weekly patterns.
 - Latency anomalies.
-- Guaranteed delivery of OOM and crash-loop events. The event buffer can drop a
-  lifecycle event under pressure, which causes a missed alert rather than a
-  stuck alert.
+- Guaranteed capture of every OOM or crash-loop event. A source failure can
+  disappear before it reaches the control plane. For faster-path workspaces,
+  acknowledged failure identities are durable. Other workspaces still depend
+  on the event buffer, which can drop rows under pressure.
 - Persisted raw error and request counts. Error alerts store the ratio, while raw
   counts appear only in internal logs.
 - Measured capacity results for 1 million monitored groups. Current figures are
