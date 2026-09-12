@@ -57,6 +57,60 @@ The local cron entry is in
 in the `unkeyed/infra` repository at
 `eks-cluster/helm-chart/restate/environments/{canary,production001}/us-east-1.yaml`.
 
+## Open observed failures in the opt-in beta
+
+The separate fast path polls durable MySQL rows once per minute. It covers only
+`OOMKilled` and `CrashLoopBackOff`, whose existing threshold is one event.
+It does not shorten statistical windows or change chart aggregation.
+
+Both ctrl API and worker require the workspace in
+`deploy_anomaly_fast_workspaces`, which defaults to empty. For qualifying
+reports, `ReportInstanceEvents` inserts into `deploy_anomaly_events` before
+returning success. Required inserts share a 5-second timeout. A failed write
+returns Connect `Unavailable`; invalid identity fields or negative restart
+counts return `InvalidArgument`. ClickHouse history remains a separate write.
+
+The identity hash uses length-prefixed workspace, deployment, region, pod UID,
+container name, restart count, and event kind. It excludes event timestamps, so
+a refreshed waiting report cannot represent a new container life. Duplicate
+inserts preserve the original row, including `processed_at`. The beta retains
+processed identities without expiry. It stores no log or message payload.
+
+`CronService.RunDeployAnomalyEvents` uses the fixed key
+`deploy-anomaly-events`. Each tick scans at most 10 pages of 100 rows per
+workspace and awaits at most four group calls concurrently. A sweep freezes its
+maximum pending primary key. Its cursor records scan progress, not successful
+processing. Failed rows remain pending and are revisited after the bounded
+sweep finishes, even while newer rows arrive. The index is
+`(workspace_id, processed_at, pk)`.
+
+`DeployAnomalyService.OpenObservedEvents` uses the same exclusive group key as
+`Evaluate`. It clears the reconciliation marker before its SQL transaction.
+That transaction locks pending identities, checks the active production
+deployment and running topology, inserts or touches alerts, and marks identities
+processed together. Stopped, missing, preview, and rolled-over deployments do
+not open alerts. After commit, the handler reloads open alerts from MySQL.
+If the invocation dies after commit, the next regular evaluation reconciles too.
+Neither a retry nor a replay after full resolution can reopen a handled identity.
+
+A novel event persists `last_observed_event_at` on its alert. Regular windows
+ending before that evidence cannot count as quiet. The containing window resets
+recovery, or the next complete window resets the old count if the containing
+window was skipped. Duplicates do not refresh evidence. The fast handler never
+advances `last_window_end`, metric progress, or quiet counts. Recovery still
+uses three distinct complete 5-minute windows and the existing 24-hour cap.
+
+Both fast handlers kill on bounded retry exhaustion. Failed dispatches withhold
+the dedicated heartbeat. The local CronJob is suspended by default. Use the
+[beta rollout steps](/infra/runbooks/deploy-anomaly-alerts#enable-the-fast-instance-failure-beta)
+before enabling a caller.
+
+Durability starts when the control plane acknowledges a report, not when the
+container fails. Krane removes its dedup entries after an RPC failure so a later
+pod-watch tick can retry. A vanished pod or overwritten termination state can
+still prevent capture. One-minute polling is not an end-to-end SLA: source lag,
+backlog, retries, and group queueing add delay.
+
 ## Select a closed window
 
 Each tick evaluates one aligned 5-minute UTC window. The start in Unix seconds
@@ -93,6 +147,9 @@ group's source is complete when every running region has a watermark at or
 after the window end. A missing or older watermark is incomplete. A sparse
 region cannot block a group that does not run there.
 
+Here, complete means that the configured watermark gate passed. A maximum
+timestamp does not prove gap-free delivery or the absence of dropped rows.
+
 This boundary depends on the Frontline and Heimdall region configurations
 matching `regions.name`. Frontline records a cross-region request in the region
 that serves it. A running region with no recent source watermark remains
@@ -124,8 +181,10 @@ resources source makes the event metric `ZERO_COMPLETE`, and an incomplete
 resources source makes it `INCOMPLETE`.
 
 The ctrl API writes instance events through a bounded buffer configured with
-`Drop: true`. A dropped event can cause a missed OOM or crash-loop alert. It
-cannot keep an event metric incomplete or stall the detector.
+`Drop: true`. A dropped event can cause a missed OOM or crash-loop alert on the
+standard path. It cannot keep an event metric incomplete or stall the detector.
+The opt-in fast path uses the durable inbox instead, but charts and regular
+window evaluation still read ClickHouse.
 
 ## Shard the fleet scan
 
@@ -453,6 +512,7 @@ and Go enum values.
 | `progress:<metric>` | Stores the latest completed metric window and its consecutive quiet count atomically. |
 | `quiet:<metric>` | Legacy quiet count read during state migration. |
 | `snapshot:<metric>` | Stores the opening baseline and threshold for recovery. |
+| `observed_event_at:<metric>` | Stores the latest durable fast-path evidence time that recovery must pass. |
 | `open_alerts_reconciled` | Records that open MySQL rows were loaded into this object. |
 | `last_window_end` | Rejects duplicate and out-of-order group windows. |
 
@@ -476,6 +536,7 @@ The table stores:
 - Classification: `metric` and `status` (`open` or `resolved`).
 - Detection context: `fired_at`, `last_seen_at`, `window_start`, `window_end`,
   `observed_value`, `baseline_mean`, `baseline_stddev`, and `threshold_sigma`.
+- Fast-path evidence: nullable `last_observed_event_at`.
 - Resolution context: `resolved_at` and `resolution_message`.
 - Record timestamps: `created_at` and `updated_at`.
 
@@ -635,6 +696,16 @@ Verify the open-alert inbox, each metric view, resolved focus through
 read-only controls, and system resolution messages.
 
 ## Scale characteristics
+
+The durable event beta was tested separately with 100 simultaneously affected
+apps in one workspace and 100,000 older processed inbox identities. One poll
+opened 100 alerts in 1.23 seconds. MySQL used the pending index and returned
+100 rows in about 0.32 ms inside the query plan. The Go test process allocated
+51.6 MB during the poll and held 37.4 MB of heap on return. Those process-wide
+values include the local handler and harness, exclude MySQL and Restate server
+memory, and are not peak-memory measurements. This is not an ingestion
+benchmark or a production latency guarantee. The test is
+`TestDeployAnomalyEventsFleetWithProcessedHistory_Integration`.
 
 The fleet scan has a fixed bound of one 24-hour baseline plus the selected
 5-minute bucket. It partitions workspaces across 16 shards by default.

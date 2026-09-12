@@ -312,8 +312,17 @@ Memory requires a complete resources window. An OOM or crash-loop event row is
 actionable even when the resources watermark is incomplete. When there is no
 event row, resources completeness determines whether the event count is a
 complete zero or incomplete. The instance-event ingest buffer is lossy, so a
-dropped event can cause a missed alert, but it cannot leave detection stuck on
-an incomplete event source.
+dropped event can cause a missed alert on the standard window path, but it
+cannot leave detection stuck on an incomplete event source. Watermarks measure
+ingestion progress, not gap-free delivery.
+
+The opt-in fast event path applies the same one-event OOM and crash-loop
+threshold to a durable MySQL inbox. Its 1-minute poll does not wait for a closed
+5-minute window. It opens or touches alerts only. A new identity records fresh
+evidence that resets recovery, while a duplicate does not. Resolution still
+uses three complete quiet 5-minute windows and the existing maximum open
+duration. See the
+[fast-path contract](/architecture/services/control-plane/worker/deploy-anomaly-detection#open-observed-failures-in-the-opt-in-beta).
 
 ## Confirm sustained conditions
 
