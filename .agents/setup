@@ -39,6 +39,11 @@ elif ! command -v setfacl >/dev/null 2>&1; then
 fi
 echo "Docker installation completed in $((SECONDS - docker_started_at))s."
 
+if ! command -v rsync >/dev/null 2>&1; then
+  sudo apt-get update
+  sudo apt-get install -y rsync
+fi
+
 echo "Starting Docker..."
 sudo systemctl start docker
 sudo usermod -aG docker "$(id -un)"
