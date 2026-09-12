@@ -3,6 +3,7 @@ package deployanomaly
 import (
 	"database/sql"
 	"fmt"
+	"slices"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
@@ -150,6 +151,11 @@ func (h *CheckHandler) Evaluate(
 			restate.Set(ctx, progressKey(metric), metricProgress{
 				WindowEnd: req.GetWindowEnd(), QuietWindows: quietWindows,
 			})
+			continue
+		}
+
+		if (metric == MetricOOMKilled || metric == MetricCrashLoop) && slices.Contains(h.fastWorkspaces, req.GetWorkspaceId()) {
+			restate.Set(ctx, progressKey(metric), metricProgress{WindowEnd: req.GetWindowEnd(), QuietWindows: 0})
 			continue
 		}
 
