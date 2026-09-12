@@ -97,6 +97,97 @@ func (ns NullAcmeChallengesStatus) Value() (driver.Value, error) {
 	return string(ns.AcmeChallengesStatus), nil
 }
 
+type AlertEventsMetric string
+
+const (
+	AlertEventsMetricError5xx          AlertEventsMetric = "error_5xx"
+	AlertEventsMetricError4xx          AlertEventsMetric = "error_4xx"
+	AlertEventsMetricRequests          AlertEventsMetric = "requests"
+	AlertEventsMetricRequestsDrop      AlertEventsMetric = "requests_drop"
+	AlertEventsMetricEgressBytes       AlertEventsMetric = "egress_bytes"
+	AlertEventsMetricCpuSeconds        AlertEventsMetric = "cpu_seconds"
+	AlertEventsMetricMemoryUtilization AlertEventsMetric = "memory_utilization"
+	AlertEventsMetricOomKilled         AlertEventsMetric = "oom_killed"
+	AlertEventsMetricCrashLoop         AlertEventsMetric = "crash_loop"
+)
+
+func (e *AlertEventsMetric) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AlertEventsMetric(s)
+	case string:
+		*e = AlertEventsMetric(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AlertEventsMetric: %T", src)
+	}
+	return nil
+}
+
+type NullAlertEventsMetric struct {
+	AlertEventsMetric AlertEventsMetric
+	Valid             bool // Valid is true if AlertEventsMetric is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAlertEventsMetric) Scan(value interface{}) error {
+	if value == nil {
+		ns.AlertEventsMetric, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AlertEventsMetric.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAlertEventsMetric) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AlertEventsMetric), nil
+}
+
+type AlertEventsStatus string
+
+const (
+	AlertEventsStatusOpen     AlertEventsStatus = "open"
+	AlertEventsStatusResolved AlertEventsStatus = "resolved"
+)
+
+func (e *AlertEventsStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AlertEventsStatus(s)
+	case string:
+		*e = AlertEventsStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AlertEventsStatus: %T", src)
+	}
+	return nil
+}
+
+type NullAlertEventsStatus struct {
+	AlertEventsStatus AlertEventsStatus
+	Valid             bool // Valid is true if AlertEventsStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAlertEventsStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.AlertEventsStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AlertEventsStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAlertEventsStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AlertEventsStatus), nil
+}
+
 type ApisAuthType string
 
 const (
@@ -436,6 +527,48 @@ func (ns NullCustomDomainsVerificationStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.CustomDomainsVerificationStatus), nil
+}
+
+type DeployAnomalyEventsMetric string
+
+const (
+	DeployAnomalyEventsMetricOomKilled DeployAnomalyEventsMetric = "oom_killed"
+	DeployAnomalyEventsMetricCrashLoop DeployAnomalyEventsMetric = "crash_loop"
+)
+
+func (e *DeployAnomalyEventsMetric) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeployAnomalyEventsMetric(s)
+	case string:
+		*e = DeployAnomalyEventsMetric(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeployAnomalyEventsMetric: %T", src)
+	}
+	return nil
+}
+
+type NullDeployAnomalyEventsMetric struct {
+	DeployAnomalyEventsMetric DeployAnomalyEventsMetric
+	Valid                     bool // Valid is true if DeployAnomalyEventsMetric is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeployAnomalyEventsMetric) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeployAnomalyEventsMetric, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeployAnomalyEventsMetric.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeployAnomalyEventsMetric) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeployAnomalyEventsMetric), nil
 }
 
 type DeploymentChangesResourceType string
@@ -1119,6 +1252,31 @@ type AcmeUser struct {
 	UpdatedAt       sql.NullInt64  `db:"updated_at"`
 }
 
+type AlertEvent struct {
+	Pk                  uint64            `db:"pk"`
+	ID                  string            `db:"id"`
+	WorkspaceID         string            `db:"workspace_id"`
+	ProjectID           string            `db:"project_id"`
+	AppID               string            `db:"app_id"`
+	EnvironmentID       string            `db:"environment_id"`
+	DeploymentID        sql.NullString    `db:"deployment_id"`
+	Metric              AlertEventsMetric `db:"metric"`
+	Status              AlertEventsStatus `db:"status"`
+	FiredAt             int64             `db:"fired_at"`
+	LastSeenAt          int64             `db:"last_seen_at"`
+	LastObservedEventAt sql.NullInt64     `db:"last_observed_event_at"`
+	ResolvedAt          sql.NullInt64     `db:"resolved_at"`
+	ResolutionMessage   sql.NullString    `db:"resolution_message"`
+	ObservedValue       float64           `db:"observed_value"`
+	BaselineMean        float64           `db:"baseline_mean"`
+	BaselineStddev      float64           `db:"baseline_stddev"`
+	ThresholdSigma      float64           `db:"threshold_sigma"`
+	WindowStart         int64             `db:"window_start"`
+	WindowEnd           int64             `db:"window_end"`
+	CreatedAt           int64             `db:"created_at"`
+	UpdatedAt           sql.NullInt64     `db:"updated_at"`
+}
+
 type Api struct {
 	Pk               uint64           `db:"pk"`
 	ID               string           `db:"id"`
@@ -1309,6 +1467,20 @@ type CustomDomain struct {
 	InvocationID          sql.NullString                  `db:"invocation_id"`
 	CreatedAt             int64                           `db:"created_at"`
 	UpdatedAt             sql.NullInt64                   `db:"updated_at"`
+}
+
+type DeployAnomalyEvent struct {
+	Pk            uint64                    `db:"pk"`
+	ID            string                    `db:"id"`
+	WorkspaceID   string                    `db:"workspace_id"`
+	ProjectID     string                    `db:"project_id"`
+	AppID         string                    `db:"app_id"`
+	EnvironmentID string                    `db:"environment_id"`
+	DeploymentID  string                    `db:"deployment_id"`
+	Metric        DeployAnomalyEventsMetric `db:"metric"`
+	EventTime     int64                     `db:"event_time"`
+	ReceivedAt    int64                     `db:"received_at"`
+	ProcessedAt   sql.NullInt64             `db:"processed_at"`
 }
 
 type Deployment struct {
