@@ -1,7 +1,8 @@
 name: PlanetScale Cleanup
-# Tears down the per-PR PlanetScale branch when a PR closes WITHOUT merging.
-# Merged PRs intentionally leave the branch + deploy request alive so the
-# schema change can still be promoted into staging from the PlanetScale UI.
+# Tears down the per-PR PlanetScale branch when a PR closes. A merged PR has
+# already had its schema promoted to `main` (the schema-changes runbook
+# requires it before merge), and an abandoned PR is never promoted, so in both
+# cases the branch and its open deploy requests are safe to remove.
 on:
   pull_request:
     types: [closed]
@@ -16,9 +17,7 @@ jobs:
     name: Delete PlanetScale branch
     runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 5
-    if: >-
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.merged == false
+    if: github.event.pull_request.head.repo.full_name == github.repository
     env:
       PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
       PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
