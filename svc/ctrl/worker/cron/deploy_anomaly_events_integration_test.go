@@ -140,11 +140,29 @@ func TestDeployAnomalyEventsLifecycle_Integration(t *testing.T) {
 	require.NoError(t, err)
 	require.Zero(t, duplicate.GetAlertsOpened())
 	require.Zero(t, countEventAlerts(t, h, app, "open"))
+	replayed := eventQuietWindow(app, quietStart.Add(15*time.Minute))
+	for _, metric := range replayed.Metrics {
+		metric.DataState = hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT
+		metric.Current = 1
+	}
+	_, err = client.Evaluate().Request(h.Ctx, replayed)
+	require.NoError(t, err)
+	require.Zero(t, countEventAlerts(t, h, app, "open"), "regular windows must not reopen handled fast events")
 	newLife := insertInboxEvent(t, h, app, db.DeployAnomalyEventsMetricOomKilled)
 	opened, err := client.OpenObservedEvents().Request(h.Ctx, inboxRequest(app, newLife))
 	require.NoError(t, err)
 	require.Equal(t, int32(1), opened.GetAlertsOpened())
 	require.Equal(t, 1, countEventAlerts(t, h, app, "open"))
+
+	offWindow := eventQuietWindow(off, quietStart)
+	for _, metric := range offWindow.Metrics {
+		metric.DataState = hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT
+		metric.Current = 1
+	}
+	_, err = hydrav1.NewDeployAnomalyServiceIngressClient(worker.IngressClient, anomalyIngressKey(off)).
+		Evaluate().Request(h.Ctx, offWindow)
+	require.NoError(t, err)
+	require.Equal(t, 2, countEventAlerts(t, h, off, "open"), "non-opted-in workspaces retain regular event detection")
 }
 
 type eventReconcileFailureDB struct {
