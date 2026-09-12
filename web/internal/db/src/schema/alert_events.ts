@@ -44,6 +44,7 @@ export const alertEvents = mysqlTable(
     status: mysqlEnum("status", alertStatuses).notNull().default("open"),
     firedAt: bigint("fired_at", { mode: "number" }).notNull(),
     lastSeenAt: bigint("last_seen_at", { mode: "number" }).notNull(),
+    lastObservedEventAt: bigint("last_observed_event_at", { mode: "number" }),
     resolvedAt: bigint("resolved_at", { mode: "number" }),
     resolutionMessage: varchar("resolution_message", { length: 1000 }),
     observedValue: double("observed_value").notNull(),
