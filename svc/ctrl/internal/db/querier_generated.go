@@ -388,6 +388,25 @@ type Querier interface {
 	//    AND BINARY slug = 'default'
 	//  LIMIT 1
 	FindDefaultProjectByWorkspaceID(ctx context.Context, workspaceID string) (string, error)
+	//FindDeployAnomalyEvent
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      app_id,
+	//      environment_id,
+	//      deployment_id,
+	//      metric,
+	//      event_time,
+	//      received_at,
+	//      processed_at
+	//  FROM deploy_anomaly_events
+	//  WHERE id = ?
+	//      AND workspace_id = ?
+	//  FOR UPDATE
+	FindDeployAnomalyEvent(ctx context.Context, arg FindDeployAnomalyEventParams) (DeployAnomalyEvent, error)
 	//FindDeployTarget
 	//
 	//  SELECT
@@ -776,6 +795,13 @@ type Querier interface {
 	//
 	//  SELECT openapi_specs.pk, openapi_specs.id, openapi_specs.workspace_id, openapi_specs.deployment_id, openapi_specs.portal_id, openapi_specs.content, openapi_specs.created_at, openapi_specs.updated_at FROM openapi_specs WHERE deployment_id = ?
 	FindOpenApiSpecByDeploymentID(ctx context.Context, deploymentID sql.NullString) (OpenapiSpec, error)
+	//FindPendingDeployAnomalyEventMaxPk
+	//
+	//  SELECT CAST(COALESCE(MAX(pk), 0) AS UNSIGNED) AS max_pk
+	//  FROM deploy_anomaly_events
+	//  WHERE workspace_id = ?
+	//      AND processed_at IS NULL
+	FindPendingDeployAnomalyEventMaxPk(ctx context.Context, workspaceID string) (int64, error)
 	//FindPermissionByNameAndWorkspaceID
 	//
 	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
@@ -1157,6 +1183,21 @@ type Querier interface {
 	//      domain_connect_provider, domain_connect_url, invocation_id, created_at
 	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	InsertCustomDomain(ctx context.Context, arg InsertCustomDomainParams) error
+	//InsertDeployAnomalyEvent
+	//
+	//  INSERT INTO deploy_anomaly_events (
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      app_id,
+	//      environment_id,
+	//      deployment_id,
+	//      metric,
+	//      event_time,
+	//      received_at
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+	//  ON DUPLICATE KEY UPDATE id = id
+	InsertDeployAnomalyEvent(ctx context.Context, arg InsertDeployAnomalyEventParams) error
 	//InsertDeployment
 	//
 	//  INSERT INTO `deployments` (
@@ -1830,6 +1871,28 @@ type Querier interface {
 	//  WHERE status = 'open'
 	//  ORDER BY workspace_id, project_id, app_id, environment_id
 	ListOpenAlertEventGroups(ctx context.Context) ([]ListOpenAlertEventGroupsRow, error)
+	//ListPendingDeployAnomalyEvents
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      workspace_id,
+	//      project_id,
+	//      app_id,
+	//      environment_id,
+	//      deployment_id,
+	//      metric,
+	//      event_time,
+	//      received_at,
+	//      processed_at
+	//  FROM deploy_anomaly_events
+	//  WHERE workspace_id = ?
+	//      AND processed_at IS NULL
+	//      AND pk > ?
+	//      AND pk <= ?
+	//  ORDER BY pk
+	//  LIMIT ?
+	ListPendingDeployAnomalyEvents(ctx context.Context, arg ListPendingDeployAnomalyEventsParams) ([]DeployAnomalyEvent, error)
 	//ListPreviewEnvironments
 	//
 	//  SELECT environments.pk, environments.id, environments.workspace_id, environments.project_id, environments.app_id, environments.slug, environments.description, environments.kind, environments.delete_protection, environments.created_at, environments.updated_at
@@ -1983,6 +2046,14 @@ type Querier interface {
 	//  WHERE pk IN (/*SLICE:pks*/?)
 	//    AND deleted_at IS NULL
 	MarkClickhouseOutboxBatchDeleted(ctx context.Context, arg MarkClickhouseOutboxBatchDeletedParams) error
+	//MarkDeployAnomalyEventProcessed
+	//
+	//  UPDATE deploy_anomaly_events
+	//  SET processed_at = ?
+	//  WHERE id = ?
+	//      AND workspace_id = ?
+	//      AND processed_at IS NULL
+	MarkDeployAnomalyEventProcessed(ctx context.Context, arg MarkDeployAnomalyEventProcessedParams) error
 	//ReassignFrontlineRoute
 	//
 	//  UPDATE frontline_routes

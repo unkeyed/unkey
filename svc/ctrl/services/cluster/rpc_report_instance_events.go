@@ -2,6 +2,9 @@ package cluster
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -15,36 +18,20 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// ReportInstanceEvents persists container lifecycle events captured by a
-// krane agent. The handler does two writes per event:
+const deployAnomalyInboxWriteTimeout = 5 * time.Second
+
+type deployAnomalyEventInserter interface {
+	InsertDeployAnomalyEvent(context.Context, db.InsertDeployAnomalyEventParams) error
+}
+
+// ReportInstanceEvents persists container lifecycle events reported by krane.
+// It preserves the ClickHouse event log and instance-row denormalization. For
+// allowlisted workspaces it also durably records OOMKilled and CrashLoopBackOff
+// identities before returning success. Duplicate identities do not change an
+// existing inbox row.
 //
-//  1. Buffered insert into ClickHouse instance_events_raw_v1 — the canonical
-//     event log queried by the dashboard's events panel and the logs viewer
-//     enrichment path.
-//  2. UPDATE on the matching instances row in MySQL with the latest exit
-//     metadata. The dashboard header reads these denormalized fields so a
-//     deployment summary card never round-trips to ClickHouse.
-//
-// Events from a single pod-watch tick are batched into one RPC. The CH
-// insert is buffered through the service-wide batch processor, so a single
-// RPC almost never blocks on CH; MySQL writes are immediate but cheap (one
-// row per event keyed by k8s_name + region_id).
-//
-// Krane's in-memory LRU prevents most duplicate sends, and ClickHouse's
-// insert-deduplication window catches retries inside that table; the MySQL
-// guard on (restart_count, last_exit_finished_at) prevents an out-of-order
-// RPC from clobbering a newer exit. The handler therefore tolerates
-// best-effort delivery from krane.
-//
-// CH inserts always happen — the canonical event log must capture every
-// reported event regardless of denorm outcome. MySQL denorm errors mark
-// the *whole* RPC as failed (CodeUnavailable) so krane re-emits on its
-// next watch tick. The CH-side insert dedupe window absorbs the resulting
-// duplicate inserts, and the MySQL guards make the writes idempotent.
-//
-// Returns CodeUnauthenticated if bearer token is invalid; CodeInvalidArgument
-// if region/platform headers are missing or the region is unknown;
-// CodeUnavailable if any MySQL denorm write failed during the batch.
+// It returns CodeInvalidArgument for invalid qualifying identities and
+// CodeUnavailable when a required MySQL write fails.
 func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request[ctrlv1.ReportInstanceEventsRequest]) (*connect.Response[ctrlv1.ReportInstanceEventsResponse], error) {
 	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
@@ -63,6 +50,9 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 	// retries. Subsequent retries hit the CH dedup window and the MySQL
 	// guards, both of which are idempotent.
 	var firstDenormErr error
+	var firstInboxErr error
+	inboxCtx, cancelInboxWrites := context.WithTimeout(ctx, deployAnomalyInboxWriteTimeout)
+	defer cancelInboxWrites()
 
 	for _, event := range req.Msg.GetEvents() {
 		if event == nil {
@@ -70,6 +60,23 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 		}
 
 		when := eventTime(event)
+		inboxEvent, qualifies, inboxErr := s.deployAnomalyEvent(event, regionName, when)
+		if inboxErr != nil {
+			return nil, connect.NewError(connect.CodeInvalidArgument, inboxErr)
+		}
+		if qualifies {
+			if err := s.deployAnomalyEvents.InsertDeployAnomalyEvent(inboxCtx, inboxEvent); err != nil {
+				logger.Error("report instance events: insert anomaly event failed",
+					"error", err.Error(),
+					"workspace_id", event.GetWorkspaceId(),
+					"deployment_id", event.GetDeploymentId(),
+				)
+				if firstInboxErr == nil {
+					firstInboxErr = err
+				}
+			}
+		}
+
 		row := schema.InstanceEventV1{
 			Time:          when,
 			WorkspaceID:   event.GetWorkspaceId(),
@@ -204,6 +211,11 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 		s.instanceEvents.Buffer(row)
 	}
 
+	if firstInboxErr != nil {
+		return nil, connect.NewError(connect.CodeUnavailable,
+			fmt.Errorf("deploy anomaly inbox write failed: %w", firstInboxErr))
+	}
+
 	if firstDenormErr != nil {
 		// CodeUnavailable signals "transient, retry" to the connect client.
 		// Krane's circuit breaker will see this and back off if it persists.
@@ -212,6 +224,87 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 	}
 
 	return connect.NewResponse(&ctrlv1.ReportInstanceEventsResponse{}), nil
+}
+
+func (s *Service) deployAnomalyEvent(event *ctrlv1.InstanceEvent, region string, eventTime int64) (db.InsertDeployAnomalyEventParams, bool, error) {
+	var empty db.InsertDeployAnomalyEventParams
+	if _, enabled := s.deployAnomalyFastWorkspaces[event.GetWorkspaceId()]; !enabled {
+		return empty, false, nil
+	}
+
+	var metric db.DeployAnomalyEventsMetric
+	var eventKind string
+	switch event.GetState().(type) {
+	case *ctrlv1.InstanceEvent_Terminated:
+		if event.GetTerminated().GetReason() != "OOMKilled" {
+			return empty, false, nil
+		}
+		eventKind = "terminated"
+		metric = db.DeployAnomalyEventsMetricOomKilled
+	case *ctrlv1.InstanceEvent_Waiting:
+		if event.GetWaiting().GetReason() != "CrashLoopBackOff" {
+			return empty, false, nil
+		}
+		eventKind = "waiting"
+		metric = db.DeployAnomalyEventsMetricCrashLoop
+	default:
+		return empty, false, nil
+	}
+
+	identity := []struct {
+		name  string
+		value string
+	}{
+		{name: "workspace_id", value: event.GetWorkspaceId()},
+		{name: "project_id", value: event.GetProjectId()},
+		{name: "app_id", value: event.GetAppId()},
+		{name: "environment_id", value: event.GetEnvironmentId()},
+		{name: "deployment_id", value: event.GetDeploymentId()},
+		{name: "region", value: region},
+		{name: "pod_uid", value: event.GetPodUid()},
+		{name: "container_name", value: event.GetContainerName()},
+	}
+	for _, field := range identity {
+		if field.value == "" {
+			return empty, false, fmt.Errorf("deploy anomaly event %s is required", field.name)
+		}
+	}
+	if event.GetRestartCount() < 0 {
+		return empty, false, fmt.Errorf("deploy anomaly event restart_count must be nonnegative")
+	}
+
+	return db.InsertDeployAnomalyEventParams{
+		ID: deployAnomalyEventID(
+			event.GetWorkspaceId(),
+			event.GetDeploymentId(),
+			region,
+			event.GetPodUid(),
+			event.GetContainerName(),
+			event.GetRestartCount(),
+			eventKind,
+		),
+		WorkspaceID:   event.GetWorkspaceId(),
+		ProjectID:     event.GetProjectId(),
+		AppID:         event.GetAppId(),
+		EnvironmentID: event.GetEnvironmentId(),
+		DeploymentID:  event.GetDeploymentId(),
+		Metric:        metric,
+		EventTime:     eventTime,
+		ReceivedAt:    time.Now().UnixMilli(),
+	}, true, nil
+}
+
+func deployAnomalyEventID(workspaceID, deploymentID, region, podUID, containerName string, restartCount int32, eventKind string) string {
+	encoded := make([]byte, 0, 256)
+	for _, value := range []string{workspaceID, deploymentID, region, podUID, containerName} {
+		encoded = binary.BigEndian.AppendUint32(encoded, uint32(len(value)))
+		encoded = append(encoded, value...)
+	}
+	encoded = binary.BigEndian.AppendUint32(encoded, uint32(restartCount))
+	encoded = binary.BigEndian.AppendUint32(encoded, uint32(len(eventKind)))
+	encoded = append(encoded, eventKind...)
+	sum := sha256.Sum256(encoded)
+	return hex.EncodeToString(sum[:])
 }
 
 // eventTime returns the row's CH time, defaulting to "now" if krane sent

@@ -42,6 +42,7 @@ export * from "./clusters";
 export * from "./regions";
 export * from "./horizontal_autoscaling_policies";
 export * from "./deployment_changes";
+export * from "./deploy_anomaly_events";
 
 // Portal tables
 export * from "./portals";

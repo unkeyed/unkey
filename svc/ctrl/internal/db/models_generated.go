@@ -447,6 +447,48 @@ func (ns NullCustomDomainsVerificationStatus) Value() (driver.Value, error) {
 	return string(ns.CustomDomainsVerificationStatus), nil
 }
 
+type DeployAnomalyEventsMetric string
+
+const (
+	DeployAnomalyEventsMetricOomKilled DeployAnomalyEventsMetric = "oom_killed"
+	DeployAnomalyEventsMetricCrashLoop DeployAnomalyEventsMetric = "crash_loop"
+)
+
+func (e *DeployAnomalyEventsMetric) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeployAnomalyEventsMetric(s)
+	case string:
+		*e = DeployAnomalyEventsMetric(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeployAnomalyEventsMetric: %T", src)
+	}
+	return nil
+}
+
+type NullDeployAnomalyEventsMetric struct {
+	DeployAnomalyEventsMetric DeployAnomalyEventsMetric
+	Valid                     bool // Valid is true if DeployAnomalyEventsMetric is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeployAnomalyEventsMetric) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeployAnomalyEventsMetric, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeployAnomalyEventsMetric.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeployAnomalyEventsMetric) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeployAnomalyEventsMetric), nil
+}
+
 type DeploymentChangesResourceType string
 
 const (
@@ -975,6 +1017,20 @@ type CustomDomain struct {
 	InvocationID          sql.NullString                  `db:"invocation_id"`
 	CreatedAt             int64                           `db:"created_at"`
 	UpdatedAt             sql.NullInt64                   `db:"updated_at"`
+}
+
+type DeployAnomalyEvent struct {
+	Pk            uint64                    `db:"pk"`
+	ID            string                    `db:"id"`
+	WorkspaceID   string                    `db:"workspace_id"`
+	ProjectID     string                    `db:"project_id"`
+	AppID         string                    `db:"app_id"`
+	EnvironmentID string                    `db:"environment_id"`
+	DeploymentID  string                    `db:"deployment_id"`
+	Metric        DeployAnomalyEventsMetric `db:"metric"`
+	EventTime     int64                     `db:"event_time"`
+	ReceivedAt    int64                     `db:"received_at"`
+	ProcessedAt   sql.NullInt64             `db:"processed_at"`
 }
 
 type Deployment struct {

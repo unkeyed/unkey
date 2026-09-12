@@ -142,6 +142,9 @@ type Config struct {
 	// ClickHouse configures the analytics database connection used for
 	// container lifecycle event ingestion.
 	ClickHouse ClickHouseConfig `toml:"clickhouse"`
+
+	// DeployAnomalyFastWorkspaces enables durable anomaly ingestion for selected workspaces.
+	DeployAnomalyFastWorkspaces []string `toml:"deploy_anomaly_fast_workspaces"`
 }
 
 // Validate checks cross-field constraints that cannot be expressed through

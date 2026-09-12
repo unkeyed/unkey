@@ -53,9 +53,11 @@ type clusterCacheKey struct {
 // and status reporting endpoints for agents to report observed state back to the control plane.
 type Service struct {
 	ctrlv1connect.UnimplementedClusterServiceHandler
-	db      db.Database
-	restate *ingress.Client
-	bearer  string
+	db                          db.Database
+	restate                     *ingress.Client
+	bearer                      string
+	deployAnomalyFastWorkspaces map[string]struct{}
+	deployAnomalyEvents         deployAnomalyEventInserter
 	// notifiedReady dedups Restate NotifyInstancesReady calls so we don't
 	// fire on every krane status report once the threshold is met. Keys
 	// are "deployment:<id>".
@@ -112,6 +114,9 @@ type Config struct {
 	// (*.{region}.{platform}.{RegionalDomain}). Empty disables automatic
 	// region certificate issuance on Heartbeat.
 	RegionalDomain string
+
+	// DeployAnomalyFastWorkspaces enables durable anomaly ingestion for selected workspaces.
+	DeployAnomalyFastWorkspaces []string
 }
 
 // New creates a new cluster [Service] with the given configuration. The returned service
@@ -157,12 +162,17 @@ func New(cfg Config) (*Service, error) {
 		db:                                 cfg.Database,
 		restate:                            cfg.Restate,
 		bearer:                             cfg.Bearer,
+		deployAnomalyFastWorkspaces:        make(map[string]struct{}, len(cfg.DeployAnomalyFastWorkspaces)),
+		deployAnomalyEvents:                cfg.Database,
 		notifiedReady:                      newExpiringSet[string](notifiedReadyTTL),
 		clusterCache:                       clusterCache,
 		topologyCache:                      cfg.TopologyCache,
 		instanceEvents:                     cfg.InstanceEvents,
 		regionalDomain:                     cfg.RegionalDomain,
 		provisionedCerts:                   provisionedCerts,
+	}
+	for _, workspaceID := range cfg.DeployAnomalyFastWorkspaces {
+		s.deployAnomalyFastWorkspaces[workspaceID] = struct{}{}
 	}
 	repeat.Every(notifiedReadyTTL, func() {
 		if dropped := s.notifiedReady.Sweep(); dropped > 0 {
