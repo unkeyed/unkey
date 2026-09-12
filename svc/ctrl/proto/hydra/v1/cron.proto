@@ -108,6 +108,9 @@ service CronService {
   // rollups can settle before the fleet queries run.
   rpc RunDeployAnomalyCheck(RunDeployAnomalyCheckRequest) returns (RunDeployAnomalyCheckResponse) {}
 
+  // Fixed key "deploy-anomaly-events". Pending inbox rows survive failed ticks.
+  rpc RunDeployAnomalyEvents(RunDeployAnomalyEventsRequest) returns (RunDeployAnomalyEventsResponse) {}
+
   // RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
   // desired allowed-table fingerprint changes. Key is the fixed slug
   // "clickhouse-user-reconcile" so Restate state survives worker releases.
@@ -206,4 +209,10 @@ message RunClickhouseUserReconcileResponse {
   // Number of existing workspace users configured during this run. Zero means
   // the desired grants have not changed since the last successful run.
   int32 users_reconfigured = 1;
+}
+
+message RunDeployAnomalyEventsRequest {}
+message RunDeployAnomalyEventsResponse {
+  int32 events_processed = 1;
+  int32 alerts_opened = 2;
 }

@@ -11,6 +11,7 @@ SELECT
     status,
     fired_at,
     last_seen_at,
+    last_observed_event_at,
     resolved_at,
     resolution_message,
     observed_value,

@@ -228,10 +228,12 @@ func New(t *testing.T, opts ...Option) *Harness {
 		StripeSecretKey:    "",
 		// Deploy spend-check dependencies are empty in tests: no WorkOS/Resend
 		// means the check resolves no recipients and logs instead of emailing.
-		WorkOSAPIKey:            "",
-		ResendAPIKey:            "",
-		BillingBaseURL:          "https://app.unkey.com",
-		DeployAnomalyShardCount: 0,
+		WorkOSAPIKey:                "",
+		ResendAPIKey:                "",
+		BillingBaseURL:              "https://app.unkey.com",
+		DeployAnomalyShardCount:     0,
+		DeployAnomalyFastWorkspaces: nil,
+		DeployAnomalyFastHeartbeat:  healthcheck.NewNoop(),
 		Heartbeats: cron.Heartbeats{
 			QuotaCheck:         healthcheck.NewNoop(),
 			KeyRefill:          healthcheck.NewNoop(),

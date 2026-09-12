@@ -581,6 +581,110 @@ func (x *EvaluateDeployAnomalyResponse) GetPending() bool {
 	return false
 }
 
+type OpenObservedDeployAnomalyEventsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Group         *DeployAnomalyGroupKey `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
+	EventIds      []string               `protobuf:"bytes,2,rep,name=event_ids,json=eventIds,proto3" json:"event_ids,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OpenObservedDeployAnomalyEventsRequest) Reset() {
+	*x = OpenObservedDeployAnomalyEventsRequest{}
+	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenObservedDeployAnomalyEventsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenObservedDeployAnomalyEventsRequest) ProtoMessage() {}
+
+func (x *OpenObservedDeployAnomalyEventsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenObservedDeployAnomalyEventsRequest.ProtoReflect.Descriptor instead.
+func (*OpenObservedDeployAnomalyEventsRequest) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_deploy_anomaly_check_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *OpenObservedDeployAnomalyEventsRequest) GetGroup() *DeployAnomalyGroupKey {
+	if x != nil {
+		return x.Group
+	}
+	return nil
+}
+
+func (x *OpenObservedDeployAnomalyEventsRequest) GetEventIds() []string {
+	if x != nil {
+		return x.EventIds
+	}
+	return nil
+}
+
+type OpenObservedDeployAnomalyEventsResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	EventsProcessed int32                  `protobuf:"varint,1,opt,name=events_processed,json=eventsProcessed,proto3" json:"events_processed,omitempty"`
+	AlertsOpened    int32                  `protobuf:"varint,2,opt,name=alerts_opened,json=alertsOpened,proto3" json:"alerts_opened,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *OpenObservedDeployAnomalyEventsResponse) Reset() {
+	*x = OpenObservedDeployAnomalyEventsResponse{}
+	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OpenObservedDeployAnomalyEventsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OpenObservedDeployAnomalyEventsResponse) ProtoMessage() {}
+
+func (x *OpenObservedDeployAnomalyEventsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_hydra_v1_deploy_anomaly_check_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OpenObservedDeployAnomalyEventsResponse.ProtoReflect.Descriptor instead.
+func (*OpenObservedDeployAnomalyEventsResponse) Descriptor() ([]byte, []int) {
+	return file_hydra_v1_deploy_anomaly_check_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *OpenObservedDeployAnomalyEventsResponse) GetEventsProcessed() int32 {
+	if x != nil {
+		return x.EventsProcessed
+	}
+	return 0
+}
+
+func (x *OpenObservedDeployAnomalyEventsResponse) GetAlertsOpened() int32 {
+	if x != nil {
+		return x.AlertsOpened
+	}
+	return 0
+}
+
 var File_hydra_v1_deploy_anomaly_check_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_deploy_anomaly_check_proto_rawDesc = "" +
@@ -632,14 +736,21 @@ const file_hydra_v1_deploy_anomaly_check_proto_rawDesc = "" +
 	"\x1ddeployment_has_running_region\x18\x0f \x01(\bR\x1adeploymentHasRunningRegion\x12$\n" +
 	"\x0eapp_created_at\x18\x10 \x01(\x03R\fappCreatedAt\"9\n" +
 	"\x1dEvaluateDeployAnomalyResponse\x12\x18\n" +
-	"\apending\x18\x01 \x01(\bR\apending*\xe3\x01\n" +
+	"\apending\x18\x01 \x01(\bR\apending\"|\n" +
+	"&OpenObservedDeployAnomalyEventsRequest\x125\n" +
+	"\x05group\x18\x01 \x01(\v2\x1f.hydra.v1.DeployAnomalyGroupKeyR\x05group\x12\x1b\n" +
+	"\tevent_ids\x18\x02 \x03(\tR\beventIds\"y\n" +
+	"'OpenObservedDeployAnomalyEventsResponse\x12)\n" +
+	"\x10events_processed\x18\x01 \x01(\x05R\x0feventsProcessed\x12#\n" +
+	"\ralerts_opened\x18\x02 \x01(\x05R\falertsOpened*\xe3\x01\n" +
 	"\x1cDeployAnomalyMetricDataState\x120\n" +
 	",DEPLOY_ANOMALY_METRIC_DATA_STATE_UNSPECIFIED\x10\x00\x12,\n" +
 	"(DEPLOY_ANOMALY_METRIC_DATA_STATE_PRESENT\x10\x01\x122\n" +
 	".DEPLOY_ANOMALY_METRIC_DATA_STATE_ZERO_COMPLETE\x10\x02\x12/\n" +
-	"+DEPLOY_ANOMALY_METRIC_DATA_STATE_INCOMPLETE\x10\x032{\n" +
+	"+DEPLOY_ANOMALY_METRIC_DATA_STATE_INCOMPLETE\x10\x032\xf8\x01\n" +
 	"\x14DeployAnomalyService\x12]\n" +
-	"\bEvaluate\x12&.hydra.v1.EvaluateDeployAnomalyRequest\x1a'.hydra.v1.EvaluateDeployAnomalyResponse\"\x00\x1a\x04\x98\x80\x01\x012\x8f\x01\n" +
+	"\bEvaluate\x12&.hydra.v1.EvaluateDeployAnomalyRequest\x1a'.hydra.v1.EvaluateDeployAnomalyResponse\"\x00\x12{\n" +
+	"\x12OpenObservedEvents\x120.hydra.v1.OpenObservedDeployAnomalyEventsRequest\x1a1.hydra.v1.OpenObservedDeployAnomalyEventsResponse\"\x00\x1a\x04\x98\x80\x01\x012\x8f\x01\n" +
 	"\x19DeployAnomalyShardService\x12l\n" +
 	"\rEvaluateShard\x12+.hydra.v1.EvaluateDeployAnomalyShardRequest\x1a,.hydra.v1.EvaluateDeployAnomalyShardResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x9d\x01\n" +
 	"\fcom.hydra.v1B\x17DeployAnomalyCheckProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
@@ -657,29 +768,34 @@ func file_hydra_v1_deploy_anomaly_check_proto_rawDescGZIP() []byte {
 }
 
 var file_hydra_v1_deploy_anomaly_check_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_hydra_v1_deploy_anomaly_check_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_hydra_v1_deploy_anomaly_check_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_hydra_v1_deploy_anomaly_check_proto_goTypes = []any{
-	(DeployAnomalyMetricDataState)(0),          // 0: hydra.v1.DeployAnomalyMetricDataState
-	(*DeployAnomalyGroupKey)(nil),              // 1: hydra.v1.DeployAnomalyGroupKey
-	(*EvaluateDeployAnomalyShardRequest)(nil),  // 2: hydra.v1.EvaluateDeployAnomalyShardRequest
-	(*EvaluateDeployAnomalyShardResponse)(nil), // 3: hydra.v1.EvaluateDeployAnomalyShardResponse
-	(*DeployAnomalyMetricInput)(nil),           // 4: hydra.v1.DeployAnomalyMetricInput
-	(*EvaluateDeployAnomalyRequest)(nil),       // 5: hydra.v1.EvaluateDeployAnomalyRequest
-	(*EvaluateDeployAnomalyResponse)(nil),      // 6: hydra.v1.EvaluateDeployAnomalyResponse
+	(DeployAnomalyMetricDataState)(0),               // 0: hydra.v1.DeployAnomalyMetricDataState
+	(*DeployAnomalyGroupKey)(nil),                   // 1: hydra.v1.DeployAnomalyGroupKey
+	(*EvaluateDeployAnomalyShardRequest)(nil),       // 2: hydra.v1.EvaluateDeployAnomalyShardRequest
+	(*EvaluateDeployAnomalyShardResponse)(nil),      // 3: hydra.v1.EvaluateDeployAnomalyShardResponse
+	(*DeployAnomalyMetricInput)(nil),                // 4: hydra.v1.DeployAnomalyMetricInput
+	(*EvaluateDeployAnomalyRequest)(nil),            // 5: hydra.v1.EvaluateDeployAnomalyRequest
+	(*EvaluateDeployAnomalyResponse)(nil),           // 6: hydra.v1.EvaluateDeployAnomalyResponse
+	(*OpenObservedDeployAnomalyEventsRequest)(nil),  // 7: hydra.v1.OpenObservedDeployAnomalyEventsRequest
+	(*OpenObservedDeployAnomalyEventsResponse)(nil), // 8: hydra.v1.OpenObservedDeployAnomalyEventsResponse
 }
 var file_hydra_v1_deploy_anomaly_check_proto_depIdxs = []int32{
 	1, // 0: hydra.v1.EvaluateDeployAnomalyShardResponse.pending_groups:type_name -> hydra.v1.DeployAnomalyGroupKey
 	0, // 1: hydra.v1.DeployAnomalyMetricInput.data_state:type_name -> hydra.v1.DeployAnomalyMetricDataState
 	4, // 2: hydra.v1.EvaluateDeployAnomalyRequest.metrics:type_name -> hydra.v1.DeployAnomalyMetricInput
-	5, // 3: hydra.v1.DeployAnomalyService.Evaluate:input_type -> hydra.v1.EvaluateDeployAnomalyRequest
-	2, // 4: hydra.v1.DeployAnomalyShardService.EvaluateShard:input_type -> hydra.v1.EvaluateDeployAnomalyShardRequest
-	6, // 5: hydra.v1.DeployAnomalyService.Evaluate:output_type -> hydra.v1.EvaluateDeployAnomalyResponse
-	3, // 6: hydra.v1.DeployAnomalyShardService.EvaluateShard:output_type -> hydra.v1.EvaluateDeployAnomalyShardResponse
-	5, // [5:7] is the sub-list for method output_type
-	3, // [3:5] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	1, // 3: hydra.v1.OpenObservedDeployAnomalyEventsRequest.group:type_name -> hydra.v1.DeployAnomalyGroupKey
+	5, // 4: hydra.v1.DeployAnomalyService.Evaluate:input_type -> hydra.v1.EvaluateDeployAnomalyRequest
+	7, // 5: hydra.v1.DeployAnomalyService.OpenObservedEvents:input_type -> hydra.v1.OpenObservedDeployAnomalyEventsRequest
+	2, // 6: hydra.v1.DeployAnomalyShardService.EvaluateShard:input_type -> hydra.v1.EvaluateDeployAnomalyShardRequest
+	6, // 7: hydra.v1.DeployAnomalyService.Evaluate:output_type -> hydra.v1.EvaluateDeployAnomalyResponse
+	8, // 8: hydra.v1.DeployAnomalyService.OpenObservedEvents:output_type -> hydra.v1.OpenObservedDeployAnomalyEventsResponse
+	3, // 9: hydra.v1.DeployAnomalyShardService.EvaluateShard:output_type -> hydra.v1.EvaluateDeployAnomalyShardResponse
+	7, // [7:10] is the sub-list for method output_type
+	4, // [4:7] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_deploy_anomaly_check_proto_init() }
@@ -693,7 +809,7 @@ func file_hydra_v1_deploy_anomaly_check_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_hydra_v1_deploy_anomaly_check_proto_rawDesc), len(file_hydra_v1_deploy_anomaly_check_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   6,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

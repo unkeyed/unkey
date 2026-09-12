@@ -249,7 +249,8 @@ type HeartbeatConfig struct {
 
 	// DeployAnomalyURL is the heartbeat URL for the Deploy anomaly orchestrator.
 	// Optional - if empty, no heartbeat is sent.
-	DeployAnomalyURL string `toml:"deploy_anomaly_url"`
+	DeployAnomalyURL     string `toml:"deploy_anomaly_url"`
+	DeployAnomalyFastURL string `toml:"deploy_anomaly_fast_url"`
 }
 
 // BillingConfig holds Stripe configuration for the hourly Deploy billing push.
@@ -304,6 +305,8 @@ type Config struct {
 
 	// Observability configures tracing, logging, and metrics. See [config.Observability].
 	Observability config.Observability `toml:"observability"`
+
+	DeployAnomalyFastWorkspaces []string `toml:"deploy_anomaly_fast_workspaces"`
 
 	// DefaultDomain is the fallback domain for system operations.
 	// Used for automatic certificate bootstrapping.

@@ -908,27 +908,28 @@ type AcmeUser struct {
 }
 
 type AlertEvent struct {
-	Pk                uint64            `db:"pk"`
-	ID                string            `db:"id"`
-	WorkspaceID       string            `db:"workspace_id"`
-	ProjectID         string            `db:"project_id"`
-	AppID             string            `db:"app_id"`
-	EnvironmentID     string            `db:"environment_id"`
-	DeploymentID      sql.NullString    `db:"deployment_id"`
-	Metric            AlertEventsMetric `db:"metric"`
-	Status            AlertEventsStatus `db:"status"`
-	FiredAt           int64             `db:"fired_at"`
-	LastSeenAt        int64             `db:"last_seen_at"`
-	ResolvedAt        sql.NullInt64     `db:"resolved_at"`
-	ResolutionMessage sql.NullString    `db:"resolution_message"`
-	ObservedValue     float64           `db:"observed_value"`
-	BaselineMean      float64           `db:"baseline_mean"`
-	BaselineStddev    float64           `db:"baseline_stddev"`
-	ThresholdSigma    float64           `db:"threshold_sigma"`
-	WindowStart       int64             `db:"window_start"`
-	WindowEnd         int64             `db:"window_end"`
-	CreatedAt         int64             `db:"created_at"`
-	UpdatedAt         sql.NullInt64     `db:"updated_at"`
+	Pk                  uint64            `db:"pk"`
+	ID                  string            `db:"id"`
+	WorkspaceID         string            `db:"workspace_id"`
+	ProjectID           string            `db:"project_id"`
+	AppID               string            `db:"app_id"`
+	EnvironmentID       string            `db:"environment_id"`
+	DeploymentID        sql.NullString    `db:"deployment_id"`
+	Metric              AlertEventsMetric `db:"metric"`
+	Status              AlertEventsStatus `db:"status"`
+	FiredAt             int64             `db:"fired_at"`
+	LastSeenAt          int64             `db:"last_seen_at"`
+	LastObservedEventAt sql.NullInt64     `db:"last_observed_event_at"`
+	ResolvedAt          sql.NullInt64     `db:"resolved_at"`
+	ResolutionMessage   sql.NullString    `db:"resolution_message"`
+	ObservedValue       float64           `db:"observed_value"`
+	BaselineMean        float64           `db:"baseline_mean"`
+	BaselineStddev      float64           `db:"baseline_stddev"`
+	ThresholdSigma      float64           `db:"threshold_sigma"`
+	WindowStart         int64             `db:"window_start"`
+	WindowEnd           int64             `db:"window_end"`
+	CreatedAt           int64             `db:"created_at"`
+	UpdatedAt           sql.NullInt64     `db:"updated_at"`
 }
 
 type Api struct {

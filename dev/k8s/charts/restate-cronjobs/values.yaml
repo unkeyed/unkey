@@ -113,3 +113,9 @@ jobs:
     schedule: "*/5 * * * *"
     urlPath: "hydra.v1.CronService/deploy-anomaly-$(( ($(date -u +%s) / 300) * 300 - 600 ))/RunDeployAnomalyCheck/send"
     idempotencyKey: "deploy-anomaly-$(( ($(date -u +%s) / 300) * 300 - 600 ))"
+
+  deploy-anomaly-events:
+    suspend: true
+    schedule: "* * * * *"
+    urlPath: "hydra.v1.CronService/deploy-anomaly-events/RunDeployAnomalyEvents/send"
+    idempotencyKey: "deploy-anomaly-events-$(date -u +%Y-%m-%dT%H:%M)"

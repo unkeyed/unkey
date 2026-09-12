@@ -619,23 +619,28 @@ func requireAnomalyAlertResolution(t *testing.T, h *harness.Harness, alertID, me
 func createAnomalyTestApp(t *testing.T, h *harness.Harness, kind mysqltype.EnvironmentKind) anomalyTestApp {
 	t.Helper()
 	workspace := h.Seed.CreateWorkspace(h.Ctx)
+	return createAnomalyTestAppInWorkspace(t, h, kind, workspace.ID)
+}
+
+func createAnomalyTestAppInWorkspace(t *testing.T, h *harness.Harness, kind mysqltype.EnvironmentKind, workspaceID string) anomalyTestApp {
+	t.Helper()
 	project := h.Seed.CreateProject(h.Ctx, seed.CreateProjectRequest{
-		ID: uid.New(uid.ProjectPrefix), WorkspaceID: workspace.ID,
+		ID: uid.New(uid.ProjectPrefix), WorkspaceID: workspaceID,
 		Name: "anomaly-project", Slug: uid.New("slug"), DeleteProtection: false,
 	})
 	app := h.Seed.CreateApp(h.Ctx, seed.CreateAppRequest{
-		ID: uid.New("app"), WorkspaceID: workspace.ID, ProjectID: project.ID,
+		ID: uid.New("app"), WorkspaceID: workspaceID, ProjectID: project.ID,
 		Name: "anomaly-app", Slug: uid.New("slug"),
 	})
 	appCreatedAt := time.Now().Add(-30 * 24 * time.Hour).UnixMilli()
 	_, err := h.DB.RW().ExecContext(h.Ctx, "UPDATE apps SET created_at = ? WHERE id = ?", appCreatedAt, app.ID)
 	require.NoError(t, err)
 	environment := h.Seed.CreateEnvironment(h.Ctx, seed.CreateEnvironmentRequest{
-		ID: uid.New("env"), WorkspaceID: workspace.ID, ProjectID: project.ID,
+		ID: uid.New("env"), WorkspaceID: workspaceID, ProjectID: project.ID,
 		AppID: app.ID, Slug: string(kind), Kind: kind,
 	})
 	deployment := h.Seed.CreateDeployment(h.Ctx, seed.CreateDeploymentRequest{
-		WorkspaceID: workspace.ID, ProjectID: project.ID, AppID: app.ID,
+		WorkspaceID: workspaceID, ProjectID: project.ID, AppID: app.ID,
 		EnvironmentID: environment.ID, Status: mysqltype.DeploymentsStatusReady,
 	})
 	require.NoError(t, h.DB.UpdateAppDeployments(h.Ctx, db.UpdateAppDeploymentsParams{
@@ -646,12 +651,12 @@ func createAnomalyTestApp(t *testing.T, h *harness.Harness, kind mysqltype.Envir
 		Name: "anomaly-integration", Platform: "test",
 	})
 	require.NoError(t, h.DB.InsertDeploymentTopology(h.Ctx, db.InsertDeploymentTopologyParams{
-		WorkspaceID: workspace.ID, DeploymentID: deployment.ID, RegionID: region.ID,
+		WorkspaceID: workspaceID, DeploymentID: deployment.ID, RegionID: region.ID,
 		AutoscalingReplicasMin: 0, AutoscalingReplicasMax: 1,
 		DesiredStatus: db.DeploymentTopologyDesiredStatusRunning, CreatedAt: time.Now().UnixMilli(),
 	}))
 	return anomalyTestApp{
-		workspaceID: workspace.ID, projectID: project.ID, appID: app.ID,
+		workspaceID: workspaceID, projectID: project.ID, appID: app.ID,
 		environmentID: environment.ID, deploymentID: deployment.ID, regionID: region.ID,
 		appCreatedAt: appCreatedAt,
 	}

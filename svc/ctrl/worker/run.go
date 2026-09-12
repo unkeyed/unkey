@@ -46,6 +46,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployanomaly"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
 	workercustomdomain "github.com/unkeyed/unkey/svc/ctrl/worker/customdomain"
@@ -572,12 +573,14 @@ func Run(ctx context.Context, cfg Config) error {
 		BillingUsageReader:        billingUsageReader,
 		StripeSecretKey:           cfg.Billing.StripeSecretKey,
 		// Derived from StripeSecretKey; only tests inject these directly.
-		BillingPusher:           nil,
-		BillingCloser:           nil,
-		WorkOSAPIKey:            cfg.WorkOSAPIKey,
-		ResendAPIKey:            cfg.Email.ResendAPIKey,
-		BillingBaseURL:          cfg.DashboardURL,
-		DeployAnomalyShardCount: cfg.Restate.DeployAnomalyShardCount,
+		BillingPusher:               nil,
+		BillingCloser:               nil,
+		WorkOSAPIKey:                cfg.WorkOSAPIKey,
+		ResendAPIKey:                cfg.Email.ResendAPIKey,
+		BillingBaseURL:              cfg.DashboardURL,
+		DeployAnomalyShardCount:     cfg.Restate.DeployAnomalyShardCount,
+		DeployAnomalyFastWorkspaces: cfg.DeployAnomalyFastWorkspaces,
+		DeployAnomalyFastHeartbeat:  cronHeartbeat(cfg.Heartbeat.DeployAnomalyFastURL),
 		Heartbeats: cron.Heartbeats{
 			QuotaCheck:         cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
 			KeyRefill:          cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
@@ -740,6 +743,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ConfigureHandler("RunDeployBillingPush", cronDeployBillingPushRetry).
 		ConfigureHandler("RunDeploySpendCheck", deployspendcheck.RetryPolicy()).
 		ConfigureHandler("RunDeployAnomalyCheck", cronDeployAnomalyRetry).
+		ConfigureHandler("RunDeployAnomalyEvents", deployanomaly.EventsRetryPolicy(), restate.WithJournalRetention(time.Hour)).
 		ConfigureHandler("RunClickhouseUserReconcile", cronClickhouseUserReconcileRetry))
 	logger.Info("CronService enabled")
 
@@ -810,7 +814,8 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.KillOnMaxAttempts(),
 	)
 	restateSrv.Bind(hydrav1.NewDeployAnomalyServiceServer(cronSvc.DeployAnomalyServer()).
-		ConfigureHandler("Evaluate", deployAnomalyGroupRetry))
+		ConfigureHandler("Evaluate", deployAnomalyGroupRetry).
+		ConfigureHandler("OpenObservedEvents", deployanomaly.EventsRetryPolicy(), restate.WithJournalRetention(time.Hour)))
 	logger.Info("DeployAnomalyService enabled")
 
 	// Get the Restate handler and mount it on a mux with health endpoint

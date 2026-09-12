@@ -774,6 +774,7 @@ type Querier interface {
 	//      status,
 	//      fired_at,
 	//      last_seen_at,
+	//      last_observed_event_at,
 	//      resolved_at,
 	//      resolution_message,
 	//      observed_value,
@@ -987,6 +988,7 @@ type Querier interface {
 	//      status,
 	//      fired_at,
 	//      last_seen_at,
+	//      last_observed_event_at,
 	//      observed_value,
 	//      baseline_mean,
 	//      baseline_stddev,
@@ -1004,6 +1006,7 @@ type Querier interface {
 	//      ?,
 	//      ?,
 	//      'open',
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2265,6 +2268,15 @@ type Querier interface {
 	//  WHERE dt.`workspace_id` = ?
 	//    AND dt.`desired_status` = 'running'
 	SumAllocatedResourcesByWorkspaceID(ctx context.Context, workspaceID string) (SumAllocatedResourcesByWorkspaceIDRow, error)
+	//TouchAlertEventFromObservedEvent
+	//
+	//  UPDATE alert_events
+	//  SET last_seen_at = GREATEST(last_seen_at, ?),
+	//      last_observed_event_at = GREATEST(COALESCE(last_observed_event_at, 0), ?),
+	//      observed_value = ?,
+	//      updated_at = ?
+	//  WHERE id = ? AND status = 'open'
+	TouchAlertEventFromObservedEvent(ctx context.Context, arg TouchAlertEventFromObservedEventParams) error
 	//TouchAlertEventLastSeen
 	//
 	//  UPDATE alert_events

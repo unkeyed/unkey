@@ -22,6 +22,7 @@ INSERT INTO alert_events (
     status,
     fired_at,
     last_seen_at,
+    last_observed_event_at,
     observed_value,
     baseline_mean,
     baseline_stddev,
@@ -48,28 +49,30 @@ INSERT INTO alert_events (
     ?,
     ?,
     ?,
+    ?,
     ?
 )
 `
 
 type InsertAlertEventParams struct {
-	ID             string            `db:"id"`
-	WorkspaceID    string            `db:"workspace_id"`
-	ProjectID      string            `db:"project_id"`
-	AppID          string            `db:"app_id"`
-	EnvironmentID  string            `db:"environment_id"`
-	DeploymentID   sql.NullString    `db:"deployment_id"`
-	Metric         AlertEventsMetric `db:"metric"`
-	FiredAt        int64             `db:"fired_at"`
-	LastSeenAt     int64             `db:"last_seen_at"`
-	ObservedValue  float64           `db:"observed_value"`
-	BaselineMean   float64           `db:"baseline_mean"`
-	BaselineStddev float64           `db:"baseline_stddev"`
-	ThresholdSigma float64           `db:"threshold_sigma"`
-	WindowStart    int64             `db:"window_start"`
-	WindowEnd      int64             `db:"window_end"`
-	CreatedAt      int64             `db:"created_at"`
-	UpdatedAt      sql.NullInt64     `db:"updated_at"`
+	ID                  string            `db:"id"`
+	WorkspaceID         string            `db:"workspace_id"`
+	ProjectID           string            `db:"project_id"`
+	AppID               string            `db:"app_id"`
+	EnvironmentID       string            `db:"environment_id"`
+	DeploymentID        sql.NullString    `db:"deployment_id"`
+	Metric              AlertEventsMetric `db:"metric"`
+	FiredAt             int64             `db:"fired_at"`
+	LastSeenAt          int64             `db:"last_seen_at"`
+	LastObservedEventAt sql.NullInt64     `db:"last_observed_event_at"`
+	ObservedValue       float64           `db:"observed_value"`
+	BaselineMean        float64           `db:"baseline_mean"`
+	BaselineStddev      float64           `db:"baseline_stddev"`
+	ThresholdSigma      float64           `db:"threshold_sigma"`
+	WindowStart         int64             `db:"window_start"`
+	WindowEnd           int64             `db:"window_end"`
+	CreatedAt           int64             `db:"created_at"`
+	UpdatedAt           sql.NullInt64     `db:"updated_at"`
 }
 
 // InsertAlertEvent
@@ -85,6 +88,7 @@ type InsertAlertEventParams struct {
 //	    status,
 //	    fired_at,
 //	    last_seen_at,
+//	    last_observed_event_at,
 //	    observed_value,
 //	    baseline_mean,
 //	    baseline_stddev,
@@ -111,6 +115,7 @@ type InsertAlertEventParams struct {
 //	    ?,
 //	    ?,
 //	    ?,
+//	    ?,
 //	    ?
 //	)
 func (q *Queries) InsertAlertEvent(ctx context.Context, arg InsertAlertEventParams) error {
@@ -124,6 +129,7 @@ func (q *Queries) InsertAlertEvent(ctx context.Context, arg InsertAlertEventPara
 		arg.Metric,
 		arg.FiredAt,
 		arg.LastSeenAt,
+		arg.LastObservedEventAt,
 		arg.ObservedValue,
 		arg.BaselineMean,
 		arg.BaselineStddev,

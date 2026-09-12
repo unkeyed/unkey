@@ -20,6 +20,7 @@ import (
 // "<workspace_id>/<app_id>/<environment_id>" so metric transitions serialize.
 type DeployAnomalyServiceClient interface {
 	Evaluate(opts ...sdk_go.ClientOption) sdk_go.Client[*EvaluateDeployAnomalyRequest, *EvaluateDeployAnomalyResponse]
+	OpenObservedEvents(opts ...sdk_go.ClientOption) sdk_go.Client[*OpenObservedDeployAnomalyEventsRequest, *OpenObservedDeployAnomalyEventsResponse]
 }
 
 type deployAnomalyServiceClient struct {
@@ -44,11 +45,20 @@ func (c *deployAnomalyServiceClient) Evaluate(opts ...sdk_go.ClientOption) sdk_g
 	return sdk_go.WithRequestType[*EvaluateDeployAnomalyRequest](sdk_go.Object[*EvaluateDeployAnomalyResponse](c.ctx, "hydra.v1.DeployAnomalyService", c.key, "Evaluate", cOpts...))
 }
 
+func (c *deployAnomalyServiceClient) OpenObservedEvents(opts ...sdk_go.ClientOption) sdk_go.Client[*OpenObservedDeployAnomalyEventsRequest, *OpenObservedDeployAnomalyEventsResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*OpenObservedDeployAnomalyEventsRequest](sdk_go.Object[*OpenObservedDeployAnomalyEventsResponse](c.ctx, "hydra.v1.DeployAnomalyService", c.key, "OpenObservedEvents", cOpts...))
+}
+
 // DeployAnomalyServiceIngressClient is the ingress client API for hydra.v1.DeployAnomalyService service.
 //
 // This client is used to call the service from outside of a Restate context.
 type DeployAnomalyServiceIngressClient interface {
 	Evaluate() ingress.Requester[*EvaluateDeployAnomalyRequest, *EvaluateDeployAnomalyResponse]
+	OpenObservedEvents() ingress.Requester[*OpenObservedDeployAnomalyEventsRequest, *OpenObservedDeployAnomalyEventsResponse]
 }
 
 type deployAnomalyServiceIngressClient struct {
@@ -70,6 +80,11 @@ func (c *deployAnomalyServiceIngressClient) Evaluate() ingress.Requester[*Evalua
 	return ingress.NewRequester[*EvaluateDeployAnomalyRequest, *EvaluateDeployAnomalyResponse](c.client, c.serviceName, "Evaluate", &c.key, &codec)
 }
 
+func (c *deployAnomalyServiceIngressClient) OpenObservedEvents() ingress.Requester[*OpenObservedDeployAnomalyEventsRequest, *OpenObservedDeployAnomalyEventsResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*OpenObservedDeployAnomalyEventsRequest, *OpenObservedDeployAnomalyEventsResponse](c.client, c.serviceName, "OpenObservedEvents", &c.key, &codec)
+}
+
 // DeployAnomalyServiceServer is the server API for hydra.v1.DeployAnomalyService service.
 // All implementations should embed UnimplementedDeployAnomalyServiceServer
 // for forward compatibility.
@@ -79,6 +94,7 @@ func (c *deployAnomalyServiceIngressClient) Evaluate() ingress.Requester[*Evalua
 // "<workspace_id>/<app_id>/<environment_id>" so metric transitions serialize.
 type DeployAnomalyServiceServer interface {
 	Evaluate(ctx sdk_go.ObjectContext, req *EvaluateDeployAnomalyRequest) (*EvaluateDeployAnomalyResponse, error)
+	OpenObservedEvents(ctx sdk_go.ObjectContext, req *OpenObservedDeployAnomalyEventsRequest) (*OpenObservedDeployAnomalyEventsResponse, error)
 }
 
 // UnimplementedDeployAnomalyServiceServer should be embedded to have
@@ -90,6 +106,9 @@ type UnimplementedDeployAnomalyServiceServer struct{}
 
 func (UnimplementedDeployAnomalyServiceServer) Evaluate(ctx sdk_go.ObjectContext, req *EvaluateDeployAnomalyRequest) (*EvaluateDeployAnomalyResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method Evaluate not implemented"), 501)
+}
+func (UnimplementedDeployAnomalyServiceServer) OpenObservedEvents(ctx sdk_go.ObjectContext, req *OpenObservedDeployAnomalyEventsRequest) (*OpenObservedDeployAnomalyEventsResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method OpenObservedEvents not implemented"), 501)
 }
 func (UnimplementedDeployAnomalyServiceServer) testEmbeddedByValue() {}
 
@@ -111,6 +130,7 @@ func NewDeployAnomalyServiceServer(srv DeployAnomalyServiceServer, opts ...sdk_g
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewObject("hydra.v1.DeployAnomalyService", sOpts...)
 	router = router.Handler("Evaluate", sdk_go.NewObjectHandler(srv.Evaluate))
+	router = router.Handler("OpenObservedEvents", sdk_go.NewObjectHandler(srv.OpenObservedEvents))
 	return router
 }
 
