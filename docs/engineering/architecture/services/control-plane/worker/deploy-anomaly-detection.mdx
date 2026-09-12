@@ -93,6 +93,12 @@ not open alerts. After commit, the handler reloads open alerts from MySQL.
 If the invocation dies after commit, the next regular evaluation reconciles too.
 Neither a retry nor a replay after full resolution can reopen a handled identity.
 
+For opted-in workspaces, only the durable inbox opens OOM and crash-loop alerts.
+Regular windows still evaluate open alerts for recovery, but cannot open these
+two metrics. Raw ClickHouse reports can repeat a handled identity with a newer
+timestamp and must not reopen a resolved incident. Other metrics and workspaces
+outside the allowlist retain regular window detection.
+
 A novel event persists `last_observed_event_at` on its alert. Regular windows
 ending before that evidence cannot count as quiet. The containing window resets
 recovery, or the next complete window resets the old count if the containing

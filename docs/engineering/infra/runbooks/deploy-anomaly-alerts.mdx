@@ -105,6 +105,12 @@ Leave the additive schema and handled identities in place when rolling back
 code. Keep the regular 5-minute evaluator running for recovery. Disabling the
 fast path does not resolve existing alerts or disable normal health alerts.
 
+While a workspace remains on the worker allowlist, only the inbox opens OOM
+and crash-loop alerts. Suspending its caller pauses those openings, with no
+regular-window fallback. Removing the workspace restores raw-event detection,
+which does not consult handled inbox identities and can alert on repeated
+ClickHouse reports. The fast-path replay guarantee applies only while opted in.
+
 The chart event buffer remains lossy. A durable alert need not have a matching
 ClickHouse bar. Krane can retry an RPC failure on a later pod-watch tick, but
 capture before the control-plane acknowledgement is not durable. A deleted pod
