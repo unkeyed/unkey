@@ -1,3 +1,4 @@
+import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 
@@ -10,7 +11,7 @@ export function useFetchRequestDetails({ requestId }: useFetchRequestDetails) {
   const query = trpc.logs.queryLogs.useQuery(
     {
       limit: 1,
-      startTime: 0,
+      startTime: timestamp - HISTORICAL_DATA_WINDOW,
       endTime: timestamp,
       host: { filters: [] },
       method: { filters: [] },

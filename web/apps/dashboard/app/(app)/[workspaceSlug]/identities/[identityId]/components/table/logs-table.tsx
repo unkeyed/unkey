@@ -23,6 +23,7 @@ import {
   TimeClock,
   TriangleWarning2,
 } from "@unkey/icons";
+import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { Badge, Button, CopyButton, Empty, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIdentityDetailsLogsContext } from "../../context/logs";
@@ -168,7 +169,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
           utils.logs.queryLogs.prefetch(
             {
               limit: 1,
-              startTime: 0,
+              startTime: timestamp - HISTORICAL_DATA_WINDOW,
               endTime: timestamp,
               host: { filters: [] },
               method: { filters: [] },
