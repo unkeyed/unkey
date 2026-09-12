@@ -13,6 +13,7 @@ service DeployAnomalyService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
   rpc Evaluate(EvaluateDeployAnomalyRequest) returns (EvaluateDeployAnomalyResponse) {}
+  rpc OpenObservedEvents(OpenObservedDeployAnomalyEventsRequest) returns (OpenObservedDeployAnomalyEventsResponse) {}
 }
 
 // DeployAnomalyShardService owns one stable workspace hash partition for one
@@ -100,4 +101,14 @@ message EvaluateDeployAnomalyRequest {
 message EvaluateDeployAnomalyResponse {
   // Pending is true while any metric has a candidate or open alert.
   bool pending = 1;
+}
+
+message OpenObservedDeployAnomalyEventsRequest {
+  DeployAnomalyGroupKey group = 1;
+  repeated string event_ids = 2;
+}
+
+message OpenObservedDeployAnomalyEventsResponse {
+  int32 events_processed = 1;
+  int32 alerts_opened = 2;
 }

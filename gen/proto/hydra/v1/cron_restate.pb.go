@@ -111,6 +111,8 @@ type CronServiceClient interface {
 	// window whose end is at least one full 5-minute bucket old so late rows and
 	// rollups can settle before the fleet queries run.
 	RunDeployAnomalyCheck(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeployAnomalyCheckRequest, *RunDeployAnomalyCheckResponse]
+	// Fixed key "deploy-anomaly-events". Pending inbox rows survive failed ticks.
+	RunDeployAnomalyEvents(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeployAnomalyEventsRequest, *RunDeployAnomalyEventsResponse]
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug
 	// "clickhouse-user-reconcile" so Restate state survives worker releases.
@@ -235,6 +237,14 @@ func (c *cronServiceClient) RunDeployAnomalyCheck(opts ...sdk_go.ClientOption) s
 	return sdk_go.WithRequestType[*RunDeployAnomalyCheckRequest](sdk_go.Object[*RunDeployAnomalyCheckResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeployAnomalyCheck", cOpts...))
 }
 
+func (c *cronServiceClient) RunDeployAnomalyEvents(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeployAnomalyEventsRequest, *RunDeployAnomalyEventsResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RunDeployAnomalyEventsRequest](sdk_go.Object[*RunDeployAnomalyEventsResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeployAnomalyEvents", cOpts...))
+}
+
 func (c *cronServiceClient) RunClickhouseUserReconcile(opts ...sdk_go.ClientOption) sdk_go.Client[*RunClickhouseUserReconcileRequest, *RunClickhouseUserReconcileResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
@@ -326,6 +336,8 @@ type CronServiceIngressClient interface {
 	// window whose end is at least one full 5-minute bucket old so late rows and
 	// rollups can settle before the fleet queries run.
 	RunDeployAnomalyCheck() ingress.Requester[*RunDeployAnomalyCheckRequest, *RunDeployAnomalyCheckResponse]
+	// Fixed key "deploy-anomaly-events". Pending inbox rows survive failed ticks.
+	RunDeployAnomalyEvents() ingress.Requester[*RunDeployAnomalyEventsRequest, *RunDeployAnomalyEventsResponse]
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug
 	// "clickhouse-user-reconcile" so Restate state survives worker releases.
@@ -409,6 +421,11 @@ func (c *cronServiceIngressClient) RunBuildLimitSync() ingress.Requester[*RunBui
 func (c *cronServiceIngressClient) RunDeployAnomalyCheck() ingress.Requester[*RunDeployAnomalyCheckRequest, *RunDeployAnomalyCheckResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*RunDeployAnomalyCheckRequest, *RunDeployAnomalyCheckResponse](c.client, c.serviceName, "RunDeployAnomalyCheck", &c.key, &codec)
+}
+
+func (c *cronServiceIngressClient) RunDeployAnomalyEvents() ingress.Requester[*RunDeployAnomalyEventsRequest, *RunDeployAnomalyEventsResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RunDeployAnomalyEventsRequest, *RunDeployAnomalyEventsResponse](c.client, c.serviceName, "RunDeployAnomalyEvents", &c.key, &codec)
 }
 
 func (c *cronServiceIngressClient) RunClickhouseUserReconcile() ingress.Requester[*RunClickhouseUserReconcileRequest, *RunClickhouseUserReconcileResponse] {
@@ -516,6 +533,8 @@ type CronServiceServer interface {
 	// window whose end is at least one full 5-minute bucket old so late rows and
 	// rollups can settle before the fleet queries run.
 	RunDeployAnomalyCheck(ctx sdk_go.ObjectContext, req *RunDeployAnomalyCheckRequest) (*RunDeployAnomalyCheckResponse, error)
+	// Fixed key "deploy-anomaly-events". Pending inbox rows survive failed ticks.
+	RunDeployAnomalyEvents(ctx sdk_go.ObjectContext, req *RunDeployAnomalyEventsRequest) (*RunDeployAnomalyEventsResponse, error)
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug
 	// "clickhouse-user-reconcile" so Restate state survives worker releases.
@@ -568,6 +587,9 @@ func (UnimplementedCronServiceServer) RunBuildLimitSync(ctx sdk_go.ObjectContext
 func (UnimplementedCronServiceServer) RunDeployAnomalyCheck(ctx sdk_go.ObjectContext, req *RunDeployAnomalyCheckRequest) (*RunDeployAnomalyCheckResponse, error) {
 	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunDeployAnomalyCheck not implemented"), sdk_go.WithErrorCode(501))
 }
+func (UnimplementedCronServiceServer) RunDeployAnomalyEvents(ctx sdk_go.ObjectContext, req *RunDeployAnomalyEventsRequest) (*RunDeployAnomalyEventsResponse, error) {
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunDeployAnomalyEvents not implemented"), sdk_go.WithErrorCode(501))
+}
 func (UnimplementedCronServiceServer) RunClickhouseUserReconcile(ctx sdk_go.ObjectContext, req *RunClickhouseUserReconcileRequest) (*RunClickhouseUserReconcileResponse, error) {
 	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunClickhouseUserReconcile not implemented"), sdk_go.WithErrorCode(501))
 }
@@ -603,6 +625,7 @@ func NewCronServiceServer(srv CronServiceServer, opts ...sdk_go.ServiceDefinitio
 	router = router.Handler("RunDeploySpendCheck", sdk_go.NewObjectHandler(srv.RunDeploySpendCheck))
 	router = router.Handler("RunBuildLimitSync", sdk_go.NewObjectHandler(srv.RunBuildLimitSync))
 	router = router.Handler("RunDeployAnomalyCheck", sdk_go.NewObjectHandler(srv.RunDeployAnomalyCheck))
+	router = router.Handler("RunDeployAnomalyEvents", sdk_go.NewObjectHandler(srv.RunDeployAnomalyEvents))
 	router = router.Handler("RunClickhouseUserReconcile", sdk_go.NewObjectHandler(srv.RunClickhouseUserReconcile))
 	return router
 }

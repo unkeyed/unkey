@@ -22,18 +22,20 @@ const (
 )
 
 type CheckConfig struct {
-	DB db.Database
+	DB             db.Database
+	FastWorkspaces []string
 }
 
 type CheckHandler struct {
-	db db.Database
+	db             db.Database
+	fastWorkspaces []string
 }
 
 func NewCheckHandler(cfg CheckConfig) (*CheckHandler, error) {
 	if err := assert.NotNil(cfg.DB, "DB must not be nil"); err != nil {
 		return nil, err
 	}
-	return &CheckHandler{db: cfg.DB}, nil
+	return &CheckHandler{db: cfg.DB, fastWorkspaces: cfg.FastWorkspaces}, nil
 }
 
 func candidateKey(metric Metric) string       { return "candidate:" + string(metric) }
@@ -43,6 +45,7 @@ func firedAtKey(metric Metric) string         { return "fired_at:" + string(metr
 func quietKey(metric Metric) string           { return "quiet:" + string(metric) }
 func progressKey(metric Metric) string        { return "progress:" + string(metric) }
 func snapshotKey(metric Metric) string        { return "snapshot:" + string(metric) }
+func observedEventAtKey(metric Metric) string { return "observed_event_at:" + string(metric) }
 
 type metricProgress struct {
 	WindowEnd    int64 `json:"window_end"`
@@ -140,7 +143,7 @@ func (h *CheckHandler) Evaluate(
 		input := detectorInput(metricValue, req.GetWindowStart(), req.GetAppCreatedAt(), previousCandidate)
 
 		if openID != "" {
-			quietWindows, evaluateErr := h.evaluateOpen(ctx, req, input, openID, progress.QuietWindows, cfg)
+			quietWindows, evaluateErr := h.evaluateOpen(ctx, req, input, openID, progress, cfg)
 			if evaluateErr != nil {
 				return nil, evaluateErr
 			}
@@ -215,6 +218,9 @@ func (h *CheckHandler) reconcile(ctx restate.ObjectContext, req *hydrav1.Evaluat
 		restate.Set(ctx, openAlertKey(metric), row.ID)
 		restate.Set(ctx, firedAtKey(metric), row.FiredAt)
 		restate.Set(ctx, snapshotKey(metric), snapshot)
+		if row.LastObservedEventAt.Valid {
+			restate.Set(ctx, observedEventAtKey(metric), row.LastObservedEventAt.Int64)
+		}
 	}
 	restate.Set(ctx, "open_alerts_reconciled", true)
 	return nil
@@ -277,7 +283,7 @@ func (h *CheckHandler) open(ctx restate.ObjectContext, req *hydrav1.EvaluateDepl
 			ObservedValue: result.Observed, BaselineMean: result.BaselineMean,
 			BaselineStddev: result.BaselineStddev, ThresholdSigma: result.SigmaK,
 			WindowStart: req.GetWindowStart(), WindowEnd: req.GetWindowEnd(), CreatedAt: req.GetWindowEnd(),
-			UpdatedAt: sql.NullInt64{},
+			UpdatedAt: sql.NullInt64{}, LastObservedEventAt: sql.NullInt64{},
 		})
 		return openResult{ID: id, FiredAt: req.GetWindowEnd(), Snapshot: result}, err
 	}, restate.WithName("insert anomaly alert"))
@@ -304,7 +310,8 @@ func (h *CheckHandler) open(ctx restate.ObjectContext, req *hydrav1.EvaluateDepl
 	return nil
 }
 
-func (h *CheckHandler) evaluateOpen(ctx restate.ObjectContext, req *hydrav1.EvaluateDeployAnomalyRequest, input Input, alertID string, quietWindows int, cfg Config) (int, error) {
+func (h *CheckHandler) evaluateOpen(ctx restate.ObjectContext, req *hydrav1.EvaluateDeployAnomalyRequest, input Input, alertID string, progress metricProgress, cfg Config) (int, error) {
+	quietWindows := progress.QuietWindows
 	firedAt, err := restate.Get[int64](ctx, firedAtKey(input.Metric))
 	if err != nil {
 		return quietWindows, fault.Wrap(err, fault.Internal(fmt.Sprintf("get fired time for %s", input.Metric)))
@@ -317,6 +324,21 @@ func (h *CheckHandler) evaluateOpen(ctx restate.ObjectContext, req *hydrav1.Eval
 	}
 	if maxOpenDurationReached(firedAt, req.GetWindowEnd(), cfg.MaxOpenDuration) {
 		return 0, h.resolve(ctx, req, alertID, input.Metric, baselineAdaptedMessage)
+	}
+	observedAt, err := restate.Get[int64](ctx, observedEventAtKey(input.Metric))
+	if err != nil {
+		return quietWindows, err
+	}
+	if observedAt > 0 {
+		if req.GetWindowEnd() <= observedAt {
+			return quietWindows, nil
+		}
+		if req.GetWindowStart() <= observedAt {
+			return 0, nil
+		}
+		if progress.WindowEnd <= observedAt {
+			quietWindows = 0
+		}
 	}
 	snapshot, err := restate.Get[Result](ctx, snapshotKey(input.Metric))
 	if err != nil {
@@ -421,6 +443,7 @@ func clearMetricState(ctx restate.ObjectContext, metric Metric) {
 	restate.Clear(ctx, quietKey(metric))
 	restate.Clear(ctx, progressKey(metric))
 	restate.Clear(ctx, snapshotKey(metric))
+	restate.Clear(ctx, observedEventAtKey(metric))
 }
 
 func hasPendingState(ctx restate.ObjectContext) (bool, error) {

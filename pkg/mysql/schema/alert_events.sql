@@ -10,6 +10,7 @@ CREATE TABLE `alert_events` (
 	`status` enum('open','resolved') NOT NULL DEFAULT 'open',
 	`fired_at` bigint NOT NULL,
 	`last_seen_at` bigint NOT NULL,
+	`last_observed_event_at` bigint,
 	`resolved_at` bigint,
 	`resolution_message` varchar(1000),
 	`observed_value` double NOT NULL,

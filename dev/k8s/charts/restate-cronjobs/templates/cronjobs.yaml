@@ -8,6 +8,9 @@ metadata:
   namespace: unkey
 spec:
   schedule: {{ $job.schedule | quote }}
+  {{- if $job.suspend }}
+  suspend: true
+  {{- end }}
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
   failedJobsHistoryLimit: 5

@@ -55,6 +55,7 @@ type Service struct {
 	buildLimitSync          *buildlimitsync.Handler
 	clickhouseUserReconcile *clickhouseuserreconcile.Handler
 	deployAnomaly           *deployanomaly.Handler
+	deployAnomalyEvents     *deployanomaly.EventsHandler
 	deployAnomalyShard      *deployanomaly.ShardHandler
 	deployAnomalyWork       *deployanomaly.CheckHandler
 	deployBilling           *deploybilling.Handler
@@ -159,7 +160,9 @@ type Config struct {
 	// link, e.g. "https://app.unkey.com".
 	BillingBaseURL string
 	// DeployAnomalyShardCount defaults to 16 when omitted.
-	DeployAnomalyShardCount uint64
+	DeployAnomalyShardCount     uint64
+	DeployAnomalyFastWorkspaces []string
+	DeployAnomalyFastHeartbeat  healthcheck.Heartbeat
 	// Heartbeats is the per-task healthcheck wiring. Every field is required.
 	Heartbeats Heartbeats
 }
@@ -356,7 +359,16 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 	deployAnomalyWorkH, err := deployanomaly.NewCheckHandler(deployanomaly.CheckConfig{
-		DB: cfg.DB,
+		DB: cfg.DB, FastWorkspaces: cfg.DeployAnomalyFastWorkspaces,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if cfg.DeployAnomalyFastHeartbeat == nil {
+		cfg.DeployAnomalyFastHeartbeat = healthcheck.NewNoop()
+	}
+	deployAnomalyEventsH, err := deployanomaly.NewEventsHandler(deployanomaly.EventsConfig{
+		DB: cfg.DB, Workspaces: cfg.DeployAnomalyFastWorkspaces, Heartbeat: cfg.DeployAnomalyFastHeartbeat,
 	})
 	if err != nil {
 		return nil, err
@@ -369,6 +381,7 @@ func New(cfg Config) (*Service, error) {
 		buildLimitSync:                 buildLimitSyncH,
 		clickhouseUserReconcile:        clickhouseUserReconcileH,
 		deployAnomaly:                  deployAnomalyH,
+		deployAnomalyEvents:            deployAnomalyEventsH,
 		deployAnomalyShard:             deployAnomalyShardH,
 		deployAnomalyWork:              deployAnomalyWorkH,
 		deployBilling:                  deployBillingH,
@@ -471,6 +484,13 @@ func (s *Service) RunDeployAnomalyCheck(
 	req *hydrav1.RunDeployAnomalyCheckRequest,
 ) (*hydrav1.RunDeployAnomalyCheckResponse, error) {
 	return s.deployAnomaly.Handle(ctx, req)
+}
+
+func (s *Service) RunDeployAnomalyEvents(
+	ctx restate.ObjectContext,
+	req *hydrav1.RunDeployAnomalyEventsRequest,
+) (*hydrav1.RunDeployAnomalyEventsResponse, error) {
+	return s.deployAnomalyEvents.Handle(ctx, req)
 }
 
 func (s *Service) RunClickhouseUserReconcile(
