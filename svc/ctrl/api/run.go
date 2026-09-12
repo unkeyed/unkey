@@ -181,15 +181,16 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	c, err := cluster.New(cluster.Config{
-		DeploymentStream: deploymentStream,
-		Database:         database,
-		Restate:          restateClient,
-		RestateAdmin:     restateAdminClient,
-		Bearer:           cfg.AuthToken,
-		Clock:            clk,
-		TopologyCache:    topologyCache,
-		InstanceEvents:   instanceEvents,
-		RegionalDomain:   cfg.RegionalDomain,
+		DeploymentStream:            deploymentStream,
+		Database:                    database,
+		Restate:                     restateClient,
+		RestateAdmin:                restateAdminClient,
+		Bearer:                      cfg.AuthToken,
+		Clock:                       clk,
+		TopologyCache:               topologyCache,
+		InstanceEvents:              instanceEvents,
+		RegionalDomain:              cfg.RegionalDomain,
+		DeployAnomalyFastWorkspaces: cfg.DeployAnomalyFastWorkspaces,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create cluster service: %w", err)
