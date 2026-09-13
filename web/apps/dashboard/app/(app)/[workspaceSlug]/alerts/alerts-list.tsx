@@ -37,9 +37,9 @@ export function AlertsList() {
       appId: appId === "all" ? undefined : appId,
       limit: 20,
     },
-    { getNextPageParam: (lastPage) => lastPage.nextCursor },
+    { getNextPageParam: (lastPage) => lastPage.nextCursor, refetchInterval: 60_000 },
   );
-  const appOptionsQuery = trpc.alerts.list.useQuery({ limit: 100 });
+  const appOptionsQuery = trpc.alerts.list.useQuery({ limit: 100 }, { refetchInterval: 60_000 });
   const alerts = query.data?.pages.flatMap((page) => page.alerts) ?? [];
   const appOptions = useMemo(() => {
     const unique = new Map<string, string>();
