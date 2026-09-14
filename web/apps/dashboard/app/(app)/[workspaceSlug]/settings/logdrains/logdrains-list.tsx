@@ -1,8 +1,8 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useLogdrains } from "@/lib/logdrains-query";
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
 import { CloudUp, Database, Earth, Layers3, ShareUpRight } from "@unkey/icons";
 import {
   Button,
@@ -30,7 +30,7 @@ function DrainRow({ drain, workspaceSlug }: { drain: DrainListItem; workspaceSlu
         aria-label={`Open ${drain.name}`}
         className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-grayA-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7"
       >
-        <DrainMedia kind={drain.kind} />
+        <DrainMedia kind={drain.destination.http ? "http" : "axiom"} />
 
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <InfoTooltip content={drain.name} asChild position={{ align: "start", side: "top" }}>
@@ -81,7 +81,7 @@ export function LogdrainsList({
   canCreate: boolean;
 }) {
   const workspace = useWorkspaceNavigation();
-  const query = trpc.logdrain.list.useQuery();
+  const query = useLogdrains();
 
   if (query.isLoading) {
     return <DrainListSkeleton />;

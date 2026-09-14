@@ -1,11 +1,10 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
-import type { Router } from "@/lib/trpc/routers";
-import type { inferRouterOutputs } from "@trpc/server";
+import { useLogdrainDeliveries, useLogdrainMetrics } from "@/lib/logdrains-query";
+import type { LogdrainDelivery } from "@unkey/api/models/components";
 import { useMemo } from "react";
 
-export type Delivery = inferRouterOutputs<Router>["logdrain"]["recentDeliveries"][number];
+export type Delivery = LogdrainDelivery;
 export const WINDOW_HOURS = 24;
 
 export function isFailure(delivery: Delivery): boolean {
@@ -17,7 +16,7 @@ export function detailText(delivery: Delivery): string {
 }
 
 export function useDeliveries(drainId: string) {
-  const query = trpc.logdrain.recentDeliveries.useQuery({ drainId });
+  const query = useLogdrainDeliveries(drainId);
   return { deliveries: query.data, isError: query.isError, retry: () => query.refetch() };
 }
 
@@ -29,10 +28,7 @@ type DeliveryTotals = {
 };
 
 export function useDeliveryTotals(drainId: string) {
-  const { data, isError, refetch } = trpc.logdrain.metrics.useQuery({
-    drainId,
-    hours: WINDOW_HOURS,
-  });
+  const { data, isError, refetch } = useLogdrainMetrics(drainId, WINDOW_HOURS);
 
   const totals = useMemo((): DeliveryTotals | null => {
     if (!data) {

@@ -114,7 +114,10 @@ export function LogdrainDetail({ drain }: { drain: DrainDetail }) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Keep log drain</AlertDialogCancel>
-            <AlertDialogAction color="danger" onClick={() => remove.mutate({ id: drain.id })}>
+            <AlertDialogAction
+              color="danger"
+              onClick={() => remove.mutate({ logdrainId: drain.id })}
+            >
               Delete log drain
             </AlertDialogAction>
           </AlertDialogFooter>

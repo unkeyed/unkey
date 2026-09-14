@@ -1,20 +1,20 @@
-import type { Router } from "@/lib/trpc/routers";
-import {
-  keySpaceIdsSchema,
-  outcomesSchema,
-  passedSchema,
-  resourceIdsSchema,
-  severitiesSchema,
-  statusClassesSchema,
-} from "@/lib/trpc/routers/logdrain/validation";
-import type { inferRouterOutputs } from "@trpc/server";
+import type { Logdrain } from "@unkey/api/models/components";
+import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import { z } from "zod";
 import { headerNamePattern, isValidHttpHeaderValue } from "./header-fields";
 
-type Outputs = inferRouterOutputs<Router>;
-export type DrainListItem = Outputs["logdrain"]["list"][number];
-export type DrainDetail = Outputs["logdrain"]["get"];
-export type DrainKind = DrainListItem["kind"];
+export type DrainListItem = Logdrain;
+export type DrainDetail = Logdrain;
+export type DrainKind = "http" | "axiom";
+
+const resourceIdsSchema = z.array(z.string().trim().min(1).max(256)).max(256);
+const outcomesSchema = z.array(z.enum(KEY_VERIFICATION_OUTCOMES)).max(256);
+const keySpaceIdsSchema = resourceIdsSchema;
+const severitiesSchema = z.array(z.string().trim().min(1).max(256)).max(256);
+const passedSchema = z.array(z.boolean()).max(2);
+const statusClassesSchema = z
+  .array(z.union([z.literal(2), z.literal(3), z.literal(4), z.literal(5)]))
+  .max(4);
 
 /**
  * A stored header keeps its encrypted value on the server, so an empty value on one of those
@@ -286,46 +286,39 @@ export const emptyDrainForm: DrainFormValues = {
 };
 
 export function drainToFormValues(drain: DrainDetail): DrainFormValues {
+  const filters = drain.filters;
+  const projectIds = filters.projectIds ?? [];
+  const appIds = filters.appIds ?? [];
+  const environmentIds = filters.environmentIds ?? [];
+  const statusClasses = statusClassesSchema.parse(filters.statusClasses ?? []);
+  const eventTypes = filters.eventTypes ?? [];
+  const hasSources = projectIds.length + appIds.length + environmentIds.length > 0;
   return {
     ...emptyDrainForm,
-    kind: drain.kind,
+    kind: drain.destination.http ? "http" : "axiom",
     name: drain.name,
     stream: drain.stream,
-    namespaceIds: "namespaceIds" in drain ? drain.namespaceIds : [],
-    passed: "passed" in drain ? drain.passed : [],
-    outcomes: outcomesSchema.parse(drain.outcomes),
-    keySpaceIds: drain.keySpaceIds,
-    statusClasses: statusClassesSchema.parse(drain.statusClasses),
-    severities: drain.severities,
-    runtimeProjectIds: drain.stream === "runtime_logs" ? drain.projectIds : [],
-    runtimeAppIds: drain.stream === "runtime_logs" ? drain.appIds : [],
-    runtimeEnvironmentIds: drain.stream === "runtime_logs" ? drain.environmentIds : [],
-    runtimeSourceMode:
-      drain.stream === "runtime_logs" &&
-      drain.projectIds.length + drain.appIds.length + drain.environmentIds.length > 0
-        ? "some"
-        : "all",
-    projectIds: drain.stream === "gateway_requests" ? drain.projectIds : [],
-    appIds: drain.stream === "gateway_requests" ? drain.appIds : [],
-    environmentIds: drain.stream === "gateway_requests" ? drain.environmentIds : [],
-    sourceMode:
-      drain.stream === "gateway_requests" &&
-      drain.projectIds.length + drain.appIds.length + drain.environmentIds.length > 0
-        ? "some"
-        : "all",
-    statusMode: statusModeFor(statusClassesSchema.parse(drain.statusClasses)),
-    eventTypes: drain.eventTypes,
-    eventTypesMode: drain.eventTypes.length > 0 ? "specific" : "all",
-    url: drain.kind === "http" ? drain.config.url : "",
-    format: drain.kind === "http" ? drain.config.format : "json",
+    namespaceIds: filters.namespaceIds ?? [],
+    passed: filters.passed ?? [],
+    outcomes: outcomesSchema.parse(filters.outcomes ?? []),
+    keySpaceIds: filters.keySpaceIds ?? [],
+    statusClasses,
+    severities: filters.severities ?? [],
+    runtimeProjectIds: drain.stream === "runtime_logs" ? projectIds : [],
+    runtimeAppIds: drain.stream === "runtime_logs" ? appIds : [],
+    runtimeEnvironmentIds: drain.stream === "runtime_logs" ? environmentIds : [],
+    runtimeSourceMode: drain.stream === "runtime_logs" && hasSources ? "some" : "all",
+    projectIds: drain.stream === "gateway_requests" ? projectIds : [],
+    appIds: drain.stream === "gateway_requests" ? appIds : [],
+    environmentIds: drain.stream === "gateway_requests" ? environmentIds : [],
+    sourceMode: drain.stream === "gateway_requests" && hasSources ? "some" : "all",
+    statusMode: statusModeFor(statusClasses),
+    eventTypes,
+    eventTypesMode: eventTypes.length > 0 ? "specific" : "all",
+    url: drain.destination.http?.url ?? "",
+    format: drain.destination.http?.format ?? "json",
     headers:
-      drain.kind === "http"
-        ? drain.config.headers.map((name) => ({
-            name,
-            value: "",
-            stored: true,
-          }))
-        : [],
-    dataset: drain.kind === "axiom" ? drain.config.dataset : "",
+      drain.destination.http?.headers.map((name) => ({ name, value: "", stored: true })) ?? [],
+    dataset: drain.destination.axiom?.dataset ?? "",
   };
 }
