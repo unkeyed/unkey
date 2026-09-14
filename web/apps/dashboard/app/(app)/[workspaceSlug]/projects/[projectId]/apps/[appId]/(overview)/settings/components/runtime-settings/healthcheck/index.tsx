@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { IconChevronDownOutline18, IconHeartPulseOutline18 } from "@unkey/icons";
 import {
   FormInput,
   Select,
@@ -9,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
-import { IconChevronDownOutline18, IconHeartPulseOutline18 } from "nucleo-ui-outline-18";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useEnvironmentSettings } from "../../../environment-provider";

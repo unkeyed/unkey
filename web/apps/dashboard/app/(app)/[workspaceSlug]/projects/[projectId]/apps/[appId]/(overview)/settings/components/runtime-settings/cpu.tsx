@@ -1,7 +1,7 @@
 "use client";
 
 import { formatCpuParts } from "@/lib/utils/deployment-formatters";
-import { IconMicrochipOutline18 } from "nucleo-ui-outline-18";
+import { IconMicrochipOutline18 } from "@unkey/icons";
 import { ResourceSliderSetting, defineResourceSlider } from "../shared/resource-slider";
 
 // CPU tiers on the slider. resolveStrategy bounds these to the workspace limit

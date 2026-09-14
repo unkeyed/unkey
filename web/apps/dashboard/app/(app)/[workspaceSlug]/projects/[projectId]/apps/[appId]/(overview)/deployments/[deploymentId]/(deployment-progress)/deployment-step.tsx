@@ -2,13 +2,13 @@
 
 import { cn } from "@/lib/utils";
 import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
-import { match } from "@unkey/match";
-import { Badge, Loading, SettingCard } from "@unkey/ui";
 import {
   IconCheckOutline18,
   IconCircleHalfDottedClockOutline18,
   IconTriangleWarningOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { match } from "@unkey/match";
+import { Badge, Loading, SettingCard } from "@unkey/ui";
 import { GlowIcon } from "../../../../components/glow-icon";
 
 type DeploymentStepProps = {

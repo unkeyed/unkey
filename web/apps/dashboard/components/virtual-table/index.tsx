@@ -1,7 +1,11 @@
 import { cn } from "@/lib/utils";
+import {
+  IconCaretDownOutline12,
+  IconCaretExpandYOutline18,
+  IconCaretUpOutline12,
+  IconCircleCaretRightOutline18,
+} from "@unkey/icons";
 import { useIsMobile } from "@unkey/ui";
-import { IconCaretDownOutline12, IconCaretUpOutline12 } from "nucleo-ui-outline-12";
-import { IconCaretExpandYOutline18, IconCircleCaretRightOutline18 } from "nucleo-ui-outline-18";
 import {
   Fragment,
   type Ref,

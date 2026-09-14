@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { IconHammer2Outline18 } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
-import { IconHammer2Outline18 } from "nucleo-ui-outline-18";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { useEnvironmentSettings } from "../../environment-provider";

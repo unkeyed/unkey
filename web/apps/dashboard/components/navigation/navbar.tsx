@@ -1,10 +1,10 @@
 "use client";
 
+import { IconDotsOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { Route } from "next";
 import Link from "next/link";
-import { IconDotsOutline18 } from "nucleo-ui-outline-18";
 import React from "react";
 
 type BaseProps = React.PropsWithChildren<React.HTMLAttributes<HTMLElement>>;

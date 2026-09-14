@@ -4,7 +4,7 @@ import { useApiName } from "@/hooks/use-api-name";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { IconNodesOutline18, IconPlusOutline18 } from "nucleo-ui-outline-18";
+import { IconNodesOutline18, IconPlusOutline18 } from "@unkey/icons";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 

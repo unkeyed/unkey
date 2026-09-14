@@ -2,6 +2,7 @@
 
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import { cn, processTimeFilters } from "@/lib/utils";
+import { IconChevronDownOutline18 } from "@unkey/icons";
 import { useIsMobile } from "@unkey/ui";
 import {
   Button,
@@ -14,7 +15,6 @@ import {
   type Range,
   type TimeUnit,
 } from "@unkey/ui";
-import { IconChevronDownOutline18 } from "nucleo-ui-outline-18";
 import {
   type PropsWithChildren,
   type ReactElement,

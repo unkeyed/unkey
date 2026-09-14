@@ -8,16 +8,16 @@ import { collection } from "@/lib/collections";
 import { githubUrl } from "@/lib/github-url";
 import { routes } from "@/lib/navigation/routes";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Github } from "@unkey/icons";
-import { match } from "@unkey/match";
-import { Button, Empty } from "@unkey/ui";
-import { useParams, useRouter } from "next/navigation";
 import {
+  Github,
   IconDotsOutline18,
   IconLayers2Outline18,
   IconPlusOutline18,
   IconTerminalOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { match } from "@unkey/match";
+import { Button, Empty } from "@unkey/ui";
+import { useParams, useRouter } from "next/navigation";
 import { AppActions } from "./app-actions";
 
 // One row at the 3-column desktop width so loading doesn't tower over the

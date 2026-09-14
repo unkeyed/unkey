@@ -1,6 +1,6 @@
+import { IconPage2Outline18 } from "@unkey/icons";
 import { FullScreenContent, FullScreenLayout, Logo } from "@unkey/ui";
 import Link from "next/link";
-import { IconPage2Outline18 } from "nucleo-ui-outline-18";
 import type React from "react";
 import { RadarProvider } from "./radar/radar-signals";
 

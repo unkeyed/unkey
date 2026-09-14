@@ -4,7 +4,7 @@ import {
   IconChevronRightOutline18,
   IconMaximizeWindowOutline18,
   IconMinimizeWindowOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
 import { memo, useMemo, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../buttons/button";

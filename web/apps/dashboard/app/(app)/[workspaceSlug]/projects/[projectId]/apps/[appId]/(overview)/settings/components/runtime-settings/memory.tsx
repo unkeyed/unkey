@@ -1,7 +1,7 @@
 "use client";
 
 import { formatMemoryParts } from "@/lib/utils/deployment-formatters";
-import { IconRamOutline18 } from "nucleo-ui-outline-18";
+import { IconRamOutline18 } from "@unkey/icons";
 import { ResourceSliderSetting, defineResourceSlider } from "../shared/resource-slider";
 
 // Memory tiers on the slider. resolveStrategy bounds these to the workspace limit

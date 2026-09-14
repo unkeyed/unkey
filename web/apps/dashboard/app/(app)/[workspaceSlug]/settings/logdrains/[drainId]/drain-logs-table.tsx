@@ -1,7 +1,7 @@
 "use client";
 
+import { IconCircleXmarkOutline18 } from "@unkey/icons";
 import { Badge, Button, Card, CopyButton, Skeleton, TimestampInfo, cn } from "@unkey/ui";
-import { IconCircleXmarkOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 import { type Delivery, detailText, isFailure, useDeliveries } from "./use-deliveries";
 

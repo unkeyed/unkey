@@ -6,7 +6,6 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { routes } from "@/lib/navigation/routes";
-import dynamic from "next/dynamic";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconArrowsOppositeDirectionYOutline18,
@@ -15,7 +14,8 @@ import {
   IconChevronUpOutline18,
   IconHammer2Outline18,
   IconLayers3Outline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import { getDeploymentActionEligibility } from "../components/table/components/actions/deployment-action-eligibility";
 

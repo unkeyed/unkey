@@ -1,6 +1,5 @@
-import { Discord } from "@unkey/icons";
+import { Discord, IconBookBookmarkOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
 
 export const OnboardingLinks = () => (
   <div className="flex gap-3 items-center">

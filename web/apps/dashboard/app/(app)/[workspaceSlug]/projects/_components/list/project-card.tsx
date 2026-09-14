@@ -1,11 +1,10 @@
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { Github } from "@unkey/icons";
+import { Github, IconLayers2Outline18, IconTerminalOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { HoverCard, HoverCardContent, HoverCardTrigger, InfoTooltip } from "@unkey/ui";
 import Link from "next/link";
-import { IconLayers2Outline18, IconTerminalOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 
 export type ProjectCardApp = {

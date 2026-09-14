@@ -1,12 +1,12 @@
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { COMPUTE_BILLING_DOCS } from "@/lib/support";
-import type { IconProps } from "nucleo-ui-outline-18";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconChartActivityOutline18,
   IconCodeBranchOutline18,
   IconEyeOutline18,
-} from "nucleo-ui-outline-18";
+  type IconProps,
+} from "@unkey/icons";
 import type { ComponentType } from "react";
 
 /** Marketing copy for the Compute plan picker. */

@@ -1,7 +1,7 @@
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
 import { cn } from "../../../lib/utils";
-import { IconXmarkOutline18 } from "nucleo-ui-outline-18";
+import { IconXmarkOutline18 } from "@unkey/icons";
 import { TimestampInfo } from "../../timestamp-info";
 import { Button } from "../../buttons/button";
 import type { FilterValue } from "../../../validation/filter.types";

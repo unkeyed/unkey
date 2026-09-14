@@ -12,7 +12,6 @@ import React from "react";
 
 import { auditLogsFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 import { ratelimitFilterFieldEnum } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";
-import type { IconProps } from "nucleo-ui-outline-18";
 import {
   IconBucketOutline18,
   IconCalendarEventOutline18,
@@ -24,8 +23,9 @@ import {
   IconFolderCloudOutline18,
   IconKeyOutline18,
   IconLink4Outline18,
+  type IconProps,
   IconUserSearchOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
 
 import type { AuditLogsFilterField } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 import type { RatelimitFilterField } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/filters.schema";

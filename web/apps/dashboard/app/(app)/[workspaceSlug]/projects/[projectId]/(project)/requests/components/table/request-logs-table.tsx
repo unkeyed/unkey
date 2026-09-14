@@ -6,8 +6,8 @@ import {
   getSelectedClassName,
   useRequestLogsQuery,
 } from "@/components/request-logs-table";
+import { IconBookBookmarkOutline18 } from "@unkey/icons";
 import { Button, DataTable, Empty, PaginationFooter } from "@unkey/ui";
-import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
 import { useMemo } from "react";
 import { useRequestLogsContext } from "../../context/request-logs-provider";
 

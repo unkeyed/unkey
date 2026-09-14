@@ -1,5 +1,5 @@
 "use client";
-import { IconClockOutline18 } from "nucleo-ui-outline-18";
+import { IconClockOutline18 } from "@unkey/icons";
 // biome-ignore lint/correctness/noUnusedImports: React is needed for JSX
 import React from "react";
 import { BadgeTimestampCell } from "./badge-timestamp-cell";

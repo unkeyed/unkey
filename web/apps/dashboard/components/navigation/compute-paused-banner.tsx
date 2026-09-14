@@ -4,8 +4,8 @@ import { pausedBody } from "@/app/(app)/[workspaceSlug]/settings/billing/compone
 import { formatDollars } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
+import { IconTriangleWarningOutline12 } from "@unkey/icons";
 import Link from "next/link";
-import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
 
 /**
  * Workspace-wide banner for the spend-cap paused state. The cap is per

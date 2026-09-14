@@ -1,7 +1,6 @@
 import { cn } from "@/lib/utils";
+import { IconBookmarkFill18, IconBookmarkOutline18, IconLayers2Outline18 } from "@unkey/icons";
 import { InfoTooltip, toast } from "@unkey/ui";
-import { IconBookmarkFill18 } from "nucleo-ui-fill-18";
-import { IconBookmarkOutline18, IconLayers2Outline18 } from "nucleo-ui-outline-18";
 import { useEffect, useState } from "react";
 import { useQueries } from "./queries-context";
 import { QueriesItemRow } from "./queries-item-row";

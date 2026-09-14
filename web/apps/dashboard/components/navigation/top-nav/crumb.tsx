@@ -1,8 +1,8 @@
 "use client";
 
+import { IconChevronExpandYOutline12 } from "@unkey/icons";
 import type { Route } from "next";
 import Link from "next/link";
-import { IconChevronExpandYOutline12 } from "nucleo-ui-outline-12";
 import type { ReactNode } from "react";
 import { CrumbPopover, type CrumbPopoverFooter, type CrumbPopoverItem } from "./crumb-popover";
 

@@ -11,9 +11,9 @@ import {
   formatStorageParts,
 } from "@/lib/utils/deployment-formatters";
 import { eq, useLiveQuery } from "@tanstack/react-db";
+import { IconCodeBranchOutline18, IconCodeCommitOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, InfoTooltip, TimestampInfo } from "@unkey/ui";
-import { IconCodeBranchOutline18, IconCodeCommitOutline18 } from "nucleo-ui-outline-18";
 import { Card } from "../../(overview)/components/card";
 import { useProjectData } from "../../(overview)/data-provider";
 import { DeploymentTriggerBadge } from "../../../../components/deployment-trigger-badge";

@@ -1,7 +1,7 @@
 "use client";
 
+import { IconChevronDownOutline18, IconLayers3Outline18 } from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
-import { IconChevronDownOutline18, IconLayers3Outline18 } from "nucleo-ui-outline-18";
 import { useProjectData } from "../../../../data-provider";
 import { useFilters } from "../../../hooks/use-filters";
 

@@ -1,5 +1,5 @@
+import { IconPage2Outline12 } from "@unkey/icons";
 import { AnimatePresence, motion } from "framer-motion";
-import { IconPage2Outline12 } from "nucleo-ui-outline-12";
 import { useEffect, useMemo, useState } from "react";
 
 export const GrantedAccess = ({

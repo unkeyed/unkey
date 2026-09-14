@@ -1,4 +1,3 @@
-import type { StepNamesFrom } from "@unkey/ui";
 import {
   IconCalendarClockOutline18,
   IconChartPieOutline18,
@@ -6,7 +5,8 @@ import {
   IconGaugeOutline18,
   IconKey2Outline18,
   IconShieldKeyOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import type { StepNamesFrom } from "@unkey/ui";
 import type { SectionState } from "./types";
 
 import { MetadataSetup } from "@/components/dashboard/metadata/metadata-setup";

@@ -1,8 +1,8 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/hooks/use-filters";
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
 import { cn } from "@/lib/utils";
+import { IconCalendarOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { IconCalendarOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useState } from "react";
 
 export const NamespaceListDateTime = () => {

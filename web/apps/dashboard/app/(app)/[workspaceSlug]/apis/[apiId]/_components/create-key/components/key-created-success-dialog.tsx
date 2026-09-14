@@ -1,8 +1,7 @@
 "use client";
 
+import { IconCheckOutline12, IconKey2Outline18 } from "@unkey/icons";
 import { ConfirmPopover, Dialog, DialogContent, DialogTitle } from "@unkey/ui";
-import { IconCheckOutline12 } from "nucleo-ui-outline-12";
-import { IconKey2Outline18 } from "nucleo-ui-outline-18";
 import { type FC, useEffect, useRef, useState } from "react";
 import { KeyPayloadTabs } from "./key-payload-tabs";
 

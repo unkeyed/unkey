@@ -1,6 +1,6 @@
+import { IconCloudOutline18, IconPlusOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { IconCloudOutline18, IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { EmptySection } from "../../../(overview)/components/empty-section";
 
 type ActiveDeploymentCardEmptyProps = {

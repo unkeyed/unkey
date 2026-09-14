@@ -1,9 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { IconPlusOutline12 } from "@unkey/icons";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { IconPlusOutline12 } from "nucleo-ui-outline-12";
 import { useId } from "react";
 import { ApiRow, ComputeRow } from "./usage-rows";
 import { useMinimised } from "./use-minimised";

@@ -1,8 +1,5 @@
 "use client";
-import {
-  IconArrowsAllDirectionsOutline18,
-  IconArrowsToCenterOutline18,
-} from "nucleo-ui-outline-18";
+import { IconArrowsAllDirectionsOutline18, IconArrowsToCenterOutline18 } from "@unkey/icons";
 import { useCallback, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../buttons/button";

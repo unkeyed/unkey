@@ -1,13 +1,13 @@
 "use client";
 
-import { Button, EmptyHero } from "@unkey/ui";
 import {
   IconEarthOutline18,
   IconKeyOutline18,
   IconShieldKeyOutline18,
   IconUserOutline18,
   IconWindowLayoutOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { Button, EmptyHero } from "@unkey/ui";
 
 export function SetupHero({ onEnable }: { onEnable: () => void }) {
   return (

@@ -1,7 +1,7 @@
 "use client";
 
+import { IconMagnifierOutline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, InputGroup, InputGroupAddon, InputGroupInput } from "@unkey/ui";
-import { IconMagnifierOutline18, IconXmarkOutline18 } from "nucleo-ui-outline-18";
 import { parseAsString, useQueryState } from "nuqs";
 
 export const IdentitiesSearch = () => {

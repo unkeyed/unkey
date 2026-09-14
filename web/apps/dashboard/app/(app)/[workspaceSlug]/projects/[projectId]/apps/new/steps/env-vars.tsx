@@ -1,7 +1,7 @@
 "use client";
 
+import { IconChevronLeftOutline18 } from "@unkey/icons";
 import { Button, useStepWizard } from "@unkey/ui";
-import { IconChevronLeftOutline18 } from "nucleo-ui-outline-18";
 import { ProjectDataProvider } from "../../[appId]/(overview)/data-provider";
 import { DeploymentEnvVars } from "../../[appId]/(overview)/env-vars/deployment-env-vars";
 import { DeployAction } from "./deploy-action";

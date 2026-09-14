@@ -9,6 +9,11 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import {
+  IconCheckOutline18,
+  IconChevronDownOutline12,
+  IconCircleCheckOutline18,
+} from "@unkey/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import {
   AsYouType,
@@ -16,8 +21,6 @@ import {
   getCountries,
   getCountryCallingCode,
 } from "libphonenumber-js";
-import { IconChevronDownOutline12 } from "nucleo-ui-outline-12";
-import { IconCheckOutline18, IconCircleCheckOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 // Country flag emoji from an ISO 3166-1 alpha-2 code (regional indicators),

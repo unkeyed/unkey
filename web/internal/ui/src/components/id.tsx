@@ -1,5 +1,5 @@
 "use client";
-import { IconClipboardCheckOutline18, IconClipboardOutline18 } from "nucleo-ui-outline-18";
+import { IconClipboardCheckOutline18, IconClipboardOutline18 } from "@unkey/icons";
 import * as React from "react";
 import { cn } from "../lib/utils";
 import { InfoTooltip } from "./info-tooltip";

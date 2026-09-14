@@ -1,7 +1,6 @@
 import { trpc } from "@/lib/trpc/client";
+import { IconCodeBranchOutline18, IconMagnifierOutline12 } from "@unkey/icons";
 import { Button, Combobox, TimestampInfo } from "@unkey/ui";
-import { IconMagnifierOutline12 } from "nucleo-ui-outline-12";
-import { IconCodeBranchOutline18 } from "nucleo-ui-outline-18";
 import { useMemo, useState } from "react";
 import { LanguageIcon } from "./language-icon";
 import { useSearchBranches } from "./use-search-branches";

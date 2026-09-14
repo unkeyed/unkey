@@ -7,10 +7,9 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { IconBookOpenOutline18, IconChatsOutline18, type IconProps } from "@unkey/icons";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import type { IconProps } from "nucleo-ui-outline-18";
-import { IconBookOpenOutline18, IconChatsOutline18 } from "nucleo-ui-outline-18";
 import React from "react";
 import { useFeedback } from "./feedback-component";
 

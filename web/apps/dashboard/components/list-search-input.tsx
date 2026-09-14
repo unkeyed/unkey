@@ -1,6 +1,6 @@
+import { IconMagnifierOutline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, InputGroup, InputGroupAddon, InputGroupInput } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { IconMagnifierOutline18, IconXmarkOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useRef, useState } from "react";
 
 // Generic filter type that can work with any filter structure

@@ -2,16 +2,14 @@
 
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
-import { Badge, CopyButton, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import {
   IconArrowDotRotateAnticlockwiseOutline12,
   IconCircleXmarkOutline12,
-} from "nucleo-ui-outline-12";
-import {
   IconCodeBranchOutline18,
   IconCodeCommitOutline18,
   IconLayers2Outline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { Badge, CopyButton, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { MetadataCell } from "../../../components/active-deployment-card/components/metadata-cell";
 import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";

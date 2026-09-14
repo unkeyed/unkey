@@ -2,8 +2,8 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
+import { IconKeyOutline18, IconMathFunctionOutline18 } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
-import { IconKeyOutline18, IconMathFunctionOutline18 } from "nucleo-ui-outline-18";
 import { LogSection } from "./log-section";
 
 type Props = {

@@ -1,6 +1,6 @@
+import { IconCheckOutline18 } from "@unkey/icons";
 import { Button, Textarea } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { IconCheckOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useRef, useState } from "react";
 
 type FilterOption<T extends string = string> = {

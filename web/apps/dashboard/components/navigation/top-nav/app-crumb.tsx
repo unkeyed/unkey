@@ -5,8 +5,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Github } from "@unkey/icons";
-import { IconPlusOutline18, IconTerminalOutline18 } from "nucleo-ui-outline-18";
+import { Github, IconPlusOutline18, IconTerminalOutline18 } from "@unkey/icons";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 

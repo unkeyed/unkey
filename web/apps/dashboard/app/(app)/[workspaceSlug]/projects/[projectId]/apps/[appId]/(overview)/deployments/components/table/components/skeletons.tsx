@@ -1,6 +1,5 @@
+import { IconCloudOutline12, IconCubeOutline18, IconDotsOutline12 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { IconCloudOutline12, IconDotsOutline12 } from "nucleo-ui-outline-12";
-import { IconCubeOutline18 } from "nucleo-ui-outline-18";
 
 export const DeploymentIdColumnSkeleton = () => (
   <div className="flex flex-col items-start px-[18px] py-[12px]">

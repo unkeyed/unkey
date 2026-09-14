@@ -1,4 +1,4 @@
-import { IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
+import { IconTriangleWarningOutline18 } from "@unkey/icons";
 import type React from "react";
 import type { PropsWithChildren } from "react";
 

@@ -1,6 +1,6 @@
+import { IconCloudOutline12 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { IconCloudOutline12 } from "nucleo-ui-outline-12";
 
 export type DiffStatus = "breaking" | "warning" | "safe" | "loading";
 

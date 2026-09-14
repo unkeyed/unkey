@@ -1,5 +1,6 @@
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { cn } from "@/lib/utils";
+import { IconChartActivity2Outline12, IconPage2Outline18 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   AssignedCountCell,
@@ -13,8 +14,6 @@ import {
 } from "@unkey/ui";
 import { InfoTooltip, TimestampInfo } from "@unkey/ui";
 import dynamic from "next/dynamic";
-import { IconChartActivity2Outline12 } from "nucleo-ui-outline-12";
-import { IconPage2Outline18 } from "nucleo-ui-outline-18";
 
 const RootKeysTableActions = dynamic(
   () =>

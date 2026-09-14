@@ -1,8 +1,7 @@
 "use client";
 
+import { IconCheckOutline12, IconClipboardOutline12, IconLayers2Outline18 } from "@unkey/icons";
 import { InfoTooltip, toast } from "@unkey/ui";
-import { IconCheckOutline12, IconClipboardOutline12 } from "nucleo-ui-outline-12";
-import { IconLayers2Outline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 
 export function ImageSource({

@@ -1,7 +1,7 @@
 import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbox/filters-popover";
+import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { IconBarsFilterOutline18 } from "nucleo-ui-outline-18";
 import { useFilters } from "../../../../hooks/use-filters";
 import { IdentifiersFilter } from "./components/identifiers-filter";
 import { StatusFilter } from "./components/status-filter";

@@ -17,6 +17,14 @@ import { trpc } from "@/lib/trpc/client";
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
+import {
+  IconCaretRightOutline12,
+  IconCheckOutline12,
+  IconMagnifierOutline12,
+  IconMinusOutline12,
+  IconPlusOutline12,
+  IconTrashOutline12,
+} from "@unkey/icons";
 import { match } from "@unkey/match";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import {
@@ -33,14 +41,6 @@ import {
   FormSelect,
   cn,
 } from "@unkey/ui";
-import {
-  IconCaretRightOutline12,
-  IconCheckOutline12,
-  IconMagnifierOutline12,
-  IconMinusOutline12,
-  IconPlusOutline12,
-  IconTrashOutline12,
-} from "nucleo-ui-outline-12";
 import { type ReactNode, useId, useState } from "react";
 import { Controller, useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { DrainEndpointRow } from "./drain-endpoint-row";

@@ -3,6 +3,7 @@
 import { POLICY_LIMITS } from "@/lib/collections/deploy/policies.schema";
 import { parseDuration } from "@/lib/duration";
 import { formatMs } from "@/lib/ms";
+import { IconChevronDownOutline18, IconPlusOutline18, IconTrashOutline18 } from "@unkey/icons";
 import {
   Button,
   FormDescription,
@@ -14,11 +15,6 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
-import {
-  IconChevronDownOutline18,
-  IconPlusOutline18,
-  IconTrashOutline18,
-} from "nucleo-ui-outline-18";
 import type React from "react";
 import { useState } from "react";
 import {

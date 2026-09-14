@@ -6,6 +6,7 @@ import { routes } from "@/lib/navigation/routes";
 import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
+import { IconCubeOutline18, IconLayers3Outline18, IconNodesOutline18 } from "@unkey/icons";
 import {
   Button,
   Empty,
@@ -25,7 +26,6 @@ import {
 } from "@unkey/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { IconCubeOutline18, IconLayers3Outline18, IconNodesOutline18 } from "nucleo-ui-outline-18";
 import { Fragment, type ReactNode } from "react";
 import { BreachBanner } from "./breach-banner";
 import {

@@ -1,10 +1,6 @@
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
 import { formatCpuParts, formatMemoryParts } from "@/lib/utils/deployment-formatters";
-import {
-  IconChartActivityOutline18,
-  IconMicrochipOutline18,
-  IconRamOutline18,
-} from "nucleo-ui-outline-18";
+import { IconChartActivityOutline18, IconMicrochipOutline18, IconRamOutline18 } from "@unkey/icons";
 import type { RegionNode } from "../types";
 import { MetricPill } from "./metric-pill";
 

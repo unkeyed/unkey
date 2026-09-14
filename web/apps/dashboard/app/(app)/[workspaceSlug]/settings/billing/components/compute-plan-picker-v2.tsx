@@ -4,6 +4,12 @@ import { formatDollars } from "@/lib/fmt";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import type { DeployPlanOption } from "@/lib/trpc/routers/stripe/getDeployPlans";
 import { cn } from "@/lib/utils";
+import {
+  IconArrowRightOutline18,
+  IconArrowUpRightOutline12,
+  IconCheckOutline18,
+  IconCircleInfoOutline18,
+} from "@unkey/icons";
 import { P, match } from "@unkey/match";
 import {
   Button,
@@ -13,12 +19,6 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@unkey/ui";
-import { IconArrowUpRightOutline12 } from "nucleo-ui-outline-12";
-import {
-  IconArrowRightOutline18,
-  IconCheckOutline18,
-  IconCircleInfoOutline18,
-} from "nucleo-ui-outline-18";
 import {
   ALL_PLANS_INCLUDE,
   COMPUTE_PLANS_LINK_HREF,

@@ -1,4 +1,4 @@
-import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
+import { IconBookBookmarkOutline18 } from "@unkey/icons";
 import type React from "react";
 import { Button } from "../../../buttons/button";
 import { Empty } from "../../../empty";

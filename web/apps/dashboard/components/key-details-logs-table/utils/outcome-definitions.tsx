@@ -4,9 +4,9 @@ import {
   IconCircleCheckOutline12,
   IconClockOutline12,
   IconLockOutline12,
+  IconShieldKeyOutline18,
   IconTriangleWarningOutline12,
-} from "nucleo-ui-outline-12";
-import { IconShieldKeyOutline18 } from "nucleo-ui-outline-18";
+} from "@unkey/icons";
 
 export type LogOutcomeType = (typeof KEY_VERIFICATION_OUTCOMES)[number];
 

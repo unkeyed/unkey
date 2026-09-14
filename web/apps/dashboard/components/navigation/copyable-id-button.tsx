@@ -1,6 +1,6 @@
 "use client";
+import { IconClipboardCheckOutline18, IconClipboardOutline18 } from "@unkey/icons";
 import { toast } from "@unkey/ui";
-import { IconClipboardCheckOutline18, IconClipboardOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useRef, useState } from "react";
 
 type CopyableIDButtonProps = {

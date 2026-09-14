@@ -1,5 +1,5 @@
+import { IconChartUsageOutline18, IconChevronRightOutline18 } from "@unkey/icons";
 import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@unkey/ui";
-import { IconChartUsageOutline18, IconChevronRightOutline18 } from "nucleo-ui-outline-18";
 
 export default function InternalLinkItem() {
   return (

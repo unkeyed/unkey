@@ -2,6 +2,7 @@
 
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
+import { IconArrowRightOutline18, IconMagnifierOutline18 } from "@unkey/icons";
 import {
   Loading,
   PageBody,
@@ -12,7 +13,6 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
-import { IconArrowRightOutline18, IconMagnifierOutline18 } from "nucleo-ui-outline-18";
 import { useCallback, useEffect, useState } from "react";
 import { Card } from "../components/card";
 import { useProjectData } from "../data-provider";

@@ -4,6 +4,7 @@ import { ORGANIZATION_ROLES } from "@/lib/auth/roles";
 import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { IconPlusOutline18 } from "@unkey/icons";
 import {
   Button,
   DialogContainer,
@@ -15,7 +16,6 @@ import {
   SelectValue,
   toast,
 } from "@unkey/ui";
-import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import type React from "react";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";

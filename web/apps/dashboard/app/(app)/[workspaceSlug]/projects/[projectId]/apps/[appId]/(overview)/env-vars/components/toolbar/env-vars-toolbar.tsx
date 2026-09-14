@@ -1,6 +1,12 @@
 "use client";
 
 import {
+  IconBarsFilterOutline18,
+  IconChevronDownOutline18,
+  IconLayers3Outline18,
+  IconMagnifierOutline18,
+} from "@unkey/icons";
+import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
@@ -10,12 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@unkey/ui";
-import {
-  IconBarsFilterOutline18,
-  IconChevronDownOutline18,
-  IconLayers3Outline18,
-  IconMagnifierOutline18,
-} from "nucleo-ui-outline-18";
 
 const SORT_OPTIONS = ["last-updated", "name-asc"] as const;
 export type SortOption = (typeof SORT_OPTIONS)[number];

@@ -1,6 +1,6 @@
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
+import { IconPage2Outline12 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
-import { IconPage2Outline12 } from "nucleo-ui-outline-12";
 
 export const PermissionInfo = ({
   permissionDetails,

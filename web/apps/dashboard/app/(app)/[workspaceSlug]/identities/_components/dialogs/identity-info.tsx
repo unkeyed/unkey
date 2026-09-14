@@ -1,6 +1,6 @@
 import type { Identity } from "@unkey/api/models/components";
+import { IconFingerprintOutline18 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
-import { IconFingerprintOutline18 } from "nucleo-ui-outline-18";
 
 export const IdentityInfo = ({ identity }: { identity: Identity }) => {
   return (

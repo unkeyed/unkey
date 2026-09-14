@@ -6,6 +6,7 @@ import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import { getErrorMessage } from "@/lib/unkey-client";
 import type { Identity } from "@unkey/api/models/components";
+import { IconBookBookmarkOutline18, IconFingerprintOutline18 } from "@unkey/icons";
 import {
   Button,
   Empty,
@@ -16,7 +17,6 @@ import {
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { IconBookBookmarkOutline18, IconFingerprintOutline18 } from "nucleo-ui-outline-18";
 import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
 

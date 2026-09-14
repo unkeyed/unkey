@@ -1,8 +1,8 @@
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { IconTriangleWarningOutline12 } from "@unkey/icons";
 import { Button, ConfirmPopover, DialogContainer, FormCheckbox } from "@unkey/ui";
-import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
 import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";

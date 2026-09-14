@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
+import { IconXmarkOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
-import { IconXmarkOutline18 } from "nucleo-ui-outline-18";
 import type { StandardLogTypes } from "..";
 
 type Props = {

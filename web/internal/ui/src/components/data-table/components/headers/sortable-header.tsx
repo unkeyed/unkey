@@ -1,6 +1,6 @@
 import type { Header } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
-import { IconChevronDownOutline18, IconChevronUpOutline18 } from "nucleo-ui-outline-18";
+import { IconChevronDownOutline18, IconChevronUpOutline18 } from "@unkey/icons";
 import type { ReactNode } from "react";
 import { cn } from "../../../../lib/utils";
 

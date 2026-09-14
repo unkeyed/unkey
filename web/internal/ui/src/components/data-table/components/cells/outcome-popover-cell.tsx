@@ -1,5 +1,5 @@
 "use client";
-import { IconChevronRightOutline18 } from "nucleo-ui-outline-18";
+import { IconChevronRightOutline18 } from "@unkey/icons";
 import type * as React from "react";
 import { cn } from "../../../../lib/utils";
 import { Badge } from "../../../badge";

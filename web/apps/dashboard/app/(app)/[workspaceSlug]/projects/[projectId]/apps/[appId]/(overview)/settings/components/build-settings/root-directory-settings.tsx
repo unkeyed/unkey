@@ -1,6 +1,6 @@
 import { FormCombobox } from "@/components/ui/form-combobox";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconFolderLinkOutline18 } from "nucleo-ui-outline-18";
+import { IconFolderLinkOutline18 } from "@unkey/icons";
 import { useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";

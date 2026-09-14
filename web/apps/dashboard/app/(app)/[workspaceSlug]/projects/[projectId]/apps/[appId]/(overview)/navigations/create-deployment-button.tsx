@@ -13,6 +13,7 @@ import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
+import { IconChevronDownOutline12, IconCodeBranchOutline18, IconPlusOutline12 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   Button,
@@ -30,8 +31,6 @@ import {
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useParams, useRouter } from "next/navigation";
-import { IconChevronDownOutline12, IconPlusOutline12 } from "nucleo-ui-outline-12";
-import { IconCodeBranchOutline18 } from "nucleo-ui-outline-18";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";

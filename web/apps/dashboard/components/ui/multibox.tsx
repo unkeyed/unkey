@@ -2,11 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
-import {
-  IconCheckOutline12,
-  IconChevronExpandYOutline12,
-  IconXmarkOutline12,
-} from "nucleo-ui-outline-12";
+import { IconCheckOutline12, IconChevronExpandYOutline12, IconXmarkOutline12 } from "@unkey/icons";
 import * as React from "react";
 
 /**

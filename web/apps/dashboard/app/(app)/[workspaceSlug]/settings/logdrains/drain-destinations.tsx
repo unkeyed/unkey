@@ -1,7 +1,7 @@
 "use client";
 
+import { IconEarthOutline18 } from "@unkey/icons";
 import { ItemMedia } from "@unkey/ui";
-import { IconEarthOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 import { AxiomLogo } from "./axiom-logo";
 import type { DrainKind } from "./drain-schema";

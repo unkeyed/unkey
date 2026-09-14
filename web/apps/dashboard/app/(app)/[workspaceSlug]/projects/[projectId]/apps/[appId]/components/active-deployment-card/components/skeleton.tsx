@@ -1,12 +1,12 @@
-import { Badge, Card } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
 import {
   IconChevronDownOutline18,
   IconCircleCheckOutline18,
   IconCodeBranchOutline18,
   IconCodeCommitOutline18,
   IconFolderCloudOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { Badge, Card } from "@unkey/ui";
+import { cn } from "@unkey/ui/src/lib/utils";
 import { StatusIndicator } from "../../../components/status-indicator";
 
 export function ActiveDeploymentCardSkeleton() {

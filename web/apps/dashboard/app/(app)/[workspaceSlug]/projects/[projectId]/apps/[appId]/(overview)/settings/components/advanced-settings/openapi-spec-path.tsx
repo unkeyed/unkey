@@ -1,8 +1,8 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { IconBracketsCurlyOutline18 } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
-import { IconBracketsCurlyOutline18 } from "nucleo-ui-outline-18";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";

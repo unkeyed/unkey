@@ -1,6 +1,6 @@
+import { IconCaretRightOutline18 } from "@unkey/icons";
 import { Button, Drover, KeyboardButton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { IconCaretRightOutline18 } from "nucleo-ui-outline-18";
 import type React from "react";
 import { type KeyboardEvent, useCallback, useEffect, useRef } from "react";
 

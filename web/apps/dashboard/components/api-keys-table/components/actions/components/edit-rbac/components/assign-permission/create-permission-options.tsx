@@ -1,5 +1,5 @@
+import { IconPage2Outline12 } from "@unkey/icons";
 import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
-import { IconPage2Outline12 } from "nucleo-ui-outline-12";
 
 type Permission = {
   id: string;

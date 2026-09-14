@@ -91,7 +91,7 @@ export function useQueries() {
 }
 
 import type { QuerySearchParams } from "@/lib/schemas/logs.filter.schema";
-import { IconChartActivity2Outline18 } from "nucleo-ui-outline-18";
+import { IconChartActivity2Outline18 } from "@unkey/icons";
 import React from "react";
 import { iconsPerField } from "./utils";
 // These functions can be overridden by passing custom formatValue and filterRowIcon props to QueriesProvider

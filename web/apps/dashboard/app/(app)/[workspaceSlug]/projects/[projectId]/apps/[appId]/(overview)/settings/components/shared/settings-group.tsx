@@ -1,6 +1,6 @@
 "use client";
 
-import { IconChevronRightOutline12 } from "nucleo-ui-outline-12";
+import { IconChevronRightOutline12 } from "@unkey/icons";
 import React, { useEffect, useState } from "react";
 
 type SettingsGroupProps = {

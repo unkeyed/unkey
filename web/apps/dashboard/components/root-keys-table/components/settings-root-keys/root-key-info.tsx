@@ -1,5 +1,5 @@
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
-import { IconKey2Outline12 } from "nucleo-ui-outline-12";
+import { IconKey2Outline12 } from "@unkey/icons";
 
 export const RootKeyInfo = ({
   rootKeyDetails,

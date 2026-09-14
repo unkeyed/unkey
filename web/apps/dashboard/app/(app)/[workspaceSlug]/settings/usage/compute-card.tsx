@@ -3,6 +3,7 @@
 import { DEPLOY_METER_RATES } from "@/lib/billing/deployPricing";
 import { formatCompactQuantity, formatPrice } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
+import { IconChevronRightOutline12, IconCircleInfoOutline12, IconCubeOutline18 } from "@unkey/icons";
 import {
   InfoTooltip,
   Item,
@@ -16,8 +17,6 @@ import {
   ItemTitle,
   Skeleton,
 } from "@unkey/ui";
-import { IconChevronRightOutline12, IconCircleInfoOutline12 } from "nucleo-ui-outline-12";
-import { IconCubeOutline18 } from "nucleo-ui-outline-18";
 import { Fragment, type ReactNode, useMemo, useState } from "react";
 import {
   type ComputeTree,

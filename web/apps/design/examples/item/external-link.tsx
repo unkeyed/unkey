@@ -1,3 +1,4 @@
+import { IconArrowUpRightOutline18, IconBookOpenOutline18 } from "@unkey/icons";
 import {
   Item,
   ItemActions,
@@ -7,7 +8,6 @@ import {
   ItemTitle,
   VisuallyHidden,
 } from "@unkey/ui";
-import { IconArrowUpRightOutline18, IconBookOpenOutline18 } from "nucleo-ui-outline-18";
 
 export default function ExternalLinkItem() {
   return (

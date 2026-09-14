@@ -5,9 +5,8 @@ import { applyDefaultSettings } from "@/lib/collections/deploy/environment-setti
 import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
 import { trpc } from "@/lib/trpc/client";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Github } from "@unkey/icons";
+import { Github, IconCodeBranchOutline18 } from "@unkey/icons";
 import { Button, toast, useStepWizard } from "@unkey/ui";
-import { IconCodeBranchOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { z } from "zod";
 import { OnboardingLinks } from "../onboarding-links";

@@ -1,7 +1,7 @@
 "use client";
 
+import { IconArrowDottedRotateAnticlockwiseOutline12 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { IconArrowDottedRotateAnticlockwiseOutline12 } from "nucleo-ui-outline-12";
 import { useProductionCard } from "./production-card-context";
 
 export function ProductionCardRollbackBanner() {

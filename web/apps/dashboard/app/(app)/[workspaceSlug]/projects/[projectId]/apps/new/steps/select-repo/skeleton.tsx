@@ -1,4 +1,4 @@
-import { IconCircleDottedOutline12 } from "nucleo-ui-outline-12";
+import { IconCircleDottedOutline12 } from "@unkey/icons";
 
 export const RepoListItemSkeleton = () => (
   <div className="flex px-4 py-5 items-center h-20">

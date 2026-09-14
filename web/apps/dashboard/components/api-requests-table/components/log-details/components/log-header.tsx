@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
+import { IconXmarkOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
-import { IconXmarkOutline18 } from "nucleo-ui-outline-18";
 
 export const LogHeader = ({
   onClose,

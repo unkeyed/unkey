@@ -1,13 +1,13 @@
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { Button, ConfirmPopover } from "@unkey/ui";
-import { AnimatePresence, motion } from "framer-motion";
 import {
   IconArrowsOppositeDirectionYOutline18,
   IconBanOutline18,
   IconCircleCheckOutline18,
   IconTrashOutline18,
   IconXmarkOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { Button, ConfirmPopover } from "@unkey/ui";
+import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { useDeleteKey } from "../actions/components/hooks/use-delete-key";
 import { useBatchUpdateKeyStatus } from "../actions/components/hooks/use-update-key-status";

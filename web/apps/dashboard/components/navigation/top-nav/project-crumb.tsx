@@ -4,7 +4,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
 import { useLiveQuery } from "@tanstack/react-db";
-import { IconCubeOutline18, IconPlusOutline18 } from "nucleo-ui-outline-18";
+import { IconCubeOutline18, IconPlusOutline18 } from "@unkey/icons";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 

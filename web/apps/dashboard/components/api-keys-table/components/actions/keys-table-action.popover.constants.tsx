@@ -2,7 +2,6 @@ import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/[workspaceSlug]/authorization/
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { toast } from "@unkey/ui";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconArrowsOppositeDirectionYOutline18,
@@ -16,7 +15,8 @@ import {
   IconPenWriting3Outline18,
   IconTagOutline18,
   IconTrashOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { toast } from "@unkey/ui";
 import { DeleteKey } from "./components/delete-key";
 import { UpdateKeyStatus } from "./components/disable-key";
 import { EditCredits } from "./components/edit-credits";

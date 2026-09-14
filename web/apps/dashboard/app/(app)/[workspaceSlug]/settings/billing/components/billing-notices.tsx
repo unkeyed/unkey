@@ -4,6 +4,7 @@ import { formatDate } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
+import { IconTriangleWarningOutline18 } from "@unkey/icons";
 import {
   AlertBanner,
   AlertBannerActions,
@@ -13,7 +14,6 @@ import {
   toast,
 } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import { AdminGate } from "./admin-gate";
 
 type BillingInfo = inferRouterOutputs<Router>["stripe"]["getBillingInfo"];

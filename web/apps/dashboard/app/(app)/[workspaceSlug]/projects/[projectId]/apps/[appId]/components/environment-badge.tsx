@@ -2,15 +2,15 @@
 
 import { ENVIRONMENT_KIND, type Environment } from "@/lib/collections/deploy/environments";
 import { cn } from "@/lib/utils";
-import { match } from "@unkey/match";
-import { InfoTooltip } from "@unkey/ui";
-import { format } from "date-fns";
-import { IconEyeOutline12 } from "nucleo-ui-outline-12";
 import {
   IconArrowDotRotateAnticlockwiseOutline18,
   IconCircleXmarkOutline18,
   IconCloudOutline18,
-} from "nucleo-ui-outline-18";
+  IconEyeOutline12,
+} from "@unkey/icons";
+import { match } from "@unkey/match";
+import { InfoTooltip } from "@unkey/ui";
+import { format } from "date-fns";
 
 export type EnvironmentBadgeRollout = "none" | "live" | "liveAfterRollback" | "rolledBackFrom";
 

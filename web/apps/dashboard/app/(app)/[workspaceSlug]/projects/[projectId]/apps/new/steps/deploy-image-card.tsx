@@ -9,9 +9,9 @@ import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
+import { IconChevronLeftOutline18, IconLayers2Outline18 } from "@unkey/icons";
 import { Button, Input, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { IconChevronLeftOutline18, IconLayers2Outline18 } from "nucleo-ui-outline-18";
 import { useId, useState, useTransition } from "react";
 
 type DeployImageCardProps = {

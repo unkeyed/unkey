@@ -1,5 +1,6 @@
 "use client";
 import type { MetadataFormValues } from "@/lib/schemas/metadata";
+import { IconCodeOutline18 } from "@unkey/icons";
 import {
   Button,
   FormField,
@@ -8,7 +9,6 @@ import {
   InputGroupTextarea,
   toast,
 } from "@unkey/ui";
-import { IconCodeOutline18 } from "nucleo-ui-outline-18";
 import { useController, useFormContext, useWatch } from "react-hook-form";
 import { ProtectionSwitch } from "./protection-switch";
 

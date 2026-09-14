@@ -1,4 +1,5 @@
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
+import { IconKey2Outline18, IconPage2Outline18, IconTagOutline18 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   AssignedCountCell,
@@ -8,7 +9,6 @@ import {
   SortableHeader,
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
-import { IconKey2Outline18, IconPage2Outline18, IconTagOutline18 } from "nucleo-ui-outline-18";
 import { SlugCell } from "../components/slug-cell";
 
 const PermissionsTableActions = dynamic(

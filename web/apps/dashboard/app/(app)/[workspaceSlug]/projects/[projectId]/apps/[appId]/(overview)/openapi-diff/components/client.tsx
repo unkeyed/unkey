@@ -1,6 +1,14 @@
 "use client";
 import type { ChangelogEntry } from "@/gen/proto/ctrl/v1/openapi_pb";
 import {
+  IconChevronDownOutline12,
+  IconCircleInfoOutline18,
+  IconCircleWarningOutline12,
+  IconCircleXmarkOutline12,
+  IconInputSearchOutline18,
+  IconTriangleWarningOutline12,
+} from "@unkey/icons";
+import {
   Badge,
   Button,
   InputGroup,
@@ -14,13 +22,6 @@ import {
 } from "@unkey/ui";
 import type { BadgeProps } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import {
-  IconChevronDownOutline12,
-  IconCircleWarningOutline12,
-  IconCircleXmarkOutline12,
-  IconTriangleWarningOutline12,
-} from "nucleo-ui-outline-12";
-import { IconCircleInfoOutline18, IconInputSearchOutline18 } from "nucleo-ui-outline-18";
 import type React from "react";
 import { useMemo, useState } from "react";
 

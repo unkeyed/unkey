@@ -10,6 +10,7 @@ import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { IconChevronDownOutline18, IconLink4Outline18 } from "@unkey/icons";
 import {
   AlertBanner,
   AlertBannerActions,
@@ -24,7 +25,6 @@ import {
   SelectValue,
 } from "@unkey/ui";
 import Link from "next/link";
-import { IconChevronDownOutline18, IconLink4Outline18 } from "nucleo-ui-outline-18";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useProjectData } from "../../../../data-provider";

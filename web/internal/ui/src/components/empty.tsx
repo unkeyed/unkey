@@ -1,7 +1,7 @@
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import React from "react";
 import { cn } from "../lib/utils";
-import { IconUfoOutline18 } from "nucleo-ui-outline-18";
+import { IconUfoOutline18 } from "@unkey/icons";
 
 interface EmptyRootProps extends React.HTMLAttributes<HTMLDivElement> {}
 function Empty({ className, children, ...props }: EmptyRootProps) {

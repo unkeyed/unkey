@@ -1,8 +1,8 @@
 import { ProximityPrefetch } from "@/components/proximity-prefetch";
 import { collection } from "@/lib/collections";
 import { useLiveQuery } from "@tanstack/react-db";
+import { IconDotsOutline18, IconTriangleWarningOutline18 } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
-import { IconDotsOutline18, IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { DeployPlanGateDialog } from "../deploy-plan-gate-dialog";
 import { useDeployGate } from "../hooks/use-deploy-gate";

@@ -1,7 +1,7 @@
 "use client";
 
+import { IconTriangleWarningOutline18 } from "@unkey/icons";
 import { AlertBanner, AlertBannerDescription, AlertBannerTitle } from "@unkey/ui";
-import { IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import type { DrainDetail } from "./drain-schema";
 
 export function DrainErrorBanner({ status }: { status: DrainDetail["status"] }) {

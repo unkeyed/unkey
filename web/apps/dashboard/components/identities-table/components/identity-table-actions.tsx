@@ -4,13 +4,13 @@ import { DeleteIdentityDialog } from "@/app/(app)/[workspaceSlug]/identities/_co
 import { EditRatelimitDialog } from "@/app/(app)/[workspaceSlug]/identities/_components/dialogs/edit-ratelimit-dialog";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Identity } from "@unkey/api/models/components";
-import { toast } from "@unkey/ui";
 import {
   IconCloneOutline18,
   IconCodeOutline18,
   IconGaugeOutline18,
   IconTrashOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { toast } from "@unkey/ui";
 import { type PropsWithChildren, createContext, useContext, useMemo } from "react";
 import { EditMetadataDialog } from "./edit-metadata-dialog";
 

@@ -1,9 +1,8 @@
 "use client";
 
 import { Select as SelectPrimitive } from "@base-ui/react/select";
+import { IconCheckOutline12, IconChevronDownOutline18 } from "@unkey/icons";
 import { type VariantProps, cva } from "class-variance-authority";
-import { IconCheckOutline12 } from "nucleo-ui-outline-12";
-import { IconChevronDownOutline18 } from "nucleo-ui-outline-18";
 import type * as React from "react";
 import { cn } from "../../lib/utils";
 import { fieldBaseClasses, fieldInvalidClasses, fieldSurfaceClasses } from "./input-group";

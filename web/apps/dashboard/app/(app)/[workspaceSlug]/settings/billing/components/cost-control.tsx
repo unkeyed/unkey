@@ -2,6 +2,12 @@
 
 import { formatDollars } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
+import {
+  IconBanOutline18,
+  IconCubeOutline18,
+  IconEnvelopeOutline18,
+  IconNodesOutline18,
+} from "@unkey/icons";
 import { P, match } from "@unkey/match";
 import {
   AlertBanner,
@@ -18,12 +24,6 @@ import {
   ItemTitle,
   Skeleton,
 } from "@unkey/ui";
-import {
-  IconBanOutline18,
-  IconCubeOutline18,
-  IconEnvelopeOutline18,
-  IconNodesOutline18,
-} from "nucleo-ui-outline-18";
 import { type ReactNode, useState } from "react";
 import { AdminGate } from "./admin-gate";
 import { ALERT_STEPS } from "./constants";

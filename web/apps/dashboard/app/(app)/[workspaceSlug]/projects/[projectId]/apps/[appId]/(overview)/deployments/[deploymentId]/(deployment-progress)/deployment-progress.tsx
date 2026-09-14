@@ -4,9 +4,6 @@ import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
-import { P, match } from "@unkey/match";
-import { SettingCardGroup } from "@unkey/ui";
-import { useParams, usePathname, useRouter } from "next/navigation";
 import {
   IconChartActivityOutline18,
   IconCloudUploadOutline18,
@@ -14,7 +11,10 @@ import {
   IconHammer2Outline18,
   IconLayerFrontOutline18,
   IconSparkle3Outline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { P, match } from "@unkey/match";
+import { SettingCardGroup } from "@unkey/ui";
+import { useParams, usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { DeploymentDomainsCard } from "../../../../components/deployment-domains-card";
 import { useProjectData } from "../../../data-provider";

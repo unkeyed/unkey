@@ -12,7 +12,7 @@ import {
   IconLayers2Outline18,
   IconMicrochipOutline18,
   IconRamOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
 import { useMemo, useState } from "react";
 import { Section, SectionHeader } from "../../../../../../components/section";
 import { Card } from "../../../../../components/card";

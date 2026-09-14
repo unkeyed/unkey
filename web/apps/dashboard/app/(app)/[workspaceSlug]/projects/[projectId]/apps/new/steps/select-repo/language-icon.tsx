@@ -1,4 +1,6 @@
 import {
+  IconBracketsCurlyOutline18,
+  type IconProps,
   LangElixir,
   LangGo,
   LangJava,
@@ -9,8 +11,6 @@ import {
   LangRust,
   LangTypescript,
 } from "@unkey/icons";
-import type { IconProps } from "nucleo-ui-outline-18";
-import { IconBracketsCurlyOutline18 } from "nucleo-ui-outline-18";
 
 const languageIconMap: Record<string, (props: IconProps) => React.JSX.Element> = {
   TypeScript: LangTypescript,

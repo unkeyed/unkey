@@ -8,11 +8,11 @@ import {
   UNKEY_LAST_ORG_COOKIE,
   errorMessages,
 } from "@/lib/auth/types";
+import { IconArrowRightOutline18 } from "@unkey/icons";
 import { Empty, Loading, toast } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { IconArrowRightOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useRef, useState } from "react";
 import { ErrorBanner, WarnBanner } from "../../banners";
 import { MfaChallenge } from "../../challenge/mfa-challenge";

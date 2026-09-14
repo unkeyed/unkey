@@ -1,5 +1,5 @@
+import { IconEarthOutline18, IconKey2Outline18 } from "@unkey/icons";
 import { Button, SettingCard, SettingCardGroup } from "@unkey/ui";
-import { IconEarthOutline18, IconKey2Outline18 } from "nucleo-ui-outline-18";
 
 export default function SettingCardGroupExample() {
   return (

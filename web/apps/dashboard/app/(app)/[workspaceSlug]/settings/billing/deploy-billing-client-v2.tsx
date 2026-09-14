@@ -5,6 +5,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
+import { IconPhoneOutline18 } from "@unkey/icons";
 import {
   Button,
   Empty,
@@ -17,7 +18,6 @@ import {
   Skeleton,
 } from "@unkey/ui";
 import Link from "next/link";
-import { IconPhoneOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 import { currentApiProduct } from "./components/api-plan";
 import { BillingNotices } from "./components/billing-notices";

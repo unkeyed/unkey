@@ -1,4 +1,4 @@
-import { IconKey2Outline12 } from "nucleo-ui-outline-12";
+import { IconKey2Outline12 } from "@unkey/icons";
 import { cn } from "../../../../lib/utils";
 
 export type RootKeyNameCellProps = {

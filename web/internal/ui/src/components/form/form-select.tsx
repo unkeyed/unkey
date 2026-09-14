@@ -1,4 +1,4 @@
-import { IconChevronDownOutline18 } from "nucleo-ui-outline-18";
+import { IconChevronDownOutline18 } from "@unkey/icons";
 // biome-ignore lint/style/useImportType: this package compiles JSX with the classic runtime, so React must stay a value import
 import * as React from "react";
 import { FormField } from "./form-field";

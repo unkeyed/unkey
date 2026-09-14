@@ -33,7 +33,7 @@ import {
   IconCircleHalfDottedClockOutline18,
   IconGearOutline18,
   IconLayers2Outline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
 import { CustomDomains } from "./components/advanced-settings/custom-domains";
 import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
 import { UpstreamProtocol } from "./components/advanced-settings/upstream-protocol";

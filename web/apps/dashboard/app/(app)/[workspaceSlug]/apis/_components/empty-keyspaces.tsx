@@ -1,6 +1,5 @@
 "use client";
 
-import { Button, EmptyHero } from "@unkey/ui";
 import {
   IconBookBookmarkOutline18,
   IconFingerprintOutline18,
@@ -8,7 +7,8 @@ import {
   IconKeyOutline18,
   IconNodesOutline18,
   IconShieldKeyOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { Button, EmptyHero } from "@unkey/ui";
 import { CreateApiButton } from "./create-api-button";
 
 export function EmptyKeyspaces({

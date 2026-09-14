@@ -1,8 +1,8 @@
 "use client";
 
 import { useFeedback } from "@/components/dashboard/feedback-component";
+import { IconChatsOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { IconChatsOutline18 } from "nucleo-ui-outline-18";
 
 export function TopNavFeedbackButton({ className }: { className?: string }) {
   const { openFeedback } = useFeedback();

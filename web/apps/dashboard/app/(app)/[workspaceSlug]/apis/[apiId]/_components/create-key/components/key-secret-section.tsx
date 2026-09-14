@@ -1,7 +1,7 @@
 "use client";
 
 import { SecretKey } from "@/components/secret-key";
-import { IconCircleInfoOutline12 } from "nucleo-ui-outline-12";
+import { IconCircleInfoOutline12 } from "@unkey/icons";
 
 type KeySecretProps = {
   keyValue: string;

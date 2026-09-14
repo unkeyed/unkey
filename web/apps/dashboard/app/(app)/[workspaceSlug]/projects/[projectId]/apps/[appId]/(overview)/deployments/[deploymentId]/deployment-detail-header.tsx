@@ -4,6 +4,11 @@ import { TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { shortenId } from "@/lib/shorten-id";
+import {
+  IconArrowDottedRotateAnticlockwiseOutline18,
+  IconBanOutline18,
+  IconDotsOutline18,
+} from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   Button,
@@ -13,11 +18,6 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
-import {
-  IconArrowDottedRotateAnticlockwiseOutline18,
-  IconBanOutline18,
-  IconDotsOutline18,
-} from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { useProjectData } from "../../data-provider";
 import {

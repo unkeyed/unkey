@@ -1,8 +1,8 @@
 import { AUDIT_STATUS_STYLES, getEventType } from "@/components/audit-logs-table";
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
+import { IconXmarkOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui";
-import { IconXmarkOutline18 } from "nucleo-ui-outline-18";
 
 type Props = {
   log: AuditLog;

@@ -1,5 +1,4 @@
-import type { IconProps } from "nucleo-ui-outline-18";
-import { IconDoubleChevronRightOutline18 } from "nucleo-ui-outline-18";
+import { IconDoubleChevronRightOutline18, type IconProps } from "@unkey/icons";
 import type { FC } from "react";
 import { CardHeader, type CardHeaderProps } from "../../../nodes/components/card-header";
 

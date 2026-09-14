@@ -1,5 +1,5 @@
+import { IconKey2Outline12 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
-import { IconKey2Outline12 } from "nucleo-ui-outline-12";
 
 export const KeyInfo = ({
   keyDetails,

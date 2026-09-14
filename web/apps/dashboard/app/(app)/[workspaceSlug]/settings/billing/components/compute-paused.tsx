@@ -1,7 +1,7 @@
 "use client";
 
+import { IconArrowUpRightOutline12 } from "@unkey/icons";
 import Link from "next/link";
-import { IconArrowUpRightOutline12 } from "nucleo-ui-outline-12";
 
 export const PAUSED_DOCS_URL =
   "https://unkey.com/docs/platform/workspaces/billing/spend-budget#while-compute-is-paused";

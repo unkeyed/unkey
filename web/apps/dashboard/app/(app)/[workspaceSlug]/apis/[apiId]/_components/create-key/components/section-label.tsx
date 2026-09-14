@@ -1,4 +1,4 @@
-import { IconCheckOutline18, IconXmarkOutline18 } from "nucleo-ui-outline-18";
+import { IconCheckOutline18, IconXmarkOutline18 } from "@unkey/icons";
 import type { SectionState } from "../types";
 
 export const SectionLabel = ({

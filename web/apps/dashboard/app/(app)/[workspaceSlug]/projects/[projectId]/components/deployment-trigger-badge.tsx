@@ -1,7 +1,11 @@
-import { Github, Unkey } from "@unkey/icons";
+import {
+  Github,
+  IconBracketsCurlyOutline12,
+  IconLaptop2Outline18,
+  IconSquareTerminalOutline18,
+  Unkey,
+} from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
-import { IconBracketsCurlyOutline12 } from "nucleo-ui-outline-12";
-import { IconLaptop2Outline18, IconSquareTerminalOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 
 type DeploymentTrigger = "unknown" | "github" | "api" | "cli" | "dashboard" | "unkey";

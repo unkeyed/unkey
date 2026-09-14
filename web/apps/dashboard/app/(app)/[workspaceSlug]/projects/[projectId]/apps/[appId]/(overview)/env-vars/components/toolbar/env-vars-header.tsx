@@ -1,7 +1,7 @@
 "use client";
 
+import { IconPlusOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 
 type EnvVarsHeaderProps = {
   isAddOpen: boolean;

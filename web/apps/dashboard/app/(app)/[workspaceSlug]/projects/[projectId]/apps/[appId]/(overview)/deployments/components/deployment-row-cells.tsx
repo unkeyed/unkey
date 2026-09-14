@@ -7,21 +7,21 @@ import { imageRefTag } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
 import { shortenId } from "@/lib/shorten-id";
 import { cn } from "@/lib/utils";
-import { Github } from "@unkey/icons";
-import { InfoTooltip, TimestampInfo } from "@unkey/ui";
-import type { Route } from "next";
-import dynamic from "next/dynamic";
-import Link from "next/link";
-import type { IconProps } from "nucleo-ui-outline-18";
 import {
+  Github,
   IconBracketsCurlyOutline18,
   IconCircleQuestionOutline18,
   IconCodeBranchOutline18,
   IconCodeCommitOutline18,
   IconLaptop2Outline18,
   IconLayers2Outline18,
+  type IconProps,
   IconSquareTerminalOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { InfoTooltip, TimestampInfo } from "@unkey/ui";
+import type { Route } from "next";
+import dynamic from "next/dynamic";
+import Link from "next/link";
 import type { FC, ReactNode } from "react";
 import { DeploymentStatusIndicator } from "../../../components/deployment-status-dot";
 import { ActionColumnSkeleton } from "./table/components/skeletons";

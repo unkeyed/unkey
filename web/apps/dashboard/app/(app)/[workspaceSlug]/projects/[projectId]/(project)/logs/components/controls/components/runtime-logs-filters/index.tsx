@@ -14,9 +14,9 @@ import type {
   RuntimeLogsFilterValue,
 } from "@/lib/schemas/runtime-logs.filter.schema";
 import { trpc } from "@/lib/trpc/client";
+import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { IconBarsFilterOutline18 } from "nucleo-ui-outline-18";
 import { useCallback, useMemo, useState } from "react";
 import { RuntimeLogsDeploymentFilter } from "./runtime-logs-deployment-filter";
 import { RuntimeLogsInstanceFilter } from "./runtime-logs-instance-filter";

@@ -1,8 +1,8 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { IconArrowUpRightOutline18, IconTriangleWarningOutline18 } from "@unkey/icons";
 import { Button, DialogContainer, InlineLink, Input, SettingsZoneRow } from "@unkey/ui";
-import { IconArrowUpRightOutline18, IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import type React from "react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";

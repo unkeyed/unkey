@@ -6,6 +6,7 @@ import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { cn } from "@/lib/utils";
+import { IconFocusOutline18, IconKeyOutline18 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   Checkbox,
@@ -18,7 +19,6 @@ import {
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { IconFocusOutline18, IconKeyOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 
 const KeysTableActionPopover = dynamic(

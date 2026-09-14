@@ -1,9 +1,9 @@
 import { ErrorBoundary } from "@/components/error-boundary";
-import { Button } from "@unkey/ui";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconTriangleWarningOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { Button } from "@unkey/ui";
 import type { PropsWithChildren } from "react";
 import { TreeElementNode } from "../tree/tree-element-node";
 

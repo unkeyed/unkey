@@ -1,4 +1,4 @@
-import { IconCircleLockOutline18 } from "nucleo-ui-outline-18";
+import { IconCircleLockOutline18 } from "@unkey/icons";
 import { cn } from "../../../../lib/utils";
 import { toast } from "../../../toaster";
 

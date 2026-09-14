@@ -3,8 +3,8 @@
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { githubUrl } from "@/lib/github-url";
 import { trpc } from "@/lib/trpc/client";
+import { IconShieldAlertOutline18 } from "@unkey/icons";
 import { Button, Dialog, DialogContent } from "@unkey/ui";
-import { IconShieldAlertOutline18 } from "nucleo-ui-outline-18";
 import { useProjectData } from "../../../data-provider";
 
 const chipClass =

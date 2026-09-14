@@ -4,6 +4,14 @@ import { type MenuItem, TableActionPopover } from "@/components/logs/table-actio
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import {
+  IconBoltOutline18,
+  IconChevronLeftOutline12,
+  IconDotsOutline12,
+  IconGearOutline12,
+  IconMediaPauseOutline18,
+  IconTrashOutline18,
+} from "@unkey/icons";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -22,16 +30,6 @@ import {
 } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  IconChevronLeftOutline12,
-  IconDotsOutline12,
-  IconGearOutline12,
-} from "nucleo-ui-outline-12";
-import {
-  IconBoltOutline18,
-  IconMediaPauseOutline18,
-  IconTrashOutline18,
-} from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { DrainErrorBanner } from "../drain-error-banner";
 import type { DrainDetail } from "../drain-schema";

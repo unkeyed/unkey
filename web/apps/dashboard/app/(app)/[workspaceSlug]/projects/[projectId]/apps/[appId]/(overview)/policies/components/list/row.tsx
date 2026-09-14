@@ -4,13 +4,13 @@ import { type MenuItem, TableActionPopover } from "@/components/logs/table-actio
 import { Switch } from "@/components/ui/switch";
 import type { Policy } from "@/lib/collections/deploy/policies.schema";
 import { cn } from "@/lib/utils";
-import { Button, ConfirmPopover } from "@unkey/ui";
 import {
   IconDotsOutline18,
   IconGripDotsVerticalOutline18,
   IconPenWriting3Outline18,
   IconTrashOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { Button, ConfirmPopover } from "@unkey/ui";
 import { useRef, useState } from "react";
 
 type MergedPolicyRow = {

@@ -1,5 +1,5 @@
 "use client";
-import { IconRefresh3Outline18 } from "nucleo-ui-outline-18";
+import { IconRefresh3Outline18 } from "@unkey/icons";
 // biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
 import * as React from "react";
 import { useState } from "react";

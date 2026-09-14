@@ -5,8 +5,8 @@ import { NavbarActionButton } from "@/components/navigation/action-button";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useIdentity } from "@/lib/identities-query";
 import { routes } from "@/lib/navigation/routes";
+import { IconGearOutline18 } from "@unkey/icons";
 import { useRouter } from "next/navigation";
-import { IconGearOutline18 } from "nucleo-ui-outline-18";
 
 export const IdentitySettingsDialog = ({ identityId }: { identityId: string }) => {
   const { data: identity, isError, refetch } = useIdentity(identityId);

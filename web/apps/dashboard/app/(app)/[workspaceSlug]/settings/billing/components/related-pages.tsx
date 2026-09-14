@@ -2,10 +2,10 @@
 
 import { routes } from "@/lib/navigation/routes";
 import { BILLING_DOCS } from "@/lib/support";
+import { IconBookOpenOutline18, IconChartUsageOutline18 } from "@unkey/icons";
 import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
-import { IconBookOpenOutline18, IconChartUsageOutline18 } from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 
 export function RelatedPages({ workspaceSlug }: { workspaceSlug: string }) {

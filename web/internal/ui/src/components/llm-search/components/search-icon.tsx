@@ -1,4 +1,4 @@
-import { IconMagnifierOutline18, IconRefresh3Outline18 } from "nucleo-ui-outline-18";
+import { IconMagnifierOutline18, IconRefresh3Outline18 } from "@unkey/icons";
 
 type SearchIconProps = {
   isProcessing: boolean;

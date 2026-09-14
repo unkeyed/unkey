@@ -2,6 +2,7 @@
 
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { IconCircleInfoOutline18 } from "@unkey/icons";
 import {
   Button,
   DialogContainer,
@@ -13,7 +14,6 @@ import {
   SelectValue,
   toast,
 } from "@unkey/ui";
-import { IconCircleInfoOutline18 } from "nucleo-ui-outline-18";
 import { parseAsBoolean, parseAsStringLiteral, useQueryStates } from "nuqs";
 import { useCallback, useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";

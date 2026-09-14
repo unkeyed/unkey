@@ -1,6 +1,6 @@
+import { IconSlidersOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { IconSlidersOutline18 } from "nucleo-ui-outline-18";
 import { DisplayPopover } from "./components/display-popover";
 
 export const LogsDisplay = () => {

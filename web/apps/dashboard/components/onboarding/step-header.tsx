@@ -1,5 +1,4 @@
 "use client";
-import { Button, EmptyHero, useStepWizard } from "@unkey/ui";
 import {
   IconChevronLeftOutline18,
   IconCloudUploadOutline18,
@@ -7,7 +6,8 @@ import {
   IconHeartPulseOutline18,
   IconLocation2Outline18,
   IconNodes2Outline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { Button, EmptyHero, useStepWizard } from "@unkey/ui";
 import type { ReactNode } from "react";
 
 type OnboardingStepHeaderProps = {

@@ -1,6 +1,6 @@
 import type { Identity } from "@unkey/api/models/components";
+import { IconUserOutline12 } from "@unkey/icons";
 import { CopyButton, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
-import { IconUserOutline12 } from "nucleo-ui-outline-12";
 
 type IdentitySelectorProps = {
   identities: Identity[];

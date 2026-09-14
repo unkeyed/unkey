@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
+import { IconTrashOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { IconTrashOutline18 } from "nucleo-ui-outline-18";
 import type { RefObject } from "react";
 
 type RemoveButtonProps = {

@@ -1,8 +1,7 @@
 "use client";
 
+import { IconEyeOutline12, IconEyeSlashOutline18 } from "@unkey/icons";
 import { InfoTooltip, toast } from "@unkey/ui";
-import { IconEyeOutline12 } from "nucleo-ui-outline-12";
-import { IconEyeSlashOutline18 } from "nucleo-ui-outline-18";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 const AUTO_HIDE_MS = 10_000;

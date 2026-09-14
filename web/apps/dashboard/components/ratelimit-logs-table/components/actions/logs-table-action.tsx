@@ -2,8 +2,8 @@
 
 import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/logs/hooks/use-filters";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { IconCloneOutline18, IconInputSearchOutline18 } from "@unkey/icons";
 import { toast } from "@unkey/ui";
-import { IconCloneOutline18, IconInputSearchOutline18 } from "nucleo-ui-outline-18";
 
 export const LogsTableAction = ({ identifier }: { identifier: string }) => {
   const { filters, updateFilters } = useFilters();

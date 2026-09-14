@@ -1,4 +1,4 @@
-import { IconCircleInfoOutline18 } from "nucleo-ui-outline-18";
+import { IconCircleInfoOutline18 } from "@unkey/icons";
 
 type SettingDescriptionProps = {
   children: React.ReactNode;

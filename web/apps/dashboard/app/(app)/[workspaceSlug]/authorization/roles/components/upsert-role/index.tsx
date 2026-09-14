@@ -8,8 +8,8 @@ import type {
   RolePermission,
 } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { IconPenWriting3Outline18, IconPlusOutline18 } from "@unkey/icons";
 import { Button, DialogContainer, FormInput, FormTextarea } from "@unkey/ui";
-import { IconPenWriting3Outline18, IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { useEffect, useState } from "react";
 import { Controller, FormProvider } from "react-hook-form";
 import { KeyField } from "./components/assign-key/key-field";

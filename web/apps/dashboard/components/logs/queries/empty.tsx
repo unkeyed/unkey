@@ -1,9 +1,9 @@
-import { Button, Empty } from "@unkey/ui";
 import {
   IconBook2Outline18,
   IconBookmarkOutline18,
   IconClockRotateClockwiseOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { Button, Empty } from "@unkey/ui";
 
 type EmptyQueriesProps = {
   selectedTab: number;

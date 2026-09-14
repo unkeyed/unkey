@@ -1,8 +1,8 @@
 "use client";
 
 import { formatDollars } from "@/lib/fmt";
+import { IconCircleInfoOutline12 } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
-import { IconCircleInfoOutline12 } from "nucleo-ui-outline-12";
 import { AdminGate } from "./admin-gate";
 
 export function PlanTableHeader() {

@@ -1,14 +1,14 @@
 import type { App } from "@/lib/collections/deploy/apps";
-import { match } from "@unkey/match";
-import { InfoTooltip, Loading, TimestampInfo } from "@unkey/ui";
-import type { Route } from "next";
-import Link from "next/link";
 import {
   IconCodeBranchOutline18,
   IconCubeOutline18,
   IconLayers2Outline18,
   IconTerminalOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { match } from "@unkey/match";
+import { InfoTooltip, Loading, TimestampInfo } from "@unkey/ui";
+import type { Route } from "next";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { useCallback, useState } from "react";
 import { Avatar } from "../../[projectId]/apps/[appId]/components/git-avatar";

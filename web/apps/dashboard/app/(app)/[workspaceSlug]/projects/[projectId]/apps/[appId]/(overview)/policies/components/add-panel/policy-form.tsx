@@ -1,5 +1,6 @@
 "use client";
 
+import { IconChevronDownOutline12, IconCircleInfoOutline18 } from "@unkey/icons";
 import {
   InfoTooltip,
   SlidePanel,
@@ -10,8 +11,6 @@ import {
   SlidePanelTitle,
 } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { IconChevronDownOutline12 } from "nucleo-ui-outline-12";
-import { IconCircleInfoOutline18 } from "nucleo-ui-outline-18";
 import {
   Children,
   type ReactNode,

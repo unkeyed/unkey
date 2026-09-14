@@ -1,5 +1,6 @@
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
 import { cn } from "@/lib/utils";
+import { IconKey2Outline18, IconPage2Outline18, IconTagOutline18 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   ActionColumnSkeleton,
@@ -7,7 +8,6 @@ import {
   LastUpdatedColumnSkeleton,
   NameColumnSkeleton,
 } from "@unkey/ui";
-import { IconKey2Outline18, IconPage2Outline18, IconTagOutline18 } from "nucleo-ui-outline-18";
 import { PERMISSION_COLUMN_IDS } from "../../columns/create-permissions-columns";
 
 type RenderPermissionsSkeletonRowProps = {

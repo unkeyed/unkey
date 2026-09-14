@@ -1,8 +1,6 @@
 "use client";
 
 import type { Deployment } from "@/lib/collections/deploy/deployments";
-import { match } from "@unkey/match";
-import { Button, SettingCardGroup } from "@unkey/ui";
 import {
   IconBanOutline18,
   IconChartActivityOutline18,
@@ -11,7 +9,9 @@ import {
   IconHammer2Outline18,
   IconLayerFrontOutline18,
   IconSparkle3Outline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { match } from "@unkey/match";
+import { Button, SettingCardGroup } from "@unkey/ui";
 import { useState } from "react";
 import { RedeployDialog } from "../../components/table/components/actions/redeploy-dialog";
 import type { StepsData } from "./deployment-progress";

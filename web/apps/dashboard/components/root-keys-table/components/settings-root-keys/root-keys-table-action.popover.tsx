@@ -5,7 +5,7 @@ import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconPenWriting3Outline18,
   IconTrashOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
 import { DeleteRootKey } from "./delete-root-key";
 import { RotateRootKey } from "./rotate-root-key";
 

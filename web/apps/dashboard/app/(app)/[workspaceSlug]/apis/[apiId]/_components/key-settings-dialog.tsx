@@ -5,7 +5,7 @@ import { TableActionPopover } from "@/components/logs/table-action.popover";
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { IconGearOutline18 } from "nucleo-ui-outline-18";
+import { IconGearOutline18 } from "@unkey/icons";
 
 interface KeySettingsDialogProps {
   keyData: KeyDetails;

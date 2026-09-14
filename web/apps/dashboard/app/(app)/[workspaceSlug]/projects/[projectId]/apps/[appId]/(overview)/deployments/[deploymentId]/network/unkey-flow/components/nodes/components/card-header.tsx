@@ -1,5 +1,5 @@
+import { IconHeartOutline18 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { IconHeartOutline18 } from "nucleo-ui-outline-18";
 import { type HealthStatus, STATUS_CONFIG } from "../status/status-config";
 import { StatusIndicator } from "../status/status-indicator";
 

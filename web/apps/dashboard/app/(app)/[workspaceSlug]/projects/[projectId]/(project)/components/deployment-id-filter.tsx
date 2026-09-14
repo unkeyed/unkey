@@ -1,8 +1,8 @@
 "use client";
 
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { IconMagnifierOutline18 } from "@unkey/icons";
 import { Button, Checkbox } from "@unkey/ui";
-import { IconMagnifierOutline18 } from "nucleo-ui-outline-18";
 import { useCallback, useMemo, useState } from "react";
 
 const LATEST_LIMIT = 15;

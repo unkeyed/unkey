@@ -5,6 +5,7 @@ import { useDeleteIdentityMutation } from "@/lib/identities-query";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Identity } from "@unkey/api/models/components";
+import { IconTriangleWarningOutline12 } from "@unkey/icons";
 import {
   Alert,
   AlertDescription,
@@ -14,7 +15,6 @@ import {
   DialogContainer,
   FormCheckbox,
 } from "@unkey/ui";
-import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
 import { useId, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";

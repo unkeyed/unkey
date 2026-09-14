@@ -1,3 +1,4 @@
+import { IconChartUsageOutline18, IconGaugeOutline18, IconKey2Outline18 } from "@unkey/icons";
 import {
   Button,
   Item,
@@ -9,11 +10,6 @@ import {
   SettingCard,
   SettingCardGroup,
 } from "@unkey/ui";
-import {
-  IconChartUsageOutline18,
-  IconGaugeOutline18,
-  IconKey2Outline18,
-} from "nucleo-ui-outline-18";
 
 export default function SettingsGroupExample() {
   return (

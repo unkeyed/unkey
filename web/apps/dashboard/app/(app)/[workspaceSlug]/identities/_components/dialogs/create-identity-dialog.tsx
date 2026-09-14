@@ -8,6 +8,7 @@ import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ConflictErrorResponse } from "@unkey/api/models/errors";
+import { IconPlusOutline18 } from "@unkey/icons";
 import {
   Alert,
   AlertDescription,
@@ -21,7 +22,6 @@ import {
   NavigableDialogRoot,
 } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { useState, useTransition } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { SECTIONS } from "./create-identity.constants";

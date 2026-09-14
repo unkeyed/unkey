@@ -1,7 +1,7 @@
 "use client";
 
 import { formatStorageParts } from "@/lib/utils/deployment-formatters";
-import { IconDatabaseOutline18 } from "nucleo-ui-outline-18";
+import { IconDatabaseOutline18 } from "@unkey/icons";
 import { ResourceSliderSetting, defineResourceSlider } from "../shared/resource-slider";
 
 // Storage tiers on the slider. resolveStrategy bounds these to the workspace

@@ -4,7 +4,6 @@ import { type MenuItem, TableActionPopover } from "@/components/logs/table-actio
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
-import { useRouter } from "next/navigation";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconArrowsOppositeDirectionYOutline18,
@@ -14,7 +13,8 @@ import {
   IconChevronUpOutline18,
   IconHammer2Outline18,
   IconLayers3Outline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { CancelDialog } from "./cancel-dialog";
 import { getDeploymentActionEligibility } from "./deployment-action-eligibility";

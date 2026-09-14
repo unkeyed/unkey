@@ -1,5 +1,5 @@
 // Create a shared FormHelper component
-import { IconCircleInfoOutline18, IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
+import { IconCircleInfoOutline18, IconTriangleWarningOutline18 } from "@unkey/icons";
 // biome-ignore lint/style/useImportType: Reqired for silencing Biome
 import React from "react";
 import { cn } from "../../lib/utils";

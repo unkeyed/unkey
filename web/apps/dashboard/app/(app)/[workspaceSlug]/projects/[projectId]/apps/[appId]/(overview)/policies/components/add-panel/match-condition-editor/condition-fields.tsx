@@ -3,6 +3,7 @@
 import type { StringMatchMode } from "@/lib/collections/deploy/policies.schema";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
+import { IconChevronDownOutline18, IconSparkle3Outline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   Button,
@@ -15,7 +16,6 @@ import {
   toast,
 } from "@unkey/ui";
 import { FormDescription, FormLabel } from "@unkey/ui/src/components/form/form-helpers";
-import { IconChevronDownOutline18, IconSparkle3Outline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { MatchConditionFormValues, PolicyFormValues } from "../schema";

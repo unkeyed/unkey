@@ -1,16 +1,16 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useFlag } from "@/lib/flags/provider";
-import { Github } from "@unkey/icons";
-import { Button, EmptyHero } from "@unkey/ui";
-import { useSearchParams } from "next/navigation";
 import {
+  Github,
   IconArrowRightOutline18,
   IconBookBookmarkOutline18,
   IconCodeOutline18,
   IconCubeOutline18,
   IconEarthOutline18,
   IconHeartPulseOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { Button, EmptyHero } from "@unkey/ui";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { CreateProjectDialog } from "../create-project-dialog";
 import { DeployPlanGateDialog } from "../deploy-plan-gate-dialog";

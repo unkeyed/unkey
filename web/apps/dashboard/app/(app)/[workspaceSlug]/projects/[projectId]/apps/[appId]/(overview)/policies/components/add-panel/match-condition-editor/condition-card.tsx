@@ -1,7 +1,7 @@
 "use client";
 
+import { IconChevronDownOutline18, IconTrashOutline18 } from "@unkey/icons";
 import { Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
-import { IconChevronDownOutline18, IconTrashOutline18 } from "nucleo-ui-outline-18";
 import { useFormContext, useFormState, useWatch } from "react-hook-form";
 import {
   type MatchConditionFormValues,

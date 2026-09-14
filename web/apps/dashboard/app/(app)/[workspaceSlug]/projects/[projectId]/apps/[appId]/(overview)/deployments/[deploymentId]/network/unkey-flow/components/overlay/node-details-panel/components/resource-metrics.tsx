@@ -15,14 +15,15 @@ import {
   formatTooltipPercent,
 } from "@/lib/utils/deployment-formatters";
 import type { TimeWindow } from "@unkey/clickhouse";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
-import { IconArrowsOppositeDirectionYOutline12, IconGridOutline12 } from "nucleo-ui-outline-12";
 import {
+  IconArrowsOppositeDirectionYOutline12,
   IconChevronExpandYOutline18,
+  IconGridOutline12,
   IconHardDriveOutline18,
   IconMicrochipOutline18,
   IconRamOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
 import { useDeployment } from "../../../../../../layout-provider";
 

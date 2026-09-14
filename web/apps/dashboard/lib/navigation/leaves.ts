@@ -13,7 +13,7 @@ import {
   IconShieldKeyOutline18,
   IconSquareBulletListOutline18,
   IconWindowLayoutOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
 import { routes } from "./routes";
 import type { ResolvedNavLink } from "./types";
 

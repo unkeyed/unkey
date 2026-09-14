@@ -7,6 +7,11 @@ import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
 import {
+  IconNodesOutline18,
+  IconTriangleWarningOutline12,
+  IconTriangleWarningOutline18,
+} from "@unkey/icons";
+import {
   Button,
   DialogContainer,
   InfoTooltip,
@@ -19,8 +24,6 @@ import {
   toast,
 } from "@unkey/ui";
 import { useRouter } from "next/navigation";
-import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
-import { IconNodesOutline18, IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { PlanChangeModal } from "./plan-change-modal";

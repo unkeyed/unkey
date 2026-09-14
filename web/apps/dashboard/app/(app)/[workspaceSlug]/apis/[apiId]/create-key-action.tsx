@@ -2,7 +2,7 @@
 
 import { NavbarActionButton } from "@/components/navigation/action-button";
 import { trpc } from "@/lib/trpc/client";
-import { IconPlusOutline18 } from "nucleo-ui-outline-18";
+import { IconPlusOutline18 } from "@unkey/icons";
 import { CreateKeyDialog } from "./_components/create-key";
 
 export function CreateKeyAction({ apiId }: { apiId: string }) {

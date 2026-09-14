@@ -1,12 +1,12 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { Button, toast } from "@unkey/ui";
 import {
   IconCloneOutline18,
   IconShieldKeyOutline18,
   IconTriangleWarningOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { Button, toast } from "@unkey/ui";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 

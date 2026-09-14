@@ -1,8 +1,7 @@
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
+import { IconCaretRightOutline12, IconCheckOutline12, IconMagnifierOutline18 } from "@unkey/icons";
 import { Drover, InputGroup, InputGroupAddon, InputGroupInput, KeyboardButton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { IconCaretRightOutline12, IconCheckOutline12 } from "nucleo-ui-outline-12";
-import { IconMagnifierOutline18 } from "nucleo-ui-outline-18";
 import React, {
   type KeyboardEvent,
   type PropsWithChildren,

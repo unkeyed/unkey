@@ -1,10 +1,9 @@
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { IconCaretRightOutline18, IconKey2Outline12 } from "@unkey/icons";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Badge } from "@unkey/ui";
-import { IconKey2Outline12 } from "nucleo-ui-outline-12";
-import { IconCaretRightOutline18 } from "nucleo-ui-outline-18";
 import { type ComponentProps, useMemo } from "react";
 import { type PermissionScope, getScopedPermissions } from "../permissions";
 

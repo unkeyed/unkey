@@ -1,7 +1,6 @@
 import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/status-badge";
+import { IconLockOutline18, IconPage2Outline12 } from "@unkey/icons";
 import { Badge, Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
-import { IconPage2Outline12 } from "nucleo-ui-outline-12";
-import { IconLockOutline18 } from "nucleo-ui-outline-18";
 
 type Permission = {
   id: string;

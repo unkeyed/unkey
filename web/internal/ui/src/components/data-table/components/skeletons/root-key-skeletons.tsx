@@ -1,5 +1,9 @@
-import { IconChartActivity2Outline12, IconDotsOutline12 } from "nucleo-ui-outline-12";
-import { IconKey2Outline18, IconPage2Outline18 } from "nucleo-ui-outline-18";
+import {
+  IconChartActivity2Outline12,
+  IconDotsOutline12,
+  IconKey2Outline18,
+  IconPage2Outline18,
+} from "@unkey/icons";
 import { cn } from "../../../../lib/utils";
 import { DashedBadgeSkeleton } from "./dashed-badge-skeleton";
 import { NameColumnSkeleton } from "./name-column-skeleton";

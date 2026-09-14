@@ -1,12 +1,12 @@
 "use client";
 
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
-import { type VariantProps, cva } from "class-variance-authority";
 import {
   IconCheckOutline12,
   IconChevronExpandYOutline12,
   IconMagnifierOutline12,
-} from "nucleo-ui-outline-12";
+} from "@unkey/icons";
+import { type VariantProps, cva } from "class-variance-authority";
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import {

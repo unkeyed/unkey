@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { IconXmarkOutline18 } from "nucleo-ui-outline-18";
+import { IconXmarkOutline18 } from "@unkey/icons";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";

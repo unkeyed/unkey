@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { IconCircleInfoOutline12 } from "@unkey/icons";
 import { P, match } from "@unkey/match";
 import {
   Badge,
@@ -15,7 +16,6 @@ import {
   MeterValue,
   Skeleton,
 } from "@unkey/ui";
-import { IconCircleInfoOutline12 } from "nucleo-ui-outline-12";
 import type { ReactNode } from "react";
 import type { LimitRow } from "./limit-groups";
 

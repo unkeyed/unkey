@@ -1,5 +1,5 @@
+import { IconChevronExpandYOutline18 } from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@unkey/ui";
-import { IconChevronExpandYOutline18 } from "nucleo-ui-outline-18";
 
 type MetricSelectProps = {
   label: string;

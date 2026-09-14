@@ -1,4 +1,9 @@
 import {
+  IconBookOpenOutline18,
+  IconChartUsageOutline18,
+  IconChevronRightOutline18,
+} from "@unkey/icons";
+import {
   Button,
   Item,
   ItemActions,
@@ -7,11 +12,6 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@unkey/ui";
-import {
-  IconBookOpenOutline18,
-  IconChartUsageOutline18,
-  IconChevronRightOutline18,
-} from "nucleo-ui-outline-18";
 
 export default function BasicItem() {
   return (

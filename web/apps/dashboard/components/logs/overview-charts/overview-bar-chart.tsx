@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
-import { IconGridOutline18 } from "nucleo-ui-outline-18";
+import { IconGridOutline18 } from "@unkey/icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ReferenceArea, YAxis } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";

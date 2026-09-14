@@ -2,12 +2,12 @@ import { formatNumber } from "@/lib/fmt";
 import { formatMs } from "@/lib/ms";
 import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
-import { InfoTooltip } from "@unkey/ui";
 import {
   IconArrowDotRotateAnticlockwiseOutline18,
   IconFocusOutline18,
   IconTriangleWarningOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { InfoTooltip } from "@unkey/ui";
 import { getBlockedPercentage, isMostlyBlocked } from "../utils/calculate-blocked-percentage";
 import { getStatusStyle } from "../utils/get-row-class";
 

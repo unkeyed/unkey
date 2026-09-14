@@ -1,4 +1,4 @@
-import { IconCircleCaretRightOutline18 } from "nucleo-ui-outline-18";
+import { IconCircleCaretRightOutline18 } from "@unkey/icons";
 
 /**
  * Separator component for real-time data boundary

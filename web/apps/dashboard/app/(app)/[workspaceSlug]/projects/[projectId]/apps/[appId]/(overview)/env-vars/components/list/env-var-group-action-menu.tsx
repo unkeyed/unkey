@@ -2,12 +2,8 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { collection } from "@/lib/collections";
+import { IconDotsOutline18, IconPenWriting3Outline18, IconTrashOutline18 } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
-import {
-  IconDotsOutline18,
-  IconPenWriting3Outline18,
-  IconTrashOutline18,
-} from "nucleo-ui-outline-18";
 import { useRef, useState } from "react";
 import { EnvVarGroupRenameDialog } from "./env-var-group-rename-dialog";
 import type { EnvVarItem } from "./env-var-item-row";

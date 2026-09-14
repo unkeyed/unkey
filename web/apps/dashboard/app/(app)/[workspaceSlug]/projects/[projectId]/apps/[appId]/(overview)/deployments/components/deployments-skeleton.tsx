@@ -1,7 +1,7 @@
 "use client";
 
+import { IconDotsOutline12 } from "@unkey/icons";
 import { ResourceListBody, ResourceListContent, ResourceListItem } from "@unkey/ui";
-import { IconDotsOutline12 } from "nucleo-ui-outline-12";
 
 export function DeploymentsSkeleton({ rows = 8 }: { rows?: number }) {
   return (

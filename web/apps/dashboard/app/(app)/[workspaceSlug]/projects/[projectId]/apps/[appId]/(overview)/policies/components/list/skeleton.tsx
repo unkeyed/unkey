@@ -1,5 +1,5 @@
+import { IconDotsOutline18, IconGripDotsVerticalOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { IconDotsOutline18, IconGripDotsVerticalOutline18 } from "nucleo-ui-outline-18";
 
 /**
  * Loading skeleton for PoliciesList. Mirrors the row layout in

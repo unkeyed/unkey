@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { IconChevronDownOutline18 } from "nucleo-ui-outline-18";
+import { IconChevronDownOutline18 } from "@unkey/icons";
 import { type ButtonHTMLAttributes, type ReactNode, forwardRef } from "react";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {

@@ -1,6 +1,6 @@
 "use client";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
-import { IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
+import { IconTriangleWarningOutline18 } from "@unkey/icons";
 import React from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "../buttons/button";

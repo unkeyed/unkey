@@ -1,8 +1,11 @@
+import {
+  IconCircleCheckOutline12,
+  IconLink4Outline12,
+  IconShareUpRightOutline18,
+} from "@unkey/icons";
 import { Badge } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import Link from "next/link";
-import { IconCircleCheckOutline12, IconLink4Outline12 } from "nucleo-ui-outline-12";
-import { IconShareUpRightOutline18 } from "nucleo-ui-outline-18";
 
 type DomainRowProps = {
   domain: string;

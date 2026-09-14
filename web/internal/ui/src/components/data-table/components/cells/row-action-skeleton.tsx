@@ -1,4 +1,4 @@
-import { IconDotsOutline12 } from "nucleo-ui-outline-12";
+import { IconDotsOutline12 } from "@unkey/icons";
 import { cn } from "../../../../lib/utils";
 
 export const RowActionSkeleton = () => (

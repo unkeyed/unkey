@@ -1,5 +1,5 @@
+import { IconBookBookmarkOutline18 } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
-import { IconBookBookmarkOutline18 } from "nucleo-ui-outline-18";
 
 export const EmptyPermissions = () => {
   return (

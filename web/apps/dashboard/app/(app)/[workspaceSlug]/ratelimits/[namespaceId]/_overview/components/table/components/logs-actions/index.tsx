@@ -6,14 +6,14 @@ import type { OverrideDetails } from "@/app/(app)/[workspaceSlug]/ratelimits/[na
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { Loading, toast } from "@unkey/ui";
-import { useRouter } from "next/navigation";
 import {
   IconCloneOutline18,
   IconLayers3Outline18,
   IconPenWriting3Outline18,
   IconTrashOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { Loading, toast } from "@unkey/ui";
+import { useRouter } from "next/navigation";
 import { Suspense } from "react";
 import { useFilters } from "../../../../hooks/use-filters";
 

@@ -19,9 +19,9 @@ import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-s
 import { trpc } from "@/lib/trpc/client";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { IconLocation2Outline18 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 import { FormLabel } from "@unkey/ui/src/components/form/form-helpers";
-import { IconLocation2Outline18 } from "nucleo-ui-outline-18";
 import { useContext, useEffect, useId, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";

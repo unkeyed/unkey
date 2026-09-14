@@ -1,8 +1,8 @@
 "use client";
 import { AnimatedCounter } from "@/components/api-keys-table/components/selection-controls";
+import { IconTrashOutline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
-import { IconTrashOutline18, IconXmarkOutline18 } from "nucleo-ui-outline-18";
 import { useRef, useState } from "react";
 
 type TableDeleteSelectionControlsProps = {

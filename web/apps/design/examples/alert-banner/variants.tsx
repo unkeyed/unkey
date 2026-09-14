@@ -1,3 +1,4 @@
+import { IconTriangleWarningOutline18 } from "@unkey/icons";
 import {
   AlertBanner,
   AlertBannerActions,
@@ -5,7 +6,6 @@ import {
   AlertBannerTitle,
   Button,
 } from "@unkey/ui";
-import { IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
 
 export default function AlertBannerVariants() {
   return (

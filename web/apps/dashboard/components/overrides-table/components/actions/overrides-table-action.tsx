@@ -4,12 +4,8 @@ import { DeleteDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceI
 import { IdentifierDialog } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_components/identifier-dialog";
 import type { OverrideDetails } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/types";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { IconCloneOutline18, IconPenWriting3Outline18, IconTrashOutline18 } from "@unkey/icons";
 import { Loading, toast } from "@unkey/ui";
-import {
-  IconCloneOutline18,
-  IconPenWriting3Outline18,
-  IconTrashOutline18,
-} from "nucleo-ui-outline-18";
 import { Suspense } from "react";
 
 export const OverridesTableAction = ({

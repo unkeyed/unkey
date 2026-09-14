@@ -3,13 +3,8 @@
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Deployment } from "@/lib/collections";
-import { Github } from "@unkey/icons";
-import { match } from "@unkey/match";
-import { Button, toast } from "@unkey/ui";
-import type { Route } from "next";
-import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
 import {
+  Github,
   IconArrowsOppositeDirectionYOutline18,
   IconBanOutline18,
   IconBoltOutline18,
@@ -18,7 +13,12 @@ import {
   IconHammer2Outline18,
   IconLayers2Outline18,
   IconLayers3Outline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { match } from "@unkey/match";
+import { Button, toast } from "@unkey/ui";
+import type { Route } from "next";
+import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { isRedeployableDeploymentStatus } from "../../deployments/components/table/components/actions/deployment-action-eligibility";
 import type { DeploymentDisplayStatus } from "./status";

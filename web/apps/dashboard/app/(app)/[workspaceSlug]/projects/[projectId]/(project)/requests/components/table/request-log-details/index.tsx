@@ -19,14 +19,14 @@ import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
-import { match } from "@unkey/match";
-import { Badge, CopyButton } from "@unkey/ui";
-import { IconUserOutline12 } from "nucleo-ui-outline-12";
 import {
   IconCodeBranchOutline18,
   IconCodeCommitOutline18,
   IconLayers2Outline18,
-} from "nucleo-ui-outline-18";
+  IconUserOutline12,
+} from "@unkey/icons";
+import { match } from "@unkey/match";
+import { Badge, CopyButton } from "@unkey/ui";
 import type React from "react";
 
 type Props = {

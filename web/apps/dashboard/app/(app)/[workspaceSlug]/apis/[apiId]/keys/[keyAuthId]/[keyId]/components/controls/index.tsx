@@ -7,9 +7,9 @@ import {
 } from "@/components/logs/controls-container";
 import { formatNumber } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
+import { IconCoinsOutline18 } from "@unkey/icons";
 import { Separator } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
-import { IconCoinsOutline18 } from "nucleo-ui-outline-18";
 import { LogsDateTime } from "./components/logs-datetime";
 import { LogsFilters } from "./components/logs-filters";
 import { LogsLiveSwitch } from "./components/logs-live-switch";

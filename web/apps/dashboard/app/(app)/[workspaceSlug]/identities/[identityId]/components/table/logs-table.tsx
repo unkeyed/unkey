@@ -13,19 +13,17 @@ import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
 import { cn } from "@/lib/utils";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import { Badge, Button, CopyButton, Empty, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import {
   IconBanOutline12,
+  IconBookBookmarkOutline18,
   IconCircleCheckOutline12,
   IconClockOutline12,
-  IconLockOutline12,
-  IconTriangleWarningOutline12,
-} from "nucleo-ui-outline-12";
-import {
-  IconBookBookmarkOutline18,
   IconKeyOutline18,
+  IconLockOutline12,
   IconShieldKeyOutline18,
-} from "nucleo-ui-outline-18";
+  IconTriangleWarningOutline12,
+} from "@unkey/icons";
+import { Badge, Button, CopyButton, Empty, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIdentityDetailsLogsContext } from "../../context/logs";
 import { useIdentityLogsQuery } from "./hooks/use-logs-query";

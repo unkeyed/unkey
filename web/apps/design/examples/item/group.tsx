@@ -1,3 +1,4 @@
+import { IconChartUsageOutline18, IconGaugeOutline18 } from "@unkey/icons";
 import {
   Button,
   Item,
@@ -10,7 +11,6 @@ import {
   ItemSeparator,
   ItemTitle,
 } from "@unkey/ui";
-import { IconChartUsageOutline18, IconGaugeOutline18 } from "nucleo-ui-outline-18";
 
 export default function ItemGroupExample() {
   return (

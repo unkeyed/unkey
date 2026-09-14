@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconHalfDottedCirclePlayOutline18 } from "nucleo-ui-outline-18";
+import { IconHalfDottedCirclePlayOutline18 } from "@unkey/icons";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";

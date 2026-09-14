@@ -9,8 +9,8 @@ import {
 import { collection } from "@/lib/collections";
 import { type Project, createProjectRequestSchema } from "@/lib/collections/deploy/projects";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { IconCubeOutline18 } from "@unkey/icons";
 import { FormInput, SettingCardGroup } from "@unkey/ui";
-import { IconCubeOutline18 } from "nucleo-ui-outline-18";
 import { useForm, useWatch } from "react-hook-form";
 import type { z } from "zod";
 

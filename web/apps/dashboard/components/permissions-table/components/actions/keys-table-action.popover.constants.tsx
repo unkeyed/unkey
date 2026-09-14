@@ -1,12 +1,8 @@
 "use client";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
+import { IconCloneOutline18, IconPenWriting3Outline18, IconTrashOutline18 } from "@unkey/icons";
 import { toast } from "@unkey/ui";
-import {
-  IconCloneOutline18,
-  IconPenWriting3Outline18,
-  IconTrashOutline18,
-} from "nucleo-ui-outline-18";
 import { DeletePermission } from "./components/delete-permission";
 import { EditPermission } from "./components/edit-permission";
 

@@ -1,4 +1,4 @@
-import { IconCaretRightOutline18, IconCircleInfoSparkleOutline18 } from "nucleo-ui-outline-18";
+import { IconCaretRightOutline18, IconCircleInfoSparkleOutline18 } from "@unkey/icons";
 import type React from "react";
 import { InfoTooltip } from "../../info-tooltip";
 

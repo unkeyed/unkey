@@ -1,9 +1,6 @@
 "use client";
 
 import { routes } from "@/lib/navigation/routes";
-import { Button, SettingCardGroup } from "@unkey/ui";
-import Link from "next/link";
-import { useParams } from "next/navigation";
 import {
   IconBanOutline18,
   IconChartActivityOutline18,
@@ -12,7 +9,10 @@ import {
   IconHammer2Outline18,
   IconLayerFrontOutline18,
   IconSparkle3Outline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { Button, SettingCardGroup } from "@unkey/ui";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useProjectData } from "../../../data-provider";
 import { useDeployment } from "../layout-provider";
 import { DeploymentStep } from "./deployment-step";

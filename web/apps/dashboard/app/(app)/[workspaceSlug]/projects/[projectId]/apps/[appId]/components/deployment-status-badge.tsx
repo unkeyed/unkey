@@ -3,8 +3,6 @@ import {
   DEPLOYMENT_STATUS_LABELS,
   type DeploymentStatus,
 } from "@/lib/collections/deploy/deployment-status";
-import { cn } from "@unkey/ui/src/lib/utils";
-import type { IconProps } from "nucleo-ui-outline-18";
 import {
   IconBanOutline18,
   IconBoltSlashOutline18,
@@ -15,9 +13,11 @@ import {
   IconEarthOutline18,
   IconHammer2Outline18,
   IconLayerFrontOutline18,
+  type IconProps,
   IconShieldAlertOutline18,
   IconSparkle3Outline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { cn } from "@unkey/ui/src/lib/utils";
 import type { FC } from "react";
 
 type StatusConfig = {

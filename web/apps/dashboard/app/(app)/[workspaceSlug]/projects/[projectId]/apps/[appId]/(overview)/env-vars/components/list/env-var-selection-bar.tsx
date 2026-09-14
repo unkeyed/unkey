@@ -1,12 +1,8 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { IconEyeSlashOutline18, IconTrashOutline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
-import {
-  IconEyeSlashOutline18,
-  IconTrashOutline18,
-  IconXmarkOutline18,
-} from "nucleo-ui-outline-18";
 import { useRef, useState } from "react";
 
 type EnvVarSelectionBarProps = {

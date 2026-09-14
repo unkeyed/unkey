@@ -1,6 +1,6 @@
 "use client";
 
-import { IconChevronRightOutline12 } from "nucleo-ui-outline-12";
+import { IconChevronRightOutline12 } from "@unkey/icons";
 import * as React from "react";
 import { cn } from "../lib/utils";
 import { Button } from "./buttons/button";

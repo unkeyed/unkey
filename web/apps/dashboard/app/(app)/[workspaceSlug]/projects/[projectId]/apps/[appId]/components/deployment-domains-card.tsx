@@ -2,6 +2,12 @@
 
 import type { Domain } from "@/lib/collections";
 import {
+  IconChevronDownOutline18,
+  IconCubeOutline18,
+  IconEarthOutline18,
+  IconLink4Outline12,
+} from "@unkey/icons";
+import {
   Button,
   CopyButton,
   Popover,
@@ -10,12 +16,6 @@ import {
   SettingCard,
   SettingCardGroup,
 } from "@unkey/ui";
-import { IconLink4Outline12 } from "nucleo-ui-outline-12";
-import {
-  IconChevronDownOutline18,
-  IconCubeOutline18,
-  IconEarthOutline18,
-} from "nucleo-ui-outline-18";
 import { type ReactNode, useState } from "react";
 import { useProjectData } from "../(overview)/data-provider";
 import { useDeployment } from "../(overview)/deployments/[deploymentId]/layout-provider";

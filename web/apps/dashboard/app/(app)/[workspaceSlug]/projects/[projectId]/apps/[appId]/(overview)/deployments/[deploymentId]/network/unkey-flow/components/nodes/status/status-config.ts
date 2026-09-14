@@ -1,4 +1,4 @@
-import { IconCircleCheckOutline18, IconTriangleWarningOutline18 } from "nucleo-ui-outline-18";
+import { IconCircleCheckOutline18, IconTriangleWarningOutline18 } from "@unkey/icons";
 import type { HealthStatus } from "../types";
 
 type StatusColors = {

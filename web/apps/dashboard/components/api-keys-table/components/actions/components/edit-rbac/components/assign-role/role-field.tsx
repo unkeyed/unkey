@@ -1,7 +1,7 @@
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import type { KeyRole } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
-import { IconTagOutline12 } from "nucleo-ui-outline-12";
+import { IconTagOutline12 } from "@unkey/icons";
 import { useMemo, useState } from "react";
 import { createRoleOptions } from "./create-key-options";
 import { useFetchKeysRoles } from "./hooks/use-fetch-keys-roles";

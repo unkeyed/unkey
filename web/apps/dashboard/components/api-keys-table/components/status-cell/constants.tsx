@@ -1,10 +1,11 @@
 import {
   IconBanOutline12,
+  IconCircleCaretRightOutline18,
   IconCircleCheckOutline12,
   IconCircleHalfDottedClockOutline12,
+  IconShieldKeyOutline18,
   IconTriangleWarningOutline12,
-} from "nucleo-ui-outline-12";
-import { IconCircleCaretRightOutline18, IconShieldKeyOutline18 } from "nucleo-ui-outline-18";
+} from "@unkey/icons";
 
 export type StatusType =
   | "disabled"

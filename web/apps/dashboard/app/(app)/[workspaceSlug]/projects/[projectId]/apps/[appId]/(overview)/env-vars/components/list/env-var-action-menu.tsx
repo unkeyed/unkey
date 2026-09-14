@@ -2,13 +2,13 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { collection } from "@/lib/collections";
-import { Button, ConfirmPopover, toast } from "@unkey/ui";
 import {
   IconCloneOutline18,
   IconDotsOutline18,
   IconPenWriting3Outline18,
   IconTrashOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
+import { Button, ConfirmPopover, toast } from "@unkey/ui";
 import { useRef, useState } from "react";
 
 type EnvVarActionMenuProps = {

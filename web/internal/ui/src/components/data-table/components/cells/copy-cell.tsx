@@ -1,5 +1,5 @@
 "use client";
-import { IconClipboardOutline18 } from "nucleo-ui-outline-18";
+import { IconClipboardOutline18 } from "@unkey/icons";
 import { useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { toast } from "../../../toaster";

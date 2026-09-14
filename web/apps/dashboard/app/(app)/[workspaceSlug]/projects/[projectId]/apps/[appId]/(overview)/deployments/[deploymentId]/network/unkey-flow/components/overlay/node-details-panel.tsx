@@ -1,7 +1,6 @@
 import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
+import { IconLayers3Outline18, IconTriangleWarningOutline12 } from "@unkey/icons";
 import { SlidePanel, SlidePanelContent, TimestampInfo } from "@unkey/ui";
-import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
-import { IconLayers3Outline18 } from "nucleo-ui-outline-18";
 import { useDeployment } from "../../../../layout-provider";
 import { type DeploymentNode, type InstanceNode, isInstanceNode } from "../nodes/types";
 import { NodeDetailsPanelHeader } from "./node-details-panel/components/header";

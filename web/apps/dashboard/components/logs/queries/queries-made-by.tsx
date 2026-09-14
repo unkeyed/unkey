@@ -1,5 +1,5 @@
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { IconCircleHalfDottedClockOutline18 } from "nucleo-ui-outline-18";
+import { IconCircleHalfDottedClockOutline18 } from "@unkey/icons";
 
 type QueriesMadeByProps = {
   userName?: string;

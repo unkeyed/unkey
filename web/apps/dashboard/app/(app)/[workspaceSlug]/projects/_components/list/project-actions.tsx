@@ -8,7 +8,7 @@ import {
   IconCloneOutline18,
   IconGearOutline18,
   IconLayers3Outline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
 
 import { toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";

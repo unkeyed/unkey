@@ -1,4 +1,4 @@
-import { IconXmarkOutline18 } from "nucleo-ui-outline-18";
+import { IconXmarkOutline18 } from "@unkey/icons";
 import type * as React from "react";
 
 import { cn } from "../lib/utils";

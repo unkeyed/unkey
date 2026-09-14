@@ -1,6 +1,5 @@
+import { IconPlusOutline12, IconTrashOutline18 } from "@unkey/icons";
 import { Button, FormInput, FormTextarea } from "@unkey/ui";
-import { IconPlusOutline12 } from "nucleo-ui-outline-12";
-import { IconTrashOutline18 } from "nucleo-ui-outline-18";
 import type { ClipboardEvent, KeyboardEvent } from "react";
 import { useCallback } from "react";
 import type { FieldErrors, UseFormRegister } from "react-hook-form";

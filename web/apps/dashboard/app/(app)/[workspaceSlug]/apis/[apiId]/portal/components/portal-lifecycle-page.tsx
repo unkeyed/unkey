@@ -8,6 +8,11 @@ import {
 } from "@/lib/portal/use-portal";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Portal } from "@unkey/api/models/components";
+import {
+  IconBookBookmarkOutline18,
+  IconCircleWarningOutline18,
+  IconTriangleWarningOutline18,
+} from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   AlertBanner,
@@ -23,11 +28,6 @@ import {
   PageHeaderTitle,
   Skeleton,
 } from "@unkey/ui";
-import {
-  IconBookBookmarkOutline18,
-  IconCircleWarningOutline18,
-  IconTriangleWarningOutline18,
-} from "nucleo-ui-outline-18";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { CreatePortalDialog } from "./create-portal-dialog";

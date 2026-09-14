@@ -17,7 +17,7 @@ import {
   IconBracketsCurlyOutline18,
   IconChatsOutline18,
   IconCircleQuestionOutline18,
-} from "nucleo-ui-outline-18";
+} from "@unkey/icons";
 import { useState } from "react";
 import { StatusWidget } from "./status-widget";
 

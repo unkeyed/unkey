@@ -3,8 +3,8 @@ import type {
   RatelimitOverviewFilterValue,
 } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/filters.schema";
 import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/hooks/use-filters";
+import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
-import { IconBarsFilterOutline18 } from "nucleo-ui-outline-18";
 
 type FilterPair = {
   status?: "blocked" | "passed";

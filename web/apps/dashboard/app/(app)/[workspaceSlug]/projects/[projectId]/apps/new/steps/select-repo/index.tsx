@@ -1,6 +1,12 @@
 import { trpc } from "@/lib/trpc/client";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { Github } from "@unkey/icons";
+import {
+  Github,
+  IconCheckOutline12,
+  IconClockOutline18,
+  IconMagnifierOutline12,
+  IconXmarkOutline12,
+} from "@unkey/icons";
 import {
   Button,
   Combobox,
@@ -10,12 +16,6 @@ import {
   toast,
   useStepWizard,
 } from "@unkey/ui";
-import {
-  IconCheckOutline12,
-  IconMagnifierOutline12,
-  IconXmarkOutline12,
-} from "nucleo-ui-outline-12";
-import { IconClockOutline18 } from "nucleo-ui-outline-18";
 import { useMemo, useRef, useState } from "react";
 import { OnboardingLinks } from "../../onboarding-links";
 import { OnboardingStepHint, OnboardingStepHintHighlight } from "../../onboarding-step-hint";

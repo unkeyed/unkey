@@ -4,9 +4,9 @@ import { identityExternalIdSchema } from "@/lib/schemas/identity";
 import { getErrorMessage } from "@/lib/unkey-client";
 import type { Identity } from "@unkey/api/models/components";
 import { BadRequestErrorResponse, ConflictErrorResponse } from "@unkey/api/models/errors";
+import { IconTriangleWarningOutline12 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { IconTriangleWarningOutline12 } from "nucleo-ui-outline-12";
 import { useMemo, useState } from "react";
 import { createIdentityOptions } from "./create-identity-options";
 

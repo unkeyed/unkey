@@ -1,4 +1,5 @@
 "use client";
+import { IconPlusOutline18 } from "@unkey/icons";
 import {
   Button,
   PageBody,
@@ -9,7 +10,6 @@ import {
   PageHeaderTitle,
   ResourceList,
 } from "@unkey/ui";
-import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { CreateDeploymentButton } from "../navigations/create-deployment-button";
 import { DeploymentsListControls } from "./components/controls";
 import { DeploymentsCardList } from "./components/deployments-card-list";

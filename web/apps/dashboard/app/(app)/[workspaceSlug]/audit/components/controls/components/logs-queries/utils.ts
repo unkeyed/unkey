@@ -1,7 +1,7 @@
 import type { QuerySearchParams } from "@/app/(app)/[workspaceSlug]/audit/filters.schema";
 import { iconsPerField } from "@/components/logs/queries/utils";
+import { IconChartActivity2Outline18 } from "@unkey/icons";
 import { format } from "date-fns";
-import { IconChartActivity2Outline18 } from "nucleo-ui-outline-18";
 import React, { type JSX } from "react";
 
 export function formatFilterValues(

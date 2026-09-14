@@ -1,7 +1,7 @@
 "use client";
 import { trpc } from "@/lib/trpc/client";
+import { IconLayers3Outline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
-import { IconLayers3Outline18, IconXmarkOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import type { DeploymentNode, HealthStatus } from "../nodes/types";
 

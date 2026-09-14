@@ -1,5 +1,5 @@
+import { IconDotsOutline12 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { IconDotsOutline12 } from "nucleo-ui-outline-12";
 
 export const KeyColumnSkeleton = () => (
   <div className="flex flex-col items-start w-auto">

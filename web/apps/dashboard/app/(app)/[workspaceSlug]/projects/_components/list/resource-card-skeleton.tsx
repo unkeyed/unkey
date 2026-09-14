@@ -1,4 +1,4 @@
-import { IconCubeOutline18 } from "nucleo-ui-outline-18";
+import { IconCubeOutline18 } from "@unkey/icons";
 
 export const ResourceCardSkeleton = () => {
   return (

@@ -1,8 +1,8 @@
 "use client";
 
 import { NavbarActionButton } from "@/components/navigation/action-button";
+import { IconPlusOutline18 } from "@unkey/icons";
 import dynamic from "next/dynamic";
-import { IconPlusOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 
 const IdentifierDialog = dynamic(

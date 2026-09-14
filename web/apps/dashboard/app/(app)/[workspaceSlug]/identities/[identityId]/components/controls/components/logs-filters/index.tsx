@@ -1,8 +1,8 @@
 import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
+import { IconBarsFilterOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import { IconBarsFilterOutline18 } from "nucleo-ui-outline-18";
 import { useState } from "react";
 import { identityDetailsFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";

@@ -10,6 +10,12 @@ import {
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  IconChevronDownOutline18,
+  IconCircleInfoOutline18,
+  IconCloudUploadOutline18,
+  IconPlusOutline18,
+} from "@unkey/icons";
+import {
   Button,
   InfoTooltip,
   Select,
@@ -26,12 +32,6 @@ import {
   toast,
 } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import {
-  IconChevronDownOutline18,
-  IconCircleInfoOutline18,
-  IconCloudUploadOutline18,
-  IconPlusOutline18,
-} from "nucleo-ui-outline-18";
 import { type ChangeEvent, useCallback, useEffect, useRef } from "react";
 import { Controller, useFieldArray } from "react-hook-form";
 import { useDropZone } from "../../hooks/use-drop-zone";

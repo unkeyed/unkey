@@ -4,7 +4,7 @@ import { StatsListCard } from "@/components/stats-list-card";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { formatMs } from "@/lib/ms";
 import { routes } from "@/lib/navigation/routes";
-import { IconClockOutline18 } from "nucleo-ui-outline-18";
+import { IconClockOutline18 } from "@unkey/icons";
 import type { NamespaceTimeseries } from "../hooks/use-batch-timeseries";
 
 type Props = {
