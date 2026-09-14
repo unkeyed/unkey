@@ -1,7 +1,9 @@
 "use client";
 
+import { useFeedback } from "@/components/dashboard/feedback-component";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { MessageWriting } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   AlertDialog,
@@ -16,6 +18,7 @@ import {
   Item,
   ItemContent,
   ItemDescription,
+  ItemMedia,
   ItemTitle,
   SlidePanel,
   SlidePanelCloseButton,
@@ -48,6 +51,7 @@ export function CreateLogdrainPanel({
   onClose: () => void;
 }) {
   const utils = trpc.useUtils();
+  const { openFeedback } = useFeedback();
   const [kind, setKind] = useState<DrainKind | null>(null);
   const [confirmChange, setConfirmChange] = useState(false);
 
@@ -164,6 +168,28 @@ export function CreateLogdrainPanel({
                       }
                     />
                   ))}
+                  <Item
+                    variant="outline"
+                    render={
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          openFeedback(true, "feature");
+                        }}
+                      >
+                        <ItemMedia className="size-8 rounded-[10px] text-gray-12 ring-1 ring-grayA-4">
+                          <MessageWriting className="size-[18px]" iconSize="md-medium" />
+                        </ItemMedia>
+                        <ItemContent>
+                          <ItemTitle>Request a destination</ItemTitle>
+                          <ItemDescription>
+                            Tell us where you want to send your logs
+                          </ItemDescription>
+                        </ItemContent>
+                      </button>
+                    }
+                  />
                 </div>
               </DrainStepCard>
 

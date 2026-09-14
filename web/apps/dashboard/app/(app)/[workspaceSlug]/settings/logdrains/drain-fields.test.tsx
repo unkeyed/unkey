@@ -17,6 +17,11 @@ const sourceState = vi.hoisted(() => ({
   empty: false,
 }));
 const createDrain = vi.hoisted(() => vi.fn());
+const setQueryState = vi.hoisted(() => vi.fn());
+vi.mock("nuqs", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("nuqs")>()),
+  useQueryStates: () => [{ feedback: null, feedbackType: null }, setQueryState],
+}));
 vi.mock("@/lib/trpc/client", () => ({
   trpc: {
     ratelimit: {
@@ -89,6 +94,17 @@ afterEach(() => {
   sourceState.combined = false;
   sourceState.empty = false;
   createDrain.mockClear();
+  setQueryState.mockClear();
+});
+
+it("opens feature-request feedback without configuring or creating a drain", () => {
+  const onClose = vi.fn();
+  render(<CreateLogdrainPanel isOpen onClose={onClose} />);
+  fireEvent.click(screen.getByRole("button", { name: /Request a destination/ }));
+  expect(setQueryState).toHaveBeenCalledWith({ feedback: true, feedbackType: "feature" });
+  expect(onClose).toHaveBeenCalledOnce();
+  expect(createDrain).not.toHaveBeenCalled();
+  expect(screen.queryByRole("textbox", { name: "Name Required" })).toBeNull();
 });
 
 it("submits only runtime filters after switching from a restricted gateway", async () => {
