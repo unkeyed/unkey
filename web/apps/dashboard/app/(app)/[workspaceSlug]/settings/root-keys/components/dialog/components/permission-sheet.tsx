@@ -127,6 +127,7 @@ export const PermissionSheet = ({
       <SheetPortal>
         <SheetOverlay className="bg-black/30 backdrop-blur-xs" />
         <SheetContent
+          data-docs-target="root-key-permissions"
           disableClose={false}
           className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 w-[420px] bg-gray-1 dark:bg-black overflow-hidden"
           side="right"
