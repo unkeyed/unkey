@@ -2,7 +2,6 @@ import type { LogsRequestSchema } from "@/lib/schemas/logs.schema";
 import { trpc } from "@/lib/trpc/client";
 import { useEffect, useState } from "react";
 
-
 const REQUEST_DETAILS_TIME_BUFFER_MS = 60_000;
 const MISSING_LOG_RETRY_INTERVAL_MS = 2_000;
 const MISSING_LOG_MAX_ATTEMPTS = 6;
