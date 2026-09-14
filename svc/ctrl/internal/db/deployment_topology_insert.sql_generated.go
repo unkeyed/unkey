@@ -33,7 +33,6 @@ INSERT INTO ` + "`" + `deployment_topology` + "`" + ` (
     ?
 )
 ON DUPLICATE KEY UPDATE
-    workspace_id = ?,
     autoscaling_replicas_min = ?,
     autoscaling_replicas_max = ?,
     autoscaling_threshold_cpu = ?,
@@ -77,7 +76,6 @@ type InsertDeploymentTopologyParams struct {
 //	    ?
 //	)
 //	ON DUPLICATE KEY UPDATE
-//	    workspace_id = ?,
 //	    autoscaling_replicas_min = ?,
 //	    autoscaling_replicas_max = ?,
 //	    autoscaling_threshold_cpu = ?,
@@ -94,7 +92,6 @@ func (q *Queries) InsertDeploymentTopology(ctx context.Context, arg InsertDeploy
 		arg.AutoscalingThresholdMemory,
 		arg.DesiredStatus,
 		arg.CreatedAt,
-		arg.WorkspaceID,
 		arg.AutoscalingReplicasMin,
 		arg.AutoscalingReplicasMax,
 		arg.AutoscalingThresholdCpu,
