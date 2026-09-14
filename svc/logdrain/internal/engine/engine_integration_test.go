@@ -158,7 +158,7 @@ type drainState struct {
 }
 
 func TestEngine_Integration(t *testing.T) {
-	mysqlCfg := containers.MySQL(t)
+	mysqlCfg := containers.MySQLIsolated(t)
 	clickhouseCfg := containers.ClickHouse(t)
 	mysqlDB, err := sql.Open("mysql", mysqlCfg.DSN)
 	require.NoError(t, err)

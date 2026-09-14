@@ -2,13 +2,13 @@ package logdrains_test
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/openapi"
 	logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains"
 )
 
@@ -30,25 +30,15 @@ func TestMetricsAggregateOnlyThisDrainAndWorkspace(t *testing.T) {
 	}
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/"+id+"#read")
 	headers := http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}
-	type point struct {
-		Ts, SuccessCount, TransientErrorCount, PermanentErrorCount, EventsDelivered, LastSuccessMs int64
-		AvgDurationMs                                                                              float64
-	}
-	type response struct {
-		Data struct {
-			Series        []point
-			BucketMinutes int
-		}
-	}
-	result := testutil.CallRoute[json.RawMessage, response](h, route, headers, json.RawMessage(`{"logdrainId":"`+id+`","hours":1}`))
+	result := testutil.CallRoute[openapi.LogdrainMetricsRequest, openapi.LogdrainMetricsResponse](h, route, headers, openapi.LogdrainMetricsRequest{LogdrainId: id, Hours: 1})
 	require.Equal(t, http.StatusOK, result.Status, "%s", result.RawBody)
 	require.Equal(t, 1, result.Body.Data.BucketMinutes)
 	require.Len(t, result.Body.Data.Series, 61)
-	var matching []point
+	var matching []openapi.LogdrainMetric
 	for _, point := range result.Body.Data.Series {
 		if point.Ts == bucket {
 			matching = append(matching, point)
 		}
 	}
-	require.Equal(t, []point{{Ts: bucket, SuccessCount: 2, TransientErrorCount: 1, PermanentErrorCount: 0, EventsDelivered: 18, LastSuccessMs: bucket + 3, AvgDurationMs: 30}}, matching)
+	require.Equal(t, []openapi.LogdrainMetric{{Ts: bucket, SuccessCount: 2, TransientErrorCount: 1, PermanentErrorCount: 0, EventsDelivered: 18, LastSuccessMs: bucket + 3, AvgDurationMs: 30}}, matching)
 }

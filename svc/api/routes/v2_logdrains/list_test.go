@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -32,17 +33,13 @@ func TestListPagesOnlyAuthorizedWorkspace(t *testing.T) {
 	}
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/*#read")
 	headers := http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}
-	type response struct {
-		Data       []openapi.Logdrain
-		Pagination openapi.Pagination
-	}
-	first := testutil.CallRoute[map[string]any, response](h, route, headers, map[string]any{"limit": 1})
+	first := testutil.CallRoute[openapi.ListLogdrainsRequest, openapi.ListLogdrainsResponse](h, route, headers, openapi.ListLogdrainsRequest{Limit: ptr.P(1)})
 	require.Equal(t, http.StatusOK, first.Status, "%s", first.RawBody)
 	require.Len(t, first.Body.Data, 1)
 	require.Equal(t, prefix+"a", first.Body.Data[0].Id)
 	require.True(t, first.Body.Pagination.HasMore)
 	require.NotContains(t, first.RawBody, "private-ciphertext")
-	second := testutil.CallRoute[map[string]any, response](h, route, headers, map[string]any{"limit": 1, "cursor": first.Body.Pagination.Cursor})
+	second := testutil.CallRoute[openapi.ListLogdrainsRequest, openapi.ListLogdrainsResponse](h, route, headers, openapi.ListLogdrainsRequest{Limit: ptr.P(1), Cursor: first.Body.Pagination.Cursor})
 	require.Equal(t, http.StatusOK, second.Status, "%s", second.RawBody)
 	require.Len(t, second.Body.Data, 1)
 	require.Equal(t, prefix+"c", second.Body.Data[0].Id)

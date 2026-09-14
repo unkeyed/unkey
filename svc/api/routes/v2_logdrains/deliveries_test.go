@@ -29,14 +29,9 @@ func TestRecentDeliveriesAreBoundedAndNewestFirst(t *testing.T) {
 		require.NoError(t, h.ClickHouse.Exec(context.Background(), "INSERT INTO default.logdrain_deliveries_raw_v1 (workspace_id, drain_id, time, outcome, events, webhook_duration_ms, response_status, response_body, error) VALUES (?, ?, ?, 'transient_error', 7, 91, 503, 'unavailable', 'retry')", workspaceID, id, timeMs))
 	}
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/"+id+"#read")
-	type delivery struct {
-		Time, Events, DurationMs, ResponseStatus int64
-		Outcome, ResponseBody, Error             string
-	}
-	type response struct{ Data []delivery }
-	result := testutil.CallRoute[openapi.LogdrainIdRequest, response](h, route, http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}, openapi.LogdrainIdRequest{LogdrainId: id})
+	result := testutil.CallRoute[openapi.LogdrainIdRequest, openapi.LogdrainDeliveriesResponse](h, route, http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}, openapi.LogdrainIdRequest{LogdrainId: id})
 	require.Equal(t, http.StatusOK, result.Status, "%s", result.RawBody)
 	require.Len(t, result.Body.Data, 20)
-	require.Equal(t, delivery{Time: now, Events: 7, DurationMs: 91, ResponseStatus: 503, Outcome: "transient_error", ResponseBody: "unavailable", Error: "retry"}, result.Body.Data[0])
+	require.Equal(t, openapi.LogdrainDelivery{Time: now, Events: 7, DurationMs: 91, ResponseStatus: 503, Outcome: "transient_error", ResponseBody: "unavailable", Error: "retry"}, result.Body.Data[0])
 	require.Equal(t, now-19, result.Body.Data[19].Time)
 }

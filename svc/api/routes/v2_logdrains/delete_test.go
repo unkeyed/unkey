@@ -32,8 +32,15 @@ func TestDeleteWorksAfterAllowanceRevoked(t *testing.T) {
 	input := openapi.LogdrainIdRequest{LogdrainId: created.Body.Data.Id}
 	deleted := testutil.CallRoute[openapi.LogdrainIdRequest, openapi.LogdrainMutationResponse](h, remove, headers, input)
 	require.Equal(t, http.StatusOK, deleted.Status, "%s", deleted.RawBody)
+	require.Equal(t, input.LogdrainId, deleted.Body.Data.Id)
+	require.NotEmpty(t, deleted.Body.Meta.RequestId)
 	result := testutil.CallRoute[openapi.LogdrainIdRequest, openapi.LogdrainResponse](h, get, headers, input)
 	require.Equal(t, http.StatusNotFound, result.Status)
 	events := h.FindAuditLogsByTargetID(context.Background(), t, input.LogdrainId)
 	require.Len(t, events, 2)
+	require.Equal(t, "logdrain.create", events[0].Event)
+	require.Equal(t, "logdrain.delete", events[1].Event)
+	var count int
+	require.NoError(t, h.DB.RW().QueryRowContext(context.Background(), "SELECT COUNT(*) FROM logdrains WHERE id = ?", input.LogdrainId).Scan(&count))
+	require.Zero(t, count)
 }
