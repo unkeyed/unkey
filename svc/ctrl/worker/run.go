@@ -330,7 +330,13 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxRetryAttempts(15),
 		restate.PauseOnMaxAttempts(),
 	)
-	restateSrv.Bind(hydrav1.NewDeployWorkflowServer(deployWorkflow, deployRetryPolicy))
+	// Deploy is the run itself and takes a fully resolved DeployRequest, so
+	// reaching it from the ingress would skip every gate Create applies:
+	// Compute plan, spend cap, schedulable region, runtime bounds and the
+	// fork PR approval. Create and NotifyInstancesReady stay public because
+	// svc/api, the ops rebuild and the cluster status report all call them.
+	restateSrv.Bind(hydrav1.NewDeployWorkflowServer(deployWorkflow, deployRetryPolicy).
+		ConfigureHandler("Deploy", restate.WithIngressPrivate(true)))
 	deploymentSvc, err := deployment.New(deployment.Config{
 		DB:        database,
 		Auditlogs: auditlogSvc,

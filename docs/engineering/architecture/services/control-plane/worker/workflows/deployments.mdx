@@ -38,12 +38,13 @@ sequenceDiagram
   participant Dedup as Workflow.cancelOlderSiblings
 
   Client->>CtrlAPI: CreateDeployment(project_id, source, env)
-  CtrlAPI->>DB: Find project + environment + app
-  CtrlAPI->>DB: Insert deployment (status=pending)
-  CtrlAPI->>Restate: DeployWorkflow.Deploy (key: deployment_id, async)
-  Restate-->>CtrlAPI: invocation_id
-  CtrlAPI->>DB: UpdateDeploymentInvocationID
-  CtrlAPI->>Dedup: Cancel older queued siblings (status=pending|awaiting_approval)
+  CtrlAPI->>Restate: DeployWorkflow.Create (key: deployment_id)
+  Restate->>Worker: Create
+  Worker->>DB: Find project + environment + app
+  Worker->>DB: Insert deployment (status=pending)
+  Worker->>Restate: DeployWorkflow.Deploy (in-context; the ingress refuses it)
+  Worker->>DB: UpdateDeploymentInvocationID
+  Worker->>Dedup: Cancel older queued siblings (status=pending|awaiting_approval)
   Dedup->>DB: Batch stamp "Superseded by newer commit" on sibling steps
   Dedup->>DB: Batch UPDATE siblings to status=superseded
   Dedup->>Restate: CancelInvocation for each older sibling

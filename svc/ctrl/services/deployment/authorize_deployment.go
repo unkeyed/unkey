@@ -57,9 +57,6 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		EnvironmentId: deployment.EnvironmentID,
 		Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
 		Source:        nil,
-		// This deployment already has a row, so Create's insert does nothing
-		// and the trigger below is never written. Create still reads it: an
-		// Unkey trigger means rebuild, anything else means redeploy
 		Trigger: &hydrav1.Trigger{
 			Source: ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_DASHBOARD,
 			Actor:  nil,
@@ -77,10 +74,6 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 			return nil, connect.NewError(connect.CodeFailedPrecondition,
 				fmt.Errorf("OCI deployment %s has no image reference", deploymentID))
 		}
-		// The git arm below points Create at this deployment's own row, which
-		// does not work for an image. Create reads images from
-		// image_resolved, and that column is only filled in once a build
-		// finishes, so a deployment awaiting approval has nothing there yet
 		createReq.Source = &hydrav1.DeployCreateRequest_Image{
 			Image: &hydrav1.CreateImageSource{Image: image.String, Commit: nil},
 		}
