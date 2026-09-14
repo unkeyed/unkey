@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strconv"
 
+	ch "github.com/ClickHouse/clickhouse-go/v2"
+
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
@@ -69,6 +71,31 @@ func selectVerificationInterval(windowMs int64) verificationInterval {
 	}
 }
 
+const (
+	// portalQueryExecutionTimeMax bounds how long one portal read may occupy the
+	// shared connection, in seconds.
+	portalQueryExecutionTimeMax = 10
+	// portalQueryMemoryMax bounds one portal read's server-side memory.
+	portalQueryMemoryMax = 1 << 30
+)
+
+// withPortalQueryLimits bounds a single portal read. The operator analytics
+// routes get the equivalent from a per-workspace ClickHouse settings profile,
+// which this path has no user to hang off: it runs on the connection every
+// workspace shares, so the bounds ride on the query instead.
+//
+// max_result_bytes stops an oversized read server-side, before the rows are
+// shipped. The handler's own ceiling still applies to the encoded response,
+// which covers both reads plus their JSON.
+func withPortalQueryLimits(ctx context.Context) context.Context {
+	return ch.Context(ctx, ch.WithSettings(ch.Settings{
+		"max_execution_time":   portalQueryExecutionTimeMax,
+		"max_memory_usage":     portalQueryMemoryMax,
+		"max_result_bytes":     AnalyticsResultBytesMax,
+		"result_overflow_mode": "throw",
+	}))
+}
+
 // verificationScopePredicates is the WHERE body shared by the account-wide and
 // per-key reads. Keeping one copy is what stops the identity and keyspace
 // scoping from drifting between them.
@@ -125,7 +152,7 @@ func (c *Client) GetVerificationsByExternalID(ctx context.Context, req Verificat
 		iv.unit, iv.table, iv.stepMs, verificationScopePredicates,
 	)
 
-	results, err := Select[VerificationTimeseriesDataPoint](ctx, c.conn, query, verificationScopeParams(req))
+	results, err := Select[VerificationTimeseriesDataPoint](withPortalQueryLimits(ctx), c.conn, query, verificationScopeParams(req))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query verification timeseries"))
 	}
@@ -240,7 +267,7 @@ func (c *Client) GetVerificationsByExternalIDPerKey(ctx context.Context, req Ver
 	params := verificationScopeParams(req.VerificationTimeseriesRequest)
 	params["max_keys_probe"] = strconv.Itoa(req.MaxKeys + 1)
 
-	rows, err := Select[verificationTimeseriesPerKeyRow](ctx, c.conn, query, params)
+	rows, err := Select[verificationTimeseriesPerKeyRow](withPortalQueryLimits(ctx), c.conn, query, params)
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Internal("failed to query per-key verification timeseries"))
 	}
