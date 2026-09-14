@@ -11,7 +11,7 @@ import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
-import { Hammer2, XMark } from "@unkey/icons";
+import { IconHammer2Outline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -95,11 +95,11 @@ export function PendingRedeployBanner() {
           className="absolute top-3 right-3 text-gray-9 hover:text-gray-11 transition-colors cursor-pointer"
           aria-label="Dismiss"
         >
-          <XMark className="size-4" />
+          <IconXmarkOutline18 className="size-4" />
         </button>
 
         <GlowIcon
-          icon={<Hammer2 iconSize="sm-medium" className="size-4.5" />}
+          icon={<IconHammer2Outline18 className="size-4.5" />}
           className="w-9 h-9 shrink-0"
         />
 

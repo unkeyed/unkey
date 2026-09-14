@@ -1,5 +1,5 @@
 "use client";
-import { TaskChecked, TaskUnchecked } from "@unkey/icons";
+import { IconClipboardCheckOutline18, IconClipboardOutline18 } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
 
@@ -98,7 +98,7 @@ export const CopyableIDButton = ({ value, className = "" }: CopyableIDButtonProp
           {value}
         </div>
         <span className="pointer-events-none shrink-0">
-          {copied ? <TaskChecked /> : <TaskUnchecked />}
+          {copied ? <IconClipboardCheckOutline18 /> : <IconClipboardOutline18 />}
         </span>
       </div>
     </button>

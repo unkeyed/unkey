@@ -2,7 +2,11 @@ import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
 import type { BuildStep, BuildStepLog } from "@unkey/clickhouse/src/build-steps";
-import { Bolt, CaretRight, TriangleWarning } from "@unkey/icons";
+import {
+  IconBoltOutline18,
+  IconCaretRightOutline12,
+  IconTriangleWarningOutline18,
+} from "@unkey/icons";
 import { InfoTooltip, TimestampInfo } from "@unkey/ui";
 import { TruncatedCell } from "../truncated-cell";
 
@@ -19,8 +23,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
     render: (step) =>
       step.has_logs ? (
         <div className="my-2 size-4 flex items-center justify-center w-full shrink-0">
-          <CaretRight
-            iconSize="sm-regular"
+          <IconCaretRightOutline12
             className={cn(
               "shrink-0 transition-transform text-gray-11",
               step._isExpanded && "rotate-90",
@@ -51,7 +54,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
       if (step.error) {
         return (
           <div className="my-2">
-            <TriangleWarning className="text-error-11" iconSize="md-regular" />
+            <IconTriangleWarningOutline18 className="size-3.5 text-error-11" />
           </div>
         );
       }
@@ -59,7 +62,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
         return (
           <div className="my-2">
             <InfoTooltip content="This step was cached" asChild>
-              <Bolt className="text-primary-11" iconSize="md-regular" />
+              <IconBoltOutline18 className="size-3.5 text-primary-11" />
             </InfoTooltip>
           </div>
         );

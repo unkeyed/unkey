@@ -1,4 +1,4 @@
-import { BookBookmark } from "@unkey/icons";
+import { IconBookBookmarkOutline18 } from "@unkey/icons";
 import type React from "react";
 import { Button } from "../../../buttons/button";
 import { Empty } from "../../../empty";
@@ -32,7 +32,7 @@ export const EmptyState = ({ content }: EmptyStateProps) => {
                   />
                 }
               >
-                <BookBookmark />
+                <IconBookBookmarkOutline18 />
                 Documentation
               </Button>
             </Empty.Actions>

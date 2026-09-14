@@ -3,7 +3,7 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
 import { routes } from "@/lib/navigation/routes";
-import { BookBookmark } from "@unkey/icons";
+import { IconBookBookmarkOutline18 } from "@unkey/icons";
 import {
   Button,
   Empty,
@@ -95,7 +95,7 @@ export function DeploymentsCardList() {
                   rel="noopener noreferrer"
                 >
                   <Button size="md">
-                    <BookBookmark />
+                    <IconBookBookmarkOutline18 />
                     Learn about Deployments
                   </Button>
                 </a>

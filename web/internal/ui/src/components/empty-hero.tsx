@@ -48,7 +48,9 @@ EmptyHero.Icons = function EmptyHeroIcons({ className, children, ...props }: Emp
               key={index}
               className={cn(
                 "shrink-0 flex items-center justify-center rounded-[10px] bg-transparent ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none",
-                index === centerIndex ? "size-16 [&_svg]:size-9" : "size-9 [&_svg]:size-[18px]",
+                index === centerIndex
+                  ? "size-16 [&_svg]:size-9 [&_svg_[stroke-width]]:[stroke-width:0.75]"
+                  : "size-9 [&_svg]:size-[18px]",
                 OPACITY_BY_DISTANCE_FROM_CENTER[distanceFromCenter],
               )}
             >

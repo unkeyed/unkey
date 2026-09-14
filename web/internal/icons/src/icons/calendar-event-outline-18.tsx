@@ -1,0 +1,64 @@
+import type { IconProps } from "../props";
+
+export function IconCalendarEventOutline18(props: IconProps) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={18} height={18} viewBox="0 0 18 18" {...props}>
+      <line
+        x1="5.75"
+        y1="3.25"
+        x2="5.75"
+        y2="1.25"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+      <line
+        x1="12.25"
+        y1="3.25"
+        x2="12.25"
+        y2="1.25"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+      <rect
+        x="2.25"
+        y="3.25"
+        width="13.5"
+        height="12.5"
+        rx="2"
+        ry="2"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+      <line
+        x1="2.25"
+        y1="6.75"
+        x2="15.75"
+        y2="6.75"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+      <circle
+        cx="11.25"
+        cy="11.25"
+        r="1"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+    </svg>
+  );
+}

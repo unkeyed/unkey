@@ -1,6 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
-import { Bookmark, ClockRotateClockwise } from "@unkey/icons";
+import { IconBookmarkOutline18, IconClockRotateClockwiseOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useEffect, useState } from "react";
 
@@ -37,7 +37,7 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
         onFocus={() => handleSelection(0)}
         onBlur={() => handleSelection(0)}
       >
-        <ClockRotateClockwise iconSize="md-medium" className="text-gray-9 py-px" />
+        <IconClockRotateClockwiseOutline18 className="size-4 text-gray-9 py-px" />
         <div className="w-full">Recent</div>
         <div
           className={cn(
@@ -61,7 +61,7 @@ export const QueriesTabs = ({ selectedTab, onChange }: QueriesTabsProps) => {
         onBlur={() => handleSelection(1)}
       >
         <div className="w-4 h-4 text-gray-9">
-          <Bookmark iconSize="sm-regular" className="text-gray-9 py-[1.5px]" />
+          <IconBookmarkOutline18 className="text-gray-9 py-[1.5px]" />
         </div>
         <div className="w-full">Saved</div>
         <div

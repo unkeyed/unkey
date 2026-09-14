@@ -4,7 +4,7 @@ import { revalidate } from "@/app/actions";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import { Button, FormInput, toast } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -63,7 +63,7 @@ export function CreateApiButton({ defaultOpen, workspaceSlug }: Props) {
   return (
     <>
       <Button size="md" variant="primary" onClick={() => setIsOpen(true)}>
-        <Plus iconSize="sm-regular" />
+        <IconPlusOutline18 />
         Create keyspace
       </Button>
 

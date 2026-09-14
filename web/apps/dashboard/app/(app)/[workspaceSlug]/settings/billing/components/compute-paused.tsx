@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight } from "@unkey/icons";
+import { IconArrowUpRightOutline12 } from "@unkey/icons";
 import Link from "next/link";
 
 export const PAUSED_DOCS_URL =
@@ -28,7 +28,7 @@ export function PausedDocsLink() {
       className="inline-flex items-center gap-0.5 font-medium text-gray-12 underline decoration-grayA-6 underline-offset-2 hover:decoration-grayA-8"
     >
       Learn more
-      <ArrowUpRight iconSize="sm-regular" />
+      <IconArrowUpRightOutline12 />
     </Link>
   );
 }
