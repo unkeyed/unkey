@@ -106,7 +106,9 @@ export function DeploymentCancelled({ deployment, stepsData, reason }: Deploymen
               description={copy.step}
               duration={step?.duration ?? undefined}
               status="skipped"
-              statusIcon={isStoppedHere ? <IconBanOutline18 className="text-gray-9" /> : undefined}
+              statusIcon={
+                isStoppedHere ? <IconBanOutline18 className="size-4 text-gray-9" /> : undefined
+              }
             />
           );
         })}

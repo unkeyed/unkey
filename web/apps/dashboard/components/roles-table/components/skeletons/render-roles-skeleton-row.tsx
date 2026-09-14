@@ -1,6 +1,6 @@
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
 import { cn } from "@/lib/utils";
-import { IconKey2Outline18, IconTagOutline18 } from "@unkey/icons";
+import { IconKey2Outline18, IconTagOutline12 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   ActionColumnSkeleton,
@@ -24,7 +24,7 @@ export const renderRolesSkeletonRow = ({ columns, rowHeight }: RenderRolesSkelet
       style={{ height: `${rowHeight}px` }}
     >
       {column.id === ROLE_COLUMN_IDS.ROLE.id && (
-        <NameColumnSkeleton icon={<IconTagOutline18 className="text-gray-12 opacity-50" />} />
+        <NameColumnSkeleton icon={<IconTagOutline12 className="text-gray-12 opacity-50" />} />
       )}
       {column.id === ROLE_COLUMN_IDS.ASSIGNED_KEYS.id && (
         <DashedBadgeSkeleton

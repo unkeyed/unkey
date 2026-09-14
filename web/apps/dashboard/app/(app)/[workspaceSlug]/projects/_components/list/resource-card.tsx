@@ -180,7 +180,7 @@ const GitSourceMetadata = ({
           <span className="sr-only">No deployments</span>
         )}
         <div className="flex items-center gap-1">
-          <IconCodeBranchOutline18 className="text-gray-12 shrink-0" />
+          <IconCodeBranchOutline18 className="size-3 text-gray-12 shrink-0" />
           <InfoTooltip content={branch} asChild position={{ align: "start", side: "top" }}>
             <span className="text-xs text-gray-12 truncate max-w-[70px]">{branch}</span>
           </InfoTooltip>
@@ -218,7 +218,7 @@ const OCISourceMetadata = ({ imageReference }: { imageReference: string | null }
       </span>
     </InfoTooltip>
     <div className="flex items-center gap-1 min-h-5">
-      <IconLayers2Outline18 className="text-gray-12 shrink-0" />
+      <IconLayers2Outline18 className="size-3 text-gray-12 shrink-0" />
       <span className="text-xs text-gray-12">Container image</span>
     </div>
   </div>
@@ -230,7 +230,7 @@ const LegacySourceMetadata = () => (
       <span className="sr-only">No source details</span>
     </div>
     <div className="flex items-center gap-1 min-h-5">
-      <IconTerminalOutline18 className="text-gray-12 shrink-0" />
+      <IconTerminalOutline18 className="size-3 text-gray-12 shrink-0" />
       <span className="text-xs text-gray-12">Legacy app</span>
     </div>
   </div>

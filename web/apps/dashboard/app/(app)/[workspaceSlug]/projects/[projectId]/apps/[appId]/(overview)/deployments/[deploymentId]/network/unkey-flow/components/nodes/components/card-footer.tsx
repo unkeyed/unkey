@@ -1,6 +1,6 @@
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
 import { formatCpuParts, formatMemoryParts } from "@/lib/utils/deployment-formatters";
-import { IconChartActivityOutline18, IconMicrochipOutline18, IconRamOutline18 } from "@unkey/icons";
+import { IconChartActivityOutline12, IconMicrochipOutline18, IconRamOutline18 } from "@unkey/icons";
 import type { RegionNode } from "../types";
 import { MetricPill } from "./metric-pill";
 
@@ -32,7 +32,7 @@ export function CardFooter(props: CardFooterProps) {
       {flagCode && <RegionFlag flagCode={flagCode} size="sm" shape="circle" className="mr-1.5" />}
       {rps !== undefined && (
         <MetricPill
-          icon={<IconChartActivityOutline18 className="shrink-0" />}
+          icon={<IconChartActivityOutline12 className="shrink-0" />}
           value={formatRps(rps)}
           tooltip="Avg. RPS over last 15 min (updated every 5s)"
         />

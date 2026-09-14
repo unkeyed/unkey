@@ -61,7 +61,7 @@ export function ProductionCardActionsMenu({
               {
                 id: "view-commit",
                 label: "View commit on GitHub",
-                icon: <Github />,
+                icon: <Github className="size-4" />,
                 onClick: () => window.open(commitUrl, "_blank", "noopener,noreferrer"),
               },
             ]
@@ -73,14 +73,18 @@ export function ProductionCardActionsMenu({
       {
         id: "stop-wake",
         label: stopped ? "Wake" : "Stop",
-        icon: stopped ? <IconBoltOutline18 /> : <IconBanOutline18 />,
+        icon: stopped ? (
+          <IconBoltOutline18 className="size-4" />
+        ) : (
+          <IconBanOutline18 className="size-4" />
+        ),
         disabled: true,
         tooltip: "Available soon",
       },
       {
         id: "redeploy",
         label: "Redeploy",
-        icon: <IconHammer2Outline18 />,
+        icon: <IconHammer2Outline18 className="size-4" />,
         disabled: !canRedeploy,
         // Without a Compute plan, redeploy opens the paywall instead of building.
         ...(gated && canRedeploy
@@ -95,26 +99,26 @@ export function ProductionCardActionsMenu({
       {
         id: "view-deployment",
         label: "Go to deployment",
-        icon: <IconLayers2Outline18 />,
+        icon: <IconLayers2Outline18 className="size-4" />,
         href: deploymentHref,
       },
       {
         id: "view-logs",
         label: "Go to logs",
-        icon: <IconLayers3Outline18 />,
+        icon: <IconLayers3Outline18 className="size-4" />,
         onClick: () => router.push(logsHref),
       },
       {
         id: "view-requests",
         label: "Go to requests",
-        icon: <IconArrowsOppositeDirectionYOutline18 />,
+        icon: <IconArrowsOppositeDirectionYOutline18 className="size-4" />,
         onClick: () => router.push(requestsHref),
         divider: true,
       },
       {
         id: "copy-deployment-id",
         label: "Copy deployment ID",
-        icon: <IconCloneOutline18 />,
+        icon: <IconCloneOutline18 className="size-4" />,
         onClick: () => {
           navigator.clipboard
             .writeText(deployment.id)

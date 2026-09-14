@@ -294,7 +294,7 @@ const formatDeploymentInfo = (
             <div className="flex items-center justify-between">
               <span className="text-gray-11">Branch:</span>
               <div className="flex items-center gap-1.5">
-                <IconCodeBranchOutline18 className="text-grayA-10 shrink-0" />
+                <IconCodeBranchOutline18 className="size-3 text-grayA-10 shrink-0" />
                 {branchUrl ? (
                   <DottedLink href={branchUrl} copyValue={deployment.gitBranch} external>
                     <span className="font-mono truncate max-w-50">{deployment.gitBranch}</span>
@@ -310,7 +310,7 @@ const formatDeploymentInfo = (
             <div className="flex items-center justify-between">
               <span className="text-gray-11">Commit:</span>
               <div className="flex items-center gap-1.5">
-                <IconCodeCommitOutline18 className="text-grayA-10 shrink-0" />
+                <IconCodeCommitOutline18 className="size-3 text-grayA-10 shrink-0" />
                 {commitUrl ? (
                   <DottedLink href={commitUrl} copyValue={deployment.gitCommitSha} external>
                     <span className="font-mono">{shortSha}</span>
@@ -359,7 +359,7 @@ const formatDeploymentInfo = (
         <div className="flex items-center justify-between gap-4">
           <span className="text-gray-11 shrink-0">Requested Image:</span>
           <div className="flex items-center gap-1.5 min-w-0">
-            <IconLayers2Outline18 className="text-grayA-10 shrink-0" />
+            <IconLayers2Outline18 className="size-3 text-grayA-10 shrink-0" />
             <span className="font-mono truncate max-w-[250px]">
               {deployment.requestedImage ?? deployment.resolvedImage ?? "Unknown"}
             </span>
@@ -379,7 +379,7 @@ const formatDeploymentInfo = (
       <div className="flex items-center justify-between">
         <span className="text-gray-11">Source:</span>
         <div className="flex items-center gap-1.5 text-grayA-10">
-          <IconLayers2Outline18 className="shrink-0" />
+          <IconLayers2Outline18 className="size-3 shrink-0" />
           <span>Unknown</span>
         </div>
       </div>

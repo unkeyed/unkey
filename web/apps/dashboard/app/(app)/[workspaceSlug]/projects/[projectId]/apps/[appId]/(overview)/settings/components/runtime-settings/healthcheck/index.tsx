@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconChevronDownOutline18, IconHeartPulseOutline18 } from "@unkey/icons";
+import { IconChevronDownOutline12, IconHeartPulseOutline18 } from "@unkey/icons";
 import {
   FormInput,
   Select,
@@ -111,7 +111,7 @@ export const Healthcheck = () => {
                 <SelectTrigger
                   wrapperClassName="w-24"
                   variant={errors.method ? "error" : "default"}
-                  rightIcon={<IconChevronDownOutline18 className="absolute right-3 text-gray-11" />}
+                  rightIcon={<IconChevronDownOutline12 className="absolute right-3 text-gray-11" />}
                 >
                   <SelectValue placeholder={<MethodBadge method={"GET"} />}>
                     <MethodBadge method={field.value} />

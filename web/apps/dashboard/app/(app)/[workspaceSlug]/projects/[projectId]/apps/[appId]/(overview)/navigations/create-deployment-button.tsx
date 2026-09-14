@@ -442,7 +442,7 @@ export const CreateDeploymentButton = ({
               ) : null}
               {forkRepoName && (
                 <div className="flex items-center gap-1.5 bg-amber-3 border border-amber-6 rounded-md px-2.5 py-1.5 w-fit">
-                  <IconCodeBranchOutline18 className="shrink-0 text-amber-11" />
+                  <IconCodeBranchOutline18 className="size-3 shrink-0 text-amber-11" />
                   <span className="text-xs text-amber-11">
                     Deploying from fork:{" "}
                     <span className="font-medium text-amber-12">{forkRepoName}</span>
@@ -519,7 +519,7 @@ export const CreateDeploymentButton = ({
                     onClick={() => setValue("name", branch.name, { shouldValidate: true })}
                     className="flex items-center gap-1.5 min-w-0 max-w-[300px] cursor-pointer text-left"
                   >
-                    <IconCodeBranchOutline18 className="shrink-0 text-gray-12" />
+                    <IconCodeBranchOutline18 className="size-3 shrink-0 text-gray-12" />
                     <span className="truncate">{branch.name}</span>
                   </button>
                   {branch.lastPushDate && (

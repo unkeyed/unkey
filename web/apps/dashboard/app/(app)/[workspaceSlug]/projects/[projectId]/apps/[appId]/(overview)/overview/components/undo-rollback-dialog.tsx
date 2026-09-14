@@ -165,7 +165,7 @@ function DeploymentSource({ deployment }: { deployment: Deployment }) {
   return match(deployment.source)
     .with("oci", () => (
       <span className="flex items-center gap-1.5 min-w-0">
-        <IconLayers2Outline18 className="shrink-0 text-gray-12" />
+        <IconLayers2Outline18 className="size-3 shrink-0 text-gray-12" />
         <span
           className="truncate"
           title={deployment.requestedImage ?? deployment.resolvedImage ?? undefined}
@@ -178,7 +178,7 @@ function DeploymentSource({ deployment }: { deployment: Deployment }) {
       <>
         {deployment.gitBranch && (
           <span className="flex items-center gap-1.5 min-w-0">
-            <IconCodeBranchOutline18 className="shrink-0 text-gray-12" />
+            <IconCodeBranchOutline18 className="size-3 shrink-0 text-gray-12" />
             <span className="truncate">{deployment.gitBranch}</span>
           </span>
         )}
@@ -196,7 +196,7 @@ function DeploymentSource({ deployment }: { deployment: Deployment }) {
     ))
     .with("unknown", () => (
       <span className="flex items-center gap-1.5 min-w-0">
-        <IconLayers2Outline18 className="shrink-0 text-gray-12" />
+        <IconLayers2Outline18 className="size-3 shrink-0 text-gray-12" />
         <span>Deployment artifact</span>
       </span>
     ))

@@ -57,14 +57,18 @@ export function LogdrainDetail({ drain }: { drain: DrainDetail }) {
     {
       id: "pause",
       label: running ? "Pause deliveries" : "Resume deliveries",
-      icon: running ? <IconMediaPauseOutline18 /> : <IconBoltOutline18 />,
+      icon: running ? (
+        <IconMediaPauseOutline18 className="size-4" />
+      ) : (
+        <IconBoltOutline18 className="size-4" />
+      ),
       disabled: setStatus.isLoading,
       onClick: () => toggleStatus(),
     },
     {
       id: "delete",
       label: "Delete log drain",
-      icon: <IconTrashOutline18 />,
+      icon: <IconTrashOutline18 className="size-4" />,
       onClick: () => setConfirmDelete(true),
     },
   ];

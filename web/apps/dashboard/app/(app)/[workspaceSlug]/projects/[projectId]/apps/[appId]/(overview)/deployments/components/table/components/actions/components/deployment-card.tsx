@@ -44,7 +44,7 @@ const DeploymentDescription = ({
   return match(deployment.source)
     .with("oci", () => (
       <SourceDescription>
-        <IconLayers2Outline18 className="shrink-0 text-gray-12" />
+        <IconLayers2Outline18 className="size-3 shrink-0 text-gray-12" />
         <span
           className="truncate"
           title={deployment.requestedImage ?? deployment.resolvedImage ?? undefined}
@@ -55,7 +55,7 @@ const DeploymentDescription = ({
     ))
     .with("git", () => (
       <SourceDescription>
-        <IconCodeCommitOutline18 className="shrink-0 text-gray-12" />
+        <IconCodeCommitOutline18 className="size-3 shrink-0 text-gray-12" />
         <span className="truncate">
           {deployment.gitCommitMessage || `${isCurrent ? "Current active" : "Target"} deployment`}
         </span>
@@ -63,7 +63,7 @@ const DeploymentDescription = ({
     ))
     .with("unknown", () => (
       <SourceDescription>
-        <IconLayers2Outline18 className="shrink-0 text-gray-12" />
+        <IconLayers2Outline18 className="size-3 shrink-0 text-gray-12" />
         <span>{isCurrent ? "Current active deployment" : "Target deployment"}</span>
       </SourceDescription>
     ))
@@ -95,7 +95,7 @@ const DeploymentMetadata = ({ deployment }: Pick<DeploymentCardProps, "deploymen
       const digestLabel = digest.startsWith("sha256:") ? `sha256:${digest.slice(7, 19)}` : digest;
       return (
         <MetadataPill className="max-w-[180px]" title={deployment.resolvedImage}>
-          <IconLayers2Outline18 className="shrink-0 text-gray-12" />
+          <IconLayers2Outline18 className="size-3 shrink-0 text-gray-12" />
           <span className="truncate font-mono">{digestLabel}</span>
         </MetadataPill>
       );
@@ -104,13 +104,13 @@ const DeploymentMetadata = ({ deployment }: Pick<DeploymentCardProps, "deploymen
       <div className="flex gap-1.5">
         {deployment.gitBranch && (
           <MetadataPill className="max-w-[100px]">
-            <IconCodeBranchOutline18 className="shrink-0 text-gray-12" />
+            <IconCodeBranchOutline18 className="size-3 shrink-0 text-gray-12" />
             <span className="truncate">{deployment.gitBranch}</span>
           </MetadataPill>
         )}
         {deployment.gitCommitSha && (
           <MetadataPill>
-            <IconCodeCommitOutline18 className="shrink-0 text-gray-12" />
+            <IconCodeCommitOutline18 className="size-3 shrink-0 text-gray-12" />
             <span>{shortenId(deployment.gitCommitSha)}</span>
           </MetadataPill>
         )}

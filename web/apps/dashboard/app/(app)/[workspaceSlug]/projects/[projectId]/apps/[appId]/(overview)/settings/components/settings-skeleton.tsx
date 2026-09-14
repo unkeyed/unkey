@@ -142,7 +142,7 @@ export function SettingsSkeleton() {
         </SettingCardGroup>
       ) : null}
       <SettingsGroup
-        icon={<IconCircleHalfDottedClockOutline18 />}
+        icon={<IconCircleHalfDottedClockOutline18 className="size-4" />}
         title="Runtime settings"
         hideChevron
       >
@@ -150,7 +150,11 @@ export function SettingsSkeleton() {
           <CardRows rows={RUNTIME_ROWS} />
         </SettingCardGroup>
       </SettingsGroup>
-      <SettingsGroup icon={<IconGearOutline18 />} title="Advanced configurations" hideChevron>
+      <SettingsGroup
+        icon={<IconGearOutline18 className="size-4" />}
+        title="Advanced configurations"
+        hideChevron
+      >
         <SettingCardGroup>
           <CardRows rows={ADVANCED_ROWS} />
         </SettingCardGroup>

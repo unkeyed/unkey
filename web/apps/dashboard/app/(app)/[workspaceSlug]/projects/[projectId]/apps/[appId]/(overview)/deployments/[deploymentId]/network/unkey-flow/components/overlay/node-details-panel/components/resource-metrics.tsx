@@ -17,7 +17,7 @@ import {
 import type { TimeWindow } from "@unkey/clickhouse";
 import {
   IconArrowsOppositeDirectionYOutline12,
-  IconChevronExpandYOutline18,
+  IconChevronExpandYOutline12,
   IconGridOutline12,
   IconHardDriveOutline18,
   IconMicrochipOutline18,
@@ -190,7 +190,7 @@ export function ResourceMetrics({ resourceId, storageMib, instanceName }: Resour
           <SelectTrigger
             wrapperClassName="w-fit shrink-0"
             className="h-7 min-h-0! rounded-lg border-grayA-4 bg-transparent shadow-sm text-gray-12 text-xs focus:ring-0"
-            rightIcon={<IconChevronExpandYOutline18 className="absolute right-2.5 text-gray-9" />}
+            rightIcon={<IconChevronExpandYOutline12 className="absolute right-2.5 text-gray-9" />}
           >
             <SelectValue className="text-xs" />
           </SelectTrigger>

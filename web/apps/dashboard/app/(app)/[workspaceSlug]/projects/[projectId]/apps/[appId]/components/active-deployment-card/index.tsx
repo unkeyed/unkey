@@ -113,7 +113,7 @@ export function ActiveDeploymentCard({
                 deployment.gitCommitMessage ? (
                   <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <IconCodeCommitOutline18 className="text-accent-12 shrink-0" />
+                      <IconCodeCommitOutline18 className="size-3 text-accent-12 shrink-0" />
                       <span className="text-xs text-accent-12 truncate">
                         {deployment.gitCommitMessage}
                       </span>
@@ -177,7 +177,7 @@ export function ActiveDeploymentCard({
                     {deployment.gitBranch && (
                       <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>
                         <span className="flex items-center gap-1">
-                          <IconCodeBranchOutline18 className="text-accent-12 shrink-0" />
+                          <IconCodeBranchOutline18 className="size-3 text-accent-12 shrink-0" />
                           <span className="font-mono text-xs text-accent-12 truncate max-w-32">
                             {deployment.gitBranch}
                           </span>
@@ -190,7 +190,7 @@ export function ActiveDeploymentCard({
                         <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
                           <span className="flex items-center gap-1">
                             {!deployment.gitBranch && (
-                              <IconCodeCommitOutline18 className="text-accent-12 shrink-0" />
+                              <IconCodeCommitOutline18 className="size-3 text-accent-12 shrink-0" />
                             )}
                             <span className="font-mono text-xs text-accent-12">
                               {deployment.gitCommitSha.slice(0, 7)}

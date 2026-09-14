@@ -39,7 +39,7 @@ export function BranchSelect() {
       <PopoverTrigger
         render={
           <FilterTriggerButton
-            icon={<IconCodeBranchOutline18 className="text-gray-9 shrink-0" />}
+            icon={<IconCodeBranchOutline18 className="size-4 text-gray-9 shrink-0" />}
             label="Branch"
             count={selectedBranches.length}
             isActive={selectedBranches.length > 0}
@@ -50,7 +50,7 @@ export function BranchSelect() {
         <div className="p-1">
           <InputGroup className="h-8">
             <InputGroupAddon className="pointer-events-none">
-              <IconMagnifierOutline18 className="text-gray-9" />
+              <IconMagnifierOutline18 className="size-4 text-gray-9" />
             </InputGroupAddon>
             <InputGroupInput
               placeholder="Search branches..."

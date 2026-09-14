@@ -1,5 +1,5 @@
 import type { Permission } from "@/lib/trpc/routers/authorization/permissions/query";
-import { IconKey2Outline18, IconPage2Outline18, IconTagOutline18 } from "@unkey/icons";
+import { IconKey2Outline18, IconPage2Outline12, IconTagOutline18 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   AssignedCountCell,
@@ -74,7 +74,7 @@ export const createPermissionsColumns = ({
         <SelectableNameCell
           name={permission.name}
           description={permission.description}
-          icon={<IconPage2Outline18 className="text-gray-12 cursor-pointer" />}
+          icon={<IconPage2Outline12 className="text-gray-12 cursor-pointer" />}
           isSelected={selectedPermissions.has(permission.permissionId)}
           isHovered={hoveredPermissionName === permission.name}
           onMouseEnter={() => onHoverPermission(permission.name)}

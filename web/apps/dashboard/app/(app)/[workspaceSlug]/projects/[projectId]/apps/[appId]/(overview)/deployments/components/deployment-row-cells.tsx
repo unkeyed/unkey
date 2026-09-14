@@ -111,7 +111,7 @@ export function OriginCell({ deployment }: { deployment: Deployment }) {
       position={{ side: "top" }}
       triggerClassName="relative z-20 flex min-w-0 items-center gap-2"
     >
-      <Icon className="shrink-0 text-gray-9" />
+      <Icon className="size-3 shrink-0 text-gray-9" />
       <span className="truncate font-mono text-[13px] text-accent-12">{origin.label}</span>
     </InfoTooltip>
   );
@@ -134,7 +134,7 @@ export function SourceChip({
         position={{ side: "top" }}
         triggerClassName={cn(CHIP_CLASS, "relative z-20")}
       >
-        <Icon className="shrink-0 text-gray-9" />
+        <Icon className="size-3 shrink-0 text-gray-9" />
         <span className="truncate font-mono">{origin.label}</span>
       </InfoTooltip>
     );
@@ -188,7 +188,7 @@ export function BranchCell({
 
   return (
     <span className="flex min-w-0 items-center gap-2">
-      <IconCodeBranchOutline18 className="shrink-0 text-gray-9" />
+      <IconCodeBranchOutline18 className="size-3 shrink-0 text-gray-9" />
       {href ? (
         <Interactive className="min-w-0">
           <a
@@ -223,7 +223,7 @@ export function CommitSha({
   );
   const body = (
     <>
-      <IconCodeCommitOutline18 className="shrink-0 text-gray-9" />
+      <IconCodeCommitOutline18 className="size-3 shrink-0 text-gray-9" />
       <span className="font-mono text-xs text-accent-12">
         {deployment.gitCommitSha.slice(0, 7)}
       </span>
@@ -251,7 +251,7 @@ export function CommitSha({
 export function ImageRef({ image }: { image: string }) {
   return (
     <span className="flex min-w-0 items-center gap-1.5" title={image}>
-      <IconLayers2Outline18 className="shrink-0 text-gray-9" />
+      <IconLayers2Outline18 className="size-3 shrink-0 text-gray-9" />
       <span className="truncate font-mono text-xs text-accent-12">{imageRefTag(image)}</span>
     </span>
   );

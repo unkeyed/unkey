@@ -11,7 +11,7 @@ export function DrainErrorBanner({ status }: { status: DrainDetail["status"] }) 
 
   return (
     <AlertBanner variant="error">
-      <IconTriangleWarningOutline18 aria-hidden="true" />
+      <IconTriangleWarningOutline18 className="size-4" aria-hidden="true" />
       <AlertBannerTitle>Deliveries are failing</AlertBannerTitle>
       <AlertBannerDescription>
         Unkey paused this log drain after too many failed deliveries in a row. Fix the endpoint,

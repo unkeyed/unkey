@@ -1,5 +1,5 @@
 import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/status-badge";
-import { IconLockOutline18, IconTagOutline12 } from "@unkey/icons";
+import { IconLockOutline12, IconTagOutline12 } from "@unkey/icons";
 import { Badge, Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 
 type Role = {
@@ -51,7 +51,7 @@ export function createRoleOptions({
                       <StatusBadge
                         variant="locked"
                         text="Already assigned"
-                        icon={<IconLockOutline18 />}
+                        icon={<IconLockOutline12 />}
                       />
                     )}
                   </div>

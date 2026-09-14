@@ -141,7 +141,7 @@ export const DeploymentStatusBadge = ({ status, className }: DeploymentStatusBad
       {animated && (
         <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent w-[150%] animate-shimmer" />
       )}
-      <Icon className={cn(iconColor, animated && "relative z-5")} />
+      <Icon className={cn("size-4", iconColor, animated && "relative z-5")} />
       <span className={cn(textColor, "text-xs", animated && "relative z-5")}>{label}</span>
     </div>
   );

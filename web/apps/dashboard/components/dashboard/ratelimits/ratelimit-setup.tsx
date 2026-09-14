@@ -3,7 +3,7 @@ import { ProtectionSwitch } from "@/components/dashboard/metadata/protection-swi
 import { parseDuration } from "@/lib/duration";
 import { formatMs } from "@/lib/ms";
 import type { RatelimitItem } from "@/lib/schemas/ratelimit";
-import { IconGaugeOutline18, IconTrashOutline18 } from "@unkey/icons";
+import { IconGaugeOutline12, IconTrashOutline18 } from "@unkey/icons";
 import { Button, FormCheckbox, FormInput, InlineLink } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useRef, useState } from "react";
@@ -187,7 +187,7 @@ export const RatelimitSetup = ({
         <ProtectionSwitch
           description={description}
           title="Ratelimit"
-          icon={<IconGaugeOutline18 className="text-gray-12" />}
+          icon={<IconGaugeOutline12 className="text-gray-12" />}
           checked={ratelimitEnabled}
           onCheckedChange={handleSwitchChange}
         />

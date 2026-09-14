@@ -28,7 +28,7 @@ export const OnboardingLinks = () => (
         className="flex items-center  w-full gap-2"
       >
         <div className="size-[18px] overflow-hidden flex items-center justify-center">
-          <Discord className="size-3 text-feature-11 shrink-0" style={{ width: 18, height: 18 }} />
+          <Discord className="text-feature-11 shrink-0" style={{ width: 18, height: 18 }} />
         </div>
         Join community
       </a>

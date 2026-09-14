@@ -1,5 +1,5 @@
 import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/status-badge";
-import { IconKey2Outline12, IconLockOutline18 } from "@unkey/icons";
+import { IconKey2Outline12, IconLockOutline12 } from "@unkey/icons";
 import { Badge, Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
 
 type Key = {
@@ -45,7 +45,7 @@ export function createKeyOptions({
                       <StatusBadge
                         variant="locked"
                         text="Already assigned"
-                        icon={<IconLockOutline18 />}
+                        icon={<IconLockOutline12 />}
                       />
                     )}
                   </div>

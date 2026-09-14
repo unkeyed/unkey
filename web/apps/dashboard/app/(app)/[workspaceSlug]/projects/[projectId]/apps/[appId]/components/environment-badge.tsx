@@ -3,9 +3,9 @@
 import { ENVIRONMENT_KIND, type Environment } from "@/lib/collections/deploy/environments";
 import { cn } from "@/lib/utils";
 import {
-  IconArrowDotRotateAnticlockwiseOutline18,
-  IconCircleXmarkOutline18,
-  IconCloudOutline18,
+  IconArrowDotRotateAnticlockwiseOutline12,
+  IconCircleXmarkOutline12,
+  IconCloudOutline12,
   IconEyeOutline12,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
@@ -45,25 +45,25 @@ export function EnvironmentBadge({
 
   const { Icon, className, title, detail } = match(rollout)
     .with("none", () => ({
-      Icon: IconCloudOutline18,
+      Icon: IconCloudOutline12,
       className: OUTLINED_CLASS,
       title: "Production environment",
       detail: "Not receiving production traffic.",
     }))
     .with("live", () => ({
-      Icon: IconCloudOutline18,
+      Icon: IconCloudOutline12,
       className: LIVE_CLASS,
       title: liveLabel,
       detail: "Receiving production traffic.",
     }))
     .with("liveAfterRollback", () => ({
-      Icon: IconArrowDotRotateAnticlockwiseOutline18,
+      Icon: IconArrowDotRotateAnticlockwiseOutline12,
       className: LIVE_CLASS,
       title: `${liveLabel} (rollback)`,
       detail: "Receiving production traffic.",
     }))
     .with("rolledBackFrom", () => ({
-      Icon: IconCircleXmarkOutline18,
+      Icon: IconCircleXmarkOutline12,
       className: ROLLED_BACK_FROM_CLASS,
       title: "This deployment was rolled back",
       detail: "Traffic moved back to an earlier deployment.",

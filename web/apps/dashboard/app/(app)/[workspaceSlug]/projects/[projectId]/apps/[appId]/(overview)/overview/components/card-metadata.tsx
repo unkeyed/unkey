@@ -63,7 +63,7 @@ function SourceCell() {
       {deployment.source === "git" && deployment.gitBranch && (
         <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>
           <span className="flex items-center gap-1.5">
-            <IconCodeBranchOutline18 className="text-accent-12 shrink-0" />
+            <IconCodeBranchOutline18 className="size-3 text-accent-12 shrink-0" />
             <span className="font-mono text-[13px] text-accent-12 truncate max-w-40">
               {deployment.gitBranch}
             </span>
@@ -74,7 +74,7 @@ function SourceCell() {
         <div className="flex items-center gap-1.5 min-w-0">
           <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
             <span className="flex items-center gap-1.5">
-              <IconCodeCommitOutline18 className="text-accent-12 shrink-0" />
+              <IconCodeCommitOutline18 className="size-3 text-accent-12 shrink-0" />
               <span className="font-mono text-[13px] text-accent-12">
                 {deployment.gitCommitSha.slice(0, 7)}
               </span>
@@ -102,7 +102,7 @@ function SourceCell() {
       )}
       {deployment.source !== "git" && (
         <span className="flex items-center gap-1.5 min-w-0">
-          <IconLayers2Outline18 className="shrink-0 text-gray-9" />
+          <IconLayers2Outline18 className="size-3 shrink-0 text-gray-9" />
           <span
             className="font-mono text-[13px] text-accent-12 truncate"
             title={image ?? undefined}

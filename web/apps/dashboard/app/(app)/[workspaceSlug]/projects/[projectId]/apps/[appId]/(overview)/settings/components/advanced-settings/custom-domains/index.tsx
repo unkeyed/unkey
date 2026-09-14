@@ -10,7 +10,7 @@ import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { IconChevronDownOutline18, IconLink4Outline18 } from "@unkey/icons";
+import { IconChevronDownOutline12, IconLink4Outline18 } from "@unkey/icons";
 import {
   AlertBanner,
   AlertBannerActions,
@@ -168,7 +168,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
                 <SelectTrigger
                   wrapperClassName="w-[140px]"
                   variant={errors.environmentId ? "error" : "default"}
-                  rightIcon={<IconChevronDownOutline18 className="absolute right-3 opacity-70" />}
+                  rightIcon={<IconChevronDownOutline12 className="absolute right-3 opacity-70" />}
                 >
                   <SelectValue placeholder="Environment">
                     {environments.find((e) => e.id === field.value)?.slug ?? ""}

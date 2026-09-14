@@ -1,7 +1,7 @@
 import {
   IconChartActivity2Outline12,
   IconDotsOutline12,
-  IconKey2Outline18,
+  IconKey2Outline12,
   IconPage2Outline18,
 } from "@unkey/icons";
 import { cn } from "../../../../lib/utils";
@@ -9,7 +9,7 @@ import { DashedBadgeSkeleton } from "./dashed-badge-skeleton";
 import { NameColumnSkeleton } from "./name-column-skeleton";
 
 export const RootKeyColumnSkeleton = () => (
-  <NameColumnSkeleton icon={<IconKey2Outline18 className="text-gray-12 opacity-50" />} lines={1} />
+  <NameColumnSkeleton icon={<IconKey2Outline12 className="text-gray-12 opacity-50" />} lines={1} />
 );
 
 export const CreatedAtColumnSkeleton = () => (
