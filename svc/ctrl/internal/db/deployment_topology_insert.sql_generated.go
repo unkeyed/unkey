@@ -32,6 +32,13 @@ INSERT INTO ` + "`" + `deployment_topology` + "`" + ` (
     ?,
     ?
 )
+ON DUPLICATE KEY UPDATE
+    workspace_id = ?,
+    autoscaling_replicas_min = ?,
+    autoscaling_replicas_max = ?,
+    autoscaling_threshold_cpu = ?,
+    autoscaling_threshold_memory = ?,
+    desired_status = ?
 `
 
 type InsertDeploymentTopologyParams struct {
@@ -69,6 +76,13 @@ type InsertDeploymentTopologyParams struct {
 //	    ?,
 //	    ?
 //	)
+//	ON DUPLICATE KEY UPDATE
+//	    workspace_id = ?,
+//	    autoscaling_replicas_min = ?,
+//	    autoscaling_replicas_max = ?,
+//	    autoscaling_threshold_cpu = ?,
+//	    autoscaling_threshold_memory = ?,
+//	    desired_status = ?
 func (q *Queries) InsertDeploymentTopology(ctx context.Context, arg InsertDeploymentTopologyParams) error {
 	_, err := q.db.ExecContext(ctx, insertDeploymentTopology,
 		arg.WorkspaceID,
@@ -80,6 +94,12 @@ func (q *Queries) InsertDeploymentTopology(ctx context.Context, arg InsertDeploy
 		arg.AutoscalingThresholdMemory,
 		arg.DesiredStatus,
 		arg.CreatedAt,
+		arg.WorkspaceID,
+		arg.AutoscalingReplicasMin,
+		arg.AutoscalingReplicasMax,
+		arg.AutoscalingThresholdCpu,
+		arg.AutoscalingThresholdMemory,
+		arg.DesiredStatus,
 	)
 	return err
 }
