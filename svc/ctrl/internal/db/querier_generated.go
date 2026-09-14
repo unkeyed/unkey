@@ -1139,7 +1139,6 @@ type Querier interface {
 	//      ?
 	//  )
 	//  ON DUPLICATE KEY UPDATE
-	//      workspace_id = ?,
 	//      autoscaling_replicas_min = ?,
 	//      autoscaling_replicas_max = ?,
 	//      autoscaling_threshold_cpu = ?,

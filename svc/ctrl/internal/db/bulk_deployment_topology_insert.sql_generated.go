@@ -10,7 +10,6 @@ import (
 
 // bulkInsertDeploymentTopology is the base query for bulk insert
 const bulkInsertDeploymentTopology = `INSERT INTO ` + "`" + `deployment_topology` + "`" + ` ( workspace_id, deployment_id, region_id, autoscaling_replicas_min, autoscaling_replicas_max, autoscaling_threshold_cpu, autoscaling_threshold_memory, desired_status, created_at ) VALUES %s ON DUPLICATE KEY UPDATE
-    workspace_id = ?,
     autoscaling_replicas_min = ?,
     autoscaling_replicas_max = ?,
     autoscaling_threshold_cpu = ?,
@@ -49,7 +48,6 @@ func (q *BulkQueries) InsertDeploymentTopologies(ctx context.Context, args []Ins
 
 	// Add ON DUPLICATE KEY UPDATE parameters (only once, not per row)
 	if len(args) > 0 {
-		allArgs = append(allArgs, args[0].WorkspaceID)
 		allArgs = append(allArgs, args[0].AutoscalingReplicasMin)
 		allArgs = append(allArgs, args[0].AutoscalingReplicasMax)
 		allArgs = append(allArgs, args[0].AutoscalingThresholdCpu)
