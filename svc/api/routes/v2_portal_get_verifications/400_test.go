@@ -156,6 +156,13 @@ func TestPortalSessionAnalyticsRejectsOversizedPerKeyBreakout(t *testing.T) {
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		res := testutil.CallRoute[Request, openapi.BadRequestErrorResponse](h, route, headers, req)
 		require.Equal(c, 400, res.Status, "a breakout past the cap must be rejected, not truncated")
+		require.NotNil(c, res.Body)
+
+		// The route has three ways to answer 400, so asserting the status alone
+		// would keep passing if the cap stopped firing and something else
+		// rejected the request instead.
+		require.Equal(c, codes.User.BadRequest.PerKeyBreakoutTooLarge.DocsURL(), res.Body.Error.Type,
+			"the cap must be distinguishable from ordinary input validation")
 	}, 30*time.Second, time.Second)
 
 	withoutBreakout := req

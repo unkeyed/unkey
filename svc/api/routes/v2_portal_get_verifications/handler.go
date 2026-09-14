@@ -161,7 +161,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		})
 		if errors.Is(err, clickhouse.ErrTooManyVerificationKeys) {
 			return fault.Wrap(err,
-				fault.Code(codes.App.Validation.InvalidInput.URN()),
+				fault.Code(codes.User.BadRequest.PerKeyBreakoutTooLarge.URN()),
 				fault.Internal("per-key breakout exceeds the key cap"),
 				fault.Public(fmt.Sprintf("The per-key breakout is limited to %d keys. Request a narrower window or a single `keyId`.", h.MaxPerKeySeries)),
 			)
