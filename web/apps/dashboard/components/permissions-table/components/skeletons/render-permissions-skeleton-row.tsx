@@ -34,13 +34,13 @@ export const renderPermissionsSkeletonRow = ({
         <NameColumnSkeleton icon={<IconPage2Outline12 className="text-gray-12 opacity-50" />} />
       )}
       {column.id === PERMISSION_COLUMN_IDS.SLUG.id && (
-        <DashedBadgeSkeleton icon={<IconPage2Outline18 className="size-4 opacity-50" />} />
+        <DashedBadgeSkeleton icon={<IconPage2Outline18 className="size-3.5 opacity-50" />} />
       )}
       {column.id === PERMISSION_COLUMN_IDS.USED_IN_ROLES.id && (
-        <DashedBadgeSkeleton icon={<IconTagOutline18 className="size-4 opacity-50" />} />
+        <DashedBadgeSkeleton icon={<IconTagOutline18 className="size-3.5 opacity-50" />} />
       )}
       {column.id === PERMISSION_COLUMN_IDS.ASSIGNED_TO_KEYS.id && (
-        <DashedBadgeSkeleton icon={<IconKey2Outline18 className="size-4 opacity-50" />} />
+        <DashedBadgeSkeleton icon={<IconKey2Outline18 className="size-3.5 opacity-50" />} />
       )}
       {column.id === PERMISSION_COLUMN_IDS.LAST_UPDATED.id && <LastUpdatedColumnSkeleton />}
       {column.id === PERMISSION_COLUMN_IDS.ACTION.id && <ActionColumnSkeleton />}

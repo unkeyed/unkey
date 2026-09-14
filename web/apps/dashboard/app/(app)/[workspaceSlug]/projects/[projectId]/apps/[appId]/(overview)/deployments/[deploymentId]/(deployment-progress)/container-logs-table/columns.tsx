@@ -18,13 +18,13 @@ function SeverityIcon({ severity }: { severity: string }) {
     case "ERROR":
       return (
         <div className="my-2">
-          <IconTriangleWarningOutline18 className="size-4 text-error-11" />
+          <IconTriangleWarningOutline18 className="size-3.5 text-error-11" />
         </div>
       );
     case "WARN":
       return (
         <div className="my-2">
-          <IconTriangleWarningOutline18 className="size-4 text-warning-11" />
+          <IconTriangleWarningOutline18 className="size-3.5 text-warning-11" />
         </div>
       );
     default:

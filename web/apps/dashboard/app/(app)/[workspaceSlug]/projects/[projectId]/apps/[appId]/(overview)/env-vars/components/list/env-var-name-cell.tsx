@@ -87,7 +87,7 @@ export const EnvVarNameCell = ({
           {note && (
             <InfoTooltip content={note} position={{ side: "top" }}>
               <span className="shrink-0 text-gray-10">
-                <IconNote3Outline18 className="size-4 mt-0.5" />
+                <IconNote3Outline18 className="size-3.5 mt-0.5" />
               </span>
             </InfoTooltip>
           )}

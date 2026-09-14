@@ -172,7 +172,7 @@ function Row({
             ) : (
               <>
                 {label}
-                <IconArrowRightOutline18 className="size-4 transition-transform group-hover:translate-x-0.5" />
+                <IconArrowRightOutline18 className="size-3.5 transition-transform group-hover:translate-x-0.5" />
               </>
             )}
           </span>
@@ -234,7 +234,7 @@ export function AllPlansInclude() {
       <ul className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2.5">
         {ALL_PLANS_INCLUDE.map((feature) => (
           <li key={feature} className="flex items-center gap-2.5 text-[13px] text-gray-11">
-            <IconCheckOutline18 className="size-4 shrink-0 text-gray-10" />
+            <IconCheckOutline18 className="size-3.5 shrink-0 text-gray-10" />
             {feature}
           </li>
         ))}

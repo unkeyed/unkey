@@ -74,8 +74,8 @@ export function EnvVarsToolbar({
         >
           <SelectTrigger
             className="h-9 w-full bg-gray-1"
-            leftIcon={<IconLayers3Outline18 className="size-4 text-gray-9" />}
-            rightIcon={<IconChevronDownOutline18 className="size-4 absolute right-2" />}
+            leftIcon={<IconLayers3Outline18 className="size-3.5 text-gray-9" />}
+            rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
           >
             <SelectValue placeholder="All Environments" />
           </SelectTrigger>
@@ -104,8 +104,8 @@ export function EnvVarsToolbar({
         >
           <SelectTrigger
             className="h-9 w-full bg-gray-1"
-            leftIcon={<IconBarsFilterOutline18 className="size-4 text-gray-9" />}
-            rightIcon={<IconChevronDownOutline18 className="size-4 absolute right-2" />}
+            leftIcon={<IconBarsFilterOutline18 className="size-3.5 text-gray-9" />}
+            rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
           >
             <SelectValue />
           </SelectTrigger>

@@ -22,7 +22,7 @@ export const OverridesTableAction = ({
       {
         id: "copy",
         label: "Copy identifier",
-        icon: <IconCloneOutline18 className="size-4" />,
+        icon: <IconCloneOutline18 className="size-3.5" />,
         onClick: (e) => {
           e.stopPropagation();
           navigator.clipboard
@@ -41,7 +41,7 @@ export const OverridesTableAction = ({
       {
         id: "override",
         label: "Override Identifier",
-        icon: <IconPenWriting3Outline18 className="size-4 text-orange-11" />,
+        icon: <IconPenWriting3Outline18 className="size-3.5 text-orange-11" />,
         className: "text-orange-11 hover:bg-orange-2 focus:bg-orange-3",
         ActionComponent: (props) => (
           <IdentifierDialog
@@ -57,7 +57,7 @@ export const OverridesTableAction = ({
       {
         id: "delete",
         label: "Delete Override",
-        icon: <IconTrashOutline18 className="size-4 text-error-11" />,
+        icon: <IconTrashOutline18 className="size-3.5 text-error-11" />,
         className: "text-error-11 hover:bg-error-3 focus:bg-error-3",
         ActionComponent: (props) =>
           overrideDetails?.overrideId ? (

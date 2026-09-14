@@ -23,7 +23,7 @@ export function EnvVarGroupActionMenu({ groupKey, items }: EnvVarGroupActionMenu
     {
       id: "rename",
       label: "Rename in all environments",
-      icon: <IconPenWriting3Outline18 className="size-4" />,
+      icon: <IconPenWriting3Outline18 className="size-3.5" />,
       ActionComponent: (props) => (
         <EnvVarGroupRenameDialog {...props} groupKey={groupKey} items={items} />
       ),
@@ -31,7 +31,7 @@ export function EnvVarGroupActionMenu({ groupKey, items }: EnvVarGroupActionMenu
     {
       id: "delete",
       label: "Delete from all environments",
-      icon: <IconTrashOutline18 className="size-4" />,
+      icon: <IconTrashOutline18 className="size-3.5" />,
       onClick: (e) => {
         e.stopPropagation();
         setIsDeleteConfirmOpen(true);

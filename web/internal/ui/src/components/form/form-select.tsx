@@ -78,7 +78,7 @@ function FormSelect({
             aria-invalid={control.invalid}
             aria-required={requirement === "required"}
             rightIcon={
-              rightIcon ?? <IconChevronDownOutline18 className="size-4 absolute right-2" />
+              rightIcon ?? <IconChevronDownOutline18 className="size-3.5 absolute right-2" />
             }
           >
             <SelectValue placeholder={placeholder} />

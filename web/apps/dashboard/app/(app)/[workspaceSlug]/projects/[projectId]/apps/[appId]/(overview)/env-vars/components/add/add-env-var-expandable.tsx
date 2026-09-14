@@ -331,7 +331,9 @@ export const AddEnvVarExpandable = ({
                       <SelectTrigger
                         id="environment-select"
                         className="capitalize"
-                        rightIcon={<IconChevronDownOutline18 className="size-4 absolute right-2" />}
+                        rightIcon={
+                          <IconChevronDownOutline18 className="size-3.5 absolute right-2" />
+                        }
                       >
                         <SelectValue placeholder="Select environment" />
                       </SelectTrigger>
@@ -367,7 +369,7 @@ export const AddEnvVarExpandable = ({
                   asChild
                 >
                   <span className="text-grayA-9">
-                    <IconCircleInfoOutline18 className="size-4" />
+                    <IconCircleInfoOutline18 className="size-3.5" />
                   </span>
                 </InfoTooltip>
               </div>

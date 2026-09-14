@@ -29,7 +29,7 @@ export const CanvasBoundary = ({ children }: PropsWithChildren) => {
               <div className="h-12 border-b border-grayA-4 flex items-center px-4 gap-3">
                 {/* Icon container */}
                 <div className="size-6 rounded-md bg-redA-3 border border-grayA-4 flex items-center justify-center shrink-0">
-                  <IconTriangleWarningOutline18 className="size-4 text-red-11" />
+                  <IconTriangleWarningOutline18 className="size-3.5 text-red-11" />
                 </div>
                 {/* Title */}
                 <span className="text-sm font-medium text-gray-12">

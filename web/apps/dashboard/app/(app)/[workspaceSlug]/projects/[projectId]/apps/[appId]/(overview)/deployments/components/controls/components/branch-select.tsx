@@ -50,7 +50,7 @@ export function BranchSelect() {
         <div className="p-1">
           <InputGroup className="h-8">
             <InputGroupAddon className="pointer-events-none">
-              <IconMagnifierOutline18 className="size-4 text-gray-9" />
+              <IconMagnifierOutline18 className="size-3.5 text-gray-9" />
             </InputGroupAddon>
             <InputGroupInput
               placeholder="Search branches..."

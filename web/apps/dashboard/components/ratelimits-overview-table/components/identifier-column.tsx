@@ -40,7 +40,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
         }
       >
         <div className={cn(hasMoreBlocked ? "flex items-center shrink-0" : "invisible shrink-0")}>
-          <IconTriangleWarningOutline18 className="size-4" />
+          <IconTriangleWarningOutline18 className="size-3.5" />
         </div>
       </InfoTooltip>
       <div className="flex gap-3 items-center min-w-0">
@@ -52,10 +52,10 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
           )}
         >
           {log.override ? (
-            <IconArrowDotRotateAnticlockwiseOutline18 className="size-4" />
+            <IconArrowDotRotateAnticlockwiseOutline18 className="size-3.5" />
           ) : (
             <IconFocusOutline18
-              className={cn("size-4", hasMoreBlocked ? "" : "group-hover:text-accent-12")}
+              className={cn("size-3.5", hasMoreBlocked ? "" : "group-hover:text-accent-12")}
             />
           )}
         </div>
@@ -99,7 +99,7 @@ const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProp
             "bg-accent-4 text-accent-12 group-hover:bg-accent-5",
           )}
         >
-          <IconArrowDotRotateAnticlockwiseOutline18 className="size-4" />
+          <IconArrowDotRotateAnticlockwiseOutline18 className="size-3.5" />
         </div>
         <div className="flex flex-col gap-1">
           <div className="text-sm flex gap-[10px] items-center">

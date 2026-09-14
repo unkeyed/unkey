@@ -178,7 +178,7 @@ function DialogContent({
             className={buttonClassNames}
             aria-label="Close dialog with confirmation"
           >
-            <IconXmarkOutline18 className="size-4" />
+            <IconXmarkOutline18 className="size-3.5" />
           </button>
         ) : (
           // Use DialogPrimitive.Close for standard behavior

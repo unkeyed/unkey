@@ -31,7 +31,7 @@ export function DeploymentSkipped() {
           title="Deployment Skipped"
           description="This deployment was skipped based on your build settings"
           status="started"
-          statusIcon={<IconBanOutline18 className="size-4 text-gray-9" />}
+          statusIcon={<IconBanOutline18 className="size-3.5 text-gray-9" />}
         />
         <DeploymentStep
           icon={<IconLayerFrontOutline18 />}

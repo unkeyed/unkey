@@ -61,7 +61,7 @@ export function ProductionCardActionsMenu({
               {
                 id: "view-commit",
                 label: "View commit on GitHub",
-                icon: <Github className="size-4" />,
+                icon: <Github className="size-3.5" />,
                 onClick: () => window.open(commitUrl, "_blank", "noopener,noreferrer"),
               },
             ]
@@ -74,9 +74,9 @@ export function ProductionCardActionsMenu({
         id: "stop-wake",
         label: stopped ? "Wake" : "Stop",
         icon: stopped ? (
-          <IconBoltOutline18 className="size-4" />
+          <IconBoltOutline18 className="size-3.5" />
         ) : (
-          <IconBanOutline18 className="size-4" />
+          <IconBanOutline18 className="size-3.5" />
         ),
         disabled: true,
         tooltip: "Available soon",
@@ -84,7 +84,7 @@ export function ProductionCardActionsMenu({
       {
         id: "redeploy",
         label: "Redeploy",
-        icon: <IconHammer2Outline18 className="size-4" />,
+        icon: <IconHammer2Outline18 className="size-3.5" />,
         disabled: !canRedeploy,
         // Without a Compute plan, redeploy opens the paywall instead of building.
         ...(gated && canRedeploy
@@ -99,26 +99,26 @@ export function ProductionCardActionsMenu({
       {
         id: "view-deployment",
         label: "Go to deployment",
-        icon: <IconLayers2Outline18 className="size-4" />,
+        icon: <IconLayers2Outline18 className="size-3.5" />,
         href: deploymentHref,
       },
       {
         id: "view-logs",
         label: "Go to logs",
-        icon: <IconLayers3Outline18 className="size-4" />,
+        icon: <IconLayers3Outline18 className="size-3.5" />,
         onClick: () => router.push(logsHref),
       },
       {
         id: "view-requests",
         label: "Go to requests",
-        icon: <IconArrowsOppositeDirectionYOutline18 className="size-4" />,
+        icon: <IconArrowsOppositeDirectionYOutline18 className="size-3.5" />,
         onClick: () => router.push(requestsHref),
         divider: true,
       },
       {
         id: "copy-deployment-id",
         label: "Copy deployment ID",
-        icon: <IconCloneOutline18 className="size-4" />,
+        icon: <IconCloneOutline18 className="size-3.5" />,
         onClick: () => {
           navigator.clipboard
             .writeText(deployment.id)

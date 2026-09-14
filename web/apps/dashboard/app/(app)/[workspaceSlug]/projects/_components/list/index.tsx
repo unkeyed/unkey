@@ -49,7 +49,7 @@ export const ProjectsList = () => {
       {gated ? (
         <div className="mb-4 flex items-center justify-between gap-4 rounded-lg border border-warningA-6 bg-warningA-2 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
-            <IconTriangleWarningOutline18 className="size-4 shrink-0 text-warning-11" />
+            <IconTriangleWarningOutline18 className="size-3.5 shrink-0 text-warning-11" />
             <p className="truncate text-[13px] text-gray-11">
               No active Compute plan. Existing projects stay visible, but creating and deploying are
               paused.

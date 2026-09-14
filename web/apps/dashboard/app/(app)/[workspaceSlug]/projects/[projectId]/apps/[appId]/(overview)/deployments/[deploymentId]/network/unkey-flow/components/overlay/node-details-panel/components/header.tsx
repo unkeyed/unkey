@@ -29,7 +29,7 @@ export const NodeDetailsPanelHeader = ({
         aria-label="Close details panel"
         className="shrink-0 p-1 rounded-md hover:bg-grayA-3 transition-colors"
       >
-        <CloseIcon className="size-4 text-gray-9 shrink-0" />
+        <CloseIcon className="size-3.5 text-gray-9 shrink-0" />
       </button>
     </div>
   );

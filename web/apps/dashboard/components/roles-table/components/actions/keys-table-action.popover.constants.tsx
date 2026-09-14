@@ -43,7 +43,7 @@ const getRolesTableActionItems = (
     {
       id: "edit-role",
       label: "Edit role...",
-      icon: <IconPenWriting3Outline18 className="size-4" />,
+      icon: <IconPenWriting3Outline18 className="size-3.5" />,
       ActionComponent: (props) => <EditRole role={role} {...props} />,
       prefetch: async () => {
         await Promise.all([
@@ -63,7 +63,7 @@ const getRolesTableActionItems = (
       id: "copy",
       label: "Copy role",
       className: "mt-1",
-      icon: <IconCloneOutline18 className="size-4" />,
+      icon: <IconCloneOutline18 className="size-3.5" />,
       onClick: () => {
         navigator.clipboard
           .writeText(JSON.stringify(role))
@@ -80,7 +80,7 @@ const getRolesTableActionItems = (
     {
       id: "delete-role",
       label: "Delete role",
-      icon: <IconTrashOutline18 className="size-4" />,
+      icon: <IconTrashOutline18 className="size-3.5" />,
       ActionComponent: (props) => <DeleteRole {...props} roleDetails={role} />,
     },
   ];

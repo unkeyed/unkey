@@ -88,7 +88,7 @@ function PortalLoading() {
 function PortalErrorPanel({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <AlertBanner variant="error">
-      <IconCircleWarningOutline18 className="size-4" />
+      <IconCircleWarningOutline18 className="size-3.5" />
       <AlertBannerTitle>Couldn't load the customer portal</AlertBannerTitle>
       <AlertBannerDescription>{message}</AlertBannerDescription>
       {onRetry ? (
@@ -105,7 +105,7 @@ function PortalErrorPanel({ message, onRetry }: { message: string; onRetry?: () 
 function DisabledBanner({ onEnable, enabling }: { onEnable: () => void; enabling: boolean }) {
   return (
     <AlertBanner variant="warning">
-      <IconTriangleWarningOutline18 className="size-4" />
+      <IconTriangleWarningOutline18 className="size-3.5" />
       <AlertBannerTitle>Portal disabled</AlertBannerTitle>
       <AlertBannerDescription>
         Your users can't sign in right now, but you can still change the settings below.

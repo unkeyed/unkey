@@ -162,7 +162,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
   return (
     <>
       <ProductCard
-        icon={<IconNodesOutline18 className="size-4" />}
+        icon={<IconNodesOutline18 className="size-3.5" />}
         iconClassName="bg-infoA-3 text-info-11"
         name="API Management"
         tag={currentProduct ? currentProduct.name : "Free"}
@@ -229,7 +229,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
           {cancelAt ? (
             <div className="flex items-center justify-between gap-4 rounded-lg border border-warningA-6 bg-warningA-2 px-4 py-3">
               <div className="flex min-w-0 items-center gap-3">
-                <IconTriangleWarningOutline18 className="size-4 shrink-0 text-warning-11" />
+                <IconTriangleWarningOutline18 className="size-3.5 shrink-0 text-warning-11" />
                 <p className="truncate text-[13px] text-gray-11">
                   Your API plan ends in {formatMs(cancelAt - Date.now(), { long: true })} on{" "}
                   {new Date(cancelAt).toLocaleDateString()}; the workspace then downgrades to the

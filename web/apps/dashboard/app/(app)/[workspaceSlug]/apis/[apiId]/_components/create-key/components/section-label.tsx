@@ -14,9 +14,9 @@ export const SectionLabel = ({
       {validState !== "initial" && (
         <div className="ml-auto">
           {validState === "valid" ? (
-            <IconCheckOutline18 className="size-4 text-success-9" />
+            <IconCheckOutline18 className="size-3.5 text-success-9" />
           ) : (
-            <IconXmarkOutline18 className="size-4 text-error-9" />
+            <IconXmarkOutline18 className="size-3.5 text-error-9" />
           )}
         </div>
       )}

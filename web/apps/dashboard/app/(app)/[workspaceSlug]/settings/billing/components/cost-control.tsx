@@ -134,7 +134,7 @@ function ComputeBudget({ isAdmin }: { isAdmin: boolean | undefined }) {
             </div>
             {/* The deployspendcheck worker sends the stopped email instead of the 100% warning when stopping is on. */}
             {ALERT_STEPS.filter((step) => !(stopAtBudget && step === 1)).map((step) => (
-              <AlertRow key={step} icon={<IconEnvelopeOutline18 />}>
+              <AlertRow key={step} icon={<IconEnvelopeOutline18 className="size-3.5" />}>
                 Email at {step * 100}% ({formatDollars(budgetCents * step)})
               </AlertRow>
             ))}

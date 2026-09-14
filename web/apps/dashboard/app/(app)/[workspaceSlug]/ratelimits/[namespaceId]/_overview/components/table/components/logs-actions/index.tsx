@@ -56,7 +56,7 @@ export const LogsTableAction = ({
       {
         id: "logs",
         label: "Go to logs",
-        icon: <IconLayers3Outline18 className="size-4" />,
+        icon: <IconLayers3Outline18 className="size-3.5" />,
         onClick: (e) => {
           e.stopPropagation();
           router.push(
@@ -67,7 +67,7 @@ export const LogsTableAction = ({
       {
         id: "copy",
         label: "Copy identifier",
-        icon: <IconCloneOutline18 className="size-4" />,
+        icon: <IconCloneOutline18 className="size-3.5" />,
         onClick: (e) => {
           e.stopPropagation();
           navigator.clipboard
@@ -86,7 +86,7 @@ export const LogsTableAction = ({
       {
         id: "override",
         label: overrideDetails ? "Update Override" : "Override Identifier",
-        icon: <IconPenWriting3Outline18 className="size-4 text-orange-11" />,
+        icon: <IconPenWriting3Outline18 className="size-3.5 text-orange-11" />,
         className: "text-orange-11 hover:bg-orange-2 focus:bg-orange-3",
         ActionComponent: (props) => (
           <IdentifierDialog
@@ -102,7 +102,7 @@ export const LogsTableAction = ({
       {
         id: "delete",
         label: "Delete Override",
-        icon: <IconTrashOutline18 className="size-4 text-error-10" />,
+        icon: <IconTrashOutline18 className="size-3.5 text-error-10" />,
         className: overrideDetails?.overrideId
           ? "text-error-10 hover:bg-error-3 focus:bg-error-3"
           : "text-error-10 cursor-not-allowed bg-error-3",

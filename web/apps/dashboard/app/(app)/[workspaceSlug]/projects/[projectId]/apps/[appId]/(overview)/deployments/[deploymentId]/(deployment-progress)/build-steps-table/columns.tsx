@@ -54,7 +54,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
       if (step.error) {
         return (
           <div className="my-2">
-            <IconTriangleWarningOutline18 className="size-4 text-error-11" />
+            <IconTriangleWarningOutline18 className="size-3.5 text-error-11" />
           </div>
         );
       }
@@ -62,7 +62,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
         return (
           <div className="my-2">
             <InfoTooltip content="This step was cached" asChild>
-              <IconBoltOutline18 className="size-4 text-primary-11" />
+              <IconBoltOutline18 className="size-3.5 text-primary-11" />
             </InfoTooltip>
           </div>
         );

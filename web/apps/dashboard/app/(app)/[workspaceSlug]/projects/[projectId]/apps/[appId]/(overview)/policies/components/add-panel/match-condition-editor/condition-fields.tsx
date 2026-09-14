@@ -59,7 +59,7 @@ export function ConditionFields({
               >
                 <SelectTrigger
                   id={`path-mode-${c.id}`}
-                  rightIcon={<IconChevronDownOutline18 className="size-4 absolute right-2" />}
+                  rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -186,7 +186,9 @@ export function ConditionFields({
                     >
                       <SelectTrigger
                         id={`hq-mode-${c.id}`}
-                        rightIcon={<IconChevronDownOutline18 className="size-4 absolute right-2" />}
+                        rightIcon={
+                          <IconChevronDownOutline18 className="size-3.5 absolute right-2" />
+                        }
                       >
                         <SelectValue />
                       </SelectTrigger>

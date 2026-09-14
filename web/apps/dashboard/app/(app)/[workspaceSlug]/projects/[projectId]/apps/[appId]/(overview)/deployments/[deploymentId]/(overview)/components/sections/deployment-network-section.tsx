@@ -67,7 +67,7 @@ export function DeploymentNetworkSection() {
   return (
     <Section>
       <SectionHeader
-        icon={<IconLayers2Outline18 className="size-4 text-gray-9" />}
+        icon={<IconLayers2Outline18 className="size-3.5 text-gray-9" />}
         title="Network"
       />
       <div className="flex gap-2 flex-col">

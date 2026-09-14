@@ -10,14 +10,14 @@ export const getPermissionsTableActionItems = (permission: Permission): MenuItem
   {
     id: "edit-permission",
     label: "Edit permission...",
-    icon: <IconPenWriting3Outline18 className="size-4" />,
+    icon: <IconPenWriting3Outline18 className="size-3.5" />,
     ActionComponent: (props) => <EditPermission permission={permission} {...props} />,
   },
   {
     id: "copy",
     label: "Copy permission",
     className: "mt-1",
-    icon: <IconCloneOutline18 className="size-4" />,
+    icon: <IconCloneOutline18 className="size-3.5" />,
     onClick: () => {
       navigator.clipboard
         .writeText(JSON.stringify(permission))
@@ -34,7 +34,7 @@ export const getPermissionsTableActionItems = (permission: Permission): MenuItem
   {
     id: "delete-permission",
     label: "Delete permission",
-    icon: <IconTrashOutline18 className="size-4" />,
+    icon: <IconTrashOutline18 className="size-3.5" />,
     ActionComponent: (props) => <DeletePermission {...props} permissionDetails={permission} />,
   },
 ];

@@ -100,7 +100,7 @@ export const createRolesColumns = ({
       return (
         <AssignedCountCell
           count={role.assignedKeys}
-          icon={<IconKey2Outline18 className="size-4 opacity-50" />}
+          icon={<IconKey2Outline18 className="size-3.5 opacity-50" />}
           singularLabel="Key"
           isSelected={role.roleId === selectedRoleId}
         />
@@ -128,7 +128,7 @@ export const createRolesColumns = ({
       return (
         <AssignedCountCell
           count={role.assignedPermissions}
-          icon={<IconPage2Outline18 className="size-4 opacity-50" />}
+          icon={<IconPage2Outline18 className="size-3.5 opacity-50" />}
           singularLabel="Permission"
           isSelected={role.roleId === selectedRoleId}
         />

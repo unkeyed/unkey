@@ -25,7 +25,7 @@ export default function AuthenticatedLayout({
           href="https://www.unkey.com/docs"
           target="_blank"
         >
-          <IconPage2Outline18 className="size-4" />
+          <IconPage2Outline18 className="size-3.5" />
           Documentation
         </Link>
       </nav>

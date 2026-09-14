@@ -100,9 +100,9 @@ const KeyIdCell = ({
             )}
           >
             {identity ? (
-              <IconFocusOutline18 className="size-4 text-successA-11" />
+              <IconFocusOutline18 className="size-3.5 text-successA-11" />
             ) : (
-              <IconKeyOutline18 className="size-4" />
+              <IconKeyOutline18 className="size-3.5" />
             )}
           </div>
           <Checkbox

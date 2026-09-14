@@ -213,7 +213,7 @@ function Section({
                   onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => e.stopPropagation()}
                 >
-                  <IconCircleInfoOutline18 className="size-4" aria-hidden="true" />
+                  <IconCircleInfoOutline18 className="size-3.5" aria-hidden="true" />
                   <span className="sr-only">More info</span>
                 </span>
               </InfoTooltip>

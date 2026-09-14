@@ -47,7 +47,7 @@ export const getKeysTableActionItems = (
     {
       id: "copy",
       label: "Copy key ID",
-      icon: <IconCloneOutline18 className="size-4" />,
+      icon: <IconCloneOutline18 className="size-3.5" />,
       onClick: () => {
         navigator.clipboard
           .writeText(key.id)
@@ -66,7 +66,7 @@ export const getKeysTableActionItems = (
           {
             id: "copy-external-id",
             label: "Copy External ID",
-            icon: <IconCloneOutline18 className="size-4" />,
+            icon: <IconCloneOutline18 className="size-3.5" />,
             onClick: () => {
               navigator.clipboard
                 // Empty case cannot happen since this will only render if identity exists
@@ -84,43 +84,43 @@ export const getKeysTableActionItems = (
     {
       id: "override",
       label: "Edit key name...",
-      icon: <IconPenWriting3Outline18 className="size-4" />,
+      icon: <IconPenWriting3Outline18 className="size-3.5" />,
       ActionComponent: (props) => <EditKeyName {...props} keyDetails={key} />,
     },
     {
       id: "edit-external-id",
       label: "Edit External ID...",
-      icon: <IconArrowsOppositeDirectionYOutline18 className="size-4" />,
+      icon: <IconArrowsOppositeDirectionYOutline18 className="size-3.5" />,
       ActionComponent: (props) => <EditExternalId {...props} keyDetails={key} />,
     },
     {
       id: "edit-credits",
       label: "Edit credits...",
-      icon: <IconChartPieOutline18 className="size-4" />,
+      icon: <IconChartPieOutline18 className="size-3.5" />,
       ActionComponent: (props) => <EditCredits {...props} keyDetails={key} />,
     },
     {
       id: "edit-ratelimit",
       label: "Edit ratelimit...",
-      icon: <IconGaugeOutline18 className="size-4" />,
+      icon: <IconGaugeOutline18 className="size-3.5" />,
       ActionComponent: (props) => <EditRatelimits {...props} keyDetails={key} />,
     },
     {
       id: "edit-expiration",
       label: "Edit expiration...",
-      icon: <IconCalendarClockOutline18 className="size-4" />,
+      icon: <IconCalendarClockOutline18 className="size-3.5" />,
       ActionComponent: (props) => <EditExpiration {...props} keyDetails={key} />,
     },
     {
       id: "edit-metadata",
       label: "Edit metadata...",
-      icon: <IconCodeOutline18 className="size-4" />,
+      icon: <IconCodeOutline18 className="size-3.5" />,
       ActionComponent: (props) => <EditMetadata {...props} keyDetails={key} />,
     },
     {
       id: "edit-rbac",
       label: "Manage roles and permissions...",
-      icon: <IconTagOutline18 className="size-4" />,
+      icon: <IconTagOutline18 className="size-3.5" />,
       ActionComponent: (props) => (
         <KeyRbacDialog
           {...props}
@@ -201,9 +201,9 @@ export const getKeysTableActionItems = (
       id: key.enabled ? "disable-key" : "enable-key",
       label: key.enabled ? "Disable Key..." : "Enable Key...",
       icon: key.enabled ? (
-        <IconBanOutline18 className="size-4" />
+        <IconBanOutline18 className="size-3.5" />
       ) : (
-        <IconCheckOutline18 className="size-4" />
+        <IconCheckOutline18 className="size-3.5" />
       ),
       ActionComponent: (props) => <UpdateKeyStatus {...props} keyDetails={key} />,
     },
@@ -212,7 +212,7 @@ export const getKeysTableActionItems = (
           {
             id: "rotate-key",
             label: "Rotate key...",
-            icon: <IconArrowDottedRotateAnticlockwiseOutline18 className="size-4" />,
+            icon: <IconArrowDottedRotateAnticlockwiseOutline18 className="size-3.5" />,
             disabled: isExpired,
             tooltip: () => (isExpired() ? "Expired keys cannot be rotated" : undefined),
             ActionComponent: (props) => <RotateKey {...props} keyDetails={key} />,
@@ -222,7 +222,7 @@ export const getKeysTableActionItems = (
     {
       id: "delete-key",
       label: "Delete key",
-      icon: <IconTrashOutline18 className="size-4" />,
+      icon: <IconTrashOutline18 className="size-3.5" />,
       ActionComponent: (props) => <DeleteKey {...props} keyDetails={key} />,
     },
   ];

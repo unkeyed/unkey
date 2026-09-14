@@ -74,7 +74,7 @@ export function PolicyRow({
     {
       id: "edit",
       label: "Edit",
-      icon: <IconPenWriting3Outline18 className="size-4" />,
+      icon: <IconPenWriting3Outline18 className="size-3.5" />,
       divider: true,
       onClick: (e) => {
         e.stopPropagation();
@@ -87,7 +87,7 @@ export function PolicyRow({
     {
       id: "delete",
       label: "Delete",
-      icon: <IconTrashOutline18 className="size-4" />,
+      icon: <IconTrashOutline18 className="size-3.5" />,
       onClick: (e) => {
         e.stopPropagation();
         setIsDeleteConfirmOpen(true);

@@ -96,7 +96,7 @@ export function useDeploymentHeaderActions({
       gateAction({
         id: "rollback",
         label: "Rollback",
-        icon: <IconArrowDottedRotateAnticlockwiseOutline18 className="size-4" />,
+        icon: <IconArrowDottedRotateAnticlockwiseOutline18 className="size-3.5" />,
         disabled: !canRollback || !hasCurrentDeployment,
         prefetch: async () => {
           await import("../components/table/components/actions/rollback-dialog");
@@ -114,7 +114,7 @@ export function useDeploymentHeaderActions({
       gateAction({
         id: "promote",
         label: "Promote",
-        icon: <IconChevronUpOutline18 className="size-4" />,
+        icon: <IconChevronUpOutline18 className="size-3.5" />,
         disabled: !canPromote || !hasCurrentDeployment,
         prefetch: async () => {
           await import("../components/table/components/actions/promotion-dialog");
@@ -132,7 +132,7 @@ export function useDeploymentHeaderActions({
       gateAction({
         id: "wake",
         label: "Wake deployment",
-        icon: <IconBoltOutline18 className="size-4" />,
+        icon: <IconBoltOutline18 className="size-3.5" />,
         disabled: !canWake,
         prefetch: async () => {
           await import("../components/table/components/actions/wake-dialog");
@@ -142,7 +142,7 @@ export function useDeploymentHeaderActions({
       {
         id: "stop",
         label: "Stop deployment",
-        icon: <IconBoltSlashOutline18 className="size-4" />,
+        icon: <IconBoltSlashOutline18 className="size-3.5" />,
         disabled: !canStop,
         prefetch: async () => {
           await import("../components/table/components/actions/stop-dialog");
@@ -156,19 +156,19 @@ export function useDeploymentHeaderActions({
       {
         id: "runtime-logs",
         label: "Go to logs",
-        icon: <IconLayers3Outline18 className="size-4" />,
+        icon: <IconLayers3Outline18 className="size-3.5" />,
         href: routes.projects.logs(deploymentScope),
       },
       {
         id: "request-logs",
         label: "Go to requests",
-        icon: <IconArrowsOppositeDirectionYOutline18 className="size-4" />,
+        icon: <IconArrowsOppositeDirectionYOutline18 className="size-3.5" />,
         href: routes.projects.requests({ ...deploymentScope, since: "6h" }),
       },
       {
         id: "build-steps",
         label: "Go to build logs",
-        icon: <IconHammer2Outline18 className="size-4" />,
+        icon: <IconHammer2Outline18 className="size-3.5" />,
         href: routes.projects.apps.deployment({
           ...deploymentScope,
           appId: deployment.appId,

@@ -311,6 +311,8 @@ function Checkbox({
       ? "text-white dark:text-black"
       : "text-white";
 
+  const checkmarkSize = size === "xlg" ? "size-4" : "size-3.5";
+
   const indeterminate = checked === "indeterminate";
   const checkedValue = checked === "indeterminate" ? false : checked;
 
@@ -332,8 +334,10 @@ function Checkbox({
       <CheckboxPrimitive.Indicator className={cn(checkmarkVariants(), checkmarkColor)}>
         {size === "lg" || size === "xlg" ? (
           <>
-            <IconCheckOutline18 className="size-4 hidden group-data-checked:block" />
-            <IconMinusOutline18 className="size-4 hidden group-data-indeterminate:block" />
+            <IconCheckOutline18 className={cn(checkmarkSize, "hidden group-data-checked:block")} />
+            <IconMinusOutline18
+              className={cn(checkmarkSize, "hidden group-data-indeterminate:block")}
+            />
           </>
         ) : (
           <>

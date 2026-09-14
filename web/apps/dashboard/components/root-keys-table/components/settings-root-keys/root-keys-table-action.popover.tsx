@@ -27,7 +27,7 @@ const getRootKeyTableActionItems = (
     {
       id: "edit-root-key",
       label: "Edit root key...",
-      icon: <IconPenWriting3Outline18 className="size-4" />,
+      icon: <IconPenWriting3Outline18 className="size-3.5" />,
       onClick: () => {
         onEditKey?.(rootKey);
       },
@@ -35,14 +35,14 @@ const getRootKeyTableActionItems = (
     {
       id: "rotate-root-key",
       label: "Rotate root key...",
-      icon: <IconArrowDottedRotateAnticlockwiseOutline18 className="size-4" />,
+      icon: <IconArrowDottedRotateAnticlockwiseOutline18 className="size-3.5" />,
       ActionComponent: (props) => <RotateRootKey {...props} rootKeyDetails={rootKey} />,
       divider: true,
     },
     {
       id: "delete-root-key",
       label: "Delete root key",
-      icon: <IconTrashOutline18 className="size-4" />,
+      icon: <IconTrashOutline18 className="size-3.5" />,
       ActionComponent: (props) => <DeleteRootKey {...props} rootKeyDetails={rootKey} />,
     },
   ];

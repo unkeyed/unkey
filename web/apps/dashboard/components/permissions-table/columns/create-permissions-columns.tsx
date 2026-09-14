@@ -126,7 +126,7 @@ export const createPermissionsColumns = ({
       return (
         <AssignedCountCell
           count={permission.totalConnectedRoles}
-          icon={<IconTagOutline18 className="size-4 opacity-50" />}
+          icon={<IconTagOutline18 className="size-3.5 opacity-50" />}
           singularLabel="Role"
           isSelected={permission.permissionId === selectedPermissionId}
         />
@@ -154,7 +154,7 @@ export const createPermissionsColumns = ({
       return (
         <AssignedCountCell
           count={permission.totalConnectedKeys}
-          icon={<IconKey2Outline18 className="size-4 opacity-50" />}
+          icon={<IconKey2Outline18 className="size-3.5 opacity-50" />}
           singularLabel="Key"
           isSelected={permission.permissionId === selectedPermissionId}
         />

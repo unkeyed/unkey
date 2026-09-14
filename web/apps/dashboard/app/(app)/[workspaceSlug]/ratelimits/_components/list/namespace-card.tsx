@@ -40,7 +40,7 @@ export function NamespaceCard({ namespace, timeseries, isLoading, isError }: Pro
       labels={{ success: "Passed", error: "Blocked" }}
       footerLeft={
         <span className="flex items-center gap-1.5 min-w-0">
-          <IconClockOutline18 className="shrink-0" />
+          <IconClockOutline18 className="size-3.5 shrink-0" />
           <span className="truncate">
             {lastRatelimit
               ? `${formatMs(Date.now() - lastRatelimit.originalTimestamp, { long: true })} ago`

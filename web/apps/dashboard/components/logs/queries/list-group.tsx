@@ -159,9 +159,9 @@ export function ListGroup({
               aria-label={filterList.bookmarked ? "Remove from bookmarks" : "Add to bookmarks"}
             >
               {filterList.bookmarked ? (
-                <IconBookmarkFill18 className="size-4" />
+                <IconBookmarkFill18 className="size-3.5" />
               ) : (
-                <IconBookmarkOutline18 className="size-4" />
+                <IconBookmarkOutline18 className="size-3.5" />
               )}
             </button>
           </InfoTooltip>

@@ -25,7 +25,7 @@ export const KeyColumnSkeleton = () => (
 );
 
 export const PermissionsColumnSkeleton = () => (
-  <DashedBadgeSkeleton icon={<IconPage2Outline18 className="size-4 opacity-50" />} />
+  <DashedBadgeSkeleton icon={<IconPage2Outline18 className="size-3.5 opacity-50" />} />
 );
 
 export const LastUpdatedColumnSkeleton = () => (

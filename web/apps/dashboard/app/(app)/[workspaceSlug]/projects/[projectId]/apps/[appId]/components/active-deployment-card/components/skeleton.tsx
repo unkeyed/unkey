@@ -23,7 +23,7 @@ export function ActiveDeploymentCardSkeleton() {
         <div className="flex items-center gap-4">
           <Badge variant="success" className="text-successA-11 font-medium">
             <div className="flex items-center gap-2">
-              {<IconCircleCheckOutline18 />}
+              {<IconCircleCheckOutline18 className="size-3.5" />}
               Loading
             </div>
           </Badge>

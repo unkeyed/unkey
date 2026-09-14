@@ -54,20 +54,20 @@ export const IdentityTableActions = ({
       {
         id: "edit-ratelimit",
         label: "Edit ratelimit...",
-        icon: <IconGaugeOutline18 className="size-4" />,
+        icon: <IconGaugeOutline18 className="size-3.5" />,
         ActionComponent: EditRatelimitAction,
       },
       {
         id: "edit-metadata",
         label: "Edit metadata...",
-        icon: <IconCodeOutline18 className="size-4" />,
+        icon: <IconCodeOutline18 className="size-3.5" />,
         ActionComponent: EditMetadataAction,
         divider: true,
       },
       {
         id: "copy-identity-id",
         label: "Copy identity ID",
-        icon: <IconCloneOutline18 className="size-4" />,
+        icon: <IconCloneOutline18 className="size-3.5" />,
         onClick: () => {
           navigator.clipboard
             .writeText(identity.id)
@@ -83,7 +83,7 @@ export const IdentityTableActions = ({
       {
         id: "copy-external-id",
         label: "Copy external ID",
-        icon: <IconCloneOutline18 className="size-4" />,
+        icon: <IconCloneOutline18 className="size-3.5" />,
         onClick: () => {
           navigator.clipboard
             .writeText(identity.externalId)
@@ -100,7 +100,7 @@ export const IdentityTableActions = ({
       {
         id: "delete-identity",
         label: "Delete identity",
-        icon: <IconTrashOutline18 className="size-4" />,
+        icon: <IconTrashOutline18 className="size-3.5" />,
         ActionComponent: DeleteIdentityAction,
       },
     ],

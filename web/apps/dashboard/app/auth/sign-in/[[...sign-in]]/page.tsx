@@ -190,7 +190,7 @@ function SignInContent() {
             <p className="text-xs">Account not found, did you mean to sign up?</p>
             <Link href={`/auth/sign-up?email=${encodeURIComponent(email)}` as Route}>
               <div className="border text-center text-xs border-transparent hover:border-[#FFD55D]/50 text-[#FFD55D] duration-200 p-1 rounded-lg">
-                <IconArrowRightOutline18 className="size-4" />
+                <IconArrowRightOutline18 className="size-3.5" />
               </div>
             </Link>
           </div>

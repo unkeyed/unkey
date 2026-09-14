@@ -116,7 +116,7 @@ export const DeploymentSettings = ({
         ) : null}
       </SettingCardGroup>
       <SettingsGroup
-        icon={<IconCircleHalfDottedClockOutline18 className="size-4" />}
+        icon={<IconCircleHalfDottedClockOutline18 className="size-3.5" />}
         title="Runtime settings"
         defaultExpanded={Boolean(sections.runtime)}
       >
@@ -134,7 +134,7 @@ export const DeploymentSettings = ({
         </SettingCardGroup>
       </SettingsGroup>
       <SettingsGroup
-        icon={<IconGearOutline18 className="size-4" />}
+        icon={<IconGearOutline18 className="size-3.5" />}
         title="Advanced configurations"
         defaultExpanded={Boolean(sections.advanced)}
       >

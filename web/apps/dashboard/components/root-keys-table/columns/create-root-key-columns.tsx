@@ -117,7 +117,7 @@ export const createRootKeyColumns = ({
       return (
         <AssignedCountCell
           count={rootKey.permissionSummary.total}
-          icon={<IconPage2Outline18 className="size-4 opacity-50" />}
+          icon={<IconPage2Outline18 className="size-3.5 opacity-50" />}
           singularLabel="Permission"
           isSelected={rootKey.id === selectedRootKeyId}
         />

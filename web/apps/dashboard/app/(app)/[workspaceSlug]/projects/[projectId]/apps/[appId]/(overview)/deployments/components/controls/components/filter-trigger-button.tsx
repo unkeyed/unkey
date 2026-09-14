@@ -37,7 +37,7 @@ export const FilterTriggerButton = forwardRef<HTMLButtonElement, Props>(
           </span>
         )}
       </span>
-      <IconChevronDownOutline18 className="size-4 ml-auto shrink-0" />
+      <IconChevronDownOutline18 className="size-3.5 ml-auto shrink-0" />
     </button>
   ),
 );

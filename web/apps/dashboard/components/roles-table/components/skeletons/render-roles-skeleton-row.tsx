@@ -28,7 +28,7 @@ export const renderRolesSkeletonRow = ({ columns, rowHeight }: RenderRolesSkelet
       )}
       {column.id === ROLE_COLUMN_IDS.ASSIGNED_KEYS.id && (
         <DashedBadgeSkeleton
-          icon={<IconKey2Outline18 className="size-4 opacity-50" />}
+          icon={<IconKey2Outline18 className="size-3.5 opacity-50" />}
           barWidthClass="w-20"
           className="animate-in fade-in duration-300"
         />

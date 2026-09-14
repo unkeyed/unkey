@@ -51,7 +51,7 @@ function IdentityRow({
         aria-label={`Identity ${identity.externalId}`}
       />
       <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-brandA-3">
-        <IconFingerprintOutline18 className="size-4 text-brandA-11" />
+        <IconFingerprintOutline18 className="size-3.5 text-brandA-11" />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="truncate font-medium text-accent-12 text-sm" title={identity.externalId}>

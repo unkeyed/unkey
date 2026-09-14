@@ -13,7 +13,7 @@ export const LogsTableAction = ({ identifier }: { identifier: string }) => {
       {
         id: "copy",
         label: "Copy identifier",
-        icon: <IconCloneOutline18 className="size-4" />,
+        icon: <IconCloneOutline18 className="size-3.5" />,
         onClick: (e) => {
           e.stopPropagation();
           navigator.clipboard
@@ -32,7 +32,7 @@ export const LogsTableAction = ({ identifier }: { identifier: string }) => {
       {
         id: "filter",
         label: "Filter for identifier",
-        icon: <IconInputSearchOutline18 className="size-4" />,
+        icon: <IconInputSearchOutline18 className="size-3.5" />,
         onClick: (e) => {
           e.stopPropagation();
           const newFilter = {

@@ -55,7 +55,7 @@ export const InlineFilter = ({
         }}
         type="button"
       >
-        <IconBarsFilterOutline18 className="size-4 text-gray-12 invisible group-hover/identifier:visible" />
+        <IconBarsFilterOutline18 className="size-3.5 text-gray-12 invisible group-hover/identifier:visible" />
       </button>
     </InfoTooltip>
   );

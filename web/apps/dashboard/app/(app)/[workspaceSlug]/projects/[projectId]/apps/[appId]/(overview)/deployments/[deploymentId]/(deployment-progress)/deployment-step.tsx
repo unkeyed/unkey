@@ -94,13 +94,13 @@ export function DeploymentStep({
           </span>
           {statusIcon ??
             match(status)
-              .with("completed", () => <IconCheckOutline18 className="size-4 text-success-11" />)
+              .with("completed", () => <IconCheckOutline18 className="size-3.5 text-success-11" />)
               .with("started", () => <Loading className="size-4" />)
               .with("error", () => (
-                <IconTriangleWarningOutline18 className="size-4 text-error-11" />
+                <IconTriangleWarningOutline18 className="size-3.5 text-error-11" />
               ))
               .with("pending", () => (
-                <IconCircleHalfDottedClockOutline18 className="size-4 text-gray-9" />
+                <IconCircleHalfDottedClockOutline18 className="size-3.5 text-gray-9" />
               ))
               .with("skipped", () => null)
               .exhaustive()}

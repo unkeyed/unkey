@@ -175,7 +175,7 @@ export function EnvVarEditRow({
               asChild
             >
               <span className="text-grayA-9">
-                <IconCircleInfoOutline18 className="size-4" />
+                <IconCircleInfoOutline18 className="size-3.5" />
               </span>
             </InfoTooltip>
           </div>

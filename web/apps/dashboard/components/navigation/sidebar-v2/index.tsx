@@ -59,7 +59,7 @@ function CollapseButton() {
             aria-label={label}
             className="flex size-8 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-gray-12"
           >
-            <Icon className="size-4 shrink-0" />
+            <Icon className="size-3.5 shrink-0" />
           </button>
         }
       />

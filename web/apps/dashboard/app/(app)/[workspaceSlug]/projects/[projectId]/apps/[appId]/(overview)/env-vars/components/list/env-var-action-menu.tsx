@@ -33,7 +33,7 @@ export function EnvVarActionMenu({
     {
       id: "edit",
       label: "Edit",
-      icon: <IconPenWriting3Outline18 className="size-4" />,
+      icon: <IconPenWriting3Outline18 className="size-3.5" />,
       onClick: (e) => {
         e.stopPropagation();
         onEdit();
@@ -42,7 +42,7 @@ export function EnvVarActionMenu({
     {
       id: "delete",
       label: "Delete",
-      icon: <IconTrashOutline18 className="size-4" />,
+      icon: <IconTrashOutline18 className="size-3.5" />,
       divider: true,
       onClick: (e) => {
         e.stopPropagation();
@@ -52,7 +52,7 @@ export function EnvVarActionMenu({
     {
       id: "copy",
       label: "Copy to Clipboard",
-      icon: <IconCloneOutline18 className="size-4" />,
+      icon: <IconCloneOutline18 className="size-3.5" />,
       disabled: type === "writeonly",
       tooltip: type === "writeonly" ? "Write-only variables cannot be copied" : undefined,
       onClick: async (e) => {

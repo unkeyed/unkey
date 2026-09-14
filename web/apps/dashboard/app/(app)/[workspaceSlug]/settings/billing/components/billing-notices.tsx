@@ -47,7 +47,7 @@ function PaymentRequired({ status }: { status: string }) {
 
   return (
     <AlertBanner variant="error">
-      <IconTriangleWarningOutline18 className="size-4" />
+      <IconTriangleWarningOutline18 className="size-3.5" />
       <AlertBannerTitle>Payment required</AlertBannerTitle>
       <AlertBannerDescription>
         {status === "incomplete_expired"
@@ -96,7 +96,7 @@ function ScheduledCancellation({
 
   return (
     <AlertBanner variant="warning">
-      <IconTriangleWarningOutline18 className="size-4" />
+      <IconTriangleWarningOutline18 className="size-3.5" />
       <AlertBannerDescription>
         Your API plan ends on {formatDate(cancelAt)}. Afterwards your workspace will move to the
         free tier.

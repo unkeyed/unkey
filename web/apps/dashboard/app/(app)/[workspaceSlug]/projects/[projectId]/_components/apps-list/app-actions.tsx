@@ -40,7 +40,7 @@ const getAppActionItems = (
     {
       id: "copy-app-id",
       label: "Copy app ID",
-      icon: <IconCloneOutline18 className="size-4" />,
+      icon: <IconCloneOutline18 className="size-3.5" />,
       onClick: () => {
         navigator.clipboard
           .writeText(appId)
@@ -57,7 +57,7 @@ const getAppActionItems = (
     {
       id: "view-logs",
       label: "View logs",
-      icon: <IconLayers3Outline18 className="size-4" />,
+      icon: <IconLayers3Outline18 className="size-3.5" />,
       onClick: () => {
         router.push(routes.projects.logs(appScope));
       },
@@ -65,7 +65,7 @@ const getAppActionItems = (
     {
       id: "view-requests",
       label: "View requests",
-      icon: <IconArrowsOppositeDirectionYOutline18 className="size-4" />,
+      icon: <IconArrowsOppositeDirectionYOutline18 className="size-3.5" />,
       onClick: () => {
         router.push(routes.projects.requests({ ...appScope, since: "6h" }));
       },
@@ -73,7 +73,7 @@ const getAppActionItems = (
     {
       id: "view-deployments",
       label: "View deployments",
-      icon: <IconCloudOutline18 className="size-4" />,
+      icon: <IconCloudOutline18 className="size-3.5" />,
       onClick: () => {
         router.push(routes.projects.apps.deployments(appScope));
       },
@@ -81,7 +81,7 @@ const getAppActionItems = (
     {
       id: "app-settings",
       label: "App settings",
-      icon: <IconGearOutline18 className="size-4" />,
+      icon: <IconGearOutline18 className="size-3.5" />,
       onClick: () => {
         router.push(routes.projects.apps.settings(appScope));
       },

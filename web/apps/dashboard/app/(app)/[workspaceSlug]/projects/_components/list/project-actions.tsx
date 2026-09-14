@@ -26,7 +26,7 @@ export const ProjectActions = ({ projectId, children }: PropsWithChildren<Projec
     {
       id: "copy-project-id",
       label: "Copy project ID",
-      icon: <IconCloneOutline18 className="size-4" />,
+      icon: <IconCloneOutline18 className="size-3.5" />,
       onClick: () => {
         navigator.clipboard
           .writeText(projectId)
@@ -43,7 +43,7 @@ export const ProjectActions = ({ projectId, children }: PropsWithChildren<Projec
     {
       id: "view-requests",
       label: "View requests",
-      icon: <IconArrowsOppositeDirectionYOutline18 className="size-4" />,
+      icon: <IconArrowsOppositeDirectionYOutline18 className="size-3.5" />,
       onClick: () => {
         router.push(routes.projects.requests({ workspaceSlug: workspace.slug, projectId }));
       },
@@ -51,7 +51,7 @@ export const ProjectActions = ({ projectId, children }: PropsWithChildren<Projec
     {
       id: "view-logs",
       label: "View logs",
-      icon: <IconLayers3Outline18 className="size-4" />,
+      icon: <IconLayers3Outline18 className="size-3.5" />,
       onClick: () => {
         router.push(routes.projects.logs({ workspaceSlug: workspace.slug, projectId }));
       },
@@ -59,7 +59,7 @@ export const ProjectActions = ({ projectId, children }: PropsWithChildren<Projec
     {
       id: "project-settings",
       label: "Project settings",
-      icon: <IconGearOutline18 className="size-4" />,
+      icon: <IconGearOutline18 className="size-3.5" />,
       onClick: () => {
         router.push(routes.projects.settings({ workspaceSlug: workspace.slug, projectId }));
       },

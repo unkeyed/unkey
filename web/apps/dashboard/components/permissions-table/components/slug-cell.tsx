@@ -17,7 +17,7 @@ export const SlugCell = ({ value, isSelected = false }: SlugCellProps) => {
             isSelected ? "border-grayA-7 text-grayA-9" : "border-grayA-6 text-grayA-8",
           )}
         >
-          <IconPage2Outline18 className="size-4 opacity-50" />
+          <IconPage2Outline18 className="size-3.5 opacity-50" />
           <span className="text-grayA-9 text-xs">No slug</span>
         </div>
       </div>
@@ -34,7 +34,7 @@ export const SlugCell = ({ value, isSelected = false }: SlugCellProps) => {
             : "bg-grayA-3 border-grayA-6 group-hover:bg-grayA-4",
         )}
       >
-        <IconPage2Outline18 className="size-4 opacity-50" />
+        <IconPage2Outline18 className="size-3.5 opacity-50" />
         <div className="text-grayA-11 text-xs max-w-[150px] truncate" title={value}>
           {value}
         </div>

@@ -70,7 +70,7 @@ export const DeploymentListTableActions = ({
       gateAction({
         id: "rollback",
         label: "Rollback",
-        icon: <IconArrowDottedRotateAnticlockwiseOutline18 className="size-4" />,
+        icon: <IconArrowDottedRotateAnticlockwiseOutline18 className="size-3.5" />,
         disabled: !canRollback || !hasCurrentDeployment,
         ActionComponent: hasCurrentDeployment
           ? (props) => (
@@ -85,7 +85,7 @@ export const DeploymentListTableActions = ({
       gateAction({
         id: "Promote",
         label: "Promote",
-        icon: <IconChevronUpOutline18 className="size-4" />,
+        icon: <IconChevronUpOutline18 className="size-3.5" />,
         disabled: !canPromote || !hasCurrentDeployment,
         ActionComponent: hasCurrentDeployment
           ? (props) => (
@@ -100,21 +100,21 @@ export const DeploymentListTableActions = ({
       gateAction({
         id: "wake",
         label: "Wake deployment",
-        icon: <IconBoltOutline18 className="size-4" />,
+        icon: <IconBoltOutline18 className="size-3.5" />,
         disabled: !canWake,
         ActionComponent: (props) => <WakeDialog {...props} deployment={selectedDeployment} />,
       }),
       {
         id: "stop",
         label: "Stop deployment",
-        icon: <IconBoltSlashOutline18 className="size-4" />,
+        icon: <IconBoltSlashOutline18 className="size-3.5" />,
         disabled: !canStop,
         ActionComponent: (props) => <StopDialog {...props} deployment={selectedDeployment} />,
       },
       gateAction({
         id: "redeploy",
         label: "Redeploy",
-        icon: <IconArrowDottedRotateAnticlockwiseOutline18 className="size-4" />,
+        icon: <IconArrowDottedRotateAnticlockwiseOutline18 className="size-3.5" />,
         disabled: !canRedeploy,
         ActionComponent: (props) => (
           <RedeployDialog {...props} selectedDeployment={selectedDeployment} />
@@ -123,14 +123,14 @@ export const DeploymentListTableActions = ({
       {
         id: "cancel",
         label: "Cancel deployment",
-        icon: <IconBanOutline18 className="size-4" />,
+        icon: <IconBanOutline18 className="size-3.5" />,
         disabled: !canCancel,
         ActionComponent: (props) => <CancelDialog {...props} deployment={selectedDeployment} />,
       },
       {
         id: "request-logs",
         label: "Go to requests",
-        icon: <IconArrowsOppositeDirectionYOutline18 className="size-4" />,
+        icon: <IconArrowsOppositeDirectionYOutline18 className="size-3.5" />,
         onClick: () => {
           router.push(
             routes.projects.requests({
@@ -145,7 +145,7 @@ export const DeploymentListTableActions = ({
       {
         id: "runtime-logs",
         label: "Go to logs",
-        icon: <IconLayers3Outline18 className="size-4" />,
+        icon: <IconLayers3Outline18 className="size-3.5" />,
         onClick: () => {
           router.push(
             routes.projects.logs({
@@ -159,7 +159,7 @@ export const DeploymentListTableActions = ({
       {
         id: "build-steps",
         label: "Go to build logs",
-        icon: <IconHammer2Outline18 className="size-4" />,
+        icon: <IconHammer2Outline18 className="size-3.5" />,
         onClick: () => {
           router.push(
             routes.projects.apps.deployment({

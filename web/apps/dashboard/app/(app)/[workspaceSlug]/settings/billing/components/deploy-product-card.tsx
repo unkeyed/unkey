@@ -287,7 +287,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   return (
     <>
       <ProductCard
-        icon={<IconCubeOutline18 className="size-4" />}
+        icon={<IconCubeOutline18 className="size-3.5" />}
         iconClassName="bg-orangeA-3 text-orange-11"
         className="[&>div:nth-child(2)]:border-t-0 [&>div:nth-child(2)]:pt-0"
         name="Compute"

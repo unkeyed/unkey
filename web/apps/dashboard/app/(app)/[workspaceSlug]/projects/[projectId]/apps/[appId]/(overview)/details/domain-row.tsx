@@ -29,7 +29,7 @@ export function DomainRow({ domain, className }: DomainRowProps) {
           className="flex items-center ml-3 transition-all hover:underline decoration-dashed underline-offset-2"
         >
           <div className="text-gray-12 font-medium text-xs mr-2">{domain}</div>
-          <IconShareUpRightOutline18 className="size-4 text-gray-9 shrink-0" />
+          <IconShareUpRightOutline18 className="size-3.5 text-gray-9 shrink-0" />
         </Link>
         <div className="ml-3" />
       </div>
@@ -46,7 +46,7 @@ export const DomainRowSkeleton = () => {
       <div className="flex items-center">
         <IconLink4Outline12 className="text-grayA-6" />
         <div className="h-3 w-32 bg-grayA-3 rounded-sm animate-pulse ml-3 mr-2" />
-        <IconShareUpRightOutline18 className="size-4 text-grayA-6 shrink-0" />
+        <IconShareUpRightOutline18 className="size-3.5 text-grayA-6 shrink-0" />
         <div className="ml-3" />
       </div>
       <div className="p-[5px] size-[22px] bg-grayA-3 rounded-sm animate-pulse flex items-center justify-center">
