@@ -912,6 +912,7 @@ func (*AuthorizeDeploymentResponse) Descriptor() ([]byte, []int) {
 type CancelDeploymentRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	DeploymentId  string                 `protobuf:"bytes,1,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	Actor         *ActorInfo             `protobuf:"bytes,2,opt,name=actor,proto3" json:"actor,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -951,6 +952,13 @@ func (x *CancelDeploymentRequest) GetDeploymentId() string {
 		return x.DeploymentId
 	}
 	return ""
+}
+
+func (x *CancelDeploymentRequest) GetActor() *ActorInfo {
+	if x != nil {
+		return x.Actor
+	}
+	return nil
 }
 
 type CancelDeploymentResponse struct {
@@ -1145,9 +1153,10 @@ const file_ctrl_v1_deployment_proto_rawDesc = "" +
 	"\rmax_instances\x18\x03 \x01(\x05R\fmaxInstances\"A\n" +
 	"\x1aAuthorizeDeploymentRequest\x12#\n" +
 	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x1d\n" +
-	"\x1bAuthorizeDeploymentResponse\">\n" +
+	"\x1bAuthorizeDeploymentResponse\"h\n" +
 	"\x17CancelDeploymentRequest\x12#\n" +
-	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\"\x1a\n" +
+	"\rdeployment_id\x18\x01 \x01(\tR\fdeploymentId\x12(\n" +
+	"\x05actor\x18\x02 \x01(\v2\x12.ctrl.v1.ActorInfoR\x05actor\"\x1a\n" +
 	"\x18CancelDeploymentResponse\">\n" +
 	"\x19DeprovisionComputeRequest\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\"\x1c\n" +
@@ -1214,6 +1223,7 @@ var file_ctrl_v1_deployment_proto_goTypes = []any{
 	(*DeprovisionComputeRequest)(nil),   // 14: ctrl.v1.DeprovisionComputeRequest
 	(*DeprovisionComputeResponse)(nil),  // 15: ctrl.v1.DeprovisionComputeResponse
 	nil,                                 // 16: ctrl.v1.Deployment.EnvironmentVariablesEntry
+	(*ActorInfo)(nil),                   // 17: ctrl.v1.ActorInfo
 }
 var file_ctrl_v1_deployment_proto_depIdxs = []int32{
 	5,  // 0: ctrl.v1.GetDeploymentResponse.deployment:type_name -> ctrl.v1.Deployment
@@ -1223,19 +1233,20 @@ var file_ctrl_v1_deployment_proto_depIdxs = []int32{
 	6,  // 4: ctrl.v1.Deployment.steps:type_name -> ctrl.v1.DeploymentStep
 	9,  // 5: ctrl.v1.Topology.regions:type_name -> ctrl.v1.RegionalConfig
 	8,  // 6: ctrl.v1.Topology.ephemeral_storage:type_name -> ctrl.v1.EphemeralStorage
-	3,  // 7: ctrl.v1.DeployService.GetDeployment:input_type -> ctrl.v1.GetDeploymentRequest
-	10, // 8: ctrl.v1.DeployService.AuthorizeDeployment:input_type -> ctrl.v1.AuthorizeDeploymentRequest
-	12, // 9: ctrl.v1.DeployService.CancelDeployment:input_type -> ctrl.v1.CancelDeploymentRequest
-	14, // 10: ctrl.v1.DeployService.DeprovisionCompute:input_type -> ctrl.v1.DeprovisionComputeRequest
-	4,  // 11: ctrl.v1.DeployService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
-	11, // 12: ctrl.v1.DeployService.AuthorizeDeployment:output_type -> ctrl.v1.AuthorizeDeploymentResponse
-	13, // 13: ctrl.v1.DeployService.CancelDeployment:output_type -> ctrl.v1.CancelDeploymentResponse
-	15, // 14: ctrl.v1.DeployService.DeprovisionCompute:output_type -> ctrl.v1.DeprovisionComputeResponse
-	11, // [11:15] is the sub-list for method output_type
-	7,  // [7:11] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	17, // 7: ctrl.v1.CancelDeploymentRequest.actor:type_name -> ctrl.v1.ActorInfo
+	3,  // 8: ctrl.v1.DeployService.GetDeployment:input_type -> ctrl.v1.GetDeploymentRequest
+	10, // 9: ctrl.v1.DeployService.AuthorizeDeployment:input_type -> ctrl.v1.AuthorizeDeploymentRequest
+	12, // 10: ctrl.v1.DeployService.CancelDeployment:input_type -> ctrl.v1.CancelDeploymentRequest
+	14, // 11: ctrl.v1.DeployService.DeprovisionCompute:input_type -> ctrl.v1.DeprovisionComputeRequest
+	4,  // 12: ctrl.v1.DeployService.GetDeployment:output_type -> ctrl.v1.GetDeploymentResponse
+	11, // 13: ctrl.v1.DeployService.AuthorizeDeployment:output_type -> ctrl.v1.AuthorizeDeploymentResponse
+	13, // 14: ctrl.v1.DeployService.CancelDeployment:output_type -> ctrl.v1.CancelDeploymentResponse
+	15, // 15: ctrl.v1.DeployService.DeprovisionCompute:output_type -> ctrl.v1.DeprovisionComputeResponse
+	12, // [12:16] is the sub-list for method output_type
+	8,  // [8:12] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_deployment_proto_init() }

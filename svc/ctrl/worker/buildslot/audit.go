@@ -122,10 +122,10 @@ func forceFailDeployment(
 ) error {
 	now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
 	if err := database.UpdateDeploymentStatusIfActive(ctx, db.UpdateDeploymentStatusIfActiveParams{
-		ID:               deploymentID,
-		Status:           mysqltype.DeploymentsStatusFailed,
-		UpdatedAt:        now,
-		TerminalStatuses: mysqltype.TerminalDeploymentStatuses,
+		ID:                  deploymentID,
+		Status:              mysqltype.DeploymentsStatusFailed,
+		UpdatedAt:           now,
+		ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
 	}); err != nil {
 		return err
 	}

@@ -1,7 +1,7 @@
 "use client";
 
-import { type Deployment, collection } from "@/lib/collections";
-import { trpc } from "@/lib/trpc/client";
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import type { Deployment } from "@/lib/collections";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { Button, DialogContainer, toast } from "@unkey/ui";
@@ -14,13 +14,12 @@ type WakeDialogProps = {
 };
 
 export const WakeDialog = ({ isOpen, onClose, deployment }: WakeDialogProps) => {
-  const utils = trpc.useUtils();
+  const { awaitDeploymentStatus } = useProjectData();
   const wake = useMutation({
     mutationFn: (deploymentId: string) =>
       getUnkeyClient().deployments.startDeployment({ deploymentId }),
     onSuccess: () => {
-      collection.deployments.utils.refetch();
-      utils.deploy.deployment.invalidate();
+      awaitDeploymentStatus({ deploymentId: deployment.id, status: "ready" });
       onClose();
     },
   });

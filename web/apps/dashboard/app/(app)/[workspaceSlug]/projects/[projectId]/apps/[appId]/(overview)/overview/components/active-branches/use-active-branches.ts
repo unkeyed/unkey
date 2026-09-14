@@ -1,4 +1,3 @@
-import { isDeploymentSettling } from "@/lib/collections/deploy/deployment-status";
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
 import { useAppId, useProjectData } from "../../../data-provider";
@@ -13,8 +12,6 @@ export function useActiveBranches() {
     { projectId, appId, limit: PAGE_SIZE },
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-      refetchInterval: (data) =>
-        data?.pages[0]?.branches.some(isDeploymentSettling) ? 5_000 : false,
     },
   );
 

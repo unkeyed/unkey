@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
-	"github.com/unkeyed/unkey/svc/ctrl/dedup"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -104,9 +103,7 @@ type Workflow struct {
 	allowUnauthenticatedDeployments bool
 	dashboardURL                    string
 
-	// dedup supersedes older queued deployments on a branch when Create starts
-	// a newer one.
-	dedup *dedup.Service
+	restateAdmin *restateadmin.Client
 }
 
 var _ hydrav1.DeployServiceServer = (*Workflow)(nil)
@@ -200,6 +197,6 @@ func New(cfg Config) (*Workflow, error) {
 		imageResolver:                   cfg.ImageResolver,
 		allowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
 		dashboardURL:                    cfg.DashboardURL,
-		dedup:                           dedup.New(cfg.DB, cfg.RestateAdmin),
+		restateAdmin:                    cfg.RestateAdmin,
 	}, nil
 }

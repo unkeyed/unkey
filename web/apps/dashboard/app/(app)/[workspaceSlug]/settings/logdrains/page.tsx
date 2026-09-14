@@ -29,6 +29,8 @@ export default function LogdrainsPage() {
   const isLoading = isWorkspaceLoading || drains.isLoading || drains.isError;
   const isAtLimit = (drains.data?.length ?? 0) >= (limits?.logdrainsMax ?? 0);
   const canCreate = !isLoading && !isAtLimit;
+  const needsEnablement =
+    !isLoading && (limits?.logdrainsMax ?? 0) === 0 && drains.data?.length === 0;
   const openCreatePanel = () => {
     if (canCreate) {
       setIsCreateOpen(true);
@@ -41,12 +43,14 @@ export default function LogdrainsPage() {
         <PageHeaderContent>
           <PageHeaderTitle>Log Drains</PageHeaderTitle>
         </PageHeaderContent>
-        <PageHeaderActions>
-          <CreateLogdrainButton onClick={openCreatePanel} disabled={!canCreate} />
-        </PageHeaderActions>
+        {!needsEnablement && (
+          <PageHeaderActions>
+            <CreateLogdrainButton onClick={openCreatePanel} disabled={!canCreate} />
+          </PageHeaderActions>
+        )}
       </PageHeader>
       <PageBody className="gap-4">
-        {!isLoading && isAtLimit && (
+        {!isLoading && isAtLimit && !needsEnablement && (
           <AlertBanner variant="warning">
             <AlertBannerTitle>Log drain limit reached</AlertBannerTitle>
             <AlertBannerDescription>
@@ -62,7 +66,11 @@ export default function LogdrainsPage() {
             </AlertBannerActions>
           </AlertBanner>
         )}
-        <LogdrainsList onCreate={openCreatePanel} canCreate={canCreate} />
+        <LogdrainsList
+          onCreate={openCreatePanel}
+          canCreate={canCreate}
+          needsEnablement={needsEnablement}
+        />
       </PageBody>
 
       <CreateLogdrainPanel
