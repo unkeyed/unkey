@@ -184,7 +184,7 @@ const NavigableDialogNav = <TStepName extends string>({
             key={item.id}
             variant="outline"
             className={cn(
-              "rounded-lg w-full px-3 py-1 [&>*:first-child]:justify-start focus:ring-0 [&_svg]:size-auto hover:bg-grayA-3 border-none",
+              "rounded-lg w-full px-3 py-1 [&>*:first-child]:justify-start focus:ring-0 [&_svg]:size-3.5 hover:bg-grayA-3 border-none",
               isActive ? "bg-grayA-3" : "",
               isDisabled && "opacity-50 cursor-not-allowed pointer-events-none",
             )}
@@ -197,7 +197,7 @@ const NavigableDialogNav = <TStepName extends string>({
               <div>
                 <IconComponent
                   className={cn(
-                    "size-4",
+                    "size-3.5",
                     isDisabled ? "text-gray-7" : isActive ? "text-gray-12" : "text-gray-9",
                   )}
                 />

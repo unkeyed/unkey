@@ -163,7 +163,7 @@ export function SourceChip({
         rel="noopener noreferrer"
         className={cn(CHIP_CLASS, "transition-colors hover:bg-grayA-2")}
       >
-        <Github className="shrink-0 text-gray-9" />
+        <Github className="size-3 shrink-0 text-gray-9" />
         <span className="truncate" title={label}>
           {label}
         </span>
