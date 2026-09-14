@@ -550,27 +550,6 @@ func (s *Session) SetResponseBody(body []byte) {
 // request/response bodies for logging. Anything beyond this is silently dropped.
 const MaxBodyCapture = 1 << 20 // 1 MiB
 
-// LimitedWriter wraps an io.Writer and stops writing after N bytes.
-// Excess bytes are silently discarded — no error is returned so the
-// TeeReader (and therefore the stream) is never interrupted.
-type LimitedWriter struct {
-	W io.Writer
-	N int64
-}
-
-func (lw *LimitedWriter) Write(p []byte) (int, error) {
-	total := len(p)
-	if lw.N <= 0 {
-		return total, nil
-	}
-	if int64(len(p)) > lw.N {
-		p = p[:lw.N]
-	}
-	n, err := lw.W.Write(p)
-	lw.N -= int64(n)
-	return total, err
-}
-
 // reset clears request-specific state before the session returns to the pool.
 // Server configuration such as streamRequestBody persists across requests.
 func (s *Session) reset() {

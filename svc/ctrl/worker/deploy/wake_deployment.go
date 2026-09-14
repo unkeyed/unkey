@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/restate/restateutil"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/gatefault"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/readiness"
 )
 
 // WakeDeployment is the public Restate entrypoint for waking a stopped
@@ -108,7 +109,7 @@ func (w *Workflow) WakeDeployment(ctx restate.ObjectContext, req *hydrav1.WakeDe
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		for {
-			healthy, checkErr := w.checkInstancesHealthy(runCtx, deploymentID, regionMinReplicas, requiredRegions)
+			healthy, checkErr := readiness.InstancesHealthy(runCtx, w.db, deploymentID, regionMinReplicas, requiredRegions)
 			if checkErr != nil {
 				return fmt.Errorf("check wake instance readiness: %w", checkErr)
 			}

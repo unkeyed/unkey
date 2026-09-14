@@ -2,7 +2,7 @@
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { queryClient } from "@/lib/collections/client";
+import { collection } from "@/lib/collections";
 import {
   dismissSettingsBanner,
   useSettingsBannerVisible,
@@ -20,7 +20,7 @@ import { useAppCurrentDeployment } from "../(overview)/hooks/use-app-current-dep
 import { GlowIcon } from "../components/glow-icon";
 
 export function PendingRedeployBanner() {
-  const { projectId } = useProjectData();
+  const { refetchDeployments } = useProjectData();
   const { app, currentDeployment } = useAppCurrentDeployment();
   const currentDeploymentId = app?.currentDeploymentId ?? null;
   const router = useRouter();
@@ -49,9 +49,8 @@ export function PendingRedeployBanner() {
       if (!currentDeployment) {
         return;
       }
-      await queryClient.invalidateQueries({
-        queryKey: ["deployments", projectId],
-      });
+      refetchDeployments();
+      await collection.apps.utils.refetch();
       router.push(
         routes.projects.apps.deployment({
           workspaceSlug: workspace.slug,

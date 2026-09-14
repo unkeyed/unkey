@@ -282,26 +282,6 @@ type Querier interface {
 	//  FROM app_source_oci
 	//  WHERE app_id = ?
 	FindAppSourceOciByAppId(ctx context.Context, appID string) (AppSourceOci, error)
-	//FindAppWithRuntimeSettings
-	//
-	//  SELECT
-	//      a.id AS app_id,
-	//      a.project_id AS app_project_id,
-	//      a.source_type AS app_source_type,
-	//      a.current_deployment_id AS app_current_deployment_id,
-	//      ars.port AS runtime_settings_port,
-	//      ars.cpu_millicores AS runtime_settings_cpu_millicores,
-	//      ars.memory_mib AS runtime_settings_memory_mib,
-	//      ars.storage_mib AS runtime_settings_storage_mib,
-	//      ars.command AS runtime_settings_command,
-	//      ars.healthcheck AS runtime_settings_healthcheck,
-	//      ars.shutdown_signal AS runtime_settings_shutdown_signal,
-	//      ars.upstream_protocol AS runtime_settings_upstream_protocol,
-	//      ars.sentinel_config AS runtime_settings_sentinel_config
-	//  FROM apps a
-	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
-	//  WHERE a.id = ?
-	FindAppWithRuntimeSettings(ctx context.Context, arg FindAppWithRuntimeSettingsParams) (FindAppWithRuntimeSettingsRow, error)
 	//FindCertificateByHostname
 	//
 	//  SELECT certificates.pk, certificates.id, certificates.workspace_id, certificates.hostname, certificates.certificate, certificates.encrypted_private_key, certificates.created_at, certificates.updated_at FROM certificates WHERE hostname = ?
@@ -540,6 +520,16 @@ type Querier interface {
 	//  FROM deployment_topology
 	//  WHERE deployment_id = ?
 	FindDeploymentTopologyMinReplicas(ctx context.Context, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
+	// FindDeploymentWithApp returns what the desired-state guard needs: the
+	// deployment and its app's current deployment pointer. It joins only apps, so a
+	// deployment whose environment row is already gone still resolves and a pending
+	// transition can still be applied to it.
+	//
+	//  SELECT d.id, d.app_id, a.current_deployment_id
+	//  FROM deployments d
+	//  JOIN apps a ON a.id = d.app_id
+	//  WHERE d.id = ?
+	FindDeploymentWithApp(ctx context.Context, id string) (FindDeploymentWithAppRow, error)
 	//FindDeploymentWithEnvironmentAndApp
 	//
 	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, a.current_deployment_id, a.is_rolled_back
@@ -2109,23 +2099,21 @@ type Querier interface {
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, arg UpdateDeploymentStatusParams) error
-	//UpdateDeploymentStatusBatch
+	// Batch form of UpdateDeploymentStatusIfActive.
 	//
 	//  UPDATE deployments
 	//  SET status = ?, updated_at = ?
 	//  WHERE id IN (/*SLICE:ids*/?)
-	UpdateDeploymentStatusBatch(ctx context.Context, arg UpdateDeploymentStatusBatchParams) error
-	// Transition a deployment's status only when its current status is still
-	// "active" (non-terminal). Prevents the Deploy handler's compensation
-	// stack from overwriting a status that was set intentionally by the dedup
-	// path (e.g. superseded) or by a successful completion (ready). Callers
-	// pass db.TerminalDeploymentStatuses so the terminal set has a single
-	// source of truth.
+	//    AND status IN (/*SLICE:progressing_statuses*/?)
+	UpdateDeploymentStatusBatchIfActive(ctx context.Context, arg UpdateDeploymentStatusBatchIfActiveParams) error
+	// Only progressing rows transition, so a compensation cannot overwrite a status
+	// set on purpose: superseded, cancelled, or ready. Callers pass
+	// mysqltype.ProgressingDeploymentStatuses.
 	//
 	//  UPDATE deployments
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
-	//    AND status NOT IN (/*SLICE:terminal_statuses*/?)
+	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	UpdateDeploymentStatusIfActive(ctx context.Context, arg UpdateDeploymentStatusIfActiveParams) error
 	// UpdateDeploymentTopologyDesiredStatus updates the desired_status of a topology entry.
 	//

@@ -70,9 +70,8 @@ func (v *VirtualObject) ScheduleDesiredStateChange(ctx restate.ObjectContext, re
 // (a newer schedule has superseded this one), the call returns successfully
 // without making any changes. If the deployment or app row no longer exists,
 // typically because an environment delete removed it while a delayed transition
-// was still pending, the call also no-ops. On match, it maps the protobuf state
-// enum to the database representation, updates the deployment's desired state
-// and all topology entries, and clears the stored transition.
+// was still pending, the call also no-ops. On match, it applies the state and
+// clears the stored transition.
 func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydrav1.ChangeDesiredStateRequest) (*hydrav1.ChangeDesiredStateResponse, error) {
 	deploymentID := restate.Key(ctx)
 
@@ -89,10 +88,25 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 		return &hydrav1.ChangeDesiredStateResponse{}, nil
 	}
 
+	if err := v.setDesiredState(ctx, deploymentID, req.GetState()); err != nil {
+		// Deleted while pending: nothing left to apply
+		if restate.ErrorCode(err) != 404 {
+			return nil, err
+		}
+	}
+
+	restate.Clear(ctx, transitionKey)
+
+	return &hydrav1.ChangeDesiredStateResponse{}, nil
+}
+
+// setDesiredState refuses the app's live deployment and returns a terminal 404
+// for a missing one
+func (v *VirtualObject) setDesiredState(ctx restate.ObjectContext, deploymentID string, state hydrav1.DeploymentDesiredState) error {
 	var desiredState mysqltype.DeploymentsDesiredState
 	var topologyDesiredStatus db.DeploymentTopologyDesiredStatus
 
-	switch req.GetState() {
+	switch state {
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_RUNNING:
 		desiredState = mysqltype.DeploymentsDesiredStateRunning
 		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusRunning
@@ -100,63 +114,41 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 		desiredState = mysqltype.DeploymentsDesiredStateStopped
 		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStopped
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_UNSPECIFIED:
-		return nil, restate.TerminalErrorf("invalid state: %s", req.GetState())
+		return restate.TerminalErrorf("invalid state: %s", state)
 	default:
-		return nil, restate.TerminalErrorf("unhandled state: %s", req.GetState())
+		return restate.TerminalErrorf("unhandled state: %s", state)
 	}
 
 	// Guard and the desired-state write share one transaction so a concurrent
 	// promote cannot make this deployment the app's current one between the
 	// check and the write: the invariant is that we never change the desired
 	// state of the deployment that is currently serving the app.
-	applied, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
-		return db.TxWithResult(runCtx, v.db.RW(), func(txCtx context.Context, tx db.DBTX) (bool, error) {
-			deployment, err := db.NewQueries(tx).FindDeploymentById(txCtx, deploymentID)
+	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return db.Tx(runCtx, v.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+			deployment, err := db.NewQueries(tx).FindDeploymentWithApp(txCtx, deploymentID)
 			if err != nil {
 				if db.IsNotFound(err) {
-					return false, nil
+					return restate.TerminalError(fmt.Errorf("deployment not found"), 404)
 				}
-				return false, err
-			}
-			app, err := db.NewQueries(tx).FindAppById(txCtx, deployment.AppID)
-			if err != nil {
-				if db.IsNotFound(err) {
-					return false, nil
-				}
-				return false, err
+				return err
 			}
 
-			if app.CurrentDeploymentID.Valid && app.CurrentDeploymentID.String == deploymentID {
-				return false, restate.TerminalErrorf("not allowed to modify the current deployment")
+			if deployment.CurrentDeploymentID.Valid && deployment.CurrentDeploymentID.String == deploymentID {
+				return restate.TerminalErrorf("not allowed to modify the current deployment")
 			}
 
-			err = db.NewQueries(tx).UpdateDeploymentDesiredState(txCtx, db.UpdateDeploymentDesiredStateParams{
+			return db.NewQueries(tx).UpdateDeploymentDesiredState(txCtx, db.UpdateDeploymentDesiredStateParams{
 				ID:           deploymentID,
 				DesiredState: desiredState,
 				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
-			if err != nil {
-				return false, err
-			}
-
-			return true, nil
 		})
 	}, restate.WithName("updating desired state"))
 	if err != nil {
-		return nil, err
-	}
-	if !applied {
-		restate.Clear(ctx, transitionKey)
-		return &hydrav1.ChangeDesiredStateResponse{}, nil
+		return err
 	}
 
-	if err := applyTopologyDesiredStatus(ctx, v.db, deploymentID, topologyDesiredStatus); err != nil {
-		return nil, err
-	}
-
-	restate.Clear(ctx, transitionKey)
-
-	return &hydrav1.ChangeDesiredStateResponse{}, nil
+	return applyTopologyDesiredStatus(ctx, v.db, deploymentID, topologyDesiredStatus)
 }
 
 // ApplyDesiredState writes a deployment's desired state and propagates it to

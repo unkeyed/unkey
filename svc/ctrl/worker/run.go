@@ -309,32 +309,44 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create deploy workflow: %w", err)
 	}
 
-	restateSrv.Bind(hydrav1.NewDeployServiceServer(deployWorkflow,
-		// Retry with exponential backoff: 2s → 4s → 8s → 16s → 30s (capped),
-		// 15 attempts (~5 min total). Short backoffs keep the worst-case
-		// cancel latency low — a user-initiated cancel only lands at the
-		// next attempt boundary, so longer intervals make cancels feel
-		// stuck. 5 minutes total is enough for transient blips; persistent
-		// failures should surface fast rather than retry for half an hour.
-		//
-		// PauseOnMaxAttempts (not Kill) so compensations can still run:
-		// on KILL the invocation is torn down without re-entering the
-		// handler, so the Go defer that fires compensation.Execute never
-		// runs. Individual restate.Run calls should each set
-		// WithMaxRetryDuration so they return TerminalError into Go on
-		// exhaustion — that's the normal path. This service-level policy
-		// is a safety net for failures that escape Run-level bounds.
-		restate.WithInvocationRetryPolicy(
-			restate.WithInitialInterval(2*time.Second),
-			restate.WithExponentiationFactor(2.0),
-			restate.WithMaxInterval(30*time.Second),
-			restate.WithMaxAttempts(15),
-			restate.PauseOnMaxAttempts(),
-		),
-	))
-	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{
-		DB: database,
-	}), restate.WithIngressPrivate(true)))
+	// Retry with exponential backoff: 2s → 4s → 8s → 16s → 30s (capped),
+	// 15 attempts (~5 min total). Short backoffs keep the worst-case
+	// cancel latency low. A user-initiated cancel only lands at the
+	// next attempt boundary, so longer intervals make cancels feel
+	// stuck. 5 minutes total is enough for transient blips; persistent
+	// failures should surface fast rather than retry for half an hour.
+	//
+	// PauseOnMaxAttempts (not Kill) so compensations can still run:
+	// on KILL the invocation is torn down without re-entering the
+	// handler, so the Go defer that fires compensation.Execute never
+	// runs. Individual restate.Run calls should each set
+	// WithMaxRetryDuration so they return TerminalError into Go on
+	// exhaustion, which is the normal path. This service-level policy
+	// is a safety net for failures that escape Run-level bounds.
+	deployRetryPolicy := restate.WithInvocationRetryPolicy(
+		restate.WithInitialInterval(2*time.Second),
+		restate.WithExponentiationFactor(2.0),
+		restate.WithMaxInterval(30*time.Second),
+		restate.WithMaxAttempts(15),
+		restate.PauseOnMaxAttempts(),
+	)
+	restateSrv.Bind(hydrav1.NewDeployServiceServer(deployWorkflow, deployRetryPolicy))
+	deploymentSvc, err := deployment.New(deployment.Config{
+		DB:        database,
+		Auditlogs: auditlogSvc,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create deployment service: %w", err)
+	}
+	// The generated NewDeploymentServiceServer cannot mark single handlers
+	// ingress-private. Only the handlers the API calls are public
+	privateHandler := restate.WithIngressPrivate(true)
+	restateSrv.Bind(restate.NewObject("hydra.v1.DeploymentService", restate.WithProtoJSON).
+		Handler("ScheduleDesiredStateChange", restate.NewObjectHandler(deploymentSvc.ScheduleDesiredStateChange, privateHandler)).
+		Handler("ChangeDesiredState", restate.NewObjectHandler(deploymentSvc.ChangeDesiredState, privateHandler)).
+		Handler("ClearScheduledStateChanges", restate.NewObjectHandler(deploymentSvc.ClearScheduledStateChanges, privateHandler)).
+		Handler("StopDeployment", restate.NewObjectHandler(deploymentSvc.StopDeployment)).
+		Handler("WakeDeployment", restate.NewObjectHandler(deploymentSvc.WakeDeployment)))
 
 	// DeployTeardownService stops all of a workspace's running Deploy compute and
 	// confirms it drained. Invoked over Restate ingress by cancel (ARCHIVE) and,
@@ -409,7 +421,13 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create environment worker service: %w", err)
 	}
-	restateSrv.Bind(hydrav1.NewEnvironmentServiceServer(envSvc))
+	// Promote and rollback pause after the deploy budget (~5 minutes) instead
+	// of the server default of 70 attempts, so a stuck one frees the
+	// environment key fast. Delete keeps the default: it is cascade-only and
+	// has to finish.
+	restateSrv.Bind(hydrav1.NewEnvironmentServiceServer(envSvc).
+		ConfigureHandler("PromoteDeployment", deployRetryPolicy).
+		ConfigureHandler("RollbackDeployment", deployRetryPolicy))
 
 	// BuildSlotService is short-lived coordination — AcquireOrWait/Release
 	// journals have no debugging value (each invocation just reads state,

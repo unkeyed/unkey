@@ -16,7 +16,9 @@
 // deployment runs as its own isolated workflow, so multiple deployments per
 // environment can build in parallel. The contended resource
 // (apps.current_deployment_id) is serialized inside RoutingService via
-// SwapLiveDeployment, which is keyed by env_id.
+// SwapLiveDeployment, which is keyed by env_id. Promotion and rollback, which
+// read that pointer before they swap it, live on the env-keyed
+// EnvironmentService in the environment package.
 //
 // Workspace-wide concurrency is capped by [buildslot.Service].
 //
@@ -36,17 +38,16 @@
 //  1. Self-skip: [Workflow.skipIfSuperseded] checks
 //     [db.Queries.HasNewerActiveDeployment] for a newer sibling on the same
 //     (app, env, branch). If one exists in any non-terminal status, this
-//     deployment marks itself as skipped and returns.
+//     deployment marks itself superseded and returns.
 //  2. Concurrency gate: [Workflow.waitForBuildSlot] creates a Restate
 //     awakeable and calls [hydrav1.BuildSlotService.AcquireOrWait]. The
 //     handler parks on the awakeable until BuildSlotService resolves it —
 //     either immediately (slot available or the environment is production) or
 //     later when a held slot is released. Production deployments bypass the limit.
 //
-// On the creation side, [Workflow.Create] calls [dedup.CancelOlderSiblings]
-// right after it inserts the deployment row: it batch-stamps older siblings with the
-// "Superseded by newer commit" marker, batch-transitions them to
-// status=superseded, and cancels their Restate invocations via the admin API.
+// On the creation side, [Workflow.Create] calls [Workflow.cancelOlderSiblings]
+// once the new row and its invocation id are recorded: it moves older
+// siblings to status=superseded through deploycancel.Cancel.
 //
 // # Operations
 //
@@ -64,15 +65,6 @@
 // Preview deployments schedule the deployment displaced from the sticky
 // branch route to stop after a short grace period.
 //
-// [Workflow.Rollback] switches sticky frontline routes (environment and live)
-// from the current live deployment to a previous one, atomically through
-// RoutingService. Because the live pointer now points to an older deployment,
-// subsequent deploys detect the rolled-back state and skip auto-promotion.
-//
-// [Workflow.Promote] reassigns sticky routes to a new target deployment and
-// updates the live pointer, restoring normal auto-promote behavior for future
-// deploys.
-//
 // [cron.Service.RunScaleDownIdlePreviewDeployments] paginates through preview
 // environments and schedules idle deployments to stop when they have received
 // zero requests in ClickHouse for longer than the idle window.
@@ -87,18 +79,15 @@
 //
 // # Cancellation
 //
-// Users can manually cancel an in-flight deployment via the CancelDeployment
-// RPC on the control API ([services/deployment.Service.CancelDeployment]).
-// The RPC stamps any active deployment steps with "Cancelled by user" (via
-// [db.Queries.EndActiveDeploymentStepsWithError]) and calls
-// [restateadmin.Client.CancelInvocation] on the stored invocation_id. Restate
-// injects a TerminalError at the handler's next SDK call, which triggers the
-// deferred compensation stack to release the build slot, mark the deployment
-// as failed (via the conditional [db.Queries.UpdateDeploymentStatusIfActive]
-// which never overwrites terminal statuses), and unwind partial state.
-//
-// Sibling cancellation (dedup) uses the same mechanism but stamps
-// "Superseded by newer commit" and transitions the status to superseded.
+// The CancelDeployment RPC, sibling dedup, and environment deletion all abort a
+// deployment through deploycancel.Cancel: write the reason on the open
+// deployment step, move the row to cancelled or superseded, then cancel the
+// Restate invocation running [Workflow.Deploy]. Restate makes Deploy's next SDK
+// call return a TerminalError, which runs the compensations Deploy registered:
+// release the build slot, set every topology's desired_status to stopped, and
+// try to set the status to failed with UpdateDeploymentStatusIfActive. That
+// query changes only a row whose status is still progressing, so the cancelled
+// or superseded status stays.
 //
 // # Image Builds
 //

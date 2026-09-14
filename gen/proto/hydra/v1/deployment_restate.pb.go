@@ -34,6 +34,13 @@ import (
 //     ChangeDesiredState call to itself.
 //  3. When the delay elapses, ChangeDesiredState verifies the nonce still
 //     matches and persists the new desired state to the database.
+//
+// StopDeployment and WakeDeployment are the immediate, user-facing lifecycle
+// operations. They run on this object so a Stop that lands mid-Wake waits for
+// the Wake instead of racing it. They write the desired state directly rather
+// than through ScheduleDesiredStateChange: that handler applies its change by
+// sending ChangeDesiredState to this same key, and a handler already holding
+// the key cannot wait for that send to run.
 type DeploymentServiceClient interface {
 	// ScheduleDesiredStateChange registers a future desired-state transition for
 	// this deployment. It generates a nonce, stores a transition record in Restate
@@ -52,6 +59,14 @@ type DeploymentServiceClient interface {
 	// call. The delayed call may still fire, but it will no-op because
 	// ChangeDesiredState requires a stored transition to exist.
 	ClearScheduledStateChanges(opts ...sdk_go.ClientOption) sdk_go.Client[*ClearScheduledStateChangesRequest, *ClearScheduledStateChangesResponse]
+	// StopDeployment sets desired_state=stopped on a running, non-production
+	// deployment and clears any pending scheduled transition. Public: called by
+	// the API over the ingress.
+	StopDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*StopDeploymentRequest, *StopDeploymentResponse]
+	// WakeDeployment sets desired_state=running on a stopped deployment, marks it
+	// deploying, and returns once enough regions report running instances. Public:
+	// called by the API over the ingress.
+	WakeDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*WakeDeploymentRequest, *WakeDeploymentResponse]
 }
 
 type deploymentServiceClient struct {
@@ -92,6 +107,22 @@ func (c *deploymentServiceClient) ClearScheduledStateChanges(opts ...sdk_go.Clie
 	return sdk_go.WithRequestType[*ClearScheduledStateChangesRequest](sdk_go.Object[*ClearScheduledStateChangesResponse](c.ctx, "hydra.v1.DeploymentService", c.key, "ClearScheduledStateChanges", cOpts...))
 }
 
+func (c *deploymentServiceClient) StopDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*StopDeploymentRequest, *StopDeploymentResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*StopDeploymentRequest](sdk_go.Object[*StopDeploymentResponse](c.ctx, "hydra.v1.DeploymentService", c.key, "StopDeployment", cOpts...))
+}
+
+func (c *deploymentServiceClient) WakeDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*WakeDeploymentRequest, *WakeDeploymentResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*WakeDeploymentRequest](sdk_go.Object[*WakeDeploymentResponse](c.ctx, "hydra.v1.DeploymentService", c.key, "WakeDeployment", cOpts...))
+}
+
 // DeploymentServiceIngressClient is the ingress client API for hydra.v1.DeploymentService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -113,6 +144,14 @@ type DeploymentServiceIngressClient interface {
 	// call. The delayed call may still fire, but it will no-op because
 	// ChangeDesiredState requires a stored transition to exist.
 	ClearScheduledStateChanges() ingress.Requester[*ClearScheduledStateChangesRequest, *ClearScheduledStateChangesResponse]
+	// StopDeployment sets desired_state=stopped on a running, non-production
+	// deployment and clears any pending scheduled transition. Public: called by
+	// the API over the ingress.
+	StopDeployment() ingress.Requester[*StopDeploymentRequest, *StopDeploymentResponse]
+	// WakeDeployment sets desired_state=running on a stopped deployment, marks it
+	// deploying, and returns once enough regions report running instances. Public:
+	// called by the API over the ingress.
+	WakeDeployment() ingress.Requester[*WakeDeploymentRequest, *WakeDeploymentResponse]
 }
 
 type deploymentServiceIngressClient struct {
@@ -144,6 +183,16 @@ func (c *deploymentServiceIngressClient) ClearScheduledStateChanges() ingress.Re
 	return ingress.NewRequester[*ClearScheduledStateChangesRequest, *ClearScheduledStateChangesResponse](c.client, c.serviceName, "ClearScheduledStateChanges", &c.key, &codec)
 }
 
+func (c *deploymentServiceIngressClient) StopDeployment() ingress.Requester[*StopDeploymentRequest, *StopDeploymentResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*StopDeploymentRequest, *StopDeploymentResponse](c.client, c.serviceName, "StopDeployment", &c.key, &codec)
+}
+
+func (c *deploymentServiceIngressClient) WakeDeployment() ingress.Requester[*WakeDeploymentRequest, *WakeDeploymentResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*WakeDeploymentRequest, *WakeDeploymentResponse](c.client, c.serviceName, "WakeDeployment", &c.key, &codec)
+}
+
 // DeploymentServiceServer is the server API for hydra.v1.DeploymentService service.
 // All implementations should embed UnimplementedDeploymentServiceServer
 // for forward compatibility.
@@ -167,6 +216,13 @@ func (c *deploymentServiceIngressClient) ClearScheduledStateChanges() ingress.Re
 //     ChangeDesiredState call to itself.
 //  3. When the delay elapses, ChangeDesiredState verifies the nonce still
 //     matches and persists the new desired state to the database.
+//
+// StopDeployment and WakeDeployment are the immediate, user-facing lifecycle
+// operations. They run on this object so a Stop that lands mid-Wake waits for
+// the Wake instead of racing it. They write the desired state directly rather
+// than through ScheduleDesiredStateChange: that handler applies its change by
+// sending ChangeDesiredState to this same key, and a handler already holding
+// the key cannot wait for that send to run.
 type DeploymentServiceServer interface {
 	// ScheduleDesiredStateChange registers a future desired-state transition for
 	// this deployment. It generates a nonce, stores a transition record in Restate
@@ -185,6 +241,14 @@ type DeploymentServiceServer interface {
 	// call. The delayed call may still fire, but it will no-op because
 	// ChangeDesiredState requires a stored transition to exist.
 	ClearScheduledStateChanges(ctx sdk_go.ObjectContext, req *ClearScheduledStateChangesRequest) (*ClearScheduledStateChangesResponse, error)
+	// StopDeployment sets desired_state=stopped on a running, non-production
+	// deployment and clears any pending scheduled transition. Public: called by
+	// the API over the ingress.
+	StopDeployment(ctx sdk_go.ObjectContext, req *StopDeploymentRequest) (*StopDeploymentResponse, error)
+	// WakeDeployment sets desired_state=running on a stopped deployment, marks it
+	// deploying, and returns once enough regions report running instances. Public:
+	// called by the API over the ingress.
+	WakeDeployment(ctx sdk_go.ObjectContext, req *WakeDeploymentRequest) (*WakeDeploymentResponse, error)
 }
 
 // UnimplementedDeploymentServiceServer should be embedded to have
@@ -202,6 +266,12 @@ func (UnimplementedDeploymentServiceServer) ChangeDesiredState(ctx sdk_go.Object
 }
 func (UnimplementedDeploymentServiceServer) ClearScheduledStateChanges(ctx sdk_go.ObjectContext, req *ClearScheduledStateChangesRequest) (*ClearScheduledStateChangesResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method ClearScheduledStateChanges not implemented"), 501)
+}
+func (UnimplementedDeploymentServiceServer) StopDeployment(ctx sdk_go.ObjectContext, req *StopDeploymentRequest) (*StopDeploymentResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method StopDeployment not implemented"), 501)
+}
+func (UnimplementedDeploymentServiceServer) WakeDeployment(ctx sdk_go.ObjectContext, req *WakeDeploymentRequest) (*WakeDeploymentResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method WakeDeployment not implemented"), 501)
 }
 func (UnimplementedDeploymentServiceServer) testEmbeddedByValue() {}
 
@@ -225,5 +295,7 @@ func NewDeploymentServiceServer(srv DeploymentServiceServer, opts ...sdk_go.Serv
 	router = router.Handler("ScheduleDesiredStateChange", sdk_go.NewObjectHandler(srv.ScheduleDesiredStateChange))
 	router = router.Handler("ChangeDesiredState", sdk_go.NewObjectHandler(srv.ChangeDesiredState))
 	router = router.Handler("ClearScheduledStateChanges", sdk_go.NewObjectHandler(srv.ClearScheduledStateChanges))
+	router = router.Handler("StopDeployment", sdk_go.NewObjectHandler(srv.StopDeployment))
+	router = router.Handler("WakeDeployment", sdk_go.NewObjectHandler(srv.WakeDeployment))
 	return router
 }

@@ -15,12 +15,22 @@ import (
 
 // EnvironmentServiceClient is the client API for hydra.v1.EnvironmentService service.
 //
-// EnvironmentService manages environment lifecycle.
+// EnvironmentService serializes everything that changes an environment's live
+// deployment, plus its deletion.
 // Key: environment_id
 type EnvironmentServiceClient interface {
 	// Delete removes an environment and cleans up associated resources.
 	// Key: environment_id
 	Delete(opts ...sdk_go.ClientOption) sdk_go.Client[*DeleteEnvironmentRequest, *DeleteEnvironmentResponse]
+	// PromoteDeployment moves the sticky routes and live pointer to the
+	// deployment and clears is_rolled_back. If it is already live on a
+	// rolled-back app, only the flag changes.
+	// Key: the deployment's environment_id
+	PromoteDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*PromoteDeploymentRequest, *PromoteDeploymentResponse]
+	// RollbackDeployment moves live traffic from one deployment back to another
+	// and sets is_rolled_back so later deploys do not reclaim the routes.
+	// Key: the environment_id both deployments share
+	RollbackDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*RollbackDeploymentRequest, *RollbackDeploymentResponse]
 }
 
 type environmentServiceClient struct {
@@ -45,6 +55,22 @@ func (c *environmentServiceClient) Delete(opts ...sdk_go.ClientOption) sdk_go.Cl
 	return sdk_go.WithRequestType[*DeleteEnvironmentRequest](sdk_go.Object[*DeleteEnvironmentResponse](c.ctx, "hydra.v1.EnvironmentService", c.key, "Delete", cOpts...))
 }
 
+func (c *environmentServiceClient) PromoteDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*PromoteDeploymentRequest, *PromoteDeploymentResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*PromoteDeploymentRequest](sdk_go.Object[*PromoteDeploymentResponse](c.ctx, "hydra.v1.EnvironmentService", c.key, "PromoteDeployment", cOpts...))
+}
+
+func (c *environmentServiceClient) RollbackDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*RollbackDeploymentRequest, *RollbackDeploymentResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RollbackDeploymentRequest](sdk_go.Object[*RollbackDeploymentResponse](c.ctx, "hydra.v1.EnvironmentService", c.key, "RollbackDeployment", cOpts...))
+}
+
 // EnvironmentServiceIngressClient is the ingress client API for hydra.v1.EnvironmentService service.
 //
 // This client is used to call the service from outside of a Restate context.
@@ -52,6 +78,15 @@ type EnvironmentServiceIngressClient interface {
 	// Delete removes an environment and cleans up associated resources.
 	// Key: environment_id
 	Delete() ingress.Requester[*DeleteEnvironmentRequest, *DeleteEnvironmentResponse]
+	// PromoteDeployment moves the sticky routes and live pointer to the
+	// deployment and clears is_rolled_back. If it is already live on a
+	// rolled-back app, only the flag changes.
+	// Key: the deployment's environment_id
+	PromoteDeployment() ingress.Requester[*PromoteDeploymentRequest, *PromoteDeploymentResponse]
+	// RollbackDeployment moves live traffic from one deployment back to another
+	// and sets is_rolled_back so later deploys do not reclaim the routes.
+	// Key: the environment_id both deployments share
+	RollbackDeployment() ingress.Requester[*RollbackDeploymentRequest, *RollbackDeploymentResponse]
 }
 
 type environmentServiceIngressClient struct {
@@ -73,16 +108,36 @@ func (c *environmentServiceIngressClient) Delete() ingress.Requester[*DeleteEnvi
 	return ingress.NewRequester[*DeleteEnvironmentRequest, *DeleteEnvironmentResponse](c.client, c.serviceName, "Delete", &c.key, &codec)
 }
 
+func (c *environmentServiceIngressClient) PromoteDeployment() ingress.Requester[*PromoteDeploymentRequest, *PromoteDeploymentResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*PromoteDeploymentRequest, *PromoteDeploymentResponse](c.client, c.serviceName, "PromoteDeployment", &c.key, &codec)
+}
+
+func (c *environmentServiceIngressClient) RollbackDeployment() ingress.Requester[*RollbackDeploymentRequest, *RollbackDeploymentResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RollbackDeploymentRequest, *RollbackDeploymentResponse](c.client, c.serviceName, "RollbackDeployment", &c.key, &codec)
+}
+
 // EnvironmentServiceServer is the server API for hydra.v1.EnvironmentService service.
 // All implementations should embed UnimplementedEnvironmentServiceServer
 // for forward compatibility.
 //
-// EnvironmentService manages environment lifecycle.
+// EnvironmentService serializes everything that changes an environment's live
+// deployment, plus its deletion.
 // Key: environment_id
 type EnvironmentServiceServer interface {
 	// Delete removes an environment and cleans up associated resources.
 	// Key: environment_id
 	Delete(ctx sdk_go.ObjectContext, req *DeleteEnvironmentRequest) (*DeleteEnvironmentResponse, error)
+	// PromoteDeployment moves the sticky routes and live pointer to the
+	// deployment and clears is_rolled_back. If it is already live on a
+	// rolled-back app, only the flag changes.
+	// Key: the deployment's environment_id
+	PromoteDeployment(ctx sdk_go.ObjectContext, req *PromoteDeploymentRequest) (*PromoteDeploymentResponse, error)
+	// RollbackDeployment moves live traffic from one deployment back to another
+	// and sets is_rolled_back so later deploys do not reclaim the routes.
+	// Key: the environment_id both deployments share
+	RollbackDeployment(ctx sdk_go.ObjectContext, req *RollbackDeploymentRequest) (*RollbackDeploymentResponse, error)
 }
 
 // UnimplementedEnvironmentServiceServer should be embedded to have
@@ -94,6 +149,12 @@ type UnimplementedEnvironmentServiceServer struct{}
 
 func (UnimplementedEnvironmentServiceServer) Delete(ctx sdk_go.ObjectContext, req *DeleteEnvironmentRequest) (*DeleteEnvironmentResponse, error) {
 	return nil, sdk_go.TerminalError(fmt.Errorf("method Delete not implemented"), 501)
+}
+func (UnimplementedEnvironmentServiceServer) PromoteDeployment(ctx sdk_go.ObjectContext, req *PromoteDeploymentRequest) (*PromoteDeploymentResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method PromoteDeployment not implemented"), 501)
+}
+func (UnimplementedEnvironmentServiceServer) RollbackDeployment(ctx sdk_go.ObjectContext, req *RollbackDeploymentRequest) (*RollbackDeploymentResponse, error) {
+	return nil, sdk_go.TerminalError(fmt.Errorf("method RollbackDeployment not implemented"), 501)
 }
 func (UnimplementedEnvironmentServiceServer) testEmbeddedByValue() {}
 
@@ -115,5 +176,7 @@ func NewEnvironmentServiceServer(srv EnvironmentServiceServer, opts ...sdk_go.Se
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
 	router := sdk_go.NewObject("hydra.v1.EnvironmentService", sOpts...)
 	router = router.Handler("Delete", sdk_go.NewObjectHandler(srv.Delete))
+	router = router.Handler("PromoteDeployment", sdk_go.NewObjectHandler(srv.PromoteDeployment))
+	router = router.Handler("RollbackDeployment", sdk_go.NewObjectHandler(srv.RollbackDeployment))
 	return router
 }

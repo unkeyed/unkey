@@ -404,6 +404,10 @@ type CreateDeploymentRequest struct {
 	GitCommitSha     sql.NullString
 	GitBranch        sql.NullString
 	GitCommitMessage sql.NullString
+
+	// Optional fork provenance, for tests that rebuild a fork PR's deployment.
+	PrNumber               sql.NullInt64
+	ForkRepositoryFullName sql.NullString
 }
 
 func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) db.Deployment {
@@ -445,8 +449,8 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGINT,
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
-		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
+		PrNumber:                      req.PrNumber,
+		ForkRepositoryFullName:        req.ForkRepositoryFullName,
 		DeploymentTrigger:             db.DeploymentsTriggerUnknown,
 		TriggeredBy:                   sql.NullString{Valid: false},
 		TriggerReason:                 sql.NullString{Valid: false},
