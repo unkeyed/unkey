@@ -1,0 +1,20 @@
+instance_id = "anomaly-beta-local-worker"
+region = "local"
+cname_domain = "unkey.local"
+database = "unkey:password@tcp(127.0.0.1:3306)/unkey?parseTime=true&interpolateParams=true"
+deploy_anomaly_fast_workspaces = ["ws_local"]
+
+[vault]
+url = "http://127.0.0.1:8060"
+token = "vault-test-token-123"
+
+[restate]
+admin_url = "http://127.0.0.1:19070"
+http_port = 9080
+register_as = "http://host.docker.internal:9080"
+
+[clickhouse]
+url = "clickhouse://default:password@127.0.0.1:9000"
+
+[acme]
+enabled = false

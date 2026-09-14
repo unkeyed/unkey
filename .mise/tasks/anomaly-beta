@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+#MISE description="Start the focused anomaly beta in an Amp orb (see dev/anomaly-beta/README.md)"
+set -euo pipefail
+
+sql() {
+  docker compose -f web/apps/dashboard/dev/docker-compose.yaml exec -T \
+    -e MYSQL_PWD=password mysql mysql -uunkey -D unkey -N "$@"
+}
+
+case "${1:-up}" in
+  up)
+    umask 077
+    mkdir -p .cache/anomaly-beta
+    docker compose -f web/apps/dashboard/dev/docker-compose.yaml build mysql clickhouse
+    docker compose -f web/apps/dashboard/dev/docker-compose.yaml up -d --wait mysql clickhouse redis
+    sql -e 'SELECT pk, processed_at FROM deploy_anomaly_events LIMIT 0; SELECT last_observed_event_at FROM alert_events LIMIT 0;'
+    if [[ "$(sql -e "SELECT COUNT(*) FROM workspaces WHERE id = 'ws_local'")" == 0 ]]; then
+      mise exec -- go build -o .cache/anomaly-beta/unkey ./build/cli
+      .cache/anomaly-beta/unkey dev seed local --output .cache/anomaly-beta/seed.env \
+        >.cache/anomaly-beta/seed.log 2>&1
+    fi
+    mise run anomaly-beta fixture
+    docker compose -p anomaly-beta-local -f dev/anomaly-beta/restate.yaml up -d --wait
+    curl --fail --silent --show-error --retry 20 --retry-connrefused --retry-delay 1 \
+      http://127.0.0.1:19070/health >/dev/null
+    for service in control-api control-worker api; do
+      mise exec -- go build -o ".cache/anomaly-beta/$service" "./build/$service"
+    done
+    amp orb service start anomaly-api --port 7091 \
+      --command '.cache/anomaly-beta/control-api --config dev/anomaly-beta/control-api.toml'
+    amp orb service start anomaly-worker --port 9080 \
+      --command '.cache/anomaly-beta/control-worker --config dev/anomaly-beta/control-worker.toml'
+    amp orb service start anomaly-public-api --port 7070 \
+      --command '.cache/anomaly-beta/api --config dev/anomaly-beta/api.toml'
+    for port in 7091 9080 7070; do
+      curl --fail --silent --show-error --max-time 5 --retry 10 --retry-connrefused --retry-delay 1 \
+        "http://127.0.0.1:$port/health/live" >/dev/null
+    done
+    mise run install-web
+    amp orb service start anomaly-dashboard --port 3000 --portal --title 'Anomaly beta' \
+      --command 'mise run anomaly-beta dashboard'
+    curl --fail --silent --show-error --max-time 120 http://127.0.0.1:3000/local/alerts >/dev/null
+    ;;
+  fixture)
+    app_query="SELECT a.id FROM apps a JOIN projects p ON p.id = a.project_id
+      WHERE a.workspace_id = 'ws_local' AND p.slug = 'local-api' AND a.slug = 'default'"
+    if [[ "$(sql -e "SELECT COUNT(*) FROM apps WHERE id = ($app_query)")" != 1 ]]; then
+      echo 'Expected the local seed app. Inspect local data before running the seed command.' >&2
+      exit 1
+    fi
+    conflicts="SELECT
+      (SELECT COUNT(*) FROM apps WHERE id = ($app_query)
+        AND current_deployment_id IS NOT NULL AND current_deployment_id <> 'dep_anomaly_local_beta') +
+      (SELECT COUNT(*) FROM deployments WHERE id = 'dep_anomaly_local_beta'
+        AND (app_id <> ($app_query) OR workspace_id <> 'ws_local')) +
+      (SELECT COUNT(*) FROM clusters WHERE
+        (id = 'cluster_anomaly_beta' OR cell_id = 'cell_anomaly_beta' OR
+         region_id = (SELECT id FROM regions WHERE name = 'local' AND platform = 'dev'))
+        AND (id <> 'cluster_anomaly_beta' OR cell_id <> 'cell_anomaly_beta' OR cell_id IS NULL OR
+         region_id <> (SELECT id FROM regions WHERE name = 'local' AND platform = 'dev')))"
+    if [[ "$(sql -e "$conflicts")" != 0 ]]; then
+      echo 'Existing deployment or cluster conflicts with the beta fixture; no fixture data changed.' >&2
+      exit 1
+    fi
+    sql < dev/anomaly-beta/fixture.sql
+    ;;
+  dashboard)
+    export AUTH_PROVIDER=local DATABASE_HOST=127.0.0.1:3306
+    export DATABASE_USERNAME=unkey DATABASE_PASSWORD=password
+    export CLICKHOUSE_URL=http://default:password@127.0.0.1:8123
+    export UNKEY_WORKSPACE_ID=ws_unkey UNKEY_API_ID=api_unkey
+    export UNKEY_API_URL=http://127.0.0.1:7070
+    export UNKEY_JWT_SECRET=local-dev-jwt-secret-with-at-least-32-bytes
+    export VAULT_URL=http://127.0.0.1:8060 VAULT_TOKEN=vault-test-token-123
+    export CTRL_URL=http://127.0.0.1:7091 CTRL_API_KEY=local-anomaly-test-only
+    export FLAGS_LOCAL_OVERRIDES=deploy-anomaly-alerts
+    export SENTRY_DISABLED=true NEXT_PUBLIC_SENTRY_DISABLED=true AMP_ORB=1
+    exec mise exec -- pnpm --dir=web/apps/dashboard exec next dev \
+      --hostname 0.0.0.0 --port "${PORT:-3000}"
+    ;;
+  tick)
+    curl --fail-with-body --silent --show-error --max-time 30 \
+      -H 'Content-Type: application/json' \
+      -H "idempotency-key: deploy-anomaly-events-$(date -u +%Y-%m-%dT%H:%M)" \
+      -d '{}' \
+      http://127.0.0.1:18080/hydra.v1.CronService/deploy-anomaly-events/RunDeployAnomalyEvents/send
+    ;;
+  stop)
+    for service in anomaly-dashboard anomaly-public-api anomaly-worker anomaly-api; do
+      amp orb service stop "$service"
+    done
+    ;;
+  *)
+    echo 'Usage: mise run anomaly-beta [up|fixture|dashboard|tick|stop]' >&2
+    exit 2
+    ;;
+esac

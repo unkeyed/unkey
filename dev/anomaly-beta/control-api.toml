@@ -1,0 +1,13 @@
+instance_id = "anomaly-beta-local-api"
+region = "local"
+http_port = 7091
+auth_token = "local-anomaly-test-only"
+database = "unkey:password@tcp(127.0.0.1:3306)/unkey?parseTime=true&interpolateParams=true"
+deploy_anomaly_fast_workspaces = ["ws_local"]
+
+[restate]
+url = "http://127.0.0.1:18080"
+admin_url = "http://127.0.0.1:19070"
+
+[clickhouse]
+url = "clickhouse://default:password@127.0.0.1:9000"

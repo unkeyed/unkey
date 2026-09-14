@@ -1,0 +1,27 @@
+http_port = 7070
+region = "local"
+redis_url = "redis://127.0.0.1:6379"
+
+[[auth]]
+type = "jwt"
+issuer = "app.unkey.com"
+audience = "api.unkey.com"
+secrets = ["local-dev-jwt-secret-with-at-least-32-bytes"]
+provider = "workos"
+
+[[auth]]
+type = "root_key"
+
+[database]
+primary = "unkey:password@tcp(127.0.0.1:3306)/unkey?parseTime=true&interpolateParams=true"
+
+[clickhouse]
+url = "clickhouse://default:password@127.0.0.1:9000"
+
+[control]
+url = "http://127.0.0.1:7091"
+token = "local-anomaly-test-only"
+
+[restate]
+url = "http://127.0.0.1:18080"
+api_key = "local-anomaly-test-only"
