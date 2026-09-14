@@ -130,6 +130,8 @@ Do not add an action for each API endpoint.
 | Assign or remove a role or permission on a key | Key | `write` |
 | Assign or remove a permission on a role | Role | `write` |
 | Create or edit a permission definition | Permission | `write` |
+| Point a portal at an app or keyspace | Portal | `write` |
+| Mint a portal session | Portal session | `write` |
 
 ## Log rules
 
@@ -141,6 +143,28 @@ the exact log resource path or use an intentional subtree grant.
 
 Find all log resource paths in the
 [resource permission catalog](/architecture/authorization/resource-permission-catalog).
+
+## Legacy permission tuples
+
+Root key permissions predate this format. A legacy grant is a dotted
+`{resource_type}.{resource_id}.{action}` tuple rather than a URN, and the two
+formats are evaluated separately: a tuple is matched as literal text, so a `*`
+stored inside one does not expand the way a URN wildcard does, and a
+workspace-wide URN grant never satisfies a tuple requirement.
+
+Routes that predate the canonical catalog therefore accept either format, and
+the tuple arms may be removed once the root key rewrite has run and no stored
+permission is still in tuple form. Every site that will then need editing
+carries a comment naming legacy tuples, so one repo-wide search finds them all:
+
+```bash
+grep -rEi "legacy[ -]tuple" --include='*.go' .
+```
+
+One legacy string has no canonical form and is deliberately not rewritten: the
+catch-all `*` that some root keys hold in place of a tuple. Its nearest
+canonical equivalent would cover portal session minting, which the catch-all
+does not grant today.
 
 ## Global admin
 

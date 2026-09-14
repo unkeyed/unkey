@@ -11,7 +11,7 @@ import (
 )
 
 const findPortalByApp = `-- name: FindPortalByApp :one
-SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
+SELECT pk, id, workspace_id, project_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
 WHERE app_id = ?
   AND workspace_id = ?
 LIMIT 1
@@ -28,7 +28,7 @@ type FindPortalByAppParams struct {
 // Workspace-scoped on purpose: `idx_app_id` is unique across the whole table, so
 // an unscoped lookup would return another workspace's portal.
 //
-//	SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
+//	SELECT pk, id, workspace_id, project_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
 //	WHERE app_id = ?
 //	  AND workspace_id = ?
 //	LIMIT 1
@@ -39,6 +39,7 @@ func (q *Queries) FindPortalByApp(ctx context.Context, db DBTX, arg FindPortalBy
 		&i.Pk,
 		&i.ID,
 		&i.WorkspaceID,
+		&i.ProjectID,
 		&i.Slug,
 		&i.DisplayName,
 		&i.AppID,

@@ -1,5 +1,6 @@
 unkey:v1:ws_123:github/apps/*#read
 unkey:v1:ws_123:projects/*#read
+unkey:v1:ws_123:projects/*/portals/*#read
 unkey:v1:ws_123:projects/*/apps/*#read
 unkey:v1:ws_123:projects/*/apps/*/environments/*#read
 unkey:v1:ws_123:projects/*/apps/*/environments/*/deployments/*#read

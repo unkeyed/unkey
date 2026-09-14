@@ -13,6 +13,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
@@ -149,16 +151,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		// Resolved first, then authorized, so the query can name the concrete ID a
-		// scoped grant would carry. Safe because the resolve is workspace-scoped --
-		// a foreign portal is already absent above -- Authorize is an in-memory
+		// Resolved first, then authorized, so both arms can name the concrete portal
+		// a scoped grant would carry. Safe because the resolve is workspace-scoped
+		// -- a foreign portal is already absent above -- Authorize is an in-memory
 		// check over already-loaded permissions, and nothing has been written yet.
-		// The wildcard arm is spelled out separately because a stored `*` matches
-		// literally and does not expand.
+		// The wildcard tuple arm is spelled out separately because a stored `*`
+		// matches literally and does not expand.
 		//
-		// Portals are not in the canonical URN catalog, so scoped access uses legacy
-		// tuples. The exact admin permission lets the dashboard use this route. The
-		// JWT admin role produces it.
+		// The legacy tuple arms stay until callers have migrated to portal URNs.
 		err = principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Portal,
@@ -170,7 +170,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   found.ID,
 				Action:       rbac.UpdatePortal,
 			}),
-			rbac.S(fmt.Sprintf("unkey:v1:%s:**#*", principal.AuthorizedWorkspaceID)),
+			rbac.U(
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID),
+				permissions.Write,
+			),
 		))
 		if err != nil {
 			// A fresh chain, not a wrap: UserFacingMessage concatenates every public
@@ -187,7 +190,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		if repoint {
-			if err = portal.VerifyMappingOwned(ctx, tx, principal.AuthorizedWorkspaceID, mapping); err != nil {
+			mappingProjectID, err := portal.ResolveMappingProject(ctx, tx, principal.AuthorizedWorkspaceID, mapping)
+			if err != nil {
+				return empty, err
+			}
+
+			if err = portal.VerifyMappingInProject(found.ProjectID, mappingProjectID); err != nil {
 				return empty, err
 			}
 
@@ -244,9 +252,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			after.Enabled = *req.Enabled
 		}
 
-		// Both flags are set together or neither is. Setting one alone is the write
-		// that could produce a row with both associations, which the application is
-		// solely responsible for preventing.
+		// The association flags are set together or not at all, since setting one
+		// alone is the write that could leave a row with both associations, which
+		// only the application prevents.
 		mappingChanged := false
 		if repoint {
 			params.AppID = mappingAppID
