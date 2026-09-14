@@ -3,7 +3,11 @@
 import { DEPLOY_METER_RATES } from "@/lib/billing/deployPricing";
 import { formatCompactQuantity, formatPrice } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { IconChevronRightOutline12, IconCircleInfoOutline12, IconCubeOutline18 } from "@unkey/icons";
+import {
+  IconChevronRightOutline12,
+  IconCircleInfoOutline12,
+  IconCubeOutline18,
+} from "@unkey/icons";
 import {
   InfoTooltip,
   Item,
