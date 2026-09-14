@@ -14,7 +14,7 @@ properties:
     # other role endpoints and the dashboard role editor.
     maxLength: 128
     description: |
-      The unique name for this role. Must be unique within your workspace and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
+      The unique name for this role. Must be unique within the project and clearly indicate the role's purpose. Use descriptive names like 'admin', 'editor', or 'Billing Manager'.
 
       Examples: 'admin.billing', 'support.readonly', 'developer.api', 'Billing Manager'
     example: "support.readonly"

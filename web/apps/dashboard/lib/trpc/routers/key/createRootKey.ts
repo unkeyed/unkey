@@ -30,6 +30,11 @@ export const createRootKey = workspaceProcedure
             eq(schema.apis.id, env().UNKEY_API_ID),
           ),
         columns: { keyAuthId: true },
+        with: {
+          keyAuth: {
+            columns: { projectId: true },
+          },
+        },
       })
       .catch((_err) => {
         throw new TRPCError({
@@ -45,12 +50,13 @@ export const createRootKey = workspaceProcedure
       });
     }
     const keyAuthId = unkeyApi.keyAuthId;
-    if (!keyAuthId) {
+    if (!keyAuthId || !unkeyApi.keyAuth) {
       throw new TRPCError({
         code: "PRECONDITION_FAILED",
         message: `API ${env().UNKEY_API_ID} is not setup to handle keys`,
       });
     }
+    const projectId = unkeyApi.keyAuth.projectId;
 
     const keyId = newId("key");
     const { key, hash, prefix, start, end } = await newKey({
@@ -102,6 +108,7 @@ export const createRootKey = workspaceProcedure
         const { permissions, auditLogs: createPermissionLogs } = await upsertPermissions(
           ctx,
           env().UNKEY_WORKSPACE_ID,
+          projectId,
           input.permissions,
         );
 

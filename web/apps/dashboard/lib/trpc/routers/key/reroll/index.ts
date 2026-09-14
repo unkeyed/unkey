@@ -126,6 +126,7 @@ async function rerollKeyCore({
         with: {
           keyAuth: {
             columns: {
+              projectId: true,
               storeEncryptedKeys: true,
               defaultBytes: true,
             },
@@ -141,6 +142,9 @@ async function rerollKeyCore({
           encrypted: {
             columns: { keyId: true },
           },
+          identity: {
+            columns: { id: true, projectId: true },
+          },
           ratelimits: {
             columns: {
               keyId: true,
@@ -153,9 +157,19 @@ async function rerollKeyCore({
           },
           roles: {
             columns: { roleId: true },
+            with: {
+              role: {
+                columns: { projectId: true },
+              },
+            },
           },
           permissions: {
             columns: { permissionId: true },
+            with: {
+              permission: {
+                columns: { projectId: true },
+              },
+            },
           },
         },
       });
@@ -219,6 +233,17 @@ async function rerollKeyCore({
       // same expiry.
       const oldKeyExpiresAt = capGracePeriodAtSourceExpiry(source.expires, gracePeriodEnd);
 
+      // Rotation can encounter associations created before project checks existed.
+      // Copy only associations that belong to the keyspace project.
+      const identityId =
+        source.identity?.projectId === source.keyAuth.projectId ? source.identityId : null;
+      const roles = source.roles.filter(
+        ({ role }) => role.projectId === source.keyAuth.projectId,
+      );
+      const permissions = source.permissions.filter(
+        ({ permission }) => permission.projectId === source.keyAuth.projectId,
+      );
+
       await tx.insert(schema.keys).values({
         id: newKeyId,
         keyAuthId: source.keyAuthId,
@@ -229,7 +254,7 @@ async function rerollKeyCore({
         workspaceId: source.workspaceId,
         forWorkspaceId: source.forWorkspaceId,
         name: source.name,
-        identityId: source.identityId,
+        identityId,
         meta: source.meta,
         expires: source.expires,
         createdAtM: now,
@@ -271,9 +296,9 @@ async function rerollKeyCore({
         );
       }
 
-      if (source.roles.length > 0) {
+      if (roles.length > 0) {
         await tx.insert(schema.keysRoles).values(
-          source.roles.map((role) => ({
+          roles.map((role) => ({
             keyId: newKeyId,
             roleId: role.roleId,
             workspaceId: source.workspaceId,
@@ -282,9 +307,9 @@ async function rerollKeyCore({
         );
       }
 
-      if (source.permissions.length > 0) {
+      if (permissions.length > 0) {
         await tx.insert(schema.keysPermissions).values(
-          source.permissions.map((permission) => ({
+          permissions.map((permission) => ({
             keyId: newKeyId,
             permissionId: permission.permissionId,
             workspaceId: source.workspaceId,

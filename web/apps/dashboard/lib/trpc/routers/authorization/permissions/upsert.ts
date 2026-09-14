@@ -39,6 +39,7 @@ export const upsertPermission = workspaceProcedure
             and(eq(table.id, updatePermissionId), eq(table.workspaceId, ctx.workspace.id)),
           columns: {
             id: true,
+            projectId: true,
             name: true,
             slug: true,
           },
@@ -57,6 +58,7 @@ export const upsertPermission = workspaceProcedure
             where: (table, { and, eq, ne }) =>
               and(
                 eq(table.workspaceId, ctx.workspace.id),
+                eq(table.projectId, existingPermission.projectId),
                 eq(table.name, input.name),
                 ne(table.id, updatePermissionId),
               ),
@@ -77,6 +79,7 @@ export const upsertPermission = workspaceProcedure
             where: (table, { and, eq, ne }) =>
               and(
                 eq(table.workspaceId, ctx.workspace.id),
+                eq(table.projectId, existingPermission.projectId),
                 eq(table.slug, input.slug),
                 ne(table.id, updatePermissionId),
               ),
@@ -139,12 +142,20 @@ export const upsertPermission = workspaceProcedure
         const [nameConflict, slugConflict] = await Promise.all([
           await tx.query.permissions.findFirst({
             where: (table, { and, eq }) =>
-              and(eq(table.workspaceId, ctx.workspace.id), eq(table.name, input.name)),
+              and(
+                eq(table.workspaceId, ctx.workspace.id),
+                eq(table.projectId, projectId),
+                eq(table.name, input.name),
+              ),
             columns: { id: true },
           }),
           await tx.query.permissions.findFirst({
             where: (table, { and, eq }) =>
-              and(eq(table.workspaceId, ctx.workspace.id), eq(table.slug, input.slug)),
+              and(
+                eq(table.workspaceId, ctx.workspace.id),
+                eq(table.projectId, projectId),
+                eq(table.slug, input.slug),
+              ),
             columns: { id: true },
           }),
         ]);

@@ -18,14 +18,13 @@ properties:
       The human-readable name for this permission that describes its purpose.
       Should be descriptive enough for developers to understand what access it grants.
       Use clear, semantic names that reflect the resources or actions being permitted.
-      Names must be unique within your workspace to avoid confusion and conflicts.
     example: "users.read"
   slug:
     pattern: ^[a-zA-Z0-9_:\-\.\*]+$
     type: string
     minLength: 1
     maxLength: 512
-    description: The unique URL-safe identifier for this permission.
+    description: The URL-safe identifier for this permission. It must be unique within the project.
     example: users-read
   description:
     type: string

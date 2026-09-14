@@ -15,7 +15,7 @@ func createRoleCmd() *cli.Command {
 		Usage: "Create a new role to group related permissions for easier management",
 		Description: `Create a new role to group related permissions for easier management. Roles enable consistent permission assignment across multiple API keys.
 
-Important: Role names must be unique within the workspace. Once created, roles are immediately available for assignment.
+Important: Role names must be unique within the project. Once created, roles are immediately available for assignment.
 
 Required permissions:
 - rbac.*.create_role
@@ -31,7 +31,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/permissi
 			util.APIURLFlag(),
 			util.ConfigFlag(),
 			util.OutputFlag(),
-			cli.String("name", "Unique name for the role within your workspace.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("name", "Unique name for the role within your project.", cli.Required(), cli.MutuallyExclusive("body")),
 			cli.String("description", "Documentation of what this role encompasses and what access it grants.", cli.MutuallyExclusive("body")),
 			cli.StringSlice("permissions", "Comma-separated permission slugs to attach to the role.", cli.MutuallyExclusive("body")),
 		},

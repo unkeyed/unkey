@@ -35,7 +35,7 @@ select k.id,
                (SELECT JSON_ARRAYAGG(name)
                 FROM (SELECT name
                       FROM keys_roles kr
-                               JOIN roles r ON r.id = kr.role_id
+                               JOIN roles r ON r.id = kr.role_id AND r.project_id = ka.project_id
                       WHERE kr.key_id = k.id) as roles),
                JSON_ARRAY()
        )               as roles,
@@ -44,15 +44,16 @@ select k.id,
                (SELECT JSON_ARRAYAGG(slug)
                 FROM (SELECT slug
                       FROM keys_permissions kp
-                               JOIN permissions p ON kp.permission_id = p.id
+                               JOIN permissions p ON kp.permission_id = p.id AND p.project_id = ka.project_id
                       WHERE kp.key_id = k.id
 
                       UNION ALL
 
                       SELECT slug
                       FROM keys_roles kr
+                               JOIN roles r ON kr.role_id = r.id AND r.project_id = ka.project_id
                                JOIN roles_permissions rp ON kr.role_id = rp.role_id
-                               JOIN permissions p ON rp.permission_id = p.id
+                               JOIN permissions p ON rp.permission_id = p.id AND p.project_id = ka.project_id
                       WHERE kr.key_id = k.id) as combined_perms),
                JSON_ARRAY()
        )               as permissions,
@@ -92,7 +93,7 @@ from ` + "`" + `keys` + "`" + ` k
          JOIN key_auth ka ON ka.id = k.key_auth_id
          JOIN workspaces ws ON ws.id = k.workspace_id
          LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
-         LEFT JOIN identities i ON i.id = k.identity_id AND i.deleted = 0
+         LEFT JOIN identities i ON i.id = k.identity_id AND i.project_id = ka.project_id AND i.deleted = 0
 where k.hash = ?
   and k.deleted_at_m is null
 `
@@ -134,6 +135,7 @@ type FindKeyForVerificationRow struct {
 // are returned as JSON arrays via JSON_ARRAYAGG so the caller can unmarshal
 // them into typed Go structs. Key-level and identity-level rate limits are
 // unioned so that both sources are available for the verification pipeline.
+// Project predicates prevent malformed associations from crossing the keyspace boundary.
 //
 //	select k.id,
 //	       k.key_auth_id,
@@ -159,7 +161,7 @@ type FindKeyForVerificationRow struct {
 //	               (SELECT JSON_ARRAYAGG(name)
 //	                FROM (SELECT name
 //	                      FROM keys_roles kr
-//	                               JOIN roles r ON r.id = kr.role_id
+//	                               JOIN roles r ON r.id = kr.role_id AND r.project_id = ka.project_id
 //	                      WHERE kr.key_id = k.id) as roles),
 //	               JSON_ARRAY()
 //	       )               as roles,
@@ -168,15 +170,16 @@ type FindKeyForVerificationRow struct {
 //	               (SELECT JSON_ARRAYAGG(slug)
 //	                FROM (SELECT slug
 //	                      FROM keys_permissions kp
-//	                               JOIN permissions p ON kp.permission_id = p.id
+//	                               JOIN permissions p ON kp.permission_id = p.id AND p.project_id = ka.project_id
 //	                      WHERE kp.key_id = k.id
 //
 //	                      UNION ALL
 //
 //	                      SELECT slug
 //	                      FROM keys_roles kr
+//	                               JOIN roles r ON kr.role_id = r.id AND r.project_id = ka.project_id
 //	                               JOIN roles_permissions rp ON kr.role_id = rp.role_id
-//	                               JOIN permissions p ON rp.permission_id = p.id
+//	                               JOIN permissions p ON rp.permission_id = p.id AND p.project_id = ka.project_id
 //	                      WHERE kr.key_id = k.id) as combined_perms),
 //	               JSON_ARRAY()
 //	       )               as permissions,
@@ -216,7 +219,7 @@ type FindKeyForVerificationRow struct {
 //	         JOIN key_auth ka ON ka.id = k.key_auth_id
 //	         JOIN workspaces ws ON ws.id = k.workspace_id
 //	         LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
-//	         LEFT JOIN identities i ON i.id = k.identity_id AND i.deleted = 0
+//	         LEFT JOIN identities i ON i.id = k.identity_id AND i.project_id = ka.project_id AND i.deleted = 0
 //	where k.hash = ?
 //	  and k.deleted_at_m is null
 func (q *Queries) FindKeyForVerification(ctx context.Context, db DBTX, hash string) (FindKeyForVerificationRow, error) {
