@@ -816,6 +816,41 @@ func TestInsertDeploymentToleratesACommittedRow(t *testing.T) {
 	require.Equal(t, 1, h.countDeployments(t, ctx), "no second row")
 }
 
+// TestCreateOnACommittedRowDedupsFromTheRowsOwnAge pins the ordering key the
+// sibling dedup uses. An authorization runs Create against a row written hours
+// earlier, so taking the wall clock instead of the row would let the older
+// deployment supersede a sibling that is genuinely newer than it.
+func TestCreateOnACommittedRowDedupsFromTheRowsOwnAge(t *testing.T) {
+	ctx := context.Background()
+	h := newCreateHarness(t, ctx)
+	h.connectRepo(t, ctx)
+
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
+		h.create(t, ctx, deploymentID, h.gitRequest()).GetOutcome())
+
+	twoHoursAgo := time.Now().Add(-2 * time.Hour).UnixMilli()
+	h.backdate(t, ctx, deploymentID, twoHoursAgo)
+
+	newer := h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   h.workspaceID,
+		ProjectID:     h.projectID,
+		AppID:         h.appID,
+		EnvironmentID: h.environmentID,
+		Status:        mysqltype.DeploymentsStatusPending,
+		CreatedAt:     time.Now().Add(-1 * time.Hour).UnixMilli(),
+		GitBranch:     sql.NullString{Valid: true, String: "main"},
+	})
+
+	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
+		h.create(t, ctx, deploymentID, h.gitRequest()).GetOutcome())
+
+	require.Equal(t, mysqltype.DeploymentsStatusPending,
+		h.deployment(t, ctx, newer.ID).Status,
+		"a sibling newer than the row being started must survive")
+}
+
 // TestCreateSkipIgnoresEnvironmentDeployability keeps the record of a push that
 // was deliberately not built. Refusing the skip would leave the push with no
 // record at all, which is what the reason on the row exists to prevent.
@@ -1593,6 +1628,13 @@ func (h *createHarness) setCurrentDeployment(t *testing.T, ctx context.Context, 
 	t.Helper()
 	_, err := h.database.RW().ExecContext(ctx,
 		"UPDATE apps SET current_deployment_id = ? WHERE id = ?", deploymentID, h.appID)
+	require.NoError(t, err)
+}
+
+func (h *createHarness) backdate(t *testing.T, ctx context.Context, deploymentID string, createdAt int64) {
+	t.Helper()
+	_, err := h.database.RW().ExecContext(ctx,
+		"UPDATE deployments SET created_at = ? WHERE id = ?", createdAt, deploymentID)
 	require.NoError(t, err)
 }
 

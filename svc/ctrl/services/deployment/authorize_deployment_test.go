@@ -211,6 +211,94 @@ func TestAuthorizeDeploymentRevertsWhenTheRunCannotStart(t *testing.T) {
 	f.requireStatus(ctx, deployment.ID, mysqltype.DeploymentsStatusAwaitingApproval)
 }
 
+// TestAuthorizeDeploymentRevertsWhenCreateRefuses covers the compensation this
+// path depends on. ensureWorkspaceCanDeploy checks plan and spend only, so a
+// target that stopped being deployable is caught by Create after the row is
+// already pending, and only the revert hands the approve button back.
+func TestAuthorizeDeploymentRevertsWhenCreateRefuses(t *testing.T) {
+	ctx := context.Background()
+	f := newAuthorizeFixture(t, ctx)
+	deployment := f.seedGitAwaitingApproval(ctx)
+
+	// Nowhere left to schedule. The pre-CAS gate does not look at regions
+	f.exec(ctx, "DELETE FROM app_regional_settings WHERE app_id = ?", f.appID)
+
+	_, err := f.svc.AuthorizeDeployment(ctx, f.request(deployment.ID))
+	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	f.requireNoDeploy(t, deployment.ID)
+	f.requireStatus(ctx, deployment.ID, mysqltype.DeploymentsStatusAwaitingApproval)
+}
+
+// TestRevertAuthorizationLeavesANonPendingRow pins the guard on the swap. A
+// cancel that lands while the dispatch is in flight has to survive it.
+func TestRevertAuthorizationLeavesANonPendingRow(t *testing.T) {
+	ctx := context.Background()
+	f := newAuthorizeFixture(t, ctx)
+	deployment := f.seedGitAwaitingApproval(ctx)
+	f.setStatus(ctx, deployment.ID, mysqltype.DeploymentsStatusCancelled)
+
+	f.svc.revertAuthorization(ctx, deployment.ID)
+
+	f.requireStatus(ctx, deployment.ID, mysqltype.DeploymentsStatusCancelled)
+}
+
+// TestRevertAuthorizationLeavesAStartedRun pins the other half of the guard.
+// Create sends Deploy before it persists the invocation id and cancels
+// siblings, and an error from either still fails the call, so a revert must
+// not re-arm approval underneath a build that is already running.
+func TestRevertAuthorizationLeavesAStartedRun(t *testing.T) {
+	ctx := context.Background()
+	f := newAuthorizeFixture(t, ctx)
+	deployment := f.seedGitAwaitingApproval(ctx)
+	f.setStatus(ctx, deployment.ID, mysqltype.DeploymentsStatusPending)
+	f.exec(ctx, "UPDATE deployments SET invocation_id = ? WHERE id = ?",
+		uid.New("inv"), deployment.ID)
+
+	f.svc.revertAuthorization(ctx, deployment.ID)
+
+	f.requireStatus(ctx, deployment.ID, mysqltype.DeploymentsStatusPending)
+}
+
+// TestAuthorizeDeploymentRefusesAnUntaggedImage pins the narrowing the image
+// arm brings. Create normalizes the reference where the old path passed it
+// through, so an implicit tag is refused now, and the refusal has to leave the
+// approve button rather than strand the row.
+func TestAuthorizeDeploymentRefusesAnUntaggedImage(t *testing.T) {
+	ctx := context.Background()
+	f := newAuthorizeFixture(t, ctx)
+	deployment := f.seedAwaitingApproval(ctx, seed.CreateDeploymentRequest{})
+	f.setImageRequested(ctx, deployment.ID, "nginx")
+
+	_, err := f.svc.AuthorizeDeployment(ctx, f.request(deployment.ID))
+	require.Equal(t, connect.CodeFailedPrecondition, connect.CodeOf(err))
+	f.requireNoDeploy(t, deployment.ID)
+	f.requireStatus(ctx, deployment.ID, mysqltype.DeploymentsStatusAwaitingApproval)
+}
+
+// TestAuthorizeDeploymentIgnoresANewerSibling pins RequireLatest staying false.
+// A reviewer approving a stale commit is the normal case, and refusing it
+// because the branch moved on would strand the approval.
+func TestAuthorizeDeploymentIgnoresANewerSibling(t *testing.T) {
+	ctx := context.Background()
+	f := newAuthorizeFixture(t, ctx)
+	deployment := f.seedGitAwaitingApproval(ctx)
+	f.exec(ctx, "UPDATE deployments SET created_at = ? WHERE id = ?",
+		time.Now().Add(-2*time.Hour).UnixMilli(), deployment.ID)
+
+	newer := f.seedAwaitingApproval(ctx, seed.CreateDeploymentRequest{
+		CreatedAt:        time.Now().Add(-1 * time.Hour).UnixMilli(),
+		GitCommitSha:     sql.NullString{Valid: true, String: testCommitSHA()},
+		GitBranch:        sql.NullString{Valid: true, String: "feature/kebap"},
+		GitCommitMessage: sql.NullString{Valid: true, String: "feat: KEBAP again"},
+	})
+
+	_, err := f.svc.AuthorizeDeployment(ctx, f.request(deployment.ID))
+	require.NoError(t, err)
+
+	require.NotNil(t, f.deploys.await(t, deployment.ID))
+	f.requireStatus(ctx, newer.ID, mysqltype.DeploymentsStatusAwaitingApproval)
+}
+
 type authorizeFixture struct {
 	t        *testing.T
 	database db.Database
@@ -355,12 +443,14 @@ func newAuthorizeFixture(t *testing.T, ctx context.Context) *authorizeFixture {
 }
 
 func (f *authorizeFixture) request(deploymentID string) *connect.Request[ctrlv1.AuthorizeDeploymentRequest] {
+	f.t.Helper()
 	req := connect.NewRequest(&ctrlv1.AuthorizeDeploymentRequest{DeploymentId: deploymentID})
 	req.Header().Set("Authorization", "Bearer "+authorizeBearer)
 	return req
 }
 
 func (f *authorizeFixture) seedAwaitingApproval(ctx context.Context, req seed.CreateDeploymentRequest) db.Deployment {
+	f.t.Helper()
 	req.ID = uid.New(uid.DeploymentPrefix)
 	req.WorkspaceID = f.workspaceID
 	req.ProjectID = f.projectID
@@ -371,6 +461,7 @@ func (f *authorizeFixture) seedAwaitingApproval(ctx context.Context, req seed.Cr
 }
 
 func (f *authorizeFixture) seedGitAwaitingApproval(ctx context.Context) db.Deployment {
+	f.t.Helper()
 	return f.seedAwaitingApproval(ctx, seed.CreateDeploymentRequest{
 		GitCommitSha:           sql.NullString{Valid: true, String: testCommitSHA()},
 		GitBranch:              sql.NullString{Valid: true, String: "feature/kebap"},
@@ -381,31 +472,38 @@ func (f *authorizeFixture) seedGitAwaitingApproval(ctx context.Context) db.Deplo
 }
 
 func (f *authorizeFixture) exec(ctx context.Context, query string, args ...any) {
+	f.t.Helper()
 	_, err := f.database.RW().ExecContext(ctx, query, args...)
 	require.NoError(f.t, err)
 }
 
 func (f *authorizeFixture) setImageRequested(ctx context.Context, deploymentID, image string) {
+	f.t.Helper()
 	f.exec(ctx, "UPDATE deployments SET image_requested = ? WHERE id = ?", image, deploymentID)
 }
 
 func (f *authorizeFixture) setStatus(ctx context.Context, deploymentID string, status mysqltype.DeploymentsStatus) {
+	f.t.Helper()
 	f.exec(ctx, "UPDATE deployments SET status = ? WHERE id = ?", string(status), deploymentID)
 }
 
 func (f *authorizeFixture) grantComputePlan(ctx context.Context) {
+	f.t.Helper()
 	f.exec(ctx, "UPDATE workspace_billing SET plan_override = ? WHERE workspace_id = ?", "starter", f.workspaceID)
 }
 
 func (f *authorizeFixture) clearComputePlan(ctx context.Context) {
+	f.t.Helper()
 	f.exec(ctx, "UPDATE workspace_billing SET plan = NULL, plan_override = NULL WHERE workspace_id = ?", f.workspaceID)
 }
 
 func (f *authorizeFixture) suspendSpend(ctx context.Context) {
+	f.t.Helper()
 	f.exec(ctx, "UPDATE workspace_billing SET spend_suspended = 1 WHERE workspace_id = ?", f.workspaceID)
 }
 
 func (f *authorizeFixture) requireStatus(ctx context.Context, deploymentID string, want mysqltype.DeploymentsStatus) {
+	f.t.Helper()
 	row, err := f.database.FindDeploymentById(ctx, deploymentID)
 	require.NoError(f.t, err)
 	require.Equal(f.t, want, row.Status)

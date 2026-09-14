@@ -420,11 +420,17 @@ func (w *Workflow) insertDeployment(
 			return w.auditlogs.Insert(txCtx, tx, createAuditLogs(payload, deploymentID, a))
 		})
 
-		// A duplicate key is only this create's own committed row, which no retry
-		// can clear. Any other row on this id never passed the checks above, and
-		// deploying it would skip the gates it is owed, approval included.
+		// The insert failed because a row with this id is already there. Two
+		// cases are expected:
+		//
+		//   1. Restate retried this handler and the first insert had committed
+		//   2. an approval is starting the row its push wrote earlier
+		//
+		// Both are our own row, so carry on. Anything else with this id never
+		// ran the checks above, and deploying it would skip the plan, spend
+		// and approval gates. That one fails.
 		if insertErr != nil && db.IsDuplicateKeyError(insertErr) {
-			existing, findErr := w.db.FindDeploymentById(runCtx, deploymentID)
+			existing, findErr := w.db.FindDeploymentAppAndStatus(runCtx, deploymentID)
 			if findErr != nil || existing.AppID != target.AppID || existing.Status != payload.Status {
 				return restate.ToTerminalError(fmt.Errorf("deployment id %s is not available", deploymentID))
 			}
