@@ -121,6 +121,49 @@ type Event struct {
 	Payload Payload `json:"payload"`
 }
 
+type recordMetadata struct {
+	Stream    string `json:"stream"`
+	Time      string `json:"time"`
+	AxiomTime string `json:"_time,omitempty"`
+}
+
+// MarshalRecord encodes a flat record, adding Axiom's timestamp field when requested.
+func (e Event) MarshalRecord(axiom bool) (json.RawMessage, error) {
+	metadata := recordMetadata{Stream: e.Stream, Time: FormatTime(e.Time), AxiomTime: ""}
+	if axiom {
+		metadata.AxiomTime = metadata.Time
+	}
+	switch payload := e.Payload.(type) {
+	case AuditLogPayload:
+		return json.Marshal(struct {
+			recordMetadata
+			AuditLogPayload
+		}{metadata, payload})
+	case KeyVerificationPayload:
+		return json.Marshal(struct {
+			recordMetadata
+			KeyVerificationPayload
+		}{metadata, payload})
+	case GatewayRequestPayload:
+		return json.Marshal(struct {
+			recordMetadata
+			GatewayRequestPayload
+		}{metadata, payload})
+	case RuntimeLogPayload:
+		return json.Marshal(struct {
+			recordMetadata
+			RuntimeLogPayload
+		}{metadata, payload})
+	case RatelimitPayload:
+		return json.Marshal(struct {
+			recordMetadata
+			RatelimitPayload
+		}{metadata, payload})
+	default:
+		return nil, fmt.Errorf("unsupported logdrain payload %T", e.Payload)
+	}
+}
+
 // Batch is what one Deliver call ships.
 type Batch struct {
 	// SchemaVersion versions the export envelope, starting at "v1".

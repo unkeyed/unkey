@@ -32,6 +32,14 @@ const maxRetryHint = 24 * time.Hour
 // workQueueSize is the default bound for queued drains.
 const workQueueSize = 1024
 
+const (
+	batchSizeDefault     = 10_000
+	pollIntervalAudit    = time.Minute
+	pollIntervalNonAudit = 5 * time.Second
+	watermarkLagAudit    = 5 * time.Minute
+	watermarkLagNonAudit = 15 * time.Second
+)
+
 // errLeaseLost means a state mutation was rejected by the lease fence.
 var errLeaseLost = errors.New("logdrain lease lost")
 
@@ -42,20 +50,18 @@ type Config struct {
 	// LeaseID selects leases assigned to this process. It must be unique among
 	// running processes. Fencing tokens authorize state writes.
 	LeaseID string
-	// Source reads the event stream being exported.
-	Source source.Source
+	// AuditLogs reads audit events, including legacy drains without a stream config.
+	AuditLogs        source.Source
+	KeyVerifications source.Source
+	GatewayRequests  source.Source
+	RuntimeLogs      source.Source
+	Ratelimits       source.Source
 	// Vault decrypts destination credentials for each attempt.
 	Vault vault.VaultServiceClient
 	// Deliveries accepts delivery telemetry and may be nil to disable it.
 	Deliveries deliveryBuffer
 	// Clock provides time for watermarks and telemetry; tests inject a mock. Nil defaults to the real clock.
 	Clock clock.Clock
-	// PollInterval controls how often the engine scans for due drains.
-	PollInterval time.Duration
-	// WatermarkLag protects against late ClickHouse inserts by delaying timestamp windows.
-	WatermarkLag time.Duration
-	// BatchSize caps the number of events shipped in one attempt.
-	BatchSize int
 	// PauseThreshold caps consecutive failures before pausing a drain.
 	PauseThreshold int
 	// MaxConcurrentDrains sizes the drain worker pool. Values below 1 are treated as 1.
@@ -143,7 +149,7 @@ func (e *Engine) Run(ctx context.Context) error {
 	if err := e.poll(ctx); err != nil {
 		logger.Error("logdrain poll failed", "error", err)
 	}
-	ticker := e.cfg.Clock.NewTicker(e.cfg.PollInterval)
+	ticker := e.cfg.Clock.NewTicker(min(pollIntervalAudit, pollIntervalNonAudit))
 	defer ticker.Stop()
 	for {
 		select {
@@ -180,7 +186,7 @@ func (e *Engine) poll(ctx context.Context) error {
 		db.LogdrainsStatusPausedByUser,
 		db.LogdrainsStatusPausedByFailure,
 	} {
-		for _, stream := range []db.LogdrainsStream{db.LogdrainsStreamAuditLogs} {
+		for _, stream := range []db.LogdrainsStream{db.LogdrainsStreamAuditLogs, db.LogdrainsStreamKeyVerifications, db.LogdrainsStreamGatewayRequests, db.LogdrainsStreamRuntimeLogs, db.LogdrainsStreamRatelimits} {
 			counts[drainGroup{status: status, stream: stream}] = 0
 		}
 	}
@@ -250,7 +256,8 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 	delivered := 0
 	current := source.Cursor{Time: 0, EventID: ""}
 	stream := db.LogdrainsStream("")
-	windowEnd := item.now.Add(-e.cfg.WatermarkLag).UnixMilli()
+	var reader *batchReader
+	var pollInterval time.Duration
 	for {
 		drain, err := e.cfg.DB.GetLeasedAndDueLogdrain(ctx, db.GetLeasedAndDueLogdrainParams{
 			LogdrainID:   item.id,
@@ -263,20 +270,60 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			logger.Error("read leased logdrain failed", "error", err, "drain_id", item.id)
 			return
 		}
-		stream = drain.Stream
-		if stream != db.LogdrainsStreamAuditLogs {
-			cause := fmt.Errorf("unsupported stream %q", stream)
-			logger.Error("unsupported logdrain stream", "error", cause, "drain_id", item.id)
+		current = source.Cursor{Time: drain.CommittedOffsetInsertedAt, EventID: drain.CommittedOffsetEventID}
+		cfg := &logdrainv1.Config{}
+		if err := proto.Unmarshal(drain.Config, cfg); err != nil {
+			if ctx.Err() != nil {
+				return
+			}
+			logger.Error("decode logdrain config failed", "error", err, "drain_id", item.id)
+			drain.Stream = stream
 			if failErr := e.recordFailure(ctx, drain, 0); failErr != nil {
 				logger.Error("record logdrain failure state failed", "error", failErr, "drain_id", item.id)
 			}
 			return
 		}
-		current = source.Cursor{Time: drain.CommittedOffsetInsertedAt, EventID: drain.CommittedOffsetEventID}
-		if windowEnd <= current.Time {
-			break
+		if reader == nil {
+			pollInterval = pollIntervalNonAudit
+			lag := watermarkLagNonAudit
+			switch cfg.GetStream().(type) {
+			case nil, *logdrainv1.Config_AuditLogs:
+				pollInterval = pollIntervalAudit
+				lag = watermarkLagAudit
+			}
+			batchSize := int(cfg.GetBatchSize())
+			if batchSize == 0 {
+				batchSize = batchSizeDefault
+			}
+			reader = newBatchReader(nil, item.now.Add(-lag).UnixMilli(), batchSize)
 		}
-		events, advance, err := e.cfg.Source.Read(ctx, drain.WorkspaceID, current, windowEnd, e.cfg.BatchSize)
+		switch cfg.GetStream().(type) {
+		case nil, *logdrainv1.Config_AuditLogs:
+			stream = db.LogdrainsStreamAuditLogs
+			reader.source = e.cfg.AuditLogs
+		case *logdrainv1.Config_KeyVerifications:
+			stream = db.LogdrainsStreamKeyVerifications
+			reader.source = e.cfg.KeyVerifications
+		case *logdrainv1.Config_GatewayRequests:
+			stream = db.LogdrainsStreamGatewayRequests
+			reader.source = e.cfg.GatewayRequests
+		case *logdrainv1.Config_RuntimeLogs:
+			stream = db.LogdrainsStreamRuntimeLogs
+			reader.source = e.cfg.RuntimeLogs
+		case *logdrainv1.Config_Ratelimits:
+			stream = db.LogdrainsStreamRatelimits
+			reader.source = e.cfg.Ratelimits
+		default:
+			err = fmt.Errorf("unsupported logdrain stream config %T", cfg.GetStream())
+		}
+		drain.Stream = stream
+		var page batchPage
+		if err == nil {
+			if reader.watermark <= current.Time {
+				break
+			}
+			page, err = reader.Read(ctx, drain.WorkspaceID, current, cfg)
+		}
 		if err != nil {
 			if ctx.Err() != nil {
 				return
@@ -287,12 +334,10 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			}
 			return
 		}
-		caughtUp := len(events) < e.cfg.BatchSize
+		events := page.events
 		nextAttemptDelay := time.Duration(0)
-		if caughtUp {
-			// An empty event ID leaves events exactly at the next window boundary unread.
-			advance = source.Cursor{Time: windowEnd, EventID: ""}
-			nextAttemptDelay = e.cfg.PollInterval
+		if page.caughtUp {
+			nextAttemptDelay = pollInterval
 		}
 		var delivery deliveryAttempt
 		if len(events) > 0 {
@@ -306,8 +351,8 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			}
 		}
 		rowsAffected, err := e.cfg.DB.RecordLogdrainSuccess(ctx, db.RecordLogdrainSuccessParams{
-			CommittedOffsetInsertedAt: advance.Time,
-			CommittedOffsetEventID:    advance.EventID,
+			CommittedOffsetInsertedAt: page.next.Time,
+			CommittedOffsetEventID:    page.next.EventID,
 			NextAttemptDelayMillis:    nextAttemptDelay.Milliseconds(),
 			LogdrainID:                drain.ID,
 			FencingToken:              drain.FencingToken,
@@ -320,7 +365,7 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			return
 		}
 		if rowsAffected == 0 {
-			cause := fmt.Errorf("%w before cursor advance to (%d, %q)", errLeaseLost, advance.Time, advance.EventID)
+			cause := fmt.Errorf("%w before cursor advance to (%d, %q)", errLeaseLost, page.next.Time, page.next.EventID)
 			if len(events) > 0 && !delivery.completed.IsZero() {
 				e.recordDelivery(drain, stream, delivery.completed, "error", len(events), delivery.duration, delivery.result, cause)
 			}
@@ -330,10 +375,22 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 		if len(events) > 0 && !delivery.completed.IsZero() {
 			// The delivery succeeded and its new offset is now committed.
 			e.recordDelivery(drain, stream, delivery.completed, "success", len(events), delivery.duration, delivery.result, nil)
+			oldestEventTime := events[0].Time
+			for _, event := range events[1:] {
+				oldestEventTime = min(oldestEventTime, event.Time)
+			}
+			logger.Info("logdrain batch delivered",
+				"drain_id", drain.ID,
+				"stream", stream,
+				"events", len(events),
+				"cursor_time", time.UnixMilli(page.next.Time).UTC(),
+				"lag_ms", e.cfg.Clock.Now().UnixMilli()-page.next.Time,
+				"oldest_event_age_ms", e.cfg.Clock.Now().UnixMilli()-oldestEventTime,
+			)
 		}
 		delivered += len(events)
-		current = advance
-		if caughtUp {
+		current = page.next
+		if page.caughtUp {
 			break
 		}
 	}

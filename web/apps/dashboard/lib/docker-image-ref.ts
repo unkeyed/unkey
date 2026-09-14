@@ -35,7 +35,7 @@ const MAX_PATH_LENGTH = 255;
 /** reference/regexp.go tag bound. */
 const MAX_TAG_LENGTH = 128;
 
-/** deployments.image is varchar(256), so a longer reference cannot be stored. */
+/** The public API contracts cap image references at 256 characters. */
 const MAX_REFERENCE_LENGTH = 256;
 
 /**
@@ -218,3 +218,25 @@ const lowercaseName = (ref: string): string => {
   const nameEnd = lastColon > lastSlash ? lastColon : named.length;
   return named.slice(0, nameEnd).toLowerCase() + named.slice(nameEnd) + ref.slice(named.length);
 };
+
+/** The tag a deployment row shows for an image, or the digest when the reference pins one. */
+export function imageRefTag(ref: string): string {
+  const result = validateImageRef(ref);
+  if (!result.ok) {
+    return ref;
+  }
+  return result.parts.tag ?? result.parts.digest ?? "latest";
+}
+
+/**
+ * The reference without its registry host. The host is the least distinctive
+ * part of a reference and a row has no room for it.
+ */
+export function imageRefDisplay(ref: string): string {
+  const result = validateImageRef(ref);
+  if (!result.ok) {
+    return ref;
+  }
+  const { path, tag, digest } = result.parts;
+  return `${path}${tag ? `:${tag}` : ""}${digest ? `@${digest}` : ""}`;
+}

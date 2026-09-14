@@ -4,7 +4,10 @@ import { Check, Clipboard, Layers2 } from "@unkey/icons";
 import { InfoTooltip, toast } from "@unkey/ui";
 import { useState } from "react";
 
-export function ImageSource({ image }: { image: string | null }) {
+export function ImageSource({
+  image,
+  copyValue = image,
+}: { image: string | null; copyValue?: string | null }) {
   const [copied, setCopied] = useState(false);
 
   if (!image) {
@@ -24,18 +27,18 @@ export function ImageSource({ image }: { image: string | null }) {
 
   return (
     <InfoTooltip
-      content={image}
+      content={copyValue && copyValue !== image ? `Resolved image: ${copyValue}` : image}
       variant="inverted"
       position={{ side: "top", align: "start" }}
       asChild
     >
       <button
         type="button"
-        aria-label={`Copy image source: ${image}`}
+        aria-label={`Copy image source: ${copyValue ?? image}`}
         className="group flex items-center gap-1 min-w-0"
         onClick={async () => {
           try {
-            await navigator.clipboard.writeText(image);
+            await navigator.clipboard.writeText(copyValue ?? image);
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
             toast.success("Source copied to clipboard");

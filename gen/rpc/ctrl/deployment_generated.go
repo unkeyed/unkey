@@ -14,13 +14,9 @@ import (
 // DeployServiceClient wraps ctrlv1connect.DeployServiceClient with simplified signatures.
 // Request and response types are plain protobuf messages without connect wrappers.
 type DeployServiceClient interface {
-	CreateDeployment(ctx context.Context, req *v1.CreateDeploymentRequest) (*v1.CreateDeploymentResponse, error)
 	GetDeployment(ctx context.Context, req *v1.GetDeploymentRequest) (*v1.GetDeploymentResponse, error)
-	Rollback(ctx context.Context, req *v1.RollbackRequest) (*v1.RollbackResponse, error)
-	Promote(ctx context.Context, req *v1.PromoteRequest) (*v1.PromoteResponse, error)
 	AuthorizeDeployment(ctx context.Context, req *v1.AuthorizeDeploymentRequest) (*v1.AuthorizeDeploymentResponse, error)
 	CancelDeployment(ctx context.Context, req *v1.CancelDeploymentRequest) (*v1.CancelDeploymentResponse, error)
-	StopDeployment(ctx context.Context, req *v1.StopDeploymentRequest) (*v1.StopDeploymentResponse, error)
 	DeprovisionCompute(ctx context.Context, req *v1.DeprovisionComputeRequest) (*v1.DeprovisionComputeResponse, error)
 }
 
@@ -36,49 +32,10 @@ func NewConnectDeployServiceClient(inner ctrlv1connect.DeployServiceClient) *Con
 	return &ConnectDeployServiceClient{inner: inner}
 }
 
-func (c *ConnectDeployServiceClient) CreateDeployment(ctx context.Context, req *v1.CreateDeploymentRequest) (*v1.CreateDeploymentResponse, error) {
-	ctx, span := tracing.Start(ctx, "DeployService.CreateDeployment")
-	defer span.End()
-	resp, err := c.inner.CreateDeployment(ctx, connect.NewRequest(req))
-	if err != nil {
-		if connect.CodeOf(err) != connect.CodeNotFound {
-			tracing.RecordError(span, err)
-		}
-		return nil, err
-	}
-	return resp.Msg, nil
-}
-
 func (c *ConnectDeployServiceClient) GetDeployment(ctx context.Context, req *v1.GetDeploymentRequest) (*v1.GetDeploymentResponse, error) {
 	ctx, span := tracing.Start(ctx, "DeployService.GetDeployment")
 	defer span.End()
 	resp, err := c.inner.GetDeployment(ctx, connect.NewRequest(req))
-	if err != nil {
-		if connect.CodeOf(err) != connect.CodeNotFound {
-			tracing.RecordError(span, err)
-		}
-		return nil, err
-	}
-	return resp.Msg, nil
-}
-
-func (c *ConnectDeployServiceClient) Rollback(ctx context.Context, req *v1.RollbackRequest) (*v1.RollbackResponse, error) {
-	ctx, span := tracing.Start(ctx, "DeployService.Rollback")
-	defer span.End()
-	resp, err := c.inner.Rollback(ctx, connect.NewRequest(req))
-	if err != nil {
-		if connect.CodeOf(err) != connect.CodeNotFound {
-			tracing.RecordError(span, err)
-		}
-		return nil, err
-	}
-	return resp.Msg, nil
-}
-
-func (c *ConnectDeployServiceClient) Promote(ctx context.Context, req *v1.PromoteRequest) (*v1.PromoteResponse, error) {
-	ctx, span := tracing.Start(ctx, "DeployService.Promote")
-	defer span.End()
-	resp, err := c.inner.Promote(ctx, connect.NewRequest(req))
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			tracing.RecordError(span, err)
@@ -105,19 +62,6 @@ func (c *ConnectDeployServiceClient) CancelDeployment(ctx context.Context, req *
 	ctx, span := tracing.Start(ctx, "DeployService.CancelDeployment")
 	defer span.End()
 	resp, err := c.inner.CancelDeployment(ctx, connect.NewRequest(req))
-	if err != nil {
-		if connect.CodeOf(err) != connect.CodeNotFound {
-			tracing.RecordError(span, err)
-		}
-		return nil, err
-	}
-	return resp.Msg, nil
-}
-
-func (c *ConnectDeployServiceClient) StopDeployment(ctx context.Context, req *v1.StopDeploymentRequest) (*v1.StopDeploymentResponse, error) {
-	ctx, span := tracing.Start(ctx, "DeployService.StopDeployment")
-	defer span.End()
-	resp, err := c.inner.StopDeployment(ctx, connect.NewRequest(req))
 	if err != nil {
 		if connect.CodeOf(err) != connect.CodeNotFound {
 			tracing.RecordError(span, err)

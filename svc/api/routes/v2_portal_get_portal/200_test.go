@@ -106,7 +106,6 @@ func appMapping(t *testing.T, h *testutil.Harness, workspaceID, slug string) por
 		ProjectID:        project.ID,
 		Name:             slug,
 		Slug:             slug,
-		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
 	return portal.Mapping{Type: portal.MappingTypeApp, ID: app.ID}

@@ -5,6 +5,7 @@ CREATE TABLE key_verifications_raw_v2
 
   -- unix milli
   time Int64 CODEC(Delta, ZSTD(1)),
+  inserted_at Int64 DEFAULT toUnixTimestamp64Milli(now64(3)) CODEC(Delta, ZSTD(1)),
 
   workspace_id String CODEC(ZSTD(1)),
   key_space_id String CODEC(ZSTD(1)),
@@ -45,10 +46,17 @@ CREATE TABLE key_verifications_raw_v2
   INDEX idx_identity_id (identity_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_external_id (external_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_key_id (key_id) TYPE bloom_filter GRANULARITY 1,
-  INDEX idx_tags (tags) TYPE bloom_filter GRANULARITY 1
+  INDEX idx_tags (tags) TYPE bloom_filter GRANULARITY 1,
+  PROJECTION proj_logdrain
+  (
+    SELECT workspace_id, inserted_at, request_id, _part_offset
+    ORDER BY workspace_id, inserted_at, request_id
+  )
 )
 ENGINE = MergeTree()
 ORDER BY (workspace_id, time, key_space_id, outcome)
 TTL toDateTime(fromUnixTimestamp64Milli(time)) + INTERVAL 90 DAY DELETE
-SETTINGS non_replicated_deduplication_window = 10000
+SETTINGS non_replicated_deduplication_window = 10000,
+  allow_part_offset_column_in_projections = 1,
+  deduplicate_merge_projection_mode = 'rebuild'
 ;

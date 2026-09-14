@@ -1,10 +1,9 @@
 package handler
 
 import (
-	"bytes"
 	"context"
 	"io"
-	"net/http"
+	"net/netip"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -39,7 +38,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	ctx = proxy.WithRequestStartTime(ctx, startTime)
 
 	req := sess.Request()
-	hops, err := requestHops(req, h.Metadata, startTime)
+	hops, err := applyPeerMetadata(sess, h.Metadata, startTime)
 	if err != nil {
 		return err
 	}
@@ -121,12 +120,10 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// The captured body therefore always reflects what the *serving*
 	// instance actually saw.
 	if tracking.LogRequestBody && req.Body != nil {
-		var buf bytes.Buffer
-		req.Body = io.NopCloser(io.TeeReader(req.Body, &zen.LimitedWriter{W: &buf, N: zen.MaxBodyCapture}))
+		buf := zen.NewBodyCapture(req.ContentLength)
+		req.Body = io.NopCloser(io.TeeReader(req.Body, buf))
 		defer func() {
-			if buf.Len() > 0 {
-				tracking.RequestBody = buf.Bytes()
-			}
+			tracking.RequestBody = buf.Bytes()
 		}()
 	}
 
@@ -200,9 +197,8 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	return forwardErr
 }
 
-// requestHops verifies and removes metadata sent by a peer Frontline. Requests
-// without peer metadata start with an empty hop history.
-func requestHops(req *http.Request, codec *meta.Codec, now time.Time) ([]meta.Hop, error) {
+func applyPeerMetadata(sess *zen.Session, codec *meta.Codec, now time.Time) ([]meta.Hop, error) {
+	req := sess.Request()
 	values := req.Header.Values(proxy.HeaderFrontlineMeta)
 	if len(values) == 0 {
 		return nil, nil
@@ -224,6 +220,13 @@ func requestHops(req *http.Request, codec *meta.Codec, now time.Time) ([]meta.Ho
 	}
 	if metadata.ExpiresAt.IsZero() || !now.Before(metadata.ExpiresAt) {
 		return nil, nil
+	}
+	if metadata.ClientIP != "" {
+		ip, err := netip.ParseAddr(metadata.ClientIP)
+		if err != nil || ip.Zone() != "" {
+			return nil, nil
+		}
+		sess.SetClientIP(ip)
 	}
 	return metadata.Hops, nil
 }

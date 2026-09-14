@@ -2,6 +2,7 @@
 
 import { githubUrl } from "@/lib/github-url";
 import { ArrowDottedRotateAnticlockwise, ArrowUpRight, Plus, TriangleWarning2 } from "@unkey/icons";
+import { match } from "@unkey/match";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import Link from "next/link";
 import { ProductionCardActionsMenu } from "./production-card-actions-menu";
@@ -77,6 +78,7 @@ export function ProductionCardHeader() {
     sourceRepo,
     status,
     diagnostic,
+    deploymentHref,
     logsHref,
     requestsHref,
     rollbackTarget,
@@ -108,7 +110,11 @@ export function ProductionCardHeader() {
         <ProductionCardActionsMenu
           deployment={deployment}
           status={status}
-          commitUrl={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}
+          deploymentHref={deploymentHref}
+          commitUrl={match(deployment.source)
+            .with("git", () => githubUrl.commit(sourceRepo, deployment.gitCommitSha))
+            .with("oci", "unknown", () => undefined)
+            .exhaustive()}
           logsHref={logsHref}
           requestsHref={requestsHref}
         />

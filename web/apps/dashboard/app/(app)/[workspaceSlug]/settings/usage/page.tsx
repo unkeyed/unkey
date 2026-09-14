@@ -68,6 +68,7 @@ export default function UsagePage() {
     notFound();
   }
 
+  const computeTree = breakdown.data === undefined ? undefined : buildComputeTree(breakdown.data);
   const compute = hasComputePlan ? (
     breakdown.isError ? (
       <ComputeCardShell description="Usage per project this period">
@@ -80,10 +81,10 @@ export default function UsagePage() {
           </Empty>
         </div>
       </ComputeCardShell>
-    ) : breakdown.data === undefined ? (
+    ) : computeTree === undefined ? (
       <ComputeCardSkeleton />
     ) : (
-      <ComputeCard tree={buildComputeTree(breakdown.data)} />
+      <ComputeCard tree={computeTree} />
     )
   ) : (
     <NoComputePlan workspaceSlug={workspace.slug} />

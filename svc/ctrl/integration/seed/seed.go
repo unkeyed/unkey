@@ -318,12 +318,11 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 }
 
 type CreateAppRequest struct {
-	ID            string
-	WorkspaceID   string
-	ProjectID     string
-	Name          string
-	Slug          string
-	DefaultBranch string
+	ID          string
+	WorkspaceID string
+	ProjectID   string
+	Name        string
+	Slug        string
 }
 
 func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
@@ -336,7 +335,6 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 		Name:             req.Name,
 		Slug:             req.Slug,
 		SourceType:       db.AppsSourceTypeUnknown,
-		DefaultBranch:    req.DefaultBranch,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: false},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Valid: false},
@@ -401,6 +399,15 @@ type CreateDeploymentRequest struct {
 	Status        dbtype.DeploymentsStatus
 	CreatedAt     int64
 	UpdatedAt     sql.NullInt64
+
+	// Optional git metadata for tests that need the row to record a source.
+	GitCommitSha     sql.NullString
+	GitBranch        sql.NullString
+	GitCommitMessage sql.NullString
+
+	// Optional fork provenance, for tests that rebuild a fork PR's deployment.
+	PrNumber               sql.NullInt64
+	ForkRepositoryFullName sql.NullString
 }
 
 func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) db.Deployment {
@@ -423,10 +430,10 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		EnvironmentID:                 req.EnvironmentID,
 		Source:                        db.DeploymentsSourceUnknown,
 		ImageRequested:                sql.NullString{Valid: false},
-		GitCommitSha:                  sql.NullString{String: "", Valid: false},
-		GitBranch:                     sql.NullString{String: "", Valid: false},
+		GitCommitSha:                  req.GitCommitSha,
+		GitBranch:                     req.GitBranch,
 		SentinelConfig:                []byte("{}"),
-		GitCommitMessage:              sql.NullString{String: "", Valid: false},
+		GitCommitMessage:              req.GitCommitMessage,
 		GitCommitAuthorHandle:         sql.NullString{String: "", Valid: false},
 		GitCommitAuthorAvatarUrl:      sql.NullString{String: "", Valid: false},
 		GitCommitTimestamp:            sql.NullInt64{Int64: 0, Valid: false},
@@ -442,8 +449,8 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGINT,
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
-		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
+		PrNumber:                      req.PrNumber,
+		ForkRepositoryFullName:        req.ForkRepositoryFullName,
 		DeploymentTrigger:             db.DeploymentsTriggerUnknown,
 		TriggeredBy:                   sql.NullString{Valid: false},
 		TriggerReason:                 sql.NullString{Valid: false},

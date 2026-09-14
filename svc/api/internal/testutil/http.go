@@ -149,6 +149,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		TLS:               nil,
 		EnableH2C:         false,
 		StreamRequestBody: false,
+		TrustedProxyCIDRs: []string{"192.0.2.0/24"},
 		ReadTimeout:       0,
 		WriteTimeout:      0,
 	})
@@ -652,7 +653,6 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		Slug:             "default",
 		SourceType:       db.AppsSourceTypeUnknown,
 		ImageReference:   "",
-		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
 

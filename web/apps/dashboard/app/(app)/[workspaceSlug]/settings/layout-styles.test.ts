@@ -39,10 +39,10 @@ describe("Settings widget styles", () => {
       /\.woswidgets-menu-item,\s*\.woswidgets-select-item\s*\{[^}]*padding-inline/,
     );
     expect(styles).toMatch(
-      /\.woswidgets-dialog-overlay,\s*\.rt-DialogOverlay:has\(\.woswidgets-dialog\)\s*\{[^}]*z-index:\s*50;/s,
+      /\.woswidgets-dialog-overlay,\s*\.rt-DialogOverlay:has\(\.woswidgets-dialog\)\s*\{[^}]*z-index:\s*50;/,
     );
     expect(styles).toMatch(
-      /\.woswidgets-dropdown,\s*\.woswidgets-select-dropdown\s*\{[^}]*z-index:\s*200;/s,
+      /\.woswidgets-dropdown,\s*\.woswidgets-select-dropdown\s*\{[^}]*z-index:\s*200;/,
     );
 
     for (const selector of [

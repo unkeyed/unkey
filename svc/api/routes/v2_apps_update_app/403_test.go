@@ -34,12 +34,11 @@ func TestUpdateAppForbidden(t *testing.T) {
 
 	appSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Forbidden App",
-		Slug:          appSlug,
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Forbidden App",
+		Slug:        appSlug,
 	})
 
 	testCases := []struct {

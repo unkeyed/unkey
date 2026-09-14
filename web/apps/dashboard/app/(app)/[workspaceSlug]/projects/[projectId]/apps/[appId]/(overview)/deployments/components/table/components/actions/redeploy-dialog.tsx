@@ -4,8 +4,10 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment } from "@/lib/collections";
 import { queryClient } from "@/lib/collections/client";
 import { routes } from "@/lib/navigation/routes";
+import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
+import { match } from "@unkey/match";
 import { Button, DialogContainer, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useProjectData } from "../../../../../data-provider";
@@ -21,10 +23,11 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
   const { projectId } = useProjectData();
+  const utils = trpc.useUtils();
 
   const redeploy = useMutation({
     mutationFn: async () => {
-      const res = await getUnkeyClient().deployments.createDeployment({
+      const res = await getUnkeyClient().deployments.createDeploymentV3({
         project: selectedDeployment.projectId,
         app: selectedDeployment.appId,
         environment: selectedDeployment.environmentId,
@@ -33,7 +36,10 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
       return { deploymentId: res.data.deploymentId };
     },
     onSuccess: async (data) => {
-      await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["deployments", projectId] }),
+        utils.deploy.deployment.invalidate(),
+      ]);
       onClose();
       router.push(
         routes.projects.apps.deployment({
@@ -57,12 +63,18 @@ export const RedeployDialog = ({ isOpen, onClose, selectedDeployment }: Redeploy
     });
   };
 
+  const subtitle = match(selectedDeployment.source)
+    .with("git", () => "Trigger a fresh build and deployment from the same commit")
+    .with("oci", () => "Create a deployment from the same resolved container image")
+    .with("unknown", () => "Create a new deployment from this deployment")
+    .exhaustive();
+
   return (
     <DialogContainer
       isOpen={isOpen}
       onOpenChange={onClose}
       title="Redeploy"
-      subTitle="Trigger a fresh build and deployment from the same branch"
+      subTitle={subtitle}
       footer={
         <Button
           variant="primary"

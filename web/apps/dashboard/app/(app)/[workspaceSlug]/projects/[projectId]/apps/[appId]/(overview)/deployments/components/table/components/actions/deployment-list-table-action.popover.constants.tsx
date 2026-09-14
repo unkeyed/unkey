@@ -1,5 +1,4 @@
 "use client";
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
@@ -28,6 +27,10 @@ import { WakeDialog } from "./wake-dialog";
 type DeploymentListTableActionsProps = {
   selectedDeployment: Deployment;
   environment?: Environment;
+  // The app's live deployment. Rollback and Promote need the full row for
+  // their dialogs, so both stay disabled until the caller has resolved it.
+  currentDeployment: Deployment | undefined;
+  isRolledBack: boolean;
 };
 
 const isItemDisabled = (disabled: MenuItem["disabled"]): boolean =>
@@ -36,15 +39,14 @@ const isItemDisabled = (disabled: MenuItem["disabled"]): boolean =>
 export const DeploymentListTableActions = ({
   selectedDeployment,
   environment,
+  currentDeployment,
+  isRolledBack,
 }: DeploymentListTableActionsProps) => {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
-  const { getDeploymentById, project } = useProjectData();
   const { gated, openPaywall, planGate } = useDeployActionGate();
 
-  const currentDeploymentId = project?.currentDeploymentId ?? null;
-  const isRolledBack = Boolean(project?.isRolledBack);
-  const currentDeployment = getDeploymentById(currentDeploymentId ?? "");
+  const currentDeploymentId = currentDeployment?.id ?? null;
   const hasCurrentDeployment = currentDeployment !== undefined;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: its okay

@@ -16,14 +16,15 @@ export type V2DomainsListDomainsResponseBody = {
    */
   meta: Meta;
   /**
-   * The domains attached to the environment, sorted by their id.
-   *
-   * @remarks
-   * The array is empty when the environment has no domains. This is not an error.
+   * Domains that match every request filter and that you have permission to read, sorted by ID.
+   * The array is empty when no readable domains match, including when a filtered resource
+   * is missing or mismatched.
    */
   data: Array<Domain>;
   /**
-   * Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+   * Pagination over permitted domains. When more permitted domains exist, `cursor` identifies
+   * the first permitted domain after this page. A domain the credential cannot read is never
+   * returned as the cursor.
    */
   pagination: Pagination;
 };

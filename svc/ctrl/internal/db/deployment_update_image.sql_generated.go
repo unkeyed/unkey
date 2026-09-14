@@ -12,31 +12,24 @@ import (
 
 const updateDeploymentImage = `-- name: UpdateDeploymentImage :exec
 UPDATE deployments
-SET image = ?,
-    image_resolved = ?,
+SET image_resolved = ?,
     updated_at = ?
 WHERE id = ?
 `
 
 type UpdateDeploymentImageParams struct {
-	Image     sql.NullString `db:"image"`
-	UpdatedAt sql.NullInt64  `db:"updated_at"`
-	ID        string         `db:"id"`
+	ImageResolved sql.NullString `db:"image_resolved"`
+	UpdatedAt     sql.NullInt64  `db:"updated_at"`
+	ID            string         `db:"id"`
 }
 
 // UpdateDeploymentImage
 //
 //	UPDATE deployments
-//	SET image = ?,
-//	    image_resolved = ?,
+//	SET image_resolved = ?,
 //	    updated_at = ?
 //	WHERE id = ?
 func (q *Queries) UpdateDeploymentImage(ctx context.Context, arg UpdateDeploymentImageParams) error {
-	_, err := q.db.ExecContext(ctx, updateDeploymentImage,
-		arg.Image,
-		arg.Image,
-		arg.UpdatedAt,
-		arg.ID,
-	)
+	_, err := q.db.ExecContext(ctx, updateDeploymentImage, arg.ImageResolved, arg.UpdatedAt, arg.ID)
 	return err
 }

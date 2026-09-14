@@ -1,7 +1,7 @@
 // Package httpdrain delivers log batches to generic HTTPS endpoints. Each
-// event is one object in the WorkOS log stream shape:
+// event is one flat object containing its domain fields, stream, and occurrence time:
 //
-//	{"event":{...},"timestamp":"2024-01-15T10:30:00.123Z"}
+//	{"id":"evt_1","stream":"audit_logs","time":"2024-01-15T10:30:00.123Z",...}
 //
 // The body is either one JSON array of those objects (the default) or
 // newline-delimited JSON (one object per line), selected by [Config.Format].
@@ -40,7 +40,7 @@ type Config struct {
 	UnsafeAllowTestEndpoint bool
 }
 
-// Sink delivers WorkOS-shaped event envelopes to one customer HTTP endpoint.
+// Sink delivers event records to one customer HTTP endpoint.
 type Sink struct {
 	cfg    Config
 	client *http.Client
@@ -117,13 +117,6 @@ func (a *Sink) Deliver(ctx context.Context, batch sink.Batch) (sink.Result, erro
 	return result, nil
 }
 
-// batchLine is one event in the WorkOS log stream shape. Batch metadata
-// travels in request headers, so the body stays pure event data.
-type batchLine struct {
-	Event     sink.Payload `json:"event"`
-	Timestamp string       `json:"timestamp"`
-}
-
 // marshalBatch encodes the events as one JSON array of event objects, or as
 // one NDJSON line per event when the protobuf format selects NDJSON.
 func marshalBatch(batch sink.Batch, format logdrainv1.HttpBodyFormat) ([]byte, error) {
@@ -131,15 +124,23 @@ func marshalBatch(batch sink.Batch, format logdrainv1.HttpBodyFormat) ([]byte, e
 		var body bytes.Buffer
 		encoder := json.NewEncoder(&body)
 		for _, event := range batch.Events {
-			if err := encoder.Encode(batchLine{event.Payload, sink.FormatTime(event.Time)}); err != nil {
+			record, err := event.MarshalRecord(false)
+			if err != nil {
+				return nil, err
+			}
+			if err := encoder.Encode(record); err != nil {
 				return nil, err
 			}
 		}
 		return body.Bytes(), nil
 	}
-	lines := make([]batchLine, len(batch.Events))
+	lines := make([]json.RawMessage, len(batch.Events))
 	for i, event := range batch.Events {
-		lines[i] = batchLine{event.Payload, sink.FormatTime(event.Time)}
+		record, err := event.MarshalRecord(false)
+		if err != nil {
+			return nil, err
+		}
+		lines[i] = record
 	}
 	return json.Marshal(lines)
 }

@@ -11,9 +11,12 @@ const schema = z.object({
   projectId: z.string(),
   name: z.string(),
   slug: z.string(),
+  sourceType: z.enum(["unknown", "git", "oci"]),
+  imageReference: z.string().nullable(),
   defaultBranch: z.string(),
   currentDeploymentId: z.string().nullable(),
   isRolledBack: z.boolean(),
+  updatedAt: z.number().nullable(),
   repositoryFullName: z.string().nullable(),
   latestDeploymentId: z.string().nullable(),
   // Flattened current-deployment fields for the shared deployable card.
@@ -28,6 +31,20 @@ const schema = z.object({
   domain: z.string().nullable(),
 });
 
+export const ociImageReferenceSchema = z
+  .string()
+  .trim()
+  .min(1, "Image reference is required")
+  .max(512, "Image reference too long");
+
+export const appCreationSourceSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("git") }),
+  z.object({
+    kind: z.literal("oci"),
+    imageReference: ociImageReferenceSchema,
+  }),
+]);
+
 export const createAppRequestSchema = z.object({
   projectId: z.string().min(1, "Project is required"),
   name: z.string().trim().min(1, "App name is required").max(256, "App name too long"),
@@ -37,6 +54,7 @@ export const createAppRequestSchema = z.object({
     .min(1, "App slug is required")
     .max(256, "App slug too long")
     .regex(/^[a-z0-9-]+$/, "App slug must contain only lowercase letters, numbers, and hyphens"),
+  source: appCreationSourceSchema,
 });
 
 export type App = z.infer<typeof schema>;
@@ -91,17 +109,30 @@ export const apps = createCollection<App, string>(
     },
     onInsert: async ({ transaction }) => {
       const { changes } = transaction.mutations[0];
-
       const createInput = createAppRequestSchema.parse({
         projectId: changes.projectId,
         name: changes.name,
         slug: changes.slug,
+        source:
+          changes.sourceType === "oci"
+            ? { kind: "oci", imageReference: changes.imageReference }
+            : { kind: changes.sourceType },
       });
-      const mutation = getUnkeyClient().apps.createApp({
-        project: createInput.projectId,
-        name: createInput.name,
-        slug: createInput.slug,
-      });
+      const mutation = getUnkeyClient().apps.createApp(
+        createInput.source.kind === "git"
+          ? {
+              project: createInput.projectId,
+              name: createInput.name,
+              slug: createInput.slug,
+              git: {},
+            }
+          : {
+              project: createInput.projectId,
+              name: createInput.name,
+              slug: createInput.slug,
+              oci: { image: createInput.source.imageReference },
+            },
+      );
 
       toast.promise(mutation, {
         loading: "Creating app...",
@@ -113,9 +144,7 @@ export const apps = createCollection<App, string>(
       });
 
       const result = await mutation;
-      transaction.metadata = {
-        appId: result.data.appId,
-      };
+      transaction.metadata = { appId: result.data.appId };
     },
   }),
 );

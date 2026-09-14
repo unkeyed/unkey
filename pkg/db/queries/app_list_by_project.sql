@@ -7,7 +7,6 @@ SELECT
   apps.name,
   apps.slug,
   apps.source_type,
-  apps.default_branch,
   apps.current_deployment_id,
   apps.is_rolled_back,
   apps.delete_protection,
