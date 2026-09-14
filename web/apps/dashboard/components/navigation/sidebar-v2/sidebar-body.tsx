@@ -24,6 +24,7 @@ export function SidebarBody() {
   const { slug } = useWorkspaceNavigation();
   const { keyAuthId } = useApiKeyAuthId(context.type === "api" ? context.apiId : undefined);
   const portalManagement = useFlag("portalManagement");
+  const appMetrics = useFlag("appMetrics");
 
   const links = (() => {
     switch (context.type) {
@@ -37,7 +38,7 @@ export function SidebarBody() {
         return buildWorkspaceSections(slug, segments);
       case "project":
         return context.appId
-          ? buildAppLinks(slug, context.projectId, context.appId, segments)
+          ? buildAppLinks(slug, context.projectId, context.appId, segments, appMetrics)
           : buildProjectLinks(slug, context.projectId, segments);
       case "api":
         return buildApiLinks(slug, context.apiId, keyAuthId, segments, portalManagement);

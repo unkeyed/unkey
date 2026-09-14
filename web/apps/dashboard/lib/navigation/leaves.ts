@@ -2,6 +2,7 @@ import {
   ArrowDottedRotateAnticlockwise,
   ArrowOppositeDirectionY,
   BracketsSquareDots,
+  ChartActivity,
   Cube,
   Fingerprint,
   Gauge,
@@ -123,9 +124,21 @@ export function buildAppLinks(
   projectId: string,
   appId: string,
   segments: string[],
+  appMetricsEnabled: boolean,
 ): ResolvedNavLink[] {
   const page = segments[4];
   const scope = { workspaceSlug: slug, projectId, appId };
+  const metricsLink: ResolvedNavLink[] = appMetricsEnabled
+    ? [
+        {
+          key: "metrics",
+          label: "Metrics",
+          href: routes.projects.apps.metrics(scope),
+          icon: ChartActivity,
+          isActive: page === "metrics",
+        },
+      ]
+    : [];
   return [
     {
       key: "overview",
@@ -141,6 +154,7 @@ export function buildAppLinks(
       icon: SquareBulletList,
       isActive: page === "deployments",
     },
+    ...metricsLink,
     {
       key: "env-vars",
       label: "Environment Variables",

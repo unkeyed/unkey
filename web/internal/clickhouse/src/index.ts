@@ -124,6 +124,24 @@ import {
 } from "./resources";
 export { TIME_WINDOWS, type TimeWindow } from "./resources";
 import {
+  getAppLatencyTimeseries,
+  getAppRequestTimeseries,
+  getAppResourceTimeseries,
+} from "./app-metrics";
+export {
+  APP_METRICS_WINDOWS,
+  APP_METRICS_GROUPS,
+  APP_RESOURCE_METRICS,
+  APP_METRICS_WINDOW_CONFIG,
+  resolveAppMetricsRange,
+  type AppMetricsWindow,
+  type AppMetricsGroup,
+  type AppResourceMetric,
+  type AppMetricsRange,
+  type AppMetricsSeriesPoint,
+  type AppLatencyPoint,
+} from "./app-metrics";
+import {
   getDeploymentLatencyWithTimeseries,
   getDeploymentRpsTimeseries,
   getInstanceRps,
@@ -394,6 +412,13 @@ export class ClickHouse {
         egress: { timeseries: getResourceNetworkEgressTimeseries(this.querier) },
         ingress: { timeseries: getResourceNetworkIngressTimeseries(this.querier) },
       },
+    };
+  }
+  public get appMetrics() {
+    return {
+      resources: getAppResourceTimeseries(this.querier),
+      requests: getAppRequestTimeseries(this.querier),
+      latency: getAppLatencyTimeseries(this.querier),
     };
   }
   public get environment() {
