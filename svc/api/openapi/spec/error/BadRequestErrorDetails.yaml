@@ -1,5 +1,5 @@
 allOf:
-  - $ref: "./BaseError.yaml"
+  - $ref: "./BaseError.yaml#/components/schemas/BaseError"
   - type: object
     properties:
       errors:

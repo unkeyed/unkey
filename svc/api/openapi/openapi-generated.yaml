@@ -2385,7 +2385,7 @@ components:
                         - "null"
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         The credit value to use with the specified operation. The meaning depends on the operation: for 'set', this becomes the new remaining credits value; for 'increment', this amount is added to current credits; for 'decrement', this amount is subtracted from current credits.
 
@@ -4057,6 +4057,7 @@ components:
             additionalProperties: false
         EmptyResponse:
             type: object
+            properties: {}
             additionalProperties: false
             description: Empty response object by design. A successful response indicates this operation was successfully executed.
         V2ApisGetApiResponseData:
@@ -4155,14 +4156,14 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: Unix timestamp in milliseconds when key was created.
                     example: 1701425400000
                 updatedAt:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: Unix timestamp in milliseconds when key was last updated.
                     example: 1701425400000
                     x-go-type-skip-optional-pointer: true
@@ -4179,7 +4180,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: Unix timestamp in milliseconds when key expires (if set).
                     example: 1735689600000
                     x-go-type-skip-optional-pointer: true
@@ -4240,7 +4241,7 @@ components:
                         - "null"
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: Number of credits remaining (null for unlimited).
                     example: 1000
                 refill:
@@ -4332,7 +4333,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 1
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: Number of credits to add during each refill cycle.
                     example: 1000
                 refillDay:
@@ -4484,7 +4485,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         Unix timestamp in milliseconds when the app was created.
                     example: 1704067200000
@@ -4492,7 +4493,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         Unix timestamp in milliseconds when the app was last updated.
                         Omitted if the app has never been updated.
@@ -4775,7 +4776,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         Unix timestamp in milliseconds when the deployment was created.
                     example: 1704067200000
@@ -4783,7 +4784,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         Unix timestamp in milliseconds when the deployment was last updated.
                         Omitted if the deployment has never been updated.
@@ -5287,7 +5288,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         Unix timestamp in milliseconds when the environment was created.
                     example: 1704067200000
@@ -5295,7 +5296,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         Unix timestamp in milliseconds when the environment was last updated.
                         Omitted if the environment has never been updated.
@@ -5481,7 +5482,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: Unix timestamp in milliseconds when the variable was created.
                     example: 1704067200000
             additionalProperties: false
@@ -5721,6 +5722,7 @@ components:
                 action: ACTION_DENY
         OpenapiPolicy:
             type: object
+            properties: {}
             additionalProperties: false
             description: |-
                 Validates matching requests against the app's uploaded OpenAPI spec. Has no
@@ -5906,6 +5908,7 @@ components:
                 duration: 60000
         BearerTokenLocation:
             type: object
+            properties: {}
             additionalProperties: false
             description: Extract the key from the `Authorization Bearer` header.
         HeaderKeyLocation:
@@ -5955,6 +5958,7 @@ components:
                 remoteIp: {}
         RemoteIpKey:
             type: object
+            properties: {}
             additionalProperties: false
             description: Rate limit by the client's IP address.
         HeaderKey:
@@ -5970,10 +5974,12 @@ components:
             description: Rate limit by the value of a request header.
         AuthenticatedSubjectKey:
             type: object
+            properties: {}
             additionalProperties: false
             description: Rate limit by the authenticated subject (e.g. the verified key).
         PathKey:
             type: object
+            properties: {}
             additionalProperties: false
             description: Rate limit by the request path.
         PrincipalFieldKey:
@@ -6531,7 +6537,7 @@ components:
                         - "null"
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: Number of credits remaining (null for unlimited). This also clears the refilling schedule.
                     example: 1000
                 refill:
@@ -6555,7 +6561,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 1
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: Number of credits to add during each refill cycle.
                     example: 1000
                 refillDay:
@@ -7132,7 +7138,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         Unix timestamp in milliseconds when the project was created.
                     example: 1704067200000
@@ -7140,7 +7146,7 @@ components:
                     type: integer
                     format: int64
                     minimum: 0
-                    maximum: 9223372036854776000
+                    maximum: 9223372036854775807
                     description: |
                         Unix timestamp in milliseconds when the project was last updated.
                         Omitted if the project has never been updated.
