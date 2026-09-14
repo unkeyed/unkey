@@ -140,6 +140,7 @@ message AuthorizeDeploymentResponse {}
 
 message CancelDeploymentRequest {
   string deployment_id = 1;
+  ActorInfo actor = 2;
 }
 
 message CancelDeploymentResponse {}

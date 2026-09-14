@@ -21,7 +21,6 @@ import (
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/validation"
-	"github.com/unkeyed/unkey/svc/ctrl/dedup"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -534,13 +533,7 @@ func (w *Workflow) startDeployment(
 	// queued. The RunVoid error still propagates because it can carry Restate
 	// protocol signals.
 	if runErr := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		if cancelErr := w.dedup.CancelOlderSiblings(runCtx, dedup.Newer{
-			ID:            deploymentID,
-			AppID:         target.AppID,
-			EnvironmentID: target.EnvironmentID,
-			GitBranch:     payload.RequestedBranch,
-			CreatedAt:     payload.CreatedAt,
-		}); cancelErr != nil {
+		if cancelErr := w.cancelOlderSiblings(runCtx, deploymentID, payload); cancelErr != nil {
 			logger.Error(
 				"failed to cancel superseded siblings",
 				"deployment_id", deploymentID,

@@ -39,6 +39,7 @@ export function DisconnectGitHub() {
       toast.success("Repository disconnected");
       await utils.github.getInstallations.invalidate();
       await utils.github.getRepoTree.invalidate();
+      await collection.apps.utils.refetch();
     },
     onError: (error) => {
       toast.error(error.message);
