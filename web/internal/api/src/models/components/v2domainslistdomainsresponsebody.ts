@@ -17,14 +17,14 @@ export type V2DomainsListDomainsResponseBody = {
   meta: Meta;
   /**
    * Domains that match every request filter and that you have permission to read, sorted by ID.
+   *
+   * @remarks
    * The array is empty when no readable domains match, including when a filtered resource
    * is missing or mismatched.
    */
   data: Array<Domain>;
   /**
-   * Pagination over permitted domains. When more permitted domains exist, `cursor` identifies
-   * the first permitted domain after this page. A domain the credential cannot read is never
-   * returned as the cursor.
+   * Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
    */
   pagination: Pagination;
 };
