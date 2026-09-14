@@ -34,7 +34,7 @@ The worker groups multiple Restate services into one process. Each service uses 
 
 | Service | Virtual object key | Responsibility |
 | --- | --- | --- |
-| DeployService | `deployment_id` | Build, deploy, promote, and rollback orchestration for one deployment. |
+| DeployService | `deployment_id` | Build, deploy, stop, and wake orchestration for one deployment. |
 | DeploymentService | `deployment_id` | Serializes desired state changes with nonce-based last-writer-wins. |
 | EnvironmentService | `environment_id` | Environment deletion, and promotion and rollback of the environment's live deployment. |
 | RoutingService | `project_id` | Atomic reassignment of frontline routes to a deployment. |
