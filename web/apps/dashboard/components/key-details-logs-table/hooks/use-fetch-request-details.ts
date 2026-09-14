@@ -1,44 +1,77 @@
+import type { LogsRequestSchema } from "@/lib/schemas/logs.schema";
 import { trpc } from "@/lib/trpc/client";
-import { useQueryTime } from "@/providers/query-time-provider";
+import { useEffect, useState } from "react";
 
-type useFetchRequestDetails = {
+
+const REQUEST_DETAILS_TIME_BUFFER_MS = 60_000;
+const MISSING_LOG_RETRY_INTERVAL_MS = 2_000;
+const MISSING_LOG_MAX_ATTEMPTS = 6;
+
+type RequestDetailsTarget = {
   requestId?: string;
+  /** Time of the row the request belongs to; anchors the lookup window. */
+  time?: number;
 };
 
-export function useFetchRequestDetails({ requestId }: useFetchRequestDetails) {
-  const { queryTime: timestamp } = useQueryTime();
-  const query = trpc.logs.queryLogs.useQuery(
-    {
-      limit: 1,
-      startTime: 0,
-      endTime: timestamp,
-      host: { filters: [] },
-      method: { filters: [] },
-      path: { filters: [] },
-      status: { filters: [] },
-      requestId: requestId
-        ? {
-            filters: [
-              {
-                operator: "is",
-                value: requestId,
-              },
-            ],
-          }
-        : null,
-      since: "",
-    },
-    {
-      enabled: Boolean(requestId),
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-      staleTime: Number.POSITIVE_INFINITY,
-    },
-  );
+export function buildRequestDetailsQueryParams({
+  requestId,
+  time,
+}: RequestDetailsTarget): LogsRequestSchema {
+  const anchor = time ?? 0;
+
+  return {
+    limit: 1,
+    startTime: Math.max(0, anchor - REQUEST_DETAILS_TIME_BUFFER_MS),
+    endTime: anchor + REQUEST_DETAILS_TIME_BUFFER_MS,
+    host: { filters: [] },
+    method: { filters: [] },
+    path: { filters: [] },
+    status: { filters: [] },
+    requestId: requestId
+      ? {
+          filters: [
+            {
+              operator: "is",
+              value: requestId,
+            },
+          ],
+        }
+      : null,
+    since: "",
+  };
+}
+
+export function useFetchRequestDetails({ requestId, time }: RequestDetailsTarget) {
+  const [missCount, setMissCount] = useState(0);
+
+  const enabled = Boolean(requestId) && time !== undefined;
+  const isAwaitingIngestion = enabled && missCount > 0 && missCount < MISSING_LOG_MAX_ATTEMPTS;
+
+  const query = trpc.logs.queryLogs.useQuery(buildRequestDetailsQueryParams({ requestId, time }), {
+    enabled,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    staleTime: Number.POSITIVE_INFINITY,
+    refetchInterval: isAwaitingIngestion ? MISSING_LOG_RETRY_INTERVAL_MS : false,
+  });
+
+  const [trackedRequestId, setTrackedRequestId] = useState(requestId);
+  if (trackedRequestId !== requestId) {
+    setTrackedRequestId(requestId);
+    setMissCount(0);
+  }
+
+  const { data, dataUpdatedAt } = query;
+  useEffect(() => {
+    if (!dataUpdatedAt) {
+      return;
+    }
+    setMissCount((count) => (data?.logs.length ? 0 : count + 1));
+  }, [data, dataUpdatedAt]);
 
   return {
     log: query.data?.logs[0],
-    isLoading: query.isLoading,
+    isLoading: query.isLoading || isAwaitingIngestion,
     error: query.error,
   };
 }
