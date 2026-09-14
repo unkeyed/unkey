@@ -98,6 +98,14 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 					wantInstanceNames[instance.GetK8SName()] = instance
 				}
 
+				// Reuse the existing row id for instances that are already known so the
+				// upsert collides on the id unique key and updates in place, instead of
+				// allocating a fresh auto-increment pk (and its gap lock) on every report.
+				existingInstanceIDs := make(map[string]string, len(staleInstances))
+				for _, staleInstance := range staleInstances {
+					existingInstanceIDs[staleInstance.K8sName] = staleInstance.ID
+				}
+
 				for _, staleInstance := range staleInstances {
 					if _, ok := wantInstanceNames[staleInstance.K8sName]; !ok {
 						err = db.NewQueries(tx).DeleteInstance(ctx, db.DeleteInstanceParams{
@@ -111,8 +119,12 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 				}
 
 				for _, instance := range msg.Update.GetInstances() {
+					instanceID := existingInstanceIDs[instance.GetK8SName()]
+					if instanceID == "" {
+						instanceID = uid.New(uid.InstancePrefix)
+					}
 					err = db.NewQueries(tx).UpsertInstance(ctx, db.UpsertInstanceParams{
-						ID:            uid.New(uid.InstancePrefix),
+						ID:            instanceID,
 						DeploymentID:  deployment.ID,
 						WorkspaceID:   deployment.WorkspaceID,
 						ProjectID:     deployment.ProjectID,

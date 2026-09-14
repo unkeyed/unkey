@@ -346,7 +346,7 @@ var File_hydra_v1_deployment_proto protoreflect.FileDescriptor
 
 const file_hydra_v1_deployment_proto_rawDesc = "" +
 	"\n" +
-	"\x19hydra/v1/deployment.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\"#\n" +
+	"\x19hydra/v1/deployment.proto\x12\bhydra.v1\x1a\x18dev/restate/sdk/go.proto\x1a\x15hydra/v1/deploy.proto\"#\n" +
 	"!ClearScheduledStateChangesRequest\"$\n" +
 	"\"ClearScheduledStateChangesResponse\"\x9c\x01\n" +
 	"!ScheduleDesiredStateChangeRequest\x12!\n" +
@@ -361,11 +361,13 @@ const file_hydra_v1_deployment_proto_rawDesc = "" +
 	"\x16DeploymentDesiredState\x12(\n" +
 	"$DEPLOYMENT_DESIRED_STATE_UNSPECIFIED\x10\x00\x12$\n" +
 	" DEPLOYMENT_DESIRED_STATE_RUNNING\x10\x01\x12$\n" +
-	" DEPLOYMENT_DESIRED_STATE_STOPPED\x10\x022\xf2\x02\n" +
+	" DEPLOYMENT_DESIRED_STATE_STOPPED\x10\x022\xa0\x04\n" +
 	"\x11DeploymentService\x12y\n" +
 	"\x1aScheduleDesiredStateChange\x12+.hydra.v1.ScheduleDesiredStateChangeRequest\x1a,.hydra.v1.ScheduleDesiredStateChangeResponse\"\x00\x12a\n" +
 	"\x12ChangeDesiredState\x12#.hydra.v1.ChangeDesiredStateRequest\x1a$.hydra.v1.ChangeDesiredStateResponse\"\x00\x12y\n" +
-	"\x1aClearScheduledStateChanges\x12+.hydra.v1.ClearScheduledStateChangesRequest\x1a,.hydra.v1.ClearScheduledStateChangesResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x95\x01\n" +
+	"\x1aClearScheduledStateChanges\x12+.hydra.v1.ClearScheduledStateChangesRequest\x1a,.hydra.v1.ClearScheduledStateChangesResponse\"\x00\x12U\n" +
+	"\x0eStopDeployment\x12\x1f.hydra.v1.StopDeploymentRequest\x1a .hydra.v1.StopDeploymentResponse\"\x00\x12U\n" +
+	"\x0eWakeDeployment\x12\x1f.hydra.v1.WakeDeploymentRequest\x1a .hydra.v1.WakeDeploymentResponse\"\x00\x1a\x04\x98\x80\x01\x01B\x95\x01\n" +
 	"\fcom.hydra.v1B\x0fDeploymentProtoP\x01Z3github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1\xa2\x02\x03HXX\xaa\x02\bHydra.V1\xca\x02\bHydra\\V1\xe2\x02\x14Hydra\\V1\\GPBMetadata\xea\x02\tHydra::V1b\x06proto3"
 
 var (
@@ -390,21 +392,29 @@ var file_hydra_v1_deployment_proto_goTypes = []any{
 	(*ScheduleDesiredStateChangeResponse)(nil), // 4: hydra.v1.ScheduleDesiredStateChangeResponse
 	(*ChangeDesiredStateRequest)(nil),          // 5: hydra.v1.ChangeDesiredStateRequest
 	(*ChangeDesiredStateResponse)(nil),         // 6: hydra.v1.ChangeDesiredStateResponse
+	(*StopDeploymentRequest)(nil),              // 7: hydra.v1.StopDeploymentRequest
+	(*WakeDeploymentRequest)(nil),              // 8: hydra.v1.WakeDeploymentRequest
+	(*StopDeploymentResponse)(nil),             // 9: hydra.v1.StopDeploymentResponse
+	(*WakeDeploymentResponse)(nil),             // 10: hydra.v1.WakeDeploymentResponse
 }
 var file_hydra_v1_deployment_proto_depIdxs = []int32{
-	0, // 0: hydra.v1.ScheduleDesiredStateChangeRequest.state:type_name -> hydra.v1.DeploymentDesiredState
-	0, // 1: hydra.v1.ChangeDesiredStateRequest.state:type_name -> hydra.v1.DeploymentDesiredState
-	3, // 2: hydra.v1.DeploymentService.ScheduleDesiredStateChange:input_type -> hydra.v1.ScheduleDesiredStateChangeRequest
-	5, // 3: hydra.v1.DeploymentService.ChangeDesiredState:input_type -> hydra.v1.ChangeDesiredStateRequest
-	1, // 4: hydra.v1.DeploymentService.ClearScheduledStateChanges:input_type -> hydra.v1.ClearScheduledStateChangesRequest
-	4, // 5: hydra.v1.DeploymentService.ScheduleDesiredStateChange:output_type -> hydra.v1.ScheduleDesiredStateChangeResponse
-	6, // 6: hydra.v1.DeploymentService.ChangeDesiredState:output_type -> hydra.v1.ChangeDesiredStateResponse
-	2, // 7: hydra.v1.DeploymentService.ClearScheduledStateChanges:output_type -> hydra.v1.ClearScheduledStateChangesResponse
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	0,  // 0: hydra.v1.ScheduleDesiredStateChangeRequest.state:type_name -> hydra.v1.DeploymentDesiredState
+	0,  // 1: hydra.v1.ChangeDesiredStateRequest.state:type_name -> hydra.v1.DeploymentDesiredState
+	3,  // 2: hydra.v1.DeploymentService.ScheduleDesiredStateChange:input_type -> hydra.v1.ScheduleDesiredStateChangeRequest
+	5,  // 3: hydra.v1.DeploymentService.ChangeDesiredState:input_type -> hydra.v1.ChangeDesiredStateRequest
+	1,  // 4: hydra.v1.DeploymentService.ClearScheduledStateChanges:input_type -> hydra.v1.ClearScheduledStateChangesRequest
+	7,  // 5: hydra.v1.DeploymentService.StopDeployment:input_type -> hydra.v1.StopDeploymentRequest
+	8,  // 6: hydra.v1.DeploymentService.WakeDeployment:input_type -> hydra.v1.WakeDeploymentRequest
+	4,  // 7: hydra.v1.DeploymentService.ScheduleDesiredStateChange:output_type -> hydra.v1.ScheduleDesiredStateChangeResponse
+	6,  // 8: hydra.v1.DeploymentService.ChangeDesiredState:output_type -> hydra.v1.ChangeDesiredStateResponse
+	2,  // 9: hydra.v1.DeploymentService.ClearScheduledStateChanges:output_type -> hydra.v1.ClearScheduledStateChangesResponse
+	9,  // 10: hydra.v1.DeploymentService.StopDeployment:output_type -> hydra.v1.StopDeploymentResponse
+	10, // 11: hydra.v1.DeploymentService.WakeDeployment:output_type -> hydra.v1.WakeDeploymentResponse
+	7,  // [7:12] is the sub-list for method output_type
+	2,  // [2:7] is the sub-list for method input_type
+	2,  // [2:2] is the sub-list for extension type_name
+	2,  // [2:2] is the sub-list for extension extendee
+	0,  // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_hydra_v1_deployment_proto_init() }
@@ -412,6 +422,7 @@ func file_hydra_v1_deployment_proto_init() {
 	if File_hydra_v1_deployment_proto != nil {
 		return
 	}
+	file_hydra_v1_deploy_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
