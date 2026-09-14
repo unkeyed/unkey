@@ -1,0 +1,41 @@
+name: PlanetScale pr-* Sweep
+# The per-PR cleanup only fires when a PR closes. Branches orphaned by a merge
+# or close that happened before the event-driven cleanup existed, or whose
+# cleanup run never finished, keep their deploy requests armed forever. This
+# scheduled sweep reconciles pr-* branches against GitHub PR state and tears
+# down the ones whose PR is closed.
+on:
+  schedule:
+    - cron: "37 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  PSCALE_ORG: unkey
+  PSCALE_DB: unkey
+
+jobs:
+  sweep:
+    name: Close stale pr-* deploy requests and branches
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 15
+    env:
+      PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+      PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+
+      - name: Install mise
+        run: |
+          ./dev/install-mise
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install toolchain
+        run: mise install --locked --yes github:planetscale/cli github:jqlang/jq
+
+      - name: Reconcile pr-* branches
+        run: .depot/scripts/pr-sweep.sh
