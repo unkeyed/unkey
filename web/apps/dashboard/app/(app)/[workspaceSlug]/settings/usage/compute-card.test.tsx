@@ -10,13 +10,10 @@ vi.mock("@/lib/trpc/client", () => ({
 }));
 vi.mock("./spend-bar-chart", () => ({ SPEND_BAR_CHART_HEIGHT: 200, SpendBarChart: () => null }));
 
-afterEach(() => {
-  cleanup();
-  window.getSelection()?.removeAllRanges();
-});
+afterEach(cleanup);
 
 describe("deleted billing IDs", () => {
-  it("shows selectable IDs only for deleted resources and preserves keyboard expansion", () => {
+  it("keeps IDs out of the visible label but readable by assistive tech", () => {
     const tree = buildComputeTree({
       usage: [
         {
@@ -36,7 +33,7 @@ describe("deleted billing IDs", () => {
       gateway: [
         {
           projectId: "proj_live",
-          projectName: "Deleted project",
+          projectName: "Checkout",
           appId: "app_live",
           activeKeys: 0,
           grossMicroCents: 0,
@@ -45,23 +42,22 @@ describe("deleted billing IDs", () => {
       ],
     });
     render(<ComputeCard tree={tree} />);
+
     for (const id of ["proj_deleted", "app_deleted", "env_deleted"]) {
-      const label = screen.getByText(id);
-      expect(label.title).toBe(id);
-      expect(label.classList.contains("select-text")).toBe(true);
+      expect(screen.getByText(`, ${id}`).classList.contains("sr-only")).toBe(true);
+      expect(screen.queryByText(id)).toBeNull();
     }
+    expect(screen.getByText("Deleted project")).toBeTruthy();
+    expect(screen.getByText("Deleted app")).toBeTruthy();
+    expect(screen.getByText("Deleted environment")).toBeTruthy();
+    expect(screen.getByText("Checkout")).toBeTruthy();
     expect(screen.queryByText("proj_live")).toBeNull();
     expect(screen.getByText("Unattributed")).toBeTruthy();
+
     const button = screen.getByRole("button", { name: /proj_deleted/ });
     fireEvent.click(button);
     expect(button.getAttribute("aria-expanded")).toBe("true");
-
-    const range = document.createRange();
-    range.selectNodeContents(screen.getByText("proj_deleted"));
-    window.getSelection()?.addRange(range);
-    fireEvent.click(button, { detail: 1 });
-    expect(button.getAttribute("aria-expanded")).toBe("true");
-    fireEvent.click(button, { detail: 0 });
+    fireEvent.click(button);
     expect(button.getAttribute("aria-expanded")).toBe("false");
   });
 });

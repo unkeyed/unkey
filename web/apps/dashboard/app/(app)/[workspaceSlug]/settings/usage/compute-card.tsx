@@ -3,7 +3,7 @@
 import { DEPLOY_METER_RATES } from "@/lib/billing/deployPricing";
 import { formatCompactQuantity, formatPrice } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { ChevronRight, Cube } from "@unkey/icons";
+import { ChevronRight, CircleInfo, Cube } from "@unkey/icons";
 import {
   InfoTooltip,
   Item,
@@ -236,24 +236,7 @@ function ProjectRow({
     <div>
       <Item
         className="gap-2"
-        render={
-          <button
-            type="button"
-            aria-expanded={open}
-            onClick={(event) => {
-              const selection = window.getSelection();
-              if (
-                event.detail > 0 &&
-                selection &&
-                !selection.isCollapsed &&
-                event.currentTarget.contains(selection.anchorNode)
-              ) {
-                return;
-              }
-              onToggle();
-            }}
-          />
-        }
+        render={<button type="button" aria-expanded={open} onClick={onToggle} />}
       >
         <ChevronRight
           iconSize="sm-regular"
@@ -265,10 +248,7 @@ function ProjectRow({
           aria-hidden="true"
         />
         <ItemContent>
-          <ItemTitle
-            className="flex min-w-0 items-baseline gap-2"
-            title={project.projectId || undefined}
-          >
+          <ItemTitle className="truncate">
             <ResourceName name={project.name} id={project.projectId} deleted={project.deleted} />
           </ItemTitle>
         </ItemContent>
@@ -376,18 +356,26 @@ function ResourceBar({ usage }: { usage: UsageQuantities }) {
 }
 
 function ResourceName({ name, id, deleted }: { name: string; id: string; deleted: boolean }) {
+  if (!deleted) {
+    return <>{name}</>;
+  }
+
   return (
-    <>
-      <span className={deleted ? "shrink-0" : "truncate"}>{name}</span>
-      {deleted ? (
-        <span
-          className="min-w-0 select-text truncate font-mono font-normal text-gray-9 text-xs"
-          title={id}
-        >
-          {id}
+    <span className="inline-flex items-center gap-1.5">
+      {name}
+      <InfoTooltip
+        asChild
+        delayDuration={120}
+        variant="inverted"
+        position={{ side: "top" }}
+        content={<span className="font-mono">{id}</span>}
+      >
+        <span className="inline-flex shrink-0">
+          <CircleInfo iconSize="sm-regular" className="text-gray-9" />
+          <span className="sr-only">, {id}</span>
         </span>
-      ) : null}
-    </>
+      </InfoTooltip>
+    </span>
   );
 }
 
@@ -395,10 +383,7 @@ function AppRows({ app }: { app: UsageApp }) {
   return (
     <div>
       <div className="flex items-center gap-3 px-4 pt-2.5 pb-1">
-        <span
-          className="flex min-w-0 flex-1 items-baseline gap-2 font-medium text-[13px] text-gray-12"
-          title={app.appId || undefined}
-        >
+        <span className="min-w-0 flex-1 truncate font-medium text-[13px] text-gray-12">
           <ResourceName name={app.name} id={app.appId} deleted={app.deleted} />
         </span>
         <MeterCosts usage={app} className="text-[13px] text-gray-12" />
@@ -413,10 +398,7 @@ function AppRows({ app }: { app: UsageApp }) {
           key={environment.environmentId}
           className="flex items-center gap-3 px-4 py-1 last:pb-2.5"
         >
-          <span
-            className="flex min-w-0 flex-1 items-baseline gap-2 text-gray-10 text-xs"
-            title={environment.environmentId || undefined}
-          >
+          <span className="min-w-0 flex-1 truncate text-gray-10 text-xs">
             <ResourceName
               name={environment.name}
               id={environment.environmentId}
