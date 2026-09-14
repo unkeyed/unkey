@@ -9,6 +9,7 @@ function project(projectId: string, name: string): UsageProject {
   return {
     projectId,
     name,
+    deleted: false,
     apps: [],
     gateway: { activeKeys: 0, microCents: 0 },
     cpuHours: 0,

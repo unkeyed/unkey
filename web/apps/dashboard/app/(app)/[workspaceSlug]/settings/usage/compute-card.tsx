@@ -236,7 +236,24 @@ function ProjectRow({
     <div>
       <Item
         className="gap-2"
-        render={<button type="button" aria-expanded={open} onClick={onToggle} />}
+        render={
+          <button
+            type="button"
+            aria-expanded={open}
+            onClick={(event) => {
+              const selection = window.getSelection();
+              if (
+                event.detail > 0 &&
+                selection &&
+                !selection.isCollapsed &&
+                event.currentTarget.contains(selection.anchorNode)
+              ) {
+                return;
+              }
+              onToggle();
+            }}
+          />
+        }
       >
         <ChevronRight
           iconSize="sm-regular"
@@ -248,7 +265,12 @@ function ProjectRow({
           aria-hidden="true"
         />
         <ItemContent>
-          <ItemTitle className="truncate">{project.name}</ItemTitle>
+          <ItemTitle
+            className="flex min-w-0 items-baseline gap-2"
+            title={project.projectId || undefined}
+          >
+            <ResourceName name={project.name} id={project.projectId} deleted={project.deleted} />
+          </ItemTitle>
         </ItemContent>
         <ItemActions className="w-20 justify-end font-medium tabular-nums">
           <TotalCost
@@ -353,12 +375,31 @@ function ResourceBar({ usage }: { usage: UsageQuantities }) {
   );
 }
 
+function ResourceName({ name, id, deleted }: { name: string; id: string; deleted: boolean }) {
+  return (
+    <>
+      <span className={deleted ? "shrink-0" : "truncate"}>{name}</span>
+      {deleted ? (
+        <span
+          className="min-w-0 select-text truncate font-mono font-normal text-gray-9 text-xs"
+          title={id}
+        >
+          {id}
+        </span>
+      ) : null}
+    </>
+  );
+}
+
 function AppRows({ app }: { app: UsageApp }) {
   return (
     <div>
       <div className="flex items-center gap-3 px-4 pt-2.5 pb-1">
-        <span className="min-w-0 flex-1 truncate font-medium text-[13px] text-gray-12">
-          {app.name}
+        <span
+          className="flex min-w-0 flex-1 items-baseline gap-2 font-medium text-[13px] text-gray-12"
+          title={app.appId || undefined}
+        >
+          <ResourceName name={app.name} id={app.appId} deleted={app.deleted} />
         </span>
         <MeterCosts usage={app} className="text-[13px] text-gray-12" />
         <TotalCost
@@ -372,7 +413,16 @@ function AppRows({ app }: { app: UsageApp }) {
           key={environment.environmentId}
           className="flex items-center gap-3 px-4 py-1 last:pb-2.5"
         >
-          <span className="min-w-0 flex-1 truncate text-gray-10 text-xs">{environment.name}</span>
+          <span
+            className="flex min-w-0 flex-1 items-baseline gap-2 text-gray-10 text-xs"
+            title={environment.environmentId || undefined}
+          >
+            <ResourceName
+              name={environment.name}
+              id={environment.environmentId}
+              deleted={environment.deleted}
+            />
+          </span>
           <MeterCosts usage={environment} className="text-gray-10 text-xs" />
           <TotalCost
             cents={microCentsToDisplayCents(environment.microCents)}
