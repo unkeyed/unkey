@@ -6,7 +6,14 @@ import {
   retryDomainVerification,
 } from "@/lib/collections/deploy/custom-domains";
 import { cn } from "@/lib/utils";
-import { CircleCheck, CircleInfo, Clock, Refresh3, TriangleWarning } from "@unkey/icons";
+import {
+  IconCircleCheckOutline12,
+  IconCircleInfoOutline18,
+  IconClockOutline12,
+  IconRefresh3Outline12,
+  IconRefresh3Outline18,
+  IconTriangleWarningOutline12,
+} from "@unkey/icons";
 import { Badge, Button, ConfirmPopover, Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { RemoveButton } from "../../shared/remove-button";
@@ -24,22 +31,22 @@ const statusConfig: Record<
   pending: {
     label: "Pending",
     color: "primary",
-    icon: <Clock className="size-3!" iconSize="sm-regular" />,
+    icon: <IconClockOutline12 className="!" />,
   },
   verifying: {
     label: "Verifying",
     color: "warning",
-    icon: <Refresh3 className="size-3! animate-spin" iconSize="sm-regular" />,
+    icon: <IconRefresh3Outline12 className="! animate-spin" />,
   },
   verified: {
     label: "Verified",
     color: "success",
-    icon: <CircleCheck className="size-3!" iconSize="sm-regular" />,
+    icon: <IconCircleCheckOutline12 className="!" />,
   },
   failed: {
     label: "Failed",
     color: "error",
-    icon: <TriangleWarning className="size-3!" iconSize="sm-regular" />,
+    icon: <IconTriangleWarningOutline12 className="!" />,
   },
 };
 
@@ -127,7 +134,9 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
                     disabled={isRetrying}
                     className="size-7 text-gray-9 hover:text-gray-11"
                   >
-                    <Refresh3 className={cn("size-[14px]!", isRetrying && "animate-spin")} />
+                    <IconRefresh3Outline18
+                      className={cn("size-[14px]!", isRetrying && "animate-spin")}
+                    />
                   </Button>
                 }
               />
@@ -138,7 +147,7 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
           {domain.verificationError && (
             <Tooltip>
               <TooltipTrigger>
-                <CircleInfo className="size-4! text-error-9" />
+                <IconCircleInfoOutline18 className="size-4! text-error-9" />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">{domain.verificationError}</TooltipContent>
             </Tooltip>

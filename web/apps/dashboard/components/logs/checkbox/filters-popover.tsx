@@ -1,5 +1,5 @@
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import { CaretRight, Check, Magnifier } from "@unkey/icons";
+import { IconCaretRightOutline12, IconCheckOutline12, IconMagnifierOutline18 } from "@unkey/icons";
 import { Drover, InputGroup, InputGroupAddon, InputGroupInput, KeyboardButton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import React, {
@@ -303,7 +303,7 @@ export const FiltersPopover = ({
             <div className="border-b border-gray-4 p-2">
               <InputGroup variant="ghost" className="h-8">
                 <InputGroupAddon className="pointer-events-none">
-                  <Magnifier className="size-3.5 text-gray-9" />
+                  <IconMagnifierOutline18 className="size-3.5 text-gray-9" />
                 </InputGroupAddon>
                 <InputGroupInput
                   autoFocus
@@ -388,7 +388,7 @@ export const FiltersPopover = ({
                           )}
                           aria-hidden="true"
                         >
-                          {item.checked ? <Check className="size-3" /> : null}
+                          {item.checked ? <IconCheckOutline12 /> : null}
                         </span>
                       ) : null}
                       {item.icon ? (
@@ -398,7 +398,7 @@ export const FiltersPopover = ({
                         {item.path.map((segment) => (
                           <React.Fragment key={`${item.id}-${segment}`}>
                             <span className="max-w-28 truncate text-gray-9">{segment}</span>
-                            <CaretRight className="size-2 shrink-0 text-gray-7" />
+                            <IconCaretRightOutline12 className="size-2 shrink-0 text-gray-7" />
                           </React.Fragment>
                         ))}
                         <span className="truncate font-medium text-accent-12">{item.label}</span>
@@ -409,7 +409,7 @@ export const FiltersPopover = ({
                         </span>
                       ) : null}
                       {item.kind === "filter" ? (
-                        <CaretRight className="ml-auto size-2 shrink-0 text-gray-7" />
+                        <IconCaretRightOutline12 className="ml-auto size-2 shrink-0 text-gray-7" />
                       ) : null}
                     </button>
                   ))}

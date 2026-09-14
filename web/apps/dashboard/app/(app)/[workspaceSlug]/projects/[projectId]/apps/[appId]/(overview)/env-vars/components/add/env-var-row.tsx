@@ -1,4 +1,4 @@
-import { Plus, Trash } from "@unkey/icons";
+import { IconPlusOutline12, IconTrashOutline18 } from "@unkey/icons";
 import { Button, FormInput, FormTextarea } from "@unkey/ui";
 import type { ClipboardEvent, KeyboardEvent } from "react";
 import { useCallback } from "react";
@@ -102,7 +102,7 @@ export const EnvVarRow = ({
             className="size-9 shrink-0 px-0 justify-center text-gray-11 hover:text-gray-12 hover:bg-grayA-3 rounded-lg mt-6.5"
             onClick={() => onRemove(index)}
           >
-            <Trash iconSize="sm-regular" />
+            <IconTrashOutline18 />
           </Button>
         )}
       </div>
@@ -110,10 +110,7 @@ export const EnvVarRow = ({
       <details className="group">
         <summary className="w-fit text-[13px] text-gray-11 hover:text-gray-12 transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center gap-1.5 group">
           <span className="group-open:hidden flex items-center gap-2">
-            <Plus
-              iconSize="sm-medium"
-              className="text-gray-9 group-hover:text-gray-12 transition-colors"
-            />
+            <IconPlusOutline12 className="text-gray-9 group-hover:text-gray-12 transition-colors" />
             Add Note
           </span>
           <span className="hidden group-open:inline">Note</span>

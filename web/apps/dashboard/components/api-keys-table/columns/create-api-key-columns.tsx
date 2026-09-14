@@ -6,7 +6,7 @@ import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { cn } from "@/lib/utils";
-import { Focus, Key } from "@unkey/icons";
+import { IconFocusOutline18, IconKeyOutline18 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   Checkbox,
@@ -100,9 +100,9 @@ const KeyIdCell = ({
             )}
           >
             {identity ? (
-              <Focus iconSize="md-medium" className="text-successA-11" />
+              <IconFocusOutline18 className="size-3.5 text-successA-11" />
             ) : (
-              <Key iconSize="md-medium" />
+              <IconKeyOutline18 className="size-3.5" />
             )}
           </div>
           <Checkbox

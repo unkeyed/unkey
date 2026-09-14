@@ -1,4 +1,4 @@
-import { BookBookmark } from "@unkey/icons";
+import { IconBookBookmarkOutline18 } from "@unkey/icons";
 import { Empty, buttonVariants } from "@unkey/ui";
 
 export const EmptyAuditLogs = () => {
@@ -18,7 +18,7 @@ export const EmptyAuditLogs = () => {
             rel="noopener noreferrer"
             className={buttonVariants({ variant: "outline" })}
           >
-            <BookBookmark />
+            <IconBookBookmarkOutline18 />
             Learn about Audit Logs
           </a>
         </Empty.Actions>

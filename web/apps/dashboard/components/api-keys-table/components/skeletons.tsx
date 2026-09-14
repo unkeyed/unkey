@@ -1,4 +1,4 @@
-import { Dots } from "@unkey/icons";
+import { IconDotsOutline12 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 
 export const KeyColumnSkeleton = () => (
@@ -77,6 +77,6 @@ export const ActionColumnSkeleton = () => (
       "border border-gray-6",
     )}
   >
-    <Dots className="text-gray-11" iconSize="sm-regular" />
+    <IconDotsOutline12 className="text-gray-11" />
   </button>
 );

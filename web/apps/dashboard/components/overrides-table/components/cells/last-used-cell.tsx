@@ -1,6 +1,6 @@
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { ChartActivity2 } from "@unkey/icons";
+import { IconChartActivity2Outline12 } from "@unkey/icons";
 import { Badge, STATUS_STYLES, TimestampInfo } from "@unkey/ui";
 import { useRef, useState } from "react";
 
@@ -32,7 +32,7 @@ export const LastUsedCell = ({ namespaceId, identifier }: LastUsedCellProps) => 
       }}
     >
       <div>
-        <ChartActivity2 iconSize="sm-regular" />
+        <IconChartActivity2Outline12 />
       </div>
       <div className="truncate">
         {isLoading ? (

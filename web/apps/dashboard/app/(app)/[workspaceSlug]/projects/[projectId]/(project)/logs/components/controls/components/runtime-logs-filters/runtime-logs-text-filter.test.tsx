@@ -10,7 +10,7 @@ vi.mock(
     useRuntimeLogsFilters: () => ({ filters: [], updateFilters }),
   }),
 );
-vi.mock("@unkey/icons", () => ({ Check: () => null }));
+vi.mock("@unkey/icons", () => ({ IconCheckOutline18: () => null }));
 vi.mock("@unkey/ui", () => ({ Button: "button", Textarea: "textarea" }));
 
 afterEach(() => {
