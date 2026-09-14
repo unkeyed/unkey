@@ -13,7 +13,7 @@ Each Restate VO uses the narrowest key that gives the serialization it needs:
 - **`EnvironmentService`** is keyed by `environment_id`. Promote and rollback run here. Both change which deployment is live in one environment, and both check the live pointer before they swap it. One key holds the check and the swap under one lock. With separate keys, two operations on the same environment can pass their checks against the same live pointer and then swap one after the other.
 - **`RoutingService`** is keyed by `env_id`. Frontline route assignment and the live-deployment swap serialize here. It is the write primitive that `DeployService` and `EnvironmentService` call.
 - **`BuildSlotService`** is keyed by `workspace_id`. Caps how many deployments build at once across the workspace and prioritises production over preview waiters.
-- **`DeploymentService`** (delayed desired-state transitions) is keyed by `deployment_id`.
+- **`DeploymentService`** (desired-state transitions, scheduled and immediate) is keyed by `deployment_id`.
 
 Key components:
 
@@ -21,7 +21,7 @@ Key components:
 - `DeployService` Restate workflow — [`svc/ctrl/worker/deploy`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy)
 - `EnvironmentService` (promote, rollback, environment deletion): [`svc/ctrl/worker/environment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/environment)
 - `RoutingService` (route assignment + live swap) — [`svc/ctrl/worker/routing`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/routing)
-- `DeploymentService` VO for delayed desired-state transitions — [`svc/ctrl/worker/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment)
+- `DeploymentService` VO for scheduled and immediate desired-state transitions — [`svc/ctrl/worker/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment)
 - `BuildSlotService` VO for per-workspace build concurrency — [`svc/ctrl/worker/buildslot`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/buildslot)
 - Superseded sibling cancellation — [`svc/ctrl/worker/deploy/supersede.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy/supersede.go)
 

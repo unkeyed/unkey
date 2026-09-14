@@ -3,7 +3,7 @@
 import { DEPLOY_METER_RATES } from "@/lib/billing/deployPricing";
 import { formatCompactQuantity, formatPrice } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { ChevronRight, Cube } from "@unkey/icons";
+import { ChevronRight, CircleInfo, Cube } from "@unkey/icons";
 import {
   InfoTooltip,
   Item,
@@ -248,7 +248,9 @@ function ProjectRow({
           aria-hidden="true"
         />
         <ItemContent>
-          <ItemTitle className="truncate">{project.name}</ItemTitle>
+          <ItemTitle className="truncate">
+            <ResourceName name={project.name} id={project.projectId} deleted={project.deleted} />
+          </ItemTitle>
         </ItemContent>
         <ItemActions className="w-20 justify-end font-medium tabular-nums">
           <TotalCost
@@ -353,12 +355,36 @@ function ResourceBar({ usage }: { usage: UsageQuantities }) {
   );
 }
 
+function ResourceName({ name, id, deleted }: { name: string; id: string; deleted: boolean }) {
+  if (!deleted) {
+    return <>{name}</>;
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {name}
+      <InfoTooltip
+        asChild
+        delayDuration={120}
+        variant="inverted"
+        position={{ side: "top" }}
+        content={<span className="font-mono">{id}</span>}
+      >
+        <span className="inline-flex shrink-0">
+          <CircleInfo iconSize="sm-regular" className="text-gray-9" />
+          <span className="sr-only">, {id}</span>
+        </span>
+      </InfoTooltip>
+    </span>
+  );
+}
+
 function AppRows({ app }: { app: UsageApp }) {
   return (
     <div>
       <div className="flex items-center gap-3 px-4 pt-2.5 pb-1">
         <span className="min-w-0 flex-1 truncate font-medium text-[13px] text-gray-12">
-          {app.name}
+          <ResourceName name={app.name} id={app.appId} deleted={app.deleted} />
         </span>
         <MeterCosts usage={app} className="text-[13px] text-gray-12" />
         <TotalCost
@@ -372,7 +398,13 @@ function AppRows({ app }: { app: UsageApp }) {
           key={environment.environmentId}
           className="flex items-center gap-3 px-4 py-1 last:pb-2.5"
         >
-          <span className="min-w-0 flex-1 truncate text-gray-10 text-xs">{environment.name}</span>
+          <span className="min-w-0 flex-1 truncate text-gray-10 text-xs">
+            <ResourceName
+              name={environment.name}
+              id={environment.environmentId}
+              deleted={environment.deleted}
+            />
+          </span>
           <MeterCosts usage={environment} className="text-gray-10 text-xs" />
           <TotalCost
             cents={microCentsToDisplayCents(environment.microCents)}
