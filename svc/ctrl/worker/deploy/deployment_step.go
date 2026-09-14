@@ -47,9 +47,9 @@ func (w *Workflow) DeploymentStep(
 			// A cancel between two steps has already ended the deployment. Reviving
 			// it here would let the compensation stack later mark it failed
 			if current.Status.IsTerminal() {
-				return restate.TerminalError(
+				return restate.ToTerminalError(
 					fmt.Errorf("deployment %s is already %s, not starting step %s", deployment.ID, current.Status, step),
-					409,
+					restate.WithErrorCode(409),
 				)
 			}
 
