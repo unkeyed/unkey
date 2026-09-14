@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
@@ -30,24 +31,22 @@ func newBatchReader(src source.Source, watermark int64, batchSize int) *batchRea
 	return &batchReader{source: src, watermark: watermark, batchSize: batchSize, windowSize: time.Minute}
 }
 
-// Read grows empty windows up to an hour, preserves partial windows, and resets
-// full batches to one minute. It never persists a cursor or delivers events.
-func (r *batchReader) Read(ctx context.Context, workspaceID string, from source.Cursor, eventTypes []string) (batchPage, error) {
+// Read grows empty windows up to an hour. Nonempty pages continue at their last
+// event because a source may stop at its byte limit before reaching the row limit.
+func (r *batchReader) Read(ctx context.Context, workspaceID string, from source.Cursor, config *logdrainv1.Config) (batchPage, error) {
 	if from.Time >= r.watermark {
 		return batchPage{events: nil, next: from, caughtUp: true}, nil
 	}
 	windowEnd := min(from.Time+r.windowSize.Milliseconds(), r.watermark)
-	events, next, err := r.source.Read(ctx, workspaceID, from, windowEnd, r.batchSize, eventTypes)
+	events, next, err := r.source.Read(ctx, workspaceID, from, windowEnd, r.batchSize, config)
 	if err != nil {
 		return batchPage{}, err
 	}
-	if len(events) == r.batchSize {
+	if len(events) > 0 {
 		r.windowSize = time.Minute
 		return batchPage{events: events, next: next, caughtUp: false}, nil
 	}
-	if len(events) == 0 {
-		r.windowSize = min(2*r.windowSize, time.Hour)
-	}
+	r.windowSize = min(2*r.windowSize, time.Hour)
 	return batchPage{
 		events: events,
 		// The exclusive upper bound belongs to the next window, including its first event.

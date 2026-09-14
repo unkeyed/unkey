@@ -1,0 +1,452 @@
+---
+title: Log drains
+description: "Send audit logs, key verifications, gateway requests, runtime logs, and rate-limit decisions to HTTPS endpoints or Axiom."
+---
+
+A log drain sends workspace audit logs, key verifications, gateway HTTP requests, runtime logs, or rate-limit decisions to a destination
+that you control. Use log drains to archive events or process them with your
+own tools.
+
+<Note>
+  Log drains are in private preview. Contact
+  [support@unkey.com](mailto:support@unkey.com) to request access.
+</Note>
+
+Unkey supports generic HTTPS endpoints and
+
+<a href="https://axiom.co" target="_blank">
+  Axiom
+</a>
+datasets. Each drain sends one stream: audit logs, key verifications, gateway
+HTTP requests, runtime logs, or rate limits.
+
+## How delivery works
+
+Unkey sends events asynchronously in batches. A destination must accept the
+complete batch before Unkey marks the delivery as successful.
+
+HTTP destinations must return a `2xx` status within 30 seconds. Return a
+non-`2xx` status if your endpoint cannot process the complete batch. Unkey then
+retries the same batch.
+
+Log drains provide at-least-once delivery. A destination can receive an event
+more than once after a retry. Use `id` for audit logs or `request_id`
+for key verifications and gateway requests. Use `log_id` for runtime logs.
+Rate-limit checks in a multi-limit request share `request_id`, so it
+does not uniquely identify each decision.
+Deduplicate within each stream.
+
+A drain starts at its creation time. Historical backfill is not supported.
+After a pause or failure, delivery resumes from the last committed position,
+subject to the stream's retention period. Verification logs are retained for
+90 days; gateway requests are retained for seven days. See [audit log retention](/audit-log/introduction#retention) for audit
+logs.
+
+| Destination | Use case                         | Configuration                                        |
+| ----------- | -------------------------------- | ---------------------------------------------------- |
+| HTTP        | Send events to an HTTP collector | Public HTTPS URL, encoding, and optional headers     |
+| Axiom       | Send events to an Axiom dataset  | Dataset name and an API token with ingest permission |
+
+## Configure a log drain
+
+Create a log drain from your workspace settings.
+
+1. Navigate to your workspace **Settings**.
+2. Select **Log Drains**.
+3. Click **Create Log Drain**.
+4. Select **HTTP** or **Axiom**.
+5. Enter a descriptive name.
+6. Select **Audit logs**, **Key verifications**, **Gateway HTTP requests**, **Runtime logs**, or **Rate limits** in **Stream**.
+7. Optional: Select the stream filters described below.
+8. Enter the destination settings.
+9. Click **Create Log Drain**.
+
+Delivery is asynchronous and can take several minutes.
+
+### Filter a stream
+
+Leave a filter empty to send all values for that filter.
+
+| Stream                | Filters                                                                                                                                                                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Audit logs            | **Event types** selects all events or specific [audit event names](/audit-log/types) grouped by category.                                                                                                                                |
+| Key verifications     | **Keyspaces** selects one or more workspace keyspaces. **Outcomes** selects verification results, such as `VALID`, `RATE_LIMITED`, or `EXPIRED`.                                                                                         |
+| Gateway HTTP requests | **Sources** selects projects, apps, and environments in a tree. **HTTP statuses** selects `2xx`, `3xx`, `4xx`, or `5xx`.                                                                                                                 |
+| Runtime logs          | **Sources** selects projects, apps, and environments in a tree. **Severity** selects exact collected values: `error`, `warn`, `info`, or `debug`. Leave it empty to include all severities, including other values from structured logs. |
+| Rate limits           | **Namespaces** selects workspace namespaces. **Results** selects **Passed** or **Blocked**.                                                                                                                                              |
+
+For audit logs, select **Specific event types** to open the category tree.
+Categories use the event prefix, such as `key`. Expand a category to select
+individual actions, shown with their full event type, such as `key.create`.
+Checking a category selects all its listed actions, even when search hides some
+actions. **All event types** also includes event types added later.
+
+When you select both keyspaces and outcomes, a verification must match both
+filters. **Unspecified** matches an empty verification outcome.
+
+For gateway requests and runtime logs, **All sources** sends events from all
+sources in the workspace, including future resources. HTTP status and severity
+filters still apply. Select **Specific sources** to restrict resources.
+Expand a project in **Sources** to view
+its apps and environments. Check a project or app to select its environments.
+A partially checked parent has some, but not all, environments selected. Search
+changes the visible rows, not the scope of a project or app checkbox.
+
+Selections consisting entirely of whole projects or whole apps include future
+environments in those resources. Mixed selections are saved as specific
+environment IDs and do not automatically include future environments.
+**Select all** checks the current tree and keeps **Specific sources** selected.
+**Clear all** requires you to select at least one source before saving, or switch
+to **All sources**. Switching modes retains your selections until you close the
+form. Only **Specific sources** applies those selections when saving.
+
+If saved source filters contain unavailable resources, changing the tree opens
+**Replace source filters?**. Review the listed filters before confirming their
+replacement. **Keep current filters** cancels that tree change. Editing the drain's
+name or destination alone preserves unavailable source filters.
+
+Gateway requests must match the selected sources and HTTP status classes.
+For example, select a production environment and `5xx` to send its server errors.
+Status filters select whole classes only. Exact codes and arbitrary ranges are
+not supported.
+
+Filter changes apply from the drain's committed position. They do not replay
+events skipped by an earlier filter. An in-flight request can still arrive
+with the previous filters. To export another stream, create a separate drain.
+
+Runtime filters follow the same resource selection rules. A log must match every
+nonempty filter and any selected value within each filter. Severity matching is
+exact, not a minimum threshold.
+
+Rate-limit decisions must match every nonempty filter and any selected value
+within each filter. For example, select the `payments` namespace and **Blocked**
+to export only blocked checks in that namespace. Clearing **Results** includes
+both passed and blocked checks.
+
+## Configure an HTTP destination
+
+An HTTP log drain sends a `POST` request to your endpoint for each batch. The
+endpoint must use HTTPS and resolve to a public IP address. Unkey rejects
+loopback, private, and link-local destinations. Do not include credentials in
+the endpoint URL. Add authentication as a custom header.
+
+Configure these fields in the dashboard:
+
+| Field        | Description                                                                |
+| ------------ | -------------------------------------------------------------------------- |
+| **URL**      | The public URL that receives each batch. Unkey always sends `POST`.        |
+| **Encoding** | JSON (default) sends one array of events. NDJSON sends one event per line. |
+| **Headers**  | Optional request headers, such as an `Authorization` header                |
+
+Unkey stores the endpoint URL in plaintext. It encrypts each custom header
+value at rest.
+
+### Handle HTTP requests
+
+Process the complete request before you acknowledge it.
+
+- Accept `POST` requests at the configured path.
+- Read the body according to the `Content-Type` header.
+- Process every event in the batch.
+- Return a `2xx` status only after you accept the complete batch.
+- Return a non-`2xx` status and a useful response body when processing fails.
+
+Unkey adds these headers to every delivery request:
+
+| Header                   | Value                                        |
+| ------------------------ | -------------------------------------------- |
+| `Content-Type`           | `application/json` or `application/x-ndjson` |
+| `User-Agent`             | `unkey-logdrain/1`                           |
+| `X-Unkey-Schema-Version` | The payload schema version, such as `v1`     |
+| `X-Unkey-Drain-Id`       | The ID of the log drain                      |
+| `X-Unkey-Workspace-Id`   | The ID of the workspace that owns the events |
+
+To request a longer retry delay, return a standard `Retry-After` header. Set
+the value to a number of seconds or an HTTP date. Unkey applies the requested
+delay when it is longer than the standard retry delay. The maximum requested
+delay is 24 hours.
+
+### Read the HTTP payload
+
+Choose the format that matches your destination. These examples contain an
+audit event. Each flat record includes `stream`, `time`, and the stream's domain
+fields. `time` is the occurrence instant, not insertion or delivery time, rendered
+as an RFC 3339 UTC string with fixed millisecond precision. There is no `event`
+wrapper or outer `timestamp` field.
+
+<CodeGroup>
+
+```json JSON array
+[
+  {
+    "id": "evt_01J6Z6X8KZQ1V9X4R7Y2W3ABCD",
+    "action": "key.create",
+    "occurred_at": "2026-08-27T12:34:56.789Z",
+    "actor": {
+      "id": "user_01J6Z6WZ4F8M5N2K7P3Q9RSTUV",
+      "type": "user",
+      "name": "Ada",
+      "metadata": null
+    },
+    "targets": [
+      {
+        "id": "api_01J6Z6VQ9K2T4M8N5P7R3STUVW",
+        "type": "api",
+        "name": "Production API",
+        "metadata": null
+      }
+    ],
+    "context": {
+      "location": "203.0.113.10",
+      "user_agent": "Mozilla/5.0"
+    },
+    "metadata": null,
+    "description": "Created a key for Production API",
+    "correlation_id": "req_01J6Z70J4V9R2K8M5N3P7QSTUW",
+    "stream": "audit_logs",
+    "time": "2026-08-27T12:34:56.789Z"
+  }
+]
+```
+
+```json NDJSON
+{"id":"evt_01J6Z6X8KZQ1V9X4R7Y2W3ABCD","action":"key.create","occurred_at":"2026-08-27T12:34:56.789Z","actor":{"id":"user_01J6Z6WZ4F8M5N2K7P3Q9RSTUV","type":"user","name":"Ada","metadata":null},"targets":[{"id":"api_01J6Z6VQ9K2T4M8N5P7R3STUVW","type":"api","name":"Production API","metadata":null}],"context":{"location":"203.0.113.10","user_agent":"Mozilla/5.0"},"metadata":null,"description":"Created a key for Production API","correlation_id":"req_01J6Z70J4V9R2K8M5N3P7QSTUW","stream":"audit_logs","time":"2026-08-27T12:34:56.789Z"}
+```
+
+</CodeGroup>
+
+Audit `occurred_at` matches `time`.
+
+### Read a key verification payload
+
+For a verification drain, each record contains the verification fields.
+
+```json
+[
+  {
+    "request_id": "req_123",
+    "key_space_id": "ks_production",
+    "key_id": "key_123",
+    "identity": { "id": "id_123", "externalId": "customer_123" },
+    "region": "eu-west-1",
+    "source": { "type": "api" },
+    "outcome": "VALID",
+    "tags": ["paid"],
+    "spent_credits": 1,
+    "stream": "key_verifications",
+    "time": "2026-09-10T12:34:56.789Z"
+  }
+]
+```
+
+| Field                    | Description                                                                 |
+| ------------------------ | --------------------------------------------------------------------------- |
+| `request_id`             | Request correlation and deduplication ID                                    |
+| `key_space_id`, `key_id` | Keyspace and key identifiers                                                |
+| `identity`               | Identity `id` and `externalId`. The object is omitted when both are absent. |
+| `region`                 | Region where the verification ran                                           |
+| `source`                 | `{ "type": "api" }` or `{ "type": "gateway", "appId": "app_123" }`          |
+| `outcome`                | Verification result                                                         |
+| `tags`                   | Verification tags as an array of strings                                    |
+| `spent_credits`          | Credits spent on the verification                                           |
+
+NDJSON uses the same record shape, with one record per line. Axiom uses the
+same fields, with an additional `_time` equal to `time`.
+
+### Read a gateway request payload
+
+For a gateway request drain, each record contains these fields alongside
+`stream` and `time`. The `request`, `response`, and `latency` objects stay nested.
+
+| Field                                                     | Description                                                                 |
+| --------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `request_id`                                              | Request correlation and deduplication ID                                    |
+| `project_id`, `app_id`, `environment_id`, `deployment_id` | Resources that served the request                                           |
+| `region`                                                  | Gateway region                                                              |
+| `request.method`, `request.host`, `request.path`          | HTTP method, host, and path without the query string                        |
+| `response.status`                                         | HTTP response status                                                        |
+| `latency.total`, `latency.instance`, `latency.gateway`    | End-to-end, instance, and gateway durations in milliseconds                 |
+| `request.headers`, `response.headers`                     | Captured headers as arrays of `Name: value` strings                         |
+| `request.body`, `response.body`                           | Captured bodies as strings                                                  |
+| `request.query_string`, `request.query_params`            | Captured query string and parameter values; each parameter maps to an array |
+| `request.user_agent`, `request.ip_address`                | Captured user agent and client IP address                                   |
+
+Captured details follow your logging policy. The drain forwards stored values,
+including any redaction already applied when the request was logged. Fields
+that were not captured remain empty. Internal routing addresses are not exported.
+
+Gateway batches use a conservative 16 MiB serialized-size budget in addition to
+the drain's event-count limit. A batch can contain fewer events when it reaches
+that budget. Unkey continues from the last delivered event without truncating
+captured fields. If one event, or a group with an identical cursor, cannot fit,
+delivery stops before it. The cursor stays unchanged, and the drain follows its
+retry and automatic-pause policy. Contact support to investigate an oversized
+event before the logs expire.
+
+HTTP JSON sends an array of flat records with `stream: "gateway_requests"`
+and `time`. NDJSON sends one such record per line. Axiom adds `_time` equal to `time`.
+Only requests recorded in gateway request logs are eligible. Requests that do
+not reach a deployment instance or are excluded from logging are not exported.
+
+### Read a runtime log payload
+
+Runtime drains forward collected application output, including multiline messages
+and nested structured attributes. HTTP JSON sends an array such as:
+
+```json
+[
+  {
+    "stream": "runtime_logs",
+    "time": "2026-09-10T10:00:00.123Z",
+    "log_id": "rlog_7Kp3mNx9Qw2B",
+    "severity": "error",
+    "message": "Payment failed",
+    "attributes": { "order": { "id": 42 }, "retry": false },
+    "project_id": "proj_store",
+    "app_id": "app_backend",
+    "environment_id": "env_production",
+    "deployment_id": "dep_release",
+    "region": "eu-west-1"
+  }
+]
+```
+
+The timestamp is the log's occurrence time. NDJSON sends one record per line.
+Axiom adds `_time` equal to `time`.
+Messages and attributes contain the application's stored output. Do not log
+secrets that you do not want forwarded. Kubernetes pod names and platform metadata
+are not exported. Runtime retention is unchanged: rows become eligible for deletion
+seven days after their `expires_at` value, which defaults to 90 days after insertion.
+ClickHouse deletes whole parts, so deletion can occur later.
+
+### Read a rate-limit payload
+
+Rate-limit drains export recorded decisions from `ratelimit.limit` and
+`ratelimit.multiLimit`, not audit events for configuration changes.
+HTTP JSON sends an array such as:
+
+```json
+[
+  {
+    "stream": "ratelimits",
+    "time": "2026-09-10T10:00:00.123Z",
+    "request_id": "req_123",
+    "namespace_id": "rl_namespace",
+    "identifier": "customer_123",
+    "passed": false,
+    "limit": 100,
+    "remaining": 0,
+    "reset_at": 1789034460123,
+    "tokens": 3,
+    "source": "api"
+  }
+]
+```
+
+The `time` field is the recorded occurrence time, not the insertion
+cursor or delivery time. `reset_at` is an absolute Unix timestamp in
+milliseconds. `tokens` is the requested cost, including blocked checks.
+`override_id` is present only when an override was used. Latency is not exported.
+NDJSON sends the same record on one line. Axiom adds `_time` equal to `time`.
+
+Identifiers are forwarded as stored and can contain sensitive customer data.
+The drain cursor uses insertion time and request ID. If a batch ends between
+multi-limit rows that share both values, the remaining tied rows can be skipped.
+The stream includes only completed API decisions. Failed requests and
+single-limit requests with `X-Unkey-Metrics: disabled` are not recorded.
+Gateway policy decisions and SDK cache hits that do not call these API endpoints
+are not included. Stored rate-limit logs become eligible for deletion one
+calendar month after their occurrence time. Deletion is asynchronous, and
+drains cannot recover logs that have expired.
+
+## Configure an Axiom destination
+
+An Axiom log drain sends Axiom-compatible NDJSON to one dataset.
+
+1. Create or select a dataset in Axiom.
+2. Create an Axiom API token with ingest permission for that dataset.
+3. In Unkey, select **Axiom** as the destination.
+4. Enter the dataset name and API token.
+5. Click **Create Log Drain**.
+
+Each Axiom row contains the same flat fields as HTTP plus `_time`, which matches
+`time` and tells Axiom when the event occurred. Unkey encodes each row
+as one NDJSON line. This example is formatted across lines for readability:
+
+```json
+{
+  "_time": "2026-08-27T12:34:56.789Z",
+  "time": "2026-08-27T12:34:56.789Z",
+  "stream": "audit_logs",
+  "id": "evt_01J6Z6X8KZQ1V9X4R7Y2W3ABCD",
+  "action": "key.create",
+  "occurred_at": "2026-08-27T12:34:56.789Z",
+  "actor": {
+    "id": "user_01J6Z6WZ4F8M5N2K7P3Q9RSTUV",
+    "type": "user",
+    "name": "Ada",
+    "metadata": null
+  },
+  "targets": [
+    {
+      "id": "api_01J6Z6VQ9K2T4M8N5P7R3STUVW",
+      "type": "api",
+      "name": "Production API",
+      "metadata": null
+    }
+  ],
+  "context": {
+    "location": "203.0.113.10",
+    "user_agent": "Mozilla/5.0"
+  },
+  "metadata": null,
+  "description": "Created a key for Production API",
+  "correlation_id": "req_01J6Z70J4V9R2K8M5N3P7QSTUW"
+}
+```
+
+Axiom can return `Retry-After` or `X-RateLimit-Reset` to request a longer retry
+delay. Set `Retry-After` to a number of seconds or an HTTP date. Set
+`X-RateLimit-Reset` to a Unix timestamp in seconds. Unkey applies the requested
+delay when it is longer than the standard retry delay. The maximum requested
+delay is 24 hours.
+
+Unkey encrypts the Axiom token before storing it.
+
+## Retries
+
+Unkey retries failed deliveries. This includes `4xx` responses, `5xx` responses,
+timeouts, DNS failures, and connection failures. A failed delivery does not
+skip the affected events.
+
+The first retry waits 1 minute. The delay doubles after each failure, with a
+maximum wait of 4 hours between attempts. After 50 consecutive failures, Unkey
+pauses the log drain. Retries continue for about 7 days.
+
+A successful delivery resets the failure count. Changing the destination or
+filters, or resuming the drain, also resets the failure count. Delivery
+continues from the last successful batch.
+
+## Debug a log drain
+
+Open a log drain from **Settings** > **Log Drains**. The detail page shows the
+drain's status and these metrics for the past 24 hours:
+
+- **Delivered**, successful delivery attempts.
+- **Failed**, attempts that did not return 2xx.
+- **Success rate**, the share of attempts that succeeded.
+- **Last delivery**, time since the last successful delivery.
+
+**Logs** lists the recent delivery attempts underneath, whatever their outcome.
+Each row shows the time, the response status, the number of events in the batch,
+how long the attempt took, and the response body. Unkey stores up to 4 KiB of
+the response body. If the destination did not return an HTTP response, the row
+shows the connection or timeout error instead.
+
+When Unkey pauses a drain because it exceeded the failure limit, its status
+badge reads **Failing** and the page leads with a **Deliveries are failing** banner.
+
+Return a concise error response from your endpoint. Include information that
+helps you identify invalid credentials, invalid payloads, rate limits, and
+service failures. Keep full diagnostic logs in your destination because Unkey
+stores only the first 4 KiB of the response.

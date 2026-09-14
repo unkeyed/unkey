@@ -277,6 +277,10 @@ func New(t *testing.T, opts ...Option) *Harness {
 			return "index.docker.io/library/test@sha256:0000000000000000000000000000000000000000000000000000000000000000", nil
 		}),
 		AllowUnauthenticatedDeployments: false,
+
+		// A nil admin client leaves a superseded deployment's row marked while its
+		// invocation keeps running.
+		RestateAdmin: nil,
 	})
 	require.NoError(t, err)
 
@@ -286,9 +290,11 @@ func New(t *testing.T, opts ...Option) *Harness {
 	})
 	require.NoError(t, err)
 
-	deploymentSvc := deployment.New(deployment.Config{
-		DB: database,
+	deploymentSvc, err := deployment.New(deployment.Config{
+		DB:        database,
+		Auditlogs: auditlogSvc,
 	})
+	require.NoError(t, err)
 
 	// CheckWorkspaceSpend sends Teardown/Resume to this service. Restate
 	// retries calls to unregistered services indefinitely, so it must be

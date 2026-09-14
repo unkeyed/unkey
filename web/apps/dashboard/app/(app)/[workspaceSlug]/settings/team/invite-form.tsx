@@ -170,7 +170,6 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                         value={roleField.value}
                         items={[
                           { value: "developer", label: "Developer" },
-                          { value: "viewer", label: "Viewer" },
                           { value: "admin", label: "Admin" },
                         ]}
                       >
@@ -179,7 +178,6 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="developer">Developer</SelectItem>
-                          <SelectItem value="viewer">Viewer</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>
                       </Select>

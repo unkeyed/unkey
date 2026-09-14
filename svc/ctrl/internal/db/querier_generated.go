@@ -282,26 +282,6 @@ type Querier interface {
 	//  FROM app_source_oci
 	//  WHERE app_id = ?
 	FindAppSourceOciByAppId(ctx context.Context, appID string) (AppSourceOci, error)
-	//FindAppWithRuntimeSettings
-	//
-	//  SELECT
-	//      a.id AS app_id,
-	//      a.project_id AS app_project_id,
-	//      a.source_type AS app_source_type,
-	//      a.current_deployment_id AS app_current_deployment_id,
-	//      ars.port AS runtime_settings_port,
-	//      ars.cpu_millicores AS runtime_settings_cpu_millicores,
-	//      ars.memory_mib AS runtime_settings_memory_mib,
-	//      ars.storage_mib AS runtime_settings_storage_mib,
-	//      ars.command AS runtime_settings_command,
-	//      ars.healthcheck AS runtime_settings_healthcheck,
-	//      ars.shutdown_signal AS runtime_settings_shutdown_signal,
-	//      ars.upstream_protocol AS runtime_settings_upstream_protocol,
-	//      ars.sentinel_config AS runtime_settings_sentinel_config
-	//  FROM apps a
-	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
-	//  WHERE a.id = ?
-	FindAppWithRuntimeSettings(ctx context.Context, arg FindAppWithRuntimeSettingsParams) (FindAppWithRuntimeSettingsRow, error)
 	//FindCertificateByHostname
 	//
 	//  SELECT certificates.pk, certificates.id, certificates.workspace_id, certificates.hostname, certificates.certificate, certificates.encrypted_private_key, certificates.created_at, certificates.updated_at FROM certificates WHERE hostname = ?
@@ -407,6 +387,58 @@ type Querier interface {
 	//    AND BINARY slug = 'default'
 	//  LIMIT 1
 	FindDefaultProjectByWorkspaceID(ctx context.Context, workspaceID string) (string, error)
+	//FindDeployTarget
+	//
+	//  SELECT
+	//      p.workspace_id AS workspace_id,
+	//      w.slug AS workspace_slug,
+	//      p.id AS project_id,
+	//      a.id AS app_id,
+	//      a.source_type AS source_type,
+	//      a.current_deployment_id AS current_deployment_id,
+	//      e.id AS environment_id,
+	//      e.slug AS environment_slug,
+	//      abs.dockerfile AS dockerfile,
+	//      abs.docker_context AS docker_context,
+	//      abs.build_command AS build_command,
+	//      ars.port AS port,
+	//      ars.cpu_millicores AS cpu_millicores,
+	//      ars.memory_mib AS memory_mib,
+	//      ars.storage_mib AS storage_mib,
+	//      ars.command AS command,
+	//      ars.healthcheck AS healthcheck,
+	//      ars.shutdown_signal AS shutdown_signal,
+	//      ars.upstream_protocol AS upstream_protocol,
+	//      ars.sentinel_config AS sentinel_config,
+	//      grc.installation_id AS github_installation_id,
+	//      grc.repository_full_name AS github_repository_full_name,
+	//      grc.default_branch AS github_default_branch,
+	//      aso.image_reference AS oci_image_reference,
+	//      abs.app_id IS NOT NULL AS has_build_settings,
+	//      b.plan AS plan,
+	//      b.plan_override AS plan_override,
+	//      b.spend_suspended AS spend_suspended,
+	//      EXISTS (
+	//          SELECT 1
+	//          FROM app_regional_settings ars2
+	//          INNER JOIN regions r ON r.id = ars2.region_id
+	//          WHERE ars2.app_id = a.id
+	//            AND ars2.environment_id = e.id
+	//            AND r.can_schedule
+	//      ) AS has_schedulable_region
+	//  FROM apps a
+	//  INNER JOIN projects p ON p.id = a.project_id
+	//  INNER JOIN workspaces w ON w.id = p.workspace_id
+	//  INNER JOIN environments e ON e.id = ? AND e.app_id = a.id AND e.project_id = a.project_id
+	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
+	//  LEFT JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
+	//  LEFT JOIN github_repo_connections grc ON grc.app_id = a.id
+	//  LEFT JOIN app_source_oci aso ON aso.app_id = a.id
+	//  LEFT JOIN workspace_billing b ON b.workspace_id = p.workspace_id
+	//  WHERE a.id = ?
+	//    AND a.project_id = ?
+	//  LIMIT 1
+	FindDeployTarget(ctx context.Context, arg FindDeployTargetParams) (FindDeployTargetRow, error)
 	// Resolves a Stripe customer to its Deploy workspace. The ctrl Stripe webhook
 	// uses this as the relevance check for month-end invoice closing: invoices of
 	// customers without a Deploy plan are left entirely to Stripe's own
@@ -488,6 +520,16 @@ type Querier interface {
 	//  FROM deployment_topology
 	//  WHERE deployment_id = ?
 	FindDeploymentTopologyMinReplicas(ctx context.Context, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
+	// FindDeploymentWithApp returns what the desired-state guard needs: the
+	// deployment and its app's current deployment pointer. It joins only apps, so a
+	// deployment whose environment row is already gone still resolves and a pending
+	// transition can still be applied to it.
+	//
+	//  SELECT d.id, d.app_id, a.current_deployment_id
+	//  FROM deployments d
+	//  JOIN apps a ON a.id = d.app_id
+	//  WHERE d.id = ?
+	FindDeploymentWithApp(ctx context.Context, id string) (FindDeploymentWithAppRow, error)
 	//FindDeploymentWithEnvironmentAndApp
 	//
 	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, a.current_deployment_id, a.is_rolled_back
@@ -1579,22 +1621,6 @@ type Querier interface {
 	//    AND created_at < ?
 	//    AND (updated_at IS null OR updated_at < ? )
 	ListDeploymentsByEnvironmentIdAndStatus(ctx context.Context, arg ListDeploymentsByEnvironmentIdAndStatusParams) ([]Deployment, error)
-	//ListEnvVarsForRepoConnections
-	//
-	//  SELECT aev.app_id, aev.`key`, aev.value
-	//  FROM app_environment_variables aev
-	//  INNER JOIN apps a ON aev.app_id = a.id
-	//  INNER JOIN environments e ON a.id = e.app_id AND e.id = aev.environment_id
-	//  INNER JOIN github_repo_connections gc ON gc.app_id = a.id
-	//  WHERE gc.installation_id = ?
-	//    AND gc.repository_id = ?
-	//    AND CASE
-	//      WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
-	//      WHEN ? = COALESCE(NULLIF(gc.default_branch, ''), 'main')
-	//      THEN e.kind = 'production'
-	//      ELSE e.kind = 'preview'
-	//    END
-	ListEnvVarsForRepoConnections(ctx context.Context, arg ListEnvVarsForRepoConnectionsParams) ([]ListEnvVarsForRepoConnectionsRow, error)
 	//ListEnvironmentIdsByApp
 	//
 	//  SELECT id FROM environments WHERE app_id = ?
@@ -1678,27 +1704,11 @@ type Querier interface {
 	//ListRepoConnectionDeployContexts
 	//
 	//  SELECT
-	//      gc.installation_id AS connection_installation_id,
-	//      gc.repository_full_name AS connection_repository_full_name,
 	//      p.id AS project_id,
-	//      p.workspace_id AS project_workspace_id,
 	//      e.id AS environment_id,
-	//      e.slug AS environment_slug,
 	//      a.id AS app_id,
 	//      abs.auto_deploy AS build_settings_auto_deploy,
-	//      abs.watch_paths AS build_settings_watch_paths,
-	//      abs.docker_context AS build_settings_docker_context,
-	//      abs.dockerfile AS build_settings_dockerfile,
-	//      abs.build_command AS build_settings_build_command,
-	//      ars.port AS runtime_settings_port,
-	//      ars.cpu_millicores AS runtime_settings_cpu_millicores,
-	//      ars.memory_mib AS runtime_settings_memory_mib,
-	//      ars.storage_mib AS runtime_settings_storage_mib,
-	//      ars.command AS runtime_settings_command,
-	//      ars.healthcheck AS runtime_settings_healthcheck,
-	//      ars.shutdown_signal AS runtime_settings_shutdown_signal,
-	//      ars.upstream_protocol AS runtime_settings_upstream_protocol,
-	//      ars.sentinel_config AS runtime_settings_sentinel_config
+	//      abs.watch_paths AS build_settings_watch_paths
 	//  FROM github_repo_connections gc
 	//  INNER JOIN apps a ON a.id = gc.app_id
 	//  INNER JOIN projects p ON p.id = gc.project_id
@@ -2096,23 +2106,21 @@ type Querier interface {
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, arg UpdateDeploymentStatusParams) error
-	//UpdateDeploymentStatusBatch
+	// Batch form of UpdateDeploymentStatusIfActive.
 	//
 	//  UPDATE deployments
 	//  SET status = ?, updated_at = ?
 	//  WHERE id IN (/*SLICE:ids*/?)
-	UpdateDeploymentStatusBatch(ctx context.Context, arg UpdateDeploymentStatusBatchParams) error
-	// Transition a deployment's status only when its current status is still
-	// "active" (non-terminal). Prevents the Deploy handler's compensation
-	// stack from overwriting a status that was set intentionally by the dedup
-	// path (e.g. superseded) or by a successful completion (ready). Callers
-	// pass db.TerminalDeploymentStatuses so the terminal set has a single
-	// source of truth.
+	//    AND status IN (/*SLICE:progressing_statuses*/?)
+	UpdateDeploymentStatusBatchIfActive(ctx context.Context, arg UpdateDeploymentStatusBatchIfActiveParams) error
+	// Only progressing rows transition, so a compensation cannot overwrite a status
+	// set on purpose: superseded, cancelled, or ready. Callers pass
+	// mysqltype.ProgressingDeploymentStatuses.
 	//
 	//  UPDATE deployments
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
-	//    AND status NOT IN (/*SLICE:terminal_statuses*/?)
+	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	UpdateDeploymentStatusIfActive(ctx context.Context, arg UpdateDeploymentStatusIfActiveParams) error
 	// UpdateDeploymentTopologyDesiredStatus updates the desired_status of a topology entry.
 	//

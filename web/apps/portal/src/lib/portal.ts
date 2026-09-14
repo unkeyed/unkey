@@ -10,6 +10,7 @@ export type PortalBranding = {
 export type Portal = {
   id: string;
   slug: string;
+  displayName: string;
   enabled: boolean;
   branding: PortalBranding | null;
 };
@@ -29,6 +30,7 @@ export async function loadPortal(portalId: string): Promise<Portal | null> {
     columns: {
       id: true,
       slug: true,
+      displayName: true,
       enabled: true,
       logoUrl: true,
       primaryColor: true,
@@ -44,6 +46,7 @@ export async function loadPortal(portalId: string): Promise<Portal | null> {
   return {
     id: config.id,
     slug: config.slug,
+    displayName: config.displayName,
     enabled: config.enabled,
     branding: hasBranding ? { logoUrl: config.logoUrl, primaryColor: config.primaryColor } : null,
   };

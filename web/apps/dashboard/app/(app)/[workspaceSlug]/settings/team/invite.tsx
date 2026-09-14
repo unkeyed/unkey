@@ -144,7 +144,6 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
                   value={field.value}
                   items={[
                     { value: "developer", label: "Developer" },
-                    { value: "viewer", label: "Viewer" },
                     { value: "admin", label: "Admin" },
                   ]}
                 >
@@ -153,7 +152,6 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
                   </SelectTrigger>
                   <SelectContent className="border-none rounded-md">
                     <SelectItem value="developer">Developer</SelectItem>
-                    <SelectItem value="viewer">Viewer</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
