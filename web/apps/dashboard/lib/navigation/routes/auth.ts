@@ -11,4 +11,17 @@ export const authRoutes = {
   signIn(): Route {
     return buildRoute("/auth/sign-in/[[...sign-in]]", {});
   },
+  switchOrganization({
+    organizationId,
+    returnTo,
+  }: {
+    organizationId: string;
+    returnTo?: Route;
+  }): Route {
+    return buildRoute(
+      "/auth/switch-organization",
+      {},
+      { organization_id: organizationId, return_to: returnTo },
+    );
+  },
 };
