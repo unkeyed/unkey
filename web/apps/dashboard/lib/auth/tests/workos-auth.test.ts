@@ -85,6 +85,51 @@ describe("WorkOSAuthProvider", () => {
     workos = getMockInstance();
   });
 
+  describe("listMemberships", () => {
+    it("fetches every active membership page and does not expose a stale cursor", async () => {
+      vi.spyOn(provider, "getUser").mockResolvedValue({
+        id: "user_123",
+        email: "user@example.com",
+        firstName: null,
+        lastName: null,
+        avatarUrl: null,
+        fullName: null,
+      });
+      const membership = (organizationId: string) => ({
+        id: `mem_${organizationId}`,
+        organizationId,
+        organizationName: organizationId,
+        role: { slug: "admin" },
+        status: "active",
+        createdAt: "2026-01-01",
+        updatedAt: "2026-01-01",
+      });
+      workos.userManagement.listOrganizationMemberships
+        .mockResolvedValueOnce({
+          data: [membership("org_first")],
+          listMetadata: { after: "cursor_1" },
+        })
+        .mockResolvedValueOnce({
+          data: [membership("org_second")],
+          listMetadata: { after: "cursor_2" },
+        })
+        .mockResolvedValueOnce({ data: [membership("org_last")], listMetadata: { after: null } });
+
+      const result = await provider.listMemberships("user_123");
+      expect(result.data.map((item) => item.organization.id)).toEqual([
+        "org_first",
+        "org_second",
+        "org_last",
+      ]);
+      expect(result.metadata).toEqual({});
+      expect(workos.userManagement.listOrganizationMemberships.mock.calls).toEqual([
+        [{ userId: "user_123", limit: 100, statuses: ["active"] }],
+        [{ userId: "user_123", limit: 100, statuses: ["active"], after: "cursor_1" }],
+        [{ userId: "user_123", limit: 100, statuses: ["active"], after: "cursor_2" }],
+      ]);
+    });
+  });
+
   describe("signUpViaEmail", () => {
     it("passes request metadata to createUser and threads the Radar attempt into createMagicAuth", async () => {
       workos.userManagement.createUser.mockResolvedValue({
