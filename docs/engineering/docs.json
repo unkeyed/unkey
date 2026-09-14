@@ -28,6 +28,7 @@
                   "contributing/tooling/builds",
                   "contributing/tooling/releases",
                   "contributing/tooling/feature-flags",
+                  "contributing/tooling/docs-screenshots",
                   "contributing/tooling/emails"
                 ]
               }
