@@ -39,10 +39,7 @@ const spaces = "                                                                
 // fixed buffer for the rare n larger than it.
 func writeSpaces(b *strings.Builder, n int) {
 	for n > 0 {
-		chunk := n
-		if chunk > len(spaces) {
-			chunk = len(spaces)
-		}
+		chunk := min(n, len(spaces))
 		b.WriteString(spaces[:chunk])
 		n -= chunk
 	}

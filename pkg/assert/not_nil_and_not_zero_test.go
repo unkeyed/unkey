@@ -44,13 +44,13 @@ func TestNotNilAndNotZero(t *testing.T) {
 	})
 
 	t.Run("interface: non-nil interface with value passes", func(t *testing.T) {
-		var iface interface{} = "test"
+		var iface any = "test"
 		err := assert.NotNilAndNotZero(iface)
 		require.NoError(t, err)
 	})
 
 	t.Run("interface: nil interface fails with nil error", func(t *testing.T) {
-		var iface interface{}
+		var iface any
 		err := assert.NotNilAndNotZero(iface)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "expected not nil")

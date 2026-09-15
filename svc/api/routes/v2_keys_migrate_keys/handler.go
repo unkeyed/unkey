@@ -689,10 +689,7 @@ func deduplicate[T comparable](items []T) []T {
 func chunk[T any](items []T, size int) [][]T {
 	var chunks [][]T
 	for i := 0; i < len(items); i += size {
-		end := i + size
-		if end > len(items) {
-			end = len(items)
-		}
+		end := min(i+size, len(items))
 		chunks = append(chunks, items[i:end])
 	}
 

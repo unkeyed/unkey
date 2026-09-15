@@ -61,17 +61,17 @@ func TestConcurrency_Registration(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(numGoroutines * 2)
 
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		go func() {
 			defer wg.Done()
-			for j := 0; j < itemsPerGoroutine; j++ {
+			for range itemsPerGoroutine {
 				r.Defer(func() error { return nil })
 			}
 		}()
 
 		go func() {
 			defer wg.Done()
-			for j := 0; j < itemsPerGoroutine; j++ {
+			for range itemsPerGoroutine {
 				r.Go(func(ctx context.Context) error {
 					taskCount.Add(1)
 					<-ctx.Done()

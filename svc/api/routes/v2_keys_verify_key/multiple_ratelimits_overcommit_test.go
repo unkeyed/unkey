@@ -158,10 +158,10 @@ func TestMultipleRatelimitsCounterLeakBug(t *testing.T) {
 
 		// Make many requests, some will be rate limited by the minute limit
 		// but we should eventually be able to make all 50 valid requests
-		for cycle := 0; cycle < 10; cycle++ {
+		for range 10 {
 			// Try to make requests until we hit the per-minute limit
 			// Making 6 requests to ensure we hit the 5/minute limit
-			for i := 0; i < 6; i++ {
+			for range 6 {
 				res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 				require.Equal(t, 200, res.Status)
 				require.NotNil(t, res.Body)

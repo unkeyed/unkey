@@ -152,10 +152,7 @@ type counterEntry struct {
 // conservative. The request path calls this after a committed increment; the
 // push path later evaluates the current val against the stored threshold.
 func (e *counterEntry) observeGlobalPushLimit(limit int64) {
-	threshold := int64(math.Ceil(globalUtilizationFloor * float64(limit)))
-	if threshold < 1 {
-		threshold = 1
-	}
+	threshold := max(int64(math.Ceil(globalUtilizationFloor*float64(limit))), 1)
 
 	for range maxCASRetries {
 		cur := e.globalPushThreshold.Load()

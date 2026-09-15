@@ -121,7 +121,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 						ID:          permissionID,
 						Name:        req.Slug,
 						DisplayName: req.Name,
-						Meta: map[string]interface{}{
+						Meta: map[string]any{
 							"name":        req.Name,
 							"slug":        req.Slug,
 							"description": description,

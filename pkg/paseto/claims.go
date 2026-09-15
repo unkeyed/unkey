@@ -66,8 +66,7 @@ func validateClaimsStructType(payloadType reflect.Type) error {
 
 	claimsFields := 0
 	customNames := map[string]struct{}{}
-	for index := range payloadType.NumField() {
-		field := payloadType.Field(index)
+	for field := range payloadType.Fields() {
 		if field.Anonymous && field.Type == claimsType {
 			_, tagged, ignored := jsonFieldName(field)
 			if tagged || ignored {

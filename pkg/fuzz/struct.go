@@ -58,7 +58,7 @@ func fillValue(c *Consumer, v reflect.Value) {
 		v.SetInt(int64(c.Int32()))
 	case reflect.Int64:
 		// Handle time.Duration specially
-		if v.Type() == reflect.TypeOf(time.Duration(0)) {
+		if v.Type() == reflect.TypeFor[time.Duration]() {
 			v.SetInt(int64(c.Duration()))
 		} else {
 			v.SetInt(c.Int64())
@@ -85,7 +85,7 @@ func fillValue(c *Consumer, v reflect.Value) {
 
 	case reflect.Struct:
 		// Handle time.Time specially
-		if v.Type() == reflect.TypeOf(time.Time{}) {
+		if v.Type() == reflect.TypeFor[time.Time]() {
 			v.Set(reflect.ValueOf(c.Time()))
 		} else {
 			fillStruct(c, v)

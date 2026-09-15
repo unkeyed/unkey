@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -129,8 +130,8 @@ func (rec *Receiver) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		handler = rec.fallback
 	}
 
-	for i := len(rec.middlewares) - 1; i >= 0; i-- {
-		handler = rec.middlewares[i](handler)
+	for _, v := range slices.Backward(rec.middlewares) {
+		handler = v(handler)
 	}
 
 	start := time.Now()

@@ -154,7 +154,7 @@ func TestMeterUsageStraddlesWindow(t *testing.T) {
 	// 9 samples 15s apart, counter +1 CPU-second per step. We query the middle
 	// window [sample2, sample6], so only the deltas fully inside it count.
 	var samples []schema.InstanceCheckpoint
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		samples = append(samples, c.sample(ws, resource, base+int64(i)*sampleGap, sampleValues{
 			cpuUsec:     int64(i) * 1_000_000,
 			memoryBytes: gib,

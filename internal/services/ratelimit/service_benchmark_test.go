@@ -3,7 +3,7 @@ package ratelimit
 import (
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -208,7 +208,7 @@ func BenchmarkRatelimit_LatencyDistribution(b *testing.B) {
 				if len(latencies) == 0 {
 					return
 				}
-				sort.Slice(latencies, func(i, j int) bool { return latencies[i] < latencies[j] })
+				slices.Sort(latencies)
 
 				p50 := latencies[len(latencies)*50/100]
 				p90 := latencies[len(latencies)*90/100]

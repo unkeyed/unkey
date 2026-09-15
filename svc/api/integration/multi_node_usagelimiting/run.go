@@ -215,12 +215,7 @@ func calculateUsageRPS(totalCredits, costPerRequest int64, testDurationSeconds i
 	baseRPS := int(math.Ceil(float64(expectedSuccessful) / float64(testDurationSeconds)))
 
 	// Apply load factor
-	rps := int(math.Ceil(float64(baseRPS) * loadFactor))
-
-	// Must have at least 1 RPS
-	if rps < 1 {
-		rps = 1
-	}
+	rps := max(int(math.Ceil(float64(baseRPS)*loadFactor)), 1)
 
 	return rps
 }

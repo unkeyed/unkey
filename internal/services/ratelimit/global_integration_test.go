@@ -353,8 +353,8 @@ func TestGlobalPush_ConcurrentFlushesRecoverFromDeadlock(t *testing.T) {
 		}
 
 		svcB := newGlobalPushOnlyService(db, "region-a")
-		for i := len(keys) - 1; i >= 0; i-- {
-			entries = append(entries, storePushableCounter(svcB, keys[i]))
+		for _, key := range slices.Backward(keys) {
+			entries = append(entries, storePushableCounter(svcB, key))
 		}
 
 		var wg sync.WaitGroup
@@ -449,7 +449,7 @@ type transactionalSplitBulkDB struct {
 	orders  [][]string
 }
 
-func (db *transactionalSplitBulkDB) ExecContext(ctx context.Context, _ string, args ...interface{}) (sql.Result, error) {
+func (db *transactionalSplitBulkDB) ExecContext(ctx context.Context, _ string, args ...any) (sql.Result, error) {
 	rows, err := globalCounterRowsFromArgs(args)
 	if err != nil {
 		return nil, err
@@ -492,11 +492,11 @@ func (db *transactionalSplitBulkDB) PrepareContext(context.Context, string) (*sq
 	return nil, fmt.Errorf("unexpected PrepareContext")
 }
 
-func (db *transactionalSplitBulkDB) QueryContext(context.Context, string, ...interface{}) (*sql.Rows, error) {
+func (db *transactionalSplitBulkDB) QueryContext(context.Context, string, ...any) (*sql.Rows, error) {
 	return nil, fmt.Errorf("unexpected QueryContext")
 }
 
-func (db *transactionalSplitBulkDB) QueryRowContext(context.Context, string, ...interface{}) *sql.Row {
+func (db *transactionalSplitBulkDB) QueryRowContext(context.Context, string, ...any) *sql.Row {
 	return &sql.Row{}
 }
 
@@ -553,7 +553,7 @@ type recordingGlobalCounterDB struct {
 	rows []rldb.UpsertRatelimitGlobalCountersParams
 }
 
-func (db *recordingGlobalCounterDB) ExecContext(_ context.Context, _ string, args ...interface{}) (sql.Result, error) {
+func (db *recordingGlobalCounterDB) ExecContext(_ context.Context, _ string, args ...any) (sql.Result, error) {
 	const paramsPerRow = 9
 	if len(args)%paramsPerRow != 0 {
 		return nil, fmt.Errorf("expected args to be divisible by %d, got %d", paramsPerRow, len(args))
@@ -574,11 +574,11 @@ func (db *recordingGlobalCounterDB) PrepareContext(context.Context, string) (*sq
 	return nil, fmt.Errorf("unexpected PrepareContext")
 }
 
-func (db *recordingGlobalCounterDB) QueryContext(context.Context, string, ...interface{}) (*sql.Rows, error) {
+func (db *recordingGlobalCounterDB) QueryContext(context.Context, string, ...any) (*sql.Rows, error) {
 	return nil, fmt.Errorf("unexpected QueryContext")
 }
 
-func (db *recordingGlobalCounterDB) QueryRowContext(context.Context, string, ...interface{}) *sql.Row {
+func (db *recordingGlobalCounterDB) QueryRowContext(context.Context, string, ...any) *sql.Row {
 	return &sql.Row{}
 }
 
@@ -587,7 +587,7 @@ type deadlockOnceGlobalCounterDB struct {
 	calls int
 }
 
-func (db *deadlockOnceGlobalCounterDB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (db *deadlockOnceGlobalCounterDB) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
 	db.calls++
 	if db.calls == 1 {
 		return nil, &drivermysql.MySQLError{Number: 1213, Message: "Deadlock found when trying to get lock"}
@@ -595,7 +595,7 @@ func (db *deadlockOnceGlobalCounterDB) ExecContext(ctx context.Context, query st
 	return db.recordingGlobalCounterDB.ExecContext(ctx, query, args...)
 }
 
-func globalCounterRowsFromArgs(args []interface{}) ([]rldb.UpsertRatelimitGlobalCountersParams, error) {
+func globalCounterRowsFromArgs(args []any) ([]rldb.UpsertRatelimitGlobalCountersParams, error) {
 	const paramsPerRow = 9
 	if len(args)%paramsPerRow != 0 {
 		return nil, fmt.Errorf("expected args to be divisible by %d, got %d", paramsPerRow, len(args))
@@ -612,7 +612,7 @@ func globalCounterRowsFromArgs(args []interface{}) ([]rldb.UpsertRatelimitGlobal
 	return rows, nil
 }
 
-func globalCounterRowFromArgs(args []interface{}) (rldb.UpsertRatelimitGlobalCountersParams, error) {
+func globalCounterRowFromArgs(args []any) (rldb.UpsertRatelimitGlobalCountersParams, error) {
 	row := rldb.UpsertRatelimitGlobalCountersParams{}
 	var ok bool
 

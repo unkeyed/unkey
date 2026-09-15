@@ -255,12 +255,12 @@ func (c *Command) extractComment(line string) string {
 		return ""
 	}
 
-	idx := strings.Index(line, "#")
-	if idx == -1 {
+	_, after, ok := strings.Cut(line, "#")
+	if !ok {
 		return ""
 	}
 
-	return strings.TrimSpace(line[idx+1:])
+	return strings.TrimSpace(after)
 }
 
 // generateTitle creates meaningful titles for examples

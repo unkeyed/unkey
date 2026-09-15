@@ -271,7 +271,7 @@ func TestRedisCounter(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(numWorkers)
 
-		for i := 0; i < numWorkers; i++ {
+		for range numWorkers {
 			go func() {
 				defer wg.Done()
 				_, err := ctr.Increment(ctx, key, 1, ttl)
@@ -394,7 +394,7 @@ func TestRedisCounterMultiGet(t *testing.T) {
 		largeTestData := make(map[string]int64)
 		var largeKeys []string
 
-		for i := 0; i < 100; i++ {
+		for i := range 100 {
 			key := uid.New(uid.TestPrefix)
 			largeTestData[key] = int64(i)
 			largeKeys = append(largeKeys, key)
@@ -425,10 +425,10 @@ func TestRedisCounterMultiGet(t *testing.T) {
 		}
 
 		wg.Add(numGoroutines)
-		for i := 0; i < numGoroutines; i++ {
+		for range numGoroutines {
 			go func() {
 				defer wg.Done()
-				for j := 0; j < 10; j++ {
+				for range 10 {
 					values, err := ctr.MultiGet(ctx, keys)
 					if err != nil {
 						t.Errorf("MultiGet error: %v", err)

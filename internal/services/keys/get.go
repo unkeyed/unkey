@@ -111,8 +111,8 @@ func (s *service) get(ctx context.Context, sess *zen.Session, sha256Hash string)
 		// Parse IP whitelist once during cache population for performance
 		parsedIPWhitelist := make(map[string]struct{})
 		if row.IpWhitelist.Valid && row.IpWhitelist.String != "" {
-			ips := strings.Split(row.IpWhitelist.String, ",")
-			for _, ip := range ips {
+			ips := strings.SplitSeq(row.IpWhitelist.String, ",")
+			for ip := range ips {
 				trimmed := strings.TrimSpace(ip)
 				if trimmed != "" {
 					parsedIPWhitelist[trimmed] = struct{}{}
