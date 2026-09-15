@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDollars } from "@/lib/fmt";
-import { CircleInfo } from "@unkey/icons";
+import { IconCircleInfoOutline12 } from "@unkey/icons";
 import { Button, InfoTooltip } from "@unkey/ui";
 import { AdminGate } from "./admin-gate";
 
@@ -53,7 +53,7 @@ export function PlanPrice({
         >
           <span className="ml-1 inline-flex cursor-help items-center gap-1 text-gray-10">
             + usage
-            <CircleInfo iconSize="sm-regular" className="text-gray-9" />
+            <IconCircleInfoOutline12 className="text-gray-9" />
           </span>
         </InfoTooltip>
       )}

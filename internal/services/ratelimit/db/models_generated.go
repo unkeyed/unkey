@@ -1058,7 +1058,11 @@ func (ns NullLogdrainsStatus) Value() (driver.Value, error) {
 type LogdrainsStream string
 
 const (
-	LogdrainsStreamAuditLogs LogdrainsStream = "audit_logs"
+	LogdrainsStreamAuditLogs        LogdrainsStream = "audit_logs"
+	LogdrainsStreamKeyVerifications LogdrainsStream = "key_verifications"
+	LogdrainsStreamGatewayRequests  LogdrainsStream = "gateway_requests"
+	LogdrainsStreamRuntimeLogs      LogdrainsStream = "runtime_logs"
+	LogdrainsStreamRatelimits       LogdrainsStream = "ratelimits"
 )
 
 func (e *LogdrainsStream) Scan(src interface{}) error {
@@ -1620,6 +1624,7 @@ type Portal struct {
 	Pk           uint64         `db:"pk"`
 	ID           string         `db:"id"`
 	WorkspaceID  string         `db:"workspace_id"`
+	ProjectID    string         `db:"project_id"`
 	Slug         string         `db:"slug"`
 	DisplayName  string         `db:"display_name"`
 	AppID        sql.NullString `db:"app_id"`

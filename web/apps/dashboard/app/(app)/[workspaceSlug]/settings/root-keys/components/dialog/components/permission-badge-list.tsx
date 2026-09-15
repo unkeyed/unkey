@@ -1,7 +1,7 @@
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import { CaretRight, Key2 } from "@unkey/icons";
+import { IconCaretRightOutline18, IconKey2Outline12 } from "@unkey/icons";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { Badge } from "@unkey/ui";
 import { type ComponentProps, useMemo } from "react";
@@ -90,7 +90,7 @@ const ListBadges = ({
       }))}
       gridCols={2}
       onRemoveItem={handleRemovePermissionClick}
-      renderIcon={() => <Key2 iconSize="sm-regular" className="text-grayA-11" aria-hidden="true" />}
+      renderIcon={() => <IconKey2Outline12 className="text-grayA-11" aria-hidden="true" />}
       enableTransitions
       renderPrimaryText={(permission) => permission.name}
       renderSecondaryText={(permission) => permission.id}
@@ -125,7 +125,7 @@ const CollapsibleList = ({
         )}
       >
         <ListTitle title={title} count={info.length} category={name} />
-        <CaretRight className="w-4 h-4 transition-transform duration-200 ml-auto text-grayA-7" />
+        <IconCaretRightOutline18 className="w-4 h-4 transition-transform duration-200 ml-auto text-grayA-7" />
       </CollapsibleTrigger>
       <CollapsibleContent>
         <ListBadges info={info} removePermission={removePermission} />

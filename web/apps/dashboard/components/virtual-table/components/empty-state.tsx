@@ -1,4 +1,4 @@
-import { BookBookmark } from "@unkey/icons";
+import { IconBookBookmarkOutline18 } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 
 export const EmptyState = ({ content }: { content?: React.ReactNode }) => (
@@ -14,7 +14,7 @@ export const EmptyState = ({ content }: { content?: React.ReactNode }) => (
           <Empty.Actions className="mt-4 justify-start">
             <a href="https://www.unkey.com/docs" target="_blank" rel="noopener noreferrer">
               <Button>
-                <BookBookmark />
+                <IconBookBookmarkOutline18 />
                 Documentation
               </Button>
             </a>

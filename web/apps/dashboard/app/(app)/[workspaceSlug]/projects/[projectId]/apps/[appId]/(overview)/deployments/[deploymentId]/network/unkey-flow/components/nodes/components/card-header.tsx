@@ -1,4 +1,4 @@
-import { Heart } from "@unkey/icons";
+import { IconHeartOutline12 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { type HealthStatus, STATUS_CONFIG } from "../status/status-config";
 import { StatusIndicator } from "../status/status-indicator";
@@ -54,7 +54,7 @@ export function CardHeader({
       {isCard && (
         <div className="flex gap-2 items-center ml-auto">
           <StatusIndicator
-            icon={<Heart className={colors.dotTextColor} iconSize="sm-regular" />}
+            icon={<IconHeartOutline12 className={colors.dotTextColor} />}
             healthStatus={health}
             tooltip={type === "region" ? "Region health status" : "Instance health status"}
             showGlow={health !== "normal"}

@@ -1,6 +1,6 @@
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { cn } from "@/lib/utils";
-import { Dots } from "@unkey/icons";
+import { IconDotsOutline12 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import { KeyColumnSkeleton } from "@unkey/ui";
 import { API_KEY_COLUMN_IDS } from "../../columns/create-api-key-columns";
@@ -45,7 +45,7 @@ const ActionColumnSkeleton = () => (
       "border border-gray-6",
     )}
   >
-    <Dots className="text-gray-11" iconSize="sm-regular" />
+    <IconDotsOutline12 className="text-gray-11" />
   </button>
 );
 

@@ -4,7 +4,7 @@ import { pausedBody } from "@/app/(app)/[workspaceSlug]/settings/billing/compone
 import { formatDollars } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { TriangleWarning } from "@unkey/icons";
+import { IconTriangleWarningOutline12 } from "@unkey/icons";
 import Link from "next/link";
 
 /**
@@ -27,7 +27,7 @@ export function ComputePausedBanner() {
 
   return (
     <div className="flex h-9 w-full shrink-0 items-center justify-center gap-2 bg-warning-9 px-4 text-center font-medium text-[13px] text-black">
-      <TriangleWarning iconSize="sm-regular" className="shrink-0" />
+      <IconTriangleWarningOutline12 className="shrink-0" />
       <span>
         <span className="font-semibold">Compute paused.</span> {pausedBody(budgetLabel)}{" "}
         <Link

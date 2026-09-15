@@ -27,6 +27,23 @@ function domainsRow(groups: LimitGroup[]) {
   return groups.flatMap((group) => group.rows).find((row) => row.name === ROW);
 }
 
+describe("log drains row", () => {
+  it.each([0, 3])("shows the workspace allowance of %i without a compute plan", (logdrainsMax) => {
+    const groups = buildLimitGroups({
+      limits: limitsFor("free", { logdrainsMax }),
+      hasComputePlan: false,
+      apiOperations: { state: "loading" },
+      allocation: { state: "loading" },
+      customDomains: { state: "loading" },
+    });
+    expect(groups.find((group) => group.key === "logs")?.rows).toContainEqual({
+      name: "Log drains",
+      limit: String(logdrainsMax),
+      status: "ok",
+    });
+  });
+});
+
 describe("custom domains row", () => {
   it("lives in the compute group, so it is hidden without a compute plan", () => {
     const compute = groupsFor("starter", 0).find((group) => group.key === "compute");

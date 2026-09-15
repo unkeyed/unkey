@@ -26,11 +26,11 @@ export default function LogdrainsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { limits, isLoading: isWorkspaceLoading } = useWorkspace();
   const drains = useLogdrains();
-  const isLoading = isWorkspaceLoading || drains.isLoading || drains.isError;
+  const isLoading = isWorkspaceLoading || drains.isLoading;
   const isAtLimit = (drains.data?.length ?? 0) >= (limits?.logdrainsMax ?? 0);
-  const canCreate = !isLoading && !isAtLimit;
+  const canCreate = !isLoading && !drains.isError && !isAtLimit;
   const needsEnablement =
-    !isLoading && (limits?.logdrainsMax ?? 0) === 0 && drains.data?.length === 0;
+    !isLoading && !drains.isError && (limits?.logdrainsMax ?? 0) === 0 && drains.data?.length === 0;
   const openCreatePanel = () => {
     if (canCreate) {
       setIsCreateOpen(true);
@@ -50,7 +50,7 @@ export default function LogdrainsPage() {
         )}
       </PageHeader>
       <PageBody className="gap-4">
-        {!isLoading && isAtLimit && !needsEnablement && (
+        {!isLoading && !drains.isError && isAtLimit && !needsEnablement && (
           <AlertBanner variant="warning">
             <AlertBannerTitle>Log drain limit reached</AlertBannerTitle>
             <AlertBannerDescription>
@@ -73,10 +73,7 @@ export default function LogdrainsPage() {
         />
       </PageBody>
 
-      <CreateLogdrainPanel
-        isOpen={isCreateOpen && canCreate}
-        onClose={() => setIsCreateOpen(false)}
-      />
+      <CreateLogdrainPanel isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
     </PageContainer>
   );
 }

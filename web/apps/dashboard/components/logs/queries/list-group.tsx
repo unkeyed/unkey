@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Bookmark, Layers2 } from "@unkey/icons";
+import { IconBookmarkFill18, IconBookmarkOutline18, IconLayers2Outline18 } from "@unkey/icons";
 import { InfoTooltip, toast } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { useQueries } from "./queries-context";
@@ -105,7 +105,7 @@ export function ListGroup({
             <div className="flex flex-row items-center justify-start h-6">
               <div className="inline-flex w-full gap-2">
                 <span className="font-mono text-xs font-normal text-gray-9">from</span>
-                <Layers2 className="size-3 mt-px" />
+                <IconLayers2Outline18 className="size-3 mt-px" />
                 <span className="font-mono text-xs font-medium">Logs</span>
               </div>
             </div>
@@ -158,7 +158,11 @@ export function ListGroup({
               onKeyUp={(e) => e.key === "Enter"}
               aria-label={filterList.bookmarked ? "Remove from bookmarks" : "Add to bookmarks"}
             >
-              <Bookmark iconSize="md-medium" filled={filterList.bookmarked} />
+              {filterList.bookmarked ? (
+                <IconBookmarkFill18 className="size-3.5" />
+              ) : (
+                <IconBookmarkOutline18 className="size-3.5" />
+              )}
             </button>
           </InfoTooltip>
         </div>

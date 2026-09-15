@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { ChartActivity2 } from "@unkey/icons";
+import { IconChartActivity2Outline12 } from "@unkey/icons";
 import { Badge, Checkbox, TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
 
@@ -106,7 +106,7 @@ export function EnvVarBaseRow({
 export function TimestampBadge({ value }: { value: number }) {
   return (
     <Badge className="px-1.5 rounded-md flex gap-2 items-center h-5.5 border-none bg-grayA-3 text-grayA-12 truncate">
-      <ChartActivity2 iconSize="sm-regular" className="shrink-0" />
+      <IconChartActivity2Outline12 className="shrink-0" />
       <TimestampInfo displayType="relative" value={value} className="truncate" />
     </Badge>
   );

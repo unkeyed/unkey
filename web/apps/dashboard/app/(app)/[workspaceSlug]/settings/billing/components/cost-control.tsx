@@ -2,7 +2,12 @@
 
 import { formatDollars } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { Ban, Cube, Envelope, Nodes } from "@unkey/icons";
+import {
+  IconBanOutline18,
+  IconCubeOutline18,
+  IconEnvelopeOutline18,
+  IconNodesOutline18,
+} from "@unkey/icons";
 import { P, match } from "@unkey/match";
 import {
   AlertBanner,
@@ -78,7 +83,7 @@ function ComputeBudget({ isAdmin }: { isAdmin: boolean | undefined }) {
         ) : null}
         <ItemHeader>
           <ItemMedia className="bg-orangeA-3 text-orange-11">
-            <Cube />
+            <IconCubeOutline18 />
           </ItemMedia>
           <ItemContent>
             <ItemTitle>Compute</ItemTitle>
@@ -129,12 +134,12 @@ function ComputeBudget({ isAdmin }: { isAdmin: boolean | undefined }) {
             </div>
             {/* The deployspendcheck worker sends the stopped email instead of the 100% warning when stopping is on. */}
             {ALERT_STEPS.filter((step) => !(stopAtBudget && step === 1)).map((step) => (
-              <AlertRow key={step} icon={<Envelope />}>
+              <AlertRow key={step} icon={<IconEnvelopeOutline18 className="size-3.5" />}>
                 Email at {step * 100}% ({formatDollars(budgetCents * step)})
               </AlertRow>
             ))}
             {stopAtBudget ? (
-              <AlertRow icon={<Ban />} mediaClassName="bg-errorA-3 text-error-11">
+              <AlertRow icon={<IconBanOutline18 />} mediaClassName="bg-errorA-3 text-error-11">
                 Stop workloads and email at 100% ({formatDollars(budgetCents)})
               </AlertRow>
             ) : null}
@@ -174,7 +179,7 @@ function ApiFixedFee({ apiFeeCents }: { apiFeeCents: number | null }) {
     <ItemGroup variant="outline">
       <ItemHeader>
         <ItemMedia className="bg-infoA-3 text-info-11">
-          <Nodes />
+          <IconNodesOutline18 />
         </ItemMedia>
         <ItemContent>
           <ItemTitle>API management</ItemTitle>

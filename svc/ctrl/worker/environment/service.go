@@ -5,12 +5,9 @@ import (
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
-	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/auditlog"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/audit"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -122,38 +119,4 @@ func (s *Service) findStickyRouteIDs(ctx restate.ObjectContext, environmentID st
 		return nil, restate.TerminalError(fmt.Errorf("environment %s has no sticky routes", environmentID), 400)
 	}
 	return routeIDs, nil
-}
-
-// insertLifecycleAudit writes one lifecycle audit entry as a durable step. A
-// nil actor is a retained ctrl RPC that writes its own entry; skip it.
-func (s *Service) insertLifecycleAudit(
-	ctx restate.ObjectContext,
-	actor *ctrlv1.ActorInfo,
-	correlationID string,
-	deployment db.FindDeploymentWithEnvironmentAndAppRow,
-	event auditlog.AuditLogEvent,
-	display string,
-) error {
-	if actor == nil {
-		return nil
-	}
-
-	return audit.Insert(ctx, s.auditlogs, audit.Event{
-		Actor:         actor,
-		CorrelationID: correlationID,
-		WorkspaceID:   deployment.WorkspaceID,
-		Event:         event,
-		Display:       display,
-		Resource: auditlog.AuditLogResource{
-			Type:        auditlog.DeploymentResourceType,
-			ID:          deployment.ID,
-			Name:        "",
-			DisplayName: deployment.ID,
-			Meta: map[string]any{
-				"projectId":     deployment.ProjectID,
-				"appId":         deployment.AppID,
-				"environmentId": deployment.EnvironmentID,
-			},
-		},
-	})
 }

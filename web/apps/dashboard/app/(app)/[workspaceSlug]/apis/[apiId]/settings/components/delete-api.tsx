@@ -3,7 +3,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Lock } from "@unkey/icons";
+import { IconLockOutline12 } from "@unkey/icons";
 import { Button, DialogContainer, Input, SettingsZoneRow } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
@@ -75,7 +75,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
           <div className="inline-flex gap-2">
             <span>Delete Keyspace</span>
             {api.deleteProtection && (
-              <StatusBadge variant="locked" text="Locked" icon={<Lock iconSize="sm-thin" />} />
+              <StatusBadge variant="locked" text="Locked" icon={<IconLockOutline12 />} />
             )}
           </div>
         }

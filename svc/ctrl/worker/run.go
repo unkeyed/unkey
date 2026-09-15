@@ -331,9 +331,22 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.PauseOnMaxAttempts(),
 	)
 	restateSrv.Bind(hydrav1.NewDeployServiceServer(deployWorkflow, deployRetryPolicy))
-	restateSrv.Bind(hydrav1.NewDeploymentServiceServer(deployment.New(deployment.Config{
-		DB: database,
-	}), restate.WithIngressPrivate(true)))
+	deploymentSvc, err := deployment.New(deployment.Config{
+		DB:        database,
+		Auditlogs: auditlogSvc,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create deployment service: %w", err)
+	}
+	// The generated NewDeploymentServiceServer cannot mark single handlers
+	// ingress-private. Only the handlers the API calls are public
+	privateHandler := restate.WithIngressPrivate(true)
+	restateSrv.Bind(restate.NewObject("hydra.v1.DeploymentService", restate.WithProtoJSON).
+		Handler("ScheduleDesiredStateChange", restate.NewObjectHandler(deploymentSvc.ScheduleDesiredStateChange, privateHandler)).
+		Handler("ChangeDesiredState", restate.NewObjectHandler(deploymentSvc.ChangeDesiredState, privateHandler)).
+		Handler("ClearScheduledStateChanges", restate.NewObjectHandler(deploymentSvc.ClearScheduledStateChanges, privateHandler)).
+		Handler("StopDeployment", restate.NewObjectHandler(deploymentSvc.StopDeployment)).
+		Handler("WakeDeployment", restate.NewObjectHandler(deploymentSvc.WakeDeployment)))
 
 	// DeployTeardownService stops all of a workspace's running Deploy compute and
 	// confirms it drained. Invoked over Restate ingress by cancel (ARCHIVE) and,

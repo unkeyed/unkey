@@ -1,6 +1,6 @@
 "use client";
 import type { MetadataFormValues } from "@/lib/schemas/metadata";
-import { Code } from "@unkey/icons";
+import { IconCodeOutline12 } from "@unkey/icons";
 import {
   Button,
   FormField,
@@ -111,7 +111,7 @@ export const MetadataSetup = ({ overrideEnabled = false, entityType }: MetadataS
         <ProtectionSwitch
           description={descriptions.switch}
           title="Metadata"
-          icon={<Code className="text-gray-12" iconSize="sm-regular" />}
+          icon={<IconCodeOutline12 className="text-gray-12" />}
           checked={metadataEnabled}
           onCheckedChange={handleSwitchChange}
         />
