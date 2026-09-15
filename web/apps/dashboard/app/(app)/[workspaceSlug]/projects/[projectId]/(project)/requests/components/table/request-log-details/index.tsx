@@ -451,7 +451,7 @@ const formatMetaInfo = (log: RequestLogsResponse): React.ReactNode => {
         </div>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-gray-11">IconUserOutline12 Agent:</span>
+        <span className="text-gray-11">User Agent:</span>
         <span className="font-mono truncate max-w-[250px]" title={log.user_agent}>
           {log.user_agent}
         </span>
