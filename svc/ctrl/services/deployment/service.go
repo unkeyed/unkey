@@ -23,13 +23,13 @@ type Service struct {
 	bearer       string
 }
 
-// deploymentClient creates a typed Restate ingress client for the DeployService
-// keyed by deployment_id. Each deployment runs as its own isolated workflow,
-// so multiple deployments per environment can build in parallel. The contended
-// resource (apps.current_deployment_id) is serialized inside RoutingService
-// via SwapLiveDeployment.
-func (s *Service) deploymentClient(deploymentID string) hydrav1.DeployServiceIngressClient {
-	return hydrav1.NewDeployServiceIngressClient(s.restate, deploymentID)
+// deploymentClient creates a typed Restate ingress client for the DeployWorkflow
+// keyed by deployment_id. Each deployment runs as its own workflow, so multiple
+// deployments per environment can build in parallel. The contended resource
+// (apps.current_deployment_id) is serialized inside RoutingService via
+// SwapLiveDeployment.
+func (s *Service) deploymentClient(deploymentID string) hydrav1.DeployWorkflowIngressClient {
+	return hydrav1.NewDeployWorkflowIngressClient(s.restate, deploymentID)
 }
 
 // Config holds the configuration for creating a new [Service].

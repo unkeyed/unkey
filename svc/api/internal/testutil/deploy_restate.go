@@ -17,12 +17,12 @@ type ObservedCreate struct {
 	Request      *hydrav1.DeployCreateRequest
 }
 
-type recordingDeployService struct {
-	hydrav1.UnimplementedDeployServiceServer
+type recordingDeployWorkflow struct {
+	hydrav1.UnimplementedDeployWorkflowServer
 	creates chan ObservedCreate
 }
 
-func (service *recordingDeployService) Create(ctx restate.ObjectContext, request *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
+func (service *recordingDeployWorkflow) Create(ctx restate.WorkflowSharedContext, request *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
 	service.creates <- ObservedCreate{
 		DeploymentID: restate.Key(ctx),
 		Request:      request,
@@ -37,22 +37,22 @@ func (service *recordingDeployService) Create(ctx restate.ObjectContext, request
 func RecordingDeployRestate(t *testing.T) (*restateingress.Client, <-chan ObservedCreate) {
 	t.Helper()
 
-	recorder := &recordingDeployService{
-		UnimplementedDeployServiceServer: hydrav1.UnimplementedDeployServiceServer{},
-		creates:                          make(chan ObservedCreate, 8),
+	recorder := &recordingDeployWorkflow{
+		UnimplementedDeployWorkflowServer: hydrav1.UnimplementedDeployWorkflowServer{},
+		creates:                           make(chan ObservedCreate, 8),
 	}
-	restateConfig := containers.Restate(t, hydrav1.NewDeployServiceServer(recorder))
+	restateConfig := containers.Restate(t, hydrav1.NewDeployWorkflowServer(recorder))
 
 	return restateingress.NewClient(restateConfig.IngressURL), recorder.creates
 }
 
-type rejectingDeployService struct {
-	hydrav1.UnimplementedDeployServiceServer
+type rejectingDeployWorkflow struct {
+	hydrav1.UnimplementedDeployWorkflowServer
 	outcome hydrav1.CreateOutcome
 	detail  string
 }
 
-func (service *rejectingDeployService) Create(_ restate.ObjectContext, _ *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
+func (service *rejectingDeployWorkflow) Create(_ restate.WorkflowSharedContext, _ *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
 	return &hydrav1.DeployCreateResponse{Outcome: service.outcome, Detail: service.detail, DeploymentId: ""}, nil
 }
 
@@ -62,10 +62,10 @@ func (service *rejectingDeployService) Create(_ restate.ObjectContext, _ *hydrav
 func RejectingDeployRestate(t *testing.T, outcome hydrav1.CreateOutcome, detail string) *restateingress.Client {
 	t.Helper()
 
-	restateConfig := containers.Restate(t, hydrav1.NewDeployServiceServer(&rejectingDeployService{
-		UnimplementedDeployServiceServer: hydrav1.UnimplementedDeployServiceServer{},
-		outcome:                          outcome,
-		detail:                           detail,
+	restateConfig := containers.Restate(t, hydrav1.NewDeployWorkflowServer(&rejectingDeployWorkflow{
+		UnimplementedDeployWorkflowServer: hydrav1.UnimplementedDeployWorkflowServer{},
+		outcome:                           outcome,
+		detail:                            detail,
 	}))
 
 	return restateingress.NewClient(restateConfig.IngressURL)

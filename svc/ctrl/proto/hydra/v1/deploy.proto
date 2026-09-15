@@ -25,7 +25,7 @@ service DeployService {
   option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
 
   // Create writes the deployment row and, for a DEPLOY decision, starts Deploy.
-  // The object key is the deployment id, so the caller chooses it up front.
+  // The key is the deployment id, so the caller chooses it up front.
   rpc Create(DeployCreateRequest) returns (DeployCreateResponse) {}
 
   // Deploy executes the full deployment workflow: build (if git source), provision
@@ -37,6 +37,29 @@ service DeployService {
   // NotifyInstancesReady is called by the control plane when enough instances
   // have become healthy across the required regions. It resolves the awakeable
   // stored by a suspended Deploy so it can continue.
+  rpc NotifyInstancesReady(NotifyInstancesReadyRequest) returns (NotifyInstancesReadyResponse) {
+    option (dev.restate.sdk.go.handler_type) = SHARED;
+  }
+}
+
+// DeployWorkflow is the Restate workflow replacing DeployService. One
+// run per deployment id; readiness arrives through a durable promise, so the
+// run keeps no state. Both stay registered until every Deploy started on
+// DeployService has finished.
+service DeployWorkflow {
+  option (dev.restate.sdk.go.service_type) = WORKFLOW;
+
+  // Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
+  // The key is the deployment id, so the caller chooses it up front.
+  rpc Create(DeployCreateRequest) returns (DeployCreateResponse) {}
+
+  // Deploy is the run: build, provision, wait for health, route.
+  rpc Deploy(DeployRequest) returns (DeployResponse) {
+    option (dev.restate.sdk.go.handler_type) = WORKFLOW_RUN;
+  }
+
+  // NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
+  // lands before Deploy awaits is kept.
   rpc NotifyInstancesReady(NotifyInstancesReadyRequest) returns (NotifyInstancesReadyResponse) {
     option (dev.restate.sdk.go.handler_type) = SHARED;
   }
