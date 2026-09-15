@@ -44,15 +44,21 @@ export function useFetchRequestDetails({ requestId, time }: RequestDetailsTarget
   const [missCount, setMissCount] = useState(0);
 
   const enabled = Boolean(requestId) && time !== undefined;
-  const isAwaitingIngestion = enabled && missCount > 0 && missCount < MISSING_LOG_MAX_ATTEMPTS;
+  const retryScheduled = enabled && missCount > 0 && missCount < MISSING_LOG_MAX_ATTEMPTS;
 
   const query = trpc.logs.queryLogs.useQuery(buildRequestDetailsQueryParams({ requestId, time }), {
     enabled,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     staleTime: Number.POSITIVE_INFINITY,
-    refetchInterval: isAwaitingIngestion ? MISSING_LOG_RETRY_INTERVAL_MS : false,
+    refetchInterval: retryScheduled ? MISSING_LOG_RETRY_INTERVAL_MS : false,
   });
+
+  // missCount only covers responses the effect below has already folded in, so
+  // it lags the response being rendered now. Judging the current response keeps
+  // the first empty result from reading as settled before a retry has run.
+  const isAwaitingIngestion =
+    enabled && query.isSuccess && !query.data?.logs.length && missCount < MISSING_LOG_MAX_ATTEMPTS;
 
   const [trackedRequestId, setTrackedRequestId] = useState(requestId);
   if (trackedRequestId !== requestId) {
