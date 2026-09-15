@@ -23,7 +23,7 @@ const changedFilesRetryDuration = 2 * time.Minute
 
 // HandlePush processes a GitHub push event: it looks up the repo connections,
 // matches each app's watch paths against the changed files, then calls
-// DeployService.Create once per app. Create owns the workspace entitlement gate.
+// DeployWorkflow.Create once per app. Create owns the workspace entitlement gate.
 func (s *Service) HandlePush(ctx restate.ObjectContext, req *hydrav1.HandlePushRequest) (*hydrav1.HandlePushResponse, error) {
 	logger.Info(
 		"handling GitHub push in Restate",
@@ -301,7 +301,7 @@ type createArgs struct {
 	reason       string
 }
 
-// startCreate calls DeployService.Create for one app and returns the future.
+// startCreate calls DeployWorkflow.Create for one app and returns the future.
 //
 // Why RequestFuture and not Send or Request:
 //
