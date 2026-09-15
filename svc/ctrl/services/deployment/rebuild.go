@@ -62,17 +62,18 @@ func (s *Service) Rebuild(ctx context.Context, sourceDeploymentID, reason string
 					RequireLatest: !force,
 				},
 			},
-			Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
-			Trigger:       ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY,
-			TriggeredBy:   "",
-			TriggerReason: reason,
-			Actor: &ctrlv1.ActorInfo{
-				Id:        rebuildActorID,
-				Name:      rebuildActorName,
-				Type:      ctrlv1.ActorType_ACTOR_TYPE_SYSTEM,
-				RemoteIp:  "",
-				UserAgent: "",
-				Meta:      map[string]string{"reason": reason},
+			Decision: hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
+			Trigger: &hydrav1.Trigger{
+				Source: ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY,
+				Actor: &ctrlv1.ActorInfo{
+					Id:        rebuildActorID,
+					Name:      rebuildActorName,
+					Type:      ctrlv1.ActorType_ACTOR_TYPE_SYSTEM,
+					RemoteIp:  "",
+					UserAgent: "",
+					Meta:      map[string]string{"reason": reason},
+				},
+				Reason: reason,
 			},
 		})
 	if err != nil {

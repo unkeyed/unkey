@@ -98,10 +98,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		AppId:         environment.AppID,
 		EnvironmentId: environment.ID,
 		Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
-		Trigger:       deployment.TriggerFromClient(s),
-		TriggeredBy:   principal.Subject.ID,
-		TriggerReason: "",
-		Actor:         actorInfo,
+		Trigger:       &hydrav1.Trigger{Source: deployment.TriggerFromClient(s), Actor: actorInfo, Reason: ""},
 	}
 
 	switch {

@@ -349,21 +349,22 @@ func (s *Service) startCreate(
 				PrNumber: req.GetPrNumber(),
 			},
 		},
-		Decision:      args.decision,
-		Trigger:       ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_GITHUB,
-		TriggeredBy:   req.GetSenderLogin(),
-		TriggerReason: args.reason,
-		Actor: &ctrlv1.ActorInfo{
-			Id:        req.GetSenderLogin(),
-			Name:      req.GetSenderLogin(),
-			Type:      ctrlv1.ActorType_ACTOR_TYPE_GITHUB,
-			RemoteIp:  "",
-			UserAgent: "",
-			Meta: map[string]string{
-				"delivery_id": req.GetDeliveryId(),
-				"event":       event,
-				"repository":  req.GetRepositoryFullName(),
+		Decision: args.decision,
+		Trigger: &hydrav1.Trigger{
+			Source: ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_GITHUB,
+			Actor: &ctrlv1.ActorInfo{
+				Id:        req.GetSenderLogin(),
+				Name:      req.GetSenderLogin(),
+				Type:      ctrlv1.ActorType_ACTOR_TYPE_GITHUB,
+				RemoteIp:  "",
+				UserAgent: "",
+				Meta: map[string]string{
+					"delivery_id": req.GetDeliveryId(),
+					"event":       event,
+					"repository":  req.GetRepositoryFullName(),
+				},
 			},
+			Reason: args.reason,
 		},
 	})
 }
