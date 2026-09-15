@@ -500,7 +500,7 @@ func validateTieredSubscription(key string, sub tieredSubscription) error {
 // while the workspace and billing-period uniqueness requirement remains.
 func findInvoice(ctx context.Context, client *stripe.Client, workspaceID, period string) (*stripe.Invoice, error) {
 	list := client.V1Invoices.List(ctx, &stripe.InvoiceListParams{
-		ListParams: stripe.ListParams{Limit: stripe.Int64(100)},
+		Limit: stripe.Int64(100),
 	})
 	var match *stripe.Invoice
 	for invoice, err := range list.All(ctx) {
@@ -557,8 +557,8 @@ func reconcileInvoiceLines(
 	expected []invoiceItem,
 ) ([]invoiceItem, error) {
 	lines := client.V1Invoices.ListLines(ctx, &stripe.InvoiceListLinesParams{
-		ListParams: stripe.ListParams{Limit: stripe.Int64(100)},
-		Invoice:    stripe.String(invoiceID),
+		Limit:   stripe.Int64(100),
+		Invoice: stripe.String(invoiceID),
 	})
 	existing := make([]*stripe.InvoiceLineItem, 0, len(expected))
 	for line, err := range lines.All(ctx) {

@@ -20,7 +20,7 @@ func TestCodec_RoundTrip(t *testing.T) {
 
 	codec := newTestCodec(t)
 	metadata := &Metadata{
-		Claims: paseto.Claims{ExpiresAt: time.Unix(2_000_000_000, 0).UTC()},
+		ExpiresAt: time.Unix(2_000_000_000, 0).UTC(),
 		Hops: []Hop{
 			{
 				Region:        "aws::us-east-1",
@@ -251,7 +251,7 @@ func newTestCodecWithSigningKey(t *testing.T, signingKey string) *Codec {
 
 func validMetadata() *Metadata {
 	return &Metadata{
-		Claims: paseto.Claims{ExpiresAt: time.Unix(2_000_000_000, 0).UTC()},
+		ExpiresAt: time.Unix(2_000_000_000, 0).UTC(),
 		Hops: []Hop{
 			{
 				Region:        "aws::us-east-1",

@@ -48,8 +48,8 @@ func (r *reconciler) loadSnapshot() error {
 	}
 
 	priceParams := &stripe.PriceListParams{
-		ListParams: stripe.ListParams{Limit: stripe.Int64(100)}, // page size; .All paginates past it
-		Active:     new(true),
+		Limit:  stripe.Int64(100),
+		Active: new(true),
 	}
 	priceParams.AddExpand("data.product")
 	for price, err := range r.sc.V1Prices.List(r.ctx, priceParams).All(r.ctx) {
@@ -63,8 +63,8 @@ func (r *reconciler) loadSnapshot() error {
 	}
 
 	prodParams := &stripe.ProductListParams{
-		ListParams: stripe.ListParams{Limit: stripe.Int64(100)}, // page size; .All paginates past it
-		Active:     new(true),
+		Limit:  stripe.Int64(100),
+		Active: new(true),
 	}
 	prodParams.AddExpand("data.default_price")
 	for prod, err := range r.sc.V1Products.List(r.ctx, prodParams).All(r.ctx) {
