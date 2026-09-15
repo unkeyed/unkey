@@ -77,10 +77,10 @@ type RegistryConfig struct {
 // domain routing to ensure consistent deployment state. Promotion and rollback
 // live on EnvironmentService.
 //
-// The workflow is a Restate virtual object keyed by deployment id, so operations
-// on one deployment serialize while deployments proceed in parallel. Two deploys
-// of the same app run concurrently; the ordering they need comes from the dedup
-// and supersede checks.
+// It serves both DeployWorkflow and, until that drains, the DeployService
+// virtual object, each keyed by deployment id. Two deploys of the same app run
+// concurrently; the ordering they need comes from the dedup and supersede
+// checks.
 type Workflow struct {
 	hydrav1.UnimplementedDeployServiceServer
 	db        db.Database
@@ -104,6 +104,10 @@ type Workflow struct {
 	dashboardURL                    string
 
 	restateAdmin *restateadmin.Client
+
+	// asWorkflow is true for the DeployWorkflow instance and false for the
+	// DeployService one
+	asWorkflow bool
 }
 
 var _ hydrav1.DeployServiceServer = (*Workflow)(nil)
@@ -198,5 +202,6 @@ func New(cfg Config) (*Workflow, error) {
 		allowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
 		dashboardURL:                    cfg.DashboardURL,
 		restateAdmin:                    cfg.RestateAdmin,
+		asWorkflow:                      false,
 	}, nil
 }

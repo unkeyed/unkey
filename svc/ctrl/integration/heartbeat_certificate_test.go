@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
 
@@ -122,6 +123,7 @@ func newHeartbeatService(t *testing.T, database db.Database, bearer, regionalDom
 		// Points nowhere: triggering issuance is best-effort, so the failing
 		// Send must not affect the DB records or the heartbeat response.
 		Restate:        ingress.NewClient("http://127.0.0.1:1"),
+		RestateAdmin:   restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:1", APIKey: ""}),
 		Bearer:         bearer,
 		Clock:          clock.New(),
 		TopologyCache:  topologyCache,
