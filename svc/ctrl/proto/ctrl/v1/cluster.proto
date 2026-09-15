@@ -60,7 +60,8 @@ service ClusterService {
   rpc GetDesiredDeploymentState(GetDesiredDeploymentStateRequest) returns (DeploymentState);
 
   // ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
-  // Called when K8s watch events indicate ReplicaSet changes.
+  // Called when K8s watch events indicate ReplicaSet changes and after each
+  // successful full ReplicaSet inventory.
   rpc ReportDeploymentStatus(ReportDeploymentStatusRequest) returns (ReportDeploymentStatusResponse);
 
   // ReportInstanceEvents reports container lifecycle events (starts, exits,
@@ -124,12 +125,19 @@ message ReportDeploymentStatusRequest {
   message Delete {
     string k8s_name = 1;
   }
+  // Inventory is the complete set of deployment ReplicaSets observed in one
+  // region. Ctrl uses it to remove instance rows for ReplicaSets that no
+  // longer exist. Agents must only send this after a complete successful list.
+  message Inventory {
+    repeated string deployment_ids = 1;
+  }
 
   ClusterKey cluster = 3;
 
   oneof change {
     Update update = 1;
     Delete delete = 2;
+    Inventory inventory = 4;
   }
 }
 

@@ -3,6 +3,7 @@ package testutil
 
 import (
 	"context"
+	"sync"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -18,6 +19,7 @@ var _ ctrl.ClusterServiceClient = (*MockClusterClient)(nil)
 // The mock records ReportDeploymentStatus calls so tests can verify the
 // controller reported the correct status.
 type MockClusterClient struct {
+	mu                            sync.Mutex
 	WatchDeploymentChangesFunc    func(context.Context, *ctrlv1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error)
 	GetDesiredDeploymentStateFunc func(context.Context, *ctrlv1.GetDesiredDeploymentStateRequest) (*ctrlv1.DeploymentState, error)
 	ReportDeploymentStatusFunc    func(context.Context, *ctrlv1.ReportDeploymentStatusRequest) (*ctrlv1.ReportDeploymentStatusResponse, error)
@@ -43,7 +45,9 @@ func (m *MockClusterClient) GetDesiredDeploymentState(ctx context.Context, req *
 }
 
 func (m *MockClusterClient) ReportDeploymentStatus(ctx context.Context, req *ctrlv1.ReportDeploymentStatusRequest) (*ctrlv1.ReportDeploymentStatusResponse, error) {
+	m.mu.Lock()
 	m.ReportDeploymentStatusCalls = append(m.ReportDeploymentStatusCalls, req)
+	m.mu.Unlock()
 	if m.ReportDeploymentStatusFunc != nil {
 		return m.ReportDeploymentStatusFunc(ctx, req)
 	}
@@ -51,7 +55,9 @@ func (m *MockClusterClient) ReportDeploymentStatus(ctx context.Context, req *ctr
 }
 
 func (m *MockClusterClient) ReportInstanceEvents(ctx context.Context, req *ctrlv1.ReportInstanceEventsRequest) (*ctrlv1.ReportInstanceEventsResponse, error) {
+	m.mu.Lock()
 	m.ReportInstanceEventsCalls = append(m.ReportInstanceEventsCalls, req)
+	m.mu.Unlock()
 	if m.ReportInstanceEventsFunc != nil {
 		return m.ReportInstanceEventsFunc(ctx, req)
 	}
@@ -70,4 +76,10 @@ func (m *MockClusterClient) SyncDesiredState(ctx context.Context, req *ctrlv1.Sy
 		return m.SyncDesiredStateFunc(ctx, req)
 	}
 	return nil, nil
+}
+
+func (m *MockClusterClient) DeploymentStatusCalls() []*ctrlv1.ReportDeploymentStatusRequest {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return append([]*ctrlv1.ReportDeploymentStatusRequest(nil), m.ReportDeploymentStatusCalls...)
 }
