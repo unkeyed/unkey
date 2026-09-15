@@ -199,6 +199,9 @@ func TestBuildSlot_ReclaimsSlotOfKilledInvocation(t *testing.T) {
 		restatetest.WithRestateEnv(map[string]string{
 			"RESTATE_EXPERIMENTAL_ENABLE_VQUEUES":     "true",
 			"RESTATE_EXPERIMENTAL_ENABLE_PROTOCOL_V7": "true",
+			"RESTATE_BIND_ADDRESS":                    "0.0.0.0:5122",
+			"RESTATE_INGRESS__BIND_ADDRESS":           "0.0.0.0:8080",
+			"RESTATE_ADMIN__BIND_ADDRESS":             "0.0.0.0:9070",
 		}),
 	)
 

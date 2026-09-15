@@ -93,6 +93,12 @@ services:
       RESTATE_DEFAULT_NUM_PARTITIONS: "1"
       RESTATE_EXPERIMENTAL_ENABLE_VQUEUES: "true"
       RESTATE_EXPERIMENTAL_ENABLE_PROTOCOL_V7: "true"
+      # Restate binds the IPv6 wildcard by default and exits when the address
+      # family is missing, which is how a CI container without IPv6 gets a
+      # Restate that never answers its admin port.
+      RESTATE_BIND_ADDRESS: "0.0.0.0:5122"
+      RESTATE_INGRESS__BIND_ADDRESS: "0.0.0.0:8080"
+      RESTATE_ADMIN__BIND_ADDRESS: "0.0.0.0:9070"
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:
