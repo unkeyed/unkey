@@ -1,6 +1,7 @@
 package clickhouse
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -67,6 +68,32 @@ func TestClassifyPortalQueryErrorPreservesOperationalFailures(t *testing.T) {
 		{
 			name: "closed connection",
 			err:  errors.New("clickhouse: connection is closed"),
+		},
+		// The shared classifier matches "timeout" anywhere in a message, so a
+		// transport failure reads as a query limit unless adoption is gated on
+		// the ClickHouse exception itself.
+		{
+			name: "transport timeout",
+			err:  errors.New("read tcp 10.0.0.2:52344->10.0.0.9:9000: i/o timeout"),
+		},
+		{
+			name: "dial timeout",
+			err:  errors.New("dial tcp 10.0.0.9:9000: i/o timeout"),
+		},
+		// Our own request deadline or a disconnected client, neither of which is
+		// a limit the caller can do anything about.
+		{
+			name: "request context deadline",
+			err:  context.DeadlineExceeded,
+		},
+		{
+			name: "request cancelled",
+			err:  context.Canceled,
+		},
+		// A ClickHouse exception that is not one of the limits we set.
+		{
+			name: "unrelated clickhouse exception",
+			err:  &ch.Exception{Code: 202, Name: "DB::Exception", Message: "Too many simultaneous queries"},
 		},
 	}
 

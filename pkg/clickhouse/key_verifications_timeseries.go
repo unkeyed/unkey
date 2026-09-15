@@ -96,27 +96,32 @@ func withPortalQueryLimits(ctx context.Context) context.Context {
 	}))
 }
 
-// portalResourceLimits are the classifications a portal read may adopt from
-// [WrapClickHouseError]. That helper's last arm blames an unmatched failure on
-// the caller's query, which is right for the operator endpoint and wrong here:
-// these queries are written in this package, so a dropped connection or a
-// missing table is operational and has to stay a 500 rather than telling an end
-// user their request was malformed.
-var portalResourceLimits = map[codes.URN]bool{
-	codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN(): true,
-	codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN():   true,
-	codes.User.UnprocessableEntity.QueryExecutionTimeout.URN():    true,
+// portalQueryLimitCodes are the ClickHouse exceptions the three settings in
+// [withPortalQueryLimits] can raise: TIMEOUT_EXCEEDED from max_execution_time,
+// MEMORY_LIMIT_EXCEEDED from max_memory_usage, and TOO_MANY_ROWS_OR_BYTES from
+// max_result_bytes.
+var portalQueryLimitCodes = map[int32]bool{
+	159: true,
+	241: true,
+	396: true,
 }
 
 // classifyPortalQueryError tags the limits [withPortalQueryLimits] sets so they
 // reach the caller as rejections, and returns everything else untouched.
+//
+// It gates on the exception rather than on what [WrapClickHouseError] returns,
+// for two reasons. That helper reads an unmatched failure as a bad customer
+// query, which is wrong here because these queries are written in this package.
+// And it matches the word "timeout" anywhere in a message, so a transport
+// failure like "read tcp ...: i/o timeout" would otherwise be served as a query
+// limit. Both belong in the 5xx metrics instead, where an outage is visible.
 func classifyPortalQueryError(err error) error {
-	classified := WrapClickHouseError(err)
-	if code, ok := fault.GetCode(classified); ok && portalResourceLimits[code] {
-		return classified
+	var chErr *ch.Exception
+	if !errors.As(err, &chErr) || !portalQueryLimitCodes[chErr.Code] {
+		return err
 	}
 
-	return err
+	return WrapClickHouseError(err)
 }
 
 // verificationScopePredicates is the WHERE body shared by the account-wide and
