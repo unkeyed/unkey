@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -19,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -1233,49 +1235,85 @@ type createHarness struct {
 	environmentID string
 }
 
+// sharedCreateDeploy is the one Restate every create test in this package uses.
+//
+// The tests already share a MySQL database and isolate themselves with
+// generated workspace, app and deployment ids, so the workflow behind Restate
+// can be shared on the same terms. One container per test made this the
+// slowest package in the suite for no isolation it was not already getting
+// from those ids.
+var sharedCreateDeploy struct {
+	once     sync.Once
+	stop     func()
+	client   *restateingress.Client
+	recorder *createDeployRecorder
+}
+
+func TestMain(m *testing.M) {
+	code := m.Run()
+	if sharedCreateDeploy.stop != nil {
+		sharedCreateDeploy.stop()
+	}
+	os.Exit(code)
+}
+
 func newCreateHarness(t *testing.T, ctx context.Context) *createHarness {
 	t.Helper()
 
 	database, fixture := newDeployFixture(t, ctx)
 
-	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
-	require.NoError(t, err)
+	sharedCreateDeploy.once.Do(func() {
+		shared, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
+		require.NoError(t, err)
 
-	workflow, err := deploy.New(deploy.Config{
-		DB:            database,
-		Auditlogs:     auditlogSvc,
-		DefaultDomain: "test.example.com",
-		DashboardURL:  "https://app.unkey.local",
-		Vault:         nil,
-		GitHub:        githubclient.NewNoop(),
-		Build: deploy.BuildConfig{
-			Backend:    deploy.BuildBackendDepot,
-			Depot:      deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},
-			Kubernetes: deploy.KubernetesBuildConfig{Namespace: "", Image: ""},
-		},
-		K8s:                             nil,
-		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
-		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
-		Clickhouse:                      nil,
-		BuildSteps:                      batch.NewNoop[schema.BuildStepV1](),
-		BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
-		AllowUnauthenticatedDeployments: false,
-		RestateAdmin:                    nil,
+		auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: shared})
+		require.NoError(t, err)
+
+		workflow, err := deploy.New(deploy.Config{
+			DB:            shared,
+			Auditlogs:     auditlogSvc,
+			DefaultDomain: "test.example.com",
+			DashboardURL:  "https://app.unkey.local",
+			Vault:         nil,
+			GitHub:        githubclient.NewNoop(),
+			Build: deploy.BuildConfig{
+				Backend:    deploy.BuildBackendDepot,
+				Depot:      deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},
+				Kubernetes: deploy.KubernetesBuildConfig{Namespace: "", Image: ""},
+			},
+			K8s:                             nil,
+			RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
+			BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
+			Clickhouse:                      nil,
+			BuildSteps:                      batch.NewNoop[schema.BuildStepV1](),
+			BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
+			AllowUnauthenticatedDeployments: false,
+			RestateAdmin:                    nil,
+		})
+		require.NoError(t, err)
+
+		recorder := &createDeployRecorder{
+			Workflow: workflow,
+			requests: make(map[string]*hydrav1.DeployRequest),
+		}
+		cfg, stop := containers.RestatePackage(t, hydrav1.NewDeployWorkflowServer(recorder))
+
+		sharedCreateDeploy.client = cfg.IngressClient
+		sharedCreateDeploy.recorder = recorder
+		sharedCreateDeploy.stop = func() {
+			stop()
+			_ = shared.Close()
+		}
 	})
-	require.NoError(t, err)
-
-	recorder := &createDeployRecorder{
-		Workflow: workflow,
-		requests: make(map[string]*hydrav1.DeployRequest),
-	}
-
-	cfg := containers.Restate(t, hydrav1.NewDeployWorkflowServer(recorder))
+	// A failed setup leaves the once spent, and every later test would panic on
+	// the nil client instead of naming the cause.
+	require.NotNil(t, sharedCreateDeploy.client, "shared Restate setup failed in an earlier test")
 
 	h := &createHarness{
 		database:      database,
 		seeder:        fixture.seeder,
-		client:        cfg.IngressClient,
-		deploys:       recorder,
+		client:        sharedCreateDeploy.client,
+		deploys:       sharedCreateDeploy.recorder,
 		workspaceID:   fixture.workspaceID,
 		projectID:     fixture.projectID,
 		appID:         fixture.appID,
