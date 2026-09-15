@@ -10,17 +10,25 @@ import (
 	binlog "vitess.io/vitess/go/vt/proto/binlogdata"
 )
 
-var regionPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,48}$`)
-
+// Client interprets topology CDC events as deployment IDs for desired-state
+// lookups. It shares its caller's CDC connection and supports concurrent watches.
 type Client struct {
 	cdc *cdc.Client
 }
 
-// New borrows a CDC client; its caller retains responsibility for closing it.
+// regionPattern limits region IDs before interpolating them into the SQL filter.
+var regionPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,48}$`)
+
+// New borrows a non-nil CDC client; its caller remains responsible for closing it.
 func New(client *cdc.Client) *Client {
 	return &Client{cdc: client}
 }
 
+// Watch delivers running-topology changes for one region, starting with a
+// snapshot when the token is empty.
+// Rows leaving the running filter use their before-image to retain the deployment
+// ID. Invalid regions, malformed IDs, and callback errors stop the watch. Resume
+// tokens and checkpoint guarantees follow [cdc.Client.Watch].
 func (c *Client) Watch(ctx context.Context, region string, token []byte, change func(string) error, checkpoint func([]byte) error) error {
 	if !regionPattern.MatchString(region) {
 		return errors.New("invalid region ID")
