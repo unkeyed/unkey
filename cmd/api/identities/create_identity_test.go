@@ -26,7 +26,7 @@ func TestCreateIdentity(t *testing.T) {
 			args: `identities create-identity --external-id=user_123 --meta='{"email":"alice@acme.com","plan":"premium"}'`,
 			want: openapi.V2IdentitiesCreateIdentityRequestBody{
 				ExternalId: "user_123",
-				Meta:       new(map[string]interface{}{"email": "alice@acme.com", "plan": "premium"}),
+				Meta:       new(map[string]any{"email": "alice@acme.com", "plan": "premium"}),
 			},
 		},
 		{
@@ -44,7 +44,7 @@ func TestCreateIdentity(t *testing.T) {
 			args: `identities create-identity --external-id=user_123 --meta='{"email":"alice@acme.com","plan":"premium"}' --ratelimits='[{"name":"requests","limit":1000,"duration":60000,"autoApply":true}]'`,
 			want: openapi.V2IdentitiesCreateIdentityRequestBody{
 				ExternalId: "user_123",
-				Meta:       new(map[string]interface{}{"email": "alice@acme.com", "plan": "premium"}),
+				Meta:       new(map[string]any{"email": "alice@acme.com", "plan": "premium"}),
 				Ratelimits: &[]openapi.RatelimitRequest{
 					{Name: "requests", Limit: 1000, Duration: 60000, AutoApply: true},
 				},

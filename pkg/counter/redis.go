@@ -234,7 +234,7 @@ func (r *redisCounter) DecrementIfExists(ctx context.Context, key string, value 
 	}
 
 	// Parse the result array [actualValue, existedFlag, successFlag]
-	resultSlice, ok := result.([]interface{})
+	resultSlice, ok := result.([]any)
 	if !ok || len(resultSlice) != 3 {
 		return 0, false, false, fmt.Errorf("unexpected result format from Lua script")
 	}
@@ -261,7 +261,7 @@ func (r *redisCounter) DecrementIfExists(ctx context.Context, key string, value 
 }
 
 // parseNumericValue safely converts various numeric types to int64
-func parseNumericValue(v interface{}) (int64, error) {
+func parseNumericValue(v any) (int64, error) {
 	switch val := v.(type) {
 	case int64:
 		return val, nil

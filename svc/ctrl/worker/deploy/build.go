@@ -163,7 +163,7 @@ func isValidGitContextPath(path string) bool {
 	if strings.HasPrefix(path, "/") || strings.Contains(path, `\`) {
 		return false
 	}
-	for _, segment := range strings.Split(path, "/") {
+	for segment := range strings.SplitSeq(path, "/") {
 		if !isValidPathNameSegment(segment) {
 			return false
 		}

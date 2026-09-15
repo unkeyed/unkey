@@ -92,7 +92,7 @@ func (e *advanceTimeEvent) Run(rng *rand.Rand, s *state) error {
 
 func TestSimulation(t *testing.T) {
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		t.Run(fmt.Sprintf("run=%d", i), func(t *testing.T) {
 			seed := sim.NewSeed()
 

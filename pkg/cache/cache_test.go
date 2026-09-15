@@ -12,6 +12,36 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 )
 
+func TestDumpPreservesEmptyObjectAndEntries(t *testing.T) {
+	c, err := cache.New(cache.Config[string, string]{
+		MaxSize:  10,
+		Fresh:    time.Minute,
+		Stale:    5 * time.Minute,
+		Resource: "dump-test",
+		Clock:    clock.New(),
+	})
+	require.NoError(t, err)
+	t.Cleanup(c.Close)
+	ctx := t.Context()
+
+	empty, err := c.Dump(ctx)
+	require.NoError(t, err)
+	require.JSONEq(t, "{}", string(empty))
+
+	c.Set(ctx, "first", "alpha")
+	c.Set(ctx, "second", "beta")
+	data, err := c.Dump(ctx)
+	require.NoError(t, err)
+	c.Clear(ctx)
+	require.NoError(t, c.Restore(ctx, data))
+	first, hit := c.Get(ctx, "first")
+	require.Equal(t, cache.Hit, hit)
+	require.Equal(t, "alpha", first)
+	second, hit := c.Get(ctx, "second")
+	require.Equal(t, cache.Hit, hit)
+	require.Equal(t, "beta", second)
+}
+
 func TestWriteRead(t *testing.T) {
 
 	c, err := cache.New(cache.Config[string, string]{
@@ -88,7 +118,7 @@ func TestRefresh(t *testing.T) {
 	c.Set(context.Background(), "key", "value")
 	clk.Tick(time.Second)
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		_, hit := c.Get(context.Background(), "key")
 		require.Equal(t, cache.Hit, hit)
 		clk.Tick(time.Second)

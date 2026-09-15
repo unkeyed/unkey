@@ -409,7 +409,7 @@ func TestClassifier_Accumulates(t *testing.T) {
 		frameLen,
 	)
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		runProg(t, objs.CountEgress, frame)
 	}
 

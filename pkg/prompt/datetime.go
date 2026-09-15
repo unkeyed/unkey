@@ -351,7 +351,7 @@ func (p *Prompt) renderCalendar(label string, viewMonth, selected time.Time) []s
 	startWeekday := int(firstDay.Weekday())
 
 	row := "  "
-	for i := 0; i < startWeekday; i++ {
+	for range startWeekday {
 		row += "   "
 	}
 
@@ -441,7 +441,7 @@ func (p *Prompt) renderDateTimePicker(label string, viewMonth, selected time.Tim
 	startWeekday := int(firstDay.Weekday())
 
 	row := "  "
-	for i := 0; i < startWeekday; i++ {
+	for range startWeekday {
 		row += "   "
 	}
 

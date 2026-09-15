@@ -78,7 +78,7 @@ func TestAlgorithmConfusion_RejectAlgNone(t *testing.T) {
 	// Craft a token with alg=none
 	header := map[string]string{"alg": "none", "typ": "JWT"}
 	headerJSON, _ := json.Marshal(header)
-	claims := map[string]interface{}{"iss": "attacker", "exp": time.Now().Add(time.Hour).Unix()}
+	claims := map[string]any{"iss": "attacker", "exp": time.Now().Add(time.Hour).Unix()}
 	claimsJSON, _ := json.Marshal(claims)
 
 	noneToken := base64.RawURLEncoding.EncodeToString(headerJSON) + "." +
@@ -104,7 +104,7 @@ func TestAlgorithmConfusion_RejectMissingAlg(t *testing.T) {
 	// Craft a token without alg
 	header := map[string]string{"typ": "JWT"}
 	headerJSON, _ := json.Marshal(header)
-	claims := map[string]interface{}{"iss": "attacker", "exp": time.Now().Add(time.Hour).Unix()}
+	claims := map[string]any{"iss": "attacker", "exp": time.Now().Add(time.Hour).Unix()}
 	claimsJSON, _ := json.Marshal(claims)
 
 	tokenWithoutAlg := base64.RawURLEncoding.EncodeToString(headerJSON) + "." +
@@ -126,7 +126,7 @@ func TestAlgorithmConfusion_RejectUnknownAlg(t *testing.T) {
 		t.Run(alg, func(t *testing.T) {
 			header := map[string]string{"alg": alg, "typ": "JWT"}
 			headerJSON, _ := json.Marshal(header)
-			claims := map[string]interface{}{"iss": "test", "exp": time.Now().Add(time.Hour).Unix()}
+			claims := map[string]any{"iss": "test", "exp": time.Now().Add(time.Hour).Unix()}
 			claimsJSON, _ := json.Marshal(claims)
 
 			token := base64.RawURLEncoding.EncodeToString(headerJSON) + "." +
@@ -167,8 +167,8 @@ func TestSignatureVerification_HS256_ConstantTimeComparison(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("single bit flip in signature rejected", func(t *testing.T) {
-		for i := 0; i < len(sigBytes); i++ {
-			for bit := 0; bit < 8; bit++ {
+		for i := range sigBytes {
+			for bit := range 8 {
 				modified := make([]byte, len(sigBytes))
 				copy(modified, sigBytes)
 				modified[i] ^= 1 << bit
@@ -181,7 +181,7 @@ func TestSignatureVerification_HS256_ConstantTimeComparison(t *testing.T) {
 	})
 
 	t.Run("truncated signature rejected", func(t *testing.T) {
-		for length := 0; length < len(sigBytes); length++ {
+		for length := range sigBytes {
 			truncated := sigBytes[:length]
 			truncatedToken := parts[0] + "." + parts[1] + "." + base64.RawURLEncoding.EncodeToString(truncated)
 			_, err := verifier.Verify(truncatedToken)
@@ -945,13 +945,6 @@ func TestEdgeCases_EmptyAudiences(t *testing.T) {
 	decoded, err := verifier.Verify(token)
 	require.NoError(t, err)
 	require.Empty(t, decoded.Audience)
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 // =============================================================================

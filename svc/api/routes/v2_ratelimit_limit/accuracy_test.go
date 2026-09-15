@@ -89,12 +89,8 @@ func TestRateLimitAccuracy(t *testing.T) {
 
 									// Calculate test parameters
 									// RPS based on loadFactor and limit/duration
-									rps := int(math.Ceil(float64(limit) * loadFactor * (1000.0 / float64(duration))))
-
-									// Must have at least 1 RPS
-									if rps < 1 {
-										rps = 1
-									}
+									rps := max(
+										int(math.Ceil(float64(limit)*loadFactor*(1000.0/float64(duration)))), 1)
 
 									// Total seconds needed to cover windowCount windows
 									seconds := int(math.Ceil(float64(windows) * float64(duration) / 1000.0))
@@ -139,7 +135,7 @@ func TestRateLimitAccuracy(t *testing.T) {
 									interval := time.Second / time.Duration(rps)
 
 									t.Logf("sending %d requests", totalRequests)
-									for i := 0; i < totalRequests; i++ {
+									for range totalRequests {
 										// Simulate request timing to achieve target RPS
 										h.Clock.Tick(interval)
 

@@ -182,10 +182,7 @@ func formatMeterValue(v float64) string {
 	// Digits left of the point ("0" counts as one). int64 covers every
 	// realistic meter total (max ~1e13 GiB-seconds, far below int64's range).
 	intDigits := len(strconv.FormatInt(int64(math.Abs(v)), 10))
-	decimals := min(stripeMaxValueDecimals, stripeMaxValueDigits-intDigits)
-	if decimals < 0 {
-		decimals = 0
-	}
+	decimals := max(min(stripeMaxValueDecimals, stripeMaxValueDigits-intDigits), 0)
 
 	s := strconv.FormatFloat(v, 'f', decimals, 64)
 	if strings.ContainsRune(s, '.') {

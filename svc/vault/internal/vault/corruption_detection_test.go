@@ -45,13 +45,10 @@ func TestCorruption_SingleBitFlip(t *testing.T) {
 	ciphertext := encrypted.GetCiphertext()
 
 	// Test flipping each bit in the first 50 bytes of ciphertext
-	testBytes := 50
-	if len(ciphertext) < testBytes {
-		testBytes = len(ciphertext)
-	}
+	testBytes := min(len(ciphertext), 50)
 
-	for byteIdx := 0; byteIdx < testBytes; byteIdx++ {
-		for bitIdx := 0; bitIdx < 8; bitIdx++ {
+	for byteIdx := range testBytes {
+		for bitIdx := range 8 {
 			t.Run(fmt.Sprintf("byte%d_bit%d", byteIdx, bitIdx), func(t *testing.T) {
 				// Make a copy and flip one bit in the ciphertext
 				corruptedCiphertext := make([]byte, len(ciphertext))

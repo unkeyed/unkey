@@ -61,10 +61,10 @@ func TestCachedClock(t *testing.T) {
 		var wg sync.WaitGroup
 		wg.Add(numGoroutines)
 
-		for i := 0; i < numGoroutines; i++ {
+		for range numGoroutines {
 			go func() {
 				defer wg.Done()
-				for j := 0; j < numCalls; j++ {
+				for range numCalls {
 					_ = clock.Now()
 				}
 			}()

@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"slices"
 	"sync"
 	"syscall"
 	"time"
@@ -264,11 +265,11 @@ func (r *Runner) shutdown(ctx context.Context) []error {
 	r.mu.Unlock()
 
 	var errs []error
-	for i := len(cleanups) - 1; i >= 0; i-- {
-		if cleanups[i] == nil {
+	for _, cleanup := range slices.Backward(cleanups) {
+		if cleanup == nil {
 			continue
 		}
-		if err := cleanups[i](ctx); err != nil {
+		if err := cleanup(ctx); err != nil {
 			logger.Error("runner cleanup failed", "error", err)
 			errs = append(errs, err)
 		}

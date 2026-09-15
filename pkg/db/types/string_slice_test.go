@@ -10,7 +10,7 @@ import (
 func TestStringSlice_ScanAndValue(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    interface{}
+		input    any
 		expected StringSlice
 	}{
 		{"nil", nil, StringSlice{}},

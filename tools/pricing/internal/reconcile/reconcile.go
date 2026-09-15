@@ -8,6 +8,7 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"maps"
 	"strconv"
 	"strings"
 
@@ -368,9 +369,7 @@ func managedMeta(kind, key string, extra map[string]string) map[string]string {
 		"pricing_kind":       kind,
 		"pricing_key":        key,
 	}
-	for k, v := range extra {
-		m[k] = v
-	}
+	maps.Copy(m, extra)
 	return m
 }
 

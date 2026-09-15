@@ -49,7 +49,7 @@ func (r *reconciler) loadSnapshot() error {
 
 	priceParams := &stripe.PriceListParams{
 		ListParams: stripe.ListParams{Limit: stripe.Int64(100)}, // page size; .All paginates past it
-		Active:     stripe.Bool(true),
+		Active:     new(true),
 	}
 	priceParams.AddExpand("data.product")
 	for price, err := range r.sc.V1Prices.List(r.ctx, priceParams).All(r.ctx) {
@@ -64,7 +64,7 @@ func (r *reconciler) loadSnapshot() error {
 
 	prodParams := &stripe.ProductListParams{
 		ListParams: stripe.ListParams{Limit: stripe.Int64(100)}, // page size; .All paginates past it
-		Active:     stripe.Bool(true),
+		Active:     new(true),
 	}
 	prodParams.AddExpand("data.default_price")
 	for prod, err := range r.sc.V1Products.List(r.ctx, prodParams).All(r.ctx) {
@@ -143,8 +143,8 @@ func (r *reconciler) webhookByURL(url string) *stripe.WebhookEndpoint {
 // baseURL strips the query string; webhook identity ignores it (see the
 // Webhook doc in the pricing package).
 func baseURL(u string) string {
-	if i := strings.Index(u, "?"); i >= 0 {
-		return u[:i]
+	if before, _, ok := strings.Cut(u, "?"); ok {
+		return before
 	}
 	return u
 }
@@ -162,7 +162,7 @@ func (r *reconciler) createLicensedPrice(productID, lookupKey string, cents int6
 	params := &stripe.PriceCreateParams{
 		Product:    stripe.String(productID),
 		Currency:   stripe.String(currencyUSD),
-		UnitAmount: stripe.Int64(cents),
+		UnitAmount: new(cents),
 		Nickname:   stripe.String(nickname),
 		Metadata:   meta,
 		Recurring: &stripe.PriceCreateRecurringParams{
@@ -172,7 +172,7 @@ func (r *reconciler) createLicensedPrice(productID, lookupKey string, cents int6
 	}
 	if lookupKey != "" {
 		params.LookupKey = stripe.String(lookupKey)
-		params.TransferLookupKey = stripe.Bool(true)
+		params.TransferLookupKey = new(true)
 	}
 	return r.sc.V1Prices.Create(r.ctx, params)
 }
@@ -182,9 +182,9 @@ func (r *reconciler) createMeteredPrice(productID, meterID, lookupKey string, ce
 		Product:           stripe.String(productID),
 		Currency:          stripe.String(currencyUSD),
 		BillingScheme:     stripe.String("per_unit"),
-		UnitAmountDecimal: stripe.Float64(cents),
+		UnitAmountDecimal: new(cents),
 		LookupKey:         stripe.String(lookupKey),
-		TransferLookupKey: stripe.Bool(true),
+		TransferLookupKey: new(true),
 		Nickname:          stripe.String(nickname),
 		Metadata:          meta,
 		Recurring: &stripe.PriceCreateRecurringParams{
@@ -221,6 +221,6 @@ func (r *reconciler) setDefaultPrice(productID, priceID string) error {
 }
 
 func (r *reconciler) archivePrice(priceID string) error {
-	_, err := r.sc.V1Prices.Update(r.ctx, priceID, &stripe.PriceUpdateParams{Active: stripe.Bool(false)})
+	_, err := r.sc.V1Prices.Update(r.ctx, priceID, &stripe.PriceUpdateParams{Active: new(false)})
 	return err
 }

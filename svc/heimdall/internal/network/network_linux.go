@@ -219,7 +219,7 @@ func NewReader(criSocket string) (Reader, error) {
 		workerWG: sync.WaitGroup{},
 	}
 
-	for i := 0; i < attachWorkers; i++ {
+	for range attachWorkers {
 		r.workerWG.Go(r.runAttachWorker)
 	}
 

@@ -3,6 +3,7 @@ package deployteardown
 import (
 	"database/sql"
 	"fmt"
+	"maps"
 	"time"
 
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
@@ -125,13 +126,9 @@ func (v *VirtualObject) Teardown(
 			}
 			merged := make(map[string]string, len(appCurrent))
 			if existing != nil {
-				for appID, deploymentID := range existing.AppCurrent {
-					merged[appID] = deploymentID
-				}
+				maps.Copy(merged, existing.AppCurrent)
 			}
-			for appID, deploymentID := range appCurrent {
-				merged[appID] = deploymentID
-			}
+			maps.Copy(merged, appCurrent)
 			restate.Set(ctx, suspensionKey, &suspension{AppCurrent: merged})
 		}
 	case hydrav1.TeardownMode_TEARDOWN_MODE_ARCHIVE:

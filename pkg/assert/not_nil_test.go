@@ -16,7 +16,7 @@ func TestNotNil(t *testing.T) {
 	})
 
 	t.Run("value is nil", func(t *testing.T) {
-		var nilValue interface{} = nil
+		var nilValue any = nil
 		err := assert.NotNil(nilValue)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "expected not nil")
@@ -24,7 +24,7 @@ func TestNotNil(t *testing.T) {
 
 	t.Run("with custom message", func(t *testing.T) {
 		message := "value should not be nil"
-		var nilValue interface{} = nil
+		var nilValue any = nil
 		err := assert.NotNil(nilValue, message)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), message)

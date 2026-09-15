@@ -34,11 +34,11 @@ func TestBadRequest(t *testing.T) {
 	}
 
 	t.Run("missing keyId", func(t *testing.T) {
-		req := map[string]interface{}{
-			"permissions": []interface{}{},
+		req := map[string]any{
+			"permissions": []any{},
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,
@@ -69,11 +69,11 @@ func TestBadRequest(t *testing.T) {
 		})
 		keyID := keyResponse.KeyID
 
-		req := map[string]interface{}{
+		req := map[string]any{
 			"keyId": keyID,
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,
@@ -87,12 +87,12 @@ func TestBadRequest(t *testing.T) {
 	})
 
 	t.Run("invalid keyId format - too short", func(t *testing.T) {
-		req := map[string]interface{}{
+		req := map[string]any{
 			"keyId":       "key_short",
-			"permissions": []interface{}{},
+			"permissions": []any{},
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.NotFoundErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
@@ -106,12 +106,12 @@ func TestBadRequest(t *testing.T) {
 	})
 
 	t.Run("invalid keyId format - wrong prefix", func(t *testing.T) {
-		req := map[string]interface{}{
+		req := map[string]any{
 			"keyId":       "wrong_1234567890123456789012345678901234567890",
-			"permissions": []interface{}{},
+			"permissions": []any{},
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.NotFoundErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.NotFoundErrorResponse](
 			h,
 			route,
 			headers,
@@ -162,16 +162,16 @@ func TestBadRequest(t *testing.T) {
 
 	t.Run("malformed JSON", func(t *testing.T) {
 		// Test invalid JSON structure - using incomplete object
-		req := map[string]interface{}{
+		req := map[string]any{
 			"keyId": "key_1234567890123456789012345678901234567890",
-			"permissions": []interface{}{
-				map[string]interface{}{
+			"permissions": []any{
+				map[string]any{
 					"id": nil, // Invalid value that should cause validation error
 				},
 			},
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,
@@ -201,12 +201,12 @@ func TestBadRequest(t *testing.T) {
 		})
 		keyID := keyResponse.KeyID
 
-		req := map[string]interface{}{
+		req := map[string]any{
 			"keyId":       keyID,
 			"permissions": "not-an-array",
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,

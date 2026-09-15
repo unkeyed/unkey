@@ -11,10 +11,10 @@ import (
 // the subset of [database/sql.DB] and [database/sql.Tx] that sqlc-generated code
 // calls, so either a plain connection or a transaction satisfies it.
 type DBTX interface {
-	ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
+	ExecContext(context.Context, string, ...any) (sql.Result, error)
 	PrepareContext(context.Context, string) (*sql.Stmt, error)
-	QueryContext(context.Context, string, ...interface{}) (*sql.Rows, error)
-	QueryRowContext(context.Context, string, ...interface{}) *sql.Row
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+	QueryRowContext(context.Context, string, ...any) *sql.Row
 }
 
 // Queries is the receiver for sqlc-generated query methods. Because

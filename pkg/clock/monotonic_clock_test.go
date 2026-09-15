@@ -12,7 +12,7 @@ func TestMonotonicClock_Monotonic(t *testing.T) {
 	first := c.Now()
 
 	// Busy-wait a tiny amount so monotonic advances.
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		_ = c.Now()
 	}
 

@@ -29,7 +29,7 @@ func TestNotFound(t *testing.T) {
 
 	t.Run("external ID does not exist", func(t *testing.T) {
 		nonExistentExternalID := "non_existent_external_id"
-		meta := map[string]interface{}{
+		meta := map[string]any{
 			"test": "value",
 		}
 		req := handler.Request{

@@ -262,7 +262,6 @@ func TestProjectDeletion_CleansUpAllData(t *testing.T) {
 	// The app handler fires off environment deletions via .Send() (also async).
 	// Poll each table until it's empty.
 	for _, c := range checks {
-		c := c
 		require.Eventually(t, func() bool {
 			return countRows(t, ctx, h.DB, c.query, c.arg) == 0
 		}, 30*time.Second, 250*time.Millisecond, "timed out waiting for: %s", c.query)

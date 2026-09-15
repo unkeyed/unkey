@@ -18,7 +18,7 @@ func TestCircuitBreakerStates(t *testing.T) {
 	cb := New[int]("test", WithCyclicPeriod(5*time.Second), WithClock(c), WithTripThreshold(3))
 
 	// Test Closed State
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		_, err := cb.Do(context.Background(), func(ctx context.Context) (int, error) {
 			return 0, errTestDownstream
 		})
@@ -57,10 +57,10 @@ func TestCircuitBreakerFailureRatio(t *testing.T) {
 		// 50% ratio, but a high-throughput window: 1000 ok + 5 fail = 0.5% << 50%.
 		cb := New[int]("test", WithClock(c), WithCyclicPeriod(time.Hour),
 			WithFailureRatio(0.5, 20))
-		for i := 0; i < 1000; i++ {
+		for range 1000 {
 			run(cb, false)
 		}
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			run(cb, true)
 		}
 		require.Equal(t, Closed, cb.state, "0.5%% failure rate must not trip a 50%% breaker")
@@ -71,7 +71,7 @@ func TestCircuitBreakerFailureRatio(t *testing.T) {
 		cb := New[int]("test", WithClock(c), WithCyclicPeriod(time.Hour),
 			WithFailureRatio(0.5, 20))
 		// Below minRequests: all failing but sample too small to act.
-		for i := 0; i < 19; i++ {
+		for range 19 {
 			run(cb, true)
 		}
 		require.Equal(t, Closed, cb.state, "must not trip before minRequests")
@@ -85,7 +85,7 @@ func TestCircuitBreakerFailureRatio(t *testing.T) {
 		cb := New[int]("test", WithClock(c), WithCyclicPeriod(time.Hour),
 			WithFailureRatio(1.5, 5))
 		require.Equal(t, 1.0, cb.config.failureRatio, "ratio above 1 must clamp to 1")
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			run(cb, true)
 		}
 		require.Equal(t, Open, cb.state, "100%% failure past minRequests must trip a clamped breaker")
@@ -98,7 +98,7 @@ func TestCircuitBreakerReset(t *testing.T) {
 	cb := New[int]("test", WithCyclicPeriod(5*time.Second), WithClock(c), WithTripThreshold(3), WithTimeout(20*time.Second))
 
 	// Trigger circuit breaker to open
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		_, err := cb.Do(context.Background(), func(ctx context.Context) (int, error) {
 			return 0, errTestDownstream
 		})
@@ -130,7 +130,7 @@ func TestCircuitBreakerRecovers(t *testing.T) {
 	cb.state = HalfOpen
 
 	// Two requests should succeed
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		_, err := cb.Do(context.Background(), func(ctx context.Context) (int, error) {
 			return 42, nil
 		})
