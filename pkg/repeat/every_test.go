@@ -204,11 +204,9 @@ func TestEvery_ConcurrentStops(t *testing.T) {
 		// Call stop concurrently from multiple goroutines
 		var wg sync.WaitGroup
 		for range 10 {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				stop()
-			}()
+			})
 		}
 
 		wg.Wait()

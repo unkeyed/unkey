@@ -109,9 +109,7 @@ func TestProcessors_ConcurrentUse(t *testing.T) {
 	errorsFound := make(chan error, 64)
 	waitGroup := sync.WaitGroup{}
 	for range 16 {
-		waitGroup.Add(1)
-		go func() {
-			defer waitGroup.Done()
+		waitGroup.Go(func() {
 			if _, err := local.Encrypt(message); err != nil {
 				errorsFound <- fmt.Errorf("encrypt: %w", err)
 			}
@@ -124,7 +122,7 @@ func TestProcessors_ConcurrentUse(t *testing.T) {
 			if _, err := verifier.Verify(publicToken); err != nil {
 				errorsFound <- fmt.Errorf("verify: %w", err)
 			}
-		}()
+		})
 	}
 	waitGroup.Wait()
 	close(errorsFound)
