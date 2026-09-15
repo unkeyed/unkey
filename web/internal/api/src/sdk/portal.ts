@@ -72,6 +72,7 @@ export class Portal extends ClientSDK {
    * - `keys:read` requires `api.<api_id>.read_key` **and** `api.<api_id>.read_api`
    * - `keys:reroll` requires `api.<api_id>.create_key`, plus
    *   `api.<api_id>.encrypt_key` when the keyspace stores encrypted keys
+   * - `analytics:read` requires `api.<api_id>.read_analytics`
    *
    * The `*` form of each is also accepted. Requesting a scope you do not hold
    * returns 403 for the whole request rather than minting a reduced session, so a
@@ -192,6 +193,10 @@ export class Portal extends ClientSDK {
    * `analytics.getVerifications`, this endpoint takes a fixed time window (no
    * query language) and returns a zero-filled, outcome-broken-out timeseries.
    * Bucket granularity is chosen automatically from the window size.
+   *
+   * Setting `perKey` additionally returns the same window broken out per key, so
+   * a client can render both an account-wide chart and a per-key table from one
+   * call. The per-key series are sparse rather than zero-filled.
    */
   async getVerifications(
     security: operations.PortalGetVerificationsSecurity,

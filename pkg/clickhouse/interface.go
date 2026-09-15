@@ -31,6 +31,12 @@ type Querier interface {
 	// is chosen from the window size.
 	GetVerificationsByExternalID(ctx context.Context, req VerificationTimeseriesRequest) ([]VerificationTimeseriesDataPoint, error)
 
+	// GetVerificationsByExternalIDPerKey returns the same scoped timeseries
+	// broken out per key, sparse rather than zero-filled. Returns
+	// ErrTooManyVerificationKeys when the end user has more keys with traffic
+	// in the window than req.MaxKeys allows.
+	GetVerificationsByExternalIDPerKey(ctx context.Context, req VerificationTimeseriesPerKeyRequest) ([]VerificationTimeseriesPerKey, error)
+
 	GetBillableRatelimits(ctx context.Context, workspaceID string, year, month int) (int64, error)
 
 	// GetBillableUsageAboveThreshold returns total billable usage for workspaces that exceed a minimum threshold.

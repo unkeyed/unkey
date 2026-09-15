@@ -3138,6 +3138,7 @@ components:
                         enum:
                             - "keys:read"
                             - "keys:reroll"
+                            - "analytics:read"
                     minItems: 1
                     description: |
                         The capabilities granted to the end user in the Portal, from a fixed
@@ -3146,10 +3147,9 @@ components:
                         configured on the portal. An end user can never see another identity's
                         keys.
 
-                        The portal currently exposes only the keys page, so these scopes gate
-                        what the end user can do there rather than which pages they see. Because
-                        rerolling is reached from that page, `keys:reroll` requires `keys:read`
-                        in the same session; requesting it alone is rejected.
+                        Rerolling and usage analytics are both reached from the keys page, so
+                        `keys:reroll` and `analytics:read` each require `keys:read` in the same
+                        session; requesting either without it is rejected.
 
                         Each scope requires the equivalent permission on your own root key. See
                         Required Permissions on this operation.
@@ -3286,6 +3286,14 @@ components:
                         authenticated end user; results are always scoped to the session identity
                         regardless of this value.
                     example: key_1234abcd
+                perKey:
+                    type: boolean
+                    description: |
+                        Optional. When true the response additionally carries a per-key breakout
+                        of the same window in `keys`. The account-wide `data` series is returned
+                        either way. Rejected with 400 when the session's keys with traffic in the
+                        window exceed the server-side breakout limit.
+                    example: true
             additionalProperties: false
         V2PortalGetVerificationsResponseBody:
             type: object
@@ -3303,6 +3311,24 @@ components:
                         counts so the series is contiguous across the requested window.
                     items:
                         $ref: "#/components/schemas/V2PortalGetVerificationsDataPoint"
+                keys:
+                    type: array
+                    description: |
+                        Per-key breakout of the same window, present only when `perKey` was
+                        requested. Keys with no verifications in the window are omitted, as are
+                        empty buckets within a key's series.
+
+                        Entries come from the verification events themselves, so a `keyId` may
+                        name a key that has since been deleted and will not appear in
+                        `portal.listKeys`; render those totals without assuming the key is still
+                        listable.
+
+                        The breakout is read separately from `data`, so the two cover the same
+                        window but are not a single snapshot. Events arriving between the reads
+                        can leave the most recent bucket slightly out of step; treat the totals
+                        as the same series rather than an exact decomposition.
+                    items:
+                        $ref: "#/components/schemas/V2PortalGetVerificationsKeySeries"
             additionalProperties: false
         V2PortalListKeysRequestBody:
             type: object
@@ -7081,6 +7107,25 @@ components:
                     type: integer
                     format: int64
                     description: Verifications rejected because remaining usage was exhausted.
+            additionalProperties: false
+        V2PortalGetVerificationsKeySeries:
+            type: object
+            required:
+                - keyId
+                - data
+            properties:
+                keyId:
+                    type: string
+                    description: The key these buckets belong to.
+                    example: key_1234abcd
+                data:
+                    type: array
+                    description: |
+                        Sparse verification timeseries for this key, ordered by time ascending.
+                        Unlike the account-wide series this is not zero-filled: buckets with no
+                        verifications are omitted.
+                    items:
+                        $ref: "#/components/schemas/V2PortalGetVerificationsDataPoint"
             additionalProperties: false
         V2PortalListKeysResponseData:
             type: array
@@ -14428,6 +14473,7 @@ paths:
                 - `keys:read` requires `api.<api_id>.read_key` **and** `api.<api_id>.read_api`
                 - `keys:reroll` requires `api.<api_id>.create_key`, plus
                   `api.<api_id>.encrypt_key` when the keyspace stores encrypted keys
+                - `analytics:read` requires `api.<api_id>.read_analytics`
 
                 The `*` form of each is also accepted. Requesting a scope you do not hold
                 returns 403 for the whole request rather than minting a reduced session, so a
@@ -14732,6 +14778,10 @@ paths:
                 `analytics.getVerifications`, this endpoint takes a fixed time window (no
                 query language) and returns a zero-filled, outcome-broken-out timeseries.
                 Bucket granularity is chosen automatically from the window size.
+
+                Setting `perKey` additionally returns the same window broken out per key, so
+                a client can render both an account-wide chart and a per-key table from one
+                call. The per-key series are sparse rather than zero-filled.
             operationId: portal.getVerifications
             requestBody:
                 content:
@@ -14771,6 +14821,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
+                    description: Query exceeds the maximum response size
                 "429":
                     content:
                         application/problem+json:

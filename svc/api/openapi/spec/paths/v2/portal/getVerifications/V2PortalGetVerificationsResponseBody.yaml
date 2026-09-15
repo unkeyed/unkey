@@ -13,4 +13,22 @@ properties:
       counts so the series is contiguous across the requested window.
     items:
       $ref: "./V2PortalGetVerificationsDataPoint.yaml"
+  keys:
+    type: array
+    description: |
+      Per-key breakout of the same window, present only when `perKey` was
+      requested. Keys with no verifications in the window are omitted, as are
+      empty buckets within a key's series.
+
+      Entries come from the verification events themselves, so a `keyId` may
+      name a key that has since been deleted and will not appear in
+      `portal.listKeys`; render those totals without assuming the key is still
+      listable.
+
+      The breakout is read separately from `data`, so the two cover the same
+      window but are not a single snapshot. Events arriving between the reads
+      can leave the most recent bucket slightly out of step; treat the totals
+      as the same series rather than an exact decomposition.
+    items:
+      $ref: "./V2PortalGetVerificationsKeySeries.yaml"
 additionalProperties: false
