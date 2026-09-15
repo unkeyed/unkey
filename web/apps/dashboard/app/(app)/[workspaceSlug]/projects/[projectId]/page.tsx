@@ -2,7 +2,7 @@
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import {
   Button,
   PageBody,
@@ -33,7 +33,7 @@ export default function ProjectPage() {
               new-app wizard. */}
           {gated ? (
             <Button size="md" variant="primary" onClick={openPaywall}>
-              <Plus iconSize="sm-regular" />
+              <IconPlusOutline18 />
               Create app
             </Button>
           ) : (
@@ -46,7 +46,7 @@ export default function ProjectPage() {
                 />
               }
             >
-              <Plus iconSize="sm-regular" />
+              <IconPlusOutline18 />
               Create app
             </Button>
           )}

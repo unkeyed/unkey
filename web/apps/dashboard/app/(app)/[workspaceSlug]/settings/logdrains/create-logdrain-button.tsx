@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 
 export function CreateLogdrainButton({
@@ -12,7 +12,7 @@ export function CreateLogdrainButton({
 }) {
   return (
     <Button size="md" variant="primary" onClick={onClick} disabled={disabled}>
-      <Plus iconSize="sm-medium" />
+      <IconPlusOutline18 />
       Create Log Drain
     </Button>
   );

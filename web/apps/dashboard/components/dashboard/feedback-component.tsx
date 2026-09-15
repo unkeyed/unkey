@@ -2,7 +2,7 @@
 
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CircleInfo } from "@unkey/icons";
+import { IconCircleInfoOutline18 } from "@unkey/icons";
 import {
   Button,
   DialogContainer,
@@ -173,7 +173,7 @@ export const Feedback: React.FC = () => {
                   <div className="text-error-11 text-xs">{errors.issueType.message}</div>
                 )}
                 <output className="text-gray-9 flex gap-2 items-center text-[13px]">
-                  <CircleInfo iconSize="md-medium" aria-hidden="true" />
+                  <IconCircleInfoOutline18 className="size-3.5" aria-hidden="true" />
                   <span>Select the appropriate category</span>
                 </output>
               </div>
@@ -210,7 +210,7 @@ export const Feedback: React.FC = () => {
                   <div className="text-error-11 text-xs">{errors.severity.message}</div>
                 )}
                 <output className="text-gray-9 flex gap-2 items-center text-[13px]">
-                  <CircleInfo iconSize="md-medium" aria-hidden="true" />
+                  <IconCircleInfoOutline18 className="size-3.5" aria-hidden="true" />
                   <span>How urgent is this issue?</span>
                 </output>
               </div>

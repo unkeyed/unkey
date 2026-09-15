@@ -5,7 +5,7 @@ import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
-import { Nodes } from "@unkey/icons";
+import { IconNodesOutline18 } from "@unkey/icons";
 import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle, toast } from "@unkey/ui";
 import { useState } from "react";
 import { currentApiProduct } from "./api-plan";
@@ -105,7 +105,7 @@ export function ApiPlanRow({
     <>
       <Item>
         <ItemMedia className="bg-infoA-3 text-info-11">
-          <Nodes />
+          <IconNodesOutline18 />
         </ItemMedia>
         <ItemContent>
           <ItemTitle className="truncate">API management</ItemTitle>

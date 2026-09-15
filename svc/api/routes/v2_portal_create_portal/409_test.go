@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"database/sql"
 	"net/http"
 	"testing"
 
@@ -25,12 +24,7 @@ func TestCreatePortalConflicts(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	taken := keyspaceMapping(t, h, workspace.ID)
-	h.CreatePortal(seed.CreatePortalRequest{
-		WorkspaceID: workspace.ID,
-		Slug:        "taken-slug",
-		KeyAuthID:   sql.NullString{String: taken.ID, Valid: true},
-		Enabled:     true,
-	})
+	h.SeedPortal(t, workspace.ID, "taken-slug", "taken-slug", taken, nil, nil)
 
 	t.Run("duplicate slug", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
@@ -74,12 +68,8 @@ func TestCreatePortalConflicts(t *testing.T) {
 			DefaultPrefix: nil,
 			DefaultBytes:  nil,
 		})
-		h.CreatePortal(seed.CreatePortalRequest{
-			WorkspaceID: other.ID,
-			Slug:        "theirs",
-			KeyAuthID:   sql.NullString{String: sharedApi.KeyAuthID.String, Valid: true},
-			Enabled:     true,
-		})
+		h.SeedPortal(t, other.ID, "theirs", "theirs",
+			portal.Mapping{Type: portal.MappingTypeKeyspace, ID: sharedApi.KeyAuthID.String}, nil, nil)
 
 		// The caller does not own this keyspace, so ownership is checked first and
 		// reports not-found. The conflict path for a foreign claim is only

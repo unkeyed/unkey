@@ -20,16 +20,18 @@ export type UsageCostsCents = Omit<DeployMeterCostsCents, "activeKeys">;
 
 type Priced = UsageQuantities & { microCents: number };
 
-export type UsageEnvironment = Priced & {
-  environmentId: string;
-  name: string;
-};
+type ResourceLabel = { name: string; deleted: boolean };
 
-export type UsageApp = Priced & {
-  appId: string;
-  name: string;
-  environments: UsageEnvironment[];
-};
+export type UsageEnvironment = Priced &
+  ResourceLabel & {
+    environmentId: string;
+  };
+
+export type UsageApp = Priced &
+  ResourceLabel & {
+    appId: string;
+    environments: UsageEnvironment[];
+  };
 
 export type UsageGateway = {
   activeKeys: number;
@@ -37,12 +39,12 @@ export type UsageGateway = {
 };
 
 /** `microCents` is compute plus gateway, so it equals the rows shown beneath it. */
-export type UsageProject = Priced & {
-  projectId: string;
-  name: string;
-  apps: UsageApp[];
-  gateway: UsageGateway;
-};
+export type UsageProject = Priced &
+  ResourceLabel & {
+    projectId: string;
+    apps: UsageApp[];
+    gateway: UsageGateway;
+  };
 
 export type ComputeTree = {
   projects: UsageProject[];
@@ -67,11 +69,16 @@ function rollUp(parts: Priced[]): Priced {
   return parts.reduce(add, zero());
 }
 
-function label(id: string, name: string | null): string {
+function label(
+  id: string,
+  name: string | null,
+  resource: "project" | "app" | "environment",
+): ResourceLabel {
   if (id === "") {
-    return UNATTRIBUTED;
+    return { name: UNATTRIBUTED, deleted: false };
   }
-  return name === null || name === "" ? id : name;
+  const deleted = name === null || name === "";
+  return { name: deleted ? `Deleted ${resource}` : name, deleted };
 }
 
 function byCostDescending(a: Priced, b: Priced): number {
@@ -93,7 +100,7 @@ export function buildComputeTree({ usage, gateway }: DeployUsageBreakdown): Comp
           .map(
             (row): UsageEnvironment => ({
               environmentId: row.environmentId,
-              name: label(row.environmentId, row.environmentSlug),
+              ...label(row.environmentId, row.environmentSlug, "environment"),
               cpuHours: row.cpuSeconds / SECONDS_PER_HOUR,
               memoryGiBHours: row.memoryGiBHours,
               egressGiB: row.egressGiB,
@@ -104,7 +111,7 @@ export function buildComputeTree({ usage, gateway }: DeployUsageBreakdown): Comp
           .sort(byCostDescending);
         return {
           appId,
-          name: label(appId, rows[0]?.appName ?? null),
+          ...label(appId, rows[0]?.appName ?? null, "app"),
           environments,
           ...rollUp(environments),
         };
@@ -122,7 +129,11 @@ export function buildComputeTree({ usage, gateway }: DeployUsageBreakdown): Comp
 
     return {
       projectId,
-      name: label(projectId, usageRows[0]?.projectName ?? gatewayRows[0]?.projectName ?? null),
+      ...label(
+        projectId,
+        usageRows[0]?.projectName ?? gatewayRows[0]?.projectName ?? null,
+        "project",
+      ),
       apps: appNodes,
       gateway: projectGateway,
       ...compute,

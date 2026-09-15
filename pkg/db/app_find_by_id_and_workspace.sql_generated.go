@@ -10,7 +10,7 @@ import (
 )
 
 const findAppByIdAndWorkspace = `-- name: FindAppByIdAndWorkspace :one
-SELECT id FROM apps
+SELECT id, project_id FROM apps
 WHERE id = ?
   AND workspace_id = ?
 `
@@ -20,6 +20,11 @@ type FindAppByIdAndWorkspaceParams struct {
 	WorkspaceID string `db:"workspace_id"`
 }
 
+type FindAppByIdAndWorkspaceRow struct {
+	ID        string `db:"id"`
+	ProjectID string `db:"project_id"`
+}
+
 // Resolves an app by id within a workspace.
 //
 // app_find_by_id.sql has no workspace predicate, and the project-scoped finders
@@ -27,15 +32,17 @@ type FindAppByIdAndWorkspaceParams struct {
 // Anything validating that a caller owns the app it named must scope the lookup,
 // so this exists as the scoped single-app read.
 //
-// Selects the id alone: every caller discards the row and keeps only whether it
-// exists, so there is no reason to carry the rest of the columns.
+// The project id comes back with it because an app's resource permissions are
+// addressed as projects/{project_id}/apps/{app_id}: a caller that arrived with
+// an app id alone would otherwise need a second read to say anything about the
+// app it just proved it owns.
 //
-//	SELECT id FROM apps
+//	SELECT id, project_id FROM apps
 //	WHERE id = ?
 //	  AND workspace_id = ?
-func (q *Queries) FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (string, error) {
+func (q *Queries) FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (FindAppByIdAndWorkspaceRow, error) {
 	row := db.QueryRowContext(ctx, findAppByIdAndWorkspace, arg.ID, arg.WorkspaceID)
-	var id string
-	err := row.Scan(&id)
-	return id, err
+	var i FindAppByIdAndWorkspaceRow
+	err := row.Scan(&i.ID, &i.ProjectID)
+	return i, err
 }

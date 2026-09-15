@@ -1,8 +1,11 @@
 package testutil
 
 import (
+	"context"
 	"database/sql"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
@@ -14,6 +17,9 @@ import (
 // The seeder takes the two association columns, and which one carries the id
 // depends on the mapping kind, so every portal route test needs the same
 // derivation. It lives here rather than being copied into each package.
+//
+// The project is derived from the mapping rather than passed in, so a seeded row
+// satisfies the invariant the routes enforce, and the mapped resource must exist.
 //
 // A nil logoURL or primaryColor leaves that branding column absent, which is
 // distinct from present-but-empty.
@@ -36,9 +42,13 @@ func (h *Harness) SeedPortal(
 		t.Fatalf("unsupported portal mapping type %q", mapping.Type)
 	}
 
+	projectID, err := portal.ResolveMappingProject(context.Background(), h.DB.RO(), workspaceID, mapping)
+	require.NoError(t, err, "the mapped resource must exist for its project to be derived")
+
 	return h.CreatePortal(seed.CreatePortalRequest{
 		ID:           "",
 		WorkspaceID:  workspaceID,
+		ProjectID:    projectID,
 		Slug:         slug,
 		DisplayName:  displayName,
 		AppID:        appID,

@@ -1,6 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import type { RefObject } from "react";
 import { useState } from "react";
@@ -30,7 +30,7 @@ const CreateRootKeyButton = ({ className, triggerRef, onClick, ...props }: Props
         size="sm"
         className={cn("px-3 rounded-md", className)}
       >
-        <Plus />
+        <IconPlusOutline18 />
         {ROOT_KEY_MESSAGES.UI.NEW_ROOT_KEY}
       </Button>
       <RootKeyDialog

@@ -63,7 +63,7 @@ func TestGetApiInsufficientPermissions(t *testing.T) {
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 			}
 
-			res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](
+			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
 				h,
 				route,
 				headers,
@@ -72,9 +72,13 @@ func TestGetApiInsufficientPermissions(t *testing.T) {
 				},
 			)
 
-			require.Equal(t, 403, res.Status, "expected 403, received: %#v", res)
-			require.Equal(t, "https://unkey.com/docs/errors/unkey/authorization/insufficient_permissions", res.Body.Error.Type)
-			require.Contains(t, res.Body.Error.Detail, "Missing one of these permissions:")
+			// Read authorization runs after the lookup so the URN arm can use the
+			// keyspace, and an insufficient-permissions failure is masked as a
+			// not-found error. Callers without read access must not be able to
+			// distinguish an existing API from a non-existent one.
+			require.Equal(t, 404, res.Status, "expected 404, received: %#v", res)
+			require.Equal(t, "https://unkey.com/docs/errors/unkey/data/api_not_found", res.Body.Error.Type)
+			require.Equal(t, "The requested API does not exist or has been deleted.", res.Body.Error.Detail)
 		})
 	}
 

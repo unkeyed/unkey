@@ -4,7 +4,7 @@ import { ORGANIZATION_ROLES } from "@/lib/auth/roles";
 import type { AuthenticatedUser, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import {
   Button,
   DialogContainer,
@@ -99,7 +99,7 @@ export const InviteButton = ({ user, organization, ...rest }: InviteButtonProps)
         {...rest}
         color="default"
       >
-        <Plus iconSize="lg-regular" className="w-4 h-4 " />
+        <IconPlusOutline18 className="w-4 h-4" />
         Invite Member
       </Button>
       <DialogContainer

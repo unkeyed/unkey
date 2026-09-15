@@ -2,7 +2,7 @@
 
 import { CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import { CaretRight } from "@unkey/icons";
+import { IconCaretRightOutline18 } from "@unkey/icons";
 import type { CheckedState } from "@unkey/ui";
 import { Checkbox } from "@unkey/ui";
 import { type ComponentPropsWithoutRef, type ElementRef, forwardRef } from "react";
@@ -46,7 +46,7 @@ const ExpandableCategory = forwardRef<
             <p className="text-xs text-gray-10 w-full truncate">{description}</p>
           ) : null}
         </div>
-        <CaretRight
+        <IconCaretRightOutline18
           className="w-4 h-4 transition-transform duration-200 ml-auto text-grayA-7"
           aria-hidden="true"
         />

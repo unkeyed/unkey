@@ -1,4 +1,4 @@
-import { CaretRight } from "@unkey/icons";
+import { IconCaretRightOutline18 } from "@unkey/icons";
 import { Button, Drover, KeyboardButton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type React from "react";
@@ -135,7 +135,7 @@ export const FilterItem = ({
               className="size-5 [&_svg]:size-2"
               aria-hidden="true"
             >
-              <CaretRight className="text-gray-7 group-hover:text-gray-10" />
+              <IconCaretRightOutline18 className="text-gray-7 group-hover:text-gray-10" />
             </Button>
           </div>
         </div>

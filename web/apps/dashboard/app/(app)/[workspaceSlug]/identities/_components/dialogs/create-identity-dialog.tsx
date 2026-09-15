@@ -8,7 +8,7 @@ import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ConflictErrorResponse } from "@unkey/api/models/errors";
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import {
   Alert,
   AlertDescription,
@@ -110,7 +110,7 @@ export function CreateIdentityDialog() {
   return (
     <>
       <Button size="md" variant="primary" onClick={() => setOpen(true)}>
-        <Plus iconSize="sm-regular" />
+        <IconPlusOutline18 />
         Create identity
       </Button>
 

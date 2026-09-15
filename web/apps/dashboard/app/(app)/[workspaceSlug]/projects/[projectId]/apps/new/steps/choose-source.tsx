@@ -5,7 +5,7 @@ import { applyDefaultSettings } from "@/lib/collections/deploy/environment-setti
 import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
 import { trpc } from "@/lib/trpc/client";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { CodeBranch, Github } from "@unkey/icons";
+import { Github, IconCodeBranchOutline18 } from "@unkey/icons";
 import { Button, toast, useStepWizard } from "@unkey/ui";
 import { useState } from "react";
 import { z } from "zod";
@@ -145,7 +145,7 @@ export const ChooseSourceStep = ({
         {imageMode ? null : (
           <div className="border border-grayA-5 rounded-lg flex justify-start items-center gap-4 py-[18px] px-4">
             <div className="size-8 rounded-[10px] grid place-items-center ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none shrink-0">
-              <CodeBranch className="size-[18px] text-gray-12" iconSize="md-medium" />
+              <IconCodeBranchOutline18 className="size-[18px] text-gray-12" />
             </div>
             <div className="flex flex-col gap-3">
               <span className="font-medium text-gray-12 text-[13px] leading-[9px]">
