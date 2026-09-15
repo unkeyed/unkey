@@ -51,6 +51,9 @@ export function useFetchRequestDetails({ requestId, time }: RequestDetailsTarget
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     staleTime: Number.POSITIVE_INFINITY,
+    // The attempt budget below is the retry: react-query's own attempts would
+    // stack extra requests inside an interval tick without advancing it.
+    retry: false,
     refetchInterval: retryScheduled ? MISSING_LOG_RETRY_INTERVAL_MS : false,
   });
 
@@ -58,7 +61,10 @@ export function useFetchRequestDetails({ requestId, time }: RequestDetailsTarget
   // it lags the response being rendered now. Judging the current response keeps
   // the first empty result from reading as settled before a retry has run.
   const isAwaitingIngestion =
-    enabled && query.isSuccess && !query.data?.logs.length && missCount < MISSING_LOG_MAX_ATTEMPTS;
+    enabled &&
+    (query.isSuccess || query.isError) &&
+    !query.data?.logs.length &&
+    missCount < MISSING_LOG_MAX_ATTEMPTS;
 
   const [trackedRequestId, setTrackedRequestId] = useState(requestId);
   if (trackedRequestId !== requestId) {
@@ -66,13 +72,16 @@ export function useFetchRequestDetails({ requestId, time }: RequestDetailsTarget
     setMissCount(0);
   }
 
-  const { data, dataUpdatedAt } = query;
+  const { data, dataUpdatedAt, errorUpdatedAt } = query;
+  // A failed poll leaves data and dataUpdatedAt untouched, so errors have to
+  // spend the budget too, or refetchInterval would keep firing forever.
+  const settledAt = Math.max(dataUpdatedAt, errorUpdatedAt);
   useEffect(() => {
-    if (!dataUpdatedAt) {
+    if (!settledAt) {
       return;
     }
     setMissCount((count) => (data?.logs.length ? 0 : count + 1));
-  }, [data, dataUpdatedAt]);
+  }, [data, settledAt]);
 
   return {
     log: query.data?.logs[0],

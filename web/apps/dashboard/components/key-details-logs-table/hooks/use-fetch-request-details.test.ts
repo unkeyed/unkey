@@ -1,5 +1,20 @@
-import { describe, expect, it } from "vitest";
-import { buildRequestDetailsQueryParams } from "./use-fetch-request-details";
+import { trpc } from "@/lib/trpc/client";
+import { renderHook } from "@testing-library/react";
+import { type Mock, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  buildRequestDetailsQueryParams,
+  useFetchRequestDetails,
+} from "./use-fetch-request-details";
+
+vi.mock("@/lib/trpc/client", () => ({
+  trpc: {
+    logs: {
+      queryLogs: {
+        useQuery: vi.fn(),
+      },
+    },
+  },
+}));
 
 describe("buildRequestDetailsQueryParams", () => {
   const time = 1_757_872_504_000;
@@ -39,5 +54,109 @@ describe("buildRequestDetailsQueryParams", () => {
 
   it("drops the request filter when there is no selected row", () => {
     expect(buildRequestDetailsQueryParams({}).requestId).toBeNull();
+  });
+});
+
+describe("useFetchRequestDetails", () => {
+  const time = 1_757_872_504_000;
+  const maxAttempts = 6;
+  const retryIntervalMs = 2_000;
+
+  type QueryState = {
+    data?: { logs: { request_id: string }[] };
+    dataUpdatedAt: number;
+    errorUpdatedAt: number;
+    isSuccess: boolean;
+    isError: boolean;
+    isLoading: boolean;
+    error: { message: string } | null;
+  };
+
+  const settledEmpty = (at: number): QueryState => ({
+    data: { logs: [] },
+    dataUpdatedAt: at,
+    errorUpdatedAt: 0,
+    isSuccess: true,
+    isError: false,
+    isLoading: false,
+    error: null,
+  });
+
+  const settledFailed = (at: number): QueryState => ({
+    data: undefined,
+    dataUpdatedAt: 0,
+    errorUpdatedAt: at,
+    isSuccess: false,
+    isError: true,
+    isLoading: false,
+    error: { message: "clickhouse unavailable" },
+  });
+
+  const settledWithLog = (at: number): QueryState => ({
+    data: { logs: [{ request_id: "req_1" }] },
+    dataUpdatedAt: at,
+    errorUpdatedAt: 0,
+    isSuccess: true,
+    isError: false,
+    isLoading: false,
+    error: null,
+  });
+
+  const useQueryMock = trpc.logs.queryLogs.useQuery as unknown as Mock;
+
+  let queryState: QueryState;
+  let lastOptions: { refetchInterval: number | false } | undefined;
+
+  const renderRequestDetails = () =>
+    renderHook(() => useFetchRequestDetails({ requestId: "req_1", time }));
+
+  beforeEach(() => {
+    lastOptions = undefined;
+    useQueryMock.mockReset();
+    useQueryMock.mockImplementation(
+      (_params: unknown, options: { refetchInterval: number | false }) => {
+        lastOptions = options;
+        return queryState;
+      },
+    );
+  });
+
+  it("keeps polling while the log has not been ingested yet", () => {
+    queryState = settledEmpty(1);
+    const { result } = renderRequestDetails();
+
+    expect(lastOptions?.refetchInterval).toBe(retryIntervalMs);
+    expect(result.current.isLoading).toBe(true);
+  });
+
+  it("stops polling once failed refetches exhaust the attempt budget", () => {
+    // A failed refetch leaves data and dataUpdatedAt alone, so counting only
+    // successful settles pinned the budget mid-way and polled forever.
+    queryState = settledEmpty(1);
+    const { result, rerender } = renderRequestDetails();
+
+    expect(lastOptions?.refetchInterval).toBe(retryIntervalMs);
+    expect(result.current.isLoading).toBe(true);
+
+    for (let attempt = 2; attempt <= maxAttempts; attempt++) {
+      queryState = settledFailed(attempt);
+      rerender();
+    }
+
+    expect(lastOptions?.refetchInterval).toBe(false);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.error).toEqual({ message: "clickhouse unavailable" });
+  });
+
+  it("settles as soon as the log turns up after a failed refetch", () => {
+    queryState = settledFailed(1);
+    const { result, rerender } = renderRequestDetails();
+
+    queryState = settledWithLog(2);
+    rerender();
+
+    expect(lastOptions?.refetchInterval).toBe(false);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.log).toEqual({ request_id: "req_1" });
   });
 });
