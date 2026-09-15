@@ -2740,6 +2740,35 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/Logdrain'
+        ListLogdrainsRequest:
+            type: object
+            additionalProperties: false
+            properties:
+                cursor:
+                    type: string
+                    maxLength: 48
+                    minLength: 1
+                limit:
+                    type: integer
+                    maximum: 100
+                    minimum: 1
+                    default: 100
+        ListLogdrainsResponse:
+            type: object
+            required:
+                - meta
+                - data
+                - pagination
+            additionalProperties: false
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Logdrain'
+                pagination:
+                    $ref: '#/components/schemas/Pagination'
         V2PermissionsCreatePermissionRequestBody:
             type: object
             required:
@@ -14102,6 +14131,55 @@ paths:
             tags:
                 - logdrains
             x-speakeasy-name-override: getLogdrain
+    /v2/logdrains.listLogdrains:
+        post:
+            description: |
+                List log drains in your workspace in ascending ID order, without credential
+                values. Requires `unkey:v1:{workspaceId}:logdrains/*#read`.
+            operationId: logdrains.listLogdrains
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/ListLogdrainsRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListLogdrainsResponse'
+                    description: Log drains in the authorized workspace.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid input.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Missing or invalid credentials.
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient permission.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            security:
+                - bearer: []
+            summary: List log drains
+            tags:
+                - logdrains
+            x-speakeasy-name-override: listLogdrains
     /v2/permissions.createPermission:
         post:
             description: |

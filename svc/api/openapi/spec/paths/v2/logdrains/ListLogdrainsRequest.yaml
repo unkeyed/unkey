@@ -1,0 +1,5 @@
+type: object
+additionalProperties: false
+properties:
+  cursor: { type: string, minLength: 1, maxLength: 48 }
+  limit: { type: integer, minimum: 1, maximum: 100, default: 100 }

@@ -1097,6 +1097,23 @@ type KeysVerifyKeyRatelimit struct {
 	Name string `json:"name"`
 }
 
+// ListLogdrainsRequest defines model for ListLogdrainsRequest.
+type ListLogdrainsRequest struct {
+	Cursor *string `json:"cursor,omitempty"`
+	Limit  *int    `json:"limit,omitempty"`
+}
+
+// ListLogdrainsResponse defines model for ListLogdrainsResponse.
+type ListLogdrainsResponse struct {
+	Data []Logdrain `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+
+	// Pagination Pagination metadata for list endpoints. Provides information necessary to traverse through large result sets efficiently using cursor-based pagination.
+	Pagination Pagination `json:"pagination"`
+}
+
 // Logdrain defines model for Logdrain.
 type Logdrain struct {
 	// BatchSize Effective maximum events per delivery. Defaults to 10000.
@@ -5275,6 +5292,9 @@ type LogdrainsCreateLogdrainJSONRequestBody = CreateLogdrainRequest
 
 // LogdrainsGetLogdrainJSONRequestBody defines body for LogdrainsGetLogdrain for application/json ContentType.
 type LogdrainsGetLogdrainJSONRequestBody = LogdrainIdRequest
+
+// LogdrainsListLogdrainsJSONRequestBody defines body for LogdrainsListLogdrains for application/json ContentType.
+type LogdrainsListLogdrainsJSONRequestBody = ListLogdrainsRequest
 
 // PermissionsCreatePermissionJSONRequestBody defines body for PermissionsCreatePermission for application/json ContentType.
 type PermissionsCreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody
