@@ -21,7 +21,7 @@ var portalScopes = []string{
 
 func validatePortalScopes(value string) error {
 	var scopes []string
-	for _, scope := range strings.Split(value, ",") {
+	for scope := range strings.SplitSeq(value, ",") {
 		scope = strings.TrimSpace(scope)
 		if scope == "" {
 			continue

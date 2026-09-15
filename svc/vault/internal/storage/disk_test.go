@@ -186,7 +186,7 @@ func TestDisk_ConcurrentDifferentKeys(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(numGoroutines)
 
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		go func(id int) {
 			defer wg.Done()
 			key := store.Key("workspace", fmt.Sprintf("dek_%d", id))

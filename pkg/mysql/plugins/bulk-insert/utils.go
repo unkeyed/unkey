@@ -36,18 +36,18 @@ func pluralize(word string) string {
 }
 
 func ToCamelCase(name string) string {
-	out := ""
+	var out strings.Builder
 
 	for i, p := range strings.Split(name, "_") {
 		if p == "id" {
-			out += "ID"
+			out.WriteString("ID")
 		} else if p == "url" && i > 0 {
 			// sqlc uses "Url" not "URL" in compound names
-			out += "Url"
+			out.WriteString("Url")
 		} else {
-			out += caser.String(p)
+			out.WriteString(caser.String(p))
 		}
 	}
 
-	return out
+	return out.String()
 }

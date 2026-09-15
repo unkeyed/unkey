@@ -239,7 +239,7 @@ func newTestReader(t *testing.T, node *fakeNode) *linuxReader {
 		workerWG:      sync.WaitGroup{},
 		closed:        make(chan struct{}),
 	}
-	for i := 0; i < attachWorkers; i++ {
+	for range attachWorkers {
 		r.workerWG.Go(r.runAttachWorker)
 	}
 	t.Cleanup(func() { require.NoError(t, r.Close()) })
@@ -397,7 +397,7 @@ func TestAttach_StableNetnsIsNotReattached(t *testing.T) {
 	uid := types.UID("pod-1")
 
 	sb := node.addSandbox("sandbox-a")
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		_, err := tick(t, r, uid)
 		require.NoError(t, err)
 	}

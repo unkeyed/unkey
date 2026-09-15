@@ -39,7 +39,7 @@ func listServiceVersions(service string) []semver {
 	}
 
 	var versions []semver
-	for _, line := range strings.Split(out, "\n") {
+	for line := range strings.SplitSeq(out, "\n") {
 		raw := strings.TrimPrefix(strings.TrimSpace(line), service+"/")
 		if v, ok := parseSemver(raw); ok {
 			versions = append(versions, v)
@@ -56,7 +56,7 @@ func commitHashes(baseline string) map[string]bool {
 	if err != nil || strings.TrimSpace(out) == "" {
 		return set
 	}
-	for _, h := range strings.Split(out, "\n") {
+	for h := range strings.SplitSeq(out, "\n") {
 		if h = strings.TrimSpace(h); h != "" {
 			set[h] = true
 		}

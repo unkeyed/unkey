@@ -143,7 +143,7 @@ func RunRateLimitTest(
 	lb := integration.NewLoadbalancer(h)
 
 	// Send requests
-	for i := 0; i < totalRequests; i++ {
+	for range totalRequests {
 		// Advance simulated clock
 		clk.Tick(interval)
 
@@ -239,12 +239,7 @@ func RunRateLimitTest(
 
 // calculateRPS determines the requests per second based on the rate limit parameters
 func calculateRPS(limit int64, duration int64, loadFactor float64) int {
-	rps := int(float64(limit) * loadFactor * (1000.0 / float64(duration)))
-
-	// Must have at least 1 RPS
-	if rps < 1 {
-		rps = 1
-	}
+	rps := max(int(float64(limit)*loadFactor*(1000.0/float64(duration))), 1)
 
 	return rps
 }

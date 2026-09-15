@@ -332,7 +332,7 @@ func TestGenerateAPIKeyConsistency(t *testing.T) {
 
 	// Generate multiple keys to ensure they're different
 	keys := make([]*APIKey, 10)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		key, err := GenerateAPIKey(opts)
 		if err != nil {
 			t.Fatalf("GenerateAPIKey() unexpected error: %v", err)
@@ -341,7 +341,7 @@ func TestGenerateAPIKeyConsistency(t *testing.T) {
 	}
 
 	// Ensure all generated keys are unique
-	for i := 0; i < len(keys); i++ {
+	for i := range keys {
 		for j := i + 1; j < len(keys); j++ {
 			if keys[i].Token == keys[j].Token {
 				t.Errorf("GenerateAPIKey() generated duplicate tokens: %v", keys[i].Token)

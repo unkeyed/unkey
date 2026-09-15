@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	stripesdk "github.com/stripe/stripe-go/v86"
@@ -216,11 +217,12 @@ func clockDelete(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("delete clock %s: %w", clockID, err)
 	}
 	out := tui.New(os.Stdout)
-	deleted := "Deleted clock " + clockID
+	var deleted strings.Builder
+	deleted.WriteString("Deleted clock " + clockID)
 	for _, customer := range customers {
-		deleted += ", customer " + customer.ID
+		deleted.WriteString(", customer " + customer.ID)
 	}
-	out.Println(deleted)
+	out.Println(deleted.String())
 	out.Println(out.Dim("If a workspace still references a deleted customer, run `unkey dev stripe reset --workspace <id>`."))
 	return nil
 }
