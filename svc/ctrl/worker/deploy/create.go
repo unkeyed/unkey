@@ -46,10 +46,7 @@ const (
 
 // Create writes a deployment row and starts its pipeline. See the proto for the
 // contract.
-//
-// The legacy ctrl.v1.DeploymentService.CreateDeployment RPC still writes rows
-// too, until its callers move over.
-func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
+func (w *Workflow) Create(ctx restate.WorkflowSharedContext, req *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
 	deploymentID := restate.Key(ctx)
 
 	if err := assert.All(
@@ -57,7 +54,7 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 		assert.NotEmpty(req.GetAppId(), "app_id is required"),
 		assert.NotEmpty(req.GetEnvironmentId(), "environment_id is required"),
 	); err != nil {
-		return nil, restate.TerminalError(err)
+		return nil, restate.ToTerminalError(err)
 	}
 
 	status, err := statusForDecision(req.GetDecision())
@@ -82,7 +79,7 @@ func (w *Workflow) Create(ctx restate.ObjectContext, req *hydrav1.DeployCreateRe
 		}, nil
 	}
 
-	if err := w.insertDeployment(ctx, deploymentID, payload, req.GetActor()); err != nil {
+	if err := w.insertDeployment(ctx, deploymentID, payload, req.GetTrigger().GetActor()); err != nil {
 		return nil, err
 	}
 
@@ -254,9 +251,9 @@ func (w *Workflow) validateAndBuildPayload(
 			assert.LessOrEqual(utf8.RuneCountInString(commit.SHA), commitSHACharsMax, "commit sha is too long"),
 			assert.LessOrEqual(utf8.RuneCountInString(commit.Branch), branchCharsMax, "branch is too long"),
 			assert.LessOrEqual(utf8.RuneCountInString(commit.ForkRepository), forkRepositoryCharsMax, "fork repository is too long"),
-			assert.LessOrEqual(utf8.RuneCountInString(req.GetTriggeredBy()), triggeredByCharsMax, "triggered_by is too long"),
+			assert.LessOrEqual(utf8.RuneCountInString(req.GetTrigger().GetActor().GetId()), triggeredByCharsMax, "triggered_by is too long"),
 		); tooLong != nil {
-			return payload, restate.TerminalError(tooLong)
+			return payload, restate.ToTerminalError(tooLong)
 		}
 
 		prNumber := req.GetGit().GetPrNumber()
@@ -278,7 +275,7 @@ func (w *Workflow) validateAndBuildPayload(
 				return payload, nil
 			}
 			if resolved.Source.Git == nil && resolved.Source.Image == "" {
-				return payload, restate.TerminalError(errors.New("no build source: set git, image, or existing_deployment"))
+				return payload, restate.ToTerminalError(errors.New("no build source: set git, image, or existing_deployment"))
 			}
 			source, commit = resolved.Source, resolved.Commit
 			if source.Git != nil {
@@ -302,9 +299,10 @@ func (w *Workflow) validateAndBuildPayload(
 		if source.Git != nil || req.GetImage() != nil {
 			payload.RequestedBranch = commit.Branch
 		}
-		payload.Trigger = triggerFromProto(req.GetTrigger())
-		payload.TriggeredBy = req.GetTriggeredBy()
-		payload.TriggerReason = trimBytes(req.GetTriggerReason(), triggerReasonBytesMax)
+		trigger := req.GetTrigger()
+		payload.Trigger = triggerFromProto(trigger.GetSource())
+		payload.TriggeredBy = trigger.GetActor().GetId()
+		payload.TriggerReason = trimBytes(trigger.GetReason(), triggerReasonBytesMax)
 		payload.RebuildSourceID = req.GetExistingDeployment().GetDeploymentId()
 		return payload, nil
 	}, restate.WithName("validate and build deploy payload"), restate.WithMaxRetryAttempts(runMaxAttempts))
@@ -422,13 +420,19 @@ func (w *Workflow) insertDeployment(
 			return w.auditlogs.Insert(txCtx, tx, createAuditLogs(payload, deploymentID, a))
 		})
 
-		// A duplicate key is only this create's own committed row, which no retry
-		// can clear. Any other row on this id never passed the checks above, and
-		// deploying it would skip the gates it is owed, approval included.
+		// The insert failed because a row with this id is already there. Two
+		// cases are expected:
+		//
+		//   1. Restate retried this handler and the first insert had committed
+		//   2. an approval is starting the row its push wrote earlier
+		//
+		// Both are our own row, so carry on. Anything else with this id never
+		// ran the checks above, and deploying it would skip the plan, spend
+		// and approval gates. That one fails.
 		if insertErr != nil && db.IsDuplicateKeyError(insertErr) {
-			existing, findErr := w.db.FindDeploymentById(runCtx, deploymentID)
+			existing, findErr := w.db.FindDeploymentAppAndStatus(runCtx, deploymentID)
 			if findErr != nil || existing.AppID != target.AppID || existing.Status != payload.Status {
-				return restate.TerminalError(fmt.Errorf("deployment id %s is not available", deploymentID))
+				return restate.ToTerminalError(fmt.Errorf("deployment id %s is not available", deploymentID))
 			}
 			return nil
 		}
@@ -500,21 +504,19 @@ func createAuditLogs(
 // startDeployment sends Deploy, records its invocation id, then supersedes older
 // queued siblings on the branch.
 func (w *Workflow) startDeployment(
-	ctx restate.ObjectContext,
+	ctx restate.WorkflowSharedContext,
 	deploymentID string,
 	payload deployPayload,
 ) error {
 	target := payload.Target
-	invocation := hydrav1.NewDeployServiceClient(ctx, deploymentID).
-		Deploy().
-		Send(payload.toDeployRequest(deploymentID))
+	invocation := hydrav1.NewDeployWorkflowClient(ctx, deploymentID).Deploy().Send(payload.toDeployRequest(deploymentID))
 
 	// An empty id would leave a deployment nothing can cancel. Only a Restate
 	// bug produces one, since any other malformed value panics, and the id is
 	// journaled so a retry would replay it: terminal rather than forever.
 	invocationID := invocation.GetInvocationId()
 	if invocationID == "" {
-		return restate.TerminalError(
+		return restate.ToTerminalError(
 			fmt.Errorf("restate returned an empty invocation id for deployment %s", deploymentID),
 		)
 	}
@@ -559,7 +561,7 @@ func (w *Workflow) startDeployment(
 // bounded time, then logged and dropped: the row is already written, so the
 // create must not fail here.
 func (w *Workflow) postAwaitingApprovalStatus(
-	ctx restate.ObjectContext,
+	ctx restate.ObjectSharedContext,
 	deploymentID string,
 	req *hydrav1.DeployCreateRequest,
 	payload deployPayload,
@@ -607,9 +609,9 @@ func statusForDecision(decision hydrav1.CreateDecision) (mysqltype.DeploymentsSt
 	case hydrav1.CreateDecision_CREATE_DECISION_AWAIT_APPROVAL:
 		return mysqltype.DeploymentsStatusAwaitingApproval, nil
 	case hydrav1.CreateDecision_CREATE_DECISION_UNSPECIFIED:
-		return "", restate.TerminalError(errors.New("decision is required"))
+		return "", restate.ToTerminalError(errors.New("decision is required"))
 	default:
-		return "", restate.TerminalError(fmt.Errorf("unknown decision %q", decision.String()))
+		return "", restate.ToTerminalError(fmt.Errorf("unknown decision %q", decision.String()))
 	}
 }
 
@@ -648,7 +650,7 @@ func (w *Workflow) loadSecrets(ctx context.Context, appID, environmentID string)
 	for _, ev := range envVars {
 		// An invalid key is corrupt stored data. No retry fixes it.
 		if !validation.IsValidEnvVarKey(ev.Key) {
-			return nil, restate.TerminalError(fmt.Errorf(
+			return nil, restate.ToTerminalError(fmt.Errorf(
 				"environment variable key %q is invalid: %s", ev.Key, validation.ErrMsgInvalidEnvVarKey,
 			))
 		}

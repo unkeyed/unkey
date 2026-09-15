@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -19,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
+	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -53,6 +55,7 @@ func TestCreateWritesRowAndStartsDeploy(t *testing.T) {
 	require.Equal(t, h.appID, row.AppID)
 	require.Equal(t, h.environmentID, row.EnvironmentID)
 	require.Equal(t, db.DeploymentsTriggerApi, row.Trigger)
+	require.Equal(t, "root_KEBAP", row.TriggeredBy.String, "triggered_by is the actor id")
 
 	step := h.queuedStep(t, ctx, deploymentID)
 	require.Nil(t, step, "the queued step must still be open when Deploy has not run")
@@ -347,7 +350,7 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		h.setDeploymentImages(t, ctx, source.ID, db.DeploymentsSourceGit, fixtureImage)
 
 		req := h.existingRequest(source.ID, false)
-		req.Trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY
+		req.Trigger.Source = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY
 
 		resp := h.create(t, ctx, uid.New(uid.DeploymentPrefix), req)
 		require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_NO_SOURCE_COMMIT, resp.GetOutcome())
@@ -480,15 +483,17 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		source := h.imageDeployment(t, ctx, 0)
 
 		req := h.existingRequest(source.ID, false)
-		req.Trigger = ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY
-		req.TriggerReason = "image lost from the registry"
-		req.Actor = &ctrlv1.ActorInfo{
-			Id:        "unkey-ops",
-			Name:      "Unkey Ops",
-			Type:      ctrlv1.ActorType_ACTOR_TYPE_SYSTEM,
-			RemoteIp:  "",
-			UserAgent: "",
-			Meta:      map[string]string{"reason": "image lost from the registry"},
+		req.Trigger = &hydrav1.Trigger{
+			Source: ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY,
+			Actor: &ctrlv1.ActorInfo{
+				Id:        "unkey-ops",
+				Name:      "Unkey Ops",
+				Type:      ctrlv1.ActorType_ACTOR_TYPE_SYSTEM,
+				RemoteIp:  "",
+				UserAgent: "",
+				Meta:      map[string]string{"reason": "image lost from the registry"},
+			},
+			Reason: "image lost from the registry",
 		}
 
 		deploymentID := uid.New(uid.DeploymentPrefix)
@@ -501,6 +506,11 @@ func TestCreateFromExistingDeployment(t *testing.T) {
 		payload := h.auditPayload(t, ctx, auditlog.DeploymentRebuildEvent, deploymentID)
 		require.Contains(t, payload, "unkey-ops", "the operator actor must survive onto the audit entry")
 		require.Contains(t, payload, source.ID, "the audit names the deployment being replaced")
+
+		row := h.deployment(t, ctx, deploymentID)
+		require.Equal(t, db.DeploymentsTriggerUnkey, row.Trigger)
+		require.Equal(t, "unkey-ops", row.TriggeredBy.String, "triggered_by is the actor id")
+		require.Equal(t, "image lost from the registry", row.TriggerReason.String)
 	})
 }
 
@@ -806,6 +816,41 @@ func TestInsertDeploymentToleratesACommittedRow(t *testing.T) {
 	require.Equal(t, 1, h.countDeployments(t, ctx), "no second row")
 }
 
+// TestCreateOnACommittedRowDedupsFromTheRowsOwnAge pins the ordering key the
+// sibling dedup uses. An authorization runs Create against a row written hours
+// earlier, so taking the wall clock instead of the row would let the older
+// deployment supersede a sibling that is genuinely newer than it.
+func TestCreateOnACommittedRowDedupsFromTheRowsOwnAge(t *testing.T) {
+	ctx := context.Background()
+	h := newCreateHarness(t, ctx)
+	h.connectRepo(t, ctx)
+
+	deploymentID := uid.New(uid.DeploymentPrefix)
+	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
+		h.create(t, ctx, deploymentID, h.gitRequest()).GetOutcome())
+
+	twoHoursAgo := time.Now().Add(-2 * time.Hour).UnixMilli()
+	h.backdate(t, ctx, deploymentID, twoHoursAgo)
+
+	newer := h.seeder.CreateDeployment(ctx, seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   h.workspaceID,
+		ProjectID:     h.projectID,
+		AppID:         h.appID,
+		EnvironmentID: h.environmentID,
+		Status:        mysqltype.DeploymentsStatusPending,
+		CreatedAt:     time.Now().Add(-1 * time.Hour).UnixMilli(),
+		GitBranch:     sql.NullString{Valid: true, String: "main"},
+	})
+
+	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
+		h.create(t, ctx, deploymentID, h.gitRequest()).GetOutcome())
+
+	require.Equal(t, mysqltype.DeploymentsStatusPending,
+		h.deployment(t, ctx, newer.ID).Status,
+		"a sibling newer than the row being started must survive")
+}
+
 // TestCreateSkipIgnoresEnvironmentDeployability keeps the record of a push that
 // was deliberately not built. Refusing the skip would leave the push with no
 // record at all, which is what the reason on the row exists to prevent.
@@ -816,7 +861,7 @@ func TestCreateSkipIgnoresEnvironmentDeployability(t *testing.T) {
 
 	req := h.gitRequest()
 	req.Decision = hydrav1.CreateDecision_CREATE_DECISION_SKIP
-	req.TriggerReason = "Watch paths did not match any changed files."
+	req.Trigger.Reason = "Watch paths did not match any changed files."
 
 	deploymentID := uid.New(uid.DeploymentPrefix)
 	require.Equal(t, hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED,
@@ -1233,49 +1278,85 @@ type createHarness struct {
 	environmentID string
 }
 
+// sharedCreateDeploy is the one Restate every create test in this package uses.
+//
+// The tests already share a MySQL database and isolate themselves with
+// generated workspace, app and deployment ids, so the workflow behind Restate
+// can be shared on the same terms. One container per test made this the
+// slowest package in the suite for no isolation it was not already getting
+// from those ids.
+var sharedCreateDeploy struct {
+	once     sync.Once
+	stop     func()
+	client   *restateingress.Client
+	recorder *createDeployRecorder
+}
+
+func TestMain(m *testing.M) {
+	code := m.Run()
+	if sharedCreateDeploy.stop != nil {
+		sharedCreateDeploy.stop()
+	}
+	os.Exit(code)
+}
+
 func newCreateHarness(t *testing.T, ctx context.Context) *createHarness {
 	t.Helper()
 
 	database, fixture := newDeployFixture(t, ctx)
 
-	auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: database})
-	require.NoError(t, err)
+	sharedCreateDeploy.once.Do(func() {
+		shared, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())
+		require.NoError(t, err)
 
-	workflow, err := deploy.New(deploy.Config{
-		DB:            database,
-		Auditlogs:     auditlogSvc,
-		DefaultDomain: "test.example.com",
-		DashboardURL:  "https://app.unkey.local",
-		Vault:         nil,
-		GitHub:        githubclient.NewNoop(),
-		Build: deploy.BuildConfig{
-			Backend:    deploy.BuildBackendDepot,
-			Depot:      deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},
-			Kubernetes: deploy.KubernetesBuildConfig{Namespace: "", Image: ""},
-		},
-		K8s:                             nil,
-		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
-		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
-		Clickhouse:                      nil,
-		BuildSteps:                      batch.NewNoop[schema.BuildStepV1](),
-		BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
-		AllowUnauthenticatedDeployments: false,
-		RestateAdmin:                    nil,
+		auditlogSvc, err := auditlogs.New(auditlogs.Config{DB: shared})
+		require.NoError(t, err)
+
+		workflow, err := deploy.New(deploy.Config{
+			DB:            shared,
+			Auditlogs:     auditlogSvc,
+			DefaultDomain: "test.example.com",
+			DashboardURL:  "https://app.unkey.local",
+			Vault:         nil,
+			GitHub:        githubclient.NewNoop(),
+			Build: deploy.BuildConfig{
+				Backend:    deploy.BuildBackendDepot,
+				Depot:      deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},
+				Kubernetes: deploy.KubernetesBuildConfig{Namespace: "", Image: ""},
+			},
+			K8s:                             nil,
+			RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
+			BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
+			Clickhouse:                      nil,
+			BuildSteps:                      batch.NewNoop[schema.BuildStepV1](),
+			BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
+			AllowUnauthenticatedDeployments: false,
+			RestateAdmin:                    nil,
+		})
+		require.NoError(t, err)
+
+		recorder := &createDeployRecorder{
+			Workflow: workflow,
+			requests: make(map[string]*hydrav1.DeployRequest),
+		}
+		cfg, stop := containers.RestatePackage(t, hydrav1.NewDeployWorkflowServer(recorder))
+
+		sharedCreateDeploy.client = cfg.IngressClient
+		sharedCreateDeploy.recorder = recorder
+		sharedCreateDeploy.stop = func() {
+			stop()
+			_ = shared.Close()
+		}
 	})
-	require.NoError(t, err)
-
-	recorder := &createDeployRecorder{
-		Workflow: workflow,
-		requests: make(map[string]*hydrav1.DeployRequest),
-	}
-
-	cfg := containers.Restate(t, hydrav1.NewDeployServiceServer(recorder))
+	// A failed setup leaves the once spent, and every later test would panic on
+	// the nil client instead of naming the cause.
+	require.NotNil(t, sharedCreateDeploy.client, "shared Restate setup failed in an earlier test")
 
 	h := &createHarness{
 		database:      database,
 		seeder:        fixture.seeder,
-		client:        cfg.IngressClient,
-		deploys:       recorder,
+		client:        sharedCreateDeploy.client,
+		deploys:       sharedCreateDeploy.recorder,
 		workspaceID:   fixture.workspaceID,
 		projectID:     fixture.projectID,
 		appID:         fixture.appID,
@@ -1293,7 +1374,7 @@ type createDeployRecorder struct {
 	requests map[string]*hydrav1.DeployRequest
 }
 
-func (r *createDeployRecorder) Deploy(_ restate.ObjectContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
+func (r *createDeployRecorder) Deploy(_ restate.WorkflowContext, req *hydrav1.DeployRequest) (*hydrav1.DeployResponse, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.requests[req.GetDeploymentId()] = req
@@ -1314,7 +1395,7 @@ func (h *createHarness) create(t *testing.T, ctx context.Context, deploymentID s
 }
 
 func (h *createHarness) tryCreate(ctx context.Context, deploymentID string, req *hydrav1.DeployCreateRequest) (*hydrav1.DeployCreateResponse, error) {
-	return hydrav1.NewDeployServiceIngressClient(h.client, deploymentID).Create().Request(ctx, req)
+	return hydrav1.NewDeployWorkflowIngressClient(h.client, deploymentID).Create().Request(ctx, req)
 }
 
 // imageRequest is a create that needs no GitHub and no repository connection,
@@ -1327,17 +1408,18 @@ func (h *createHarness) imageRequest() *hydrav1.DeployCreateRequest {
 		Source: &hydrav1.DeployCreateRequest_Image{
 			Image: &hydrav1.CreateImageSource{Image: fixtureImage},
 		},
-		Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
-		Trigger:       ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API,
-		TriggeredBy:   "root_KEBAP",
-		TriggerReason: "",
-		Actor: &ctrlv1.ActorInfo{
-			Id:        "root_KEBAP",
-			Name:      "KEBAP key",
-			Type:      ctrlv1.ActorType_ACTOR_TYPE_ROOT_KEY,
-			RemoteIp:  "",
-			UserAgent: "",
-			Meta:      nil,
+		Decision: hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
+		Trigger: &hydrav1.Trigger{
+			Source: ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API,
+			Actor: &ctrlv1.ActorInfo{
+				Id:        "root_KEBAP",
+				Name:      "KEBAP key",
+				Type:      ctrlv1.ActorType_ACTOR_TYPE_ROOT_KEY,
+				RemoteIp:  "",
+				UserAgent: "",
+				Meta:      nil,
+			},
+			Reason: "",
 		},
 	}
 }
@@ -1546,6 +1628,13 @@ func (h *createHarness) setCurrentDeployment(t *testing.T, ctx context.Context, 
 	t.Helper()
 	_, err := h.database.RW().ExecContext(ctx,
 		"UPDATE apps SET current_deployment_id = ? WHERE id = ?", deploymentID, h.appID)
+	require.NoError(t, err)
+}
+
+func (h *createHarness) backdate(t *testing.T, ctx context.Context, deploymentID string, createdAt int64) {
+	t.Helper()
+	_, err := h.database.RW().ExecContext(ctx,
+		"UPDATE deployments SET created_at = ? WHERE id = ?", createdAt, deploymentID)
 	require.NoError(t, err)
 }
 
