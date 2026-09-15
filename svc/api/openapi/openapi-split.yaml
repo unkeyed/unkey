@@ -339,6 +339,8 @@ paths:
 
   /v2/logdrains.createLogdrain:
     $ref: "./spec/paths/v2/logdrains/createLogdrain/index.yaml"
+  /v2/logdrains.getLogdrain:
+    $ref: "./spec/paths/v2/logdrains/getLogdrain/index.yaml"
 
 components:
   securitySchemes:

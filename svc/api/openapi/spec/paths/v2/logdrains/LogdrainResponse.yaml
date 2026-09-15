@@ -1,0 +1,8 @@
+type: object
+required: [meta, data]
+additionalProperties: false
+properties:
+  meta:
+    $ref: ../../../common/Meta.yaml
+  data:
+    $ref: Logdrain.yaml

@@ -854,6 +854,14 @@ type Querier interface {
 	//      AND ka.deleted_at_m IS NULL
 	//      AND ws.deleted_at_m IS NULL
 	FindLiveKeyByID(ctx context.Context, db DBTX, id string) (FindLiveKeyByIDRow, error)
+	// Scope reads to the authorized workspace so foreign IDs are indistinguishable
+	// from missing drains. Credentials stay in the stored protobuf.
+	//
+	//  SELECT pk, id, workspace_id, name, stream, config, status, consecutive_failures,
+	//    committed_offset_inserted_at, committed_offset_event_id, next_attempt_at,
+	//    lease_id, fencing_token, lease_expires_at, created_at, updated_at
+	//  FROM logdrains WHERE workspace_id = ? AND id = ?
+	FindLogdrain(ctx context.Context, db DBTX, arg FindLogdrainParams) (Logdrain, error)
 	//FindManyRatelimitNamespaces
 	//
 	//  SELECT ns.pk, ns.id, ns.workspace_id, ns.project_id, ns.name, ns.created_at_m, ns.updated_at_m, ns.deleted_at_m,

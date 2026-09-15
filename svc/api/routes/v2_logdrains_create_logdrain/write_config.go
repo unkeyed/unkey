@@ -91,9 +91,9 @@ func setDestination(ctx context.Context, client vault.VaultServiceClient, worksp
 	}
 	if input.Format != nil {
 		switch *input.Format {
-		case openapi.Json:
+		case "json":
 			current.Format = logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON
-		case openapi.Ndjson:
+		case "ndjson":
 			current.Format = logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON
 		default:
 			return invalid("Unsupported HTTP body format.")
