@@ -100,29 +100,20 @@ func TestServerWithTLS(t *testing.T) {
 	// Get the address for the test client
 	addr := ln.Addr().String()
 
-	// Start the server in a goroutine
-	serverCtx, serverCancel := context.WithCancel(context.Background())
-	defer serverCancel()
-
-	// Create a channel to signal when the server is ready
-	serverReady := make(chan struct{})
-
+	serverCtx := t.Context()
+	serverDone := make(chan error, 1)
 	go func() {
-		// Signal that we're about to start the server
-		close(serverReady)
-
-		listenErr := server.Serve(serverCtx, ln)
-		if listenErr != nil && listenErr.Error() != "http: Server closed" {
-			t.Errorf("server.Serve returned: %v", listenErr)
+		serverDone <- server.Serve(serverCtx, ln)
+	}()
+	defer func() {
+		require.NoError(t, server.Shutdown(context.Background()))
+		select {
+		case serveErr := <-serverDone:
+			require.NoError(t, serveErr)
+		case <-time.After(5 * time.Second):
+			t.Fatal("server did not stop after shutdown")
 		}
 	}()
-	defer func() { require.NoError(t, server.Shutdown(context.Background())) }()
-
-	// Wait for the server to signal it's starting
-	<-serverReady
-
-	// Give the server a moment to start listening
-	time.Sleep(100 * time.Millisecond)
 
 	// Create a custom HTTP client that skips certificate verification (since we're using a self-signed cert)
 	client := &http.Client{
