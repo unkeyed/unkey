@@ -92,7 +92,7 @@ func (s *Watcher) runStream(ctx context.Context) {
 			ResumeToken: resumeToken,
 		})
 		if err != nil {
-			if connect.CodeOf(err) == connect.CodeOutOfRange {
+			if shouldResetResumeToken(err) {
 				resumeToken = nil
 			}
 			metrics.StreamConnectionsTotal.WithLabelValues("error").Inc()
@@ -112,7 +112,7 @@ func (s *Watcher) runStream(ctx context.Context) {
 			s.sem.Release(1)
 			if err != nil {
 				metrics.DispatchTotal.WithLabelValues("stream", eventResourceType(event), "error").Inc()
-				logger.Error("stream: error dispatching event", "error", err)
+				logger.Error("stream: error dispatching event", "deployment_id", event.GetDeployment().GetApply().GetDeploymentId(), "error", err)
 				break
 			}
 			if event.GetEvent() != nil {
@@ -120,11 +120,12 @@ func (s *Watcher) runStream(ctx context.Context) {
 			}
 			if len(event.GetResumeToken()) > 0 {
 				resumeToken = event.GetResumeToken()
+				metrics.LastSuccessfulCheckpointUnixSeconds.Set(float64(time.Now().Unix()))
 			}
 		}
 
 		if err := stream.Err(); err != nil && ctx.Err() == nil {
-			if connect.CodeOf(err) == connect.CodeOutOfRange {
+			if shouldResetResumeToken(err) {
 				resumeToken = nil
 			}
 			logger.Error("stream: connection ended", "error", err)
@@ -179,7 +180,7 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 			resourceType := eventResourceType(event)
 			if err := s.dispatch(ctx, event); err != nil {
 				metrics.DispatchTotal.WithLabelValues("full_sync", resourceType, "error").Inc()
-				logger.Error("full sync: error dispatching event", "error", err)
+				logger.Error("full sync: error dispatching event", "deployment_id", event.GetDeployment().GetApply().GetDeploymentId(), "error", err)
 			} else {
 				metrics.DispatchTotal.WithLabelValues("full_sync", resourceType, "success").Inc()
 			}
@@ -191,6 +192,11 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 	}
 
 	metrics.FullSyncDurationSeconds.Observe(time.Since(start).Seconds())
+}
+
+func shouldResetResumeToken(err error) bool {
+	code := connect.CodeOf(err)
+	return code == connect.CodeInvalidArgument || code == connect.CodeOutOfRange
 }
 
 // eventResourceType returns a label-safe resource type string for metrics.

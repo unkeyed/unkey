@@ -16,19 +16,25 @@ Each Krane watch opens one VStream through Ctrl:
 3. Ctrl opens a primary-tablet VStream with this filter:
 
 ```sql
-select deployment_id from deployment_topology where region_id = 'region_id'
+select deployment_id from deployment_topology
+where region_id = 'region_id' and desired_status = 'running'
 ```
 
 4. For each changed ID, Ctrl reads the current desired state from the primary
    database and sends an apply or delete event.
-5. At a transaction boundary, Ctrl sends a checkpoint-only event containing the
-   full VGTID, including snapshot table positions.
+5. After a transaction with matching rows, Ctrl sends a checkpoint-only event
+   containing the full VGTID, including snapshot table positions. It coalesces
+   unrelated transaction checkpoints to at most one every 30 seconds after the
+   initial checkpoint.
 6. Krane applies events sequentially. It saves the token in memory only after
    all preceding events have succeeded.
 
 This delivers current desired state, not a historical record of every status
 transition. Updates to columns outside the filter projection still produce
-events. Changes to joined tables without a topology mutation rely on full sync.
+events. The snapshot excludes historical stopped deployments. A live transition
+from running to stopped still produces a removal from the filter, which Ctrl
+resolves into a delete event. Changes to joined tables without a topology
+mutation rely on full sync.
 
 ## Replay and recover
 
@@ -42,8 +48,11 @@ so deployment operations must remain idempotent. Tokens are not persisted across
 Krane restarts. A restart starts a fresh snapshot.
 
 If Vitess reports unavailable binlogs with MySQL error 1236 or 1789, Ctrl returns
-`OutOfRange`. Krane clears the token and requests a fresh snapshot. Other stream
-errors retry the same token.
+`OutOfRange`. A rejected token returns `InvalidArgument`. Krane clears the token
+for either error and requests a fresh snapshot. Other stream errors retry the
+same token. Ctrl requests heartbeats every 5 seconds and closes a VStream after
+30 seconds without an upstream response. Time spent delivering to Krane does
+not count toward this timeout.
 
 Krane also calls `SyncDesiredState` on startup and every 10 minutes. This RPC
 loads running deployments without depending on binlog retention. Its existing
@@ -56,6 +65,14 @@ the incremental stream because its Kubernetes metadata is no longer available.
 The POC has no application event queue. Synchronous delivery and transport flow
 control slow the reader when Krane falls behind. Binlogs provide the replay
 window, but they are not a permanent event archive.
+
+A permanent Kubernetes apply error blocks subsequent incremental events for
+that Krane. Ctrl and Krane do not skip failed events to advance the token.
+Check Krane's dispatch error logs for the deployment ID, then correct the
+desired state or Kubernetes permissions. Full sync remains independent.
+The `unkey_krane_last_successful_checkpoint_unix_seconds` gauge records accepted
+checkpoints. Use it with dispatch errors and reconnect counters to detect
+blocked progress. An idle source can also leave this timestamp unchanged.
 
 The observed PlanetScale setting `binlog_expire_logs_seconds = 259200` represents
 3 days. It is not a guaranteed replay window across failover or database resets.
@@ -88,11 +105,14 @@ mise exec -- rask ./svc/ctrl/internal/deploymentstream \
 ```
 
 The VStream integration test starts a separate disposable Vitess service with
-the repository schema. Ordinary database tests continue to use MySQL.
+the repository schema. The Ctrl API test harness also uses Vitess. Other
+ordinary database tests continue to use MySQL.
 
 ## Configure PlanetScale
 
-Use the database's supported VStream gRPC address and keyspace. Configure
+The `[vstream]` section is mandatory for Ctrl API startup. Before rollout,
+configure the database's supported VStream gRPC hostname with an explicit
+`:443` port and its keyspace. Configure
 `username` and `password` in Ctrl's `[vstream]` section through secret-backed
 environment expansion. TLS is enabled by default. Do not set `insecure = true`
 outside local development. Credentials are sent through Basic authentication

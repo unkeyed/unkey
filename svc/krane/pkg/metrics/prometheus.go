@@ -74,6 +74,17 @@ var (
 		},
 	)
 
+	// LastSuccessfulCheckpointUnixSeconds records when the watcher most recently
+	// accepted a checkpoint after successfully applying all preceding events.
+	LastSuccessfulCheckpointUnixSeconds = lazy.NewGauge(
+		prometheus.GaugeOpts{
+			Namespace: "unkey",
+			Subsystem: "krane",
+			Name:      "last_successful_checkpoint_unix_seconds",
+			Help:      "Unix time when the incremental stream last accepted a checkpoint.",
+		},
+	)
+
 	// DispatchTotal counts event dispatches to controllers by source, resource type, and outcome.
 	//
 	// Labels:

@@ -38,32 +38,37 @@ func TestDispatch_NilDeploymentState(t *testing.T) {
 	require.Contains(t, err.Error(), "nil deployment state")
 }
 
-func TestWatch_RetriesFailedDeliveryAndResetsExpiredToken(t *testing.T) {
-	server := &watchServer{tokens: make(chan []byte, 3)}
-	_, handler := ctrlv1connect.NewClusterServiceHandler(server)
-	httpServer := httptest.NewServer(handler)
-	t.Cleanup(httpServer.Close)
-	w := New(Config{Cluster: ctrl.NewConnectClusterServiceClient(ctrlv1connect.NewClusterServiceClient(httpServer.Client(), httpServer.URL))})
-	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
-	defer cancel()
-	done := make(chan error, 1)
-	go func() { done <- w.Watch(ctx) }()
-	for _, want := range [][]byte{nil, []byte("committed"), nil} {
-		select {
-		case got := <-server.tokens:
-			require.Equal(t, want, got)
-		case <-ctx.Done():
-			t.Fatal("watch did not reconnect")
-		}
+func TestWatch_RetriesFailedDeliveryAndResetsUnusableToken(t *testing.T) {
+	for _, code := range []connect.Code{connect.CodeInvalidArgument, connect.CodeOutOfRange} {
+		t.Run(code.String(), func(t *testing.T) {
+			server := &watchServer{tokens: make(chan []byte, 3), code: code}
+			_, handler := ctrlv1connect.NewClusterServiceHandler(server)
+			httpServer := httptest.NewServer(handler)
+			t.Cleanup(httpServer.Close)
+			w := New(Config{Cluster: ctrl.NewConnectClusterServiceClient(ctrlv1connect.NewClusterServiceClient(httpServer.Client(), httpServer.URL))})
+			ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+			defer cancel()
+			done := make(chan error, 1)
+			go func() { done <- w.Watch(ctx) }()
+			for _, want := range [][]byte{nil, []byte("committed"), nil} {
+				select {
+				case got := <-server.tokens:
+					require.Equal(t, want, got)
+				case <-ctx.Done():
+					t.Fatal("watch did not reconnect")
+				}
+			}
+			cancel()
+			require.NoError(t, <-done)
+		})
 	}
-	cancel()
-	require.NoError(t, <-done)
 }
 
 type watchServer struct {
 	ctrlv1connect.UnimplementedClusterServiceHandler
 	connections atomic.Int32
 	tokens      chan []byte
+	code        connect.Code
 }
 
 func (s *watchServer) WatchDeploymentChanges(ctx context.Context, req *connect.Request[ctrlv1.WatchDeploymentChangesRequest], stream *connect.ServerStream[ctrlv1.DeploymentChangeEvent]) error {
@@ -81,7 +86,7 @@ func (s *watchServer) WatchDeploymentChanges(ctx context.Context, req *connect.R
 		}
 		return nil
 	case 2:
-		return connect.NewError(connect.CodeOutOfRange, errors.New("position purged"))
+		return connect.NewError(s.code, errors.New("unusable resume token"))
 	default:
 		<-ctx.Done()
 		return ctx.Err()
