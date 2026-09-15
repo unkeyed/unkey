@@ -135,13 +135,7 @@ func (s *Service) ProcessChallenge(
 			}
 
 			// Calculate sleep duration until retry-after (with 1 min buffer)
-			sleepDuration := time.Until(rle.RetryAfter) + time.Minute
-			if sleepDuration < time.Minute {
-				sleepDuration = time.Minute // minimum 1 minute
-			}
-			if sleepDuration > 2*time.Hour {
-				sleepDuration = 2 * time.Hour // cap at 2 hours
-			}
+			sleepDuration := min(max(time.Until(rle.RetryAfter)+time.Minute, time.Minute), 2*time.Hour)
 
 			logger.Info("rate limited, sleeping until retry-after",
 				"domain", req.GetDomain(),

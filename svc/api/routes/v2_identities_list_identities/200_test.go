@@ -47,7 +47,7 @@ func TestSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create metadata
-	metaMap := map[string]interface{}{
+	metaMap := map[string]any{
 		"plan": "pro",
 	}
 	metaBytes, err := json.Marshal(metaMap)
@@ -233,7 +233,7 @@ func TestSuccess(t *testing.T) {
 		unicodeExternalID := "unicode-user-测试-🔑"
 
 		// Create metadata with Unicode characters
-		unicodeMetaMap := map[string]interface{}{
+		unicodeMetaMap := map[string]any{
 			"name":        "名字",
 			"description": "这是一个测试用户 with 英文 and emoji 👍👨‍👩‍👧‍👦🇯🇵",
 			"tags":        []string{"测试", "官方", "认证✓"},

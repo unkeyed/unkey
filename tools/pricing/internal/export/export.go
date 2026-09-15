@@ -86,7 +86,7 @@ func apiProductIDs(ctx context.Context, sc *stripeenv.Client, cat pricing.Catalo
 	byName := map[string]string{} // product name -> product id (adoption fallback)
 	params := &stripe.ProductListParams{
 		ListParams: stripe.ListParams{Limit: stripe.Int64(100)}, // page size; .All paginates past it
-		Active:     stripe.Bool(true),
+		Active:     new(true),
 	}
 	for prod, err := range sc.V1Products.List(ctx, params).All(ctx) {
 		if err != nil {

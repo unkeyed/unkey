@@ -185,7 +185,7 @@ func TestSuccess(t *testing.T) {
 	// Test case for pagination with cursor
 	t.Run("pagination with cursor", func(t *testing.T) {
 		// Create 101 additional roles to test pagination
-		for i := 0; i < 101; i++ {
+		for i := range 101 {
 			roleID := uid.New(uid.TestPrefix)
 			err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 				RoleID:      roleID,

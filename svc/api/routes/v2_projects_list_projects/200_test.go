@@ -38,7 +38,7 @@ func TestListProjectsSuccessfully(t *testing.T) {
 	})
 
 	seeded := map[string]string{}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 		project := h.CreateProject(seed.CreateProjectRequest{
 			ID:               uid.New(uid.ProjectPrefix),
@@ -167,7 +167,7 @@ func TestListProjectsPagination(t *testing.T) {
 	}
 
 	total := 5
-	for i := 0; i < total; i++ {
+	for i := range total {
 		slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 		h.CreateProject(seed.CreateProjectRequest{
 			ID:          uid.New(uid.ProjectPrefix),

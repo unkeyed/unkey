@@ -177,8 +177,8 @@ func (s *Session) UserAgent() string {
 func (s *Session) Location() string {
 	xff := s.r.Header.Get("X-Forwarded-For")
 	if xff != "" {
-		ips := strings.Split(xff, ",")
-		for _, ip := range ips {
+		ips := strings.SplitSeq(xff, ",")
+		for ip := range ips {
 			ip = strings.TrimSpace(ip)
 			if ip != "" {
 				return stripPort(ip)
@@ -274,7 +274,7 @@ func (s *Session) BindBody(dst any) error {
 //	    return err
 //	}
 //	// Use params.Limit, params.Cursor, and params.Filter
-func (s *Session) BindQuery(dst interface{}) error {
+func (s *Session) BindQuery(dst any) error {
 	val := reflect.ValueOf(dst)
 	if val.Kind() != reflect.Pointer || val.IsNil() {
 		return fault.New("destination must be a non-nil pointer")
@@ -499,7 +499,7 @@ func (s *Session) ProblemJSON(status int, body any) error {
 // acceptsProblemJSON checks whether the Accept header includes
 // "application/problem+json" or a wildcard that covers it.
 func acceptsProblemJSON(accept string) bool {
-	for _, part := range strings.Split(accept, ",") {
+	for part := range strings.SplitSeq(accept, ",") {
 		mediaType := strings.TrimSpace(strings.SplitN(part, ";", 2)[0])
 		switch mediaType {
 		case "application/problem+json", "application/*", "*/*":

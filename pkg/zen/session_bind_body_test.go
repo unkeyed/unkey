@@ -24,8 +24,8 @@ func TestSession_BindBody(t *testing.T) {
 	tests := []struct {
 		name        string
 		requestBody string
-		target      interface{}
-		expected    interface{}
+		target      any
+		expected    any
 		wantErr     bool
 		errSubstr   string
 	}{
@@ -143,14 +143,14 @@ func TestSession_BindBody_LargeBody(t *testing.T) {
 	}
 
 	items := make([]Item, 1000)
-	for i := 0; i < 1000; i++ {
+	for i := range 1000 {
 		items[i] = Item{
 			ID:    i,
 			Value: "test",
 		}
 	}
 
-	largeData := map[string]interface{}{
+	largeData := map[string]any{
 		"items": items,
 	}
 

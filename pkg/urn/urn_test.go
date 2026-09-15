@@ -40,7 +40,6 @@ func TestParseV1AllowsCanonicalPatterns(t *testing.T) {
 		"unkey:v1:ws_123:projects/proj_123/rbac/**",
 		"unkey:v1:ws_123:**",
 	} {
-		value := value
 		t.Run(value, func(t *testing.T) {
 			t.Parallel()
 
@@ -81,7 +80,6 @@ func TestParseV1RejectsInvalidValues(t *testing.T) {
 		"unkey:v1:ws_123:projects/*/apps/**",
 		"unkey:v1:ws_123:*",
 	} {
-		value := value
 		t.Run(value, func(t *testing.T) {
 			t.Parallel()
 

@@ -3,6 +3,7 @@ package cron_test
 import (
 	"context"
 	"errors"
+	"slices"
 	"sync"
 	"testing"
 	"time"
@@ -260,12 +261,7 @@ func (f *fakeCloser) FinalizeInvoice(_ context.Context, invoiceID string) (bool,
 func (f *fakeCloser) didFinalize(invoiceID string) bool {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	for _, id := range f.finalized {
-		if id == invoiceID {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(f.finalized, invoiceID)
 }
 
 // seedBillableWorkspace marks a workspace as an active Deploy customer. The

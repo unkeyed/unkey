@@ -53,8 +53,8 @@ func main() {
 		var pkgName string
 		for scanner.Scan() {
 			line := scanner.Text()
-			if strings.HasPrefix(line, "package ") {
-				pkgName = strings.TrimPrefix(line, "package ")
+			if after, ok := strings.CutPrefix(line, "package "); ok {
+				pkgName = after
 			}
 
 			if m := oneofPattern.FindStringSubmatch(line); m != nil {

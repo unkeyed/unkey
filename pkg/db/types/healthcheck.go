@@ -25,7 +25,7 @@ type NullHealthcheck struct {
 }
 
 // Scan implements sql.Scanner for reading JSON from the database.
-func (h *NullHealthcheck) Scan(value interface{}) error {
+func (h *NullHealthcheck) Scan(value any) error {
 	if value == nil {
 		h.Healthcheck = nil
 		h.Valid = false

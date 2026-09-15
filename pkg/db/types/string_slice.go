@@ -12,7 +12,7 @@ import (
 type StringSlice []string
 
 // Scan implements sql.Scanner for reading JSON arrays from the database.
-func (s *StringSlice) Scan(value interface{}) error {
+func (s *StringSlice) Scan(value any) error {
 	if value == nil {
 		*s = StringSlice{}
 		return nil

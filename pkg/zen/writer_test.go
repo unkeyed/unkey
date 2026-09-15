@@ -187,11 +187,11 @@ func TestErrorCapturingWriter_TypeAssertions(t *testing.T) {
 	mock := newFullMockWriter()
 	w := NewErrorCapturingWriter(mock)
 
-	_, ok := interface{}(w).(http.Flusher)
+	_, ok := any(w).(http.Flusher)
 	require.True(t, ok, "ErrorCapturingWriter should implement http.Flusher")
-	_, ok = interface{}(w).(http.Hijacker)
+	_, ok = any(w).(http.Hijacker)
 	require.True(t, ok, "ErrorCapturingWriter should implement http.Hijacker")
-	_, ok = interface{}(w).(http.Pusher)
+	_, ok = any(w).(http.Pusher)
 	require.True(t, ok, "ErrorCapturingWriter should implement http.Pusher")
 }
 
@@ -258,10 +258,10 @@ func TestStatusRecorder_TypeAssertions(t *testing.T) {
 	mock := newFullMockWriter()
 	r := &statusRecorder{ResponseWriter: mock}
 
-	_, ok := interface{}(r).(http.Flusher)
+	_, ok := any(r).(http.Flusher)
 	require.True(t, ok, "statusRecorder should implement http.Flusher")
-	_, ok = interface{}(r).(http.Hijacker)
+	_, ok = any(r).(http.Hijacker)
 	require.True(t, ok, "statusRecorder should implement http.Hijacker")
-	_, ok = interface{}(r).(http.Pusher)
+	_, ok = any(r).(http.Pusher)
 	require.True(t, ok, "statusRecorder should implement http.Pusher")
 }

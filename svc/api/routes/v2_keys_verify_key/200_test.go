@@ -632,7 +632,7 @@ func TestSuccess(t *testing.T) {
 	})
 
 	t.Run("returns correct information", func(t *testing.T) {
-		meta := map[string]interface{}{"key": "value"}
+		meta := map[string]any{"key": "value"}
 
 		raw, err := json.Marshal(meta)
 		require.NoError(t, err)

@@ -86,7 +86,7 @@ func TestS3_BinaryData(t *testing.T) {
 
 	// Create data with all byte values 0x00-0xFF
 	data := make([]byte, 256)
-	for i := 0; i < 256; i++ {
+	for i := range 256 {
 		data[i] = byte(i)
 	}
 
@@ -202,11 +202,11 @@ func TestS3_ConcurrentAccess(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(numGoroutines)
 
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		go func(goroutineID int) {
 			defer wg.Done()
 
-			for j := 0; j < numOperations; j++ {
+			for j := range numOperations {
 				key := fmt.Sprintf("concurrent-test/%d/%d", goroutineID, j)
 				data := []byte(fmt.Sprintf("data-%d-%d", goroutineID, j))
 

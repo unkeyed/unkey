@@ -63,7 +63,7 @@ func (g *Generator) generateRandomWord(minLen, maxLen int) string {
 	var word strings.Builder
 	useVowel := g.rng.Float32() < 0.5
 
-	for i := 0; i < length; i++ {
+	for range length {
 		if useVowel {
 			word.WriteByte(vowels[g.rng.Intn(len(vowels))])
 		} else {
@@ -80,7 +80,7 @@ func (g *Generator) generateRandomSentence() string {
 	wordCount := g.rng.Intn(maxWordsPerMsg-minWordsPerMsg+1) + minWordsPerMsg
 	words := make([]string, wordCount)
 
-	for i := 0; i < wordCount; i++ {
+	for i := range wordCount {
 		words[i] = g.generateRandomWord(minWordLength, maxWordLength)
 	}
 
@@ -107,22 +107,22 @@ func (g *Generator) generateComponents() ErrorComponents {
 	}
 
 	// Generate code
-	for i := 0; i < numTags; i++ {
+	for i := range numTags {
 		components.code[i] = g.generateRandomTag()
 	}
 
 	// Generate internal messages
-	for i := 0; i < numInternals; i++ {
+	for i := range numInternals {
 		components.internals[i] = g.generateRandomSentence()
 	}
 
 	// Generate public messages
-	for i := 0; i < numPublics; i++ {
+	for i := range numPublics {
 		components.publics[i] = g.generateRandomSentence()
 	}
 
 	// Generate base errors
-	for i := 0; i < numBaseErrors; i++ {
+	for i := range numBaseErrors {
 		components.baseErrors[i] = g.generateRandomSentence()
 	}
 
@@ -152,7 +152,7 @@ func (g *ErrorChainGenerator) generateErrorChain() ([]codes.URN, []string, error
 	err := fault.New(baseMsg)
 	usedMsgs = append(usedMsgs, baseMsg)
 
-	for i := 0; i < depth; i++ {
+	for range depth {
 		wrappers := make([]fault.Wrapper, 0)
 
 		if g.rng.Float32() < 0.7 {
@@ -188,7 +188,7 @@ func TestDST(t *testing.T) {
 	t.Logf("Internal messages: %v", generator.components.internals[:3])
 	t.Logf("Public messages: %v", generator.components.publics[:3])
 
-	for i := 0; i < numTestCases; i++ {
+	for i := range numTestCases {
 		t.Run(fmt.Sprintf("TestCase_%d", i), func(t *testing.T) {
 			expectedTags, expectedMsgs, err := generator.generateErrorChain()
 
@@ -220,7 +220,7 @@ func TestReproducibility(t *testing.T) {
 	gen1 := NewErrorChainGenerator(seed)
 	gen2 := NewErrorChainGenerator(seed)
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		code1, msgs1, err1 := gen1.generateErrorChain()
 		code2, msgs2, err2 := gen2.generateErrorChain()
 
