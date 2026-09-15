@@ -27,7 +27,7 @@ func TestCreateRejectsInvalidInputWithoutChangingExistingDrains(t *testing.T) {
 	require.NoError(t, err)
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*")
 	headers := http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}
-	route := &logdrains.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	route := &logdrains.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 	for _, tc := range []struct{ name, body string }{
 		{"missing create fields", `{}`},

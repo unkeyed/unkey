@@ -9,7 +9,10 @@ import (
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/internal/services/caches"
+	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/db"
@@ -26,10 +29,11 @@ import (
 )
 
 type Create struct {
-	DB        db.Database
-	Vault     vault.VaultServiceClient
-	Auditlogs auditlogs.AuditLogService
-	Clock     clock.Clock
+	DB          db.Database
+	Vault       vault.VaultServiceClient
+	Auditlogs   auditlogs.AuditLogService
+	Clock       clock.Clock
+	LimitsCache cache.Cache[string, keysdb.Limit]
 }
 
 func (h *Create) Method() string { return http.MethodPost }
@@ -45,6 +49,15 @@ func (h *Create) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	if err := principal.Authorize(rbac.U(urn.V1{WorkspaceID: principal.AuthorizedWorkspaceID, Resource: "logdrains/*"}, permissions.Write)); err != nil {
 		return err
+	}
+	limits, hit, err := h.LimitsCache.SWR(ctx, principal.AuthorizedWorkspaceID, func(ctx context.Context) (keysdb.Limit, error) {
+		return keysdb.Query.FindLimitsByWorkspaceID(ctx, h.DB.RO(), principal.AuthorizedWorkspaceID)
+	}, caches.DefaultFindFirstOp)
+	if err != nil && !db.IsNotFound(err) {
+		return err
+	}
+	if db.IsNotFound(err) || hit == cache.Null || limits.LogdrainsMax == 0 {
+		return fault.New("log drains disabled", fault.Code(codes.Auth.Authorization.Forbidden.URN()), fault.Public("Contact support to enable log drains for this workspace."))
 	}
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
@@ -66,18 +79,11 @@ func (h *Create) Handle(ctx context.Context, s *zen.Session) error {
 	id := uid.New("ld")
 	now := h.Clock.Now().UnixMilli()
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		limit, err := db.Query.LockLogdrainLimit(ctx, tx, principal.AuthorizedWorkspaceID)
-		if err != nil && !db.IsNotFound(err) {
-			return err
-		}
-		if db.IsNotFound(err) || limit == 0 {
-			return fault.New("log drains disabled", fault.Code(codes.Auth.Authorization.Forbidden.URN()), fault.Public("Contact support to enable log drains for this workspace."))
-		}
-		drains, err := db.Query.LockWorkspaceLogdrains(ctx, tx, principal.AuthorizedWorkspaceID)
+		count, err := db.Query.CountLogdrainsByWorkspace(ctx, tx, principal.AuthorizedWorkspaceID)
 		if err != nil {
 			return err
 		}
-		if len(drains) >= int(limit) {
+		if count >= int64(limits.LogdrainsMax) {
 			return fault.New("log drain limit reached", fault.Code(codes.Auth.Authorization.Forbidden.URN()), fault.Public("Contact support to increase this workspace's log drain allowance."))
 		}
 		if err := db.Query.InsertLogdrain(ctx, tx, db.InsertLogdrainParams{ID: id, WorkspaceID: principal.AuthorizedWorkspaceID, Name: name, Stream: db.LogdrainsStream(req.Stream), Config: encoded, CreatedAt: now, UpdatedAt: sql.NullInt64{Int64: now, Valid: true}}); err != nil {
