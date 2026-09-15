@@ -16,6 +16,11 @@ type Querier interface {
 	//  FROM custom_domains
 	//  WHERE workspace_id = ?
 	CountCustomDomainsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// Counts all configured drains, including paused drains, against the allowance.
+	// This ordinary read does not serialize concurrent creates; capacity may overshoot.
+	//
+	//  SELECT COUNT(*) FROM logdrains WHERE workspace_id = ?
+	CountLogdrainsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
 	//DeleteAllKeyPermissionsByKeyID
 	//
 	//  DELETE FROM keys_permissions
@@ -1780,6 +1785,12 @@ type Querier interface {
 	//      0
 	//  )
 	InsertKeySpace(ctx context.Context, db DBTX, arg InsertKeySpaceParams) error
+	// The caller holds the workspace limits lock and has checked current capacity.
+	// Initialize the cursor at creation time so historical records are not exported.
+	//
+	//  INSERT INTO logdrains (id, workspace_id, name, stream, config, committed_offset_inserted_at, lease_id, fencing_token, created_at, updated_at)
+	//  VALUES (?, ?, ?, ?, ?, ?, '', '', ?, ?)
+	InsertLogdrain(ctx context.Context, db DBTX, arg InsertLogdrainParams) error
 	//InsertPermission
 	//
 	//  INSERT INTO permissions (

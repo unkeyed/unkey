@@ -1,0 +1,12 @@
+type: object
+required: [meta, data]
+additionalProperties: false
+properties:
+  meta:
+    $ref: ../../../common/Meta.yaml
+  data:
+    type: object
+    required: [id]
+    additionalProperties: false
+    properties:
+      id: { type: string }

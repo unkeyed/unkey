@@ -23,13 +23,15 @@ func TestSpecDeclaresRedactedPaths(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, []string{
-		"code",              // portal exchangeCode request, the single-use code
-		"data.accessToken",  // portal exchangeCode response
-		"data.key",          // createKey and rerollKey responses
-		"data.plaintext",    // getKey response, recoverable key material
-		"data.url",          // portal URL, which carries the exchange code in its query
-		"data[].plaintext",  // listKeys response, one entry per key
-		"data[].value",      // listEnvironmentVariables response
+		"code",             // portal exchangeCode request, the single-use code
+		"data.accessToken", // portal exchangeCode response
+		"data.key",         // createKey and rerollKey responses
+		"data.plaintext",   // getKey response, recoverable key material
+		"data.url",         // portal URL, which carries the exchange code in its query
+		"data[].plaintext", // listKeys response, one entry per key
+		"data[].value",     // listEnvironmentVariables response
+		"destination.axiom.token",
+		"destination.http.headers[].value",
 		"key",               // verifyKey and whoami requests
 		"variables[].value", // setEnvironmentVariables request
 	}, paths)
@@ -61,6 +63,8 @@ func TestRedactorFromSpecStripsKnownSecrets(t *testing.T) {
 		"portal exchangeCode request": `{"code":"pst_FIXTURE_LEAK"}`,
 		"portal access token":         `{"data":{"accessToken":"pat_FIXTURE_LEAK","expiresAt":1711386400000},"meta":{"requestId":"req_1"}}`,
 		"truncated env var payload":   `{"variables":[{"key":"DATABASE_URL","value":"postgresql://user:FIXTURE_LEAK`,
+		"log drain Axiom token":       `{"destination":{"axiom":{"dataset":"logs","token":"FIXTURE_LEAK"}}}`,
+		"log drain HTTP headers":      `{"destination":{"http":{"headers":[{"name":"Authorization","mode":"set","value":"FIXTURE_LEAK"},{"name":"X-Token","mode":"set","value":"FIXTURE_LEAK"}]}}}`,
 	}
 
 	for name, body := range bodies {

@@ -1,0 +1,13 @@
+type: object
+additionalProperties: false
+minProperties: 1
+properties:
+  url: { type: string, format: uri, minLength: 1 }
+  format: { type: string, enum: [json, ndjson] }
+  headers:
+    type: array
+    maxItems: 32
+    description: |
+      Headers sent to the destination. Values are encrypted at rest.
+    items:
+      $ref: LogdrainHeaderWrite.yaml

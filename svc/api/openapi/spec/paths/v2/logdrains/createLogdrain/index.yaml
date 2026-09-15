@@ -1,0 +1,48 @@
+post:
+  tags: [logdrains]
+  summary: Create log drain
+  description: |
+    Create a log drain within your workspace allowance. Requires
+    `unkey:v1:{workspaceId}:logdrains/*#write`. Credentials are encrypted at rest.
+    New drains start running from the creation time, without historical backfill.
+  operationId: logdrains.createLogdrain
+  x-speakeasy-name-override: createLogdrain
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../CreateLogdrainRequest.yaml
+  responses:
+    "200":
+      description: Log drain created.
+      content:
+        application/json:
+          schema:
+            $ref: ../LogdrainMutationResponse.yaml
+    "400":
+      description: Invalid input.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Missing or invalid credentials.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: Insufficient permission or workspace allowance.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

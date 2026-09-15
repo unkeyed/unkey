@@ -22,6 +22,15 @@ const (
 	Oci AppSourceType = "oci"
 )
 
+// Defines values for CreateLogdrainRequestStream.
+const (
+	AuditLogs        CreateLogdrainRequestStream = "audit_logs"
+	GatewayRequests  CreateLogdrainRequestStream = "gateway_requests"
+	KeyVerifications CreateLogdrainRequestStream = "key_verifications"
+	Ratelimits       CreateLogdrainRequestStream = "ratelimits"
+	RuntimeLogs      CreateLogdrainRequestStream = "runtime_logs"
+)
+
 // Defines values for DeploymentAction.
 const (
 	DeploymentActionPromote  DeploymentAction = "promote"
@@ -119,6 +128,25 @@ const (
 const (
 	KeyCreditsRefillIntervalDaily   KeyCreditsRefillInterval = "daily"
 	KeyCreditsRefillIntervalMonthly KeyCreditsRefillInterval = "monthly"
+)
+
+// Defines values for LogdrainFiltersStatusClasses.
+const (
+	N2 LogdrainFiltersStatusClasses = 2
+	N3 LogdrainFiltersStatusClasses = 3
+	N4 LogdrainFiltersStatusClasses = 4
+	N5 LogdrainFiltersStatusClasses = 5
+)
+
+// Defines values for LogdrainHeaderWriteMode.
+const (
+	LogdrainHeaderSet LogdrainHeaderWriteMode = "set"
+)
+
+// Defines values for LogdrainHttpWriteFormat.
+const (
+	Json   LogdrainHttpWriteFormat = "json"
+	Ndjson LogdrainHttpWriteFormat = "ndjson"
 )
 
 // Defines values for MethodMatchMethods.
@@ -331,6 +359,23 @@ type ConflictErrorResponse struct {
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
 }
+
+// CreateLogdrainRequest defines model for CreateLogdrainRequest.
+type CreateLogdrainRequest struct {
+	BatchSize *int64 `json:"batchSize,omitempty"`
+
+	// Destination Exactly one destination: an HTTP URL or an Axiom dataset and token.
+	Destination LogdrainDestinationWrite `json:"destination"`
+
+	// Filters Only filters for the selected stream are accepted. Empty arrays select all
+	// values. Nonempty dimensions are combined with AND.
+	Filters *LogdrainFilters            `json:"filters,omitempty"`
+	Name    string                      `json:"name"`
+	Stream  CreateLogdrainRequestStream `json:"stream"`
+}
+
+// CreateLogdrainRequestStream defines model for CreateLogdrainRequest.Stream.
+type CreateLogdrainRequestStream string
 
 // Deployment defines model for Deployment.
 type Deployment struct {
@@ -1028,6 +1073,68 @@ type KeysVerifyKeyRatelimit struct {
 
 	// Name References an existing ratelimit by its name. Key Ratelimits will take precedence over identifier-based limits.
 	Name string `json:"name"`
+}
+
+// LogdrainAxiomWrite defines model for LogdrainAxiomWrite.
+type LogdrainAxiomWrite struct {
+	Dataset *string `json:"dataset,omitempty"`
+	Token   *string `json:"token,omitempty"`
+}
+
+// LogdrainDestinationWrite Exactly one destination: an HTTP URL or an Axiom dataset and token.
+type LogdrainDestinationWrite struct {
+	Axiom *LogdrainAxiomWrite `json:"axiom,omitempty"`
+	Http  *LogdrainHttpWrite  `json:"http,omitempty"`
+}
+
+// LogdrainFilters Only filters for the selected stream are accepted. Empty arrays select all
+// values. Nonempty dimensions are combined with AND.
+type LogdrainFilters struct {
+	AppIds         *[]string                       `json:"appIds,omitempty"`
+	EnvironmentIds *[]string                       `json:"environmentIds,omitempty"`
+	EventTypes     *[]string                       `json:"eventTypes,omitempty"`
+	KeySpaceIds    *[]string                       `json:"keySpaceIds,omitempty"`
+	NamespaceIds   *[]string                       `json:"namespaceIds,omitempty"`
+	Outcomes       *[]string                       `json:"outcomes,omitempty"`
+	Passed         *[]bool                         `json:"passed,omitempty"`
+	ProjectIds     *[]string                       `json:"projectIds,omitempty"`
+	Severities     *[]string                       `json:"severities,omitempty"`
+	StatusClasses  *[]LogdrainFiltersStatusClasses `json:"statusClasses,omitempty"`
+}
+
+// LogdrainFiltersStatusClasses defines model for LogdrainFilters.StatusClasses.
+type LogdrainFiltersStatusClasses int
+
+// LogdrainHeaderWrite defines model for LogdrainHeaderWrite.
+type LogdrainHeaderWrite struct {
+	Mode  LogdrainHeaderWriteMode `json:"mode"`
+	Name  string                  `json:"name"`
+	Value *string                 `json:"value,omitempty"`
+}
+
+// LogdrainHeaderWriteMode defines model for LogdrainHeaderWrite.Mode.
+type LogdrainHeaderWriteMode string
+
+// LogdrainHttpWrite defines model for LogdrainHttpWrite.
+type LogdrainHttpWrite struct {
+	Format *LogdrainHttpWriteFormat `json:"format,omitempty"`
+
+	// Headers Headers sent to the destination. Values are encrypted at rest.
+	Headers *[]LogdrainHeaderWrite `json:"headers,omitempty"`
+	Url     *string                `json:"url,omitempty"`
+}
+
+// LogdrainHttpWriteFormat defines model for LogdrainHttpWrite.Format.
+type LogdrainHttpWriteFormat string
+
+// LogdrainMutationResponse defines model for LogdrainMutationResponse.
+type LogdrainMutationResponse struct {
+	Data struct {
+		Id string `json:"id"`
+	} `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
 }
 
 // LoggingPolicy Adds request data to the log entries of matching requests. The gateway
@@ -5086,6 +5193,9 @@ type KeysVerifyKeyJSONRequestBody = V2KeysVerifyKeyRequestBody
 
 // KeysWhoamiJSONRequestBody defines body for KeysWhoami for application/json ContentType.
 type KeysWhoamiJSONRequestBody = V2KeysWhoamiRequestBody
+
+// LogdrainsCreateLogdrainJSONRequestBody defines body for LogdrainsCreateLogdrain for application/json ContentType.
+type LogdrainsCreateLogdrainJSONRequestBody = CreateLogdrainRequest
 
 // PermissionsCreatePermissionJSONRequestBody defines body for PermissionsCreatePermission for application/json ContentType.
 type PermissionsCreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody

@@ -1,0 +1,11 @@
+type: object
+additionalProperties: false
+minProperties: 1
+maxProperties: 1
+description: |
+  Exactly one destination: an HTTP URL or an Axiom dataset and token.
+properties:
+  http:
+    $ref: LogdrainHttpWrite.yaml
+  axiom:
+    $ref: LogdrainAxiomWrite.yaml
