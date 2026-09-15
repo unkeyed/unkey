@@ -7,7 +7,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	fakedynamic "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/fake"
@@ -15,9 +14,7 @@ import (
 
 func TestNew_CreatesControllerWithCorrectFields(t *testing.T) {
 	namespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-namespace",
-		},
+		Name: "test-namespace",
 	}
 	client := fake.NewSimpleClientset(namespace)
 	dynamicClient := fakedynamic.NewSimpleDynamicClient(runtime.NewScheme())

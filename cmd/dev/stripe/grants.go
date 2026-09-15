@@ -36,8 +36,8 @@ func grants(ctx context.Context, cmd *cli.Command) error {
 
 	count := 0
 	list := sc.V1BillingCreditGrants.List(ctx, &stripesdk.BillingCreditGrantListParams{
-		ListParams: stripesdk.ListParams{Limit: stripesdk.Int64(20)},
-		Customer:   stripesdk.String(customerID),
+		Limit:    stripesdk.Int64(20),
+		Customer: stripesdk.String(customerID),
 	})
 	for grant, err := range list.All(ctx) {
 		if err != nil {

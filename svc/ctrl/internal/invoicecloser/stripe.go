@@ -22,7 +22,7 @@ func NewStripe(secretKey string) Closer {
 
 func (c *stripeCloser) ListDraftInvoices(ctx context.Context, stripeSubscriptionID string) ([]DraftInvoice, error) {
 	list := c.client.V1Invoices.List(ctx, &stripe.InvoiceListParams{
-		ListParams:   stripe.ListParams{Limit: stripe.Int64(100)},
+		Limit:        stripe.Int64(100),
 		Subscription: stripe.String(stripeSubscriptionID),
 		Status:       stripe.String(string(stripe.InvoiceStatusDraft)),
 	})
