@@ -34,6 +34,8 @@ func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
 		{name: "transient lookup aborts without checkpoint", authorized: true, lookupErr: errors.New("database unavailable"), wantCode: connect.CodeInternal},
 		{name: "expired position requires snapshot", authorized: true, streamErr: deploymentstream.ErrExpired, wantCode: connect.CodeOutOfRange},
 		{name: "invalid token", authorized: true, streamErr: deploymentstream.ErrInvalidToken, wantCode: connect.CodeInvalidArgument},
+		{name: "canceled stream", authorized: true, streamErr: context.Canceled, wantCode: connect.CodeCanceled},
+		{name: "stream deadline", authorized: true, streamErr: context.DeadlineExceeded, wantCode: connect.CodeDeadlineExceeded},
 		{name: "unauthenticated", wantCode: connect.CodeUnauthenticated},
 	} {
 		t.Run(test.name, func(t *testing.T) {

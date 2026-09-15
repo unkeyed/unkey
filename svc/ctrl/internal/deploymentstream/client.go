@@ -9,7 +9,9 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
+	"github.com/unkeyed/unkey/pkg/clock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -25,6 +27,8 @@ import (
 var ErrInvalidToken = errors.New("invalid deployment resume token")
 var ErrExpired = errors.New("deployment resume position expired")
 
+var regionPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,48}$`)
+
 type Config struct {
 	Address  string `toml:"address"`
 	Keyspace string `toml:"keyspace"`
@@ -37,6 +41,7 @@ type Client struct {
 	connection *grpc.ClientConn
 	client     vtgateservice.VitessClient
 	keyspace   string
+	clock      clock.Clock
 }
 
 func New(cfg Config) (*Client, error) {
@@ -61,7 +66,7 @@ func New(cfg Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{connection: connection, client: vtgateservice.NewVitessClient(connection), keyspace: cfg.Keyspace}, nil
+	return &Client{connection: connection, client: vtgateservice.NewVitessClient(connection), keyspace: cfg.Keyspace, clock: clock.New()}, nil
 }
 
 func (c *Client) Close() error { return c.connection.Close() }
@@ -69,7 +74,7 @@ func (c *Client) Close() error { return c.connection.Close() }
 func (c *Client) Watch(ctx context.Context, region string, token []byte, change func(string) error, checkpoint func([]byte) error) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	if !regexp.MustCompile(`^[A-Za-z0-9_-]{1,48}$`).MatchString(region) {
+	if !regionPattern.MatchString(region) {
 		return fmt.Errorf("invalid region ID")
 	}
 	position, err := c.position(region, token)
@@ -81,27 +86,40 @@ func (c *Client) Watch(ctx context.Context, region string, token []byte, change 
 		Vgtid:      position,
 		Filter: &binlog.Filter{Rules: []*binlog.Rule{{ //nolint:exhaustruct // No replication workflow metadata is needed.
 			Match:  "deployment_topology",
-			Filter: fmt.Sprintf("select deployment_id from deployment_topology where region_id = '%s'", region),
+			Filter: fmt.Sprintf("select deployment_id from deployment_topology where region_id = '%s' and desired_status = 'running'", region),
 		}}},
 		Flags: &vtgate.VStreamFlags{HeartbeatInterval: 5}, //nolint:exhaustruct // Do not enable transaction chunking or optional stream features.
 	})
 	if err != nil {
 		return err
 	}
+	responses := readVStream(ctx, stream)
 	var pending *binlog.VGtid
+	var committed *binlog.VGtid
+	var lastCheckpoint time.Time
+	changed := false
 	for {
-		response, err := stream.Recv()
+		waiting := c.clock.NewTicker(30 * time.Second)
+		var result streamResult
+		select {
+		case result = <-responses:
+		case <-waiting.C():
+			result.err = status.Error(codes.Unavailable, "VStream stalled for 30 seconds")
+		case <-ctx.Done():
+			result.err = ctx.Err()
+		}
+		waiting.Stop()
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		if err != nil {
+		if err := result.err; err != nil {
 			if len(token) > 0 && status.Code(err) == codes.Unknown &&
 				(strings.Contains(err.Error(), "(errno 1236)") || strings.Contains(err.Error(), "(errno 1789)")) {
 				return fmt.Errorf("%w: %w", ErrExpired, err)
 			}
 			return err
 		}
-		for _, event := range response.Events {
+		for _, event := range result.response.Events {
 			if event.RowEvent != nil {
 				for _, rowChange := range event.RowEvent.RowChanges {
 					row := rowChange.After
@@ -114,14 +132,22 @@ func (c *Client) Watch(ctx context.Context, region string, token []byte, change 
 					if err := change(string(row.Values)); err != nil {
 						return err
 					}
+					changed = true
 				}
 			}
 			if event.Type == binlog.VEventType_VGTID {
 				pending = event.Vgtid
 			}
 			boundary := event.Type == binlog.VEventType_COMMIT || event.Type == binlog.VEventType_DDL || event.Type == binlog.VEventType_OTHER
+			flush := false
 			if boundary && pending != nil {
-				encoded, err := protojson.Marshal(pending)
+				committed = pending
+				pending = nil
+				flush = changed
+				changed = false
+			}
+			if committed != nil && (flush || c.clock.Now().Sub(lastCheckpoint) >= 30*time.Second) {
+				encoded, err := protojson.Marshal(committed)
 				if err != nil {
 					return err
 				}
@@ -132,10 +158,34 @@ func (c *Client) Watch(ctx context.Context, region string, token []byte, change 
 				if err := checkpoint(next); err != nil {
 					return err
 				}
-				pending = nil
+				committed = nil
+				lastCheckpoint = c.clock.Now()
 			}
 		}
 	}
+}
+
+type streamResult struct {
+	response *vtgate.VStreamResponse
+	err      error
+}
+
+func readVStream(ctx context.Context, stream vtgateservice.Vitess_VStreamClient) <-chan streamResult {
+	responses := make(chan streamResult)
+	go func() {
+		for {
+			response, err := stream.Recv()
+			select {
+			case responses <- streamResult{response: response, err: err}:
+			case <-ctx.Done():
+				return
+			}
+			if err != nil {
+				return
+			}
+		}
+	}()
+	return responses
 }
 
 type resumeToken struct {
@@ -164,6 +214,11 @@ func (c *Client) position(region string, token []byte) (*binlog.VGtid, error) {
 	for _, shard := range position.ShardGtids {
 		if shard.Keyspace != c.keyspace || shard.Gtid == "" {
 			return nil, fmt.Errorf("%w: invalid shard position", ErrInvalidToken)
+		}
+		for _, table := range shard.TablePKs {
+			if table.GetTableName() != "deployment_topology" {
+				return nil, fmt.Errorf("%w: invalid snapshot table", ErrInvalidToken)
+			}
 		}
 	}
 	return position, nil

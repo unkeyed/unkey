@@ -8,6 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -67,6 +68,12 @@ func (s *Service) WatchDeploymentChanges(
 	}, func(next []byte) error {
 		return stream.Send(&ctrlv1.DeploymentChangeEvent{ResumeToken: next})
 	})
+	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+	if err != nil {
+		logger.Error("deployment VStream ended", "region_id", cluster.RegionID, "error", err)
+	}
 	if errors.Is(err, deploymentstream.ErrInvalidToken) {
 		return connect.NewError(connect.CodeInvalidArgument, err)
 	}
