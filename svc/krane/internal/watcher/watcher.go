@@ -6,6 +6,7 @@ import (
 	"math/rand/v2"
 	"time"
 
+	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -64,32 +65,36 @@ func (s *Watcher) clusterKey() *ctrlv1.ClusterKey {
 // Both share a semaphore so the k8s API is not overwhelmed.
 // Returns nil when the context is cancelled.
 func (s *Watcher) Watch(ctx context.Context) error {
-	go s.runPeriodicFullSync(ctx)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		s.runPeriodicFullSync(ctx)
+	}()
 	s.runStream(ctx)
+	<-done
 	return nil
 }
 
-// runStream maintains a long-lived incremental stream. On first connect it
-// sends version=0 and the server jumps to the current max version. On
-// reconnect it resumes from the last seen version.
+// runStream resumes only from checkpoints whose preceding events were applied.
 func (s *Watcher) runStream(ctx context.Context) {
-	versionLastSeen := uint64(0)
+	var resumeToken []byte
 
 	for {
 		jitter := reconnectMin + time.Millisecond*time.Duration(rand.Float64()*float64(reconnectMax.Milliseconds()-reconnectMin.Milliseconds()))
-		time.Sleep(jitter)
-
 		select {
 		case <-ctx.Done():
 			return
-		default:
+		case <-time.After(jitter):
 		}
 
 		stream, err := s.cluster.WatchDeploymentChanges(ctx, &ctrlv1.WatchDeploymentChangesRequest{
-			Cluster:         s.clusterKey(),
-			VersionLastSeen: versionLastSeen,
+			Cluster:     s.clusterKey(),
+			ResumeToken: resumeToken,
 		})
 		if err != nil {
+			if connect.CodeOf(err) == connect.CodeOutOfRange {
+				resumeToken = nil
+			}
 			metrics.StreamConnectionsTotal.WithLabelValues("error").Inc()
 			logger.Error("stream: error opening connection", "error", err)
 			continue
@@ -103,23 +108,27 @@ func (s *Watcher) runStream(ctx context.Context) {
 			if err := s.sem.Acquire(ctx, 1); err != nil {
 				break
 			}
-			go func() {
-				defer s.sem.Release(1)
-				resourceType := eventResourceType(event)
-				if err := s.dispatch(ctx, event); err != nil {
-					metrics.DispatchTotal.WithLabelValues("stream", resourceType, "error").Inc()
-					logger.Error("stream: error dispatching event", "error", err, "version", event.GetVersion())
-				} else {
-					metrics.DispatchTotal.WithLabelValues("stream", resourceType, "success").Inc()
-				}
-			}()
-
-			if event.GetVersion() > versionLastSeen {
-				versionLastSeen = event.GetVersion()
-				metrics.WatcherVersionLastSeen.Set(float64(versionLastSeen))
+			err := s.dispatch(ctx, event)
+			s.sem.Release(1)
+			if err != nil {
+				metrics.DispatchTotal.WithLabelValues("stream", eventResourceType(event), "error").Inc()
+				logger.Error("stream: error dispatching event", "error", err)
+				break
+			}
+			if event.GetEvent() != nil {
+				metrics.DispatchTotal.WithLabelValues("stream", eventResourceType(event), "success").Inc()
+			}
+			if len(event.GetResumeToken()) > 0 {
+				resumeToken = event.GetResumeToken()
 			}
 		}
 
+		if err := stream.Err(); err != nil && ctx.Err() == nil {
+			if connect.CodeOf(err) == connect.CodeOutOfRange {
+				resumeToken = nil
+			}
+			logger.Error("stream: connection ended", "error", err)
+		}
 		if err := stream.Close(); err != nil && ctx.Err() == nil {
 			logger.Error("stream: error closing connection", "error", err)
 		}
@@ -199,7 +208,7 @@ func (s *Watcher) dispatch(ctx context.Context, event *ctrlv1.DeploymentChangeEv
 	switch e := event.GetEvent().(type) {
 	case *ctrlv1.DeploymentChangeEvent_Deployment:
 		if e.Deployment == nil {
-			return fmt.Errorf("received deployment change event with nil deployment state at version %d", event.GetVersion())
+			return fmt.Errorf("received deployment change event with nil deployment state")
 		}
 		switch op := e.Deployment.GetState().(type) {
 		case *ctrlv1.DeploymentState_Apply:
@@ -207,13 +216,16 @@ func (s *Watcher) dispatch(ctx context.Context, event *ctrlv1.DeploymentChangeEv
 		case *ctrlv1.DeploymentState_Delete:
 			return s.deployments.DeleteDeployment(ctx, op.Delete)
 		default:
-			return fmt.Errorf("unhandled deployment state type %T at version %d", op, event.GetVersion())
+			return fmt.Errorf("unhandled deployment state type %T", op)
 		}
 
 	case nil:
-		return fmt.Errorf("received deployment change event with nil event at version %d", event.GetVersion())
+		if len(event.GetResumeToken()) > 0 {
+			return nil
+		}
+		return fmt.Errorf("received deployment change event with nil event")
 
 	default:
-		return fmt.Errorf("unhandled deployment change event type %T at version %d", e, event.GetVersion())
+		return fmt.Errorf("unhandled deployment change event type %T", e)
 	}
 }

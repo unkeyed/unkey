@@ -131,7 +131,7 @@ func TestDeploymentRowToState_PopulatesProtoFields(t *testing.T) {
 		GitRepo:         sql.NullString{Valid: true, String: "github.com/test/sentinel"},
 	}
 
-	state, err := deploymentRowToState(row, 1)
+	state, err := deploymentRowToState(row)
 	require.NoError(t, err)
 
 	apply := state.GetApply()

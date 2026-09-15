@@ -202,12 +202,13 @@ func (x *ClusterKey) GetCellId() string {
 }
 
 type WatchDeploymentChangesRequest struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Cluster         *ClusterKey            `protobuf:"bytes,1,opt,name=cluster,proto3" json:"cluster,omitempty"`
-	VersionLastSeen uint64                 `protobuf:"varint,2,opt,name=version_last_seen,json=versionLastSeen,proto3" json:"version_last_seen,omitempty"`
-	// When true and version_last_seen is 0, replay all changes from the
-	// beginning instead of jumping to the current max version. Default false.
-	Replay        bool `protobuf:"varint,3,opt,name=replay,proto3" json:"replay,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Cluster *ClusterKey            `protobuf:"bytes,1,opt,name=cluster,proto3" json:"cluster,omitempty"`
+	// Ignore the resume token and copy current desired state before watching.
+	Replay bool `protobuf:"varint,3,opt,name=replay,proto3" json:"replay,omitempty"`
+	// Opaque region-bound position received after successfully applying all
+	// preceding events. Empty starts a snapshot. Not a numeric resource version.
+	ResumeToken   []byte `protobuf:"bytes,4,opt,name=resume_token,json=resumeToken,proto3" json:"resume_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -249,18 +250,18 @@ func (x *WatchDeploymentChangesRequest) GetCluster() *ClusterKey {
 	return nil
 }
 
-func (x *WatchDeploymentChangesRequest) GetVersionLastSeen() uint64 {
-	if x != nil {
-		return x.VersionLastSeen
-	}
-	return 0
-}
-
 func (x *WatchDeploymentChangesRequest) GetReplay() bool {
 	if x != nil {
 		return x.Replay
 	}
 	return false
+}
+
+func (x *WatchDeploymentChangesRequest) GetResumeToken() []byte {
+	if x != nil {
+		return x.ResumeToken
+	}
+	return nil
 }
 
 type SyncDesiredStateRequest struct {
@@ -308,12 +309,14 @@ func (x *SyncDesiredStateRequest) GetCluster() *ClusterKey {
 }
 
 type DeploymentChangeEvent struct {
-	state   protoimpl.MessageState `protogen:"open.v1"`
-	Version uint64                 `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Event:
 	//
 	//	*DeploymentChangeEvent_Deployment
-	Event         isDeploymentChangeEvent_Event `protobuf_oneof:"event"`
+	Event isDeploymentChangeEvent_Event `protobuf_oneof:"event"`
+	// A checkpoint-only event has no deployment. Acknowledge this token only
+	// after all preceding deployment events have been applied successfully.
+	ResumeToken   []byte `protobuf:"bytes,3,opt,name=resume_token,json=resumeToken,proto3" json:"resume_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -348,13 +351,6 @@ func (*DeploymentChangeEvent) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *DeploymentChangeEvent) GetVersion() uint64 {
-	if x != nil {
-		return x.Version
-	}
-	return 0
-}
-
 func (x *DeploymentChangeEvent) GetEvent() isDeploymentChangeEvent_Event {
 	if x != nil {
 		return x.Event
@@ -367,6 +363,13 @@ func (x *DeploymentChangeEvent) GetDeployment() *DeploymentState {
 		if x, ok := x.Event.(*DeploymentChangeEvent_Deployment); ok {
 			return x.Deployment
 		}
+	}
+	return nil
+}
+
+func (x *DeploymentChangeEvent) GetResumeToken() []byte {
+	if x != nil {
+		return x.ResumeToken
 	}
 	return nil
 }
@@ -1078,11 +1081,6 @@ func (*ReportInstanceEventsResponse) Descriptor() ([]byte, []int) {
 // the cluster agent ensures the cluster state matches the desired configuration.
 type DeploymentState struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// version is the deployment-specific resource version for this state update.
-	// Clients should track the max version seen and use it when reconnecting to
-	// the WatchDeploymentChanges stream to resume from the correct position.
-	// When returned from GetDesiredDeploymentState, this field is not set.
-	Version uint64 `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
 	// state contains the specific deployment operation to perform.
 	// Only one state type is set per message, determining the action the agent should take.
 	//
@@ -1123,13 +1121,6 @@ func (x *DeploymentState) ProtoReflect() protoreflect.Message {
 // Deprecated: Use DeploymentState.ProtoReflect.Descriptor instead.
 func (*DeploymentState) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *DeploymentState) GetVersion() uint64 {
-	if x != nil {
-		return x.Version
-	}
-	return 0
 }
 
 func (x *DeploymentState) GetState() isDeploymentState_State {
@@ -1841,19 +1832,19 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"ClusterKey\x12\x1a\n" +
 	"\bplatform\x18\x01 \x01(\tR\bplatform\x12\x16\n" +
 	"\x06region\x18\x02 \x01(\tR\x06region\x12\x17\n" +
-	"\acell_id\x18\x03 \x01(\tR\x06cellId\"\x92\x01\n" +
+	"\acell_id\x18\x03 \x01(\tR\x06cellId\"\x8f\x01\n" +
 	"\x1dWatchDeploymentChangesRequest\x12-\n" +
-	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\x12*\n" +
-	"\x11version_last_seen\x18\x02 \x01(\x04R\x0fversionLastSeen\x12\x16\n" +
-	"\x06replay\x18\x03 \x01(\bR\x06replay\"H\n" +
+	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\x12\x16\n" +
+	"\x06replay\x18\x03 \x01(\bR\x06replay\x12!\n" +
+	"\fresume_token\x18\x04 \x01(\fR\vresumeTokenJ\x04\b\x02\x10\x03\"H\n" +
 	"\x17SyncDesiredStateRequest\x12-\n" +
-	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\"v\n" +
-	"\x15DeploymentChangeEvent\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\x04R\aversion\x12:\n" +
+	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\"\x85\x01\n" +
+	"\x15DeploymentChangeEvent\x12:\n" +
 	"\n" +
 	"deployment\x18\x02 \x01(\v2\x18.ctrl.v1.DeploymentStateH\x00R\n" +
-	"deploymentB\a\n" +
-	"\x05event\"v\n" +
+	"deployment\x12!\n" +
+	"\fresume_token\x18\x03 \x01(\fR\vresumeTokenB\a\n" +
+	"\x05eventJ\x04\b\x01\x10\x02\"v\n" +
 	" GetDesiredDeploymentStateRequest\x12-\n" +
 	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\x12#\n" +
 	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\"\xc7\x05\n" +
@@ -1921,12 +1912,11 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x1bReportInstanceEventsRequest\x12.\n" +
 	"\x06events\x18\x01 \x03(\v2\x16.ctrl.v1.InstanceEventR\x06events\x12-\n" +
 	"\acluster\x18\x02 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\"\x1e\n" +
-	"\x1cReportInstanceEventsResponse\"\x9b\x01\n" +
-	"\x0fDeploymentState\x12\x18\n" +
-	"\aversion\x18\x03 \x01(\x04R\aversion\x120\n" +
+	"\x1cReportInstanceEventsResponse\"\x87\x01\n" +
+	"\x0fDeploymentState\x120\n" +
 	"\x05apply\x18\x01 \x01(\v2\x18.ctrl.v1.ApplyDeploymentH\x00R\x05apply\x123\n" +
 	"\x06delete\x18\x02 \x01(\v2\x19.ctrl.v1.DeleteDeploymentH\x00R\x06deleteB\a\n" +
-	"\x05state\"\xcb\b\n" +
+	"\x05stateJ\x04\b\x03\x10\x04\"\xcb\b\n" +
 	"\x0fApplyDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +

@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
 	"golang.org/x/net/http2"
 )
 
@@ -45,8 +46,8 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 
 	restateCfg := containers.Restate(t, cfg.Services...)
 
-	mysqlCfg := containers.MySQL(t)
-	database, err := db.New(mysqlCfg.DSN, sqlcomment.Disabled())
+	vitessCfg := containers.Vitess(t)
+	database, err := db.New(vitessCfg.DSN, sqlcomment.Disabled())
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 
@@ -71,7 +72,8 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 
 		DefaultDomain:  "",
 		RegionalDomain: "",
-		Database:       mysqlCfg.DSN,
+		Database:       vitessCfg.DSN,
+		VStream:        deploymentstream.Config{Address: vitessCfg.Address, Keyspace: "unkey", Insecure: true},
 		Observability:  config.Observability{},
 		Restate: RestateConfig{
 			URL:    restateCfg.IngressURL,

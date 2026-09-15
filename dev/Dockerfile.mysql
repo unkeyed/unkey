@@ -1,7 +1,9 @@
-FROM mysql:9.4.0@sha256:135bc87cce147c3d28cecb9ad270b814cb52805af7ddeea83bfcaf157d05a6b2
+FROM vitess/vttestserver:v24.0.3-mysql80@sha256:230586284ba936139d0f9afb3e7ef8d2494e0fc752cc6ed3f243bcc5082ef485
 
-# Copy per-table schema files — MySQL runs .sql files alphabetically.
-COPY pkg/mysql/schema/ /docker-entrypoint-initdb.d/
+COPY --chown=vitess:vitess pkg/mysql/schema/ /poc-schema/unkey/
+COPY --chown=vitess:vitess dev/04-seed-workspace.sql /poc-schema/unkey/zzz-seed.sql
 
-# Seed data runs last thanks to the zzz- prefix.
-COPY dev/04-seed-workspace.sql /docker-entrypoint-initdb.d/zzz-seed.sql
+# The loader selects the physical shard database, not the logical keyspace.
+RUN sed -i '/^USE unkey;$/d' /poc-schema/unkey/zzz-seed.sql
+
+CMD ["/vt/bin/vttestserver", "--port=33574", "--keyspaces=unkey", "--num_shards=1", "--mysql_bind_host=0.0.0.0", "--vtcombo-bind-host=0.0.0.0", "--schema_dir=/poc-schema", "--persistent_mode", "--data_dir=/vt/vtdataroot"]

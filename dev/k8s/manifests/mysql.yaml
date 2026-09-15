@@ -1,8 +1,22 @@
 ---
+# Keep the MySQL 9.4 claim declared so Tilt does not prune existing data.
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mysql-pvc
+  namespace: unkey
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vitess-pvc
   namespace: unkey
 spec:
   accessModes:
@@ -32,61 +46,40 @@ spec:
         app: mysql
     spec:
       terminationGracePeriodSeconds: 60
-      initContainers:
-        - name: remove-stale-locks
-          image: busybox:1.36@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662
-          command:
-            - sh
-            - -c
-            - |
-              echo "Checking for stale MySQL lock files..."
-              rm -f /var/lib/mysql/*.pid /var/lib/mysql/mysql.sock.lock 2>/dev/null || true
-              echo "Cleanup complete"
-          volumeMounts:
-            - name: mysql-storage
-              mountPath: /var/lib/mysql
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
       containers:
         - name: mysql
           image: unkey/mysql:local
           imagePullPolicy: Never
           ports:
-            - containerPort: 3306
-          env:
-            - name: MYSQL_ROOT_PASSWORD
-              value: "root"
-            - name: MYSQL_DATABASE
-              value: "unkey"
-            - name: MYSQL_USER
-              value: "unkey"
-            - name: MYSQL_PASSWORD
-              value: "password"
-          args:
-            - "--max_connections=1000"
+            - name: mysql
+              containerPort: 33577
+            - name: vstream
+              containerPort: 33575
           volumeMounts:
-            - name: mysql-storage
-              mountPath: /var/lib/mysql
+            - name: vitess-storage
+              mountPath: /vt/vtdataroot
+          startupProbe:
+            exec:
+              command: ["mysql", "--protocol=tcp", "-h127.0.0.1", "-P33577", "-uunkey", "-ppassword", "unkey", "-e", "SELECT COUNT(*) FROM workspaces"]
+            periodSeconds: 5
+            failureThreshold: 60
           readinessProbe:
             exec:
-              command:
-                - mysqladmin
-                - ping
-                - -h
-                - localhost
-            initialDelaySeconds: 30
+              command: ["mysql", "--protocol=tcp", "-h127.0.0.1", "-P33577", "-uunkey", "-ppassword", "unkey", "-e", "SELECT COUNT(*) FROM workspaces"]
+            timeoutSeconds: 5
             periodSeconds: 10
           livenessProbe:
-            exec:
-              command:
-                - mysqladmin
-                - ping
-                - -h
-                - localhost
-            initialDelaySeconds: 60
+            tcpSocket:
+              port: mysql
             periodSeconds: 30
       volumes:
-        - name: mysql-storage
+        - name: vitess-storage
           persistentVolumeClaim:
-            claimName: mysql-pvc
+            claimName: vitess-pvc
 
 ---
 apiVersion: v1
@@ -100,7 +93,12 @@ spec:
   selector:
     app: mysql
   ports:
-    - port: 3306
-      targetPort: 3306
+    - name: mysql
+      port: 3306
+      targetPort: mysql
+      protocol: TCP
+    - name: vstream
+      port: 33575
+      targetPort: vstream
       protocol: TCP
   type: LoadBalancer

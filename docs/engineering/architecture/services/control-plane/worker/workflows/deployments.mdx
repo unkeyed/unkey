@@ -51,7 +51,7 @@ sequenceDiagram
   Worker->>Dedup: skipIfSuperseded (defensive self-skip check)
   Worker->>BuildSlot: AcquireOrWait(deployment_id, awakeable_id, is_production)
   BuildSlot-->>Worker: resolve awakeable when slot available<br/>(prod waiters drained first)
-  Worker->>DB: Insert topologies (outbox entries)
+  Worker->>DB: Insert topologies (observed through VStream)
   Worker->>Worker: waitForDeployments creates awakeable
   Note over Worker: suspended on awakeable
   DB-->>Worker: ReportDeploymentStatus threshold met<br/>→ NotifyInstancesReady resolves awakeable

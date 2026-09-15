@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -53,9 +54,10 @@ type clusterCacheKey struct {
 // and status reporting endpoints for agents to report observed state back to the control plane.
 type Service struct {
 	ctrlv1connect.UnimplementedClusterServiceHandler
-	db      db.Database
-	restate *ingress.Client
-	bearer  string
+	db               db.Database
+	restate          *ingress.Client
+	bearer           string
+	deploymentStream DeploymentStream
 	// notifiedReady dedups Restate NotifyInstancesReady calls so we don't
 	// fire on every krane status report once the threshold is met. Keys
 	// are "deployment:<id>".
@@ -88,7 +90,8 @@ type Service struct {
 // Config holds the configuration for creating a new cluster [Service].
 type Config struct {
 	// Database provides read and write access for querying and updating resource state.
-	Database db.Database
+	Database         db.Database
+	DeploymentStream DeploymentStream
 
 	// Restate is the ingress client used to trigger durable workflows.
 	Restate *ingress.Client
@@ -157,6 +160,7 @@ func New(cfg Config) (*Service, error) {
 		db:                                 cfg.Database,
 		restate:                            cfg.Restate,
 		bearer:                             cfg.Bearer,
+		deploymentStream:                   cfg.DeploymentStream,
 		notifiedReady:                      newExpiringSet[string](notifiedReadyTTL),
 		clusterCache:                       clusterCache,
 		topologyCache:                      cfg.TopologyCache,
@@ -173,3 +177,7 @@ func New(cfg Config) (*Service, error) {
 }
 
 var _ ctrlv1connect.ClusterServiceHandler = (*Service)(nil)
+
+type DeploymentStream interface {
+	Watch(context.Context, string, []byte, func(string) error, func([]byte) error) error
+}

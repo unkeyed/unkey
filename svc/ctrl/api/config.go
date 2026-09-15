@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/unkeyed/unkey/pkg/config"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
 )
 
 // RestateConfig holds configuration for Restate workflow engine integration.
@@ -84,6 +85,8 @@ type ClickHouseConfig struct {
 // TLSConfig is runtime-only and cannot be set through a config file. It is
 // tagged toml:"-" and must be set programmatically after loading.
 type Config struct {
+	VStream deploymentstream.Config `toml:"vstream"`
+
 	// InstanceID is the unique identifier for this control plane instance.
 	// Used for logging, tracing, and cluster coordination.
 	InstanceID string `toml:"instance_id"`

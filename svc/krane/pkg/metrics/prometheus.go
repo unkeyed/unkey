@@ -50,17 +50,6 @@ var (
 		},
 	)
 
-	// WatcherVersionLastSeen is the current cursor position in the deployment_changes
-	// stream. If this flatlines, the stream is stuck or the watcher is not receiving events.
-	WatcherVersionLastSeen = lazy.NewGauge(
-		prometheus.GaugeOpts{
-			Namespace: "unkey",
-			Subsystem: "krane",
-			Name:      "watcher_version_last_seen",
-			Help:      "Current cursor position in the deployment_changes stream.",
-		},
-	)
-
 	// StreamConnectionsTotal counts incremental stream connection attempts by outcome.
 	//
 	// Labels:

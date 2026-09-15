@@ -5,32 +5,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand/v2"
-	"time"
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
 // changePageSize is the number of rows fetched per page when syncing deployment changes.
 const changePageSize = 10000
 
-// errUnrecoverable marks a deployment_changes row that can never be processed
-// successfully, no matter how often it is retried (for example a row whose
-// state cannot be converted because of an unknown desired_status enum).
-// Retrying would stall the stream on the same row forever, so callers skip
-// such rows and advance the cursor.
-var errUnrecoverable = errors.New("deployment change is unrecoverable")
-
-// WatchDeploymentChanges streams incremental resource changes from the
-// deployment_changes outbox table. When version_last_seen is 0, the server
-// jumps to the current max pk and polls from there — it never replays
-// historical changes.
+// WatchDeploymentChanges opens one region-filtered VStream for this watch.
+// Checkpoint-only events follow all state events for a committed transaction.
 func (s *Service) WatchDeploymentChanges(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.WatchDeploymentChangesRequest],
@@ -45,147 +34,49 @@ func (s *Service) WatchDeploymentChanges(
 		return err
 	}
 
-	versionCursor := req.Msg.GetVersionLastSeen()
-
-	// When version is 0 and replay is not requested, jump to the current max pk
-	// so we only see new changes.
-	if versionCursor == 0 && !req.Msg.GetReplay() {
-		maxVersion, err := s.db.GetDeploymentChangesMaxVersion(ctx, cluster.RegionID)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal, err)
-		}
-		versionCursor = uint64(maxVersion)
-		logger.Info("watch: starting from max version", "region_id", cluster.RegionID, "cursor", versionCursor)
+	if s.deploymentStream == nil {
+		return connect.NewError(connect.CodeUnavailable, errors.New("deployment VStream is not configured"))
 	}
-
-	// Poll deployment_changes for new entries.
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-
-		events, err := s.fetchDeploymentChangeEvents(ctx, cluster.RegionID, versionCursor)
-		if err != nil {
-			logger.Error("failed to fetch deployment change events", "error", err)
-			return connect.NewError(connect.CodeInternal, err)
-		}
-
-		for _, event := range events {
-			if err := stream.Send(event); err != nil {
-				return err
-			}
-			if event.GetVersion() > versionCursor {
-				versionCursor = event.GetVersion()
-			}
-		}
-
-		if len(events) == 0 {
-			jitter := time.Duration(500+rand.IntN(1000)) * time.Millisecond
-			time.Sleep(jitter)
-		}
+	token := req.Msg.GetResumeToken()
+	if req.Msg.GetReplay() {
+		token = nil
 	}
-}
-
-// fetchDeploymentChangeEvents polls deployment_changes for new entries and does a
-// point lookup for each row to load current state.
-//
-// Rows whose resource is gone (not found) or that can never be processed
-// (errUnrecoverable) are skipped with a bare version event so the cursor
-// advances past them. Any other error is transient and returned to the caller,
-// which aborts the stream without advancing the cursor; the client reconnects
-// and retries from its last seen version.
-func (s *Service) fetchDeploymentChangeEvents(ctx context.Context, regionID string, afterVersion uint64) ([]*ctrlv1.DeploymentChangeEvent, error) {
-	changes, err := s.db.ListDeploymentChangesByRegionAll(ctx, db.ListDeploymentChangesByRegionAllParams{
-		RegionID:     regionID,
-		AfterVersion: afterVersion,
-		Limit:        changePageSize,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	events := make([]*ctrlv1.DeploymentChangeEvent, 0, len(changes))
-	for _, change := range changes {
-		resourceType := string(change.ResourceType)
-		event, err := s.loadChangeEvent(ctx, change)
-		if err != nil {
-			switch {
-			case db.IsNotFound(err):
-				// The resource is gone. The row is safe to skip.
-				metrics.DeploymentChangesProcessedTotal.WithLabelValues(resourceType, "not_found").Inc()
-			case errors.Is(err, errUnrecoverable):
-				// Terminal per-row failure. Retrying would block the stream
-				// on this row forever, so log loudly and skip it.
-				metrics.DeploymentChangesProcessedTotal.WithLabelValues(resourceType, "error").Inc()
-				logger.Error("skipping unrecoverable deployment change",
-					"error", err,
-					"resource_type", change.ResourceType,
-					"resource_id", change.ResourceID,
-				)
-			default:
-				// Transient failure (for example a DB error on the point
-				// lookup). Do not advance past this row: abort the stream so
-				// the client reconnects and retries from its last seen
-				// version.
-				return nil, fmt.Errorf("load state for deployment change pk=%d (%s %s): %w",
-					change.Pk, change.ResourceType, change.ResourceID, err)
-			}
-			// Skip this row but keep advancing the cursor
-			events = append(events, &ctrlv1.DeploymentChangeEvent{Version: change.Pk})
-			continue
-		}
-		metrics.DeploymentChangesProcessedTotal.WithLabelValues(resourceType, "success").Inc()
-		if event != nil {
-			events = append(events, event)
-		}
-	}
-
-	return events, nil
-}
-
-// loadChangeEvent does a point lookup for a single deployment_changes row based on resource_type.
-// Uses the control plane connection because deployment_changes rows arrive
-// immediately after the data is written.
-func (s *Service) loadChangeEvent(ctx context.Context, change db.DeploymentChange) (*ctrlv1.DeploymentChangeEvent, error) {
-	switch change.ResourceType {
-	case db.DeploymentChangesResourceTypeDeploymentTopology:
+	err = s.deploymentStream.Watch(ctx, cluster.RegionID, token, func(deploymentID string) error {
 		row, err := s.db.FindDeploymentTopologyByDeploymentAndRegion(ctx, db.FindDeploymentTopologyByDeploymentAndRegionParams{
-			DeploymentID: change.ResourceID,
-			RegionID:     change.RegionID,
+			DeploymentID: deploymentID,
+			RegionID:     cluster.RegionID,
 		})
+		if db.IsNotFound(err) {
+			// Krane's per-ReplicaSet reconciliation removes resources absent from desired state.
+			metrics.DeploymentChangesProcessedTotal.WithLabelValues("deployment_topology", "not_found").Inc()
+			return nil
+		}
 		if err != nil {
-			return nil, err
+			metrics.DeploymentChangesProcessedTotal.WithLabelValues("deployment_topology", "error").Inc()
+			return err
 		}
-		state, err := deploymentRowToState(row, change.Pk)
+		state, err := deploymentRowToState(row)
 		if err != nil {
-			return nil, fmt.Errorf("%w: %w", errUnrecoverable, err)
+			return err
 		}
-		if state == nil {
-			return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
+		if err := stream.Send(&ctrlv1.DeploymentChangeEvent{Event: &ctrlv1.DeploymentChangeEvent_Deployment{Deployment: state}}); err != nil {
+			return err
 		}
-		return &ctrlv1.DeploymentChangeEvent{
-			Version: change.Pk,
-			Event:   &ctrlv1.DeploymentChangeEvent_Deployment{Deployment: state},
-		}, nil
-
-	case db.DeploymentChangesResourceTypeCiliumNetworkPolicy:
-		// Cilium resources are no longer dispatched — frontline took
-		// over the request path. The outbox row exists during the
-		// cutover so we just acknowledge it and advance the version.
-		return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
-
-	case db.DeploymentChangesResourceTypeSentinel:
-		// This legacy resource type is no longer dispatched. Frontline owns
-		// the request path. The outbox row exists during the
-		// cutover so we just acknowledge it and advance the version.
-		return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
-
-	default:
-		logger.Error("unknown resource type in deployment_changes", "resource_type", change.ResourceType)
-		return &ctrlv1.DeploymentChangeEvent{Version: change.Pk}, nil
+		metrics.DeploymentChangesProcessedTotal.WithLabelValues("deployment_topology", "success").Inc()
+		return nil
+	}, func(next []byte) error {
+		return stream.Send(&ctrlv1.DeploymentChangeEvent{ResumeToken: next})
+	})
+	if errors.Is(err, deploymentstream.ErrInvalidToken) {
+		return connect.NewError(connect.CodeInvalidArgument, err)
 	}
+	if errors.Is(err, deploymentstream.ErrExpired) {
+		return connect.NewError(connect.CodeOutOfRange, err)
+	}
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	return nil
 }
 
 // deploymentStateRow limits state conversion to the two deployment query results.
@@ -194,7 +85,7 @@ type deploymentStateRow interface {
 }
 
 // deploymentRowToState converts either deployment query result to a proto DeploymentState message.
-func deploymentRowToState[T deploymentStateRow](row T, version uint64) (*ctrlv1.DeploymentState, error) {
+func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState, error) {
 	var deployment db.FindDeploymentTopologyByDeploymentAndRegionRow
 	switch row := any(row).(type) {
 	case db.FindDeploymentTopologyByDeploymentAndRegionRow:
@@ -237,7 +128,6 @@ func deploymentRowToState[T deploymentStateRow](row T, version uint64) (*ctrlv1.
 	switch deployment.DesiredStatus {
 	case db.DeploymentTopologyDesiredStatusStopped:
 		return &ctrlv1.DeploymentState{
-			Version: version,
 			State: &ctrlv1.DeploymentState_Delete{
 				Delete: &ctrlv1.DeleteDeployment{
 					K8SNamespace: deployment.K8sNamespace.String,
@@ -311,7 +201,6 @@ func deploymentRowToState[T deploymentStateRow](row T, version uint64) (*ctrlv1.
 		}
 
 		return &ctrlv1.DeploymentState{
-			Version: version,
 			State: &ctrlv1.DeploymentState_Apply{
 				Apply: apply,
 			},
