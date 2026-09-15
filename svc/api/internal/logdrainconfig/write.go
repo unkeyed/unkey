@@ -1,4 +1,4 @@
-package logdrains
+package logdrainconfig
 
 import (
 	"context"
@@ -7,13 +7,15 @@ import (
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/ssrf"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	"golang.org/x/net/http/httpguts"
 )
 
-func setStream(config *logdrainv1.Config, stream string, filters openapi.LogdrainFilters) error {
+func SetStream(config *logdrainv1.Config, stream string, filters openapi.LogdrainFilters) error {
 	if (stream != "audit_logs" && filters.EventTypes != nil) ||
 		(stream != "key_verifications" && (filters.Outcomes != nil || filters.KeySpaceIds != nil)) ||
 		(stream != "ratelimits" && (filters.NamespaceIds != nil || filters.Passed != nil)) ||
@@ -59,7 +61,7 @@ func setStream(config *logdrainv1.Config, stream string, filters openapi.Logdrai
 	return nil
 }
 
-func setDestination(ctx context.Context, client vault.VaultServiceClient, workspaceID string, config *logdrainv1.Config, destination openapi.LogdrainDestinationWrite) error {
+func SetDestination(ctx context.Context, client vault.VaultServiceClient, workspaceID string, config *logdrainv1.Config, destination openapi.LogdrainDestinationWrite) error {
 	if (destination.Http == nil) == (destination.Axiom == nil) {
 		return invalid("Provide exactly one destination.")
 	}
@@ -153,4 +155,8 @@ func setDestination(ctx context.Context, client vault.VaultServiceClient, worksp
 	}
 	config.Destination = &logdrainv1.Config_Http{Http: current}
 	return nil
+}
+
+func invalid(message string) error {
+	return fault.New("invalid log drain configuration", fault.Code(codes.App.Validation.InvalidInput.URN()), fault.Public(message))
 }

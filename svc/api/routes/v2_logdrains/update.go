@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/logdrainconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	"google.golang.org/protobuf/proto"
 )
@@ -68,12 +69,12 @@ func (h *Update) Handle(ctx context.Context, s *zen.Session) error {
 				config.BatchSize = uint32(*req.BatchSize)
 			}
 			if req.Filters != nil {
-				if err := setStream(config, string(row.Stream), *req.Filters); err != nil {
+				if err := logdrainconfig.SetStream(config, string(row.Stream), *req.Filters); err != nil {
 					return err
 				}
 			}
 			if req.Destination != nil {
-				if err := setDestination(ctx, h.Vault, principal.AuthorizedWorkspaceID, config, *req.Destination); err != nil {
+				if err := logdrainconfig.SetDestination(ctx, h.Vault, principal.AuthorizedWorkspaceID, config, *req.Destination); err != nil {
 					return err
 				}
 			}
@@ -115,4 +116,8 @@ func (h *Update) Handle(ctx context.Context, s *zen.Session) error {
 	response.Meta.RequestId = s.RequestID()
 	response.Data.Id = req.LogdrainId
 	return s.JSON(http.StatusOK, response)
+}
+
+func invalid(message string) error {
+	return fault.New("invalid log drain configuration", fault.Code(codes.App.Validation.InvalidInput.URN()), fault.Public(message))
 }

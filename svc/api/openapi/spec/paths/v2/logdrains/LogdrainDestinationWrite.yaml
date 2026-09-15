@@ -3,8 +3,8 @@ additionalProperties: false
 minProperties: 1
 maxProperties: 1
 description: |
-  Exactly one destination. Creation requires an HTTP URL or an Axiom dataset and
-  token. Updates preserve omitted fields and cannot change destination kind.
+  Exactly one destination: an HTTP URL or an Axiom dataset and token.
+  Updates preserve omitted fields and cannot change the destination kind.
 properties:
   http:
     $ref: LogdrainHttpWrite.yaml

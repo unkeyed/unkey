@@ -9,14 +9,13 @@ import (
 	"github.com/stretchr/testify/require"
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	"github.com/unkeyed/unkey/pkg/uid"
-	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains"
+	logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_create_logdrain"
 	"google.golang.org/protobuf/proto"
 )
 
-func TestLogdrainsRejectInvalidInput(t *testing.T) {
+func TestCreateRejectsInvalidInputWithoutChangingExistingDrains(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspaceID := h.Resources().UserWorkspace.ID
 	id := uid.New("ld")
@@ -28,21 +27,21 @@ func TestLogdrainsRejectInvalidInput(t *testing.T) {
 	require.NoError(t, err)
 	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":**#*")
 	headers := http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}
-	update := &logdrains.Update{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock}
-	h.Register(update)
-	for _, tc := range []struct {
-		name  string
-		route zen.Route
-		body  string
-	}{
-		{"update requires change", update, `{"logdrainId":"` + id + `"}`},
-		{"failure status is internal", update, `{"logdrainId":"` + id + `","status":"paused_by_failure"}`},
-		{"destination kind cannot change", update, `{"logdrainId":"` + id + `","name":"Changed","destination":{"axiom":{"dataset":"logs","token":"secret"}}}`},
-		{"update cannot preserve unknown header", update, `{"logdrainId":"` + id + `","name":"Changed","destination":{"http":{"headers":[{"name":"Authorization","mode":"preserve"}]}}}`},
-		{"update filter must match stream", update, `{"logdrainId":"` + id + `","name":"Changed","filters":{"passed":[true]}}`},
+	route := &logdrains.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	h.Register(route)
+	for _, tc := range []struct{ name, body string }{
+		{"missing create fields", `{}`},
+		{"empty name", `{"name":" ","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com"}}}`},
+		{"zero batch size", `{"name":"Logs","stream":"audit_logs","batchSize":0,"destination":{"http":{"url":"https://logs.example.com"}}}`},
+		{"mismatched filter", `{"name":"Logs","stream":"audit_logs","filters":{"passed":[false]},"destination":{"http":{"url":"https://logs.example.com"}}}`},
+		{"empty filter value", `{"name":"Logs","stream":"audit_logs","filters":{"eventTypes":[" "]},"destination":{"http":{"url":"https://logs.example.com"}}}`},
+		{"two destinations", `{"name":"Logs","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com"},"axiom":{"dataset":"logs","token":"secret"}}}`},
+		{"URL credentials", `{"name":"Logs","stream":"audit_logs","destination":{"http":{"url":"https://user:secret@logs.example.com"}}}`},
+		{"duplicate header names", `{"name":"Logs","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com","headers":[{"name":"Authorization","mode":"set","value":"secret"},{"name":"authorization","mode":"set","value":"other"}]}}}`},
+		{"preserve on create", `{"name":"Logs","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com","headers":[{"name":"Authorization","mode":"preserve"}]}}}`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			result := testutil.CallRoute[json.RawMessage, openapi.BadRequestErrorResponse](h, tc.route, headers, json.RawMessage(tc.body))
+			result := testutil.CallRoute[json.RawMessage, openapi.BadRequestErrorResponse](h, route, headers, json.RawMessage(tc.body))
 			require.Equal(t, http.StatusBadRequest, result.Status, "%s", result.RawBody)
 			require.Equal(t, http.StatusBadRequest, result.Body.Error.Status)
 			require.Contains(t, result.Body.Error.Type, "application/invalid_input")

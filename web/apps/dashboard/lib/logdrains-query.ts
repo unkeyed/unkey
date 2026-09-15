@@ -119,21 +119,3 @@ export function useDeleteLogdrainMutation(callbacks: MutationCallbacks) {
       }),
   });
 }
-
-export function useLogdrainDeliveries(id: string) {
-  const workspace = useWorkspaceNavigation();
-  return useQuery({
-    queryKey: [...logdrainQueryKeys.detail(workspace.id, id), "deliveries"],
-    queryFn: async ({ signal }) =>
-      (await getUnkeyClient().logdrains.getRecentDeliveries({ logdrainId: id }, { signal })).data,
-  });
-}
-
-export function useLogdrainMetrics(id: string, hours: 1 | 24 | 168) {
-  const workspace = useWorkspaceNavigation();
-  return useQuery({
-    queryKey: [...logdrainQueryKeys.detail(workspace.id, id), "metrics", hours],
-    queryFn: async ({ signal }) =>
-      (await getUnkeyClient().logdrains.getMetrics({ logdrainId: id, hours }, { signal })).data,
-  });
-}

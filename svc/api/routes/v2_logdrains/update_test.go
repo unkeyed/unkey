@@ -12,12 +12,13 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains"
+	createRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_create_logdrain"
 	"google.golang.org/protobuf/proto"
 )
 
 func TestUpdateResumesFailedDrainWithoutResettingCursor(t *testing.T) {
 	h := testutil.NewHarness(t)
-	create := logdrains.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	create := createRoute.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	update := &logdrains.Update{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	get := &logdrains.Get{DB: h.DB}
 	h.Register(&create)

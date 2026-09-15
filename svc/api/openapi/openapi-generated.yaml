@@ -2740,58 +2740,6 @@ components:
                     $ref: '#/components/schemas/Meta'
                 data:
                     $ref: '#/components/schemas/Logdrain'
-        LogdrainMetricsRequest:
-            type: object
-            required:
-                - logdrainId
-                - hours
-            additionalProperties: false
-            properties:
-                logdrainId:
-                    type: string
-                    maxLength: 48
-                    minLength: 1
-                hours:
-                    type: integer
-                    enum:
-                        - 1
-                        - 24
-                        - 168
-        LogdrainMetricsResponse:
-            type: object
-            required:
-                - meta
-                - data
-            additionalProperties: false
-            properties:
-                meta:
-                    $ref: '#/components/schemas/Meta'
-                data:
-                    type: object
-                    required:
-                        - series
-                        - bucketMinutes
-                    additionalProperties: false
-                    properties:
-                        bucketMinutes:
-                            type: integer
-                        series:
-                            type: array
-                            items:
-                                $ref: '#/components/schemas/LogdrainMetric'
-        LogdrainDeliveriesResponse:
-            type: object
-            required:
-                - meta
-                - data
-            additionalProperties: false
-            properties:
-                meta:
-                    $ref: '#/components/schemas/Meta'
-                data:
-                    type: array
-                    items:
-                        $ref: '#/components/schemas/LogdrainDelivery'
         ListLogdrainsRequest:
             type: object
             additionalProperties: false
@@ -7079,8 +7027,8 @@ components:
             minProperties: 1
             maxProperties: 1
             description: |
-                Exactly one destination. Creation requires an HTTP URL or an Axiom dataset and
-                token. Updates preserve omitted fields and cannot change destination kind.
+                Exactly one destination: an HTTP URL or an Axiom dataset and token.
+                Updates preserve omitted fields and cannot change the destination kind.
             properties:
                 http:
                     $ref: '#/components/schemas/LogdrainHttpWrite'
@@ -7104,8 +7052,9 @@ components:
                     type: array
                     maxItems: 32
                     description: |
-                        The complete desired header set. Omit to preserve all headers, or send an
-                        empty array to remove all headers. Preserve is valid only for existing headers.
+                        Headers sent to the destination. Values are encrypted at rest.
+                        Updates replace the header list when supplied. Use preserve to retain an
+                        existing value without reading it. Omit headers to retain the entire list.
                     items:
                         $ref: '#/components/schemas/LogdrainHeaderWrite'
         LogdrainAxiomWrite:
@@ -7225,73 +7174,6 @@ components:
                     properties:
                         dataset:
                             type: string
-        LogdrainMetric:
-            type: object
-            required:
-                - ts
-                - successCount
-                - transientErrorCount
-                - permanentErrorCount
-                - eventsDelivered
-                - avgDurationMs
-                - lastSuccessMs
-            additionalProperties: false
-            properties:
-                ts:
-                    type: integer
-                    format: int64
-                successCount:
-                    type: integer
-                    format: int64
-                transientErrorCount:
-                    type: integer
-                    format: int64
-                permanentErrorCount:
-                    type: integer
-                    format: int64
-                eventsDelivered:
-                    type: integer
-                    format: int64
-                avgDurationMs:
-                    type: number
-                    format: double
-                lastSuccessMs:
-                    type: integer
-                    format: int64
-        LogdrainDelivery:
-            type: object
-            required:
-                - time
-                - outcome
-                - events
-                - durationMs
-                - responseStatus
-                - responseBody
-                - error
-            additionalProperties: false
-            properties:
-                time:
-                    type: integer
-                    format: int64
-                outcome:
-                    type: string
-                    enum:
-                        - success
-                        - error
-                        - transient_error
-                        - permanent_error
-                events:
-                    type: integer
-                    format: int64
-                durationMs:
-                    type: integer
-                    format: int64
-                responseStatus:
-                    type: integer
-                responseBody:
-                    type: string
-                error:
-                    type: string
         V2PermissionsCreatePermissionResponseData:
             type: object
             properties:
@@ -14339,118 +14221,6 @@ paths:
             tags:
                 - logdrains
             x-speakeasy-name-override: getLogdrain
-    /v2/logdrains.getMetrics:
-        post:
-            description: |
-                Return zero-filled delivery metrics for the last 1, 24, or 168 hours with
-                1, 30, or 240 minute buckets. Requires
-                `unkey:v1:{workspaceId}:logdrains/{logdrainId}#read`.
-            operationId: logdrains.getMetrics
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/LogdrainMetricsRequest'
-                required: true
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/LogdrainMetricsResponse'
-                    description: Delivery metrics for this log drain.
-                "400":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/BadRequestErrorResponse'
-                    description: Invalid input.
-                "401":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
-                    description: Missing or invalid credentials.
-                "403":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Insufficient permission.
-                "404":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/NotFoundErrorResponse'
-                    description: No log drain with this ID exists in the authorized workspace.
-                "500":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/InternalServerErrorResponse'
-                    description: Internal server error.
-            security:
-                - bearer: []
-            summary: Get log drain metrics
-            tags:
-                - logdrains
-            x-speakeasy-name-override: getMetrics
-    /v2/logdrains.getRecentDeliveries:
-        post:
-            description: |
-                Return the newest 20 delivery attempts from the last 24 hours, including
-                destination response diagnostics. Requires
-                `unkey:v1:{workspaceId}:logdrains/{logdrainId}#read`.
-            operationId: logdrains.getRecentDeliveries
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/LogdrainIdRequest'
-                required: true
-            responses:
-                "200":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/LogdrainDeliveriesResponse'
-                    description: Recent delivery attempts for this log drain.
-                "400":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/BadRequestErrorResponse'
-                    description: Invalid input.
-                "401":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
-                    description: Missing or invalid credentials.
-                "403":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ForbiddenErrorResponse'
-                    description: Insufficient permission.
-                "404":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/NotFoundErrorResponse'
-                    description: No log drain with this ID exists in the authorized workspace.
-                "500":
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/InternalServerErrorResponse'
-                    description: Internal server error.
-            security:
-                - bearer: []
-            summary: Get recent log drain deliveries
-            tags:
-                - logdrains
-            x-speakeasy-name-override: getRecentDeliveries
     /v2/logdrains.listLogdrains:
         post:
             description: |

@@ -146,14 +146,6 @@ const (
 	LogdrainStreamRuntimeLogs      LogdrainStream = "runtime_logs"
 )
 
-// Defines values for LogdrainDeliveryOutcome.
-const (
-	Error          LogdrainDeliveryOutcome = "error"
-	PermanentError LogdrainDeliveryOutcome = "permanent_error"
-	Success        LogdrainDeliveryOutcome = "success"
-	TransientError LogdrainDeliveryOutcome = "transient_error"
-)
-
 // Defines values for LogdrainDestinationHttpFormat.
 const (
 	LogdrainDestinationHttpFormatJson   LogdrainDestinationHttpFormat = "json"
@@ -178,13 +170,6 @@ const (
 const (
 	LogdrainHttpWriteFormatJson   LogdrainHttpWriteFormat = "json"
 	LogdrainHttpWriteFormatNdjson LogdrainHttpWriteFormat = "ndjson"
-)
-
-// Defines values for LogdrainMetricsRequestHours.
-const (
-	N1   LogdrainMetricsRequestHours = 1
-	N168 LogdrainMetricsRequestHours = 168
-	N24  LogdrainMetricsRequestHours = 24
 )
 
 // Defines values for MethodMatchMethods.
@@ -408,8 +393,8 @@ type ConflictErrorResponse struct {
 type CreateLogdrainRequest struct {
 	BatchSize *int64 `json:"batchSize,omitempty"`
 
-	// Destination Exactly one destination. Creation requires an HTTP URL or an Axiom dataset and
-	// token. Updates preserve omitted fields and cannot change destination kind.
+	// Destination Exactly one destination: an HTTP URL or an Axiom dataset and token.
+	// Updates preserve omitted fields and cannot change the destination kind.
 	Destination LogdrainDestinationWrite `json:"destination"`
 
 	// Filters Only filters for the selected stream are accepted. Empty arrays select all
@@ -1167,28 +1152,6 @@ type LogdrainAxiomWrite struct {
 	Token   *string `json:"token,omitempty"`
 }
 
-// LogdrainDeliveriesResponse defines model for LogdrainDeliveriesResponse.
-type LogdrainDeliveriesResponse struct {
-	Data []LogdrainDelivery `json:"data"`
-
-	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
-}
-
-// LogdrainDelivery defines model for LogdrainDelivery.
-type LogdrainDelivery struct {
-	DurationMs     int64                   `json:"durationMs"`
-	Error          string                  `json:"error"`
-	Events         int64                   `json:"events"`
-	Outcome        LogdrainDeliveryOutcome `json:"outcome"`
-	ResponseBody   string                  `json:"responseBody"`
-	ResponseStatus int                     `json:"responseStatus"`
-	Time           int64                   `json:"time"`
-}
-
-// LogdrainDeliveryOutcome defines model for LogdrainDelivery.Outcome.
-type LogdrainDeliveryOutcome string
-
 // LogdrainDestination defines model for LogdrainDestination.
 type LogdrainDestination struct {
 	Axiom *struct {
@@ -1206,8 +1169,8 @@ type LogdrainDestination struct {
 // LogdrainDestinationHttpFormat defines model for LogdrainDestination.Http.Format.
 type LogdrainDestinationHttpFormat string
 
-// LogdrainDestinationWrite Exactly one destination. Creation requires an HTTP URL or an Axiom dataset and
-// token. Updates preserve omitted fields and cannot change destination kind.
+// LogdrainDestinationWrite Exactly one destination: an HTTP URL or an Axiom dataset and token.
+// Updates preserve omitted fields and cannot change the destination kind.
 type LogdrainDestinationWrite struct {
 	Axiom *LogdrainAxiomWrite `json:"axiom,omitempty"`
 	Http  *LogdrainHttpWrite  `json:"http,omitempty"`
@@ -1245,8 +1208,9 @@ type LogdrainHeaderWriteMode string
 type LogdrainHttpWrite struct {
 	Format *LogdrainHttpWriteFormat `json:"format,omitempty"`
 
-	// Headers The complete desired header set. Omit to preserve all headers, or send an
-	// empty array to remove all headers. Preserve is valid only for existing headers.
+	// Headers Headers sent to the destination. Values are encrypted at rest.
+	// Updates replace the header list when supplied. Use preserve to retain an
+	// existing value without reading it. Omit headers to retain the entire list.
 	Headers *[]LogdrainHeaderWrite `json:"headers,omitempty"`
 	Url     *string                `json:"url,omitempty"`
 }
@@ -1257,37 +1221,6 @@ type LogdrainHttpWriteFormat string
 // LogdrainIdRequest defines model for LogdrainIdRequest.
 type LogdrainIdRequest struct {
 	LogdrainId string `json:"logdrainId"`
-}
-
-// LogdrainMetric defines model for LogdrainMetric.
-type LogdrainMetric struct {
-	AvgDurationMs       float64 `json:"avgDurationMs"`
-	EventsDelivered     int64   `json:"eventsDelivered"`
-	LastSuccessMs       int64   `json:"lastSuccessMs"`
-	PermanentErrorCount int64   `json:"permanentErrorCount"`
-	SuccessCount        int64   `json:"successCount"`
-	TransientErrorCount int64   `json:"transientErrorCount"`
-	Ts                  int64   `json:"ts"`
-}
-
-// LogdrainMetricsRequest defines model for LogdrainMetricsRequest.
-type LogdrainMetricsRequest struct {
-	Hours      LogdrainMetricsRequestHours `json:"hours"`
-	LogdrainId string                      `json:"logdrainId"`
-}
-
-// LogdrainMetricsRequestHours defines model for LogdrainMetricsRequest.Hours.
-type LogdrainMetricsRequestHours int
-
-// LogdrainMetricsResponse defines model for LogdrainMetricsResponse.
-type LogdrainMetricsResponse struct {
-	Data struct {
-		BucketMinutes int              `json:"bucketMinutes"`
-		Series        []LogdrainMetric `json:"series"`
-	} `json:"data"`
-
-	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
-	Meta Meta `json:"meta"`
 }
 
 // LogdrainMutationResponse defines model for LogdrainMutationResponse.
@@ -1919,8 +1852,8 @@ type UpdateKeyCreditsRefillInterval string
 type UpdateLogdrainRequest struct {
 	BatchSize *int64 `json:"batchSize,omitempty"`
 
-	// Destination Exactly one destination. Creation requires an HTTP URL or an Axiom dataset and
-	// token. Updates preserve omitted fields and cannot change destination kind.
+	// Destination Exactly one destination: an HTTP URL or an Axiom dataset and token.
+	// Updates preserve omitted fields and cannot change the destination kind.
 	Destination *LogdrainDestinationWrite `json:"destination,omitempty"`
 
 	// Filters Only filters for the selected stream are accepted. Empty arrays select all
@@ -5392,12 +5325,6 @@ type LogdrainsDeleteLogdrainJSONRequestBody = LogdrainIdRequest
 
 // LogdrainsGetLogdrainJSONRequestBody defines body for LogdrainsGetLogdrain for application/json ContentType.
 type LogdrainsGetLogdrainJSONRequestBody = LogdrainIdRequest
-
-// LogdrainsGetMetricsJSONRequestBody defines body for LogdrainsGetMetrics for application/json ContentType.
-type LogdrainsGetMetricsJSONRequestBody = LogdrainMetricsRequest
-
-// LogdrainsGetRecentDeliveriesJSONRequestBody defines body for LogdrainsGetRecentDeliveries for application/json ContentType.
-type LogdrainsGetRecentDeliveriesJSONRequestBody = LogdrainIdRequest
 
 // LogdrainsListLogdrainsJSONRequestBody defines body for LogdrainsListLogdrains for application/json ContentType.
 type LogdrainsListLogdrainsJSONRequestBody = ListLogdrainsRequest

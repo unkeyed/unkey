@@ -33,13 +33,10 @@ func TestLogdrainsRequireAuthenticationAndPermission(t *testing.T) {
 		body    string
 		foreign bool
 	}{
-		{&logdrains.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock}, `{"name":"Logs","stream":"audit_logs","destination":{"http":{"url":"https://logs.example.com"}}}`, false},
-		{&logdrains.List{DB: h.DB}, `{}`, false},
 		{&logdrains.Get{DB: h.DB}, `{"logdrainId":"` + foreignID + `"}`, true},
-		{&logdrains.Update{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock}, `{"logdrainId":"` + foreignID + `","status":"running"}`, true},
+		{&logdrains.List{DB: h.DB}, `{}`, false},
+		{&logdrains.Update{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock}, `{"logdrainId":"` + foreignID + `","name":"Changed"}`, true},
 		{&logdrains.Delete{DB: h.DB, Auditlogs: h.Auditlogs}, `{"logdrainId":"` + foreignID + `"}`, true},
-		{&logdrains.Metrics{DB: h.DB, ClickHouse: h.ClickHouse, Clock: h.Clock}, `{"logdrainId":"` + foreignID + `","hours":24}`, true},
-		{&logdrains.Deliveries{DB: h.DB, ClickHouse: h.ClickHouse, Clock: h.Clock}, `{"logdrainId":"` + foreignID + `"}`, true},
 	} {
 		t.Run(tc.route.Path(), func(t *testing.T) {
 			h.Register(tc.route)

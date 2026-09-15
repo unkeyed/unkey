@@ -10,11 +10,12 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains"
+	createRoute "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_create_logdrain"
 )
 
 func TestDeleteWorksAfterAllowanceRevoked(t *testing.T) {
 	h := testutil.NewHarness(t)
-	create := &logdrains.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	create := &createRoute.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock}
 	remove := &logdrains.Delete{DB: h.DB, Auditlogs: h.Auditlogs}
 	get := &logdrains.Get{DB: h.DB}
 	h.Register(create)
@@ -43,4 +44,16 @@ func TestDeleteWorksAfterAllowanceRevoked(t *testing.T) {
 	var count int
 	require.NoError(t, h.DB.RW().QueryRowContext(context.Background(), "SELECT COUNT(*) FROM logdrains WHERE id = ?", input.LogdrainId).Scan(&count))
 	require.Zero(t, count)
+}
+
+func TestDeleteRequiresID(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &logdrains.Delete{DB: h.DB, Auditlogs: h.Auditlogs}
+	h.Register(route)
+	key := h.CreateRootKey(h.Resources().UserWorkspace.ID, "unkey:v1:"+h.Resources().UserWorkspace.ID+":**#*")
+	result := testutil.CallRoute[json.RawMessage, openapi.BadRequestErrorResponse](h, route, http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}, json.RawMessage(`{}`))
+	require.Equal(t, http.StatusBadRequest, result.Status, "%s", result.RawBody)
+	require.Contains(t, result.Body.Error.Type, "application/invalid_input")
+	require.NotEmpty(t, result.Body.Error.Detail)
+	require.NotEmpty(t, result.Body.Meta.RequestId)
 }

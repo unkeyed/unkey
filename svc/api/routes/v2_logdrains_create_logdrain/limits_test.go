@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
-	logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains"
+	logdrains "github.com/unkeyed/unkey/svc/api/routes/v2_logdrains_create_logdrain"
 )
 
 func TestConcurrentCreatesRespectAllowance(t *testing.T) {

@@ -65,3 +65,14 @@ func TestGetMissingDrainReturnsNotFound(t *testing.T) {
 	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/logdrain_not_found", response.Body.Error.Type)
 	require.NotEmpty(t, response.Body.Meta.RequestId)
 }
+
+func TestGetRequiresID(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &logdrains.Get{DB: h.DB}
+	h.Register(route)
+	workspaceID := h.Resources().UserWorkspace.ID
+	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/*#read")
+	response := testutil.CallRoute[openapi.LogdrainIdRequest, openapi.BadRequestErrorResponse](h, route, http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}, openapi.LogdrainIdRequest{})
+	require.Equal(t, http.StatusBadRequest, response.Status, "%s", response.RawBody)
+	require.Contains(t, response.Body.Error.Type, "application/invalid_input")
+}

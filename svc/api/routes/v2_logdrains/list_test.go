@@ -45,3 +45,14 @@ func TestListPagesOnlyAuthorizedWorkspace(t *testing.T) {
 	require.Equal(t, prefix+"c", second.Body.Data[0].Id)
 	require.False(t, second.Body.Pagination.HasMore)
 }
+
+func TestListRejectsUnboundedPageSize(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &logdrains.List{DB: h.DB}
+	h.Register(route)
+	workspaceID := h.Resources().UserWorkspace.ID
+	key := h.CreateRootKey(workspaceID, "unkey:v1:"+workspaceID+":logdrains/*#read")
+	response := testutil.CallRoute[openapi.ListLogdrainsRequest, openapi.BadRequestErrorResponse](h, route, http.Header{"Authorization": {"Bearer " + key}, "Content-Type": {"application/json"}}, openapi.ListLogdrainsRequest{Limit: ptr.P(101)})
+	require.Equal(t, http.StatusBadRequest, response.Status, "%s", response.RawBody)
+	require.Contains(t, response.Body.Error.Type, "application/invalid_input")
+}
