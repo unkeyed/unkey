@@ -5320,6 +5320,9 @@ type KeysWhoamiJSONRequestBody = V2KeysWhoamiRequestBody
 // LogdrainsCreateLogdrainJSONRequestBody defines body for LogdrainsCreateLogdrain for application/json ContentType.
 type LogdrainsCreateLogdrainJSONRequestBody = CreateLogdrainRequest
 
+// LogdrainsDeleteLogdrainJSONRequestBody defines body for LogdrainsDeleteLogdrain for application/json ContentType.
+type LogdrainsDeleteLogdrainJSONRequestBody = LogdrainIdRequest
+
 // LogdrainsGetLogdrainJSONRequestBody defines body for LogdrainsGetLogdrain for application/json ContentType.
 type LogdrainsGetLogdrainJSONRequestBody = LogdrainIdRequest
 

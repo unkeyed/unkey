@@ -14109,6 +14109,63 @@ paths:
             tags:
                 - logdrains
             x-speakeasy-name-override: createLogdrain
+    /v2/logdrains.deleteLogdrain:
+        post:
+            description: |
+                Delete a log drain, regardless of workspace allowance. Requires
+                `unkey:v1:{workspaceId}:logdrains/{logdrainId}#delete`.
+                Deletion prevents further worker state writes. A request already sent to the
+                destination cannot be recalled.
+            operationId: logdrains.deleteLogdrain
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/LogdrainIdRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/LogdrainMutationResponse'
+                    description: Log drain deleted.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid input.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Missing or invalid credentials.
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient permission.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: No log drain with this ID exists in the authorized workspace.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            security:
+                - bearer: []
+            summary: Delete log drain
+            tags:
+                - logdrains
+            x-speakeasy-name-override: deleteLogdrain
     /v2/logdrains.getLogdrain:
         post:
             description: |

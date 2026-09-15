@@ -345,6 +345,8 @@ paths:
     $ref: "./spec/paths/v2/logdrains/listLogdrains/index.yaml"
   /v2/logdrains.updateLogdrain:
     $ref: "./spec/paths/v2/logdrains/updateLogdrain/index.yaml"
+  /v2/logdrains.deleteLogdrain:
+    $ref: "./spec/paths/v2/logdrains/deleteLogdrain/index.yaml"
 
 components:
   securitySchemes:
