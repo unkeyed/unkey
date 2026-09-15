@@ -28,55 +28,55 @@ export const createWorkspace = protectedProcedure
       });
     }
 
-    const orgId = await db
-      .transaction(async (tx) => {
-        if (env().AUTH_PROVIDER === "local") {
-          // Check if this user already has a workspace
-          const existingWorkspaces = await tx.query.workspaces.findMany({
-            where: (workspaces, { eq }) => eq(workspaces.orgId, ctx.tenant.id),
-            columns: { id: true },
-          });
-
-          if (existingWorkspaces.length > 0) {
-            throw new TRPCError({
-              code: "METHOD_NOT_SUPPORTED",
-              message:
-                "You cannot create additional workspaces in local development mode. Use workOS auth provider if you need to test multi-workspace functionality.",
-            });
-          }
-        }
-
-        const duplicateSlug = await tx.query.workspaces.findFirst({
-          where: (workspaces, { eq }) => eq(workspaces.slug, input.slug),
+    try {
+      if (env().AUTH_PROVIDER === "local") {
+        // Check if this user already has a workspace
+        const existingWorkspaces = await db.query.workspaces.findMany({
+          where: (workspaces, { eq }) => eq(workspaces.orgId, ctx.tenant.id),
           columns: { id: true },
         });
 
-        if (duplicateSlug) {
+        if (existingWorkspaces.length > 0) {
           throw new TRPCError({
-            code: "CONFLICT",
-            message: "A workspace with this slug already exists.",
+            code: "METHOD_NOT_SUPPORTED",
+            message:
+              "You cannot create additional workspaces in local development mode. Use workOS auth provider if you need to test multi-workspace functionality.",
           });
         }
+      }
 
-        const orgId = await authProvider.createTenant({
-          name: input.name,
-          userId,
+      const duplicateSlug = await db.query.workspaces.findFirst({
+        where: (workspaces, { eq }) => eq(workspaces.slug, input.slug),
+        columns: { id: true },
+      });
+
+      if (duplicateSlug) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "A workspace with this slug already exists.",
         });
+      }
 
-        const workspace: InsertWorkspace = {
-          id: newId("workspace"),
-          orgId: orgId,
-          name: input.name,
-          slug: input.slug,
-          betaFeatures: {},
-          enabled: true,
-          deleteProtection: true,
-          createdAtM: Date.now(),
-          updatedAtM: null,
-          deletedAtM: null,
-          k8sNamespace: dns1035(),
-        };
+      const orgId = await authProvider.createTenant({
+        name: input.name,
+        userId,
+      });
 
+      const workspace: InsertWorkspace = {
+        id: newId("workspace"),
+        orgId: orgId,
+        name: input.name,
+        slug: input.slug,
+        betaFeatures: {},
+        enabled: true,
+        deleteProtection: true,
+        createdAtM: Date.now(),
+        updatedAtM: null,
+        deletedAtM: null,
+        k8sNamespace: dns1035(),
+      };
+
+      await db.transaction(async (tx) => {
         await tx.insert(schema.workspaces).values(workspace);
         await tx.insert(schema.limits).values({
           workspaceId: workspace.id,
@@ -106,23 +106,17 @@ export const createWorkspace = protectedProcedure
             },
           },
         ]);
-
-        return orgId;
-      })
-      .catch((err) => {
-        if (err instanceof TRPCError) {
-          throw err;
-        }
-        console.error(err);
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            "We are unable to create the workspace. Please try again or contact support@unkey.com",
-        });
       });
-
-    return {
-      orgId,
-      slug: input.slug,
-    };
+      return { orgId, slug: input.slug };
+    } catch (err) {
+      if (err instanceof TRPCError) {
+        throw err;
+      }
+      console.error(err);
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message:
+          "We are unable to create the workspace. Please try again or contact support@unkey.com",
+      });
+    }
   });

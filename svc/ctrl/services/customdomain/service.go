@@ -233,12 +233,6 @@ func (s *Service) AddCustomDomain(
 			return connect.NewError(connect.CodeInternal, fmt.Errorf("insert audit log: %w", txErr))
 		}
 
-		// Submitting inside the transaction makes the RPC all-or-nothing: a failed
-		// submit rolls the row and its audit entry back, so retrying createDomain is
-		// the recovery. The workflow tolerates reading before the commit lands (see
-		// rowVisibilityGrace in the worker), and a TxRetry rerun re-submitting is
-		// safe because the invocation is keyed by domainID, a virtual object Restate
-		// runs one at a time per domain.
 		sendResp, sendErr := s.startVerification(txCtx, domainID)
 		if sendErr != nil {
 			logger.Error(
@@ -482,6 +476,10 @@ func (s *Service) RetryVerification(
 
 // startVerification submits the verification workflow for domainID.
 func (s *Service) startVerification(ctx context.Context, domainID string) (restateingress.SimpleSendResponse, error) {
+	// Keep failed submission recoverable by rolling back the domain and audit
+	// writes, but do not let ingress stalls consume the Vitess transaction limit.
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
 	client := hydrav1.NewCustomDomainServiceIngressClient(s.restate, domainID)
 
 	return client.VerifyDomain().Send(ctx, &hydrav1.VerifyDomainRequest{})
