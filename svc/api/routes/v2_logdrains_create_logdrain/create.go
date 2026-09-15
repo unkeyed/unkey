@@ -23,6 +23,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"github.com/unkeyed/unkey/svc/api/internal/logdrainconfig"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	"google.golang.org/protobuf/proto"
 )
@@ -65,10 +66,10 @@ func (h *Create) Handle(ctx context.Context, s *zen.Session) error {
 	config := &logdrainv1.Config{
 		BatchSize: uint32(ptr.SafeDeref(req.BatchSize)),
 	}
-	if err := setStream(config, string(req.Stream), ptr.SafeDeref(req.Filters)); err != nil {
+	if err := logdrainconfig.SetStream(config, string(req.Stream), ptr.SafeDeref(req.Filters)); err != nil {
 		return err
 	}
-	if err := setDestination(ctx, h.Vault, principal.AuthorizedWorkspaceID, config, req.Destination); err != nil {
+	if err := logdrainconfig.SetDestination(ctx, h.Vault, principal.AuthorizedWorkspaceID, config, req.Destination); err != nil {
 		return err
 	}
 	encoded, err := proto.Marshal(config)

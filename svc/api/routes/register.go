@@ -189,6 +189,7 @@ func Register(srv *zen.Server, svc *Services, info zen.InstanceInfo) {
 	srv.RegisterRoute(protectedMiddlewares, &v2Logdrains.Create{DB: svc.Database, Vault: svc.Vault, Auditlogs: svc.Auditlogs, Clock: svc.Clock, LimitsCache: svc.Caches.WorkspaceLimits})
 	srv.RegisterRoute(protectedMiddlewares, &logdrains.Get{DB: svc.Database})
 	srv.RegisterRoute(protectedMiddlewares, &logdrains.List{DB: svc.Database})
+	srv.RegisterRoute(protectedMiddlewares, &logdrains.Update{DB: svc.Database, Vault: svc.Vault, Auditlogs: svc.Auditlogs, Clock: svc.Clock})
 
 	// ---------------------------------------------------------------------------
 	// pprof (internal profiling endpoints)

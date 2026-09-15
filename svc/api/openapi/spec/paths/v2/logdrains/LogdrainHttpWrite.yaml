@@ -9,5 +9,7 @@ properties:
     maxItems: 32
     description: |
       Headers sent to the destination. Values are encrypted at rest.
+      Updates replace the header list when supplied. Use preserve to retain an
+      existing value without reading it. Omit headers to retain the entire list.
     items:
       $ref: LogdrainHeaderWrite.yaml

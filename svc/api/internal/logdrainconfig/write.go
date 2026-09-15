@@ -1,4 +1,4 @@
-package logdrains
+package logdrainconfig
 
 import (
 	"context"
@@ -7,13 +7,15 @@ import (
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/gen/rpc/vault"
+	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/ssrf"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	"golang.org/x/net/http/httpguts"
 )
 
-func setStream(config *logdrainv1.Config, stream string, filters openapi.LogdrainFilters) error {
+func SetStream(config *logdrainv1.Config, stream string, filters openapi.LogdrainFilters) error {
 	if (stream != "audit_logs" && filters.EventTypes != nil) ||
 		(stream != "key_verifications" && (filters.Outcomes != nil || filters.KeySpaceIds != nil)) ||
 		(stream != "ratelimits" && (filters.NamespaceIds != nil || filters.Passed != nil)) ||
@@ -59,12 +61,18 @@ func setStream(config *logdrainv1.Config, stream string, filters openapi.Logdrai
 	return nil
 }
 
-func setDestination(ctx context.Context, client vault.VaultServiceClient, workspaceID string, config *logdrainv1.Config, destination openapi.LogdrainDestinationWrite) error {
+func SetDestination(ctx context.Context, client vault.VaultServiceClient, workspaceID string, config *logdrainv1.Config, destination openapi.LogdrainDestinationWrite) error {
 	if (destination.Http == nil) == (destination.Axiom == nil) {
 		return invalid("Provide exactly one destination.")
 	}
 	if input := destination.Axiom; input != nil {
-		current := &logdrainv1.AxiomConfig{}
+		if config.Destination != nil && config.GetAxiom() == nil {
+			return invalid("Destination kind cannot be changed. Create a new log drain instead.")
+		}
+		current := config.GetAxiom()
+		if current == nil {
+			current = &logdrainv1.AxiomConfig{}
+		}
 		if input.Dataset != nil {
 			current.Dataset = *input.Dataset
 		}
@@ -82,7 +90,13 @@ func setDestination(ctx context.Context, client vault.VaultServiceClient, worksp
 		return nil
 	}
 	input := destination.Http
-	current := &logdrainv1.HttpConfig{}
+	if config.Destination != nil && config.GetHttp() == nil {
+		return invalid("Destination kind cannot be changed. Create a new log drain instead.")
+	}
+	current := config.GetHttp()
+	if current == nil {
+		current = &logdrainv1.HttpConfig{}
+	}
 	if input.Url != nil {
 		current.Url = *input.Url
 	}
@@ -91,9 +105,9 @@ func setDestination(ctx context.Context, client vault.VaultServiceClient, worksp
 	}
 	if input.Format != nil {
 		switch *input.Format {
-		case "json":
+		case openapi.LogdrainHttpWriteFormatJson:
 			current.Format = logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON
-		case "ndjson":
+		case openapi.LogdrainHttpWriteFormatNdjson:
 			current.Format = logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON
 		default:
 			return invalid("Unsupported HTTP body format.")
@@ -118,6 +132,21 @@ func setDestination(ctx context.Context, client vault.VaultServiceClient, worksp
 					return err
 				}
 				headers = append(headers, &logdrainv1.HttpHeader{Name: header.Name, EncryptedValue: encrypted.GetEncrypted()})
+			case openapi.LogdrainHeaderPreserve:
+				if header.Value != nil {
+					return invalid("Preserved headers must omit value.")
+				}
+				var found *logdrainv1.HttpHeader
+				for _, existing := range current.Headers {
+					if strings.EqualFold(existing.Name, header.Name) {
+						found = existing
+						break
+					}
+				}
+				if found == nil {
+					return invalid("Cannot preserve an unknown HTTP header.")
+				}
+				headers = append(headers, found)
 			default:
 				return invalid("Unsupported HTTP header mode.")
 			}
@@ -126,4 +155,8 @@ func setDestination(ctx context.Context, client vault.VaultServiceClient, worksp
 	}
 	config.Destination = &logdrainv1.Config_Http{Http: current}
 	return nil
+}
+
+func invalid(message string) error {
+	return fault.New("invalid log drain configuration", fault.Code(codes.App.Validation.InvalidInput.URN()), fault.Public(message))
 }
