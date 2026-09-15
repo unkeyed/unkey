@@ -74,17 +74,13 @@ func (c *Controller) ensureDeploymentSecret(ctx context.Context, namespace, depl
 	}
 
 	secret := &corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1",
-			Kind:       "Secret",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: namespace,
-			Labels:    labels.New().DeploymentID(deploymentID).ManagedByKrane(),
-		},
-		Data: data,
-		Type: corev1.SecretTypeOpaque,
+		APIVersion: "v1",
+		Kind:       "Secret",
+		Name:       secretName,
+		Namespace:  namespace,
+		Labels:     labels.New().DeploymentID(deploymentID).ManagedByKrane(),
+		Data:       data,
+		Type:       corev1.SecretTypeOpaque,
 	}
 
 	patch, err := json.Marshal(secret)
