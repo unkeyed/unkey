@@ -21,17 +21,15 @@ func TestScanInstanceEvents(t *testing.T) {
 
 	makePod := func(uid string, statuses []corev1.ContainerStatus) *corev1.Pod {
 		return &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "pod-" + uid,
-				Namespace: "default",
-				UID:       types.UID(uid),
-				Labels: map[string]string{
-					labels.LabelKeyWorkspaceID:   "ws_1",
-					labels.LabelKeyProjectID:     "proj_1",
-					labels.LabelKeyAppID:         "app_1",
-					labels.LabelKeyEnvironmentID: "env_1",
-					labels.LabelKeyDeploymentID:  "dep_1",
-				},
+			Name:      "pod-" + uid,
+			Namespace: "default",
+			UID:       types.UID(uid),
+			Labels: map[string]string{
+				labels.LabelKeyWorkspaceID:   "ws_1",
+				labels.LabelKeyProjectID:     "proj_1",
+				labels.LabelKeyAppID:         "app_1",
+				labels.LabelKeyEnvironmentID: "env_1",
+				labels.LabelKeyDeploymentID:  "dep_1",
 			},
 			Spec:   corev1.PodSpec{NodeName: "node-1"},
 			Status: corev1.PodStatus{ContainerStatuses: statuses},
@@ -204,8 +202,8 @@ func TestScanInstanceEvents(t *testing.T) {
 	t.Run("non-krane pods (no deployment_id label) are skipped", func(t *testing.T) {
 		t.Parallel()
 		pod := &corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{Name: "system", UID: "x", Labels: map[string]string{}},
-			Spec:       corev1.PodSpec{NodeName: "node-1"},
+			Name: "system", UID: "x", Labels: map[string]string{},
+			Spec: corev1.PodSpec{NodeName: "node-1"},
 			Status: corev1.PodStatus{ContainerStatuses: []corev1.ContainerStatus{{
 				Name:         "app",
 				RestartCount: 0,
@@ -258,15 +256,13 @@ func TestFingerprintIsStable(t *testing.T) {
 func TestExtractAttributesPopulatesKnownKeys(t *testing.T) {
 	t.Parallel()
 	pod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "pod-attrs",
-			UID:  "uid-attrs",
-			Labels: map[string]string{
-				labels.LabelKeyWorkspaceID:  "ws_1",
-				labels.LabelKeyProjectID:    "proj_1",
-				labels.LabelKeyDeploymentID: "dep_1",
-				labels.LabelKeyBuildID:      "bld_42",
-			},
+		Name: "pod-attrs",
+		UID:  "uid-attrs",
+		Labels: map[string]string{
+			labels.LabelKeyWorkspaceID:  "ws_1",
+			labels.LabelKeyProjectID:    "proj_1",
+			labels.LabelKeyDeploymentID: "dep_1",
+			labels.LabelKeyBuildID:      "bld_42",
 		},
 		Spec: corev1.PodSpec{
 			NodeName: "node-1",
@@ -312,11 +308,9 @@ func TestExtractAttributesOmitsEmptyValues(t *testing.T) {
 	// Container with no resource limits set, no image_id yet, no build label —
 	// each missing field should be absent from the map rather than mapped to "".
 	pod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "pod-bare",
-			UID:    "uid-bare",
-			Labels: map[string]string{},
-		},
+		Name:   "pod-bare",
+		UID:    "uid-bare",
+		Labels: map[string]string{},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{{Name: "app"}},
 		},

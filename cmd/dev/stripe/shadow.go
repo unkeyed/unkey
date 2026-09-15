@@ -196,7 +196,7 @@ func stripeMeterValues(ctx context.Context, sc *stripesdk.Client, customer strin
 	values := meterValues{}
 
 	meters := sc.V1BillingMeters.List(ctx, &stripesdk.BillingMeterListParams{
-		ListParams: stripesdk.ListParams{Limit: stripesdk.Int64(100)},
+		Limit: stripesdk.Int64(100),
 	})
 	for meter, err := range meters.All(ctx) {
 		if err != nil {

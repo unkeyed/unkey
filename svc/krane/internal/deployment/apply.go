@@ -217,16 +217,14 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 	if es := req.GetEphemeralStorage(); es != nil && es.GetSizeMib() > 0 {
 		volumes = append(volumes, corev1.Volume{
 			Name: "data",
-			VolumeSource: corev1.VolumeSource{
-				Ephemeral: &corev1.EphemeralVolumeSource{
-					VolumeClaimTemplate: &corev1.PersistentVolumeClaimTemplate{
-						Spec: corev1.PersistentVolumeClaimSpec{
-							AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-							StorageClassName: new(c.storageClassName),
-							Resources: corev1.VolumeResourceRequirements{
-								Requests: corev1.ResourceList{
-									corev1.ResourceStorage: resource.MustParse(fmt.Sprintf("%dMi", es.GetSizeMib())),
-								},
+			Ephemeral: &corev1.EphemeralVolumeSource{
+				VolumeClaimTemplate: &corev1.PersistentVolumeClaimTemplate{
+					Spec: corev1.PersistentVolumeClaimSpec{
+						AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+						StorageClassName: new(c.storageClassName),
+						Resources: corev1.VolumeResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceStorage: resource.MustParse(fmt.Sprintf("%dMi", es.GetSizeMib())),
 							},
 						},
 					},
@@ -271,7 +269,7 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 	if hasSecrets {
 		container.EnvFrom = []corev1.EnvFromSource{{
 			SecretRef: &corev1.SecretEnvSource{
-				LocalObjectReference: corev1.LocalObjectReference{Name: deploymentResourcePrefix(req.GetDeploymentId())},
+				Name: deploymentResourcePrefix(req.GetDeploymentId()),
 			},
 		}}
 	}
@@ -303,15 +301,11 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 	podSpec.ImagePullSecrets = c.imagePullSecrets
 
 	return &appsv1.ReplicaSet{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "apps/v1",
-			Kind:       "ReplicaSet",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      req.GetK8SName(),
-			Namespace: req.GetK8SNamespace(),
-			Labels:    usedLabels,
-		},
+		APIVersion: "apps/v1",
+		Kind:       "ReplicaSet",
+		Name:       req.GetK8SName(),
+		Namespace:  req.GetK8SNamespace(),
+		Labels:     usedLabels,
 		Spec: appsv1.ReplicaSetSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels.New().DeploymentID(req.GetDeploymentId()),
