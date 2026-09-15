@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { decodeLogdrainConfig } from "./config";
 import "./create";
 
@@ -12,17 +12,36 @@ const saved = vi.hoisted(() =>
 const mutation = vi.hoisted(() => ({
   run: async (_input: unknown): Promise<unknown> => undefined,
 }));
+const allowance = vi.hoisted(() => ({ limit: 10, count: 0, hasLimits: true }));
 vi.mock("@/lib/audit", () => ({ insertAuditLogs: vi.fn() }));
 vi.mock("@/lib/vault-client", () => ({
   createVaultClient: () => ({ encrypt: async () => ({ encrypted: "ciphertext" }) }),
 }));
-vi.mock("@/lib/db", () => ({
-  db: {
-    transaction: async (run: (tx: unknown) => Promise<void>) =>
-      run({ insert: () => ({ values: saved }) }),
-  },
-  schema: { logdrains: {} },
-}));
+vi.mock("@/lib/db", async () => {
+  const { schema, eq } = await import("@unkey/db");
+  return {
+    db: {
+      transaction: async (run: (tx: unknown) => Promise<void>) =>
+        run({
+          insert: () => ({ values: saved }),
+          select: () => ({
+            from: (table: unknown) => ({
+              where: () => ({
+                for: async () =>
+                  table === schema.limits
+                    ? allowance.hasLimits
+                      ? [{ logdrainsMax: allowance.limit }]
+                      : []
+                    : Array.from({ length: allowance.count }, (_, i) => ({ id: `drain_${i}` })),
+              }),
+            }),
+          }),
+        }),
+    },
+    schema,
+    eq,
+  };
+});
 vi.mock("../../trpc", () => ({
   workspaceProcedure: {
     input: (schema: { parse: (input: unknown) => unknown }) => {
@@ -46,7 +65,53 @@ vi.mock("../../trpc", () => ({
 }));
 
 describe("create gateway log drain", () => {
+  beforeEach(() => {
+    allowance.limit = 10;
+    allowance.count = 0;
+    allowance.hasLimits = true;
+    saved.mockClear();
+  });
+
+  it("rejects creation when the workspace allowance is zero", async () => {
+    allowance.limit = 0;
+    await expect(
+      mutation.run({
+        name: "Audit",
+        kind: "http",
+        config: { url: "https://example.com" },
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(saved).not.toHaveBeenCalled();
+  });
+
+  it("rejects creation without workspace limits", async () => {
+    allowance.hasLimits = false;
+    await expect(
+      mutation.run({
+        name: "Audit",
+        kind: "http",
+        config: { url: "https://example.com" },
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(saved).not.toHaveBeenCalled();
+  });
+
+  it("rejects creation at a positive workspace limit", async () => {
+    allowance.limit = 2;
+    allowance.count = 2;
+    await expect(
+      mutation.run({
+        name: "Third drain",
+        kind: "http",
+        config: { url: "https://example.com" },
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(saved).not.toHaveBeenCalled();
+  });
+
   it("creates rate-limit drains with exact filters and no backfill", async () => {
+    allowance.limit = 2;
+    allowance.count = 1;
     saved.mockClear();
     await mutation.run({
       name: "Decisions",
