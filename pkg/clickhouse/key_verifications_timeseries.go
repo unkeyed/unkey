@@ -96,6 +96,29 @@ func withPortalQueryLimits(ctx context.Context) context.Context {
 	}))
 }
 
+// portalResourceLimits are the classifications a portal read may adopt from
+// [WrapClickHouseError]. That helper's last arm blames an unmatched failure on
+// the caller's query, which is right for the operator endpoint and wrong here:
+// these queries are written in this package, so a dropped connection or a
+// missing table is operational and has to stay a 500 rather than telling an end
+// user their request was malformed.
+var portalResourceLimits = map[codes.URN]bool{
+	codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN(): true,
+	codes.User.UnprocessableEntity.QueryRowsLimitExceeded.URN():   true,
+	codes.User.UnprocessableEntity.QueryExecutionTimeout.URN():    true,
+}
+
+// classifyPortalQueryError tags the limits [withPortalQueryLimits] sets so they
+// reach the caller as rejections, and returns everything else untouched.
+func classifyPortalQueryError(err error) error {
+	classified := WrapClickHouseError(err)
+	if code, ok := fault.GetCode(classified); ok && portalResourceLimits[code] {
+		return classified
+	}
+
+	return err
+}
+
 // verificationScopePredicates is the WHERE body shared by the account-wide and
 // per-key reads. Keeping one copy is what stops the identity and keyspace
 // scoping from drifting between them.
@@ -154,9 +177,7 @@ func (c *Client) GetVerificationsByExternalID(ctx context.Context, req Verificat
 
 	results, err := Select[VerificationTimeseriesDataPoint](withPortalQueryLimits(ctx), c.conn, query, verificationScopeParams(req))
 	if err != nil {
-		// Classified first: the limits above are expected rejections, and an
-		// unclassified wrap would surface them as internal errors.
-		return nil, fault.Wrap(WrapClickHouseError(err), fault.Internal("failed to query verification timeseries"))
+		return nil, fault.Wrap(classifyPortalQueryError(err), fault.Internal("failed to query verification timeseries"))
 	}
 
 	return results, nil
@@ -271,7 +292,7 @@ func (c *Client) GetVerificationsByExternalIDPerKey(ctx context.Context, req Ver
 
 	rows, err := Select[verificationTimeseriesPerKeyRow](withPortalQueryLimits(ctx), c.conn, query, params)
 	if err != nil {
-		return nil, fault.Wrap(WrapClickHouseError(err), fault.Internal("failed to query per-key verification timeseries"))
+		return nil, fault.Wrap(classifyPortalQueryError(err), fault.Internal("failed to query per-key verification timeseries"))
 	}
 
 	series := make([]VerificationTimeseriesPerKey, 0)
