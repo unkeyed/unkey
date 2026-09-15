@@ -64,13 +64,7 @@ func setDestination(ctx context.Context, client vault.VaultServiceClient, worksp
 		return invalid("Provide exactly one destination.")
 	}
 	if input := destination.Axiom; input != nil {
-		if config.Destination != nil && config.GetAxiom() == nil {
-			return invalid("Destination kind cannot be changed. Create a new log drain instead.")
-		}
-		current := config.GetAxiom()
-		if current == nil {
-			current = &logdrainv1.AxiomConfig{}
-		}
+		current := &logdrainv1.AxiomConfig{}
 		if input.Dataset != nil {
 			current.Dataset = *input.Dataset
 		}
@@ -88,13 +82,7 @@ func setDestination(ctx context.Context, client vault.VaultServiceClient, worksp
 		return nil
 	}
 	input := destination.Http
-	if config.Destination != nil && config.GetHttp() == nil {
-		return invalid("Destination kind cannot be changed. Create a new log drain instead.")
-	}
-	current := config.GetHttp()
-	if current == nil {
-		current = &logdrainv1.HttpConfig{}
-	}
+	current := &logdrainv1.HttpConfig{}
 	if input.Url != nil {
 		current.Url = *input.Url
 	}
@@ -103,9 +91,9 @@ func setDestination(ctx context.Context, client vault.VaultServiceClient, worksp
 	}
 	if input.Format != nil {
 		switch *input.Format {
-		case openapi.LogdrainHttpWriteFormatJson:
+		case openapi.Json:
 			current.Format = logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON
-		case openapi.LogdrainHttpWriteFormatNdjson:
+		case openapi.Ndjson:
 			current.Format = logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON
 		default:
 			return invalid("Unsupported HTTP body format.")
@@ -130,21 +118,6 @@ func setDestination(ctx context.Context, client vault.VaultServiceClient, worksp
 					return err
 				}
 				headers = append(headers, &logdrainv1.HttpHeader{Name: header.Name, EncryptedValue: encrypted.GetEncrypted()})
-			case openapi.LogdrainHeaderPreserve:
-				if header.Value != nil {
-					return invalid("Preserved headers must omit value.")
-				}
-				var found *logdrainv1.HttpHeader
-				for _, existing := range current.Headers {
-					if strings.EqualFold(existing.Name, header.Name) {
-						found = existing
-						break
-					}
-				}
-				if found == nil {
-					return invalid("Cannot preserve an unknown HTTP header.")
-				}
-				headers = append(headers, found)
 			default:
 				return invalid("Unsupported HTTP header mode.")
 			}

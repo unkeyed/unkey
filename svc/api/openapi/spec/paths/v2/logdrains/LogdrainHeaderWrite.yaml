@@ -5,8 +5,8 @@ properties:
   name: { type: string, minLength: 1, maxLength: 256 }
   mode:
     type: string
-    enum: [set, preserve]
-    x-enum-varnames: [LogdrainHeaderSet, LogdrainHeaderPreserve]
+    enum: [set]
+    x-enum-varnames: [LogdrainHeaderSet]
   value:
     type: string
     minLength: 1

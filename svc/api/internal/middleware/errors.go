@@ -95,7 +95,6 @@ func WithErrorHandling() zen.Middleware {
 				codes.UnkeyDataErrorsRatelimitOverrideNotFound,
 				codes.UnkeyDataErrorsIdentityNotFound,
 				codes.UnkeyDataErrorsAuditLogNotFound,
-				codes.UnkeyDataErrorsLogdrainNotFound,
 				codes.UnkeyDataErrorsPortalNotFound:
 				return s.ProblemJSON(http.StatusNotFound, openapi.NotFoundErrorResponse{
 					Meta: openapi.Meta{
