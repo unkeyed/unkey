@@ -15,7 +15,7 @@ import (
 
 func TestCreateRequiresAuthenticationAndPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
-	route := &logdrains.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	route := &logdrains.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock, LimitsCache: h.Caches.WorkspaceLimits}
 	h.Register(route)
 	workspaceID := h.Resources().UserWorkspace.ID
 	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE `limits` SET logdrains_max = 1 WHERE workspace_id = ?", workspaceID)

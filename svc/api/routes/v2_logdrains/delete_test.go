@@ -15,7 +15,7 @@ import (
 
 func TestDeleteWorksAfterAllowanceRevoked(t *testing.T) {
 	h := testutil.NewHarness(t)
-	create := &createRoute.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock}
+	create := &createRoute.Create{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock, LimitsCache: h.Caches.WorkspaceLimits}
 	remove := &logdrains.Delete{DB: h.DB, Auditlogs: h.Auditlogs}
 	get := &logdrains.Get{DB: h.DB}
 	h.Register(create)
