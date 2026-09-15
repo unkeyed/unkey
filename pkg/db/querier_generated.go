@@ -16,6 +16,11 @@ type Querier interface {
 	//  FROM custom_domains
 	//  WHERE workspace_id = ?
 	CountCustomDomainsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
+	// Counts all configured drains, including paused drains, against the allowance.
+	// This ordinary read does not serialize concurrent creates; capacity may overshoot.
+	//
+	//  SELECT COUNT(*) FROM logdrains WHERE workspace_id = ?
+	CountLogdrainsByWorkspace(ctx context.Context, db DBTX, workspaceID string) (int64, error)
 	//DeleteAllKeyPermissionsByKeyID
 	//
 	//  DELETE FROM keys_permissions
@@ -2663,11 +2668,6 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
-	// Serialize log drain creation against the unique workspace limits row, including
-	// when the workspace has no drains. Support-granted allowances are authoritative.
-	//
-	//  SELECT logdrains_max FROM `limits` WHERE workspace_id = ? FOR UPDATE
-	LockLogdrainLimit(ctx context.Context, db DBTX, workspaceID string) (uint32, error)
 	//LockRoleByIDOrNameAndWorkspaceID
 	//
 	//  SELECT id, project_id, name
@@ -2676,11 +2676,6 @@ type Querier interface {
 	//    AND (id = ? OR name = ?)
 	//  FOR UPDATE
 	LockRoleByIDOrNameAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDOrNameAndWorkspaceIDParams) (LockRoleByIDOrNameAndWorkspaceIDRow, error)
-	// Current reads prevent stale snapshots after acquiring the workspace limits lock.
-	// Create uses this count under the lock shared with dashboard creation.
-	//
-	//  SELECT id FROM logdrains WHERE workspace_id = ? FOR UPDATE
-	LockWorkspaceLogdrains(ctx context.Context, db DBTX, workspaceID string) ([]string, error)
 	// Clears the workspace_billing linkage on a workspace, returning it to the
 	// Free tier. Mirrors what the customer.subscription.deleted webhook writes,
 	// plus stripe_customer_id, which no webhook ever clears. Stripe subscription
