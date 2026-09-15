@@ -13,6 +13,7 @@ import (
 	"connectrpc.com/connect"
 	restate "github.com/restatedev/sdk-go"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/cdc"
 	"github.com/unkeyed/unkey/pkg/config"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
@@ -20,7 +21,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
 	"golang.org/x/net/http2"
 )
 
@@ -73,7 +73,7 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 		DefaultDomain:  "",
 		RegionalDomain: "",
 		Database:       vitessCfg.DSN,
-		VStream:        deploymentstream.Config{Address: vitessCfg.Address, Keyspace: "unkey", Insecure: true},
+		VStream:        cdc.Config{Address: vitessCfg.Address, Keyspace: "unkey", Insecure: true},
 		Observability:  config.Observability{},
 		Restate: RestateConfig{
 			URL:    restateCfg.IngressURL,

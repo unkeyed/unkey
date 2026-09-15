@@ -11,6 +11,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/cdc"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
@@ -32,9 +33,10 @@ func TestWatch_VitessSnapshotLiveFilteringAndResume(t *testing.T) {
 		VALUES ('poc', 'included', ?, 'running', 1), ('poc', 'excluded', ?, 'running', 1),
 		('poc', 'historical', ?, 'stopped', 1)`, region, region+"_other", region)
 	require.NoError(t, err)
-	client, err := New(Config{Address: vitess.Address, Keyspace: "unkey", Insecure: true})
+	source, err := cdc.New(cdc.Config{Address: vitess.Address, Keyspace: "unkey", Insecure: true})
 	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	t.Cleanup(func() { require.NoError(t, source.Close()) })
+	client := New(source)
 	var delivered []string
 	var token []byte
 	updated := false
@@ -59,6 +61,8 @@ func TestWatch_VitessSnapshotLiveFilteringAndResume(t *testing.T) {
 
 	resumeCtx, resumeCancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer resumeCancel()
+	err = client.Watch(resumeCtx, region+"_other", token, func(string) error { return errors.New("unexpected cross-region delivery") }, func([]byte) error { return errors.New("unexpected cross-region checkpoint") })
+	require.ErrorIs(t, err, cdc.ErrInvalidToken)
 	_, err = database.ExecContext(resumeCtx, `INSERT INTO deployment_topology
 		(workspace_id, deployment_id, region_id, desired_status, created_at)
 		VALUES ('poc', 'while_offline', ?, 'running', 2)`, region)
@@ -77,7 +81,7 @@ func TestWatch_VitessSnapshotLiveFilteringAndResume(t *testing.T) {
 	require.Equal(t, []string{"while_offline"}, delivered, "resume must not copy the existing rows again")
 }
 
-func TestWatch_VitessResumesPartialSnapshot(t *testing.T) {
+func TestWatch_VitessRetriesFailedDeliveryAndResumesPartialSnapshot(t *testing.T) {
 	vitess := containers.Vitess(t)
 	database, err := sql.Open("mysql", vitess.DSN)
 	require.NoError(t, err)
@@ -105,9 +109,26 @@ func TestWatch_VitessResumesPartialSnapshot(t *testing.T) {
 		(workspace_id, deployment_id, region_id, desired_status, created_at) VALUES `+
 		strings.TrimSuffix(strings.Repeat("('poc', ?, ?, 'running', 1),", total), ","), args...)
 	require.NoError(t, err)
-	client, err := New(Config{Address: vitess.Address, Keyspace: "unkey", Insecure: true})
+	source, err := cdc.New(cdc.Config{Address: vitess.Address, Keyspace: "unkey", Insecure: true})
 	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, client.Close()) })
+	t.Cleanup(func() { require.NoError(t, source.Close()) })
+	client := New(source)
+	failure := errors.New("apply failed")
+	attempts := 0
+	err = client.Watch(ctx, region, nil, func(string) error {
+		attempts++
+		if attempts == 2 {
+			return failure
+		}
+		return nil
+	}, func([]byte) error {
+		if attempts > 0 {
+			return errors.New("checkpoint advanced past failed delivery")
+		}
+		return nil
+	})
+	require.ErrorIs(t, err, failure)
+	require.Equal(t, 2, attempts)
 	delivered := make(map[string]int)
 	change := func(id string) error {
 		delivered[id]++
@@ -124,9 +145,6 @@ func TestWatch_VitessResumesPartialSnapshot(t *testing.T) {
 	})
 	require.ErrorIs(t, err, stop)
 	require.Less(t, len(delivered), total, "disconnect must occur before the snapshot completes")
-	position, err := client.position(region, token)
-	require.NoError(t, err)
-	require.NotEmpty(t, position.ShardGtids[0].TablePKs, "partial copy cursor must survive encoding")
 	err = client.Watch(ctx, region, token, change, func([]byte) error {
 		if len(delivered) == total {
 			return stop

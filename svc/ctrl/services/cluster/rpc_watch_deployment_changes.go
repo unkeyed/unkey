@@ -8,11 +8,11 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/cdc"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
@@ -74,10 +74,10 @@ func (s *Service) WatchDeploymentChanges(
 	if err != nil {
 		logger.Error("deployment VStream ended", "region_id", cluster.RegionID, "error", err)
 	}
-	if errors.Is(err, deploymentstream.ErrInvalidToken) {
+	if errors.Is(err, cdc.ErrInvalidToken) {
 		return connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	if errors.Is(err, deploymentstream.ErrExpired) {
+	if errors.Is(err, cdc.ErrExpired) {
 		return connect.NewError(connect.CodeOutOfRange, err)
 	}
 	if err != nil {

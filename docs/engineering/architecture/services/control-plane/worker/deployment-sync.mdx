@@ -7,6 +7,13 @@ The deployment sync POC uses Vitess VStream to deliver topology changes from
 Ctrl to Krane. It replaces the `deployment_changes` outbox. Workers write only
 desired state. No separate event service or message broker is required.
 
+The shared `pkg/cdc` package handles the Vitess connection, field and row events,
+checkpoint coalescing, and resume-token validation. It accepts explicit
+table/query rules without deployment-specific decoding. Ctrl's
+`internal/deploymentstream` wrapper validates region IDs, builds the running
+topology filter, and extracts deployment IDs. Ctrl owns the shared CDC client;
+each watch still opens a separate VStream.
+
 ## Follow a change
 
 Each Krane watch opens one VStream through Ctrl:
@@ -46,6 +53,9 @@ After a disconnect, Krane reconnects with its last successful token. An apply
 failure closes the stream without advancing the checkpoint. Events can repeat,
 so deployment operations must remain idempotent. Tokens are not persisted across
 Krane restarts. A restart starts a fresh snapshot.
+
+Tokens bind to the complete ordered table/query rules and keyspace. A changed
+filter or an old region-only POC token requires a fresh snapshot.
 
 If Vitess reports unavailable binlogs with MySQL error 1236 or 1789, Ctrl returns
 `OutOfRange`. A rejected token returns `InvalidArgument`. Krane clears the token
@@ -100,7 +110,7 @@ The local Vitess SQL and gRPC endpoints do not enforce authentication.
 Run the targeted tests from the repository root:
 
 ```bash
-mise exec -- rask ./svc/ctrl/internal/deploymentstream \
+mise exec -- rask ./pkg/cdc ./svc/ctrl/internal/deploymentstream \
   ./svc/ctrl/services/cluster ./svc/krane/internal/watcher
 ```
 

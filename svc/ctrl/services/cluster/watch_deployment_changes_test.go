@@ -13,9 +13,9 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/cdc"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
 )
 
 func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
@@ -32,8 +32,8 @@ func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
 		{name: "replay discards token", authorized: true, replay: true, wantState: true},
 		{name: "removed topology advances checkpoint", authorized: true, lookupErr: sql.ErrNoRows},
 		{name: "transient lookup aborts without checkpoint", authorized: true, lookupErr: errors.New("database unavailable"), wantCode: connect.CodeInternal},
-		{name: "expired position requires snapshot", authorized: true, streamErr: deploymentstream.ErrExpired, wantCode: connect.CodeOutOfRange},
-		{name: "invalid token", authorized: true, streamErr: deploymentstream.ErrInvalidToken, wantCode: connect.CodeInvalidArgument},
+		{name: "expired position requires snapshot", authorized: true, streamErr: cdc.ErrExpired, wantCode: connect.CodeOutOfRange},
+		{name: "invalid token", authorized: true, streamErr: cdc.ErrInvalidToken, wantCode: connect.CodeInvalidArgument},
 		{name: "canceled stream", authorized: true, streamErr: context.Canceled, wantCode: connect.CodeCanceled},
 		{name: "stream deadline", authorized: true, streamErr: context.DeadlineExceeded, wantCode: connect.CodeDeadlineExceeded},
 		{name: "unauthenticated", wantCode: connect.CodeUnauthenticated},

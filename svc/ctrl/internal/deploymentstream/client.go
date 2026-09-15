@@ -2,232 +2,45 @@ package deploymentstream
 
 import (
 	"context"
-	"crypto/tls"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
-	"strings"
-	"time"
 
-	"github.com/unkeyed/unkey/pkg/clock"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/encoding/protojson"
+	"github.com/unkeyed/unkey/pkg/cdc"
 	binlog "vitess.io/vitess/go/vt/proto/binlogdata"
-	"vitess.io/vitess/go/vt/proto/topodata"
-	"vitess.io/vitess/go/vt/proto/vtgate"
-	"vitess.io/vitess/go/vt/proto/vtgateservice"
 )
-
-var ErrInvalidToken = errors.New("invalid deployment resume token")
-var ErrExpired = errors.New("deployment resume position expired")
 
 var regionPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,48}$`)
 
-type Config struct {
-	Address  string `toml:"address"`
-	Keyspace string `toml:"keyspace"`
-	Username string `toml:"username"`
-	Password string `toml:"password"`
-	Insecure bool   `toml:"insecure"`
-}
-
 type Client struct {
-	connection *grpc.ClientConn
-	client     vtgateservice.VitessClient
-	keyspace   string
-	clock      clock.Clock
+	cdc *cdc.Client
 }
 
-func New(cfg Config) (*Client, error) {
-	if cfg.Address == "" || cfg.Keyspace == "" {
-		return nil, errors.New("vstream.address and vstream.keyspace are required")
-	}
-	if (cfg.Username == "") != (cfg.Password == "") {
-		return nil, errors.New("vstream username and password must be set together")
-	}
-	transport := credentials.NewTLS(&tls.Config{MinVersion: tls.VersionTLS12}) //nolint:exhaustruct // Use system roots and secure TLS defaults.
-	if cfg.Insecure {
-		if cfg.Username != "" {
-			return nil, errors.New("VStream credentials require TLS")
-		}
-		transport = insecure.NewCredentials()
-	}
-	options := []grpc.DialOption{grpc.WithTransportCredentials(transport)}
-	if cfg.Username != "" {
-		options = append(options, grpc.WithPerRPCCredentials(basicAuth(base64.StdEncoding.EncodeToString([]byte(cfg.Username+":"+cfg.Password)))))
-	}
-	connection, err := grpc.NewClient(cfg.Address, options...)
-	if err != nil {
-		return nil, err
-	}
-	return &Client{connection: connection, client: vtgateservice.NewVitessClient(connection), keyspace: cfg.Keyspace, clock: clock.New()}, nil
+// New borrows a CDC client; its caller retains responsibility for closing it.
+func New(client *cdc.Client) *Client {
+	return &Client{cdc: client}
 }
-
-func (c *Client) Close() error { return c.connection.Close() }
 
 func (c *Client) Watch(ctx context.Context, region string, token []byte, change func(string) error, checkpoint func([]byte) error) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
 	if !regionPattern.MatchString(region) {
-		return fmt.Errorf("invalid region ID")
+		return errors.New("invalid region ID")
 	}
-	position, err := c.position(region, token)
-	if err != nil {
-		return err
-	}
-	stream, err := c.client.VStream(ctx, &vtgate.VStreamRequest{ //nolint:exhaustruct // Leave unrelated protobuf options at their defaults.
-		TabletType: topodata.TabletType_PRIMARY,
-		Vgtid:      position,
-		Filter: &binlog.Filter{Rules: []*binlog.Rule{{ //nolint:exhaustruct // No replication workflow metadata is needed.
-			Match:  "deployment_topology",
-			Filter: fmt.Sprintf("select deployment_id from deployment_topology where region_id = '%s' and desired_status = 'running'", region),
-		}}},
-		Flags: &vtgate.VStreamFlags{HeartbeatInterval: 5}, //nolint:exhaustruct // Do not enable transaction chunking or optional stream features.
-	})
-	if err != nil {
-		return err
-	}
-	responses := readVStream(ctx, stream)
-	var pending *binlog.VGtid
-	var committed *binlog.VGtid
-	var lastCheckpoint time.Time
-	changed := false
-	for {
-		waiting := c.clock.NewTicker(30 * time.Second)
-		var result streamResult
-		select {
-		case result = <-responses:
-		case <-waiting.C():
-			result.err = status.Error(codes.Unavailable, "VStream stalled for 30 seconds")
-		case <-ctx.Done():
-			result.err = ctx.Err()
-		}
-		waiting.Stop()
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
-		if err := result.err; err != nil {
-			if len(token) > 0 && status.Code(err) == codes.Unknown &&
-				(strings.Contains(err.Error(), "(errno 1236)") || strings.Contains(err.Error(), "(errno 1789)")) {
-				return fmt.Errorf("%w: %w", ErrExpired, err)
+	return c.cdc.Watch(ctx, []cdc.Rule{{
+		Table: "deployment_topology",
+		Query: fmt.Sprintf("select deployment_id from deployment_topology where region_id = '%s' and desired_status = 'running'", region),
+	}}, token, func(event *binlog.VEvent) error {
+		for _, rowChange := range event.GetRowEvent().GetRowChanges() {
+			row := rowChange.After
+			if row == nil {
+				row = rowChange.Before
 			}
-			return err
-		}
-		for _, event := range result.response.Events {
-			if event.RowEvent != nil {
-				for _, rowChange := range event.RowEvent.RowChanges {
-					row := rowChange.After
-					if row == nil {
-						row = rowChange.Before
-					}
-					if row == nil || len(row.Lengths) != 1 || row.Lengths[0] <= 0 || row.Lengths[0] != int64(len(row.Values)) {
-						return errors.New("invalid deployment ID in VStream row")
-					}
-					if err := change(string(row.Values)); err != nil {
-						return err
-					}
-					changed = true
-				}
+			if row == nil || len(row.Lengths) != 1 || row.Lengths[0] <= 0 || row.Lengths[0] != int64(len(row.Values)) {
+				return errors.New("invalid deployment ID in VStream row")
 			}
-			if event.Type == binlog.VEventType_VGTID {
-				pending = event.Vgtid
-			}
-			boundary := event.Type == binlog.VEventType_COMMIT || event.Type == binlog.VEventType_DDL || event.Type == binlog.VEventType_OTHER
-			flush := false
-			if boundary && pending != nil {
-				committed = pending
-				pending = nil
-				flush = changed
-				changed = false
-			}
-			if committed != nil && (flush || c.clock.Now().Sub(lastCheckpoint) >= 30*time.Second) {
-				encoded, err := protojson.Marshal(committed)
-				if err != nil {
-					return err
-				}
-				next, err := json.Marshal(resumeToken{Region: region, Position: encoded})
-				if err != nil {
-					return err
-				}
-				if err := checkpoint(next); err != nil {
-					return err
-				}
-				committed = nil
-				lastCheckpoint = c.clock.Now()
+			if err := change(string(row.Values)); err != nil {
+				return err
 			}
 		}
-	}
+		return nil
+	}, checkpoint)
 }
-
-type streamResult struct {
-	response *vtgate.VStreamResponse
-	err      error
-}
-
-func readVStream(ctx context.Context, stream vtgateservice.Vitess_VStreamClient) <-chan streamResult {
-	responses := make(chan streamResult)
-	go func() {
-		for {
-			response, err := stream.Recv()
-			select {
-			case responses <- streamResult{response: response, err: err}:
-			case <-ctx.Done():
-				return
-			}
-			if err != nil {
-				return
-			}
-		}
-	}()
-	return responses
-}
-
-type resumeToken struct {
-	Region   string          `json:"region"`
-	Position json.RawMessage `json:"position"`
-}
-
-func (c *Client) position(region string, token []byte) (*binlog.VGtid, error) {
-	if len(token) == 0 {
-		return &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: c.keyspace}}}, nil
-	}
-	var saved resumeToken
-	if err := json.Unmarshal(token, &saved); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrInvalidToken, err)
-	}
-	if saved.Region != region {
-		return nil, fmt.Errorf("%w: region mismatch", ErrInvalidToken)
-	}
-	position := &binlog.VGtid{ShardGtids: nil}
-	if err := protojson.Unmarshal(saved.Position, position); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrInvalidToken, err)
-	}
-	if len(position.ShardGtids) == 0 {
-		return nil, fmt.Errorf("%w: missing shard positions", ErrInvalidToken)
-	}
-	for _, shard := range position.ShardGtids {
-		if shard.Keyspace != c.keyspace || shard.Gtid == "" {
-			return nil, fmt.Errorf("%w: invalid shard position", ErrInvalidToken)
-		}
-		for _, table := range shard.TablePKs {
-			if table.GetTableName() != "deployment_topology" {
-				return nil, fmt.Errorf("%w: invalid snapshot table", ErrInvalidToken)
-			}
-		}
-	}
-	return position, nil
-}
-
-type basicAuth string
-
-func (a basicAuth) GetRequestMetadata(context.Context, ...string) (map[string]string, error) {
-	return map[string]string{"authorization": "Basic " + string(a)}, nil
-}
-
-func (basicAuth) RequireTransportSecurity() bool { return true }
