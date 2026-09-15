@@ -74,12 +74,12 @@ func (s *Service) loadDeployments(ctx restate.ObjectContext, deploymentIDs ...st
 			row, err := s.db.FindDeploymentWithEnvironmentAndApp(runCtx, id)
 			if err != nil {
 				if db.IsNotFound(err) {
-					return nil, restate.TerminalError(fmt.Errorf("deployment not found: %s", id), 404)
+					return nil, restate.ToTerminalError(fmt.Errorf("deployment not found: %s", id), restate.WithErrorCode(404))
 				}
 				return nil, fmt.Errorf("load deployment %s: %w", id, err)
 			}
 			if err := assert.Equal(row.EnvironmentID, environmentID, "deployment must belong to the keyed environment"); err != nil {
-				return nil, restate.TerminalError(err, 400)
+				return nil, restate.ToTerminalError(err, restate.WithErrorCode(400))
 			}
 			byID[id] = row
 		}
@@ -116,7 +116,7 @@ func (s *Service) findStickyRouteIDs(ctx restate.ObjectContext, environmentID st
 	}
 
 	if len(routeIDs) == 0 {
-		return nil, restate.TerminalError(fmt.Errorf("environment %s has no sticky routes", environmentID), 400)
+		return nil, restate.ToTerminalError(fmt.Errorf("environment %s has no sticky routes", environmentID), restate.WithErrorCode(400))
 	}
 	return routeIDs, nil
 }

@@ -54,7 +54,7 @@ func (w *Workflow) Create(ctx restate.WorkflowSharedContext, req *hydrav1.Deploy
 		assert.NotEmpty(req.GetAppId(), "app_id is required"),
 		assert.NotEmpty(req.GetEnvironmentId(), "environment_id is required"),
 	); err != nil {
-		return nil, restate.TerminalError(err)
+		return nil, restate.ToTerminalError(err)
 	}
 
 	status, err := statusForDecision(req.GetDecision())
@@ -253,7 +253,7 @@ func (w *Workflow) validateAndBuildPayload(
 			assert.LessOrEqual(utf8.RuneCountInString(commit.ForkRepository), forkRepositoryCharsMax, "fork repository is too long"),
 			assert.LessOrEqual(utf8.RuneCountInString(req.GetTriggeredBy()), triggeredByCharsMax, "triggered_by is too long"),
 		); tooLong != nil {
-			return payload, restate.TerminalError(tooLong)
+			return payload, restate.ToTerminalError(tooLong)
 		}
 
 		prNumber := req.GetGit().GetPrNumber()
@@ -275,7 +275,7 @@ func (w *Workflow) validateAndBuildPayload(
 				return payload, nil
 			}
 			if resolved.Source.Git == nil && resolved.Source.Image == "" {
-				return payload, restate.TerminalError(errors.New("no build source: set git, image, or existing_deployment"))
+				return payload, restate.ToTerminalError(errors.New("no build source: set git, image, or existing_deployment"))
 			}
 			source, commit = resolved.Source, resolved.Commit
 			if source.Git != nil {
@@ -425,7 +425,7 @@ func (w *Workflow) insertDeployment(
 		if insertErr != nil && db.IsDuplicateKeyError(insertErr) {
 			existing, findErr := w.db.FindDeploymentById(runCtx, deploymentID)
 			if findErr != nil || existing.AppID != target.AppID || existing.Status != payload.Status {
-				return restate.TerminalError(fmt.Errorf("deployment id %s is not available", deploymentID))
+				return restate.ToTerminalError(fmt.Errorf("deployment id %s is not available", deploymentID))
 			}
 			return nil
 		}
@@ -509,7 +509,7 @@ func (w *Workflow) startDeployment(
 	// journaled so a retry would replay it: terminal rather than forever.
 	invocationID := invocation.GetInvocationId()
 	if invocationID == "" {
-		return restate.TerminalError(
+		return restate.ToTerminalError(
 			fmt.Errorf("restate returned an empty invocation id for deployment %s", deploymentID),
 		)
 	}
@@ -602,9 +602,9 @@ func statusForDecision(decision hydrav1.CreateDecision) (mysqltype.DeploymentsSt
 	case hydrav1.CreateDecision_CREATE_DECISION_AWAIT_APPROVAL:
 		return mysqltype.DeploymentsStatusAwaitingApproval, nil
 	case hydrav1.CreateDecision_CREATE_DECISION_UNSPECIFIED:
-		return "", restate.TerminalError(errors.New("decision is required"))
+		return "", restate.ToTerminalError(errors.New("decision is required"))
 	default:
-		return "", restate.TerminalError(fmt.Errorf("unknown decision %q", decision.String()))
+		return "", restate.ToTerminalError(fmt.Errorf("unknown decision %q", decision.String()))
 	}
 }
 
@@ -643,7 +643,7 @@ func (w *Workflow) loadSecrets(ctx context.Context, appID, environmentID string)
 	for _, ev := range envVars {
 		// An invalid key is corrupt stored data. No retry fixes it.
 		if !validation.IsValidEnvVarKey(ev.Key) {
-			return nil, restate.TerminalError(fmt.Errorf(
+			return nil, restate.ToTerminalError(fmt.Errorf(
 				"environment variable key %q is invalid: %s", ev.Key, validation.ErrMsgInvalidEnvVarKey,
 			))
 		}

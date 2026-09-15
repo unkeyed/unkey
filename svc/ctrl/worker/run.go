@@ -324,10 +324,10 @@ func Run(ctx context.Context, cfg Config) error {
 	// exhaustion, which is the normal path. This service-level policy
 	// is a safety net for failures that escape Run-level bounds.
 	deployRetryPolicy := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(2*time.Second),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(30*time.Second),
-		restate.WithMaxAttempts(15),
+		restate.WithInitialRetryInterval(2*time.Second),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(30*time.Second),
+		restate.WithMaxRetryAttempts(15),
 		restate.PauseOnMaxAttempts(),
 	)
 	restateSrv.Bind(hydrav1.NewDeployWorkflowServer(deployWorkflow, deployRetryPolicy))
@@ -381,10 +381,10 @@ func Run(ctx context.Context, cfg Config) error {
 		// wasting resources on permanently broken endpoints. Pause (not kill) on
 		// exhaustion so any future compensation logic can run via re-entry.
 		restate.WithInvocationRetryPolicy(
-			restate.WithInitialInterval(1*time.Minute),
-			restate.WithExponentiationFactor(2.0),
-			restate.WithMaxInterval(10*time.Minute),
-			restate.WithMaxAttempts(10),
+			restate.WithInitialRetryInterval(1*time.Minute),
+			restate.WithRetryIntervalFactor(2.0),
+			restate.WithMaxRetryInterval(10*time.Minute),
+			restate.WithMaxRetryAttempts(10),
 			restate.PauseOnMaxAttempts(),
 		),
 	))
@@ -448,10 +448,10 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithIngressPrivate(true),
 		restate.WithJournalRetention(1*time.Minute),
 		restate.WithInvocationRetryPolicy(
-			restate.WithInitialInterval(100*time.Millisecond),
-			restate.WithExponentiationFactor(2.0),
-			restate.WithMaxInterval(10*time.Second),
-			restate.WithMaxAttempts(20),
+			restate.WithInitialRetryInterval(100*time.Millisecond),
+			restate.WithRetryIntervalFactor(2.0),
+			restate.WithMaxRetryInterval(10*time.Second),
+			restate.WithMaxRetryAttempts(20),
 			restate.KillOnMaxAttempts(),
 		),
 	))
@@ -464,10 +464,10 @@ func Run(ctx context.Context, cfg Config) error {
 		// kill) on exhaustion so compensations remain possible via operator
 		// cancel.
 		restate.WithInvocationRetryPolicy(
-			restate.WithInitialInterval(1*time.Minute),
-			restate.WithExponentiationFactor(1.0), // Fixed interval, no exponential backoff
-			restate.WithMaxInterval(1*time.Minute),
-			restate.WithMaxAttempts(1440),
+			restate.WithInitialRetryInterval(1*time.Minute),
+			restate.WithRetryIntervalFactor(1.0), // Fixed interval, no exponential backoff
+			restate.WithMaxRetryInterval(1*time.Minute),
+			restate.WithMaxRetryAttempts(1440),
 			restate.PauseOnMaxAttempts(),
 		),
 	))
@@ -554,10 +554,10 @@ func Run(ctx context.Context, cfg Config) error {
 			// ReconcileUser is awaited by a cron handler. Bound its retries so a
 			// permanently failing workspace cannot wedge the cron VO forever.
 			clickhouseUserReconcileRetry := restate.WithInvocationRetryPolicy(
-				restate.WithInitialInterval(100*time.Millisecond),
-				restate.WithExponentiationFactor(2.0),
-				restate.WithMaxInterval(5*time.Second),
-				restate.WithMaxAttempts(5),
+				restate.WithInitialRetryInterval(100*time.Millisecond),
+				restate.WithRetryIntervalFactor(2.0),
+				restate.WithMaxRetryInterval(5*time.Second),
+				restate.WithMaxRetryAttempts(5),
 				restate.KillOnMaxAttempts(),
 			)
 			restateSrv.Bind(hydrav1.NewClickhouseUserServiceServer(clickhouseuser.New(clickhouseuser.Config{
@@ -618,10 +618,10 @@ func Run(ctx context.Context, cfg Config) error {
 	// terminal error, the run fails fast, and the next cron tick retries
 	// from the persisted cursor.
 	cronKeyLastUsedRetry := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(100*time.Millisecond),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(5*time.Second),
-		restate.WithMaxAttempts(5),
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
 	// Ratelimit global-counters cleanup: stateless, cutoff-bounded DELETE
@@ -633,10 +633,10 @@ func Run(ctx context.Context, cfg Config) error {
 	// drains in batches, so killing just means the next hourly tick picks
 	// up where this one stopped.
 	cronRatelimitGCCRetry := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(100*time.Millisecond),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(5*time.Second),
-		restate.WithMaxAttempts(5),
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
 	// AuditLogOutboxCleanup mirrors the ratelimit cleanup policy for the
@@ -644,10 +644,10 @@ func Run(ctx context.Context, cfg Config) error {
 	// compensation, on a fixed singleton key that a paused invocation would
 	// wedge. Kill on exhaustion and let the next daily tick retry.
 	cronAuditLogCleanupRetry := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(100*time.Millisecond),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(5*time.Second),
-		restate.WithMaxAttempts(5),
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
 	// AuditLogExport drains the outbox every minute on the fixed singleton
@@ -667,10 +667,10 @@ func Run(ctx context.Context, cfg Config) error {
 	// the meaningful retry is the next tick, not a longer in-invocation
 	// backoff that would still be running when that tick queues up.
 	cronAuditLogExportRetry := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(100*time.Millisecond),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(5*time.Second),
-		restate.WithMaxAttempts(5),
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
 	// The fleet close runs once per month and is the fallback for webhook-driven
@@ -679,10 +679,10 @@ func Run(ctx context.Context, cfg Config) error {
 	// the claimed invoice's 48-hour finalization backstop. Kill on exhaustion so
 	// the period VO never remains wedged.
 	cronDeployBillingFleetCloseRetry := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(1*time.Minute),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(15*time.Minute),
-		restate.WithMaxAttempts(9),
+		restate.WithInitialRetryInterval(1*time.Minute),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(15*time.Minute),
+		restate.WithMaxRetryAttempts(9),
 		restate.KillOnMaxAttempts(),
 	)
 	// The per-workspace close is dispatched by invoice.created and backed up by
@@ -690,10 +690,10 @@ func Run(ctx context.Context, cfg Config) error {
 	// failures into deferred work, so this short policy only covers failures that
 	// escape those bounds.
 	cronDeployBillingWorkspaceCloseRetry := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(100*time.Millisecond),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(5*time.Second),
-		restate.WithMaxAttempts(5),
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
 	// DeployBillingPush is the hourly month-to-date push orchestrator, keyed by
@@ -704,30 +704,30 @@ func Run(ctx context.Context, cfg Config) error {
 	// Stripe aggregates with "last"), so kill on exhaustion and let the next tick
 	// retry from a clean slate.
 	cronDeployBillingPushRetry := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(100*time.Millisecond),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(5*time.Second),
-		restate.WithMaxAttempts(5),
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
 	// Without a cap the SDK default retries a failing quota check forever,
 	// parking its VO for the month. Kill on exhaustion and let the next daily
 	// tick retry; mirrors the billing-push and spend-check policies.
 	cronQuotaCheckRetry := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(100*time.Millisecond),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(5*time.Second),
-		restate.WithMaxAttempts(5),
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
 	// The reconciler is idempotent and stores its fingerprint only after all
 	// child users succeed. Kill on exhaustion so the next scheduled tick can
 	// retry instead of remaining queued behind a paused singleton VO.
 	cronClickhouseUserReconcileRetry := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(100*time.Millisecond),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(5*time.Second),
-		restate.WithMaxAttempts(5),
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
@@ -771,10 +771,10 @@ func Run(ctx context.Context, cfg Config) error {
 	// child fails visibly and the next tick re-sends the absolute total. Mirrors
 	// KeyLastUsedPartitionService.
 	deployBillingPushWorkspaceRetry := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(100*time.Millisecond),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(5*time.Second),
-		restate.WithMaxAttempts(5),
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
 	restateSrv.Bind(hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer(), deployBillingPushWorkspaceRetry))
