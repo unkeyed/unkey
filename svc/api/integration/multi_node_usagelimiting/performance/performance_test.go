@@ -82,7 +82,7 @@ func runPerformanceTest(t *testing.T, nodeCount int, totalCredits, cost int64) {
 	successCount := 0
 
 	start := time.Now()
-	for i := 0; i < numRequests; i++ {
+	for i := range numRequests {
 		res, callErr := integration.CallRandomNode[handler.Request, handler.Response](
 			lb, "POST", "/v2/keys.verifyKey", headers, req)
 
@@ -155,7 +155,7 @@ func TestUsageLimitThroughput(t *testing.T) {
 	var wg sync.WaitGroup
 
 	// Start workers
-	for i := 0; i < concurrency; i++ {
+	for range concurrency {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
