@@ -34,6 +34,7 @@ func TestLogdrainsRequireAuthenticationAndPermission(t *testing.T) {
 		foreign bool
 	}{
 		{&logdrains.Get{DB: h.DB}, `{"logdrainId":"` + foreignID + `"}`, true},
+		{&logdrains.List{DB: h.DB}, `{}`, false},
 	} {
 		t.Run(tc.route.Path(), func(t *testing.T) {
 			h.Register(tc.route)

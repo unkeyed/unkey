@@ -2482,6 +2482,15 @@ type Querier interface {
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListLiveKeysByKeySpaceIDs(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDsParams) ([]ListLiveKeysByKeySpaceIDsRow, error)
+	// Stable ID ordering supports pagination without crossing the workspace boundary.
+	// Fetch one extra row to determine whether another page exists.
+	//
+	//  SELECT pk, id, workspace_id, name, stream, config, status, consecutive_failures,
+	//    committed_offset_inserted_at, committed_offset_event_id, next_attempt_at,
+	//    lease_id, fencing_token, lease_expires_at, created_at, updated_at
+	//  FROM logdrains WHERE workspace_id = ? AND id > ?
+	//  ORDER BY id ASC LIMIT ?
+	ListLogdrains(ctx context.Context, db DBTX, arg ListLogdrainsParams) ([]Logdrain, error)
 	// ListPermissions returns one page of permission definitions from one project.
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m

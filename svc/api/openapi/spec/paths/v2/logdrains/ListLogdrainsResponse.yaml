@@ -1,0 +1,12 @@
+type: object
+required: [meta, data, pagination]
+additionalProperties: false
+properties:
+  meta:
+    $ref: ../../../common/Meta.yaml
+  data:
+    type: array
+    items:
+      $ref: Logdrain.yaml
+  pagination:
+    $ref: ../../../common/Pagination.yaml

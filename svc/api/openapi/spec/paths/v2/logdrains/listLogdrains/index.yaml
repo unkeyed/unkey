@@ -1,0 +1,47 @@
+post:
+  tags: [logdrains]
+  summary: List log drains
+  description: |
+    List log drains in your workspace in ascending ID order, without credential
+    values. Requires `unkey:v1:{workspaceId}:logdrains/*#read`.
+  operationId: logdrains.listLogdrains
+  x-speakeasy-name-override: listLogdrains
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../ListLogdrainsRequest.yaml
+  responses:
+    "200":
+      description: Log drains in the authorized workspace.
+      content:
+        application/json:
+          schema:
+            $ref: ../ListLogdrainsResponse.yaml
+    "400":
+      description: Invalid input.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Missing or invalid credentials.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: Insufficient permission.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml
