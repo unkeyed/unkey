@@ -1,16 +1,23 @@
+import { Skeleton } from "@unkey/ui";
+
 export function ProjectCardSkeleton() {
   return (
-    // min-h matches a populated ProjectCard (~120.5px) so the grid doesn't shift on load.
-    <div className="p-5 flex flex-col justify-between border border-grayA-4 rounded-lg w-full h-full min-h-[120px] gap-6">
-      {/* Mirrors ProjectCard's header: 20px title line beside a size-6 actions button. */}
-      <div className="flex gap-4 items-start justify-between min-h-5">
-        <div className="h-[14px] w-28 bg-grayA-3 rounded-sm animate-pulse" />
-        <div className="size-6 bg-grayA-3 rounded-md animate-pulse shrink-0" />
+    <div className="flex h-full min-h-[124px] w-full flex-col gap-4 rounded-lg border border-grayA-4 p-5">
+      <div className="flex min-h-5 items-center gap-2.5">
+        <Skeleton className="size-7 shrink-0 rounded-lg" />
+        <Skeleton className="h-3.5 w-28" />
+        <Skeleton className="ml-auto size-6 shrink-0 rounded-md" />
       </div>
 
-      {/* Single size-7 blob to match the app icon stack's row height. */}
-      <div className="flex items-center">
-        <div className="size-7 rounded-full bg-grayA-3 animate-pulse" />
+      <div className="flex flex-col gap-1.5">
+        <div className="flex h-6 items-center justify-between gap-2">
+          <Skeleton className="h-3.5 w-20" />
+          <Skeleton className="h-3.5 w-24" />
+        </div>
+        <div className="flex h-6 items-center justify-between gap-2">
+          <Skeleton className="h-3.5 w-28" />
+          <Skeleton className="h-3.5 w-20" />
+        </div>
       </div>
     </div>
   );

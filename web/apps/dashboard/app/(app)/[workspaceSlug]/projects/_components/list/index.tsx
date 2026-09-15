@@ -1,5 +1,7 @@
 import { ProximityPrefetch } from "@/components/proximity-prefetch";
 import { collection } from "@/lib/collections";
+import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
+import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { useLiveQuery } from "@tanstack/react-db";
 import { IconDotsOutline18, IconTriangleWarningOutline18 } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
@@ -10,18 +12,31 @@ import { ProjectActions } from "./project-actions";
 import { ProjectCard } from "./project-card";
 import { ProjectCardSkeleton } from "./project-card-skeleton";
 
-// One row at the 3-column desktop width so loading doesn't tower over the
-// real list before it resolves.
 const MAX_SKELETON_COUNT = 3;
+
+const IDLE_POLL_MS = 60_000;
+const BUILDING_POLL_MS = 5_000;
 
 export const ProjectsList = () => {
   const { gated } = useDeployGate();
   const [isPlanOpen, setIsPlanOpen] = useState(false);
-  const projects = useLiveQuery((q) => q.from({ project: collection.projects }));
+  const projects = useLiveQuery((q) =>
+    q.from({ project: collection.projects }).orderBy(({ project }) => project.createdAt, "desc"),
+  );
+
+  const hasInFlightDeployment = projects.data.some((project) =>
+    project.apps.some(
+      (app) => app.headlineDeployment && isDeploymentInFlight(app.headlineDeployment.status),
+    ),
+  );
+  useCollectionPolling(() => collection.projects.utils.refetch(), {
+    intervalMs: hasInFlightDeployment ? BUILDING_POLL_MS : IDLE_POLL_MS,
+    enabled: true,
+  });
 
   if (projects.isLoading) {
     return (
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+      <div aria-busy="true" className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: MAX_SKELETON_COUNT }).map((_, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
           <ProjectCardSkeleton key={i} />
@@ -72,16 +87,10 @@ export const ProjectsList = () => {
             <ProjectCard
               projectId={project.id}
               name={project.name}
-              appCount={project.appCount}
               apps={project.apps}
               actions={
                 <ProjectActions projectId={project.id}>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="mb-auto shrink-0"
-                    title="Project actions"
-                  >
+                  <Button variant="ghost" size="icon" className="shrink-0" title="Project actions">
                     <IconDotsOutline18 />
                   </Button>
                 </ProjectActions>
