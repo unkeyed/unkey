@@ -9,7 +9,11 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { Check, ChevronDown, CircleCheck } from "@unkey/icons";
+import {
+  IconCheckOutline18,
+  IconChevronDownOutline12,
+  IconCircleCheckOutline18,
+} from "@unkey/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import {
   AsYouType,
@@ -133,7 +137,7 @@ export function PhoneInput({ onChange, disabled }: PhoneInputProps) {
               >
                 <span className="text-base leading-none">{flagEmoji(country)}</span>
                 <span className="tabular-nums">+{getCountryCallingCode(country)}</span>
-                <ChevronDown className="w-3 h-3 text-white/40" />
+                <IconChevronDownOutline12 className="w-3 h-3 text-white/40" />
               </button>
             }
           />
@@ -169,7 +173,9 @@ export function PhoneInput({ onChange, disabled }: PhoneInputProps) {
                       <span className="text-base leading-none">{flagEmoji(item.code)}</span>
                       <span className="flex-1 truncate">{item.name}</span>
                       <span className="text-white/40 tabular-nums">+{item.callingCode}</span>
-                      {item.code === country && <Check className="w-4 h-4 text-white shrink-0" />}
+                      {item.code === country && (
+                        <IconCheckOutline18 className="w-4 h-4 text-white shrink-0" />
+                      )}
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -192,7 +198,7 @@ export function PhoneInput({ onChange, disabled }: PhoneInputProps) {
           className="flex-1 min-w-0 h-full bg-transparent px-3 text-sm text-white placeholder:text-white/30 outline-none disabled:cursor-not-allowed"
         />
 
-        {valid && <CircleCheck className="w-4 h-4 mr-3 text-success-9 shrink-0" />}
+        {valid && <IconCircleCheckOutline18 className="w-4 h-4 mr-3 text-success-9 shrink-0" />}
       </div>
       {showInvalid && <span className="text-xs text-[#FB1048]">Enter a valid phone number</span>}
     </div>

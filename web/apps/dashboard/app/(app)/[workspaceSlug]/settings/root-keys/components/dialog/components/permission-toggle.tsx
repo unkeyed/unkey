@@ -1,6 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
-import { ChevronRight } from "@unkey/icons";
+import { IconChevronRightOutline12 } from "@unkey/icons";
 import type { CheckedState } from "@unkey/ui";
 import { Checkbox, InfoTooltip } from "@unkey/ui";
 import type React from "react";
@@ -42,7 +42,7 @@ const PermissionToggle = forwardRef<HTMLDivElement, PermissionToggleProps>(
             <span id={`${id}-label`} className="text-sm w-fit">
               {category}
             </span>
-            <ChevronRight iconSize="sm-regular" className="text-grayA-8" />
+            <IconChevronRightOutline12 className="text-grayA-8" />
             {<span className="text-sm w-full">{label}</span>}
           </div>
           <InfoTooltip content={description} className="w-full text-left">

@@ -290,9 +290,11 @@ func New(t *testing.T, opts ...Option) *Harness {
 	})
 	require.NoError(t, err)
 
-	deploymentSvc := deployment.New(deployment.Config{
-		DB: database,
+	deploymentSvc, err := deployment.New(deployment.Config{
+		DB:        database,
+		Auditlogs: auditlogSvc,
 	})
+	require.NoError(t, err)
 
 	// CheckWorkspaceSpend sends Teardown/Resume to this service. Restate
 	// retries calls to unregistered services indefinitely, so it must be

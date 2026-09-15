@@ -74,7 +74,7 @@ func TestGetApiSuccessfully(t *testing.T) {
 			{
 				name:           "wildcard permission",
 				permissions:    []string{"*"},
-				expectedStatus: 403, // The "*" permission isn't directly supported in the handler
+				expectedStatus: 404, // "*" isn't a supported grant, and the denied read is masked as not found
 			},
 			{
 				name:           "api wildcard permission",

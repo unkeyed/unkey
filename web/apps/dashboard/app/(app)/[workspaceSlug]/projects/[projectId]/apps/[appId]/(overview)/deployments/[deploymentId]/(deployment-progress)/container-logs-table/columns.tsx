@@ -1,7 +1,7 @@
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
 import type { Column } from "@/components/virtual-table/types";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
-import { TriangleWarning } from "@unkey/icons";
+import { IconTriangleWarningOutline18 } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
 import { TruncatedCell } from "../truncated-cell";
 
@@ -18,13 +18,13 @@ function SeverityIcon({ severity }: { severity: string }) {
     case "ERROR":
       return (
         <div className="my-2">
-          <TriangleWarning className="text-error-11" iconSize="md-regular" />
+          <IconTriangleWarningOutline18 className="size-3.5 text-error-11" />
         </div>
       );
     case "WARN":
       return (
         <div className="my-2">
-          <TriangleWarning className="text-warning-11" iconSize="md-regular" />
+          <IconTriangleWarningOutline18 className="size-3.5 text-warning-11" />
         </div>
       );
     default:

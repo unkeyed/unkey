@@ -3,7 +3,7 @@
 import type { StringMatchMode } from "@/lib/collections/deploy/policies.schema";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
-import { ChevronDown, Sparkle3 } from "@unkey/icons";
+import { IconChevronDownOutline18, IconSparkle3Outline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   Button,
@@ -59,7 +59,7 @@ export function ConditionFields({
               >
                 <SelectTrigger
                   id={`path-mode-${c.id}`}
-                  rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+                  rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -187,7 +187,7 @@ export function ConditionFields({
                       <SelectTrigger
                         id={`hq-mode-${c.id}`}
                         rightIcon={
-                          <ChevronDown className="absolute right-2" iconSize="md-medium" />
+                          <IconChevronDownOutline18 className="size-3.5 absolute right-2" />
                         }
                       >
                         <SelectValue />
@@ -281,7 +281,7 @@ function RegexGenerateInput({
         loading={generateRegex.isLoading}
         onClick={() => generateRegex.mutate({ query: prompt, conditionType })}
       >
-        <Sparkle3 iconSize="sm-regular" />
+        <IconSparkle3Outline18 />
         Generate
       </Button>
     </div>

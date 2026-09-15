@@ -104,11 +104,12 @@ production schema gate passes.
   through ArgoCD. Application deployment is outside the scope of this runbook.
 </Note>
 
-If you close a GitHub pull request without merging it, the
+When a GitHub pull request closes, the
 <a href="https://github.com/unkeyed/unkey/blob/main/.depot/workflows/pscale_cleanup.yaml" target="_blank"><code>PlanetScale Cleanup</code></a>
-job closes its open deploy request and deletes its `pr-<number>` branch. If the
-pull request merges, the job leaves the branch and deploy request available so
-an unfinished database promotion can still be completed.
+job closes its open deploy request and deletes its `pr-<number>` branch. The
+database change must already be in PlanetScale `main` before the pull request
+merges, so the branch and its deploy requests are never needed after the pull
+request closes.
 
 ## Changing an existing column
 

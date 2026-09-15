@@ -48,6 +48,7 @@ func TestDeveloperRoleCoversProductPermissions(t *testing.T) {
 	catalog := []catalogResource{
 		{resource: "github/apps/*", actions: []string{"read", "write", "delete"}},
 		{resource: "projects/*", actions: []string{"read", "write", "delete"}},
+		{resource: "projects/*/portals/*", actions: []string{"read", "write", "delete"}},
 		{resource: "projects/*/apps/*", actions: []string{"read", "write", "delete"}},
 		{resource: "projects/*/apps/*/environments/*", actions: []string{"read", "write", "delete"}},
 		{resource: "projects/*/apps/*/environments/*/deployments/*", actions: []string{"read", "write", "delete"}},
@@ -136,4 +137,55 @@ func TestLegacyBasicMemberMatchesDeveloper(t *testing.T) {
 		permissionsForRoles("ws_123", []string{"developer"}),
 		permissionsForRoles("ws_123", []string{"basic_member"}),
 	)
+}
+
+// TestNoRoleGrantsPortalSessionMinting guards against a role granting portal
+// session creation: a session URL authenticates as an arbitrary end user, so
+// minting from the dashboard is impersonation and is deliberately not a role
+// permission.
+func TestNoRoleGrantsPortalSessionMinting(t *testing.T) {
+	t.Parallel()
+
+	for role, rolePermissions := range rolePolicies {
+		// admin holds a blanket wildcard, so it says nothing either way about
+		// portal sessions and there is no decision here to pin.
+		if role == "admin" {
+			continue
+		}
+
+		for _, rolePermission := range rolePermissions {
+			// Matched on both segments rather than the exact path so a concrete
+			// id or a reordered wildcard cannot slip past, while a sessions
+			// resource belonging to some other feature is still free to land.
+			isPortalSession := strings.Contains(rolePermission.resource, "portals/") &&
+				strings.Contains(rolePermission.resource, "sessions")
+			require.False(t, isPortalSession,
+				"role %q must not grant portal session minting, but grants %q", role, rolePermission.resource)
+		}
+	}
+}
+
+// TestPortalPermissionsPerRole guarantees dashboard roles can manage portals:
+// developer and its basic_member alias get full portal management, viewer only
+// reads.
+func TestPortalPermissionsPerRole(t *testing.T) {
+	t.Parallel()
+
+	manage := []string{
+		"unkey:v1:ws_123:projects/*/portals/*#read",
+		"unkey:v1:ws_123:projects/*/portals/*#write",
+		"unkey:v1:ws_123:projects/*/portals/*#delete",
+	}
+
+	for _, role := range []string{"developer", "basic_member"} {
+		permissions := permissionsForRoles("ws_123", []string{role})
+		for _, permission := range manage {
+			require.Contains(t, permissions, permission, "role %q", role)
+		}
+	}
+
+	viewer := permissionsForRoles("ws_123", []string{"viewer"})
+	require.Contains(t, viewer, "unkey:v1:ws_123:projects/*/portals/*#read")
+	require.NotContains(t, viewer, "unkey:v1:ws_123:projects/*/portals/*#write")
+	require.NotContains(t, viewer, "unkey:v1:ws_123:projects/*/portals/*#delete")
 }

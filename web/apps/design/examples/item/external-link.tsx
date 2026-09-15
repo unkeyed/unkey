@@ -1,4 +1,4 @@
-import { ArrowUpRight, BookOpen } from "@unkey/icons";
+import { IconArrowUpRightOutline18, IconBookOpenOutline18 } from "@unkey/icons";
 import {
   Item,
   ItemActions,
@@ -16,7 +16,7 @@ export default function ExternalLinkItem() {
       render={
         <a href="https://unkey.com/docs" target="_blank" rel="noopener noreferrer">
           <ItemMedia>
-            <BookOpen />
+            <IconBookOpenOutline18 />
           </ItemMedia>
           <ItemContent>
             <ItemTitle>
@@ -26,7 +26,7 @@ export default function ExternalLinkItem() {
             <ItemDescription>How plans, usage and invoices work</ItemDescription>
           </ItemContent>
           <ItemActions>
-            <ArrowUpRight />
+            <IconArrowUpRightOutline18 />
           </ItemActions>
         </a>
       }

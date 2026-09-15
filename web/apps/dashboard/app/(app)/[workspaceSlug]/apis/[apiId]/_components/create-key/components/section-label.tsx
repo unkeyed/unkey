@@ -1,4 +1,4 @@
-import { Check, XMark } from "@unkey/icons";
+import { IconCheckOutline18, IconXmarkOutline18 } from "@unkey/icons";
 import type { SectionState } from "../types";
 
 export const SectionLabel = ({
@@ -14,9 +14,9 @@ export const SectionLabel = ({
       {validState !== "initial" && (
         <div className="ml-auto">
           {validState === "valid" ? (
-            <Check className="text-success-9" iconSize="md-medium" />
+            <IconCheckOutline18 className="size-3.5 text-success-9" />
           ) : (
-            <XMark className="text-error-9" iconSize="md-medium" />
+            <IconXmarkOutline18 className="size-3.5 text-error-9" />
           )}
         </div>
       )}

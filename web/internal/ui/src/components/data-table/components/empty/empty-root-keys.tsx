@@ -1,4 +1,4 @@
-import { BookBookmark } from "@unkey/icons";
+import { IconBookBookmarkOutline18 } from "@unkey/icons";
 import { buttonVariants } from "../../../buttons/button";
 import { Empty } from "../../../empty";
 
@@ -20,7 +20,7 @@ export function EmptyRootKeys() {
             className={buttonVariants({ variant: "outline" })}
           >
             <span className="flex items-center gap-2">
-              <BookBookmark />
+              <IconBookBookmarkOutline18 />
               Learn about Root Keys
             </span>
           </a>

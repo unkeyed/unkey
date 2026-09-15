@@ -1,4 +1,4 @@
-import { BookBookmark } from "@unkey/icons";
+import { IconBookBookmarkOutline18 } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 
 export const EmptyPermissions = () => {
@@ -18,7 +18,7 @@ export const EmptyPermissions = () => {
             rel="noopener noreferrer"
           >
             <Button size="md">
-              <BookBookmark />
+              <IconBookBookmarkOutline18 />
               Learn about Permissions
             </Button>
           </a>

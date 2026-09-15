@@ -1,7 +1,7 @@
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { Github, Layers2, Terminal } from "@unkey/icons";
+import { Github, IconLayers2Outline18, IconTerminalOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { HoverCard, HoverCardContent, HoverCardTrigger, InfoTooltip } from "@unkey/ui";
 import Link from "next/link";
@@ -33,8 +33,8 @@ function AppSourceIcon({
 }: { source: ProjectCardApp["source"]; className: string }) {
   return match(source)
     .with("github", () => <Github className={className} />)
-    .with("oci", () => <Layers2 className={className} />)
-    .with("code", () => <Terminal className={className} />)
+    .with("oci", () => <IconLayers2Outline18 className={className} />)
+    .with("code", () => <IconTerminalOutline18 className={className} />)
     .exhaustive();
 }
 

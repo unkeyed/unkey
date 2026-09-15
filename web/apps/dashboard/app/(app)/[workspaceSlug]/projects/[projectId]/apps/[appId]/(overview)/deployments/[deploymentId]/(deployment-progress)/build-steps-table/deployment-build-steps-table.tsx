@@ -1,7 +1,7 @@
 "use client";
 
 import { StreamingTable } from "@/components/streaming-table";
-import { BookBookmark } from "@unkey/icons";
+import { IconBookBookmarkOutline18 } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
 import { BuildStepLogsExpanded } from "./build-step-logs-expanded";
@@ -114,7 +114,7 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({
                 rel="noopener noreferrer"
               >
                 <Button size="md">
-                  <BookBookmark />
+                  <IconBookBookmarkOutline18 />
                   Documentation
                 </Button>
               </a>

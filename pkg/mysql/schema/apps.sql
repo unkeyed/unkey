@@ -17,3 +17,4 @@ CREATE TABLE `apps` (
 );
 
 CREATE INDEX `apps_workspace_slug_idx` ON `apps` (`workspace_id`,`slug`);
+

@@ -8,7 +8,7 @@ import {
   UNKEY_LAST_ORG_COOKIE,
   errorMessages,
 } from "@/lib/auth/types";
-import { ArrowRight } from "@unkey/icons";
+import { IconArrowRightOutline18 } from "@unkey/icons";
 import { Empty, Loading, toast } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
@@ -190,7 +190,7 @@ function SignInContent() {
             <p className="text-xs">Account not found, did you mean to sign up?</p>
             <Link href={`/auth/sign-up?email=${encodeURIComponent(email)}` as Route}>
               <div className="border text-center text-xs border-transparent hover:border-[#FFD55D]/50 text-[#FFD55D] duration-200 p-1 rounded-lg">
-                <ArrowRight iconSize="md-regular" />
+                <IconArrowRightOutline18 className="size-3.5" />
               </div>
             </Link>
           </div>
