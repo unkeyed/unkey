@@ -22,7 +22,7 @@ var deploymentStatuses = []string{
 }
 
 func validateDeploymentStatuses(value string) error {
-	for _, status := range strings.Split(value, ",") {
+	for status := range strings.SplitSeq(value, ",") {
 		status = strings.TrimSpace(status)
 		if status != "" && !slices.Contains(deploymentStatuses, status) {
 			return fmt.Errorf("invalid status %q; valid choices: %s", status, strings.Join(deploymentStatuses, ", "))

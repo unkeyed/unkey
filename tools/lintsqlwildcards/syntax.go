@@ -7,7 +7,7 @@ func splitTopLevel(text []byte, separator byte) [][]byte {
 	start := 0
 	depth := 0
 	var quote byte
-	for i := 0; i < len(text); i++ {
+	for i := range text {
 		char := text[i]
 		if quote != 0 {
 			if char == quote {

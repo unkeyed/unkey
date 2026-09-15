@@ -305,7 +305,7 @@ func BenchmarkBufferClose(b *testing.B) {
 			done := make(chan struct{})
 			go func() {
 				defer close(done)
-				for j := 0; j < 100; j++ {
+				for j := range 100 {
 					buf.Buffer(j)
 				}
 			}()
@@ -323,7 +323,7 @@ func BenchmarkBufferMemoryFootprint(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			buf := New[int](Config{Capacity: 1000, Drop: false, Name: "memory_test"})
-			for j := 0; j < 100; j++ {
+			for j := range 100 {
 				buf.Buffer(j)
 			}
 			buf.Close()

@@ -203,7 +203,7 @@ func buildKeyData(r *FindLiveKeyByHashRow) *KeyData {
 }
 
 func populateFindLiveKeyRelationships(kd *KeyData, workspaceID string, identityID, identityExternalID sql.NullString,
-	identityMeta []byte, roles, permissions, rolePermissions, ratelimits interface{},
+	identityMeta []byte, roles, permissions, rolePermissions, ratelimits any,
 ) {
 	if identityID.Valid {
 		//nolint:exhaustruct_v5

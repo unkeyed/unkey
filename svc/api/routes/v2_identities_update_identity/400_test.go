@@ -28,7 +28,7 @@ func TestBadRequests(t *testing.T) {
 	}
 
 	t.Run("missing externalId", func(t *testing.T) {
-		meta := map[string]interface{}{
+		meta := map[string]any{
 			"test": "value",
 		}
 		req := handler.Request{
@@ -46,7 +46,7 @@ func TestBadRequests(t *testing.T) {
 	})
 
 	t.Run("empty externalId", func(t *testing.T) {
-		meta := map[string]interface{}{
+		meta := map[string]any{
 			"test": "value",
 		}
 
@@ -97,7 +97,7 @@ func TestBadRequests(t *testing.T) {
 
 		// Create a large metadata object (over 1MB)
 		largeString := strings.Repeat("a", 1024*1024)
-		largeMeta := map[string]interface{}{
+		largeMeta := map[string]any{
 			"large_field": largeString,
 		}
 

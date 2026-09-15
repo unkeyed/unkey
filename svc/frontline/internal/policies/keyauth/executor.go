@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
@@ -203,10 +204,5 @@ func toVerifyRatelimits(rls []*frontlinev1.KeyRatelimit) []openapi.KeysVerifyKey
 // keyspaceAllowed reports whether the key's keyspace is in the policy's
 // allowlist.
 func keyspaceAllowed(keyspaceID string, allowed []string) bool {
-	for _, id := range allowed {
-		if keyspaceID == id {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(allowed, keyspaceID)
 }

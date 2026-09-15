@@ -47,7 +47,7 @@ type WaitingState struct {
 // Scan implements [sql.Scanner] for reading the JSON column into a typed
 // value. NULL columns return a zero-valued ContainerStatus, which matches
 // the table default of {restartCount: 0}.
-func (cs *ContainerStatus) Scan(value interface{}) error {
+func (cs *ContainerStatus) Scan(value any) error {
 	if value == nil {
 		*cs = ContainerStatus{
 			RestartCount:         0,

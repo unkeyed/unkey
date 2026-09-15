@@ -18,7 +18,7 @@ func TestKeyLifecycle_MultipleEncryptionsUseSameKey(t *testing.T) {
 	keyring := "test-keyring-reuse"
 
 	var keyIDs []string
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		encReq := connect.NewRequest(&vaultv1.EncryptRequest{
 			Keyring: keyring,
 			Data:    fmt.Sprintf("data-%d", i),
@@ -199,7 +199,7 @@ func TestKeyLifecycle_MultipleReEncryptions(t *testing.T) {
 	encrypted := encRes.Msg.GetEncrypted()
 
 	// Re-encrypt multiple times
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		reencReq := connect.NewRequest(&vaultv1.ReEncryptRequest{
 			Keyring:   keyring,
 			Encrypted: encrypted,

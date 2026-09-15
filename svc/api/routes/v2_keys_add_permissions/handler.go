@@ -254,7 +254,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 							ID:          candidate.PermissionID,
 							Name:        candidate.Slug,
 							DisplayName: candidate.Name,
-							Meta: map[string]interface{}{
+							Meta: map[string]any{
 								"name": candidate.Name,
 								"slug": candidate.Slug,
 							},

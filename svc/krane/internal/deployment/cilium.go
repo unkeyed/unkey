@@ -26,10 +26,10 @@ func (c *Controller) ensureCiliumNetworkPolicy(ctx context.Context, req *ctrlv1.
 	policyName := fmt.Sprintf("%s-frontline-ingress", req.GetK8SName())
 
 	policy := &unstructured.Unstructured{
-		Object: map[string]interface{}{
+		Object: map[string]any{
 			"apiVersion": "cilium.io/v2",
 			"kind":       "CiliumNetworkPolicy",
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"name":      policyName,
 				"namespace": req.GetK8SNamespace(),
 				"labels": labels.New().
@@ -40,8 +40,8 @@ func (c *Controller) ensureCiliumNetworkPolicy(ctx context.Context, req *ctrlv1.
 					DeploymentID(req.GetDeploymentId()).
 					ManagedByKrane().
 					ComponentCiliumNetworkPolicy(),
-				"ownerReferences": []interface{}{
-					map[string]interface{}{
+				"ownerReferences": []any{
+					map[string]any{
 						"apiVersion":         "apps/v1",
 						"kind":               "ReplicaSet",
 						"name":               rs.Name,
@@ -51,25 +51,25 @@ func (c *Controller) ensureCiliumNetworkPolicy(ctx context.Context, req *ctrlv1.
 					},
 				},
 			},
-			"spec": map[string]interface{}{
-				"endpointSelector": map[string]interface{}{
-					"matchLabels": map[string]interface{}{
+			"spec": map[string]any{
+				"endpointSelector": map[string]any{
+					"matchLabels": map[string]any{
 						labels.LabelKeyDeploymentID: req.GetDeploymentId(),
 					},
 				},
-				"ingress": []interface{}{
-					map[string]interface{}{
-						"fromEndpoints": []interface{}{
-							map[string]interface{}{
-								"matchLabels": map[string]interface{}{
+				"ingress": []any{
+					map[string]any{
+						"fromEndpoints": []any{
+							map[string]any{
+								"matchLabels": map[string]any{
 									labels.LabelKeyNamespace: frontlineNamespace,
 								},
 							},
 						},
-						"toPorts": []interface{}{
-							map[string]interface{}{
-								"ports": []interface{}{
-									map[string]interface{}{
+						"toPorts": []any{
+							map[string]any{
+								"ports": []any{
+									map[string]any{
 										"port":     strconv.Itoa(int(req.GetPort())),
 										"protocol": "TCP",
 									},

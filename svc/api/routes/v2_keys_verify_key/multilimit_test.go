@@ -141,7 +141,7 @@ func TestMultiLimit(t *testing.T) {
 			})
 
 			// Should pass 3 times due to key limit being 4
-			for i := 0; i < 3; i++ {
+			for range 3 {
 				req := handler.Request{
 
 					Key:        key.Key,
@@ -246,7 +246,7 @@ func TestMultiLimit(t *testing.T) {
 			})
 
 			// Should pass twice (limit2 has limit of 2)
-			for i := 0; i < 2; i++ {
+			for range 2 {
 				req := handler.Request{
 
 					Key:        key.Key,
@@ -304,7 +304,7 @@ func TestMultiLimit(t *testing.T) {
 			})
 
 			// Use up some quota with key1
-			for i := 0; i < 3; i++ {
+			for range 3 {
 				req := handler.Request{
 
 					Key:        key1.Key,
@@ -319,7 +319,7 @@ func TestMultiLimit(t *testing.T) {
 			}
 
 			// key2 should only have 2 requests left due to shared limit
-			for i := 0; i < 2; i++ {
+			for range 2 {
 				req := handler.Request{
 
 					Key:        key2.Key,

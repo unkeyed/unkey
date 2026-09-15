@@ -240,7 +240,7 @@ func TestBoundary_RepeatedOperations(t *testing.T) {
 	encrypted := encRes.Msg.GetEncrypted()
 
 	// Decrypt many times
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		decReq := connect.NewRequest(&vaultv1.DecryptRequest{
 			Keyring:   keyring,
 			Encrypted: encrypted,
@@ -263,7 +263,7 @@ func TestBoundary_ManyKeyrings(t *testing.T) {
 	data := "shared-test-data"
 
 	// Encrypt with many different keyrings
-	for i := 0; i < 50; i++ {
+	for i := range 50 {
 		keyrings[i] = fmt.Sprintf("keyring-%03d", i)
 
 		encReq := connect.NewRequest(&vaultv1.EncryptRequest{

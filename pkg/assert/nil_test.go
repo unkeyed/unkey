@@ -10,7 +10,7 @@ import (
 func TestNil(t *testing.T) {
 
 	t.Run("value is nil", func(t *testing.T) {
-		var nilValue interface{} = nil
+		var nilValue any = nil
 		err := assert.Nil(nilValue)
 		require.NoError(t, err)
 	})

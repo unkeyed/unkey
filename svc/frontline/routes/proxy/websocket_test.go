@@ -300,12 +300,12 @@ func expect101(br *bufio.Reader, sentKey string) error {
 		if line == "\r\n" || line == "\n" {
 			break
 		}
-		idx := strings.IndexByte(line, ':')
-		if idx < 0 {
+		before, after, ok := strings.Cut(line, ":")
+		if !ok {
 			continue
 		}
-		k := strings.TrimSpace(line[:idx])
-		v := strings.TrimSpace(line[idx+1:])
+		k := strings.TrimSpace(before)
+		v := strings.TrimSpace(after)
 		headers.Add(k, v)
 	}
 	if got, want := headers.Get("Sec-WebSocket-Accept"), wsAccept(sentKey); got != want {
