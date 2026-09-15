@@ -128,6 +128,37 @@ export const requestLogsResponseSchema = z.object({
 
 export type RequestLogsResponse = z.infer<typeof requestLogsResponseSchema>;
 
+export const requestLogByIdParams = z.object({
+  workspaceId: z.string(),
+  requestId: z.string(),
+});
+
+export type RequestLogByIdParams = z.infer<typeof requestLogByIdParams>;
+
+const REQUEST_LOG_COLUMNS = `
+  request_id, time, deployment_id, region, method, path, host,
+  response_status, total_latency, instance_latency, gateway_latency,
+  query_string, query_params, request_headers, request_body,
+  response_headers, response_body, user_agent, ip_address`;
+
+export function getRequestLogById(ch: Querier) {
+  return async (args: RequestLogByIdParams) => {
+    const query = ch.query({
+      query: `
+        SELECT ${REQUEST_LOG_COLUMNS}
+        FROM ${TABLE}
+        WHERE workspace_id = {workspaceId: String}
+          AND request_id = {requestId: String}
+        ORDER BY time DESC
+        LIMIT 1`,
+      params: requestLogByIdParams,
+      schema: requestLogsResponseSchema,
+    });
+
+    return query(args);
+  };
+}
+
 export function getRequestLogs(ch: Querier) {
   return async (args: RequestLogsRequest) => {
     let pathConditions = "TRUE";
@@ -209,10 +240,7 @@ export function getRequestLogs(ch: Querier) {
     // https://clickhouse.com/docs/optimize/lazy-materialization
     const logsQuery = ch.query({
       query: `
-        SELECT request_id, time, deployment_id, region, method, path, host,
-               response_status, total_latency, instance_latency, gateway_latency,
-               query_string, query_params, request_headers, request_body,
-               response_headers, response_body, user_agent, ip_address
+        SELECT ${REQUEST_LOG_COLUMNS}
         FROM ${TABLE}
         WHERE ${filterConditions}
         ORDER BY time DESC, request_id DESC

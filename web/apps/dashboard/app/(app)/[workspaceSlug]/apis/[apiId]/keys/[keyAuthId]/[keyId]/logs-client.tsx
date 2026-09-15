@@ -51,6 +51,9 @@ export const KeyDetailsLogsClient = ({
           distanceToTop={tableDistanceToTop}
           onLogSelect={handleSelectedLog}
           selectedLog={selectedLog}
+          keyId={keyId}
+          keyspaceId={keyspaceId}
+          apiId={apiId}
         />
       </div>
     </KeyDetailsLogsProvider>
