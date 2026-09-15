@@ -17,6 +17,9 @@ const sourceState = vi.hoisted(() => ({
   empty: false,
 }));
 const createDrain = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/logdrains-query", () => ({
+  useCreateLogdrainMutation: () => ({ mutate: createDrain, isLoading: false }),
+}));
 vi.mock("@/lib/trpc/client", () => ({
   trpc: {
     ratelimit: {
@@ -24,8 +27,6 @@ vi.mock("@/lib/trpc/client", () => ({
         list: { useQuery: () => ({ data: [{ id: "ns", name: "Payments" }], isLoading: false }) },
       },
     },
-    useUtils: () => ({ logdrain: { list: { invalidate: vi.fn() } } }),
-    logdrain: { create: { useMutation: () => ({ mutate: createDrain, isLoading: false }) } },
     deploy: {
       project: {
         list: {
@@ -119,12 +120,8 @@ it("submits only runtime filters after switching from a restricted gateway", asy
     expect(createDrain.mock.calls[0]?.[0]).toEqual({
       name: "Runtime export",
       stream: "runtime_logs",
-      severities: [],
-      projectIds: ["other-project"],
-      appIds: [],
-      environmentIds: [],
-      kind: "http",
-      config: { url: "https://example.com/ingest", format: "json", headers: {} },
+      filters: { severities: [], projectIds: ["other-project"], appIds: [], environmentIds: [] },
+      destination: { http: { url: "https://example.com/ingest", format: "json", headers: [] } },
     }),
   );
 });
@@ -156,9 +153,7 @@ it.each(["Gateway HTTP requests", "Runtime logs"])(
     fireEvent.click(screen.getByRole("button", { name: "Create Log Drain" }));
     await waitFor(() =>
       expect(createDrain.mock.calls[0]?.[0]).toMatchObject({
-        projectIds: [],
-        appIds: [],
-        environmentIds: [],
+        filters: { projectIds: [], appIds: [], environmentIds: [] },
       }),
     );
     fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
@@ -171,9 +166,7 @@ it.each(["Gateway HTTP requests", "Runtime logs"])(
     fireEvent.click(screen.getByRole("button", { name: "Create Log Drain" }));
     await waitFor(() =>
       expect(createDrain.mock.calls[1]?.[0]).toMatchObject({
-        projectIds: ["project"],
-        appIds: [],
-        environmentIds: [],
+        filters: { projectIds: ["project"], appIds: [], environmentIds: [] },
       }),
     );
   },

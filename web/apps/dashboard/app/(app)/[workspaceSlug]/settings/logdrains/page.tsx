@@ -1,7 +1,7 @@
 "use client";
 
+import { useLogdrains } from "@/lib/logdrains-query";
 import { SUPPORT_MAILTO } from "@/lib/support";
-import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import {
   AlertBanner,
@@ -25,7 +25,7 @@ import { LogdrainsList } from "./logdrains-list";
 export default function LogdrainsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { limits, isLoading: isWorkspaceLoading } = useWorkspace();
-  const drains = trpc.logdrain.list.useQuery();
+  const drains = useLogdrains();
   const isLoading = isWorkspaceLoading || drains.isLoading;
   const isAtLimit = (drains.data?.length ?? 0) >= (limits?.logdrainsMax ?? 0);
   const canCreate = !isLoading && !drains.isError && !isAtLimit;

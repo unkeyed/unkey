@@ -1,6 +1,7 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
+import { useCreateLogdrainMutation } from "@/lib/logdrains-query";
+import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { match } from "@unkey/match";
 import {
@@ -38,7 +39,6 @@ import {
   submittedStatusClasses,
 } from "./drain-schema";
 import { DrainStepCard } from "./drain-step-card";
-import { toHeaderRecord } from "./header-fields";
 
 export function CreateLogdrainPanel({
   isOpen,
@@ -47,7 +47,6 @@ export function CreateLogdrainPanel({
   isOpen: boolean;
   onClose: () => void;
 }) {
-  const utils = trpc.useUtils();
   const [kind, setKind] = useState<DrainKind | null>(null);
   const [confirmChange, setConfirmChange] = useState(false);
 
@@ -59,13 +58,12 @@ export function CreateLogdrainPanel({
 
   const { isDirty } = form.formState;
 
-  const create = trpc.logdrain.create.useMutation({
+  const create = useCreateLogdrainMutation({
     onSuccess: () => {
-      utils.logdrain.list.invalidate();
       toast.success("Log drain created");
       onClose();
     },
-    onError: (error) => toast.error(error.message),
+    onError: (error) => toast.error(getErrorMessage(error)),
   });
 
   const startOver = () => {
@@ -90,22 +88,26 @@ export function CreateLogdrainPanel({
     const destination =
       values.kind === "http"
         ? {
-            kind: "http" as const,
-            config: {
+            http: {
               url: values.url.trim(),
               format: values.format,
-              headers: toHeaderRecord(values.headers),
+              headers: values.headers
+                .filter((header) => header.name.trim() !== "")
+                .map((header) => ({
+                  name: header.name.trim(),
+                  mode: "set" as const,
+                  value: header.value,
+                })),
             },
           }
         : {
-            kind: "axiom" as const,
-            config: { dataset: values.dataset.trim(), token: values.token },
+            axiom: { dataset: values.dataset.trim(), token: values.token },
           };
 
     create.mutate({
       name: values.name.trim(),
       stream: values.stream,
-      ...match(values.stream)
+      filters: match(values.stream)
         .with("ratelimits", () => ({
           namespaceIds: values.namespaceIds,
           passed: values.passed,
@@ -124,7 +126,7 @@ export function CreateLogdrainPanel({
           keySpaceIds: values.keySpaceIds,
         }))
         .exhaustive(),
-      ...destination,
+      destination,
     });
   });
 

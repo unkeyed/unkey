@@ -1,6 +1,6 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
+import { useLogdrain } from "@/lib/logdrains-query";
 import {
   Button,
   Card,
@@ -16,20 +16,10 @@ import { LogdrainDetail } from "./logdrain-detail";
 
 export default function LogdrainDetailPage(props: { params: Promise<{ drainId: string }> }) {
   const { drainId } = use(props.params);
-  const utils = trpc.useUtils();
-
-  const cached = utils.logdrain.list.getData()?.find((drain) => drain.id === drainId);
-  const query = trpc.logdrain.get.useQuery(
-    { id: drainId },
-    { initialData: cached, initialDataUpdatedAt: 0 },
-  );
+  const query = useLogdrain(drainId);
 
   if (query.isLoading) {
     return <DetailSkeleton />;
-  }
-
-  if (query.isError && query.error.data?.code === "NOT_FOUND") {
-    return <NotFound />;
   }
 
   if (query.isError) {

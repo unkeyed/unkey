@@ -4,14 +4,9 @@ import type { DrainDetail } from "../drain-schema";
 import { useDrainSettings } from "./use-drain-settings";
 
 const update = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/trpc/client", () => ({
-  trpc: {
-    useUtils: () => ({ logdrain: { list: { invalidate: vi.fn() }, get: { invalidate: vi.fn() } } }),
-    logdrain: {
-      update: { useMutation: () => ({ mutate: update }) },
-      delete: { useMutation: () => ({ mutate: vi.fn() }) },
-    },
-  },
+vi.mock("@/lib/logdrains-query", () => ({
+  useUpdateLogdrainMutation: () => ({ mutate: update }),
+  useDeleteLogdrainMutation: () => ({ mutate: vi.fn() }),
 }));
 
 afterEach(() => {
@@ -23,19 +18,19 @@ const drain = {
   id: "drain",
   name: "Runtime",
   status: "running",
-  kind: "http",
   stream: "runtime_logs",
-  config: { url: "https://example.com/ingest", format: "ndjson", headers: ["Authorization"] },
-  eventTypes: [],
-  outcomes: [],
-  keySpaceIds: [],
-  statusClasses: [],
-  severities: ["warn"],
-  namespaceIds: [],
-  passed: [],
-  projectIds: ["deleted-project"],
-  appIds: [],
-  environmentIds: ["deleted-environment"],
+  destination: {
+    http: { url: "https://example.com/ingest", format: "ndjson", headers: ["Authorization"] },
+  },
+  filters: {
+    severities: ["warn"],
+    projectIds: ["deleted-project"],
+    environmentIds: ["deleted-environment"],
+  },
+  batchSize: 10000,
+  createdAt: 123,
+  committedOffsetInsertedAt: 0,
+  consecutiveFailures: 0,
 } satisfies DrainDetail;
 
 it("submits unrestricted runtime sources without using retained gateway selections", async () => {
@@ -46,7 +41,10 @@ it("submits unrestricted runtime sources without using retained gateway selectio
     result.current.form.setValue("projectIds", ["gateway-project"]);
   });
   await act(() => result.current.save(vi.fn())());
-  expect(update.mock.calls[0]?.[0]).toEqual({ id: "drain", projectIds: [], environmentIds: [] });
+  expect(update.mock.calls[0]?.[0]).toEqual({
+    logdrainId: "drain",
+    filters: { projectIds: [], environmentIds: [] },
+  });
 });
 
 it.each(["gateway_requests", "runtime_logs"] as const)(
@@ -54,11 +52,11 @@ it.each(["gateway_requests", "runtime_logs"] as const)(
   async (stream) => {
     const stored: DrainDetail =
       stream === "gateway_requests"
-        ? { ...drain, stream, statusClasses: [4, 5], severities: [] }
+        ? { ...drain, stream, filters: { ...drain.filters, statusClasses: [4, 5], severities: [] } }
         : drain;
     const { result } = renderHook(() => useDrainSettings(stored, { onDeleted: vi.fn() }));
     act(() => result.current.form.setValue("name", "Renamed"));
     await act(() => result.current.save(vi.fn())());
-    expect(update.mock.calls[0]?.[0]).toEqual({ id: "drain", name: "Renamed" });
+    expect(update.mock.calls[0]?.[0]).toEqual({ logdrainId: "drain", name: "Renamed" });
   },
 );
