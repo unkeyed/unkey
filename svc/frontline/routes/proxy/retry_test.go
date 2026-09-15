@@ -70,9 +70,9 @@ func TestRetry_MidStreamFailureDoesNotRetry(t *testing.T) {
 	midCloseAddr, stopMidClose := startMidStreamCloseBackend(t)
 	t.Cleanup(stopMidClose)
 
-	var secondHits int64
+	var secondHits atomic.Int64
 	secondAddr, stopSecond := startBackend(t, func(_ http.ResponseWriter, _ *http.Request) {
-		atomic.AddInt64(&secondHits, 1)
+		secondHits.Add(1)
 	})
 	t.Cleanup(stopSecond)
 
@@ -84,7 +84,7 @@ func TestRetry_MidStreamFailureDoesNotRetry(t *testing.T) {
 	defer func() { _ = resp.Body.Close() }()
 
 	require.GreaterOrEqual(t, resp.StatusCode, 500, "expected 5xx after mid-stream upstream failure")
-	require.Equal(t, int64(0), atomic.LoadInt64(&secondHits), "second instance must not be retried after a mid-stream failure — would risk double-execute")
+	require.Equal(t, int64(0), secondHits.Load(), "second instance must not be retried after a mid-stream failure — would risk double-execute")
 }
 
 // TestRetry_AllLocalDeadFallsThroughToRegion proves the region fallback
