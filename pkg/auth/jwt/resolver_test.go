@@ -971,11 +971,9 @@ func TestResolver_ColdStartSharesOneFetch(t *testing.T) {
 	errs := make([]error, workers)
 	var wg sync.WaitGroup
 	for i := range workers {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			_, errs[i] = resolver.Resolve(context.Background(), sessions[i])
-		}()
+		})
 	}
 	wg.Wait()
 
