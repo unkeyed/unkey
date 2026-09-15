@@ -11,22 +11,25 @@ import (
 )
 
 const listOlderActiveDeploymentsForDedup = `-- name: ListOlderActiveDeploymentsForDedup :many
-SELECT id, invocation_id
-FROM deployments
-WHERE app_id = ?
-  AND environment_id = ?
-  AND git_branch = ?
-  AND status IN ('pending', 'awaiting_approval')
-  AND created_at < ?
-  AND id != ?
-ORDER BY created_at ASC
+SELECT older.id, older.invocation_id
+FROM deployments older
+WHERE older.app_id = ?
+  AND older.environment_id = ?
+  AND older.git_branch = ?
+  AND older.status IN ('pending', 'awaiting_approval')
+  AND older.created_at < (
+    SELECT src.created_at
+    FROM deployments src
+    WHERE src.id = ?
+  )
+  AND older.id != ?
+ORDER BY older.created_at ASC
 `
 
 type ListOlderActiveDeploymentsForDedupParams struct {
 	AppID         string         `db:"app_id"`
 	EnvironmentID string         `db:"environment_id"`
 	GitBranch     sql.NullString `db:"git_branch"`
-	CreatedAt     int64          `db:"created_at"`
 	DeploymentID  string         `db:"deployment_id"`
 }
 
@@ -40,21 +43,35 @@ type ListOlderActiveDeploymentsForDedupRow struct {
 // (after slot acquisition) it's committed — we don't cancel work that's
 // already running.
 //
-//	SELECT id, invocation_id
-//	FROM deployments
-//	WHERE app_id = ?
-//	  AND environment_id = ?
-//	  AND git_branch = ?
-//	  AND status IN ('pending', 'awaiting_approval')
-//	  AND created_at < ?
-//	  AND id != ?
-//	ORDER BY created_at ASC
+// The cutoff is the created_at of the deployment being started, read from its
+// own row. It is deliberately not the current time and not a value the caller
+// passes in, because a deployment can be started long after it was created: a
+// fork PR sits in awaiting_approval until a human clicks approve.
+//
+// Say commit A is pushed at 09:00 and commit B at 11:00, and both are waiting
+// for approval. A reviewer approves A at 12:00. If the cutoff were the current
+// time, everything before 12:00 would look older, so approving A would cancel
+// B, which is the newer commit. Using A's own 09:00 leaves B alone.
+//
+//	SELECT older.id, older.invocation_id
+//	FROM deployments older
+//	WHERE older.app_id = ?
+//	  AND older.environment_id = ?
+//	  AND older.git_branch = ?
+//	  AND older.status IN ('pending', 'awaiting_approval')
+//	  AND older.created_at < (
+//	    SELECT src.created_at
+//	    FROM deployments src
+//	    WHERE src.id = ?
+//	  )
+//	  AND older.id != ?
+//	ORDER BY older.created_at ASC
 func (q *Queries) ListOlderActiveDeploymentsForDedup(ctx context.Context, arg ListOlderActiveDeploymentsForDedupParams) ([]ListOlderActiveDeploymentsForDedupRow, error) {
 	rows, err := q.db.QueryContext(ctx, listOlderActiveDeploymentsForDedup,
 		arg.AppID,
 		arg.EnvironmentID,
 		arg.GitBranch,
-		arg.CreatedAt,
+		arg.DeploymentID,
 		arg.DeploymentID,
 	)
 	if err != nil {

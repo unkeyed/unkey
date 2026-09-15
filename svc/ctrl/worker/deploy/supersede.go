@@ -36,7 +36,6 @@ func (w *Workflow) cancelOlderSiblings(ctx context.Context, deploymentID string,
 		AppID:         payload.Target.AppID,
 		EnvironmentID: payload.Target.EnvironmentID,
 		GitBranch:     sql.NullString{Valid: true, String: branch},
-		CreatedAt:     payload.CreatedAt,
 		DeploymentID:  deploymentID,
 	})
 	if err != nil {
