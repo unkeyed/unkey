@@ -125,8 +125,11 @@ type Querier interface {
 	DeleteOldIdentityByExternalID(ctx context.Context, db DBTX, arg DeleteOldIdentityByExternalIDParams) error
 	//DeletePermission
 	//
-	//  DELETE FROM permissions
-	//  WHERE id = ?
+	//  DELETE p, rp, kp
+	//  FROM permissions p
+	//  LEFT JOIN roles_permissions rp ON rp.permission_id = p.id
+	//  LEFT JOIN keys_permissions kp ON kp.permission_id = p.id
+	//  WHERE p.id = ?
 	DeletePermission(ctx context.Context, db DBTX, permissionID string) error
 	// Deletes a portal, scoped to the workspace so one workspace can never delete
 	// another's. Returns the row count so a concurrent delete that already removed
@@ -139,8 +142,11 @@ type Querier interface {
 	DeletePortal(ctx context.Context, db DBTX, arg DeletePortalParams) (int64, error)
 	//DeleteRoleByID
 	//
-	//  DELETE FROM roles
-	//  WHERE id = ?
+	//  DELETE r, rp, kr
+	//  FROM roles r
+	//  LEFT JOIN roles_permissions rp ON rp.role_id = r.id
+	//  LEFT JOIN keys_roles kr ON kr.role_id = r.id
+	//  WHERE r.id = ?
 	DeleteRoleByID(ctx context.Context, db DBTX, roleID string) error
 	// Removes every Stripe subscription row for a workspace. Paired with
 	// ResetWorkspaceBilling by the `unkey dev stripe reset` tooling.
