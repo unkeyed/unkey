@@ -79,6 +79,11 @@ type Querier interface {
 	//  LEFT JOIN encrypted_keys ek ON k.id = ek.key_id
 	//  WHERE k.id = ?
 	DeleteKeyByID(ctx context.Context, db DBTX, id string) error
+	// Caller holds the drain lock and inserts its audit event in this transaction.
+	// Worker state updates cannot recreate a deleted drain.
+	//
+	//  DELETE FROM logdrains WHERE workspace_id = ? AND id = ?
+	DeleteLogdrain(ctx context.Context, db DBTX, arg DeleteLogdrainParams) error
 	//DeleteManyKeyPermissionByKeyAndPermissionIDs
 	//
 	//  DELETE FROM keys_permissions

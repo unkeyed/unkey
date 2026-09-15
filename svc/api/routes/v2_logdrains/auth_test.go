@@ -36,6 +36,7 @@ func TestLogdrainsRequireAuthenticationAndPermission(t *testing.T) {
 		{&logdrains.Get{DB: h.DB}, `{"logdrainId":"` + foreignID + `"}`, true},
 		{&logdrains.List{DB: h.DB}, `{}`, false},
 		{&logdrains.Update{DB: h.DB, Vault: h.Vault, Auditlogs: h.Auditlogs, Clock: h.Clock}, `{"logdrainId":"` + foreignID + `","name":"Changed"}`, true},
+		{&logdrains.Delete{DB: h.DB, Auditlogs: h.Auditlogs}, `{"logdrainId":"` + foreignID + `"}`, true},
 	} {
 		t.Run(tc.route.Path(), func(t *testing.T) {
 			h.Register(tc.route)

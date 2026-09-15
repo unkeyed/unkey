@@ -1,0 +1,55 @@
+post:
+  tags: [logdrains]
+  summary: Delete log drain
+  description: |
+    Delete a log drain, regardless of workspace allowance. Requires
+    `unkey:v1:{workspaceId}:logdrains/{logdrainId}#delete`.
+    Deletion prevents further worker state writes. A request already sent to the
+    destination cannot be recalled.
+  operationId: logdrains.deleteLogdrain
+  x-speakeasy-name-override: deleteLogdrain
+  security:
+    - bearer: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../LogdrainIdRequest.yaml
+  responses:
+    "200":
+      description: Log drain deleted.
+      content:
+        application/json:
+          schema:
+            $ref: ../LogdrainMutationResponse.yaml
+    "400":
+      description: Invalid input.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Missing or invalid credentials.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: Insufficient permission.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "404":
+      description: No log drain with this ID exists in the authorized workspace.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/NotFoundErrorResponse.yaml
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml
