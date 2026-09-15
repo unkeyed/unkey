@@ -132,9 +132,9 @@ const (
 
 // Defines values for LogdrainStatus.
 const (
-	PausedByFailure LogdrainStatus = "paused_by_failure"
-	PausedByUser    LogdrainStatus = "paused_by_user"
-	Running         LogdrainStatus = "running"
+	LogdrainStatusPausedByFailure LogdrainStatus = "paused_by_failure"
+	LogdrainStatusPausedByUser    LogdrainStatus = "paused_by_user"
+	LogdrainStatusRunning         LogdrainStatus = "running"
 )
 
 // Defines values for LogdrainStream.
@@ -162,7 +162,8 @@ const (
 
 // Defines values for LogdrainHeaderWriteMode.
 const (
-	LogdrainHeaderSet LogdrainHeaderWriteMode = "set"
+	LogdrainHeaderPreserve LogdrainHeaderWriteMode = "preserve"
+	LogdrainHeaderSet      LogdrainHeaderWriteMode = "set"
 )
 
 // Defines values for LogdrainHttpWriteFormat.
@@ -186,6 +187,12 @@ const (
 const (
 	UpdateKeyCreditsRefillIntervalDaily   UpdateKeyCreditsRefillInterval = "daily"
 	UpdateKeyCreditsRefillIntervalMonthly UpdateKeyCreditsRefillInterval = "monthly"
+)
+
+// Defines values for UpdateLogdrainRequestStatus.
+const (
+	UpdateLogdrainRequestStatusPausedByUser UpdateLogdrainRequestStatus = "paused_by_user"
+	UpdateLogdrainRequestStatusRunning      UpdateLogdrainRequestStatus = "running"
 )
 
 // Defines values for V2DeployGetDeploymentResponseDataStatus.
@@ -387,6 +394,7 @@ type CreateLogdrainRequest struct {
 	BatchSize *int64 `json:"batchSize,omitempty"`
 
 	// Destination Exactly one destination: an HTTP URL or an Axiom dataset and token.
+	// Updates preserve omitted fields and cannot change the destination kind.
 	Destination LogdrainDestinationWrite `json:"destination"`
 
 	// Filters Only filters for the selected stream are accepted. Empty arrays select all
@@ -1162,6 +1170,7 @@ type LogdrainDestination struct {
 type LogdrainDestinationHttpFormat string
 
 // LogdrainDestinationWrite Exactly one destination: an HTTP URL or an Axiom dataset and token.
+// Updates preserve omitted fields and cannot change the destination kind.
 type LogdrainDestinationWrite struct {
 	Axiom *LogdrainAxiomWrite `json:"axiom,omitempty"`
 	Http  *LogdrainHttpWrite  `json:"http,omitempty"`
@@ -1200,6 +1209,8 @@ type LogdrainHttpWrite struct {
 	Format *LogdrainHttpWriteFormat `json:"format,omitempty"`
 
 	// Headers Headers sent to the destination. Values are encrypted at rest.
+	// Updates replace the header list when supplied. Use preserve to retain an
+	// existing value without reading it. Omit headers to retain the entire list.
 	Headers *[]LogdrainHeaderWrite `json:"headers,omitempty"`
 	Url     *string                `json:"url,omitempty"`
 }
@@ -1836,6 +1847,25 @@ type UpdateKeyCreditsRefill struct {
 
 // UpdateKeyCreditsRefillInterval How often credits are automatically refilled.
 type UpdateKeyCreditsRefillInterval string
+
+// UpdateLogdrainRequest defines model for UpdateLogdrainRequest.
+type UpdateLogdrainRequest struct {
+	BatchSize *int64 `json:"batchSize,omitempty"`
+
+	// Destination Exactly one destination: an HTTP URL or an Axiom dataset and token.
+	// Updates preserve omitted fields and cannot change the destination kind.
+	Destination *LogdrainDestinationWrite `json:"destination,omitempty"`
+
+	// Filters Only filters for the selected stream are accepted. Empty arrays select all
+	// values. Nonempty dimensions are combined with AND.
+	Filters    *LogdrainFilters             `json:"filters,omitempty"`
+	LogdrainId string                       `json:"logdrainId"`
+	Name       *string                      `json:"name,omitempty"`
+	Status     *UpdateLogdrainRequestStatus `json:"status,omitempty"`
+}
+
+// UpdateLogdrainRequestStatus defines model for UpdateLogdrainRequest.Status.
+type UpdateLogdrainRequestStatus string
 
 // V2AnalyticsGetGatewayRequestsRequestBody defines model for V2AnalyticsGetGatewayRequestsRequestBody.
 type V2AnalyticsGetGatewayRequestsRequestBody struct {
@@ -5295,6 +5325,9 @@ type LogdrainsGetLogdrainJSONRequestBody = LogdrainIdRequest
 
 // LogdrainsListLogdrainsJSONRequestBody defines body for LogdrainsListLogdrains for application/json ContentType.
 type LogdrainsListLogdrainsJSONRequestBody = ListLogdrainsRequest
+
+// LogdrainsUpdateLogdrainJSONRequestBody defines body for LogdrainsUpdateLogdrain for application/json ContentType.
+type LogdrainsUpdateLogdrainJSONRequestBody = UpdateLogdrainRequest
 
 // PermissionsCreatePermissionJSONRequestBody defines body for PermissionsCreatePermission for application/json ContentType.
 type PermissionsCreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody

@@ -2769,6 +2769,35 @@ components:
                         $ref: '#/components/schemas/Logdrain'
                 pagination:
                     $ref: '#/components/schemas/Pagination'
+        UpdateLogdrainRequest:
+            type: object
+            required:
+                - logdrainId
+            minProperties: 2
+            additionalProperties: false
+            properties:
+                logdrainId:
+                    type: string
+                    maxLength: 48
+                    minLength: 1
+                name:
+                    type: string
+                    maxLength: 128
+                    minLength: 1
+                status:
+                    type: string
+                    enum:
+                        - running
+                        - paused_by_user
+                batchSize:
+                    type: integer
+                    maximum: 4294967295
+                    minimum: 1
+                    format: int64
+                filters:
+                    $ref: '#/components/schemas/LogdrainFilters'
+                destination:
+                    $ref: '#/components/schemas/LogdrainDestinationWrite'
         V2PermissionsCreatePermissionRequestBody:
             type: object
             required:
@@ -6999,6 +7028,7 @@ components:
             maxProperties: 1
             description: |
                 Exactly one destination: an HTTP URL or an Axiom dataset and token.
+                Updates preserve omitted fields and cannot change the destination kind.
             properties:
                 http:
                     $ref: '#/components/schemas/LogdrainHttpWrite'
@@ -7023,6 +7053,8 @@ components:
                     maxItems: 32
                     description: |
                         Headers sent to the destination. Values are encrypted at rest.
+                        Updates replace the header list when supplied. Use preserve to retain an
+                        existing value without reading it. Omit headers to retain the entire list.
                     items:
                         $ref: '#/components/schemas/LogdrainHeaderWrite'
         LogdrainAxiomWrite:
@@ -7053,7 +7085,8 @@ components:
                     type: string
                     enum:
                         - set
-                    x-enum-varnames: [LogdrainHeaderSet]
+                        - preserve
+                    x-enum-varnames: [LogdrainHeaderSet, LogdrainHeaderPreserve]
                 value:
                     type: string
                     minLength: 1
@@ -14180,6 +14213,65 @@ paths:
             tags:
                 - logdrains
             x-speakeasy-name-override: listLogdrains
+    /v2/logdrains.updateLogdrain:
+        post:
+            description: |
+                Patch configuration or pause/resume a log drain. Requires
+                `unkey:v1:{workspaceId}:logdrains/{logdrainId}#write`.
+                Omitted fields remain unchanged. Empty filter arrays remove that filter.
+                Delivery changes reset failures and resume failure-paused drains, but keep
+                user-paused drains paused. The committed cursor never resets.
+                Existing drains remain manageable at or above the workspace allowance.
+            operationId: logdrains.updateLogdrain
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/UpdateLogdrainRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/LogdrainMutationResponse'
+                    description: Log drain updated.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid input.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Missing or invalid credentials.
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient permission.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: No log drain with this ID exists in the authorized workspace.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            security:
+                - bearer: []
+            summary: Update log drain
+            tags:
+                - logdrains
+            x-speakeasy-name-override: updateLogdrain
     /v2/permissions.createPermission:
         post:
             description: |
