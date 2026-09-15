@@ -1,18 +1,4 @@
 ---
-# Keep the MySQL 9.4 claim declared so Tilt does not prune existing data.
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mysql-pvc
-  namespace: unkey
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 100Gi
-
----
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -64,12 +50,32 @@ spec:
               mountPath: /vt/vtdataroot
           startupProbe:
             exec:
-              command: ["mysql", "--protocol=tcp", "-h127.0.0.1", "-P33577", "-uunkey", "-ppassword", "unkey", "-e", "SELECT COUNT(*) FROM workspaces"]
+              command: [
+                "mysql",
+                "--protocol=tcp",
+                "-h127.0.0.1",
+                "-P33577",
+                "-uunkey",
+                "-ppassword",
+                "unkey",
+                "-e",
+                "SELECT COUNT(*) FROM workspaces",
+              ]
             periodSeconds: 5
             failureThreshold: 60
           readinessProbe:
             exec:
-              command: ["mysql", "--protocol=tcp", "-h127.0.0.1", "-P33577", "-uunkey", "-ppassword", "unkey", "-e", "SELECT COUNT(*) FROM workspaces"]
+              command: [
+                "mysql",
+                "--protocol=tcp",
+                "-h127.0.0.1",
+                "-P33577",
+                "-uunkey",
+                "-ppassword",
+                "unkey",
+                "-e",
+                "SELECT COUNT(*) FROM workspaces",
+              ]
             timeoutSeconds: 5
             periodSeconds: 10
           livenessProbe:

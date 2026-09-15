@@ -74,9 +74,9 @@ keyspace = "unkey"
 insecure = true
 ```
 
-The database loads the schema and local seed on first startup. It uses a separate
-`vitess-pvc` volume. The old `mysql-pvc` remains declared and is not reused or
-deleted. Persistent Vitess skips schema and seed loading on later starts, so
+The database loads the schema and local seed on first startup. It uses the
+`vitess-pvc` volume, with no migration or preservation of the old MySQL volume.
+Persistent Vitess skips schema and seed loading on later starts, so
 schema changes require an explicit migration or a fresh Vitess-only volume.
 The local Vitess SQL and gRPC endpoints do not enforce authentication.
 
