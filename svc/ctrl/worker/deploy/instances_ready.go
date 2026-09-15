@@ -7,3 +7,5 @@ package deploy
 // DeployService is keyed by deployment_id, so each VO instance owns the
 // awakeable for exactly one deployment — no cross-deployment guard needed.
 const instancesReadyAwakeableKey = "instances_ready_awakeable"
+
+const instancesReadyPromise = "instances_ready"
