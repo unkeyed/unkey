@@ -264,9 +264,7 @@ func TestSuccess(t *testing.T) {
 		start := make(chan struct{})
 		var requests sync.WaitGroup
 		for i := range 2 {
-			requests.Add(1)
-			go func() {
-				defer requests.Done()
+			requests.Go(func() {
 				<-start
 				permissionSlugs := []string{"documents.concurrent.create.role"}
 				res := testutil.CallRoute[handler.Request, handler.Response](h, route, permissionHeaders, handler.Request{
@@ -274,7 +272,7 @@ func TestSuccess(t *testing.T) {
 					Permissions: &permissionSlugs,
 				})
 				results <- result{status: res.Status, roleID: res.Body.Data.RoleId}
-			}()
+			})
 		}
 		close(start)
 		requests.Wait()

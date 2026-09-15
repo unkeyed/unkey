@@ -331,9 +331,7 @@ func TestDecrementEdgeCases(t *testing.T) {
 		var wg sync.WaitGroup
 
 		for range numGoroutines {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 
 				req := handler.Request{
 					Key: keyResponse.Key,
@@ -346,7 +344,7 @@ func TestDecrementEdgeCases(t *testing.T) {
 					lb, "POST", "/v2/keys.verifyKey", headers, req)
 
 				results <- verificationResult{status: res.Status, valid: res.Body.Data.Valid, err: err}
-			}()
+			})
 		}
 
 		wg.Wait()
