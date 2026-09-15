@@ -1,5 +1,5 @@
 // Package deployment is the ConnectRPC surface for acting on a deployment that
-// already exists. Rows are only written by hydra.DeployService.Create in the
+// already exists. Rows are only written by hydra.DeployWorkflow.Create in the
 // deploy worker.
 //
 //   - [Service.GetDeployment] reads one.

@@ -130,11 +130,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Source: &hydrav1.DeployCreateRequest_Image{
 			Image: &hydrav1.CreateImageSource{Image: req.DockerImage, Commit: commit},
 		},
-		Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
-		Trigger:       deployment.TriggerFromClient(s),
-		TriggeredBy:   principal.Subject.ID,
-		TriggerReason: "",
-		Actor:         actorInfo,
+		Decision: hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
+		Trigger:  &hydrav1.Trigger{Source: deployment.TriggerFromClient(s), Actor: actorInfo, Reason: ""},
 	}
 
 	// Add optional keyspace ID for authentication. Verify the keyspace belongs

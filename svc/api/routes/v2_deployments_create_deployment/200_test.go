@@ -40,7 +40,7 @@ func TestImageSource(t *testing.T) {
 	require.Equal(t, setup.App.ID, observed.Request.GetAppId())
 	require.Equal(t, setup.Environment.ID, observed.Request.GetEnvironmentId())
 	require.Nil(t, observed.Request.GetGit(), "image source must not send git commit info")
-	require.Equal(t, ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API, observed.Request.GetTrigger())
+	require.Equal(t, ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_API, observed.Request.GetTrigger().GetSource())
 }
 
 func TestImageSourceCliTrigger(t *testing.T) {
@@ -61,7 +61,7 @@ func TestImageSourceCliTrigger(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusCreated, res.Status, "expected 201, received: %s", res.RawBody)
 	observed := testutil.Receive(t, creates, 10*time.Second)
-	require.Equal(t, ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI, observed.Request.GetTrigger())
+	require.Equal(t, ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_CLI, observed.Request.GetTrigger().GetSource())
 }
 
 func TestGitSource(t *testing.T) {

@@ -14,7 +14,7 @@ replace cloud.google.com/go/compute => cloud.google.com/go/compute v1.49.1
 tool (
 	github.com/bufbuild/buf/cmd/buf
 	github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen
-	github.com/restatedev/sdk-go/protoc-gen-go-restate
+	github.com/restatedev/sdk-go/x/protoc-gen-go-restate
 	github.com/sqlc-dev/sqlc/cmd/sqlc
 )
 
@@ -62,7 +62,10 @@ require (
 	github.com/pb33f/libopenapi-validator v0.13.4
 	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.17.2
-	github.com/restatedev/sdk-go v0.24.0
+	github.com/restatedev/sdk-go v1.0.4
+	github.com/restatedev/sdk-go/testing v1.0.0
+	github.com/restatedev/sdk-go/x/mocks v0.26.0
+	github.com/restatedev/sdk-go/x/protoc-gen-go-restate v0.26.0
 	github.com/shirou/gopsutil/v4 v4.26.5
 	github.com/sqlc-dev/plugin-sdk-go v1.23.0
 	github.com/stretchr/testify v1.12.1
@@ -93,6 +96,11 @@ require (
 	k8s.io/api v0.35.3
 	k8s.io/apimachinery v0.35.3
 	k8s.io/client-go v0.35.3
+)
+
+require (
+	github.com/moby/moby/api v1.55.0 // indirect
+	github.com/moby/moby/client v0.5.1 // indirect
 )
 
 require (
@@ -219,7 +227,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/in-toto/in-toto-golang v0.9.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/invopop/jsonschema v0.13.0 // indirect
+	github.com/invopop/jsonschema v0.14.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.7.5 // indirect
@@ -241,8 +249,6 @@ require (
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/go-archive v0.2.0 // indirect
 	github.com/moby/locker v1.0.1 // indirect
-	github.com/moby/moby/api v1.55.0 // indirect
-	github.com/moby/moby/client v0.5.1 // indirect
 	github.com/moby/patternmatcher v0.6.1 // indirect
 	github.com/moby/sys/mountinfo v0.7.2 // indirect
 	github.com/moby/sys/sequential v0.6.0 // indirect
@@ -324,7 +330,6 @@ require (
 	github.com/wI2L/jsondiff v0.7.0 // indirect
 	github.com/wasilibs/go-pgquery v0.0.0-20250409022910-10ac41983c07 // indirect
 	github.com/wasilibs/wazero-helpers v0.0.0-20240620070341-3dff1577cd52 // indirect
-	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/woodsbury/decimal128 v1.3.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/yargevad/filepathx v1.0.0 // indirect

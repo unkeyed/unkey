@@ -1,8 +1,9 @@
 package testutil
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
-	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	restateingress "github.com/restatedev/sdk-go/ingress"
@@ -71,12 +72,21 @@ func RejectingDeployRestate(t *testing.T, outcome hydrav1.CreateOutcome, detail 
 	return restateingress.NewClient(restateConfig.IngressURL)
 }
 
-// UncalledDeployRestate fails the test during cleanup if Create was invoked, for
-// tests that must refuse before submitting.
+// UncalledDeployRestate returns an ingress client for tests that must refuse
+// before submitting.
+//
+// These tests never reach Restate, so they get a local endpoint that fails on
+// contact rather than a container. A Restate of their own would cost a
+// single-node cluster each, a third of every container the suite starts, to
+// prove that nothing was sent to it.
 func UncalledDeployRestate(t *testing.T) *restateingress.Client {
 	t.Helper()
 
-	client, creates := RecordingDeployRestate(t)
-	t.Cleanup(func() { RequireNoReceive(t, creates, time.Second) })
-	return client
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Errorf("handler submitted %s %s to Restate but must refuse before submitting", r.Method, r.URL.Path)
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	t.Cleanup(server.Close)
+
+	return restateingress.NewClient(server.URL)
 }
