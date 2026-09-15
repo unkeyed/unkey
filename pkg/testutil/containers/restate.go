@@ -30,6 +30,9 @@ const (
 	// keepRestateEnv leaves the Restate container of a failed test running so
 	// its invocation journal and state can be inspected through the admin API.
 	keepRestateEnv = "UNKEY_TEST_KEEP_RESTATE"
+
+	restateAdminReadyTimeout = 60 * time.Second
+	restateLogTailLines      = 200
 )
 
 // RestateConfig holds connection information for the Restate test container.
@@ -84,11 +87,37 @@ func Restate(t *testing.T, services ...restate.ServiceDefinition) RestateConfig 
 		baseURL: cfg.AdminURL,
 		http:    &http.Client{Timeout: 10 * time.Second}, //nolint:exhaustruct // Defaults are sufficient for tests.
 	}
-	require.Eventually(t, func() bool {
+	deadline := time.Now().Add(restateAdminReadyTimeout)
+	nextStateCheck := time.Now().Add(2 * time.Second)
+	for {
 		healthCtx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
-		defer cancel()
-		return admin.health(healthCtx) == nil
-	}, 60*time.Second, 50*time.Millisecond, "restate admin never became healthy")
+		healthErr := admin.health(healthCtx)
+		cancel()
+		if healthErr == nil {
+			break
+		}
+
+		// A container that is no longer running will never serve /health, and
+		// sitting out the whole timeout reports a crash, an OOM kill, a failed
+		// port publish and a slow start as the same bare timeout.
+		now := time.Now()
+		gone := false
+		if now.After(nextStateCheck) {
+			nextStateCheck = now.Add(2 * time.Second)
+			state, ok := container.state()
+			gone = ok && state.State != "running"
+		}
+
+		if gone || now.After(deadline) {
+			state, _ := container.state()
+			require.FailNowf(t, "restate admin never became healthy",
+				"admin %s after %s: %v\ncontainer %q: state=%q health=%q exit=%d\nrestate logs:\n%s",
+				cfg.AdminURL, restateAdminReadyTimeout, healthErr,
+				state.Status, state.State, state.Health, state.ExitCode,
+				container.logs(restateLogTailLines))
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
 
 	restateSrv := restateServer.NewRestate()
 	for _, service := range services {
