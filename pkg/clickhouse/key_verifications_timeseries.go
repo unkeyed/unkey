@@ -154,7 +154,9 @@ func (c *Client) GetVerificationsByExternalID(ctx context.Context, req Verificat
 
 	results, err := Select[VerificationTimeseriesDataPoint](withPortalQueryLimits(ctx), c.conn, query, verificationScopeParams(req))
 	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to query verification timeseries"))
+		// Classified first: the limits above are expected rejections, and an
+		// unclassified wrap would surface them as internal errors.
+		return nil, fault.Wrap(WrapClickHouseError(err), fault.Internal("failed to query verification timeseries"))
 	}
 
 	return results, nil
@@ -269,7 +271,7 @@ func (c *Client) GetVerificationsByExternalIDPerKey(ctx context.Context, req Ver
 
 	rows, err := Select[verificationTimeseriesPerKeyRow](withPortalQueryLimits(ctx), c.conn, query, params)
 	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("failed to query per-key verification timeseries"))
+		return nil, fault.Wrap(WrapClickHouseError(err), fault.Internal("failed to query per-key verification timeseries"))
 	}
 
 	series := make([]VerificationTimeseriesPerKey, 0)

@@ -4334,10 +4334,15 @@ type V2PortalGetVerificationsResponseBody struct {
 	// requested. Keys with no verifications in the window are omitted, as are
 	// empty buckets within a key's series.
 	//
-	// Entries come from the verification events themselves, so the breakout
-	// always sums to `data`. A `keyId` may therefore name a key that has since
-	// been deleted and will not appear in `portal.listKeys`; render those
-	// totals without assuming the key is still listable.
+	// Entries come from the verification events themselves, so a `keyId` may
+	// name a key that has since been deleted and will not appear in
+	// `portal.listKeys`; render those totals without assuming the key is still
+	// listable.
+	//
+	// The breakout is read separately from `data`, so the two cover the same
+	// window but are not a single snapshot. Events arriving between the reads
+	// can leave the most recent bucket slightly out of step; treat the totals
+	// as the same series rather than an exact decomposition.
 	Keys *[]V2PortalGetVerificationsKeySeries `json:"keys,omitempty"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
