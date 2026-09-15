@@ -65,15 +65,13 @@ func (w *Workflow) withKubernetesBuildkit(
 
 	//nolint: exhaustruct_v5
 	job := &batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			// GenerateName gives every attempt a fresh Job, so a Restate
-			// retry never collides with a half-deleted Job from a crashed
-			// prior attempt.
-			GenerateName: fmt.Sprintf("buildkit-%s-", sanitizeK8sName(params.DeploymentID)),
-			Labels: map[string]string{
-				"app":                     "buildkit",
-				"unkey.com/deployment-id": params.DeploymentID,
-			},
+		// GenerateName gives every attempt a fresh Job, so a Restate
+		// retry never collides with a half-deleted Job from a crashed
+		// prior attempt.
+		GenerateName: fmt.Sprintf("buildkit-%s-", sanitizeK8sName(params.DeploymentID)),
+		Labels: map[string]string{
+			"app":                     "buildkit",
+			"unkey.com/deployment-id": params.DeploymentID,
 		},
 		Spec: batchv1.JobSpec{
 			BackoffLimit:            new(int32(0)),
@@ -112,11 +110,9 @@ func (w *Workflow) withKubernetesBuildkit(
 							// the process started.
 							//nolint: exhaustruct_v5
 							ReadinessProbe: &corev1.Probe{
-								ProbeHandler: corev1.ProbeHandler{
-									//nolint: exhaustruct_v5
-									Exec: &corev1.ExecAction{
-										Command: []string{"buildctl", "debug", "workers"},
-									},
+								//nolint: exhaustruct_v5
+								Exec: &corev1.ExecAction{
+									Command: []string{"buildctl", "debug", "workers"},
 								},
 								InitialDelaySeconds: 2,
 								PeriodSeconds:       2,

@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/paseto"
 	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 )
@@ -179,9 +178,7 @@ func requestWithMetadata(t *testing.T, codec *meta.Codec, metadata *meta.Metadat
 
 func validMetadata() *meta.Metadata {
 	return &meta.Metadata{
-		Claims: paseto.Claims{
-			ExpiresAt: metadataRequestTime().Add(time.Hour),
-		},
+		ExpiresAt: metadataRequestTime().Add(time.Hour),
 		Hops: []meta.Hop{
 			{
 				Region:        "aws::us-east-1",
