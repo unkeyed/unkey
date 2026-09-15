@@ -24,11 +24,11 @@ const (
 
 // Defines values for CreateLogdrainRequestStream.
 const (
-	AuditLogs        CreateLogdrainRequestStream = "audit_logs"
-	GatewayRequests  CreateLogdrainRequestStream = "gateway_requests"
-	KeyVerifications CreateLogdrainRequestStream = "key_verifications"
-	Ratelimits       CreateLogdrainRequestStream = "ratelimits"
-	RuntimeLogs      CreateLogdrainRequestStream = "runtime_logs"
+	CreateLogdrainRequestStreamAuditLogs        CreateLogdrainRequestStream = "audit_logs"
+	CreateLogdrainRequestStreamGatewayRequests  CreateLogdrainRequestStream = "gateway_requests"
+	CreateLogdrainRequestStreamKeyVerifications CreateLogdrainRequestStream = "key_verifications"
+	CreateLogdrainRequestStreamRatelimits       CreateLogdrainRequestStream = "ratelimits"
+	CreateLogdrainRequestStreamRuntimeLogs      CreateLogdrainRequestStream = "runtime_logs"
 )
 
 // Defines values for DeploymentAction.
@@ -130,6 +130,28 @@ const (
 	KeyCreditsRefillIntervalMonthly KeyCreditsRefillInterval = "monthly"
 )
 
+// Defines values for LogdrainStatus.
+const (
+	PausedByFailure LogdrainStatus = "paused_by_failure"
+	PausedByUser    LogdrainStatus = "paused_by_user"
+	Running         LogdrainStatus = "running"
+)
+
+// Defines values for LogdrainStream.
+const (
+	LogdrainStreamAuditLogs        LogdrainStream = "audit_logs"
+	LogdrainStreamGatewayRequests  LogdrainStream = "gateway_requests"
+	LogdrainStreamKeyVerifications LogdrainStream = "key_verifications"
+	LogdrainStreamRatelimits       LogdrainStream = "ratelimits"
+	LogdrainStreamRuntimeLogs      LogdrainStream = "runtime_logs"
+)
+
+// Defines values for LogdrainDestinationHttpFormat.
+const (
+	LogdrainDestinationHttpFormatJson   LogdrainDestinationHttpFormat = "json"
+	LogdrainDestinationHttpFormatNdjson LogdrainDestinationHttpFormat = "ndjson"
+)
+
 // Defines values for LogdrainFiltersStatusClasses.
 const (
 	N2 LogdrainFiltersStatusClasses = 2
@@ -145,8 +167,8 @@ const (
 
 // Defines values for LogdrainHttpWriteFormat.
 const (
-	Json   LogdrainHttpWriteFormat = "json"
-	Ndjson LogdrainHttpWriteFormat = "ndjson"
+	LogdrainHttpWriteFormatJson   LogdrainHttpWriteFormat = "json"
+	LogdrainHttpWriteFormatNdjson LogdrainHttpWriteFormat = "ndjson"
 )
 
 // Defines values for MethodMatchMethods.
@@ -1075,11 +1097,52 @@ type KeysVerifyKeyRatelimit struct {
 	Name string `json:"name"`
 }
 
+// Logdrain defines model for Logdrain.
+type Logdrain struct {
+	// BatchSize Effective maximum events per delivery. Defaults to 10000.
+	BatchSize                 int64               `json:"batchSize"`
+	CommittedOffsetInsertedAt int64               `json:"committedOffsetInsertedAt"`
+	ConsecutiveFailures       int                 `json:"consecutiveFailures"`
+	CreatedAt                 int64               `json:"createdAt"`
+	Destination               LogdrainDestination `json:"destination"`
+
+	// Filters Only filters for the selected stream are accepted. Empty arrays select all
+	// values. Nonempty dimensions are combined with AND.
+	Filters LogdrainFilters `json:"filters"`
+	Id      string          `json:"id"`
+	Name    string          `json:"name"`
+	Status  LogdrainStatus  `json:"status"`
+	Stream  LogdrainStream  `json:"stream"`
+}
+
+// LogdrainStatus defines model for Logdrain.Status.
+type LogdrainStatus string
+
+// LogdrainStream defines model for Logdrain.Stream.
+type LogdrainStream string
+
 // LogdrainAxiomWrite defines model for LogdrainAxiomWrite.
 type LogdrainAxiomWrite struct {
 	Dataset *string `json:"dataset,omitempty"`
 	Token   *string `json:"token,omitempty"`
 }
+
+// LogdrainDestination defines model for LogdrainDestination.
+type LogdrainDestination struct {
+	Axiom *struct {
+		Dataset string `json:"dataset"`
+	} `json:"axiom,omitempty"`
+	Http *struct {
+		Format LogdrainDestinationHttpFormat `json:"format"`
+
+		// Headers Header names only. Values remain encrypted and are never returned.
+		Headers []string `json:"headers"`
+		Url     string   `json:"url"`
+	} `json:"http,omitempty"`
+}
+
+// LogdrainDestinationHttpFormat defines model for LogdrainDestination.Http.Format.
+type LogdrainDestinationHttpFormat string
 
 // LogdrainDestinationWrite Exactly one destination: an HTTP URL or an Axiom dataset and token.
 type LogdrainDestinationWrite struct {
@@ -1127,11 +1190,24 @@ type LogdrainHttpWrite struct {
 // LogdrainHttpWriteFormat defines model for LogdrainHttpWrite.Format.
 type LogdrainHttpWriteFormat string
 
+// LogdrainIdRequest defines model for LogdrainIdRequest.
+type LogdrainIdRequest struct {
+	LogdrainId string `json:"logdrainId"`
+}
+
 // LogdrainMutationResponse defines model for LogdrainMutationResponse.
 type LogdrainMutationResponse struct {
 	Data struct {
 		Id string `json:"id"`
 	} `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// LogdrainResponse defines model for LogdrainResponse.
+type LogdrainResponse struct {
+	Data Logdrain `json:"data"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
@@ -5196,6 +5272,9 @@ type KeysWhoamiJSONRequestBody = V2KeysWhoamiRequestBody
 
 // LogdrainsCreateLogdrainJSONRequestBody defines body for LogdrainsCreateLogdrain for application/json ContentType.
 type LogdrainsCreateLogdrainJSONRequestBody = CreateLogdrainRequest
+
+// LogdrainsGetLogdrainJSONRequestBody defines body for LogdrainsGetLogdrain for application/json ContentType.
+type LogdrainsGetLogdrainJSONRequestBody = LogdrainIdRequest
 
 // PermissionsCreatePermissionJSONRequestBody defines body for PermissionsCreatePermission for application/json ContentType.
 type PermissionsCreatePermissionJSONRequestBody = V2PermissionsCreatePermissionRequestBody

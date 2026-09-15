@@ -2719,6 +2719,27 @@ components:
                     properties:
                         id:
                             type: string
+        LogdrainIdRequest:
+            type: object
+            required:
+                - logdrainId
+            additionalProperties: false
+            properties:
+                logdrainId:
+                    type: string
+                    minLength: 1
+                    maxLength: 48
+        LogdrainResponse:
+            type: object
+            required:
+                - meta
+                - data
+            additionalProperties: false
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/Logdrain'
         V2PermissionsCreatePermissionRequestBody:
             type: object
             required:
@@ -7010,6 +7031,87 @@ components:
                     maxLength: 8192
                     writeOnly: true
                     x-unkey-redact: true
+        Logdrain:
+            type: object
+            required:
+                - id
+                - name
+                - stream
+                - status
+                - batchSize
+                - filters
+                - destination
+                - consecutiveFailures
+                - committedOffsetInsertedAt
+                - createdAt
+            additionalProperties: false
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                stream:
+                    type: string
+                    enum:
+                        - audit_logs
+                        - key_verifications
+                        - gateway_requests
+                        - runtime_logs
+                        - ratelimits
+                status:
+                    type: string
+                    enum:
+                        - running
+                        - paused_by_user
+                        - paused_by_failure
+                batchSize:
+                    type: integer
+                    format: int64
+                    description: Effective maximum events per delivery. Defaults to 10000.
+                filters:
+                    $ref: '#/components/schemas/LogdrainFilters'
+                destination:
+                    $ref: '#/components/schemas/LogdrainDestination'
+                consecutiveFailures:
+                    type: integer
+                committedOffsetInsertedAt:
+                    type: integer
+                    format: int64
+                createdAt:
+                    type: integer
+                    format: int64
+        LogdrainDestination:
+            type: object
+            additionalProperties: false
+            properties:
+                http:
+                    type: object
+                    required:
+                        - url
+                        - format
+                        - headers
+                    additionalProperties: false
+                    properties:
+                        url:
+                            type: string
+                        format:
+                            type: string
+                            enum:
+                                - json
+                                - ndjson
+                        headers:
+                            type: array
+                            description: Header names only. Values remain encrypted and are never returned.
+                            items:
+                                type: string
+                axiom:
+                    type: object
+                    required:
+                        - dataset
+                    additionalProperties: false
+                    properties:
+                        dataset:
+                            type: string
         V2PermissionsCreatePermissionResponseData:
             type: object
             properties:
@@ -13945,6 +14047,61 @@ paths:
             tags:
                 - logdrains
             x-speakeasy-name-override: createLogdrain
+    /v2/logdrains.getLogdrain:
+        post:
+            description: |
+                Read a log drain in your workspace. Credential values are never returned.
+                Requires `unkey:v1:{workspaceId}:logdrains/{logdrainId}#read`.
+            operationId: logdrains.getLogdrain
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/LogdrainIdRequest'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/LogdrainResponse'
+                    description: Log drain configuration without credentials.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid input.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Missing or invalid credentials.
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Insufficient permission.
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: No log drain with this ID exists in the authorized workspace.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error.
+            security:
+                - bearer: []
+            summary: Get log drain
+            tags:
+                - logdrains
+            x-speakeasy-name-override: getLogdrain
     /v2/permissions.createPermission:
         post:
             description: |
