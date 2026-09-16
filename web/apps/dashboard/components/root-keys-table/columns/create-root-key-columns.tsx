@@ -78,7 +78,7 @@ export const createRootKeyColumns = ({
     enableSorting: false,
     meta: {
       width: {
-        min: 170,
+        min: 280,
         max: 400,
       },
     },
@@ -94,7 +94,9 @@ export const createRootKeyColumns = ({
           }
         >
           <HiddenValueCell
-            value={rootKey.start}
+            prefix={rootKey.prefix}
+            start={rootKey.start}
+            end={rootKey.end}
             title="Key"
             selected={selectedRootKeyId === rootKey.id}
           />
