@@ -1,6 +1,6 @@
 import { collection } from "@/lib/collections";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { CircleHalfDottedClock, Gear } from "@unkey/icons";
+import { IconCircleHalfDottedClockOutline18, IconGearOutline18 } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useAppId, useProjectData } from "../../data-provider";
@@ -142,7 +142,7 @@ export function SettingsSkeleton() {
         </SettingCardGroup>
       ) : null}
       <SettingsGroup
-        icon={<CircleHalfDottedClock iconSize="md-medium" />}
+        icon={<IconCircleHalfDottedClockOutline18 className="size-3.5" />}
         title="Runtime settings"
         hideChevron
       >
@@ -151,7 +151,7 @@ export function SettingsSkeleton() {
         </SettingCardGroup>
       </SettingsGroup>
       <SettingsGroup
-        icon={<Gear iconSize="md-medium" />}
+        icon={<IconGearOutline18 className="size-3.5" />}
         title="Advanced configurations"
         hideChevron
       >

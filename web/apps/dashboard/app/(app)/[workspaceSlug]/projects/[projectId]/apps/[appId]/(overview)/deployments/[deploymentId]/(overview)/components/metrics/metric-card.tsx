@@ -111,7 +111,7 @@ export function MetricCard({
             config.iconText,
           )}
         >
-          <Icon iconSize="sm-regular" className="shrink-0" />
+          <Icon className="size-3 shrink-0" />
         </div>
         <div className="flex flex-col">
           {config.percentiles && percentile ? (

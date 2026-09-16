@@ -10,11 +10,11 @@
 // and configures domain routing, all durably, so a crash at any point resumes
 // from the last completed step rather than restarting from scratch.
 //
-// # Virtual Object Keying
+// # Workflow Keying
 //
-// DeployService is a Restate virtual object keyed by deployment_id. Each
-// deployment runs as its own isolated workflow, so multiple deployments per
-// environment can build in parallel. The contended resource
+// DeployWorkflow is a Restate workflow keyed by deployment_id. Each deployment
+// is one run, so multiple deployments per environment can build in parallel.
+// The contended resource
 // (apps.current_deployment_id) is serialized inside RoutingService via
 // SwapLiveDeployment, which is keyed by env_id. Promotion and rollback, which
 // read that pointer before they swap it, live on the env-keyed
@@ -71,11 +71,12 @@
 //
 // # Instance Readiness
 //
-// [Workflow.waitForDeployments] loads the deployment topology, creates a
-// Restate awakeable, and stores the awakeable ID on the deployment virtual
-// object. Krane reports instance status through the control plane. When enough
-// regions have at least their minimum running replica count, the report handler
-// resolves the awakeable through [Workflow.NotifyInstancesReady].
+// [Workflow.waitForDeployments] awaits the durable promise named
+// instances_ready. Krane reports instance status through the control plane.
+// When enough regions have at least their minimum running replica count, the
+// report handler resolves the promise through [Workflow.NotifyInstancesReady].
+// A resolve that lands before the run awaits is kept, so there is no state to
+// stash or clear.
 //
 // # Cancellation
 //

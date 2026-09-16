@@ -4350,6 +4350,10 @@ type V2PortalUpdatePortalRequestBody struct {
 	//
 	// Re-pointing revokes the portal's live sessions, for the same reason as
 	// `keyspaceId`.
+	//
+	// The same project restriction applies, and it is easy to hit when switching
+	// between an app and a keyspace: keyspaces are created in the workspace's
+	// default project, while an app belongs to the project you created it in.
 	AppId *PortalAppId `json:"appId,omitempty"`
 
 	// DisplayName New human-readable name shown to your end users. Omit to leave unchanged.
@@ -4366,6 +4370,11 @@ type V2PortalUpdatePortalRequestBody struct {
 	// Re-pointing revokes the portal's live sessions, because a session carries
 	// the keyspace scope it was minted with and would otherwise keep reaching the
 	// resource the portal no longer serves.
+	//
+	// The new keyspace must belong to the same project as the portal's current
+	// resource. A portal cannot move between projects, because its permissions
+	// are addressed under the project it belongs to. Re-pointing across projects
+	// returns 412; create a portal in the target project instead.
 	KeyspaceId *PortalKeyspaceId `json:"keyspaceId,omitempty"`
 
 	// LogoUrl Absolute `https://` URL of the portal logo. Omit to leave unchanged, or set

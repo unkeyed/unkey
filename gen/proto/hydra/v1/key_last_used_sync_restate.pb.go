@@ -104,7 +104,7 @@ type KeyLastUsedPartitionServiceServer interface {
 type UnimplementedKeyLastUsedPartitionServiceServer struct{}
 
 func (UnimplementedKeyLastUsedPartitionServiceServer) SyncPartition(ctx sdk_go.ObjectContext, req *SyncPartitionRequest) (*SyncPartitionResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method SyncPartition not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method SyncPartition not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedKeyLastUsedPartitionServiceServer) testEmbeddedByValue() {}
 

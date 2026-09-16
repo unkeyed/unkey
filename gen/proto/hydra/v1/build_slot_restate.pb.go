@@ -253,13 +253,13 @@ type BuildSlotServiceServer interface {
 type UnimplementedBuildSlotServiceServer struct{}
 
 func (UnimplementedBuildSlotServiceServer) AcquireOrWait(ctx sdk_go.ObjectContext, req *AcquireOrWaitRequest) (*AcquireOrWaitResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method AcquireOrWait not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method AcquireOrWait not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedBuildSlotServiceServer) Release(ctx sdk_go.ObjectContext, req *ReleaseSlotRequest) (*ReleaseSlotResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Release not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Release not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedBuildSlotServiceServer) ExpireSlot(ctx sdk_go.ObjectContext, req *ExpireSlotRequest) (*ExpireSlotResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method ExpireSlot not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method ExpireSlot not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedBuildSlotServiceServer) testEmbeddedByValue() {}
 

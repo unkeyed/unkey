@@ -5,7 +5,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
-import { Phone } from "@unkey/icons";
+import { IconPhoneOutline18 } from "@unkey/icons";
 import {
   Button,
   Empty,
@@ -40,7 +40,7 @@ function Shell({ children }: { children: ReactNode }) {
             size="md"
             render={<Link href={SALES_CALL_URL} target="_blank" rel="noopener noreferrer" />}
           >
-            <Phone iconSize="md-medium" />
+            <IconPhoneOutline18 className="size-4" />
             Schedule a call
           </Button>
           <Button variant="outline" size="md" render={<Link href={SUPPORT_MAILTO} />}>

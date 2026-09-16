@@ -116,10 +116,10 @@ type CustomDomainServiceServer interface {
 type UnimplementedCustomDomainServiceServer struct{}
 
 func (UnimplementedCustomDomainServiceServer) VerifyDomain(ctx sdk_go.ObjectContext, req *VerifyDomainRequest) (*VerifyDomainResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method VerifyDomain not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method VerifyDomain not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCustomDomainServiceServer) RetryVerification(ctx sdk_go.ObjectContext, req *RetryVerificationRequest) (*RetryVerificationResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RetryVerification not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RetryVerification not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCustomDomainServiceServer) testEmbeddedByValue() {}
 

@@ -1,12 +1,12 @@
 "use client";
 import {
   EmptyKeyDetailsLogs,
+  buildRequestDetailsQueryParams,
   createKeyDetailsLogsColumns,
   getRowClassName,
   useKeyDetailsLogsQuery,
 } from "@/components/key-details-logs-table";
 import { trpc } from "@/lib/trpc/client";
-import { useQueryTime } from "@/providers/query-time-provider";
 import type { RowSelectionState } from "@tanstack/react-table";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
 import { DataTable, PaginationFooter } from "@unkey/ui";
@@ -40,7 +40,6 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
   });
 
   const [hoveredLogId, setHoveredLogId] = useState<string | null>(null);
-  const { queryTime: timestamp } = useQueryTime();
   const utils = trpc.useUtils();
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -66,30 +65,13 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
         }
         hoverTimerRef.current = setTimeout(() => {
           utils.logs.queryLogs.prefetch(
-            {
-              limit: 1,
-              startTime: 0,
-              endTime: timestamp,
-              host: { filters: [] },
-              method: { filters: [] },
-              path: { filters: [] },
-              status: { filters: [] },
-              requestId: {
-                filters: [
-                  {
-                    operator: "is",
-                    value: log.request_id,
-                  },
-                ],
-              },
-              since: "",
-            },
+            buildRequestDetailsQueryParams({ requestId: log.request_id, time: log.time }),
             { staleTime: Number.POSITIVE_INFINITY },
           );
         }, 150);
       }
     },
-    [hoveredLogId, utils.logs.queryLogs, timestamp],
+    [hoveredLogId, utils.logs.queryLogs],
   );
 
   const handleRowMouseLeave = useCallback(() => {

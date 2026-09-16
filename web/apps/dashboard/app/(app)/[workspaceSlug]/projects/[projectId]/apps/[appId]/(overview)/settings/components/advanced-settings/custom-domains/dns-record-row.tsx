@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { CircleCheck, Clock } from "@unkey/icons";
+import { IconCircleCheckOutline18, IconClockOutline18 } from "@unkey/icons";
 import { CopyButton } from "@unkey/ui";
 
 type DnsRecordRowProps = {
@@ -30,9 +30,9 @@ export function DnsRecordRow({ type, name, value, verified, isLast }: DnsRecordR
       </span>
       <span className="flex justify-center">
         {verified ? (
-          <CircleCheck className="size-3.5! text-success-9" />
+          <IconCircleCheckOutline18 className="size-3.5! text-success-9" />
         ) : (
-          <Clock className="size-3.5! text-gray-8" />
+          <IconClockOutline18 className="size-3.5! text-gray-8" />
         )}
       </span>
     </div>

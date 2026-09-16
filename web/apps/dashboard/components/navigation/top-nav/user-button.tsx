@@ -17,7 +17,12 @@ import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
-import { Laptop2, MoonStars, Sun, User } from "@unkey/icons";
+import {
+  IconLaptop2Outline18,
+  IconMoonStarsOutline18,
+  IconSunOutline18,
+  IconUserOutline18,
+} from "@unkey/icons";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 
@@ -27,9 +32,9 @@ type UserButtonProps = {
 };
 
 const THEMES = [
-  { value: "system", label: "System", icon: Laptop2 },
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: MoonStars },
+  { value: "system", label: "System", icon: IconLaptop2Outline18 },
+  { value: "light", label: "Light", icon: IconSunOutline18 },
+  { value: "dark", label: "Dark", icon: IconMoonStarsOutline18 },
 ] as const;
 
 export function UserButton({ isCollapsed = false, className }: UserButtonProps) {
@@ -71,7 +76,7 @@ export function UserButton({ isCollapsed = false, className }: UserButtonProps) 
             className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-accent-12"
             render={
               <Link href={routes.account.overview({ workspaceSlug: workspace.slug })}>
-                <User className="size-4 shrink-0 text-gray-11" iconSize="sm-regular" />
+                <IconUserOutline18 className="size-4 shrink-0 text-gray-11" />
                 Account settings
               </Link>
             }
@@ -91,7 +96,7 @@ export function UserButton({ isCollapsed = false, className }: UserButtonProps) 
                 value={value}
                 className="h-8 cursor-pointer px-2 text-[13px] font-medium text-accent-12"
               >
-                <Icon className="size-4 shrink-0 text-gray-11" iconSize="sm-regular" />
+                <Icon className="size-4 shrink-0 text-gray-11" />
                 {label}
               </DropdownMenuRadioItem>
             ))}

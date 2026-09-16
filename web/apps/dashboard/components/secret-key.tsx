@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { CircleLock } from "@unkey/icons";
+import { IconCircleLockOutline18 } from "@unkey/icons";
 import { CopyButton, VisibleButton } from "@unkey/ui";
 import { useState } from "react";
 
@@ -31,7 +31,7 @@ export const SecretKey = ({
     >
       <div className="flex items-center justify-between w-full gap-3 pointer-events-auto">
         <div className="shrink-0">
-          <CircleLock iconSize="sm-regular" className="text-gray-12" />
+          <IconCircleLockOutline18 className="size-3 text-gray-12" />
         </div>
         <div className="flex-1 overflow-x-auto min-w-0">
           {" "}

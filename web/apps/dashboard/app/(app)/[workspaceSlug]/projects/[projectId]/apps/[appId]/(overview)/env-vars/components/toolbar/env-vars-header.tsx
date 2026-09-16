@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 
 type EnvVarsHeaderProps = {
@@ -18,7 +18,7 @@ export function EnvVarsHeader({ isAddOpen, onToggleAdd }: EnvVarsHeaderProps) {
         </p>
       </div>
       <Button size="md" onClick={onToggleAdd} variant={isAddOpen ? "outline" : "primary"}>
-        <Plus iconSize="sm-regular" />
+        <IconPlusOutline18 />
         Add Environment Variable
       </Button>
     </div>

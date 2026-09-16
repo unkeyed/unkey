@@ -1,6 +1,6 @@
 "use client";
 import { policyMatchKey } from "@/lib/collections/deploy/policies.schema";
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import {
   Button,
   PageBody,
@@ -82,7 +82,7 @@ export default function PoliciesPage() {
         </PageHeaderContent>
         <PageHeaderActions>
           <Button size="md" onClick={panels.openAdd} variant="primary">
-            <Plus iconSize="sm-regular" />
+            <IconPlusOutline18 />
             Add policy
           </Button>
         </PageHeaderActions>

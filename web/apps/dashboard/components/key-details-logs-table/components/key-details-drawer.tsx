@@ -15,6 +15,7 @@ type Props = {
 export const KeyDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Props) => {
   const { log, error, isLoading } = useFetchRequestDetails({
     requestId: selectedLog?.request_id,
+    time: selectedLog?.time,
   });
 
   // Track which request we have already toasted for so we surface at most one

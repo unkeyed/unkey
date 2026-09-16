@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 
+import { useFetchRequestDetails } from "@/components/key-details-logs-table/hooks/use-fetch-request-details";
 import { LogDetails } from "@/components/logs/details/log-details";
 import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
 import { toast } from "@unkey/ui";
-import { useFetchRequestDetails } from "./components/hooks/use-logs-query";
 
 type Props = {
   distanceToTop: number;
@@ -15,6 +15,7 @@ type Props = {
 export const IdentityDetailsDrawer = ({ distanceToTop, onLogSelect, selectedLog }: Props) => {
   const { log, error, isLoading } = useFetchRequestDetails({
     requestId: selectedLog?.request_id,
+    time: selectedLog?.time,
   });
 
   const [errorShown, setErrorShown] = useState(false);

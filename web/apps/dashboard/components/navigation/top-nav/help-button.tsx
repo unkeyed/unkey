@@ -11,16 +11,21 @@ import {
 import Link from "next/link";
 
 import { useFeedback } from "@/components/dashboard/feedback-component";
-import { Book2, BracketsCurly, Chats, CircleQuestion } from "@unkey/icons";
+import {
+  IconBook2Outline18,
+  IconBracketsCurlyOutline18,
+  IconChatsOutline18,
+  IconCircleQuestionOutline18,
+} from "@unkey/icons";
 import { useState } from "react";
 import { StatusWidget } from "./status-widget";
 
 const ITEM_LINKS = [
-  { href: "https://unkey.com/docs", label: "Docs", icon: Book2 },
+  { href: "https://unkey.com/docs", label: "Docs", icon: IconBook2Outline18 },
   {
     href: "https://unkey.com/docs/api-reference/overview",
     label: "API Reference",
-    icon: BracketsCurly,
+    icon: IconBracketsCurlyOutline18,
   },
   { href: "https://unkey.com/discord", label: "Community", icon: DiscordIcon },
 ] as const;
@@ -35,7 +40,7 @@ export function HelpButton() {
         aria-label="Help options"
         className="group/help w-8 h-8 rounded-lg flex justify-center items-center shrink-0 hover:bg-grayA-4 cursor-pointer"
       >
-        <CircleQuestion className="text-gray-9 group-hover/help:text-gray-12 size-5" />
+        <IconCircleQuestionOutline18 className="text-gray-9 group-hover/help:text-gray-12 size-5" />
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" align="end" className="w-56 p-0">
         <DropdownMenuGroup className="p-1">
@@ -45,7 +50,7 @@ export function HelpButton() {
               className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-accent-12"
               render={
                 <Link href={href} target="_blank" rel="noreferrer">
-                  <Icon className="size-4 shrink-0 text-gray-11" iconSize="sm-regular" />
+                  <Icon className="size-4 shrink-0 text-gray-11" />
                   {label}
                 </Link>
               }
@@ -58,7 +63,7 @@ export function HelpButton() {
               openFeedback(true);
             }}
           >
-            <Chats className="size-4 shrink-0 text-gray-11" iconSize="sm-regular" />
+            <IconChatsOutline18 className="size-4 shrink-0 text-gray-11" />
             Support
           </DropdownMenuItem>
         </DropdownMenuGroup>

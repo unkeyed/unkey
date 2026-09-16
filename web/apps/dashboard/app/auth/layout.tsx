@@ -1,4 +1,4 @@
-import { Page2 } from "@unkey/icons";
+import { IconPage2Outline18 } from "@unkey/icons";
 import { FullScreenContent, FullScreenLayout, Logo } from "@unkey/ui";
 import Link from "next/link";
 import type React from "react";
@@ -19,7 +19,7 @@ export default function AuthenticatedLayout({
           href="https://www.unkey.com/docs"
           target="_blank"
         >
-          <Page2 iconSize="md-thin" />
+          <IconPage2Outline18 className="size-3.5" />
           Documentation
         </Link>
       </nav>

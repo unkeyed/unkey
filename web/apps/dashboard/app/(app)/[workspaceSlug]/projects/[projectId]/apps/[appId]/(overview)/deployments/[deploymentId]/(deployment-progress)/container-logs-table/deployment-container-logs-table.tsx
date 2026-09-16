@@ -1,7 +1,7 @@
 "use client";
 
 import { StreamingTable } from "@/components/streaming-table";
-import { BookBookmark } from "@unkey/icons";
+import { IconBookBookmarkOutline18 } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 import { type ContainerLogRow, containerLogColumns } from "./columns";
 import { getContainerLogRowClass } from "./get-row-class";
@@ -55,7 +55,7 @@ export const DeploymentContainerLogsTable = ({ logs, isLoading }: Props) => {
               rel="noopener noreferrer"
             >
               <Button size="md">
-                <BookBookmark />
+                <IconBookBookmarkOutline18 />
                 Documentation
               </Button>
             </a>

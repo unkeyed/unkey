@@ -2,8 +2,15 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
+import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
-import { CloudUp, Database, Earth, Layers3, ShareUpRight } from "@unkey/icons";
+import {
+  IconCloudUploadOutline18,
+  IconDatabaseOutline18,
+  IconEarthOutline18,
+  IconLayers3Outline18,
+  IconShareUpRightOutline18,
+} from "@unkey/icons";
 import {
   Button,
   EmptyHero,
@@ -73,7 +80,15 @@ function DrainListSkeleton() {
   );
 }
 
-export function LogdrainsList({ onCreate }: { onCreate: () => void }) {
+export function LogdrainsList({
+  onCreate,
+  canCreate,
+  needsEnablement,
+}: {
+  onCreate: () => void;
+  canCreate: boolean;
+  needsEnablement: boolean;
+}) {
   const workspace = useWorkspaceNavigation();
   const query = trpc.logdrain.list.useQuery();
 
@@ -100,19 +115,28 @@ export function LogdrainsList({ onCreate }: { onCreate: () => void }) {
     return (
       <EmptyHero>
         <EmptyHero.Icons>
-          <Layers3 iconSize="md-medium" />
-          <ShareUpRight iconSize="md-medium" />
-          <CloudUp iconSize="md-thin" />
-          <Earth iconSize="md-medium" />
-          <Database iconSize="md-medium" />
+          <IconLayers3Outline18 />
+          <IconShareUpRightOutline18 />
+          <IconCloudUploadOutline18 />
+          <IconEarthOutline18 />
+          <IconDatabaseOutline18 />
         </EmptyHero.Icons>
-        <EmptyHero.Title>Create your first log drain</EmptyHero.Title>
+        <EmptyHero.Title>
+          {needsEnablement ? "Log drains" : "Create your first log drain"}
+        </EmptyHero.Title>
         <EmptyHero.Description>
-          Send audit logs, key verifications, gateway HTTP requests, or runtime logs to an HTTPS
-          endpoint or an Axiom dataset.
+          {needsEnablement
+            ? "Contact support to enable log drains for this workspace."
+            : "Send audit logs, key verifications, gateway HTTP requests, or runtime logs to an HTTPS endpoint or an Axiom dataset."}
         </EmptyHero.Description>
         <EmptyHero.Actions>
-          <CreateLogdrainButton onClick={onCreate} />
+          {needsEnablement ? (
+            <Button variant="primary" render={<Link href={SUPPORT_MAILTO} />}>
+              Contact support
+            </Button>
+          ) : (
+            <CreateLogdrainButton onClick={onCreate} disabled={!canCreate} />
+          )}
         </EmptyHero.Actions>
       </EmptyHero>
     );

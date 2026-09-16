@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import { useMemo, useState } from "react";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
@@ -50,7 +50,7 @@ export function WorkspaceCrumb({ href }: { href: string }) {
       currentId={workspace.orgId}
       searchPlaceholder="Find workspace..."
       emptyText="No workspaces found"
-      footer={{ icon: Plus, label: "New workspace", href: routes.workspaces.create() }}
+      footer={{ icon: IconPlusOutline18, label: "New workspace", href: routes.workspaces.create() }}
     />
   );
 }

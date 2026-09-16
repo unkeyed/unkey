@@ -2,7 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { User } from "@unkey/icons";
+import { IconUserOutline18 } from "@unkey/icons";
 import { CrumbLink } from "./crumb";
 
 export function AccountCrumb() {
@@ -10,7 +10,7 @@ export function AccountCrumb() {
 
   return (
     <CrumbLink
-      icon={<User className="size-3.5 text-accent-11" iconSize="sm-regular" />}
+      icon={<IconUserOutline18 className="size-3.5 text-accent-11" />}
       label="Account settings"
       current
       href={routes.account.overview({ workspaceSlug: workspace.slug })}

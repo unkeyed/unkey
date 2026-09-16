@@ -1,7 +1,7 @@
 "use client";
 
 import { Menu as DropdownMenuPrimitive } from "@base-ui/react/menu";
-import { Check, ChevronRight } from "@unkey/icons";
+import { IconCheckOutline18, IconChevronRightOutline18 } from "@unkey/icons";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
@@ -34,7 +34,7 @@ const DropdownMenuSubTrigger = React.forwardRef<
     {...props}
   >
     {children}
-    <ChevronRight className="w-4 h-4 ml-auto shrink-0" />
+    <IconChevronRightOutline18 className="w-4 h-4 ml-auto shrink-0" />
   </DropdownMenuPrimitive.SubmenuTrigger>
 ));
 DropdownMenuSubTrigger.displayName = DropdownMenuPrimitive.SubmenuTrigger.displayName;
@@ -129,7 +129,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <DropdownMenuPrimitive.CheckboxItemIndicator>
-        <Check className="w-4 h-4" />
+        <IconCheckOutline18 className="w-4 h-4" />
       </DropdownMenuPrimitive.CheckboxItemIndicator>
     </span>
     {children}
@@ -151,7 +151,7 @@ const DropdownMenuRadioItem = React.forwardRef<
   >
     {children}
     <DropdownMenuPrimitive.RadioItemIndicator className="ml-auto flex shrink-0 items-center">
-      <Check className="size-4" iconSize="sm-regular" />
+      <IconCheckOutline18 className="size-4" />
     </DropdownMenuPrimitive.RadioItemIndicator>
   </DropdownMenuPrimitive.RadioItem>
 ));
