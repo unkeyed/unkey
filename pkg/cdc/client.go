@@ -112,15 +112,9 @@ func (c *Client) Close() error { return c.connection.Close() }
 func (c *Client) Watch(ctx context.Context, rules []Rule, token []byte, change func(*binlog.VEvent) error, checkpoint func([]byte) error) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	if len(rules) == 0 {
-		return errors.New("CDC requires at least one table rule")
-	}
-	filter := &binlog.Filter{Rules: nil} //nolint:exhaustruct // No replication workflow metadata is needed.
-	for _, rule := range rules {
-		if !tablePattern.MatchString(rule.Table) || rule.Query == "" {
-			return errors.New("CDC requires literal table names and nonempty queries")
-		}
-		filter.Rules = append(filter.Rules, &binlog.Rule{Match: rule.Table, Filter: rule.Query}) //nolint:exhaustruct // No replication workflow metadata is needed.
+	filter, err := vstreamFilter(rules)
+	if err != nil {
+		return err
 	}
 	position, err := c.position(rules, token)
 	if err != nil {
@@ -136,72 +130,113 @@ func (c *Client) Watch(ctx context.Context, rules []Rule, token []byte, change f
 		return err
 	}
 	responses := readVStream(ctx, stream)
-	var pending *binlog.VGtid
-	var committed *binlog.VGtid
-	var lastCheckpoint time.Time
-	changed := false
+	var checkpoints checkpointState
 	for {
-		waiting := c.clock.NewTicker(30 * time.Second)
-		var result streamResult
-		select {
-		case result = <-responses:
-		case <-waiting.C():
-			result.err = status.Error(codes.Unavailable, "VStream stalled for 30 seconds")
-		case <-ctx.Done():
-			result.err = ctx.Err()
-		}
-		waiting.Stop()
-		if ctx.Err() != nil {
-			return ctx.Err()
-		}
-		if err := result.err; err != nil {
+		response, err := c.receive(ctx, responses)
+		if err != nil {
 			if len(token) > 0 && status.Code(err) == codes.Unknown &&
 				(strings.Contains(err.Error(), "(errno 1236)") || strings.Contains(err.Error(), "(errno 1789)")) {
 				return fmt.Errorf("%w: %w", ErrExpired, err)
 			}
 			return err
 		}
-		for _, event := range result.response.Events {
+		for _, event := range response.Events {
 			if event.Type == binlog.VEventType_FIELD || event.Type == binlog.VEventType_ROW {
 				if err := change(event); err != nil {
 					return err
 				}
-				changed = changed || len(event.GetRowEvent().GetRowChanges()) > 0
 			}
-			if event.Type == binlog.VEventType_VGTID {
-				pending = event.Vgtid
-			}
-			boundary := event.Type == binlog.VEventType_COMMIT || event.Type == binlog.VEventType_DDL || event.Type == binlog.VEventType_OTHER
-			flush := false
-			if boundary && pending != nil {
-				committed = pending
-				pending = nil
-				flush = changed
-				changed = false
-			}
-			if committed != nil && (flush || c.clock.Now().Sub(lastCheckpoint) >= 30*time.Second) {
-				encoded, err := protojson.Marshal(committed)
-				if err != nil {
-					return err
-				}
-				next, err := json.Marshal(resumeToken{Rules: rules, Position: encoded})
-				if err != nil {
-					return err
-				}
-				if err := checkpoint(next); err != nil {
-					return err
-				}
-				committed = nil
-				lastCheckpoint = c.clock.Now()
+			if err := checkpoints.advance(event, rules, c.clock, checkpoint); err != nil {
+				return err
 			}
 		}
 	}
+}
+
+// vstreamFilter validates explicit table rules before opening a subscription.
+func vstreamFilter(rules []Rule) (*binlog.Filter, error) {
+	if len(rules) == 0 {
+		return nil, errors.New("CDC requires at least one table rule")
+	}
+	filter := &binlog.Filter{Rules: nil} //nolint:exhaustruct // No replication workflow metadata is needed.
+	for _, rule := range rules {
+		if !tablePattern.MatchString(rule.Table) || rule.Query == "" {
+			return nil, errors.New("CDC requires literal table names and nonempty queries")
+		}
+		filter.Rules = append(filter.Rules, &binlog.Rule{Match: rule.Table, Filter: rule.Query}) //nolint:exhaustruct // No replication workflow metadata is needed.
+	}
+	return filter, nil
+}
+
+// checkpointState keeps uncommitted positions separate from replay-safe progress.
+// Its zero value starts a watch with no acknowledged transaction.
+type checkpointState struct {
+	pending        *binlog.VGtid
+	committed      *binlog.VGtid
+	lastCheckpoint time.Time
+	changed        bool
+}
+
+// advance observes events only after their delivery succeeds. It publishes
+// relevant commits immediately and coalesces unrelated committed positions.
+// Heartbeats can flush a committed position, never the pending transaction.
+func (s *checkpointState) advance(event *binlog.VEvent, rules []Rule, clock clock.Clock, checkpoint func([]byte) error) error {
+	if event.Type == binlog.VEventType_FIELD || event.Type == binlog.VEventType_ROW {
+		s.changed = s.changed || len(event.GetRowEvent().GetRowChanges()) > 0
+	}
+	if event.Type == binlog.VEventType_VGTID {
+		s.pending = event.Vgtid
+	}
+	boundary := event.Type == binlog.VEventType_COMMIT || event.Type == binlog.VEventType_DDL || event.Type == binlog.VEventType_OTHER
+	flush := false
+	if boundary && s.pending != nil {
+		s.committed = s.pending
+		s.pending = nil
+		flush = s.changed
+		s.changed = false
+	}
+	if s.committed == nil || (!flush && clock.Now().Sub(s.lastCheckpoint) < 30*time.Second) {
+		return nil
+	}
+	encoded, err := protojson.Marshal(s.committed)
+	if err != nil {
+		return err
+	}
+	next, err := json.Marshal(resumeToken{Rules: rules, Position: encoded})
+	if err != nil {
+		return err
+	}
+	if err := checkpoint(next); err != nil {
+		return err
+	}
+	s.committed = nil
+	s.lastCheckpoint = clock.Now()
+	return nil
 }
 
 // streamResult carries one receive outcome across the upstream timeout boundary.
 type streamResult struct {
 	response *vtgate.VStreamResponse
 	err      error
+}
+
+// receive limits only upstream waiting, so slow callbacks cannot expire a watch.
+// Context cancellation takes precedence over simultaneous receive failures.
+func (c *Client) receive(ctx context.Context, responses <-chan streamResult) (*vtgate.VStreamResponse, error) {
+	waiting := c.clock.NewTicker(30 * time.Second)
+	defer waiting.Stop()
+	var result streamResult
+	select {
+	case result = <-responses:
+	case <-waiting.C():
+		result.err = status.Error(codes.Unavailable, "VStream stalled for 30 seconds")
+	case <-ctx.Done():
+		result.err = ctx.Err()
+	}
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+	return result.response, result.err
 }
 
 // readVStream isolates blocking Recv calls so Watch can time out upstream waits
