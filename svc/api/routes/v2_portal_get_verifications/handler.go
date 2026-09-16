@@ -27,9 +27,14 @@ const millisPerDay = 24 * 60 * 60 * 1000
 
 // DefaultMaxPerKeySeries bounds how many keys a single per-key breakout may
 // return. It exists to cap what one session can pull over the shared ClickHouse
-// connection, not to express a product limit: a portal end user holding a
-// thousand keys with traffic in one window is far outside real usage.
-const DefaultMaxPerKeySeries = 1000
+// connection, not to express a product limit.
+//
+// The number tracks the zero-filling: a key's series carries every bucket in
+// the window, so at minute granularity one key is roughly 25KB encoded and the
+// response ceiling below is reached somewhere past 150 keys. Rejecting on the
+// key count first means a caller is told what is actually wrong instead of
+// being handed an opaque response-too-large.
+const DefaultMaxPerKeySeries = 100
 
 // DefaultMaxResponseBytes is the encoded response ceiling, shared with the
 // operator analytics routes so one end user cannot pull an arbitrarily large

@@ -10,7 +10,8 @@ properties:
   data:
     type: array
     description: |
-      Sparse verification timeseries for this key, ordered by time ascending.
+      Verification timeseries for this key, zero-filled across the requested
+      window and ordered by time ascending.
       Unlike the account-wide series this is not zero-filled: buckets with no
       verifications are omitted.
     items:

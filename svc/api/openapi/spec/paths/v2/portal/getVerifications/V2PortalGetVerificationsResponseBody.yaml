@@ -17,8 +17,9 @@ properties:
     type: array
     description: |
       Per-key breakout of the same window, present only when `perKey` was
-      requested. Keys with no verifications in the window are omitted, as are
-      empty buckets within a key's series.
+      requested. Each series is zero-filled across the window like `data`, so a
+      client charting a subset of keys does not have to rebuild the gaps. Keys
+      with no verifications anywhere in the window are omitted.
 
       Entries come from the verification events themselves, so a `keyId` may
       name a key that has since been deleted and will not appear in

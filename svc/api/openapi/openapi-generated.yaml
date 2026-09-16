@@ -3315,8 +3315,9 @@ components:
                     type: array
                     description: |
                         Per-key breakout of the same window, present only when `perKey` was
-                        requested. Keys with no verifications in the window are omitted, as are
-                        empty buckets within a key's series.
+                        requested. Each series is zero-filled across the window like `data`, so a
+                        client charting a subset of keys does not have to rebuild the gaps. Keys
+                        with no verifications anywhere in the window are omitted.
 
                         Entries come from the verification events themselves, so a `keyId` may
                         name a key that has since been deleted and will not appear in
@@ -7121,7 +7122,8 @@ components:
                 data:
                     type: array
                     description: |
-                        Sparse verification timeseries for this key, ordered by time ascending.
+                        Verification timeseries for this key, zero-filled across the requested
+                        window and ordered by time ascending.
                         Unlike the account-wide series this is not zero-filled: buckets with no
                         verifications are omitted.
                     items:
@@ -14781,7 +14783,7 @@ paths:
 
                 Setting `perKey` additionally returns the same window broken out per key, so
                 a client can render both an account-wide chart and a per-key table from one
-                call. The per-key series are sparse rather than zero-filled.
+                call. Each per-key series is zero-filled like the account-wide one.
             operationId: portal.getVerifications
             requestBody:
                 content:

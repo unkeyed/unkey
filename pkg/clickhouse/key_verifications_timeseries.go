@@ -222,8 +222,8 @@ type VerificationTimeseriesPerKeyRequest struct {
 	MaxKeys int
 }
 
-// VerificationTimeseriesPerKey is one key's verification series. Data is sparse
-// and ordered by time ascending.
+// VerificationTimeseriesPerKey is one key's verification series, zero-filled
+// across the requested window and ordered by time ascending.
 type VerificationTimeseriesPerKey struct {
 	KeyID string
 	Data  []VerificationTimeseriesDataPoint
@@ -240,10 +240,13 @@ type verificationTimeseriesPerKeyRow struct {
 // [Client.GetVerificationsByExternalID], broken out per key, under identical
 // workspace, identity, keyspace and window scoping.
 //
-// The series are sparse: only buckets with traffic are returned, and a key with
-// no traffic in the window is absent entirely. Zero-filling a grouped result
-// multiplies rows by the bucket count for every key, and callers already sum
-// arbitrary bucket sets.
+// Each series is zero-filled across the window, so a caller charting a subset
+// of keys gets contiguous buckets without rebuilding them. That costs a full
+// bucket run per key, which is why req.MaxKeys is set well below what the
+// response size ceiling would otherwise allow.
+//
+// A key with no traffic at all in the window is still absent: there is no group
+// for it to fill against.
 //
 // req.MaxKeys bounds how many distinct keys a session can pull over the shared
 // connection. Exceeding it returns [ErrTooManyVerificationKeys] rather than a
@@ -288,8 +291,12 @@ func (c *Client) GetVerificationsByExternalIDPerKey(ctx context.Context, req Ver
 			LIMIT {max_keys_probe:UInt64}
 		)
 	GROUP BY key_id, x
-	ORDER BY key_id ASC, x ASC`,
-		iv.unit, iv.table, verificationScopePredicates,
+	ORDER BY key_id ASC, x ASC
+	WITH FILL
+		FROM toUnixTimestamp64Milli(CAST(toStartOfInterval(fromUnixTimestamp64Milli({start:Int64}), INTERVAL 1 %[1]s) AS DateTime64(3)))
+		TO toUnixTimestamp64Milli(CAST(toStartOfInterval(fromUnixTimestamp64Milli({end:Int64}), INTERVAL 1 %[1]s) AS DateTime64(3))) + %[4]d
+		STEP %[4]d`,
+		iv.unit, iv.table, verificationScopePredicates, iv.stepMs,
 	)
 
 	params := verificationScopeParams(req.VerificationTimeseriesRequest)
@@ -302,6 +309,14 @@ func (c *Client) GetVerificationsByExternalIDPerKey(ctx context.Context, req Ver
 
 	series := make([]VerificationTimeseriesPerKey, 0)
 	for _, row := range rows {
+		// WITH FILL generates the bucket range even when a request matched no
+		// rows at all, defaulting the grouping column. A real key id is never
+		// empty, so those phantom rows are dropped rather than returned as a
+		// key the caller does not own.
+		if row.KeyID == "" {
+			continue
+		}
+
 		if len(series) == 0 || series[len(series)-1].KeyID != row.KeyID {
 			if len(series) == req.MaxKeys {
 				return nil, ErrTooManyVerificationKeys

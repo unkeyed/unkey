@@ -4292,7 +4292,8 @@ type V2PortalGetVerificationsDataPoint struct {
 
 // V2PortalGetVerificationsKeySeries defines model for V2PortalGetVerificationsKeySeries.
 type V2PortalGetVerificationsKeySeries struct {
-	// Data Sparse verification timeseries for this key, ordered by time ascending.
+	// Data Verification timeseries for this key, zero-filled across the requested
+	// window and ordered by time ascending.
 	// Unlike the account-wide series this is not zero-filled: buckets with no
 	// verifications are omitted.
 	Data []V2PortalGetVerificationsDataPoint `json:"data"`
@@ -4331,8 +4332,9 @@ type V2PortalGetVerificationsResponseBody struct {
 	Data []V2PortalGetVerificationsDataPoint `json:"data"`
 
 	// Keys Per-key breakout of the same window, present only when `perKey` was
-	// requested. Keys with no verifications in the window are omitted, as are
-	// empty buckets within a key's series.
+	// requested. Each series is zero-filled across the window like `data`, so a
+	// client charting a subset of keys does not have to rebuild the gaps. Keys
+	// with no verifications anywhere in the window are omitted.
 	//
 	// Entries come from the verification events themselves, so a `keyId` may
 	// name a key that has since been deleted and will not appear in

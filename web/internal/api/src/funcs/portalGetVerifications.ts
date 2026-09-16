@@ -42,7 +42,7 @@ import { Result } from "../types/fp.js";
  *
  * Setting `perKey` additionally returns the same window broken out per key, so
  * a client can render both an account-wide chart and a per-key table from one
- * call. The per-key series are sparse rather than zero-filled.
+ * call. Each per-key series is zero-filled like the account-wide one.
  */
 export function portalGetVerifications(
   client: UnkeyCore,

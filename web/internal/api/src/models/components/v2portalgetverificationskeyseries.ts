@@ -17,9 +17,10 @@ export type V2PortalGetVerificationsKeySeries = {
    */
   keyId: string;
   /**
-   * Sparse verification timeseries for this key, ordered by time ascending.
+   * Verification timeseries for this key, zero-filled across the requested
    *
    * @remarks
+   * window and ordered by time ascending.
    * Unlike the account-wide series this is not zero-filled: buckets with no
    * verifications are omitted.
    */

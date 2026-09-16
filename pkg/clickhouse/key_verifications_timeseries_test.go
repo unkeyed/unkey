@@ -242,7 +242,7 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 		require.NotContains(t, totals, outOfScopeKey, "a key outside the session keyspaces must not appear")
 	})
 
-	t.Run("per key series are sparse", func(t *testing.T) {
+	t.Run("per key series are zero-filled", func(t *testing.T) {
 		series, err := client.GetVerificationsByExternalIDPerKey(ctx, clickhouse.VerificationTimeseriesPerKeyRequest{
 			VerificationTimeseriesRequest: clickhouse.VerificationTimeseriesRequest{
 				WorkspaceID: workspaceID,
@@ -258,9 +258,22 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 
 		require.Len(t, series, 1)
 		require.Equal(t, targetKey, series[0].KeyID)
-		require.Len(t, series[0].Data, 1, "only the bucket with traffic is returned")
-		require.Equal(t, dayABucket, series[0].Data[0].Time)
-		require.Equal(t, int64(1), series[0].Data[0].Total)
+
+		// Contiguous across the whole window, so the page can chart a narrowed
+		// selection without filling the gaps itself.
+		require.GreaterOrEqual(t, len(series[0].Data), 10, "the series covers the requested window")
+		const dayMs = int64(24 * 60 * 60 * 1000)
+		for i := 1; i < len(series[0].Data); i++ {
+			require.Equal(t, dayMs, series[0].Data[i].Time-series[0].Data[i-1].Time,
+				"buckets are evenly spaced")
+		}
+
+		byBucket := make(map[int64]int64, len(series[0].Data))
+		for _, p := range series[0].Data {
+			byBucket[p.Time] = p.Total
+		}
+		require.Equal(t, int64(1), byBucket[dayABucket], "the bucket with traffic keeps its count")
+		require.Equal(t, int64(0), byBucket[dayBBucket], "a quiet bucket is present with zero")
 	})
 
 	t.Run("per key breakout is capped rather than truncated", func(t *testing.T) {
