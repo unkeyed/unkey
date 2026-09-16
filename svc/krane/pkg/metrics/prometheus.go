@@ -74,8 +74,8 @@ var (
 		},
 	)
 
-	// LastSuccessfulCheckpointUnixSeconds records when the watcher most recently
-	// accepted a checkpoint after successfully applying all preceding events.
+	// LastSuccessfulCheckpointUnixSeconds records when Krane last saved a token
+	// after applying all earlier events.
 	LastSuccessfulCheckpointUnixSeconds = lazy.NewGauge(
 		prometheus.GaugeOpts{
 			Namespace: "unkey",

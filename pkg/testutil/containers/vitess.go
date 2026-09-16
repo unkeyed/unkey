@@ -6,13 +6,13 @@ import (
 	mysql "github.com/go-sql-driver/mysql"
 )
 
-// VitessConfig holds host connection addresses for the unsharded unkey keyspace.
+// VitessConfig provides the VStream address and MySQL DSN for tests.
 type VitessConfig struct {
 	Address string
 	DSN     string
 }
 
-// Vitess starts the shared Vitess service with the repository schema and no seed data.
+// Vitess starts a shared test server with the repository schema and no seed data.
 func Vitess(t testing.TB) VitessConfig {
 	t.Helper()
 

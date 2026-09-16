@@ -54,11 +54,10 @@
 // [Workflow.Deploy] is the primary entrypoint. It validates the deployment
 // record, loads workspace/project/environment context, then either builds a
 // container image from a Git repository via Depot or accepts a pre-built image.
-// It creates deployment topologies for every configured region and waits until
-// enough regions report running instances. Once healthy, it generates frontline
-// routes for per-commit, per-branch, and per-environment domains, reassigns sticky routes through
-// RoutingService, marks the deployment ready, and — for non-rolled-back
-// production environments — updates the app's live deployment pointer.
+// It saves the desired state for each region and waits for enough running
+// instances. It then creates domain routes, moves sticky routes through
+// RoutingService, and marks the deployment ready. In production, it also
+// updates the app's live deployment unless the environment was rolled back.
 // The previous live deployment is scheduled to stop after 30 minutes via
 // DeploymentService.ScheduleDesiredStateChange.
 // Preview deployments schedule the deployment displaced from the sticky

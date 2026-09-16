@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/fault"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -21,6 +22,39 @@ import (
 	"vitess.io/vitess/go/vt/proto/vtgate"
 	"vitess.io/vitess/go/vt/proto/vtgateservice"
 )
+
+func TestNew_ValidatesConnectionSettings(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		config  Config
+		invalid bool
+	}{
+		{name: "missing address", config: Config{Keyspace: "unkey"}, invalid: true},
+		{name: "missing keyspace", config: Config{Address: "localhost:33575"}, invalid: true},
+		{name: "username only", config: Config{Address: "localhost:33575", Keyspace: "unkey", Username: "user"}, invalid: true},
+		{name: "password only", config: Config{Address: "localhost:33575", Keyspace: "unkey", Password: "test-password"}, invalid: true},
+		{name: "credentials without TLS", config: Config{Address: "localhost:33575", Keyspace: "unkey", Username: "user", Password: "test-password", Insecure: true}, invalid: true},
+		{name: "TLS without credentials", config: Config{Address: "localhost:33575", Keyspace: "unkey"}},
+		{name: "TLS with credentials", config: Config{Address: "localhost:33575", Keyspace: "unkey", Username: "user", Password: "test-password"}},
+		{name: "local plaintext", config: Config{Address: "localhost:33575", Keyspace: "unkey", Insecure: true}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			client, err := New(test.config)
+			if client != nil {
+				t.Cleanup(func() { require.NoError(t, client.Close()) })
+			}
+			if test.invalid {
+				require.Error(t, err)
+				require.Nil(t, client)
+				_, tagged := fault.GetCode(err)
+				require.True(t, tagged, "invalid settings must return a tagged assertion error")
+				return
+			}
+			require.NoError(t, err)
+			require.NotNil(t, client)
+		})
+	}
+}
 
 func TestWatch_PreservesFieldsAndBeforeAfterImages(t *testing.T) {
 	rules := []Rule{{Table: "records", Query: "select id, value from records"}, {Table: "settings", Query: "select name from settings"}}

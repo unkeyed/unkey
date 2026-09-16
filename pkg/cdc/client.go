@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -25,8 +26,8 @@ import (
 	"vitess.io/vitess/go/vt/proto/vtgateservice"
 )
 
-// Client shares a Vitess connection across independent, concurrent watches.
-// Callers own reconnects and checkpoint storage; the client retains neither.
+// Client shares one Vitess connection between watches.
+// Watches can run at the same time.
 type Client struct {
 	connection *grpc.ClientConn
 	client     vtgateservice.VitessClient
@@ -34,27 +35,27 @@ type Client struct {
 	clock      clock.Clock
 }
 
-// ErrInvalidToken identifies malformed tokens or tokens for another filter,
-// keyspace, or snapshot table. Callers must discard them before reconnecting.
+// ErrInvalidToken means the token cannot be read or does not match this watch.
+// Discard it and start a new snapshot.
 var ErrInvalidToken = errors.New("invalid CDC resume token")
 
-// ErrExpired identifies unavailable binlogs when resuming a saved position.
-// Recovery requires a fresh snapshot and destination reconciliation.
+// ErrExpired means the saved binlog position is no longer available.
+// Start a new snapshot and remove destination records that no longer exist.
 var ErrExpired = errors.New("CDC resume position expired")
 
-// tablePattern prevents table rules from being interpreted as Vitess regex rules.
+// tablePattern prevents Vitess from treating a table name as a regex.
 var tablePattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
-// Rule selects a literal table and a Vitess-supported SELECT projection/filter.
-// Query is trusted application configuration, not unvalidated user input.
+// Rule names one table and the SELECT query used to filter its rows and columns.
+// Do not build Query from unchecked user input.
 type Rule struct {
 	Table string `json:"table"`
 	Query string `json:"query"`
 }
 
-// Config selects the Vitess endpoint and keyspace. TLS uses system roots unless
-// Insecure is set for local development. New rejects credentials without TLS
-// and requires Username and Password to be supplied together.
+// Config selects the Vitess endpoint and keyspace. TLS is on by default.
+// Insecure is for local development. New requires both Username and Password
+// or neither, and rejects credentials without TLS.
 type Config struct {
 	Address  string `toml:"address"`
 	Keyspace string `toml:"keyspace"`
@@ -63,21 +64,19 @@ type Config struct {
 	Insecure bool   `toml:"insecure"`
 }
 
-// New validates connection settings and creates a client without connecting.
-// Endpoint availability and authentication are checked by [Client.Watch].
-// It returns nil on error; callers must close a successfully created client.
+// New checks settings but does not connect. [Client.Watch] opens the connection.
+// It returns nil on error. Close the client when it is no longer needed.
 func New(cfg Config) (*Client, error) {
-	if cfg.Address == "" || cfg.Keyspace == "" {
-		return nil, errors.New("vstream.address and vstream.keyspace are required")
-	}
-	if (cfg.Username == "") != (cfg.Password == "") {
-		return nil, errors.New("vstream username and password must be set together")
+	if err := assert.All(
+		assert.NotEmpty(cfg.Address, "vstream.address is required"),
+		assert.NotEmpty(cfg.Keyspace, "vstream.keyspace is required"),
+		assert.True((cfg.Username == "") == (cfg.Password == ""), "vstream username and password must be set together"),
+		assert.True(!cfg.Insecure || cfg.Username == "", "VStream credentials require TLS"),
+	); err != nil {
+		return nil, err
 	}
 	transport := credentials.NewTLS(&tls.Config{MinVersion: tls.VersionTLS12}) //nolint:exhaustruct // Use system roots and secure TLS defaults.
 	if cfg.Insecure {
-		if cfg.Username != "" {
-			return nil, errors.New("VStream credentials require TLS")
-		}
 		transport = insecure.NewCredentials()
 	}
 	options := []grpc.DialOption{grpc.WithTransportCredentials(transport)}
@@ -91,24 +90,25 @@ func New(cfg Config) (*Client, error) {
 	return &Client{connection: connection, client: vtgateservice.NewVitessClient(connection), keyspace: cfg.Keyspace, clock: clock.New()}, nil
 }
 
-// Close closes the transport shared by all watches. It does not wait for their
-// callbacks; callers should cancel and wait for watches before closing.
+// Close closes the connection used by all watches. It does not wait for callbacks.
+// Cancel the watches and wait for them to stop before calling Close.
 func (c *Client) Close() error { return c.connection.Close() }
 
-// Watch copies current rows for an empty token, then follows live changes.
-// It delivers FIELD and ROW events synchronously, preserving table and shard
-// identity, types, NULLs, and before/after images. Callback errors stop the watch
-// without checkpointing that transaction. Rules must remain unchanged during
-// the call; tokens bind to their exact contents and order. Callers own decoding,
-// idempotent application, token persistence, and reconnects.
+// Watch copies current rows when token is empty, then follows changes.
+// It passes FIELD and ROW events unchanged to change. Both callbacks must be
+// non-nil and must not edit events. They run one at a time within each watch.
+// Separate watches can call them at the same time.
 //
-// Both callbacks must be non-nil and must treat events as read-only. Callbacks
-// are serial within a watch, but concurrent watches can invoke them concurrently.
-// Relevant commits checkpoint promptly. After the first checkpoint, unrelated
-// checkpoints are sent at most once per 30 seconds. Upstream waits time out after
-// 30 seconds; callback execution does not count toward this timeout.
-// Watch returns callback, transport, or context errors when it stops. Resume
-// failures matching [ErrInvalidToken] or [ErrExpired] require a new snapshot.
+// A checkpoint marks a safe place to resume. Callback errors stop the watch
+// without checkpointing that transaction. Callers must handle repeated events,
+// save tokens, and reconnect. Rules must not change during the call.
+// Tokens match the exact rules, including their order.
+//
+// Transactions with matching rows checkpoint at once. After the first checkpoint,
+// other progress checkpoints at most once per 30 seconds. Watch times out after
+// 30 seconds without a response. Time spent in callbacks does not count.
+// It returns callback, connection, or context errors when it stops.
+// [ErrInvalidToken] and [ErrExpired] require a new snapshot.
 func (c *Client) Watch(ctx context.Context, rules []Rule, token []byte, change func(*binlog.VEvent) error, checkpoint func([]byte) error) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -153,7 +153,7 @@ func (c *Client) Watch(ctx context.Context, rules []Rule, token []byte, change f
 	}
 }
 
-// vstreamFilter validates explicit table rules before opening a subscription.
+// vstreamFilter checks table names and queries before starting a watch.
 func vstreamFilter(rules []Rule) (*binlog.Filter, error) {
 	if len(rules) == 0 {
 		return nil, errors.New("CDC requires at least one table rule")
@@ -168,8 +168,7 @@ func vstreamFilter(rules []Rule) (*binlog.Filter, error) {
 	return filter, nil
 }
 
-// checkpointState keeps uncommitted positions separate from replay-safe progress.
-// Its zero value starts a watch with no acknowledged transaction.
+// checkpointState separates unfinished transactions from safe resume positions.
 type checkpointState struct {
 	pending        *binlog.VGtid
 	committed      *binlog.VGtid
@@ -177,9 +176,8 @@ type checkpointState struct {
 	changed        bool
 }
 
-// advance observes events only after their delivery succeeds. It publishes
-// relevant commits immediately and coalesces unrelated committed positions.
-// Heartbeats can flush a committed position, never the pending transaction.
+// advance updates progress after the caller has delivered the event.
+// A heartbeat can send a checkpoint, but only for a finished transaction.
 func (s *checkpointState) advance(event *binlog.VEvent, rules []Rule, clock clock.Clock, checkpoint func([]byte) error) error {
 	if event.Type == binlog.VEventType_FIELD || event.Type == binlog.VEventType_ROW {
 		s.changed = s.changed || len(event.GetRowEvent().GetRowChanges()) > 0
@@ -214,14 +212,14 @@ func (s *checkpointState) advance(event *binlog.VEvent, rules []Rule, clock cloc
 	return nil
 }
 
-// streamResult carries one receive outcome across the upstream timeout boundary.
+// streamResult carries a response or error from the read goroutine.
 type streamResult struct {
 	response *vtgate.VStreamResponse
 	err      error
 }
 
-// receive limits only upstream waiting, so slow callbacks cannot expire a watch.
-// Context cancellation takes precedence over simultaneous receive failures.
+// receive limits the wait for a response, not the time spent in callbacks.
+// If the context is canceled, its error takes priority over a read error.
 func (c *Client) receive(ctx context.Context, responses <-chan streamResult) (*vtgate.VStreamResponse, error) {
 	waiting := c.clock.NewTicker(30 * time.Second)
 	defer waiting.Stop()
@@ -239,9 +237,8 @@ func (c *Client) receive(ctx context.Context, responses <-chan streamResult) (*v
 	return result.response, result.err
 }
 
-// readVStream isolates blocking Recv calls so Watch can time out upstream waits
-// without timing out callbacks. Its unbuffered channel bounds read-ahead to one
-// response; cancellation releases a blocked receive or send.
+// readVStream lets Watch time out a blocked Recv call.
+// It reads at most one response ahead and stops when the context is canceled.
 func readVStream(ctx context.Context, stream vtgateservice.Vitess_VStreamClient) <-chan streamResult {
 	responses := make(chan streamResult)
 	go func() {
@@ -260,15 +257,15 @@ func readVStream(ctx context.Context, stream vtgateservice.Vitess_VStreamClient)
 	return responses
 }
 
-// resumeToken binds a complete cursor to its subscription to prevent accidental
-// cross-filter resumes. It is not an authorization credential.
+// resumeToken stores a stream position with its filter rules.
+// This prevents resuming with different rules. It does not grant access.
 type resumeToken struct {
 	Rules    []Rule          `json:"rules"`
 	Position json.RawMessage `json:"position"`
 }
 
-// position selects a new snapshot for an empty token or validates a saved cursor.
-// Failed validation returns nil and wraps ErrInvalidToken, never a partial cursor.
+// position starts a snapshot for an empty token or checks a saved position.
+// Invalid tokens return nil and an error wrapping [ErrInvalidToken].
 func (c *Client) position(rules []Rule, token []byte) (*binlog.VGtid, error) {
 	if len(token) == 0 {
 		return &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: c.keyspace}}}, nil
@@ -300,13 +297,13 @@ func (c *Client) position(rules []Rule, token []byte) (*binlog.VGtid, error) {
 	return position, nil
 }
 
-// basicAuth holds a pre-encoded username/password pair for TLS-only VStream RPCs.
+// basicAuth holds the base64-encoded username and password. It requires TLS.
 type basicAuth string
 
-// GetRequestMetadata supplies PlanetScale-compatible HTTP Basic authentication.
+// GetRequestMetadata sends the credentials in PlanetScale's HTTP Basic format.
 func (a basicAuth) GetRequestMetadata(context.Context, ...string) (map[string]string, error) {
 	return map[string]string{"authorization": "Basic " + string(a)}, nil
 }
 
-// RequireTransportSecurity prevents gRPC from sending credentials over plaintext.
+// RequireTransportSecurity prevents sending credentials without TLS.
 func (basicAuth) RequireTransportSecurity() bool { return true }

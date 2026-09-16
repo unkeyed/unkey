@@ -22,8 +22,7 @@ const (
 	maxConcurrentDispatches = 10
 )
 
-// Watcher keeps deployments synchronized through incremental changes and
-// periodic full syncs.
+// Watcher applies deployment changes and runs full syncs to repair missed changes.
 type Watcher struct {
 	cluster     ctrl.ClusterServiceClient
 	deployments *deployment.Controller
@@ -58,12 +57,9 @@ func (s *Watcher) clusterKey() *ctrlv1.ClusterKey {
 	return &ctrlv1.ClusterKey{CellId: s.cellID, Platform: s.platform, Region: s.region}
 }
 
-// Watch runs two independent loops:
-//   - A real-time incremental stream for fast delivery of new changes.
-//   - A periodic full sync to reconcile any drift.
-//
-// Both share a semaphore so the k8s API is not overwhelmed.
-// Returns nil when the context is cancelled.
+// Watch runs the change stream and periodic full syncs at the same time.
+// Both share a limit on calls to the Kubernetes API.
+// It returns nil when the context is canceled.
 func (s *Watcher) Watch(ctx context.Context) error {
 	done := make(chan struct{})
 	go func() {
@@ -75,7 +71,7 @@ func (s *Watcher) Watch(ctx context.Context) error {
 	return nil
 }
 
-// runStream resumes only from checkpoints whose preceding events were applied.
+// runStream reconnects using the last token saved after applying changes.
 func (s *Watcher) runStream(ctx context.Context) {
 	var resumeToken []byte
 
@@ -106,7 +102,8 @@ func (s *Watcher) runStream(ctx context.Context) {
 }
 
 // consumeStream applies events in order and closes the stream before returning
-// the last safe token. An unusable cursor returns an empty token for a snapshot.
+// the last safe token. If the token cannot be used, it returns an empty token
+// so the next watch starts a new copy.
 func (s *Watcher) consumeStream(ctx context.Context, stream *connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], resumeToken []byte) []byte {
 	for stream.Receive() {
 		event := stream.Msg()
@@ -143,11 +140,8 @@ func (s *Watcher) consumeStream(ctx context.Context, stream *connect.ServerStrea
 	return resumeToken
 }
 
-// runPeriodicFullSync calls SyncDesiredState every fullSyncInterval to
-// reconcile the full desired state. Runs independently of the incremental
-// stream so it never blocks real-time event delivery.
+// runPeriodicFullSync repairs missed changes on startup and every fullSyncInterval.
 func (s *Watcher) runPeriodicFullSync(ctx context.Context) {
-	// Run one immediately on startup.
 	s.doFullSync(ctx)
 
 	ticker := time.NewTicker(fullSyncInterval)
@@ -201,7 +195,7 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 	metrics.FullSyncDurationSeconds.Observe(time.Since(start).Seconds())
 }
 
-// shouldResetResumeToken distinguishes snapshot recovery from retryable failures.
+// shouldResetResumeToken reports whether reconnecting needs a new copy of the rows.
 func shouldResetResumeToken(err error) bool {
 	code := connect.CodeOf(err)
 	return code == connect.CodeInvalidArgument || code == connect.CodeOutOfRange
