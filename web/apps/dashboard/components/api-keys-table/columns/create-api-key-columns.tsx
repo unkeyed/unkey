@@ -246,7 +246,12 @@ export const createApiKeyColumns = ({
     cell: ({ row }) => {
       const key = row.original;
       return (
-        <HiddenValueCell value={key.start} title="Value" selected={key.id === selectedKeyId} />
+        <HiddenValueCell
+          start={key.start}
+          end={key.end}
+          title="Value"
+          selected={key.id === selectedKeyId}
+        />
       );
     },
   },

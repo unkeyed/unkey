@@ -3,19 +3,24 @@ import { cn } from "../../../../lib/utils";
 import { toast } from "../../../toaster";
 
 export interface HiddenValueCellProps {
-  value: string;
+  start: string;
+  end?: string;
   title: string;
   selected: boolean;
 }
 
-export const HiddenValueCell = ({ value, title = "Value", selected }: HiddenValueCellProps) => {
-  // Show only first 4 characters, then dots
-  const displayValue = value.padEnd(16, "•");
+export const HiddenValueCell = ({
+  start,
+  end = "",
+  title = "Value",
+  selected,
+}: HiddenValueCellProps) => {
+  const displayValue = `${start}••••${end}`;
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     navigator.clipboard
-      .writeText(value)
+      .writeText(displayValue)
       .then(() => {
         toast.success(`${title} copied to clipboard`);
       })

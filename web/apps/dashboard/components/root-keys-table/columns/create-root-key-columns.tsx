@@ -94,7 +94,8 @@ export const createRootKeyColumns = ({
           }
         >
           <HiddenValueCell
-            value={rootKey.start}
+            start={rootKey.start}
+            end={rootKey.end}
             title="Key"
             selected={selectedRootKeyId === rootKey.id}
           />

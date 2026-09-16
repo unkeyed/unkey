@@ -277,6 +277,7 @@ export async function getAllKeys({
         expires: true,
         updatedAtM: true,
         start: true,
+        end: true,
         lastUsedAt: true,
         meta: true,
         remaining: true,
@@ -326,6 +327,7 @@ export async function getAllKeys({
         identity: identityData,
         updated_at_m: key.updatedAtM,
         start: key.start,
+        end: key.end,
         last_used_at: key.lastUsedAt,
         metadata: key.meta,
         key: {

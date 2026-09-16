@@ -42,6 +42,7 @@ export const keyDetailsResponseSchema = z.object({
   updated_at_m: z.number().nullable(),
   metadata: z.string().nullable(),
   start: z.string(),
+  end: z.string(),
   last_used_at: z.number(),
   key: z.object({
     credits: creditsSchema,
