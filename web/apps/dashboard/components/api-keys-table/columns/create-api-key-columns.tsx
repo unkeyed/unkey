@@ -239,14 +239,20 @@ export const createApiKeyColumns = ({
     ),
     meta: {
       width: {
-        min: 200,
+        min: 280,
         max: 400,
       },
     },
     cell: ({ row }) => {
       const key = row.original;
       return (
-        <HiddenValueCell value={key.start} title="Value" selected={key.id === selectedKeyId} />
+        <HiddenValueCell
+          prefix={key.prefix}
+          start={key.start}
+          end={key.end}
+          title="Value"
+          selected={key.id === selectedKeyId}
+        />
       );
     },
   },
