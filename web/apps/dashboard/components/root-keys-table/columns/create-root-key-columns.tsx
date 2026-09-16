@@ -94,6 +94,7 @@ export const createRootKeyColumns = ({
           }
         >
           <HiddenValueCell
+            prefix={rootKey.prefix}
             start={rootKey.start}
             end={rootKey.end}
             title="Key"

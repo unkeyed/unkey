@@ -247,6 +247,7 @@ export const createApiKeyColumns = ({
       const key = row.original;
       return (
         <HiddenValueCell
+          prefix={key.prefix}
           start={key.start}
           end={key.end}
           title="Value"

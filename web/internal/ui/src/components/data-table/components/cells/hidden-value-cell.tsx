@@ -3,6 +3,7 @@ import { cn } from "../../../../lib/utils";
 import { toast } from "../../../toaster";
 
 export interface HiddenValueCellProps {
+  prefix?: string;
   start: string;
   end?: string;
   title: string;
@@ -10,12 +11,13 @@ export interface HiddenValueCellProps {
 }
 
 export const HiddenValueCell = ({
+  prefix = "",
   start,
   end = "",
   title = "Value",
   selected,
 }: HiddenValueCellProps) => {
-  const displayValue = `${start}••••${end}`;
+  const displayValue = `${prefix ? `${prefix}_` : ""}${start}••••${end}`;
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();

@@ -41,6 +41,7 @@ export const keyDetailsResponseSchema = z.object({
   identity: identitySchema.nullable(),
   updated_at_m: z.number().nullable(),
   metadata: z.string().nullable(),
+  prefix: z.string(),
   start: z.string(),
   end: z.string(),
   last_used_at: z.number(),
