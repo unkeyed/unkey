@@ -87,6 +87,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public(fmt.Sprintf("A project with slug '%s' already exists in this workspace.", req.Slug)),
 			)
 		}
+
 		if connect.CodeOf(err) == connect.CodeFailedPrecondition {
 			return fault.Wrap(
 				err,
@@ -95,6 +96,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public(deploygate.MsgNoComputePlan),
 			)
 		}
+
 		return ctrlclient.HandleError(err, "create project")
 	}
 

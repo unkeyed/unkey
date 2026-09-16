@@ -50,6 +50,7 @@ func (s *Service) CreateProject(
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load workspace: %w", err))
 	}
+
 	if err = deploygate.CheckWorkspacePlan(entitlement.Plan, entitlement.PlanOverride); err != nil {
 		return nil, gatefault.Connect(err)
 	}
