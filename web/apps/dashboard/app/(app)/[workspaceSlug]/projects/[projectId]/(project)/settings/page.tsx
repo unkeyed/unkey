@@ -1,5 +1,6 @@
 "use client";
 
+import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import {
   PageBody,
   PageContainer,
@@ -12,6 +13,8 @@ import { DeleteProject } from "./components/delete-project";
 import { UpdateProjectSettings } from "./components/update-project-settings";
 
 export default function ProjectSettingsPage() {
+  const { project } = useProjectData();
+
   return (
     <PageContainer>
       <PageHeader>
@@ -21,9 +24,11 @@ export default function ProjectSettingsPage() {
       </PageHeader>
       <PageBody>
         <UpdateProjectSettings />
-        <SettingsDangerZone>
-          <DeleteProject />
-        </SettingsDangerZone>
+        {project?.isDefault ? null : (
+          <SettingsDangerZone>
+            <DeleteProject />
+          </SettingsDangerZone>
+        )}
       </PageBody>
     </PageContainer>
   );

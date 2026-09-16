@@ -10,10 +10,20 @@ import {
   githubRepoConnections,
   projects,
 } from "@unkey/db/src/schema";
+import { z } from "zod";
+
+const DEFAULT_PROJECT_SLUG = "default";
+
+const listProjectsInput = z
+  .object({
+    includeDefault: z.boolean().optional(),
+  })
+  .optional();
 
 export const listProjects = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
-  .query(async ({ ctx }) => {
+  .input(listProjectsInput)
+  .query(async ({ ctx, input }) => {
     const workspaceId = ctx.workspace.id;
 
     const projectRows = await db
@@ -24,7 +34,12 @@ export const listProjects = workspaceProcedure
         createdAt: projects.createdAt,
       })
       .from(projects)
-      .where(and(eq(projects.workspaceId, workspaceId), not(eq(projects.slug, "default"))))
+      .where(
+        and(
+          eq(projects.workspaceId, workspaceId),
+          input?.includeDefault ? undefined : not(eq(projects.slug, DEFAULT_PROJECT_SLUG)),
+        ),
+      )
       .orderBy(desc(projects.createdAt));
 
     if (projectRows.length === 0) {
@@ -175,6 +190,7 @@ export const listProjects = workspaceProcedure
         id: project.id,
         name: project.name,
         slug: project.slug,
+        isDefault: project.slug === DEFAULT_PROJECT_SLUG,
         apps: appsByProject.get(project.id) ?? [],
         repositoryFullName: primaryApp ? (repoByApp.get(primaryApp.appId) ?? null) : null,
         currentDeploymentId: primaryApp?.currentDeploymentId ?? null,

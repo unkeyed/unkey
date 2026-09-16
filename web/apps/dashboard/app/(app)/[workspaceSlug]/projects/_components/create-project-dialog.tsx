@@ -55,6 +55,7 @@ export const CreateProjectDialog = ({ isOpen, onOpenChange, workspaceSlug }: Pro
       const tx = collection.projects.insert({
         name: values.name,
         slug: values.slug,
+        isDefault: false,
         apps: [],
         repositoryFullName: null,
         currentDeploymentId: null,
