@@ -12,13 +12,13 @@ checkpoint coalescing, and resume-token validation. It accepts explicit
 table/query rules without deployment-specific decoding. Ctrl's
 `internal/deploymentstream` wrapper validates region IDs, builds the running
 topology filter, and extracts deployment IDs. Ctrl owns a shared CDC connection.
-Each watch creates a separate CDC client with fixed rules and Krane's resume
-token, then opens its own VStream.
+Each watch opens its own VStream with the region filter and Krane's resume token.
 
 `cdc.Client.Watch` passes only changes to its callback and tracks checkpoints
-internally. Ctrl uses `cdc.Client.Forward` instead, so checkpoints reach Krane.
-Sending a change does not prove Krane applied it. Each reconnect uses Krane's
-saved token, not Ctrl's last forwarded position.
+in memory. Consumers reuse the same client for retries. Ctrl uses the stateless
+`cdc.Connection.Forward` instead, so checkpoints reach Krane without creating
+CDC clients. Sending a change does not prove Krane applied it. Each reconnect
+uses Krane's saved token.
 
 ## Follow a change
 
