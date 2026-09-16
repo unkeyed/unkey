@@ -191,12 +191,13 @@ export class Portal extends ClientSDK {
    * Authenticates only with a portal session cookie and always restricts results
    * to verification events attributed to the session's external identity. Unlike
    * `analytics.getVerifications`, this endpoint takes a fixed time window (no
-   * query language) and returns a zero-filled, outcome-broken-out timeseries.
-   * Bucket granularity is chosen automatically from the window size.
+   * query language) and returns outcome-broken-out counts. Bucket granularity is
+   * chosen automatically from the window size.
    *
-   * Setting `perKey` additionally returns the same window broken out per key, so
-   * a client can render both an account-wide chart and a per-key table from one
-   * call. Each per-key series is zero-filled like the account-wide one.
+   * The response carries one zero-filled series per key the end user has
+   * verifications for, so a client can render both a per-key table and an
+   * account-wide chart from one call by summing them. Pass `keyId` to narrow the
+   * window to a single key.
    */
   async getVerifications(
     security: operations.PortalGetVerificationsSecurity,
