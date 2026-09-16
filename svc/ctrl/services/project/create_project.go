@@ -50,11 +50,8 @@ func (s *Service) CreateProject(
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load workspace: %w", err))
 	}
-	if !deploygate.Entitled(entitlement.Plan, entitlement.PlanOverride) {
-		return nil, connect.NewError(
-			connect.CodeFailedPrecondition,
-			fmt.Errorf("workspace %q has no Compute plan", workspaceID),
-		)
+	if err = deploygate.CheckWorkspacePlan(entitlement.Plan, entitlement.PlanOverride); err != nil {
+		return nil, gatefault.Connect(err)
 	}
 
 	projectID := uid.New(uid.ProjectPrefix)
