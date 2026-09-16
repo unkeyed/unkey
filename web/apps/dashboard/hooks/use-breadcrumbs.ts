@@ -1,7 +1,9 @@
 "use client";
 
+import { useFlag } from "@/lib/flags/provider";
 import { routes } from "@/lib/navigation/routes";
 import { useParams } from "next/navigation";
+import { type ProjectResource, useResourceProjectId } from "./use-resource-project-id";
 import { useWorkspaceNavigation } from "./use-workspace-navigation";
 
 export type BreadcrumbDescriptor =
@@ -23,11 +25,18 @@ type RouteParams = {
 export function useBreadcrumbs(): BreadcrumbDescriptor[] {
   const workspace = useWorkspaceNavigation();
   const params = useParams<RouteParams>();
+  const projectsNav = useFlag("projectsNav");
+  const ownerProjectId = useResourceProjectId(projectsNav ? resourceFromParams(params) : null);
 
-  const workspaceHref = resolveWorkspaceHref(workspace.slug, params);
+  const workspaceHref = ownerProjectId
+    ? routes.projects.list({ workspaceSlug: workspace.slug })
+    : resolveWorkspaceHref(workspace.slug, params);
   const crumbs: BreadcrumbDescriptor[] = [{ type: "workspace", href: workspaceHref }];
   if (params.projectId) {
     crumbs.push({ type: "project", projectId: params.projectId });
+  }
+  if (ownerProjectId) {
+    crumbs.push({ type: "project", projectId: ownerProjectId });
   }
   if (params.projectId && params.appId) {
     crumbs.push({ type: "app", projectId: params.projectId, appId: params.appId });
@@ -42,6 +51,22 @@ export function useBreadcrumbs(): BreadcrumbDescriptor[] {
     crumbs.push({ type: "identity", identityId: params.identityId });
   }
   return crumbs;
+}
+
+function resourceFromParams(params: RouteParams): ProjectResource | null {
+  if (params.projectId) {
+    return null;
+  }
+  if (params.apiId) {
+    return { type: "api", apiId: params.apiId };
+  }
+  if (params.namespaceId) {
+    return { type: "namespace", namespaceId: params.namespaceId };
+  }
+  if (params.identityId) {
+    return { type: "identity", identityId: params.identityId };
+  }
+  return null;
 }
 
 function resolveWorkspaceHref(slug: string, params: RouteParams): string {
