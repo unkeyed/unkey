@@ -16,9 +16,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
-// changePageSize is the number of rows fetched per page when syncing deployment changes.
-const changePageSize = 10000
-
 // WatchDeploymentChanges opens one region-filtered VStream for this watch.
 // Checkpoint-only events follow all state events for a committed transaction.
 func (s *Service) WatchDeploymentChanges(
@@ -43,46 +40,47 @@ func (s *Service) WatchDeploymentChanges(
 		token = nil
 	}
 	err = s.deploymentStream.Watch(ctx, cluster.RegionID, token, func(deploymentID string) error {
-		row, err := s.db.FindDeploymentTopologyByDeploymentAndRegion(ctx, db.FindDeploymentTopologyByDeploymentAndRegionParams{
-			DeploymentID: deploymentID,
-			RegionID:     cluster.RegionID,
-		})
-		if db.IsNotFound(err) {
-			// Krane's per-ReplicaSet reconciliation removes resources absent from desired state.
-			metrics.DeploymentChangesProcessedTotal.WithLabelValues("deployment_topology", "not_found").Inc()
-			return nil
-		}
-		if err != nil {
-			metrics.DeploymentChangesProcessedTotal.WithLabelValues("deployment_topology", "error").Inc()
-			return err
-		}
-		state, err := deploymentRowToState(row)
-		if err != nil {
-			return err
-		}
-		if err := stream.Send(&ctrlv1.DeploymentChangeEvent{Event: &ctrlv1.DeploymentChangeEvent_Deployment{Deployment: state}}); err != nil {
-			return err
-		}
-		metrics.DeploymentChangesProcessedTotal.WithLabelValues("deployment_topology", "success").Inc()
-		return nil
+		return s.sendDeploymentChange(ctx, stream, cluster.RegionID, deploymentID)
 	}, func(next []byte) error {
 		return stream.Send(&ctrlv1.DeploymentChangeEvent{ResumeToken: next})
 	})
-	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+	if err == nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return err
 	}
-	if err != nil {
-		logger.Error("deployment VStream ended", "region_id", cluster.RegionID, "error", err)
-	}
-	if errors.Is(err, cdc.ErrInvalidToken) {
+	logger.Error("deployment VStream ended", "region_id", cluster.RegionID, "error", err)
+	switch {
+	case errors.Is(err, cdc.ErrInvalidToken):
 		return connect.NewError(connect.CodeInvalidArgument, err)
-	}
-	if errors.Is(err, cdc.ErrExpired) {
+	case errors.Is(err, cdc.ErrExpired):
 		return connect.NewError(connect.CodeOutOfRange, err)
-	}
-	if err != nil {
+	default:
 		return connect.NewError(connect.CodeInternal, err)
 	}
+}
+
+// sendDeploymentChange loads current state rather than replaying stale row data.
+// Missing topologies are left to Krane's per-ReplicaSet reconciliation.
+func (s *Service) sendDeploymentChange(ctx context.Context, stream *connect.ServerStream[ctrlv1.DeploymentChangeEvent], regionID, deploymentID string) error {
+	row, err := s.db.FindDeploymentTopologyByDeploymentAndRegion(ctx, db.FindDeploymentTopologyByDeploymentAndRegionParams{
+		DeploymentID: deploymentID,
+		RegionID:     regionID,
+	})
+	if db.IsNotFound(err) {
+		metrics.DeploymentChangesProcessedTotal.WithLabelValues("deployment_topology", "not_found").Inc()
+		return nil
+	}
+	if err != nil {
+		metrics.DeploymentChangesProcessedTotal.WithLabelValues("deployment_topology", "error").Inc()
+		return err
+	}
+	state, err := deploymentRowToState(row)
+	if err != nil {
+		return err
+	}
+	if err := stream.Send(&ctrlv1.DeploymentChangeEvent{Event: &ctrlv1.DeploymentChangeEvent_Deployment{Deployment: state}}); err != nil {
+		return err
+	}
+	metrics.DeploymentChangesProcessedTotal.WithLabelValues("deployment_topology", "success").Inc()
 	return nil
 }
 
