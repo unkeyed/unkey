@@ -22,8 +22,8 @@ const (
 	maxConcurrentDispatches = 10
 )
 
-// Watcher consumes the unified WatchDeploymentChanges stream and dispatches
-// events to the deployment and cilium controllers.
+// Watcher keeps deployments synchronized through incremental changes and
+// periodic full syncs.
 type Watcher struct {
 	cluster     ctrl.ClusterServiceClient
 	deployments *deployment.Controller
@@ -101,39 +101,46 @@ func (s *Watcher) runStream(ctx context.Context) {
 		}
 		metrics.StreamConnectionsTotal.WithLabelValues("success").Inc()
 
-		for stream.Receive() {
-			event := stream.Msg()
-			metrics.StreamEventsReceivedTotal.Inc()
+		resumeToken = s.consumeStream(ctx, stream, resumeToken)
+	}
+}
 
-			if err := s.sem.Acquire(ctx, 1); err != nil {
-				break
-			}
-			err := s.dispatch(ctx, event)
-			s.sem.Release(1)
-			if err != nil {
-				metrics.DispatchTotal.WithLabelValues("stream", eventResourceType(event), "error").Inc()
-				logger.Error("stream: error dispatching event", "deployment_id", event.GetDeployment().GetApply().GetDeploymentId(), "error", err)
-				break
-			}
-			if event.GetEvent() != nil {
-				metrics.DispatchTotal.WithLabelValues("stream", eventResourceType(event), "success").Inc()
-			}
-			if len(event.GetResumeToken()) > 0 {
-				resumeToken = event.GetResumeToken()
-				metrics.LastSuccessfulCheckpointUnixSeconds.Set(float64(time.Now().Unix()))
-			}
-		}
+// consumeStream applies events in order and closes the stream before returning
+// the last safe token. An unusable cursor returns an empty token for a snapshot.
+func (s *Watcher) consumeStream(ctx context.Context, stream *connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], resumeToken []byte) []byte {
+	for stream.Receive() {
+		event := stream.Msg()
+		metrics.StreamEventsReceivedTotal.Inc()
 
-		if err := stream.Err(); err != nil && ctx.Err() == nil {
-			if shouldResetResumeToken(err) {
-				resumeToken = nil
-			}
-			logger.Error("stream: connection ended", "error", err)
+		if err := s.sem.Acquire(ctx, 1); err != nil {
+			break
 		}
-		if err := stream.Close(); err != nil && ctx.Err() == nil {
-			logger.Error("stream: error closing connection", "error", err)
+		err := s.dispatch(ctx, event)
+		s.sem.Release(1)
+		if err != nil {
+			metrics.DispatchTotal.WithLabelValues("stream", eventResourceType(event), "error").Inc()
+			logger.Error("stream: error dispatching event", "deployment_id", event.GetDeployment().GetApply().GetDeploymentId(), "error", err)
+			break
+		}
+		if event.GetEvent() != nil {
+			metrics.DispatchTotal.WithLabelValues("stream", eventResourceType(event), "success").Inc()
+		}
+		if len(event.GetResumeToken()) > 0 {
+			resumeToken = event.GetResumeToken()
+			metrics.LastSuccessfulCheckpointUnixSeconds.Set(float64(time.Now().Unix()))
 		}
 	}
+
+	if err := stream.Err(); err != nil && ctx.Err() == nil {
+		if shouldResetResumeToken(err) {
+			resumeToken = nil
+		}
+		logger.Error("stream: connection ended", "error", err)
+	}
+	if err := stream.Close(); err != nil && ctx.Err() == nil {
+		logger.Error("stream: error closing connection", "error", err)
+	}
+	return resumeToken
 }
 
 // runPeriodicFullSync calls SyncDesiredState every fullSyncInterval to
@@ -194,6 +201,7 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 	metrics.FullSyncDurationSeconds.Observe(time.Since(start).Seconds())
 }
 
+// shouldResetResumeToken distinguishes snapshot recovery from retryable failures.
 func shouldResetResumeToken(err error) bool {
 	code := connect.CodeOf(err)
 	return code == connect.CodeInvalidArgument || code == connect.CodeOutOfRange
