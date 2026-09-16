@@ -33,7 +33,7 @@ func TestWatch_VitessSnapshotLiveFilteringAndResume(t *testing.T) {
 		VALUES ('poc', 'included', ?, 'running', 1), ('poc', 'excluded', ?, 'running', 1),
 		('poc', 'historical', ?, 'stopped', 1)`, region, region+"_other", region)
 	require.NoError(t, err)
-	source, err := cdc.New(cdc.Config{Address: vitess.Address, Keyspace: "unkey", Insecure: true})
+	source, err := cdc.NewConnection(cdc.ConnectionConfig{Address: vitess.Address, Keyspace: "unkey", Insecure: true})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, source.Close()) })
 	client := New(source)
@@ -113,7 +113,7 @@ func TestWatch_VitessRetriesFailedDeliveryAndResumesPartialSnapshot(t *testing.T
 		(workspace_id, deployment_id, region_id, desired_status, created_at) VALUES `+
 		strings.TrimSuffix(strings.Repeat("('poc', ?, ?, 'running', 1),", total), ","), args...)
 	require.NoError(t, err)
-	source, err := cdc.New(cdc.Config{Address: vitess.Address, Keyspace: "unkey", Insecure: true})
+	source, err := cdc.NewConnection(cdc.ConnectionConfig{Address: vitess.Address, Keyspace: "unkey", Insecure: true})
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, source.Close()) })
 	client := New(source)

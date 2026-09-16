@@ -12,7 +12,7 @@ import (
 // Client turns topology changes into deployment IDs for Ctrl to look up.
 // Watches share a CDC connection and can run at the same time.
 type Client struct {
-	cdc *cdc.Client
+	connection *cdc.Connection
 }
 
 // Event contains either a deployment ID to look up or a checkpoint token.
@@ -25,25 +25,33 @@ type Event struct {
 // regionPattern rejects unsafe region IDs before adding them to SQL.
 var regionPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,48}$`)
 
-// New uses the supplied CDC client, which must not be nil.
-// The caller must close that client when all watches have stopped.
-func New(client *cdc.Client) *Client {
-	return &Client{cdc: client}
+// New uses the supplied CDC connection, which must not be nil.
+// The caller must close that connection when all watches have stopped.
+func New(connection *cdc.Connection) *Client {
+	return &Client{connection: connection}
 }
 
 // Watch reports changes to running deployments in one region.
 // An empty token first copies the matching rows. When a row stops matching,
 // its old value still provides the deployment ID.
 // Invalid regions, invalid IDs, and callback errors stop the watch.
-// Resume tokens and checkpoints follow [cdc.Client.Watch].
+// Resume tokens and checkpoints follow [cdc.Client.Forward].
 func (c *Client) Watch(ctx context.Context, region string, token []byte, apply func(Event) error) error {
 	if !regionPattern.MatchString(region) {
 		return errors.New("invalid region ID")
 	}
-	return c.cdc.Watch(ctx, []cdc.Rule{{
-		Table: "deployment_topology",
-		Query: fmt.Sprintf("select deployment_id from deployment_topology where region_id = '%s' and desired_status = 'running'", region),
-	}}, token, func(event cdc.Event) error {
+	client, err := cdc.New(cdc.Config{
+		Connection: c.connection,
+		Rules: []cdc.Rule{{
+			Table: "deployment_topology",
+			Query: fmt.Sprintf("select deployment_id from deployment_topology where region_id = '%s' and desired_status = 'running'", region),
+		}},
+		ResumeToken: token,
+	})
+	if err != nil {
+		return err
+	}
+	return client.Forward(ctx, func(event cdc.Event) error {
 		if event.Change == nil {
 			return apply(Event{DeploymentID: "", ResumeToken: event.ResumeToken})
 		}
