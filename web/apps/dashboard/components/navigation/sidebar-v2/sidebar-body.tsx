@@ -38,7 +38,6 @@ export function SidebarBody() {
   const links = (() => {
     switch (context.type) {
       case "workspace":
-      case "identity":
       // Settings and Authorization keep the top-level workspace nav in the
       // global sidebar; their sub-pages live in a SecondaryNav rail (see the
       // settings/authorization layouts).
@@ -50,9 +49,21 @@ export function SidebarBody() {
           ? buildAppLinks(slug, context.projectId, context.appId, segments)
           : projectLinks(slug, context.projectId, segments);
       case "api":
-        return buildApiLinks(slug, context.apiId, keyAuthId, segments, portalManagement);
+        return buildApiLinks(
+          { workspaceSlug: slug, apiId: context.apiId, projectId: context.projectId },
+          keyAuthId,
+          segments,
+          portalManagement,
+        );
       case "namespace":
-        return buildNamespaceLinks(slug, context.namespaceId, segments);
+        return buildNamespaceLinks(
+          { workspaceSlug: slug, namespaceId: context.namespaceId, projectId: context.projectId },
+          segments,
+        );
+      case "identity":
+        return context.projectId
+          ? projectLinks(slug, context.projectId, segments)
+          : workspaceSections(slug, segments);
     }
   })();
 

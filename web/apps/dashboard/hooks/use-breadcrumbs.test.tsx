@@ -82,4 +82,18 @@ describe("with the projects-first flag on", () => {
     ]);
     expect(resourceCalls).toEqual([null]);
   });
+
+  it.each([
+    ["apiId", "api_1", "api"],
+    ["namespaceId", "ns_1", "namespace"],
+    ["identityId", "id_1", "identity"],
+  ])("scopes the %s crumb to the project in the url, with no lookup", (key, value, type) => {
+    params = { projectId: "proj_2", [key]: value };
+    expect(crumbs()).toEqual([
+      { type: "workspace", href: "/acme/projects" },
+      { type: "project", projectId: "proj_2" },
+      { type, [key]: value, projectId: "proj_2" },
+    ]);
+    expect(resourceCalls).toEqual([null]);
+  });
 });
