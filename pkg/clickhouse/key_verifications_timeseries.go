@@ -229,16 +229,16 @@ type verificationTimeseriesPerKeyRow struct {
 // workspace, identity, keyspace and window scoping.
 //
 // Each series is zero-filled across the window, so a caller charting a subset
-// of keys gets contiguous buckets without rebuilding them. That costs a full
-// bucket run per key, which is why req.MaxKeys is set well below what the
-// response size ceiling would otherwise allow.
+// of keys gets contiguous buckets without rebuilding them. A key with no
+// traffic at all is still absent, because there is no group for it to fill
+// against.
 //
-// A key with no traffic at all in the window is still absent: there is no group
-// for it to fill against.
-//
-// req.MaxKeys bounds how many distinct keys a session can pull over the shared
-// connection. Exceeding it returns [ErrTooManyVerificationKeys] rather than a
-// short array, which a caller could not tell apart from those keys being idle.
+// req.MaxKeys is what keeps that affordable. This runs on the connection every
+// workspace shares and a portal end user can reach it, so the work one request
+// costs is set by how many keys that end user happens to hold, multiplied by
+// the bucket count. Exceeding the cap returns [ErrTooManyVerificationKeys]
+// rather than a short array, which a caller could not tell apart from those
+// keys being idle.
 func (c *Client) GetVerificationsByExternalIDPerKey(ctx context.Context, req VerificationTimeseriesPerKeyRequest) ([]VerificationTimeseriesPerKey, error) {
 	if err := assert.NotEmpty(req.KeySpaceIDs, "per-key verification timeseries requested with no key spaces"); err != nil {
 		return nil, err
