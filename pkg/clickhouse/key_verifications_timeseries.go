@@ -8,7 +8,7 @@ import (
 
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 
-	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
@@ -72,11 +72,11 @@ func selectVerificationInterval(windowMs int64) verificationInterval {
 }
 
 const (
-	// portalQueryExecutionTimeMax bounds how long one portal read may occupy the
-	// shared connection, in seconds.
-	portalQueryExecutionTimeMax = 10
-	// portalQueryMemoryMax bounds one portal read's server-side memory.
-	portalQueryMemoryMax = 1 << 30
+	// portalQueryExecutionTimeSecondsMax bounds how long one portal read may
+	// occupy the shared connection.
+	portalQueryExecutionTimeSecondsMax = 10
+	// portalQueryMemoryBytesMax bounds one portal read's server-side memory.
+	portalQueryMemoryBytesMax = 1 << 30
 )
 
 // withPortalQueryLimits bounds a single portal read. The operator analytics
@@ -89,8 +89,8 @@ const (
 // which covers both reads plus their JSON.
 func withPortalQueryLimits(ctx context.Context) context.Context {
 	return ch.Context(ctx, ch.WithSettings(ch.Settings{
-		"max_execution_time":   portalQueryExecutionTimeMax,
-		"max_memory_usage":     portalQueryMemoryMax,
+		"max_execution_time":   portalQueryExecutionTimeSecondsMax,
+		"max_memory_usage":     portalQueryMemoryBytesMax,
 		"max_result_bytes":     AnalyticsResultBytesMax,
 		"result_overflow_mode": "throw",
 	}))
@@ -145,7 +145,10 @@ const verificationScopePredicates = `workspace_id = {workspace_id:String}
 // are pinned by the caller, so no query DSL or per-workspace connection is
 // involved.
 func (c *Client) GetVerificationsByExternalID(ctx context.Context, req VerificationTimeseriesRequest) ([]VerificationTimeseriesDataPoint, error) {
-	if err := req.requireKeySpaceScope(); err != nil {
+	// Callers derive the keyspaces from the portal session, so an empty list is
+	// a broken invariant rather than a query that returns nothing: answering it
+	// would widen the read past the portal.
+	if err := assert.NotEmpty(req.KeySpaceIDs, "verification timeseries requested with no key spaces"); err != nil {
 		return nil, err
 	}
 
@@ -186,21 +189,6 @@ func (c *Client) GetVerificationsByExternalID(ctx context.Context, req Verificat
 	}
 
 	return results, nil
-}
-
-// requireKeySpaceScope rejects a read that lost its keyspace scope. Callers
-// derive the list from the portal session, so an empty one is a broken
-// invariant, and answering it would widen the read past the portal.
-func (req VerificationTimeseriesRequest) requireKeySpaceScope() error {
-	if len(req.KeySpaceIDs) > 0 {
-		return nil
-	}
-
-	return fault.New("missing keyspace scope",
-		fault.Code(codes.App.Internal.UnexpectedError.URN()),
-		fault.Internal("verification timeseries requested with no key spaces"),
-		fault.Public("An internal error occurred."),
-	)
 }
 
 // verificationScopeParams binds the values [verificationScopePredicates] reads.
@@ -252,16 +240,14 @@ type verificationTimeseriesPerKeyRow struct {
 // connection. Exceeding it returns [ErrTooManyVerificationKeys] rather than a
 // short array, which a caller could not tell apart from those keys being idle.
 func (c *Client) GetVerificationsByExternalIDPerKey(ctx context.Context, req VerificationTimeseriesPerKeyRequest) ([]VerificationTimeseriesPerKey, error) {
-	if err := req.requireKeySpaceScope(); err != nil {
+	if err := assert.NotEmpty(req.KeySpaceIDs, "per-key verification timeseries requested with no key spaces"); err != nil {
 		return nil, err
 	}
 
-	if req.MaxKeys <= 0 {
-		return nil, fault.New("missing key cap",
-			fault.Code(codes.App.Internal.UnexpectedError.URN()),
-			fault.Internal("per-key verification timeseries requested with no key cap"),
-			fault.Public("An internal error occurred."),
-		)
+	// An unset cap means a caller wired this up without one, which would put an
+	// unbounded per-key read on the shared connection.
+	if err := assert.Greater(req.MaxKeys, 0, "per-key verification timeseries requested with no key cap"); err != nil {
+		return nil, err
 	}
 
 	iv := selectVerificationInterval(req.EndTime - req.StartTime)
