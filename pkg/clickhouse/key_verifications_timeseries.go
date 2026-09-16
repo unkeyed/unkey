@@ -92,18 +92,23 @@ const (
 // workspace shares, so the bounds ride on the query instead.
 //
 // max_result_bytes stops an oversized read server-side, before the rows are
-// shipped. The handler's own ceiling still applies to the encoded response,
-// which covers both reads plus their JSON.
+// shipped. The handler's own ceiling still applies to the encoded response.
+//
+// use_with_fill_by_sorting_prefix is what makes WITH FILL restart per key_id
+// rather than run once across the whole result. It defaults on, but the default
+// is what a settings profile on this shared connection could change, and every
+// caller charting a subset of keys depends on each series being contiguous.
 func withPortalQueryLimits(ctx context.Context) context.Context {
 	return ch.Context(ctx, ch.WithSettings(ch.Settings{
-		"max_execution_time":   portalQueryExecutionTimeSecondsMax,
-		"max_memory_usage":     portalQueryMemoryBytesMax,
-		"max_result_bytes":     AnalyticsResultBytesMax,
-		"result_overflow_mode": "throw",
+		"max_execution_time":              portalQueryExecutionTimeSecondsMax,
+		"max_memory_usage":                portalQueryMemoryBytesMax,
+		"max_result_bytes":                AnalyticsResultBytesMax,
+		"result_overflow_mode":            "throw",
+		"use_with_fill_by_sorting_prefix": 1,
 	}))
 }
 
-// portalQueryLimitCodes are the ClickHouse exceptions the three settings in
+// portalQueryLimitCodes are the ClickHouse exceptions the resource limits in
 // [withPortalQueryLimits] can raise: TIMEOUT_EXCEEDED from max_execution_time,
 // MEMORY_LIMIT_EXCEEDED from max_memory_usage, and TOO_MANY_ROWS_OR_BYTES from
 // max_result_bytes.

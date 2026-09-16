@@ -244,6 +244,43 @@ func TestGetVerificationsByExternalIDPerKey(t *testing.T) {
 		require.Equal(t, int64(0), byBucket[dayBBucket], "a quiet bucket is present with zero")
 	})
 
+	t.Run("every key in a breakout is filled independently", func(t *testing.T) {
+		series := read(t, []string{keySpaceID}, "", 10)
+		require.Len(t, series, 2)
+
+		const dayMs = int64(24 * 60 * 60 * 1000)
+		grid := series[0].Data
+		require.GreaterOrEqual(t, len(grid), 10, "the first series covers the requested window")
+
+		// WITH FILL restarts per key only while the sorting-prefix setting holds.
+		// Without it the range is generated once across the whole result and the
+		// second key comes back short, which totals alone would not reveal.
+		for _, s := range series {
+			require.Len(t, s.Data, len(grid), "every key is filled across the same window")
+			for i, point := range s.Data {
+				require.Equal(t, grid[i].Time, point.Time, "every key shares the bucket grid")
+				if i > 0 {
+					require.Equal(t, dayMs, point.Time-s.Data[i-1].Time, "buckets are evenly spaced")
+				}
+			}
+		}
+
+		totals := make(map[string]map[int64]int64, len(series))
+		for _, s := range series {
+			buckets := make(map[int64]int64, len(s.Data))
+			for _, point := range s.Data {
+				buckets[point.Time] = point.Total
+			}
+			totals[s.KeyID] = buckets
+		}
+
+		// The fill adds zeros rather than spreading one key's counts over the grid.
+		require.Equal(t, int64(1), totals[targetKey][dayABucket])
+		require.Equal(t, int64(0), totals[targetKey][dayBBucket])
+		require.Equal(t, int64(4), totals[otherKey][dayABucket])
+		require.Equal(t, int64(1), totals[otherKey][dayBBucket])
+	})
+
 	t.Run("per key breakout is capped rather than truncated", func(t *testing.T) {
 		req := clickhouse.VerificationTimeseriesPerKeyRequest{
 			VerificationTimeseriesRequest: clickhouse.VerificationTimeseriesRequest{
