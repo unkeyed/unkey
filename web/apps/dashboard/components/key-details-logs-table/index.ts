@@ -17,4 +17,6 @@ export { KeyDetailsCountInfo } from "./components/key-details-count-info";
 export {
   useFetchRequestDetails,
   buildRequestDetailsQueryParams,
+  buildGatewayRequestDetailsQueryParams,
 } from "./hooks/use-fetch-request-details";
+export type { RequestDetails } from "./hooks/use-fetch-request-details";
