@@ -2,6 +2,7 @@ import {
   parseAsFilterValueArray,
   parseAsRelativeTime,
 } from "@/components/logs/validation/utils/nuqs-parsers";
+import { DEFAULT_DEPLOYMENT_STATUS_GROUPS } from "@/lib/collections/deploy/deployment-status";
 import { parseAsInteger, useQueryStates } from "nuqs";
 import { useCallback, useMemo } from "react";
 import {
@@ -27,6 +28,19 @@ export const queryParamsPayload = {
 const arrayFields = ["status", "environment", "branch"] as const;
 const timeFields = ["startTime", "endTime", "since"] as const;
 
+// The status filter starts pre-selected rather than empty, so an absent url
+// param means the default selection, not "every status".
+const defaultStatusParam: DeploymentListFilterUrlValue[] = DEFAULT_DEPLOYMENT_STATUS_GROUPS.map(
+  (value) => ({ value, operator: "is" }),
+);
+
+const isDefaultStatusSelection = (selection: readonly { value: string | number }[] | null) =>
+  selection === null ||
+  (selection.length === DEFAULT_DEPLOYMENT_STATUS_GROUPS.length &&
+    selection.every((item) =>
+      DEFAULT_DEPLOYMENT_STATUS_GROUPS.some((group) => group === item.value),
+    ));
+
 export const useFilters = () => {
   const [searchParams, setSearchParams] = useQueryStates(queryParamsPayload, {
     history: "push",
@@ -37,7 +51,9 @@ export const useFilters = () => {
 
     // Handle array filters
     arrayFields.forEach((field) => {
-      searchParams[field]?.forEach((item) => {
+      const selection =
+        field === "status" ? (searchParams.status ?? defaultStatusParam) : searchParams[field];
+      selection?.forEach((item) => {
         activeFilters.push({
           id: crypto.randomUUID(),
           field,
@@ -128,8 +144,19 @@ export const useFilters = () => {
     [filters, updateFilters],
   );
 
+  // Whether the user narrowed the list themselves, as opposed to only seeing the
+  // default status selection.
+  const isFiltered = useMemo(
+    () =>
+      !isDefaultStatusSelection(searchParams.status) ||
+      arrayFields.some((field) => field !== "status" && (searchParams[field]?.length ?? 0) > 0) ||
+      timeFields.some((field) => searchParams[field] !== null),
+    [searchParams],
+  );
+
   return {
     filters,
+    isFiltered,
     removeFilter,
     updateFilters,
     toggleArrayFilter,

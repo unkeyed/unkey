@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"database/sql"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -13,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/project"
 )
 
@@ -35,6 +37,10 @@ func TestCreateProjectWritesAuditLog(t *testing.T) {
 	})
 
 	workspaceID := h.Resources().UserWorkspace.ID
+	require.NoError(t, h.DB.SetWorkspaceDeployPlan(ctx, db.SetWorkspaceDeployPlanParams{
+		Plan:        sql.NullString{String: "pro", Valid: true},
+		WorkspaceID: workspaceID,
+	}))
 	slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 
 	req := connect.NewRequest(&ctrlv1.CreateProjectRequest{

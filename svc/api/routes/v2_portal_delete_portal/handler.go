@@ -65,7 +65,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		found, err := db.Query.FindPortalByIdOrSlug(ctx, tx, db.FindPortalByIdOrSlugParams{
 			Portal:      req.Portal,
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 		})
 		if err != nil {
 			if db.IsNotFound(err) {
@@ -82,16 +82,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		// Resolved first, then authorized, so the query can name the concrete id a
-		// scoped grant would carry. Safe because the resolve is workspace-scoped --
-		// a foreign portal is already absent above -- Authorize is an in-memory
-		// check over already-loaded permissions, and nothing has been written yet
-		// The wildcard arm is spelled out separately because a stored `*`
+		// Resolved first, then authorized, so both arms can name the concrete portal
+		// a scoped grant would carry. Safe because the resolve is workspace-scoped
+		// -- a foreign portal is already absent above -- Authorize is an in-memory
+		// check over already-loaded permissions, and nothing has been written yet.
+		// The wildcard tuple arm is spelled out separately because a stored `*`
 		// matches literally and does not expand.
 		//
-		// The URN arms are what let the dashboard reach this route: its proxy mints
-		// a token whose admin grant is a URN, so a legacy-only check would deny the
-		// only operator surface there is.
+		// The legacy tuple arms stay until callers have migrated to portal URNs.
 		err = principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Portal,
@@ -104,12 +102,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Action:       rbac.DeletePortal,
 			}),
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Portal("*"),
-				permissions.DeletePortal{},
-			),
-			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Portal(found.ID),
-				permissions.DeletePortal{},
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(found.ProjectID).Portal(found.ID),
+				permissions.Delete,
 			),
 		))
 		if err != nil {
@@ -133,7 +127,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		// a second delete here.
 		affected, err := db.Query.DeletePortal(ctx, tx, db.DeletePortalParams{
 			ID:          found.ID,
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 		})
 		if err != nil {
 			return fault.Wrap(err,
@@ -166,7 +160,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		revoked, err := db.Query.RevokePortalSessionsByPortal(ctx, tx, db.RevokePortalSessionsByPortalParams{
 			RevokedAt:   sql.NullInt64{Valid: true, Int64: now},
 			PortalID:    found.ID,
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 		})
 		if err != nil {
 			return fault.Wrap(err,
@@ -180,7 +174,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.PortalDeleteEvent,
 				Display:       fmt.Sprintf("Deleted portal %s", found.ID),
 				ActorID:       principal.Subject.ID,

@@ -14,4 +14,7 @@ export { KeyDetailsDrawer } from "./components/key-details-drawer";
 export { OutcomeCell } from "./components/outcome-cell";
 export { EmptyKeyDetailsLogs } from "./components/empty-key-details-logs";
 export { KeyDetailsCountInfo } from "./components/key-details-count-info";
-export { useFetchRequestDetails } from "./hooks/use-fetch-request-details";
+export {
+  useFetchRequestDetails,
+  buildRequestDetailsQueryParams,
+} from "./hooks/use-fetch-request-details";

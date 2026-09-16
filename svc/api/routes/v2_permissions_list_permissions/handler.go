@@ -12,8 +12,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -39,13 +42,11 @@ func (h *Handler) Path() string {
 
 // Handle processes the HTTP request
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
-	// 1. Authentication
 	principal, err := s.GetPrincipal()
 	if err != nil {
 		return err
 	}
 
-	// 2. Request validation
 	req, err := zen.BindBody[Request](s)
 	if err != nil {
 		return err
@@ -54,7 +55,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
+	projectID, projectFound, err := projects.FindDefaultProject(ctx, h.DB.RW(), principal.AuthorizedWorkspaceID)
+	if err != nil {
+		return err
+	}
+
+	projectIDRequired := projectID
+	if !projectFound {
+		// A missing default project has no concrete ID to authorize. Require a
+		// grant that covers every project before creating the default project.
+		projectIDRequired = "*"
+	}
 	err = principal.Authorize(rbac.Or(
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectIDRequired).RBAC().Permission("*"),
+			permissions.Read,
+		),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Rbac,
 			ResourceID:   "*",
@@ -65,11 +81,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	permissions, err := db.Query.ListPermissions(
+	if !projectFound {
+		projectID, err = projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.AuthorizedWorkspaceID)
+		if err != nil {
+			return err
+		}
+	}
+
+	rows, err := db.Query.ListPermissions(
 		ctx,
 		h.DB.RO(),
 		db.ListPermissionsParams{
-			WorkspaceID:       principal.WorkspaceID,
+			WorkspaceID:       principal.AuthorizedWorkspaceID,
+			ProjectID:         projectID,
 			IDCursor:          p.Cursor,
 			Search:            search,
 			DescriptionSearch: search,
@@ -83,9 +107,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	permissions, pg := pagination.Paginate(permissions, p, func(r db.Permission) string { return r.ID })
+	rows, pg := pagination.Paginate(rows, p, func(r db.Permission) string { return r.ID })
 
-	responsePermissions := array.Map(permissions, func(perm db.Permission) openapi.Permission {
+	responsePermissions := array.Map(rows, func(perm db.Permission) openapi.Permission {
 		return openapi.Permission{
 			Id:          perm.ID,
 			Name:        perm.Name,
@@ -94,7 +118,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	})
 
-	// 7. Return success response
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),

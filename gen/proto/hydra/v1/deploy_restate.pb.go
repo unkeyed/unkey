@@ -7,276 +7,175 @@
 package hydrav1
 
 import (
+	context "context"
 	fmt "fmt"
 	sdk_go "github.com/restatedev/sdk-go"
 	encoding "github.com/restatedev/sdk-go/encoding"
 	ingress "github.com/restatedev/sdk-go/ingress"
 )
 
-// DeployServiceClient is the client API for hydra.v1.DeployService service.
+// DeployWorkflowClient is the client API for hydra.v1.DeployWorkflow service.
 //
-// DeployService orchestrates the lifecycle of application deployments as
-// durable Restate workflows. Each RPC is idempotent and can safely resume from
-// any step after a crash.
+// DeployWorkflow runs one deployment from creation to routing. Each RPC is
+// idempotent and can safely resume from any step after a crash.
 //
-// Deploy, Rollback, and Promote are keyed by {app_id}:{environment_id} so
-// that lifecycle operations within a single environment are serialized
-// (preventing e.g. a rollback from racing with an in-flight deploy) while
-// different environments of the same app — e.g. production vs preview — can
-// deploy in parallel. This means a production push never waits behind a
-// preview build. Workspace-wide concurrency is separately enforced by
-// BuildSlotService.
-//
-// Deploy handles the full pipeline from building Docker images through
-// provisioning containers and configuring domain routing. Rollback and Promote
-// manage traffic switching between deployments by reassigning sticky frontline
-// routes atomically through the routing service.
-type DeployServiceClient interface {
-	// Deploy executes the full deployment workflow: build (if git source), provision
-	// containers across regions, wait for health, configure domain routing, and
-	// update the project's live deployment pointer for production environments.
-	// Sets deployment status to failed on any error.
+// The workflow key is the deployment id: Deploy runs once per key, and
+// readiness arrives through a durable promise that NotifyInstancesReady
+// resolves, so the run keeps no state. The contended pointer,
+// apps.current_deployment_id, is serialized inside
+// RoutingService.SwapLiveDeployment, which is keyed by environment id.
+// Workspace-wide build concurrency is separately enforced by BuildSlotService.
+// Promotion and rollback live on EnvironmentService, keyed by environment id.
+type DeployWorkflowClient interface {
+	// Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
+	// The key is the deployment id, so the caller chooses it up front.
+	Create(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployCreateRequest, *DeployCreateResponse]
+	// Deploy is the run: build, provision, wait for health, route.
 	Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *DeployResponse]
-	// Rollback switches sticky frontline routes (environment and live) from the
-	// current live deployment back to a previous one. Marks the project as rolled
-	// back so future deploys don't automatically reclaim live routes.
-	// Source must be the current live deployment; both must share the same project
-	// and environment.
-	Rollback(opts ...sdk_go.ClientOption) sdk_go.Client[*RollbackRequest, *RollbackResponse]
-	// Promote reassigns sticky frontline routes to a target deployment and clears
-	// the rolled-back flag, restoring normal deployment flow.
-	// Target must be in ready status and not already the live deployment.
-	Promote(opts ...sdk_go.ClientOption) sdk_go.Client[*PromoteRequest, *PromoteResponse]
-	// StopDeployment schedules desired_state=stopped for a running deployment.
-	StopDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*StopDeploymentRequest, *StopDeploymentResponse]
-	// WakeDeployment schedules desired_state=running for a stopped deployment
-	// and waits until enough instances are running again.
-	WakeDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*WakeDeploymentRequest, *WakeDeploymentResponse]
-	// NotifyInstancesReady is called by the control plane when enough instances
-	// have become healthy across the required regions. It resolves the awakeable
-	// stored by a suspended deploy or wake workflow so it can continue.
+	// NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
+	// lands before Deploy awaits is kept.
 	NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
 }
 
-type deployServiceClient struct {
-	ctx     sdk_go.Context
-	key     string
-	options []sdk_go.ClientOption
+type deployWorkflowClient struct {
+	ctx        sdk_go.Context
+	workflowID string
+	options    []sdk_go.ClientOption
 }
 
-func NewDeployServiceClient(ctx sdk_go.Context, key string, opts ...sdk_go.ClientOption) DeployServiceClient {
+func NewDeployWorkflowClient(ctx sdk_go.Context, workflowID string, opts ...sdk_go.ClientOption) DeployWorkflowClient {
 	cOpts := append([]sdk_go.ClientOption{sdk_go.WithProtoJSON}, opts...)
-	return &deployServiceClient{
+	return &deployWorkflowClient{
 		ctx,
-		key,
+		workflowID,
 		cOpts,
 	}
 }
-func (c *deployServiceClient) Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *DeployResponse] {
+func (c *deployWorkflowClient) Create(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployCreateRequest, *DeployCreateResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
-	return sdk_go.WithRequestType[*DeployRequest](sdk_go.Object[*DeployResponse](c.ctx, "hydra.v1.DeployService", c.key, "Deploy", cOpts...))
+	return sdk_go.WithRequestType[*DeployCreateRequest](sdk_go.Workflow[*DeployCreateResponse](c.ctx, "hydra.v1.DeployWorkflow", c.workflowID, "Create", cOpts...))
 }
 
-func (c *deployServiceClient) Rollback(opts ...sdk_go.ClientOption) sdk_go.Client[*RollbackRequest, *RollbackResponse] {
+func (c *deployWorkflowClient) Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *DeployResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
-	return sdk_go.WithRequestType[*RollbackRequest](sdk_go.Object[*RollbackResponse](c.ctx, "hydra.v1.DeployService", c.key, "Rollback", cOpts...))
+	return sdk_go.WithRequestType[*DeployRequest](sdk_go.Workflow[*DeployResponse](c.ctx, "hydra.v1.DeployWorkflow", c.workflowID, "Deploy", cOpts...))
 }
 
-func (c *deployServiceClient) Promote(opts ...sdk_go.ClientOption) sdk_go.Client[*PromoteRequest, *PromoteResponse] {
+func (c *deployWorkflowClient) NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
-	return sdk_go.WithRequestType[*PromoteRequest](sdk_go.Object[*PromoteResponse](c.ctx, "hydra.v1.DeployService", c.key, "Promote", cOpts...))
+	return sdk_go.WithRequestType[*NotifyInstancesReadyRequest](sdk_go.Workflow[*NotifyInstancesReadyResponse](c.ctx, "hydra.v1.DeployWorkflow", c.workflowID, "NotifyInstancesReady", cOpts...))
 }
 
-func (c *deployServiceClient) StopDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*StopDeploymentRequest, *StopDeploymentResponse] {
-	cOpts := c.options
-	if len(opts) > 0 {
-		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
-	}
-	return sdk_go.WithRequestType[*StopDeploymentRequest](sdk_go.Object[*StopDeploymentResponse](c.ctx, "hydra.v1.DeployService", c.key, "StopDeployment", cOpts...))
-}
-
-func (c *deployServiceClient) WakeDeployment(opts ...sdk_go.ClientOption) sdk_go.Client[*WakeDeploymentRequest, *WakeDeploymentResponse] {
-	cOpts := c.options
-	if len(opts) > 0 {
-		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
-	}
-	return sdk_go.WithRequestType[*WakeDeploymentRequest](sdk_go.Object[*WakeDeploymentResponse](c.ctx, "hydra.v1.DeployService", c.key, "WakeDeployment", cOpts...))
-}
-
-func (c *deployServiceClient) NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
-	cOpts := c.options
-	if len(opts) > 0 {
-		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
-	}
-	return sdk_go.WithRequestType[*NotifyInstancesReadyRequest](sdk_go.Object[*NotifyInstancesReadyResponse](c.ctx, "hydra.v1.DeployService", c.key, "NotifyInstancesReady", cOpts...))
-}
-
-// DeployServiceIngressClient is the ingress client API for hydra.v1.DeployService service.
+// DeployWorkflowIngressClient is the ingress client API for hydra.v1.DeployWorkflow service.
 //
 // This client is used to call the service from outside of a Restate context.
-type DeployServiceIngressClient interface {
-	// Deploy executes the full deployment workflow: build (if git source), provision
-	// containers across regions, wait for health, configure domain routing, and
-	// update the project's live deployment pointer for production environments.
-	// Sets deployment status to failed on any error.
-	Deploy() ingress.Requester[*DeployRequest, *DeployResponse]
-	// Rollback switches sticky frontline routes (environment and live) from the
-	// current live deployment back to a previous one. Marks the project as rolled
-	// back so future deploys don't automatically reclaim live routes.
-	// Source must be the current live deployment; both must share the same project
-	// and environment.
-	Rollback() ingress.Requester[*RollbackRequest, *RollbackResponse]
-	// Promote reassigns sticky frontline routes to a target deployment and clears
-	// the rolled-back flag, restoring normal deployment flow.
-	// Target must be in ready status and not already the live deployment.
-	Promote() ingress.Requester[*PromoteRequest, *PromoteResponse]
-	// StopDeployment schedules desired_state=stopped for a running deployment.
-	StopDeployment() ingress.Requester[*StopDeploymentRequest, *StopDeploymentResponse]
-	// WakeDeployment schedules desired_state=running for a stopped deployment
-	// and waits until enough instances are running again.
-	WakeDeployment() ingress.Requester[*WakeDeploymentRequest, *WakeDeploymentResponse]
-	// NotifyInstancesReady is called by the control plane when enough instances
-	// have become healthy across the required regions. It resolves the awakeable
-	// stored by a suspended deploy or wake workflow so it can continue.
+type DeployWorkflowIngressClient interface {
+	// Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
+	// The key is the deployment id, so the caller chooses it up front.
+	Create() ingress.Requester[*DeployCreateRequest, *DeployCreateResponse]
+	// Deploy is the run: build, provision, wait for health, route.
+	Submit(ctx context.Context, input *DeployRequest, opts ...ingress.SendOption) (ingress.SendResponse[*DeployResponse], error)
+	// Handle creates an handle to the submitted workflow, useful to retrieve its output or attach to it
+	Handle() ingress.InvocationHandle[*DeployResponse]
+	// NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
+	// lands before Deploy awaits is kept.
 	NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
 }
 
-type deployServiceIngressClient struct {
+type deployWorkflowIngressClient struct {
 	client      *ingress.Client
 	serviceName string
-	key         string
+	workflowID  string
 }
 
-func NewDeployServiceIngressClient(client *ingress.Client, key string) DeployServiceIngressClient {
-	return &deployServiceIngressClient{
+func NewDeployWorkflowIngressClient(client *ingress.Client, workflowID string) DeployWorkflowIngressClient {
+	return &deployWorkflowIngressClient{
 		client,
-		"hydra.v1.DeployService",
-		key,
+		"hydra.v1.DeployWorkflow",
+		workflowID,
 	}
 }
 
-func (c *deployServiceIngressClient) Deploy() ingress.Requester[*DeployRequest, *DeployResponse] {
+func (c *deployWorkflowIngressClient) Create() ingress.Requester[*DeployCreateRequest, *DeployCreateResponse] {
 	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*DeployRequest, *DeployResponse](c.client, c.serviceName, "Deploy", &c.key, &codec)
+	return ingress.NewRequester[*DeployCreateRequest, *DeployCreateResponse](c.client, c.serviceName, "Create", &c.workflowID, &codec)
 }
 
-func (c *deployServiceIngressClient) Rollback() ingress.Requester[*RollbackRequest, *RollbackResponse] {
+func (c *deployWorkflowIngressClient) Submit(ctx context.Context, input *DeployRequest, opts ...ingress.SendOption) (ingress.SendResponse[*DeployResponse], error) {
 	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*RollbackRequest, *RollbackResponse](c.client, c.serviceName, "Rollback", &c.key, &codec)
+	return ingress.NewRequester[*DeployRequest, *DeployResponse](c.client, c.serviceName, "Deploy", &c.workflowID, &codec).Send(ctx, input, opts...)
 }
 
-func (c *deployServiceIngressClient) Promote() ingress.Requester[*PromoteRequest, *PromoteResponse] {
+func (c *deployWorkflowIngressClient) NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
 	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*PromoteRequest, *PromoteResponse](c.client, c.serviceName, "Promote", &c.key, &codec)
+	return ingress.NewRequester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse](c.client, c.serviceName, "NotifyInstancesReady", &c.workflowID, &codec)
 }
 
-func (c *deployServiceIngressClient) StopDeployment() ingress.Requester[*StopDeploymentRequest, *StopDeploymentResponse] {
-	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*StopDeploymentRequest, *StopDeploymentResponse](c.client, c.serviceName, "StopDeployment", &c.key, &codec)
+func (c *deployWorkflowIngressClient) Handle() ingress.InvocationHandle[*DeployResponse] {
+	return ingress.WorkflowHandle[*DeployResponse](c.client, c.serviceName, c.workflowID, sdk_go.WithProtoJSON)
 }
 
-func (c *deployServiceIngressClient) WakeDeployment() ingress.Requester[*WakeDeploymentRequest, *WakeDeploymentResponse] {
-	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*WakeDeploymentRequest, *WakeDeploymentResponse](c.client, c.serviceName, "WakeDeployment", &c.key, &codec)
-}
-
-func (c *deployServiceIngressClient) NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
-	codec := encoding.ProtoJSONCodec
-	return ingress.NewRequester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse](c.client, c.serviceName, "NotifyInstancesReady", &c.key, &codec)
-}
-
-// DeployServiceServer is the server API for hydra.v1.DeployService service.
-// All implementations should embed UnimplementedDeployServiceServer
+// DeployWorkflowServer is the server API for hydra.v1.DeployWorkflow service.
+// All implementations should embed UnimplementedDeployWorkflowServer
 // for forward compatibility.
 //
-// DeployService orchestrates the lifecycle of application deployments as
-// durable Restate workflows. Each RPC is idempotent and can safely resume from
-// any step after a crash.
+// DeployWorkflow runs one deployment from creation to routing. Each RPC is
+// idempotent and can safely resume from any step after a crash.
 //
-// Deploy, Rollback, and Promote are keyed by {app_id}:{environment_id} so
-// that lifecycle operations within a single environment are serialized
-// (preventing e.g. a rollback from racing with an in-flight deploy) while
-// different environments of the same app — e.g. production vs preview — can
-// deploy in parallel. This means a production push never waits behind a
-// preview build. Workspace-wide concurrency is separately enforced by
-// BuildSlotService.
-//
-// Deploy handles the full pipeline from building Docker images through
-// provisioning containers and configuring domain routing. Rollback and Promote
-// manage traffic switching between deployments by reassigning sticky frontline
-// routes atomically through the routing service.
-type DeployServiceServer interface {
-	// Deploy executes the full deployment workflow: build (if git source), provision
-	// containers across regions, wait for health, configure domain routing, and
-	// update the project's live deployment pointer for production environments.
-	// Sets deployment status to failed on any error.
-	Deploy(ctx sdk_go.ObjectContext, req *DeployRequest) (*DeployResponse, error)
-	// Rollback switches sticky frontline routes (environment and live) from the
-	// current live deployment back to a previous one. Marks the project as rolled
-	// back so future deploys don't automatically reclaim live routes.
-	// Source must be the current live deployment; both must share the same project
-	// and environment.
-	Rollback(ctx sdk_go.ObjectContext, req *RollbackRequest) (*RollbackResponse, error)
-	// Promote reassigns sticky frontline routes to a target deployment and clears
-	// the rolled-back flag, restoring normal deployment flow.
-	// Target must be in ready status and not already the live deployment.
-	Promote(ctx sdk_go.ObjectContext, req *PromoteRequest) (*PromoteResponse, error)
-	// StopDeployment schedules desired_state=stopped for a running deployment.
-	StopDeployment(ctx sdk_go.ObjectContext, req *StopDeploymentRequest) (*StopDeploymentResponse, error)
-	// WakeDeployment schedules desired_state=running for a stopped deployment
-	// and waits until enough instances are running again.
-	WakeDeployment(ctx sdk_go.ObjectContext, req *WakeDeploymentRequest) (*WakeDeploymentResponse, error)
-	// NotifyInstancesReady is called by the control plane when enough instances
-	// have become healthy across the required regions. It resolves the awakeable
-	// stored by a suspended deploy or wake workflow so it can continue.
-	NotifyInstancesReady(ctx sdk_go.ObjectSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error)
+// The workflow key is the deployment id: Deploy runs once per key, and
+// readiness arrives through a durable promise that NotifyInstancesReady
+// resolves, so the run keeps no state. The contended pointer,
+// apps.current_deployment_id, is serialized inside
+// RoutingService.SwapLiveDeployment, which is keyed by environment id.
+// Workspace-wide build concurrency is separately enforced by BuildSlotService.
+// Promotion and rollback live on EnvironmentService, keyed by environment id.
+type DeployWorkflowServer interface {
+	// Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
+	// The key is the deployment id, so the caller chooses it up front.
+	Create(ctx sdk_go.WorkflowSharedContext, req *DeployCreateRequest) (*DeployCreateResponse, error)
+	// Deploy is the run: build, provision, wait for health, route.
+	Deploy(ctx sdk_go.WorkflowContext, req *DeployRequest) (*DeployResponse, error)
+	// NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
+	// lands before Deploy awaits is kept.
+	NotifyInstancesReady(ctx sdk_go.WorkflowSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error)
 }
 
-// UnimplementedDeployServiceServer should be embedded to have
+// UnimplementedDeployWorkflowServer should be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedDeployServiceServer struct{}
+type UnimplementedDeployWorkflowServer struct{}
 
-func (UnimplementedDeployServiceServer) Deploy(ctx sdk_go.ObjectContext, req *DeployRequest) (*DeployResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Deploy not implemented"), 501)
+func (UnimplementedDeployWorkflowServer) Create(ctx sdk_go.WorkflowSharedContext, req *DeployCreateRequest) (*DeployCreateResponse, error) {
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Create not implemented"), sdk_go.WithErrorCode(501))
 }
-func (UnimplementedDeployServiceServer) Rollback(ctx sdk_go.ObjectContext, req *RollbackRequest) (*RollbackResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Rollback not implemented"), 501)
+func (UnimplementedDeployWorkflowServer) Deploy(ctx sdk_go.WorkflowContext, req *DeployRequest) (*DeployResponse, error) {
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Deploy not implemented"), sdk_go.WithErrorCode(501))
 }
-func (UnimplementedDeployServiceServer) Promote(ctx sdk_go.ObjectContext, req *PromoteRequest) (*PromoteResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Promote not implemented"), 501)
+func (UnimplementedDeployWorkflowServer) NotifyInstancesReady(ctx sdk_go.WorkflowSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error) {
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method NotifyInstancesReady not implemented"), sdk_go.WithErrorCode(501))
 }
-func (UnimplementedDeployServiceServer) StopDeployment(ctx sdk_go.ObjectContext, req *StopDeploymentRequest) (*StopDeploymentResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method StopDeployment not implemented"), 501)
-}
-func (UnimplementedDeployServiceServer) WakeDeployment(ctx sdk_go.ObjectContext, req *WakeDeploymentRequest) (*WakeDeploymentResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method WakeDeployment not implemented"), 501)
-}
-func (UnimplementedDeployServiceServer) NotifyInstancesReady(ctx sdk_go.ObjectSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method NotifyInstancesReady not implemented"), 501)
-}
-func (UnimplementedDeployServiceServer) testEmbeddedByValue() {}
+func (UnimplementedDeployWorkflowServer) testEmbeddedByValue() {}
 
-// UnsafeDeployServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to DeployServiceServer will
+// UnsafeDeployWorkflowServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to DeployWorkflowServer will
 // result in compilation errors.
-type UnsafeDeployServiceServer interface {
-	mustEmbedUnimplementedDeployServiceServer()
+type UnsafeDeployWorkflowServer interface {
+	mustEmbedUnimplementedDeployWorkflowServer()
 }
 
-func NewDeployServiceServer(srv DeployServiceServer, opts ...sdk_go.ServiceDefinitionOption) sdk_go.ServiceDefinition {
-	// If the following call panics, it indicates UnimplementedDeployServiceServer was
+func NewDeployWorkflowServer(srv DeployWorkflowServer, opts ...sdk_go.ServiceDefinitionOption) sdk_go.ServiceDefinition {
+	// If the following call panics, it indicates UnimplementedDeployWorkflowServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
@@ -284,13 +183,10 @@ func NewDeployServiceServer(srv DeployServiceServer, opts ...sdk_go.ServiceDefin
 		t.testEmbeddedByValue()
 	}
 	sOpts := append([]sdk_go.ServiceDefinitionOption{sdk_go.WithProtoJSON}, opts...)
-	router := sdk_go.NewObject("hydra.v1.DeployService", sOpts...)
-	router = router.Handler("Deploy", sdk_go.NewObjectHandler(srv.Deploy))
-	router = router.Handler("Rollback", sdk_go.NewObjectHandler(srv.Rollback))
-	router = router.Handler("Promote", sdk_go.NewObjectHandler(srv.Promote))
-	router = router.Handler("StopDeployment", sdk_go.NewObjectHandler(srv.StopDeployment))
-	router = router.Handler("WakeDeployment", sdk_go.NewObjectHandler(srv.WakeDeployment))
-	router = router.Handler("NotifyInstancesReady", sdk_go.NewObjectSharedHandler(srv.NotifyInstancesReady))
+	router := sdk_go.NewWorkflow("hydra.v1.DeployWorkflow", sOpts...)
+	router = router.Handler("Create", sdk_go.NewWorkflowSharedHandler(srv.Create))
+	router = router.Handler("Deploy", sdk_go.NewWorkflowHandler(srv.Deploy))
+	router = router.Handler("NotifyInstancesReady", sdk_go.NewWorkflowSharedHandler(srv.NotifyInstancesReady))
 	return router
 }
 
@@ -411,10 +307,10 @@ type DeployTeardownServiceServer interface {
 type UnimplementedDeployTeardownServiceServer struct{}
 
 func (UnimplementedDeployTeardownServiceServer) Teardown(ctx sdk_go.ObjectContext, req *TeardownRequest) (*TeardownResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Teardown not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Teardown not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployTeardownServiceServer) Resume(ctx sdk_go.ObjectContext, req *ResumeRequest) (*ResumeResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Resume not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Resume not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployTeardownServiceServer) testEmbeddedByValue() {}
 

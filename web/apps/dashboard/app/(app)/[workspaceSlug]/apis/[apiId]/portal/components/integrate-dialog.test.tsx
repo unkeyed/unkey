@@ -39,6 +39,7 @@ describe("IntegrateDialog", () => {
     expect(curl).toContain('"externalId"');
     expect(curl).toContain('"scopes"');
     expect(curl).toContain("keys:read");
+    expect(curl).toContain("keys:reroll");
     // The prototype's field names would 400 against the real endpoint.
     expect(curl).not.toContain("permissions");
     expect(curl).not.toContain("portalId");
@@ -55,6 +56,21 @@ describe("IntegrateDialog", () => {
       expect(snippet).not.toContain("permissions");
       expect(snippet).not.toContain("portalId");
     }
+  });
+
+  // A snippet naming either one hands out a payload createSession refuses.
+  it("offers only the scopes createSession still accepts", () => {
+    renderDialog();
+
+    for (const language of ["curl", "ts", "go"]) {
+      const snippet = screen.getByTestId(`panel-${language}`).textContent ?? "";
+      expect(snippet).not.toContain("analytics:read");
+      expect(snippet).not.toContain("keys:create");
+      expect(snippet).not.toContain("AnalyticsRead");
+      expect(snippet).not.toContain("KeysCreate");
+    }
+
+    expect(screen.queryByText(/analytics/i)).toBeNull();
   });
 
   it("documents returnUrl with the trust caveat that stops an open redirect", () => {

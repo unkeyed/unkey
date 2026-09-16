@@ -73,7 +73,7 @@ func TestSetPoliciesNotFound(t *testing.T) {
 	})
 
 	t.Run("keyauth referencing a soft-deleted keyspace", func(t *testing.T) {
-		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: env.workspaceID})
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: env.workspaceID, ProjectID: env.projectID})
 		_, err := h.DB.RW().ExecContext(context.Background(),
 			"UPDATE key_auth SET deleted_at_m = ? WHERE id = ?",
 			time.Now().UnixMilli(), api.KeyAuthID.String)

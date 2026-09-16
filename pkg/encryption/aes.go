@@ -9,7 +9,14 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 )
 
+// Encrypt encrypts plaintext with AES-256-GCM. It returns a fresh 12-byte nonce
+// separately from ciphertext, which includes a 16-byte authentication tag.
+// Returns an error if the key is not 32 bytes.
 func Encrypt(key []byte, plaintext []byte) (nonce []byte, ciphertext []byte, err error) {
+	if err := assert.Equal(len(key), 32, "key size must be 32 bytes"); err != nil {
+		return nil, nil, err
+	}
+
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create cipher: %w", err)
@@ -34,9 +41,9 @@ func Encrypt(key []byte, plaintext []byte) (nonce []byte, ciphertext []byte, err
 
 }
 
-// Decrypt decrypts ciphertext using AES-GCM with the provided key and nonce.
+// Decrypt decrypts AES-256-GCM ciphertext using a separate 12-byte nonce.
 //
-// Returns an error if validation fails or if the ciphertext has been tampered with.
+// Returns an error if validation fails or ciphertext authentication fails.
 func Decrypt(key []byte, nonce []byte, ciphertext []byte) ([]byte, error) {
 
 	if err := assert.All(

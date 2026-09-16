@@ -52,7 +52,7 @@ export function ApiV1Migration({
 
       <Section className="text-center py-3">
         <Button
-          href="https://www.unkey.com/docs/api-reference/v1/migration"
+          href="https://www.unkey.com/docs/platform/apis/migrations/introduction"
           className="bg-gray-900 text-gray-50 rounded-lg p-3 w-2/3"
         >
           View Migration Guide

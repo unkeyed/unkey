@@ -3,7 +3,7 @@ import { and, db, eq, inArray, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { env } from "@/lib/env";
@@ -14,6 +14,7 @@ import { upsertPermissions } from "../rbac";
  * authoritative permission list to avoid lost updates
  */
 export const updateRootKeyPermissions = workspaceProcedure
+  .use(requireWorkspaceAdmin)
   .input(
     z.object({
       keyId: z.string(),

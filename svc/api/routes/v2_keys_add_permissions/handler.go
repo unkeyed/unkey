@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
@@ -20,7 +21,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
-	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -77,7 +77,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	key := db.ToKeyData(keyRow)
 
-	if key.Key.WorkspaceID != principal.WorkspaceID {
+	if key.Key.WorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -88,8 +88,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	err = principal.Authorize(
 		rbac.Or(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
-				permissions.UpdateKey{},
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(key.KeyAuth.ProjectID).Keyspace(key.Key.KeyAuthID).Key(key.Key.ID),
+				permissions.Write,
 			),
 			rbac.And(
 				rbac.Or(
@@ -116,11 +116,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.WorkspaceID)
-	if err != nil {
-		return err
-	}
-
 	currentPermissions, err := db.Query.ListDirectPermissionsByKeyID(ctx, h.DB.RO(), req.KeyId)
 	if err != nil {
 		return fault.Wrap(err,
@@ -130,7 +125,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	foundPermissions, err := db.Query.FindPermissionsBySlugs(ctx, h.DB.RO(), db.FindPermissionsBySlugsParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
+		ProjectID:   key.KeyAuth.ProjectID,
 		Slugs:       req.Permissions,
 	})
 	if err != nil {
@@ -142,7 +138,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	missingPermissions := make(map[string]struct{})
 	permissionsToSet := make([]db.Permission, 0)
-	permissionsToInsert := make([]db.InsertPermissionParams, 0)
+	permissionsToInsert := make([]db.UpsertPermissionParams, 0)
 	currentPermissionIDs := make(map[string]db.Permission)
 
 	for _, permission := range currentPermissions {
@@ -170,8 +166,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	for perm := range missingPermissions {
 		err = principal.Authorize(rbac.Or(
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).RBAC.Permission("*"),
-				permissions.CreatePermission{},
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(key.KeyAuth.ProjectID).RBAC().Permission("*"),
+				permissions.Write,
 			),
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Rbac,
@@ -185,26 +181,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		permissionID := uid.New(uid.PermissionPrefix)
 		now := time.Now().UnixMilli()
-		permissionsToInsert = append(permissionsToInsert, db.InsertPermissionParams{
+		permissionsToInsert = append(permissionsToInsert, db.UpsertPermissionParams{
 			PermissionID: permissionID,
 			Name:         perm,
-			WorkspaceID:  principal.WorkspaceID,
-			ProjectID:    projectID,
+			WorkspaceID:  principal.AuthorizedWorkspaceID,
+			ProjectID:    key.KeyAuth.ProjectID,
 			Slug:         perm,
 			Description:  dbtype.NullString{String: "", Valid: false},
 			CreatedAtM:   now,
-		})
-
-		permissionsToSet = append(permissionsToSet, db.Permission{
-			Pk:          0, // only here to make the linter happy
-			ID:          permissionID,
-			Name:        perm,
-			WorkspaceID: principal.WorkspaceID,
-			ProjectID:   projectID,
-			Slug:        perm,
-			Description: dbtype.NullString{String: "", Valid: false},
-			CreatedAtM:  now,
-			UpdatedAtM:  sql.NullInt64{Int64: now, Valid: true},
 		})
 	}
 
@@ -220,41 +204,78 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		var auditLogs []auditlog.AuditLog
 
+		createdPermissionIDs := make(map[string]db.UpsertPermissionParams, len(permissionsToInsert))
 		if len(permissionsToInsert) > 0 {
 			for _, toCreate := range permissionsToInsert {
+				createdPermissionIDs[strings.ToLower(toCreate.Slug)] = toCreate
+				if err = db.Query.UpsertPermission(ctx, tx, toCreate); err != nil {
+					return fault.Wrap(err,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"),
+						fault.Public("Failed to insert permissions."),
+					)
+				}
+			}
+		}
+
+		foundPermissions, err = db.Query.FindPermissionsBySlugs(ctx, tx, db.FindPermissionsBySlugsParams{
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			ProjectID:   key.KeyAuth.ProjectID,
+			Slugs:       req.Permissions,
+		})
+		if err != nil {
+			return fault.Wrap(err,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"),
+				fault.Public("Failed to lookup permissions to add."),
+			)
+		}
+
+		foundBySlug := make(map[string]db.Permission, len(foundPermissions))
+		for _, permission := range foundPermissions {
+			normalizedSlug := strings.ToLower(permission.Slug)
+			foundBySlug[normalizedSlug] = permission
+			candidate, exists := createdPermissionIDs[normalizedSlug]
+			if exists && candidate.PermissionID == permission.ID {
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID:   principal.WorkspaceID,
+					WorkspaceID:   principal.AuthorizedWorkspaceID,
 					Event:         auditlog.PermissionCreateEvent,
 					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 					ActorID:       principal.Subject.ID,
 					ActorName:     principal.Subject.Name,
 					ActorMeta:     map[string]any{},
-					Display:       fmt.Sprintf("Created %s (%s)", toCreate.Slug, toCreate.PermissionID),
+					Display:       fmt.Sprintf("Created %s (%s)", candidate.Slug, candidate.PermissionID),
 					RemoteIP:      s.Location(),
 					UserAgent:     s.UserAgent(),
 					CorrelationID: "",
 					Resources: []auditlog.AuditLogResource{
 						{
 							Type:        auditlog.PermissionResourceType,
-							ID:          toCreate.PermissionID,
-							Name:        toCreate.Slug,
-							DisplayName: toCreate.Name,
+							ID:          candidate.PermissionID,
+							Name:        candidate.Slug,
+							DisplayName: candidate.Name,
 							Meta: map[string]interface{}{
-								"name": toCreate.Name,
-								"slug": toCreate.Slug,
+								"name": candidate.Name,
+								"slug": candidate.Slug,
 							},
 						},
 					},
 				})
 			}
+		}
 
-			err = db.BulkQuery.InsertPermissions(ctx, tx, permissionsToInsert)
-			if err != nil {
-				return fault.Wrap(err,
-					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-					fault.Internal("database error"),
-					fault.Public("Failed to insert permissions."),
+		permissionsToSet = permissionsToSet[:0]
+		for _, requestedSlug := range req.Permissions {
+			permission, exists := foundBySlug[strings.ToLower(requestedSlug)]
+			if !exists {
+				return fault.New("permission not found",
+					fault.Code(codes.Data.Permission.NotFound.URN()),
+					fault.Internal("permission belongs to a different project"),
+					fault.Public(fmt.Sprintf("Permission '%s' was not found.", requestedSlug)),
 				)
+			}
+			if _, exists = currentPermissionIDs[permission.ID]; !exists {
+				permissionsToSet = append(permissionsToSet, permission)
 			}
 		}
 
@@ -266,13 +287,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				toAdd[idx] = db.InsertKeyPermissionParams{
 					KeyID:        req.KeyId,
 					PermissionID: permission.ID,
-					WorkspaceID:  principal.WorkspaceID,
+					WorkspaceID:  principal.AuthorizedWorkspaceID,
 					CreatedAt:    now,
 					UpdatedAt:    sql.NullInt64{Valid: true, Int64: now},
 				}
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID:   principal.WorkspaceID,
+					WorkspaceID:   principal.AuthorizedWorkspaceID,
 					Event:         auditlog.AuthConnectPermissionKeyEvent,
 					ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
 					ActorID:       principal.Subject.ID,

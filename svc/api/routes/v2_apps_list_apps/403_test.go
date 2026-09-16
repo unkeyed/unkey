@@ -32,12 +32,11 @@ func TestListAppsForbidden(t *testing.T) {
 		Slug:        projectSlug,
 	})
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Payments API",
-		Slug:          strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Payments API",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 	})
 
 	testCases := []struct {
@@ -52,7 +51,7 @@ func TestListAppsForbidden(t *testing.T) {
 		{name: "wrong action", permissions: []string{"app.*.create_app"}, shouldPass: false},
 		{name: "read does not match create", permissions: []string{"project.*.create_app"}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
-		{name: "urn style does not satisfy legacy check", permissions: []string{"unkey:v1:" + workspace.ID + ":apps/*#read_app"}, shouldPass: false},
+		{name: "urn style does not satisfy legacy check", permissions: []string{"unkey:v1:" + workspace.ID + ":apps/*#read"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
 
@@ -101,12 +100,11 @@ func TestListAppsExistenceNotLeaked(t *testing.T) {
 		Slug:        realSlug,
 	})
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Payments API",
-		Slug:          strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Payments API",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 	})
 
 	missingSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))

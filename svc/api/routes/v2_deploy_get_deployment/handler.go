@@ -55,7 +55,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Verify deployment belongs to the authenticated workspace
-	if deployment.WorkspaceID != principal.WorkspaceID {
+	if deployment.WorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New("wrong workspace",
 			fault.Code(codes.Data.Project.NotFound.URN()),
 			fault.Internal("wrong workspace, masking as 404"),

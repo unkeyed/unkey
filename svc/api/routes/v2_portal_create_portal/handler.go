@@ -90,46 +90,52 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// Only a wildcard grant can authorize a create: the portal id is minted below,
-	// so no grant can name it yet. The URN arm is what lets the dashboard reach
-	// this route, because its proxy mints a token whose admin grant is a URN.
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Portal,
-			ResourceID:   "*",
-			Action:       rbac.CreatePortal,
-		}),
-		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Portal("*"),
-			permissions.CreatePortal{},
-		),
-	))
-	if err != nil {
-		// Returned as-is rather than masked as a 404: there is no portal yet whose
-		// existence a denial could disclose.
-		return err
-	}
-
 	portalID := uid.New(uid.PortalPrefix)
 	now := h.Clock.Now().UnixMilli()
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 
 	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		if err := portal.VerifyMappingOwned(ctx, tx, principal.WorkspaceID, mapping); err != nil {
+		projectID, err := portal.ResolveMappingProject(ctx, tx, principal.AuthorizedWorkspaceID, mapping)
+		if err != nil {
 			return err
 		}
 
-		if err := portal.AuthorizeMappingTarget(ctx, tx, principal, principal.WorkspaceID, mapping); err != nil {
+		// After the project behind the mapping is known and before
+		// checkSlugAndResourceFree, which is unscoped by workspace and reports
+		// that an app or keyspace is already claimed: a caller short of a portal
+		// grant must not reach it.
+		//
+		// Only a wildcard portal grant can carry a create, since the portal ID is
+		// minted above and no grant can name it yet.
+		err = principal.Authorize(rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Portal,
+				ResourceID:   "*",
+				Action:       rbac.CreatePortal,
+			}),
+			rbac.U(
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).Portal("*"),
+				permissions.Write,
+			),
+		))
+		if err != nil {
+			// Returned as-is rather than masked as a 404: there is no portal yet
+			// whose existence a denial could disclose.
 			return err
 		}
 
-		if err := h.checkSlugAndResourceFree(ctx, tx, principal.WorkspaceID, req.Slug, mapping); err != nil {
+		if err := portal.AuthorizeMappingTarget(ctx, tx, principal, principal.AuthorizedWorkspaceID, mapping); err != nil {
 			return err
 		}
 
-		err := db.Query.InsertPortal(ctx, tx, db.InsertPortalParams{
+		if err := h.checkSlugAndResourceFree(ctx, tx, principal.AuthorizedWorkspaceID, req.Slug, mapping); err != nil {
+			return err
+		}
+
+		err = db.Query.InsertPortal(ctx, tx, db.InsertPortalParams{
 			ID:           portalID,
-			WorkspaceID:  principal.WorkspaceID,
+			WorkspaceID:  principal.AuthorizedWorkspaceID,
+			ProjectID:    projectID,
 			Slug:         req.Slug,
 			DisplayName:  req.DisplayName,
 			AppID:        appID,
@@ -162,7 +168,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		return h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.PortalCreateEvent,
 				Display:       fmt.Sprintf("Created portal %s", portalID),
 				ActorID:       principal.Subject.ID,

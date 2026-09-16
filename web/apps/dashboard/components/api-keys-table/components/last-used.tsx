@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { ChartActivity2 } from "@unkey/icons";
+import { IconChartActivity2Outline12 } from "@unkey/icons";
 import { Badge, TimestampInfo } from "@unkey/ui";
 import { STATUS_STYLES } from "@unkey/ui";
 import { useRef, useState } from "react";
@@ -29,7 +29,7 @@ export const LastUsedCell = ({
       }}
     >
       <div>
-        <ChartActivity2 iconSize="sm-regular" />
+        <IconChartActivity2Outline12 />
       </div>
       <div className="truncate">
         {lastUsedAt > 0 ? (

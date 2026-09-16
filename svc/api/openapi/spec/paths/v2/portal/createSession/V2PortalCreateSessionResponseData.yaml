@@ -18,5 +18,5 @@ properties:
     description: |
       The full portal URL to redirect the end user to. Carries a single-use
       exchange code that is valid for 15 minutes.
-    example: "https://portal.unkey.com/?code=pst_abc123def456"
+    example: "https://portal.unkey.com/?code=pec_abc123def456"
 additionalProperties: false

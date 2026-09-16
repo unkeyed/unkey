@@ -318,12 +318,11 @@ func (s *Seeder) CreateEnvironment(ctx context.Context, req CreateEnvironmentReq
 }
 
 type CreateAppRequest struct {
-	ID            string
-	WorkspaceID   string
-	ProjectID     string
-	Name          string
-	Slug          string
-	DefaultBranch string
+	ID          string
+	WorkspaceID string
+	ProjectID   string
+	Name        string
+	Slug        string
 }
 
 func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
@@ -335,7 +334,7 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 		ProjectID:        req.ProjectID,
 		Name:             req.Name,
 		Slug:             req.Slug,
-		DefaultBranch:    req.DefaultBranch,
+		SourceType:       db.AppsSourceTypeUnknown,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: false},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Valid: false},
@@ -400,6 +399,15 @@ type CreateDeploymentRequest struct {
 	Status        dbtype.DeploymentsStatus
 	CreatedAt     int64
 	UpdatedAt     sql.NullInt64
+
+	// Optional git metadata for tests that need the row to record a source.
+	GitCommitSha     sql.NullString
+	GitBranch        sql.NullString
+	GitCommitMessage sql.NullString
+
+	// Optional fork provenance, for tests that rebuild a fork PR's deployment.
+	PrNumber               sql.NullInt64
+	ForkRepositoryFullName sql.NullString
 }
 
 func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentRequest) db.Deployment {
@@ -420,10 +428,12 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		ProjectID:                     req.ProjectID,
 		AppID:                         req.AppID,
 		EnvironmentID:                 req.EnvironmentID,
-		GitCommitSha:                  sql.NullString{String: "", Valid: false},
-		GitBranch:                     sql.NullString{String: "", Valid: false},
+		Source:                        db.DeploymentsSourceUnknown,
+		ImageRequested:                sql.NullString{Valid: false},
+		GitCommitSha:                  req.GitCommitSha,
+		GitBranch:                     req.GitBranch,
 		SentinelConfig:                []byte("{}"),
-		GitCommitMessage:              sql.NullString{String: "", Valid: false},
+		GitCommitMessage:              req.GitCommitMessage,
 		GitCommitAuthorHandle:         sql.NullString{String: "", Valid: false},
 		GitCommitAuthorAvatarUrl:      sql.NullString{String: "", Valid: false},
 		GitCommitTimestamp:            sql.NullInt64{Int64: 0, Valid: false},
@@ -439,8 +449,8 @@ func (s *Seeder) CreateDeployment(ctx context.Context, req CreateDeploymentReque
 		ShutdownSignal:                db.DeploymentsShutdownSignalSIGINT,
 		UpstreamProtocol:              db.DeploymentsUpstreamProtocolHttp1,
 		Healthcheck:                   dbtype.NullHealthcheck{Healthcheck: nil, Valid: false},
-		PrNumber:                      sql.NullInt64{Int64: 0, Valid: false},
-		ForkRepositoryFullName:        sql.NullString{String: "", Valid: false},
+		PrNumber:                      req.PrNumber,
+		ForkRepositoryFullName:        req.ForkRepositoryFullName,
 		DeploymentTrigger:             db.DeploymentsTriggerUnknown,
 		TriggeredBy:                   sql.NullString{Valid: false},
 		TriggerReason:                 sql.NullString{Valid: false},
@@ -460,10 +470,12 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 	insertKeyParams := db.InsertKeyParams{
 		ID:                 uid.New("test_root_key"),
 		Hash:               hash.Sha256(key),
+		Prefix:             "",
 		WorkspaceID:        s.Resources.RootWorkspace.ID,
 		ForWorkspaceID:     sql.NullString{String: workspaceID, Valid: true},
 		KeySpaceID:         s.Resources.RootKeySpace.ID,
 		Start:              key[:4],
+		End:                key[len(key)-4:],
 		CreatedAtM:         time.Now().UnixMilli(),
 		Enabled:            true,
 		Name:               sql.NullString{String: "", Valid: false},
@@ -562,8 +574,10 @@ func (s *Seeder) CreateKey(ctx context.Context, req CreateKeyRequest) CreateKeyR
 		WorkspaceID:        req.WorkspaceID,
 		CreatedAtM:         time.Now().UnixMilli(),
 		Hash:               hash.Sha256(key),
+		Prefix:             "",
 		Enabled:            !req.Disabled,
 		Start:              start,
+		End:                key[len(key)-4:],
 		Name:               sql.NullString{String: ptr.SafeDeref(req.Name, "test-key"), Valid: true},
 		ForWorkspaceID:     sql.NullString{String: ptr.SafeDeref(req.ForWorkspaceID, ""), Valid: req.ForWorkspaceID != nil},
 		Meta:               sql.NullString{String: ptr.SafeDeref(req.Meta, ""), Valid: req.Meta != nil},

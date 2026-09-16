@@ -18,7 +18,7 @@ export const keyAuth = mysqlTable(
     ...lifecycleDatesMigration,
 
     storeEncryptedKeys: boolean("store_encrypted_keys").notNull().default(false),
-    defaultPrefix: varchar("default_prefix", { length: 8 }),
+    defaultPrefix: varchar("default_prefix", { length: 16 }),
     defaultBytes: int("default_bytes").default(16),
 
     /**

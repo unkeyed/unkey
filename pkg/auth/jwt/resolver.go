@@ -202,10 +202,11 @@ func (r *Resolver) Resolve(ctx context.Context, sess *zen.Session) (*principal.P
 		Source: principal.JWTSource{
 			Header:    header,
 			Payload:   payload,
+			Roles:     claims.Roles,
 			Signature: segments[2],
 		},
-		WorkspaceID: workspaceID,
-		Permissions: claims.permissions(),
+		AuthorizedWorkspaceID: workspaceID,
+		Permissions:           nil,
 	}, nil
 }
 

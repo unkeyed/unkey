@@ -2,10 +2,11 @@ import { VerificationBarChart } from "@/components/api-keys-table/components/bar
 import { LastUsedCell } from "@/components/api-keys-table/components/last-used";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { cn } from "@/lib/utils";
-import { Page2 } from "@unkey/icons";
+import { IconChartActivity2Outline12, IconPage2Outline18 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   AssignedCountCell,
+  BadgeTimestampCell,
   ExpiresCell,
   HiddenValueCell,
   LastUpdatedCell,
@@ -33,6 +34,12 @@ export const ROOT_KEY_COLUMN_IDS = {
   LAST_USED: { id: "last_used", accessorKey: "lastUsedAt", header: "Last Used" },
   PERMISSIONS: { id: "permissions", accessorKey: "permissions", header: "Permissions" },
   CREATED_AT: { id: "created_at", accessorKey: "created_at", header: "Created At" },
+  LAST_USED: {
+    id: "last_used",
+    accessorKey: "last_used",
+    header: "Last Used",
+    emptyText: "—",
+  },
   LAST_UPDATED: { id: "last_updated", accessorKey: "last_updated", header: "Last Updated" },
   EXPIRES: { id: "expires", accessorKey: "expires", header: "Expires" },
   ACTION: { id: "action", accessorKey: "action", header: "Action" },
@@ -161,7 +168,7 @@ export const createRootKeyColumns = ({
       return (
         <AssignedCountCell
           count={rootKey.permissionSummary.total}
-          icon={<Page2 iconSize="md-medium" className="opacity-50" />}
+          icon={<IconPage2Outline18 className="size-3.5 opacity-50" />}
           singularLabel="Permission"
           isSelected={rootKey.id === selectedRootKeyId}
         />
@@ -189,6 +196,33 @@ export const createRootKeyColumns = ({
         <TimestampInfo
           value={rootKey.createdAt}
           className={cn("font-mono group-hover:underline decoration-dotted")}
+        />
+      );
+    },
+  },
+  {
+    id: ROOT_KEY_COLUMN_IDS.LAST_USED.id,
+    accessorKey: ROOT_KEY_COLUMN_IDS.LAST_USED.accessorKey,
+    sortDescFirst: true,
+    header: ({ header }) => (
+      <SortableHeader key={ROOT_KEY_COLUMN_IDS.LAST_USED.id} header={header}>
+        {ROOT_KEY_COLUMN_IDS.LAST_USED.header}
+      </SortableHeader>
+    ),
+    meta: {
+      width: {
+        min: 140,
+        max: 300,
+      },
+    },
+    cell: ({ row }) => {
+      const rootKey = row.original;
+      return (
+        <BadgeTimestampCell
+          isSelected={rootKey.id === selectedRootKeyId}
+          timestamp={rootKey.lastUsedAt > 0 ? rootKey.lastUsedAt : null}
+          icon={<IconChartActivity2Outline12 />}
+          emptyText={ROOT_KEY_COLUMN_IDS.LAST_USED.emptyText}
         />
       );
     },

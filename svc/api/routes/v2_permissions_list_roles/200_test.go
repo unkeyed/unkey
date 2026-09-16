@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_list_roles"
 )
@@ -28,6 +29,8 @@ func TestSuccess(t *testing.T) {
 
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), workspace.ID)
+	require.NoError(t, err)
 
 	// Create a root key with appropriate permissions
 	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.read_role")
@@ -51,9 +54,10 @@ func TestSuccess(t *testing.T) {
 
 	// Insert test permissions into the database
 	for i, perm := range testPermissions {
-		err := db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
+		err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 			PermissionID: perm.ID,
 			WorkspaceID:  workspace.ID,
+			ProjectID:    projectID,
 			Name:         perm.Name,
 			Slug:         fmt.Sprintf("test-permission-%d", i+1),
 			Description:  dbtype.NullString{Valid: true, String: perm.Description},
@@ -77,9 +81,10 @@ func TestSuccess(t *testing.T) {
 
 	// Insert test roles into the database
 	for _, role := range testRoles {
-		err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+		err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 			RoleID:      role.ID,
 			WorkspaceID: workspace.ID,
+			ProjectID:   projectID,
 			Name:        role.Name,
 			Description: sql.NullString{Valid: true, String: role.Description},
 		})
@@ -99,9 +104,12 @@ func TestSuccess(t *testing.T) {
 
 	// Create roles in a different workspace to test isolation
 	otherWorkspace := h.CreateWorkspace()
-	err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
+	otherProjectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), otherWorkspace.ID)
+	require.NoError(t, err)
+	err = db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 		RoleID:      uid.New(uid.TestPrefix),
 		WorkspaceID: otherWorkspace.ID,
+		ProjectID:   otherProjectID,
 		Name:        "other.workspace.role",
 		Description: sql.NullString{Valid: true, String: "This role is in a different workspace"},
 	})
@@ -182,6 +190,7 @@ func TestSuccess(t *testing.T) {
 			err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 				RoleID:      roleID,
 				WorkspaceID: workspace.ID,
+				ProjectID:   projectID,
 				Name:        fmt.Sprintf("bulk.role.%d", i),
 				Description: sql.NullString{Valid: true, String: fmt.Sprintf("Bulk role %d", i)},
 			})
@@ -243,6 +252,8 @@ func TestSuccess(t *testing.T) {
 	t.Run("search", func(t *testing.T) {
 		// Fresh workspace so search results are not polluted by other subtests
 		searchWorkspace := h.CreateWorkspace()
+		searchProjectID, projectErr := projects.EnsureDefaultProject(ctx, h.DB.RW(), searchWorkspace.ID)
+		require.NoError(t, projectErr)
 		searchKey := h.CreateRootKey(searchWorkspace.ID, "rbac.*.read_role")
 		searchHeaders := http.Header{
 			"Content-Type":  {"application/json"},
@@ -264,6 +275,7 @@ func TestSuccess(t *testing.T) {
 			err := db.Query.InsertRole(ctx, h.DB.RW(), db.InsertRoleParams{
 				RoleID:      roleID,
 				WorkspaceID: searchWorkspace.ID,
+				ProjectID:   searchProjectID,
 				Name:        role.Name,
 				Description: sql.NullString{Valid: true, String: role.Description},
 			})

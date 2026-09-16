@@ -214,7 +214,6 @@ func TestCreateSessionAuditsGrantedScopesAndKeyspaces(t *testing.T) {
 		"api.*.read_key",
 		"api.*.read_api",
 		"api.*.create_key",
-		"api.*.read_analytics",
 	)
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
@@ -225,7 +224,7 @@ func TestCreateSessionAuditsGrantedScopesAndKeyspaces(t *testing.T) {
 		Portal:     "audit-portal",
 		ExternalId: "user_audit",
 		Scopes: []openapi.V2PortalCreateSessionRequestBodyScopes{
-			openapi.KeysRead, openapi.KeysReroll, openapi.AnalyticsRead,
+			openapi.KeysRead, openapi.KeysReroll,
 		},
 	})
 	require.Equal(t, 200, res.Status, "got: %s", res.RawBody)
@@ -247,7 +246,7 @@ func TestCreateSessionAuditsGrantedScopesAndKeyspaces(t *testing.T) {
 	// JSON round-trips these as []any, so compare element-wise rather than
 	// against a []string literal.
 	require.ElementsMatch(t,
-		[]any{"keys:read", "keys:reroll", "analytics:read"},
+		[]any{"keys:read", "keys:reroll"},
 		target.Meta["scopes"],
 		"the audit entry must record every granted scope",
 	)
@@ -260,4 +259,57 @@ func TestCreateSessionAuditsGrantedScopesAndKeyspaces(t *testing.T) {
 	// Pre-existing metadata must survive alongside the new fields.
 	require.Equal(t, "audit-portal", target.Meta["slug"])
 	require.NotEmpty(t, target.Meta["portalId"])
+}
+
+// TestCreateSessionAuditsMintingSubject pins who a minted session is attributed
+// to. A reroll performed inside the session is attributed to the end user, so
+// this entry is the only record joining the external id to the root key that
+// handed out access to it.
+func TestCreateSessionAuditsMintingSubject(t *testing.T) {
+	h := testutil.NewHarness(t)
+	ctx := context.Background()
+
+	route := &handler.Handler{
+		DB:            h.DB,
+		Auditlogs:     h.Auditlogs,
+		PortalBaseURL: "https://portal.unkey.com",
+		Clock:         h.Clock,
+	}
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
+	insertKeyspacePortal(t, h, workspaceID, "minter-portal", api.KeyAuthID.String)
+
+	rootKey := h.CreateRootKey(workspaceID,
+		"portal.*.create_portal_session",
+		"api.*.read_key",
+		"api.*.read_api",
+	)
+
+	// CreateRootKey returns the secret only, and the audit entry names the key
+	// row, so the expected actor id has to be resolved from the hash.
+	var minterKeyID string
+	require.NoError(t, h.DB.RO().QueryRowContext(ctx,
+		"SELECT id FROM `keys` WHERE hash = ?", hash.Sha256(rootKey),
+	).Scan(&minterKeyID))
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		Portal:     "minter-portal",
+		ExternalId: "user_minted",
+		Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead},
+	})
+	require.Equal(t, 200, res.Status, "got: %s", res.RawBody)
+
+	events := h.FindAuditLogsByTargetID(ctx, t, res.Body.Data.Id)
+	require.Len(t, events, 1)
+	require.Equal(t, minterKeyID, events[0].Actor.ID, "the minting root key must be the actor")
+	require.Equal(t, "rootkey", events[0].Actor.Type)
+	require.Contains(t, events[0].Description, "user_minted",
+		"the entry must name the end user the session was minted for")
 }

@@ -49,6 +49,11 @@ type Querier interface {
 	//
 	//  DELETE FROM app_runtime_settings WHERE environment_id = ?
 	DeleteAppRuntimeSettingsByEnvironmentId(ctx context.Context, db DBTX, environmentID string) error
+	//DeleteAppSourceOciByAppId
+	//
+	//  DELETE FROM app_source_oci
+	//  WHERE app_id = ?
+	DeleteAppSourceOciByAppId(ctx context.Context, db DBTX, appID string) error
 	//DeleteEnvVarsByEnvironmentId
 	//
 	//  DELETE FROM app_environment_variables
@@ -171,9 +176,9 @@ type Querier interface {
 	//  SELECT apis.pk, apis.id, apis.name, apis.workspace_id, apis.project_id, apis.ip_whitelist, apis.auth_type, apis.key_auth_id, apis.created_at_m, apis.updated_at_m, apis.deleted_at_m, apis.delete_protection FROM apis WHERE id = ?
 	FindApiByID(ctx context.Context, db DBTX, id string) (Api, error)
 	// Maps keyspace ids back to the api that owns them, scoped to a workspace.
-	// apis.key_auth_id is unique, so each keyspace resolves to at most one api.
+	// apis.key_auth_id is unique, so each keyspace resolves to at most one api and project.
 	//
-	//  SELECT ka.id as key_auth_id, a.id as api_id
+	//  SELECT ka.id as key_auth_id, ka.project_id, a.id as api_id
 	//  FROM apis a
 	//  JOIN key_auth as ka ON ka.id = a.key_auth_id
 	//  WHERE a.workspace_id = ?
@@ -190,7 +195,7 @@ type Querier interface {
 	FindAppBuildSettingByAppEnv(ctx context.Context, db DBTX, arg FindAppBuildSettingByAppEnvParams) (AppBuildSetting, error)
 	//FindAppById
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
 	//  WHERE id = ?
 	FindAppById(ctx context.Context, db DBTX, id string) (App, error)
@@ -201,16 +206,18 @@ type Querier interface {
 	// Anything validating that a caller owns the app it named must scope the lookup,
 	// so this exists as the scoped single-app read.
 	//
-	// Selects the id alone: every caller discards the row and keeps only whether it
-	// exists, so there is no reason to carry the rest of the columns.
+	// The project id comes back with it because an app's resource permissions are
+	// addressed as projects/{project_id}/apps/{app_id}: a caller that arrived with
+	// an app id alone would otherwise need a second read to say anything about the
+	// app it just proved it owns.
 	//
-	//  SELECT id FROM apps
+	//  SELECT id, project_id FROM apps
 	//  WHERE id = ?
 	//    AND workspace_id = ?
-	FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (string, error)
+	FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (FindAppByIdAndWorkspaceRow, error)
 	//FindAppByProjectAndIdOrSlug
 	//
-	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
+	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
 	//  FROM apps a
 	//  JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 	//  WHERE a.workspace_id = ?
@@ -299,6 +306,18 @@ type Querier interface {
 	//  WHERE app_id = ?
 	//    AND environment_id = ?
 	FindAppRuntimeSettingsByAppAndEnv(ctx context.Context, db DBTX, arg FindAppRuntimeSettingsByAppAndEnvParams) (AppRuntimeSetting, error)
+	//FindAppSourceOciByAppId
+	//
+	//  SELECT
+	//      pk,
+	//      workspace_id,
+	//      app_id,
+	//      image_reference,
+	//      created_at,
+	//      updated_at
+	//  FROM app_source_oci
+	//  WHERE app_id = ?
+	FindAppSourceOciByAppId(ctx context.Context, db DBTX, appID string) (AppSourceOci, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
 	//  SELECT
@@ -390,11 +409,11 @@ type Querier interface {
 	FindDefaultProjectByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (string, error)
 	//FindDeploymentById
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.image, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE id = ?
+	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentWithEnvironment
 	//
-	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind
+	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind
 	//  FROM deployments d
 	//  JOIN environments e ON d.environment_id = e.id
 	//  WHERE d.id = ?
@@ -447,6 +466,7 @@ type Querier interface {
 	//      installation_id,
 	//      repository_id,
 	//      repository_full_name,
+	//      default_branch,
 	//      created_at,
 	//      updated_at
 	//  FROM github_repo_connections
@@ -527,9 +547,9 @@ type Querier interface {
 	//      AND a.deleted_at_m IS NULL
 	FindKeyAuthsByIds(ctx context.Context, db DBTX, arg FindKeyAuthsByIdsParams) ([]FindKeyAuthsByIdsRow, error)
 	// Returns the subset of the given keyspace ids that exist in this workspace
-	// and are not soft-deleted, along with each keyspace's encryption setting.
+	// and are not soft-deleted, along with each keyspace's project and encryption setting.
 	//
-	//  SELECT id, store_encrypted_keys FROM key_auth
+	//  SELECT id, project_id, store_encrypted_keys FROM key_auth
 	//  WHERE workspace_id = ?
 	//    AND id IN (/*SLICE:key_auth_ids*/?)
 	//    AND deleted_at_m IS NULL
@@ -537,10 +557,11 @@ type Querier interface {
 	//FindKeyByID
 	//
 	//  SELECT
-	//      k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
-	//      k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
-	//      k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
-	//      k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id
+	//      k.pk, k.id, k.key_auth_id, k.hash, k.prefix, k.start, k.end, k.workspace_id,
+	//      k.for_workspace_id, k.name, k.identity_id, k.meta, k.expires, k.created_at_m,
+	//      k.updated_at_m, k.deleted_at_m, k.refill_day, k.refill_amount,
+	//      k.last_refill_at, k.enabled, k.remaining_requests, k.environment,
+	//      k.last_used_at, k.pending_migration_id
 	//  FROM `keys` k
 	//  WHERE k.id = ?
 	FindKeyByID(ctx context.Context, db DBTX, id string) (Key, error)
@@ -591,6 +612,7 @@ type Querier interface {
 	//      apis.workspace_id AS api_workspace_id,
 	//      apis.key_auth_id AS api_key_auth_id,
 	//      ka.id AS key_auth_id,
+	//      ka.project_id AS key_auth_project_id,
 	//      ka.store_encrypted_keys AS key_auth_store_encrypted_keys
 	//  FROM apis
 	//  JOIN key_auth as ka ON ka.id = apis.key_auth_id
@@ -604,7 +626,9 @@ type Querier interface {
 	//  SELECT
 	//      k.id AS key_id,
 	//      k.key_auth_id AS key_key_auth_id,
+	//      k.prefix AS key_prefix,
 	//      k.start AS key_start,
+	//      k.end AS key_end,
 	//      k.workspace_id AS key_workspace_id,
 	//      k.name AS key_name,
 	//      k.meta AS key_meta,
@@ -617,6 +641,8 @@ type Querier interface {
 	//      k.remaining_requests AS key_remaining_requests,
 	//      k.last_used_at AS key_last_used_at,
 	//      a.id AS api_id,
+	//      ka.id AS key_auth_id,
+	//      ka.project_id AS key_auth_project_id,
 	//      ka.store_encrypted_keys AS key_auth_store_encrypted_keys,
 	//      i.id as identity_table_id,
 	//      i.external_id as identity_external_id,
@@ -715,7 +741,9 @@ type Querier interface {
 	//      k.id AS key_id,
 	//      k.key_auth_id AS key_key_auth_id,
 	//      k.hash AS key_hash,
+	//      k.prefix AS key_prefix,
 	//      k.start AS key_start,
+	//      k.end AS key_end,
 	//      k.workspace_id AS key_workspace_id,
 	//      k.for_workspace_id AS key_for_workspace_id,
 	//      k.name AS key_name,
@@ -732,6 +760,7 @@ type Querier interface {
 	//      a.id AS api_id,
 	//      a.name AS api_name,
 	//      ka.id AS key_auth_id,
+	//      ka.project_id AS key_auth_project_id,
 	//      ka.store_encrypted_keys AS key_auth_store_encrypted_keys,
 	//      ka.default_prefix AS key_auth_default_prefix,
 	//      ka.default_bytes AS key_auth_default_bytes,
@@ -839,7 +868,9 @@ type Querier interface {
 	//  WHERE ns.workspace_id = ?
 	//    AND (ns.id IN (/*SLICE:namespaces*/?) OR ns.name IN (/*SLICE:namespaces*/?))
 	FindManyRatelimitNamespaces(ctx context.Context, db DBTX, arg FindManyRatelimitNamespacesParams) ([]FindManyRatelimitNamespacesRow, error)
-	//FindManyRolesByNamesWithPerms
+	// FindManyRolesByNamesWithPerms returns the requested roles and their
+	// permissions from one project. The project filter prevents cross-project key
+	// assignments.
 	//
 	//  SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -857,7 +888,9 @@ type Querier interface {
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM roles r
-	//  WHERE r.workspace_id = ? AND r.name IN (/*SLICE:names*/?)
+	//  WHERE r.workspace_id = ?
+	//    AND r.project_id = ?
+	//    AND r.name IN (/*SLICE:names*/?)
 	FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error)
 	// Finds a permission record by its ID
 	// Returns: The permission record if found
@@ -867,11 +900,13 @@ type Querier interface {
 	//  WHERE id = ?
 	//  LIMIT 1
 	FindPermissionByID(ctx context.Context, db DBTX, permissionID string) (Permission, error)
-	//FindPermissionByIdOrSlug
+	// FindPermissionByIdOrSlug resolves a permission within a workspace so the
+	// caller can authorize access against the permission's actual project.
 	//
 	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
 	//  FROM permissions
-	//  WHERE workspace_id = ? AND (id = ? OR slug = ?)
+	//  WHERE workspace_id = ?
+	//    AND (id = ? OR slug = ?)
 	FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (Permission, error)
 	//FindPermissionByNameAndWorkspaceID
 	//
@@ -889,26 +924,42 @@ type Querier interface {
 	//  AND workspace_id = ?
 	//  LIMIT 1
 	FindPermissionBySlugAndWorkspaceID(ctx context.Context, db DBTX, arg FindPermissionBySlugAndWorkspaceIDParams) (Permission, error)
-	//FindPermissionsBySlugs
+	// FindPermissionsBySlugs returns permissions with the requested slugs from one
+	// project. The project filter prevents cross-project key assignments.
 	//
-	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m FROM permissions WHERE workspace_id = ? AND slug IN (/*SLICE:slugs*/?)
+	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
+	//  FROM permissions
+	//  WHERE workspace_id = ?
+	//    AND project_id = ?
+	//    AND slug IN (/*SLICE:slugs*/?)
 	FindPermissionsBySlugs(ctx context.Context, db DBTX, arg FindPermissionsBySlugsParams) ([]Permission, error)
-	//FindPermissionsBySlugsForUpdate
+	// FindPermissionsBySlugsForUpdate locks matching permissions in one project so
+	// role assignment cannot attach permissions owned by another project.
 	//
 	//  SELECT id, name, slug, description
 	//  FROM permissions
 	//  WHERE workspace_id = ?
+	//    AND project_id = ?
 	//    AND slug IN (/*SLICE:slugs*/?)
 	//  ORDER BY slug
 	//  FOR UPDATE
 	FindPermissionsBySlugsForUpdate(ctx context.Context, db DBTX, arg FindPermissionsBySlugsForUpdateParams) ([]FindPermissionsBySlugsForUpdateRow, error)
+	// FindPermissionsBySlugsInWorkspace returns permissions with the requested
+	// slugs from any project in one workspace. Use it to detect cross-project slug
+	// conflicts before creating project-scoped permissions.
+	//
+	//  SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
+	//  FROM permissions
+	//  WHERE workspace_id = ?
+	//    AND slug IN (/*SLICE:slugs*/?)
+	FindPermissionsBySlugsInWorkspace(ctx context.Context, db DBTX, arg FindPermissionsBySlugsInWorkspaceParams) ([]Permission, error)
 	// Resolves the portal mapped to an app within a workspace. Callers that reach a
 	// portal through its app (rather than through an id or slug) use this.
 	//
 	// Workspace-scoped on purpose: `idx_app_id` is unique across the whole table, so
 	// an unscoped lookup would return another workspace's portal.
 	//
-	//  SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
+	//  SELECT pk, id, workspace_id, project_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
 	//  WHERE app_id = ?
 	//    AND workspace_id = ?
 	//  LIMIT 1
@@ -919,7 +970,7 @@ type Querier interface {
 	// UNION ALL of two index seeks instead of `id = ? OR slug = ?`, which would
 	// force a scan: `portals_id_unique` and `idx_workspace_slug` each serve one arm.
 	//
-	//  SELECT p.pk, p.id, p.workspace_id, p.slug, p.display_name, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
+	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.slug, p.display_name, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
 	//  FROM portals p
 	//  JOIN (
 	//      SELECT p1.id
@@ -935,7 +986,7 @@ type Querier interface {
 	// Resolves the portal mapped to a keyspace within a workspace. See
 	// portal_find_by_app.sql for why this is workspace-scoped.
 	//
-	//  SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
+	//  SELECT pk, id, workspace_id, project_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
 	//  WHERE key_auth_id = ?
 	//    AND workspace_id = ?
 	//  LIMIT 1
@@ -1069,7 +1120,8 @@ type Querier interface {
 	//  WHERE id = ?
 	//  LIMIT 1
 	FindRoleByID(ctx context.Context, db DBTX, roleID string) (Role, error)
-	//FindRoleByIdOrNameWithPerms
+	// FindRoleByIdOrNameWithPerms resolves a role within a workspace so the caller
+	// can authorize access against the role's actual project.
 	//
 	//  SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 	//          (SELECT JSON_ARRAYAGG(
@@ -1087,7 +1139,8 @@ type Querier interface {
 	//          JSON_ARRAY()
 	//  ) as permissions
 	//  FROM roles r
-	//  WHERE r.workspace_id = ? AND (
+	//  WHERE r.workspace_id = ?
+	//    AND (
 	//      r.id = ?
 	//      OR r.name = ?
 	//  )
@@ -1108,17 +1161,22 @@ type Querier interface {
 	//  WHERE role_id = ?
 	//    AND permission_id = ?
 	FindRolePermissionByRoleAndPermissionID(ctx context.Context, db DBTX, arg FindRolePermissionByRoleAndPermissionIDParams) ([]RolesPermission, error)
-	//FindRolesByNames
+	// FindRolesByNames returns roles with the requested names from one project. The
+	// project filter prevents cross-project key assignments.
 	//
-	//  SELECT id, name FROM roles WHERE workspace_id = ? AND name IN (/*SLICE:names*/?)
+	//  SELECT id, name FROM roles
+	//  WHERE workspace_id = ?
+	//    AND project_id = ?
+	//    AND name IN (/*SLICE:names*/?)
 	FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error)
-	//FindVerifiedCustomDomainByAppID
+	// FindRolesByNamesInWorkspace returns roles with the requested names from any
+	// project in one workspace. Use it to detect cross-project name conflicts
+	// before creating project-scoped roles.
 	//
-	//  SELECT custom_domains.pk, custom_domains.id, custom_domains.workspace_id, custom_domains.project_id, custom_domains.app_id, custom_domains.environment_id, custom_domains.domain, custom_domains.challenge_type, custom_domains.verification_status, custom_domains.verification_token, custom_domains.ownership_verified, custom_domains.cname_verified, custom_domains.target_cname, custom_domains.last_checked_at, custom_domains.check_attempts, custom_domains.verification_error, custom_domains.domain_connect_provider, custom_domains.domain_connect_url, custom_domains.invocation_id, custom_domains.created_at, custom_domains.updated_at FROM custom_domains
-	//  WHERE app_id = ? AND verification_status = 'verified'
-	//  ORDER BY created_at ASC, id ASC
-	//  LIMIT 1
-	FindVerifiedCustomDomainByAppID(ctx context.Context, db DBTX, appID string) (CustomDomain, error)
+	//  SELECT id, project_id, name FROM roles
+	//  WHERE workspace_id = ?
+	//    AND name IN (/*SLICE:names*/?)
+	FindRolesByNamesInWorkspace(ctx context.Context, db DBTX, arg FindRolesByNamesInWorkspaceParams) ([]FindRolesByNamesInWorkspaceRow, error)
 	// Reads a workspace's billing row directly (Stripe linkage, tier, Compute plan,
 	// spend budget and spend-cap state). Use this when only billing state is needed;
 	// when a workspace is already being fetched, prefer joining workspace_billing in
@@ -1203,7 +1261,7 @@ type Querier interface {
 	//      project_id,
 	//      name,
 	//      slug,
-	//      default_branch,
+	//      source_type,
 	//      delete_protection,
 	//      created_at,
 	//      updated_at
@@ -1224,6 +1282,22 @@ type Querier interface {
 	//  INSERT INTO app_environment_variables (id, workspace_id, app_id, environment_id, `key`, value, `type`, description, created_at)
 	//  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 	InsertAppEnvironmentVariable(ctx context.Context, db DBTX, arg InsertAppEnvironmentVariableParams) error
+	//InsertAppSourceOci
+	//
+	//  INSERT INTO app_source_oci (
+	//      workspace_id,
+	//      app_id,
+	//      image_reference,
+	//      created_at,
+	//      updated_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertAppSourceOci(ctx context.Context, db DBTX, arg InsertAppSourceOciParams) error
 	// InsertClickhouseOutbox enqueues one event for ClickHouse export. Called
 	// from the same MySQL transaction as the underlying mutation, so durability
 	// is exactly the durability of the mutation: if the mutation commits, the
@@ -1325,6 +1399,8 @@ type Querier interface {
 	//      project_id,
 	//      app_id,
 	//      environment_id,
+	//      source,
+	//      image_requested,
 	//      git_commit_sha,
 	//      git_branch,
 	//      sentinel_config,
@@ -1351,6 +1427,8 @@ type Querier interface {
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1481,10 +1559,12 @@ type Querier interface {
 	//      installation_id,
 	//      repository_id,
 	//      repository_full_name,
+	//      default_branch,
 	//      created_at,
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1560,13 +1640,16 @@ type Querier interface {
 	//      auto_apply = VALUES(auto_apply),
 	//      updated_at = VALUES(created_at)
 	InsertIdentityRatelimit(ctx context.Context, db DBTX, arg InsertIdentityRatelimitParams) error
-	//InsertKey
+	// InsertKey writes the plaintext key parts and hash in one statement so they stay consistent.
+	// Callers that do not know these parts pass empty prefix and end values.
 	//
 	//  INSERT INTO `keys` (
 	//      id,
 	//      key_auth_id,
 	//      hash,
+	//      prefix,
 	//      start,
+	//      end,
 	//      workspace_id,
 	//      for_workspace_id,
 	//      name,
@@ -1580,6 +1663,8 @@ type Querier interface {
 	//      refill_amount,
 	//      pending_migration_id
 	//  ) VALUES (
+	//      ?,
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1721,6 +1806,7 @@ type Querier interface {
 	//  INSERT INTO portals (
 	//      id,
 	//      workspace_id,
+	//      project_id,
 	//      slug,
 	//      display_name,
 	//      app_id,
@@ -1731,6 +1817,7 @@ type Querier interface {
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1964,9 +2051,25 @@ type Querier interface {
 	ListAppRuntimeSettingsByApp(ctx context.Context, db DBTX, appID string) ([]AppRuntimeSetting, error)
 	//ListAppsByProject
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at, grc.repository_full_name AS repository_full_name
+	//  SELECT
+	//    apps.pk,
+	//    apps.id,
+	//    apps.workspace_id,
+	//    apps.project_id,
+	//    apps.name,
+	//    apps.slug,
+	//    apps.source_type,
+	//    apps.current_deployment_id,
+	//    apps.is_rolled_back,
+	//    apps.delete_protection,
+	//    apps.created_at,
+	//    apps.updated_at,
+	//    grc.repository_full_name AS repository_full_name,
+	//    grc.default_branch AS github_default_branch,
+	//    aso.image_reference AS oci_image_reference
 	//  FROM apps
 	//  LEFT JOIN github_repo_connections grc ON grc.app_id = apps.id
+	//  LEFT JOIN app_source_oci aso ON aso.app_id = apps.id
 	//  WHERE apps.project_id = ?
 	//    AND apps.id >= ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
@@ -1984,35 +2087,40 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//  ORDER BY pk
 	ListClickhouseOutboxByWorkspace(ctx context.Context, db DBTX, workspaceID string) ([]ListClickhouseOutboxByWorkspaceRow, error)
-	//ListCustomDomainsByEnvironment
+	// ListCustomDomains filters by IDs resolved at the most specific supplied scope.
+	// An empty scope lists the workspace. Callers authorize each returned domain.
 	//
 	//  SELECT
-	//      id,
-	//      project_id,
-	//      app_id,
-	//      environment_id,
-	//      domain,
-	//      verification_status,
-	//      verification_token,
-	//      ownership_verified,
-	//      cname_verified,
-	//      target_cname,
-	//      verification_error,
-	//      domain_connect_provider,
-	//      domain_connect_url,
-	//      last_checked_at,
-	//      created_at,
-	//      updated_at
-	//  FROM custom_domains
-	//  WHERE workspace_id = ?
-	//    AND project_id = ?
-	//    AND environment_id = ?
-	//    AND id >= ?
+	//      cd.id,
+	//      cd.project_id,
+	//      cd.app_id,
+	//      cd.environment_id,
+	//      cd.domain,
+	//      cd.verification_status,
+	//      cd.verification_token,
+	//      cd.ownership_verified,
+	//      cd.cname_verified,
+	//      cd.target_cname,
+	//      cd.verification_error,
+	//      cd.domain_connect_provider,
+	//      cd.domain_connect_url,
+	//      cd.last_checked_at,
+	//      cd.created_at,
+	//      cd.updated_at
+	//  FROM custom_domains cd
+	//  WHERE cd.workspace_id = ?
+	//    AND (
+	//      ? = ''
+	//      OR (? = 'project' AND cd.project_id IN (/*SLICE:project_ids*/?))
+	//      OR (? = 'app' AND cd.app_id IN (/*SLICE:app_ids*/?))
+	//      OR (? = 'environment' AND cd.environment_id IN (/*SLICE:environment_ids*/?))
+	//    )
+	//    AND cd.id >= ?
 	//    -- search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
-	//    AND (? IS NULL OR LOWER(id) LIKE LOWER(?) OR LOWER(domain) LIKE LOWER(?))
-	//  ORDER BY id ASC
+	//    AND (? IS NULL OR LOWER(cd.id) LIKE LOWER(?) OR LOWER(cd.domain) LIKE LOWER(?))
+	//  ORDER BY cd.id ASC
 	//  LIMIT ?
-	ListCustomDomainsByEnvironment(ctx context.Context, db DBTX, arg ListCustomDomainsByEnvironmentParams) ([]ListCustomDomainsByEnvironmentRow, error)
+	ListCustomDomains(ctx context.Context, db DBTX, arg ListCustomDomainsParams) ([]ListCustomDomainsRow, error)
 	//ListDeploymentDomains
 	//
 	//  SELECT r.fully_qualified_domain_name AS domain
@@ -2069,7 +2177,7 @@ type Querier interface {
 	// has_status_filter gates the status clause; without it sqlc renders an empty
 	// status set as IN (NULL), which matches nothing.
 	//
-	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.image, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at FROM `deployments` d
+	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at FROM `deployments` d
 	//  WHERE d.workspace_id = ?
 	//    AND (? = '' OR d.project_id = ?)
 	//    AND (? = '' OR d.app_id = ?)
@@ -2115,7 +2223,7 @@ type Querier interface {
 	//    AND error IS NOT NULL AND error != ''
 	//  ORDER BY deployment_id, started_at ASC
 	ListFailedDeploymentStepsByIds(ctx context.Context, db DBTX, arg ListFailedDeploymentStepsByIdsParams) ([]DeploymentStep, error)
-	// ListIdentities returns one page of a workspace's identities with their
+	// ListIdentities returns one page of a project's identities with their
 	// ratelimits aggregated into a JSON array (empty array when none exist).
 	// Pagination is cursor-based: ORDER BY i.id ASC with i.id >= id_cursor makes
 	// pages deterministic, and the empty-string cursor starts from the first row.
@@ -2125,6 +2233,7 @@ type Querier interface {
 	//      i.id,
 	//      i.external_id,
 	//      i.workspace_id,
+	//      i.project_id,
 	//      i.environment,
 	//      i.meta,
 	//      i.deleted,
@@ -2146,6 +2255,7 @@ type Querier interface {
 	//      ) as ratelimits
 	//  FROM identities i
 	//  WHERE i.workspace_id = ?
+	//  AND i.project_id = ?
 	//  AND i.deleted = ?
 	//  AND i.id >= ?
 	//  AND (? IS NULL OR LOWER(i.id) LIKE LOWER(?) OR LOWER(i.external_id) LIKE LOWER(?))
@@ -2165,8 +2275,8 @@ type Querier interface {
 	ListIdentityRatelimitsByID(ctx context.Context, db DBTX, identityID sql.NullString) ([]Ratelimit, error)
 	//ListLiveKeysByKeySpaceID
 	//
-	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
-	//         k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
+	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.prefix, k.start, k.end, k.workspace_id,
+	//         k.for_workspace_id, k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
 	//         k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
 	//         k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//         i.id                 as identity_table_id,
@@ -2260,8 +2370,8 @@ type Querier interface {
 	ListLiveKeysByKeySpaceID(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDParams) ([]ListLiveKeysByKeySpaceIDRow, error)
 	//ListLiveKeysByKeySpaceIDs
 	//
-	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.start, k.workspace_id, k.for_workspace_id,
-	//         k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
+	//  SELECT k.pk, k.id, k.key_auth_id, k.hash, k.prefix, k.start, k.end, k.workspace_id,
+	//         k.for_workspace_id, k.name, k.identity_id, k.meta, k.expires, k.created_at_m, k.updated_at_m,
 	//         k.deleted_at_m, k.refill_day, k.refill_amount, k.last_refill_at, k.enabled,
 	//         k.remaining_requests, k.environment, k.last_used_at, k.pending_migration_id,
 	//         i.id                 as identity_table_id,
@@ -2353,11 +2463,12 @@ type Querier interface {
 	//  ORDER BY k.id ASC
 	//  LIMIT ?
 	ListLiveKeysByKeySpaceIDs(ctx context.Context, db DBTX, arg ListLiveKeysByKeySpaceIDsParams) ([]ListLiveKeysByKeySpaceIDsRow, error)
-	//ListPermissions
+	// ListPermissions returns one page of permission definitions from one project.
 	//
 	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.name, p.slug, p.description, p.created_at_m, p.updated_at_m
 	//  FROM permissions p
 	//  WHERE p.workspace_id = ?
+	//    AND p.project_id = ?
 	//    AND p.id >= ?
 	//    -- search and description_search carry the same pre-escaped LIKE pattern built
 	//    -- by mysql.SearchContains; NULL disables the filter. They are separate params
@@ -2435,6 +2546,7 @@ type Querier interface {
 	//
 	//  SELECT id, name, platform, can_schedule FROM regions
 	ListRegions(ctx context.Context, db DBTX) ([]ListRegionsRow, error)
+	// ListRoles returns one page of roles and their permissions from one project.
 	// search is a pre-escaped LIKE pattern built by mysql.SearchContains; NULL disables the filter
 	//
 	//  SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
@@ -2454,6 +2566,7 @@ type Querier interface {
 	//  ) as permissions
 	//  FROM roles r
 	//  WHERE r.workspace_id = ?
+	//  AND r.project_id = ?
 	//  AND r.id >= ?
 	//  AND (? IS NULL OR LOWER(r.id) LIKE LOWER(?) OR LOWER(r.name) LIKE LOWER(?) OR LOWER(r.description) LIKE LOWER(?))
 	//  ORDER BY r.id
@@ -2527,13 +2640,14 @@ type Querier interface {
 	//  WHERE id = ?
 	//  FOR UPDATE
 	LockKeyForUpdate(ctx context.Context, db DBTX, id string) (string, error)
-	//LockRoleByIDAndWorkspaceID
+	//LockRoleByIDOrNameAndWorkspaceID
 	//
-	//  SELECT id, name
+	//  SELECT id, project_id, name
 	//  FROM roles
-	//  WHERE id = ? AND workspace_id = ?
+	//  WHERE workspace_id = ?
+	//    AND (id = ? OR name = ?)
 	//  FOR UPDATE
-	LockRoleByIDAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDAndWorkspaceIDParams) (LockRoleByIDAndWorkspaceIDRow, error)
+	LockRoleByIDOrNameAndWorkspaceID(ctx context.Context, db DBTX, arg LockRoleByIDOrNameAndWorkspaceIDParams) (LockRoleByIDOrNameAndWorkspaceIDRow, error)
 	// Clears the workspace_billing linkage on a workspace, returning it to the
 	// Free tier. Mirrors what the customer.subscription.deleted webhook writes,
 	// plus stripe_customer_id, which no webhook ever clears. Stripe subscription
@@ -2547,6 +2661,84 @@ type Querier interface {
 	//      tier = 'Free'
 	//  WHERE workspace_id = ?
 	ResetWorkspaceBilling(ctx context.Context, db DBTX, id string) error
+	// ResolveCustomDomainApps resolves the domain-list scope when app is supplied and
+	// environment is omitted. It returns app IDs, not the IDs of their environments,
+	// so the domain query can select every domain under those apps without parent joins.
+	//
+	// App matches are resolved through separate ID and slug index lookups, and both matches
+	// are returned when an ID collides with another app's slug. An empty project disables
+	// that filter. When supplied, project must match the app's actual
+	// parent in the authorized workspace. Missing or incompatible filters return no IDs.
+	// Results are unordered and do not establish permission to read any domain.
+	//
+	// For example, app=api and project=payments returns app_1 when app_1 has slug api
+	// under the project with slug payments. If app_2 also has slug api under billing,
+	// it is excluded. With an empty project, both app_1 and app_2 are returned. Neither case
+	// enumerates environments; the caller loads domains by app_id and authorizes each row.
+	//
+	//  SELECT a.id
+	//  FROM apps a
+	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+	//  WHERE a.workspace_id = ?
+	//    AND a.id = ?
+	//    AND (? = '' OR p.id = ? OR p.slug = ?)
+	//  UNION ALL
+	//  SELECT a.id
+	//  FROM apps a
+	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = a.workspace_id
+	//  WHERE a.workspace_id = ?
+	//    AND a.slug = ?
+	//    AND a.id <> ?
+	//    AND (? = '' OR p.id = ? OR p.slug = ?)
+	ResolveCustomDomainApps(ctx context.Context, db DBTX, arg ResolveCustomDomainAppsParams) ([]string, error)
+	// ResolveCustomDomainEnvironments resolves the domain-list scope whenever an
+	// environment identifier is supplied. It returns environment IDs after applying
+	// all supplied filters to the same project/app/environment ancestry in the authorized
+	// workspace. Environment ID and slug use separate index lookups, and both matches are
+	// returned when an ID collides with another environment's slug.
+	// Empty project or app values disable their respective filters. Missing or incompatible
+	// filters return no IDs. Results are unordered and do not authorize domain access.
+	//
+	// For example, environment=production with empty project and app values returns env_1 and
+	// env_2 if both have slug production, even when they belong to different projects.
+	// Adding project=payments and app=api retains only environments under matching apps
+	// in matching projects. The caller then loads domains by environment_id and authorizes
+	// each row without repeating the parent filters in the domain query.
+	//
+	//  SELECT e.id
+	//  FROM environments e
+	//  JOIN apps a ON a.id = e.app_id AND a.project_id = e.project_id AND a.workspace_id = e.workspace_id
+	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = e.workspace_id
+	//  WHERE e.workspace_id = ?
+	//    AND e.id = ?
+	//    AND (? = '' OR p.id = ? OR p.slug = ?)
+	//    AND (? = '' OR a.id = ? OR a.slug = ?)
+	//  UNION ALL
+	//  SELECT e.id
+	//  FROM environments e
+	//  JOIN apps a ON a.id = e.app_id AND a.project_id = e.project_id AND a.workspace_id = e.workspace_id
+	//  JOIN projects p ON p.id = a.project_id AND p.workspace_id = e.workspace_id
+	//  WHERE e.workspace_id = ?
+	//    AND e.slug = ?
+	//    AND e.id <> ?
+	//    AND (? = '' OR p.id = ? OR p.slug = ?)
+	//    AND (? = '' OR a.id = ? OR a.slug = ?)
+	ResolveCustomDomainEnvironments(ctx context.Context, db DBTX, arg ResolveCustomDomainEnvironmentsParams) ([]string, error)
+	// ResolveCustomDomainProjects resolves the domain-list scope when only a project
+	// identifier is supplied. It returns every matching project ID in the authorized
+	// workspace without enumerating apps or environments. Missing projects return no IDs.
+	// Results are unordered and do not establish permission to read any domain.
+	//
+	// For example, project=payments returns proj_1 when proj_1 has slug payments.
+	// If another project in the same workspace has ID payments, both IDs are returned:
+	// an ID match does not take precedence over a slug match. The caller loads domains
+	// by project_id and authorizes each row.
+	//
+	//  SELECT p.id
+	//  FROM projects p
+	//  WHERE p.workspace_id = ?
+	//    AND (p.id = ? OR p.slug = ?)
+	ResolveCustomDomainProjects(ctx context.Context, db DBTX, arg ResolveCustomDomainProjectsParams) ([]string, error)
 	// Resolves a project (required) + optional app/environment, each an id or slug, to
 	// their ids in one query. app/environment LEFT JOIN on the parent id, so a value that
 	// doesn't match yields NULL for that level (caller reads NULL as not-found).
@@ -2640,10 +2832,6 @@ type Querier interface {
 	//      slug = CASE
 	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
 	//          ELSE a.slug
-	//      END,
-	//      default_branch = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-	//          ELSE a.default_branch
 	//      END,
 	//      delete_protection = CASE
 	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
@@ -2739,6 +2927,14 @@ type Querier interface {
 	//    AND app_id = ?
 	//    AND environment_id = ?
 	UpdateAppRuntimeSettings(ctx context.Context, db DBTX, arg UpdateAppRuntimeSettingsParams) error
+	//UpdateAppSourceOciImageReference
+	//
+	//  UPDATE app_source_oci
+	//  SET image_reference = ?,
+	//      updated_at = ?
+	//  WHERE app_id = ?
+	//    AND workspace_id = ?
+	UpdateAppSourceOciImageReference(ctx context.Context, db DBTX, arg UpdateAppSourceOciImageReferenceParams) error
 	//UpdateCustomDomainsMax
 	//
 	//  UPDATE `limits`
@@ -2754,9 +2950,19 @@ type Querier interface {
 	//UpdateDeploymentImage
 	//
 	//  UPDATE deployments
-	//  SET image = ?, updated_at = ?
+	//  SET image_resolved = ?,
+	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentImage(ctx context.Context, db DBTX, arg UpdateDeploymentImageParams) error
+	//UpdateGithubRepoConnectionDefaultBranch
+	//
+	//  UPDATE github_repo_connections
+	//  SET
+	//    default_branch = ?,
+	//    updated_at = ?
+	//  WHERE workspace_id = ?
+	//    AND app_id = ?
+	UpdateGithubRepoConnectionDefaultBranch(ctx context.Context, db DBTX, arg UpdateGithubRepoConnectionDefaultBranchParams) (int64, error)
 	//UpdateHorizontalAutoscalingPolicy
 	//
 	//  UPDATE horizontal_autoscaling_policies
@@ -2857,9 +3063,13 @@ type Querier interface {
 	// remove the row between resolving it and this statement.
 	//
 	// Each field carries a `_specified` flag so an omitted field keeps its stored
-	// value. `slug`, `display_name` and `enabled` are NOT NULL and take sqlc.arg; the two
-	// associations and the two branding columns are nullable and take sqlc.narg, so
-	// an explicit null clears them.
+	// value. `slug`, `display_name` and `enabled` are NOT NULL and take sqlc.arg;
+	// the two associations and the two branding columns are nullable and take
+	// sqlc.narg, so an explicit null clears them.
+	//
+	// `project_id` is absent because a portal cannot change project: a remap to
+	// another project is refused before this runs, so the stored value always
+	// already matches the mapping.
 	//
 	//  UPDATE portals p
 	//  SET
@@ -3071,10 +3281,12 @@ type Querier interface {
 	//      installation_id,
 	//      repository_id,
 	//      repository_full_name,
+	//      default_branch,
 	//      created_at,
 	//      updated_at
 	//  )
 	//  VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -3089,6 +3301,7 @@ type Querier interface {
 	//      installation_id = VALUES(installation_id),
 	//      repository_id = VALUES(repository_id),
 	//      repository_full_name = VALUES(repository_full_name),
+	//      default_branch = VALUES(default_branch),
 	//      updated_at = VALUES(updated_at)
 	UpsertGithubRepoConnection(ctx context.Context, db DBTX, arg UpsertGithubRepoConnectionParams) error
 	// Inserts a new identity or does nothing if one already exists for this workspace/external_id.
@@ -3163,8 +3376,10 @@ type Querier interface {
 	//      custom_domains_max = VALUES(custom_domains_max),
 	//      autoscaling_replicas_max = VALUES(autoscaling_replicas_max)
 	UpsertLimit(ctx context.Context, db DBTX, arg UpsertLimitParams) error
-	// Inserts a permission or leaves the existing workspace/slug row unchanged.
-	// Use FindPermissionsBySlugsForUpdate after this to get the canonical row.
+	// UpsertPermission inserts a permission or leaves the existing workspace/slug
+	// row unchanged.
+	// Use FindPermissionsBySlugsForUpdate after this to get the canonical row from
+	// the requested project.
 	//
 	//  INSERT INTO permissions (
 	//    id,

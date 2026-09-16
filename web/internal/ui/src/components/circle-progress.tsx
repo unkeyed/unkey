@@ -1,4 +1,3 @@
-import { type iconSize as IconSize, sizeMap } from "@unkey/icons";
 import { type VariantProps, cva } from "class-variance-authority";
 import type * as React from "react";
 import { cn } from "../lib/utils";
@@ -28,12 +27,8 @@ type CircleProgressProps = React.HTMLAttributes<HTMLDivElement> & {
   value: number;
   /** Total/maximum value that represents 100% completion */
   total: number;
-  /**
-   * Size using the standard icon sizing system (size-weight format)
-   * @default "md-regular"
-   * @example "sm-thin", "lg-bold", "xl-medium"
-   */
-  iconSize?: IconSize;
+  /** Diameter in px */
+  size?: number;
   ref?: React.Ref<HTMLDivElement>;
 } & VariantProps<typeof circleProgressVariants>;
 
@@ -54,21 +49,21 @@ type CircleProgressProps = React.HTMLAttributes<HTMLDivElement> & {
  *   value={validFields}
  *   total={requiredFields}
  *   variant="success"
- *   iconSize="lg-medium"
+ * className="size-4"
  * />
  *
  * // Small thin progress indicator
  * <CircleProgress
  *   value={progress}
  *   total={100}
- *   iconSize="sm-thin"
+ * className="size-3"
  * />
  * ```
  */
 export function CircleProgress({
   value,
   total,
-  iconSize = "md-regular",
+  size = 14,
   className,
   variant,
   ref,
@@ -85,7 +80,8 @@ export function CircleProgress({
     throw new Error("CircleProgress: value and total must be finite numbers");
   }
 
-  const { iconSize: actualSize, strokeWidth } = sizeMap[iconSize];
+  const actualSize = size;
+  const strokeWidth = 1.5;
 
   const radius = (actualSize - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;

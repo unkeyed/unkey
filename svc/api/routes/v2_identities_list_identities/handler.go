@@ -15,6 +15,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -54,8 +55,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
+	projectID, err := projects.EnsureDefaultProject(ctx, h.DB.RW(), principal.AuthorizedWorkspaceID)
+	if err != nil {
+		return err
+	}
+
 	identities, err := db.Query.ListIdentities(ctx, h.DB.RO(), db.ListIdentitiesParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
+		ProjectID:   projectID,
 		Deleted:     false,
 		IDCursor:    p.Cursor,
 		Search:      search,
@@ -68,6 +75,23 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	identities, pg := pagination.Paginate(identities, p, func(r db.ListIdentitiesRow) string { return r.ID })
+
+	if len(identities) == 0 {
+		err = principal.Authorize(rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Identity,
+				ResourceID:   "*",
+				Action:       rbac.ReadIdentity,
+			}),
+			rbac.U(
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).Identity("*"),
+				permissions.Read,
+			),
+		))
+		if err != nil {
+			return err
+		}
+	}
 
 	// Check permissions for all identities before processing
 	for _, id := range identities {
@@ -84,8 +108,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Action:       rbac.ReadIdentity,
 			}),
 			rbac.U(
-				urn.New().Workspace(principal.WorkspaceID).Project("*").Identity("*"),
-				permissions.ReadIdentity{},
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(id.ProjectID).Identity(id.ID),
+				permissions.Read,
 			),
 		)
 

@@ -21,7 +21,7 @@ func TestScopeQueriesDeniesUnmappedScope(t *testing.T) {
 
 	t.Run("known scopes map to a non-empty requirement", func(t *testing.T) {
 		for _, s := range []openapi.V2PortalCreateSessionRequestBodyScopes{
-			openapi.KeysRead, openapi.KeysCreate, openapi.KeysReroll, openapi.AnalyticsRead,
+			openapi.KeysRead, openapi.KeysReroll,
 		} {
 			queries, ok := handler.ScopeQueries(s, apiID, false)
 			require.True(t, ok, "scope %q must map", s)
@@ -35,6 +35,18 @@ func TestScopeQueriesDeniesUnmappedScope(t *testing.T) {
 		require.Empty(t, queries)
 	})
 
+	// These two used to map here. A stale arm would not look like a typo, so
+	// pin them explicitly.
+	t.Run("removed scopes are unknown", func(t *testing.T) {
+		for _, s := range []openapi.V2PortalCreateSessionRequestBodyScopes{
+			"analytics:read", "keys:create",
+		} {
+			queries, ok := handler.ScopeQueries(s, apiID, false)
+			require.False(t, ok, "scope %q is no longer in the vocabulary and must deny", s)
+			require.Empty(t, queries)
+		}
+	})
+
 	t.Run("encryption adds a conjunct for key minting scopes", func(t *testing.T) {
 		plain, ok := handler.ScopeQueries(openapi.KeysReroll, apiID, false)
 		require.True(t, ok)
@@ -42,5 +54,43 @@ func TestScopeQueriesDeniesUnmappedScope(t *testing.T) {
 		require.True(t, ok)
 		require.Len(t, plain, 1)
 		require.Len(t, encrypted, 2)
+	})
+}
+
+// TestCanonicalScopeQueriesDeniesUnmappedScope pins the canonical mapping's ok
+// flag. A scope with no canonical form must report false so the composition
+// drops the canonical arm and leaves the legacy one as the only way to satisfy
+// it; an empty conjunction would instead pass unchecked.
+func TestCanonicalScopeQueriesDeniesUnmappedScope(t *testing.T) {
+	const (
+		workspaceID = "ws_test"
+		projectID   = "proj_test"
+		keyspaceID  = "ks_test"
+	)
+
+	t.Run("known scopes map to a non-empty requirement", func(t *testing.T) {
+		for _, s := range []openapi.V2PortalCreateSessionRequestBodyScopes{
+			openapi.KeysRead, openapi.KeysReroll,
+		} {
+			queries, ok := handler.CanonicalScopeQueries(s, workspaceID, projectID, keyspaceID)
+			require.True(t, ok, "scope %q must map", s)
+			require.NotEmpty(t, queries, "scope %q must produce at least one check", s)
+		}
+	})
+
+	t.Run("unknown and removed scopes deny", func(t *testing.T) {
+		for _, s := range []openapi.V2PortalCreateSessionRequestBodyScopes{
+			"keys:destroy", "analytics:read", "keys:create",
+		} {
+			queries, ok := handler.CanonicalScopeQueries(s, workspaceID, projectID, keyspaceID)
+			require.False(t, ok, "scope %q must deny, not be skipped", s)
+			require.Empty(t, queries)
+		}
+	})
+
+	t.Run("the read requirement is a conjunction of key and keyspace read", func(t *testing.T) {
+		queries, ok := handler.CanonicalScopeQueries(openapi.KeysRead, workspaceID, projectID, keyspaceID)
+		require.True(t, ok)
+		require.Len(t, queries, 2)
 	})
 }

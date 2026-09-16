@@ -37,6 +37,7 @@ import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryComputeAllocation } from "./billing/query-compute-allocation";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
+import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
 import { queryUsage } from "./billing/query-usage";
 import { listApps } from "./deploy/app/list";
 import { countCustomDomains } from "./deploy/custom-domains/count";
@@ -49,6 +50,8 @@ import { getById as getDeploymentById } from "./deploy/deployment/getById";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { getDeploymentInstanceEvents } from "./deploy/deployment/instance-events";
 import { listDeployments } from "./deploy/deployment/list";
+import { listActiveBranches } from "./deploy/deployment/list-active-branches";
+import { listDeploymentBranches } from "./deploy/deployment/list-branches";
 import { searchDeployments } from "./deploy/deployment/llm-search";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
@@ -353,6 +356,7 @@ export const router = t.router({
     queryUsage,
     queryDeployUsage,
     queryDeployUsageBreakdown,
+    queryDeployUsageTimeseries,
     queryComputeAllocation,
     getDeployBudget,
     setDeployBudget,
@@ -429,6 +433,8 @@ export const router = t.router({
     }),
     deployment: t.router({
       list: listDeployments,
+      listBranches: listDeploymentBranches,
+      listActiveBranches,
       getById: getDeploymentById,
       buildSteps: getDeploymentBuildSteps,
       runtimeLogs: getDeploymentRuntimeLogs,

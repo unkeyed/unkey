@@ -65,21 +65,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Identity,
-			ResourceID:   "*",
-			Action:       rbac.CreateIdentity,
-		}),
-		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project("*").Identity("*"),
-			permissions.CreateIdentity{},
-		),
-	))
-	if err != nil {
-		return err
-	}
-
 	meta := []byte("{}")
 	if req.Meta != nil {
 		rawMeta, metaErr := json.Marshal(req.Meta)
@@ -100,15 +85,30 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	identityID := uid.New(uid.IdentityPrefix)
 
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
+		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.AuthorizedWorkspaceID)
 		if resolveErr != nil {
 			return resolveErr
+		}
+
+		authorizeErr := principal.Authorize(rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Identity,
+				ResourceID:   "*",
+				Action:       rbac.CreateIdentity,
+			}),
+			rbac.U(
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).Identity("*"),
+				permissions.Write,
+			),
+		))
+		if authorizeErr != nil {
+			return authorizeErr
 		}
 
 		args := db.InsertIdentityParams{
 			ID:          identityID,
 			ExternalID:  req.ExternalId,
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			ProjectID:   projectID,
 			Environment: "default",
 			CreatedAt:   time.Now().UnixMilli(),
@@ -131,7 +131,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		auditLogs := []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.IdentityCreateEvent,
 				Display:       fmt.Sprintf("Created identity %s.", identityID),
 				ActorID:       principal.Subject.ID,
@@ -159,7 +159,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ratelimitID := uid.New(uid.RatelimitPrefix)
 				rateLimitsToInsert[i] = db.InsertIdentityRatelimitParams{
 					ID:          ratelimitID,
-					WorkspaceID: principal.WorkspaceID,
+					WorkspaceID: principal.AuthorizedWorkspaceID,
 					IdentityID:  sql.NullString{String: identityID, Valid: true},
 					Name:        ratelimit.Name,
 					Limit:       uint64(ratelimit.Limit),
@@ -169,7 +169,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				}
 
 				auditLogs = append(auditLogs, auditlog.AuditLog{
-					WorkspaceID:   principal.WorkspaceID,
+					WorkspaceID:   principal.AuthorizedWorkspaceID,
 					Event:         auditlog.RatelimitCreateEvent,
 					Display:       fmt.Sprintf("Created ratelimit %s.", ratelimitID),
 					ActorID:       principal.Subject.ID,

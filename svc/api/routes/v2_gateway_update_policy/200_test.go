@@ -191,7 +191,7 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 	t.Run("update keyauth with owned keyspaces", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		ids := seedFirewallPolicies(t, h, env, 1)
-		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: env.projectID})
 
 		req := makeRequest(env, ids[0])
 		req.Keyauth = &openapi.KeyauthPolicy{
@@ -205,6 +205,24 @@ func TestUpdatePolicySuccessfully(t *testing.T) {
 		require.Equal(t, []string{api.KeyAuthID.String}, policies[0].Keyauth.Keyspaces)
 		require.Equal(t, ptr.P("documents.read"), policies[0].Keyauth.PermissionQuery)
 		require.Nil(t, policies[0].Firewall)
+	})
+
+	// Keyspaces are always created in the workspace's internal "default"
+	// ownership project, which a policy's environment can never belong to, so
+	// workspace ownership is the only scope this route can enforce.
+	t.Run("update keyauth with a keyspace in the default ownership project", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		ids := seedFirewallPolicies(t, h, env, 1)
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+		require.NotEqual(t, env.projectID, api.ProjectID)
+
+		req := makeRequest(env, ids[0])
+		req.Keyauth = &openapi.KeyauthPolicy{Keyspaces: []string{api.KeyAuthID.String}}
+		call(t, req)
+
+		policies := list(t, env)
+		require.NotNil(t, policies[0].Keyauth)
+		require.Equal(t, []string{api.KeyAuthID.String}, policies[0].Keyauth.Keyspaces)
 	})
 
 	t.Run("combined patch in one call", func(t *testing.T) {

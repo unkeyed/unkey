@@ -1,7 +1,13 @@
 "use client";
 
 import { githubUrl } from "@/lib/github-url";
-import { ArrowDottedRotateAnticlockwise, ArrowUpRight, Plus, TriangleWarning2 } from "@unkey/icons";
+import {
+  IconArrowDottedRotateAnticlockwiseOutline18,
+  IconArrowUpRightOutline12,
+  IconPlusOutline18,
+  IconTriangleWarningOutline18,
+} from "@unkey/icons";
+import { match } from "@unkey/match";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import Link from "next/link";
 import { ProductionCardActionsMenu } from "./production-card-actions-menu";
@@ -49,7 +55,7 @@ function DomainHero() {
                   className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 font-mono text-[13px] text-gray-12 hover:bg-grayA-3 transition-colors"
                 >
                   <span className="truncate">{domain.hostname}</span>
-                  <ArrowUpRight iconSize="sm-regular" className="shrink-0 text-gray-9" />
+                  <IconArrowUpRightOutline12 className="shrink-0 text-gray-9" />
                 </a>
               ))}
             </div>
@@ -63,7 +69,7 @@ function DomainHero() {
           render={<Link href={addCustomDomainHref} />}
           className="shrink-0 border-dashed"
         >
-          <Plus iconSize="sm-regular" />
+          <IconPlusOutline18 />
           Add custom domain
         </Button>
       )}
@@ -77,6 +83,7 @@ export function ProductionCardHeader() {
     sourceRepo,
     status,
     diagnostic,
+    deploymentHref,
     logsHref,
     requestsHref,
     rollbackTarget,
@@ -95,20 +102,24 @@ export function ProductionCardHeader() {
             render={<Link href={diagnostic.href} />}
             className="border-errorA-4 text-error-11"
           >
-            <TriangleWarning2 iconSize="sm-regular" />
+            <IconTriangleWarningOutline18 />
             {diagnostic.label}
           </Button>
         )}
         {!isRolledBack && rollbackTarget && (
           <Button variant="outline" size="sm" onClick={openRollback}>
-            <ArrowDottedRotateAnticlockwise iconSize="sm-regular" />
+            <IconArrowDottedRotateAnticlockwiseOutline18 />
             Instant Rollback
           </Button>
         )}
         <ProductionCardActionsMenu
           deployment={deployment}
           status={status}
-          commitUrl={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}
+          deploymentHref={deploymentHref}
+          commitUrl={match(deployment.source)
+            .with("git", () => githubUrl.commit(sourceRepo, deployment.gitCommitSha))
+            .with("oci", "unknown", () => undefined)
+            .exhaustive()}
           logsHref={logsHref}
           requestsHref={requestsHref}
         />

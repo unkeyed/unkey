@@ -36,6 +36,20 @@ type Config struct {
 	Heartbeat healthcheck.Heartbeat
 }
 
+const runMaxAttempts = 5
+
+// RetryPolicy bounds handler retries and kills an exhausted invocation so the
+// period or workspace virtual object can process the next scheduled check.
+func RetryPolicy() restate.HandlerOption {
+	return restate.WithInvocationRetryPolicy(
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(runMaxAttempts),
+		restate.KillOnMaxAttempts(),
+	)
+}
+
 // Handler executes RunDeploySpendCheck: it lists budgeted workspaces, prices
 // their month-to-date usage, and fans out to DeploySpendCheckService.
 type Handler struct {
@@ -96,7 +110,7 @@ func (h *Handler) Handle(
 	// live VO. Journaled Now() so replays agree; heartbeat still pings.
 	p, err := billingperiod.Parse(period)
 	if err != nil {
-		return nil, restate.TerminalError(fmt.Errorf("invalid billing period %q: %w", period, err))
+		return nil, restate.ToTerminalError(fmt.Errorf("invalid billing period %q: %w", period, err))
 	}
 	now, err := restateutil.Now(ctx)
 	if err != nil {
@@ -105,7 +119,7 @@ func (h *Handler) Handle(
 	if p != billingperiod.From(now) {
 		if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
 			return h.heartbeat.Ping(rc)
-		}, restate.WithName("send heartbeat")); err != nil {
+		}, restate.WithName("send heartbeat"), restate.WithMaxRetryAttempts(runMaxAttempts)); err != nil {
 			return nil, fmt.Errorf("send heartbeat: %w", err)
 		}
 		logger.Info("deploy spend check: skipping stale period",
@@ -117,7 +131,7 @@ func (h *Handler) Handle(
 
 	budgeted, err := restate.Run(ctx, func(rc restate.RunContext) ([]db.ListWorkspacesWithDeployBudgetRow, error) {
 		return h.db.ListWorkspacesWithDeployBudget(rc)
-	}, restate.WithName("list budgeted workspaces"))
+	}, restate.WithName("list budgeted workspaces"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fmt.Errorf("list budgeted workspaces: %w", err)
 	}
@@ -130,7 +144,7 @@ func (h *Handler) Handle(
 	if len(budgeted) == 0 {
 		if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
 			return h.heartbeat.Ping(rc)
-		}, restate.WithName("send heartbeat")); err != nil {
+		}, restate.WithName("send heartbeat"), restate.WithMaxRetryAttempts(runMaxAttempts)); err != nil {
 			return nil, fmt.Errorf("send heartbeat: %w", err)
 		}
 		logger.Info("deploy spend check complete: no budgeted workspaces",
@@ -233,7 +247,7 @@ func (h *Handler) Handle(
 	if checkFailed == 0 {
 		if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
 			return h.heartbeat.Ping(rc)
-		}, restate.WithName("send heartbeat")); err != nil {
+		}, restate.WithName("send heartbeat"), restate.WithMaxRetryAttempts(runMaxAttempts)); err != nil {
 			return nil, fmt.Errorf("send heartbeat: %w", err)
 		}
 	} else {

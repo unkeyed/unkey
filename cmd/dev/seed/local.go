@@ -169,7 +169,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				ProjectID:        projectID,
 				Name:             projectName,
 				Slug:             "default",
-				DefaultBranch:    "main",
+				SourceType:       db.AppsSourceTypeUnknown,
 				DeleteProtection: sql.NullBool{Valid: false, Bool: false},
 				CreatedAt:        now,
 				UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
@@ -448,7 +448,9 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			ID:                 rootKeyID,
 			KeySpaceID:         rootKeySpaceID,
 			Hash:               keyResult.Hash,
+			Prefix:             "unkey",
 			Start:              keyResult.Start,
+			End:                keyResult.Key[len(keyResult.Key)-4:],
 			WorkspaceID:        rootWorkspaceID,
 			ForWorkspaceID:     sql.NullString{String: workspaceID, Valid: true},
 			Name:               sql.NullString{String: fmt.Sprintf("%s Dev Root Key", titleCase), Valid: true},
@@ -556,9 +558,13 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			// portal that sets both. App-mapping additionally resolves its
 			// keyspaces from the app's current deployment, which this seed does
 			// not create, so the keyspace is the only mapping that works here.
+			// Must stay the mapped keyspace's project, which the handlers derive
+			// through portal.ResolveMappingProject. That package is internal to
+			// svc/api and unreachable here, so the two are coupled by hand.
 			err = db.Query.InsertPortal(ctx, tx, db.InsertPortalParams{
 				ID:           portalID,
 				WorkspaceID:  workspaceID,
+				ProjectID:    userDefaultProjectID,
 				Slug:         "awesome",
 				DisplayName:  "Awesome",
 				AppID:        sql.NullString{Valid: false},

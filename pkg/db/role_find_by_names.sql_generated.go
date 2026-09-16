@@ -11,11 +11,15 @@ import (
 )
 
 const findRolesByNames = `-- name: FindRolesByNames :many
-SELECT id, name FROM roles WHERE workspace_id = ? AND name IN (/*SLICE:names*/?)
+SELECT id, name FROM roles
+WHERE workspace_id = ?
+  AND project_id = ?
+  AND name IN (/*SLICE:names*/?)
 `
 
 type FindRolesByNamesParams struct {
 	WorkspaceID string   `db:"workspace_id"`
+	ProjectID   string   `db:"project_id"`
 	Names       []string `db:"names"`
 }
 
@@ -24,13 +28,18 @@ type FindRolesByNamesRow struct {
 	Name string `db:"name"`
 }
 
-// FindRolesByNames
+// FindRolesByNames returns roles with the requested names from one project. The
+// project filter prevents cross-project key assignments.
 //
-//	SELECT id, name FROM roles WHERE workspace_id = ? AND name IN (/*SLICE:names*/?)
+//	SELECT id, name FROM roles
+//	WHERE workspace_id = ?
+//	  AND project_id = ?
+//	  AND name IN (/*SLICE:names*/?)
 func (q *Queries) FindRolesByNames(ctx context.Context, db DBTX, arg FindRolesByNamesParams) ([]FindRolesByNamesRow, error) {
 	query := findRolesByNames
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)
+	queryParams = append(queryParams, arg.ProjectID)
 	if len(arg.Names) > 0 {
 		for _, v := range arg.Names {
 			queryParams = append(queryParams, v)

@@ -16,6 +16,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
+	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/restate/compensation"
@@ -82,13 +83,13 @@ const (
 //
 // Returns terminal errors for validation failures and retryable errors for
 // transient system failures.
-func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest) (_ *hydrav1.DeployResponse, retErr error) {
+func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployRequest) (_ *hydrav1.DeployResponse, retErr error) {
 	err := assert.All(
 		assert.NotEmpty(req.GetDeploymentId(), "deployment_id is required"),
 	)
 	if err != nil {
 		return nil, fault.Wrap(
-			restate.TerminalError(err),
+			restate.ToTerminalError(err),
 			fault.Public("This deployment request is invalid."),
 		)
 	}
@@ -106,14 +107,12 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	logger.Info("deployment workflow started", "req", fmt.Sprintf("%+v", req))
 
 	compensation.Add("mark deployment as failed", func(runCtx restate.RunContext) error {
-		// Use the conditional update so we don't overwrite a status that was
-		// set intentionally by the dedup path (superseded) or by a successful
-		// completion (ready). Only transitions from active statuses to failed.
+		// A plain update would overwrite cancelled, superseded, or ready
 		return w.db.UpdateDeploymentStatusIfActive(runCtx, db.UpdateDeploymentStatusIfActiveParams{
-			ID:               req.GetDeploymentId(),
-			Status:           mysqltype.DeploymentsStatusFailed,
-			UpdatedAt:        sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			TerminalStatuses: mysqltype.TerminalDeploymentStatuses,
+			ID:                  req.GetDeploymentId(),
+			Status:              mysqltype.DeploymentsStatusFailed,
+			UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
 		})
 	})
 
@@ -124,11 +123,19 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
 
-	// --- Deduplication: skip if a newer deployment is queued for the same app+env+branch ---
-	//
-	// Because the DeployService VO is keyed by app_id, by the time we run here any
-	// subsequent deploys for the same app are already queued in the VO inbox — so a
-	// newer-pending check here is race-free.
+	// A cancel that lands before invocation_id is on the row cannot reach
+	// Restate, so it only writes the status. This check is what stops the
+	// invocation in that case. Returning nil keeps Restate from counting it
+	// as failed
+	if deployment.Status.IsTerminal() {
+		logger.Info("deployment is already terminal, not building",
+			"deployment_id", deployment.ID,
+			"status", deployment.Status,
+		)
+		return &hydrav1.DeployResponse{}, nil
+	}
+
+	// --- Deduplication: bow out if a newer deployment exists for the same app+env+branch ---
 	if deployment.GitBranch.Valid {
 		skipped, skipErr := w.skipIfSuperseded(ctx, deployment)
 		if skipErr != nil {
@@ -189,13 +196,13 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	)
 
 	// --- Starting ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepStarting, deployment, func(stepCtx restate.ObjectContext) error {
+	err = w.DeploymentStep(ctx, db.DeploymentStepsStepStarting, deployment, func(stepCtx restate.WorkflowContext) error {
 		// Backstop only: the create-time gates (API, ctrl) reject these before
 		// enqueue. If one is ever reached here, fail the step with a message the
 		// read-path classifier maps to InvalidRuntimeSettings.
 		if violations := deployfail.RuntimeViolations(deployment.Port, deployment.CpuMillicores, deployment.MemoryMib); len(violations) > 0 {
 			return fault.Wrap(
-				restate.TerminalError(errors.New(violations[0].Message)),
+				restate.ToTerminalError(errors.New(violations[0].Message)),
 				fault.Public(violations[0].Message),
 			)
 		}
@@ -207,7 +214,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 				if err != nil {
 					if db.IsNotFound(err) {
 						return fault.Wrap(
-							restate.TerminalError(errors.New("workspace not found")),
+							restate.ToTerminalError(errors.New("workspace not found")),
 							fault.Public("The workspace for this deployment no longer exists."),
 						)
 					}
@@ -261,7 +268,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	}
 
 	// --- Build ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepBuilding, deployment, func(stepCtx restate.ObjectContext) error {
+	err = w.DeploymentStep(ctx, db.DeploymentStepsStepBuilding, deployment, func(stepCtx restate.WorkflowContext) error {
 		return w.buildImage(stepCtx, req, &deployment)
 	})
 	if err != nil {
@@ -278,13 +285,13 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	})
 
 	// --- Deploy ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepDeploying, deployment, func(stepCtx restate.ObjectContext) error {
+	err = w.DeploymentStep(ctx, db.DeploymentStepsStepDeploying, deployment, func(stepCtx restate.WorkflowContext) error {
 		topologies, err := w.createTopologies(stepCtx, compensation, workspace, deployment)
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Regional deployment targets could not be prepared."))
 		}
 
-		if err = w.waitForDeployments(stepCtx, compensation, deployment.ID, topologies); err != nil {
+		if err = w.waitForDeployments(stepCtx, deployment.ID, topologies); err != nil {
 			return fault.Wrap(err, fault.Public("Instances did not become healthy in time."))
 		}
 		return nil
@@ -303,7 +310,7 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	})
 
 	// --- Network ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepNetwork, deployment, func(stepCtx restate.ObjectContext) error {
+	err = w.DeploymentStep(ctx, db.DeploymentStepsStepNetwork, deployment, func(stepCtx restate.WorkflowContext) error {
 		return w.configureRouting(stepCtx, workspace, project, app, environment, deployment)
 	})
 	if err != nil {
@@ -315,12 +322,17 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 	}
 
 	// --- Finalize ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepFinalizing, deployment, func(stepCtx restate.ObjectContext) error {
+	err = w.DeploymentStep(ctx, db.DeploymentStepsStepFinalizing, deployment, func(stepCtx restate.WorkflowContext) error {
+		// A cancel can land in the database while this step runs and this
+		// handler only learns of it at its next Restate call. A plain update
+		// would then overwrite cancelled with ready while the compensations
+		// stop the pods
 		err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
-			return w.db.UpdateDeploymentStatus(stepCtx, db.UpdateDeploymentStatusParams{
-				ID:        deployment.ID,
-				Status:    mysqltype.DeploymentsStatusReady,
-				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			return w.db.UpdateDeploymentStatusIfActive(stepCtx, db.UpdateDeploymentStatusIfActiveParams{
+				ID:                  deployment.ID,
+				Status:              mysqltype.DeploymentsStatusReady,
+				UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+				ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
 			})
 		}, restate.WithName("updating deployment status to ready"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
@@ -375,30 +387,46 @@ func (w *Workflow) Deploy(ctx restate.ObjectContext, req *hydrav1.DeployRequest)
 }
 
 // buildImage resolves the container image for a deployment and persists the image
-// reference to the database. For a DockerImage source, the image name is used
-// directly. For a Git source, the branch HEAD is resolved to a commit SHA (if
-// needed), a Docker image is built on the configured build backend using
-// [Workflow.buildDockerImageFromGit], and the build ID and git metadata are saved.
+// reference to the database. For an OciImage source, a tag is resolved to an
+// immutable digest. For a Git source, an image is built on the configured build
+// backend and the build ID is saved.
 //
-// The deployment pointer is mutated in place: GitCommitSha and GitBranch are
-// updated when a branch is resolved, so the caller sees the resolved values for
-// later use in domain generation.
+// The commit must already be resolved: Create does that before dispatching, so a
+// request arriving here without a SHA is a bug and fails terminally.
 //
 // Returns a terminal error for unknown source types and build failures that
 // cannot be retried (e.g. bad Dockerfile).
 func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequest, deployment *db.Deployment) error {
-	dockerImage := ""
+	resolvedImage := ""
 
 	switch source := req.GetSource().(type) {
-	case *hydrav1.DeployRequest_DockerImage:
-		dockerImage = source.DockerImage.GetImage()
+	case *hydrav1.DeployRequest_OciImage:
+		requestedImage, err := imageref.Parse(source.OciImage.GetImage())
+		if err != nil {
+			return fault.Wrap(
+				restate.ToTerminalError(err),
+				fault.Public("The OCI image reference is invalid."),
+			)
+		}
+
+		if imageref.IsDigest(requestedImage) {
+			resolvedImage = requestedImage.Name()
+			break
+		}
+
+		resolvedImage, err = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+			return w.imageResolver.Resolve(runCtx, requestedImage.Name())
+		}, restate.WithName("resolve OCI image digest"), restate.WithMaxRetryAttempts(runMaxAttempts))
+		if err != nil {
+			return fault.Wrap(err, fault.Public("The OCI image could not be resolved."))
+		}
 	case *hydrav1.DeployRequest_Git:
 		commitSHA := source.Git.GetCommitSha()
 		forkRepo := source.Git.GetForkRepository()
 
 		if commitSHA == "" {
 			return fault.Wrap(
-				restate.TerminalError(fmt.Errorf("git source missing commit SHA for deployment %q", deployment.ID)),
+				restate.ToTerminalError(fmt.Errorf("git source missing commit SHA for deployment %q", deployment.ID)),
 				fault.Public("Deployment has no resolved commit; cannot build."),
 			)
 		}
@@ -452,7 +480,7 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 				fault.Public(publicMsg),
 			)
 		}
-		dockerImage = build.ImageName
+		resolvedImage = build.ImageName
 
 		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return w.db.UpdateDeploymentBuildID(runCtx, db.UpdateDeploymentBuildIDParams{
@@ -470,16 +498,16 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 
 	default:
 		return fault.Wrap(
-			restate.TerminalError(fmt.Errorf("unknown source type: %T", source)),
+			restate.ToTerminalError(fmt.Errorf("unknown source type: %T", source)),
 			fault.Public(fmt.Sprintf("Deployment source %s is not supported.", source)),
 		)
 	}
 
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return w.db.UpdateDeploymentImage(runCtx, db.UpdateDeploymentImageParams{
-			ID:        deployment.ID,
-			Image:     sql.NullString{Valid: true, String: dockerImage},
-			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			ID:            deployment.ID,
+			ImageResolved: sql.NullString{Valid: true, String: resolvedImage},
+			UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 		})
 	}, restate.WithName("update deployment image"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
@@ -540,7 +568,7 @@ func (w *Workflow) createTopologies(
 
 	if len(regionalSettings) == 0 {
 		return nil, fault.Wrap(
-			restate.TerminalError(fmt.Errorf("no schedulable regions configured for app %s in environment %s", deployment.AppID, deployment.EnvironmentID), 400),
+			restate.ToTerminalError(fmt.Errorf("no schedulable regions configured for app %s in environment %s", deployment.AppID, deployment.EnvironmentID), restate.WithErrorCode(400)),
 			fault.Public(deployfail.MsgNoSchedulableRegions),
 		)
 	}
@@ -572,19 +600,19 @@ func (w *Workflow) createTopologies(
 	cpuMillicoresMax := int64(limits.CpuCoresMax) * 1_000
 	if allocatedResources.TotalCpuMillicores > cpuMillicoresMax {
 		return nil, fault.Wrap(
-			restate.TerminalError(fmt.Errorf("CPU limit exceeded: consumed %d, limit %d", allocatedResources.TotalCpuMillicores, cpuMillicoresMax)),
+			restate.ToTerminalError(fmt.Errorf("CPU limit exceeded: consumed %d, limit %d", allocatedResources.TotalCpuMillicores, cpuMillicoresMax)),
 			fault.Public(deployfail.MsgCPUQuotaExceeded),
 		)
 	}
 	if allocatedResources.TotalMemoryMib > int64(limits.MemoryMibMax) {
 		return nil, fault.Wrap(
-			restate.TerminalError(fmt.Errorf("Memory limit exceeded: consumed %d, limit %d", allocatedResources.TotalMemoryMib, limits.MemoryMibMax)),
+			restate.ToTerminalError(fmt.Errorf("Memory limit exceeded: consumed %d, limit %d", allocatedResources.TotalMemoryMib, limits.MemoryMibMax)),
 			fault.Public(deployfail.MsgMemoryQuotaExceeded),
 		)
 	}
 	if allocatedResources.TotalStorageMib > int64(limits.StorageMibMax) {
 		return nil, fault.Wrap(
-			restate.TerminalError(fmt.Errorf("Storage limit exceeded: consumed %d, limit %d", allocatedResources.TotalStorageMib, limits.StorageMibMax)),
+			restate.ToTerminalError(fmt.Errorf("Storage limit exceeded: consumed %d, limit %d", allocatedResources.TotalStorageMib, limits.StorageMibMax)),
 			fault.Public(deployfail.MsgStorageQuotaExceeded),
 		)
 	}

@@ -17,7 +17,7 @@ INSERT INTO apps (
     project_id,
     name,
     slug,
-    default_branch,
+    source_type,
     delete_protection,
     created_at,
     updated_at
@@ -35,15 +35,15 @@ INSERT INTO apps (
 `
 
 type InsertAppParams struct {
-	ID               string        `db:"id"`
-	WorkspaceID      string        `db:"workspace_id"`
-	ProjectID        string        `db:"project_id"`
-	Name             string        `db:"name"`
-	Slug             string        `db:"slug"`
-	DefaultBranch    string        `db:"default_branch"`
-	DeleteProtection sql.NullBool  `db:"delete_protection"`
-	CreatedAt        int64         `db:"created_at"`
-	UpdatedAt        sql.NullInt64 `db:"updated_at"`
+	ID               string         `db:"id"`
+	WorkspaceID      string         `db:"workspace_id"`
+	ProjectID        string         `db:"project_id"`
+	Name             string         `db:"name"`
+	Slug             string         `db:"slug"`
+	SourceType       AppsSourceType `db:"source_type"`
+	DeleteProtection sql.NullBool   `db:"delete_protection"`
+	CreatedAt        int64          `db:"created_at"`
+	UpdatedAt        sql.NullInt64  `db:"updated_at"`
 }
 
 // InsertApp
@@ -54,7 +54,7 @@ type InsertAppParams struct {
 //	    project_id,
 //	    name,
 //	    slug,
-//	    default_branch,
+//	    source_type,
 //	    delete_protection,
 //	    created_at,
 //	    updated_at
@@ -76,7 +76,7 @@ func (q *Queries) InsertApp(ctx context.Context, db DBTX, arg InsertAppParams) e
 		arg.ProjectID,
 		arg.Name,
 		arg.Slug,
-		arg.DefaultBranch,
+		arg.SourceType,
 		arg.DeleteProtection,
 		arg.CreatedAt,
 		arg.UpdatedAt,

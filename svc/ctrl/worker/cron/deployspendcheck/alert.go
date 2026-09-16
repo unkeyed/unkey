@@ -76,7 +76,7 @@ func (h *CheckHandler) stoppedAlert(ctx restate.ObjectContext, a budgetAlert) er
 func (h *CheckHandler) sendToAdmins(ctx restate.ObjectContext, a budgetAlert, templateID, idempotencyKey string, variables map[string]string) error {
 	recipients, err := restate.Run(ctx, func(rc restate.RunContext) ([]string, error) {
 		return h.admins.AdminEmails(rc, a.OrgID)
-	}, restate.WithName("resolve org admins"))
+	}, restate.WithName("resolve org admins"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return fmt.Errorf("resolve org admins: %w", err)
 	}
@@ -98,7 +98,7 @@ func (h *CheckHandler) sendToAdmins(ctx restate.ObjectContext, a budgetAlert, te
 			Subject:        "",
 			IdempotencyKey: idempotencyKey,
 		})
-	}, restate.WithName("send budget alert"))
+	}, restate.WithName("send budget alert"), restate.WithMaxRetryAttempts(runMaxAttempts))
 }
 
 // budgetAlertIdempotencyKey dedupes a warning at Resend. The budget is in the

@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -71,17 +72,17 @@ type RegistryConfig struct {
 
 // Workflow orchestrates deployment lifecycle operations.
 //
-// This workflow manages the complete deployment lifecycle including deploying new versions,
-// rolling back to previous versions, and promoting deployments to live. It coordinates
-// between container orchestration (Krane), database updates, and domain routing to ensure
-// consistent deployment state.
+// This workflow creates, builds, and deploys deployments. It
+// coordinates between container orchestration (Krane), database updates, and
+// domain routing to ensure consistent deployment state. Promotion and rollback
+// live on EnvironmentService.
 //
-// The workflow uses Restate virtual objects keyed by app ID to ensure that only one
-// deployment operation runs per app at any time, preventing race conditions during
-// concurrent deploy/rollback/promote operations while allowing parallel deploys
-// across different apps within the same project.
+// The workflow is a Restate workflow keyed by deployment id: one Deploy run per
+// key, signalled by NotifyInstancesReady through a durable promise. Two deploys
+// of the same app run concurrently; the ordering they need comes from the dedup
+// and supersede checks.
 type Workflow struct {
-	hydrav1.UnimplementedDeployServiceServer
+	hydrav1.UnimplementedDeployWorkflowServer
 	db        db.Database
 	auditlogs auditlogs.AuditLogService
 
@@ -98,11 +99,14 @@ type Workflow struct {
 	clickhouse                      clickhouse.ClickHouse
 	buildSteps                      *batch.BatchProcessor[schema.BuildStepV1]
 	buildStepLogs                   *batch.BatchProcessor[schema.BuildStepLogV1]
+	imageResolver                   ImageResolver
 	allowUnauthenticatedDeployments bool
 	dashboardURL                    string
+
+	restateAdmin *restateadmin.Client
 }
 
-var _ hydrav1.DeployServiceServer = (*Workflow)(nil)
+var _ hydrav1.DeployWorkflowServer = (*Workflow)(nil)
 
 // Config holds the configuration for creating a deployment workflow.
 type Config struct {
@@ -143,6 +147,9 @@ type Config struct {
 	// BuildStepLogs buffers build step log events for ClickHouse.
 	BuildStepLogs *batch.BatchProcessor[schema.BuildStepLogV1]
 
+	// ImageResolver resolves OCI image tags to immutable digests.
+	ImageResolver ImageResolver
+
 	// AllowUnauthenticatedDeployments controls whether builds can skip GitHub authentication.
 	// Set to true only for local development with public repositories.
 	AllowUnauthenticatedDeployments bool
@@ -150,6 +157,11 @@ type Config struct {
 	// DashboardURL is the base URL of the dashboard for constructing log URLs
 	// in GitHub deployment statuses (e.g., "https://app.unkey.com").
 	DashboardURL string
+
+	// RestateAdmin cancels the in-flight Deploy invocations of deployments a
+	// newer create supersedes. Optional: when nil, superseded rows are still
+	// marked but their invocations keep running.
+	RestateAdmin *restateadmin.Client
 }
 
 // New creates a new deployment workflow instance.
@@ -168,11 +180,11 @@ func New(cfg Config) (*Workflow, error) {
 	cleanupStaleRailpackWorkspaces()
 
 	return &Workflow{
-		UnimplementedDeployServiceServer: hydrav1.UnimplementedDeployServiceServer{},
-		db:                               cfg.DB,
-		auditlogs:                        cfg.Auditlogs,
-		defaultDomain:                    cfg.DefaultDomain,
-		vault:                            cfg.Vault,
+		UnimplementedDeployWorkflowServer: hydrav1.UnimplementedDeployWorkflowServer{},
+		db:                                cfg.DB,
+		auditlogs:                         cfg.Auditlogs,
+		defaultDomain:                     cfg.DefaultDomain,
+		vault:                             cfg.Vault,
 
 		github:                          cfg.GitHub,
 		buildConfig:                     cfg.Build,
@@ -182,7 +194,9 @@ func New(cfg Config) (*Workflow, error) {
 		clickhouse:                      cfg.Clickhouse,
 		buildSteps:                      cfg.BuildSteps,
 		buildStepLogs:                   cfg.BuildStepLogs,
+		imageResolver:                   cfg.ImageResolver,
 		allowUnauthenticatedDeployments: cfg.AllowUnauthenticatedDeployments,
 		dashboardURL:                    cfg.DashboardURL,
+		restateAdmin:                    cfg.RestateAdmin,
 	}, nil
 }

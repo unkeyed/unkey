@@ -1,33 +1,79 @@
 "use client";
 
+import { SUPPORT_MAILTO } from "@/lib/support";
+import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import {
+  AlertBanner,
+  AlertBannerActions,
+  AlertBannerDescription,
+  AlertBannerTitle,
+  Button,
   PageBody,
   PageContainer,
   PageHeader,
   PageHeaderActions,
   PageHeaderContent,
   PageHeaderTitle,
-  ResourceList,
 } from "@unkey/ui";
+import Link from "next/link";
+import { useState } from "react";
 import { CreateLogdrainButton } from "./create-logdrain-button";
+import { CreateLogdrainPanel } from "./create-logdrain-panel";
 import { LogdrainsList } from "./logdrains-list";
 
 export default function LogdrainsPage() {
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const { limits, isLoading: isWorkspaceLoading } = useWorkspace();
+  const drains = trpc.logdrain.list.useQuery();
+  const isLoading = isWorkspaceLoading || drains.isLoading;
+  const isAtLimit = (drains.data?.length ?? 0) >= (limits?.logdrainsMax ?? 0);
+  const canCreate = !isLoading && !drains.isError && !isAtLimit;
+  const needsEnablement =
+    !isLoading && !drains.isError && (limits?.logdrainsMax ?? 0) === 0 && drains.data?.length === 0;
+  const openCreatePanel = () => {
+    if (canCreate) {
+      setIsCreateOpen(true);
+    }
+  };
+
   return (
     <PageContainer>
       <PageHeader>
         <PageHeaderContent>
           <PageHeaderTitle>Log Drains</PageHeaderTitle>
         </PageHeaderContent>
-        <PageHeaderActions>
-          <CreateLogdrainButton />
-        </PageHeaderActions>
+        {!needsEnablement && (
+          <PageHeaderActions>
+            <CreateLogdrainButton onClick={openCreatePanel} disabled={!canCreate} />
+          </PageHeaderActions>
+        )}
       </PageHeader>
-      <PageBody>
-        <ResourceList>
-          <LogdrainsList />
-        </ResourceList>
+      <PageBody className="gap-4">
+        {!isLoading && !drains.isError && isAtLimit && !needsEnablement && (
+          <AlertBanner variant="warning">
+            <AlertBannerTitle>Log drain limit reached</AlertBannerTitle>
+            <AlertBannerDescription>
+              {(limits?.logdrainsMax ?? 0) === 0
+                ? "Contact support to enable log drains for this workspace."
+                : "Contact support to increase this workspace's log drain allowance."}{" "}
+              Existing log drains remain available.
+            </AlertBannerDescription>
+            <AlertBannerActions>
+              <Button variant="outline" size="sm" render={<Link href={SUPPORT_MAILTO} />}>
+                Contact support
+              </Button>
+            </AlertBannerActions>
+          </AlertBanner>
+        )}
+        <LogdrainsList
+          onCreate={openCreatePanel}
+          canCreate={canCreate}
+          needsEnablement={needsEnablement}
+        />
       </PageBody>
+
+      <CreateLogdrainPanel isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
     </PageContainer>
   );
 }

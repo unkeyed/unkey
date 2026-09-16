@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/repeat"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
@@ -53,9 +54,10 @@ type clusterCacheKey struct {
 // and status reporting endpoints for agents to report observed state back to the control plane.
 type Service struct {
 	ctrlv1connect.UnimplementedClusterServiceHandler
-	db      db.Database
-	restate *ingress.Client
-	bearer  string
+	db           db.Database
+	restate      *ingress.Client
+	restateAdmin *restateadmin.Client
+	bearer       string
 	// notifiedReady dedups Restate NotifyInstancesReady calls so we don't
 	// fire on every krane status report once the threshold is met. Keys
 	// are "deployment:<id>".
@@ -93,6 +95,10 @@ type Config struct {
 	// Restate is the ingress client used to trigger durable workflows.
 	Restate *ingress.Client
 
+	// RestateAdmin answers whether a deployment's Deploy invocation is still
+	// running before an instances-ready notify is sent. Required.
+	RestateAdmin *restateadmin.Client
+
 	// Bearer is the authentication token that agents must provide in the Authorization header.
 	Bearer string
 
@@ -127,6 +133,9 @@ func New(cfg Config) (*Service, error) {
 	if cfg.InstanceEvents == nil {
 		return nil, fmt.Errorf("cluster: InstanceEvents is required (use batch.NewNoop when ClickHouse is unavailable)")
 	}
+	if cfg.RestateAdmin == nil {
+		return nil, fmt.Errorf("cluster: RestateAdmin is required")
+	}
 
 	clk := cfg.Clock
 	if clk == nil {
@@ -156,6 +165,7 @@ func New(cfg Config) (*Service, error) {
 		UnimplementedClusterServiceHandler: ctrlv1connect.UnimplementedClusterServiceHandler{},
 		db:                                 cfg.Database,
 		restate:                            cfg.Restate,
+		restateAdmin:                       cfg.RestateAdmin,
 		bearer:                             cfg.Bearer,
 		notifiedReady:                      newExpiringSet[string](notifiedReadyTTL),
 		clusterCache:                       clusterCache,

@@ -3,8 +3,11 @@ package zen
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
+	"strings"
 	"sync"
 	"time"
 
@@ -30,7 +33,8 @@ type Server struct {
 	flags       Flags
 	config      Config
 
-	sessions sync.Pool
+	trustedProxyCIDRs []netip.Prefix
+	sessions          sync.Pool
 }
 
 // Flags configures the behavior of a Server instance.
@@ -63,6 +67,10 @@ type Config struct {
 	// the body.
 	StreamRequestBody bool
 
+	// TrustedProxyCIDRs lists networks whose direct connections may supply
+	// X-Forwarded-For. Forwarding headers from all other peers are ignored.
+	TrustedProxyCIDRs []string
+
 	// ReadTimeout is the maximum duration for reading the entire request, including the body.
 	// If 0, defaults to 10 seconds.
 	ReadTimeout time.Duration
@@ -91,6 +99,15 @@ type Config struct {
 //	}
 func New(config Config) (*Server, error) {
 	mux := http.NewServeMux()
+
+	trustedProxyCIDRs := make([]netip.Prefix, 0, len(config.TrustedProxyCIDRs))
+	for _, raw := range config.TrustedProxyCIDRs {
+		prefix, err := netip.ParsePrefix(raw)
+		if err != nil {
+			return nil, fmt.Errorf("invalid trusted proxy CIDR %q: %w", raw, err)
+		}
+		trustedProxyCIDRs = append(trustedProxyCIDRs, prefix.Masked())
+	}
 
 	// Set default timeouts if not provided.
 	// Services that use middleware-level timeouts (WithTimeout) and need
@@ -144,17 +161,19 @@ func New(config Config) (*Server, error) {
 		flags = *config.Flags
 	}
 	s := &Server{
-		mu:          sync.Mutex{},
-		isListening: false,
-		mux:         mux,
-		srv:         srv,
-		flags:       flags,
-		config:      config,
+		mu:                sync.Mutex{},
+		isListening:       false,
+		mux:               mux,
+		srv:               srv,
+		flags:             flags,
+		config:            config,
+		trustedProxyCIDRs: trustedProxyCIDRs,
 		sessions: sync.Pool{
 			New: func() any {
 				return &Session{
 					logRequestToClickHouse: true,
 					streamRequestBody:      config.StreamRequestBody,
+					clientIP:               netip.Addr{},
 					principal:              nil,
 					requestID:              "",
 					internalError:          "",
@@ -313,6 +332,7 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 			handleFn := route.Handle
 
 			err := sess.Init(w, r, s.config.MaxRequestBodySize)
+			s.setForwardedClientIP(sess)
 			if err != nil {
 				logger.Error("failed to init session", "error", err)
 				handleFn = func(_ context.Context, _ *Session) error {
@@ -332,6 +352,25 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 				panic(err)
 			}
 		})
+}
+
+func (s *Server) setForwardedClientIP(sess *Session) {
+	if !containsIP(s.trustedProxyCIDRs, sess.clientIP) {
+		return
+	}
+	values := sess.Request().Header.Values("X-Forwarded-For")
+	if len(values) == 0 {
+		return
+	}
+	// This assumes exactly one trusted HTTP proxy appends X-Forwarded-For.
+	// If we add more HTTP proxy hops, change this selection to validate the chain.
+	candidate := values[len(values)-1]
+	if comma := strings.LastIndexByte(candidate, ','); comma >= 0 {
+		candidate = candidate[comma+1:]
+	}
+	if ip, valid := parseIP(candidate); valid {
+		sess.clientIP = ip
+	}
 }
 
 // Shutdown gracefully stops the HTTP server, allowing in-flight requests

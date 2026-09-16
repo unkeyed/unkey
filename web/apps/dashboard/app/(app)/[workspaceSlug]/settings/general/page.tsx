@@ -22,7 +22,7 @@ export default function SettingsPage() {
           {/* <UpdateWorkspaceImage /> */}
           <CopyWorkspaceId workspaceId={workspace.id} />
         </div>
-        <div className="w-full flex flex-col mt-6">
+        <div className="w-full flex flex-col">
           <GithubConnection />
         </div>
       </PageBody>

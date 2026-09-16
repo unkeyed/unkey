@@ -26,7 +26,11 @@ CREATE TABLE `custom_domains` (
 	CONSTRAINT `unique_domain_workspace_idx` UNIQUE(`workspace_id`,`domain`)
 );
 
-CREATE INDEX `project_idx` ON `custom_domains` (`project_id`);
+CREATE INDEX `workspace_id_id_domain_idx` ON `custom_domains` (`workspace_id`,`id`,`domain`);
+
+CREATE INDEX `project_id_id_domain_idx` ON `custom_domains` (`project_id`,`id`,`domain`);
+
+CREATE INDEX `app_id_id_domain_idx` ON `custom_domains` (`app_id`,`id`,`domain`);
 
 CREATE INDEX `verification_status_idx` ON `custom_domains` (`verification_status`);
 

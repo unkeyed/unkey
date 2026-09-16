@@ -18,7 +18,7 @@
 // Notify (ENG-2904) is the email path here. Enforcement (ENG-2923) suspends
 // compute at 100% via the ENG-2922 teardown primitive and is wired separately.
 //
-// Local dev runs the check every 3 minutes; production runs every 15 minutes
+// Local dev runs the check every 3 minutes; production runs every minute
 // (infra repo). Full design:
 // docs/engineering/architecture/services/control-plane/worker/workflows/deploy-spend-cap.mdx
 // (added by the docs PR at the top of this stack).

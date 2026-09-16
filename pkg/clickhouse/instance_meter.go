@@ -149,7 +149,7 @@ func (c *Client) GetInstanceMeterUsage(ctx context.Context, req GetInstanceMeter
 		"start":         strconv.FormatInt(req.Start, 10),
 		"end":           strconv.FormatInt(req.End, 10),
 		"workspace_id":  req.WorkspaceID,
-		"workspace_ids": stringArrayParam(req.WorkspaceIDs),
+		"workspace_ids": StringArrayParam(req.WorkspaceIDs),
 		"max_gap_ms":    strconv.FormatInt(maxSampleGap.Milliseconds(), 10),
 	})
 	if err != nil {

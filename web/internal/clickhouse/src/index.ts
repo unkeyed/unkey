@@ -6,6 +6,7 @@ import {
   getActiveKeysUsage,
   getDeployMeterUsage,
   getDeployUsageByScope,
+  getDeployUsageTimeseries,
 } from "./deploy_billing";
 export {
   type ActiveKeysUsage,
@@ -14,6 +15,12 @@ export {
   deployMeterUsage,
   type DeployUsageByScope,
   deployUsageByScope,
+  type DeployUsageTimeseries,
+  deployUsageTimeseries,
+  type DeployUsageTimeseriesGroup,
+  deployUsageTimeseriesGroup,
+  type DeployUsageTimeseriesInterval,
+  deployUsageTimeseriesInterval,
   type ActiveKeysByApp,
   activeKeysByApp,
 } from "./deploy_billing";
@@ -38,7 +45,7 @@ import {
 } from "./keys/active_keys";
 import { getKeysOverviewLogs } from "./keys/keys";
 import { getLatestVerifications } from "./latest_verifications";
-import { getLogdrainMetrics, getRecentLogdrainErrors } from "./logdrains";
+import { getLogdrainMetrics, getRecentLogdrainDeliveries } from "./logdrains";
 import {
   getDailyLogsTimeseries,
   getFifteenMinuteLogsTimeseries,
@@ -310,6 +317,7 @@ export class ClickHouse {
       billableRatelimits: getBillableRatelimits(this.querier),
       deployMeterUsage: getDeployMeterUsage(this.querier),
       deployUsageByScope: getDeployUsageByScope(this.querier),
+      deployUsageTimeseries: getDeployUsageTimeseries(this.querier),
       activeKeysByApp: getActiveKeysByApp(this.querier),
       activeKeysUsage: getActiveKeysUsage(this.querier),
     };
@@ -430,7 +438,7 @@ export class ClickHouse {
   public get logdrains() {
     return {
       metrics: getLogdrainMetrics(this.querier),
-      recentErrors: getRecentLogdrainErrors(this.querier),
+      recentDeliveries: getRecentLogdrainDeliveries(this.querier),
     };
   }
 }

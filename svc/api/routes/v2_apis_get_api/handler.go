@@ -10,7 +10,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
+	apierrors "github.com/unkeyed/unkey/svc/api/internal/errors"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -45,23 +48,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.ReadAPI,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   req.ApiId,
-			Action:       rbac.ReadAPI,
-		}),
-	))
-	if err != nil {
-		return err
-	}
-
-	api, hit, err := h.Caches.LiveApiByID.SWR(ctx, cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: req.ApiId}, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
+	api, hit, err := h.Caches.LiveApiByID.SWR(ctx, cache.ScopedKey{WorkspaceID: principal.AuthorizedWorkspaceID, Key: req.ApiId}, func(ctx context.Context) (db.FindLiveApiByIDRow, error) {
 		return db.Query.FindLiveApiByID(ctx, h.DB.RO(), req.ApiId)
 	}, caches.DefaultFindFirstOp)
 
@@ -88,10 +75,45 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	// Check if API belongs to the authorized workspace
-	if api.ApiWorkspaceID != principal.WorkspaceID {
+	if api.ApiWorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New("wrong workspace",
 			fault.Code(codes.Data.Api.NotFound.URN()),
 			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
+		)
+	}
+
+	if !api.ApiKeyAuthID.Valid {
+		return fault.New("api missing keyspace",
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("api has no key auth id"),
+			fault.Public("Failed to retrieve API information."),
+		)
+	}
+
+	err = principal.Authorize(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.ReadAPI,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   req.ApiId,
+			Action:       rbac.ReadAPI,
+		}),
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.KeyAuthProjectID).Keyspace(api.ApiKeyAuthID.String),
+			permissions.Read,
+		),
+	))
+	if err != nil {
+		// The authorization runs after the lookup because the URN arm needs the
+		// keyspace ID, and the failure is masked as 404 so callers who lack read
+		// access cannot distinguish an existing API from a non-existent one.
+		return apierrors.MaskInsufficientPermissionsAsNotFound(
+			err,
+			codes.Data.Api.NotFound.URN(),
+			"The requested API does not exist or has been deleted.",
 		)
 	}
 

@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_identities_list_identities"
 )
@@ -55,6 +56,9 @@ func TestCrossWorkspaceForbidden(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	projectB, err := projects.EnsureDefaultProject(ctx, tx, workspaceB)
+	require.NoError(t, err)
+
 	// Create an identity in workspace B
 	identityB := uid.New(uid.IdentityPrefix)
 	externalID := "user_in_workspace_b"
@@ -62,6 +66,7 @@ func TestCrossWorkspaceForbidden(t *testing.T) {
 		ID:          identityB,
 		ExternalID:  externalID,
 		WorkspaceID: workspaceB,
+		ProjectID:   projectB,
 		Environment: "default",
 		CreatedAt:   time.Now().UnixMilli(),
 		Meta:        []byte("{}"),

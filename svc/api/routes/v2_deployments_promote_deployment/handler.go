@@ -49,7 +49,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	dep, err := deployment.FindDeployment(ctx, h.DB, principal.WorkspaceID, req.DeploymentId)
+	dep, err := deployment.FindDeployment(ctx, h.DB, principal.AuthorizedWorkspaceID, req.DeploymentId)
 	if err != nil {
 		return err
 	}
@@ -66,8 +66,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Action:       rbac.PromoteDeployment,
 		}),
 		rbac.U(
-			urn.New().Workspace(principal.WorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID).Deployment(dep.ID),
-			permissions.PromoteDeployment{},
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(dep.ProjectID).App(dep.AppID).Environment(dep.EnvironmentID),
+			permissions.Write,
 		),
 	))
 	if err != nil {
@@ -103,19 +103,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	billing, err := db.Query.FindWorkspaceBillingByWorkspaceID(ctx, h.DB.RW(), principal.WorkspaceID)
-	if err != nil && !db.IsNotFound(err) {
-		return fault.Wrap(
-			err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Internal("database error loading workspace billing"),
-			fault.Public("Failed to retrieve workspace billing state."),
-		)
-	}
-	if err := deploygate.CheckWorkspacePlan(billing.Plan, billing.PlanOverride); err != nil {
-		return err
-	}
-	if err := deploygate.CheckWorkspaceSpend(billing.SpendSuspended); err != nil {
+	if err := deployment.EnsureWorkspaceCanDeploy(ctx, h.DB, principal.AuthorizedWorkspaceID); err != nil {
 		return err
 	}
 
@@ -124,12 +112,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	_, err = hydrav1.NewDeployServiceIngressClient(h.Restate, dep.ID).
-		Promote().
-		Send(ctx, &hydrav1.PromoteRequest{
-			TargetDeploymentId: dep.ID,
-			Actor:              actor,
-			CorrelationId:      auditlog.NewCorrelationID(),
+	_, err = hydrav1.NewEnvironmentServiceIngressClient(h.Restate, dep.EnvironmentID).
+		PromoteDeployment().
+		Send(ctx, &hydrav1.PromoteDeploymentRequest{
+			DeploymentId:  dep.ID,
+			Actor:         actor,
+			CorrelationId: auditlog.NewCorrelationID(),
 		})
 	if err != nil {
 		return fault.Wrap(

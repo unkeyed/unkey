@@ -86,12 +86,11 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 	})
 
 	app := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
-		ID:            uid.New("app"),
-		WorkspaceID:   workspaceID,
-		ProjectID:     project.ID,
-		Name:          "default",
-		Slug:          "default",
-		DefaultBranch: "main",
+		ID:          uid.New("app"),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		Name:        "default",
+		Slug:        "default",
 	})
 
 	env := h.Seed.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
@@ -116,6 +115,8 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		ProjectID:                     project.ID,
 		AppID:                         app.ID,
 		EnvironmentID:                 env.ID,
+		Source:                        db.DeploymentsSourceUnknown,
+		ImageRequested:                sql.NullString{Valid: false},
 		GitCommitSha:                  sql.NullString{Valid: false},
 		GitBranch:                     sql.NullString{Valid: false},
 		SentinelConfig:                []byte("{}"),
@@ -157,8 +158,7 @@ func (h *Harness) CreateDeployment(ctx context.Context, req CreateDeploymentRequ
 		require.NoError(h.t, err)
 	}
 
-	// Set image (required for streaming)
-	_, err = h.DB.RW().ExecContext(ctx, "UPDATE deployments SET image = ? WHERE id = ?", "nginx:1.19", deploymentID)
+	_, err = h.DB.RW().ExecContext(ctx, "UPDATE deployments SET image_resolved = ? WHERE id = ?", "nginx:1.19", deploymentID)
 	require.NoError(h.t, err)
 
 	// Ensure the region exists

@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_get_override"
 )
@@ -28,8 +29,9 @@ func TestGetOverride_AuthorizesURNPermissions(t *testing.T) {
 		{
 			name: "exact override permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/namespaces/%s/overrides/%s#read_override",
+				"unkey:v1:%s:projects/%s/ratelimits/namespaces/%s/overrides/%s#read",
 				setup.workspaceID,
+				setup.projectID,
 				setup.namespaceID,
 				setup.overrideID,
 			),
@@ -37,30 +39,33 @@ func TestGetOverride_AuthorizesURNPermissions(t *testing.T) {
 		{
 			name: "namespace override wildcard permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/namespaces/%s/overrides/*#read_override",
+				"unkey:v1:%s:projects/%s/ratelimits/namespaces/%s/overrides/*#read",
 				setup.workspaceID,
+				setup.projectID,
 				setup.namespaceID,
 			),
 		},
 		{
 			name: "namespace descendant wildcard permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/namespaces/%s/**#read_override",
+				"unkey:v1:%s:projects/%s/ratelimits/namespaces/%s/**#read",
 				setup.workspaceID,
+				setup.projectID,
 				setup.namespaceID,
 			),
 		},
 		{
-			name: "ratelimits descendant wildcard permission",
+			name: "project descendant wildcard permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/**#read_override",
+				"unkey:v1:%s:projects/%s/**#read",
 				setup.workspaceID,
+				setup.projectID,
 			),
 		},
 		{
-			name: "workos wildcard namespace permission",
+			name: "catalog wildcard namespace permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/namespaces/*/overrides/*#read_override",
+				"unkey:v1:%s:projects/*/ratelimits/namespaces/*/overrides/*#read",
 				setup.workspaceID,
 			),
 		},
@@ -104,15 +109,17 @@ func TestGetOverride_RejectsNonCoveringURNPermissions(t *testing.T) {
 		{
 			name: "sibling namespace wildcard permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/namespaces/ns_other/overrides/*#read_override",
+				"unkey:v1:%s:projects/%s/ratelimits/namespaces/ns_other/overrides/*#read",
 				setup.workspaceID,
+				setup.projectID,
 			),
 		},
 		{
 			name: "wrong action permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:%s:ratelimits/namespaces/%s/overrides/%s#delete_override",
+				"unkey:v1:%s:projects/%s/ratelimits/namespaces/%s/overrides/%s#delete",
 				setup.workspaceID,
+				setup.projectID,
 				setup.namespaceID,
 				setup.overrideID,
 			),
@@ -120,7 +127,8 @@ func TestGetOverride_RejectsNonCoveringURNPermissions(t *testing.T) {
 		{
 			name: "wrong workspace permission",
 			permission: fmt.Sprintf(
-				"unkey:v1:ws_other:ratelimits/namespaces/%s/overrides/%s#read_override",
+				"unkey:v1:ws_other:projects/%s/ratelimits/namespaces/%s/overrides/%s#read",
+				setup.projectID,
 				setup.namespaceID,
 				setup.overrideID,
 			),
@@ -148,6 +156,7 @@ type getOverrideURNPermissionTest struct {
 	route       *handler.Handler
 	req         handler.Request
 	workspaceID string
+	projectID   string
 	namespaceID string
 	overrideID  string
 }
@@ -157,12 +166,20 @@ func setupGetOverrideURNPermissionTest(t *testing.T, ctx context.Context) getOve
 
 	h := testutil.NewHarness(t)
 	workspaceID := h.Resources().UserWorkspace.ID
+	projectID := uid.New(uid.ProjectPrefix)
+	h.CreateProject(seed.CreateProjectRequest{
+		ID:          projectID,
+		WorkspaceID: workspaceID,
+		Name:        uid.New("project"),
+		Slug:        uid.New("project"),
+	})
 
-	namespaceID := uid.New("test_ns")
+	namespaceID := uid.New(uid.RatelimitNamespacePrefix)
 	namespaceName := uid.New("test")
 	err := db.Query.InsertRatelimitNamespace(ctx, h.DB.RW(), db.InsertRatelimitNamespaceParams{
 		ID:          namespaceID,
 		WorkspaceID: workspaceID,
+		ProjectID:   projectID,
 		Name:        namespaceName,
 		CreatedAt:   time.Now().UnixMilli(),
 	})
@@ -192,6 +209,7 @@ func setupGetOverrideURNPermissionTest(t *testing.T, ctx context.Context) getOve
 		route:       route,
 		req:         handler.Request{Namespace: namespaceName, Identifier: identifier},
 		workspaceID: workspaceID,
+		projectID:   projectID,
 		namespaceID: namespaceID,
 		overrideID:  overrideID,
 	}

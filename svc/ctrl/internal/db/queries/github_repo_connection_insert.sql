@@ -6,6 +6,7 @@ INSERT INTO github_repo_connections (
     installation_id,
     repository_id,
     repository_full_name,
+    default_branch,
     created_at,
     updated_at
 )
@@ -16,6 +17,7 @@ VALUES (
     sqlc.arg(installation_id),
     sqlc.arg(repository_id),
     sqlc.arg(repository_full_name),
+    sqlc.arg(default_branch),
     sqlc.arg(created_at),
     sqlc.arg(updated_at)
 );

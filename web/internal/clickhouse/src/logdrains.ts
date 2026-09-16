@@ -18,6 +18,7 @@ export const logdrainMetric = z.object({
   permanentErrorCount: z.int(),
   eventsDelivered: z.int(),
   avgDurationMs: z.number(),
+  lastSuccessMs: z.int(),
 });
 
 /** Parameters for a log drain metrics query. */
@@ -33,7 +34,8 @@ export function getLogdrainMetrics(ch: Querier) {
         countIf(outcome IN ('error', 'transient_error')) AS transientErrorCount,
         countIf(outcome = 'permanent_error') AS permanentErrorCount,
         sumIf(events, outcome = 'success') AS eventsDelivered,
-        avg(webhook_duration_ms) AS avgDurationMs
+        avg(webhook_duration_ms) AS avgDurationMs,
+        maxIf(time, outcome = 'success') AS lastSuccessMs
       FROM default.logdrain_deliveries_raw_v1
       PREWHERE workspace_id = {workspaceId: String}
         AND drain_id = {drainId: String}
@@ -51,30 +53,34 @@ export function getLogdrainMetrics(ch: Querier) {
   });
 }
 
-/** Validates the scope and result limit for a recent delivery error query. */
-export const recentLogdrainErrorsParams = z.object({
+/** Validates the scope and result limit for a recent delivery query. */
+export const recentLogdrainDeliveriesParams = z.object({
   workspaceId: z.string(),
   drainId: z.string(),
   startMs: z.int(),
   limit: z.int().positive().max(100),
 });
 
-/** Validates one failed delivery returned by ClickHouse. */
-export const recentLogdrainError = z.object({
+/** Validates one delivery attempt returned by ClickHouse. */
+export const recentLogdrainDelivery = z.object({
   time: z.int(),
-  outcome: z.enum(["error", "transient_error", "permanent_error"]),
+  outcome: z.enum(["success", "error", "transient_error", "permanent_error"]),
+  events: z.int(),
+  durationMs: z.int(),
   responseStatus: z.int(),
   responseBody: z.string(),
   error: z.string(),
 });
 
-/** Returns the newest failed deliveries for one log drain. */
-export function getRecentLogdrainErrors(ch: Querier) {
+/** Returns the newest delivery attempts for one log drain, whatever their outcome. */
+export function getRecentLogdrainDeliveries(ch: Querier) {
   return ch.query({
     query: `
       SELECT
         time,
         outcome,
+        events,
+        webhook_duration_ms AS durationMs,
         response_status AS responseStatus,
         response_body AS responseBody,
         error
@@ -82,11 +88,10 @@ export function getRecentLogdrainErrors(ch: Querier) {
       PREWHERE workspace_id = {workspaceId: String}
         AND drain_id = {drainId: String}
         AND time >= {startMs: Int64}
-      WHERE outcome != 'success'
       ORDER BY time DESC
       LIMIT {limit: UInt8}
     `,
-    params: recentLogdrainErrorsParams,
-    schema: recentLogdrainError,
+    params: recentLogdrainDeliveriesParams,
+    schema: recentLogdrainDelivery,
   });
 }

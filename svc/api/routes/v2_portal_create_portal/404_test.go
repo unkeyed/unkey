@@ -49,7 +49,6 @@ func TestCreatePortalRejectsMappingsItDoesNotOwn(t *testing.T) {
 		ProjectID:        otherProject.ID,
 		Name:             "theirs",
 		Slug:             "theirs",
-		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
 

@@ -78,7 +78,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var projectID, appID, environmentID string
 	if req.Project != nil {
 		scope, err := db.Query.ResolveDeploymentScope(ctx, h.DB.RO(), db.ResolveDeploymentScopeParams{
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			Project:     *req.Project,
 			App:         ptr.SafeDeref(req.App, ""),
 			Environment: ptr.SafeDeref(req.Environment, ""),
@@ -134,7 +134,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	rows, err := db.Query.ListDeployments(ctx, h.DB.RO(), db.ListDeploymentsParams{
-		WorkspaceID:     principal.WorkspaceID,
+		WorkspaceID:     principal.AuthorizedWorkspaceID,
 		ProjectID:       projectID,
 		AppID:           appID,
 		EnvironmentID:   environmentID,
@@ -161,7 +161,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ids[i] = row.ID
 		}
 		state, err := db.Query.ListDeploymentEnvAndAppState(ctx, h.DB.RO(), db.ListDeploymentEnvAndAppStateParams{
-			WorkspaceID:   principal.WorkspaceID,
+			WorkspaceID:   principal.AuthorizedWorkspaceID,
 			DeploymentIds: ids,
 		})
 		if err != nil {
@@ -178,7 +178,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		regionRows, err := db.Query.ListDeploymentRegionsByIds(ctx, h.DB.RO(), db.ListDeploymentRegionsByIdsParams{
-			WorkspaceID:   principal.WorkspaceID,
+			WorkspaceID:   principal.AuthorizedWorkspaceID,
 			DeploymentIds: ids,
 		})
 		if err != nil {
@@ -195,7 +195,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		stepRows, err := db.Query.ListFailedDeploymentStepsByIds(ctx, h.DB.RO(), db.ListFailedDeploymentStepsByIdsParams{
-			WorkspaceID:   principal.WorkspaceID,
+			WorkspaceID:   principal.AuthorizedWorkspaceID,
 			DeploymentIds: ids,
 		})
 		if err != nil {
@@ -212,7 +212,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 
 		domainRows, err := db.Query.ListDeploymentDomainsByIds(ctx, h.DB.RO(), db.ListDeploymentDomainsByIdsParams{
-			WorkspaceID:   principal.WorkspaceID,
+			WorkspaceID:   principal.AuthorizedWorkspaceID,
 			DeploymentIds: ids,
 		})
 		if err != nil {

@@ -32,11 +32,13 @@ properties:
     example: "production"
   dockerImage:
     type: string
+    deprecated: true
     minLength: 1
     maxLength: 256
     description: >-
-      Full image reference to deploy. Qualify the version with a tag
-      (ghcr.io/user/app:v1.0.0) or with a digest
+      Deprecated. Use `oci.image` in v3 instead. This field is the full image
+      reference to deploy. Qualify the version with a tag
+      (ghcr.io/user/app:v1.0.0) or a digest
       (ghcr.io/user/app@sha256:...). Without either, the registry serves the
       latest tag.
     example: "ghcr.io/user/app:v1.0.0"

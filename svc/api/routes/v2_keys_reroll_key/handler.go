@@ -67,7 +67,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	if key.KeyWorkspaceID != principal.WorkspaceID {
+	if key.KeyWorkspaceID != principal.AuthorizedWorkspaceID {
 		return fault.New("key not found",
 			fault.Code(codes.Data.Key.NotFound.URN()),
 			fault.Internal("key belongs to different workspace"),
@@ -119,7 +119,7 @@ func (h *Handler) RerollKey(
 		return err
 	}
 	if err := assert.All(
-		assert.Equal(key.KeyWorkspaceID, principal.WorkspaceID, "reroll key workspace must match principal"),
+		assert.Equal(key.KeyWorkspaceID, principal.AuthorizedWorkspaceID, "reroll key workspace must match principal"),
 		assert.Equal(key.KeyID, req.KeyId, "preloaded reroll key must match request"),
 	); err != nil {
 		return err
@@ -129,11 +129,12 @@ func (h *Handler) RerollKey(
 	keyData := db.ToKeyData(key)
 
 	length := 16
-	prefix := ""
-
-	split := strings.Split(keyData.Key.Start, "_")
-	if len(split) > 1 {
-		prefix = split[0]
+	prefix := keyData.Key.Prefix
+	if prefix == "" {
+		separator := strings.LastIndex(keyData.Key.Start, "_")
+		if separator >= 0 {
+			prefix = keyData.Key.Start[:separator]
+		}
 	}
 
 	if prefix == "" && keyData.KeyAuth.DefaultPrefix.Valid {
@@ -198,7 +199,9 @@ func (h *Handler) RerollKey(
 				ID:                 keyID,
 				KeySpaceID:         keyData.Key.KeyAuthID,
 				Hash:               keyResult.Hash,
+				Prefix:             prefix,
 				Start:              keyResult.Start,
+				End:                keyResult.Key[len(keyResult.Key)-4:],
 				WorkspaceID:        keyData.Key.WorkspaceID,
 				ForWorkspaceID:     keyData.Key.ForWorkspaceID,
 				CreatedAtM:         now,
@@ -221,7 +224,7 @@ func (h *Handler) RerollKey(
 
 			if encryption != nil {
 				err = db.Query.InsertKeyEncryption(ctx, tx, db.InsertKeyEncryptionParams{
-					WorkspaceID:     principal.WorkspaceID,
+					WorkspaceID:     principal.AuthorizedWorkspaceID,
 					KeyID:           keyID,
 					CreatedAt:       now,
 					Encrypted:       encryption.GetEncrypted(),
@@ -338,7 +341,7 @@ func (h *Handler) RerollKey(
 
 			var auditLogs []auditlog.AuditLog
 			auditLogs = append(auditLogs, auditlog.AuditLog{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.KeyRerollEvent,
 				ActorType:     actor.Type,
 				ActorID:       actor.ID,
@@ -402,10 +405,10 @@ func rerollPermissionQuery(key db.FindLiveKeyByIDRow) rbac.PermissionQuery {
 	keyData := db.ToKeyData(key)
 
 	checks := rbac.Or(
-		CreateKeyPermissions(key.ApiID),
+		CreateKeyPermissions(keyData.Api.ID),
 		rbac.U(
-			urn.New().Workspace(key.KeyWorkspaceID).Keyspace(key.KeyKeyAuthID),
-			permissions.CreateKey{},
+			urn.New().Workspace(keyData.Key.WorkspaceID).Project(keyData.KeyAuth.ProjectID).Keyspace(keyData.Key.KeyAuthID).Key(keyData.Key.ID),
+			permissions.Write,
 		),
 	)
 
@@ -413,10 +416,10 @@ func rerollPermissionQuery(key db.FindLiveKeyByIDRow) rbac.PermissionQuery {
 		checks = rbac.And(
 			checks,
 			rbac.Or(
-				EncryptKeyPermissions(key.ApiID),
+				EncryptKeyPermissions(keyData.Api.ID),
 				rbac.U(
-					urn.New().Workspace(key.KeyWorkspaceID).Keyspace(key.KeyKeyAuthID).Key("*"),
-					permissions.EncryptKey{},
+					urn.New().Workspace(keyData.Key.WorkspaceID).Project(keyData.KeyAuth.ProjectID).Keyspace(keyData.Key.KeyAuthID).Key(keyData.Key.ID),
+					permissions.Write,
 				),
 			),
 		)

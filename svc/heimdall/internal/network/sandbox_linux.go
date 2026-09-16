@@ -6,8 +6,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/containerd/containerd/v2/pkg/namespaces"
+	"github.com/containerd/containerd/v2/pkg/oci"
 	"github.com/unkeyed/unkey/pkg/logger"
 )
 
@@ -43,7 +45,7 @@ func (r *linuxReader) sandboxNetnsPath(ctx context.Context, podUID string) (stri
 		criKindLabel, criKindSandbox,
 	)
 
-	containers, err := r.cd.Containers(ctx, filter)
+	containers, err := r.listSandboxes(ctx, filter)
 	if err != nil {
 		logger.Debug("sandbox netns: containerd list failed", "pod_uid", podUID, "error", err.Error())
 		return "", fmt.Errorf("containerd list: %w", err)
@@ -54,13 +56,17 @@ func (r *linuxReader) sandboxNetnsPath(ctx context.Context, podUID string) (stri
 		return "", fmt.Errorf("%w: pod %s", ErrSandboxNotFound, podUID)
 	}
 
-	// Multiple sandboxes can match one pod UID transiently during pod
-	// recreation / GC lag (a stale sandbox lingering past its pod), and
-	// containerd's container list iteration order is non-deterministic
-	// (database scan order, not creation time). Picking containers[0]
-	// risks reading the OCI spec of the dead one. Iterate all matches and
-	// return the first valid network-namespace path we find; only fail if
-	// none yield one.
+	// Multiple sandboxes can match one pod UID: after a gVisor memory-limit
+	// kill kubelet recreates the sandbox under the same pod, and containerd
+	// keeps the stopped sandbox's container record (OCI spec included) until
+	// RemovePodSandbox, which kubelet GC runs about a minute later. The
+	// stopped record still names its netns path even though StopPodSandbox
+	// already removed the file, and containerd's list order is database
+	// scan order, not creation time. So a path is only a candidate if its
+	// netns still exists. If every record's netns is gone, the new sandbox
+	// has not been created yet; report ENOENT so the worker files it as
+	// benign churn and the next tick retries.
+	staleNetns := ""
 	for _, c := range containers {
 		spec, err := c.Spec(ctx)
 		if err != nil {
@@ -73,14 +79,35 @@ func (r *linuxReader) sandboxNetnsPath(ctx context.Context, podUID string) (stri
 				"pod_uid", podUID, "sandbox_id", c.ID())
 			continue
 		}
-		for _, ns := range spec.Linux.Namespaces {
-			if ns.Type == "network" && ns.Path != "" {
-				return ns.Path, nil
-			}
+		path := networkNamespacePath(spec)
+		if path == "" {
+			logger.Debug("sandbox netns: OCI spec.linux.namespaces has no network entry with a path",
+				"pod_uid", podUID, "sandbox_id", c.ID(), "namespaces", spec.Linux.Namespaces)
+			continue
 		}
-		logger.Debug("sandbox netns: OCI spec.linux.namespaces has no network entry with a path",
-			"pod_uid", podUID, "sandbox_id", c.ID(), "namespaces", spec.Linux.Namespaces)
+		if r.netnsGone(path) {
+			logger.Debug("sandbox netns: skipping stopped sandbox, netns removed",
+				"pod_uid", podUID, "sandbox_id", c.ID(), "netns_path", path)
+			staleNetns = path
+			continue
+		}
+		return path, nil
+	}
+
+	if staleNetns != "" {
+		return "", fmt.Errorf("no sandbox with a live netns (last stopped: %s): %w", staleNetns, os.ErrNotExist)
 	}
 
 	return "", errors.New("sandbox spec has no network namespace path")
+}
+
+// networkNamespacePath returns linux.namespaces[type=network].path from an
+// OCI spec, or "" when the spec has none (host-network sandboxes).
+func networkNamespacePath(spec *oci.Spec) string {
+	for _, ns := range spec.Linux.Namespaces {
+		if ns.Type == "network" && ns.Path != "" {
+			return ns.Path
+		}
+	}
+	return ""
 }

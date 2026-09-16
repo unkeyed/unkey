@@ -14,7 +14,7 @@ import { signOut } from "@/lib/auth/utils";
 import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
-import { Laptop2, MoonStars, Sun } from "@unkey/icons";
+import { IconLaptop2Outline18, IconMoonStarsOutline18, IconSunOutline18 } from "@unkey/icons";
 import { useTheme } from "next-themes";
 import type React from "react";
 
@@ -67,13 +67,13 @@ export const UserButton: React.FC<UserButtonProps> = ({ isCollapsed = false, cla
           <Tabs value={theme} onValueChange={setTheme}>
             <TabsList className="w-full">
               <TabsTrigger className="w-full cursor-pointer" value="light">
-                <Sun className="size-4" />
+                <IconSunOutline18 className="size-4" />
               </TabsTrigger>
               <TabsTrigger className="w-full cursor-pointer" value="dark">
-                <MoonStars className="size-4" />
+                <IconMoonStarsOutline18 className="size-4" />
               </TabsTrigger>
               <TabsTrigger className="w-full cursor-pointer" value="system">
-                <Laptop2 className="size-4" />
+                <IconLaptop2Outline18 className="size-4" />
               </TabsTrigger>
             </TabsList>
           </Tabs>

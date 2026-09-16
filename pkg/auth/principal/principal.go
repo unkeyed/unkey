@@ -52,8 +52,9 @@ type Principal struct {
 	// Source carries the method-specific authentication details.
 	Source Source
 
-	// WorkspaceID scopes all handler reads and writes for this principal.
-	WorkspaceID string
+	// AuthorizedWorkspaceID is the workspace this principal can access. For root
+	// keys, it is keys.for_workspace_id, not the key owner in [KeySource.WorkspaceID].
+	AuthorizedWorkspaceID string
 
 	// Permissions is the flat set of exact or resource-scoped authorization grants.
 	Permissions []string
@@ -73,7 +74,7 @@ func (p *Principal) Authorize(query rbac.PermissionQuery) error {
 	if err != nil {
 		p.authorizationError = err
 		logger.Warn("principal authorization denied",
-			slog.String("workspace_id", p.WorkspaceID),
+			slog.String("workspace_id", p.AuthorizedWorkspaceID),
 			slog.String("principal_type", string(p.Type)),
 			slog.String("subject_type", string(p.Subject.Type)),
 			slog.String("subject_id", p.Subject.ID),
@@ -110,6 +111,11 @@ type KeySource struct {
 	// KeySpaceID is the key space that owns the authenticated key.
 	KeySpaceID string
 
+	// WorkspaceID is the keys.workspace_id value that identifies the key owner.
+	// For root keys, it identifies Unkey's internal workspace, not the customer
+	// workspace in keys.for_workspace_id.
+	WorkspaceID string
+
 	// Permissions are the raw RBAC permission strings attached to the key.
 	Permissions []string
 }
@@ -123,6 +129,9 @@ type JWTSource struct {
 
 	// Payload is the decoded token payload with claims preserved by name.
 	Payload map[string]any
+
+	// Roles contains the roles claim from the token.
+	Roles []string
 
 	// Signature is the raw signature string from the token's third segment.
 	Signature string

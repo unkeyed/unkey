@@ -6,12 +6,13 @@ import { newId } from "@unkey/id";
 import { newKey } from "@unkey/keys";
 import { unkeyPermissionValidation } from "@unkey/rbac";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
 import { insertAuditLogs } from "@/lib/audit";
 import { upsertPermissions } from "../rbac";
 
 export const createRootKey = workspaceProcedure
+  .use(requireWorkspaceAdmin)
   .input(
     z.object({
       name: z.string().optional(),
@@ -52,7 +53,7 @@ export const createRootKey = workspaceProcedure
     }
 
     const keyId = newId("key");
-    const { key, hash, start } = await newKey({
+    const { key, hash, prefix, start, end } = await newKey({
       prefix: "unkey",
       byteLength: 16,
     });
@@ -65,7 +66,9 @@ export const createRootKey = workspaceProcedure
           keyAuthId,
           name: input?.name,
           hash,
+          prefix,
           start,
+          end,
           workspaceId: env().UNKEY_WORKSPACE_ID,
           forWorkspaceId: ctx.workspace.id,
           expires: null,

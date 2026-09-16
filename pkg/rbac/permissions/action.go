@@ -1,22 +1,41 @@
-// Package permissions defines typed actions for Unkey resource permissions.
-//
-// Resource permissions combine a URN resource with an action, but not every
-// action is meaningful for every resource. These action structs encode valid
-// resource/action pairs in the type system, so handler code can't accidentally
-// ask for create_key on a key resource or read_key on a keyspace resource.
-//
-// Each action declares the resource type it supports through ActionFor. For
-// example, CreateKey implements ActionFor(urn.Keyspace), so rbac.U accepts it
-// with urn.Keyspace values and rejects it with urn.Key values at compile time.
-//
-// This keeps pkg/urn focused on naming resources while pkg/rbac owns query
-// construction and evaluation.
+// Package permissions defines actions for canonical URN resources.
 package permissions
 
-import "fmt"
+// Action identifies an operation on a canonical resource name. The resource
+// path identifies the resource type.
+type Action string
 
-// Action is an action that is valid for resource type R.
-type Action[R fmt.Stringer] interface {
-	ActionFor(R)
-	fmt.Stringer
+// String returns the serialized permission action.
+func (a Action) String() string {
+	return string(a)
 }
+
+const (
+	// Read authorizes reading a resource. It applies to every concrete resource
+	// in the canonical permission catalog.
+	Read Action = "read"
+
+	// Write authorizes creating or updating a resource. It applies to every
+	// concrete resource except deployment logs, gateway logs, keyspace logs,
+	// and rate limit logs.
+	Write Action = "write"
+
+	// Delete authorizes deleting a resource. It applies to every concrete
+	// resource except deployment logs, gateway logs, keyspace logs, and rate
+	// limit logs.
+	Delete Action = "delete"
+
+	// Decrypt authorizes decrypting protected resource data. It applies only to
+	// keys.
+	Decrypt Action = "decrypt"
+
+	// Verify authorizes verifying a resource. It applies only to keys.
+	Verify Action = "verify"
+
+	// Limit authorizes using a rate limit namespace. It applies only to rate
+	// limit namespaces.
+	Limit Action = "limit"
+)
+
+// Wildcard is the action used by the global admin permission.
+const Wildcard = "*"

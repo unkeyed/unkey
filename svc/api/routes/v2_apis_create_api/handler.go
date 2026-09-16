@@ -58,7 +58,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	apiId, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
-		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
+		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.AuthorizedWorkspaceID)
 		if resolveErr != nil {
 			return "", resolveErr
 		}
@@ -66,7 +66,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		keySpaceId := uid.New(uid.KeySpacePrefix)
 		err = db.Query.InsertKeySpace(ctx, tx, db.InsertKeySpaceParams{
 			ID:                 keySpaceId,
-			WorkspaceID:        principal.WorkspaceID,
+			WorkspaceID:        principal.AuthorizedWorkspaceID,
 			ProjectID:          projectID,
 			CreatedAtM:         time.Now().UnixMilli(),
 			DefaultPrefix:      sql.NullString{Valid: false, String: ""},
@@ -84,7 +84,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		err = db.Query.InsertApi(ctx, tx, db.InsertApiParams{
 			ID:          apiId,
 			Name:        req.Name,
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			ProjectID:   projectID,
 			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 			KeyAuthID:   sql.NullString{Valid: true, String: keySpaceId},
@@ -100,7 +100,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 			{
-				WorkspaceID:   principal.WorkspaceID,
+				WorkspaceID:   principal.AuthorizedWorkspaceID,
 				Event:         auditlog.APICreateEvent,
 				Display:       fmt.Sprintf("Created API %s", apiId),
 				ActorID:       principal.Subject.ID,

@@ -1,0 +1,135 @@
+package db
+
+import (
+	"context"
+	"database/sql"
+	"database/sql/driver"
+	"errors"
+	"strings"
+	"time"
+
+	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/mysql/metrics"
+	"github.com/unkeyed/unkey/pkg/otel/tracing"
+	"go.opentelemetry.io/otel/attribute"
+)
+
+const transactionBatchMarker = "unkey_transaction_committed"
+
+var errTransactionBatchNotConfirmed = errors.New("transaction batch commit was not confirmed")
+
+// executeTransactionBatch runs existing sqlc statements atomically in one
+// MySQL protocol exchange. The terminal marker is positive proof that COMMIT
+// completed. A missing marker is an unknown outcome and must not be retried.
+func (r *Replica) executeTransactionBatch(
+	ctx context.Context,
+	operation string,
+	statements []transactionBatchStatement,
+) error {
+	ctx, span := tracing.Start(ctx, operation)
+	defer span.End()
+	span.SetAttributes(attribute.String("mode", r.mode))
+
+	query, args := r.transactionBatchQuery(ctx, operation, statements)
+
+	conn, err := r.db.Conn(ctx)
+	if err != nil {
+		recordBatchMetrics(r.mode, time.Duration(0), err)
+		tracing.RecordErrorUnless(span, err)
+		return err
+	}
+	defer func() { _ = conn.Close() }()
+
+	start := time.Now()
+	rows, err := conn.QueryContext(ctx, query, args...)
+	if err != nil {
+		cleanupTransactionBatchConnection(conn)
+		recordBatchMetrics(r.mode, time.Since(start), err)
+		tracing.RecordErrorUnless(span, err)
+		return err
+	}
+
+	committed := false
+	if rows.Next() {
+		var marker string
+		if scanErr := rows.Scan(&marker); scanErr == nil && marker == transactionBatchMarker {
+			committed = true
+		}
+	}
+
+	for rows.Next() {
+	}
+	for rows.NextResultSet() {
+		for rows.Next() {
+		}
+	}
+	rowsErr := rows.Err()
+	closeErr := rows.Close()
+
+	if committed {
+		// The mutation is durable once the marker arrives. A later drain error only
+		// makes this physical connection unsafe to reuse.
+		if rowsErr != nil || closeErr != nil {
+			discardConnection(conn)
+			logger.Warn("discarding database connection after committed transaction batch", "operation", operation, "rows_error", rowsErr, "close_error", closeErr)
+		}
+		recordBatchMetrics(r.mode, time.Since(start), nil)
+		return nil
+	}
+
+	cleanupTransactionBatchConnection(conn)
+	if rowsErr != nil {
+		err = rowsErr
+	} else if closeErr != nil {
+		err = closeErr
+	} else {
+		err = errTransactionBatchNotConfirmed
+	}
+	recordBatchMetrics(r.mode, time.Since(start), err)
+	tracing.RecordErrorUnless(span, err)
+	return err
+}
+
+func (r *Replica) transactionBatchQuery(
+	ctx context.Context,
+	operation string,
+	statements []transactionBatchStatement,
+) (string, []any) {
+	queries := make([]string, 0, len(statements)+3)
+	queries = append(queries, "-- name: "+operation+"Start :exec\nSTART TRANSACTION")
+	args := make([]any, 0)
+	for _, statement := range statements {
+		queries = append(queries, statement.query)
+		args = append(args, statement.args...)
+	}
+	queries = append(queries,
+		"-- name: "+operation+"Commit :exec\nCOMMIT",
+		"-- name: "+operation+"Marker :one\nSELECT '"+transactionBatchMarker+"'",
+	)
+	for i := range queries {
+		queries[i] = r.annotate(ctx, queries[i])
+	}
+	return strings.Join(queries, ";\n") + ";", args
+}
+
+func cleanupTransactionBatchConnection(conn *sql.Conn) {
+	rollbackCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_, _ = conn.ExecContext(rollbackCtx, "ROLLBACK")
+	discardConnection(conn)
+}
+
+func discardConnection(conn *sql.Conn) {
+	_ = conn.Raw(func(any) error {
+		return driver.ErrBadConn
+	})
+}
+
+func recordBatchMetrics(mode string, duration time.Duration, err error) {
+	status := statusSuccess
+	if err != nil {
+		status = statusError
+	}
+	metrics.DatabaseOperationsLatency.WithLabelValues(mode, "batch", status).Observe(duration.Seconds())
+	metrics.DatabaseOperationsTotal.WithLabelValues(mode, "batch", status).Inc()
+}

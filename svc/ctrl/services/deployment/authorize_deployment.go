@@ -11,6 +11,7 @@ import (
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
+	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -42,23 +43,61 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 		return nil, connect.NewError(connect.CodeFailedPrecondition,
 			fmt.Errorf("deployment %s is not awaiting approval (current status: %s)", deploymentID, deployment.Status))
 	}
-	if err := s.ensureWorkspaceCanDeploy(ctx, deployment.WorkspaceID, "authorize"); err != nil {
+	if err := s.ensureWorkspaceCanDeploy(ctx, deployment.WorkspaceID); err != nil {
 		return nil, err
 	}
 
-	// Look up build settings and repo connection before changing status,
-	// so a lookup failure doesn't leave the deployment stuck as pending.
-	buildSetting, err := s.db.FindAppBuildSettingByAppEnv(ctx, db.FindAppBuildSettingByAppEnvParams{
-		AppID:         deployment.AppID,
-		EnvironmentID: deployment.EnvironmentID,
-	})
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find build settings: %w", err))
+	commitSHA := deployment.GitCommitSha.String
+	useOCI := deployment.Source == db.DeploymentsSourceOci ||
+		((deployment.Source == db.DeploymentsSourceUnknown || deployment.Source == "") && commitSHA == "")
+
+	createReq := &hydrav1.DeployCreateRequest{
+		ProjectId:     deployment.ProjectID,
+		AppId:         deployment.AppID,
+		EnvironmentId: deployment.EnvironmentID,
+		Decision:      hydrav1.CreateDecision_CREATE_DECISION_DEPLOY,
+		Source:        nil,
+		Trigger: &hydrav1.Trigger{
+			Source: ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_DASHBOARD,
+			Actor:  nil,
+			Reason: "",
+		},
 	}
 
-	repoConn, err := s.db.FindGithubRepoConnectionByProjectId(ctx, deployment.ProjectID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find repo connection: %w", err))
+	var repoConn *db.GithubRepoConnection
+	if useOCI {
+		image := deployment.ImageRequested
+		if !image.Valid || image.String == "" {
+			image = deployment.ImageResolved
+		}
+		if !image.Valid || image.String == "" {
+			return nil, connect.NewError(connect.CodeFailedPrecondition,
+				fmt.Errorf("OCI deployment %s has no image reference", deploymentID))
+		}
+		createReq.Source = &hydrav1.DeployCreateRequest_Image{
+			Image: &hydrav1.CreateImageSource{Image: image.String, Commit: nil},
+		}
+	} else {
+		if commitSHA == "" {
+			return nil, connect.NewError(connect.CodeFailedPrecondition,
+				fmt.Errorf("Git deployment %s has no commit SHA", deploymentID))
+		}
+
+		connection, connectionErr := s.db.FindGithubRepoConnectionByAppId(ctx, deployment.AppID)
+		if connectionErr != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to find repo connection: %w", connectionErr))
+		}
+		repoConn = &connection
+
+		// Point Create at this deployment's own row. Create then reads the
+		// commit, the fork repository and the PR number out of the row
+		// itself, so this code cannot get one of them wrong or leave it out
+		createReq.Source = &hydrav1.DeployCreateRequest_ExistingDeployment{
+			ExistingDeployment: &hydrav1.CreateExistingDeploymentSource{
+				DeploymentId:  deploymentID,
+				RequireLatest: false,
+			},
+		}
 	}
 
 	// Atomically transition from awaiting_approval → pending to prevent
@@ -81,87 +120,32 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 			fmt.Errorf("deployment %s is no longer awaiting approval (concurrent update)", deploymentID))
 	}
 
-	commitSHA := ""
-	if deployment.GitCommitSha.Valid {
-		commitSHA = deployment.GitCommitSha.String
-	}
-
-	branch := ""
-	if deployment.GitBranch.Valid {
-		branch = deployment.GitBranch.String
-	}
-
-	var prNumber int64
-	if deployment.PrNumber.Valid {
-		prNumber = deployment.PrNumber.Int64
-	}
-
-	// Forward the fork so the worker classifies this as a fork build and clones
-	// the right repo. Today approval is only reached for live PRs (PrNumber > 0),
-	// which already forces the fork path, but carrying ForkRepository keeps a
-	// fork-ref-by-SHA deployment correct if it ever lands on the approval path.
-	forkRepository := ""
-	if deployment.ForkRepositoryFullName.Valid {
-		forkRepository = deployment.ForkRepositoryFullName.String
-	}
-
-	deployReq := &hydrav1.DeployRequest{
-		DeploymentId: deploymentID,
-		Command:      deployment.Command,
-		Source: &hydrav1.DeployRequest_Git{
-			Git: &hydrav1.GitSource{
-				InstallationId: repoConn.InstallationID,
-				Repository:     repoConn.RepositoryFullName,
-				CommitSha:      commitSHA,
-				ContextPath:    buildSetting.DockerContext,
-				DockerfilePath: buildSetting.Dockerfile.String,
-				BuildCommand:   buildSetting.BuildCommand.String,
-				Branch:         branch,
-				PrNumber:       prNumber,
-				ForkRepository: forkRepository,
-			},
-		},
-	}
-
-	// Keyed by deployment_id — each deployment runs as its own isolated
-	// workflow so multiple deployments can build in parallel.
-	invocation, sendErr := s.deploymentClient(deploymentID).Deploy().Send(ctx, deployReq)
-	if sendErr != nil {
-		// Revert status back to awaiting_approval since the deploy failed.
-		if _, revertErr := s.db.CompareAndSwapDeploymentStatus(ctx, db.CompareAndSwapDeploymentStatusParams{
-			ID:             deploymentID,
-			ExpectedStatus: mysqltype.DeploymentsStatusPending,
-			NewStatus:      mysqltype.DeploymentsStatusAwaitingApproval,
-			UpdatedAt:      sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
-		}); revertErr != nil {
-			logger.Error("failed to revert deployment status after deploy failure",
-				"deployment_id", deploymentID,
-				"error", revertErr,
-			)
-		}
+	// Create applies the same checks a push gets, Compute plan, spend cap,
+	// schedulable region and the cpu and memory bounds, and then starts the
+	// run. Going through it is what stops an approval from skipping them. It
+	// also writes the invocation id that cancelling a deployment needs.
+	resp, createErr := s.deploymentClient(deploymentID).Create().Request(ctx, createReq)
+	if createErr != nil {
+		s.revertAuthorization(ctx, deploymentID)
 		logger.Error("failed to trigger deploy workflow after authorization",
 			"deployment_id", deploymentID,
-			"error", sendErr,
+			"error", createErr,
 		)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger deploy workflow: %w", sendErr))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to trigger deploy workflow: %w", createErr))
 	}
 
-	// Persist the invocation ID so the deployment can be cancelled later.
-	invocationID := invocation.Id()
-	if updateErr := s.db.UpdateDeploymentInvocationID(ctx, db.UpdateDeploymentInvocationIDParams{
-		ID:           deploymentID,
-		InvocationID: sql.NullString{Valid: true, String: invocationID},
-		UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-	}); updateErr != nil {
-		logger.Error("failed to persist invocation id",
-			"deployment_id", deploymentID,
-			"invocation_id", invocationID,
-			"error", updateErr,
-		)
+	// Create reports a refusal in the response rather than as an error, so
+	// this is not an error path in Go. The row is already pending by now, and
+	// without the revert it would stay that way: nothing would build it, and
+	// the dashboard only offers an approve button for awaiting_approval
+	if outcome := resp.GetOutcome(); outcome != hydrav1.CreateOutcome_CREATE_OUTCOME_CREATED {
+		s.revertAuthorization(ctx, deploymentID)
+		return nil, connect.NewError(connect.CodeFailedPrecondition,
+			fmt.Errorf("deployment %s could not be started: %s", deploymentID, outcome.String()))
 	}
 
 	// Update commit status on GitHub
-	if commitSHA != "" {
+	if commitSHA != "" && repoConn != nil {
 		if statusErr := s.github.CreateCommitStatus(
 			repoConn.InstallationID,
 			repoConn.RepositoryFullName,
@@ -169,7 +153,7 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 			"success",
 			"",
 			"Deployment authorized and started",
-			"Unkey Deploy Authorization",
+			githubclient.DeployAuthorizationContext,
 		); statusErr != nil {
 			logger.Error("failed to update commit status to success", "error", statusErr)
 		}
@@ -181,4 +165,20 @@ func (s *Service) AuthorizeDeployment(ctx context.Context, req *connect.Request[
 	)
 
 	return connect.NewResponse(&ctrlv1.AuthorizeDeploymentResponse{}), nil
+}
+
+// revertAuthorization puts the deployment back to awaiting_approval so the
+// approve button reappears, for when an approval was accepted but no run
+// started. The conditions that make it safe to do are in the statement rather
+// than here; see RevertDeploymentAuthorization for why.
+func (s *Service) revertAuthorization(ctx context.Context, deploymentID string) {
+	if _, err := s.db.RevertDeploymentAuthorization(ctx, db.RevertDeploymentAuthorizationParams{
+		ID:        deploymentID,
+		UpdatedAt: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+	}); err != nil {
+		logger.Error("failed to revert deployment authorization",
+			"deployment_id", deploymentID,
+			"error", err,
+		)
+	}
 }

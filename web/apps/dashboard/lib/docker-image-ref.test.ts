@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeImageRef, validateImageRef } from "./docker-image-ref";
+import {
+  imageRefDisplay,
+  imageRefTag,
+  sanitizeImageRef,
+  validateImageRef,
+} from "./docker-image-ref";
 
 const digest = `sha256:${"a".repeat(64)}`;
 
@@ -134,5 +139,47 @@ describe("sanitizeImageRef", () => {
         error: expect.stringContaining("spaces"),
       });
     }
+  });
+});
+
+describe("imageRefTag", () => {
+  it("reads the tag", () => {
+    expect(imageRefTag("ghcr.io/unkeyed/vault:v1.0.1")).toBe("v1.0.1");
+  });
+
+  it("does not mistake a registry port for a tag", () => {
+    expect(imageRefTag("localhost:5000/vault")).toBe("latest");
+  });
+
+  it("falls back to the digest when there is no tag", () => {
+    const digest = `sha256:${"a".repeat(64)}`;
+    expect(imageRefTag(`unkeyed/vault@${digest}`)).toBe(digest);
+  });
+
+  it("defaults to latest", () => {
+    expect(imageRefTag("unkeyed/vault")).toBe("latest");
+  });
+
+  it("returns an invalid reference unchanged", () => {
+    expect(imageRefTag("Not A Ref")).toBe("Not A Ref");
+  });
+});
+
+describe("imageRefDisplay", () => {
+  it("drops a registry host", () => {
+    expect(imageRefDisplay("ghcr.io/unkeyed/vault:v1.0.1")).toBe("unkeyed/vault:v1.0.1");
+    expect(imageRefDisplay("localhost:5000/vault:dev")).toBe("vault:dev");
+  });
+
+  it("keeps a Docker Hub namespace", () => {
+    expect(imageRefDisplay("unkeyed/vault:v1.0.1")).toBe("unkeyed/vault:v1.0.1");
+    expect(imageRefDisplay("redis")).toBe("redis");
+  });
+
+  it("keeps a digest", () => {
+    const digest = `sha256:${"a".repeat(64)}`;
+    expect(imageRefDisplay(`ghcr.io/unkeyed/vault:v1@${digest}`)).toBe(
+      `unkeyed/vault:v1@${digest}`,
+    );
   });
 });

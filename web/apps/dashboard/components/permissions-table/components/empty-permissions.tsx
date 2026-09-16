@@ -1,4 +1,4 @@
-import { BookBookmark } from "@unkey/icons";
+import { IconBookBookmarkOutline18 } from "@unkey/icons";
 import { Button, Empty } from "@unkey/ui";
 
 export const EmptyPermissions = () => {
@@ -13,12 +13,12 @@ export const EmptyPermissions = () => {
         </Empty.Description>
         <Empty.Actions className="mt-4 justify-start">
           <a
-            href="https://www.unkey.com/docs/apis/features/authorization/introduction"
+            href="https://www.unkey.com/docs/platform/apis/features/authorization/introduction"
             target="_blank"
             rel="noopener noreferrer"
           >
             <Button size="md">
-              <BookBookmark />
+              <IconBookBookmarkOutline18 />
               Learn about Permissions
             </Button>
           </a>

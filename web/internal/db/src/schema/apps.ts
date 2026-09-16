@@ -1,5 +1,13 @@
 import { relations } from "drizzle-orm";
-import { boolean, index, mysqlTable, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import {
+  boolean,
+  index,
+  mysqlEnum,
+  mysqlTable,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/mysql-core";
+import { appSourceOci } from "./app_source_oci";
 import { environments } from "./environments";
 import { githubRepoConnections } from "./github_app";
 import { deleteProtection } from "./util/delete_protection";
@@ -7,7 +15,6 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { projects } from "./projects";
-import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { primaryKey } from "./util/primary_key";
 
@@ -20,10 +27,8 @@ export const apps = mysqlTable(
     projectId: id("project_id").notNull(),
     name: varchar("name", { length: 256 }).notNull(),
     slug: varchar("slug", { length: 256 }).notNull(),
+    sourceType: mysqlEnum("source_type", ["unknown", "git", "oci"]).notNull().default("unknown"),
 
-    defaultBranch: caseSensitiveVarchar("default_branch", { length: 256 })
-      .notNull()
-      .default("main"),
     currentDeploymentId: id("current_deployment_id"),
     isRolledBack: boolean("is_rolled_back").notNull().default(false),
 
@@ -32,7 +37,7 @@ export const apps = mysqlTable(
   },
   (table) => [
     uniqueIndex("apps_project_slug_idx").on(table.projectId, table.slug),
-    index("apps_workspace_idx").on(table.workspaceId),
+    index("apps_workspace_slug_idx").on(table.workspaceId, table.slug),
   ],
 );
 
@@ -49,5 +54,9 @@ export const appsRelations = relations(apps, ({ one, many }) => ({
   githubRepoConnection: one(githubRepoConnections, {
     fields: [apps.id],
     references: [githubRepoConnections.appId],
+  }),
+  ociSource: one(appSourceOci, {
+    fields: [apps.id],
+    references: [appSourceOci.appId],
   }),
 }));

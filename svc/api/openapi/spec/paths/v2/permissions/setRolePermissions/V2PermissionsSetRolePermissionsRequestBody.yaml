@@ -1,11 +1,23 @@
 type: object
+description: Provide exactly one of `role` or the deprecated `roleId`.
 required:
-  - roleId
   - permissions
 properties:
+  role:
+    type: string
+    minLength: 1
+    maxLength: 128
+    description: |
+      The role whose directly assigned permissions will be replaced.
+      Accepts either the generated role ID or the unique role name.
   roleId:
-    "$ref": "../../../../common/ResourceIdentifier.yaml"
-    description: The ID of the role whose directly assigned permissions will be replaced.
+    type: string
+    minLength: 1
+    maxLength: 128
+    deprecated: true
+    description: |
+      Deprecated. Use `role` instead.
+      Accepts either the generated role ID or the unique role name.
   permissions:
     type: array
     description: The complete set of permission slugs to assign directly to the role. Missing permissions are created when authorized. An empty array clears all direct permissions.
@@ -15,3 +27,6 @@ properties:
       maxLength: 128
       pattern: ^[a-zA-Z0-9_:\-\.\*]+$
 additionalProperties: false
+oneOf:
+  - required: [role]
+  - required: [roleId]

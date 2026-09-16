@@ -62,7 +62,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
 	rows, err := db.Query.ListProjectsByWorkspaceId(ctx, h.DB.RO(), db.ListProjectsByWorkspaceIdParams{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		IDCursor:    p.Cursor,
 		Search:      search,
 		Limit:       p.FetchLimit(),

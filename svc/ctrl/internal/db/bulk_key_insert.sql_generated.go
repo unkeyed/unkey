@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertKey is the base query for bulk insert
-const bulkInsertKey = `INSERT INTO ` + "`" + `keys` + "`" + ` ( id, key_auth_id, hash, start, workspace_id, for_workspace_id, name, identity_id, meta, expires, created_at_m, enabled, remaining_requests, refill_day, refill_amount, pending_migration_id ) VALUES %s`
+const bulkInsertKey = `INSERT INTO ` + "`" + `keys` + "`" + ` ( id, key_auth_id, hash, prefix, start, end, workspace_id, for_workspace_id, name, identity_id, meta, expires, created_at_m, enabled, remaining_requests, refill_day, refill_amount, pending_migration_id ) VALUES %s`
 
 // InsertKeys performs bulk insert in a single query
 
@@ -22,7 +22,7 @@ func (q *BulkQueries) InsertKeys(ctx context.Context, args []InsertKeyParams) er
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertKey, strings.Join(valueClauses, ", "))
@@ -33,7 +33,9 @@ func (q *BulkQueries) InsertKeys(ctx context.Context, args []InsertKeyParams) er
 		allArgs = append(allArgs, arg.ID)
 		allArgs = append(allArgs, arg.KeySpaceID)
 		allArgs = append(allArgs, arg.Hash)
+		allArgs = append(allArgs, arg.Prefix)
 		allArgs = append(allArgs, arg.Start)
+		allArgs = append(allArgs, arg.End)
 		allArgs = append(allArgs, arg.WorkspaceID)
 		allArgs = append(allArgs, arg.ForWorkspaceID)
 		allArgs = append(allArgs, arg.Name)

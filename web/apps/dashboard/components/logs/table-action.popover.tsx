@@ -1,4 +1,4 @@
-import { Dots } from "@unkey/icons";
+import { IconDotsOutline18 } from "@unkey/icons";
 import {
   Button,
   Popover,
@@ -236,7 +236,7 @@ export const TableActionPopoverDefaultTrigger = forwardRef<
       aria-label="Open actions"
       {...buttonProps}
     >
-      <Dots className="group-hover:text-gray-12 text-gray-11" iconSize="sm-regular" />
+      <IconDotsOutline18 className="group-hover:text-gray-12 text-gray-11" />
     </Button>
   );
 });

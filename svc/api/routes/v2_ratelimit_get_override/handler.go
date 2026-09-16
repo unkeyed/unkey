@@ -51,7 +51,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	ns, found, err := h.getNamespace(ctx, principal.WorkspaceID, req.Namespace)
+	ns, found, err := h.getNamespace(ctx, principal.AuthorizedWorkspaceID, req.Namespace)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -101,10 +101,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		rbac.Or(
 			rbac.U(
 				urn.New().
-					Workspace(principal.WorkspaceID).
+					Workspace(principal.AuthorizedWorkspaceID).
+					Project(ns.ProjectID).
 					RatelimitNamespace(ns.ID).
 					Override(override.ID),
-				permissions.ReadOverride{},
+				permissions.Read,
 			),
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Ratelimit,

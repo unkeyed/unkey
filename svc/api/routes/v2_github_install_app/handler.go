@@ -82,7 +82,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	expiresAtMs := time.Now().Add(stateTTL).UnixMilli()
 
 	state, err := newSigner(h.GitHubPrivateKeyPEM).sign(payload{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Nonce:       base64.RawURLEncoding.EncodeToString(nonceBytes),
 		ExpMs:       expiresAtMs,
 		// "api" flow: a workspace-wide install with no user binding, verified by

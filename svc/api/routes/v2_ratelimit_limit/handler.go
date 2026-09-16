@@ -23,8 +23,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/match"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	sf "github.com/unkeyed/unkey/pkg/singleflight"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -73,7 +75,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	ns, found, err := h.getNamespace(ctx, principal.WorkspaceID, req.Namespace)
+	ns, found, err := h.getNamespace(ctx, principal.AuthorizedWorkspaceID, req.Namespace)
 	if err != nil {
 		return fault.Wrap(err,
 			fault.Code(codes.App.Internal.UnexpectedError.URN()),
@@ -82,18 +84,28 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if !found {
-		err = principal.Authorize(
+		projectID, resolveErr := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+			return projects.EnsureDefaultProject(ctx, tx, principal.AuthorizedWorkspaceID)
+		})
+		if resolveErr != nil {
+			return resolveErr
+		}
+		err = principal.Authorize(rbac.Or(
+			rbac.U(
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).RatelimitNamespace("*"),
+				permissions.Write,
+			),
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.Ratelimit,
 				ResourceID:   "*",
 				Action:       rbac.CreateNamespace,
 			}),
-		)
+		))
 		if err != nil {
 			return err
 		}
 
-		ns, err = h.createNamespace(ctx, s, principal, req.Namespace)
+		ns, err = h.createNamespace(ctx, s, principal, projectID, req.Namespace)
 		if err != nil {
 			return err
 		}
@@ -107,6 +119,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	err = principal.Authorize(rbac.Or(
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(ns.ProjectID).RatelimitNamespace(ns.ID),
+			permissions.Limit,
+		),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Ratelimit,
 			ResourceID:   ns.ID,
@@ -135,7 +151,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Apply rate limit
 	cost := ptr.SafeDeref(req.Cost, 1)
 	limitReq := ratelimit.RatelimitRequest{
-		WorkspaceID: principal.WorkspaceID,
+		WorkspaceID: principal.AuthorizedWorkspaceID,
 		Namespace:   ns.ID,
 		Identifier:  req.Identifier,
 		Duration:    time.Duration(duration) * time.Millisecond,
@@ -171,7 +187,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if s.ShouldLogRequestToClickHouse() {
 		h.RatelimitEvents.Buffer(schema.Ratelimit{
 			RequestID:   s.RequestID(),
-			WorkspaceID: principal.WorkspaceID,
+			WorkspaceID: principal.AuthorizedWorkspaceID,
 			Time:        nowMillis,
 			NamespaceID: ns.ID,
 			Identifier:  req.Identifier,
@@ -236,7 +252,7 @@ func (h *Handler) bufferAuditLog(
 	h.DirectAuditLogs.Buffer(auditlog.Event{
 		EventID:     uid.New(uid.AuditLogPrefix),
 		Time:        timeMillis,
-		WorkspaceID: p.WorkspaceID,
+		WorkspaceID: p.AuthorizedWorkspaceID,
 		Bucket:      auditlogs.DefaultBucket,
 		Source:      auditlog.EventSourcePlatform,
 		Event:       string(auditlog.RatelimitLimitEvent),
@@ -285,21 +301,16 @@ func (h *Handler) getNamespace(ctx context.Context, workspaceID, nameOrID string
 	return ns, true, nil
 }
 
-func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal *principal.Principal, name string) (db.FindRatelimitNamespace, error) {
-	key := principal.WorkspaceID + ":" + name
+func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal *principal.Principal, projectID, name string) (db.FindRatelimitNamespace, error) {
+	key := principal.AuthorizedWorkspaceID + ":" + name
 	return h.createFlight.Do(key, func() (db.FindRatelimitNamespace, error) {
 		ns, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (db.FindRatelimitNamespace, error) {
-			projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.WorkspaceID)
-			if resolveErr != nil {
-				return db.FindRatelimitNamespace{}, resolveErr //nolint:exhaustruct
-			}
-
 			now := time.Now().UnixMilli()
 			id := uid.New(uid.RatelimitNamespacePrefix)
 
 			insertErr := db.Query.InsertRatelimitNamespace(ctx, tx, db.InsertRatelimitNamespaceParams{
 				ID:          id,
-				WorkspaceID: principal.WorkspaceID,
+				WorkspaceID: principal.AuthorizedWorkspaceID,
 				ProjectID:   projectID,
 				Name:        name,
 				CreatedAt:   now,
@@ -319,7 +330,8 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 
 			result := db.FindRatelimitNamespace{
 				ID:                id,
-				WorkspaceID:       principal.WorkspaceID,
+				WorkspaceID:       principal.AuthorizedWorkspaceID,
+				ProjectID:         projectID,
 				Name:              name,
 				CreatedAtM:        now,
 				UpdatedAtM:        sql.NullInt64{Valid: false, Int64: 0},
@@ -330,7 +342,7 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 
 			auditErr := h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{
 				{
-					WorkspaceID:   principal.WorkspaceID,
+					WorkspaceID:   principal.AuthorizedWorkspaceID,
 					Event:         auditlog.RatelimitNamespaceCreateEvent,
 					Display:       "Created ratelimit namespace " + name,
 					ActorID:       principal.Subject.ID,
@@ -362,7 +374,7 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 		}
 		if ns.ID == "" {
 			row, fetchErr := db.Query.FindRatelimitNamespace(ctx, h.DB.RW(), db.FindRatelimitNamespaceParams{
-				WorkspaceID: principal.WorkspaceID,
+				WorkspaceID: principal.AuthorizedWorkspaceID,
 				Namespace:   name,
 			})
 			if fetchErr != nil {
@@ -375,8 +387,8 @@ func (h *Handler) createNamespace(ctx context.Context, s *zen.Session, principal
 		}
 
 		// Warm cache by both name and ID after the transaction has committed
-		h.NamespaceCache.Set(ctx, cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: ns.Name}, ns)
-		h.NamespaceCache.Set(ctx, cache.ScopedKey{WorkspaceID: principal.WorkspaceID, Key: ns.ID}, ns)
+		h.NamespaceCache.Set(ctx, cache.ScopedKey{WorkspaceID: principal.AuthorizedWorkspaceID, Key: ns.Name}, ns)
+		h.NamespaceCache.Set(ctx, cache.ScopedKey{WorkspaceID: principal.AuthorizedWorkspaceID, Key: ns.ID}, ns)
 
 		return ns, nil
 	})

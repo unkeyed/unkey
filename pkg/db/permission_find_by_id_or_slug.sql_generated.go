@@ -12,7 +12,8 @@ import (
 const findPermissionByIdOrSlug = `-- name: FindPermissionByIdOrSlug :one
 SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
 FROM permissions
-WHERE workspace_id = ? AND (id = ? OR slug = ?)
+WHERE workspace_id = ?
+  AND (id = ? OR slug = ?)
 `
 
 type FindPermissionByIdOrSlugParams struct {
@@ -20,11 +21,13 @@ type FindPermissionByIdOrSlugParams struct {
 	Search      string `db:"search"`
 }
 
-// FindPermissionByIdOrSlug
+// FindPermissionByIdOrSlug resolves a permission within a workspace so the
+// caller can authorize access against the permission's actual project.
 //
 //	SELECT permissions.pk, permissions.id, permissions.workspace_id, permissions.project_id, permissions.name, permissions.slug, permissions.description, permissions.created_at_m, permissions.updated_at_m
 //	FROM permissions
-//	WHERE workspace_id = ? AND (id = ? OR slug = ?)
+//	WHERE workspace_id = ?
+//	  AND (id = ? OR slug = ?)
 func (q *Queries) FindPermissionByIdOrSlug(ctx context.Context, db DBTX, arg FindPermissionByIdOrSlugParams) (Permission, error) {
 	row := db.QueryRowContext(ctx, findPermissionByIdOrSlug, arg.WorkspaceID, arg.Search, arg.Search)
 	var i Permission

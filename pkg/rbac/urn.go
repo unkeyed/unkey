@@ -29,12 +29,12 @@ func (u UnkeyPermission) String() string {
 	return fmt.Sprintf("%s#%s", u.Resource.String(), u.Action)
 }
 
-// U creates a leaf query for a typed action on a canonical resource name.
+// U creates a leaf query for an action on a canonical resource name.
 //
 // Handlers should pass the exact resource being accessed. Broader grants such
-// as "unkey:v1:ws_123:ratelimits/**#read_override" are matched during
+// as "unkey:v1:ws_123:ratelimits/**#read" are matched during
 // evaluation, not by writing wildcard-heavy queries at call sites.
-func U[R fmt.Stringer, A permissions.Action[R]](resource R, action A) PermissionQuery {
+func U(resource fmt.Stringer, action permissions.Action) PermissionQuery {
 	return PermissionQuery{
 		Operation:            OperatorNil,
 		Value:                fmt.Sprintf("%s#%s", resource.String(), action.String()),
@@ -77,9 +77,9 @@ func evaluateUnkeyPermission(required UnkeyPermission, granted []string) bool {
 //
 // Accepted:
 //
-//	unkey:v1:ws_1:ratelimits/namespaces/ns_1/overrides/ov_1#read_override
-//	unkey:v1:ws_1:keyspaces/*/keys/*#read_key    wildcard grant
-//	unkey:v1:ws_1:**#*                           admin grant (translated from admin:*)
+//	unkey:v1:ws_1:ratelimits/namespaces/ns_1/overrides/ov_1#read
+//	unkey:v1:ws_1:keyspaces/*/keys/*#read    wildcard grant
+//	unkey:v1:ws_1:**#*                           global admin permission
 //
 // Rejected with errInvalidURNPermission:
 //
@@ -125,20 +125,13 @@ func permissionCovers(required UnkeyPermission, granted UnkeyPermission) bool {
 	return granted.Resource.Covers(required.Resource)
 }
 
-// validatePermissionAction enforces the action grammar after "#": either the
-// "*" wildcard or a word that cannot collide with URN separators.
+// validatePermissionAction accepts only canonical generic actions and the
+// global admin wildcard.
 func validatePermissionAction(action string) error {
-	if action == "*" {
+	switch action {
+	case "read", "write", "delete", "decrypt", "verify", "limit", permissions.Wildcard:
 		return nil
+	default:
+		return fmt.Errorf("unsupported action %q", action)
 	}
-	if action == "" {
-		return errors.New("must not be empty")
-	}
-	if strings.ContainsAny(action, ":#/*") {
-		return errors.New(`must not contain ":", "#", "/", or "*"`)
-	}
-	if strings.HasPrefix(action, "_") || strings.HasSuffix(action, "_") {
-		return errors.New(`must not start or end with "_"`)
-	}
-	return nil
 }

@@ -17,6 +17,7 @@ SELECT
     apis.workspace_id AS api_workspace_id,
     apis.key_auth_id AS api_key_auth_id,
     ka.id AS key_auth_id,
+    ka.project_id AS key_auth_project_id,
     ka.store_encrypted_keys AS key_auth_store_encrypted_keys
 FROM apis
 JOIN key_auth as ka ON ka.id = apis.key_auth_id
@@ -32,6 +33,7 @@ type FindLiveApiByIDRow struct {
 	ApiWorkspaceID            string         `db:"api_workspace_id"`
 	ApiKeyAuthID              sql.NullString `db:"api_key_auth_id"`
 	KeyAuthID                 string         `db:"key_auth_id"`
+	KeyAuthProjectID          string         `db:"key_auth_project_id"`
 	KeyAuthStoreEncryptedKeys bool           `db:"key_auth_store_encrypted_keys"`
 }
 
@@ -43,6 +45,7 @@ type FindLiveApiByIDRow struct {
 //	    apis.workspace_id AS api_workspace_id,
 //	    apis.key_auth_id AS api_key_auth_id,
 //	    ka.id AS key_auth_id,
+//	    ka.project_id AS key_auth_project_id,
 //	    ka.store_encrypted_keys AS key_auth_store_encrypted_keys
 //	FROM apis
 //	JOIN key_auth as ka ON ka.id = apis.key_auth_id
@@ -59,6 +62,7 @@ func (q *Queries) FindLiveApiByID(ctx context.Context, db DBTX, id string) (Find
 		&i.ApiWorkspaceID,
 		&i.ApiKeyAuthID,
 		&i.KeyAuthID,
+		&i.KeyAuthProjectID,
 		&i.KeyAuthStoreEncryptedKeys,
 	)
 	return i, err

@@ -7,7 +7,7 @@ import {
 import { EditRole } from "@/components/roles-table/components/actions/components/edit-role";
 import { SelectionControls } from "@/components/roles-table/components/selection-controls";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
-import { BookBookmark } from "@unkey/icons";
+import { IconBookBookmarkOutline18 } from "@unkey/icons";
 import { Button, DataTable, Empty, PaginationFooter, getSelectableRowClassName } from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 
@@ -79,12 +79,12 @@ export const RolesList = () => {
               </Empty.Description>
               <Empty.Actions className="mt-4 justify-start">
                 <a
-                  href="https://www.unkey.com/docs/apis/features/authorization/introduction"
+                  href="https://www.unkey.com/docs/platform/apis/features/authorization/introduction"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   <Button size="md">
-                    <BookBookmark />
+                    <IconBookBookmarkOutline18 />
                     Learn about Roles
                   </Button>
                 </a>

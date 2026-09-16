@@ -32,12 +32,11 @@ func TestGetAppForbidden(t *testing.T) {
 	})
 	appSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Payments API",
-		Slug:          appSlug,
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Payments API",
+		Slug:        appSlug,
 	})
 
 	testCases := []struct {
@@ -52,7 +51,7 @@ func TestGetAppForbidden(t *testing.T) {
 		{name: "wrong action", permissions: []string{"project.*.create_project"}, shouldPass: false},
 		{name: "read does not match create", permissions: []string{"project.*.create_app"}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
-		{name: "urn style does not satisfy legacy check", permissions: []string{"unkey:v1:" + workspace.ID + ":apps/*#read_app"}, shouldPass: false},
+		{name: "urn style does not satisfy legacy check", permissions: []string{"unkey:v1:" + workspace.ID + ":apps/*#read"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
 
@@ -102,12 +101,11 @@ func TestGetAppExistenceNotLeaked(t *testing.T) {
 	})
 	realSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Payments API",
-		Slug:          realSlug,
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Payments API",
+		Slug:        realSlug,
 	})
 
 	missingID := uid.New(uid.AppPrefix)

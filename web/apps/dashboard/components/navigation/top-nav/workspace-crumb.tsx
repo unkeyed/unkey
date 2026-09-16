@@ -5,7 +5,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies-actions";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import { useMemo } from "react";
 import { Crumb } from "./crumb";
@@ -75,7 +75,7 @@ export function WorkspaceCrumb({ href }: { href: string }) {
       currentId={workspace.orgId}
       searchPlaceholder="Find workspace..."
       emptyText="No workspaces found"
-      footer={{ icon: Plus, label: "New workspace", href: routes.workspaces.create() }}
+      footer={{ icon: IconPlusOutline18, label: "New workspace", href: routes.workspaces.create() }}
     />
   );
 }

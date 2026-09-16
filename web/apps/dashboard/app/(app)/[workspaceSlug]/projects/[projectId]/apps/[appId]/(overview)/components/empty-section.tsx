@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Link4 } from "@unkey/icons";
+import { IconLink4Outline18 } from "@unkey/icons";
 import { Empty } from "@unkey/ui";
 import type { PropsWithChildren, ReactNode } from "react";
 
@@ -16,7 +16,7 @@ export const EmptySection = ({
   title,
   description,
   children,
-  icon = <Link4 className="size-6" />,
+  icon = <IconLink4Outline18 className="size-6" />,
   className,
 }: EmptySectionProps) => (
   <Empty

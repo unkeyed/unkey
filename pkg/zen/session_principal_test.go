@@ -30,12 +30,12 @@ func TestSession_PrincipalScopesWorkspaceMetadata(t *testing.T) {
 	t.Parallel()
 
 	want := &principal.Principal{
-		Version:     principal.Version,
-		Subject:     principal.Subject{ID: "root_key_123", Name: "Root Key", Type: principal.SubjectTypeRootKey},
-		Type:        principal.TypeAPIKey,
-		Source:      principal.KeySource{KeyID: "key_123", KeySpaceID: "ks_123"},
-		WorkspaceID: "ws_123",
-		Permissions: []string{"api.*.read_key"},
+		Version:               principal.Version,
+		Subject:               principal.Subject{ID: "root_key_123", Name: "Root Key", Type: principal.SubjectTypeRootKey},
+		Type:                  principal.TypeAPIKey,
+		Source:                principal.KeySource{KeyID: "key_123", KeySpaceID: "ks_123"},
+		AuthorizedWorkspaceID: "ws_123",
+		Permissions:           []string{"api.*.read_key"},
 	}
 	sess := &Session{}
 
@@ -55,12 +55,12 @@ func TestSession_ResetClearsPrincipal(t *testing.T) {
 
 	sess := &Session{}
 	sess.SetPrincipal(&principal.Principal{
-		Version:     principal.Version,
-		Subject:     principal.Subject{ID: "root_key_123", Name: "Root Key", Type: principal.SubjectTypeRootKey},
-		Type:        principal.TypeAPIKey,
-		Source:      principal.KeySource{KeyID: "key_123", KeySpaceID: "ks_123"},
-		WorkspaceID: "ws_123",
-		Permissions: []string{"api.*.read_key"},
+		Version:               principal.Version,
+		Subject:               principal.Subject{ID: "root_key_123", Name: "Root Key", Type: principal.SubjectTypeRootKey},
+		Type:                  principal.TypeAPIKey,
+		Source:                principal.KeySource{KeyID: "key_123", KeySpaceID: "ks_123"},
+		AuthorizedWorkspaceID: "ws_123",
+		Permissions:           []string{"api.*.read_key"},
 	})
 
 	sess.reset()

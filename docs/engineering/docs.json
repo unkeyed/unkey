@@ -28,6 +28,7 @@
                   "contributing/tooling/builds",
                   "contributing/tooling/releases",
                   "contributing/tooling/feature-flags",
+                  "contributing/tooling/docs-screenshots",
                   "contributing/tooling/emails"
                 ]
               }
@@ -67,6 +68,7 @@
                 "pages": [
                   "architecture/resources/unkey-resource-names",
                   "architecture/authorization/resource-permissions",
+                  "architecture/authorization/resource-permission-catalog",
                   "architecture/authorization/workos-permissions"
                 ]
               },

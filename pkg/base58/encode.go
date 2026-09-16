@@ -51,7 +51,7 @@ func Encode(buf []byte) string {
 	val := out[i-zcount:]
 	size = len(val)
 	for i = 0; i < size; i++ {
-		out[i] = alphabet[val[i]]
+		out[i] = Alphabet[val[i]]
 	}
 
 	return string(out[:size])

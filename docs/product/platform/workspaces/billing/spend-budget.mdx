@@ -1,0 +1,48 @@
+---
+title: Spend budget
+description: "Cap monthly Compute usage spend with a spend budget. Get email alerts at 50%, 75%, and 100%, and optionally stop workloads when you reach the budget."
+---
+
+A spend budget is a monthly dollar amount for Compute usage. Unkey emails the workspace admins as spend approaches it and can stop your workloads when spend reaches it.
+
+The budget applies to usage spend only, not the plan fee. It measures gross usage before credits are applied. A $100 budget stops you at $100 of metered usage, not at $100 above the credit your plan includes. The budget resets with each calendar month.
+
+## Set a budget
+
+Only workspace admins can set or change the budget.
+
+1. Navigate to **Settings > Billing**.
+2. Under **Cost control**, on the **Compute** card, click **Add**, or **Configure** if a budget exists.
+3. Enter a **Monthly budget** in whole dollars. Leave it empty to remove the budget.
+4. Optional: toggle **Stop workloads at the budget** on.
+5. Click **Save budget**.
+
+<Frame>
+  <img className="block dark:hidden" src="/platform/workspaces/billing/spend-budget-light.png" alt="Compute spend budget dialog" />
+  <img className="hidden dark:block" src="/platform/workspaces/billing/spend-budget-dark.png" alt="Compute spend budget dialog" />
+</Frame>
+
+The **Compute** card then lists the budget and the alert it sends at each threshold.
+
+## Alerts
+
+Unkey checks spend every few minutes and emails the workspace admins when spend crosses 50%, 75%, and 100% of the budget.
+
+Each threshold emails at most once per month. Raising the budget re-arms any threshold you drop back under. Lowering it does not send emails for thresholds you already passed. With **Stop workloads at the budget** on, the 100% email is replaced by a message that your workloads have stopped.
+
+## Stop workloads at the budget
+
+With this option on, Unkey stops every Compute workload in the workspace as soon as usage spend reaches the budget and blocks new deployments. Requests to your deployments then fail with the [spend limit reached](/errors/frontline/capacity/spend_limit_reached) error.
+
+Off by default. Without it, the budget only sends emails and your workloads keep running past it.
+
+## While Compute is paused
+
+When the budget has stopped your workloads, the dashboard shows a banner on every page and the **Compute** card under **Cost control** reads **Workloads are currently stopped**. Unkey resumes the workloads on its own when any of these becomes true:
+
+- You raise the budget above the current spend
+- You remove the budget
+- You turn **Stop workloads at the budget** off
+- A new calendar month starts and usage resets
+
+Removing the budget or turning off **Stop workloads at the budget** resumes on the next spend check. Raising the budget or entering a new month resumes after two consecutive checks under budget, so a single noisy usage reading can't restart and stop your workloads in a loop. In both cases, expect the workloads back within a few minutes.

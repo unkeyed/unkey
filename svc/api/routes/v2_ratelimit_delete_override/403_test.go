@@ -15,7 +15,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_ratelimit_delete_override"
 )
 
-func TestWorkspacePermissions(t *testing.T) {
+// TestDeleteOverrideMasksUnauthorizedResources guarantees that callers cannot
+// find or delete overrides outside their access scope.
+func TestDeleteOverrideMasksUnauthorizedResources(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
@@ -51,6 +53,18 @@ func TestWorkspacePermissions(t *testing.T) {
 
 	h.Register(route)
 
+	rootKey := h.CreateRootKey(h.Resources().UserWorkspace.ID)
+	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}, handler.Request{
+		Namespace:  namespaceID,
+		Identifier: identifier,
+	})
+	require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)
+	require.Equal(t, "https://unkey.com/docs/errors/unkey/data/ratelimit_override_not_found", res.Body.Error.Type)
+	require.Equal(t, "This override does not exist.", res.Body.Error.Detail)
+
 	// Create a different workspace and key for testing cross-workspace access
 	differentWorkspace := h.CreateWorkspace()
 	differentWorkspaceKey := h.CreateRootKey(differentWorkspace.ID)
@@ -67,7 +81,7 @@ func TestWorkspacePermissions(t *testing.T) {
 		Identifier: identifier,
 	}
 
-	res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+	res = testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)
 
 	// This should return a 404 Not Found (for security reasons we don't reveal if the namespace exists)
 	require.Equal(t, http.StatusNotFound, res.Status, "got: %s", res.RawBody)

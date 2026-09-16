@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 	"time"
 
@@ -105,31 +106,40 @@ func TestWithAuthentication_PublishesPrincipalToHandler(t *testing.T) {
 
 // TestWithAuthentication_RecordsRootKeyUsage guarantees successful root key
 // authentication creates one row and any later authorization denial updates its
-// outcome without adding telemetry code to the handler.
+// outcome without adding telemetry code to the handler. The event belongs to
+// the key owner workspace, not the customer workspace that the key can access.
 func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 	t.Parallel()
 
+	rootKeySource := principal.KeySource{
+		KeyID:       "key_123",
+		KeySpaceID:  "ks_123",
+		WorkspaceID: "ws_root",
+		Permissions: nil,
+	}
 	tests := []struct {
-		name           string
-		source         principal.Source
-		handler        zen.HandleFunc
-		wantKeySpaceID string
-		wantOutcome    string
-		wantError      bool
+		name            string
+		source          principal.Source
+		handler         zen.HandleFunc
+		wantWorkspaceID string
+		wantKeySpaceID  string
+		wantOutcome     string
+		wantError       bool
 	}{
 		{
 			name:   "records usage without an authorization denial",
-			source: principal.KeySource{KeyID: "key_123", KeySpaceID: "ks_123", Permissions: nil},
+			source: rootKeySource,
 			handler: func(_ context.Context, _ *zen.Session) error {
 				return nil
 			},
-			wantKeySpaceID: "ks_123",
-			wantOutcome:    string(keys.StatusValid),
-			wantError:      false,
+			wantWorkspaceID: "ws_root",
+			wantKeySpaceID:  "ks_123",
+			wantOutcome:     string(keys.StatusValid),
+			wantError:       false,
 		},
 		{
 			name:   "records a returned authorization denial",
-			source: principal.KeySource{KeyID: "key_123", KeySpaceID: "ks_123", Permissions: nil},
+			source: rootKeySource,
 			handler: func(_ context.Context, sess *zen.Session) error {
 				p, err := sess.GetPrincipal()
 				if err != nil {
@@ -142,13 +152,14 @@ func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 					Action:       rbac.CreateAPI,
 				}))
 			},
-			wantKeySpaceID: "ks_123",
-			wantOutcome:    string(keys.StatusInsufficientPermissions),
-			wantError:      true,
+			wantWorkspaceID: "ws_root",
+			wantKeySpaceID:  "ks_123",
+			wantOutcome:     string(keys.StatusInsufficientPermissions),
+			wantError:       true,
 		},
 		{
 			name:   "records a handled authorization denial",
-			source: principal.KeySource{KeyID: "key_123", KeySpaceID: "ks_123", Permissions: nil},
+			source: rootKeySource,
 			handler: func(_ context.Context, sess *zen.Session) error {
 				p, err := sess.GetPrincipal()
 				if err != nil {
@@ -165,23 +176,10 @@ func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 				}
 				return nil
 			},
-			wantKeySpaceID: "ks_123",
-			wantOutcome:    string(keys.StatusInsufficientPermissions),
-			wantError:      false,
-		},
-		{
-			name: "records empty key space when key metadata is absent",
-			source: principal.JWTSource{
-				Header:    nil,
-				Payload:   nil,
-				Signature: "",
-			},
-			handler: func(_ context.Context, _ *zen.Session) error {
-				return nil
-			},
-			wantKeySpaceID: "",
-			wantOutcome:    string(keys.StatusValid),
-			wantError:      false,
+			wantWorkspaceID: "ws_root",
+			wantKeySpaceID:  "ks_123",
+			wantOutcome:     string(keys.StatusInsufficientPermissions),
+			wantError:       false,
 		},
 	}
 
@@ -198,7 +196,7 @@ func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 				FlushInterval: time.Hour,
 				Consumers:     1,
 				Flush: func(_ context.Context, rows []schema.KeyVerification) {
-					flushed <- rows
+					flushed <- slices.Clone(rows)
 				},
 			})
 			t.Cleanup(verifications.Close)
@@ -210,7 +208,7 @@ func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 				0,
 			))
 
-			p := testMiddlewarePrincipal("ws_123")
+			p := testMiddlewarePrincipal("ws_authorized")
 			p.Source = test.source
 			err := WithAuthentication(AuthenticationConfig{
 				Auth:             &fakeAuth{principal: p},
@@ -229,7 +227,7 @@ func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 				verification := rows[0]
 				require.Equal(t, sess.RequestID(), verification.RequestID)
 				require.Positive(t, verification.Time)
-				require.Equal(t, "ws_123", verification.WorkspaceID)
+				require.Equal(t, test.wantWorkspaceID, verification.WorkspaceID)
 				require.Equal(t, test.wantKeySpaceID, verification.KeySpaceID)
 				require.Equal(t, "root_key_123", verification.KeyID)
 				require.Equal(t, "test-region", verification.Region)
@@ -245,6 +243,46 @@ func TestWithAuthentication_RecordsRootKeyUsage(t *testing.T) {
 				t.Fatal("root key usage did not flush")
 			}
 		})
+	}
+}
+
+// TestWithAuthentication_RejectsRootPrincipalWithoutKeySource guarantees that
+// invalid root principal metadata cannot create telemetry without an owner.
+func TestWithAuthentication_RejectsRootPrincipalWithoutKeySource(t *testing.T) {
+	t.Parallel()
+
+	flushed := make(chan []schema.KeyVerification, 1)
+	verifications := batch.New(batch.Config[schema.KeyVerification]{
+		Name:          "invalid_root_key_source_test",
+		Drop:          false,
+		BatchSize:     1,
+		BufferSize:    1,
+		FlushInterval: time.Hour,
+		Consumers:     1,
+		Flush: func(_ context.Context, rows []schema.KeyVerification) {
+			flushed <- slices.Clone(rows)
+		},
+	})
+
+	p := testMiddlewarePrincipal("ws_authorized")
+	p.Source = principal.JWTSource{}
+	handlerCalled := false
+	err := WithAuthentication(AuthenticationConfig{
+		Auth:             &fakeAuth{principal: p},
+		KeyVerifications: verifications,
+	})(func(_ context.Context, _ *zen.Session) error {
+		handlerCalled = true
+		return nil
+	})(context.Background(), &zen.Session{})
+	verifications.Close()
+
+	require.Error(t, err)
+	require.ErrorContains(t, err, "root key principal must have a key source")
+	require.False(t, handlerCalled)
+	select {
+	case rows := <-flushed:
+		require.Empty(t, rows)
+	default:
 	}
 }
 
@@ -301,7 +339,7 @@ func TestWithAuthentication_EnforcesWorkspaceRateLimit(t *testing.T) {
 		FlushInterval: time.Hour,
 		Consumers:     1,
 		Flush: func(_ context.Context, rows []schema.KeyVerification) {
-			flushed <- rows
+			flushed <- slices.Clone(rows)
 		},
 	})
 	t.Cleanup(verifications.Close)
@@ -332,13 +370,14 @@ func TestWithAuthentication_EnforcesWorkspaceRateLimit(t *testing.T) {
 	select {
 	case rows := <-flushed:
 		require.Len(t, rows, 1)
+		require.Equal(t, "ws_root", rows[0].WorkspaceID)
 		require.Equal(t, string(keys.StatusValid), rows[0].Outcome)
 	case <-time.After(time.Second):
 		t.Fatal("root key usage did not flush")
 	}
 }
 
-func testMiddlewarePrincipal(workspaceID string) *principal.Principal {
+func testMiddlewarePrincipal(authorizedWorkspaceID string) *principal.Principal {
 	return &principal.Principal{
 		Version: principal.Version,
 		Subject: principal.Subject{
@@ -346,9 +385,13 @@ func testMiddlewarePrincipal(workspaceID string) *principal.Principal {
 			Name: "Root Key",
 			Type: principal.SubjectTypeRootKey,
 		},
-		Type:        principal.TypeAPIKey,
-		Source:      principal.KeySource{KeyID: "key_123", KeySpaceID: "ks_123"},
-		WorkspaceID: workspaceID,
-		Permissions: []string{"api.*.read_key"},
+		Type: principal.TypeAPIKey,
+		Source: principal.KeySource{
+			KeyID:       "key_123",
+			KeySpaceID:  "ks_123",
+			WorkspaceID: "ws_root",
+		},
+		AuthorizedWorkspaceID: authorizedWorkspaceID,
+		Permissions:           []string{"api.*.read_key"},
 	}
 }

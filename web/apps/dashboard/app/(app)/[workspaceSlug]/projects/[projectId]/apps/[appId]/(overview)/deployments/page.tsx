@@ -1,7 +1,5 @@
 "use client";
-import { collection } from "@/lib/collections";
-import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import {
   Button,
   PageBody,
@@ -17,11 +15,6 @@ import { DeploymentsListControls } from "./components/controls";
 import { DeploymentsCardList } from "./components/deployments-card-list";
 
 export default function Deployments() {
-  useCollectionPolling(() => collection.deployments.utils.refetch(), {
-    intervalMs: 20_000,
-    enabled: true,
-  });
-
   return (
     <PageContainer>
       <PageHeader>
@@ -32,7 +25,7 @@ export default function Deployments() {
           <CreateDeploymentButton
             renderTrigger={({ onClick }) => (
               <Button size="md" variant="primary" onClick={onClick}>
-                <Plus iconSize="sm-regular" />
+                <IconPlusOutline18 />
                 Create deployment
               </Button>
             )}

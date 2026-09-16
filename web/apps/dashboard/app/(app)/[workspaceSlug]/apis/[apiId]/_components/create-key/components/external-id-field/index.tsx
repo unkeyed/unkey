@@ -4,7 +4,7 @@ import { identityExternalIdSchema } from "@/lib/schemas/identity";
 import { getErrorMessage } from "@/lib/unkey-client";
 import type { Identity } from "@unkey/api/models/components";
 import { BadRequestErrorResponse, ConflictErrorResponse } from "@unkey/api/models/errors";
-import { TriangleWarning2 } from "@unkey/icons";
+import { IconTriangleWarningOutline12 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useMemo, useState } from "react";
@@ -174,7 +174,7 @@ export const ExternalIdField = ({
                   "text-warning-11",
                 )}
               >
-                <TriangleWarning2 iconSize="sm-regular" />
+                <IconTriangleWarningOutline12 />
               </div>
               <span className="text-[13px] text-gray-12 ">
                 <span className="text-accent-10 font-normal">Create</span> "{trimmedSearchValue}"
@@ -273,7 +273,7 @@ export const ExternalIdField = ({
                     "transition-colors duration-200",
                   )}
                 >
-                  <TriangleWarning2 iconSize="sm-regular" />
+                  <IconTriangleWarningOutline12 />
                 </div>
                 <div className="font-medium text-[13px] leading-7 text-gray-12">
                   {externalIdValidation.success ? "External ID not found" : "Invalid external ID"}

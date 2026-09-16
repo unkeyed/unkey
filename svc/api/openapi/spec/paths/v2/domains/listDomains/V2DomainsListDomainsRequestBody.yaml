@@ -1,15 +1,24 @@
 type: object
-required:
-  - project
-  - app
-  - environment
 properties:
   project:
-    "$ref": "../../../../common/ResourceIdentifier.yaml"
+    # oapi-codegen ignores description siblings on $ref; allOf preserves the field-specific docs.
+    allOf:
+      - "$ref": "../../../../common/ResourceIdentifier.yaml"
+    description: |
+      Match domains whose project ID or slug equals this value. This filter does not require
+      an app or environment filter.
   app:
-    "$ref": "../../../../common/ResourceIdentifier.yaml"
+    allOf:
+      - "$ref": "../../../../common/ResourceIdentifier.yaml"
+    description: |
+      Match domains whose app ID or slug equals this value. This filter does not require a
+      project or environment filter.
   environment:
-    "$ref": "../../../../common/ResourceIdentifier.yaml"
+    allOf:
+      - "$ref": "../../../../common/ResourceIdentifier.yaml"
+    description: |
+      Match domains whose environment ID or slug equals this value. This filter does not require
+      a project or app filter.
   limit:
     type: integer
     description: |
@@ -31,7 +40,18 @@ properties:
       name contains the search string. Matching is case-insensitive.
     example: acme.com
 additionalProperties: false
+description: |
+  Filter domains within a workspace. All filters are optional and combine with AND. Each resource
+  filter matches its ID or slug directly, even when its parent filters are omitted. A missing
+  resource or a resource that does not match the other filters produces an empty list.
 examples:
+  workspaceWide:
+    summary: List all domains in the workspace
+    value: {}
+  byProject:
+    summary: List a project's domains
+    value:
+      project: payments
   bySlugs:
     summary: List an environment's domains by slugs
     description: Uses the project, app, and environment slugs, which is the form a human or agent usually has on hand.
@@ -40,11 +60,8 @@ examples:
       app: payments-api
       environment: production
   byIds:
-    summary: List an environment's domains by ID
-    description: Uses the ids returned by the corresponding list endpoints.
+    summary: List an environment's domains by its ID
     value:
-      project: proj_1234abcd
-      app: app_1234abcd
       environment: env_1234abcd
   search:
     summary: Filter by name

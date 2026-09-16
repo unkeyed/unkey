@@ -2,5 +2,8 @@
 
 package hydrav1
 
+// IsDeployCreateRequest_Source is the exported form of the protobuf oneof interface isDeployCreateRequest_Source.
+type IsDeployCreateRequest_Source = isDeployCreateRequest_Source
+
 // IsDeployRequest_Source is the exported form of the protobuf oneof interface isDeployRequest_Source.
 type IsDeployRequest_Source = isDeployRequest_Source

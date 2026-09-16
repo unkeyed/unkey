@@ -84,10 +84,6 @@ type Services struct {
 	// Vault provides encrypted storage for sensitive key material.
 	Vault vault.VaultServiceClient
 
-	// CtrlDeploymentClient communicates with the control plane for deployment
-	// operations like creating and managing deployments.
-	CtrlDeploymentClient ctrl.DeployServiceClient
-
 	// CtrlProjectClient communicates with the control plane for project
 	// lifecycle operations (delete cascades resources via a Restate workflow).
 	CtrlProjectClient ctrl.ProjectServiceClient
@@ -121,9 +117,9 @@ type Services struct {
 	// for retrieving verification and usage data.
 	AnalyticsConnectionManager analytics.ConnectionManager
 
-	// PortalBaseURL is the default base URL for the customer portal
-	// (e.g. "https://portal.unkey.com"). Used to construct session redirect
-	// URLs when no custom domain is configured for the portal's app.
+	// PortalBaseURL is the base URL for the customer portal
+	// (e.g. "https://portal.unkey.com"). Every portal session redirect URL is
+	// built from it.
 	PortalBaseURL string
 
 	// GitHubAppName is the GitHub App slug used to build the install URL in

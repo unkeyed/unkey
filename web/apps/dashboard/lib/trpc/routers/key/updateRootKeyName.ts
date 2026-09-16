@@ -2,9 +2,10 @@ import { insertAuditLogs } from "@/lib/audit";
 import { db, eq, schema } from "@/lib/db";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
+import { requireWorkspaceAdmin, workspaceProcedure } from "../../trpc";
 
 export const updateRootKeyName = workspaceProcedure
+  .use(requireWorkspaceAdmin)
   .input(
     z.object({
       keyId: z.string(),

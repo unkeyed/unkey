@@ -66,7 +66,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	rows, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{
 		Query:           req.Query,
-		WorkspaceID:     p.WorkspaceID,
+		WorkspaceID:     p.AuthorizedWorkspaceID,
 		TableAliases:    tableAliases,
 		AllowedTables:   allowedTables,
 		SecurityFilters: securityFilters,

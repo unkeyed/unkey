@@ -28,11 +28,14 @@ SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.create
         JSON_ARRAY()
 ) as permissions
 FROM roles r
-WHERE r.workspace_id = ? AND r.name IN (/*SLICE:names*/?)
+WHERE r.workspace_id = ?
+  AND r.project_id = ?
+  AND r.name IN (/*SLICE:names*/?)
 `
 
 type FindManyRolesByNamesWithPermsParams struct {
 	WorkspaceID string   `db:"workspace_id"`
+	ProjectID   string   `db:"project_id"`
 	Names       []string `db:"names"`
 }
 
@@ -48,7 +51,9 @@ type FindManyRolesByNamesWithPermsRow struct {
 	Permissions interface{}    `db:"permissions"`
 }
 
-// FindManyRolesByNamesWithPerms
+// FindManyRolesByNamesWithPerms returns the requested roles and their
+// permissions from one project. The project filter prevents cross-project key
+// assignments.
 //
 //	SELECT r.pk, r.id, r.workspace_id, r.project_id, r.name, r.description, r.created_at_m, r.updated_at_m, COALESCE(
 //	        (SELECT JSON_ARRAYAGG(
@@ -66,11 +71,14 @@ type FindManyRolesByNamesWithPermsRow struct {
 //	        JSON_ARRAY()
 //	) as permissions
 //	FROM roles r
-//	WHERE r.workspace_id = ? AND r.name IN (/*SLICE:names*/?)
+//	WHERE r.workspace_id = ?
+//	  AND r.project_id = ?
+//	  AND r.name IN (/*SLICE:names*/?)
 func (q *Queries) FindManyRolesByNamesWithPerms(ctx context.Context, db DBTX, arg FindManyRolesByNamesWithPermsParams) ([]FindManyRolesByNamesWithPermsRow, error) {
 	query := findManyRolesByNamesWithPerms
 	var queryParams []interface{}
 	queryParams = append(queryParams, arg.WorkspaceID)
+	queryParams = append(queryParams, arg.ProjectID)
 	if len(arg.Names) > 0 {
 		for _, v := range arg.Names {
 			queryParams = append(queryParams, v)

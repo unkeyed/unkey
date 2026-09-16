@@ -1,9 +1,7 @@
 type: object
 description: |
-  Connect a GitHub repository to the app on creation. Omit to create the app
-  without a repository and connect one later with apps.updateApp.
-required:
-  - repository
+  Configure Git as the app source. Provide `repository` to connect it during
+  creation, or use an empty object to connect a repository later.
 properties:
   repository:
     type: string
@@ -11,14 +9,15 @@ properties:
     maxLength: 255
     description: |
       The GitHub repository to connect, as "owner/repo". The workspace must have
-      the Unkey GitHub App installed with access to it.
+      the Unkey GitHub App installed with access to it. Omit this field to create
+      the Git app before selecting its repository.
     example: unkeyed/unkey
   defaultBranch:
     type: string
     minLength: 1
     maxLength: 256
     description: |
-      The branch this app's deployments track. Omit to adopt the repository's
-      default branch on GitHub.
+      The branch this app's deployments track. This requires `repository`.
+      Omit it to adopt the repository's default branch on GitHub.
     example: main
 additionalProperties: false

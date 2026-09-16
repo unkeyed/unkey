@@ -92,9 +92,11 @@ func TestSuccess(t *testing.T) {
 	// Key 1: identity1, production metadata
 	key1Meta, err := json.Marshal(map[string]string{"env": "production", "team": "backend"})
 	require.NoError(t, err)
+	key1Prefix := "prod_sk"
 	key1 := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  keySpaceID,
+		Prefix:      key1Prefix,
 		Name:        ptr.P("Test Key 1"),
 		IdentityID:  ptr.P(identity1.ID),
 		Meta:        ptr.P(string(key1Meta)),
@@ -183,6 +185,15 @@ func TestSuccess(t *testing.T) {
 			require.NotEmpty(t, key.Start)
 			require.Greater(t, key.CreatedAt, int64(0))
 		}
+
+		foundKey1 := false
+		for _, key := range res.Body.Data {
+			if key.KeyId == key1.KeyID {
+				foundKey1 = true
+				require.Equal(t, key1.Key[:len(key1Prefix)+5], key.Start)
+			}
+		}
+		require.True(t, foundKey1)
 	})
 
 	t.Run("list keys with limit parameter", func(t *testing.T) {

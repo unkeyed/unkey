@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { XMark } from "@unkey/icons";
+import { IconXmarkOutline18 } from "@unkey/icons";
 import type * as React from "react";
 import { cn } from "../lib/utils";
 
@@ -35,10 +35,17 @@ export function SlidePanel({
       open={isOpen}
       modal={false}
       disablePointerDismissal
-      onOpenChange={(open) => {
-        if (!open) {
-          onClose();
+      onOpenChange={(open, eventDetails) => {
+        if (open) {
+          return;
         }
+        // Opening a dialog from inside the panel moves focus out of it, which Base UI reports
+        // as a dismissal. The panel should outlive anything it opens.
+        if (eventDetails.reason === "focus-out") {
+          eventDetails.cancel();
+          return;
+        }
+        onClose();
       }}
       onOpenChangeComplete={(open) => {
         if (!open) {
@@ -159,7 +166,7 @@ export function SlidePanelCloseButton({ className, ...props }: SlidePanelCloseBu
       )}
       {...props}
     >
-      <XMark iconSize="lg-medium" />
+      <IconXmarkOutline18 className="size-4" />
     </DialogPrimitive.Close>
   );
 }

@@ -2,6 +2,9 @@
 
 package ctrlv1
 
+// IsCreateAppRequest_Source is the exported form of the protobuf oneof interface isCreateAppRequest_Source.
+type IsCreateAppRequest_Source = isCreateAppRequest_Source
+
 // IsDeploymentChangeEvent_Event is the exported form of the protobuf oneof interface isDeploymentChangeEvent_Event.
 type IsDeploymentChangeEvent_Event = isDeploymentChangeEvent_Event
 

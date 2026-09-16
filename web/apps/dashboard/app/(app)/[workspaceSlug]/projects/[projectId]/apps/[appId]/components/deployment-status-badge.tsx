@@ -1,25 +1,27 @@
 "use client";
-import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import {
-  Ban,
-  BoltSlash,
-  CircleCheck,
-  CircleWarning,
-  CloudUp,
-  Earth,
-  Hammer2,
-  LayerFront,
-  Pulse,
-  ShieldAlert,
-  Sparkle3,
+  DEPLOYMENT_STATUS_LABELS,
+  type DeploymentStatus,
+} from "@/lib/collections/deploy/deployment-status";
+import {
+  IconBanOutline18,
+  IconBoltSlashOutline18,
+  IconChartActivityOutline18,
+  IconCircleCheckOutline18,
+  IconCircleWarningOutline18,
+  IconCloudUploadOutline18,
+  IconEarthOutline18,
+  IconHammer2Outline18,
+  IconLayerFrontOutline18,
+  type IconProps,
+  IconShieldAlertOutline18,
+  IconSparkle3Outline18,
 } from "@unkey/icons";
-import type { IconProps } from "@unkey/icons/src/props";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { FC } from "react";
 
 type StatusConfig = {
   icon: FC<IconProps>;
-  label: string;
   bgColor: string;
   textColor: string;
   iconColor: string;
@@ -28,97 +30,84 @@ type StatusConfig = {
 
 const statusConfigs: Record<DeploymentStatus, StatusConfig> = {
   pending: {
-    icon: LayerFront,
-    label: "Pending",
+    icon: IconLayerFrontOutline18,
     bgColor: "bg-grayA-3",
     textColor: "text-grayA-11",
     iconColor: "text-gray-11",
   },
   starting: {
-    icon: Pulse,
-    label: "Starting",
+    icon: IconChartActivityOutline18,
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
     iconColor: "text-info-11",
     animated: true,
   },
   building: {
-    icon: Hammer2,
-    label: "Building",
+    icon: IconHammer2Outline18,
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
     iconColor: "text-info-11",
     animated: true,
   },
   deploying: {
-    icon: CloudUp,
-    label: "Deploying",
+    icon: IconCloudUploadOutline18,
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
     iconColor: "text-info-11",
     animated: true,
   },
   network: {
-    icon: Earth,
-    label: "Assigning Domains",
+    icon: IconEarthOutline18,
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
     iconColor: "text-info-11",
     animated: true,
   },
   finalizing: {
-    icon: Sparkle3,
-    label: "Finalizing",
+    icon: IconSparkle3Outline18,
     bgColor: "bg-linear-to-r from-infoA-5 to-transparent",
     textColor: "text-infoA-11",
     iconColor: "text-info-11",
     animated: true,
   },
   ready: {
-    icon: CircleCheck,
-    label: "Ready",
+    icon: IconCircleCheckOutline18,
     bgColor: "bg-successA-3",
     textColor: "text-successA-11",
     iconColor: "text-success-11",
   },
   failed: {
-    icon: CircleWarning,
-    label: "Failed",
+    icon: IconCircleWarningOutline18,
     bgColor: "bg-errorA-3",
     textColor: "text-errorA-11",
     iconColor: "text-error-11",
   },
   skipped: {
-    icon: Ban,
-    label: "Skipped",
+    icon: IconBanOutline18,
     bgColor: "bg-grayA-3",
     textColor: "text-grayA-11",
     iconColor: "text-gray-11",
   },
   awaiting_approval: {
-    icon: ShieldAlert,
-    label: "Awaiting Approval",
+    icon: IconShieldAlertOutline18,
     bgColor: "bg-warningA-3",
     textColor: "text-warningA-11",
     iconColor: "text-warning-11",
   },
   stopped: {
-    icon: BoltSlash,
-    label: "Stopped",
+    icon: IconBoltSlashOutline18,
     bgColor: "bg-grayA-3",
     textColor: "text-grayA-11",
     iconColor: "text-gray-11",
   },
   superseded: {
-    icon: Ban,
-    label: "Superseded",
+    icon: IconBanOutline18,
     bgColor: "bg-grayA-3",
     textColor: "text-grayA-11",
     iconColor: "text-gray-11",
   },
   cancelled: {
-    icon: Ban,
-    label: "Cancelled",
+    icon: IconBanOutline18,
     bgColor: "bg-grayA-3",
     textColor: "text-grayA-11",
     iconColor: "text-gray-11",
@@ -137,7 +126,8 @@ export const DeploymentStatusBadge = ({ status, className }: DeploymentStatusBad
     throw new Error(`Invalid deployment status: ${status}`);
   }
 
-  const { icon: Icon, label, bgColor, textColor, iconColor, animated } = config;
+  const { icon: Icon, bgColor, textColor, iconColor, animated } = config;
+  const label = DEPLOYMENT_STATUS_LABELS[status];
 
   return (
     <div
@@ -151,7 +141,7 @@ export const DeploymentStatusBadge = ({ status, className }: DeploymentStatusBad
       {animated && (
         <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent w-[150%] animate-shimmer" />
       )}
-      <Icon iconSize="md-regular" className={cn(iconColor, animated && "relative z-5")} />
+      <Icon className={cn("size-3.5", iconColor, animated && "relative z-5")} />
       <span className={cn(textColor, "text-xs", animated && "relative z-5")}>{label}</span>
     </div>
   );

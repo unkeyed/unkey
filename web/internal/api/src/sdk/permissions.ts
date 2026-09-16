@@ -235,7 +235,7 @@ export class Permissions extends ClientSDK {
    * - `rbac.*.create_permission`
    */
   async setRolePermissions(
-    request: components.V2PermissionsSetRolePermissionsRequestBody,
+    request: components.V2PermissionsSetRolePermissionsRequestBodyUnion,
     options?: RequestOptions,
   ): Promise<components.V2PermissionsSetRolePermissionsResponseBody> {
     return unwrapAsync(permissionsSetRolePermissions(

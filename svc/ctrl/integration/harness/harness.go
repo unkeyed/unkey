@@ -35,6 +35,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deploybilling"
+	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/deployspendcheck"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deploy"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployment"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/deployteardown"
@@ -267,12 +268,19 @@ func New(t *testing.T, opts ...Option) *Harness {
 			Depot:      deploy.DepotConfig{APIUrl: "", ProjectRegion: "", ProjectPrefix: "builds-test"},
 			Kubernetes: deploy.KubernetesBuildConfig{Namespace: "", Image: ""},
 		},
-		K8s:                             nil,
-		BuildSteps:                      batch.NewNoop[schema.BuildStepV1](),
-		BuildStepLogs:                   batch.NewNoop[schema.BuildStepLogV1](),
-		RegistryConfig:                  deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
-		BuildPlatform:                   deploy.BuildPlatform{Platform: "", Architecture: ""},
+		K8s:            nil,
+		BuildSteps:     batch.NewNoop[schema.BuildStepV1](),
+		BuildStepLogs:  batch.NewNoop[schema.BuildStepLogV1](),
+		RegistryConfig: deploy.RegistryConfig{Repository: "", Username: "", Password: "", Insecure: false},
+		BuildPlatform:  deploy.BuildPlatform{Platform: "", Architecture: ""},
+		ImageResolver: deploy.ImageResolverFunc(func(context.Context, string) (string, error) {
+			return "index.docker.io/library/test@sha256:0000000000000000000000000000000000000000000000000000000000000000", nil
+		}),
 		AllowUnauthenticatedDeployments: false,
+
+		// A nil admin client leaves a superseded deployment's row marked while its
+		// invocation keeps running.
+		RestateAdmin: nil,
 	})
 	require.NoError(t, err)
 
@@ -282,9 +290,11 @@ func New(t *testing.T, opts ...Option) *Harness {
 	})
 	require.NoError(t, err)
 
-	deploymentSvc := deployment.New(deployment.Config{
-		DB: database,
+	deploymentSvc, err := deployment.New(deployment.Config{
+		DB:        database,
+		Auditlogs: auditlogSvc,
 	})
+	require.NoError(t, err)
 
 	// CheckWorkspaceSpend sends Teardown/Resume to this service. Restate
 	// retries calls to unregistered services indefinitely, so it must be
@@ -311,15 +321,17 @@ func New(t *testing.T, opts ...Option) *Harness {
 	// Restate. Use the proto-generated wrappers (same as run.go) to get
 	// correct service names.
 	restateCfg := containers.Restate(t,
-		hydrav1.NewCronServiceServer(cronSvc),
+		hydrav1.NewCronServiceServer(cronSvc).
+			ConfigureHandler("RunDeploySpendCheck", deployspendcheck.RetryPolicy()),
 		// The deploy billing orchestrator (push and close) fans out to this
 		// per-workspace push service, so it must be bound for those handlers to
 		// route end to end.
 		hydrav1.NewDeployBillingPushServiceServer(cronSvc.DeployBillingPushServer()),
-		hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()),
+		hydrav1.NewDeploySpendCheckServiceServer(cronSvc.DeploySpendCheckServer()).
+			ConfigureHandler("CheckWorkspaceSpend", deployspendcheck.RetryPolicy()),
 		hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc),
 		hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc),
-		hydrav1.NewDeployServiceServer(deploySvc),
+		hydrav1.NewDeployWorkflowServer(deploySvc),
 		hydrav1.NewDeploymentServiceServer(deploymentSvc),
 		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
 		hydrav1.NewBuildSlotServiceServer(buildSlotSvc),

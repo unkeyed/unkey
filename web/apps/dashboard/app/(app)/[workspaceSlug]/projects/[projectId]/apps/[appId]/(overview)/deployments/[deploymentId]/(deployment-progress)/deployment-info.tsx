@@ -4,6 +4,7 @@ import type { DeploymentStatus } from "@/lib/collections";
 import { ActiveDeploymentCard } from "../../../../components/active-deployment-card";
 import { DeploymentStatusBadge } from "../../../../components/deployment-status-badge";
 import { useProjectData } from "../../../data-provider";
+import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
 import { useDeployment } from "../layout-provider";
 
 type DeploymentInfoProps = {
@@ -12,11 +13,12 @@ type DeploymentInfoProps = {
 
 export function DeploymentInfo({ statusOverride }: DeploymentInfoProps) {
   const { deployment } = useDeployment();
-  const { project, environments } = useProjectData();
+  const { environments } = useProjectData();
+  const { app, isRolledBack: appIsRolledBack } = useAppCurrentDeployment();
   const deploymentStatus = statusOverride ?? deployment.status;
 
-  const isCurrent = project?.currentDeploymentId === deployment.id;
-  const isRolledBack = isCurrent && (project?.isRolledBack ?? false);
+  const isCurrent = app?.currentDeploymentId === deployment.id;
+  const isRolledBack = isCurrent && appIsRolledBack;
   const environment = environments.find((e) => e.id === deployment.environmentId);
 
   return (

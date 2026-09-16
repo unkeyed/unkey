@@ -64,23 +64,23 @@ func TestEvery_BasicFunctionality(t *testing.T) {
 
 	t.Run("stops when stop function is called", func(t *testing.T) {
 		var counter atomic.Int32
-
-		stop := Every(10*time.Millisecond, func() {
+		clk := clock.NewTestClock()
+		stopped := make(chan struct{})
+		stop := EveryClock(stopObservedClock{Clock: clk, stopped: stopped}, 10*time.Millisecond, func() {
 			counter.Add(1)
 		})
+		t.Cleanup(stop)
 
-		// Let it run briefly
-		time.Sleep(25 * time.Millisecond)
 		stop()
+		select {
+		case <-stopped:
+		case <-time.After(time.Second):
+			t.Fatal("ticker did not stop")
+		}
 
-		// Get count after stopping
 		countAfterStop := counter.Load()
-
-		// Wait more time to ensure it really stopped
-		time.Sleep(30 * time.Millisecond)
-		finalCount := counter.Load()
-
-		assert.Equal(t, countAfterStop, finalCount, "function should not be called after stop")
+		clk.Tick(time.Second)
+		require.Equal(t, countAfterStop, counter.Load(), "function should not be called after the ticker stops")
 	})
 }
 
@@ -273,40 +273,41 @@ func TestEvery_EdgeCases(t *testing.T) {
 
 func TestEvery_StopBehavior(t *testing.T) {
 	t.Run("stop is idempotent", func(t *testing.T) {
-		var counter atomic.Int32
-
-		stop := Every(10*time.Millisecond, func() {
-			counter.Add(1)
+		started := make(chan struct{})
+		release := make(chan struct{})
+		finished := make(chan struct{})
+		stopped := make(chan struct{})
+		clk := stopObservedClock{Clock: clock.NewTestClock(), stopped: stopped}
+		stop := EveryClock(clk, time.Hour, func() {
+			close(started)
+			<-release
+		})
+		t.Cleanup(func() {
+			close(release)
+			stop()
+			select {
+			case <-stopped:
+			case <-time.After(time.Second):
+				t.Error("ticker did not stop after releasing the callback")
+			}
 		})
 
-		time.Sleep(25 * time.Millisecond)
+		select {
+		case <-started:
+		case <-time.After(time.Second):
+			t.Fatal("callback did not start")
+		}
+		go func() {
+			stop()
+			stop()
+			close(finished)
+		}()
 
-		// First stop
-		stop()
-		countAfterFirstStop := counter.Load()
-
-		time.Sleep(20 * time.Millisecond)
-
-		// Second stop should be safe
-		stop()
-		countAfterSecondStop := counter.Load()
-
-		assert.Equal(t, countAfterFirstStop, countAfterSecondStop,
-			"second stop call should have no effect")
-	})
-
-	t.Run("stop returns immediately", func(t *testing.T) {
-
-		stop := Every(100*time.Millisecond, func() {
-			time.Sleep(50 * time.Millisecond)
-		})
-
-		start := time.Now()
-		stop()
-		elapsed := time.Since(start)
-
-		assert.Less(t, elapsed, 50*time.Millisecond,
-			"stop should return quickly even if function is running")
+		select {
+		case <-finished:
+		case <-time.After(time.Second):
+			t.Fatal("repeated stop calls must return while the callback is blocked")
+		}
 	})
 }
 
@@ -414,6 +415,25 @@ func TestEvery_Jitter(t *testing.T) {
 		// Should still tick at least the base cadence number of times.
 		assert.GreaterOrEqual(t, counter.Load(), int32(2))
 	})
+}
+
+type stopObservedClock struct {
+	clock.Clock
+	stopped chan struct{}
+}
+
+func (c stopObservedClock) NewTicker(d time.Duration) clock.Ticker {
+	return stopObservedTicker{Ticker: c.Clock.NewTicker(d), stopped: c.stopped}
+}
+
+type stopObservedTicker struct {
+	clock.Ticker
+	stopped chan struct{}
+}
+
+func (t stopObservedTicker) Stop() {
+	t.Ticker.Stop()
+	close(t.stopped)
 }
 
 // Benchmark tests to measure performance impact

@@ -8,6 +8,7 @@ import (
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -33,6 +34,7 @@ func TestListWorkspaceWide(t *testing.T) {
 			ProjectID:     setup.Project.ID,
 			AppID:         setup.App.ID,
 			EnvironmentID: setup.Environment.ID,
+			Source:        db.DeploymentsSourceGit,
 			GitBranch:     "main",
 			GitCommitSha:  "abc123",
 		})
@@ -142,12 +144,11 @@ func TestListFilterByProject(t *testing.T) {
 		Slug:        "other-project",
 	})
 	otherApp := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   setup.Workspace.ID,
-		ProjectID:     otherProject.ID,
-		Name:          "other",
-		Slug:          "other-app",
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: setup.Workspace.ID,
+		ProjectID:   otherProject.ID,
+		Name:        "other",
+		Slug:        "other-app",
 	})
 	otherEnv := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),
@@ -186,12 +187,11 @@ func TestListFilterByApp(t *testing.T) {
 
 	// A second app in the same project whose deployments must be excluded.
 	otherApp := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   setup.Workspace.ID,
-		ProjectID:     setup.Project.ID,
-		Name:          "other",
-		Slug:          "other-app",
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: setup.Workspace.ID,
+		ProjectID:   setup.Project.ID,
+		Name:        "other",
+		Slug:        "other-app",
 	})
 	otherEnv := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),

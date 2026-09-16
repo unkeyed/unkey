@@ -3,7 +3,7 @@
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { githubUrl } from "@/lib/github-url";
 import { trpc } from "@/lib/trpc/client";
-import { ShieldAlert } from "@unkey/icons";
+import { IconShieldAlertOutline18 } from "@unkey/icons";
 import { Button, Dialog, DialogContent } from "@unkey/ui";
 import { useProjectData } from "../../../data-provider";
 
@@ -58,7 +58,7 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
       >
         <div className="flex flex-col items-center p-10">
           <div className="size-12 rounded-[14px] bg-gray-12 dark:bg-white flex items-center justify-center mb-4 shadow-[0_0_0_6px_hsl(var(--gray-2)),0_0_0_8px_hsl(var(--gray-4))]">
-            <ShieldAlert className="text-white dark:text-black size-[22px]" iconSize="md-medium" />
+            <IconShieldAlertOutline18 className="text-white dark:text-black size-[22px]" />
           </div>
 
           <h1 className="text-[22px] font-bold tracking-tight text-gray-12 mb-2">

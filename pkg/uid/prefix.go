@@ -26,20 +26,10 @@ const (
 	OrgPrefix                 Prefix = "org"
 
 	// Portal prefixes
-	//
-	// A portal session carries three distinct values, and they must not share a
-	// prefix: `ps_` is the non-secret row handle (safe to log, referenced by
-	// audit logs), while `pst_` and `pat_` are bearer credentials. Same-prefix
-	// values are how the wrong one ends up in a log line.
-	//
-	// `pst_` and `pc_` keep their existing string values through the portal
-	// rename: prefixes are opaque, and they are the one part that would alter
-	// issued credentials and stored data rather than code. The Go identifiers
-	// follow the new model, so only the wire values are frozen.
-	PortalExchangeCodePrefix Prefix = "pst"
+	PortalExchangeCodePrefix Prefix = "pec"
 	PortalAccessTokenPrefix  Prefix = "pat"
 	PortalSessionPrefix      Prefix = "ps"
-	PortalPrefix             Prefix = "pc"
+	PortalPrefix             Prefix = "prt"
 
 	// Control plane prefixes
 	OpenApiSpecPrefix         Prefix = "oas"

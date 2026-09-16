@@ -806,7 +806,7 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
 
   // Invitation Management
   async inviteMember(params: OrgInviteParams): Promise<Invitation> {
-    const { orgId, email, role = "basic_member" } = params;
+    const { orgId, email, role = "developer" } = params;
     if (!orgId || !email) {
       throw new Error("Organization id and email are required.");
     }

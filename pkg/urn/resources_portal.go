@@ -7,18 +7,15 @@ import "fmt"
 // Hierarchy:
 //
 //	workspace
-//	└── portals/{portal_id}
+//	└── projects/{project_id}
+//	    └── portals/{portal_id}
+//	        └── sessions/{session_id}
 type Portal struct {
 	workspaceID string
 	path        string
 }
 
 // String returns this portal resource path.
-//
-// Subresource:
-//
-//	workspace
-//	└── portals/{portal_id}
 func (p Portal) String() string {
 	return V1{WorkspaceID: p.workspaceID, Resource: p.path}.String()
 }

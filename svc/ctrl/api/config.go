@@ -39,11 +39,6 @@ type GitHubConfig struct {
 	// PrivateKeyPEM is the GitHub App private key in PEM format.
 	// Required for deployment authorization (fetching branch HEAD).
 	PrivateKeyPEM string `toml:"private_key_pem"`
-
-	// AllowUnauthenticatedDeployments controls whether deployments can skip
-	// GitHub authentication. Set to true only for local development.
-	// Production should keep this false to require GitHub App authentication.
-	AllowUnauthenticatedDeployments bool `toml:"allow_unauthenticated_deployments"`
 }
 
 // StripeConfig holds the Stripe integration for the month-end Deploy billing
@@ -147,18 +142,6 @@ type Config struct {
 	// ClickHouse configures the analytics database connection used for
 	// container lifecycle event ingestion.
 	ClickHouse ClickHouseConfig `toml:"clickhouse"`
-
-	// DeployGate configures the Unkey Deploy entitlement gate.
-	DeployGate DeployGateConfig `toml:"deploy_gate"`
-}
-
-// DeployGateConfig gates project creation and deployment activation on a Deploy
-// entitlement: a synced plan or a manual override.
-type DeployGateConfig struct {
-	// Enforce hard-blocks gated actions for workspaces with no Deploy entitlement.
-	// Default false runs the plan check in observe mode so the signal can be
-	// validated first. Spend-cap suspension is always enforced.
-	Enforce bool `toml:"enforce"`
 }
 
 // Validate checks cross-field constraints that cannot be expressed through

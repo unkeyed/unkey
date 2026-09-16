@@ -69,7 +69,7 @@ func (c chain) Authenticate(ctx context.Context, sess *zen.Session) (*principal.
 		sess.SetPrincipal(principal)
 		logger.Set(ctx, slog.Group("auth",
 			slog.String("type", string(principal.Type)),
-			slog.String("workspace_id", principal.WorkspaceID),
+			slog.String("workspace_id", principal.AuthorizedWorkspaceID),
 			slog.String("subject", principal.Subject.ID),
 			slog.String("subject_name", principal.Subject.Name),
 			slog.Int("permission_count", len(principal.Permissions)),
