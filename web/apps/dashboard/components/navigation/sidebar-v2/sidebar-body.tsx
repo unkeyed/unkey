@@ -11,6 +11,10 @@ import {
   buildProjectLinks,
   buildWorkspaceSections,
 } from "@/lib/navigation/leaves";
+import {
+  buildProjectLinks as buildProjectsNavProjectLinks,
+  buildWorkspaceSections as buildProjectsNavWorkspaceSections,
+} from "@/lib/navigation/leaves-projects";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { NavLinkList } from "./nav-link-list";
 
@@ -24,6 +28,12 @@ export function SidebarBody() {
   const { slug } = useWorkspaceNavigation();
   const { keyAuthId } = useApiKeyAuthId(context.type === "api" ? context.apiId : undefined);
   const portalManagement = useFlag("portalManagement");
+  const projectsNav = useFlag("projectsNav");
+
+  const workspaceSections = projectsNav
+    ? buildProjectsNavWorkspaceSections
+    : buildWorkspaceSections;
+  const projectLinks = projectsNav ? buildProjectsNavProjectLinks : buildProjectLinks;
 
   const links = (() => {
     switch (context.type) {
@@ -34,11 +44,11 @@ export function SidebarBody() {
       // settings/authorization layouts).
       case "settings":
       case "authorization":
-        return buildWorkspaceSections(slug, segments);
+        return workspaceSections(slug, segments);
       case "project":
         return context.appId
           ? buildAppLinks(slug, context.projectId, context.appId, segments)
-          : buildProjectLinks(slug, context.projectId, segments);
+          : projectLinks(slug, context.projectId, segments);
       case "api":
         return buildApiLinks(slug, context.apiId, keyAuthId, segments, portalManagement);
       case "namespace":
