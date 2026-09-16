@@ -16,7 +16,7 @@ import { LogSection } from "./components/log-section";
 export const DEFAULT_DRAGGABLE_WIDTH = 500;
 export const EMPTY_TEXT = "<EMPTY>";
 
-const createPanelStyle = (distanceToTop: number) => ({
+export const createPanelStyle = (distanceToTop: number) => ({
   top: `${distanceToTop}px`,
   height: `calc(100vh - ${distanceToTop}px)`,
   paddingBottom: "1rem",

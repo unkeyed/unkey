@@ -1,6 +1,7 @@
 "use client";
 import {
   EmptyKeyDetailsLogs,
+  buildGatewayRequestDetailsQueryParams,
   buildRequestDetailsQueryParams,
   createKeyDetailsLogsColumns,
   getRowClassName,
@@ -64,14 +65,21 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
           clearTimeout(hoverTimerRef.current);
         }
         hoverTimerRef.current = setTimeout(() => {
-          utils.logs.queryLogs.prefetch(
-            buildRequestDetailsQueryParams({ requestId: log.request_id, time: log.time }),
-            { staleTime: Number.POSITIVE_INFINITY },
-          );
+          const target = { requestId: log.request_id, time: log.time };
+          if (log.source === "gateway") {
+            utils.deploy.requestLogs.details.prefetch(
+              buildGatewayRequestDetailsQueryParams(target),
+              { staleTime: Number.POSITIVE_INFINITY },
+            );
+            return;
+          }
+          utils.logs.queryLogs.prefetch(buildRequestDetailsQueryParams(target), {
+            staleTime: Number.POSITIVE_INFINITY,
+          });
         }, 150);
       }
     },
-    [hoveredLogId, utils.logs.queryLogs],
+    [hoveredLogId, utils.logs.queryLogs, utils.deploy.requestLogs.details],
   );
 
   const handleRowMouseLeave = useCallback(() => {
