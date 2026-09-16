@@ -55,15 +55,6 @@ func NewS3(config S3Config) (Storage, error) {
 	}
 
 	client := awsS3.NewFromConfig(cfg)
-	_, err = client.CreateBucket(context.Background(), &awsS3.CreateBucketInput{
-		Bucket: aws.String(config.S3Bucket),
-	})
-	if err != nil {
-		var alreadyOwned *s3types.BucketAlreadyOwnedByYou
-		if !errors.As(err, &alreadyOwned) {
-			return nil, fmt.Errorf("failed to create bucket: %w", err)
-		}
-	}
 
 	logger.Info("s3 storage initialized")
 

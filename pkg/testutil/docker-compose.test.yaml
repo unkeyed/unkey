@@ -112,15 +112,18 @@ services:
       start_period: 5s
 
   s3:
-    image: quay.io/minio/minio:latest
-    command: server /data
+    image: dxflrs/garage:v2.3.0@sha256:866bd13ed2038ba7e7190e840482bc27234c4afaf77be8cfa439ae088c1e4690
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      GARAGE_DEFAULT_ACCESS_KEY: garage-test-access-key
+      GARAGE_DEFAULT_SECRET_KEY: garage-test-secret-key
+      GARAGE_DEFAULT_BUCKET: vault
     ports:
-      - "9000"
+      - "3902"
+    volumes:
+      - ./garage.test.toml:/etc/garage.toml:ro
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "/garage", "bucket", "info", "vault"]
       interval: 2s
       timeout: 5s
       retries: 30
