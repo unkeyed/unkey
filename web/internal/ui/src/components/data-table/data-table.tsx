@@ -15,7 +15,7 @@ import { useIsMobile } from "../../hooks/use-mobile";
 import { cn } from "../../lib/utils";
 import { LoadMoreFooter } from "./components/footer/load-more-footer";
 import { SkeletonRow } from "./components/rows/skeleton-row";
-import { EmptyState } from "./components/utils/empty-state";
+import { DataTableEmptyState } from "./components/utils/empty-state";
 import { RealtimeSeparator } from "./components/utils/realtime-separator";
 import { DEFAULT_CONFIG, MOBILE_TABLE_HEIGHT } from "./constants/constants";
 import { useDataTable } from "./hooks/use-data-table";
@@ -211,11 +211,9 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
             </tr>
           </thead>
         </table>
-        {emptyState ? (
-          <div className="flex-1 flex items-center justify-center">{emptyState}</div>
-        ) : (
-          <EmptyState />
-        )}
+        <div className="flex-1 flex items-center justify-center">
+          {emptyState ?? <DataTableEmptyState />}
+        </div>
       </div>
     );
   }
