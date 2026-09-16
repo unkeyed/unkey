@@ -7061,8 +7061,6 @@ components:
                     description: |
                         Verification timeseries for this key, zero-filled across the requested
                         window and ordered by time ascending.
-                        Unlike the account-wide series this is not zero-filled: buckets with no
-                        verifications are omitted.
                     items:
                         $ref: "#/components/schemas/V2PortalGetVerificationsDataPoint"
             additionalProperties: false

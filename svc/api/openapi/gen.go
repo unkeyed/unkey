@@ -4294,8 +4294,6 @@ type V2PortalGetVerificationsDataPoint struct {
 type V2PortalGetVerificationsKeySeries struct {
 	// Data Verification timeseries for this key, zero-filled across the requested
 	// window and ordered by time ascending.
-	// Unlike the account-wide series this is not zero-filled: buckets with no
-	// verifications are omitted.
 	Data []V2PortalGetVerificationsDataPoint `json:"data"`
 
 	// KeyId The key these buckets belong to.

@@ -21,8 +21,6 @@ export type V2PortalGetVerificationsKeySeries = {
    *
    * @remarks
    * window and ordered by time ascending.
-   * Unlike the account-wide series this is not zero-filled: buckets with no
-   * verifications are omitted.
    */
   data: Array<V2PortalGetVerificationsDataPoint>;
 };
