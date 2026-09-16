@@ -88,6 +88,7 @@ import { queryRuntimeLogs } from "./deploy/runtime-logs/query";
 import { listEnvironments } from "./environment/list";
 import { listAllEnvironments } from "./environment/list-all";
 import { githubRouter } from "./github";
+import { queryIdentityDetails } from "./identity/query-identity-details";
 import { queryIdentityLogs } from "./identity/query-logs";
 import { queryIdentityTimeseries } from "./identity/query-timeseries";
 import { createRootKey } from "./key/createRootKey";
@@ -391,6 +392,7 @@ export const router = t.router({
     }),
   }),
   identity: t.router({
+    details: queryIdentityDetails,
     logs: t.router({
       query: queryIdentityLogs,
       timeseries: queryIdentityTimeseries,
