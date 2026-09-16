@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
@@ -72,8 +71,7 @@ func (s *s3) Latest(workspaceId string) string {
 }
 
 func (s *s3) PutObject(ctx context.Context, key string, data []byte) (err error) {
-	start := time.Now()
-	defer func() { observeS3("put", start, true, err) }()
+	defer func() { observeS3("put", err) }()
 	_, err = s.client.PutObject(ctx, &awsS3.PutObjectInput{
 		Bucket: aws.String(s.config.S3Bucket),
 		Key:    aws.String(key),
@@ -86,8 +84,7 @@ func (s *s3) PutObject(ctx context.Context, key string, data []byte) (err error)
 }
 
 func (s *s3) GetObject(ctx context.Context, key string) (data []byte, found bool, err error) {
-	start := time.Now()
-	defer func() { observeS3("get", start, found, err) }()
+	defer func() { observeS3("get", err) }()
 	o, err := s.client.GetObject(ctx, &awsS3.GetObjectInput{
 		Bucket: aws.String(s.config.S3Bucket),
 		Key:    aws.String(key),
@@ -115,8 +112,7 @@ func (s *s3) GetObject(ctx context.Context, key string) (data []byte, found bool
 }
 
 func (s *s3) ListObjectKeys(ctx context.Context, prefix string) (keys []string, err error) {
-	start := time.Now()
-	defer func() { observeS3("list", start, true, err) }()
+	defer func() { observeS3("list", err) }()
 	input := &awsS3.ListObjectsV2Input{
 		Bucket: aws.String(s.config.S3Bucket),
 	}
@@ -135,8 +131,7 @@ func (s *s3) ListObjectKeys(ctx context.Context, prefix string) (keys []string, 
 	return keys, nil
 }
 
-func observeS3(operation string, start time.Time, found bool, err error) {
-	duration := time.Since(start).Seconds()
+func observeS3(operation string, err error) {
 	outcome, code := "success", ""
 	if errors.Is(err, context.Canceled) {
 		outcome = "canceled"
@@ -159,9 +154,6 @@ func observeS3(operation string, start time.Time, found bool, err error) {
 			status = respErr.HTTPStatusCode()
 		}
 		logger.Error("vault s3 operation failed", "operation", operation, "error_code", code, "http_status", status)
-	} else if !found {
-		outcome = "not_found"
 	}
 	metrics.S3OperationsTotal.WithLabelValues(operation, outcome, code).Inc()
-	metrics.S3OperationDurationSeconds.WithLabelValues(operation, outcome).Observe(duration)
 }

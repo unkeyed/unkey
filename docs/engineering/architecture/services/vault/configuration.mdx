@@ -181,7 +181,9 @@ slow_threshold = "2s"
 
 `unkey_vault_s3_operations_total` counts completed storage operations after SDK
 retries. Its labels are `operation` (`get`, `put`, or `list`), `outcome`
-(`success`, `not_found`, `canceled`, or `error`), and `error_code`.
+(`success`, `canceled`, or `error`), and `error_code`.
+Expected missing objects count as `success`: the storage operation completed
+without an error, but the object does not exist.
 The error code is empty for non-error outcomes. Errors use `InvalidAccessKeyId`,
 `SignatureDoesNotMatch`, `AccessDenied`, `ExpiredToken`, `NoSuchBucket`, `timeout`,
 or `other`. Unknown provider codes map to `other` to keep labels bounded.
@@ -201,13 +203,14 @@ sampling and omit credentials, object keys, payloads, endpoint URLs, and raw
 provider messages. Missing objects and caller cancellations don't emit error
 logs. An explicit `NoSuchBucket` response is a failure, not a missing object.
 
-A rising `outcome="canceled"` rate or long canceled-operation durations can also
-indicate a slow storage endpoint causing callers to give up.
+A rising `outcome="canceled"` rate can also indicate a slow storage endpoint
+causing callers to give up.
 
 `InvalidAccessKeyId`, `SignatureDoesNotMatch`, and `ExpiredToken` indicate an
 authentication failure. Check the configured S3 credentials. For `AccessDenied`,
 check bucket permissions as well. After restoring access, verify that error
 increments stop and `success` increments resume for the affected operation.
+For reads, `success` includes missing objects and does not prove a DEK was read.
 If you change Vault's configured credentials, restart Vault to load them.
 
 These signals require a storage operation. Startup and health checks don't
@@ -266,24 +269,6 @@ sum by (operation) (rate(unkey_vault_s3_operations_total[5m]))
 
 This counts logical storage operations, not individual HTTP retry attempts.
 It also includes maintenance operations such as DEK rotation.
-
-### Measure S3 latency
-
-`unkey_vault_s3_operation_duration_seconds` measures each storage operation,
-including SDK retry delays and reading the complete response body. Labels are
-`operation` and `outcome`, with the same values as the S3 operation counter.
-This measures S3 latency, not end-to-end RPC latency.
-
-For successful operations' p95 latency in seconds, use:
-
-```promql
-histogram_quantile(0.95, sum by (operation, le) (
-  rate(unkey_vault_s3_operation_duration_seconds_bucket{outcome="success"}[5m])
-))
-```
-
-Use `0.50` or `0.99` for p50 or p99. Query `outcome="error"` separately to
-identify slow failures without mixing them with successful calls.
 
 ## Environment variables
 

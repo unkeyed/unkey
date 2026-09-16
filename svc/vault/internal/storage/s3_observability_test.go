@@ -86,8 +86,6 @@ func TestS3_ReportsAccessLossAndRecovery(t *testing.T) {
 			logs := loggertest.Install(t)
 			successes := metricValue(t, tt.operation, "success", "")
 			failures := metricValue(t, tt.operation, "error", tt.code)
-			successDurations, _ := s3Duration(t, tt.operation, "success")
-			failureDurations, _ := s3Duration(t, tt.operation, "error")
 			call := func() error {
 				switch tt.operation {
 				case "put":
@@ -119,10 +117,6 @@ func TestS3_ReportsAccessLossAndRecovery(t *testing.T) {
 			denied.Store(false)
 			require.NoError(t, call())
 			require.Equal(t, successes+2, metricValue(t, tt.operation, "success", ""))
-			successCount, _ := s3Duration(t, tt.operation, "success")
-			failureCount, _ := s3Duration(t, tt.operation, "error")
-			require.Equal(t, successDurations+2, successCount)
-			require.Equal(t, failureDurations+1, failureCount)
 			require.Len(t, logs.Records(), 1)
 		})
 	}
@@ -133,8 +127,8 @@ func TestS3_DistinguishesMissingObjectsFromStorageFailures(t *testing.T) {
 		code, outcome, metricCode string
 	}{
 		{"NoSuchBucket", "error", "NoSuchBucket"},
-		{"NoSuchKey", "not_found", ""},
-		{"", "not_found", ""},
+		{"NoSuchKey", "success", ""},
+		{"", "success", ""},
 		{"sensitive-unrecognized-code", "error", "other"},
 	} {
 		t.Run(tt.code, func(t *testing.T) {
@@ -233,53 +227,6 @@ func TestS3_ReportsFinalStorageFailures(t *testing.T) {
 			}, loggertest.FlatAttrs(record))
 		})
 	}
-}
-
-func TestS3_ObservesLatencyThroughBodyFailure(t *testing.T) {
-	const bodyDelay = 50 * time.Millisecond
-	store := s3Server(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Length", "1000")
-		if err := http.NewResponseController(w).Flush(); err != nil {
-			t.Error(err)
-			return
-		}
-		<-time.After(bodyDelay)
-		_, err := fmt.Fprint(w, "incomplete-body")
-		if err != nil {
-			t.Error(err)
-		}
-	}))
-	beforeCount, beforeSum := s3Duration(t, "get", "error")
-	start := time.Now()
-	_, _, err := store.GetObject(t.Context(), "keyring/dek")
-	elapsed := time.Since(start).Seconds()
-	require.Error(t, err)
-	count, sum := s3Duration(t, "get", "error")
-	require.Equal(t, beforeCount+1, count)
-	require.GreaterOrEqual(t, sum-beforeSum, bodyDelay.Seconds())
-	require.LessOrEqual(t, sum-beforeSum, elapsed)
-}
-
-func s3Duration(t *testing.T, operation, outcome string) (uint64, float64) {
-	t.Helper()
-	families, err := registry.Gather()
-	require.NoError(t, err)
-	for _, family := range families {
-		if family.GetName() != "unkey_vault_s3_operation_duration_seconds" {
-			continue
-		}
-		for _, metric := range family.GetMetric() {
-			labels := map[string]string{}
-			for _, label := range metric.GetLabel() {
-				labels[label.GetName()] = label.GetValue()
-			}
-			if labels["operation"] == operation && labels["outcome"] == outcome {
-				require.Len(t, labels, 2)
-				return metric.GetHistogram().GetSampleCount(), metric.GetHistogram().GetSampleSum()
-			}
-		}
-	}
-	return 0, 0
 }
 
 func s3Server(t *testing.T, handler http.Handler) storage.Storage {

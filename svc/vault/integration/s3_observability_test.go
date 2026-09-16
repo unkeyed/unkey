@@ -39,14 +39,14 @@ func TestS3Metrics_CountStorageOperationsForBulkRPCs(t *testing.T) {
 	s3Count := func(operation, outcome string) float64 {
 		return counterValue(t, "unkey_vault_s3_operations_total", map[string]string{"operation": operation, "outcome": outcome, "error_code": ""})
 	}
-	reads, misses, writes := s3Count("get", "success"), s3Count("get", "not_found"), s3Count("put", "success")
+	reads, writes := s3Count("get", "success"), s3Count("put", "success")
 	plaintexts := map[string]string{"one": "first secret", "two": "a longer second secret", "three": "third"}
 	req := connect.NewRequest(&vaultv1.EncryptBulkRequest{Keyring: "ring", Items: plaintexts})
 	req.Header().Set("Authorization", "Bearer bearer")
 	encrypted, err := v.EncryptBulk(t.Context(), req)
 	require.NoError(t, err)
 	require.Len(t, encrypted.Msg.GetItems(), 3)
-	require.Equal(t, misses+1, s3Count("get", "not_found"))
+	require.Equal(t, reads+1, s3Count("get", "success"))
 	require.Equal(t, writes+2, s3Count("put", "success"))
 
 	ciphertexts := map[string]string{}
@@ -58,8 +58,7 @@ func TestS3Metrics_CountStorageOperationsForBulkRPCs(t *testing.T) {
 	decrypted, err := v.DecryptBulk(t.Context(), decryptReq)
 	require.NoError(t, err)
 	require.Equal(t, plaintexts, decrypted.Msg.GetItems())
-	require.Equal(t, reads+1, s3Count("get", "success"))
-	require.Equal(t, misses+1, s3Count("get", "not_found"))
+	require.Equal(t, reads+2, s3Count("get", "success"))
 	require.Equal(t, writes+2, s3Count("put", "success"))
 }
 
