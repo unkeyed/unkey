@@ -22,11 +22,6 @@ func TestDispatch_NilEvent(t *testing.T) {
 	require.Contains(t, err.Error(), "nil event")
 }
 
-func TestDispatch_Checkpoint(t *testing.T) {
-	w := &Watcher{}
-	require.NoError(t, w.dispatch(t.Context(), &ctrlv1.DeploymentChangeEvent{ResumeToken: []byte("checkpoint")}))
-}
-
 func TestDispatch_NilDeploymentState(t *testing.T) {
 	w := &Watcher{}
 	err := w.dispatch(context.Background(), &ctrlv1.DeploymentChangeEvent{

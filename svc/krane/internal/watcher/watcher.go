@@ -109,6 +109,12 @@ func (s *Watcher) consumeStream(ctx context.Context, stream *connect.ServerStrea
 		event := stream.Msg()
 		metrics.StreamEventsReceivedTotal.Inc()
 
+		if event.GetEvent() == nil && len(event.GetResumeToken()) > 0 {
+			resumeToken = event.GetResumeToken()
+			metrics.LastSuccessfulCheckpointUnixSeconds.Set(float64(time.Now().Unix()))
+			continue
+		}
+
 		if err := s.sem.Acquire(ctx, 1); err != nil {
 			break
 		}
@@ -119,13 +125,7 @@ func (s *Watcher) consumeStream(ctx context.Context, stream *connect.ServerStrea
 			logger.Error("stream: error dispatching event", "deployment_id", event.GetDeployment().GetApply().GetDeploymentId(), "error", err)
 			break
 		}
-		if event.GetEvent() != nil {
-			metrics.DispatchTotal.WithLabelValues("stream", eventResourceType(event), "success").Inc()
-		}
-		if len(event.GetResumeToken()) > 0 {
-			resumeToken = event.GetResumeToken()
-			metrics.LastSuccessfulCheckpointUnixSeconds.Set(float64(time.Now().Unix()))
-		}
+		metrics.DispatchTotal.WithLabelValues("stream", eventResourceType(event), "success").Inc()
 	}
 
 	if err := stream.Err(); err != nil && ctx.Err() == nil {
@@ -228,9 +228,6 @@ func (s *Watcher) dispatch(ctx context.Context, event *ctrlv1.DeploymentChangeEv
 		}
 
 	case nil:
-		if len(event.GetResumeToken()) > 0 {
-			return nil
-		}
 		return fmt.Errorf("received deployment change event with nil event")
 
 	default:
