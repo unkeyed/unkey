@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
@@ -39,10 +40,11 @@ func (s *Service) WatchDeploymentChanges(
 	if req.Msg.GetReplay() {
 		token = nil
 	}
-	err = s.deploymentStream.Watch(ctx, cluster.RegionID, token, func(deploymentID string) error {
-		return s.sendDeploymentChange(ctx, stream, cluster.RegionID, deploymentID)
-	}, func(next []byte) error {
-		return stream.Send(&ctrlv1.DeploymentChangeEvent{ResumeToken: next})
+	err = s.deploymentStream.Watch(ctx, cluster.RegionID, token, func(event deploymentstream.Event) error {
+		if event.DeploymentID != "" {
+			return s.sendDeploymentChange(ctx, stream, cluster.RegionID, event.DeploymentID)
+		}
+		return stream.Send(&ctrlv1.DeploymentChangeEvent{ResumeToken: event.ResumeToken})
 	})
 	if err == nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return err

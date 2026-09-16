@@ -7,13 +7,19 @@ import (
 	"regexp"
 
 	"github.com/unkeyed/unkey/pkg/cdc"
-	binlog "vitess.io/vitess/go/vt/proto/binlogdata"
 )
 
 // Client turns topology changes into deployment IDs for Ctrl to look up.
 // Watches share a CDC connection and can run at the same time.
 type Client struct {
 	cdc *cdc.Client
+}
+
+// Event contains either a deployment ID to look up or a checkpoint token.
+// Watch sets exactly one of these fields.
+type Event struct {
+	DeploymentID string
+	ResumeToken  []byte
 }
 
 // regionPattern rejects unsafe region IDs before adding them to SQL.
@@ -30,15 +36,18 @@ func New(client *cdc.Client) *Client {
 // its old value still provides the deployment ID.
 // Invalid regions, invalid IDs, and callback errors stop the watch.
 // Resume tokens and checkpoints follow [cdc.Client.Watch].
-func (c *Client) Watch(ctx context.Context, region string, token []byte, change func(string) error, checkpoint func([]byte) error) error {
+func (c *Client) Watch(ctx context.Context, region string, token []byte, apply func(Event) error) error {
 	if !regionPattern.MatchString(region) {
 		return errors.New("invalid region ID")
 	}
 	return c.cdc.Watch(ctx, []cdc.Rule{{
 		Table: "deployment_topology",
 		Query: fmt.Sprintf("select deployment_id from deployment_topology where region_id = '%s' and desired_status = 'running'", region),
-	}}, token, func(event *binlog.VEvent) error {
-		for _, rowChange := range event.GetRowEvent().GetRowChanges() {
+	}}, token, func(event cdc.Event) error {
+		if event.Change == nil {
+			return apply(Event{DeploymentID: "", ResumeToken: event.ResumeToken})
+		}
+		for _, rowChange := range event.Change.GetRowEvent().GetRowChanges() {
 			row := rowChange.After
 			if row == nil {
 				row = rowChange.Before
@@ -46,10 +55,10 @@ func (c *Client) Watch(ctx context.Context, region string, token []byte, change 
 			if row == nil || len(row.Lengths) != 1 || row.Lengths[0] <= 0 || row.Lengths[0] != int64(len(row.Values)) {
 				return errors.New("invalid deployment ID in VStream row")
 			}
-			if err := change(string(row.Values)); err != nil {
+			if err := apply(Event{DeploymentID: string(row.Values), ResumeToken: nil}); err != nil {
 				return err
 			}
 		}
 		return nil
-	}, checkpoint)
+	})
 }

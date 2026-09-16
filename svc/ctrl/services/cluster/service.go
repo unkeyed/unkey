@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/repeat"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
 )
 
 // notifiedReadyTTL is how long an entry in notifiedReady is kept before
@@ -178,6 +179,7 @@ func New(cfg Config) (*Service, error) {
 
 var _ ctrlv1connect.ClusterServiceHandler = (*Service)(nil)
 
+// DeploymentStream delivers deployment changes and checkpoints in order.
 type DeploymentStream interface {
-	Watch(context.Context, string, []byte, func(string) error, func([]byte) error) error
+	Watch(context.Context, string, []byte, func(deploymentstream.Event) error) error
 }

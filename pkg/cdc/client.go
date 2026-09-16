@@ -53,6 +53,13 @@ type Rule struct {
 	Query string `json:"query"`
 }
 
+// Event contains either a FIELD/ROW change or a checkpoint token, never both.
+// Apply Change or save ResumeToken before returning from the callback.
+type Event struct {
+	Change      *binlog.VEvent
+	ResumeToken []byte
+}
+
 // Config selects the Vitess endpoint and keyspace. TLS is on by default.
 // Insecure is for local development. New requires both Username and Password
 // or neither, and rejects credentials without TLS.
@@ -95,9 +102,9 @@ func New(cfg Config) (*Client, error) {
 func (c *Client) Close() error { return c.connection.Close() }
 
 // Watch copies current rows when token is empty, then follows changes.
-// It passes FIELD and ROW events unchanged to change. Both callbacks must be
-// non-nil and must not edit events. They run one at a time within each watch.
-// Separate watches can call them at the same time.
+// It calls apply for each change or checkpoint, one at a time. The callback
+// must be non-nil, must not edit events, and must finish applying each event
+// before returning. Separate watches can call it at the same time.
 //
 // A checkpoint marks a safe place to resume. Callback errors stop the watch
 // without checkpointing that transaction. Callers must handle repeated events,
@@ -109,7 +116,7 @@ func (c *Client) Close() error { return c.connection.Close() }
 // 30 seconds without a response. Time spent in callbacks does not count.
 // It returns callback, connection, or context errors when it stops.
 // [ErrInvalidToken] and [ErrExpired] require a new snapshot.
-func (c *Client) Watch(ctx context.Context, rules []Rule, token []byte, change func(*binlog.VEvent) error, checkpoint func([]byte) error) error {
+func (c *Client) Watch(ctx context.Context, rules []Rule, token []byte, apply func(Event) error) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	filter, err := vstreamFilter(rules)
@@ -142,11 +149,11 @@ func (c *Client) Watch(ctx context.Context, rules []Rule, token []byte, change f
 		}
 		for _, event := range response.Events {
 			if event.Type == binlog.VEventType_FIELD || event.Type == binlog.VEventType_ROW {
-				if err := change(event); err != nil {
+				if err := apply(Event{Change: event, ResumeToken: nil}); err != nil {
 					return err
 				}
 			}
-			if err := checkpoints.advance(event, rules, c.clock, checkpoint); err != nil {
+			if err := checkpoints.advance(event, rules, c.clock, apply); err != nil {
 				return err
 			}
 		}
@@ -178,7 +185,7 @@ type checkpointState struct {
 
 // advance updates progress after the caller has delivered the event.
 // A heartbeat can send a checkpoint, but only for a finished transaction.
-func (s *checkpointState) advance(event *binlog.VEvent, rules []Rule, clock clock.Clock, checkpoint func([]byte) error) error {
+func (s *checkpointState) advance(event *binlog.VEvent, rules []Rule, clock clock.Clock, apply func(Event) error) error {
 	if event.Type == binlog.VEventType_FIELD || event.Type == binlog.VEventType_ROW {
 		s.changed = s.changed || len(event.GetRowEvent().GetRowChanges()) > 0
 	}
@@ -204,7 +211,7 @@ func (s *checkpointState) advance(event *binlog.VEvent, rules []Rule, clock cloc
 	if err != nil {
 		return err
 	}
-	if err := checkpoint(next); err != nil {
+	if err := apply(Event{Change: nil, ResumeToken: next}); err != nil {
 		return err
 	}
 	s.committed = nil

@@ -70,10 +70,11 @@ func TestWatch_PreservesFieldsAndBeforeAfterImages(t *testing.T) {
 	}
 	server := &scriptedServer{responses: []*vtgate.VStreamResponse{{Events: events}}, requests: make(chan *vtgate.VStreamRequest, 1)}
 	var delivered []*binlog.VEvent
-	err := testClient(t, server).Watch(t.Context(), rules, nil, func(event *binlog.VEvent) error {
-		delivered = append(delivered, event)
+	err := testClient(t, server).Watch(t.Context(), rules, nil, func(event Event) error {
+		require.Empty(t, event.ResumeToken)
+		delivered = append(delivered, event.Change)
 		return nil
-	}, func([]byte) error { return errors.New("unexpected checkpoint") })
+	})
 	require.ErrorIs(t, err, io.EOF)
 	require.Len(t, delivered, len(events))
 	for i := range events {
@@ -110,18 +111,20 @@ func TestWatch_DeliveryPrecedesCheckpointAcrossResponses(t *testing.T) {
 			var delivered []string
 			var token []byte
 			failure := errors.New("apply failed")
-			err := testClient(t, server).Watch(t.Context(), rules, nil, func(event *binlog.VEvent) error {
-				for _, row := range event.GetRowEvent().GetRowChanges() {
+			err := testClient(t, server).Watch(t.Context(), rules, nil, func(event Event) error {
+				if event.Change == nil {
+					require.Equal(t, []string{"record_a", "record_b"}, delivered)
+					token = event.ResumeToken
+					return nil
+				}
+				require.Empty(t, event.ResumeToken)
+				for _, row := range event.Change.GetRowEvent().GetRowChanges() {
 					id := string(row.After.Values)
 					if fail && id == "record_b" {
 						return failure
 					}
 					delivered = append(delivered, id)
 				}
-				return nil
-			}, func(next []byte) error {
-				require.Equal(t, []string{"record_a", "record_b"}, delivered)
-				token = next
 				return nil
 			})
 			if fail {
@@ -155,19 +158,21 @@ func TestWatch_CoalescesOnlyCommittedCheckpoints(t *testing.T) {
 	controlled := clock.NewTestClock()
 	client.clock = controlled
 	var checkpoints [][]byte
-	err := client.Watch(t.Context(), rules, nil, func(*binlog.VEvent) error {
+	err := client.Watch(t.Context(), rules, nil, func(event Event) error {
+		if event.Change == nil {
+			checkpoints = append(checkpoints, event.ResumeToken)
+			return nil
+		}
+		require.Empty(t, event.ResumeToken)
 		require.Len(t, checkpoints, 1, "unrelated commits must be coalesced")
 		controlled.Tick(31 * time.Second)
-		return nil
-	}, func(token []byte) error {
-		checkpoints = append(checkpoints, token)
 		return nil
 	})
 	require.ErrorIs(t, err, io.EOF)
 	require.Len(t, checkpoints, 3)
 	for i, want := range []string{"first", "idle", "pending"} {
 		resumed := &scriptedServer{requests: make(chan *vtgate.VStreamRequest, 1)}
-		err := testClient(t, resumed).Watch(t.Context(), rules, checkpoints[i], func(*binlog.VEvent) error { return errors.New("unexpected event") }, func([]byte) error { return errors.New("unexpected checkpoint") })
+		err := testClient(t, resumed).Watch(t.Context(), rules, checkpoints[i], func(Event) error { return errors.New("unexpected event") })
 		require.ErrorIs(t, err, io.EOF)
 		request := <-resumed.requests
 		require.Equal(t, want, request.Vgtid.ShardGtids[0].Gtid, "resume must use only committed progress")
@@ -180,7 +185,7 @@ func TestWatch_HeartbeatDoesNotCommitPendingPosition(t *testing.T) {
 		{Events: []*binlog.VEvent{{Type: binlog.VEventType_VGTID, Vgtid: &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: "unkey", Shard: "0", Gtid: "uncommitted"}}}}}},
 		{Events: []*binlog.VEvent{{Type: binlog.VEventType_HEARTBEAT}}},
 	}})
-	err := client.Watch(t.Context(), rules, nil, func(*binlog.VEvent) error { return errors.New("unexpected row") }, func([]byte) error { return errors.New("checkpoint before commit") })
+	err := client.Watch(t.Context(), rules, nil, func(Event) error { return errors.New("event before commit") })
 	require.ErrorIs(t, err, io.EOF)
 }
 
@@ -193,7 +198,7 @@ func TestWatch_StopsStalledUpstream(t *testing.T) {
 	t.Cleanup(cancel)
 	done := make(chan error, 1)
 	go func() {
-		done <- client.Watch(ctx, rules, nil, func(*binlog.VEvent) error { return errors.New("unexpected row") }, func([]byte) error { return errors.New("unexpected checkpoint") })
+		done <- client.Watch(ctx, rules, nil, func(Event) error { return errors.New("unexpected event") })
 	}()
 	select {
 	case <-controlled.started:
@@ -278,7 +283,7 @@ func TestWatch_OnlyExpiredBinlogsRequireSnapshot(t *testing.T) {
 	} {
 		t.Run(test.message, func(t *testing.T) {
 			client := testClient(t, &scriptedServer{err: status.Error(codes.Unknown, test.message)})
-			err := client.Watch(t.Context(), rules, []byte(`{"rules":[{"table":"records","query":"select id from records"}],"position":{"shardGtids":[{"keyspace":"unkey","shard":"0","gtid":"position-7"}]}}`), func(*binlog.VEvent) error { return errors.New("unexpected change") }, func([]byte) error { return errors.New("unexpected checkpoint") })
+			err := client.Watch(t.Context(), rules, []byte(`{"rules":[{"table":"records","query":"select id from records"}],"position":{"shardGtids":[{"keyspace":"unkey","shard":"0","gtid":"position-7"}]}}`), func(Event) error { return errors.New("unexpected event") })
 			require.Error(t, err)
 			require.Equal(t, test.expired, errors.Is(err, ErrExpired))
 		})
@@ -288,7 +293,7 @@ func TestWatch_OnlyExpiredBinlogsRequireSnapshot(t *testing.T) {
 func TestWatch_RejectsForeignSnapshotTable(t *testing.T) {
 	rules := []Rule{{Table: "records", Query: "select id from records"}}
 	client := testClient(t, &scriptedServer{})
-	err := client.Watch(t.Context(), rules, []byte(`{"rules":[{"table":"records","query":"select id from records"}],"position":{"shardGtids":[{"keyspace":"unkey","shard":"0","gtid":"position-7","tablePKs":[{"tableName":"workspaces"}]}]}}`), func(*binlog.VEvent) error { return errors.New("unexpected row") }, func([]byte) error { return errors.New("unexpected checkpoint") })
+	err := client.Watch(t.Context(), rules, []byte(`{"rules":[{"table":"records","query":"select id from records"}],"position":{"shardGtids":[{"keyspace":"unkey","shard":"0","gtid":"position-7","tablePKs":[{"tableName":"workspaces"}]}]}}`), func(Event) error { return errors.New("unexpected event") })
 	require.ErrorIs(t, err, ErrInvalidToken)
 }
 
@@ -299,9 +304,9 @@ func TestWatch_TokensBindToAllRules(t *testing.T) {
 		{Type: binlog.VEventType_COMMIT},
 	}}}})
 	var token []byte
-	ignoreEvent := func(*binlog.VEvent) error { return errors.New("unexpected event") }
-	err := client.Watch(t.Context(), rules, nil, ignoreEvent, func(next []byte) error {
-		token = next
+	err := client.Watch(t.Context(), rules, nil, func(event Event) error {
+		require.Nil(t, event.Change)
+		token = event.ResumeToken
 		return nil
 	})
 	require.ErrorIs(t, err, io.EOF)
@@ -317,7 +322,10 @@ func TestWatch_TokensBindToAllRules(t *testing.T) {
 		{name: "changed table", rules: []Rule{rules[0], {Table: "other_settings", Query: rules[1].Query}}, want: ErrInvalidToken},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			err := client.Watch(t.Context(), test.rules, token, ignoreEvent, func([]byte) error { return nil })
+			err := client.Watch(t.Context(), test.rules, token, func(event Event) error {
+				require.Nil(t, event.Change)
+				return nil
+			})
 			require.ErrorIs(t, err, test.want)
 		})
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/cdc"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
 )
 
 func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
@@ -44,7 +45,7 @@ func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
 			t.Cleanup(clusterCache.Close)
 			svc := &Service{
 				db: &watchDatabase{lookupErr: test.lookupErr}, bearer: "test-token", clusterCache: clusterCache,
-				deploymentStream: watchSource(func(ctx context.Context, region string, token []byte, change func(string) error, checkpoint func([]byte) error) error {
+				deploymentStream: watchSource(func(ctx context.Context, region string, token []byte, apply func(deploymentstream.Event) error) error {
 					if region != "region_test" {
 						return errors.New("incorrect region filter")
 					}
@@ -58,10 +59,10 @@ func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
 					if test.streamErr != nil {
 						return test.streamErr
 					}
-					if err := change("deploy_test"); err != nil {
+					if err := apply(deploymentstream.Event{DeploymentID: "deploy_test"}); err != nil {
 						return err
 					}
-					return checkpoint([]byte("next"))
+					return apply(deploymentstream.Event{ResumeToken: []byte("next")})
 				}),
 			}
 			_, handler := ctrlv1connect.NewClusterServiceHandler(svc)
@@ -97,10 +98,10 @@ func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
 	}
 }
 
-type watchSource func(context.Context, string, []byte, func(string) error, func([]byte) error) error
+type watchSource func(context.Context, string, []byte, func(deploymentstream.Event) error) error
 
-func (s watchSource) Watch(ctx context.Context, region string, token []byte, change func(string) error, checkpoint func([]byte) error) error {
-	return s(ctx, region, token, change, checkpoint)
+func (s watchSource) Watch(ctx context.Context, region string, token []byte, apply func(deploymentstream.Event) error) error {
+	return s(ctx, region, token, apply)
 }
 
 type watchDatabase struct {
