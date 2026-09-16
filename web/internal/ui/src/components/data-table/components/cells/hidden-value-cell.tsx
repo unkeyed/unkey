@@ -5,8 +5,6 @@ import type { MouseEvent } from "react";
 import { cn } from "../../../../lib/utils";
 import { toast } from "../../../toaster";
 
-const MASK_FILLER = "•".repeat(32);
-
 export interface HiddenValueCellProps {
   prefix?: string;
   start: string;
@@ -23,7 +21,8 @@ export const HiddenValueCell = ({
   selected,
 }: HiddenValueCellProps) => {
   const head = `${prefix ? `${prefix}_` : ""}${start}`;
-  const displayValue = `${head}••••${end}`;
+  const mask = "•".repeat(Math.max(4, 29 - head.length - end.length));
+  const displayValue = `${head}${mask}${end}`;
 
   const handleClick = (e: MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
@@ -48,14 +47,7 @@ export const HiddenValueCell = ({
       onClick={handleClick}
     >
       <IconCircleLockOutline18 className="size-3 text-gray-9 shrink-0" />
-      <span className="shrink-0">{head}</span>
-      <span
-        aria-hidden
-        className="flex-1 min-w-[4ch] overflow-hidden text-grayA-8 tracking-[0.1em]"
-      >
-        {MASK_FILLER}
-      </span>
-      <span className="shrink-0">{end}</span>
+      <span>{displayValue}</span>
     </div>
   );
 };
