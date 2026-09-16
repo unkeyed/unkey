@@ -16,8 +16,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
-// WatchDeploymentChanges opens one region-filtered VStream for this watch.
-// Checkpoint-only events follow all state events for a committed transaction.
+// WatchDeploymentChanges opens one VStream for the cluster's region.
+// It sends each checkpoint after the transaction's deployment events.
 func (s *Service) WatchDeploymentChanges(
 	ctx context.Context,
 	req *connect.Request[ctrlv1.WatchDeploymentChangesRequest],
@@ -58,8 +58,8 @@ func (s *Service) WatchDeploymentChanges(
 	}
 }
 
-// sendDeploymentChange loads current state rather than replaying stale row data.
-// Missing topologies are left to Krane's per-ReplicaSet reconciliation.
+// sendDeploymentChange looks up the latest state, not the state when the row changed.
+// If the row is gone, Krane's ReplicaSet checks remove the leftover resources.
 func (s *Service) sendDeploymentChange(ctx context.Context, stream *connect.ServerStream[ctrlv1.DeploymentChangeEvent], regionID, deploymentID string) error {
 	row, err := s.db.FindDeploymentTopologyByDeploymentAndRegion(ctx, db.FindDeploymentTopologyByDeploymentAndRegionParams{
 		DeploymentID: deploymentID,

@@ -77,8 +77,8 @@ export type WatchDeploymentChangesRequest = Message<"ctrl.v1.WatchDeploymentChan
   replay: boolean;
 
   /**
-   * Opaque region-bound position received after successfully applying all
-   * preceding events. Empty starts a snapshot. Not a numeric resource version.
+   * The last token saved after applying all earlier events in this region.
+   * Send it unchanged. Leave it empty to copy current rows again.
    *
    * @generated from field: bytes resume_token = 4;
    */
@@ -125,8 +125,8 @@ export type DeploymentChangeEvent = Message<"ctrl.v1.DeploymentChangeEvent"> & {
   } | { case: undefined; value?: undefined };
 
   /**
-   * A checkpoint-only event has no deployment. Acknowledge this token only
-   * after all preceding deployment events have been applied successfully.
+   * A checkpoint has a token but no deployment.
+   * Save the token only after all earlier deployment events have been applied.
    *
    * @generated from field: bytes resume_token = 3;
    */
@@ -974,20 +974,17 @@ export const HealthSchema: GenEnum<Health> = /*@__PURE__*/
   enumDesc(file_ctrl_v1_cluster, 0);
 
 /**
- * ClusterService coordinates deployment configurations across multiple clusters.
- *
- * Agents in each cluster establish watch streams to receive configuration events
- * from the control plane. The watch connections are designed to be long-lived
- * with automatic reconnection on failure. When an agent reconnects, it should
- * resume from its last acknowledged resume token.
+ * ClusterService sends desired state to Krane and receives status reports.
+ * Krane reconnects with the last token it saved after applying changes.
  *
  * @generated from service ctrl.v1.ClusterService
  */
 export const ClusterService: GenService<{
   /**
-   * WatchDeploymentChanges watches region-filtered deployment topology changes
-   * through Vitess VStream. An empty resume_token starts a snapshot followed by
-   * live changes. CodeOutOfRange requires a fresh snapshot and reconciliation.
+   * WatchDeploymentChanges follows topology changes in the cluster's region.
+   * An empty resume_token copies current rows before following changes.
+   * CodeOutOfRange means the saved position is gone. Start a new copy and
+   * remove local resources that no longer exist in desired state.
    *
    * @generated from rpc ctrl.v1.ClusterService.WatchDeploymentChanges
    */
@@ -997,10 +994,8 @@ export const ClusterService: GenService<{
     output: typeof DeploymentChangeEventSchema;
   },
   /**
-   * SyncDesiredState streams the full desired state for a region: all running
-   * deployments and Cilium policies. The server closes the stream after all
-   * state has been sent. Krane calls this on startup and periodically as a
-   * safety net to reconcile any drift.
+   * SyncDesiredState sends all running deployments in a region, then closes.
+   * Krane calls it on startup and periodically to repair missed changes.
    *
    * @generated from rpc ctrl.v1.ClusterService.SyncDesiredState
    */

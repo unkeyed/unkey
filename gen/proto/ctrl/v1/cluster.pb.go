@@ -206,8 +206,8 @@ type WatchDeploymentChangesRequest struct {
 	Cluster *ClusterKey            `protobuf:"bytes,1,opt,name=cluster,proto3" json:"cluster,omitempty"`
 	// Ignore the resume token and copy current desired state before watching.
 	Replay bool `protobuf:"varint,3,opt,name=replay,proto3" json:"replay,omitempty"`
-	// Opaque region-bound position received after successfully applying all
-	// preceding events. Empty starts a snapshot. Not a numeric resource version.
+	// The last token saved after applying all earlier events in this region.
+	// Send it unchanged. Leave it empty to copy current rows again.
 	ResumeToken   []byte `protobuf:"bytes,4,opt,name=resume_token,json=resumeToken,proto3" json:"resume_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -314,8 +314,8 @@ type DeploymentChangeEvent struct {
 	//
 	//	*DeploymentChangeEvent_Deployment
 	Event isDeploymentChangeEvent_Event `protobuf_oneof:"event"`
-	// A checkpoint-only event has no deployment. Acknowledge this token only
-	// after all preceding deployment events have been applied successfully.
+	// A checkpoint has a token but no deployment.
+	// Save the token only after all earlier deployment events have been applied.
 	ResumeToken   []byte `protobuf:"bytes,3,opt,name=resume_token,json=resumeToken,proto3" json:"resume_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

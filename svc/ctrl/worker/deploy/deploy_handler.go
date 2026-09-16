@@ -517,16 +517,9 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 	return nil
 }
 
-// createTopologies determines the target regions and replica counts and
-// bulk-inserts the deployment topology records.
-//
-// Region selection uses the environment's runtime settings: if a region config is
-// present, only those regions are used with their configured replica counts;
-// otherwise the deployment fails with a terminal error.
-//
-// createTopologies also registers compensations for every inserted
-// topology. Compensation deletes by deployment, region, and version so retries
-// never remove topologies created by a newer attempt.
+// createTopologies saves the deployment's regions and replica counts from its
+// runtime settings. Missing region settings fail the deployment.
+// If a later step fails, cleanup stops these topologies but keeps the rows.
 func (w *Workflow) createTopologies(
 	ctx restate.ObjectContext,
 	compensation *compensation.Compensation,
@@ -669,8 +662,7 @@ func (w *Workflow) createTopologies(
 		)
 	}
 
-	// On failure, mark each topology desired_status=stopped so krane scales
-	// the pods to zero. Preserve the topology row for debugging.
+	// Keep stopped rows for debugging instead of deleting them.
 	for _, topo := range topologies {
 		compensation.Add(
 			fmt.Sprintf("stop deployment topology %s/%s", topo.DeploymentID, topo.RegionID),
