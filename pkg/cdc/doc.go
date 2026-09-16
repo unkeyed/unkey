@@ -5,10 +5,15 @@
 // # Usage
 //
 // Each [Client.Watch] opens a VStream on the client's shared connection.
-// With a client and callbacks already set up:
+// With a client and storage functions already set up:
 //
 //	rules := []cdc.Rule{{Table: "records", Query: "select id, value from records"}}
-//	err := client.Watch(ctx, rules, resumeToken, handleEvent, saveCheckpoint)
+//	err := client.Watch(ctx, rules, resumeToken, func(event cdc.Event) error {
+//		if event.Change != nil {
+//			return applyChange(event.Change)
+//		}
+//		return saveCheckpoint(event.ResumeToken)
+//	})
 //
 // # Recovery
 //

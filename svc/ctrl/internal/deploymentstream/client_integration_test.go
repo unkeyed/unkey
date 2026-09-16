@@ -40,11 +40,14 @@ func TestWatch_VitessSnapshotLiveFilteringAndResume(t *testing.T) {
 	var delivered []string
 	var token []byte
 	updated := false
-	err = client.Watch(ctx, region, nil, func(id string) error {
-		delivered = append(delivered, id)
-		return nil
-	}, func(next []byte) error {
-		token = next
+	err = client.Watch(ctx, region, nil, func(event Event) error {
+		if event.DeploymentID != "" {
+			require.Empty(t, event.ResumeToken)
+			delivered = append(delivered, event.DeploymentID)
+			return nil
+		}
+		require.NotEmpty(t, event.ResumeToken)
+		token = event.ResumeToken
 		if len(delivered) == 1 && !updated {
 			updated = true
 			_, err := database.ExecContext(ctx, "UPDATE deployment_topology SET desired_status = 'stopped' WHERE region_id IN (?, ?)", region, region+"_other")
@@ -61,17 +64,18 @@ func TestWatch_VitessSnapshotLiveFilteringAndResume(t *testing.T) {
 
 	resumeCtx, resumeCancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer resumeCancel()
-	err = client.Watch(resumeCtx, region+"_other", token, func(string) error { return errors.New("unexpected cross-region delivery") }, func([]byte) error { return errors.New("unexpected cross-region checkpoint") })
+	err = client.Watch(resumeCtx, region+"_other", token, func(Event) error { return errors.New("unexpected cross-region event") })
 	require.ErrorIs(t, err, cdc.ErrInvalidToken)
 	_, err = database.ExecContext(resumeCtx, `INSERT INTO deployment_topology
 		(workspace_id, deployment_id, region_id, desired_status, created_at)
 		VALUES ('poc', 'while_offline', ?, 'running', 2)`, region)
 	require.NoError(t, err)
 	delivered = nil
-	err = client.Watch(resumeCtx, region, token, func(id string) error {
-		delivered = append(delivered, id)
-		return nil
-	}, func([]byte) error {
+	err = client.Watch(resumeCtx, region, token, func(event Event) error {
+		if event.DeploymentID != "" {
+			delivered = append(delivered, event.DeploymentID)
+			return nil
+		}
 		if len(delivered) > 0 {
 			resumeCancel()
 		}
@@ -115,37 +119,42 @@ func TestWatch_VitessRetriesFailedDeliveryAndResumesPartialSnapshot(t *testing.T
 	client := New(source)
 	failure := errors.New("apply failed")
 	attempts := 0
-	err = client.Watch(ctx, region, nil, func(string) error {
+	err = client.Watch(ctx, region, nil, func(event Event) error {
+		if event.DeploymentID == "" {
+			if attempts > 0 {
+				return errors.New("checkpoint advanced past failed delivery")
+			}
+			return nil
+		}
 		attempts++
 		if attempts == 2 {
 			return failure
-		}
-		return nil
-	}, func([]byte) error {
-		if attempts > 0 {
-			return errors.New("checkpoint advanced past failed delivery")
 		}
 		return nil
 	})
 	require.ErrorIs(t, err, failure)
 	require.Equal(t, 2, attempts)
 	delivered := make(map[string]int)
-	change := func(id string) error {
-		delivered[id]++
-		return nil
-	}
 	stop := errors.New("disconnect at checkpoint")
 	var token []byte
-	err = client.Watch(ctx, region, nil, change, func(next []byte) error {
+	err = client.Watch(ctx, region, nil, func(event Event) error {
+		if event.DeploymentID != "" {
+			delivered[event.DeploymentID]++
+			return nil
+		}
 		if len(delivered) == 0 {
 			return nil
 		}
-		token = next
+		token = event.ResumeToken
 		return stop
 	})
 	require.ErrorIs(t, err, stop)
 	require.Less(t, len(delivered), total, "disconnect must occur before the snapshot completes")
-	err = client.Watch(ctx, region, token, change, func([]byte) error {
+	err = client.Watch(ctx, region, token, func(event Event) error {
+		if event.DeploymentID != "" {
+			delivered[event.DeploymentID]++
+			return nil
+		}
 		if len(delivered) == total {
 			return stop
 		}
