@@ -1,5 +1,6 @@
 "use client";
 
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useIdentities } from "@/lib/identities-query";
 import { routes } from "@/lib/navigation/routes";
@@ -117,6 +118,7 @@ export function IdentitiesList() {
 
 function IdentityResults({ search }: { search: string }) {
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
   const [nextPageError, setNextPageError] = useState<unknown>();
   const {
     identities: identityRows,
@@ -208,6 +210,7 @@ function IdentityResults({ search }: { search: string }) {
             identity={identity}
             href={routes.identities.detail({
               workspaceSlug: workspace.slug,
+              ...scope,
               identityId: identity.id,
             })}
           />
