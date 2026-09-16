@@ -10,6 +10,9 @@ import {
 import {
   Button,
   Combobox,
+  EmptyState,
+  EmptyStateHeader,
+  EmptyStateTitle,
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
@@ -252,9 +255,11 @@ export const SelectRepo = ({
             </div>
           </div>
         ) : (
-          <div className="mt-3 flex flex-col items-center justify-center min-w-[var(--repo-list-w)] h-[462px] gap-3 border border-dashed rounded-lg border-grayA-5">
-            <p className="text-[15px] text-accent-12 font-semibold">No repositories found</p>
-          </div>
+          <EmptyState className="mt-3 min-w-[var(--repo-list-w)] h-[462px] py-0">
+            <EmptyStateHeader>
+              <EmptyStateTitle>No repositories found</EmptyStateTitle>
+            </EmptyStateHeader>
+          </EmptyState>
         ))}
 
       {onSkip && (

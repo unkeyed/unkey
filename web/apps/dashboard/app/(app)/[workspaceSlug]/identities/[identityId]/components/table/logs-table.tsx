@@ -19,11 +19,24 @@ import {
   IconCircleCheckOutline12,
   IconClockOutline12,
   IconKeyOutline18,
+  IconLayers3Outline18,
   IconLockOutline12,
   IconShieldKeyOutline18,
   IconTriangleWarningOutline12,
 } from "@unkey/icons";
-import { Badge, Button, CopyButton, Empty, InfoTooltip, TimestampInfo } from "@unkey/ui";
+import {
+  Badge,
+  Button,
+  CopyButton,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+  InfoTooltip,
+  TimestampInfo,
+} from "@unkey/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIdentityDetailsLogsContext } from "../../context/logs";
 import { useIdentityLogsQuery } from "./hooks/use-logs-query";
@@ -455,28 +468,30 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
           ),
         }}
         emptyState={
-          <div className="w-full flex justify-center items-center h-full">
-            <Empty className="w-[400px] flex items-start">
-              <Empty.Icon className="w-auto" />
-              <Empty.Title>Identity Verification Logs</Empty.Title>
-              <Empty.Description className="text-left">
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconLayers3Outline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Identity Verification Logs</EmptyStateTitle>
+              <EmptyStateDescription>
                 No verification logs found for this identity. When API keys belonging to this
                 identity are used, details about each verification attempt will appear here.
-              </Empty.Description>
-              <Empty.Actions className="mt-4 justify-center md:justify-start">
-                <a
-                  href="https://www.unkey.com/docs/introduction"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button size="md">
-                    <IconBookBookmarkOutline18 />
-                    Documentation
-                  </Button>
-                </a>
-              </Empty.Actions>
-            </Empty>
-          </div>
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <a
+                href="https://www.unkey.com/docs/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" size="md">
+                  <IconBookBookmarkOutline18 />
+                  Documentation
+                </Button>
+              </a>
+            </EmptyStateActions>
+          </EmptyState>
         }
       />
     </div>

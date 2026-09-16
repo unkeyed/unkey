@@ -3,10 +3,15 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
 import { routes } from "@/lib/navigation/routes";
-import { IconBookBookmarkOutline18 } from "@unkey/icons";
+import { IconBookBookmarkOutline18, IconSquareBulletListOutline18 } from "@unkey/icons";
 import {
   Button,
-  Empty,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
   ResourceListBody,
   ResourceListContent,
   ResourceListFooter,
@@ -64,45 +69,51 @@ export function DeploymentsCardList() {
   if (rows.length === 0) {
     return (
       <ResourceListContent>
-        <div className="flex w-full items-center justify-center px-4 py-16">
-          {isFiltered ? (
-            <Empty className="w-[400px] flex items-start">
-              <Empty.Icon className="w-auto" />
-              <Empty.Title>No deployments match these filters</Empty.Title>
-              <Empty.Description className="text-left">
+        {isFiltered ? (
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconSquareBulletListOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>No deployments match these filters</EmptyStateTitle>
+              <EmptyStateDescription>
                 Widen the environment, status, branch or time range to see more deployments.
-              </Empty.Description>
-              <Empty.Actions className="mt-4 justify-start">
-                <Button size="md" variant="outline" onClick={() => updateFilters([])}>
-                  Clear filters
-                </Button>
-              </Empty.Actions>
-            </Empty>
-          ) : (
-            <Empty className="w-[400px] flex items-start">
-              <Empty.Icon className="w-auto" />
-              <Empty.Title>No Active Deployments</Empty.Title>
-              <Empty.Description className="text-left">
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <Button size="md" variant="outline" onClick={() => updateFilters([])}>
+                Clear filters
+              </Button>
+            </EmptyStateActions>
+          </EmptyState>
+        ) : (
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconSquareBulletListOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>No Active Deployments</EmptyStateTitle>
+              <EmptyStateDescription>
                 {app?.sourceType === "oci"
                   ? "Deploy the configured image or enter another image reference to get started."
                   : "Push to your connected repository or trigger a manual deployment to get started."}{" "}
                 Cancelled, superseded and stopped deployments are hidden by default.
-              </Empty.Description>
-              <Empty.Actions className="mt-4 justify-start">
-                <a
-                  href="https://www.unkey.com/docs/build-and-deploy/deployments"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button size="md">
-                    <IconBookBookmarkOutline18 />
-                    Learn about Deployments
-                  </Button>
-                </a>
-              </Empty.Actions>
-            </Empty>
-          )}
-        </div>
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <a
+                href="https://www.unkey.com/docs/build-and-deploy/deployments"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" size="md">
+                  <IconBookBookmarkOutline18 />
+                  Learn about Deployments
+                </Button>
+              </a>
+            </EmptyStateActions>
+          </EmptyState>
+        )}
       </ResourceListContent>
     );
   }

@@ -7,7 +7,7 @@ import {
   IconLocation2Outline18,
   IconNodes2Outline18,
 } from "@unkey/icons";
-import { Button, EmptyHero, useStepWizard } from "@unkey/ui";
+import { Button, IconFanRow, useStepWizard } from "@unkey/ui";
 import type { ReactNode } from "react";
 
 type OnboardingStepHeaderProps = {
@@ -28,13 +28,13 @@ export const OnboardingStepHeader = ({
   return (
     <div className="flex flex-col items-center">
       {showIconRow && (
-        <EmptyHero.Icons className="mb-0">
+        <IconFanRow className="mb-0">
           <IconHardDriveOutline18 />
           <IconLocation2Outline18 />
           <IconCloudUploadOutline18 />
           <IconHeartPulseOutline18 />
           <IconNodes2Outline18 />
-        </EmptyHero.Icons>
+        </IconFanRow>
       )}
       {allowBack && (
         <Button

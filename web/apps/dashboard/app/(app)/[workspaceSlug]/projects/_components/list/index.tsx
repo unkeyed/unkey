@@ -4,7 +4,7 @@ import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { useLiveQuery } from "@tanstack/react-db";
 import { IconDotsOutline18, IconTriangleWarningOutline18 } from "@unkey/icons";
-import { Button, Empty } from "@unkey/ui";
+import { Button } from "@unkey/ui";
 import { useState } from "react";
 import { DeployPlanGateDialog } from "../deploy-plan-gate-dialog";
 import { useDeployGate } from "../hooks/use-deploy-gate";
@@ -41,20 +41,6 @@ export const ProjectsList = () => {
           // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
           <ProjectCardSkeleton key={i} />
         ))}
-      </div>
-    );
-  }
-
-  if (projects.data.length === 0) {
-    return (
-      <div className="w-full flex justify-center items-center h-full">
-        <Empty className="w-[400px] flex items-start">
-          <Empty.Icon className="w-auto" />
-          <Empty.Title>No Projects Found</Empty.Title>
-          <Empty.Description className="text-left">
-            This workspace has no projects yet.
-          </Empty.Description>
-        </Empty>
       </div>
     );
   }

@@ -1,8 +1,13 @@
 "use client";
 import { policyMatchKey } from "@/lib/collections/deploy/policies.schema";
-import { IconPlusOutline18 } from "@unkey/icons";
+import { IconPlusOutline18, IconShieldKeyOutline18 } from "@unkey/icons";
 import {
   Button,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
   PageBody,
   PageContainer,
   PageHeader,
@@ -14,7 +19,6 @@ import {
 import { useAppId, useProjectData } from "../data-provider";
 import { PolicyPanel } from "./components/add-panel";
 import { PoliciesList } from "./components/list";
-import { PoliciesEmpty } from "./components/list/empty";
 import { PoliciesError } from "./components/list/error";
 import { PoliciesListSkeleton } from "./components/list/skeleton";
 import { usePoliciesData } from "./hooks/use-policies-data";
@@ -93,7 +97,18 @@ export default function PoliciesPage() {
         ) : isLoading ? (
           <PoliciesListSkeleton />
         ) : merged.length === 0 ? (
-          <PoliciesEmpty />
+          <EmptyState>
+            <EmptyStateIcon>
+              <IconShieldKeyOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>No policies</EmptyStateTitle>
+              <EmptyStateDescription>
+                Add policies to protect your API with authentication, rate limiting, and more.
+                Policies are evaluated sequentially on each incoming request.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
         ) : (
           <PoliciesList
             productionSlug={productionSlug}

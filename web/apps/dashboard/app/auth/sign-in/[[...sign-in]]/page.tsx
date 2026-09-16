@@ -9,7 +9,7 @@ import {
   errorMessages,
 } from "@/lib/auth/types";
 import { IconArrowRightOutline18 } from "@unkey/icons";
-import { Empty, Loading, toast } from "@unkey/ui";
+import { Loading, toast } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -170,12 +170,12 @@ function SignInContent() {
   // form back to avoid flashing the wrong step.
   if (isLoading || (orgsParam && pendingAuthLoading)) {
     return (
-      <Empty>
+      <div className="flex h-full w-full flex-col items-center justify-center p-8 text-center">
         <Loading type="spinner" className="text-gray-6" />
         <p className="text-sm text-white/60 mt-4">
           {invitationToken ? "Signing you in..." : "Loading..."}
         </p>
-      </Empty>
+      </div>
     );
   }
 
