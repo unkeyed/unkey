@@ -54,3 +54,13 @@ export type VerificationBucket = OutcomeCounts & {
   /** Rejections counted in `total` that the API does not break out. */
   other: number;
 };
+
+/**
+ * One key's series, as `v2/portal.getVerifications` returns it. Keys with no
+ * verifications anywhere in the window are absent, and a `keyId` may name a key
+ * that has since been deleted, so this never lines up 1:1 with the key list.
+ */
+export type KeySeries = {
+  keyId: string;
+  buckets: VerificationBucket[];
+};
