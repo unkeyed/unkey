@@ -78,7 +78,7 @@ export const createRootKeyColumns = ({
     enableSorting: false,
     meta: {
       width: {
-        min: 170,
+        min: 280,
         max: 400,
       },
     },

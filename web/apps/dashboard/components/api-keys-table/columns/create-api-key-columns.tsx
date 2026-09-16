@@ -239,7 +239,7 @@ export const createApiKeyColumns = ({
     ),
     meta: {
       width: {
-        min: 200,
+        min: 280,
         max: 400,
       },
     },
