@@ -10,7 +10,6 @@
 //	client, err := cdc.New(cdc.Config{
 //		Connection: connection,
 //		Rules: []cdc.Rule{{Table: "records", Query: "select id, value from records"}},
-//		ResumeToken: savedToken,
 //	})
 //	if err != nil {
 //		return err
@@ -19,22 +18,18 @@
 //
 // # Recovery
 //
-// Watch passes only FIELD and ROW changes to the callback. It saves checkpoints
-// in memory after earlier callbacks succeed. Finish applying each change before
-// returning. Calling Watch again resumes from that position, even during the
-// initial copy. The client does not retry automatically.
+// The first Watch copies matching rows, then follows live changes. It passes
+// only FIELD and ROW changes to the callback. Finish applying each change before
+// returning. The client saves checkpoints in memory after callbacks succeed.
 //
-// After Watch stops, [Client.ResumeToken] returns a token you can persist for
-// process restarts. Store it as-is. Tokens check that the filter has not changed,
-// but do not grant access. Client methods must not run concurrently.
+// Reuse the same client for retries. It resumes from its last checkpoint, even
+// during the initial copy. There is no token import, export, or automatic retry.
+// Watch calls on the same client must not overlap.
 //
-// An empty token starts a snapshot: a new copy of the matching rows.
-// New returns [ErrInvalidToken] for a rejected token. Watch returns [ErrExpired]
-// if its position is no longer available. Both require a new client with an empty
-// token. Callers must also remove destination records that no longer exist.
+// After [ErrExpired], the next Watch starts a fresh snapshot on the same client.
+// The caller must also remove destination records that no longer exist.
 //
-// Relays use [Client.Forward] to send both changes and checkpoints downstream.
-// Sending an event does not prove it was applied. On a downstream reconnect,
-// create a client with that consumer's saved token, not the relay's last token.
+// Relays use [Connection.Forward] with the downstream consumer's resume token.
+// It sends both changes and checkpoints without saving progress in the relay.
 // Both Watch and Forward can repeat changes; callers must handle them safely.
 package cdc

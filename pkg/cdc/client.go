@@ -26,9 +26,7 @@ import (
 type Client struct {
 	connection *Connection
 	rules      []Rule
-	filter     *binlog.Filter
 	token      []byte
-	clock      clock.Clock
 }
 
 // ErrInvalidToken means the token cannot be read or does not match this watch.
@@ -56,69 +54,70 @@ type Event struct {
 	ResumeToken []byte
 }
 
-// Config fixes a client's rules and starting position on a shared connection.
-// An empty ResumeToken starts a copy of the matching rows.
+// Config fixes a client's rules on a shared connection.
 type Config struct {
-	Connection  *Connection
-	Rules       []Rule
-	ResumeToken []byte
+	Connection *Connection
+	Rules      []Rule
 }
 
-// New checks and copies the rules and initial token without opening a stream.
+// New checks and copies the rules without opening a stream.
+// The first Watch starts a snapshot. Later calls reuse the client's progress.
 // It returns nil on error. The caller owns Connection, which must not be nil.
 func New(cfg Config) (*Client, error) {
 	if err := assert.NotNil(cfg.Connection, "CDC connection is required"); err != nil {
 		return nil, err
 	}
-	filter, err := vstreamFilter(cfg.Rules)
-	if err != nil {
+	if _, err := vstreamFilter(cfg.Rules); err != nil {
 		return nil, err
 	}
-	c := &Client{connection: cfg.Connection, rules: slices.Clone(cfg.Rules), filter: filter, token: slices.Clone(cfg.ResumeToken), clock: clock.New()}
-	if _, err := c.position(); err != nil {
-		return nil, err
-	}
-	return c, nil
+	return &Client{connection: cfg.Connection, rules: slices.Clone(cfg.Rules), token: nil}, nil
 }
 
 // Watch calls apply for FIELD and ROW changes, one at a time, and saves checkpoints
 // internally. The callback must be non-nil, must not edit events, and must finish
 // applying each change before returning. Repeated changes must be safe to apply.
 // Errors stop the watch. Calling Watch again resumes from the last safe token.
-// It does not retry automatically. [ErrExpired] requires a new client and snapshot.
+// It does not retry automatically. After [ErrExpired], the next call starts a
+// snapshot. The caller must remove destination records that no longer exist.
 func (c *Client) Watch(ctx context.Context, apply func(*binlog.VEvent) error) error {
-	return c.Forward(ctx, func(event Event) error {
+	err := c.connection.Forward(ctx, c.rules, c.token, func(event Event) error {
 		if event.Change != nil {
 			return apply(event.Change)
 		}
+		c.token = event.ResumeToken
 		return nil
 	})
+	if errors.Is(err, ErrExpired) {
+		c.token = nil
+	}
+	return err
 }
 
-// ResumeToken returns a copy of the last safe token, or the initial token before
-// progress. Save it to resume after a process restart. Do not call during a watch.
-func (c *Client) ResumeToken() []byte { return slices.Clone(c.token) }
-
 // Forward is for relays that must send checkpoints to another consumer.
-// It calls send for changes and checkpoints in order, saving each token only
-// after send succeeds. A saved token proves delivery, not application downstream.
-// The callback must be non-nil and must not edit events. Errors stop the stream.
-// Call Forward again to resume from the last successfully forwarded checkpoint.
+// It sends changes and checkpoints in order without saving progress. Reconnect
+// with the downstream consumer's token. An empty token starts a snapshot.
+// Calls can run concurrently. Rules and tokens must not change during a call.
+// The callback must be non-nil and must not edit events. Errors stop the stream;
+// [ErrInvalidToken] and [ErrExpired] require a snapshot with an empty token.
 //
 // Matching transactions checkpoint at once. Other progress checkpoints at most
 // once per 30 seconds after the first checkpoint. The upstream wait times out
 // after 30 seconds; time spent in callbacks does not count.
-func (c *Client) Forward(ctx context.Context, send func(Event) error) error {
+func (c *Connection) Forward(ctx context.Context, rules []Rule, token []byte, send func(Event) error) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	position, err := c.position()
+	filter, err := vstreamFilter(rules)
 	if err != nil {
 		return err
 	}
-	stream, err := c.connection.client.VStream(ctx, &vtgate.VStreamRequest{ //nolint:exhaustruct // Leave unrelated protobuf options at their defaults.
+	position, err := c.position(rules, token)
+	if err != nil {
+		return err
+	}
+	stream, err := c.client.VStream(ctx, &vtgate.VStreamRequest{ //nolint:exhaustruct // Leave unrelated protobuf options at their defaults.
 		TabletType: topodata.TabletType_PRIMARY,
 		Vgtid:      position,
-		Filter:     c.filter,
+		Filter:     filter,
 		Flags:      &vtgate.VStreamFlags{HeartbeatInterval: 5}, //nolint:exhaustruct // Do not enable transaction chunking or optional stream features.
 	})
 	if err != nil {
@@ -129,7 +128,7 @@ func (c *Client) Forward(ctx context.Context, send func(Event) error) error {
 	for {
 		response, err := c.receive(ctx, responses)
 		if err != nil {
-			if len(c.token) > 0 && status.Code(err) == codes.Unknown &&
+			if status.Code(err) == codes.Unknown &&
 				(strings.Contains(err.Error(), "(errno 1236)") || strings.Contains(err.Error(), "(errno 1789)")) {
 				return fmt.Errorf("%w: %w", ErrExpired, err)
 			}
@@ -141,13 +140,7 @@ func (c *Client) Forward(ctx context.Context, send func(Event) error) error {
 					return err
 				}
 			}
-			if err := checkpoints.advance(event, c.rules, c.clock, func(next Event) error {
-				if err := send(next); err != nil {
-					return err
-				}
-				c.token = next.ResumeToken
-				return nil
-			}); err != nil {
+			if err := checkpoints.advance(event, rules, c.clock, send); err != nil {
 				return err
 			}
 		}
@@ -221,7 +214,7 @@ type streamResult struct {
 
 // receive limits the wait for a response, not the time spent in callbacks.
 // If the context is canceled, its error takes priority over a read error.
-func (c *Client) receive(ctx context.Context, responses <-chan streamResult) (*vtgate.VStreamResponse, error) {
+func (c *Connection) receive(ctx context.Context, responses <-chan streamResult) (*vtgate.VStreamResponse, error) {
 	waiting := c.clock.NewTicker(30 * time.Second)
 	defer waiting.Stop()
 	var result streamResult
@@ -267,15 +260,15 @@ type resumeToken struct {
 
 // position starts a snapshot for an empty token or checks a saved position.
 // Invalid tokens return nil and an error wrapping [ErrInvalidToken].
-func (c *Client) position() (*binlog.VGtid, error) {
-	if len(c.token) == 0 {
-		return &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: c.connection.keyspace}}}, nil
+func (c *Connection) position(rules []Rule, token []byte) (*binlog.VGtid, error) {
+	if len(token) == 0 {
+		return &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: c.keyspace}}}, nil
 	}
 	var saved resumeToken
-	if err := json.Unmarshal(c.token, &saved); err != nil {
+	if err := json.Unmarshal(token, &saved); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrInvalidToken, err)
 	}
-	if !slices.Equal(saved.Rules, c.rules) {
+	if !slices.Equal(saved.Rules, rules) {
 		return nil, fmt.Errorf("%w: filter mismatch", ErrInvalidToken)
 	}
 	position := &binlog.VGtid{ShardGtids: nil}
@@ -286,11 +279,11 @@ func (c *Client) position() (*binlog.VGtid, error) {
 		return nil, fmt.Errorf("%w: missing shard positions", ErrInvalidToken)
 	}
 	for _, shard := range position.ShardGtids {
-		if shard.Keyspace != c.connection.keyspace || shard.Gtid == "" {
+		if shard.Keyspace != c.keyspace || shard.Gtid == "" {
 			return nil, fmt.Errorf("%w: invalid shard position", ErrInvalidToken)
 		}
 		for _, table := range shard.TablePKs {
-			if !slices.ContainsFunc(c.rules, func(rule Rule) bool { return rule.Table == table.GetTableName() }) {
+			if !slices.ContainsFunc(rules, func(rule Rule) bool { return rule.Table == table.GetTableName() }) {
 				return nil, fmt.Errorf("%w: invalid snapshot table", ErrInvalidToken)
 			}
 		}

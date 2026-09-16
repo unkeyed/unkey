@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/clock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -17,6 +18,7 @@ type Connection struct {
 	connection *grpc.ClientConn
 	client     vtgateservice.VitessClient
 	keyspace   string
+	clock      clock.Clock
 }
 
 // ConnectionConfig selects the Vitess endpoint and keyspace. TLS is on by default.
@@ -29,8 +31,8 @@ type ConnectionConfig struct {
 	Insecure bool   `toml:"insecure"`
 }
 
-// NewConnection checks settings but does not connect until a client starts watching.
-// It returns nil on error. Close the connection when all clients have stopped.
+// NewConnection checks settings but does not connect until a stream starts.
+// It returns nil on error. Close the connection when all streams have stopped.
 func NewConnection(cfg ConnectionConfig) (*Connection, error) {
 	if err := assert.All(
 		assert.NotEmpty(cfg.Address, "vstream.address is required"),
@@ -52,7 +54,7 @@ func NewConnection(cfg ConnectionConfig) (*Connection, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Connection{connection: connection, client: vtgateservice.NewVitessClient(connection), keyspace: cfg.Keyspace}, nil
+	return &Connection{connection: connection, client: vtgateservice.NewVitessClient(connection), keyspace: cfg.Keyspace, clock: clock.New()}, nil
 }
 
 // Close closes the connection used by all clients. It does not wait for callbacks.

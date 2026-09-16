@@ -35,23 +35,15 @@ func New(connection *cdc.Connection) *Client {
 // An empty token first copies the matching rows. When a row stops matching,
 // its old value still provides the deployment ID.
 // Invalid regions, invalid IDs, and callback errors stop the watch.
-// Resume tokens and checkpoints follow [cdc.Client.Forward].
+// Resume tokens and checkpoints follow [cdc.Connection.Forward].
 func (c *Client) Watch(ctx context.Context, region string, token []byte, apply func(Event) error) error {
 	if !regionPattern.MatchString(region) {
 		return errors.New("invalid region ID")
 	}
-	client, err := cdc.New(cdc.Config{
-		Connection: c.connection,
-		Rules: []cdc.Rule{{
-			Table: "deployment_topology",
-			Query: fmt.Sprintf("select deployment_id from deployment_topology where region_id = '%s' and desired_status = 'running'", region),
-		}},
-		ResumeToken: token,
-	})
-	if err != nil {
-		return err
-	}
-	return client.Forward(ctx, func(event cdc.Event) error {
+	return c.connection.Forward(ctx, []cdc.Rule{{
+		Table: "deployment_topology",
+		Query: fmt.Sprintf("select deployment_id from deployment_topology where region_id = '%s' and desired_status = 'running'", region),
+	}}, token, func(event cdc.Event) error {
 		if event.Change == nil {
 			return apply(Event{DeploymentID: "", ResumeToken: event.ResumeToken})
 		}
