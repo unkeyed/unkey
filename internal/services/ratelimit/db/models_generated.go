@@ -1566,6 +1566,7 @@ type Limit struct {
 	ApiRequestsCountMaxPerMinute          sql.NullInt32 `db:"api_requests_count_max_per_minute"`
 	LogsRetentionDaysMax                  uint16        `db:"logs_retention_days_max"`
 	LogsAuditRetentionDaysMax             uint16        `db:"logs_audit_retention_days_max"`
+	LogdrainsMax                          uint32        `db:"logdrains_max"`
 	TeamEnabled                           bool          `db:"team_enabled"`
 	CpuCoresMax                           uint32        `db:"cpu_cores_max"`
 	CpuCoresMaxPerInstance                uint32        `db:"cpu_cores_max_per_instance"`
