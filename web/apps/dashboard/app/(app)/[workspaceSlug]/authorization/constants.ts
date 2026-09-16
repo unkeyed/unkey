@@ -1,14 +1,27 @@
 import { routes } from "@/lib/navigation/routes";
 
-export const navigation = (workspaceSlug: string) => [
+export type AuthorizationScope = { workspaceSlug: string; projectId?: string };
+
+const ITEMS = [
   {
-    label: "Roles",
-    href: routes.authorization.roles({ workspaceSlug }),
     segment: "roles",
+    label: "Roles",
+    workspace: routes.authorization.roles,
+    project: routes.projects.authorizationRoles,
   },
   {
-    label: "Permissions",
-    href: routes.authorization.permissions({ workspaceSlug }),
     segment: "permissions",
+    label: "Permissions",
+    workspace: routes.authorization.permissions,
+    project: routes.projects.authorizationPermissions,
   },
-];
+] as const;
+
+export const navigation = ({ workspaceSlug, projectId }: AuthorizationScope) =>
+  ITEMS.map((item) => ({
+    label: item.label,
+    segment: item.segment,
+    href: projectId
+      ? item.project({ workspaceSlug, projectId })
+      : item.workspace({ workspaceSlug }),
+  }));
