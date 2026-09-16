@@ -121,11 +121,11 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.Defer(database.Close)
 
-	cdcClient, err := cdc.New(cfg.VStream)
+	cdcConnection, err := cdc.NewConnection(cfg.VStream)
 	if err != nil {
-		return fmt.Errorf("unable to create CDC client: %w", err)
+		return fmt.Errorf("unable to create CDC connection: %w", err)
 	}
-	r.Defer(cdcClient.Close)
+	r.Defer(cdcConnection.Close)
 
 	// Restate ingress client for invoking workflows
 	restateClientOpts := []restate.IngressClientOption{}
@@ -184,7 +184,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	c, err := cluster.New(cluster.Config{
-		DeploymentStream: deploymentstream.New(cdcClient),
+		DeploymentStream: deploymentstream.New(cdcConnection),
 		Database:         database,
 		Restate:          restateClient,
 		Bearer:           cfg.AuthToken,
