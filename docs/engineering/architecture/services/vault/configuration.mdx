@@ -140,8 +140,13 @@ path = "./vault-data"
 ## Observability
 
 <ResponseField name="observability" type="object">
-  Tracing and logging configuration. Each nested section is optional.
+  Metrics, tracing, and logging configuration. Each nested section is optional.
   <Expandable title="Fields">
+    <ResponseField name="observability.metrics.prometheus_port" type="int">
+      Port for the separate `/metrics` HTTP endpoint. Set a positive port to
+      enable scraping. Omit the section or set the port to `0` to disable it.
+      Example: `9090`.
+    </ResponseField>
     <ResponseField name="observability.tracing.sample_rate" type="float" default="0.25">
       Trace sampling rate from 0.0 to 1.0. Example: `0.1`.
     </ResponseField>
@@ -154,11 +159,16 @@ path = "./vault-data"
   </Expandable>
 </ResponseField>
 
-Vault accepts `observability.metrics` in the config file, but the vault runtime does not start a Prometheus endpoint.
+Vault serves Prometheus metrics on the configured metrics port, independently
+of trace sampling. Configure your scraper to collect `/metrics` from that port.
+Keep the metrics listener on an internal network.
 
 Example:
 
 ```toml
+[observability.metrics]
+prometheus_port = 9090
+
 [observability.tracing]
 sample_rate = 0.1
 
@@ -166,6 +176,114 @@ sample_rate = 0.1
 sample_rate = 0.01
 slow_threshold = "2s"
 ```
+
+### Detect S3 access failures
+
+`unkey_vault_s3_operations_total` counts completed storage operations after SDK
+retries. Its labels are `operation` (`get`, `put`, or `list`), `outcome`
+(`success`, `not_found`, `canceled`, or `error`), and `error_code`.
+The error code is empty for non-error outcomes. Errors use `InvalidAccessKeyId`,
+`SignatureDoesNotMatch`, `AccessDenied`, `ExpiredToken`, `NoSuchBucket`, `timeout`,
+or `other`. Unknown provider codes map to `other` to keep labels bounded.
+
+For storage failures in the last five minutes, use:
+
+```promql
+sum by (operation, error_code) (
+  increase(unkey_vault_s3_operations_total{outcome="error"}[5m])
+)
+```
+
+Each operation with `outcome="error"` also emits an error-level
+`vault s3 operation failed` log with `operation`, `error_code`, and `http_status`.
+A status of `0` means no HTTP status was available. These logs bypass log
+sampling and omit credentials, object keys, payloads, endpoint URLs, and raw
+provider messages. Missing objects and caller cancellations don't emit error
+logs. An explicit `NoSuchBucket` response is a failure, not a missing object.
+
+A rising `outcome="canceled"` rate or long canceled-operation durations can also
+indicate a slow storage endpoint causing callers to give up.
+
+`InvalidAccessKeyId`, `SignatureDoesNotMatch`, and `ExpiredToken` indicate an
+authentication failure. Check the configured S3 credentials. For `AccessDenied`,
+check bucket permissions as well. After restoring access, verify that error
+increments stop and `success` increments resume for the affected operation.
+If you change Vault's configured credentials, restart Vault to load them.
+
+These signals require a storage operation. Startup and health checks don't
+validate S3 access, and cached DEKs can serve requests without S3 calls. The
+absence of storage errors or metric series does not prove that credentials
+are valid.
+
+### Measure cache use and S3 traffic
+
+The shared `unkey_cache_reads_total` metric with
+`resource="data_encryption_key"` counts Vault DEK cache lookups. Its `hit` label
+is `true` when an entry is present and `false` when absent. It checks entry
+presence before expiry validation, so a recorded hit can still require storage
+access. This metric is not an exact S3-fallback counter and does not distinguish
+encrypt from decrypt.
+
+Bulk calls count each processed item's lookup, not each RPC. Re-encryption
+counts its decrypt and encrypt lookups separately. Authentication and validation
+failures that stop before the lookup don't count. The shared
+`unkey_cache_size`, `unkey_cache_capacity`, and `unkey_cache_deleted_total`
+metrics with `resource="data_encryption_key"` show occupancy and eviction.
+Filter shared cache metrics to the Vault scrape targets. The example below uses
+`job="vault"`; replace it with the labels that identify your Vault scrape targets.
+
+For the recorded cache miss percentage, use:
+
+```promql
+100 * sum (
+  rate(unkey_cache_reads_total{job="vault", resource="data_encryption_key", hit="false"}[5m])
+) / sum (
+  rate(unkey_cache_reads_total{job="vault", resource="data_encryption_key"}[5m])
+)
+```
+
+Each Vault process holds up to 10,000 DEK cache entries. Encrypt uses a keyring's
+`LATEST` entry, while decrypt uses the DEK ID. These are separate cache entries.
+Vault uses `Get`, not stale-while-revalidate: it can serve an entry for up to
+24 hours after insertion without refreshing it at the one-hour fresh boundary.
+Restarts, eviction, and expiry cause misses. `ReEncrypt` clears the process's
+entire DEK cache before encrypting again.
+
+For sequential operations with retained cache entries:
+
+| Operation | S3 work |
+| --- | --- |
+| First encrypt in a new keyring | One missing-object read, then two writes: the DEK and `LATEST` |
+| Encrypt with an uncached existing `LATEST` | One read |
+| First decrypt of an uncached DEK ID | One read, even if `LATEST` is cached |
+| Encrypt or decrypt with a cached entry | None |
+
+For actual S3 operations per second, use:
+
+```promql
+sum by (operation) (rate(unkey_vault_s3_operations_total[5m]))
+```
+
+This counts logical storage operations, not individual HTTP retry attempts.
+It also includes maintenance operations such as DEK rotation.
+
+### Measure S3 latency
+
+`unkey_vault_s3_operation_duration_seconds` measures each storage operation,
+including SDK retry delays and reading the complete response body. Labels are
+`operation` and `outcome`, with the same values as the S3 operation counter.
+This measures S3 latency, not end-to-end RPC latency.
+
+For successful operations' p95 latency in seconds, use:
+
+```promql
+histogram_quantile(0.95, sum by (operation, le) (
+  rate(unkey_vault_s3_operation_duration_seconds_bucket{outcome="success"}[5m])
+))
+```
+
+Use `0.50` or `0.99` for p50 or p99. Query `outcome="error"` separately to
+identify slow failures without mixing them with successful calls.
 
 ## Environment variables
 
@@ -296,6 +414,9 @@ url = "${UNKEY_S3_URL}"
 bucket = "${UNKEY_S3_BUCKET}"
 access_key_id = "${UNKEY_S3_ACCESS_KEY_ID}"
 access_key_secret = "${UNKEY_S3_ACCESS_KEY_SECRET}"
+
+[observability.metrics]
+prometheus_port = 9090
 
 [observability.tracing]
 sample_rate = 0.1
