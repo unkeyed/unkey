@@ -8,6 +8,8 @@ import { type QueryParams, withQuery } from "../url";
 
 export type WorkspaceScope = { workspaceSlug: string };
 
+export type ResourceScope = WorkspaceScope & { projectId?: string };
+
 /**
  * Build an href from a bracket pattern in Next's generated route table.
  * Membership in AppRoutes is exact literal matching, so a typo'd or removed
