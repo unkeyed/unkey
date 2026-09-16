@@ -24,11 +24,6 @@ func (n *noop) GetBillableRatelimits(ctx context.Context, workspaceID string, ye
 	return 0, nil
 }
 
-// GetVerificationsByExternalID implements the Querier interface but always returns nil.
-func (n *noop) GetVerificationsByExternalID(ctx context.Context, req VerificationTimeseriesRequest) ([]VerificationTimeseriesDataPoint, error) {
-	return nil, nil
-}
-
 // GetVerificationsByExternalIDPerKey implements the Querier interface but always returns nil.
 func (n *noop) GetVerificationsByExternalIDPerKey(ctx context.Context, req VerificationTimeseriesPerKeyRequest) ([]VerificationTimeseriesPerKey, error) {
 	return nil, nil

@@ -59,11 +59,14 @@ func sumKeyTotals(keys []openapi.V2PortalGetVerificationsKeySeries) map[string]i
 	return totals
 }
 
-// sumTotals adds up the Total across every bucket in the timeseries.
-func sumTotals(points []openapi.V2PortalGetVerificationsDataPoint) int64 {
+// sumTotals adds up the Total across every key and bucket, the account-wide
+// view a caller reconstructs from the per-key series.
+func sumTotals(keys []openapi.V2PortalGetVerificationsKeySeries) int64 {
 	var total int64
-	for _, p := range points {
-		total += p.Total
+	for _, k := range keys {
+		for _, p := range k.Data {
+			total += p.Total
+		}
 	}
 	return total
 }
@@ -169,7 +172,7 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 		require.NotNil(c, res.Body)
 
 		// A's 3 live-key events + 2 deleted-key events = 5, never B's 5.
-		require.Equal(c, int64(5), sumTotals(res.Body.Data),
+		require.Equal(c, int64(5), sumTotals(res.Body.Keys),
 			"portal session should see its own keys' events (including deleted keys) but never another identity's or another keyspace's")
 	}, 30*time.Second, time.Second)
 
@@ -180,25 +183,16 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 		res := testutil.CallRoute[Request, Response](h, route, bothHeaders, req)
 		require.Equal(c, 200, res.Status)
 		require.NotNil(c, res.Body)
-		require.Equal(c, int64(9), sumTotals(res.Body.Data),
+		require.Equal(c, int64(9), sumTotals(res.Body.Keys),
 			"a session scoped to both keyspaces should see the sum of both")
 	}, 30*time.Second, time.Second)
 
-	// Without the flag the response is unchanged: no per-key array at all.
-	plain := testutil.CallRoute[Request, Response](h, route, headers, req)
-	require.Equal(t, 200, plain.Status)
-	require.Nil(t, plain.Body.Keys, "the per-key breakout is opt-in")
-
-	// With the flag the same window is broken out per key, under the same
-	// identity and keyspace scoping as the account-wide series.
-	perKeyReq := req
-	perKeyReq.PerKey = ptr.P(true)
-
-	res := testutil.CallRoute[Request, Response](h, route, headers, perKeyReq)
+	res := testutil.CallRoute[Request, Response](h, route, headers, req)
 	require.Equal(t, 200, res.Status)
-	require.NotNil(t, res.Body.Keys)
+	require.Equal(t, int64(time.Minute/time.Millisecond), res.Body.BucketMillis,
+		"a one-hour window selects minute buckets")
 
-	totals := sumKeyTotals(*res.Body.Keys)
+	totals := sumKeyTotals(res.Body.Keys)
 	require.Equal(t, int64(3), totals[keyA.KeyID])
 	require.Equal(t, int64(2), totals[keyADeleted.KeyID])
 	require.NotContains(t, totals, keyB.KeyID, "another identity's key must not appear")
@@ -210,19 +204,10 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 	// keyspace predicate keeps its events out.
 	namedReq := req
 	namedReq.KeyId = ptr.P(keyAOutOfScope.KeyID)
-	namedReq.PerKey = ptr.P(true)
 
 	named := testutil.CallRoute[Request, Response](h, route, headers, namedReq)
 	require.Equal(t, 200, named.Status)
-	require.Zero(t, sumTotals(named.Body.Data), "an out-of-scope key must return no events even when named")
-	require.Empty(t, sumKeyTotals(*named.Body.Keys), "an out-of-scope key must produce no per-key series")
-
-	var perKeyGrand int64
-	for _, total := range totals {
-		perKeyGrand += total
-	}
-	require.Equal(t, sumTotals(res.Body.Data), perKeyGrand,
-		"per-key totals must sum to the account-wide total")
+	require.Empty(t, named.Body.Keys, "an out-of-scope key must produce no series even when named")
 }
 
 // TestPortalSessionAnalyticsKeyIdFilter verifies the optional keyId narrows the
@@ -297,18 +282,9 @@ func TestPortalSessionAnalyticsKeyIdFilter(t *testing.T) {
 		res := testutil.CallRoute[Request, Response](h, route, headers, req)
 		require.Equal(c, 200, res.Status)
 		require.NotNil(c, res.Body)
-		require.Equal(c, int64(4), sumTotals(res.Body.Data),
+		require.Equal(c, map[string]int64{targetKey.KeyID: 4}, sumKeyTotals(res.Body.Keys),
 			"keyId filter should return only the target key's events")
 	}, 30*time.Second, time.Second)
-
-	perKeyReq := req
-	perKeyReq.PerKey = ptr.P(true)
-
-	res := testutil.CallRoute[Request, Response](h, route, headers, perKeyReq)
-	require.Equal(t, 200, res.Status)
-	require.NotNil(t, res.Body.Keys)
-	require.Equal(t, map[string]int64{targetKey.KeyID: 4}, sumKeyTotals(*res.Body.Keys),
-		"keyId narrows the per-key breakout as well as the account-wide series")
 }
 
 // TestPortalSessionAnalyticsRequiresAnalyticsRead verifies that reading keys

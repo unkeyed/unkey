@@ -34,7 +34,7 @@ const millisPerDay = 24 * 60 * 60 * 1000
 // response ceiling below is reached somewhere past 150 keys. Rejecting on the
 // key count first means a caller is told what is actually wrong instead of
 // being handed an opaque response-too-large.
-const DefaultMaxPerKeySeries = 100
+const DefaultMaxPerKeySeries = 150
 
 // DefaultMaxResponseBytes is the encoded response ceiling, shared with the
 // operator analytics routes so one end user cannot pull an arbitrarily large
@@ -66,9 +66,9 @@ func (h *Handler) Method() string { return "POST" }
 // Path returns the URL path pattern this route matches.
 func (h *Handler) Path() string { return "/v2/portal.getVerifications" }
 
-// Handle returns a verification timeseries scoped to the portal session's
-// external identity, plus a per-key breakout of the same window when the
-// request asks for one.
+// Handle returns one verification timeseries per key the portal session's
+// external identity used in the window. Callers sum them for an account-wide
+// view, which is why there is no second aggregate read to disagree with.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
@@ -134,59 +134,46 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Built once and shared by both reads below: the per-key breakout must be
-	// scoped identically to the account-wide series, and two literals would
-	// drift the next time a scoping field is added.
-	scope := clickhouse.VerificationTimeseriesRequest{
-		WorkspaceID: principal.AuthorizedWorkspaceID,
-		ExternalID:  externalID,
-		KeySpaceIDs: keySpaceIDs,
-		KeyID:       ptr.SafeDeref(req.KeyId),
-		StartTime:   req.StartTime,
-		EndTime:     req.EndTime,
+	perKey, err := h.ClickHouse.GetVerificationsByExternalIDPerKey(ctx, clickhouse.VerificationTimeseriesPerKeyRequest{
+		VerificationTimeseriesRequest: clickhouse.VerificationTimeseriesRequest{
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			ExternalID:  externalID,
+			KeySpaceIDs: keySpaceIDs,
+			KeyID:       ptr.SafeDeref(req.KeyId),
+			StartTime:   req.StartTime,
+			EndTime:     req.EndTime,
+		},
+		MaxKeys: h.MaxPerKeySeries,
+	})
+	if errors.Is(err, clickhouse.ErrTooManyVerificationKeys) {
+		return fault.Wrap(err,
+			fault.Code(codes.User.BadRequest.PerKeyBreakoutTooLarge.URN()),
+			fault.Internal("per-key breakout exceeds the key cap"),
+			fault.Public(fmt.Sprintf("This window covers more than %d keys. Request a narrower window or a single `keyId`.", h.MaxPerKeySeries)),
+		)
 	}
-
-	points, err := h.ClickHouse.GetVerificationsByExternalID(ctx, scope)
 	if err != nil {
 		return err
+	}
+
+	keys := make([]openapi.V2PortalGetVerificationsKeySeries, len(perKey))
+	for i, series := range perKey {
+		keys[i] = openapi.V2PortalGetVerificationsKeySeries{
+			KeyId: series.KeyID,
+			Data:  toDataPoints(series.Data),
+		}
 	}
 
 	response := Response{
 		Meta: openapi.Meta{
 			RequestId: s.RequestID(),
 		},
-		Data: toDataPoints(points),
-		Keys: nil,
+		BucketMillis: clickhouse.VerificationBucketMillis(req.StartTime, req.EndTime),
+		Keys:         keys,
 	}
 
-	if ptr.SafeDeref(req.PerKey) {
-		perKey, err := h.ClickHouse.GetVerificationsByExternalIDPerKey(ctx, clickhouse.VerificationTimeseriesPerKeyRequest{
-			VerificationTimeseriesRequest: scope,
-			MaxKeys:                       h.MaxPerKeySeries,
-		})
-		if errors.Is(err, clickhouse.ErrTooManyVerificationKeys) {
-			return fault.Wrap(err,
-				fault.Code(codes.User.BadRequest.PerKeyBreakoutTooLarge.URN()),
-				fault.Internal("per-key breakout exceeds the key cap"),
-				fault.Public(fmt.Sprintf("The per-key breakout is limited to %d keys. Request a narrower window or a single `keyId`.", h.MaxPerKeySeries)),
-			)
-		}
-		if err != nil {
-			return err
-		}
-
-		keys := make([]openapi.V2PortalGetVerificationsKeySeries, len(perKey))
-		for i, series := range perKey {
-			keys[i] = openapi.V2PortalGetVerificationsKeySeries{
-				KeyId: series.KeyID,
-				Data:  toDataPoints(series.Data),
-			}
-		}
-		response.Keys = &keys
-	}
-
-	// The key cap bounds how many series a breakout carries, not how large they
-	// are: a window at minute granularity multiplies each key by its buckets.
+	// The key cap bounds how many series come back, not how large they are: a
+	// window at minute granularity multiplies each key by its buckets.
 	responseBytes, err := json.Marshal(response)
 	if err != nil {
 		return fault.Wrap(err,

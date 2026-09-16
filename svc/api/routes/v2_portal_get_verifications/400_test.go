@@ -104,8 +104,7 @@ func TestPortalSessionAnalyticsRejectsOverflowingWindow(t *testing.T) {
 // TestPortalSessionAnalyticsRejectsOversizedPerKeyBreakout verifies the per-key
 // breakout is rejected rather than truncated once the session has more keys with
 // traffic than the cap allows. A short array would be indistinguishable from
-// those keys being idle, so the client would render a wrong answer. The
-// account-wide series is unaffected and still answers.
+// those keys being idle, so the client would render a wrong answer.
 func TestPortalSessionAnalyticsRejectsOversizedPerKeyBreakout(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 
@@ -125,6 +124,7 @@ func TestPortalSessionAnalyticsRejectsOversizedPerKeyBreakout(t *testing.T) {
 	})
 
 	now := time.Now().UnixMilli()
+	var lastKey seed.CreateKeyResponse
 	for range 2 {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
@@ -143,6 +143,7 @@ func TestPortalSessionAnalyticsRejectsOversizedPerKeyBreakout(t *testing.T) {
 			ExternalID:  externalA,
 			Tags:        []string{},
 		})
+		lastKey = key
 	}
 
 	headers := h.CreatePortalSession(workspace.ID, externalA, []string{api.KeyAuthID.String}, []string{"analytics:read"})
@@ -150,7 +151,6 @@ func TestPortalSessionAnalyticsRejectsOversizedPerKeyBreakout(t *testing.T) {
 	req := Request{
 		StartTime: now - int64(time.Hour/time.Millisecond),
 		EndTime:   now + int64(time.Minute/time.Millisecond),
-		PerKey:    ptr.P(true),
 	}
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -165,13 +165,12 @@ func TestPortalSessionAnalyticsRejectsOversizedPerKeyBreakout(t *testing.T) {
 			"the cap must be distinguishable from ordinary input validation")
 	}, 30*time.Second, time.Second)
 
-	withoutBreakout := req
-	withoutBreakout.PerKey = nil
+	narrowed := req
+	narrowed.KeyId = ptr.P(lastKey.KeyID)
 
-	res := testutil.CallRoute[Request, Response](h, route, headers, withoutBreakout)
-	require.Equal(t, 200, res.Status, "the account-wide series still answers past the per-key cap")
-	require.Equal(t, int64(2), sumTotals(res.Body.Data))
-	require.Nil(t, res.Body.Keys)
+	res := testutil.CallRoute[Request, Response](h, route, headers, narrowed)
+	require.Equal(t, 200, res.Status, "a single named key stays within the cap")
+	require.Equal(t, int64(1), sumTotals(res.Body.Keys))
 }
 
 // TestPortalSessionAnalyticsRejectsOversizedResponse pins the response-size
@@ -201,6 +200,7 @@ func TestPortalSessionAnalyticsRejectsOversizedResponse(t *testing.T) {
 	// lowered rather than seeding a production-scale body.
 	now := time.Now().UnixMilli()
 	minuteMs := int64(time.Minute / time.Millisecond)
+	var lastKey seed.CreateKeyResponse
 	for range 8 {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
@@ -221,17 +221,16 @@ func TestPortalSessionAnalyticsRejectsOversizedResponse(t *testing.T) {
 				Tags:        []string{},
 			})
 		}
+		lastKey = key
 	}
 
 	headers := h.CreatePortalSession(workspace.ID, externalA, []string{api.KeyAuthID.String}, []string{"analytics:read"})
 
-	// A ten-minute window keeps the account-wide series small while the per-key
-	// breakout multiplies it by the key count, so the ceiling is crossed only by
-	// the breakout.
+	// Every key carries a bucket per minute of the window, so eight keys cross
+	// the ceiling a single key stays under.
 	req := Request{
 		StartTime: now - 10*minuteMs,
 		EndTime:   now + minuteMs,
-		PerKey:    ptr.P(true),
 	}
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
@@ -239,9 +238,8 @@ func TestPortalSessionAnalyticsRejectsOversizedResponse(t *testing.T) {
 		require.Equal(c, 422, res.Status, "a body past the analytics size ceiling must be refused")
 	}, 60*time.Second, time.Second)
 
-	// The account-wide series is small and still answers.
-	withoutBreakout := req
-	withoutBreakout.PerKey = nil
-	ok := testutil.CallRoute[Request, Response](h, route, headers, withoutBreakout)
-	require.Equal(t, 200, ok.Status, "the account-wide series still answers past the size ceiling")
+	narrowed := req
+	narrowed.KeyId = ptr.P(lastKey.KeyID)
+	ok := testutil.CallRoute[Request, Response](h, route, headers, narrowed)
+	require.Equal(t, 200, ok.Status, "a single key stays under the size ceiling")
 }

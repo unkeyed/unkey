@@ -57,6 +57,13 @@ type verificationInterval struct {
 	stepMs int64  // bucket width in milliseconds, used for WITH FILL
 }
 
+// VerificationBucketMillis is the bucket width chosen for a window, in
+// milliseconds. Callers return it so a client can build the buckets for a
+// window that produced no series at all without restating the rule below.
+func VerificationBucketMillis(startMs, endMs int64) int64 {
+	return selectVerificationInterval(endMs - startMs).stepMs
+}
+
 // selectVerificationInterval picks the bucket granularity from the window
 // duration, mirroring how the dashboard trades resolution for range: minute
 // buckets for short windows, hour buckets for a few days, day buckets beyond.
@@ -134,63 +141,6 @@ const verificationScopePredicates = `workspace_id = {workspace_id:String}
 		AND time < fromUnixTimestamp64Milli({end:Int64})
 		AND ({key_id:String} = '' OR key_id = {key_id:String})`
 
-// GetVerificationsByExternalID returns a zero-filled verification timeseries for
-// one end user (workspace_id + external_id), optionally narrowed to a single
-// key. Bucket granularity is chosen from the window size. Empty buckets are
-// returned with zero counts so callers get a contiguous series.
-//
-// The query runs on the shared ClickHouse connection (not a per-workspace user)
-// and filters on external_id, which is denormalized onto each event at write
-// time. This is the portal-scoped read: the workspace, identity and keyspaces
-// are pinned by the caller, so no query DSL or per-workspace connection is
-// involved.
-func (c *Client) GetVerificationsByExternalID(ctx context.Context, req VerificationTimeseriesRequest) ([]VerificationTimeseriesDataPoint, error) {
-	// Callers derive the keyspaces from the portal session, so an empty list is
-	// a broken invariant rather than a query that returns nothing: answering it
-	// would widen the read past the portal.
-	if err := assert.NotEmpty(req.KeySpaceIDs, "verification timeseries requested with no key spaces"); err != nil {
-		return nil, err
-	}
-
-	iv := selectVerificationInterval(req.EndTime - req.StartTime)
-
-	// iv.unit, iv.table and iv.stepMs come from selectVerificationInterval — a
-	// fixed switch over the window size, never caller input — so they are safe to
-	// interpolate. Every caller-supplied value (workspace, identity, keyspaces,
-	// key, window bounds) goes through a typed named parameter instead. SUM
-	// results are cast to Int64 so they scan into the int64 struct fields. An
-	// empty key_id means "all keys": the OR short-circuits the filter rather
-	// than binding it.
-	query := fmt.Sprintf(`
-	SELECT
-		toUnixTimestamp64Milli(CAST(toStartOfInterval(time, INTERVAL 1 %[1]s) AS DateTime64(3))) AS x,
-		toInt64(SUM(count)) AS total,
-		toInt64(SUM(IF(outcome = 'VALID', count, 0))) AS valid,
-		toInt64(SUM(IF(outcome = 'RATE_LIMITED', count, 0))) AS rate_limited,
-		toInt64(SUM(IF(outcome = 'INSUFFICIENT_PERMISSIONS', count, 0))) AS insufficient_permissions,
-		toInt64(SUM(IF(outcome = 'FORBIDDEN', count, 0))) AS forbidden,
-		toInt64(SUM(IF(outcome = 'DISABLED', count, 0))) AS disabled,
-		toInt64(SUM(IF(outcome = 'EXPIRED', count, 0))) AS expired,
-		toInt64(SUM(IF(outcome = 'USAGE_EXCEEDED', count, 0))) AS usage_exceeded
-	FROM %[2]s
-	WHERE %[4]s
-	GROUP BY x
-	ORDER BY x ASC
-	WITH FILL
-		FROM toUnixTimestamp64Milli(CAST(toStartOfInterval(fromUnixTimestamp64Milli({start:Int64}), INTERVAL 1 %[1]s) AS DateTime64(3)))
-		TO toUnixTimestamp64Milli(CAST(toStartOfInterval(fromUnixTimestamp64Milli({end:Int64}), INTERVAL 1 %[1]s) AS DateTime64(3))) + %[3]d
-		STEP %[3]d`,
-		iv.unit, iv.table, iv.stepMs, verificationScopePredicates,
-	)
-
-	results, err := Select[VerificationTimeseriesDataPoint](withPortalQueryLimits(ctx), c.conn, query, verificationScopeParams(req))
-	if err != nil {
-		return nil, fault.Wrap(classifyPortalQueryError(err), fault.Internal("failed to query verification timeseries"))
-	}
-
-	return results, nil
-}
-
 // verificationScopeParams binds the values [verificationScopePredicates] reads.
 func verificationScopeParams(req VerificationTimeseriesRequest) map[string]string {
 	return map[string]string{
@@ -224,9 +174,9 @@ type verificationTimeseriesPerKeyRow struct {
 	VerificationTimeseriesDataPoint
 }
 
-// GetVerificationsByExternalIDPerKey returns the same window as
-// [Client.GetVerificationsByExternalID], broken out per key, under identical
-// workspace, identity, keyspace and window scoping.
+// GetVerificationsByExternalIDPerKey returns one verification timeseries per
+// key the end user (workspace_id + external_id) used in the window, optionally
+// narrowed to a single key. Callers sum them for an account-wide view.
 //
 // Each series is zero-filled across the window, so a caller charting a subset
 // of keys gets contiguous buckets without rebuilding them. That costs a full

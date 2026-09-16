@@ -4314,38 +4314,27 @@ type V2PortalGetVerificationsRequestBody struct {
 	// regardless of this value.
 	KeyId *string `json:"keyId,omitempty"`
 
-	// PerKey Optional. When true the response additionally carries a per-key breakout
-	// of the same window in `keys`. The account-wide `data` series is returned
-	// either way. Rejected with 400 when the session's keys with traffic in the
-	// window exceed the server-side breakout limit.
-	PerKey *bool `json:"perKey,omitempty"`
-
 	// StartTime Start of the query window as a unix timestamp in milliseconds (inclusive).
 	StartTime int64 `json:"startTime"`
 }
 
 // V2PortalGetVerificationsResponseBody defines model for V2PortalGetVerificationsResponseBody.
 type V2PortalGetVerificationsResponseBody struct {
-	// Data Zero-filled verification timeseries for the authenticated end user, ordered
-	// by time ascending. Buckets with no verifications are present with zero
-	// counts so the series is contiguous across the requested window.
-	Data []V2PortalGetVerificationsDataPoint `json:"data"`
+	// BucketMillis Width of one bucket in milliseconds, chosen from the window size. Every
+	// series below is aligned to it, so a client can build the buckets for a
+	// window that returned no keys at all without restating the granularity
+	// rule.
+	BucketMillis int64 `json:"bucketMillis"`
 
-	// Keys Per-key breakout of the same window, present only when `perKey` was
-	// requested. Each series is zero-filled across the window like `data`, so a
-	// client charting a subset of keys does not have to rebuild the gaps. Keys
-	// with no verifications anywhere in the window are omitted.
+	// Keys One entry per key the end user has verifications for in the window, each
+	// zero-filled across the whole window and ordered by time ascending. Sum
+	// them to get the account-wide series.
 	//
-	// Entries come from the verification events themselves, so a `keyId` may
-	// name a key that has since been deleted and will not appear in
-	// `portal.listKeys`; render those totals without assuming the key is still
-	// listable.
-	//
-	// The breakout is read separately from `data`, so the two cover the same
-	// window but are not a single snapshot. Events arriving between the reads
-	// can leave the most recent bucket slightly out of step; treat the totals
-	// as the same series rather than an exact decomposition.
-	Keys *[]V2PortalGetVerificationsKeySeries `json:"keys,omitempty"`
+	// Keys with no verifications anywhere in the window are omitted. Entries
+	// come from the verification events themselves, so a `keyId` may name a key
+	// that has since been deleted and will not appear in `portal.listKeys`;
+	// render those totals without assuming the key is still listable.
+	Keys []V2PortalGetVerificationsKeySeries `json:"keys"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
