@@ -40,7 +40,7 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 	dayA := base.Add(12 * time.Hour)
 	dayB := base.Add(2*24*time.Hour + 12*time.Hour)
 
-	mkIn := func(keySpace, extID, keyID, outcome string, ts time.Time) schema.KeyVerification {
+	verificationIn := func(keySpace, extID, keyID, outcome string, ts time.Time) schema.KeyVerification {
 		return schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        ts.UnixMilli(),
@@ -55,28 +55,28 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 		}
 	}
 
-	mk := func(extID, keyID, outcome string, ts time.Time) schema.KeyVerification {
-		return mkIn(keySpaceID, extID, keyID, outcome, ts)
+	verification := func(extID, keyID, outcome string, ts time.Time) schema.KeyVerification {
+		return verificationIn(keySpaceID, extID, keyID, outcome, ts)
 	}
 
 	rows := []schema.KeyVerification{
 		// extA, day A: 3 VALID (one on targetKey), 2 RATE_LIMITED
-		mk(extA, targetKey, "VALID", dayA),
-		mk(extA, otherKey, "VALID", dayA),
-		mk(extA, otherKey, "VALID", dayA),
-		mk(extA, otherKey, "RATE_LIMITED", dayA),
-		mk(extA, otherKey, "RATE_LIMITED", dayA),
+		verification(extA, targetKey, "VALID", dayA),
+		verification(extA, otherKey, "VALID", dayA),
+		verification(extA, otherKey, "VALID", dayA),
+		verification(extA, otherKey, "RATE_LIMITED", dayA),
+		verification(extA, otherKey, "RATE_LIMITED", dayA),
 		// extA, day B: 1 VALID
-		mk(extA, otherKey, "VALID", dayB),
+		verification(extA, otherKey, "VALID", dayB),
 		// extB, day A: 5 VALID (must NOT appear in extA results)
-		mk(extB, otherKey, "VALID", dayA),
-		mk(extB, otherKey, "VALID", dayA),
-		mk(extB, otherKey, "VALID", dayA),
-		mk(extB, otherKey, "VALID", dayA),
-		mk(extB, otherKey, "VALID", dayA),
+		verification(extB, otherKey, "VALID", dayA),
+		verification(extB, otherKey, "VALID", dayA),
+		verification(extB, otherKey, "VALID", dayA),
+		verification(extB, otherKey, "VALID", dayA),
+		verification(extB, otherKey, "VALID", dayA),
 		// extA in a second keyspace: visible only to a session scoped to it.
-		mkIn(otherKeySpaceID, extA, outOfScopeKey, "VALID", dayA),
-		mkIn(otherKeySpaceID, extA, outOfScopeKey, "VALID", dayB),
+		verificationIn(otherKeySpaceID, extA, outOfScopeKey, "VALID", dayA),
+		verificationIn(otherKeySpaceID, extA, outOfScopeKey, "VALID", dayB),
 	}
 
 	batch, err := client.Conn().PrepareBatch(ctx, clickhouse.InsertQuery[schema.KeyVerification]())
