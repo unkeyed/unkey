@@ -334,9 +334,20 @@ func Run(ctx context.Context, cfg Config) error {
 	// Compute plan, spend cap, schedulable region, runtime bounds and the
 	// fork PR approval. Create and NotifyInstancesReady stay public because
 	// svc/api, the ops rebuild and the cluster status report all call them.
+	// Build has Deploy's budget but kills on exhaustion instead of pausing. A
+	// killed Build returns a terminal error to Deploy, whose compensations
+	// fail the deployment; a paused one would leave Deploy waiting on it until
+	// an operator resumed it
+	buildRetryPolicy := restate.WithInvocationRetryPolicy(
+		restate.WithInitialRetryInterval(2*time.Second),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(30*time.Second),
+		restate.WithMaxRetryAttempts(15),
+		restate.KillOnMaxAttempts(),
+	)
 	restateSrv.Bind(hydrav1.NewDeployWorkflowServer(deployWorkflow, deployRetryPolicy).
 		ConfigureHandler("Deploy", restate.WithIngressPrivate(true)).
-		ConfigureHandler("Build", restate.WithIngressPrivate(true), deploy.BuildRetryPolicy()))
+		ConfigureHandler("Build", restate.WithIngressPrivate(true), buildRetryPolicy))
 	deploymentSvc, err := deployment.New(deployment.Config{
 		DB:        database,
 		Auditlogs: auditlogSvc,

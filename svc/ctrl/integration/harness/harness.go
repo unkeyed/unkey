@@ -328,8 +328,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 			ConfigureHandler("CheckWorkspaceSpend", deployspendcheck.RetryPolicy()),
 		hydrav1.NewClickhouseUserServiceServer(clickhouseUserSvc),
 		hydrav1.NewKeyLastUsedPartitionServiceServer(keyLastUsedPartitionSvc),
-		hydrav1.NewDeployWorkflowServer(deploySvc).
-			ConfigureHandler("Build", deploy.BuildRetryPolicy()),
+		hydrav1.NewDeployWorkflowServer(deploySvc),
 		hydrav1.NewDeploymentServiceServer(deploymentSvc),
 		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
 	)
