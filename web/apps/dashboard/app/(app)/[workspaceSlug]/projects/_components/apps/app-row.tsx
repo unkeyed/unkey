@@ -2,6 +2,7 @@
 
 import { DeploymentStatusLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import { DottedLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/dotted-link";
+import { useNow } from "@/hooks/use-now";
 import type { ProjectApp } from "@/lib/collections/deploy/projects";
 import { cn } from "@/lib/utils";
 import {
@@ -14,7 +15,7 @@ import {
 import { InfoTooltip } from "@unkey/ui";
 import Link from "next/link";
 import type { ComponentPropsWithRef, FC, ReactElement, ReactNode } from "react";
-import { DeploymentMeta, deploymentPhrase } from "./deployment-meta";
+import { AGE_TICK_MS, DeploymentMeta, deploymentPhrase } from "./deployment-meta";
 
 // base-ui merges the handlers, aria wiring and ref it needs into this element,
 // so swallowing props silently detaches the hover.
@@ -34,7 +35,7 @@ export function AppRow({
       <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-5 text-accent-12">
         {app.name}
       </span>
-      <DeploymentMeta deployment={app.headlineDeployment} />
+      {app.headlineDeployment ? <DeploymentMeta deployment={app.headlineDeployment} /> : null}
     </Link>
   );
 }
@@ -62,6 +63,7 @@ export function AppDetailTooltip({
 }
 
 function AppDetail({ app }: { app: ProjectApp }) {
+  const now = useNow(AGE_TICK_MS);
   const deployment = app.headlineDeployment;
   if (!deployment) {
     return null;
@@ -88,7 +90,7 @@ function AppDetail({ app }: { app: ProjectApp }) {
       </DottedLink>,
     ]);
   }
-  rows.push(["deployed", IconClockOutline18, deploymentPhrase(deployment)]);
+  rows.push(["deployed", IconClockOutline18, deploymentPhrase(deployment, now)]);
 
   return (
     <div className="flex flex-col gap-2">

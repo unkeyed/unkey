@@ -1,3 +1,6 @@
+"use client";
+
+import { useNow } from "@/hooks/use-now";
 import {
   type DeploymentStatusGroup,
   statusGroupOf,
@@ -32,20 +35,19 @@ const TONE: Record<DeploymentStatusGroup, string> = {
   superseded: "text-gray-9",
 };
 
-function age(deployedAt: number): string {
-  return intlFormatDistance(deployedAt, Date.now(), { style: "narrow" });
+export const AGE_TICK_MS = 30_000;
+
+function age(deployedAt: number, now: number): string {
+  return intlFormatDistance(deployedAt, now, { style: "narrow" });
 }
 
-export function deploymentPhrase(deployment: AppDeployment): string {
-  return `${VERB[statusGroupOf(deployment.status)]} ${age(deployment.deployedAt)}`;
+export function deploymentPhrase(deployment: AppDeployment, now: number): string {
+  return `${VERB[statusGroupOf(deployment.status)]} ${age(deployment.deployedAt, now)}`;
 }
 
-export function DeploymentMeta({ deployment }: { deployment: AppDeployment | null }) {
-  if (!deployment) {
-    return null;
-  }
-
-  const deployedAgo = age(deployment.deployedAt);
+export function DeploymentMeta({ deployment }: { deployment: AppDeployment }) {
+  const now = useNow(AGE_TICK_MS);
+  const deployedAgo = age(deployment.deployedAt, now);
 
   const settled = (group: DeploymentStatusGroup) => (
     <span className={cn("shrink-0 text-xs", TONE[group])}>
