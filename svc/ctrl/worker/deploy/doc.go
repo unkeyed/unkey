@@ -37,11 +37,12 @@
 // deployment marks itself superseded and returns.
 //
 // It then calls [Workflow.Build] on the same workflow key, the deployment id,
-// in the Restate scope "builds" with the workspace id as the limit key. The rule book pattern "builds/*",
-// written by CronService.RunBuildLimitSync, caps how many Builds per limit
-// key run at once. Restate queues the rest in the order they became ready and
-// lets the next one run when a running Build completes or is cancelled; there
-// is no queue timeout. Build ends the queued step and runs the starting and
+// in the Restate scope "builds" with the workspace id as the limit key. The
+// rule book, which CronService.RunBuildLimitSync writes from
+// limits.builds_concurrent_max, caps how many Builds per workspace run at
+// once. Restate queues the rest in the order they became ready and lets the
+// next one run when a running Build completes or is cancelled; there is no
+// queue timeout. Build ends the queued step and runs the starting and
 // building steps, so a deployment stays pending while it waits. Production
 // and preview share the workspace's queue.
 //

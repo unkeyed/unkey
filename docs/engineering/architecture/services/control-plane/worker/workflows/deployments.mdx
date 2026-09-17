@@ -147,7 +147,7 @@ hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(buildScope
 What this gives:
 
 - One queue per workspace, shared by production and preview, ordered by the time each Build became ready. There is no production preference and no queue timeout: a queued deployment stays `pending` until a running Build in its workspace completes or is cancelled, or until someone cancels it.
-- `Build` refuses to run when the request did not arrive in scope `builds` or with the workspace id as limit key, because either mistake would build without a cap.
+- `Build` refuses to run when the request did not arrive in scope `builds` or with the workspace id as limit key. A wrong scope matches no rule and builds without a cap; a wrong limit key charges the build to another workspace.
 - A Build that exhausts its retry budget is killed, not paused. Kill returns a terminal error to Deploy, which closes the open step and fails the deployment through its compensation stack.
 - Scoped invocations take their partition from the scope, so every Build in the fleet shares one Restate partition, whatever its workspace. Queues stay per workspace inside that partition. A leader change of that partition replays every in-flight build.
 
@@ -172,7 +172,7 @@ curl -sS "$ADMIN/query" -H "Authorization: Bearer $TOKEN" \
 
 What the result means:
 
-- `builds/*` missing: every workspace builds without a cap. The next cron tick within five minutes rewrites it. To fix it now, run the CronJob by hand: `kubectl --context "$CTX" -n <restate chart namespace> create job --from=cronjob/restate-build-limit-sync build-limit-sync-manual`.
+- `builds/*` missing: every workspace builds without a cap. The next cron tick within five minutes rewrites it. To fix it now, run the CronJob by hand: `kubectl --context "$CTX" -n restate-system create job --from=cronjob/restate-build-limit-sync build-limit-sync-manual`.
 - Any rule edited by hand: the cron rewrites it on the next tick, so the edit lasts at most five minutes.
 - One workspace needs a higher cap during an incident: raise `builds_concurrent_max` on its `limits` row. The cron writes the matching `builds/<workspace_id>` rule within five minutes, and queued builds for that workspace start as soon as the rule lands.
 

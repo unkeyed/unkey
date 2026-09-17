@@ -27,7 +27,7 @@ This page helps you pick the right path.
 | **Repository required**          | Yes, connected to the Unkey GitHub App                          | No                                                          |
 | **Preview per branch**           | Automatic on every non-default branch                           | You call `--env=preview` (or any environment) explicitly    |
 | **Build logs**                   | Streamed to the dashboard in real time                          | Wherever you run the build (your CI logs, your terminal)    |
-| **Build concurrency quota**      | Counts against workspace [`builds_concurrent_max`](/build-and-deploy/deployments#build-concurrency) | Does not count, the build happens outside Unkey            |
+| **Build concurrency quota**      | Counts against workspace [`builds_concurrent_max`](/build-and-deploy/deployments#build-concurrency) | Holds a slot only for the instant it takes to resolve the image |
 | **Watch paths** (skip irrelevant changes) | Supported, configure in app settings                   | Not applicable, you decide when to call the CLI            |
 | **Fork protection**              | Built-in: PRs from forks require approval                       | Not applicable                                              |
 | **Superseded cancellation**      | Queued builds auto-cancel when a newer commit lands             | Not applicable, you control cadence                        |

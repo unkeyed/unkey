@@ -48,7 +48,7 @@ func TestFlowControl(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	hold := func(t *testing.T, limitKey string, done chan<- error) string {
+	hold := func(t *testing.T, limitKey string, done chan<- error) {
 		t.Helper()
 		key := uid.New(uid.DeploymentPrefix)
 		go func() {
@@ -56,7 +56,6 @@ func TestFlowControl(t *testing.T) {
 				Request(ctx, holdRequest{Scope: buildScope, LimitKey: limitKey}, restate.WithLimitKey(limitKey))
 			done <- err
 		}()
-		return key
 	}
 
 	t.Run("one invocation per limit key at a time", func(t *testing.T) {
