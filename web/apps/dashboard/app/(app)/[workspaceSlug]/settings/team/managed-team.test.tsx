@@ -59,10 +59,9 @@ vi.mock("@unkey/workos-widgets", () => ({
 }));
 
 vi.mock("@unkey/ui", () => {
-  const Empty = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>;
-  Empty.Title = ({ children }: { children?: React.ReactNode }) => <h2>{children}</h2>;
-  Empty.Description = ({ children }: { children?: React.ReactNode }) => <p>{children}</p>;
-  Empty.Actions = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>;
+  const Passthrough =
+    (Tag: "div" | "h2" | "p") =>
+    ({ children }: { children?: React.ReactNode }) => <Tag>{children}</Tag>;
 
   return {
     Button: ({
@@ -75,7 +74,11 @@ vi.mock("@unkey/ui", () => {
       render?: React.ReactElement;
     }) =>
       render ? React.cloneElement(render, props, children) : <button {...props}>{children}</button>,
-    Empty,
+    EmptyState: Passthrough("div"),
+    EmptyStateActions: Passthrough("div"),
+    EmptyStateDescription: Passthrough("p"),
+    EmptyStateHeader: Passthrough("div"),
+    EmptyStateTitle: Passthrough("h2"),
     Skeleton: () => <div data-testid="skeleton" />,
   };
 });

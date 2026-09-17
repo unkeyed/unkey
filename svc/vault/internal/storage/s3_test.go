@@ -3,6 +3,8 @@ package storage
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
@@ -10,6 +12,35 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 )
+
+func TestS3_StartupAssumesBucketExists(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/vault/workspace/dek":
+			_, err := w.Write([]byte("encrypted-dek"))
+			if err != nil {
+				t.Error(err)
+			}
+		default:
+			t.Errorf("unexpected S3 request: %s %s", r.Method, r.URL.Path)
+			http.Error(w, "unexpected request", http.StatusBadRequest)
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	store, err := NewS3(S3Config{
+		S3URL:             server.URL,
+		S3Bucket:          "vault",
+		S3AccessKeyID:     "test-access-key",
+		S3AccessKeySecret: "test-secret-key",
+	})
+	require.NoError(t, err)
+
+	data, found, err := store.GetObject(t.Context(), "workspace/dek")
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Equal(t, []byte("encrypted-dek"), data)
+}
 
 // TestS3_PutAndGet verifies basic put and get operations against real S3.
 func TestS3_PutAndGet(t *testing.T) {
@@ -304,18 +335,15 @@ func TestS3_ContextCancellation(t *testing.T) {
 	require.Error(t, err)
 }
 
-// newTestS3Storage creates a new S3 storage backed by a MinIO container.
+// newTestS3Storage creates a new S3 storage backed by a Garage container.
 func newTestS3Storage(t *testing.T) Storage {
 	t.Helper()
 
 	s3Config := containers.S3(t)
 
-	// Use a unique bucket name per test to ensure isolation
-	bucketName := fmt.Sprintf("test-%d", time.Now().UnixNano())
-
 	store, err := NewS3(S3Config{
 		S3URL:             s3Config.URL,
-		S3Bucket:          bucketName,
+		S3Bucket:          s3Config.CreateBucket(t),
 		S3AccessKeyID:     s3Config.AccessKeyID,
 		S3AccessKeySecret: s3Config.SecretAccessKey,
 	})

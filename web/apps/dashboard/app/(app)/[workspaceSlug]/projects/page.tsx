@@ -34,23 +34,17 @@ export default function ProjectsPage() {
 
   return (
     <>
-      {isEmpty ? (
-        <EmptyProjects />
-      ) : (
-        <PageContainer>
-          <PageHeader>
-            <PageHeaderContent>
-              <PageHeaderTitle>Projects</PageHeaderTitle>
-            </PageHeaderContent>
-            <PageHeaderActions>
-              <CreateProjectButton defaultOpen={isNewProject} workspaceSlug={workspace.slug} />
-            </PageHeaderActions>
-          </PageHeader>
-          <PageBody>
-            <ProjectsList />
-          </PageBody>
-        </PageContainer>
-      )}
+      <PageContainer>
+        <PageHeader>
+          <PageHeaderContent>
+            <PageHeaderTitle>Projects</PageHeaderTitle>
+          </PageHeaderContent>
+          <PageHeaderActions>
+            <CreateProjectButton defaultOpen={isNewProject} workspaceSlug={workspace.slug} />
+          </PageHeaderActions>
+        </PageHeader>
+        <PageBody>{isEmpty ? <EmptyProjects /> : <ProjectsList />}</PageBody>
+      </PageContainer>
       <CreateProjectDialog
         isOpen={createDialogOpen}
         onOpenChange={setCreateDialogOpen}

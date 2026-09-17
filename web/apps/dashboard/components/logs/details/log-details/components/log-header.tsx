@@ -1,10 +1,11 @@
 import { cn } from "@/lib/utils";
 import { IconXmarkOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
-import type { StandardLogTypes } from "..";
+import type { SupportedLogTypes } from "..";
 
 type Props = {
-  log: StandardLogTypes;
+  // Only the request line is rendered here, so any log carrying it fits.
+  log: Pick<Extract<SupportedLogTypes, { method: string }>, "method" | "path" | "response_status">;
   onClose: () => void;
 };
 

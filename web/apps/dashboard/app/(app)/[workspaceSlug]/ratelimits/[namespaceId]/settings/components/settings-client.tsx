@@ -5,7 +5,11 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import {
   Button,
   CopyButton,
-  Empty,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   Input,
   SettingCard,
   SettingCardGroup,
@@ -46,14 +50,15 @@ export const SettingsClient = ({ namespaceId }: Props) => {
 
   if (!namespace) {
     return (
-      <Empty>
-        <Empty.Icon />
-        <Empty.Title>404</Empty.Title>
-        <Empty.Description>This namespace does not exist</Empty.Description>
-        <Empty.Actions>
+      <EmptyState>
+        <EmptyStateHeader>
+          <EmptyStateTitle>404</EmptyStateTitle>
+          <EmptyStateDescription>This namespace does not exist</EmptyStateDescription>
+        </EmptyStateHeader>
+        <EmptyStateActions>
           <CreateNamespaceButton />
-        </Empty.Actions>
-      </Empty>
+        </EmptyStateActions>
+      </EmptyState>
     );
   }
 

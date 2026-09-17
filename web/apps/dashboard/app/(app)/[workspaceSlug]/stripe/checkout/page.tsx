@@ -10,7 +10,15 @@ import { deployBillingConfig, deployCheckoutLineItems } from "@/lib/stripe/deplo
 import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
 import { hostedInvoiceUrl, isDeadSubscription } from "@/lib/stripe/subscriptionUtils";
 import { getBaseUrl } from "@/lib/utils";
-import { Code, Empty } from "@unkey/ui";
+import {
+  Code,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+  PageBody,
+  PageContainer,
+} from "@unkey/ui";
 import type { Route } from "next";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
@@ -48,12 +56,18 @@ export default async function StripeRedirect(props: {
   // hidden for non-admins, but this page is reachable directly via URL.
   if (role !== "admin") {
     return (
-      <Empty>
-        <Empty.Title>Admin access required</Empty.Title>
-        <Empty.Description>
-          Only workspace admins can manage billing. Ask an admin to make changes.
-        </Empty.Description>
-      </Empty>
+      <PageContainer>
+        <PageBody>
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Admin access required</EmptyStateTitle>
+              <EmptyStateDescription>
+                Only workspace admins can manage billing. Ask an admin to make changes.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
+        </PageBody>
+      </PageContainer>
     );
   }
 
@@ -82,12 +96,19 @@ export default async function StripeRedirect(props: {
     stripe = getStripeClient();
   } catch (_error) {
     return (
-      <Empty>
-        <Empty.Title>Stripe is not configured</Empty.Title>
-        <Empty.Description>
-          If you are selfhosting Unkey, you need to configure Stripe in your environment variables.
-        </Empty.Description>
-      </Empty>
+      <PageContainer>
+        <PageBody>
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Stripe is not configured</EmptyStateTitle>
+              <EmptyStateDescription>
+                If you are selfhosting Unkey, you need to configure Stripe in your environment
+                variables.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
+        </PageBody>
+      </PageContainer>
     );
   }
 
@@ -216,14 +237,20 @@ export default async function StripeRedirect(props: {
 
   if (!session.url) {
     return (
-      <Empty>
-        <Empty.Title>Empty Session</Empty.Title>
-        <Empty.Description>The Stripe session</Empty.Description>
-        <Code>{session.id}</Code>
-        <Empty.Description>
-          you are trying to access does not exist. Please contact support@unkey.com.
-        </Empty.Description>
-      </Empty>
+      <PageContainer>
+        <PageBody>
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Empty Session</EmptyStateTitle>
+              <EmptyStateDescription>The Stripe session</EmptyStateDescription>
+            </EmptyStateHeader>
+            <Code>{session.id}</Code>
+            <EmptyStateDescription>
+              you are trying to access does not exist. Please contact support@unkey.com.
+            </EmptyStateDescription>
+          </EmptyState>
+        </PageBody>
+      </PageContainer>
     );
   }
 

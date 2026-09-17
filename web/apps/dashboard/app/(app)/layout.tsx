@@ -10,7 +10,7 @@ import { LoadingState } from "@/components/loading-state";
 import { redirectToSignIn } from "@/lib/auth/redirect-utils";
 import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Empty } from "@unkey/ui";
+import { EmptyState, EmptyStateDescription, EmptyStateHeader, EmptyStateTitle } from "@unkey/ui";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -34,20 +34,21 @@ function WorkspaceContent({
       {workspace.enabled ? (
         <QueryTimeProvider>{children}</QueryTimeProvider>
       ) : (
-        <div className="flex items-center justify-center w-full h-full">
-          <Empty>
-            <Empty.Icon />
-            <Empty.Title>This workspace is disabled</Empty.Title>
-            <Empty.Description>
-              Contact{" "}
-              <Link
-                href={`mailto:support@unkey.com?body=workspaceId: ${workspace.id}`}
-                className="underline"
-              >
-                support@unkey.com
-              </Link>
-            </Empty.Description>
-          </Empty>
+        <div className="flex flex-1 items-center justify-center p-12">
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>This workspace is disabled</EmptyStateTitle>
+              <EmptyStateDescription>
+                Contact{" "}
+                <Link
+                  href={`mailto:support@unkey.com?body=workspaceId: ${workspace.id}`}
+                  className="underline"
+                >
+                  support@unkey.com
+                </Link>
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
         </div>
       )}
     </div>

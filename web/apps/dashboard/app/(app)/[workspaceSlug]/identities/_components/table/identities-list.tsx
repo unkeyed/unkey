@@ -9,7 +9,12 @@ import type { Identity } from "@unkey/api/models/components";
 import { IconBookBookmarkOutline18, IconFingerprintOutline18 } from "@unkey/icons";
 import {
   Button,
-  Empty,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
   ResourceListBody,
   ResourceListContent,
   ResourceListFooter,
@@ -159,34 +164,37 @@ function IdentityResults({ search }: { search: string }) {
   if (identityRows.length === 0) {
     return (
       <ResourceListContent>
-        <div className="flex w-full items-center justify-center px-4 py-16">
-          <Empty className="w-[400px] items-start">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>No Identities Found</Empty.Title>
-            <Empty.Description className="text-left">
+        <EmptyState frame="none">
+          <EmptyStateIcon>
+            <IconFingerprintOutline18 />
+          </EmptyStateIcon>
+          <EmptyStateHeader>
+            <EmptyStateTitle>No Identities Found</EmptyStateTitle>
+            <EmptyStateDescription>
               {search
                 ? "Try adjusting your search query"
                 : "There are no identities yet. Create your first identity to get started."}
-            </Empty.Description>
-            {!search && (
-              <Empty.Actions className="mt-4 justify-start">
-                <Button
-                  size="md"
-                  render={
-                    <Link
-                      href="https://www.unkey.com/docs/platform/identities/overview"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    />
-                  }
-                >
-                  <IconBookBookmarkOutline18 />
-                  Learn about Identities
-                </Button>
-              </Empty.Actions>
-            )}
-          </Empty>
-        </div>
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+          {!search && (
+            <EmptyStateActions>
+              <Button
+                size="md"
+                variant="outline"
+                render={
+                  <Link
+                    href="https://www.unkey.com/docs/platform/identities/overview"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  />
+                }
+              >
+                <IconBookBookmarkOutline18 />
+                Learn about Identities
+              </Button>
+            </EmptyStateActions>
+          )}
+        </EmptyState>
       </ResourceListContent>
     );
   }

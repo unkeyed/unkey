@@ -79,6 +79,7 @@ import { listProjects } from "./deploy/project/list";
 import { createSharedSecret } from "./share/create";
 import { revealSharedSecret } from "./share/reveal";
 
+import { queryRequestDetails } from "./deploy/request-logs/details";
 import { llmSearch as requestLogsLlmSearch } from "./deploy/request-logs/llm-search";
 import { queryRequestLogs } from "./deploy/request-logs/query";
 import { listInstances } from "./deploy/runtime-logs/list-instances";
@@ -432,6 +433,7 @@ export const router = t.router({
     }),
     requestLogs: t.router({
       query: queryRequestLogs,
+      details: queryRequestDetails,
       llmSearch: requestLogsLlmSearch,
     }),
     runtimeLogs: t.router({

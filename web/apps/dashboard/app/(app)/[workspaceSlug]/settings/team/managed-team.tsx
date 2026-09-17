@@ -4,7 +4,15 @@ import "@unkey/workos-widgets/styles.css";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { logManagedAuthOutcome } from "@/lib/auth/telemetry";
 import { routes } from "@/lib/navigation/routes";
-import { Button, Empty, Skeleton } from "@unkey/ui";
+import {
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+  Skeleton,
+} from "@unkey/ui";
 import { ManagedUsersWidget } from "@unkey/workos-widgets";
 import { useAccessToken, useAuth } from "@workos-inc/authkit-nextjs/components";
 import Link from "next/link";
@@ -19,17 +27,19 @@ export function ManagedTeam({ team }: { team: boolean }) {
   if (!team) {
     return (
       <div className="flex min-h-[60vh] w-full items-center justify-center">
-        <Empty className="w-full">
-          <Empty.Title>Upgrade Your Plan to Add Team Members</Empty.Title>
-          <Empty.Description>You can try it out for free for 14 days.</Empty.Description>
-          <Empty.Actions>
+        <EmptyState className="w-full">
+          <EmptyStateHeader>
+            <EmptyStateTitle>Upgrade Your Plan to Add Team Members</EmptyStateTitle>
+            <EmptyStateDescription>You can try it out for free for 14 days.</EmptyStateDescription>
+          </EmptyStateHeader>
+          <EmptyStateActions>
             <Button
               render={<Link href={routes.settings.billing({ workspaceSlug: workspace.slug })} />}
             >
               Upgrade
             </Button>
-          </Empty.Actions>
-        </Empty>
+          </EmptyStateActions>
+        </EmptyState>
       </div>
     );
   }
