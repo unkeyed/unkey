@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useNow } from "./use-now";
 
@@ -9,11 +9,12 @@ describe("useNow", () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.useRealTimers();
   });
 
   it("advances on its own, without a re-render from the outside", () => {
-    const { result } = renderHook(() => useNow(10_000));
+    const { result } = renderHook(() => useNow());
     const mounted = result.current;
 
     act(() => {
@@ -23,19 +24,26 @@ describe("useNow", () => {
     expect(result.current - mounted).toBe(30_000);
   });
 
-  it("stops reading the clock once unmounted", () => {
-    let renders = 0;
-    const { unmount } = renderHook(() => {
-      renders += 1;
-      return useNow(10_000);
-    });
-    const before = renders;
+  it("reads the same clock however late a caller mounts", () => {
+    const first = renderHook(() => useNow());
 
-    unmount();
     act(() => {
-      vi.advanceTimersByTime(60_000);
+      vi.advanceTimersByTime(900);
     });
+    const second = renderHook(() => useNow());
 
-    expect(renders).toBe(before);
+    expect(second.result.current).toBe(first.result.current);
+  });
+
+  it("runs one timer for every caller and stops it with the last of them", () => {
+    const first = renderHook(() => useNow());
+    const second = renderHook(() => useNow());
+    expect(vi.getTimerCount()).toBe(1);
+
+    first.unmount();
+    expect(vi.getTimerCount()).toBe(1);
+
+    second.unmount();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

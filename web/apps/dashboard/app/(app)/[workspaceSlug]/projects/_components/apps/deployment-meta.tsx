@@ -35,16 +35,13 @@ const TONE: Record<DeploymentStatusGroup, string> = {
   superseded: "text-gray-9",
 };
 
-const TICK_MS = 10_000;
-
-// A deployment that lands between two ticks is newer than the clock, and
-// intlFormatDistance would put it in the future: "started in 25 sec".
-function age(deployedAt: number, now: number): string {
-  return intlFormatDistance(deployedAt, Math.max(now, deployedAt), { style: "narrow" });
-}
-
-export function useDeploymentAge(deployment: AppDeployment): string {
-  return age(deployment.deployedAt, useNow(TICK_MS));
+// deployedAt is the server's clock read against the browser's, so a browser
+// running behind would put the deployment in the future: "started in 25 sec".
+function useDeploymentAge(deployment: AppDeployment): string {
+  const now = useNow();
+  return intlFormatDistance(deployment.deployedAt, Math.max(now, deployment.deployedAt), {
+    style: "narrow",
+  });
 }
 
 export function useDeploymentPhrase(deployment: AppDeployment): string {
@@ -53,11 +50,10 @@ export function useDeploymentPhrase(deployment: AppDeployment): string {
 
 export function DeploymentMeta({ deployment }: { deployment: AppDeployment }) {
   const deployedAgo = useDeploymentAge(deployment);
+  const deployedPhrase = useDeploymentPhrase(deployment);
 
   const settled = (group: DeploymentStatusGroup) => (
-    <span className={cn("shrink-0 text-xs", TONE[group])}>
-      {VERB[group]} {deployedAgo}
-    </span>
+    <span className={cn("shrink-0 text-xs", TONE[group])}>{deployedPhrase}</span>
   );
 
   return match(statusGroupOf(deployment.status))

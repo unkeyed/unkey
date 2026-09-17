@@ -1,6 +1,6 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { type AppDeployment, DeploymentMeta } from "./deployment-meta";
+import { type AppDeployment, DeploymentMeta, useDeploymentPhrase } from "./deployment-meta";
 
 const deployment = (overrides: Partial<AppDeployment> = {}): AppDeployment => ({
   id: "dpl_1",
@@ -11,6 +11,10 @@ const deployment = (overrides: Partial<AppDeployment> = {}): AppDeployment => ({
   ...overrides,
 });
 
+function Phrase({ deployment }: { deployment: AppDeployment }) {
+  return <span>{useDeploymentPhrase(deployment)}</span>;
+}
+
 describe("DeploymentMeta", () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -18,6 +22,7 @@ describe("DeploymentMeta", () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.useRealTimers();
   });
 
@@ -32,8 +37,26 @@ describe("DeploymentMeta", () => {
     expect(screen.getByText("2 min ago")).toBeTruthy();
   });
 
-  it("never puts a deployment that landed between ticks in the future", () => {
-    render(<DeploymentMeta deployment={deployment({ deployedAt: Date.now() + 9_000 })} />);
+  it("never puts a deployment in the future when the browser clock runs behind", () => {
+    render(
+      <DeploymentMeta
+        deployment={deployment({ status: "building", deployedAt: Date.now() + 25_000 })}
+      />,
+    );
+
     expect(screen.getByText("now")).toBeTruthy();
+  });
+
+  it("gives a tooltip opened later the same age as the row it covers", () => {
+    const app = deployment({ deployedAt: Date.now() - 59_500 });
+    render(<DeploymentMeta deployment={app} />);
+    const row = screen.getByText(/ago$/).textContent;
+
+    act(() => {
+      vi.advanceTimersByTime(900);
+    });
+    render(<Phrase deployment={app} />);
+
+    expect(screen.getByText(`deployed ${row}`)).toBeTruthy();
   });
 });

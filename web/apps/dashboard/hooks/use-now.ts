@@ -1,16 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
-// Relative labels computed with Date.now() during render freeze at mount and
-// then jump whenever an unrelated re-render recomputes them.
-export function useNow(intervalMs: number): number {
-  const [now, setNow] = useState(() => Date.now());
+const TICK_MS = 1_000;
 
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), intervalMs);
-    return () => clearInterval(interval);
-  }, [intervalMs]);
+const listeners = new Set<() => void>();
+let now = Date.now();
+let timer: ReturnType<typeof setInterval> | undefined;
 
-  return now;
+function subscribe(listener: () => void): () => void {
+  if (listeners.size === 0) {
+    now = Date.now();
+    timer = setInterval(() => {
+      now = Date.now();
+      for (const notify of listeners) {
+        notify();
+      }
+    }, TICK_MS);
+  }
+  listeners.add(listener);
+
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0) {
+      clearInterval(timer);
+      timer = undefined;
+    }
+  };
+}
+
+// One clock for the whole page. Labels that read their own Date.now() freeze at
+// mount and disagree with each other, so a tooltip opening over a row showed a
+// different age than the row.
+export function useNow(): number {
+  return useSyncExternalStore(
+    subscribe,
+    () => now,
+    () => now,
+  );
 }
