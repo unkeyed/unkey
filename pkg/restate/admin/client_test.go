@@ -95,3 +95,112 @@ func TestFindLiveInvocations_ServerError(t *testing.T) {
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "status 500")
 }
+
+func TestListRules(t *testing.T) {
+	var gotAccept, gotQuery string
+	response := []byte(`{"rows":[
+		{"pattern":"builds/*","concurrency":1,"description":"default per-workspace build concurrency","disabled":false,"version":3},
+		{"pattern":"builds/ws_KEBAP","concurrency":5,"description":null,"disabled":true,"version":1},
+		{"pattern":"kebap/*","concurrency":null,"description":"no limit","disabled":false,"version":7}
+	]}`)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPost, r.Method)
+		require.Equal(t, "/query", r.URL.Path)
+		gotAccept = r.Header.Get("Accept")
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var req struct {
+			Query string `json:"query"`
+		}
+		require.NoError(t, json.Unmarshal(body, &req))
+		gotQuery = req.Query
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(response)
+	}))
+	t.Cleanup(server.Close)
+
+	rules, err := New(Config{BaseURL: server.URL, APIKey: ""}).ListRules(context.Background())
+	require.NoError(t, err)
+
+	require.Equal(t, "application/json", gotAccept)
+	require.Contains(t, gotQuery, "sys_rules")
+
+	require.Equal(t, []Rule{
+		{Pattern: "builds/*", Concurrency: 1, Description: "default per-workspace build concurrency", Disabled: false, Version: 3},
+		{Pattern: "builds/ws_KEBAP", Concurrency: 5, Description: "", Disabled: true, Version: 1},
+		// A rule that constrains no concurrency reads back as zero, which is
+		// how Restate spells unlimited
+		{Pattern: "kebap/*", Concurrency: 0, Description: "no limit", Disabled: false, Version: 7},
+	}, rules)
+}
+
+func TestUpsertRules(t *testing.T) {
+	var gotMethod, gotPath, gotContentType string
+	var gotBody []byte
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+		gotContentType = r.Header.Get("Content-Type")
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		gotBody = body
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[
+			{"pattern":"builds/*","limits":{"concurrency":1},"description":"default per-workspace build concurrency","disabled":false,"version":4,"last_modified_millis_since_epoch":1757000000000},
+			{"pattern":"builds/ws_KEBAP","limits":{},"disabled":true,"version":2,"last_modified_millis_since_epoch":1757000000000}
+		]`))
+	}))
+	t.Cleanup(server.Close)
+
+	written, err := New(Config{BaseURL: server.URL, APIKey: ""}).UpsertRules(context.Background(), []RuleUpsert{
+		{Pattern: "builds/*", Concurrency: 1, Description: "default per-workspace build concurrency"},
+		{Pattern: "builds/ws_KEBAP", Concurrency: 5, Description: "per-workspace build concurrency from limits"},
+	})
+	require.NoError(t, err)
+
+	require.Equal(t, http.MethodPut, gotMethod)
+	require.Equal(t, "/limits/rules", gotPath)
+	require.Equal(t, "application/json", gotContentType)
+
+	// Restate nests the cap under "limits" and takes the batch as a bare
+	// array, not an object.
+	require.JSONEq(t, `[
+		{"pattern":"builds/*","limits":{"concurrency":1},"description":"default per-workspace build concurrency"},
+		{"pattern":"builds/ws_KEBAP","limits":{"concurrency":5},"description":"per-workspace build concurrency from limits"}
+	]`, string(gotBody))
+
+	// The response is the rule book as the committing node holds it, which is
+	// what spares the caller a second, possibly stale, read.
+	require.Equal(t, []Rule{
+		{Pattern: "builds/*", Concurrency: 1, Description: "default per-workspace build concurrency", Disabled: false, Version: 4},
+		// An omitted description and an omitted concurrency both read back as
+		// their zero value; Restate spells unlimited as no concurrency at all.
+		{Pattern: "builds/ws_KEBAP", Concurrency: 0, Description: "", Disabled: true, Version: 2},
+	}, written)
+}
+
+func TestUpsertRules_RejectsEmptyAndZeroConcurrency(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
+		t.Error("a rejected upsert must not reach the server")
+	}))
+	t.Cleanup(server.Close)
+	client := New(Config{BaseURL: server.URL, APIKey: ""})
+
+	// A nil slice marshals to "null", which the endpoint rejects as a decode
+	// error rather than treating as an empty batch.
+	_, err := client.UpsertRules(context.Background(), nil)
+	require.ErrorContains(t, err, "no rules")
+
+	// Restate types concurrency as non-zero; unlimited is the absence of a
+	// rule, not a rule at zero.
+	_, err = client.UpsertRules(context.Background(), []RuleUpsert{
+		{Pattern: "builds/*", Concurrency: 0, Description: "KEBAP"},
+	})
+	require.ErrorContains(t, err, "non-zero concurrency")
+}

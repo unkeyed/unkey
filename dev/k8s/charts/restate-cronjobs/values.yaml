@@ -40,6 +40,13 @@ jobs:
     urlPath: "hydra.v1.CronService/clickhouse-user-reconcile/RunClickhouseUserReconcile/send"
     idempotencyKey: "clickhouse-user-reconcile-$(date -u +%Y-%m-%dT%H:%M)"
 
+  # Writes the build concurrency rules into Restate's rule book. Without this
+  # job no rule is ever written, so once builds are scoped they run with no cap
+  build-limit-sync:
+    schedule: "*/5 * * * *"
+    urlPath: "hydra.v1.CronService/build-limit-sync/RunBuildLimitSync/send"
+    idempotencyKey: "build-limit-sync-$(date -u +%Y-%m-%dT%H:%M)"
+
   ratelimit-global-counters-cleanup:
     schedule: "0 * * * *"
     urlPath: "hydra.v1.CronService/ratelimit-global-counters-cleanup/RunRatelimitGlobalCountersCleanup/send"

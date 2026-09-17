@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/retry"
 )
 
@@ -140,6 +142,140 @@ func (c *Client) FindLiveInvocations(ctx context.Context, invocationIDs []string
 		live[row.ID] = true
 	}
 	return live, nil
+}
+
+// Rule is one entry in Restate's rule book: the cluster-wide table that caps
+// how many invocations may run at once for a scope and a limit key
+type Rule struct {
+	// Pattern selects the scope and limit keys the rule applies to, e.g.
+	// "builds/*" or "builds/ws_123". An exact pattern beats a wildcard
+	Pattern string
+	// Concurrency is the cap on simultaneously running invocations. Zero
+	// means the rule constrains no concurrency, which Restate treats as
+	// unlimited
+	Concurrency uint32
+	// Description is free-form operator text; Restate never consults it
+	Description string
+	// Disabled parks the rule: the runtime treats it as absent
+	Disabled bool
+	// Version advances only when a write changes the limits or the disabled
+	// flag, so a repeated identical upsert leaves it untouched
+	Version uint32
+}
+
+// RuleUpsert is one entry in a rule book write
+type RuleUpsert struct {
+	Pattern     string
+	Concurrency uint32
+	Description string
+}
+
+type ruleRow struct {
+	Pattern     string  `json:"pattern"`
+	Concurrency *uint32 `json:"concurrency"`
+	Description *string `json:"description"`
+	Disabled    bool    `json:"disabled"`
+	Version     uint32  `json:"version"`
+}
+type ruleQueryResponse struct {
+	Rows []ruleRow `json:"rows"`
+}
+
+// ListRules returns every rule in the rule book.
+//
+// Restate exposes no endpoint that reads rules back: the admin API has only
+// PUT /limits/rules and POST /limits/rules/bulk-delete. The rule book is
+// readable through the SQL introspection endpoint alone, which is what
+// `restate rules list` itself queries
+func (c *Client) ListRules(ctx context.Context) ([]Rule, error) {
+	result, err := call[ruleQueryResponse](ctx, c, "list rules", http.MethodPost, "/query", map[string]string{
+		"query": "select pattern, concurrency, description, disabled, version from sys_rules order by pattern",
+	}, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	rules := make([]Rule, 0, len(result.Rows))
+	for _, row := range result.Rows {
+		rules = append(rules, Rule{
+			Pattern:     row.Pattern,
+			Concurrency: ptr.SafeDeref(row.Concurrency),
+			Description: ptr.SafeDeref(row.Description),
+			Disabled:    row.Disabled,
+			Version:     row.Version,
+		})
+	}
+	return rules, nil
+}
+
+type limits struct {
+	Concurrency uint32 `json:"concurrency"`
+}
+type upsertRule struct {
+	Pattern     string `json:"pattern"`
+	Limits      limits `json:"limits"`
+	Description string `json:"description"`
+}
+
+// responseRule is one entry of the PUT /limits/rules response. It nests the
+// cap under "limits", where the sys_rules projection reads it as a column.
+type responseRule struct {
+	Pattern string `json:"pattern"`
+	Limits  struct {
+		Concurrency *uint32 `json:"concurrency"`
+	} `json:"limits"`
+	Description *string `json:"description"`
+	Disabled    bool    `json:"disabled"`
+	Version     uint32  `json:"version"`
+}
+
+// UpsertRules creates or updates the given rules and returns them as the book
+// holds them after the write. A pattern that is absent from the book is
+// created, one that is present is overwritten, and rules the call does not
+// name are left alone, so this never replaces the book.
+//
+// The write is atomic across the batch and unconditional. Writing a rule that
+// already holds these limits changes nothing and advances neither its version
+// nor its last-modified time, so a caller never has to read the book to decide
+// whether to write it. The returned rules come from the node that committed
+// the write, which makes them the one read of the book that cannot be stale.
+func (c *Client) UpsertRules(ctx context.Context, rules []RuleUpsert) ([]Rule, error) {
+	// A nil slice marshals to "null", which the endpoint rejects with a
+	// decode error rather than treating as an empty batch
+	if len(rules) == 0 {
+		return nil, errors.New("upsert rules called with no rules")
+	}
+	payload := make([]upsertRule, 0, len(rules))
+	for _, rule := range rules {
+		// Restate types concurrency as a non-zero integer; a zero would be
+		// rejected by the server, and meaning it as "unlimited" would need
+		// the field omitted instead
+		if rule.Concurrency == 0 {
+			return nil, fmt.Errorf("rule %q must set a non-zero concurrency", rule.Pattern)
+		}
+		payload = append(payload, upsertRule{
+			Pattern:     rule.Pattern,
+			Limits:      limits{Concurrency: rule.Concurrency},
+			Description: rule.Description,
+		})
+	}
+
+	written, err := call[[]responseRule](ctx, c, "upsert rules", http.MethodPut, "/limits/rules", payload, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]Rule, 0, len(written))
+	for _, rule := range written {
+		result = append(result, Rule{
+			Pattern:     rule.Pattern,
+			Concurrency: ptr.SafeDeref(rule.Limits.Concurrency),
+			Description: ptr.SafeDeref(rule.Description),
+			Disabled:    rule.Disabled,
+			Version:     rule.Version,
+		})
+	}
+	return result, nil
 }
 
 // call sends one admin API request through [Client.send] and decodes the

@@ -95,6 +95,12 @@ type CronServiceClient interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
+	// RunBuildLimitSync keeps the build concurrency rules in Restate's rule
+	// book: the cluster-wide table that caps how many invocations run at once
+	// for a scope and a limit key. It writes "builds/*", which caps a
+	// workspace's concurrent builds. Key is the fixed slug "build-limit-sync"
+	// so ticks serialize without sharing a queue with other singleton handlers
+	RunBuildLimitSync(opts ...sdk_go.ClientOption) sdk_go.Client[*RunBuildLimitSyncRequest, *RunBuildLimitSyncResponse]
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug
 	// "clickhouse-user-reconcile" so Restate state survives worker releases.
@@ -203,6 +209,14 @@ func (c *cronServiceClient) RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk
 	return sdk_go.WithRequestType[*RunDeploySpendCheckRequest](sdk_go.Object[*RunDeploySpendCheckResponse](c.ctx, "hydra.v1.CronService", c.key, "RunDeploySpendCheck", cOpts...))
 }
 
+func (c *cronServiceClient) RunBuildLimitSync(opts ...sdk_go.ClientOption) sdk_go.Client[*RunBuildLimitSyncRequest, *RunBuildLimitSyncResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*RunBuildLimitSyncRequest](sdk_go.Object[*RunBuildLimitSyncResponse](c.ctx, "hydra.v1.CronService", c.key, "RunBuildLimitSync", cOpts...))
+}
+
 func (c *cronServiceClient) RunClickhouseUserReconcile(opts ...sdk_go.ClientOption) sdk_go.Client[*RunClickhouseUserReconcileRequest, *RunClickhouseUserReconcileResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
@@ -278,6 +292,12 @@ type CronServiceIngressClient interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
+	// RunBuildLimitSync keeps the build concurrency rules in Restate's rule
+	// book: the cluster-wide table that caps how many invocations run at once
+	// for a scope and a limit key. It writes "builds/*", which caps a
+	// workspace's concurrent builds. Key is the fixed slug "build-limit-sync"
+	// so ticks serialize without sharing a queue with other singleton handlers
+	RunBuildLimitSync() ingress.Requester[*RunBuildLimitSyncRequest, *RunBuildLimitSyncResponse]
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug
 	// "clickhouse-user-reconcile" so Restate state survives worker releases.
@@ -351,6 +371,11 @@ func (c *cronServiceIngressClient) CloseDeployBillingWorkspace() ingress.Request
 func (c *cronServiceIngressClient) RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse](c.client, c.serviceName, "RunDeploySpendCheck", &c.key, &codec)
+}
+
+func (c *cronServiceIngressClient) RunBuildLimitSync() ingress.Requester[*RunBuildLimitSyncRequest, *RunBuildLimitSyncResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*RunBuildLimitSyncRequest, *RunBuildLimitSyncResponse](c.client, c.serviceName, "RunBuildLimitSync", &c.key, &codec)
 }
 
 func (c *cronServiceIngressClient) RunClickhouseUserReconcile() ingress.Requester[*RunClickhouseUserReconcileRequest, *RunClickhouseUserReconcileResponse] {
@@ -442,6 +467,12 @@ type CronServiceServer interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error)
+	// RunBuildLimitSync keeps the build concurrency rules in Restate's rule
+	// book: the cluster-wide table that caps how many invocations run at once
+	// for a scope and a limit key. It writes "builds/*", which caps a
+	// workspace's concurrent builds. Key is the fixed slug "build-limit-sync"
+	// so ticks serialize without sharing a queue with other singleton handlers
+	RunBuildLimitSync(ctx sdk_go.ObjectContext, req *RunBuildLimitSyncRequest) (*RunBuildLimitSyncResponse, error)
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug
 	// "clickhouse-user-reconcile" so Restate state survives worker releases.
@@ -488,6 +519,9 @@ func (UnimplementedCronServiceServer) CloseDeployBillingWorkspace(ctx sdk_go.Obj
 func (UnimplementedCronServiceServer) RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error) {
 	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunDeploySpendCheck not implemented"), sdk_go.WithErrorCode(501))
 }
+func (UnimplementedCronServiceServer) RunBuildLimitSync(ctx sdk_go.ObjectContext, req *RunBuildLimitSyncRequest) (*RunBuildLimitSyncResponse, error) {
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunBuildLimitSync not implemented"), sdk_go.WithErrorCode(501))
+}
 func (UnimplementedCronServiceServer) RunClickhouseUserReconcile(ctx sdk_go.ObjectContext, req *RunClickhouseUserReconcileRequest) (*RunClickhouseUserReconcileResponse, error) {
 	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RunClickhouseUserReconcile not implemented"), sdk_go.WithErrorCode(501))
 }
@@ -521,6 +555,7 @@ func NewCronServiceServer(srv CronServiceServer, opts ...sdk_go.ServiceDefinitio
 	router = router.Handler("RunDeployBillingClose", sdk_go.NewObjectHandler(srv.RunDeployBillingClose))
 	router = router.Handler("CloseDeployBillingWorkspace", sdk_go.NewObjectHandler(srv.CloseDeployBillingWorkspace))
 	router = router.Handler("RunDeploySpendCheck", sdk_go.NewObjectHandler(srv.RunDeploySpendCheck))
+	router = router.Handler("RunBuildLimitSync", sdk_go.NewObjectHandler(srv.RunBuildLimitSync))
 	router = router.Handler("RunClickhouseUserReconcile", sdk_go.NewObjectHandler(srv.RunClickhouseUserReconcile))
 	return router
 }
