@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
 import { IconCodeBranchOutline18, IconCubeOutline18 } from "@unkey/icons";
 import { TimestampInfo } from "@unkey/ui";
 import Link from "next/link";
-import { SectionLabel } from "./parts";
-import type { Density, RecentDeployRow } from "./types";
+import { Section } from "./parts";
+import type { Chrome, RecentDeployRow } from "./types";
 
 function firstOf(...candidates: (string | null)[]): string {
   return candidates.find((candidate) => candidate && candidate.trim().length > 0) ?? "Deployment";
@@ -95,21 +95,21 @@ export function DeployRow({ deploy, compact }: { deploy: RecentDeployRow; compac
 
 export function DeployList({
   title,
+  chrome,
   deploys,
   limit = 4,
   empty,
   compact,
 }: {
   title: string;
+  chrome: Chrome;
   deploys: RecentDeployRow[];
   limit?: number;
   empty: string;
   compact?: boolean;
-  density?: Density;
 }) {
   return (
-    <section>
-      <SectionLabel>{title}</SectionLabel>
+    <Section title={title} chrome={chrome} count={deploys.length || undefined}>
       {deploys.length === 0 ? (
         <p className="px-2 py-1.5 text-xs text-gray-9">{empty}</p>
       ) : (
@@ -117,6 +117,6 @@ export function DeployList({
           <DeployRow key={deploy.id} deploy={deploy} compact={compact} />
         ))
       )}
-    </section>
+    </Section>
   );
 }

@@ -4,15 +4,16 @@ import { cn } from "@/lib/utils";
 import { IconChevronRightOutline12 } from "@unkey/icons";
 import { useCallback, useEffect, useState } from "react";
 import { type VariantId, VARIANTS } from "./registry";
-import type { Density, LaunchpadOptions, SparkMode } from "./types";
+import type { Chrome, Density, LaunchpadOptions, SparkMode } from "./types";
 
 const STORAGE_KEY = "unkey.launchpad.options";
 
 export type PickerState = LaunchpadOptions & { variant: VariantId };
 
 const DEFAULTS: PickerState = {
-  variant: "flat",
+  variant: "activity",
   spark: "bars",
+  chrome: "card",
   density: "default",
   showProject: true,
   forceEmpty: false,
@@ -122,6 +123,13 @@ export function LaunchpadPicker({
                   onClick={() => update({ density })}
                 >
                   {density === "compact" ? "28" : density === "default" ? "32" : "40"}
+                </Chip>
+              ))}
+            </Group>
+            <Group label="Chrome">
+              {(["card", "plain"] as Chrome[]).map((chrome) => (
+                <Chip key={chrome} active={state.chrome === chrome} onClick={() => update({ chrome })}>
+                  {chrome}
                 </Chip>
               ))}
             </Group>

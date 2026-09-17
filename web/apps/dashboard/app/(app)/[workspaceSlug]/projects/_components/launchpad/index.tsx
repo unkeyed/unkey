@@ -13,6 +13,7 @@ export function useLaunchpadSurface() {
     spark: state.spark,
     density: state.density,
     showProject: state.showProject,
+    chrome: state.chrome,
     forceEmpty: state.forceEmpty,
   };
 

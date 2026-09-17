@@ -13,7 +13,7 @@ import {
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import type { Density, LaunchpadKind, LaunchpadRow, SparkMode } from "./types";
+import type { Chrome, Density, LaunchpadKind, LaunchpadRow, SparkMode } from "./types";
 
 export const ROW_HEIGHT: Record<Density, string> = {
   compact: "h-7",
@@ -103,6 +103,48 @@ export function SectionLabel({
         </Link>
       )}
     </div>
+  );
+}
+
+/**
+ * The prototype's rail shell, matched to the letter: no rule under the title,
+ * rows flush and separated by their own dividers.
+ */
+export function Section({
+  title,
+  chrome,
+  count,
+  subtitle,
+  children,
+}: {
+  title: string;
+  chrome: Chrome;
+  count?: number;
+  subtitle?: string;
+  children: ReactNode;
+}) {
+  const heading = (
+    <span className="flex min-w-0 items-center gap-2">
+      <span className="shrink-0 text-[13px] font-medium text-accent-12">{title}</span>
+      {count !== undefined && <CountPill value={count} />}
+      {subtitle && <span className="truncate text-xs text-gray-9">{subtitle}</span>}
+    </span>
+  );
+
+  if (chrome === "plain") {
+    return (
+      <section>
+        <div className="flex h-8 items-center justify-between gap-2 px-1">{heading}</div>
+        {children}
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-lg border border-grayA-4 bg-background">
+      <div className="flex items-center justify-between gap-2 px-3.5 pt-3 pb-1.5">{heading}</div>
+      <div className="divide-y divide-grayA-4 [&>*]:rounded-none [&>*]:px-3.5">{children}</div>
+    </section>
   );
 }
 

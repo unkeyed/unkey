@@ -1,7 +1,7 @@
 "use client";
 
 import { IconFingerprintOutline18 } from "@unkey/icons";
-import { KindGlyph, ROW_HEIGHT, RowLink, RowSkeleton, SectionLabel, SummaryRow, fmt } from "../parts";
+import { KindGlyph, RowLink, RowSkeleton, Section, SummaryRow, fmt } from "../parts";
 import { DeployList } from "../recent-deploys";
 import type { VariantProps } from "../types";
 import { GetStarted, RowSpark, Value } from "./shared";
@@ -16,28 +16,31 @@ export function RailActivity({ model, options }: VariantProps) {
   }
   if (model.isEmpty || options.forceEmpty) {
     return (
-      <section>
-        <SectionLabel>Get started</SectionLabel>
+      <Section title="Get started" chrome={options.chrome}>
         <GetStarted density={options.density} />
-      </section>
+      </Section>
     );
   }
   return (
     <>
       <DeployList
         title="Recently shipped"
+        chrome={options.chrome}
         deploys={model.readyDeploys}
         empty="Nothing has reached production yet."
       />
       <DeployList
         title="Recent previews"
+        chrome={options.chrome}
         deploys={model.previewDeploys}
         empty="No preview branches deployed."
       />
-      <section>
-        <SectionLabel action={{ label: "View all", href: model.keyspacesHref }}>
-          {`Most used · ${model.windowHours}h`}
-        </SectionLabel>
+      <Section
+        title="Most used"
+        chrome={options.chrome}
+        subtitle={`last ${model.windowHours}h`}
+        count={model.rows.length}
+      >
         {model.rows.slice(0, 5).map((row) => (
           <RowLink key={row.id} row={row} density={options.density}>
             <KindGlyph kind={row.kind} />
@@ -55,7 +58,7 @@ export function RailActivity({ model, options }: VariantProps) {
             density={options.density}
           />
         )}
-      </section>
+      </Section>
     </>
   );
 }
@@ -69,12 +72,14 @@ export function RailDeploysOnly({ model, options }: VariantProps) {
     <>
       <DeployList
         title="Recently shipped"
+        chrome={options.chrome}
         deploys={model.readyDeploys}
         limit={5}
         empty="Nothing has reached production yet."
       />
       <DeployList
         title="Recent previews"
+        chrome={options.chrome}
         deploys={model.previewDeploys}
         limit={5}
         empty="No preview branches deployed."

@@ -51,11 +51,13 @@ export type LaunchpadModel = {
 
 export type SparkMode = "off" | "bars" | "hover";
 export type Density = "compact" | "default" | "roomy";
+export type Chrome = "card" | "plain";
 
 export type LaunchpadOptions = {
   spark: SparkMode;
   density: Density;
   showProject: boolean;
+  chrome: Chrome;
   forceEmpty: boolean;
 };
 
