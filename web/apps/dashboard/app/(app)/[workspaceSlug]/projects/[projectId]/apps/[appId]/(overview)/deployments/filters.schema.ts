@@ -6,6 +6,7 @@ import type {
 import { parseAsFilterValueArray } from "@/components/logs/validation/utils/nuqs-parsers";
 import { createFilterOutputSchema } from "@/components/logs/validation/utils/structured-output-schema-generator";
 import {
+  DEPLOYMENT_GROUP_COLOR,
   DEPLOYMENT_STATUS_GROUP_NAMES,
   type DeploymentStatusGroup,
   isDeploymentStatusGroup,
@@ -19,14 +20,14 @@ export const DEPLOYMENT_STATUS_META: Record<
   GroupedDeploymentStatus,
   { label: string; colorClass: string }
 > = {
-  ready: { label: "Ready", colorClass: "bg-success-9" },
-  failed: { label: "Failed", colorClass: "bg-error-9" },
-  building: { label: "Building", colorClass: "bg-info-9" },
-  queued: { label: "Queued", colorClass: "bg-gray-9" },
-  blocked: { label: "Awaiting Approval", colorClass: "bg-warning-9" },
-  cancelled: { label: "Cancelled", colorClass: "bg-gray-9" },
-  superseded: { label: "Superseded", colorClass: "bg-gray-9" },
-  stopped: { label: "Stopped", colorClass: "bg-gray-9" },
+  ready: { label: "Ready", colorClass: DEPLOYMENT_GROUP_COLOR.ready },
+  failed: { label: "Failed", colorClass: DEPLOYMENT_GROUP_COLOR.failed },
+  building: { label: "Building", colorClass: DEPLOYMENT_GROUP_COLOR.building },
+  queued: { label: "Queued", colorClass: DEPLOYMENT_GROUP_COLOR.queued },
+  blocked: { label: "Awaiting Approval", colorClass: DEPLOYMENT_GROUP_COLOR.blocked },
+  cancelled: { label: "Cancelled", colorClass: DEPLOYMENT_GROUP_COLOR.cancelled },
+  superseded: { label: "Superseded", colorClass: DEPLOYMENT_GROUP_COLOR.superseded },
+  stopped: { label: "Stopped", colorClass: DEPLOYMENT_GROUP_COLOR.stopped },
 };
 
 const allOperators = ["is", "contains"] as const;

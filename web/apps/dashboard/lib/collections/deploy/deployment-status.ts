@@ -70,6 +70,35 @@ export const DEPLOYMENT_STATUS_GROUP_NAMES = Object.keys(
   DEPLOYMENT_STATUS_GROUPS,
 ) as DeploymentStatusGroup[];
 
+const GROUP_BY_STATUS = new Map<DeploymentStatus, DeploymentStatusGroup>(
+  DEPLOYMENT_STATUS_GROUP_NAMES.flatMap((group) =>
+    DEPLOYMENT_STATUS_GROUPS[group].map((status) => [status, group] as const),
+  ),
+);
+
+export const DEPLOYMENT_GROUP_COLOR: Record<DeploymentStatusGroup, string> = {
+  ready: "bg-success-9",
+  failed: "bg-error-9",
+  building: "bg-info-9",
+  queued: "bg-gray-9",
+  blocked: "bg-warning-9",
+  cancelled: "bg-gray-9",
+  superseded: "bg-gray-9",
+  stopped: "bg-gray-9",
+};
+
+export function statusGroupOf(status: DeploymentStatus): DeploymentStatusGroup {
+  const group = GROUP_BY_STATUS.get(status);
+  if (!group) {
+    throw new Error(`Deployment status ${status} belongs to no group`);
+  }
+  return group;
+}
+
+export function deploymentStatusColor(status: DeploymentStatus): string {
+  return DEPLOYMENT_GROUP_COLOR[statusGroupOf(status)];
+}
+
 // Groups holding deployments that are out of play. They accumulate on an active
 // app and bury the rows a user came to look at, so the list starts with them
 // filtered out; selecting them in the status filter brings them back.
