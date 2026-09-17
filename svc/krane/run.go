@@ -7,6 +7,9 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
+	"strings"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect"
@@ -23,7 +26,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel"
 	"github.com/unkeyed/unkey/pkg/prometheus"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
-	"github.com/unkeyed/unkey/pkg/repeat"
 	"github.com/unkeyed/unkey/pkg/rpc/interceptor"
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -131,6 +133,24 @@ func Run(ctx context.Context, cfg Config) error {
 		return fmt.Errorf("failed to create k8s dynamic client: %w", err)
 	}
 
+	namespaceBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		return fmt.Errorf("read leader election namespace: %w", err)
+	}
+
+	namespace := strings.TrimSpace(string(namespaceBytes))
+	if namespace == "" {
+		return errors.New("leader election namespace is empty")
+	}
+
+	leaseConfig := rest.CopyConfig(inClusterConfig)
+	leaseConfig.Timeout = 5 * time.Second
+
+	leaseClient, err := kubernetes.NewForConfig(leaseConfig)
+	if err != nil {
+		return fmt.Errorf("create leader election client: %w", err)
+	}
+
 	// Create vault client for deploy-time secret decryption
 	var vaultClient vault.VaultServiceClient
 	if cfg.Vault.URL != "" {
@@ -210,10 +230,6 @@ func Run(ctx context.Context, cfg Config) error {
 		ObservedTransitions: deploymentTransitionsCache,
 		StorageClassName:    cfg.StorageClassName,
 	})
-	if err := deploymentCtrl.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start deployment controller: %w", err)
-	}
-	r.Defer(deploymentCtrl.Stop)
 
 	// Start the unified syncer that consumes WatchDeploymentChanges and
 	// dispatches events to the deployment and cilium controllers.
@@ -224,21 +240,54 @@ func Run(ctx context.Context, cfg Config) error {
 		Region:      cfg.Cluster.Region,
 		Platform:    cfg.Cluster.Platform,
 	})
-	r.Go(w.Watch)
 
-	// Start heartbeat loop to register this cluster with the control plane
-	stopHeartbeat := repeat.Every(30*time.Second, func() {
-		if _, err := cluster.Heartbeat(ctx, &ctrlv1.HeartbeatRequest{
-			Cluster: &ctrlv1.ClusterKey{
-				CellId:   cfg.Cluster.CellID,
-				Platform: cfg.Cluster.Platform,
-				Region:   cfg.Cluster.Region,
-			},
-		}); err != nil {
-			logger.Warn("heartbeat failed", "error", err)
-		}
+	leadershipDone := make(chan struct{})
+	r.Go(func(ctx context.Context) error {
+		defer close(leadershipDone)
+
+		identity := cfg.InstanceID + "_" + uid.New(uid.InstancePrefix)
+		return runWithLeadership(ctx, leaseClient, namespace, identity, func(ctx context.Context) {
+			fingerprintCache.Clear(ctx)
+
+			var workers sync.WaitGroup
+			workers.Go(func() { deploymentCtrl.Run(ctx) })
+			workers.Go(func() {
+				if err := w.Watch(ctx); err != nil {
+					logger.Error("deployment watcher stopped", "error", err)
+				}
+			})
+
+			workers.Go(func() {
+				ticker := time.NewTicker(30 * time.Second)
+				defer ticker.Stop()
+
+				for ctx.Err() == nil {
+					if _, err := cluster.Heartbeat(ctx, &ctrlv1.HeartbeatRequest{
+						Cluster: &ctrlv1.ClusterKey{
+							CellId:   cfg.Cluster.CellID,
+							Platform: cfg.Cluster.Platform,
+							Region:   cfg.Cluster.Region,
+						},
+					}); err != nil {
+						logger.Warn("heartbeat failed", "error", err)
+					}
+
+					select {
+					case <-ctx.Done():
+						return
+					case <-ticker.C:
+					}
+				}
+			})
+
+			workers.Wait()
+		})
 	})
-	r.Defer(func() error { stopHeartbeat(); return nil })
+
+	r.Defer(func() error {
+		<-leadershipDone
+		return nil
+	})
 
 	// Create the connect handler
 	mux := http.NewServeMux()

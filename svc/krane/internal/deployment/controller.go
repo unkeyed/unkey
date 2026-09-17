@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -28,8 +29,8 @@ import (
 // The controller receives desired state from the unified WatchDeploymentChanges stream
 // (dispatched by the watcher) and reports actual state via ReportDeploymentStatus.
 //
-// Create a Controller with [New] and start it with [Controller.Start]. The controller
-// runs until the context is cancelled or [Controller.Stop] is called.
+// Create a Controller with [New] and run it with [Controller.Run]. The controller
+// runs until the context is cancelled.
 type Controller struct {
 	clientSet        kubernetes.Interface
 	dynamicClient    dynamic.Interface
@@ -38,7 +39,6 @@ type Controller struct {
 	registry         *RegistryConfig
 	imagePullSecrets []corev1.LocalObjectReference
 	cb               circuitbreaker.CircuitBreaker[any]
-	done             chan struct{}
 	cellID           string
 	region           string
 	platform         string
@@ -119,7 +119,7 @@ type Config struct {
 	StorageClassName string
 }
 
-// New creates a [Controller] ready to be started with [Controller.Start].
+// New creates a [Controller] ready to be run with [Controller.Run].
 //
 // The controller initializes with versionLastSeen=0, meaning it will receive all
 // pending deployments on first connection. The circuit breaker starts in a closed
@@ -138,7 +138,6 @@ func New(cfg Config) *Controller {
 		registry:         cfg.Registry,
 		imagePullSecrets: pullSecrets,
 		cb:               circuitbreaker.New[any]("deployment_state_update"),
-		done:             make(chan struct{}),
 		cellID:           cfg.CellID,
 		region:           cfg.Region,
 		platform:         cfg.Platform,
@@ -150,7 +149,7 @@ func New(cfg Config) *Controller {
 	}
 }
 
-// Start launches the background control loops.
+// Run runs the background control loops until ctx is cancelled.
 //
 // Three independent loops run concurrently:
 //   - [Controller.runActualStateResyncLoop]: periodic safety net for instance
@@ -162,24 +161,13 @@ func New(cfg Config) *Controller {
 // The actual-state and desired-state loops are decoupled so that slow control
 // plane RPCs cannot delay instance reporting.
 //
-// If watch initialization fails, Start returns the error.
-// All loops continue until the context is cancelled or [Controller.Stop] is called.
-func (c *Controller) Start(ctx context.Context) error {
-	go c.runActualStateResyncLoop(ctx)
-	go c.runDesiredStateResyncLoop(ctx)
-
-	if err := c.runPodWatchLoop(ctx); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Stop signals all background goroutines to terminate by closing the done channel.
-// Returns nil; the error return exists for interface compatibility.
-func (c *Controller) Stop() error {
-	close(c.done)
-	return nil
+// Run waits for every loop and its event handlers to stop before returning.
+func (c *Controller) Run(ctx context.Context) {
+	var wg sync.WaitGroup
+	wg.Go(func() { c.runActualStateResyncLoop(ctx) })
+	wg.Go(func() { c.runDesiredStateResyncLoop(ctx) })
+	wg.Go(func() { c.runPodWatchLoop(ctx) })
+	wg.Wait()
 }
 
 func (c *Controller) clusterKey() *ctrlv1.ClusterKey {
