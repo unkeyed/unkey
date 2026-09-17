@@ -4,11 +4,10 @@ import { formatCompactQuantity } from "@/lib/fmt";
 import { cn } from "@/lib/utils";
 import {
   IconArrowRightOutline18,
-  IconChevronRightOutline12,
   IconCubeOutline18,
   IconFingerprintOutline18,
-  IconGaugeOutline12,
-  IconKey2Outline12,
+  IconGaugeOutline18,
+  IconKey2Outline18,
 } from "@unkey/icons";
 import type { Route } from "next";
 import Link from "next/link";
@@ -26,8 +25,8 @@ export function fmt(value: number): string {
 }
 
 export function KindGlyph({ kind, className }: { kind: LaunchpadKind; className?: string }) {
-  const Glyph = kind === "keyspace" ? IconKey2Outline12 : IconGaugeOutline12;
-  return <Glyph className={cn("size-3 shrink-0 text-gray-9", className)} />;
+  const Glyph = kind === "keyspace" ? IconKey2Outline18 : IconGaugeOutline18;
+  return <Glyph className={cn("size-3.5 shrink-0 text-gray-9", className)} />;
 }
 
 export function ProjectChip({ name }: { name: string }) {
@@ -182,7 +181,6 @@ export function SummaryRow({
       {icon}
       <span className="min-w-0 flex-1 truncate text-gray-11">{label}</span>
       <span className="shrink-0 tabular-nums text-accent-12">{value}</span>
-      <IconChevronRightOutline12 className="size-3 shrink-0 text-gray-8" />
     </Link>
   );
 }
@@ -198,7 +196,7 @@ export function IdentitiesRow({
 }) {
   return (
     <SummaryRow
-      icon={<IconFingerprintOutline18 className="size-3 shrink-0 text-gray-9" />}
+      icon={<IconFingerprintOutline18 className="size-3.5 shrink-0 text-gray-9" />}
       label="Identities"
       value={fmt(count)}
       href={href}

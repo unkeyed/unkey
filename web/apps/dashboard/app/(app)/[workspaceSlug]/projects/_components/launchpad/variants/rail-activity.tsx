@@ -1,7 +1,7 @@
 "use client";
 
 import { IconFingerprintOutline18 } from "@unkey/icons";
-import { RowLink, RowSkeleton, Section, SummaryRow, fmt } from "../parts";
+import { KindGlyph, RowLink, RowSkeleton, Section, SummaryRow, fmt } from "../parts";
 import { DeployList } from "../recent-deploys";
 import type { VariantProps } from "../types";
 import { GetStarted, Value } from "./shared";
@@ -43,13 +43,14 @@ export function RailActivity({ model, options }: VariantProps) {
       >
         {model.rows.slice(0, 5).map((row) => (
           <RowLink key={row.id} row={row} density={options.density}>
+            <KindGlyph kind={row.kind} />
             <span className="min-w-0 flex-1 truncate text-accent-12">{row.name}</span>
             <Value row={row} />
           </RowLink>
         ))}
         {model.identityCount > 0 && (
           <SummaryRow
-            icon={<IconFingerprintOutline18 className="size-3 shrink-0 text-gray-9" />}
+            icon={<IconFingerprintOutline18 className="size-3.5 shrink-0 text-gray-9" />}
             label="Identities"
             value={fmt(model.identityCount)}
             href={model.identitiesHref}
