@@ -26,42 +26,14 @@ func (f keyAuthenticatorFunc) Execute(ctx context.Context, sess *zen.Session, re
 func TestEvaluate_UsesKeyAuthenticator(t *testing.T) {
 	t.Parallel()
 
-	req := httptest.NewRequest(http.MethodGet, "/api/orders", nil)
-	w := httptest.NewRecorder()
-	sess := &zen.Session{}
-	require.NoError(t, sess.Init(w, req, 0))
-	cfg := &frontlinev1.KeyAuth{KeySpaceIds: []string{"ks_orders"}, Credits: ptr.P(int64(0))}
-	want := &principal.Principal{Subject: "customer_42"}
-	engine := &Engine{
-		keyAuth: keyAuthenticatorFunc(func(ctx context.Context, s *zen.Session, r *http.Request, appID string, policy *frontlinev1.KeyAuth) (*principal.Principal, error) {
-			require.Equal(t, t.Context(), ctx)
-			require.Same(t, sess, s)
-			require.Same(t, req, r)
-			require.Equal(t, "app_orders", appID)
-			require.Same(t, cfg, policy)
-			s.ResponseWriter().Header().Set("X-RateLimit-Remaining", "7")
-			return want, nil
-		}),
-	}
-
-	result, err := engine.Evaluate(t.Context(), sess, req, "ws_orders", "app_orders", []*frontlinev1.Policy{{
-		Enabled: proto.Bool(true),
-		Config:  &frontlinev1.Policy_Keyauth{Keyauth: cfg},
-	}})
-	require.NoError(t, err)
-	require.Equal(t, want, result.Principal)
-	require.Equal(t, "7", w.Header().Get("X-RateLimit-Remaining"))
-}
-
-func TestEvaluate_KeyAuthenticatorFailures(t *testing.T) {
-	t.Parallel()
-
 	denied := fault.New("denied", fault.Code(codes.Frontline.Auth.InsufficientPermissions.URN()))
 	for _, tt := range []struct {
-		name string
-		err  error
-		code codes.URN
+		name      string
+		principal *principal.Principal
+		err       error
+		code      codes.URN
 	}{
+		{name: "success", principal: &principal.Principal{Subject: "customer_42"}},
 		{name: "authentication error", err: denied, code: codes.Frontline.Auth.InsufficientPermissions.URN()},
 		{name: "missing principal", code: codes.Frontline.Internal.InternalServerError.URN()},
 	} {
@@ -72,26 +44,37 @@ func TestEvaluate_KeyAuthenticatorFailures(t *testing.T) {
 			w := httptest.NewRecorder()
 			sess := &zen.Session{}
 			require.NoError(t, sess.Init(w, req, 0))
+			cfg := &frontlinev1.KeyAuth{KeySpaceIds: []string{"ks_orders"}, Credits: ptr.P(int64(0))}
 			engine := &Engine{
-				keyAuth: keyAuthenticatorFunc(func(_ context.Context, s *zen.Session, _ *http.Request, _ string, _ *frontlinev1.KeyAuth) (*principal.Principal, error) {
-					s.ResponseWriter().Header().Set("X-RateLimit-Remaining", "0")
-					return nil, tt.err
+				keyAuth: keyAuthenticatorFunc(func(ctx context.Context, session *zen.Session, request *http.Request, appID string, policy *frontlinev1.KeyAuth) (*principal.Principal, error) {
+					require.Equal(t, t.Context(), ctx)
+					require.Same(t, sess, session)
+					require.Same(t, req, request)
+					require.Equal(t, "app_orders", appID)
+					require.Same(t, cfg, policy)
+					session.ResponseWriter().Header().Set("X-RateLimit-Remaining", "7")
+					return tt.principal, tt.err
 				}),
 			}
 
 			result, err := engine.Evaluate(t.Context(), sess, req, "ws_orders", "app_orders", []*frontlinev1.Policy{{
 				Enabled: proto.Bool(true),
-				Config:  &frontlinev1.Policy_Keyauth{Keyauth: &frontlinev1.KeyAuth{}},
+				Config:  &frontlinev1.Policy_Keyauth{Keyauth: cfg},
 			}})
+			require.Equal(t, tt.principal, result.Principal)
+			require.Equal(t, "7", w.Header().Get("X-RateLimit-Remaining"))
+			if tt.code == "" {
+				require.NoError(t, err)
+				return
+			}
+
 			require.Error(t, err)
-			require.Nil(t, result.Principal)
 			code, ok := fault.GetCode(err)
 			require.True(t, ok)
 			require.Equal(t, tt.code, code)
 			if tt.err != nil {
 				require.ErrorIs(t, err, tt.err)
 			}
-			require.Equal(t, "0", w.Header().Get("X-RateLimit-Remaining"))
 		})
 	}
 }
