@@ -518,14 +518,9 @@ func buildEngine(
 		return nil, fmt.Errorf("failed to create key service: %w", err)
 	}
 
-	keyVerifier, err := keyauth.NewInternalVerifier(keyService, keyVerifications)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create key verifier: %w", err)
-	}
-
 	logger.Info("policy engine initialized")
 	eng, err := policies.New(policies.Config{
-		KeyVerifier: keyVerifier,
+		KeyAuth:     keyauth.New(keyService, clk, keyVerifications),
 		RateLimiter: rlSvc,
 		Clock:       clk,
 	})
