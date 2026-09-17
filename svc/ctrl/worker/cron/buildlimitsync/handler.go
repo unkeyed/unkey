@@ -49,7 +49,7 @@ const (
 type RestateRules interface {
 	ListRules(ctx context.Context) ([]restateadmin.Rule, error)
 	UpsertRules(ctx context.Context, rules []restateadmin.RuleUpsert) error
-	DeleteRules(ctx context.Context, patterns []string) error
+	DeleteRules(ctx context.Context, rules []restateadmin.Rule) error
 }
 
 // Config holds the handler's dependencies
@@ -83,17 +83,44 @@ func New(cfg Config) (*Handler, error) {
 }
 
 // Handle writes the default rule and one rule per workspace whose limit is
-// above the default, deletes every other "builds/<workspace_id>" rule, then
-// pings the heartbeat, so a green heartbeat means the rules match the
-// database. The upsert and the delete are separate Runs, so a crash between
-// them leaves a stale workspace rule until the next tick. Ticks share the
+// above the default, deletes every other "builds/<workspace_id>" rule at the
+// version it was listed, then pings the heartbeat, so a green heartbeat means
+// the rules match the database. The upsert and the delete are separate Runs,
+// so a crash between them leaves a stale workspace rule until the next tick. Ticks share the
 // fixed key "build-limit-sync", so a stuck invocation blocks the following
 // ticks; the retry policy kills it instead of pausing for that reason
 func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunBuildLimitSyncRequest,
 ) (*hydrav1.RunBuildLimitSyncResponse, error) {
-	desired, err := restate.Run(ctx, func(rc restate.RunContext) ([]restateadmin.RuleUpsert, error) {
+	desired, err := h.listDesiredRules(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list workspace build limits: %w", err)
+	}
+
+	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
+		return h.rules.UpsertRules(rc, desired)
+	}, restate.WithName("upsert rules")); err != nil {
+		return nil, fmt.Errorf("upsert %d rules: %w", len(desired), err)
+	}
+
+	if err := h.deleteStaleWorkspaceRules(ctx, desired); err != nil {
+		return nil, fmt.Errorf("delete stale workspace rules: %w", err)
+	}
+
+	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
+		return h.heartbeat.Ping(rc)
+	}, restate.WithName("send heartbeat")); err != nil {
+		return nil, fmt.Errorf("send heartbeat: %w", err)
+	}
+
+	return &hydrav1.RunBuildLimitSyncResponse{}, nil
+}
+
+// listDesiredRules returns the default rule plus one rule per workspace whose
+// limits row is above the default
+func (h *Handler) listDesiredRules(ctx restate.ObjectContext) ([]restateadmin.RuleUpsert, error) {
+	return restate.Run(ctx, func(rc restate.RunContext) ([]restateadmin.RuleUpsert, error) {
 		rows, err := h.db.ListWorkspaceBuildConcurrencyAbove(rc, defaultConcurrency)
 		if err != nil {
 			return nil, err
@@ -113,17 +140,14 @@ func (h *Handler) Handle(
 		}
 		return rules, nil
 	}, restate.WithName("list workspace build limits"))
-	if err != nil {
-		return nil, fmt.Errorf("list workspace build limits: %w", err)
-	}
+}
 
-	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
-		return h.rules.UpsertRules(rc, desired)
-	}, restate.WithName("upsert rules")); err != nil {
-		return nil, fmt.Errorf("upsert %d rules: %w", len(desired), err)
-	}
-
-	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
+// deleteStaleWorkspaceRules removes every "builds/<workspace_id>" rule the
+// database no longer calls for. Each rule is deleted at the version it was
+// listed with, so a rule rewritten between the list and the delete is left
+// alone and Restate answers 409; the Run then retries and lists again
+func (h *Handler) deleteStaleWorkspaceRules(ctx restate.ObjectContext, desired []restateadmin.RuleUpsert) error {
+	return restate.RunVoid(ctx, func(rc restate.RunContext) error {
 		existing, err := h.rules.ListRules(rc)
 		if err != nil {
 			return err
@@ -132,26 +156,16 @@ func (h *Handler) Handle(
 		for _, rule := range desired {
 			wanted[rule.Pattern] = struct{}{}
 		}
-		stale := make([]string, 0)
+		stale := make([]restateadmin.Rule, 0)
 		for _, rule := range existing {
 			if _, ok := wanted[rule.Pattern]; ok || !strings.HasPrefix(rule.Pattern, rulePatternPrefix) {
 				continue
 			}
-			stale = append(stale, rule.Pattern)
+			stale = append(stale, rule)
 		}
 		if len(stale) == 0 {
 			return nil
 		}
 		return h.rules.DeleteRules(rc, stale)
-	}, restate.WithName("delete stale workspace rules")); err != nil {
-		return nil, fmt.Errorf("delete stale workspace rules: %w", err)
-	}
-
-	if err := restate.RunVoid(ctx, func(rc restate.RunContext) error {
-		return h.heartbeat.Ping(rc)
-	}, restate.WithName("send heartbeat")); err != nil {
-		return nil, fmt.Errorf("send heartbeat: %w", err)
-	}
-
-	return &hydrav1.RunBuildLimitSyncResponse{}, nil
+	}, restate.WithName("delete stale workspace rules"))
 }

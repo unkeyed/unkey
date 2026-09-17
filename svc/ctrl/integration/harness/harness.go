@@ -393,12 +393,12 @@ func (l *lazyRestateRules) UpsertRules(ctx context.Context, rules []restateadmin
 	return client.UpsertRules(ctx, rules)
 }
 
-func (l *lazyRestateRules) DeleteRules(ctx context.Context, patterns []string) error {
+func (l *lazyRestateRules) DeleteRules(ctx context.Context, rules []restateadmin.Rule) error {
 	client, err := l.get()
 	if err != nil {
 		return err
 	}
-	return client.DeleteRules(ctx, patterns)
+	return client.DeleteRules(ctx, rules)
 }
 
 func (l *lazyRestateRules) get() (*restateadmin.Client, error) {

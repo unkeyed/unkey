@@ -193,10 +193,15 @@ func TestDeleteRules(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	err := New(Config{BaseURL: server.URL, APIKey: ""}).DeleteRules(context.Background(), []string{"builds/ws_KEBAP", "builds/ws_gone"})
+	err := New(Config{BaseURL: server.URL, APIKey: ""}).DeleteRules(context.Background(), []Rule{
+		{Pattern: "builds/ws_KEBAP", Concurrency: 9, Description: "", Disabled: false, Version: 4},
+		{Pattern: "builds/ws_gone", Concurrency: 2, Description: "", Disabled: false, Version: 1},
+	})
 	require.NoError(t, err)
 
 	require.Equal(t, http.MethodPost, gotMethod)
 	require.Equal(t, "/limits/rules/bulk-delete", gotPath)
-	require.JSONEq(t, `[{"pattern":"builds/ws_KEBAP"},{"pattern":"builds/ws_gone"}]`, string(gotBody))
+	// The version read back travels with each delete, so Restate refuses to
+	// remove a rule that changed since it was listed
+	require.JSONEq(t, `[{"pattern":"builds/ws_KEBAP","expected_version":4},{"pattern":"builds/ws_gone","expected_version":1}]`, string(gotBody))
 }
