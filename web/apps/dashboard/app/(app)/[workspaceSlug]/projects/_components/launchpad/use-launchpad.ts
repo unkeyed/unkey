@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { projectDisplayName } from "@/lib/collections/deploy/projects";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
@@ -13,7 +14,12 @@ export function useLaunchpad(windowHours = 24): LaunchpadModel {
 
   return useMemo(() => {
     const data = query.data;
-    const projectNames = new Map((data?.projects ?? []).map((p) => [p.id, p.name]));
+    const projectNames = new Map(
+      (data?.projects ?? []).map((project) => [
+        project.id,
+        projectDisplayName(project, workspace.name),
+      ]),
+    );
 
     const rows: LaunchpadRow[] = (data?.items ?? []).map((item) => ({
       id: item.id,
@@ -43,5 +49,5 @@ export function useLaunchpad(windowHours = 24): LaunchpadModel {
       windowHours: data?.windowHours ?? windowHours,
       isEmpty: !query.isLoading && rows.length === 0 && (data?.identityCount ?? 0) === 0,
     };
-  }, [query.data, query.isLoading, workspaceSlug, windowHours]);
+  }, [query.data, query.isLoading, workspaceSlug, workspace.name, windowHours]);
 }

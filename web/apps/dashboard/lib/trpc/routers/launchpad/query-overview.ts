@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
 const HOUR_MS = 60 * 60 * 1000;
+const DEFAULT_PROJECT_SLUG = "default";
 
 export const launchpadItem = z.object({
   id: z.string(),
@@ -21,7 +22,9 @@ export const launchpadItem = z.object({
 export const launchpadOverview = z.object({
   windowHours: z.number(),
   items: z.array(launchpadItem),
-  projects: z.array(z.object({ id: z.string(), name: z.string(), slug: z.string() })),
+  projects: z.array(
+    z.object({ id: z.string(), name: z.string(), slug: z.string(), isDefault: z.boolean() }),
+  ),
   identityCount: z.number(),
 });
 
@@ -213,7 +216,10 @@ export const queryLaunchpadOverview = workspaceProcedure
     return {
       windowHours,
       items,
-      projects,
+      projects: projects.map((project) => ({
+        ...project,
+        isDefault: project.slug === DEFAULT_PROJECT_SLUG,
+      })),
       identityCount: Number(identities[0]?.count ?? 0),
     };
   });

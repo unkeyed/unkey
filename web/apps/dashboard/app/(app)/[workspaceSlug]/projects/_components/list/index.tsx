@@ -37,7 +37,7 @@ export const ProjectsList = () => {
 
   if (projects.isLoading) {
     return (
-      <div aria-busy="true" className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+      <div aria-busy="true" className="grid gap-4 grid-cols-1 md:grid-cols-2">
         {Array.from({ length: MAX_SKELETON_COUNT }).map((_, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
           <ProjectCardSkeleton key={i} />
@@ -68,7 +68,7 @@ export const ProjectsList = () => {
         </div>
       ) : null}
       <DeployPlanGateDialog isOpen={isPlanOpen} onOpenChange={setIsPlanOpen} from="banner" />
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
         {projects.data.map((project) => (
           <ProximityPrefetch distance={300} debounceDelay={150} key={project.id}>
             <ProjectCard

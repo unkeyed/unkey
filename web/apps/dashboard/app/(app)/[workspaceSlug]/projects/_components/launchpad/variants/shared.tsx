@@ -3,6 +3,9 @@
 import { cn } from "@/lib/utils";
 import { IconBoltOutline18, IconCubeOutline18, IconKey2Outline18 } from "@unkey/icons";
 import { routes } from "@/lib/navigation/routes";
+import { TimestampInfo } from "@unkey/ui";
+import Link from "next/link";
+import { useDeployState } from "../use-deploy-state";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { type Action, ActionRow, ProjectChip, Spark, fmt } from "../parts";
 import type { LaunchpadRow, VariantProps } from "../types";
@@ -44,21 +47,46 @@ export function GetStarted({ density }: { density: VariantProps["options"]["dens
 }
 
 export function DeployNudge({ compact = false }: { compact?: boolean }) {
-  const workspace = useWorkspaceNavigation();
+  const state = useDeployState();
+  const shell = cn(
+    "group flex items-center gap-2.5 rounded-lg border px-3 text-[13px] transition-colors",
+    compact ? "h-9" : "h-11",
+  );
+
+  if (state.kind === "loading") {
+    return <div className={cn(shell, "border-grayA-4")} aria-busy="true" />;
+  }
+
+  if (state.kind === "none") {
+    return (
+      <Link
+        href={state.href}
+        className={cn(shell, "border-dashed border-grayA-6 hover:border-grayA-8 hover:bg-grayA-2")}
+      >
+        <IconBoltOutline18 className="size-3.5 shrink-0 text-gray-9" />
+        <span className="min-w-0 flex-1 truncate text-gray-11">No apps deployed yet</span>
+        <span className="shrink-0 text-xs text-accent-12 group-hover:underline">Deploy</span>
+      </Link>
+    );
+  }
+
   return (
-    <a
-      href={routes.projects.list({ workspaceSlug: workspace.slug, new: true })}
-      className={cn(
-        "group flex items-center gap-2.5 rounded-lg border border-dashed border-grayA-6 px-3 text-[13px] transition-colors hover:border-grayA-8 hover:bg-grayA-2",
-        compact ? "h-9" : "h-11",
-      )}
+    <Link
+      href={state.href}
+      className={cn(shell, "border-grayA-4 hover:border-grayA-7 hover:bg-grayA-2")}
     >
-      <IconBoltOutline18 className="size-3.5 shrink-0 text-gray-9" />
-      <span className="min-w-0 flex-1 truncate text-gray-11">
-        No apps deployed yet
+      <span
+        className={cn(
+          "size-1.5 shrink-0 rounded-full",
+          state.inFlight ? "bg-warning-9" : "bg-success-9",
+        )}
+      />
+      <span className="flex min-w-0 flex-1 flex-col leading-tight">
+        <span className="truncate text-accent-12">{state.appName}</span>
+        <span className="truncate text-xs text-gray-9">{state.projectName}</span>
       </span>
-      <span className="shrink-0 text-xs text-accent-12 group-hover:underline">Deploy</span>
-    </a>
+      <TimestampInfo value={state.deployedAt} className="shrink-0 text-xs text-gray-9" />
+    </Link>
   );
 }
 
