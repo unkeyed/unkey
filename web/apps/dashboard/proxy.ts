@@ -124,7 +124,7 @@ export default async function proxy(req: NextRequest) {
     );
   }
 
-  const isApiPath = url.pathname.startsWith("/api/");
+  const isApiPath = url.pathname.startsWith("/api/") || url.pathname.startsWith("/proxy/");
   if (!session.user && !isApiPath && !isPublicPath(url.pathname)) {
     return expireLegacySession(
       req,
@@ -139,9 +139,10 @@ export default async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // API paths must always receive AuthKit's trusted request headers. tRPC
-    // procedure names contain dots and otherwise look like static file paths.
+    // API paths must always receive AuthKit's trusted request headers. tRPC and
+    // proxied API operation names contain dots and otherwise look like static files.
     "/api/:path*",
+    "/proxy/:path*",
     "/((?!_next/static|_next/image|images|favicon.ico|.+\\.[\\w]+$).*)",
   ],
 };
