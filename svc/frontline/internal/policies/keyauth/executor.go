@@ -2,44 +2,36 @@ package keyauth
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/internal/services/keys"
-	"github.com/unkeyed/unkey/pkg/batch"
-	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/ptr"
-	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 )
 
-// Executor handles KeyAuth policy evaluation by wrapping the existing KeyService.
+// Executor handles credential extraction and KeyAuth response semantics.
 type Executor struct {
-	keyService       keys.KeyService
-	clock            clock.Clock
-	keyVerifications *batch.BatchProcessor[schema.KeyVerification]
+	verifier Verifier
+	clock    clock.Clock
 }
 
-// New creates a new KeyAuth policy executor. keyVerifications receives one
-// telemetry snapshot per request that produced a KeyVerifier, regardless of the
-// final outcome.
-func New(keyService keys.KeyService, clk clock.Clock, keyVerifications *batch.BatchProcessor[schema.KeyVerification]) *Executor {
+// New creates a KeyAuth policy executor with the selected verification backend.
+func New(verifier Verifier, clk clock.Clock) *Executor {
 	return &Executor{
-		keyService:       keyService,
-		clock:            clk,
-		keyVerifications: keyVerifications,
+		verifier: verifier,
+		clock:    clk,
 	}
 }
 
 // Execute evaluates a KeyAuth policy against the incoming request.
-// It extracts the API key, verifies it using KeyService, and returns a Principal on success.
+// It extracts the API key and returns a Principal on successful verification.
 func (e *Executor) Execute(
 	ctx context.Context,
 	sess *zen.Session,
@@ -56,77 +48,20 @@ func (e *Executor) Execute(
 		)
 	}
 
-	keyHash := hash.Sha256(rawKey)
-	verifier, err := e.keyService.Get(ctx, sess, keyHash)
+	result, err := e.verifier.Verify(ctx, sess, VerifyRequest{
+		RawKey:          rawKey,
+		AppID:           appID,
+		Keyspaces:       cfg.GetKeySpaceIds(),
+		Credits:         ptr.SafeDeref(cfg.Credits, 1),
+		PermissionQuery: cfg.GetPermissionQuery(),
+		Ratelimits:      toVerifyRatelimits(cfg.GetRatelimits()),
+	})
+	writeRateLimitHeaders(sess.ResponseWriter(), result.Ratelimits, e.clock)
 	if err != nil {
-		return nil, fault.Wrap(err,
-			fault.Code(codes.Frontline.Auth.InvalidKey.URN()),
-			fault.Internal("key lookup failed"),
-			fault.Public("Authentication failed. The provided API key is invalid."),
-		)
-	}
-	// Capture the final verifier state (after any Verify-stage mutations) into
-	// the key_verifications stream regardless of which branch returns below.
-	defer func() {
-		verification := verifier.TelemetrySnapshot()
-		verification.AppID = appID
-		e.keyVerifications.Buffer(verification)
-	}()
-
-	// Fail fast on states that verification cannot recover from (not found,
-	// disabled, expired, workspace disabled, etc.) before spending a credit.
-	if verifier.Status != keys.StatusValid {
-		return nil, fault.New("invalid API key",
-			fault.Code(codes.Frontline.Auth.InvalidKey.URN()),
-			fault.Internal("key status: "+string(verifier.Status)),
-			fault.Public("Authentication failed. The provided API key is invalid."),
-		)
+		return nil, err
 	}
 
-	// Deduct one credit per request unless the policy overrides the cost.
-	// A cost of 0 verifies the key without spending credits (e.g. read-only
-	// routes or gateways that only prove the key is valid before proxying).
-	credits := ptr.SafeDeref(cfg.Credits, 1)
-	if credits < 0 {
-		return nil, fault.New("negative credits cost in keyauth policy",
-			fault.Code(codes.Frontline.Internal.InvalidConfiguration.URN()),
-			fault.Internal(fmt.Sprintf("negative credits cost: %d", credits)),
-			fault.Public("Service configuration error."),
-		)
-	}
-	verifyOpts := []keys.VerifyOption{
-		keys.WithKeyspaces(cfg.GetKeySpaceIds()...),
-		keys.WithCredits(credits),
-	}
-	if pq := cfg.GetPermissionQuery(); pq != "" {
-		query, err := rbac.ParseQuery(pq)
-		if err != nil {
-			return nil, fault.Wrap(err,
-				fault.Code(codes.Frontline.Internal.InvalidConfiguration.URN()),
-				fault.Internal("invalid permission query: "+pq),
-				fault.Public("Service configuration error."),
-			)
-		}
-		verifyOpts = append(verifyOpts, keys.WithPermissions(query))
-	}
-
-	if rls := cfg.GetRatelimits(); len(rls) > 0 {
-		verifyOpts = append(verifyOpts, keys.WithRateLimits(toVerifyRatelimits(rls)))
-	}
-
-	if err := verifier.Verify(ctx, verifyOpts...); err != nil {
-		return nil, fault.Wrap(err,
-			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
-			fault.Internal("verification error"),
-			fault.Public("An internal error occurred during authentication."),
-		)
-	}
-
-	// Write rate limit headers before checking status so they're present
-	// on both success (2xx) and rate-limited (429) responses.
-	writeRateLimitHeaders(sess.ResponseWriter(), verifier.RatelimitResults, e.clock)
-
-	switch verifier.Status {
+	switch result.Status {
 	case keys.StatusValid:
 		// OK
 	case keys.StatusInsufficientPermissions:
@@ -151,20 +86,21 @@ func (e *Executor) Execute(
 		keys.StatusForbidden, keys.StatusWorkspaceDisabled, keys.StatusWorkspaceNotFound:
 		return nil, fault.New("key verification failed",
 			fault.Code(codes.Frontline.Auth.InvalidKey.URN()),
-			fault.Internal("post-verification status: "+string(verifier.Status)),
+			fault.Internal("post-verification status: "+string(result.Status)),
 			fault.Public("Authentication failed."),
 		)
 	}
 
-	p, err := principal.KeyPrincipalFromVerifier(verifier)
-	if err != nil {
+	if err := assert.All(
+		assert.Equal(result.Status, keys.StatusValid, "unexpected verification status"),
+		assert.NotNilAndNotZero(result.Principal, "successful verification requires a principal"),
+	); err != nil {
 		return nil, fault.Wrap(err,
 			fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
-			fault.Internal("failed to build principal"),
 			fault.Public("An internal error occurred during authentication."),
 		)
 	}
-	return p, nil
+	return result.Principal, nil
 }
 
 // toVerifyRatelimits converts the policy's rate limit selectors into the
