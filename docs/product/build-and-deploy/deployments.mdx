@@ -23,7 +23,7 @@ Unkey receives a trigger: a GitHub webhook from a push, a CLI `unkey deploy` com
 
 <Step title="Queued">
 
-The deployment enters the build queue. Each workspace builds a limited number of deployments at a time (see [Build concurrency](#build-concurrency) below); when the workspace is at its limit the deployment waits here until a running build finishes or is cancelled. If you deployed a pre-built image via the CLI, this step is skipped.
+The deployment enters the build queue. Each workspace builds a limited number of deployments at a time (see [Build concurrency](#build-concurrency) below); when the workspace is at its limit the deployment waits here until a running build finishes or is cancelled. If you deployed a pre-built image via the CLI, there is nothing to build and this step is over in an instant.
 
 </Step>
 
