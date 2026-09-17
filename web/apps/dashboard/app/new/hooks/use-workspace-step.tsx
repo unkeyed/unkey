@@ -1,4 +1,3 @@
-import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies-actions";
 import { routes } from "@/lib/navigation/routes";
 import { slugify } from "@/lib/slugify";
 import { trpc } from "@/lib/trpc/client";
@@ -50,7 +49,6 @@ export const useWorkspaceStep = (): WorkspaceStep => {
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
-  const utils = trpc.useUtils();
 
   useEffect(() => {
     setIsMounted(true);
@@ -72,50 +70,18 @@ export const useWorkspaceStep = (): WorkspaceStep => {
     }
   }, [form]);
 
-  const switchOrgMutation = trpc.user.switchOrg.useMutation({
-    onSuccess: async (sessionData) => {
-      if (!sessionData.expiresAt) {
-        console.error("Missing session data: ", sessionData);
-        toast.error(`Failed to switch organizations: ${sessionData.error}`);
-        return;
-      }
-
-      await setSessionCookie({
-        token: sessionData.token,
-        expiresAt: sessionData.expiresAt,
-      });
-
-      // invalidate the user cache and workspace cache.
-      await utils.user.getCurrentUser.invalidate();
-      await utils.workspace.getCurrent.invalidate();
-      await utils.api.invalidate();
-      await utils.ratelimit.invalidate();
-      await utils.stripe.invalidate();
-      // Force a router refresh to ensure the server-side layout
-      // re-renders with the new session context and fresh workspace data
-      router.refresh();
-    },
-    onError: (error) => {
-      toast.error(`Failed to load new workspace: ${error.message}`);
-    },
-  });
-
   const createWorkspace = trpc.workspace.create.useMutation({
     onSuccess: async ({ orgId }, variables) => {
       setWorkspaceCreated(true);
       const slug = variables.slug;
       setCreatedSlug(slug);
 
-      await switchOrgMutation.mutateAsync(orgId);
-      try {
-        await setLastUsedOrgCookie({ orgId });
-      } catch (error) {
-        console.error("Failed to persist last-used workspace:", error);
-        // Continue anyway - cookie is a UX enhancement, not critical
-      }
-
-      // Navigate to the APIs page for the new workspace
-      router.push(routes.apis.list({ workspaceSlug: slug }));
+      window.location.assign(
+        routes.auth.switchOrganization({
+          organizationId: orgId,
+          returnTo: routes.apis.list({ workspaceSlug: slug }),
+        }),
+      );
     },
     onError: (error) => {
       if (error.data?.code === "METHOD_NOT_SUPPORTED") {

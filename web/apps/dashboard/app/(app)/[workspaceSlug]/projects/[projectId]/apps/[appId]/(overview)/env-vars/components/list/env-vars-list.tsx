@@ -3,10 +3,17 @@
 import { collection } from "@/lib/collections";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { IconBracketsSquareDotsOutline18 } from "@unkey/icons";
+import {
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+} from "@unkey/ui";
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useRowSelection } from "../../hooks/use-row-selection";
 import { useVirtualList } from "../../hooks/use-virtual-list";
-import { EnvVarsEmpty } from "../shared/env-vars-empty";
 import { EnvVarsSkeleton } from "../shared/env-vars-skeleton";
 import type { EnvironmentFilter, SortOption } from "../toolbar/env-vars-toolbar";
 import { GroupRow } from "./env-var-group-row";
@@ -127,7 +134,23 @@ export function EnvVarsList({
   }
 
   if (displayRows.length === 0) {
-    return <EnvVarsEmpty searchQuery={searchQuery} />;
+    return (
+      <EmptyState>
+        <EmptyStateIcon>
+          <IconBracketsSquareDotsOutline18 />
+        </EmptyStateIcon>
+        <EmptyStateHeader>
+          <EmptyStateTitle>
+            {searchQuery ? "No Matching Variables" : "No Environment Variables"}
+          </EmptyStateTitle>
+          <EmptyStateDescription>
+            {searchQuery
+              ? `No variables matching "${searchQuery}". Try a different search term.`
+              : "Environment variables will appear here once you add them. Store API keys, tokens, and config securely."}
+          </EmptyStateDescription>
+        </EmptyStateHeader>
+      </EmptyState>
+    );
   }
 
   const virtualItems = virtualizer.getVirtualItems();

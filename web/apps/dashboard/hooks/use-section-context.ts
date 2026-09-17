@@ -4,6 +4,7 @@ import { useParams, useSelectedLayoutSegments } from "next/navigation";
 
 export type SectionContext =
   | { type: "workspace" }
+  | { type: "account" }
   | { type: "settings" }
   | { type: "authorization" }
   | { type: "project"; projectId: string; appId?: string }
@@ -40,6 +41,9 @@ export function useSectionContext(): SectionContext {
   }
   if (section === "authorization") {
     return { type: "authorization" };
+  }
+  if (section === "account") {
+    return { type: "account" };
   }
 
   return { type: "workspace" };

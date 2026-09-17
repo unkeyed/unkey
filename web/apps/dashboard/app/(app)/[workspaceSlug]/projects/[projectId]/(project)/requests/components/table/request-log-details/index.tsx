@@ -3,7 +3,7 @@ import { safeParseJson } from "@/app/(app)/[workspaceSlug]/logs/utils";
 import { useRequestLogsContext } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/context/request-logs-provider";
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { DeploymentIdLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-id-link";
-import { DeploymentStatusBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-badge";
+import { DeploymentStatusLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import { DottedLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/dotted-link";
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
 import { EMPTY_TEXT, LogDetails } from "@/components/logs/details/log-details";
@@ -407,7 +407,7 @@ const formatDeploymentInfo = (
       {isDeploymentStatus(deployment.status) && (
         <div className="flex items-center justify-between">
           <span className="text-gray-11">Status:</span>
-          <DeploymentStatusBadge status={deployment.status} />
+          <DeploymentStatusLabel status={deployment.status} className="text-xs" />
         </div>
       )}
     </div>

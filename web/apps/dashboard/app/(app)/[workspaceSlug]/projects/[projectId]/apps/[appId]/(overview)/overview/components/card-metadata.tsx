@@ -12,12 +12,16 @@ import {
 import { Badge, CopyButton, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { MetadataCell } from "../../../components/active-deployment-card/components/metadata-cell";
-import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
+import {
+  DeploymentStatusLabel,
+  StatusDot,
+  StatusLabel,
+} from "../../../components/deployment-status-dot";
 import { DottedLink } from "../../../components/dotted-link";
 import { Avatar } from "../../../components/git-avatar";
 import { RegionFlag } from "../../../components/region-flag";
 import { useProductionCard } from "./production-card-context";
-import { STATUS_META, StatusDot } from "./status";
+import { STATUS_META } from "./status";
 
 function GitHubLink({ href, children }: { href: string | undefined; children: ReactNode }) {
   if (!href) {
@@ -33,25 +37,25 @@ function GitHubLink({ href, children }: { href: string | undefined; children: Re
 function StatusCell() {
   const { deployment, status, isCurrent, isRolledBack } = useProductionCard();
   if (!isCurrent) {
-    return <DeploymentStatusBadge status={deployment.status} />;
+    return <DeploymentStatusLabel status={deployment.status} />;
   }
   if (isRolledBack) {
     return (
-      <span className="flex items-center gap-2 text-[13px] text-accent-12">
-        <StatusDot status={status} />
+      <StatusLabel>
+        <StatusDot colorClass={STATUS_META[status].dotClass} />
         {STATUS_META[status].label}
         <Badge variant="warning" size="sm" className="gap-1">
           <IconArrowDotRotateAnticlockwiseOutline12 className="shrink-0" />
           Rolled back
         </Badge>
-      </span>
+      </StatusLabel>
     );
   }
   return (
-    <span className="flex items-center gap-2 text-[13px] text-accent-12">
-      <StatusDot status={status} />
+    <StatusLabel>
+      <StatusDot colorClass={STATUS_META[status].dotClass} />
       {STATUS_META[status].label}
-    </span>
+    </StatusLabel>
   );
 }
 

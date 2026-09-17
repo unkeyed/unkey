@@ -18,6 +18,7 @@ import { describe, expect, it } from "vitest";
  * deliberate exceptions.
  */
 const AREAS = [
+  "account",
   "apis",
   "projects",
   "ratelimits",

@@ -10,6 +10,10 @@ import {
 import {
   Button,
   CopyButton,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -25,10 +29,9 @@ import { GlowIcon } from "./glow-icon";
 import { TagBadge } from "./tag-badge";
 
 export function DeploymentDomainsCard({
-  emptyState,
   glow,
   domainFilter,
-}: { emptyState?: ReactNode; glow?: boolean; domainFilter?: (d: Domain) => boolean }) {
+}: { glow?: boolean; domainFilter?: (d: Domain) => boolean }) {
   const [urlsOpen, setUrlsOpen] = useState(false);
   const { deployment } = useDeployment();
   const {
@@ -56,15 +59,22 @@ export function DeploymentDomainsCard({
   const isLoading = isDomainsLoading || isCustomDomainsLoading;
 
   if (!isLoading && primaryDomain === null) {
-    return emptyState ?? null;
+    return (
+      <DomainsGroup>
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>No domains yet</EmptyStateTitle>
+            <EmptyStateDescription>
+              Add a domain to make this deployment reachable.
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
+      </DomainsGroup>
+    );
   }
 
   return (
-    <SettingsGroup
-      icon={<IconEarthOutline18 className="size-3.5" />}
-      title={<span className="font-medium text-gray-12 text-[13px] leading-4">Domains</span>}
-      hideChevron
-    >
+    <DomainsGroup>
       <SettingCardGroup>
         {isLoading || primaryDomain === null ? (
           <SettingCard
@@ -145,6 +155,18 @@ export function DeploymentDomainsCard({
           </SettingCard>
         )}
       </SettingCardGroup>
+    </DomainsGroup>
+  );
+}
+
+function DomainsGroup({ children }: { children: ReactNode }) {
+  return (
+    <SettingsGroup
+      icon={<IconEarthOutline18 className="size-3.5" />}
+      title={<span className="font-medium text-gray-12 text-[13px] leading-4">Domains</span>}
+      hideChevron
+    >
+      {children}
     </SettingsGroup>
   );
 }

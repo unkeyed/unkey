@@ -4,7 +4,11 @@ import { trpc } from "@/lib/trpc/client";
 import {
   Button,
   Card,
-  Empty,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   PageBody,
   PageContainer,
   PageHeader,
@@ -36,15 +40,19 @@ export default function LogdrainDetailPage(props: { params: Promise<{ drainId: s
     return (
       <PageContainer>
         <PageBody>
-          <Empty>
-            <Empty.Title>We couldn't load this log drain</Empty.Title>
-            <Empty.Description>Something went wrong on our side. Try again.</Empty.Description>
-            <Empty.Actions>
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>We couldn't load this log drain</EmptyStateTitle>
+              <EmptyStateDescription>
+                Something went wrong on our side. Try again.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
               <Button variant="outline" onClick={() => query.refetch()}>
                 Retry
               </Button>
-            </Empty.Actions>
-          </Empty>
+            </EmptyStateActions>
+          </EmptyState>
         </PageBody>
       </PageContainer>
     );
@@ -61,10 +69,12 @@ function NotFound() {
   return (
     <PageContainer>
       <PageBody>
-        <Empty>
-          <Empty.Title>Log drain not found</Empty.Title>
-          <Empty.Description>It may have been deleted.</Empty.Description>
-        </Empty>
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>Log drain not found</EmptyStateTitle>
+            <EmptyStateDescription>It may have been deleted.</EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
       </PageBody>
     </PageContainer>
   );
