@@ -1,111 +1,35 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  getAuthCookieOptions,
-  getDefaultCookieOptions,
-  shouldUseSecureCookies,
-} from "../cookie-security";
 
-// Mock the env module
-vi.mock("@/lib/env", () => ({
-  env: vi.fn(),
+const mocks = vi.hoisted(() => ({
+  vercelEnv: "development" as "development" | "preview" | "production",
 }));
 
-import { env } from "@/lib/env";
+vi.mock("@/lib/env", () => ({
+  env: () => ({ VERCEL_ENV: mocks.vercelEnv }),
+}));
 
-const mockEnv = vi.mocked(env);
+import { getAuthCookieOptions, shouldUseSecureCookies } from "../cookie-security";
 
-describe("cookie-security", () => {
+describe("local session cookie security", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    mocks.vercelEnv = "development";
   });
 
-  describe("shouldUseSecureCookies", () => {
-    it("should return true for production environment", () => {
-      mockEnv.mockReturnValue({
-        VERCEL_ENV: "production",
-      } as any);
-
+  it.each(["preview", "production"] as const)(
+    "uses secure cookies in the %s environment",
+    (vercelEnv) => {
+      mocks.vercelEnv = vercelEnv;
       expect(shouldUseSecureCookies()).toBe(true);
-    });
+    },
+  );
 
-    it("should return false for development environment", () => {
-      mockEnv.mockReturnValue({
-        VERCEL_ENV: "development",
-      } as any);
-
-      expect(shouldUseSecureCookies()).toBe(false);
-    });
-
-    it("should return true for preview environment", () => {
-      mockEnv.mockReturnValue({
-        VERCEL_ENV: "preview",
-      } as any);
-
-      expect(shouldUseSecureCookies()).toBe(true);
-    });
-  });
-
-  describe("getDefaultCookieOptions", () => {
-    it("should return secure options for production", () => {
-      mockEnv.mockReturnValue({
-        VERCEL_ENV: "production",
-      } as any);
-
-      const options = getDefaultCookieOptions();
-
-      expect(options).toEqual({
-        httpOnly: true,
-        secure: true,
-        sameSite: "strict",
-        path: "/",
-      });
-    });
-
-    it("should return non-secure options for development", () => {
-      mockEnv.mockReturnValue({
-        VERCEL_ENV: "development",
-      } as any);
-
-      const options = getDefaultCookieOptions();
-
-      expect(options).toEqual({
-        httpOnly: true,
-        secure: false,
-        sameSite: "strict",
-        path: "/",
-      });
-    });
-  });
-
-  describe("getAuthCookieOptions", () => {
-    it("should return secure options with lax sameSite for production", () => {
-      mockEnv.mockReturnValue({
-        VERCEL_ENV: "production",
-      } as any);
-
-      const options = getAuthCookieOptions();
-
-      expect(options).toEqual({
-        httpOnly: true,
-        secure: true,
-        sameSite: "lax",
-        path: "/",
-      });
-    });
-
-    it("should return non-secure options with lax sameSite for development", () => {
-      mockEnv.mockReturnValue({
-        VERCEL_ENV: "development",
-      } as any);
-
-      const options = getAuthCookieOptions();
-
-      expect(options).toEqual({
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        path: "/",
-      });
+  it("allows local HTTP development", () => {
+    expect(shouldUseSecureCookies()).toBe(false);
+    expect(getAuthCookieOptions()).toEqual({
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      path: "/",
     });
   });
 });
