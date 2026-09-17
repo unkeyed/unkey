@@ -96,9 +96,8 @@ require (
 	k8s.io/api v0.35.3
 	k8s.io/apimachinery v0.35.3
 	k8s.io/client-go v0.35.3
+	vitess.io/vitess v0.23.4
 )
-
-require vitess.io/vitess v0.23.0
 
 require (
 	github.com/moby/moby/api v1.55.0 // indirect
