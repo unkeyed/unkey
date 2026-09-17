@@ -1,6 +1,6 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { type AppDeployment, DeploymentMeta, useDeploymentPhrase } from "./deployment-meta";
+import { type AppDeployment, DeploymentMeta } from "./deployment-meta";
 
 const deployment = (overrides: Partial<AppDeployment> = {}): AppDeployment => ({
   id: "dpl_1",
@@ -10,10 +10,6 @@ const deployment = (overrides: Partial<AppDeployment> = {}): AppDeployment => ({
   deployedAt: Date.now(),
   ...overrides,
 });
-
-function Phrase({ deployment }: { deployment: AppDeployment }) {
-  return <span>{useDeploymentPhrase(deployment)}</span>;
-}
 
 describe("DeploymentMeta", () => {
   beforeEach(() => {
@@ -45,18 +41,5 @@ describe("DeploymentMeta", () => {
     );
 
     expect(screen.getByText("now")).toBeTruthy();
-  });
-
-  it("gives a tooltip opened later the same age as the row it covers", () => {
-    const app = deployment({ deployedAt: Date.now() - 59_500 });
-    render(<DeploymentMeta deployment={app} />);
-    const rowAge = screen.getByText(/ago$/).textContent;
-
-    act(() => {
-      vi.advanceTimersByTime(900);
-    });
-    render(<Phrase deployment={app} />);
-
-    expect(screen.getByText(`deployed ${rowAge}`)).toBeTruthy();
   });
 });

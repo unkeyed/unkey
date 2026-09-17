@@ -37,23 +37,21 @@ const TONE: Record<DeploymentStatusGroup, string> = {
 
 // deployedAt is the server's clock read against the browser's, so a browser
 // running behind would put the deployment in the future: "started in 25 sec".
-function useDeploymentAge(deployment: AppDeployment): string {
-  const now = useNow();
-  return intlFormatDistance(deployment.deployedAt, Math.max(now, deployment.deployedAt), {
-    style: "narrow",
-  });
+function age(deployedAt: number, now: number): string {
+  return intlFormatDistance(deployedAt, Math.max(now, deployedAt), { style: "narrow" });
 }
 
 export function useDeploymentPhrase(deployment: AppDeployment): string {
-  return `${VERB[statusGroupOf(deployment.status)]} ${useDeploymentAge(deployment)}`;
+  return `${VERB[statusGroupOf(deployment.status)]} ${age(deployment.deployedAt, useNow())}`;
 }
 
 export function DeploymentMeta({ deployment }: { deployment: AppDeployment }) {
-  const deployedAgo = useDeploymentAge(deployment);
-  const deployedPhrase = useDeploymentPhrase(deployment);
+  const deployedAgo = age(deployment.deployedAt, useNow());
 
   const settled = (group: DeploymentStatusGroup) => (
-    <span className={cn("shrink-0 text-xs", TONE[group])}>{deployedPhrase}</span>
+    <span className={cn("shrink-0 text-xs", TONE[group])}>
+      {VERB[group]} {deployedAgo}
+    </span>
   );
 
   return match(statusGroupOf(deployment.status))

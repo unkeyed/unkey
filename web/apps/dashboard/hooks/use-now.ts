@@ -32,7 +32,8 @@ function subscribe(listener: () => void): () => void {
 }
 
 // One clock for the whole page: labels reading their own Date.now() froze at
-// mount, and a tooltip opening over a row disagreed with the row.
+// mount, and a tooltip opening over a row disagreed with the row. The server
+// snapshot is the moment the module loaded, so render this on the client only.
 export function useNow(): number {
   return useSyncExternalStore(
     subscribe,
