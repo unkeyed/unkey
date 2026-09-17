@@ -1,6 +1,6 @@
 ---
 title: "Deployments"
-description: "Deploy, promote, rollback, cancel, and build-queue workflows"
+description: "Deploy, promote, rollback, cancel, and build concurrency workflows"
 ---
 
 The control plane deployment service creates deployment records and delegates execution to Restate workflows.
@@ -12,8 +12,9 @@ Each Restate VO uses the narrowest key that gives the serialization it needs:
 - **`DeployWorkflow`** is keyed by `deployment_id`. Each deployment is one workflow run, so multiple deployments in the same environment can build in parallel. It is a workflow rather than a virtual object because Deploy has no operations to serialise.
 - **`EnvironmentService`** is keyed by `environment_id`. Promote and rollback run here. Both change which deployment is live in one environment, and both check the live pointer before they swap it. One key holds the check and the swap under one lock. With separate keys, two operations on the same environment can pass their checks against the same live pointer and then swap one after the other.
 - **`RoutingService`** is keyed by `env_id`. Frontline route assignment and the live-deployment swap serialize here. It is the write primitive that `DeployWorkflow` and `EnvironmentService` call.
-- **`BuildSlotService`** is keyed by `workspace_id`. Caps how many deployments build at once across the workspace and prioritises production over preview waiters.
 - **`DeploymentService`** (desired-state transitions, scheduled and immediate) is keyed by `deployment_id`.
+
+Build concurrency has no virtual object. `DeployWorkflow.Build` is a shared handler that Deploy calls on the same workflow key in the Restate scope `builds` with the workspace id as the limit key, and Restate's rule book caps how many run at once per workspace. See [Build concurrency](#build-concurrency-restate-flow-control).
 
 Key components:
 
@@ -22,7 +23,7 @@ Key components:
 - `EnvironmentService` (promote, rollback, environment deletion): [`svc/ctrl/worker/environment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/environment)
 - `RoutingService` (route assignment + live swap) — [`svc/ctrl/worker/routing`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/routing)
 - `DeploymentService` VO for scheduled and immediate desired-state transitions — [`svc/ctrl/worker/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment)
-- `BuildSlotService` VO for per-workspace build concurrency — [`svc/ctrl/worker/buildslot`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/buildslot)
+- `RunBuildLimitSync` cron that writes the rule book: [`svc/ctrl/worker/cron/buildlimitsync`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/cron/buildlimitsync)
 - Superseded sibling cancellation — [`svc/ctrl/worker/deploy/supersede.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy/supersede.go)
 
 ## Flow: create deployment
@@ -33,8 +34,8 @@ sequenceDiagram
   participant CtrlAPI as Control API
   participant DB as MySQL
   participant Restate as Restate
-  participant BuildSlot as BuildSlotService<br/>(keyed by workspace)
   participant Worker as DeployWorkflow<br/>(keyed by deployment_id)
+  participant Build as DeployWorkflow.Build<br/>(same key, scope builds)
   participant Dedup as Workflow.cancelOlderSiblings
 
   Client->>CtrlAPI: CreateDeployment(project_id, source, env)
@@ -50,14 +51,16 @@ sequenceDiagram
   Dedup->>Restate: CancelInvocation for each older sibling
   Restate->>Worker: Execute Deploy workflow for newest commit
   Worker->>Dedup: skipIfSuperseded (defensive self-skip check)
-  Worker->>BuildSlot: AcquireOrWait(deployment_id, awakeable_id, is_production)
-  BuildSlot-->>Worker: resolve awakeable when slot available<br/>(prod waiters drained first)
+  Worker->>Restate: Build (scope builds, limit key workspace_id)
+  Note over Restate: queued until the workspace<br/>is under its rule book cap
+  Restate->>Build: Build
+  Build->>DB: End queued step, run starting and building steps
+  Build-->>Worker: BuildResponse
   Worker->>DB: Insert topologies (observed through VStream)
   Worker->>Worker: waitForDeployments awaits promise instances_ready
   Note over Worker: suspended on promise
   DB-->>Worker: ReportDeploymentStatus threshold met<br/>→ NotifyInstancesReady resolves promise
   Worker->>DB: Mark deployment ready
-  Worker->>BuildSlot: Release(deployment_id)
 ```
 
 ## Flow: cancel deployment
@@ -69,15 +72,14 @@ sequenceDiagram
   participant DB as MySQL
   participant RestateAdmin as Restate Admin API
   participant Worker as DeployWorkflow
-  participant BuildSlot as BuildSlotService
 
   Client->>CtrlAPI: CancelDeployment(deployment_id)
   CtrlAPI->>DB: Find deployment (must be non-terminal)
   CtrlAPI->>DB: Stamp active steps with "Cancelled by user"
   CtrlAPI->>RestateAdmin: CancelInvocation(invocation_id)
+  Note over RestateAdmin: Also cancels the Build that Deploy is waiting on;<br/>a queued Build is removed without running
   RestateAdmin->>Worker: Inject TerminalError at next SDK call
   Worker->>Worker: defer runs compensation stack (LIFO)
-  Worker->>BuildSlot: Release(deployment_id) (compensation)
   Worker->>DB: UpdateDeploymentStatusIfActive → failed (compensation)
   Note over CtrlAPI,Worker: The "Cancelled by user" step marker wins<br/>(EndDeploymentStep is first-write-wins<br/>via WHERE ended_at IS NULL)
 ```
@@ -119,37 +121,76 @@ sequenceDiagram
   Routing-->>Worker: previous_deployment_id (atomically swapped)
 ```
 
-## BuildSlotService (workspace concurrency)
+## Build concurrency (Restate flow control)
 
-`BuildSlotService` caps concurrent builds per workspace. It is a Restate VO keyed by `workspace_id`, which makes `Acquire` and `Release` race-free across concurrent deploy handlers.
+Build concurrency is Restate flow control; the worker holds no queue state of its own. Three Restate terms, defined the same way in the `DeployWorkflow` proto comment:
 
-State held in the VO:
+- A **scope** is a name Restate groups invocations under. Deploy calls `Build` in the scope `builds`.
+- A **limit key** is the value Restate counts running invocations by within a scope. Deploy passes the workspace id.
+- The **rule book** says how many invocations may run at once for a `<scope>/<limit key>` pattern. It is written through the admin API and read from the `sys_rules` table. An exact pattern beats a wildcard. No matching rule means unlimited.
 
-- `active_slots` — set of deployment IDs currently holding a slot
-- `prod_wait_list` — FIFO of production waiters
-- `preview_wait_list` — FIFO of non-production waiters
+| Rule pattern | Concurrency | Description | Written by |
+| --- | --- | --- | --- |
+| `builds/*` | 1 | `default per-workspace build concurrency` | `CronService.RunBuildLimitSync`, every five minutes |
+| `builds/<workspace_id>` | `limits.builds_concurrent_max` when above 1 | `per-workspace build concurrency from limits` | the same cron, deleted once the row is back at 1 or below |
 
-Acquire flow:
+The database is the source of truth. The cron rewrites both kinds of rule on every tick and deletes any `builds/<workspace_id>` rule the `limits` table does not call for, so a rule set by hand lasts at most five minutes.
 
-1. Deploy handler creates a Restate awakeable and calls `AcquireOrWait(deployment_id, awakeable_id, is_production)`.
-2. The workspace's `builds_concurrent_max` limit is fetched. If `len(active_slots) < limit`, the deployment is added to `active_slots` and the awakeable is resolved immediately.
-3. Otherwise the deployment is appended to `prod_wait_list` (if production) or `preview_wait_list` (if not). The Deploy handler stays suspended on `awakeable.Result()`.
+Deploy uses `Request`, never `Send`. Restate treats the Build as part of the Deploy invocation, so cancelling Deploy also cancels a queued or running Build; a `Send` would detach it and it would keep running:
 
-Production deployments respect the same quota cap as preview — they don't bypass — but they get priority by going onto a separate wait list that Release drains first.
+```go
+hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(buildScope)).
+    Build().
+    Request(req, restate.WithLimitKey(deployment.WorkspaceID))
+```
 
-Release flow:
+What this gives:
 
-1. Deploy handler calls `Release(deployment_id)` — from the success path explicitly, or from the compensation stack on failure/cancel.
-2. If the deployment was in `active_slots`, it is removed and a waiter is promoted: `prod_wait_list` first, then `preview_wait_list`. The promoted waiter's awakeable is resolved.
-3. If the deployment was in either wait list (cancelled before it ever got a slot), it is removed.
+- One queue per workspace, shared by production and preview, ordered by the time each Build became ready. There is no production preference and no queue timeout: a queued deployment stays `pending` until a running Build in its workspace completes or is cancelled, or until someone cancels it.
+- `Build` refuses to run when the request did not arrive in scope `builds` or with the workspace id as limit key, because either mistake would build without a cap.
+- A Build that exhausts its retry budget is killed, not paused. Kill returns a terminal error to Deploy, which closes the open step and fails the deployment through its compensation stack.
+- Scoped invocations take their partition from the scope, so every Build in the fleet shares one Restate partition, whatever its workspace. Queues stay per workspace inside that partition. A leader change of that partition replays every in-flight build.
 
-This gives push-based slot hand-off with priority — no polling. The concurrency cap is `limits.builds_concurrent_max` per workspace.
+### Runbook (Restate Cloud)
+
+Canary and production run on Restate Cloud. Both clusters are in us-east-1; canary's Restate Cloud environment is hosted in the EU region, production's in the US region. The worker's token is the operator's registration token. These commands have been run against dev Restate, not yet against Cloud.
+
+```bash
+export CTX=<canary or production us-east-1 context>
+export ENV_ID=201kfwtpdc67n1p4d6vdpf017sh   # canary; production is 201kf0h15frcbabqajch9nz2ztt
+export ADMIN="https://${ENV_ID}.env.eu.restate.cloud:9070"   # canary is .env.eu., production is .env.us.
+export TOKEN="$(kubectl --context "$CTX" -n restate-system get secret restate-cloud-credentials -o jsonpath='{.data.token}' | base64 -d)"
+```
+
+Read the rule book. There is no `GET /limits/rules`; the book is read through the SQL endpoint, and the `Accept` header is required or the response is binary Arrow:
+
+```bash
+curl -sS "$ADMIN/query" -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -H 'Accept: application/json' \
+  -d '{"query":"SELECT pattern, concurrency, description, disabled, version FROM sys_rules"}'
+```
+
+What the result means:
+
+- `builds/*` missing: every workspace builds without a cap. The next cron tick within five minutes rewrites it. To fix it now, run the CronJob by hand: `kubectl --context "$CTX" -n <restate chart namespace> create job --from=cronjob/restate-build-limit-sync build-limit-sync-manual`.
+- Any rule edited by hand: the cron rewrites it on the next tick, so the edit lasts at most five minutes.
+- One workspace needs a higher cap during an incident: raise `builds_concurrent_max` on its `limits` row. The cron writes the matching `builds/<workspace_id>` rule within five minutes, and queued builds for that workspace start as soon as the rule lands.
+
+Queue depth and age:
+
+```bash
+curl -sS "$ADMIN/query" -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -H 'Accept: application/json' \
+  -d '{"query":"SELECT id, target, created_at, status FROM sys_invocation WHERE target_service_name = '"'"'hydra.v1.DeployWorkflow'"'"' AND target_handler_name = '"'"'Build'"'"' AND status <> '"'"'completed'"'"'"}'
+```
+
+Other introspection tables: `sys_user_limits` (per limit key usage) and `sys_vqueue_entry_status` (queued entries). Registration of a new worker revision follows [runbook 0001](https://github.com/unkeyed/infra/blob/main/docs/runbooks/restate/0001-control-worker-registration.md).
 
 ## Commit deduplication
 
 When a new deployment is created, `Workflow.cancelOlderSiblings` looks for older deployments on the same `(app, environment, branch)` that are still in the build queue (`pending` or `awaiting_approval`) and cancels them.
 
-Once a deployment acquires a build slot and transitions to `starting`, it is **committed** — newer commits will not supersede it. This avoids the pathological case where rapid pushes keep cancelling builds and nothing ever finishes.
+Once Restate lets a deployment's Build run and it transitions to `starting`, it is **committed**: newer commits will not supersede it. This avoids the pathological case where rapid pushes keep cancelling builds and nothing ever finishes.
 
 Cancellation happens in three steps, all batched:
 
@@ -196,8 +237,7 @@ Scheduled state changes are serialized via a Restate virtual object keyed by dep
 
 ## Compensation stack
 
-The Deploy handler maintains a LIFO compensation stack registered via `Compensation.Add` (for side-effects wrapped in `restate.RunVoid`) and `Compensation.AddCtx` (for raw Restate context operations like `BuildSlotService.Release().Send`). The stack fires on any error or cancellation:
+The Deploy handler maintains a LIFO compensation stack registered via `Compensation.Add`, each step wrapped in `restate.RunVoid`. The stack fires on any error or cancellation:
 
-- Release the build slot
 - Mark the deployment as `failed` (only if still in an active status — the conditional `UpdateDeploymentStatusIfActive` query prevents overwriting `superseded` or `ready`)
 - Undo topology inserts, route assignments, etc.

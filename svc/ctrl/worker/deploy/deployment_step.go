@@ -14,10 +14,10 @@ import (
 )
 
 func (w *Workflow) DeploymentStep(
-	ctx restate.WorkflowContext,
+	ctx restate.Context,
 	step db.DeploymentStepsStep,
-	deployment db.Deployment,
-	fn func(innerCtx restate.WorkflowContext) error,
+	deploymentID string,
+	fn func() error,
 ) error {
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		now := time.Now().UnixMilli()
@@ -40,7 +40,7 @@ func (w *Workflow) DeploymentStep(
 		}
 
 		return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-			current, err := db.NewQueries(tx).FindDeploymentById(txCtx, deployment.ID)
+			current, err := db.NewQueries(tx).FindDeploymentForStep(txCtx, deploymentID)
 			if err != nil {
 				return err
 			}
@@ -48,17 +48,17 @@ func (w *Workflow) DeploymentStep(
 			// it here would let the compensation stack later mark it failed
 			if current.Status.IsTerminal() {
 				return restate.ToTerminalError(
-					fmt.Errorf("deployment %s is already %s, not starting step %s", deployment.ID, current.Status, step),
+					fmt.Errorf("deployment %s is already %s, not starting step %s", deploymentID, current.Status, step),
 					restate.WithErrorCode(409),
 				)
 			}
 
 			if err := db.NewQueries(tx).InsertDeploymentStep(txCtx, db.InsertDeploymentStepParams{
-				WorkspaceID:   deployment.WorkspaceID,
-				ProjectID:     deployment.ProjectID,
-				AppID:         deployment.AppID,
-				EnvironmentID: deployment.EnvironmentID,
-				DeploymentID:  deployment.ID,
+				WorkspaceID:   current.WorkspaceID,
+				ProjectID:     current.ProjectID,
+				AppID:         current.AppID,
+				EnvironmentID: current.EnvironmentID,
+				DeploymentID:  deploymentID,
 				Step:          step,
 				StartedAt:     uint64(now),
 			}); err != nil {
@@ -66,7 +66,7 @@ func (w *Workflow) DeploymentStep(
 			}
 
 			return db.NewQueries(tx).UpdateDeploymentStatusIfActive(txCtx, db.UpdateDeploymentStatusIfActiveParams{
-				ID:                  deployment.ID,
+				ID:                  deploymentID,
 				Status:              deploymentStatus,
 				UpdatedAt:           sql.NullInt64{Valid: true, Int64: now},
 				ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
@@ -77,11 +77,11 @@ func (w *Workflow) DeploymentStep(
 		return err
 	}
 
-	stepErr := fn(ctx)
+	stepErr := fn()
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return w.db.EndDeploymentStep(runCtx, db.EndDeploymentStepParams{
-			DeploymentID: deployment.ID,
+			DeploymentID: deploymentID,
 			Step:         step,
 			EndedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			Error:        sql.NullString{Valid: stepErr != nil, String: truncateString(fault.UserFacingMessage(stepErr), 512)},

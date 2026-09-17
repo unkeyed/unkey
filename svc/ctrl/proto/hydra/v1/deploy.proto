@@ -15,8 +15,16 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 // resolves, so the run keeps no state. The contended pointer,
 // apps.current_deployment_id, is serialized inside
 // RoutingService.SwapLiveDeployment, which is keyed by environment id.
-// Workspace-wide build concurrency is separately enforced by BuildSlotService.
 // Promotion and rollback live on EnvironmentService, keyed by environment id.
+//
+// Build concurrency is Restate flow control, not code in this service. Deploy
+// calls Build in the scope "builds" with the workspace id as the limit key. A
+// scope is a name Restate groups invocations under. A limit key is the value
+// Restate counts running invocations by within a scope. The rule book, written
+// through the admin API, says how many invocations may run at once for a
+// "<scope>/<limit key>" pattern. CronService.RunBuildLimitSync writes the rule
+// book. A Build over the cap waits inside Restate until a running one finishes
+// or is cancelled.
 service DeployWorkflow {
   option (dev.restate.sdk.go.service_type) = WORKFLOW;
 
@@ -27,6 +35,12 @@ service DeployWorkflow {
   // Deploy is the run: build, provision, wait for health, route.
   rpc Deploy(DeployRequest) returns (DeployResponse) {
     option (dev.restate.sdk.go.handler_type) = WORKFLOW_RUN;
+  }
+
+  // Build ends the queued step, then builds or resolves the image. Restate
+  // counts this invocation against the workspace's build cap.
+  rpc Build(DeployRequest) returns (BuildResponse) {
+    option (dev.restate.sdk.go.handler_type) = SHARED;
   }
 
   // NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
@@ -252,6 +266,8 @@ message DeployRequest {
 }
 
 message DeployResponse {}
+
+message BuildResponse {}
 
 // DeployTeardownService stops a workspace's running Deploy compute and waits
 // for it to drain, keyed by workspace id so teardowns serialize per workspace.

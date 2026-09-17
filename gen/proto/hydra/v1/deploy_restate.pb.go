@@ -24,14 +24,25 @@ import (
 // resolves, so the run keeps no state. The contended pointer,
 // apps.current_deployment_id, is serialized inside
 // RoutingService.SwapLiveDeployment, which is keyed by environment id.
-// Workspace-wide build concurrency is separately enforced by BuildSlotService.
 // Promotion and rollback live on EnvironmentService, keyed by environment id.
+//
+// Build concurrency is Restate flow control, not code in this service. Deploy
+// calls Build in the scope "builds" with the workspace id as the limit key. A
+// scope is a name Restate groups invocations under. A limit key is the value
+// Restate counts running invocations by within a scope. The rule book, written
+// through the admin API, says how many invocations may run at once for a
+// "<scope>/<limit key>" pattern. CronService.RunBuildLimitSync writes the rule
+// book. A Build over the cap waits inside Restate until a running one finishes
+// or is cancelled.
 type DeployWorkflowClient interface {
 	// Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
 	// The key is the deployment id, so the caller chooses it up front.
 	Create(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy is the run: build, provision, wait for health, route.
 	Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *DeployResponse]
+	// Build ends the queued step, then builds or resolves the image. Restate
+	// counts this invocation against the workspace's build cap.
+	Build(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *BuildResponse]
 	// NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
 	// lands before Deploy awaits is kept.
 	NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
@@ -67,6 +78,14 @@ func (c *deployWorkflowClient) Deploy(opts ...sdk_go.ClientOption) sdk_go.Client
 	return sdk_go.WithRequestType[*DeployRequest](sdk_go.Workflow[*DeployResponse](c.ctx, "hydra.v1.DeployWorkflow", c.workflowID, "Deploy", cOpts...))
 }
 
+func (c *deployWorkflowClient) Build(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *BuildResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*DeployRequest](sdk_go.Workflow[*BuildResponse](c.ctx, "hydra.v1.DeployWorkflow", c.workflowID, "Build", cOpts...))
+}
+
 func (c *deployWorkflowClient) NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
@@ -86,6 +105,9 @@ type DeployWorkflowIngressClient interface {
 	Submit(ctx context.Context, input *DeployRequest, opts ...ingress.SendOption) (ingress.SendResponse[*DeployResponse], error)
 	// Handle creates an handle to the submitted workflow, useful to retrieve its output or attach to it
 	Handle() ingress.InvocationHandle[*DeployResponse]
+	// Build ends the queued step, then builds or resolves the image. Restate
+	// counts this invocation against the workspace's build cap.
+	Build() ingress.Requester[*DeployRequest, *BuildResponse]
 	// NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
 	// lands before Deploy awaits is kept.
 	NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
@@ -115,6 +137,11 @@ func (c *deployWorkflowIngressClient) Submit(ctx context.Context, input *DeployR
 	return ingress.NewRequester[*DeployRequest, *DeployResponse](c.client, c.serviceName, "Deploy", &c.workflowID, &codec).Send(ctx, input, opts...)
 }
 
+func (c *deployWorkflowIngressClient) Build() ingress.Requester[*DeployRequest, *BuildResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*DeployRequest, *BuildResponse](c.client, c.serviceName, "Build", &c.workflowID, &codec)
+}
+
 func (c *deployWorkflowIngressClient) NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse](c.client, c.serviceName, "NotifyInstancesReady", &c.workflowID, &codec)
@@ -136,14 +163,25 @@ func (c *deployWorkflowIngressClient) Handle() ingress.InvocationHandle[*DeployR
 // resolves, so the run keeps no state. The contended pointer,
 // apps.current_deployment_id, is serialized inside
 // RoutingService.SwapLiveDeployment, which is keyed by environment id.
-// Workspace-wide build concurrency is separately enforced by BuildSlotService.
 // Promotion and rollback live on EnvironmentService, keyed by environment id.
+//
+// Build concurrency is Restate flow control, not code in this service. Deploy
+// calls Build in the scope "builds" with the workspace id as the limit key. A
+// scope is a name Restate groups invocations under. A limit key is the value
+// Restate counts running invocations by within a scope. The rule book, written
+// through the admin API, says how many invocations may run at once for a
+// "<scope>/<limit key>" pattern. CronService.RunBuildLimitSync writes the rule
+// book. A Build over the cap waits inside Restate until a running one finishes
+// or is cancelled.
 type DeployWorkflowServer interface {
 	// Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
 	// The key is the deployment id, so the caller chooses it up front.
 	Create(ctx sdk_go.WorkflowSharedContext, req *DeployCreateRequest) (*DeployCreateResponse, error)
 	// Deploy is the run: build, provision, wait for health, route.
 	Deploy(ctx sdk_go.WorkflowContext, req *DeployRequest) (*DeployResponse, error)
+	// Build ends the queued step, then builds or resolves the image. Restate
+	// counts this invocation against the workspace's build cap.
+	Build(ctx sdk_go.WorkflowSharedContext, req *DeployRequest) (*BuildResponse, error)
 	// NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
 	// lands before Deploy awaits is kept.
 	NotifyInstancesReady(ctx sdk_go.WorkflowSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error)
@@ -161,6 +199,9 @@ func (UnimplementedDeployWorkflowServer) Create(ctx sdk_go.WorkflowSharedContext
 }
 func (UnimplementedDeployWorkflowServer) Deploy(ctx sdk_go.WorkflowContext, req *DeployRequest) (*DeployResponse, error) {
 	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Deploy not implemented"), sdk_go.WithErrorCode(501))
+}
+func (UnimplementedDeployWorkflowServer) Build(ctx sdk_go.WorkflowSharedContext, req *DeployRequest) (*BuildResponse, error) {
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Build not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployWorkflowServer) NotifyInstancesReady(ctx sdk_go.WorkflowSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error) {
 	return nil, sdk_go.ToTerminalError(fmt.Errorf("method NotifyInstancesReady not implemented"), sdk_go.WithErrorCode(501))
@@ -186,6 +227,7 @@ func NewDeployWorkflowServer(srv DeployWorkflowServer, opts ...sdk_go.ServiceDef
 	router := sdk_go.NewWorkflow("hydra.v1.DeployWorkflow", sOpts...)
 	router = router.Handler("Create", sdk_go.NewWorkflowSharedHandler(srv.Create))
 	router = router.Handler("Deploy", sdk_go.NewWorkflowHandler(srv.Deploy))
+	router = router.Handler("Build", sdk_go.NewWorkflowSharedHandler(srv.Build))
 	router = router.Handler("NotifyInstancesReady", sdk_go.NewWorkflowSharedHandler(srv.NotifyInstancesReady))
 	return router
 }

@@ -233,6 +233,21 @@ func (c *Client) UpsertRules(ctx context.Context, rules []RuleUpsert) error {
 	return err
 }
 
+type deleteRule struct {
+	Pattern string `json:"pattern"`
+}
+
+// DeleteRules removes the given rules. A pattern that no longer exists is
+// skipped without an error
+func (c *Client) DeleteRules(ctx context.Context, patterns []string) error {
+	payload := make([]deleteRule, 0, len(patterns))
+	for _, pattern := range patterns {
+		payload = append(payload, deleteRule{Pattern: pattern})
+	}
+	_, err := c.send(ctx, "delete rules", http.MethodPost, "/limits/rules/bulk-delete", payload, nil)
+	return err
+}
+
 // call sends one admin API request through [Client.send] and decodes the
 // JSON response body into Resp.
 func call[Resp any](
