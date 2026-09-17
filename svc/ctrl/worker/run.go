@@ -22,7 +22,7 @@ import (
 	"github.com/unkeyed/unkey/gen/rpc/vault"
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/buildinfo"
-	buildinfometrics "github.com/unkeyed/unkey/pkg/buildinfo/metrics"
+	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -120,8 +120,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	// Add base attributes to global logger
-	logger.AddBaseAttrs(slog.GroupAttrs(
-		"instance",
+	logger.AddBaseAttrs(slog.GroupAttrs("instance",
 		slog.String("id", cfg.InstanceID),
 		slog.String("region", cfg.Region),
 		slog.String("version", buildinfo.Version),
@@ -380,10 +379,9 @@ func Run(ctx context.Context, cfg Config) error {
 		DefaultDomain: cfg.DefaultDomain,
 	}), restate.WithIngressPrivate(true)))
 
-	restateSrv.Bind(hydrav1.NewOpenapiServiceServer(
-		openapi.New(openapi.Config{
-			DB: database,
-		}), restate.WithIngressPrivate(true),
+	restateSrv.Bind(hydrav1.NewOpenapiServiceServer(openapi.New(openapi.Config{
+		DB: database,
+	}), restate.WithIngressPrivate(true),
 		// Retry with exponential backoff: 1m → 2m → 4m → 8m → 10m (capped), ~1 hour total.
 		// Scraping is best-effort (fire-and-forget from deploy); bound retries to avoid
 		// wasting resources on permanently broken endpoints. Pause (not kill) on
@@ -449,11 +447,10 @@ func Run(ctx context.Context, cfg Config) error {
 	// The lease mechanism audits every durable effect (slot grants, wait
 	// entries, ExpireSlot leases), so the next call or audit repairs
 	// everything a killed invocation loses.
-	restateSrv.Bind(hydrav1.NewBuildSlotServiceServer(
-		buildslot.New(buildslot.Config{
-			DB:           database,
-			RestateAdmin: restateAdminClient,
-		}),
+	restateSrv.Bind(hydrav1.NewBuildSlotServiceServer(buildslot.New(buildslot.Config{
+		DB:           database,
+		RestateAdmin: restateAdminClient,
+	}),
 		restate.WithIngressPrivate(true),
 		restate.WithJournalRetention(1*time.Minute),
 		restate.WithInvocationRetryPolicy(
@@ -465,11 +462,10 @@ func Run(ctx context.Context, cfg Config) error {
 		),
 	))
 
-	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(
-		workercustomdomain.New(workercustomdomain.Config{
-			DB:          database,
-			CnameDomain: cfg.CnameDomain,
-		}),
+	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{
+		DB:          database,
+		CnameDomain: cfg.CnameDomain,
+	}),
 		// Retry every 1 minute for up to 24 hours (1440 attempts). Pause (not
 		// kill) on exhaustion so compensations remain possible via operator
 		// cancel.
@@ -557,8 +553,7 @@ func Run(ctx context.Context, cfg Config) error {
 			URL: cfg.ClickHouse.AdminURL,
 		})
 		if chAdminErr != nil {
-			logger.Warn(
-				"ClickhouseUserService disabled: failed to connect to admin",
+			logger.Warn("ClickhouseUserService disabled: failed to connect to admin",
 				"error", chAdminErr,
 			)
 		} else {
