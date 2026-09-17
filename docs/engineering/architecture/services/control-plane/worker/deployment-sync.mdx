@@ -11,14 +11,15 @@ The shared `pkg/cdc` package handles the Vitess connection, field and row events
 checkpoint coalescing, and resume-token validation. It accepts explicit
 table/query rules without deployment-specific decoding. Ctrl's
 `internal/deploymentstream` wrapper validates region IDs, builds the running
-topology filter, and extracts deployment IDs. Ctrl owns a shared CDC connection.
-Each watch opens its own VStream with the region filter and Krane's resume token.
+topology filter, and extracts deployment IDs. Each watch owns a CDC client and
+connection. It opens a VStream with the region filter and Krane's resume token,
+then closes the client when the watch ends.
 
 `cdc.Client.Watch` passes only changes to its callback and tracks checkpoints
 in memory. Consumers reuse the same client for retries. Ctrl uses the stateless
-`cdc.Connection.Forward` instead, so checkpoints reach Krane without creating
-CDC clients. Sending a change does not prove Krane applied it. Each reconnect
-uses Krane's saved token.
+`cdc.Client.Forward` instead, so checkpoints reach Krane without advancing
+Ctrl's progress. Sending a change does not prove Krane applied it. Each reconnect
+uses Krane's saved token, even when it reaches a different Ctrl node.
 
 ## Follow a change
 
