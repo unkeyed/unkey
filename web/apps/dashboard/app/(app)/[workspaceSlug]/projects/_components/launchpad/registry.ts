@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import type { VariantProps } from "./types";
 import { RailCards, RailCardsTwoLine, RailPlain } from "./variants/rail-cards";
+import { RailActivity, RailDeploysOnly } from "./variants/rail-activity";
 import { RailFlat, RailQuiet, RailSearch, RailSummary } from "./variants/rail-flat";
 import { BandColumns, RailNarrow, RailTable } from "./variants/rail-table";
 
@@ -14,7 +15,9 @@ export type VariantId =
   | "quiet"
   | "narrow"
   | "search"
-  | "band";
+  | "band"
+  | "activity"
+  | "deploys";
 
 export type Variant = {
   id: VariantId;
@@ -27,6 +30,20 @@ export type Variant = {
 };
 
 export const VARIANTS: Variant[] = [
+  {
+    id: "activity",
+    name: "Activity first",
+    note: "Vercel's column: recently shipped, recent previews, then resources.",
+    placement: "rail",
+    Component: RailActivity,
+  },
+  {
+    id: "deploys",
+    name: "Deploys only",
+    note: "Just the two deploy lists, to judge the row on its own.",
+    placement: "rail",
+    Component: RailDeploysOnly,
+  },
   {
     id: "cards",
     name: "Cards, tightened",

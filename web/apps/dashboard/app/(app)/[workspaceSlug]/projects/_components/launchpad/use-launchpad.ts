@@ -5,7 +5,7 @@ import { projectDisplayName } from "@/lib/collections/deploy/projects";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
-import type { LaunchpadModel, LaunchpadRow } from "./types";
+import type { LaunchpadModel, LaunchpadRow, RecentDeployRow } from "./types";
 
 export function useLaunchpad(windowHours = 24): LaunchpadModel {
   const workspace = useWorkspaceNavigation();
@@ -36,8 +36,28 @@ export function useLaunchpad(windowHours = 24): LaunchpadModel {
           : routes.ratelimits.detail({ workspaceSlug, namespaceId: item.id }),
     }));
 
+    const recentDeploys: RecentDeployRow[] = (data?.recentDeploys ?? []).map((deploy) => ({
+      id: deploy.id,
+      appName: deploy.appName,
+      projectName: deploy.projectIsDefault ? workspace.name : deploy.projectName,
+      environment: deploy.environment,
+      status: deploy.status as RecentDeployRow["status"],
+      branch: deploy.branch,
+      commitMessage: deploy.commitMessage,
+      authorHandle: deploy.authorHandle,
+      authorAvatarUrl: deploy.authorAvatarUrl,
+      prNumber: deploy.prNumber,
+      createdAt: deploy.createdAt,
+      href: routes.projects.detail({ workspaceSlug, projectId: deploy.projectId }),
+    }));
+
     return {
       isLoading: query.isLoading,
+      recentDeploys,
+      readyDeploys: recentDeploys.filter(
+        (deploy) => deploy.environment === "production" && deploy.status === "ready",
+      ),
+      previewDeploys: recentDeploys.filter((deploy) => deploy.environment === "preview"),
       rows,
       keyspaces: rows.filter((row) => row.kind === "keyspace"),
       ratelimits: rows.filter((row) => row.kind === "ratelimit"),

@@ -1,5 +1,5 @@
 import { clickhouse } from "@/lib/clickhouse";
-import { and, count, db, eq, inArray, isNull, schema, sql } from "@/lib/db";
+import { and, count, db, desc, eq, inArray, isNull, ne, schema, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -19,6 +19,23 @@ export const launchpadItem = z.object({
   buckets: z.array(z.object({ ok: z.number(), bad: z.number() })),
 });
 
+export const recentDeploy = z.object({
+  id: z.string(),
+  appId: z.string(),
+  appName: z.string(),
+  projectId: z.string(),
+  projectName: z.string(),
+  projectIsDefault: z.boolean(),
+  environment: z.string(),
+  status: z.string(),
+  branch: z.string(),
+  commitMessage: z.string().nullable(),
+  authorHandle: z.string().nullable(),
+  authorAvatarUrl: z.string().nullable(),
+  prNumber: z.number().int().nullable(),
+  createdAt: z.number(),
+});
+
 export const launchpadOverview = z.object({
   windowHours: z.number(),
   items: z.array(launchpadItem),
@@ -26,9 +43,11 @@ export const launchpadOverview = z.object({
     z.object({ id: z.string(), name: z.string(), slug: z.string(), isDefault: z.boolean() }),
   ),
   identityCount: z.number(),
+  recentDeploys: z.array(recentDeploy),
 });
 
 export type LaunchpadItem = z.infer<typeof launchpadItem>;
+export type RecentDeploy = z.infer<typeof recentDeploy>;
 export type LaunchpadOverview = z.infer<typeof launchpadOverview>;
 
 const bucketRow = z.object({
@@ -86,6 +105,74 @@ function ratelimitBuckets(workspaceId: string, startTime: number, endTime: numbe
     }),
     schema: bucketRow,
   })({ workspaceId, startTime, endTime });
+}
+
+/**
+ * Newest deployment per branch and environment, workspace-wide. Deploy routers
+ * are project-scoped, and a migrated workspace's activity is spread across every
+ * project, so the rail needs its own read. Skipped rows are noise the dashboard
+ * hides everywhere else.
+ */
+async function recentDeploysFor(workspaceId: string) {
+  const rows = await db
+    .select({
+      id: schema.deployments.id,
+      appId: schema.deployments.appId,
+      appName: schema.apps.name,
+      projectId: schema.deployments.projectId,
+      projectName: schema.projects.name,
+      projectSlug: schema.projects.slug,
+      environment: schema.environments.slug,
+      status: schema.deployments.status,
+      branch: schema.deployments.gitBranch,
+      commitMessage: schema.deployments.gitCommitMessage,
+      authorHandle: schema.deployments.gitCommitAuthorHandle,
+      authorAvatarUrl: schema.deployments.gitCommitAuthorAvatarUrl,
+      prNumber: schema.deployments.prNumber,
+      createdAt: schema.deployments.createdAt,
+    })
+    .from(schema.deployments)
+    .innerJoin(schema.apps, eq(schema.apps.id, schema.deployments.appId))
+    .innerJoin(schema.projects, eq(schema.projects.id, schema.deployments.projectId))
+    .innerJoin(schema.environments, eq(schema.environments.id, schema.deployments.environmentId))
+    .where(
+      and(
+        eq(schema.deployments.workspaceId, workspaceId),
+        ne(schema.deployments.status, "skipped"),
+      ),
+    )
+    .orderBy(desc(schema.deployments.createdAt))
+    .limit(200);
+
+  const seen = new Set<string>();
+  const newest = [];
+  for (const row of rows) {
+    const key = `${row.environment}:${row.branch ?? ""}:${row.appId}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    newest.push({
+      id: row.id,
+      appId: row.appId,
+      appName: row.appName,
+      projectId: row.projectId,
+      projectName: row.projectName,
+      projectIsDefault: row.projectSlug === DEFAULT_PROJECT_SLUG,
+      environment: row.environment,
+      status: row.status,
+      branch: row.branch ?? "",
+      commitMessage: row.commitMessage ?? null,
+      authorHandle: row.authorHandle ?? null,
+      authorAvatarUrl: row.authorAvatarUrl || null,
+      prNumber: row.prNumber === null ? null : Number(row.prNumber),
+      createdAt: Number(row.createdAt),
+    });
+    if (newest.length >= 12) {
+      break;
+    }
+  }
+  return newest;
 }
 
 export const queryLaunchpadOverview = workspaceProcedure
@@ -213,6 +300,8 @@ export const queryLaunchpadOverview = workspaceProcedure
 
     items.sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
 
+    const recentDeploys = await recentDeploysFor(workspaceId);
+
     return {
       windowHours,
       items,
@@ -221,5 +310,6 @@ export const queryLaunchpadOverview = workspaceProcedure
         isDefault: project.slug === DEFAULT_PROJECT_SLUG,
       })),
       identityCount: Number(identities[0]?.count ?? 0),
+      recentDeploys,
     };
   });
