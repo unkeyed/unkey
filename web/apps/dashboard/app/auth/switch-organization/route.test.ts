@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   getAuth: vi.fn(),
   memberships: vi.fn(),
   findMany: vi.fn(),
+  logOperation: vi.fn(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -14,6 +15,7 @@ vi.mock("@/lib/auth", () => ({
 vi.mock("@/lib/auth/get-auth", () => ({ getAuth: mocks.getAuth }));
 vi.mock("@/lib/auth/server", () => ({ auth: { listMemberships: mocks.memberships } }));
 vi.mock("@/lib/db", () => ({ db: { query: { workspaces: { findMany: mocks.findMany } } } }));
+vi.mock("@/lib/logging", () => ({ logOperation: mocks.logOperation }));
 
 import { GET } from "./route";
 
@@ -84,6 +86,14 @@ describe("organization switch route", () => {
       );
       expect(response.headers.get("set-cookie")).toBeNull();
       expect(mocks.switchToOrg).not.toHaveBeenCalled();
+      expect(mocks.logOperation).toHaveBeenCalledWith(
+        "warn",
+        "Organization switch rejected",
+        expect.objectContaining({
+          organization_id: "org_123",
+          error_message: "private details",
+        }),
+      );
     },
   );
 
