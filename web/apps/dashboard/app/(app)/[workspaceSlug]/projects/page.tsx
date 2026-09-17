@@ -21,6 +21,7 @@ import { CreateProjectButton } from "./_components/create-project-button";
 import { CreateProjectDialog } from "./_components/create-project-dialog";
 import { ProjectsList } from "./_components/list";
 import { EmptyProjects } from "./_components/list/empty-projects";
+import { useLaunchpadSurface } from "./_components/launchpad";
 
 export default function ProjectsPage() {
   const workspace = useWorkspaceNavigation();
@@ -29,6 +30,7 @@ export default function ProjectsPage() {
   const projects = useLiveQuery((q) => q.from({ project: collection.projects }));
 
   const { createDialogOpen, setCreateDialogOpen } = usePendingSubscribe();
+  const launchpad = useLaunchpadSurface();
 
   const isEmpty = !projects.isLoading && projects.data.length === 0;
 
@@ -43,8 +45,15 @@ export default function ProjectsPage() {
             <CreateProjectButton defaultOpen={isNewProject} workspaceSlug={workspace.slug} />
           </PageHeaderActions>
         </PageHeader>
-        <PageBody>{isEmpty ? <EmptyProjects /> : <ProjectsList />}</PageBody>
+        <PageBody>
+          <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
+            <div className="min-w-0 flex-1">{isEmpty ? <EmptyProjects /> : <ProjectsList />}</div>
+            {launchpad.rail}
+          </div>
+          {launchpad.band}
+        </PageBody>
       </PageContainer>
+      {launchpad.picker}
       <CreateProjectDialog
         isOpen={createDialogOpen}
         onOpenChange={setCreateDialogOpen}

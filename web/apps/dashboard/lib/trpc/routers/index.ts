@@ -89,6 +89,7 @@ import { listEnvironments } from "./environment/list";
 import { listAllEnvironments } from "./environment/list-all";
 import { githubRouter } from "./github";
 import { queryIdentityDetails } from "./identity/query-identity-details";
+import { queryLaunchpadOverview } from "./launchpad/query-overview";
 import { queryIdentityLogs } from "./identity/query-logs";
 import { queryIdentityTimeseries } from "./identity/query-timeseries";
 import { createRootKey } from "./key/createRootKey";
@@ -390,6 +391,9 @@ export const router = t.router({
       create: inviteMember,
       remove: revokeInvitation,
     }),
+  }),
+  launchpad: t.router({
+    overview: queryLaunchpadOverview,
   }),
   identity: t.router({
     details: queryIdentityDetails,
