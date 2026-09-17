@@ -201,7 +201,8 @@ Each operation with `outcome="error"` also emits an error-level
 A status of `0` means no HTTP status was available. These logs bypass log
 sampling and omit credentials, object keys, payloads, endpoint URLs, and raw
 provider messages. Missing objects and caller cancellations don't emit error
-logs. An explicit `NoSuchBucket` response is a failure, not a missing object.
+logs. GET responses with HTTP 404 retain the existing missing-object behavior:
+they count as `success` regardless of the provider error code.
 
 A rising `outcome="canceled"` rate can also indicate a slow storage endpoint
 causing callers to give up.

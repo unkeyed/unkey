@@ -122,19 +122,21 @@ func TestS3_ReportsAccessLossAndRecovery(t *testing.T) {
 	}
 }
 
-func TestS3_DistinguishesMissingObjectsFromStorageFailures(t *testing.T) {
+func TestS3_PreservesNotFoundHandling(t *testing.T) {
 	for _, tt := range []struct {
 		code, outcome, metricCode string
+		status                    int
 	}{
-		{"NoSuchBucket", "error", "NoSuchBucket"},
-		{"NoSuchKey", "success", ""},
-		{"", "success", ""},
-		{"sensitive-unrecognized-code", "error", "other"},
+		{"NoSuchBucket", "success", "", http.StatusNotFound},
+		{"NoSuchKey", "success", "", http.StatusNotFound},
+		{"", "success", "", http.StatusNotFound},
+		{"sensitive-unrecognized-code", "success", "", http.StatusNotFound},
+		{"sensitive-unrecognized-code", "error", "other", http.StatusForbidden},
 	} {
-		t.Run(tt.code, func(t *testing.T) {
+		t.Run(fmt.Sprintf("%s/%d", tt.code, tt.status), func(t *testing.T) {
 			store := s3Server(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/xml")
-				w.WriteHeader(http.StatusNotFound)
+				w.WriteHeader(tt.status)
 				if tt.code != "" {
 					_, err := fmt.Fprintf(w, `<Error><Code>%s</Code><Message>sensitive-provider-message</Message></Error>`, tt.code)
 					if err != nil {
@@ -150,7 +152,7 @@ func TestS3_DistinguishesMissingObjectsFromStorageFailures(t *testing.T) {
 				require.Len(t, logs.Records(), 1)
 				record := logs.Find(t, "vault s3 operation failed")
 				require.Equal(t, map[string]any{
-					"operation": "get", "error_code": tt.metricCode, "http_status": int64(404),
+					"operation": "get", "error_code": tt.metricCode, "http_status": int64(tt.status),
 				}, loggertest.FlatAttrs(record))
 			} else {
 				require.NoError(t, err)

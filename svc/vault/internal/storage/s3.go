@@ -13,6 +13,7 @@ import (
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	awsS3 "github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go"
 
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -90,7 +91,11 @@ func (s *s3) GetObject(ctx context.Context, key string) (data []byte, found bool
 		Key:    aws.String(key),
 	})
 	if err != nil {
-		if isS3ObjectNotFound(err) {
+		// A missing key is an expected miss, not an error. S3 reports it as
+		// NoSuchKey; some S3-compatible stores only surface the 404 status.
+		var noSuchKey *s3types.NoSuchKey
+		var respErr *awshttp.ResponseError
+		if errors.As(err, &noSuchKey) || (errors.As(err, &respErr) && respErr.HTTPStatusCode() == http.StatusNotFound) {
 			return nil, false, nil
 		}
 		return nil, false, fmt.Errorf("failed to get object: %w", err)
@@ -121,24 +126,6 @@ func (s *s3) ListObjectKeys(ctx context.Context, prefix string) (keys []string, 
 		keys[i] = *obj.Key
 	}
 	return keys, nil
-}
-
-func isS3ObjectNotFound(err error) bool {
-	var apiErr smithy.APIError
-	if errors.As(err, &apiErr) {
-		switch apiErr.ErrorCode() {
-		case "NoSuchKey":
-			return true
-		case "", "NotFound":
-		default:
-			return false
-		}
-	}
-
-	// Bare 404s are compatible misses, but explicit errors such as
-	// NoSuchBucket must not trigger creation of replacement keys.
-	var respErr *awshttp.ResponseError
-	return errors.As(err, &respErr) && respErr.HTTPStatusCode() == http.StatusNotFound
 }
 
 func observeS3(operation string, err error) {
