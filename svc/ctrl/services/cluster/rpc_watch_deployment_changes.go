@@ -8,6 +8,7 @@ import (
 
 	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cdc"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/ptr"
@@ -43,6 +44,9 @@ func (s *Service) WatchDeploymentChanges(
 	err = s.deploymentStream.Watch(ctx, cluster.RegionID, token, func(event deploymentstream.Event) error {
 		if event.DeploymentID != "" {
 			return s.sendDeploymentChange(ctx, stream, cluster.RegionID, event.DeploymentID)
+		}
+		if err := assert.NotEmpty(event.ResumeToken, "deployment checkpoint requires a resume token"); err != nil {
+			return err
 		}
 		return stream.Send(&ctrlv1.DeploymentChangeEvent{ResumeToken: event.ResumeToken})
 	})

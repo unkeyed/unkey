@@ -1,13 +1,13 @@
 // Package cdc copies MySQL rows and follows changes through Vitess VStream.
-// Callers choose the tables and filters, then apply the events they receive.
+// Callers choose the tables and filters, then apply or relay the events.
 // Events include field types and old row values, including deleted rows.
 //
 // # Usage
 //
-// Create one client per consumer. Each client owns its connection.
-// With an applyChange function already set up, a local Vitess watch looks like:
+// Create one watcher per consumer. Each watcher owns its connection.
+// With a sendEvent function already set up, a local Vitess watch looks like:
 //
-//	client, err := cdc.New(cdc.Config{
+//	watcher, err := cdc.New(cdc.Config{
 //		Address: "localhost:33575",
 //		Keyspace: "unkey",
 //		Insecure: true,
@@ -16,23 +16,22 @@
 //	if err != nil {
 //		return err
 //	}
-//	err = client.Watch(ctx, applyChange)
-//	return errors.Join(err, client.Close())
+//	err = watcher.Watch(ctx, nil, sendEvent)
+//	return errors.Join(err, watcher.Close())
 //
 // # Recovery
 //
-// The first Watch copies matching rows, then follows live changes. It passes
-// only FIELD and ROW changes to the callback. Finish applying each change before
-// returning. The client saves checkpoints in memory after callbacks succeed.
+// An empty token starts a copy of matching rows followed by live changes.
+// Watch sends FIELD and ROW changes and checkpoint tokens in order. It does not
+// save progress or retry automatically. The consumer must save a checkpoint
+// only after applying all earlier changes, then supply that token on reconnect.
+// A successful relay send does not mean the consumer has applied the change.
 //
-// Reuse the same client for retries. It resumes from its last checkpoint, even
-// during the initial copy. Watch does not expose tokens or retry automatically.
-// Calls on the same client must not overlap. Close it after all retries finish.
+// Tokens can resume a partial initial copy. Changes can repeat, so consumers
+// must handle them safely. After [ErrInvalidToken] or [ErrExpired], retry with
+// an empty token and remove destination records that no longer exist.
 //
-// After [ErrExpired], the next Watch starts a fresh snapshot on the same client.
-// The caller must also remove destination records that no longer exist.
-//
-// Relays use [Client.Forward] with the downstream consumer's resume token.
-// It sends both changes and checkpoints without saving progress in the relay.
-// Both Watch and Forward can repeat changes; callers must handle them safely.
+// Overlapping Watch calls return an error instead of waiting. Close the watcher
+// when it is no longer needed. Close can interrupt an active stream, but it does
+// not wait for a callback already in progress.
 package cdc

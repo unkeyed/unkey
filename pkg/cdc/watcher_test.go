@@ -21,7 +21,47 @@ import (
 	"vitess.io/vitess/go/vt/proto/vtgateservice"
 )
 
-func TestClient_CloseDoesNotCloseOtherClients(t *testing.T) {
+func TestWatcher_RejectsOverlappingWatches(t *testing.T) {
+	watcher := testWatcher(t, &scriptedServer{responses: []*vtgate.VStreamResponse{{Events: []*binlog.VEvent{
+		{Type: binlog.VEventType_FIELD, FieldEvent: &binlog.FieldEvent{TableName: "records"}},
+	}}}}, []Rule{{Table: "records", Query: "select id from records"}})
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	entered := make(chan struct{})
+	stopped := make(chan struct{})
+	first := make(chan error, 1)
+	go func() {
+		defer close(stopped)
+		first <- watcher.Watch(ctx, nil, func(Event) error {
+			close(entered)
+			<-ctx.Done()
+			return ctx.Err()
+		})
+	}()
+	t.Cleanup(func() { cancel(); <-stopped })
+	select {
+	case <-entered:
+	case <-ctx.Done():
+		t.Fatal("first watch did not reach its callback")
+	}
+	for range 2 {
+		second := make(chan error, 1)
+		go func() {
+			second <- watcher.Watch(ctx, nil, func(Event) error { return errors.New("unexpected callback") })
+		}()
+		select {
+		case err := <-second:
+			require.ErrorContains(t, err, "CDC watcher already has an active watch")
+		case <-ctx.Done():
+			t.Fatal("overlapping watch blocked instead of returning an error")
+		}
+	}
+	cancel()
+	require.ErrorIs(t, <-first, context.Canceled)
+	failure := errors.New("apply failed")
+	require.ErrorIs(t, watcher.Watch(t.Context(), nil, func(Event) error { return failure }), failure)
+}
+
+func TestWatcher_CloseDoesNotCloseOtherWatchers(t *testing.T) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	server := grpc.NewServer()
@@ -41,9 +81,9 @@ func TestClient_CloseDoesNotCloseOtherClients(t *testing.T) {
 	require.NoError(t, first.Close())
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
-	apply := func(*binlog.VEvent) error { return errors.New("unexpected change") }
-	require.Error(t, first.Watch(ctx, apply))
-	require.ErrorIs(t, second.Watch(ctx, apply), io.EOF)
+	apply := func(Event) error { return errors.New("unexpected change") }
+	require.Error(t, first.Watch(ctx, nil, apply))
+	require.ErrorIs(t, second.Watch(ctx, nil, apply), io.EOF)
 }
 
 func TestNew_ValidatesSettings(t *testing.T) {
@@ -63,19 +103,19 @@ func TestNew_ValidatesSettings(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			test.config.Rules = []Rule{{Table: "records", Query: "select id from records"}}
-			client, err := New(test.config)
-			if client != nil {
-				t.Cleanup(func() { require.NoError(t, client.Close()) })
+			watcher, err := New(test.config)
+			if watcher != nil {
+				t.Cleanup(func() { require.NoError(t, watcher.Close()) })
 			}
 			if test.invalid {
 				require.Error(t, err)
-				require.Nil(t, client)
+				require.Nil(t, watcher)
 				_, tagged := fault.GetCode(err)
 				require.True(t, tagged, "invalid settings must return a tagged assertion error")
 				return
 			}
 			require.NoError(t, err)
-			require.NotNil(t, client)
+			require.NotNil(t, watcher)
 		})
 	}
 }
@@ -93,10 +133,11 @@ func TestWatch_PreservesFieldsAndBeforeAfterImages(t *testing.T) {
 		{Type: binlog.VEventType_ROW, RowEvent: &binlog.RowEvent{TableName: "settings", RowChanges: []*binlog.RowChange{{After: &query.Row{Lengths: []int64{5}, Values: []byte("theme")}}}}},
 	}
 	server := &scriptedServer{responses: []*vtgate.VStreamResponse{{Events: events}}, requests: make(chan *vtgate.VStreamRequest, 1)}
-	client := testClient(t, server, rules)
+	watcher := testWatcher(t, server, rules)
 	var delivered []*binlog.VEvent
-	err := client.Watch(t.Context(), func(event *binlog.VEvent) error {
-		delivered = append(delivered, event)
+	err := watcher.Watch(t.Context(), nil, func(event Event) error {
+		require.Empty(t, event.ResumeToken)
+		delivered = append(delivered, event.Change)
 		return nil
 	})
 	require.ErrorIs(t, err, io.EOF)
@@ -112,53 +153,7 @@ func TestWatch_PreservesFieldsAndBeforeAfterImages(t *testing.T) {
 	require.Equal(t, "select name from settings", request.Filter.Rules[1].Filter)
 }
 
-func TestWatch_RemembersCommittedProgressWithoutDeliveringCheckpoints(t *testing.T) {
-	server := &scriptedServer{
-		requests: make(chan *vtgate.VStreamRequest, 2),
-		responses: []*vtgate.VStreamResponse{{Events: []*binlog.VEvent{
-			{Type: binlog.VEventType_ROW, RowEvent: &binlog.RowEvent{RowChanges: []*binlog.RowChange{{After: &query.Row{Lengths: []int64{1}, Values: []byte("a")}}}}},
-			{Type: binlog.VEventType_VGTID, Vgtid: &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: "unkey", Shard: "0", Gtid: "committed-7"}}}},
-			{Type: binlog.VEventType_COMMIT},
-			{Type: binlog.VEventType_ROW, RowEvent: &binlog.RowEvent{RowChanges: []*binlog.RowChange{{After: &query.Row{Lengths: []int64{1}, Values: []byte("b")}}}}},
-		}}},
-	}
-	client := testClient(t, server, []Rule{{Table: "records", Query: "select id from records"}})
-	failure := errors.New("apply failed")
-	var delivered []string
-	apply := func(event *binlog.VEvent) error {
-		require.Equal(t, binlog.VEventType_ROW, event.Type)
-		id := string(event.RowEvent.RowChanges[0].After.Values)
-		if id == "b" {
-			return failure
-		}
-		delivered = append(delivered, id)
-		return nil
-	}
-	require.ErrorIs(t, client.Watch(t.Context(), apply), failure)
-	require.Equal(t, []string{"a"}, delivered)
-	require.Empty(t, (<-server.requests).Vgtid.ShardGtids[0].Gtid)
-	require.ErrorIs(t, client.Watch(t.Context(), apply), failure)
-	require.Equal(t, "committed-7", (<-server.requests).Vgtid.ShardGtids[0].Gtid)
-}
-
-func TestWatch_ExpiredPositionRestartsSnapshotOnSameClient(t *testing.T) {
-	server := &scriptedServer{
-		requests: make(chan *vtgate.VStreamRequest, 2),
-		responses: []*vtgate.VStreamResponse{{Events: []*binlog.VEvent{
-			{Type: binlog.VEventType_VGTID, Vgtid: &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: "unkey", Shard: "0", Gtid: "expired-7"}}}},
-			{Type: binlog.VEventType_COMMIT},
-		}}},
-		err: status.Error(codes.Unknown, "source purged required binary logs (errno 1236)"),
-	}
-	client := testClient(t, server, []Rule{{Table: "records", Query: "select id from records"}})
-	for range 2 {
-		err := client.Watch(t.Context(), func(*binlog.VEvent) error { return errors.New("unexpected change") })
-		require.ErrorIs(t, err, ErrExpired)
-		require.Empty(t, (<-server.requests).Vgtid.ShardGtids[0].Gtid, "the same client must start a snapshot after expiry")
-	}
-}
-
-func TestNew_ClientsOwnTheirRulesAndTokens(t *testing.T) {
+func TestWatch_UsesOnlySuppliedTokenAndCopiesRules(t *testing.T) {
 	server := &scriptedServer{
 		requests: make(chan *vtgate.VStreamRequest, 3),
 		responses: []*vtgate.VStreamResponse{{Events: []*binlog.VEvent{
@@ -167,29 +162,38 @@ func TestNew_ClientsOwnTheirRulesAndTokens(t *testing.T) {
 		}}},
 	}
 	rules := []Rule{{Table: "records", Query: "select id from records"}}
-	resuming := testClient(t, server, rules)
-	fresh := testClient(t, server, []Rule{{Table: "settings", Query: "select name from settings"}})
+	watcher := testWatcher(t, server, rules)
 	rules[0].Query = "select value from records"
+	var token []byte
 	for _, test := range []struct {
-		client *Client
-		query  string
+		name   string
+		resume bool
 		gtid   string
 	}{
-		{client: resuming, query: "select id from records", gtid: ""},
-		{client: resuming, query: "select id from records", gtid: "position-7"},
-		{client: fresh, query: "select name from settings", gtid: ""},
+		{name: "initial snapshot", gtid: ""},
+		{name: "no implicit resume", gtid: ""},
+		{name: "explicit resume", resume: true, gtid: "position-7"},
 	} {
-		t.Run(test.query, func(t *testing.T) {
-			err := test.client.Watch(t.Context(), func(*binlog.VEvent) error { return errors.New("unexpected change") })
+		t.Run(test.name, func(t *testing.T) {
+			var start []byte
+			if test.resume {
+				start = token
+			}
+			err := watcher.Watch(t.Context(), start, func(event Event) error {
+				require.Nil(t, event.Change)
+				require.NotEmpty(t, event.ResumeToken)
+				token = event.ResumeToken
+				return nil
+			})
 			require.ErrorIs(t, err, io.EOF)
 			request := <-server.requests
-			require.Equal(t, test.query, request.Filter.Rules[0].Filter)
+			require.Equal(t, "select id from records", request.Filter.Rules[0].Filter)
 			require.Equal(t, test.gtid, request.Vgtid.ShardGtids[0].Gtid)
 		})
 	}
 }
 
-func TestForward_DeliveryPrecedesCheckpointAcrossResponses(t *testing.T) {
+func TestWatch_DeliveryPrecedesCheckpointAcrossResponses(t *testing.T) {
 	rules := []Rule{{Table: "records", Query: "select id from records"}}
 	position := &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: "unkey", Shard: "0", Gtid: "position-7"}}}
 	for _, fail := range []bool{false, true} {
@@ -209,11 +213,11 @@ func TestForward_DeliveryPrecedesCheckpointAcrossResponses(t *testing.T) {
 				}},
 				{Events: []*binlog.VEvent{{Type: binlog.VEventType_COMMIT}}},
 			}}
-			client := testClient(t, server, rules)
+			watcher := testWatcher(t, server, rules)
 			var delivered []string
 			var token []byte
 			failure := errors.New("apply failed")
-			err := client.Forward(t.Context(), nil, func(event Event) error {
+			err := watcher.Watch(t.Context(), nil, func(event Event) error {
 				if event.Change == nil {
 					require.Equal(t, []string{"record_a", "record_b"}, delivered)
 					token = event.ResumeToken
@@ -241,7 +245,7 @@ func TestForward_DeliveryPrecedesCheckpointAcrossResponses(t *testing.T) {
 	}
 }
 
-func TestForward_CoalescesOnlyCommittedCheckpoints(t *testing.T) {
+func TestWatch_CoalescesOnlyCommittedCheckpoints(t *testing.T) {
 	rules := []Rule{{Table: "records", Query: "select id from records"}}
 	position := func(gtid string) *binlog.VGtid {
 		return &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: "unkey", Shard: "0", Gtid: gtid}}}
@@ -256,11 +260,11 @@ func TestForward_CoalescesOnlyCommittedCheckpoints(t *testing.T) {
 		{Type: binlog.VEventType_HEARTBEAT},
 		{Type: binlog.VEventType_COMMIT},
 	}}}}
-	client := testClient(t, server, rules)
+	watcher := testWatcher(t, server, rules)
 	controlled := clock.NewTestClock()
-	client.clock = controlled
+	watcher.clock = controlled
 	var checkpoints [][]byte
-	err := client.Forward(t.Context(), nil, func(event Event) error {
+	err := watcher.Watch(t.Context(), nil, func(event Event) error {
 		if event.Change == nil {
 			checkpoints = append(checkpoints, event.ResumeToken)
 			return nil
@@ -274,33 +278,33 @@ func TestForward_CoalescesOnlyCommittedCheckpoints(t *testing.T) {
 	require.Len(t, checkpoints, 3)
 	for i, want := range []string{"first", "idle", "pending"} {
 		resumed := &scriptedServer{requests: make(chan *vtgate.VStreamRequest, 1)}
-		err := testClient(t, resumed, rules).Forward(t.Context(), checkpoints[i], func(Event) error { return errors.New("unexpected event") })
+		err := testWatcher(t, resumed, rules).Watch(t.Context(), checkpoints[i], func(Event) error { return errors.New("unexpected event") })
 		require.ErrorIs(t, err, io.EOF)
 		request := <-resumed.requests
 		require.Equal(t, want, request.Vgtid.ShardGtids[0].Gtid, "resume must use only committed progress")
 	}
 }
 
-func TestForward_HeartbeatDoesNotCommitPendingPosition(t *testing.T) {
+func TestWatch_HeartbeatDoesNotCommitPendingPosition(t *testing.T) {
 	rules := []Rule{{Table: "records", Query: "select id from records"}}
-	client := testClient(t, &scriptedServer{responses: []*vtgate.VStreamResponse{
+	watcher := testWatcher(t, &scriptedServer{responses: []*vtgate.VStreamResponse{
 		{Events: []*binlog.VEvent{{Type: binlog.VEventType_VGTID, Vgtid: &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: "unkey", Shard: "0", Gtid: "uncommitted"}}}}}},
 		{Events: []*binlog.VEvent{{Type: binlog.VEventType_HEARTBEAT}}},
 	}}, rules)
-	err := client.Forward(t.Context(), nil, func(Event) error { return errors.New("event before commit") })
+	err := watcher.Watch(t.Context(), nil, func(Event) error { return errors.New("event before commit") })
 	require.ErrorIs(t, err, io.EOF)
 }
 
 func TestWatch_StopsStalledUpstream(t *testing.T) {
 	rules := []Rule{{Table: "records", Query: "select id from records"}}
-	client := testClient(t, &scriptedServer{wait: true}, rules)
+	watcher := testWatcher(t, &scriptedServer{wait: true}, rules)
 	controlled := &observedClock{TestClock: clock.NewTestClock(), started: make(chan struct{}, 1)}
-	client.clock = controlled
+	watcher.clock = controlled
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	t.Cleanup(cancel)
 	done := make(chan error, 1)
 	go func() {
-		done <- client.Watch(ctx, func(*binlog.VEvent) error { return errors.New("unexpected event") })
+		done <- watcher.Watch(ctx, nil, func(Event) error { return errors.New("unexpected event") })
 	}()
 	select {
 	case <-controlled.started:
@@ -358,8 +362,8 @@ func (s *scriptedServer) VStream(request *vtgate.VStreamRequest, stream vtgatese
 	return s.err
 }
 
-// testClient creates a client against a local Vitess protocol server.
-func testClient(t *testing.T, implementation vtgateservice.VitessServer, rules []Rule) *Client {
+// testWatcher creates a watcher against a local Vitess protocol server.
+func testWatcher(t *testing.T, implementation vtgateservice.VitessServer, rules []Rule) *Watcher {
 	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
@@ -368,13 +372,13 @@ func testClient(t *testing.T, implementation vtgateservice.VitessServer, rules [
 	finished := make(chan error, 1)
 	go func() { finished <- server.Serve(listener) }()
 	t.Cleanup(func() { server.Stop(); require.NoError(t, <-finished) })
-	client, err := New(Config{Address: listener.Addr().String(), Keyspace: "unkey", Insecure: true, Rules: rules})
+	watcher, err := New(Config{Address: listener.Addr().String(), Keyspace: "unkey", Insecure: true, Rules: rules})
 	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, client.Close()) })
-	return client
+	t.Cleanup(func() { require.NoError(t, watcher.Close()) })
+	return watcher
 }
 
-func TestForward_OnlyExpiredBinlogsRequireSnapshot(t *testing.T) {
+func TestWatch_OnlyExpiredBinlogsRequireSnapshot(t *testing.T) {
 	rules := []Rule{{Table: "records", Query: "select id from records"}}
 	for _, test := range []struct {
 		message string
@@ -386,31 +390,31 @@ func TestForward_OnlyExpiredBinlogsRequireSnapshot(t *testing.T) {
 		{"connection interrupted", false},
 	} {
 		t.Run(test.message, func(t *testing.T) {
-			client := testClient(t, &scriptedServer{err: status.Error(codes.Unknown, test.message)}, rules)
+			watcher := testWatcher(t, &scriptedServer{err: status.Error(codes.Unknown, test.message)}, rules)
 			token := []byte(`{"rules":[{"table":"records","query":"select id from records"}],"position":{"shardGtids":[{"keyspace":"unkey","shard":"0","gtid":"position-7"}]}}`)
-			err := client.Forward(t.Context(), token, func(Event) error { return errors.New("unexpected event") })
+			err := watcher.Watch(t.Context(), token, func(Event) error { return errors.New("unexpected event") })
 			require.Error(t, err)
 			require.Equal(t, test.expired, errors.Is(err, ErrExpired))
 		})
 	}
 }
 
-func TestForward_RejectsForeignSnapshotTable(t *testing.T) {
+func TestWatch_RejectsForeignSnapshotTable(t *testing.T) {
 	rules := []Rule{{Table: "records", Query: "select id from records"}}
-	client := testClient(t, &scriptedServer{}, rules)
+	watcher := testWatcher(t, &scriptedServer{}, rules)
 	token := []byte(`{"rules":[{"table":"records","query":"select id from records"}],"position":{"shardGtids":[{"keyspace":"unkey","shard":"0","gtid":"position-7","tablePKs":[{"tableName":"workspaces"}]}]}}`)
-	err := client.Forward(t.Context(), token, func(Event) error { return errors.New("unexpected event") })
+	err := watcher.Watch(t.Context(), token, func(Event) error { return errors.New("unexpected event") })
 	require.ErrorIs(t, err, ErrInvalidToken)
 }
 
-func TestForward_TokensBindToAllRules(t *testing.T) {
+func TestWatch_TokensBindToAllRules(t *testing.T) {
 	rules := []Rule{{Table: "records", Query: "select id from records"}, {Table: "settings", Query: "select name from settings where enabled = 1"}}
-	client := testClient(t, &scriptedServer{responses: []*vtgate.VStreamResponse{{Events: []*binlog.VEvent{
+	watcher := testWatcher(t, &scriptedServer{responses: []*vtgate.VStreamResponse{{Events: []*binlog.VEvent{
 		{Type: binlog.VEventType_VGTID, Vgtid: &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: "unkey", Shard: "0", Gtid: "position-7"}}}},
 		{Type: binlog.VEventType_COMMIT},
 	}}}}, rules)
 	var token []byte
-	err := client.Forward(t.Context(), nil, func(event Event) error {
+	err := watcher.Watch(t.Context(), nil, func(event Event) error {
 		require.Nil(t, event.Change)
 		token = event.ResumeToken
 		return nil
@@ -428,8 +432,8 @@ func TestForward_TokensBindToAllRules(t *testing.T) {
 		{name: "changed table", rules: []Rule{rules[0], {Table: "other_settings", Query: rules[1].Query}}, want: ErrInvalidToken},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			client := testClient(t, &scriptedServer{}, test.rules)
-			err := client.Forward(t.Context(), token, func(event Event) error {
+			watcher := testWatcher(t, &scriptedServer{}, test.rules)
+			err := watcher.Watch(t.Context(), token, func(event Event) error {
 				require.Nil(t, event.Change)
 				return nil
 			})

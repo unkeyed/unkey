@@ -10,7 +10,7 @@ import (
 )
 
 // Client turns topology changes into deployment IDs for Ctrl to look up.
-// Each watch owns its CDC client. Watches can run at the same time.
+// Each watch owns its CDC watcher. Watches can run at the same time.
 type Client struct {
 	config cdc.Config
 }
@@ -32,7 +32,7 @@ func New(cfg cdc.Config) (*Client, error) {
 // An empty token first copies the matching rows. When a row stops matching,
 // its old value still provides the deployment ID.
 // Invalid regions, invalid IDs, and callback errors stop the watch.
-// The CDC client closes when the watch ends. Tokens follow [cdc.Client.Forward].
+// The CDC watcher closes when the watch ends. Tokens follow [cdc.Watcher.Watch].
 func (c *Client) Watch(ctx context.Context, region string, token []byte, apply func(Event) error) (err error) {
 	if !regionPattern.MatchString(region) {
 		return errors.New("invalid region ID")
@@ -42,12 +42,12 @@ func (c *Client) Watch(ctx context.Context, region string, token []byte, apply f
 		Table: "deployment_topology",
 		Query: fmt.Sprintf("select deployment_id from deployment_topology where region_id = '%s' and desired_status = 'running'", region),
 	}}
-	client, err := cdc.New(cfg)
+	watcher, err := cdc.New(cfg)
 	if err != nil {
 		return err
 	}
-	defer func() { err = errors.Join(err, client.Close()) }()
-	return client.Forward(ctx, token, func(event cdc.Event) error {
+	defer func() { err = errors.Join(err, watcher.Close()) }()
+	return watcher.Watch(ctx, token, func(event cdc.Event) error {
 		if event.Change == nil {
 			return apply(Event{DeploymentID: "", ResumeToken: event.ResumeToken})
 		}

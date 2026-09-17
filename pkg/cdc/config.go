@@ -2,7 +2,7 @@ package cdc
 
 import "github.com/unkeyed/unkey/pkg/assert"
 
-// Config selects a client's Vitess endpoint, keyspace, and rules. TLS is on by default.
+// Config selects a watcher's Vitess endpoint, keyspace, and rules. TLS is on by default.
 // Insecure is for local development. Credentials require TLS and both fields.
 type Config struct {
 	Address  string `toml:"address"`

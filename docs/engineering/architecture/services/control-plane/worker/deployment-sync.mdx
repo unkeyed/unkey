@@ -11,15 +11,14 @@ The shared `pkg/cdc` package handles the Vitess connection, field and row events
 checkpoint coalescing, and resume-token validation. It accepts explicit
 table/query rules without deployment-specific decoding. Ctrl's
 `internal/deploymentstream` wrapper validates region IDs, builds the running
-topology filter, and extracts deployment IDs. Each watch owns a CDC client and
+topology filter, and extracts deployment IDs. Each watch owns a CDC watcher and
 connection. It opens a VStream with the region filter and Krane's resume token,
-then closes the client when the watch ends.
+then closes the watcher when the watch ends.
 
-`cdc.Client.Watch` passes only changes to its callback and tracks checkpoints
-in memory. Consumers reuse the same client for retries. Ctrl uses the stateless
-`cdc.Client.Forward` instead, so checkpoints reach Krane without advancing
-Ctrl's progress. Sending a change does not prove Krane applied it. Each reconnect
-uses Krane's saved token, even when it reaches a different Ctrl node.
+`cdc.Watcher.Watch` sends changes and checkpoints without saving progress.
+Krane saves each checkpoint only after applying all earlier changes. Sending a
+change does not prove Krane applied it. Each reconnect uses Krane's saved token,
+even when it reaches a different Ctrl node.
 
 ## Follow a change
 
@@ -35,7 +34,8 @@ where region_id = 'region_id' and desired_status = 'running'
 ```
 
 4. For each changed ID, Ctrl reads the current desired state from the primary
-   database and sends an apply or delete event.
+   database and sends an apply or delete event. If the row is missing, Ctrl
+   skips it and leaves cleanup to Krane's periodic reconciliation.
 5. After a transaction with matching rows, Ctrl sends a checkpoint-only event
    containing the full VGTID, including snapshot table positions. It coalesces
    unrelated transaction checkpoints to at most one every 30 seconds after the
@@ -74,8 +74,9 @@ not count toward this timeout.
 Krane also calls `SyncDesiredState` on startup and every 10 minutes. This RPC
 loads running deployments without depending on binlog retention. Its existing
 per-ReplicaSet reconciliation checks desired state every minute and removes
-resources whose topology no longer exists. A missing topology is skipped by
-the incremental stream because its Kubernetes metadata is no longer available.
+resources whose topology no longer exists. Hard deletes use this path because
+the incremental lookup cannot recover their Kubernetes namespace and name.
+Normal stops keep the row, so Ctrl sends a direct delete command.
 
 ## Handle slow consumers
 

@@ -21,15 +21,17 @@ import (
 
 func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
 	for _, test := range []struct {
-		name       string
-		lookupErr  error
-		streamErr  error
-		authorized bool
-		replay     bool
-		wantState  bool
-		wantCode   connect.Code
+		name            string
+		lookupErr       error
+		streamErr       error
+		emptyCheckpoint bool
+		authorized      bool
+		replay          bool
+		wantState       bool
+		wantCode        connect.Code
 	}{
 		{name: "running state", authorized: true, wantState: true},
+		{name: "empty checkpoint aborts stream", authorized: true, emptyCheckpoint: true, wantCode: connect.CodeInternal},
 		{name: "replay discards token", authorized: true, replay: true, wantState: true},
 		{name: "removed topology advances checkpoint", authorized: true, lookupErr: sql.ErrNoRows},
 		{name: "transient lookup aborts without checkpoint", authorized: true, lookupErr: errors.New("database unavailable"), wantCode: connect.CodeInternal},
@@ -58,6 +60,9 @@ func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
 					}
 					if test.streamErr != nil {
 						return test.streamErr
+					}
+					if test.emptyCheckpoint {
+						return apply(deploymentstream.Event{})
 					}
 					if err := apply(deploymentstream.Event{DeploymentID: "deploy_test"}); err != nil {
 						return err

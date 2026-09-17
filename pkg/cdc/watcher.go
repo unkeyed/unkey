@@ -5,12 +5,13 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -24,20 +25,20 @@ import (
 	"vitess.io/vitess/go/vt/proto/vtgateservice"
 )
 
-// Client owns a Vitess connection and watches one set of rules.
-// Watch remembers its last safe resume token. Methods must not run concurrently.
-type Client struct {
+// Watcher copies matching rows and follows their changes through Vitess.
+// It is safe for concurrent use. Watch rejects overlapping calls.
+type Watcher struct {
 	connection *grpc.ClientConn
 	client     vtgateservice.VitessClient
 	keyspace   string
 	clock      clock.Clock
 	rules      []Rule
-	token      []byte
+	watching   atomic.Bool
 }
 
 // New checks settings and copies rules without opening a stream.
-// It returns nil on error. Close the client when no more watches are needed.
-func New(cfg Config) (*Client, error) {
+// It returns nil on error. Close the watcher when no more watches are needed.
+func New(cfg Config) (*Watcher, error) {
 	if err := cfg.ValidateEndpoint(); err != nil {
 		return nil, err
 	}
@@ -56,50 +57,34 @@ func New(cfg Config) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{
+	return &Watcher{
 		connection: connection,
 		client:     vtgateservice.NewVitessClient(connection),
 		keyspace:   cfg.Keyspace,
 		clock:      clock.New(),
 		rules:      slices.Clone(cfg.Rules),
-		token:      nil,
+		watching:   atomic.Bool{},
 	}, nil
 }
 
-// Close releases this client's connection. Cancel and wait for its watch first.
-func (c *Client) Close() error { return c.connection.Close() }
+// Close releases the connection and interrupts the active stream.
+// It does not wait for a callback already in progress.
+func (c *Watcher) Close() error { return c.connection.Close() }
 
-// Watch calls apply for FIELD and ROW changes, one at a time, and saves checkpoints
-// internally. The callback must be non-nil, must not edit events, and must finish
-// applying each change before returning. Repeated changes must be safe to apply.
-// Errors stop the watch. Calling Watch again resumes from the last safe token.
-// It does not retry automatically. After [ErrExpired], the next call starts a
-// snapshot. The caller must remove destination records that no longer exist.
-func (c *Client) Watch(ctx context.Context, apply func(*binlog.VEvent) error) error {
-	err := c.Forward(ctx, c.token, func(event Event) error {
-		if event.Change != nil {
-			return apply(event.Change)
-		}
-		c.token = event.ResumeToken
-		return nil
-	})
-	if errors.Is(err, ErrExpired) {
-		c.token = nil
-	}
-	return err
-}
-
-// Forward is for relays that must send checkpoints to another consumer.
-// It sends changes and checkpoints in order without saving progress. Reconnect
-// with the downstream consumer's token. An empty token starts a snapshot.
-// The token must not change during a call. Forward does not change Watch's token.
+// Watch sends changes and checkpoints in order without saving progress.
+// Reconnect with the consumer's last applied token. An empty token starts a
+// snapshot. The token must not change during a call. Changes can repeat.
 // The callback must be non-nil and must not edit events. Errors stop the stream;
 // [ErrInvalidToken] and [ErrExpired] require a snapshot with an empty token.
 //
 // Matching transactions checkpoint at once. Other progress checkpoints at most
 // once per 30 seconds after the first checkpoint. The upstream wait times out
 // after 30 seconds; time spent in callbacks does not count.
-func (c *Client) Forward(ctx context.Context, token []byte, send func(Event) error) error {
+func (c *Watcher) Watch(ctx context.Context, token []byte, send func(Event) error) error {
+	if err := assert.True(c.watching.CompareAndSwap(false, true), "CDC watcher already has an active watch"); err != nil {
+		return err
+	}
+	defer c.watching.Store(false)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	filter, err := vstreamFilter(c.rules)
@@ -145,7 +130,7 @@ func (c *Client) Forward(ctx context.Context, token []byte, send func(Event) err
 
 // receive limits the wait for a response, not the time spent in callbacks.
 // If the context is canceled, its error takes priority over a read error.
-func (c *Client) receive(ctx context.Context, responses <-chan streamResult) (*vtgate.VStreamResponse, error) {
+func (c *Watcher) receive(ctx context.Context, responses <-chan streamResult) (*vtgate.VStreamResponse, error) {
 	waiting := c.clock.NewTicker(30 * time.Second)
 	defer waiting.Stop()
 	var result streamResult
@@ -164,7 +149,7 @@ func (c *Client) receive(ctx context.Context, responses <-chan streamResult) (*v
 
 // position starts a snapshot for an empty token or checks a saved position.
 // Invalid tokens return nil and an error wrapping [ErrInvalidToken].
-func (c *Client) position(token []byte) (*binlog.VGtid, error) {
+func (c *Watcher) position(token []byte) (*binlog.VGtid, error) {
 	if len(token) == 0 {
 		return &binlog.VGtid{ShardGtids: []*binlog.ShardGtid{{Keyspace: c.keyspace}}}, nil
 	}
