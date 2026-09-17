@@ -14,14 +14,14 @@
     "@testing-library/react": "16.3.2",
     "@testing-library/react-hooks": "8.0.1",
     "@types/node": "25.0.10",
-    "@types/react": "19.2.3",
+    "@types/react": "19.2.4",
     "@types/react-dom": "19.2.3",
     "@unkey/tsconfig": "workspace:^",
     "jsdom": "26.0.0",
     "tailwindcss": "catalog:",
     "tailwindcss-animate": "1.0.7",
     "typescript": "5.9.3",
-    "vitest": "1.6.1"
+    "vitest": "5.0.1"
   },
   "dependencies": {
     "@base-ui/react": "1.6.0",
