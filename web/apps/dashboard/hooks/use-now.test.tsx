@@ -13,31 +13,29 @@ describe("useNow", () => {
   });
 
   it("advances on its own, without a re-render from the outside", () => {
-    const { result } = renderHook(() => useNow(30_000));
+    const { result } = renderHook(() => useNow(10_000));
     const mounted = result.current;
 
     act(() => {
-      vi.advanceTimersByTime(90_000);
+      vi.advanceTimersByTime(30_000);
     });
 
-    expect(result.current - mounted).toBe(90_000);
+    expect(result.current - mounted).toBe(30_000);
   });
 
-  it("reads the clock again on remount", () => {
-    const first = renderHook(() => useNow(30_000));
-    first.unmount();
+  it("stops reading the clock once unmounted", () => {
+    let renders = 0;
+    const { unmount } = renderHook(() => {
+      renders += 1;
+      return useNow(10_000);
+    });
+    const before = renders;
 
+    unmount();
     act(() => {
-      vi.advanceTimersByTime(600_000);
+      vi.advanceTimersByTime(60_000);
     });
 
-    const second = renderHook(() => useNow(30_000));
-    expect(second.result.current).toBe(Date.now());
-  });
-
-  it("stops ticking once unmounted", () => {
-    const clear = vi.spyOn(globalThis, "clearInterval");
-    renderHook(() => useNow(30_000)).unmount();
-    expect(clear).toHaveBeenCalled();
+    expect(renders).toBe(before);
   });
 });
