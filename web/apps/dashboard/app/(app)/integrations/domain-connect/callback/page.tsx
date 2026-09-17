@@ -1,7 +1,7 @@
 "use client";
 
-import { isSafeRedirectPath } from "@/app/auth/sign-in/redirect-utils";
 import { LoadingState } from "@/components/loading-state";
+import { isSafeRedirectPath } from "@/lib/auth/redirect-utils";
 import {
   EmptyState,
   EmptyStateDescription,
