@@ -120,6 +120,30 @@ describe("proxy auth mode split", () => {
     ).toBe(false);
   });
 
+  it.each(["/monitoring", "/monitoring?o=123&p=456&r=us"])(
+    "does not redirect the Sentry tunnel %s through authentication",
+    (path) => {
+      expect(
+        unstable_doesMiddlewareMatch({
+          config,
+          url: `http://localhost:3000${path}`,
+        }),
+      ).toBe(false);
+    },
+  );
+
+  it.each(["/monitoring-workspace", "/monitoring/apis"])(
+    "still authenticates dashboard paths starting with monitoring: %s",
+    (path) => {
+      expect(
+        unstable_doesMiddlewareMatch({
+          config,
+          url: `http://localhost:3000${path}`,
+        }),
+      ).toBe(true);
+    },
+  );
+
   it("does not create an unused AuthKit transaction for public route handlers", async () => {
     const response = await proxy(new NextRequest("http://localhost:3000/api/webhooks/workos"));
 
