@@ -22,6 +22,8 @@ export * from "./components/drawer";
 export * from "./components/drover";
 export * from "./components/empty";
 export * from "./components/empty-hero";
+export * from "./components/empty-state";
+export * from "./components/icon-fan-row";
 export * from "./components/form";
 export * from "./components/full-screen-layout";
 export * from "./components/id";
