@@ -1,6 +1,9 @@
 {
   "name": "unkey",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "private": true,
   "version": "1.0.0",
   "description": "",
@@ -20,10 +23,10 @@
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
     "@types/node": "22.14.0",
-    "@vitest/ui": "3.2.4",
+    "@vitest/ui": "5.0.1",
     "turbo": "2.4.3",
     "typescript": "5.7.3",
-    "vitest": "3.2.4"
+    "vitest": "5.0.1"
   },
   "engines": {
     "node": ">=22.11"
