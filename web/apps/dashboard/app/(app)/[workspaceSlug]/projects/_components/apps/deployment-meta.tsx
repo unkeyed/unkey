@@ -11,7 +11,7 @@ import { match } from "@unkey/match";
 import { intlFormatDistance } from "date-fns";
 import { DeploymentStatusIndicator } from "../../[projectId]/apps/[appId]/components/deployment-status-dot";
 
-type AppDeployment = NonNullable<ProjectApp["headlineDeployment"]>;
+export type AppDeployment = NonNullable<ProjectApp["headlineDeployment"]>;
 
 const VERB: Record<DeploymentStatusGroup, string> = {
   queued: "started",
@@ -35,19 +35,24 @@ const TONE: Record<DeploymentStatusGroup, string> = {
   superseded: "text-gray-9",
 };
 
-export const AGE_TICK_MS = 30_000;
+const TICK_MS = 10_000;
 
+// A deployment that lands between two ticks is newer than the clock, and
+// intlFormatDistance would put it in the future: "started in 25 sec".
 function age(deployedAt: number, now: number): string {
-  return intlFormatDistance(deployedAt, now, { style: "narrow" });
+  return intlFormatDistance(deployedAt, Math.max(now, deployedAt), { style: "narrow" });
 }
 
-export function deploymentPhrase(deployment: AppDeployment, now: number): string {
-  return `${VERB[statusGroupOf(deployment.status)]} ${age(deployment.deployedAt, now)}`;
+export function useDeploymentAge(deployment: AppDeployment): string {
+  return age(deployment.deployedAt, useNow(TICK_MS));
+}
+
+export function useDeploymentPhrase(deployment: AppDeployment): string {
+  return `${VERB[statusGroupOf(deployment.status)]} ${useDeploymentAge(deployment)}`;
 }
 
 export function DeploymentMeta({ deployment }: { deployment: AppDeployment }) {
-  const now = useNow(AGE_TICK_MS);
-  const deployedAgo = age(deployment.deployedAt, now);
+  const deployedAgo = useDeploymentAge(deployment);
 
   const settled = (group: DeploymentStatusGroup) => (
     <span className={cn("shrink-0 text-xs", TONE[group])}>
