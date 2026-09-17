@@ -14,7 +14,7 @@ Each Restate VO uses the narrowest key that gives the serialization it needs:
 - **`RoutingService`** is keyed by `env_id`. Frontline route assignment and the live-deployment swap serialize here. It is the write primitive that `DeployWorkflow` and `EnvironmentService` call.
 - **`DeploymentService`** (desired-state transitions, scheduled and immediate) is keyed by `deployment_id`.
 
-Build concurrency has no virtual object. `DeployWorkflow.Build` is a shared handler that Deploy calls on the same workflow key in the Restate scope `builds` with the workspace id as the limit key, and Restate's rule book caps how many run at once per workspace. See [Build concurrency](#build-concurrency-restate-flow-control).
+Build concurrency has no virtual object. `DeployWorkflow.Build` is a shared handler that Deploy calls on the same workflow key in the Restate scope `builds` with the workspace id as the limit key, and Restate's concurrency rules cap how many run at once per workspace. See [Build concurrency](#build-concurrency-restate-flow-control).
 
 Key components:
 
@@ -23,7 +23,7 @@ Key components:
 - `EnvironmentService` (promote, rollback, environment deletion): [`svc/ctrl/worker/environment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/environment)
 - `RoutingService` (route assignment + live swap) — [`svc/ctrl/worker/routing`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/routing)
 - `DeploymentService` VO for scheduled and immediate desired-state transitions — [`svc/ctrl/worker/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment)
-- `RunBuildLimitSync` cron that writes the rule book: [`svc/ctrl/worker/cron/buildlimitsync`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/cron/buildlimitsync)
+- `RunBuildLimitSync` cron that writes the build concurrency rules: [`svc/ctrl/worker/cron/buildlimitsync`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/cron/buildlimitsync)
 - Superseded sibling cancellation — [`svc/ctrl/worker/deploy/supersede.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy/supersede.go)
 
 ## Flow: create deployment
@@ -52,7 +52,7 @@ sequenceDiagram
   Restate->>Worker: Execute Deploy workflow for newest commit
   Worker->>Dedup: skipIfSuperseded (defensive self-skip check)
   Worker->>Restate: Build (scope builds, limit key workspace_id)
-  Note over Restate: queued until the workspace<br/>is under its rule book cap
+  Note over Restate: queued until the workspace<br/>is under its build cap
   Restate->>Build: Build
   Build->>DB: End queued step, run starting and building steps
   Build-->>Worker: BuildResponse
@@ -127,7 +127,7 @@ Build concurrency is Restate flow control; the worker holds no queue state of it
 
 - A **scope** is a name Restate groups invocations under. Deploy calls `Build` in the scope `builds`.
 - A **limit key** is the value Restate counts running invocations by within a scope. Deploy passes the workspace id.
-- The **rule book** says how many invocations may run at once for a `<scope>/<limit key>` pattern. It is written through the admin API and read from the `sys_rules` table. An exact pattern beats a wildcard. No matching rule means unlimited.
+- A **rule** says how many invocations may run at once for a `<scope>/<limit key>` pattern. Rules are written through the admin API and read from the `sys_rules` table. An exact pattern beats a wildcard. No matching rule means unlimited.
 
 | Rule pattern | Concurrency | Description | Written by |
 | --- | --- | --- | --- |
@@ -162,7 +162,7 @@ export ADMIN="https://${ENV_ID}.env.eu.restate.cloud:9070"   # canary is .env.eu
 export TOKEN="$(kubectl --context "$CTX" -n restate-system get secret restate-cloud-credentials -o jsonpath='{.data.token}' | base64 -d)"
 ```
 
-Read the rule book. There is no `GET /limits/rules`; the book is read through the SQL endpoint, and the `Accept` header is required or the response is binary Arrow:
+Read the rules. There is no `GET /limits/rules`; they are read through the SQL endpoint, and the `Accept` header is required or the response is binary Arrow:
 
 ```bash
 curl -sS "$ADMIN/query" -H "Authorization: Bearer $TOKEN" \
