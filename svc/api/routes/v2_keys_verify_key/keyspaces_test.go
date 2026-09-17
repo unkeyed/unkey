@@ -54,7 +54,7 @@ func TestVerifyKey_KeyspaceRejectionsDoNotConsumeQuota(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 				"Content-Type": {"application/json"}, "Authorization": {"Bearer " + tt.rootKey},
 			}, handler.Request{
-				Key: key.Key, KeyspaceIds: &tt.keyspaceIDs, Credits: &openapi.KeysVerifyKeyCredits{Cost: 2},
+				Key: key.Key, Keyspaces: &tt.keyspaceIDs, Credits: &openapi.KeysVerifyKeyCredits{Cost: 2},
 			})
 			require.Equal(t, http.StatusOK, res.Status, res.RawBody)
 			require.Equal(t, openapi.V2KeysVerifyKeyResponseData{Code: openapi.NOTFOUND, Valid: false}, res.Body.Data)
@@ -65,7 +65,7 @@ func TestVerifyKey_KeyspaceRejectionsDoNotConsumeQuota(t *testing.T) {
 		"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey},
 	}, handler.Request{
 		Key: key.Key, Credits: &openapi.KeysVerifyKeyCredits{Cost: 2},
-		KeyspaceIds: ptr.P([]string{
+		Keyspaces: ptr.P([]string{
 			otherAPI.KeyAuthID.String, "ks_second", "ks_third", strings.Repeat("x", 256), api.KeyAuthID.String,
 		}),
 	})
@@ -104,7 +104,7 @@ func TestVerifyKey_RejectsInvalidKeyspaceAllowlist(t *testing.T) {
 		{name: "more than five IDs", value: `["a","b","c","d","e","f"]`},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			req := json.RawMessage(fmt.Sprintf(`{"key":%q,"keyspaceIds":%s}`, key.Key, tt.value))
+			req := json.RawMessage(fmt.Sprintf(`{"key":%q,"keyspaces":%s}`, key.Key, tt.value))
 			res := testutil.CallRoute[json.RawMessage, openapi.BadRequestErrorResponse](h, route, headers, req)
 			require.Equal(t, http.StatusBadRequest, res.Status, res.RawBody)
 			require.NotNil(t, res.Body.Error)
