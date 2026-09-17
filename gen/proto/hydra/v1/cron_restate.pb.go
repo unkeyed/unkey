@@ -96,9 +96,12 @@ type CronServiceClient interface {
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
 	// RunBuildLimitSync keeps the build concurrency rules in Restate. Each rule
-	// caps how many invocations run at once for a scope and a limit key. This handler writes "builds/*", which caps a
-	// workspace's concurrent builds. Key is the fixed slug "build-limit-sync"
-	// so ticks serialize without sharing a queue with other singleton handlers
+	// caps how many invocations run at once for a scope and a limit key. This
+	// handler writes "builds/*" and one "builds/<workspace_id>" rule per
+	// workspace whose limits row is above the default, and deletes such a rule
+	// once the row is back at the default. Key is the fixed slug
+	// "build-limit-sync" so ticks serialize without sharing a queue with other
+	// singleton handlers
 	RunBuildLimitSync(opts ...sdk_go.ClientOption) sdk_go.Client[*RunBuildLimitSyncRequest, *RunBuildLimitSyncResponse]
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug
@@ -292,9 +295,12 @@ type CronServiceIngressClient interface {
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
 	// RunBuildLimitSync keeps the build concurrency rules in Restate. Each rule
-	// caps how many invocations run at once for a scope and a limit key. This handler writes "builds/*", which caps a
-	// workspace's concurrent builds. Key is the fixed slug "build-limit-sync"
-	// so ticks serialize without sharing a queue with other singleton handlers
+	// caps how many invocations run at once for a scope and a limit key. This
+	// handler writes "builds/*" and one "builds/<workspace_id>" rule per
+	// workspace whose limits row is above the default, and deletes such a rule
+	// once the row is back at the default. Key is the fixed slug
+	// "build-limit-sync" so ticks serialize without sharing a queue with other
+	// singleton handlers
 	RunBuildLimitSync() ingress.Requester[*RunBuildLimitSyncRequest, *RunBuildLimitSyncResponse]
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug
@@ -466,9 +472,12 @@ type CronServiceServer interface {
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error)
 	// RunBuildLimitSync keeps the build concurrency rules in Restate. Each rule
-	// caps how many invocations run at once for a scope and a limit key. This handler writes "builds/*", which caps a
-	// workspace's concurrent builds. Key is the fixed slug "build-limit-sync"
-	// so ticks serialize without sharing a queue with other singleton handlers
+	// caps how many invocations run at once for a scope and a limit key. This
+	// handler writes "builds/*" and one "builds/<workspace_id>" rule per
+	// workspace whose limits row is above the default, and deletes such a rule
+	// once the row is back at the default. Key is the fixed slug
+	// "build-limit-sync" so ticks serialize without sharing a queue with other
+	// singleton handlers
 	RunBuildLimitSync(ctx sdk_go.ObjectContext, req *RunBuildLimitSyncRequest) (*RunBuildLimitSyncResponse, error)
 	// RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
 	// desired allowed-table fingerprint changes. Key is the fixed slug
