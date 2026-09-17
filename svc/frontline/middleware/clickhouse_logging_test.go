@@ -13,6 +13,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/batch"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
@@ -261,14 +262,14 @@ func TestRedactBody_AppliesOpenAPIRedactors(t *testing.T) {
 func TestClickHouseLogging_RejectedRequestIsLogged(t *testing.T) {
 	rows := runClickHouseLogging(t, func(s *zen.Session, tracking *proxy.RequestTracking) {
 		tracking.DeploymentID = "dep_123"
-		tracking.ErrorCode = "err:frontline:auth:invalid_key"
+		tracking.ErrorCode = string(codes.Frontline.Auth.InvalidKey.URN())
 		require.NoError(t, s.JSON(http.StatusUnauthorized, struct{}{}))
 	})
 
 	require.Len(t, rows, 1)
 	require.Equal(t, "dep_123", rows[0].DeploymentID)
 	require.Empty(t, rows[0].InstanceID, "the request never reached an instance")
-	require.Equal(t, "err:frontline:auth:invalid_key", rows[0].ErrorCode)
+	require.Equal(t, string(codes.Frontline.Auth.InvalidKey.URN()), rows[0].ErrorCode)
 	require.Equal(t, int32(http.StatusUnauthorized), rows[0].ResponseStatus)
 	require.Equal(t, rows[0].TotalLatency, rows[0].GatewayLatency, "a rejection is spent entirely in the gateway")
 	require.Zero(t, rows[0].InstanceLatency)
