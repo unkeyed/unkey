@@ -83,12 +83,12 @@ func New(cfg Config) (*Handler, error) {
 }
 
 // Handle writes the default rule and one rule per workspace whose limit is
-// above the default, deletes every other "builds/<workspace_id>" rule at the
-// version it was listed, then pings the heartbeat, so a green heartbeat means
-// the rules match the database. The upsert and the delete are separate Runs,
-// so a crash between them leaves a stale workspace rule until the next tick. Ticks share the
-// fixed key "build-limit-sync", so a stuck invocation blocks the following
-// ticks; the retry policy kills it instead of pausing for that reason
+// above the default, deletes every other "builds/<workspace_id>" rule, then
+// pings the heartbeat, so a green heartbeat means the rules match the
+// database. The upsert and the delete are separate Runs, so a crash between
+// them leaves a stale workspace rule until the next run. Runs of this handler
+// share the fixed key "build-limit-sync", so a stuck one blocks the next; the
+// retry policy kills it instead of pausing for that reason
 func (h *Handler) Handle(
 	ctx restate.ObjectContext,
 	_ *hydrav1.RunBuildLimitSyncRequest,

@@ -123,21 +123,16 @@ sequenceDiagram
 
 ## Build concurrency
 
-Restate limits how many builds run at once; the worker keeps no queue of its own. Four Restate terms, used the same way in the `DeployWorkflow` proto comment:
+Restate limits how many builds run at once. Deploy calls `Build` in the scope `builds` with the workspace id as the limit key, and a rule for `builds/<workspace_id>` or `builds/*` says how many such calls may run at the same time. An exact pattern beats `*`; no matching rule means no limit.
 
-- An **invocation** is one call of one handler. Deploy and Build are each an invocation.
-- A **scope** is a name Restate groups invocations under. Deploy calls `Build` in the scope `builds`.
-- A **limit key** is the value Restate counts running invocations by within a scope. Deploy passes the workspace id, so the count is per workspace.
-- A **rule** pairs a `<scope>/<limit key>` pattern with the number of matching invocations that may run at once. An exact pattern beats `*`. With no matching rule there is no limit. Rules are written through Restate's admin API and read back from its `sys_rules` table.
+| Rule pattern | Concurrency | Written by |
+| --- | --- | --- |
+| `builds/*` | 1 | `CronService.RunBuildLimitSync`, every 15 minutes |
+| `builds/<workspace_id>` | `limits.builds_concurrent_max` when above 1 | the same cron, deleted once the row is back at 1 or below |
 
-| Rule pattern | Concurrency | Description | Written by |
-| --- | --- | --- | --- |
-| `builds/*` | 1 | `default per-workspace build concurrency` | `CronService.RunBuildLimitSync`, every 15 minutes |
-| `builds/<workspace_id>` | `limits.builds_concurrent_max` when above 1 | `per-workspace build concurrency from limits` | the same cron, deleted once the row is back at 1 or below |
+The database is the source of truth: a rule set by hand lasts at most 15 minutes. To raise a workspace's cap, raise `builds_concurrent_max` on its `limits` row.
 
-The database is the source of truth. Every 15 minutes the cron rewrites both kinds of rule and deletes any `builds/<workspace_id>` rule the `limits` table does not call for, so a rule set by hand lasts at most 15 minutes.
-
-Deploy calls Build and waits for the answer (`Request`); it does not fire and forget (`Send`). That matters for cancel. Because Deploy waits, Restate treats the Build as part of Deploy, so cancelling Deploy cancels the Build too: one still waiting for a slot is removed and never runs, one already running finishes its current step and then stops, which for a build means the image may still be pushed. With `Send` the Build would run on unaffected:
+Deploy waits for Build (`Request`, not `Send`), so cancelling Deploy cancels the Build too. A Build still waiting is removed and never runs; one already running finishes its current step first, so the image may still be pushed.
 
 ```go
 hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(restateadmin.BuildConcurrencyScope)).
@@ -145,47 +140,34 @@ hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(restateadm
     Request(req, restate.WithLimitKey(deployment.WorkspaceID))
 ```
 
-What this gives:
+- One queue per workspace, production and preview together, in the order builds became ready. No priority, no timeout: a waiting deployment stays `pending` until a build in its workspace finishes or it is cancelled.
+- `Build` refuses to run outside scope `builds` or with a limit key other than its workspace.
+- A build that still fails after all retries is stopped for good, and Deploy marks the deployment failed.
+- All builds share one Restate partition. When its leader changes, every build in progress restarts from its last recorded step.
 
-- One queue per workspace, shared by production and preview, in the order the builds became ready. Production has no priority and there is no timeout: a waiting deployment stays `pending` until a build in its workspace finishes or is cancelled, or until someone cancels the deployment itself.
-- `Build` refuses to run when the call did not arrive in scope `builds` or with the workspace id as limit key. A wrong scope matches no rule and would build without a limit; a wrong limit key would count the build against another workspace.
-- A build that still fails after all its retries is stopped for good rather than paused for an operator to resume. Deploy then closes the open step and marks the deployment failed.
-- Restate runs every invocation of one scope on the same partition, one slice of its cluster, so all builds share one partition whatever their workspace, while the queues stay per workspace. When that partition changes leader, every build in progress restarts from its last recorded step.
+### Runbook
 
-### Runbook (Restate Cloud)
+`$ADMIN` and `$TOKEN` are the Restate Cloud admin URL and token; [runbook 0001](https://github.com/unkeyed/infra/blob/main/docs/runbooks/restate/0001-control-worker-registration.md) says where to get them. Not yet run against Cloud.
 
-Canary and production run on Restate Cloud. Both Kubernetes clusters are in us-east-1; canary's Restate Cloud environment is hosted in the EU region, production's in the US region. The token below is the one the Restate operator uses to register the worker. These commands have been run against dev Restate, not yet against Cloud.
-
-```bash
-export CTX=<canary or production us-east-1 context>
-export ENV_ID=201kfwtpdc67n1p4d6vdpf017sh   # canary; production is 201kf0h15frcbabqajch9nz2ztt
-export ADMIN="https://${ENV_ID}.env.eu.restate.cloud:9070"   # canary is .env.eu., production is .env.us.
-export TOKEN="$(kubectl --context "$CTX" -n restate-system get secret restate-cloud-credentials -o jsonpath='{.data.token}' | base64 -d)"
-```
-
-Read the rules. There is no `GET /limits/rules`; they are read through the SQL endpoint, and the `Accept` header is required or the response comes back in a binary format:
+Read the rules (there is no `GET /limits/rules`):
 
 ```bash
 curl -sS "$ADMIN/query" -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' -H 'Accept: application/json' \
-  -d '{"query":"SELECT pattern, concurrency, description, disabled, version FROM sys_rules"}'
+  -d '{"query":"SELECT pattern, concurrency, disabled, version FROM sys_rules"}'
 ```
 
-What the result means:
+If `builds/*` is missing, every workspace builds without a limit until the next cron run. Run it now with `kubectl -n restate-system create job --from=cronjob/restate-build-limit-sync build-limit-sync-manual`.
 
-- `builds/*` missing: every workspace builds without a cap. The next cron tick within 15 minutes rewrites it. To fix it now, run the CronJob by hand: `kubectl --context "$CTX" -n restate-system create job --from=cronjob/restate-build-limit-sync build-limit-sync-manual`.
-- Any rule edited by hand: the cron rewrites it on the next tick, so the edit lasts at most 15 minutes.
-- One workspace needs a higher cap during an incident: raise `builds_concurrent_max` on its `limits` row. The cron writes the matching `builds/<workspace_id>` rule within 15 minutes, and queued builds for that workspace start as soon as the rule lands.
-
-Queue depth and age:
+Builds waiting or running:
 
 ```bash
 curl -sS "$ADMIN/query" -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' -H 'Accept: application/json' \
-  -d '{"query":"SELECT id, target, created_at, status FROM sys_invocation WHERE target_service_name = '"'"'hydra.v1.DeployWorkflow'"'"' AND target_handler_name = '"'"'Build'"'"' AND status <> '"'"'completed'"'"'"}'
+  -d '{"query":"SELECT target, created_at, running_at FROM sys_invocation WHERE target_handler_name = '"'"'Build'"'"' AND status <> '"'"'completed'"'"'"}'
 ```
 
-Two more tables worth knowing: `sys_user_limits` shows how many invocations each limit key has running right now, and `sys_vqueue_entry_status` lists the entries waiting in each queue. Registering a new worker version follows [runbook 0001](https://github.com/unkeyed/infra/blob/main/docs/runbooks/restate/0001-control-worker-registration.md).
+A row with no `running_at` is waiting for a slot.
 
 ## Commit deduplication
 

@@ -17,20 +17,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// BuildRetryPolicy has Deploy's retry budget but kills on exhaustion instead
-// of pausing. A killed Build returns a terminal error to Deploy, whose
-// compensations fail the deployment. A paused Build would leave Deploy waiting
-// on it until an operator resumed it
-func BuildRetryPolicy() restate.HandlerOption {
-	return restate.WithInvocationRetryPolicy(
-		restate.WithInitialRetryInterval(2*time.Second),
-		restate.WithRetryIntervalFactor(2.0),
-		restate.WithMaxRetryInterval(30*time.Second),
-		restate.WithMaxRetryAttempts(15),
-		restate.KillOnMaxAttempts(),
-	)
-}
-
 // Build ends the queued step and runs the starting and building steps. Deploy
 // calls it in [restateadmin.BuildConcurrencyScope] with the workspace id as
 // the limit key, and Restate runs this handler only once the workspace is
