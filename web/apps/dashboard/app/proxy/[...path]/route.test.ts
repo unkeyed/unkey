@@ -20,6 +20,10 @@ vi.mock("@/lib/env", () => ({
 import { getAuth } from "@/lib/auth/get-auth";
 import { auth as authProvider } from "@/lib/auth/server";
 import { env } from "@/lib/env";
+import {
+  BadRequestErrorResponse$inboundSchema,
+  UnauthorizedErrorResponse$inboundSchema,
+} from "@unkey/api/models/errors";
 import { jwtVerify } from "jose";
 import { POST } from "./route";
 
@@ -192,5 +196,71 @@ describe("dashboard proxy POST", () => {
     expect(res.status).toBe(403);
     expect(mockedAuthProvider.getUser).not.toHaveBeenCalled();
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("returns a problem-details error body the generated client can parse", async () => {
+    // The dashboard calls svc/api through this proxy with the generated client,
+    // which validates every error response against the API's problem-details
+    // envelope. A bare `{ error: string }` body fails that parse and the client
+    // throws a ResponseValidationError instead of a typed error.
+    mockedGetAuth.mockResolvedValue({ userId: null, orgId: null, role: null });
+
+    const res = await POST(makeRequest(), { params });
+
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body).toEqual({
+      meta: { requestId: expect.any(String) },
+      error: {
+        type: "https://unkey.com/docs/errors/unkey/authentication/missing",
+        title: "Unauthorized",
+        status: 401,
+        detail: "Authentication required.",
+      },
+    });
+
+    expect(
+      UnauthorizedErrorResponse$inboundSchema.safeParse({
+        ...body,
+        request$: new Request("http://localhost/proxy/v2/apis.listKeys"),
+        response$: new Response(),
+        body$: JSON.stringify(body),
+      }).success,
+    ).toBe(true);
+  });
+
+  it("returns a 400 problem-details body the generated client can parse", async () => {
+    mockedGetAuth.mockResolvedValue({
+      userId: "user_1",
+      orgId: "org_1",
+      accessToken: "workos_access_token",
+      role: "owner",
+    });
+
+    const res = await POST(makeRequest({ accept: "application/json" }), {
+      params: Promise.resolve({ path: ["v1/keys", "x"] }),
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body).toEqual({
+      meta: { requestId: expect.any(String) },
+      error: {
+        type: "https://unkey.com/docs/errors/unkey/application/invalid_input",
+        title: "Bad Request",
+        status: 400,
+        detail: "Invalid proxy path.",
+        errors: [],
+      },
+    });
+
+    expect(
+      BadRequestErrorResponse$inboundSchema.safeParse({
+        ...body,
+        request$: new Request("http://localhost/proxy/v2/apis.listKeys"),
+        response$: new Response(),
+        body$: JSON.stringify(body),
+      }).success,
+    ).toBe(true);
   });
 });

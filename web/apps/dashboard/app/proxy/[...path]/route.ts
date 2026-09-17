@@ -13,15 +13,22 @@ type RouteContext = {
 
 export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextResponse> {
   if (req.headers.has("authorization")) {
-    return NextResponse.json(
-      { error: "Dashboard proxy requests must not include an Authorization header." },
-      { status: 400 },
+    return apiError(
+      400,
+      errorType.invalidInput,
+      "Bad Request",
+      "Dashboard proxy requests must not include an Authorization header.",
     );
   }
 
   const auth = await getAuth(req);
   if (!auth.userId || !auth.orgId) {
-    return NextResponse.json({ error: "Authentication required." }, { status: 401 });
+    return apiError(
+      401,
+      errorType.authenticationMissing,
+      "Unauthorized",
+      "Authentication required.",
+    );
   }
   const orgId = auth.orgId;
   const userId = auth.userId;
@@ -29,7 +36,7 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
   let bearerToken: string | null | undefined = auth.accessToken;
   if (!bearerToken) {
     if (!auth.role) {
-      return NextResponse.json({ error: "Role required." }, { status: 403 });
+      return apiError(403, errorType.forbidden, "Forbidden", "Role required.");
     }
 
     const user = await authProvider.getUser(userId);
@@ -45,7 +52,12 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
     });
   }
   if (!bearerToken) {
-    return NextResponse.json({ error: "Dashboard proxy is not configured." }, { status: 500 });
+    return apiError(
+      500,
+      errorType.unexpectedError,
+      "Internal Server Error",
+      "Dashboard proxy is not configured.",
+    );
   }
 
   const { path } = await ctx.params;
@@ -59,7 +71,7 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
       return code <= 0x1f || code === 0x7f;
     });
     if (/[\\/]/.test(segment) || hasControlChar) {
-      return NextResponse.json({ error: "Invalid proxy path." }, { status: 400 });
+      return apiError(400, errorType.invalidInput, "Bad Request", "Invalid proxy path.");
     }
   }
 
@@ -69,7 +81,7 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
 
   // Defense in depth: never let the constructed URL leave the upstream origin.
   if (upstreamURL.origin !== baseURL.origin) {
-    return NextResponse.json({ error: "Invalid proxy path." }, { status: 400 });
+    return apiError(400, errorType.invalidInput, "Bad Request", "Invalid proxy path.");
   }
 
   const headers = upstreamRequestHeaders(req);
@@ -89,7 +101,12 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
     return null;
   });
   if (!upstream) {
-    return NextResponse.json({ error: "Upstream API request failed." }, { status: 502 });
+    return apiError(
+      502,
+      errorType.serviceUnavailable,
+      "Bad Gateway",
+      "Upstream API request failed.",
+    );
   }
 
   const responseHeaders = new Headers(upstream.headers);
@@ -102,6 +119,40 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
     statusText: upstream.statusText,
     headers: responseHeaders,
   });
+}
+
+const errorType = {
+  invalidInput: "https://unkey.com/docs/errors/unkey/application/invalid_input",
+  authenticationMissing: "https://unkey.com/docs/errors/unkey/authentication/missing",
+  forbidden: "https://unkey.com/docs/errors/unkey/authorization/forbidden",
+  unexpectedError: "https://unkey.com/docs/errors/unkey/application/unexpected_error",
+  serviceUnavailable: "https://unkey.com/docs/errors/unkey/application/service_unavailable",
+} as const;
+
+// The dashboard's generated client parses every error response against svc/api's
+// problem-details envelope. A bare `{ error: string }` body fails that parse and
+// surfaces as a ResponseValidationError the UI cannot turn into a message, so
+// proxy-generated errors use the same envelope.
+function apiError(
+  status: number,
+  type: (typeof errorType)[keyof typeof errorType],
+  title: string,
+  detail: string,
+): NextResponse {
+  return NextResponse.json(
+    {
+      meta: { requestId: `req_${crypto.randomUUID()}` },
+      error: {
+        type,
+        title,
+        status,
+        detail,
+        // The 400 problem-details schema requires an errors array.
+        ...(status === 400 ? { errors: [] } : {}),
+      },
+    },
+    { status },
+  );
 }
 
 function upstreamRequestHeaders(req: NextRequest): Headers {
