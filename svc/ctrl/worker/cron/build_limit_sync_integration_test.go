@@ -37,7 +37,7 @@ func TestRunBuildLimitSync_Integration(t *testing.T) {
 	require.NoError(t, err)
 
 	// A version bump wakes every build queued at that level, so a tick that
-	// rewrites the same limits must not move it.
+	// rewrites the same limits must not move it
 	unchanged, err := ruleBook.ListRules(h.Ctx)
 	require.NoError(t, err)
 	require.Equal(t, written, unchanged, "rewriting identical limits must not touch the rule")

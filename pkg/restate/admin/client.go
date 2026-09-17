@@ -222,7 +222,7 @@ type upsertRule struct {
 }
 
 // responseRule is one entry of the PUT /limits/rules response. It nests the
-// cap under "limits", where the sys_rules projection reads it as a column.
+// cap under "limits", where the sys_rules projection reads it as a column
 type responseRule struct {
 	Pattern string `json:"pattern"`
 	Limits  struct {
@@ -242,7 +242,7 @@ type responseRule struct {
 // already holds these limits changes nothing and advances neither its version
 // nor its last-modified time, so a caller never has to read the book to decide
 // whether to write it. The returned rules come from the node that committed
-// the write, which makes them the one read of the book that cannot be stale.
+// the write, which makes them the one read of the book that cannot be stale
 func (c *Client) UpsertRules(ctx context.Context, rules []RuleUpsert) ([]Rule, error) {
 	// A nil slice marshals to "null", which the endpoint rejects with a
 	// decode error rather than treating as an empty batch

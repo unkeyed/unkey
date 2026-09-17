@@ -169,18 +169,18 @@ func TestUpsertRules(t *testing.T) {
 	require.Equal(t, "application/json", gotContentType)
 
 	// Restate nests the cap under "limits" and takes the batch as a bare
-	// array, not an object.
+	// array, not an object
 	require.JSONEq(t, `[
 		{"pattern":"builds/*","limits":{"concurrency":1},"description":"default per-workspace build concurrency"},
 		{"pattern":"builds/ws_KEBAP","limits":{"concurrency":5},"description":"per-workspace build concurrency from limits"}
 	]`, string(gotBody))
 
 	// The response is the rule book as the committing node holds it, which is
-	// what spares the caller a second, possibly stale, read.
+	// what spares the caller a second, possibly stale, read
 	require.Equal(t, []Rule{
 		{Pattern: "builds/*", Concurrency: 1, Description: "default per-workspace build concurrency", Disabled: false, Version: 4},
 		// An omitted description and an omitted concurrency both read back as
-		// their zero value; Restate spells unlimited as no concurrency at all.
+		// their zero value; Restate spells unlimited as no concurrency at all
 		{Pattern: "builds/ws_KEBAP", Concurrency: 0, Description: "", Disabled: true, Version: 2},
 	}, written)
 }
@@ -193,12 +193,12 @@ func TestUpsertRules_RejectsEmptyAndZeroConcurrency(t *testing.T) {
 	client := New(Config{BaseURL: server.URL, APIKey: ""})
 
 	// A nil slice marshals to "null", which the endpoint rejects as a decode
-	// error rather than treating as an empty batch.
+	// error rather than treating as an empty batch
 	_, err := client.UpsertRules(context.Background(), nil)
 	require.ErrorContains(t, err, "no rules")
 
 	// Restate types concurrency as non-zero; unlimited is the absence of a
-	// rule, not a rule at zero.
+	// rule, not a rule at zero
 	_, err = client.UpsertRules(context.Background(), []RuleUpsert{
 		{Pattern: "builds/*", Concurrency: 0, Description: "KEBAP"},
 	})
