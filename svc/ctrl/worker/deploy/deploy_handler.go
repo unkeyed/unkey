@@ -118,7 +118,11 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 	})
 
 	deployment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindDeploymentForDeployRow, error) {
-		return w.db.FindDeploymentForDeploy(runCtx, req.GetDeploymentId())
+		found, err := w.db.FindDeploymentForDeploy(runCtx, req.GetDeploymentId())
+		if db.IsNotFound(err) {
+			return found, restate.ToTerminalError(err)
+		}
+		return found, err
 	}, restate.WithName("finding deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
@@ -146,9 +150,9 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		}
 	}
 
-	// Request, not Send: cancelling this invocation then also cancels its
-	// queued or running Build. A Send would detach the Build and it would
-	// keep running
+	// Request, not Send: cancelling this invocation removes a queued Build
+	// and stops a running one at its next Restate call. A Send would detach
+	// the Build and it would keep running
 	_, err = hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(restateadmin.BuildConcurrencyScope)).
 		Build().
 		Request(req, restate.WithLimitKey(deployment.WorkspaceID))
@@ -170,12 +174,16 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 	// workspace gets its Kubernetes namespace here, on its first deployment
 	deployment, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.FindDeploymentForDeployRow, error) {
 		found, err := w.db.FindDeploymentForDeploy(runCtx, deployment.ID)
+		if db.IsNotFound(err) {
+			return found, restate.ToTerminalError(err)
+		}
 		if err != nil || found.Status.IsTerminal() || found.WorkspaceK8sNamespace.Valid {
 			return found, err
 		}
-		// Two first deployments can race here; the update is conditional on
-		// the column being null, so only one namespace lands and the row is
-		// not read back into this journal
+		// A workspace gets its namespace on its first deployment. Two first
+		// deployments can both get here; the update applies only while the
+		// column is still empty, so one name is stored and the other is dropped.
+		// Nothing below reads the namespace, so which one won does not matter
 		return found, w.db.SetWorkspaceK8sNamespace(runCtx, db.SetWorkspaceK8sNamespaceParams{
 			ID:           found.WorkspaceID,
 			K8sNamespace: sql.NullString{Valid: true, String: uid.DNS1035()},
