@@ -2,6 +2,7 @@ package keys
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
@@ -89,6 +90,11 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 
 	if config.tags != nil {
 		k.tags = config.tags
+	}
+
+	if config.keyspaces != nil && !slices.Contains(config.keyspaces, k.Key.KeyAuthID) {
+		k.setInvalid(StatusNotFound, "Key does not belong to an allowed keyspace.")
+		return nil
 	}
 
 	var err error
