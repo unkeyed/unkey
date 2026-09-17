@@ -57,14 +57,31 @@ export function DeployNudge({ compact = false }: { compact?: boolean }) {
     return <div className={cn(shell, "border-grayA-4")} aria-busy="true" />;
   }
 
-  if (state.kind === "none") {
+  if (state.kind === "undeployed") {
     return (
       <Link
         href={state.href}
         className={cn(shell, "border-dashed border-grayA-6 hover:border-grayA-8 hover:bg-grayA-2")}
       >
         <IconBoltOutline18 className="size-3.5 shrink-0 text-gray-9" />
-        <span className="min-w-0 flex-1 truncate text-gray-11">No apps deployed yet</span>
+        <span className="min-w-0 flex-1 truncate text-gray-11">
+          {state.appCount === 1
+            ? `${state.appName} is not deployed`
+            : `${state.appCount} apps, none deployed`}
+        </span>
+        <span className="shrink-0 text-xs text-accent-12 group-hover:underline">Deploy</span>
+      </Link>
+    );
+  }
+
+  if (state.kind === "no-apps") {
+    return (
+      <Link
+        href={state.href}
+        className={cn(shell, "border-dashed border-grayA-6 hover:border-grayA-8 hover:bg-grayA-2")}
+      >
+        <IconBoltOutline18 className="size-3.5 shrink-0 text-gray-9" />
+        <span className="min-w-0 flex-1 truncate text-gray-11">No apps yet</span>
         <span className="shrink-0 text-xs text-accent-12 group-hover:underline">Deploy</span>
       </Link>
     );

@@ -9,7 +9,8 @@ import { useMemo } from "react";
 
 export type DeployState =
   | { kind: "loading" }
-  | { kind: "none"; href: Route }
+  | { kind: "no-apps"; href: Route }
+  | { kind: "undeployed"; appCount: number; appName: string; projectName: string; href: Route }
   | {
       kind: "latest";
       appName: string;
@@ -29,16 +30,32 @@ export function useDeployState(): DeployState {
       return { kind: "loading" };
     }
 
-    const deployed = projects.data.flatMap((project) =>
-      project.apps
-        .filter((app) => app.headlineDeployment !== null)
-        .map((app) => ({ project, app, deployment: app.headlineDeployment! })),
+    const withApps = projects.data.flatMap((project) =>
+      project.apps.map((app) => ({ project, app })),
+    );
+
+    if (withApps.length === 0) {
+      return {
+        kind: "no-apps",
+        href: routes.projects.list({ workspaceSlug: workspace.slug, new: true }),
+      };
+    }
+
+    const deployed = withApps.flatMap(({ project, app }) =>
+      app.headlineDeployment ? [{ project, app, deployment: app.headlineDeployment }] : [],
     );
 
     if (deployed.length === 0) {
+      const [first] = withApps;
       return {
-        kind: "none",
-        href: routes.projects.list({ workspaceSlug: workspace.slug, new: true }),
+        kind: "undeployed",
+        appCount: withApps.length,
+        appName: first.app.name,
+        projectName: first.project.name,
+        href: routes.projects.detail({
+          workspaceSlug: workspace.slug,
+          projectId: first.project.id,
+        }),
       };
     }
 
