@@ -64,7 +64,7 @@ export function BuildInProgressChart() {
       </div>
       <Skeleton className="h-[120px] w-full rounded-md" />
       <div className="flex items-center gap-2 text-[13px] text-gray-9">
-        <Loading type="dots" size={16} />
+        <Loading size={16} className="text-accent-12" />
         Waiting for build to finish…
       </div>
     </div>

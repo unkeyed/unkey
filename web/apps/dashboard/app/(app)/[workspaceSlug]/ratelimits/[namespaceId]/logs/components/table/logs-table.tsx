@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  EmptyRatelimitLogs,
   type EnrichedRatelimitLog,
   createRatelimitLogsColumns,
   getRowClassName,
@@ -10,7 +9,18 @@ import {
 } from "@/components/ratelimit-logs-table";
 import { cn } from "@/lib/utils";
 import type { RowSelectionState } from "@tanstack/react-table";
-import { DataTable, PaginationFooter } from "@unkey/ui";
+import { IconBookBookmarkOutline18, IconLayers3Outline18 } from "@unkey/icons";
+import {
+  Button,
+  DataTable,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+  PaginationFooter,
+} from "@unkey/ui";
 import { useCallback, useMemo } from "react";
 import { useRatelimitLogsContext } from "../../context/logs";
 
@@ -84,7 +94,33 @@ export const RatelimitLogsTable = () => {
         onSortingChange={onSortingChange}
         manualSorting
         config={{ rowHeight: 26, layout: "classic", rowBorders: false, containerPadding: "px-2" }}
-        emptyState={<EmptyRatelimitLogs />}
+        emptyState={
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconLayers3Outline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Logs</EmptyStateTitle>
+              <EmptyStateDescription>
+                No ratelimit logs yet. Once API requests start coming in, you'll see a detailed view
+                of your rate limits, including passed and blocked requests, across your API
+                endpoints.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <a
+                href="https://www.unkey.com/docs/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" size="md">
+                  <IconBookBookmarkOutline18 />
+                  Documentation
+                </Button>
+              </a>
+            </EmptyStateActions>
+          </EmptyState>
+        }
       />
       {!isLive && (
         <PaginationFooter

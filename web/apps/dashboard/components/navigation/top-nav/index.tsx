@@ -5,9 +5,10 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { type BreadcrumbDescriptor, useBreadcrumbs } from "@/hooks/use-breadcrumbs";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { Menu } from "@unkey/icons";
+import { IconMenuOutline18 } from "@unkey/icons";
 import Link from "next/link";
 import { Fragment } from "react";
+import { AccountCrumb } from "./account-crumb";
 import { ApiCrumb } from "./api-crumb";
 import { AppCrumb } from "./app-crumb";
 import { CrumbSeparator } from "./crumb";
@@ -57,7 +58,7 @@ export function TopNav() {
           aria-label="Open navigation"
           className="flex size-8 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-accent-12 md:hidden"
         >
-          <Menu className="size-4" iconSize="md-regular" />
+          <IconMenuOutline18 className="size-4" />
         </button>
       </div>
     </header>
@@ -68,6 +69,8 @@ function CrumbForDescriptor({ descriptor }: { descriptor: BreadcrumbDescriptor }
   switch (descriptor.type) {
     case "workspace":
       return <WorkspaceCrumb href={descriptor.href} />;
+    case "account":
+      return <AccountCrumb />;
     case "project":
       return <ProjectCrumb projectId={descriptor.projectId} />;
     case "app":
@@ -85,6 +88,8 @@ function crumbKey(descriptor: BreadcrumbDescriptor): string {
   switch (descriptor.type) {
     case "workspace":
       return "workspace";
+    case "account":
+      return "account";
     case "project":
       return `project:${descriptor.projectId}`;
     case "app":

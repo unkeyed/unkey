@@ -118,7 +118,7 @@ type DeploySpendCheckServiceServer interface {
 type UnimplementedDeploySpendCheckServiceServer struct{}
 
 func (UnimplementedDeploySpendCheckServiceServer) CheckWorkspaceSpend(ctx sdk_go.ObjectContext, req *CheckWorkspaceSpendRequest) (*CheckWorkspaceSpendResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method CheckWorkspaceSpend not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method CheckWorkspaceSpend not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeploySpendCheckServiceServer) testEmbeddedByValue() {}
 

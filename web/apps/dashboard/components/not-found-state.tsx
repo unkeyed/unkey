@@ -1,6 +1,15 @@
 "use client";
 import { routes } from "@/lib/navigation/routes";
-import { Button, Empty } from "@unkey/ui";
+import {
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+  PageBody,
+  PageContainer,
+} from "@unkey/ui";
 import { useRouter } from "next/navigation";
 
 type NotFoundStateProps = {
@@ -15,19 +24,25 @@ export function NotFoundState({
   const router = useRouter();
 
   return (
-    <Empty>
-      <Empty.Title>{title}</Empty.Title>
-      <Empty.Description>{description}</Empty.Description>
-      <Empty.Actions>
-        <Button
-          variant="default"
-          onClick={() => {
-            router.push(routes.workspaces.root());
-          }}
-        >
-          Go Back
-        </Button>
-      </Empty.Actions>
-    </Empty>
+    <PageContainer>
+      <PageBody>
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>{title}</EmptyStateTitle>
+            <EmptyStateDescription>{description}</EmptyStateDescription>
+          </EmptyStateHeader>
+          <EmptyStateActions>
+            <Button
+              variant="default"
+              onClick={() => {
+                router.push(routes.workspaces.root());
+              }}
+            >
+              Go Back
+            </Button>
+          </EmptyStateActions>
+        </EmptyState>
+      </PageBody>
+    </PageContainer>
   );
 }

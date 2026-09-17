@@ -2,7 +2,7 @@
 
 import { routes } from "@/lib/navigation/routes";
 import { BILLING_DOCS } from "@/lib/support";
-import { BookOpen, ChartUsage } from "@unkey/icons";
+import { IconBookOpenOutline18, IconChartUsageOutline18 } from "@unkey/icons";
 import { Item, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
@@ -18,13 +18,13 @@ export function RelatedPages({ workspaceSlug }: { workspaceSlug: string }) {
   }> = [
     {
       href: routes.settings.usage({ workspaceSlug }),
-      icon: <ChartUsage />,
+      icon: <IconChartUsageOutline18 />,
       title: "Usage",
       description: "Track your spend and usage across Unkey",
     },
     {
       href: BILLING_DOCS,
-      icon: <BookOpen />,
+      icon: <IconBookOpenOutline18 />,
       title: "Documentation",
       description: "How plans, usage and invoices work",
       external: true,

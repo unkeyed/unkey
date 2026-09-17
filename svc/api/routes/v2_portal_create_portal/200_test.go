@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"strings"
@@ -108,7 +107,27 @@ func TestCreatePortalWithKeyspaceMapping(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, "portal.*.create_portal")
 	workspace := h.Resources().UserWorkspace
-	mapping := keyspaceMapping(t, h, workspace.ID)
+
+	// A named project rather than the workspace default, so the stored project can
+	// be shown to come from the mapped keyspace's api and not from a fallback.
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:               uid.New(uid.ProjectPrefix),
+		WorkspaceID:      workspace.ID,
+		Name:             "acme",
+		Slug:             "acme",
+		DeleteProtection: false,
+	})
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID:   workspace.ID,
+		ProjectID:     project.ID,
+		IpWhitelist:   "",
+		EncryptedKeys: false,
+		Name:          nil,
+		CreatedAt:     nil,
+		DefaultPrefix: nil,
+		DefaultBytes:  nil,
+	})
+	mapping := portal.Mapping{Type: portal.MappingTypeKeyspace, ID: api.KeyAuthID.String}
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Slug:        "acme-portal",
@@ -128,6 +147,8 @@ func TestCreatePortalWithKeyspaceMapping(t *testing.T) {
 	require.Equal(t, "Acme", stored.DisplayName)
 	require.True(t, stored.Enabled)
 	require.Equal(t, mapping.ID, stored.KeyAuthID.String)
+	require.Equal(t, project.ID, stored.ProjectID,
+		"the portal's project is the project of the keyspace's owning api")
 	require.False(t, stored.AppID.Valid, "the app column stays null for a keyspace mapping")
 	require.False(t, stored.LogoUrl.Valid, "branding is absent when not supplied")
 	require.False(t, stored.PrimaryColor.Valid)
@@ -189,6 +210,7 @@ func TestCreatePortalWithAppMappingAndBranding(t *testing.T) {
 		db.FindPortalByIdOrSlugParams{Portal: res.Body.Data.PortalId, WorkspaceID: workspace.ID})
 	require.NoError(t, err)
 	require.Equal(t, app.ID, stored.AppID.String)
+	require.Equal(t, project.ID, stored.ProjectID, "the portal's project is the app's project")
 	require.False(t, stored.KeyAuthID.Valid, "the keyspace column stays null for an app mapping")
 	require.False(t, stored.Enabled, "enabled:false creates the portal dormant")
 	require.Equal(t, "https://cdn.example.com/logo.svg", stored.LogoUrl.String)
@@ -213,12 +235,8 @@ func TestCreatePortalAllowsSameSlugInAnotherWorkspace(t *testing.T) {
 		DefaultPrefix: nil,
 		DefaultBytes:  nil,
 	})
-	h.CreatePortal(seed.CreatePortalRequest{
-		WorkspaceID: other.ID,
-		Slug:        "shared-slug",
-		KeyAuthID:   sql.NullString{String: otherApi.KeyAuthID.String, Valid: true},
-		Enabled:     true,
-	})
+	h.SeedPortal(t, other.ID, "shared-slug", "shared-slug",
+		portal.Mapping{Type: portal.MappingTypeKeyspace, ID: otherApi.KeyAuthID.String}, nil, nil)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		Slug:        "shared-slug",

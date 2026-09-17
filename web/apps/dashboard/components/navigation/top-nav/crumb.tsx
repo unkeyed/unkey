@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronExpandY } from "@unkey/icons";
+import { IconChevronExpandYOutline12 } from "@unkey/icons";
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -31,18 +31,7 @@ export function Crumb({
 }: CrumbProps) {
   return (
     <div className="flex min-w-0 items-center gap-0.5">
-      <Link
-        href={href as Route}
-        aria-label={label}
-        className="flex min-w-0 items-center gap-1.5 px-1 py-1 text-[13px] font-medium text-accent-12"
-      >
-        {icon}
-        {loading ? (
-          <span aria-hidden="true" className="h-3 w-20 rounded-sm bg-gray-4 animate-pulse" />
-        ) : (
-          <span className="truncate max-w-[120px] md:max-w-[180px]">{label}</span>
-        )}
-      </Link>
+      <CrumbLink icon={icon} label={label} href={href} loading={loading} />
       <CrumbPopover
         items={items}
         currentId={currentId}
@@ -55,10 +44,40 @@ export function Crumb({
           className="hidden size-6 shrink-0 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-accent-12 md:flex"
           aria-label={`Switch ${label}`}
         >
-          <ChevronExpandY className="size-3" iconSize="sm-regular" />
+          <IconChevronExpandYOutline12 />
         </button>
       </CrumbPopover>
     </div>
+  );
+}
+
+export function CrumbLink({
+  icon,
+  label,
+  href,
+  loading = false,
+  current = false,
+}: {
+  icon: ReactNode;
+  label: string;
+  href: string;
+  loading?: boolean;
+  current?: boolean;
+}) {
+  return (
+    <Link
+      href={href as Route}
+      aria-label={label}
+      aria-current={current ? "page" : undefined}
+      className="flex min-w-0 items-center gap-1.5 px-1 py-1 text-[13px] font-medium text-accent-12"
+    >
+      {icon}
+      {loading ? (
+        <span aria-hidden="true" className="h-3 w-20 rounded-sm bg-gray-4 animate-pulse" />
+      ) : (
+        <span className="truncate max-w-[120px] md:max-w-[180px]">{label}</span>
+      )}
+    </Link>
   );
 }
 

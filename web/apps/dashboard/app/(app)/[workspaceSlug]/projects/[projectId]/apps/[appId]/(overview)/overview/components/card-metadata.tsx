@@ -2,16 +2,26 @@
 
 import { imageRefDisplay } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
-import { ArrowDotAntiClockwise, CircleXMark, CodeBranch, CodeCommit, Layers2 } from "@unkey/icons";
+import {
+  IconArrowDotRotateAnticlockwiseOutline12,
+  IconCircleXmarkOutline12,
+  IconCodeBranchOutline18,
+  IconCodeCommitOutline18,
+  IconLayers2Outline18,
+} from "@unkey/icons";
 import { Badge, CopyButton, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import type { ReactNode } from "react";
 import { MetadataCell } from "../../../components/active-deployment-card/components/metadata-cell";
-import { DeploymentStatusBadge } from "../../../components/deployment-status-badge";
+import {
+  DeploymentStatusLabel,
+  StatusDot,
+  StatusLabel,
+} from "../../../components/deployment-status-dot";
 import { DottedLink } from "../../../components/dotted-link";
 import { Avatar } from "../../../components/git-avatar";
 import { RegionFlag } from "../../../components/region-flag";
 import { useProductionCard } from "./production-card-context";
-import { STATUS_META, StatusDot } from "./status";
+import { STATUS_META } from "./status";
 
 function GitHubLink({ href, children }: { href: string | undefined; children: ReactNode }) {
   if (!href) {
@@ -27,25 +37,25 @@ function GitHubLink({ href, children }: { href: string | undefined; children: Re
 function StatusCell() {
   const { deployment, status, isCurrent, isRolledBack } = useProductionCard();
   if (!isCurrent) {
-    return <DeploymentStatusBadge status={deployment.status} />;
+    return <DeploymentStatusLabel status={deployment.status} />;
   }
   if (isRolledBack) {
     return (
-      <span className="flex items-center gap-2 text-[13px] text-accent-12">
-        <StatusDot status={status} />
+      <StatusLabel>
+        <StatusDot colorClass={STATUS_META[status].dotClass} />
         {STATUS_META[status].label}
         <Badge variant="warning" size="sm" className="gap-1">
-          <ArrowDotAntiClockwise iconSize="sm-regular" className="shrink-0" />
+          <IconArrowDotRotateAnticlockwiseOutline12 className="shrink-0" />
           Rolled back
         </Badge>
-      </span>
+      </StatusLabel>
     );
   }
   return (
-    <span className="flex items-center gap-2 text-[13px] text-accent-12">
-      <StatusDot status={status} />
+    <StatusLabel>
+      <StatusDot colorClass={STATUS_META[status].dotClass} />
       {STATUS_META[status].label}
-    </span>
+    </StatusLabel>
   );
 }
 
@@ -57,7 +67,7 @@ function SourceCell() {
       {deployment.source === "git" && deployment.gitBranch && (
         <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>
           <span className="flex items-center gap-1.5">
-            <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
+            <IconCodeBranchOutline18 className="size-3 text-accent-12 shrink-0" />
             <span className="font-mono text-[13px] text-accent-12 truncate max-w-40">
               {deployment.gitBranch}
             </span>
@@ -68,7 +78,7 @@ function SourceCell() {
         <div className="flex items-center gap-1.5 min-w-0">
           <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
             <span className="flex items-center gap-1.5">
-              <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
+              <IconCodeCommitOutline18 className="size-3 text-accent-12 shrink-0" />
               <span className="font-mono text-[13px] text-accent-12">
                 {deployment.gitCommitSha.slice(0, 7)}
               </span>
@@ -83,7 +93,7 @@ function SourceCell() {
       )}
       {isRolledBack && rolledBackFrom && (
         <div className="flex items-center gap-1.5 min-w-0 text-gray-9">
-          <CircleXMark iconSize="sm-regular" className="text-error-11 shrink-0" />
+          <IconCircleXmarkOutline12 className="text-error-11 shrink-0" />
           <span className="font-mono text-[13px] line-through shrink-0">
             {rolledBackFromLabel(rolledBackFrom)}
           </span>
@@ -96,7 +106,7 @@ function SourceCell() {
       )}
       {deployment.source !== "git" && (
         <span className="flex items-center gap-1.5 min-w-0">
-          <Layers2 iconSize="sm-regular" className="shrink-0 text-gray-9" />
+          <IconLayers2Outline18 className="size-3 shrink-0 text-gray-9" />
           <span
             className="font-mono text-[13px] text-accent-12 truncate"
             title={image ?? undefined}

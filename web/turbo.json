@@ -37,6 +37,7 @@
         "WORKOS_API_KEY",
         "WORKOS_CLIENT_ID",
         "NEXT_PUBLIC_WORKOS_REDIRECT_URI",
+        "WORKOS_API_HOSTNAME",
         "SENTRY_AUTH_TOKEN",
         "GITHUB_KEYS_URI"
       ],

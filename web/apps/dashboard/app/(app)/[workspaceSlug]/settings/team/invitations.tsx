@@ -3,8 +3,14 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
-import { Card, CardContent } from "@unkey/ui";
-import { Button, Empty, Loading, toast } from "@unkey/ui";
+import {
+  Card,
+  CardContent,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+} from "@unkey/ui";
+import { Button, EmptyState, Loading, toast } from "@unkey/ui";
 import { memo, useState } from "react";
 import { StatusBadge } from "./status-badge";
 
@@ -42,10 +48,12 @@ export const Invitations = memo<InvitationsProps>(({ organization, isAdmin }) =>
     return (
       <Card>
         <CardContent className="p-0">
-          <Empty>
-            <Empty.Title>No pending invitations</Empty.Title>
-            <Empty.Description>Invite members using the form above</Empty.Description>
-          </Empty>
+          <EmptyState frame="none">
+            <EmptyStateHeader>
+              <EmptyStateTitle>No pending invitations</EmptyStateTitle>
+              <EmptyStateDescription>Invite members using the form above</EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
         </CardContent>
       </Card>
     );

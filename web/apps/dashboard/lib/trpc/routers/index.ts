@@ -79,6 +79,7 @@ import { listProjects } from "./deploy/project/list";
 import { createSharedSecret } from "./share/create";
 import { revealSharedSecret } from "./share/reveal";
 
+import { queryRequestDetails } from "./deploy/request-logs/details";
 import { llmSearch as requestLogsLlmSearch } from "./deploy/request-logs/llm-search";
 import { queryRequestLogs } from "./deploy/request-logs/query";
 import { listInstances } from "./deploy/runtime-logs/list-instances";
@@ -164,15 +165,7 @@ import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateCustomer } from "./stripe/updateCustomer";
 import { updateSubscription } from "./stripe/updateSubscription";
 import { updateWorkspaceStripeCustomer } from "./stripe/updateWorkspace";
-import {
-  getCurrentUser,
-  listMemberships,
-  listMfaFactors,
-  removeMfaFactor,
-  startMfaEnrollment,
-  switchOrg,
-  verifyMfaEnrollment,
-} from "./user";
+import { getCurrentUser, listMemberships } from "./user";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { getWorkspaceById } from "./workspace/getById";
@@ -368,13 +361,6 @@ export const router = t.router({
   user: t.router({
     getCurrentUser,
     listMemberships,
-    switchOrg,
-    mfa: t.router({
-      listFactors: listMfaFactors,
-      startEnrollment: startMfaEnrollment,
-      verifyEnrollment: verifyMfaEnrollment,
-      removeFactor: removeMfaFactor,
-    }),
   }),
   org: t.router({
     getOrg,
@@ -447,6 +433,7 @@ export const router = t.router({
     }),
     requestLogs: t.router({
       query: queryRequestLogs,
+      details: queryRequestDetails,
       llmSearch: requestLogsLlmSearch,
     }),
     runtimeLogs: t.router({

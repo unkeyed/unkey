@@ -1,10 +1,21 @@
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import type { User } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
-import { KeyboardButton, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import { IconBook2Outline18 } from "@unkey/icons";
+import {
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+  KeyboardButton,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
 import type { FilterValue } from "../validation/filter.types";
-import { EmptyQueries } from "./empty";
 import { ListGroup } from "./list-group";
 import { QueriesProvider, type QueryParamsTypes, useQueries } from "./queries-context";
 import { QueriesTabs } from "./queries-tabs";
@@ -162,16 +173,46 @@ const QueriesContent = ({ focusedTabIndex, selectedQueryIndex, user }: QueriesCo
   const transformFilters = (filters: QueryParamsTypes) => {
     return formatValues(filters);
   };
+
+  const isRecentTab = focusedTabIndex === 0;
+  const isEmpty = isRecentTab
+    ? localFilterGroups.length === 0
+    : localFilterGroups.filter((filter) => filter.bookmarked).length === 0;
+
   return (
     <>
-      <EmptyQueries
-        selectedTab={focusedTabIndex}
-        isEmpty={
-          focusedTabIndex === 0
-            ? localFilterGroups.length === 0
-            : localFilterGroups.filter((filter) => filter.bookmarked).length === 0
-        }
-      />
+      {isEmpty && (
+        <div className="flex items-center justify-between w-full h-full p-2 -mt-3.75">
+          <EmptyState frame="none">
+            <EmptyStateHeader>
+              <EmptyStateTitle>
+                {isRecentTab ? "No recent queries" : "No saved queries"}
+              </EmptyStateTitle>
+              <EmptyStateDescription>
+                {isRecentTab
+                  ? "Query using the filters, and they will show up here"
+                  : "Save your recent queries and they will remain here"}
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <a
+                href="https://www.unkey.com/docs/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button
+                  variant="outline"
+                  size="md"
+                  className="flex items-center justify-center px-2"
+                >
+                  <IconBook2Outline18 className="py-0.5" />
+                  Documentation
+                </Button>
+              </a>
+            </EmptyStateActions>
+          </EmptyState>
+        </div>
+      )}
 
       {focusedTabIndex === 0 &&
         localFilterGroups?.map((filterItem, index: number) => {

@@ -14,7 +14,7 @@ import (
 func (v *VirtualObject) StopDeployment(ctx restate.ObjectContext, req *hydrav1.StopDeploymentRequest) (*hydrav1.StopDeploymentResponse, error) {
 	deploymentID := restate.Key(ctx)
 	if id := req.GetDeploymentId(); id != "" && id != deploymentID {
-		return nil, restate.TerminalError(fmt.Errorf("deployment_id %q does not match object key %q", id, deploymentID), 400)
+		return nil, restate.ToTerminalError(fmt.Errorf("deployment_id %q does not match object key %q", id, deploymentID), restate.WithErrorCode(400))
 	}
 
 	deployment, err := v.loadDeployment(ctx, deploymentID, "stop")

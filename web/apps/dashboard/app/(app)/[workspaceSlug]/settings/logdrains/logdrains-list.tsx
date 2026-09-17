@@ -2,11 +2,15 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
+import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
-import { CloudUp, Database, Earth, Layers3, ShareUpRight } from "@unkey/icons";
 import {
   Button,
-  EmptyHero,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   InfoTooltip,
   ResourceListBody,
   ResourceListContent,
@@ -73,7 +77,15 @@ function DrainListSkeleton() {
   );
 }
 
-export function LogdrainsList({ onCreate }: { onCreate: () => void }) {
+export function LogdrainsList({
+  onCreate,
+  canCreate,
+  needsEnablement,
+}: {
+  onCreate: () => void;
+  canCreate: boolean;
+  needsEnablement: boolean;
+}) {
   const workspace = useWorkspaceNavigation();
   const query = trpc.logdrain.list.useQuery();
 
@@ -98,23 +110,27 @@ export function LogdrainsList({ onCreate }: { onCreate: () => void }) {
 
   if (!query.data?.length) {
     return (
-      <EmptyHero>
-        <EmptyHero.Icons>
-          <Layers3 iconSize="md-medium" />
-          <ShareUpRight iconSize="md-medium" />
-          <CloudUp iconSize="md-thin" />
-          <Earth iconSize="md-medium" />
-          <Database iconSize="md-medium" />
-        </EmptyHero.Icons>
-        <EmptyHero.Title>Create your first log drain</EmptyHero.Title>
-        <EmptyHero.Description>
-          Send audit logs, key verifications, gateway HTTP requests, or runtime logs to an HTTPS
-          endpoint or an Axiom dataset.
-        </EmptyHero.Description>
-        <EmptyHero.Actions>
-          <CreateLogdrainButton onClick={onCreate} />
-        </EmptyHero.Actions>
-      </EmptyHero>
+      <EmptyState>
+        <EmptyStateHeader>
+          <EmptyStateTitle>
+            {needsEnablement ? "Log drains" : "Create your first log drain"}
+          </EmptyStateTitle>
+          <EmptyStateDescription>
+            {needsEnablement
+              ? "Contact support to enable log drains for this workspace."
+              : "Send audit logs, key verifications, gateway HTTP requests, or runtime logs to an HTTPS endpoint or an Axiom dataset."}
+          </EmptyStateDescription>
+        </EmptyStateHeader>
+        <EmptyStateActions>
+          {needsEnablement ? (
+            <Button variant="outline" render={<Link href={SUPPORT_MAILTO} />}>
+              Contact support
+            </Button>
+          ) : (
+            <CreateLogdrainButton onClick={onCreate} disabled={!canCreate} />
+          )}
+        </EmptyStateActions>
+      </EmptyState>
     );
   }
 

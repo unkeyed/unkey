@@ -3,7 +3,11 @@
 import { DEPLOY_METER_RATES } from "@/lib/billing/deployPricing";
 import { formatCompactQuantity, formatPrice } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { ChevronRight, CircleInfo, Cube } from "@unkey/icons";
+import {
+  IconChevronRightOutline12,
+  IconCircleInfoOutline12,
+  IconCubeOutline18,
+} from "@unkey/icons";
 import {
   InfoTooltip,
   Item,
@@ -96,7 +100,7 @@ export function ComputeCardShell({
     <ItemGroup variant="outline">
       <ItemHeader>
         <ItemMedia className="bg-orangeA-3 text-orange-11">
-          <Cube />
+          <IconCubeOutline18 />
         </ItemMedia>
         <ItemContent>
           <ItemTitle>Compute</ItemTitle>
@@ -132,7 +136,7 @@ export function ComputeCardSkeleton() {
         <Fragment key={row}>
           {index === 0 ? null : <ItemSeparator />}
           <Item className="gap-2">
-            <ChevronRight iconSize="sm-regular" className="shrink-0 text-gray-6" />
+            <IconChevronRightOutline12 className="shrink-0 text-gray-6" />
             <Skeleton className="size-2 shrink-0 rounded-full" />
             <ItemContent>
               <Skeleton className="h-4 w-40" />
@@ -238,8 +242,7 @@ function ProjectRow({
         className="gap-2"
         render={<button type="button" aria-expanded={open} onClick={onToggle} />}
       >
-        <ChevronRight
-          iconSize="sm-regular"
+        <IconChevronRightOutline12
           className={`shrink-0 text-gray-9 transition-transform duration-150 ease-out motion-reduce:transition-none ${open ? "rotate-90" : ""}`}
         />
         <span
@@ -371,7 +374,7 @@ function ResourceName({ name, id, deleted }: { name: string; id: string; deleted
         content={<span className="font-mono">{id}</span>}
       >
         <span className="inline-flex shrink-0">
-          <CircleInfo iconSize="sm-regular" className="text-gray-9" />
+          <IconCircleInfoOutline12 className="text-gray-9" />
           <span className="sr-only">, {id}</span>
         </span>
       </InfoTooltip>

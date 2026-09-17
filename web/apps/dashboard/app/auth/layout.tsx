@@ -1,14 +1,8 @@
-import { Page2 } from "@unkey/icons";
+import { IconPage2Outline18 } from "@unkey/icons";
 import { FullScreenContent, FullScreenLayout, Logo } from "@unkey/ui";
 import Link from "next/link";
 import type React from "react";
-import { RadarProvider } from "./radar/radar-signals";
 
-// NOTE: do not add a signed-in redirect here. Setting the session cookie in
-// a server action re-renders this layout as part of the action response, so
-// a redirect("/apis") from here races ahead of the action's own navigation
-// (e.g. the invite flow's /join/success) and flashes the dashboard. The
-// signed-in bounce lives in proxy.ts, where it only applies to document GETs.
 export default function AuthenticatedLayout({
   children,
 }: {
@@ -25,15 +19,13 @@ export default function AuthenticatedLayout({
           href="https://www.unkey.com/docs"
           target="_blank"
         >
-          <Page2 iconSize="md-thin" />
+          <IconPage2Outline18 className="size-3.5" />
           Documentation
         </Link>
       </nav>
       <FullScreenContent className="py-8">
         <div className="container relative flex flex-col items-center justify-center gap-8 lg:w-2/5">
-          <div className="w-full max-w-sm">
-            <RadarProvider>{children}</RadarProvider>
-          </div>
+          <div className="w-full max-w-sm">{children}</div>
           <div className="flex items-center justify-center ">
             <p className="p-4 text-xs text-center text-white/50 text-balance">
               By continuing, you agree to Unkey's{" "}

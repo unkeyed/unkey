@@ -148,13 +148,13 @@ type EnvironmentServiceServer interface {
 type UnimplementedEnvironmentServiceServer struct{}
 
 func (UnimplementedEnvironmentServiceServer) Delete(ctx sdk_go.ObjectContext, req *DeleteEnvironmentRequest) (*DeleteEnvironmentResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Delete not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Delete not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedEnvironmentServiceServer) PromoteDeployment(ctx sdk_go.ObjectContext, req *PromoteDeploymentRequest) (*PromoteDeploymentResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method PromoteDeployment not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method PromoteDeployment not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedEnvironmentServiceServer) RollbackDeployment(ctx sdk_go.ObjectContext, req *RollbackDeploymentRequest) (*RollbackDeploymentResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RollbackDeployment not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RollbackDeployment not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedEnvironmentServiceServer) testEmbeddedByValue() {}
 

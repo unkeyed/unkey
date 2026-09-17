@@ -1,6 +1,6 @@
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { cn } from "@/lib/utils";
-import { ChartActivity2, Page2 } from "@unkey/icons";
+import { IconChartActivity2Outline12, IconPage2Outline18 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   AssignedCountCell,
@@ -78,7 +78,7 @@ export const createRootKeyColumns = ({
     enableSorting: false,
     meta: {
       width: {
-        min: 170,
+        min: 280,
         max: 400,
       },
     },
@@ -94,7 +94,9 @@ export const createRootKeyColumns = ({
           }
         >
           <HiddenValueCell
-            value={rootKey.start}
+            prefix={rootKey.prefix}
+            start={rootKey.start}
+            end={rootKey.end}
             title="Key"
             selected={selectedRootKeyId === rootKey.id}
           />
@@ -117,7 +119,7 @@ export const createRootKeyColumns = ({
       return (
         <AssignedCountCell
           count={rootKey.permissionSummary.total}
-          icon={<Page2 iconSize="md-medium" className="opacity-50" />}
+          icon={<IconPage2Outline18 className="size-3.5 opacity-50" />}
           singularLabel="Permission"
           isSelected={rootKey.id === selectedRootKeyId}
         />
@@ -170,7 +172,7 @@ export const createRootKeyColumns = ({
         <BadgeTimestampCell
           isSelected={rootKey.id === selectedRootKeyId}
           timestamp={rootKey.lastUsedAt > 0 ? rootKey.lastUsedAt : null}
-          icon={<ChartActivity2 iconSize="sm-regular" />}
+          icon={<IconChartActivity2Outline12 />}
           emptyText={ROOT_KEY_COLUMN_IDS.LAST_USED.emptyText}
         />
       );

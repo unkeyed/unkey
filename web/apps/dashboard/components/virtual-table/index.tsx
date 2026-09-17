@@ -1,5 +1,10 @@
 import { cn } from "@/lib/utils";
-import { CaretDown, CaretExpandY, CaretUp, CircleCaretRight } from "@unkey/icons";
+import {
+  IconCaretDownOutline12,
+  IconCaretExpandYOutline18,
+  IconCaretUpOutline12,
+  IconCircleCaretRightOutline18,
+} from "@unkey/icons";
 import { useIsMobile } from "@unkey/ui";
 import {
   Fragment,
@@ -10,7 +15,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { EmptyState } from "./components/empty-state";
+import { VirtualTableEmptyState } from "./components/empty-state";
 import { LoadMoreFooter } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
 import { useTableData } from "./hooks/useTableData";
@@ -207,11 +212,9 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               </thead>
             )}
           </table>
-          {emptyState ? (
-            <div className="flex-1 flex items-center justify-center">{emptyState}</div>
-          ) : (
-            <EmptyState />
-          )}
+          <div className="flex-1 flex items-center justify-center">
+            {emptyState ?? <VirtualTableEmptyState />}
+          </div>
         </div>
       );
     }
@@ -311,7 +314,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                   // tables that only ever insert one separator at the top.
                   const defaultContent = (
                     <div className="h-[26px] bg-info-2 font-mono text-xs text-info-11 rounded-md flex items-center gap-3 px-2">
-                      <CircleCaretRight className="size-3" />
+                      <IconCircleCaretRightOutline18 className="size-3" />
                       Live
                     </div>
                   );
@@ -506,12 +509,12 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
 
 function SortIcon({ direction }: { direction?: SortDirection | null }) {
   if (!direction) {
-    return <CaretExpandY className="color-gray-9" />;
+    return <IconCaretExpandYOutline18 className="color-gray-9" />;
   }
   return direction === "asc" ? (
-    <CaretUp className="color-gray-9" iconSize="sm-thin" />
+    <IconCaretUpOutline12 className="color-gray-9" />
   ) : (
-    <CaretDown className="color-gray-9" iconSize="sm-thin" />
+    <IconCaretDownOutline12 className="color-gray-9" />
   );
 }
 

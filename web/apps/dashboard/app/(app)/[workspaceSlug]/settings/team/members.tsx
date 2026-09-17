@@ -3,8 +3,14 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
-import { Card, CardContent } from "@unkey/ui";
-import { Button, ConfirmPopover, Empty, Loading, toast } from "@unkey/ui";
+import {
+  Card,
+  CardContent,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+} from "@unkey/ui";
+import { Button, ConfirmPopover, EmptyState, Loading, toast } from "@unkey/ui";
 import { memo, useMemo, useState } from "react";
 import { RoleSwitcher } from "./role-switcher";
 
@@ -57,10 +63,12 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
     return (
       <Card>
         <CardContent className="p-0">
-          <Empty>
-            <Empty.Title>No team members</Empty.Title>
-            <Empty.Description>Invite members using the form above</Empty.Description>
-          </Empty>
+          <EmptyState frame="none">
+            <EmptyStateHeader>
+              <EmptyStateTitle>No team members</EmptyStateTitle>
+              <EmptyStateDescription>Invite members using the form above</EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
         </CardContent>
       </Card>
     );

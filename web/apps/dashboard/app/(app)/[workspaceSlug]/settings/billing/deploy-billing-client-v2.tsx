@@ -5,10 +5,13 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
-import { Phone } from "@unkey/icons";
+import { IconPhoneOutline18 } from "@unkey/icons";
 import {
   Button,
-  Empty,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   PageBody,
   PageContainer,
   PageHeader,
@@ -40,7 +43,7 @@ function Shell({ children }: { children: ReactNode }) {
             size="md"
             render={<Link href={SALES_CALL_URL} target="_blank" rel="noopener noreferrer" />}
           >
-            <Phone iconSize="md-medium" />
+            <IconPhoneOutline18 className="size-4" />
             Schedule a call
           </Button>
           <Button variant="outline" size="md" render={<Link href={SUPPORT_MAILTO} />}>
@@ -96,12 +99,14 @@ export function DeployBillingClientV2() {
       <BillingNotices isAdmin={isAdmin} subscription={subscription} />
 
       {billingError ? (
-        <Empty>
-          <Empty.Title>Failed to load API billing information</Empty.Title>
-          <Empty.Description>
-            There was an error loading your API billing information. Please try again later.
-          </Empty.Description>
-        </Empty>
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>Failed to load API billing information</EmptyStateTitle>
+            <EmptyStateDescription>
+              There was an error loading your API billing information. Please try again later.
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
       ) : billingInfo ? (
         <PlansCard
           isAdmin={isAdmin}

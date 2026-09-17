@@ -8,7 +8,7 @@ import type {
   RolePermission,
 } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PenWriting3, Plus } from "@unkey/icons";
+import { IconPenWriting3Outline18, IconPlusOutline18 } from "@unkey/icons";
 import { Button, DialogContainer, FormInput, FormTextarea } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { Controller, FormProvider } from "react-hook-form";
@@ -172,7 +172,7 @@ export const UpsertRoleDialog = ({
 
   const defaultTrigger = (
     <NavbarActionButton title={dialogConfig.triggerTitle} onClick={() => setIsDialogOpen(true)}>
-      {isEditMode ? <PenWriting3 /> : <Plus />}
+      {isEditMode ? <IconPenWriting3Outline18 /> : <IconPlusOutline18 />}
       {dialogConfig.triggerTitle}
     </NavbarActionButton>
   );

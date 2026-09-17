@@ -114,7 +114,7 @@ services:
       start_period: 5s
 
   restate:
-    image: docker.io/restatedev/restate:1.6.0@sha256:33f227db946864b5482340a8621e32ec5eaf464f4dc41d5deccfd3282bb930ae
+    image: docker.io/restatedev/restate:1.7.8@sha256:fe23d866cc625a745f73f14e05ee6ca5b26441af3b18df8c54dfda4e1bb1d52d
     environment:
       # Provision a single partition. Restate routes keyed invocations to a
       # partition by hashing the object key, and each partition processor takes
@@ -124,6 +124,14 @@ services:
       # deployment_id targets a different, possibly-cold partition and silently
       # queues. One partition makes the readiness probe cover every keyed Send.
       RESTATE_DEFAULT_NUM_PARTITIONS: "1"
+      RESTATE_EXPERIMENTAL_ENABLE_VQUEUES: "true"
+      RESTATE_EXPERIMENTAL_ENABLE_PROTOCOL_V7: "true"
+      # Restate binds the IPv6 wildcard by default and exits when the address
+      # family is missing, which is how a CI container without IPv6 gets a
+      # Restate that never answers its admin port.
+      RESTATE_BIND_ADDRESS: "0.0.0.0:5122"
+      RESTATE_INGRESS__BIND_ADDRESS: "0.0.0.0:8080"
+      RESTATE_ADMIN__BIND_ADDRESS: "0.0.0.0:9070"
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:
@@ -137,15 +145,18 @@ services:
       start_period: 5s
 
   s3:
-    image: quay.io/minio/minio:latest
-    command: server /data
+    image: dxflrs/garage:v2.3.0@sha256:866bd13ed2038ba7e7190e840482bc27234c4afaf77be8cfa439ae088c1e4690
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
     environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
+      GARAGE_DEFAULT_ACCESS_KEY: garage-test-access-key
+      GARAGE_DEFAULT_SECRET_KEY: garage-test-secret-key
+      GARAGE_DEFAULT_BUCKET: vault
     ports:
-      - "9000"
+      - "3902"
+    volumes:
+      - ./garage.test.toml:/etc/garage.toml:ro
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "/garage", "bucket", "info", "vault"]
       interval: 2s
       timeout: 5s
       retries: 30

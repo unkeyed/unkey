@@ -1,8 +1,17 @@
 import { StatsListCardSkeleton } from "@/components/stats-list-card/skeleton";
 import { collection } from "@/lib/collections";
 import { ilike, useLiveQuery } from "@tanstack/react-db";
-import { Bookmark } from "@unkey/icons";
-import { Button, CopyButton, Empty, ResourceListContent } from "@unkey/ui";
+import { IconBook2Outline18, IconGaugeOutline18 } from "@unkey/icons";
+import {
+  Button,
+  CopyButton,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+} from "@unkey/ui";
 import { useMemo } from "react";
 import { useBatchRatelimitTimeseries } from "../hooks/use-batch-timeseries";
 import { useNamespaceListFilters } from "../hooks/use-namespace-list-filters";
@@ -50,38 +59,38 @@ export const NamespaceList = () => {
 
   if (namespaces.length === 0) {
     return (
-      <ResourceListContent>
-        <div className="flex w-full items-center justify-center px-4 py-16">
-          <Empty className="w-[600px] items-start p-0">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>No Namespaces found</Empty.Title>
-            <Empty.Description className="text-left">
-              You haven't created any Namespaces yet. Create one by performing a limit request as
-              shown below.
-            </Empty.Description>
-            <div className="w-full mt-6">
-              <div className="flex items-start gap-4 p-4 bg-gray-2 border border-gray-6 rounded-lg">
-                <pre className="flex-1 text-xs text-left overflow-x-auto">
-                  <code>{EXAMPLE_SNIPPET}</code>
-                </pre>
-                <CopyButton value={EXAMPLE_SNIPPET} />
-              </div>
-            </div>
-            <Empty.Actions className="mt-4 justify-start">
-              <a
-                href="https://www.unkey.com/docs/platform/ratelimiting/introduction"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button className="flex items-center gap-2">
-                  <Bookmark className="w-4 h-4" />
-                  Read the docs
-                </Button>
-              </a>
-            </Empty.Actions>
-          </Empty>
+      <EmptyState>
+        <EmptyStateIcon>
+          <IconGaugeOutline18 />
+        </EmptyStateIcon>
+        <EmptyStateHeader>
+          <EmptyStateTitle>No Namespaces found</EmptyStateTitle>
+          <EmptyStateDescription>
+            You haven't created any Namespaces yet. Create one by performing a limit request as
+            shown below.
+          </EmptyStateDescription>
+        </EmptyStateHeader>
+        <div className="mt-4 w-full max-w-lg">
+          <div className="flex items-start gap-4 rounded-lg border border-grayA-4 bg-background p-4">
+            <pre className="flex-1 text-xs text-left overflow-x-auto">
+              <code>{EXAMPLE_SNIPPET}</code>
+            </pre>
+            <CopyButton value={EXAMPLE_SNIPPET} />
+          </div>
         </div>
-      </ResourceListContent>
+        <EmptyStateActions>
+          <a
+            href="https://www.unkey.com/docs/platform/ratelimiting/introduction"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Button variant="outline" className="flex items-center gap-2">
+              <IconBook2Outline18 className="w-4 h-4" />
+              Read the docs
+            </Button>
+          </a>
+        </EmptyStateActions>
+      </EmptyState>
     );
   }
 

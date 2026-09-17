@@ -7,64 +7,34 @@ import "dev/restate/sdk/go.proto";
 
 option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 
-// DeployService orchestrates the lifecycle of application deployments as
-// durable Restate workflows. Each RPC is idempotent and can safely resume from
-// any step after a crash.
+// DeployWorkflow runs one deployment from creation to routing. Each RPC is
+// idempotent and can safely resume from any step after a crash.
 //
-// Every RPC is keyed by the deployment id, so operations on one deployment
-// serialize behind each other while separate deployments of the same app run
-// in parallel. The contended pointer, apps.current_deployment_id, is
-// serialized instead inside RoutingService.SwapLiveDeployment, which is keyed
-// by environment id. Workspace-wide build concurrency is separately enforced
-// by BuildSlotService.
-//
-// Deploy handles the full pipeline from building container images through
-// provisioning containers and configuring domain routing. Promotion and
-// rollback live on EnvironmentService, keyed by environment id.
-service DeployService {
-  option (dev.restate.sdk.go.service_type) = VIRTUAL_OBJECT;
+// The workflow key is the deployment id: Deploy runs once per key, and
+// readiness arrives through a durable promise that NotifyInstancesReady
+// resolves, so the run keeps no state. The contended pointer,
+// apps.current_deployment_id, is serialized inside
+// RoutingService.SwapLiveDeployment, which is keyed by environment id.
+// Workspace-wide build concurrency is separately enforced by BuildSlotService.
+// Promotion and rollback live on EnvironmentService, keyed by environment id.
+service DeployWorkflow {
+  option (dev.restate.sdk.go.service_type) = WORKFLOW;
 
-  // Create writes the deployment row and, for a DEPLOY decision, starts Deploy.
-  // The object key is the deployment id, so the caller chooses it up front.
+  // Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
+  // The key is the deployment id, so the caller chooses it up front.
   rpc Create(DeployCreateRequest) returns (DeployCreateResponse) {}
 
-  // Deploy executes the full deployment workflow: build (if git source), provision
-  // containers across regions, wait for health, configure domain routing, and
-  // update the app's live deployment pointer for production environments.
-  // Sets deployment status to failed on any error.
-  rpc Deploy(DeployRequest) returns (DeployResponse) {}
+  // Deploy is the run: build, provision, wait for health, route.
+  rpc Deploy(DeployRequest) returns (DeployResponse) {
+    option (dev.restate.sdk.go.handler_type) = WORKFLOW_RUN;
+  }
 
-  // StopDeployment schedules desired_state=stopped for a running deployment.
-  rpc StopDeployment(StopDeploymentRequest) returns (StopDeploymentResponse) {}
-
-  // WakeDeployment schedules desired_state=running for a stopped deployment
-  // and waits until enough instances are running again.
-  rpc WakeDeployment(WakeDeploymentRequest) returns (WakeDeploymentResponse) {}
-
-  // NotifyInstancesReady is called by the control plane when enough instances
-  // have become healthy across the required regions. It resolves the awakeable
-  // stored by a suspended Deploy so it can continue. WakeDeployment does not use
-  // it: that handler polls instance health itself.
+  // NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
+  // lands before Deploy awaits is kept.
   rpc NotifyInstancesReady(NotifyInstancesReadyRequest) returns (NotifyInstancesReadyResponse) {
     option (dev.restate.sdk.go.handler_type) = SHARED;
   }
 }
-
-message StopDeploymentRequest {
-  string deployment_id = 1;
-  ctrl.v1.ActorInfo actor = 2;
-  string correlation_id = 3;
-}
-
-message StopDeploymentResponse {}
-
-message WakeDeploymentRequest {
-  string deployment_id = 1;
-  ctrl.v1.ActorInfo actor = 2;
-  string correlation_id = 3;
-}
-
-message WakeDeploymentResponse {}
 
 message NotifyInstancesReadyRequest {
   string deployment_id = 1;
@@ -238,18 +208,21 @@ message DeployCreateRequest {
 
   CreateDecision decision = 8;
 
-  // The three trigger columns on the deployment row. The dashboard badge shows
-  // them as separate things: the surface, who acted on it, and why.
-  ctrl.v1.DeploymentTrigger trigger = 10;
-  // Whose action this was, read against trigger: a user id for dashboard and
-  // unkey, a root key id for api and cli, the sender login for github.
-  string triggered_by = 11;
-  // Why the row exists when that is not obvious: the skip reason for a
-  // decision of SKIP, or the cause of an internal rebuild.
-  string trigger_reason = 12;
+  Trigger trigger = 14;
 
-  // Actor on the audit log only. Unset falls back to the system actor.
-  ctrl.v1.ActorInfo actor = 13;
+  reserved 10, 11, 12, 13;
+  reserved "triggered_by", "trigger_reason", "actor";
+}
+
+// Trigger is what caused a deployment: the surface, who acted on it, and
+// why. It fills the three trigger columns on the deployment row and the
+// actor on the audit log.
+message Trigger {
+  ctrl.v1.DeploymentTrigger source = 1;
+
+  ctrl.v1.ActorInfo actor = 2;
+
+  string reason = 3;
 }
 
 message DeployCreateResponse {

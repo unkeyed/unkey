@@ -67,7 +67,7 @@ func TestDeploymentStepDoesNotReviveACancelledDeployment(t *testing.T) {
 
 	callCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
-	_, err = ingress.Object[string, string](cfg.IngressClient, "StepProbe", cancelled.ID, "Start").
+	_, err = ingress.Workflow[string, string](cfg.IngressClient, "StepProbe", cancelled.ID, "Start").
 		Request(callCtx, cancelled.ID)
 	require.Error(t, err, "the step must refuse to start on a cancelled deployment")
 
@@ -77,14 +77,14 @@ func TestDeploymentStepDoesNotReviveACancelledDeployment(t *testing.T) {
 		"a step start must not move a cancelled deployment back to %s", after.Status)
 }
 
-// StepProbe hosts DeploymentStep behind a Restate object so the test can hand
-// it a real ObjectContext.
+// StepProbe hosts DeploymentStep behind a Restate workflow so the test can hand
+// it a real WorkflowContext.
 type StepProbe struct {
 	workflow *deploy.Workflow
 	db       db.Database
 }
 
-func (p StepProbe) Start(ctx restate.ObjectContext, deploymentID string) (string, error) {
+func (p StepProbe) Start(ctx restate.WorkflowContext, deploymentID string) (string, error) {
 	deployment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Deployment, error) {
 		return p.db.FindDeploymentById(runCtx, deploymentID)
 	})
@@ -92,11 +92,10 @@ func (p StepProbe) Start(ctx restate.ObjectContext, deploymentID string) (string
 		return "", err
 	}
 
-	err = p.workflow.DeploymentStep(ctx, db.DeploymentStepsStepBuilding, deployment, func(restate.ObjectContext) error {
+	if stepErr := p.workflow.DeploymentStep(ctx, db.DeploymentStepsStepBuilding, deployment, func(restate.WorkflowContext) error {
 		return nil
-	})
-	if err != nil {
-		return "", err
+	}); stepErr != nil {
+		return "", stepErr
 	}
 	return deployment.ID, nil
 }
