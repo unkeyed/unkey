@@ -14,7 +14,7 @@ Each Restate VO uses the narrowest key that gives the serialization it needs:
 - **`RoutingService`** is keyed by `env_id`. Frontline route assignment and the live-deployment swap serialize here. It is the write primitive that `DeployWorkflow` and `EnvironmentService` call.
 - **`DeploymentService`** (desired-state transitions, scheduled and immediate) is keyed by `deployment_id`.
 
-Build concurrency has no virtual object. `DeployWorkflow.Build` is a shared handler that Deploy calls on the same workflow key in the Restate scope `builds` with the workspace id as the limit key, and Restate's concurrency rules cap how many run at once per workspace. See [Build concurrency](#build-concurrency-restate-flow-control).
+Build concurrency has no virtual object. `Build` is a second handler on `DeployWorkflow` that Deploy calls on its own key, in the Restate scope `builds` with the workspace id as the limit key, and Restate's concurrency rules cap how many run at once per workspace. See [Build concurrency](#build-concurrency).
 
 Key components:
 
@@ -121,22 +121,23 @@ sequenceDiagram
   Routing-->>Worker: previous_deployment_id (atomically swapped)
 ```
 
-## Build concurrency (Restate flow control)
+## Build concurrency
 
-Build concurrency is Restate flow control; the worker holds no queue state of its own. Three Restate terms, defined the same way in the `DeployWorkflow` proto comment:
+Restate limits how many builds run at once; the worker keeps no queue of its own. Four Restate terms, used the same way in the `DeployWorkflow` proto comment:
 
+- An **invocation** is one call of one handler. Deploy and Build are each an invocation.
 - A **scope** is a name Restate groups invocations under. Deploy calls `Build` in the scope `builds`.
-- A **limit key** is the value Restate counts running invocations by within a scope. Deploy passes the workspace id.
-- A **rule** says how many invocations may run at once for a `<scope>/<limit key>` pattern. Rules are written through the admin API and read from the `sys_rules` table. An exact pattern beats a wildcard. No matching rule means unlimited.
+- A **limit key** is the value Restate counts running invocations by within a scope. Deploy passes the workspace id, so the count is per workspace.
+- A **rule** pairs a `<scope>/<limit key>` pattern with the number of matching invocations that may run at once. An exact pattern beats `*`. With no matching rule there is no limit. Rules are written through Restate's admin API and read back from its `sys_rules` table.
 
 | Rule pattern | Concurrency | Description | Written by |
 | --- | --- | --- | --- |
 | `builds/*` | 1 | `default per-workspace build concurrency` | `CronService.RunBuildLimitSync`, every 15 minutes |
 | `builds/<workspace_id>` | `limits.builds_concurrent_max` when above 1 | `per-workspace build concurrency from limits` | the same cron, deleted once the row is back at 1 or below |
 
-The database is the source of truth. The cron rewrites both kinds of rule on every tick and deletes any `builds/<workspace_id>` rule the `limits` table does not call for, so a rule set by hand lasts at most 15 minutes.
+The database is the source of truth. Every 15 minutes the cron rewrites both kinds of rule and deletes any `builds/<workspace_id>` rule the `limits` table does not call for, so a rule set by hand lasts at most 15 minutes.
 
-Deploy uses `Request`, never `Send`. Restate treats the Build as part of the Deploy invocation, so cancelling Deploy also cancels the Build: a queued one is removed without running, a running one finishes its current step and stops at its next Restate call, which for a build means the image may still be pushed. A `Send` would detach the Build and it would keep running:
+Deploy calls Build and waits for the answer (`Request`); it does not fire and forget (`Send`). That matters for cancel. Because Deploy waits, Restate treats the Build as part of Deploy, so cancelling Deploy cancels the Build too: one still waiting for a slot is removed and never runs, one already running finishes its current step and then stops, which for a build means the image may still be pushed. With `Send` the Build would run on unaffected:
 
 ```go
 hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(restateadmin.BuildConcurrencyScope)).
@@ -146,14 +147,14 @@ hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(restateadm
 
 What this gives:
 
-- One queue per workspace, shared by production and preview, ordered by the time each Build became ready. There is no production preference and no queue timeout: a queued deployment stays `pending` until a running Build in its workspace completes or is cancelled, or until someone cancels it.
-- `Build` refuses to run when the request did not arrive in scope `builds` or with the workspace id as limit key. A wrong scope matches no rule and builds without a cap; a wrong limit key charges the build to another workspace.
-- A Build that exhausts its retry budget is killed, not paused. Kill returns a terminal error to Deploy, which closes the open step and fails the deployment through its compensation stack.
-- Scoped invocations take their partition from the scope, so every Build in the fleet shares one Restate partition, whatever its workspace. Queues stay per workspace inside that partition. A leader change of that partition replays every in-flight build.
+- One queue per workspace, shared by production and preview, in the order the builds became ready. Production has no priority and there is no timeout: a waiting deployment stays `pending` until a build in its workspace finishes or is cancelled, or until someone cancels the deployment itself.
+- `Build` refuses to run when the call did not arrive in scope `builds` or with the workspace id as limit key. A wrong scope matches no rule and would build without a limit; a wrong limit key would count the build against another workspace.
+- A build that still fails after all its retries is stopped for good rather than paused for an operator to resume. Deploy then closes the open step and marks the deployment failed.
+- Restate runs every invocation of one scope on the same partition, one slice of its cluster, so all builds share one partition whatever their workspace, while the queues stay per workspace. When that partition changes leader, every build in progress restarts from its last recorded step.
 
 ### Runbook (Restate Cloud)
 
-Canary and production run on Restate Cloud. Both clusters are in us-east-1; canary's Restate Cloud environment is hosted in the EU region, production's in the US region. The worker's token is the operator's registration token. These commands have been run against dev Restate, not yet against Cloud.
+Canary and production run on Restate Cloud. Both Kubernetes clusters are in us-east-1; canary's Restate Cloud environment is hosted in the EU region, production's in the US region. The token below is the one the Restate operator uses to register the worker. These commands have been run against dev Restate, not yet against Cloud.
 
 ```bash
 export CTX=<canary or production us-east-1 context>
@@ -162,7 +163,7 @@ export ADMIN="https://${ENV_ID}.env.eu.restate.cloud:9070"   # canary is .env.eu
 export TOKEN="$(kubectl --context "$CTX" -n restate-system get secret restate-cloud-credentials -o jsonpath='{.data.token}' | base64 -d)"
 ```
 
-Read the rules. There is no `GET /limits/rules`; they are read through the SQL endpoint, and the `Accept` header is required or the response is binary Arrow:
+Read the rules. There is no `GET /limits/rules`; they are read through the SQL endpoint, and the `Accept` header is required or the response comes back in a binary format:
 
 ```bash
 curl -sS "$ADMIN/query" -H "Authorization: Bearer $TOKEN" \
@@ -184,7 +185,7 @@ curl -sS "$ADMIN/query" -H "Authorization: Bearer $TOKEN" \
   -d '{"query":"SELECT id, target, created_at, status FROM sys_invocation WHERE target_service_name = '"'"'hydra.v1.DeployWorkflow'"'"' AND target_handler_name = '"'"'Build'"'"' AND status <> '"'"'completed'"'"'"}'
 ```
 
-Other introspection tables: `sys_user_limits` (per limit key usage) and `sys_vqueue_entry_status` (queued entries). Registration of a new worker revision follows [runbook 0001](https://github.com/unkeyed/infra/blob/main/docs/runbooks/restate/0001-control-worker-registration.md).
+Two more tables worth knowing: `sys_user_limits` shows how many invocations each limit key has running right now, and `sys_vqueue_entry_status` lists the entries waiting in each queue. Registering a new worker version follows [runbook 0001](https://github.com/unkeyed/infra/blob/main/docs/runbooks/restate/0001-control-worker-registration.md).
 
 ## Commit deduplication
 
@@ -233,7 +234,7 @@ Scheduled state changes are serialized via a Restate virtual object keyed by dep
 
 ## Retry policy
 
-`DeployWorkflow` is registered with an exponential-backoff retry policy: `2s → 4s → 8s → 16s → 30s` (capped), 15 attempts total (about 5 minutes). Short intervals keep cancel latency low, since a cancel lands at the next attempt boundary. On exhaustion the invocation pauses rather than being killed, so the compensation stack can still run when a `restate.Run` returns a terminal error. This replaces an older 150-attempt policy that could leave a deploy stuck retrying for about 24 hours.
+`DeployWorkflow` is registered with an exponential-backoff retry policy: `2s → 4s → 8s → 16s → 30s` (capped), 15 attempts total (about 5 minutes). Short intervals keep cancel latency low, since a cancel lands at the next attempt boundary. On exhaustion the invocation pauses rather than being killed, so the compensation stack can still run when a `restate.Run` returns a terminal error. This replaces an older 150-attempt policy that could leave a deploy stuck retrying for about 24 hours. `Build` uses the same intervals and attempt count but is stopped for good on exhaustion, as described under [Build concurrency](#build-concurrency).
 
 ## Compensation stack
 
