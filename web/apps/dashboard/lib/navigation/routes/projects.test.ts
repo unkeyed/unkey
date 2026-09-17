@@ -21,14 +21,10 @@ describe("project-scoped paths", () => {
   it("builds project leaf paths", () => {
     const scope = { workspaceSlug: ws, projectId };
     expect(routes.projects.settings(scope)).toBe("/acme/projects/proj_123/settings");
-    expect(routes.projects.keyspaces(scope)).toBe("/acme/projects/proj_123/keyspaces");
-    expect(routes.projects.ratelimits(scope)).toBe("/acme/projects/proj_123/ratelimits");
-    expect(routes.projects.identities(scope)).toBe("/acme/projects/proj_123/identities");
   });
 
   it("builds the project authorization paths", () => {
     const scope = { workspaceSlug: ws, projectId };
-    expect(routes.projects.authorization(scope)).toBe("/acme/projects/proj_123/authorization");
     expect(routes.projects.authorizationRoles(scope)).toBe(
       "/acme/projects/proj_123/authorization/roles",
     );

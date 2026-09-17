@@ -75,14 +75,14 @@ export function buildProjectLinks(
     {
       key: "keyspaces",
       label: "Keyspaces",
-      href: routes.projects.keyspaces(scope),
+      href: routes.apis.list(scope),
       icon: IconNodesOutline18,
       isActive: page === "keyspaces",
     },
     {
       key: "ratelimits",
       label: "Ratelimits",
-      href: routes.projects.ratelimits(scope),
+      href: routes.ratelimits.list(scope),
       icon: IconGaugeOutline18,
       isActive: page === "ratelimits",
     },
@@ -96,7 +96,7 @@ export function buildProjectLinks(
     {
       key: "identities",
       label: "Identities",
-      href: routes.projects.identities(scope),
+      href: routes.identities.list(scope),
       icon: IconFingerprintOutline18,
       isActive: page === "identities",
     },

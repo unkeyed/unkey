@@ -36,22 +36,6 @@ export const projectRoutes = {
     return buildRoute("/[workspaceSlug]/projects/[projectId]/settings", projectParams(scope));
   },
 
-  keyspaces(scope: ProjectScope): Route {
-    return buildRoute("/[workspaceSlug]/projects/[projectId]/keyspaces", projectParams(scope));
-  },
-
-  ratelimits(scope: ProjectScope): Route {
-    return buildRoute("/[workspaceSlug]/projects/[projectId]/ratelimits", projectParams(scope));
-  },
-
-  identities(scope: ProjectScope): Route {
-    return buildRoute("/[workspaceSlug]/projects/[projectId]/identities", projectParams(scope));
-  },
-
-  authorization(scope: ProjectScope): Route {
-    return buildRoute("/[workspaceSlug]/projects/[projectId]/authorization", projectParams(scope));
-  },
-
   authorizationRoles(scope: ProjectScope): Route {
     return buildRoute(
       "/[workspaceSlug]/projects/[projectId]/authorization/roles",
