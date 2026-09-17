@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand/v2"
+	"sync"
 	"time"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -64,25 +65,24 @@ func (s *Watcher) clusterKey() *ctrlv1.ClusterKey {
 // Both share a semaphore so the k8s API is not overwhelmed.
 // Returns nil when the context is cancelled.
 func (s *Watcher) Watch(ctx context.Context) error {
-	go s.runPeriodicFullSync(ctx)
-	s.runStream(ctx)
+	var loops sync.WaitGroup
+	var dispatches sync.WaitGroup
+	loops.Go(func() { s.runPeriodicFullSync(ctx, &dispatches) })
+	loops.Go(func() { s.runStream(ctx, &dispatches) })
+	loops.Wait()
+	dispatches.Wait()
 	return nil
 }
 
 // runStream maintains a long-lived incremental stream. On first connect it
 // sends version=0 and the server jumps to the current max version. On
 // reconnect it resumes from the last seen version.
-func (s *Watcher) runStream(ctx context.Context) {
+func (s *Watcher) runStream(ctx context.Context, dispatches *sync.WaitGroup) {
 	versionLastSeen := uint64(0)
 
 	for {
-		jitter := reconnectMin + time.Millisecond*time.Duration(rand.Float64()*float64(reconnectMax.Milliseconds()-reconnectMin.Milliseconds()))
-		time.Sleep(jitter)
-
-		select {
-		case <-ctx.Done():
+		if !waitReconnect(ctx) {
 			return
-		default:
 		}
 
 		stream, err := s.cluster.WatchDeploymentChanges(ctx, &ctrlv1.WatchDeploymentChangesRequest{
@@ -103,7 +103,7 @@ func (s *Watcher) runStream(ctx context.Context) {
 			if err := s.sem.Acquire(ctx, 1); err != nil {
 				break
 			}
-			go func() {
+			dispatches.Go(func() {
 				defer s.sem.Release(1)
 				resourceType := eventResourceType(event)
 				if err := s.dispatch(ctx, event); err != nil {
@@ -112,7 +112,7 @@ func (s *Watcher) runStream(ctx context.Context) {
 				} else {
 					metrics.DispatchTotal.WithLabelValues("stream", resourceType, "success").Inc()
 				}
-			}()
+			})
 
 			if event.GetVersion() > versionLastSeen {
 				versionLastSeen = event.GetVersion()
@@ -126,12 +126,24 @@ func (s *Watcher) runStream(ctx context.Context) {
 	}
 }
 
+func waitReconnect(ctx context.Context) bool {
+	jitter := reconnectMin + time.Millisecond*time.Duration(rand.Float64()*float64(reconnectMax.Milliseconds()-reconnectMin.Milliseconds()))
+	timer := time.NewTimer(jitter)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
+}
+
 // runPeriodicFullSync calls SyncDesiredState every fullSyncInterval to
 // reconcile the full desired state. Runs independently of the incremental
 // stream so it never blocks real-time event delivery.
-func (s *Watcher) runPeriodicFullSync(ctx context.Context) {
+func (s *Watcher) runPeriodicFullSync(ctx context.Context, dispatches *sync.WaitGroup) {
 	// Run one immediately on startup.
-	s.doFullSync(ctx)
+	s.doFullSync(ctx, dispatches)
 
 	ticker := time.NewTicker(fullSyncInterval)
 	defer ticker.Stop()
@@ -141,12 +153,12 @@ func (s *Watcher) runPeriodicFullSync(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			s.doFullSync(ctx)
+			s.doFullSync(ctx, dispatches)
 		}
 	}
 }
 
-func (s *Watcher) doFullSync(ctx context.Context) {
+func (s *Watcher) doFullSync(ctx context.Context, dispatches *sync.WaitGroup) {
 	metrics.WatcherFullSyncsTotal.Inc()
 	start := time.Now()
 
@@ -165,7 +177,7 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 		if err := s.sem.Acquire(ctx, 1); err != nil {
 			break
 		}
-		go func() {
+		dispatches.Go(func() {
 			defer s.sem.Release(1)
 			resourceType := eventResourceType(event)
 			if err := s.dispatch(ctx, event); err != nil {
@@ -174,7 +186,7 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 			} else {
 				metrics.DispatchTotal.WithLabelValues("full_sync", resourceType, "success").Inc()
 			}
-		}()
+		})
 	}
 
 	if err := stream.Close(); err != nil && ctx.Err() == nil {

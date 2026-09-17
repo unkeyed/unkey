@@ -8,7 +8,6 @@ import (
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	"github.com/unkeyed/unkey/pkg/conc"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/repeat"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	appsv1 "k8s.io/api/apps/v1"
@@ -27,7 +26,7 @@ import (
 // by [Controller.runDesiredStateResyncLoop] so that slow control plane RPCs cannot
 // delay instance reporting.
 func (c *Controller) runActualStateResyncLoop(ctx context.Context) {
-	repeat.Every(30*time.Second, func() {
+	c.runResyncLoop(ctx, 30*time.Second, func() {
 		logger.Info("running actual state resync")
 		c.forEachReplicaSet(ctx, func(ctx context.Context, rs *appsv1.ReplicaSet) {
 			status, err := c.buildDeploymentStatus(ctx, rs)
@@ -60,12 +59,26 @@ func (c *Controller) runActualStateResyncLoop(ctx context.Context) {
 // (GetDesiredDeploymentState), it runs independently from actual state reporting
 // so it cannot delay instance updates.
 func (c *Controller) runDesiredStateResyncLoop(ctx context.Context) {
-	repeat.Every(1*time.Minute, func() {
+	c.runResyncLoop(ctx, time.Minute, func() {
 		logger.Info("running desired state resync")
 		c.forEachReplicaSet(ctx, func(ctx context.Context, rs *appsv1.ReplicaSet) {
 			c.reconcileDesiredState(ctx, rs)
 		})
 	})
+}
+
+func (c *Controller) runResyncLoop(ctx context.Context, interval time.Duration, resync func()) {
+	resync()
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			resync()
+		}
+	}
 }
 
 // forEachReplicaSet paginates through all krane-managed deployment ReplicaSets
