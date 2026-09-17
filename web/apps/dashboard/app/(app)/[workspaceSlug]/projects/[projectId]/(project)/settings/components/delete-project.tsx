@@ -1,6 +1,5 @@
 "use client";
 
-import { useProject } from "@/hooks/use-project";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import type { Project } from "@/lib/collections/deploy/projects";
@@ -14,19 +13,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-export function DeleteProject() {
-  const { project } = useProject();
-
-  // Without a loaded project the confirmation input has no name to match, so an
-  // empty value would pass validation and enable the delete button.
-  if (!project) {
-    return null;
-  }
-
-  return <DeleteProjectForm project={project} />;
-}
-
-function DeleteProjectForm({ project }: { project: Project }) {
+export function DeleteProject({ project }: { project: Project }) {
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);

@@ -6,11 +6,9 @@ import {
   resolveSaveState,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/shared/form-setting-card";
 import { SelectedConfig } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/shared/selected-config";
-import { useProject } from "@/hooks/use-project";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { type Project, createProjectRequestSchema } from "@/lib/collections/deploy/projects";
-import { useFlag } from "@/lib/flags/provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconCubeOutline18 } from "@unkey/icons";
 import { FormInput, SettingCard, SettingCardGroup } from "@unkey/ui";
@@ -19,18 +17,12 @@ import type { z } from "zod";
 
 const nameSchema = createProjectRequestSchema.pick({ name: true });
 
-export function UpdateProjectSettings() {
-  const { project } = useProject();
+export function UpdateProjectSettings({ project }: { project: Project }) {
   const workspace = useWorkspaceNavigation();
-  const projectsNav = useFlag("projectsNav");
-
-  if (!project) {
-    return null;
-  }
 
   return (
     <SettingCardGroup>
-      {projectsNav && project.isDefault ? (
+      {project.isDefault ? (
         <WorkspaceNameCard name={workspace.name} />
       ) : (
         <ProjectNameCard project={project} />

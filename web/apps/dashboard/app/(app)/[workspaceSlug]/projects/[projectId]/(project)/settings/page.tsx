@@ -23,12 +23,16 @@ export default function ProjectSettingsPage() {
         </PageHeaderContent>
       </PageHeader>
       <PageBody>
-        <UpdateProjectSettings />
-        {project?.isDefault ? null : (
-          <SettingsDangerZone>
-            <DeleteProject />
-          </SettingsDangerZone>
-        )}
+        {project ? (
+          <>
+            <UpdateProjectSettings project={project} />
+            {project.isDefault ? null : (
+              <SettingsDangerZone>
+                <DeleteProject project={project} />
+              </SettingsDangerZone>
+            )}
+          </>
+        ) : null}
       </PageBody>
     </PageContainer>
   );
