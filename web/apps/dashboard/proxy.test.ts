@@ -98,13 +98,20 @@ describe("proxy auth mode split", () => {
     expect(mocks.authkit).not.toHaveBeenCalled();
   });
 
-  it("matches dotted tRPC procedure paths without matching public static files", () => {
+  it.each([
+    "/api/trpc/user.getCurrentUser,workspace.getCurrent",
+    "/proxy/v2/keys.updateKey",
+    "/proxy/v2/apis.listKeys",
+  ])("runs AuthKit on dotted API path %s", (path) => {
     expect(
       unstable_doesMiddlewareMatch({
         config,
-        url: "http://localhost:3000/api/trpc/user.getCurrentUser,workspace.getCurrent",
+        url: `http://localhost:3000${path}`,
       }),
     ).toBe(true);
+  });
+
+  it("does not match public static files", () => {
     expect(
       unstable_doesMiddlewareMatch({
         config,
@@ -197,15 +204,18 @@ describe("proxy auth mode split", () => {
     expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
   });
 
-  it("passes a signed-out API request through without an interactive redirect", async () => {
-    const response = await proxy(new NextRequest("http://localhost:3000/api/example"));
+  it.each(["/api/example", "/proxy/v2/keys.updateKey"])(
+    "passes a signed-out request to %s through without an interactive redirect",
+    async (path) => {
+      const request = new NextRequest(`http://localhost:3000${path}`, { method: "POST" });
+      const response = await proxy(request);
 
-    expect(response.status).toBe(200);
-    expect(mocks.handleAuthkitHeaders).toHaveBeenCalledWith(
-      expect.any(NextRequest),
-      expect.any(Headers),
-    );
-  });
+      expect(response.status).toBe(200);
+      expect(response.headers.get("location")).toBeNull();
+      expect(mocks.authkit).toHaveBeenCalledWith(request, expect.any(Object));
+      expect(mocks.handleAuthkitHeaders).toHaveBeenCalledWith(request, expect.any(Headers));
+    },
+  );
 
   it("uses the AuthKit response helper on an authenticated request", async () => {
     mocks.authkit.mockResolvedValue({
