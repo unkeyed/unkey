@@ -144,6 +144,7 @@ hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(restateadm
 - `Build` refuses to run outside scope `builds` or with a limit key other than its workspace.
 - A build that still fails after all retries is stopped for good, and Deploy marks the deployment failed.
 - All builds share one Restate partition. When its leader changes, every build in progress restarts from its last recorded step.
+- Only builds are capped. A rule counts an invocation for as long as Restate is running it, including time the handler spends waiting, and the slot is freed only when Restate suspends the invocation after about a minute of no activity. A rule on the deploying phase would hold a slot through the wait for pods and then send the resumed deployment to the end of the queue, so it would delay deployments without capping them.
 
 Operating the rules on Restate Cloud, reading them, forcing a sync, listing waiting builds, is covered by [runbook 0003](https://github.com/unkeyed/infra/blob/main/docs/runbooks/restate/0003-build-concurrency-rules.md) in the infra repo.
 

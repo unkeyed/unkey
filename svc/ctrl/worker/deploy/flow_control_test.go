@@ -22,13 +22,17 @@ const (
 	// in turn stays under Restate's one minute inactivity timeout
 	awaitBudget = 10 * time.Second
 	holdTimeout = 50 * time.Second
+
+	// waitDuration stays well under Restate's one minute inactivity timeout,
+	// so a Wait is never suspended and keeps its slot for the whole sleep
+	waitDuration = 5 * time.Second
 )
 
 // TestFlowControl pins the Restate behaviour Deploy relies on when it calls
 // Build in [restateadmin.BuildConcurrencyScope] with the workspace as limit
 // key: a rule caps how many invocations per limit key run at once, cancelling
-// the caller removes its queued callee, and a rule written while callers wait
-// lets them run
+// the caller removes its queued callee, a callee that waits keeps its slot,
+// and a rule written while callers wait lets them run
 func TestFlowControl(t *testing.T) {
 	ctx := context.Background()
 	probe := &FlowControlProbe{
@@ -160,6 +164,33 @@ func TestFlowControl(t *testing.T) {
 		}, awaitBudget, 50*time.Millisecond, "the caller never got its callee's result")
 	})
 
+	// A slot is held for as long as Restate is running the invocation, waits
+	// included, and is freed only when Restate suspends it after about a minute
+	// of no activity. Build holds its slot throughout because the depot build is
+	// one blocking restate.Run
+	t.Run("a callee that waits keeps its slot until Restate suspends it", func(t *testing.T) {
+		ws := uid.New(uid.WorkspacePrefix)
+		waitKey := uid.New(uid.DeploymentPrefix)
+		waitDone := make(chan error, 1)
+		go func() {
+			_, err := ingress.Workflow[holdRequest, string](cfg.IngressClient, probeService, waitKey, "Wait", restate.WithScope(restateadmin.BuildConcurrencyScope)).
+				Request(ctx, holdRequest{Scope: restateadmin.BuildConcurrencyScope, LimitKey: ws}, restate.WithLimitKey(ws))
+			waitDone <- err
+		}()
+		require.Eventually(t, func() bool { return probe.hasStarted(waitKey) }, awaitBudget, 50*time.Millisecond,
+			"the waiting callee never started")
+
+		done := make(chan error, 1)
+		hold(t, ws, done)
+		require.Never(t, func() bool { return probe.runningCount(ws) > 0 }, 2*time.Second, 50*time.Millisecond,
+			"a callee ran for %s while another one was still waiting inside its handler", ws)
+
+		probe.awaitRunning(t, ws, 1)
+		require.NoError(t, <-waitDone)
+		probe.release(probe.nextRunning(t, ws))
+		require.NoError(t, <-done)
+	})
+
 	t.Run("a rule written while callers wait lets them run", func(t *testing.T) {
 		ws := uid.New(uid.WorkspacePrefix)
 		done := make(chan error, 3)
@@ -205,9 +236,9 @@ type parentRequest struct {
 	LimitKey string
 }
 
-// FlowControlProbe is a Restate workflow whose shared handler keeps running
-// until the test releases it, and whose run handler calls that shared handler
-// the way Deploy calls Build
+// FlowControlProbe is a Restate workflow whose Hold handler keeps running
+// until the test releases it, whose Wait handler sleeps inside Restate, and
+// whose run handler calls Hold the way Deploy calls Build
 type FlowControlProbe struct {
 	mu       sync.Mutex
 	running  map[string]map[string]struct{}
@@ -273,6 +304,23 @@ func (p *FlowControlProbe) Hold(ctx restate.WorkflowSharedContext, req holdReque
 	case <-ctx.Done():
 		return "", ctx.Err()
 	}
+}
+
+func (p *FlowControlProbe) Wait(ctx restate.WorkflowSharedContext, req holdRequest) (string, error) {
+	if ctx.Request().Scope != req.Scope || ctx.Request().LimitKey != req.LimitKey {
+		return "", restate.TerminalErrorf("invoked with scope %q limit key %q, want %q %q",
+			ctx.Request().Scope, ctx.Request().LimitKey, req.Scope, req.LimitKey)
+	}
+
+	key := restate.Key(ctx)
+	p.mu.Lock()
+	p.started[key] = struct{}{}
+	p.mu.Unlock()
+
+	if err := restate.Sleep(ctx, waitDuration); err != nil {
+		return "", err
+	}
+	return key, nil
 }
 
 func (p *FlowControlProbe) gateLocked(key string) chan struct{} {
