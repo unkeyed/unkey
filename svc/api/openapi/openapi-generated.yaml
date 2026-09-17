@@ -2612,7 +2612,7 @@ components:
                     example: "documents.read AND users.view"
                 credits:
                     "$ref": "#/components/schemas/KeysVerifyKeyCredits"
-                keyspaceIds:
+                keyspaces:
                     type: array
                     maxItems: 5
                     items:
