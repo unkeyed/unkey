@@ -5,6 +5,7 @@ import {
   DEPLOYMENT_STATUS_GROUPS,
   DEPLOYMENT_STATUS_GROUP_NAMES,
   expandDeploymentStatusGroups,
+  isDeploymentInFlight,
 } from "./deployment-status";
 
 describe("DEPLOYMENT_STATUS_GROUPS", () => {
@@ -50,5 +51,14 @@ describe("DEFAULT_DEPLOYMENT_STATUS_GROUPS", () => {
       "queued",
       "blocked",
     ]);
+  });
+});
+
+describe("isDeploymentInFlight", () => {
+  test("is true for exactly the statuses that still move on their own", () => {
+    const inFlight = DEPLOYMENT_STATUSES.filter(isDeploymentInFlight);
+    expect([...inFlight].sort()).toEqual(
+      [...DEPLOYMENT_STATUS_GROUPS.building, ...DEPLOYMENT_STATUS_GROUPS.queued].sort(),
+    );
   });
 });

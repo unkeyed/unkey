@@ -28,6 +28,7 @@ const InfoTooltip = ({
   disabled = false,
   asChild = false,
   className,
+  style,
   variant = "primary",
   triggerClassName,
 }: PropsWithChildren<{
@@ -38,6 +39,7 @@ const InfoTooltip = ({
   disabled?: boolean;
   asChild?: boolean;
   className?: string;
+  style?: React.CSSProperties;
   triggerClassName?: string;
 }>) => {
   return (
@@ -53,6 +55,7 @@ const InfoTooltip = ({
         )}
         <TooltipContent
           className={cn(baseVariant, variants[variant], className)}
+          style={style}
           side={position?.side || "right"}
           align={position?.align || "center"}
           sideOffset={position?.sideOffset}

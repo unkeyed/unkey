@@ -10,13 +10,22 @@ import { routes } from "@/lib/navigation/routes";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import {
   Github,
+  IconCubeOutline18,
   IconDotsOutline18,
   IconLayers2Outline18,
   IconPlusOutline18,
   IconTerminalOutline18,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Button, Empty } from "@unkey/ui";
+import {
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+} from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { AppActions } from "./app-actions";
 
@@ -57,21 +66,23 @@ export const AppsList = () => {
           ))}
         </div>
       ) : apps.data.length === 0 ? (
-        <div className="flex-1 flex justify-center items-center px-4 py-16 border border-grayA-4 rounded-lg overflow-hidden">
-          <Empty className="w-[400px] flex items-start">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>No Apps Found</Empty.Title>
-            <Empty.Description className="text-left">
+        <EmptyState>
+          <EmptyStateIcon>
+            <IconCubeOutline18 />
+          </EmptyStateIcon>
+          <EmptyStateHeader>
+            <EmptyStateTitle>No Apps Found</EmptyStateTitle>
+            <EmptyStateDescription>
               This project has no apps yet. Create an app to start deploying.
-            </Empty.Description>
-            <Empty.Actions className="mt-4 justify-start">
-              <Button size="md" onClick={openCreateApp}>
-                <IconPlusOutline18 />
-                Create app
-              </Button>
-            </Empty.Actions>
-          </Empty>
-        </div>
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+          <EmptyStateActions>
+            <Button variant="primary" size="md" onClick={openCreateApp}>
+              <IconPlusOutline18 />
+              Create app
+            </Button>
+          </EmptyStateActions>
+        </EmptyState>
       ) : (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           {apps.data.map((app) => {

@@ -5,7 +5,11 @@ import { AuthErrorCode, SIGN_IN_URL } from "@/lib/auth/types";
 import {
   Button,
   DialogContainer,
-  Empty,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   Loading,
   Select,
   SelectContent,
@@ -150,36 +154,37 @@ export const OrgSelector: React.FC<OrgSelectorProps> = ({ organizations, lastOrg
       <div className="flex flex-col gap-6 w-full">
         {/* Workspace selector */}
         {sortedOrgs.length === 0 ? (
-          <Empty>
-            <div className="flex flex-col items-center gap-4 text-center">
-              <h3 className="text-lg font-medium text-content">No workspaces found</h3>
-              <p className="text-sm text-content-subtle max-w-md">
+          <EmptyState frame="none">
+            <EmptyStateHeader>
+              <EmptyStateTitle>No workspaces found</EmptyStateTitle>
+              <EmptyStateDescription>
                 You don&apos;t have access to any workspaces. Please contact your administrator or
                 create a new workspace.
-              </p>
-              <div className="flex flex-col gap-2 w-full max-w-sm">
-                <Button
-                  onClick={() => {
-                    window.location.href = "mailto:support@unkey.com";
-                  }}
-                  className="w-full"
-                  size="lg"
-                >
-                  Contact Support
-                </Button>
-                <Button
-                  onClick={() => {
-                    window.location.href = "/auth/sign-out";
-                  }}
-                  variant="outline"
-                  className="w-full"
-                  size="lg"
-                >
-                  Sign Out
-                </Button>
-              </div>
-            </div>
-          </Empty>
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions className="flex-col gap-2 w-full max-w-sm">
+              <Button
+                onClick={() => {
+                  window.location.href = "mailto:support@unkey.com";
+                }}
+                variant="outline"
+                className="w-full"
+                size="lg"
+              >
+                Contact Support
+              </Button>
+              <Button
+                onClick={() => {
+                  window.location.href = "/auth/sign-out";
+                }}
+                variant="outline"
+                className="w-full"
+                size="lg"
+              >
+                Sign Out
+              </Button>
+            </EmptyStateActions>
+          </EmptyState>
         ) : (
           <>
             <div className="dark flex flex-col gap-4 focus:outline-none!">

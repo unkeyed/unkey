@@ -55,22 +55,11 @@ export const CreateProjectDialog = ({ isOpen, onOpenChange, workspaceSlug }: Pro
       const tx = collection.projects.insert({
         name: values.name,
         slug: values.slug,
-        appCount: 0,
         apps: [],
         repositoryFullName: null,
         currentDeploymentId: null,
-        isRolledBack: false,
         id: SERVER_PLACEHOLDER,
-        latestDeploymentId: null,
-        author: SERVER_PLACEHOLDER,
-        authorAvatar: SERVER_PLACEHOLDER,
-        branch: SERVER_PLACEHOLDER,
-        commitTimestamp: Date.now(),
-        commitTitle: SERVER_PLACEHOLDER,
-        domain: SERVER_PLACEHOLDER,
-        commitSha: null,
-        forkRepositoryFullName: null,
-        prNumber: null,
+        createdAt: Date.now(),
       });
       await tx.isPersisted.promise;
       const { projectId } = tx.metadata as { projectId: string };

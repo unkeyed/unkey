@@ -1,6 +1,4 @@
-"use client";
-
-import { IconWindowLayoutOutline18 } from "@unkey/icons";
+import { IconCubeOutline18 } from "@unkey/icons";
 import {
   Button,
   EmptyState,
@@ -11,21 +9,24 @@ import {
   EmptyStateTitle,
 } from "@unkey/ui";
 
-export function SetupHero({ onEnable }: { onEnable: () => void }) {
+export default function BasicEmptyState() {
   return (
     <EmptyState>
       <EmptyStateIcon>
-        <IconWindowLayoutOutline18 />
+        <IconCubeOutline18 />
       </EmptyStateIcon>
       <EmptyStateHeader>
-        <EmptyStateTitle>Customer portal</EmptyStateTitle>
+        <EmptyStateTitle>No projects yet</EmptyStateTitle>
         <EmptyStateDescription>
-          An Unkey-hosted portal that allows your customers to manage their keys themselves.
+          You haven't created any projects yet. Get started by creating your first project.
         </EmptyStateDescription>
       </EmptyStateHeader>
       <EmptyStateActions>
-        <Button variant="primary" size="md" onClick={onEnable}>
-          Enable Customer portal
+        <Button variant="primary" size="md">
+          Create project
+        </Button>
+        <Button variant="outline" size="md">
+          Read the docs
         </Button>
       </EmptyStateActions>
     </EmptyState>
