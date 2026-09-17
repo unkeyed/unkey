@@ -14,7 +14,38 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-func TestGetVerificationsByExternalID(t *testing.T) {
+// sumByTime collapses per-key series into the account-wide view a caller
+// reconstructs, keyed by bucket start.
+func sumByTime(series []clickhouse.VerificationTimeseriesPerKey) map[int64]clickhouse.VerificationTimeseriesDataPoint {
+	summed := make(map[int64]clickhouse.VerificationTimeseriesDataPoint)
+	for _, s := range series {
+		for _, p := range s.Data {
+			agg := summed[p.Time]
+			agg.Time = p.Time
+			agg.Total += p.Total
+			agg.Valid += p.Valid
+			agg.RateLimited += p.RateLimited
+			agg.InsufficientPermissions += p.InsufficientPermissions
+			agg.Forbidden += p.Forbidden
+			agg.Disabled += p.Disabled
+			agg.Expired += p.Expired
+			agg.UsageExceeded += p.UsageExceeded
+			summed[p.Time] = agg
+		}
+	}
+	return summed
+}
+
+// grandTotal is the account-wide total across every key and bucket.
+func grandTotal(series []clickhouse.VerificationTimeseriesPerKey) int64 {
+	var total int64
+	for _, p := range sumByTime(series) {
+		total += p.Total
+	}
+	return total
+}
+
+func TestGetVerificationsByExternalIDPerKey(t *testing.T) {
 	t.Parallel()
 
 	chCfg := containers.ClickHouse(t)
@@ -29,8 +60,10 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 	extA := "ext_" + uid.New("")
 	extB := "ext_" + uid.New("")
 	keySpaceID := uid.New(uid.KeySpacePrefix)
+	otherKeySpaceID := uid.New(uid.KeySpacePrefix)
 	targetKey := uid.New(uid.KeyPrefix)
 	otherKey := uid.New(uid.KeyPrefix)
+	outOfScopeKey := uid.New(uid.KeyPrefix)
 
 	// Anchor inside per_day retention (365d) and in the past. Day granularity is
 	// selected for windows > 4 days, so use a 10-day window over two active days.
@@ -38,14 +71,14 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 	dayA := base.Add(12 * time.Hour)
 	dayB := base.Add(2*24*time.Hour + 12*time.Hour)
 
-	mk := func(extID, keyID, outcome string, ts time.Time) schema.KeyVerification {
+	verificationIn := func(keySpace, extID, keyID, outcome string, ts time.Time) schema.KeyVerification {
 		return schema.KeyVerification{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        ts.UnixMilli(),
 			WorkspaceID: workspaceID,
 			IdentityID:  uid.New(uid.IdentityPrefix),
 			ExternalID:  extID,
-			KeySpaceID:  keySpaceID,
+			KeySpaceID:  keySpace,
 			Outcome:     outcome,
 			Region:      "test",
 			Tags:        []string{},
@@ -53,21 +86,28 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 		}
 	}
 
+	verification := func(extID, keyID, outcome string, ts time.Time) schema.KeyVerification {
+		return verificationIn(keySpaceID, extID, keyID, outcome, ts)
+	}
+
 	rows := []schema.KeyVerification{
 		// extA, day A: 3 VALID (one on targetKey), 2 RATE_LIMITED
-		mk(extA, targetKey, "VALID", dayA),
-		mk(extA, otherKey, "VALID", dayA),
-		mk(extA, otherKey, "VALID", dayA),
-		mk(extA, otherKey, "RATE_LIMITED", dayA),
-		mk(extA, otherKey, "RATE_LIMITED", dayA),
+		verification(extA, targetKey, "VALID", dayA),
+		verification(extA, otherKey, "VALID", dayA),
+		verification(extA, otherKey, "VALID", dayA),
+		verification(extA, otherKey, "RATE_LIMITED", dayA),
+		verification(extA, otherKey, "RATE_LIMITED", dayA),
 		// extA, day B: 1 VALID
-		mk(extA, otherKey, "VALID", dayB),
+		verification(extA, otherKey, "VALID", dayB),
 		// extB, day A: 5 VALID (must NOT appear in extA results)
-		mk(extB, otherKey, "VALID", dayA),
-		mk(extB, otherKey, "VALID", dayA),
-		mk(extB, otherKey, "VALID", dayA),
-		mk(extB, otherKey, "VALID", dayA),
-		mk(extB, otherKey, "VALID", dayA),
+		verification(extB, otherKey, "VALID", dayA),
+		verification(extB, otherKey, "VALID", dayA),
+		verification(extB, otherKey, "VALID", dayA),
+		verification(extB, otherKey, "VALID", dayA),
+		verification(extB, otherKey, "VALID", dayA),
+		// extA in a second keyspace: visible only to a session scoped to it.
+		verificationIn(otherKeySpaceID, extA, outOfScopeKey, "VALID", dayA),
+		verificationIn(otherKeySpaceID, extA, outOfScopeKey, "VALID", dayB),
 	}
 
 	batch, err := client.Conn().PrepareBatch(ctx, clickhouse.InsertQuery[schema.KeyVerification]())
@@ -77,7 +117,8 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 	}
 	require.NoError(t, batch.Send())
 
-	// Wait for the per_day materialized view to catch up (extA has 6 events).
+	// Wait for the per_day materialized view to catch up (extA has 8 events
+	// across both keyspaces).
 	require.EventuallyWithT(t, func(c *assert.CollectT) {
 		var got int64
 		err := client.Conn().QueryRow(ctx,
@@ -85,7 +126,7 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 			workspaceID, extA,
 		).Scan(&got)
 		assert.NoError(c, err)
-		assert.Equal(c, int64(6), got)
+		assert.Equal(c, int64(8), got)
 	}, time.Minute, time.Second)
 
 	startMs := base.UnixMilli()
@@ -93,68 +134,206 @@ func TestGetVerificationsByExternalID(t *testing.T) {
 	dayABucket := dayA.Truncate(24 * time.Hour).UnixMilli()
 	dayBBucket := dayB.Truncate(24 * time.Hour).UnixMilli()
 
-	byTime := func(points []clickhouse.VerificationTimeseriesDataPoint) map[int64]clickhouse.VerificationTimeseriesDataPoint {
-		m := make(map[int64]clickhouse.VerificationTimeseriesDataPoint, len(points))
-		for _, p := range points {
-			m[p.Time] = p
-		}
-		return m
+	read := func(t *testing.T, keySpaceIDs []string, keyID string, maxKeys int) []clickhouse.VerificationTimeseriesPerKey {
+		t.Helper()
+		series, err := client.GetVerificationsByExternalIDPerKey(ctx, clickhouse.VerificationTimeseriesPerKeyRequest{
+			VerificationTimeseriesRequest: clickhouse.VerificationTimeseriesRequest{
+				WorkspaceID: workspaceID,
+				ExternalID:  extA,
+				KeySpaceIDs: keySpaceIDs,
+				KeyID:       keyID,
+				StartTime:   startMs,
+				EndTime:     endMs,
+			},
+			MaxKeys: maxKeys,
+		})
+		require.NoError(t, err)
+		return series
 	}
 
 	t.Run("scoped to external id with correct per-outcome counts", func(t *testing.T) {
-		points, err := client.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
-			WorkspaceID: workspaceID,
-			ExternalID:  extA,
-			StartTime:   startMs,
-			EndTime:     endMs,
-		})
-		require.NoError(t, err)
+		series := read(t, []string{keySpaceID}, "", 10)
 
-		m := byTime(points)
+		m := sumByTime(series)
 		require.Equal(t, int64(5), m[dayABucket].Total)
 		require.Equal(t, int64(3), m[dayABucket].Valid)
 		require.Equal(t, int64(2), m[dayABucket].RateLimited)
 		require.Equal(t, int64(1), m[dayBBucket].Total)
 		require.Equal(t, int64(1), m[dayBBucket].Valid)
 
-		// extB's 5 events on day A must not leak into extA's totals.
-		var grand int64
-		for _, p := range points {
-			grand += p.Total
-		}
-		require.Equal(t, int64(6), grand)
+		// extB's 5 events on day A and extA's 2 events in the other keyspace must
+		// not leak into the scoped totals.
+		require.Equal(t, int64(6), grandTotal(series))
 	})
 
 	t.Run("zero-filled contiguous daily buckets", func(t *testing.T) {
-		points, err := client.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
-			WorkspaceID: workspaceID,
-			ExternalID:  extA,
-			StartTime:   startMs,
-			EndTime:     endMs,
-		})
-		require.NoError(t, err)
+		series := read(t, []string{keySpaceID}, "", 10)
+
+		stepMs := clickhouse.VerificationBucketMillis(startMs, endMs)
+		require.Equal(t, int64(24*60*60*1000), stepMs, "a 10-day window selects day buckets")
 
 		// 10-day window -> at least 10 contiguous day buckets, evenly spaced.
-		require.GreaterOrEqual(t, len(points), 10)
-		const dayMs = int64(24 * 60 * 60 * 1000)
-		for i := 1; i < len(points); i++ {
-			require.Equal(t, dayMs, points[i].Time-points[i-1].Time)
+		for _, s := range series {
+			require.GreaterOrEqual(t, len(s.Data), 10)
+			for i := 1; i < len(s.Data); i++ {
+				require.Equal(t, stepMs, s.Data[i].Time-s.Data[i-1].Time)
+			}
 		}
 	})
 
 	t.Run("key id filter narrows to one key", func(t *testing.T) {
-		points, err := client.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
-			WorkspaceID: workspaceID,
-			ExternalID:  extA,
-			KeyID:       targetKey,
-			StartTime:   startMs,
-			EndTime:     endMs,
-		})
-		require.NoError(t, err)
+		series := read(t, []string{keySpaceID}, targetKey, 10)
 
-		m := byTime(points)
+		m := sumByTime(series)
 		require.Equal(t, int64(1), m[dayABucket].Total)
 		require.Equal(t, int64(1), m[dayABucket].Valid)
 		require.Equal(t, int64(0), m[dayBBucket].Total)
+	})
+
+	t.Run("scoped to the session's keyspaces", func(t *testing.T) {
+		series := read(t, []string{otherKeySpaceID}, "", 10)
+
+		m := sumByTime(series)
+		require.Equal(t, int64(1), m[dayABucket].Total)
+		require.Equal(t, int64(1), m[dayBBucket].Total)
+		require.Equal(t, int64(2), grandTotal(series))
+	})
+
+	t.Run("multiple keyspaces sum", func(t *testing.T) {
+		series := read(t, []string{keySpaceID, otherKeySpaceID}, "", 10)
+		require.Equal(t, int64(8), grandTotal(series))
+	})
+
+	t.Run("per key breakout totals", func(t *testing.T) {
+		series := read(t, []string{keySpaceID}, "", 10)
+
+		totals := make(map[string]int64, len(series))
+		for _, s := range series {
+			for _, p := range s.Data {
+				totals[s.KeyID] += p.Total
+			}
+		}
+
+		require.Len(t, series, 2)
+		require.Equal(t, int64(1), totals[targetKey])
+		require.Equal(t, int64(5), totals[otherKey])
+		require.Equal(t, int64(6), grandTotal(series))
+		require.NotContains(t, totals, outOfScopeKey, "a key outside the session keyspaces must not appear")
+	})
+
+	t.Run("per key series are zero-filled", func(t *testing.T) {
+		series := read(t, []string{keySpaceID}, targetKey, 10)
+
+		require.Len(t, series, 1)
+		require.Equal(t, targetKey, series[0].KeyID)
+
+		// Contiguous across the whole window, so the page can chart a narrowed
+		// selection without filling the gaps itself.
+		require.GreaterOrEqual(t, len(series[0].Data), 10, "the series covers the requested window")
+		const dayMs = int64(24 * 60 * 60 * 1000)
+		for i := 1; i < len(series[0].Data); i++ {
+			require.Equal(t, dayMs, series[0].Data[i].Time-series[0].Data[i-1].Time,
+				"buckets are evenly spaced")
+		}
+
+		byBucket := make(map[int64]int64, len(series[0].Data))
+		for _, p := range series[0].Data {
+			byBucket[p.Time] = p.Total
+		}
+		require.Equal(t, int64(1), byBucket[dayABucket], "the bucket with traffic keeps its count")
+		require.Equal(t, int64(0), byBucket[dayBBucket], "a quiet bucket is present with zero")
+	})
+
+	t.Run("every key in a breakout is filled independently", func(t *testing.T) {
+		series := read(t, []string{keySpaceID}, "", 10)
+		require.Len(t, series, 2)
+
+		const dayMs = int64(24 * 60 * 60 * 1000)
+		grid := series[0].Data
+		require.GreaterOrEqual(t, len(grid), 10, "the first series covers the requested window")
+
+		// WITH FILL restarts per key only while the sorting-prefix setting holds.
+		// Without it the range is generated once across the whole result and the
+		// second key comes back short, which totals alone would not reveal.
+		for _, s := range series {
+			require.Len(t, s.Data, len(grid), "every key is filled across the same window")
+			for i, point := range s.Data {
+				require.Equal(t, grid[i].Time, point.Time, "every key shares the bucket grid")
+				if i > 0 {
+					require.Equal(t, dayMs, point.Time-s.Data[i-1].Time, "buckets are evenly spaced")
+				}
+			}
+		}
+
+		totals := make(map[string]map[int64]int64, len(series))
+		for _, s := range series {
+			buckets := make(map[int64]int64, len(s.Data))
+			for _, point := range s.Data {
+				buckets[point.Time] = point.Total
+			}
+			totals[s.KeyID] = buckets
+		}
+
+		// The fill adds zeros rather than spreading one key's counts over the grid.
+		require.Equal(t, int64(1), totals[targetKey][dayABucket])
+		require.Equal(t, int64(0), totals[targetKey][dayBBucket])
+		require.Equal(t, int64(4), totals[otherKey][dayABucket])
+		require.Equal(t, int64(1), totals[otherKey][dayBBucket])
+	})
+
+	t.Run("per key breakout is capped rather than truncated", func(t *testing.T) {
+		req := clickhouse.VerificationTimeseriesPerKeyRequest{
+			VerificationTimeseriesRequest: clickhouse.VerificationTimeseriesRequest{
+				WorkspaceID: workspaceID,
+				ExternalID:  extA,
+				KeySpaceIDs: []string{keySpaceID},
+				KeyID:       "",
+				StartTime:   startMs,
+				EndTime:     endMs,
+			},
+			MaxKeys: 1,
+		}
+
+		_, err := client.GetVerificationsByExternalIDPerKey(ctx, req)
+		require.ErrorIs(t, err, clickhouse.ErrTooManyVerificationKeys)
+
+		req.MaxKeys = 2
+		series, err := client.GetVerificationsByExternalIDPerKey(ctx, req)
+		require.NoError(t, err)
+		require.Len(t, series, 2, "a request exactly at the cap is served")
+	})
+
+	t.Run("empty keyspace list is an error", func(t *testing.T) {
+		_, err := client.GetVerificationsByExternalIDPerKey(ctx, clickhouse.VerificationTimeseriesPerKeyRequest{
+			VerificationTimeseriesRequest: clickhouse.VerificationTimeseriesRequest{
+				WorkspaceID: workspaceID,
+				ExternalID:  extA,
+				KeySpaceIDs: nil,
+				KeyID:       "",
+				StartTime:   startMs,
+				EndTime:     endMs,
+			},
+			MaxKeys: 10,
+		})
+		require.Error(t, err)
+	})
+
+	// An unset cap means a caller wired the handler without one; serving it
+	// would put an unbounded per-key read on the shared connection.
+	t.Run("missing key cap is an error", func(t *testing.T) {
+		for _, maxKeys := range []int{0, -1} {
+			_, err := client.GetVerificationsByExternalIDPerKey(ctx, clickhouse.VerificationTimeseriesPerKeyRequest{
+				VerificationTimeseriesRequest: clickhouse.VerificationTimeseriesRequest{
+					WorkspaceID: workspaceID,
+					ExternalID:  extA,
+					KeySpaceIDs: []string{keySpaceID},
+					KeyID:       "",
+					StartTime:   startMs,
+					EndTime:     endMs,
+				},
+				MaxKeys: maxKeys,
+			})
+			require.Error(t, err, "MaxKeys %d must be refused", maxKeys)
+		}
 	})
 }

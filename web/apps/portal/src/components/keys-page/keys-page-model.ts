@@ -26,7 +26,12 @@ import { KEY_STATUSES, type KeyStatus, keyStatus } from "~/components/keys-table
 import type { Key } from "~/components/keys-table/schema/keys.schema";
 import type { KeysSearchPatch } from "~/hooks/use-keys-search";
 import type { KeyUsageRow, KeysUsage } from "~/hooks/use-keys-usage";
-import { RETENTION_EXCEEDED_MESSAGE, isRetentionExceededError } from "~/lib/portal-api";
+import {
+  RETENTION_EXCEEDED_MESSAGE,
+  TOO_MANY_KEYS_MESSAGE,
+  isRetentionExceededError,
+  isTooManyKeysError,
+} from "~/lib/portal-api";
 
 export type KeysPageModelInput = {
   usage: KeysUsage;
@@ -72,13 +77,19 @@ function buildChart(
     return { kind: "loading" };
   }
   if (aggregateState.isError) {
-    return isRetentionExceededError(aggregateState.error)
-      ? { kind: "error", message: RETENTION_EXCEEDED_MESSAGE }
-      : {
-          kind: "error",
-          message: "Couldn't load your analytics",
-          onRetry: aggregateState.refetch,
-        };
+    // Neither rejection is retryable at the same window, so both drop onRetry
+    // and say what to change instead.
+    if (isRetentionExceededError(aggregateState.error)) {
+      return { kind: "error", message: RETENTION_EXCEEDED_MESSAGE };
+    }
+    if (isTooManyKeysError(aggregateState.error)) {
+      return { kind: "error", message: TOO_MANY_KEYS_MESSAGE };
+    }
+    return {
+      kind: "error",
+      message: "Couldn't load your analytics",
+      onRetry: aggregateState.refetch,
+    };
   }
   if (narrowed && byKey === "unavailable") {
     return { kind: "error", message: "Usage per key isn't available for this account." };
