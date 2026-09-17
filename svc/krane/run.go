@@ -137,12 +137,15 @@ func Run(ctx context.Context, cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("read leader election namespace: %w", err)
 	}
+
 	namespace := strings.TrimSpace(string(namespaceBytes))
 	if namespace == "" {
 		return errors.New("leader election namespace is empty")
 	}
+
 	leaseConfig := rest.CopyConfig(inClusterConfig)
 	leaseConfig.Timeout = 5 * time.Second
+
 	leaseClient, err := kubernetes.NewForConfig(leaseConfig)
 	if err != nil {
 		return fmt.Errorf("create leader election client: %w", err)
@@ -226,8 +229,8 @@ func Run(ctx context.Context, cfg Config) error {
 		EventDedup:          instanceEventDedupCache,
 		ObservedTransitions: deploymentTransitionsCache,
 		StorageClassName:    cfg.StorageClassName,
-		RuntimeClassName:    cfg.RuntimeClassName,
 	})
+
 	// Start the unified syncer that consumes WatchDeploymentChanges and
 	// dispatches events to the deployment and cilium controllers.
 	w := watcher.New(watcher.Config{
@@ -237,12 +240,15 @@ func Run(ctx context.Context, cfg Config) error {
 		Region:      cfg.Cluster.Region,
 		Platform:    cfg.Cluster.Platform,
 	})
+
 	leadershipDone := make(chan struct{})
 	r.Go(func(ctx context.Context) error {
 		defer close(leadershipDone)
+
 		identity := cfg.InstanceID + "_" + uid.New(uid.InstancePrefix)
 		return runWithLeadership(ctx, leaseClient, namespace, identity, func(ctx context.Context) {
 			fingerprintCache.Clear(ctx)
+
 			var workers sync.WaitGroup
 			workers.Go(func() { deploymentCtrl.Run(ctx) })
 			workers.Go(func() {
@@ -250,9 +256,11 @@ func Run(ctx context.Context, cfg Config) error {
 					logger.Error("deployment watcher stopped", "error", err)
 				}
 			})
+
 			workers.Go(func() {
 				ticker := time.NewTicker(30 * time.Second)
 				defer ticker.Stop()
+
 				for ctx.Err() == nil {
 					if _, err := cluster.Heartbeat(ctx, &ctrlv1.HeartbeatRequest{
 						Cluster: &ctrlv1.ClusterKey{
@@ -263,6 +271,7 @@ func Run(ctx context.Context, cfg Config) error {
 					}); err != nil {
 						logger.Warn("heartbeat failed", "error", err)
 					}
+
 					select {
 					case <-ctx.Done():
 						return
@@ -270,9 +279,11 @@ func Run(ctx context.Context, cfg Config) error {
 					}
 				}
 			})
+
 			workers.Wait()
 		})
 	})
+
 	r.Defer(func() error {
 		<-leadershipDone
 		return nil
