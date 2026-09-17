@@ -234,15 +234,17 @@ func (c *Client) UpsertRules(ctx context.Context, rules []RuleUpsert) error {
 }
 
 type deleteRule struct {
-	Pattern string `json:"pattern"`
+	Pattern         string `json:"pattern"`
+	ExpectedVersion uint32 `json:"expected_version"`
 }
 
-// DeleteRules removes the given rules. A pattern that no longer exists is
-// skipped without an error
-func (c *Client) DeleteRules(ctx context.Context, patterns []string) error {
-	payload := make([]deleteRule, 0, len(patterns))
-	for _, pattern := range patterns {
-		payload = append(payload, deleteRule{Pattern: pattern})
+// DeleteRules removes the given rules as they were read: a rule whose version
+// changed since is left alone and the call fails with 409, so a caller that
+// lists, decides, then deletes cannot remove a rule written in between
+func (c *Client) DeleteRules(ctx context.Context, rules []Rule) error {
+	payload := make([]deleteRule, 0, len(rules))
+	for _, rule := range rules {
+		payload = append(payload, deleteRule{Pattern: rule.Pattern, ExpectedVersion: rule.Version})
 	}
 	_, err := c.send(ctx, "delete rules", http.MethodPost, "/limits/rules/bulk-delete", payload, nil)
 	return err
