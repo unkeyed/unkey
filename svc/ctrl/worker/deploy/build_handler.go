@@ -36,9 +36,10 @@ func BuildRetryPolicy() restate.HandlerOption {
 // the limit key, and Restate runs this handler only once the workspace is
 // under its build cap.
 //
-// Build refuses a request that did not arrive under flow control. A wrong
-// scope matches no rule and builds uncapped. A wrong limit key charges the
-// build to another workspace
+// Build refuses a request outside the build scope or with a limit key other
+// than its workspace: a wrong scope matches no rule and builds uncapped, a
+// wrong limit key charges the build to another workspace. A missing rule
+// is not detectable here; the cron owns that
 func (w *Workflow) Build(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (*hydrav1.BuildResponse, error) {
 	if ctx.Request().Scope != restateadmin.BuildConcurrencyScope {
 		return nil, fault.Wrap(

@@ -121,6 +121,45 @@ func TestFlowControl(t *testing.T) {
 			"the cancelled callee ran once the first one finished")
 	})
 
+	t.Run("cancelling the caller does not interrupt a running callee", func(t *testing.T) {
+		ws := uid.New(uid.WorkspacePrefix)
+		child := uid.New(uid.DeploymentPrefix)
+
+		parent, err := ingress.WorkflowSend[parentRequest](cfg.IngressClient, probeService, uid.New(uid.DeploymentPrefix), "Run").
+			Send(ctx, parentRequest{ChildKey: child, LimitKey: ws})
+		require.NoError(t, err)
+		probe.awaitRunning(t, ws, 1)
+
+		require.NoError(t, admin.CancelInvocation(ctx, parent.Id()))
+
+		require.Eventually(t, func() bool {
+			ok, parentErr := probe.parentResult(child)
+			return ok && parentErr != nil && restate.IsTerminalError(parentErr)
+		}, awaitBudget, 50*time.Millisecond, "the cancelled caller must return a terminal error while its callee still runs")
+		require.Never(t, func() bool { return probe.runningCount(ws) == 0 }, 2*time.Second, 50*time.Millisecond,
+			"a callee that is already running keeps running until it finishes on its own")
+
+		probe.release(child)
+		probe.awaitRunning(t, ws, 0)
+	})
+
+	t.Run("a run handler can call its own shared handler in the scope", func(t *testing.T) {
+		ws := uid.New(uid.WorkspacePrefix)
+		key := uid.New(uid.DeploymentPrefix)
+
+		_, err := ingress.WorkflowSend[parentRequest](cfg.IngressClient, probeService, key, "Run").
+			Send(ctx, parentRequest{ChildKey: "", LimitKey: ws})
+		require.NoError(t, err)
+		probe.awaitRunning(t, ws, 1)
+		require.Equal(t, []string{key}, probe.runningKeys(ws), "the scoped callee runs under the caller's own key")
+
+		probe.release(key)
+		require.Eventually(t, func() bool {
+			ok, parentErr := probe.parentResult(key)
+			return ok && parentErr == nil
+		}, awaitBudget, 50*time.Millisecond, "the caller never got its callee's result")
+	})
+
 	t.Run("a rule written while callers wait lets them run", func(t *testing.T) {
 		ws := uid.New(uid.WorkspacePrefix)
 		done := make(chan error, 3)
@@ -159,6 +198,8 @@ type holdRequest struct {
 	LimitKey string
 }
 
+// parentRequest names the callee's workflow key; empty means the caller's own
+// key, which is how Deploy calls Build
 type parentRequest struct {
 	ChildKey string
 	LimitKey string
@@ -178,22 +219,26 @@ type FlowControlProbe struct {
 }
 
 func (p *FlowControlProbe) Run(ctx restate.WorkflowContext, req parentRequest) (string, error) {
+	child := req.ChildKey
+	if child == "" {
+		child = restate.Key(ctx)
+	}
 	p.mu.Lock()
-	p.called[req.ChildKey] = struct{}{}
+	p.called[child] = struct{}{}
 	p.mu.Unlock()
 
-	_, err := restate.Workflow[string](ctx, probeService, req.ChildKey, "Hold", restate.WithScope(restateadmin.BuildConcurrencyScope)).
+	_, err := restate.Workflow[string](ctx, probeService, child, "Hold", restate.WithScope(restateadmin.BuildConcurrencyScope)).
 		RequestFuture(holdRequest{Scope: restateadmin.BuildConcurrencyScope, LimitKey: req.LimitKey}, restate.WithLimitKey(req.LimitKey)).
 		Response()
 
 	p.mu.Lock()
-	p.parents[req.ChildKey] = err
+	p.parents[child] = err
 	p.mu.Unlock()
 
 	if err != nil {
 		return "", err
 	}
-	return req.ChildKey, nil
+	return child, nil
 }
 
 // Hold refuses a request whose scope or limit key did not reach it, so a

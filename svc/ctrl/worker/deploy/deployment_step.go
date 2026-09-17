@@ -13,6 +13,8 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
+// DeploymentStep records a step around fn. Both the run handler and the shared
+// Build handler call it, hence the plain restate.Context
 func (w *Workflow) DeploymentStep(
 	ctx restate.Context,
 	step db.DeploymentStepsStep,

@@ -118,7 +118,11 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 	})
 
 	deployment, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.FindDeploymentForDeployRow, error) {
-		return w.db.FindDeploymentForDeploy(runCtx, req.GetDeploymentId())
+		found, err := w.db.FindDeploymentForDeploy(runCtx, req.GetDeploymentId())
+		if db.IsNotFound(err) {
+			return found, restate.ToTerminalError(err)
+		}
+		return found, err
 	}, restate.WithName("finding deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
@@ -146,9 +150,9 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		}
 	}
 
-	// Request, not Send: cancelling this invocation then also cancels its
-	// queued or running Build. A Send would detach the Build and it would
-	// keep running
+	// Request, not Send: cancelling this invocation removes a queued Build
+	// and stops a running one at its next Restate call. A Send would detach
+	// the Build and it would keep running
 	_, err = hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(restateadmin.BuildConcurrencyScope)).
 		Build().
 		Request(req, restate.WithLimitKey(deployment.WorkspaceID))
@@ -168,7 +172,11 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 	// Build returns without an error on a deployment that was cancelled or
 	// superseded while it waited, and a cancel can land during the build
 	deployment, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.FindDeploymentForDeployRow, error) {
-		return w.db.FindDeploymentForDeploy(runCtx, deployment.ID)
+		found, err := w.db.FindDeploymentForDeploy(runCtx, deployment.ID)
+		if db.IsNotFound(err) {
+			return found, restate.ToTerminalError(err)
+		}
+		return found, err
 	}, restate.WithName("loading deployment"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
