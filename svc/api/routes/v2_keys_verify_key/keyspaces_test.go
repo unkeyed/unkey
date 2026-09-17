@@ -78,6 +78,67 @@ func TestVerifyKey_KeyspaceRejectionsDoNotConsumeQuota(t *testing.T) {
 	require.Equal(t, int64(4), res.Body.Data.Ratelimits[0].Remaining)
 }
 
+func TestVerifyKey_KeyspaceAllowlistHidesInvalidKeys(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{
+		DB: h.DB, Keys: h.Keys, DirectAuditLogs: h.DirectAuditLogs, KeyVerifications: h.KeyVerifications,
+	}
+	h.Register(route)
+	workspace := h.Resources().UserWorkspace
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	otherAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.verify_key")
+	headers := http.Header{
+		"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey},
+	}
+
+	for _, state := range []struct {
+		name     string
+		disabled bool
+		expires  *time.Time
+		code     openapi.V2KeysVerifyKeyResponseDataCode
+	}{
+		{name: "disabled", disabled: true, code: openapi.DISABLED},
+		{name: "expired", expires: ptr.P(time.UnixMilli(1)), code: openapi.EXPIRED},
+	} {
+		t.Run(state.name, func(t *testing.T) {
+			key := h.CreateKey(seed.CreateKeyRequest{
+				WorkspaceID: workspace.ID, KeySpaceID: api.KeyAuthID.String,
+				Disabled: state.disabled, Expires: state.expires,
+				Name: ptr.P("private key"), Meta: ptr.P(`{"private":"metadata"}`), Remaining: ptr.P(int64(7)),
+			})
+			for _, tt := range []struct {
+				name      string
+				keyspaces *[]string
+				hidden    bool
+			}{
+				{name: "mismatch", keyspaces: ptr.P([]string{otherAPI.KeyAuthID.String}), hidden: true},
+				{name: "empty", keyspaces: ptr.P([]string{}), hidden: true},
+				{name: "matching", keyspaces: ptr.P([]string{api.KeyAuthID.String})},
+				{name: "omitted"},
+			} {
+				t.Run(tt.name, func(t *testing.T) {
+					res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+						Key: key.Key, Keyspaces: tt.keyspaces, Credits: &openapi.KeysVerifyKeyCredits{Cost: 2},
+					})
+					require.Equal(t, http.StatusOK, res.Status, res.RawBody)
+					if tt.hidden {
+						require.Equal(t, openapi.V2KeysVerifyKeyResponseData{Code: openapi.NOTFOUND, Valid: false}, res.Body.Data)
+						return
+					}
+					require.False(t, res.Body.Data.Valid)
+					require.Equal(t, state.code, res.Body.Data.Code)
+					require.Equal(t, key.KeyID, res.Body.Data.KeyId)
+					require.Equal(t, api.KeyAuthID.String, res.Body.Data.KeyspaceId)
+					require.Equal(t, "private key", res.Body.Data.Name)
+					require.Equal(t, map[string]any{"private": "metadata"}, res.Body.Data.Meta)
+					require.Equal(t, ptr.P(int64(7)), res.Body.Data.Credits)
+				})
+			}
+		})
+	}
+}
+
 func TestVerifyKey_RejectsInvalidKeyspaceAllowlist(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
