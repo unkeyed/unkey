@@ -15,7 +15,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/circuitbreaker"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/krane/internal/keymutex"
 	"github.com/unkeyed/unkey/svc/krane/internal/podstatus"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
@@ -67,7 +66,6 @@ type Controller struct {
 
 	// storageClassName is the Kubernetes StorageClass for ephemeral volumes.
 	storageClassName string
-	runtimeClassName *string
 }
 
 // Config holds the configuration required to create a new [Controller].
@@ -119,9 +117,6 @@ type Config struct {
 
 	// StorageClassName is the Kubernetes StorageClass for ephemeral volumes.
 	StorageClassName string
-
-	// RuntimeClassName defaults to gvisor; an empty string selects the node default.
-	RuntimeClassName *string
 }
 
 // New creates a [Controller] ready to be run with [Controller.Run].
@@ -133,13 +128,6 @@ func New(cfg Config) *Controller {
 	var pullSecrets []corev1.LocalObjectReference
 	if cfg.Registry != nil {
 		pullSecrets = []corev1.LocalObjectReference{{Name: registryPullSecretName}}
-	}
-
-	runtimeClassName := cfg.RuntimeClassName
-	if runtimeClassName == nil {
-		runtimeClassName = ptr.P(runtimeClassGvisor)
-	} else if *runtimeClassName == "" {
-		runtimeClassName = nil
 	}
 
 	return &Controller{
@@ -158,7 +146,6 @@ func New(cfg Config) *Controller {
 		reportLocks:      keymutex.KeyMutex{},
 		lagRecorder:      podstatus.NewLagRecorder("deployment", cfg.ObservedTransitions),
 		storageClassName: cfg.StorageClassName,
-		runtimeClassName: runtimeClassName,
 	}
 }
 

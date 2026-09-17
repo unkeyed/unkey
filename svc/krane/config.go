@@ -78,9 +78,6 @@ type Config struct {
 	// Defaults to "ebs-csi-gp3" (prod). Set to "standard" for local Minikube development.
 	StorageClassName string `toml:"storage_class_name" config:"default=ebs-csi-gp3"`
 
-	// RuntimeClassName selects the workload runtime. Unset uses gvisor; empty uses the node default.
-	RuntimeClassName *string `toml:"runtime_class_name"`
-
 	// K8s tunes the client-go REST config. See [K8sConfig].
 	K8s K8sConfig `toml:"k8s"`
 

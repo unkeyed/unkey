@@ -21,9 +21,11 @@ func runWithLeadership(ctx context.Context, client kubernetes.Interface, namespa
 			LockConfig: resourcelock.ResourceLockConfig{Identity: identity, EventRecorder: nil},
 			Labels:     nil,
 		}
+
 		var mu sync.Mutex
 		var workers sync.WaitGroup
 		stopped := false
+
 		elector, err := leaderelection.NewLeaderElector(leaderelection.LeaderElectionConfig{
 			Lock:          lock,
 			LeaseDuration: 15 * time.Second,
@@ -36,9 +38,11 @@ func runWithLeadership(ctx context.Context, client kubernetes.Interface, namespa
 						mu.Unlock()
 						return
 					}
+
 					workers.Add(1)
 					mu.Unlock()
 					defer workers.Done()
+
 					logger.Info("krane leadership acquired", "identity", identity)
 					run(leaderCtx)
 				},
@@ -53,20 +57,25 @@ func runWithLeadership(ctx context.Context, client kubernetes.Interface, namespa
 		if err != nil {
 			return fmt.Errorf("configure krane leader election: %w", err)
 		}
+
 		elector.Run(ctx)
+
 		// client-go does not join OnStartedLeading, which can start after Run returns.
 		mu.Lock()
 		stopped = true
 		mu.Unlock()
+
 		workers.Wait()
 		releaseLeadership(ctx, lock)
 	}
+
 	return nil
 }
 
 func releaseLeadership(ctx context.Context, lock resourcelock.Interface) {
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
 	defer cancel()
+
 	record, _, err := lock.Get(ctx)
 	if err != nil {
 		logger.Warn("unable to read lease for release", "error", err)
@@ -75,10 +84,12 @@ func releaseLeadership(ctx context.Context, lock resourcelock.Interface) {
 	if record.HolderIdentity != lock.Identity() {
 		return
 	}
+
 	record.HolderIdentity = ""
 	if err := lock.Update(ctx, *record); err != nil {
 		logger.Warn("unable to release lease; waiting for expiry", "error", err)
 		return
 	}
+
 	logger.Info("krane leadership released", "identity", lock.Identity())
 }
