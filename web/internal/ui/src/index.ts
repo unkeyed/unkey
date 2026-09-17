@@ -20,8 +20,6 @@ export * from "./components/dialog/confirmation-popover";
 export * from "./components/dialog/navigable-dialog";
 export * from "./components/drawer";
 export * from "./components/drover";
-export * from "./components/empty";
-export * from "./components/empty-hero";
 export * from "./components/empty-state";
 export * from "./components/icon-fan-row";
 export * from "./components/form";

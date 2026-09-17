@@ -1,6 +1,5 @@
 "use client";
 import {
-  EmptyKeyDetailsLogs,
   buildGatewayRequestDetailsQueryParams,
   buildRequestDetailsQueryParams,
   createKeyDetailsLogsColumns,
@@ -10,7 +9,18 @@ import {
 import { trpc } from "@/lib/trpc/client";
 import type { RowSelectionState } from "@tanstack/react-table";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
-import { DataTable, PaginationFooter } from "@unkey/ui";
+import { IconArrowsOppositeDirectionYOutline18, IconBookBookmarkOutline18 } from "@unkey/icons";
+import {
+  Button,
+  DataTable,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+  PaginationFooter,
+} from "@unkey/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useKeyDetailsLogsContext } from "../../context/logs";
 
@@ -113,7 +123,32 @@ export const KeyDetailsLogsTable = ({ keyspaceId, keyId, selectedLog, onLogSelec
         enableRowSelection={true}
         rowSelection={rowSelection}
         config={{ rowHeight: 26, layout: "classic", rowBorders: false }}
-        emptyState={<EmptyKeyDetailsLogs />}
+        emptyState={
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconArrowsOppositeDirectionYOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Key Verification Logs</EmptyStateTitle>
+              <EmptyStateDescription>
+                No verification logs found for this key. When this API key is used, details about
+                each verification attempt will appear here.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <a
+                href="https://www.unkey.com/docs/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" size="md">
+                  <IconBookBookmarkOutline18 />
+                  Documentation
+                </Button>
+              </a>
+            </EmptyStateActions>
+          </EmptyState>
+        }
       />
       <PaginationFooter
         page={page}

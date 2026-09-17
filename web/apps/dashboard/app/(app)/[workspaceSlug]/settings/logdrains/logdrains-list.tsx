@@ -5,15 +5,12 @@ import { routes } from "@/lib/navigation/routes";
 import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
 import {
-  IconCloudUploadOutline18,
-  IconDatabaseOutline18,
-  IconEarthOutline18,
-  IconLayers3Outline18,
-  IconShareUpRightOutline18,
-} from "@unkey/icons";
-import {
   Button,
-  EmptyHero,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   InfoTooltip,
   ResourceListBody,
   ResourceListContent,
@@ -113,32 +110,27 @@ export function LogdrainsList({
 
   if (!query.data?.length) {
     return (
-      <EmptyHero>
-        <EmptyHero.Icons>
-          <IconLayers3Outline18 />
-          <IconShareUpRightOutline18 />
-          <IconCloudUploadOutline18 />
-          <IconEarthOutline18 />
-          <IconDatabaseOutline18 />
-        </EmptyHero.Icons>
-        <EmptyHero.Title>
-          {needsEnablement ? "Log drains" : "Create your first log drain"}
-        </EmptyHero.Title>
-        <EmptyHero.Description>
-          {needsEnablement
-            ? "Contact support to enable log drains for this workspace."
-            : "Send audit logs, key verifications, gateway HTTP requests, or runtime logs to an HTTPS endpoint or an Axiom dataset."}
-        </EmptyHero.Description>
-        <EmptyHero.Actions>
+      <EmptyState>
+        <EmptyStateHeader>
+          <EmptyStateTitle>
+            {needsEnablement ? "Log drains" : "Create your first log drain"}
+          </EmptyStateTitle>
+          <EmptyStateDescription>
+            {needsEnablement
+              ? "Contact support to enable log drains for this workspace."
+              : "Send audit logs, key verifications, gateway HTTP requests, or runtime logs to an HTTPS endpoint or an Axiom dataset."}
+          </EmptyStateDescription>
+        </EmptyStateHeader>
+        <EmptyStateActions>
           {needsEnablement ? (
-            <Button variant="primary" render={<Link href={SUPPORT_MAILTO} />}>
+            <Button variant="outline" render={<Link href={SUPPORT_MAILTO} />}>
               Contact support
             </Button>
           ) : (
             <CreateLogdrainButton onClick={onCreate} disabled={!canCreate} />
           )}
-        </EmptyHero.Actions>
-      </EmptyHero>
+        </EmptyStateActions>
+      </EmptyState>
     );
   }
 

@@ -2,7 +2,14 @@
 
 import { isSafeRedirectPath } from "@/app/auth/sign-in/redirect-utils";
 import { LoadingState } from "@/components/loading-state";
-import { Empty } from "@unkey/ui";
+import {
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+  PageBody,
+  PageContainer,
+} from "@unkey/ui";
 import type { Route } from "next";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
@@ -24,12 +31,18 @@ export default function Page() {
 
   if (!to || !isSafeRedirectPath(to)) {
     return (
-      <div className="w-full min-h-[60vh] flex justify-center items-center">
-        <Empty>
-          <Empty.Title>Invalid callback target</Empty.Title>
-          <Empty.Description>Missing or invalid redirect destination.</Empty.Description>
-        </Empty>
-      </div>
+      <PageContainer>
+        <PageBody>
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Invalid callback target</EmptyStateTitle>
+              <EmptyStateDescription>
+                Missing or invalid redirect destination.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
+        </PageBody>
+      </PageContainer>
     );
   }
 

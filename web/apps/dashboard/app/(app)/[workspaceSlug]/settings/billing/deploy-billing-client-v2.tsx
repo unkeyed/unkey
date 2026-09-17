@@ -8,7 +8,10 @@ import { trpc } from "@/lib/trpc/client";
 import { IconPhoneOutline18 } from "@unkey/icons";
 import {
   Button,
-  Empty,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   PageBody,
   PageContainer,
   PageHeader,
@@ -96,12 +99,14 @@ export function DeployBillingClientV2() {
       <BillingNotices isAdmin={isAdmin} subscription={subscription} />
 
       {billingError ? (
-        <Empty>
-          <Empty.Title>Failed to load API billing information</Empty.Title>
-          <Empty.Description>
-            There was an error loading your API billing information. Please try again later.
-          </Empty.Description>
-        </Empty>
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>Failed to load API billing information</EmptyStateTitle>
+            <EmptyStateDescription>
+              There was an error loading your API billing information. Please try again later.
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
       ) : billingInfo ? (
         <PlansCard
           isAdmin={isAdmin}
