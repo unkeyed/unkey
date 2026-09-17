@@ -18,11 +18,17 @@ export function keyUsage(key: Key, buckets: VerificationBucket[]): KeyUsage {
   return { key, buckets, ...sumBuckets(buckets) };
 }
 
-/** The series a set of keys add up to, for a chart narrowed to some of them. */
-export function sumSeries(keys: ReadonlyArray<KeyUsage>): VerificationBucket[] {
+/**
+ * The series a set of per-key series add up to: the account-wide view, or a
+ * chart narrowed to some of them. Buckets are matched on time, so the zero-fill
+ * the API applies per key is what keeps the sum contiguous.
+ */
+export function sumSeries(
+  series: ReadonlyArray<{ buckets: ReadonlyArray<VerificationBucket> }>,
+): VerificationBucket[] {
   const byTime = new Map<number, VerificationBucket>();
-  for (const usage of keys) {
-    for (const bucket of usage.buckets) {
+  for (const entry of series) {
+    for (const bucket of entry.buckets) {
       const sum = byTime.get(bucket.time) ?? emptyBucket(bucket.time);
       sum.total += bucket.total;
       sum.valid += bucket.valid;

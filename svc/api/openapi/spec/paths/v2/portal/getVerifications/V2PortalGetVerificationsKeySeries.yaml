@@ -1,0 +1,17 @@
+type: object
+required:
+  - keyId
+  - data
+properties:
+  keyId:
+    type: string
+    description: The key these buckets belong to.
+    example: key_1234abcd
+  data:
+    type: array
+    description: |
+      Verification timeseries for this key, zero-filled across the requested
+      window and ordered by time ascending.
+    items:
+      $ref: "./V2PortalGetVerificationsDataPoint.yaml"
+additionalProperties: false

@@ -177,8 +177,9 @@ const (
 
 // Defines values for V2PortalCreateSessionRequestBodyScopes.
 const (
-	KeysRead   V2PortalCreateSessionRequestBodyScopes = "keys:read"
-	KeysReroll V2PortalCreateSessionRequestBodyScopes = "keys:reroll"
+	AnalyticsRead V2PortalCreateSessionRequestBodyScopes = "analytics:read"
+	KeysRead      V2PortalCreateSessionRequestBodyScopes = "keys:read"
+	KeysReroll    V2PortalCreateSessionRequestBodyScopes = "keys:reroll"
 )
 
 // App defines model for App.
@@ -4143,10 +4144,9 @@ type V2PortalCreateSessionRequestBody struct {
 	// configured on the portal. An end user can never see another identity's
 	// keys.
 	//
-	// The portal currently exposes only the keys page, so these scopes gate
-	// what the end user can do there rather than which pages they see. Because
-	// rerolling is reached from that page, `keys:reroll` requires `keys:read`
-	// in the same session; requesting it alone is rejected.
+	// Rerolling and usage analytics are both reached from the keys page, so
+	// `keys:reroll` and `analytics:read` each require `keys:read` in the same
+	// session; requesting either without it is rejected.
 	//
 	// Each scope requires the equivalent permission on your own root key. See
 	// Required Permissions on this operation.
@@ -4290,6 +4290,16 @@ type V2PortalGetVerificationsDataPoint struct {
 	Valid int64 `json:"valid"`
 }
 
+// V2PortalGetVerificationsKeySeries defines model for V2PortalGetVerificationsKeySeries.
+type V2PortalGetVerificationsKeySeries struct {
+	// Data Verification timeseries for this key, zero-filled across the requested
+	// window and ordered by time ascending.
+	Data []V2PortalGetVerificationsDataPoint `json:"data"`
+
+	// KeyId The key these buckets belong to.
+	KeyId string `json:"keyId"`
+}
+
 // V2PortalGetVerificationsRequestBody defines model for V2PortalGetVerificationsRequestBody.
 type V2PortalGetVerificationsRequestBody struct {
 	// EndTime End of the query window as a unix timestamp in milliseconds (exclusive).
@@ -4308,10 +4318,21 @@ type V2PortalGetVerificationsRequestBody struct {
 
 // V2PortalGetVerificationsResponseBody defines model for V2PortalGetVerificationsResponseBody.
 type V2PortalGetVerificationsResponseBody struct {
-	// Data Zero-filled verification timeseries for the authenticated end user, ordered
-	// by time ascending. Buckets with no verifications are present with zero
-	// counts so the series is contiguous across the requested window.
-	Data []V2PortalGetVerificationsDataPoint `json:"data"`
+	// BucketMillis Width of one bucket in milliseconds, chosen from the window size. Every
+	// series below is aligned to it, so a client can build the buckets for a
+	// window that returned no keys at all without restating the granularity
+	// rule.
+	BucketMillis int64 `json:"bucketMillis"`
+
+	// Keys One entry per key the end user has verifications for in the window, each
+	// zero-filled across the whole window and ordered by time ascending. Sum
+	// them to get the account-wide series.
+	//
+	// Keys with no verifications anywhere in the window are omitted. Entries
+	// come from the verification events themselves, so a `keyId` may name a key
+	// that has since been deleted and will not appear in `portal.listKeys`;
+	// render those totals without assuming the key is still listable.
+	Keys []V2PortalGetVerificationsKeySeries `json:"keys"`
 
 	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
 	Meta Meta `json:"meta"`
