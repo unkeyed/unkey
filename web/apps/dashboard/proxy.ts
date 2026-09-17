@@ -143,6 +143,6 @@ export const config = {
     // proxied API operation names contain dots and otherwise look like static files.
     "/api/:path*",
     "/proxy/:path*",
-    "/((?!_next/static|_next/image|images|favicon.ico|.+\\.[\\w]+$).*)",
+    "/((?!monitoring$|_next/static|_next/image|images|favicon.ico|.+\\.[\\w]+$).*)",
   ],
 };
