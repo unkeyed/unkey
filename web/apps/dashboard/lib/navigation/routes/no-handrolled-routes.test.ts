@@ -21,6 +21,7 @@ const AREAS = [
   "apis",
   "projects",
   "ratelimits",
+  "root-keys",
   "settings",
   "authorization",
   "identities",
