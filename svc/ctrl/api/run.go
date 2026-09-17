@@ -20,7 +20,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/buildinfo"
 	"github.com/unkeyed/unkey/pkg/buildinfo/metrics"
 	"github.com/unkeyed/unkey/pkg/cache"
-	"github.com/unkeyed/unkey/pkg/cdc"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -121,11 +120,10 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.Defer(database.Close)
 
-	cdcConnection, err := cdc.NewConnection(cfg.VStream)
+	deploymentStream, err := deploymentstream.New(cfg.VStream)
 	if err != nil {
-		return fmt.Errorf("unable to create CDC connection: %w", err)
+		return fmt.Errorf("unable to configure deployment stream: %w", err)
 	}
-	r.Defer(cdcConnection.Close)
 
 	// Restate ingress client for invoking workflows
 	restateClientOpts := []restate.IngressClientOption{}
@@ -184,7 +182,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	c, err := cluster.New(cluster.Config{
-		DeploymentStream: deploymentstream.New(cdcConnection),
+		DeploymentStream: deploymentStream,
 		Database:         database,
 		Restate:          restateClient,
 		Bearer:           cfg.AuthToken,

@@ -73,7 +73,7 @@ func newWebhookHarness(t *testing.T, cfg webhookHarnessConfig) *webhookHarness {
 		DefaultDomain:  "",
 		RegionalDomain: "",
 		Database:       vitessCfg.DSN,
-		VStream:        cdc.ConnectionConfig{Address: vitessCfg.Address, Keyspace: "unkey", Insecure: true},
+		VStream:        cdc.Config{Address: vitessCfg.Address, Keyspace: "unkey", Insecure: true},
 		Observability:  config.Observability{},
 		Restate: RestateConfig{
 			URL:    restateCfg.IngressURL,

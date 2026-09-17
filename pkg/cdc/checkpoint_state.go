@@ -20,19 +20,19 @@ type checkpointState struct {
 // advance updates progress after the caller has delivered the event.
 // A heartbeat can send a checkpoint, but only for a finished transaction.
 func (s *checkpointState) advance(event *binlog.VEvent, rules []Rule, clock clock.Clock, apply func(Event) error) error {
-	if event.Type == binlog.VEventType_FIELD || event.Type == binlog.VEventType_ROW {
-		s.changed = s.changed || len(event.GetRowEvent().GetRowChanges()) > 0
-	}
-	if event.Type == binlog.VEventType_VGTID {
-		s.pending = event.Vgtid
-	}
-	boundary := event.Type == binlog.VEventType_COMMIT || event.Type == binlog.VEventType_DDL || event.Type == binlog.VEventType_OTHER
 	flush := false
-	if boundary && s.pending != nil {
-		s.committed = s.pending
-		s.pending = nil
-		flush = s.changed
-		s.changed = false
+	switch {
+	case event.Type == binlog.VEventType_FIELD || event.Type == binlog.VEventType_ROW:
+		s.changed = s.changed || len(event.GetRowEvent().GetRowChanges()) > 0
+	case event.Type == binlog.VEventType_VGTID:
+		s.pending = event.Vgtid
+	case event.Type == binlog.VEventType_COMMIT || event.Type == binlog.VEventType_DDL || event.Type == binlog.VEventType_OTHER:
+		if s.pending != nil {
+			s.committed = s.pending
+			s.pending = nil
+			flush = s.changed
+			s.changed = false
+		}
 	}
 	if s.committed == nil || (!flush && clock.Now().Sub(s.lastCheckpoint) < 30*time.Second) {
 		return nil

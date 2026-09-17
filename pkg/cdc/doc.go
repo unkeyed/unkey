@@ -4,17 +4,20 @@
 //
 // # Usage
 //
-// Create a [Connection] with [NewConnection], then configure one client per
-// consumer. With a connection and an applyChange function already set up:
+// Create one client per consumer. Each client owns its connection.
+// With an applyChange function already set up, a local Vitess watch looks like:
 //
 //	client, err := cdc.New(cdc.Config{
-//		Connection: connection,
+//		Address: "localhost:33575",
+//		Keyspace: "unkey",
+//		Insecure: true,
 //		Rules: []cdc.Rule{{Table: "records", Query: "select id, value from records"}},
 //	})
 //	if err != nil {
 //		return err
 //	}
-//	return client.Watch(ctx, applyChange)
+//	err = client.Watch(ctx, applyChange)
+//	return errors.Join(err, client.Close())
 //
 // # Recovery
 //
@@ -23,13 +26,13 @@
 // returning. The client saves checkpoints in memory after callbacks succeed.
 //
 // Reuse the same client for retries. It resumes from its last checkpoint, even
-// during the initial copy. There is no token import, export, or automatic retry.
-// Watch calls on the same client must not overlap.
+// during the initial copy. Watch does not expose tokens or retry automatically.
+// Calls on the same client must not overlap. Close it after all retries finish.
 //
 // After [ErrExpired], the next Watch starts a fresh snapshot on the same client.
 // The caller must also remove destination records that no longer exist.
 //
-// Relays use [Connection.Forward] with the downstream consumer's resume token.
+// Relays use [Client.Forward] with the downstream consumer's resume token.
 // It sends both changes and checkpoints without saving progress in the relay.
 // Both Watch and Forward can repeat changes; callers must handle them safely.
 package cdc
