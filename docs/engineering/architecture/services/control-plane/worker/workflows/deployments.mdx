@@ -131,15 +131,15 @@ Build concurrency is Restate flow control; the worker holds no queue state of it
 
 | Rule pattern | Concurrency | Description | Written by |
 | --- | --- | --- | --- |
-| `builds/*` | 1 | `default per-workspace build concurrency` | `CronService.RunBuildLimitSync`, every five minutes |
+| `builds/*` | 1 | `default per-workspace build concurrency` | `CronService.RunBuildLimitSync`, every 15 minutes |
 | `builds/<workspace_id>` | `limits.builds_concurrent_max` when above 1 | `per-workspace build concurrency from limits` | the same cron, deleted once the row is back at 1 or below |
 
-The database is the source of truth. The cron rewrites both kinds of rule on every tick and deletes any `builds/<workspace_id>` rule the `limits` table does not call for, so a rule set by hand lasts at most five minutes.
+The database is the source of truth. The cron rewrites both kinds of rule on every tick and deletes any `builds/<workspace_id>` rule the `limits` table does not call for, so a rule set by hand lasts at most 15 minutes.
 
 Deploy uses `Request`, never `Send`. Restate treats the Build as part of the Deploy invocation, so cancelling Deploy also cancels a queued or running Build; a `Send` would detach it and it would keep running:
 
 ```go
-hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(buildScope)).
+hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(restateadmin.BuildConcurrencyScope)).
     Build().
     Request(req, restate.WithLimitKey(deployment.WorkspaceID))
 ```
@@ -172,9 +172,9 @@ curl -sS "$ADMIN/query" -H "Authorization: Bearer $TOKEN" \
 
 What the result means:
 
-- `builds/*` missing: every workspace builds without a cap. The next cron tick within five minutes rewrites it. To fix it now, run the CronJob by hand: `kubectl --context "$CTX" -n restate-system create job --from=cronjob/restate-build-limit-sync build-limit-sync-manual`.
-- Any rule edited by hand: the cron rewrites it on the next tick, so the edit lasts at most five minutes.
-- One workspace needs a higher cap during an incident: raise `builds_concurrent_max` on its `limits` row. The cron writes the matching `builds/<workspace_id>` rule within five minutes, and queued builds for that workspace start as soon as the rule lands.
+- `builds/*` missing: every workspace builds without a cap. The next cron tick within 15 minutes rewrites it. To fix it now, run the CronJob by hand: `kubectl --context "$CTX" -n restate-system create job --from=cronjob/restate-build-limit-sync build-limit-sync-manual`.
+- Any rule edited by hand: the cron rewrites it on the next tick, so the edit lasts at most 15 minutes.
+- One workspace needs a higher cap during an incident: raise `builds_concurrent_max` on its `limits` row. The cron writes the matching `builds/<workspace_id>` rule within 15 minutes, and queued builds for that workspace start as soon as the rule lands.
 
 Queue depth and age:
 

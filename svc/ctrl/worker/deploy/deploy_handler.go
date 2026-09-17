@@ -18,6 +18,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/restate/compensation"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
@@ -148,7 +149,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 	// Request, not Send: cancelling this invocation then also cancels its
 	// queued or running Build. A Send would detach the Build and it would
 	// keep running
-	_, err = hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(buildScope)).
+	_, err = hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(restateadmin.BuildConcurrencyScope)).
 		Build().
 		Request(req, restate.WithLimitKey(deployment.WorkspaceID))
 	if err != nil {

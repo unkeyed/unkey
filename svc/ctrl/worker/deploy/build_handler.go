@@ -13,12 +13,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
-
-// buildScope is the Restate scope Deploy calls Build in; the limit key is the
-// workspace id
-const buildScope = "builds"
 
 // BuildRetryPolicy has Deploy's retry budget but kills on exhaustion instead
 // of pausing. A killed Build returns a terminal error to Deploy, whose
@@ -35,16 +32,17 @@ func BuildRetryPolicy() restate.HandlerOption {
 }
 
 // Build ends the queued step and runs the starting and building steps. Deploy
-// calls it in [buildScope] with the workspace id as the limit key, and Restate
-// runs this handler only once the workspace is under its build cap.
+// calls it in [restateadmin.BuildConcurrencyScope] with the workspace id as
+// the limit key, and Restate runs this handler only once the workspace is
+// under its build cap.
 //
 // Build refuses a request that did not arrive under flow control. A wrong
 // scope matches no rule and builds uncapped. A wrong limit key charges the
 // build to another workspace
 func (w *Workflow) Build(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (*hydrav1.BuildResponse, error) {
-	if ctx.Request().Scope != buildScope {
+	if ctx.Request().Scope != restateadmin.BuildConcurrencyScope {
 		return nil, fault.Wrap(
-			restate.TerminalErrorf("build invoked in scope %q, want %q", ctx.Request().Scope, buildScope),
+			restate.TerminalErrorf("build invoked in scope %q, want %q", ctx.Request().Scope, restateadmin.BuildConcurrencyScope),
 			fault.Public("This build was not queued correctly."),
 		)
 	}
