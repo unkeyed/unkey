@@ -59,7 +59,7 @@ properties:
     example: "documents.read AND users.view"
   credits:
     "$ref": "./KeysVerifyKeyCredits.yaml"
-  keyspaceIds:
+  keyspaces:
     type: array
     maxItems: 5
     items:
