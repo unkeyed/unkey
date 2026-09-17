@@ -180,10 +180,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		if err != nil || found.Status.IsTerminal() || found.WorkspaceK8sNamespace.Valid {
 			return found, err
 		}
-		// A workspace gets its namespace on its first deployment. Two first
-		// deployments can both get here; the update applies only while the
-		// column is still empty, so one name is stored and the other is dropped.
-		// Nothing below reads the namespace, so which one won does not matter
 		return found, w.db.SetWorkspaceK8sNamespace(runCtx, db.SetWorkspaceK8sNamespaceParams{
 			ID:           found.WorkspaceID,
 			K8sNamespace: sql.NullString{Valid: true, String: uid.DNS1035()},
