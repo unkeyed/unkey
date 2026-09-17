@@ -15,7 +15,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/redaction"
 	"github.com/unkeyed/unkey/pkg/zen"
 	firewallExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/firewall"
-	keyauthExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/keyauth"
 	openapiExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/openapi"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 	ratelimitExec "github.com/unkeyed/unkey/svc/frontline/internal/policies/ratelimit"
@@ -26,9 +25,16 @@ import (
 // to upstream services.
 const PrincipalHeader = "X-Unkey-Principal"
 
+// KeyAuthenticator must return a principal on success and Frontline faults on
+// failure. Implementations own authentication response headers and must support
+// concurrent requests. appID is for telemetry attribution, not authorization.
+type KeyAuthenticator interface {
+	Execute(ctx context.Context, sess *zen.Session, req *http.Request, appID string, cfg *frontlinev1.KeyAuth) (*principal.Principal, error)
+}
+
 // Config holds the configuration for creating a new Engine.
 type Config struct {
-	KeyVerifier keyauthExec.Verifier
+	KeyAuth     KeyAuthenticator
 	RateLimiter rl.Service
 	Clock       clock.Clock
 }
@@ -40,7 +46,7 @@ type Evaluator interface {
 
 // Engine implements Evaluator.
 type Engine struct {
-	keyAuth     *keyauthExec.Executor
+	keyAuth     KeyAuthenticator
 	rateLimiter *ratelimitExec.Executor
 	firewall    *firewallExec.Executor
 	openapi     *openapiExec.Executor
@@ -68,7 +74,7 @@ type Result struct {
 // New creates a new Engine with the given configuration.
 func New(cfg Config) (*Engine, error) {
 	if err := assert.All(
-		assert.NotNil(cfg.KeyVerifier, "cfg.KeyVerifier must not be nil"),
+		assert.NotNil(cfg.KeyAuth, "cfg.KeyAuth must not be nil"),
 		assert.NotNil(cfg.RateLimiter, "cfg.RateLimiter must not be nil"),
 		assert.NotNil(cfg.Clock, "cfg.Clock must not be nil"),
 	); err != nil {
@@ -80,7 +86,7 @@ func New(cfg Config) (*Engine, error) {
 	}
 
 	return &Engine{
-		keyAuth:     keyauthExec.New(cfg.KeyVerifier, cfg.Clock),
+		keyAuth:     cfg.KeyAuth,
 		rateLimiter: ratelimitExec.New(cfg.RateLimiter, cfg.Clock),
 		firewall:    firewallExec.New(),
 		openapi:     openapi,
@@ -161,10 +167,16 @@ func (e *Engine) Evaluate(
 				return result, execErr
 			}
 
-			if principal != nil {
-				result.Principal = principal
-				engineEvaluationsTotal.WithLabelValues("keyauth", "success").Inc()
+			if err := assert.NotNilAndNotZero(principal, "successful authentication requires a principal"); err != nil {
+				engineEvaluationsTotal.WithLabelValues("keyauth", "error").Inc()
+				return result, fault.Wrap(err,
+					fault.Code(codes.Frontline.Internal.InternalServerError.URN()),
+					fault.Public("An internal error occurred during authentication."),
+				)
 			}
+
+			result.Principal = principal
+			engineEvaluationsTotal.WithLabelValues("keyauth", "success").Inc()
 
 		case *frontlinev1.Policy_Ratelimit:
 			t := time.Now()
