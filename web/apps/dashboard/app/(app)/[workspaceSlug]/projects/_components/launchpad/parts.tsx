@@ -124,11 +124,13 @@ export function Section({
   children: ReactNode;
 }) {
   const heading = (
-    <span className="flex min-w-0 items-center gap-2">
-      <span className="shrink-0 text-[13px] font-medium text-accent-12">{title}</span>
-      {count !== undefined && <CountPill value={count} />}
-      {subtitle && <span className="truncate text-xs text-gray-9">{subtitle}</span>}
-    </span>
+    <>
+      <span className="flex min-w-0 items-center gap-2">
+        <span className="shrink-0 text-[13px] font-medium text-accent-12">{title}</span>
+        {count !== undefined && <CountPill value={count} />}
+      </span>
+      {subtitle && <span className="shrink-0 truncate text-xs text-gray-9">{subtitle}</span>}
+    </>
   );
 
   if (chrome === "plain") {
