@@ -19,7 +19,11 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (!workspaces.some((workspace) => workspace.orgId === organizationIds[0])) {
       return NextResponse.redirect(new URL("/auth/error?reason=session", request.url));
     }
-  } catch {
+  } catch (error) {
+    console.error("Failed to verify workspace access before switching organization", {
+      organizationId: organizationIds[0],
+      error,
+    });
     return NextResponse.redirect(new URL("/auth/error?reason=session", request.url));
   }
   await switchToOrg(organizationIds[0]);
