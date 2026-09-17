@@ -1,9 +1,11 @@
+import { RECENTLY_USED_WINDOW_LABEL, isRecentlyUsed } from "@/lib/recently-used-key";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import {
   IconArrowsOppositeDirectionYOutline18,
   IconBanOutline18,
   IconCircleCheckOutline18,
   IconTrashOutline18,
+  IconTriangleWarningOutline18,
   IconXmarkOutline18,
 } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
@@ -79,6 +81,19 @@ export const SelectionControls = ({
     (key) => selectedKeys.has(key.id) && key.identity_id,
   ).length;
 
+  const recentlyUsedCount = keys.filter(
+    (key) => selectedKeys.has(key.id) && isRecentlyUsed(key.last_used_at),
+  ).length;
+
+  const recentlyUsedSubject =
+    selectedKeys.size === 1
+      ? "This key was"
+      : `${recentlyUsedCount} of the selected keys ${recentlyUsedCount > 1 ? "were" : "was"}`;
+  const recentlyUsedNotice =
+    recentlyUsedCount > 0
+      ? `${recentlyUsedSubject} used in the last ${RECENTLY_USED_WINDOW_LABEL} and may still be live. `
+      : "";
+
   return (
     <>
       <AnimatePresence>
@@ -108,6 +123,14 @@ export const SelectionControls = ({
               <div className="items-center flex gap-2">
                 <AnimatedCounter value={selectedKeys.size} />
                 <div className="text-accent-9 text-[13px] leading-6">selected</div>
+                {recentlyUsedCount > 0 && (
+                  <div className="flex items-center gap-1.5 ml-2 text-warning-11 text-[13px] leading-6">
+                    <IconTriangleWarningOutline18 className="size-3.5 shrink-0" />
+                    <span>
+                      {recentlyUsedCount} used in the last {RECENTLY_USED_WINDOW_LABEL}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -196,7 +219,7 @@ export const SelectionControls = ({
         onConfirm={performKeyDeletion}
         triggerRef={deleteButtonRef}
         title="Confirm key deletion"
-        description={`This action is irreversible. All data associated with ${
+        description={`${recentlyUsedNotice}This action is irreversible. All data associated with ${
           selectedKeys.size > 1 ? "these keys" : "this key"
         } will be permanently deleted.`}
         confirmButtonText={`Delete key${selectedKeys.size > 1 ? "s" : ""}`}
