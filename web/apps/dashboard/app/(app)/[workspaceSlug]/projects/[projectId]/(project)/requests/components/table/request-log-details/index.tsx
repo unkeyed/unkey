@@ -443,6 +443,17 @@ const formatMetaInfo = (log: RequestLogsResponse): React.ReactNode => {
         <span className="text-gray-11">Timestamp:</span>
         <span className="font-mono">{formattedTime}</span>
       </div>
+      {log.error_code && (
+        <div className="flex items-center justify-between">
+          <span className="text-gray-11">Error Code:</span>
+          <div className="flex items-center gap-2">
+            <span className="font-mono truncate max-w-[250px]" title={log.error_code}>
+              {log.error_code}
+            </span>
+            <CopyButton value={log.error_code} variant="ghost" className="h-4 w-4" />
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <span className="text-gray-11">IP Address:</span>
         <div className="flex items-center gap-2">

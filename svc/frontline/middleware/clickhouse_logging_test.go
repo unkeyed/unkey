@@ -33,27 +33,10 @@ type captureFlags struct {
 func runClickHouseLoggingRequest(t *testing.T, capture captureFlags) []schema.FrontlineRequest {
 	t.Helper()
 
-	var rows []schema.FrontlineRequest
-	done := make(chan struct{})
-	buf := batch.New(batch.Config[schema.FrontlineRequest]{
-		Name:          "test",
-		Drop:          false,
-		BatchSize:     10,
-		BufferSize:    10,
-		FlushInterval: time.Hour,
-		Consumers:     1,
-		Flush: func(_ context.Context, b []schema.FrontlineRequest) {
-			rows = append(rows, b...)
-		},
-	})
-
-	mw := WithClickHouseLogging(buf, clock.NewTestClock(), "fl_test", "us-east-1", "test")
-	handler := mw(func(ctx context.Context, s *zen.Session) error {
+	return runClickHouseLogging(t, func(s *zen.Session, tracking *proxy.RequestTracking) {
 		if capture.clientIP != "" {
 			s.SetClientIP(netip.MustParseAddr(capture.clientIP))
 		}
-		tracking, ok := proxy.RequestTrackingFromContext(ctx)
-		require.True(t, ok)
 		tracking.DeploymentID = "dep_123"
 		tracking.InstanceID = "inst_123"
 		tracking.LogRequestHeaders = capture.requestHeaders
@@ -71,6 +54,35 @@ func runClickHouseLoggingRequest(t *testing.T, capture captureFlags) []schema.Fr
 			// LogResponseBody is set; emulate that here.
 			tracking.ResponseBody = []byte(`{"status":"ok"}`)
 		}
+	})
+}
+
+// runClickHouseLogging runs one request through the ClickHouse logging
+// middleware, letting populate stand in for whatever the proxy handler and
+// the observability middleware would have written onto tracking, and returns
+// the rows flushed to the batch processor.
+func runClickHouseLogging(t *testing.T, populate func(*zen.Session, *proxy.RequestTracking)) []schema.FrontlineRequest {
+	t.Helper()
+
+	var rows []schema.FrontlineRequest
+	done := make(chan struct{})
+	buf := batch.New(batch.Config[schema.FrontlineRequest]{
+		Name:          "test",
+		Drop:          false,
+		BatchSize:     10,
+		BufferSize:    10,
+		FlushInterval: time.Hour,
+		Consumers:     1,
+		Flush: func(_ context.Context, b []schema.FrontlineRequest) {
+			rows = append(rows, b...)
+		},
+	})
+
+	mw := WithClickHouseLogging(buf, clock.NewTestClock(), "fl_test", "us-east-1", "test")
+	handler := mw(func(ctx context.Context, s *zen.Session) error {
+		tracking, ok := proxy.RequestTrackingFromContext(ctx)
+		require.True(t, ok)
+		populate(s, tracking)
 		s.ResponseWriter().Header().Set("X-Upstream", "upstream-value")
 		return nil
 	})
@@ -240,4 +252,37 @@ func TestRedactBody_AppliesOpenAPIRedactors(t *testing.T) {
 
 	require.Equal(t, `{"secret":"[REDACTED]","visible":"keep-me"}`, got)
 	require.Equal(t, `{"secret":"hide-me","visible":"keep-me"}`, string(body))
+}
+
+// TestClickHouseLogging_RejectedRequestIsLogged pins that a request frontline
+// rejected before it reached an instance still produces a row. These are the
+// rows a user needs to see that a key, firewall, or rate limit policy turned
+// their traffic away.
+func TestClickHouseLogging_RejectedRequestIsLogged(t *testing.T) {
+	rows := runClickHouseLogging(t, func(s *zen.Session, tracking *proxy.RequestTracking) {
+		tracking.DeploymentID = "dep_123"
+		tracking.ErrorCode = "err:frontline:auth:invalid_key"
+		require.NoError(t, s.JSON(http.StatusUnauthorized, struct{}{}))
+	})
+
+	require.Len(t, rows, 1)
+	require.Equal(t, "dep_123", rows[0].DeploymentID)
+	require.Empty(t, rows[0].InstanceID, "the request never reached an instance")
+	require.Equal(t, "err:frontline:auth:invalid_key", rows[0].ErrorCode)
+	require.Equal(t, int32(http.StatusUnauthorized), rows[0].ResponseStatus)
+	require.Equal(t, rows[0].TotalLatency, rows[0].GatewayLatency, "a rejection is spent entirely in the gateway")
+	require.Zero(t, rows[0].InstanceLatency)
+}
+
+// TestClickHouseLogging_RegionFallbackIsNotLogged pins that a request handed
+// to a peer region produces no local row: the peer writes its own, and two
+// rows would double count one client request.
+func TestClickHouseLogging_RegionFallbackIsNotLogged(t *testing.T) {
+	rows := runClickHouseLogging(t, func(_ *zen.Session, tracking *proxy.RequestTracking) {
+		tracking.DeploymentID = "dep_123"
+		tracking.InstanceID = "inst_123"
+		tracking.ForwardedToRegion = true
+	})
+
+	require.Empty(t, rows)
 }

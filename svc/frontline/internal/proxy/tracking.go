@@ -64,6 +64,15 @@ type RequestTracking struct {
 	// Set by proxy once the upstream response stream completes.
 	InstanceEnd  time.Time
 	ResponseBody []byte
+
+	// Set by the observability middleware from the fault that ended the
+	// request. Empty when the request was served without a frontline error.
+	ErrorCode string
+
+	// Set by the handler when it hands the request to a peer region after
+	// the local instances failed. The peer writes its own row, so the
+	// local one is dropped to keep a single row per client request.
+	ForwardedToRegion bool
 }
 
 var requestTrackingKey = zen.NewContextKey[*RequestTracking]("frontline_request_tracking")

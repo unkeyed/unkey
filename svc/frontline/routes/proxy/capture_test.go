@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -64,4 +65,45 @@ func (p *captureRequestProxy) ForwardToInstance(_ context.Context, sess *zen.Ses
 	var err error
 	p.received, err = io.ReadAll(sess.Request().Body)
 	return err
+}
+
+// TestRejectedRequestKeepsCaptureFlags pins that a request a policy denies
+// still carries the capture opt-ins of the logging policies that matched
+// before the denial. Without them the ClickHouse row for the rejection would
+// arrive without the headers that explain why it was rejected.
+func TestRejectedRequestKeepsCaptureFlags(t *testing.T) {
+	sess := &zen.Session{}
+	req := httptest.NewRequest(http.MethodGet, "http://example.test", nil)
+	require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+	tracking := &proxy.RequestTracking{}
+	ctx := proxy.WithRequestTracking(t.Context(), tracking)
+	decision := localDecision("upstream.test")
+	decision.Policies = []*frontlinev1.Policy{{}}
+	upstream := &captureRequestProxy{}
+	h := handler.Handler{
+		RouterService: &stubRouter{decision: decision},
+		ProxyService:  upstream,
+		Engine:        rejectingEvaluator{},
+		Clock:         clock.NewTestClock(),
+	}
+
+	err := h.Handle(ctx, sess)
+
+	require.ErrorIs(t, err, errRejected)
+	require.Nil(t, upstream.received, "a denied request must not reach an instance")
+	require.Empty(t, tracking.InstanceID)
+	require.True(t, tracking.LogRequestHeaders)
+	require.True(t, tracking.LogQuery)
+}
+
+var errRejected = errors.New("denied")
+
+// rejectingEvaluator mimics a logging policy matching before an enforcement
+// policy denies the request: Evaluate returns the flags it already collected
+// alongside the error.
+type rejectingEvaluator struct{}
+
+func (rejectingEvaluator) Evaluate(context.Context, *zen.Session, *http.Request, string, string, []*frontlinev1.Policy) (policies.Result, error) {
+	//nolint:exhaustruct
+	return policies.Result{LogRequestHeaders: true, LogQuery: true}, errRejected
 }
