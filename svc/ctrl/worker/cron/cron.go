@@ -109,9 +109,9 @@ type Config struct {
 	Clock clock.Clock
 	// RatelimitDB wraps the ratelimit database. Must not be nil.
 	RatelimitDB *rldb.Database
-	// RuleBook reads and writes Restate's rule book for the build
-	// concurrency sync. Must not be nil
-	RuleBook buildlimitsync.RuleBook
+	// RestateRules reads and writes Restate's concurrency rules for the build
+	// limit sync. Must not be nil
+	RestateRules buildlimitsync.RestateRules
 
 	// SlackQuotaCheckWebhookURL is the Slack webhook for quota-exceeded
 	// notifications. Empty disables Slack notifications.
@@ -156,7 +156,7 @@ func New(cfg Config) (*Service, error) {
 		assert.NotNil(cfg.DB, "DB must not be nil"),
 		assert.NotNil(cfg.Clickhouse, "Clickhouse must not be nil; use clickhouse.NewNoop() if unavailable"),
 		assert.NotNil(cfg.RatelimitDB, "RatelimitDB must not be nil"),
-		assert.NotNil(cfg.RuleBook, "RuleBook must not be nil"),
+		assert.NotNil(cfg.RestateRules, "RestateRules must not be nil"),
 		assert.NotNil(cfg.Heartbeats.BuildLimitSync, "Heartbeats.BuildLimitSync must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.QuotaCheck, "Heartbeats.QuotaCheck must not be nil; use healthcheck.NewNoop()"),
 		assert.NotNil(cfg.Heartbeats.KeyRefill, "Heartbeats.KeyRefill must not be nil; use healthcheck.NewNoop()"),
@@ -224,8 +224,8 @@ func New(cfg Config) (*Service, error) {
 		return nil, err
 	}
 	buildLimitSyncH, err := buildlimitsync.New(buildlimitsync.Config{
-		RuleBook:  cfg.RuleBook,
-		Heartbeat: cfg.Heartbeats.BuildLimitSync,
+		RestateRules: cfg.RestateRules,
+		Heartbeat:    cfg.Heartbeats.BuildLimitSync,
 	})
 	if err != nil {
 		return nil, err

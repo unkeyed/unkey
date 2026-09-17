@@ -95,10 +95,8 @@ type CronServiceClient interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(opts ...sdk_go.ClientOption) sdk_go.Client[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
-	// RunBuildLimitSync keeps the build concurrency rules in Restate's rule
-	// book, the one list of concurrency caps that every node of a Restate
-	// cluster shares. Each rule caps how many invocations run at once for a
-	// scope and a limit key. This handler writes "builds/*", which caps a
+	// RunBuildLimitSync keeps the build concurrency rules in Restate. Each rule
+	// caps how many invocations run at once for a scope and a limit key. This handler writes "builds/*", which caps a
 	// workspace's concurrent builds. Key is the fixed slug "build-limit-sync"
 	// so ticks serialize without sharing a queue with other singleton handlers
 	RunBuildLimitSync(opts ...sdk_go.ClientOption) sdk_go.Client[*RunBuildLimitSyncRequest, *RunBuildLimitSyncResponse]
@@ -293,10 +291,8 @@ type CronServiceIngressClient interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck() ingress.Requester[*RunDeploySpendCheckRequest, *RunDeploySpendCheckResponse]
-	// RunBuildLimitSync keeps the build concurrency rules in Restate's rule
-	// book, the one list of concurrency caps that every node of a Restate
-	// cluster shares. Each rule caps how many invocations run at once for a
-	// scope and a limit key. This handler writes "builds/*", which caps a
+	// RunBuildLimitSync keeps the build concurrency rules in Restate. Each rule
+	// caps how many invocations run at once for a scope and a limit key. This handler writes "builds/*", which caps a
 	// workspace's concurrent builds. Key is the fixed slug "build-limit-sync"
 	// so ticks serialize without sharing a queue with other singleton handlers
 	RunBuildLimitSync() ingress.Requester[*RunBuildLimitSyncRequest, *RunBuildLimitSyncResponse]
@@ -469,10 +465,8 @@ type CronServiceServer interface {
 	// per-workspace work prices usage locally from ClickHouse, so the tight
 	// cadence costs no Stripe calls.
 	RunDeploySpendCheck(ctx sdk_go.ObjectContext, req *RunDeploySpendCheckRequest) (*RunDeploySpendCheckResponse, error)
-	// RunBuildLimitSync keeps the build concurrency rules in Restate's rule
-	// book, the one list of concurrency caps that every node of a Restate
-	// cluster shares. Each rule caps how many invocations run at once for a
-	// scope and a limit key. This handler writes "builds/*", which caps a
+	// RunBuildLimitSync keeps the build concurrency rules in Restate. Each rule
+	// caps how many invocations run at once for a scope and a limit key. This handler writes "builds/*", which caps a
 	// workspace's concurrent builds. Key is the fixed slug "build-limit-sync"
 	// so ticks serialize without sharing a queue with other singleton handlers
 	RunBuildLimitSync(ctx sdk_go.ObjectContext, req *RunBuildLimitSyncRequest) (*RunBuildLimitSyncResponse, error)

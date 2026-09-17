@@ -587,7 +587,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clickhouse:                ch,
 		Clock:                     clk,
 		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
-		RuleBook:                  restateAdminClient,
+		RestateRules:              restateAdminClient,
 		SlackQuotaCheckWebhookURL: cfg.Slack.QuotaCheckWebhookURL,
 		BillingUsageReader:        billingUsageReader,
 		StripeSecretKey:           cfg.Billing.StripeSecretKey,

@@ -212,11 +212,11 @@ func New(t *testing.T, opts ...Option) *Harness {
 
 	seeder := seed.New(t, database, vaultClient)
 
-	// The cron service reads and writes Restate's rule book, but the admin URL
+	// The cron service reads and writes Restate's concurrency rules, but the admin URL
 	// is only known after containers.Restate starts below, and that start needs
 	// the constructed services. The lazy adapter breaks the cycle: it is set
 	// directly after the container is up, and no handler runs before that
-	ruleBook := &lazyRuleBook{mu: sync.Mutex{}, client: nil}
+	restateRules := &lazyRestateRules{mu: sync.Mutex{}, client: nil}
 
 	// Unified cron service: every scheduled task runs as a handler on
 	// hydra.v1.CronService. Heartbeats are noop in tests; the slack
@@ -226,7 +226,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		Clickhouse:                chClient,
 		Clock:                     o.clock,
 		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
-		RuleBook:                  ruleBook,
+		RestateRules:              restateRules,
 		SlackQuotaCheckWebhookURL: "",
 		// Deploy billing is a no-op by default (nil reader + empty Stripe key);
 		// WithDeployBilling injects fakes for tests that exercise the push/close.
@@ -350,7 +350,7 @@ func New(t *testing.T, opts ...Option) *Harness {
 		APIKey:  "",
 	})
 	buildSlotLiveness.set(restateAdmin)
-	ruleBook.set(restateAdmin)
+	restateRules.set(restateAdmin)
 	t.Logf("Total harness setup in %s", time.Since(start))
 
 	// The timeout limits test operations, not container startup and service
@@ -375,27 +375,27 @@ func New(t *testing.T, opts ...Option) *Harness {
 	}
 }
 
-// lazyRuleBook defers the Restate admin client until the test container is
-// running. See the comment at the cron.New call site
-type lazyRuleBook struct {
+// lazyRestateRules defers the Restate admin client until the test container
+// is running. See the comment at the cron.New call site
+type lazyRestateRules struct {
 	mu     sync.Mutex
 	client *restateadmin.Client
 }
 
-var _ buildlimitsync.RuleBook = (*lazyRuleBook)(nil)
+var _ buildlimitsync.RestateRules = (*lazyRestateRules)(nil)
 
-func (l *lazyRuleBook) set(client *restateadmin.Client) {
+func (l *lazyRestateRules) set(client *restateadmin.Client) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.client = client
 }
 
-func (l *lazyRuleBook) UpsertRules(ctx context.Context, rules []restateadmin.RuleUpsert) ([]restateadmin.Rule, error) {
+func (l *lazyRestateRules) UpsertRules(ctx context.Context, rules []restateadmin.RuleUpsert) error {
 	l.mu.Lock()
 	client := l.client
 	l.mu.Unlock()
 	if client == nil {
-		return nil, errors.New("restate admin client not initialized yet")
+		return errors.New("restate admin client not initialized yet")
 	}
 	return client.UpsertRules(ctx, rules)
 }

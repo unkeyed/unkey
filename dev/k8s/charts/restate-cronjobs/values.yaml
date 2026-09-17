@@ -40,7 +40,7 @@ jobs:
     urlPath: "hydra.v1.CronService/clickhouse-user-reconcile/RunClickhouseUserReconcile/send"
     idempotencyKey: "clickhouse-user-reconcile-$(date -u +%Y-%m-%dT%H:%M)"
 
-  # Writes the build concurrency rules into Restate's rule book
+  # Writes the build concurrency rules into Restate
   build-limit-sync:
     schedule: "*/15 * * * *"
     urlPath: "hydra.v1.CronService/build-limit-sync/RunBuildLimitSync/send"

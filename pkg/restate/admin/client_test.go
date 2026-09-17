@@ -158,7 +158,7 @@ func TestUpsertRules(t *testing.T) {
 	}))
 	t.Cleanup(server.Close)
 
-	written, err := New(Config{BaseURL: server.URL, APIKey: ""}).UpsertRules(context.Background(), []RuleUpsert{
+	err := New(Config{BaseURL: server.URL, APIKey: ""}).UpsertRules(context.Background(), []RuleUpsert{
 		{Pattern: "builds/*", Concurrency: 1, Description: "default per-workspace build concurrency"},
 		{Pattern: "builds/ws_KEBAP", Concurrency: 5, Description: "per-workspace build concurrency from limits"},
 	})
@@ -174,13 +174,4 @@ func TestUpsertRules(t *testing.T) {
 		{"pattern":"builds/*","limits":{"concurrency":1},"description":"default per-workspace build concurrency"},
 		{"pattern":"builds/ws_KEBAP","limits":{"concurrency":5},"description":"per-workspace build concurrency from limits"}
 	]`, string(gotBody))
-
-	// The response is the rule book as the committing node holds it, which is
-	// what spares the caller a second, possibly stale, read
-	require.Equal(t, []Rule{
-		{Pattern: "builds/*", Concurrency: 1, Description: "default per-workspace build concurrency", Disabled: false, Version: 4},
-		// An omitted description and an omitted concurrency both read back as
-		// their zero value; Restate spells unlimited as no concurrency at all
-		{Pattern: "builds/ws_KEBAP", Concurrency: 0, Description: "", Disabled: true, Version: 2},
-	}, written)
 }

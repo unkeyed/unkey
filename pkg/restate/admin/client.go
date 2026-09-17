@@ -148,9 +148,8 @@ func (c *Client) FindLiveInvocations(ctx context.Context, invocationIDs []string
 // key: "builds/*" caps every workspace, "builds/ws_123" caps one
 const BuildConcurrencyScope = "builds"
 
-// Rule is one entry in Restate's rule book, the one list of concurrency caps
-// that every node of a Restate cluster shares. A rule names a pattern of scope
-// and limit key and how many matching invocations may run at once
+// Rule is one of Restate's concurrency rules: a pattern of scope and limit key
+// and how many matching invocations may run at once
 type Rule struct {
 	// Pattern selects the scope and limit keys the rule applies to, e.g.
 	// "builds/*" or "builds/ws_123". An exact pattern beats a wildcard
@@ -168,7 +167,7 @@ type Rule struct {
 	Version uint32
 }
 
-// RuleUpsert is one entry in a rule book write
+// RuleUpsert is one rule in an UpsertRules call
 type RuleUpsert struct {
 	Pattern     string
 	Concurrency uint32
@@ -186,8 +185,8 @@ type ruleQueryResponse struct {
 	Rows []ruleRow `json:"rows"`
 }
 
-// ListRules returns every rule in the rule book through the SQL endpoint; the
-// admin API has no GET for rules
+// ListRules returns every rule through the SQL endpoint; the admin API has no
+// GET for rules
 func (c *Client) ListRules(ctx context.Context) ([]Rule, error) {
 	result, err := call[ruleQueryResponse](ctx, c, "list rules", http.MethodPost, "/query", map[string]string{
 		"query": "select pattern, concurrency, description, disabled, version from sys_rules order by pattern",
@@ -218,23 +217,10 @@ type upsertRule struct {
 	Description string `json:"description"`
 }
 
-// responseRule is one entry of the PUT /limits/rules response. It nests the
-// cap under "limits", where the sys_rules projection reads it as a column
-type responseRule struct {
-	Pattern string `json:"pattern"`
-	Limits  struct {
-		Concurrency *uint32 `json:"concurrency"`
-	} `json:"limits"`
-	Description *string `json:"description"`
-	Disabled    bool    `json:"disabled"`
-	Version     uint32  `json:"version"`
-}
-
 // UpsertRules creates or updates the given rules. Other rules are untouched.
 // Rewriting a rule with the limits it already has changes nothing, not even
-// its version, so there is no need to read before writing. It returns the
-// rules as they are stored after the write
-func (c *Client) UpsertRules(ctx context.Context, rules []RuleUpsert) ([]Rule, error) {
+// its version, so there is no need to read before writing
+func (c *Client) UpsertRules(ctx context.Context, rules []RuleUpsert) error {
 	payload := make([]upsertRule, 0, len(rules))
 	for _, rule := range rules {
 		payload = append(payload, upsertRule{
@@ -243,23 +229,8 @@ func (c *Client) UpsertRules(ctx context.Context, rules []RuleUpsert) ([]Rule, e
 			Description: rule.Description,
 		})
 	}
-
-	written, err := call[[]responseRule](ctx, c, "upsert rules", http.MethodPut, "/limits/rules", payload, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]Rule, 0, len(written))
-	for _, rule := range written {
-		result = append(result, Rule{
-			Pattern:     rule.Pattern,
-			Concurrency: ptr.SafeDeref(rule.Limits.Concurrency),
-			Description: ptr.SafeDeref(rule.Description),
-			Disabled:    rule.Disabled,
-			Version:     rule.Version,
-		})
-	}
-	return result, nil
+	_, err := c.send(ctx, "upsert rules", http.MethodPut, "/limits/rules", payload, nil)
+	return err
 }
 
 // call sends one admin API request through [Client.send] and decodes the
