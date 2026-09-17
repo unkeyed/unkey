@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -340,50 +341,6 @@ func (w *Workflow) createTopologies(
 		)
 	}
 
-	// --- Limits check ---
-	limits, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.Limit, error) {
-		return w.db.FindLimitsByWorkspaceID(runCtx, deployment.WorkspaceID)
-	}, restate.WithName("find workspace limits"), restate.WithMaxRetryAttempts(runMaxAttempts))
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
-	}
-
-	allocatedResources, err := restate.Run(ctx, func(runCtx restate.RunContext) (db.SumAllocatedResourcesByWorkspaceIDRow, error) {
-		return w.db.SumAllocatedResourcesByWorkspaceID(runCtx, deployment.WorkspaceID)
-	}, restate.WithName("sum allocated resources by workspace"), restate.WithMaxRetryAttempts(runMaxAttempts))
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
-	}
-
-	for _, rs := range regionalSettings {
-		maxReplicas := int32(1)
-		if rs.AutoscalingReplicasMax.Valid {
-			maxReplicas = rs.AutoscalingReplicasMax.Int32
-		}
-		allocatedResources.TotalCpuMillicores += int64(deployment.CpuMillicores * maxReplicas)
-		allocatedResources.TotalMemoryMib += int64(deployment.MemoryMib * maxReplicas)
-		allocatedResources.TotalStorageMib += int64(deployment.StorageMib) * int64(maxReplicas)
-	}
-	cpuMillicoresMax := int64(limits.CpuCoresMax) * 1_000
-	if allocatedResources.TotalCpuMillicores > cpuMillicoresMax {
-		return nil, fault.Wrap(
-			restate.ToTerminalError(fmt.Errorf("CPU limit exceeded: consumed %d, limit %d", allocatedResources.TotalCpuMillicores, cpuMillicoresMax)),
-			fault.Public(deployfail.MsgCPUQuotaExceeded),
-		)
-	}
-	if allocatedResources.TotalMemoryMib > int64(limits.MemoryMibMax) {
-		return nil, fault.Wrap(
-			restate.ToTerminalError(fmt.Errorf("Memory limit exceeded: consumed %d, limit %d", allocatedResources.TotalMemoryMib, limits.MemoryMibMax)),
-			fault.Public(deployfail.MsgMemoryQuotaExceeded),
-		)
-	}
-	if allocatedResources.TotalStorageMib > int64(limits.StorageMibMax) {
-		return nil, fault.Wrap(
-			restate.ToTerminalError(fmt.Errorf("Storage limit exceeded: consumed %d, limit %d", allocatedResources.TotalStorageMib, limits.StorageMibMax)),
-			fault.Public(deployfail.MsgStorageQuotaExceeded),
-		)
-	}
-
 	topologies := make([]db.InsertDeploymentTopologyParams, 0, len(regionalSettings))
 
 	for _, rs := range regionalSettings {
@@ -408,8 +365,6 @@ func (w *Workflow) createTopologies(
 			autoscalingMax = autoscalingMin
 		}
 
-		// CreatedAt is filled in below inside the Run so the timestamp stays
-		// stable across Restate replays.
 		//nolint: exhaustruct
 		topologies = append(topologies, db.InsertDeploymentTopologyParams{
 			WorkspaceID:                deployment.WorkspaceID,
@@ -423,17 +378,19 @@ func (w *Workflow) createTopologies(
 		})
 	}
 
-	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		now := time.Now().UnixMilli()
-		for i := range topologies {
-			topologies[i].CreatedAt = now
-		}
-		return w.db.Bulk().InsertDeploymentTopologies(runCtx, topologies)
-	}, restate.WithName("insert deployment topologies"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	reservation, err := restate.Run(ctx, func(runCtx restate.RunContext) (topologyReservation, error) {
+		return w.reserveTopologies(runCtx, reserveTopologiesRequest{Deployment: deployment, Topologies: topologies})
+	}, restate.WithName("reserve deployment topologies"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(
-			fmt.Errorf("failed to insert deployment topologies: %w", err),
+			fmt.Errorf("failed to reserve deployment topologies: %w", err),
 			fault.Public("Deployment targets could not be saved."),
+		)
+	}
+	if reservation.Message != "" {
+		return nil, fault.Wrap(
+			restate.ToTerminalError(errors.New(reservation.Detail)),
+			fault.Public(reservation.Message),
 		)
 	}
 
@@ -453,6 +410,72 @@ func (w *Workflow) createTopologies(
 	}
 
 	return topologies, nil
+}
+
+type reserveTopologiesRequest struct {
+	Deployment db.FindDeploymentForDeployRow
+	Topologies []db.InsertDeploymentTopologyParams
+}
+
+// A zero topologyReservation means the topologies were inserted. Otherwise
+// Message is the public quota message and Detail the consumed and limit values
+type topologyReservation struct {
+	Message string
+	Detail  string
+}
+
+// reserveTopologies checks the workspace quota and inserts the topologies in
+// one transaction. Two deployments of one workspace can otherwise both read
+// the same sum and both pass. The lock on the limits row serialises them, and
+// the sum leaves out this deployment's own rows so a re-run of the Run does
+// not count itself and refuse a deployment that fits
+func (w *Workflow) reserveTopologies(ctx context.Context, req reserveTopologiesRequest) (topologyReservation, error) {
+	return db.TxWithResultRetry(ctx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) (topologyReservation, error) {
+		queries := db.NewQueries(tx)
+		limits, err := queries.LockLimitsByWorkspaceID(txCtx, req.Deployment.WorkspaceID)
+		if err != nil {
+			return topologyReservation{}, err
+		}
+		allocated, err := queries.SumAllocatedResourcesByWorkspaceID(txCtx, db.SumAllocatedResourcesByWorkspaceIDParams{
+			WorkspaceID:         req.Deployment.WorkspaceID,
+			ExcludeDeploymentID: req.Deployment.ID,
+		})
+		if err != nil {
+			return topologyReservation{}, err
+		}
+		for _, topo := range req.Topologies {
+			replicas := int64(topo.AutoscalingReplicasMax)
+			allocated.TotalCpuMillicores += int64(req.Deployment.CpuMillicores) * replicas
+			allocated.TotalMemoryMib += int64(req.Deployment.MemoryMib) * replicas
+			allocated.TotalStorageMib += int64(req.Deployment.StorageMib) * replicas
+		}
+
+		cpuMillicoresMax := int64(limits.CpuCoresMax) * 1_000
+		switch {
+		case allocated.TotalCpuMillicores > cpuMillicoresMax:
+			return topologyReservation{
+				Message: deployfail.MsgCPUQuotaExceeded,
+				Detail:  fmt.Sprintf("CPU limit exceeded: consumed %d, limit %d", allocated.TotalCpuMillicores, cpuMillicoresMax),
+			}, nil
+		case allocated.TotalMemoryMib > int64(limits.MemoryMibMax):
+			return topologyReservation{
+				Message: deployfail.MsgMemoryQuotaExceeded,
+				Detail:  fmt.Sprintf("Memory limit exceeded: consumed %d, limit %d", allocated.TotalMemoryMib, limits.MemoryMibMax),
+			}, nil
+		case allocated.TotalStorageMib > int64(limits.StorageMibMax):
+			return topologyReservation{
+				Message: deployfail.MsgStorageQuotaExceeded,
+				Detail:  fmt.Sprintf("Storage limit exceeded: consumed %d, limit %d", allocated.TotalStorageMib, limits.StorageMibMax),
+			}, nil
+		}
+
+		now := time.Now().UnixMilli()
+		topologies := slices.Clone(req.Topologies)
+		for i := range topologies {
+			topologies[i].CreatedAt = now
+		}
+		return topologyReservation{}, db.NewBulkQueries(tx).InsertDeploymentTopologies(txCtx, topologies)
+	})
 }
 
 // configureRouting sets up domain-based routing for a deployment. It generates

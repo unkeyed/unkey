@@ -1863,6 +1863,14 @@ type Querier interface {
 	//    AND w.enabled = true
 	//    AND w.deleted_at_m IS NULL
 	ListWorkspacesWithDeployBudget(ctx context.Context) ([]ListWorkspacesWithDeployBudgetRow, error)
+	// Must be the first statement of its transaction: the quota sum that follows
+	// relies on the read view opening after this lock is held
+	//
+	//  SELECT cpu_cores_max, memory_mib_max, storage_mib_max
+	//  FROM `limits`
+	//  WHERE workspace_id = ?
+	//  FOR UPDATE
+	LockLimitsByWorkspaceID(ctx context.Context, workspaceID string) (LockLimitsByWorkspaceIDRow, error)
 	// MarkClickhouseOutboxBatchDeleted soft-deletes a set of pks after their CH
 	// insert is confirmed. It runs as its own short autocommit statement, not in
 	// the transaction that selected the rows, so no MySQL lock spans the
@@ -2044,8 +2052,9 @@ type Querier interface {
 	//  FROM `deployment_topology` dt
 	//  JOIN `deployments` d ON d.`id` = dt.`deployment_id`
 	//  WHERE dt.`workspace_id` = ?
+	//    AND dt.`deployment_id` != ?
 	//    AND dt.`desired_status` = 'running'
-	SumAllocatedResourcesByWorkspaceID(ctx context.Context, workspaceID string) (SumAllocatedResourcesByWorkspaceIDRow, error)
+	SumAllocatedResourcesByWorkspaceID(ctx context.Context, arg SumAllocatedResourcesByWorkspaceIDParams) (SumAllocatedResourcesByWorkspaceIDRow, error)
 	//UpdateAcmeChallengePending
 	//
 	//  UPDATE acme_challenges
