@@ -49,6 +49,7 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"github.com/unkeyed/unkey/svc/frontline/internal/meta"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
+	"github.com/unkeyed/unkey/svc/frontline/internal/policies/keyauth"
 	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 	"github.com/unkeyed/unkey/svc/frontline/internal/router"
 	"github.com/unkeyed/unkey/svc/frontline/routes"
@@ -517,12 +518,16 @@ func buildEngine(
 		return nil, fmt.Errorf("failed to create key service: %w", err)
 	}
 
+	keyVerifier, err := keyauth.NewInternalVerifier(keyService, keyVerifications)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create key verifier: %w", err)
+	}
+
 	logger.Info("policy engine initialized")
 	eng, err := policies.New(policies.Config{
-		KeyService:       keyService,
-		RateLimiter:      rlSvc,
-		Clock:            clk,
-		KeyVerifications: keyVerifications,
+		KeyVerifier: keyVerifier,
+		RateLimiter: rlSvc,
+		Clock:       clk,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize policy engine: %w", err)
