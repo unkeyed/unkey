@@ -145,29 +145,7 @@ hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(restateadm
 - A build that still fails after all retries is stopped for good, and Deploy marks the deployment failed.
 - All builds share one Restate partition. When its leader changes, every build in progress restarts from its last recorded step.
 
-### Runbook
-
-`$ADMIN` and `$TOKEN` are the Restate Cloud admin URL and token; [runbook 0001](https://github.com/unkeyed/infra/blob/main/docs/runbooks/restate/0001-control-worker-registration.md) says where to get them. Not yet run against Cloud.
-
-Read the rules (there is no `GET /limits/rules`):
-
-```bash
-curl -sS "$ADMIN/query" -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' -H 'Accept: application/json' \
-  -d '{"query":"SELECT pattern, concurrency, disabled, version FROM sys_rules"}'
-```
-
-If `builds/*` is missing, every workspace builds without a limit until the next cron run. Run it now with `kubectl -n restate-system create job --from=cronjob/restate-build-limit-sync build-limit-sync-manual`.
-
-Builds waiting or running:
-
-```bash
-curl -sS "$ADMIN/query" -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' -H 'Accept: application/json' \
-  -d '{"query":"SELECT target, created_at, running_at FROM sys_invocation WHERE target_handler_name = '"'"'Build'"'"' AND status <> '"'"'completed'"'"'"}'
-```
-
-A row with no `running_at` is waiting for a slot.
+Operating the rules on Restate Cloud, reading them, forcing a sync, listing waiting builds, is covered by [runbook 0003](https://github.com/unkeyed/infra/blob/main/docs/runbooks/restate/0003-build-concurrency-rules.md) in the infra repo.
 
 ## Commit deduplication
 
