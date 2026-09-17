@@ -15,6 +15,7 @@ import {
   buildProjectLinks as buildProjectsNavProjectLinks,
   buildWorkspaceSections as buildProjectsNavWorkspaceSections,
 } from "@/lib/navigation/leaves-projects";
+import { trpc } from "@/lib/trpc/client";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { NavLinkList } from "./nav-link-list";
 
@@ -29,10 +30,12 @@ export function SidebarBody() {
   const { keyAuthId } = useApiKeyAuthId(context.type === "api" ? context.apiId : undefined);
   const portalManagement = useFlag("portalManagement");
   const projectsNav = useFlag("projectsNav");
+  const { data: currentUser } = trpc.user.getCurrentUser.useQuery();
 
-  const workspaceSections = projectsNav
-    ? buildProjectsNavWorkspaceSections
-    : buildWorkspaceSections;
+  const workspaceSections = (segs: string[]) =>
+    projectsNav
+      ? buildProjectsNavWorkspaceSections(slug, segs, currentUser?.role === "admin")
+      : buildWorkspaceSections(slug, segs);
   const projectLinks = projectsNav ? buildProjectsNavProjectLinks : buildProjectLinks;
 
   const links = (() => {
@@ -43,7 +46,7 @@ export function SidebarBody() {
       // settings/authorization layouts).
       case "settings":
       case "authorization":
-        return workspaceSections(slug, segments);
+        return workspaceSections(segments);
       case "project":
         return context.appId
           ? buildAppLinks(slug, context.projectId, context.appId, segments)
@@ -63,7 +66,7 @@ export function SidebarBody() {
       case "identity":
         return context.projectId
           ? projectLinks(slug, context.projectId, segments)
-          : workspaceSections(slug, segments);
+          : workspaceSections(segments);
     }
   })();
 

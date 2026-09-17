@@ -14,8 +14,23 @@ import {
 import { routes } from "./routes";
 import type { ResolvedNavLink } from "./types";
 
-export function buildWorkspaceSections(slug: string, segments: string[]): ResolvedNavLink[] {
+export function buildWorkspaceSections(
+  slug: string,
+  segments: string[],
+  canSeeRootKeys: boolean,
+): ResolvedNavLink[] {
   const top = segments[0];
+  const rootKeys: ResolvedNavLink[] = canSeeRootKeys
+    ? [
+        {
+          key: "root-keys",
+          label: "Root Keys",
+          href: routes.rootKeys.list({ workspaceSlug: slug }),
+          icon: IconKeyOutline18,
+          isActive: top === "root-keys",
+        },
+      ]
+    : [];
   return [
     {
       key: "projects",
@@ -24,13 +39,7 @@ export function buildWorkspaceSections(slug: string, segments: string[]): Resolv
       icon: IconCubeOutline18,
       isActive: top === "projects",
     },
-    {
-      key: "root-keys",
-      label: "Root Keys",
-      href: routes.rootKeys.list({ workspaceSlug: slug }),
-      icon: IconKeyOutline18,
-      isActive: top === "root-keys",
-    },
+    ...rootKeys,
     {
       key: "audit",
       label: "Audit Log",

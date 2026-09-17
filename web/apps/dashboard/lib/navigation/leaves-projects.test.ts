@@ -8,8 +8,8 @@ const rows = (links: ReturnType<typeof buildWorkspaceSections>) =>
   links.map(({ key, label, href, isActive }) => ({ key, label, href, isActive }));
 
 describe("projects-first workspace sections", () => {
-  it("lists projects, root keys, audit log and workspace settings", () => {
-    expect(rows(buildWorkspaceSections(ws, ["projects"]))).toEqual([
+  it("lists projects, root keys, audit log and workspace settings for an admin", () => {
+    expect(rows(buildWorkspaceSections(ws, ["projects"], true))).toEqual([
       { key: "projects", label: "Projects", href: "/acme/projects", isActive: true },
       { key: "root-keys", label: "Root Keys", href: "/acme/root-keys", isActive: false },
       { key: "audit", label: "Audit Log", href: "/acme/audit", isActive: false },
@@ -22,13 +22,26 @@ describe("projects-first workspace sections", () => {
     ]);
   });
 
+  it("omits root keys for a non-admin", () => {
+    expect(rows(buildWorkspaceSections(ws, ["projects"], false))).toEqual([
+      { key: "projects", label: "Projects", href: "/acme/projects", isActive: true },
+      { key: "audit", label: "Audit Log", href: "/acme/audit", isActive: false },
+      {
+        key: "settings",
+        label: "Workspace Settings",
+        href: "/acme/settings/general",
+        isActive: false,
+      },
+    ]);
+  });
+
   it("marks root keys active on the root-keys segment", () => {
-    const active = buildWorkspaceSections(ws, ["root-keys"]).filter((link) => link.isActive);
+    const active = buildWorkspaceSections(ws, ["root-keys"], true).filter((link) => link.isActive);
     expect(active.map((link) => link.key)).toEqual(["root-keys"]);
   });
 
   it("marks nothing active outside the four sections", () => {
-    expect(buildWorkspaceSections(ws, ["apis"]).filter((link) => link.isActive)).toEqual([]);
+    expect(buildWorkspaceSections(ws, ["apis"], true).filter((link) => link.isActive)).toEqual([]);
   });
 });
 
