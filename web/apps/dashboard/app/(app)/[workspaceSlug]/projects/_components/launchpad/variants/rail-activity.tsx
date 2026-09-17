@@ -7,8 +7,8 @@ import type { VariantProps } from "../types";
 import { GetStarted, Value } from "./shared";
 
 /**
- * Vercel's left column, read across: what shipped, what is in preview, then the
- * resources to jump into.
+ * Vercel's left column, read across: what is in preview, then the resources to
+ * jump into. Shipped deployments already sit on the project cards.
  */
 export function RailActivity({ model, options }: VariantProps) {
   if (model.isLoading) {
@@ -23,12 +23,6 @@ export function RailActivity({ model, options }: VariantProps) {
   }
   return (
     <>
-      <DeployList
-        title="Recently shipped"
-        chrome={options.chrome}
-        deploys={model.readyDeploys}
-        empty="Nothing has reached production yet."
-      />
       <DeployList
         title="Recent previews"
         chrome={options.chrome}
@@ -62,20 +56,13 @@ export function RailActivity({ model, options }: VariantProps) {
   );
 }
 
-/** Deploy activity only, for judging the row itself without the rail around it. */
+/** Previews only, for judging the deploy row without the rail around it. */
 export function RailDeploysOnly({ model, options }: VariantProps) {
   if (model.isLoading) {
     return <RowSkeleton density={options.density} count={6} />;
   }
   return (
     <>
-      <DeployList
-        title="Recently shipped"
-        chrome={options.chrome}
-        deploys={model.readyDeploys}
-        limit={5}
-        empty="Nothing has reached production yet."
-      />
       <DeployList
         title="Recent previews"
         chrome={options.chrome}

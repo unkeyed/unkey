@@ -69,7 +69,7 @@ export function DeployRow({ deploy, compact }: { deploy: RecentDeployRow; compac
         className={cn("size-1.5 shrink-0 rounded-full", statusTone(deploy.status))}
         aria-label={DEPLOYMENT_STATUS_LABELS[deploy.status]}
       />
-      <span className="min-w-0 flex-1 truncate text-accent-12">
+      <span className="min-w-0 flex-1 truncate font-medium text-accent-12">
         {firstOf(deploy.branch, deploy.commitMessage, deploy.appName)}
       </span>
       <span className="shrink-0 truncate text-xs text-gray-9">{deploy.appName}</span>

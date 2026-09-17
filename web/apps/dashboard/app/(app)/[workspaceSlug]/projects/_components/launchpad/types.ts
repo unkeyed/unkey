@@ -38,7 +38,6 @@ export type LaunchpadModel = {
   identityCount: number;
   /** Newest deployment per branch and environment, newest first. */
   recentDeploys: RecentDeployRow[];
-  readyDeploys: RecentDeployRow[];
   previewDeploys: RecentDeployRow[];
   identitiesHref: Route;
   keyspacesHref: Route;

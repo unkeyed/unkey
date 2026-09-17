@@ -54,9 +54,6 @@ export function useLaunchpad(windowHours = 24): LaunchpadModel {
     return {
       isLoading: query.isLoading,
       recentDeploys,
-      readyDeploys: recentDeploys.filter(
-        (deploy) => deploy.environment === "production" && deploy.status === "ready",
-      ),
       previewDeploys: recentDeploys.filter((deploy) => deploy.environment === "preview"),
       rows,
       keyspaces: rows.filter((row) => row.kind === "keyspace"),
