@@ -9,7 +9,6 @@ metadata:
 data:
   unkey.toml: |
     storage_class_name = "topolvm-ssd"
-    runtime_class_name = ""
 
     disable_gvisor = true
 
