@@ -36,6 +36,20 @@ export const projectRoutes = {
     return buildRoute("/[workspaceSlug]/projects/[projectId]/settings", projectParams(scope));
   },
 
+  authorizationRoles(scope: ProjectScope): Route {
+    return buildRoute(
+      "/[workspaceSlug]/projects/[projectId]/authorization/roles",
+      projectParams(scope),
+    );
+  },
+
+  authorizationPermissions(scope: ProjectScope): Route {
+    return buildRoute(
+      "/[workspaceSlug]/projects/[projectId]/authorization/permissions",
+      projectParams(scope),
+    );
+  },
+
   logs({
     appId,
     deploymentId,

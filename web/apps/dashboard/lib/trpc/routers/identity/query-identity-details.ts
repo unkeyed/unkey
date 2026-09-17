@@ -11,7 +11,6 @@ const identityDetailsInput = z.object({
 
 const identityDetailsOutput = z.object({
   id: z.string(),
-  externalId: z.string(),
   projectId: z.string(),
 });
 
@@ -24,7 +23,7 @@ export const queryIdentityDetails = workspaceProcedure
       .findFirst({
         where: (table, { eq, and }) =>
           and(eq(table.id, input.identityId), eq(table.workspaceId, ctx.workspace.id)),
-        columns: { id: true, externalId: true, projectId: true },
+        columns: { id: true, projectId: true },
       })
       .catch((error) => {
         console.error("Failed to fetch identity details", JSON.stringify(error));

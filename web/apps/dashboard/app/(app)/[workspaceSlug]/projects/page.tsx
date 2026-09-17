@@ -1,11 +1,10 @@
 "use client";
 
+import { useVisibleProjects } from "@/hooks/use-visible-projects";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
 import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
 import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
-import { useLiveQuery } from "@tanstack/react-db";
 import {
   PageBody,
   PageContainer,
@@ -27,7 +26,7 @@ export default function ProjectsPage() {
   const workspace = useWorkspaceNavigation();
   const searchParams = useSearchParams();
   const isNewProject = searchParams.get("new") === "true";
-  const projects = useLiveQuery((q) => q.from({ project: collection.projects }));
+  const projects = useVisibleProjects();
 
   const { createDialogOpen, setCreateDialogOpen } = usePendingSubscribe();
   const launchpad = useLaunchpadSurface();

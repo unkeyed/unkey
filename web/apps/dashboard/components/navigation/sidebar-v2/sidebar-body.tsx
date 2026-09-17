@@ -11,6 +11,11 @@ import {
   buildProjectLinks,
   buildWorkspaceSections,
 } from "@/lib/navigation/leaves";
+import {
+  buildProjectLinks as buildProjectsNavProjectLinks,
+  buildWorkspaceSections as buildProjectsNavWorkspaceSections,
+} from "@/lib/navigation/leaves-projects";
+import { trpc } from "@/lib/trpc/client";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { NavLinkList } from "./nav-link-list";
 
@@ -24,25 +29,44 @@ export function SidebarBody() {
   const { slug } = useWorkspaceNavigation();
   const { keyAuthId } = useApiKeyAuthId(context.type === "api" ? context.apiId : undefined);
   const portalManagement = useFlag("portalManagement");
+  const projectsNav = useFlag("projectsNav");
+  const { data: currentUser } = trpc.user.getCurrentUser.useQuery();
+
+  const workspaceSections = (segs: string[]) =>
+    projectsNav
+      ? buildProjectsNavWorkspaceSections(slug, segs, currentUser?.role === "admin")
+      : buildWorkspaceSections(slug, segs);
+  const projectLinks = projectsNav ? buildProjectsNavProjectLinks : buildProjectLinks;
 
   const links = (() => {
     switch (context.type) {
       case "workspace":
-      case "identity":
       // Settings and Authorization keep the top-level workspace nav in the
       // global sidebar; their sub-pages live in a SecondaryNav rail (see the
       // settings/authorization layouts).
       case "settings":
       case "authorization":
-        return buildWorkspaceSections(slug, segments);
+        return workspaceSections(segments);
       case "project":
         return context.appId
           ? buildAppLinks(slug, context.projectId, context.appId, segments)
-          : buildProjectLinks(slug, context.projectId, segments);
+          : projectLinks(slug, context.projectId, segments);
       case "api":
-        return buildApiLinks(slug, context.apiId, keyAuthId, segments, portalManagement);
+        return buildApiLinks(
+          { workspaceSlug: slug, apiId: context.apiId, projectId: context.projectId },
+          keyAuthId,
+          segments,
+          portalManagement,
+        );
       case "namespace":
-        return buildNamespaceLinks(slug, context.namespaceId, segments);
+        return buildNamespaceLinks(
+          { workspaceSlug: slug, namespaceId: context.namespaceId, projectId: context.projectId },
+          segments,
+        );
+      case "identity":
+        return context.projectId
+          ? projectLinks(slug, context.projectId, segments)
+          : workspaceSections(segments);
     }
   })();
 

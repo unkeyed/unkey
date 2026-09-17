@@ -73,11 +73,13 @@ function CrumbForDescriptor({ descriptor }: { descriptor: BreadcrumbDescriptor }
     case "app":
       return <AppCrumb projectId={descriptor.projectId} appId={descriptor.appId} />;
     case "api":
-      return <ApiCrumb apiId={descriptor.apiId} />;
+      return <ApiCrumb apiId={descriptor.apiId} projectId={descriptor.projectId} />;
     case "namespace":
-      return <NamespaceCrumb namespaceId={descriptor.namespaceId} />;
+      return (
+        <NamespaceCrumb namespaceId={descriptor.namespaceId} projectId={descriptor.projectId} />
+      );
     case "identity":
-      return <IdentityCrumb identityId={descriptor.identityId} />;
+      return <IdentityCrumb identityId={descriptor.identityId} projectId={descriptor.projectId} />;
   }
 }
 

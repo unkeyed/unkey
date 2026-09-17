@@ -22,6 +22,16 @@ describe("project-scoped paths", () => {
     const scope = { workspaceSlug: ws, projectId };
     expect(routes.projects.settings(scope)).toBe("/acme/projects/proj_123/settings");
   });
+
+  it("builds the project authorization paths", () => {
+    const scope = { workspaceSlug: ws, projectId };
+    expect(routes.projects.authorizationRoles(scope)).toBe(
+      "/acme/projects/proj_123/authorization/roles",
+    );
+    expect(routes.projects.authorizationPermissions(scope)).toBe(
+      "/acme/projects/proj_123/authorization/permissions",
+    );
+  });
 });
 
 describe("routes.projects.logs", () => {

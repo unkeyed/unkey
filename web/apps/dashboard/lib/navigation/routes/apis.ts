@@ -10,36 +10,76 @@
  * query args.
  */
 import type { Route } from "next";
-import { type WorkspaceScope, buildRoute } from "./shared";
+import { type ResourceScope, buildRoute } from "./shared";
 
-type ApiScope = WorkspaceScope & { apiId: string };
+type ApiScope = ResourceScope & { apiId: string };
 type KeyspaceScope = ApiScope & { keyAuthId: string };
 type KeyScope = KeyspaceScope & { keyId: string };
 
+const patterns = {
+  list: {
+    workspace: "/[workspaceSlug]/apis",
+    project: "/[workspaceSlug]/projects/[projectId]/keyspaces",
+  },
+  detail: {
+    workspace: "/[workspaceSlug]/apis/[apiId]",
+    project: "/[workspaceSlug]/projects/[projectId]/keyspaces/[apiId]",
+  },
+  portal: {
+    workspace: "/[workspaceSlug]/apis/[apiId]/portal",
+    project: "/[workspaceSlug]/projects/[projectId]/keyspaces/[apiId]/portal",
+  },
+  settings: {
+    workspace: "/[workspaceSlug]/apis/[apiId]/settings",
+    project: "/[workspaceSlug]/projects/[projectId]/keyspaces/[apiId]/settings",
+  },
+  keys: {
+    workspace: "/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]",
+    project: "/[workspaceSlug]/projects/[projectId]/keyspaces/[apiId]/keys/[keyAuthId]",
+  },
+  key: {
+    workspace: "/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]",
+    project: "/[workspaceSlug]/projects/[projectId]/keyspaces/[apiId]/keys/[keyAuthId]/[keyId]",
+  },
+} as const;
+
 export const apiRoutes = {
-  list({ workspaceSlug, new: isNew }: WorkspaceScope & { new?: boolean }): Route {
-    return buildRoute("/[workspaceSlug]/apis", { workspaceSlug }, { new: isNew || undefined });
+  list({ workspaceSlug, projectId, new: isNew }: ResourceScope & { new?: boolean }): Route {
+    const query = { new: isNew || undefined };
+    return projectId
+      ? buildRoute(patterns.list.project, { workspaceSlug, projectId }, query)
+      : buildRoute(patterns.list.workspace, { workspaceSlug }, query);
   },
 
-  detail(scope: ApiScope): Route {
-    return buildRoute("/[workspaceSlug]/apis/[apiId]", apiParams(scope));
+  detail({ projectId, ...scope }: ApiScope): Route {
+    return projectId
+      ? buildRoute(patterns.detail.project, { ...apiParams(scope), projectId })
+      : buildRoute(patterns.detail.workspace, apiParams(scope));
   },
 
-  portal(scope: ApiScope): Route {
-    return buildRoute("/[workspaceSlug]/apis/[apiId]/portal", apiParams(scope));
+  portal({ projectId, ...scope }: ApiScope): Route {
+    return projectId
+      ? buildRoute(patterns.portal.project, { ...apiParams(scope), projectId })
+      : buildRoute(patterns.portal.workspace, apiParams(scope));
   },
 
-  settings(scope: ApiScope): Route {
-    return buildRoute("/[workspaceSlug]/apis/[apiId]/settings", apiParams(scope));
+  settings({ projectId, ...scope }: ApiScope): Route {
+    return projectId
+      ? buildRoute(patterns.settings.project, { ...apiParams(scope), projectId })
+      : buildRoute(patterns.settings.workspace, apiParams(scope));
   },
 
   keys: {
-    list(scope: KeyspaceScope): Route {
-      return buildRoute("/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]", keyspaceParams(scope));
+    list({ projectId, ...scope }: KeyspaceScope): Route {
+      return projectId
+        ? buildRoute(patterns.keys.project, { ...keyspaceParams(scope), projectId })
+        : buildRoute(patterns.keys.workspace, keyspaceParams(scope));
     },
 
-    detail(scope: KeyScope): Route {
-      return buildRoute("/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]", keyParams(scope));
+    detail({ projectId, ...scope }: KeyScope): Route {
+      return projectId
+        ? buildRoute(patterns.key.project, { ...keyParams(scope), projectId })
+        : buildRoute(patterns.key.workspace, keyParams(scope));
     },
   },
 };
