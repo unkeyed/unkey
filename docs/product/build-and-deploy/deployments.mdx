@@ -83,7 +83,7 @@ This keeps costs low for branches that are no longer being actively reviewed.
 
 ## Build concurrency
 
-Each workspace has a maximum number of deployments that can build at the same time (`builds_concurrent_max`, 1 on every plan today). When the workspace is at capacity, new deployments queue in the **Pending** state until a running build finishes or is cancelled. A change to the limit takes effect within about five minutes.
+Each workspace has a maximum number of deployments that can build at the same time (`builds_concurrent_max`, 1 on every plan today). When the workspace is at capacity, new deployments queue in the **Pending** state until a running build finishes or is cancelled. A change to the limit takes effect within about 15 minutes.
 
 Builds queue per workspace, across production and preview environments, in the order they became ready. A production push waits behind preview builds that were queued before it. A queued deployment waits until a running build finishes or you cancel it; there is no timeout.
 

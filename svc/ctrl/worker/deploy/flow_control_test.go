@@ -25,7 +25,8 @@ const (
 )
 
 // TestFlowControl pins the Restate behaviour Deploy relies on when it calls
-// Build in [buildScope] with the workspace as limit key: the rule book caps
+// Build in [restateadmin.BuildConcurrencyScope] with the workspace as limit
+// key: the rule book caps
 // how many invocations per limit key run at once, cancelling the caller
 // removes its queued callee, and a rule written while callers wait lets them
 // run
@@ -44,7 +45,7 @@ func TestFlowControl(t *testing.T) {
 	admin := restateadmin.New(restateadmin.Config{BaseURL: cfg.AdminURL, APIKey: ""})
 
 	err := admin.UpsertRules(ctx, []restateadmin.RuleUpsert{
-		{Pattern: buildScope + "/*", Concurrency: 1, Description: "test default"},
+		{Pattern: restateadmin.BuildConcurrencyScope + "/*", Concurrency: 1, Description: "test default"},
 	})
 	require.NoError(t, err)
 
@@ -52,8 +53,8 @@ func TestFlowControl(t *testing.T) {
 		t.Helper()
 		key := uid.New(uid.DeploymentPrefix)
 		go func() {
-			_, err := ingress.Workflow[holdRequest, string](cfg.IngressClient, probeService, key, "Hold", restate.WithScope(buildScope)).
-				Request(ctx, holdRequest{Scope: buildScope, LimitKey: limitKey}, restate.WithLimitKey(limitKey))
+			_, err := ingress.Workflow[holdRequest, string](cfg.IngressClient, probeService, key, "Hold", restate.WithScope(restateadmin.BuildConcurrencyScope)).
+				Request(ctx, holdRequest{Scope: restateadmin.BuildConcurrencyScope, LimitKey: limitKey}, restate.WithLimitKey(limitKey))
 			done <- err
 		}()
 	}
@@ -131,7 +132,7 @@ func TestFlowControl(t *testing.T) {
 		require.Never(t, func() bool { return probe.runningCount(ws) > 1 }, time.Second, 50*time.Millisecond)
 
 		err := admin.UpsertRules(ctx, []restateadmin.RuleUpsert{
-			{Pattern: buildScope + "/" + ws, Concurrency: 3, Description: "test raise"},
+			{Pattern: restateadmin.BuildConcurrencyScope + "/" + ws, Concurrency: 3, Description: "test raise"},
 		})
 		require.NoError(t, err)
 		probe.awaitRunning(t, ws, 3)
@@ -142,8 +143,8 @@ func TestFlowControl(t *testing.T) {
 		for _, rule := range rules {
 			byPattern[rule.Pattern] = rule.Concurrency
 		}
-		require.Equal(t, uint32(1), byPattern[buildScope+"/*"], "the upsert must not replace the wildcard rule")
-		require.Equal(t, uint32(3), byPattern[buildScope+"/"+ws])
+		require.Equal(t, uint32(1), byPattern[restateadmin.BuildConcurrencyScope+"/*"], "the upsert must not replace the wildcard rule")
+		require.Equal(t, uint32(3), byPattern[restateadmin.BuildConcurrencyScope+"/"+ws])
 
 		for _, key := range probe.runningKeys(ws) {
 			probe.release(key)
@@ -182,8 +183,8 @@ func (p *FlowControlProbe) Run(ctx restate.WorkflowContext, req parentRequest) (
 	p.called[req.ChildKey] = struct{}{}
 	p.mu.Unlock()
 
-	_, err := restate.Workflow[string](ctx, probeService, req.ChildKey, "Hold", restate.WithScope(buildScope)).
-		RequestFuture(holdRequest{Scope: buildScope, LimitKey: req.LimitKey}, restate.WithLimitKey(req.LimitKey)).
+	_, err := restate.Workflow[string](ctx, probeService, req.ChildKey, "Hold", restate.WithScope(restateadmin.BuildConcurrencyScope)).
+		RequestFuture(holdRequest{Scope: restateadmin.BuildConcurrencyScope, LimitKey: req.LimitKey}, restate.WithLimitKey(req.LimitKey)).
 		Response()
 
 	p.mu.Lock()
