@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { IconBoltOutline18, IconCubeOutline18, IconKey2Outline18 } from "@unkey/icons";
 import { routes } from "@/lib/navigation/routes";
+import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
 import { TimestampInfo } from "@unkey/ui";
 import Link from "next/link";
 import { useDeployState } from "../use-deploy-state";
@@ -95,12 +96,17 @@ export function DeployNudge({ compact = false }: { compact?: boolean }) {
       <span
         className={cn(
           "size-1.5 shrink-0 rounded-full",
-          state.inFlight ? "bg-warning-9" : "bg-success-9",
+          state.tone === "live" && "bg-success-9",
+          state.tone === "busy" && "bg-warning-9",
+          state.tone === "bad" && "bg-error-9",
+          state.tone === "idle" && "bg-gray-8",
         )}
       />
       <span className="flex min-w-0 flex-1 flex-col leading-tight">
         <span className="truncate text-accent-12">{state.appName}</span>
-        <span className="truncate text-xs text-gray-9">{state.projectName}</span>
+        <span className="truncate text-xs text-gray-9">
+          {`${state.projectName} · ${DEPLOYMENT_STATUS_LABELS[state.status]}`}
+        </span>
       </span>
       <TimestampInfo value={state.deployedAt} className="shrink-0 text-xs text-gray-9" />
     </Link>

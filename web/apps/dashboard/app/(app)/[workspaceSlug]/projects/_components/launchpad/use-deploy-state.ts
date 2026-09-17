@@ -2,7 +2,10 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useVisibleProjects } from "@/hooks/use-visible-projects";
-import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
+import {
+  type DeploymentStatus,
+  isDeploymentInFlight,
+} from "@/lib/collections/deploy/deployment-status";
 import { routes } from "@/lib/navigation/routes";
 import type { Route } from "next";
 import { useMemo } from "react";
@@ -15,11 +18,26 @@ export type DeployState =
       kind: "latest";
       appName: string;
       projectName: string;
-      status: string;
+      status: DeploymentStatus;
       inFlight: boolean;
+      tone: "live" | "busy" | "bad" | "idle";
       deployedAt: number;
       href: Route;
     };
+
+/**
+ * Most real deployments settle as `stopped`, not `ready` — a superseded deploy
+ * gets stopped. Painting the newest row green would call an idle app live.
+ */
+function toneFor(status: DeploymentStatus): "live" | "busy" | "bad" | "idle" {
+  if (status === "ready") {
+    return "live";
+  }
+  if (status === "failed" || status === "cancelled") {
+    return "bad";
+  }
+  return isDeploymentInFlight(status) ? "busy" : "idle";
+}
 
 export function useDeployState(): DeployState {
   const workspace = useWorkspaceNavigation();
@@ -69,6 +87,7 @@ export function useDeployState(): DeployState {
       projectName: latest.project.name,
       status: latest.deployment.status,
       inFlight: isDeploymentInFlight(latest.deployment.status),
+      tone: toneFor(latest.deployment.status),
       deployedAt: latest.deployment.deployedAt,
       href: routes.projects.detail({
         workspaceSlug: workspace.slug,
