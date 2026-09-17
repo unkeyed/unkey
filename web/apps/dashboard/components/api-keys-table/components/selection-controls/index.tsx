@@ -119,20 +119,20 @@ export const SelectionControls = ({
               },
             }}
           >
-            <div className="flex justify-between items-center w-full p-[18px]">
-              <div className="items-center flex gap-2">
+            <div className="flex justify-between items-center gap-4 w-full p-[18px]">
+              <div className="items-center flex gap-2 min-w-0">
                 <AnimatedCounter value={selectedKeys.size} />
                 <div className="text-accent-9 text-[13px] leading-6">selected</div>
                 {recentlyUsedCount > 0 && (
-                  <div className="flex items-center gap-1.5 ml-2 text-warning-11 text-[13px] leading-6">
+                  <div className="flex items-center gap-1.5 ml-2 min-w-0 text-warning-11 text-[13px] leading-6">
                     <IconTriangleWarningOutline18 className="size-3.5 shrink-0" />
-                    <span>
+                    <span className="truncate">
                       {recentlyUsedCount} used in the last {RECENTLY_USED_WINDOW_LABEL}
                     </span>
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <Button
                   variant="outline"
                   size="sm"
