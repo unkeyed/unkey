@@ -21,7 +21,7 @@ import (
 )
 
 // defaultRulePattern caps every workspace that has no rule of its own
-const defaultRulePattern = "builds/*"
+const defaultRulePattern = restateadmin.BuildConcurrencyScope + "/*"
 
 // defaultConcurrency is the build concurrency every plan tier grants today
 const defaultConcurrency = 1

@@ -144,6 +144,10 @@ func (c *Client) FindLiveInvocations(ctx context.Context, invocationIDs []string
 	return live, nil
 }
 
+// BuildConcurrencyScope is the Restate scope build invocations run in, so
+// every build concurrency rule pattern is this scope, a slash, and a limit key
+const BuildConcurrencyScope = "builds"
+
 // Rule is one entry in Restate's rule book: the cluster-wide table that caps
 // how many invocations may run at once for a scope and a limit key
 type Rule struct {
