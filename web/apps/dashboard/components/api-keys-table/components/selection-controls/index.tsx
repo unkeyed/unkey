@@ -89,10 +89,9 @@ export const SelectionControls = ({
     selectedKeys.size === 1
       ? "This key was"
       : `${recentlyUsedCount} of the selected keys ${recentlyUsedCount > 1 ? "were" : "was"}`;
+  const recentlyUsedSummary = `${recentlyUsedSubject} used in the last ${RECENTLY_USED_WINDOW_LABEL}`;
   const recentlyUsedNotice =
-    recentlyUsedCount > 0
-      ? `${recentlyUsedSubject} used in the last ${RECENTLY_USED_WINDOW_LABEL} and may still be live. `
-      : "";
+    recentlyUsedCount > 0 ? `${recentlyUsedSummary} and may still be live. ` : "";
 
   return (
     <>
@@ -119,81 +118,83 @@ export const SelectionControls = ({
               },
             }}
           >
-            <div className="flex justify-between items-center gap-4 w-full p-[18px]">
-              <div className="items-center flex gap-2 min-w-0">
-                <AnimatedCounter value={selectedKeys.size} />
-                <div className="text-accent-9 text-[13px] leading-6">selected</div>
-                {recentlyUsedCount > 0 && (
-                  <div className="flex items-center gap-1.5 ml-2 min-w-0 text-warning-11 text-[13px] leading-6">
-                    <IconTriangleWarningOutline18 className="size-3.5 shrink-0" />
-                    <span className="truncate">
-                      {recentlyUsedCount} used in the last {RECENTLY_USED_WINDOW_LABEL}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-12 font-medium text-[13px]"
-                  onClick={() => setIsBatchEditExternalIdOpen(true)}
-                >
-                  <IconArrowsOppositeDirectionYOutline18 /> Change External ID
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-12 font-medium text-[13px]"
-                  disabled={getSelectedKeysState() !== "all-disabled" || updateKeyStatus.isLoading}
-                  loading={updateKeyStatus.isLoading}
-                  onClick={() => {
-                    const keyIds = Array.from(selectedKeys);
-                    if (keyIds.length === 0) {
-                      return;
+            <div className="flex flex-col gap-3 w-full p-[18px]">
+              <div className="flex justify-between items-center w-full">
+                <div className="items-center flex gap-2">
+                  <AnimatedCounter value={selectedKeys.size} />
+                  <div className="text-accent-9 text-[13px] leading-6">selected</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-gray-12 font-medium text-[13px]"
+                    onClick={() => setIsBatchEditExternalIdOpen(true)}
+                  >
+                    <IconArrowsOppositeDirectionYOutline18 /> Change External ID
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-gray-12 font-medium text-[13px]"
+                    disabled={
+                      getSelectedKeysState() !== "all-disabled" || updateKeyStatus.isLoading
                     }
-                    updateKeyStatus.mutate({
-                      enabled: true,
-                      keyIds,
-                    });
-                  }}
-                >
-                  <IconCircleCheckOutline18 />
-                  Enable key
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-12 font-medium text-[13px]"
-                  disabled={getSelectedKeysState() !== "all-enabled" || updateKeyStatus.isLoading}
-                  loading={updateKeyStatus.isLoading}
-                  onClick={handleDisableButtonClick}
-                  ref={disableButtonRef}
-                >
-                  <IconBanOutline18 />
-                  Disable key
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-12 font-medium text-[13px]"
-                  disabled={deleteKey.isLoading}
-                  loading={deleteKey.isLoading}
-                  onClick={handleDeleteButtonClick}
-                  ref={deleteButtonRef}
-                >
-                  <IconTrashOutline18 />
-                  Delete key
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="[&_svg]:size-[14px] ml-3"
-                  onClick={() => setSelectedKeys(new Set())}
-                >
-                  <IconXmarkOutline18 />
-                </Button>
+                    loading={updateKeyStatus.isLoading}
+                    onClick={() => {
+                      const keyIds = Array.from(selectedKeys);
+                      if (keyIds.length === 0) {
+                        return;
+                      }
+                      updateKeyStatus.mutate({
+                        enabled: true,
+                        keyIds,
+                      });
+                    }}
+                  >
+                    <IconCircleCheckOutline18 />
+                    Enable key
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-gray-12 font-medium text-[13px]"
+                    disabled={getSelectedKeysState() !== "all-enabled" || updateKeyStatus.isLoading}
+                    loading={updateKeyStatus.isLoading}
+                    onClick={handleDisableButtonClick}
+                    ref={disableButtonRef}
+                  >
+                    <IconBanOutline18 />
+                    Disable key
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-gray-12 font-medium text-[13px]"
+                    disabled={deleteKey.isLoading}
+                    loading={deleteKey.isLoading}
+                    onClick={handleDeleteButtonClick}
+                    ref={deleteButtonRef}
+                  >
+                    <IconTrashOutline18 />
+                    Delete key
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="[&_svg]:size-[14px] ml-3"
+                    onClick={() => setSelectedKeys(new Set())}
+                  >
+                    <IconXmarkOutline18 />
+                  </Button>
+                </div>
               </div>
+              {recentlyUsedCount > 0 && (
+                <div className="flex items-center gap-2 text-warning-11 text-[13px] leading-6">
+                  <IconTriangleWarningOutline18 className="size-3.5 shrink-0" />
+                  <span>{recentlyUsedSummary}</span>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
