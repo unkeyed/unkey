@@ -43,7 +43,7 @@ jobs:
   # Writes the build concurrency rules into Restate's rule book. Without this
   # job no rule is ever written, so once builds are scoped they run with no cap
   build-limit-sync:
-    schedule: "*/5 * * * *"
+    schedule: "*/15 * * * *"
     urlPath: "hydra.v1.CronService/build-limit-sync/RunBuildLimitSync/send"
     idempotencyKey: "build-limit-sync-$(date -u +%Y-%m-%dT%H:%M)"
 
