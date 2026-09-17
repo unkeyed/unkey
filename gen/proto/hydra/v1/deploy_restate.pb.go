@@ -29,11 +29,11 @@ import (
 // Build concurrency is Restate flow control, not code in this service. Deploy
 // calls Build in the scope "builds" with the workspace id as the limit key. A
 // scope is a name Restate groups invocations under. A limit key is the value
-// Restate counts running invocations by within a scope. The rule book, written
-// through the admin API, says how many invocations may run at once for a
-// "<scope>/<limit key>" pattern. CronService.RunBuildLimitSync writes the rule
-// book. A Build over the cap waits inside Restate until a running one finishes
-// or is cancelled.
+// Restate counts running invocations by within a scope. A concurrency rule,
+// written through the admin API, says how many invocations may run at once
+// for a "<scope>/<limit key>" pattern. CronService.RunBuildLimitSync writes
+// the build rules. A Build over the cap waits inside Restate until a running
+// one finishes or is cancelled.
 type DeployWorkflowClient interface {
 	// Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
 	// The key is the deployment id, so the caller chooses it up front.
@@ -168,11 +168,11 @@ func (c *deployWorkflowIngressClient) Handle() ingress.InvocationHandle[*DeployR
 // Build concurrency is Restate flow control, not code in this service. Deploy
 // calls Build in the scope "builds" with the workspace id as the limit key. A
 // scope is a name Restate groups invocations under. A limit key is the value
-// Restate counts running invocations by within a scope. The rule book, written
-// through the admin API, says how many invocations may run at once for a
-// "<scope>/<limit key>" pattern. CronService.RunBuildLimitSync writes the rule
-// book. A Build over the cap waits inside Restate until a running one finishes
-// or is cancelled.
+// Restate counts running invocations by within a scope. A concurrency rule,
+// written through the admin API, says how many invocations may run at once
+// for a "<scope>/<limit key>" pattern. CronService.RunBuildLimitSync writes
+// the build rules. A Build over the cap waits inside Restate until a running
+// one finishes or is cancelled.
 type DeployWorkflowServer interface {
 	// Create writes the deployment row and, for a DEPLOY decision, submits Deploy.
 	// The key is the deployment id, so the caller chooses it up front.

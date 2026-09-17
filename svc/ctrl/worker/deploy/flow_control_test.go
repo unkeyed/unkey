@@ -26,10 +26,9 @@ const (
 
 // TestFlowControl pins the Restate behaviour Deploy relies on when it calls
 // Build in [restateadmin.BuildConcurrencyScope] with the workspace as limit
-// key: the rule book caps
-// how many invocations per limit key run at once, cancelling the caller
-// removes its queued callee, and a rule written while callers wait lets them
-// run
+// key: a rule caps how many invocations per limit key run at once, cancelling
+// the caller removes its queued callee, and a rule written while callers wait
+// lets them run
 func TestFlowControl(t *testing.T) {
 	ctx := context.Background()
 	probe := &FlowControlProbe{
