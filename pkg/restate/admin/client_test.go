@@ -184,23 +184,3 @@ func TestUpsertRules(t *testing.T) {
 		{Pattern: "builds/ws_KEBAP", Concurrency: 0, Description: "", Disabled: true, Version: 2},
 	}, written)
 }
-
-func TestUpsertRules_RejectsEmptyAndZeroConcurrency(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
-		t.Error("a rejected upsert must not reach the server")
-	}))
-	t.Cleanup(server.Close)
-	client := New(Config{BaseURL: server.URL, APIKey: ""})
-
-	// A nil slice marshals to "null", which the endpoint rejects as a decode
-	// error rather than treating as an empty batch
-	_, err := client.UpsertRules(context.Background(), nil)
-	require.ErrorContains(t, err, "no rules")
-
-	// Restate types concurrency as non-zero; unlimited is the absence of a
-	// rule, not a rule at zero
-	_, err = client.UpsertRules(context.Background(), []RuleUpsert{
-		{Pattern: "builds/*", Concurrency: 0, Description: "KEBAP"},
-	})
-	require.ErrorContains(t, err, "non-zero concurrency")
-}

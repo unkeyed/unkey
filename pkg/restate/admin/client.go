@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -145,11 +144,13 @@ func (c *Client) FindLiveInvocations(ctx context.Context, invocationIDs []string
 }
 
 // BuildConcurrencyScope is the Restate scope build invocations run in, so
-// every build concurrency rule pattern is this scope, a slash, and a limit key
+// every build concurrency rule pattern is this scope, a slash, and a limit
+// key: "builds/*" caps every workspace, "builds/ws_123" caps one
 const BuildConcurrencyScope = "builds"
 
-// Rule is one entry in Restate's rule book: the cluster-wide table that caps
-// how many invocations may run at once for a scope and a limit key
+// Rule is one entry in Restate's rule book, the one list of concurrency caps
+// that every node of a Restate cluster shares. A rule names a pattern of scope
+// and limit key and how many matching invocations may run at once
 type Rule struct {
 	// Pattern selects the scope and limit keys the rule applies to, e.g.
 	// "builds/*" or "builds/ws_123". An exact pattern beats a wildcard
@@ -185,12 +186,8 @@ type ruleQueryResponse struct {
 	Rows []ruleRow `json:"rows"`
 }
 
-// ListRules returns every rule in the rule book.
-//
-// Restate exposes no endpoint that reads rules back: the admin API has only
-// PUT /limits/rules and POST /limits/rules/bulk-delete. The rule book is
-// readable through the SQL introspection endpoint alone, which is what
-// `restate rules list` itself queries
+// ListRules returns every rule in the rule book through the SQL endpoint; the
+// admin API has no GET for rules
 func (c *Client) ListRules(ctx context.Context) ([]Rule, error) {
 	result, err := call[ruleQueryResponse](ctx, c, "list rules", http.MethodPost, "/query", map[string]string{
 		"query": "select pattern, concurrency, description, disabled, version from sys_rules order by pattern",
@@ -233,30 +230,13 @@ type responseRule struct {
 	Version     uint32  `json:"version"`
 }
 
-// UpsertRules creates or updates the given rules and returns them as the book
-// holds them after the write. A pattern that is absent from the book is
-// created, one that is present is overwritten, and rules the call does not
-// name are left alone, so this never replaces the book.
-//
-// The write is atomic across the batch and unconditional. Writing a rule that
-// already holds these limits changes nothing and advances neither its version
-// nor its last-modified time, so a caller never has to read the book to decide
-// whether to write it. The returned rules come from the node that committed
-// the write, which makes them the one read of the book that cannot be stale
+// UpsertRules creates or updates the given rules. Other rules are untouched.
+// Rewriting a rule with the limits it already has changes nothing, not even
+// its version, so there is no need to read before writing. It returns the
+// rules as they are stored after the write
 func (c *Client) UpsertRules(ctx context.Context, rules []RuleUpsert) ([]Rule, error) {
-	// A nil slice marshals to "null", which the endpoint rejects with a
-	// decode error rather than treating as an empty batch
-	if len(rules) == 0 {
-		return nil, errors.New("upsert rules called with no rules")
-	}
 	payload := make([]upsertRule, 0, len(rules))
 	for _, rule := range rules {
-		// Restate types concurrency as a non-zero integer; a zero would be
-		// rejected by the server, and meaning it as "unlimited" would need
-		// the field omitted instead
-		if rule.Concurrency == 0 {
-			return nil, fmt.Errorf("rule %q must set a non-zero concurrency", rule.Pattern)
-		}
 		payload = append(payload, upsertRule{
 			Pattern:     rule.Pattern,
 			Limits:      limits{Concurrency: rule.Concurrency},

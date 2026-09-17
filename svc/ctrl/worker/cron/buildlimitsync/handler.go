@@ -2,11 +2,12 @@
 // handler. The handler keeps the build concurrency rules in Restate's rule
 // book.
 //
-// A rule book is the cluster-wide table Restate consults before it dispatches
-// an invocation. Each rule matches a pattern of <scope>/<limit key> and caps
-// how many matching invocations run at once; a pattern no rule matches is
-// unlimited. This handler writes "builds/*", which caps a workspace's
-// concurrent builds
+// The rule book is the one list of concurrency caps that every node of a
+// Restate cluster shares, written through the admin API and consulted before
+// an invocation is dispatched. Each rule matches a pattern of
+// <scope>/<limit key> and caps how many matching invocations run at once; a
+// pattern no rule matches is unlimited. This handler writes "builds/*", which
+// caps a workspace's concurrent builds
 package buildlimitsync
 
 import (
