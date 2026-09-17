@@ -1,25 +1,37 @@
 "use client";
 
+import { useProject } from "@/hooks/use-project";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import type { Project } from "@/lib/collections/deploy/projects";
 import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconTriangleWarningOutline12 } from "@unkey/icons";
 import { Button, DialogContainer, Input, SettingsZoneRow } from "@unkey/ui";
 
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 export function DeleteProject() {
-  const { projectId, project } = useProjectData();
+  const { project } = useProject();
+
+  // Without a loaded project the confirmation input has no name to match, so an
+  // empty value would pass validation and enable the delete button.
+  if (!project) {
+    return null;
+  }
+
+  return <DeleteProjectForm project={project} />;
+}
+
+function DeleteProjectForm({ project }: { project: Project }) {
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const projectName = project?.name ?? "";
+  const projectName = project.name;
 
   const formSchema = z.object({
     name: z.string().refine((v) => v === projectName, "Please confirm the project name"),
@@ -45,19 +57,13 @@ export function DeleteProject() {
   const onSubmit = async () => {
     // Non-optimistic: keep the project in the collection until the server delete
     // resolves. An optimistic removal empties the local project while this page
-    // is still mounted and trips the data provider's notFound() guard, 404ing
-    // before navigation lands.
-    const tx = collection.projects.delete(projectId, { optimistic: false });
+    // is still mounted and trips the layout's notFound() guard, 404ing before
+    // navigation lands.
+    const tx = collection.projects.delete(project.id, { optimistic: false });
     await tx.isPersisted.promise;
     setIsDialogOpen(false);
     router.push(routes.projects.list({ workspaceSlug: workspace.slug }));
   };
-
-  // Without a loaded project, projectName is "" and an empty confirmation
-  // input would pass validation, enabling the delete button.
-  if (!project) {
-    return null;
-  }
 
   return (
     <>

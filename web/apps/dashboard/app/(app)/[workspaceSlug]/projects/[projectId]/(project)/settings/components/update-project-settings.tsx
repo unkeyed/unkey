@@ -1,12 +1,12 @@
 "use client";
 
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { SettingField } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/shared/form-blocks";
 import {
   FormSettingCard,
   resolveSaveState,
 } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/shared/form-setting-card";
 import { SelectedConfig } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/shared/selected-config";
+import { useProject } from "@/hooks/use-project";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { type Project, createProjectRequestSchema } from "@/lib/collections/deploy/projects";
@@ -20,7 +20,7 @@ import type { z } from "zod";
 const nameSchema = createProjectRequestSchema.pick({ name: true });
 
 export function UpdateProjectSettings() {
-  const { project } = useProjectData();
+  const { project } = useProject();
   const workspace = useWorkspaceNavigation();
   const projectsNav = useFlag("projectsNav");
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
+import { useProject } from "@/hooks/use-project";
 import {
   PageBody,
   PageContainer,
@@ -13,7 +13,7 @@ import { DeleteProject } from "./components/delete-project";
 import { UpdateProjectSettings } from "./components/update-project-settings";
 
 export default function ProjectSettingsPage() {
-  const { project } = useProjectData();
+  const { project } = useProject();
 
   return (
     <PageContainer>
