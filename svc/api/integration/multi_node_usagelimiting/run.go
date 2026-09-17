@@ -74,6 +74,7 @@ func RunUsageLimitTest(
 		Permissions: nil,
 		Tags:        nil,
 		Key:         keyStart,
+		KeyspaceIds: nil,
 		Credits: &openapi.KeysVerifyKeyCredits{
 			Cost: costPerRequest,
 		},
