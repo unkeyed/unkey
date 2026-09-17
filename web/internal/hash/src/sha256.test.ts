@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 import { sha256 } from "./sha256";
 
 test("compatibility with resend's keys", async () => {
-  expect(sha256("MVgWNsyPmv6VthC9moCNAPwS")).resolves.toEqual(
+  await expect(sha256("MVgWNsyPmv6VthC9moCNAPwS")).resolves.toEqual(
     "CptSN3vQ0shZLIsdT5c/tlpeFK/qqxY0R/aQNCfKhWs=",
   );
 });
@@ -112,6 +112,6 @@ test("hashes the string", async () => {
     "3ZnJpPhMA2vD1u8HcfGYMV1i": "8HZdjYgurGRXpcbLb7aepGxC54lmAUHvO42demlojlQ=",
   };
   for (const [key, hash] of Object.entries(keysAndHashes)) {
-    expect(sha256(key)).resolves.toBe(hash);
+    await expect(sha256(key)).resolves.toBe(hash);
   }
 });
