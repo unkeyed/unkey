@@ -42,7 +42,7 @@ function Avatar({ deploy }: { deploy: RecentDeployRow }) {
       <img
         src={src}
         alt=""
-        className="size-5 shrink-0 rounded-full bg-grayA-3 ring-1 ring-grayA-4"
+        className="size-5 shrink-0 rounded-full bg-grayA-3"
       />
     );
   }
