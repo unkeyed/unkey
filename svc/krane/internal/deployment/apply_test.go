@@ -317,3 +317,21 @@ func TestBuildReplicaSet_NoSecretsOmitsEnvFrom(t *testing.T) {
 	require.Empty(t, mainContainer(t, rs).EnvFrom)
 	require.Empty(t, rs.Spec.Template.Spec.ServiceAccountName)
 }
+
+func TestBuildReplicaSetRuntimeClass(t *testing.T) {
+	for _, tt := range []struct {
+		name       string
+		configured *string
+		want       *string
+	}{
+		{name: "production default", configured: nil, want: ptr.P("gvisor")},
+		{name: "local node runtime", configured: ptr.P(""), want: nil},
+		{name: "explicit runtime", configured: ptr.P("kata"), want: ptr.P("kata")},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := New(Config{RuntimeClassName: tt.configured})
+			rs := ctrl.buildReplicaSet(fullApplyRequest(t), false)
+			require.Equal(t, tt.want, rs.Spec.Template.Spec.RuntimeClassName)
+		})
+	}
+}
