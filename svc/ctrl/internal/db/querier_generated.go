@@ -471,6 +471,36 @@ type Querier interface {
 	//
 	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, k8sName string) (Deployment, error)
+	//FindDeploymentForBuild
+	//
+	//  SELECT id, workspace_id, project_id, app_id, environment_id, status, created_at,
+	//         port, cpu_millicores, memory_mib, encrypted_environment_variables
+	//  FROM deployments
+	//  WHERE id = ?
+	FindDeploymentForBuild(ctx context.Context, id string) (FindDeploymentForBuildRow, error)
+	//FindDeploymentForDeploy
+	//
+	//  SELECT d.id, d.workspace_id, d.project_id, d.app_id, d.environment_id, d.status, d.created_at,
+	//         d.cpu_millicores, d.memory_mib, d.storage_mib,
+	//         d.git_commit_sha, d.git_branch, d.fork_repository_full_name, d.`trigger`,
+	//         d.github_deployment_id, d.pr_number,
+	//         w.slug AS workspace_slug, w.k8s_namespace AS workspace_k8s_namespace,
+	//         p.slug AS project_slug,
+	//         a.slug AS app_slug, a.is_rolled_back AS app_is_rolled_back,
+	//         e.slug AS environment_slug, e.kind AS environment_kind
+	//  FROM deployments d
+	//  JOIN workspaces w ON w.id = d.workspace_id
+	//  JOIN projects p ON p.id = d.project_id
+	//  JOIN apps a ON a.id = d.app_id
+	//  JOIN environments e ON e.id = d.environment_id
+	//  WHERE d.id = ?
+	FindDeploymentForDeploy(ctx context.Context, id string) (FindDeploymentForDeployRow, error)
+	//FindDeploymentForStep
+	//
+	//  SELECT id, workspace_id, project_id, app_id, environment_id, status
+	//  FROM deployments
+	//  WHERE id = ?
+	FindDeploymentForStep(ctx context.Context, id string) (FindDeploymentForStepRow, error)
 	// Returns all regions where a deployment is configured.
 	// Used for fan-out: when a deployment changes, emit state_change to each region.
 	//
@@ -1667,10 +1697,9 @@ type Querier interface {
 	//      LIMIT ?
 	//  ) AS batch ON batch.pk = k.pk
 	ListKeysForRefill(ctx context.Context, arg ListKeysForRefillParams) ([]ListKeysForRefillRow, error)
-	// Only deployments still in the queue (haven't acquired a build slot yet)
-	// are eligible for supersession. Once a deployment transitions to `starting`
-	// (after slot acquisition) it's committed — we don't cancel work that's
-	// already running.
+	// Only deployments still in the queue can be replaced by a newer commit. Once a
+	// deployment transitions to `starting`, which happens when Restate lets its
+	// Build run, it is committed: we don't cancel work that's already running.
 	//
 	// The cutoff is the created_at of the deployment being started, read from its
 	// own row. It is deliberately not the current time and not a value the caller
@@ -1787,6 +1816,13 @@ type Querier interface {
 	//      OR EXISTS (SELECT 1 FROM instances i WHERE i.deployment_id = d.id)
 	//    )
 	ListRunningDeploymentsByWorkspaceId(ctx context.Context, arg ListRunningDeploymentsByWorkspaceIdParams) ([]ListRunningDeploymentsByWorkspaceIdRow, error)
+	//ListWorkspaceBuildConcurrencyAbove
+	//
+	//  SELECT workspace_id, builds_concurrent_max
+	//  FROM `limits`
+	//  WHERE builds_concurrent_max > ?
+	//  ORDER BY workspace_id
+	ListWorkspaceBuildConcurrencyAbove(ctx context.Context, buildsConcurrentMax uint16) ([]ListWorkspaceBuildConcurrencyAboveRow, error)
 	// Fetches the Stripe customer identity for a batch of workspaces, used by the
 	// hourly Deploy billing push to decide where each workspace's month-to-date
 	// usage gets reported. The Stripe Billing Meters map usage to a customer by

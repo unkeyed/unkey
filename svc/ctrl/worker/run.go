@@ -42,7 +42,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme/providers"
 	workerapp "github.com/unkeyed/unkey/svc/ctrl/worker/app"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/certificate"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
@@ -336,7 +335,8 @@ func Run(ctx context.Context, cfg Config) error {
 	// fork PR approval. Create and NotifyInstancesReady stay public because
 	// svc/api, the ops rebuild and the cluster status report all call them.
 	restateSrv.Bind(hydrav1.NewDeployWorkflowServer(deployWorkflow, deployRetryPolicy).
-		ConfigureHandler("Deploy", restate.WithIngressPrivate(true)))
+		ConfigureHandler("Deploy", restate.WithIngressPrivate(true)).
+		ConfigureHandler("Build", restate.WithIngressPrivate(true), deploy.BuildRetryPolicy()))
 	deploymentSvc, err := deployment.New(deployment.Config{
 		DB:        database,
 		Auditlogs: auditlogSvc,
@@ -434,33 +434,6 @@ func Run(ctx context.Context, cfg Config) error {
 	restateSrv.Bind(hydrav1.NewEnvironmentServiceServer(envSvc).
 		ConfigureHandler("PromoteDeployment", deployRetryPolicy).
 		ConfigureHandler("RollbackDeployment", deployRetryPolicy))
-
-	// BuildSlotService is short-lived coordination — AcquireOrWait/Release
-	// journals have no debugging value (each invocation just reads state,
-	// maybe resolves an awakeable, and returns), so keep their retention
-	// minimal.
-	//
-	// Kill on retry exhaustion, not pause, and never the unset default of
-	// endless retries. This Virtual Object serializes all slot traffic for
-	// a workspace, so one stuck invocation blocks every deployment in that
-	// workspace. The handlers are idempotent and hold no compensations.
-	// The lease mechanism audits every durable effect (slot grants, wait
-	// entries, ExpireSlot leases), so the next call or audit repairs
-	// everything a killed invocation loses.
-	restateSrv.Bind(hydrav1.NewBuildSlotServiceServer(buildslot.New(buildslot.Config{
-		DB:           database,
-		RestateAdmin: restateAdminClient,
-	}),
-		restate.WithIngressPrivate(true),
-		restate.WithJournalRetention(1*time.Minute),
-		restate.WithInvocationRetryPolicy(
-			restate.WithInitialRetryInterval(100*time.Millisecond),
-			restate.WithRetryIntervalFactor(2.0),
-			restate.WithMaxRetryInterval(10*time.Second),
-			restate.WithMaxRetryAttempts(20),
-			restate.KillOnMaxAttempts(),
-		),
-	))
 
 	restateSrv.Bind(hydrav1.NewCustomDomainServiceServer(workercustomdomain.New(workercustomdomain.Config{
 		DB:          database,

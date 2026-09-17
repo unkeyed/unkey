@@ -175,3 +175,28 @@ func TestUpsertRules(t *testing.T) {
 		{"pattern":"builds/ws_KEBAP","limits":{"concurrency":5},"description":"per-workspace build concurrency from limits"}
 	]`, string(gotBody))
 }
+
+func TestDeleteRules(t *testing.T) {
+	var gotMethod, gotPath string
+	var gotBody []byte
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotMethod = r.Method
+		gotPath = r.URL.Path
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		gotBody = body
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`["builds/ws_KEBAP"]`))
+	}))
+	t.Cleanup(server.Close)
+
+	err := New(Config{BaseURL: server.URL, APIKey: ""}).DeleteRules(context.Background(), []string{"builds/ws_KEBAP", "builds/ws_gone"})
+	require.NoError(t, err)
+
+	require.Equal(t, http.MethodPost, gotMethod)
+	require.Equal(t, "/limits/rules/bulk-delete", gotPath)
+	require.JSONEq(t, `[{"pattern":"builds/ws_KEBAP"},{"pattern":"builds/ws_gone"}]`, string(gotBody))
+}
