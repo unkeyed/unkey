@@ -1697,6 +1697,13 @@ type Querier interface {
 	//      LIMIT ?
 	//  ) AS batch ON batch.pk = k.pk
 	ListKeysForRefill(ctx context.Context, arg ListKeysForRefillParams) ([]ListKeysForRefillRow, error)
+	//ListLimitsWithBuildsConcurrentMaxAbove
+	//
+	//  SELECT workspace_id, builds_concurrent_max
+	//  FROM `limits`
+	//  WHERE builds_concurrent_max > ?
+	//  ORDER BY workspace_id
+	ListLimitsWithBuildsConcurrentMaxAbove(ctx context.Context, buildsConcurrentMax uint16) ([]ListLimitsWithBuildsConcurrentMaxAboveRow, error)
 	// Only deployments still in the queue can be replaced by a newer commit. Once a
 	// deployment transitions to `starting`, which happens when Restate lets its
 	// Build run, it is committed: we don't cancel work that's already running.
@@ -1816,13 +1823,6 @@ type Querier interface {
 	//      OR EXISTS (SELECT 1 FROM instances i WHERE i.deployment_id = d.id)
 	//    )
 	ListRunningDeploymentsByWorkspaceId(ctx context.Context, arg ListRunningDeploymentsByWorkspaceIdParams) ([]ListRunningDeploymentsByWorkspaceIdRow, error)
-	//ListWorkspaceBuildConcurrencyAbove
-	//
-	//  SELECT workspace_id, builds_concurrent_max
-	//  FROM `limits`
-	//  WHERE builds_concurrent_max > ?
-	//  ORDER BY workspace_id
-	ListWorkspaceBuildConcurrencyAbove(ctx context.Context, buildsConcurrentMax uint16) ([]ListWorkspaceBuildConcurrencyAboveRow, error)
 	// Fetches the Stripe customer identity for a batch of workspaces, used by the
 	// hourly Deploy billing push to decide where each workspace's month-to-date
 	// usage gets reported. The Stripe Billing Meters map usage to a customer by

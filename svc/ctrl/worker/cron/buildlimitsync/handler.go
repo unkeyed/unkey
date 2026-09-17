@@ -121,7 +121,7 @@ func (h *Handler) Handle(
 // limits row is above the default
 func (h *Handler) listDesiredRules(ctx restate.ObjectContext) ([]restateadmin.RuleUpsert, error) {
 	return restate.Run(ctx, func(rc restate.RunContext) ([]restateadmin.RuleUpsert, error) {
-		rows, err := h.db.ListWorkspaceBuildConcurrencyAbove(rc, defaultConcurrency)
+		rows, err := h.db.ListLimitsWithBuildsConcurrentMaxAbove(rc, defaultConcurrency)
 		if err != nil {
 			return nil, err
 		}
