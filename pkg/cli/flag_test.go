@@ -24,7 +24,10 @@ func TestStringFlag_BasicParsing(t *testing.T) {
 
 func TestCommandJSON(t *testing.T) {
 	flag := String("source", "JSON source")
-	cmd := &Command{Name: "test", Flags: []Flag{flag}}
+	cmd := &Command{
+		Name:  "test",
+		Flags: []Flag{flag},
+	}
 	cmd.initFlagMap()
 	require.NoError(t, flag.Parse(`{"image":"ghcr.io/acme/api:v1"}`))
 
@@ -37,7 +40,10 @@ func TestCommandJSON(t *testing.T) {
 
 func TestCommandJSONIncludesFlagNameInError(t *testing.T) {
 	flag := String("source", "JSON source")
-	cmd := &Command{Name: "test", Flags: []Flag{flag}}
+	cmd := &Command{
+		Name:  "test",
+		Flags: []Flag{flag},
+	}
 	cmd.initFlagMap()
 	require.NoError(t, flag.Parse(`{"image":`))
 

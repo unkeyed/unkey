@@ -16,12 +16,18 @@ func TestSetRolePermissions(t *testing.T) {
 		{
 			name: "set permissions",
 			args: "permissions set-role-permissions --role=admin --permissions=documents.read,documents.write",
-			want: map[string]any{"role": "admin", "permissions": []any{"documents.read", "documents.write"}},
+			want: map[string]any{
+				"role":        "admin",
+				"permissions": []any{"documents.read", "documents.write"},
+			},
 		},
 		{
 			name: "clear permissions",
 			args: "permissions set-role-permissions --role-id=admin --permissions=",
-			want: map[string]any{"roleId": "admin", "permissions": []any{}},
+			want: map[string]any{
+				"roleId":      "admin",
+				"permissions": []any{},
+			},
 		},
 	}
 

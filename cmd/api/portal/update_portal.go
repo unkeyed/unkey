@@ -12,7 +12,10 @@ import (
 )
 
 func updatePortalCmd() *cli.Command {
-	return &cli.Command{Name: "update-portal", Usage: "Change a portal's slug, display name, the resource it serves, its enabled state, or its branding.", Description: `Change a portal's slug, display name, the resource it serves, its enabled state, or its branding.
+	return &cli.Command{
+		Name:  "update-portal",
+		Usage: "Change a portal's slug, display name, the resource it serves, its enabled state, or its branding.",
+		Description: `Change a portal's slug, display name, the resource it serves, its enabled state, or its branding.
 
 Unreleased and subject to change without notice.
 
@@ -45,7 +48,16 @@ For full documentation, see https://www.unkey.com/docs/api-reference/portal/upda
 				}
 				return util.Output(cmd, res.V2PortalUpdatePortalResponseBody)
 			}
-			req := components.V2PortalUpdatePortalRequestBody{Portal: cmd.String("portal"), Slug: nil, DisplayName: nil, KeyspaceID: nil, AppID: nil, Enabled: nil, LogoURL: nil, PrimaryColor: nil}
+			req := components.V2PortalUpdatePortalRequestBody{
+				Portal:       cmd.String("portal"),
+				Slug:         nil,
+				DisplayName:  nil,
+				KeyspaceID:   nil,
+				AppID:        nil,
+				Enabled:      nil,
+				LogoURL:      nil,
+				PrimaryColor: nil,
+			}
 			if v := cmd.String("slug"); v != "" {
 				req.Slug = &v
 			}

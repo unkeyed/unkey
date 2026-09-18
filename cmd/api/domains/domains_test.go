@@ -39,9 +39,42 @@ func TestListDomains(t *testing.T) {
 		name, args string
 		want       components.V2DomainsListDomainsRequestBody
 	}{
-		{"workspace wide", "domains list-domains", components.V2DomainsListDomainsRequestBody{Project: nil, App: nil, Environment: nil, Limit: ptr.P(int64(100)), Cursor: nil, Search: nil}},
-		{"independent app filter", "domains list-domains --app=api", components.V2DomainsListDomainsRequestBody{Project: nil, App: ptr.P("api"), Environment: nil, Limit: ptr.P(int64(100)), Cursor: nil, Search: nil}},
-		{"all options", "domains list-domains --project=payments --app=api --environment=production --limit=25 --cursor=dom_1234abcd --search=acme.com", components.V2DomainsListDomainsRequestBody{Project: ptr.P("payments"), App: ptr.P("api"), Environment: ptr.P("production"), Limit: ptr.P(int64(25)), Cursor: ptr.P("dom_1234abcd"), Search: ptr.P("acme.com")}},
+		{
+			"workspace wide",
+			"domains list-domains",
+			components.V2DomainsListDomainsRequestBody{
+				Project:     nil,
+				App:         nil,
+				Environment: nil,
+				Limit:       ptr.P(int64(100)),
+				Cursor:      nil,
+				Search:      nil,
+			},
+		},
+		{
+			"independent app filter",
+			"domains list-domains --app=api",
+			components.V2DomainsListDomainsRequestBody{
+				Project:     nil,
+				App:         ptr.P("api"),
+				Environment: nil,
+				Limit:       ptr.P(int64(100)),
+				Cursor:      nil,
+				Search:      nil,
+			},
+		},
+		{
+			"all options",
+			"domains list-domains --project=payments --app=api --environment=production --limit=25 --cursor=dom_1234abcd --search=acme.com",
+			components.V2DomainsListDomainsRequestBody{
+				Project:     ptr.P("payments"),
+				App:         ptr.P("api"),
+				Environment: ptr.P("production"),
+				Limit:       ptr.P(int64(25)),
+				Cursor:      ptr.P("dom_1234abcd"),
+				Search:      ptr.P("acme.com"),
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

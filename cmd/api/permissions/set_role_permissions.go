@@ -39,7 +39,10 @@ For full documentation, see https://www.unkey.com/docs/platform/apis/features/au
 			cli.String("role-id", "Deprecated role ID or unique name.", cli.MutuallyExclusive("body")),
 			cli.StringSlice("permissions", "Complete set of permission slugs to assign directly to the role.", cli.MutuallyExclusive("body")),
 		},
-		RequireOneOf: [][]string{{"role", "role-id"}},
+		RequireOneOf: [][]string{{
+			"role",
+			"role-id",
+		}},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
 			if err != nil {
@@ -61,9 +64,17 @@ For full documentation, see https://www.unkey.com/docs/platform/apis/features/au
 			permissions := cmd.StringSlice("permissions")
 			var req components.V2PermissionsSetRolePermissionsRequestBodyUnion
 			if role := cmd.String("role"); role != "" {
-				req = components.CreateV2PermissionsSetRolePermissionsRequestBodyUnionV2PermissionsSetRolePermissionsRequestBody1(components.V2PermissionsSetRolePermissionsRequestBody1{Role: role, RoleID: nil, Permissions: permissions})
+				req = components.CreateV2PermissionsSetRolePermissionsRequestBodyUnionV2PermissionsSetRolePermissionsRequestBody1(components.V2PermissionsSetRolePermissionsRequestBody1{
+					Role:        role,
+					RoleID:      nil,
+					Permissions: permissions,
+				})
 			} else {
-				req = components.CreateV2PermissionsSetRolePermissionsRequestBodyUnionV2PermissionsSetRolePermissionsRequestBody2(components.V2PermissionsSetRolePermissionsRequestBody2{Role: nil, RoleID: cmd.String("role-id"), Permissions: permissions})
+				req = components.CreateV2PermissionsSetRolePermissionsRequestBodyUnionV2PermissionsSetRolePermissionsRequestBody2(components.V2PermissionsSetRolePermissionsRequestBody2{
+					Role:        nil,
+					RoleID:      cmd.String("role-id"),
+					Permissions: permissions,
+				})
 			}
 			res, err := client.Permissions.SetRolePermissions(ctx, req)
 			if err != nil {

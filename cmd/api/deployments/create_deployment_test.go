@@ -19,12 +19,21 @@ func TestCreateDeployment(t *testing.T) {
 		{
 			name: "app default source",
 			args: "deployments create-deployment --project=payments --app=payments-api --environment=production",
-			want: openapi.V3DeploymentsCreateDeploymentRequestBody{Project: "payments", App: "payments-api", Environment: "production"},
+			want: openapi.V3DeploymentsCreateDeploymentRequestBody{
+				Project:     "payments",
+				App:         "payments-api",
+				Environment: "production",
+			},
 		},
 		{
 			name: "OCI source",
 			args: `deployments create-deployment --project=payments --app=payments-api --environment=production --oci={"image":"ghcr.io/acme/payments:v1.2.3"}`,
-			want: openapi.V3DeploymentsCreateDeploymentRequestBody{Project: "payments", App: "payments-api", Environment: "production", Oci: &openapi.DeploymentSourceOCI{Image: "ghcr.io/acme/payments:v1.2.3"}},
+			want: openapi.V3DeploymentsCreateDeploymentRequestBody{
+				Project:     "payments",
+				App:         "payments-api",
+				Environment: "production",
+				Oci:         &openapi.DeploymentSourceOCI{Image: "ghcr.io/acme/payments:v1.2.3"},
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -36,7 +45,10 @@ func TestCreateDeployment(t *testing.T) {
 }
 
 func TestCreateDeploymentRejectsMultipleSources(t *testing.T) {
-	root := &cli.Command{Name: "unkey", Commands: []*cli.Command{Cmd()}}
+	root := &cli.Command{
+		Name:     "unkey",
+		Commands: []*cli.Command{Cmd()},
+	}
 	err := root.Run(context.Background(), strings.Fields(`unkey deployments create-deployment --root-key=test --project=payments --app=payments-api --environment=production --git={} --oci={"image":"ghcr.io/acme/payments:v1.2.3"}`))
 	require.ErrorContains(t, err, "mutually exclusive")
 }

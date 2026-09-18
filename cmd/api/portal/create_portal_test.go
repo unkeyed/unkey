@@ -18,12 +18,28 @@ func TestCreatePortal(t *testing.T) {
 		{
 			name: "keyspace with defaults",
 			args: "portal create-portal --slug=acme-portal --display-name=Acme --keyspace-id=ks_1234abcd",
-			want: components.CreateV2PortalCreatePortalRequestBodyUnionV2PortalCreatePortalRequestBody1(components.V2PortalCreatePortalRequestBody1{Slug: "acme-portal", DisplayName: "Acme", KeyspaceID: "ks_1234abcd", AppID: nil, Enabled: ptr.P(true), LogoURL: nil, PrimaryColor: nil}),
+			want: components.CreateV2PortalCreatePortalRequestBodyUnionV2PortalCreatePortalRequestBody1(components.V2PortalCreatePortalRequestBody1{
+				Slug:         "acme-portal",
+				DisplayName:  "Acme",
+				KeyspaceID:   "ks_1234abcd",
+				AppID:        nil,
+				Enabled:      ptr.P(true),
+				LogoURL:      nil,
+				PrimaryColor: nil,
+			}),
 		},
 		{
 			name: "app with options",
 			args: "portal create-portal --slug=developer-portal --display-name='Developer Portal' --app-id=app_1234abcd --enabled=false --logo-url=https://cdn.example.com/logo.svg --primary-color=#6366f1",
-			want: components.CreateV2PortalCreatePortalRequestBodyUnionV2PortalCreatePortalRequestBody2(components.V2PortalCreatePortalRequestBody2{Slug: "developer-portal", DisplayName: "Developer Portal", KeyspaceID: nil, AppID: "app_1234abcd", Enabled: ptr.P(false), LogoURL: ptr.P("https://cdn.example.com/logo.svg"), PrimaryColor: ptr.P("#6366f1")}),
+			want: components.CreateV2PortalCreatePortalRequestBodyUnionV2PortalCreatePortalRequestBody2(components.V2PortalCreatePortalRequestBody2{
+				Slug:         "developer-portal",
+				DisplayName:  "Developer Portal",
+				KeyspaceID:   nil,
+				AppID:        "app_1234abcd",
+				Enabled:      ptr.P(false),
+				LogoURL:      ptr.P("https://cdn.example.com/logo.svg"),
+				PrimaryColor: ptr.P("#6366f1"),
+			}),
 		},
 	}
 
