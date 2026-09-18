@@ -3649,7 +3649,6 @@ type V2KeysVerifyKeyRequestBody struct {
 	// Keyspaces Restricts verification to keys in these keyspaces, matched by exact ID.
 	// Omit this field to verify without a keyspace restriction. An empty array rejects every key.
 	// A failed keyspace check returns `NOT_FOUND` without consuming credits or rate limits.
-	// This restriction does not grant permissions. Your root key must still have permission to verify the key.
 	Keyspaces *[]string `json:"keyspaces,omitempty"`
 
 	// MigrationId Migrate keys on demand from your previous system. Reach out for migration support at support@unkey.dev
