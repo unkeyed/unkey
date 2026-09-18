@@ -1,16 +1,12 @@
 import { db } from "@/lib/db";
-import { env } from "@/lib/env";
+import { searchClient } from "@/lib/search/client";
+import { createSearch } from "@/lib/search/engine";
+import { keysListSearchSpec } from "@/lib/search/specs/keys-list";
 import { withLlmAccess, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import OpenAI from "openai";
 import { z } from "zod";
-import { getKeysStructuredSearchFromLLM } from "./utils";
 
-const openai = env().OPENAI_API_KEY
-  ? new OpenAI({
-      apiKey: env().OPENAI_API_KEY,
-    })
-  : null;
+const search = createSearch(keysListSearchSpec);
 
 export const apiKeysLlmSearch = workspaceProcedure
   .use(withLlmAccess())
@@ -49,5 +45,5 @@ export const apiKeysLlmSearch = workspaceProcedure
 
     // Process the natural language query using LLM. Use ctx.validatedQuery from
     // withLlmAccess(), which enforces 3-120 char length and the LLM rate limit.
-    return await getKeysStructuredSearchFromLLM(openai, ctx.validatedQuery);
+    return await search(searchClient(), ctx.validatedQuery);
   });

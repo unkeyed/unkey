@@ -1,18 +1,14 @@
-import { env } from "@/lib/env";
+import { searchClient } from "@/lib/search/client";
+import { createSearch } from "@/lib/search/engine";
+import { deploymentsSearchSpec } from "@/lib/search/specs/deployments";
 import { withLlmAccess, workspaceProcedure } from "@/lib/trpc/trpc";
-import OpenAI from "openai";
 import { z } from "zod";
-import { getStructuredSearchFromLLM } from "./utils";
 
-const openai = env().OPENAI_API_KEY
-  ? new OpenAI({
-      apiKey: env().OPENAI_API_KEY,
-    })
-  : null;
+const search = createSearch(deploymentsSearchSpec);
 
 export const searchDeployments = workspaceProcedure
   .use(withLlmAccess())
   .input(z.object({ query: z.string() }))
   .mutation(async ({ ctx }) => {
-    return await getStructuredSearchFromLLM(openai, ctx.validatedQuery);
+    return await search(searchClient(), ctx.validatedQuery);
   });

@@ -1,16 +1,12 @@
 import { db } from "@/lib/db";
-import { env } from "@/lib/env";
+import { searchClient } from "@/lib/search/client";
+import { createSearch } from "@/lib/search/engine";
+import { keysOverviewSearchSpec } from "@/lib/search/specs/keys-overview";
 import { withLlmAccess, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import OpenAI from "openai";
 import { z } from "zod";
-import { getKeysStructuredSearchFromLLM } from "./utils";
 
-const openai = env().OPENAI_API_KEY
-  ? new OpenAI({
-      apiKey: env().OPENAI_API_KEY,
-    })
-  : null;
+const search = createSearch(keysOverviewSearchSpec);
 
 export const keysLlmSearch = workspaceProcedure
   .use(withLlmAccess())
@@ -49,5 +45,5 @@ export const keysLlmSearch = workspaceProcedure
     }
 
     // Process the natural language query using LLM
-    return await getKeysStructuredSearchFromLLM(openai, input.query, input.timestamp);
+    return await search(searchClient(), input.query, input.timestamp);
   });

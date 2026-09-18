@@ -1,16 +1,12 @@
 import { db } from "@/lib/db";
-import { env } from "@/lib/env";
+import { searchClient } from "@/lib/search/client";
+import { createSearch } from "@/lib/search/engine";
+import { auditSearchSpec } from "@/lib/search/specs/audit";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
-import OpenAI from "openai";
 import { z } from "zod";
-import { getStructuredAuditSearchFromLLM } from "./utils";
 
-const openai = env().OPENAI_API_KEY
-  ? new OpenAI({
-      apiKey: env().OPENAI_API_KEY,
-    })
-  : null;
+const search = createSearch(auditSearchSpec);
 
 export const auditLogsSearch = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
@@ -37,5 +33,5 @@ export const auditLogsSearch = workspaceProcedure
       });
     }
 
-    return await getStructuredAuditSearchFromLLM(openai, input.query, input.timestamp);
+    return await search(searchClient(), input.query, input.timestamp);
   });
