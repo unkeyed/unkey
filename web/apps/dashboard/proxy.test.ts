@@ -25,8 +25,9 @@ const mocks = vi.hoisted(() => ({
   authProvider: "workos" as "workos" | "local",
   dashboardBaseUrl: "http://localhost:3000",
   vercelUrl: undefined as string | undefined,
-  authkit: vi.fn<[NextRequest, AuthkitOptions], Promise<AuthkitResult>>(),
-  handleAuthkitHeaders: vi.fn<[NextRequest, Headers, HeaderOptions?], NextResponse>(),
+  authkit: vi.fn<(request: NextRequest, options: AuthkitOptions) => Promise<AuthkitResult>>(),
+  handleAuthkitHeaders:
+    vi.fn<(request: NextRequest, headers: Headers, options?: HeaderOptions) => NextResponse>(),
   logManagedAuthOutcome: vi.fn(),
 }));
 

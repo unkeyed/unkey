@@ -51,7 +51,7 @@ let queryResult: {
   isFetching: boolean;
 };
 let currentFilters: { field: string; operator: string; value: string }[];
-let prefetchSpy: ReturnType<typeof vi.fn>;
+let prefetchSpy: ReturnType<typeof vi.fn<(params: { page: number; sortBy?: string }) => void>>;
 
 // usePaginatedNavigation requires the raw query flags so no caller can silently
 // lose its loading states. Tests that exercise the clamp/prefetch rather than

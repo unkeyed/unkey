@@ -35,10 +35,10 @@ function dispatchKeyEvent(
 
 describe("Keyboard Shortcut Functionality", () => {
   describe("useKeyboardShortcut Hook", () => {
-    let callback: ReturnType<typeof vi.fn>;
+    let callback: ReturnType<typeof vi.fn<() => void>>;
 
     beforeEach(() => {
-      callback = vi.fn();
+      callback = vi.fn<() => void>();
       vi.restoreAllMocks();
     });
 
@@ -300,7 +300,6 @@ describe("Keyboard Shortcut Functionality", () => {
     let warnSpy: ReturnType<typeof vi.spyOn>;
 
     beforeEach(() => {
-      //@ts-expect-error should be fine
       warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     });
 
