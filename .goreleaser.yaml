@@ -71,7 +71,15 @@ npms:
     tag: "{{ if .Prerelease }}next{{ else }}latest{{ end }}"
 
 changelog:
-  use: github
+  use: git
+  paths:
+    - build/cli/
+    - cmd/api/
+    - cmd/auth/
+    - cmd/deploy/
+    - cmd/healthcheck/
+    - cmd/version/
+    - pkg/cli/
   sort: asc
   filters:
     exclude:
