@@ -24,12 +24,9 @@ jobs:
       #     name: unkey-rask-cache
       #     path: /mnt/depot-cache
       #     write-lock: /mnt/depot-cache/rask
-      - name: Install mise
-        run: |
-          ./dev/install-mise
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: Install toolchain
-        run: mise install --locked --yes
+      - uses: ./.depot/actions/setup-mise
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         run: mise run build
       - name: Run tests
