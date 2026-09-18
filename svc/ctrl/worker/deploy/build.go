@@ -59,12 +59,11 @@ const (
 	// also spent the outer Run's wall-clock budget and is not retried
 	buildBackendDeadline = 30 * time.Minute
 
-	// BuildKeepAliveWindow keeps Restate from suspending a running Build.
-	// restate.Run's context is cancelled with the invocation's http2 stream and
-	// not on suspend, so a suspended Build cannot be told it was cancelled: the
-	// image build runs on and the workspace keeps its build slot until it ends
-	// on its own. Above buildBackendDeadline so the build's own bound always
-	// fires first and this one never does
+	// BuildKeepAliveWindow keeps Restate from suspending a running Build. A
+	// suspended Build cannot be told it was cancelled, so its image build would
+	// run on and hold the workspace's build slot until it ended on its own.
+	// Must stay above buildBackendDeadline, which is as long as a build can
+	// take: below it, a cancel stops working for every build that runs longer
 	BuildKeepAliveWindow = buildBackendDeadline + 5*time.Minute
 )
 
