@@ -469,7 +469,11 @@
               {
                 "group": "portal",
                 "pages": [
-                  "cli/portal/create-session"
+                  "cli/portal/create-portal",
+                  "cli/portal/create-session",
+                  "cli/portal/delete-portal",
+                  "cli/portal/get-portal",
+                  "cli/portal/update-portal"
                 ]
               },
               {
