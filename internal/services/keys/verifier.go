@@ -75,11 +75,6 @@ func (k *KeyVerifier) VerifyRootKey(ctx context.Context, opts ...VerifyOption) e
 // For root keys: returns fault errors for validation failures.
 // For normal keys: returns error only for system problems, check k.Valid and k.Status for validation results.
 func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
-	// Skip verification if key is already invalid
-	if k.Status != StatusValid {
-		return nil
-	}
-
 	// nolint:exhaustruct
 	config := &verifyConfig{}
 	for _, opt := range opts {
@@ -88,12 +83,16 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 		}
 	}
 
-	if config.tags != nil {
+	if k.Status == StatusValid && config.tags != nil {
 		k.tags = config.tags
 	}
 
 	if config.keyspaces != nil && !slices.Contains(config.keyspaces, k.Key.KeyAuthID) {
 		k.setInvalid(StatusNotFound, "Key does not belong to an allowed keyspace.")
+		return nil
+	}
+
+	if k.Status != StatusValid {
 		return nil
 	}
 

@@ -59,6 +59,19 @@ properties:
     example: "documents.read AND users.view"
   credits:
     "$ref": "./KeysVerifyKeyCredits.yaml"
+  keyspaces:
+    type: array
+    maxItems: 5
+    items:
+      type: string
+      minLength: 1
+      maxLength: 256
+    description: |
+      Restricts verification to keys in these keyspaces, matched by exact ID.
+      Omit this field to verify without a keyspace restriction. An empty array rejects every key.
+      A failed keyspace check returns `NOT_FOUND` without consuming credits or rate limits.
+    example:
+      - ks_1234abcd
   ratelimits:
     type: array
     items:

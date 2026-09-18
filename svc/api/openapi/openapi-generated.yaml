@@ -2612,6 +2612,19 @@ components:
                     example: "documents.read AND users.view"
                 credits:
                     "$ref": "#/components/schemas/KeysVerifyKeyCredits"
+                keyspaces:
+                    type: array
+                    maxItems: 5
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 256
+                    description: |
+                        Restricts verification to keys in these keyspaces, matched by exact ID.
+                        Omit this field to verify without a keyspace restriction. An empty array rejects every key.
+                        A failed keyspace check returns `NOT_FOUND` without consuming credits or rate limits.
+                    example:
+                        - ks_1234abcd
                 ratelimits:
                     type: array
                     items:
@@ -6668,6 +6681,13 @@ components:
                         The unique identifier of the verified key in Unkey's system.
                         Use this ID for operations like updating or revoking the key. This field
                         is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
+                keyspaceId:
+                    type: string
+                    description: |
+                        The ID of the keyspace the key belongs to.
+                        Returned for both valid and invalid keys, except when `code=NOT_FOUND`.
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
                 name:
