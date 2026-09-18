@@ -11,8 +11,8 @@
  * Dry-run by default — prints the IDs that would be rebuilt. Pass
  * --execute to actually call ctrl.
  *
- * Batches with a configurable pause between calls so we don't stampede
- * the build slot pool.
+ * Batches with a configurable pause between calls so we don't flood the
+ * workspace's build queue.
  *
  * Usage:
  *   CTRL_BEARER=... bun run scripts/rebuild-deployments.ts \

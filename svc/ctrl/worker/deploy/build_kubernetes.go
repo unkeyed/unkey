@@ -58,9 +58,9 @@ func sanitizeK8sName(s string) string {
 // reap orphans if the worker dies mid-build. Returns the deployment ID as
 // the build ID since there is no external build system to reference.
 func (w *Workflow) withKubernetesBuildkit(
-	runCtx context.Context,
+	buildCtx context.Context,
 	params gitBuildParams,
-	fn func(buildClient *client.Client) error,
+	fn func(buildCtx context.Context, buildClient *client.Client) error,
 ) (string, error) {
 	jobs := w.k8s.BatchV1().Jobs(w.buildConfig.Kubernetes.Namespace)
 
@@ -129,15 +129,15 @@ func (w *Workflow) withKubernetesBuildkit(
 		},
 	}
 
-	created, err := jobs.Create(runCtx, job, metav1.CreateOptions{})
+	created, err := jobs.Create(buildCtx, job, metav1.CreateOptions{})
 	if err != nil {
 		return "", fmt.Errorf("failed to create build job: %w", err)
 	}
 
 	defer func() {
-		// WithoutCancel: the deferred delete must run even when runCtx is
+		// WithoutCancel: the deferred delete must run even when buildCtx is
 		// already canceled — that cancellation is a common reason we're here.
-		delCtx, cancel := context.WithTimeout(context.WithoutCancel(runCtx), 30*time.Second)
+		delCtx, cancel := context.WithTimeout(context.WithoutCancel(buildCtx), 30*time.Second)
 		defer cancel()
 		if delErr := jobs.Delete(delCtx, created.Name, metav1.DeleteOptions{
 			PropagationPolicy: ptr.P(metav1.DeletePropagationBackground),
@@ -154,12 +154,12 @@ func (w *Workflow) withKubernetesBuildkit(
 		"namespace", w.buildConfig.Kubernetes.Namespace,
 		"deployment_id", params.DeploymentID)
 
-	podIP, err := w.waitForBuildkitPod(runCtx, created.Name)
+	podIP, err := w.waitForBuildkitPod(buildCtx, created.Name)
 	if err != nil {
 		return "", err
 	}
 
-	buildClient, err := client.New(runCtx, fmt.Sprintf("tcp://%s:%d", podIP, buildkitPort))
+	buildClient, err := client.New(buildCtx, fmt.Sprintf("tcp://%s:%d", podIP, buildkitPort))
 	if err != nil {
 		return "", fmt.Errorf("unable to create build client: %w", err)
 	}
@@ -169,7 +169,7 @@ func (w *Workflow) withKubernetesBuildkit(
 		}
 	}()
 
-	return params.DeploymentID, fn(buildClient)
+	return params.DeploymentID, fn(buildCtx, buildClient)
 }
 
 // waitForBuildkitPod polls until the Job's pod is ready and returns its pod
