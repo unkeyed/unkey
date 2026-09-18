@@ -14,7 +14,7 @@ import {
 import { InfoTooltip } from "@unkey/ui";
 import Link from "next/link";
 import type { ComponentPropsWithRef, FC, ReactElement, ReactNode } from "react";
-import { DeploymentMeta, deploymentPhrase } from "./deployment-meta";
+import { type AppDeployment, DeploymentMeta, useDeploymentPhrase } from "./deployment-meta";
 
 // base-ui merges the handlers, aria wiring and ref it needs into this element,
 // so swallowing props silently detaches the hover.
@@ -34,7 +34,7 @@ export function AppRow({
       <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-5 text-accent-12">
         {app.name}
       </span>
-      <DeploymentMeta deployment={app.headlineDeployment} />
+      {app.headlineDeployment ? <DeploymentMeta deployment={app.headlineDeployment} /> : null}
     </Link>
   );
 }
@@ -54,18 +54,15 @@ export function AppDetailTooltip({
       delayDuration={100}
       style={{ width }}
       position={{ side: "right", align: "center" }}
-      content={<AppDetail app={app} />}
+      content={<AppDetail app={app} deployment={app.headlineDeployment} />}
     >
       {children}
     </InfoTooltip>
   );
 }
 
-function AppDetail({ app }: { app: ProjectApp }) {
-  const deployment = app.headlineDeployment;
-  if (!deployment) {
-    return null;
-  }
+function AppDetail({ app, deployment }: { app: ProjectApp; deployment: AppDeployment }) {
+  const deployedPhrase = useDeploymentPhrase(deployment);
 
   const rows: [string, FC<IconProps>, ReactNode][] = [];
   if (deployment.commitMessage) {
@@ -88,7 +85,7 @@ function AppDetail({ app }: { app: ProjectApp }) {
       </DottedLink>,
     ]);
   }
-  rows.push(["deployed", IconClockOutline18, deploymentPhrase(deployment)]);
+  rows.push(["deployed", IconClockOutline18, deployedPhrase]);
 
   return (
     <div className="flex flex-col gap-2">
