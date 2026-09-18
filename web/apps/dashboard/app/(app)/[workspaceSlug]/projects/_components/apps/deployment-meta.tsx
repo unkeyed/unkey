@@ -1,6 +1,5 @@
 "use client";
 
-import { useNow } from "@/hooks/use-now";
 import {
   type DeploymentStatusGroup,
   statusGroupOf,
@@ -8,7 +7,7 @@ import {
 import type { ProjectApp } from "@/lib/collections/deploy/projects";
 import { cn } from "@/lib/utils";
 import { match } from "@unkey/match";
-import { intlFormatDistance } from "date-fns";
+import { useElapsed } from "@unkey/ui";
 import { DeploymentStatusIndicator } from "../../[projectId]/apps/[appId]/components/deployment-status-dot";
 
 export type AppDeployment = NonNullable<ProjectApp["headlineDeployment"]>;
@@ -35,18 +34,12 @@ const TONE: Record<DeploymentStatusGroup, string> = {
   superseded: "text-gray-9",
 };
 
-// deployedAt is the server's clock read against the browser's, so a browser
-// running behind would put the deployment in the future: "started in 25 sec".
-function age(deployedAt: number, now: number): string {
-  return intlFormatDistance(deployedAt, Math.max(now, deployedAt), { style: "narrow" });
-}
-
 export function useDeploymentPhrase(deployment: AppDeployment): string {
-  return `${VERB[statusGroupOf(deployment.status)]} ${age(deployment.deployedAt, useNow())}`;
+  return `${VERB[statusGroupOf(deployment.status)]} ${useElapsed(deployment.deployedAt, "narrow")}`;
 }
 
 export function DeploymentMeta({ deployment }: { deployment: AppDeployment }) {
-  const deployedAgo = age(deployment.deployedAt, useNow());
+  const deployedAgo = useElapsed(deployment.deployedAt, "narrow");
 
   const settled = (group: DeploymentStatusGroup) => (
     <span className={cn("shrink-0 text-xs", TONE[group])}>

@@ -49,10 +49,12 @@ export * from "./components/slide-panel";
 export * from "./components/slider";
 export * from "./components/step-wizard";
 export * from "./hooks/use-mobile";
+export * from "./hooks/use-relative-time";
 export * from "./components/data-table";
 
 /* Styles Export */
 export * from "../css";
 
 /* Lib Export */
+export * from "./lib/time";
 export * from "./lib/utils";

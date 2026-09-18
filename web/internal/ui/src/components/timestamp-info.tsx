@@ -1,44 +1,25 @@
 "use client";
-import { format, formatDistanceToNow, fromUnixTime } from "date-fns";
+import { format } from "date-fns";
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
+import { useRelativeTime } from "../hooks/use-relative-time";
+import { toDate } from "../lib/time";
 import { cn } from "../lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./dialog/popover";
 import { toast } from "./toaster";
 
-const unixMicroToDate = (unix: string | number): Date => {
-  return fromUnixTime(Number(unix) / 1000 / 1000);
-};
-
-const isUnixMicro = (unix: string | number): boolean => {
-  const digitLength = String(unix).length === 16;
-  const isNum = !Number.isNaN(Number(unix));
-  return isNum && digitLength;
-};
-
 const timestampLocalFormatter = (value: string | number) => {
-  const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
-  return format(date, "MMM dd HH:mm:ss");
+  return format(toDate(value), "MMM dd HH:mm:ss");
 };
 
 const timestampLocalHoursWithMillisFormatter = (value: string | number) => {
-  const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
-  return format(date, "HH:mm:ss.SSS");
+  return format(toDate(value), "HH:mm:ss.SSS");
 };
 
 const timestampUtcFormatter = (value: string | number) => {
-  const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
-  const isoDate = date.toISOString();
+  const isoDate = toDate(value).toISOString();
   const utcDate = `${isoDate.substring(0, 10)} ${isoDate.substring(11, 19)}`;
   return format(utcDate, "MMM d,yyyy HH:mm:ss");
-};
-
-const timestampRelativeFormatter = (value: string | number): string => {
-  const date = isUnixMicro(value) ? unixMicroToDate(value) : new Date(value);
-
-  return formatDistanceToNow(date, {
-    addSuffix: true,
-  });
 };
 
 type DisplayType = "local" | "local_hours_with_millis" | "utc" | "relative";
@@ -73,7 +54,7 @@ const TimestampInfo: React.FC<{
 }) => {
   const local = timestampLocalFormatter(value);
   const utc = timestampUtcFormatter(value);
-  const relative = timestampRelativeFormatter(value);
+  const relative = useRelativeTime(value);
   const [align, setAlign] = useState<"start" | "end">("start");
   const internalTriggerRef = useRef<HTMLButtonElement>(null);
   const triggerRef = externalTriggerRef || internalTriggerRef;
@@ -118,7 +99,7 @@ const TimestampInfo: React.FC<{
   const getDisplayValue = () => {
     switch (displayType) {
       case "local":
-        return timestampLocalFormatter(value);
+        return local;
       case "utc":
         return utc;
       case "relative":
@@ -126,7 +107,7 @@ const TimestampInfo: React.FC<{
       case "local_hours_with_millis":
         return timestampLocalHoursWithMillisFormatter(value);
       default:
-        return timestampLocalFormatter(value);
+        return local;
     }
   };
 

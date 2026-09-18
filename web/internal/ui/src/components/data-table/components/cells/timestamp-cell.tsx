@@ -1,4 +1,4 @@
-import { formatDistanceToNow } from "date-fns";
+import { useRelativeTime } from "../../../../hooks/use-relative-time";
 
 export interface TimestampCellProps {
   timestamp: number | Date;
@@ -10,6 +10,7 @@ export interface TimestampCellProps {
  */
 export function TimestampCell({ timestamp, format = "relative" }: TimestampCellProps) {
   const date = typeof timestamp === "number" ? new Date(timestamp) : timestamp;
+  const relative = useRelativeTime(date);
 
   if (Number.isNaN(date.getTime())) {
     return <span className="text-xs text-accent-9">—</span>;
@@ -18,7 +19,7 @@ export function TimestampCell({ timestamp, format = "relative" }: TimestampCellP
   if (format === "relative") {
     return (
       <span className="text-xs text-accent-11" title={date.toLocaleString()}>
-        {formatDistanceToNow(date, { addSuffix: true })}
+        {relative}
       </span>
     );
   }
@@ -30,9 +31,7 @@ export function TimestampCell({ timestamp, format = "relative" }: TimestampCellP
   // Both
   return (
     <div className="flex flex-col">
-      <span className="text-xs text-accent-12">
-        {formatDistanceToNow(date, { addSuffix: true })}
-      </span>
+      <span className="text-xs text-accent-12">{relative}</span>
       <span className="text-xs text-accent-9">{date.toLocaleString()}</span>
     </div>
   );
