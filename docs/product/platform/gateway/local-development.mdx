@@ -1,0 +1,153 @@
+---
+title: Local gateway
+description: "Run Frontline with Docker Compose to verify real API keys and inspect forwarded request headers."
+---
+
+Frontline's `local-dev` mode runs the gateway on your machine with routes and
+policies from a TOML file. This example puts it in front of `traefik/whoami`, an
+HTTP echo service that returns request headers. No application code is needed.
+
+A valid API key reaches the echo service with an
+[`X-Unkey-Principal` header](/platform/gateway/principal/overview). Frontline
+rejects missing or invalid keys before they reach the service. To test your
+application's header handling without real key verification, you can
+[mock a Principal](/platform/gateway/principal/local-development) instead.
+
+<Warning>
+  Use this example for local development only. The echo response includes the
+  API key's `Authorization` header and principal metadata. Use development keys
+  and keep `.env` out of version control.
+</Warning>
+
+## Prerequisites
+
+You need Docker Compose, a keyspace, a root key with permission to verify keys in
+that keyspace, and an API key from that keyspace.
+
+<Note>
+  The Frontline prerelease in this example requires an Unkey API that accepts
+  the `keyspaces` verification parameter and returns `keyspaceId` for valid keys.
+  An older API rejects that parameter with HTTP 400, which Frontline reports as
+  HTTP 500. Releasing Frontline alone does not update the verification API.
+  Set `UNKEY_API_URL` to a compatible API if those changes are not deployed to
+  the hosted API.
+</Note>
+
+## Configure the containers
+
+Create these three files in the same directory. Replace the root key and
+keyspace ID in `.env` with your development values.
+
+<CodeGroup>
+
+```yaml compose.yaml
+services:
+  frontline:
+    image: ghcr.io/unkeyed/frontline:v1.0.26-rc.1
+    command: ["--config", "/etc/unkey/gateway.toml"]
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      UNKEY_ROOT_KEY: ${UNKEY_ROOT_KEY:?Set UNKEY_ROOT_KEY in .env}
+      UNKEY_KEYSPACE_ID: ${UNKEY_KEYSPACE_ID:?Set UNKEY_KEYSPACE_ID in .env}
+      UNKEY_API_URL: ${UNKEY_API_URL:-https://api.unkey.com}
+    volumes:
+      - ./gateway.toml:/etc/unkey/gateway.toml:ro
+    depends_on:
+      - api
+    networks:
+      default:
+        aliases:
+          - api.test
+
+  api:
+    image: traefik/whoami:v1.11.0
+```
+
+```toml gateway.toml
+[local-dev]
+http_port = 8080
+api_url = "${UNKEY_API_URL}"
+root_key = "${UNKEY_ROOT_KEY}"
+
+[[local-dev.routes]]
+hostname = "api.test"
+upstream = "api:80"
+
+[[local-dev.routes.policies]]
+id = "authenticate"
+enabled = true
+keyauth = { key_space_ids = ["${UNKEY_KEYSPACE_ID}"], credits = 0 }
+```
+
+```plaintext .env
+UNKEY_ROOT_KEY=replace-with-a-root-key
+UNKEY_KEYSPACE_ID=replace-with-a-keyspace-id
+UNKEY_API_URL=https://api.unkey.com
+```
+
+</CodeGroup>
+
+Only Frontline is exposed to your host, on loopback port 8080. The echo service
+is internal to the Compose network. Inside a container, `localhost` refers to
+that container, not your host. Use a container-reachable URL if you run your own
+verification API.
+
+The policy sets `credits = 0` to avoid deducting key credits. Verification still
+uses the real Unkey API, so key expiration and key rate limits still apply.
+
+## Start the gateway
+
+Run these commands from the directory containing the three files:
+
+```bash
+docker compose up -d
+docker compose logs frontline
+```
+
+## Inspect the forwarded headers
+
+Set your API key in the terminal, then send a request through Frontline:
+
+```bash
+export UNKEY_API_KEY='replace-with-an-api-key-from-your-keyspace'
+curl --noproxy '*' --resolve api.test:8080:127.0.0.1 \
+  http://api.test:8080/ \
+  -H "Authorization: Bearer ${UNKEY_API_KEY}"
+```
+
+The response includes `X-Unkey-Principal`, `X-Forwarded-Host`, and
+`X-Forwarded-Proto: http`. Header capitalization can differ. The principal's
+subject is the key's identity external ID, or its key ID if it has no identity.
+
+Send the same request without a key to check rejection:
+
+```bash
+curl --noproxy '*' --resolve api.test:8080:127.0.0.1 \
+  -i http://api.test:8080/
+```
+
+Expect HTTP 401 instead of an echo response.
+
+## Use named hosts
+
+The `api.test` network alias belongs to Frontline, not the echo service.
+Containers on this Compose network can call `http://api.test:8080`.
+Frontline resolves its upstream separately as `api:80`.
+
+Compose aliases do not configure your host's DNS. The curl commands use
+`--resolve` so no hosts-file change is needed. For a browser on your host, add
+`127.0.0.1 api.test` to your hosts file. For additional hostnames, add both a
+Frontline route and a network alias. Add host DNS entries separately when needed.
+
+To use your own application, replace the `api` service and set `upstream` to its
+Compose service name and listening port. Keep its port internal so requests
+cannot bypass Frontline.
+
+## Stop the example
+
+Remove both containers and their Compose network:
+
+```bash
+docker compose down
+```
