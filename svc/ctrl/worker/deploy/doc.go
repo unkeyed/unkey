@@ -41,12 +41,12 @@
 // concurrency rules that CronService.RunBuildLimitSync writes from
 // limits.builds_concurrent_max cap how many Builds per workspace run at once.
 // Restate queues the rest in the order they became ready and lets the next
-// one run when a running Build returns. Cancelling a running Build does not
-// free its slot early, because the image build is one restate.Run and the
-// Build returns only once it finishes. There is no queue timeout and no bound
-// on how long a Build may hold its slot. Build ends the queued step and runs
-// the starting and building steps, so a deployment stays pending while it
-// waits. Production and preview share the workspace's queue.
+// one run when a running Build returns, which a cancel brings forward: it
+// aborts the image build and frees the slot at once. [BuildKeepAliveWindow]
+// is what keeps that possible, and [buildBackendDeadline] bounds a Build whose
+// backend never answers. There is no queue timeout. Build ends the queued step
+// and runs the starting and building steps, so a deployment stays pending
+// while it waits. Production and preview share the workspace's queue.
 //
 // On the creation side, [Workflow.Create] calls [Workflow.cancelOlderSiblings]
 // once the new row and its invocation id are recorded: it moves older
@@ -87,8 +87,8 @@
 // deployment through deploycancel.Cancel: write the reason on the open
 // deployment step, move the row to cancelled or superseded, then cancel the
 // Restate invocation running [Workflow.Deploy]. Restate cancels Deploy's Build
-// with it, so a queued Build never runs; a Build that already started keeps
-// building and keeps its slot until its image build returns. The cancel makes
+// with it: a queued Build never runs, and a running one has its image build
+// aborted through the Run context and frees its slot. The cancel makes
 // Deploy's next SDK call return a TerminalError, which runs the compensations
 // Deploy registered: set every topology's desired_status to stopped, and try
 // to set the status to failed with UpdateDeploymentStatusIfActive. That query

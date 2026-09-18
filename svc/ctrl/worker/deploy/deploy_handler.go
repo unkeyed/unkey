@@ -152,10 +152,9 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 	}
 
 	// Request, not Send: a Send would detach the Build and leave it running
-	// with nothing waiting on it. Cancelling this invocation removes a Build
-	// that is still queued. A Build that is already running holds the
-	// workspace's build slot until its image build returns, because that
-	// build is one restate.Run with no call for the cancel to land on
+	// with nothing waiting on it. Cancelling this invocation removes a queued
+	// Build and aborts a running one, which needs Build to stay unsuspended
+	// for the whole build; see [BuildKeepAliveWindow]
 	_, err = hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(restateadmin.BuildConcurrencyScope)).
 		Build().
 		Request(req, restate.WithLimitKey(deployment.WorkspaceID))
