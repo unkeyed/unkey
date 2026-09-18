@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/BurntSushi/toml"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -16,28 +17,28 @@ import (
 func TestFileRouter_ResolvesConfiguredHostsAndPolicies(t *testing.T) {
 	t.Parallel()
 	path := writeRoutes(t, `
-[[routes]]
+[[local-dev.routes]]
 hostname = "api.localhost"
 upstream = "127.0.0.1:3000"
-[[routes.policies]]
+[[local-dev.routes.policies]]
 id = "keys"
 enabled = true
-[routes.policies.keyauth]
+[local-dev.routes.policies.keyauth]
 key_space_ids = ["ks_primary", "ks_secondary"]
 credits = 0
 permission_query = "orders.read"
 
-[[routes.policies]]
+[[local-dev.routes.policies]]
 id = "disabled"
 enabled = false
 firewall = {action = "ACTION_DENY"}
 
-[[routes]]
+[[local-dev.routes]]
 hostname = "grpc.localhost"
 upstream = "[::1]:4000"
 protocol = "h2c"
 `)
-	svc, err := router.NewFile(path)
+	svc, err := newFile(t, path)
 	require.NoError(t, err)
 	var routes router.Service = svc
 	decision, err := routes.Route(t.Context(), "api.localhost")
@@ -70,8 +71,8 @@ protocol = "h2c"
 
 func TestFileRouter_MatchesOnlyConfiguredHostnames(t *testing.T) {
 	t.Parallel()
-	svc, err := router.NewFile(writeRoutes(t, `
-[[routes]]
+	svc, err := newFile(t, writeRoutes(t, `
+[[local-dev.routes]]
 hostname = "API.Localhost."
 upstream = "localhost:3000"
 `))
@@ -109,29 +110,29 @@ upstream = "localhost:3000"
 
 func TestFileRouter_RejectsInvalidConfiguration(t *testing.T) {
 	t.Parallel()
-	validRoute := "[[routes]]\nhostname = 'api.localhost'\nupstream = 'localhost:3000'\n"
+	validRoute := "[[local-dev.routes]]\nhostname = 'api.localhost'\nupstream = 'localhost:3000'\n"
 	for _, tt := range []struct{ name, content string }{
 		{"no routes", ""},
-		{"unknown root field", "typo = true\n" + validRoute},
-		{"unknown route field", validRoute + "polciies = []\n"},
-		{"duplicate hostname", validRoute + "[[routes]]\nhostname = 'API.Localhost.'\nupstream = 'localhost:4000'"},
-		{"missing hostname", "[[routes]]\nupstream = 'localhost:3000'"},
-		{"wildcard hostname", "[[routes]]\nhostname = '*.localhost'\nupstream = 'localhost:3000'"},
-		{"hostname with port", "[[routes]]\nhostname = 'localhost:8080'\nupstream = 'localhost:3000'"},
+		{"old dev section", "[[dev.routes]]\nhostname='api.localhost'\nupstream='localhost:3000'"},
+		{"routes outside local-dev", "[[routes]]\nhostname='api.localhost'\nupstream='localhost:3000'"},
+		{"duplicate hostname", validRoute + "[[local-dev.routes]]\nhostname = 'API.Localhost.'\nupstream = 'localhost:4000'"},
+		{"missing hostname", "[[local-dev.routes]]\nupstream = 'localhost:3000'"},
+		{"wildcard hostname", "[[local-dev.routes]]\nhostname = '*.localhost'\nupstream = 'localhost:3000'"},
+		{"hostname with port", "[[local-dev.routes]]\nhostname = 'localhost:8080'\nupstream = 'localhost:3000'"},
 		{"unsupported protocol", validRoute + "protocol = 'h3'"},
-		{"unknown policy", validRoute + "[[routes.policies]]\nid='auth'\nenabled=true\nkey_auth={}"},
-		{"unknown policy option", validRoute + "[[routes.policies]]\nid='auth'\nenabled=true\nkeyauth={keyspacez=['ks_test']}"},
-		{"missing enabled", validRoute + "[[routes.policies]]\nid='auth'\nkeyauth={}"},
-		{"missing policy config", validRoute + "[[routes.policies]]\nid='auth'\nenabled=true"},
-		{"missing policy ID", validRoute + "[[routes.policies]]\nenabled=true\nkeyauth={}"},
-		{"duplicate policy ID", validRoute + "[[routes.policies]]\nid='auth'\nenabled=true\nkeyauth={}\n[[routes.policies]]\nid='auth'\nenabled=false\nkeyauth={}"},
-		{"unimplemented JWT policy", validRoute + "[[routes.policies]]\nid='auth'\nenabled=true\njwtauth={}"},
-		{"empty match expression", validRoute + "[[routes.policies]]\nid='auth'\nenabled=true\nkeyauth={}\nmatch=[{}]"},
-		{"missing firewall action", validRoute + "[[routes.policies]]\nid='block'\nenabled=true\nfirewall={}"},
+		{"unknown policy", validRoute + "[[local-dev.routes.policies]]\nid='auth'\nenabled=true\nkey_auth={}"},
+		{"unknown policy option", validRoute + "[[local-dev.routes.policies]]\nid='auth'\nenabled=true\nkeyauth={keyspacez=['ks_test']}"},
+		{"missing enabled", validRoute + "[[local-dev.routes.policies]]\nid='auth'\nkeyauth={}"},
+		{"missing policy config", validRoute + "[[local-dev.routes.policies]]\nid='auth'\nenabled=true"},
+		{"missing policy ID", validRoute + "[[local-dev.routes.policies]]\nenabled=true\nkeyauth={}"},
+		{"duplicate policy ID", validRoute + "[[local-dev.routes.policies]]\nid='auth'\nenabled=true\nkeyauth={}\n[[local-dev.routes.policies]]\nid='auth'\nenabled=false\nkeyauth={}"},
+		{"unimplemented JWT policy", validRoute + "[[local-dev.routes.policies]]\nid='auth'\nenabled=true\njwtauth={}"},
+		{"empty match expression", validRoute + "[[local-dev.routes.policies]]\nid='auth'\nenabled=true\nkeyauth={}\nmatch=[{}]"},
+		{"missing firewall action", validRoute + "[[local-dev.routes.policies]]\nid='block'\nenabled=true\nfirewall={}"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			svc, err := router.NewFile(writeRoutes(t, tt.content))
+			svc, err := newFile(t, writeRoutes(t, tt.content))
 			require.Error(t, err)
 			require.Nil(t, svc)
 		})
@@ -139,7 +140,7 @@ func TestFileRouter_RejectsInvalidConfiguration(t *testing.T) {
 	for _, upstream := range []string{"", "localhost", ":3000", "localhost:0", "localhost:65536", "localhost:abc", "http://localhost:3000", "user@localhost:3000", "localhost:3000/path", "localhost:3000?query", "bad host:3000"} {
 		t.Run("upstream="+upstream, func(t *testing.T) {
 			t.Parallel()
-			svc, err := router.NewFile(writeRoutes(t, fmt.Sprintf("[[routes]]\nhostname='api.localhost'\nupstream=%q", upstream)))
+			svc, err := newFile(t, writeRoutes(t, fmt.Sprintf("[[local-dev.routes]]\nhostname='api.localhost'\nupstream=%q", upstream)))
 			require.Error(t, err)
 			require.Nil(t, svc)
 		})
@@ -149,11 +150,11 @@ func TestFileRouter_RejectsInvalidConfiguration(t *testing.T) {
 func TestFileRouter_LoadsOpenAPISpecRelativeToRoutesFile(t *testing.T) {
 	t.Parallel()
 	path := writeRoutes(t, `
-[[routes]]
+[[local-dev.routes]]
 hostname = "api.localhost"
 upstream = "localhost:3000"
 openapi_spec = "schemas/orders.yaml"
-[[routes.policies]]
+[[local-dev.routes.policies]]
 id = "validate"
 enabled = true
 openapi = {}
@@ -172,7 +173,7 @@ paths:
 	specPath := filepath.Join(filepath.Dir(path), "schemas", "orders.yaml")
 	require.NoError(t, os.MkdirAll(filepath.Dir(specPath), 0700))
 	require.NoError(t, os.WriteFile(specPath, spec, 0600))
-	svc, err := router.NewFile(path)
+	svc, err := newFile(t, path)
 	require.NoError(t, err)
 	decision, err := svc.Route(t.Context(), "api.localhost")
 	require.NoError(t, err)
@@ -196,22 +197,38 @@ func TestFileRouter_RejectsIncompleteOpenAPIConfiguration(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			content := "[[routes]]\nhostname='api.localhost'\nupstream='localhost:3000'\n"
+			content := "[[local-dev.routes]]\nhostname='api.localhost'\nupstream='localhost:3000'\n"
 			if tt.reference {
 				content += "openapi_spec='openapi.json'\n"
 			}
 			if tt.policy != "" {
-				content += "[[routes.policies]]\nid='validate'\nenabled=true\n" + tt.policy
+				content += "[[local-dev.routes.policies]]\nid='validate'\nenabled=true\n" + tt.policy
 			}
 			path := writeRoutes(t, content)
 			if tt.write {
 				require.NoError(t, os.WriteFile(filepath.Join(filepath.Dir(path), "openapi.json"), []byte(tt.spec), 0600))
 			}
-			svc, err := router.NewFile(path)
+			svc, err := newFile(t, path)
 			require.Error(t, err)
 			require.Nil(t, svc)
 		})
 	}
+}
+
+func newFile(t *testing.T, path string) (router.Service, error) {
+	t.Helper()
+	var cfg struct {
+		LocalDev struct {
+			Routes []router.FileRoute `toml:"routes"`
+		} `toml:"local-dev"`
+	}
+	_, err := toml.DecodeFile(path, &cfg)
+	require.NoError(t, err)
+	svc, err := router.NewFile(cfg.LocalDev.Routes, filepath.Dir(path))
+	if err != nil {
+		return nil, err
+	}
+	return svc, nil
 }
 
 func writeRoutes(t *testing.T, content string) string {
