@@ -16,7 +16,7 @@ allowBuilds:
 
 catalog:
   zod: 4.3.5
-  mysql2: 3.10.3
+  mysql2: 3.23.1
   tailwindcss: 4.2.1
   clsx: 2.1.1
   "@clickhouse/client-web": 1.11.1
