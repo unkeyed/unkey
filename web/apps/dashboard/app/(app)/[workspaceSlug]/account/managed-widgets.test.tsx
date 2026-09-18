@@ -24,7 +24,7 @@ afterAll(() => {
 
 describe("ManagedUserWidgets", () => {
   it("renders the real profile and security widgets without session management", () => {
-    const getAccessToken = vi.fn<[], Promise<string>>().mockResolvedValue("access_token");
+    const getAccessToken = vi.fn<() => Promise<string>>().mockResolvedValue("access_token");
     const { container } = render(<ManagedUserWidgets getAccessToken={getAccessToken} />);
 
     const profileHeading = screen.getByRole("heading", { name: "Profile" });
@@ -56,7 +56,7 @@ describe("ManagedUserWidgets", () => {
       JSON.stringify({ permissions: [], exp: Math.floor(Date.now() / 1000) + 3600 }),
     );
     const getAccessToken = vi
-      .fn<[], Promise<string>>()
+      .fn<() => Promise<string>>()
       .mockResolvedValue(`header.${tokenPayload}.sig`);
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
       const url = new URL(input instanceof Request ? input.url : input.toString());
@@ -165,7 +165,7 @@ describe("ManagedUserWidgets", () => {
 
 describe("ManagedUsersWidget", () => {
   it("renders the WorkOS user-management widget with the Unkey theme", () => {
-    const getAccessToken = vi.fn<[], Promise<string>>().mockResolvedValue("access_token");
+    const getAccessToken = vi.fn<() => Promise<string>>().mockResolvedValue("access_token");
     const { container } = render(<ManagedUsersWidget getAccessToken={getAccessToken} />);
 
     expect(container.querySelector('[data-woswidgets-widget-id="users-management"]')).toBeTruthy();

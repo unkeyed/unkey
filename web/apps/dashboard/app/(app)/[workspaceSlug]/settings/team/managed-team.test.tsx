@@ -10,8 +10,8 @@ const mocks = vi.hoisted(() => ({
   impersonator: undefined as { email: string } | undefined,
   permissions: ["widgets:users-table:manage"] as string[] | undefined,
   authLoading: false,
-  getAccessToken: vi.fn<[], Promise<string | undefined>>(),
-  refresh: vi.fn<[], Promise<string | undefined>>(),
+  getAccessToken: vi.fn<() => Promise<string | undefined>>(),
+  refresh: vi.fn<() => Promise<string | undefined>>(),
   logManagedAuthOutcome: vi.fn(),
   widgetTokenGetter: null as null | (() => Promise<string>),
 }));

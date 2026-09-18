@@ -4,10 +4,9 @@ import { getVerifications } from "~/lib/portal-api";
 
 /**
  * One `v2/portal.getVerifications` call, keyed on the exact window and key so
- * the analytics chart, the per-key table and the keys-page sparklines share a
- * cache entry whenever they ask for the same series.
+ * every consumer asking for the same window shares a cache entry.
  */
-export function verificationsQueryOptions(query: GetVerificationsQuery) {
+function verificationsQueryOptions(query: GetVerificationsQuery) {
   return queryOptions({
     queryKey: [
       "portal",
@@ -25,17 +24,17 @@ export function verificationsQueryOptions(query: GetVerificationsQuery) {
 }
 
 /**
- * Loads the session end user's verification timeseries for a window. Keying
- * on the window means a new selection fetches (and caches) a fresh series
- * without manual invalidation; the previous series stays on screen meanwhile.
- * `enabled` is false for a session without `analytics:read`, which the API
- * would refuse.
+ * Loads the session end user's per-key verification timeseries for a window.
+ * Keying on the window means a new selection fetches (and caches) a fresh
+ * result without manual invalidation; the previous one stays on screen
+ * meanwhile. `enabled` is false for a session without `analytics:read`, which
+ * the API would refuse.
  */
 export function useVerificationsQuery(query: GetVerificationsQuery, enabled = true) {
   const result = useQuery({ ...verificationsQueryOptions(query), enabled });
 
   return {
-    buckets: result.data ?? [],
+    keys: result.data ?? [],
     isInitialLoading: result.isLoading || (result.isFetching && !result.data),
     isFetching: result.isFetching,
     isError: result.isError,
