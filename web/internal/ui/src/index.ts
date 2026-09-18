@@ -56,4 +56,5 @@ export * from "./components/data-table";
 export * from "../css";
 
 /* Lib Export */
+export { parseTimestamp } from "./lib/time";
 export * from "./lib/utils";

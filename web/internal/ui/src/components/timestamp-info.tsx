@@ -3,21 +3,21 @@ import { format } from "date-fns";
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useRelativeTime } from "../hooks/use-relative-time";
-import { toDate } from "../lib/time";
+import { parseTimestamp } from "../lib/time";
 import { cn } from "../lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "./dialog/popover";
 import { toast } from "./toaster";
 
 const timestampLocalFormatter = (value: string | number) => {
-  return format(toDate(value), "MMM dd HH:mm:ss");
+  return format(parseTimestamp(value), "MMM dd HH:mm:ss");
 };
 
 const timestampLocalHoursWithMillisFormatter = (value: string | number) => {
-  return format(toDate(value), "HH:mm:ss.SSS");
+  return format(parseTimestamp(value), "HH:mm:ss.SSS");
 };
 
 const timestampUtcFormatter = (value: string | number) => {
-  const isoDate = toDate(value).toISOString();
+  const isoDate = parseTimestamp(value).toISOString();
   const utcDate = `${isoDate.substring(0, 10)} ${isoDate.substring(11, 19)}`;
   return format(utcDate, "MMM d,yyyy HH:mm:ss");
 };

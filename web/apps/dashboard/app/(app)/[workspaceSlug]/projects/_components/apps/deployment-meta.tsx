@@ -1,5 +1,3 @@
-"use client";
-
 import {
   type DeploymentStatusGroup,
   statusGroupOf,
@@ -35,7 +33,8 @@ const TONE: Record<DeploymentStatusGroup, string> = {
 };
 
 export function useDeploymentPhrase(deployment: AppDeployment): string {
-  return `${VERB[statusGroupOf(deployment.status)]} ${useElapsed(deployment.deployedAt)}`;
+  const deployedAgo = useElapsed(deployment.deployedAt);
+  return `${VERB[statusGroupOf(deployment.status)]} ${deployedAgo}`;
 }
 
 export function DeploymentMeta({ deployment }: { deployment: AppDeployment }) {
