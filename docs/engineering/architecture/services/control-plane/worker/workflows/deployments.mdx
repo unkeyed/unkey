@@ -54,7 +54,7 @@ sequenceDiagram
   Worker->>Restate: Build (scope builds, limit key workspace_id)
   Note over Restate: queued until the workspace<br/>is under its build cap
   Restate->>Build: Build
-  Build->>DB: End queued step, run starting and building steps
+  Build->>DB: End queued step, run building step
   Build-->>Worker: BuildResponse
   Worker->>DB: Insert topologies (outbox entries)
   Worker->>Worker: waitForDeployments awaits promise instances_ready

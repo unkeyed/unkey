@@ -45,8 +45,8 @@
 // aborts the image build and frees the slot at once. [BuildKeepAliveWindow]
 // is what keeps that possible, and [buildBackendDeadline] bounds a Build whose
 // backend never answers. There is no queue timeout. Build ends the queued step
-// and runs the starting and building steps, so a deployment stays pending
-// while it waits. Production and preview share the workspace's queue.
+// and runs the building step, so a deployment stays pending while it waits.
+// Production and preview share the workspace's queue.
 //
 // On the creation side, [Workflow.Create] calls [Workflow.cancelOlderSiblings]
 // once the new row and its invocation id are recorded: it moves older

@@ -27,8 +27,6 @@ func (w *Workflow) DeploymentStep(
 		switch step {
 		case db.DeploymentStepsStepQueued:
 			deploymentStatus = mysqltype.DeploymentsStatusPending
-		case db.DeploymentStepsStepStarting:
-			deploymentStatus = mysqltype.DeploymentsStatusStarting
 		case db.DeploymentStepsStepBuilding:
 			deploymentStatus = mysqltype.DeploymentsStatusBuilding
 		case db.DeploymentStepsStepDeploying:
@@ -37,6 +35,10 @@ func (w *Workflow) DeploymentStep(
 			deploymentStatus = mysqltype.DeploymentsStatusNetwork
 		case db.DeploymentStepsStepFinalizing:
 			deploymentStatus = mysqltype.DeploymentsStatusFinalizing
+		case db.DeploymentStepsStepStarting:
+			// Build goes from queued straight to building. The enum value stays
+			// for deployments that recorded this step before it was dropped
+			return fmt.Errorf("deployment step %s is no longer written", step)
 		default:
 			return fmt.Errorf("unexpected deployment step: %s", step)
 		}
