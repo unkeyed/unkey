@@ -13,13 +13,20 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// DeploymentStep records a step around fn. Both the run handler and the shared
-// Build handler call it, hence the plain restate.Context
-func (w *Workflow) DeploymentStep(
-	ctx restate.Context,
+// DeploymentStep records a step around fn and hands fn the caller's own
+// context. Deploy passes a WorkflowContext and the shared Build handler a
+// WorkflowSharedContext, so it is generic over both: narrowing the parameter
+// to restate.Context would compile here but would leave Deploy's step bodies
+// without the workflow context waitForDeployments needs.
+//
+// A function rather than a method because Go has no type parameters on
+// methods
+func DeploymentStep[C restate.Context](
+	w *Workflow,
+	ctx C,
 	step db.DeploymentStepsStep,
 	deploymentID string,
-	fn func() error,
+	fn func(stepCtx C) error,
 ) error {
 	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		now := time.Now().UnixMilli()
@@ -81,7 +88,7 @@ func (w *Workflow) DeploymentStep(
 		return err
 	}
 
-	stepErr := fn()
+	stepErr := fn(ctx)
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return w.db.EndDeploymentStep(runCtx, db.EndDeploymentStepParams{
