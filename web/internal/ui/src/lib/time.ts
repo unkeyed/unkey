@@ -51,7 +51,7 @@ export function parseTimestamp(value: string | number | Date): Date {
 
 // Intl picks its own unit when you let it, including ones nobody reads an age in.
 // Flooring keeps a key with 9 days left from rounding up to a fortnight.
-export function relativeTime(time: number, now: number, style: RelativeStyle = "narrow"): string {
+export function relativeTime(time: number, now: number, style: RelativeStyle = "long"): string {
   const diff = time - now;
   const distance = Math.abs(diff);
   if (distance < JUST_NOW_MS) {

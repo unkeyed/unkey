@@ -33,12 +33,12 @@ const TONE: Record<DeploymentStatusGroup, string> = {
 };
 
 export function useDeploymentPhrase(deployment: AppDeployment): string {
-  const deployedAgo = useElapsed(deployment.deployedAt);
+  const deployedAgo = useElapsed(deployment.deployedAt, "narrow");
   return `${VERB[statusGroupOf(deployment.status)]} ${deployedAgo}`;
 }
 
 export function DeploymentMeta({ deployment }: { deployment: AppDeployment }) {
-  const deployedAgo = useElapsed(deployment.deployedAt);
+  const deployedAgo = useElapsed(deployment.deployedAt, "narrow");
 
   const settled = (group: DeploymentStatusGroup) => (
     <span className={cn("shrink-0 text-xs", TONE[group])}>
