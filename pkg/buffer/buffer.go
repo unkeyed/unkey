@@ -15,6 +15,7 @@ type Buffer[T any] struct {
 	c    chan *T // Pointer-based channel — 8 bytes per slot instead of sizeof(T)
 	drop bool    // Whether to drop new elements when buffer is full
 	name string  // name of the buffer
+	noop bool
 
 	stopMetrics func()
 	closeOnce   sync.Once // Protects isClosed and stopMetrics
@@ -56,6 +57,7 @@ func New[T any](config Config) *Buffer[T] {
 		c:           make(chan *T, config.Capacity),
 		drop:        config.Drop,
 		name:        config.Name,
+		noop:        false,
 		stopMetrics: func() {},
 	}
 
@@ -64,6 +66,17 @@ func New[T any](config Config) *Buffer[T] {
 	})
 
 	return b
+}
+
+// NewNoop discards items without starting background workers.
+// Consume returns a closed channel. Buffer and Close are safe to call concurrently.
+func NewNoop[T any]() *Buffer[T] {
+	c := make(chan *T)
+	close(c)
+	return &Buffer[T]{
+		c: c, drop: true, name: "", noop: true,
+		stopMetrics: nil, closeOnce: sync.Once{}, mu: sync.RWMutex{}, isClosed: true,
+	}
 }
 
 // Buffer adds an element to the buffer.
@@ -94,6 +107,9 @@ func New[T any](config Config) *Buffer[T] {
 //	})
 //	eventBuffer.Buffer(Event{ID: "1", Data: "example"})
 func (b *Buffer[T]) Buffer(t T) {
+	if b.noop {
+		return
+	}
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
@@ -122,7 +138,8 @@ func (b *Buffer[T]) Buffer(t T) {
 
 // Consume returns a receive-only channel that can be used to read elements from the buffer.
 // Elements are removed from the buffer as they are read from the channel.
-// The channel will remain open until the Buffer.Close() method is called.
+// The channel remains open until Close is called, except for NewNoop buffers,
+// whose channels are already closed.
 //
 // Example:
 //
@@ -169,6 +186,9 @@ func (b *Buffer[T]) Size() int {
 //	// Close the buffer when done
 //	b.Close()
 func (b *Buffer[T]) Close() {
+	if b.noop {
+		return
+	}
 	b.closeOnce.Do(func() {
 		b.mu.Lock()
 		defer b.mu.Unlock()
