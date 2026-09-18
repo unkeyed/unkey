@@ -134,7 +134,7 @@ The database is the source of truth: a rule set by hand lasts at most 15 minutes
 
 Deploy waits for Build (`Request`, not `Send`), so cancelling Deploy cancels the Build too. A Build still waiting is removed and never runs. A running one has its image build aborted and frees its slot at once.
 
-That last part needs `Build` to stay unsuspended for the whole build, which is why it is bound with `WithInactivityTimeout(deploy.BuildKeepAliveWindow)`. `restate.Run`'s context is cancelled with the invocation's HTTP/2 stream and not on suspend, so a suspended Build cannot be told it was cancelled: it would run to completion and hold the workspace's slot until it did.
+That last part needs `Build` to stay unsuspended for the whole build, which is why it is bound with `WithInactivityTimeout(deploy.BuildKeepAliveWindow)`. Restate suspends an invocation after about a minute of inactivity, and a suspended Build cannot be told it was cancelled: it would run to completion and hold the workspace's slot until it did. Keep that window above `buildBackendDeadline`, or cancel stops working for any build that outlives it.
 
 ```go
 hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(restateadmin.BuildConcurrencyScope)).

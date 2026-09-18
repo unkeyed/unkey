@@ -24,13 +24,10 @@ const (
 	callerSuspendWait = 75 * time.Second
 )
 
-// TestCancelAbortsRunningBuild pins what [BuildKeepAliveWindow] buys. Deploy
-// suspends while it waits for Build, and restate.Run's context is cancelled
-// with the invocation's http2 stream rather than on suspend, so a suspended
-// Build cannot be told it was cancelled: it would finish its image build and
-// hold the workspace's build slot until it did. The raised timeout on the
-// callee keeps the stream open, so a cancel aborts the build and the next
-// queued deployment starts.
+// TestCancelAbortsRunningBuild pins what [BuildKeepAliveWindow] buys: a
+// suspended Build cannot be told it was cancelled, so without the window it
+// would finish its image build and hold the workspace's build slot until it
+// did. Fails if the window is removed or drops below the build's own bound.
 func TestCancelAbortsRunningBuild(t *testing.T) {
 	ctx := context.Background()
 	probe := &BuildCancelProbe{
