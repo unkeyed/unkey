@@ -11,6 +11,7 @@ import (
 	cacheMiddleware "github.com/unkeyed/unkey/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/svc/vault/internal/keyring"
+	"github.com/unkeyed/unkey/svc/vault/internal/metrics"
 	"github.com/unkeyed/unkey/svc/vault/internal/storage"
 	"google.golang.org/protobuf/proto"
 )
@@ -75,6 +76,14 @@ func New(cfg Config) (*Service, error) {
 		keyring:       kr,
 		bearer:        cfg.BearerToken,
 	}, nil
+}
+
+func observeOperation(operation string, err error) {
+	outcome := "success"
+	if err != nil {
+		outcome = "error"
+	}
+	metrics.OperationsTotal.WithLabelValues(operation, outcome).Inc()
 }
 
 func loadMasterKeys(masterKey string, previousMasterKey *string) (*vaultv1.KeyEncryptionKey, map[string]*vaultv1.KeyEncryptionKey, error) {
