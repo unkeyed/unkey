@@ -109,13 +109,11 @@ func TestCreateSessionSuccess(t *testing.T) {
 		require.NotEmpty(t, res.Body.Data.Id)
 	})
 
-	t.Run("with preview", func(t *testing.T) {
-		preview := true
+	t.Run("persists the session in the pending state", func(t *testing.T) {
 		req := handler.Request{
 			Portal:     "test-portal",
 			ExternalId: "user_789",
 			Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{"keys:read"},
-			Preview:    &preview,
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -131,7 +129,6 @@ func TestCreateSessionSuccess(t *testing.T) {
 		require.Equal(t, res.Body.Data.Id, session.ID)
 		require.Equal(t, "user_789", session.ExternalID)
 		require.Equal(t, portalID, session.PortalID)
-		require.True(t, session.Preview)
 		require.False(t, session.AccessTokenHash.Valid)
 	})
 

@@ -45,12 +45,6 @@ export type V2PortalCreateSessionRequestBody = {
    */
   scopes: Array<Scope>;
   /**
-   * When true, creates a preview session for testing the portal experience.
-   *
-   * @remarks
-   */
-  preview?: boolean | undefined;
-  /**
    * Absolute URL the end user is sent back to when they leave the portal, or
    *
    * @remarks
@@ -73,7 +67,6 @@ export type V2PortalCreateSessionRequestBody$Outbound = {
   portal: string;
   externalId: string;
   scopes: Array<string>;
-  preview: boolean;
   returnUrl?: string | undefined;
 };
 
@@ -86,7 +79,6 @@ export const V2PortalCreateSessionRequestBody$outboundSchema: z.ZodType<
   portal: z.string(),
   externalId: z.string(),
   scopes: z.array(Scope$outboundSchema),
-  preview: z.boolean().default(false),
   returnUrl: z.string().optional(),
 });
 

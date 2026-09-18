@@ -1019,7 +1019,7 @@ type Querier interface {
 	// true at fill time. The caller derives session state from the row against the
 	// current clock instead.
 	//
-	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
+	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 	//  WHERE access_token_hash = ?
 	FindPortalSessionByAccessTokenHash(ctx context.Context, db DBTX, accessTokenHash sql.NullString) (PortalSession, error)
 	// Reads back the row a redemption just claimed, to build the response and the
@@ -1027,7 +1027,7 @@ type Querier interface {
 	// reported one affected row: the hash is UNIQUE, so this is the same row, and
 	// the caller already established it won the race.
 	//
-	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
+	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 	//  WHERE exchange_code_hash = ?
 	FindPortalSessionByExchangeCodeHash(ctx context.Context, db DBTX, exchangeCodeHash string) (PortalSession, error)
 	//FindProjectById
@@ -1841,13 +1841,11 @@ type Querier interface {
 	//      portal_id,
 	//      external_id,
 	//      scopes,
-	//      preview,
 	//      exchange_code_hash,
 	//      exchange_code_expires_at,
 	//      return_url,
 	//      created_at
 	//  ) VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
