@@ -191,12 +191,6 @@ type Querier interface {
 	//  SET ended_at = ?, error = ?
 	//  WHERE deployment_id IN (/*SLICE:deployment_ids*/?) AND ended_at IS NULL
 	EndActiveDeploymentStepsForDeployments(ctx context.Context, arg EndActiveDeploymentStepsForDeploymentsParams) error
-	//EndActiveDeploymentStepsWithError
-	//
-	//  UPDATE `deployment_steps`
-	//  SET ended_at = ?, error = ?
-	//  WHERE deployment_id = ? AND ended_at IS NULL
-	EndActiveDeploymentStepsWithError(ctx context.Context, arg EndActiveDeploymentStepsWithErrorParams) error
 	//EndDeploymentStep
 	//
 	//  UPDATE `deployment_steps`

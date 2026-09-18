@@ -24,8 +24,9 @@ import (
 //
 // Build refuses a request outside the build scope or with a limit key other
 // than its workspace: a wrong scope matches no rule and builds uncapped, a
-// wrong limit key charges the build to another workspace. A missing rule
-// is not detectable here; the cron owns that
+// wrong limit key charges the build to another workspace. Restate picks the
+// rule before it dispatches, so these checks report a mis-queued Build rather
+// than prevent it. A missing rule is not detectable here; the cron owns that
 func (w *Workflow) Build(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (*hydrav1.BuildResponse, error) {
 	if ctx.Request().Scope != restateadmin.BuildConcurrencyScope {
 		return nil, fault.Wrap(
@@ -49,6 +50,13 @@ func (w *Workflow) Build(ctx restate.WorkflowSharedContext, req *hydrav1.DeployR
 		return nil, fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 	}
 
+	if ctx.Request().LimitKey != deployment.WorkspaceID {
+		return nil, fault.Wrap(
+			restate.TerminalErrorf("build invoked with limit key %q, want workspace %q", ctx.Request().LimitKey, deployment.WorkspaceID),
+			fault.Public("This build was not queued correctly."),
+		)
+	}
+
 	// A cancel or supersede that landed while this Build was queued has already
 	// ended the deployment, and deploycancel ended its open steps with the
 	// reason. Deploy re-reads the row after Build and stops too
@@ -60,32 +68,28 @@ func (w *Workflow) Build(ctx restate.WorkflowSharedContext, req *hydrav1.DeployR
 		return &hydrav1.BuildResponse{}, nil
 	}
 
-	if ctx.Request().LimitKey != deployment.WorkspaceID {
-		return nil, fault.Wrap(
-			restate.TerminalErrorf("build invoked with limit key %q, want workspace %q", ctx.Request().LimitKey, deployment.WorkspaceID),
-			fault.Public("This build was not queued correctly."),
-		)
-	}
-
-	logger.Info("build starting",
-		"workspace_id", deployment.WorkspaceID,
-		"deployment_id", deployment.ID,
-		"queued_for", time.Since(time.UnixMilli(deployment.CreatedAt)),
-	)
-
 	// Create opens the queued step when it writes the deployment row. It
-	// ends here, once Restate has let this Build run
-	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return w.db.EndDeploymentStep(runCtx, db.EndDeploymentStepParams{
+	// ends here, once Restate has let this Build run. The end timestamp is
+	// journalled so a retry of this handler reports the queue wait it
+	// measured the first time round, not the time since
+	queuedUntil, err := restate.Run(ctx, func(runCtx restate.RunContext) (int64, error) {
+		now := time.Now().UnixMilli()
+		return now, w.db.EndDeploymentStep(runCtx, db.EndDeploymentStepParams{
 			DeploymentID: deployment.ID,
 			Step:         db.DeploymentStepsStepQueued,
-			EndedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			EndedAt:      sql.NullInt64{Valid: true, Int64: now},
 			Error:        sql.NullString{Valid: false, String: ""},
 		})
 	}, restate.WithName("end queued step"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(err, fault.Public("Deployment could not be started."))
 	}
+
+	logger.Info("build starting",
+		"workspace_id", deployment.WorkspaceID,
+		"deployment_id", deployment.ID,
+		"queued_for", time.Duration(queuedUntil-deployment.CreatedAt)*time.Millisecond,
+	)
 
 	stepErr := w.DeploymentStep(ctx, db.DeploymentStepsStepStarting, deployment.ID, func() error {
 		// Create refuses these settings before it writes a deployment, so a
@@ -123,7 +127,7 @@ func (w *Workflow) Build(ctx restate.WorkflowSharedContext, req *hydrav1.DeployR
 // request arriving here without a SHA is a bug and fails terminally.
 //
 // Returns a terminal error for unknown source types and build failures that
-// cannot be retried (e.g. bad Dockerfile).
+// cannot be retried (e.g. bad Dockerfile)
 func (w *Workflow) buildImage(ctx restate.Context, req *hydrav1.DeployRequest, deployment db.FindDeploymentForBuildRow) error {
 	resolvedImage := ""
 
@@ -166,9 +170,9 @@ func (w *Workflow) buildImage(ctx restate.Context, req *hydrav1.DeployRequest, d
 			CommitSHA:      commitSHA,
 			ContextPath:    source.Git.GetContextPath(),
 			// Normalized here because the value routes the build method below:
-			// a whitespace-only setting must mean "no Dockerfile configured".
+			// a whitespace-only setting must mean "no Dockerfile configured"
 			DockerfilePath: strings.TrimSpace(source.Git.GetDockerfilePath()),
-			// Trimmed so a whitespace-only setting means "let Railpack auto-detect".
+			// Trimmed so a whitespace-only setting means "let Railpack auto-detect"
 			BuildCommand:                  strings.TrimSpace(source.Git.GetBuildCommand()),
 			ProjectID:                     deployment.ProjectID,
 			AppID:                         deployment.AppID,
