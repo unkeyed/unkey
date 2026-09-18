@@ -1,6 +1,5 @@
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
-import { parseTimestamp } from "@unkey/ui";
-import { format } from "date-fns";
+import { format, fromUnixTime } from "date-fns";
 
 // Memoization cache with bounded size
 // Speed improvement so we do not repeat each timeStampFormat
@@ -73,10 +72,35 @@ export const formatTimestampForChart = (
   }
 };
 
+const unixMicroToDate = (unix: string | number): Date => {
+  return fromUnixTime(Number(unix) / 1000 / 1000);
+};
+
+const isUnixMicro = (unix: string | number): boolean => {
+  const digitLength = String(unix).length === 16;
+  const isNum = !Number.isNaN(Number(unix));
+  return isNum && digitLength;
+};
+
 export const formatTimestampTooltip = (value: string | number | Date) => {
-  const date = parseTimestamp(value);
-  if (Number.isNaN(date.getTime())) {
-    return String(value);
+  const isNumericString = typeof value === "string" && /^\d+$/.test(value);
+  const parsed = isNumericString ? Number(value) : value;
+
+  let date: Date;
+  if (typeof parsed === "number" && Number.isFinite(parsed)) {
+    // handle both Unix-micro and epoch-ms numbers
+    date = isUnixMicro(parsed) ? unixMicroToDate(parsed) : new Date(parsed);
+  } else if (parsed instanceof Date) {
+    // already a Date
+    date = parsed;
+  } else {
+    // try parsing any other string; if that fails, return the raw input
+    const d = new Date(String(value));
+    if (Number.isNaN(d.getTime())) {
+      return String(value);
+    }
+    date = d;
   }
+
   return memoizedFormat(date, "MMM dd, h:mm:ss a");
 };
