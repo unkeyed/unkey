@@ -26,14 +26,20 @@ import (
 // rule before it dispatches, so these checks report a mis-queued Build rather
 // than prevent it. A missing rule is not detectable here; the cron owns that
 func (w *Workflow) Build(ctx restate.WorkflowSharedContext, req *hydrav1.DeployRequest) (*hydrav1.BuildResponse, error) {
+	deploymentID := restate.Key(ctx)
+
 	if ctx.Request().Scope != restateadmin.BuildConcurrencyScope {
+		logger.Error("build dispatched outside the build scope, refusing to build",
+			"deployment_id", deploymentID,
+			"scope", ctx.Request().Scope,
+			"want_scope", restateadmin.BuildConcurrencyScope,
+		)
 		return nil, fault.Wrap(
 			restate.TerminalErrorf("build invoked in scope %q, want %q", ctx.Request().Scope, restateadmin.BuildConcurrencyScope),
 			fault.Public("This build was not queued correctly."),
 		)
 	}
 
-	deploymentID := restate.Key(ctx)
 	if req.GetDeploymentId() != deploymentID {
 		return nil, fault.Wrap(
 			restate.TerminalErrorf("request deployment_id %q does not match workflow key %q", req.GetDeploymentId(), deploymentID),
@@ -49,6 +55,11 @@ func (w *Workflow) Build(ctx restate.WorkflowSharedContext, req *hydrav1.DeployR
 	}
 
 	if ctx.Request().LimitKey != deployment.WorkspaceID {
+		logger.Error("build dispatched with the wrong limit key, refusing to build",
+			"deployment_id", deployment.ID,
+			"workspace_id", deployment.WorkspaceID,
+			"limit_key", ctx.Request().LimitKey,
+		)
 		return nil, fault.Wrap(
 			restate.TerminalErrorf("build invoked with limit key %q, want workspace %q", ctx.Request().LimitKey, deployment.WorkspaceID),
 			fault.Public("This build was not queued correctly."),
