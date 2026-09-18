@@ -222,7 +222,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					}
 				}
 
-				if key.Credits.Refill != nil {
+				// interval is required whenever refill is present, so an empty one
+				// means the client omitted refill entirely.
+				if key.Credits.Refill.Interval != "" {
 					newKey.RefillAmount = sql.NullInt64{
 						Int64: key.Credits.Refill.Amount,
 						Valid: true,

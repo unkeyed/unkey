@@ -183,7 +183,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Roles:       key.Roles,
 		Credits:     nil,
 		Expires:     0,
-		Identity:    nil,
+		Identity:    openapi.Identity{ExternalId: "", Id: "", Meta: nil, Ratelimits: nil},
 		Meta:        nil,
 		Ratelimits:  nil,
 	}
@@ -206,7 +206,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	if key.Key.IdentityID.Valid {
-		keyData.Identity = &openapi.Identity{
+		keyData.Identity = openapi.Identity{
 			Id:         key.Key.IdentityID.String,
 			ExternalId: key.Key.ExternalID.String,
 			Ratelimits: nil,

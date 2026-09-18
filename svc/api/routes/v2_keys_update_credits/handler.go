@@ -246,7 +246,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	null.SetNull()
 
 	responseData := openapi.KeyCreditsData{
-		Refill:    nil,
+		Refill:    openapi.KeyCreditsRefill{Amount: 0, Interval: "", RefillDay: 0},
 		Remaining: null,
 	}
 
@@ -263,7 +263,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			day = int(keyData.Key.RefillDay.Int16)
 		}
 
-		responseData.Refill = &openapi.KeyCreditsRefill{
+		responseData.Refill = openapi.KeyCreditsRefill{
 			Amount:    int64(keyData.Key.RefillAmount.Int64),
 			Interval:  interval,
 			RefillDay: day,

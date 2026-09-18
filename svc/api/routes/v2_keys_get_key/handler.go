@@ -129,7 +129,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		UpdatedAt:   keyData.Key.UpdatedAtM.Int64,
 		Credits:     nil,
 		Expires:     0,
-		Identity:    nil,
+		Identity:    openapi.Identity{ExternalId: "", Id: "", Meta: nil, Ratelimits: nil},
 		Permissions: nil,
 		Roles:       nil,
 		CreatedAt:   keyData.Key.CreatedAtM,
@@ -147,7 +147,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	// Set credits
 	if keyData.Key.RemainingRequests.Valid {
 		response.Credits = &openapi.KeyCreditsData{
-			Refill:    nil,
+			Refill:    openapi.KeyCreditsRefill{Amount: 0, Interval: "", RefillDay: 0},
 			Remaining: nullable.NewNullableWithValue(int64(keyData.Key.RemainingRequests.Int64)),
 		}
 
@@ -159,7 +159,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				refillDay = int(keyData.Key.RefillDay.Int16)
 			}
 
-			response.Credits.Refill = &openapi.KeyCreditsRefill{
+			response.Credits.Refill = openapi.KeyCreditsRefill{
 				Amount:    int64(keyData.Key.RefillAmount.Int64),
 				Interval:  interval,
 				RefillDay: refillDay,
@@ -169,7 +169,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Set identity
 	if keyData.Identity != nil {
-		response.Identity = &openapi.Identity{
+		response.Identity = openapi.Identity{
 			Meta:       nil,
 			Ratelimits: nil,
 			Id:         keyData.Identity.ID,
@@ -229,7 +229,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		response.Ratelimits = keyRatelimits
 
-		if response.Identity != nil {
+		if keyData.Identity != nil {
 			response.Identity.Ratelimits = identityRatelimits
 		}
 	}
