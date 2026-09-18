@@ -32,6 +32,7 @@ export const workspaces = mysqlTable("workspaces", {
 
   k8sNamespace: varchar("k8s_namespace", { length: 256 })
     .$defaultFn(() => dns1035())
+    .notNull()
     .unique(),
 
   /**

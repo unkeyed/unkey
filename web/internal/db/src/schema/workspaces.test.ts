@@ -4,6 +4,10 @@ import { describe, expect, it } from "vitest";
 import { workspaces } from "./workspaces";
 
 describe("workspaces", () => {
+  it("requires every workspace to have a Kubernetes namespace", () => {
+    expect(workspaces.k8sNamespace.notNull).toBe(true);
+  });
+
   it("assigns a Kubernetes namespace when one is not provided", () => {
     const pool = createPool({});
     const database = drizzle(pool);
