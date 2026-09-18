@@ -124,6 +124,9 @@ export const requestLogsResponseSchema = z.object({
   response_body: z.string(),
   user_agent: z.string(),
   ip_address: z.string(),
+  // Unkey error URN when the gateway rejected the request itself instead of
+  // an instance serving it. Empty for anything an instance answered.
+  error_code: z.string(),
 });
 
 export type RequestLogsResponse = z.infer<typeof requestLogsResponseSchema>;
@@ -212,7 +215,7 @@ export function getRequestLogs(ch: Querier) {
         SELECT request_id, time, deployment_id, region, method, path, host,
                response_status, total_latency, instance_latency, gateway_latency,
                query_string, query_params, request_headers, request_body,
-               response_headers, response_body, user_agent, ip_address
+               response_headers, response_body, user_agent, ip_address, error_code
         FROM ${TABLE}
         WHERE ${filterConditions}
         ORDER BY time DESC, request_id DESC
@@ -259,7 +262,7 @@ export function getRequestDetails(ch: Querier) {
         SELECT request_id, time, deployment_id, region, method, path, host,
                response_status, total_latency, instance_latency, gateway_latency,
                query_string, query_params, request_headers, request_body,
-               response_headers, response_body, user_agent, ip_address
+               response_headers, response_body, user_agent, ip_address, error_code
         FROM ${TABLE}
         WHERE workspace_id = {workspaceId: String}
           AND request_id = {requestId: String}

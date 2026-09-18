@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
 	"github.com/unkeyed/unkey/svc/frontline/internal/metrics"
+	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -94,6 +95,14 @@ func WithObservability(renderer errorpage.Renderer) zen.Middleware {
 
 				pageInfo := getErrorPageInfoFrontline(urn)
 				statusCode = pageInfo.Status
+
+				// The ClickHouse logging middleware wraps this one, so the
+				// error never reaches it: hand over the resolved URN here so
+				// the request log records why frontline answered instead of
+				// the upstream.
+				if tracking, hasTracking := proxy.RequestTrackingFromContext(ctx); hasTracking {
+					tracking.ErrorCode = string(urn)
+				}
 
 				userMessage := pageInfo.Message
 				if userMessage == "" {

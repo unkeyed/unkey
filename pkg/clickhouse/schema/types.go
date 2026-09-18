@@ -339,6 +339,10 @@ type FrontlineRequest struct {
 	TotalLatency    int64               `ch:"total_latency" json:"total_latency"`
 	InstanceLatency int64               `ch:"instance_latency" json:"instance_latency"`
 	GatewayLatency  int64               `ch:"gateway_latency" json:"gateway_latency"`
+
+	// ErrorCode is the Unkey error URN when frontline itself rejected or
+	// failed the request, and empty when an instance served the response.
+	ErrorCode string `ch:"error_code" json:"error_code"`
 }
 
 // AuditLogV1 represents one logical audit event in audit_logs_raw_v1.

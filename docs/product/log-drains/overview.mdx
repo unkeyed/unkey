@@ -270,6 +270,7 @@ For a gateway request drain, each record contains these fields alongside
 | `request.body`, `response.body`                           | Captured bodies as strings                                                  |
 | `request.query_string`, `request.query_params`            | Captured query string and parameter values; each parameter maps to an array |
 | `request.user_agent`, `request.ip_address`                | Captured user agent and client IP address                                   |
+| `error_code`                                              | Unkey error code when the gateway rejected the request itself. Empty when an instance served the response |
 
 Captured details follow your logging policy. The drain forwards stored values,
 including any redaction already applied when the request was logged. Fields
@@ -285,8 +286,10 @@ event before the logs expire.
 
 HTTP JSON sends an array of flat records with `stream: "gateway_requests"`
 and `time`. NDJSON sends one such record per line. Axiom adds `_time` equal to `time`.
-Only requests recorded in gateway request logs are eligible. Requests that do
-not reach a deployment instance or are excluded from logging are not exported.
+Only requests recorded in gateway request logs are eligible. Requests the
+gateway rejected before they reached an instance, such as a key, rate limit,
+or firewall policy denial, are exported and carry `error_code`. Requests
+excluded from logging are not exported.
 
 ### Read a runtime log payload
 

@@ -299,6 +299,7 @@ var gatewayRequestColumns = []string{
 	"total_latency",
 	"instance_latency",
 	"gateway_latency",
+	"error_code",
 }
 
 // runtimeLogColumns lists the columns of runtime_logs_raw_v1 that customers can
