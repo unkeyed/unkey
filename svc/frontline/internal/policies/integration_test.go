@@ -32,6 +32,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
+	"github.com/unkeyed/unkey/svc/frontline/internal/policies/keyauth"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 )
 
@@ -152,10 +153,9 @@ func newTestHarness(t *testing.T) *testHarness {
 	t.Cleanup(keyVerifications.Close)
 
 	eng, err := policies.New(policies.Config{
-		KeyService:       keyService,
-		RateLimiter:      rateLimiter,
-		Clock:            clk,
-		KeyVerifications: keyVerifications,
+		KeyAuth:     keyauth.New(keyService, clk, keyVerifications),
+		RateLimiter: rateLimiter,
+		Clock:       clk,
 	})
 	require.NoError(t, err)
 
