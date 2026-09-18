@@ -18,8 +18,7 @@ function tick(): void {
   }
 }
 
-// A hidden tab has its interval throttled to a minute or worse, so the first
-// thing a returning reader would see is a label that stopped while they were away.
+// Background tabs throttle setInterval, so force a tick when the tab becomes visible again.
 function tickIfVisible(): void {
   if (document.visibilityState === "visible") {
     tick();
