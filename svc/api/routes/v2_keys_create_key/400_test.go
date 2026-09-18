@@ -173,7 +173,7 @@ func TestCreateKeyBadRequest(t *testing.T) {
 			ApiId: api.ID,
 			Credits: &openapi.KeyCreditsData{
 				Remaining: nullable.NewNullNullable[int64](),
-				Refill: &openapi.KeyCreditsRefill{
+				Refill: openapi.KeyCreditsRefill{
 					Amount:   100,
 					Interval: openapi.KeyCreditsRefillIntervalDaily,
 				},

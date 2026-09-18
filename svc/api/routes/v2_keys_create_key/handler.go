@@ -350,8 +350,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 
 			if req.Credits != nil {
-				// If refill is set, remaining must be specified and not null
-				if req.Credits.Refill != nil {
+				// interval is required whenever refill is present, so an empty one
+				// means the client omitted refill entirely.
+				if req.Credits.Refill.Interval != "" {
 					if !req.Credits.Remaining.IsSpecified() || req.Credits.Remaining.IsNull() {
 						return fault.New("missing credits.remaining",
 							fault.Code(codes.App.Validation.InvalidInput.URN()),
@@ -368,7 +369,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					}
 				}
 
-				if req.Credits.Refill != nil {
+				if req.Credits.Refill.Interval != "" {
 					insertKeyParams.RefillAmount = sql.NullInt64{
 						Int64: req.Credits.Refill.Amount,
 						Valid: true,

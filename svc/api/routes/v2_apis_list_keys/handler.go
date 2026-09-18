@@ -320,7 +320,7 @@ func BuildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResp
 		LastUsedAt:  int64(keyData.Key.LastUsedAt),
 		Credits:     nil,
 		Expires:     0,
-		Identity:    nil,
+		Identity:    openapi.Identity{ExternalId: "", Id: "", Meta: nil, Ratelimits: nil},
 		Permissions: nil,
 		Roles:       nil,
 		Plaintext:   plaintext,
@@ -337,7 +337,7 @@ func BuildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResp
 	// Set credits
 	if keyData.Key.RemainingRequests.Valid {
 		response.Credits = &openapi.KeyCreditsData{
-			Refill:    nil,
+			Refill:    openapi.KeyCreditsRefill{Amount: 0, Interval: "", RefillDay: 0},
 			Remaining: nullable.NewNullableWithValue(keyData.Key.RemainingRequests.Int64),
 		}
 
@@ -349,7 +349,7 @@ func BuildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResp
 				refillDay = int(keyData.Key.RefillDay.Int16)
 			}
 
-			response.Credits.Refill = &openapi.KeyCreditsRefill{
+			response.Credits.Refill = openapi.KeyCreditsRefill{
 				Amount:    keyData.Key.RefillAmount.Int64,
 				Interval:  interval,
 				RefillDay: refillDay,
@@ -359,7 +359,7 @@ func BuildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResp
 
 	// Set identity
 	if keyData.Identity != nil {
-		response.Identity = &openapi.Identity{
+		response.Identity = openapi.Identity{
 			Meta:       nil,
 			Ratelimits: nil,
 			Id:         keyData.Identity.ID,
@@ -426,7 +426,7 @@ func BuildKeyResponseData(keyData *db.KeyData, plaintext string) openapi.KeyResp
 
 		response.Ratelimits = keyRatelimits
 
-		if response.Identity != nil {
+		if keyData.Identity != nil {
 			response.Identity.Ratelimits = identityRatelimits
 		}
 	}

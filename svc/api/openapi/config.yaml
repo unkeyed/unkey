@@ -6,5 +6,6 @@ generate:
 
 output-options:
   nullable-type: true
+  prefer-skip-optional-pointer-with-omitzero: true
   overlay:
     path: overlay.yaml
