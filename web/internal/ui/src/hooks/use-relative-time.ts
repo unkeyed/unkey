@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { type RelativeStyle, elapsed, relativeTime } from "../lib/time";
+import { type RelativeStyle, relativeTime, toDate } from "../lib/time";
 
 const TICK_MS = 1_000;
 
@@ -32,24 +32,23 @@ function subscribe(listener: () => void): () => void {
   };
 }
 
-// One clock for every label on the page, so two of them cannot disagree, and a
-// label ages on its own instead of waiting for an unrelated render. A label
-// whose text has not changed re-reads the clock but does not re-render, which
-// is what keeps a table of hundreds of rows cheap. The server snapshot is the
-// moment the module loaded, so render these on the client only.
-function useClockedLabel(read: () => string): string {
-  return useSyncExternalStore(subscribe, read, read);
+function clock(): number {
+  return timer === undefined ? Date.now() : now;
 }
 
 export function useRelativeTime(
   value: string | number | Date,
   style: RelativeStyle = "long",
 ): string {
-  const time = value instanceof Date ? value.getTime() : value;
-  return useClockedLabel(useCallback(() => relativeTime(time, now, style), [time, style]));
+  const time = toDate(value).getTime();
+  const read = useCallback(() => relativeTime(time, clock(), style), [time, style]);
+  return useSyncExternalStore(subscribe, read, read);
 }
 
+// A server timestamp read against the browser's clock can sit ahead of it, and
+// something that has already happened must never read "in 25 sec".
 export function useElapsed(value: string | number | Date, style: RelativeStyle = "long"): string {
-  const time = value instanceof Date ? value.getTime() : value;
-  return useClockedLabel(useCallback(() => elapsed(time, now, style), [time, style]));
+  const time = toDate(value).getTime();
+  const read = useCallback(() => relativeTime(time, Math.max(clock(), time), style), [time, style]);
+  return useSyncExternalStore(subscribe, read, read);
 }

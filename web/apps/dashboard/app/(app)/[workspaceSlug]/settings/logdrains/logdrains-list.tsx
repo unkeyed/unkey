@@ -48,7 +48,7 @@ function DrainRow({ drain, workspaceSlug }: { drain: DrainListItem; workspaceSlu
         </div>
 
         {/* A plain string, not TimestampInfo: its popover trigger is a button and this row is
-            already a link. The shared hook keeps the wording and the clock identical. */}
+            already a link. */}
         <span className="shrink-0 text-xs text-gray-9">{createdAgo}</span>
       </Link>
     </ResourceListItem>

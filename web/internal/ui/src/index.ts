@@ -56,5 +56,4 @@ export * from "./components/data-table";
 export * from "../css";
 
 /* Lib Export */
-export * from "./lib/time";
 export * from "./lib/utils";

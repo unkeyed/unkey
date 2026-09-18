@@ -22,6 +22,41 @@ const timestampUtcFormatter = (value: string | number) => {
   return format(utcDate, "MMM d,yyyy HH:mm:ss");
 };
 
+const TooltipRow = ({ label, value }: { label: string; value: string }) => {
+  const [copied, setCopied] = useState(false);
+  return (
+    //biome-ignore lint/a11y/useKeyWithClickEvents: no need
+    <span
+      onClick={(e) => {
+        e.stopPropagation();
+        navigator.clipboard
+          .writeText(value)
+          .then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1000);
+          })
+          .catch(() => {
+            toast.error("Failed to copy to clipboard");
+          });
+      }}
+      className="flex items-center hover:bg-gray-3 text-left cursor-pointer w-full px-5 py-2"
+    >
+      <span className="w-32 text-left truncate text-accent-9">{label}</span>
+      <span className={cn("ml-2 text-xs text-accent-12", copied ? "text-success-11" : "")}>
+        {copied ? "Copied!" : value}
+      </span>
+    </span>
+  );
+};
+
+const RelativeTime = ({ value }: { value: string | number }) => {
+  return <>{useRelativeTime(value)}</>;
+};
+
+const RelativeRow = ({ value }: { value: string | number }) => {
+  return <TooltipRow label="Relative" value={useRelativeTime(value)} />;
+};
+
 type DisplayType = "local" | "local_hours_with_millis" | "utc" | "relative";
 
 const TimestampInfo: React.FC<{
@@ -54,7 +89,6 @@ const TimestampInfo: React.FC<{
 }) => {
   const local = timestampLocalFormatter(value);
   const utc = timestampUtcFormatter(value);
-  const relative = useRelativeTime(value);
   const [align, setAlign] = useState<"start" | "end">("start");
   const internalTriggerRef = useRef<HTMLButtonElement>(null);
   const triggerRef = externalTriggerRef || internalTriggerRef;
@@ -103,39 +137,12 @@ const TimestampInfo: React.FC<{
       case "utc":
         return utc;
       case "relative":
-        return relative;
+        return <RelativeTime value={value} />;
       case "local_hours_with_millis":
         return timestampLocalHoursWithMillisFormatter(value);
       default:
         return local;
     }
-  };
-
-  const TooltipRow = ({ label, value }: { label: string; value: string }) => {
-    const [copied, setCopied] = useState(false);
-    return (
-      //biome-ignore lint/a11y/useKeyWithClickEvents: no need
-      <span
-        onClick={(e) => {
-          e.stopPropagation();
-          navigator.clipboard
-            .writeText(value)
-            .then(() => {
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1000);
-            })
-            .catch(() => {
-              toast.error("Failed to copy to clipboard");
-            });
-        }}
-        className="flex items-center hover:bg-gray-3 text-left cursor-pointer w-full px-5 py-2"
-      >
-        <span className="w-32 text-left truncate text-accent-9">{label}</span>
-        <span className={cn("ml-2 text-xs text-accent-12", copied ? "text-success-11" : "")}>
-          {copied ? "Copied!" : value}
-        </span>
-      </span>
-    );
   };
 
   return (
@@ -161,7 +168,7 @@ const TimestampInfo: React.FC<{
         <div className="py-3">
           <TooltipRow label="UTC" value={utc} />
           <TooltipRow label={localTimezone} value={local} />
-          <TooltipRow label="Relative" value={relative} />
+          <RelativeRow value={value} />
           <TooltipRow label="Timestamp" value={String(value)} />
         </div>
       </PopoverContent>

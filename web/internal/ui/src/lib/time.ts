@@ -15,27 +15,8 @@ export function toDate(value: string | number | Date): Date {
   return isUnixMicro(value) ? fromUnixTime(Number(value) / 1000 / 1000) : new Date(value);
 }
 
-export function relativeTime(
-  value: string | number | Date,
-  now: number,
-  style: RelativeStyle = "long",
-): string {
-  const date = toDate(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
+export function relativeTime(time: number, now: number, style: RelativeStyle = "long"): string {
   return style === "narrow"
-    ? intlFormatDistance(date, now, { style: "narrow" })
-    : formatDistance(date, now, { addSuffix: true });
-}
-
-// A server timestamp read against the browser's clock can sit ahead of it, and
-// something that has already happened must never read "in 25 sec".
-export function elapsed(
-  value: string | number | Date,
-  now: number,
-  style: RelativeStyle = "long",
-): string {
-  const time = toDate(value).getTime();
-  return relativeTime(time, Number.isNaN(time) ? now : Math.max(now, time), style);
+    ? intlFormatDistance(time, now, { style: "narrow" })
+    : formatDistance(time, now, { addSuffix: true });
 }
