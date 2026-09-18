@@ -108,22 +108,27 @@ func (w *Workflow) skipIfSuperseded(
 		"branch", deployment.GitBranch.String,
 	)
 
+	// Two Runs, not one: UpdateDeploymentStatus is unconditional, so a retry
+	// driven by the step write failing would write superseded over whatever
+	// the status had become in between
 	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
-		if updErr := w.db.UpdateDeploymentStatus(runCtx, db.UpdateDeploymentStatusParams{
+		return w.db.UpdateDeploymentStatus(runCtx, db.UpdateDeploymentStatusParams{
 			ID:        deployment.ID,
 			Status:    mysqltype.DeploymentsStatusSuperseded,
-			UpdatedAt: now,
-		}); updErr != nil {
-			return updErr
-		}
+			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+	}, restate.WithName("mark deployment superseded"), restate.WithMaxRetryAttempts(runMaxAttempts)); err != nil {
+		return false, fault.Wrap(err, fault.Public("Failed to mark deployment as superseded."))
+	}
+
+	if err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return w.db.EndDeploymentStep(runCtx, db.EndDeploymentStepParams{
 			DeploymentID: deployment.ID,
 			Step:         db.DeploymentStepsStepQueued,
-			EndedAt:      now,
+			EndedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			Error:        sql.NullString{Valid: true, String: SupersededByNewerCommitMessage},
 		})
-	}, restate.WithName("mark deployment superseded"), restate.WithMaxRetryAttempts(runMaxAttempts)); err != nil {
+	}, restate.WithName("end queued step as superseded"), restate.WithMaxRetryAttempts(runMaxAttempts)); err != nil {
 		return false, fault.Wrap(err, fault.Public("Failed to mark deployment as superseded."))
 	}
 
