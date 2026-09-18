@@ -165,9 +165,9 @@ func TestFlowControl(t *testing.T) {
 	})
 
 	// A slot is held for as long as Restate is running the invocation, waits
-	// included, and is freed only when Restate suspends it after about a minute
-	// of no activity. Build holds its slot throughout because the depot build is
-	// one blocking restate.Run
+	// included, and is freed when Restate suspends it after about a minute of no
+	// activity. Build is bound with [BuildKeepAliveWindow] so it never reaches
+	// that point and holds its slot for the whole image build
 	t.Run("a callee that waits keeps its slot until Restate suspends it", func(t *testing.T) {
 		ws := uid.New(uid.WorkspacePrefix)
 		waitKey := uid.New(uid.DeploymentPrefix)

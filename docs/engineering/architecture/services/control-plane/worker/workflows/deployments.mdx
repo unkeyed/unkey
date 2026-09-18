@@ -77,7 +77,7 @@ sequenceDiagram
   CtrlAPI->>DB: Find deployment (must be non-terminal)
   CtrlAPI->>DB: Stamp active steps with "Cancelled by user"
   CtrlAPI->>RestateAdmin: CancelInvocation(invocation_id)
-  Note over RestateAdmin: Also cancels the Build Deploy is waiting on;<br/>queued: removed without running,<br/>running: keeps its slot until the image build returns
+  Note over RestateAdmin: Also cancels the Build Deploy is waiting on;<br/>queued: removed without running,<br/>running: image build aborted, slot freed
   RestateAdmin->>Worker: Inject TerminalError at next SDK call
   Worker->>Worker: defer runs compensation stack (LIFO)
   Worker->>DB: UpdateDeploymentStatusIfActive → failed (compensation)
@@ -132,7 +132,9 @@ Restate limits how many builds run at once. Deploy calls `Build` in the scope `b
 
 The database is the source of truth: a rule set by hand lasts at most 15 minutes. To raise a workspace's cap, raise `builds_concurrent_max` on its `limits` row.
 
-Deploy waits for Build (`Request`, not `Send`), so cancelling Deploy cancels the Build too. A Build still waiting is removed and never runs. A Build that already started keeps its slot until it returns: the whole image build is one `restate.Run`, so there is no SDK call for the cancel to land on until the image is built and pushed. Cancelling a running build therefore does not give the workspace its capacity back.
+Deploy waits for Build (`Request`, not `Send`), so cancelling Deploy cancels the Build too. A Build still waiting is removed and never runs. A running one has its image build aborted and frees its slot at once.
+
+That last part needs `Build` to stay unsuspended for the whole build, which is why it is bound with `WithInactivityTimeout(deploy.BuildKeepAliveWindow)`. `restate.Run`'s context is cancelled with the invocation's HTTP/2 stream and not on suspend, so a suspended Build cannot be told it was cancelled: it would run to completion and hold the workspace's slot until it did.
 
 ```go
 hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(restateadmin.BuildConcurrencyScope)).

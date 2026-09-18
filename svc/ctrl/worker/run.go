@@ -347,7 +347,8 @@ func Run(ctx context.Context, cfg Config) error {
 	)
 	restateSrv.Bind(hydrav1.NewDeployWorkflowServer(deployWorkflow, deployRetryPolicy).
 		ConfigureHandler("Deploy", restate.WithIngressPrivate(true)).
-		ConfigureHandler("Build", restate.WithIngressPrivate(true), buildRetryPolicy))
+		ConfigureHandler("Build", restate.WithIngressPrivate(true), buildRetryPolicy,
+			restate.WithInactivityTimeout(deploy.BuildKeepAliveWindow)))
 	deploymentSvc, err := deployment.New(deployment.Config{
 		DB:        database,
 		Auditlogs: auditlogSvc,
