@@ -1,12 +1,12 @@
 ---
 title: "Mise"
-description: "How Unkey uses mise for local tooling and repository tasks"
+description: "How Unkey pins tools for local tasks, CI, and build containers"
 ---
 
 ## What mise owns
 
-Unkey uses mise as the local toolchain and task runner. The source of truth is
-`mise.toml`, `mise.lock`, and `.mise/tasks/*`.
+Unkey uses mise to select project tools and run repository tasks. The source of
+truth is `.mise/config.toml`, `.mise/mise.lock`, and `.mise/tasks/*`.
 
 Use mise for local repository commands:
 
@@ -22,11 +22,11 @@ from the pinned toolchain.
 
 ## Install the toolchain
 
-Install the pinned mise binary, then install the tools from `mise.toml`:
+Install the pinned mise binary, then install the tools from `.mise/config.toml`:
 
 ```bash
 ./dev/install-mise
-mise install
+mise install --locked --yes
 ```
 
 <Note>
@@ -45,32 +45,80 @@ you don't need to run setup-only tasks manually.
 
 ## How tools are pinned
 
-Add tools to the `[tools]` section in `mise.toml`. Pin exact versions instead
+Add tools to the `[tools]` section in `.mise/config.toml`. Pin exact versions instead
 of floating versions like `latest`.
 
 ```toml
 [tools]
 node = "24.19.0"
-"npm:pnpm" = "8.6.9"
-"github:depot/cli" = "2.101.63"
+"github:pnpm/pnpm" = "11.5.0"
+"github:depot/cli" = "2.101.67"
 ```
 
-After changing tools, update `mise.lock`:
+After changing tools, update `.mise/mise.lock`. Disable locked mode only for
+this maintenance command, not for installation or CI:
 
 ```bash
-mise lock <tool>
+MISE_LOCKED=0 mise lock <tool>
 ```
 
 Use the backend-qualified name when needed, for example:
 
 ```bash
-mise lock npm:pnpm
-mise lock github:depot/cli
+MISE_LOCKED=0 mise lock github:pnpm/pnpm
+MISE_LOCKED=0 mise lock github:depot/cli
 ```
 
-Run `mise install --locked --yes` after updating the lockfile. This catches
-missing URLs, checksums, and platform entries before another developer hits the
-same issue.
+Keep lock entries for Linux and macOS on both x64 and ARM64:
+
+```bash
+MISE_LOCKED=0 mise lock <tool> --platform linux-x64,linux-arm64,macos-x64,macos-arm64
+```
+
+Verify `mise install --locked --yes` with an empty tool directory on each
+supported platform. A warm installation does not exercise archive downloads or
+checksum verification.
+
+Keep `go.mod`'s minimum Go version and `web/package.json`'s Node compatibility
+range. Update `packageManager` alongside mise's pnpm pin. Go uses
+`GOTOOLCHAIN=local`, and pnpm uses `pmOnFail: error`, so neither silently downloads
+a replacement toolchain. Module and package dependencies retain their native
+lockfiles. OS packages and container base images remain separate pins.
+
+## CI setup and caching
+
+Workflows use `.depot/actions/setup-mise` after checkout. Every job installs the
+full locked toolchain and shares the same tool cache for its platform and event
+type. Setup restores Go and pnpm caches but does not install project dependencies.
+Tasks own dependency installation. For example, `build-web`, `test-web`, and
+`fmt` depend on `install-web`.
+Execute project commands with `mise run` or `mise exec`; installation alone does
+not select tools for subsequent steps.
+
+The action caches installed tools by OS, architecture, OS/libc identity, event
+type, and bootstrap/config/lock contents. Go module/build caches
+and the pnpm store have separate keys. Restoring a cache never skips the locked
+installation check. CI must not regenerate lockfiles or upgrade tools.
+
+Depot runners still supply the Docker daemon, Buildx, Compose, and OS packages.
+Go and web integration tests need Docker access. Installing mise tools does not
+replace those runner capabilities.
+
+## Build containers
+
+Go builders and the portal builder copy `dev/install-mise` and both mise files
+before application source. Docker reuses the installation layer when only source
+changes. Go module/build caches and the portal's pnpm store use separate BuildKit
+cache mounts. Runtime images contain the built application, not mise.
+
+The eBPF generator retains its digest-pinned Ubuntu base, clang/LLVM 18, and
+forced `linux/amd64` platform. Mise supplies Go from the repository lockfile.
+`mise run generate-bpf` mounts the source separately from installed tools and
+caches Go downloads/builds under `${XDG_CACHE_HOME:-$HOME/.cache}/unkey-bpf`.
+CI also caches the generator image with BuildKit. After toolchain changes, test
+a cold build and a cached build and confirm that generated `.go` and `.o` files
+have no unexpected differences. The Ubuntu digest does not freeze apt package
+revisions, so changes to those packages need the same reproducibility check.
 
 ## How tasks work
 
@@ -147,6 +195,6 @@ Task dependencies run before the requested task. Hidden tasks can still run as
 dependencies. `mise tasks` hides them by default, and `mise tasks --hidden`
 shows them.
 
-The lockfile is part of the review surface. If `mise.toml` changes, expect a
-matching `mise.lock` change unless the edit only affects task configuration or
+The lockfile is part of the review surface. If `.mise/config.toml` changes, expect a
+matching `.mise/mise.lock` change unless the edit only affects task configuration or
 environment variables.

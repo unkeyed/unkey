@@ -268,6 +268,30 @@ url = "https://github.com/golangci/golangci-lint/releases/download/v2.12.2/golan
 url_api = "https://api.github.com/repos/golangci/golangci-lint/releases/assets/413471017"
 provenance = "github-attestations"
 
+[[tools."github:goreleaser/goreleaser-pro"]]
+version = "2.15.4"
+backend = "github:goreleaser/goreleaser-pro"
+
+[tools."github:goreleaser/goreleaser-pro"."platforms.linux-arm64"]
+checksum = "sha256:c2714766cd73d45997e10397cf9ed889ef17761e9ffdcb72f179fec605d6155f"
+url = "https://github.com/goreleaser/goreleaser-pro/releases/download/v2.15.4/goreleaser-pro_Linux_arm64.tar.gz"
+url_api = "https://api.github.com/repos/goreleaser/goreleaser-pro/releases/assets/401587720"
+
+[tools."github:goreleaser/goreleaser-pro"."platforms.linux-x64"]
+checksum = "sha256:a7902f82d5afdcc2f43d5333d0f9d77db2d2c261b33189182c5358fc2f0bc1dc"
+url = "https://github.com/goreleaser/goreleaser-pro/releases/download/v2.15.4/goreleaser-pro_Linux_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/goreleaser/goreleaser-pro/releases/assets/401587704"
+
+[tools."github:goreleaser/goreleaser-pro"."platforms.macos-arm64"]
+checksum = "sha256:f48b6ce7d17d959a2fdb033ece22c09e90e12956cac9c6ab40a7cfe6d6d202d3"
+url = "https://github.com/goreleaser/goreleaser-pro/releases/download/v2.15.4/goreleaser-pro_Darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/goreleaser/goreleaser-pro/releases/assets/401587658"
+
+[tools."github:goreleaser/goreleaser-pro"."platforms.macos-x64"]
+checksum = "sha256:0f115ca6678220e06df496c112b7c86f0e059b4e64832f5fce97e31c9027bea0"
+url = "https://github.com/goreleaser/goreleaser-pro/releases/download/v2.15.4/goreleaser-pro_Darwin_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/goreleaser/goreleaser-pro/releases/assets/401587659"
+
 [[tools."github:jqlang/jq"]]
 version = "jq-1.8.1"
 backend = "github:jqlang/jq"

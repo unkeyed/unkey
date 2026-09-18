@@ -51,15 +51,10 @@ jobs:
             echo "No schema changes to compare."
           fi
 
-      - name: Install mise
+      - uses: ./.depot/actions/setup-mise
         if: steps.changes.outputs.db_schema == 'true'
-        run: |
-          ./dev/install-mise
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
-      - name: Install toolchain
-        if: steps.changes.outputs.db_schema == 'true'
-        run: mise install --locked --yes node github:pnpm/pnpm github:planetscale/cli github:jqlang/jq
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Compare proposed schema with production
         if: steps.changes.outputs.db_schema == 'true'
@@ -118,13 +113,9 @@ jobs:
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
 
-      - name: Install mise
-        run: |
-          ./dev/install-mise
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
-      - name: Install toolchain
-        run: mise install --locked --yes github:planetscale/cli github:jqlang/jq
+      - uses: ./.depot/actions/setup-mise
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Delete leftover schema check branches
         run: |
