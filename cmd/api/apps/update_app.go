@@ -2,7 +2,6 @@ package apps
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
@@ -43,14 +42,14 @@ For full documentation, see https://www.unkey.com/docs/api-reference/apps/update
 		if v := cmd.String("slug"); v != "" {
 			req.Slug = &v
 		}
-		if v := cmd.String("git"); v != "" {
-			if err := json.Unmarshal([]byte(v), &req.Git); err != nil {
-				return fmt.Errorf("invalid JSON for --git: %w", err)
+		if cmd.String("git") != "" {
+			if err := cmd.JSON("git", &req.Git); err != nil {
+				return err
 			}
 		}
-		if v := cmd.String("oci"); v != "" {
-			if err := json.Unmarshal([]byte(v), &req.Oci); err != nil {
-				return fmt.Errorf("invalid JSON for --oci: %w", err)
+		if cmd.String("oci") != "" {
+			if err := cmd.JSON("oci", &req.Oci); err != nil {
+				return err
 			}
 		}
 		if cmd.FlagIsSet("delete-protection") {

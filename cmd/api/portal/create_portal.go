@@ -40,9 +40,11 @@ For full documentation, see https://www.unkey.com/docs/api-reference/portal/crea
 				return util.Output(cmd, res.V2PortalCreatePortalResponseBody)
 			}
 
-			slug, displayName := cmd.String("slug"), cmd.String("display-name")
+			slug := cmd.String("slug")
+			displayName := cmd.String("display-name")
 			enabled := ptr.P(cmd.Bool("enabled"))
-			var logoURL, primaryColor *string
+			var logoURL *string
+			var primaryColor *string
 			if v := cmd.String("logo-url"); v != "" {
 				logoURL = &v
 			}

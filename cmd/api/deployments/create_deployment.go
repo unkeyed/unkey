@@ -2,7 +2,6 @@ package deployments
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
@@ -69,30 +68,30 @@ For full documentation, see https://www.unkey.com/docs/api-reference/deployments
 				Oci:         nil,
 				Deployment:  nil,
 			}
-			if raw := cmd.String("git"); raw != "" {
+			if cmd.String("git") != "" {
 				var source *components.DeploymentSourceGit
-				if err := json.Unmarshal([]byte(raw), &source); err != nil {
-					return fmt.Errorf("invalid JSON for --git: %w", err)
+				if err := cmd.JSON("git", &source); err != nil {
+					return err
 				}
 				if source == nil {
 					return fmt.Errorf("--git must be a JSON object, not null")
 				}
 				req.Git = source
 			}
-			if raw := cmd.String("oci"); raw != "" {
+			if cmd.String("oci") != "" {
 				var source *components.DeploymentSourceOCI
-				if err := json.Unmarshal([]byte(raw), &source); err != nil {
-					return fmt.Errorf("invalid JSON for --oci: %w", err)
+				if err := cmd.JSON("oci", &source); err != nil {
+					return err
 				}
 				if source == nil {
 					return fmt.Errorf("--oci must be a JSON object, not null")
 				}
 				req.Oci = source
 			}
-			if raw := cmd.String("deployment"); raw != "" {
+			if cmd.String("deployment") != "" {
 				var source *components.DeploymentSourceDeployment
-				if err := json.Unmarshal([]byte(raw), &source); err != nil {
-					return fmt.Errorf("invalid JSON for --deployment: %w", err)
+				if err := cmd.JSON("deployment", &source); err != nil {
+					return err
 				}
 				if source == nil {
 					return fmt.Errorf("--deployment must be a JSON object, not null")

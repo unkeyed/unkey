@@ -2,7 +2,6 @@ package apps
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
@@ -43,18 +42,20 @@ For full documentation, see https://www.unkey.com/docs/api-reference/apps/create
 			}
 			return util.Output(cmd, res.V2AppsCreateAppResponseBody)
 		}
-		project, name, slug := cmd.String("project"), cmd.String("name"), cmd.String("slug")
+		project := cmd.String("project")
+		name := cmd.String("name")
+		slug := cmd.String("slug")
 		var req components.V2AppsCreateAppRequestBodyUnion
-		if v := cmd.String("git"); v != "" {
+		if cmd.String("git") != "" {
 			var git components.AppGitCreateInput
-			if err := json.Unmarshal([]byte(v), &git); err != nil {
-				return fmt.Errorf("invalid JSON for --git: %w", err)
+			if err := cmd.JSON("git", &git); err != nil {
+				return err
 			}
 			req = components.CreateV2AppsCreateAppRequestBodyUnionV2AppsCreateAppRequestBody1(components.V2AppsCreateAppRequestBody1{Project: project, Name: name, Slug: slug, Git: git, Oci: nil})
 		} else {
 			var oci components.AppOCI
-			if err := json.Unmarshal([]byte(cmd.String("oci")), &oci); err != nil {
-				return fmt.Errorf("invalid JSON for --oci: %w", err)
+			if err := cmd.JSON("oci", &oci); err != nil {
+				return err
 			}
 			req = components.CreateV2AppsCreateAppRequestBodyUnionV2AppsCreateAppRequestBody2(components.V2AppsCreateAppRequestBody2{Project: project, Name: name, Slug: slug, Git: nil, Oci: oci})
 		}
