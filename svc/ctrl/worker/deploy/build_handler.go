@@ -17,7 +17,7 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// Build ends the queued step and runs the starting and building steps. Deploy
+// Build ends the queued step and runs the building step. Deploy
 // calls it in [restateadmin.BuildConcurrencyScope] with the workspace id as
 // the limit key, and Restate runs this handler only once the workspace is
 // under its build cap.
@@ -91,7 +91,7 @@ func (w *Workflow) Build(ctx restate.WorkflowSharedContext, req *hydrav1.DeployR
 		"queued_for", time.Duration(queuedUntil-deployment.CreatedAt)*time.Millisecond,
 	)
 
-	stepErr := w.DeploymentStep(ctx, db.DeploymentStepsStepStarting, deployment.ID, func() error {
+	stepErr := w.DeploymentStep(ctx, db.DeploymentStepsStepBuilding, deployment.ID, func() error {
 		// Create refuses these settings before it writes a deployment, so a
 		// violation here means the row was written some other way. The message
 		// is one the API's deployment error classifier turns into
@@ -102,13 +102,6 @@ func (w *Workflow) Build(ctx restate.WorkflowSharedContext, req *hydrav1.DeployR
 				fault.Public(violations[0].Message),
 			)
 		}
-		return nil
-	})
-	if stepErr != nil {
-		return nil, stepErr
-	}
-
-	stepErr = w.DeploymentStep(ctx, db.DeploymentStepsStepBuilding, deployment.ID, func() error {
 		return w.buildImage(ctx, req, deployment)
 	})
 	if stepErr != nil {
