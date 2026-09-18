@@ -18,6 +18,17 @@ type verifyConfig struct {
 	tags        []string
 	permissions *rbac.PermissionQuery
 	ratelimits  []openapi.KeysVerifyKeyRatelimit
+	keyspaces   []string
+}
+
+// WithKeyspaces restricts verification to the given keyspaces before consuming
+// credits or rate limits. An empty allowlist rejects every key; omit the option
+// to verify without a keyspace restriction.
+func WithKeyspaces(keyspaces ...string) VerifyOption {
+	return func(config *verifyConfig) error {
+		config.keyspaces = append([]string{}, keyspaces...)
+		return nil
+	}
 }
 
 // WithCredits validates that the key has sufficient usage credits and deducts the specified cost.
