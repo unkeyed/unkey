@@ -48,14 +48,14 @@ service CronService {
   // RunRatelimitGlobalCountersCleanup deletes expired rows from
   // ratelimit_global_counters (cross-region propagation). Stateless;
   // key is the fixed slug "ratelimit-global-counters-cleanup" so a
-  // paused/wedged invocation here cannot block the every-minute handlers.
+  // paused or stuck invocation here cannot block the every-minute handlers.
   // Hourly schedule.
   rpc RunRatelimitGlobalCountersCleanup(RunRatelimitGlobalCountersCleanupRequest) returns (RunRatelimitGlobalCountersCleanupResponse) {}
 
   // RunAuditLogOutboxCleanup hard-deletes already-exported clickhouse_outbox
   // rows (deleted_at stamped) older than the retention window so the outbox
   // stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
-  // so a paused/wedged invocation cannot block other handlers. Daily schedule.
+  // so a paused or stuck invocation cannot block other handlers. Daily schedule.
   rpc RunAuditLogOutboxCleanup(RunAuditLogOutboxCleanupRequest) returns (RunAuditLogOutboxCleanupResponse) {}
 
   // RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,

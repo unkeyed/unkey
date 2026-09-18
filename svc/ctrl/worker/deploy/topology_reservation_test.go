@@ -16,10 +16,10 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// TestReserveTopologies pins the quota check the old build slot used to
-// serialise by accident: two deployments of one workspace may not both pass
-// when only one fits, and a re-run for the same deployment must not count its
-// own rows. The seeded deployment is 256 MiB, so a 256 MiB quota fits one
+// TestReserveTopologies pins that two deployments of one workspace cannot both
+// reserve when only one fits, and that a re-run for the same deployment does
+// not count its own rows. The seeded deployment is 256 MiB, so a 256 MiB quota
+// fits one
 func TestReserveTopologies(t *testing.T) {
 	ctx := context.Background()
 	database, err := db.New(containers.MySQL(t).DSN, sqlcomment.Disabled())

@@ -50,6 +50,14 @@ const (
 	// token to github.com; BuildKit's git source looks up the host-suffixed
 	// name first. Shared by the Dockerfile and Railpack build paths.
 	gitAuthTokenSecretID = "GIT_AUTH_TOKEN.github.com"
+
+	// buildBackendDeadline bounds one attempt at acquiring a build machine and
+	// solving on it. Build holds the workspace's Restate build slot for as long
+	// as its restate.Run is running, so a backend that never answers would
+	// otherwise stop every other deployment in the workspace indefinitely.
+	// Equal to buildImageRetryCeiling, so an attempt that hits this deadline has
+	// also spent the outer Run's wall-clock budget and is not retried
+	buildBackendDeadline = 30 * time.Minute
 )
 
 // knownBuildError maps a BuildKit error pattern to a user-friendly message.
@@ -326,7 +334,8 @@ func (w *Workflow) buildDockerImageFromGit(
 			return nil, restate.ToTerminalError(assertErr)
 		}
 
-		logger.Info("Starting build execution",
+		logger.Info(
+			"Starting build execution",
 			"image_name", bctx.ImageName,
 			"dockerfile", dockerfilePath,
 			"platform", platform,
@@ -396,16 +405,23 @@ func buildGitContextURL(params gitBuildParams) string {
 // build backend and invokes fn with it. Returns the backend's build ID
 // alongside fn's error. The backend value is validated at config load, so
 // anything but the two known backends is unreachable.
+//
+// fn must use the context it is given rather than the caller's: it carries
+// [buildBackendDeadline], which is what stops a backend that never answers
+// from holding the workspace's build slot forever.
 func (w *Workflow) withBuildkit(
 	runCtx context.Context,
 	depotProjectID string,
 	params gitBuildParams,
-	fn func(buildClient *client.Client) error,
+	fn func(buildCtx context.Context, buildClient *client.Client) error,
 ) (string, error) {
+	buildCtx, cancel := context.WithTimeout(runCtx, buildBackendDeadline)
+	defer cancel()
+
 	if w.buildConfig.Backend == BuildBackendKubernetes {
-		return w.withKubernetesBuildkit(runCtx, params, fn)
+		return w.withKubernetesBuildkit(buildCtx, params, fn)
 	}
-	return w.withDepotBuildkit(runCtx, depotProjectID, params, fn)
+	return w.withDepotBuildkit(buildCtx, depotProjectID, params, fn)
 }
 
 // withDepotBuildkit creates a Depot build, acquires a remote BuildKit
@@ -413,12 +429,12 @@ func (w *Workflow) withBuildkit(
 // build is finalized and the machine released regardless of fn's outcome.
 // Returns the Depot build ID alongside fn's error.
 func (w *Workflow) withDepotBuildkit(
-	runCtx context.Context,
+	buildCtx context.Context,
 	depotProjectID string,
 	params gitBuildParams,
-	fn func(buildClient *client.Client) error,
+	fn func(buildCtx context.Context, buildClient *client.Client) error,
 ) (_ string, err error) {
-	depotBuild, err := build.NewBuild(runCtx, &cliv1.CreateBuildRequest{
+	depotBuild, err := build.NewBuild(buildCtx, &cliv1.CreateBuildRequest{
 		Options:   nil,
 		ProjectId: depotProjectID,
 	}, w.registryConfig.Password)
@@ -437,7 +453,7 @@ func (w *Workflow) withDepotBuildkit(
 		"architecture", w.buildPlatform.Architecture,
 		"project_id", params.ProjectID)
 
-	buildkit, err := machine.Acquire(runCtx, depotBuild.ID, depotBuild.Token, w.buildPlatform.Architecture)
+	buildkit, err := machine.Acquire(buildCtx, depotBuild.ID, depotBuild.Token, w.buildPlatform.Architecture)
 	if err != nil {
 		return "", fmt.Errorf("failed to acquire machine: %w", err)
 	}
@@ -451,7 +467,7 @@ func (w *Workflow) withDepotBuildkit(
 		"build_id", depotBuild.ID,
 		"project_id", params.ProjectID)
 
-	buildClient, err := buildkit.Connect(runCtx)
+	buildClient, err := buildkit.Connect(buildCtx)
 	if err != nil {
 		return "", fmt.Errorf("unable to create build client: %w", err)
 	}
@@ -461,7 +477,7 @@ func (w *Workflow) withDepotBuildkit(
 		}
 	}()
 
-	err = fn(buildClient)
+	err = fn(buildCtx, buildClient)
 	return depotBuild.ID, err
 }
 
@@ -529,8 +545,8 @@ func (w *Workflow) solveOnBuildMachine(
 	params gitBuildParams,
 	solverOptions client.SolveOpt,
 ) (*buildResult, error) {
-	buildID, err := w.withBuildkit(runCtx, depotProjectID, params, func(buildClient *client.Client) error {
-		return w.solveWithStatus(runCtx, buildClient, params, solverOptions)
+	buildID, err := w.withBuildkit(runCtx, depotProjectID, params, func(buildCtx context.Context, buildClient *client.Client) error {
+		return w.solveWithStatus(buildCtx, buildClient, params, solverOptions)
 	})
 	if err != nil {
 		return nil, err

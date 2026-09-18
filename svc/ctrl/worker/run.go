@@ -542,7 +542,7 @@ func Run(ctx context.Context, cfg Config) error {
 			)
 		} else {
 			// ReconcileUser is awaited by a cron handler. Bound its retries so a
-			// permanently failing workspace cannot wedge the cron VO forever.
+			// permanently failing workspace cannot block the cron VO forever.
 			clickhouseUserReconcileRetry := restate.WithInvocationRetryPolicy(
 				restate.WithInitialRetryInterval(100*time.Millisecond),
 				restate.WithRetryIntervalFactor(2.0),
@@ -564,7 +564,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// defaults: each task previously lived in its own service with its
 	// own (or no) overrides, and a blanket default would silently change
 	// failure semantics — e.g. forcing PauseOnMaxAttempts on singleton-
-	// keyed VOs wedges every subsequent tick under that key. Per-handler
+	// keyed VOs blocks every subsequent tick under that key. Per-handler
 	// options below mirror each task's pre-consolidation behavior.
 	cronSvc, err := cron.New(cron.Config{
 		DB:                        database,
@@ -599,7 +599,7 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	// Tighter policy for KeyLastUsedSync: deadlocks resolve fast and
 	// the orchestrator just fans out to partition VOs, so capping retries
-	// short makes a wedged sync visible quickly. Kill (not Pause) on
+	// short makes a stuck sync visible quickly. Kill (not Pause) on
 	// exhaustion: the orchestrator fans out to 8 partition children and
 	// waits on each future sequentially, so a paused partition blocks
 	// the whole sync until an operator cancels it (incident: partitions
@@ -634,7 +634,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// AuditLogOutboxCleanup mirrors the ratelimit cleanup policy for the
 	// same reasons: a stateless, cutoff-bounded, batched DELETE with no
 	// compensation, on a fixed singleton key that a paused invocation would
-	// wedge. Kill on exhaustion and let the next daily tick retry.
+	// block. Kill on exhaustion and let the next daily tick retry.
 	cronAuditLogCleanupRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialRetryInterval(100*time.Millisecond),
 		restate.WithRetryIntervalFactor(2.0),
@@ -644,7 +644,7 @@ func Run(ctx context.Context, cfg Config) error {
 	)
 	// AuditLogExport drains the outbox every minute on the fixed singleton
 	// key "audit-log-export", so a stuck invocation blocks every later tick.
-	// The SDK default retries forever, which is the same wedge as pausing
+	// The SDK default retries forever, which blocks the key just like pausing
 	// with no attempt cap — and the drainer has a known permanent failure
 	// mode (a malformed payload fails its batch until someone fixes the
 	// writer), so retrying it for eternity buys nothing while the outbox
@@ -669,7 +669,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// workspace closes, so a brief infrastructure outage must not exhaust it in
 	// seconds. Nine attempts span roughly 75 minutes while staying well inside
 	// the claimed invoice's 48-hour finalization backstop. Kill on exhaustion so
-	// the period VO never remains wedged.
+	// the period VO never remains blocked.
 	cronDeployBillingFleetCloseRetry := restate.WithInvocationRetryPolicy(
 		restate.WithInitialRetryInterval(1*time.Minute),
 		restate.WithRetryIntervalFactor(2.0),
@@ -767,7 +767,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// backstop. If a non-terminal failure ever reached the handler (a second Run
 	// step, a framework error), the SDK default of infinite retries would leave
 	// the child retrying forever while the orchestrator suspends on the period
-	// VO. That is the wedge this fan-out exists to prevent. Cap and kill so the
+	// VO. That is the stall this fan-out exists to prevent. Cap and kill so the
 	// child fails visibly and the next tick re-sends the absolute total. Mirrors
 	// KeyLastUsedPartitionService.
 	deployBillingPushWorkspaceRetry := restate.WithInvocationRetryPolicy(
@@ -785,7 +785,7 @@ func Run(ctx context.Context, cfg Config) error {
 	//
 	// CheckWorkspaceSpend is awaited by the orchestrator, so it must
 	// terminate: without a cap a check that cannot succeed (one workspace's
-	// alert email rejected, a wedged suspend) retries forever and parks the
+	// alert email rejected, a suspend that never returns) retries forever and parks the
 	// awaiting period VO, stalling every later tick fleet-wide. Alert dedup is
 	// owned by the period-scoped high-water mark and the email idempotency
 	// key, so kill on exhaustion and let the next tick retry from a clean

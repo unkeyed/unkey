@@ -51,13 +51,13 @@ type CronServiceClient interface {
 	// RunRatelimitGlobalCountersCleanup deletes expired rows from
 	// ratelimit_global_counters (cross-region propagation). Stateless;
 	// key is the fixed slug "ratelimit-global-counters-cleanup" so a
-	// paused/wedged invocation here cannot block the every-minute handlers.
+	// paused or stuck invocation here cannot block the every-minute handlers.
 	// Hourly schedule.
 	RunRatelimitGlobalCountersCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunRatelimitGlobalCountersCleanupRequest, *RunRatelimitGlobalCountersCleanupResponse]
 	// RunAuditLogOutboxCleanup hard-deletes already-exported clickhouse_outbox
 	// rows (deleted_at stamped) older than the retention window so the outbox
 	// stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
-	// so a paused/wedged invocation cannot block other handlers. Daily schedule.
+	// so a paused or stuck invocation cannot block other handlers. Daily schedule.
 	RunAuditLogOutboxCleanup(opts ...sdk_go.ClientOption) sdk_go.Client[*RunAuditLogOutboxCleanupRequest, *RunAuditLogOutboxCleanupResponse]
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
 	// egress, disk, active keys) from ClickHouse, fans out one
@@ -250,13 +250,13 @@ type CronServiceIngressClient interface {
 	// RunRatelimitGlobalCountersCleanup deletes expired rows from
 	// ratelimit_global_counters (cross-region propagation). Stateless;
 	// key is the fixed slug "ratelimit-global-counters-cleanup" so a
-	// paused/wedged invocation here cannot block the every-minute handlers.
+	// paused or stuck invocation here cannot block the every-minute handlers.
 	// Hourly schedule.
 	RunRatelimitGlobalCountersCleanup() ingress.Requester[*RunRatelimitGlobalCountersCleanupRequest, *RunRatelimitGlobalCountersCleanupResponse]
 	// RunAuditLogOutboxCleanup hard-deletes already-exported clickhouse_outbox
 	// rows (deleted_at stamped) older than the retention window so the outbox
 	// stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
-	// so a paused/wedged invocation cannot block other handlers. Daily schedule.
+	// so a paused or stuck invocation cannot block other handlers. Daily schedule.
 	RunAuditLogOutboxCleanup() ingress.Requester[*RunAuditLogOutboxCleanupRequest, *RunAuditLogOutboxCleanupResponse]
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
 	// egress, disk, active keys) from ClickHouse, fans out one
@@ -427,13 +427,13 @@ type CronServiceServer interface {
 	// RunRatelimitGlobalCountersCleanup deletes expired rows from
 	// ratelimit_global_counters (cross-region propagation). Stateless;
 	// key is the fixed slug "ratelimit-global-counters-cleanup" so a
-	// paused/wedged invocation here cannot block the every-minute handlers.
+	// paused or stuck invocation here cannot block the every-minute handlers.
 	// Hourly schedule.
 	RunRatelimitGlobalCountersCleanup(ctx sdk_go.ObjectContext, req *RunRatelimitGlobalCountersCleanupRequest) (*RunRatelimitGlobalCountersCleanupResponse, error)
 	// RunAuditLogOutboxCleanup hard-deletes already-exported clickhouse_outbox
 	// rows (deleted_at stamped) older than the retention window so the outbox
 	// stays bounded. Stateless; key is the fixed slug "audit-log-outbox-cleanup"
-	// so a paused/wedged invocation cannot block other handlers. Daily schedule.
+	// so a paused or stuck invocation cannot block other handlers. Daily schedule.
 	RunAuditLogOutboxCleanup(ctx sdk_go.ObjectContext, req *RunAuditLogOutboxCleanupRequest) (*RunAuditLogOutboxCleanupResponse, error)
 	// RunDeployBillingPush computes month-to-date Deploy usage (CPU, memory,
 	// egress, disk, active keys) from ClickHouse, fans out one
