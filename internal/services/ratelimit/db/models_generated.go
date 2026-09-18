@@ -1058,7 +1058,11 @@ func (ns NullLogdrainsStatus) Value() (driver.Value, error) {
 type LogdrainsStream string
 
 const (
-	LogdrainsStreamAuditLogs LogdrainsStream = "audit_logs"
+	LogdrainsStreamAuditLogs        LogdrainsStream = "audit_logs"
+	LogdrainsStreamKeyVerifications LogdrainsStream = "key_verifications"
+	LogdrainsStreamGatewayRequests  LogdrainsStream = "gateway_requests"
+	LogdrainsStreamRuntimeLogs      LogdrainsStream = "runtime_logs"
+	LogdrainsStreamRatelimits       LogdrainsStream = "ratelimits"
 )
 
 func (e *LogdrainsStream) Scan(src interface{}) error {
@@ -1142,7 +1146,6 @@ type App struct {
 	Name                string         `db:"name"`
 	Slug                string         `db:"slug"`
 	SourceType          AppsSourceType `db:"source_type"`
-	DefaultBranch       string         `db:"default_branch"`
 	CurrentDeploymentID sql.NullString `db:"current_deployment_id"`
 	IsRolledBack        bool           `db:"is_rolled_back"`
 	DeleteProtection    sql.NullBool   `db:"delete_protection"`
@@ -1322,7 +1325,6 @@ type Deployment struct {
 	AppID                         string                      `db:"app_id"`
 	Source                        DeploymentsSource           `db:"source"`
 	ImageRequested                sql.NullString              `db:"image_requested"`
-	Image                         sql.NullString              `db:"image"`
 	ImageResolved                 sql.NullString              `db:"image_resolved"`
 	BuildID                       sql.NullString              `db:"build_id"`
 	GitCommitSha                  sql.NullString              `db:"git_commit_sha"`
@@ -1564,6 +1566,7 @@ type Limit struct {
 	ApiRequestsCountMaxPerMinute          sql.NullInt32 `db:"api_requests_count_max_per_minute"`
 	LogsRetentionDaysMax                  uint16        `db:"logs_retention_days_max"`
 	LogsAuditRetentionDaysMax             uint16        `db:"logs_audit_retention_days_max"`
+	LogdrainsMax                          uint32        `db:"logdrains_max"`
 	TeamEnabled                           bool          `db:"team_enabled"`
 	CpuCoresMax                           uint32        `db:"cpu_cores_max"`
 	CpuCoresMaxPerInstance                uint32        `db:"cpu_cores_max_per_instance"`
@@ -1622,6 +1625,7 @@ type Portal struct {
 	Pk           uint64         `db:"pk"`
 	ID           string         `db:"id"`
 	WorkspaceID  string         `db:"workspace_id"`
+	ProjectID    string         `db:"project_id"`
 	Slug         string         `db:"slug"`
 	DisplayName  string         `db:"display_name"`
 	AppID        sql.NullString `db:"app_id"`

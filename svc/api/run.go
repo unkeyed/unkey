@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	restate "github.com/restatedev/sdk-go"
 	restateingress "github.com/restatedev/sdk-go/ingress"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
 	"github.com/unkeyed/unkey/gen/proto/vault/v1/vaultv1connect"
@@ -236,6 +235,7 @@ func Run(ctx context.Context, cfg Config) error {
 		EnableH2C:          false,
 		StreamRequestBody:  false,
 		MaxRequestBodySize: cfg.MaxRequestBodySize,
+		TrustedProxyCIDRs:  cfg.TrustedProxyCIDRs,
 		ReadTimeout:        0,
 		WriteTimeout:       0,
 	})
@@ -437,17 +437,6 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 	}
 
-	// Initialize control plane deployment client
-	ctrlDeploymentClient := ctrl.NewConnectDeployServiceClient(
-		ctrlv1connect.NewDeployServiceClient(
-			&http.Client{},
-			cfg.Control.URL,
-			connect.WithInterceptors(interceptor.NewHeaderInjector(map[string]string{
-				"Authorization": fmt.Sprintf("Bearer %s", cfg.Control.Token),
-			})),
-		),
-	)
-
 	ctrlProjectClient := ctrl.NewConnectProjectServiceClient(
 		ctrlv1connect.NewProjectServiceClient(
 			&http.Client{},
@@ -480,8 +469,8 @@ func Run(ctx context.Context, cfg Config) error {
 
 	restateClient := restateingress.NewClient(
 		cfg.Restate.URL,
-		restate.WithAuthKey(cfg.Restate.APIKey),
-		restate.WithHttpClient(&http.Client{Timeout: 30 * time.Second}),
+		restateingress.WithAuthKey(cfg.Restate.APIKey),
+		restateingress.WithHttpClient(&http.Client{Timeout: 30 * time.Second}),
 	)
 
 	logger.Info("Control plane clients initialized", "url", cfg.Control.URL)
@@ -512,26 +501,25 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	routes.Register(srv, &routes.Services{
-		Database:             database,
-		ClickHouse:           ch,
-		ApiRequests:          apiRequests,
-		DirectAuditLogs:      directAuditLogs,
-		RatelimitEvents:      ratelimits,
-		KeyVerifications:     keyVerifications,
-		Clock:                clk,
-		Keys:                 keySvc,
-		Auth:                 authSvc,
-		PortalAuth:           portalAuthSvc,
-		Validator:            validator,
-		Redactor:             redactor,
-		Ratelimit:            rlSvc,
-		Auditlogs:            auditlogSvc,
-		Caches:               caches,
-		Vault:                vaultClient,
-		CtrlDeploymentClient: ctrlDeploymentClient,
-		CtrlProjectClient:    ctrlProjectClient,
-		CtrlAppClient:        ctrlAppClient,
-		Restate:              restateClient,
+		Database:          database,
+		ClickHouse:        ch,
+		ApiRequests:       apiRequests,
+		DirectAuditLogs:   directAuditLogs,
+		RatelimitEvents:   ratelimits,
+		KeyVerifications:  keyVerifications,
+		Clock:             clk,
+		Keys:              keySvc,
+		Auth:              authSvc,
+		PortalAuth:        portalAuthSvc,
+		Validator:         validator,
+		Redactor:          redactor,
+		Ratelimit:         rlSvc,
+		Auditlogs:         auditlogSvc,
+		Caches:            caches,
+		Vault:             vaultClient,
+		CtrlProjectClient: ctrlProjectClient,
+		CtrlAppClient:     ctrlAppClient,
+		Restate:           restateClient,
 
 		CtrlCustomDomainClient: ctrlCustomDomainClient,
 		PprofEnabled:           pprofEnabled,

@@ -6,10 +6,13 @@ import { routes } from "@/lib/navigation/routes";
 import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Cube, Layers3, Nodes } from "@unkey/icons";
+import { IconCubeOutline18, IconLayers3Outline18, IconNodesOutline18 } from "@unkey/icons";
 import {
   Button,
-  Empty,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   ItemContent,
   ItemDescription,
   ItemGroup,
@@ -38,9 +41,9 @@ import {
 import { LimitItem } from "./limit-item";
 
 const CHIPS: Record<GroupKey, { icon: ReactNode; className: string }> = {
-  api: { icon: <Nodes />, className: "bg-infoA-3 text-info-11" },
-  logs: { icon: <Layers3 />, className: "bg-grayA-3 text-gray-11" },
-  compute: { icon: <Cube />, className: "bg-orangeA-3 text-orange-11" },
+  api: { icon: <IconNodesOutline18 />, className: "bg-infoA-3 text-info-11" },
+  logs: { icon: <IconLayers3Outline18 />, className: "bg-grayA-3 text-gray-11" },
+  compute: { icon: <IconCubeOutline18 />, className: "bg-orangeA-3 text-orange-11" },
 };
 
 function measured<T>(query: { data: T | undefined; isError: boolean }): Measured<T> {
@@ -86,12 +89,14 @@ export default function LimitsPage() {
   if (!limits || !workspace) {
     return (
       <Shell>
-        <Empty>
-          <Empty.Title>Limits unavailable</Empty.Title>
-          <Empty.Description>
-            We could not read the limits for this workspace. Please try again later.
-          </Empty.Description>
-        </Empty>
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>Limits unavailable</EmptyStateTitle>
+            <EmptyStateDescription>
+              We could not read the limits for this workspace. Please try again later.
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
       </Shell>
     );
   }

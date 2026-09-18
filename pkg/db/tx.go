@@ -10,6 +10,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -123,16 +124,7 @@ func TxWithResult[T any](ctx context.Context, db *Replica, fn func(context.Conte
 
 	t, err = fn(ctx, tx)
 	if err != nil {
-		rollbackErr := tx.Rollback()
-
-		if rollbackErr != nil && rollbackErr != sql.ErrTxDone {
-			return t, fault.Wrap(rollbackErr,
-				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-				fault.Internal("database failed to rollback transaction"), fault.Public("Unable to rollback database transaction."),
-			)
-		}
-
-		return t, err
+		return t, rollbackError(err, tx.Rollback())
 	}
 
 	err = tx.Commit()
@@ -144,6 +136,16 @@ func TxWithResult[T any](ctx context.Context, db *Replica, fn func(context.Conte
 	}
 
 	return t, nil
+}
+
+func rollbackError(cause, rollbackErr error) error {
+	if rollbackErr == nil || errors.Is(rollbackErr, sql.ErrTxDone) {
+		return cause
+	}
+	return fault.Wrap(errors.Join(cause, rollbackErr),
+		fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+		fault.Internal("database failed to rollback transaction"), fault.Public("Unable to rollback database transaction."),
+	)
 }
 
 // Tx executes fn within a database transaction without returning a result.

@@ -12,10 +12,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
-// deployments.image is a varchar(256). The parser puts no bound on a reference's
-// total length, so a valid one can still be too long for the column, and the row
-// is written only after the build: without this an oversized reference fails the
-// insert with a build already paid for.
+// Public API contracts cap image references at 256 characters. The parser puts
+// no bound on total length, so a syntactically valid reference can exceed that
+// contract.
 const imageLengthMax = 256
 
 // Parse validates and normalizes an image reference. References must include

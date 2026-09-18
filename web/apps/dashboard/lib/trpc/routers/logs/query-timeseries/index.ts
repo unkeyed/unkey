@@ -3,12 +3,15 @@ import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 
 import { timeseriesRequestSchema } from "@/lib/schemas/logs.schema";
 import { TRPCError } from "@trpc/server";
+import { assertValidTimeRange } from "../../utils/time-range";
 import { transformFilters } from "./utils";
 
 export const queryTimeseries = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(timeseriesRequestSchema)
   .query(async ({ ctx, input }) => {
+    assertValidTimeRange(input.startTime, input.endTime);
+
     const { params: transformedInputs, granularity } = transformFilters(input);
     const result = await clickhouse.api.timeseries[granularity]({
       ...transformedInputs,

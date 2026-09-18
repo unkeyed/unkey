@@ -1,0 +1,60 @@
+import type { IconProps } from "../props";
+
+export function IconGridOutline12(props: IconProps) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={12} height={12} viewBox="0 0 12 12" {...props}>
+      <rect
+        x="1.25"
+        y="1.25"
+        width="3.5"
+        height="3.5"
+        rx="1"
+        ry="1"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+      <rect
+        x="7.25"
+        y="1.25"
+        width="3.5"
+        height="3.5"
+        rx="1"
+        ry="1"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+      <rect
+        x="1.25"
+        y="7.25"
+        width="3.5"
+        height="3.5"
+        rx="1"
+        ry="1"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+      <rect
+        x="7.25"
+        y="7.25"
+        width="3.5"
+        height="3.5"
+        rx="1"
+        ry="1"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+      />
+    </svg>
+  );
+}

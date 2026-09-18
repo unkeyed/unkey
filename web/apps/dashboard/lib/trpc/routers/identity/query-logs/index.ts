@@ -2,6 +2,7 @@ import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
+import { KEY_VERIFICATION_SOURCES } from "@unkey/clickhouse/src/verifications";
 import { z } from "zod";
 import { identityLogsPayload } from "./query-logs.schema";
 import { transformIdentityLogsFilters } from "./utils";
@@ -22,6 +23,7 @@ export const identityLog = z.object({
     "", // Empty string is a valid outcome in ClickHouse
   ]),
   tags: z.array(z.string()),
+  source: z.enum(KEY_VERIFICATION_SOURCES),
   keyId: z.string(),
   keyName: z.string().nullable(),
   apiId: z.string(),

@@ -1,8 +1,16 @@
 "use client";
 
 import { StreamingTable } from "@/components/streaming-table";
-import { BookBookmark } from "@unkey/icons";
-import { Button, Empty } from "@unkey/ui";
+import { IconBookBookmarkOutline18, IconSquareBulletListOutline18 } from "@unkey/icons";
+import {
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+} from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
 import { BuildStepLogsExpanded } from "./build-step-logs-expanded";
 import { type BuildStepRow, buildStepsColumns } from "./columns";
@@ -100,26 +108,30 @@ export const DeploymentBuildStepsTable: React.FC<Props> = ({
         isLoading={isLoading}
         fixedHeight={fixedHeight}
         emptyState={
-          <Empty className="w-[400px] flex items-start">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>Build Steps</Empty.Title>
-            <Empty.Description className="text-left">
-              No build steps found for this deployment. Build steps will appear here once the
-              deployment starts building.
-            </Empty.Description>
-            <Empty.Actions className="mt-4 justify-start">
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconSquareBulletListOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Build Steps</EmptyStateTitle>
+              <EmptyStateDescription>
+                No build steps found for this deployment. Build steps will appear here once the
+                deployment starts building.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
               <a
                 href="https://www.unkey.com/docs/introduction"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Button size="md">
-                  <BookBookmark />
+                <Button variant="outline" size="md">
+                  <IconBookBookmarkOutline18 />
                   Documentation
                 </Button>
               </a>
-            </Empty.Actions>
-          </Empty>
+            </EmptyStateActions>
+          </EmptyState>
         }
       />
     </div>

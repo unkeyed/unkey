@@ -25,7 +25,13 @@ export const logdrains = mysqlTable(
     name: varchar("name", { length: 128 }).notNull(),
 
     // Stream names are defined by svc/logdrain.
-    stream: mysqlEnum("stream", ["audit_logs"]).notNull(),
+    stream: mysqlEnum("stream", [
+      "audit_logs",
+      "key_verifications",
+      "gateway_requests",
+      "runtime_logs",
+      "ratelimits",
+    ]).notNull(),
 
     // Serialized logdrain.v1.Config. The destination stores its Vault
     // ciphertext next to the fields that use it.

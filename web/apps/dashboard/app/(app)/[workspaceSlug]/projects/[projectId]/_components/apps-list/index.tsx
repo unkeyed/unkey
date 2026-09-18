@@ -8,8 +8,24 @@ import { collection } from "@/lib/collections";
 import { githubUrl } from "@/lib/github-url";
 import { routes } from "@/lib/navigation/routes";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Dots, Github, Plus, Terminal } from "@unkey/icons";
-import { Button, Empty } from "@unkey/ui";
+import {
+  Github,
+  IconCubeOutline18,
+  IconDotsOutline18,
+  IconLayers2Outline18,
+  IconPlusOutline18,
+  IconTerminalOutline18,
+} from "@unkey/icons";
+import { match } from "@unkey/match";
+import {
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+} from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { AppActions } from "./app-actions";
 
@@ -28,7 +44,12 @@ export const AppsList = () => {
   const openCreateApp = () =>
     gated
       ? openPaywall()
-      : router.push(routes.projects.apps.new({ workspaceSlug: workspace.slug, projectId }));
+      : router.push(
+          routes.projects.apps.new({
+            workspaceSlug: workspace.slug,
+            projectId,
+          }),
+        );
 
   const apps = useLiveQuery(
     (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
@@ -45,65 +66,94 @@ export const AppsList = () => {
           ))}
         </div>
       ) : apps.data.length === 0 ? (
-        <div className="flex-1 flex justify-center items-center px-4 py-16 border border-grayA-4 rounded-lg overflow-hidden">
-          <Empty className="w-[400px] flex items-start">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>No Apps Found</Empty.Title>
-            <Empty.Description className="text-left">
+        <EmptyState>
+          <EmptyStateIcon>
+            <IconCubeOutline18 />
+          </EmptyStateIcon>
+          <EmptyStateHeader>
+            <EmptyStateTitle>No Apps Found</EmptyStateTitle>
+            <EmptyStateDescription>
               This project has no apps yet. Create an app to start deploying.
-            </Empty.Description>
-            <Empty.Actions className="mt-4 justify-start">
-              <Button size="md" onClick={openCreateApp}>
-                <Plus />
-                Create app
-              </Button>
-            </Empty.Actions>
-          </Empty>
-        </div>
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+          <EmptyStateActions>
+            <Button variant="primary" size="md" onClick={openCreateApp}>
+              <IconPlusOutline18 />
+              Create app
+            </Button>
+          </EmptyStateActions>
+        </EmptyState>
       ) : (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-          {apps.data.map((app) => (
-            <ResourceCard
-              key={app.id}
-              href={appHomeHref({
-                workspaceSlug: workspace.slug,
-                projectId,
-                appId: app.id,
-              })}
-              icon={
+          {apps.data.map((app) => {
+            const icon = match(app.sourceType)
+              .with("git", () => <Github className="shrink-0 size-5" />)
+              .with("oci", () => <IconLayers2Outline18 className="shrink-0 size-5" />)
+              .with("unknown", () =>
                 app.repositoryFullName ? (
-                  <Github iconSize="xl-medium" className="shrink-0 size-5" />
+                  <Github className="shrink-0 size-5" />
                 ) : (
-                  <Terminal iconSize="xl-medium" className="shrink-0 size-5" />
-                )
-              }
-              name={app.name}
-              domain={app.domain}
-              commitTitle={app.commitTitle}
-              sourceUrl={githubUrl.deployment({
-                repoFullName: app.repositoryFullName,
-                forkRepoFullName: app.forkRepositoryFullName,
-                prNumber: app.prNumber,
-                sha: app.commitSha,
-              })}
-              commitTimestamp={app.commitTimestamp}
-              branch={app.branch}
-              author={app.author}
-              authorAvatar={app.authorAvatar}
-              actions={
-                <AppActions projectId={projectId} appId={app.id}>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="mb-auto shrink-0"
-                    title="App actions"
-                  >
-                    <Dots iconSize="sm-regular" />
-                  </Button>
-                </AppActions>
-              }
-            />
-          ))}
+                  <IconTerminalOutline18 className="shrink-0 size-5" />
+                ),
+              )
+              .exhaustive();
+            const sourceUrl = match(app.sourceType)
+              .with("git", () =>
+                githubUrl.deployment({
+                  repoFullName: app.repositoryFullName,
+                  forkRepoFullName: app.forkRepositoryFullName,
+                  prNumber: app.prNumber,
+                  sha: app.commitSha,
+                }),
+              )
+              .with("oci", () => undefined)
+              .with("unknown", () =>
+                app.repositoryFullName
+                  ? githubUrl.deployment({
+                      repoFullName: app.repositoryFullName,
+                      forkRepoFullName: app.forkRepositoryFullName,
+                      prNumber: app.prNumber,
+                      sha: app.commitSha,
+                    })
+                  : undefined,
+              )
+              .exhaustive();
+
+            return (
+              <ResourceCard
+                key={app.id}
+                href={appHomeHref({
+                  workspaceSlug: workspace.slug,
+                  projectId,
+                  appId: app.id,
+                })}
+                icon={icon}
+                name={app.name}
+                domain={app.domain}
+                sourceType={app.sourceType}
+                imageReference={app.imageReference}
+                repositoryFullName={app.repositoryFullName}
+                commitTitle={app.commitTitle}
+                sourceUrl={sourceUrl}
+                commitTimestamp={app.commitTimestamp}
+                branch={app.branch}
+                author={app.author}
+                authorAvatar={app.authorAvatar}
+                actions={
+                  <AppActions projectId={projectId} appId={app.id}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="mb-auto shrink-0"
+                      title="App actions"
+                    >
+                      <IconDotsOutline18 />
+                    </Button>
+                  </AppActions>
+                }
+              />
+            );
+          })}
         </div>
       )}
       {planGate}

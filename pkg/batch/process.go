@@ -56,6 +56,7 @@ type Config[T any] struct {
 
 	// Flush is the function called to process each batch.
 	// It must handle all errors internally and must not panic.
+	// The slice is borrowed until Flush returns; copy rows that must outlive it.
 	Flush func(ctx context.Context, batch []T)
 
 	// Consumers specifies how many goroutine workers should process the channel.
@@ -140,6 +141,7 @@ func (bp *BatchProcessor[T]) process() {
 	flushAndReset := func(trigger string) {
 		if len(batch) > 0 {
 			bp.flush(context.Background(), batch, trigger)
+			clear(batch)
 			batch = batch[:0]
 		}
 		t.Reset(bp.config.FlushInterval)

@@ -1000,17 +1000,25 @@ components:
             additionalProperties: false
         V2DomainsListDomainsRequestBody:
             type: object
-            required:
-                - project
-                - app
-                - environment
             properties:
                 project:
-                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    allOf:
+                        - "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: |
+                        Match domains whose project ID or slug equals this value. This filter does not require
+                        an app or environment filter.
                 app:
-                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    allOf:
+                        - "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: |
+                        Match domains whose app ID or slug equals this value. This filter does not require a
+                        project or environment filter.
                 environment:
-                    "$ref": "#/components/schemas/ResourceIdentifier"
+                    allOf:
+                        - "$ref": "#/components/schemas/ResourceIdentifier"
+                    description: |
+                        Match domains whose environment ID or slug equals this value. This filter does not require
+                        a project or app filter.
                 limit:
                     type: integer
                     description: |
@@ -1031,6 +1039,10 @@ components:
                     description: Free-form text to filter domains. Returns domains whose ID or name contains the search string. Matching is case-insensitive.
                     example: acme.com
             additionalProperties: false
+            description: |
+                Filter domains within a workspace. All filters are optional and combine with AND. Each resource
+                filter matches its ID or slug directly, even when its parent filters are omitted. A missing
+                resource or a resource that does not match the other filters produces an empty list.
         V2DomainsListDomainsResponseBody:
             type: object
             required:
@@ -1046,10 +1058,15 @@ components:
                     items:
                         "$ref": "#/components/schemas/Domain"
                     description: |
-                        The domains attached to the environment, sorted by their id.
-                        The array is empty when the environment has no domains. This is not an error.
+                        Domains that match every request filter and that you have permission to read, sorted by ID.
+                        The array is empty when no readable domains match, including when a filtered resource
+                        is missing or mismatched.
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
+                    description: |
+                        Pagination over permitted domains. When more permitted domains exist, `cursor` identifies
+                        the first permitted domain after this page. A domain the credential cannot read is never
+                        returned as the cursor.
             additionalProperties: false
         V2DomainsVerifyDomainRequestBody:
             type: object
@@ -3121,6 +3138,7 @@ components:
                         enum:
                             - "keys:read"
                             - "keys:reroll"
+                            - "analytics:read"
                     minItems: 1
                     description: |
                         The capabilities granted to the end user in the Portal, from a fixed
@@ -3129,10 +3147,9 @@ components:
                         configured on the portal. An end user can never see another identity's
                         keys.
 
-                        The portal currently exposes only the keys page, so these scopes gate
-                        what the end user can do there rather than which pages they see. Because
-                        rerolling is reached from that page, `keys:reroll` requires `keys:read`
-                        in the same session; requesting it alone is rejected.
+                        Rerolling and usage analytics are both reached from the keys page, so
+                        `keys:reroll` and `analytics:read` each require `keys:read` in the same
+                        session; requesting either without it is rejected.
 
                         Each scope requires the equivalent permission on your own root key. See
                         Required Permissions on this operation.
@@ -3197,7 +3214,7 @@ components:
                     description: |
                         The exchange code carried by the portal URL from `portal.createSession`.
                         Must be valid, unexpired, and not previously redeemed.
-                    example: pst_abc123def456
+                    example: pec_abc123def456
             additionalProperties: false
         V2PortalExchangeCodeResponseBody:
             type: object
@@ -3274,18 +3291,33 @@ components:
             type: object
             required:
                 - meta
-                - data
+                - bucketMillis
+                - keys
             properties:
                 meta:
                     $ref: "#/components/schemas/Meta"
-                data:
+                bucketMillis:
+                    type: integer
+                    format: int64
+                    description: |
+                        Width of one bucket in milliseconds, chosen from the window size. Every
+                        series below is aligned to it, so a client can build the buckets for a
+                        window that returned no keys at all without restating the granularity
+                        rule.
+                    example: 60000
+                keys:
                     type: array
                     description: |
-                        Zero-filled verification timeseries for the authenticated end user, ordered
-                        by time ascending. Buckets with no verifications are present with zero
-                        counts so the series is contiguous across the requested window.
+                        One entry per key the end user has verifications for in the window, each
+                        zero-filled across the whole window and ordered by time ascending. Sum
+                        them to get the account-wide series.
+
+                        Keys with no verifications anywhere in the window are omitted. Entries
+                        come from the verification events themselves, so a `keyId` may name a key
+                        that has since been deleted and will not appear in `portal.listKeys`;
+                        render those totals without assuming the key is still listable.
                     items:
-                        $ref: "#/components/schemas/V2PortalGetVerificationsDataPoint"
+                        $ref: "#/components/schemas/V2PortalGetVerificationsKeySeries"
             additionalProperties: false
         V2PortalListKeysRequestBody:
             type: object
@@ -3350,6 +3382,11 @@ components:
                         Re-pointing revokes the portal's live sessions, because a session carries
                         the keyspace scope it was minted with and would otherwise keep reaching the
                         resource the portal no longer serves.
+
+                        The new keyspace must belong to the same project as the portal's current
+                        resource. A portal cannot move between projects, because its permissions
+                        are addressed under the project it belongs to. Re-pointing across projects
+                        returns 412; create a portal in the target project instead.
                     allOf:
                         - "$ref": "#/components/schemas/PortalKeyspaceId"
                 appId:
@@ -3359,6 +3396,10 @@ components:
 
                         Re-pointing revokes the portal's live sessions, for the same reason as
                         `keyspaceId`.
+
+                        The same project restriction applies, and it is easy to hit when switching
+                        between an app and a keyspace: keyspaces are created in the workspace's
+                        default project, while an app belongs to the project you created it in.
                     allOf:
                         - "$ref": "#/components/schemas/PortalAppId"
                 enabled:
@@ -6866,8 +6907,8 @@ components:
                     type: string
                     description: |
                         The unique identifier of the newly created portal, generated by Unkey.
-                        Always begins with 'pc_' followed by a unique alphanumeric sequence.
-                    example: pc_1234abcd
+                        Always begins with 'prt_' followed by a unique alphanumeric sequence.
+                    example: prt_1234abcd
             additionalProperties: false
         V2PortalCreateSessionResponseData:
             type: object
@@ -6888,7 +6929,7 @@ components:
                     description: |
                         The full portal URL to redirect the end user to. Carries a single-use
                         exchange code that is valid for 15 minutes.
-                    example: "https://portal.unkey.com/?code=pst_abc123def456"
+                    example: "https://portal.unkey.com/?code=pec_abc123def456"
             additionalProperties: false
         V2PortalExchangeCodeResponseData:
             type: object
@@ -7004,6 +7045,24 @@ components:
                     example: "#6366f1"
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
+            additionalProperties: false
+        V2PortalGetVerificationsKeySeries:
+            type: object
+            required:
+                - keyId
+                - data
+            properties:
+                keyId:
+                    type: string
+                    description: The key these buckets belong to.
+                    example: key_1234abcd
+                data:
+                    type: array
+                    description: |
+                        Verification timeseries for this key, zero-filled across the requested
+                        window and ordered by time ascending.
+                    items:
+                        $ref: "#/components/schemas/V2PortalGetVerificationsDataPoint"
             additionalProperties: false
         V2PortalGetVerificationsDataPoint:
             type: object
@@ -10315,11 +10374,15 @@ paths:
     /v2/domains.listDomains:
         post:
             description: |
-                List the custom domains attached to an environment and their verification status.
+                List your custom domains with their verification status and DNS records.
+                Filter by project, app, or environment using IDs or slugs, or send `{}` to list
+                domains across your workspace.
 
-                Results are paginated and sorted by their id. When `hasMore` is true, send the
-                returned `cursor` to get the next page. An environment with no domains returns an
-                empty array, not a 404.
+                Use any filter on its own or combine filters to narrow the results.
+                Results match all supplied filters. Omitting `environment` includes all matching environments.
+
+                Results include only domains you have permission to read, sorted by ID.
+                When `hasMore` is true, send the returned `cursor` to get the next page.
 
                 `status: verified` means the domain is verified. Unkey has configured routing and requested a
                 certificate. Each domain includes its full `dnsRecords`. Each record has a `verified` flag.
@@ -10329,23 +10392,52 @@ paths:
 
                 **Required Permissions**
 
-                Your root key must have one of the following permissions:
-                - `environment.*.read_domain` (to read domains in any environment)
-                - `environment.<environment_id>.read_domain` (to read domains in a specific environment)
+                Use a root key with the `environment.*.read_domain` permission.
+                A successful request returns an empty list if no matching domains are readable by your key.
             operationId: domains.listDomains
             requestBody:
                 content:
                     application/json:
                         examples:
-                            byIds:
-                                description: Uses the ids returned by the corresponding list endpoints.
-                                summary: List an environment's domains by ID
+                            byApp:
+                                description: Includes all environments in apps matching this ID or slug, without restricting the project.
+                                summary: List an app's domains across projects
                                 value:
-                                    app: app_1234abcd
+                                    app: payments-api
+                            byAppAndEnvironment:
+                                description: Includes matching environments within matching apps, without restricting the project.
+                                summary: List an app's production domains across projects
+                                value:
+                                    app: payments-api
+                                    environment: production
+                            byEnvironment:
+                                description: Includes every environment with ID or slug production, across all projects and apps.
+                                summary: List production domains across the workspace
+                                value:
+                                    environment: production
+                            byIds:
+                                summary: List an environment's domains by its ID
+                                value:
                                     environment: env_1234abcd
-                                    project: proj_1234abcd
+                            byProject:
+                                description: Includes all apps and environments in projects matching this ID or slug.
+                                summary: List a project's domains
+                                value:
+                                    project: payments
+                            byProjectAndApp:
+                                description: Includes all environments in matching apps within matching projects.
+                                summary: List an app's domains within a project
+                                value:
+                                    app: payments-api
+                                    project: payments
+                            byProjectAndEnvironment:
+                                description: Includes matching environments across all apps in matching projects.
+                                summary: List a project's production domains
+                                value:
+                                    environment: production
+                                    project: payments
                             bySlugs:
-                                description: Uses the project, app, and environment slugs.
+                                description: Includes environments matching all three identifiers within the specified project and app.
                                 summary: List an environment's domains by slugs
                                 value:
                                     app: payments-api
@@ -10368,6 +10460,10 @@ paths:
                                     environment: production
                                     project: payments
                                     search: acme.com
+                            workspaceWide:
+                                description: Includes domains across all projects, apps, and environments that your key can read.
+                                summary: List all domains in the workspace
+                                value: {}
                         schema:
                             $ref: '#/components/schemas/V2DomainsListDomainsRequestBody'
                 required: true
@@ -10428,8 +10524,8 @@ paths:
                                         pagination:
                                             hasMore: false
                                 empty:
-                                    description: An environment with no custom domains returns an empty array, not a 404.
-                                    summary: No domains attached
+                                    description: Missing or mismatched resources and filters with no permitted matches return an empty array.
+                                    summary: No permitted domains match
                                     value:
                                         data: []
                                         meta:
@@ -10440,7 +10536,8 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/V2DomainsListDomainsResponseBody'
                     description: |
-                        Successfully retrieved the environment's domains.
+                        Successfully retrieved the permitted domains that match every filter. Missing or
+                        mismatched filtered resources return an empty list.
                 "400":
                     content:
                         application/json:
@@ -10451,7 +10548,7 @@ paths:
                                         error:
                                             detail: The search string must be at most 256 characters.
                                             errors:
-                                                - fix: Shorten the search string, or omit it to return the environment's domains unfiltered
+                                                - fix: Shorten the search string, or omit it to return domains without a search filter
                                                   location: body.search
                                                   message: must be at most 256 characters
                                             status: 400
@@ -10496,27 +10593,15 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/ForbiddenErrorResponse'
                     description: |
-                        Forbidden - The root key or its workspace is disabled. A root key that simply lacks
-                        `environment.*.read_domain` receives a 404 instead, so permissions cannot be used to discover
-                        which environments exist.
+                        Forbidden - The root key or its workspace is disabled.
                 "404":
                     content:
                         application/json:
-                            examples:
-                                environmentNotFound:
-                                    summary: Environment not found
-                                    value:
-                                        error:
-                                            detail: The requested environment does not exist.
-                                            status: 404
-                                            title: Not Found
-                                            type: not-found
-                                        meta:
-                                            requestId: req_1234abcd
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: |
-                        Not Found - The environment does not exist in your workspace, or your root key may not read it.
+                        The workspace associated with the root key does not exist.
+                        Missing or mismatched project, app, and environment filters return an empty list, not 404.
                 "429":
                     content:
                         application/json:
@@ -10551,6 +10636,25 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/InternalServerErrorResponse'
                     description: Internal server error
+                "503":
+                    content:
+                        application/json:
+                            examples:
+                                scanBudgetExhausted:
+                                    summary: Narrow the request filters
+                                    value:
+                                        error:
+                                            detail: The domain scan limit was reached. Narrow the project, app, environment, or search filters and retry.
+                                            status: 503
+                                            title: Service Unavailable
+                                            type: service-unavailable
+                                        meta:
+                                            requestId: req_1234abcd
+                            schema:
+                                $ref: '#/components/schemas/ServiceUnavailableErrorResponse'
+                    description: |
+                        The request could not be completed. No partial result is returned.
+                        Narrow the project, app, environment, or search filters before retrying.
             security:
                 - bearer: []
             summary: List domains
@@ -14357,6 +14461,7 @@ paths:
                 - `keys:read` requires `api.<api_id>.read_key` **and** `api.<api_id>.read_api`
                 - `keys:reroll` requires `api.<api_id>.create_key`, plus
                   `api.<api_id>.encrypt_key` when the keyspace stores encrypted keys
+                - `analytics:read` requires `api.<api_id>.read_analytics`
 
                 The `*` form of each is also accepted. Requesting a scope you do not hold
                 returns 403 for the whole request rather than minting a reduced session, so a
@@ -14659,8 +14764,13 @@ paths:
                 Authenticates only with a portal session cookie and always restricts results
                 to verification events attributed to the session's external identity. Unlike
                 `analytics.getVerifications`, this endpoint takes a fixed time window (no
-                query language) and returns a zero-filled, outcome-broken-out timeseries.
-                Bucket granularity is chosen automatically from the window size.
+                query language) and returns outcome-broken-out counts. Bucket granularity is
+                chosen automatically from the window size.
+
+                The response carries one zero-filled series per key the end user has
+                verifications for, so a client can render both a per-key table and an
+                account-wide chart from one call by summing them. Pass `keyId` to narrow the
+                window to a single key.
             operationId: portal.getVerifications
             requestBody:
                 content:
@@ -14700,6 +14810,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
+                    description: Query exceeds the maximum response size
                 "429":
                     content:
                         application/problem+json:

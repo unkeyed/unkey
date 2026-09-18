@@ -134,7 +134,8 @@ func WithErrorHandling() zen.Middleware {
 				codes.UserErrorsBadRequestInvalidAnalyticsTable,
 				codes.UserErrorsBadRequestInvalidAnalyticsFunction,
 				codes.UserErrorsBadRequestInvalidAnalyticsQueryType,
-				codes.UserErrorsBadRequestQueryRangeExceedsRetention:
+				codes.UserErrorsBadRequestQueryRangeExceedsRetention,
+				codes.UserErrorsBadRequestPerKeyBreakoutTooLarge:
 				return s.ProblemJSON(http.StatusBadRequest, openapi.BadRequestErrorResponse{
 					Meta: openapi.Meta{
 						RequestId: s.RequestID(),

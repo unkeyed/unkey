@@ -38,6 +38,28 @@ func TestSetPoliciesSuccessfully(t *testing.T) {
 		require.NotEmpty(t, res.Body.Meta.RequestId)
 	}
 
+	// Keyspaces are always created in the workspace's internal "default"
+	// ownership project, which a policy's environment can never belong to, so
+	// workspace ownership is the only scope this route can enforce.
+	t.Run("keyauth referencing a keyspace in the default ownership project", func(t *testing.T) {
+		env := seedEnvironment(t, h)
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+		require.NotEqual(t, env.projectID, api.ProjectID)
+
+		call(t, makeRequest(env, []openapi.Policy{{
+			Name:    "keyauth",
+			Enabled: true,
+			Keyauth: &openapi.KeyauthPolicy{Keyspaces: []string{api.KeyAuthID.String}},
+		}}))
+
+		stored := readStoredPolicies(t, h, env)
+		require.Len(t, stored, 1)
+		var keys map[string]json.RawMessage
+		require.NoError(t, json.Unmarshal(stored[0], &keys))
+		require.JSONEq(t, fmt.Sprintf(`{"keySpaceIds":["%s"]}`, api.KeyAuthID.String),
+			string(keys["keyauth"]))
+	})
+
 	t.Run("batch of all five variants stores dashboard-compatible wire JSON", func(t *testing.T) {
 		env := seedEnvironment(t, h)
 		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID, ProjectID: env.projectID})

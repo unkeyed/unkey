@@ -233,7 +233,7 @@ type Querier interface {
 	FindAppBuildSettingByAppEnv(ctx context.Context, arg FindAppBuildSettingByAppEnvParams) (AppBuildSetting, error)
 	//FindAppById
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
 	//  WHERE id = ?
 	FindAppById(ctx context.Context, id string) (App, error)
@@ -282,46 +282,15 @@ type Querier interface {
 	//  FROM app_source_oci
 	//  WHERE app_id = ?
 	FindAppSourceOciByAppId(ctx context.Context, appID string) (AppSourceOci, error)
-	//FindAppWithRuntimeSettings
-	//
-	//  SELECT
-	//      a.id AS app_id,
-	//      a.project_id AS app_project_id,
-	//      a.source_type AS app_source_type,
-	//      a.current_deployment_id AS app_current_deployment_id,
-	//      ars.port AS runtime_settings_port,
-	//      ars.cpu_millicores AS runtime_settings_cpu_millicores,
-	//      ars.memory_mib AS runtime_settings_memory_mib,
-	//      ars.storage_mib AS runtime_settings_storage_mib,
-	//      ars.command AS runtime_settings_command,
-	//      ars.healthcheck AS runtime_settings_healthcheck,
-	//      ars.shutdown_signal AS runtime_settings_shutdown_signal,
-	//      ars.upstream_protocol AS runtime_settings_upstream_protocol,
-	//      ars.sentinel_config AS runtime_settings_sentinel_config
-	//  FROM apps a
-	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = ?
-	//  WHERE a.id = ?
-	FindAppWithRuntimeSettings(ctx context.Context, arg FindAppWithRuntimeSettingsParams) (FindAppWithRuntimeSettingsRow, error)
 	//FindCertificateByHostname
 	//
 	//  SELECT certificates.pk, certificates.id, certificates.workspace_id, certificates.hostname, certificates.certificate, certificates.encrypted_private_key, certificates.created_at, certificates.updated_at FROM certificates WHERE hostname = ?
 	FindCertificateByHostname(ctx context.Context, hostname string) (Certificate, error)
 	// FindClickhouseOutboxBatch returns the next batch of unprocessed outbox
-	// rows for a known set of payload versions. Must be called inside a
-	// transaction. FOR UPDATE SKIP LOCKED locks the batch so a second cron tick
-	// (if Restate VO serialization ever fails) silently skips them rather than
-	// re-processing the same set. The lock is released when the caller commits
-	// or rolls back. Ordered by pk so retries see a deterministic row set,
-	// which lets CH's block-level deduplication collapse re-inserts after a
-	// partial failure.
-	//
-	// The version filter means a drainer never reads a payload it can't
-	// decode. Unknown versions stay in the table until a drainer with the
-	// matching handler ships.
-	//
-	// deleted_at IS NULL skips rows the drainer already shipped. Marked rows
-	// stay in the table for re-processing (clear deleted_at to re-queue) and
-	// as an ops audit trail; there's no sweep job today.
+	// rows for known payload versions, ordered by pk. Use an autocommit read:
+	// locking the pending index across a ClickHouse call blocks API inserts.
+	// Restate serializes the exporter key, but overlapping canceled attempts
+	// can still deliver duplicates under the at-least-once contract.
 	//
 	//  SELECT pk, version, workspace_id, event_id, payload, created_at
 	//  FROM clickhouse_outbox
@@ -329,7 +298,6 @@ type Querier interface {
 	//    AND deleted_at IS NULL
 	//  ORDER BY pk
 	//  LIMIT ?
-	//  FOR UPDATE SKIP LOCKED
 	FindClickhouseOutboxBatch(ctx context.Context, arg FindClickhouseOutboxBatchParams) ([]FindClickhouseOutboxBatchRow, error)
 	//FindClickhouseWorkspaceSettingsByWorkspaceID
 	//
@@ -419,6 +387,58 @@ type Querier interface {
 	//    AND BINARY slug = 'default'
 	//  LIMIT 1
 	FindDefaultProjectByWorkspaceID(ctx context.Context, workspaceID string) (string, error)
+	//FindDeployTarget
+	//
+	//  SELECT
+	//      p.workspace_id AS workspace_id,
+	//      w.slug AS workspace_slug,
+	//      p.id AS project_id,
+	//      a.id AS app_id,
+	//      a.source_type AS source_type,
+	//      a.current_deployment_id AS current_deployment_id,
+	//      e.id AS environment_id,
+	//      e.slug AS environment_slug,
+	//      abs.dockerfile AS dockerfile,
+	//      abs.docker_context AS docker_context,
+	//      abs.build_command AS build_command,
+	//      ars.port AS port,
+	//      ars.cpu_millicores AS cpu_millicores,
+	//      ars.memory_mib AS memory_mib,
+	//      ars.storage_mib AS storage_mib,
+	//      ars.command AS command,
+	//      ars.healthcheck AS healthcheck,
+	//      ars.shutdown_signal AS shutdown_signal,
+	//      ars.upstream_protocol AS upstream_protocol,
+	//      ars.sentinel_config AS sentinel_config,
+	//      grc.installation_id AS github_installation_id,
+	//      grc.repository_full_name AS github_repository_full_name,
+	//      grc.default_branch AS github_default_branch,
+	//      aso.image_reference AS oci_image_reference,
+	//      abs.app_id IS NOT NULL AS has_build_settings,
+	//      b.plan AS plan,
+	//      b.plan_override AS plan_override,
+	//      b.spend_suspended AS spend_suspended,
+	//      EXISTS (
+	//          SELECT 1
+	//          FROM app_regional_settings ars2
+	//          INNER JOIN regions r ON r.id = ars2.region_id
+	//          WHERE ars2.app_id = a.id
+	//            AND ars2.environment_id = e.id
+	//            AND r.can_schedule
+	//      ) AS has_schedulable_region
+	//  FROM apps a
+	//  INNER JOIN projects p ON p.id = a.project_id
+	//  INNER JOIN workspaces w ON w.id = p.workspace_id
+	//  INNER JOIN environments e ON e.id = ? AND e.app_id = a.id AND e.project_id = a.project_id
+	//  INNER JOIN app_runtime_settings ars ON ars.app_id = a.id AND ars.environment_id = e.id
+	//  LEFT JOIN app_build_settings abs ON abs.app_id = a.id AND abs.environment_id = e.id
+	//  LEFT JOIN github_repo_connections grc ON grc.app_id = a.id
+	//  LEFT JOIN app_source_oci aso ON aso.app_id = a.id
+	//  LEFT JOIN workspace_billing b ON b.workspace_id = p.workspace_id
+	//  WHERE a.id = ?
+	//    AND a.project_id = ?
+	//  LIMIT 1
+	FindDeployTarget(ctx context.Context, arg FindDeployTargetParams) (FindDeployTargetRow, error)
 	// Resolves a Stripe customer to its Deploy workspace. The ctrl Stripe webhook
 	// uses this as the relevance check for month-end invoice closing: invoices of
 	// customers without a Deploy plan are left entirely to Stripe's own
@@ -435,13 +455,21 @@ type Querier interface {
 	//    AND b.plan IS NOT NULL
 	//    AND w.deleted_at_m IS NULL
 	FindDeployWorkspaceByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (FindDeployWorkspaceByStripeCustomerIDRow, error)
+	// FindDeploymentAppAndStatus returns the two columns the create insert checks
+	// when it tolerates a row that is already there. Reading the full row for that
+	// would carry the encrypted environment variables and sentinel config with it.
+	//
+	//  SELECT app_id, status
+	//  FROM deployments
+	//  WHERE id = ?
+	FindDeploymentAppAndStatus(ctx context.Context, id string) (FindDeploymentAppAndStatusRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE id = ?
+	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, id string) (Deployment, error)
 	//FindDeploymentByK8sName
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE k8s_name = ?
+	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, k8sName string) (Deployment, error)
 	// Returns all regions where a deployment is configured.
 	// Used for fan-out: when a deployment changes, emit state_change to each region.
@@ -466,7 +494,6 @@ type Querier interface {
 	//      d.project_id,
 	//      d.environment_id,
 	//      d.app_id,
-	//      d.image,
 	//      d.image_resolved,
 	//      d.build_id,
 	//      d.git_commit_sha,
@@ -501,9 +528,19 @@ type Querier interface {
 	//  FROM deployment_topology
 	//  WHERE deployment_id = ?
 	FindDeploymentTopologyMinReplicas(ctx context.Context, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
+	// FindDeploymentWithApp returns what the desired-state guard needs: the
+	// deployment and its app's current deployment pointer. It joins only apps, so a
+	// deployment whose environment row is already gone still resolves and a pending
+	// transition can still be applied to it.
+	//
+	//  SELECT d.id, d.app_id, a.current_deployment_id
+	//  FROM deployments d
+	//  JOIN apps a ON a.id = d.app_id
+	//  WHERE d.id = ?
+	FindDeploymentWithApp(ctx context.Context, id string) (FindDeploymentWithAppRow, error)
 	//FindDeploymentWithEnvironmentAndApp
 	//
-	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, a.current_deployment_id, a.is_rolled_back
+	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, a.current_deployment_id, a.is_rolled_back
 	//  FROM deployments d
 	//  JOIN environments e ON e.id = d.environment_id
 	//  JOIN apps a ON a.id = d.app_id
@@ -630,7 +667,7 @@ type Querier interface {
 	FindLatestReadyDeploymentByAppAndEnv(ctx context.Context, arg FindLatestReadyDeploymentByAppAndEnvParams) (string, error)
 	//FindLimitsByWorkspaceID
 	//
-	//  SELECT pk, workspace_id, api_billable_operations_count_max_per_month, api_requests_count_max_per_minute, logs_retention_days_max, logs_audit_retention_days_max, team_enabled, cpu_cores_max, cpu_cores_max_per_instance, memory_mib_max, memory_mib_max_per_instance, storage_mib_max, storage_mib_max_per_instance, builds_concurrent_max, custom_domains_max, autoscaling_replicas_max
+	//  SELECT pk, workspace_id, api_billable_operations_count_max_per_month, api_requests_count_max_per_minute, logs_retention_days_max, logs_audit_retention_days_max, logdrains_max, team_enabled, cpu_cores_max, cpu_cores_max_per_instance, memory_mib_max, memory_mib_max_per_instance, storage_mib_max, storage_mib_max_per_instance, builds_concurrent_max, custom_domains_max, autoscaling_replicas_max
 	//  FROM `limits`
 	//  WHERE workspace_id = ?
 	FindLimitsByWorkspaceID(ctx context.Context, workspaceID string) (Limit, error)
@@ -843,12 +880,10 @@ type Querier interface {
 	//      name,
 	//      slug,
 	//      source_type,
-	//      default_branch,
 	//      delete_protection,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1111,6 +1146,12 @@ type Querier interface {
 	//      ?,
 	//      ?
 	//  )
+	//  ON DUPLICATE KEY UPDATE
+	//      autoscaling_replicas_min = ?,
+	//      autoscaling_replicas_max = ?,
+	//      autoscaling_threshold_cpu = ?,
+	//      autoscaling_threshold_memory = ?,
+	//      desired_status = ?
 	InsertDeploymentTopology(ctx context.Context, arg InsertDeploymentTopologyParams) error
 	//InsertEnvironment
 	//
@@ -1479,7 +1520,6 @@ type Querier interface {
 	//      d.project_id AS deployment_project_id,
 	//      d.environment_id AS deployment_environment_id,
 	//      d.app_id AS deployment_app_id,
-	//      d.image AS deployment_image,
 	//      d.image_resolved AS deployment_image_resolved,
 	//      d.build_id AS deployment_build_id,
 	//      d.git_commit_sha AS deployment_git_commit_sha,
@@ -1582,28 +1622,12 @@ type Querier interface {
 	ListDeploymentChangesByRegionAll(ctx context.Context, arg ListDeploymentChangesByRegionAllParams) ([]DeploymentChange, error)
 	//ListDeploymentsByEnvironmentIdAndStatus
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments`
+	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments`
 	//  WHERE environment_id = ?
 	//    AND status = ?
 	//    AND created_at < ?
 	//    AND (updated_at IS null OR updated_at < ? )
 	ListDeploymentsByEnvironmentIdAndStatus(ctx context.Context, arg ListDeploymentsByEnvironmentIdAndStatusParams) ([]Deployment, error)
-	//ListEnvVarsForRepoConnections
-	//
-	//  SELECT aev.app_id, aev.`key`, aev.value
-	//  FROM app_environment_variables aev
-	//  INNER JOIN apps a ON aev.app_id = a.id
-	//  INNER JOIN environments e ON a.id = e.app_id AND e.id = aev.environment_id
-	//  INNER JOIN github_repo_connections gc ON gc.app_id = a.id
-	//  WHERE gc.installation_id = ?
-	//    AND gc.repository_id = ?
-	//    AND CASE
-	//      WHEN CAST(? AS SIGNED) = 1 THEN e.kind = 'preview'
-	//      WHEN ? = COALESCE(NULLIF(gc.default_branch, ''), 'main')
-	//      THEN e.kind = 'production'
-	//      ELSE e.kind = 'preview'
-	//    END
-	ListEnvVarsForRepoConnections(ctx context.Context, arg ListEnvVarsForRepoConnectionsParams) ([]ListEnvVarsForRepoConnectionsRow, error)
 	//ListEnvironmentIdsByApp
 	//
 	//  SELECT id FROM environments WHERE app_id = ?
@@ -1648,15 +1672,29 @@ type Querier interface {
 	// (after slot acquisition) it's committed — we don't cancel work that's
 	// already running.
 	//
-	//  SELECT id, invocation_id
-	//  FROM deployments
-	//  WHERE app_id = ?
-	//    AND environment_id = ?
-	//    AND git_branch = ?
-	//    AND status IN ('pending', 'awaiting_approval')
-	//    AND created_at < ?
-	//    AND id != ?
-	//  ORDER BY created_at ASC
+	// The cutoff is the created_at of the deployment being started, read from its
+	// own row. It is deliberately not the current time and not a value the caller
+	// passes in, because a deployment can be started long after it was created: a
+	// fork PR sits in awaiting_approval until a human clicks approve.
+	//
+	// Say commit A is pushed at 09:00 and commit B at 11:00, and both are waiting
+	// for approval. A reviewer approves A at 12:00. If the cutoff were the current
+	// time, everything before 12:00 would look older, so approving A would cancel
+	// B, which is the newer commit. Using A's own 09:00 leaves B alone.
+	//
+	//  SELECT older.id, older.invocation_id
+	//  FROM deployments older
+	//  WHERE older.app_id = ?
+	//    AND older.environment_id = ?
+	//    AND older.git_branch = ?
+	//    AND older.status IN ('pending', 'awaiting_approval')
+	//    AND older.created_at < (
+	//      SELECT src.created_at
+	//      FROM deployments src
+	//      WHERE src.id = ?
+	//    )
+	//    AND older.id != ?
+	//  ORDER BY older.created_at ASC
 	ListOlderActiveDeploymentsForDedup(ctx context.Context, arg ListOlderActiveDeploymentsForDedupParams) ([]ListOlderActiveDeploymentsForDedupRow, error)
 	//ListPreviewEnvironments
 	//
@@ -1687,27 +1725,11 @@ type Querier interface {
 	//ListRepoConnectionDeployContexts
 	//
 	//  SELECT
-	//      gc.installation_id AS connection_installation_id,
-	//      gc.repository_full_name AS connection_repository_full_name,
 	//      p.id AS project_id,
-	//      p.workspace_id AS project_workspace_id,
 	//      e.id AS environment_id,
-	//      e.slug AS environment_slug,
 	//      a.id AS app_id,
 	//      abs.auto_deploy AS build_settings_auto_deploy,
-	//      abs.watch_paths AS build_settings_watch_paths,
-	//      abs.docker_context AS build_settings_docker_context,
-	//      abs.dockerfile AS build_settings_dockerfile,
-	//      abs.build_command AS build_settings_build_command,
-	//      ars.port AS runtime_settings_port,
-	//      ars.cpu_millicores AS runtime_settings_cpu_millicores,
-	//      ars.memory_mib AS runtime_settings_memory_mib,
-	//      ars.storage_mib AS runtime_settings_storage_mib,
-	//      ars.command AS runtime_settings_command,
-	//      ars.healthcheck AS runtime_settings_healthcheck,
-	//      ars.shutdown_signal AS runtime_settings_shutdown_signal,
-	//      ars.upstream_protocol AS runtime_settings_upstream_protocol,
-	//      ars.sentinel_config AS runtime_settings_sentinel_config
+	//      abs.watch_paths AS build_settings_watch_paths
 	//  FROM github_repo_connections gc
 	//  INNER JOIN apps a ON a.id = gc.app_id
 	//  INNER JOIN projects p ON p.id = gc.project_id
@@ -1806,16 +1828,21 @@ type Querier interface {
 	//    AND w.deleted_at_m IS NULL
 	ListWorkspacesWithDeployBudget(ctx context.Context) ([]ListWorkspacesWithDeployBudgetRow, error)
 	// MarkClickhouseOutboxBatchDeleted soft-deletes a set of pks after their CH
-	// insert is confirmed. Called inside the same transaction that selected
-	// them, so the row locks held by FOR UPDATE SKIP LOCKED are released as
-	// part of commit. A crash between the CH insert and this UPDATE leaves the
-	// rows with deleted_at IS NULL. The next batch picks them up again, which can
-	// create duplicate ClickHouse rows under the at-least-once delivery contract.
+	// insert is confirmed. It runs as its own short autocommit statement, not in
+	// the transaction that selected the rows, so no MySQL lock spans the
+	// ClickHouse insert. The pk list is exactly the set the drainer read and
+	// ClickHouse acknowledged; rows inserted concurrently are never in it. The
+	// deleted_at IS NULL guard keeps a replayed or overlapping mark from
+	// restamping rows an earlier attempt already marked.
+	//
+	// A crash between the CH insert and this UPDATE leaves the rows with
+	// deleted_at IS NULL. The next batch picks them up again, which can create
+	// duplicate ClickHouse rows under the at-least-once delivery contract.
 	//
 	// We mark instead of hard-delete so ops can re-queue events (clear
 	// deleted_at) without re-reading the original payload from somewhere else,
-	// and so the table doubles as an audit trail of what was exported. There's
-	// no sweep job today; the table grows monotonically.
+	// and so the table doubles as an audit trail of what was exported.
+	// RunAuditLogOutboxCleanup sweeps marked rows after the retention window.
 	//
 	//  UPDATE clickhouse_outbox
 	//  SET deleted_at = ?
@@ -1908,6 +1935,26 @@ type Querier interface {
 	//      updated_at = ?
 	//  WHERE id = ?
 	ResetCustomDomainVerification(ctx context.Context, arg ResetCustomDomainVerificationParams) error
+	// RevertDeploymentAuthorization puts a deployment back to awaiting_approval so
+	// the approve button reappears. Call it when an approval was accepted but the
+	// deployment never actually started.
+	//
+	// Two conditions guard the update, and both live here rather than in Go
+	// because either can change between a read and a write:
+	//
+	//   status = 'pending'     a cancel may have landed since the approval
+	//   invocation_id IS NULL  the run may already be out
+	//
+	// The invocation id matters because Create sends the run to Restate first and
+	// writes the id afterwards. An id on the row means a build is already going
+	// out, and showing an approve button for it would be wrong.
+	//
+	//  UPDATE deployments
+	//  SET status = 'awaiting_approval', updated_at = ?
+	//  WHERE id = ?
+	//    AND status = 'pending'
+	//    AND invocation_id IS NULL
+	RevertDeploymentAuthorization(ctx context.Context, arg RevertDeploymentAuthorizationParams) (sql.Result, error)
 	// Restores an app's current deployment on resume (the inverse of
 	// ClearAppCurrentDeployment, which teardown uses on suspend). Sets only
 	// current_deployment_id and updated_at_m; leaves is_rolled_back untouched.
@@ -2084,8 +2131,7 @@ type Querier interface {
 	//UpdateDeploymentImage
 	//
 	//  UPDATE deployments
-	//  SET image = ?,
-	//      image_resolved = ?,
+	//  SET image_resolved = ?,
 	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentImage(ctx context.Context, arg UpdateDeploymentImageParams) error
@@ -2101,23 +2147,21 @@ type Querier interface {
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, arg UpdateDeploymentStatusParams) error
-	//UpdateDeploymentStatusBatch
+	// Batch form of UpdateDeploymentStatusIfActive.
 	//
 	//  UPDATE deployments
 	//  SET status = ?, updated_at = ?
 	//  WHERE id IN (/*SLICE:ids*/?)
-	UpdateDeploymentStatusBatch(ctx context.Context, arg UpdateDeploymentStatusBatchParams) error
-	// Transition a deployment's status only when its current status is still
-	// "active" (non-terminal). Prevents the Deploy handler's compensation
-	// stack from overwriting a status that was set intentionally by the dedup
-	// path (e.g. superseded) or by a successful completion (ready). Callers
-	// pass db.TerminalDeploymentStatuses so the terminal set has a single
-	// source of truth.
+	//    AND status IN (/*SLICE:progressing_statuses*/?)
+	UpdateDeploymentStatusBatchIfActive(ctx context.Context, arg UpdateDeploymentStatusBatchIfActiveParams) error
+	// Only progressing rows transition, so a compensation cannot overwrite a status
+	// set on purpose: superseded, cancelled, or ready. Callers pass
+	// mysqltype.ProgressingDeploymentStatuses.
 	//
 	//  UPDATE deployments
 	//  SET status = ?, updated_at = ?
 	//  WHERE id = ?
-	//    AND status NOT IN (/*SLICE:terminal_statuses*/?)
+	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	UpdateDeploymentStatusIfActive(ctx context.Context, arg UpdateDeploymentStatusIfActiveParams) error
 	// UpdateDeploymentTopologyDesiredStatus updates the desired_status of a topology entry.
 	//

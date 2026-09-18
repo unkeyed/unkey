@@ -212,7 +212,6 @@ func deploymentRowToState[T deploymentStateRow](row T, version uint64) (*ctrlv1.
 			ProjectID:                     row.DeploymentProjectID,
 			EnvironmentID:                 row.DeploymentEnvironmentID,
 			AppID:                         row.DeploymentAppID,
-			Image:                         row.DeploymentImage,
 			ImageResolved:                 row.DeploymentImageResolved,
 			BuildID:                       row.DeploymentBuildID,
 			GitCommitSha:                  row.DeploymentGitCommitSha,
@@ -251,12 +250,6 @@ func deploymentRowToState[T deploymentStateRow](row T, version uint64) (*ctrlv1.
 		if deployment.BuildID.Valid {
 			buildID = &deployment.BuildID.String
 		}
-		image := ""
-		if deployment.ImageResolved.Valid && deployment.ImageResolved.String != "" {
-			image = deployment.ImageResolved.String
-		} else if deployment.Image.Valid {
-			image = deployment.Image.String
-		}
 
 		apply := &ctrlv1.ApplyDeployment{
 			DeploymentId:                  deployment.ID,
@@ -266,7 +259,7 @@ func deploymentRowToState[T deploymentStateRow](row T, version uint64) (*ctrlv1.
 			ProjectId:                     deployment.ProjectID,
 			EnvironmentId:                 deployment.EnvironmentID,
 			AppId:                         deployment.AppID,
-			Image:                         image,
+			Image:                         deployment.ImageResolved.String,
 			CpuMillicores:                 int64(deployment.CpuMillicores),
 			MemoryMib:                     int64(deployment.MemoryMib),
 			EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,

@@ -37,6 +37,7 @@ import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryComputeAllocation } from "./billing/query-compute-allocation";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
+import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
 import { queryUsage } from "./billing/query-usage";
 import { listApps } from "./deploy/app/list";
 import { countCustomDomains } from "./deploy/custom-domains/count";
@@ -49,6 +50,8 @@ import { getById as getDeploymentById } from "./deploy/deployment/getById";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { getDeploymentInstanceEvents } from "./deploy/deployment/instance-events";
 import { listDeployments } from "./deploy/deployment/list";
+import { listActiveBranches } from "./deploy/deployment/list-active-branches";
+import { listDeploymentBranches } from "./deploy/deployment/list-branches";
 import { searchDeployments } from "./deploy/deployment/llm-search";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
@@ -76,6 +79,7 @@ import { listProjects } from "./deploy/project/list";
 import { createSharedSecret } from "./share/create";
 import { revealSharedSecret } from "./share/reveal";
 
+import { queryRequestDetails } from "./deploy/request-logs/details";
 import { llmSearch as requestLogsLlmSearch } from "./deploy/request-logs/llm-search";
 import { queryRequestLogs } from "./deploy/request-logs/query";
 import { listInstances } from "./deploy/runtime-logs/list-instances";
@@ -161,19 +165,12 @@ import { uncancelSubscription } from "./stripe/uncancelSubscription";
 import { updateCustomer } from "./stripe/updateCustomer";
 import { updateSubscription } from "./stripe/updateSubscription";
 import { updateWorkspaceStripeCustomer } from "./stripe/updateWorkspace";
-import {
-  getCurrentUser,
-  listMemberships,
-  listMfaFactors,
-  removeMfaFactor,
-  startMfaEnrollment,
-  switchOrg,
-  verifyMfaEnrollment,
-} from "./user";
+import { getCurrentUser, listMemberships } from "./user";
 import { changeWorkspaceName } from "./workspace/changeName";
 import { createWorkspace } from "./workspace/create";
 import { getWorkspaceById } from "./workspace/getById";
 import { getCurrentWorkspace } from "./workspace/getCurrent";
+import { listAvailable } from "./workspace/listAvailable";
 import { onboardingKeyCreation } from "./workspace/onboarding";
 
 export const router = t.router({
@@ -246,6 +243,7 @@ export const router = t.router({
   workspace: t.router({
     create: createWorkspace,
     getCurrent: getCurrentWorkspace,
+    listAvailable,
     getById: getWorkspaceById,
     updateName: changeWorkspaceName,
     onboarding: onboardingKeyCreation,
@@ -353,6 +351,7 @@ export const router = t.router({
     queryUsage,
     queryDeployUsage,
     queryDeployUsageBreakdown,
+    queryDeployUsageTimeseries,
     queryComputeAllocation,
     getDeployBudget,
     setDeployBudget,
@@ -364,13 +363,6 @@ export const router = t.router({
   user: t.router({
     getCurrentUser,
     listMemberships,
-    switchOrg,
-    mfa: t.router({
-      listFactors: listMfaFactors,
-      startEnrollment: startMfaEnrollment,
-      verifyEnrollment: verifyMfaEnrollment,
-      removeFactor: removeMfaFactor,
-    }),
   }),
   org: t.router({
     getOrg,
@@ -429,6 +421,8 @@ export const router = t.router({
     }),
     deployment: t.router({
       list: listDeployments,
+      listBranches: listDeploymentBranches,
+      listActiveBranches,
       getById: getDeploymentById,
       buildSteps: getDeploymentBuildSteps,
       runtimeLogs: getDeploymentRuntimeLogs,
@@ -441,6 +435,7 @@ export const router = t.router({
     }),
     requestLogs: t.router({
       query: queryRequestLogs,
+      details: queryRequestDetails,
       llmSearch: requestLogsLlmSearch,
     }),
     runtimeLogs: t.router({

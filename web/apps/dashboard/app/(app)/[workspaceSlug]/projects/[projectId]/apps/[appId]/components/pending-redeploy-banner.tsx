@@ -2,7 +2,7 @@
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { queryClient } from "@/lib/collections/client";
+import { collection } from "@/lib/collections";
 import {
   dismissSettingsBanner,
   useSettingsBannerVisible,
@@ -11,24 +11,22 @@ import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
-import { Hammer2, XMark } from "@unkey/icons";
+import { IconHammer2Outline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useProjectData } from "../(overview)/data-provider";
+import { useAppCurrentDeployment } from "../(overview)/hooks/use-app-current-deployment";
 import { GlowIcon } from "../components/glow-icon";
 
 export function PendingRedeployBanner() {
-  const { project, deployments, projectId } = useProjectData();
+  const { refetchDeployments } = useProjectData();
+  const { app, currentDeployment } = useAppCurrentDeployment();
+  const currentDeploymentId = app?.currentDeploymentId ?? null;
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const visible = useSettingsBannerVisible();
-  const currentDeploymentId = project?.currentDeploymentId;
-
-  const currentDeployment = currentDeploymentId
-    ? deployments.find((d) => d.id === currentDeploymentId)
-    : undefined;
 
   const show = visible && !!currentDeployment;
 
@@ -39,7 +37,7 @@ export function PendingRedeployBanner() {
       appId: string;
       environmentId: string;
     }) => {
-      const res = await getUnkeyClient().deployments.createDeployment({
+      const res = await getUnkeyClient().deployments.createDeploymentV3({
         project: deployment.projectId,
         app: deployment.appId,
         environment: deployment.environmentId,
@@ -51,7 +49,8 @@ export function PendingRedeployBanner() {
       if (!currentDeployment) {
         return;
       }
-      await queryClient.invalidateQueries({ queryKey: ["deployments", projectId] });
+      refetchDeployments();
+      await collection.apps.utils.refetch();
       router.push(
         routes.projects.apps.deployment({
           workspaceSlug: workspace.slug,
@@ -96,11 +95,11 @@ export function PendingRedeployBanner() {
           className="absolute top-3 right-3 text-gray-9 hover:text-gray-11 transition-colors cursor-pointer"
           aria-label="Dismiss"
         >
-          <XMark className="size-4" />
+          <IconXmarkOutline18 className="size-4" />
         </button>
 
         <GlowIcon
-          icon={<Hammer2 iconSize="sm-medium" className="size-4.5" />}
+          icon={<IconHammer2Outline18 className="size-4.5" />}
           className="w-9 h-9 shrink-0"
         />
 

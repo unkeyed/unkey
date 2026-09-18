@@ -13,6 +13,9 @@ import {
   drainToFormValues,
   editDrainSchema,
   emptyDrainForm,
+  submittedEventTypes,
+  submittedSources,
+  submittedStatusClasses,
 } from "../drain-schema";
 
 export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted: () => void }) {
@@ -57,7 +60,37 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
     form.handleSubmit((submitted) => {
       const name = submitted.name.trim();
       const destination = changedDestination(submitted, values);
-      if (name === drain.name && destination === undefined) {
+      const eventTypes = submittedEventTypes(submitted);
+      const eventTypesChanged = !sameEventTypes(eventTypes, values.eventTypes);
+      const outcomesChanged = !sameEventTypes(submitted.outcomes, values.outcomes);
+      const keySpacesChanged = !sameEventTypes(submitted.keySpaceIds, values.keySpaceIds);
+      const severitiesChanged = !sameEventTypes(submitted.severities, values.severities);
+      const namespacesChanged = !sameEventTypes(submitted.namespaceIds, values.namespaceIds);
+      const passedChanged = !sameEventTypes(submitted.passed, values.passed);
+      const projectField = drain.stream === "runtime_logs" ? "runtimeProjectIds" : "projectIds";
+      const appField = drain.stream === "runtime_logs" ? "runtimeAppIds" : "appIds";
+      const environmentField =
+        drain.stream === "runtime_logs" ? "runtimeEnvironmentIds" : "environmentIds";
+      const statusClasses = submittedStatusClasses(submitted);
+      const sources = submittedSources(submitted);
+      const statusesChanged = !sameEventTypes(statusClasses, values.statusClasses);
+      const projectsChanged = !sameEventTypes(sources.projectIds, values[projectField]);
+      const appsChanged = !sameEventTypes(sources.appIds, values[appField]);
+      const environmentsChanged = !sameEventTypes(sources.environmentIds, values[environmentField]);
+      if (
+        name === drain.name &&
+        destination === undefined &&
+        !eventTypesChanged &&
+        !outcomesChanged &&
+        !keySpacesChanged &&
+        !statusesChanged &&
+        !severitiesChanged &&
+        !namespacesChanged &&
+        !passedChanged &&
+        !projectsChanged &&
+        !appsChanged &&
+        !environmentsChanged
+      ) {
         onSaved();
         return;
       }
@@ -65,6 +98,16 @@ export function useDrainSettings(drain: DrainDetail, { onDeleted }: { onDeleted:
         {
           id: drain.id,
           ...(name !== drain.name ? { name } : {}),
+          ...(eventTypesChanged ? { eventTypes } : {}),
+          ...(outcomesChanged ? { outcomes: submitted.outcomes } : {}),
+          ...(keySpacesChanged ? { keySpaceIds: submitted.keySpaceIds } : {}),
+          ...(severitiesChanged ? { severities: submitted.severities } : {}),
+          ...(namespacesChanged ? { namespaceIds: submitted.namespaceIds } : {}),
+          ...(passedChanged ? { passed: submitted.passed } : {}),
+          ...(statusesChanged ? { statusClasses } : {}),
+          ...(projectsChanged ? { projectIds: sources.projectIds } : {}),
+          ...(appsChanged ? { appIds: sources.appIds } : {}),
+          ...(environmentsChanged ? { environmentIds: sources.environmentIds } : {}),
           ...(destination !== undefined ? { destination } : {}),
         },
         { onSuccess: onSaved },
@@ -94,6 +137,10 @@ export type DrainSettings = ReturnType<typeof useDrainSettings>;
 
 type UpdateDestination = inferRouterInputs<Router>["logdrain"]["update"]["destination"];
 
+function sameEventTypes<T extends string | number | boolean>(left: T[], right: T[]): boolean {
+  return left.length === right.length && left.every((eventType) => right.includes(eventType));
+}
+
 function changedDestination(
   submitted: DrainFormValues,
   current: DrainFormValues,
@@ -121,7 +168,11 @@ function changedDestination(
                 headers: headers.map((header) =>
                   header.stored && header.value === ""
                     ? { mode: "preserve" as const, name: header.name.trim() }
-                    : { mode: "set" as const, name: header.name.trim(), value: header.value },
+                    : {
+                        mode: "set" as const,
+                        name: header.name.trim(),
+                        value: header.value,
+                      },
                 ),
               }
             : {}),

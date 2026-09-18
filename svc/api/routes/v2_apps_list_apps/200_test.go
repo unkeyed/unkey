@@ -50,12 +50,11 @@ func TestListAppsSuccessfully(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		slug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 		app := h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   workspace.ID,
-			ProjectID:     project.ID,
-			Name:          fmt.Sprintf("App %d", i),
-			Slug:          slug,
-			DefaultBranch: "main",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: workspace.ID,
+			ProjectID:   project.ID,
+			Name:        fmt.Sprintf("App %d", i),
+			Slug:        slug,
 		})
 		seeded[app.ID] = slug
 	}
@@ -103,12 +102,11 @@ func TestListAppsSuccessfully(t *testing.T) {
 			Slug:        otherSlug,
 		})
 		strayApp := h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   workspace.ID,
-			ProjectID:     otherProject.ID,
-			Name:          "Stray",
-			Slug:          strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
-			DefaultBranch: "main",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: workspace.ID,
+			ProjectID:   otherProject.ID,
+			Name:        "Stray",
+			Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 		})
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.Slug})
@@ -142,12 +140,11 @@ func TestListAppsSuccessfully(t *testing.T) {
 			Slug:        foreignSlug,
 		})
 		foreignApp := h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   foreignWorkspace.ID,
-			ProjectID:     foreignProject.ID,
-			Name:          "Foreign App",
-			Slug:          strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
-			DefaultBranch: "main",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: foreignWorkspace.ID,
+			ProjectID:   foreignProject.ID,
+			Name:        "Foreign App",
+			Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 		})
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
@@ -227,12 +224,11 @@ func TestListAppsPagination(t *testing.T) {
 	total := 5
 	for i := 0; i < total; i++ {
 		h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   workspace.ID,
-			ProjectID:     project.ID,
-			Name:          fmt.Sprintf("App %d", i),
-			Slug:          strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
-			DefaultBranch: "main",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: workspace.ID,
+			ProjectID:   project.ID,
+			Name:        fmt.Sprintf("App %d", i),
+			Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 		})
 	}
 
@@ -300,12 +296,11 @@ func TestListAppsSearch(t *testing.T) {
 	appIDs := make(map[string]string)
 	for _, a := range seeded {
 		app := h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   workspace.ID,
-			ProjectID:     project.ID,
-			Name:          a.Name,
-			Slug:          a.Slug,
-			DefaultBranch: "main",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: workspace.ID,
+			ProjectID:   project.ID,
+			Name:        a.Name,
+			Slug:        a.Slug,
 		})
 		appIDs[a.Name] = app.ID
 	}

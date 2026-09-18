@@ -129,6 +129,23 @@ export const deployUsageByScope = z.object({
 
 export type DeployUsageByScope = z.infer<typeof deployUsageByScope>;
 
+export const deployUsageTimeseriesInterval = z.enum(["hour", "day"]);
+export type DeployUsageTimeseriesInterval = z.infer<typeof deployUsageTimeseriesInterval>;
+
+export const deployUsageTimeseriesGroup = z.enum(["total", "project", "app", "environment"]);
+export type DeployUsageTimeseriesGroup = z.infer<typeof deployUsageTimeseriesGroup>;
+
+export const deployUsageTimeseries = z.object({
+  time: z.number(),
+  groupId: z.string(),
+  cpuHours: z.number(),
+  memoryGiBHours: z.number(),
+  diskGiBHours: z.number(),
+  egressGiB: z.number(),
+});
+
+export type DeployUsageTimeseries = z.infer<typeof deployUsageTimeseries>;
+
 // FINAL is required, not an optimisation: the refresh views append overlapping
 // generations, so summing without it double-counts.
 export function getDeployUsageByScope(ch: Querier) {
@@ -166,6 +183,89 @@ export function getDeployUsageByScope(ch: Querier) {
     const result = await query(args);
     if (result.err) {
       throw new Error(`Failed to query deploy usage by scope: ${result.err.message}`);
+    }
+    return result.val;
+  };
+}
+
+/**
+ * Returns billable compute usage by UTC hour or day across every matching
+ * instance. It reads the dashboard rollup rather than raw checkpoints so
+ * changing the grouping does not repeat the billing integration work.
+ */
+export function getDeployUsageTimeseries(ch: Querier) {
+  const query = ch.query({
+    query: `
+      SELECT
+        toUnixTimestamp(bucket) * 1000 AS time,
+        groupId,
+        sum(cpu_seconds) / 3600 AS cpuHours,
+        sum(memory_gib_hours) AS memoryGiBHours,
+        sum(disk_gib_hours) AS diskGiBHours,
+        sum(network_egress_public_bytes) / pow(1024, 3) AS egressGiB
+      FROM (
+        SELECT
+          if(
+            {interval: String} = 'hour',
+            toStartOfHour(time),
+            toStartOfDay(time)
+          ) AS bucket,
+          multiIf(
+            {groupBy: String} = 'project', project_id,
+            {groupBy: String} = 'app', app_id,
+            {groupBy: String} = 'environment', environment_id,
+            ''
+          ) AS groupId,
+          cpu_seconds,
+          memory_gib_hours,
+          disk_gib_hours,
+          network_egress_public_bytes
+        FROM default.instance_usage_per_hour_v1 FINAL
+        WHERE workspace_id = {workspaceId: String}
+          AND time >= toDateTime(fromUnixTimestamp64Milli({periodStart: Int64}))
+          AND time < toDateTime(fromUnixTimestamp64Milli({end: Int64}))
+          AND ({projectId: String} = '' OR project_id = {projectId: String})
+          AND (
+            (length({appIds: Array(String)}) = 0 AND length({environmentIds: Array(String)}) = 0)
+            OR app_id IN {appIds: Array(String)}
+            OR environment_id IN {environmentIds: Array(String)}
+          )
+      )
+      GROUP BY bucket, groupId
+      ORDER BY bucket ASC, groupId ASC
+      SETTINGS do_not_merge_across_partitions_select_final = 1
+    `,
+    params: z.object({
+      workspaceId: z.string(),
+      periodStart: z.int(),
+      end: z.int(),
+      interval: deployUsageTimeseriesInterval,
+      groupBy: deployUsageTimeseriesGroup,
+      projectId: z.string(),
+      appIds: z.array(z.string()),
+      environmentIds: z.array(z.string()),
+    }),
+    schema: deployUsageTimeseries,
+  });
+
+  return async (args: {
+    workspaceId: string;
+    periodStart: number;
+    end: number;
+    interval: DeployUsageTimeseriesInterval;
+    groupBy: DeployUsageTimeseriesGroup;
+    projectId?: string;
+    appIds?: string[];
+    environmentIds?: string[];
+  }): Promise<DeployUsageTimeseries[]> => {
+    const result = await query({
+      ...args,
+      projectId: args.projectId ?? "",
+      appIds: args.appIds ?? [],
+      environmentIds: args.environmentIds ?? [],
+    });
+    if (result.err) {
+      throw new Error(`Failed to query deploy usage timeseries: ${result.err.message}`);
     }
     return result.val;
   };

@@ -1,19 +1,18 @@
 "use client";
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { Deployment, Environment } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
 import {
-  ArrowDottedRotateAnticlockwise,
-  ArrowOppositeDirectionY,
-  Ban,
-  Bolt,
-  BoltSlash,
-  ChevronUp,
-  Hammer2,
-  Layers3,
+  IconArrowDottedRotateAnticlockwiseOutline18,
+  IconArrowsOppositeDirectionYOutline18,
+  IconBanOutline18,
+  IconBoltOutline18,
+  IconBoltSlashOutline18,
+  IconChevronUpOutline18,
+  IconHammer2Outline18,
+  IconLayers3Outline18,
 } from "@unkey/icons";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
@@ -28,6 +27,10 @@ import { WakeDialog } from "./wake-dialog";
 type DeploymentListTableActionsProps = {
   selectedDeployment: Deployment;
   environment?: Environment;
+  // The app's live deployment. Rollback and Promote need the full row for
+  // their dialogs, so both stay disabled until the caller has resolved it.
+  currentDeployment: Deployment | undefined;
+  isRolledBack: boolean;
 };
 
 const isItemDisabled = (disabled: MenuItem["disabled"]): boolean =>
@@ -36,15 +39,14 @@ const isItemDisabled = (disabled: MenuItem["disabled"]): boolean =>
 export const DeploymentListTableActions = ({
   selectedDeployment,
   environment,
+  currentDeployment,
+  isRolledBack,
 }: DeploymentListTableActionsProps) => {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
-  const { getDeploymentById, project } = useProjectData();
   const { gated, openPaywall, planGate } = useDeployActionGate();
 
-  const currentDeploymentId = project?.currentDeploymentId ?? null;
-  const isRolledBack = Boolean(project?.isRolledBack);
-  const currentDeployment = getDeploymentById(currentDeploymentId ?? "");
+  const currentDeploymentId = currentDeployment?.id ?? null;
   const hasCurrentDeployment = currentDeployment !== undefined;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: its okay
@@ -68,7 +70,7 @@ export const DeploymentListTableActions = ({
       gateAction({
         id: "rollback",
         label: "Rollback",
-        icon: <ArrowDottedRotateAnticlockwise iconSize="md-regular" />,
+        icon: <IconArrowDottedRotateAnticlockwiseOutline18 className="size-3.5" />,
         disabled: !canRollback || !hasCurrentDeployment,
         ActionComponent: hasCurrentDeployment
           ? (props) => (
@@ -83,7 +85,7 @@ export const DeploymentListTableActions = ({
       gateAction({
         id: "Promote",
         label: "Promote",
-        icon: <ChevronUp iconSize="md-regular" />,
+        icon: <IconChevronUpOutline18 className="size-3.5" />,
         disabled: !canPromote || !hasCurrentDeployment,
         ActionComponent: hasCurrentDeployment
           ? (props) => (
@@ -98,21 +100,21 @@ export const DeploymentListTableActions = ({
       gateAction({
         id: "wake",
         label: "Wake deployment",
-        icon: <Bolt iconSize="md-regular" />,
+        icon: <IconBoltOutline18 className="size-3.5" />,
         disabled: !canWake,
         ActionComponent: (props) => <WakeDialog {...props} deployment={selectedDeployment} />,
       }),
       {
         id: "stop",
         label: "Stop deployment",
-        icon: <BoltSlash iconSize="md-regular" />,
+        icon: <IconBoltSlashOutline18 className="size-3.5" />,
         disabled: !canStop,
         ActionComponent: (props) => <StopDialog {...props} deployment={selectedDeployment} />,
       },
       gateAction({
         id: "redeploy",
         label: "Redeploy",
-        icon: <ArrowDottedRotateAnticlockwise iconSize="md-regular" />,
+        icon: <IconArrowDottedRotateAnticlockwiseOutline18 className="size-3.5" />,
         disabled: !canRedeploy,
         ActionComponent: (props) => (
           <RedeployDialog {...props} selectedDeployment={selectedDeployment} />
@@ -121,14 +123,14 @@ export const DeploymentListTableActions = ({
       {
         id: "cancel",
         label: "Cancel deployment",
-        icon: <Ban iconSize="md-regular" />,
+        icon: <IconBanOutline18 className="size-3.5" />,
         disabled: !canCancel,
         ActionComponent: (props) => <CancelDialog {...props} deployment={selectedDeployment} />,
       },
       {
         id: "request-logs",
         label: "Go to requests",
-        icon: <ArrowOppositeDirectionY iconSize="md-regular" />,
+        icon: <IconArrowsOppositeDirectionYOutline18 className="size-3.5" />,
         onClick: () => {
           router.push(
             routes.projects.requests({
@@ -143,7 +145,7 @@ export const DeploymentListTableActions = ({
       {
         id: "runtime-logs",
         label: "Go to logs",
-        icon: <Layers3 iconSize="md-regular" />,
+        icon: <IconLayers3Outline18 className="size-3.5" />,
         onClick: () => {
           router.push(
             routes.projects.logs({
@@ -157,7 +159,7 @@ export const DeploymentListTableActions = ({
       {
         id: "build-steps",
         label: "Go to build logs",
-        icon: <Hammer2 iconSize="md-regular" />,
+        icon: <IconHammer2Outline18 className="size-3.5" />,
         onClick: () => {
           router.push(
             routes.projects.apps.deployment({

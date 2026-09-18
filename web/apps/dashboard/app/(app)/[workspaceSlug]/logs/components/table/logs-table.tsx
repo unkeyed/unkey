@@ -4,8 +4,23 @@ import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
 import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
-import { BookBookmark, CircleXMark, TriangleWarning2 } from "@unkey/icons";
-import { Badge, Button, Empty, TimestampInfo } from "@unkey/ui";
+import {
+  IconBookBookmarkOutline18,
+  IconCircleXmarkOutline18,
+  IconLayers3Outline18,
+  IconTriangleWarningOutline18,
+} from "@unkey/icons";
+import {
+  Badge,
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+  TimestampInfo,
+} from "@unkey/ui";
 import { useMemo } from "react";
 import { isDisplayProperty, useLogsContext } from "../../context/logs";
 import { extractResponseField } from "../../utils";
@@ -84,10 +99,9 @@ const StatusIcon = ({ status }: { status: number }) => {
     return <span className={cn(STATUS_ICON_STYLES.base, "invisible")} />;
   }
   const isError = status >= 500;
-  const Icon = isError ? CircleXMark : TriangleWarning2;
+  const Icon = isError ? IconCircleXmarkOutline18 : IconTriangleWarningOutline18;
   return (
     <Icon
-      iconSize="lg-medium"
       className={cn(
         STATUS_ICON_STYLES.base,
         isError ? STATUS_ICON_STYLES.error : STATUS_ICON_STYLES.warning,
@@ -275,28 +289,30 @@ export const LogsTable = () => {
         ),
       }}
       emptyState={
-        <div className="w-full flex justify-center items-center h-full">
-          <Empty className="w-[400px] flex items-start">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>Logs</Empty.Title>
-            <Empty.Description className="text-left">
+        <EmptyState frame="none">
+          <EmptyStateIcon>
+            <IconLayers3Outline18 />
+          </EmptyStateIcon>
+          <EmptyStateHeader>
+            <EmptyStateTitle>Logs</EmptyStateTitle>
+            <EmptyStateDescription>
               Keep track of all activity within your workspace. We collect all API requests, giving
               you a clear history to find problems or debug issues.
-            </Empty.Description>
-            <Empty.Actions className="mt-4 justify-start">
-              <a
-                href="https://www.unkey.com/docs/introduction"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button size="md">
-                  <BookBookmark />
-                  Documentation
-                </Button>
-              </a>
-            </Empty.Actions>
-          </Empty>
-        </div>
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+          <EmptyStateActions>
+            <a
+              href="https://www.unkey.com/docs/introduction"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="outline" size="md">
+                <IconBookBookmarkOutline18 />
+                Documentation
+              </Button>
+            </a>
+          </EmptyStateActions>
+        </EmptyState>
       }
     />
   );

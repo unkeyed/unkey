@@ -2,9 +2,9 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import * as React from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("@unkey/icons", () => ({
-  Check: () => <span data-testid="check" />,
-  ChevronExpandY: () => <span data-testid="chevron" />,
-  Magnifier: () => <span data-testid="magnifier" />,
+  IconCheckOutline12: () => <span data-testid="check" />,
+  IconChevronExpandYOutline12: () => <span data-testid="chevron" />,
+  IconMagnifierOutline12: () => <span data-testid="magnifier" />,
 }));
 
 import { Combobox, type ComboboxOption } from "./combobox";

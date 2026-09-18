@@ -6,10 +6,15 @@ import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import { getErrorMessage } from "@/lib/unkey-client";
 import type { Identity } from "@unkey/api/models/components";
-import { BookBookmark, Fingerprint } from "@unkey/icons";
+import { IconBookBookmarkOutline18, IconFingerprintOutline18 } from "@unkey/icons";
 import {
   Button,
-  Empty,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
   ResourceListBody,
   ResourceListContent,
   ResourceListFooter,
@@ -51,7 +56,7 @@ function IdentityRow({
         aria-label={`Identity ${identity.externalId}`}
       />
       <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-brandA-3">
-        <Fingerprint iconSize="md-medium" className="text-brandA-11" />
+        <IconFingerprintOutline18 className="size-3.5 text-brandA-11" />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="truncate font-medium text-accent-12 text-sm" title={identity.externalId}>
@@ -159,34 +164,37 @@ function IdentityResults({ search }: { search: string }) {
   if (identityRows.length === 0) {
     return (
       <ResourceListContent>
-        <div className="flex w-full items-center justify-center px-4 py-16">
-          <Empty className="w-[400px] items-start">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>No Identities Found</Empty.Title>
-            <Empty.Description className="text-left">
+        <EmptyState frame="none">
+          <EmptyStateIcon>
+            <IconFingerprintOutline18 />
+          </EmptyStateIcon>
+          <EmptyStateHeader>
+            <EmptyStateTitle>No Identities Found</EmptyStateTitle>
+            <EmptyStateDescription>
               {search
                 ? "Try adjusting your search query"
                 : "There are no identities yet. Create your first identity to get started."}
-            </Empty.Description>
-            {!search && (
-              <Empty.Actions className="mt-4 justify-start">
-                <Button
-                  size="md"
-                  render={
-                    <Link
-                      href="https://www.unkey.com/docs/platform/identities/overview"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    />
-                  }
-                >
-                  <BookBookmark />
-                  Learn about Identities
-                </Button>
-              </Empty.Actions>
-            )}
-          </Empty>
-        </div>
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+          {!search && (
+            <EmptyStateActions>
+              <Button
+                size="md"
+                variant="outline"
+                render={
+                  <Link
+                    href="https://www.unkey.com/docs/platform/identities/overview"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  />
+                }
+              >
+                <IconBookBookmarkOutline18 />
+                Learn about Identities
+              </Button>
+            </EmptyStateActions>
+          )}
+        </EmptyState>
       </ResourceListContent>
     );
   }

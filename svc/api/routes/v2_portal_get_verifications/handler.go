@@ -2,6 +2,8 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -23,6 +25,22 @@ import (
 // millisPerDay is the width of one retention day in unix milliseconds.
 const millisPerDay = 24 * 60 * 60 * 1000
 
+// DefaultMaxPerKeySeries bounds how many keys a single per-key breakout may
+// return. It exists to cap what one session can pull over the shared ClickHouse
+// connection, not to express a product limit.
+//
+// The number tracks the zero-filling: a key's series carries every bucket in
+// the window, so at minute granularity one key is roughly 25KB encoded and the
+// response ceiling below is reached somewhere past 150 keys. Rejecting on the
+// key count first means a caller is told what is actually wrong instead of
+// being handed an opaque response-too-large.
+const DefaultMaxPerKeySeries = 150
+
+// DefaultMaxResponseBytes is the encoded response ceiling, shared with the
+// operator analytics routes so one end user cannot pull an arbitrarily large
+// body off the connection those routes also use.
+const DefaultMaxResponseBytes = clickhouse.AnalyticsResultBytesMax
+
 type (
 	Request  = openapi.V2PortalGetVerificationsRequestBody
 	Response = openapi.V2PortalGetVerificationsResponseBody
@@ -34,14 +52,12 @@ type (
 // session's external identity. It deliberately does not reuse the analytics
 // handler, which requires a per-workspace ClickHouse user and a query-language
 // parser that are inappropriate for an end user.
-//
-// Unreachable today: createSession does not accept analytics:read, so nothing
-// can grant the scope this route requires. Kept for whoever finishes the
-// feature. Its tests seed sessions directly, which is why they still pass.
 type Handler struct {
-	ClickHouse  clickhouse.ClickHouse
-	DB          db.Database
-	LimitsCache cache.Cache[string, keysdb.Limit]
+	ClickHouse       clickhouse.ClickHouse
+	DB               db.Database
+	LimitsCache      cache.Cache[string, keysdb.Limit]
+	MaxPerKeySeries  int
+	MaxResponseBytes int
 }
 
 // Method returns the HTTP method this route responds to.
@@ -50,8 +66,9 @@ func (h *Handler) Method() string { return "POST" }
 // Path returns the URL path pattern this route matches.
 func (h *Handler) Path() string { return "/v2/portal.getVerifications" }
 
-// Handle returns a verification timeseries scoped to the portal session's
-// external identity.
+// Handle returns one verification timeseries per key the portal session's
+// external identity used in the window. Callers sum them for an account-wide
+// view, which is why there is no second aggregate read to disagree with.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	principal, err := s.GetPrincipal()
 	if err != nil {
@@ -59,6 +76,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	externalID, err := portalscope.ExternalID(s)
+	if err != nil {
+		return err
+	}
+
+	keySpaceIDs, err := portalscope.KeyspaceIDs(s)
 	if err != nil {
 		return err
 	}
@@ -75,11 +97,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	if req.EndTime <= req.StartTime {
+	// Both bounds must be non-negative before the retention check below, which
+	// compares their difference: a large negative start against a large positive
+	// end overflows int64 and wraps negative, reading as a window smaller than
+	// retention and selecting minute granularity over an unbounded range.
+	if req.StartTime < 0 || req.EndTime <= req.StartTime {
 		return fault.New("invalid time window",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
-			fault.Internal("endTime must be greater than startTime"),
-			fault.Public("`endTime` must be greater than `startTime`."),
+			fault.Internal("startTime must be non-negative and endTime must be greater than startTime"),
+			fault.Public("`startTime` must be a non-negative unix timestamp and `endTime` must be greater than `startTime`."),
 		)
 	}
 
@@ -102,23 +128,74 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if limits.LogsRetentionDaysMax > 0 && req.EndTime-req.StartTime > int64(limits.LogsRetentionDaysMax)*millisPerDay {
 		return fault.New("time window too large",
-			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Code(codes.User.BadRequest.QueryRangeExceedsRetention.URN()),
 			fault.Internal("requested window exceeds workspace log retention"),
 			fault.Public(fmt.Sprintf("The requested time window is too large. The maximum window is %d days.", limits.LogsRetentionDaysMax)),
 		)
 	}
 
-	points, err := h.ClickHouse.GetVerificationsByExternalID(ctx, clickhouse.VerificationTimeseriesRequest{
-		WorkspaceID: principal.AuthorizedWorkspaceID,
-		ExternalID:  externalID,
-		KeyID:       ptr.SafeDeref(req.KeyId),
-		StartTime:   req.StartTime,
-		EndTime:     req.EndTime,
+	perKey, err := h.ClickHouse.GetVerificationsByExternalIDPerKey(ctx, clickhouse.VerificationTimeseriesPerKeyRequest{
+		VerificationTimeseriesRequest: clickhouse.VerificationTimeseriesRequest{
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			ExternalID:  externalID,
+			KeySpaceIDs: keySpaceIDs,
+			KeyID:       ptr.SafeDeref(req.KeyId),
+			StartTime:   req.StartTime,
+			EndTime:     req.EndTime,
+		},
+		MaxKeys: h.MaxPerKeySeries,
 	})
+	if errors.Is(err, clickhouse.ErrTooManyVerificationKeys) {
+		return fault.Wrap(err,
+			fault.Code(codes.User.BadRequest.PerKeyBreakoutTooLarge.URN()),
+			fault.Internal("per-key breakout exceeds the key cap"),
+			fault.Public(fmt.Sprintf("This window covers more than %d keys. Request a narrower window or a single `keyId`.", h.MaxPerKeySeries)),
+		)
+	}
 	if err != nil {
 		return err
 	}
 
+	keys := make([]openapi.V2PortalGetVerificationsKeySeries, len(perKey))
+	for i, series := range perKey {
+		keys[i] = openapi.V2PortalGetVerificationsKeySeries{
+			KeyId: series.KeyID,
+			Data:  toDataPoints(series.Data),
+		}
+	}
+
+	response := Response{
+		Meta: openapi.Meta{
+			RequestId: s.RequestID(),
+		},
+		BucketMillis: clickhouse.VerificationBucketMillis(req.StartTime, req.EndTime),
+		Keys:         keys,
+	}
+
+	// The key cap bounds how many series come back, not how large they are: a
+	// window at minute granularity multiplies each key by its buckets.
+	responseBytes, err := json.Marshal(response)
+	if err != nil {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.UnexpectedError.URN()),
+			fault.Internal("failed to encode verification timeseries"),
+			fault.Public("An internal error occurred."),
+		)
+	}
+
+	if len(responseBytes) > h.MaxResponseBytes {
+		return fault.New("verification response byte limit exceeded",
+			fault.Code(codes.User.UnprocessableEntity.QueryMemoryLimitExceeded.URN()),
+			fault.Public("Query result exceeds the maximum response size. Request a narrower window or a single `keyId`."),
+		)
+	}
+
+	s.AddHeader("Content-Type", "application/json")
+	return s.Send(http.StatusOK, responseBytes)
+}
+
+// toDataPoints converts a ClickHouse timeseries into its API representation.
+func toDataPoints(points []clickhouse.VerificationTimeseriesDataPoint) []openapi.V2PortalGetVerificationsDataPoint {
 	data := make([]openapi.V2PortalGetVerificationsDataPoint, len(points))
 	for i, p := range points {
 		data[i] = openapi.V2PortalGetVerificationsDataPoint{
@@ -133,11 +210,5 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			UsageExceeded:           p.UsageExceeded,
 		}
 	}
-
-	return s.JSON(http.StatusOK, Response{
-		Meta: openapi.Meta{
-			RequestId: s.RequestID(),
-		},
-		Data: data,
-	})
+	return data
 }

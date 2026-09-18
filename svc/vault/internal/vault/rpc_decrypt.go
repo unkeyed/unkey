@@ -17,7 +17,8 @@ import (
 func (s *Service) Decrypt(
 	ctx context.Context,
 	req *connect.Request[vaultv1.DecryptRequest],
-) (*connect.Response[vaultv1.DecryptResponse], error) {
+) (_ *connect.Response[vaultv1.DecryptResponse], err error) {
+	defer func() { observeOperation("decrypt", err) }()
 	if err := s.authenticate(req); err != nil {
 		return nil, err
 	}

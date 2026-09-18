@@ -3,6 +3,7 @@ import { HISTORICAL_DATA_WINDOW } from "@/components/logs/constants";
 import { trpc } from "@/lib/trpc/client";
 import { useQueryTime } from "@/providers/query-time-provider";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
+import { toast } from "@unkey/ui";
 import { useMemo } from "react";
 import { keysOverviewFilterFieldConfig } from "../../../../filters.schema";
 import { useFilters } from "../../../../hooks/use-filters";
@@ -123,6 +124,9 @@ export const useFetchActiveKeysTimeseries = (apiId: string | null) => {
       context: {
         skipBatch: true,
       },
+    },
+    onError(error) {
+      toast.error(error.message || "Could not load active keys timeseries data.");
     },
   });
 

@@ -170,7 +170,6 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Name:             projectName,
 				Slug:             "default",
 				SourceType:       db.AppsSourceTypeUnknown,
-				DefaultBranch:    "main",
 				DeleteProtection: sql.NullBool{Valid: false, Bool: false},
 				CreatedAt:        now,
 				UpdatedAt:        sql.NullInt64{Valid: false, Int64: 0},
@@ -559,9 +558,13 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 			// portal that sets both. App-mapping additionally resolves its
 			// keyspaces from the app's current deployment, which this seed does
 			// not create, so the keyspace is the only mapping that works here.
+			// Must stay the mapped keyspace's project, which the handlers derive
+			// through portal.ResolveMappingProject. That package is internal to
+			// svc/api and unreachable here, so the two are coupled by hand.
 			err = db.Query.InsertPortal(ctx, tx, db.InsertPortalParams{
 				ID:           portalID,
 				WorkspaceID:  workspaceID,
+				ProjectID:    userDefaultProjectID,
 				Slug:         "awesome",
 				DisplayName:  "Awesome",
 				AppID:        sql.NullString{Valid: false},

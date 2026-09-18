@@ -83,9 +83,6 @@ func ToResponse(in Input) openapi.Deployment {
 		if !image.Valid || image.String == "" {
 			image = d.ImageResolved
 		}
-		if !image.Valid || image.String == "" {
-			image = d.Image
-		}
 		if image.Valid && image.String != "" {
 			dep.Docker = &openapi.DeploymentDocker{Image: image.String}
 		}

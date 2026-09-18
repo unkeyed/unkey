@@ -43,4 +43,9 @@
 // If the deployment row is deleted before a delayed [VirtualObject.ChangeDesiredState]
 // call fires, for example when an environment delete cascades deployment rows,
 // ChangeDesiredState also no-ops and clears any leftover transition state.
+//
+// # Immediate Lifecycle Operations
+//
+// [VirtualObject.StopDeployment] and [VirtualObject.WakeDeployment] write the
+// desired state directly and clear the stored transition.
 package deployment

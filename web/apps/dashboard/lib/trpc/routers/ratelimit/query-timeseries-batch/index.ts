@@ -4,6 +4,7 @@ import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { TIMESERIES_GRANULARITIES, getTimeseriesGranularity } from "../../utils/granularity";
+import { assertValidTimeRange } from "../../utils/time-range";
 
 const batchTimeseriesPayload = z.object({
   namespaceIds: z.array(z.string()).min(1),
@@ -46,6 +47,8 @@ export const queryRatelimitTimeseriesBatch = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
   .input(batchTimeseriesPayload)
   .query(async ({ ctx, input }) => {
+    assertValidTimeRange(input.startTime, input.endTime);
+
     const namespaces = await db.query.ratelimitNamespaces
       .findMany({
         where: (table, { and, eq, inArray, isNull }) =>

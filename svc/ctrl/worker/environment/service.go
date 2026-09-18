@@ -1,6 +1,10 @@
 package environment
 
 import (
+	"fmt"
+	"time"
+
+	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
@@ -8,8 +12,17 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// Service implements the EnvironmentService Restate virtual object for durable
-// environment deletion. The virtual object key is the environment ID.
+// standbyDelay keeps a demoted deployment running long enough to roll back to
+// it without a cold start.
+const standbyDelay = 30 * time.Minute
+
+// runMaxAttempts bounds per-Run retries so a persistent failure returns a
+// terminal error instead of eating the invocation retry budget.
+const runMaxAttempts uint = 5
+
+// Service implements the EnvironmentService Restate virtual object. The key is
+// the environment ID, so deletion, promotion, and rollback of one environment
+// never overlap.
 type Service struct {
 	hydrav1.UnimplementedEnvironmentServiceServer
 	db        db.Database
@@ -47,4 +60,63 @@ func New(cfg Config) (*Service, error) {
 		admin:                                 cfg.Admin,
 		auditlogs:                             cfg.Auditlogs,
 	}, nil
+}
+
+// loadDeployments reads each deployment with its environment kind and its
+// app's live pointer, keyed by id, in one step. A deployment outside the keyed
+// environment is refused: the key is the lock.
+func (s *Service) loadDeployments(ctx restate.ObjectContext, deploymentIDs ...string) (map[string]db.FindDeploymentWithEnvironmentAndAppRow, error) {
+	environmentID := restate.Key(ctx)
+
+	deployments, err := restate.Run(ctx, func(runCtx restate.RunContext) (map[string]db.FindDeploymentWithEnvironmentAndAppRow, error) {
+		byID := make(map[string]db.FindDeploymentWithEnvironmentAndAppRow, len(deploymentIDs))
+		for _, id := range deploymentIDs {
+			row, err := s.db.FindDeploymentWithEnvironmentAndApp(runCtx, id)
+			if err != nil {
+				if db.IsNotFound(err) {
+					return nil, restate.ToTerminalError(fmt.Errorf("deployment not found: %s", id), restate.WithErrorCode(404))
+				}
+				return nil, fmt.Errorf("load deployment %s: %w", id, err)
+			}
+			if err := assert.Equal(row.EnvironmentID, environmentID, "deployment must belong to the keyed environment"); err != nil {
+				return nil, restate.ToTerminalError(err, restate.WithErrorCode(400))
+			}
+			byID[id] = row
+		}
+		return byID, nil
+	}, restate.WithName("load deployments"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	if err != nil {
+		return nil, err
+	}
+	return deployments, nil
+}
+
+// findStickyRouteIDs returns the environment and live routes. None is a caller
+// error: there is nothing to move.
+func (s *Service) findStickyRouteIDs(ctx restate.ObjectContext, environmentID string) ([]string, error) {
+	routeIDs, err := restate.Run(ctx, func(runCtx restate.RunContext) ([]string, error) {
+		routes, err := s.db.FindFrontlineRoutesByEnvironmentAndSticky(runCtx, db.FindFrontlineRoutesByEnvironmentAndStickyParams{
+			EnvironmentID: environmentID,
+			Sticky: []db.FrontlineRoutesSticky{
+				db.FrontlineRoutesStickyLive,
+				db.FrontlineRoutesStickyEnvironment,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+		ids := make([]string, 0, len(routes))
+		for _, route := range routes {
+			ids = append(ids, route.ID)
+		}
+		return ids, nil
+	}, restate.WithName("find sticky routes"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	if err != nil {
+		return nil, fmt.Errorf("find sticky routes: %w", err)
+	}
+
+	if len(routeIDs) == 0 {
+		return nil, restate.ToTerminalError(fmt.Errorf("environment %s has no sticky routes", environmentID), restate.WithErrorCode(400))
+	}
+	return routeIDs, nil
 }

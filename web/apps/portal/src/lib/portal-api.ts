@@ -3,7 +3,7 @@ import { getCookie } from "@tanstack/react-start/server";
 import type { Unkey } from "@unkey/api";
 import { mapVerificationsResponse } from "~/components/analytics/analytics-transform";
 import {
-  type VerificationsTimeseries,
+  type KeySeries,
   getVerificationsQuerySchema,
 } from "~/components/analytics/schema/analytics.schema";
 import {
@@ -55,6 +55,17 @@ export const SESSION_EXPIRED_MESSAGE =
 export const RETENTION_EXCEEDED_MESSAGE = "That time range isn't available. Try a shorter range.";
 
 /**
+ * Message for a verifications query covering more keys than the API will break
+ * out in one response. Same cross-boundary discriminant contract as
+ * {@link RETENTION_EXCEEDED_MESSAGE}, read by {@link isTooManyKeysError}.
+ *
+ * A shorter range is the actionable advice: the cap counts keys with traffic in
+ * the window, not keys on the account.
+ */
+export const TOO_MANY_KEYS_MESSAGE =
+  "There's too much activity to chart at once. Try a shorter range.";
+
+/**
  * Thrown when a portal API call fails. Carries only a human-readable `message`,
  * because that is all that crosses the server-fn boundary intact. Unauthorized
  * failures use {@link SESSION_EXPIRED_MESSAGE} so the client can detect them.
@@ -80,6 +91,14 @@ export function isUnauthorizedError(error: unknown): boolean {
  */
 export function isRetentionExceededError(error: unknown): boolean {
   return error instanceof Error && error.message === RETENTION_EXCEEDED_MESSAGE;
+}
+
+/**
+ * Whether an error (as seen on the client, after the server-fn boundary has
+ * flattened it to a plain `Error`) is a "too many keys to break out" failure.
+ */
+export function isTooManyKeysError(error: unknown): boolean {
+  return error instanceof Error && error.message === TOO_MANY_KEYS_MESSAGE;
 }
 
 /**
@@ -124,13 +143,17 @@ async function toPortalApiError(err: unknown): Promise<PortalApiError> {
     if (err.statusCode === 401 || err.statusCode === 403) {
       return new PortalApiError(SESSION_EXPIRED_MESSAGE);
     }
-    // The window-too-large 400 is the only 400 the analytics query can provoke.
-    // Match the API's public detail so the UI can show a retention-specific
-    // message instead of the generic one. `detail` lives on the 400 error body.
+    // Match the API's public detail so the UI can show a specific message
+    // instead of the generic one. `detail` lives on the 400 error body.
     if (err.statusCode === 400) {
       const detail = (err as { error?: { detail?: unknown } }).error?.detail;
-      if (typeof detail === "string" && /time window is too large/i.test(detail)) {
-        return new PortalApiError(RETENTION_EXCEEDED_MESSAGE);
+      if (typeof detail === "string") {
+        if (/time window is too large/i.test(detail)) {
+          return new PortalApiError(RETENTION_EXCEEDED_MESSAGE);
+        }
+        if (/more than \d+ keys/i.test(detail)) {
+          return new PortalApiError(TOO_MANY_KEYS_MESSAGE);
+        }
       }
     }
     return new PortalApiError("Something went wrong. Please try again.");
@@ -151,7 +174,7 @@ async function toPortalApiError(err: unknown): Promise<PortalApiError> {
  * List the session end user's keys (one page). Scoping to the end user and the
  * portal's keyspaces happens server-side in the API from the session cookie.
  * `listKeys` returns an auto-paginating iterator whose resolved value is the
- * first page; the caller's `useInfiniteQuery` drives the cursor from there.
+ * first page; the caller walks the cursor from there.
  */
 export const listKeys = createServerFn({ method: "GET" })
   .inputValidator((query: unknown) => listKeysQuerySchema.parse(query))
@@ -171,7 +194,6 @@ export const listKeys = createServerFn({ method: "GET" })
             createdAt: k.createdAt,
             expires: k.expires ?? null,
             enabled: k.enabled,
-            usage: [],
           })),
           cursor: pagination.cursor ?? null,
           hasMore: pagination.hasMore,
@@ -179,27 +201,26 @@ export const listKeys = createServerFn({ method: "GET" })
       }),
   );
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
 /**
- * Fetch the session end user's verification analytics for a time window. The
- * window is derived server-side from the requested day count (so the client
- * sends only `days`, keeping the react-query key stable across renders); the API
- * scopes results to the session identity, enforces its own retention cap, and
- * picks bucket granularity from the window size.
+ * Fetch the session end user's verification analytics for a window, optionally
+ * narrowed to one key. The API scopes results to the session identity, rejects
+ * windows wider than the workspace's retention, and picks bucket granularity
+ * from the window size.
+ *
+ * One series per key comes back, each zero-filled across the window. Callers sum
+ * them for the account-wide view, so there is no second aggregate to disagree
+ * with and no per-key fan-out.
  */
 export const getVerifications = createServerFn({ method: "GET" })
   .inputValidator((query: unknown) => getVerificationsQuerySchema.parse(query))
   .handler(
-    ({ data }): Promise<VerificationsTimeseries> =>
+    ({ data }): Promise<KeySeries[]> =>
       withPortalClient(async (client, token) => {
-        const endTime = Date.now();
-        const startTime = endTime - data.days * MS_PER_DAY;
-        const res = await client.portal.getVerifications(
-          { portalSession: token },
-          { startTime, endTime },
-        );
-        return { days: data.days, buckets: mapVerificationsResponse(res.data) };
+        const res = await client.portal.getVerifications({ portalSession: token }, data);
+        return res.keys.map((series) => ({
+          keyId: series.keyId,
+          buckets: mapVerificationsResponse(series.data),
+        }));
       }),
   );
 

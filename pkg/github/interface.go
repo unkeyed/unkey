@@ -2,6 +2,15 @@ package github
 
 import "time"
 
+// DeployAuthorizationContext is the commit status context for fork PR approval.
+// GitHub overwrites a status only when the context matches, so the pending and
+// the resolving status must both use this value.
+const DeployAuthorizationContext = "Unkey Deploy Authorization"
+
+// DeployRejectedContext is the commit status context for a push that Unkey
+// refused to turn into a deployment, so the reason is visible on the commit.
+const DeployRejectedContext = "Unkey Deploy"
+
 // GitHubClient defines the interface for GitHub API operations.
 type GitHubClient interface {
 	// GetInstallationToken retrieves an access token for a specific installation.
@@ -52,8 +61,9 @@ type GitHubClient interface {
 	IsCollaborator(installationID int64, repo string, username string) (bool, error)
 
 	// CreateCommitStatus creates a commit status on a SHA. The "Details" link
-	// in the PR goes directly to targetURL. context is the label shown (e.g.
-	// "Unkey Deploy Authorization"). state: pending|success|error|failure.
+	// in the PR goes directly to targetURL. context is the label shown; use
+	// [DeployAuthorizationContext] for the approval status.
+	// state: pending|success|error|failure.
 	CreateCommitStatus(installationID int64, repo string, sha string, state string, targetURL string, description string, context string) error
 
 	// ListCommitFiles returns the list of filenames changed in a specific commit.

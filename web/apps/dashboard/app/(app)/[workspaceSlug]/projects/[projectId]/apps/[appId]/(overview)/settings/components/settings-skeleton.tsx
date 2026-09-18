@@ -1,6 +1,9 @@
-import { CircleHalfDottedClock, Gear } from "@unkey/icons";
+import { collection } from "@/lib/collections";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { IconCircleHalfDottedClockOutline18, IconGearOutline18 } from "@unkey/icons";
 import { SettingCardGroup } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
+import { useAppId, useProjectData } from "../../data-provider";
 import { SettingsGroup } from "./shared/settings-group";
 
 type Row = { title: string; description: string; controlW: string };
@@ -106,14 +109,40 @@ const ADVANCED_ROWS: Row[] = [
 ];
 
 export function SettingsSkeleton() {
+  const { projectId } = useProjectData();
+  const appId = useAppId();
+  const { data } = useLiveQuery(
+    (q) =>
+      q
+        .from({ app: collection.apps })
+        .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId))),
+    [projectId, appId],
+  );
+  const app = data.at(0);
+  const sourceRows: Row[] = app
+    ? app.sourceType === "oci"
+      ? [
+          {
+            title: "Image",
+            description: "Default image reference for new deployments",
+            controlW: "w-44",
+          },
+        ]
+      : app.repositoryFullName
+        ? BUILD_ROWS
+        : BUILD_ROWS.slice(0, 1)
+    : [];
+
   return (
     <div className="flex flex-col gap-6" aria-busy="true">
       <output className="sr-only">Loading settings...</output>
-      <SettingCardGroup>
-        <CardRows rows={BUILD_ROWS} />
-      </SettingCardGroup>
+      {sourceRows.length > 0 ? (
+        <SettingCardGroup>
+          <CardRows rows={sourceRows} />
+        </SettingCardGroup>
+      ) : null}
       <SettingsGroup
-        icon={<CircleHalfDottedClock iconSize="md-medium" />}
+        icon={<IconCircleHalfDottedClockOutline18 className="size-3.5" />}
         title="Runtime settings"
         hideChevron
       >
@@ -122,7 +151,7 @@ export function SettingsSkeleton() {
         </SettingCardGroup>
       </SettingsGroup>
       <SettingsGroup
-        icon={<Gear iconSize="md-medium" />}
+        icon={<IconGearOutline18 className="size-3.5" />}
         title="Advanced configurations"
         hideChevron
       >

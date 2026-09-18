@@ -9,21 +9,21 @@ The control plane deployment service creates deployment records and delegates ex
 
 Each Restate VO uses the narrowest key that gives the serialization it needs:
 
-- **`DeployService`** is keyed by `deployment_id`. Each deployment runs as its own isolated workflow, so multiple deployments in the same environment can build in parallel.
-- **`RoutingService`** is keyed by `env_id`. All routing changes for an environment (frontline route assignment + the live-deployment swap) serialize here, so concurrent deploys/rollbacks/promotes for the same env can never race on `apps.current_deployment_id`.
+- **`DeployWorkflow`** is keyed by `deployment_id`. Each deployment is one workflow run, so multiple deployments in the same environment can build in parallel. It is a workflow rather than a virtual object because Deploy has no operations to serialise.
+- **`EnvironmentService`** is keyed by `environment_id`. Promote and rollback run here. Both change which deployment is live in one environment, and both check the live pointer before they swap it. One key holds the check and the swap under one lock. With separate keys, two operations on the same environment can pass their checks against the same live pointer and then swap one after the other.
+- **`RoutingService`** is keyed by `env_id`. Frontline route assignment and the live-deployment swap serialize here. It is the write primitive that `DeployWorkflow` and `EnvironmentService` call.
 - **`BuildSlotService`** is keyed by `workspace_id`. Caps how many deployments build at once across the workspace and prioritises production over preview waiters.
-- **`DeploymentService`** (delayed desired-state transitions) is keyed by `deployment_id`.
-
-Rollback and Promote are themselves workflows but they don't need their own env-keyed gate — the actual mutation goes through `RoutingService.SwapLiveDeployment`, which is per-env serialized.
+- **`DeploymentService`** (desired-state transitions, scheduled and immediate) is keyed by `deployment_id`.
 
 Key components:
 
 - Control API deployment service — [`svc/ctrl/services/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/services/deployment)
-- `DeployService` Restate workflow — [`svc/ctrl/worker/deploy`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy)
+- `DeployWorkflow` Restate workflow — [`svc/ctrl/worker/deploy`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy)
+- `EnvironmentService` (promote, rollback, environment deletion): [`svc/ctrl/worker/environment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/environment)
 - `RoutingService` (route assignment + live swap) — [`svc/ctrl/worker/routing`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/routing)
-- `DeploymentService` VO for delayed desired-state transitions — [`svc/ctrl/worker/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment)
+- `DeploymentService` VO for scheduled and immediate desired-state transitions — [`svc/ctrl/worker/deployment`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deployment)
 - `BuildSlotService` VO for per-workspace build concurrency — [`svc/ctrl/worker/buildslot`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/buildslot)
-- Dedup helper for cancelling superseded queued siblings — [`svc/ctrl/dedup`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/dedup)
+- Superseded sibling cancellation — [`svc/ctrl/worker/deploy/supersede.go`](https://github.com/unkeyed/unkey/blob/main/svc/ctrl/worker/deploy/supersede.go)
 
 ## Flow: create deployment
 
@@ -34,16 +34,17 @@ sequenceDiagram
   participant DB as MySQL
   participant Restate as Restate
   participant BuildSlot as BuildSlotService<br/>(keyed by workspace)
-  participant Worker as DeployService<br/>(keyed by deployment_id)
-  participant Dedup as dedup.CancelOlderSiblings
+  participant Worker as DeployWorkflow<br/>(keyed by deployment_id)
+  participant Dedup as Workflow.cancelOlderSiblings
 
   Client->>CtrlAPI: CreateDeployment(project_id, source, env)
-  CtrlAPI->>DB: Find project + environment + app
-  CtrlAPI->>DB: Insert deployment (status=pending)
-  CtrlAPI->>Restate: DeployService.Deploy (key: deployment_id, async)
-  Restate-->>CtrlAPI: invocation_id
-  CtrlAPI->>DB: UpdateDeploymentInvocationID
-  CtrlAPI->>Dedup: Cancel older queued siblings (status=pending|awaiting_approval)
+  CtrlAPI->>Restate: DeployWorkflow.Create (key: deployment_id)
+  Restate->>Worker: Create
+  Worker->>DB: Find project + environment + app
+  Worker->>DB: Insert deployment (status=pending)
+  Worker->>Restate: DeployWorkflow.Deploy (in-context; the ingress refuses it)
+  Worker->>DB: UpdateDeploymentInvocationID
+  Worker->>Dedup: Cancel older queued siblings (status=pending|awaiting_approval)
   Dedup->>DB: Batch stamp "Superseded by newer commit" on sibling steps
   Dedup->>DB: Batch UPDATE siblings to status=superseded
   Dedup->>Restate: CancelInvocation for each older sibling
@@ -52,9 +53,9 @@ sequenceDiagram
   Worker->>BuildSlot: AcquireOrWait(deployment_id, awakeable_id, is_production)
   BuildSlot-->>Worker: resolve awakeable when slot available<br/>(prod waiters drained first)
   Worker->>DB: Insert topologies (outbox entries)
-  Worker->>Worker: waitForDeployments creates awakeable
-  Note over Worker: suspended on awakeable
-  DB-->>Worker: ReportDeploymentStatus threshold met<br/>→ NotifyInstancesReady resolves awakeable
+  Worker->>Worker: waitForDeployments awaits promise instances_ready
+  Note over Worker: suspended on promise
+  DB-->>Worker: ReportDeploymentStatus threshold met<br/>→ NotifyInstancesReady resolves promise
   Worker->>DB: Mark deployment ready
   Worker->>BuildSlot: Release(deployment_id)
 ```
@@ -67,7 +68,7 @@ sequenceDiagram
   participant CtrlAPI as Control API
   participant DB as MySQL
   participant RestateAdmin as Restate Admin API
-  participant Worker as DeployService
+  participant Worker as DeployWorkflow
   participant BuildSlot as BuildSlotService
 
   Client->>CtrlAPI: CancelDeployment(deployment_id)
@@ -88,13 +89,14 @@ sequenceDiagram
   actor Client
   participant CtrlAPI as Control API
   participant Restate as Restate
-  participant Worker as DeployService<br/>(deployment_id key)
+  participant Worker as EnvironmentService<br/>(environment_id key)
   participant Routing as RoutingService<br/>(env_id key)
 
   Client->>CtrlAPI: Promote(deployment_id)
-  CtrlAPI->>Restate: DeployService.Promote (key: target deployment_id)
-  Restate->>Worker: Execute promote workflow
-  Worker->>Routing: SwapLiveDeployment(target, routes, set_rollback_flag=false)
+  CtrlAPI->>Restate: EnvironmentService.PromoteDeployment (key: environment_id)
+  Restate->>Worker: Execute promote handler
+  Worker->>Worker: Load deployment with app live pointer, gate check
+  Worker->>Routing: SwapLiveDeployment(deployment, sticky_routes, set_rollback_flag=false)
   Routing-->>Worker: previous_deployment_id (atomically swapped)
   Worker->>Worker: Schedule previous to stop
 ```
@@ -106,13 +108,14 @@ sequenceDiagram
   actor Client
   participant CtrlAPI as Control API
   participant Restate as Restate
-  participant Worker as DeployService<br/>(deployment_id key)
+  participant Worker as EnvironmentService<br/>(environment_id key)
   participant Routing as RoutingService<br/>(env_id key)
 
-  Client->>CtrlAPI: Rollback(source_id, target_id)
-  CtrlAPI->>Restate: DeployService.Rollback (key: source deployment_id)
-  Restate->>Worker: Execute rollback workflow
-  Worker->>Routing: SwapLiveDeployment(target, sticky_routes, set_rollback_flag=true)
+  Client->>CtrlAPI: Rollback(deployment_id)
+  CtrlAPI->>Restate: EnvironmentService.RollbackDeployment(from=live, to=deployment_id) (key: environment_id)
+  Restate->>Worker: Execute rollback handler
+  Worker->>Worker: Load both deployments, refuse if from is no longer live, gate check
+  Worker->>Routing: SwapLiveDeployment(to, sticky_routes, set_rollback_flag=true)
   Routing-->>Worker: previous_deployment_id (atomically swapped)
 ```
 
@@ -144,7 +147,7 @@ This gives push-based slot hand-off with priority — no polling. The concurrenc
 
 ## Commit deduplication
 
-When a new deployment is created, `dedup.CancelOlderSiblings` looks for older deployments on the same `(app, environment, branch)` that are still in the build queue (`pending` or `awaiting_approval`) and cancels them.
+When a new deployment is created, `Workflow.cancelOlderSiblings` looks for older deployments on the same `(app, environment, branch)` that are still in the build queue (`pending` or `awaiting_approval`) and cancels them.
 
 Once a deployment acquires a build slot and transitions to `starting`, it is **committed** — newer commits will not supersede it. This avoids the pathological case where rapid pushes keep cancelling builds and nothing ever finishes.
 
@@ -157,18 +160,18 @@ Cancellation happens in three steps, all batched:
 
 Only git-sourced deployments with a branch are deduplicated; Docker-image redeploys bypass this path.
 
-## Instance readiness (awakeable-based)
+## Instance readiness (promise-based)
 
-After `createTopologies`, the Deploy handler enters `waitForDeployments`, which parks on a Restate awakeable until krane reports pod readiness. Krane installs the per-deployment Cilium network policy itself when it applies each deployment, so the handler does not create one.
+After `createTopologies`, the Deploy run enters `waitForDeployments`, which awaits a durable promise named `instances_ready` until krane reports pod readiness. Krane installs the per-deployment Cilium network policy itself when it applies each deployment, so the run does not create one.
 
 `waitForDeployments` flow:
 
-1. Load per-region min replicas via `FindDeploymentTopologyMinReplicas`.
-2. Count running instances per region.
-3. Require `numRegions - 1` healthy regions (minimum 1, tolerating one regional outage).
-4. Repeat the DB check until the threshold is met or `regionReadyTimeout` elapses.
+1. Build per-region min replicas from the topologies just inserted.
+2. Require `numRegions - 1` healthy regions (minimum 1, tolerating one regional outage).
+3. Check the database once for instances that are already healthy.
+4. Otherwise await the promise, racing it against `regionReadyTimeout`.
 
-The awakeable is resolved by `DeployService.NotifyInstancesReady`, a `SHARED` handler that runs concurrently with the suspended Deploy.
+The promise is resolved by `DeployWorkflow.NotifyInstancesReady`, a `SHARED` handler that runs concurrently with the suspended run. A report that arrives before the run awaits is kept by the promise, so there is no awakeable to stash and no state to clear.
 
 Caller: `cluster.Service.ReportDeploymentStatus` (the RPC krane calls to report instance state) runs a thundering-herd gate after the upsert transaction:
 
@@ -176,7 +179,8 @@ Caller: `cluster.Service.ReportDeploymentStatus` (the RPC krane calls to report 
 2. Look up per-region min replicas via `FindDeploymentTopologyMinReplicas`.
 3. Count running instances per region; require `numRegions - 1` healthy regions (minimum 1 — tolerates one regional outage).
 4. Dedup the notification via an in-process `sync.Map` so we don't re-fire on every subsequent status report once the threshold is met.
-5. If threshold met (and not yet notified), send `DeployService.NotifyInstancesReady(deployment_id)` via the ingress client, keyed by `deployment_id`.
+5. Skip if the deployment's Deploy invocation is no longer live in Restate. Wake also reports with status `deploying`, and a notify for a finished run would leave a promise Restate never cleans up.
+6. If threshold met (and not yet notified), send `NotifyInstancesReady(deployment_id)` to `DeployWorkflow`.
 
 ## Self-skip (belt-and-suspenders dedup)
 
@@ -188,11 +192,11 @@ Scheduled state changes are serialized via a Restate virtual object keyed by dep
 
 ## Retry policy
 
-The `DeployService` is registered with an exponential-backoff retry policy: `30s → 1m → 2m → 4m → 5m` (capped), 10 attempts total (~30 minutes). If a deploy can't make progress after 10 retries (persistent MySQL connection errors, Depot outage), Restate kills the invocation, the compensation stack runs, and the deployment is marked failed. This replaces an older 150-attempt policy that could leave a deploy stuck retrying for ~24 hours.
+`DeployWorkflow` is registered with an exponential-backoff retry policy: `2s → 4s → 8s → 16s → 30s` (capped), 15 attempts total (about 5 minutes). Short intervals keep cancel latency low, since a cancel lands at the next attempt boundary. On exhaustion the invocation pauses rather than being killed, so the compensation stack can still run when a `restate.Run` returns a terminal error. This replaces an older 150-attempt policy that could leave a deploy stuck retrying for about 24 hours.
 
 ## Compensation stack
 
-The Deploy handler maintains a LIFO compensation stack registered via `Compensation.Add` (for side-effects wrapped in `restate.RunVoid`) and `Compensation.AddCtx` (for raw `ObjectContext` operations like `BuildSlotService.Release().Send`). The stack fires on any error or cancellation:
+The Deploy handler maintains a LIFO compensation stack registered via `Compensation.Add` (for side-effects wrapped in `restate.RunVoid`) and `Compensation.AddCtx` (for raw Restate context operations like `BuildSlotService.Release().Send`). The stack fires on any error or cancellation:
 
 - Release the build slot
 - Mark the deployment as `failed` (only if still in an active status — the conditional `UpdateDeploymentStatusIfActive` query prevents overwriting `superseded` or `ready`)

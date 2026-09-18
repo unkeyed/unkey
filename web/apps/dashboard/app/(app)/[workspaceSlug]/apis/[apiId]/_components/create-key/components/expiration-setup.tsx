@@ -1,7 +1,7 @@
 "use client";
 import { ProtectionSwitch } from "@/components/dashboard/metadata/protection-switch";
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
-import { Clock } from "@unkey/icons";
+import { IconClockOutline12 } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
 import { addDays, addMinutes, format } from "date-fns";
 import { useState } from "react";
@@ -150,7 +150,7 @@ export const ExpirationSetup = ({
         <ProtectionSwitch
           description="Turn on to set an expiration date. When reached, the key will be automatically disabled."
           title="Expiration"
-          icon={<Clock className="text-gray-12" iconSize="sm-regular" />}
+          icon={<IconClockOutline12 className="text-gray-12" />}
           checked={expirationEnabled}
           onCheckedChange={handleSwitchChange}
         />

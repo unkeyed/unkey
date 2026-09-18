@@ -5,7 +5,7 @@ import { formatCompactQuantity, formatDollars, formatPrice } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
-import { Cube } from "@unkey/icons";
+import { IconCubeOutline18 } from "@unkey/icons";
 import { Button, DialogContainer, InfoTooltip, toast } from "@unkey/ui";
 import { useState } from "react";
 import { ComputePausedBadge } from "./compute-paused";
@@ -287,7 +287,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   return (
     <>
       <ProductCard
-        icon={<Cube iconSize="md-regular" />}
+        icon={<IconCubeOutline18 className="size-3.5" />}
         iconClassName="bg-orangeA-3 text-orange-11"
         className="[&>div:nth-child(2)]:border-t-0 [&>div:nth-child(2)]:pt-0"
         name="Compute"

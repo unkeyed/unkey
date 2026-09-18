@@ -34,6 +34,8 @@ const (
 	UserErrorsBadRequestInvalidAnalyticsQueryType URN = "err:user:bad_request:invalid_analytics_query_type"
 	// QueryRangeExceedsRetention indicates the query attempts to access data older than the workspace's retention period.
 	UserErrorsBadRequestQueryRangeExceedsRetention URN = "err:user:bad_request:query_range_exceeds_retention"
+	// PerKeyBreakoutTooLarge indicates more keys had traffic in the requested window than the per-key breakout will return.
+	UserErrorsBadRequestPerKeyBreakoutTooLarge URN = "err:user:bad_request:per_key_breakout_too_large"
 
 	// UnprocessableEntity
 

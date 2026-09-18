@@ -1,13 +1,23 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
-import { and, db, eq } from "@/lib/db";
+import { type InferSelectModel, ne } from "@/lib/db";
 import type { LastExit } from "@/lib/types/deploy";
-import { type ContainerStatus, apps, deployments } from "@unkey/db/src/schema";
+import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
 import { mapRegionToFlag } from "../network/utils";
+
+// A skipped row records a push the platform declined to build at all (watch
+// paths didn't match, auto-deploy off). Nothing was ever deployed, so the
+// browsing views leave them out; a lookup by deployment id still returns them
+// so their detail page keeps working.
+export function excludeSkipped() {
+  return ne(deployments.status, "skipped");
+}
 
 export const deploymentSelectFields = {
   id: deployments.id,
   projectId: deployments.projectId,
   environmentId: deployments.environmentId,
+  source: deployments.source,
+  requestedImage: deployments.imageRequested,
   gitCommitSha: deployments.gitCommitSha,
   gitBranch: deployments.gitBranch,
   gitCommitMessage: deployments.gitCommitMessage,
@@ -16,7 +26,7 @@ export const deploymentSelectFields = {
   gitCommitTimestamp: deployments.gitCommitTimestamp,
   prNumber: deployments.prNumber,
   forkRepositoryFullName: deployments.forkRepositoryFullName,
-  image: deployments.image,
+  resolvedImage: deployments.imageResolved,
   status: deployments.status,
   desiredState: deployments.desiredState,
   trigger: deployments.trigger,
@@ -33,6 +43,16 @@ export const deploymentSelectFields = {
   updatedAt: deployments.updatedAt,
 } as const;
 
+export const deploymentListSelect = {
+  ...deploymentSelectFields,
+  appId: deployments.appId,
+} as const;
+
+export type DeploymentListSelection = Pick<
+  InferSelectModel<typeof deployments>,
+  Exclude<keyof typeof deploymentListSelect, "requestedImage" | "resolvedImage">
+> & { requestedImage: string | null; resolvedImage: string | null };
+
 export function mapInstanceRow(row: {
   id: string;
   regionId: string;
@@ -42,7 +62,11 @@ export function mapInstanceRow(row: {
 }) {
   return {
     id: row.id,
-    region: { id: row.regionId, name: row.regionName, platform: row.regionPlatform },
+    region: {
+      id: row.regionId,
+      name: row.regionName,
+      platform: row.regionPlatform,
+    },
     flagCode: mapRegionToFlag(row.regionName),
     status: row.status,
   };
@@ -92,6 +116,7 @@ export function computeLastExit(
 }
 
 export function normalizeDeploymentRow(deployment: {
+  source: "unknown" | "git" | "oci";
   gitBranch: string | null;
   prNumber: number | null;
   forkRepositoryFullName: string | null;
@@ -99,6 +124,7 @@ export function normalizeDeploymentRow(deployment: {
   gitCommitTimestamp: number | null;
 }) {
   return {
+    source: deployment.source,
     gitBranch: deployment.gitBranch ?? "",
     prNumber: deployment.prNumber ?? null,
     forkRepositoryFullName: deployment.forkRepositoryFullName ?? null,
@@ -106,38 +132,4 @@ export function normalizeDeploymentRow(deployment: {
       deployment.gitCommitAuthorAvatarUrl ?? "https://github.com/identicons/dummy-user.png",
     gitCommitTimestamp: deployment.gitCommitTimestamp,
   };
-}
-
-// The overview resolves the live deployment by id from the collection, so it
-// must be present even when older than the newest-N window the list returns.
-export async function fetchCurrentDeploymentOutsideWindow(
-  workspaceId: string,
-  input: { projectId: string; appId: string },
-  loadedRows: { id: string }[],
-) {
-  const [app] = await db
-    .select({ currentDeploymentId: apps.currentDeploymentId })
-    .from(apps)
-    .where(
-      and(
-        eq(apps.workspaceId, workspaceId),
-        eq(apps.projectId, input.projectId),
-        eq(apps.id, input.appId),
-      ),
-    );
-  const currentId = app?.currentDeploymentId;
-  if (!currentId || loadedRows.some((d) => d.id === currentId)) {
-    return null;
-  }
-  const [deployment] = await db
-    .select({ ...deploymentSelectFields, appId: deployments.appId })
-    .from(deployments)
-    .where(
-      and(
-        eq(deployments.workspaceId, workspaceId),
-        eq(deployments.projectId, input.projectId),
-        eq(deployments.id, currentId),
-      ),
-    );
-  return deployment ?? null;
 }

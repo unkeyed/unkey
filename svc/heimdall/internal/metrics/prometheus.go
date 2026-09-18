@@ -205,6 +205,21 @@ var (
 		},
 	)
 
+	// NetworkReattaches counts attached pods whose recorded CNI netns
+	// disappeared while the pod stayed in the informer, so the reader
+	// dropped the dead attach and re-attached to the pod's new sandbox.
+	// Under gVisor this fires once per memory-limit sandbox kill. A rate
+	// far above the namespace's container restart rate means netns files
+	// are vanishing for some other reason and attaches are churning.
+	NetworkReattaches = lazy.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "heimdall",
+			Name:      "network_reattaches_total",
+			Help:      "Attached pods re-attached because their netns was replaced under a live pod (sandbox recreated).",
+		},
+	)
+
 	// NetworkReadErrors counts per-pod BPF map lookup failures. Read
 	// errors currently degrade silently to zeroCounters in the collector;
 	// a rising counter means the map or its attachments are in a bad

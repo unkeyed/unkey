@@ -1,8 +1,16 @@
 "use client";
 
 import { StreamingTable } from "@/components/streaming-table";
-import { BookBookmark } from "@unkey/icons";
-import { Button, Empty } from "@unkey/ui";
+import { IconBookBookmarkOutline18, IconSquareBulletListOutline18 } from "@unkey/icons";
+import {
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+} from "@unkey/ui";
 import { type ContainerLogRow, containerLogColumns } from "./columns";
 import { getContainerLogRowClass } from "./get-row-class";
 import {
@@ -41,26 +49,30 @@ export const DeploymentContainerLogsTable = ({ logs, isLoading }: Props) => {
       isLoading={isLoading}
       fixedHeight={500}
       emptyState={
-        <Empty className="w-100 flex items-start">
-          <Empty.Icon className="w-auto" />
-          <Empty.Title>Container Logs</Empty.Title>
-          <Empty.Description className="text-left">
-            No runtime logs found for this deployment. Container logs will appear here once the
-            deployment starts running.
-          </Empty.Description>
-          <Empty.Actions className="mt-4 justify-start">
+        <EmptyState frame="none">
+          <EmptyStateIcon>
+            <IconSquareBulletListOutline18 />
+          </EmptyStateIcon>
+          <EmptyStateHeader>
+            <EmptyStateTitle>Container Logs</EmptyStateTitle>
+            <EmptyStateDescription>
+              No runtime logs found for this deployment. Container logs will appear here once the
+              deployment starts running.
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+          <EmptyStateActions>
             <a
               href="https://www.unkey.com/docs/introduction"
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Button size="md">
-                <BookBookmark />
+              <Button variant="outline" size="md">
+                <IconBookBookmarkOutline18 />
                 Documentation
               </Button>
             </a>
-          </Empty.Actions>
-        </Empty>
+          </EmptyStateActions>
+        </EmptyState>
       }
     />
   );

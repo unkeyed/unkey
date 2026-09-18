@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -47,6 +48,58 @@ func (c Container) Addr(t testing.TB, containerPort int) string {
 func (c Container) Port(t testing.TB, containerPort int) int {
 	t.Helper()
 	return composeServicePort(t, c.project, c.Name, containerPort)
+}
+
+// containerState is Compose's view of a service container.
+type containerState struct {
+	State    string `json:"State"`
+	Status   string `json:"Status"`
+	Health   string `json:"Health"`
+	ExitCode int    `json:"ExitCode"`
+}
+
+// state reports what Compose knows about the container, including one that has
+// already exited.
+//
+// Diagnostics must not fail the test they explain, so a Docker error yields
+// ok=false rather than an assertion.
+func (c Container) state() (containerState, bool) {
+	var state containerState
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "docker", "compose",
+		"-f", composeFile(), "-p", c.project, "ps", "-a", "--format", "json", c.Name).Output()
+	if err != nil {
+		return state, false
+	}
+
+	// Compose emits one JSON object per container, so a project that somehow
+	// holds more than one for this service still parses.
+	first, _, _ := strings.Cut(strings.TrimSpace(string(out)), "\n")
+	if first == "" {
+		return state, false
+	}
+	if err := json.Unmarshal([]byte(first), &state); err != nil {
+		return state, false
+	}
+	return state, true
+}
+
+// logs returns the tail of the container's output, or why it could not be read.
+func (c Container) logs(lines int) string {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "docker", "compose",
+		"-f", composeFile(), "-p", c.project,
+		"logs", "--no-color", "--no-log-prefix", "--tail", strconv.Itoa(lines), c.Name).CombinedOutput()
+	if err != nil {
+		return fmt.Sprintf("<docker compose logs failed: %v: %s>", err, out)
+	}
+	if len(bytes.TrimSpace(out)) == 0 {
+		return "<no container output>"
+	}
+	return string(out)
 }
 
 func startService(t testing.TB, service string) Container {

@@ -4,7 +4,10 @@ import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import {
   Button,
-  Empty,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   InfoTooltip,
   SettingCard,
   SettingCardGroup,
@@ -68,12 +71,14 @@ export const Client: React.FC = () => {
   if (billingError) {
     return (
       <BillingContainer>
-        <Empty>
-          <Empty.Title>Failed to load billing information</Empty.Title>
-          <Empty.Description>
-            There was an error loading your billing information. Please try again later.
-          </Empty.Description>
-        </Empty>
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>Failed to load billing information</EmptyStateTitle>
+            <EmptyStateDescription>
+              There was an error loading your billing information. Please try again later.
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
       </BillingContainer>
     );
   }

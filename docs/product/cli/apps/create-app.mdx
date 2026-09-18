@@ -3,7 +3,11 @@ title: "create-app"
 description: "Create an app within a project"
 ---
 
-Create an app within a project. The app is created with default `production` and `preview` environments. The caller-defined slug is stable and must be unique within the project.
+Create an app within a project. The app is created with default `production` and `preview` environments.
+
+Set exactly one source. Use `git` to create a GitHub-sourced app and connect its repository. Use `oci` to create an app from a prebuilt OCI image.
+
+The slug you provide is the stable, caller-defined handle used to reference this app. It must be unique within the project.
 
 ## Usage
 ```bash
@@ -16,6 +20,9 @@ unkey api apps create-app [flags]
 <ParamField body="--git" type="JSON string">
 Connect a GitHub repository with a required `repository` field and optional
 `defaultBranch` field.
+</ParamField>
+<ParamField body="--oci" type="JSON string">
+Configure an OCI image source with a required `image` field. The image must include an explicit tag or digest.
 </ParamField>
 ## Global Flags
 | Flag | Type | Description |
@@ -31,4 +38,9 @@ unkey api apps create-app --project=payments --name="Payments API" \
   --slug=payments-api \
   --git='{"repository":"unkeyed/api","defaultBranch":"main"}'
 ```
-See the [API reference](https://www.unkey.com/docs/api-reference/v2/apps/create-app).
+```bash OCI image
+unkey api apps create-app --project=payments --name="Payments API" \
+  --slug=payments-api \
+  --oci='{"image":"ghcr.io/acme/payments:v1.2.3"}'
+```
+See the [API reference](https://www.unkey.com/docs/api-reference/apps/create-app).

@@ -43,12 +43,11 @@ func TestGetEnvironmentNotFound(t *testing.T) {
 		})
 		otherAppSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 		otherApp := h.CreateApp(seed.CreateAppRequest{
-			ID:            uid.New(uid.AppPrefix),
-			WorkspaceID:   otherWorkspace.ID,
-			ProjectID:     otherProject.ID,
-			Name:          "Theirs",
-			Slug:          otherAppSlug,
-			DefaultBranch: "main",
+			ID:          uid.New(uid.AppPrefix),
+			WorkspaceID: otherWorkspace.ID,
+			ProjectID:   otherProject.ID,
+			Name:        "Theirs",
+			Slug:        otherAppSlug,
 		})
 		otherEnvironment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 			ID:          uid.New(uid.EnvironmentPrefix),

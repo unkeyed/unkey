@@ -1,7 +1,7 @@
 "use client";
 
 import { Menu as DropdownMenuPrimitive } from "@base-ui/react/menu";
-import { Check, ChevronRight, Circle } from "@unkey/icons";
+import { IconCheckOutline18, IconChevronRightOutline18 } from "@unkey/icons";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
@@ -34,7 +34,7 @@ const DropdownMenuSubTrigger = React.forwardRef<
     {...props}
   >
     {children}
-    <ChevronRight className="w-4 h-4 ml-auto shrink-0" />
+    <IconChevronRightOutline18 className="w-4 h-4 ml-auto shrink-0" />
   </DropdownMenuPrimitive.SubmenuTrigger>
 ));
 DropdownMenuSubTrigger.displayName = DropdownMenuPrimitive.SubmenuTrigger.displayName;
@@ -105,7 +105,7 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-md px-1.5 py-1 text-sm outline-hidden transition-colors focus:bg-gray-200 focus:dark:hover:bg-gray-800 focus:text-content-foreground data-disabled:pointer-events-none data-disabled:opacity-50",
+      "relative flex cursor-default select-none items-center rounded-md px-1.5 py-1 text-sm outline-hidden transition-colors focus:bg-grayA-3 focus:text-accent-12 data-disabled:pointer-events-none data-disabled:opacity-50",
       inset && "pl-8",
       className,
     )}
@@ -129,7 +129,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <DropdownMenuPrimitive.CheckboxItemIndicator>
-        <Check className="w-4 h-4" />
+        <IconCheckOutline18 className="w-4 h-4" />
       </DropdownMenuPrimitive.CheckboxItemIndicator>
     </span>
     {children}
@@ -144,17 +144,15 @@ const DropdownMenuRadioItem = React.forwardRef<
   <DropdownMenuPrimitive.RadioItem
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-xs py-1.5 pl-8 pr-2 text-sm outline-hidden transition-colors focus:bg-primary focus:text-primary-foreground data-disabled:pointer-events-none data-disabled:opacity-50",
+      "flex cursor-default select-none items-center gap-2 rounded-md px-1.5 py-1 text-sm outline-hidden transition-colors focus:bg-grayA-3 focus:text-accent-12 data-disabled:pointer-events-none data-disabled:opacity-50",
       className,
     )}
     {...props}
   >
-    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-      <DropdownMenuPrimitive.RadioItemIndicator>
-        <Circle className="w-2 h-2 fill-current" />
-      </DropdownMenuPrimitive.RadioItemIndicator>
-    </span>
     {children}
+    <DropdownMenuPrimitive.RadioItemIndicator className="ml-auto flex shrink-0 items-center">
+      <IconCheckOutline18 className="size-4" />
+    </DropdownMenuPrimitive.RadioItemIndicator>
   </DropdownMenuPrimitive.RadioItem>
 ));
 DropdownMenuRadioItem.displayName = DropdownMenuPrimitive.RadioItem.displayName;

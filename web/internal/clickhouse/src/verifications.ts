@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Querier } from "./client";
 import { KEY_VERIFICATION_OUTCOMES } from "./keys/keys";
+import { assertOrderedTimeRange } from "./util";
 
 // LOGS
 export const keyDetailsLogsParams = z.object({
@@ -30,12 +31,24 @@ export const keyDetailsLogsParams = z.object({
   offset: z.int().nullable(),
 });
 
+// Which service recorded the verification, and therefore which request table
+// holds its request log: `api` rows land in api_requests_raw_v2, `gateway`
+// rows in frontline_requests_raw_v1. Rows written before the column existed
+// read back as `api`.
+export const KEY_VERIFICATION_SOURCES = ["api", "gateway"] as const;
+export type KeyVerificationSource = (typeof KEY_VERIFICATION_SOURCES)[number];
+
+// An unrecognized source must not fail the parse for the whole page, so it
+// reads as `api` and the drawer looks in the table it has always used.
+const keyVerificationSource = z.enum(KEY_VERIFICATION_SOURCES).catch("api");
+
 export const keyDetailsLog = z.object({
   request_id: z.string(),
   time: z.int(),
   region: z.string(),
   outcome: z.enum(KEY_VERIFICATION_OUTCOMES),
   tags: z.array(z.string()),
+  source: keyVerificationSource,
 });
 
 export type KeyDetailsLog = z.infer<typeof keyDetailsLog>;
@@ -145,7 +158,8 @@ export function getKeyDetailsLogs(ch: Querier) {
           time,
           region,
           outcome,
-          tags
+          tags,
+          source
       FROM default.key_verifications_raw_v2
       PREWHERE ${prewhereConditions}
       WHERE ${whereConditions}
@@ -204,6 +218,7 @@ export const identityLog = z.object({
   outcome: z.enum(KEY_VERIFICATION_OUTCOMES),
   tags: z.array(z.string()),
   keyId: z.string(),
+  source: keyVerificationSource,
 });
 
 export type IdentityLog = z.infer<typeof identityLog>;
@@ -325,7 +340,8 @@ export function getIdentityLogs(ch: Querier) {
           region,
           outcome,
           tags,
-          key_id as keyId
+          key_id as keyId,
+          source
       FROM default.key_verifications_raw_v2
       PREWHERE ${prewhereConditions}
       WHERE ${whereConditions}
@@ -740,6 +756,8 @@ async function batchVerificationTimeseries(
   args: VerificationTimeseriesParams,
   maxBatchSize = 15,
 ) {
+  assertOrderedTimeRange(args.startTime, args.endTime);
+
   const alignedArgs = { ...args, ...alignWindowToInterval(interval, args.startTime, args.endTime) };
 
   if (
@@ -1023,6 +1041,8 @@ function getIdentityTimeseriesWhereClause(
 
 function createIdentityTimeseriesQuerier(interval: TimeInterval) {
   return (ch: Querier) => async (args: IdentityTimeseriesParams) => {
+    assertOrderedTimeRange(args.startTime, args.endTime);
+
     if (!args.keyIds || args.keyIds.length === 0) {
       return { val: [] };
     }

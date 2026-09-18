@@ -16,10 +16,11 @@ export type V2DomainsListDomainsResponseBody = {
    */
   meta: Meta;
   /**
-   * The domains attached to the environment, sorted by their id.
+   * Domains that match every request filter and that you have permission to read, sorted by ID.
    *
    * @remarks
-   * The array is empty when the environment has no domains. This is not an error.
+   * The array is empty when no readable domains match, including when a filtered resource
+   * is missing or mismatched.
    */
   data: Array<Domain>;
   /**
