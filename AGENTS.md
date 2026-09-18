@@ -81,7 +81,6 @@ mise run unkey -- ...   # run the Unkey CLI
 ```bash
 mise exec -- rask ./pkg/cache
 mise exec -- pnpm --dir=web test
-mise exec -- pnpm --dir=web/apps/dashboard exec vitest run
 mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 ```
 
