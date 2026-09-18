@@ -2,25 +2,23 @@ package deploy
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	restate "github.com/restatedev/sdk-go"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
-	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-// Build ends the queued step and runs the building step. Deploy
-// calls it in [restateadmin.BuildConcurrencyScope] with the workspace id as
-// the limit key, and Restate runs this handler only once the workspace is
-// under its build cap.
+// Build ends the queued step and runs the building step for a git source.
+// Deploy calls it in [restateadmin.BuildConcurrencyScope] with the workspace
+// id as the limit key, and Restate runs this handler only once the workspace
+// is under its build cap. A pre-built image never reaches here; Deploy
+// resolves it without taking a build slot.
 //
 // Build refuses a request outside the build scope or with a limit key other
 // than its workspace: a wrong scope matches no rule and builds uncapped, a
@@ -92,16 +90,6 @@ func (w *Workflow) Build(ctx restate.WorkflowSharedContext, req *hydrav1.DeployR
 	)
 
 	stepErr := w.DeploymentStep(ctx, db.DeploymentStepsStepBuilding, deployment.ID, func() error {
-		// Create refuses these settings before it writes a deployment, so a
-		// violation here means the row was written some other way. The message
-		// is one the API's deployment error classifier turns into
-		// InvalidRuntimeSettings
-		if violations := deployfail.RuntimeViolations(deployment.Port, deployment.CpuMillicores, deployment.MemoryMib); len(violations) > 0 {
-			return fault.Wrap(
-				restate.ToTerminalError(errors.New(violations[0].Message)),
-				fault.Public(violations[0].Message),
-			)
-		}
 		return w.buildImage(ctx, req, deployment)
 	})
 	if stepErr != nil {
@@ -111,124 +99,100 @@ func (w *Workflow) Build(ctx restate.WorkflowSharedContext, req *hydrav1.DeployR
 	return &hydrav1.BuildResponse{}, nil
 }
 
-// buildImage resolves the container image for a deployment and persists the image
-// reference to the database. For an OciImage source, a tag is resolved to an
-// immutable digest. For a Git source, an image is built on the configured build
-// backend and the build ID is saved.
+// buildImage builds the container image on the configured build backend and
+// persists the image reference and build ID to the database.
 //
 // The commit must already be resolved: Create does that before dispatching, so a
 // request arriving here without a SHA is a bug and fails terminally.
 //
-// Returns a terminal error for unknown source types and build failures that
-// cannot be retried (e.g. bad Dockerfile)
+// Returns a terminal error for a source that is not git, since only a git
+// source needs building, and for build failures that cannot be retried
+// (e.g. bad Dockerfile)
 func (w *Workflow) buildImage(ctx restate.Context, req *hydrav1.DeployRequest, deployment db.FindDeploymentForBuildRow) error {
-	resolvedImage := ""
-
-	switch source := req.GetSource().(type) {
-	case *hydrav1.DeployRequest_OciImage:
-		requestedImage, err := imageref.Parse(source.OciImage.GetImage())
-		if err != nil {
-			return fault.Wrap(
-				restate.ToTerminalError(err),
-				fault.Public("The OCI image reference is invalid."),
-			)
-		}
-
-		if imageref.IsDigest(requestedImage) {
-			resolvedImage = requestedImage.Name()
-			break
-		}
-
-		resolvedImage, err = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
-			return w.imageResolver.Resolve(runCtx, requestedImage.Name())
-		}, restate.WithName("resolve OCI image digest"), restate.WithMaxRetryAttempts(runMaxAttempts))
-		if err != nil {
-			return fault.Wrap(err, fault.Public("The OCI image could not be resolved."))
-		}
-	case *hydrav1.DeployRequest_Git:
-		commitSHA := source.Git.GetCommitSha()
-		forkRepo := source.Git.GetForkRepository()
-
-		if commitSHA == "" {
-			return fault.Wrap(
-				restate.ToTerminalError(fmt.Errorf("git source missing commit SHA for deployment %q", deployment.ID)),
-				fault.Public("Deployment has no resolved commit; cannot build."),
-			)
-		}
-
-		params := gitBuildParams{
-			InstallationID: source.Git.GetInstallationId(),
-			Repository:     source.Git.GetRepository(),
-			ForkRepository: forkRepo,
-			CommitSHA:      commitSHA,
-			ContextPath:    source.Git.GetContextPath(),
-			// Normalized here because the value routes the build method below:
-			// a whitespace-only setting must mean "no Dockerfile configured"
-			DockerfilePath: strings.TrimSpace(source.Git.GetDockerfilePath()),
-			// Trimmed so a whitespace-only setting means "let Railpack auto-detect"
-			BuildCommand:                  strings.TrimSpace(source.Git.GetBuildCommand()),
-			ProjectID:                     deployment.ProjectID,
-			AppID:                         deployment.AppID,
-			DeploymentID:                  deployment.ID,
-			WorkspaceID:                   deployment.WorkspaceID,
-			PrNumber:                      source.Git.GetPrNumber(),
-			EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
-			EnvironmentID:                 deployment.EnvironmentID,
-		}
-
-		// The configured Dockerfile path decides the build method: when the
-		// app's build settings name a Dockerfile it is used, otherwise the
-		// app is built with Railpack (no Dockerfile required).
-		var build *buildResult
-		var err error
-		if params.DockerfilePath == "" {
-			logger.Info(
-				"no dockerfile configured, building with railpack",
-				"deployment_id", deployment.ID,
-				"repository", params.Repository,
-				"commit_sha", params.CommitSHA,
-			)
-			build, err = w.buildRailpackImageFromGit(ctx, params)
-		} else {
-			build, err = w.buildDockerImageFromGit(ctx, params)
-		}
-		if err != nil {
-			// fault.Public set inside buildDockerImageFromGit is lost because
-			// restate.Run serialises terminal errors, stripping the fault wrapper.
-			// Re-extract the user message on this side of the Restate boundary.
-			publicMsg := fault.UserFacingMessage(err)
-			if publicMsg == "" {
-				publicMsg = extractUserBuildError(err)
-			}
-			return fault.Wrap(
-				fmt.Errorf("failed to build docker image from git: %w", err),
-				fault.Public(publicMsg),
-			)
-		}
-		resolvedImage = build.ImageName
-
-		err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-			return w.db.UpdateDeploymentBuildID(runCtx, db.UpdateDeploymentBuildIDParams{
-				ID:        deployment.ID,
-				BuildID:   sql.NullString{Valid: true, String: build.BuildID},
-				UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-			})
-		}, restate.WithName("update deployment build id"), restate.WithMaxRetryAttempts(runMaxAttempts))
-		if err != nil {
-			return fault.Wrap(
-				fmt.Errorf("failed to update deployment build ID: %w", err),
-				fault.Public("Updating build metadata failed."),
-			)
-		}
-
-	default:
+	source, isGit := req.GetSource().(*hydrav1.DeployRequest_Git)
+	if !isGit {
 		return fault.Wrap(
-			restate.ToTerminalError(fmt.Errorf("unknown source type: %T", source)),
-			fault.Public(fmt.Sprintf("Deployment source %s is not supported.", source)),
+			restate.ToTerminalError(fmt.Errorf("build invoked for source type %T, only git needs building", req.GetSource())),
+			fault.Public("This deployment source does not need a build."),
 		)
 	}
 
-	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+	commitSHA := source.Git.GetCommitSha()
+	forkRepo := source.Git.GetForkRepository()
+
+	if commitSHA == "" {
+		return fault.Wrap(
+			restate.ToTerminalError(fmt.Errorf("git source missing commit SHA for deployment %q", deployment.ID)),
+			fault.Public("Deployment has no resolved commit; cannot build."),
+		)
+	}
+
+	params := gitBuildParams{
+		InstallationID: source.Git.GetInstallationId(),
+		Repository:     source.Git.GetRepository(),
+		ForkRepository: forkRepo,
+		CommitSHA:      commitSHA,
+		ContextPath:    source.Git.GetContextPath(),
+		// Normalized here because the value routes the build method below:
+		// a whitespace-only setting must mean "no Dockerfile configured"
+		DockerfilePath: strings.TrimSpace(source.Git.GetDockerfilePath()),
+		// Trimmed so a whitespace-only setting means "let Railpack auto-detect"
+		BuildCommand:                  strings.TrimSpace(source.Git.GetBuildCommand()),
+		ProjectID:                     deployment.ProjectID,
+		AppID:                         deployment.AppID,
+		DeploymentID:                  deployment.ID,
+		WorkspaceID:                   deployment.WorkspaceID,
+		PrNumber:                      source.Git.GetPrNumber(),
+		EncryptedEnvironmentVariables: deployment.EncryptedEnvironmentVariables,
+		EnvironmentID:                 deployment.EnvironmentID,
+	}
+
+	// The configured Dockerfile path decides the build method: when the
+	// app's build settings name a Dockerfile it is used, otherwise the
+	// app is built with Railpack (no Dockerfile required).
+	var build *buildResult
+	var err error
+	if params.DockerfilePath == "" {
+		logger.Info(
+			"no dockerfile configured, building with railpack",
+			"deployment_id", deployment.ID,
+			"repository", params.Repository,
+			"commit_sha", params.CommitSHA,
+		)
+		build, err = w.buildRailpackImageFromGit(ctx, params)
+	} else {
+		build, err = w.buildDockerImageFromGit(ctx, params)
+	}
+	if err != nil {
+		// fault.Public set inside buildDockerImageFromGit is lost because
+		// restate.Run serialises terminal errors, stripping the fault wrapper.
+		// Re-extract the user message on this side of the Restate boundary.
+		publicMsg := fault.UserFacingMessage(err)
+		if publicMsg == "" {
+			publicMsg = extractUserBuildError(err)
+		}
+		return fault.Wrap(
+			fmt.Errorf("failed to build docker image from git: %w", err),
+			fault.Public(publicMsg),
+		)
+	}
+	resolvedImage := build.ImageName
+
+	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return w.db.UpdateDeploymentBuildID(runCtx, db.UpdateDeploymentBuildIDParams{
+			ID:        deployment.ID,
+			BuildID:   sql.NullString{Valid: true, String: build.BuildID},
+			UpdatedAt: sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+	}, restate.WithName("update deployment build id"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	if err != nil {
+		return fault.Wrap(
+			fmt.Errorf("failed to update deployment build ID: %w", err),
+			fault.Public("Updating build metadata failed."),
+		)
+	}
+
+	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 		return w.db.UpdateDeploymentImage(runCtx, db.UpdateDeploymentImageParams{
 			ID:            deployment.ID,
 			ImageResolved: sql.NullString{Valid: true, String: resolvedImage},

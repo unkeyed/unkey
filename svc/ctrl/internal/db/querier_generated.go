@@ -475,7 +475,7 @@ type Querier interface {
 	//FindDeploymentForDeploy
 	//
 	//  SELECT d.id, d.workspace_id, d.project_id, d.app_id, d.environment_id, d.status, d.created_at,
-	//         d.cpu_millicores, d.memory_mib, d.storage_mib,
+	//         d.port, d.cpu_millicores, d.memory_mib, d.storage_mib,
 	//         d.git_commit_sha, d.git_branch, d.fork_repository_full_name, d.`trigger`,
 	//         d.github_deployment_id, d.pr_number,
 	//         w.slug AS workspace_slug,
