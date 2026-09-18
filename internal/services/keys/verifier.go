@@ -11,6 +11,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/zen"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // RatelimitConfigAndResult holds both the configuration and result for a rate limit
@@ -93,6 +95,10 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 	}
 
 	if config.keyspaces != nil && !slices.Contains(config.keyspaces, k.Key.KeyAuthID) {
+		trace.SpanFromContext(ctx).SetAttributes(
+			attribute.String("key_space_id", k.Key.KeyAuthID),
+			attribute.StringSlice("allowed_key_space_ids", config.keyspaces),
+		)
 		k.setInvalid(StatusNotFound, "Key does not belong to an allowed keyspace.")
 		return nil
 	}
