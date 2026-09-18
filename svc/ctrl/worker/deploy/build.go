@@ -52,18 +52,18 @@ const (
 	gitAuthTokenSecretID = "GIT_AUTH_TOKEN.github.com"
 
 	// buildBackendDeadline bounds one attempt at acquiring a build machine and
-	// solving on it. Build holds the workspace's Restate build slot for as long
-	// as its restate.Run is running, so a backend that never answers would
-	// otherwise stop every other deployment in the workspace indefinitely.
-	// Equal to buildImageRetryCeiling, so an attempt that hits this deadline has
-	// also spent the outer Run's wall-clock budget and is not retried
+	// solving on it. Say Depot stops answering mid-build: without this the Run
+	// never returns, the workspace's one build slot stays taken, and every
+	// other deployment in that workspace queues behind it forever. At 30
+	// minutes the build fails instead. Equal to buildImageRetryCeiling, so a
+	// build that hits it is not retried either
 	buildBackendDeadline = 30 * time.Minute
 
-	// BuildKeepAliveWindow keeps Restate from suspending a running Build. A
-	// suspended Build cannot be told it was cancelled, so its image build would
-	// run on and hold the workspace's build slot until it ended on its own.
-	// Must stay above buildBackendDeadline, which is as long as a build can
-	// take: below it, a cancel stops working for every build that runs longer
+	// BuildKeepAliveWindow keeps Restate from suspending a running Build. Say a
+	// build takes ten minutes and the user cancels at minute five: a suspended
+	// Build never hears about it, so it keeps building and holds the workspace's
+	// build slot for the other five. Must stay above buildBackendDeadline, or
+	// cancel silently stops working for every build that runs longer than this
 	BuildKeepAliveWindow = buildBackendDeadline + 5*time.Minute
 )
 
