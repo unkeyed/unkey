@@ -52,7 +52,7 @@ sequenceDiagram
   Restate->>Worker: Execute Deploy workflow for newest commit
   Worker->>Dedup: skipIfSuperseded (defensive self-skip check)
   Worker->>Restate: Build (scope builds, limit key workspace_id)
-  Note over Restate: queued until the workspace<br/>is under its build cap
+  Note over Restate: git source only; a pre-built image<br/>resolves in Deploy without a slot.<br/>Queued until the workspace<br/>is under its build cap
   Restate->>Build: Build
   Build->>DB: End queued step, run building step
   Build-->>Worker: BuildResponse
@@ -123,7 +123,7 @@ sequenceDiagram
 
 ## Build concurrency
 
-Restate limits how many builds run at once. Deploy calls `Build` in the scope `builds` with the workspace id as the limit key, and a rule for `builds/<workspace_id>` or `builds/*` says how many such calls may run at the same time. An exact pattern beats `*`; no matching rule means no limit.
+Restate limits how many builds run at once. Deploy calls `Build` for a git source only, in the scope `builds` with the workspace id as the limit key, and a rule for `builds/<workspace_id>` or `builds/*` says how many such calls may run at the same time. An exact pattern beats `*`; no matching rule means no limit.
 
 | Rule pattern | Concurrency | Written by |
 | --- | --- | --- |

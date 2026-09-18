@@ -14,7 +14,7 @@ import (
 
 const findDeploymentForDeploy = `-- name: FindDeploymentForDeploy :one
 SELECT d.id, d.workspace_id, d.project_id, d.app_id, d.environment_id, d.status, d.created_at,
-       d.cpu_millicores, d.memory_mib, d.storage_mib,
+       d.port, d.cpu_millicores, d.memory_mib, d.storage_mib,
        d.git_commit_sha, d.git_branch, d.fork_repository_full_name, d.` + "`" + `trigger` + "`" + `,
        d.github_deployment_id, d.pr_number,
        w.slug AS workspace_slug, w.k8s_namespace AS workspace_k8s_namespace,
@@ -37,6 +37,7 @@ type FindDeploymentForDeployRow struct {
 	EnvironmentID          string                      `db:"environment_id"`
 	Status                 mysqltype.DeploymentsStatus `db:"status"`
 	CreatedAt              int64                       `db:"created_at"`
+	Port                   int32                       `db:"port"`
 	CpuMillicores          int32                       `db:"cpu_millicores"`
 	MemoryMib              int32                       `db:"memory_mib"`
 	StorageMib             uint32                      `db:"storage_mib"`
@@ -58,7 +59,7 @@ type FindDeploymentForDeployRow struct {
 // FindDeploymentForDeploy
 //
 //	SELECT d.id, d.workspace_id, d.project_id, d.app_id, d.environment_id, d.status, d.created_at,
-//	       d.cpu_millicores, d.memory_mib, d.storage_mib,
+//	       d.port, d.cpu_millicores, d.memory_mib, d.storage_mib,
 //	       d.git_commit_sha, d.git_branch, d.fork_repository_full_name, d.`trigger`,
 //	       d.github_deployment_id, d.pr_number,
 //	       w.slug AS workspace_slug, w.k8s_namespace AS workspace_k8s_namespace,
@@ -82,6 +83,7 @@ func (q *Queries) FindDeploymentForDeploy(ctx context.Context, id string) (FindD
 		&i.EnvironmentID,
 		&i.Status,
 		&i.CreatedAt,
+		&i.Port,
 		&i.CpuMillicores,
 		&i.MemoryMib,
 		&i.StorageMib,

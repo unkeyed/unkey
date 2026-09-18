@@ -17,6 +17,7 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
+	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
@@ -67,8 +68,9 @@ const (
 // This is a Restate durable workflow, meaning it is idempotent and can safely
 // resume from any step after a crash. The workflow orchestrates five phases:
 //
-//  1. [Workflow.Build]: resolve or build the container image, called in the
-//     "builds" scope so Restate caps concurrent builds per workspace
+//  1. [Workflow.resolveOrBuildImage]: build a git source through
+//     [Workflow.Build] in the "builds" scope so Restate caps concurrent builds
+//     per workspace, or resolve a pre-built image without taking a slot
 //  2. [Workflow.createTopologies]: provision deployment topologies across regions
 //  3. [Workflow.waitForDeployments]: block until enough regions are healthy
 //  4. [Workflow.configureRouting]: assign domain routes to the deployment
@@ -151,24 +153,34 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		}
 	}
 
-	// Request, not Send: a Send would detach the Build and leave it running
-	// with nothing waiting on it. Cancelling this invocation removes a queued
-	// Build and aborts a running one, which needs Build to stay unsuspended
-	// for the whole build; see [BuildKeepAliveWindow]
-	_, err = hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(restateadmin.BuildConcurrencyScope)).
-		Build().
-		Request(req, restate.WithLimitKey(deployment.WorkspaceID))
-	if err != nil {
+	// Create refuses these settings before it writes a deployment, so a
+	// violation here means the row was written some other way. The message is
+	// one the API's deployment error classifier turns into
+	// InvalidRuntimeSettings
+	if violations := deployfail.RuntimeViolations(deployment.Port, deployment.CpuMillicores, deployment.MemoryMib); len(violations) > 0 {
+		return nil, fault.Wrap(
+			restate.ToTerminalError(errors.New(violations[0].Message)),
+			fault.Public(violations[0].Message),
+		)
+	}
+
+	if err = w.resolveOrBuildImage(ctx, req, deployment); err != nil {
+		// A failed resolve keeps its own message. A Build's does not survive
+		// the Restate service boundary, so it falls back to the generic one
+		reason := fault.UserFacingMessage(err)
+		if reason == "" {
+			reason = "The build did not complete."
+		}
 		// A killed Build leaves its step open. This ends whatever is still
 		// open; a step that already ended keeps its own reason
 		endErr := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
 			return w.db.EndActiveDeploymentStepsForDeployments(runCtx, db.EndActiveDeploymentStepsForDeploymentsParams{
 				EndedAt:       sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
-				Error:         sql.NullString{Valid: true, String: "The build did not complete."},
+				Error:         sql.NullString{Valid: true, String: reason},
 				DeploymentIds: []string{deployment.ID},
 			})
-		}, restate.WithName("end open build steps"), restate.WithMaxRetryAttempts(runMaxAttempts))
-		return nil, fault.Wrap(errors.Join(err, endErr), fault.Public("The build did not complete."))
+		}, restate.WithName("end open image steps"), restate.WithMaxRetryAttempts(runMaxAttempts))
+		return nil, fault.Wrap(errors.Join(err, endErr), fault.Public(reason))
 	}
 
 	// Build returns without an error on a deployment that was cancelled or
@@ -300,6 +312,73 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 	)
 
 	return &hydrav1.DeployResponse{}, nil
+}
+
+// resolveOrBuildImage puts the image on the deployment row. A git source has
+// to be built, so it goes to [Workflow.Build] in
+// [restateadmin.BuildConcurrencyScope] and waits there for a build slot. A
+// pre-built image only needs its digest resolved, which is not a build, so it
+// runs here and never queues behind one.
+//
+// Request, not Send, for the build: a Send would detach it and leave it
+// running with nothing waiting on it. Cancelling this invocation removes a
+// queued Build and aborts a running one, which needs Build to stay
+// unsuspended for the whole build; see [BuildKeepAliveWindow].
+func (w *Workflow) resolveOrBuildImage(
+	ctx restate.WorkflowContext,
+	req *hydrav1.DeployRequest,
+	deployment db.FindDeploymentForDeployRow,
+) error {
+	source, isPrebuilt := req.GetSource().(*hydrav1.DeployRequest_OciImage)
+	if !isPrebuilt {
+		_, err := hydrav1.NewDeployWorkflowClient(ctx, deployment.ID, restate.WithScope(restateadmin.BuildConcurrencyScope)).
+			Build().
+			Request(req, restate.WithLimitKey(deployment.WorkspaceID))
+		return err
+	}
+
+	requestedImage, err := imageref.Parse(source.OciImage.GetImage())
+	if err != nil {
+		return fault.Wrap(
+			restate.ToTerminalError(err),
+			fault.Public("The OCI image reference is invalid."),
+		)
+	}
+
+	// Create opens the queued step when it writes the deployment row. Nothing
+	// queues a pre-built image, so it ends right away
+	if err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return w.db.EndDeploymentStep(runCtx, db.EndDeploymentStepParams{
+			DeploymentID: deployment.ID,
+			Step:         db.DeploymentStepsStepQueued,
+			EndedAt:      sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+			Error:        sql.NullString{Valid: false, String: ""},
+		})
+	}, restate.WithName("end queued step"), restate.WithMaxRetryAttempts(runMaxAttempts)); err != nil {
+		return fault.Wrap(err, fault.Public("Deployment could not be started."))
+	}
+
+	resolvedImage := requestedImage.Name()
+	if !imageref.IsDigest(requestedImage) {
+		resolvedImage, err = restate.Run(ctx, func(runCtx restate.RunContext) (string, error) {
+			return w.imageResolver.Resolve(runCtx, requestedImage.Name())
+		}, restate.WithName("resolve OCI image digest"), restate.WithMaxRetryAttempts(runMaxAttempts))
+		if err != nil {
+			return fault.Wrap(err, fault.Public("The OCI image could not be resolved."))
+		}
+	}
+
+	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		return w.db.UpdateDeploymentImage(runCtx, db.UpdateDeploymentImageParams{
+			ID:            deployment.ID,
+			ImageResolved: sql.NullString{Valid: true, String: resolvedImage},
+			UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
+		})
+	}, restate.WithName("update deployment image"), restate.WithMaxRetryAttempts(runMaxAttempts))
+	if err != nil {
+		return fault.Wrap(err, fault.Public("Unable to save deployment image."))
+	}
+	return nil
 }
 
 // createTopologies determines the target regions and replica counts, bulk-inserts
