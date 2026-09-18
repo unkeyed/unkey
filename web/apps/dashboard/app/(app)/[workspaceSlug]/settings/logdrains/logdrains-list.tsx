@@ -16,7 +16,7 @@ import {
   ResourceListContent,
   ResourceListItem,
   Skeleton,
-  useRelativeTime,
+  useElapsed,
 } from "@unkey/ui";
 import Link from "next/link";
 import { CreateLogdrainButton } from "./create-logdrain-button";
@@ -27,7 +27,7 @@ import { DrainStatusBadge } from "./drain-status-badge";
 const SKELETON_ROWS = 5;
 
 function DrainRow({ drain, workspaceSlug }: { drain: DrainListItem; workspaceSlug: string }) {
-  const createdAgo = useRelativeTime(drain.createdAt);
+  const createdAgo = useElapsed(drain.createdAt);
 
   return (
     <ResourceListItem>
