@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
@@ -25,7 +24,7 @@ type fileService struct {
 	routes map[string]RouteDecision
 }
 
-type fileRoute struct {
+type FileRoute struct {
 	Hostname    string                         `toml:"hostname"`
 	Upstream    string                         `toml:"upstream"`
 	Protocol    db.DeploymentsUpstreamProtocol `toml:"protocol"`
@@ -35,33 +34,15 @@ type fileRoute struct {
 
 var _ Service = (*fileService)(nil)
 
-// NewFile loads routes and policies once, without a database or file watcher.
-// OpenAPI spec paths are relative to the TOML file. Invalid configuration
-// returns no service, so callers cannot serve a partially loaded routing table.
-func NewFile(path string) (*fileService, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
+// NewFile builds static routes, resolving OpenAPI spec paths relative to directory.
+// Invalid configuration returns no service, so callers cannot serve a partially
+// loaded routing table.
+func NewFile(routes []FileRoute, directory string) (*fileService, error) {
+	if len(routes) == 0 {
+		return nil, fault.New("at least one local-dev route is required")
 	}
-	var cfg struct {
-		Routes []fileRoute `toml:"routes"`
-	}
-	metadata, err := toml.Decode(string(data), &cfg)
-	if err != nil {
-		return nil, err
-	}
-	for _, key := range metadata.Undecoded() {
-		// Policy maps are validated by the strict protobuf decoder below.
-		if len(key) > 2 && key[0] == "routes" && key[1] == "policies" {
-			continue
-		}
-		return nil, fmt.Errorf("unknown route configuration field: %s", key)
-	}
-	if len(cfg.Routes) == 0 {
-		return nil, fault.New("at least one route is required")
-	}
-	s := &fileService{routes: make(map[string]RouteDecision, len(cfg.Routes))}
-	for _, route := range cfg.Routes {
+	s := &fileService{routes: make(map[string]RouteDecision, len(routes))}
+	for _, route := range routes {
 		hostname := normalizeHostname(route.Hostname)
 		if !validHostname(hostname) {
 			return nil, fmt.Errorf("invalid route hostname: %q", route.Hostname)
@@ -72,7 +53,7 @@ func NewFile(path string) (*fileService, error) {
 		if err := validateUpstream(route.Upstream); err != nil {
 			return nil, fmt.Errorf("route %s: %w", hostname, err)
 		}
-		policies, err := route.loadPolicies(filepath.Dir(path))
+		policies, err := route.loadPolicies(directory)
 		if err != nil {
 			return nil, err
 		}
@@ -85,10 +66,10 @@ func NewFile(path string) (*fileService, error) {
 		}
 		s.routes[hostname] = RouteDecision{
 			Destination:  DestinationLocalInstance,
-			DeploymentID: "", EnvironmentID: "", WorkspaceID: "", ProjectID: "", AppID: "",
+			DeploymentID: "", EnvironmentID: "", WorkspaceID: "local-dev", ProjectID: "", AppID: "",
 			LocalInstances: []db.FindInstancesByDeploymentIDRow{{
 				ID: route.Hostname, Address: route.Upstream, Status: db.InstancesStatusRunning,
-				WorkspaceID: "", ProjectID: "", AppID: "", RegionName: "", RegionPlatform: "",
+				WorkspaceID: "local-dev", ProjectID: "", AppID: "", RegionName: "", RegionPlatform: "",
 			}},
 			RemoteRegionAddress: "", UpstreamProtocol: protocol, Policies: policies,
 		}
@@ -111,7 +92,7 @@ func (s *fileService) ValidateHostname(ctx context.Context, hostname string) err
 	return err
 }
 
-func (route fileRoute) loadPolicies(directory string) ([]*frontlinev1.Policy, error) {
+func (route FileRoute) loadPolicies(directory string) ([]*frontlinev1.Policy, error) {
 	hostname := normalizeHostname(route.Hostname)
 	var spec []byte
 	if route.OpenAPISpec != "" {
@@ -125,18 +106,18 @@ func (route fileRoute) loadPolicies(directory string) ([]*frontlinev1.Policy, er
 			return nil, fmt.Errorf("route %s: %w", hostname, err)
 		}
 	}
-	var policies []*frontlinev1.Policy
+	encoded, err := json.Marshal(map[string]any{"policies": route.Policies})
+	if err != nil {
+		return nil, err
+	}
+	cfg := &frontlinev1.Config{}
+	if err := protojson.Unmarshal(encoded, cfg); err != nil {
+		return nil, fmt.Errorf("route %s: %w", hostname, err)
+	}
+	policies := cfg.GetPolicies()
 	policyIDs := make(map[string]bool)
 	hasOpenAPI := false
-	for _, raw := range route.Policies {
-		encoded, err := json.Marshal(raw)
-		if err != nil {
-			return nil, err
-		}
-		policy := &frontlinev1.Policy{}
-		if err := protojson.Unmarshal(encoded, policy); err != nil {
-			return nil, fmt.Errorf("route %s: %w", hostname, err)
-		}
+	for _, policy := range policies {
 		if policy.GetId() == "" || policyIDs[policy.GetId()] {
 			return nil, fmt.Errorf("route %s: each policy requires a unique nonempty id", hostname)
 		}
@@ -170,7 +151,6 @@ func (route fileRoute) loadPolicies(directory string) ([]*frontlinev1.Policy, er
 				return nil, fmt.Errorf("route %s: invalid OpenAPI spec: %w", hostname, err)
 			}
 		}
-		policies = append(policies, policy)
 	}
 	if route.OpenAPISpec != "" && !hasOpenAPI {
 		return nil, fmt.Errorf("route %s: openapi_spec requires an OpenAPI policy", hostname)
