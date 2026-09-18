@@ -1,7 +1,6 @@
 export type RelativeStyle = "narrow" | "short" | "long";
 
 const UNIX_MICRO_DIGITS = 16;
-const JUST_NOW_MS = 1_000;
 
 const SECOND = 1_000;
 const MINUTE = 60 * SECOND;
@@ -54,7 +53,7 @@ export function parseTimestamp(value: string | number | Date): Date {
 export function relativeTime(time: number, now: number, style: RelativeStyle = "long"): string {
   const diff = time - now;
   const distance = Math.abs(diff);
-  if (distance < JUST_NOW_MS) {
+  if (distance < SECOND) {
     return "now";
   }
   const [unit, size] = UNITS.find(([, ms]) => distance >= ms) ?? UNITS[UNITS.length - 1];
