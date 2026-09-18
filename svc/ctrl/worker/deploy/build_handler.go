@@ -89,8 +89,8 @@ func (w *Workflow) Build(ctx restate.WorkflowSharedContext, req *hydrav1.DeployR
 		"queued_for", time.Duration(queuedUntil-deployment.CreatedAt)*time.Millisecond,
 	)
 
-	stepErr := w.DeploymentStep(ctx, db.DeploymentStepsStepBuilding, deployment.ID, func() error {
-		return w.buildImage(ctx, req, deployment)
+	stepErr := DeploymentStep(w, ctx, db.DeploymentStepsStepBuilding, deployment.ID, func(stepCtx restate.WorkflowSharedContext) error {
+		return w.buildImage(stepCtx, req, deployment)
 	})
 	if stepErr != nil {
 		return nil, stepErr

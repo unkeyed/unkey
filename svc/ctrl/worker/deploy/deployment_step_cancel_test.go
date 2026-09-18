@@ -92,7 +92,7 @@ func (p StepProbe) Start(ctx restate.WorkflowContext, deploymentID string) (stri
 		return "", err
 	}
 
-	if stepErr := p.workflow.DeploymentStep(ctx, db.DeploymentStepsStepBuilding, deployment.ID, func() error {
+	if stepErr := deploy.DeploymentStep(p.workflow, ctx, db.DeploymentStepsStepBuilding, deployment.ID, func(restate.WorkflowContext) error {
 		return nil
 	}); stepErr != nil {
 		return "", stepErr

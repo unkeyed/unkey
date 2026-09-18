@@ -218,13 +218,13 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 	})
 
 	// --- Deploy ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepDeploying, deployment.ID, func() error {
-		topologies, err := w.createTopologies(ctx, compensation, deployment)
+	err = DeploymentStep(w, ctx, db.DeploymentStepsStepDeploying, deployment.ID, func(stepCtx restate.WorkflowContext) error {
+		topologies, err := w.createTopologies(stepCtx, compensation, deployment)
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Regional deployment targets could not be prepared."))
 		}
 
-		if err = w.waitForDeployments(ctx, deployment.ID, topologies); err != nil {
+		if err = w.waitForDeployments(stepCtx, deployment.ID, topologies); err != nil {
 			return fault.Wrap(err, fault.Public("Instances did not become healthy in time."))
 		}
 		return nil
@@ -243,8 +243,8 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 	})
 
 	// --- Network ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepNetwork, deployment.ID, func() error {
-		return w.configureRouting(ctx, deployment)
+	err = DeploymentStep(w, ctx, db.DeploymentStepsStepNetwork, deployment.ID, func(stepCtx restate.WorkflowContext) error {
+		return w.configureRouting(stepCtx, deployment)
 	})
 	if err != nil {
 		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
@@ -255,13 +255,13 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 	}
 
 	// --- Finalize ---
-	err = w.DeploymentStep(ctx, db.DeploymentStepsStepFinalizing, deployment.ID, func() error {
+	err = DeploymentStep(w, ctx, db.DeploymentStepsStepFinalizing, deployment.ID, func(stepCtx restate.WorkflowContext) error {
 		// A cancel can land in the database while this step runs and this
 		// handler only learns of it at its next Restate call. A plain update
 		// would then overwrite cancelled with ready while the compensations
 		// stop the pods
-		err = restate.RunVoid(ctx, func(stepCtx restate.RunContext) error {
-			return w.db.UpdateDeploymentStatusIfActive(stepCtx, db.UpdateDeploymentStatusIfActiveParams{
+		err = restate.RunVoid(stepCtx, func(runCtx restate.RunContext) error {
+			return w.db.UpdateDeploymentStatusIfActive(runCtx, db.UpdateDeploymentStatusIfActiveParams{
 				ID:                  deployment.ID,
 				Status:              mysqltype.DeploymentsStatusReady,
 				UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
@@ -273,11 +273,11 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		}
 
 		if deployment.EnvironmentKind.IsProduction() {
-			if err = w.swapLiveDeployment(ctx, deployment); err != nil {
+			if err = w.swapLiveDeployment(stepCtx, deployment); err != nil {
 				return fault.Wrap(err, fault.Public("Deployment is ready but could not be promoted to live."))
 			}
 		} else if deployment.EnvironmentKind.IsPreview() {
-			if err = w.spinDownPreviousDeployments(ctx, deployment); err != nil {
+			if err = w.spinDownPreviousDeployments(stepCtx, deployment); err != nil {
 				// This isn't a real issue, our cron job will eventually spin the preview deployments down anyways
 				logger.Error("unable to spin down previous preview deployments", "error", err)
 			}
