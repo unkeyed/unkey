@@ -107,7 +107,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Slug:         slug,
 				CreatedAtM:   now,
 				BetaFeatures: json.RawMessage(`{}`),
-				K8sNamespace: sql.NullString{String: uid.DNS1035(), Valid: true},
+				K8sNamespace: uid.DNS1035(),
 			},
 			{
 				ID:           rootWorkspaceID,
@@ -116,7 +116,7 @@ func seedLocal(ctx context.Context, cmd *cli.Command) error {
 				Slug:         fmt.Sprintf("unkey-%s", slug),
 				CreatedAtM:   now,
 				BetaFeatures: json.RawMessage(`{}`),
-				K8sNamespace: sql.NullString{String: uid.DNS1035(), Valid: true},
+				K8sNamespace: uid.DNS1035(),
 			},
 		})
 		if err != nil {
