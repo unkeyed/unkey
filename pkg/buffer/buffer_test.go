@@ -7,7 +7,29 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+func TestNewNoop_DiscardsItemsWithoutAConsumer(t *testing.T) {
+	t.Parallel()
+
+	b := NewNoop[int]()
+	t.Cleanup(b.Close)
+	for i := range 10_000 {
+		b.Buffer(i)
+	}
+	require.Zero(t, b.Size())
+	select {
+	case _, open := <-b.Consume():
+		require.False(t, open, "no-op buffers must not start consumers")
+	default:
+		t.Fatal("no-op consumption must not block")
+	}
+	b.Close()
+	b.Close()
+	b.Buffer(42)
+	require.Zero(t, b.Size())
+}
 
 func TestNew(t *testing.T) {
 	tests := []Config{

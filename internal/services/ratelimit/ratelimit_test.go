@@ -14,6 +14,23 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
+func TestNew_RequiresDatabaseAndRegion(t *testing.T) {
+	t.Parallel()
+
+	cfg := Config{
+		Clock: clock.NewTestClock(), Counter: counter.NewMemory(), DB: nil, Region: "test-region",
+	}
+	svc, err := New(cfg)
+	require.ErrorIs(t, err, ErrDBRequired)
+	require.Nil(t, svc)
+
+	cfg.DB = newTestDB(t)
+	cfg.Region = ""
+	svc, err = New(cfg)
+	require.ErrorIs(t, err, ErrRegionRequired)
+	require.Nil(t, svc)
+}
+
 // TestRatelimit_SlidingWindowDecision locks in the math of the sliding window
 // algorithm. Each case pre-seeds the current and previous counters and
 // picks a req.Time that produces the desired elapsed fraction, so the decision
