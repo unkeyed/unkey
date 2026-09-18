@@ -3,6 +3,7 @@ import { ClickHouse } from "@unkey/clickhouse";
 import { type Identity, drizzle, schema } from "@unkey/db";
 import mysql from "mysql2/promise";
 import { z } from "zod";
+import { buildExternalIdBackfillMutation } from "./ch_logs_mutation";
 
 const tables = [
   // {
@@ -216,17 +217,7 @@ async function handleRow(table: string, row: z.infer<typeof aggregatedSchema>): 
   }
   migratedIdentities.set(identity.id, true);
 
-  await rawCH.exec({
-    query: `
-    UPDATE ${table}
-    SET external_id = '${externalId}'
-    WHERE
-    workspace_id = '${row.workspace_id}'
-    AND key_space_id = '${row.key_space_id}'
-    AND identity_id = '${row.identity_id}'
-    AND ( external_id = '' OR external_id = 'undefined' )
-    `,
-  });
+  await rawCH.exec(buildExternalIdBackfillMutation(table, row, externalId));
 }
 
 process.exit(0);
