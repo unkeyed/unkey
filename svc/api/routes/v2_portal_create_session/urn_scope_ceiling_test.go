@@ -28,6 +28,12 @@ func canonicalRerollGrant(workspaceID, projectID, keyspaceID string) string {
 	return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/*#write", workspaceID, projectID, keyspaceID)
 }
 
+// canonicalAnalyticsGrant is the canonical grant the analytics:read ceiling
+// requires on one keyspace: read on the keyspace's log resource.
+func canonicalAnalyticsGrant(workspaceID, projectID, keyspaceID string) string {
+	return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/logs#read", workspaceID, projectID, keyspaceID)
+}
+
 // TestCreateSessionCeilingAcceptsCanonicalGrants guarantees the mint-time
 // ceiling accepts its canonical form on a single keyspace, with the legacy rows
 // standing as the regression guard for unchanged behaviour.
@@ -57,6 +63,7 @@ func TestCreateSessionCeilingAcceptsCanonicalGrants(t *testing.T) {
 	mint := "portal.*.create_portal_session"
 	read := []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead}
 	reroll := []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead, openapi.KeysReroll}
+	analytics := []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead, openapi.AnalyticsRead}
 
 	testCases := []struct {
 		name       string
@@ -102,6 +109,28 @@ func TestCreateSessionCeilingAcceptsCanonicalGrants(t *testing.T) {
 			name:       "a grant on one concrete key does not satisfy reroll",
 			scopes:     reroll,
 			grants:     append([]string{mint, fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspaceID, api.ProjectID, keyspaceID, concreteKey.KeyID)}, canonicalRead...),
+			shouldPass: false,
+		},
+		{
+			name:       "canonical keyspace log read satisfies analytics",
+			scopes:     analytics,
+			grants:     append([]string{mint, canonicalAnalyticsGrant(workspaceID, api.ProjectID, keyspaceID)}, canonicalRead...),
+			shouldPass: true,
+		},
+		{
+			// Grantable before the root key migration runs: no root key carries
+			// a URN today.
+			name:       "the legacy analytics tuple satisfies analytics",
+			scopes:     analytics,
+			grants:     append([]string{mint, "api.*.read_analytics"}, canonicalRead...),
+			shouldPass: true,
+		},
+		{
+			// Keyspace read is not log read: neither analytics form is held
+			// here, so the keys:read grants must not carry the scope.
+			name:       "neither analytics form does not satisfy analytics",
+			scopes:     analytics,
+			grants:     append([]string{mint}, canonicalRead...),
 			shouldPass: false,
 		},
 		{
@@ -209,14 +238,19 @@ func TestCreateSessionCeilingComposesPerKeyspace(t *testing.T) {
 	canonicalFirst := canonicalReadGrants(workspaceID, project.ID, first.KeyAuthID.String)
 	canonicalSecond := canonicalReadGrants(workspaceID, project.ID, second.KeyAuthID.String)
 
+	read := []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead}
+	analytics := []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead, openapi.AnalyticsRead}
+
 	testCases := []struct {
 		name       string
+		scopes     []openapi.V2PortalCreateSessionRequestBodyScopes
 		grants     []string
 		shouldPass bool
 	}{
 		{
 			// The two forms may be mixed across keyspaces.
-			name: "legacy on one keyspace and canonical on the other",
+			name:   "legacy on one keyspace and canonical on the other",
+			scopes: read,
 			grants: append([]string{
 				mint,
 				fmt.Sprintf("api.%s.read_key", first.ID),
@@ -226,11 +260,13 @@ func TestCreateSessionCeilingComposesPerKeyspace(t *testing.T) {
 		},
 		{
 			name:       "canonical on both keyspaces",
+			scopes:     read,
 			grants:     append(append([]string{mint}, canonicalFirst...), canonicalSecond...),
 			shouldPass: true,
 		},
 		{
 			name:       "canonical on only one keyspace",
+			scopes:     read,
 			grants:     append([]string{mint}, canonicalFirst...),
 			shouldPass: false,
 		},
@@ -238,7 +274,27 @@ func TestCreateSessionCeilingComposesPerKeyspace(t *testing.T) {
 			// A complete canonical set on one keyspace plus half a set on the
 			// other is short.
 			name:       "complete canonical on one keyspace and partial on the other",
+			scopes:     read,
 			grants:     append(append([]string{mint}, canonicalFirst...), canonicalSecond[0]),
+			shouldPass: false,
+		},
+		{
+			name:   "analytics on both keyspaces",
+			scopes: analytics,
+			grants: append(append([]string{
+				mint,
+				canonicalAnalyticsGrant(workspaceID, project.ID, first.KeyAuthID.String),
+				canonicalAnalyticsGrant(workspaceID, project.ID, second.KeyAuthID.String),
+			}, canonicalFirst...), canonicalSecond...),
+			shouldPass: true,
+		},
+		{
+			name:   "analytics on only one of the two keyspaces",
+			scopes: analytics,
+			grants: append(append([]string{
+				mint,
+				canonicalAnalyticsGrant(workspaceID, project.ID, first.KeyAuthID.String),
+			}, canonicalFirst...), canonicalSecond...),
 			shouldPass: false,
 		},
 	}
@@ -254,7 +310,7 @@ func TestCreateSessionCeilingComposesPerKeyspace(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 				Portal:     "ceiling-portal",
 				ExternalId: "user_ceiling",
-				Scopes:     []openapi.V2PortalCreateSessionRequestBodyScopes{openapi.KeysRead},
+				Scopes:     tc.scopes,
 			})
 			if tc.shouldPass {
 				require.Equal(t, http.StatusOK, res.Status, "expected 200, got: %s", res.RawBody)

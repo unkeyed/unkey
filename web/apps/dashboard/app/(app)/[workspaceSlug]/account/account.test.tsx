@@ -3,7 +3,7 @@ import type React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
-  const invalidateCurrentUser = vi.fn<[], Promise<void>>();
+  const invalidateCurrentUser = vi.fn<() => Promise<void>>();
   return {
     accessToken: "access_token" as string | undefined,
     tokenLoading: false,
@@ -11,10 +11,10 @@ const mocks = vi.hoisted(() => {
     user: { id: "user_123" } as { id: string } | null,
     impersonator: undefined as { email: string } | undefined,
     authLoading: false,
-    getAccessToken: vi.fn<[], Promise<string | undefined>>(),
-    refresh: vi.fn<[], Promise<string | undefined>>(),
-    getAuth: vi.fn<[], Promise<void>>(),
-    refreshAuth: vi.fn<[], Promise<undefined | { error: string }>>(),
+    getAccessToken: vi.fn<() => Promise<string | undefined>>(),
+    refresh: vi.fn<() => Promise<string | undefined>>(),
+    getAuth: vi.fn<() => Promise<void>>(),
+    refreshAuth: vi.fn<() => Promise<undefined | { error: string }>>(),
     invalidateCurrentUser,
     logManagedAuthOutcome: vi.fn(),
     utils: {

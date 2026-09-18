@@ -1,4 +1,6 @@
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
+import { RecentlyUsedKeyWarning } from "@/components/recently-used-key-warning";
+import { RECENTLY_USED_WINDOW_LABEL, isRecentlyUsed } from "@/lib/recently-used-key";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconTriangleWarningOutline12 } from "@unkey/icons";
@@ -41,6 +43,7 @@ export const DeleteRootKey = ({ rootKeyDetails, isOpen, onClose }: DeleteRootKey
   } = methods;
 
   const confirmDeletion = watch("confirmDeletion");
+  const recentlyUsed = isRecentlyUsed(rootKeyDetails.lastUsedAt);
 
   const deleteRootKey = useDeleteRootKey(() => {
     onClose();
@@ -122,6 +125,7 @@ export const DeleteRootKey = ({ rootKeyDetails, isOpen, onClose }: DeleteRootKey
                 root key will no longer be able to create resources.
               </div>
             </div>
+            {recentlyUsed && <RecentlyUsedKeyWarning lastUsedAt={rootKeyDetails.lastUsedAt} />}
             <Controller
               name="confirmDeletion"
               control={control}
@@ -147,7 +151,11 @@ export const DeleteRootKey = ({ rootKeyDetails, isOpen, onClose }: DeleteRootKey
         onConfirm={performRootKeyDeletion}
         triggerRef={deleteButtonRef}
         title="Confirm root key deletion"
-        description="This action is irreversible. The root key will be permanently removed and will no longer be able to create resources."
+        description={
+          recentlyUsed
+            ? `This root key was used in the last ${RECENTLY_USED_WINDOW_LABEL} and may still be live. This action is irreversible. The root key will be permanently removed and will no longer be able to create resources.`
+            : "This action is irreversible. The root key will be permanently removed and will no longer be able to create resources."
+        }
         confirmButtonText="Delete permanently"
         cancelButtonText="Cancel"
         variant="danger"

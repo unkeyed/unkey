@@ -5,29 +5,27 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { IconPlusOutline18 } from "@unkey/icons";
+import { Button } from "@unkey/ui";
 import { useMemo, useState } from "react";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 
 export function WorkspaceCrumb({ href }: { href: string }) {
   const workspace = useWorkspaceNavigation();
-  const { data: user } = trpc.user.getCurrentUser.useQuery();
-  const { data: memberships } = trpc.user.listMemberships.useQuery(user?.id ?? "", {
-    enabled: !!user?.id,
-  });
-  const orgs = memberships?.data ?? [];
+  const available = trpc.workspace.listAvailable.useQuery();
+  const orgs = available.isError ? [] : (available.data ?? []);
   const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null);
   const items: CrumbPopoverItem[] = useMemo(
     () =>
       orgs.map((m) => ({
-        id: m.organization.id,
-        label: m.organization.name,
+        id: m.orgId,
+        label: m.name,
         onClick: () => {
-          if (m.organization.id !== workspace.orgId && !switchingOrgId) {
-            setSwitchingOrgId(m.organization.id);
+          if (m.orgId !== workspace.orgId && !switchingOrgId) {
+            setSwitchingOrgId(m.orgId);
             window.location.assign(
               routes.auth.switchOrganization({
-                organizationId: m.organization.id,
+                organizationId: m.orgId,
                 returnTo: routes.workspaces.root(),
               }),
             );
@@ -50,6 +48,25 @@ export function WorkspaceCrumb({ href }: { href: string }) {
       currentId={workspace.orgId}
       searchPlaceholder="Find workspace..."
       emptyText="No workspaces found"
+      listStatus={
+        available.isError ? (
+          <div role="alert" className="flex flex-col items-center gap-2 px-3 py-4 text-sm">
+            <span>Unable to load workspaces</span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={available.isFetching}
+              onClick={() => available.refetch()}
+            >
+              Try again
+            </Button>
+          </div>
+        ) : available.isLoading ? (
+          <output className="block px-3 py-4 text-sm">Loading workspaces...</output>
+        ) : orgs.length === 0 ? (
+          <output className="block px-3 py-4 text-sm">No workspaces found</output>
+        ) : undefined
+      }
       footer={{ icon: IconPlusOutline18, label: "New workspace", href: routes.workspaces.create() }}
     />
   );

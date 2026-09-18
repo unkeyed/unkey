@@ -1,4 +1,6 @@
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
+import { RecentlyUsedKeyWarning } from "@/components/recently-used-key-warning";
+import { RECENTLY_USED_WINDOW_LABEL, isRecentlyUsed } from "@/lib/recently-used-key";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconTriangleWarningOutline12 } from "@unkey/icons";
@@ -41,6 +43,7 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
   } = methods;
 
   const confirmDeletion = watch("confirmDeletion");
+  const recentlyUsed = isRecentlyUsed(keyDetails.last_used_at);
 
   const deleteKey = useDeleteKey(() => {
     onClose();
@@ -121,6 +124,7 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
                 associated data and metadata. This action cannot be undone.
               </div>
             </div>
+            {recentlyUsed && <RecentlyUsedKeyWarning lastUsedAt={keyDetails.last_used_at} />}
             <Controller
               name="confirmDeletion"
               control={control}
@@ -146,7 +150,11 @@ export const DeleteKey = ({ keyDetails, isOpen, onClose }: DeleteKeyProps) => {
         onConfirm={performKeyDeletion}
         triggerRef={deleteButtonRef}
         title="Confirm key deletion"
-        description="This action is irreversible. Metadata and ratelimits associated with this key will be permanently deleted."
+        description={
+          recentlyUsed
+            ? `This key was used in the last ${RECENTLY_USED_WINDOW_LABEL} and may still be live. This action is irreversible. Metadata and ratelimits associated with this key will be permanently deleted.`
+            : "This action is irreversible. Metadata and ratelimits associated with this key will be permanently deleted."
+        }
         confirmButtonText="Delete key"
         cancelButtonText="Cancel"
         variant="danger"

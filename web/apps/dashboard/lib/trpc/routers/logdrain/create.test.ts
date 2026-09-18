@@ -5,8 +5,12 @@ import "./create";
 const procedure = vi.hoisted(() => ({ parse: (_input: unknown): unknown => undefined }));
 const saved = vi.hoisted(() =>
   vi.fn<
-    [{ stream: string; config: Uint8Array; createdAt: number; committedOffsetInsertedAt: number }],
-    void
+    (row: {
+      stream: string;
+      config: Uint8Array;
+      createdAt: number;
+      committedOffsetInsertedAt: number;
+    }) => void
   >(),
 );
 const mutation = vi.hoisted(() => ({

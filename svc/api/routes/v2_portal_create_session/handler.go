@@ -478,25 +478,40 @@ func requireRootKeyCredential(principal *authprincipal.Principal) error {
 
 // validateScopeCombination rejects a scope set the portal cannot serve.
 //
-// The portal reaches rerolling from the keys page, so a reroll-only session
-// mints fine and then strands the end user with no page to open. The enum
-// constrains each item, not the combination, so the check lives here.
+// Rerolling and usage analytics are both reached from the keys page, so a
+// session carrying either without keys:read mints fine and then strands the end
+// user with no page to open. The enum constrains each item, not the
+// combination, so the check lives here.
 func validateScopeCombination(scopes []openapi.V2PortalCreateSessionRequestBodyScopes) error {
-	var hasRead, hasReroll bool
+	var hasRead, hasReroll, hasAnalytics bool
 	for _, scope := range scopes {
 		switch scope {
 		case openapi.KeysRead:
 			hasRead = true
 		case openapi.KeysReroll:
 			hasReroll = true
+		case openapi.AnalyticsRead:
+			hasAnalytics = true
 		}
 	}
 
-	if hasReroll && !hasRead {
+	if hasRead {
+		return nil
+	}
+
+	if hasReroll {
 		return fault.New("keys:reroll requires keys:read",
 			fault.Code(codes.App.Validation.InvalidInput.URN()),
 			fault.Internal("scopes contained keys:reroll without keys:read"),
 			fault.Public("The \"keys:reroll\" scope requires \"keys:read\" in the same session."),
+		)
+	}
+
+	if hasAnalytics {
+		return fault.New("analytics:read requires keys:read",
+			fault.Code(codes.App.Validation.InvalidInput.URN()),
+			fault.Internal("scopes contained analytics:read without keys:read"),
+			fault.Public("The \"analytics:read\" scope requires \"keys:read\" in the same session."),
 		)
 	}
 
@@ -550,6 +565,26 @@ func ScopeQueries(
 		}
 		return queries, true
 
+	case openapi.AnalyticsRead:
+		// Borrowed vocabulary, not a semantic match: read_analytics gates raw
+		// ClickHouse SQL on the operator endpoint, which is a different question
+		// from handing one end user a graph of their own usage. The route this
+		// ceiling mirrors is v2_portal_get_verifications.
+		return []rbac.PermissionQuery{
+			rbac.Or(
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   "*",
+					Action:       rbac.ReadAnalytics,
+				}),
+				rbac.T(rbac.Tuple{
+					ResourceType: rbac.Api,
+					ResourceID:   apiID,
+					Action:       rbac.ReadAnalytics,
+				}),
+			),
+		}, true
+
 	default:
 		return nil, false
 	}
@@ -589,6 +624,9 @@ func CanonicalScopeQueries(
 		// route resolves both create_key and encrypt_key to key write, so this
 		// is weaker than the legacy form it sits beside.
 		return []rbac.PermissionQuery{rbac.U(anyKey, permissions.Write)}, true
+
+	case openapi.AnalyticsRead:
+		return []rbac.PermissionQuery{rbac.U(keyspace.Logs(), permissions.Read)}, true
 
 	default:
 		return nil, false
