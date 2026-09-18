@@ -38,7 +38,7 @@ function clock(): number {
 
 export function useRelativeTime(
   value: string | number | Date,
-  style: RelativeStyle = "long",
+  style: RelativeStyle = "narrow",
 ): string {
   const time = toDate(value).getTime();
   const read = useCallback(() => relativeTime(time, clock(), style), [time, style]);
@@ -47,7 +47,7 @@ export function useRelativeTime(
 
 // A server timestamp read against the browser's clock can sit ahead of it, and
 // something that has already happened must never read "in 25 sec".
-export function useElapsed(value: string | number | Date, style: RelativeStyle = "long"): string {
+export function useElapsed(value: string | number | Date, style: RelativeStyle = "narrow"): string {
   const time = toDate(value).getTime();
   const read = useCallback(() => relativeTime(time, Math.max(clock(), time), style), [time, style]);
   return useSyncExternalStore(subscribe, read, read);
