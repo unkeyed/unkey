@@ -59,6 +59,22 @@ function currentAuthkitOptions(): AuthkitOptions {
   return options;
 }
 
+function authenticatedResponse(): AuthkitResult {
+  return { session: { user: { id: "user_1" } }, headers: new Headers() };
+}
+
+function heldRefresh() {
+  let release: () => void = () => {};
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  return { gate, release };
+}
+
+async function settledTick(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 20));
+}
+
 describe("proxy auth mode split", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -270,5 +286,99 @@ describe("proxy auth mode split", () => {
 
     expect(mocks.logManagedAuthOutcome).toHaveBeenNthCalledWith(1, "session_refresh", "success");
     expect(mocks.logManagedAuthOutcome).toHaveBeenNthCalledWith(2, "session_refresh", "failure");
+  });
+
+  it("shares one session refresh between concurrent requests with the same session", async () => {
+    const { gate, release } = heldRefresh();
+    mocks.authkit.mockImplementation(async () => {
+      await gate;
+      return authenticatedResponse();
+    });
+
+    const request = () =>
+      new NextRequest("http://localhost:3000/apis", {
+        headers: { cookie: "wos-session=sealed-shared" },
+      });
+    const first = proxy(request());
+    await vi.waitFor(() => expect(mocks.authkit).toHaveBeenCalledOnce());
+    const second = proxy(request());
+    await settledTick();
+    release();
+
+    await Promise.all([first, second]);
+    expect(mocks.authkit).toHaveBeenCalledOnce();
+    expect(mocks.handleAuthkitHeaders).toHaveBeenCalledTimes(2);
+  });
+
+  it("refreshes separately for requests carrying different sessions", async () => {
+    mocks.authkit.mockResolvedValue(authenticatedResponse());
+
+    await proxy(
+      new NextRequest("http://localhost:3000/apis", {
+        headers: { cookie: "wos-session=sealed-one" },
+      }),
+    );
+    await proxy(
+      new NextRequest("http://localhost:3000/apis", {
+        headers: { cookie: "wos-session=sealed-two" },
+      }),
+    );
+
+    expect(mocks.authkit).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not share a refresh between sign-in entry requests", async () => {
+    const { gate, release } = heldRefresh();
+    mocks.authkit.mockImplementation(async () => {
+      await gate;
+      return {
+        session: { user: null },
+        headers: new Headers(),
+        authorizationUrl: "https://authkit.example.com/authorize",
+      };
+    });
+
+    const entry = (redirect: string) =>
+      new NextRequest(`http://localhost:3000/auth/sign-in?redirect=${redirect}`, {
+        headers: { cookie: "wos-session=sealed-entry" },
+      });
+    const first = proxy(entry("%2Fapis"));
+    await vi.waitFor(() => expect(mocks.authkit).toHaveBeenCalledOnce());
+    const second = proxy(entry("%2Fprojects"));
+    await settledTick();
+    release();
+
+    await Promise.all([first, second]);
+    expect(mocks.authkit).toHaveBeenCalledTimes(2);
+  });
+
+  it("gives each shared request its own return path", async () => {
+    const returnPaths: (string | null)[] = [];
+    const { gate, release } = heldRefresh();
+    mocks.authkit.mockImplementation(async () => {
+      await gate;
+      return authenticatedResponse();
+    });
+    mocks.handleAuthkitHeaders.mockImplementation((_request, headers, options) => {
+      returnPaths.push(headers.get("x-url"));
+      return options?.redirect ? NextResponse.redirect(options.redirect) : NextResponse.next();
+    });
+
+    const request = (path: string) =>
+      new NextRequest(`http://localhost:3000${path}`, {
+        headers: { cookie: "wos-session=sealed-paths" },
+      });
+    const first = proxy(request("/apis"));
+    await vi.waitFor(() => expect(mocks.authkit).toHaveBeenCalledOnce());
+    const second = proxy(request("/projects"));
+    await settledTick();
+    release();
+
+    await Promise.all([first, second]);
+    expect(mocks.authkit).toHaveBeenCalledOnce();
+    expect(returnPaths.toSorted()).toEqual([
+      "http://localhost:3000/apis",
+      "http://localhost:3000/projects",
+    ]);
   });
 });

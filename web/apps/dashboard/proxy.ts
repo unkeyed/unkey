@@ -1,5 +1,6 @@
 import { expireLegacySession } from "@/lib/auth/legacy-session";
 import { sanitizeRedirectPath } from "@/lib/auth/redirect-utils";
+import { coalesceSessionRefresh } from "@/lib/auth/session-refresh";
 import { logManagedAuthOutcome } from "@/lib/auth/telemetry";
 import { env, workosAuthEnv } from "@/lib/env";
 import { getBaseUrl } from "@/lib/utils";
@@ -25,6 +26,9 @@ const PUBLIC_ROUTE_HANDLER_PATHS = [
   "/api/webhooks/workos",
   "/api/v1/github/verify",
 ] as const;
+
+// AuthKit reads this env var itself; the fallback must stay in step with its default.
+const WORKOS_SESSION_COOKIE = process.env.WORKOS_COOKIE_NAME ?? "wos-session";
 
 function isPublicPath(path: string): boolean {
   return PUBLIC_PATHS.some((publicPath) =>
@@ -90,16 +94,27 @@ export default async function proxy(req: NextRequest) {
       })
     : req;
   const redirectUri = getWorkosRedirectUri(url, environment.VERCEL_URL);
-  const { session, headers, authorizationUrl } = await authkit(authkitRequest, {
-    redirectUri,
-    screenHint: url.pathname.startsWith("/auth/sign-up") ? "sign-up" : "sign-in",
-    onSessionRefreshSuccess: () => {
-      logManagedAuthOutcome("session_refresh", "success");
-    },
-    onSessionRefreshError: () => {
-      logManagedAuthOutcome("session_refresh", "failure");
-    },
-  });
+  // Sign-in entry requests each carry their own return path, so they are never
+  // shared; every other request may reuse the refresh already running for its
+  // session.
+  const sessionCookie = isAuthEntry ? undefined : req.cookies.get(WORKOS_SESSION_COOKIE)?.value;
+  const authkitResponse = await coalesceSessionRefresh(sessionCookie, () =>
+    authkit(authkitRequest, {
+      redirectUri,
+      screenHint: url.pathname.startsWith("/auth/sign-up") ? "sign-up" : "sign-in",
+      onSessionRefreshSuccess: () => {
+        logManagedAuthOutcome("session_refresh", "success");
+      },
+      onSessionRefreshError: () => {
+        logManagedAuthOutcome("session_refresh", "failure");
+      },
+    }),
+  );
+  const { session, authorizationUrl } = authkitResponse;
+  // A shared result carries the URL of the request that produced it, so each
+  // request gets its own return path.
+  const headers = new Headers(authkitResponse.headers);
+  headers.set("x-url", authkitRequest.url);
 
   if (isAuthEntry) {
     if (session.user) {
