@@ -25,7 +25,7 @@ type PoliciesData = {
 };
 
 export function usePoliciesData(): PoliciesData {
-  const { environments, projectId } = useProjectData();
+  const { environments, projectId, isEnvironmentsLoading } = useProjectData();
   const appId = useAppId();
 
   const production = environments.find((e) => e.kind === ENVIRONMENT_KIND.production);
@@ -42,12 +42,18 @@ export function usePoliciesData(): PoliciesData {
     isError: isErrorProduction,
   } = useLiveQuery(
     (q) =>
-      q
-        .from({ p: collection.policies })
-        .where(({ p }) =>
-          and(eq(p.projectId, projectId), eq(p.appId, appId), eq(p.environmentId, productionId)),
-        )
-        .orderBy(({ p }) => p._order),
+      productionId
+        ? q
+            .from({ p: collection.policies })
+            .where(({ p }) =>
+              and(
+                eq(p.projectId, projectId),
+                eq(p.appId, appId),
+                eq(p.environmentId, productionId),
+              ),
+            )
+            .orderBy(({ p }) => p._order)
+        : null,
     [projectId, appId, productionId],
   );
 
@@ -57,21 +63,23 @@ export function usePoliciesData(): PoliciesData {
     isError: isErrorPreview,
   } = useLiveQuery(
     (q) =>
-      q
-        .from({ p: collection.policies })
-        .where(({ p }) =>
-          and(eq(p.projectId, projectId), eq(p.appId, appId), eq(p.environmentId, previewId)),
-        )
-        .orderBy(({ p }) => p._order),
+      previewId
+        ? q
+            .from({ p: collection.policies })
+            .where(({ p }) =>
+              and(eq(p.projectId, projectId), eq(p.appId, appId), eq(p.environmentId, previewId)),
+            )
+            .orderBy(({ p }) => p._order)
+        : null,
     [projectId, appId, previewId],
   );
 
   const merged = useMemo(
-    () => mergePolicies(productionRows, previewRows),
+    () => mergePolicies(productionRows ?? [], previewRows ?? []),
     [productionRows, previewRows],
   );
   const rowsByEnv = useMemo(
-    () => ({ production: productionRows, preview: previewRows }),
+    () => ({ production: productionRows ?? [], preview: previewRows ?? [] }),
     [productionRows, previewRows],
   );
 
@@ -82,7 +90,7 @@ export function usePoliciesData(): PoliciesData {
     previewSlug,
     merged,
     rowsByEnv,
-    isLoading: isLoadingProduction || isLoadingPreview,
+    isLoading: isEnvironmentsLoading || isLoadingProduction || isLoadingPreview,
     isError: isErrorProduction || isErrorPreview,
   };
 }
