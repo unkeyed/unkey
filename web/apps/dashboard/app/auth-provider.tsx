@@ -1,3 +1,4 @@
+import { logAuthkitMiddlewareBypass } from "@/lib/auth/telemetry";
 import { getWorkOSSession, hasAuthkitMiddleware } from "@/lib/auth/workos-session";
 import { env } from "@/lib/env";
 import { headers } from "next/headers";
@@ -13,7 +14,9 @@ export async function AuthProvider({ children }: { children: React.ReactNode }) 
   // request for an asset that does not exist falls through to a page route
   // without the middleware request headers that withAuth requires. Such paths
   // are not application routes.
-  if (!hasAuthkitMiddleware(await headers())) {
+  const requestHeaders = await headers();
+  if (!hasAuthkitMiddleware(requestHeaders)) {
+    logAuthkitMiddlewareBypass(requestHeaders);
     notFound();
   }
 
