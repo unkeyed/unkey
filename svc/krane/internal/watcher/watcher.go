@@ -6,6 +6,7 @@ import (
 	"math/rand/v2"
 	"time"
 
+	"connectrpc.com/connect"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	ctrl "github.com/unkeyed/unkey/gen/rpc/ctrl"
 	"github.com/unkeyed/unkey/pkg/logger"
@@ -21,8 +22,7 @@ const (
 	maxConcurrentDispatches = 10
 )
 
-// Watcher consumes the unified WatchDeploymentChanges stream and dispatches
-// events to the deployment and cilium controllers.
+// Watcher applies deployment changes and runs full syncs to repair missed changes.
 type Watcher struct {
 	cluster     ctrl.ClusterServiceClient
 	deployments *deployment.Controller
@@ -57,80 +57,91 @@ func (s *Watcher) clusterKey() *ctrlv1.ClusterKey {
 	return &ctrlv1.ClusterKey{CellId: s.cellID, Platform: s.platform, Region: s.region}
 }
 
-// Watch runs two independent loops:
-//   - A real-time incremental stream for fast delivery of new changes.
-//   - A periodic full sync to reconcile any drift.
-//
-// Both share a semaphore so the k8s API is not overwhelmed.
-// Returns nil when the context is cancelled.
+// Watch runs the change stream and periodic full syncs at the same time.
+// Both share a limit on calls to the Kubernetes API.
+// It returns nil when the context is canceled.
 func (s *Watcher) Watch(ctx context.Context) error {
-	go s.runPeriodicFullSync(ctx)
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		s.runPeriodicFullSync(ctx)
+	}()
 	s.runStream(ctx)
+	<-done
 	return nil
 }
 
-// runStream maintains a long-lived incremental stream. On first connect it
-// sends version=0 and the server jumps to the current max version. On
-// reconnect it resumes from the last seen version.
+// runStream reconnects using the last token saved after applying changes.
 func (s *Watcher) runStream(ctx context.Context) {
-	versionLastSeen := uint64(0)
+	var resumeToken []byte
 
 	for {
 		jitter := reconnectMin + time.Millisecond*time.Duration(rand.Float64()*float64(reconnectMax.Milliseconds()-reconnectMin.Milliseconds()))
-		time.Sleep(jitter)
-
 		select {
 		case <-ctx.Done():
 			return
-		default:
+		case <-time.After(jitter):
 		}
 
 		stream, err := s.cluster.WatchDeploymentChanges(ctx, &ctrlv1.WatchDeploymentChangesRequest{
-			Cluster:         s.clusterKey(),
-			VersionLastSeen: versionLastSeen,
+			Cluster:     s.clusterKey(),
+			ResumeToken: resumeToken,
 		})
 		if err != nil {
+			if shouldResetResumeToken(err) {
+				resumeToken = nil
+			}
 			metrics.StreamConnectionsTotal.WithLabelValues("error").Inc()
 			logger.Error("stream: error opening connection", "error", err)
 			continue
 		}
 		metrics.StreamConnectionsTotal.WithLabelValues("success").Inc()
 
-		for stream.Receive() {
-			event := stream.Msg()
-			metrics.StreamEventsReceivedTotal.Inc()
-
-			if err := s.sem.Acquire(ctx, 1); err != nil {
-				break
-			}
-			go func() {
-				defer s.sem.Release(1)
-				resourceType := eventResourceType(event)
-				if err := s.dispatch(ctx, event); err != nil {
-					metrics.DispatchTotal.WithLabelValues("stream", resourceType, "error").Inc()
-					logger.Error("stream: error dispatching event", "error", err, "version", event.GetVersion())
-				} else {
-					metrics.DispatchTotal.WithLabelValues("stream", resourceType, "success").Inc()
-				}
-			}()
-
-			if event.GetVersion() > versionLastSeen {
-				versionLastSeen = event.GetVersion()
-				metrics.WatcherVersionLastSeen.Set(float64(versionLastSeen))
-			}
-		}
-
-		if err := stream.Close(); err != nil && ctx.Err() == nil {
-			logger.Error("stream: error closing connection", "error", err)
-		}
+		resumeToken = s.consumeStream(ctx, stream, resumeToken)
 	}
 }
 
-// runPeriodicFullSync calls SyncDesiredState every fullSyncInterval to
-// reconcile the full desired state. Runs independently of the incremental
-// stream so it never blocks real-time event delivery.
+// consumeStream applies events in order and closes the stream before returning
+// the last safe token. If the token cannot be used, it returns an empty token
+// so the next watch starts a new copy.
+func (s *Watcher) consumeStream(ctx context.Context, stream *connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], resumeToken []byte) []byte {
+	for stream.Receive() {
+		event := stream.Msg()
+		metrics.StreamEventsReceivedTotal.Inc()
+
+		if event.GetEvent() == nil && len(event.GetResumeToken()) > 0 {
+			resumeToken = event.GetResumeToken()
+			metrics.LastSuccessfulCheckpointUnixSeconds.Set(float64(time.Now().Unix()))
+			continue
+		}
+
+		if err := s.sem.Acquire(ctx, 1); err != nil {
+			break
+		}
+		err := s.dispatch(ctx, event)
+		s.sem.Release(1)
+		if err != nil {
+			metrics.DispatchTotal.WithLabelValues("stream", eventResourceType(event), "error").Inc()
+			logger.Error("stream: error dispatching event", "deployment_id", event.GetDeployment().GetApply().GetDeploymentId(), "error", err)
+			break
+		}
+		metrics.DispatchTotal.WithLabelValues("stream", eventResourceType(event), "success").Inc()
+	}
+
+	if err := stream.Err(); err != nil && ctx.Err() == nil {
+		if shouldResetResumeToken(err) {
+			resumeToken = nil
+		}
+		logger.Error("stream: connection ended", "error", err)
+	}
+	if err := stream.Close(); err != nil && ctx.Err() == nil {
+		logger.Error("stream: error closing connection", "error", err)
+	}
+	return resumeToken
+}
+
+// runPeriodicFullSync repairs missed changes on startup and every fullSyncInterval.
 func (s *Watcher) runPeriodicFullSync(ctx context.Context) {
-	// Run one immediately on startup.
 	s.doFullSync(ctx)
 
 	ticker := time.NewTicker(fullSyncInterval)
@@ -170,7 +181,7 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 			resourceType := eventResourceType(event)
 			if err := s.dispatch(ctx, event); err != nil {
 				metrics.DispatchTotal.WithLabelValues("full_sync", resourceType, "error").Inc()
-				logger.Error("full sync: error dispatching event", "error", err)
+				logger.Error("full sync: error dispatching event", "deployment_id", event.GetDeployment().GetApply().GetDeploymentId(), "error", err)
 			} else {
 				metrics.DispatchTotal.WithLabelValues("full_sync", resourceType, "success").Inc()
 			}
@@ -182,6 +193,12 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 	}
 
 	metrics.FullSyncDurationSeconds.Observe(time.Since(start).Seconds())
+}
+
+// shouldResetResumeToken reports whether reconnecting needs a new copy of the rows.
+func shouldResetResumeToken(err error) bool {
+	code := connect.CodeOf(err)
+	return code == connect.CodeInvalidArgument || code == connect.CodeOutOfRange
 }
 
 // eventResourceType returns a label-safe resource type string for metrics.
@@ -199,7 +216,7 @@ func (s *Watcher) dispatch(ctx context.Context, event *ctrlv1.DeploymentChangeEv
 	switch e := event.GetEvent().(type) {
 	case *ctrlv1.DeploymentChangeEvent_Deployment:
 		if e.Deployment == nil {
-			return fmt.Errorf("received deployment change event with nil deployment state at version %d", event.GetVersion())
+			return fmt.Errorf("received deployment change event with nil deployment state")
 		}
 		switch op := e.Deployment.GetState().(type) {
 		case *ctrlv1.DeploymentState_Apply:
@@ -207,13 +224,13 @@ func (s *Watcher) dispatch(ctx context.Context, event *ctrlv1.DeploymentChangeEv
 		case *ctrlv1.DeploymentState_Delete:
 			return s.deployments.DeleteDeployment(ctx, op.Delete)
 		default:
-			return fmt.Errorf("unhandled deployment state type %T at version %d", op, event.GetVersion())
+			return fmt.Errorf("unhandled deployment state type %T", op)
 		}
 
 	case nil:
-		return fmt.Errorf("received deployment change event with nil event at version %d", event.GetVersion())
+		return fmt.Errorf("received deployment change event with nil event")
 
 	default:
-		return fmt.Errorf("unhandled deployment change event type %T at version %d", e, event.GetVersion())
+		return fmt.Errorf("unhandled deployment change event type %T", e)
 	}
 }
