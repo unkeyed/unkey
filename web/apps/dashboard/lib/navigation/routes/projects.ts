@@ -32,6 +32,13 @@ export const projectRoutes = {
     return buildRoute("/[workspaceSlug]/projects/[projectId]", projectParams(scope));
   },
 
+  // The default project has no apps, so its home is the keyspaces list.
+  home({ isDefault, ...scope }: ProjectScope & { isDefault: boolean }): Route {
+    return isDefault
+      ? buildRoute("/[workspaceSlug]/projects/[projectId]/keyspaces", projectParams(scope))
+      : buildRoute("/[workspaceSlug]/projects/[projectId]", projectParams(scope));
+  },
+
   settings(scope: ProjectScope): Route {
     return buildRoute("/[workspaceSlug]/projects/[projectId]/settings", projectParams(scope));
   },
