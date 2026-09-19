@@ -16,9 +16,14 @@ import type { PropsWithChildren } from "react";
 
 type ProjectActionsProps = {
   projectId: string;
+  isDefault: boolean;
 };
 
-export const ProjectActions = ({ projectId, children }: PropsWithChildren<ProjectActionsProps>) => {
+export const ProjectActions = ({
+  projectId,
+  isDefault,
+  children,
+}: PropsWithChildren<ProjectActionsProps>) => {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
 
@@ -40,22 +45,26 @@ export const ProjectActions = ({ projectId, children }: PropsWithChildren<Projec
       },
       divider: true,
     },
-    {
-      id: "view-requests",
-      label: "View requests",
-      icon: <IconArrowsOppositeDirectionYOutline18 className="size-3.5" />,
-      onClick: () => {
-        router.push(routes.projects.requests({ workspaceSlug: workspace.slug, projectId }));
-      },
-    },
-    {
-      id: "view-logs",
-      label: "View logs",
-      icon: <IconLayers3Outline18 className="size-3.5" />,
-      onClick: () => {
-        router.push(routes.projects.logs({ workspaceSlug: workspace.slug, projectId }));
-      },
-    },
+    ...(isDefault
+      ? []
+      : [
+          {
+            id: "view-requests",
+            label: "View requests",
+            icon: <IconArrowsOppositeDirectionYOutline18 className="size-3.5" />,
+            onClick: () => {
+              router.push(routes.projects.requests({ workspaceSlug: workspace.slug, projectId }));
+            },
+          },
+          {
+            id: "view-logs",
+            label: "View logs",
+            icon: <IconLayers3Outline18 className="size-3.5" />,
+            onClick: () => {
+              router.push(routes.projects.logs({ workspaceSlug: workspace.slug, projectId }));
+            },
+          },
+        ]),
     {
       id: "project-settings",
       label: "Project settings",
