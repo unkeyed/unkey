@@ -1,5 +1,6 @@
 "use client";
 import { revalidate } from "@/app/actions";
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -34,6 +35,7 @@ type Props = {
 export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
   const { onUpdateSuccess, onError } = createMutationHandlers();
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
 
   const {
     control,
@@ -68,7 +70,7 @@ export const DefaultPrefix: React.FC<Props> = ({ keyAuth, apiId }) => {
     }
 
     await setDefaultPrefix.mutateAsync(values);
-    revalidate(routes.apis.settings({ workspaceSlug: workspace.slug, apiId }));
+    revalidate(routes.apis.settings({ workspaceSlug: workspace.slug, ...scope, apiId }));
   }
 
   return (

@@ -6,14 +6,25 @@
  * params from the generated ParamMap.
  */
 import type { Route } from "next";
-import { type WorkspaceScope, buildRoute } from "./shared";
+import { type ResourceScope, scopedRoute } from "./shared";
+
+const patterns = {
+  roles: {
+    workspace: "/[workspaceSlug]/authorization/roles",
+    project: "/[workspaceSlug]/projects/[projectId]/authorization/roles",
+  },
+  permissions: {
+    workspace: "/[workspaceSlug]/authorization/permissions",
+    project: "/[workspaceSlug]/projects/[projectId]/authorization/permissions",
+  },
+} as const;
 
 export const authorizationRoutes = {
-  roles({ workspaceSlug }: WorkspaceScope): Route {
-    return buildRoute("/[workspaceSlug]/authorization/roles", { workspaceSlug });
+  roles(scope: ResourceScope): Route {
+    return scopedRoute(patterns.roles, scope);
   },
 
-  permissions({ workspaceSlug }: WorkspaceScope): Route {
-    return buildRoute("/[workspaceSlug]/authorization/permissions", { workspaceSlug });
+  permissions(scope: ResourceScope): Route {
+    return scopedRoute(patterns.permissions, scope);
   },
 };

@@ -12,6 +12,7 @@ import { AppDetailTooltip, AppRow } from "../apps/app-row";
 type ProjectCardProps = {
   name: string;
   projectId: string;
+  isDefault: boolean;
   apps: ProjectApp[];
   actions: ReactNode;
 };
@@ -24,12 +25,13 @@ function byRecency(apps: ProjectApp[]): ProjectApp[] {
   );
 }
 
-export function ProjectCard({ name, projectId, apps, actions }: ProjectCardProps) {
+export function ProjectCard({ name, projectId, isDefault, apps, actions }: ProjectCardProps) {
   const workspace = useWorkspaceNavigation();
   const appHomeHref = useAppHomeHref();
-  const projectPath = routes.projects.detail({
+  const projectPath = routes.projects.home({
     workspaceSlug: workspace.slug,
     projectId,
+    isDefault,
   });
   const hrefFor = (app: ProjectApp) =>
     appHomeHref({ workspaceSlug: workspace.slug, projectId, appId: app.id });

@@ -8,7 +8,7 @@ import { IconNodesOutline18, IconPlusOutline18 } from "@unkey/icons";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 
-export function ApiCrumb({ apiId }: { apiId: string }) {
+export function ApiCrumb({ apiId, projectId }: { apiId: string; projectId?: string }) {
   const workspace = useWorkspaceNavigation();
   const { name, isLoading } = useApiName(apiId);
   const { data } = trpc.api.queryApiKeyDetails.useQuery({ apiId }, { enabled: !!apiId });
@@ -18,7 +18,7 @@ export function ApiCrumb({ apiId }: { apiId: string }) {
   const items: CrumbPopoverItem[] = siblings.map((api) => ({
     id: api.id,
     label: api.name,
-    href: routes.apis.detail({ workspaceSlug: workspace.slug, apiId: api.id }),
+    href: routes.apis.detail({ workspaceSlug: workspace.slug, projectId, apiId: api.id }),
   }));
 
   return (
@@ -26,7 +26,7 @@ export function ApiCrumb({ apiId }: { apiId: string }) {
       icon={<IconNodesOutline18 className="size-3.5 text-accent-11" />}
       label={name ?? apiId}
       loading={isLoading}
-      href={routes.apis.detail({ workspaceSlug: workspace.slug, apiId })}
+      href={routes.apis.detail({ workspaceSlug: workspace.slug, projectId, apiId })}
       items={items}
       currentId={apiId}
       searchPlaceholder="Find keyspace..."
@@ -34,7 +34,7 @@ export function ApiCrumb({ apiId }: { apiId: string }) {
       footer={{
         icon: IconPlusOutline18,
         label: "All Keyspaces (APIs)",
-        href: routes.apis.list({ workspaceSlug: workspace.slug }),
+        href: routes.apis.list({ workspaceSlug: workspace.slug, projectId }),
       }}
     />
   );
