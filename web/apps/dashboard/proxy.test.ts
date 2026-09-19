@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => ({
   handleAuthkitHeaders:
     vi.fn<(request: NextRequest, headers: Headers, options?: HeaderOptions) => NextResponse>(),
   logManagedAuthOutcome: vi.fn(),
+  logSessionValidationDuration: vi.fn(),
 }));
 
 vi.mock("@/lib/env", () => ({
@@ -38,6 +39,7 @@ vi.mock("@/lib/env", () => ({
 
 vi.mock("@/lib/auth/telemetry", () => ({
   logManagedAuthOutcome: mocks.logManagedAuthOutcome,
+  logSessionValidationDuration: mocks.logSessionValidationDuration,
 }));
 
 vi.mock("@/lib/utils", () => ({
@@ -270,5 +272,31 @@ describe("proxy auth mode split", () => {
 
     expect(mocks.logManagedAuthOutcome).toHaveBeenNthCalledWith(1, "session_refresh", "success");
     expect(mocks.logManagedAuthOutcome).toHaveBeenNthCalledWith(2, "session_refresh", "failure");
+  });
+
+  it("records how long the session validation took", async () => {
+    await proxy(new NextRequest("http://localhost:3000/apis"));
+
+    expect(mocks.logSessionValidationDuration).toHaveBeenCalledOnce();
+    expect(mocks.logSessionValidationDuration.mock.calls[0]?.[0]).toBeGreaterThanOrEqual(0);
+  });
+
+  it("measures a stalled AuthKit validation", async () => {
+    vi.useFakeTimers();
+    try {
+      mocks.authkit.mockImplementation(async () => {
+        vi.advanceTimersByTime(6_000);
+        return {
+          session: { user: { id: "user_123" } },
+          headers: new Headers(),
+        };
+      });
+
+      await proxy(new NextRequest("http://localhost:3000/apis"));
+
+      expect(mocks.logSessionValidationDuration).toHaveBeenCalledWith(6_000);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

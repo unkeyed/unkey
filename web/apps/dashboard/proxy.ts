@@ -1,6 +1,6 @@
 import { expireLegacySession } from "@/lib/auth/legacy-session";
 import { sanitizeRedirectPath } from "@/lib/auth/redirect-utils";
-import { logManagedAuthOutcome } from "@/lib/auth/telemetry";
+import { logManagedAuthOutcome, logSessionValidationDuration } from "@/lib/auth/telemetry";
 import { env, workosAuthEnv } from "@/lib/env";
 import { getBaseUrl } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
@@ -90,6 +90,7 @@ export default async function proxy(req: NextRequest) {
       })
     : req;
   const redirectUri = getWorkosRedirectUri(url, environment.VERCEL_URL);
+  const sessionValidationStartedAt = Date.now();
   const { session, headers, authorizationUrl } = await authkit(authkitRequest, {
     redirectUri,
     screenHint: url.pathname.startsWith("/auth/sign-up") ? "sign-up" : "sign-in",
@@ -100,6 +101,7 @@ export default async function proxy(req: NextRequest) {
       logManagedAuthOutcome("session_refresh", "failure");
     },
   });
+  logSessionValidationDuration(Date.now() - sessionValidationStartedAt);
 
   if (isAuthEntry) {
     if (session.user) {
