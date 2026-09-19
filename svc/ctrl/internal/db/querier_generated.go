@@ -775,13 +775,6 @@ type Querier interface {
 	//  LEFT JOIN `workspace_billing` b ON b.workspace_id = w.id
 	//  WHERE w.id = ?
 	FindWorkspaceDeployEntitlement(ctx context.Context, id string) (FindWorkspaceDeployEntitlementRow, error)
-	// GetDeploymentChangesMaxVersion returns the current maximum version (pk) for a region.
-	// Used during full sync to establish the starting version for incremental polling.
-	//
-	//  SELECT CAST(COALESCE(MAX(pk), 0) AS UNSIGNED) AS max_version
-	//  FROM `deployment_changes`
-	//  WHERE region_id = ?
-	GetDeploymentChangesMaxVersion(ctx context.Context, regionID string) (int64, error)
 	//GetWorkspacesForQuotaCheckByIDs
 	//
 	//  SELECT
@@ -1085,20 +1078,6 @@ type Querier interface {
 	//      ?
 	//  )
 	InsertDeployment(ctx context.Context, arg InsertDeploymentParams) error
-	//InsertDeploymentChange
-	//
-	//  INSERT INTO `deployment_changes` (
-	//      resource_type,
-	//      resource_id,
-	//      region_id,
-	//      created_at
-	//  ) VALUES (
-	//      ?,
-	//      ?,
-	//      ?,
-	//      ?
-	//  )
-	InsertDeploymentChange(ctx context.Context, arg InsertDeploymentChangeParams) error
 	//InsertDeploymentStep
 	//
 	//  INSERT INTO `deployment_steps` (
@@ -1611,15 +1590,6 @@ type Querier interface {
 	//  WHERE b.stripe_customer_id IS NOT NULL
 	//    AND b.stripe_customer_id <> ''
 	ListDeployBillingCustomers(ctx context.Context) ([]ListDeployBillingCustomersRow, error)
-	// ListDeploymentChangesByRegionAll returns all deployment changes for a region with version > after_version.
-	// Used by the unified WatchDeploymentChanges stream. Does not filter by resource_type.
-	//
-	//  SELECT deployment_changes.pk, deployment_changes.resource_type, deployment_changes.resource_id, deployment_changes.region_id, deployment_changes.created_at
-	//  FROM `deployment_changes`
-	//  WHERE pk > ? AND region_id = ?
-	//  ORDER BY pk ASC
-	//  LIMIT ?
-	ListDeploymentChangesByRegionAll(ctx context.Context, arg ListDeploymentChangesByRegionAllParams) ([]DeploymentChange, error)
 	//ListDeploymentsByEnvironmentIdAndStatus
 	//
 	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments`
