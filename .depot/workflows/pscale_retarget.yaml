@@ -1,0 +1,21 @@
+name: PlanetScale PR Retarget
+on:
+  pull_request:
+    types: [edited]
+permissions:
+  contents: read
+concurrency:
+  group: planetscale-retarget-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  detect_changes:
+    if: github.event.changes.base != null && github.event.pull_request.draft == false
+    uses: ./.depot/workflows/job_detect_changes.yaml
+  pscale_pr:
+    name: PlanetScale PR Branch
+    if: needs.detect_changes.result == 'success'
+    needs: [detect_changes]
+    uses: ./.depot/workflows/job_pscale_pr.yaml
+    with:
+      db_schema_changed: ${{ needs.detect_changes.outputs.db_schema == 'true' }}
+    secrets: inherit
