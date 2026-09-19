@@ -25,6 +25,7 @@ const schema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string(),
+  isDefault: z.boolean(),
   apps: z.array(appSchema),
   repositoryFullName: z.string().nullable(),
   currentDeploymentId: z.string().nullable(),
@@ -48,13 +49,20 @@ export type Project = z.infer<typeof schema>;
 export type ProjectApp = z.infer<typeof appSchema>;
 export type CreateProjectRequestSchema = z.infer<typeof createProjectRequestSchema>;
 
+export function projectDisplayName(
+  project: Pick<Project, "name" | "isDefault">,
+  workspaceName: string,
+): string {
+  return project.isDefault ? workspaceName : project.name;
+}
+
 export const projects = createCollection<Project, string>(
   queryCollectionOptions({
     queryClient,
     queryKey: ["projects"],
     retry: 3,
     queryFn: async () => {
-      return await trpcClient.deploy.project.list.query();
+      return await trpcClient.deploy.project.list.query({ includeDefault: true });
     },
     getKey: (item) => item.id,
     onDelete: async ({ transaction }) => {
