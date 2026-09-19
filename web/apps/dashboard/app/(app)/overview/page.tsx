@@ -9,6 +9,6 @@ export default function OverviewPage() {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
 
-  router.replace(routes.apis.list({ workspaceSlug: workspace.slug }));
+  router.replace(routes.projects.list({ workspaceSlug: workspace.slug }));
   return null;
 }
