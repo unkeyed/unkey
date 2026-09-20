@@ -1,0 +1,80 @@
+name: PlanetScale Branch Reconcile
+# The per-PR PlanetScale branch is deleted when its pull request closes, but
+# that cleanup is a single event: a skipped, failed, or pre-existing run leaves
+# the branch in place forever, permanently consuming one of the database's
+# development-branch slots. Once the slots are full, no pull request can create
+# a schema-check branch, so schema delivery stalls for everyone. This scheduled
+# job reconciles every pr-<number> branch against the live pull request state
+# and removes the ones whose pull request is closed or gone.
+on:
+  schedule:
+    - cron: "43 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+  pull-requests: read
+env:
+  PSCALE_ORG: unkey
+  PSCALE_DB: unkey
+jobs:
+  reconcile:
+    name: Reconcile per-PR branches
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 10
+    env:
+      PLANETSCALE_SERVICE_TOKEN_ID: ${{ secrets.PLANETSCALE_SERVICE_TOKEN_ID }}
+      PLANETSCALE_SERVICE_TOKEN: ${{ secrets.PLANETSCALE_SERVICE_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+
+      - name: Install mise
+        run: |
+          ./dev/install-mise
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install toolchain
+        run: mise install --locked --yes github:planetscale/cli github:jqlang/jq
+
+      - name: Remove branches of closed pull requests
+        run: |
+          set -euo pipefail
+          BRANCH_LIST=$(mise exec -- pscale branch list "$PSCALE_DB" \
+            --org "$PSCALE_ORG" --format json)
+          if ! mise exec -- jq -e 'type == "array"' <<< "$BRANCH_LIST" >/dev/null; then
+            echo "::error::PlanetScale returned an invalid branch list."
+            exit 1
+          fi
+          # Only development branches named pr-<number> are owned by a single
+          # pull request. Production branches and schema-check-* branches are
+          # left alone.
+          mapfile -t BRANCHES < <(
+            mise exec -- jq -r '.[] | select(.production == false) | select(.name | test("^pr-[0-9]+$")) | .name' <<< "$BRANCH_LIST"
+          )
+          echo "Found ${#BRANCHES[@]} per-PR branch(es) to reconcile."
+          for branch in "${BRANCHES[@]}"; do
+            pr_number="${branch#pr-}"
+            state=$(curl -sS --retry 3 --max-time 30 \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls/$pr_number" \
+              | mise exec -- jq -r '.state // "missing"')
+            if [ "$state" = "open" ]; then
+              echo "$branch: pull request #$pr_number is open, keeping."
+              continue
+            fi
+            echo "$branch: pull request #$pr_number is $state, removing."
+            # A branch cannot be deleted while one of its deploy requests is
+            # open, so close them first.
+            mise exec -- pscale deploy-request list "$PSCALE_DB" \
+              --org "$PSCALE_ORG" --format json \
+              | mise exec -- jq -r --arg b "$branch" \
+                  '.[] | select(.branch == $b and .state == "open") | .number' \
+              | while read -r number; do
+                  mise exec -- pscale deploy-request close "$PSCALE_DB" "$number" \
+                    --org "$PSCALE_ORG" || true
+                done
+            mise exec -- pscale branch delete "$PSCALE_DB" "$branch" \
+              --org "$PSCALE_ORG" --force || true
+          done
+          echo "Reconcile complete."
