@@ -33,7 +33,7 @@ func TestCollector_RunWaitsForCRIExitHandler(t *testing.T) {
 		releaseExit:  make(chan struct{}),
 	}
 	releaseExit := sync.OnceFunc(func() { close(lister.releaseExit) })
-	event, err := anypb.New(&eventstypes.TaskExit{ContainerID: "app-container"})
+	event, err := anypb.New(&eventstypes.TaskExit{ContainerID: "app-container", ID: "app-container"})
 	require.NoError(t, err)
 	backend := &exitEventServer{periodicDone: lister.periodicDone, event: event}
 	server := grpc.NewServer()
