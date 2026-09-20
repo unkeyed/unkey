@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -342,8 +343,8 @@ func (s *Server) RegisterRoute(middlewares []Middleware, route Route) {
 
 			// Reverses the middlewares to run in the desired order.
 			// If middlewares are [A, B, C], this writes [C, B, A] to s.middlewares.
-			for i := len(middlewares) - 1; i >= 0; i-- {
-				handleFn = middlewares[i](handleFn)
+			for _, middleware := range slices.Backward(middlewares) {
+				handleFn = middleware(handleFn)
 			}
 
 			err = handleFn(WithSession(r.Context(), sess), sess)
