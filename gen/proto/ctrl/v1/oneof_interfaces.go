@@ -16,6 +16,3 @@ type IsInstanceEvent_State = isInstanceEvent_State
 
 // IsDeploymentState_State is the exported form of the protobuf oneof interface isDeploymentState_State.
 type IsDeploymentState_State = isDeploymentState_State
-
-// IsCreateDeploymentRequest_Source is the exported form of the protobuf oneof interface isCreateDeploymentRequest_Source.
-type IsCreateDeploymentRequest_Source = isCreateDeploymentRequest_Source
