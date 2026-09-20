@@ -353,6 +353,12 @@ async function resolveApiSubscriptionContext(
 
 export const runtime = "nodejs";
 
+// Downgrades revoke team access inline, and a Stripe redelivery cannot resume
+// that work: the plan change has already committed, so a retried event is
+// treated as processed and skips revocation entirely. The budget therefore has
+// to cover the whole revocation, not just the database write.
+export const maxDuration = 300;
+
 export const POST = async (req: Request): Promise<Response> => {
   const signature = req.headers.get("stripe-signature");
   if (!signature) {

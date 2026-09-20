@@ -13,7 +13,10 @@ export abstract class BaseAuthProvider {
   abstract updateOrg(params: UpdateOrgParams): Promise<Organization>;
   protected abstract createOrg(name: string): Promise<Organization>;
   abstract getOrg(orgId: string): Promise<Organization>;
-  abstract listMemberships(userId: string): Promise<MembershipListResponse>;
+  abstract listMemberships(
+    userId: string,
+    organizationId?: string,
+  ): Promise<MembershipListResponse>;
   abstract getOrganizationMemberList(orgId: string): Promise<MembershipListResponse>;
   abstract deactivateMembership(membershipId: string, orgId: string): Promise<void>;
 
