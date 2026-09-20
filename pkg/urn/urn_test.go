@@ -188,7 +188,6 @@ func TestBuiltNamesWithReservedCharactersDoNotParse(t *testing.T) {
 		workspace.Project("proj/123").Portal("portal_123").String(),
 		workspace.Project("proj_123").Portal("portal:123").Session("sess_123").String(),
 	} {
-		value := value
 		t.Run(value, func(t *testing.T) {
 			t.Parallel()
 

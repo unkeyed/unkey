@@ -117,7 +117,7 @@ func TestGatewayRequestMigration_PreservesInsertionTimestamps(t *testing.T) {
 	require.NoError(t, client.conn.Exec(ctx, `INSERT INTO `+table+` (workspace_id, request_id, time, inserted_at) VALUES ('workspace', 'old', ?, 12345)`, now))
 	migration, err := os.ReadFile("migrations/20260910010000.sql")
 	require.NoError(t, err)
-	for _, statement := range strings.Split(string(migration), ";") {
+	for statement := range strings.SplitSeq(string(migration), ";") {
 		if strings.TrimSpace(statement) == "" {
 			continue
 		}
