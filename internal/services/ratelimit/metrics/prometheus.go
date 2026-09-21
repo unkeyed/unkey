@@ -314,13 +314,13 @@ var (
 	)
 )
 
-// RegisterZeroBaseline publishes the failure counters that read zero on a
-// healthy system. Call it after lazy.SetRegistry installs the service's
-// Prometheus registry. Without it the lazy counters stay absent from /metrics
-// until their first event, so every panel and alert rule over them reports no
-// data rather than zero.
+// RegisterZeroBaseline materialises the failure counters that read zero on a
+// healthy system, so they read zero instead of being absent. Call it after
+// lazy.SetRegistry installs the service's Prometheus registry: a lazy counter
+// stays unregistered until first use, and Add(0) is that first use without
+// changing the value.
 func RegisterZeroBaseline() {
-	RatelimitCASExhausted.Register()
-	RatelimitGlobalPushErrors.Register()
-	RatelimitGlobalPullErrors.Register()
+	RatelimitCASExhausted.Add(0)
+	RatelimitGlobalPushErrors.Add(0)
+	RatelimitGlobalPullErrors.Add(0)
 }
