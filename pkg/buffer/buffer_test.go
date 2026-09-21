@@ -53,9 +53,9 @@ func TestNew(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.Name, func(t *testing.T) {
 			b := New[int](tt)
+			t.Cleanup(b.Close)
 
-			assert.Equal(t, tt.Capacity, cap(b.c), "channel capacity should match")
-			assert.Equal(t, tt.Drop, b.drop, "drop behavior should match")
+			require.Equal(t, tt.Capacity, cap(b.Consume()), "channel capacity should match")
 		})
 	}
 }
@@ -98,7 +98,7 @@ func TestBuffer(t *testing.T) {
 				b.Buffer(v)
 			}
 
-			assert.Equal(t, tt.wantLen, len(b.c), "buffer length should match expected")
+			assert.Equal(t, tt.wantLen, b.Size(), "buffer length should match expected")
 
 			// Verify elements can be received
 			received := make([]int, 0, tt.wantLen)
@@ -107,7 +107,7 @@ func TestBuffer(t *testing.T) {
 		receiveLoop:
 			for {
 				select {
-				case v := <-b.c:
+				case v := <-b.Consume():
 					received = append(received, *v)
 				case <-timeout:
 					break receiveLoop
@@ -164,7 +164,7 @@ func TestCustomTypes(t *testing.T) {
 		b.Buffer(event)
 
 		select {
-		case received := <-b.c:
+		case received := <-b.Consume():
 			assert.Equal(t, event, *received, "received event should match buffered event")
 		default:
 			t.Error("Expected to receive buffered event")
@@ -274,7 +274,7 @@ func BenchmarkBufferMutexContention(b *testing.B) {
 
 	for _, scenario := range scenarios {
 		b.Run(scenario.name, func(b *testing.B) {
-			buffers := make([]*Buffer[int], scenario.bufferCount)
+			buffers := make([]Buffer[int], scenario.bufferCount)
 			for i := range buffers {
 				buffers[i] = New[int](Config{
 					Capacity: 1000,
@@ -284,7 +284,7 @@ func BenchmarkBufferMutexContention(b *testing.B) {
 				defer buffers[i].Close()
 
 				// Start consumer for each buffer
-				go func(buf *Buffer[int]) {
+				go func(buf Buffer[int]) {
 					for range buf.Consume() {
 						// Consume all items
 					}

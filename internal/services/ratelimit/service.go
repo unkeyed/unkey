@@ -292,7 +292,7 @@ type service struct {
 
 	// replayBuffer holds rate limit events for async propagation to Redis.
 	// [NewLocal] uses a no-op buffer instead.
-	replayBuffer *buffer.Buffer[RatelimitRequest]
+	replayBuffer buffer.Buffer[RatelimitRequest]
 
 	// originCircuitBreaker wraps every call to the origin counter (both
 	// replay INCR and cold/strict-mode GET). When tripped, requests use
