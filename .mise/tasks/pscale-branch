@@ -8,6 +8,11 @@ if [ -z "${BRANCH:-}" ]; then
   exit 1
 fi
 
+if [ "$BRANCH" = "main" ]; then
+  echo "Error: BRANCH must not be 'main'; this task migrates whichever branch it targets."
+  exit 1
+fi
+
 FROM="${FROM:-staging}"
 pscale branch create unkey "$BRANCH" --org unkey --from "$FROM" --wait \
   || pscale branch show unkey "$BRANCH" --org unkey >/dev/null
