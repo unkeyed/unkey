@@ -153,17 +153,6 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		}
 	}
 
-	// Create refuses these settings before it writes a deployment, so a
-	// violation here means the row was written some other way. The message is
-	// one the API's deployment error classifier turns into
-	// InvalidRuntimeSettings
-	if violations := deployfail.RuntimeViolations(deployment.Port, deployment.CpuMillicores, deployment.MemoryMib); len(violations) > 0 {
-		return nil, fault.Wrap(
-			restate.ToTerminalError(errors.New(violations[0].Message)),
-			fault.Public(violations[0].Message),
-		)
-	}
-
 	if err = w.resolveOrBuildImage(ctx, req, deployment); err != nil {
 		// A failed resolve keeps its own message. A Build's does not survive
 		// the Restate service boundary, so it falls back to the generic one
