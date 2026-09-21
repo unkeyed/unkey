@@ -1699,7 +1699,7 @@ type Querier interface {
 	//  ORDER BY workspace_id
 	ListLimitsWithBuildsConcurrentMaxAbove(ctx context.Context, buildsConcurrentMax uint16) ([]ListLimitsWithBuildsConcurrentMaxAboveRow, error)
 	// Only deployments still in the queue can be replaced by a newer commit. Once a
-	// deployment transitions to `starting`, which happens when Restate lets its
+	// deployment transitions to `building`, which happens when Restate lets its
 	// Build run, it is committed: we don't cancel work that's already running.
 	//
 	// The cutoff is the created_at of the deployment being started, read from its

@@ -22,7 +22,7 @@ const SupersededByNewerCommitMessage = "Superseded by newer commit"
 
 // cancelOlderSiblings moves older pending or awaiting_approval deployments on
 // the same app, environment, and branch to superseded. A deployment that
-// reached starting has begun its Build and is left alone, otherwise rapid
+// reached building has begun its Build and is left alone, otherwise rapid
 // pushes could keep cancelling builds and never ship one. No audit entries are
 // written because no user started this cancel.
 //

@@ -153,7 +153,7 @@ Operating the rules on Restate Cloud, reading them, forcing a sync, listing wait
 
 When a new deployment is created, `Workflow.cancelOlderSiblings` looks for older deployments on the same `(app, environment, branch)` that are still in the build queue (`pending` or `awaiting_approval`) and cancels them.
 
-Once Restate lets a deployment's Build run and it transitions to `starting`, it is **committed**: newer commits will not supersede it. This avoids the pathological case where rapid pushes keep cancelling builds and nothing ever finishes.
+Once Restate lets a deployment's Build run and it transitions to `building`, it is **committed**: newer commits will not supersede it. This avoids the pathological case where rapid pushes keep cancelling builds and nothing ever finishes.
 
 Cancellation happens in three steps, all batched:
 

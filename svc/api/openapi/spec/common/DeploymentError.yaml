@@ -9,7 +9,7 @@ properties:
   step:
     type: string
     description: |
-      The pipeline step that failed (e.g. `building`, `deploying`, `starting`).
+      The pipeline step that failed (e.g. `queued`, `building`, `deploying`).
     example: deploying
   message:
     type: string
