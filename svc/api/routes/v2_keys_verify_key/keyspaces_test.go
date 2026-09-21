@@ -45,7 +45,6 @@ func TestVerifyKey_KeyspaceRejectionsDoNotConsumeQuota(t *testing.T) {
 		rootKey     string
 	}{
 		{name: "different keyspace", keyspaceIDs: []string{otherAPI.KeyAuthID.String}, rootKey: rootKey},
-		{name: "empty allowlist", keyspaceIDs: []string{}, rootKey: rootKey},
 		{name: "exact match required", keyspaceIDs: []string{api.KeyAuthID.String + "_suffix"}, rootKey: rootKey},
 		{name: "allowlist does not grant permission", keyspaceIDs: []string{api.KeyAuthID.String}, rootKey: otherAPIRootKey},
 		{name: "allowlist does not cross workspaces", keyspaceIDs: []string{api.KeyAuthID.String}, rootKey: otherWorkspaceRootKey},
@@ -113,7 +112,6 @@ func TestVerifyKey_KeyspaceAllowlistHidesInvalidKeys(t *testing.T) {
 				hidden    bool
 			}{
 				{name: "mismatch", keyspaces: ptr.P([]string{otherAPI.KeyAuthID.String}), hidden: true},
-				{name: "empty", keyspaces: ptr.P([]string{}), hidden: true},
 				{name: "matching", keyspaces: ptr.P([]string{api.KeyAuthID.String})},
 				{name: "omitted"},
 			} {
@@ -160,6 +158,7 @@ func TestVerifyKey_RejectsInvalidKeyspaceAllowlist(t *testing.T) {
 		{name: "null is not omission", value: `null`},
 		{name: "not an array", value: `"ks_test"`},
 		{name: "non-string entry", value: `[123]`},
+		{name: "empty allowlist", value: `[]`},
 		{name: "empty ID", value: `[""]`},
 		{name: "ID exceeds 256 characters", value: fmt.Sprintf(`[%q]`, strings.Repeat("x", 257))},
 		{name: "more than five IDs", value: `["a","b","c","d","e","f"]`},

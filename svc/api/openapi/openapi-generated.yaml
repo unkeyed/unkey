@@ -2614,6 +2614,7 @@ components:
                     "$ref": "#/components/schemas/KeysVerifyKeyCredits"
                 keyspaces:
                     type: array
+                    minItems: 1
                     maxItems: 5
                     items:
                         type: string
@@ -2621,7 +2622,7 @@ components:
                         maxLength: 256
                     description: |
                         Restricts verification to keys in these keyspaces, matched by exact ID.
-                        Omit this field to verify without a keyspace restriction. An empty array rejects every key.
+                        Omit this field to verify without a keyspace restriction.
                         A failed keyspace check returns `NOT_FOUND` without consuming credits or rate limits.
                     example:
                         - ks_1234abcd
