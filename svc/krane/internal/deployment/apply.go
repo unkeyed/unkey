@@ -41,10 +41,10 @@ import (
 // The namespace is created automatically if it doesn't exist. After the
 // ReplicaSet is applied a CiliumNetworkPolicy is installed in the same
 // namespace, owned by the ReplicaSet, that permits ingress only from
-// frontline pods on the deployment's container port. Pods run with gVisor
-// isolation (RuntimeClass "gvisor") since they execute untrusted user code,
-// and are scheduled on Karpenter-managed untrusted nodes with node- and
-// zone-spread constraints so replicas don't stack on a single node.
+// frontline pods on the deployment's container port. Pods run under the
+// configured RuntimeClass, gVisor in production, since they execute untrusted
+// user code, and are scheduled on Karpenter-managed untrusted nodes with
+// node- and zone-spread constraints so replicas don't stack on a single node.
 func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) (retErr error) {
 	defer func() { metrics.RecordReconcile("deployment", "apply", retErr) }()
 	logger.Info("applying deployment",
@@ -276,8 +276,13 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 		}}
 	}
 
+	var runtimeClass *string
+	if !c.disableGvisor {
+		runtimeClass = ptr.P(runtimeClassGvisor)
+	}
+
 	podSpec := corev1.PodSpec{
-		RuntimeClassName:             ptr.P(runtimeClassGvisor),
+		RuntimeClassName:             runtimeClass,
 		RestartPolicy:                corev1.RestartPolicyAlways,
 		AutomountServiceAccountToken: ptr.P(false),
 		EnableServiceLinks:           ptr.P(false),
