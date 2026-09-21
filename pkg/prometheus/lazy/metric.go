@@ -112,6 +112,11 @@ func NewCounter(opts prometheus.CounterOpts) *Counter {
 func (c *Counter) Inc()          { c.m.get().Inc() }
 func (c *Counter) Add(v float64) { c.m.get().Add(v) }
 
+// Register publishes the counter without changing its value. A lazy metric
+// stays absent from the registry until its first use, so a counter whose
+// healthy value is zero is missing from /metrics instead of reading zero.
+func (c *Counter) Register() { c.m.get() }
+
 // Gauge is a lazy-registering prometheus.Gauge.
 type Gauge struct{ m metric[prometheus.Gauge] }
 

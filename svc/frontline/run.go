@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	ratelimitmetrics "github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 
 	"github.com/unkeyed/unkey/pkg/batch"
@@ -122,6 +123,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
 	buildinfometrics.Register("frontline")
+	ratelimitmetrics.RegisterZeroBaseline()
 
 	if cfg.PrometheusPort > 0 {
 		prom, promErr := prometheus.NewWithRegistry(reg)

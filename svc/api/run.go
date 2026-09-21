@@ -22,6 +22,7 @@ import (
 	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/internal/services/portal"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
+	ratelimitmetrics "github.com/unkeyed/unkey/internal/services/ratelimit/metrics"
 
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
@@ -110,6 +111,7 @@ func Run(ctx context.Context, cfg Config) error {
 	reg.MustRegister(prometheus.NewSystemMetricsCollector())
 	lazy.SetRegistry(reg)
 	buildinfometrics.Register("api")
+	ratelimitmetrics.RegisterZeroBaseline()
 
 	// This is a little ugly, but the best we can do to resolve the circular dependency until we rework the logger.
 	var shutdownGrafana func(context.Context) error
