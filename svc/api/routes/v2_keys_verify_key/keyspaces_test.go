@@ -65,7 +65,7 @@ func TestVerifyKey_KeyspaceRejectionsDoNotConsumeQuota(t *testing.T) {
 	}, handler.Request{
 		Key: key.Key, Credits: &openapi.KeysVerifyKeyCredits{Cost: 2},
 		Keyspaces: ptr.P([]string{
-			otherAPI.KeyAuthID.String, "ks_second", "ks_third", strings.Repeat("x", 256), api.KeyAuthID.String,
+			otherAPI.KeyAuthID.String, "ks_second", "ks_third", strings.Repeat("x", 100), api.KeyAuthID.String,
 		}),
 	})
 	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
@@ -160,7 +160,7 @@ func TestVerifyKey_RejectsInvalidKeyspaceAllowlist(t *testing.T) {
 		{name: "non-string entry", value: `[123]`},
 		{name: "empty allowlist", value: `[]`},
 		{name: "empty ID", value: `[""]`},
-		{name: "ID exceeds 256 characters", value: fmt.Sprintf(`[%q]`, strings.Repeat("x", 257))},
+		{name: "ID exceeds 100 characters", value: fmt.Sprintf(`[%q]`, strings.Repeat("x", 101))},
 		{name: "more than five IDs", value: `["a","b","c","d","e","f"]`},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
