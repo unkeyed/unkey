@@ -14,7 +14,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
-	"github.com/unkeyed/unkey/svc/ctrl/internal/readiness"
 	"github.com/unkeyed/unkey/svc/ctrl/pkg/metrics"
 )
 
@@ -247,7 +246,12 @@ func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.D
 		}
 	}
 
-	healthyRegions := readiness.HealthyRegions(runningPerRegion, regionMinReplicas)
+	healthyRegions := 0
+	for regionID, minReplicas := range regionMinReplicas {
+		if runningPerRegion[regionID] >= max(minReplicas, 1) {
+			healthyRegions++
+		}
+	}
 
 	if healthyRegions < requiredRegions {
 		metrics.NotifyInstancesReadyTotal.WithLabelValues("threshold_not_met").Inc()

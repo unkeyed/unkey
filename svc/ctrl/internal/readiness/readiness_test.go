@@ -1,43 +1,35 @@
 package readiness
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
 
-func TestRequiredRunningInstances(t *testing.T) {
-	require.Equal(t, uint32(1), RequiredRunningInstances(0))
-	require.Equal(t, uint32(1), RequiredRunningInstances(1))
-	require.Equal(t, uint32(4), RequiredRunningInstances(4))
+type instancesDatabase struct {
+	db.Database
+	instances []db.Instance
 }
 
-func TestHealthyRegions(t *testing.T) {
-	t.Run("a region with no running instance is never healthy", func(t *testing.T) {
-		require.Equal(t, 0, HealthyRegions(
-			map[string]uint32{},
-			map[string]uint32{"us-east-1": 0, "eu-central-1": 1},
-		))
-	})
+func (d *instancesDatabase) FindInstancesByDeploymentId(context.Context, string) ([]db.Instance, error) {
+	return d.instances, nil
+}
 
-	t.Run("a region counts only once it runs its declared minimum", func(t *testing.T) {
-		require.Equal(t, 1, HealthyRegions(
-			map[string]uint32{"eu-central-1": 3},
-			map[string]uint32{"us-east-1": 0, "eu-central-1": 3},
-		))
-	})
+func TestInstancesHealthy_RequiresOneRunningInstanceWhenMinimumIsZero(t *testing.T) {
+	database := &instancesDatabase{}
+	regionMinReplicas := map[string]uint32{"us-east-1": 0}
 
-	t.Run("every running region with a satisfied minimum counts", func(t *testing.T) {
-		require.Equal(t, 2, HealthyRegions(
-			map[string]uint32{"us-east-1": 1, "eu-central-1": 2},
-			map[string]uint32{"us-east-1": 1, "eu-central-1": 2},
-		))
-	})
+	healthy, err := InstancesHealthy(t.Context(), database, "deployment_1", regionMinReplicas, 1)
+	require.NoError(t, err)
+	require.False(t, healthy)
 
-	t.Run("instances in undeclared regions do not count", func(t *testing.T) {
-		require.Equal(t, 0, HealthyRegions(
-			map[string]uint32{"ap-southeast-1": 5},
-			map[string]uint32{"us-east-1": 1},
-		))
-	})
+	database.instances = []db.Instance{{
+		RegionID: "us-east-1",
+		Status:   db.InstancesStatusRunning,
+	}}
+	healthy, err = InstancesHealthy(t.Context(), database, "deployment_1", regionMinReplicas, 1)
+	require.NoError(t, err)
+	require.True(t, healthy)
 }
