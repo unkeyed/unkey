@@ -34,7 +34,7 @@ service DeployWorkflow {
     option (dev.restate.sdk.go.handler_type) = WORKFLOW_RUN;
   }
 
-  // Build ends the queued step, then builds or resolves the image. Restate
+  // Build ends the queued step, then builds the image. Restate
   // counts this invocation against the workspace's build cap.
   rpc Build(DeployRequest) returns (BuildResponse) {
     option (dev.restate.sdk.go.handler_type) = SHARED;

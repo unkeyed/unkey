@@ -37,7 +37,7 @@ type DeployWorkflowClient interface {
 	Create(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy is the run: build, provision, wait for health, route.
 	Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *DeployResponse]
-	// Build ends the queued step, then builds or resolves the image. Restate
+	// Build ends the queued step, then builds the image. Restate
 	// counts this invocation against the workspace's build cap.
 	Build(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *BuildResponse]
 	// NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
@@ -102,7 +102,7 @@ type DeployWorkflowIngressClient interface {
 	Submit(ctx context.Context, input *DeployRequest, opts ...ingress.SendOption) (ingress.SendResponse[*DeployResponse], error)
 	// Handle creates an handle to the submitted workflow, useful to retrieve its output or attach to it
 	Handle() ingress.InvocationHandle[*DeployResponse]
-	// Build ends the queued step, then builds or resolves the image. Restate
+	// Build ends the queued step, then builds the image. Restate
 	// counts this invocation against the workspace's build cap.
 	Build() ingress.Requester[*DeployRequest, *BuildResponse]
 	// NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
@@ -173,7 +173,7 @@ type DeployWorkflowServer interface {
 	Create(ctx sdk_go.WorkflowSharedContext, req *DeployCreateRequest) (*DeployCreateResponse, error)
 	// Deploy is the run: build, provision, wait for health, route.
 	Deploy(ctx sdk_go.WorkflowContext, req *DeployRequest) (*DeployResponse, error)
-	// Build ends the queued step, then builds or resolves the image. Restate
+	// Build ends the queued step, then builds the image. Restate
 	// counts this invocation against the workspace's build cap.
 	Build(ctx sdk_go.WorkflowSharedContext, req *DeployRequest) (*BuildResponse, error)
 	// NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
