@@ -72,8 +72,7 @@ import { getDeploymentResourceSummary } from "./deploy/metrics/get-deployment-re
 import { getDeploymentRpsMetrics } from "./deploy/metrics/get-deployment-rps-metrics";
 import { generateDeploymentTree } from "./deploy/network/generate";
 import { getDeploymentTree } from "./deploy/network/get";
-import { getInstanceRps } from "./deploy/network/get-instance-rps";
-import { getRegionRps } from "./deploy/network/get-region-rps";
+import { getRps } from "./deploy/network/get-rps";
 import { creationContext } from "./deploy/project/creation-context";
 import { listProjects } from "./deploy/project/list";
 import { createSharedSecret } from "./share/create";
@@ -387,8 +386,7 @@ export const router = t.router({
     network: t.router({
       generate: generateDeploymentTree,
       get: getDeploymentTree,
-      getInstanceRps,
-      getRegionRps,
+      getRps,
     }),
     project: t.router({
       list: listProjects,

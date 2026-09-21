@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { type RequestLogsRequest, getRequestLogs, requestLogsRequestSchema } from "./frontline";
+import {
+  type RequestLogsRequest,
+  getDeploymentRpsBreakdown,
+  getRequestLogs,
+  requestLogsRequestSchema,
+} from "./frontline";
 import { CapturingQuerier } from "./test-utils";
 
 const baseRequest: RequestLogsRequest = {
@@ -83,5 +88,33 @@ describe("requestLogsRequestSchema", () => {
     expect(requestLogsRequestSchema.safeParse({ ...baseRequest, paths: [path] }).success).toBe(
       valid,
     );
+  });
+});
+
+describe("getDeploymentRpsBreakdown", () => {
+  it("serves the region and instance breakdowns from a single grouped query", async () => {
+    const ch = new CapturingQuerier();
+
+    await getDeploymentRpsBreakdown(ch)({
+      workspaceId: "ws_123",
+      projectId: "proj_123",
+      deploymentId: "dpl_123",
+      environmentId: "env_123",
+    });
+
+    expect(ch.queries).toHaveLength(1);
+    const [query] = ch.queries;
+    expect(query).toContain("workspace_id = {workspaceId: String}");
+    expect(query).toContain("project_id = {projectId: String}");
+    expect(query).toContain("deployment_id = {deploymentId: String}");
+    expect(query).toContain("environment_id = {environmentId: String}");
+    expect(query).toContain("GROUP BY region, instance_id");
+    expect(ch.params[0]).toMatchObject({
+      workspaceId: "ws_123",
+      projectId: "proj_123",
+      deploymentId: "dpl_123",
+      environmentId: "env_123",
+      windowMs: 15 * 60 * 1000,
+    });
   });
 });

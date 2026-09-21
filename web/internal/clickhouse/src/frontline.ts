@@ -60,7 +60,6 @@ const baseDeploymentParams = z.object({
   environmentId: z.string(),
 });
 
-const rpsResponseSchema = z.object({ avg_rps: z.number() });
 // quantile() returns NULL when the time window contains zero rows (no
 // traffic in the last N minutes). Allow null at the schema layer and let
 // callers coalesce to 0; the previous z.number() crashed the request.
@@ -275,59 +274,36 @@ export function getRequestDetails(ch: Querier) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Region / Instance RPS
+// Deployment RPS by Region and Instance
 // ─────────────────────────────────────────────────────────────
 
-export const regionRpsRequestSchema = baseDeploymentParams.extend({
+export const deploymentRpsBreakdownRequestSchema = baseDeploymentParams;
+
+const rpsBreakdownResponseSchema = z.object({
   region: z.string(),
+  instance_id: z.string(),
+  avg_rps: z.number(),
 });
 
-// Avg RPS for a region within a deployment over the rolling current-RPS
-// window. The table stores requests per instance, so summing over a region
-// is just COUNT() filtered by region — no Frontline join needed.
-export function getRegionRps(ch: Querier) {
-  return async (args: z.infer<typeof regionRpsRequestSchema>) => {
-    const query = ch.query({
-      query: `
-        SELECT round(COUNT(*) * 1000.0 / {windowMs: UInt64}, 2) as avg_rps
-        FROM ${TABLE}
-        WHERE ${SQL.deploymentFilter}
-          AND region = {region: String}
-          AND ${SQL.recentMinutes}`,
-      params: regionRpsRequestSchema.extend({
-        windowMinutes: z.number(),
-        windowMs: z.number(),
-      }),
-      schema: rpsResponseSchema,
-    });
-
-    return query({
-      ...args,
-      windowMinutes: CURRENT_RPS_WINDOW_MINUTES,
-      windowMs: CURRENT_RPS_WINDOW_MS,
-    });
-  };
-}
-
-export const instanceRpsRequestSchema = baseDeploymentParams.extend({
-  instanceId: z.string(),
-});
-
-export function getInstanceRps(ch: Querier) {
-  return async (args: z.infer<typeof instanceRpsRequestSchema>) => {
+// Avg RPS for a deployment over the rolling current-RPS window, broken down
+// by region and by instance. The deployment network view renders a card for
+// every region and every instance, so both breakdowns are taken from one
+// aggregation grouped on both dimensions.
+export function getDeploymentRpsBreakdown(ch: Querier) {
+  return async (args: z.infer<typeof deploymentRpsBreakdownRequestSchema>) => {
     const query = ch.query({
       query: `
         -- count * 1000 / ms = requests per second
-        SELECT round(COUNT(*) * 1000.0 / {windowMs: UInt64}, 2) as avg_rps
+        SELECT region, instance_id, round(COUNT(*) * 1000.0 / {windowMs: UInt64}, 2) as avg_rps
         FROM ${TABLE}
         WHERE ${SQL.deploymentFilter}
-          AND instance_id = {instanceId: String}
-          AND ${SQL.recentMinutes}`,
-      params: instanceRpsRequestSchema.extend({
+          AND ${SQL.recentMinutes}
+        GROUP BY region, instance_id`,
+      params: deploymentRpsBreakdownRequestSchema.extend({
         windowMinutes: z.number(),
         windowMs: z.number(),
       }),
-      schema: rpsResponseSchema,
+      schema: rpsBreakdownResponseSchema,
     });
 
     return query({

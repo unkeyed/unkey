@@ -1,5 +1,4 @@
 import { LastExitBadge } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/active-deployment-card";
-import { trpc } from "@/lib/trpc/client";
 import { IconLayers3Outline18 } from "@unkey/icons";
 import { CardFooter } from "./components/card-footer";
 import { CardHeader } from "./components/card-header";
@@ -9,7 +8,7 @@ import type { InstanceNode as InstanceNodeType, RegionNode as RegionNodeType } f
 type InstanceNodeProps = {
   node: InstanceNodeType;
   flagCode: RegionNodeType["metadata"]["flagCode"];
-  deploymentId?: string;
+  rps?: number;
 };
 
 // RECENT_CRASH_WINDOW_MS bounds how long a stale `lastExit` keeps the
@@ -21,18 +20,8 @@ type InstanceNodeProps = {
 // returns to its normal styling within one product feedback loop.
 const RECENT_CRASH_WINDOW_MS = 30 * 60 * 1000;
 
-export function InstanceNode({ node, flagCode, deploymentId }: InstanceNodeProps) {
+export function InstanceNode({ node, flagCode, rps }: InstanceNodeProps) {
   const { cpu, memory, health, lastExit } = node.metadata;
-
-  const { data: rps } = trpc.deploy.network.getInstanceRps.useQuery(
-    {
-      instanceId: node.id,
-    },
-    {
-      enabled: Boolean(deploymentId),
-      refetchInterval: 5000,
-    },
-  );
 
   // Promote the card to "unhealthy" styling whenever there's something
   // actively wrong. Two triggers:

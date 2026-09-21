@@ -1,5 +1,4 @@
 import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/region-flag";
-import { trpc } from "@/lib/trpc/client";
 import { InfoTooltip } from "@unkey/ui";
 import { CardFooter } from "./components/card-footer";
 import { CardHeader } from "./components/card-header";
@@ -8,26 +7,12 @@ import { REGION_INFO, type RegionNode as RegionNodeType } from "./types";
 
 type RegionNodeProps = {
   node: RegionNodeType;
-  deploymentId?: string;
+  rps?: number;
 };
 
-export function RegionNode({ node, deploymentId }: RegionNodeProps) {
+export function RegionNode({ node, rps }: RegionNodeProps) {
   const { flagCode, health, instances } = node.metadata;
   const regionInfo = REGION_INFO[flagCode];
-
-  // node.label is the region's name as it appears on
-  // frontline_requests_raw_v1.region, so we can filter ClickHouse by it
-  // directly without an extra DB lookup.
-  const { data: rps } = trpc.deploy.network.getRegionRps.useQuery(
-    {
-      deploymentId: deploymentId ?? "",
-      region: node.label,
-    },
-    {
-      enabled: Boolean(deploymentId),
-      refetchInterval: 5000,
-    },
-  );
 
   const instanceText =
     instances === 0

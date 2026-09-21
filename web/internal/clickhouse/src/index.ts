@@ -125,9 +125,8 @@ import {
 export { TIME_WINDOWS, type TimeWindow } from "./resources";
 import {
   getDeploymentLatencyWithTimeseries,
+  getDeploymentRpsBreakdown,
   getDeploymentRpsTimeseries,
-  getInstanceRps,
-  getRegionRps,
   getRequestDetails,
   getRequestLogs,
 } from "./frontline";
@@ -407,8 +406,7 @@ export class ClickHouse {
       logs: getRequestLogs(this.querier),
       requestDetails: getRequestDetails(this.querier),
       rps: {
-        byInstance: getInstanceRps(this.querier),
-        byRegion: getRegionRps(this.querier),
+        breakdown: getDeploymentRpsBreakdown(this.querier),
         timeseries: getDeploymentRpsTimeseries(this.querier),
       },
       latency: {

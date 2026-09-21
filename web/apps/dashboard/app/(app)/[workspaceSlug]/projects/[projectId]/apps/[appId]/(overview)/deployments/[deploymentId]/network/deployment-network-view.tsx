@@ -37,6 +37,16 @@ export function DeploymentNetworkView({ showNodeDetails = false }: DeploymentNet
     { refetchInterval: 2000 },
   );
 
+  // One query for every region and instance card on the canvas. Asking per
+  // card made the number of ClickHouse and deployment lookups scale with the
+  // number of nodes a deployment runs.
+  const { data: rps } = trpc.deploy.network.getRps.useQuery(
+    {
+      deploymentId: deployment.id,
+    },
+    { refetchInterval: 5000 },
+  );
+
   const currentTree = generatedTree ?? defaultTree ?? SKELETON_TREE;
   const isShowingSkeleton = isLoading && !generatedTree;
 
@@ -71,7 +81,7 @@ export function DeploymentNetworkView({ showNodeDetails = false }: DeploymentNet
           layout: { verticalOffset: -15, verticalSiblingSpacing: 0.5, horizontalIndent: 35 },
         }}
         onNodeClick={isShowingSkeleton ? undefined : (node) => setSelectedNode(node)}
-        renderNode={(node, parent) => renderDeploymentNode(node, parent, deployment.id)}
+        renderNode={(node, parent) => renderDeploymentNode(node, parent, rps)}
         renderConnection={(path, parent, child) => (
           <TreeConnectionLine key={`${parent.id}-${child.id}`} path={path} />
         )}
@@ -80,11 +90,16 @@ export function DeploymentNetworkView({ showNodeDetails = false }: DeploymentNet
   );
 }
 
+type NetworkRps = {
+  regions: Record<string, number>;
+  instances: Record<string, number>;
+};
+
 // renderDeployment function does not narrow types without type guards.
 function renderDeploymentNode(
   node: DeploymentNode,
   parent?: DeploymentNode,
-  deploymentId?: string,
+  rps?: NetworkRps,
 ): React.ReactNode {
   if (isSkeletonNode(node)) {
     return <SkeletonNode />;
@@ -95,7 +110,7 @@ function renderDeploymentNode(
   }
 
   if (isRegionNode(node)) {
-    return <RegionNode node={node} deploymentId={deploymentId} />;
+    return <RegionNode node={node} rps={rps?.regions[node.label]} />;
   }
 
   if (isInstanceNode(node)) {
@@ -103,7 +118,7 @@ function renderDeploymentNode(
       throw new Error("Instance node requires parent region");
     }
     return (
-      <InstanceNode node={node} flagCode={parent.metadata.flagCode} deploymentId={deploymentId} />
+      <InstanceNode node={node} flagCode={parent.metadata.flagCode} rps={rps?.instances[node.id]} />
     );
   }
 
