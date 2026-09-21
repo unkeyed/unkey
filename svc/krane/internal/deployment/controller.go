@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -59,6 +60,11 @@ type Controller struct {
 	// Get and post-RPC Set can't race with another concurrent event for the
 	// same ReplicaSet and both report the same state.
 	reportLocks keymutex.KeyMutex
+
+	// statusReportMu prevents a watch-driven report for a newly created
+	// ReplicaSet from racing ahead of an older regional inventory and then
+	// being removed by that inventory.
+	statusReportMu sync.RWMutex
 
 	// lagRecorder records pod watch delivery lag, deduplicated per
 	// (pod UID, transition time).
@@ -145,6 +151,7 @@ func New(cfg Config) *Controller {
 		fingerprints:     cfg.Fingerprints,
 		eventDedup:       cfg.EventDedup,
 		reportLocks:      keymutex.KeyMutex{},
+		statusReportMu:   sync.RWMutex{},
 		lagRecorder:      podstatus.NewLagRecorder("deployment", cfg.ObservedTransitions),
 		storageClassName: cfg.StorageClassName,
 	}
@@ -193,6 +200,15 @@ func (c *Controller) clusterKey() *ctrlv1.ClusterKey {
 // On success, the fingerprint for this report is cached so that
 // [Controller.reportIfChanged] can skip redundant reports during resync.
 func (c *Controller) reportDeploymentStatus(ctx context.Context, status *ctrlv1.ReportDeploymentStatusRequest) error {
+	c.statusReportMu.RLock()
+	defer c.statusReportMu.RUnlock()
+	return c.sendDeploymentStatus(ctx, status)
+}
+
+// sendDeploymentStatus sends a status report without taking statusReportMu.
+// The inventory resync holds the write lock while listing and uses this method
+// so watch-driven reports cannot overtake its snapshot.
+func (c *Controller) sendDeploymentStatus(ctx context.Context, status *ctrlv1.ReportDeploymentStatusRequest) error {
 	status.Cluster = c.clusterKey()
 	start := time.Now()
 	_, err := c.cb.Do(ctx, func(innerCtx context.Context) (any, error) {
@@ -206,15 +222,19 @@ func (c *Controller) reportDeploymentStatus(ctx context.Context, status *ctrlv1.
 	metrics.ReportStatusDurationSeconds.WithLabelValues("deployment", result).Observe(elapsed.Seconds())
 	rsName := ""
 	instanceCount := 0
+	inventoryCount := 0
 	if update := status.GetUpdate(); update != nil {
 		rsName = update.GetK8SName()
 		instanceCount = len(update.GetInstances())
 	} else if del := status.GetDelete(); del != nil {
 		rsName = del.GetK8SName()
+	} else if inventory := status.GetInventory(); inventory != nil {
+		inventoryCount = len(inventory.GetDeploymentIds())
 	}
 	logger.Info("report deployment status rpc",
 		"replicaSet", rsName,
 		"instances", instanceCount,
+		"inventory_replica_sets", inventoryCount,
 		"duration_ms", elapsed.Milliseconds(),
 		"result", result,
 	)
