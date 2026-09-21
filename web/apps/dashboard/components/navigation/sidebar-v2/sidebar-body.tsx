@@ -1,7 +1,6 @@
 "use client";
 
 import { useApiKeyAuthId } from "@/hooks/use-api-key-auth-id";
-import { useProject } from "@/hooks/use-project";
 import { useSectionContext } from "@/hooks/use-section-context";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useFlag } from "@/lib/flags/provider";
@@ -32,16 +31,12 @@ export function SidebarBody() {
   const portalManagement = useFlag("portalManagement");
   const projectsNav = useFlag("projectsNav");
   const { user } = useWorkspace();
-  const { project } = useProject();
 
   const workspaceSections = (segs: string[]) =>
     projectsNav
       ? buildProjectsNavWorkspaceSections(slug, segs, user?.role === "admin")
       : buildWorkspaceSections(slug, segs);
-  const projectLinks = (segs: string[], projectId: string) =>
-    projectsNav
-      ? buildProjectsNavProjectLinks(slug, projectId, segs, { isDefault: project?.isDefault })
-      : buildProjectLinks(slug, projectId, segs);
+  const projectLinks = projectsNav ? buildProjectsNavProjectLinks : buildProjectLinks;
 
   const links = (() => {
     switch (context.type) {
@@ -56,7 +51,7 @@ export function SidebarBody() {
       case "project":
         return context.appId
           ? buildAppLinks(slug, context.projectId, context.appId, segments)
-          : projectLinks(segments, context.projectId);
+          : projectLinks(slug, context.projectId, segments);
       case "api":
         return buildApiLinks(
           { workspaceSlug: slug, apiId: context.apiId, projectId: context.projectId },
@@ -71,7 +66,7 @@ export function SidebarBody() {
         );
       case "identity":
         return context.projectId
-          ? projectLinks(segments, context.projectId)
+          ? projectLinks(slug, context.projectId, segments)
           : workspaceSections(segments);
     }
   })();

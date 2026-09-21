@@ -3,7 +3,6 @@ import { buildProjectLinks, buildWorkspaceSections } from "./leaves-projects";
 
 const ws = "acme";
 const projectId = "proj_123";
-const regular = { isDefault: false };
 
 const rows = (links: ReturnType<typeof buildWorkspaceSections>) =>
   links.map(({ key, label, href, isActive }) => ({ key, label, href, isActive }));
@@ -55,7 +54,7 @@ describe("projects-first workspace sections", () => {
 
 describe("projects-first project links", () => {
   it("lists the eight project sections in order", () => {
-    expect(rows(buildProjectLinks(ws, projectId, ["projects", projectId], regular))).toEqual([
+    expect(rows(buildProjectLinks(ws, projectId, ["projects", projectId]))).toEqual([
       { key: "apps", label: "Apps", href: "/acme/projects/proj_123", isActive: true },
       {
         key: "keyspaces",
@@ -105,38 +104,21 @@ describe("projects-first project links", () => {
     ["requests", "requests"],
     ["settings", "settings"],
   ])("marks %s active on its own segment", (segment, key) => {
-    const active = buildProjectLinks(
-      ws,
-      projectId,
-      ["projects", projectId, segment],
-      regular,
-    ).filter((link) => link.isActive);
+    const active = buildProjectLinks(ws, projectId, ["projects", projectId, segment]).filter(
+      (link) => link.isActive,
+    );
     expect(active.map((link) => link.key)).toEqual([key]);
   });
 
   it("marks authorization active on both roles and permissions", () => {
     for (const leaf of ["roles", "permissions"]) {
-      const active = buildProjectLinks(
-        ws,
+      const active = buildProjectLinks(ws, projectId, [
+        "projects",
         projectId,
-        ["projects", projectId, "authorization", leaf],
-        regular,
-      ).filter((link) => link.isActive);
+        "authorization",
+        leaf,
+      ]).filter((link) => link.isActive);
       expect(active.map((link) => link.key)).toEqual(["authorization"]);
     }
-  });
-
-  it("withholds the deploy surface until the project row has loaded", () => {
-    const keys = buildProjectLinks(ws, projectId, ["projects", projectId], {
-      isDefault: undefined,
-    }).map((link) => link.key);
-    expect(keys).toEqual(["keyspaces", "ratelimits", "authorization", "identities", "settings"]);
-  });
-
-  it("drops the deploy surface (apps, logs, requests) for the default project", () => {
-    const keys = buildProjectLinks(ws, projectId, ["projects", projectId], {
-      isDefault: true,
-    }).map((link) => link.key);
-    expect(keys).toEqual(["keyspaces", "ratelimits", "authorization", "identities", "settings"]);
   });
 });

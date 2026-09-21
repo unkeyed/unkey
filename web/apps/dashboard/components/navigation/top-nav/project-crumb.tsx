@@ -20,11 +20,7 @@ export function ProjectCrumb({ owner }: { owner: ProjectOwner }) {
   const items: CrumbPopoverItem[] = projects.map((p) => ({
     id: p.id,
     label: projectDisplayName(p, workspace.name),
-    href: routes.projects.home({
-      workspaceSlug: workspace.slug,
-      projectId: p.id,
-      isDefault: p.isDefault,
-    }),
+    href: routes.projects.detail({ workspaceSlug: workspace.slug, projectId: p.id }),
   }));
 
   return (
@@ -34,11 +30,7 @@ export function ProjectCrumb({ owner }: { owner: ProjectOwner }) {
       loading={loading}
       href={
         projectId
-          ? routes.projects.home({
-              workspaceSlug: workspace.slug,
-              projectId,
-              isDefault: current?.isDefault ?? false,
-            })
+          ? routes.projects.detail({ workspaceSlug: workspace.slug, projectId })
           : routes.projects.list({ workspaceSlug: workspace.slug })
       }
       items={items}

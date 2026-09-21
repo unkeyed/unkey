@@ -1,6 +1,5 @@
 "use client";
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
-import { useProject } from "@/hooks/use-project";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { IconPlusOutline18 } from "@unkey/icons";
@@ -14,7 +13,7 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import Link from "next/link";
-import { redirect, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { AppsList } from "./_components/apps-list";
 
 export default function ProjectPage() {
@@ -22,14 +21,6 @@ export default function ProjectPage() {
   const workspace = useWorkspaceNavigation();
   const projectId = typeof params?.projectId === "string" ? params.projectId : "";
   const { gated, openPaywall, planGate } = useDeployActionGate();
-  const { project } = useProject();
-
-  if (!project) {
-    return null;
-  }
-  if (project.isDefault) {
-    redirect(routes.apis.list({ workspaceSlug: workspace.slug, projectId }));
-  }
 
   return (
     <PageContainer className="flex-1">

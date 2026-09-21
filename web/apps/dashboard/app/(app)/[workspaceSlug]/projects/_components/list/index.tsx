@@ -73,11 +73,10 @@ export const ProjectsList = () => {
           <ProximityPrefetch distance={300} debounceDelay={150} key={project.id}>
             <ProjectCard
               projectId={project.id}
-              isDefault={project.isDefault}
               name={projectDisplayName(project, workspace.name)}
               apps={project.apps}
               actions={
-                <ProjectActions projectId={project.id} isDefault={project.isDefault}>
+                <ProjectActions projectId={project.id}>
                   <Button variant="ghost" size="icon" className="shrink-0" title="Project actions">
                     <IconDotsOutline18 />
                   </Button>

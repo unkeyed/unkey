@@ -68,22 +68,17 @@ export function buildProjectLinks(
   slug: string,
   projectId: string,
   segments: string[],
-  // isDefault is undefined until the project row has loaded; the deploy links wait for it.
-  { isDefault }: { isDefault: boolean | undefined },
 ): ResolvedNavLink[] {
   const page = segments[2];
   const scope = { workspaceSlug: slug, projectId };
-  const deploy = (links: ResolvedNavLink[]) => (isDefault === false ? links : []);
   return [
-    ...deploy([
-      {
-        key: "apps",
-        label: "Apps",
-        href: routes.projects.detail(scope),
-        icon: IconCubeOutline18,
-        isActive: !page,
-      },
-    ]),
+    {
+      key: "apps",
+      label: "Apps",
+      href: routes.projects.detail(scope),
+      icon: IconCubeOutline18,
+      isActive: !page,
+    },
     {
       key: "keyspaces",
       label: "Keyspaces",
@@ -112,22 +107,20 @@ export function buildProjectLinks(
       icon: IconFingerprintOutline18,
       isActive: page === "identities",
     },
-    ...deploy([
-      {
-        key: "logs",
-        label: "Logs",
-        href: routes.projects.logs(scope),
-        icon: IconLayers3Outline18,
-        isActive: page === "logs",
-      },
-      {
-        key: "requests",
-        label: "Requests",
-        href: routes.projects.requests(scope),
-        icon: IconArrowsOppositeDirectionYOutline18,
-        isActive: page === "requests",
-      },
-    ]),
+    {
+      key: "logs",
+      label: "Logs",
+      href: routes.projects.logs(scope),
+      icon: IconLayers3Outline18,
+      isActive: page === "logs",
+    },
+    {
+      key: "requests",
+      label: "Requests",
+      href: routes.projects.requests(scope),
+      icon: IconArrowsOppositeDirectionYOutline18,
+      isActive: page === "requests",
+    },
     {
       key: "settings",
       label: "Project Settings",
