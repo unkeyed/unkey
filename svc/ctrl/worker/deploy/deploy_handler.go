@@ -502,17 +502,9 @@ func (w *Workflow) buildImage(ctx restate.ObjectContext, req *hydrav1.DeployRequ
 	return nil
 }
 
-// createTopologies determines the target regions and replica counts, bulk-inserts
-// the deployment topology records, and writes deployment_changes entries so that
-// Watch RPCs pick up the new state.
-//
-// Region selection uses the environment's runtime settings: if a region config is
-// present, only those regions are used with their configured replica counts;
-// otherwise the deployment fails with a terminal error.
-//
-// createTopologies also registers compensations for every inserted
-// topology. Compensation deletes by deployment, region, and version so retries
-// never remove topologies created by a newer attempt.
+// createTopologies saves the deployment's regions and replica counts from its
+// runtime settings. Missing region settings fail the deployment.
+// If a later step fails, cleanup stops these topologies but keeps the rows.
 func (w *Workflow) createTopologies(
 	ctx restate.ObjectContext,
 	compensation *compensation.Compensation,
@@ -642,28 +634,11 @@ func (w *Workflow) createTopologies(
 	}
 
 	err = restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-			now := time.Now().UnixMilli()
-			for i := range topologies {
-				topologies[i].CreatedAt = now
-			}
-			err := db.NewBulkQueries(tx).InsertDeploymentTopologies(txCtx, topologies)
-			if err != nil {
-				return err
-			}
-			for _, topo := range topologies {
-				err := db.NewQueries(tx).InsertDeploymentChange(txCtx, db.InsertDeploymentChangeParams{
-					ResourceType: db.DeploymentChangesResourceTypeDeploymentTopology,
-					ResourceID:   topo.DeploymentID,
-					RegionID:     topo.RegionID,
-					CreatedAt:    now,
-				})
-				if err != nil {
-					return err
-				}
-			}
-			return nil
-		})
+		now := time.Now().UnixMilli()
+		for i := range topologies {
+			topologies[i].CreatedAt = now
+		}
+		return w.db.Bulk().InsertDeploymentTopologies(runCtx, topologies)
 	}, restate.WithName("insert deployment topologies"), restate.WithMaxRetryAttempts(runMaxAttempts))
 	if err != nil {
 		return nil, fault.Wrap(
@@ -672,32 +647,16 @@ func (w *Workflow) createTopologies(
 		)
 	}
 
-	// On failure, mark each topology desired_status=stopped so krane scales
-	// the pods to zero immediately via the streaming change feed. Deleting
-	// the row instead would also work (the 60s reconciliation safety net
-	// catches it) but updating gives an explicit signal with no cleanup
-	// lag, and preserves the topology row for debugging.
+	// Keep stopped rows for debugging instead of deleting them.
 	for _, topo := range topologies {
 		compensation.Add(
 			fmt.Sprintf("stop deployment topology %s/%s", topo.DeploymentID, topo.RegionID),
 			func(runCtx restate.RunContext) error {
-				return db.Tx(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-					now := time.Now().UnixMilli()
-					err := db.NewQueries(tx).UpdateDeploymentTopologyDesiredStatus(txCtx, db.UpdateDeploymentTopologyDesiredStatusParams{
-						DeploymentID:  topo.DeploymentID,
-						RegionID:      topo.RegionID,
-						DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
-						UpdatedAt:     sql.NullInt64{Valid: true, Int64: now},
-					})
-					if err != nil {
-						return err
-					}
-					return db.NewQueries(tx).InsertDeploymentChange(txCtx, db.InsertDeploymentChangeParams{
-						ResourceType: db.DeploymentChangesResourceTypeDeploymentTopology,
-						ResourceID:   topo.DeploymentID,
-						RegionID:     topo.RegionID,
-						CreatedAt:    now,
-					})
+				return w.db.UpdateDeploymentTopologyDesiredStatus(runCtx, db.UpdateDeploymentTopologyDesiredStatusParams{
+					DeploymentID:  topo.DeploymentID,
+					RegionID:      topo.RegionID,
+					DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
+					UpdatedAt:     sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				})
 			},
 		)

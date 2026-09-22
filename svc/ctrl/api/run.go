@@ -36,6 +36,7 @@ import (
 	stripewebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/stripe"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/app"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
@@ -118,6 +119,11 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.Defer(database.Close)
 
+	deploymentStream, err := deploymentstream.New(cfg.VStream)
+	if err != nil {
+		return fmt.Errorf("unable to configure deployment stream: %w", err)
+	}
+
 	// Restate ingress client for invoking workflows
 	restateClientOpts := []restateIngress.ClientOption{}
 	if cfg.Restate.APIKey != "" {
@@ -175,14 +181,15 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	c, err := cluster.New(cluster.Config{
-		Database:       database,
-		Restate:        restateClient,
-		RestateAdmin:   restateAdminClient,
-		Bearer:         cfg.AuthToken,
-		Clock:          clk,
-		TopologyCache:  topologyCache,
-		InstanceEvents: instanceEvents,
-		RegionalDomain: cfg.RegionalDomain,
+		DeploymentStream: deploymentStream,
+		Database:         database,
+		Restate:          restateClient,
+		RestateAdmin:     restateAdminClient,
+		Bearer:           cfg.AuthToken,
+		Clock:            clk,
+		TopologyCache:    topologyCache,
+		InstanceEvents:   instanceEvents,
+		RegionalDomain:   cfg.RegionalDomain,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create cluster service: %w", err)
