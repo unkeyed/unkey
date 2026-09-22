@@ -175,6 +175,7 @@ func (c *Controller) Run(ctx context.Context) {
 	wg.Go(func() { c.runActualStateResyncLoop(ctx) })
 	wg.Go(func() { c.runDesiredStateResyncLoop(ctx) })
 	wg.Go(func() { c.runPodWatchLoop(ctx) })
+
 	wg.Wait()
 }
 

@@ -69,8 +69,10 @@ func (c *Controller) runDesiredStateResyncLoop(ctx context.Context) {
 
 func (c *Controller) runResyncLoop(ctx context.Context, interval time.Duration, resync func()) {
 	resync()
+
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():

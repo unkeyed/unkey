@@ -30,9 +30,11 @@ func TestRunPodWatchLoopRetriesStartupAndReconnectFailures(t *testing.T) {
 				return true, second, nil
 			}
 		})
+
 		ctrl := &Controller{clientSet: client}
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
+
 		done := make(chan struct{})
 		go func() {
 			ctrl.runPodWatchLoop(ctx)
@@ -40,10 +42,12 @@ func TestRunPodWatchLoopRetriesStartupAndReconnectFailures(t *testing.T) {
 		}()
 		time.Sleep(11 * time.Second)
 		require.Equal(t, int32(3), attempts.Load())
+
 		close(first.result)
 		time.Sleep(16 * time.Second)
 		require.Equal(t, int32(6), attempts.Load())
 		require.True(t, first.stopped.Load())
+
 		cancel()
 		synctest.Wait()
 		require.True(t, second.stopped.Load())
@@ -63,9 +67,11 @@ func TestRunPodWatchLoopCancellationInterruptsBackoff(t *testing.T) {
 			attempts.Add(1)
 			return true, nil, errors.New("watch unavailable")
 		})
+
 		ctrl := &Controller{clientSet: client}
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
+
 		done := make(chan struct{})
 		go func() {
 			ctrl.runPodWatchLoop(ctx)
@@ -73,6 +79,7 @@ func TestRunPodWatchLoopCancellationInterruptsBackoff(t *testing.T) {
 		}()
 		synctest.Wait()
 		require.Equal(t, int32(1), attempts.Load())
+
 		cancel()
 		synctest.Wait()
 		select {

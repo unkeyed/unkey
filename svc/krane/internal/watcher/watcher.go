@@ -66,6 +66,7 @@ func (s *Watcher) Watch(ctx context.Context) error {
 	var dispatches sync.WaitGroup
 	loops.Go(func() { s.runPeriodicFullSync(ctx, &dispatches) })
 	loops.Go(func() { s.runStream(ctx) })
+
 	loops.Wait()
 	dispatches.Wait()
 	return nil
@@ -157,6 +158,7 @@ func waitReconnect(ctx context.Context) bool {
 	jitter := reconnectMin + time.Millisecond*time.Duration(rand.Float64()*float64(reconnectMax.Milliseconds()-reconnectMin.Milliseconds()))
 	timer := time.NewTimer(jitter)
 	defer timer.Stop()
+
 	select {
 	case <-ctx.Done():
 		return false
@@ -203,6 +205,7 @@ func (s *Watcher) doFullSync(ctx context.Context, dispatches *sync.WaitGroup) {
 		}
 		dispatches.Go(func() {
 			defer s.sem.Release(1)
+
 			resourceType := eventResourceType(event)
 			if err := s.dispatch(ctx, event); err != nil {
 				metrics.DispatchTotal.WithLabelValues("full_sync", resourceType, "error").Inc()

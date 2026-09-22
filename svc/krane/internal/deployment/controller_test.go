@@ -70,13 +70,16 @@ func TestRunStopsWatchAndResyncLoops(t *testing.T) {
 			lists.Add(1)
 			return false, nil, nil
 		})
+
 		w := &stubbornWatch{result: make(chan watch.Event)}
 		client.PrependWatchReactor("pods", func(ktesting.Action) (bool, watch.Interface, error) {
 			return true, w, nil
 		})
+
 		ctrl := New(Config{ClientSet: client})
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
+
 		done := make(chan struct{})
 		go func() {
 			ctrl.Run(ctx)
@@ -84,6 +87,7 @@ func TestRunStopsWatchAndResyncLoops(t *testing.T) {
 		}()
 		synctest.Wait()
 		require.Equal(t, int32(2), lists.Load())
+
 		cancel()
 		synctest.Wait()
 		select {
@@ -92,6 +96,7 @@ func TestRunStopsWatchAndResyncLoops(t *testing.T) {
 			t.Fatal("controller did not stop after cancellation")
 		}
 		require.True(t, w.stopped.Load())
+
 		time.Sleep(2 * time.Minute)
 		require.Equal(t, int32(2), lists.Load())
 	})

@@ -145,7 +145,6 @@ func Run(ctx context.Context, cfg Config) error {
 
 	leaseConfig := rest.CopyConfig(inClusterConfig)
 	leaseConfig.Timeout = 5 * time.Second
-
 	leaseClient, err := kubernetes.NewForConfig(leaseConfig)
 	if err != nil {
 		return fmt.Errorf("create leader election client: %w", err)
