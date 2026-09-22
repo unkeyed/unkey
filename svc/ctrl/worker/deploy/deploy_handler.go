@@ -208,18 +208,32 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		}
 
 		workspace, err = restate.Run(ctx, func(runCtx restate.RunContext) (db.Workspace, error) {
-			ws, findErr := w.db.FindWorkspaceByID(runCtx, deployment.WorkspaceID)
-			if findErr != nil {
-				if db.IsNotFound(findErr) {
-					return db.Workspace{}, fault.Wrap(
-						restate.ToTerminalError(errors.New("workspace not found")),
-						fault.Public("The workspace for this deployment no longer exists."),
-					)
+			var ws db.Workspace
+			err := db.TxRetry(runCtx, w.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
+				found, err := db.NewQueries(tx).FindWorkspaceByID(txCtx, deployment.WorkspaceID)
+				if err != nil {
+					if db.IsNotFound(err) {
+						return fault.Wrap(
+							restate.ToTerminalError(errors.New("workspace not found")),
+							fault.Public("The workspace for this deployment no longer exists."),
+						)
+					}
+					return fault.Wrap(err, fault.Public("Failed to read from database. Please try again."))
 				}
-				return db.Workspace{}, fault.Wrap(findErr, fault.Public("Failed to read from database. Please try again."))
-			}
+				ws = found
 
-			return ws, nil
+				if found.K8sNamespace == "" {
+					ws.K8sNamespace = uid.DNS1035()
+					return db.NewQueries(tx).SetWorkspaceK8sNamespace(txCtx, db.SetWorkspaceK8sNamespaceParams{
+						ID:           ws.ID,
+						K8sNamespace: ws.K8sNamespace,
+					})
+				}
+
+				return nil
+			})
+
+			return ws, err
 		}, restate.WithName("find workspace"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
 			return fault.Wrap(err, fault.Public("Workspace settings could not be initialized."))
