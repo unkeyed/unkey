@@ -126,14 +126,14 @@
 }
 
 /*
- * The widget scope remaps --accent-12 and --gray-* to color-mix ramps for Radix
+ * The widget scope remaps --gray-* to color-mix ramps for Radix
  * internals, which only approximate the dashboard's real gray tokens (close in
  * light mode, visibly off in dark). Capture the real triples outside the scope
  * so controls that must match @unkey/ui exactly (buttons, inputs) can reference
  * them as hsl(var(--unkey-*)).
  */
 :where(body) {
-  --unkey-accent-12: var(--accent-12);
+  --unkey-gray-12: var(--gray-12);
   --unkey-gray-2: var(--gray-2);
   --unkey-gray-5: var(--gray-5);
   --unkey-gray-8: var(--gray-8);
@@ -199,18 +199,18 @@
 .woswidgets-button[data-woswidgets-element="primary-button"],
 .woswidgets-button--primary {
   border-color: hsla(var(--grayA-4));
-  background-color: hsl(var(--unkey-accent-12));
+  background-color: hsl(var(--unkey-gray-12));
   color: light-dark(white, black);
 }
 
 .woswidgets-button[data-woswidgets-element="primary-button"]:hover:not(:disabled),
 .woswidgets-button--primary:hover:not(:disabled) {
-  background-color: hsla(var(--unkey-accent-12), 0.9);
+  background-color: hsla(var(--unkey-gray-12), 0.9);
 }
 
 .woswidgets-button[data-woswidgets-element="primary-button"]:active:not(:disabled),
 .woswidgets-button--primary:active:not(:disabled) {
-  background-color: hsla(var(--unkey-accent-12), 0.8);
+  background-color: hsla(var(--unkey-gray-12), 0.8);
 }
 
 .woswidgets-button[data-woswidgets-element="secondary-button"],
