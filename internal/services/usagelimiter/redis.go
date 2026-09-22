@@ -53,7 +53,7 @@ type counterService struct {
 	dbFallback Service
 
 	// Replay buffer for async DB updates
-	replayBuffer *buffer.Buffer[CreditChange]
+	replayBuffer buffer.Buffer[CreditChange]
 
 	// Circuit breaker for DB writes
 	dbCircuitBreaker circuitbreaker.CircuitBreaker[any]
