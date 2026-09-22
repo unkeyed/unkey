@@ -1984,12 +1984,6 @@ type Querier interface {
 	//      updated_at_m = ?
 	//  WHERE workspace_id = ?
 	SetWorkspaceDeploySpendSuspended(ctx context.Context, arg SetWorkspaceDeploySpendSuspendedParams) error
-	//SetWorkspaceK8sNamespace
-	//
-	//  UPDATE `workspaces`
-	//  SET k8s_namespace = ?
-	//  WHERE id = ? AND k8s_namespace = ''
-	SetWorkspaceK8sNamespace(ctx context.Context, arg SetWorkspaceK8sNamespaceParams) error
 	//SoftDeleteKeyByID
 	//
 	//  UPDATE `keys` SET deleted_at_m = ? WHERE id = ?
