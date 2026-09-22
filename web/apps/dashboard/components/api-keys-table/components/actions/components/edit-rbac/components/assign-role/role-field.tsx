@@ -12,7 +12,6 @@ type RoleFieldProps = {
   onChange: (names: string[]) => void;
   error?: string;
   disabled?: boolean;
-  keyId?: string;
   assignedRoleDetails: KeyRole[];
 };
 
@@ -21,7 +20,6 @@ export const RoleField = ({
   onChange,
   error,
   disabled = false,
-  keyId,
   assignedRoleDetails,
 }: RoleFieldProps) => {
   const [searchValue, setSearchValue] = useState("");
@@ -52,7 +50,6 @@ export const RoleField = ({
     roles: allRoles,
     hasNextPage: showLoadMore,
     isFetchingNextPage,
-    keyId,
     previouslySelectedRoleNames: assignedRoleDetails.map((r) => r.name),
     loadMore,
   });
