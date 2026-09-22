@@ -89,11 +89,19 @@ func (s *Watcher) runStream(ctx context.Context) {
 			ResumeToken: resumeToken,
 		})
 		if err != nil {
-			if shouldResetResumeToken(err) {
+			resetResumeToken := shouldResetResumeToken(err)
+			if resetResumeToken {
 				resumeToken = nil
 			}
 			metrics.StreamConnectionsTotal.WithLabelValues("error").Inc()
-			logger.Error("stream: error opening connection", "error", err)
+			logger.Error("stream: error opening connection",
+				"cell_id", s.cellID,
+				"region", s.region,
+				"platform", s.platform,
+				"failures", failures,
+				"resume_token_reset", resetResumeToken,
+				"error", err,
+			)
 		} else {
 			metrics.StreamConnectionsTotal.WithLabelValues("success").Inc()
 			var checkpointAccepted bool
@@ -108,7 +116,12 @@ func (s *Watcher) runStream(ctx context.Context) {
 		}
 		failures++
 		if failures >= 3 {
-			logger.Warn("stream: restarting snapshot after consecutive failures")
+			logger.Warn("stream: restarting snapshot after consecutive failures",
+				"cell_id", s.cellID,
+				"region", s.region,
+				"platform", s.platform,
+				"failures", failures,
+			)
 			resumeToken = nil
 			failures = 0
 		}
