@@ -317,3 +317,16 @@ func TestBuildReplicaSet_NoSecretsOmitsEnvFrom(t *testing.T) {
 	require.Empty(t, mainContainer(t, rs).EnvFrom)
 	require.Empty(t, rs.Spec.Template.Spec.ServiceAccountName)
 }
+
+// TestBuildReplicaSet_GvisorToggle pins both ends: pods are sandboxed by
+// default, and disabling it leaves them on the node's default runtime rather
+// than naming a RuntimeClass the node may not have.
+func TestBuildReplicaSet_GvisorToggle(t *testing.T) {
+	rs := testController().buildReplicaSet(fullApplyRequest(t), true)
+	require.Equal(t, ptr.P(runtimeClassGvisor), rs.Spec.Template.Spec.RuntimeClassName)
+
+	c := testController()
+	c.disableGvisor = true
+	rs = c.buildReplicaSet(fullApplyRequest(t), true)
+	require.Nil(t, rs.Spec.Template.Spec.RuntimeClassName)
+}
