@@ -65,19 +65,24 @@ func TestWatchWaitsForBothLoopsOnCancellation(t *testing.T) {
 				return block(ctx)
 			},
 		}
+
 		w := New(Config{Cluster: client})
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
+
 		result := make(chan error, 1)
 		go func() { result <- w.Watch(ctx) }()
 		time.Sleep(6 * time.Second)
 		require.Equal(t, int32(2), calls.Load())
+
 		cancel()
 		synctest.Wait()
 		require.Empty(t, result)
+
 		close(drain)
 		synctest.Wait()
 		require.NoError(t, <-result)
+
 		time.Sleep(11 * time.Minute)
 		require.Equal(t, int32(2), calls.Load())
 	})
@@ -97,6 +102,7 @@ func TestWatchJoinsInFlightDispatchAfterStreamCloses(t *testing.T) {
 		})
 	}))
 	t.Cleanup(server.Close)
+
 	streamClient := connect.NewClient[ctrlv1.SyncDesiredStateRequest, ctrlv1.DeploymentChangeEvent](server.Client(), server.URL+"/sync")
 	reportStarted := make(chan struct{})
 	reportCancelled := make(chan struct{})
@@ -117,6 +123,7 @@ func TestWatchJoinsInFlightDispatchAfterStreamCloses(t *testing.T) {
 			return nil, ctx.Err()
 		},
 	}
+
 	w := New(Config{
 		Cluster: client,
 		Deployments: deployment.New(deployment.Config{
@@ -128,6 +135,7 @@ func TestWatchJoinsInFlightDispatchAfterStreamCloses(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 	t.Cleanup(func() { close(drain) })
+
 	result := make(chan error, 1)
 	go func() { result <- w.Watch(ctx) }()
 	select {
@@ -135,6 +143,7 @@ func TestWatchJoinsInFlightDispatchAfterStreamCloses(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("full sync did not dispatch deletion")
 	}
+
 	cancel()
 	select {
 	case <-reportCancelled:
@@ -146,6 +155,7 @@ func TestWatchJoinsInFlightDispatchAfterStreamCloses(t *testing.T) {
 		t.Fatal("watch returned before dispatch drained")
 	case <-time.After(50 * time.Millisecond):
 	}
+
 	drain <- struct{}{}
 	select {
 	case err := <-result:

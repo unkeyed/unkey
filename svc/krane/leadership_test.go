@@ -26,12 +26,14 @@ func TestLeadershipHandoverWaitsForWorkers(t *testing.T) {
 		defer cancelA()
 		ctxB, cancelB := context.WithCancel(t.Context())
 		defer cancelB()
+
 		var active atomic.Int32
 		var overlap atomic.Bool
 		var startsB atomic.Int32
 		drainA := make(chan struct{})
 		resultA := make(chan error, 1)
 		resultB := make(chan error, 1)
+
 		go func() {
 			resultA <- runWithLeadership(ctxA, client, "unkey", "a", func(ctx context.Context) {
 				if active.Add(1) != 1 {
@@ -44,6 +46,7 @@ func TestLeadershipHandoverWaitsForWorkers(t *testing.T) {
 		}()
 		synctest.Wait()
 		require.Equal(t, int32(1), active.Load())
+
 		go func() {
 			resultB <- runWithLeadership(ctxB, client, "unkey", "b", func(ctx context.Context) {
 				startsB.Add(1)
@@ -56,18 +59,21 @@ func TestLeadershipHandoverWaitsForWorkers(t *testing.T) {
 		}()
 		time.Sleep(6 * time.Second)
 		require.Zero(t, startsB.Load())
+
 		cancelA()
 		synctest.Wait()
 		lease, err := client.CoordinationV1().Leases("unkey").Get(t.Context(), "krane", metav1.GetOptions{})
 		require.NoError(t, err)
 		require.Equal(t, "a", *lease.Spec.HolderIdentity)
 		require.Empty(t, resultA)
+
 		close(drainA)
 		synctest.Wait()
 		require.NoError(t, <-resultA)
 		time.Sleep(5 * time.Second)
 		require.Equal(t, int32(1), startsB.Load())
 		require.False(t, overlap.Load())
+
 		cancelB()
 		synctest.Wait()
 		require.NoError(t, <-resultB)
@@ -84,6 +90,7 @@ func TestLeadershipRecoversFromStartupAndRenewalOutages(t *testing.T) {
 		var active atomic.Int32
 		var starts atomic.Int32
 		result := make(chan error, 1)
+
 		go func() {
 			result <- runWithLeadership(ctx, client, "unkey", "a", func(ctx context.Context) {
 				starts.Add(1)
@@ -95,17 +102,21 @@ func TestLeadershipRecoversFromStartupAndRenewalOutages(t *testing.T) {
 		time.Sleep(20 * time.Second)
 		require.Zero(t, starts.Load())
 		require.Empty(t, result)
+
 		unavailable.Store(false)
 		time.Sleep(5 * time.Second)
 		require.Equal(t, int32(1), active.Load())
+
 		unavailable.Store(true)
 		time.Sleep(14 * time.Second)
 		require.Zero(t, active.Load())
 		require.Empty(t, result)
+
 		unavailable.Store(false)
 		time.Sleep(5 * time.Second)
 		require.Equal(t, int32(1), active.Load())
 		require.Equal(t, int32(2), starts.Load())
+
 		cancel()
 		synctest.Wait()
 		require.NoError(t, <-result)
@@ -120,10 +131,12 @@ func TestLeadershipCancellationBeforeAcquisition(t *testing.T) {
 		ctx, cancel := context.WithCancel(t.Context())
 		var starts atomic.Int32
 		result := make(chan error, 1)
+
 		go func() {
 			result <- runWithLeadership(ctx, client, "unkey", "a", func(context.Context) { starts.Add(1) })
 		}()
 		synctest.Wait()
+
 		cancel()
 		synctest.Wait()
 		require.NoError(t, <-result)
@@ -139,12 +152,14 @@ func TestReleaseLeadershipPreservesOtherHolder(t *testing.T) {
 		Spec:       coordinationv1.LeaseSpec{HolderIdentity: &holder},
 	}, metav1.CreateOptions{})
 	require.NoError(t, err)
+
 	lock := &resourcelock.LeaseLock{
 		LeaseMeta:  metav1.ObjectMeta{Name: "krane", Namespace: "unkey"},
 		Client:     client.CoordinationV1(),
 		LockConfig: resourcelock.ResourceLockConfig{Identity: "a"},
 	}
 	releaseLeadership(t.Context(), lock)
+
 	lease, err := client.CoordinationV1().Leases("unkey").Get(t.Context(), "krane", metav1.GetOptions{})
 	require.NoError(t, err)
 	require.Equal(t, holder, *lease.Spec.HolderIdentity)
@@ -155,6 +170,7 @@ func TestReleaseLeadershipPreservesOtherHolder(t *testing.T) {
 
 func leaseTestClient(t *testing.T) (*fake.Clientset, *atomic.Bool) {
 	t.Helper()
+
 	client := fake.NewClientset()
 	unavailable := &atomic.Bool{}
 	resource := schema.GroupVersionResource{Group: "coordination.k8s.io", Version: "v1", Resource: "leases"}
@@ -162,6 +178,7 @@ func leaseTestClient(t *testing.T) (*fake.Clientset, *atomic.Bool) {
 		if unavailable.Load() {
 			return true, nil, apierrors.NewServiceUnavailable("test API outage")
 		}
+
 		switch action.GetVerb() {
 		case "create":
 			lease := action.(ktesting.CreateAction).GetObject().(*coordinationv1.Lease).DeepCopy()
@@ -174,10 +191,12 @@ func leaseTestClient(t *testing.T) (*fake.Clientset, *atomic.Bool) {
 			if err != nil {
 				return true, nil, err
 			}
+
 			previous := stored.(*coordinationv1.Lease)
 			if lease.ResourceVersion != previous.ResourceVersion {
 				return true, nil, apierrors.NewConflict(resource.GroupResource(), lease.Name, nil)
 			}
+
 			version, err := strconv.Atoi(previous.ResourceVersion)
 			if err != nil {
 				return true, nil, err
@@ -189,5 +208,6 @@ func leaseTestClient(t *testing.T) (*fake.Clientset, *atomic.Bool) {
 			return false, nil, nil
 		}
 	})
+
 	return client, unavailable
 }

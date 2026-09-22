@@ -26,7 +26,6 @@ import (
 //
 // Events are processed concurrently (up to [maxPodWatchConcurrency]) so that a
 // slow RPC for one ReplicaSet does not block reporting for others.
-//
 func (c *Controller) runPodWatchLoop(ctx context.Context) {
 	for ctx.Err() == nil {
 		w, err := c.watchPods(ctx)
@@ -34,8 +33,10 @@ func (c *Controller) runPodWatchLoop(ctx context.Context) {
 			if ctx.Err() != nil {
 				return
 			}
+
 			metrics.PodWatchReconnectsTotal.WithLabelValues("deployment", "error").Inc()
 			logger.Error("pod watch: unable to establish watch", "error", err.Error())
+
 			if !waitPodWatchBackoff(ctx) {
 				return
 			}
@@ -59,6 +60,7 @@ func waitPodWatchBackoff(ctx context.Context) bool {
 	backoff := time.Second + time.Millisecond*time.Duration(rand.Float64()*4000)
 	timer := time.NewTimer(backoff)
 	defer timer.Stop()
+
 	select {
 	case <-ctx.Done():
 		return false
@@ -98,6 +100,7 @@ func (c *Controller) drainPodWatch(ctx context.Context, w watch.Interface) {
 				return
 			}
 		}
+
 		switch event.Type {
 		case watch.Error:
 			logger.Error("pod watch: error event", "event", event.Object)
