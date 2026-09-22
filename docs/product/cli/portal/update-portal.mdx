@@ -1,0 +1,58 @@
+---
+title: "update-portal"
+description: "Change a portal's configuration and branding"
+---
+
+Change a portal's slug, display name, the resource it serves, its enabled state, or its branding.
+
+Unreleased and subject to change without notice.
+
+Only the fields you send change. Omitting a field leaves it unchanged. For branding fields, sending `null` clears the value. Send at most one of `keyspaceId` or `appId`.
+
+Re-pointing the portal at another resource revokes its live sessions because each session carries the scope it was minted with. Disabling the portal stops new sessions but leaves live sessions running until they expire.
+
+Your root key must have `portal.*.update_portal` or `portal.<portal_id>.update_portal`. Without permission, this endpoint returns **404**, not 403.
+
+## Usage
+
+```bash
+unkey api portal update-portal [flags]
+```
+
+## Flags
+
+<ParamField body="--portal" type="string" required>Portal ID or slug.</ParamField>
+<ParamField body="--slug" type="string">New URL-safe portal handle.</ParamField>
+<ParamField body="--display-name" type="string">New human-readable name shown to end users.</ParamField>
+<ParamField body="--keyspace-id" type="string">ID of the new keyspace to serve. You cannot combine this with `--app-id`.</ParamField>
+<ParamField body="--app-id" type="string">ID of the new app to serve. You cannot combine this with `--keyspace-id`.</ParamField>
+<ParamField body="--enabled" type="bool">Whether new sessions can be minted. Omit this flag to leave the setting unchanged.</ParamField>
+<ParamField body="--logo-url" type="string or null">Absolute `https://` logo URL. Pass `null` to remove the logo.</ParamField>
+<ParamField body="--primary-color" type="string or null">Six-digit hex colour. Pass `null` to restore the default styling.</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+
+## Examples
+
+```bash
+unkey api portal update-portal \
+  --portal=acme-portal \
+  --display-name="Acme Developer Portal"
+```
+
+```bash
+unkey api portal update-portal \
+  --portal=acme-portal \
+  --logo-url=null \
+  --primary-color=null
+```
+
+See the [API reference](https://www.unkey.com/docs/api-reference/portal/update-portal).

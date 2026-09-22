@@ -99,6 +99,12 @@ service CronService {
   // cadence costs no Stripe calls.
   rpc RunDeploySpendCheck(RunDeploySpendCheckRequest) returns (RunDeploySpendCheckResponse) {}
 
+  // RunBuildLimitSync keeps the build concurrency rules in Restate. Each rule
+  // caps how many invocations run at once for a scope and a limit key. This handler writes "builds/*", which caps a
+  // workspace's concurrent builds. Key is the fixed slug "build-limit-sync"
+  // so ticks serialize without sharing a queue with other singleton handlers
+  rpc RunBuildLimitSync(RunBuildLimitSyncRequest) returns (RunBuildLimitSyncResponse) {}
+
   // RunClickhouseUserReconcile reapplies workspace ClickHouse grants when the
   // desired allowed-table fingerprint changes. Key is the fixed slug
   // "clickhouse-user-reconcile" so Restate state survives worker releases.
@@ -182,6 +188,12 @@ message RunDeploySpendCheckResponse {
   // Number of budgeted workspaces the orchestrator fanned out a check for.
   int32 workspaces_dispatched = 1;
 }
+
+message RunBuildLimitSyncRequest {}
+
+// RunBuildLimitSyncResponse is intentionally empty: every run writes the rules
+// and confirms them, so the invocation outcome is the whole result
+message RunBuildLimitSyncResponse {}
 
 message RunClickhouseUserReconcileRequest {}
 message RunClickhouseUserReconcileResponse {
