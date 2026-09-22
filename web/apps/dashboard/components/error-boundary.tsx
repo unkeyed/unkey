@@ -47,7 +47,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       }
       return (
         <div className="flex items-center justify-center w-full h-full bg-error-2">
-          <div className="max-w-md p-6 bg-base-1 border border-error-6 rounded-lg shadow-lg">
+          <div className="max-w-md p-6 bg-raised border border-error-6 rounded-lg shadow-lg">
             <h2 className="text-lg font-semibold text-error-11 mb-2">Something went wrong</h2>
             <p className="text-sm text-gray-11 mb-4">{this.state.error.message}</p>
             <button

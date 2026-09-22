@@ -55,8 +55,8 @@ export const RuntimeLogsInstanceFilter = () => {
       checkPath="instanceId"
       selectionMode="multiple"
       renderOptionContent={(option) => (
-        <div className="text-accent-12 text-xs flex items-center gap-4.5">
-          <span className="text-accent-9">{option.region}</span>
+        <div className="text-gray-12 text-xs flex items-center gap-4.5">
+          <span className="text-gray-9">{option.region}</span>
           <span className="font-mono">{option.instanceId}</span>
         </div>
       )}

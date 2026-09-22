@@ -95,7 +95,7 @@ export function MatchConditionsClearAll() {
           shouldValidate: isSubmitted,
         })
       }
-      className="text-xs text-accent-11 hover:text-accent-12 transition-colors cursor-pointer"
+      className="text-xs text-gray-11 hover:text-gray-12 transition-colors cursor-pointer"
     >
       Clear all
     </button>

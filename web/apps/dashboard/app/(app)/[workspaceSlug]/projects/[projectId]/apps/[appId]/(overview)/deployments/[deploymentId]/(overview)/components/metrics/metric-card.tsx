@@ -36,9 +36,9 @@ const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
   },
   rps: {
     label: "RPS",
-    color: "hsl(var(--accent-8))",
-    iconBg: "bg-accent-3",
-    iconText: "text-accent-11",
+    color: "hsl(var(--gray-8))",
+    iconBg: "bg-gray-3",
+    iconText: "text-gray-11",
     unit: "req/s",
     chartVariant: "bar",
   },
@@ -102,7 +102,7 @@ export function MetricCard({
   const gradientColor = isError ? "hsl(var(--error-9))" : config.color;
 
   return (
-    <div className="border border-gray-4 bg-grayA-1 w-full rounded-lg flex flex-col">
+    <div className="border bg-grayA-2 w-full rounded-lg flex flex-col">
       <div className="flex items-center gap-3 w-full px-[14px] pt-[12px] pb-[8px]">
         <div
           className={cn(
@@ -163,7 +163,7 @@ export function MetricCard({
           />
         ) : (
           <LogsTimeseriesBarChart
-            chartContainerClassname="px-[14px] border-gray-3"
+            chartContainerClassname="px-[14px]"
             data={chartData.data}
             config={{
               [chartData.dataKey]: {

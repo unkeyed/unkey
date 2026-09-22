@@ -31,12 +31,12 @@ export function createIdentityOptions({
         <Tooltip>
           <TooltipTrigger
             render={
-              <div className="flex w-full text-accent-8 text-xs gap-1.5 py-0.5 items-center group">
+              <div className="flex w-full text-gray-8 text-xs gap-1.5 py-0.5 items-center group">
                 <div className="flex items-center justify-center gap-2">
-                  <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
+                  <div className="border rounded-full flex items-center justify-center size-5">
                     <IconUserOutline12 className="text-grayA-11" />
                   </div>
-                  <span className="max-w-[200px] truncate font-medium text-accent-12 text-left">
+                  <span className="max-w-[200px] truncate font-medium text-gray-12 text-left">
                     {identity.externalId.length > 15
                       ? `${identity.externalId.slice(0, 4)}...${identity.externalId.slice(-4)}`
                       : identity.externalId}
@@ -49,17 +49,17 @@ export function createIdentityOptions({
             side="right"
             align="start"
             sideOffset={30}
-            className="drop-shadow-2xl transform-gpu border border-grayA-4 overflow-hidden rounded-[10px] p-0 bg-white dark:bg-black w-[320px] z-100"
+            className="drop-shadow-2xl transform-gpu border overflow-hidden rounded-[10px] p-0 bg-raised w-[320px] z-100"
           >
             <div className="flex flex-col h-full">
               {/* Header - Always shown */}
-              <div className="px-4 py-2 border-b border-grayA-4 text-gray-10 text-xs font-medium bg-grayA-2">
+              <div className="px-4 py-2 border-b text-gray-10 text-xs font-medium bg-grayA-2">
                 Metadata
               </div>
               {/* Content - Different based on metadata presence */}
               {isMetaEmpty(identity.meta) ? (
                 <div className="px-2 py-2 flex-1">
-                  <div className="w-full bg-grayA-1 dark:bg-grayA-2 border rounded-lg border-grayA-5 overflow-hidden">
+                  <div className="w-full bg-grayA-1 dark:bg-grayA-2 border rounded-lg overflow-hidden">
                     <div className="flex items-start justify-between w-full gap-2">
                       <div className="overflow-x-auto w-full min-w-0 p-3">
                         <pre className="whitespace-pre-wrap break-all text-[11px] leading-5 text-gray-8 font-mono">
@@ -71,7 +71,7 @@ export function createIdentityOptions({
                 </div>
               ) : (
                 <div className="px-2 py-2 flex-1 overflow-y-auto h-[270px]">
-                  <div className="w-full bg-grayA-1 dark:bg-grayA-2 border rounded-lg border-grayA-5 overflow-hidden h-full">
+                  <div className="w-full bg-grayA-1 dark:bg-grayA-2 border rounded-lg overflow-hidden h-full">
                     <div className="flex items-start justify-between w-full gap-2 h-full">
                       {/* JSON Content */}
                       <div className="overflow-x-auto w-full min-w-0 p-3 h-full">
@@ -96,12 +96,12 @@ export function createIdentityOptions({
       </TooltipProvider>
     ),
     selectedLabel: (
-      <div className="flex w-full text-accent-8 text-xs gap-1.5 py-0.5 items-center">
+      <div className="flex w-full text-gray-8 text-xs gap-1.5 py-0.5 items-center">
         <div className="flex items-center justify-center gap-2">
-          <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
+          <div className="border rounded-full flex items-center justify-center size-5">
             <IconUserOutline12 className="text-grayA-11" />
           </div>
-          <span className="text-accent-12 font-medium text-xs max-w-[200px] truncate text-left">
+          <span className="text-gray-12 font-medium text-xs max-w-[200px] truncate text-left">
             {identity.externalId}
           </span>
         </div>
@@ -116,7 +116,7 @@ export function createIdentityOptions({
       label: (
         <div className="flex w-full flex-col gap-1 px-2 py-1 text-left">
           <span className="text-xs text-error-11">{queryError}</span>
-          <span className="text-xs font-medium text-accent-11">Select to retry</span>
+          <span className="text-xs font-medium text-gray-11">Select to retry</span>
         </div>
       ),
       value: "__retry_identities__",
@@ -126,7 +126,7 @@ export function createIdentityOptions({
   } else if (hasNextPage) {
     options.push({
       label: (
-        <div className="w-full px-2 py-0.5 text-left text-xs font-medium text-accent-12">
+        <div className="w-full px-2 py-0.5 text-left text-xs font-medium text-gray-12">
           {isFetchingNextPage ? "Loading more..." : "Load more..."}
         </div>
       ),

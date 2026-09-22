@@ -40,13 +40,13 @@ type StatusStyle = {
 const STATUS_STYLES = {
   success: {
     base: "text-grayA-9",
-    hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-grayA-3",
-    selected: "text-accent-12 bg-grayA-3 hover:text-accent-12",
+    hover: "hover:text-gray-11 dark:hover:text-gray-12 hover:bg-grayA-3",
+    selected: "text-gray-12 bg-grayA-3 hover:text-gray-12",
     badge: {
       default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5",
       selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5",
     },
-    focusRing: "focus:ring-accent-7",
+    focusRing: "focus:ring-gray-7",
   },
   warning: {
     base: "text-warning-11 bg-warning-2",
@@ -155,7 +155,7 @@ export const LogsTable = () => {
       style.base,
       style.hover,
       "group rounded-md",
-      "focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
+      "focus:outline-hidden focus:ring-1",
       style.focusRing,
       isSelected && style.selected,
       isLive &&
@@ -279,7 +279,7 @@ export const LogsTable = () => {
         countInfoText: (
           <div className="flex gap-2">
             <span>Showing</span>{" "}
-            <span className="text-accent-12">
+            <span className="text-gray-12">
               {new Intl.NumberFormat().format(historicalLogs.length)}
             </span>
             <span>of</span>

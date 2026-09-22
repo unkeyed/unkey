@@ -8,7 +8,7 @@ export function Logomark({ className }: LogomarkProps) {
   return (
     <span
       className={cn(
-        "inline-flex size-6 shrink-0 items-center justify-center text-accent-12",
+        "inline-flex size-6 shrink-0 items-center justify-center text-gray-12",
         className,
       )}
       aria-label="Unkey"

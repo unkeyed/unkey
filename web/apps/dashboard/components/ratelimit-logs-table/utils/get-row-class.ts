@@ -42,7 +42,7 @@ export const getRowClassName = (
     style.base,
     style.hover,
     "group rounded-md",
-    "focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
+    "focus:outline-hidden focus:ring-1",
     style.focusRing,
     isSelected && style.selected,
   );

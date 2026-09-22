@@ -68,13 +68,11 @@ export function StatsListCard({
     <Link
       href={href}
       aria-label={ariaLabel}
-      className="relative h-full p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 rounded-lg w-full gap-5 transition-all duration-300"
+      className="relative h-full p-5 flex flex-col border hover:border-strong bg-raised shadow-xs rounded-lg w-full gap-5 transition-all duration-300"
     >
       <div className="flex flex-col w-full gap-2 min-w-0">
         <InfoTooltip content={title} asChild position={{ align: "start", side: "top" }}>
-          <span className="font-medium text-sm leading-[14px] text-accent-12 truncate">
-            {title}
-          </span>
+          <span className="font-medium text-sm leading-[14px] text-gray-12 truncate">{title}</span>
         </InfoTooltip>
         {subtitle ? (
           <InfoTooltip content={subtitle} asChild position={{ align: "start", side: "top" }}>
@@ -92,7 +90,7 @@ export function StatsListCard({
           {chart.type === "data" ? (
             <div className="ml-auto flex items-center gap-3">
               <span className="flex items-center gap-1.5">
-                <span className="bg-accent-4 rounded h-[10px] w-1 shrink-0" />
+                <span className="bg-gray-4 rounded h-[10px] w-1 shrink-0" />
                 <span>
                   <span className="tabular-nums">{formatNumber(success)}</span>{" "}
                   <span className="lowercase">{labels.success}</span>
@@ -152,7 +150,7 @@ function BaselineTicks({ buckets }: { buckets: number }) {
         <div
           // biome-ignore lint/suspicious/noArrayIndexKey: ticks are purely positional
           key={i}
-          className="flex items-end justify-center rounded-sm hover:bg-accent-3"
+          className="flex items-end justify-center rounded-sm hover:bg-gray-3"
         >
           <div className="h-0.5 w-2 max-w-full bg-gray-5" />
         </div>
@@ -170,7 +168,7 @@ function NarrowCursor(props: { x?: number; y?: number; width?: number; height?: 
       y={y}
       width={CURSOR_WIDTH}
       height={height}
-      fill="hsl(var(--accent-3))"
+      fill="hsl(var(--gray-3))"
       opacity={0.6}
       rx={2}
     />
@@ -261,7 +259,7 @@ function StatsSparkline({
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between gap-4">
                       <span className="flex items-center gap-1.5">
-                        <span className="bg-accent-4 w-1 h-2.5 rounded-sm" />
+                        <span className="bg-gray-4 w-1 h-2.5 rounded-sm" />
                         <span>{labels.success}</span>
                       </span>
                       <span className="tabular-nums">{formatNumber(point.success)}</span>
@@ -287,8 +285,8 @@ function StatsSparkline({
           <Bar
             dataKey="barSuccess"
             stackId="a"
-            fill="hsl(var(--accent-4))"
-            activeBar={{ fill: "hsl(var(--accent-7))" }}
+            fill="hsl(var(--gray-4))"
+            activeBar={{ fill: "hsl(var(--gray-7))" }}
             maxBarSize={8}
             isAnimationActive={false}
           />

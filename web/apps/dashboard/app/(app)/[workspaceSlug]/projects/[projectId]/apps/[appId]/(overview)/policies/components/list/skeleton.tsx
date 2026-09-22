@@ -7,7 +7,7 @@ import { Button } from "@unkey/ui";
  */
 export function PoliciesListSkeleton({ rows = 10 }: { rows?: number }) {
   return (
-    <div className="border border-grayA-4 rounded-lg overflow-hidden">
+    <div className="border bg-raised rounded-lg overflow-hidden">
       <div>
         {Array.from({ length: rows }).map((_, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items are static placeholders with no stable id
@@ -20,11 +20,11 @@ export function PoliciesListSkeleton({ rows = 10 }: { rows?: number }) {
 
 function PolicyRowSkeleton({ index, isLast }: { index: number; isLast: boolean }) {
   return (
-    <div className={isLast ? undefined : "border-b border-grayA-4"}>
+    <div className={isLast ? undefined : "border-b"}>
       <div className="flex items-center">
         {/* Step number */}
         <div className="w-10 shrink-0 py-5 pl-4 flex items-center">
-          <div className="size-6 rounded-full border bg-grayA-2 border-grayA-5 text-gray-10 flex items-center justify-center text-[11px] font-medium">
+          <div className="size-6 rounded-full border bg-grayA-2 text-gray-10 flex items-center justify-center text-[11px] font-medium">
             {index + 1}
           </div>
         </div>
@@ -46,8 +46,8 @@ function PolicyRowSkeleton({ index, isLast }: { index: number; isLast: boolean }
 
         {/* Env badges */}
         <div className="flex-2 min-w-0 py-5 flex items-center gap-1.5 pr-3">
-          <div className="h-[22px] w-full rounded-full border border-dashed border-grayA-4 bg-grayA-2 animate-pulse" />
-          <div className="h-[22px] w-full rounded-full border border-dashed border-grayA-4 bg-grayA-2 animate-pulse" />
+          <div className="h-[22px] w-full rounded-full border border-dashed bg-grayA-2 animate-pulse" />
+          <div className="h-[22px] w-full rounded-full border border-dashed bg-grayA-2 animate-pulse" />
         </div>
 
         {/* Actions */}

@@ -19,8 +19,8 @@ export const FilterTriggerButton = forwardRef<HTMLButtonElement, Props>(
       disabled={disabled}
       className={cn(
         "flex items-center gap-2 h-9 px-3 w-full",
-        "bg-gray-1 border border-grayA-4 rounded-lg",
-        "text-[13px] text-accent-12 font-normal",
+        "bg-gray-1 border rounded-lg",
+        "text-[13px] text-gray-12 font-normal",
         "hover:bg-gray-2 transition-colors",
         isActive && "bg-gray-2",
         disabled && "opacity-50",

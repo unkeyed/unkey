@@ -54,7 +54,7 @@ export function RatelimitLogsChart({
         success: {
           label: "Passed",
           subLabel: "Passed",
-          color: "hsl(var(--accent-4))",
+          color: "hsl(var(--gray-4))",
         },
         error: {
           label: "Blocked",

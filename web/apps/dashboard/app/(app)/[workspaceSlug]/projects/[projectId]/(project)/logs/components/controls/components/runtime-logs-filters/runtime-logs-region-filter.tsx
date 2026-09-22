@@ -59,7 +59,7 @@ export function RuntimeLogsRegionFilter() {
             shape="circle"
             className="[&_img]:size-3"
           />
-          <span className="text-accent-12 text-xs font-mono">{option.label}</span>
+          <span className="text-gray-12 text-xs font-mono">{option.label}</span>
         </>
       )}
       createFilterValue={(option) => ({

@@ -41,9 +41,7 @@ export function NodeWrapper({ health, children }: NodeWrapperProps) {
           // Tint the card body itself error-red when unhealthy so it's
           // unmistakable; healthy/syncing/unknown stay on the default
           // white/black background.
-          isUnhealthy
-            ? "border border-errorA-4 bg-errorA-1 dark:bg-errorA-1"
-            : "border border-grayA-4 bg-white dark:bg-black",
+          isUnhealthy ? "border border-errorA-4 bg-errorA-1 dark:bg-errorA-1" : "border bg-raised",
         )}
       >
         {children}

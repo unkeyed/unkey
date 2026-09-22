@@ -8,11 +8,7 @@ function Card({
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) {
   return (
-    <div
-      ref={ref}
-      className={cn("w-full rounded-lg border border-gray-4 bg-background", className)}
-      {...props}
-    />
+    <div ref={ref} className={cn("w-full rounded-lg border bg-raised", className)} {...props} />
   );
 }
 
@@ -64,7 +60,7 @@ function CardFooter({
   return (
     <div
       ref={ref}
-      className={cn("flex items-center px-6 py-3 mt-3 border-t border-gray-4", className)}
+      className={cn("flex items-center px-6 py-3 mt-3 border-t", className)}
       {...props}
     />
   );

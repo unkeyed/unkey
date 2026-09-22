@@ -65,7 +65,7 @@ export const RatelimitOverviewLogsCharts = ({
   // const latencyChartConfig = {
   //   avgLatency: {
   //     label: "Average Latency",
-  //     color: "hsl(var(--accent-11))",
+  //     color: "hsl(var(--gray-11))",
   //   },
   //   p99Latency: {
   //     label: "P99 Latency",
@@ -81,7 +81,7 @@ export const RatelimitOverviewLogsCharts = ({
   //     {
   //       key: "avgLatency",
   //       label: "AVG",
-  //       color: "hsl(var(--accent-11))",
+  //       color: "hsl(var(--gray-11))",
   //       formatter: formatLatency,
   //     },
   //     {
@@ -96,7 +96,7 @@ export const RatelimitOverviewLogsCharts = ({
   const sharedConfig = {
     success: {
       label: "Passed",
-      color: "hsl(var(--accent-4))",
+      color: "hsl(var(--gray-4))",
     },
     error: {
       label: "Blocked",

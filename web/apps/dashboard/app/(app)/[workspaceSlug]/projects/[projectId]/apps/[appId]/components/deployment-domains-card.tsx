@@ -133,7 +133,7 @@ export function DeploymentDomainsCard({
                     {allDomains.map((d) => (
                       <div
                         key={d.id}
-                        className="flex items-center justify-left w-full h-10 border-b border-gray-4 px-3 py-[14px] gap-2"
+                        className="flex items-center justify-start w-full h-10 border-b px-3 py-[14px] gap-2"
                       >
                         <IconLink4Outline12 className="text-gray-9 ! shrink-0" />
                         <a

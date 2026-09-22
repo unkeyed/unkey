@@ -86,7 +86,7 @@ export const KeysOverviewLogsCharts = ({
 
   return (
     <div className="flex flex-col md:flex-row w-full md:h-[320px]">
-      <div className="w-full md:w-1/2 min-w-0 overflow-hidden border-r border-gray-4 max-md:h-72">
+      <div className="w-full md:w-1/2 min-w-0 overflow-hidden border-r max-md:h-72">
         <OverviewBarChart
           data={verificationTimeseries}
           isLoading={verificationIsLoading}

@@ -167,7 +167,7 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
   );
 
   const containerClassName = cn(
-    "overflow-auto relative pb-4 bg-white dark:bg-black",
+    "overflow-auto relative pb-4 bg-background",
     config.containerPadding || "px-2",
   );
 
@@ -185,19 +185,19 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
               <col key={col.id ?? idx} style={{ width: colWidths[idx] }} />
             ))}
           </colgroup>
-          <thead className="sticky top-0 z-10 bg-white dark:bg-black">
+          <thead className="sticky top-0 z-10 bg-table-header">
             <tr>
               {table.getHeaderGroups()[0]?.headers.map((header) => (
                 <th
                   key={header.id}
                   className={cn(
-                    "text-sm font-medium text-accent-12 py-1 text-left",
+                    "text-sm font-medium text-gray-12 py-1 text-left",
                     header.column.columnDef.meta?.headerClassName,
                     header.column.columnDef.meta?.cellClassName,
                   )}
                 >
                   {header.isPlaceholder ? null : (
-                    <div className="truncate text-accent-12">
+                    <div className="truncate text-gray-12">
                       {flexRender(header.column.columnDef.header, header.getContext())}
                     </div>
                   )}
@@ -206,7 +206,12 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
             </tr>
             <tr>
               <th colSpan={columns.length} className="p-0">
-                <div className="w-full border-t border-gray-4" />
+                <div
+                  className={cn(
+                    "absolute inset-y-0 -z-10 border-b bg-table-header",
+                    hasPadding ? "inset-x-[-8px]" : "inset-x-0",
+                  )}
+                />
               </th>
             </tr>
           </thead>
@@ -234,14 +239,14 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
           </colgroup>
 
           {/* Header */}
-          <thead className="sticky top-0 z-10 bg-white dark:bg-black">
+          <thead className="sticky top-0 z-10 bg-table-header">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
                   <th
                     key={header.id}
                     className={cn(
-                      "text-sm font-medium text-accent-12 py-1 text-left relative",
+                      "text-sm font-medium text-gray-12 py-1 text-left relative",
                       header.column.columnDef.meta?.headerClassName,
                       header.column.columnDef.meta?.cellClassName,
                     )}
@@ -255,14 +260,12 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
             ))}
             <tr>
               <th colSpan={columns.length} className="p-0">
-                <div className="relative w-full">
-                  <div
-                    className={cn(
-                      "absolute border-t border-gray-4",
-                      hasPadding ? "inset-x-[-8px]" : "inset-x-0",
-                    )}
-                  />
-                </div>
+                <div
+                  className={cn(
+                    "absolute inset-y-0 -z-10 border-b bg-table-header",
+                    hasPadding ? "inset-x-[-8px]" : "inset-x-0",
+                  )}
+                />
               </th>
             </tr>
           </thead>
@@ -278,7 +281,7 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
                       // biome-ignore lint/suspicious/noArrayIndexKey: skeleton rows have no stable id
                       index
                     }`}
-                    className={cn(config.rowBorders && "border-b border-gray-4")}
+                    className={cn(config.rowBorders && "border-b")}
                     style={{ height: `${config.rowHeight}px` }}
                   >
                     {renderSkeletonRow ? (
@@ -341,8 +344,8 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
                             }
                           }}
                           className={cn(
-                            "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
-                            config.rowBorders && "border-b border-gray-4",
+                            "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1",
+                            config.rowBorders && "border-b",
                             rowClassName?.(typedItem),
                             selectedClassName?.(typedItem, isSelected),
                           )}
@@ -390,8 +393,8 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
                               }
                             }}
                             className={cn(
-                              "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1 focus:ring-opacity-40",
-                              config.rowBorders && "border-b border-gray-4",
+                              "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1",
+                              config.rowBorders && "border-b",
                               rowClassName?.(typedItem),
                               selectedClassName?.(typedItem, isSelected),
                             )}

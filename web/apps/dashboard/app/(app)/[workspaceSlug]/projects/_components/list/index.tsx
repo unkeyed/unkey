@@ -4,7 +4,7 @@ import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { useLiveQuery } from "@tanstack/react-db";
 import { IconDotsOutline18, IconTriangleWarningOutline18 } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { AlertBanner, AlertBannerActions, AlertBannerDescription, Button } from "@unkey/ui";
 import { useState } from "react";
 import { DeployPlanGateDialog } from "../deploy-plan-gate-dialog";
 import { useDeployGate } from "../hooks/use-deploy-gate";
@@ -48,23 +48,23 @@ export const ProjectsList = () => {
   return (
     <>
       {gated ? (
-        <div className="mb-4 flex items-center justify-between gap-4 rounded-lg border border-warningA-6 bg-warningA-2 px-4 py-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <IconTriangleWarningOutline18 className="size-3.5 shrink-0 text-warning-11" />
-            <p className="truncate text-[13px] text-gray-11">
-              No active Compute plan. Existing projects stay visible, but creating and deploying are
-              paused.
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="md"
-            className="bg-background"
-            onClick={() => setIsPlanOpen(true)}
-          >
-            Choose a plan
-          </Button>
-        </div>
+        <AlertBanner variant="warning" className="mb-4">
+          <IconTriangleWarningOutline18 className="size-3.5" aria-hidden="true" />
+          <AlertBannerDescription className="truncate">
+            No active Compute plan. Existing projects stay visible, but creating and deploying are
+            paused.
+          </AlertBannerDescription>
+          <AlertBannerActions>
+            <Button
+              variant="outline"
+              size="md"
+              className="bg-background"
+              onClick={() => setIsPlanOpen(true)}
+            >
+              Choose a plan
+            </Button>
+          </AlertBannerActions>
+        </AlertBanner>
       ) : null}
       <DeployPlanGateDialog isOpen={isPlanOpen} onOpenChange={setIsPlanOpen} from="banner" />
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">

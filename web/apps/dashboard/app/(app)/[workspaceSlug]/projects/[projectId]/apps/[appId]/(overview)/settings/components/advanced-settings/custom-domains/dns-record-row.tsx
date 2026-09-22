@@ -15,7 +15,7 @@ export function DnsRecordRow({ type, name, value, verified, isLast }: DnsRecordR
     <div
       className={cn(
         "grid grid-cols-[64px_1fr_1fr_48px] px-3 py-2 items-center",
-        !isLast && "border-b border-gray-3",
+        !isLast && "border-b",
         verified && "text-gray-8",
       )}
     >

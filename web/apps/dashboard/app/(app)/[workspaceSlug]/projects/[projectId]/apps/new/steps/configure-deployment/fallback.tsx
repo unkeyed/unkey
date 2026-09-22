@@ -22,7 +22,7 @@ export const ConfigureDeploymentFallback = ({ settingsReady }: { settingsReady: 
     <div className="w-225">
       <div className="flex flex-col gap-6">
         {/* SettingCardGroup skeleton */}
-        <div className="border border-grayA-4 rounded-lg overflow-hidden divide-y divide-grayA-4">
+        <div className="border bg-raised rounded-lg overflow-hidden divide-y divide-grayA-4">
           {cards.map(({ titleW, descW, badgeW }, i) => (
             <div
               // biome-ignore lint/suspicious/noArrayIndexKey: safe to leave
@@ -37,12 +37,7 @@ export const ConfigureDeploymentFallback = ({ settingsReady }: { settingsReady: 
                 </div>
               </div>
               <div className="flex w-full lg:w-[320px] items-center gap-4 justify-end">
-                <div
-                  className={cn(
-                    "h-7 rounded-md border border-grayA-4 bg-grayA-3 animate-pulse",
-                    badgeW,
-                  )}
-                />
+                <div className={cn("h-7 rounded-md border bg-grayA-3 animate-pulse", badgeW)} />
                 <div className="size-3.5 rounded bg-grayA-3 animate-pulse" />
               </div>
             </div>

@@ -83,7 +83,7 @@ const KeyIdCell = ({
       className={cn(
         "size-5 rounded-sm flex items-center justify-center cursor-pointer relative",
         identity ? "bg-successA-3" : "bg-grayA-3",
-        isKeySelected && "bg-brand-5",
+        isKeySelected && "bg-brandA-5",
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -128,7 +128,7 @@ const KeyIdCell = ({
             delayDuration={100}
             variant="muted"
             position={{ side: "right" }}
-            className="bg-gray-1 px-4 py-2 border border-gray-4 shadow-md font-medium text-xs text-accent-12"
+            className="bg-raised px-4 py-2 border shadow-md font-medium text-xs text-gray-12"
             content={
               <>
                 This key is associated with the identity:{" "}
@@ -172,12 +172,12 @@ const KeyIdCell = ({
               onNavigate(keyData.id);
             }}
           >
-            <div className="font-mono font-medium truncate text-brand-12">
+            <div className="font-mono font-medium truncate text-brandA-12">
               {shortenId(keyData.id)}
             </div>
           </Link>
           {keyData.name && (
-            <span className="font-sans text-accent-9 truncate max-w-30" title={keyData.name}>
+            <span className="font-sans text-gray-9 truncate max-w-30" title={keyData.name}>
               {keyData.name}
             </span>
           )}

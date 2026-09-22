@@ -12,7 +12,7 @@ export function DrainStatsCards({ drainId }: { drainId: string }) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[13px] font-medium text-accent-12">Deliveries</span>
+        <span className="text-[13px] font-medium text-gray-12">Deliveries</span>
         {isError ? (
           <span role="alert" className="flex items-center gap-2 text-xs text-gray-11">
             We couldn't load delivery metrics.

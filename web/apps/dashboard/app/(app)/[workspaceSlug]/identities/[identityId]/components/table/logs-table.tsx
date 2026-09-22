@@ -146,7 +146,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
       style.base,
       style.hover,
       "group rounded-md cursor-pointer transition-colors",
-      "focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
+      "focus:outline-hidden focus:ring-1",
       style.focusRing,
       isSelected && style.selected,
     );
@@ -458,7 +458,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
           countInfoText: (
             <div className="flex gap-2">
               <span>Showing</span>{" "}
-              <span className="text-accent-12">
+              <span className="text-gray-12">
                 {new Intl.NumberFormat().format(historicalLogs.length)}
               </span>
               <span>of</span>{" "}

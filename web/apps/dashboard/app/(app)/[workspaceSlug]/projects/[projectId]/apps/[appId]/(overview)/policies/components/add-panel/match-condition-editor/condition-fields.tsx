@@ -136,7 +136,7 @@ export function ConditionFields({
                     "px-2 py-0.5 rounded text-xs font-mono border transition-colors cursor-pointer",
                     active
                       ? "bg-info-3 border-info-7 text-info-11"
-                      : "bg-grayA-2 border-grayA-4 text-grayA-9 hover:text-gray-12",
+                      : "bg-grayA-2 text-grayA-9 hover:text-gray-12",
                   )}
                 >
                   {m}

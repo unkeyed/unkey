@@ -24,11 +24,11 @@ const SheetOverlay = React.forwardRef<
 SheetOverlay.displayName = SheetPrimitive.Backdrop.displayName;
 
 const sheetVariants = cva(
-  "fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-closed:duration-300 data-open:duration-500",
+  "fixed z-50 gap-4 bg-raised p-6 shadow-lg transition ease-in-out data-closed:duration-300 data-open:duration-500",
   {
     variants: {
       overlay: {
-        transparent: "backdrop-none bg-transparent shadow-none",
+        transparent: "bg-transparent shadow-none",
         default:
           "fixed inset-0 z-50 bg-background/80 backdrop-blur-xs transition-opacity data-starting-style:opacity-0 data-ending-style:opacity-0",
       },

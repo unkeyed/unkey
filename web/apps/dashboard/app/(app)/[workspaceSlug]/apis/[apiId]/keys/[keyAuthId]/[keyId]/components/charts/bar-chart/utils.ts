@@ -22,7 +22,7 @@ export function createOutcomeChartConfig(includedOutcomes?: string[]) {
   const config: Record<string, { label: string; color: string }> = {
     success: {
       label: formatOutcomeName("VALID"),
-      color: cssVarToChartColor("accent-4"),
+      color: cssVarToChartColor("gray-4"),
     },
   };
 
@@ -39,7 +39,7 @@ export function createOutcomeChartConfig(includedOutcomes?: string[]) {
 
     // Convert to the format used in our timeseries data (snake_case)
     const key = outcome.toLowerCase();
-    const colorClass = OUTCOME_BACKGROUND_COLORS[outcome] || "bg-accent-4";
+    const colorClass = OUTCOME_BACKGROUND_COLORS[outcome] || "bg-gray-4";
 
     config[key] = {
       label: formatOutcomeName(outcome),
@@ -56,6 +56,6 @@ export function createOutcomeChartConfig(includedOutcomes?: string[]) {
  * @returns CSS color compatible with chart libraries
  */
 export function getOutcomeChartColor(outcome: string): string {
-  const colorClass = OUTCOME_BACKGROUND_COLORS[outcome] || "bg-accent-9";
+  const colorClass = OUTCOME_BACKGROUND_COLORS[outcome] || "bg-gray-9";
   return cssVarToChartColor(colorClass);
 }

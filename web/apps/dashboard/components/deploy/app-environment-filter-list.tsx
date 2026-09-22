@@ -94,7 +94,7 @@ export function AppEnvironmentFilterList<TFilter extends FilterLike>({
                   <div className="size-4 shrink-0 animate-pulse rounded bg-grayA-3" />
                   <div className="h-4 w-24 animate-pulse rounded bg-grayA-3" />
                 </div>
-                <div className="ml-[15.5px] border-l border-grayA-5 py-1 pl-3">
+                <div className="ml-[15.5px] border-l py-1 pl-3">
                   <div className="flex h-8 items-center gap-2 px-2">
                     <div className="size-4 shrink-0 animate-pulse rounded bg-grayA-3" />
                     <div className="h-4 w-16 animate-pulse rounded bg-grayA-3" />
@@ -141,14 +141,14 @@ export function AppEnvironmentFilterList<TFilter extends FilterLike>({
                           toggleAppSelection(current, app.appId, environmentIds),
                         )
                       }
-                      className="size-4 shrink-0 rounded-sm border-gray-5 [&_svg]:size-3"
+                      className="size-4 shrink-0 rounded-sm [&_svg]:size-3"
                       aria-label={`Select all environments in ${app.name}`}
                     />
-                    <span className="truncate text-xs font-medium text-accent-12">{app.name}</span>
+                    <span className="truncate text-xs font-medium text-gray-12">{app.name}</span>
                   </label>
 
                   {allAppEnvironments.length > 0 ? (
-                    <div className="ml-[15.5px] border-l border-grayA-5 py-1 pl-3">
+                    <div className="ml-[15.5px] border-l py-1 pl-3">
                       {allAppEnvironments.map((environment) => {
                         const checked =
                           draft.appIds.has(app.appId) || draft.environmentIds.has(environment.id);
@@ -172,10 +172,10 @@ export function AppEnvironmentFilterList<TFilter extends FilterLike>({
                                   ),
                                 )
                               }
-                              className="size-4 shrink-0 rounded-sm border-gray-5 [&_svg]:size-3"
+                              className="size-4 shrink-0 rounded-sm [&_svg]:size-3"
                               aria-label={`Select ${environment.slug} in ${app.name}`}
                             />
-                            <span className="truncate text-xs capitalize text-accent-12">
+                            <span className="truncate text-xs capitalize text-gray-12">
                               {environment.slug}
                             </span>
                           </label>
@@ -190,7 +190,7 @@ export function AppEnvironmentFilterList<TFilter extends FilterLike>({
         )}
       </div>
 
-      <div className="border-t border-gray-4 p-2">
+      <div className="border-t p-2">
         <Button variant="primary" className="h-9 w-full rounded-md" onClick={applyFilter}>
           Apply Filter
         </Button>

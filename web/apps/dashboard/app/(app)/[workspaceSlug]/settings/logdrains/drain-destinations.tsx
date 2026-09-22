@@ -29,7 +29,7 @@ export const DESTINATIONS: ReadonlyArray<{
 /** The destination icon, shared by the list and the create panel. */
 export function DrainMedia({ kind }: { kind: DrainKind }) {
   return (
-    <ItemMedia className="size-8 rounded-[10px] text-gray-12 ring-1 ring-grayA-4">
+    <ItemMedia className="size-8 rounded-[10px] text-gray-12 border">
       {DESTINATIONS.find((destination) => destination.kind === kind)?.icon}
     </ItemMedia>
   );

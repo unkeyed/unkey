@@ -170,7 +170,7 @@ const ChartTooltipContent = React.forwardRef<
         ref={ref}
         role="tooltip"
         className={cn(
-          "grid sm:w-fit md:w-fit md:max-w-[360px] items-start gap-2 rounded-lg border border-gray-6 bg-gray-1 pt-4 pb-2 text-xs shadow-2xl select-none",
+          "grid sm:w-fit md:w-fit md:max-w-[360px] items-start gap-2 rounded-lg border bg-raised pt-4 pb-2 text-xs shadow-2xl select-none",
           className,
         )}
       >
@@ -205,7 +205,7 @@ const ChartTooltipContent = React.forwardRef<
                   ) : (
                     !hideIndicator && (
                       <div
-                        className={cn("shrink-0 rounded-[2px] border-border bg-(--color-bg)", {
+                        className={cn("shrink-0 rounded-[2px] bg-(--color-bg)", {
                           "h-2.5 w-2.5": indicator === "dot",
                           "w-1": indicator === "line",
                           "w-0 border-[1.5px] border-dashed bg-transparent": indicator === "dashed",
@@ -229,18 +229,18 @@ const ChartTooltipContent = React.forwardRef<
                     <div className="flex gap-4 items-center">
                       {nestLabel ? tooltipLabel : null}
                       {itemConfig?.subLabel && (
-                        <span className="capitalize text-accent-9 text-xs">
+                        <span className="capitalize text-gray-9 text-xs">
                           {itemConfig?.subLabel}
                         </span>
                       )}
 
-                      <span className="capitalize text-accent-12 text-xs">
+                      <span className="capitalize text-gray-12 text-xs">
                         {itemConfig?.label || itemName}
                       </span>
                     </div>
                     <div className="ml-auto">
                       {itemValue !== null && (
-                        <span className="font-mono tabular-nums text-accent-12">
+                        <span className="font-mono tabular-nums text-gray-12">
                           {formatNumber(
                             typeof itemValue === "number" ? itemValue : Number(itemValue),
                           )}

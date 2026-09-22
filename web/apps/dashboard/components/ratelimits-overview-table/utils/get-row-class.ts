@@ -16,13 +16,13 @@ type StatusStyle = {
 export const STATUS_STYLES = {
   success: {
     base: "text-grayA-9",
-    hover: "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-grayA-3",
-    selected: "text-accent-12 bg-grayA-3 hover:text-accent-12",
+    hover: "hover:text-gray-11 dark:hover:text-gray-12 hover:bg-grayA-3",
+    selected: "text-gray-12 bg-grayA-3 hover:text-gray-12",
     badge: {
       default: "bg-grayA-3 text-grayA-11 group-hover:bg-grayA-5 border-transparent",
       selected: "bg-grayA-5 text-grayA-12 hover:bg-grayA-5 border-grayA-3",
     },
-    focus: "focus:ring-accent-7",
+    focus: "focus:ring-gray-7",
   },
   blocked: {
     base: "text-orange-11",
@@ -53,7 +53,7 @@ export const getRowClassName = (
     style.hover,
     hasMoreBlocked ? "bg-orange-2" : "",
     "group rounded-md",
-    "focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
+    "focus:outline-hidden focus:ring-1",
     style.focus,
     isSelected && style.selected,
     selectedLog && {

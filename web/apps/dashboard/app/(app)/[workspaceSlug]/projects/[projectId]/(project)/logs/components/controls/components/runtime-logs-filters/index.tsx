@@ -224,10 +224,10 @@ export function RuntimeLogsFilters() {
           aria-haspopup="true"
           title="Press 'F' to toggle filters"
         >
-          <IconBarsFilterOutline18 className="text-accent-9 size-4" />
-          <span className="text-accent-12 font-medium text-[13px]">Filter</span>
+          <IconBarsFilterOutline18 className="text-gray-9 size-4" />
+          <span className="text-gray-12 font-medium text-[13px]">Filter</span>
           {filterCount > 0 && (
-            <div className="bg-gray-7 rounded-sm h-4 px-1 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">
+            <div className="bg-gray-7 rounded-sm h-4 px-1 text-[11px] font-medium text-gray-12 text-center flex items-center justify-center">
               {filterCount}
             </div>
           )}

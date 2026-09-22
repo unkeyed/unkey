@@ -42,16 +42,15 @@ export function BrandColorField({
             aria-label={`Use ${hex}`}
             onClick={() => onChange(hex)}
             className={cn(
-              "size-5 rounded-full border border-grayA-6 transition-shadow",
-              color.toUpperCase() === hex &&
-                "ring-2 ring-accent-12 ring-offset-2 ring-offset-gray-1",
+              "size-5 rounded-full border transition-shadow",
+              color.toUpperCase() === hex && "ring-2 ring-gray-12 ring-offset-2 ring-offset-gray-1",
             )}
             style={{ backgroundColor: hex }}
           />
         ))}
       </div>
       <label
-        className="relative size-9 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-gray-5"
+        className="relative size-9 shrink-0 cursor-pointer overflow-hidden rounded-lg border"
         style={{ backgroundColor: pickerColor }}
       >
         <span className="sr-only">Pick brand color</span>

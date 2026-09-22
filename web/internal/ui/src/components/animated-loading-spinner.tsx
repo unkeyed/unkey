@@ -42,7 +42,7 @@ export const AnimatedLoadingSpinner = ({
       width={size}
       height={size}
       viewBox="0 0 18 18"
-      className={cn("animate-spin-slow", className)}
+      className={cn(className)}
       data-prefers-reduced-motion="respect-motion-preference"
     >
       <g>

@@ -150,7 +150,7 @@ const ListTitle = ({
       <Badge
         variant="primary"
         size="sm"
-        className="text-[11px] font-normal text-gray-11 rounded-full px-2 ml-1 py-1 h-[18px] min-w-[22px] border border-grayA-3 "
+        className="text-[11px] font-normal text-gray-11 rounded-full px-2 ml-1 py-1 h-[18px] min-w-[22px] border "
       >
         {count}
       </Badge>

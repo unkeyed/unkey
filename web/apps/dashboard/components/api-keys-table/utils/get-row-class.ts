@@ -12,7 +12,7 @@ export const getRowClassName = (key: KeyDetails, selectedKey: KeyDetails | null)
     style.base,
     style.hover,
     "group rounded-sm",
-    "focus:outline-none focus:ring-1 focus:ring-opacity-40",
+    "focus:outline-none focus:ring-1",
     style.focusRing,
     isSelected && style.selected,
   );

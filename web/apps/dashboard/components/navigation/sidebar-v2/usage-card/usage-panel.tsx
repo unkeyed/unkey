@@ -17,7 +17,7 @@ export function UsagePanel({ summary }: { summary: UsageSummary }) {
   const bodyId = useId();
 
   return (
-    <div className="relative overflow-hidden rounded-lg border border-grayA-4">
+    <div className="relative overflow-hidden rounded-lg border">
       {folded ? null : (
         <Link
           href={summary.href}

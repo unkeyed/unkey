@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
-    "typecheck": "next typegen && tsc"
+    "typecheck": "next typegen && tsc",
+    "check:tailwind-classes": "node scripts/check-tailwind-classes.mjs"
   },
   "dependencies": {
     "@base-ui/react": "1.6.0",

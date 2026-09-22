@@ -23,12 +23,7 @@ export const SecretKey = ({
   const displayValue = isVisible ? value : maskKey(value);
 
   return (
-    <div
-      className={cn(
-        "w-full px-4 py-2 bg-white dark:bg-black border rounded-xl border-grayA-5 unkey-root-key",
-        className,
-      )}
-    >
+    <div className={cn("w-full px-4 py-2 bg-raised border rounded-xl unkey-root-key", className)}>
       <div className="flex items-center justify-between w-full gap-3 pointer-events-auto">
         <div className="shrink-0">
           <IconCircleLockOutline18 className="size-3 text-gray-12" />

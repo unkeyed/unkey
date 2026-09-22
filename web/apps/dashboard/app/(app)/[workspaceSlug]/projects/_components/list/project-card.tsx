@@ -42,7 +42,7 @@ export function ProjectCard({ name, projectId, apps, actions }: ProjectCardProps
   const { width, measureRef } = useMeasuredWidth<HTMLDivElement>();
 
   return (
-    <div className="relative p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 rounded-lg w-full h-full min-h-[124px] gap-4 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
+    <div className="relative p-5 flex flex-col border hover:border-strong bg-raised shadow-xs rounded-lg w-full h-full min-h-[124px] gap-4 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
       <Link
         href={projectPath}
         className="absolute inset-0 z-0"
@@ -50,13 +50,13 @@ export function ProjectCard({ name, projectId, apps, actions }: ProjectCardProps
       />
 
       <div className="flex min-h-5 items-center justify-between gap-2.5">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-grayA-4 bg-white dark:bg-black">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border bg-raised">
           <IconCubeOutline18 className="size-3.5 text-gray-12" />
         </span>
         <InfoTooltip content={name} asChild position={{ align: "start", side: "top" }}>
           <Link
             href={projectPath}
-            className="min-w-0 flex-1 truncate text-sm font-medium leading-5 text-accent-12"
+            className="min-w-0 flex-1 truncate text-sm font-medium leading-5 text-gray-12"
           >
             {name}
           </Link>

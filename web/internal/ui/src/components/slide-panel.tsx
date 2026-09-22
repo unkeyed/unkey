@@ -83,7 +83,7 @@ export function SlidePanel({
             className,
           )}
         >
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[calc(var(--slide-panel-radius)_-_1px)] bg-background">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[calc(var(--slide-panel-radius)_-_1px)] bg-raised">
             {children}
           </div>
         </DialogPrimitive.Popup>
@@ -149,7 +149,7 @@ export type SlidePanelFooterProps = {
 };
 
 export function SlidePanelFooter({ children, className }: SlidePanelFooterProps) {
-  return <div className={cn("border-t border-gray-4 px-6 py-4", className)}>{children}</div>;
+  return <div className={cn("border-t px-6 py-4", className)}>{children}</div>;
 }
 
 export type SlidePanelCloseButtonProps = DialogPrimitive.Close.Props & {

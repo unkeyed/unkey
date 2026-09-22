@@ -50,7 +50,7 @@ export function GroupRow({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <InfoTooltip content={row.key} position={{ side: "top" }} asChild>
-                <span className="font-mono font-medium text-[13px] text-accent-12 truncate leading-4 max-w-[250px]">
+                <span className="font-mono font-medium text-[13px] text-gray-12 truncate leading-4 max-w-[250px]">
                   <HighlightMatch text={row.key} query={deferredQuery} />
                 </span>
               </InfoTooltip>
@@ -82,7 +82,7 @@ export function GroupRow({
       actionsCell={<EnvVarGroupActionMenu groupKey={row.key} items={row.items} />}
       expandedContent={
         isExpanded ? (
-          <div className="divide-y divide-grayA-3 bg-grayA-2 border-t border-grayA-4">
+          <div className="divide-y divide-grayA-3 bg-grayA-2 border-t">
             {row.items.map((item) => (
               <EnvVarItemRow
                 key={item.id}

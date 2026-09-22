@@ -34,12 +34,12 @@ export function StatusIndicator({
         position={{ align: "center", side: "top", sideOffset: 5 }}
       >
         <div
-          className="border bg-gray-1 border-grayA-3 h-[22px] w-14 rounded-full flex transition-shadow hover:ring-1 hover:ring-gray-7 duration-200 ease-out cursor-pointer overflow-hidden flex-row-reverse"
+          className="border bg-gray-1 h-[22px] w-14 rounded-full flex transition-shadow hover:ring-1 hover:ring-gray-7 duration-200 ease-out cursor-pointer overflow-hidden flex-row-reverse"
           style={{
             boxShadow: glowBoxShadow,
           }}
         >
-          <div className="w-1/2 border-r border-grayA-3 relative flex items-center justify-center shrink-0">
+          <div className="w-1/2 border-r relative flex items-center justify-center shrink-0">
             <StatusDot healthStatus={healthStatus} />
           </div>
           <div className="w-1/2 bg-grayA-2 flex items-center justify-center shrink-0">{icon}</div>
@@ -57,12 +57,12 @@ export function StatusIndicator({
       position={{ align: "center", side: "top", sideOffset: 5 }}
     >
       <div
-        className="border bg-gray-1 border-grayA-3 h-full rounded-lg w-6.5 transition-shadow hover:ring-1 hover:ring-gray-7 duration-200 ease-out cursor-pointer overflow-hidden"
+        className="border bg-gray-1 h-full rounded-lg w-6.5 transition-shadow hover:ring-1 hover:ring-gray-7 duration-200 ease-out cursor-pointer overflow-hidden"
         style={{
           boxShadow: glowBoxShadow,
         }}
       >
-        <div className="h-6 border-b border-grayA-3 flex justify-center items-center">
+        <div className="h-6 border-b flex justify-center items-center">
           <StatusDot healthStatus={healthStatus} />
         </div>
         <div className="h-5 bg-grayA-2 flex items-center w-full justify-center">{icon}</div>

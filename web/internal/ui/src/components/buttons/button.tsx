@@ -73,20 +73,22 @@ const buttonVariants = cva(
         default: "", // This is only required for mapping from default -> primary. We rely on this for type generation because CVA types are hard to mutate.
         destructive: "", // This is only required for mapping from destructive-> danger. We rely on this for type generation because CVA types are hard to mutate.
         primary: [
-          "p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md border border-grayA-4",
-          "focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0 drop-shadow-button transform-gpu",
+          "p-2 text-white dark:text-black bg-gray-12 hover:bg-gray-12/90 focus:hover:bg-gray-12 rounded-md border border-grayA-4",
+          "focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
           "disabled:border disabled:border-solid disabled:bg-grayA-6 disabled:border-grayA-4 disabled:text-white/85 dark:disabled:text-white/85",
-          "active:bg-accent-12/80",
+          "active:bg-gray-12/80",
         ],
         outline: [
-          "p-2 text-gray-12 bg-background border border-grayA-6 hover:bg-grayA-2 rounded-md",
-          "focus:border-grayA-12 focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0 drop-shadow-button transform-gpu",
+          "p-2 text-gray-12 bg-background border hover:bg-grayA-3 rounded-md",
+          "aria-expanded:bg-grayA-3 aria-expanded:text-gray-12",
+          "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "focus:border-grayA-12 focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
           "disabled:border disabled:border-solid disabled:border-grayA-5 disabled:text-grayA-7",
-          "active:bg-grayA-3",
+          "active:bg-grayA-4",
         ],
         ghost: [
           "p-2 text-gray-12 bg-transparent hover:bg-grayA-4 rounded-md focus:hover:bg-transparent",
-          "focus:border-grayA-12 focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0 drop-shadow-button transform-gpu",
+          "focus:border-grayA-12 focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
           "disabled:border disabled:border-grayA-4 disabled:text-grayA-7",
           "active:bg-grayA-5",
         ],
@@ -133,7 +135,8 @@ const buttonVariants = cva(
         variant: "outline",
         color: "danger",
         className: [
-          "text-error-11 bg-background border border-grayA-6 hover:bg-grayA-2 focus:hover:bg-background",
+          "text-error-11 bg-background border hover:bg-grayA-3 focus:hover:bg-transparent",
+          "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
           "focus:border-error-11 focus:ring-3 focus:ring-error-4 focus-visible:outline-hidden focus:ring-offset-0",
           "disabled:text-errorA-7 disabled:border-grayA-5",
           "active:bg-error-3",
@@ -164,7 +167,8 @@ const buttonVariants = cva(
         variant: "outline",
         color: "warning",
         className: [
-          "text-warningA-11 bg-background border border-grayA-6 hover:bg-grayA-2 focus:hover:bg-background",
+          "text-warningA-11 bg-background border hover:bg-grayA-3 focus:hover:bg-transparent",
+          "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
           "focus:border-warning-11 focus:ring-3 focus:ring-warning-4 focus-visible:outline-hidden focus:ring-offset-0",
           "disabled:text-warningA-7 disabled:border-grayA-5",
           "active:bg-warning-3",
@@ -195,7 +199,8 @@ const buttonVariants = cva(
         variant: "outline",
         color: "success",
         className: [
-          "text-success-11 bg-background border border-grayA-6 hover:bg-grayA-2 focus:hover:bg-background",
+          "text-success-11 bg-background border hover:bg-grayA-3 focus:hover:bg-transparent",
+          "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
           "focus:border-success-11 focus:ring-3 focus:ring-success-4 focus-visible:outline-hidden focus:ring-offset-0",
           "disabled:text-successA-7 disabled:border-grayA-5",
           "active:bg-success-3",
@@ -227,7 +232,8 @@ const buttonVariants = cva(
         variant: "outline",
         color: "info",
         className: [
-          "text-info-11 bg-background border border-grayA-6 hover:bg-grayA-2 focus:hover:bg-background",
+          "text-info-11 bg-background border hover:bg-grayA-3 focus:hover:bg-transparent",
+          "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
           "focus:border-info-11 focus:ring-3 focus:ring-info-4 focus-visible:outline-hidden focus:ring-offset-0",
           "disabled:text-infoA-7 disabled:border-grayA-5",
           "active:bg-info-3",

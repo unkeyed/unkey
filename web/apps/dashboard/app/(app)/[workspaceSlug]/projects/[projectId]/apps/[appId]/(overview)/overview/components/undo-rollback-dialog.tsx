@@ -105,7 +105,7 @@ function DeploymentOption({ deployment, isCurrent, selected, onSelect }: Deploym
   const description = match(deployment.source)
     .with("git", () => (
       <>
-        <span className="font-mono text-xs font-semibold text-accent-12 shrink-0">
+        <span className="font-mono text-xs font-semibold text-gray-12 shrink-0">
           {deployment.gitCommitSha ? shortenId(deployment.gitCommitSha) : deployment.id}
         </span>
         {deployment.gitCommitMessage && (
@@ -114,9 +114,7 @@ function DeploymentOption({ deployment, isCurrent, selected, onSelect }: Deploym
       </>
     ))
     .with("oci", "unknown", () => (
-      <span className="font-mono text-xs font-semibold text-accent-12 shrink-0">
-        {deployment.id}
-      </span>
+      <span className="font-mono text-xs font-semibold text-gray-12 shrink-0">{deployment.id}</span>
     ))
     .exhaustive();
 
@@ -126,17 +124,17 @@ function DeploymentOption({ deployment, isCurrent, selected, onSelect }: Deploym
       onClick={onSelect}
       className={cn(
         "w-full text-left rounded-[14px] border p-3 transition-colors",
-        selected ? "border-grayA-8 bg-grayA-2" : "border-grayA-4 hover:border-grayA-6",
+        selected ? "border-grayA-8 bg-grayA-2" : "hover:border-strong",
       )}
     >
       <div className="flex items-start gap-3">
         <span
           className={cn(
             "mt-0.5 size-4 shrink-0 rounded-full border flex items-center justify-center",
-            selected ? "border-accent-12" : "border-grayA-6",
+            selected && "border-gray-12",
           )}
         >
-          {selected && <span className="size-2 rounded-full bg-accent-12" />}
+          {selected && <span className="size-2 rounded-full bg-gray-12" />}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">

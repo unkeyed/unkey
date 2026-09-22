@@ -121,12 +121,12 @@ export const RepoListItem = ({
               creatable
               leftIcon={
                 isSearching ? (
-                  <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
+                  <div className="animate-spin h-3 w-3 border border-t-gray-11 rounded-full" />
                 ) : (
                   <IconMagnifierOutline12 className="text-gray-9" />
                 )
               }
-              className="min-h-7! h-7! rounded-lg border-grayA-4 text-[13px] bg-transparent font-medium shadow-md"
+              className="min-h-7! h-7! rounded-lg text-[13px] bg-transparent font-medium shadow-md"
               wrapperClassName="w-full"
               popoverClassName="w-[400px]"
             />
@@ -134,7 +134,7 @@ export const RepoListItem = ({
         </div>
         <Button
           variant="outline"
-          className="rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all px-3"
+          className="rounded-lg hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all px-3"
           disabled={disabled || isLoading}
           loading={loading}
           onClick={() => onSelect(repo, selectedBranch)}

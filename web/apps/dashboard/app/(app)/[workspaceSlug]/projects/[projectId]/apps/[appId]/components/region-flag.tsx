@@ -52,7 +52,7 @@ export function RegionFlag({
         "bg-grayA-3 flex items-center justify-center",
         config.container,
         shapeClass[shape],
-        shape === "rounded" && "border border-grayA-3",
+        shape === "rounded" && "border",
         hasExplicitPadding && config.padding,
         !hasExplicitPadding && "p-0",
         className,

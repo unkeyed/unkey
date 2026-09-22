@@ -18,8 +18,8 @@ export function ImageSource({
         position={{ side: "top", align: "start" }}
       >
         <span className="flex items-center gap-1 min-w-0">
-          <IconLayers2Outline18 className="size-3 text-accent-12 shrink-0" />
-          <span className="font-mono text-xs text-accent-12">unknown</span>
+          <IconLayers2Outline18 className="size-3 text-gray-12 shrink-0" />
+          <span className="font-mono text-xs text-gray-12">unknown</span>
         </span>
       </InfoTooltip>
     );
@@ -47,8 +47,8 @@ export function ImageSource({
           }
         }}
       >
-        <IconLayers2Outline18 className="size-3 text-accent-12 shrink-0" />
-        <span className="font-mono text-xs text-accent-12 truncate max-w-48">{image}</span>
+        <IconLayers2Outline18 className="size-3 text-gray-12 shrink-0" />
+        <span className="font-mono text-xs text-gray-12 truncate max-w-48">{image}</span>
         {copied ? (
           <IconCheckOutline12 className="text-success-11 shrink-0" />
         ) : (

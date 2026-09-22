@@ -4,7 +4,7 @@ import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { githubUrl } from "@/lib/github-url";
 import { trpc } from "@/lib/trpc/client";
 import { IconShieldAlertOutline18 } from "@unkey/icons";
-import { Button, Dialog, DialogContent } from "@unkey/ui";
+import { AlertBanner, AlertBannerDescription, Button, Dialog, DialogContent } from "@unkey/ui";
 import { useProjectData } from "../../../data-provider";
 
 const chipClass =
@@ -50,7 +50,7 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-[560px] border-gray-4 rounded-2xl! p-0 gap-0 overflow-hidden drop-shadow-2xl"
+        className="max-w-[560px] rounded-2xl! p-0 gap-0 overflow-hidden"
         style={{
           background:
             "radial-gradient(circle at 5% 15%, hsl(var(--grayA-3)) 0%, transparent 20%), hsl(var(--gray-1))",
@@ -123,9 +123,9 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
           </div>
 
           {authorize.error && (
-            <div className="mt-4 border border-errorA-4 bg-errorA-2 rounded-lg px-4 py-3">
-              <p className="text-sm text-error-11">{authorize.error.message}</p>
-            </div>
+            <AlertBanner variant="error" className="mt-4">
+              <AlertBannerDescription>{authorize.error.message}</AlertBannerDescription>
+            </AlertBanner>
           )}
         </div>
       </DialogContent>

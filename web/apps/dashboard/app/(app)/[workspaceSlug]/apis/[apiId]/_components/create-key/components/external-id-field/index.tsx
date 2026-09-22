@@ -177,7 +177,7 @@ export const ExternalIdField = ({
                 <IconTriangleWarningOutline12 />
               </div>
               <span className="text-[13px] text-gray-12 ">
-                <span className="text-accent-10 font-normal">Create</span> "{trimmedSearchValue}"
+                <span className="text-gray-10 font-normal">Create</span> "{trimmedSearchValue}"
               </span>
             </div>
           ),
@@ -319,7 +319,7 @@ export const ExternalIdField = ({
           </div>
         ) : isComboboxLoading ? (
           <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
-            <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
+            <div className="animate-spin h-3 w-3 border border-t-gray-11 rounded-full" />
             {isSearching ? "Searching..." : "Loading identities..."}
           </div>
         ) : (

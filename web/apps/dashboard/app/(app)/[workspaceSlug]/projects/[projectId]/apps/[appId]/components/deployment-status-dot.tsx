@@ -32,14 +32,14 @@ export function DeploymentStatusDot({ status }: { status: DeploymentStatus }) {
 
 export function DeploymentStatusIndicator({ status }: { status: DeploymentStatus }) {
   if (isBuilding(status)) {
-    return <Loading size={12} className="shrink-0 text-accent-12" />;
+    return <Loading size={12} className="shrink-0 text-gray-12" />;
   }
   return <DeploymentStatusDot status={status} />;
 }
 
 export function StatusLabel({ className, children }: PropsWithChildren<{ className?: string }>) {
   return (
-    <span className={cn("flex items-center gap-2 text-[13px] text-accent-12", className)}>
+    <span className={cn("flex items-center gap-2 text-[13px] text-gray-12", className)}>
       {children}
     </span>
   );

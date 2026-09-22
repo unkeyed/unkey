@@ -8,7 +8,7 @@ const alertVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-background text-content",
+        default: "bg-raised text-content",
         alert: " border-alert bg-alert/5 text-content-alert",
         warn: " border-warn bg-warn/5 text-content-warn",
       },

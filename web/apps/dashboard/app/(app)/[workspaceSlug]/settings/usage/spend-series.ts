@@ -12,7 +12,7 @@ const PROJECT_COLORS = [
   "hsl(var(--success-9))",
   "hsl(var(--error-9))",
   "hsla(var(--cyan-9))",
-  "hsl(var(--accent-9))",
+  "hsl(var(--gray-9))",
   "hsl(var(--orange-9))",
   "hsla(var(--bronze-9))",
 ];

@@ -50,23 +50,19 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
       content={
         <div>
           {statuses && statuses.length > 1 && (
-            <div className="border-b border-grayA-3">
+            <div className="border-b">
               <div className="flex flex-col px-px py-px gap-1 w-65 p-1">
-                <div className="text-accent-12 font-medium text-[13px]">Key status overview</div>
-                <div className="text-accent-10 text-xs ">
-                  This key has{" "}
-                  <span className="font-semibold text-accent-12">{statuses.length}</span> active
-                  flags{" "}
+                <div className="text-gray-12 font-medium text-[13px]">Key status overview</div>
+                <div className="text-gray-10 text-xs ">
+                  This key has <span className="font-semibold text-gray-12">{statuses.length}</span>{" "}
+                  active flags{" "}
                 </div>
               </div>
             </div>
           )}
 
           {statuses?.map((status, i) => (
-            <div
-              className={cn("border-grayA-3", i !== statuses.length - 1 && "border-b")}
-              key={status.type || i}
-            >
+            <div className={cn("", i !== statuses.length - 1 && "border-b")} key={status.type || i}>
               <div className="flex items-start gap-1.5 flex-col w-65 p-1">
                 <div className="shrink-0 mt-0.5">
                   <StatusBadge
@@ -79,7 +75,7 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
                   />
                 </div>
 
-                <div className="text-xs text-accent-11 text-wrap leading-6 grow w-full">
+                <div className="text-xs text-gray-11 text-wrap leading-6 grow w-full">
                   {status.type === "disabled" ? (
                     <div className="flex flex-col gap-2 items-start">
                       <span>

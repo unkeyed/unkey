@@ -86,7 +86,7 @@ export const GitHubConnected = ({
           <ComboboxSkeleton />
         ) : (
           <Combobox
-            className="w-[200px] text-left h-7 border-grayA-4"
+            className="w-[200px] text-left h-7"
             options={repoOptions}
             value={selectedValue}
             onSelect={handleSelectRepository}

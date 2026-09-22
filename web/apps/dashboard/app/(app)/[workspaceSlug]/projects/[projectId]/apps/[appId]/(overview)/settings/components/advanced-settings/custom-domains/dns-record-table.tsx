@@ -11,7 +11,7 @@ export function DnsRecordTable({ records, isLoading }: DnsRecordTableProps) {
     return (
       <div className="px-4 pb-3 space-y-3">
         <div className="h-4 w-64 bg-gray-4 rounded animate-pulse" />
-        <div className="rounded-lg border border-gray-4 overflow-hidden text-xs">
+        <div className="rounded-lg border bg-background overflow-hidden text-xs">
           <TableHeader />
           <DnsRecordRowSkeleton />
           <DnsRecordRowSkeleton isLast />
@@ -24,7 +24,7 @@ export function DnsRecordTable({ records, isLoading }: DnsRecordTableProps) {
     <div className="px-4 pb-3 space-y-3">
       <p className="text-xs text-gray-9">Add the DNS records below at your domain provider.</p>
 
-      <div className="rounded-lg border border-gray-4 overflow-hidden text-xs">
+      <div className="rounded-lg border bg-background overflow-hidden text-xs">
         <TableHeader />
         {records.map((record, index) => (
           <DnsRecordRow
@@ -64,7 +64,7 @@ function TableHeader() {
 function DnsRecordRowSkeleton({ isLast }: { isLast?: boolean }) {
   return (
     <div
-      className={`grid grid-cols-[64px_1fr_1fr_48px] px-3 py-2 items-center ${isLast ? "" : "border-b border-gray-3"}`}
+      className={`grid grid-cols-[64px_1fr_1fr_48px] px-3 py-2 items-center ${isLast ? "" : "border-b"}`}
     >
       <div className="h-4 w-10 bg-gray-4 rounded animate-pulse" />
       <div className="h-4 w-32 bg-gray-4 rounded animate-pulse" />

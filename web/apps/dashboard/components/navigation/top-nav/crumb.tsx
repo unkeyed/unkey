@@ -44,7 +44,7 @@ export function Crumb({
       >
         <button
           type="button"
-          className="hidden size-6 shrink-0 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-accent-12 md:flex"
+          className="hidden size-6 shrink-0 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-gray-12 md:flex"
           aria-label={`Switch ${label}`}
         >
           <IconChevronExpandYOutline12 />
@@ -72,7 +72,7 @@ export function CrumbLink({
       href={href as Route}
       aria-label={label}
       aria-current={current ? "page" : undefined}
-      className="flex min-w-0 items-center gap-1.5 px-1 py-1 text-[13px] font-medium text-accent-12"
+      className="flex min-w-0 items-center gap-1.5 px-1 py-1 text-[13px] font-medium text-gray-12"
     >
       {icon}
       {loading ? (

@@ -7,7 +7,7 @@ const badgeVariants = cva("inline-flex items-center rounded-md border px-2.5 py-
   variants: {
     variant: {
       primary: "border-transparent bg-grayA-3 text-grayA-11 hover:bg-grayA-4",
-      secondary: "border-border bg-grayA-2 text-grayA-11 hover:bg-grayA-3 font-normal",
+      secondary: "bg-grayA-2 text-grayA-11 hover:bg-grayA-3 font-normal",
       success: "border-transparent bg-successA-3 text-successA-11 hover:bg-successA-4",
       warning: "border-transparent bg-warningA-3 text-warningA-11 hover:bg-warningA-4",
       blocked: "border-transparent bg-orangeA-3 text-orangeA-11 hover:bg-orangeA-4",

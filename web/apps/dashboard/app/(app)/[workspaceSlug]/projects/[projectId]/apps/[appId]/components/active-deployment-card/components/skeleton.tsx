@@ -37,9 +37,9 @@ export function ActiveDeploymentCardSkeleton() {
         </div>
       </div>
 
-      <div className="bg-gray-1 rounded-b-lg">
+      <div className="bg-raised rounded-b-lg">
         <div className="relative h-4 flex items-center justify-center">
-          <div className="absolute top-0 left-0 right-0 h-4 border-b border-gray-4 rounded-b-lg bg-white dark:bg-black" />
+          <div className="absolute top-0 left-0 right-0 h-4 border-b rounded-b-lg bg-raised" />
         </div>
 
         <div className="pb-2.5 pt-2 flex justify-between items-center px-3">

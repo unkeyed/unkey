@@ -52,7 +52,7 @@ export function LogsChart({
         success: {
           label: "Success",
           subLabel: "2xx",
-          color: "hsl(var(--accent-4))",
+          color: "hsl(var(--gray-4))",
         },
         warning: {
           label: "Warning",

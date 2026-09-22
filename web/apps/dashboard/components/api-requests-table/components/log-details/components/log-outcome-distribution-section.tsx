@@ -21,11 +21,11 @@ export const OutcomeDistributionSection = ({
 
   return (
     <div className="flex flex-col gap-1 mt-[16px] px-4">
-      <div className="border bg-gray-2 border-gray-4 rounded-[10px] relative group">
+      <div className="border bg-raised rounded-[10px] relative group">
         <div className="text-gray-11 text-xs leading-6 px-[14px] py-1.5 font-sans">
           Outcomes ({outcomeEntries.length})
         </div>
-        <div className="border-gray-4 border-t rounded-[10px] bg-white dark:bg-black px-3.5 py-2">
+        <div className="border-t rounded-[10px] bg-raised px-3.5 py-2">
           <div className="flex flex-col gap-1 whitespace-pre-wrap leading-relaxed">
             {outcomeEntries.map(([outcome, count]) => (
               <div className="flex items-center w-full px-[3px] h-6" key={outcome}>
@@ -38,7 +38,7 @@ export const OutcomeDistributionSection = ({
                   />
                   <span className="text-xs text-gray-11 ">{formatOutcomeName(outcome)}:</span>
                 </div>
-                <span className="ml-2 text-xs text-accent-12 truncate font-mono tabular-nums">
+                <span className="ml-2 text-xs text-gray-12 truncate font-mono tabular-nums">
                   {formatNumber(count)}
                 </span>
               </div>

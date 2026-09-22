@@ -25,7 +25,7 @@ export const LogDetailsSkeleton = ({ distanceToTop, onClose }: Props) => {
   return (
     <ResizablePanel
       onClose={onClose}
-      className="bg-gray-1 font-mono drop-shadow-2xl z-20 absolute right-0 overflow-y-auto"
+      className="bg-raised font-mono drop-shadow-2xl z-20 absolute right-0 overflow-y-auto"
       style={{
         ...createPanelStyle(distanceToTop),
         width: `${DEFAULT_DRAGGABLE_WIDTH}px`,
@@ -34,7 +34,7 @@ export const LogDetailsSkeleton = ({ distanceToTop, onClose }: Props) => {
       <div role="status" aria-live="polite" aria-busy="true">
         <span className="sr-only">Loading request details</span>
 
-        <div className="border-b flex justify-between items-center border-gray-4 h-[50px] px-4 py-2">
+        <div className="border-b flex justify-between items-center h-[50px] px-4 py-2">
           <div className="flex gap-2 items-center min-w-0 flex-1">
             <Skeleton className="h-5 w-12 rounded-md" />
             <Skeleton className="h-3 flex-1 max-w-[200px]" />
@@ -51,11 +51,11 @@ export const LogDetailsSkeleton = ({ distanceToTop, onClose }: Props) => {
             key={index}
             className="flex flex-col gap-1 mt-[16px] px-4"
           >
-            <div className="border bg-gray-2 border-gray-4 rounded-[10px]">
+            <div className="border bg-raised rounded-[10px]">
               <div className="px-[14px] py-1.5">
                 <Skeleton className="h-3 w-28" />
               </div>
-              <div className="border-gray-4 border-t rounded-[10px] bg-white dark:bg-black px-3.5 py-2">
+              <div className="border-t rounded-[10px] bg-raised px-3.5 py-2">
                 <Skeleton className={`w-full ${height}`} />
               </div>
             </div>
@@ -69,7 +69,7 @@ export const LogDetailsSkeleton = ({ distanceToTop, onClose }: Props) => {
             <div
               // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length placeholder list
               key={index}
-              className="flex w-full justify-between border-grayA-3 border-solid border-b pr-3 py-3 items-center"
+              className="flex w-full justify-between border-solid border-b pr-3 py-3 items-center"
             >
               <Skeleton className={`h-3 ${width}`} />
               <Skeleton className="h-3 w-32" />

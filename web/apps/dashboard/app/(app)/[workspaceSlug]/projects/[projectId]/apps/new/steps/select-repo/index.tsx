@@ -177,9 +177,9 @@ export const SelectRepo = ({
         {isLoadingRepos ? (
           <SelectRepoSkeleton />
         ) : reposError ? (
-          <div className="mt-3 flex flex-col items-center justify-center min-w-[var(--repo-list-w)] h-[462px] gap-3 border border-dashed rounded-lg border-grayA-5">
-            <p className="text-[15px] text-accent-12 font-semibold">Failed to load repositories</p>
-            <p className="text-[13px] text-accent-11 text-center whitespace-pre-line w-[350px]">
+          <div className="mt-3 flex flex-col items-center justify-center min-w-[var(--repo-list-w)] h-[462px] gap-3 border border-dashed rounded-lg">
+            <p className="text-[15px] text-gray-12 font-semibold">Failed to load repositories</p>
+            <p className="text-[13px] text-gray-11 text-center whitespace-pre-line w-[350px]">
               {reposError.message}
             </p>
             <Button
@@ -195,7 +195,7 @@ export const SelectRepo = ({
           <div className="flex gap-2 min-w-[var(--repo-list-w)] pt-1">
             <Combobox
               wrapperClassName="w-[200px] shrink-0"
-              className="w-[200px] shrink-0 text-left h-9 border-grayA-4 bg-transparent [&_svg]:text-gray-12"
+              className="w-[200px] shrink-0 text-left h-9 bg-transparent [&_svg]:text-gray-12"
               options={ownerOptions}
               value={selectedOwner}
               onSelect={handleSelectOwner}
@@ -203,7 +203,7 @@ export const SelectRepo = ({
               searchPlaceholder="Filter accounts..."
               leftIcon={<Github />}
             />
-            <InputGroup className="flex-1 min-w-0 bg-transparent h-9 border-grayA-4">
+            <InputGroup className="flex-1 min-w-0 bg-transparent h-9">
               <InputGroupAddon>
                 <IconMagnifierOutline12 className="text-gray-12 shrink-0" />
               </InputGroupAddon>
@@ -221,7 +221,7 @@ export const SelectRepo = ({
         (filteredRepos.length > 0 ? (
           <div
             ref={parentRef}
-            className="mt-3 border rounded-lg border-grayA-5 min-w-[var(--repo-list-w)] max-h-[462px] overflow-y-auto"
+            className="mt-3 border rounded-lg bg-raised min-w-[var(--repo-list-w)] max-h-[462px] overflow-y-auto"
           >
             <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}>
               {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -231,9 +231,7 @@ export const SelectRepo = ({
                     key={repo.id}
                     ref={virtualizer.measureElement}
                     data-index={virtualRow.index}
-                    className={
-                      virtualRow.index < filteredRepos.length - 1 ? "border-b border-grayA-5" : ""
-                    }
+                    className={virtualRow.index < filteredRepos.length - 1 ? "border-b" : ""}
                     style={{
                       position: "absolute",
                       top: 0,
@@ -263,8 +261,8 @@ export const SelectRepo = ({
         ))}
 
       {onSkip && (
-        <div className="mt-3 border border-grayA-5 rounded-lg flex justify-start items-center gap-4 py-[18px] px-4 min-w-[var(--repo-list-w)]">
-          <div className="size-8 rounded-[10px] grid place-items-center ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none">
+        <div className="mt-3 border bg-raised rounded-lg flex justify-start items-center gap-4 py-[18px] px-4 min-w-[var(--repo-list-w)]">
+          <div className="size-8 rounded-[10px] grid place-items-center border shadow-sm shadow-grayA-8/20 dark:shadow-none">
             <IconClockOutline18 className="text-gray-12" />
           </div>
           <div className="flex flex-col gap-3">
@@ -278,7 +276,7 @@ export const SelectRepo = ({
           <Button
             variant="outline"
             onClick={onSkip}
-            className="ml-auto rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
+            className="ml-auto rounded-lg hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
           >
             <span className="text-[13px] text-gray-12 font-medium">Skip for now</span>
           </Button>

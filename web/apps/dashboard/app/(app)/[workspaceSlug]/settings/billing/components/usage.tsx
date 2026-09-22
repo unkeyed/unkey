@@ -53,7 +53,7 @@ export const Usage: React.FC<{
           <button
             type="button"
             onClick={() => refetch()}
-            className="text-sm text-accent-11 hover:text-accent-12 transition-colors text-left"
+            className="text-sm text-gray-11 hover:text-gray-12 transition-colors text-left"
           >
             Retry
           </button>
@@ -156,7 +156,7 @@ export const ProgressCircle: React.FC<{
               fill="transparent"
               stroke=""
               strokeLinecap="round"
-              className="stroke-accent-12 transform-gpu transition-all duration-300 ease-in-out"
+              className="stroke-gray-12 transform-gpu transition-all duration-300 ease-in-out"
               style={{ stroke: color }}
             />
           ) : null}

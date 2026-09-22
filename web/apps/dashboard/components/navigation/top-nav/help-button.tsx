@@ -47,7 +47,7 @@ export function HelpButton() {
           {ITEM_LINKS.map(({ href, label, icon: Icon }) => (
             <DropdownMenuItem
               key={href}
-              className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-accent-12"
+              className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-gray-12"
               render={
                 <Link href={href} target="_blank" rel="noreferrer">
                   <Icon className="size-4 shrink-0 text-gray-11" />
@@ -57,7 +57,7 @@ export function HelpButton() {
             />
           ))}
           <DropdownMenuItem
-            className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-accent-12"
+            className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-gray-12"
             onClick={() => {
               setOpen(false);
               openFeedback(true);

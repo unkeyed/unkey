@@ -215,7 +215,7 @@ export function LogsTimeseriesBarChart({
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between pointer-events-none z-10">
+      <div className="px-2 text-gray-11 font-mono absolute top-0 text-xxs w-full flex justify-between pointer-events-none z-10">
         {data
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),
@@ -229,7 +229,7 @@ export function LogsTimeseriesBarChart({
       </div>
       <ChartContainer
         config={config}
-        className="w-full aspect-auto border-b border-gray-4"
+        className="w-full aspect-auto border-b"
         style={{ height: `${height}px` }}
       >
         <BarChart
@@ -248,7 +248,7 @@ export function LogsTimeseriesBarChart({
             isAnimationActive
             wrapperStyle={{ zIndex: 1000 }}
             cursor={{
-              fill: "hsl(var(--accent-3))",
+              fill: "hsl(var(--gray-3))",
               strokeWidth: 1,
               strokeDasharray: "5 5",
               strokeOpacity: 0.7,
@@ -263,18 +263,18 @@ export function LogsTimeseriesBarChart({
                   label={label}
                   active={active}
                   bottomExplainer={
-                    <div className="grid gap-1.5 pt-2 border-t border-gray-4">
+                    <div className="grid gap-1.5 pt-2 border-t">
                       <div className="flex w-full [&>svg]:size-4 gap-4 px-4 items-center">
                         <IconGridOutline18 className="text-gray-6" />
                         <div className="flex gap-4 leading-none justify-between w-full py-1 items-center">
                           <div className="flex gap-4 items-center min-w-[80px]">
-                            <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
+                            <span className="capitalize text-gray-9 text-xs w-[2ch] inline-block">
                               All
                             </span>
-                            <span className="capitalize text-accent-12 text-xs">Total</span>
+                            <span className="capitalize text-gray-12 text-xs">Total</span>
                           </div>
                           <div className="ml-auto">
-                            <span className="font-mono tabular-nums text-accent-12">
+                            <span className="font-mono tabular-nums text-gray-12">
                               {formatNumber(payload[0]?.payload?.total)}
                             </span>
                           </div>
@@ -282,7 +282,7 @@ export function LogsTimeseriesBarChart({
                       </div>
                     </div>
                   }
-                  className="rounded-lg shadow-lg border border-gray-4"
+                  className="rounded-lg shadow-lg border"
                   labelFormatter={(_, tooltipPayload) => {
                     const payloadTimestamp = tooltipPayload?.[0]?.payload?.originalTimestamp;
                     return formatTooltipInterval(

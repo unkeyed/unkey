@@ -3,16 +3,16 @@ import { StatusDot } from "../nodes/status/status-dot";
 
 export const LiveIndicator = () => {
   return (
-    <div className="absolute top-4 right-4 px-2 py-1.5 dark:bg-black bg-white rounded-full border border-grayA-4 flex items-center justify-between gap-2 h-6 pointer-events-auto shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)]">
+    <div className="absolute top-4 right-4 px-2 py-1.5 bg-raised rounded-full border flex items-center justify-between gap-2 h-6 pointer-events-auto shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)]">
       <InfoTooltip
         content="Live monitoring enabled. Metrics refresh every 10s"
         variant="primary"
         className="px-2.5 py-1 rounded-[10px] bg-blackA-12 text-xs z-30 text-white"
         position={{ align: "center", side: "top", sideOffset: 5 }}
       >
-        <div className="bg-base-12 flex items-center justify-between gap-2 cursor-pointer">
+        <div className="bg-raised flex items-center justify-between gap-2 cursor-pointer">
           <StatusDot healthStatus="health_syncing" />
-          <span className="text-accent-12 font-medium text-[13px]">Live</span>
+          <span className="text-gray-12 font-medium text-[13px]">Live</span>
         </div>
       </InfoTooltip>
     </div>

@@ -2,7 +2,7 @@ import { IconDotsOutline12 } from "@unkey/icons";
 
 export function EnvVarsSkeleton() {
   return (
-    <div className="border border-grayA-4 rounded-lg overflow-hidden divide-y divide-grayA-4">
+    <div className="border bg-raised rounded-lg overflow-hidden divide-y divide-grayA-4">
       {Array.from({ length: 10 }).map((_, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
         <div key={i} className="flex items-center h-17.5">

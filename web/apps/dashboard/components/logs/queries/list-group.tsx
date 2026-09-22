@@ -148,10 +148,10 @@ export function ListGroup({
             <button
               type="button"
               className={cn(
-                "flex h-7 w-6 ml-px  justify-center items-center text-accent-9 rounded-md",
+                "flex h-7 w-6 ml-px  justify-center items-center text-gray-9 rounded-md",
                 filterList.bookmarked
                   ? "text-info-9 hover:bg-info-3"
-                  : "hover:bg-gray-3 hover:text-accent-12",
+                  : "hover:bg-gray-3 hover:text-gray-12",
                 `tabIndex-${0}`,
               )}
               onClick={() => handleBookmarkChanged()}
@@ -169,7 +169,7 @@ export function ListGroup({
       </div>
       <div
         className={cn(
-          "flex flex-row bg-white dark:bg-black h-px mt-[7px] mb-[8px] w-full",
+          "flex flex-row bg-border h-px mt-[7px] mb-[8px] w-full",
           index < total - 1 && "border-b border-b-gray-3",
         )}
       />

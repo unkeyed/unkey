@@ -44,7 +44,7 @@ export function StatusSelect() {
               tabIndex={-1}
             />
             <span className={cn("size-2 rounded-full shrink-0", option.colorClass)} />
-            <span className="text-accent-12">{option.label}</span>
+            <span className="text-gray-12">{option.label}</span>
           </button>
         ))}
       </PopoverContent>

@@ -14,8 +14,8 @@ export const LogsDisplay = () => {
         aria-haspopup="true"
         title="Press 'F' to toggle filters"
       >
-        <IconSlidersOutline18 className="text-accent-9 size-4" />
-        <span className="text-accent-12 font-medium text-[13px]">Display</span>
+        <IconSlidersOutline18 className="text-gray-9 size-4" />
+        <span className="text-gray-12 font-medium text-[13px]">Display</span>
       </Button>
     </DisplayPopover>
   );

@@ -149,8 +149,8 @@ export const PlanChangeModal: React.FC<PlanChangeModalProps> = ({
                 isSelected
                   ? "border-info-7 bg-info-2 ring-1 ring-info-7"
                   : isCurrent
-                    ? "border-gray-5 bg-gray-2 hover:border-gray-6"
-                    : "border-gray-4 hover:border-gray-6",
+                    ? "bg-gray-2 hover:border-strong"
+                    : "hover:border-strong",
               )}
             >
               <div className="flex items-center justify-between gap-3 py-1">
@@ -158,7 +158,7 @@ export const PlanChangeModal: React.FC<PlanChangeModalProps> = ({
                   <div
                     className={cn(
                       "flex size-4 shrink-0 items-center justify-center rounded-full border-2",
-                      isSelected ? "border-info-9 bg-info-9" : "border-gray-6",
+                      isSelected && "border-info-9 bg-info-9",
                     )}
                   >
                     {isSelected ? <div className="size-2 rounded-full bg-white" /> : null}

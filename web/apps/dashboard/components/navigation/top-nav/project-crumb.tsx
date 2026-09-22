@@ -28,7 +28,7 @@ export function ProjectCrumb({ projectId }: { projectId: string }) {
 
   return (
     <Crumb
-      icon={<IconCubeOutline18 className="size-3.5 text-accent-11" />}
+      icon={<IconCubeOutline18 className="size-3.5 text-gray-11" />}
       label={current?.name ?? projectId}
       loading={loading}
       href={routes.projects.detail({ workspaceSlug: workspace.slug, projectId })}

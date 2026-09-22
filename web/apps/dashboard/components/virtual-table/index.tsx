@@ -195,18 +195,23 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     <th
                       key={column.key}
                       className={cn(
-                        "text-sm font-medium text-accent-12 py-1 text-left",
+                        "text-sm font-medium text-gray-12 py-1 text-left",
                         column.headerClassName,
                         column.cellClassName,
                       )}
                     >
-                      <div className="truncate text-accent-12">{column.header}</div>
+                      <div className="truncate text-gray-12">{column.header}</div>
                     </th>
                   ))}
                 </tr>
                 <tr>
                   <th colSpan={columns.length} className="p-0">
-                    <div className="w-full border-t border-gray-4" />
+                    <div
+                      className={cn(
+                        "absolute inset-y-0 -z-10 bg-table-header border-b",
+                        hasPadding ? "inset-x-[-8px]" : "inset-x-0",
+                      )}
+                    />
                   </th>
                 </tr>
               </thead>
@@ -239,7 +244,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     <th
                       key={column.key}
                       className={cn(
-                        "text-sm font-medium text-accent-12 py-1 text-left relative",
+                        "text-sm font-medium text-gray-12 py-1 text-left relative",
                         column.headerClassName,
                         column.cellClassName,
                       )}
@@ -250,14 +255,12 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                 </tr>
                 <tr>
                   <th colSpan={columns.length} className="p-0">
-                    <div className="relative w-full">
-                      <div
-                        className={cn(
-                          "absolute border-t border-gray-4",
-                          hasPadding ? "inset-x-[-8px]" : "inset-x-0",
-                        )}
-                      />
-                    </div>
+                    <div
+                      className={cn(
+                        "absolute inset-y-0 -z-10 bg-table-header border-b",
+                        hasPadding ? "inset-x-[-8px]" : "inset-x-0",
+                      )}
+                    />
                   </th>
                 </tr>
               </thead>
@@ -276,7 +279,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     return (
                       <tr
                         key={`skeleton-${virtualRow.key}`}
-                        className={cn(config.rowBorders && "border-b border-gray-4")}
+                        className={cn(config.rowBorders && "border-b")}
                         style={{ height: `${config.rowHeight}px` }}
                       >
                         {renderSkeletonRow({
@@ -289,12 +292,12 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                   return (
                     <tr
                       key={`skeleton-${virtualRow.key}`}
-                      className={cn(config.rowBorders && "border-b border-gray-4")}
+                      className={cn(config.rowBorders && "border-b")}
                       style={{ height: `${config.rowHeight}px` }}
                     >
                       {columns.map((column) => (
                         <td key={column.key} className={cn("pr-4", column.cellClassName)}>
-                          <div className="h-4 bg-accent-3 rounded-sm animate-pulse" />
+                          <div className="h-4 bg-gray-3 rounded-sm animate-pulse" />
                         </td>
                       ))}
                     </tr>
@@ -385,8 +388,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                           }
                         }}
                         className={cn(
-                          "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
-                          config.rowBorders && "border-b border-gray-4",
+                          "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-hidden focus:ring-1",
+                          config.rowBorders && "border-b",
                           rowClassName?.(typedItem),
                           selectedClassName?.(typedItem, isSelected),
                         )}
@@ -456,8 +459,8 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                         }
                       }}
                       className={cn(
-                        "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
-                        config.rowBorders && "border-b border-gray-4",
+                        "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-hidden focus:ring-1",
+                        config.rowBorders && "border-b",
                         rowClassName?.(typedItem),
                         selectedClassName?.(typedItem, isSelected),
                       )}
@@ -509,12 +512,12 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
 
 function SortIcon({ direction }: { direction?: SortDirection | null }) {
   if (!direction) {
-    return <IconCaretExpandYOutline18 className="color-gray-9" />;
+    return <IconCaretExpandYOutline18 className="text-gray-9" />;
   }
   return direction === "asc" ? (
-    <IconCaretUpOutline12 className="color-gray-9" />
+    <IconCaretUpOutline12 className="text-gray-9" />
   ) : (
-    <IconCaretDownOutline12 className="color-gray-9" />
+    <IconCaretDownOutline12 className="text-gray-9" />
   );
 }
 
@@ -533,10 +536,7 @@ function HeaderCell<T>({ column }: { column: Column<T> }) {
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
     <div
-      className={cn(
-        "flex items-center gap-1 truncate text-accent-12",
-        sortable && "cursor-pointer",
-      )}
+      className={cn("flex items-center gap-1 truncate text-gray-12", sortable && "cursor-pointer")}
       onClick={sortable ? handleSort : undefined}
     >
       <span>{column.header}</span>

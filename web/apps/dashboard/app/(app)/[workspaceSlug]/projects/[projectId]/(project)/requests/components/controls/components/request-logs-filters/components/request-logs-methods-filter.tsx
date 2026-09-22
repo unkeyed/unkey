@@ -23,7 +23,7 @@ export const RequestMethodsFilter = () => {
       filterField="methods"
       checkPath="method"
       renderOptionContent={(checkbox) => (
-        <div className="text-accent-12 text-xs">{checkbox.method}</div>
+        <div className="text-gray-12 text-xs">{checkbox.method}</div>
       )}
       createFilterValue={(option) => ({
         value: option.method,

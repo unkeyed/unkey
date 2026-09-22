@@ -181,7 +181,7 @@ export const IdentifierDialog = ({
                 placeholder="Enter milliseconds (60000, 100000, 1200000…)"
               />
               <InputGroupAddon align="inline-end">
-                <Badge className="pointer-events-none rounded-md font-mono whitespace-nowrap gap-[6px] font-medium bg-accent-4 text-accent-11 hover:bg-accent-6">
+                <Badge className="pointer-events-none rounded-md font-mono whitespace-nowrap gap-[6px] font-medium bg-gray-4 text-gray-11 hover:bg-gray-6">
                   MS
                 </Badge>
               </InputGroupAddon>

@@ -212,12 +212,10 @@ export const PlanSelectionModal = ({
             <label
               key={product.id}
               className={cn(
-                "border rounded-lg px-4 py-1 cursor-pointer transition-all hover:border-gray-6 bg-white dark:bg-black block",
+                "border rounded-lg px-4 py-1 cursor-pointer transition-all hover:border-strong bg-raised block",
                 selectedProductId === product.id
                   ? "border-info-7 bg-info-2 ring-1 ring-info-7"
-                  : currentProductId === product.id
-                    ? "border-gray-5 bg-gray-2"
-                    : "border-gray-4",
+                  : currentProductId === product.id && "bg-gray-2",
               )}
             >
               <input
@@ -234,9 +232,7 @@ export const PlanSelectionModal = ({
                     <div
                       className={cn(
                         "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                        selectedProductId === product.id
-                          ? "border-info-9 bg-info-9"
-                          : "border-gray-6",
+                        selectedProductId === product.id && "border-info-9 bg-info-9",
                       )}
                     >
                       {selectedProductId === product.id && (

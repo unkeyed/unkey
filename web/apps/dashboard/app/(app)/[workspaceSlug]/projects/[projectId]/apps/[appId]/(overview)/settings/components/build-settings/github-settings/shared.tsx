@@ -25,7 +25,7 @@ export const GitHubSettingCard = ({
 );
 
 export const ComboboxSkeleton = () => (
-  <div className="w-[185px] h-7 rounded-lg border border-gray-5 bg-gray-2 flex items-center justify-between px-3 py-2">
+  <div className="w-[185px] h-7 rounded-lg border bg-raised flex items-center justify-between px-3 py-2">
     <div className="flex gap-1.5 items-center">
       <div className="h-3.5 w-16 bg-grayA-3 rounded animate-pulse" />
       <div className="h-3.5 w-24 bg-grayA-3 rounded animate-pulse" />

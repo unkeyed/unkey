@@ -48,14 +48,14 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
           className={cn(
             style.badge.default,
             "rounded-sm p-1 shrink-0",
-            hasMoreBlocked ? "" : "group-hover:bg-accent-6",
+            hasMoreBlocked ? "" : "group-hover:bg-gray-6",
           )}
         >
           {log.override ? (
             <IconArrowDotRotateAnticlockwiseOutline18 className="size-3.5" />
           ) : (
             <IconFocusOutline18
-              className={cn("size-3.5", hasMoreBlocked ? "" : "group-hover:text-accent-12")}
+              className={cn("size-3.5", hasMoreBlocked ? "" : "group-hover:text-gray-12")}
             />
           )}
         </div>
@@ -67,7 +67,7 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
           <div
             className={cn(
               "font-mono font-medium truncate min-w-0",
-              hasMoreBlocked ? style.base : "text-accent-12",
+              hasMoreBlocked ? style.base : "text-gray-12",
             )}
           >
             {log.identifier}
@@ -96,7 +96,7 @@ const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProp
           className={cn(
             style.badge.default,
             "rounded-sm p-1",
-            "bg-accent-4 text-accent-12 group-hover:bg-accent-5",
+            "bg-gray-4 text-gray-12 group-hover:bg-gray-5",
           )}
         >
           <IconArrowDotRotateAnticlockwiseOutline18 className="size-3.5" />
@@ -107,7 +107,7 @@ const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProp
             <div className="size-[6px] rounded-full bg-warning-10" />
           </div>
           {log.override && (
-            <div className="text-accent-9 text-xs">
+            <div className="text-gray-9 text-xs">
               Limit set to <span className="text-gray-12">{formatNumber(log.override.limit)} </span>
               requests per <span className="text-gray-12">{formatMs(log.override.duration)}</span>
             </div>

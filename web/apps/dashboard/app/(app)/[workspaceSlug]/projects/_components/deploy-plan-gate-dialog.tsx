@@ -39,15 +39,15 @@ function DeployPlanGateDialogView({
     if (plansLoading) {
       return (
         <div className="flex flex-col gap-2.5" aria-hidden="true">
-          <div className="h-[62px] animate-pulse rounded-[11px] border border-gray-4 bg-grayA-2" />
-          <div className="h-[62px] animate-pulse rounded-[11px] border border-gray-4 bg-grayA-2" />
-          <div className="h-[62px] animate-pulse rounded-[11px] border border-gray-4 bg-grayA-2" />
+          <div className="h-[62px] animate-pulse rounded-[11px] border bg-grayA-2" />
+          <div className="h-[62px] animate-pulse rounded-[11px] border bg-grayA-2" />
+          <div className="h-[62px] animate-pulse rounded-[11px] border bg-grayA-2" />
         </div>
       );
     }
     if (plans.length === 0) {
       return (
-        <div className="rounded-[11px] border border-gray-4 bg-gray-1 px-4 py-6 text-center">
+        <div className="rounded-[11px] border bg-raised px-4 py-6 text-center">
           <p className="text-[13px] text-gray-11">Compute plans aren't available right now.</p>
           <Link
             href={billingHref}

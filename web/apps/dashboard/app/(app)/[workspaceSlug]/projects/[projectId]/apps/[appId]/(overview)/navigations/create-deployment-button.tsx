@@ -441,11 +441,11 @@ export const CreateDeploymentButton = ({
                 <output className="text-warning-11 text-[13px]">{imageValidation.warning}</output>
               ) : null}
               {forkRepoName && (
-                <div className="flex items-center gap-1.5 bg-amber-3 border border-amber-6 rounded-md px-2.5 py-1.5 w-fit">
-                  <IconCodeBranchOutline18 className="size-3 shrink-0 text-amber-11" />
-                  <span className="text-xs text-amber-11">
+                <div className="flex items-center gap-1.5 bg-warning-3 border border-warning-6 rounded-md px-2.5 py-1.5 w-fit">
+                  <IconCodeBranchOutline18 className="size-3 shrink-0 text-warning-11" />
+                  <span className="text-xs text-warning-11">
                     Deploying from fork:{" "}
-                    <span className="font-medium text-amber-12">{forkRepoName}</span>
+                    <span className="font-medium text-warning-12">{forkRepoName}</span>
                   </span>
                 </div>
               )}
@@ -453,7 +453,7 @@ export const CreateDeploymentButton = ({
           </form>
 
           {isImageApp && imageRows.length > 0 && (
-            <div className="flex flex-col divide-y divide-gray-4 rounded-md border border-gray-4 overflow-hidden">
+            <div className="flex flex-col divide-y divide-gray-4 rounded-md border overflow-hidden">
               {imageRows.map((deployment) => (
                 // TimestampInfo renders its own popover trigger button, so it
                 // must be a sibling of the row button rather than nested in it.
@@ -490,7 +490,7 @@ export const CreateDeploymentButton = ({
           )}
 
           {isGitApp && repositoryFullName && (
-            <div className="flex flex-col divide-y divide-gray-4 rounded-md border border-gray-4">
+            <div className="flex flex-col divide-y divide-gray-4 rounded-md border">
               {repoDetails.isLoading &&
                 Array.from({ length: 5 }).map((_, i) => (
                   <div

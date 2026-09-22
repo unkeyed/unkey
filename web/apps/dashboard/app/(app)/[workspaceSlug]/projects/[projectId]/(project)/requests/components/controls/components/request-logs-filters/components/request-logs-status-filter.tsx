@@ -108,12 +108,10 @@ export const RequestStatusFilter = () => {
           <Checkbox
             id="checkbox-999"
             checked={allChecked}
-            className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
+            className="size-4 rounded-sm [&_svg]:size-3"
             onCheckedChange={handleSelectAll}
           />
-          <span className="text-xs text-accent-12">
-            {allChecked ? "Unselect All" : "Select All"}
-          </span>
+          <span className="text-xs text-gray-12">{allChecked ? "Unselect All" : "Select All"}</span>
         </label>
 
         {checkboxes.map((checkbox, index) => (
@@ -125,12 +123,12 @@ export const RequestStatusFilter = () => {
             <Checkbox
               id={`checkbox-${checkbox.id}`}
               checked={checkbox.checked}
-              className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
+              className="size-4 rounded-sm [&_svg]:size-3"
               onCheckedChange={() => handleCheckboxToggle(index)}
             />
             <div className={cn("size-2 rounded-[2px]", checkbox.color)} />
-            <span className="text-accent-9 text-xs">{checkbox.display}</span>
-            <span className="text-accent-12 text-xs">{checkbox.label}</span>
+            <span className="text-gray-9 text-xs">{checkbox.display}</span>
+            <span className="text-gray-12 text-xs">{checkbox.label}</span>
           </label>
         ))}
 
@@ -156,21 +154,21 @@ export const RequestStatusFilter = () => {
               }
             }}
             placeholder="418"
-            className="text-accent-9 text-xs bg-transparent border-b border-gray-6 outline-none w-[3ch] font-mono placeholder:text-accent-9/40 focus:border-accent-9 [&::-webkit-inner-spin-button]:appearance-none"
+            className="text-gray-9 text-xs bg-transparent border-b outline-none w-[3ch] font-mono placeholder:text-gray-9/40 focus:border-gray-9 [&::-webkit-inner-spin-button]:appearance-none"
           />
           {codeError ? (
             <span className="text-error-9 text-xs">100–599</span>
           ) : codeMeta.label ? (
-            <span className="text-accent-12 text-xs">{codeMeta.label}</span>
+            <span className="text-gray-12 text-xs">{codeMeta.label}</span>
           ) : (
-            <span className="text-accent-9/40 text-xs">Custom</span>
+            <span className="text-gray-9/40 text-xs">Custom</span>
           )}
         </div>
       </div>
 
       <Button
         variant="primary"
-        className="mt-2 w-full h-9 rounded-md focus:ring-4 focus:ring-accent-9 focus:ring-offset-2"
+        className="mt-2 w-full h-9 rounded-md focus:ring-4 focus:ring-gray-9 focus:ring-offset-2"
         onClick={handleApply}
       >
         Apply Filter

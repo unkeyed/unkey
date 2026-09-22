@@ -209,10 +209,10 @@ export const FilterCheckbox = <
               <Checkbox
                 id={"checkbox-999"}
                 checked={checkboxes.every((checkbox) => checkbox.checked)}
-                className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
+                className="size-4 rounded-sm [&_svg]:size-3"
                 onCheckedChange={handleSelectAll}
               />
-              <span className="text-xs text-accent-12">
+              <span className="text-xs text-gray-12">
                 {checkboxes.every((checkbox) => checkbox.checked) ? "Unselect All" : "Select All"}
               </span>
             </label>
@@ -230,7 +230,7 @@ export const FilterCheckbox = <
             <Checkbox
               id={`checkbox-${checkbox.id}`}
               checked={checkbox.checked}
-              className="size-4 rounded-sm border-gray-4 [&_svg]:size-3"
+              className="size-4 rounded-sm [&_svg]:size-3"
               onCheckedChange={() => handleCheckboxClick(index)}
             />
             {renderOptionContent ? renderOptionContent(checkbox) : null}
@@ -240,10 +240,10 @@ export const FilterCheckbox = <
 
       {renderBottomGradient?.()}
 
-      {renderBottomGradient && <div className="border-t border-gray-4" />}
+      {renderBottomGradient && <div className="border-t" />}
       <Button
         variant="primary"
-        className="mt-2 w-full h-9 rounded-md focus:ring-4 focus:ring-accent-9 focus:ring-offset-2"
+        className="mt-2 w-full h-9 rounded-md focus:ring-4 focus:ring-gray-9 focus:ring-offset-2"
         onClick={handleApplyFilter}
       >
         Apply Filter

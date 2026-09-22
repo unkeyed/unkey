@@ -23,7 +23,7 @@ export function ApiCrumb({ apiId }: { apiId: string }) {
 
   return (
     <Crumb
-      icon={<IconNodesOutline18 className="size-3.5 text-accent-11" />}
+      icon={<IconNodesOutline18 className="size-3.5 text-gray-11" />}
       label={name ?? apiId}
       loading={isLoading}
       href={routes.apis.detail({ workspaceSlug: workspace.slug, apiId })}

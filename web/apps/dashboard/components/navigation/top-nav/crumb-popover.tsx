@@ -81,7 +81,7 @@ export function CrumbPopover({
         >
           <CommandInput
             placeholder={searchPlaceholder}
-            className="text-[13px] placeholder:text-[13px] placeholder:text-accent-8"
+            className="text-[13px] placeholder:text-[13px] placeholder:text-gray-8"
           />
           <CommandList>
             {listStatus ?? <CommandEmpty className="py-6">{emptyText}</CommandEmpty>}
@@ -99,7 +99,7 @@ export function CrumbPopover({
                     {item.badge ? <span className="shrink-0">{item.badge}</span> : null}
                     <IconCheckOutline12
                       className={cn(
-                        "shrink-0 text-accent-12",
+                        "shrink-0 text-gray-12",
                         isCurrent ? "opacity-100" : "opacity-0",
                       )}
                     />
@@ -138,7 +138,7 @@ function FooterRow({
   const Icon = footer.icon;
   const body = (
     <>
-      <Icon className="size-3.5 shrink-0 text-accent-11" />
+      <Icon className="size-3.5 shrink-0 text-gray-11" />
       <span className="flex-1 truncate">{footer.label}</span>
     </>
   );

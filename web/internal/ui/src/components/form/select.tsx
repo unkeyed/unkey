@@ -123,7 +123,7 @@ function SelectContent({
         <SelectPrimitive.Popup
           ref={ref}
           className={cn(
-            "isolate z-50 relative overflow-hidden rounded-lg border border-gray-5 bg-gray-2 text-gray-12 shadow-md min-w-(--anchor-width) origin-(--transform-origin)",
+            "isolate z-50 relative overflow-hidden rounded-lg bg-raised text-gray-12 shadow-floating min-w-(--anchor-width) origin-(--transform-origin)",
             "transition-[opacity,scale,translate] data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95",
             "data-[side=bottom]:data-starting-style:-translate-y-1 data-[side=top]:data-starting-style:translate-y-1 data-[side=left]:data-starting-style:translate-x-1 data-[side=right]:data-starting-style:-translate-x-1",
             className,

@@ -87,7 +87,7 @@ export function TeamPageClient({ team }: { team: boolean }) {
       {isAdmin && <InviteForm organization={organization} />}
 
       <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)} className="w-full">
-        <TabsList className="inline-flex h-auto items-center justify-start bg-transparent p-0 border-b border-border w-full">
+        <TabsList className="inline-flex h-auto items-center justify-start bg-transparent p-0 border-b w-full">
           <TabsTrigger
             value="members"
             className="rounded-none border-b-2 border-transparent px-4 py-2 data-active:bg-transparent data-active:border-content data-active:shadow-none"

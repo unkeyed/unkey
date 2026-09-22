@@ -12,6 +12,9 @@ import {
   IconTriangleWarningOutline18,
 } from "@unkey/icons";
 import {
+  AlertBanner,
+  AlertBannerActions,
+  AlertBannerDescription,
   Button,
   DialogContainer,
   InfoTooltip,
@@ -227,29 +230,29 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
       >
         <div className="flex flex-col gap-4">
           {cancelAt ? (
-            <div className="flex items-center justify-between gap-4 rounded-lg border border-warningA-6 bg-warningA-2 px-4 py-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <IconTriangleWarningOutline18 className="size-3.5 shrink-0 text-warning-11" />
-                <p className="truncate text-[13px] text-gray-11">
-                  Your API plan ends in {formatMs(cancelAt - Date.now(), { long: true })} on{" "}
-                  {new Date(cancelAt).toLocaleDateString()}; the workspace then downgrades to the
-                  free tier.
-                </p>
-              </div>
-              <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
-                <span>
-                  <Button
-                    variant="outline"
-                    size="md"
-                    loading={uncancelSubscription.isLoading}
-                    disabled={!isAdmin || uncancelSubscription.isLoading}
-                    onClick={() => uncancelSubscription.mutate()}
-                  >
-                    Resubscribe
-                  </Button>
-                </span>
-              </InfoTooltip>
-            </div>
+            <AlertBanner variant="warning">
+              <IconTriangleWarningOutline18 className="size-3.5" aria-hidden="true" />
+              <AlertBannerDescription className="truncate">
+                Your API plan ends in {formatMs(cancelAt - Date.now(), { long: true })} on{" "}
+                {new Date(cancelAt).toLocaleDateString()}; the workspace then downgrades to the free
+                tier.
+              </AlertBannerDescription>
+              <AlertBannerActions>
+                <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
+                  <span>
+                    <Button
+                      variant="outline"
+                      size="md"
+                      loading={uncancelSubscription.isLoading}
+                      disabled={!isAdmin || uncancelSubscription.isLoading}
+                      onClick={() => uncancelSubscription.mutate()}
+                    >
+                      Resubscribe
+                    </Button>
+                  </span>
+                </InfoTooltip>
+              </AlertBannerActions>
+            </AlertBanner>
           ) : null}
           <Meter value={usage ? used : 0} max={quota > 0 ? quota : 1}>
             <MeterHeader>
@@ -323,17 +326,15 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
           </div>
         }
       >
-        <div className="flex items-center gap-4 rounded-xl border border-errorA-3 bg-errorA-2 px-[22px] py-6 dark:bg-black">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-error-9">
-            <IconTriangleWarningOutline12 className="text-white" />
-          </div>
-          <div className="text-[13px] text-error-12 leading-6">
+        <AlertBanner variant="error">
+          <IconTriangleWarningOutline12 aria-hidden="true" />
+          <AlertBannerDescription>
             <span className="font-medium">Warning:</span> cancelling your API plan will downgrade
             your workspace to the free tier at the end of the current billing period. You will lose
             access to paid features, usage limits will be reduced, and all team members other than
             you will be deactivated.
-          </div>
-        </div>
+          </AlertBannerDescription>
+        </AlertBanner>
       </DialogContainer>
     </>
   );

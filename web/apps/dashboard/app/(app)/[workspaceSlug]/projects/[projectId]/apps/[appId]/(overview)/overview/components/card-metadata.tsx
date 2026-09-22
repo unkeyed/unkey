@@ -67,8 +67,8 @@ function SourceCell() {
       {deployment.source === "git" && deployment.gitBranch && (
         <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>
           <span className="flex items-center gap-1.5">
-            <IconCodeBranchOutline18 className="size-3 text-accent-12 shrink-0" />
-            <span className="font-mono text-[13px] text-accent-12 truncate max-w-40">
+            <IconCodeBranchOutline18 className="size-3 text-gray-12 shrink-0" />
+            <span className="font-mono text-[13px] text-gray-12 truncate max-w-40">
               {deployment.gitBranch}
             </span>
           </span>
@@ -78,14 +78,14 @@ function SourceCell() {
         <div className="flex items-center gap-1.5 min-w-0">
           <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
             <span className="flex items-center gap-1.5">
-              <IconCodeCommitOutline18 className="size-3 text-accent-12 shrink-0" />
-              <span className="font-mono text-[13px] text-accent-12">
+              <IconCodeCommitOutline18 className="size-3 text-gray-12 shrink-0" />
+              <span className="font-mono text-[13px] text-gray-12">
                 {deployment.gitCommitSha.slice(0, 7)}
               </span>
             </span>
           </GitHubLink>
           {deployment.gitCommitMessage && (
-            <span className="text-[13px] text-accent-12 truncate min-w-0">
+            <span className="text-[13px] text-gray-12 truncate min-w-0">
               {deployment.gitCommitMessage}
             </span>
           )}
@@ -107,10 +107,7 @@ function SourceCell() {
       {deployment.source !== "git" && (
         <span className="flex items-center gap-1.5 min-w-0">
           <IconLayers2Outline18 className="size-3 shrink-0 text-gray-9" />
-          <span
-            className="font-mono text-[13px] text-accent-12 truncate"
-            title={image ?? undefined}
-          >
+          <span className="font-mono text-[13px] text-gray-12 truncate" title={image ?? undefined}>
             {deployment.source === "oci" ? (image ?? "No image available") : "Unknown source"}
           </span>
           {deployment.source === "oci" && deployment.resolvedImage && (
@@ -152,7 +149,7 @@ export function ProductionCardMetadata() {
             {regions.map((r) => (
               <span
                 key={r.region.id}
-                className="flex items-center gap-1.5 text-[13px] text-accent-12"
+                className="flex items-center gap-1.5 text-[13px] text-gray-12"
               >
                 <RegionFlag flagCode={r.flagCode} size="xs" shape="circle" />
                 {r.region.name}
@@ -167,19 +164,19 @@ export function ProductionCardMetadata() {
       <MetadataCell label="Resources">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-gray-9">
           <span>
-            <span className="text-accent-12 tabular-nums">{deployment.cpuMillicores / 1000}</span>{" "}
+            <span className="text-gray-12 tabular-nums">{deployment.cpuMillicores / 1000}</span>{" "}
             vCPU
           </span>
           <span aria-hidden>·</span>
           <span>
-            <span className="text-accent-12 tabular-nums">{deployment.memoryMib}</span> MiB
+            <span className="text-gray-12 tabular-nums">{deployment.memoryMib}</span> MiB
           </span>
         </div>
       </MetadataCell>
 
       <MetadataCell label="Instances">
         <span className="text-[13px] text-gray-9">
-          <span className="text-accent-12 tabular-nums">{runningCount}</span> running
+          <span className="text-gray-12 tabular-nums">{runningCount}</span> running
         </span>
       </MetadataCell>
 
@@ -193,7 +190,7 @@ export function ProductionCardMetadata() {
             <Avatar src={deployment.gitCommitAuthorAvatarUrl} alt="Author" />
           )}
           {deployment.source === "git" && deployment.gitCommitAuthorHandle && (
-            <span className="font-medium text-accent-12 text-[13px] truncate">
+            <span className="font-medium text-gray-12 text-[13px] truncate">
               {deployment.gitCommitAuthorHandle}
             </span>
           )}

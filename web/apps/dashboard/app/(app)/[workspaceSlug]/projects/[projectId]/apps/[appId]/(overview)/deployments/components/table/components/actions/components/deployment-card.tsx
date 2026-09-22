@@ -17,11 +17,11 @@ type DeploymentCardProps = {
 
 export const DeploymentCard = ({ deployment, isCurrent }: DeploymentCardProps) => {
   return (
-    <div className="bg-white dark:bg-black border border-grayA-4 rounded-[14px] p-4 relative">
+    <div className="bg-raised border rounded-[14px] p-4 relative">
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-accent-12 font-semibold font-mono">{deployment.id}</span>
+            <span className="text-xs text-gray-12 font-semibold font-mono">{deployment.id}</span>
             <Badge
               variant={isCurrent ? "success" : "primary"}
               className={`px-1.5 capitalize ${isCurrent ? "text-successA-11" : "text-grayA-11"}`}

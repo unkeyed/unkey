@@ -59,7 +59,7 @@ const DropdownMenuSubContent = React.forwardRef<
         <DropdownMenuPrimitive.Popup
           ref={ref}
           className={cn(
-            "z-50 min-w-32 overflow-hidden rounded-md border bg-secondary p-1 text-secondary-foreground shadow-lg outline-none transition-[opacity,scale,translate] data-starting-style:opacity-0 data-ending-style:opacity-0 data-starting-style:scale-95 data-ending-style:scale-95 data-[side=bottom]:data-starting-style:-translate-y-2 data-[side=left]:data-starting-style:translate-x-2 data-[side=right]:data-starting-style:-translate-x-2 data-[side=top]:data-starting-style:translate-y-2",
+            "z-50 min-w-32 overflow-hidden rounded-lg bg-raised p-2 text-gray-12 shadow-floating outline-none transition-[opacity,scale,translate] data-starting-style:opacity-0 data-ending-style:opacity-0 data-starting-style:scale-95 data-ending-style:scale-95 data-[side=bottom]:data-starting-style:-translate-y-2 data-[side=left]:data-starting-style:translate-x-2 data-[side=right]:data-starting-style:-translate-x-2 data-[side=top]:data-starting-style:translate-y-2",
             className,
           )}
           {...props}
@@ -86,7 +86,7 @@ const DropdownMenuContent = React.forwardRef<
       <DropdownMenuPrimitive.Popup
         ref={ref}
         className={cn(
-          "z-50 min-w-32 overflow-hidden rounded-lg border border-gray-6 bg-white dark:bg-black p-2 text-gray-12 shadow-md outline-none transition-[opacity,scale,translate] data-starting-style:opacity-0 data-ending-style:opacity-0 data-starting-style:scale-95 data-ending-style:scale-95 data-[side=bottom]:data-starting-style:-translate-y-2 data-[side=left]:data-starting-style:translate-x-2 data-[side=right]:data-starting-style:-translate-x-2 data-[side=top]:data-starting-style:translate-y-2",
+          "z-50 min-w-32 overflow-hidden rounded-lg bg-raised p-2 text-gray-12 shadow-floating outline-none transition-[opacity,scale,translate] data-starting-style:opacity-0 data-ending-style:opacity-0 data-starting-style:scale-95 data-ending-style:scale-95 data-[side=bottom]:data-starting-style:-translate-y-2 data-[side=left]:data-starting-style:translate-x-2 data-[side=right]:data-starting-style:-translate-x-2 data-[side=top]:data-starting-style:translate-y-2",
           className,
         )}
         {...props}
@@ -105,7 +105,7 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-md px-1.5 py-1 text-sm outline-hidden transition-colors focus:bg-grayA-3 focus:text-accent-12 data-disabled:pointer-events-none data-disabled:opacity-50",
+      "relative flex cursor-default select-none items-center rounded-md px-1.5 py-1 text-sm outline-hidden transition-colors focus:bg-grayA-3 focus:text-gray-12 data-disabled:pointer-events-none data-disabled:opacity-50",
       inset && "pl-8",
       className,
     )}
@@ -144,7 +144,7 @@ const DropdownMenuRadioItem = React.forwardRef<
   <DropdownMenuPrimitive.RadioItem
     ref={ref}
     className={cn(
-      "flex cursor-default select-none items-center gap-2 rounded-md px-1.5 py-1 text-sm outline-hidden transition-colors focus:bg-grayA-3 focus:text-accent-12 data-disabled:pointer-events-none data-disabled:opacity-50",
+      "flex cursor-default select-none items-center gap-2 rounded-md px-1.5 py-1 text-sm outline-hidden transition-colors focus:bg-grayA-3 focus:text-gray-12 data-disabled:pointer-events-none data-disabled:opacity-50",
       className,
     )}
     {...props}

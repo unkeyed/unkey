@@ -10,8 +10,8 @@ export function DrainLogsTable({ drainId }: { drainId: string }) {
 
   return (
     <Card className="overflow-hidden">
-      <div className="border-b border-gray-4 px-4 py-3">
-        <span className="text-[13px] font-medium text-accent-12">Deliveries</span>
+      <div className="border-b px-4 py-3">
+        <span className="text-[13px] font-medium text-gray-12">Deliveries</span>
       </div>
       <div className="overflow-x-auto">
         <LogRows deliveries={deliveries} isError={isError} retry={retry} />
@@ -83,7 +83,7 @@ function LogRows({
         <col />
       </colgroup>
       <thead>
-        <tr className="border-b border-gray-4 bg-grayA-2">
+        <tr className="border-b bg-grayA-2">
           <Th>Time</Th>
           <Th>Status</Th>
           <Th>Events</Th>
