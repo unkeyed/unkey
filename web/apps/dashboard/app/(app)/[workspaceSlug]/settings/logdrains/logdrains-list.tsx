@@ -16,8 +16,8 @@ import {
   ResourceListContent,
   ResourceListItem,
   Skeleton,
+  useElapsed,
 } from "@unkey/ui";
-import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { CreateLogdrainButton } from "./create-logdrain-button";
 import { DrainMedia } from "./drain-destinations";
@@ -27,6 +27,8 @@ import { DrainStatusBadge } from "./drain-status-badge";
 const SKELETON_ROWS = 5;
 
 function DrainRow({ drain, workspaceSlug }: { drain: DrainListItem; workspaceSlug: string }) {
+  const createdAgo = useElapsed(drain.createdAt);
+
   return (
     <ResourceListItem>
       <Link
@@ -46,10 +48,8 @@ function DrainRow({ drain, workspaceSlug }: { drain: DrainListItem; workspaceSlu
         </div>
 
         {/* A plain string, not TimestampInfo: its popover trigger is a button and this row is
-            already a link. Same wording as TimestampInfo's relative display. */}
-        <span className="shrink-0 text-xs text-gray-9">
-          {formatDistanceToNow(new Date(drain.createdAt), { addSuffix: true })}
-        </span>
+            already a link. */}
+        <span className="shrink-0 text-xs text-gray-9">{createdAgo}</span>
       </Link>
     </ResourceListItem>
   );

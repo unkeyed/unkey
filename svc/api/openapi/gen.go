@@ -3646,6 +3646,11 @@ type V2KeysVerifyKeyRequestBody struct {
 	// Include any prefix - even small changes will cause verification to fail.
 	Key string `json:"key"`
 
+	// Keyspaces Restricts verification to keys in these keyspaces, matched by exact ID.
+	// Omit this field to verify without a keyspace restriction. An empty array rejects every key.
+	// A failed keyspace check returns `NOT_FOUND` without consuming credits or rate limits.
+	Keyspaces *[]string `json:"keyspaces,omitempty"`
+
 	// MigrationId Migrate keys on demand from your previous system. Reach out for migration support at support@unkey.dev
 	MigrationId *string `json:"migrationId,omitempty"`
 
@@ -3709,6 +3714,10 @@ type V2KeysVerifyKeyResponseData struct {
 	// Use this ID for operations like updating or revoking the key. This field
 	// is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
 	KeyId string `json:"keyId,omitempty"`
+
+	// KeyspaceId The ID of the keyspace the key belongs to.
+	// Returned for both valid and invalid keys, except when `code=NOT_FOUND`.
+	KeyspaceId string `json:"keyspaceId,omitempty"`
 
 	// Meta Custom metadata associated with the key. This can include any
 	// JSON-serializable data you stored with the key during creation or updates,

@@ -5,10 +5,10 @@ import {
 import type { ProjectApp } from "@/lib/collections/deploy/projects";
 import { cn } from "@/lib/utils";
 import { match } from "@unkey/match";
-import { intlFormatDistance } from "date-fns";
+import { useElapsed } from "@unkey/ui";
 import { DeploymentStatusIndicator } from "../../[projectId]/apps/[appId]/components/deployment-status-dot";
 
-type AppDeployment = NonNullable<ProjectApp["headlineDeployment"]>;
+export type AppDeployment = NonNullable<ProjectApp["headlineDeployment"]>;
 
 const VERB: Record<DeploymentStatusGroup, string> = {
   queued: "started",
@@ -32,20 +32,13 @@ const TONE: Record<DeploymentStatusGroup, string> = {
   superseded: "text-gray-9",
 };
 
-function age(deployedAt: number): string {
-  return intlFormatDistance(deployedAt, Date.now(), { style: "narrow" });
+export function useDeploymentPhrase(deployment: AppDeployment): string {
+  const deployedAgo = useElapsed(deployment.deployedAt, "narrow");
+  return `${VERB[statusGroupOf(deployment.status)]} ${deployedAgo}`;
 }
 
-export function deploymentPhrase(deployment: AppDeployment): string {
-  return `${VERB[statusGroupOf(deployment.status)]} ${age(deployment.deployedAt)}`;
-}
-
-export function DeploymentMeta({ deployment }: { deployment: AppDeployment | null }) {
-  if (!deployment) {
-    return null;
-  }
-
-  const deployedAgo = age(deployment.deployedAt);
+export function DeploymentMeta({ deployment }: { deployment: AppDeployment }) {
+  const deployedAgo = useElapsed(deployment.deployedAt, "narrow");
 
   const settled = (group: DeploymentStatusGroup) => (
     <span className={cn("shrink-0 text-xs", TONE[group])}>

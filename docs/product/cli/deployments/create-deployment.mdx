@@ -1,9 +1,21 @@
 ---
 title: "create-deployment"
-description: "Create deployment with the Unkey API CLI"
+description: "Create a deployment for an app in a project"
 ---
 
-Create a deployment from a Git branch, container image, or existing deployment.
+Create a deployment for an app in a project.
+
+Omit the source to use the app's configured default. A Git app builds its default branch. An OCI app deploys its default image.
+
+Optionally provide one source override:
+
+- `oci`: deploy a prebuilt OCI image without a build. Mutable tags are resolved to immutable digests before rollout.
+- `git`: build and deploy from the app's connected GitHub repository, a branch, a specific commit, or a fork commit. Requires the app to have a repository connected.
+- `deployment`: re-run an existing deployment by its id. Git deployments rebuild from the recorded commit. OCI deployments reuse the recorded resolved image.
+
+The command returns immediately with a `deploymentId`. The build and rollout run asynchronously. Poll `deployments.getDeployment` to watch status until it is ready.
+
+Authentication requires a root key with permission to create deployments.
 
 ## Usage
 
@@ -14,26 +26,51 @@ unkey api deployments create-deployment [flags]
 ## Flags
 
 <ParamField body="--project" type="string" required>
-Project identifier or slug.
+  Identifies a resource by either its unique ID or its slug. Accepts a prefixed ID (such as `proj_` or `app_`) or a slug.
 </ParamField>
+
 <ParamField body="--app" type="string" required>
-Application identifier or slug.
+  Identifies a resource by either its unique ID or its slug. Accepts a prefixed ID (such as `proj_` or `app_`) or a slug.
 </ParamField>
+
 <ParamField body="--environment" type="string" required>
-Environment identifier or slug.
+  Identifies a resource by either its unique ID or its slug. Accepts a prefixed ID (such as `proj_` or `app_`) or a slug.
 </ParamField>
+
 <ParamField body="--git" type="JSON string">
-Git source with branch, commitSha, and repository.
-<Expandable title="JSON schema">The JSON object uses the properties and constraints listed above.</Expandable>
+  Build from the app's connected GitHub repository. Provide the source as a JSON object.
+  <Expandable title="JSON schema">
+    <ResponseField name="branch" type="string">
+      Branch to build (its HEAD). Omit `branch` and `commitSha` to use the app's default branch.
+    </ResponseField>
+    <ResponseField name="commitSha" type="string">
+      Commit to build (full or abbreviated SHA). Takes precedence over `branch`.
+    </ResponseField>
+    <ResponseField name="repository" type="string">
+      Build from a fork instead of the app's connected repository, as `owner/repo`. Requires `commitSha`.
+    </ResponseField>
+  </Expandable>
 </ParamField>
-<ParamField body="--image" type="JSON string">
-Image source with dockerImage.
-<Expandable title="JSON schema">The JSON object uses the properties and constraints listed above.</Expandable>
+
+<ParamField body="--oci" type="JSON string">
+  Deploy a prebuilt OCI image without a build. Provide the source as a JSON object.
+  <Expandable title="JSON schema">
+    <ResponseField name="image" type="string" required>
+      OCI image to deploy. Mutable tags are resolved to immutable digests before rollout.
+    </ResponseField>
+  </Expandable>
 </ParamField>
+
 <ParamField body="--deployment" type="JSON string">
-Existing source with deploymentId.
-<Expandable title="JSON schema">The JSON object uses the properties and constraints listed above.</Expandable>
+  Re-run an existing deployment. Provide the source as a JSON object.
+  <Expandable title="JSON schema">
+    <ResponseField name="deploymentId" type="string" required>
+      Identifies a resource by either its unique ID or its slug. Accepts a prefixed ID (such as `proj_` or `app_`) or a slug.
+    </ResponseField>
+  </Expandable>
 </ParamField>
+
+You can provide at most one of `--git`, `--oci`, or `--deployment`.
 
 ## Global Flags
 
@@ -42,16 +79,44 @@ Existing source with deploymentId.
 | `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
 | `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
 | `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
-| `--output` | string | Output format - use `json` for raw JSON |
+| `--output` | string | Output format, use `json` for raw JSON |
 | `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
 
 ## Examples
 
 <CodeGroup>
-```bash Basic
-unkey api deployments create-deployment --project=payments --app=payments-api \
-  --environment=production --git='{"branch":"main"}'
+
+```bash App default source
+unkey api deployments create-deployment \
+  --project=payments \
+  --app=payments-api \
+  --environment=production
 ```
+
+```bash Git source
+unkey api deployments create-deployment \
+  --project=payments \
+  --app=payments-api \
+  --environment=production \
+  --git='{"branch":"main"}'
+```
+
+```bash OCI source
+unkey api deployments create-deployment \
+  --project=payments \
+  --app=payments-api \
+  --environment=production \
+  --oci='{"image":"ghcr.io/acme/payments:v1.2.3"}'
+```
+
+```bash Existing deployment
+unkey api deployments create-deployment \
+  --project=payments \
+  --app=payments-api \
+  --environment=production \
+  --deployment='{"deploymentId":"d_abc123xyz"}'
+```
+
 </CodeGroup>
 
-See the [Create deployment API reference](https://www.unkey.com/docs/api-reference/v2/deployments/create-deployment).
+See the [Create deployment API reference](https://www.unkey.com/docs/api-reference/deployments/create-deployment).

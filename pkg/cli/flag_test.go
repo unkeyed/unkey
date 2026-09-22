@@ -22,6 +22,38 @@ func TestStringFlag_BasicParsing(t *testing.T) {
 	require.True(t, flag.HasValue())
 }
 
+func TestCommandJSON(t *testing.T) {
+	flag := String("source", "JSON source")
+	cmd := &Command{
+		Name:  "test",
+		Flags: []Flag{flag},
+	}
+	cmd.initFlagMap()
+	require.NoError(t, flag.Parse(`{"image":"ghcr.io/acme/api:v1"}`))
+
+	var source struct {
+		Image string `json:"image"`
+	}
+	require.NoError(t, cmd.JSON("source", &source))
+	require.Equal(t, "ghcr.io/acme/api:v1", source.Image)
+}
+
+func TestCommandJSONIncludesFlagNameInError(t *testing.T) {
+	flag := String("source", "JSON source")
+	cmd := &Command{
+		Name:  "test",
+		Flags: []Flag{flag},
+	}
+	cmd.initFlagMap()
+	require.NoError(t, flag.Parse(`{"image":`))
+
+	var source struct {
+		Image string `json:"image"`
+	}
+	err := cmd.JSON("source", &source)
+	require.ErrorContains(t, err, "invalid JSON for --source")
+}
+
 func TestStringFlag_WithValidation_Failure(t *testing.T) {
 	flag := String("url", "URL flag", Validate(validateURL))
 	err := flag.Parse("invalid-url")

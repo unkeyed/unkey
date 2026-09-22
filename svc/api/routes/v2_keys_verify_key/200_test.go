@@ -56,6 +56,7 @@ func TestSuccess(t *testing.T) {
 		require.NotNil(t, res.Body)
 		require.Equal(t, openapi.VALID, res.Body.Data.Code, "Key should be valid but got %s", res.Body.Data.Code)
 		require.True(t, res.Body.Data.Valid, "Key should be valid but got %t", res.Body.Data.Valid)
+		require.Equal(t, api.KeyAuthID.String, res.Body.Data.KeyspaceId)
 	})
 
 	t.Run("verifies expired key as valid and then invalid", func(t *testing.T) {
