@@ -47,7 +47,8 @@ import (
 // node- and zone-spread constraints so replicas don't stack on a single node.
 func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) (retErr error) {
 	defer func() { metrics.RecordReconcile("deployment", "apply", retErr) }()
-	logger.Info("applying deployment",
+	logger.Info(
+		"applying deployment",
 		"namespace", req.GetK8SNamespace(),
 		"name", req.GetK8SName(),
 		"deployment_id", req.GetDeploymentId(),
@@ -276,9 +277,9 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 		}}
 	}
 
-	var runtimeClass *string
-	if !c.disableGvisor {
-		runtimeClass = ptr.P(runtimeClassGvisor)
+	runtimeClass := new(runtimeClassGvisor)
+	if c.disableGvisor {
+		runtimeClass = nil
 	}
 
 	podSpec := corev1.PodSpec{
@@ -380,7 +381,8 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 		cpuThreshold = policy.CpuThreshold
 	}
 	if policy.MemoryThreshold != nil {
-		metrics = append(metrics,
+		metrics = append(
+			metrics,
 			//nolint:exhaustruct
 			autoscalingv2.MetricSpec{
 				Type: autoscalingv2.ResourceMetricSourceType,
@@ -397,7 +399,8 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 	}
 
 	// CPU is always a scaling signal.
-	metrics = append(metrics,
+	metrics = append(
+		metrics,
 		//nolint:exhaustruct
 		autoscalingv2.MetricSpec{
 			Type: autoscalingv2.ResourceMetricSourceType,
