@@ -52,6 +52,14 @@ export type V2KeysVerifyKeyRequestBody = {
    */
   credits?: KeysVerifyKeyCredits | undefined;
   /**
+   * Restricts verification to keys in these keyspaces, matched by exact ID.
+   *
+   * @remarks
+   * Omit this field to verify without a keyspace restriction.
+   * A failed keyspace check returns `NOT_FOUND` without consuming credits or rate limits.
+   */
+  keyspaces?: Array<string> | undefined;
+  /**
    * Enforces time-based rate limiting during verification to prevent abuse and ensure fair usage.
    *
    * @remarks
@@ -72,6 +80,7 @@ export type V2KeysVerifyKeyRequestBody$Outbound = {
   tags?: Array<string> | undefined;
   permissions?: string | undefined;
   credits?: KeysVerifyKeyCredits$Outbound | undefined;
+  keyspaces?: Array<string> | undefined;
   ratelimits?: Array<KeysVerifyKeyRatelimit$Outbound> | undefined;
   migrationId?: string | undefined;
 };
@@ -86,6 +95,7 @@ export const V2KeysVerifyKeyRequestBody$outboundSchema: z.ZodType<
   tags: z.array(z.string()).optional(),
   permissions: z.string().optional(),
   credits: KeysVerifyKeyCredits$outboundSchema.optional(),
+  keyspaces: z.array(z.string()).optional(),
   ratelimits: z.array(KeysVerifyKeyRatelimit$outboundSchema).optional(),
   migrationId: z.string().optional(),
 });
