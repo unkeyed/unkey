@@ -1,8 +1,8 @@
 "use client";
 
 import { formatCompactQuantity, formatDollars } from "@/lib/fmt";
-import { cn } from "@/lib/utils";
 import { Skeleton } from "@unkey/ui";
+import { cn } from "cn";
 import type { ReactNode } from "react";
 import {
   AT_RISK,

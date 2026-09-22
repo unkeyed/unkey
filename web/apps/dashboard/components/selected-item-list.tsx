@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import { IconXmarkOutline12 } from "@unkey/icons";
+import { cn } from "cn";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface BaseItem {

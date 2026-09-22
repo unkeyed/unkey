@@ -3,7 +3,6 @@
 import { formatDollars } from "@/lib/fmt";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import type { DeployPlanOption } from "@/lib/trpc/routers/stripe/getDeployPlans";
-import { cn } from "@/lib/utils";
 import {
   IconArrowRightOutline18,
   IconArrowUpRightOutline12,
@@ -18,6 +17,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@unkey/ui";
+import { cn } from "cn";
 import {
   ALL_PLANS_INCLUDE,
   COMPUTE_PLANS_LINK_HREF,

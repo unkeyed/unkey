@@ -1,7 +1,7 @@
 import type { RatelimitOverride } from "@/lib/collections";
-import { cn } from "@/lib/utils";
 import type { DataTableColumnDef } from "@unkey/ui";
-import { ActionColumnSkeleton } from "@unkey/ui";
+import { ActionColumnSkeleton, Skeleton } from "@unkey/ui";
+import { cn } from "cn";
 import { OVERRIDE_COLUMN_IDS } from "../../columns/create-overrides-columns";
 
 type RenderOverridesSkeletonRowProps = {

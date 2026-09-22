@@ -3,11 +3,11 @@
 import type { Deployment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
-import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { IconCodeBranchOutline18, IconLayers2Outline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, Button, DialogContainer, TimestampInfo, toast } from "@unkey/ui";
+import { cn } from "cn";
 import { useEffect, useState } from "react";
 import { Avatar } from "../../../components/git-avatar";
 import { useProjectData } from "../../data-provider";

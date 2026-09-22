@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
-import { Card } from "../../components/card";
+import { Card, Skeleton } from "@unkey/ui";
+import { cn } from "cn";
 
 function Bar({ className }: { className?: string }) {
   return <Skeleton className={cn("rounded", className)} />;

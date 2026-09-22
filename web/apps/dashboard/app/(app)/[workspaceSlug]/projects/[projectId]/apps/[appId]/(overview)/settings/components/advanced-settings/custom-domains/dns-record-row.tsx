@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { IconCircleCheckOutline18, IconClockOutline18 } from "@unkey/icons";
 import { CopyButton } from "@unkey/ui";
+import { cn } from "cn";
 
 type DnsRecordRowProps = {
   type: string;

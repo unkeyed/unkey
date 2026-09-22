@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { useMemo } from "react";
 import { UsageColumnSkeleton } from "../skeletons";
 import { OutcomeExplainer } from "./components/outcome-explainer";

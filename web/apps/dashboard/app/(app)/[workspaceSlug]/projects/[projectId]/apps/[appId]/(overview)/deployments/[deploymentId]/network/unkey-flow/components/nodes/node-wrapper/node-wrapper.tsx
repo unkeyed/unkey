@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import type { PropsWithChildren } from "react";
 import type { HealthStatus } from "../types";
 import { HealthBanner } from "./health-banner";

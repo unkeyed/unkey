@@ -1,11 +1,11 @@
-import { cn } from "@/lib/utils";
 import {
   IconCaretDownOutline12,
   IconCaretExpandYOutline18,
   IconCaretUpOutline12,
   IconCircleCaretRightOutline18,
 } from "@unkey/icons";
-import { useIsMobile } from "@unkey/ui";
+import { Skeleton, useIsMobile } from "@unkey/ui";
+import { cn } from "cn";
 import {
   Fragment,
   type Ref,

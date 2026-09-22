@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { IconPlusOutline12 } from "@unkey/icons";
+import { cn } from "cn";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useId } from "react";

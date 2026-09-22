@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import type { ReactNode } from "react";
 
 type ProductCardProps = {

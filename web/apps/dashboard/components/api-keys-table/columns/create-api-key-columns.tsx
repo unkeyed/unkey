@@ -5,7 +5,6 @@ import { StatusDisplay } from "@/components/api-keys-table/components/status-cel
 import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { cn } from "@/lib/utils";
 import { IconFocusOutline18, IconKeyOutline18 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
@@ -17,6 +16,7 @@ import {
   RowActionSkeleton,
   SortableHeader,
 } from "@unkey/ui";
+import { cn } from "cn";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useState } from "react";

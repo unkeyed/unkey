@@ -4,7 +4,7 @@ import * as React from "react";
 import * as RechartsPrimitive from "recharts";
 
 import { formatNumber } from "@/lib/fmt";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 const THEMES = { light: "", dark: ".dark" } as const;
 

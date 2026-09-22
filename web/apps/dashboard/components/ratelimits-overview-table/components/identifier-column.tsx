@@ -1,6 +1,5 @@
 import { formatNumber } from "@/lib/fmt";
 import { formatMs } from "@/lib/ms";
-import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
 import {
   IconArrowDotRotateAnticlockwiseOutline18,
@@ -8,6 +7,7 @@ import {
   IconTriangleWarningOutline18,
 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
+import { cn } from "cn";
 import { getBlockedPercentage, isMostlyBlocked } from "../utils/calculate-blocked-percentage";
 import { getStatusStyle } from "../utils/get-row-class";
 

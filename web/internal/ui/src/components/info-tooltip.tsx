@@ -7,7 +7,7 @@ const baseVariant =
   "px-3 py-2 text-xs font-medium rounded-lg focus:border focus:border-gray-12 focus:ring-2 focus:ring-grayA-4 focus-visible:outline-hidden focus:ring-offset-0";
 const variants = {
   primary: ["bg-raised"],
-  inverted: ["bg-black dark:bg-white text-gray-1 border border-transparent shadow-md!"],
+  inverted: ["bg-black dark:bg-white text-gray-1 border border-transparent"],
   muted: ["bg-raised text-gray-12 text-sm"],
 } as const;
 

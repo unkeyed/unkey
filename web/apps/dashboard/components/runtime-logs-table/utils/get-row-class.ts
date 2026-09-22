@@ -1,5 +1,5 @@
 import type { RuntimeLog } from "@/lib/schemas/runtime-logs.schema";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 type StatusStyle = {
   base: string;

@@ -3,8 +3,8 @@
 import { formatNumber } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { Button, DialogContainer, toast } from "@unkey/ui";
+import { cn } from "cn";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 

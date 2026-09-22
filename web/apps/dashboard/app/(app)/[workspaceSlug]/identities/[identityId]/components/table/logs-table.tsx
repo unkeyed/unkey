@@ -10,7 +10,6 @@ import type { Column } from "@/components/virtual-table/types";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
-import { cn } from "@/lib/utils";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import {
@@ -37,6 +36,7 @@ import {
   InfoTooltip,
   TimestampInfo,
 } from "@unkey/ui";
+import { cn } from "cn";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIdentityDetailsLogsContext } from "../../context/logs";
 import { useIdentityLogsQuery } from "./hooks/use-logs-query";

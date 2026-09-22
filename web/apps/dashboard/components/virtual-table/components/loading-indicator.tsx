@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { IconArrowsAllDirectionsOutline18, IconArrowsToCenterOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { cn } from "cn";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type LoadMoreFooterProps = {

@@ -2,9 +2,9 @@
 
 import { Sidebar, SidebarContent, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
-import { cn } from "@/lib/utils";
 import { IconSidebarLeftHideOutline18, IconSidebarLeftShowOutline18 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
+import { cn } from "cn";
 import { SidebarBody } from "./sidebar-body";
 import { UsageBanner } from "./usage-banner";
 import { UsageCard } from "./usage-card";

@@ -9,9 +9,9 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
 import { IconCheckOutline12, type IconProps } from "@unkey/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import { cn } from "cn";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

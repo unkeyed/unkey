@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import { TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import { Fragment } from "react/jsx-runtime";
 import { TruncatedCell } from "../truncated-cell";
 import type { BuildStepRow } from "./columns";

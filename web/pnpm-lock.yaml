@@ -186,12 +186,12 @@ importers:
       class-variance-authority:
         specifier: 0.7.0
         version: 0.7.0
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
       cmdk:
         specifier: 1.0.0
         version: 1.0.0(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      cn:
+        specifier: 0.3.0
+        version: 0.3.0
       date-fns:
         specifier: 3.6.0
         version: 3.6.0
@@ -249,9 +249,6 @@ importers:
       superjson:
         specifier: 2.2.1
         version: 2.2.1
-      tailwind-merge:
-        specifier: 2.5.4
-        version: 2.5.4
       tailwindcss:
         specifier: 'catalog:'
         version: 4.2.1
@@ -758,9 +755,9 @@ importers:
       class-variance-authority:
         specifier: 0.7.1
         version: 0.7.1
-      clsx:
-        specifier: 'catalog:'
-        version: 2.1.1
+      cn:
+        specifier: 0.3.0
+        version: 0.3.0
       date-fns:
         specifier: 4.1.0
         version: 4.1.0
@@ -785,9 +782,6 @@ importers:
       sonner:
         specifier: 2.0.7
         version: 2.0.7(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      tailwind-merge:
-        specifier: 3.4.0
-        version: 3.4.0
       vaul:
         specifier: 1.1.2
         version: 1.1.2(@types/react-dom@19.2.3(@types/react@19.2.4))(@types/react@19.2.4)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -6689,6 +6683,11 @@ packages:
       react: ^18.0.0
       react-dom: ^18.0.0
 
+  cn@0.3.0:
+    resolution: {integrity: sha512-qRoU0ARrZD3Bbj1wKFftEKxPjSnzTEdFkf22NVhW+zU9D/wajhoP+qUZ5DChhhSOBCH1onV12hrmGqfu1+5Z2Q==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   collapse-white-space@2.1.0:
     resolution: {integrity: sha512-loKTxY1zCOuG4j9f6EPnuyyYkf58RnhhWTvRoZEokgB+WbdXehfjFviyOVYkqzEWz1Q5kRiZdBYS5SwxbQYwzw==}
 
@@ -10252,9 +10251,6 @@ packages:
   tagged-tag@1.0.0:
     resolution: {integrity: sha512-yEFYrVhod+hdNyx7g5Bnkkb0G6si8HJurOoOEgC8B/O0uXLHlaey/65KRv6cuWBNhBgHKAROVpc7QyYqE5gFng==}
     engines: {node: '>=20'}
-
-  tailwind-merge@2.5.4:
-    resolution: {integrity: sha512-0q8cfZHMu9nuYP/b5Shb7Y7Sh1B7Nnl5GqNr1U+n2p6+mybvRtayrQ+0042Z5byvTA8ihjlP8Odo8/VnHbZu4Q==}
 
   tailwind-merge@3.4.0:
     resolution: {integrity: sha512-uSaO4gnW+b3Y2aWoWfFpX62vn2sR3skfhbjsEnaBI81WD1wBLlHZe5sWf0AqjksNdYTbGBEd0UasQMT3SNV15g==}
@@ -16947,6 +16943,8 @@ snapshots:
       - '@types/react'
       - '@types/react-dom'
 
+  cn@0.3.0: {}
+
   collapse-white-space@2.1.0: {}
 
   color-convert@2.0.1:
@@ -21219,8 +21217,6 @@ snapshots:
   symbol-tree@3.2.4: {}
 
   tagged-tag@1.0.0: {}
-
-  tailwind-merge@2.5.4: {}
 
   tailwind-merge@3.4.0: {}
 

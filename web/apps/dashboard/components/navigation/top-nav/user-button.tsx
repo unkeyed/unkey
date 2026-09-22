@@ -15,7 +15,6 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { signOut } from "@/lib/auth/utils";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   IconLaptop2Outline18,
@@ -23,6 +22,7 @@ import {
   IconSunOutline18,
   IconUserOutline18,
 } from "@unkey/icons";
+import { cn } from "cn";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 

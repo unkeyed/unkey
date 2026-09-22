@@ -3,8 +3,8 @@
 import { type AreaChartPoint, AreaTimeseriesChart } from "@/components/charts/area-timeseries";
 import type { ChartConfig } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
-import { cn } from "@/lib/utils";
 import { Loading, Skeleton } from "@unkey/ui";
+import { cn } from "cn";
 import { useMemo, useState } from "react";
 import { formatStamp } from "./g-pulse";
 import { useProductionCard } from "./production-card-context";

@@ -1,15 +1,6 @@
-import { type ClassValue, clsx } from "clsx";
-import { extendTailwindMerge } from "tailwind-merge";
+export { cn } from "cn";
 import type { TimeUnit } from "../components/date-time/date-time";
 
-// tailwind-merge's default `shadow` scale only accepts t-shirt sizes, so an
-// unregistered `shadow-floating` is read as a shadow *colour* and survives
-// alongside a later `shadow-*` instead of being replaced by it.
-const twMerge = extendTailwindMerge({ extend: { theme: { shadow: ["floating"] } } });
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 export const isBrowser = typeof window !== "undefined";
 
 export function debounce<T extends (...args: unknown[]) => unknown>(func: T, delay: number) {

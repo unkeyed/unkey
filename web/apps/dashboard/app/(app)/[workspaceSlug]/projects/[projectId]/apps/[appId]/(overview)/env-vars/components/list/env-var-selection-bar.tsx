@@ -1,8 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { IconEyeSlashOutline18, IconTrashOutline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
+import { cn } from "cn";
 import { useRef, useState } from "react";
 
 type EnvVarSelectionBarProps = {

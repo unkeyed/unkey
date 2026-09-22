@@ -1,5 +1,5 @@
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 export const getEventType = (event: string): "create" | "update" | "delete" | "other" => {
   const eventLower = event.toLowerCase();

@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import { Badge } from "@unkey/ui";
+import { cn } from "cn";
 
 type SelectedConfigProps = {
   label: React.ReactNode;

@@ -1,7 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { IconChevronDownOutline18 } from "@unkey/icons";
+import { Badge } from "@unkey/ui";
+import { cn } from "cn";
 import { type ButtonHTMLAttributes, type ReactNode, forwardRef } from "react";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {

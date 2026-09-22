@@ -3,7 +3,6 @@
 import { DeploymentStatusLabel } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import { DottedLink } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/dotted-link";
 import type { ProjectApp } from "@/lib/collections/deploy/projects";
-import { cn } from "@/lib/utils";
 import {
   IconClockOutline18,
   IconCodeBranchOutline18,
@@ -12,6 +11,7 @@ import {
   type IconProps,
 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
+import { cn } from "cn";
 import Link from "next/link";
 import type { ComponentPropsWithRef, FC, ReactElement, ReactNode } from "react";
 import { type AppDeployment, DeploymentMeta, useDeploymentPhrase } from "./deployment-meta";

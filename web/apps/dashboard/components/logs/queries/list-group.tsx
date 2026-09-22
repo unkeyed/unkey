@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { IconBookmarkFill18, IconBookmarkOutline18, IconLayers2Outline18 } from "@unkey/icons";
-import { InfoTooltip, toast } from "@unkey/ui";
+import { InfoTooltip, Separator, toast } from "@unkey/ui";
+import { cn } from "cn";
 import { useEffect, useState } from "react";
 import { useQueries } from "./queries-context";
 import { QueriesItemRow } from "./queries-item-row";

@@ -3,7 +3,6 @@
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { Switch } from "@/components/ui/switch";
 import type { Policy } from "@/lib/collections/deploy/policies.schema";
-import { cn } from "@/lib/utils";
 import {
   IconDotsOutline18,
   IconGripDotsVerticalOutline18,
@@ -11,6 +10,7 @@ import {
   IconTrashOutline18,
 } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
+import { cn } from "cn";
 import { useRef, useState } from "react";
 
 type MergedPolicyRow = {

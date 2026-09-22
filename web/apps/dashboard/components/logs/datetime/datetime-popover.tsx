@@ -1,7 +1,7 @@
 "use client";
 
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import { cn, processTimeFilters } from "@/lib/utils";
+import { processTimeFilters } from "@/lib/utils";
 import { IconChevronDownOutline18 } from "@unkey/icons";
 import { useIsMobile } from "@unkey/ui";
 import {
@@ -15,6 +15,7 @@ import {
   type Range,
   type TimeUnit,
 } from "@unkey/ui";
+import { cn } from "cn";
 import {
   type PropsWithChildren,
   type ReactElement,

@@ -6,8 +6,8 @@ import {
   deploymentStatusColor,
   statusGroupOf,
 } from "@/lib/collections/deploy/deployment-status";
-import { cn } from "@/lib/utils";
 import { Loading } from "@unkey/ui";
+import { cn } from "cn";
 import type { PropsWithChildren } from "react";
 
 function isBuilding(status: DeploymentStatus): boolean {

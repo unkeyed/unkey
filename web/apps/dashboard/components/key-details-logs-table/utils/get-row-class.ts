@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import type { KeyDetailsLog } from "@unkey/clickhouse/src/verifications";
+import { cn } from "cn";
 
 export type StatusStyle = {
   base: string;

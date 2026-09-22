@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import type { RatelimitOverviewLog } from "@unkey/clickhouse/src/ratelimits";
-import { type DataTableColumnDef, RowActionSkeleton } from "@unkey/ui";
+import { type DataTableColumnDef, RowActionSkeleton, Skeleton } from "@unkey/ui";
+import { cn } from "cn";
 
 type RenderRatelimitsOverviewSkeletonRowProps = {
   columns: DataTableColumnDef<RatelimitOverviewLog>[];

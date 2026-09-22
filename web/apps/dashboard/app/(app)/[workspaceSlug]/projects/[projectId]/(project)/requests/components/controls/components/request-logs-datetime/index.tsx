@@ -1,8 +1,8 @@
 import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/requests/hooks/use-request-logs-filters";
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
-import { cn } from "@/lib/utils";
 import { IconCalendarOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { cn } from "cn";
 import { useEffect, useState } from "react";
 
 export const RequestLogsDateTime = () => {

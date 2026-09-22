@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { IconPage2Outline18 } from "@unkey/icons";
 import { CopyButton } from "@unkey/ui";
+import { cn } from "cn";
 
 export type SlugCellProps = {
   value?: string;

@@ -15,7 +15,6 @@ import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { githubUrl } from "@/lib/github-url";
 import { shortenId } from "@/lib/shorten-id";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
-import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
@@ -27,6 +26,7 @@ import {
 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, CopyButton } from "@unkey/ui";
+import { cn } from "cn";
 import type React from "react";
 
 type Props = {

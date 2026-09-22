@@ -1,6 +1,5 @@
 import type { Deployment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
-import { cn } from "@/lib/utils";
 import {
   IconCodeBranchOutline18,
   IconCodeCommitOutline18,
@@ -8,6 +7,7 @@ import {
 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge } from "@unkey/ui";
+import { cn } from "cn";
 import type { ComponentProps, ReactNode } from "react";
 
 type DeploymentCardProps = {

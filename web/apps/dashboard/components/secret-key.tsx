@@ -1,8 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { IconCircleLockOutline18 } from "@unkey/icons";
 import { CopyButton, VisibleButton } from "@unkey/ui";
+import { cn } from "cn";
 import { useState } from "react";
 
 const maskKey = (key: string): string => {

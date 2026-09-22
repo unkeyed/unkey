@@ -1,8 +1,8 @@
 "use client";
 
 import { formatDollars } from "@/lib/fmt";
-import { cn } from "@/lib/utils";
 import { Button, DialogContainer } from "@unkey/ui";
+import { cn } from "cn";
 import { useEffect, useState } from "react";
 
 export type PlanOption = {

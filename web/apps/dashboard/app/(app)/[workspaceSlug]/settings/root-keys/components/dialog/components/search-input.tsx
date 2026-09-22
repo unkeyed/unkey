@@ -1,6 +1,6 @@
 "use client";
-import { cn } from "@/lib/utils";
 import { Input } from "@unkey/ui";
+import { cn } from "cn";
 import type { ChangeEvent, RefObject } from "react";
 
 export const SEARCH_MODES = {

@@ -3,7 +3,7 @@
 import { Switch as SwitchPrimitives } from "@base-ui/react/switch";
 import * as React from "react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 const Switch = React.forwardRef<
   React.ElementRef<typeof SwitchPrimitives.Root>,

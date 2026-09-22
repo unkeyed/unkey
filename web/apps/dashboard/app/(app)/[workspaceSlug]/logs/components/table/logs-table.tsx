@@ -2,7 +2,6 @@
 
 import { VirtualTable } from "@/components/virtual-table/index";
 import type { Column } from "@/components/virtual-table/types";
-import { cn } from "@/lib/utils";
 import type { Log } from "@unkey/clickhouse/src/logs";
 import {
   IconBookBookmarkOutline18,
@@ -21,6 +20,7 @@ import {
   EmptyStateTitle,
   TimestampInfo,
 } from "@unkey/ui";
+import { cn } from "cn";
 import { useMemo } from "react";
 import { isDisplayProperty, useLogsContext } from "../../context/logs";
 import { extractResponseField } from "../../utils";

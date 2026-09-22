@@ -3,9 +3,9 @@
 import { Command as CommandPrimitive } from "cmdk";
 import * as React from "react";
 
-import { cn } from "@/lib/utils";
 import { IconMagnifierOutline18 } from "@unkey/icons";
 import { Dialog, DialogContent, type DialogProps } from "@unkey/ui";
+import { cn } from "cn";
 
 const Command = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive>,

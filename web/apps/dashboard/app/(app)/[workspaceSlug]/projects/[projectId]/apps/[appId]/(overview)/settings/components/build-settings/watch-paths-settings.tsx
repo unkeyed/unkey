@@ -1,10 +1,10 @@
 "use client";
 
 import { FormCombobox } from "@/components/ui/form-combobox";
-import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconEyeOutline18, IconPlusOutline18 } from "@unkey/icons";
 import { FormInput } from "@unkey/ui";
+import { cn } from "cn";
 import { useCallback, useRef } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";

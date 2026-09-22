@@ -1,7 +1,7 @@
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { IconChartActivity2Outline12 } from "@unkey/icons";
-import { Badge, STATUS_STYLES, TimestampInfo } from "@unkey/ui";
+import { Badge, STATUS_STYLES, Skeleton, TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import { useRef, useState } from "react";
 
 type LastUsedCellProps = {

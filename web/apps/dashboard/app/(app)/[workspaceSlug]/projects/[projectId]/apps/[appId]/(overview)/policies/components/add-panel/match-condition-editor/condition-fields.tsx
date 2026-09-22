@@ -2,7 +2,6 @@
 
 import type { StringMatchMode } from "@/lib/collections/deploy/policies.schema";
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { IconChevronDownOutline18, IconSparkle3Outline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
@@ -16,6 +15,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { FormDescription, FormLabel } from "@unkey/ui/src/components/form/form-helpers";
+import { cn } from "cn";
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { MatchConditionFormValues, PolicyFormValues } from "../schema";

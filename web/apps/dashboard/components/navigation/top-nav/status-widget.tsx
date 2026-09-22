@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { cn } from "cn";
 import { forwardRef } from "react";
 
 const STATUS_PAGE_URL = "https://status.unkey.com";

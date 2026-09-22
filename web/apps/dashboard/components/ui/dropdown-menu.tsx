@@ -4,7 +4,7 @@ import { Menu as DropdownMenuPrimitive } from "@base-ui/react/menu";
 import { IconCheckOutline18, IconChevronRightOutline18 } from "@unkey/icons";
 import * as React from "react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 const DropdownMenu = DropdownMenuPrimitive.Root;
 

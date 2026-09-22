@@ -5,7 +5,6 @@ import {
   type VerificationStatus,
   retryDomainVerification,
 } from "@/lib/collections/deploy/custom-domains";
-import { cn } from "@/lib/utils";
 import {
   IconCircleCheckOutline12,
   IconCircleInfoOutline18,
@@ -15,6 +14,7 @@ import {
   IconTriangleWarningOutline12,
 } from "@unkey/icons";
 import { Badge, Button, ConfirmPopover, Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
+import { cn } from "cn";
 import { useRef, useState } from "react";
 import { RemoveButton } from "../../shared/remove-button";
 import { DnsRecordTable } from "./dns-record-table";

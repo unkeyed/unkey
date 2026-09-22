@@ -3,9 +3,9 @@ import {
   statusGroupOf,
 } from "@/lib/collections/deploy/deployment-status";
 import type { ProjectApp } from "@/lib/collections/deploy/projects";
-import { cn } from "@/lib/utils";
 import { match } from "@unkey/match";
 import { useElapsed } from "@unkey/ui";
+import { cn } from "cn";
 import { DeploymentStatusIndicator } from "../../[projectId]/apps/[appId]/components/deployment-status-dot";
 
 export type AppDeployment = NonNullable<ProjectApp["headlineDeployment"]>;

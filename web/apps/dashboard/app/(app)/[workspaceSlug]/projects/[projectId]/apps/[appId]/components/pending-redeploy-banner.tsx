@@ -9,10 +9,10 @@ import {
 } from "@/lib/collections/deploy/environment-settings";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
-import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
 import { IconHammer2Outline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, toast } from "@unkey/ui";
+import { cn } from "cn";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useProjectData } from "../(overview)/data-provider";

@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import { IconUserOutline18 } from "@unkey/icons";
+import { cn } from "cn";
 import { useState } from "react";
 
 type AvatarProps = {

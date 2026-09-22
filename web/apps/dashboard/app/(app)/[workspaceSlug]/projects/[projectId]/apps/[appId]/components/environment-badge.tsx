@@ -1,7 +1,6 @@
 "use client";
 
 import { ENVIRONMENT_KIND, type Environment } from "@/lib/collections/deploy/environments";
-import { cn } from "@/lib/utils";
 import {
   IconArrowDotRotateAnticlockwiseOutline12,
   IconCircleXmarkOutline12,
@@ -10,6 +9,7 @@ import {
 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { InfoTooltip } from "@unkey/ui";
+import { cn } from "cn";
 import { format } from "date-fns";
 
 export type EnvironmentBadgeRollout = "none" | "live" | "liveAfterRollback" | "rolledBackFrom";

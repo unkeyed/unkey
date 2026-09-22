@@ -6,7 +6,6 @@ import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-st
 import { imageRefTag } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
 import { shortenId } from "@/lib/shorten-id";
-import { cn } from "@/lib/utils";
 import {
   Github,
   IconBracketsCurlyOutline18,
@@ -19,6 +18,7 @@ import {
   IconSquareTerminalOutline18,
 } from "@unkey/icons";
 import { InfoTooltip, TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import type { Route } from "next";
 import dynamic from "next/dynamic";
 import Link from "next/link";
