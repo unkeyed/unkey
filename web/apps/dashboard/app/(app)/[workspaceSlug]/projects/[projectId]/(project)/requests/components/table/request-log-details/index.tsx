@@ -47,10 +47,13 @@ export const RequestLogDetails = ({ distanceToTop }: Props) => {
       if (!deploymentId) {
         return null;
       }
+      const environments = q
+        .from({ environment: collection.environments })
+        .where(({ environment }) => eq(environment.projectId, projectId));
       return q
         .from({ deployment: collection.deployments })
         .where(({ deployment }) => eq(deployment.projectId, projectId))
-        .join({ environment: collection.environments }, ({ deployment, environment }) =>
+        .join({ environment: environments }, ({ deployment, environment }) =>
           eq(deployment.environmentId, environment.id),
         )
         .where(({ deployment }) => eq(deployment.id, deploymentId));
