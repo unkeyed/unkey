@@ -90,15 +90,19 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// or bodies.
 	if len(decision.Policies) > 0 && h.Engine != nil {
 		result, evalErr := h.Engine.Evaluate(ctx, sess, req, decision.WorkspaceID, decision.AppID, decision.Policies)
-		if evalErr != nil {
-			return evalErr
-		}
+		// Evaluate returns the flags collected before it stopped, so a
+		// request a later policy denies still carries the capture opt-ins of
+		// the logging policies that already matched. Those rejections are
+		// the ones worth capturing headers for.
 		tracking.LogRequestHeaders = result.LogRequestHeaders
 		tracking.LogResponseHeaders = result.LogResponseHeaders
 		tracking.LogRequestBody = result.LogRequestBody
 		tracking.LogResponseBody = result.LogResponseBody
 		tracking.LogQuery = result.LogQuery
 		tracking.BodyRedactors = result.BodyRedactors
+		if evalErr != nil {
+			return evalErr
+		}
 		if result.Principal != nil {
 			principalJSON, serErr := result.Principal.Marshal()
 			if serErr != nil {
@@ -178,6 +182,7 @@ func (h *Handler) Handle(ctx context.Context, sess *zen.Session) error {
 	// routing and retry. Without a standby, surface the last dial error.
 	if decision.RemoteRegionAddress != "" {
 		regionFallbacksTotal.WithLabelValues(decision.RemoteRegionAddress).Inc()
+		tracking.ForwardedToRegion = true
 		return h.ProxyService.ForwardToRegion(ctx, sess, decision.RemoteRegionAddress, hops)
 	}
 

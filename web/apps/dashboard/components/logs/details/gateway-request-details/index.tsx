@@ -88,6 +88,14 @@ export const GatewayRequestDetails = ({ distanceToTop, log, onClose }: Props) =>
               tooltipSuccessMessage: "Request ID copied to clipboard",
             },
             {
+              // Empty for a request an instance served, which hides the row.
+              label: "Error Code",
+              description: (content) => <span className="text-xs font-mono">{content}</span>,
+              content: log.error_code,
+              tooltipContent: "Copy Error Code",
+              tooltipSuccessMessage: "Error code copied to clipboard",
+            },
+            {
               label: "Region",
               description: (content) => <span className="text-xs font-mono">{content}</span>,
               content: log.region,

@@ -25,7 +25,8 @@ func (s *GatewayRequests) Read(ctx context.Context, workspaceID string, from Cur
 	const columns = `inserted_at, time, request_id, project_id, app_id,
 		environment_id, deployment_id, region, method, host, path, response_status,
 		total_latency, instance_latency, gateway_latency, query_string, query_params,
-		request_headers, request_body, response_headers, response_body, user_agent, ip_address`
+		request_headers, request_body, response_headers, response_body, user_agent, ip_address,
+		error_code`
 	// JSON escaping can expand one byte to six. The remaining charge covers field
 	// names and both destination envelopes. Limit bytes before the driver decodes rows.
 	const candidates = `SELECT ` + columns + `,
@@ -129,8 +130,9 @@ func (s *GatewayRequests) Read(ctx context.Context, workspaceID string, from Cur
 				UserAgent:   row.UserAgent,
 				IPAddress:   row.IPAddress,
 			},
-			Response: sink.GatewayResponse{Status: row.ResponseStatus, Headers: row.ResponseHeaders, Body: row.ResponseBody},
-			Latency:  sink.GatewayRequestLatency{Total: row.TotalLatency, Instance: row.InstanceLatency, Gateway: row.GatewayLatency},
+			Response:  sink.GatewayResponse{Status: row.ResponseStatus, Headers: row.ResponseHeaders, Body: row.ResponseBody},
+			Latency:   sink.GatewayRequestLatency{Total: row.TotalLatency, Instance: row.InstanceLatency, Gateway: row.GatewayLatency},
+			ErrorCode: row.ErrorCode,
 		}
 		events = append(events, sink.Event{EventID: row.RequestID, Stream: "gateway_requests", Time: row.Time, Payload: payload})
 		next = Cursor{Time: row.InsertedAt, EventID: row.RequestID}

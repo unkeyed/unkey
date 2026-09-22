@@ -178,7 +178,7 @@ func TestGatewayRequestsRead_Payload(t *testing.T) {
 		"headers":["Authorization: [REDACTED]", "X-Custom: value"], "body":"{\"input\":\"[REDACTED]\"}",
 		"query_string":"tag=a&tag=b", "query_params":{"tag":["a","b"]}, "ip_address":"192.0.2.1", "user_agent":"test-agent"},
 		"response":{"status":201,"headers":["Content-Type: application/json"],"body":"{\"ok\":true}"},
-		"latency":{"total":53,"instance":41,"gateway":12}}`, string(encoded))
+		"latency":{"total":53,"instance":41,"gateway":12},"error_code":""}`, string(encoded))
 }
 
 func TestGatewayRequestsRead_FilteredCursorBounds(t *testing.T) {

@@ -11,6 +11,9 @@ type GatewayRequestPayload struct {
 	Request       GatewayRequest        `json:"request"`
 	Response      GatewayResponse       `json:"response"`
 	Latency       GatewayRequestLatency `json:"latency"`
+	// ErrorCode is the Unkey error code when the gateway rejected the request
+	// itself, and empty when an instance served the response.
+	ErrorCode string `json:"error_code"`
 }
 
 func (GatewayRequestPayload) isPayload() {}

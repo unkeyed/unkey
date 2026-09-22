@@ -12,6 +12,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/errorpage"
+	"github.com/unkeyed/unkey/svc/frontline/internal/proxy"
 )
 
 // TestGetErrorPageInfoFrontline_StatusMapping locks in the URN → HTTP status
@@ -216,3 +217,48 @@ func TestWithObservability_ResponseExposesURN(t *testing.T) {
 type renderFunc func(errorpage.Data) ([]byte, error)
 
 func (f renderFunc) Render(d errorpage.Data) ([]byte, error) { return f(d) }
+
+// TestWithObservability_RecordsErrorCodeOnTracking pins the hand-off to the
+// ClickHouse logging middleware: it wraps this one, so the error never reaches
+// it and the request log would otherwise show a rejection with no reason.
+func TestWithObservability_RecordsErrorCodeOnTracking(t *testing.T) {
+	t.Parallel()
+
+	mw := WithObservability(stubRenderer{})
+
+	t.Run("error", func(t *testing.T) {
+		t.Parallel()
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		sess := &zen.Session{}
+		require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+
+		//nolint:exhaustruct
+		tracking := &proxy.RequestTracking{}
+		ctx := proxy.WithRequestTracking(context.Background(), tracking)
+
+		handler := mw(func(_ context.Context, _ *zen.Session) error {
+			return fault.New("denied", fault.Code(codes.Frontline.Firewall.Denied.URN()))
+		})
+		require.NoError(t, handler(ctx, sess))
+
+		require.Equal(t, string(codes.Frontline.Firewall.Denied.URN()), tracking.ErrorCode)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
+		sess := &zen.Session{}
+		require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
+
+		//nolint:exhaustruct
+		tracking := &proxy.RequestTracking{}
+		ctx := proxy.WithRequestTracking(context.Background(), tracking)
+
+		handler := mw(func(_ context.Context, _ *zen.Session) error { return nil })
+		require.NoError(t, handler(ctx, sess))
+
+		require.Empty(t, tracking.ErrorCode)
+	})
+}

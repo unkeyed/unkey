@@ -32,15 +32,22 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 			err := next(ctx, s)
 
 			// Tracking is only populated on the local-instance path; the
-			// handler stamps DeploymentID/InstanceID before forwarding. If
-			// those are empty the request was forwarded cross-region and
+			// handler stamps DeploymentID once the route resolves. An empty
+			// DeploymentID means the request was forwarded cross-region and
 			// the peer logs it.
+			//
+			// InstanceID stays empty when frontline answered the request
+			// itself — a policy denied it, or no instance could be reached.
+			// Those rows are the point of the request log for debugging, so
+			// they are written too; tracking.ErrorCode says why. A request
+			// that fell through to a peer region is skipped either way: the
+			// peer logs the attempt that actually served it.
 			//
 			// The base row is written unconditionally — the traffic and
 			// latency charts depend on it. Headers, query data, and bodies
 			// are only included when an enabled logging policy opted the
 			// request in via the tracking.Log* capture flags.
-			if !s.ShouldLogRequestToClickHouse() || tracking.DeploymentID == "" || tracking.InstanceID == "" {
+			if !s.ShouldLogRequestToClickHouse() || tracking.DeploymentID == "" || tracking.ForwardedToRegion {
 				return err
 			}
 
@@ -48,9 +55,14 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 			totalLatency := endTime.Sub(tracking.StartTime).Milliseconds()
 
 			var instanceLatency, gatewayLatency int64
-			if !tracking.InstanceStart.IsZero() && !tracking.InstanceEnd.IsZero() {
+			switch {
+			case !tracking.InstanceStart.IsZero() && !tracking.InstanceEnd.IsZero():
 				instanceLatency = tracking.InstanceEnd.Sub(tracking.InstanceStart).Milliseconds()
 				gatewayLatency = totalLatency - instanceLatency
+			case tracking.InstanceID == "":
+				// Never forwarded, so every millisecond was spent in the
+				// gateway rather than being unattributed.
+				gatewayLatency = totalLatency
 			}
 
 			req := s.Request()
@@ -123,6 +135,7 @@ func WithClickHouseLogging(buf *batch.BatchProcessor[schema.FrontlineRequest], c
 				TotalLatency:    totalLatency,
 				InstanceLatency: instanceLatency,
 				GatewayLatency:  gatewayLatency,
+				ErrorCode:       tracking.ErrorCode,
 			})
 
 			return err

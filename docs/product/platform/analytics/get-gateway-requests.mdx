@@ -135,7 +135,7 @@ cannot read.
 | `app_id` | String | App ID |
 | `environment_id` | String | Environment ID |
 | `deployment_id` | String | Deployment that received the request |
-| `instance_id` | String | Instance that processed the request |
+| `instance_id` | String | Instance that processed the request. Empty when the gateway rejected the request before it reached one |
 | `region` | String | Region that served the request |
 | `method` | String | HTTP method in upper case |
 | `host` | String | Host header of the request |
@@ -152,6 +152,7 @@ cannot read.
 | `total_latency` | Int64 | Full end to end time in milliseconds |
 | `instance_latency` | Int64 | Time your instance used, in milliseconds |
 | `gateway_latency` | Int64 | Time the Unkey gateway added, in milliseconds |
+| `error_code` | String | Unkey error code when the gateway rejected the request itself, for example a key, rate limit, or firewall policy. Empty when an instance served the response |
 
 ## Read a latency percentile
 

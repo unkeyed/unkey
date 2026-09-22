@@ -40,6 +40,10 @@ CREATE TABLE frontline_requests_raw_v1 (
   instance_latency Int64,
   -- Milliseconds - gateway overhead
   gateway_latency Int64,
+  -- Unkey error URN when the gateway itself rejected or failed the request
+  -- (policy denial, routing or proxy failure). Empty when an instance served
+  -- the response, including when that instance answered 4xx or 5xx.
+  error_code LowCardinality (String),
   INDEX idx_request_id (request_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_deployment_id (deployment_id) TYPE bloom_filter GRANULARITY 1,
   INDEX idx_instance_id (instance_id) TYPE bloom_filter GRANULARITY 1,
