@@ -192,7 +192,7 @@ func (h *testHarness) seed(ctx context.Context) seedResult {
 		Name:         uid.New("test_name"),
 		Slug:         uid.New("slug"),
 		CreatedAt:    now,
-		K8sNamespace: sql.NullString{Valid: true, String: uid.New("ns")},
+		K8sNamespace: uid.DNS1035(),
 	})
 	require.NoError(h.t, err)
 
