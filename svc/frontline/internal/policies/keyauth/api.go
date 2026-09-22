@@ -25,6 +25,8 @@ import (
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 )
 
+const responseSizeBytesMax = 1 << 20
+
 // APIExecutor inherits the public API's authorization and IP-allowlist checks.
 // For IP-restricted keys, the API sees the gateway's outbound IP.
 type APIExecutor struct {
@@ -42,13 +44,19 @@ type APIConfig struct {
 
 func NewAPI(cfg APIConfig) (*APIExecutor, error) {
 	base, err := url.Parse(cfg.BaseURL)
-	if err != nil || base.Hostname() == "" || (base.Scheme != "http" && base.Scheme != "https") || base.User != nil || base.RawQuery != "" || base.Fragment != "" {
-		return nil, fault.New("verification API requires an HTTP(S) base URL without credentials, query, or fragment")
+	if err != nil {
+		return nil, fault.New("verification API requires a valid base URL")
 	}
-	if strings.TrimSpace(cfg.RootKey) == "" || strings.ContainsAny(cfg.RootKey, "\r\n") {
-		return nil, fault.New("verification API requires a valid root key")
-	}
-	if err := assert.NotNilAndNotZero(cfg.Clock, "clock is required"); err != nil {
+	if err := assert.All(
+		assert.NotEmpty(base.Hostname(), "verification API base URL requires a host"),
+		assert.True(base.Scheme == "http" || base.Scheme == "https", "verification API base URL requires http or https"),
+		assert.True(base.User == nil, "verification API base URL must not carry credentials"),
+		assert.Empty(base.RawQuery, "verification API base URL must not carry a query"),
+		assert.Empty(base.Fragment, "verification API base URL must not carry a fragment"),
+		assert.NotEmpty(strings.TrimSpace(cfg.RootKey), "verification API requires a root key"),
+		assert.False(strings.ContainsAny(cfg.RootKey, "\r\n"), "root key must not contain newlines"),
+		assert.NotNilAndNotZero(cfg.Clock, "clock is required"),
+	); err != nil {
 		return nil, err
 	}
 	return &APIExecutor{
@@ -163,8 +171,7 @@ func (e *APIExecutor) verify(ctx context.Context, body openapi.V2KeysVerifyKeyRe
 	if err != nil {
 		return result.Data, err
 	}
-	const responseSizeMax = 1 << 20
-	response, err := io.ReadAll(io.LimitReader(res.Body, responseSizeMax+1))
+	response, err := io.ReadAll(io.LimitReader(res.Body, responseSizeBytesMax+1))
 	closeErr := res.Body.Close()
 	if err != nil {
 		return result.Data, err
@@ -175,8 +182,8 @@ func (e *APIExecutor) verify(ctx context.Context, body openapi.V2KeysVerifyKeyRe
 	if res.StatusCode != http.StatusOK {
 		return result.Data, fmt.Errorf("verification API returned HTTP %d", res.StatusCode)
 	}
-	if len(response) > responseSizeMax {
-		return result.Data, fmt.Errorf("verification API response exceeds %d bytes", responseSizeMax)
+	if len(response) > responseSizeBytesMax {
+		return result.Data, fmt.Errorf("verification API response exceeds %d bytes", responseSizeBytesMax)
 	}
 	if err := json.Unmarshal(response, &result); err != nil {
 		return result.Data, err

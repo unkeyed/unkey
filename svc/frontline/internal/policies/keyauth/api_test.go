@@ -288,23 +288,24 @@ func TestAPIExecutor_RateLimitHeaders(t *testing.T) {
 func TestNewAPI_RejectsInvalidConfiguration(t *testing.T) {
 	t.Parallel()
 	for _, tt := range []struct {
-		name, baseURL, rootKey string
-		clock                  clock.Clock
+		name, baseURL, rootKey, errorMessage string
+		clock                                clock.Clock
 	}{
-		{"relative URL", "/api", "root_test", clock.New()},
-		{"missing host", "https:///api", "root_test", clock.New()},
-		{"unsupported scheme", "ftp://example.com", "root_test", clock.New()},
-		{"URL credentials", "https://user:password@example.com", "root_test", clock.New()},
-		{"URL query", "https://example.com?token=secret", "root_test", clock.New()},
-		{"URL fragment", "https://example.com#fragment", "root_test", clock.New()},
-		{"missing root key", "https://example.com", "", clock.New()},
-		{"invalid root key", "https://example.com", "root\r\nHeader:value", clock.New()},
-		{"missing clock", "https://example.com", "root_test", nil},
+		{"malformed URL", "://", "root_test", "verification API requires a valid base URL", clock.New()},
+		{"relative URL", "/api", "root_test", "verification API base URL requires a host", clock.New()},
+		{"missing host", "https:///api", "root_test", "verification API base URL requires a host", clock.New()},
+		{"unsupported scheme", "ftp://example.com", "root_test", "verification API base URL requires http or https", clock.New()},
+		{"URL credentials", "https://user:password@example.com", "root_test", "verification API base URL must not carry credentials", clock.New()},
+		{"URL query", "https://example.com?token=secret", "root_test", "verification API base URL must not carry a query", clock.New()},
+		{"URL fragment", "https://example.com#fragment", "root_test", "verification API base URL must not carry a fragment", clock.New()},
+		{"missing root key", "https://example.com", "", "verification API requires a root key", clock.New()},
+		{"invalid root key", "https://example.com", "root\r\nHeader:value", "root key must not contain newlines", clock.New()},
+		{"missing clock", "https://example.com", "root_test", "clock is required", nil},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			executor, err := keyauth.NewAPI(keyauth.APIConfig{BaseURL: tt.baseURL, RootKey: tt.rootKey, Clock: tt.clock})
-			require.Error(t, err)
+			require.EqualError(t, err, tt.errorMessage)
 			require.Nil(t, executor)
 		})
 	}
