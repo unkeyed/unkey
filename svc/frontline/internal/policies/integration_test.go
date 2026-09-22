@@ -32,6 +32,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies"
+	"github.com/unkeyed/unkey/svc/frontline/internal/policies/keyauth"
 	"github.com/unkeyed/unkey/svc/frontline/internal/policies/principal"
 )
 
@@ -152,10 +153,9 @@ func newTestHarness(t *testing.T) *testHarness {
 	t.Cleanup(keyVerifications.Close)
 
 	eng, err := policies.New(policies.Config{
-		KeyService:       keyService,
-		RateLimiter:      rateLimiter,
-		Clock:            clk,
-		KeyVerifications: keyVerifications,
+		KeyAuth:     keyauth.New(keyService, clk, keyVerifications),
+		RateLimiter: rateLimiter,
+		Clock:       clk,
 	})
 	require.NoError(t, err)
 
@@ -674,23 +674,53 @@ func TestKeyAuth_WrongKeySpace(t *testing.T) {
 	ctx := context.Background()
 	s := h.seed(ctx)
 
+	err := db.Query.UpdateKeyCreditsSet(ctx, h.db.RW(), db.UpdateKeyCreditsSetParams{
+		Credits: sql.NullInt64{Int64: 2, Valid: true},
+		ID:      s.KeyID,
+	})
+	require.NoError(t, err)
+
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+s.RawKey)
 	sess := newSession(t, req)
 
+	keyauth := &frontlinev1.KeyAuth{
+		KeySpaceIds: []string{"ks_wrong_space"},
+		Ratelimits: []*frontlinev1.KeyRatelimit{{
+			Name:     "requests",
+			Limit:    proto.Int64(1),
+			Duration: proto.Int64(60_000),
+		}},
+	}
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
 			Enabled: proto.Bool(true),
 			Config: &frontlinev1.Policy_Keyauth{
-				Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{"ks_wrong_space"}},
+				Keyauth: keyauth,
 			},
 		},
 	}
 
-	_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
+	result, err := h.engine.Evaluate(ctx, sess, req, s.WorkspaceID, policies)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "key does not belong to expected key space")
+	require.Nil(t, result.Principal)
+	code, ok := fault.GetCode(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Frontline.Auth.InvalidKey.URN(), code)
+	select {
+	case verification := <-h.verificationEvents:
+		require.Equal(t, string(keys.StatusNotFound), verification.Outcome)
+		require.Zero(t, verification.SpentCredits)
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for key verification telemetry")
+	}
+
+	keyauth.KeySpaceIds = []string{s.KeySpaceID}
+	result, err = h.engine.Evaluate(ctx, newSession(t, req), req, s.WorkspaceID, policies)
+	require.NoError(t, err)
+	require.NotNil(t, result.Principal)
+	require.Equal(t, ptr.P(int64(1)), result.Principal.Source.Key.Credits)
 }
 
 func TestKeyAuth_MultipleKeySpaceIds(t *testing.T) {
@@ -761,7 +791,9 @@ func TestKeyAuth_MultipleKeySpaceIds(t *testing.T) {
 
 		_, err := h.engine.Evaluate(ctx, sess, req, "ws_test", policies)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "key does not belong to expected key space")
+		code, ok := fault.GetCode(err)
+		require.True(t, ok)
+		require.Equal(t, codes.Frontline.Auth.InvalidKey.URN(), code)
 	})
 }
 
