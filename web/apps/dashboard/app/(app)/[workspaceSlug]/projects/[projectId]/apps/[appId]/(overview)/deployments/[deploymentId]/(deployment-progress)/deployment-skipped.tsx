@@ -3,7 +3,6 @@
 import { routes } from "@/lib/navigation/routes";
 import {
   IconBanOutline18,
-  IconChartActivityOutline18,
   IconCloudUploadOutline18,
   IconEarthOutline18,
   IconHammer2Outline18,
@@ -36,12 +35,6 @@ export function DeploymentSkipped() {
         <DeploymentStep
           icon={<IconLayerFrontOutline18 />}
           title="Deployment Queued"
-          description="Skipped"
-          status="skipped"
-        />
-        <DeploymentStep
-          icon={<IconChartActivityOutline18 />}
-          title="Deployment Starting"
           description="Skipped"
           status="skipped"
         />

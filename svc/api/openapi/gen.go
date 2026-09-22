@@ -402,7 +402,7 @@ type DeploymentError struct {
 	// handling, use `code`.
 	Message string `json:"message"`
 
-	// Step The pipeline step that failed (e.g. `building`, `deploying`, `starting`).
+	// Step The pipeline step that failed (e.g. `queued`, `building`, `deploying`).
 	Step string `json:"step"`
 }
 
