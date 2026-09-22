@@ -110,7 +110,7 @@ export function LogsTimeseriesBarChart({
           offset={15}
           allowEscapeViewBox={{ x: true, y: true }}
           wrapperStyle={{ zIndex: 1000, pointerEvents: "none", overflow: "visible" }}
-          cursor={{ fill: "hsl(var(--gray-3))", fillOpacity: 0.4 }}
+          cursor={{ fill: "var(--color-gray-3)", fillOpacity: 0.4 }}
           content={({ active, payload, label }) => {
             if (!active || !payload?.length || payload?.[0]?.payload.total === 0) {
               return null;
@@ -126,7 +126,7 @@ export function LogsTimeseriesBarChart({
               return (
                 <div
                   role="tooltip"
-                  className="grid items-start gap-1.5 rounded-xl border border-border/50 bg-gray-1/80 backdrop-blur-md px-3 py-2.5 text-xs shadow-2xl select-none w-max max-w-[240px] animate-in fade-in-0 zoom-in-95 duration-150"
+                  className="grid items-start gap-1.5 rounded-xl bg-raised/80 backdrop-blur-md px-3 py-2.5 text-xs shadow-floating select-none w-max max-w-[240px] animate-in fade-in-0 zoom-in-95 duration-150"
                 >
                   <div className="font-medium text-[11px] text-gray-11">{labelText}</div>
                   <div className="grid gap-1">
@@ -140,7 +140,7 @@ export function LogsTimeseriesBarChart({
                       return (
                         <div key={dataKey} className="flex items-center gap-2">
                           <div
-                            className="shrink-0 rounded-[2px] h-2 w-2"
+                            className="shrink-0 rounded-xs h-2 w-2"
                             style={{ backgroundColor: itemConfig?.color }}
                           />
                           <span className="text-gray-12">{seriesLabel}</span>
@@ -172,7 +172,6 @@ export function LogsTimeseriesBarChart({
                 label={label}
                 active={active}
                 color={config[configKeys[0]]?.color}
-                className="rounded-lg shadow-lg border"
                 labelFormatter={(_, tooltipPayload) => {
                   const payloadTimestamp = parseTimestamp(
                     tooltipPayload?.[0]?.payload?.originalTimestamp,

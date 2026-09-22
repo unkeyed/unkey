@@ -16,6 +16,7 @@ import {
   ConfirmPopover,
   DialogContainer,
   FormCheckbox,
+  Separator,
 } from "@unkey/ui";
 import { useId, useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
@@ -137,9 +138,7 @@ export const DeleteIdentityDialog = ({
                 </AlertDescription>
               </Alert>
             ) : null}
-            <div className="py-1 my-2">
-              <div className="h-px bg-grayA-3 w-full" />
-            </div>
+            <Separator className="my-3" />
             <AlertBanner variant="error">
               <IconTriangleWarningOutline12 aria-hidden="true" />
               <AlertBannerDescription>

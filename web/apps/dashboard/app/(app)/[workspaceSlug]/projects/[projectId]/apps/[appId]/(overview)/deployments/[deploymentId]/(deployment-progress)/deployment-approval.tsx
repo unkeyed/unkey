@@ -7,11 +7,10 @@ import { IconShieldAlertOutline18 } from "@unkey/icons";
 import { AlertBanner, AlertBannerDescription, Button, Dialog, DialogContent } from "@unkey/ui";
 import { useProjectData } from "../../../data-provider";
 
-const chipClass =
-  "font-mono text-xs bg-gray-3 px-1.5 py-0.5 rounded-[5px] text-gray-12 font-medium";
+const chipClass = "font-mono text-xs bg-gray-3 px-1.5 py-0.5 rounded-sm text-gray-12 font-medium";
 
 const chipLinkClass =
-  "font-mono text-xs bg-gray-3 px-1.5 py-0.5 rounded-[5px] text-gray-12 font-medium decoration-dotted underline underline-offset-2 hover:bg-gray-4 transition-colors";
+  "font-mono text-xs bg-gray-3 px-1.5 py-0.5 rounded-sm text-gray-12 font-medium decoration-dotted underline underline-offset-2 hover:bg-gray-4 transition-colors";
 
 type DeploymentApprovalProps = {
   isOpen: boolean;
@@ -53,11 +52,11 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
         className="max-w-[560px] rounded-2xl! p-0 gap-0 overflow-hidden"
         style={{
           background:
-            "radial-gradient(circle at 5% 15%, hsl(var(--grayA-3)) 0%, transparent 20%), hsl(var(--gray-1))",
+            "radial-gradient(circle at 5% 15%, var(--color-grayA-3) 0%, transparent 20%), var(--color-gray-1)",
         }}
       >
         <div className="flex flex-col items-center p-10">
-          <div className="size-12 rounded-[14px] bg-gray-12 dark:bg-white flex items-center justify-center mb-4 shadow-[0_0_0_6px_hsl(var(--gray-2)),0_0_0_8px_hsl(var(--gray-4))]">
+          <div className="size-12 rounded-2xl bg-gray-12 dark:bg-white flex items-center justify-center mb-4 shadow-[0_0_0_6px_var(--color-gray-2),0_0_0_8px_var(--color-gray-4)]">
             <IconShieldAlertOutline18 className="text-white dark:text-black size-[22px]" />
           </div>
 

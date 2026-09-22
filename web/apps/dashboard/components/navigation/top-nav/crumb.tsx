@@ -1,6 +1,7 @@
 "use client";
 
 import { IconChevronExpandYOutline12 } from "@unkey/icons";
+import { Skeleton } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -76,7 +77,7 @@ export function CrumbLink({
     >
       {icon}
       {loading ? (
-        <span aria-hidden="true" className="h-3 w-20 rounded-sm bg-gray-4 animate-pulse" />
+        <Skeleton className="h-3 w-20 bg-gray-4" />
       ) : (
         <span className="truncate max-w-[120px] md:max-w-[180px]">{label}</span>
       )}

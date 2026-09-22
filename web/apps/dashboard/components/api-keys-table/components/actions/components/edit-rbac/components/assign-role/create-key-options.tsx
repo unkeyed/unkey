@@ -66,7 +66,7 @@ export function createRoleOptions({
             side="right"
             align="start"
             sideOffset={30}
-            className="drop-shadow-2xl transform-gpu border overflow-hidden rounded-[10px] p-0 bg-raised w-80 z-100"
+            className="shadow-floating overflow-hidden rounded-xl p-0 bg-raised w-80 z-100"
           >
             <div className="flex flex-col h-full">
               {/* Header */}

@@ -16,8 +16,6 @@ const itemVariants = cva(
   {
     variants: {
       variant: {
-        // Explicit override: the base rule already colors a bare `border`,
-        // so `outline` needs nothing here — only `default` has to opt out.
         default: "bg-transparent border-transparent",
         outline: "",
       },

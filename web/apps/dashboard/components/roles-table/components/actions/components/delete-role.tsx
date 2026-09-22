@@ -10,6 +10,7 @@ import {
   ConfirmPopover,
   DialogContainer,
   FormCheckbox,
+  Separator,
 } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
@@ -117,14 +118,12 @@ export const DeleteRole = ({ roleDetails, isOpen, onClose }: DeleteRoleProps) =>
             }
           >
             <RoleInfo roleDetails={roleDetails} />
-            <div className="py-1 my-2">
-              <div className="h-px bg-grayA-3 w-full" />
-            </div>
+            <Separator className="my-3" />
             <AlertBanner variant="error">
               <IconTriangleWarningOutline12 className="size-3.5" aria-hidden="true" />
-              <AlertBannerTitle>Warning:</AlertBannerTitle>
+              <AlertBannerTitle>Warning</AlertBannerTitle>
               <AlertBannerDescription>
-                deleting this role will detach it from all assigned keys and permissions and remove
+                Deleting this role will detach it from all assigned keys and permissions and remove
                 its configuration. This action cannot be undone. The permissions and keys themselves
                 will remain available, but any usage history or references to this role will be
                 permanently lost.

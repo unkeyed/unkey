@@ -37,7 +37,7 @@ function DrawerContent(props: DrawerContentProps & { ref?: React.Ref<DrawerConte
         {...contentProps}
         ref={ref}
         className={cn(
-          "bg-raised border flex flex-col fixed bottom-0 left-0 right-0 max-h-[82vh] rounded-t-xl drop-shadow-2xl transform-gpu",
+          "bg-raised flex flex-col fixed bottom-0 left-0 right-0 max-h-[82vh] rounded-t-xl shadow-floating",
           className,
         )}
       >

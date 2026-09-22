@@ -1,5 +1,5 @@
 "use client";
-// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+// biome-ignore lint/correctness/noUnusedImports: the package compiles JSX with the classic runtime ("jsx": "react"), so React must be in scope.
 import * as React from "react";
 import type { PropsWithChildren, ReactNode } from "react";
 import { cn } from "../../lib/utils";

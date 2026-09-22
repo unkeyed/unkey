@@ -1,7 +1,7 @@
 "use client";
 
 import { IconCheckOutline12, IconKey2Outline18 } from "@unkey/icons";
-import { ConfirmPopover, Dialog, DialogContent, DialogTitle } from "@unkey/ui";
+import { ConfirmPopover, Dialog, DialogContent, DialogTitle, Separator } from "@unkey/ui";
 import { type FC, useEffect, useRef, useState } from "react";
 import { KeyPayloadTabs } from "./key-payload-tabs";
 
@@ -103,9 +103,9 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
         <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full min-w-0 px-[120px]">
           <div className="py-4 mt-[30px]">
             <div className="flex gap-4">
-              <div className="border rounded-[14px] size-14 opacity-35" />
-              <div className="border rounded-[14px] size-14" />
-              <div className="border rounded-[14px] size-14 flex items-center justify-center relative">
+              <div className="border rounded-2xl size-14 opacity-35" />
+              <div className="border rounded-2xl size-14" />
+              <div className="border rounded-2xl size-14 flex items-center justify-center relative">
                 <div className="border rounded-full border-dashed size-[24px] absolute left-0 top-0" />
                 <div className="border rounded-full border-dashed size-[24px] absolute right-0 top-0" />
                 <div className="border rounded-full border-dashed size-[24px] absolute right-0 bottom-0" />
@@ -115,8 +115,8 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
                   <IconCheckOutline12 aria-hidden="true" focusable={false} />
                 </div>
               </div>
-              <div className="border rounded-[14px] size-14" />
-              <div className="border rounded-[14px] size-14 opacity-35" />
+              <div className="border rounded-2xl size-14" />
+              <div className="border rounded-2xl size-14 opacity-35" />
             </div>
           </div>
           <div className="mt-5 flex flex-col gap-2 items-center">
@@ -130,9 +130,7 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
               {copy.body}
             </div>
           </div>
-          <div className="p-1 w-full my-8">
-            <div className="h-px bg-grayA-3 w-full" />
-          </div>
+          <Separator className="my-9" />
           <KeyPayloadTabs keyValue={keyData.key} />
         </div>
         <ConfirmPopover

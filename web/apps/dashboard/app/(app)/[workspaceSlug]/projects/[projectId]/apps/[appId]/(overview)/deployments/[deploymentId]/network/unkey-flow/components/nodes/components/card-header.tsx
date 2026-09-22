@@ -31,12 +31,12 @@ export function CardHeader({
 
   return (
     <div
-      className={cn("flex w-full", isCard && "border-b rounded-t-[14px] px-3 py-2.5 ")}
+      className={cn("flex w-full", isCard && "border-b rounded-t-2xl px-3 py-2.5 ")}
       style={
         isCard
           ? {
               background:
-                "radial-gradient(circle at 5% 15%, hsl(var(--grayA-3)) 0%, transparent 20%), hsl(var(--raised))",
+                "radial-gradient(circle at 5% 15%, var(--color-grayA-3) 0%, transparent 20%), var(--background-color-raised)",
             }
           : undefined
       }

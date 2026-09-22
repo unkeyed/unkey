@@ -325,52 +325,6 @@ const SidebarGroup = React.forwardRef<HTMLDivElement, React.ComponentProps<"div"
 );
 SidebarGroup.displayName = "SidebarGroup";
 
-const SidebarGroupLabel = React.forwardRef<HTMLDivElement, useRender.ComponentProps<"div">>(
-  ({ className, render, ...props }, ref) => {
-    return useRender({
-      defaultTagName: "div",
-      render,
-      ref,
-      props: mergeProps<"div">(
-        {
-          "data-sidebar": "group-label",
-          className: cn(
-            "flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
-            "group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
-            className,
-          ),
-        } as React.ComponentProps<"div">,
-        props,
-      ),
-    });
-  },
-);
-SidebarGroupLabel.displayName = "SidebarGroupLabel";
-
-const SidebarGroupAction = React.forwardRef<HTMLButtonElement, useRender.ComponentProps<"button">>(
-  ({ className, render, ...props }, ref) => {
-    return useRender({
-      defaultTagName: "button",
-      render,
-      ref,
-      props: mergeProps<"button">(
-        {
-          "data-sidebar": "group-action",
-          className: cn(
-            "absolute right-3 top-3.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 outline-hidden transition-transform focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
-            // Increases the hit area of the button on mobile.
-            "after:absolute after:-inset-2 md:after:hidden",
-            "group-data-[collapsible=icon]:hidden",
-            className,
-          ),
-        } as React.ComponentProps<"button">,
-        props,
-      ),
-    });
-  },
-);
-SidebarGroupAction.displayName = "SidebarGroupAction";
-
 const SidebarGroupContent = React.forwardRef<HTMLDivElement, React.ComponentProps<"div">>(
   ({ className, ...props }, ref) => (
     <div
@@ -490,112 +444,21 @@ const SidebarMenuButton = React.forwardRef<
 );
 SidebarMenuButton.displayName = "SidebarMenuButton";
 
-const SidebarMenuAction = React.forwardRef<
-  HTMLButtonElement,
-  useRender.ComponentProps<"button"> & {
-    showOnHover?: boolean;
-  }
->(({ className, render, showOnHover = false, ...props }, ref) => {
-  return useRender({
-    defaultTagName: "button",
-    render,
-    ref,
-    props: mergeProps<"button">(
-      {
-        "data-sidebar": "menu-action",
-        className: cn(
-          "absolute right-1 top-1.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 outline-hidden transition-transform focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
-          // Increases the hit area of the button on mobile.
-          "after:absolute after:-inset-2 md:after:hidden",
-          "peer-data-[size=sm]/menu-button:top-1",
-          "peer-data-[size=default]/menu-button:top-1.5",
-          "peer-data-[size=lg]/menu-button:top-2.5",
-          "group-data-[collapsible=icon]:hidden",
-          showOnHover &&
-            "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-popup-open:opacity-100 md:opacity-0",
-          className,
-        ),
-      } as React.ComponentProps<"button">,
-      props,
-    ),
-  });
-});
-SidebarMenuAction.displayName = "SidebarMenuAction";
-
-const SidebarMenuSub = React.forwardRef<
-  HTMLUListElement,
-  React.ComponentProps<"ul"> & { depth?: number; maxDepth?: number }
->(({ className, depth = 0, maxDepth = 2, ...props }, ref) => {
-  // Check if this is the final depth level
-  const isFinalDepth = depth >= maxDepth;
-
-  return (
-    <ul
-      ref={ref}
-      data-sidebar="menu-sub"
-      data-depth={depth}
-      className={cn(
-        "mx-6 flex min-w-0 translate-x-px flex-col gap-1 border-l px-1 py-0.5 mt-2 mr-0",
-        "group-data-[collapsible=icon]:hidden",
-        isFinalDepth && "border-none mx-3 mt-1 px-0 mr-0",
-        className,
-      )}
-      {...props}
-    />
-  );
-});
-SidebarMenuSub.displayName = "SidebarMenuSub";
-
 const SidebarMenuSubItem = React.forwardRef<HTMLLIElement, React.ComponentProps<"li">>(
   ({ ...props }, ref) => <li ref={ref} {...props} />,
 );
 SidebarMenuSubItem.displayName = "SidebarMenuSubItem";
-
-const SidebarMenuSubButton = React.forwardRef<
-  HTMLAnchorElement,
-  useRender.ComponentProps<"a"> & {
-    size?: "sm" | "md";
-    isActive?: boolean;
-  }
->(({ render, size = "md", isActive, className, ...props }, ref) => {
-  return useRender({
-    defaultTagName: "a",
-    render,
-    ref,
-    props: mergeProps<"a">(
-      {
-        "data-sidebar": "menu-sub-button",
-        "data-size": size,
-        "data-active": isActive,
-        className: cn(
-          "flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 outline-hidden focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
-          size === "sm" && "text-xs",
-          size === "md" && "text-sm",
-          "group-data-[collapsible=icon]:hidden",
-          className,
-        ),
-      } as React.ComponentProps<"a">,
-      props,
-    ),
-  });
-});
-SidebarMenuSubButton.displayName = "SidebarMenuSubButton";
 
 export {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupAction,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarProvider,
   SidebarSeparator,

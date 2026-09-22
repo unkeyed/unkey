@@ -7,7 +7,7 @@ import { trpc } from "@/lib/trpc/client";
 import type { KeyPermission, KeyRole } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconPenWriting3Outline18 } from "@unkey/icons";
-import { Button, DialogContainer } from "@unkey/ui";
+import { Button, DialogContainer, Separator } from "@unkey/ui";
 import { useEffect, useState } from "react";
 import { Controller, FormProvider } from "react-hook-form";
 import { GrantedAccess } from "../../../rbac/granted-access";
@@ -213,9 +213,7 @@ export const KeyRbacDialog = ({
                   name: existingKey.name ?? null,
                 }}
               />
-              <div className="py-1 my-2">
-                <div className="h-px bg-grayA-3 w-full" />
-              </div>
+              <Separator className="my-3" />
               <Controller
                 name="roleNames"
                 control={control}

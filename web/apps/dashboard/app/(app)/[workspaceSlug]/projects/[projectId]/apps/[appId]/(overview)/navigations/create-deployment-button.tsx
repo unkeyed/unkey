@@ -26,6 +26,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Skeleton,
   TimestampInfo,
   toast,
 } from "@unkey/ui";
@@ -359,7 +360,7 @@ export const CreateDeploymentButton = ({
                   />
                 </span>
               ) : repoDetails.isLoading ? (
-                <div className="h-4 w-16 bg-grayA-3 rounded animate-pulse" />
+                <Skeleton className="h-4 w-16 rounded" />
               ) : null}
             </div>
           )}

@@ -29,6 +29,21 @@ export type DataTableRef = {
   containerRef: HTMLDivElement | null;
 };
 
+function StickyHeaderUnderline({ colSpan, hasPadding }: { colSpan: number; hasPadding: boolean }) {
+  return (
+    <tr>
+      <th colSpan={colSpan} className="p-0">
+        <div
+          className={cn(
+            "absolute inset-y-0 -z-10 border-b bg-table-header",
+            hasPadding ? "inset-x-[-8px]" : "inset-x-0",
+          )}
+        />
+      </th>
+    </tr>
+  );
+}
+
 /**
  * Main DataTable component with TanStack Table + TanStack Virtual
  */
@@ -204,16 +219,7 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
                 </th>
               ))}
             </tr>
-            <tr>
-              <th colSpan={columns.length} className="p-0">
-                <div
-                  className={cn(
-                    "absolute inset-y-0 -z-10 border-b bg-table-header",
-                    hasPadding ? "inset-x-[-8px]" : "inset-x-0",
-                  )}
-                />
-              </th>
-            </tr>
+            <StickyHeaderUnderline colSpan={columns.length} hasPadding={hasPadding} />
           </thead>
         </table>
         <div className="flex-1 flex items-center justify-center">
@@ -258,16 +264,7 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
                 ))}
               </tr>
             ))}
-            <tr>
-              <th colSpan={columns.length} className="p-0">
-                <div
-                  className={cn(
-                    "absolute inset-y-0 -z-10 border-b bg-table-header",
-                    hasPadding ? "inset-x-[-8px]" : "inset-x-0",
-                  )}
-                />
-              </th>
-            </tr>
+            <StickyHeaderUnderline colSpan={columns.length} hasPadding={hasPadding} />
           </thead>
 
           {/* Body */}
@@ -344,7 +341,7 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
                             }
                           }}
                           className={cn(
-                            "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1",
+                            "cursor-pointer transition-colors hover:bg-grayA-3 focus:outline-none focus:ring-1",
                             config.rowBorders && "border-b",
                             rowClassName?.(typedItem),
                             selectedClassName?.(typedItem, isSelected),
@@ -393,7 +390,7 @@ export function DataTable<TData>(props: DataTableProps<TData> & { ref?: Ref<Data
                               }
                             }}
                             className={cn(
-                              "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus:ring-1",
+                              "cursor-pointer transition-colors hover:bg-grayA-3 focus:outline-none focus:ring-1",
                               config.rowBorders && "border-b",
                               rowClassName?.(typedItem),
                               selectedClassName?.(typedItem, isSelected),

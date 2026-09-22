@@ -10,6 +10,7 @@ import {
   ConfirmPopover,
   DialogContainer,
   FormCheckbox,
+  Separator,
 } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
@@ -112,14 +113,12 @@ export const DeletePermission = ({ permissionDetails, isOpen, onClose }: DeleteP
             }
           >
             <PermissionInfo permissionDetails={permissionDetails} />
-            <div className="py-1 my-2">
-              <div className="h-px bg-grayA-3 w-full" />
-            </div>
+            <Separator className="my-3" />
             <AlertBanner variant="error">
               <IconTriangleWarningOutline12 className="size-3.5" aria-hidden="true" />
-              <AlertBannerTitle>Warning:</AlertBannerTitle>
+              <AlertBannerTitle>Warning</AlertBannerTitle>
               <AlertBannerDescription>
-                deleting this permission will detach it from all assigned keys and roles and remove
+                Deleting this permission will detach it from all assigned keys and roles and remove
                 its configuration. This action cannot be undone. The keys and roles themselves will
                 remain available, but any usage history or references to this permission will be
                 permanently lost.

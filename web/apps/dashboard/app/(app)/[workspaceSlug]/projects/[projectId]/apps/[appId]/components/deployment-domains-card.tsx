@@ -19,6 +19,7 @@ import {
   PopoverTrigger,
   SettingCard,
   SettingCardGroup,
+  Skeleton,
 } from "@unkey/ui";
 import { type ReactNode, useState } from "react";
 import { useProjectData } from "../(overview)/data-provider";
@@ -79,11 +80,11 @@ export function DeploymentDomainsCard({
         {isLoading || primaryDomain === null ? (
           <SettingCard
             icon={
-              <div className="w-full h-full rounded-[10px] flex items-center justify-center shrink-0">
+              <div className="w-full h-full rounded-xl flex items-center justify-center shrink-0">
                 <IconEarthOutline18 />
               </div>
             }
-            title={<div className="h-4 w-36 bg-grayA-3 rounded animate-pulse" />}
+            title={<Skeleton className="h-4 w-36 rounded" />}
             description="Loading domains..."
           />
         ) : (
@@ -121,7 +122,7 @@ export function DeploymentDomainsCard({
                   <PopoverTrigger
                     render={
                       <Button
-                        className="text-gray-12 font-medium bg-grayA-2 rounded-[8px]"
+                        className="text-gray-12 font-medium bg-grayA-2 rounded-lg"
                         variant="outline"
                       >
                         Show URLs

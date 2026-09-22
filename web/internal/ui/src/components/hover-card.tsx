@@ -2,6 +2,7 @@
 
 import { PreviewCard as HoverCardPrimitive } from "@base-ui/react/preview-card";
 import type * as React from "react";
+import { popupTransition } from "../lib/popup";
 import { cn } from "../lib/utils";
 
 const HoverCard = HoverCardPrimitive.Root;
@@ -32,7 +33,7 @@ function HoverCardContent({
           ref={ref}
           className={cn(
             "z-200 w-64 rounded-lg bg-raised p-4 text-gray-12 shadow-floating outline-none",
-            "transition-[opacity,scale,translate] data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95",
+            popupTransition,
             "data-[side=bottom]:data-starting-style:-translate-y-2 data-[side=left]:data-starting-style:translate-x-2 data-[side=right]:data-starting-style:-translate-x-2 data-[side=top]:data-starting-style:translate-y-2",
             className,
           )}

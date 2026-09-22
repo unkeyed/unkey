@@ -1,9 +1,9 @@
+import { createOutcomeChartConfig } from "@/components/charts/chart-colors";
 import { OverviewAreaChart } from "@/components/logs/overview-charts/overview-area-chart";
 import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
 import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularity";
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchVerificationTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
-import { createOutcomeChartConfig } from "./bar-chart/utils";
 import { useFetchActiveKeysTimeseries } from "./line-chart/hooks/use-fetch-timeseries";
 
 export const KeysOverviewLogsCharts = ({
@@ -66,7 +66,7 @@ export const KeysOverviewLogsCharts = ({
   const keysChartConfig = {
     keys: {
       label: "Active Keys",
-      color: "hsl(var(--success-11))",
+      color: "var(--color-success-11)",
     },
   };
 
@@ -77,7 +77,7 @@ export const KeysOverviewLogsCharts = ({
       {
         key: "keys",
         label: "AVG",
-        color: "hsl(var(--success-11))",
+        color: "var(--color-success-11)",
       },
     ],
     showRightSide: false,

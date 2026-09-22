@@ -98,7 +98,7 @@ export const LoadMoreFooter = ({
       )}
     >
       <div
-        className={`w-[740px] bg-raised min-h-[60px] flex items-center justify-center rounded-[10px] shadow-floating mb-5 transition-all duration-200 ${
+        className={`w-[740px] bg-raised min-h-[60px] flex items-center justify-center rounded-xl shadow-floating mb-5 transition-all duration-200 ${
           shouldShow ? "pointer-events-auto" : "pointer-events-none"
         }`}
         aria-hidden={!shouldShow}

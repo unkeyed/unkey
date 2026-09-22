@@ -1,7 +1,7 @@
 import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import { FilterOperatorInput } from "@/components/logs/filter-operator-input";
 import { IconBarsFilterOutline18 } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useState } from "react";
 import { identityDetailsFilterFieldConfig } from "../../../../filters.schema";
@@ -72,11 +72,7 @@ export const LogsFilters = () => {
         >
           <IconBarsFilterOutline18 className="text-gray-9 size-4" />
           <span className="text-gray-12 font-medium text-[13px] max-md:hidden">Filter</span>
-          {filters.length > 0 && (
-            <div className="bg-gray-7 rounded-sm h-4 px-1 text-[11px] font-medium text-gray-12 text-center flex items-center justify-center">
-              {filters.length}
-            </div>
-          )}
+          {filters.length > 0 && <Badge variant="count">{filters.length}</Badge>}
         </Button>
       </div>
     </FiltersPopover>

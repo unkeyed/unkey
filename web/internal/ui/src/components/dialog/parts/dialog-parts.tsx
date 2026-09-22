@@ -1,5 +1,5 @@
 "use client";
-// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+// biome-ignore lint/correctness/noUnusedImports: the package compiles JSX with the classic runtime ("jsx": "react"), so React must be in scope.
 import * as React from "react";
 import type { PropsWithChildren } from "react";
 import { cn } from "../../../lib/utils";
@@ -20,7 +20,7 @@ export const DefaultDialogHeader = ({ title, subTitle, className }: DefaultDialo
     <ShadcnDialogHeader className={cn("border-b bg-raised", className)}>
       <ShadcnDialogTitle className="px-6 py-4 text-gray-12 font-medium text-base flex flex-col">
         <span className="leading-[32px]">{title}</span>
-        {subTitle && ( // Conditionally render subtitle span only if it exists
+        {subTitle && (
           <span className="text-gray-9 leading-[20px] text-[13px] font-normal">{subTitle}</span>
         )}
       </ShadcnDialogTitle>

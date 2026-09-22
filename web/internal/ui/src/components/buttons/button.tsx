@@ -6,11 +6,6 @@ import * as React from "react";
 import { cn } from "../../lib/utils";
 import { AnimatedLoadingSpinner } from "../animated-loading-spinner";
 
-// Render-target composition WITHOUT button semantics. `render` targets are
-// links/anchors (Next.js <Link>, <a>); routing them through the Base UI Button
-// primitive would bolt role="button" + keyboard handlers onto a link, which is
-// wrong semantics. useRender composes the element with the button's visual
-// classes only.
 function ButtonRenderSlot({
   render,
   ref,
@@ -22,7 +17,6 @@ function ButtonRenderSlot({
   return useRender({ render, ref, props });
 }
 
-// Hack to populate fumadocs' AutoTypeTable
 export type DocumentedButtonProps = VariantProps<typeof buttonVariants> & {
   /**
    * Display a loading spinner instead of the children
@@ -66,12 +60,12 @@ export type DocumentedButtonProps = VariantProps<typeof buttonVariants> & {
 };
 
 const buttonVariants = cva(
-  "inline-flex group relative duration-150 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed cursor-pointer",
+  "inline-flex group relative duration-150 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-gray-6 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed cursor-pointer",
   {
     variants: {
       variant: {
-        default: "", // This is only required for mapping from default -> primary. We rely on this for type generation because CVA types are hard to mutate.
-        destructive: "", // This is only required for mapping from destructive-> danger. We rely on this for type generation because CVA types are hard to mutate.
+        default: "",
+        destructive: "",
         primary: [
           "p-2 text-white dark:text-black bg-gray-12 hover:bg-gray-12/90 focus:hover:bg-gray-12 rounded-md border border-grayA-4",
           "focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
@@ -79,9 +73,8 @@ const buttonVariants = cva(
           "active:bg-gray-12/80",
         ],
         outline: [
-          "p-2 text-gray-12 bg-background border hover:bg-grayA-3 rounded-md",
+          "p-2 text-gray-12 bg-transparent border dark:border-input hover:bg-grayA-3 focus:hover:bg-transparent rounded-md",
           "aria-expanded:bg-grayA-3 aria-expanded:text-gray-12",
-          "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
           "focus:border-grayA-12 focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
           "disabled:border disabled:border-solid disabled:border-grayA-5 disabled:text-grayA-7",
           "active:bg-grayA-4",
@@ -93,7 +86,6 @@ const buttonVariants = cva(
           "active:bg-grayA-5",
         ],
       },
-      // TODO: Remove "square" this in the following iterations. This is only needed for backward compatability
       shape: {
         square: "size-8 p-1",
       },
@@ -105,7 +97,6 @@ const buttonVariants = cva(
         info: "",
       },
       size: {
-        // TODO: Remove "icon" this in the following iterations. This is only needed for backward compatability
         icon: "size-6",
         sm: "h-7",
         md: "h-8",
@@ -120,27 +111,21 @@ const buttonVariants = cva(
       size: "sm",
     },
     compoundVariants: [
-      // Danger
       {
         variant: "primary",
         color: "danger",
         className: [
           "dark:text-white/95 bg-error-9 hover:bg-error-10 rounded-md focus:hover:bg-error-10 ",
           "focus:border-error-11 focus:ring-3 focus:ring-error-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:bg-error-6 disabled:text-white/80  dark:disabled:text-white/80",
+          "disabled:bg-error-7 disabled:text-white/80  dark:disabled:text-white/80",
           "active:bg-error-11",
         ],
       },
       {
         variant: "outline",
         color: "danger",
-        className: [
-          "text-error-11 bg-background border hover:bg-grayA-3 focus:hover:bg-transparent",
-          "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
-          "focus:border-error-11 focus:ring-3 focus:ring-error-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-errorA-7 disabled:border-grayA-5",
-          "active:bg-error-3",
-        ],
+        className:
+          "text-error-11 focus:border-error-11 focus:ring-error-4 disabled:text-errorA-7 active:bg-error-3",
       },
       {
         variant: "ghost",
@@ -148,11 +133,10 @@ const buttonVariants = cva(
         className: [
           "text-error-11 bg-transparent hover:bg-error-3 rounded-md",
           "focus:border-error-11 focus:ring-3 focus:ring-error-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-error-7",
+          "disabled:text-errorA-7",
           "active:bg-error-4",
         ],
       },
-      // Warning
       {
         variant: "primary",
         color: "warning",
@@ -166,13 +150,8 @@ const buttonVariants = cva(
       {
         variant: "outline",
         color: "warning",
-        className: [
-          "text-warningA-11 bg-background border hover:bg-grayA-3 focus:hover:bg-transparent",
-          "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
-          "focus:border-warning-11 focus:ring-3 focus:ring-warning-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-warningA-7 disabled:border-grayA-5",
-          "active:bg-warning-3",
-        ],
+        className:
+          "text-warningA-11 focus:border-warning-11 focus:ring-warning-4 disabled:text-warningA-7 active:bg-warning-3",
       },
       {
         variant: "ghost",
@@ -180,11 +159,10 @@ const buttonVariants = cva(
         className: [
           "text-warning-11 bg-transparent hover:bg-warning-3 rounded-md",
           "focus:border-warning-11 focus:ring-3 focus:ring-warning-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-warning-7",
+          "disabled:text-warningA-7",
           "active:bg-warning-4",
         ],
       },
-      // Success
       {
         variant: "primary",
         color: "success",
@@ -198,13 +176,8 @@ const buttonVariants = cva(
       {
         variant: "outline",
         color: "success",
-        className: [
-          "text-success-11 bg-background border hover:bg-grayA-3 focus:hover:bg-transparent",
-          "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
-          "focus:border-success-11 focus:ring-3 focus:ring-success-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-successA-7 disabled:border-grayA-5",
-          "active:bg-success-3",
-        ],
+        className:
+          "text-success-11 focus:border-success-11 focus:ring-success-4 disabled:text-successA-7 active:bg-success-3",
       },
       {
         variant: "ghost",
@@ -212,12 +185,11 @@ const buttonVariants = cva(
         className: [
           "text-success-11 bg-transparent hover:bg-success-3 rounded-md",
           "focus:border-success-11 focus:ring-3 focus:ring-success-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-success-7",
+          "disabled:text-successA-7",
           "active:bg-success-4",
         ],
       },
 
-      // Info
       {
         variant: "primary",
         color: "info",
@@ -231,13 +203,8 @@ const buttonVariants = cva(
       {
         variant: "outline",
         color: "info",
-        className: [
-          "text-info-11 bg-background border hover:bg-grayA-3 focus:hover:bg-transparent",
-          "dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
-          "focus:border-info-11 focus:ring-3 focus:ring-info-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-infoA-7 disabled:border-grayA-5",
-          "active:bg-info-3",
-        ],
+        className:
+          "text-info-11 focus:border-info-11 focus:ring-info-4 disabled:text-infoA-7 active:bg-info-3",
       },
       {
         variant: "ghost",
@@ -245,7 +212,7 @@ const buttonVariants = cva(
         className: [
           "text-info-11 bg-transparent hover:bg-info-3 rounded-md",
           "focus:border-info-11 focus:ring-3 focus:ring-info-4 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:text-info-7",
+          "disabled:text-infoA-7",
           "active:bg-info-4",
         ],
       },
@@ -291,7 +258,7 @@ export type ButtonProps = VariantProps<typeof buttonVariants> &
   };
 
 const keyboardIconVariants = cva(
-  "items-center transition duration-150 text-center justify-center shadow-none text-sm flex justify-center font-mono text-xs font-medium border rounded-[5px] h-5 px-1.5 min-w-[24px]",
+  "items-center transition duration-150 text-center justify-center shadow-none text-sm flex justify-center font-mono text-xs font-medium border rounded-sm h-5 px-1.5 min-w-[24px]",
   {
     variants: {
       variant: {
@@ -345,14 +312,10 @@ function Button({
   } else {
     mappedVariant = variant as ButtonVariant;
   }
-  // Only disable the click behavior, not the visual appearance
   const isClickDisabled = disabled || loading;
-  // Keep separate flag for actual visual disabled state
   const isVisuallyDisabled = disabled;
-  // Width reference for consistent sizing during loading state
   const buttonRef = React.useRef<HTMLButtonElement>(null);
   const [buttonWidth, setButtonWidth] = React.useState<number | undefined>(undefined);
-  // Capture initial width when entering loading state
   React.useEffect(() => {
     if (loading && buttonRef.current && !buttonWidth) {
       setButtonWidth(buttonRef.current.offsetWidth);
@@ -360,7 +323,6 @@ function Button({
       setButtonWidth(undefined);
     }
   }, [loading, buttonWidth]);
-  // Keyboard handler
   React.useEffect(() => {
     if (!props.keyboard || isClickDisabled) {
       return;
@@ -376,12 +338,9 @@ function Button({
     return () => document.removeEventListener("keydown", down);
   }, [props.keyboard, isClickDisabled]);
 
-  // When `render` is provided (custom element/component, typically a link),
-  // compose it directly with the button's visual classes — no Base UI Button
-  // primitive, so the link keeps link semantics (no role="button", no
-  // synthetic keyboard handlers, no disabled-button behavior). Only the
-  // children render — the loading spinner and keyboard hint are omitted,
-  // matching the previous `asChild` behavior.
+  // A `render` target is usually a link; the Base UI Button primitive would
+  // bolt role="button" and key handlers onto it. The spinner and keyboard hint
+  // are intentionally omitted on this path.
   if (render) {
     return (
       <ButtonRenderSlot
@@ -414,8 +373,8 @@ function Button({
         }),
       )}
       onClick={loading ? undefined : props.onClick}
-      disabled={isVisuallyDisabled} // Only apply disabled attribute when explicitly disabled
-      aria-disabled={isClickDisabled} // For accessibility, still indicate it can't be clicked
+      disabled={isVisuallyDisabled}
+      aria-disabled={isClickDisabled}
       aria-busy={loading}
       ref={ref}
       {...props}
@@ -454,33 +413,6 @@ function Button({
       </div>
     </ButtonPrimitive>
   );
-}
-
-// Add CSS for respecting reduced motion preference and adding the spin-slow animation
-if (typeof document !== "undefined") {
-  const style = document.createElement("style");
-  style.textContent = `
-    @media (prefers-reduced-motion: reduce) {
-      [data-prefers-reduced-motion="respect-motion-preference"] {
-        animation: none !important;
-        transition: none !important;
-      }
-    }
-
-    @keyframes spin-slow {
-      from {
-        transform: rotate(0deg);
-      }
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    .animate-spin-slow {
-      animation: spin-slow 1.5s linear infinite;
-    }
-  `;
-  document.head.appendChild(style);
 }
 
 export { Button, buttonVariants };

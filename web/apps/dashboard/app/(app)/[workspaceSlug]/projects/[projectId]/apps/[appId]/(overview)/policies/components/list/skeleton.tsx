@@ -1,5 +1,5 @@
 import { IconDotsOutline18, IconGripDotsVerticalOutline18 } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, Skeleton } from "@unkey/ui";
 
 /**
  * Loading skeleton for PoliciesList. Mirrors the row layout in
@@ -36,18 +36,18 @@ function PolicyRowSkeleton({ index, isLast }: { index: number; isLast: boolean }
 
         {/* Name */}
         <div className="flex-4 min-w-0 py-5 flex items-center pr-5">
-          <div className="h-[13px] w-32 bg-grayA-3 rounded-sm animate-pulse" />
+          <Skeleton className="h-[13px] w-32" />
         </div>
 
         {/* Type */}
         <div className="flex-4 min-w-0 py-5 flex items-center pr-3">
-          <div className="h-[13px] w-16 bg-grayA-3 rounded-sm animate-pulse" />
+          <Skeleton className="h-[13px] w-16" />
         </div>
 
         {/* Env badges */}
         <div className="flex-2 min-w-0 py-5 flex items-center gap-1.5 pr-3">
-          <div className="h-[22px] w-full rounded-full border border-dashed bg-grayA-2 animate-pulse" />
-          <div className="h-[22px] w-full rounded-full border border-dashed bg-grayA-2 animate-pulse" />
+          <Skeleton className="h-[22px] w-full rounded-full border border-dashed bg-grayA-2" />
+          <Skeleton className="h-[22px] w-full rounded-full border border-dashed bg-grayA-2" />
         </div>
 
         {/* Actions */}

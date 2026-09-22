@@ -32,9 +32,9 @@ export const FilterTriggerButton = forwardRef<HTMLButtonElement, Props>(
       <span className="truncate">
         {label}
         {count !== undefined && count > 0 && (
-          <span className="ml-1.5 inline-flex items-center justify-center bg-gray-7 rounded-sm h-4 px-1 text-[11px] font-medium">
+          <Badge variant="count" className="ml-1.5">
             {count}
-          </span>
+          </Badge>
         )}
       </span>
       <IconChevronDownOutline18 className="size-3.5 ml-auto shrink-0" />

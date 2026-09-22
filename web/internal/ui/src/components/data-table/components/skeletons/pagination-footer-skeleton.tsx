@@ -1,6 +1,9 @@
+import { cn } from "../../../../lib/utils";
+import { FOOTER_PANEL } from "../../constants/constants";
+
 export const PaginationFooterSkeleton = () => {
   return (
-    <div className="w-[740px] bg-raised min-h-[60px] flex items-center justify-center rounded-[10px] shadow-floating mb-5 pointer-events-none">
+    <div className={cn(FOOTER_PANEL, "pointer-events-none")}>
       <div className="flex w-full justify-between items-center p-[18px]">
         {/* Item count skeleton */}
         <div className="flex items-center gap-2">

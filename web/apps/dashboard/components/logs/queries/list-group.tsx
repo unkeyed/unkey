@@ -90,7 +90,7 @@ export function ListGroup({
     <div className="w-full">
       <div
         className={cn(
-          "flex flex-row hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded-[8px] pb-[9px] w-full pl-1",
+          "flex flex-row hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded-lg pb-[9px] w-full pl-1",
           index === selectedIndex ? "bg-gray-2" : "",
         )}
       >
@@ -167,11 +167,8 @@ export function ListGroup({
           </InfoTooltip>
         </div>
       </div>
-      <div
-        className={cn(
-          "flex flex-row bg-border h-px mt-[7px] mb-[8px] w-full",
-          index < total - 1 && "border-b border-b-gray-3",
-        )}
+      <Separator
+        className={cn("mt-[7px] mb-[8px]", index < total - 1 && "border-b border-b-gray-3")}
       />
     </div>
   );

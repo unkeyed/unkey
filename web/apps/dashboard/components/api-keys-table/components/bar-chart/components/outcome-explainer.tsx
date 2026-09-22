@@ -107,7 +107,7 @@ export function OutcomeExplainer({
   return (
     <InfoTooltip
       asChild
-      className="bg-raised shadow-2xl p-0 border border-grayA-2 rounded-lg overflow-hidden px-4 pt-2 pb-1"
+      className="bg-raised shadow-floating p-0 rounded-lg overflow-hidden px-4 pt-2 pb-1"
       delayDuration={300}
       variant="inverted"
       position={{ side: "bottom" }}

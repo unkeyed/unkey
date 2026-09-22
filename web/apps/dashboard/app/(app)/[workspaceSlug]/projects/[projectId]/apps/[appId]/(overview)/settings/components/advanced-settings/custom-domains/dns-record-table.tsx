@@ -1,4 +1,5 @@
 import type { CustomDomainDnsRecord } from "@/lib/collections/deploy/custom-domains";
+import { Skeleton } from "@unkey/ui";
 import { DnsRecordRow } from "./dns-record-row";
 
 type DnsRecordTableProps = {
@@ -10,7 +11,7 @@ export function DnsRecordTable({ records, isLoading }: DnsRecordTableProps) {
   if (isLoading) {
     return (
       <div className="px-4 pb-3 space-y-3">
-        <div className="h-4 w-64 bg-gray-4 rounded animate-pulse" />
+        <Skeleton className="h-4 w-64 bg-gray-4 rounded" />
         <div className="rounded-lg border bg-background overflow-hidden text-xs">
           <TableHeader />
           <DnsRecordRowSkeleton />
@@ -66,11 +67,11 @@ function DnsRecordRowSkeleton({ isLast }: { isLast?: boolean }) {
     <div
       className={`grid grid-cols-[64px_1fr_1fr_48px] px-3 py-2 items-center ${isLast ? "" : "border-b"}`}
     >
-      <div className="h-4 w-10 bg-gray-4 rounded animate-pulse" />
-      <div className="h-4 w-32 bg-gray-4 rounded animate-pulse" />
-      <div className="h-4 w-40 bg-gray-4 rounded animate-pulse" />
+      <Skeleton className="h-4 w-10 bg-gray-4 rounded" />
+      <Skeleton className="h-4 w-32 bg-gray-4 rounded" />
+      <Skeleton className="h-4 w-40 bg-gray-4 rounded" />
       <div className="flex justify-center">
-        <div className="size-3.5 bg-gray-4 rounded-full animate-pulse" />
+        <Skeleton className="size-3.5 bg-gray-4 rounded-full" />
       </div>
     </div>
   );

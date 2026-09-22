@@ -1,14 +1,6 @@
 /*
- * Injected into every <Component /> preview iframe, which the docs stylesheet
- * never reaches. A preview is only trustworthy if it renders a component the
- * way the dashboard does, so this file pulls in the same token layer the
- * dashboard uses: the ramps, the @theme mapping and the semantic values, all
- * from @unkey/ui/theme.css.
- *
- * Blume already provides Tailwind and the dark variant here — do not re-import
- * either. Blume's own --blume-* tokens stay defined; the names that collide
- * (background, border, accent…) resolve to the dashboard's values because this
- * file is appended last.
+ * Blume injects this into every preview iframe and already provides Tailwind
+ * there; do not re-import it.
  */
 
 @import "@fontsource-variable/geist";
@@ -16,10 +8,8 @@
 @import "@unkey/ui/theme.css";
 
 /*
- * Tailwind only scans paths it is told about, and @unkey/ui lives outside this
- * app. Blume inlines this file into .blume/src/generated/examples.css, so the
- * same directory is named from both depths — the one that does not resolve is
- * ignored.
+ * Blume inlines this file into .blume/src/generated/examples.css, so the path
+ * is written from both depths; the one that does not resolve is ignored.
  */
 @source "../../internal/ui/src/**/*.tsx";
 @source "../../../../../internal/ui/src/**/*.tsx";
@@ -40,21 +30,9 @@
     color-scheme: dark;
   }
 
-  /*
-   * An example that outgrows its frame gains a scrollbar, and without a
-   * reserved gutter the whole preview shifts sideways at that moment.
-   */
-  html {
-    scrollbar-gutter: stable;
-  }
-  /*
-   * Blume leaves the frame transparent so the docs surface shows through. Use
-   * the dashboard's own surface instead: a component judged against the docs
-   * near-black can hide a contrast problem that pure black would expose.
-   */
   body {
-    background: hsl(var(--background));
-    color: hsl(var(--content));
+    background: var(--color-background);
+    color: var(--color-gray-12);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     font-feature-settings: "ss01", "cv11";
@@ -62,18 +40,16 @@
 }
 
 /*
- * Blume centres the example as a shrink-to-fit flex item, so a component that
- * asks for w-full — every page primitive does — collapses to the width of its
- * longest line. Give the wrapper the frame's width instead, so an example needs
- * no wrapper of its own to fill the preview the way it fills a PageBody.
+ * Blume centres the example as a shrink-to-fit flex item, so w-full would
+ * collapse to the content's width.
  */
 [data-blume-example] {
   width: 100%;
 }
 
 /*
- * Blume reserves a stable scrollbar gutter on the frame, which shifts every
- * example 15px left of centre even when nothing scrolls.
+ * Blume's stable scrollbar gutter shifts every example 15px left of centre
+ * even when nothing scrolls.
  */
 html {
   scrollbar-gutter: auto;

@@ -13,9 +13,9 @@ export const RolesSection: React.FC<RolesSectionProps> = ({ roles }) => {
   if (!roles || roles.length === 0) {
     return (
       <div className="flex flex-col gap-1 mt-4 px-4">
-        <div className="border bg-raised rounded-[10px]">
+        <div className="border bg-raised rounded-xl">
           <div className="text-gray-11 text-[12px] leading-6 px-3.5 py-1.5 font-sans">Roles</div>
-          <div className="border-t rounded-[10px] bg-raised px-4 py-2">
+          <div className="border-t rounded-xl bg-raised px-4 py-2">
             <span className="text-xs text-gray-11">No roles assigned</span>
           </div>
         </div>
@@ -25,11 +25,11 @@ export const RolesSection: React.FC<RolesSectionProps> = ({ roles }) => {
 
   return (
     <div className="flex flex-col gap-1 mt-4 px-4">
-      <div className="border bg-raised rounded-[10px]">
+      <div className="border bg-raised rounded-xl">
         <div className="text-gray-11 text-xs leading-6 px-4 py-1.5 font-sans">
           Roles ({roles.length})
         </div>
-        <div className="flex flex-col border-t rounded-[10px] bg-raised px-3.5 py-2 gap-2">
+        <div className="flex flex-col border-t rounded-xl bg-raised px-3.5 py-2 gap-2">
           {roles.map((role) => (
             <div
               key={role.name}
@@ -69,11 +69,11 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
   if (!permissions || permissions.length === 0) {
     return (
       <div className="flex flex-col gap-1 mt-4 px-4">
-        <div className="border bg-raised rounded-[10px]">
+        <div className="border bg-raised rounded-xl">
           <div className="text-gray-11 text-[12px] leading-6 px-3.5 py-1.5 font-sans">
             Permissions
           </div>
-          <div className="border-t rounded-[10px] bg-raised px-4 py-2">
+          <div className="border-t rounded-xl bg-raised px-4 py-2">
             <span className="text-xs text-gray-11">No permissions assigned</span>
           </div>
         </div>
@@ -83,7 +83,7 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
 
   return (
     <div className="flex flex-col gap-1 mt-4 px-4">
-      <div className="border bg-raised rounded-[10px] relative">
+      <div className="border bg-raised rounded-xl relative">
         <div className="text-gray-11 text-xs leading-6 px-3.5 py-1.5 font-sans flex items-center justify-between gap-2">
           <span>Permissions ({permissions.length})</span>
           {permissions.length > 1 && (
@@ -103,7 +103,7 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
             />
           )}
         </div>
-        <div className="flex flex-col border-t rounded-[10px] bg-raised px-3.5 py-2 gap-2">
+        <div className="flex flex-col border-t rounded-xl bg-raised px-3.5 py-2 gap-2">
           {permissions.map((permission) => (
             <div
               key={permission.name}

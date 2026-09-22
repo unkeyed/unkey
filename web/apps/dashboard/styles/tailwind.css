@@ -9,8 +9,6 @@
 @source '../../../internal/ui/src/**/*.tsx';
 
 
-@custom-variant dark (&:is(.dark *));
-
 @utility container {
   margin-inline: auto;
   padding-inline: 2rem;
@@ -27,17 +25,19 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@theme static {
+  --color-chart-selection: var(--color-gray-6);
+  --color-activity: oklch(0.6774 0.1738 250.3);
+}
+
 @layer base {
   :root {
     color-scheme: light;
-    --chart-selection: var(--gray-6);
-
-    --black: 0 0% 0%;
   }
 
   .dark {
     color-scheme: dark;
-    --chart-selection: var(--gray-9);
+    --color-chart-selection: var(--color-gray-9);
   }
 
   html {
@@ -45,14 +45,13 @@
   }
 
   body {
-    @apply bg-background text-content overscroll-none;
+    @apply bg-background text-gray-12 overscroll-none;
   }
 
-  /* Sonner toast styling */
   [data-sonner-toast] {
-    background-color: hsl(var(--raised)) !important;
-    border-color: hsl(var(--border)) !important;
-    color: hsl(var(--content)) !important;
+    background-color: var(--background-color-raised) !important;
+    border-color: var(--hairline) !important;
+    color: var(--color-gray-12) !important;
   }
 }
 
@@ -109,38 +108,11 @@ code .line::before {
   animation: fillLeft 1s ease-in-out;
 }
 
-/* ==========================================================================
- * Safari <foreignObject> rendering fixes
- * ==========================================================================
- *
+/*
  * Safari renders elements with position/transform/transition/animation inside
  * <foreignObject> at SVG origin (0,0) instead of the foreignObject's position.
- * See: https://bugs.webkit.org/show_bug.cgi?id=23113
- *
- * The .safari-fo-fix class is applied via JS-based Safari detection on the
- * foreignObject content wrapper (tree-element-node.tsx). These rules only
- * affect Safari — Chrome/Firefox never receive the class.
- *
- * What triggers the bug:
- *   - position: relative/absolute/fixed
- *   - transform (any value)
- *   - transition (any property)
- *   - CSS animations that create compositing layers (opacity, transform)
- *
- * What's safe:
- *   - flexbox / grid layout
- *   - box-shadow, border, background-color
- *   - CSS animations on non-compositing properties (text-indent, background-color)
- *
- * Component-side changes (no position/transform dependencies):
- *   - Node stacking uses DOM paint order instead of z-index
- *   - Status dot rings use CSS Grid (grid-area:1/1) instead of absolute overlay
- *   - Health banner fades use CSS Grid instead of absolute overlay
- *   - Marquee uses text-indent animation instead of translateX
- *   - Hover effects use box-shadow/ring instead of scale transforms
- * ========================================================================== */
-
-/* Neutralize position/transform/transition on all descendants */
+ * https://bugs.webkit.org/show_bug.cgi?id=23113
+ */
 .safari-fo-fix,
 .safari-fo-fix * {
   position: static !important;
@@ -150,14 +122,13 @@ code .line::before {
   -webkit-backface-visibility: visible !important;
 }
 
-/* Replace animate-pulse (opacity-based) with a background-color pulse */
 @keyframes safari-pulse {
   0%,
   100% {
-    background-color: hsla(var(--grayA-3));
+    background-color: var(--color-grayA-3);
   }
   50% {
-    background-color: hsla(var(--grayA-2));
+    background-color: var(--color-grayA-2);
   }
 }
 
@@ -165,7 +136,6 @@ code .line::before {
   animation: safari-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
 }
 
-/* Kill breathe-ring animation (opacity + transform); solid dot stays visible */
 .safari-fo-fix .breathe-ring {
   animation: none !important;
   opacity: 0 !important;

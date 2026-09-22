@@ -304,7 +304,7 @@ export function OverviewBarChart({
               horizontal
               vertical={false}
               strokeDasharray="3 3"
-              stroke="hsl(var(--gray-6))"
+              stroke="var(--color-gray-6)"
               strokeOpacity={0.3}
               strokeWidth={1}
             />
@@ -313,7 +313,7 @@ export function OverviewBarChart({
               isAnimationActive
               wrapperStyle={{ zIndex: 1000 }}
               cursor={{
-                fill: "hsl(var(--gray-3))",
+                fill: "var(--color-gray-3)",
                 strokeWidth: 1,
                 strokeDasharray: "5 5",
                 strokeOpacity: 0.7,
@@ -372,7 +372,6 @@ export function OverviewBarChart({
                         ))}
                       </div>
                     }
-                    className="rounded-lg shadow-lg border"
                     labelFormatter={(_, tooltipPayload) => {
                       const payloadTimestamp = tooltipPayload?.[0]?.payload?.originalTimestamp;
                       return formatTooltipInterval(
@@ -401,7 +400,7 @@ export function OverviewBarChart({
                     ? Math.max(Number(selection.start), Number(selection.end))
                     : selection.end
                 }
-                fill="hsl(var(--chart-selection))"
+                fill="var(--color-chart-selection)"
                 radius={[4, 4, 0, 0]}
               />
             )}

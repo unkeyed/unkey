@@ -91,7 +91,7 @@ export function KeyPayloadTabs({ keyValue }: KeyPayloadTabsProps) {
                 </div>
               </div>
               <div className="text-gray-9 text-[13px] flex items-center gap-1.5 self-center">
-                <IconClockOutline12 className="text-primary" />
+                <IconClockOutline12 className="text-gray-12" />
                 <span>
                   Expires after 72hrs.
                   <button

@@ -3,7 +3,7 @@
 import { formatPrice } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { Button, InfoTooltip, toast } from "@unkey/ui";
+import { Button, InfoTooltip, Skeleton, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 
@@ -125,7 +125,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
       </div>
 
       {isLoading ? (
-        <div className="h-5 w-40 animate-pulse rounded bg-grayA-3" />
+        <Skeleton className="h-5 w-40 rounded" />
       ) : rows.length > 0 ? (
         <div className="flex flex-col gap-2">
           {rows.map((row) => (

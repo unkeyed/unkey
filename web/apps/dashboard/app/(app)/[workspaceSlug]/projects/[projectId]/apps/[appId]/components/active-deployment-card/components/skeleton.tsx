@@ -5,7 +5,7 @@ import {
   IconCodeCommitOutline18,
   IconFolderCloudOutline18,
 } from "@unkey/icons";
-import { Badge, Card } from "@unkey/ui";
+import { Badge, Card, Skeleton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { StatusIndicator } from "../../../components/status-indicator";
 
@@ -16,8 +16,8 @@ export function ActiveDeploymentCardSkeleton() {
         <div className="flex gap-5 items-center">
           <StatusIndicator />
           <div className="flex flex-col gap-1">
-            <div className="h-2.5 w-16 bg-grayA-3 rounded-sm animate-pulse" />
-            <div className="h-2.5 w-32 bg-grayA-3 rounded-sm animate-pulse" />
+            <Skeleton className="h-2.5 w-16" />
+            <Skeleton className="h-2.5 w-32" />
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -30,8 +30,8 @@ export function ActiveDeploymentCardSkeleton() {
           <div className="items-center flex gap-2">
             <div className="flex gap-2 items-center">
               <span className="text-gray-9 text-xs">Created by</span>
-              <div className="rounded-full size-5 bg-grayA-3 animate-pulse" />
-              <div className="h-2.5 w-20 bg-grayA-3 rounded-sm animate-pulse" />
+              <Skeleton className="rounded-full size-5" />
+              <Skeleton className="h-2.5 w-20" />
             </div>
           </div>
         </div>
@@ -44,7 +44,7 @@ export function ActiveDeploymentCardSkeleton() {
 
         <div className="pb-2.5 pt-2 flex justify-between items-center px-3">
           <div className="flex items-center gap-2.5">
-            <div className="h-2.5 w-16 bg-grayA-3 rounded-sm animate-pulse" />
+            <Skeleton className="h-2.5 w-16" />
             <div className="flex items-center gap-1.5">
               <div className="bg-grayA-3 items-center flex gap-1.5 p-1.5 rounded-md w-fit animate-pulse h-[22px]">
                 <IconCodeBranchOutline18 className="size-3 text-gray-12 opacity-50" />

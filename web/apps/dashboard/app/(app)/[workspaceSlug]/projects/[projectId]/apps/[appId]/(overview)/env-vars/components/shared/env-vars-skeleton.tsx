@@ -1,4 +1,5 @@
 import { IconDotsOutline12 } from "@unkey/icons";
+import { Skeleton } from "@unkey/ui";
 
 export function EnvVarsSkeleton() {
   return (
@@ -10,19 +11,19 @@ export function EnvVarsSkeleton() {
           <div className="flex-4 min-w-0 py-3.5 flex items-center">
             <div className="flex items-center gap-3 px-4 w-full">
               <div className="flex flex-col gap-2 min-w-0 flex-1">
-                <div className="h-[14px] w-32 bg-grayA-3 rounded-sm animate-pulse" />
-                <div className="h-3 w-20 bg-grayA-3 rounded-sm animate-pulse" />
+                <Skeleton className="h-[14px] w-32" />
+                <Skeleton className="h-3 w-20" />
               </div>
             </div>
           </div>
           <div className="flex-4 min-w-0 py-3.5 flex items-center">
             <div className="flex items-center gap-2">
-              <div className="size-5 bg-grayA-3 rounded-md animate-pulse shrink-0" />
-              <div className="h-[14px] w-24 bg-grayA-3 rounded-sm animate-pulse" />
+              <Skeleton className="size-5 rounded-md shrink-0" />
+              <Skeleton className="h-[14px] w-24" />
             </div>
           </div>
           <div className="flex-2 min-w-0 py-3.5 flex items-center pr-3">
-            <div className="h-[22px] w-16 bg-grayA-3 rounded-md animate-pulse" />
+            <Skeleton className="h-[22px] w-16 rounded-md" />
           </div>
           <div className="w-12 shrink-0 py-3.5 pr-4 flex items-center justify-end">
             <IconDotsOutline12 className="text-gray-11 opacity-50" />

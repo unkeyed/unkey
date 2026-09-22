@@ -45,7 +45,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <Card>
       <div className="flex flex-col p-4">
-        <span className="text-[13px] leading-5 text-content-subtle">{label}</span>
+        <span className="text-[13px] leading-5 text-gray-11">{label}</span>
         <span className="text-[22px] font-semibold leading-tight tracking-tight tabular-nums">
           {value}
         </span>

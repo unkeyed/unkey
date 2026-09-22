@@ -34,7 +34,7 @@ const sizeConfig = {
 };
 
 const shapeClass = {
-  rounded: "rounded-[10px]",
+  rounded: "rounded-xl",
   circle: "rounded-full",
 };
 

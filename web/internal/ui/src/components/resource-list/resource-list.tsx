@@ -18,7 +18,7 @@ function ResourceListContent({ className, ...props }: React.ComponentProps<"div"
 }
 
 function ResourceListBody({ className, ...props }: React.ComponentProps<"ul">) {
-  return <ul className={cn("divide-y divide-border", className)} {...props} />;
+  return <ul className={cn("divide-y divide-grayA-4", className)} {...props} />;
 }
 
 function ResourceListItem({ className, ...props }: React.ComponentProps<"li">) {

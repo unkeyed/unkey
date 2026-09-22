@@ -12,7 +12,7 @@ import type * as React from "react";
 import { cn } from "../../lib/utils";
 
 const checkboxVariants = cva(
-  "group peer relative flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-disabled:cursor-not-allowed",
+  "group peer relative flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-6 focus-visible:ring-offset-2 data-disabled:cursor-not-allowed",
   {
     variants: {
       variant: {

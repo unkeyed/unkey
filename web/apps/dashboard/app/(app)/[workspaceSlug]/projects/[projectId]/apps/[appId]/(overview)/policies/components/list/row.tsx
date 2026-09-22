@@ -305,7 +305,7 @@ function setRowDragImage(e: React.DragEvent<HTMLDivElement>) {
   // and the corners. The copy is outside that container, so give the copy a
   // frame and a background.
   clone.classList.remove("border-b");
-  clone.classList.add("border", "rounded-lg", "bg-raised", "shadow-lg");
+  clone.classList.add("rounded-lg", "bg-raised", "shadow-floating");
 
   clone.style.position = "fixed";
   // Keep the copy off-screen but laid out. The browser captures a blank

@@ -17,7 +17,7 @@ const fieldBaseClasses = "rounded-lg text-[13px] leading-5 transition-colors dur
  */
 const fieldSurfaceClasses = {
   default:
-    "border border-gray-5 hover:border-gray-8 bg-raised text-grayA-12 focus:border-gray-12 focus:ring-3 focus:ring-gray-5 focus:ring-offset-0 focus-visible:outline-hidden",
+    "border border-input hover:border-strong bg-raised text-grayA-12 focus:border-gray-12 focus:ring-3 focus:ring-gray-5 focus:ring-offset-0 focus-visible:outline-hidden",
   ghost:
     "border border-transparent bg-transparent text-grayA-12 focus:border-gray-12 focus:ring-3 focus:ring-gray-5 focus:ring-offset-0 focus-visible:outline-hidden",
   success:
@@ -33,7 +33,7 @@ const fieldInvalidClasses =
 
 const fieldGroupSurfaceClasses = {
   default:
-    "border border-gray-5 hover:border-gray-8 bg-raised text-grayA-12 focus-within:border-gray-12 focus-within:ring-3 focus-within:ring-gray-5 focus-within:ring-offset-0 focus-visible:outline-hidden",
+    "border border-input hover:border-strong bg-raised text-grayA-12 focus-within:border-gray-12 focus-within:ring-3 focus-within:ring-gray-5 focus-within:ring-offset-0 focus-visible:outline-hidden",
   ghost:
     "border border-transparent bg-transparent text-grayA-12 focus-within:border-gray-12 focus-within:ring-3 focus-within:ring-gray-5 focus-within:ring-offset-0 focus-visible:outline-hidden",
   success:

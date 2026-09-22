@@ -119,7 +119,7 @@ function Content(props: ContentProps & { ref?: React.Ref<ContentElement> }) {
   return (
     <Component
       ref={ref}
-      className={cn(!isMobile && "min-w-60 bg-raised p-2 rounded-lg", className)}
+      className={cn(!isMobile && "min-w-60 p-2", className)}
       align="start"
       onKeyDown={onKeyDown}
       {...contentProps}

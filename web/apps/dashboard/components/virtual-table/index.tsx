@@ -297,7 +297,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     >
                       {columns.map((column) => (
                         <td key={column.key} className={cn("pr-4", column.cellClassName)}>
-                          <div className="h-4 bg-gray-3 rounded-sm animate-pulse" />
+                          <Skeleton className="h-4 bg-gray-3" />
                         </td>
                       ))}
                     </tr>
@@ -388,7 +388,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                           }
                         }}
                         className={cn(
-                          "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-hidden focus:ring-1",
+                          "cursor-pointer transition-colors hover:bg-grayA-3 focus:outline-hidden focus:ring-1",
                           config.rowBorders && "border-b",
                           rowClassName?.(typedItem),
                           selectedClassName?.(typedItem, isSelected),
@@ -459,7 +459,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                         }
                       }}
                       className={cn(
-                        "cursor-pointer transition-colors hover:bg-accent/50 focus:outline-hidden focus:ring-1",
+                        "cursor-pointer transition-colors hover:bg-grayA-3 focus:outline-hidden focus:ring-1",
                         config.rowBorders && "border-b",
                         rowClassName?.(typedItem),
                         selectedClassName?.(typedItem, isSelected),

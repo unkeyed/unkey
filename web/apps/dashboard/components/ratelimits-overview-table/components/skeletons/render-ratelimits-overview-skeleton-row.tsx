@@ -7,20 +7,16 @@ type RenderRatelimitsOverviewSkeletonRowProps = {
   rowHeight: number;
 };
 
-const BadgeSkeleton = () => (
-  <div className="h-5 w-16 rounded-md bg-grayA-3 animate-pulse" aria-hidden />
-);
+const BadgeSkeleton = () => <Skeleton className="h-5 w-16 rounded-md" />;
 
 const IdentifierSkeleton = () => (
   <div className="flex items-center gap-3 pl-2">
-    <div className="size-5 rounded-sm bg-grayA-3 animate-pulse" aria-hidden />
-    <div className="h-4 w-40 rounded-sm bg-grayA-3 animate-pulse" aria-hidden />
+    <Skeleton className="size-5" />
+    <Skeleton className="h-4 w-40" />
   </div>
 );
 
-const TimestampSkeleton = () => (
-  <div className="h-4 w-32 rounded-sm bg-grayA-3 animate-pulse" aria-hidden />
-);
+const TimestampSkeleton = () => <Skeleton className="h-4 w-32" />;
 
 export const renderRatelimitsOverviewSkeletonRow = ({
   columns,

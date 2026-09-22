@@ -16,7 +16,7 @@ export function BuildStepLogsExpanded({ step }: { step: BuildStepRow }) {
   }
 
   const isError = Boolean(step.error);
-  const borderClass = isError ? "border-error-7" : "border-gray-7";
+  const borderClass = isError ? "border-error-7" : "border-strong";
   const bgClass = isError ? "bg-error-2" : "";
 
   return (

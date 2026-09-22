@@ -3,6 +3,7 @@ import { IconArrowsAllDirectionsOutline18, IconArrowsToCenterOutline18 } from "@
 import { useCallback, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../buttons/button";
+import { FOOTER_PANEL } from "../../constants/constants";
 
 export interface LoadMoreFooterComponentProps {
   onLoadMore?: () => void;
@@ -89,9 +90,11 @@ export function LoadMoreFooter({
       )}
     >
       <div
-        className={`w-[740px] bg-raised min-h-[60px] flex items-center justify-center rounded-[10px] shadow-floating mb-5 transition-all duration-200 ${
-          shouldShow ? "pointer-events-auto" : "pointer-events-none"
-        }`}
+        className={cn(
+          FOOTER_PANEL,
+          "transition-all duration-200",
+          shouldShow ? "pointer-events-auto" : "pointer-events-none",
+        )}
         aria-hidden={!shouldShow}
       >
         <div className="flex flex-col w-full">

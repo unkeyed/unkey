@@ -126,7 +126,7 @@ export const RequestStatusFilter = () => {
               className="size-4 rounded-sm [&_svg]:size-3"
               onCheckedChange={() => handleCheckboxToggle(index)}
             />
-            <div className={cn("size-2 rounded-[2px]", checkbox.color)} />
+            <div className={cn("size-2 rounded-xs", checkbox.color)} />
             <span className="text-gray-9 text-xs">{checkbox.display}</span>
             <span className="text-gray-12 text-xs">{checkbox.label}</span>
           </label>
@@ -135,10 +135,7 @@ export const RequestStatusFilter = () => {
         <div className="flex gap-[18px] items-center py-1">
           <div className="size-4 shrink-0" />
           <div
-            className={cn(
-              "size-2 rounded-[2px] shrink-0",
-              codeError ? "bg-error-9" : codeMeta.color,
-            )}
+            className={cn("size-2 rounded-xs shrink-0", codeError ? "bg-error-9" : codeMeta.color)}
           />
           <input
             type="number"

@@ -8,6 +8,7 @@ import {
 import { memo, useMemo, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../buttons/button";
+import { FOOTER_PANEL } from "../../constants/constants";
 import { getPageNumbers } from "../../utils/get-page-numbers";
 import { PaginationFooterSkeleton } from "../skeletons/pagination-footer-skeleton";
 
@@ -85,7 +86,7 @@ export const PaginationFooter = memo(function PaginationFooter({
       {loading ? (
         <PaginationFooterSkeleton />
       ) : (
-        <div className="w-[740px] bg-raised flex items-center justify-center rounded-[10px] shadow-floating mb-5 transition-all duration-200 pointer-events-auto">
+        <div className={cn(FOOTER_PANEL, "transition-all duration-200 pointer-events-auto")}>
           <div className="flex flex-col w-full">
             {/* Header content */}
             {headerContent && <div className="flex items-center w-full">{headerContent}</div>}

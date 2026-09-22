@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Checkbox } from "@unkey/ui";
+import { Button, Checkbox, Skeleton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useMemo, useState } from "react";
 import {
@@ -91,17 +91,17 @@ export function AppEnvironmentFilterList<TFilter extends FilterLike>({
             {LOADING_APP_IDS.map((id) => (
               <div key={id}>
                 <div className="flex h-9 items-center gap-2 px-2">
-                  <div className="size-4 shrink-0 animate-pulse rounded bg-grayA-3" />
-                  <div className="h-4 w-24 animate-pulse rounded bg-grayA-3" />
+                  <Skeleton className="size-4 shrink-0 rounded" />
+                  <Skeleton className="h-4 w-24 rounded" />
                 </div>
                 <div className="ml-[15.5px] border-l py-1 pl-3">
                   <div className="flex h-8 items-center gap-2 px-2">
-                    <div className="size-4 shrink-0 animate-pulse rounded bg-grayA-3" />
-                    <div className="h-4 w-16 animate-pulse rounded bg-grayA-3" />
+                    <Skeleton className="size-4 shrink-0 rounded" />
+                    <Skeleton className="h-4 w-16 rounded" />
                   </div>
                   <div className="flex h-8 items-center gap-2 px-2">
-                    <div className="size-4 shrink-0 animate-pulse rounded bg-grayA-3" />
-                    <div className="h-4 w-16 animate-pulse rounded bg-grayA-3" />
+                    <Skeleton className="size-4 shrink-0 rounded" />
+                    <Skeleton className="h-4 w-16 rounded" />
                   </div>
                 </div>
               </div>

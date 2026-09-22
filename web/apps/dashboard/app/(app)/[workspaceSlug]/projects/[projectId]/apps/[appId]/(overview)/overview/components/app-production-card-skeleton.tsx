@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
-import { Card } from "@unkey/ui";
+import { Card } from "../../components/card";
 
 function Bar({ className }: { className?: string }) {
-  return <div className={cn("bg-grayA-3 rounded animate-pulse", className)} />;
+  return <Skeleton className={cn("rounded", className)} />;
 }
 
 const METADATA_CELLS = ["status", "region", "resources", "instances", "source", "created"];

@@ -22,8 +22,8 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
         aria-busy="true"
         aria-live="polite"
       >
-        <div className="h-2 w-2 bg-grayA-5 rounded-full animate-pulse" />
-        <div className="h-2 w-20 bg-grayA-5 rounded-sm animate-pulse" />
+        <Skeleton className="h-2 w-2 bg-grayA-5 rounded-full" />
+        <Skeleton className="h-2 w-20 bg-grayA-5" />
       </div>
     );
   }

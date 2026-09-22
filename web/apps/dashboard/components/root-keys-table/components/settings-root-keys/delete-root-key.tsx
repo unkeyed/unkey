@@ -12,6 +12,7 @@ import {
   ConfirmPopover,
   DialogContainer,
   FormCheckbox,
+  Separator,
 } from "@unkey/ui";
 import { useRef, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
@@ -121,12 +122,10 @@ export const DeleteRootKey = ({ rootKeyDetails, isOpen, onClose }: DeleteRootKey
             }
           >
             <RootKeyInfo rootKeyDetails={rootKeyDetails} />
-            <div className="py-1 my-2">
-              <div className="h-px bg-grayA-3 w-full" />
-            </div>
+            <Separator className="my-3" />
             <AlertBanner variant="error">
               <IconTriangleWarningOutline12 className="size-3.5" aria-hidden="true" />
-              <AlertBannerTitle>Warning:</AlertBannerTitle>
+              <AlertBannerTitle>Warning</AlertBannerTitle>
               <AlertBannerDescription>
                 This action can not be undone. Your root key will no longer be able to create
                 resources.

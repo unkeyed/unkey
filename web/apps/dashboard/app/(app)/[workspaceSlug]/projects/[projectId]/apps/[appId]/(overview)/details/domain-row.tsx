@@ -3,7 +3,7 @@ import {
   IconLink4Outline12,
   IconShareUpRightOutline18,
 } from "@unkey/icons";
-import { Badge } from "@unkey/ui";
+import { Badge, Skeleton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import Link from "next/link";
 
@@ -45,7 +45,7 @@ export const DomainRowSkeleton = () => {
     <div className="border border-t-0 first:border-t first:rounded-t-lg last:rounded-b-lg last:border-b w-full px-4 py-3 flex justify-between items-center">
       <div className="flex items-center">
         <IconLink4Outline12 className="text-grayA-6" />
-        <div className="h-3 w-32 bg-grayA-3 rounded-sm animate-pulse ml-3 mr-2" />
+        <Skeleton className="h-3 w-32 ml-3 mr-2" />
         <IconShareUpRightOutline18 className="size-3.5 text-grayA-6 shrink-0" />
         <div className="ml-3" />
       </div>

@@ -121,7 +121,7 @@ export const BatchEditExternalId = ({
         {hasKeysWithExternalIds && (
           <AlertBanner variant="error" className="mb-4">
             <IconTriangleWarningOutline12 className="size-3.5" aria-hidden="true" />
-            <AlertBannerTitle>Warning:</AlertBannerTitle>
+            <AlertBannerTitle>Warning</AlertBannerTitle>
             <AlertBannerDescription>
               {keysWithExternalIds === totalKeys ? (
                 <>

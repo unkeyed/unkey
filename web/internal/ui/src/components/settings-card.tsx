@@ -32,7 +32,7 @@ const SettingCardGroupContext = React.createContext(false);
 function SettingCardGroup({ children }: { children: React.ReactNode }) {
   return (
     <SettingCardGroupContext.Provider value={true}>
-      <div className="border rounded-lg overflow-hidden divide-y divide-border bg-raised">
+      <div className="border rounded-lg overflow-hidden divide-y divide-grayA-4 bg-raised">
         {children}
       </div>
     </SettingCardGroupContext.Provider>
@@ -170,7 +170,7 @@ function SettingCard({
           {icon && (
             <div
               className={cn(
-                "bg-gray-3 size-8 rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20",
+                "bg-gray-3 size-8 rounded-xl flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20",
                 iconClassName,
               )}
             >

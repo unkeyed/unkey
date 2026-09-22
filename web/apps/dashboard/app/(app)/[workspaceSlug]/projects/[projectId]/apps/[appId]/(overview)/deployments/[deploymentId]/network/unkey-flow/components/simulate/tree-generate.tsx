@@ -110,7 +110,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
       <Button
         variant="outline"
         onClick={() => setIsOpen(true)}
-        className="pointer-events-auto fixed bottom-4 right-4 rounded-full shadow-lg transition-colors"
+        className="pointer-events-auto fixed bottom-4 right-4 rounded-full shadow-floating transition-colors"
         title="Tree Generator"
       >
         <IconLayers3Outline18 className="size-3" />
@@ -119,7 +119,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
   }
 
   return (
-    <div className="pointer-events-auto fixed bottom-4 right-4 z-50 w-80 bg-raised border rounded-lg shadow-xl">
+    <div className="pointer-events-auto fixed bottom-4 right-4 z-50 w-80 bg-raised rounded-lg shadow-floating">
       <div className="flex items-center justify-between p-3 border-b">
         <div className="flex items-center gap-2">
           <IconLayers3Outline18 className="size-3 text-gray-9" />

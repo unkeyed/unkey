@@ -2,7 +2,7 @@
 
 import { KeySecretSection } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/key-secret-section";
 import { IconCheckOutline12, IconKey2Outline18 } from "@unkey/icons";
-import { ConfirmPopover, Dialog, DialogContent, DialogTitle } from "@unkey/ui";
+import { ConfirmPopover, Dialog, DialogContent, DialogTitle, Separator } from "@unkey/ui";
 import { ROOT_KEY_MESSAGES } from "./constants";
 import { useRootKeySuccess } from "./hooks/use-root-key-success";
 
@@ -39,9 +39,9 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
         <div className="bg-grayA-2 py-10 flex flex-col items-center justify-center w-full px-[120px]">
           <div className="py-4 mt-[30px]">
             <div className="flex gap-4">
-              <div className="border rounded-[14px] size-14 opacity-35" />
-              <div className="border rounded-[14px] size-14" />
-              <div className="border rounded-[14px] size-14 flex items-center justify-center relative">
+              <div className="border rounded-2xl size-14 opacity-35" />
+              <div className="border rounded-2xl size-14" />
+              <div className="border rounded-2xl size-14 flex items-center justify-center relative">
                 <div className="border rounded-full border-dashed size-[24px] absolute left-0 top-0" />
                 <div className="border rounded-full border-dashed size-[24px] absolute right-0 top-0" />
                 <div className="border rounded-full border-dashed size-[24px] absolute right-0 bottom-0" />
@@ -51,8 +51,8 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
                   <IconCheckOutline12 aria-hidden="true" focusable={false} />
                 </div>
               </div>
-              <div className="border rounded-[14px] size-14" />
-              <div className="border rounded-[14px] size-14 opacity-35" />
+              <div className="border rounded-2xl size-14" />
+              <div className="border rounded-2xl size-14 opacity-35" />
             </div>
           </div>
           <div className="mt-5 flex flex-col gap-2 items-center">
@@ -63,9 +63,7 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
               {ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_GENERATED}
             </div>
           </div>
-          <div className="p-1 w-full my-8">
-            <div className="h-px bg-grayA-3 w-full" />
-          </div>
+          <Separator className="my-9" />
           <KeySecretSection keyValue={keyValue} title="Root Key" className="w-full" />
         </div>
         <ConfirmPopover

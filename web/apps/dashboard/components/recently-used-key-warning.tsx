@@ -6,9 +6,9 @@ export const RecentlyUsedKeyWarning = ({ lastUsedAt }: { lastUsedAt: number }) =
   return (
     <AlertBanner variant="warning" className="mt-2">
       <IconTriangleWarningOutline12 className="size-3.5" aria-hidden="true" />
-      <AlertBannerTitle>Still in use:</AlertBannerTitle>
+      <AlertBannerTitle>Still in use</AlertBannerTitle>
       <AlertBannerDescription>
-        this key was last used {formatTimeSinceLastUse(lastUsedAt)}. Deleting it will immediately
+        This key was last used {formatTimeSinceLastUse(lastUsedAt)}. Deleting it will immediately
         break anything that is still authenticating with it.
       </AlertBannerDescription>
     </AlertBanner>

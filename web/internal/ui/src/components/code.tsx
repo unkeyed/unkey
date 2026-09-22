@@ -8,7 +8,7 @@ const codeVariants = cva(
   {
     variants: {
       variant: {
-        default: "focus:outline-hidden focus:ring-0 bg-raised text-[11px] py-2",
+        default: "focus:outline-hidden focus:ring-0 bg-gray-3 text-[11px] py-2",
         ghost: "border-none bg-transparent text-[11px] py-2",
       },
     },

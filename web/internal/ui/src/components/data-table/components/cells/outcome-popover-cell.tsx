@@ -114,11 +114,7 @@ export function OutcomePopoverCell({
             </Button>
           }
         />
-        <PopoverContent
-          className="min-w-64 bg-raised p-0 rounded-lg overflow-hidden"
-          align="start"
-          sideOffset={5}
-        >
+        <PopoverContent className="min-w-64 p-0 overflow-hidden" align="start" sideOffset={5}>
           <div className="px-3 pt-3">
             <div className="flex items-center justify-between">
               <div className="text-xs font-medium text-gray-9">Outcomes</div>
@@ -136,10 +132,7 @@ export function OutcomePopoverCell({
                 >
                   <div className="flex items-center gap-2.5 pl-1.5 font-mono">
                     <div
-                      className={cn(
-                        "size-[10px] rounded-[2px] shadow-xs",
-                        getOutcomeColor(outcome),
-                      )}
+                      className={cn("size-[10px] rounded-xs shadow-xs", getOutcomeColor(outcome))}
                     />
                     <span className="text-gray-12 text-xs font-medium">
                       {formatOutcomeName(outcome)}

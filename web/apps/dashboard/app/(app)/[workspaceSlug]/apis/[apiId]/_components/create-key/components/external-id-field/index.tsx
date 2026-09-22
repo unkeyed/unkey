@@ -5,7 +5,7 @@ import { getErrorMessage } from "@/lib/unkey-client";
 import type { Identity } from "@unkey/api/models/components";
 import { BadRequestErrorResponse, ConflictErrorResponse } from "@unkey/api/models/errors";
 import { IconTriangleWarningOutline12 } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, Separator } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useMemo, useState } from "react";
 import { createIdentityOptions } from "./create-identity-options";
@@ -280,9 +280,7 @@ export const ExternalIdField = ({
                 </div>
               </div>
             </div>
-            <div className="w-full">
-              <div className="h-px bg-grayA-3 w-full" />
-            </div>
+            <Separator />
             {externalIdValidation.success ? (
               <>
                 <div className="px-4 w-full text-gray-11 text-[13px] leading-6 my-4 text-left">

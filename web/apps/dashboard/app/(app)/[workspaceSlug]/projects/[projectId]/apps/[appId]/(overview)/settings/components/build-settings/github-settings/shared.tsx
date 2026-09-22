@@ -1,5 +1,5 @@
 import { Github } from "@unkey/icons";
-import { Button, type ChevronState, SettingCard } from "@unkey/ui";
+import { Button, type ChevronState, SettingCard, Skeleton } from "@unkey/ui";
 
 export const GitHubSettingCard = ({
   children,
@@ -27,10 +27,10 @@ export const GitHubSettingCard = ({
 export const ComboboxSkeleton = () => (
   <div className="w-[185px] h-7 rounded-lg border bg-raised flex items-center justify-between px-3 py-2">
     <div className="flex gap-1.5 items-center">
-      <div className="h-3.5 w-16 bg-grayA-3 rounded animate-pulse" />
-      <div className="h-3.5 w-24 bg-grayA-3 rounded animate-pulse" />
+      <Skeleton className="h-3.5 w-16 rounded" />
+      <Skeleton className="h-3.5 w-24 rounded" />
     </div>
-    <div className="h-4 w-4 bg-grayA-3 rounded animate-pulse" />
+    <Skeleton className="h-4 w-4 rounded" />
   </div>
 );
 

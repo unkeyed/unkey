@@ -67,9 +67,9 @@ export function SlidePanel({
         <DialogPrimitive.Popup
           data-slide-panel-open=""
           className={cn(
-            "[--slide-panel-inset:0.75rem] [--slide-panel-radius:0.75rem]",
-            "fixed z-51 flex flex-col p-px shadow-lg",
-            "rounded-(--slide-panel-radius) bg-grayA-4",
+            "[--slide-panel-inset:0.75rem]",
+            "fixed z-51 flex flex-col shadow-floating",
+            "rounded-xl bg-raised",
             "top-(--slide-panel-inset) bottom-(--slide-panel-inset)",
             "max-w-[calc(100dvw_-_var(--slide-panel-inset)_*_2)]",
             side === "right" ? "right-(--slide-panel-inset)" : "left-(--slide-panel-inset)",
@@ -83,9 +83,7 @@ export function SlidePanel({
             className,
           )}
         >
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[calc(var(--slide-panel-radius)_-_1px)] bg-raised">
-            {children}
-          </div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl">{children}</div>
         </DialogPrimitive.Popup>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

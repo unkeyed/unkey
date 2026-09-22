@@ -6,7 +6,7 @@ import { routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import { IconCubeOutline18 } from "@unkey/icons";
-import { Button, DialogContainer, InfoTooltip, toast } from "@unkey/ui";
+import { Button, DialogContainer, InfoTooltip, Skeleton, toast } from "@unkey/ui";
 import { useState } from "react";
 import { ComputePausedBadge } from "./compute-paused";
 import {
@@ -122,7 +122,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   });
 
   if (subscriptionLoading || plansLoading) {
-    return <div className="h-[150px] w-full animate-pulse rounded-lg bg-grayA-3" />;
+    return <Skeleton className="h-[150px] w-full rounded-lg" />;
   }
 
   // Deploy billing not configured server-side: hide the card entirely.

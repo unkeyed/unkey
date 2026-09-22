@@ -137,10 +137,7 @@ const PopoverHeader = () => {
       <span className="text-gray-9 text-[13px] w-full leading-6 font-normal tracking-[0.1px] mt-1 ml-1.5">
         Select a query...
       </span>
-      <KeyboardButton
-        shortcut="Q"
-        className="p-0 m-0 min-w-5 w-5 h-5 rounded-[5px] mt-1.5 mr-1.5"
-      />
+      <KeyboardButton shortcut="Q" className="p-0 m-0 min-w-5 w-5 h-5 rounded-sm mt-1.5 mr-1.5" />
     </div>
   );
 };

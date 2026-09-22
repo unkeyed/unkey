@@ -3,11 +3,6 @@ import { getTimeBufferForGranularity } from "@/lib/trpc/routers/utils/granularit
 import { useFilters } from "../../hooks/use-filters";
 import { useFetchRatelimitOverviewTimeseries } from "./bar-chart/hooks/use-fetch-timeseries";
 
-// const latencyFormatter = new Intl.NumberFormat("en-US", {
-//   maximumFractionDigits: 2,
-//   minimumFractionDigits: 2,
-// });
-
 export const RatelimitOverviewLogsCharts = ({
   namespaceId,
 }: {
@@ -17,12 +12,6 @@ export const RatelimitOverviewLogsCharts = ({
 
   const { isError, isLoading, timeseries, tokensTimeseries, granularity } =
     useFetchRatelimitOverviewTimeseries(namespaceId);
-
-  // const {
-  //   isError: latencyIsError,
-  //   isLoading: latencyIsLoading,
-  //   timeseries: latencyTimeseries,
-  // } = useFetchRatelimitOverviewLatencyTimeseries(namespaceId);
 
   const handleSelectionChange = ({
     start,
@@ -57,50 +46,14 @@ export const RatelimitOverviewLogsCharts = ({
     ]);
   };
 
-  // // Format the latency values with 'ms' suffix
-  // const formatLatency = (value: number) =>
-  //   `${latencyFormatter.format(value)}ms`;
-  //
-  // // Define the latency chart config
-  // const latencyChartConfig = {
-  //   avgLatency: {
-  //     label: "Average Latency",
-  //     color: "hsl(var(--gray-11))",
-  //   },
-  //   p99Latency: {
-  //     label: "P99 Latency",
-  //     color: "hsl(var(--warning-11))",
-  //   },
-  // };
-  //
-  // // Define the latency chart labels
-  // const latencyChartLabels = {
-  //   title: "Latency Chart",
-  //   rangeLabel: "DURATION",
-  //   metrics: [
-  //     {
-  //       key: "avgLatency",
-  //       label: "AVG",
-  //       color: "hsl(var(--gray-11))",
-  //       formatter: formatLatency,
-  //     },
-  //     {
-  //       key: "p99Latency",
-  //       label: "P99",
-  //       color: "hsl(var(--warning-11))",
-  //       formatter: formatLatency,
-  //     },
-  //   ],
-  // };
-  //
   const sharedConfig = {
     success: {
       label: "Passed",
-      color: "hsl(var(--gray-4))",
+      color: "var(--color-gray-4)",
     },
     error: {
       label: "Blocked",
-      color: "hsl(var(--orange-9))",
+      color: "var(--color-orange-9)",
     },
   };
 

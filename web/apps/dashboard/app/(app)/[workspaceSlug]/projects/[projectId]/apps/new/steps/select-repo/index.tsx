@@ -157,7 +157,7 @@ export const SelectRepo = ({
       className="[--repo-list-w:750px]"
     >
       {!isBannerDismissed && (
-        <div className="absolute top-2 left-2 right-2 z-50 rounded-[10px] p-3 gap-2.5 flex items-center shadow-[inset_0_0_0_0.75px_rgba(0,0,0,0.10)] bg-linear-to-r from-successA-4 via-successA-1 to-success-1">
+        <div className="absolute top-2 left-2 right-2 z-50 rounded-xl p-3 gap-2.5 flex items-center shadow-[inset_0_0_0_0.75px_rgba(0,0,0,0.10)] bg-linear-to-r from-successA-4 via-successA-1 to-success-1">
           <IconCheckOutline12 className="text-successA-12" />
           <div className="flex items-center gap-1">
             <span className="font-medium text-[13px] text-success-12">
@@ -262,7 +262,7 @@ export const SelectRepo = ({
 
       {onSkip && (
         <div className="mt-3 border bg-raised rounded-lg flex justify-start items-center gap-4 py-[18px] px-4 min-w-[var(--repo-list-w)]">
-          <div className="size-8 rounded-[10px] grid place-items-center border shadow-sm shadow-grayA-8/20 dark:shadow-none">
+          <div className="size-8 rounded-xl grid place-items-center border shadow-sm shadow-grayA-8/20 dark:shadow-none">
             <IconClockOutline18 className="text-gray-12" />
           </div>
           <div className="flex flex-col gap-3">

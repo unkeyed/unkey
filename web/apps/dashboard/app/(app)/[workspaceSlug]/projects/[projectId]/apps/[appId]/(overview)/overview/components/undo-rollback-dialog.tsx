@@ -123,7 +123,7 @@ function DeploymentOption({ deployment, isCurrent, selected, onSelect }: Deploym
       type="button"
       onClick={onSelect}
       className={cn(
-        "w-full text-left rounded-[14px] border p-3 transition-colors",
+        "w-full text-left rounded-2xl border p-3 transition-colors",
         selected ? "border-grayA-8 bg-grayA-2" : "hover:border-strong",
       )}
     >
@@ -131,7 +131,7 @@ function DeploymentOption({ deployment, isCurrent, selected, onSelect }: Deploym
         <span
           className={cn(
             "mt-0.5 size-4 shrink-0 rounded-full border flex items-center justify-center",
-            selected && "border-gray-12",
+            selected ? "border-gray-12" : "border-grayA-6",
           )}
         >
           {selected && <span className="size-2 rounded-full bg-gray-12" />}

@@ -25,7 +25,7 @@ export const LogDetailsSkeleton = ({ distanceToTop, onClose }: Props) => {
   return (
     <ResizablePanel
       onClose={onClose}
-      className="bg-raised font-mono drop-shadow-2xl z-20 absolute right-0 overflow-y-auto"
+      className="bg-raised font-mono shadow-floating z-20 absolute right-0 overflow-y-auto"
       style={{
         ...createPanelStyle(distanceToTop),
         width: `${DEFAULT_DRAGGABLE_WIDTH}px`,
@@ -51,11 +51,11 @@ export const LogDetailsSkeleton = ({ distanceToTop, onClose }: Props) => {
             key={index}
             className="flex flex-col gap-1 mt-[16px] px-4"
           >
-            <div className="border bg-raised rounded-[10px]">
+            <div className="border bg-raised rounded-xl">
               <div className="px-[14px] py-1.5">
                 <Skeleton className="h-3 w-28" />
               </div>
-              <div className="border-t rounded-[10px] bg-raised px-3.5 py-2">
+              <div className="border-t rounded-xl bg-raised px-3.5 py-2">
                 <Skeleton className={`w-full ${height}`} />
               </div>
             </div>

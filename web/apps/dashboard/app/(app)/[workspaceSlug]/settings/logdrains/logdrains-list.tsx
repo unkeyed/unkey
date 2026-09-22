@@ -66,7 +66,7 @@ function DrainListSkeleton() {
             key={index}
             className="flex items-center gap-3 px-4 py-3"
           >
-            <Skeleton className="size-8 rounded-[10px]" />
+            <Skeleton className="size-8 rounded-xl" />
             <Skeleton className="h-3.5 w-40" />
             <Skeleton className="h-5 w-20 rounded-md" />
             <Skeleton className="ml-auto h-3 w-24" />

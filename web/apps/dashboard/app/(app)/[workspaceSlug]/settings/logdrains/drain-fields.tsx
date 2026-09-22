@@ -334,7 +334,7 @@ function SourcesField({ stream }: { stream: "gateway_requests" | "runtime_logs" 
             value={option.id}
             className="group flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors duration-150 ease-out focus:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7 data-checked:border-grayA-8 data-checked:bg-grayA-2"
           >
-            <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-gray-7 transition-colors duration-150 ease-out group-data-checked:border-gray-12">
+            <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-input transition-colors duration-150 ease-out group-data-checked:border-gray-12">
               <Radio.Indicator className="size-2 rounded-full bg-gray-12" />
             </span>
             <span className="text-[13px] text-gray-12">{option.title}</span>
@@ -565,7 +565,7 @@ function SourceRow({
           className={cn(
             "flex size-4 shrink-0 items-center justify-center rounded border transition-colors duration-150 ease-out",
             checked === "off"
-              ? "border-gray-7"
+              ? "border-input"
               : "border-gray-12 bg-gray-12 text-white dark:text-black",
           )}
         >
@@ -667,7 +667,7 @@ function ModeCard({
       <span
         className={cn(
           "flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors duration-150 ease-out",
-          active ? "border-gray-12" : "border-gray-7",
+          active ? "border-gray-12" : "border-input",
         )}
       >
         {active ? <span className="size-2 rounded-full bg-gray-12" /> : null}
@@ -753,7 +753,7 @@ function AuditEventTypesField() {
             value={option.id}
             className="group flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors duration-150 ease-out focus:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7 data-checked:border-grayA-8 data-checked:bg-grayA-2"
           >
-            <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-gray-7 transition-colors duration-150 ease-out group-data-checked:border-gray-12">
+            <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-input transition-colors duration-150 ease-out group-data-checked:border-gray-12">
               <Radio.Indicator className="size-2 rounded-full bg-gray-12" />
             </span>
             <span className="text-[13px] text-gray-12">{option.title}</span>

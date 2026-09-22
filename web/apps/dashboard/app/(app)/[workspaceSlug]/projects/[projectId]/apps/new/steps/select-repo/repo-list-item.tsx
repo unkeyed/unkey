@@ -1,6 +1,6 @@
 import { trpc } from "@/lib/trpc/client";
 import { IconCodeBranchOutline18, IconMagnifierOutline12 } from "@unkey/icons";
-import { Button, Combobox, TimestampInfo } from "@unkey/ui";
+import { Button, Combobox, Skeleton, TimestampInfo } from "@unkey/ui";
 import { useMemo, useState } from "react";
 import { LanguageIcon } from "./language-icon";
 import { useSearchBranches } from "./use-search-branches";
@@ -100,7 +100,7 @@ export const RepoListItem = ({
       <div className="flex gap-2 items-center ml-auto">
         <div className="ml-6 w-[200px]">
           {isLoading ? (
-            <div className="h-8 w-full bg-grayA-3 rounded-lg animate-pulse" />
+            <Skeleton className="h-8 w-full rounded-lg" />
           ) : (
             <Combobox
               options={branchOptions}

@@ -1,13 +1,14 @@
 import { IconDotsOutline12 } from "@unkey/icons";
+import { Skeleton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 
 export const KeyColumnSkeleton = () => (
   <div className="flex flex-col items-start w-auto">
     <div className="flex gap-4 items-center">
-      <div className="bg-grayA-3 size-5 rounded-sm animate-pulse" />
+      <Skeleton className="size-5" />
       <div className="flex flex-col gap-1">
-        <div className="h-2 w-40 bg-grayA-3 rounded-sm animate-pulse" />
-        <div className="h-2 w-16 bg-grayA-3 rounded-sm animate-pulse mt-1" />
+        <Skeleton className="h-2 w-40" />
+        <Skeleton className="h-2 w-16 mt-1" />
       </div>
     </div>
   </div>
@@ -15,8 +16,8 @@ export const KeyColumnSkeleton = () => (
 
 export const ValueColumnSkeleton = () => (
   <div className="rounded-lg border bg-grayA-2 text-transparent w-[160px] px-2 py-1 flex gap-2 items-center h-[28px] animate-pulse">
-    <div className="h-2 w-2 bg-grayA-3 rounded-full animate-pulse" />
-    <div className="h-2 w-full bg-grayA-3 rounded-sm animate-pulse" />
+    <Skeleton className="h-2 w-2 rounded-full" />
+    <Skeleton className="h-2 w-full" />
   </div>
 );
 
@@ -41,8 +42,8 @@ export const UsageColumnSkeleton = ({ maxBars = 30 }: { maxBars?: number }) => (
           }`}
           className="flex flex-col"
         >
-          <div
-            className="w-[3px] bg-grayA-5 animate-pulse"
+          <Skeleton
+            className="w-[3px] bg-grayA-5"
             style={{ height: `${2 + Math.floor(Math.random() * 20)}px` }}
           />
         </div>
@@ -52,9 +53,9 @@ export const UsageColumnSkeleton = ({ maxBars = 30 }: { maxBars?: number }) => (
 
 export const LastUsedColumnSkeleton = () => (
   <div className="px-1.5 rounded-md flex gap-2 items-center w-35 h-5.5 bg-grayA-3 animate-pulse">
-    <div className="h-2 w-2 bg-grayA-3 rounded-full animate-pulse" />
-    <div className="h-2 w-12 bg-grayA-3 rounded-sm animate-pulse" />
-    <div className="h-2 w-12 bg-grayA-3 rounded-sm animate-pulse" />
+    <Skeleton className="h-2 w-2 rounded-full" />
+    <Skeleton className="h-2 w-12" />
+    <Skeleton className="h-2 w-12" />
   </div>
 );
 
@@ -64,8 +65,8 @@ export const StatusColumnSkeleton = () => (
     aria-busy="true"
     aria-live="polite"
   >
-    <div className="h-2 w-2 bg-grayA-3 rounded-full animate-pulse" />
-    <div className="h-2 w-16 bg-grayA-3 rounded-sm animate-pulse" />
+    <Skeleton className="h-2 w-2 rounded-full" />
+    <Skeleton className="h-2 w-16" />
   </div>
 );
 

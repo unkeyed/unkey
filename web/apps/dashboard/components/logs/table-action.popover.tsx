@@ -4,6 +4,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+  Separator,
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -189,7 +190,7 @@ export const TableActionPopover = ({
                       control
                     )}
                   </div>
-                  {item.divider && <div aria-hidden className="h-px bg-grayA-3 w-full my-2" />}
+                  {item.divider && <Separator className="my-2" />}
                 </div>
               );
             })}

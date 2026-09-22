@@ -168,7 +168,7 @@ function NarrowCursor(props: { x?: number; y?: number; width?: number; height?: 
       y={y}
       width={CURSOR_WIDTH}
       height={height}
-      fill="hsl(var(--gray-3))"
+      fill="var(--color-gray-3)"
       opacity={0.6}
       rx={2}
     />
@@ -254,7 +254,7 @@ function StatsSparkline({
                 return null;
               }
               return (
-                <div className="px-2.5 py-2 bg-gray-12 text-gray-1 text-[11px] rounded shadow-lg whitespace-nowrap">
+                <div className="px-2.5 py-2 bg-gray-12 text-gray-1 text-[11px] rounded shadow-floating whitespace-nowrap">
                   <div className="font-medium opacity-80 mb-1.5">{point.displayX}</div>
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between gap-4">
@@ -285,16 +285,16 @@ function StatsSparkline({
           <Bar
             dataKey="barSuccess"
             stackId="a"
-            fill="hsl(var(--gray-4))"
-            activeBar={{ fill: "hsl(var(--gray-7))" }}
+            fill="var(--color-gray-4)"
+            activeBar={{ fill: "var(--color-gray-7)" }}
             maxBarSize={8}
             isAnimationActive={false}
           />
           <Bar
             dataKey="barError"
             stackId="a"
-            fill="hsl(var(--orange-9))"
-            activeBar={{ fill: "hsl(var(--orange-10))" }}
+            fill="var(--color-orange-9)"
+            activeBar={{ fill: "var(--color-orange-10)" }}
             maxBarSize={8}
             isAnimationActive={false}
           />

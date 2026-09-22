@@ -51,7 +51,7 @@ const ChartContainer = React.forwardRef<
         data-chart={chartId}
         ref={ref}
         className={cn(
-          "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-hidden [&_.recharts-surface]:outline-hidden [&_*:focus]:outline-none [&_*:focus-visible]:outline-none",
+          "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-gray-11 [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-grayA-2 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-grayA-4 [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-grayA-4 [&_.recharts-radial-bar-background-sector]:fill-gray-3 [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-gray-3 [&_.recharts-reference-line_[stroke='#ccc']]:stroke-grayA-4 [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-sector]:outline-hidden [&_.recharts-surface]:outline-hidden [&_*:focus]:outline-none [&_*:focus-visible]:outline-none",
           className,
         )}
         {...props}
@@ -170,7 +170,7 @@ const ChartTooltipContent = React.forwardRef<
         ref={ref}
         role="tooltip"
         className={cn(
-          "grid sm:w-fit md:w-fit md:max-w-[360px] items-start gap-2 rounded-lg border bg-raised pt-4 pb-2 text-xs shadow-2xl select-none",
+          "grid sm:w-fit md:w-fit md:max-w-[360px] items-start gap-2 rounded-lg bg-raised pt-4 pb-2 text-xs shadow-floating select-none",
           className,
         )}
       >
@@ -195,7 +195,7 @@ const ChartTooltipContent = React.forwardRef<
               <div
                 key={dataKey}
                 className={cn(
-                  "flex w-full [&>svg]:h-2.5 [&>svg]:w-2.5 [&>svg]:text-muted-foreground gap-4 px-4",
+                  "flex w-full [&>svg]:h-2.5 [&>svg]:w-2.5 [&>svg]:text-gray-11 gap-4 px-4",
                   indicator === "dot" && "items-center",
                 )}
               >
@@ -205,7 +205,7 @@ const ChartTooltipContent = React.forwardRef<
                   ) : (
                     !hideIndicator && (
                       <div
-                        className={cn("shrink-0 rounded-[2px] bg-(--color-bg)", {
+                        className={cn("shrink-0 rounded-xs bg-(--color-bg)", {
                           "h-2.5 w-2.5": indicator === "dot",
                           "w-1": indicator === "line",
                           "w-0 border-[1.5px] border-dashed bg-transparent": indicator === "dashed",
@@ -304,14 +304,14 @@ const ChartLegendContent = React.forwardRef<
             <div
               key={itemValue}
               className={cn(
-                "flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-muted-foreground",
+                "flex items-center gap-1.5 [&>svg]:h-3 [&>svg]:w-3 [&>svg]:text-gray-11",
               )}
             >
               {itemConfig?.icon && !hideIcon ? (
                 <itemConfig.icon />
               ) : (
                 <div
-                  className="h-2 w-2 shrink-0 rounded-[2px]"
+                  className="h-2 w-2 shrink-0 rounded-xs"
                   style={{
                     backgroundColor: itemColor,
                   }}

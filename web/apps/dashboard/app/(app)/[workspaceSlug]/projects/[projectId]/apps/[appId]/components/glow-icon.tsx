@@ -38,12 +38,10 @@ export function GlowIcon({
 
   return (
     <div className={cn("relative", className)}>
-      <div
-        className={cn("absolute inset-[-4px] rounded-[10px] blur-[14px]", glowColor, glowVisible)}
-      />
+      <div className={cn("absolute inset-[-4px] rounded-xl blur-[14px]", glowColor, glowVisible)} />
       <div
         className={cn(
-          "relative w-full h-full rounded-[10px] flex items-center justify-center shrink-0",
+          "relative w-full h-full rounded-xl flex items-center justify-center shrink-0",
           iconBg,
         )}
       >

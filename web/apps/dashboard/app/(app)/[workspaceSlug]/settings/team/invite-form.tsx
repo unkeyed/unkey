@@ -140,7 +140,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
     <Card>
       <CardContent className="p-6">
         <div className="mb-6">
-          <h3 className="text-base font-medium text-content">
+          <h3 className="text-base font-medium text-gray-12">
             Invite new members by email address
           </h3>
         </div>

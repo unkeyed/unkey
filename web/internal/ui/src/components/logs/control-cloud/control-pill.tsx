@@ -60,9 +60,7 @@ export const ControlPill = <TFilter extends FilterValue>({
         {formatOperator(operator, field)}
       </div>
       <div className="bg-gray-3 px-2 text-gray-12 font-medium py-[2px] flex gap-1 items-center">
-        {metadata?.colorClass && (
-          <div className={cn("size-2 rounded-[2px]", metadata.colorClass)} />
-        )}
+        {metadata?.colorClass && <div className={cn("size-2 rounded-xs", metadata.colorClass)} />}
         {metadata?.icon}
         {field === "endTime" || field === "startTime" ? (
           <TimestampInfo

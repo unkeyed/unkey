@@ -12,6 +12,8 @@ const badgeVariants = cva("inline-flex items-center rounded-md border px-2.5 py-
       warning: "border-transparent bg-warningA-3 text-warningA-11 hover:bg-warningA-4",
       blocked: "border-transparent bg-orangeA-3 text-orangeA-11 hover:bg-orangeA-4",
       error: "border-transparent bg-errorA-3 text-errorA-11 hover:bg-errorA-4",
+      count:
+        "border-transparent bg-gray-7 text-gray-12 rounded-sm h-4 px-1 text-[11px] font-medium justify-center",
     },
     size: {
       DEFAULT: "",

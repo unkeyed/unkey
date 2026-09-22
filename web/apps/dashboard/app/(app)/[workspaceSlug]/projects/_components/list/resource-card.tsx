@@ -66,7 +66,7 @@ export const ResourceCard = ({
       />
       {/*Top Section*/}
       <div className="flex gap-4 items-center min-h-11">
-        <div className="size-10 bg-gray-3 rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4">
+        <div className="size-10 bg-gray-3 rounded-xl flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4">
           {isNavigating ? (
             <Loading size={20} className="text-grayA-11" />
           ) : (
