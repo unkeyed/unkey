@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/unkeyed/unkey/pkg/logger/loggertest"
 	coordinationv1 "k8s.io/api/coordination/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -166,6 +168,47 @@ func TestReleaseLeadershipPreservesOtherHolder(t *testing.T) {
 	for _, action := range client.Actions() {
 		require.NotEqual(t, "update", action.GetVerb())
 	}
+}
+
+func TestLeadershipProbeFailuresAreLogged(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		client, unavailable := leaseTestClient(t)
+		unavailable.Store(true)
+
+		logs := loggertest.Install(t)
+		snapshot := logs.Snapshot()
+
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		result := make(chan error, 1)
+
+		go func() {
+			result <- runWithLeadership(ctx, client, "unkey", "a", func(context.Context) {})
+		}()
+
+		time.Sleep(leadershipProbeInterval + time.Second)
+		synctest.Wait()
+
+		var probeErr error
+		for _, record := range logs.Since(snapshot) {
+			if record.Message != "krane leadership not acquired" {
+				continue
+			}
+
+			attrs := loggertest.FlatAttrs(record)
+			require.Equal(t, "a", attrs["identity"])
+
+			var ok bool
+			probeErr, ok = attrs["error"].(error)
+			require.True(t, ok, "error attribute should carry the probe error")
+		}
+		require.ErrorContains(t, probeErr, "test API outage")
+		require.Empty(t, result)
+
+		cancel()
+		synctest.Wait()
+		require.NoError(t, <-result)
+	})
 }
 
 func leaseTestClient(t *testing.T) (*fake.Clientset, *atomic.Bool) {
