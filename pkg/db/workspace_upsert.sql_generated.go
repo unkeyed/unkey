@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 )
 
@@ -35,7 +34,7 @@ type UpsertWorkspaceParams struct {
 	Slug         string          `db:"slug"`
 	CreatedAtM   int64           `db:"created_at_m"`
 	BetaFeatures json.RawMessage `db:"beta_features"`
-	K8sNamespace sql.NullString  `db:"k8s_namespace"`
+	K8sNamespace string          `db:"k8s_namespace"`
 }
 
 // UpsertWorkspace seeds local workspaces while preserving fields that local tooling does not manage.

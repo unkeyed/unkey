@@ -1988,7 +1988,7 @@ type Querier interface {
 	//
 	//  UPDATE `workspaces`
 	//  SET k8s_namespace = ?
-	//  WHERE id = ? AND k8s_namespace IS NULL
+	//  WHERE id = ? AND k8s_namespace = ''
 	SetWorkspaceK8sNamespace(ctx context.Context, arg SetWorkspaceK8sNamespaceParams) error
 	//SoftDeleteKeyByID
 	//

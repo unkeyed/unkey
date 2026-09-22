@@ -222,18 +222,17 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 				}
 				ws = found
 
-				if !found.K8sNamespace.Valid {
-					ws.K8sNamespace.Valid = true
-					ws.K8sNamespace.String = uid.DNS1035()
+				if found.K8sNamespace == "" {
+					ws.K8sNamespace = uid.DNS1035()
 					return db.NewQueries(tx).SetWorkspaceK8sNamespace(txCtx, db.SetWorkspaceK8sNamespaceParams{
 						ID:           ws.ID,
 						K8sNamespace: ws.K8sNamespace,
 					})
 				}
-				ws = found
 
 				return nil
 			})
+
 			return ws, err
 		}, restate.WithName("find workspace"), restate.WithMaxRetryAttempts(runMaxAttempts))
 		if err != nil {
