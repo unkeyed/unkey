@@ -32,7 +32,7 @@ func runWithLeadership(ctx context.Context, client kubernetes.Interface, namespa
 		// client-go reports lease probe failures only through klog, and
 		// elector.Run returns only when ctx is done, so without this the
 		// reason a krane never becomes leader is invisible in the app log.
-		probes := &leaseProbeRecorder{Interface: lock}
+		probes := &leaseProbeRecorder{Interface: lock, mu: sync.Mutex{}, lastErr: nil}
 
 		var mu sync.Mutex
 		var workers sync.WaitGroup
