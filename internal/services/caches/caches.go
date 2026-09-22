@@ -87,9 +87,15 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
+	// Revocation is process-local: deleting or disabling a key clears only the
+	// cache of the node that handled the request, so every other node keeps
+	// serving the cached key until its entry passes Stale and the next lookup
+	// revalidates against MySQL. Stale therefore bounds how long a revoked key
+	// can keep verifying anywhere, and is kept within the window Unkey
+	// documents for global revocation.
 	verificationKeyByHash, err := cache.New(cache.Config[string, keysdb.CachedKeyData]{
 		Fresh:    10 * time.Second,
-		Stale:    10 * time.Minute,
+		Stale:    30 * time.Second,
 		MaxSize:  1_000_000,
 		Resource: "verification_key_by_hash",
 		Clock:    config.Clock,
