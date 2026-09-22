@@ -1,50 +1,7 @@
 import { insertAuditLogs } from "@/lib/audit";
-import { db, schema } from "@/lib/db";
+import { type db, schema } from "@/lib/db";
 import { ensureDefaultProjectId } from "@/lib/projects/ensure-default-project-id";
-import { TRPCError } from "@trpc/server";
 import { newId } from "@unkey/id";
-import { z } from "zod";
-import { workspaceProcedure } from "../../trpc";
-
-export const createApi = workspaceProcedure
-  .input(
-    z.object({
-      name: z
-        .string()
-        .min(3, "Keyspace names must contain at least 3 characters")
-        // 256 matches the apis.name column and apis.createApi in the API.
-        .max(256, "Keyspace names cannot exceed 256 characters"),
-    }),
-  )
-  .mutation(async ({ input, ctx }) => {
-    try {
-      return await db.transaction(async (tx) => {
-        const result = await createApiCore(input, ctx, tx);
-        return { id: result.id };
-      });
-    } catch (_err) {
-      throw new TRPCError({
-        code: "INTERNAL_SERVER_ERROR",
-        message:
-          "We are unable to create the keyspace. Please try again or contact support@unkey.com",
-      });
-    }
-  });
-
-type CreateApiInput = {
-  name: string;
-};
-
-type CreateApiContext = {
-  workspace: { id: string };
-  user: { id: string };
-  audit: {
-    location: string;
-    userAgent?: string;
-  };
-};
-
-type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export async function createApiCore(
   input: CreateApiInput,
@@ -99,3 +56,18 @@ export async function createApiCore(
     keyAuthId,
   };
 }
+
+type CreateApiInput = {
+  name: string;
+};
+
+type CreateApiContext = {
+  workspace: { id: string };
+  user: { id: string };
+  audit: {
+    location: string;
+    userAgent?: string;
+  };
+};
+
+type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
