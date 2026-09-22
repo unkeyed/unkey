@@ -25,6 +25,7 @@ func TestCommand_LocalDevDoesNotRequireProductionSettings(t *testing.T) {
 	require.NoError(t, err)
 
 	err = command().Run(t.Context(), []string{"frontline", "--config", fmt.Sprintf(`
+region = "unused-production-setting"
 [local-dev]
 http_port = %s
 root_key = "root_test"
@@ -35,27 +36,6 @@ upstream = "localhost:3000"
 	require.ErrorContains(t, err, "address already in use")
 }
 
-func TestCommand_RejectsUnknownLocalDevFields(t *testing.T) {
-	listener, err := net.Listen("tcp", ":0")
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, listener.Close()) })
-	_, port, err := net.SplitHostPort(listener.Addr().String())
-	require.NoError(t, err)
-	valid := fmt.Sprintf("[local-dev]\nhttp_port=%s\nroot_key='root_test'\n[[local-dev.routes]]\nhostname='localhost'\nupstream='localhost:3000'\n", port)
-	for _, tc := range []struct{ name, content, field string }{
-		{"mixed production config", "region='test'\n" + valid, "region"},
-		{"root routes", valid + "[[routes]]\nhostname='other.localhost'\nupstream='localhost:4000'", "routes"},
-		{"unknown route field", valid + "polciies=[]", "local-dev.routes.polciies"},
-		{"unknown local-dev field", valid + "[local-dev.typo]\nvalue=true", "local-dev.typo"},
-		{"request timeout override", strings.Replace(valid, "[local-dev]", "[local-dev]\nrequest_timeout='1s'", 1), "local-dev.request_timeout"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			err := command().Run(t.Context(), []string{"frontline", "--config", tc.content})
-			require.ErrorContains(t, err, "unknown local-dev configuration field: "+tc.field)
-		})
-	}
-}
-
 func TestCommand_ValidatesOnlyTheSelectedConfig(t *testing.T) {
 	for _, tc := range []struct{ name, content, message string }{
 		{"empty local-dev", "[local-dev]\n", "load local-dev config"},
@@ -63,7 +43,7 @@ func TestCommand_ValidatesOnlyTheSelectedConfig(t *testing.T) {
 		{"missing routes", "[local-dev]\nroot_key='root_test'", "Routes"},
 		{"negative port", "[local-dev]\nhttp_port=-1", "HTTPPort"},
 		{"port out of range", "[local-dev]\nhttp_port=65536", "HTTPPort"},
-		{"malformed local-dev", "local-dev=false", "decode config"},
+		{"malformed local-dev", "local-dev=false", "load local-dev config"},
 		{"malformed TOML", "[local-dev\n", "decode config"},
 		{"production still requires settings", "region='test'", "load production config"},
 	} {

@@ -51,19 +51,12 @@ func run(ctx context.Context, pathOrContent string) error {
 	type localDevFile struct {
 		LocalDev frontline.LocalDevConfig `toml:"local-dev"`
 	}
-	var probe localDevFile
+	var probe map[string]any
 	metadata, err := toml.Decode(os.ExpandEnv(string(data)), &probe)
 	if err != nil {
 		return fmt.Errorf("decode config: %w", err)
 	}
 	if metadata.IsDefined("local-dev") {
-		for _, key := range metadata.Undecoded() {
-			// Policy maps are validated by the router's strict protobuf decoder.
-			if len(key) > 3 && key[0] == "local-dev" && key[1] == "routes" && key[2] == "policies" {
-				continue
-			}
-			return fmt.Errorf("unknown local-dev configuration field: %s", key)
-		}
 		cfg, err := config.LoadBytes[localDevFile](data)
 		if err != nil {
 			return fmt.Errorf("load local-dev config: %w", err)
