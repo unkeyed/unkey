@@ -72,6 +72,27 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 	return key, nil
 }
 
+// recordVerification increments the key-verification counter, attributing the
+// verification to the workspace that owns the key so per-tenant outcome and
+// rejection rates are alertable. kv is nil when Get returned before loading a
+// key; those calls are not attributed.
+func recordVerification(kv *KeyVerifier) {
+	if kv == nil {
+		return
+	}
+
+	keyType := "key"
+	if kv.isRootKey {
+		keyType = "root_key"
+	}
+
+	metrics.KeyVerificationsTotal.WithLabelValues(
+		keyType,
+		string(kv.Status),
+		kv.Key.WorkspaceID,
+	).Inc()
+}
+
 // Get retrieves a key from the database and performs basic validation checks.
 // It returns a KeyVerifier that can be used for further validation with specific options.
 // For normal keys, validation failures are indicated by KeyVerifier.Valid=false.
@@ -79,20 +100,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 	ctx, span := tracing.Start(ctx, "keys.Get")
 	defer span.End()
 
-	defer func() {
-		if kv == nil {
-			return
-		}
-		keyType := "key"
-		if kv.isRootKey {
-			keyType = "root_key"
-		}
-
-		metrics.KeyVerificationsTotal.WithLabelValues(
-			keyType,
-			string(kv.Status),
-		).Inc()
-	}()
+	defer func() { recordVerification(kv) }()
 
 	startTime := time.Now()
 
