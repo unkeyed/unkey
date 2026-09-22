@@ -10,22 +10,15 @@
 //
 // # State Synchronization Model
 //
-// Synchronization uses version-based cursors for resumable streaming. Each resource
-// (deployment_topology, cilium_network_policy) has a version column updated on every
-// mutation. Agents track the maximum version seen and reconnect with that version to
-// resume without replaying history. When version is 0 (new agent or reset), all
-// resources are streamed in version order for a full bootstrap.
-//
-// The streaming RPCs poll the database every second when no new versions are available.
-// Each poll fetches up to 100 resources with versions greater than the cursor.
+// Streaming uses Vitess VStream resume tokens. Deployment topology payloads also
+// carry a revision that advances with each desired-state change. Krane uses that
+// revision to prevent delayed full-sync payloads from replacing newer streamed state.
 //
 // # Convergence Guarantees
 //
 // The system achieves eventual consistency through idempotent operations: agents can
-// safely apply the same state multiple times. Deletes use soft-delete semantics by
-// setting desired state to archived or standby, preserving the version for streaming.
-// After bootstrap, agents garbage-collect any Kubernetes resources not present in the
-// stream, ensuring convergence even if messages were missed.
+// safely apply the same state multiple times. Periodic point reads repair missed
+// updates and remove Kubernetes resources whose topology rows were hard-deleted.
 //
 // # Authentication
 //

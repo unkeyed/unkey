@@ -3,6 +3,7 @@
 -- Used by SyncDesiredState to reconcile krane agents with current desired state.
 SELECT
     dt.pk AS topology_pk,
+    dt.revision AS topology_revision,
     dt.autoscaling_replicas_min AS topology_autoscaling_replicas_min,
     dt.autoscaling_replicas_max AS topology_autoscaling_replicas_max,
     dt.autoscaling_threshold_cpu AS topology_autoscaling_threshold_cpu,

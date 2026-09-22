@@ -103,19 +103,24 @@ func (c *Controller) reconcileDesiredState(ctx context.Context, replicaSet *apps
 		return
 	}
 
+	unlock := c.desiredStateLocks.Lock(deploymentID)
+	defer unlock()
+
 	res, err := c.cluster.GetDesiredDeploymentState(ctx, &ctrlv1.GetDesiredDeploymentStateRequest{
 		Cluster:      c.clusterKey(),
 		DeploymentId: deploymentID,
 	})
 	if err != nil {
 		if connect.CodeOf(err) == connect.CodeNotFound {
-			if err := c.DeleteDeployment(ctx, &ctrlv1.DeleteDeployment{
+			c.desiredStateDeleted.Store(deploymentID, struct{}{})
+			if err := c.deleteDeployment(ctx, &ctrlv1.DeleteDeployment{
 				K8SNamespace: replicaSet.GetNamespace(),
 				K8SName:      replicaSet.GetName(),
+				DeploymentId: deploymentID,
 			}); err != nil {
 				logger.Error("unable to delete deployment", "error", err.Error(), "deployment_id", deploymentID)
+				return
 			}
-
 			return
 		}
 
@@ -125,11 +130,17 @@ func (c *Controller) reconcileDesiredState(ctx context.Context, replicaSet *apps
 
 	switch res.GetState().(type) {
 	case *ctrlv1.DeploymentState_Apply:
-		if err := c.ApplyDeployment(ctx, res.GetApply()); err != nil {
+		apply := res.GetApply()
+		if err := c.reconcileRevisionLocked(deploymentID, apply.GetRevision(), func() error {
+			return c.applyDeployment(ctx, apply)
+		}); err != nil {
 			logger.Error("unable to apply deployment", "error", err.Error(), "deployment_id", deploymentID)
 		}
 	case *ctrlv1.DeploymentState_Delete:
-		if err := c.DeleteDeployment(ctx, res.GetDelete()); err != nil {
+		deleteRequest := res.GetDelete()
+		if err := c.reconcileRevisionLocked(deploymentID, deleteRequest.GetRevision(), func() error {
+			return c.deleteDeployment(ctx, deleteRequest)
+		}); err != nil {
 			logger.Error("unable to delete deployment", "error", err.Error(), "deployment_id", deploymentID)
 		}
 	}

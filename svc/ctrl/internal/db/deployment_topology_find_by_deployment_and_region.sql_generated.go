@@ -14,6 +14,7 @@ import (
 
 const findDeploymentTopologyByDeploymentAndRegion = `-- name: FindDeploymentTopologyByDeploymentAndRegion :one
 SELECT
+    dt.revision,
     dt.desired_status,
     dt.autoscaling_replicas_min,
     dt.autoscaling_replicas_max,
@@ -58,6 +59,7 @@ type FindDeploymentTopologyByDeploymentAndRegionParams struct {
 }
 
 type FindDeploymentTopologyByDeploymentAndRegionRow struct {
+	Revision                      uint32                          `db:"revision"`
 	DesiredStatus                 DeploymentTopologyDesiredStatus `db:"desired_status"`
 	AutoscalingReplicasMin        uint32                          `db:"autoscaling_replicas_min"`
 	AutoscalingReplicasMax        uint32                          `db:"autoscaling_replicas_max"`
@@ -92,6 +94,7 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 // joined data needed for the Watch stream. Used by the unified WatchDeploymentChanges RPC.
 //
 //	SELECT
+//	    dt.revision,
 //	    dt.desired_status,
 //	    dt.autoscaling_replicas_min,
 //	    dt.autoscaling_replicas_max,
@@ -132,6 +135,7 @@ func (q *Queries) FindDeploymentTopologyByDeploymentAndRegion(ctx context.Contex
 	row := q.db.QueryRowContext(ctx, findDeploymentTopologyByDeploymentAndRegion, arg.DeploymentID, arg.RegionID)
 	var i FindDeploymentTopologyByDeploymentAndRegionRow
 	err := row.Scan(
+		&i.Revision,
 		&i.DesiredStatus,
 		&i.AutoscalingReplicasMin,
 		&i.AutoscalingReplicasMax,

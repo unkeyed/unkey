@@ -483,6 +483,7 @@ type Querier interface {
 	// joined data needed for the Watch stream. Used by the unified WatchDeploymentChanges RPC.
 	//
 	//  SELECT
+	//      dt.revision,
 	//      dt.desired_status,
 	//      dt.autoscaling_replicas_min,
 	//      dt.autoscaling_replicas_max,
@@ -1123,7 +1124,7 @@ type Querier interface {
 	//      ended_at = NULL,
 	//      error = NULL
 	InsertDeploymentStep(ctx context.Context, arg InsertDeploymentStepParams) error
-	//InsertDeploymentTopology
+	// InsertDeploymentTopology creates revision zero or advances the revision when updating an existing topology.
 	//
 	//  INSERT INTO `deployment_topology` (
 	//      workspace_id,
@@ -1151,7 +1152,8 @@ type Querier interface {
 	//      autoscaling_replicas_max = ?,
 	//      autoscaling_threshold_cpu = ?,
 	//      autoscaling_threshold_memory = ?,
-	//      desired_status = ?
+	//      desired_status = ?,
+	//      revision = revision + 1
 	InsertDeploymentTopology(ctx context.Context, arg InsertDeploymentTopologyParams) error
 	//InsertEnvironment
 	//
@@ -1509,6 +1511,7 @@ type Querier interface {
 	//
 	//  SELECT
 	//      dt.pk AS topology_pk,
+	//      dt.revision AS topology_revision,
 	//      dt.autoscaling_replicas_min AS topology_autoscaling_replicas_min,
 	//      dt.autoscaling_replicas_max AS topology_autoscaling_replicas_max,
 	//      dt.autoscaling_threshold_cpu AS topology_autoscaling_threshold_cpu,
@@ -2163,10 +2166,10 @@ type Querier interface {
 	//  WHERE id = ?
 	//    AND status IN (/*SLICE:progressing_statuses*/?)
 	UpdateDeploymentStatusIfActive(ctx context.Context, arg UpdateDeploymentStatusIfActiveParams) error
-	// UpdateDeploymentTopologyDesiredStatus updates the desired_status of a topology entry.
+	// UpdateDeploymentTopologyDesiredStatus updates desired status and advances its revision atomically.
 	//
 	//  UPDATE `deployment_topology`
-	//  SET desired_status = ?, updated_at = ?
+	//  SET desired_status = ?, revision = revision + 1, updated_at = ?
 	//  WHERE deployment_id = ? AND region_id = ?
 	UpdateDeploymentTopologyDesiredStatus(ctx context.Context, arg UpdateDeploymentTopologyDesiredStatusParams) error
 	//UpdateKeysLastUsed

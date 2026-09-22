@@ -15,6 +15,7 @@ import (
 const listAllDeploymentTopologiesByRegion = `-- name: ListAllDeploymentTopologiesByRegion :many
 SELECT
     dt.pk AS topology_pk,
+    dt.revision AS topology_revision,
     dt.autoscaling_replicas_min AS topology_autoscaling_replicas_min,
     dt.autoscaling_replicas_max AS topology_autoscaling_replicas_max,
     dt.autoscaling_threshold_cpu AS topology_autoscaling_threshold_cpu,
@@ -62,6 +63,7 @@ type ListAllDeploymentTopologiesByRegionParams struct {
 
 type ListAllDeploymentTopologiesByRegionRow struct {
 	TopologyPk                              uint64                          `db:"topology_pk"`
+	TopologyRevision                        uint32                          `db:"topology_revision"`
 	TopologyAutoscalingReplicasMin          uint32                          `db:"topology_autoscaling_replicas_min"`
 	TopologyAutoscalingReplicasMax          uint32                          `db:"topology_autoscaling_replicas_max"`
 	TopologyAutoscalingThresholdCpu         sql.NullInt16                   `db:"topology_autoscaling_threshold_cpu"`
@@ -97,6 +99,7 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 //
 //	SELECT
 //	    dt.pk AS topology_pk,
+//	    dt.revision AS topology_revision,
 //	    dt.autoscaling_replicas_min AS topology_autoscaling_replicas_min,
 //	    dt.autoscaling_replicas_max AS topology_autoscaling_replicas_max,
 //	    dt.autoscaling_threshold_cpu AS topology_autoscaling_threshold_cpu,
@@ -145,6 +148,7 @@ func (q *Queries) ListAllDeploymentTopologiesByRegion(ctx context.Context, arg L
 		var i ListAllDeploymentTopologiesByRegionRow
 		if err := rows.Scan(
 			&i.TopologyPk,
+			&i.TopologyRevision,
 			&i.TopologyAutoscalingReplicasMin,
 			&i.TopologyAutoscalingReplicasMax,
 			&i.TopologyAutoscalingThresholdCpu,

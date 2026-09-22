@@ -14,7 +14,8 @@ const bulkInsertDeploymentTopology = `INSERT INTO ` + "`" + `deployment_topology
     autoscaling_replicas_max = ?,
     autoscaling_threshold_cpu = ?,
     autoscaling_threshold_memory = ?,
-    desired_status = ?`
+    desired_status = ?,
+    revision = revision + 1`
 
 // InsertDeploymentTopologies performs bulk insert in a single query
 

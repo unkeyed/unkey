@@ -46,6 +46,12 @@ import (
 // and are scheduled on Karpenter-managed untrusted nodes with node- and
 // zone-spread constraints so replicas don't stack on a single node.
 func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) (retErr error) {
+	return c.reconcileRevision(req.GetDeploymentId(), req.GetRevision(), func() error {
+		return c.applyDeployment(ctx, req)
+	})
+}
+
+func (c *Controller) applyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) (retErr error) {
 	defer func() { metrics.RecordReconcile("deployment", "apply", retErr) }()
 	logger.Info("applying deployment",
 		"namespace", req.GetK8SNamespace(),
@@ -146,6 +152,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 
 	if err := c.ensurePodDisruptionBudget(ctx, req, applied); err != nil {
 		logger.Error("failed to ensure pod disruption budget", "deployment_id", req.GetDeploymentId(), "error", err)
+		return err
 	}
 
 	return nil

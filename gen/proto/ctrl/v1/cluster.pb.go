@@ -1176,6 +1176,8 @@ func (*DeploymentState_Delete) isDeploymentState_State() {}
 // The control plane ensures that deployment_id is unique within the namespace.
 type ApplyDeployment struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
+	// revision orders desired state changes for this deployment topology.
+	Revision uint64 `protobuf:"varint,30,opt,name=revision,proto3" json:"revision,omitempty"`
 	// namespace is the Kubernetes namespace in which the deployment should exist.
 	K8SNamespace string `protobuf:"bytes,1,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
 	K8SName      string `protobuf:"bytes,2,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
@@ -1265,6 +1267,13 @@ func (x *ApplyDeployment) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ApplyDeployment.ProtoReflect.Descriptor instead.
 func (*ApplyDeployment) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ApplyDeployment) GetRevision() uint64 {
+	if x != nil {
+		return x.Revision
+	}
+	return 0
 }
 
 func (x *ApplyDeployment) GetK8SNamespace() string {
@@ -1513,9 +1522,12 @@ func (x *AutoscalingPolicy) GetMemoryThreshold() int32 {
 
 // DeleteDeployment identifies a ReplicaSet to remove by namespace and name.
 type DeleteDeployment struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	K8SNamespace  string                 `protobuf:"bytes,1,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
-	K8SName       string                 `protobuf:"bytes,2,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	K8SNamespace string                 `protobuf:"bytes,1,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
+	K8SName      string                 `protobuf:"bytes,2,opt,name=k8s_name,json=k8sName,proto3" json:"k8s_name,omitempty"`
+	DeploymentId string                 `protobuf:"bytes,3,opt,name=deployment_id,json=deploymentId,proto3" json:"deployment_id,omitempty"`
+	// revision orders desired state changes for this deployment topology.
+	Revision      uint64 `protobuf:"varint,4,opt,name=revision,proto3" json:"revision,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1562,6 +1574,20 @@ func (x *DeleteDeployment) GetK8SName() string {
 		return x.K8SName
 	}
 	return ""
+}
+
+func (x *DeleteDeployment) GetDeploymentId() string {
+	if x != nil {
+		return x.DeploymentId
+	}
+	return ""
+}
+
+func (x *DeleteDeployment) GetRevision() uint64 {
+	if x != nil {
+		return x.Revision
+	}
+	return 0
 }
 
 // HeartbeatRequest is sent periodically by krane agents to register their
@@ -1912,8 +1938,9 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x0fDeploymentState\x120\n" +
 	"\x05apply\x18\x01 \x01(\v2\x18.ctrl.v1.ApplyDeploymentH\x00R\x05apply\x123\n" +
 	"\x06delete\x18\x02 \x01(\v2\x19.ctrl.v1.DeleteDeploymentH\x00R\x06deleteB\a\n" +
-	"\x05state\"\xcb\b\n" +
-	"\x0fApplyDeployment\x12#\n" +
+	"\x05state\"\xe7\b\n" +
+	"\x0fApplyDeployment\x12\x1a\n" +
+	"\brevision\x18\x1e \x01(\x04R\brevision\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
 	"\fworkspace_id\x18\x03 \x01(\tR\vworkspaceId\x12\x1d\n" +
@@ -1957,10 +1984,12 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\rcpu_threshold\x18\x03 \x01(\x05H\x00R\fcpuThreshold\x88\x01\x01\x12.\n" +
 	"\x10memory_threshold\x18\x04 \x01(\x05H\x01R\x0fmemoryThreshold\x88\x01\x01B\x10\n" +
 	"\x0e_cpu_thresholdB\x13\n" +
-	"\x11_memory_threshold\"R\n" +
+	"\x11_memory_threshold\"\x93\x01\n" +
 	"\x10DeleteDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
-	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\"A\n" +
+	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12#\n" +
+	"\rdeployment_id\x18\x03 \x01(\tR\fdeploymentId\x12\x1a\n" +
+	"\brevision\x18\x04 \x01(\x04R\brevision\"A\n" +
 	"\x10HeartbeatRequest\x12-\n" +
 	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\"\x13\n" +
 	"\x11HeartbeatResponse*]\n" +

@@ -94,6 +94,7 @@ func TestWatchDeploymentChanges_StreamsStateAndCheckpoint(t *testing.T) {
 			if test.wantState {
 				require.Len(t, events, 2)
 				require.Equal(t, "deploy_test", events[0].GetDeployment().GetApply().GetDeploymentId())
+				require.Equal(t, uint64(31), events[0].GetDeployment().GetApply().GetRevision())
 				require.Empty(t, events[0].GetResumeToken())
 			} else {
 				require.Len(t, events, 1)
@@ -119,5 +120,5 @@ func (s *watchDatabase) FindCluster(context.Context, db.FindClusterParams) (db.F
 }
 
 func (s *watchDatabase) FindDeploymentTopologyByDeploymentAndRegion(context.Context, db.FindDeploymentTopologyByDeploymentAndRegionParams) (db.FindDeploymentTopologyByDeploymentAndRegionRow, error) {
-	return db.FindDeploymentTopologyByDeploymentAndRegionRow{ID: "deploy_test", DesiredStatus: db.DeploymentTopologyDesiredStatusRunning}, s.lookupErr
+	return db.FindDeploymentTopologyByDeploymentAndRegionRow{ID: "deploy_test", Revision: 31, DesiredStatus: db.DeploymentTopologyDesiredStatusRunning}, s.lookupErr
 }

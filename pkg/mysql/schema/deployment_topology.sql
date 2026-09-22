@@ -8,6 +8,7 @@ CREATE TABLE `deployment_topology` (
 	`autoscaling_threshold_cpu` tinyint unsigned,
 	`autoscaling_threshold_memory` tinyint unsigned,
 	`desired_status` enum('stopped','running') NOT NULL,
+	`revision` int unsigned NOT NULL DEFAULT 0,
 	`created_at` bigint NOT NULL,
 	`updated_at` bigint,
 	CONSTRAINT `deployment_topology_pk` PRIMARY KEY(`pk`),

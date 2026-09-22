@@ -259,6 +259,9 @@ message DeploymentState {
 // it doesn't exist or updating it if it does. All fields except namespace are required.
 // The control plane ensures that deployment_id is unique within the namespace.
 message ApplyDeployment {
+  // revision orders desired state changes for this deployment topology.
+  uint64 revision = 30;
+
   // namespace is the Kubernetes namespace in which the deployment should exist.
   string k8s_namespace = 1;
 
@@ -353,6 +356,9 @@ message AutoscalingPolicy {
 message DeleteDeployment {
   string k8s_namespace = 1;
   string k8s_name = 2;
+  string deployment_id = 3;
+  // revision orders desired state changes for this deployment topology.
+  uint64 revision = 4;
 }
 
 // HeartbeatRequest is sent periodically by krane agents to register their

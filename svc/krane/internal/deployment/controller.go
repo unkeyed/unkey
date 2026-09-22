@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
@@ -59,6 +60,11 @@ type Controller struct {
 	// Get and post-RPC Set can't race with another concurrent event for the
 	// same ReplicaSet and both report the same state.
 	reportLocks keymutex.KeyMutex
+
+	// Desired state ordering is independent from actual-state report deduplication.
+	desiredStateLocks     keymutex.KeyMutex
+	desiredStateRevisions sync.Map
+	desiredStateDeleted   sync.Map
 
 	// lagRecorder records pod watch delivery lag, deduplicated per
 	// (pod UID, transition time).
@@ -121,9 +127,8 @@ type Config struct {
 
 // New creates a [Controller] ready to be started with [Controller.Start].
 //
-// The controller initializes with versionLastSeen=0, meaning it will receive all
-// pending deployments on first connection. The circuit breaker starts in a closed
-// (healthy) state.
+// The controller accepts the first desired-state payload for each deployment,
+// including revision zero. The circuit breaker starts in a closed state.
 func New(cfg Config) *Controller {
 	var pullSecrets []corev1.LocalObjectReference
 	if cfg.Registry != nil {
@@ -131,22 +136,25 @@ func New(cfg Config) *Controller {
 	}
 
 	return &Controller{
-		clientSet:        cfg.ClientSet,
-		dynamicClient:    cfg.DynamicClient,
-		cluster:          cfg.Cluster,
-		vault:            cfg.Vault,
-		registry:         cfg.Registry,
-		imagePullSecrets: pullSecrets,
-		cb:               circuitbreaker.New[any]("deployment_state_update"),
-		done:             make(chan struct{}),
-		cellID:           cfg.CellID,
-		region:           cfg.Region,
-		platform:         cfg.Platform,
-		fingerprints:     cfg.Fingerprints,
-		eventDedup:       cfg.EventDedup,
-		reportLocks:      keymutex.KeyMutex{},
-		lagRecorder:      podstatus.NewLagRecorder("deployment", cfg.ObservedTransitions),
-		storageClassName: cfg.StorageClassName,
+		clientSet:             cfg.ClientSet,
+		dynamicClient:         cfg.DynamicClient,
+		cluster:               cfg.Cluster,
+		vault:                 cfg.Vault,
+		registry:              cfg.Registry,
+		imagePullSecrets:      pullSecrets,
+		cb:                    circuitbreaker.New[any]("deployment_state_update"),
+		done:                  make(chan struct{}),
+		cellID:                cfg.CellID,
+		region:                cfg.Region,
+		platform:              cfg.Platform,
+		fingerprints:          cfg.Fingerprints,
+		eventDedup:            cfg.EventDedup,
+		reportLocks:           keymutex.KeyMutex{},
+		desiredStateLocks:     keymutex.KeyMutex{},
+		desiredStateRevisions: sync.Map{},
+		desiredStateDeleted:   sync.Map{},
+		lagRecorder:           podstatus.NewLagRecorder("deployment", cfg.ObservedTransitions),
+		storageClassName:      cfg.StorageClassName,
 	}
 }
 

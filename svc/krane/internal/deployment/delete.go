@@ -4,6 +4,7 @@ import (
 	"context"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -18,6 +19,15 @@ import (
 // already achieved. After deletion, the method reports the deletion to the control
 // plane so it can update routing tables and stop sending traffic to this deployment.
 func (c *Controller) DeleteDeployment(ctx context.Context, req *ctrlv1.DeleteDeployment) (retErr error) {
+	if err := assert.NotEmpty(req.GetDeploymentId(), "Deployment ID is required"); err != nil {
+		return err
+	}
+	return c.reconcileRevision(req.GetDeploymentId(), req.GetRevision(), func() error {
+		return c.deleteDeployment(ctx, req)
+	})
+}
+
+func (c *Controller) deleteDeployment(ctx context.Context, req *ctrlv1.DeleteDeployment) (retErr error) {
 	defer func() { metrics.RecordReconcile("deployment", "delete", retErr) }()
 	logger.Info("deleting deployment",
 		"namespace", req.GetK8SNamespace(),

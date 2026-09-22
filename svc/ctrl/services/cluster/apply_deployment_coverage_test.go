@@ -16,6 +16,9 @@ import (
 // field cannot be added or dropped on the producer side without a test. This
 // mirrors the krane render-side guard in apply_test.go.
 var producerFieldAssertions = map[string]func(t *testing.T, a *ctrlv1.ApplyDeployment){
+	"revision": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+		require.Equal(t, uint64(23), a.GetRevision())
+	},
 	"k8s_namespace": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
 		require.Equal(t, "ns-sentinel", a.GetK8SNamespace())
 	},
@@ -98,6 +101,7 @@ var producerFieldAssertions = map[string]func(t *testing.T, a *ctrlv1.ApplyDeplo
 // and asserts each ApplyDeployment proto field was carried over from the DB.
 func TestDeploymentRowToState_PopulatesProtoFields(t *testing.T) {
 	row := db.FindDeploymentTopologyByDeploymentAndRegionRow{
+		Revision:                      23,
 		DesiredStatus:                 db.DeploymentTopologyDesiredStatusRunning,
 		AutoscalingReplicasMin:        2,
 		AutoscalingReplicasMax:        5,

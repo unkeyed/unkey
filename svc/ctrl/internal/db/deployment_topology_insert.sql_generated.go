@@ -37,7 +37,8 @@ ON DUPLICATE KEY UPDATE
     autoscaling_replicas_max = ?,
     autoscaling_threshold_cpu = ?,
     autoscaling_threshold_memory = ?,
-    desired_status = ?
+    desired_status = ?,
+    revision = revision + 1
 `
 
 type InsertDeploymentTopologyParams struct {
@@ -52,7 +53,7 @@ type InsertDeploymentTopologyParams struct {
 	CreatedAt                  int64                           `db:"created_at"`
 }
 
-// InsertDeploymentTopology
+// InsertDeploymentTopology creates revision zero or advances the revision when updating an existing topology.
 //
 //	INSERT INTO `deployment_topology` (
 //	    workspace_id,
@@ -80,7 +81,8 @@ type InsertDeploymentTopologyParams struct {
 //	    autoscaling_replicas_max = ?,
 //	    autoscaling_threshold_cpu = ?,
 //	    autoscaling_threshold_memory = ?,
-//	    desired_status = ?
+//	    desired_status = ?,
+//	    revision = revision + 1
 func (q *Queries) InsertDeploymentTopology(ctx context.Context, arg InsertDeploymentTopologyParams) error {
 	_, err := q.db.ExecContext(ctx, insertDeploymentTopology,
 		arg.WorkspaceID,

@@ -10,6 +10,7 @@ import (
 
 func TestDeploymentRowToState_Running(t *testing.T) {
 	row := db.FindDeploymentTopologyByDeploymentAndRegionRow{
+		Revision:               17,
 		DesiredStatus:          db.DeploymentTopologyDesiredStatusRunning,
 		AutoscalingReplicasMin: 1,
 		AutoscalingReplicasMax: 3,
@@ -39,6 +40,7 @@ func TestDeploymentRowToState_Running(t *testing.T) {
 	require.Equal(t, "my-app", apply.GetK8SName())
 	require.Equal(t, "ws-namespace", apply.GetK8SNamespace())
 	require.Equal(t, "registry.io/app:v1", apply.GetImage())
+	require.Equal(t, uint64(17), apply.GetRevision())
 	require.Equal(t, int64(250), apply.GetCpuMillicores())
 	require.Equal(t, uint32(1), apply.GetAutoscaling().GetMinReplicas())
 	require.Equal(t, uint32(3), apply.GetAutoscaling().GetMaxReplicas())
@@ -46,7 +48,9 @@ func TestDeploymentRowToState_Running(t *testing.T) {
 
 func TestDeploymentRowToState_Stopped(t *testing.T) {
 	row := db.FindDeploymentTopologyByDeploymentAndRegionRow{
+		Revision:      18,
 		DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
+		ID:            "deploy_123",
 		K8sName:       "my-app",
 		K8sNamespace:  sql.NullString{Valid: true, String: "ws-namespace"},
 	}
@@ -59,4 +63,6 @@ func TestDeploymentRowToState_Stopped(t *testing.T) {
 	require.NotNil(t, del, "stopped status should produce a DeleteDeployment")
 	require.Equal(t, "my-app", del.GetK8SName())
 	require.Equal(t, "ws-namespace", del.GetK8SNamespace())
+	require.Equal(t, "deploy_123", del.GetDeploymentId())
+	require.Equal(t, uint64(18), del.GetRevision())
 }

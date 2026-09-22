@@ -1,4 +1,5 @@
 -- name: InsertDeploymentTopology :exec
+-- InsertDeploymentTopology creates revision zero or advances the revision when updating an existing topology.
 INSERT INTO `deployment_topology` (
     workspace_id,
     deployment_id,
@@ -25,5 +26,6 @@ ON DUPLICATE KEY UPDATE
     autoscaling_replicas_max = sqlc.arg(autoscaling_replicas_max),
     autoscaling_threshold_cpu = sqlc.arg(autoscaling_threshold_cpu),
     autoscaling_threshold_memory = sqlc.arg(autoscaling_threshold_memory),
-    desired_status = sqlc.arg(desired_status)
+    desired_status = sqlc.arg(desired_status),
+    revision = revision + 1
 ;

@@ -103,6 +103,7 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 		deployment = row
 	case db.ListAllDeploymentTopologiesByRegionRow:
 		deployment = db.FindDeploymentTopologyByDeploymentAndRegionRow{
+			Revision:                      row.TopologyRevision,
 			DesiredStatus:                 row.TopologyDesiredStatus,
 			AutoscalingReplicasMin:        row.TopologyAutoscalingReplicasMin,
 			AutoscalingReplicasMax:        row.TopologyAutoscalingReplicasMax,
@@ -143,6 +144,8 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 				Delete: &ctrlv1.DeleteDeployment{
 					K8SNamespace: deployment.K8sNamespace.String,
 					K8SName:      deployment.K8sName,
+					DeploymentId: deployment.ID,
+					Revision:     uint64(deployment.Revision),
 				},
 			},
 		}, nil
@@ -153,6 +156,7 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 		}
 
 		apply := &ctrlv1.ApplyDeployment{
+			Revision:                      uint64(deployment.Revision),
 			DeploymentId:                  deployment.ID,
 			K8SNamespace:                  deployment.K8sNamespace.String,
 			K8SName:                       deployment.K8sName,

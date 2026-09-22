@@ -57,6 +57,7 @@ func fullApplyRequest(t *testing.T) *ctrlv1.ApplyDeployment {
 	require.NoError(t, err)
 
 	return &ctrlv1.ApplyDeployment{
+		Revision:                      1,
 		K8SNamespace:                  testNamespace,
 		K8SName:                       testK8sName,
 		WorkspaceId:                   testWorkspaceID,
@@ -245,6 +246,7 @@ var fieldAssertions = map[string]func(t *testing.T, rs *appsv1.ReplicaSet){
 // fieldsRenderedElsewhere lists proto fields that intentionally do not surface
 // in the ReplicaSet, with the reason.
 var fieldsRenderedElsewhere = map[string]string{
+	"revision":    "used by Controller before rendering to reject stale desired state",
 	"autoscaling": "rendered into a HorizontalPodAutoscaler by ensureHPAExists, not the ReplicaSet",
 }
 

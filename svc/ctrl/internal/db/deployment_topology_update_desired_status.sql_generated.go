@@ -12,7 +12,7 @@ import (
 
 const updateDeploymentTopologyDesiredStatus = `-- name: UpdateDeploymentTopologyDesiredStatus :exec
 UPDATE ` + "`" + `deployment_topology` + "`" + `
-SET desired_status = ?, updated_at = ?
+SET desired_status = ?, revision = revision + 1, updated_at = ?
 WHERE deployment_id = ? AND region_id = ?
 `
 
@@ -23,10 +23,10 @@ type UpdateDeploymentTopologyDesiredStatusParams struct {
 	RegionID      string                          `db:"region_id"`
 }
 
-// UpdateDeploymentTopologyDesiredStatus updates the desired_status of a topology entry.
+// UpdateDeploymentTopologyDesiredStatus updates desired status and advances its revision atomically.
 //
 //	UPDATE `deployment_topology`
-//	SET desired_status = ?, updated_at = ?
+//	SET desired_status = ?, revision = revision + 1, updated_at = ?
 //	WHERE deployment_id = ? AND region_id = ?
 func (q *Queries) UpdateDeploymentTopologyDesiredStatus(ctx context.Context, arg UpdateDeploymentTopologyDesiredStatusParams) error {
 	_, err := q.db.ExecContext(ctx, updateDeploymentTopologyDesiredStatus,
