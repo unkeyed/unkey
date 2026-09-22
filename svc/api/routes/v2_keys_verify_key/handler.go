@@ -276,6 +276,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	h.KeyVerifications.Buffer(verification)
 	h.bufferAuditLog(s, principal, key, verification.Time)
 
+	// A keyspace mismatch returns NOT_FOUND but leaves the loaded key intact.
+	// Clear its response metadata so it cannot reveal that the key exists.
 	if key.Status == keys.StatusNotFound {
 		// nolint:exhaustruct
 		keyData = openapi.V2KeysVerifyKeyResponseData{Code: openapi.NOTFOUND, Valid: false}
