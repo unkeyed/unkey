@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/internal/services/keys"
@@ -84,14 +83,6 @@ func (e *Executor) Execute(
 		)
 	}
 
-	if !keyspaceAllowed(verifier.Key.KeyAuthID, cfg.GetKeySpaceIds()) {
-		return nil, fault.New("key does not belong to expected key space",
-			fault.Code(codes.Frontline.Auth.InvalidKey.URN()),
-			fault.Internal(fmt.Sprintf("key belongs to key space %s, expected one of %s", verifier.Key.KeyAuthID, strings.Join(cfg.GetKeySpaceIds(), ","))),
-			fault.Public("Authentication failed. The provided API key is invalid."),
-		)
-	}
-
 	// Deduct one credit per request unless the policy overrides the cost.
 	// A cost of 0 verifies the key without spending credits (e.g. read-only
 	// routes or gateways that only prove the key is valid before proxying).
@@ -103,7 +94,10 @@ func (e *Executor) Execute(
 			fault.Public("Service configuration error."),
 		)
 	}
-	verifyOpts := []keys.VerifyOption{keys.WithCredits(credits)}
+	verifyOpts := []keys.VerifyOption{
+		keys.WithKeyspaces(cfg.GetKeySpaceIds()...),
+		keys.WithCredits(credits),
+	}
 	if pq := cfg.GetPermissionQuery(); pq != "" {
 		query, err := rbac.ParseQuery(pq)
 		if err != nil {
@@ -198,15 +192,4 @@ func toVerifyRatelimits(rls []*frontlinev1.KeyRatelimit) []openapi.KeysVerifyKey
 		out = append(out, entry)
 	}
 	return out
-}
-
-// keyspaceAllowed reports whether the key's keyspace is in the policy's
-// allowlist.
-func keyspaceAllowed(keyspaceID string, allowed []string) bool {
-	for _, id := range allowed {
-		if keyspaceID == id {
-			return true
-		}
-	}
-	return false
 }
