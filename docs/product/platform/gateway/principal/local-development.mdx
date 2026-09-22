@@ -5,6 +5,9 @@ description: "Test your application's Principal header handling locally without 
 
 The [Principal](/platform/gateway/principal/overview) is plain JSON with no encryption or signing. During local development, you can set the `X-Unkey-Principal` header yourself to test your application's authentication handling without running the gateway.
 
+To verify real API keys and let Frontline generate the header, run the
+[local gateway with Docker Compose](/platform/gateway/local-development).
+
 <Warning>
   The `X-Unkey-Principal` header has no cryptographic signature. When you deploy to Unkey, the gateway always sits in front of your app and strips any client-supplied header before setting its own. Traffic cannot reach your API without going through the gateway, so forged headers are not a concern.
 
@@ -49,4 +52,3 @@ EOF
 curl http://localhost:8080/api/resource \
   -H "X-Unkey-Principal: $(cat principal.json | jq -c)"
 ```
-
