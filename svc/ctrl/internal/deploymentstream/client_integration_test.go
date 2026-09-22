@@ -38,8 +38,8 @@ func TestWatch_VitessDeletesFilteringAndResume(t *testing.T) {
 			defer cancel()
 			_, err = database.ExecContext(ctx, `INSERT INTO deployment_topology
 		(workspace_id, deployment_id, region_id, desired_status, created_at)
-		VALUES ('poc', 'included', ?, 'running', 1), ('poc', 'excluded', ?, 'running', 1),
-		('poc', 'historical', ?, 'stopped', 1)`, region, region+"_other", region)
+		VALUES ('test', 'included', ?, 'running', 1), ('test', 'excluded', ?, 'running', 1),
+		('test', 'historical', ?, 'stopped', 1)`, region, region+"_other", region)
 			require.NoError(t, err)
 			client, err := New(cdc.Config{Address: vitess.Address, Keyspace: "unkey", Insecure: true})
 			require.NoError(t, err)
@@ -74,7 +74,7 @@ func TestWatch_VitessDeletesFilteringAndResume(t *testing.T) {
 			require.ErrorIs(t, err, cdc.ErrInvalidToken)
 			_, err = database.ExecContext(resumeCtx, `INSERT INTO deployment_topology
 		(workspace_id, deployment_id, region_id, desired_status, created_at)
-		VALUES ('poc', 'while_offline', ?, 'running', 2)`, region)
+		VALUES ('test', 'while_offline', ?, 'running', 2)`, region)
 			require.NoError(t, err)
 			delivered = nil
 			err = client.Watch(resumeCtx, region, token, func(event Event) error {
@@ -119,7 +119,7 @@ func TestWatch_VitessRetriesFailedDeliveryAndResumesPartialSnapshot(t *testing.T
 	}
 	_, err = database.ExecContext(ctx, `INSERT INTO deployment_topology
 		(workspace_id, deployment_id, region_id, desired_status, created_at) VALUES `+
-		strings.TrimSuffix(strings.Repeat("('poc', ?, ?, 'running', 1),", total), ","), args...)
+		strings.TrimSuffix(strings.Repeat("('test', ?, ?, 'running', 1),", total), ","), args...)
 	require.NoError(t, err)
 	client, err := New(cdc.Config{Address: vitess.Address, Keyspace: "unkey", Insecure: true})
 	require.NoError(t, err)

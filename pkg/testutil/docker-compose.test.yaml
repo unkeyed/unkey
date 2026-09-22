@@ -8,12 +8,12 @@ services:
       - --num_shards=1
       - --mysql_bind_host=0.0.0.0
       - --vtcombo-bind-host=0.0.0.0
-      - --schema_dir=/poc-schema
+      - --schema_dir=/schema
     ports:
       - "33575"
       - "33577"
     volumes:
-      - ../mysql/schema:/poc-schema/unkey:ro
+      - ../mysql/schema:/schema/unkey:ro
     healthcheck:
       test: [
         "CMD",

@@ -74,6 +74,7 @@ func (s *Watcher) Watch(ctx context.Context) error {
 // runStream reconnects using the last token saved after applying changes.
 func (s *Watcher) runStream(ctx context.Context) {
 	var resumeToken []byte
+	failures := 0
 
 	for {
 		jitter := reconnectMin + time.Millisecond*time.Duration(rand.Float64()*float64(reconnectMax.Milliseconds()-reconnectMin.Milliseconds()))
@@ -93,24 +94,39 @@ func (s *Watcher) runStream(ctx context.Context) {
 			}
 			metrics.StreamConnectionsTotal.WithLabelValues("error").Inc()
 			logger.Error("stream: error opening connection", "error", err)
-			continue
+		} else {
+			metrics.StreamConnectionsTotal.WithLabelValues("success").Inc()
+			var checkpointAccepted bool
+			resumeToken, checkpointAccepted = s.consumeStream(ctx, stream, resumeToken)
+			if checkpointAccepted {
+				failures = 0
+			}
 		}
-		metrics.StreamConnectionsTotal.WithLabelValues("success").Inc()
 
-		resumeToken = s.consumeStream(ctx, stream, resumeToken)
+		if ctx.Err() != nil {
+			return
+		}
+		failures++
+		if failures >= 3 {
+			logger.Warn("stream: restarting snapshot after consecutive failures")
+			resumeToken = nil
+			failures = 0
+		}
 	}
 }
 
 // consumeStream applies events in order and closes the stream before returning
-// the last safe token. If the token cannot be used, it returns an empty token
-// so the next watch starts a new copy.
-func (s *Watcher) consumeStream(ctx context.Context, stream *connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], resumeToken []byte) []byte {
+// the last safe token and whether it accepted a checkpoint. If the token cannot
+// be used, it returns an empty token so the next watch starts a new copy.
+func (s *Watcher) consumeStream(ctx context.Context, stream *connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], resumeToken []byte) ([]byte, bool) {
+	checkpointAccepted := false
 	for stream.Receive() {
 		event := stream.Msg()
 		metrics.StreamEventsReceivedTotal.Inc()
 
 		if event.GetEvent() == nil && len(event.GetResumeToken()) > 0 {
 			resumeToken = event.GetResumeToken()
+			checkpointAccepted = true
 			metrics.LastSuccessfulCheckpointUnixSeconds.Set(float64(time.Now().Unix()))
 			continue
 		}
@@ -137,7 +153,7 @@ func (s *Watcher) consumeStream(ctx context.Context, stream *connect.ServerStrea
 	if err := stream.Close(); err != nil && ctx.Err() == nil {
 		logger.Error("stream: error closing connection", "error", err)
 	}
-	return resumeToken
+	return resumeToken, checkpointAccepted
 }
 
 // runPeriodicFullSync repairs missed changes on startup and every fullSyncInterval.
