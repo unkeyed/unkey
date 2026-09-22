@@ -94,6 +94,11 @@ func New(cfg Config) (*Engine, error) {
 	}, nil
 }
 
+// Close releases the engine's OpenAPI cache workers after requests have drained.
+func (e *Engine) Close() {
+	e.openapi.Close()
+}
+
 // ParseMiddleware performs lenient deserialization of sentinel_config bytes into
 // a Middleware proto. Returns nil for empty, legacy empty-object, or malformed data
 // to allow plain pass-through proxying.
