@@ -24,7 +24,7 @@ func TestDeploymentRowToState_Running(t *testing.T) {
 		MemoryMib:              256,
 		Port:                   8080,
 		ShutdownSignal:         db.DeploymentsShutdownSignalSIGTERM,
-		K8sNamespace:           sql.NullString{Valid: true, String: "ws-namespace"},
+		K8sNamespace:           "ws-namespace",
 		EnvironmentSlug:        "production",
 		RegionName:             "us-east-1",
 	}
@@ -50,7 +50,7 @@ func TestDeploymentRowToState_Stopped(t *testing.T) {
 	row := db.FindDeploymentTopologyByDeploymentAndRegionRow{
 		DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
 		K8sName:       "my-app",
-		K8sNamespace:  sql.NullString{Valid: true, String: "ws-namespace"},
+		K8sNamespace:  "ws-namespace",
 	}
 
 	state, err := deploymentRowToState(row, 7)

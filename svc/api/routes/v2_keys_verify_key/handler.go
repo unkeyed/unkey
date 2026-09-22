@@ -141,6 +141,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		keys.WithIPWhitelist(),
 	}
 
+	if req.Keyspaces != nil {
+		opts = append(opts, keys.WithKeyspaces(*req.Keyspaces...))
+	}
+
 	// If a custom cost was specified, use it, otherwise use a DefaultCost of 1
 	if req.Credits != nil {
 		opts = append(opts, keys.WithCredits(req.Credits.Cost))
@@ -179,6 +183,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Enabled:     ptr.P(key.Key.Enabled),
 		Name:        key.Key.Name.String,
 		KeyId:       key.Key.ID,
+		KeyspaceId:  key.Key.KeyAuthID,
 		Permissions: key.Permissions,
 		Roles:       key.Roles,
 		Credits:     nil,
@@ -270,6 +275,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	verification := key.TelemetrySnapshot()
 	h.KeyVerifications.Buffer(verification)
 	h.bufferAuditLog(s, principal, key, verification.Time)
+
+	// A keyspace mismatch returns NOT_FOUND but leaves the loaded key intact.
+	// Clear its response metadata so it cannot reveal that the key exists.
+	if key.Status == keys.StatusNotFound {
+		// nolint:exhaustruct
+		keyData = openapi.V2KeysVerifyKeyResponseData{Code: openapi.NOTFOUND, Valid: false}
+	}
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

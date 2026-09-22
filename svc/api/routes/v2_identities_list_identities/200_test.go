@@ -305,11 +305,12 @@ func TestSuccess(t *testing.T) {
 
 		// Create the workspace
 		err = db.Query.InsertWorkspace(ctx, tx, db.InsertWorkspaceParams{
-			ID:        singleWorkspaceID,
-			Name:      "Single Identity Workspace",
-			Slug:      uid.New("slug"),
-			OrgID:     uid.New(uid.OrgPrefix),
-			CreatedAt: time.Now().UnixMilli(),
+			ID:           singleWorkspaceID,
+			Name:         "Single Identity Workspace",
+			Slug:         uid.New("slug"),
+			OrgID:        uid.New(uid.OrgPrefix),
+			CreatedAt:    time.Now().UnixMilli(),
+			K8sNamespace: uid.DNS1035(),
 		})
 		require.NoError(t, err)
 
@@ -364,11 +365,12 @@ func TestSuccess(t *testing.T) {
 		}()
 
 		err = db.Query.InsertWorkspace(ctx, tx, db.InsertWorkspaceParams{
-			ID:        searchWorkspaceID,
-			Name:      "Search Workspace",
-			Slug:      uid.New("slug"),
-			OrgID:     uid.New(uid.OrgPrefix),
-			CreatedAt: time.Now().UnixMilli(),
+			ID:           searchWorkspaceID,
+			Name:         "Search Workspace",
+			Slug:         uid.New("slug"),
+			OrgID:        uid.New(uid.OrgPrefix),
+			CreatedAt:    time.Now().UnixMilli(),
+			K8sNamespace: uid.DNS1035(),
 		})
 		require.NoError(t, err)
 

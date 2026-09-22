@@ -587,6 +587,7 @@ func Run(ctx context.Context, cfg Config) error {
 		Clickhouse:                ch,
 		Clock:                     clk,
 		RatelimitDB:               ratelimitdb.New(database.RW(), database.RO()),
+		RestateRules:              restateAdminClient,
 		SlackQuotaCheckWebhookURL: cfg.Slack.QuotaCheckWebhookURL,
 		BillingUsageReader:        billingUsageReader,
 		StripeSecretKey:           cfg.Billing.StripeSecretKey,
@@ -597,6 +598,7 @@ func Run(ctx context.Context, cfg Config) error {
 		ResendAPIKey:   cfg.Email.ResendAPIKey,
 		BillingBaseURL: cfg.DashboardURL,
 		Heartbeats: cron.Heartbeats{
+			BuildLimitSync:     cronHeartbeat(cfg.Heartbeat.BuildLimitSyncURL),
 			QuotaCheck:         cronHeartbeat(cfg.Heartbeat.QuotaCheckURL),
 			KeyRefill:          cronHeartbeat(cfg.Heartbeat.KeyRefillURL),
 			KeyLastUsedSync:    cronHeartbeat(cfg.Heartbeat.KeyLastUsedSyncURL),
@@ -736,7 +738,15 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.WithMaxRetryAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
+	cronBuildLimitSyncRetry := restate.WithInvocationRetryPolicy(
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(5),
+		restate.KillOnMaxAttempts(),
+	)
 	restateSrv.Bind(hydrav1.NewCronServiceServer(cronSvc).
+		ConfigureHandler("RunBuildLimitSync", cronBuildLimitSyncRetry).
 		ConfigureHandler("RunKeyLastUsedSync", cronKeyLastUsedRetry).
 		ConfigureHandler("RunRatelimitGlobalCountersCleanup", cronRatelimitGCCRetry).
 		ConfigureHandler("RunAuditLogOutboxCleanup", cronAuditLogCleanupRetry).

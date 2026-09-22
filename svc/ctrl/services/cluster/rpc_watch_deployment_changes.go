@@ -240,7 +240,7 @@ func deploymentRowToState[T deploymentStateRow](row T, version uint64) (*ctrlv1.
 			Version: version,
 			State: &ctrlv1.DeploymentState_Delete{
 				Delete: &ctrlv1.DeleteDeployment{
-					K8SNamespace: deployment.K8sNamespace.String,
+					K8SNamespace: deployment.K8sNamespace,
 					K8SName:      deployment.K8sName,
 				},
 			},
@@ -253,7 +253,7 @@ func deploymentRowToState[T deploymentStateRow](row T, version uint64) (*ctrlv1.
 
 		apply := &ctrlv1.ApplyDeployment{
 			DeploymentId:                  deployment.ID,
-			K8SNamespace:                  deployment.K8sNamespace.String,
+			K8SNamespace:                  deployment.K8sNamespace,
 			K8SName:                       deployment.K8sName,
 			WorkspaceId:                   deployment.WorkspaceID,
 			ProjectId:                     deployment.ProjectID,

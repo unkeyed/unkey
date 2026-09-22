@@ -1,18 +1,20 @@
 ---
 title: "list-domains"
-description: "List custom domains attached to an environment"
+description: "List custom domains across your workspace"
 ---
 
-List an environment's custom domains and their verification status. Results are paginated and sorted by ID.
+List your custom domains with their verification status and DNS records. Filter by project, app, or environment using IDs or slugs, or omit all three filters to list domains across your workspace.
+
+Use any filter independently or combine filters. Results match all supplied filters.
 
 ## Usage
 ```bash
 unkey api domains list-domains [flags]
 ```
 ## Flags
-<ParamField body="--project" type="string" required>Project ID or slug.</ParamField>
-<ParamField body="--app" type="string" required>App ID or slug.</ParamField>
-<ParamField body="--environment" type="string" required>Environment ID or slug.</ParamField>
+<ParamField body="--project" type="string">Match a project ID or slug. This filter doesn't require an app or environment filter.</ParamField>
+<ParamField body="--app" type="string">Match an app ID or slug. This filter doesn't require a project or environment filter.</ParamField>
+<ParamField body="--environment" type="string">Match an environment ID or slug. This filter doesn't require a project or app filter.</ParamField>
 <ParamField body="--limit" type="integer" default="100">Maximum domains per response, from 1 to 100.</ParamField>
 <ParamField body="--cursor" type="string">Cursor returned by the previous page when `hasMore` is true.</ParamField>
 <ParamField body="--search" type="string">Case-insensitive filter matching domain IDs or names.</ParamField>
@@ -28,6 +30,6 @@ unkey api domains list-domains [flags]
 
 ## Examples
 ```bash
-unkey api domains list-domains --project=payments --app=api --environment=production --limit=25 --search=acme.com
+unkey api domains list-domains --app=api --limit=25 --search=acme.com
 ```
 See [Custom domains](/networking/domains) for DNS and verification details.

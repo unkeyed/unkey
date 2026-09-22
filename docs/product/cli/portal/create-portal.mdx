@@ -1,0 +1,51 @@
+---
+title: "create-portal"
+description: "Create a portal for one app or keyspace in your workspace"
+---
+
+Create a portal for one app or keyspace in your workspace.
+
+Unreleased and subject to change without notice.
+
+Send exactly one of `keyspaceId` or `appId`. That resource must belong to your workspace, and it can back only one portal, so a second portal for the same resource is a **409**.
+
+`displayName` is what your end users see. It is yours to set and change independently of the resource the portal serves.
+
+Your root key must have `portal.*.create_portal`. A grant scoped to a specific portal ID does not authorize creation because the ID doesn't exist yet.
+
+## Usage
+
+```bash
+unkey api portal create-portal [flags]
+```
+
+## Flags
+
+<ParamField body="--slug" type="string" required>URL-safe handle unique within your workspace. Use 3-64 lowercase alphanumeric characters and single hyphens. Don't start or end it with a hyphen.</ParamField>
+<ParamField body="--display-name" type="string" required>Human-readable name shown in the portal header and page titles.</ParamField>
+<ParamField body="--keyspace-id" type="string">ID of the keyspace this portal serves. You must set exactly one of `--keyspace-id` or `--app-id`.</ParamField>
+<ParamField body="--app-id" type="string">ID of the app this portal serves. You must set exactly one of `--app-id` or `--keyspace-id`.</ParamField>
+<ParamField body="--enabled" type="bool" default="true">Whether sessions can be minted for this portal.</ParamField>
+<ParamField body="--logo-url" type="string">Absolute `https://` URL of the logo shown in the portal header.</ParamField>
+<ParamField body="--primary-color" type="string">Six-digit hex colour used for primary actions and accents.</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+
+## Examples
+
+```bash
+unkey api portal create-portal \
+  --slug=acme-portal \
+  --display-name=Acme \
+  --keyspace-id=ks_1234abcd
+```
+
+See the [API reference](https://www.unkey.com/docs/api-reference/portal/create-portal).

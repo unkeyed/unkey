@@ -2,7 +2,6 @@ package deployments
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
@@ -12,10 +11,41 @@ import (
 
 func createDeploymentCmd() *cli.Command {
 	return &cli.Command{
-		Name: "create-deployment", Usage: "Create a deployment from Git, an image, or an existing deployment",
-		Description: "Create a deployment asynchronously from exactly one source: a Git branch, a container image, or an existing deployment. The response includes a deployment ID that you can pass to get-deployment to monitor progress.\n\nFor full documentation, see https://www.unkey.com/docs/api-reference/v2/deployments/create-deployment" + util.Disclaimer,
-		Examples:    []string{"unkey api deployments create-deployment --project=payments --app=payments-api --environment=production --git='{" + `"branch":"main"` + "}'"},
-		Flags:       []cli.Flag{cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."), util.RootKeyFlag(), util.APIURLFlag(), util.ConfigFlag(), util.OutputFlag(), cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("app", "App ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("environment", "Environment ID or slug.", cli.Required(), cli.MutuallyExclusive("body")), cli.String("git", "Git source as JSON.", cli.MutuallyExclusive("body")), cli.String("image", "Image source as JSON.", cli.MutuallyExclusive("body")), cli.String("deployment", "Existing deployment source as JSON.", cli.MutuallyExclusive("body"))},
+		Name:  "create-deployment",
+		Usage: "Create a deployment for an app in a project.",
+		Description: `Create a deployment for an app in a project.
+
+Omit the source to use the app's configured default. A Git app builds its default branch. An OCI app deploys its default image.
+
+Optionally provide one source override:
+- oci: deploy a prebuilt OCI image without a build. Mutable tags are resolved to immutable digests before rollout.
+- git: build and deploy from the app's connected GitHub repository, a branch, a specific commit, or a fork commit. Requires the app to have a repository connected.
+- deployment: re-run an existing deployment by its id. Git deployments rebuild from the recorded commit; OCI deployments reuse the recorded resolved image.
+
+Returns immediately with a deploymentId. The build and rollout run asynchronously. Poll deployments.getDeployment to watch status until it is ready.
+
+Authentication: requires a root key with permission to create deployments.
+
+For full documentation, see https://www.unkey.com/docs/api-reference/deployments/create-deployment` + util.Disclaimer,
+		Examples: []string{
+			"unkey api deployments create-deployment --project=payments --app=payments-api --environment=production",
+			`unkey api deployments create-deployment --project=payments --app=payments-api --environment=production --git='{"branch":"main"}'`,
+			`unkey api deployments create-deployment --project=payments --app=payments-api --environment=production --oci='{"image":"ghcr.io/acme/payments:v1.2.3"}'`,
+			`unkey api deployments create-deployment --project=payments --app=payments-api --environment=production --deployment='{"deploymentId":"d_abc123xyz"}'`,
+		},
+		Flags: []cli.Flag{
+			cli.String("body", "Decode this JSON as the endpoint request body. Request-building flags are mutually exclusive."),
+			util.RootKeyFlag(),
+			util.APIURLFlag(),
+			util.ConfigFlag(),
+			util.OutputFlag(),
+			cli.String("project", "Project ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("app", "App ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("environment", "Environment ID or slug.", cli.Required(), cli.MutuallyExclusive("body")),
+			cli.String("git", "Build from the app's connected GitHub repository using a JSON object.", cli.MutuallyExclusive("body", "oci", "deployment")),
+			cli.String("oci", "Deploy a prebuilt OCI image without a build using a JSON object.", cli.MutuallyExclusive("body", "git", "deployment")),
+			cli.String("deployment", "Re-run an existing deployment using a JSON object.", cli.MutuallyExclusive("body", "git", "oci")),
+		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			client, err := util.CreateClient(cmd)
 			if err != nil {
@@ -23,60 +53,65 @@ func createDeploymentCmd() *cli.Command {
 			}
 
 			if cmd.FlagIsSet("body") {
-				body := cmd.String("body")
-				res, err := util.SendBody(ctx, client.Deployments.CreateDeployment, body)
+				res, err := util.SendBody(ctx, client.Deployments.CreateDeploymentV3, cmd.String("body"))
 				if err != nil {
 					return err
 				}
-				return util.Output(cmd, res.V2DeploymentsCreateDeploymentResponseBody)
+				return util.Output(cmd, res.V3DeploymentsCreateDeploymentResponseBody)
 			}
-			send := func(req components.V2DeploymentsCreateDeploymentRequestBodyUnion) error {
-				res, err := client.Deployments.CreateDeployment(ctx, req)
-				if err != nil {
-					return fmt.Errorf("%s", util.FormatError(err))
-				}
-				return util.Output(cmd, res.V2DeploymentsCreateDeploymentResponseBody)
+
+			req := components.V3DeploymentsCreateDeploymentRequestBody{
+				Project:     cmd.String("project"),
+				App:         cmd.String("app"),
+				Environment: cmd.String("environment"),
+				Git:         nil,
+				Oci:         nil,
+				Deployment:  nil,
 			}
-			project, app, environment := cmd.String("project"), cmd.String("app"), cmd.String("environment")
-			var req components.V2DeploymentsCreateDeploymentRequestBodyUnion
-			sources := 0
-			if raw := cmd.String("git"); raw != "" {
+			if cmd.String("git") != "" {
 				var source *components.DeploymentSourceGit
-				if err := json.Unmarshal([]byte(raw), &source); err != nil {
-					return fmt.Errorf("invalid JSON for --git: %w", err)
+				if err := cmd.JSON("git", &source); err != nil {
+					return err
 				}
 				if source == nil {
 					return fmt.Errorf("--git must be a JSON object, not null")
 				}
-				req = components.CreateV2DeploymentsCreateDeploymentRequestBodyUnionV2DeploymentsCreateDeploymentRequestBody2(components.V2DeploymentsCreateDeploymentRequestBody2{Project: project, App: app, Environment: environment, Git: *source, Image: nil, Deployment: nil})
-				sources++
+				req.Git = source
 			}
-			if raw := cmd.String("image"); raw != "" {
-				var source *components.DeploymentSourceImage
-				if err := json.Unmarshal([]byte(raw), &source); err != nil {
-					return fmt.Errorf("invalid JSON for --image: %w", err)
+			if cmd.String("oci") != "" {
+				var source *components.DeploymentSourceOCI
+				if err := cmd.JSON("oci", &source); err != nil {
+					return err
 				}
 				if source == nil {
-					return fmt.Errorf("--image must be a JSON object, not null")
+					return fmt.Errorf("--oci must be a JSON object, not null")
 				}
-				req = components.CreateV2DeploymentsCreateDeploymentRequestBodyUnionV2DeploymentsCreateDeploymentRequestBody1(components.V2DeploymentsCreateDeploymentRequestBody1{Project: project, App: app, Environment: environment, Git: nil, Image: *source, Deployment: nil})
-				sources++
+				req.Oci = source
 			}
-			if raw := cmd.String("deployment"); raw != "" {
+			if cmd.String("deployment") != "" {
 				var source *components.DeploymentSourceDeployment
-				if err := json.Unmarshal([]byte(raw), &source); err != nil {
-					return fmt.Errorf("invalid JSON for --deployment: %w", err)
+				if err := cmd.JSON("deployment", &source); err != nil {
+					return err
 				}
 				if source == nil {
 					return fmt.Errorf("--deployment must be a JSON object, not null")
 				}
-				req = components.CreateV2DeploymentsCreateDeploymentRequestBodyUnionV2DeploymentsCreateDeploymentRequestBody3(components.V2DeploymentsCreateDeploymentRequestBody3{Project: project, App: app, Environment: environment, Git: nil, Image: nil, Deployment: *source})
-				sources++
+				req.Deployment = source
 			}
-			if sources != 1 {
-				return fmt.Errorf("exactly one of --git, --image, or --deployment is required")
+			sources := 0
+			for _, present := range []bool{req.Git != nil, req.Oci != nil, req.Deployment != nil} {
+				if present {
+					sources++
+				}
 			}
-			return send(req)
+			if sources > 1 {
+				return fmt.Errorf("only one of --git, --oci, or --deployment may be provided")
+			}
+			res, err := client.Deployments.CreateDeploymentV3(ctx, req)
+			if err != nil {
+				return fmt.Errorf("%s", util.FormatError(err))
+			}
+			return util.Output(cmd, res.V3DeploymentsCreateDeploymentResponseBody)
 		},
 	}
 }

@@ -28,8 +28,6 @@ export { useTableHeight } from "./hooks/use-table-height";
 export { CheckboxCell, CheckboxHeaderCell, RowActionSkeleton } from "./components/cells";
 export { StatusCell } from "./components/cells";
 export type { StatusCellProps } from "./components/cells";
-export { TimestampCell } from "./components/cells";
-export type { TimestampCellProps } from "./components/cells";
 export { BadgeCell } from "./components/cells";
 export type { BadgeCellProps } from "./components/cells";
 export { CopyCell } from "./components/cells";
