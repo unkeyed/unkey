@@ -33,6 +33,13 @@ properties:
       is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
     x-go-type-skip-optional-pointer: true
     x-go-type-skip-optional-pointer-with-omitzero: true
+  keyspaceId:
+    type: string
+    description: |
+      The ID of the keyspace the key belongs to.
+      Returned for both valid and invalid keys, except when `code=NOT_FOUND`.
+    x-go-type-skip-optional-pointer: true
+    x-go-type-skip-optional-pointer-with-omitzero: true
   name:
     type: string
     description: |
