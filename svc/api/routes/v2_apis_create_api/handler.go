@@ -13,7 +13,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/projects"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -48,11 +50,19 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = principal.Authorize(rbac.T(rbac.Tuple{
-		ResourceType: rbac.Api,
-		ResourceID:   "*",
-		Action:       rbac.CreateAPI,
-	}))
+	// The keyspace arm is wildcard scoped because neither the API nor its
+	// keyspace exists yet, so there is no concrete ID to grant against
+	err = principal.Authorize(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.CreateAPI,
+		}),
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project("*").Keyspace("*"),
+			permissions.Write,
+		),
+	))
 	if err != nil {
 		return err
 	}

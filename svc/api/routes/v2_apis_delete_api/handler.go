@@ -15,9 +15,14 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
+
+// keyDeleteBatchSize matches the audit log export drain
+const keyDeleteBatchSize = 1000
 
 type (
 	Request  = openapi.V2ApisDeleteApiRequestBody
@@ -63,6 +68,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   req.ApiId,
 			Action:       rbac.DeleteAPI,
 		}),
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project("*").Keyspace("*"),
+			permissions.Delete,
+		),
 	))
 	if err != nil {
 		return err
@@ -121,24 +130,69 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
+		apiMeta := map[string]any{}
+		auditResources := []auditlog.AuditLogResource{{
+			Type:        auditlog.APIResourceType,
+			ID:          api.ID,
+			DisplayName: api.Name,
+			Name:        api.Name,
+			Meta:        apiMeta,
+		}}
+
+		if api.KeyAuthID.Valid {
+			err = db.Query.SoftDeleteKeySpace(ctx, tx, db.SoftDeleteKeySpaceParams{
+				KeySpaceID: api.KeyAuthID.String,
+				Now:        sql.NullInt64{Valid: true, Int64: now.UnixMilli()},
+			})
+			if err != nil {
+				return fault.Wrap(err,
+					fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+					fault.Internal("database error"), fault.Public("Failed to delete API."),
+				)
+			}
+
+			// Soft delete every key in batches until we reach the end
+			var keysDeleted int64
+			for {
+				rowsAffected, keysErr := db.Query.SoftDeleteKeysByKeySpaceID(ctx, tx, db.SoftDeleteKeysByKeySpaceIDParams{
+					KeySpaceID: api.KeyAuthID.String,
+					Now:        sql.NullInt64{Valid: true, Int64: now.UnixMilli()},
+					Limit:      keyDeleteBatchSize,
+				})
+				if keysErr != nil {
+					return fault.Wrap(keysErr,
+						fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+						fault.Internal("database error"), fault.Public("Failed to delete API."),
+					)
+				}
+
+				keysDeleted += rowsAffected
+				if rowsAffected < keyDeleteBatchSize {
+					break
+				}
+			}
+
+			apiMeta["keysDeleted"] = keysDeleted
+			apiMeta["deletedAtM"] = now.UnixMilli()
+			auditResources = append(auditResources, auditlog.AuditLogResource{
+				Type:        auditlog.KeySpaceResourceType,
+				ID:          api.KeyAuthID.String,
+				DisplayName: api.KeyAuthID.String,
+				Name:        api.KeyAuthID.String,
+				Meta:        map[string]any{},
+			})
+		}
+
 		// Create audit log for API deletion
 		err = h.Auditlogs.Insert(ctx, tx, []auditlog.AuditLog{{
-			WorkspaceID: principal.AuthorizedWorkspaceID,
-			Event:       auditlog.APIDeleteEvent,
-			ActorType:   auditlog.AuditLogActor(principal.Subject.Type),
-			ActorID:     principal.Subject.ID,
-			ActorName:   principal.Subject.Name,
-			ActorMeta:   map[string]any{},
-			Display:     fmt.Sprintf("Deleted API %s", req.ApiId),
-			Resources: []auditlog.AuditLogResource{
-				{
-					Type:        auditlog.APIResourceType,
-					ID:          api.ID,
-					DisplayName: api.Name,
-					Name:        api.Name,
-					Meta:        map[string]any{},
-				},
-			},
+			WorkspaceID:   principal.AuthorizedWorkspaceID,
+			Event:         auditlog.APIDeleteEvent,
+			ActorType:     auditlog.AuditLogActor(principal.Subject.Type),
+			ActorID:       principal.Subject.ID,
+			ActorName:     principal.Subject.Name,
+			ActorMeta:     map[string]any{},
+			Display:       fmt.Sprintf("Deleted API %s", req.ApiId),
+			Resources:     auditResources,
 			RemoteIP:      s.Location(),
 			UserAgent:     s.UserAgent(),
 			CorrelationID: "",
