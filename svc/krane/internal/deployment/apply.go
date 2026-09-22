@@ -52,6 +52,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		"namespace", req.GetK8SNamespace(),
 		"name", req.GetK8SName(),
 		"deployment_id", req.GetDeploymentId(),
+		"disable_gvisor", c.disableGvisor,
 	)
 
 	err := assert.All(
