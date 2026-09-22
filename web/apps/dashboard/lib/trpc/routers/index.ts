@@ -113,9 +113,7 @@ import {
 } from "./org";
 import { createPlainIssue } from "./plain";
 import { createNamespace } from "./ratelimit/createNamespace";
-import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
-import { deleteOverride } from "./ratelimit/deleteOverride";
 import { ratelimitLlmSearch } from "./ratelimit/llm-search";
 import { listRatelimitNamespaces } from "./ratelimit/namespaces_list";
 import { listRatelimitOverrides } from "./ratelimit/overrides_list";
@@ -127,7 +125,6 @@ import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { queryRatelimitTimeseriesBatch } from "./ratelimit/query-timeseries-batch";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
-import { updateOverride } from "./ratelimit/updateOverride";
 import { deleteRootKeys } from "./settings/root-keys/delete";
 import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
 import { queryRootKeys } from "./settings/root-keys/query";
@@ -308,9 +305,6 @@ export const router = t.router({
     }),
     override: t.router({
       list: listRatelimitOverrides,
-      create: createOverride,
-      update: updateOverride,
-      delete: deleteOverride,
     }),
   }),
   logs: t.router({
