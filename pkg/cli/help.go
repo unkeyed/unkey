@@ -389,6 +389,10 @@ func (c *Command) getEnvVar(flag Flag) string {
 
 // getDefaultValue extracts and formats the default value from a flag
 func (c *Command) getDefaultValue(flag Flag) string {
+	if baseFlag, ok := baseFlagOf(flag); ok && (baseFlag.defaultValue != "" || baseFlag.hasEnvValue) {
+		return baseFlag.defaultValue
+	}
+
 	switch f := flag.(type) {
 	case *StringFlag:
 		if val := f.Value(); val != "" {
