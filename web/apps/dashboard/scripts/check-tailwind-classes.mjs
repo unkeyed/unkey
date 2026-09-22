@@ -1,28 +1,7 @@
 #!/usr/bin/env node
-// Fails when a class-like token used in source compiles to no CSS rule.
-//
-// Compiles styles/tailwind.css with the tailwindcss version pinned in
-// web/pnpm-workspace.yaml, resolved through this app's own node_modules (the
-// pnpm store also holds stray newer tailwindcss copies pulled in by other
-// packages' devDependencies; requiring "tailwindcss" from here avoids them).
-// A token passes only if Tailwind's own source scanner finds the exact same
-// string AND building it grows the compiled CSS. Both checks are necessary:
-// scanner membership alone would pass a syntactically valid class that the
-// scanner failed to extract from its surrounding source (that IS a bug —
-// it means production ships without it); a growth check alone would pass a
-// valid-looking class fed to it directly even when nothing in the repo
-// would ever produce that literal candidate string.
-//
-// Scans this app, web/internal/ui/src, and web/apps/design, which renders the
-// same @unkey/ui token layer and documents the classes the dashboard should
-// use. All three compile against this app's styles/tailwind.css.
-//
-// Run: node web/apps/dashboard/scripts/check-tailwind-classes.mjs
-//
-// Dynamic class construction (e.g. `` `bg-${color}-500` ``) can't be
-// verified statically. Add the literal generated class names this produces
-// to tailwind-class-allowlist.json to silence them once you've confirmed by
-// hand that they compile.
+// @tailwindcss/node and @tailwindcss/oxide are resolved through
+// @tailwindcss/postcss so this compiles with the exact version `next build`
+// ships, even when the `tailwindcss` catalog pin disagrees.
 
 import fs from "node:fs";
 import { createRequire } from "node:module";
@@ -34,37 +13,12 @@ const require = createRequire(path.join(dashboardDir, "package.json"));
 const cssEntry = path.join(dashboardDir, "styles/tailwind.css");
 const allowlistPath = path.join(dashboardDir, "scripts/tailwind-class-allowlist.json");
 
-const twPkgJsonPath = require.resolve("tailwindcss/package.json");
-const twVersion = JSON.parse(fs.readFileSync(twPkgJsonPath, "utf8")).version;
-const pnpmStoreDir = path.resolve(path.dirname(twPkgJsonPath), "../../..");
-
-function resolvePinned(pkg, entryFile) {
-  const dir = path.join(
-    pnpmStoreDir,
-    `@tailwindcss+${pkg}@${twVersion}`,
-    "node_modules",
-    "@tailwindcss",
-    pkg,
-  );
-  const entry = path.join(dir, entryFile);
-  if (!fs.existsSync(entry)) {
-    throw new Error(
-      `Expected @tailwindcss/${pkg}@${twVersion} at ${entry}. The pnpm store layout changed — reinstall or update the version derivation in this script.`,
-    );
-  }
-  return require(entry);
-}
-
-const { compile } = resolvePinned("node", "dist/index.js");
-const { Scanner } = resolvePinned("oxide", "index.js");
+const postcssRequire = createRequire(require.resolve("@tailwindcss/postcss"));
+const { compile } = postcssRequire("@tailwindcss/node");
+const { Scanner } = postcssRequire("@tailwindcss/oxide");
 
 const allowlist = new Set(JSON.parse(fs.readFileSync(allowlistPath, "utf8")));
 
-// Utility classes that compile fine but should never be written by hand.
-// Matched against the whole class-like token, exact string only (no
-// substring/prefix match), so `--border`, `border-strong`, `border-input`,
-// and variant-prefixed forms like `hover:border-border` are unaffected —
-// add those as their own entries if they need banning too.
 const BANNED_CLASSES = [
   {
     token: "border-border",
@@ -75,24 +29,36 @@ const BANNED_CLASSES = [
 ];
 const bannedReasonByToken = new Map(BANNED_CLASSES.map(({ token, reason }) => [token, reason]));
 
-// Namespace guard (see the theme.css header): raised, table-header and strong
-// must stay in --background-color-*/--border-color-*, never --color-*, because
-// Tailwind v4 derives every utility family from a single --color-* entry. Each
-// of these must compile to nothing; if one starts emitting CSS, a --color-*
-// registration for that token leaked in. Add more tokens here as needed.
-const NAMESPACE_GUARD_CLASSES = [
-  { token: "border-raised", namespace: "--background-color-raised" },
-  { token: "border-table-header", namespace: "--background-color-table-header" },
-  { token: "text-raised", namespace: "--background-color-raised" },
-  { token: "bg-strong", namespace: "--border-color-strong" },
+const BANNED_PATTERNS = [
+  {
+    pattern: /^rounded(?:-[a-z]{1,2})?-[[(]/,
+    reason:
+      "arbitrary radius: use the Tailwind scale (xs 2px, sm 4px, md 6px, lg 8px, xl 12px, 2xl 16px, 3xl 24px)",
+  },
 ];
+
+function bannedReasonFor(token) {
+  const exact = bannedReasonByToken.get(token);
+  if (exact) {
+    return exact;
+  }
+  const utility = splitTopLevel(token, ":").at(-1);
+  for (const { pattern, reason } of BANNED_PATTERNS) {
+    if (pattern.test(utility)) {
+      return reason;
+    }
+  }
+  return undefined;
+}
+
+const ROLE_NAMES = ["raised", "table-header", "input", "strong", "hairline"];
 
 const css = fs.readFileSync(cssEntry, "utf8");
 const base = path.dirname(cssEntry);
 const result = await compile(css, { base, onDependency: () => {} });
 
-// Mirrors @tailwindcss/postcss: an unset root falls back to the app root
-// (its process.cwd() at build time), not the CSS file's own directory.
+// Mirrors @tailwindcss/postcss: an unset root falls back to the app root, not
+// the CSS file's directory.
 const rootSource =
   result.root === "none"
     ? []
@@ -198,14 +164,12 @@ function isClassLike(token) {
   last = last.replace(/\/(\[[^\]]+\]|\d+)$/, "");
   const bracketIdx = last.indexOf("[");
   if (bracketIdx !== -1) {
-    // prefix-[arbitrary-value] (e.g. bg-[hsl(...)]) or bare [arbitrary-property:value]
     const prefix = last.slice(0, bracketIdx);
     return prefix === "" || /^-?[a-z][a-z0-9]*(-[a-z0-9]*)*-$/i.test(prefix);
   }
   return /^-?[a-z][a-z0-9]*(-[a-z0-9]+)+$/i.test(last);
 }
 
-// { token -> Map(file -> Set(line)) }
 const found = new Map();
 function record(token, file, line) {
   if (!found.has(token)) {
@@ -266,15 +230,14 @@ function cssEscape(token) {
   return token.replace(/[!"#$%&'()*+,.\/:;<=>?@[\\\]^`{|}~]/g, (c) => `\\${c}`);
 }
 
-// A class can be a plain, hand-authored CSS rule in tailwind.css rather than
-// a Tailwind-generated utility (e.g. .scrollbar-hide). build() only grows for
-// candidate-driven output, so those never show growth; fall back to checking
-// whether the selector is already present in the compiled text verbatim.
+// Hand-authored rules in tailwind.css (e.g. .scrollbar-hide) never grow
+// build(), so a verbatim selector match stands in. A token must also be found
+// by Tailwind's own scanner: one it cannot extract ships to production missing.
 let prevLen = result.build([]).length;
 const failures = [];
 const banned = [];
 for (const [token, byFile] of found) {
-  const bannedReason = bannedReasonByToken.get(token);
+  const bannedReason = bannedReasonFor(token);
   if (bannedReason) {
     banned.push({ token, reason: bannedReason, byFile });
   }
@@ -291,19 +254,10 @@ for (const [token, byFile] of found) {
   }
 }
 
-// These tokens must never compile: they sit outside --background-color-*/
-// --border-color-*, so growth means the corresponding --color-* registration
-// leaked into theme.css. Probed directly against build(), independent of
-// whether the scanner ever sees the string in source.
-const leaked = [];
-for (const { token, namespace } of NAMESPACE_GUARD_CLASSES) {
-  const out = result.build([token]);
-  const grew = out.length > prevLen;
-  prevLen = out.length;
-  if (grew) {
-    leaked.push({ token, namespace });
-  }
-}
+const declaredColors = new Set(
+  [...result.build([]).matchAll(/(?<![\w-])--color-([a-zA-Z][\w-]*)\s*:/g)].map((m) => m[1]),
+);
+const leaked = ROLE_NAMES.filter((name) => declaredColors.has(name));
 
 if (failures.length === 0 && banned.length === 0 && leaked.length === 0) {
   console.info(
@@ -313,10 +267,10 @@ if (failures.length === 0 && banned.length === 0 && leaked.length === 0) {
 }
 
 if (leaked.length > 0) {
-  console.error(`${leaked.length} namespace-guard token(s) now compile:\n`);
-  for (const { token, namespace } of leaked) {
+  console.error(`${leaked.length} role token(s) registered in the --color-* namespace:\n`);
+  for (const name of leaked) {
     console.error(
-      `  ${token}  (now emits CSS; ${namespace} must stay out of --color-*, see web/internal/ui/theme.css header)`,
+      `  --color-${name}  (move it to --background-color-* or --border-color-*, see web/internal/ui/theme.css header)`,
     );
   }
   console.error("");
