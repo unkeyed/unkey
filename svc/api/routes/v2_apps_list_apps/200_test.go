@@ -22,12 +22,6 @@ func TestListAppsSuccessfully(t *testing.T) {
 	h.Register(route)
 
 	workspace := h.Resources().UserWorkspace
-	rootKey := h.CreateRootKey(workspace.ID, "app.*.read_app")
-	headers := http.Header{
-		"Content-Type":  {"application/json"},
-		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}
-
 	projectSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 	project := h.CreateProject(seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
@@ -35,8 +29,13 @@ func TestListAppsSuccessfully(t *testing.T) {
 		Name:        "Payments Service",
 		Slug:        projectSlug,
 	})
+	rootKey := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":projects/"+project.ID+"/apps/*#read")
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
 
-	t.Run("project with no apps returns empty list", func(t *testing.T) {
+	t.Run("canonical collection grant returns empty list for project with no apps", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.Slug})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body)
