@@ -55,7 +55,7 @@ sequenceDiagram
   Worker->>DB: Insert topologies (outbox entries)
   Worker->>Worker: waitForDeployments awaits promise instances_ready
   Note over Worker: suspended on promise
-  DB-->>Worker: ReportDeploymentStatus threshold met<br/>→ NotifyInstancesReady resolves promise
+  DB-->>Worker: ReportDeploymentStatus threshold met<br/>→ NotifyReadiness(STATE_READY) resolves promise
   Worker->>DB: Mark deployment ready
   Worker->>BuildSlot: Release(deployment_id)
 ```
@@ -168,10 +168,10 @@ After `createTopologies`, the Deploy run enters `waitForDeployments`, which awai
 
 1. Build per-region min replicas from the topologies just inserted.
 2. Require `numRegions - 1` healthy regions (minimum 1, tolerating one regional outage).
-3. Check the database once for instances that are already healthy.
-4. Otherwise await the promise, racing it against `regionReadyTimeout`.
+3. Check the database once for instances that are already healthy. If the threshold is met, return without awaiting the promise.
+4. Otherwise await the promise, racing it against `regionReadyTimeout`. A result that arrived before the wait is retained by the promise.
 
-The promise is resolved by `DeployWorkflow.NotifyInstancesReady`, a `SHARED` handler that runs concurrently with the suspended run. A report that arrives before the run awaits is kept by the promise, so there is no awakeable to stash and no state to clear.
+`DeployWorkflow.NotifyReadiness` resolves the promise with `restate.Void` for `STATE_READY` and rejects it for a typed startup failure. Rejection also fails older runs that await `restate.Void`, instead of letting them interpret a failure payload as success. This `SHARED` handler runs concurrently with the suspended run. The first completion wins, including when it arrives before the run awaits. Concurrent notifications do not have a guaranteed execution order. Missing or unknown states are rejected without completing the promise. `STATE_CONTAINER_CONFIG_ERROR` is ignored because it can be transient. The deprecated `NotifyInstancesReady` RPC forwards to this handler for queued notifications.
 
 Caller: `cluster.Service.ReportDeploymentStatus` (the RPC krane calls to report instance state) runs a thundering-herd gate after the upsert transaction:
 
@@ -180,7 +180,15 @@ Caller: `cluster.Service.ReportDeploymentStatus` (the RPC krane calls to report 
 3. Count running instances per region; require `numRegions - 1` healthy regions (minimum 1 — tolerates one regional outage).
 4. Dedup the notification via an in-process `sync.Map` so we don't re-fire on every subsequent status report once the threshold is met.
 5. Skip if the deployment's Deploy invocation is no longer live in Restate. Wake also reports with status `deploying`, and a notify for a finished run would leave a promise Restate never cleans up.
-6. If threshold met (and not yet notified), send `NotifyInstancesReady(deployment_id)` to `DeployWorkflow`.
+6. If threshold met (and not yet notified), send `NotifyReadiness(state=STATE_READY)` to `DeployWorkflow`, keyed by deployment ID.
+
+Krane maps the Kubernetes termination reasons `OOMKilled`, `ContainerCannotRun`, and containerd's `StartError` to `TerminationCause`. It maps the waiting reasons `CrashLoopBackOff`, `CreateContainerConfigError`, and `InvalidImageName` to `WaitingCause`. Raw reasons and messages remain available for diagnostics. `CreateContainerConfigError` remains diagnostic-only because Kubernetes can briefly report a missing Secret during startup. Temporary states such as `ErrImagePull`, `ImagePullBackOff`, and `ContainerCreating` do not trigger early failure and retain the existing readiness timeout.
+
+`cluster.Service.ReportInstanceEvents` sends the matching failure state on the first fatal classified failure of the `deployment` container while the deployment has status `deploying` and its Deploy invocation is live. It uses Restate's asynchronous `Send`, waiting for durable acceptance rather than worker completion. The deployment lookup, liveness check, and acceptance request share a 5-second timeout per failure notification. Failed acceptance returns an error and clears Krane's deduplication entry. Krane retries only if another pod-watch update arrives. If the pod stays unchanged, early failure can be missed and the existing 15-minute readiness timeout remains the fallback. This path runs before diagnostic buffering and does not depend on ClickHouse.
+
+Deploy the worker before ctrl-api, then deploy Krane. Older Krane versions omit `cause`, which defaults to the unspecified enum value and does not trigger early failure. Ctrl does not infer the cause from the diagnostic string.
+
+If a failure result wins, the workflow records an actionable message in MySQL's `deployment_steps.error`. OOM advice recommends increasing the memory limit or reducing startup memory use. Other messages point to runtime logs, the image entrypoint, or the image reference. The dashboard displays this message under the deploying step. The existing failure path marks the deployment failed, stops it, and releases its build slot. No failure-history table is required.
 
 ## Self-skip (belt-and-suspenders dedup)
 

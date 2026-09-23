@@ -20,8 +20,8 @@ import (
 // idempotent and can safely resume from any step after a crash.
 //
 // The workflow key is the deployment id: Deploy runs once per key, and
-// readiness arrives through a durable promise that NotifyInstancesReady
-// resolves, so the run keeps no state. The contended pointer,
+// readiness arrives through a durable promise that NotifyReadiness
+// completes, so the run keeps no state. The contended pointer,
 // apps.current_deployment_id, is serialized inside
 // RoutingService.SwapLiveDeployment, which is keyed by environment id.
 // Workspace-wide build concurrency is separately enforced by BuildSlotService.
@@ -32,9 +32,12 @@ type DeployWorkflowClient interface {
 	Create(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployCreateRequest, *DeployCreateResponse]
 	// Deploy is the run: build, provision, wait for health, route.
 	Deploy(opts ...sdk_go.ClientOption) sdk_go.Client[*DeployRequest, *DeployResponse]
-	// NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
-	// lands before Deploy awaits is kept.
+	// Deprecated: Do not use.
+	// Retained for readiness notifications queued before NotifyReadiness existed.
 	NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
+	// NotifyReadiness resolves readiness or rejects a startup failure.
+	// The first completion wins.
+	NotifyReadiness(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyReadinessRequest, *NotifyReadinessResponse]
 }
 
 type deployWorkflowClient struct {
@@ -67,12 +70,21 @@ func (c *deployWorkflowClient) Deploy(opts ...sdk_go.ClientOption) sdk_go.Client
 	return sdk_go.WithRequestType[*DeployRequest](sdk_go.Workflow[*DeployResponse](c.ctx, "hydra.v1.DeployWorkflow", c.workflowID, "Deploy", cOpts...))
 }
 
+// Deprecated: Do not use.
 func (c *deployWorkflowClient) NotifyInstancesReady(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
 	cOpts := c.options
 	if len(opts) > 0 {
 		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
 	}
 	return sdk_go.WithRequestType[*NotifyInstancesReadyRequest](sdk_go.Workflow[*NotifyInstancesReadyResponse](c.ctx, "hydra.v1.DeployWorkflow", c.workflowID, "NotifyInstancesReady", cOpts...))
+}
+
+func (c *deployWorkflowClient) NotifyReadiness(opts ...sdk_go.ClientOption) sdk_go.Client[*NotifyReadinessRequest, *NotifyReadinessResponse] {
+	cOpts := c.options
+	if len(opts) > 0 {
+		cOpts = append(append([]sdk_go.ClientOption{}, cOpts...), opts...)
+	}
+	return sdk_go.WithRequestType[*NotifyReadinessRequest](sdk_go.Workflow[*NotifyReadinessResponse](c.ctx, "hydra.v1.DeployWorkflow", c.workflowID, "NotifyReadiness", cOpts...))
 }
 
 // DeployWorkflowIngressClient is the ingress client API for hydra.v1.DeployWorkflow service.
@@ -86,9 +98,12 @@ type DeployWorkflowIngressClient interface {
 	Submit(ctx context.Context, input *DeployRequest, opts ...ingress.SendOption) (ingress.SendResponse[*DeployResponse], error)
 	// Handle creates an handle to the submitted workflow, useful to retrieve its output or attach to it
 	Handle() ingress.InvocationHandle[*DeployResponse]
-	// NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
-	// lands before Deploy awaits is kept.
+	// Deprecated: Do not use.
+	// Retained for readiness notifications queued before NotifyReadiness existed.
 	NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse]
+	// NotifyReadiness resolves readiness or rejects a startup failure.
+	// The first completion wins.
+	NotifyReadiness() ingress.Requester[*NotifyReadinessRequest, *NotifyReadinessResponse]
 }
 
 type deployWorkflowIngressClient struct {
@@ -115,9 +130,15 @@ func (c *deployWorkflowIngressClient) Submit(ctx context.Context, input *DeployR
 	return ingress.NewRequester[*DeployRequest, *DeployResponse](c.client, c.serviceName, "Deploy", &c.workflowID, &codec).Send(ctx, input, opts...)
 }
 
+// Deprecated: Do not use.
 func (c *deployWorkflowIngressClient) NotifyInstancesReady() ingress.Requester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse] {
 	codec := encoding.ProtoJSONCodec
 	return ingress.NewRequester[*NotifyInstancesReadyRequest, *NotifyInstancesReadyResponse](c.client, c.serviceName, "NotifyInstancesReady", &c.workflowID, &codec)
+}
+
+func (c *deployWorkflowIngressClient) NotifyReadiness() ingress.Requester[*NotifyReadinessRequest, *NotifyReadinessResponse] {
+	codec := encoding.ProtoJSONCodec
+	return ingress.NewRequester[*NotifyReadinessRequest, *NotifyReadinessResponse](c.client, c.serviceName, "NotifyReadiness", &c.workflowID, &codec)
 }
 
 func (c *deployWorkflowIngressClient) Handle() ingress.InvocationHandle[*DeployResponse] {
@@ -132,8 +153,8 @@ func (c *deployWorkflowIngressClient) Handle() ingress.InvocationHandle[*DeployR
 // idempotent and can safely resume from any step after a crash.
 //
 // The workflow key is the deployment id: Deploy runs once per key, and
-// readiness arrives through a durable promise that NotifyInstancesReady
-// resolves, so the run keeps no state. The contended pointer,
+// readiness arrives through a durable promise that NotifyReadiness
+// completes, so the run keeps no state. The contended pointer,
 // apps.current_deployment_id, is serialized inside
 // RoutingService.SwapLiveDeployment, which is keyed by environment id.
 // Workspace-wide build concurrency is separately enforced by BuildSlotService.
@@ -144,9 +165,12 @@ type DeployWorkflowServer interface {
 	Create(ctx sdk_go.WorkflowSharedContext, req *DeployCreateRequest) (*DeployCreateResponse, error)
 	// Deploy is the run: build, provision, wait for health, route.
 	Deploy(ctx sdk_go.WorkflowContext, req *DeployRequest) (*DeployResponse, error)
-	// NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
-	// lands before Deploy awaits is kept.
+	// Deprecated: Do not use.
+	// Retained for readiness notifications queued before NotifyReadiness existed.
 	NotifyInstancesReady(ctx sdk_go.WorkflowSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error)
+	// NotifyReadiness resolves readiness or rejects a startup failure.
+	// The first completion wins.
+	NotifyReadiness(ctx sdk_go.WorkflowSharedContext, req *NotifyReadinessRequest) (*NotifyReadinessResponse, error)
 }
 
 // UnimplementedDeployWorkflowServer should be embedded to have
@@ -164,6 +188,9 @@ func (UnimplementedDeployWorkflowServer) Deploy(ctx sdk_go.WorkflowContext, req 
 }
 func (UnimplementedDeployWorkflowServer) NotifyInstancesReady(ctx sdk_go.WorkflowSharedContext, req *NotifyInstancesReadyRequest) (*NotifyInstancesReadyResponse, error) {
 	return nil, sdk_go.ToTerminalError(fmt.Errorf("method NotifyInstancesReady not implemented"), sdk_go.WithErrorCode(501))
+}
+func (UnimplementedDeployWorkflowServer) NotifyReadiness(ctx sdk_go.WorkflowSharedContext, req *NotifyReadinessRequest) (*NotifyReadinessResponse, error) {
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method NotifyReadiness not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployWorkflowServer) testEmbeddedByValue() {}
 
@@ -187,6 +214,7 @@ func NewDeployWorkflowServer(srv DeployWorkflowServer, opts ...sdk_go.ServiceDef
 	router = router.Handler("Create", sdk_go.NewWorkflowSharedHandler(srv.Create))
 	router = router.Handler("Deploy", sdk_go.NewWorkflowHandler(srv.Deploy))
 	router = router.Handler("NotifyInstancesReady", sdk_go.NewWorkflowSharedHandler(srv.NotifyInstancesReady))
+	router = router.Handler("NotifyReadiness", sdk_go.NewWorkflowSharedHandler(srv.NotifyReadiness))
 	return router
 }
 

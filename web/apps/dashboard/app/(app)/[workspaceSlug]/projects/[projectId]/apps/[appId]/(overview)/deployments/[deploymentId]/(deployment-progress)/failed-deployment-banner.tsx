@@ -16,8 +16,7 @@ import type { StepsData } from "./deployment-progress";
 import { LIMITS_DOCS_URL, limitFailure } from "./limit-failure";
 
 /** Patterns matched against backend fault.Public messages to decide whether
- *  to show a "Go to Settings" link. Only errors fixable via project settings
- *  (dockerfile path, docker context, regions, git branch) belong here. */
+ *  to show a "Go to Settings" link. Only errors fixable via app settings belong here. */
 const SETTINGS_HINT_PATTERNS = [
   // Dockerfile path / docker context (from build.go extractUserBuildError)
   "check that the file path is correct",
@@ -28,6 +27,7 @@ const SETTINGS_HINT_PATTERNS = [
   "configure at least one region",
   // Git branch (from deploy_handler.go buildImage)
   "git branch could not be resolved",
+  "check the runtime logs and start command",
 ];
 
 function isSettingsRelatedError(error: string): boolean {
@@ -81,7 +81,16 @@ export function FailedDeploymentBanner({
       <AlertBanner variant="error">
         <AlertBannerTitle>Deployment failed</AlertBannerTitle>
         <AlertBannerDescription className="max-w-200 break-words">
-          {limit ?? errorMessage}
+          {limit ??
+            errorMessage.split(/(increase the memory limit)/i).map((text) =>
+              text.toLowerCase() === "increase the memory limit" ? (
+                <Link key={text} href={settingsUrl}>
+                  {text}
+                </Link>
+              ) : (
+                text
+              ),
+            )}
           {limit && (
             <>
               {" "}

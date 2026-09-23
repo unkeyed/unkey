@@ -49,7 +49,7 @@ type Controller struct {
 	fingerprints cache.Cache[string, string]
 
 	// eventDedup deduplicates instance lifecycle events by
-	// (pod_uid, container_name, restart_count, event_kind). The same life
+	// (pod_uid, container_name, restart_count, event_kind, waiting cause). The same life
 	// appears on every pod-watch tick until kubelet gc's it; this cache
 	// keeps us from re-emitting the same event over and over. May be nil
 	// in tests or environments without ctrl-side ClickHouse wiring.

@@ -78,7 +78,7 @@ type RegistryConfig struct {
 // live on EnvironmentService.
 //
 // The workflow is a Restate workflow keyed by deployment id: one Deploy run per
-// key, signalled by NotifyInstancesReady through a durable promise. Two deploys
+// key, signalled by NotifyReadiness through a durable promise. Two deploys
 // of the same app run concurrently; the ordering they need comes from the dedup
 // and supersede checks.
 type Workflow struct {

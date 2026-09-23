@@ -1,16 +1,215 @@
 package deployment
 
 import (
+	"context"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
+	"github.com/unkeyed/unkey/pkg/cache"
+	"github.com/unkeyed/unkey/pkg/clock"
+	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/kubernetes/fake"
+	k8stesting "k8s.io/client-go/testing"
 )
+
+func TestController_ReportsTerminationCause(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		reason   string
+		previous bool
+		cause    ctrlv1.TerminationCause
+	}{
+		{name: "first OOM", reason: "OOMKilled", cause: ctrlv1.TerminationCause_TERMINATION_CAUSE_OOM_KILLED},
+		{name: "OOM before restart", reason: "OOMKilled", previous: true, cause: ctrlv1.TerminationCause_TERMINATION_CAUSE_OOM_KILLED},
+		{name: "exit 137 without OOM", reason: "Error", cause: ctrlv1.TerminationCause_TERMINATION_CAUSE_OTHER},
+		{name: "container cannot run", reason: "ContainerCannotRun", cause: ctrlv1.TerminationCause_TERMINATION_CAUSE_CONTAINER_CANNOT_RUN},
+		{name: "containerd start error", reason: "StartError", cause: ctrlv1.TerminationCause_TERMINATION_CAUSE_CONTAINER_CANNOT_RUN},
+		{name: "unrecognized reason", reason: "DeadlineExceeded", cause: ctrlv1.TerminationCause_TERMINATION_CAUSE_OTHER},
+		{name: "missing reason", cause: ctrlv1.TerminationCause_TERMINATION_CAUSE_OTHER},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			termination := &corev1.ContainerStateTerminated{
+				Reason: tt.reason, ExitCode: 137, Signal: 9, Message: "container termination details",
+				FinishedAt: metav1.NewTime(time.Unix(1700000000, 0)),
+			}
+			status := corev1.ContainerStatus{Name: "deployment", State: corev1.ContainerState{Terminated: termination}}
+			if tt.previous {
+				status.State = corev1.ContainerState{Running: &corev1.ContainerStateRunning{StartedAt: termination.FinishedAt}}
+				status.LastTerminationState = corev1.ContainerState{Terminated: termination}
+				status.RestartCount = 1
+			}
+			var terminated *ctrlv1.Terminated
+			for _, event := range reportPodEvents(t, status) {
+				if event.GetTerminated() != nil {
+					terminated = event.GetTerminated()
+				}
+			}
+			require.NotNil(t, terminated)
+			require.Equal(t, tt.cause, terminated.GetCause())
+			require.Equal(t, tt.reason, terminated.GetReason())
+			require.Equal(t, "container termination details", terminated.GetMessage())
+			require.Equal(t, int32(137), terminated.GetExitCode())
+		})
+	}
+}
+
+func TestController_ReportsWaitingCause(t *testing.T) {
+	for _, tt := range []struct {
+		reason string
+		cause  ctrlv1.WaitingCause
+	}{
+		{reason: "CrashLoopBackOff", cause: ctrlv1.WaitingCause_WAITING_CAUSE_CRASH_LOOP_BACK_OFF},
+		{reason: "CreateContainerConfigError", cause: ctrlv1.WaitingCause_WAITING_CAUSE_CONTAINER_CONFIG_ERROR},
+		{reason: "InvalidImageName", cause: ctrlv1.WaitingCause_WAITING_CAUSE_INVALID_IMAGE_NAME},
+	} {
+		t.Run(tt.reason, func(t *testing.T) {
+			events := reportPodEvents(t, corev1.ContainerStatus{
+				Name: "deployment",
+				State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{
+					Reason: tt.reason, Message: "startup failure details",
+				}},
+			})
+			require.Len(t, events, 1)
+			waiting := events[0].GetWaiting()
+			require.NotNil(t, waiting)
+			require.Equal(t, tt.cause, waiting.GetCause())
+			require.Equal(t, tt.reason, waiting.GetReason())
+			require.Equal(t, "startup failure details", waiting.GetMessage())
+		})
+	}
+}
+
+func TestController_IgnoresTransientAndUnknownWaitingStates(t *testing.T) {
+	for _, reason := range []string{"ErrImagePull", "ImagePullBackOff", "ContainerCreating", "PodInitializing", "UnknownReason"} {
+		t.Run(reason, func(t *testing.T) {
+			events := reportPodEvents(t,
+				corev1.ContainerStatus{
+					Name:  "deployment",
+					State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: reason}},
+				},
+				corev1.ContainerStatus{
+					Name: "sidecar",
+					State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{
+						StartedAt: metav1.NewTime(time.Unix(1700000000, 0)),
+					}},
+				},
+			)
+			require.Len(t, events, 1)
+			require.Equal(t, "sidecar", events[0].GetContainerName())
+			require.NotNil(t, events[0].GetRunning())
+		})
+	}
+}
+
+func TestController_ReportsChangedWaitingCauseAtSameRestartCount(t *testing.T) {
+	eventCache, err := cache.New(cache.Config[string, struct{}]{
+		Fresh: time.Minute, Stale: time.Minute, MaxSize: 100,
+		Resource: uid.New("waiting-test"), Clock: clock.New(),
+	})
+	require.NoError(t, err)
+	t.Cleanup(eventCache.Close)
+	ctx, cancel := context.WithCancel(t.Context())
+	podWatch := watch.NewRaceFreeFake()
+	t.Cleanup(func() {
+		cancel()
+		podWatch.Stop()
+	})
+	client := fake.NewSimpleClientset()
+	client.PrependWatchReactor("pods", func(k8stesting.Action) (bool, watch.Interface, error) {
+		return true, podWatch, nil
+	})
+	reports := make(chan *ctrlv1.ReportInstanceEventsRequest, 4)
+	controller := New(Config{
+		ClientSet: client,
+		Cluster: &testutil.MockClusterClient{
+			ReportInstanceEventsFunc: func(_ context.Context, req *ctrlv1.ReportInstanceEventsRequest) (*ctrlv1.ReportInstanceEventsResponse, error) {
+				reports <- req
+				return &ctrlv1.ReportInstanceEventsResponse{}, nil
+			},
+		},
+		Fingerprints: cache.NewNoopCache[string, string](), EventDedup: eventCache,
+	})
+	require.NoError(t, controller.Start(ctx))
+	pod := &corev1.Pod{ObjectMeta: metav1.ObjectMeta{
+		Name: "app-pod", UID: types.UID(uid.New("pod")),
+		Labels: map[string]string{labels.LabelKeyDeploymentID: uid.New(uid.DeploymentPrefix)},
+	}}
+	for i, reason := range []string{"CreateContainerConfigError", "CreateContainerConfigError", "CrashLoopBackOff", "CrashLoopBackOff"} {
+		update := pod.DeepCopy()
+		update.Status.ContainerStatuses = []corev1.ContainerStatus{
+			{Name: "deployment", RestartCount: 1, State: corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: reason}}},
+			// A fresh sidecar event acknowledges every watch update, including deduplicated ones.
+			{Name: "sidecar", RestartCount: int32(i), State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{StartedAt: metav1.NewTime(time.Unix(1700000000, 0))}}},
+		}
+		podWatch.Modify(update)
+		select {
+		case report := <-reports:
+			var waitingReasons []string
+			for _, event := range report.GetEvents() {
+				if waiting := event.GetWaiting(); waiting != nil {
+					waitingReasons = append(waitingReasons, waiting.GetReason())
+				}
+			}
+			if i%2 == 0 {
+				require.Equal(t, []string{reason}, waitingReasons)
+			} else {
+				require.Empty(t, waitingReasons, "identical waiting causes must be deduplicated")
+			}
+		case <-time.After(5 * time.Second):
+			t.Fatal("Krane did not report the watch update")
+		}
+	}
+}
+
+func reportPodEvents(t *testing.T, statuses ...corev1.ContainerStatus) []*ctrlv1.InstanceEvent {
+	t.Helper()
+	ctx, cancel := context.WithCancel(t.Context())
+	podWatch := watch.NewRaceFreeFake()
+	t.Cleanup(func() {
+		cancel()
+		podWatch.Stop()
+	})
+	client := fake.NewSimpleClientset()
+	client.PrependWatchReactor("pods", func(k8stesting.Action) (bool, watch.Interface, error) {
+		return true, podWatch, nil
+	})
+	reports := make(chan *ctrlv1.ReportInstanceEventsRequest, 1)
+	controller := New(Config{
+		ClientSet: client,
+		Cluster: &testutil.MockClusterClient{
+			ReportInstanceEventsFunc: func(_ context.Context, req *ctrlv1.ReportInstanceEventsRequest) (*ctrlv1.ReportInstanceEventsResponse, error) {
+				reports <- req
+				return &ctrlv1.ReportInstanceEventsResponse{}, nil
+			},
+		},
+		Fingerprints: cache.NewNoopCache[string, string](),
+		EventDedup:   cache.NewNoopCache[string, struct{}](),
+	})
+	require.NoError(t, controller.Start(ctx))
+	podWatch.Modify(&corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "app-pod", UID: types.UID(uid.New("pod")),
+			Labels: map[string]string{labels.LabelKeyDeploymentID: uid.New(uid.DeploymentPrefix)},
+		},
+		Status: corev1.PodStatus{ContainerStatuses: statuses},
+	})
+	select {
+	case report := <-reports:
+		return report.GetEvents()
+	case <-time.After(5 * time.Second):
+		t.Fatal("Krane did not report the pod events")
+		return nil
+	}
+}
 
 // scanInstanceEvents is the pure decision layer for capturing pod-level
 // container failures. The dedup LRU and RPC layer sit on top; testing them

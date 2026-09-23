@@ -116,10 +116,8 @@ func (c *Controller) reportInstanceEvents(ctx context.Context, pod *corev1.Pod) 
 //   - LastTerminationState.Terminated: the previous life ended at
 //     (restart_count - 1) and the container has since restarted. Skipped
 //     when restart_count == 0 because there is no prior life to describe.
-//   - State.Waiting with reason=CrashLoopBackOff: kubelet has put the
-//     container in a backoff window. Emit one event per restart_count
-//     value so the dashboard can render "kubelet is throttling" alongside
-//     the underlying exit.
+//   - State.Waiting: emit classified startup failures once per restart_count.
+//     Skip transient and unrecognized waiting reasons.
 func scanInstanceEvents(pod *corev1.Pod) []*ctrlv1.InstanceEvent {
 	if pod == nil {
 		return nil
@@ -146,8 +144,10 @@ func scanInstanceEvents(pod *corev1.Pod) []*ctrlv1.InstanceEvent {
 		if cs.RestartCount > 0 && cs.LastTerminationState.Terminated != nil {
 			out = append(out, buildTerminatedEvent(pod, tenant, cs, cs.RestartCount-1, cs.LastTerminationState.Terminated))
 		}
-		if w := cs.State.Waiting; w != nil && w.Reason == "CrashLoopBackOff" {
-			out = append(out, buildWaitingEvent(pod, tenant, cs, w))
+		if w := cs.State.Waiting; w != nil {
+			if event := buildWaitingEvent(pod, tenant, cs, w); event != nil {
+				out = append(out, event)
+			}
 		}
 	}
 	return out
@@ -226,6 +226,13 @@ func buildTerminatedEvent(
 		// Kubelet sometimes lags on FinishedAt; same fallback as Running.
 		when = time.Now().UnixMilli()
 	}
+	cause := ctrlv1.TerminationCause_TERMINATION_CAUSE_OTHER
+	switch t.Reason {
+	case "OOMKilled":
+		cause = ctrlv1.TerminationCause_TERMINATION_CAUSE_OOM_KILLED
+	case "ContainerCannotRun", "StartError":
+		cause = ctrlv1.TerminationCause_TERMINATION_CAUSE_CONTAINER_CANNOT_RUN
+	}
 	ev := newEvent(pod, tenant, cs, restartCount, when)
 	ev.ContainerId = t.ContainerID
 	ev.State = &ctrlv1.InstanceEvent_Terminated{Terminated: &ctrlv1.Terminated{
@@ -233,16 +240,29 @@ func buildTerminatedEvent(
 		Signal:   t.Signal,
 		Reason:   t.Reason,
 		Message:  t.Message,
+		Cause:    cause,
 	}}
 	ev.EventFingerprint = fingerprint(cs.ImageID, t.ExitCode, t.Reason, t.Message)
 	return ev
 }
 
 func buildWaitingEvent(pod *corev1.Pod, tenant tenantContext, cs corev1.ContainerStatus, w *corev1.ContainerStateWaiting) *ctrlv1.InstanceEvent {
+	var cause ctrlv1.WaitingCause
+	switch w.Reason {
+	case "CrashLoopBackOff":
+		cause = ctrlv1.WaitingCause_WAITING_CAUSE_CRASH_LOOP_BACK_OFF
+	case "CreateContainerConfigError":
+		cause = ctrlv1.WaitingCause_WAITING_CAUSE_CONTAINER_CONFIG_ERROR
+	case "InvalidImageName":
+		cause = ctrlv1.WaitingCause_WAITING_CAUSE_INVALID_IMAGE_NAME
+	default:
+		return nil
+	}
 	ev := newEvent(pod, tenant, cs, cs.RestartCount, time.Now().UnixMilli())
 	ev.State = &ctrlv1.InstanceEvent_Waiting{Waiting: &ctrlv1.Waiting{
 		Reason:  w.Reason,
 		Message: w.Message,
+		Cause:   cause,
 	}}
 	// Including the most recent exit code/reason from LastTerminationState
 	// would make every new exit "look different" even when the underlying
@@ -350,13 +370,16 @@ func fingerprint(imageID string, exitCode int32, reason, message string) string 
 	return hex.EncodeToString(h[:])
 }
 
-// dedupKey is the in-memory dedupe identity for an event. Mirrors the
-// ClickHouse insert dedupe constraint.
+// dedupKey distinguishes waiting causes that can change without a restart.
 func dedupKey(ev *ctrlv1.InstanceEvent) string {
-	return strings.Join([]string{
+	key := strings.Join([]string{
 		ev.GetPodUid(),
 		ev.GetContainerName(),
 		strconv.FormatInt(int64(ev.GetRestartCount()), 10),
 		eventKindOf(ev),
 	}, "|")
+	if waiting := ev.GetWaiting(); waiting != nil {
+		key += "|" + strconv.FormatInt(int64(waiting.GetCause()), 10)
+	}
+	return key
 }

@@ -84,6 +84,110 @@ func (Health) EnumDescriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{0}
 }
 
+type TerminationCause int32
+
+const (
+	TerminationCause_TERMINATION_CAUSE_UNSPECIFIED          TerminationCause = 0
+	TerminationCause_TERMINATION_CAUSE_OOM_KILLED           TerminationCause = 1
+	TerminationCause_TERMINATION_CAUSE_OTHER                TerminationCause = 2
+	TerminationCause_TERMINATION_CAUSE_CONTAINER_CANNOT_RUN TerminationCause = 3
+)
+
+// Enum value maps for TerminationCause.
+var (
+	TerminationCause_name = map[int32]string{
+		0: "TERMINATION_CAUSE_UNSPECIFIED",
+		1: "TERMINATION_CAUSE_OOM_KILLED",
+		2: "TERMINATION_CAUSE_OTHER",
+		3: "TERMINATION_CAUSE_CONTAINER_CANNOT_RUN",
+	}
+	TerminationCause_value = map[string]int32{
+		"TERMINATION_CAUSE_UNSPECIFIED":          0,
+		"TERMINATION_CAUSE_OOM_KILLED":           1,
+		"TERMINATION_CAUSE_OTHER":                2,
+		"TERMINATION_CAUSE_CONTAINER_CANNOT_RUN": 3,
+	}
+)
+
+func (x TerminationCause) Enum() *TerminationCause {
+	p := new(TerminationCause)
+	*p = x
+	return p
+}
+
+func (x TerminationCause) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TerminationCause) Descriptor() protoreflect.EnumDescriptor {
+	return file_ctrl_v1_cluster_proto_enumTypes[1].Descriptor()
+}
+
+func (TerminationCause) Type() protoreflect.EnumType {
+	return &file_ctrl_v1_cluster_proto_enumTypes[1]
+}
+
+func (x TerminationCause) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TerminationCause.Descriptor instead.
+func (TerminationCause) EnumDescriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{1}
+}
+
+type WaitingCause int32
+
+const (
+	WaitingCause_WAITING_CAUSE_UNSPECIFIED            WaitingCause = 0
+	WaitingCause_WAITING_CAUSE_CRASH_LOOP_BACK_OFF    WaitingCause = 1
+	WaitingCause_WAITING_CAUSE_CONTAINER_CONFIG_ERROR WaitingCause = 2
+	WaitingCause_WAITING_CAUSE_INVALID_IMAGE_NAME     WaitingCause = 3
+)
+
+// Enum value maps for WaitingCause.
+var (
+	WaitingCause_name = map[int32]string{
+		0: "WAITING_CAUSE_UNSPECIFIED",
+		1: "WAITING_CAUSE_CRASH_LOOP_BACK_OFF",
+		2: "WAITING_CAUSE_CONTAINER_CONFIG_ERROR",
+		3: "WAITING_CAUSE_INVALID_IMAGE_NAME",
+	}
+	WaitingCause_value = map[string]int32{
+		"WAITING_CAUSE_UNSPECIFIED":            0,
+		"WAITING_CAUSE_CRASH_LOOP_BACK_OFF":    1,
+		"WAITING_CAUSE_CONTAINER_CONFIG_ERROR": 2,
+		"WAITING_CAUSE_INVALID_IMAGE_NAME":     3,
+	}
+)
+
+func (x WaitingCause) Enum() *WaitingCause {
+	p := new(WaitingCause)
+	*p = x
+	return p
+}
+
+func (x WaitingCause) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (WaitingCause) Descriptor() protoreflect.EnumDescriptor {
+	return file_ctrl_v1_cluster_proto_enumTypes[2].Descriptor()
+}
+
+func (WaitingCause) Type() protoreflect.EnumType {
+	return &file_ctrl_v1_cluster_proto_enumTypes[2]
+}
+
+func (x WaitingCause) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use WaitingCause.Descriptor instead.
+func (WaitingCause) EnumDescriptor() ([]byte, []int) {
+	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{2}
+}
+
 type ReportDeploymentStatusRequest_Update_Instance_Status int32
 
 const (
@@ -120,11 +224,11 @@ func (x ReportDeploymentStatusRequest_Update_Instance_Status) String() string {
 }
 
 func (ReportDeploymentStatusRequest_Update_Instance_Status) Descriptor() protoreflect.EnumDescriptor {
-	return file_ctrl_v1_cluster_proto_enumTypes[1].Descriptor()
+	return file_ctrl_v1_cluster_proto_enumTypes[3].Descriptor()
 }
 
 func (ReportDeploymentStatusRequest_Update_Instance_Status) Type() protoreflect.EnumType {
-	return &file_ctrl_v1_cluster_proto_enumTypes[1]
+	return &file_ctrl_v1_cluster_proto_enumTypes[3]
 }
 
 func (x ReportDeploymentStatusRequest_Update_Instance_Status) Number() protoreflect.EnumNumber {
@@ -858,7 +962,10 @@ type Terminated struct {
 	Reason string `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
 	// Free-form kubelet message; truncated past 200 bytes when fed into
 	// event_fingerprint so retries of the same failure collapse.
-	Message       string `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	Message string `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	// Krane's classification for control decisions. Unspecified means the
+	// reporter did not classify the termination, including older Krane versions.
+	Cause         TerminationCause `protobuf:"varint,5,opt,name=cause,proto3,enum=ctrl.v1.TerminationCause" json:"cause,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -921,15 +1028,21 @@ func (x *Terminated) GetMessage() string {
 	return ""
 }
 
-// Waiting captures kubelet's ContainerStateWaiting. Krane currently only
-// emits when reason == "CrashLoopBackOff", but the type is shaped to
-// accept any waiting reason kubelet publishes.
+func (x *Terminated) GetCause() TerminationCause {
+	if x != nil {
+		return x.Cause
+	}
+	return TerminationCause_TERMINATION_CAUSE_UNSPECIFIED
+}
+
+// Waiting captures kubelet's ContainerStateWaiting for startup failures.
 type Waiting struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Kubelet-supplied label: "CrashLoopBackOff", "ImagePullBackOff",
 	// "ContainerCreating", "ErrImagePull", …
-	Reason        string `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`
-	Message       string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	Reason        string       `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`
+	Message       string       `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	Cause         WaitingCause `protobuf:"varint,3,opt,name=cause,proto3,enum=ctrl.v1.WaitingCause" json:"cause,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -976,6 +1089,13 @@ func (x *Waiting) GetMessage() string {
 		return x.Message
 	}
 	return ""
+}
+
+func (x *Waiting) GetCause() WaitingCause {
+	if x != nil {
+		return x.Cause
+	}
+	return WaitingCause_WAITING_CAUSE_UNSPECIFIED
 }
 
 // ReportInstanceEventsRequest carries one or more events from a single krane
@@ -1908,16 +2028,18 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\a\n" +
 	"\x05state\"\t\n" +
-	"\aRunning\"s\n" +
+	"\aRunning\"\xa4\x01\n" +
 	"\n" +
 	"Terminated\x12\x1b\n" +
 	"\texit_code\x18\x01 \x01(\x05R\bexitCode\x12\x16\n" +
 	"\x06signal\x18\x02 \x01(\x05R\x06signal\x12\x16\n" +
 	"\x06reason\x18\x03 \x01(\tR\x06reason\x12\x18\n" +
-	"\amessage\x18\x04 \x01(\tR\amessage\";\n" +
+	"\amessage\x18\x04 \x01(\tR\amessage\x12/\n" +
+	"\x05cause\x18\x05 \x01(\x0e2\x19.ctrl.v1.TerminationCauseR\x05cause\"h\n" +
 	"\aWaiting\x12\x16\n" +
 	"\x06reason\x18\x01 \x01(\tR\x06reason\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"|\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12+\n" +
+	"\x05cause\x18\x03 \x01(\x0e2\x15.ctrl.v1.WaitingCauseR\x05cause\"|\n" +
 	"\x1bReportInstanceEventsRequest\x12.\n" +
 	"\x06events\x18\x01 \x03(\v2\x16.ctrl.v1.InstanceEventR\x06events\x12-\n" +
 	"\acluster\x18\x02 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\"\x1e\n" +
@@ -1982,7 +2104,17 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x12HEALTH_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eHEALTH_HEALTHY\x10\x01\x12\x14\n" +
 	"\x10HEALTH_UNHEALTHY\x10\x02\x12\x11\n" +
-	"\rHEALTH_PAUSED\x10\x032\xc2\x04\n" +
+	"\rHEALTH_PAUSED\x10\x03*\xa0\x01\n" +
+	"\x10TerminationCause\x12!\n" +
+	"\x1dTERMINATION_CAUSE_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cTERMINATION_CAUSE_OOM_KILLED\x10\x01\x12\x1b\n" +
+	"\x17TERMINATION_CAUSE_OTHER\x10\x02\x12*\n" +
+	"&TERMINATION_CAUSE_CONTAINER_CANNOT_RUN\x10\x03*\xa4\x01\n" +
+	"\fWaitingCause\x12\x1d\n" +
+	"\x19WAITING_CAUSE_UNSPECIFIED\x10\x00\x12%\n" +
+	"!WAITING_CAUSE_CRASH_LOOP_BACK_OFF\x10\x01\x12(\n" +
+	"$WAITING_CAUSE_CONTAINER_CONFIG_ERROR\x10\x02\x12$\n" +
+	" WAITING_CAUSE_INVALID_IMAGE_NAME\x10\x032\xc2\x04\n" +
 	"\x0eClusterService\x12b\n" +
 	"\x16WatchDeploymentChanges\x12&.ctrl.v1.WatchDeploymentChangesRequest\x1a\x1e.ctrl.v1.DeploymentChangeEvent0\x01\x12V\n" +
 	"\x10SyncDesiredState\x12 .ctrl.v1.SyncDesiredStateRequest\x1a\x1e.ctrl.v1.DeploymentChangeEvent0\x01\x12`\n" +
@@ -2004,74 +2136,78 @@ func file_ctrl_v1_cluster_proto_rawDescGZIP() []byte {
 	return file_ctrl_v1_cluster_proto_rawDescData
 }
 
-var file_ctrl_v1_cluster_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_ctrl_v1_cluster_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
 var file_ctrl_v1_cluster_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_ctrl_v1_cluster_proto_goTypes = []any{
-	(Health)(0), // 0: ctrl.v1.Health
-	(ReportDeploymentStatusRequest_Update_Instance_Status)(0), // 1: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
-	(*ClusterKey)(nil),                                    // 2: ctrl.v1.ClusterKey
-	(*WatchDeploymentChangesRequest)(nil),                 // 3: ctrl.v1.WatchDeploymentChangesRequest
-	(*SyncDesiredStateRequest)(nil),                       // 4: ctrl.v1.SyncDesiredStateRequest
-	(*DeploymentChangeEvent)(nil),                         // 5: ctrl.v1.DeploymentChangeEvent
-	(*GetDesiredDeploymentStateRequest)(nil),              // 6: ctrl.v1.GetDesiredDeploymentStateRequest
-	(*ReportDeploymentStatusRequest)(nil),                 // 7: ctrl.v1.ReportDeploymentStatusRequest
-	(*ReportDeploymentStatusResponse)(nil),                // 8: ctrl.v1.ReportDeploymentStatusResponse
-	(*InstanceEvent)(nil),                                 // 9: ctrl.v1.InstanceEvent
-	(*Running)(nil),                                       // 10: ctrl.v1.Running
-	(*Terminated)(nil),                                    // 11: ctrl.v1.Terminated
-	(*Waiting)(nil),                                       // 12: ctrl.v1.Waiting
-	(*ReportInstanceEventsRequest)(nil),                   // 13: ctrl.v1.ReportInstanceEventsRequest
-	(*ReportInstanceEventsResponse)(nil),                  // 14: ctrl.v1.ReportInstanceEventsResponse
-	(*DeploymentState)(nil),                               // 15: ctrl.v1.DeploymentState
-	(*ApplyDeployment)(nil),                               // 16: ctrl.v1.ApplyDeployment
-	(*AutoscalingPolicy)(nil),                             // 17: ctrl.v1.AutoscalingPolicy
-	(*DeleteDeployment)(nil),                              // 18: ctrl.v1.DeleteDeployment
-	(*HeartbeatRequest)(nil),                              // 19: ctrl.v1.HeartbeatRequest
-	(*HeartbeatResponse)(nil),                             // 20: ctrl.v1.HeartbeatResponse
-	(*ReportDeploymentStatusRequest_Update)(nil),          // 21: ctrl.v1.ReportDeploymentStatusRequest.Update
-	(*ReportDeploymentStatusRequest_Delete)(nil),          // 22: ctrl.v1.ReportDeploymentStatusRequest.Delete
-	(*ReportDeploymentStatusRequest_Update_Instance)(nil), // 23: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
-	nil,                      // 24: ctrl.v1.InstanceEvent.AttributesEntry
-	(*EphemeralStorage)(nil), // 25: ctrl.v1.EphemeralStorage
+	(Health)(0),           // 0: ctrl.v1.Health
+	(TerminationCause)(0), // 1: ctrl.v1.TerminationCause
+	(WaitingCause)(0),     // 2: ctrl.v1.WaitingCause
+	(ReportDeploymentStatusRequest_Update_Instance_Status)(0), // 3: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
+	(*ClusterKey)(nil),                                    // 4: ctrl.v1.ClusterKey
+	(*WatchDeploymentChangesRequest)(nil),                 // 5: ctrl.v1.WatchDeploymentChangesRequest
+	(*SyncDesiredStateRequest)(nil),                       // 6: ctrl.v1.SyncDesiredStateRequest
+	(*DeploymentChangeEvent)(nil),                         // 7: ctrl.v1.DeploymentChangeEvent
+	(*GetDesiredDeploymentStateRequest)(nil),              // 8: ctrl.v1.GetDesiredDeploymentStateRequest
+	(*ReportDeploymentStatusRequest)(nil),                 // 9: ctrl.v1.ReportDeploymentStatusRequest
+	(*ReportDeploymentStatusResponse)(nil),                // 10: ctrl.v1.ReportDeploymentStatusResponse
+	(*InstanceEvent)(nil),                                 // 11: ctrl.v1.InstanceEvent
+	(*Running)(nil),                                       // 12: ctrl.v1.Running
+	(*Terminated)(nil),                                    // 13: ctrl.v1.Terminated
+	(*Waiting)(nil),                                       // 14: ctrl.v1.Waiting
+	(*ReportInstanceEventsRequest)(nil),                   // 15: ctrl.v1.ReportInstanceEventsRequest
+	(*ReportInstanceEventsResponse)(nil),                  // 16: ctrl.v1.ReportInstanceEventsResponse
+	(*DeploymentState)(nil),                               // 17: ctrl.v1.DeploymentState
+	(*ApplyDeployment)(nil),                               // 18: ctrl.v1.ApplyDeployment
+	(*AutoscalingPolicy)(nil),                             // 19: ctrl.v1.AutoscalingPolicy
+	(*DeleteDeployment)(nil),                              // 20: ctrl.v1.DeleteDeployment
+	(*HeartbeatRequest)(nil),                              // 21: ctrl.v1.HeartbeatRequest
+	(*HeartbeatResponse)(nil),                             // 22: ctrl.v1.HeartbeatResponse
+	(*ReportDeploymentStatusRequest_Update)(nil),          // 23: ctrl.v1.ReportDeploymentStatusRequest.Update
+	(*ReportDeploymentStatusRequest_Delete)(nil),          // 24: ctrl.v1.ReportDeploymentStatusRequest.Delete
+	(*ReportDeploymentStatusRequest_Update_Instance)(nil), // 25: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
+	nil,                      // 26: ctrl.v1.InstanceEvent.AttributesEntry
+	(*EphemeralStorage)(nil), // 27: ctrl.v1.EphemeralStorage
 }
 var file_ctrl_v1_cluster_proto_depIdxs = []int32{
-	2,  // 0: ctrl.v1.WatchDeploymentChangesRequest.cluster:type_name -> ctrl.v1.ClusterKey
-	2,  // 1: ctrl.v1.SyncDesiredStateRequest.cluster:type_name -> ctrl.v1.ClusterKey
-	15, // 2: ctrl.v1.DeploymentChangeEvent.deployment:type_name -> ctrl.v1.DeploymentState
-	2,  // 3: ctrl.v1.GetDesiredDeploymentStateRequest.cluster:type_name -> ctrl.v1.ClusterKey
-	2,  // 4: ctrl.v1.ReportDeploymentStatusRequest.cluster:type_name -> ctrl.v1.ClusterKey
-	21, // 5: ctrl.v1.ReportDeploymentStatusRequest.update:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update
-	22, // 6: ctrl.v1.ReportDeploymentStatusRequest.delete:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Delete
-	10, // 7: ctrl.v1.InstanceEvent.running:type_name -> ctrl.v1.Running
-	11, // 8: ctrl.v1.InstanceEvent.terminated:type_name -> ctrl.v1.Terminated
-	12, // 9: ctrl.v1.InstanceEvent.waiting:type_name -> ctrl.v1.Waiting
-	24, // 10: ctrl.v1.InstanceEvent.attributes:type_name -> ctrl.v1.InstanceEvent.AttributesEntry
-	9,  // 11: ctrl.v1.ReportInstanceEventsRequest.events:type_name -> ctrl.v1.InstanceEvent
-	2,  // 12: ctrl.v1.ReportInstanceEventsRequest.cluster:type_name -> ctrl.v1.ClusterKey
-	16, // 13: ctrl.v1.DeploymentState.apply:type_name -> ctrl.v1.ApplyDeployment
-	18, // 14: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
-	17, // 15: ctrl.v1.ApplyDeployment.autoscaling:type_name -> ctrl.v1.AutoscalingPolicy
-	25, // 16: ctrl.v1.ApplyDeployment.ephemeral_storage:type_name -> ctrl.v1.EphemeralStorage
-	2,  // 17: ctrl.v1.HeartbeatRequest.cluster:type_name -> ctrl.v1.ClusterKey
-	23, // 18: ctrl.v1.ReportDeploymentStatusRequest.Update.instances:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
-	1,  // 19: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.status:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
-	3,  // 20: ctrl.v1.ClusterService.WatchDeploymentChanges:input_type -> ctrl.v1.WatchDeploymentChangesRequest
-	4,  // 21: ctrl.v1.ClusterService.SyncDesiredState:input_type -> ctrl.v1.SyncDesiredStateRequest
-	6,  // 22: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
-	7,  // 23: ctrl.v1.ClusterService.ReportDeploymentStatus:input_type -> ctrl.v1.ReportDeploymentStatusRequest
-	13, // 24: ctrl.v1.ClusterService.ReportInstanceEvents:input_type -> ctrl.v1.ReportInstanceEventsRequest
-	19, // 25: ctrl.v1.ClusterService.Heartbeat:input_type -> ctrl.v1.HeartbeatRequest
-	5,  // 26: ctrl.v1.ClusterService.WatchDeploymentChanges:output_type -> ctrl.v1.DeploymentChangeEvent
-	5,  // 27: ctrl.v1.ClusterService.SyncDesiredState:output_type -> ctrl.v1.DeploymentChangeEvent
-	15, // 28: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
-	8,  // 29: ctrl.v1.ClusterService.ReportDeploymentStatus:output_type -> ctrl.v1.ReportDeploymentStatusResponse
-	14, // 30: ctrl.v1.ClusterService.ReportInstanceEvents:output_type -> ctrl.v1.ReportInstanceEventsResponse
-	20, // 31: ctrl.v1.ClusterService.Heartbeat:output_type -> ctrl.v1.HeartbeatResponse
-	26, // [26:32] is the sub-list for method output_type
-	20, // [20:26] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	4,  // 0: ctrl.v1.WatchDeploymentChangesRequest.cluster:type_name -> ctrl.v1.ClusterKey
+	4,  // 1: ctrl.v1.SyncDesiredStateRequest.cluster:type_name -> ctrl.v1.ClusterKey
+	17, // 2: ctrl.v1.DeploymentChangeEvent.deployment:type_name -> ctrl.v1.DeploymentState
+	4,  // 3: ctrl.v1.GetDesiredDeploymentStateRequest.cluster:type_name -> ctrl.v1.ClusterKey
+	4,  // 4: ctrl.v1.ReportDeploymentStatusRequest.cluster:type_name -> ctrl.v1.ClusterKey
+	23, // 5: ctrl.v1.ReportDeploymentStatusRequest.update:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update
+	24, // 6: ctrl.v1.ReportDeploymentStatusRequest.delete:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Delete
+	12, // 7: ctrl.v1.InstanceEvent.running:type_name -> ctrl.v1.Running
+	13, // 8: ctrl.v1.InstanceEvent.terminated:type_name -> ctrl.v1.Terminated
+	14, // 9: ctrl.v1.InstanceEvent.waiting:type_name -> ctrl.v1.Waiting
+	26, // 10: ctrl.v1.InstanceEvent.attributes:type_name -> ctrl.v1.InstanceEvent.AttributesEntry
+	1,  // 11: ctrl.v1.Terminated.cause:type_name -> ctrl.v1.TerminationCause
+	2,  // 12: ctrl.v1.Waiting.cause:type_name -> ctrl.v1.WaitingCause
+	11, // 13: ctrl.v1.ReportInstanceEventsRequest.events:type_name -> ctrl.v1.InstanceEvent
+	4,  // 14: ctrl.v1.ReportInstanceEventsRequest.cluster:type_name -> ctrl.v1.ClusterKey
+	18, // 15: ctrl.v1.DeploymentState.apply:type_name -> ctrl.v1.ApplyDeployment
+	20, // 16: ctrl.v1.DeploymentState.delete:type_name -> ctrl.v1.DeleteDeployment
+	19, // 17: ctrl.v1.ApplyDeployment.autoscaling:type_name -> ctrl.v1.AutoscalingPolicy
+	27, // 18: ctrl.v1.ApplyDeployment.ephemeral_storage:type_name -> ctrl.v1.EphemeralStorage
+	4,  // 19: ctrl.v1.HeartbeatRequest.cluster:type_name -> ctrl.v1.ClusterKey
+	25, // 20: ctrl.v1.ReportDeploymentStatusRequest.Update.instances:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance
+	3,  // 21: ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.status:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update.Instance.Status
+	5,  // 22: ctrl.v1.ClusterService.WatchDeploymentChanges:input_type -> ctrl.v1.WatchDeploymentChangesRequest
+	6,  // 23: ctrl.v1.ClusterService.SyncDesiredState:input_type -> ctrl.v1.SyncDesiredStateRequest
+	8,  // 24: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
+	9,  // 25: ctrl.v1.ClusterService.ReportDeploymentStatus:input_type -> ctrl.v1.ReportDeploymentStatusRequest
+	15, // 26: ctrl.v1.ClusterService.ReportInstanceEvents:input_type -> ctrl.v1.ReportInstanceEventsRequest
+	21, // 27: ctrl.v1.ClusterService.Heartbeat:input_type -> ctrl.v1.HeartbeatRequest
+	7,  // 28: ctrl.v1.ClusterService.WatchDeploymentChanges:output_type -> ctrl.v1.DeploymentChangeEvent
+	7,  // 29: ctrl.v1.ClusterService.SyncDesiredState:output_type -> ctrl.v1.DeploymentChangeEvent
+	17, // 30: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
+	10, // 31: ctrl.v1.ClusterService.ReportDeploymentStatus:output_type -> ctrl.v1.ReportDeploymentStatusResponse
+	16, // 32: ctrl.v1.ClusterService.ReportInstanceEvents:output_type -> ctrl.v1.ReportInstanceEventsResponse
+	22, // 33: ctrl.v1.ClusterService.Heartbeat:output_type -> ctrl.v1.HeartbeatResponse
+	28, // [28:34] is the sub-list for method output_type
+	22, // [22:28] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_ctrl_v1_cluster_proto_init() }
@@ -2103,7 +2239,7 @@ func file_ctrl_v1_cluster_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ctrl_v1_cluster_proto_rawDesc), len(file_ctrl_v1_cluster_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      4,
 			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,

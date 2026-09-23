@@ -73,9 +73,11 @@
 //
 // [Workflow.waitForDeployments] awaits the durable promise named
 // instances_ready. Krane reports instance status through the control plane.
-// When enough regions have at least their minimum running replica count, the
-// report handler resolves the promise through [Workflow.NotifyInstancesReady].
-// A resolve that lands before the run awaits is kept, so there is no state to
+// When enough regions have at least their minimum running replica count or an
+// app container has a classified startup failure, the report handler completes
+// the promise through [Workflow.NotifyReadiness].
+// Success resolves the promise and a startup failure rejects it. A completion
+// that lands before the run awaits is kept, so there is no state to
 // stash or clear.
 //
 // # Cancellation

@@ -11,8 +11,8 @@ option go_package = "github.com/unkeyed/unkey/gen/proto/hydra/v1;hydrav1";
 // idempotent and can safely resume from any step after a crash.
 //
 // The workflow key is the deployment id: Deploy runs once per key, and
-// readiness arrives through a durable promise that NotifyInstancesReady
-// resolves, so the run keeps no state. The contended pointer,
+// readiness arrives through a durable promise that NotifyReadiness
+// completes, so the run keeps no state. The contended pointer,
 // apps.current_deployment_id, is serialized inside
 // RoutingService.SwapLiveDeployment, which is keyed by environment id.
 // Workspace-wide build concurrency is separately enforced by BuildSlotService.
@@ -29,12 +29,53 @@ service DeployWorkflow {
     option (dev.restate.sdk.go.handler_type) = WORKFLOW_RUN;
   }
 
-  // NotifyInstancesReady resolves the promise Deploy awaits. A resolve that
-  // lands before Deploy awaits is kept.
+  // Retained for readiness notifications queued before NotifyReadiness existed.
   rpc NotifyInstancesReady(NotifyInstancesReadyRequest) returns (NotifyInstancesReadyResponse) {
+    option deprecated = true;
+    option (dev.restate.sdk.go.handler_type) = SHARED;
+  }
+
+  // NotifyReadiness resolves readiness or rejects a startup failure.
+  // The first completion wins.
+  rpc NotifyReadiness(NotifyReadinessRequest) returns (NotifyReadinessResponse) {
     option (dev.restate.sdk.go.handler_type) = SHARED;
   }
 }
+
+message NotifyReadinessRequest {
+  enum State {
+    // No readiness outcome supplied. Rejected without resolving the promise.
+    STATE_UNSPECIFIED = 0;
+
+    // Enough regions have their minimum number of running instances.
+    STATE_READY = 1;
+
+    // The app container was killed because memory was exhausted during
+    // startup (Kubernetes OOMKilled).
+    STATE_OUT_OF_MEMORY = 2;
+
+    // Kubernetes is delaying restarts of the app container after it exited
+    // during startup (CrashLoopBackOff).
+    STATE_CRASH_LOOP_BACK_OFF = 3;
+
+    // The container runtime could not start the app process
+    // (ContainerCannotRun or StartError), for example because its entrypoint
+    // cannot execute.
+    STATE_CONTAINER_CANNOT_RUN = 4;
+
+    // Ignored without completing the promise. CreateContainerConfigError can
+    // be transient while Kubernetes observes a newly created Secret.
+    STATE_CONTAINER_CONFIG_ERROR = 5;
+
+    // Kubernetes rejected the app container's image reference as invalid
+    // (InvalidImageName). This is distinct from a temporary image-pull failure.
+    STATE_INVALID_IMAGE_NAME = 6;
+  }
+
+  State state = 1;
+}
+
+message NotifyReadinessResponse {}
 
 message NotifyInstancesReadyRequest {
   string deployment_id = 1;

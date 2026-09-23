@@ -5,10 +5,10 @@ import (
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
 )
 
-// NotifyInstancesReady tolerates a repeat: a second krane report after the
-// promise resolved must not fail
+// Deprecated: Use NotifyReadiness. Queued notifications still use this endpoint.
 func (w *Workflow) NotifyInstancesReady(ctx restate.WorkflowSharedContext, _ *hydrav1.NotifyInstancesReadyRequest) (*hydrav1.NotifyInstancesReadyResponse, error) {
-	if err := restate.Promise[restate.Void](ctx, instancesReadyPromise).Resolve(restate.Void{}); err != nil && !restate.IsTerminalError(err) {
+	_, err := w.NotifyReadiness(ctx, &hydrav1.NotifyReadinessRequest{State: hydrav1.NotifyReadinessRequest_STATE_READY})
+	if err != nil {
 		return nil, err
 	}
 	return &hydrav1.NotifyInstancesReadyResponse{}, nil

@@ -36,15 +36,14 @@ import (
 // RPC from clobbering a newer exit. The handler therefore tolerates
 // best-effort delivery from krane.
 //
-// CH inserts always happen — the canonical event log must capture every
-// reported event regardless of denorm outcome. MySQL denorm errors mark
-// the *whole* RPC as failed (CodeUnavailable) so krane re-emits on its
-// next watch tick. The CH-side insert dedupe window absorbs the resulting
-// duplicate inserts, and the MySQL guards make the writes idempotent.
+// After rollout notifications succeed, diagnostic events are buffered regardless
+// of denorm outcome. MySQL denorm errors fail the whole RPC (CodeUnavailable)
+// so krane re-emits on its next watch tick. The CH-side insert dedupe window
+// absorbs duplicate inserts, and the MySQL guards make writes idempotent.
 //
 // Returns CodeUnauthenticated if bearer token is invalid; CodeInvalidArgument
 // if region/platform headers are missing or the region is unknown;
-// CodeUnavailable if any MySQL denorm write failed during the batch.
+// CodeUnavailable if a startup failure notification or MySQL denorm write fails.
 func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request[ctrlv1.ReportInstanceEventsRequest]) (*connect.Response[ctrlv1.ReportInstanceEventsResponse], error) {
 	if err := auth.Authenticate(req, s.bearer); err != nil {
 		return nil, err
@@ -56,6 +55,16 @@ func (s *Service) ReportInstanceEvents(ctx context.Context, req *connect.Request
 	}
 	regionName := cluster.RegionName
 	platform := cluster.RegionPlatform
+
+	// Deliver rollout failures before buffering diagnostics. A missing instance
+	// row or an unavailable ClickHouse must not prevent the workflow from failing.
+	for _, event := range req.Msg.GetEvents() {
+		if event.GetContainerName() == "deployment" {
+			if err := s.notifyStartupFailure(ctx, event); err != nil {
+				return nil, connect.NewError(connect.CodeUnavailable, err)
+			}
+		}
+	}
 
 	// firstDenormErr holds the first MySQL denorm error encountered. The
 	// loop keeps going past it so every reported event still lands in CH;

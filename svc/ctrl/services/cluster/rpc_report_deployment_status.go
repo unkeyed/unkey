@@ -70,7 +70,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 		return nil, err
 	}
 
-	// Captured from the Update transaction so we can call NotifyInstancesReady
+	// Captured from the Update transaction so we can call NotifyReadiness
 	// on the Deploy workflow after the tx commits (and the new state is
 	// visible to the health-check query).
 	var updatedDeployment *db.Deployment
@@ -187,7 +187,7 @@ func (s *Service) ReportDeploymentStatus(ctx context.Context, req *connect.Reque
 }
 
 // maybeNotifyInstancesReady checks whether enough regions are healthy for
-// the given deployment and, if so, sends NotifyInstancesReady to unblock the
+// the given deployment and, if so, sends NotifyReadiness to unblock the
 // suspended Deploy. Best-effort: errors are logged
 // but not returned, gating the thundering herd from concurrent retries.
 func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.Deployment) {
@@ -301,8 +301,8 @@ func (s *Service) maybeNotifyInstancesReady(ctx context.Context, deployment db.D
 		return
 	}
 
-	req := &hydrav1.NotifyInstancesReadyRequest{DeploymentId: deployment.ID}
-	if _, err := hydrav1.NewDeployWorkflowIngressClient(s.restate, deployment.ID).NotifyInstancesReady().Send(ctx, req); err != nil {
+	req := &hydrav1.NotifyReadinessRequest{State: hydrav1.NotifyReadinessRequest_STATE_READY}
+	if _, err := hydrav1.NewDeployWorkflowIngressClient(s.restate, deployment.ID).NotifyReadiness().Send(ctx, req); err != nil {
 		metrics.NotifyInstancesReadyTotal.WithLabelValues("restate_error").Inc()
 		logger.Error("failed to notify deploy workflow of instance readiness",
 			"deployment_id", deployment.ID,

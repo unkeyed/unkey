@@ -58,7 +58,7 @@ type Service struct {
 	restate      *ingress.Client
 	restateAdmin *restateadmin.Client
 	bearer       string
-	// notifiedReady dedups Restate NotifyInstancesReady calls so we don't
+	// notifiedReady dedups ready notifications so we don't
 	// fire on every krane status report once the threshold is met. Keys
 	// are "deployment:<id>".
 	notifiedReady *expiringSet[string]

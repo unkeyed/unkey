@@ -291,10 +291,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 			return fault.Wrap(err, fault.Public("Regional deployment targets could not be prepared."))
 		}
 
-		if err = w.waitForDeployments(stepCtx, deployment.ID, topologies); err != nil {
-			return fault.Wrap(err, fault.Public("Instances did not become healthy in time."))
-		}
-		return nil
+		return w.waitForDeployments(stepCtx, deployment.ID, topologies)
 	})
 	if err != nil {
 		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{

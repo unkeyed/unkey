@@ -195,6 +195,13 @@ message InstanceEvent {
 // life, etc.) without an InstanceEvent shape change.
 message Running {}
 
+enum TerminationCause {
+  TERMINATION_CAUSE_UNSPECIFIED = 0;
+  TERMINATION_CAUSE_OOM_KILLED = 1;
+  TERMINATION_CAUSE_OTHER = 2;
+  TERMINATION_CAUSE_CONTAINER_CANNOT_RUN = 3;
+}
+
 // Terminated captures kubelet's ContainerStateTerminated. The container
 // exited; the metadata explains why.
 message Terminated {
@@ -211,16 +218,25 @@ message Terminated {
   // Free-form kubelet message; truncated past 200 bytes when fed into
   // event_fingerprint so retries of the same failure collapse.
   string message = 4;
+  // Krane's classification for control decisions. Unspecified means the
+  // reporter did not classify the termination, including older Krane versions.
+  TerminationCause cause = 5;
 }
 
-// Waiting captures kubelet's ContainerStateWaiting. Krane currently only
-// emits when reason == "CrashLoopBackOff", but the type is shaped to
-// accept any waiting reason kubelet publishes.
+enum WaitingCause {
+  WAITING_CAUSE_UNSPECIFIED = 0;
+  WAITING_CAUSE_CRASH_LOOP_BACK_OFF = 1;
+  WAITING_CAUSE_CONTAINER_CONFIG_ERROR = 2;
+  WAITING_CAUSE_INVALID_IMAGE_NAME = 3;
+}
+
+// Waiting captures kubelet's ContainerStateWaiting for startup failures.
 message Waiting {
   // Kubelet-supplied label: "CrashLoopBackOff", "ImagePullBackOff",
   // "ContainerCreating", "ErrImagePull", …
   string reason = 1;
   string message = 2;
+  WaitingCause cause = 3;
 }
 
 // ReportInstanceEventsRequest carries one or more events from a single krane
