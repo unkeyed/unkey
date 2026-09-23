@@ -82,7 +82,7 @@ func TestCreatePermissionCountLimits(t *testing.T) {
 
 func TestCreateRejectsLegacyPermissionsAtomically(t *testing.T) {
 	h, route, p := newHarness(t)
-	canonical := "unkey:v1:" + p.AuthorizedWorkspaceID + ":rootKeys/*#write"
+	permission := "unkey:v1:" + p.AuthorizedWorkspaceID + ":rootKeys/*#write"
 	legacy := "workspace.*.create_root_key"
 	p.Permissions = append(p.Permissions, "*", legacy)
 	for _, tt := range []struct {
@@ -90,8 +90,8 @@ func TestCreateRejectsLegacyPermissionsAtomically(t *testing.T) {
 		requested []string
 	}{
 		{"legacy only", []string{legacy}},
-		{"URN then legacy", []string{canonical, legacy}},
-		{"legacy then URN", []string{legacy, canonical}},
+		{"URN then legacy", []string{permission, legacy}},
+		{"legacy then URN", []string{legacy, permission}},
 		{"literal star", []string{"*"}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -103,7 +103,7 @@ func TestCreateRejectsLegacyPermissionsAtomically(t *testing.T) {
 	}
 }
 
-func TestCreateStoresCanonicalGrantWithoutLegacyEquivalent(t *testing.T) {
+func TestCreateStoresPermissionWithoutLegacyEquivalent(t *testing.T) {
 	h, route, p := newHarness(t)
 	grant := "unkey:v1:" + p.AuthorizedWorkspaceID + ":projects/*/apps/*/environments/*/deployments/*#delete"
 
@@ -117,12 +117,12 @@ func TestCreateStoresCanonicalGrantWithoutLegacyEquivalent(t *testing.T) {
 	require.Equal(t, []string{grant}, grants)
 }
 
-func TestCreateStoresV1SystemKeyAndCanonicalGrants(t *testing.T) {
+func TestCreateStoresV1SystemKeyAndPermissions(t *testing.T) {
 	h, route, p := newHarness(t)
 	resources := h.Resources()
-	canonical := "unkey:v1:" + p.AuthorizedWorkspaceID + ":rootKeys/*#write"
+	permission := "unkey:v1:" + p.AuthorizedWorkspaceID + ":rootKeys/*#write"
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{
-		Permissions: []string{canonical, canonical},
+		Permissions: []string{permission, permission},
 	})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 	require.Regexp(t, `^unkey_[1-9A-HJ-NP-Za-km-z]{8}unkeyv1[1-9A-HJ-NP-Za-km-z]{42}$`, res.Body.Data.Key)
@@ -135,7 +135,7 @@ func TestCreateStoresV1SystemKeyAndCanonicalGrants(t *testing.T) {
 	require.False(t, key.Expires.Valid)
 	grants, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: key.ID})
 	require.NoError(t, err)
-	require.Equal(t, []string{canonical}, grants)
+	require.Equal(t, []string{permission}, grants)
 	logs := h.FindAuditLogsByTargetID(t.Context(), t, key.ID)
 	require.Len(t, logs, 2)
 	for _, log := range logs {

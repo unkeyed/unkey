@@ -18,7 +18,7 @@ func authorizePermissions(p *principal.Principal, requested []string) ([]string,
 		if _, exists := grants[permission]; exists {
 			continue
 		}
-		resource, action, err := parseCanonicalPermission(permission, p.AuthorizedWorkspaceID)
+		resource, action, err := parsePermission(permission, p.AuthorizedWorkspaceID)
 		if err != nil {
 			return nil, err
 		}
@@ -36,19 +36,19 @@ func authorizePermissions(p *principal.Principal, requested []string) ([]string,
 	return result, nil
 }
 
-func parseCanonicalPermission(permission, workspaceID string) (urn.V1, permissions.Action, error) {
+func parsePermission(permission, workspaceID string) (urn.V1, permissions.Action, error) {
 	resourceName, actionName, ok := strings.Cut(permission, "#")
 	if !ok || strings.Contains(actionName, "#") {
 		return urn.V1{}, "", invalidPermission()
 	}
 	resource, err := urn.ParseV1(resourceName)
-	if err != nil || resource.WorkspaceID != workspaceID || !canonicalActionAllowed(resource.Resource, actionName) {
+	if err != nil || resource.WorkspaceID != workspaceID || !actionAllowed(resource.Resource, actionName) {
 		return urn.V1{}, "", invalidPermission()
 	}
 	return resource, permissions.Action(actionName), nil
 }
 
-func canonicalActionAllowed(resource, action string) bool {
+func actionAllowed(resource, action string) bool {
 	if resource == "**" {
 		return slices.Contains([]string{"read", "write", "delete", "decrypt", "verify", "limit", permissions.Wildcard}, action)
 	}
@@ -67,11 +67,11 @@ func canonicalActionAllowed(resource, action string) bool {
 		allowed = []string{"write"}
 	case len(parts) == 6 && parts[0] == "projects" && parts[2] == "portals" && parts[4] == "sessions":
 		allowed = []string{"write"}
-	case isCanonicalLog(parts):
+	case isLog(parts):
 		allowed = []string{"read"}
-	case isCanonicalKey(parts):
+	case isKey(parts):
 		allowed = append(allowed, "decrypt", "verify")
-	case isCanonicalNamespace(parts):
+	case isNamespace(parts):
 		allowed = append(allowed, "limit")
 	case parts[0] == "projects" && recursive && len(parts) == 2:
 		allowed = append(allowed, "decrypt", "verify", "limit")
@@ -81,23 +81,23 @@ func canonicalActionAllowed(resource, action string) bool {
 	return slices.Contains(allowed, action)
 }
 
-func isCanonicalLog(parts []string) bool {
+func isLog(parts []string) bool {
 	return len(parts) == 5 && parts[0] == "projects" && parts[2] == "keyspaces" && parts[4] == "logs" ||
 		len(parts) == 6 && parts[0] == "projects" && parts[2] == "ratelimits" && parts[3] == "namespaces" && parts[5] == "logs" ||
 		len(parts) == 8 && parts[0] == "projects" && parts[2] == "apps" && parts[4] == "environments" && parts[6] == "gateway" && parts[7] == "logs" ||
 		len(parts) == 9 && parts[0] == "projects" && parts[2] == "apps" && parts[4] == "environments" && parts[6] == "deployments" && parts[8] == "logs"
 }
 
-func isCanonicalKey(parts []string) bool {
+func isKey(parts []string) bool {
 	return len(parts) == 6 && parts[0] == "projects" && parts[2] == "keyspaces" && parts[4] == "keys"
 }
 
-func isCanonicalNamespace(parts []string) bool {
+func isNamespace(parts []string) bool {
 	return len(parts) == 5 && parts[0] == "projects" && parts[2] == "ratelimits" && parts[3] == "namespaces"
 }
 
 func invalidPermission() error {
-	return fault.New("invalid canonical permission",
+	return fault.New("invalid permission",
 		fault.Code(codes.App.Validation.InvalidInput.URN()),
 		fault.Public("A requested permission is not a supported URN permission in this workspace."))
 }
