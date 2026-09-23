@@ -1,3 +1,4 @@
+import { useFlag } from "@/lib/flags/provider";
 import { routes } from "@/lib/navigation/routes";
 import { slugify } from "@/lib/slugify";
 import { trpc } from "@/lib/trpc/client";
@@ -54,6 +55,9 @@ export const useWorkspaceStep = (): WorkspaceStep => {
     setIsMounted(true);
   }, []);
 
+  const projectsNav = useFlag("projectsNav");
+  const landing = projectsNav ? routes.projects.list : routes.apis.list;
+
   const form = useForm<WorkspaceFormData>({
     resolver: zodResolver(workspaceSchema),
     mode: "onChange",
@@ -79,7 +83,7 @@ export const useWorkspaceStep = (): WorkspaceStep => {
       window.location.assign(
         routes.auth.switchOrganization({
           organizationId: orgId,
-          returnTo: routes.apis.list({ workspaceSlug: slug }),
+          returnTo: landing({ workspaceSlug: slug }),
         }),
       );
     },
@@ -209,7 +213,7 @@ export const useWorkspaceStep = (): WorkspaceStep => {
     ),
     submit: () => {
       if (workspaceCreated && createdSlug) {
-        router.push(routes.apis.list({ workspaceSlug: createdSlug }));
+        router.push(landing({ workspaceSlug: createdSlug }));
         return;
       }
       if (!isLoading) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useCreateIdentityMutation } from "@/lib/identities-query";
 import { routes } from "@/lib/navigation/routes";
@@ -32,6 +33,7 @@ export function CreateIdentityDialog() {
   const [isNavigating, startNavigation] = useTransition();
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
 
   const methods = useForm<FormValues>({
     resolver: zodResolver(formSchema) as DiscriminatedUnionResolver<typeof formSchema>,
@@ -73,6 +75,7 @@ export function CreateIdentityDialog() {
         router.push(
           routes.identities.detail({
             workspaceSlug: workspace.slug,
+            ...scope,
             identityId: createdIdentity.identityId,
           }),
         );

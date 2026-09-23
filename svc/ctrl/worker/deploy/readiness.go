@@ -13,9 +13,10 @@ import (
 const instancesReadyPromise = "instances_ready"
 
 // waitForDeployments blocks until enough regions are healthy, or
-// [regionReadyTimeout] elapses. A region is healthy when it has at least
-// autoscaling_replicas_min running instances; the check tolerates one full
-// regional outage by requiring (numRegions - 1) healthy regions, minimum 1.
+// [regionReadyTimeout] elapses. A region is healthy when it has at least one
+// running instance, or more when autoscaling_replicas_min asks for more; the
+// check tolerates one full regional outage by requiring (numRegions - 1)
+// healthy regions, minimum 1.
 //
 // After one DB check for instances that are already healthy, the run awaits
 // the [instancesReadyPromise], which services/cluster resolves through

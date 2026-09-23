@@ -1,6 +1,7 @@
 "use client";
 
 import { StatsListCard } from "@/components/stats-list-card";
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { formatMs } from "@/lib/ms";
 import { routes } from "@/lib/navigation/routes";
@@ -19,6 +20,7 @@ type Props = {
 
 export function NamespaceCard({ namespace, timeseries, isLoading, isError }: Props) {
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
 
   const lastRatelimit = timeseries
     ? timeseries
@@ -30,6 +32,7 @@ export function NamespaceCard({ namespace, timeseries, isLoading, isError }: Pro
     <StatsListCard
       href={routes.ratelimits.detail({
         workspaceSlug: workspace.slug,
+        ...scope,
         namespaceId: namespace.id,
       })}
       ariaLabel={`View ${namespace.name} ratelimit namespace`}

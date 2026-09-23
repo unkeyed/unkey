@@ -1,17 +1,23 @@
 "use client";
 
+import { useFlag } from "@/lib/flags/provider";
 import { routes } from "@/lib/navigation/routes";
 import { useParams, useSelectedLayoutSegments } from "next/navigation";
+import {
+  type ProjectOwner,
+  type ProjectResource,
+  useResourceProjectId,
+} from "./use-resource-project-id";
 import { useWorkspaceNavigation } from "./use-workspace-navigation";
 
 export type BreadcrumbDescriptor =
   | { type: "workspace"; href: string }
   | { type: "account" }
-  | { type: "project"; projectId: string }
+  | { type: "project"; owner: ProjectOwner }
   | { type: "app"; projectId: string; appId: string }
-  | { type: "api"; apiId: string }
-  | { type: "namespace"; namespaceId: string }
-  | { type: "identity"; identityId: string };
+  | { type: "api"; apiId: string; projectId?: string }
+  | { type: "namespace"; namespaceId: string; projectId?: string }
+  | { type: "identity"; identityId: string; projectId?: string };
 
 type RouteParams = {
   projectId?: string;
@@ -25,36 +31,68 @@ export function useBreadcrumbs(): BreadcrumbDescriptor[] {
   const workspace = useWorkspaceNavigation();
   const params = useParams<RouteParams>();
   const segments = useSelectedLayoutSegments();
+  const projectsNav = useFlag("projectsNav");
+  const resource = projectsNav ? resourceFromParams(params) : null;
+  const resourceOwner = useResourceProjectId(resource);
 
-  const workspaceHref = resolveWorkspaceHref(workspace.slug, params);
+  // Project-scoped trail from the first render so the crumbs do not shift when the owner resolves.
+  const workspaceHref = resource
+    ? routes.projects.list({ workspaceSlug: workspace.slug })
+    : resolveWorkspaceHref(workspace.slug, params);
   const crumbs: BreadcrumbDescriptor[] = [{ type: "workspace", href: workspaceHref }];
   if (segments[1] === "account") {
     crumbs.push({ type: "account" });
   }
   if (params.projectId) {
-    crumbs.push({ type: "project", projectId: params.projectId });
+    crumbs.push({
+      type: "project",
+      owner: { state: "resolved", projectId: params.projectId },
+    });
+  }
+  if (resourceOwner) {
+    crumbs.push({ type: "project", owner: resourceOwner });
   }
   if (params.projectId && params.appId) {
     crumbs.push({ type: "app", projectId: params.projectId, appId: params.appId });
   }
   if (params.apiId) {
-    crumbs.push({ type: "api", apiId: params.apiId });
+    crumbs.push({ type: "api", apiId: params.apiId, projectId: params.projectId });
   }
   if (params.namespaceId) {
-    crumbs.push({ type: "namespace", namespaceId: params.namespaceId });
+    crumbs.push({
+      type: "namespace",
+      namespaceId: params.namespaceId,
+      projectId: params.projectId,
+    });
   }
   if (params.identityId) {
-    crumbs.push({ type: "identity", identityId: params.identityId });
+    crumbs.push({ type: "identity", identityId: params.identityId, projectId: params.projectId });
   }
   return crumbs;
 }
 
-function resolveWorkspaceHref(slug: string, params: RouteParams): string {
-  if (params.apiId) {
-    return routes.apis.list({ workspaceSlug: slug });
+function resourceFromParams(params: RouteParams): ProjectResource | null {
+  if (params.projectId) {
+    return null;
   }
+  if (params.apiId) {
+    return { type: "api", apiId: params.apiId };
+  }
+  if (params.namespaceId) {
+    return { type: "namespace", namespaceId: params.namespaceId };
+  }
+  if (params.identityId) {
+    return { type: "identity", identityId: params.identityId };
+  }
+  return null;
+}
+
+function resolveWorkspaceHref(slug: string, params: RouteParams): string {
   if (params.projectId) {
     return routes.projects.list({ workspaceSlug: slug });
+  }
+  if (params.apiId) {
+    return routes.apis.list({ workspaceSlug: slug });
   }
   if (params.namespaceId) {
     return routes.ratelimits.list({ workspaceSlug: slug });

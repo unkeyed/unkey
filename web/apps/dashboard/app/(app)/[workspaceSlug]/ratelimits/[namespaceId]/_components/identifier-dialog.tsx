@@ -1,5 +1,6 @@
 "use client";
 
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
@@ -57,6 +58,7 @@ export const IdentifierDialog = ({
   isLoading = false,
 }: Props) => {
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
 
   const {
     register,
@@ -103,7 +105,9 @@ export const IdentifierDialog = ({
           duration: values.duration,
         });
         onOpenChange(false);
-        router.push(routes.ratelimits.overrides({ workspaceSlug: workspace.slug, namespaceId }));
+        router.push(
+          routes.ratelimits.overrides({ workspaceSlug: workspace.slug, ...scope, namespaceId }),
+        );
       }
     } catch (error) {
       if (error instanceof DuplicateKeyError) {

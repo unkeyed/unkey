@@ -438,10 +438,9 @@ func TestSetRolesConcurrent(t *testing.T) {
 	require.Len(t, finalRoles, 1, "last-writer-wins should leave exactly 1 role")
 }
 
-// TestValidationConcurrencyStress hammers the OpenAPI validation middleware with
+// TestValidationConcurrencyStress hammers a newly created OpenAPI validator with
 // concurrent requests to verify the libopenapi "circular reference detected
-// during inline rendering" race condition doesn't occur. A warm-up request
-// populates the validator's schema cache before the concurrent burst.
+// during inline rendering" race condition doesn't occur on a cold cache.
 // See unkeyed/unkey#5478 for investigation details.
 func TestValidationConcurrencyStress(t *testing.T) {
 	t.Parallel()
@@ -480,19 +479,6 @@ func TestValidationConcurrencyStress(t *testing.T) {
 		"Authorization": {"Bearer test"},
 	}
 	keyID := uid.New(uid.KeyPrefix)
-
-	// Warm up the validator's schema cache with a single request so the
-	// concurrent burst doesn't race on first-time schema rendering.
-	warmupBody, err := json.Marshal(handler.Request{
-		KeyId: keyID,
-		Roles: []string{roles[0]},
-	})
-	require.NoError(t, err)
-	warmupReq := httptest.NewRequest(route.Method(), route.Path(), bytes.NewReader(warmupBody))
-	warmupReq.Header = headers.Clone()
-	warmupRR := httptest.NewRecorder()
-	h.Mux().ServeHTTP(warmupRR, warmupReq)
-	require.Equal(t, 200, warmupRR.Code, "warmup request should succeed")
 
 	const totalRequests = 100_000
 	const concurrency = 500
