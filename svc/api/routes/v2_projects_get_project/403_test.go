@@ -14,6 +14,8 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_projects_get_project"
 )
 
+// TestGetProjectForbidden guarantees legacy and canonical grants authorize only
+// matching projects and denied requests do not expose project existence.
 func TestGetProjectForbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 
@@ -30,6 +32,13 @@ func TestGetProjectForbidden(t *testing.T) {
 		Name:        "Payments Service",
 		Slug:        slug,
 	})
+	otherWorkspace := h.CreateWorkspace()
+	otherProject := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Other Project",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
+	})
 
 	testCases := []struct {
 		name        string
@@ -38,6 +47,11 @@ func TestGetProjectForbidden(t *testing.T) {
 	}{
 		{name: "wildcard permission", permissions: []string{"project.*.read_project"}, shouldPass: true},
 		{name: "specific permission", permissions: []string{fmt.Sprintf("project.%s.read_project", project.ID)}, shouldPass: true},
+		{name: "canonical specific permission", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s#read", workspace.ID, project.ID)}, shouldPass: true},
+		{name: "canonical wildcard permission", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/*#read", workspace.ID)}, shouldPass: true},
+		{name: "canonical foreign project", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s#read", workspace.ID, otherProject.ID)}, shouldPass: false},
+		{name: "canonical foreign workspace", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s#read", otherWorkspace.ID, project.ID)}, shouldPass: false},
+		{name: "canonical wrong action", permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s#write", workspace.ID, project.ID)}, shouldPass: false},
 		{name: "permission and more", permissions: []string{"some.other.permission", "project.*.read_project"}, shouldPass: true},
 		{name: "wrong action", permissions: []string{"project.*.create_project"}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
