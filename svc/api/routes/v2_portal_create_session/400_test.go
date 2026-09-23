@@ -165,6 +165,21 @@ func TestCreateSessionBadRequest(t *testing.T) {
 		require.NotNil(t, res.Body)
 	})
 
+	// `preview` was removed from the request schema. The body is untyped because
+	// handler.Request no longer carries the field, and the pinned Go SDK still
+	// serializes it, so this is the check that keeps the two in step.
+	t.Run("preview rejected", func(t *testing.T) {
+		req := map[string]any{
+			"portal":     "test-portal",
+			"externalId": "user_123",
+			"scopes":     validScopes,
+			"preview":    true,
+		}
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, 400, res.Status)
+		require.NotNil(t, res.Body)
+	})
+
 	t.Run("legacy rbac tuple rejected", func(t *testing.T) {
 		req := handler.Request{
 			Portal:     "test-portal",

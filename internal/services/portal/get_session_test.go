@@ -240,7 +240,6 @@ func TestSessionInfo_FieldsExist(t *testing.T) {
 		ExternalID:  "user_456",
 		PortalID:    "pc_789",
 		Scopes:      []string{"keys:read", "analytics:read"},
-		Preview:     true,
 	}
 
 	require.Equal(t, "ps_001", info.SessionID)
@@ -248,7 +247,6 @@ func TestSessionInfo_FieldsExist(t *testing.T) {
 	require.Equal(t, "user_456", info.ExternalID)
 	require.Equal(t, "pc_789", info.PortalID)
 	require.Equal(t, []string{"keys:read", "analytics:read"}, info.Scopes)
-	require.True(t, info.Preview)
 }
 
 func TestSessionInfo_NilScopes(t *testing.T) {
@@ -261,5 +259,4 @@ func TestSessionInfo_NilScopes(t *testing.T) {
 	}
 
 	require.Nil(t, info.Scopes)
-	require.False(t, info.Preview)
 }

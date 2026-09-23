@@ -13,18 +13,29 @@ import (
 func TestCreateSession(t *testing.T) {
 	tests := []struct {
 		name, args string
-		preview    bool
 		count      int
 		returnURL  *string
-	}{{"minimal", "portal create-session --portal=my-portal --external-id=u --scopes=keys:read", false, 1, nil}, {"all flags", "portal create-session --portal=my-portal --external-id=u --scopes=keys:read,keys:reroll --preview=true --return-url=https://app.example.com/settings", true, 2, func() *string { v := "https://app.example.com/settings"; return &v }()}}
+	}{{"minimal", "portal create-session --portal=my-portal --external-id=u --scopes=keys:read", 1, nil}, {"all flags", "portal create-session --portal=my-portal --external-id=u --scopes=keys:read,keys:reroll --return-url=https://app.example.com/settings", 2, func() *string { v := "https://app.example.com/settings"; return &v }()}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := testutil.CaptureRequest[components.V2PortalCreateSessionRequestBody](t, Cmd(), tt.args)
-			require.Equal(t, tt.preview, *got.Preview)
 			require.Len(t, got.Scopes, tt.count)
 			require.Equal(t, tt.returnURL, got.ReturnURL)
 		})
 	}
+}
+
+// The pinned SDK declares Preview with a `default` and no omitempty, so it puts
+// `preview` on the wire whatever the CLI sets. The request schema therefore has
+// to keep accepting the property. When a regenerated SDK stops sending it, this
+// test fails, which is the signal to drop the deprecated property from
+// V2PortalCreateSessionRequestBody.yaml.
+func TestCreateSessionWireBody(t *testing.T) {
+	body := testutil.CaptureRequest[map[string]any](t, Cmd(),
+		"portal create-session --portal=my-portal --external-id=u --scopes=keys:read")
+
+	_, ok := body["preview"]
+	require.True(t, ok, "SDK no longer sends preview; the deprecated property can now be removed from the request schema")
 }
 
 func TestCreateSessionPermissionValidation(t *testing.T) {
