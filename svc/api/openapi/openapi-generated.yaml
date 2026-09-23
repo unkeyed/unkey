@@ -16456,29 +16456,9 @@ paths:
     /v2/rootKeys.createKey:
         post:
             description: |
-                Create a root key for the authenticated workspace. Workspace admins and
-                root keys with `unkey:v1:<workspace_id>:rootKeys/*#write` can call this
-                endpoint. Global administrator grants also authorize creation. The target
-                workspace comes from authentication, never from request input.
-
-                Every requested permission must be within the caller's existing permissions.
-                Permission to create root keys does not bypass this restriction. Unsupported
-                permissions are rejected without creating a key. The full key is returned
-                only once.
-
-                Supported permissions:
-                - `unkey:v1:<workspace_id>:**#*` for global administrator access.
-                - `unkey:v1:<workspace_id>:rootKeys/*#write` for root key creation.
-                - `unkey:v1:<workspace_id>:projects/<project_id>/keyspaces/<keyspace_id>/keys/*#<action>`
-                  with `decrypt`, `delete`, or `verify`.
-                - `unkey:v1:<workspace_id>:projects/<project_id>/ratelimits/namespaces/<namespace_id>#limit`.
-                - `unkey:v1:<workspace_id>:projects/<project_id>/ratelimits/namespaces/<namespace_id>/overrides/*#<action>`
-                  with `read`, `write`, or `delete`.
-
-                Resource IDs must belong to the authenticated workspace. To cover all
-                keyspaces or namespaces in the workspace, use `*` for both the project ID
-                and the keyspace or namespace ID. Per-key, per-override, project-only
-                wildcard, and other permission patterns are not supported by this endpoint.
+                Creates a root key for the authenticated workspace.
+                Requires `unkey:v1:<workspace_id>:rootKeys/*#write`.
+                The created root key cannot have more permissions than the caller.
             operationId: rootKeys.createKey
             requestBody:
                 content:
