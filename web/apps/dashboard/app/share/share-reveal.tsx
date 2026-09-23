@@ -24,7 +24,7 @@ function parseShareId(hash: string): string | null {
 
 function ShareCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-6 rounded-lg border border-gray-5 p-8 text-center">
+    <div className="flex flex-col items-center gap-6 rounded-lg border bg-raised p-8 text-center">
       {children}
     </div>
   );
@@ -32,7 +32,7 @@ function ShareCard({ children }: { children: React.ReactNode }) {
 
 function CardGlyph({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex size-12 items-center justify-center rounded-xl border border-gray-5 bg-grayA-2 text-gray-12">
+    <div className="flex size-12 items-center justify-center rounded-xl border bg-grayA-2 text-gray-12">
       {children}
     </div>
   );
@@ -111,7 +111,7 @@ export function ShareReveal() {
           title="Your key"
           description="Copy your key and keep it safe, this link will no longer work once you close this window."
         />
-        <div className="flex w-full items-center rounded-xl border border-gray-5 bg-grayA-2 px-3 py-2 focus-within:ring-2 focus-within:ring-gray-6">
+        <div className="flex w-full items-center rounded-xl border bg-grayA-2 px-3 py-2 focus-within:ring-2 focus-within:ring-gray-6">
           <input
             readOnly
             value={state.key}

@@ -20,7 +20,7 @@ export const LiveSwitchButton = ({ isLive, onToggle }: LiveSwitchProps) => {
         "px-2 relative rounded-lg group overflow-hidden",
         isLive
           ? "bg-info-3 text-info-11 hover:bg-info-3 hover:text-info-11 border border-solid border-info-7"
-          : "text-accent-12 [&_svg]:text-accent-9",
+          : "text-gray-12 [&_svg]:text-gray-9",
       )}
     >
       {isLive && (

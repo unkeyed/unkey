@@ -1,8 +1,8 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_overview/hooks/use-filters";
 import { DatetimePopover } from "@/components/logs/datetime/datetime-popover";
-import { cn } from "@/lib/utils";
 import { IconCalendarOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { cn } from "cn";
 import { useEffect, useState } from "react";
 
 export const NamespaceListDateTime = () => {
@@ -74,7 +74,7 @@ export const NamespaceListDateTime = () => {
         variant="ghost"
         size="md"
         className={cn(
-          "data-popup-open:bg-gray-4 px-2 rounded-lg border border-solid border-gray-4",
+          "data-popup-open:bg-gray-4 px-2 rounded-lg border border-solid",
           displayTitle === "Loading..." ? "opacity-50" : "",
           displayTitle !== "Last 12 hours" ? "bg-gray-4" : "",
         )}

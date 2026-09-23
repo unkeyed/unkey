@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import type { ChartErrorProps } from "./types";
 
 /**
@@ -39,7 +39,7 @@ export const ChartError = ({
       <div className={cn("flex flex-col h-full", className)}>
         <div className="flex-1 min-h-0 flex items-center justify-center">
           <div className="flex flex-col items-center gap-2">
-            <span className="text-sm text-accent-9">{message}</span>
+            <span className="text-sm text-gray-9">{message}</span>
           </div>
         </div>
       </div>
@@ -50,7 +50,7 @@ export const ChartError = ({
   if (variant === "compact") {
     return (
       <div className={cn("w-full relative", className)}>
-        <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between opacity-50">
+        <div className="px-2 text-gray-11 font-mono absolute top-0 text-xxs w-full flex justify-between opacity-50">
           {Array(5)
             .fill(0)
             .map((_, i) => (
@@ -60,10 +60,10 @@ export const ChartError = ({
               </div>
             ))}
         </div>
-        <div style={{ height }} className="border-b border-gray-4">
+        <div style={{ height }} className="border-b">
           <div className="flex-1 flex items-center justify-center h-full">
             <div className="flex flex-col items-center gap-2">
-              <span className="text-sm text-accent-9">{message}</span>
+              <span className="text-sm text-gray-9">{message}</span>
             </div>
           </div>
         </div>
@@ -99,11 +99,11 @@ export const ChartError = ({
                     style={{ backgroundColor: metric.color }}
                   />
                 ))}
-              <div className="text-accent-10 text-[11px] leading-4">
+              <div className="text-gray-10 text-[11px] leading-4">
                 {labelsWithDefaults.rangeLabel}
               </div>
             </div>
-            <div className="text-accent-12 text-[18px] font-semibold leading-7">--</div>
+            <div className="text-gray-12 text-[18px] font-semibold leading-7">--</div>
           </div>
 
           {/* Right side section shown conditionally */}
@@ -116,9 +116,9 @@ export const ChartError = ({
                       className="rounded-sm h-[10px] w-1"
                       style={{ backgroundColor: metric.color }}
                     />
-                    <div className="text-accent-10 text-[11px] leading-4">{metric.label}</div>
+                    <div className="text-gray-10 text-[11px] leading-4">{metric.label}</div>
                   </div>
-                  <div className="text-accent-12 text-[18px] font-semibold leading-7">--</div>
+                  <div className="text-gray-12 text-[18px] font-semibold leading-7">--</div>
                 </div>
               ))}
             </div>
@@ -128,12 +128,12 @@ export const ChartError = ({
         {/* Chart area with error message */}
         <div className="flex-1 min-h-0 flex items-center justify-center">
           <div className="flex flex-col items-center gap-2">
-            <span className="text-sm text-accent-9">{message}</span>
+            <span className="text-sm text-gray-9">{message}</span>
           </div>
         </div>
 
         {/* Time labels footer */}
-        <div className="h-8 border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between">
+        <div className="h-8 border-t border-b px-1 py-2 text-gray-9 font-mono text-xxs w-full flex justify-between">
           {Array(5)
             .fill(0)
             .map((_, i) => (
@@ -152,7 +152,7 @@ export const ChartError = ({
     <div className={cn("flex flex-col h-full", className)}>
       <div className="flex-1 min-h-0 flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
-          <span className="text-sm text-accent-9">{message}</span>
+          <span className="text-sm text-gray-9">{message}</span>
         </div>
       </div>
     </div>

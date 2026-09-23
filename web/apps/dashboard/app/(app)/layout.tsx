@@ -97,19 +97,19 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <SidebarProvider style={SIDEBAR_WIDTH_VARS}>
-      <div className="h-dvh w-full flex flex-col overflow-hidden bg-white dark:bg-base-12">
+      <div className="h-dvh w-full flex flex-col overflow-hidden bg-background">
         <ComputePausedBanner />
         <TopNav />
         <MobileNavDrawer />
         <div className="relative flex flex-1 overflow-hidden">
-          {!isCreationWizard && <SidebarV2 className="bg-gray-1 border-grayA-4" />}
+          {!isCreationWizard && <SidebarV2 className="bg-background" />}
           {/* Reserve the scrollbar gutter so content doesn't shift horizontally
               when the scrollbar appears/disappears (e.g. a dialog locking scroll
               or content height changing). Without this the centered layout
               "shakes" and buttons move out from under the cursor (ENG-2884). */}
           <div className="flex-1 overflow-auto" style={{ scrollbarGutter: "stable" }}>
             <div
-              className="isolate bg-base-12 w-full min-h-full flex flex-col items-center"
+              className="isolate bg-background w-full min-h-full flex flex-col items-center"
               id="layout-wrapper"
             >
               <WorkspaceContent workspace={workspace}>{children}</WorkspaceContent>

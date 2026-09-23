@@ -2,7 +2,6 @@
 
 import type { StringMatchMode } from "@/lib/collections/deploy/policies.schema";
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { IconChevronDownOutline18, IconSparkle3Outline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
@@ -16,6 +15,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { FormDescription, FormLabel } from "@unkey/ui/src/components/form/form-helpers";
+import { cn } from "cn";
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { MatchConditionFormValues, PolicyFormValues } from "../schema";
@@ -136,7 +136,7 @@ export function ConditionFields({
                     "px-2 py-0.5 rounded text-xs font-mono border transition-colors cursor-pointer",
                     active
                       ? "bg-info-3 border-info-7 text-info-11"
-                      : "bg-grayA-2 border-grayA-4 text-grayA-9 hover:text-gray-12",
+                      : "bg-grayA-2 text-grayA-9 hover:text-gray-12",
                   )}
                 >
                   {m}

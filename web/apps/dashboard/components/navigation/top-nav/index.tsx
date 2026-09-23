@@ -29,7 +29,7 @@ export function TopNav() {
 
   return (
     <header
-      className="flex w-full shrink-0 items-center gap-1 border-b border-grayA-4 bg-gray-1 px-4"
+      className="flex w-full shrink-0 items-center gap-1 border-b bg-background px-4"
       style={{ height: TOP_NAV_HEIGHT }}
     >
       <Link
@@ -56,7 +56,7 @@ export function TopNav() {
           type="button"
           onClick={() => setOpenMobile(true)}
           aria-label="Open navigation"
-          className="flex size-8 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-accent-12 md:hidden"
+          className="flex size-8 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-gray-12 md:hidden"
         >
           <IconMenuOutline18 className="size-4" />
         </button>

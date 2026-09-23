@@ -31,7 +31,7 @@ export function NamespaceCrumb({
 
   return (
     <Crumb
-      icon={<IconGaugeOutline18 className="size-3.5 text-accent-11" />}
+      icon={<IconGaugeOutline18 className="size-3.5 text-gray-11" />}
       label={current?.name ?? namespaceId}
       loading={loading}
       href={routes.ratelimits.detail({ workspaceSlug: workspace.slug, projectId, namespaceId })}

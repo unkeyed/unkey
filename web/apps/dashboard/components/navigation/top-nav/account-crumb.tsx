@@ -10,7 +10,7 @@ export function AccountCrumb() {
 
   return (
     <CrumbLink
-      icon={<IconUserOutline18 className="size-3.5 text-accent-11" />}
+      icon={<IconUserOutline18 className="size-3.5 text-gray-11" />}
       label="Account settings"
       current
       href={routes.account.overview({ workspaceSlug: workspace.slug })}

@@ -143,8 +143,8 @@ export const ChooseSourceStep = ({
     <div className="flex flex-col items-center">
       <div className="flex flex-col gap-3 w-[600px]">
         {imageMode ? null : (
-          <div className="border border-grayA-5 rounded-lg flex justify-start items-center gap-4 py-[18px] px-4">
-            <div className="size-8 rounded-[10px] grid place-items-center ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none shrink-0">
+          <div className="border bg-raised rounded-lg flex justify-start items-center gap-4 py-[18px] px-4">
+            <div className="size-8 rounded-xl grid place-items-center border shadow-sm shadow-grayA-8/20 dark:shadow-none shrink-0">
               <IconCodeBranchOutline18 className="size-[18px] text-gray-12" />
             </div>
             <div className="flex flex-col gap-3">
@@ -157,7 +157,7 @@ export const ChooseSourceStep = ({
             </div>
             <Button
               variant="outline"
-              className="ml-auto rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
+              className="ml-auto rounded-lg hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
               onClick={handleClick}
               loading={isPreparing}
               disabled={selectedSource === "oci"}

@@ -105,9 +105,9 @@ export const DeployImageCard = ({
   };
 
   return (
-    <div className="border border-grayA-5 rounded-lg flex flex-col gap-4 py-[18px] px-4">
+    <div className="border bg-raised rounded-lg flex flex-col gap-4 py-[18px] px-4">
       <div className="flex justify-start items-center gap-4">
-        <div className="size-8 rounded-[10px] grid place-items-center ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none shrink-0">
+        <div className="size-8 rounded-xl grid place-items-center border shadow-sm shadow-grayA-8/20 dark:shadow-none shrink-0">
           <IconLayers2Outline18 className="size-[18px] text-gray-12" />
         </div>
         <div className="flex flex-col gap-3">
@@ -132,7 +132,7 @@ export const DeployImageCard = ({
         ) : (
           <Button
             variant="outline"
-            className="ml-auto rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
+            className="ml-auto rounded-lg hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
             onClick={() => onExpandedChange(true)}
             disabled={disabled}
           >
@@ -162,7 +162,7 @@ export const DeployImageCard = ({
               placeholder="ghcr.io/acme/mcp-server:v1.4.2"
               aria-label="Image reference"
               aria-describedby={hintId}
-              className="h-9 bg-transparent border-grayA-4 font-mono text-xs flex-1 min-w-0"
+              className="h-9 bg-transparent font-mono text-xs flex-1 min-w-0"
               data-1p-ignore
             />
             <Button

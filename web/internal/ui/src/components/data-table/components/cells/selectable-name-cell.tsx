@@ -54,18 +54,18 @@ export const SelectableNameCell = ({
           />
         </div>
         <div className="flex flex-col gap-1 text-xs">
-          <div className="font-medium truncate text-accent-12 leading-4 text-[13px] max-w-[120px]">
+          <div className="font-medium truncate text-gray-12 leading-4 text-[13px] max-w-[120px]">
             {name}
           </div>
           {description ? (
             <span
-              className="font-sans text-accent-9 truncate max-w-[180px] text-xs"
+              className="font-sans text-gray-9 truncate max-w-[180px] text-xs"
               title={description}
             >
               {description}
             </span>
           ) : (
-            <span className="font-sans text-accent-9 truncate max-w-[180px] text-xs italic">
+            <span className="font-sans text-gray-9 truncate max-w-[180px] text-xs italic">
               No description
             </span>
           )}

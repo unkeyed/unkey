@@ -5,6 +5,7 @@ import { RegionFlag } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/app
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 import { trpc } from "@/lib/trpc/client";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
+import { Skeleton } from "@unkey/ui";
 import { useMemo } from "react";
 
 type RegionOption = {
@@ -36,9 +37,9 @@ export function RuntimeLogsRegionFilter() {
         {Array.from({ length: 3 }).map((_, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: safe to leave
           <div key={i} className="flex items-center gap-4.5 px-2 py-1">
-            <div className="size-4 bg-grayA-3 rounded animate-pulse shrink-0" />
-            <div className="size-4 bg-grayA-3 rounded-full animate-pulse shrink-0" />
-            <div className="h-4 w-[80px] bg-grayA-3 rounded animate-pulse" />
+            <Skeleton className="size-4 rounded shrink-0" />
+            <Skeleton className="size-4 rounded-full shrink-0" />
+            <Skeleton className="h-4 w-[80px] rounded" />
           </div>
         ))}
       </div>
@@ -59,7 +60,7 @@ export function RuntimeLogsRegionFilter() {
             shape="circle"
             className="[&_img]:size-3"
           />
-          <span className="text-accent-12 text-xs font-mono">{option.label}</span>
+          <span className="text-gray-12 text-xs font-mono">{option.label}</span>
         </>
       )}
       createFilterValue={(option) => ({

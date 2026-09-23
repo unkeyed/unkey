@@ -310,7 +310,7 @@ export const AddEnvVarExpandable = ({
             </div>
           </div>
 
-          <div className="border-t border-grayA-4">
+          <div className="border-t">
             <div className="px-6 py-6 space-y-6">
               <Controller
                 control={control}
@@ -376,7 +376,7 @@ export const AddEnvVarExpandable = ({
             </div>
           </div>
 
-          <div className="border-t border-gray-4 bg-white dark:bg-black px-6 py-5 flex items-center justify-between">
+          <div className="border-t bg-raised px-6 py-5 flex items-center justify-between">
             <div className="hidden md:flex items-center gap-3">
               <input
                 ref={fileInputRef}

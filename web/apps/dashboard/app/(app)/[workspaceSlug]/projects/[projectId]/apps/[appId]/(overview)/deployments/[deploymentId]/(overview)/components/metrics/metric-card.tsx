@@ -27,7 +27,7 @@ type MetricConfig = {
 const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
   latency: {
     label: "Latency",
-    color: "hsl(var(--bronze-8))",
+    color: "var(--color-bronze-8)",
     iconBg: "bg-bronze-3",
     iconText: "text-bronze-11",
     unit: "ms",
@@ -36,15 +36,15 @@ const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
   },
   rps: {
     label: "RPS",
-    color: "hsl(var(--accent-8))",
-    iconBg: "bg-accent-3",
-    iconText: "text-accent-11",
+    color: "var(--color-gray-8)",
+    iconBg: "bg-gray-3",
+    iconText: "text-gray-11",
     unit: "req/s",
     chartVariant: "bar",
   },
   cpu: {
     label: "CPU",
-    color: "hsl(var(--feature-8))",
+    color: "var(--color-feature-8)",
     iconBg: "bg-feature-3",
     iconText: "text-feature-11",
     unit: "%",
@@ -52,7 +52,7 @@ const METRIC_CONFIGS: Record<MetricType, MetricConfig> = {
   },
   memory: {
     label: "Memory",
-    color: "hsl(var(--info-8))",
+    color: "var(--color-info-8)",
     iconBg: "bg-info-3",
     iconText: "text-info-11",
     unit: "%",
@@ -99,10 +99,10 @@ export function MetricCard({
   const noData = isError || isLoading;
   const valueText = noData ? "‒" : parts.value;
   const secondaryText = noData ? "‒" : secondaryValue?.numeric;
-  const gradientColor = isError ? "hsl(var(--error-9))" : config.color;
+  const gradientColor = isError ? "var(--color-error-9)" : config.color;
 
   return (
-    <div className="border border-gray-4 bg-grayA-1 w-full rounded-lg flex flex-col">
+    <div className="border bg-grayA-2 w-full rounded-lg flex flex-col">
       <div className="flex items-center gap-3 w-full px-[14px] pt-[12px] pb-[8px]">
         <div
           className={cn(
@@ -163,7 +163,7 @@ export function MetricCard({
           />
         ) : (
           <LogsTimeseriesBarChart
-            chartContainerClassname="px-[14px] border-gray-3"
+            chartContainerClassname="px-[14px]"
             data={chartData.data}
             config={{
               [chartData.dataKey]: {

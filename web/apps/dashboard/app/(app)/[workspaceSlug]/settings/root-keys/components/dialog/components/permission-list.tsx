@@ -144,7 +144,7 @@ export const PermissionContentList = ({
 
         <CollapsibleContent>
           <div className="flex">
-            <div className="flex flex-col min-h-full border-r border-grayA-5 mb-2 ml-5" />
+            <div className="flex flex-col min-h-full border-r mb-2 ml-5" />
             <div className="flex flex-col h-full ml-2 w-full min-w-0">
               {isSingleCategory ? (
                 <div className="flex flex-col min-w-0 mr-2 w-full justify-start items-start">
@@ -167,7 +167,7 @@ export const PermissionContentList = ({
                       />
                       <CollapsibleContent>
                         <div className="flex w-full">
-                          <div className="flex-1 border-r border-grayA-5 max-h-full w-4 mb-2 ml-[20px]" />
+                          <div className="flex-1 border-r max-h-full w-4 mb-2 ml-[20px]" />
                           <div className="flex flex-col min-w-0 mr-2 w-full justify-start items-start ">
                             {renderPermissionToggles(category, allPermissions)}
                           </div>

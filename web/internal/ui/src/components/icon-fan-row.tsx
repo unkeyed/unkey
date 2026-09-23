@@ -29,7 +29,7 @@ function IconFanRow({ className, children, ...props }: Omit<React.ComponentProps
               // biome-ignore lint/suspicious/noArrayIndexKey: static decorative row, index is stable
               key={index}
               className={cn(
-                "shrink-0 flex items-center justify-center rounded-[10px] bg-transparent ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none",
+                "shrink-0 flex items-center justify-center rounded-xl bg-transparent border shadow-sm shadow-grayA-8/20 dark:shadow-none",
                 index === centerIndex
                   ? "size-16 [&_svg]:size-9 [&_svg_[stroke-width]]:[stroke-width:0.75]"
                   : "size-9 [&_svg]:size-[18px]",

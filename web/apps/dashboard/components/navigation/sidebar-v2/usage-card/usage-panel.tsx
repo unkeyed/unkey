@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { IconPlusOutline12 } from "@unkey/icons";
+import { cn } from "cn";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useId } from "react";
@@ -17,7 +17,7 @@ export function UsagePanel({ summary }: { summary: UsageSummary }) {
   const bodyId = useId();
 
   return (
-    <div className="relative overflow-hidden rounded-lg border border-grayA-4">
+    <div className="relative overflow-hidden rounded-lg border">
       {folded ? null : (
         <Link
           href={summary.href}

@@ -44,7 +44,7 @@ export function ActiveBranches() {
   return (
     <ResourceList>
       <ResourceListHeader className="flex-row items-center justify-between">
-        <h2 className="font-medium text-accent-12 text-sm">Active Branches</h2>
+        <h2 className="font-medium text-gray-12 text-sm">Active Branches</h2>
         <Link
           href={routes.projects.apps.deployments({
             workspaceSlug: workspace.slug,

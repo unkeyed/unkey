@@ -26,7 +26,7 @@ export function IdentityCrumb({
 
   return (
     <Crumb
-      icon={<IconFingerprintOutline18 className="size-3.5 text-accent-11" />}
+      icon={<IconFingerprintOutline18 className="size-3.5 text-gray-11" />}
       label={identityId}
       href={routes.identities.detail({ workspaceSlug: workspace.slug, projectId, identityId })}
       items={items}

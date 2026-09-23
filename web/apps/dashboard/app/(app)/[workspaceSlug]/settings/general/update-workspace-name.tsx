@@ -90,7 +90,7 @@ export function UpdateWorkspaceName() {
         title={"Workspace Name"}
         description={"Not customer-facing. Choose a name that is easy to recognize."}
         border="top"
-        className="border-b border-grayA-4"
+        className="border-b"
         contentWidth="w-full lg:w-[420px]"
       >
         <div className="flex flex-row justify-end items-center w-full gap-x-2">

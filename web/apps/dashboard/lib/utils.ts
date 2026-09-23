@@ -1,10 +1,5 @@
 import type { TimeUnit } from "@unkey/ui";
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 export const isBrowser = typeof window !== "undefined";
 
 export function debounce<T extends (...args: unknown[]) => unknown>(func: T, delay: number) {

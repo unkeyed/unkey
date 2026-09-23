@@ -1,7 +1,7 @@
 import type { RuntimeLog } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/logs/types";
-import { cn } from "@/lib/utils";
 import { IconXmarkOutline18 } from "@unkey/icons";
 import { Badge, Button } from "@unkey/ui";
+import { cn } from "cn";
 
 type Props = {
   log: RuntimeLog;
@@ -10,7 +10,7 @@ type Props = {
 
 export const RuntimeLogHeader = ({ onClose, log }: Props) => {
   return (
-    <div className="border-b flex justify-between items-center border-gray-4 h-[45px] px-4 py-2">
+    <div className="border-b flex justify-between items-center h-[45px] px-4 py-2">
       <div className="flex gap-2 items-center min-w-0">
         <Badge
           className={cn("uppercase px-[6px] rounded-md font-mono text-xs", {

@@ -51,12 +51,10 @@ export function NewerDeploymentRow({ deployment, href }: { deployment: Deploymen
       : TRIGGER_LABEL[deployment.trigger];
 
   return (
-    <div className="flex items-center justify-between gap-3 border-t border-grayA-4 px-4 py-2.5">
+    <div className="flex items-center justify-between gap-3 border-t px-4 py-2.5">
       <div className="flex min-w-0 items-center gap-2 text-[13px]">
         <DeploymentStatusIndicator status={deployment.status} />
-        <span className="shrink-0 text-accent-12">
-          {DEPLOYMENT_STATUS_LABELS[deployment.status]}
-        </span>
+        <span className="shrink-0 text-gray-12">{DEPLOYMENT_STATUS_LABELS[deployment.status]}</span>
         <span aria-hidden className="shrink-0 text-gray-9">
           ·
         </span>
