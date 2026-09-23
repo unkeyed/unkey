@@ -11,6 +11,8 @@ go_library(
         "//pkg/fault",
         "//pkg/ptr",
         "//pkg/rbac",
+        "//pkg/rbac/permissions",
+        "//pkg/urn",
         "//pkg/zen",
         "//svc/api/internal/deployment",
         "//svc/api/openapi",
@@ -26,6 +28,7 @@ go_test(
         "403_test.go",
         "404_test.go",
         "helpers_test.go",
+        "urn_permissions_test.go",
     ],
     deps = [
         ":v2_deployments_list_deployments",
