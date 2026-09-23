@@ -103,23 +103,14 @@ These examples show how concrete IDs and wildcards use the same catalog.
 
 ### Create a root key
 
-`POST /v2/rootKeys.createKey` accepts verified WorkOS workspace admins or root
-keys with this capability, including global administrator grants:
+`POST /v2/rootKeys.createKey` requires this permission:
 
 ```plaintext
 unkey:v1:ws_123:rootKeys/*#write
 ```
 
-The exact legacy equivalent is `workspace.*.create_root_key`. The workspace is
-the caller's authorized customer workspace, not the internal storage workspace.
-Creation uses `*` because the root key does not exist yet. A concrete key grant
-does not cover this wildcard.
-
-The endpoint stores URN inputs without adding legacy grants. Legacy inputs
-store both equivalent grants atomically. Duplicate grants are stored once.
-Callers can delegate creation, but every requested and generated grant must
-remain within their effective permissions. Translations without exact safe
-equivalents fail without creating a key.
+The created root key cannot have more permissions than the caller. Only
+canonical URN permissions are accepted. Legacy permissions are not translated.
 
 ### Create a key
 

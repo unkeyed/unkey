@@ -64,9 +64,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Valid: true,
 		}
 	}
-	key, err := h.Keys.CreateKey(ctx, keys.CreateKeyRequest{
-		Prefix:     "unkey",
-		ByteLength: 16,
+	grants, err := authorizePermissions(p, req.Permissions)
+	if err != nil {
+		return err
+	}
+	key, err := h.Keys.CreateKeyV1(ctx, keys.CreateKeyV1Request{
+		Prefix: "unkey",
 	})
 	if err != nil {
 		return err
@@ -84,10 +87,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.New("invalid internal root key ownership", fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Public("Root key creation is not available."))
 		}
-		grants, err := expandPermissions(ctx, tx, p, req.Permissions)
-		if err != nil {
-			return err
-		}
 		err = db.Query.InsertKey(ctx, tx, db.InsertKeyParams{
 			ID:          keyID,
 			KeySpaceID:  h.InternalKeyspaceID,
@@ -101,9 +100,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				Valid:  req.Name != nil,
 			},
 			Hash:               key.Hash,
-			Prefix:             "unkey",
+			Prefix:             key.Prefix,
 			Start:              key.Start,
-			End:                key.Key[len(key.Key)-4:],
+			End:                key.End,
 			Enabled:            true,
 			CreatedAtM:         h.Clock.Now().UnixMilli(),
 			Expires:            expires,
