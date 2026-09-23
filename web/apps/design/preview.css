@@ -671,3 +671,11 @@
 [data-blume-example] {
   width: 100%;
 }
+
+/*
+ * Blume reserves a stable scrollbar gutter on the frame, which shifts every
+ * example 15px left of centre even when nothing scrolls.
+ */
+html {
+  scrollbar-gutter: auto;
+}

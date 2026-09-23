@@ -5,22 +5,19 @@ import { routes } from "@/lib/navigation/routes";
 import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
 import {
-  IconCloudUploadOutline18,
-  IconDatabaseOutline18,
-  IconEarthOutline18,
-  IconLayers3Outline18,
-  IconShareUpRightOutline18,
-} from "@unkey/icons";
-import {
   Button,
-  EmptyHero,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   InfoTooltip,
   ResourceListBody,
   ResourceListContent,
   ResourceListItem,
   Skeleton,
+  useElapsed,
 } from "@unkey/ui";
-import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { CreateLogdrainButton } from "./create-logdrain-button";
 import { DrainMedia } from "./drain-destinations";
@@ -30,6 +27,8 @@ import { DrainStatusBadge } from "./drain-status-badge";
 const SKELETON_ROWS = 5;
 
 function DrainRow({ drain, workspaceSlug }: { drain: DrainListItem; workspaceSlug: string }) {
+  const createdAgo = useElapsed(drain.createdAt);
+
   return (
     <ResourceListItem>
       <Link
@@ -49,10 +48,8 @@ function DrainRow({ drain, workspaceSlug }: { drain: DrainListItem; workspaceSlu
         </div>
 
         {/* A plain string, not TimestampInfo: its popover trigger is a button and this row is
-            already a link. Same wording as TimestampInfo's relative display. */}
-        <span className="shrink-0 text-xs text-gray-9">
-          {formatDistanceToNow(new Date(drain.createdAt), { addSuffix: true })}
-        </span>
+            already a link. */}
+        <span className="shrink-0 text-xs text-gray-9">{createdAgo}</span>
       </Link>
     </ResourceListItem>
   );
@@ -113,32 +110,27 @@ export function LogdrainsList({
 
   if (!query.data?.length) {
     return (
-      <EmptyHero>
-        <EmptyHero.Icons>
-          <IconLayers3Outline18 />
-          <IconShareUpRightOutline18 />
-          <IconCloudUploadOutline18 />
-          <IconEarthOutline18 />
-          <IconDatabaseOutline18 />
-        </EmptyHero.Icons>
-        <EmptyHero.Title>
-          {needsEnablement ? "Log drains" : "Create your first log drain"}
-        </EmptyHero.Title>
-        <EmptyHero.Description>
-          {needsEnablement
-            ? "Contact support to enable log drains for this workspace."
-            : "Send audit logs, key verifications, gateway HTTP requests, or runtime logs to an HTTPS endpoint or an Axiom dataset."}
-        </EmptyHero.Description>
-        <EmptyHero.Actions>
+      <EmptyState>
+        <EmptyStateHeader>
+          <EmptyStateTitle>
+            {needsEnablement ? "Log drains" : "Create your first log drain"}
+          </EmptyStateTitle>
+          <EmptyStateDescription>
+            {needsEnablement
+              ? "Contact support to enable log drains for this workspace."
+              : "Send audit logs, key verifications, gateway HTTP requests, or runtime logs to an HTTPS endpoint or an Axiom dataset."}
+          </EmptyStateDescription>
+        </EmptyStateHeader>
+        <EmptyStateActions>
           {needsEnablement ? (
-            <Button variant="primary" render={<Link href={SUPPORT_MAILTO} />}>
+            <Button variant="outline" render={<Link href={SUPPORT_MAILTO} />}>
               Contact support
             </Button>
           ) : (
             <CreateLogdrainButton onClick={onCreate} disabled={!canCreate} />
           )}
-        </EmptyHero.Actions>
-      </EmptyHero>
+        </EmptyStateActions>
+      </EmptyState>
     );
   }
 

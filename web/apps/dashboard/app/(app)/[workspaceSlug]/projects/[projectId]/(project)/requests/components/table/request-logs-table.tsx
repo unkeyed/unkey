@@ -6,8 +6,18 @@ import {
   getSelectedClassName,
   useRequestLogsQuery,
 } from "@/components/request-logs-table";
-import { IconBookBookmarkOutline18 } from "@unkey/icons";
-import { Button, DataTable, Empty, PaginationFooter } from "@unkey/ui";
+import { IconArrowsOppositeDirectionYOutline18, IconBookBookmarkOutline18 } from "@unkey/icons";
+import {
+  Button,
+  DataTable,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+  PaginationFooter,
+} from "@unkey/ui";
 import { useMemo } from "react";
 import { useRequestLogsContext } from "../../context/request-logs-provider";
 
@@ -43,7 +53,32 @@ export const RequestLogsTable = () => {
         selectedItem={selectedLog}
         rowClassName={(log) => getRowClassName(log, selectedLog, isLive, realtimeLogs)}
         selectedClassName={getSelectedClassName}
-        emptyState={<EmptyState />}
+        emptyState={
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconArrowsOppositeDirectionYOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Logs</EmptyStateTitle>
+              <EmptyStateDescription>
+                Keep track of all activity within your workspace. We collect all API requests,
+                giving you a clear history to find problems or debug issues.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <a
+                href="https://www.unkey.com/docs/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" size="md">
+                  <IconBookBookmarkOutline18 />
+                  Documentation
+                </Button>
+              </a>
+            </EmptyStateActions>
+          </EmptyState>
+        }
         // VirtualTable defaulted to 26px dense rows and 50 loading rows; DataTable's
         // defaults (36px / 10) differ, so set them explicitly to preserve the layout.
         config={{ rowHeight: 26, layout: "classic", rowBorders: false, loadingRows: 50 }}
@@ -65,24 +100,3 @@ export const RequestLogsTable = () => {
     </div>
   );
 };
-
-const EmptyState = () => (
-  <div className="w-full flex justify-center items-center h-full">
-    <Empty className="w-100 flex items-start">
-      <Empty.Icon className="w-auto" />
-      <Empty.Title>Logs</Empty.Title>
-      <Empty.Description className="text-left">
-        Keep track of all activity within your workspace. We collect all API requests, giving you a
-        clear history to find problems or debug issues.
-      </Empty.Description>
-      <Empty.Actions className="mt-4 justify-start">
-        <a href="https://www.unkey.com/docs/introduction" target="_blank" rel="noopener noreferrer">
-          <Button size="md">
-            <IconBookBookmarkOutline18 />
-            Documentation
-          </Button>
-        </a>
-      </Empty.Actions>
-    </Empty>
-  </div>
-);

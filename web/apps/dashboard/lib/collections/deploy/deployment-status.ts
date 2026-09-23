@@ -51,15 +51,15 @@ export function isDeploymentInFlight(status: DeploymentStatus): boolean {
 
 // The filter groups a user picks from. The pipeline's intermediate statuses
 // (starting, network, finalizing, ...) read as one "building" phase from the
-// outside, and skipped rows are cancellations the platform made on the user's
-// behalf. Every raw status belongs to exactly one group; the test enforces it.
+// outside. Every raw status belongs to exactly one group; the test enforces it.
 export const DEPLOYMENT_STATUS_GROUPS = {
   ready: ["ready"],
   failed: ["failed"],
   building: ["starting", "building", "deploying", "network", "finalizing"],
   queued: ["pending"],
   blocked: ["awaiting_approval"],
-  cancelled: ["cancelled", "skipped"],
+  cancelled: ["cancelled"],
+  skipped: ["skipped"],
   superseded: ["superseded"],
   stopped: ["stopped"],
 } as const satisfies Record<string, readonly DeploymentStatus[]>;
@@ -70,11 +70,42 @@ export const DEPLOYMENT_STATUS_GROUP_NAMES = Object.keys(
   DEPLOYMENT_STATUS_GROUPS,
 ) as DeploymentStatusGroup[];
 
+const GROUP_BY_STATUS = new Map<DeploymentStatus, DeploymentStatusGroup>(
+  DEPLOYMENT_STATUS_GROUP_NAMES.flatMap((group) =>
+    DEPLOYMENT_STATUS_GROUPS[group].map((status) => [status, group] as const),
+  ),
+);
+
+export const DEPLOYMENT_GROUP_COLOR: Record<DeploymentStatusGroup, string> = {
+  ready: "bg-success-9",
+  failed: "bg-error-9",
+  building: "bg-info-9",
+  queued: "bg-gray-9",
+  blocked: "bg-warning-9",
+  cancelled: "bg-gray-9",
+  skipped: "bg-gray-9",
+  superseded: "bg-gray-9",
+  stopped: "bg-gray-9",
+};
+
+export function statusGroupOf(status: DeploymentStatus): DeploymentStatusGroup {
+  const group = GROUP_BY_STATUS.get(status);
+  if (!group) {
+    throw new Error(`Deployment status ${status} belongs to no group`);
+  }
+  return group;
+}
+
+export function deploymentStatusColor(status: DeploymentStatus): string {
+  return DEPLOYMENT_GROUP_COLOR[statusGroupOf(status)];
+}
+
 // Groups holding deployments that are out of play. They accumulate on an active
 // app and bury the rows a user came to look at, so the list starts with them
 // filtered out; selecting them in the status filter brings them back.
 const DEPLOYMENT_STATUS_GROUPS_HIDDEN_BY_DEFAULT = new Set<DeploymentStatusGroup>([
   "cancelled",
+  "skipped",
   "superseded",
   "stopped",
 ]);

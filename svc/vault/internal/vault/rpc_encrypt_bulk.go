@@ -13,7 +13,8 @@ import (
 func (s *Service) EncryptBulk(
 	ctx context.Context,
 	req *connect.Request[vaultv1.EncryptBulkRequest],
-) (*connect.Response[vaultv1.EncryptBulkResponse], error) {
+) (_ *connect.Response[vaultv1.EncryptBulkResponse], err error) {
+	defer func() { observeOperation("encrypt_bulk", err) }()
 	if err := s.authenticate(req); err != nil {
 		return nil, err
 	}

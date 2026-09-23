@@ -24,7 +24,9 @@ const procedure = vi.hoisted(() => ({
 const database = vi.hoisted(() => {
   const read = vi.fn();
   const write = vi
-    .fn<[Record<string, unknown> & { config: Uint8Array }], { where: ReturnType<typeof vi.fn> }>()
+    .fn<
+      (row: Record<string, unknown> & { config: Uint8Array }) => { where: ReturnType<typeof vi.fn> }
+    >()
     .mockReturnValue({ where: vi.fn() });
   const tx = {
     select: () => ({ from: () => ({ where: () => ({ for: read }) }) }),

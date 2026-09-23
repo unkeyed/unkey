@@ -1,16 +1,19 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { useFlag } from "@/lib/flags/provider";
 import {
-  Github,
   IconArrowRightOutline18,
   IconBookBookmarkOutline18,
-  IconCodeOutline18,
   IconCubeOutline18,
-  IconEarthOutline18,
-  IconHeartPulseOutline18,
 } from "@unkey/icons";
-import { Button, EmptyHero } from "@unkey/ui";
-import { useSearchParams } from "next/navigation";
+import {
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+} from "@unkey/ui";
 import { useState } from "react";
 import { CreateProjectDialog } from "../create-project-dialog";
 import { DeployPlanGateDialog } from "../deploy-plan-gate-dialog";
@@ -18,30 +21,25 @@ import { useDeployGate } from "../hooks/use-deploy-gate";
 
 export function EmptyProjects() {
   const workspace = useWorkspaceNavigation();
-  const searchParams = useSearchParams();
   const { gated } = useDeployGate();
   const deployBillingEnabled = useFlag("deployBilling");
-  const [isDialogOpen, setIsDialogOpen] = useState(searchParams.get("new") === "true");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPlanOpen, setIsPlanOpen] = useState(false);
 
   return (
-    <div className="grow w-full flex justify-center items-center p-12">
-      <div className="flex flex-col items-center text-center">
-        <EmptyHero.Icons className="mb-8">
-          <IconEarthOutline18 />
-          <Github />
+    <>
+      <EmptyState>
+        <EmptyStateIcon>
           <IconCubeOutline18 />
-          <IconCodeOutline18 />
-          <IconHeartPulseOutline18 />
-        </EmptyHero.Icons>
-
-        <h2 className="text-accent-12 font-semibold text-2xl leading-8 mb-1">Projects</h2>
-        <p className="text-accent-11 text-sm leading-6 max-w-md text-balance mb-6">
-          Build, deploy and scale your API inside Unkey. Create a project to get started
-          {deployBillingEnabled ? "." : ", free during beta."}
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full">
+        </EmptyStateIcon>
+        <EmptyStateHeader>
+          <EmptyStateTitle>Projects</EmptyStateTitle>
+          <EmptyStateDescription>
+            Build, deploy and scale your API inside Unkey. Create a project to get started
+            {deployBillingEnabled ? "." : ", free during beta."}
+          </EmptyStateDescription>
+        </EmptyStateHeader>
+        <EmptyStateActions className="flex-col sm:flex-row justify-center gap-3 w-full">
           <Button
             variant="primary"
             size="md"
@@ -62,8 +60,8 @@ export function EmptyProjects() {
               Read the docs
             </Button>
           </a>
-        </div>
-      </div>
+        </EmptyStateActions>
+      </EmptyState>
 
       <CreateProjectDialog
         isOpen={isDialogOpen}
@@ -71,6 +69,6 @@ export function EmptyProjects() {
         workspaceSlug={workspace.slug}
       />
       <DeployPlanGateDialog isOpen={isPlanOpen} onOpenChange={setIsPlanOpen} from="create" />
-    </div>
+    </>
   );
 }

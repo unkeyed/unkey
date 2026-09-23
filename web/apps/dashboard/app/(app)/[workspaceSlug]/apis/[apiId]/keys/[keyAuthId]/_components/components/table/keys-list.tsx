@@ -5,11 +5,21 @@ import {
   renderApiKeySkeletonRow,
   useApiKeysListQuery,
 } from "@/components/api-keys-table";
-import { EmptyApiKeys } from "@/components/api-keys-table/components/empty-api-keys";
 import { SelectionControls } from "@/components/api-keys-table/components/selection-controls";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { DataTable, PaginationFooter } from "@unkey/ui";
+import { IconBookBookmarkOutline18, IconKeyOutline18 } from "@unkey/icons";
+import {
+  DataTable,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+  PaginationFooter,
+  buttonVariants,
+} from "@unkey/ui";
 import { useCallback, useMemo, useState } from "react";
 
 const TABLE_CONFIG = {
@@ -161,7 +171,31 @@ export const KeysList = ({
         sorting={sorting}
         onSortingChange={handleSortingChange}
         config={TABLE_CONFIG}
-        emptyState={<EmptyApiKeys />}
+        emptyState={
+          <EmptyState frame="none">
+            <EmptyStateIcon>
+              <IconKeyOutline18 />
+            </EmptyStateIcon>
+            <EmptyStateHeader>
+              <EmptyStateTitle>No API Keys Found</EmptyStateTitle>
+              <EmptyStateDescription>
+                There are no API keys associated with this service yet. Create your first API key to
+                get started.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <a
+                href="https://www.unkey.com/docs/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={buttonVariants({ variant: "outline", size: "md" })}
+              >
+                <IconBookBookmarkOutline18 />
+                Learn about Keys
+              </a>
+            </EmptyStateActions>
+          </EmptyState>
+        }
       />
       <PaginationFooter
         page={page}

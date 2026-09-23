@@ -14,6 +14,7 @@ import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import type React from "react";
 import { Suspense } from "react";
+import { AuthProvider } from "./auth-provider";
 import { ReactQueryProvider } from "./react-query-provider";
 import { ThemeProvider } from "./theme-provider";
 
@@ -62,6 +63,7 @@ export function generateMetadata(): Metadata {
         },
       ],
       shortcut: "/favicon/favicon.ico",
+      apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     },
     other: {
       ...Sentry.getTraceData(),
@@ -94,16 +96,18 @@ export default async function RootLayout({
               enableSystem
               disableTransitionOnChange
             >
-              <WorkspaceProvider>
-                <Toaster />
-                {children}
-                <CommandMenu />
-                <Suspense fallback={null}>
-                  <Feedback />
-                </Suspense>
-                <Analytics />
-                {process.env.NODE_ENV === "development" && <VercelToolbar />}
-              </WorkspaceProvider>
+              <AuthProvider>
+                <WorkspaceProvider>
+                  <Toaster />
+                  {children}
+                  <CommandMenu />
+                  <Suspense fallback={null}>
+                    <Feedback />
+                  </Suspense>
+                  <Analytics />
+                  {process.env.NODE_ENV === "development" && <VercelToolbar />}
+                </WorkspaceProvider>
+              </AuthProvider>
             </ThemeProvider>
           </ReactQueryProvider>
         </FlagsProvider>

@@ -9,7 +9,10 @@ import { useWorkspace } from "@/providers/workspace-provider";
 import { IconCubeOutline18, IconLayers3Outline18, IconNodesOutline18 } from "@unkey/icons";
 import {
   Button,
-  Empty,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   ItemContent,
   ItemDescription,
   ItemGroup,
@@ -86,12 +89,14 @@ export default function LimitsPage() {
   if (!limits || !workspace) {
     return (
       <Shell>
-        <Empty>
-          <Empty.Title>Limits unavailable</Empty.Title>
-          <Empty.Description>
-            We could not read the limits for this workspace. Please try again later.
-          </Empty.Description>
-        </Empty>
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>Limits unavailable</EmptyStateTitle>
+            <EmptyStateDescription>
+              We could not read the limits for this workspace. Please try again later.
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
       </Shell>
     );
   }

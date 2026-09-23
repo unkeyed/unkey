@@ -8,7 +8,11 @@ import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import {
   Button,
-  Empty,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   PageBody,
   PageContainer,
   PageHeader,
@@ -73,12 +77,14 @@ export default function UsagePage() {
     breakdown.isError ? (
       <ComputeCardShell description="Usage per project this period">
         <div className="px-4 py-8">
-          <Empty className="w-full">
-            <Empty.Title>Compute usage unavailable</Empty.Title>
-            <Empty.Description>
-              We could not read the Compute breakdown for this period. Please try again later.
-            </Empty.Description>
-          </Empty>
+          <EmptyState frame="none">
+            <EmptyStateHeader>
+              <EmptyStateTitle>Compute usage unavailable</EmptyStateTitle>
+              <EmptyStateDescription>
+                We could not read the Compute breakdown for this period. Please try again later.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
         </div>
       </ComputeCardShell>
     ) : computeTree === undefined ? (
@@ -162,10 +168,12 @@ function NoComputePlan({ workspaceSlug }: { workspaceSlug: string }) {
   return (
     <ComputeCardShell description="Usage per app and environment this period">
       <div className="px-4 py-8">
-        <Empty className="w-full">
-          <Empty.Title>No compute plan</Empty.Title>
-          <Empty.Description>Pick a plan to deploy your first app.</Empty.Description>
-          <Empty.Actions>
+        <EmptyState frame="none">
+          <EmptyStateHeader>
+            <EmptyStateTitle>No compute plan</EmptyStateTitle>
+            <EmptyStateDescription>Pick a plan to deploy your first app.</EmptyStateDescription>
+          </EmptyStateHeader>
+          <EmptyStateActions>
             <Button
               variant="primary"
               size="md"
@@ -173,8 +181,8 @@ function NoComputePlan({ workspaceSlug }: { workspaceSlug: string }) {
             >
               Go to billing
             </Button>
-          </Empty.Actions>
-        </Empty>
+          </EmptyStateActions>
+        </EmptyState>
       </div>
     </ComputeCardShell>
   );

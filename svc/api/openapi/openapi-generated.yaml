@@ -2612,6 +2612,20 @@ components:
                     example: "documents.read AND users.view"
                 credits:
                     "$ref": "#/components/schemas/KeysVerifyKeyCredits"
+                keyspaces:
+                    type: array
+                    minItems: 1
+                    maxItems: 5
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 100
+                    description: |
+                        Restricts verification to keys in these keyspaces, matched by exact ID.
+                        Omit this field to verify without a keyspace restriction.
+                        A failed keyspace check returns `NOT_FOUND` without consuming credits or rate limits.
+                    example:
+                        - ks_1234abcd
                 ratelimits:
                     type: array
                     items:
@@ -3138,6 +3152,7 @@ components:
                         enum:
                             - "keys:read"
                             - "keys:reroll"
+                            - "analytics:read"
                     minItems: 1
                     description: |
                         The capabilities granted to the end user in the Portal, from a fixed
@@ -3146,10 +3161,9 @@ components:
                         configured on the portal. An end user can never see another identity's
                         keys.
 
-                        The portal currently exposes only the keys page, so these scopes gate
-                        what the end user can do there rather than which pages they see. Because
-                        rerolling is reached from that page, `keys:reroll` requires `keys:read`
-                        in the same session; requesting it alone is rejected.
+                        Rerolling and usage analytics are both reached from the keys page, so
+                        `keys:reroll` and `analytics:read` each require `keys:read` in the same
+                        session; requesting either without it is rejected.
 
                         Each scope requires the equivalent permission on your own root key. See
                         Required Permissions on this operation.
@@ -3291,18 +3305,33 @@ components:
             type: object
             required:
                 - meta
-                - data
+                - bucketMillis
+                - keys
             properties:
                 meta:
                     $ref: "#/components/schemas/Meta"
-                data:
+                bucketMillis:
+                    type: integer
+                    format: int64
+                    description: |
+                        Width of one bucket in milliseconds, chosen from the window size. Every
+                        series below is aligned to it, so a client can build the buckets for a
+                        window that returned no keys at all without restating the granularity
+                        rule.
+                    example: 60000
+                keys:
                     type: array
                     description: |
-                        Zero-filled verification timeseries for the authenticated end user, ordered
-                        by time ascending. Buckets with no verifications are present with zero
-                        counts so the series is contiguous across the requested window.
+                        One entry per key the end user has verifications for in the window, each
+                        zero-filled across the whole window and ordered by time ascending. Sum
+                        them to get the account-wide series.
+
+                        Keys with no verifications anywhere in the window are omitted. Entries
+                        come from the verification events themselves, so a `keyId` may name a key
+                        that has since been deleted and will not appear in `portal.listKeys`;
+                        render those totals without assuming the key is still listable.
                     items:
-                        $ref: "#/components/schemas/V2PortalGetVerificationsDataPoint"
+                        $ref: "#/components/schemas/V2PortalGetVerificationsKeySeries"
             additionalProperties: false
         V2PortalListKeysRequestBody:
             type: object
@@ -4208,8 +4237,8 @@ components:
                     "$ref": "#/components/schemas/KeyCreditsData"
                 identity:
                     "$ref": "#/components/schemas/Identity"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
+                    # Keep the pointer: nil distinguishes "no identity" from an empty object.
+                    x-go-type-skip-optional-pointer: false
                 plaintext:
                     type: string
                     x-unkey-redact: true
@@ -4245,8 +4274,8 @@ components:
                     example: 1000
                 refill:
                     "$ref": "#/components/schemas/KeyCreditsRefill"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
+                    # Keep the pointer: nil distinguishes "no refill" from an empty object.
+                    x-go-type-skip-optional-pointer: false
             required:
                 - remaining
             additionalProperties: false
@@ -4879,7 +4908,7 @@ components:
                 step:
                     type: string
                     description: |
-                        The pipeline step that failed (e.g. `building`, `deploying`, `starting`).
+                        The pipeline step that failed (e.g. `queued`, `building`, `deploying`).
                     example: deploying
                 message:
                     type: string
@@ -6655,6 +6684,13 @@ components:
                         is returned for both valid and invalid keys (except when `code=NOT_FOUND`).
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
+                keyspaceId:
+                    type: string
+                    description: |
+                        The ID of the keyspace the key belongs to.
+                        Returned for both valid and invalid keys, except when `code=NOT_FOUND`.
+                    x-go-type-skip-optional-pointer: true
+                    x-go-type-skip-optional-pointer-with-omitzero: true
                 name:
                     type: string
                     description: |
@@ -6724,8 +6760,8 @@ components:
                         Information about the identity associated with this key. Identities
                         allow multiple keys to share resources (like rate limits) and represent
                         the same user or entity across different applications or devices.
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
+                    # Keep the pointer: nil distinguishes "no identity" from an empty object.
+                    x-go-type-skip-optional-pointer: false
                 ratelimits:
                     type: array
                     items:
@@ -7030,6 +7066,24 @@ components:
                     example: "#6366f1"
                     x-go-type-skip-optional-pointer: true
                     x-go-type-skip-optional-pointer-with-omitzero: true
+            additionalProperties: false
+        V2PortalGetVerificationsKeySeries:
+            type: object
+            required:
+                - keyId
+                - data
+            properties:
+                keyId:
+                    type: string
+                    description: The key these buckets belong to.
+                    example: key_1234abcd
+                data:
+                    type: array
+                    description: |
+                        Verification timeseries for this key, zero-filled across the requested
+                        window and ordered by time ascending.
+                    items:
+                        $ref: "#/components/schemas/V2PortalGetVerificationsDataPoint"
             additionalProperties: false
         V2PortalGetVerificationsDataPoint:
             type: object
@@ -14428,6 +14482,7 @@ paths:
                 - `keys:read` requires `api.<api_id>.read_key` **and** `api.<api_id>.read_api`
                 - `keys:reroll` requires `api.<api_id>.create_key`, plus
                   `api.<api_id>.encrypt_key` when the keyspace stores encrypted keys
+                - `analytics:read` requires `api.<api_id>.read_analytics`
 
                 The `*` form of each is also accepted. Requesting a scope you do not hold
                 returns 403 for the whole request rather than minting a reduced session, so a
@@ -14730,8 +14785,13 @@ paths:
                 Authenticates only with a portal session cookie and always restricts results
                 to verification events attributed to the session's external identity. Unlike
                 `analytics.getVerifications`, this endpoint takes a fixed time window (no
-                query language) and returns a zero-filled, outcome-broken-out timeseries.
-                Bucket granularity is chosen automatically from the window size.
+                query language) and returns outcome-broken-out counts. Bucket granularity is
+                chosen automatically from the window size.
+
+                The response carries one zero-filled series per key the end user has
+                verifications for, so a client can render both a per-key table and an
+                account-wide chart from one call by summing them. Pass `keyId` to narrow the
+                window to a single key.
             operationId: portal.getVerifications
             requestBody:
                 content:
@@ -14771,6 +14831,12 @@ paths:
                             schema:
                                 $ref: '#/components/schemas/NotFoundErrorResponse'
                     description: Not Found
+                "422":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnprocessableEntityErrorResponse'
+                    description: Query exceeds the maximum response size
                 "429":
                     content:
                         application/problem+json:

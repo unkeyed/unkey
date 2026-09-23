@@ -15,7 +15,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { EmptyState } from "./components/empty-state";
+import { VirtualTableEmptyState } from "./components/empty-state";
 import { LoadMoreFooter } from "./components/loading-indicator";
 import { DEFAULT_CONFIG } from "./constants";
 import { useTableData } from "./hooks/useTableData";
@@ -212,11 +212,9 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
               </thead>
             )}
           </table>
-          {emptyState ? (
-            <div className="flex-1 flex items-center justify-center">{emptyState}</div>
-          ) : (
-            <EmptyState />
-          )}
+          <div className="flex-1 flex items-center justify-center">
+            {emptyState ?? <VirtualTableEmptyState />}
+          </div>
         </div>
       );
     }
