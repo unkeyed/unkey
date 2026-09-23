@@ -40,31 +40,69 @@ func TestGetAppForbidden(t *testing.T) {
 	})
 
 	testCases := []struct {
-		name        string
-		permissions []string
-		shouldPass  bool
+		name         string
+		permissions  []string
+		projectQuery string
+		appQuery     string
+		shouldPass   bool
 	}{
 		{name: "wildcard app permission", permissions: []string{"app.*.read_app"}, shouldPass: true},
 		{name: "specific app permission", permissions: []string{fmt.Sprintf("app.%s.read_app", app.ID)}, shouldPass: true},
 		{name: "permission and more", permissions: []string{"some.other.permission", "app.*.read_app"}, shouldPass: true},
+		{
+			name:         "canonical exact app permission with slug lookup",
+			permissions:  []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#read", workspace.ID, project.ID, app.ID)},
+			projectQuery: project.Slug,
+			appQuery:     app.Slug,
+			shouldPass:   true,
+		},
+		{
+			name:        "canonical project app wildcard permission",
+			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/*#read", workspace.ID, project.ID)},
+			shouldPass:  true,
+		},
 		{name: "project scoped read does not match", permissions: []string{fmt.Sprintf("project.%s.read_app", project.ID)}, shouldPass: false},
 		{name: "wrong action", permissions: []string{"project.*.create_project"}, shouldPass: false},
 		{name: "read does not match create", permissions: []string{"project.*.create_app"}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
-		{name: "urn style does not satisfy legacy check", permissions: []string{"unkey:v1:" + workspace.ID + ":apps/*#read"}, shouldPass: false},
+		{
+			name:        "canonical permission for another app",
+			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#read", workspace.ID, project.ID, uid.New(uid.AppPrefix))},
+			shouldPass:  false,
+		},
+		{
+			name:        "canonical permission for another workspace",
+			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#read", uid.New(uid.WorkspacePrefix), project.ID, app.ID)},
+			shouldPass:  false,
+		},
+		{
+			name:        "canonical permission with wrong action",
+			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#write", workspace.ID, project.ID, app.ID)},
+			shouldPass:  false,
+		},
+		{name: "non-catalog URN path", permissions: []string{"unkey:v1:" + workspace.ID + ":apps/*#read"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			projectQuery := project.ID
+			if tc.projectQuery != "" {
+				projectQuery = tc.projectQuery
+			}
+			appQuery := app.ID
+			if tc.appQuery != "" {
+				appQuery = tc.appQuery
+			}
+
 			rootKey := h.CreateRootKey(workspace.ID, tc.permissions...)
 			headers := http.Header{
 				"Content-Type":  {"application/json"},
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-				Project: project.ID,
-				App:     app.ID,
+				Project: projectQuery,
+				App:     appQuery,
 			})
 			if tc.shouldPass {
 				require.Equal(t, 200, res.Status, "expected 200 for %v, got: %s", tc.permissions, res.RawBody)
