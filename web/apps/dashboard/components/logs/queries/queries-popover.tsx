@@ -1,6 +1,6 @@
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import type { User } from "@/lib/auth/types";
-import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { IconBook2Outline18 } from "@unkey/icons";
 import {
   Button,
@@ -42,7 +42,7 @@ export function QueriesPopover<T extends FilterValue, U extends QueryParamsTypes
   getFilterFieldIcon,
   shouldTruncateRow,
 }: QueriesPopoverProps<T, U>) {
-  const { data: user } = trpc.user.getCurrentUser.useQuery();
+  const { user } = useWorkspace();
   const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [focusedTabIndex, setFocusedTabIndex] = useState(0);

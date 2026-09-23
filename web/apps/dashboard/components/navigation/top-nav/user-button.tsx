@@ -14,8 +14,8 @@ import {
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { signOut } from "@/lib/auth/utils";
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
 import { cn } from "@/lib/utils";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   IconLaptop2Outline18,
@@ -38,7 +38,7 @@ const THEMES = [
 ] as const;
 
 export function UserButton({ isCollapsed = false, className }: UserButtonProps) {
-  const { data: user } = trpc.user.getCurrentUser.useQuery();
+  const { user } = useWorkspace();
   const workspace = useWorkspaceNavigation();
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();

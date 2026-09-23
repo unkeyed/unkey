@@ -2,7 +2,7 @@ import { env } from "@/lib/env";
 import { logOperation } from "@/lib/logging";
 import type { NextRequest } from "next/server";
 import { type WorkOSUserProfile, mapWorkOSUser } from "./map-workos-user";
-import type { User } from "./types";
+import type { AuthenticatedUser, User } from "./types";
 import { getWorkOSSession } from "./workos-session";
 
 export type GetAuthResult = {
@@ -55,6 +55,13 @@ export function mapAuthkitSession(session: AuthkitSession): GetAuthResult {
     impersonator: session.impersonator,
     user: mapWorkOSUser(session.user),
   };
+}
+
+export function toAuthenticatedUser(auth: GetAuthResult): AuthenticatedUser | null {
+  if (!auth.user) {
+    return null;
+  }
+  return { ...auth.user, orgId: auth.orgId, role: auth.role };
 }
 
 function logAuthResolutionFailure(provider: "local" | "workos", error: unknown): void {

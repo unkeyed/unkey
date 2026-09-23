@@ -5,6 +5,7 @@ import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import type { DeployPlanOption } from "@/lib/trpc/routers/stripe/getDeployPlans";
+import { useWorkspace } from "@/providers/workspace-provider";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -111,7 +112,7 @@ export function DeployPlanGateDialog({ isOpen, onOpenChange, from }: Props) {
     undefined,
     { staleTime: 60_000 },
   );
-  const { data: currentUser } = trpc.user.getCurrentUser.useQuery();
+  const { user: currentUser } = useWorkspace();
   const isAdmin = currentUser?.role === "admin";
   const plans = plansData?.plans ?? [];
 
