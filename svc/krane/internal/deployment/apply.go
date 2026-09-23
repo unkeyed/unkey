@@ -41,13 +41,14 @@ import (
 // The namespace is created automatically if it doesn't exist. After the
 // ReplicaSet is applied a CiliumNetworkPolicy is installed in the same
 // namespace, owned by the ReplicaSet, that permits ingress only from
-// frontline pods on the deployment's container port. Pods run with gVisor
-// isolation (RuntimeClass "gvisor") since they execute untrusted user code,
-// and are scheduled on Karpenter-managed untrusted nodes with node- and
-// zone-spread constraints so replicas don't stack on a single node.
+// frontline pods on the deployment's container port. Pods run under the
+// configured RuntimeClass, gVisor in production, since they execute untrusted
+// user code, and are scheduled on Karpenter-managed untrusted nodes with
+// node- and zone-spread constraints so replicas don't stack on a single node.
 func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeployment) (retErr error) {
 	defer func() { metrics.RecordReconcile("deployment", "apply", retErr) }()
-	logger.Info("applying deployment",
+	logger.Info(
+		"applying deployment",
 		"namespace", req.GetK8SNamespace(),
 		"name", req.GetK8SName(),
 		"deployment_id", req.GetDeploymentId(),
@@ -276,8 +277,13 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 		}}
 	}
 
+	runtimeClass := new(runtimeClassGvisor)
+	if c.disableGvisor {
+		runtimeClass = nil
+	}
+
 	podSpec := corev1.PodSpec{
-		RuntimeClassName:             ptr.P(runtimeClassGvisor),
+		RuntimeClassName:             runtimeClass,
 		RestartPolicy:                corev1.RestartPolicyAlways,
 		AutomountServiceAccountToken: ptr.P(false),
 		EnableServiceLinks:           ptr.P(false),
@@ -375,7 +381,8 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 		cpuThreshold = policy.CpuThreshold
 	}
 	if policy.MemoryThreshold != nil {
-		metrics = append(metrics,
+		metrics = append(
+			metrics,
 			//nolint:exhaustruct
 			autoscalingv2.MetricSpec{
 				Type: autoscalingv2.ResourceMetricSourceType,
@@ -392,7 +399,8 @@ func (c *Controller) ensureHPAExists(ctx context.Context, req *ctrlv1.ApplyDeplo
 	}
 
 	// CPU is always a scaling signal.
-	metrics = append(metrics,
+	metrics = append(
+		metrics,
 		//nolint:exhaustruct
 		autoscalingv2.MetricSpec{
 			Type: autoscalingv2.ResourceMetricSourceType,

@@ -4237,8 +4237,8 @@ components:
                     "$ref": "#/components/schemas/KeyCreditsData"
                 identity:
                     "$ref": "#/components/schemas/Identity"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
+                    # Keep the pointer: nil distinguishes "no identity" from an empty object.
+                    x-go-type-skip-optional-pointer: false
                 plaintext:
                     type: string
                     x-unkey-redact: true
@@ -4274,8 +4274,8 @@ components:
                     example: 1000
                 refill:
                     "$ref": "#/components/schemas/KeyCreditsRefill"
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
+                    # Keep the pointer: nil distinguishes "no refill" from an empty object.
+                    x-go-type-skip-optional-pointer: false
             required:
                 - remaining
             additionalProperties: false
@@ -4908,7 +4908,7 @@ components:
                 step:
                     type: string
                     description: |
-                        The pipeline step that failed (e.g. `building`, `deploying`, `starting`).
+                        The pipeline step that failed (e.g. `queued`, `building`, `deploying`).
                     example: deploying
                 message:
                     type: string
@@ -6760,8 +6760,8 @@ components:
                         Information about the identity associated with this key. Identities
                         allow multiple keys to share resources (like rate limits) and represent
                         the same user or entity across different applications or devices.
-                    x-go-type-skip-optional-pointer: true
-                    x-go-type-skip-optional-pointer-with-omitzero: true
+                    # Keep the pointer: nil distinguishes "no identity" from an empty object.
+                    x-go-type-skip-optional-pointer: false
                 ratelimits:
                     type: array
                     items:

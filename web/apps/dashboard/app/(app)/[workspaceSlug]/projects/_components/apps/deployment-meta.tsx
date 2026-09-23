@@ -17,6 +17,7 @@ const VERB: Record<DeploymentStatusGroup, string> = {
   blocked: "awaiting approval",
   stopped: "stopped",
   cancelled: "cancelled",
+  skipped: "skipped",
   ready: "deployed",
   superseded: "deployed",
 };
@@ -28,6 +29,7 @@ const TONE: Record<DeploymentStatusGroup, string> = {
   blocked: "text-warning-11",
   stopped: "text-gray-9",
   cancelled: "text-gray-9",
+  skipped: "text-gray-9",
   ready: "text-gray-9",
   superseded: "text-gray-9",
 };
@@ -59,5 +61,6 @@ export function DeploymentMeta({ deployment }: { deployment: AppDeployment }) {
     ))
     .with("failed", "blocked", settled)
     .with("stopped", "cancelled", settled)
+    .with("skipped", settled)
     .exhaustive();
 }

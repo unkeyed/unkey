@@ -38,10 +38,9 @@ type ListOlderActiveDeploymentsForDedupRow struct {
 	InvocationID sql.NullString `db:"invocation_id"`
 }
 
-// Only deployments still in the queue (haven't acquired a build slot yet)
-// are eligible for supersession. Once a deployment transitions to `starting`
-// (after slot acquisition) it's committed — we don't cancel work that's
-// already running.
+// Only deployments still in the queue can be replaced by a newer commit. Once a
+// deployment transitions to `building`, which happens when Restate lets its
+// Build run, it is committed: we don't cancel work that's already running.
 //
 // The cutoff is the created_at of the deployment being started, read from its
 // own row. It is deliberately not the current time and not a value the caller

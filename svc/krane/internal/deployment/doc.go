@@ -22,8 +22,10 @@
 //
 // # Security
 //
-// All user workloads run with gVisor isolation (RuntimeClass "gvisor") since they
-// execute untrusted code. Each namespace gets a CiliumNetworkPolicy that restricts
+// All user workloads run under the RuntimeClass krane is configured with,
+// gVisor in production, since they execute untrusted code. Local development
+// leaves it empty because minikube's gvisor addon installs no working runsc.
+// Each namespace gets a CiliumNetworkPolicy that restricts
 // ingress to only the frontline namespace on the deployment's container port.
 //
 // # Scheduling

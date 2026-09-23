@@ -209,6 +209,7 @@ func Run(ctx context.Context, cfg Config) error {
 		EventDedup:          instanceEventDedupCache,
 		ObservedTransitions: deploymentTransitionsCache,
 		StorageClassName:    cfg.StorageClassName,
+		DisableGvisor:       cfg.DisableGvisor,
 	})
 	if err := deploymentCtrl.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start deployment controller: %w", err)
