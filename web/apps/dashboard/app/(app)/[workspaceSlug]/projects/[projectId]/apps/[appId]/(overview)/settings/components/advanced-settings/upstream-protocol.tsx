@@ -62,7 +62,7 @@ export const UpstreamProtocol = () => {
             href="https://www.unkey.com/docs/platform/apps/settings#upstream-protocol"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline text-accent-11"
+            className="underline text-gray-11"
           >
             Learn more
           </a>

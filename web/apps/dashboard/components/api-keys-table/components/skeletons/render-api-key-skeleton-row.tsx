@@ -1,18 +1,18 @@
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { cn } from "@/lib/utils";
 import { IconDotsOutline12 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
-import { KeyColumnSkeleton } from "@unkey/ui";
+import { KeyColumnSkeleton, Skeleton } from "@unkey/ui";
+import { cn } from "cn";
 import { API_KEY_COLUMN_IDS } from "../../columns/create-api-key-columns";
 import { UsageColumnSkeleton } from "../skeletons";
 
 const ApiKeyIdColumnSkeleton = () => (
   <div className="flex flex-col items-start px-[18px] py-[6px]">
     <div className="flex gap-4 items-center">
-      <div className="bg-grayA-3 size-5 rounded-sm animate-pulse" />
+      <Skeleton className="size-5" />
       <div className="flex flex-col gap-1">
-        <div className="h-2 w-40 bg-grayA-3 rounded-sm animate-pulse" />
-        <div className="h-2 w-16 bg-grayA-3 rounded-sm animate-pulse mt-1" />
+        <Skeleton className="h-2 w-40" />
+        <Skeleton className="h-2 w-16 mt-1" />
       </div>
     </div>
   </div>
@@ -20,9 +20,9 @@ const ApiKeyIdColumnSkeleton = () => (
 
 const LastUsedColumnSkeleton = () => (
   <div className="px-1.5 rounded-md flex gap-2 items-center w-[140px] h-[22px] bg-grayA-3 animate-pulse">
-    <div className="h-2 w-2 bg-grayA-3 rounded-full animate-pulse" />
-    <div className="h-2 w-12 bg-grayA-3 rounded-sm animate-pulse" />
-    <div className="h-2 w-12 bg-grayA-3 rounded-sm animate-pulse" />
+    <Skeleton className="h-2 w-2 rounded-full" />
+    <Skeleton className="h-2 w-12" />
+    <Skeleton className="h-2 w-12" />
   </div>
 );
 
@@ -32,8 +32,8 @@ const StatusColumnSkeleton = () => (
     aria-busy="true"
     aria-live="polite"
   >
-    <div className="h-2 w-2 bg-grayA-3 rounded-full animate-pulse" />
-    <div className="h-2 w-16 bg-grayA-3 rounded-sm animate-pulse" />
+    <Skeleton className="h-2 w-2 rounded-full" />
+    <Skeleton className="h-2 w-16" />
   </div>
 );
 
@@ -42,7 +42,7 @@ const ActionColumnSkeleton = () => (
     type="button"
     className={cn(
       "group size-5 p-0 rounded-sm m-0 items-center flex justify-center animate-pulse",
-      "border border-gray-6",
+      "border",
     )}
   >
     <IconDotsOutline12 className="text-gray-11" />

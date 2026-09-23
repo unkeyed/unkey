@@ -137,7 +137,7 @@ http.Redirect(w, r, url, http.StatusFound)`;
           href="https://www.unkey.com/docs"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-accent-11 text-[13px] underline"
+          className="text-gray-11 text-[13px] underline"
         >
           Full documentation →
         </a>

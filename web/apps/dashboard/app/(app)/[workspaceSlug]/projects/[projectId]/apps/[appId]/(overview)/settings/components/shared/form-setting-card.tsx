@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import { Button, InfoTooltip, SettingCard, type SettingCardBorder } from "@unkey/ui";
+import { cn } from "cn";
 import type React from "react";
 import { SelectedConfig } from "./selected-config";
 
@@ -56,7 +56,7 @@ export const FormSettingCard = ({
       onExpandedChange={onExpandedChange}
       expandable={
         <form
-          className={cn("flex flex-col bg-grayA-2", className)}
+          className={cn("flex flex-col", className)}
           ref={ref}
           onSubmit={(e) => {
             //Without this form will toggle the chevron and collapse the section

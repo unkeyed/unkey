@@ -3,7 +3,7 @@
 import { ScrollArea as ScrollAreaPrimitive } from "@base-ui/react/scroll-area";
 import * as React from "react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 
 const ScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
@@ -14,7 +14,7 @@ const ScrollArea = React.forwardRef<
     className={cn("relative overflow-hidden", className)}
     {...props}
   >
-    <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit]">
+    <ScrollAreaPrimitive.Viewport className="h-full w-full" style={{ borderRadius: "inherit" }}>
       {/* Content owns Base UI's resize observation — without it, dynamically
           growing/shrinking children leave the scrollbar/thumb stale. */}
       <ScrollAreaPrimitive.Content>{children}</ScrollAreaPrimitive.Content>
@@ -40,7 +40,7 @@ const ScrollBar = React.forwardRef<
     )}
     {...props}
   >
-    <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-border" />
+    <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-grayA-4" />
   </ScrollAreaPrimitive.Scrollbar>
 ));
 ScrollBar.displayName = "ScrollBar";

@@ -40,7 +40,7 @@ function DrainRow({ drain, workspaceSlug }: { drain: DrainListItem; workspaceSlu
 
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <InfoTooltip content={drain.name} asChild position={{ align: "start", side: "top" }}>
-            <span className="truncate text-[13px] font-medium text-accent-12">{drain.name}</span>
+            <span className="truncate text-[13px] font-medium text-gray-12">{drain.name}</span>
           </InfoTooltip>
           <span className="shrink-0">
             <DrainStatusBadge status={drain.status} />
@@ -66,7 +66,7 @@ function DrainListSkeleton() {
             key={index}
             className="flex items-center gap-3 px-4 py-3"
           >
-            <Skeleton className="size-8 rounded-[10px]" />
+            <Skeleton className="size-8 rounded-xl" />
             <Skeleton className="h-3.5 w-40" />
             <Skeleton className="h-5 w-20 rounded-md" />
             <Skeleton className="ml-auto h-3 w-24" />

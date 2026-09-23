@@ -1,6 +1,6 @@
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { cn } from "@/lib/utils";
 import { STATUS_STYLES } from "@unkey/ui";
+import { cn } from "cn";
 
 export { STATUS_STYLES };
 
@@ -12,7 +12,7 @@ export const getRowClassName = (key: KeyDetails, selectedKey: KeyDetails | null)
     style.base,
     style.hover,
     "group rounded-sm",
-    "focus:outline-none focus:ring-1 focus:ring-opacity-40",
+    "focus:outline-none focus:ring-1",
     style.focusRing,
     isSelected && style.selected,
   );

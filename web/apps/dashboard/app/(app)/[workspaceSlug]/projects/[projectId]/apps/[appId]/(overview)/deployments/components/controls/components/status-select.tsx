@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Checkbox, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import { cn } from "cn";
 import { DEPLOYMENT_STATUS_META, GROUPED_DEPLOYMENT_STATUSES } from "../../../filters.schema";
 import { useFilters } from "../../../hooks/use-filters";
 import { FilterTriggerButton } from "./filter-trigger-button";
@@ -44,7 +44,7 @@ export function StatusSelect() {
               tabIndex={-1}
             />
             <span className={cn("size-2 rounded-full shrink-0", option.colorClass)} />
-            <span className="text-accent-12">{option.label}</span>
+            <span className="text-gray-12">{option.label}</span>
           </button>
         ))}
       </PopoverContent>

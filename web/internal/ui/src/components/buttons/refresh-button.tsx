@@ -65,7 +65,7 @@ const RefreshButton = ({ onRefresh, isEnabled, isLive, toggleLive }: RefreshButt
           title={isEnabled ? "Refresh data (Shortcut: ⌥+⇧+W)" : ""}
           disabled={!isEnabled || isLoading}
           loading={isLoading}
-          className="flex w-full items-center justify-center rounded-lg border border-gray-4 group overflow-hidden"
+          className="flex w-full items-center justify-center rounded-lg border group overflow-hidden"
         >
           <IconRefresh3Outline18 className="size-4" />
           <span className="font-medium text-[13px] relative z-10">Refresh</span>

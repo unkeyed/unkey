@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import type { ReactNode } from "react";
 
 type ProductCardProps = {
@@ -41,12 +41,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   footer,
 }) => {
   return (
-    <div
-      className={cn(
-        "w-full overflow-hidden rounded-lg border border-grayA-4 bg-white dark:bg-black",
-        className,
-      )}
-    >
+    <div className={cn("w-full overflow-hidden rounded-lg border bg-raised", className)}>
       <div className="flex items-center justify-between gap-4 px-5 py-4">
         <div className="flex min-w-0 items-center gap-3">
           <div
@@ -72,10 +67,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      {children ? <div className="border-grayA-3 border-t px-5 pt-4 pb-4">{children}</div> : null}
-      {footer ? (
-        <div className="flex justify-end border-t border-grayA-3 px-5 py-2.5">{footer}</div>
-      ) : null}
+      {children ? <div className="border-t px-5 pt-4 pb-4">{children}</div> : null}
+      {footer ? <div className="flex justify-end border-t px-5 py-2.5">{footer}</div> : null}
     </div>
   );
 };

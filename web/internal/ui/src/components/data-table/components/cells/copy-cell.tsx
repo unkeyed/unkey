@@ -32,8 +32,8 @@ export function CopyCell({ value, displayValue, className, monospace = false }: 
       type="button"
       onClick={handleCopy}
       className={cn(
-        "group flex items-center gap-2 text-xs text-accent-11 hover:text-accent-12 transition-colors",
-        "focus:outline-none focus:text-accent-12",
+        "group flex items-center gap-2 text-xs text-gray-11 hover:text-gray-12 transition-colors",
+        "focus:outline-none focus:text-gray-12",
         monospace && "font-mono",
         className,
       )}

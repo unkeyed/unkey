@@ -6,7 +6,6 @@ import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-st
 import { imageRefTag } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
 import { shortenId } from "@/lib/shorten-id";
-import { cn } from "@/lib/utils";
 import {
   Github,
   IconBracketsCurlyOutline18,
@@ -19,6 +18,7 @@ import {
   IconSquareTerminalOutline18,
 } from "@unkey/icons";
 import { InfoTooltip, TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import type { Route } from "next";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -38,7 +38,7 @@ const DeploymentListTableActions = dynamic(
 );
 
 const CHIP_CLASS =
-  "inline-flex h-5.5 min-w-0 items-center gap-1.5 rounded-md border border-grayA-5 px-2 text-xs leading-none text-accent-12";
+  "inline-flex h-5.5 min-w-0 items-center gap-1.5 rounded-md border px-2 text-xs leading-none text-gray-12";
 
 function Interactive({ children, className }: { children: ReactNode; className?: string }) {
   return (
@@ -112,7 +112,7 @@ export function OriginCell({ deployment }: { deployment: Deployment }) {
       triggerClassName="relative z-20 flex min-w-0 items-center gap-2"
     >
       <Icon className="size-3 shrink-0 text-gray-9" />
-      <span className="truncate font-mono text-[13px] text-accent-12">{origin.label}</span>
+      <span className="truncate font-mono text-[13px] text-gray-12">{origin.label}</span>
     </InfoTooltip>
   );
 }
@@ -181,7 +181,7 @@ export function BranchCell({
 }) {
   const href = githubUrl.branch(repoFullName, branch);
   const text = (
-    <span className="truncate font-mono text-[13px] text-accent-12" title={branch}>
+    <span className="truncate font-mono text-[13px] text-gray-12" title={branch}>
       {branch}
     </span>
   );
@@ -224,9 +224,7 @@ export function CommitSha({
   const body = (
     <>
       <IconCodeCommitOutline18 className="size-3 shrink-0 text-gray-9" />
-      <span className="font-mono text-xs text-accent-12">
-        {deployment.gitCommitSha.slice(0, 7)}
-      </span>
+      <span className="font-mono text-xs text-gray-12">{deployment.gitCommitSha.slice(0, 7)}</span>
     </>
   );
 
@@ -252,7 +250,7 @@ export function ImageRef({ image }: { image: string }) {
   return (
     <span className="flex min-w-0 items-center gap-1.5" title={image}>
       <IconLayers2Outline18 className="size-3 shrink-0 text-gray-9" />
-      <span className="truncate font-mono text-xs text-accent-12">{imageRefTag(image)}</span>
+      <span className="truncate font-mono text-xs text-gray-12">{imageRefTag(image)}</span>
     </span>
   );
 }
@@ -275,7 +273,7 @@ export function AuthorCell({
         alt={deployment.gitCommitAuthorHandle ?? "Author"}
       />
       {withHandle && deployment.gitCommitAuthorHandle && (
-        <span className="max-w-28 truncate text-[13px] text-accent-12">
+        <span className="max-w-28 truncate text-[13px] text-gray-12">
           {deployment.gitCommitAuthorHandle}
         </span>
       )}

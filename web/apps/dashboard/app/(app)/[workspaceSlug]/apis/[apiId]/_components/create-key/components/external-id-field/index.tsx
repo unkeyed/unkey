@@ -5,7 +5,7 @@ import { getErrorMessage } from "@/lib/unkey-client";
 import type { Identity } from "@unkey/api/models/components";
 import { BadRequestErrorResponse, ConflictErrorResponse } from "@unkey/api/models/errors";
 import { IconTriangleWarningOutline12 } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { Button, Separator } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useMemo, useState } from "react";
 import { createIdentityOptions } from "./create-identity-options";
@@ -177,7 +177,7 @@ export const ExternalIdField = ({
                 <IconTriangleWarningOutline12 />
               </div>
               <span className="text-[13px] text-gray-12 ">
-                <span className="text-accent-10 font-normal">Create</span> "{trimmedSearchValue}"
+                <span className="text-gray-10 font-normal">Create</span> "{trimmedSearchValue}"
               </span>
             </div>
           ),
@@ -280,9 +280,7 @@ export const ExternalIdField = ({
                 </div>
               </div>
             </div>
-            <div className="w-full">
-              <div className="h-px bg-grayA-3 w-full" />
-            </div>
+            <Separator />
             {externalIdValidation.success ? (
               <>
                 <div className="px-4 w-full text-gray-11 text-[13px] leading-6 my-4 text-left">
@@ -319,7 +317,7 @@ export const ExternalIdField = ({
           </div>
         ) : isComboboxLoading ? (
           <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
-            <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
+            <div className="animate-spin h-3 w-3 border border-t-gray-11 rounded-full" />
             {isSearching ? "Searching..." : "Loading identities..."}
           </div>
         ) : (

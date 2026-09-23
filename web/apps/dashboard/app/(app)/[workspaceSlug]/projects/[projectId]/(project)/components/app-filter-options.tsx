@@ -41,7 +41,7 @@ export function useAppNameById(): Map<string, string> {
 }
 
 export function renderAppOption(option: AppFilterOption) {
-  return <div className="text-accent-12 text-xs">{option.name}</div>;
+  return <div className="text-gray-12 text-xs">{option.name}</div>;
 }
 
 type AppFilterOption = {

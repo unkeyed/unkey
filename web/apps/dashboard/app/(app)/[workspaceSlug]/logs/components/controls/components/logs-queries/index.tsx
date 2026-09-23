@@ -1,7 +1,7 @@
 import { QueriesPopover } from "@/components/logs/queries/queries-popover";
-import { cn } from "@/lib/utils";
 import { IconChartBarAxisYOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { cn } from "cn";
 import { useFilters } from "../../../../hooks/use-filters";
 import { formatFilterValues, getFilterFieldIcon } from "./utils";
 export const LogsQueries = () => {

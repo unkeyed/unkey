@@ -16,7 +16,7 @@ export const OptionalTag = ({ className }: TagProps) => {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-sm border border-grayA-4 text-grayA-11 px-1 py-0.5 text-xs font-sans bg-grayA-3 ml-2",
+        "inline-flex items-center rounded-sm border text-grayA-11 px-1 py-0.5 text-xs font-sans bg-grayA-3 ml-2",
         className,
       )}
     >
@@ -32,7 +32,7 @@ export const DocsTag = ({ className, href }: DocsTagProps) => {
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        "inline-flex items-center rounded-sm border border-accent-4 text-accent-11 px-1 py-0.5 text-xs font-sans bg-accent-3 ml-2 no-underline hover:bg-accent-4 transition-colors",
+        "inline-flex items-center rounded-sm border text-gray-11 px-1 py-0.5 text-xs font-sans bg-gray-3 ml-2 no-underline hover:bg-gray-4 transition-colors",
         className,
       )}
       onClick={(e) => e.stopPropagation()}

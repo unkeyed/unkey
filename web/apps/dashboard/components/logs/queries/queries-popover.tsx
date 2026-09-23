@@ -107,7 +107,7 @@ export function QueriesPopover<T extends FilterValue, U extends QueryParamsTypes
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger render={children as React.ReactElement} />
         <PopoverContent
-          className="flex flex-col min-w-107 max-w-200 h-[calc(100dvh-120px)] max-h-190 bg-white dark:bg-black rounded-lg p-2 pb-0 shadow-lg border-r border-gray-4"
+          className="flex flex-col min-w-107 max-w-200 h-[calc(100dvh-120px)] max-h-190 bg-raised rounded-lg p-2 pb-0"
           align="start"
           onKeyDown={handleKeyNavigation}
         >
@@ -134,13 +134,10 @@ export function QueriesPopover<T extends FilterValue, U extends QueryParamsTypes
 const PopoverHeader = () => {
   return (
     <div className="flex justify-between w-full h-8 ">
-      <span className="text-text text-gray-9 text-[13px] w-full leading-6 text-normal tracking-[0.1px] mt-1 ml-1.5">
+      <span className="text-gray-9 text-[13px] w-full leading-6 font-normal tracking-[0.1px] mt-1 ml-1.5">
         Select a query...
       </span>
-      <KeyboardButton
-        shortcut="Q"
-        className="p-0 m-0 min-w-5 w-5 h-5 rounded-[5px] mt-1.5 mr-1.5"
-      />
+      <KeyboardButton shortcut="Q" className="p-0 m-0 min-w-5 w-5 h-5 rounded-sm mt-1.5 mr-1.5" />
     </div>
   );
 };

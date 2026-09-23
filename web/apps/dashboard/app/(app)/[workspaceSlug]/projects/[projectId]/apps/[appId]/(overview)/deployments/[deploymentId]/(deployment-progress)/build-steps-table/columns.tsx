@@ -1,5 +1,4 @@
 import type { Column } from "@/components/virtual-table/types";
-import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
 import type { BuildStep, BuildStepLog } from "@unkey/clickhouse/src/build-steps";
 import {
@@ -8,6 +7,7 @@ import {
   IconTriangleWarningOutline18,
 } from "@unkey/icons";
 import { InfoTooltip, TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import { TruncatedCell } from "../truncated-cell";
 
 export type BuildStepRow = BuildStep & {
@@ -62,7 +62,7 @@ export const buildStepsColumns: Column<BuildStepRow>[] = [
         return (
           <div className="my-2">
             <InfoTooltip content="This step was cached" asChild>
-              <IconBoltOutline18 className="size-3.5 text-primary-11" />
+              <IconBoltOutline18 className="size-3.5 text-gray-11" />
             </InfoTooltip>
           </div>
         );

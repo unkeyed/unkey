@@ -7,7 +7,7 @@ const emptyStateVariants = cva(
   {
     variants: {
       frame: {
-        dashed: "rounded-lg border border-dashed border-grayA-4 bg-background",
+        dashed: "rounded-lg border border-dashed bg-background",
         none: "",
       },
     },
@@ -41,10 +41,7 @@ function EmptyStateHeader({ className, ...props }: React.ComponentProps<"div">) 
 
 function EmptyStateTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <div
-      className={cn("text-[15px] font-semibold leading-6 text-accent-12", className)}
-      {...props}
-    />
+    <div className={cn("text-[15px] font-semibold leading-6 text-gray-12", className)} {...props} />
   );
 }
 

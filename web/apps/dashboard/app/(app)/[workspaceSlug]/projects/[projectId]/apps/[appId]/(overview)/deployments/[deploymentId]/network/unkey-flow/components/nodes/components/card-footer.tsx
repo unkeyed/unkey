@@ -28,7 +28,7 @@ export function CardFooter(props: CardFooterProps) {
   const memory = props.type === "instance" ? props.memory : undefined;
 
   return (
-    <div className="p-1 flex items-center h-full bg-grayA-2 rounded-b-[14px]">
+    <div className="p-1 flex items-center h-full bg-grayA-2 rounded-b-2xl">
       {flagCode && <RegionFlag flagCode={flagCode} size="sm" shape="circle" className="mr-1.5" />}
       {rps !== undefined && (
         <MetricPill

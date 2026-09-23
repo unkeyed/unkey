@@ -13,9 +13,9 @@ import {
   IconMicrochipOutline18,
   IconRamOutline18,
 } from "@unkey/icons";
+import { Card } from "@unkey/ui";
 import { useMemo, useState } from "react";
 import { Section, SectionHeader } from "../../../../../../components/section";
-import { Card } from "../../../../../components/card";
 import { useDeployment } from "../../../layout-provider";
 import { DeploymentNetworkView } from "../../../network/deployment-network-view";
 import { useDeploymentCpu } from "../../hooks/use-deployment-cpu";

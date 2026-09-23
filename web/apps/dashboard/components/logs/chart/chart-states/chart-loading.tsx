@@ -3,7 +3,7 @@
 import { calculateTimePoints } from "@/components/logs/chart/utils/calculate-timepoints";
 import { formatTimestampLabel } from "@/components/logs/chart/utils/format-timestamp";
 import { useWaveAnimation } from "@/components/logs/overview-charts/hooks";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Area, AreaChart, Bar, BarChart, ResponsiveContainer, YAxis } from "recharts";
 import type { ChartLoadingProps } from "./types";
@@ -84,13 +84,13 @@ export const ChartLoading = ({
               <YAxis domain={[0, 1]} hide />
               <Bar
                 dataKey="success"
-                fill="hsl(var(--accent-3))"
+                fill="var(--color-gray-3)"
                 stackId="a"
                 isAnimationActive={false}
               />
               <Bar
                 dataKey="error"
-                fill="hsl(var(--accent-3))"
+                fill="var(--color-gray-3)"
                 stackId="a"
                 isAnimationActive={false}
               />
@@ -105,7 +105,7 @@ export const ChartLoading = ({
   if (variant === "compact") {
     return (
       <div className={cn("w-full relative", className)}>
-        <div className="px-2 text-accent-11 font-mono absolute top-0 text-xxs w-full flex justify-between">
+        <div className="px-2 text-gray-11 font-mono absolute top-0 text-xxs w-full flex justify-between">
           {calculateTimePoints(currentTime, currentTime).map((time, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: static time display array
             <div key={i} className="z-10">
@@ -115,7 +115,7 @@ export const ChartLoading = ({
         </div>
         <ResponsiveContainer
           height={height}
-          className="border-b border-gray-4"
+          className="border-b"
           width="100%"
           initialDimension={{ width: 1, height: 1 }}
         >
@@ -125,7 +125,7 @@ export const ChartLoading = ({
             data={mockData}
           >
             <YAxis domain={[0, 1.2]} hide />
-            <Bar dataKey="success" fill="hsl(var(--accent-3))" isAnimationActive={false} />
+            <Bar dataKey="success" fill="var(--color-gray-3)" isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -144,7 +144,7 @@ export const ChartLoading = ({
         <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
           <BarChart data={mockData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
             <YAxis domain={[0, 1]} hide />
-            <Bar dataKey="success" fill="hsl(var(--accent-3))" isAnimationActive={false} />
+            <Bar dataKey="success" fill="var(--color-gray-3)" isAnimationActive={false} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -254,11 +254,11 @@ function FullChartLoader({
                   style={{ backgroundColor: metric.color }}
                 />
               ))}
-            <div className="text-accent-10 text-[11px] leading-4">
+            <div className="text-gray-10 text-[11px] leading-4">
               {labelsWithDefaults.rangeLabel}
             </div>
           </div>
-          <div className="text-accent-12 text-[18px] font-semibold leading-7 bg-accent-4 rounded-sm w-full">
+          <div className="text-gray-12 text-[18px] font-semibold leading-7 bg-gray-4 rounded-sm w-full">
             &nbsp;
           </div>
         </div>
@@ -273,9 +273,9 @@ function FullChartLoader({
                     className="rounded-sm h-[10px] w-1"
                     style={{ backgroundColor: metric.color }}
                   />
-                  <div className="text-accent-10 text-[11px] leading-4">{metric.label}</div>
+                  <div className="text-gray-10 text-[11px] leading-4">{metric.label}</div>
                 </div>
-                <div className="text-accent-12 text-[18px] font-semibold leading-7 bg-accent-4 rounded-sm w-full">
+                <div className="text-gray-12 text-[18px] font-semibold leading-7 bg-gray-4 rounded-sm w-full">
                   &nbsp;
                 </div>
               </div>
@@ -323,7 +323,7 @@ function FullChartLoader({
       </div>
 
       {/* Time labels footer */}
-      <div className="border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between">
+      <div className="border-t border-b px-1 py-2 text-gray-9 font-mono text-xxs w-full flex justify-between">
         {timePoints.map((time, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: static time display array
           <div key={i} className="z-10">

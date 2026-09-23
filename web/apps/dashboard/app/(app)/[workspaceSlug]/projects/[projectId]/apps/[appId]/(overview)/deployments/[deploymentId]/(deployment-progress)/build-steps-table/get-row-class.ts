@@ -12,7 +12,6 @@ export function getBuildStepRowClass(step: BuildStepRow): string {
     "[&>td]:rounded-none",
     "focus:outline-hidden",
     "focus:ring-1",
-    "focus:ring-opacity-40",
   ];
 
   if (step.error) {
@@ -20,13 +19,13 @@ export function getBuildStepRowClass(step: BuildStepRow): string {
   }
 
   if (step.cached) {
-    return cn(...baseClasses, "text-blue-11 bg-blue-2", "hover:bg-blue-3", "focus:ring-blue-7");
+    return cn(...baseClasses, "text-info-11 bg-info-2", "hover:bg-info-3", "focus:ring-info-7");
   }
 
   return cn(
     ...baseClasses,
     "text-grayA-9",
-    "hover:text-accent-11 dark:hover:text-accent-12 hover:bg-grayA-3",
-    "focus:ring-accent-7",
+    "hover:text-gray-11 dark:hover:text-gray-12 hover:bg-grayA-3",
+    "focus:ring-gray-7",
   );
 }

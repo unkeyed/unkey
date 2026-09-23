@@ -2,8 +2,8 @@
 
 import { formatDollars, formatPrice } from "@/lib/fmt";
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { Button, InfoTooltip } from "@unkey/ui";
+import { cn } from "cn";
 import { useState } from "react";
 import { ComputePausedBadge, PausedDocsLink, pausedBody } from "./compute-paused";
 import { ADMIN_ONLY_TOOLTIP, ALERT_STEPS } from "./constants";
@@ -49,7 +49,7 @@ export function SpendManagement({ usageCents, isAdmin }: SpendManagementProps) {
 
   return (
     <>
-      <div className="-mx-5 flex flex-col gap-4 border-grayA-3 border-t px-5 pt-4">
+      <div className="-mx-5 flex flex-col gap-4 border-t px-5 pt-4">
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-0.5">
             <span className="font-medium text-[13px] text-gray-12">Spend management</span>
@@ -98,7 +98,7 @@ export function SpendManagement({ usageCents, isAdmin }: SpendManagementProps) {
             ) : null}
           </>
         ) : (
-          <div className="rounded-lg border border-grayA-4 px-4 py-3">
+          <div className="rounded-lg border bg-background px-4 py-3">
             <p className="text-[13px] text-gray-10">
               <span className="text-gray-11">No spend limit set.</span> Cap monthly usage spend to
               get alerts and optionally stop workloads.

@@ -39,13 +39,13 @@ export function createRoleOptions({
         <Tooltip>
           <TooltipTrigger
             render={
-              <div className="flex w-full text-accent-8 text-xs gap-4 py-0.5 items-center group flex-row">
-                <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
+              <div className="flex w-full text-gray-8 text-xs gap-4 py-0.5 items-center group flex-row">
+                <div className="border rounded-full flex items-center justify-center size-5">
                   <IconTagOutline12 className="text-grayA-11" />
                 </div>
                 <div className="flex gap-1 flex-col truncate">
                   <div className="flex gap-2 items-center">
-                    <span className="font-medium text-accent-12 text-left">{role.name}</span>
+                    <span className="font-medium text-gray-12 text-left">{role.name}</span>
                     {(previouslySelectedRoleNames.includes(role.name) ||
                       role.keys.find((item) => item.id === keyId)) && (
                       <StatusBadge
@@ -55,7 +55,7 @@ export function createRoleOptions({
                       />
                     )}
                   </div>
-                  <span className="text-accent-9 text-xs truncate">
+                  <span className="text-gray-9 text-xs truncate">
                     {role.description || `${role.permissions.length} permissions`}
                   </span>
                 </div>
@@ -66,11 +66,11 @@ export function createRoleOptions({
             side="right"
             align="start"
             sideOffset={30}
-            className="drop-shadow-2xl transform-gpu border border-grayA-4 overflow-hidden rounded-[10px] p-0 bg-white dark:bg-black w-80 z-100"
+            className="shadow-floating overflow-hidden rounded-xl p-0 bg-raised w-80 z-100"
           >
             <div className="flex flex-col h-full">
               {/* Header */}
-              <div className="px-4 py-2 border-b border-grayA-4 text-gray-10 text-xs font-medium bg-grayA-2">
+              <div className="px-4 py-2 border-b text-gray-10 text-xs font-medium bg-grayA-2">
                 Role Details
               </div>
               {/* Content */}
@@ -108,16 +108,16 @@ export function createRoleOptions({
       </TooltipProvider>
     ),
     selectedLabel: (
-      <div className="flex w-full text-accent-8 text-xs gap-1.5 py-0.5 items-center">
+      <div className="flex w-full text-gray-8 text-xs gap-1.5 py-0.5 items-center">
         <div className="flex items-center justify-center gap-2">
-          <div className="border rounded-full flex items-center justify-center border-grayA-6 size-5">
+          <div className="border rounded-full flex items-center justify-center size-5">
             <IconTagOutline12 className="text-grayA-11" />
           </div>
-          <span className="text-accent-12 font-medium text-xs w-[120px] truncate text-left">
+          <span className="text-gray-12 font-medium text-xs w-[120px] truncate text-left">
             {role.name}
           </span>
         </div>
-        <span className="w-[200px] truncate text-accent-8 text-left">
+        <span className="w-[200px] truncate text-gray-8 text-left">
           {role.description || `${role.permissions.length} permissions`}
         </span>
       </div>
@@ -138,7 +138,7 @@ export function createRoleOptions({
             e.stopPropagation();
             loadMore();
           }}
-          className="text-xs text-accent-12 px-2 py-0.5 hover:bg-grayA-3 rounded-sm w-full bg-transparent hover:bg-transparent focus:ring-0 font-medium"
+          className="text-xs text-gray-12 px-2 py-0.5 hover:bg-grayA-3 rounded-sm w-full bg-transparent hover:bg-transparent focus:ring-0 font-medium"
         >
           Load more...
         </Button>

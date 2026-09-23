@@ -1,7 +1,6 @@
 import { VerificationBarChart } from "@/components/api-keys-table/components/bar-chart";
 import { LastUsedCell } from "@/components/api-keys-table/components/last-used";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
-import { cn } from "@/lib/utils";
 import { IconPage2Outline18 } from "@unkey/icons";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
@@ -14,6 +13,7 @@ import {
   SortableHeader,
 } from "@unkey/ui";
 import { InfoTooltip, TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import dynamic from "next/dynamic";
 
 const RootKeysTableActions = dynamic(

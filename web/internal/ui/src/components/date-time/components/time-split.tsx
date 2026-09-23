@@ -126,8 +126,8 @@ const TimeSplitInput: React.FC<TimeSplitInputProps> = ({ type }) => {
   return (
     <div
       className={cn(
-        "flex h-8 w-full items-center rounded-sm rounded-3 border  bg-white dark:bg-black text-gray-12",
-        focus ? " border-gray-10" : "border-grayA-4",
+        "flex h-8 w-full items-center rounded-sm border  bg-raised text-gray-12",
+        focus && " border-gray-10",
       )}
     >
       <IconClockOutline18 className="size-3.5 text-gray-9 m-3" />

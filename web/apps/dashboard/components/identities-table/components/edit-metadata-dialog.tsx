@@ -14,7 +14,7 @@ import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Identity } from "@unkey/api/models/components";
-import { Alert, AlertDescription, AlertTitle, Button, DialogContainer } from "@unkey/ui";
+import { Alert, AlertDescription, AlertTitle, Button, DialogContainer, Separator } from "@unkey/ui";
 import { type FC, useEffect, useId } from "react";
 import { FormProvider } from "react-hook-form";
 
@@ -134,9 +134,7 @@ export const EditMetadataDialog: FC<EditMetadataDialogProps> = ({ identity, isOp
           }
         >
           <IdentityInfo identity={identity} />
-          <div className="py-1 my-2">
-            <div className="h-px bg-grayA-3 w-full" />
-          </div>
+          <Separator className="my-3" />
           <div className="[&>*:first-child]:p-0">
             <MetadataSetup entityType="identity" />
           </div>

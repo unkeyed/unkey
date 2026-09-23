@@ -27,7 +27,7 @@ export function DrainEndpointRow() {
       <FormField label="URL" error={formState.errors.url?.message} className="min-w-0 flex-1">
         {(field) => (
           <InputGroup variant={field.variant}>
-            <InputGroupAddon className="border-r border-gray-5 py-2 pr-3">
+            <InputGroupAddon className="border-r py-2 pr-3">
               <InputGroupText>POST</InputGroupText>
             </InputGroupAddon>
             <InputGroupInput

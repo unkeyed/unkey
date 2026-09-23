@@ -139,16 +139,16 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
       <div className={cn("relative flex-1", className)}>
         <div
           className={cn(
-            "px-2 flex items-center flex-1 gap-2 border border-solid border-gray-4 rounded-lg py-1 h-8 cursor-pointer",
+            "px-2 flex items-center flex-1 gap-2 border border-solid rounded-lg py-1 h-8 cursor-pointer",
             "bg-gray-3 opacity-50",
           )}
         >
           <div className="flex items-center gap-2 w-full flex-1">
             <div className="shrink-0">
-              <IconMagnifierOutline18 className="text-accent-9 size-4" />
+              <IconMagnifierOutline18 className="text-gray-9 size-4" />
             </div>
             <div className="flex-1">
-              <div className="text-accent-11 text-[13px] animate-pulse">Loading...</div>
+              <div className="text-gray-11 text-[13px] animate-pulse">Loading...</div>
             </div>
           </div>
         </div>
@@ -162,15 +162,15 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
         variant="default"
         className={cn(
           "bg-transparent focus-within:ring-0 w-full h-8",
-          "border border-solid border-gray-4 rounded-lg hover:bg-gray-3",
+          "border border-solid rounded-lg hover:bg-gray-3",
           "transition-all duration-200",
         )}
       >
         <InputGroupAddon className="pointer-events-none">
-          <IconMagnifierOutline18 className="text-accent-9 size-4" />
+          <IconMagnifierOutline18 className="text-gray-9 size-4" />
         </InputGroupAddon>
         <InputGroupInput
-          className="truncate text-accent-12 font-medium text-[13px] h-8 placeholder:text-accent-12 selection:bg-gray-6"
+          className="truncate text-gray-12 font-medium text-[13px] h-8 placeholder:text-gray-12 selection:bg-gray-6"
           ref={inputRef}
           type="text"
           value={searchText}
@@ -184,7 +184,7 @@ export const ListSearchInput = <T extends BaseFilter = BaseFilter>({
             <Button
               variant="ghost"
               onClick={handleClear}
-              className="text-accent-9 hover:text-accent-12 rounded-sm transition-colors shrink-0 cursor-pointer z-10"
+              className="text-gray-9 hover:text-gray-12 rounded-sm transition-colors shrink-0 cursor-pointer z-10"
               size="icon"
               aria-label="Clear search"
             >

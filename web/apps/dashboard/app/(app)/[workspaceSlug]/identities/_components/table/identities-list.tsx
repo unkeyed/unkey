@@ -20,6 +20,7 @@ import {
   ResourceListContent,
   ResourceListFooter,
   ResourceListItem,
+  Skeleton,
 } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -29,7 +30,7 @@ import { useState } from "react";
 const SKELETON_ROWS = 8;
 
 function IdentityActionSkeleton() {
-  return <div aria-hidden="true" className="size-8 shrink-0 animate-pulse rounded-md bg-grayA-3" />;
+  return <Skeleton className="size-8 shrink-0 rounded-md" />;
 }
 
 const IdentityActions = dynamic(
@@ -56,11 +57,11 @@ function IdentityRow({
         className="absolute inset-0 z-10 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7"
         aria-label={`Identity ${identity.externalId}`}
       />
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-brandA-3">
-        <IconFingerprintOutline18 className="size-3.5 text-brandA-11" />
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-featureA-3">
+        <IconFingerprintOutline18 className="size-3.5 text-featureA-11" />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="truncate font-medium text-accent-12 text-sm" title={identity.externalId}>
+        <span className="truncate font-medium text-gray-12 text-sm" title={identity.externalId}>
           {identity.externalId}
         </span>
         <span className="truncate font-mono text-gray-9 text-xs" title={identity.id}>
@@ -88,12 +89,12 @@ function IdentitiesSkeleton() {
             key={index}
             className="flex h-16 items-center gap-3 px-4 py-3"
           >
-            <div className="size-8 shrink-0 animate-pulse rounded-md bg-grayA-3" />
+            <Skeleton className="size-8 shrink-0 rounded-md" />
             <div className="flex min-w-0 flex-1 flex-col gap-2">
-              <div className="h-3 w-40 animate-pulse rounded-sm bg-grayA-3" />
-              <div className="h-2.5 w-20 animate-pulse rounded-sm bg-grayA-3" />
+              <Skeleton className="h-3 w-40" />
+              <Skeleton className="h-2.5 w-20" />
             </div>
-            <div className="hidden h-3 w-16 animate-pulse rounded-sm bg-grayA-3 sm:block" />
+            <Skeleton className="hidden h-3 w-16 sm:block" />
             <IdentityActionSkeleton />
           </ResourceListItem>
         ))}
