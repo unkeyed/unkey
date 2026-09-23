@@ -33,7 +33,7 @@ services:
       start_period: 10s
 
   clickhouse:
-    image: clickhouse/clickhouse-server:26.2.1.1139@sha256:f57ed23ab5c4ee0e9a05c2e811bb3580ead222cea30421b3e66234c32e272bce
+    image: clickhouse/clickhouse-server:26.8.5.13@sha256:5a55fb7517cbba97a99b8676a748fd13e4709049a4d1f5d5be5c20695da4c91b
     environment:
       CLICKHOUSE_USER: default
       CLICKHOUSE_PASSWORD: password
