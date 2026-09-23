@@ -3,6 +3,7 @@
 import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip";
 import type * as React from "react";
 
+import { popupTransition } from "../lib/popup";
 import { cn } from "../lib/utils";
 
 const TooltipProvider = TooltipPrimitive.Provider;
@@ -35,7 +36,9 @@ function TooltipContent({
         <TooltipPrimitive.Popup
           ref={ref}
           className={cn(
-            "z-50 bg-gray-1 text-gray-12 overflow-hidden rounded-md px-3 py-1.5 text-sm shadow-md transition-[opacity,scale,translate] data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95 data-[side=bottom]:data-starting-style:-translate-y-2 data-[side=left]:data-starting-style:translate-x-2 data-[side=right]:data-starting-style:-translate-x-2 data-[side=top]:data-starting-style:translate-y-2",
+            "z-50 bg-raised text-gray-12 overflow-hidden rounded-md px-3 py-1.5 text-sm shadow-floating",
+            popupTransition,
+            "data-[side=bottom]:data-starting-style:-translate-y-2 data-[side=left]:data-starting-style:translate-x-2 data-[side=right]:data-starting-style:-translate-x-2 data-[side=top]:data-starting-style:translate-y-2",
             className,
           )}
           {...props}

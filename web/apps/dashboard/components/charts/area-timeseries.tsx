@@ -230,7 +230,7 @@ export function AreaTimeseriesChart({
         {showAxes && (
           <CartesianGrid
             vertical={false}
-            stroke="hsl(var(--gray-4))"
+            stroke="var(--color-gray-4)"
             strokeDasharray="3 3"
             strokeOpacity={0.6}
           />
@@ -242,7 +242,7 @@ export function AreaTimeseriesChart({
           allowDataOverflow={Boolean(effectiveDomain)}
           scale="time"
           tickFormatter={xTickFormatter}
-          tick={showAxes ? { fill: "hsl(var(--gray-10))", fontSize: 10 } : false}
+          tick={showAxes ? { fill: "var(--color-gray-10)", fontSize: 10 } : false}
           tickLine={false}
           axisLine={false}
           ticks={xTicks}
@@ -254,7 +254,7 @@ export function AreaTimeseriesChart({
           tickLine={false}
           axisLine={false}
           tickFormatter={formatYTick}
-          tick={showAxes ? { fill: "hsl(var(--gray-10))", fontSize: 10 } : false}
+          tick={showAxes ? { fill: "var(--color-gray-10)", fontSize: 10 } : false}
           ticks={yTicks}
           domain={yDomain}
           hide={!showAxes}
@@ -263,7 +263,7 @@ export function AreaTimeseriesChart({
           allowEscapeViewBox={{ x: false, y: true }}
           wrapperStyle={{ zIndex: 1000, pointerEvents: "none" }}
           cursor={{
-            stroke: "hsl(var(--accent-9))",
+            stroke: "var(--color-gray-9)",
             strokeWidth: 1,
             strokeDasharray: "3 3",
             strokeOpacity: 0.5,
@@ -287,9 +287,9 @@ export function AreaTimeseriesChart({
             return (
               <div
                 role="tooltip"
-                className="grid w-max max-w-[300px] animate-in items-start gap-1.5 rounded-xl border border-gray-4/50 bg-gray-1/80 px-3 py-2.5 text-xs shadow-2xl backdrop-blur-md duration-150 fade-in-0 zoom-in-95 select-none"
+                className="grid w-max max-w-[300px] animate-in items-start gap-1.5 rounded-xl bg-raised/80 px-3 py-2.5 text-xs shadow-floating backdrop-blur-md duration-150 fade-in-0 zoom-in-95 select-none"
               >
-                <div className="font-medium text-[11px] text-accent-11">{labelText}</div>
+                <div className="font-medium text-[11px] text-gray-11">{labelText}</div>
                 <div className="grid gap-1">
                   {rows.map(({ key, value }) => {
                     const itemConfig = config[key];
@@ -297,11 +297,11 @@ export function AreaTimeseriesChart({
                     return (
                       <div key={key} className="flex items-center gap-2">
                         <div
-                          className="shrink-0 rounded-[2px] h-2 w-2"
+                          className="shrink-0 rounded-xs h-2 w-2"
                           style={{ backgroundColor: itemConfig?.color }}
                         />
-                        <span className="text-accent-12">{itemConfig?.label ?? key}</span>
-                        <span className="font-mono tabular-nums text-accent-12 ml-auto">
+                        <span className="text-gray-12">{itemConfig?.label ?? key}</span>
+                        <span className="font-mono tabular-nums text-gray-12 ml-auto">
                           {parts.value}
                           {parts.unit && ` ${parts.unit}`}
                           {parts.hint && (

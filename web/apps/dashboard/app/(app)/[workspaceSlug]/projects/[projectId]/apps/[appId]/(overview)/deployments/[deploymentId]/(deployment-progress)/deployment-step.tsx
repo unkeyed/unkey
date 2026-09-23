@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { formatCompoundDuration } from "@/lib/utils/metric-formatters";
 import {
   IconCheckOutline18,
@@ -9,6 +8,7 @@ import {
 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, Loading, SettingCard } from "@unkey/ui";
+import { cn } from "cn";
 import { GlowIcon } from "../../../../components/glow-icon";
 
 type DeploymentStepProps = {

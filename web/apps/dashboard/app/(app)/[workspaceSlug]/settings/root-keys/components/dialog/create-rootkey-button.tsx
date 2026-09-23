@@ -1,7 +1,7 @@
 "use client";
-import { cn } from "@/lib/utils";
 import { IconPlusOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { cn } from "cn";
 import type { RefObject } from "react";
 import { useState } from "react";
 import { ROOT_KEY_MESSAGES } from "./constants";

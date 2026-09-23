@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { IconCubeOutline18 } from "@unkey/icons";
 import {
   EmptyState,
@@ -10,6 +9,7 @@ import {
   EmptyStateIcon,
   EmptyStateTitle,
 } from "@unkey/ui";
+import { cn } from "cn";
 import type { PropsWithChildren, ReactNode } from "react";
 
 type EmptySectionProps = PropsWithChildren<{

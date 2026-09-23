@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { IconCircleCheckOutline18, IconClockOutline18 } from "@unkey/icons";
 import { CopyButton } from "@unkey/ui";
+import { cn } from "cn";
 
 type DnsRecordRowProps = {
   type: string;
@@ -15,7 +15,7 @@ export function DnsRecordRow({ type, name, value, verified, isLast }: DnsRecordR
     <div
       className={cn(
         "grid grid-cols-[64px_1fr_1fr_48px] px-3 py-2 items-center",
-        !isLast && "border-b border-gray-3",
+        !isLast && "border-b",
         verified && "text-gray-8",
       )}
     >

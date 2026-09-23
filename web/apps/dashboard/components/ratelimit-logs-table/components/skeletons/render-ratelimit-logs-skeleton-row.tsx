@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import type { DataTableColumnDef } from "@unkey/ui";
-import { CreatedAtColumnSkeleton } from "@unkey/ui";
+import { CreatedAtColumnSkeleton, Skeleton } from "@unkey/ui";
+import { cn } from "cn";
 import { RATELIMIT_LOGS_COLUMN_IDS } from "../../columns/create-ratelimit-logs-columns";
 import type { EnrichedRatelimitLog } from "../../hooks/use-ratelimit-logs-query";
 
@@ -10,12 +10,12 @@ type RenderRatelimitLogsSkeletonRowProps = {
 };
 
 const TextSkeleton = ({ width }: { width: string }) => (
-  <div className="h-3 rounded bg-grayA-3 animate-pulse" style={{ width }} />
+  <Skeleton className="h-3 rounded" style={{ width }} />
 );
 
 // Matches the status badge's min-w-17.5 footprint so the skeleton doesn't reflow
 // when real rows load in.
-const BadgeSkeleton = () => <div className="h-4 w-17.5 rounded-md bg-grayA-3 animate-pulse" />;
+const BadgeSkeleton = () => <Skeleton className="h-4 w-17.5 rounded-md" />;
 
 export const renderRatelimitLogsSkeletonRow = ({
   columns,

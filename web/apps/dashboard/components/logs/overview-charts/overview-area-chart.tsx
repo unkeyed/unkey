@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ReferenceArea, YAxis } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";
@@ -270,11 +270,11 @@ export const OverviewAreaChart = ({
                   style={{ backgroundColor: metric.color }}
                 />
               ))}
-            <div className="text-accent-10 text-[11px] leading-4">
+            <div className="text-gray-10 text-[11px] leading-4">
               {labelsWithDefaults.rangeLabel}
             </div>
           </div>
-          <div className="text-accent-12 text-[18px] font-semibold leading-7">
+          <div className="text-gray-12 text-[18px] font-semibold leading-7">
             {primaryMetric.formatter
               ? `${primaryMetric.formatter(
                   ranges[primaryMetric.key].min,
@@ -294,9 +294,9 @@ export const OverviewAreaChart = ({
                     className="rounded-sm h-[10px] w-1"
                     style={{ backgroundColor: metric.color }}
                   />
-                  <div className="text-accent-10 text-[11px] leading-4">{metric.label}</div>
+                  <div className="text-gray-10 text-[11px] leading-4">{metric.label}</div>
                 </div>
-                <div className="text-accent-12 text-[18px] font-semibold leading-7">
+                <div className="text-gray-12 text-[18px] font-semibold leading-7">
                   {metric.formatter
                     ? metric.formatter(ranges[metric.key].avg)
                     : formatNumber(ranges[metric.key].avg)}
@@ -346,7 +346,7 @@ export const OverviewAreaChart = ({
               horizontal
               vertical={false}
               strokeDasharray="3 3"
-              stroke="hsl(var(--gray-6))"
+              stroke="var(--color-gray-6)"
               strokeOpacity={0.3}
               strokeWidth={1}
             />
@@ -355,7 +355,7 @@ export const OverviewAreaChart = ({
               isAnimationActive
               wrapperStyle={{ zIndex: 1000 }}
               cursor={{
-                stroke: "hsl(var(--accent-3))",
+                stroke: "var(--color-gray-3)",
                 strokeWidth: 1,
                 strokeDasharray: "5 5",
                 strokeOpacity: 0.7,
@@ -369,7 +369,6 @@ export const OverviewAreaChart = ({
                     payload={payload}
                     label={label}
                     active={active}
-                    className="rounded-lg shadow-lg border border-gray-4"
                     labelFormatter={(_, tooltipPayload) => {
                       const payloadTimestamp = tooltipPayload?.[0]?.payload?.originalTimestamp;
                       return formatTooltipInterval(
@@ -400,7 +399,7 @@ export const OverviewAreaChart = ({
               <ReferenceArea
                 x1={Math.min(Number(selection.start), Number(selection.end))}
                 x2={Math.max(Number(selection.start), Number(selection.end))}
-                fill="hsl(var(--chart-selection))"
+                fill="var(--color-chart-selection)"
                 fillOpacity={0.3}
               />
             )}
@@ -408,7 +407,7 @@ export const OverviewAreaChart = ({
         </ChartContainer>
       </div>
 
-      <div className="h-max border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between ">
+      <div className="h-max border-t border-b px-1 py-2 text-gray-9 font-mono text-xxs w-full flex justify-between ">
         {data.length > 0
           ? (() => {
               const lastItem = data.at(-1);

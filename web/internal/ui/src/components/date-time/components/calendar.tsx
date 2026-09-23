@@ -20,7 +20,7 @@ function CustomMonthCaptionComponent({ calendarMonth }: { calendarMonth: { date:
       >
         <IconChevronLeftOutline12 className="text-gray-12" />
       </button>
-      <div className="flex w-full text-gray-12 justify-center items-center font-medium calendar-header">
+      <div className="flex w-full text-gray-12 justify-center items-center font-medium">
         {format(displayMonth, "MMMM yyy")}
       </div>
       <button
@@ -54,10 +54,10 @@ const styleClassNames = {
     "flex flex-start w-full border-none h-8 mx-0 px-0 pt-2 gap-3 justify-center items-center",
   weekday: "w-8 h-8 font-normal text-xs text-gray-8 bg-transparent border-none ",
   week: "flex w-full border-none justify-between ",
-  day: "border-none h-8 w-8 text-center text-gray-12 rounded-sm rounded-3 text-sm p-0 relative focus:outline-hidden focus:ring-0 [&:has([aria-selected].outside)]:bg-gray-4 [&:has([aria-selected])]:bg-gray-4 focus-within:relative focus-within:z-20",
+  day: "border-none h-8 w-8 text-center text-gray-12 rounded-sm text-sm p-0 relative focus:outline-hidden focus:ring-0 [&:has([aria-selected].outside)]:bg-gray-4 [&:has([aria-selected])]:bg-gray-4 focus-within:relative focus-within:z-20",
   day_button: cn(
     buttonVariants({ variant: "ghost" }),
-    "h-8 w-8 p-0 font-normal aria-selected:opacity-100 text-[13px] flex items-center justify-center hover:bg-gray-3 text-gray-12 rounded-sm rounded-3 text-sm focus:outline-hidden focus:ring-0",
+    "h-8 w-8 p-0 font-normal aria-selected:opacity-100 text-[13px] flex items-center justify-center hover:bg-gray-3 text-gray-12 rounded-sm text-sm focus:outline-hidden focus:ring-0",
   ),
   range_start: "hover:bg-gray-3 focus:bg-gray-5 text-gray-12",
   range_middle: "",

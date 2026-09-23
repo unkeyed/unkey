@@ -8,6 +8,7 @@ import {
 import { memo, useMemo, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../buttons/button";
+import { FOOTER_PANEL } from "../../constants/constants";
 import { getPageNumbers } from "../../utils/get-page-numbers";
 import { PaginationFooterSkeleton } from "../skeletons/pagination-footer-skeleton";
 
@@ -53,7 +54,7 @@ export const PaginationFooter = memo(function PaginationFooter({
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="cursor-pointer text-grayA-9 hover:text-grayA-11 bg-gray-1 dark:bg-black border border-gray-6 rounded-lg shadow-lg p-3 duration-200 hover:shadow-xl hover:scale-105 group"
+          className="cursor-pointer text-grayA-9 hover:text-grayA-11 bg-raised rounded-lg shadow-floating p-3 duration-200 hover:scale-105 group"
           title={`Page ${page} of ${totalPages} • ${start}-${end} of ${totalCount} ${itemLabel}`}
         >
           <div className="flex items-center gap-2">
@@ -78,14 +79,14 @@ export const PaginationFooter = memo(function PaginationFooter({
   return (
     <div
       className={cn(
-        "fixed bottom-0 left-0 right-0 w-full items-center justify-center flex flex-col z-10 animation-ease-out pointer-events-none",
+        "fixed bottom-0 left-0 right-0 w-full items-center justify-center flex flex-col z-10 pointer-events-none",
         "opacity-100",
       )}
     >
       {loading ? (
         <PaginationFooterSkeleton />
       ) : (
-        <div className="w-[740px] border bg-gray-1 dark:bg-black border-gray-6 flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-sm mb-5 transition-all duration-200 hover:shadow-lg pointer-events-auto">
+        <div className={cn(FOOTER_PANEL, "transition-all duration-200 pointer-events-auto")}>
           <div className="flex flex-col w-full">
             {/* Header content */}
             {headerContent && <div className="flex items-center w-full">{headerContent}</div>}
@@ -154,7 +155,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                           className={cn(
                             "w-7 h-7 flex items-center justify-center rounded-md text-xs font-medium cursor-pointer",
                             isCurrentPage
-                              ? "text-gray-12 pointer-events-none ring-0 border border-grayA-4 bg-grayA-4 text-sm transition-all duration-300"
+                              ? "text-gray-12 pointer-events-none ring-0 border bg-grayA-4 text-sm transition-all duration-300"
                               : "text-grayA-9 hover:text-gray-12 hover:bg-grayA-3",
                             disabled && !isCurrentPage && "opacity-80 pointer-events-none",
                           )}

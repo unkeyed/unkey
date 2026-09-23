@@ -92,7 +92,7 @@ export function PoliciesList({
   }, []);
 
   return (
-    <div className="border border-grayA-4 rounded-lg overflow-hidden">
+    <div className="border bg-raised rounded-lg overflow-hidden">
       {merged.map((policy, i) => (
         <PolicyRow
           key={policy.key}

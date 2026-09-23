@@ -5,7 +5,7 @@ import { Skeleton } from "@unkey/ui";
 // layout shift.
 export function StatsListCardSkeleton({ subtitle = false }: { subtitle?: boolean }) {
   return (
-    <div className="relative h-full p-5 flex flex-col border border-grayA-4 rounded-lg w-full gap-5">
+    <div className="relative h-full p-5 flex flex-col border bg-raised shadow-xs rounded-lg w-full gap-5">
       <div className="flex flex-col w-full gap-2 min-w-0">
         <Skeleton className="h-[14px] w-32" />
         {subtitle ? <Skeleton className="h-[12px] w-40" /> : null}

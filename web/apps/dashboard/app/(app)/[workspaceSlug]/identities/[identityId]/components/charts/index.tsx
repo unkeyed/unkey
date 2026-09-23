@@ -1,4 +1,4 @@
-import { createOutcomeChartConfig } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/[keyId]/components/charts/bar-chart/utils";
+import { createOutcomeChartConfig } from "@/components/charts/chart-colors";
 import { OverviewBarChart } from "@/components/logs/overview-charts/overview-bar-chart";
 import {
   type TimeseriesGranularity,

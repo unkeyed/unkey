@@ -139,14 +139,14 @@ export function SpendBarChart({ data, series, incompleteFrom, isLoading, isError
           horizontalCoordinatesGenerator={({ offset }) =>
             ticks.map((tick) => offset.top + offset.height * (1 - tick / top))
           }
-          stroke="hsl(var(--gray-4))"
+          stroke="var(--color-gray-4)"
           strokeWidth={1}
         />
         <XAxis
           dataKey="time"
           type="category"
           tickFormatter={formatDay}
-          tick={{ fill: "hsl(var(--gray-10))", fontSize: 10 }}
+          tick={{ fill: "var(--color-gray-10)", fontSize: 10 }}
           tickLine={false}
           axisLine={false}
           interval="preserveStartEnd"
@@ -159,14 +159,14 @@ export function SpendBarChart({ data, series, incompleteFrom, isLoading, isError
           domain={[0, top]}
           ticks={ticks}
           tickFormatter={formatAxisCents}
-          tick={{ fill: "hsl(var(--gray-10))", fontSize: 10 }}
+          tick={{ fill: "var(--color-gray-10)", fontSize: 10 }}
           tickLine={false}
           axisLine={false}
         />
         <ChartTooltip
           allowEscapeViewBox={{ x: false, y: true }}
           wrapperStyle={{ zIndex: 1000, pointerEvents: "none" }}
-          cursor={{ fill: "hsl(var(--grayA-3))" }}
+          cursor={{ fill: "var(--color-grayA-3)" }}
           content={({ active, payload }) => {
             const point = pointAt(payload?.[0]?.payload);
             if (!active || point === undefined) {
@@ -225,9 +225,9 @@ function SpendTooltip({
   return (
     <div
       role="tooltip"
-      className="grid w-max min-w-[200px] animate-in gap-1.5 rounded-xl border border-gray-4/50 bg-gray-1/80 px-3 py-2.5 text-xs shadow-2xl backdrop-blur-md duration-150 fade-in-0 zoom-in-95 select-none"
+      className="grid w-max min-w-[200px] animate-in gap-1.5 rounded-xl bg-raised/80 px-3 py-2.5 text-xs shadow-floating backdrop-blur-md duration-150 fade-in-0 zoom-in-95 select-none"
     >
-      <div className="font-medium text-[11px] text-accent-11">
+      <div className="font-medium text-[11px] text-gray-11">
         {formatDay(point.time)}
         {partial ? <span className="pl-1 font-normal text-gray-10">so far</span> : null}
       </div>
@@ -239,17 +239,17 @@ function SpendTooltip({
               style={{ backgroundColor: entry.color }}
               aria-hidden="true"
             />
-            <span className="truncate text-accent-12">{entry.label}</span>
-            <span className="ml-auto font-mono text-accent-12 tabular-nums">
+            <span className="truncate text-gray-12">{entry.label}</span>
+            <span className="ml-auto font-mono text-gray-12 tabular-nums">
               {formatPrice(entry.cents)}
             </span>
           </div>
         ))}
       </div>
       {contributors.length > 1 ? (
-        <div className="flex items-center gap-2 border-grayA-4 border-t pt-1.5">
+        <div className="flex items-center gap-2 border-t pt-1.5">
           <span className="text-gray-11">Total</span>
-          <span className="ml-auto font-medium font-mono text-accent-12 tabular-nums">
+          <span className="ml-auto font-medium font-mono text-gray-12 tabular-nums">
             {formatPrice(total)}
           </span>
         </div>

@@ -167,7 +167,7 @@ export const PermissionField = ({
         emptyMessage={
           isComboboxLoading ? (
             <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
-              <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
+              <div className="animate-spin h-3 w-3 border border-t-gray-11 rounded-full" />
               {isSearching ? "Searching..." : "Loading permissions..."}
             </div>
           ) : (

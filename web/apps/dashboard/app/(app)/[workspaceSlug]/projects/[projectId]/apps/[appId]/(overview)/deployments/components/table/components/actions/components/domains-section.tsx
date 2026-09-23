@@ -21,7 +21,7 @@ export const DomainsSection = ({ domains }: DomainsSectionProps) => {
           <DomainRow
             key={domain.id}
             domain={domain.fullyQualifiedDomainName}
-            className="bg-white dark:bg-black border-grayA-5 first:rounded-t-lg last:rounded-b-lg"
+            className="bg-raised first:rounded-t-lg last:rounded-b-lg"
           />
         ))}
       </div>

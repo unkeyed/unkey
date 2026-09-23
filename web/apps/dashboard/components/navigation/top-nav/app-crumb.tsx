@@ -33,9 +33,9 @@ export function AppCrumb({ projectId, appId }: { projectId: string; appId: strin
     <Crumb
       icon={
         current?.repositoryFullName ? (
-          <Github className="size-3.5 text-accent-11" />
+          <Github className="size-3.5 text-gray-11" />
         ) : (
-          <IconTerminalOutline18 className="size-3.5 text-accent-11" />
+          <IconTerminalOutline18 className="size-3.5 text-gray-11" />
         )
       }
       label={current?.name ?? appId}

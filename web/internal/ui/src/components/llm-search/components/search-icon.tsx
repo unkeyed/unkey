@@ -8,11 +8,11 @@ export const SearchIcon = ({ isProcessing }: SearchIconProps) => {
   if (isProcessing) {
     return (
       <IconRefresh3Outline18
-        className="text-accent-10 size-4 animate-spin"
+        className="text-gray-10 size-4 animate-spin"
         data-testid="loading-icon"
       />
     );
   }
 
-  return <IconMagnifierOutline18 className="text-accent-9 size-4" data-testid="search-icon" />;
+  return <IconMagnifierOutline18 className="text-gray-9 size-4" data-testid="search-icon" />;
 };

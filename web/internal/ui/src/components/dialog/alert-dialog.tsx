@@ -41,7 +41,7 @@ function AlertDialogContent({
         data-size={size}
         className={cn(
           "group/alert-dialog-content fixed top-1/2 left-1/2 z-53 grid w-full -translate-x-1/2 -translate-y-1/2",
-          "gap-4 rounded-xl bg-background p-6 text-gray-12 ring-1 ring-gray-5 shadow-lg outline-none",
+          "gap-4 rounded-xl bg-raised p-6 text-gray-12 shadow-floating outline-none",
           "duration-100 transition-[opacity,scale,translate] motion-reduce:transition-none",
           "data-starting-style:opacity-0 data-starting-style:scale-95",
           "data-ending-style:opacity-0 data-ending-style:scale-95",
@@ -76,7 +76,7 @@ function AlertDialogFooter({ className, ...props }: React.ComponentProps<"div">)
     <div
       data-slot="alert-dialog-footer"
       className={cn(
-        "-mx-6 -mb-6 flex flex-col-reverse gap-2 rounded-b-xl border-t border-gray-5 bg-grayA-1 px-6 py-4",
+        "-mx-6 -mb-6 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-raised px-6 py-4",
         "group-data-[size=sm]/alert-dialog-content:grid group-data-[size=sm]/alert-dialog-content:grid-cols-2",
         "sm:flex-row sm:justify-end",
         className,

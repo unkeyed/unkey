@@ -52,8 +52,5 @@ export * from "./hooks/use-mobile";
 export * from "./hooks/use-relative-time";
 export * from "./components/data-table";
 
-/* Styles Export */
-export * from "../css";
-
 /* Lib Export */
 export * from "./lib/utils";

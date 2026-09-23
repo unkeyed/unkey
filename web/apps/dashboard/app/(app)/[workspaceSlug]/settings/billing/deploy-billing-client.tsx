@@ -16,6 +16,7 @@ import {
   PageHeaderContent,
   PageHeaderDescription,
   PageHeaderTitle,
+  Skeleton,
 } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -140,7 +141,7 @@ export const DeployBillingClient: React.FC = () => {
             </EmptyStateHeader>
           </EmptyState>
         ) : billingLoading || !billingInfo ? (
-          <div className="h-[120px] w-full animate-pulse rounded-lg bg-grayA-3" />
+          <Skeleton className="h-[120px] w-full rounded-lg" />
         ) : (
           <ApiAddOnCard
             isAdmin={isAdmin}

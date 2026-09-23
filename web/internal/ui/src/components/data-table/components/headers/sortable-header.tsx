@@ -20,7 +20,7 @@ export function SortableHeader<TData>({ header, children }: SortableHeaderProps<
 
   if (!canSort) {
     return (
-      <div className="flex items-center gap-1 truncate text-accent-12">
+      <div className="flex items-center gap-1 truncate text-gray-12">
         {children || flexRender(column.columnDef.header, header.getContext())}
       </div>
     );
@@ -30,9 +30,9 @@ export function SortableHeader<TData>({ header, children }: SortableHeaderProps<
     <button
       type="button"
       className={cn(
-        "flex items-center gap-1 truncate text-accent-12",
-        "cursor-pointer hover:text-accent-11 transition-colors",
-        "focus:outline-none focus:text-accent-11",
+        "flex items-center gap-1 truncate text-gray-12",
+        "cursor-pointer hover:text-gray-11 transition-colors",
+        "focus:outline-none focus:text-gray-11",
       )}
       onClick={column.getToggleSortingHandler()}
       title={
@@ -55,10 +55,10 @@ function SortIcon({ sorted }: { sorted: false | "asc" | "desc" }) {
   return (
     <div>
       <IconChevronUpOutline18
-        className={cn("color-gray-9 size-2", sorted === "desc" && "invisible")}
+        className={cn("text-gray-9 size-2", sorted === "desc" && "invisible")}
       />
       <IconChevronDownOutline18
-        className={cn("color-gray-9 size-2", sorted === "asc" && "invisible")}
+        className={cn("text-gray-9 size-2", sorted === "asc" && "invisible")}
       />
     </div>
   );

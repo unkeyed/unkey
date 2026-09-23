@@ -1,8 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { IconEyeSlashOutline18, IconTrashOutline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
+import { cn } from "cn";
 import { useRef, useState } from "react";
 
 type EnvVarSelectionBarProps = {
@@ -32,7 +32,7 @@ export function EnvVarSelectionBar({
       <div className="fixed bottom-5 flex justify-center z-10 pointer-events-none left-(--sidebar-width,16rem) right-0">
         <div
           className={cn(
-            "w-185 border bg-gray-1 dark:bg-black border-gray-6 min-h-15 flex items-center justify-center rounded-[10px] drop-shadow-lg shadow-sm pointer-events-auto",
+            "w-185 border bg-raised min-h-15 flex items-center justify-center rounded-xl shadow-floating pointer-events-auto",
             "animate-fade-slide-in",
           )}
         >
@@ -102,7 +102,7 @@ function AnimatedCounter({ value }: { value: number }) {
     <div
       key={`counter-${value}`}
       className={cn(
-        "size-[18px] text-[11px] leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md border border-grayA-4",
+        "size-[18px] text-[11px] leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-gray-12 hover:bg-gray-12/90 focus:hover:bg-gray-12 rounded-md border",
         "animate-bounce-in",
       )}
     >

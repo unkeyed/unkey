@@ -18,7 +18,7 @@ export const IdentitiesSearch = () => {
     <div className="flex h-8 w-full items-center md:w-80">
       <InputGroup className="h-8">
         <InputGroupAddon className="pointer-events-none">
-          <IconMagnifierOutline18 className="text-accent-9 size-4" />
+          <IconMagnifierOutline18 className="text-gray-9 size-4" />
         </InputGroupAddon>
         <InputGroupInput
           aria-label="Search identities"

@@ -56,7 +56,7 @@ export const ResourceCard = ({
   }, []);
 
   return (
-    <div className="relative p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 rounded-lg w-full h-full gap-5 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
+    <div className="relative p-5 flex flex-col border hover:border-strong bg-raised shadow-xs rounded-lg w-full h-full gap-5 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
       {/* Invisible base clickable layer - covers entire card */}
       <Link
         href={href}
@@ -66,7 +66,7 @@ export const ResourceCard = ({
       />
       {/*Top Section*/}
       <div className="flex gap-4 items-center min-h-11">
-        <div className="size-10 bg-gray-3 rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4">
+        <div className="size-10 bg-gray-3 rounded-xl flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4">
           {isNavigating ? (
             <Loading size={20} className="text-grayA-11" />
           ) : (
@@ -78,7 +78,7 @@ export const ResourceCard = ({
           <InfoTooltip content={name} asChild position={{ align: "start", side: "top" }}>
             <Link
               href={href}
-              className="font-medium text-sm leading-[14px] text-accent-12 truncate hover:underline"
+              className="font-medium text-sm leading-[14px] text-gray-12 truncate hover:underline"
             >
               {name}
             </Link>
@@ -90,7 +90,7 @@ export const ResourceCard = ({
                 href={`https://${domain}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="relative font-medium text-xs leading-[12px] text-gray-11 truncate max-w-[150px] hover:text-accent-12 transition-colors hover:underline"
+                className="relative font-medium text-xs leading-[12px] text-gray-11 truncate max-w-[150px] hover:text-gray-12 transition-colors hover:underline"
               >
                 {domain}
               </a>
@@ -156,12 +156,12 @@ const GitSourceMetadata = ({
             href={sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate cursor-pointer hover:underline"
+            className="text-[13px] font-medium text-gray-12 leading-5 min-w-0 truncate cursor-pointer hover:underline"
           >
             {commitTitle}
           </a>
         ) : (
-          <span className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate">
+          <span className="text-[13px] font-medium text-gray-12 leading-5 min-w-0 truncate">
             {commitTitle}
           </span>
         )}
@@ -213,7 +213,7 @@ const OCISourceMetadata = ({ imageReference }: { imageReference: string | null }
       asChild
       position={{ align: "start", side: "top" }}
     >
-      <span className="h-5 font-mono text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate">
+      <span className="h-5 font-mono text-[13px] font-medium text-gray-12 leading-5 min-w-0 truncate">
         {imageReference ?? "No image configured"}
       </span>
     </InfoTooltip>

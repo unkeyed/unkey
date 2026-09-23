@@ -6,7 +6,14 @@ import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { IconTriangleWarningOutline12 } from "@unkey/icons";
-import { Button, DialogContainer, Input, SettingsZoneRow } from "@unkey/ui";
+import {
+  AlertBanner,
+  AlertBannerDescription,
+  Button,
+  DialogContainer,
+  Input,
+  SettingsZoneRow,
+} from "@unkey/ui";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -93,17 +100,15 @@ export function DeleteApp() {
           </div>
         }
       >
-        <div className="rounded-xl bg-errorA-2 dark:bg-black border border-errorA-3 flex items-center gap-4 px-[22px] py-6">
-          <div className="bg-error-9 size-8 rounded-full flex items-center justify-center shrink-0">
-            <IconTriangleWarningOutline12 className="text-white" />
-          </div>
-          <div className="text-error-12 text-[13px] leading-6">
+        <AlertBanner variant="error">
+          <IconTriangleWarningOutline12 aria-hidden="true" />
+          <AlertBannerDescription>
             <span className="font-medium">Warning:</span> deleting{" "}
             <span className="font-medium">{appName}</span> will remove all deployments,
             environments, custom domains, and associated data. This action cannot be undone. Any
             monitoring, logs, and historical data tied to this app will be permanently lost.
-          </div>
-        </div>
+          </AlertBannerDescription>
+        </AlertBanner>
         <form id="delete-app-form" onSubmit={handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-1 mt-4">
             <p className="text-gray-11 text-[13px]">

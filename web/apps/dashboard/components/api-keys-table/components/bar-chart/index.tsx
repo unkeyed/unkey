@@ -1,4 +1,4 @@
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { useMemo } from "react";
 import { UsageColumnSkeleton } from "../skeletons";
 import { OutcomeExplainer } from "./components/outcome-explainer";
@@ -96,7 +96,7 @@ export const VerificationBarChart = ({
     return (
       <div
         className={cn(
-          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border border-inside px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
+          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
           selected ? "border-grayA-3 rounded-md" : "",
         )}
         style={{
@@ -115,7 +115,7 @@ export const VerificationBarChart = ({
     return (
       <div
         className={cn(
-          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border border-inside px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
+          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
           selected ? "border-grayA-3 rounded-md" : "",
         )}
         style={{
@@ -134,7 +134,7 @@ export const VerificationBarChart = ({
     <OutcomeExplainer timeseries={timeseries} title={activityTitle}>
       <div
         className={cn(
-          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border border-inside px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
+          "grid items-end h-[28px] bg-grayA-2 dark:bg-grayA-2 w-[158px] border px-1 py-0 overflow-hidden rounded-t hover:rounded-md group-hover:rounded-md border-transparent hover:border-grayA-2 group-hover:border-grayA-2",
           selected ? "border-grayA-3 rounded-md" : "",
         )}
         style={{

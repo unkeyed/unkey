@@ -1,6 +1,6 @@
 import type { FlagCode } from "@/lib/trpc/routers/deploy/network/utils";
-import { cn } from "@/lib/utils";
 import BoringAvatar from "boring-avatars";
+import { cn } from "cn";
 type RegionFlagSize = "xs" | "sm" | "md" | "lg";
 type RegionFlagShape = "rounded" | "circle";
 type RegionFlagProps = {
@@ -34,7 +34,7 @@ const sizeConfig = {
 };
 
 const shapeClass = {
-  rounded: "rounded-[10px]",
+  rounded: "rounded-xl",
   circle: "rounded-full",
 };
 
@@ -52,7 +52,7 @@ export function RegionFlag({
         "bg-grayA-3 flex items-center justify-center",
         config.container,
         shapeClass[shape],
-        shape === "rounded" && "border border-grayA-3",
+        shape === "rounded" && "border",
         hasExplicitPadding && config.padding,
         !hasExplicitPadding && "p-0",
         className,

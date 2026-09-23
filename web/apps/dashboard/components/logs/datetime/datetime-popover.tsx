@@ -1,7 +1,7 @@
 "use client";
 
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import { cn, processTimeFilters } from "@/lib/utils";
+import { processTimeFilters } from "@/lib/utils";
 import { IconChevronDownOutline18 } from "@unkey/icons";
 import { useIsMobile } from "@unkey/ui";
 import {
@@ -15,6 +15,7 @@ import {
   type Range,
   type TimeUnit,
 } from "@unkey/ui";
+import { cn } from "cn";
 import {
   type PropsWithChildren,
   type ReactElement,
@@ -215,7 +216,7 @@ export const DatetimePopover = ({
   // Common calendar props to ensure consistency between mobile and desktop
   const calendarProps = {
     mode: (singleDateMode ? "single" : "range") as "single" | "range",
-    className: "px-3 pt-2.5 pb-3.5 border-b border-gray-4 text-[13px]",
+    className: "px-3 pt-2.5 pb-3.5 border-b text-[13px]",
     disabledDates: getDisabledDates(),
     showOutsideDays: true,
   };
@@ -232,7 +233,7 @@ export const DatetimePopover = ({
               <button
                 type="button"
                 onClick={() => setTimeRangeOpen(!timeRangeOpen)}
-                className="text-gray-11 h-9 border-border border px-2 text-sm w-full rounded-lg bg-gray-3 flex items-center justify-between"
+                className="text-gray-11 h-9 border px-2 text-sm w-full rounded-lg bg-gray-3 flex items-center justify-between"
               >
                 <span className="text-gray-9 text-[13px]">
                   {singleDateMode ? "Select a date" : "Filter by time range"}
@@ -279,11 +280,8 @@ export const DatetimePopover = ({
       ) : (
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger nativeButton={triggerNativeButton} render={children as ReactElement} />
-          <PopoverContent
-            className="flex w-full bg-gray-1 dark:bg-black shadow-2xl p-0 m-0 border-gray-6 rounded-lg"
-            align={align}
-          >
-            <div className="flex flex-col w-60 px-1.5 py-3 m-0 border-r border-gray-4">
+          <PopoverContent className="flex w-full bg-raised p-0 m-0 rounded-lg" align={align}>
+            <div className="flex flex-col w-60 px-1.5 py-3 m-0 border-r">
               {customHeader || (
                 <div className="flex w-full h-8 justify-between px-2">
                   <span className="text-gray-9 text-[13px] w-full">

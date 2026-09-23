@@ -1,7 +1,7 @@
 import { collection } from "@/lib/collections";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { IconCircleHalfDottedClockOutline18, IconGearOutline18 } from "@unkey/icons";
-import { SettingCardGroup } from "@unkey/ui";
+import { SettingCardGroup, Skeleton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useAppId, useProjectData } from "../../data-provider";
 import { SettingsGroup } from "./shared/settings-group";
@@ -171,10 +171,7 @@ function CardRows({ rows }: { rows: Row[] }) {
         <div key={row.title} className="w-full">
           <div className="lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row px-4 py-[18px]">
             <div className="flex gap-4 items-center">
-              <div
-                aria-hidden="true"
-                className="bg-gray-3 size-8 rounded-[10px] shrink-0 animate-pulse dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20"
-              />
+              <Skeleton className="bg-gray-3 size-8 rounded-xl shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20" />
               <div className="flex flex-col gap-1 text-sm w-fit">
                 <div className="font-medium text-gray-12 text-[13px] leading-4 tracking-normal">
                   {row.title}
@@ -188,8 +185,8 @@ function CardRows({ rows }: { rows: Row[] }) {
               aria-hidden="true"
               className="flex items-center gap-4 w-full lg:w-[320px] justify-end"
             >
-              <div className={cn("h-7 rounded-md bg-grayA-3 animate-pulse", row.controlW)} />
-              <div className="size-3 rounded bg-grayA-3 animate-pulse shrink-0" />
+              <Skeleton className={cn("h-7 rounded-md", row.controlW)} />
+              <Skeleton className="size-3 rounded shrink-0" />
             </div>
           </div>
         </div>

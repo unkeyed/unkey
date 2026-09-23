@@ -25,7 +25,7 @@ export function ProjectCrumb({ owner }: { owner: ProjectOwner }) {
 
   return (
     <Crumb
-      icon={<IconCubeOutline18 className="size-3.5 text-accent-11" />}
+      icon={<IconCubeOutline18 className="size-3.5 text-gray-11" />}
       label={current ? projectDisplayName(current, workspace.name) : (projectId ?? "Project")}
       loading={loading}
       href={

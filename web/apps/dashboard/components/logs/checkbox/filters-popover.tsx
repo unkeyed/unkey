@@ -291,16 +291,13 @@ export const FiltersPopover = ({
       </Drover.Trigger>
 
       <Drover.Content
-        className={cn(
-          "min-w-60 bg-gray-1 dark:bg-black shadow-2xl border-gray-6 rounded-lg",
-          searchItems ? "w-80 p-0" : "p-2",
-        )}
+        className={cn("min-w-60 bg-raised rounded-lg", searchItems ? "w-80 p-0" : "p-2")}
         align="start"
         onKeyDown={handleKeyDown}
       >
         <div className="flex w-full flex-col">
           {searchItems ? (
-            <div className="border-b border-gray-4 p-2">
+            <div className="border-b p-2">
               <InputGroup variant="ghost" className="h-8">
                 <InputGroupAddon className="pointer-events-none">
                   <IconMagnifierOutline18 className="size-3.5 text-gray-9" />
@@ -371,7 +368,7 @@ export const FiltersPopover = ({
                       }
                       className={cn(
                         "flex h-9 w-full items-center gap-2 rounded-md px-2 text-left outline-hidden",
-                        "hover:bg-gray-3 focus-visible:ring-2 focus-visible:ring-accent-7",
+                        "hover:bg-gray-3 focus-visible:ring-2 focus-visible:ring-gray-7",
                         activeSearchIndex === index && "bg-gray-3",
                         item.kind === "option" && item.checked && "bg-gray-3",
                       )}
@@ -382,18 +379,15 @@ export const FiltersPopover = ({
                       {item.kind === "option" ? (
                         <span
                           className={cn(
-                            "flex size-4 shrink-0 items-center justify-center rounded-sm border border-gray-5",
-                            item.checked &&
-                              "border-accent-9 bg-accent-9 text-white dark:text-black",
+                            "flex size-4 shrink-0 items-center justify-center rounded-sm border",
+                            item.checked && "border-gray-9 bg-gray-9 text-white dark:text-black",
                           )}
                           aria-hidden="true"
                         >
                           {item.checked ? <IconCheckOutline12 /> : null}
                         </span>
                       ) : null}
-                      {item.icon ? (
-                        <span className="shrink-0 text-accent-9">{item.icon}</span>
-                      ) : null}
+                      {item.icon ? <span className="shrink-0 text-gray-9">{item.icon}</span> : null}
                       <span className="flex min-w-0 items-center gap-1 text-xs">
                         {item.path.map((segment) => (
                           <React.Fragment key={`${item.id}-${segment}`}>
@@ -401,7 +395,7 @@ export const FiltersPopover = ({
                             <IconCaretRightOutline12 className="size-2 shrink-0 text-gray-7" />
                           </React.Fragment>
                         ))}
-                        <span className="truncate font-medium text-accent-12">{item.label}</span>
+                        <span className="truncate font-medium text-gray-12">{item.label}</span>
                       </span>
                       {item.description ? (
                         <span className="ml-auto max-w-28 shrink-0 truncate font-mono text-[10px] text-gray-8">

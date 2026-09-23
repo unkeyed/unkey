@@ -122,7 +122,7 @@ export const ControlCloud = <TFilter extends FilterValue>({
 
   return (
     <div
-      className="px-3 py-2 w-full flex items-center min-h-10 border-b border-gray-4 gap-2 text-xs flex-wrap group"
+      className="px-3 py-2 w-full flex items-center min-h-10 border-b gap-2 text-xs flex-wrap group"
       onKeyDown={handleKeyDown}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget)) {

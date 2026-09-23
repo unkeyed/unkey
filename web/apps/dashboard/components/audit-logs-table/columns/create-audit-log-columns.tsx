@@ -1,8 +1,8 @@
 import type { AuditLog } from "@/lib/trpc/routers/audit/schema";
-import { cn } from "@/lib/utils";
 import type { DataTableColumnDef } from "@unkey/ui";
 import { TimestampInfo } from "@unkey/ui";
 import { MonoTextCell } from "@unkey/ui";
+import { cn } from "cn";
 import { ActorCell } from "../components/cells/actor-cell";
 import { AuditActionBadgeCell } from "../components/cells/audit-action-badge-cell";
 

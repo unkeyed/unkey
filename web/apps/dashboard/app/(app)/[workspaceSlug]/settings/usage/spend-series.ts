@@ -7,14 +7,14 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // A cool run first (blue, violet, teal-green) so two or three projects stay in
 // one family. Yellow is left out: it clashes with blue at full saturation.
 const PROJECT_COLORS = [
-  "hsl(var(--info-9))",
-  "hsl(var(--feature-9))",
-  "hsl(var(--success-9))",
-  "hsl(var(--error-9))",
-  "hsla(var(--cyan-9))",
-  "hsl(var(--accent-9))",
-  "hsl(var(--orange-9))",
-  "hsla(var(--bronze-9))",
+  "var(--color-info-9)",
+  "var(--color-feature-9)",
+  "var(--color-success-9)",
+  "var(--color-error-9)",
+  "var(--color-cyan-9)",
+  "var(--color-gray-9)",
+  "var(--color-orange-9)",
+  "var(--color-bronze-9)",
 ];
 
 function projectColor(index: number): string {

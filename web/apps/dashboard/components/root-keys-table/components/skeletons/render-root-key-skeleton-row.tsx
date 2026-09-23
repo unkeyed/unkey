@@ -3,7 +3,6 @@ import {
   UsageColumnSkeleton,
 } from "@/components/api-keys-table/components/skeletons";
 import type { RootKey } from "@/lib/trpc/routers/settings/root-keys/query";
-import { cn } from "@/lib/utils";
 import type { DataTableColumnDef } from "@unkey/ui";
 import {
   ActionColumnSkeleton,
@@ -13,6 +12,7 @@ import {
   PermissionsColumnSkeleton,
   RootKeyColumnSkeleton,
 } from "@unkey/ui";
+import { cn } from "cn";
 import { ROOT_KEY_COLUMN_IDS } from "../../../root-keys-table/columns/create-root-key-columns";
 
 type RenderRootKeySkeletonRowProps = {

@@ -15,7 +15,6 @@ import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { githubUrl } from "@/lib/github-url";
 import { shortenId } from "@/lib/shorten-id";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
-import { cn } from "@/lib/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
@@ -27,6 +26,7 @@ import {
 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, CopyButton } from "@unkey/ui";
+import { cn } from "cn";
 import type React from "react";
 
 type Props = {
@@ -132,12 +132,12 @@ const RequestLogHeader = ({
 }) => {
   const { onClose } = LogDetails.useContext();
   return (
-    <div className="border-b flex justify-between items-center border-gray-4 h-[45px] px-4 py-2">
+    <div className="border-b flex justify-between items-center h-[45px] px-4 py-2">
       <div className="flex gap-2 items-center min-w-0">
-        <Badge className="uppercase px-[6px] rounded-md font-mono bg-accent-3 text-accent-11 hover:bg-accent-4">
+        <Badge className="uppercase px-[6px] rounded-md font-mono bg-gray-3 text-gray-11 hover:bg-gray-4">
           {log.method}
         </Badge>
-        <p className="text-xs text-accent-12 truncate flex-1">{log.path}</p>
+        <p className="text-xs text-gray-12 truncate flex-1">{log.path}</p>
         <Badge
           className={cn("px-[6px] rounded-md font-mono text-xs", {
             "bg-success-3 text-success-11 hover:bg-success-4":
@@ -216,13 +216,13 @@ const formatBody = (body: string, headers: string[]): React.ReactNode | string =
           Raw body ({contentType})<span className="group-open:hidden"> — click to expand</span>
           <span className="hidden group-open:inline"> — click to collapse</span>
         </summary>
-        <pre className="mt-1 whitespace-pre-wrap break-all text-accent-12">{body}</pre>
+        <pre className="mt-1 whitespace-pre-wrap break-all text-gray-12">{body}</pre>
       </details>
     );
   }
   const parsed = safeParseJson(body);
   return JSON.stringify(parsed, null, 2) === "null" ? (
-    <span className="text-xs text-accent-12">{EMPTY_TEXT}</span>
+    <span className="text-xs text-gray-12">{EMPTY_TEXT}</span>
   ) : (
     JSON.stringify(parsed, null, 2)
   );

@@ -7,7 +7,7 @@ import { ratelimitSchema } from "@/lib/schemas/ratelimit";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, DialogContainer } from "@unkey/ui";
+import { Button, DialogContainer, Separator } from "@unkey/ui";
 import { useEffect } from "react";
 import { FormProvider } from "react-hook-form";
 import { KeyInfo } from "../key-info";
@@ -99,9 +99,7 @@ export const EditRatelimits = ({ keyDetails, isOpen, onClose }: EditRatelimitsPr
           {/* Scrollable body container */}
           <div className="flex-1 overflow-y-auto min-h-0 scrollbar-hide gap-4 flex flex-col">
             <KeyInfo keyDetails={keyDetails} />
-            <div className="py-1 my-2">
-              <div className="h-px bg-grayA-3 w-full" />
-            </div>
+            <Separator className="my-3" />
             <div className="[&>*:first-child]:p-0">
               <RatelimitSetup />
             </div>

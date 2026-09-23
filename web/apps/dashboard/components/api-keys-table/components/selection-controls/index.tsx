@@ -99,7 +99,7 @@ export const SelectionControls = ({
         {selectedKeys.size > 0 && (
           <motion.div
             key="selection-controls"
-            className="border-b border-grayA-3 w-full overflow-hidden"
+            className="border-b w-full overflow-hidden"
             initial={{ opacity: 0, height: 0 }}
             animate={{
               opacity: 1,
@@ -122,7 +122,7 @@ export const SelectionControls = ({
               <div className="flex justify-between items-center w-full">
                 <div className="items-center flex gap-2">
                   <AnimatedCounter value={selectedKeys.size} />
-                  <div className="text-accent-9 text-[13px] leading-6">selected</div>
+                  <div className="text-gray-9 text-[13px] leading-6">selected</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -247,7 +247,7 @@ export const AnimatedCounter = ({ value }: { value: number }) => {
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="size-[18px] text-[11px] leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md border border-grayA-4"
+      className="size-[18px] text-[11px] leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-gray-12 hover:bg-gray-12/90 focus:hover:bg-gray-12 rounded-md border"
     >
       <span className="flex items-center justify-center">{value}</span>
     </motion.div>
