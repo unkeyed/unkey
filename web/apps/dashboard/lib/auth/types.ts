@@ -1,7 +1,6 @@
 import type { OrganizationRole } from "./roles";
 
 export const UNKEY_SESSION_COOKIE = "unkey-session";
-export const UNKEY_LAST_ORG_COOKIE = "unkey_last_org_used";
 
 export const LOCAL_USER_ID = "user_local_admin";
 export const LOCAL_ORG_ID = "org_localdefault";

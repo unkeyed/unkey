@@ -1,3 +1,4 @@
+import { logOperation } from "@/lib/logging";
 import { BaseAuthProvider } from "./base-provider";
 import { mapWorkOSUser } from "./map-workos-user";
 import {
@@ -15,6 +16,19 @@ type ProviderOrganization = {
   updatedAt: string;
 };
 
+type ProviderPage<T> = {
+  data: T[];
+  listMetadata?: { after?: string | null };
+};
+
+const PAGE_SIZE = 100;
+
+/**
+ * Bounds every cursor loop. A provider cursor that never settles would
+ * otherwise hang the request forever instead of failing.
+ */
+const MAX_PAGES = 50;
+
 /**
  * WorkOS administrative API adapter.
  *
@@ -28,15 +42,39 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     return getWorkOS();
   }
 
+  private async collectPages<T>(
+    fetchPage: (after?: string) => Promise<ProviderPage<T>>,
+  ): Promise<T[]> {
+    const items: T[] = [];
+    let after: string | undefined;
+
+    for (let page = 0; page < MAX_PAGES; page++) {
+      const result = await fetchPage(after);
+      items.push(...result.data);
+      after = result.listMetadata?.after ?? undefined;
+      if (!after) {
+        return items;
+      }
+    }
+
+    throw new Error(`WorkOS list exceeded ${MAX_PAGES} pages`);
+  }
+
   async getUser(userId: string): Promise<User | null> {
     if (!userId) {
       throw new Error("User Id is required.");
     }
+    const provider = await this.getProvider();
     try {
-      const provider = await this.getProvider();
       return mapWorkOSUser(await provider.userManagement.getUser(userId));
-    } catch {
-      return null;
+    } catch (error) {
+      // Only a genuine 404 means "no such user". Collapsing transient provider
+      // failures into null made an outage look like a deleted account, which
+      // signed callers out instead of surfacing the failure.
+      if (this.isNotFound(error)) {
+        return null;
+      }
+      throw this.providerError(error);
     }
   }
 
@@ -99,34 +137,29 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     }
   }
 
-  async listMemberships(userId: string): Promise<MembershipListResponse> {
+  async listMemberships(userId: string, organizationId?: string): Promise<MembershipListResponse> {
+    if (!userId) {
+      throw new Error("User Id is required.");
+    }
     try {
       const provider = await this.getProvider();
       const [user, memberships] = await Promise.all([
         this.getUser(userId),
-        provider.userManagement.listOrganizationMemberships({
-          userId,
-          limit: 100,
-          statuses: ["active"],
-        }),
+        this.collectPages((after) =>
+          provider.userManagement.listOrganizationMemberships({
+            userId,
+            organizationId,
+            limit: PAGE_SIZE,
+            statuses: ["active"],
+            after,
+          }),
+        ),
       ]);
       if (!user) {
         return { data: [], metadata: {} };
       }
-      const allMemberships = [...memberships.data];
-      let after = memberships.listMetadata?.after;
-      while (after) {
-        const page = await provider.userManagement.listOrganizationMemberships({
-          userId,
-          limit: 100,
-          statuses: ["active"],
-          after,
-        });
-        allMemberships.push(...page.data);
-        after = page.listMetadata?.after;
-      }
       return {
-        data: allMemberships.map((membership) => ({
+        data: memberships.map((membership) => ({
           id: membership.id,
           user,
           organization: {
@@ -153,31 +186,56 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       const provider = await this.getProvider();
       const [organization, members, users] = await Promise.all([
         this.getOrg(orgId),
-        provider.userManagement.listOrganizationMemberships({
-          organizationId: orgId,
-          limit: 100,
-          statuses: ["active"],
-        }),
-        provider.userManagement.listUsers({ organizationId: orgId, limit: 100 }),
+        this.collectPages((after) =>
+          provider.userManagement.listOrganizationMemberships({
+            organizationId: orgId,
+            limit: PAGE_SIZE,
+            statuses: ["active"],
+            after,
+          }),
+        ),
+        this.collectPages((after) =>
+          provider.userManagement.listUsers({ organizationId: orgId, limit: PAGE_SIZE, after }),
+        ),
       ]);
-      const usersById = new Map(users.data.map((user) => [user.id, mapWorkOSUser(user)]));
+      const usersById = new Map(users.map((user) => [user.id, mapWorkOSUser(user)]));
+
+      const unmatched = members.filter((member) => !usersById.has(member.userId));
+      if (unmatched.length > 0) {
+        const resolved = await Promise.all(
+          unmatched.map(async (member) => await this.getUser(member.userId)),
+        );
+        for (const user of resolved) {
+          if (user) {
+            usersById.set(user.id, user);
+          }
+        }
+      }
+
       return {
-        data: members.data.map((member) => {
+        data: members.flatMap((member) => {
           const user = usersById.get(member.userId);
           if (!user) {
-            throw new Error(`User ${member.userId} not found`);
+            logOperation("warn", "WorkOS membership has no matching user", {
+              auth_event: "member_list",
+              org_id: orgId,
+              membership_id: member.id,
+            });
+            return [];
           }
-          return {
-            id: member.id,
-            user,
-            organization,
-            role: member.role.slug,
-            createdAt: member.createdAt,
-            updatedAt: member.updatedAt,
-            status: member.status,
-          };
+          return [
+            {
+              id: member.id,
+              user,
+              organization,
+              role: member.role.slug,
+              createdAt: member.createdAt,
+              updatedAt: member.updatedAt,
+              status: member.status,
+            },
+          ];
         }),
-        metadata: members.listMetadata ?? {},
+        metadata: {},
       };
     } catch (error) {
       throw this.providerError(error);
