@@ -3,6 +3,7 @@ package handler_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -240,4 +241,60 @@ func TestGetDeploymentSpecificEnvironmentPermission(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, dep.ID, res.Body.Data.Id)
+}
+
+func TestGetDeploymentCanonicalPermissions(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup()
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+	})
+
+	tests := []struct {
+		name       string
+		permission string
+	}{
+		{
+			name: "concrete deployment",
+			permission: fmt.Sprintf(
+				"unkey:v1:%s:projects/%s/apps/%s/environments/%s/deployments/%s#read",
+				setup.Workspace.ID,
+				setup.Project.ID,
+				setup.App.ID,
+				setup.Environment.ID,
+				dep.ID,
+			),
+		},
+		{
+			name: "deployment wildcard",
+			permission: fmt.Sprintf(
+				"unkey:v1:%s:projects/%s/apps/%s/environments/%s/deployments/*#read",
+				setup.Workspace.ID,
+				setup.Project.ID,
+				setup.App.ID,
+				setup.Environment.ID,
+			),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			rootKey := h.CreateRootKey(setup.Workspace.ID, test.permission)
+			res := testutil.CallRoute[handler.Request, handler.Response](
+				h,
+				route,
+				authHeaders(rootKey),
+				handler.Request{DeploymentId: dep.ID},
+			)
+			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+			require.Equal(t, dep.ID, res.Body.Data.Id)
+		})
+	}
 }

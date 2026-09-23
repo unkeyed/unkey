@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -76,4 +77,74 @@ func TestDeploymentInAnotherWorkspace(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(caller.RootKey), req)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
+}
+
+func TestGetDeploymentRejectsCanonicalPermissionForAnotherResource(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup()
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+	})
+	permission := func(workspaceID, projectID, appID, environmentID, deploymentID, action string) string {
+		return fmt.Sprintf(
+			"unkey:v1:%s:projects/%s/apps/%s/environments/%s/deployments/%s#%s",
+			workspaceID,
+			projectID,
+			appID,
+			environmentID,
+			deploymentID,
+			action,
+		)
+	}
+
+	tests := []struct {
+		name       string
+		permission string
+	}{
+		{
+			name: "wrong project",
+			permission: permission(setup.Workspace.ID, uid.New(uid.ProjectPrefix), setup.App.ID,
+				setup.Environment.ID, dep.ID, "read"),
+		},
+		{
+			name: "wrong app",
+			permission: permission(setup.Workspace.ID, setup.Project.ID, uid.New(uid.AppPrefix),
+				setup.Environment.ID, dep.ID, "read"),
+		},
+		{
+			name: "wrong environment",
+			permission: permission(setup.Workspace.ID, setup.Project.ID, setup.App.ID,
+				uid.New(uid.EnvironmentPrefix), dep.ID, "read"),
+		},
+		{
+			name: "wrong workspace",
+			permission: permission(uid.New(uid.WorkspacePrefix), setup.Project.ID, setup.App.ID,
+				setup.Environment.ID, dep.ID, "read"),
+		},
+		{
+			name: "wrong action",
+			permission: permission(setup.Workspace.ID, setup.Project.ID, setup.App.ID,
+				setup.Environment.ID, dep.ID, "write"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			rootKey := h.CreateRootKey(setup.Workspace.ID, test.permission)
+			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
+				h,
+				route,
+				authHeaders(rootKey),
+				handler.Request{DeploymentId: dep.ID},
+			)
+			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
+		})
+	}
 }
