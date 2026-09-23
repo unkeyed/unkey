@@ -156,12 +156,6 @@ to keep against your own records of the visit.
 | `externalId` | `string` | Your user's identifier in your system |
 | `scopes` | `string[]` | Capabilities granted to the end user |
 
-### Optional parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `preview` | `boolean` | Shows a "Preview mode" banner, useful for testing as a specific user |
-
 ```bash
 curl -X POST https://api.unkey.com/v2/portal.createSession \
   -H "Authorization: Bearer YOUR_ROOT_KEY" \
@@ -169,8 +163,7 @@ curl -X POST https://api.unkey.com/v2/portal.createSession \
   -d '{
     "portal": "my-portal",
     "externalId": "user_123",
-    "scopes": ["keys:read", "keys:reroll"],
-    "preview": true
+    "scopes": ["keys:read", "keys:reroll"]
   }'
 ```
 

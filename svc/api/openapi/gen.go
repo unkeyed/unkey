@@ -5576,9 +5576,6 @@ type V2PortalCreateSessionRequestBody struct {
 	// Example: proj_1234abcd
 	Portal ResourceIdentifier `json:"portal"`
 
-	// Preview When true, creates a preview session for testing the portal experience.
-	Preview *bool `json:"preview,omitempty"`
-
 	// ReturnUrl Absolute URL the end user is sent back to when they leave the portal, or
 	// when their session expires mid-visit. Set per session rather than per
 	// portal, so one portal can serve several entry points and return each user
