@@ -38,6 +38,7 @@ func TestListAppsForbidden(t *testing.T) {
 		Name:        "Payments API",
 		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 	})
+	otherWorkspace := h.CreateWorkspace()
 
 	testCases := []struct {
 		name        string
@@ -46,12 +47,17 @@ func TestListAppsForbidden(t *testing.T) {
 	}{
 		{name: "wildcard app permission", permissions: []string{"app.*.read_app"}, shouldPass: true},
 		{name: "permission and more", permissions: []string{"some.other.permission", "app.*.read_app"}, shouldPass: true},
+		{name: "canonical project app collection read", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + project.ID + "/apps/*#read"}, shouldPass: true},
 		{name: "specific app does not satisfy list", permissions: []string{fmt.Sprintf("app.%s.read_app", app.ID)}, shouldPass: false},
+		{name: "canonical concrete app does not satisfy list", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + project.ID + "/apps/" + app.ID + "#read"}, shouldPass: false},
 		{name: "project scoped read does not match", permissions: []string{fmt.Sprintf("project.%s.read_app", project.ID)}, shouldPass: false},
+		{name: "canonical other project does not satisfy list", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + uid.New(uid.ProjectPrefix) + "/apps/*#read"}, shouldPass: false},
+		{name: "canonical other workspace does not satisfy list", permissions: []string{"unkey:v1:" + otherWorkspace.ID + ":projects/" + project.ID + "/apps/*#read"}, shouldPass: false},
 		{name: "wrong action", permissions: []string{"app.*.create_app"}, shouldPass: false},
+		{name: "canonical write does not satisfy list", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + project.ID + "/apps/*#write"}, shouldPass: false},
 		{name: "read does not match create", permissions: []string{"project.*.create_app"}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
-		{name: "urn style does not satisfy legacy check", permissions: []string{"unkey:v1:" + workspace.ID + ":apps/*#read"}, shouldPass: false},
+		{name: "non-catalog app path does not satisfy list", permissions: []string{"unkey:v1:" + workspace.ID + ":apps/*#read"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 	}
 
