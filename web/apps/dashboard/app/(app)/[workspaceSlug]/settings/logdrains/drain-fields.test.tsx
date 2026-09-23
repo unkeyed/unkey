@@ -35,6 +35,29 @@ vi.mock("@/hooks/use-project-environments", () => ({
     isError: sourceState.environmentsFailed,
   }),
 }));
+vi.mock("@/hooks/use-projects-with-apps", () => ({
+  useProjectsWithApps: () => ({
+    data: sourceState.empty
+      ? []
+      : [
+          {
+            id: "project",
+            name: "Store",
+            apps: [
+              { id: "app", name: "Backend" },
+              ...(sourceState.combined ? [{ id: "other-app", name: "Reports" }] : []),
+            ],
+          },
+          {
+            id: "other-project",
+            name: "Analytics",
+            apps: sourceState.combined ? [] : [{ id: "other-app", name: "Reports" }],
+          },
+        ],
+    isLoading: sourceState.loading,
+    isError: sourceState.failed,
+  }),
+}));
 vi.mock("@/lib/trpc/client", () => ({
   trpc: {
     ratelimit: {
@@ -45,31 +68,6 @@ vi.mock("@/lib/trpc/client", () => ({
     useUtils: () => ({ logdrain: { list: { invalidate: vi.fn() } } }),
     logdrain: { create: { useMutation: () => ({ mutate: createDrain, isLoading: false }) } },
     deploy: {
-      project: {
-        list: {
-          useQuery: () => ({
-            data: sourceState.empty
-              ? []
-              : [
-                  {
-                    id: "project",
-                    name: "Store",
-                    apps: [
-                      { id: "app", name: "Backend" },
-                      ...(sourceState.combined ? [{ id: "other-app", name: "Reports" }] : []),
-                    ],
-                  },
-                  {
-                    id: "other-project",
-                    name: "Analytics",
-                    apps: sourceState.combined ? [] : [{ id: "other-app", name: "Reports" }],
-                  },
-                ],
-            isLoading: sourceState.loading,
-            error: sourceState.failed ? new Error("Unavailable") : null,
-          }),
-        },
-      },
       environmentSettings: {
         getAvailableKeyspaces: {
           useQuery: () => ({

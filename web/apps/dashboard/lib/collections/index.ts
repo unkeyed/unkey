@@ -1,6 +1,6 @@
 "use client";
 import { apps } from "./deploy/apps";
-import { customDomains } from "./deploy/custom-domains";
+import { customDomains, productionDomains } from "./deploy/custom-domains";
 import { deployments } from "./deploy/deployments";
 import { domains } from "./deploy/domains";
 import { envVars } from "./deploy/env-vars";
@@ -37,6 +37,7 @@ export const collection = {
   domains,
   deployments,
   customDomains,
+  productionDomains,
   environmentSettings,
   envVars,
   policies,

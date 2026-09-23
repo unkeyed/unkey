@@ -56,9 +56,6 @@ export const CreateProjectDialog = ({ isOpen, onOpenChange, workspaceSlug }: Pro
         name: values.name,
         slug: values.slug,
         isDefault: false,
-        apps: [],
-        repositoryFullName: null,
-        currentDeploymentId: null,
         id: SERVER_PLACEHOLDER,
         createdAt: Date.now(),
       });
