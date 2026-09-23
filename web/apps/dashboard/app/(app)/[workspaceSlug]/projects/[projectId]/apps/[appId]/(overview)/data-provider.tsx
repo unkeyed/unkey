@@ -13,7 +13,7 @@ import type { Project } from "@/lib/collections/deploy/projects";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { notFound, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   type PropsWithChildren,
   createContext,
@@ -290,13 +290,6 @@ export const ProjectDataProvider = ({
     liveDeployment.start,
     deploymentStatus.start,
   ]);
-
-  // The projects collection holds every project in the workspace, so once it has
-  // finished loading an absent project means it does not exist (or is inaccessible).
-  // Checked after all hooks have run to keep hook ordering stable across renders.
-  if (!projectQuery.isLoading && !project) {
-    notFound();
-  }
 
   return <ProjectDataContext.Provider value={value}>{children}</ProjectDataContext.Provider>;
 };

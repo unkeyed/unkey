@@ -1,8 +1,10 @@
 import { ProximityPrefetch } from "@/components/proximity-prefetch";
+import { useVisibleProjects } from "@/hooks/use-visible-projects";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
+import { projectDisplayName } from "@/lib/collections/deploy/projects";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
-import { useLiveQuery } from "@tanstack/react-db";
 import { IconDotsOutline18, IconTriangleWarningOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useState } from "react";
@@ -20,9 +22,8 @@ const BUILDING_POLL_MS = 5_000;
 export const ProjectsList = () => {
   const { gated } = useDeployGate();
   const [isPlanOpen, setIsPlanOpen] = useState(false);
-  const projects = useLiveQuery((q) =>
-    q.from({ project: collection.projects }).orderBy(({ project }) => project.createdAt, "desc"),
-  );
+  const workspace = useWorkspaceNavigation();
+  const projects = useVisibleProjects();
 
   const hasInFlightDeployment = projects.data.some((project) =>
     project.apps.some(
@@ -72,7 +73,7 @@ export const ProjectsList = () => {
           <ProximityPrefetch distance={300} debounceDelay={150} key={project.id}>
             <ProjectCard
               projectId={project.id}
-              name={project.name}
+              name={projectDisplayName(project, workspace.name)}
               apps={project.apps}
               actions={
                 <ProjectActions projectId={project.id}>

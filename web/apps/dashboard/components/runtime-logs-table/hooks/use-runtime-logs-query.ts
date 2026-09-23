@@ -1,6 +1,6 @@
 "use client";
 
-import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/logs/hooks/use-runtime-logs-filters";
+import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/logs/hooks/use-runtime-logs-filters";
 import {
   PAGINATED_LIST_PREFETCH_OPTIONS,
   PAGINATED_LIST_QUERY_OPTIONS,
