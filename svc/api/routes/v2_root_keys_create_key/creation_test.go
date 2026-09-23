@@ -11,7 +11,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -45,26 +44,61 @@ func newHarness(t *testing.T) (*testutil.Harness, *handler.Handler, *principal.P
 	return h, route, p
 }
 
-func TestCreateStoresLegacyOnlyWhenRequested(t *testing.T) {
+func TestCreatePermissionCountLimits(t *testing.T) {
+	h, route, p := newHarness(t)
+	for _, tt := range []struct {
+		name   string
+		count  int
+		status int
+	}{
+		{"empty", 0, http.StatusOK},
+		{"maximum", 10000, http.StatusOK},
+		{"above maximum", 10001, http.StatusBadRequest},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			requested := make([]string, tt.count)
+			for i := range requested {
+				requested[i] = p.Permissions[0]
+			}
+			before := snapshot(t, h)
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+				"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
+			}, handler.Request{Permissions: requested})
+			require.Equal(t, tt.status, res.Status, "%s", res.RawBody)
+			if tt.status != http.StatusOK {
+				require.Equal(t, before, snapshot(t, h))
+				return
+			}
+			grants, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: res.Body.Data.KeyId})
+			require.NoError(t, err)
+			if tt.count == 0 {
+				require.Empty(t, grants)
+			} else {
+				require.Equal(t, []string{p.Permissions[0]}, grants)
+			}
+		})
+	}
+}
+
+func TestCreateRejectsLegacyPermissionsAtomically(t *testing.T) {
 	h, route, p := newHarness(t)
 	canonical := "unkey:v1:" + p.AuthorizedWorkspaceID + ":rootKeys/*#write"
 	legacy := "workspace.*.create_root_key"
+	p.Permissions = append(p.Permissions, "*", legacy)
 	for _, tt := range []struct {
 		name      string
 		requested []string
-		want      []string
 	}{
-		{"URN only", []string{canonical, canonical}, []string{canonical}},
-		{"legacy only", []string{legacy}, []string{legacy, canonical}},
-		{"URN then legacy", []string{canonical, legacy}, []string{legacy, canonical}},
-		{"legacy then URN", []string{legacy, canonical}, []string{legacy, canonical}},
+		{"legacy only", []string{legacy}},
+		{"URN then legacy", []string{canonical, legacy}},
+		{"legacy then URN", []string{legacy, canonical}},
+		{"literal star", []string{"*"}},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			before := snapshot(t, h)
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{Permissions: tt.requested})
-			require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-			grants, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: res.Body.Data.KeyId})
-			require.NoError(t, err)
-			require.ElementsMatch(t, tt.want, grants)
+			require.Equal(t, http.StatusBadRequest, res.Status, "%s", res.RawBody)
+			require.Equal(t, before, snapshot(t, h))
 		})
 	}
 }
@@ -83,33 +117,15 @@ func TestCreateStoresCanonicalGrantWithoutLegacyEquivalent(t *testing.T) {
 	require.Equal(t, []string{grant}, grants)
 }
 
-func TestCreateTranslatesProjectLegacyGrant(t *testing.T) {
-	h, route, p := newHarness(t)
-	project := h.CreateProject(seed.CreateProjectRequest{
-		ID: uid.New(uid.ProjectPrefix), WorkspaceID: p.AuthorizedWorkspaceID, Name: "project", Slug: uid.New("slug"),
-	})
-	legacy := "project." + project.ID + ".update_project"
-	canonical := "unkey:v1:" + p.AuthorizedWorkspaceID + ":projects/" + project.ID + "#write"
-
-	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
-		"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
-	}, handler.Request{Permissions: []string{legacy}})
-	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-
-	grants, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: res.Body.Data.KeyId})
-	require.NoError(t, err)
-	require.ElementsMatch(t, []string{legacy, canonical}, grants)
-}
-
-func TestCreateStoresSystemKeyAndEquivalentGrants(t *testing.T) {
+func TestCreateStoresV1SystemKeyAndCanonicalGrants(t *testing.T) {
 	h, route, p := newHarness(t)
 	resources := h.Resources()
 	canonical := "unkey:v1:" + p.AuthorizedWorkspaceID + ":rootKeys/*#write"
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{
-		Permissions: []string{"workspace.*.create_root_key", canonical, "workspace.*.create_root_key"},
+		Permissions: []string{canonical, canonical},
 	})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-	require.Regexp(t, `^unkey_[1-9A-HJ-NP-Za-km-z]{16,22}$`, res.Body.Data.Key)
+	require.Regexp(t, `^unkey_[1-9A-HJ-NP-Za-km-z]{8}unkeyv1[1-9A-HJ-NP-Za-km-z]{42}$`, res.Body.Data.Key)
 	key, err := db.Query.FindKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
 	require.NoError(t, err)
 	require.Equal(t, resources.RootWorkspace.ID, key.WorkspaceID)
@@ -119,9 +135,9 @@ func TestCreateStoresSystemKeyAndEquivalentGrants(t *testing.T) {
 	require.False(t, key.Expires.Valid)
 	grants, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: key.ID})
 	require.NoError(t, err)
-	require.ElementsMatch(t, []string{"workspace.*.create_root_key", canonical}, grants)
+	require.Equal(t, []string{canonical}, grants)
 	logs := h.FindAuditLogsByTargetID(t.Context(), t, key.ID)
-	require.Len(t, logs, 3)
+	require.Len(t, logs, 2)
 	for _, log := range logs {
 		require.Equal(t, "user", log.Actor.Type)
 		require.Equal(t, p.Subject.ID, log.Actor.ID)
@@ -139,27 +155,26 @@ func TestCreateStoresSystemKeyAndEquivalentGrants(t *testing.T) {
 	require.ElementsMatch(t, grants, resolved.Permissions)
 
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: resources.UserWorkspace.ID})
-	legacy := "api." + api.ID + ".decrypt_key"
 	urn := "unkey:v1:" + resources.UserWorkspace.ID + ":projects/" + api.ProjectID + "/keyspaces/" + api.KeyAuthID.String + "/keys/*#decrypt"
 	p.Permissions = []string{urn, "unkey:v1:" + resources.UserWorkspace.ID + ":rootKeys/*#write"}
 	res = testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{
-		Permissions: []string{legacy, urn},
+		Permissions: []string{urn, urn},
 	})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 	grants, err = db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: res.Body.Data.KeyId})
 	require.NoError(t, err)
-	require.ElementsMatch(t, []string{legacy, urn}, grants)
+	require.Equal(t, []string{urn}, grants)
 
 	t.Run("expired timestamps are rejected", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{
-			Permissions: []string{legacy}, Expires: nullable.NewNullableWithValue(h.Clock.Now().UnixMilli()),
+			Permissions: []string{urn}, Expires: nullable.NewNullableWithValue(h.Clock.Now().UnixMilli()),
 		})
 		require.Equal(t, http.StatusBadRequest, res.Status, "%s", res.RawBody)
 	})
 	t.Run("future expiration is stored", func(t *testing.T) {
 		expires := h.Clock.Now().UnixMilli() + 60000
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{
-			Permissions: []string{legacy}, Expires: nullable.NewNullableWithValue(expires),
+			Permissions: []string{urn}, Expires: nullable.NewNullableWithValue(expires),
 		})
 		require.Equal(t, http.StatusOK, res.Status)
 		key, err := db.Query.FindKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
@@ -171,41 +186,8 @@ func TestCreateStoresSystemKeyAndEquivalentGrants(t *testing.T) {
 		route.InternalKeyspaceID = api.KeyAuthID.String
 		t.Cleanup(func() { route.InternalKeyspaceID = resources.RootKeySpace.ID })
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{
-			Permissions: []string{legacy},
+			Permissions: []string{urn},
 		})
 		require.Equal(t, http.StatusInternalServerError, res.Status)
 	})
-	for legacyAction, action := range map[string]string{"delete_key": "delete", "verify_key": "verify"} {
-		t.Run(legacyAction, func(t *testing.T) {
-			grant := "unkey:v1:" + resources.UserWorkspace.ID + ":projects/*/keyspaces/*/keys/*#" + action
-			p.Permissions = []string{grant, "unkey:v1:" + resources.UserWorkspace.ID + ":rootKeys/*#write"}
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{
-				Permissions: []string{"api.*." + legacyAction},
-			})
-			require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-			grants, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: res.Body.Data.KeyId})
-			require.NoError(t, err)
-			require.ElementsMatch(t, []string{"api.*." + legacyAction, grant}, grants)
-		})
-	}
-	namespaceID := uid.New(uid.RatelimitNamespacePrefix)
-	require.NoError(t, db.Query.InsertRatelimitNamespace(t.Context(), h.DB.RW(), db.InsertRatelimitNamespaceParams{
-		ID: namespaceID, Name: namespaceID, WorkspaceID: resources.UserWorkspace.ID, ProjectID: api.ProjectID,
-	}))
-	for legacyAction, suffix := range map[string]string{
-		"limit": "#limit", "read_override": "/overrides/*#read", "set_override": "/overrides/*#write", "delete_override": "/overrides/*#delete",
-	} {
-		t.Run(legacyAction, func(t *testing.T) {
-			grant := "unkey:v1:" + resources.UserWorkspace.ID + ":projects/" + api.ProjectID + "/ratelimits/namespaces/" + namespaceID + suffix
-			legacy := "ratelimit." + namespaceID + "." + legacyAction
-			p.Permissions = []string{grant, "unkey:v1:" + resources.UserWorkspace.ID + ":rootKeys/*#write"}
-			res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{
-				Permissions: []string{legacy, grant},
-			})
-			require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-			grants, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: res.Body.Data.KeyId})
-			require.NoError(t, err)
-			require.ElementsMatch(t, []string{legacy, grant}, grants)
-		})
-	}
 }
