@@ -17,6 +17,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -73,21 +75,49 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	wildcard := rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "*", Action: rbac.ReadAnalytics})
-	hasWildcard := slices.Contains(principal.Permissions, "api.*.read_analytics")
+	hasLegacyWildcard := slices.Contains(principal.Permissions, "api.*.read_analytics")
 	allowedAPIIDs := extractAllowedAPIIDs(principal.Permissions)
-	if !hasWildcard && len(allowedAPIIDs) == 0 {
+	canonicalScope := extractCanonicalAnalyticsScope(
+		principal.AuthorizedWorkspaceID,
+		principal.Permissions,
+	)
+	if !hasLegacyWildcard && len(allowedAPIIDs) == 0 && !canonicalScope.hasGrant {
 		return principal.Authorize(wildcard)
 	}
 
 	securityFilters := make([]chquery.SecurityFilter, 0, 1)
-	if !hasWildcard {
+	if !hasLegacyWildcard && !canonicalScope.unrestricted {
 		keySpaces, fetchErr := h.fetchKeyAuthsByAPIIDs(ctx, principal.AuthorizedWorkspaceID, allowedAPIIDs)
 		if fetchErr != nil {
 			return fetchErr
 		}
-		allowedKeySpaceIDs := make([]string, 0, len(keySpaces))
+		allowedKeySpaces := make(map[string]struct{}, len(keySpaces)+len(canonicalScope.keySpaceIDs))
 		for _, keySpace := range keySpaces {
-			allowedKeySpaceIDs = append(allowedKeySpaceIDs, keySpace.KeyAuthID)
+			allowedKeySpaces[keySpace.KeyAuthID] = struct{}{}
+		}
+
+		if canonicalScope.hasGrant {
+			ownership, err := db.Query.FindKeySpaceAnalyticsOwnership(ctx, h.DB.RO(), db.FindKeySpaceAnalyticsOwnershipParams{
+				WorkspaceID: principal.AuthorizedWorkspaceID,
+				KeySpaceIds: canonicalScope.keySpaceIDs,
+				ProjectIds:  canonicalScope.projectIDs,
+			})
+			if err != nil {
+				return err
+			}
+			for _, keySpace := range ownership {
+				query := rbac.U(
+					urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpace.ProjectID).Keyspace(keySpace.ID).Logs(),
+					permissions.Read,
+				)
+				if rbac.Check(query, principal.Permissions) == nil {
+					allowedKeySpaces[keySpace.ID] = struct{}{}
+				}
+			}
+		}
+		allowedKeySpaceIDs := make([]string, 0, len(allowedKeySpaces))
+		for keySpaceID := range allowedKeySpaces {
+			allowedKeySpaceIDs = append(allowedKeySpaceIDs, keySpaceID)
 		}
 		securityFilters = append(securityFilters, chquery.SecurityFilter{Column: "key_space_id", AllowedValues: allowedKeySpaceIDs})
 	}
@@ -175,4 +205,70 @@ func extractAllowedAPIIDs(permissions []string) []string {
 	}
 
 	return apiIDs
+}
+
+// canonicalAnalyticsScope identifies the ownership rows needed to evaluate
+// canonical log grants without treating an empty result as unrestricted.
+type canonicalAnalyticsScope struct {
+	hasGrant     bool
+	unrestricted bool
+	keySpaceIDs  []string
+	projectIDs   []string
+}
+
+// extractCanonicalAnalyticsScope finds candidate ownership rows for canonical
+// log grants. The handler validates every candidate against its actual owner.
+func extractCanonicalAnalyticsScope(workspaceID string, grantedPermissions []string) canonicalAnalyticsScope {
+	scope := canonicalAnalyticsScope{
+		hasGrant:     false,
+		unrestricted: false,
+		keySpaceIDs:  nil,
+		projectIDs:   nil,
+	}
+	for _, grantedPermission := range grantedPermissions {
+		resourceName, action, ok := strings.Cut(grantedPermission, "#")
+		if !ok || strings.Contains(action, "#") || (action != permissions.Read.String() && action != permissions.Wildcard) {
+			continue
+		}
+		resource, err := urn.ParseV1(resourceName)
+		if err != nil || resource.WorkspaceID != workspaceID {
+			continue
+		}
+		if resource.Resource == "**" {
+			return canonicalAnalyticsScope{hasGrant: true, unrestricted: true, keySpaceIDs: nil, projectIDs: nil}
+		}
+		if action == permissions.Wildcard {
+			continue
+		}
+
+		segments := strings.Split(resource.Resource, "/")
+		if len(segments) == 6 && segments[4] == "logs" && segments[5] == "**" {
+			segments = segments[:5]
+		}
+		if len(segments) < 3 || segments[0] != "projects" {
+			continue
+		}
+		projectID := segments[1]
+		switch {
+		case len(segments) == 3 && segments[2] == "**":
+			scope.hasGrant = true
+			if projectID == "*" {
+				return canonicalAnalyticsScope{hasGrant: true, unrestricted: true, keySpaceIDs: nil, projectIDs: nil}
+			}
+			scope.projectIDs = append(scope.projectIDs, projectID)
+		case len(segments) == 5 && segments[2] == "keyspaces" && (segments[4] == "logs" || segments[4] == "**"):
+			scope.hasGrant = true
+			keySpaceID := segments[3]
+			if projectID == "*" {
+				return canonicalAnalyticsScope{hasGrant: true, unrestricted: true, keySpaceIDs: nil, projectIDs: nil}
+			}
+			if keySpaceID == "*" {
+				scope.projectIDs = append(scope.projectIDs, projectID)
+			} else {
+				scope.keySpaceIDs = append(scope.keySpaceIDs, keySpaceID)
+			}
+		}
+	}
+
+	return scope
 }

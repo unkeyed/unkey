@@ -596,6 +596,17 @@ type Querier interface {
 	//  WHERE key_id = ?
 	//    AND role_id = ?
 	FindKeyRoleByKeyAndRoleID(ctx context.Context, db DBTX, arg FindKeyRoleByKeyAndRoleIDParams) ([]KeysRole, error)
+	// FindKeySpaceAnalyticsOwnership resolves candidate keyspaces to their owning projects before analytics authorization.
+	// Rows remain available after soft deletion because historical analytics still reference them.
+	//
+	//  SELECT id, project_id
+	//  FROM key_auth
+	//  WHERE workspace_id = ?
+	//    AND (
+	//      id IN (/*SLICE:key_space_ids*/?)
+	//      OR project_id IN (/*SLICE:project_ids*/?)
+	//    )
+	FindKeySpaceAnalyticsOwnership(ctx context.Context, db DBTX, arg FindKeySpaceAnalyticsOwnershipParams) ([]FindKeySpaceAnalyticsOwnershipRow, error)
 	//FindKeySpaceByID
 	//
 	//  SELECT key_auth.pk, key_auth.id, key_auth.workspace_id, key_auth.project_id, key_auth.created_at_m, key_auth.updated_at_m, key_auth.deleted_at_m, key_auth.store_encrypted_keys, key_auth.default_prefix, key_auth.default_bytes, key_auth.size_approx, key_auth.size_last_updated_at FROM `key_auth` WHERE id = ?
