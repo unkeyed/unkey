@@ -31,7 +31,6 @@ import (
 	"github.com/unkeyed/unkey/svc/ctrl/internal/billingmeter"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/invoicecloser"
-	"github.com/unkeyed/unkey/svc/ctrl/worker/buildslot"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/clickhouseuser"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron"
 	"github.com/unkeyed/unkey/svc/ctrl/worker/cron/buildlimitsync"
@@ -315,17 +314,6 @@ func New(t *testing.T, opts ...Option) *Harness {
 	})
 	require.NoError(t, err)
 
-	// The build slot service audits slot occupancy against the Restate
-	// admin API, but the admin URL is only known after containers.Restate
-	// starts below, and that start needs the constructed services. The
-	// lazy adapter breaks the cycle: it is set directly after the
-	// container is up, and no handler runs before that.
-	buildSlotLiveness := &lazyInvocationLiveness{mu: sync.Mutex{}, client: nil}
-	buildSlotSvc := buildslot.New(buildslot.Config{
-		DB:           database,
-		RestateAdmin: buildSlotLiveness,
-	})
-
 	// Register every worker service as one deployment on this test's own
 	// Restate. Use the proto-generated wrappers (same as run.go) to get
 	// correct service names.
@@ -343,13 +331,11 @@ func New(t *testing.T, opts ...Option) *Harness {
 		hydrav1.NewDeployWorkflowServer(deploySvc),
 		hydrav1.NewDeploymentServiceServer(deploymentSvc),
 		hydrav1.NewDeployTeardownServiceServer(teardownSvc),
-		hydrav1.NewBuildSlotServiceServer(buildSlotSvc),
 	)
 	restateAdmin := restateadmin.New(restateadmin.Config{
 		BaseURL: restateCfg.AdminURL,
 		APIKey:  "",
 	})
-	buildSlotLiveness.set(restateAdmin)
 	restateRules.set(restateAdmin)
 	t.Logf("Total harness setup in %s", time.Since(start))
 
@@ -390,37 +376,35 @@ func (l *lazyRestateRules) set(client *restateadmin.Client) {
 	l.client = client
 }
 
+func (l *lazyRestateRules) ListRules(ctx context.Context) ([]restateadmin.Rule, error) {
+	client, err := l.get()
+	if err != nil {
+		return nil, err
+	}
+	return client.ListRules(ctx)
+}
+
 func (l *lazyRestateRules) UpsertRules(ctx context.Context, rules []restateadmin.RuleUpsert) error {
-	l.mu.Lock()
-	client := l.client
-	l.mu.Unlock()
-	if client == nil {
-		return errors.New("restate admin client not initialized yet")
+	client, err := l.get()
+	if err != nil {
+		return err
 	}
 	return client.UpsertRules(ctx, rules)
 }
 
-// lazyInvocationLiveness defers the Restate admin client until the test
-// container is running. See the comment at the buildslot.New call site.
-type lazyInvocationLiveness struct {
-	mu     sync.Mutex
-	client *restateadmin.Client
+func (l *lazyRestateRules) DeleteRules(ctx context.Context, rules []restateadmin.Rule) error {
+	client, err := l.get()
+	if err != nil {
+		return err
+	}
+	return client.DeleteRules(ctx, rules)
 }
 
-var _ buildslot.InvocationLiveness = (*lazyInvocationLiveness)(nil)
-
-func (l *lazyInvocationLiveness) set(client *restateadmin.Client) {
+func (l *lazyRestateRules) get() (*restateadmin.Client, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.client = client
-}
-
-func (l *lazyInvocationLiveness) FindLiveInvocations(ctx context.Context, invocationIDs []string) (map[string]bool, error) {
-	l.mu.Lock()
-	client := l.client
-	l.mu.Unlock()
-	if client == nil {
+	if l.client == nil {
 		return nil, errors.New("restate admin client not initialized yet")
 	}
-	return client.FindLiveInvocations(ctx, invocationIDs)
+	return l.client, nil
 }

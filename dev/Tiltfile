@@ -301,10 +301,8 @@ local_resource(
 k8s_yaml('k8s/manifests/redis.yaml')
 k8s_resource('redis', port_forwards='6379:6379', resource_deps=[], labels=['database'])
 
-# MySQL service
-# MySQL image — only rebuild when schema/seed inputs change. Context is the
-# repo root, so without `only` any file change (including .jj metadata) would
-# trigger a rebuild and restart the pod.
+# Keep the mysql service name so existing DSNs still work.
+# Restrict rebuilds to schema and seed changes to avoid unrelated pod restarts.
 docker_build(
     'unkey/mysql:local',
     '..',
@@ -312,7 +310,7 @@ docker_build(
     only=['pkg/mysql/schema', 'dev/04-seed-workspace.sql'],
 )
 k8s_yaml('k8s/manifests/mysql.yaml')
-k8s_resource('mysql', port_forwards='3306:3306', resource_deps=[], labels=['database'])
+k8s_resource('mysql', port_forwards=['3306:33577', '33575:33575'], resource_deps=[], labels=['database'])
 
 local_resource(
     'seed',

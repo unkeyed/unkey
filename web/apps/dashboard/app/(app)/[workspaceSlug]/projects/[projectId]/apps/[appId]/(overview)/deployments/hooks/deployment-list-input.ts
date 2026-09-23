@@ -29,7 +29,6 @@ export type DeploymentListFilterInput = {
 const LEGACY_STATUS_GROUPS: Record<string, DeploymentStatusGroup> = {
   pending: "queued",
   deploying: "building",
-  skipped: "cancelled",
 };
 
 const MINUTE_MS = 60_000;

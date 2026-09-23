@@ -3,7 +3,6 @@
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import {
   IconBanOutline18,
-  IconChartActivityOutline18,
   IconCloudUploadOutline18,
   IconEarthOutline18,
   IconHammer2Outline18,
@@ -26,11 +25,6 @@ const STEP_ORDER: Array<{
     key: "queued",
     icon: <IconLayerFrontOutline18 className="size-[18px]" />,
     title: "Deployment Queued",
-  },
-  {
-    key: "starting",
-    icon: <IconChartActivityOutline18 className="size-[18px]" />,
-    title: "Deployment Starting",
   },
   {
     key: "building",

@@ -5,7 +5,6 @@ import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
 import type { inferRouterOutputs } from "@trpc/server";
 import {
-  IconChartActivityOutline18,
   IconCloudUploadOutline18,
   IconEarthOutline18,
   IconHammer2Outline18,
@@ -60,7 +59,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
     };
   }, [isFailed]);
 
-  const { building, deploying, network, queued, starting, finalizing } = stepsData ?? {};
+  const { building, deploying, network, queued, finalizing } = stepsData ?? {};
 
   const deploymentRuntimeLogs = trpc.deploy.deployment.runtimeLogs.useQuery(
     { deploymentId: deployment.id, limit: 50 },
@@ -68,7 +67,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
   );
 
   const queuedImplicitlyComplete =
-    !queued && Boolean(starting ?? building ?? deploying ?? network ?? finalizing);
+    !queued && Boolean(building ?? deploying ?? network ?? finalizing);
 
   const domainsForDeployment = getDomainsForDeployment(deployment.id);
 
@@ -118,16 +117,6 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
     completedMessage: "Deployment has queued",
     inProgressMessage: "Deployment is queued",
     waitingMessage: "Waiting to queue",
-  });
-
-  const startingStep = resolveDeploymentStep({
-    step: starting,
-    now,
-    isFailed,
-    skippable: false,
-    completedMessage: "Deployment has started",
-    inProgressMessage: "Deployment has started",
-    waitingMessage: "Preparing deployment for building",
   });
 
   const deployingStep = resolveDeploymentStep({
@@ -180,11 +169,6 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
           icon={<IconLayerFrontOutline18 />}
           title="Deployment Queued"
           {...queuedStep}
-        />
-        <DeploymentStep
-          icon={<IconChartActivityOutline18 />}
-          title="Deployment Starting"
-          {...startingStep}
         />
         <DeploymentStep
           key={isPrebuilt ? "prebuilt" : "building"}
