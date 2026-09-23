@@ -8,6 +8,9 @@ export type Config = {
   request_timeout?: number;
 };
 
+const QUERY_ATTEMPTS = 2;
+const QUERY_RETRY_BACKOFF_MS = 200;
+
 export class Client implements Querier, Inserter {
   private readonly client: ClickHouseClient;
 
@@ -42,24 +45,35 @@ export class Client implements Querier, Inserter {
         return Err(new QueryError(`Bad params: ${validParams.error.message}`, { query: "" }));
       }
       let unparsedRows: Array<TOut> = [];
-      try {
-        const res = await this.client.query({
-          query: req.query,
-          query_params: validParams?.data, // Default to empty object
-          format: "JSONEachRow",
-        });
-        unparsedRows = await res.json();
-      } catch (err) {
-        const message = err instanceof Error ? err.message : JSON.stringify(err);
-        console.error(err);
-
-        return Err(new QueryError(`Unable to query clickhouse: ${message}`, { query: req.query }));
+      let lastError: unknown;
+      // Reads are idempotent SELECTs, so retry once to ride out the transient
+      // ClickHouse timeouts that otherwise surface as user-facing 500s.
+      for (let attempt = 1; attempt <= QUERY_ATTEMPTS; attempt++) {
+        try {
+          const res = await this.client.query({
+            query: req.query,
+            query_params: validParams?.data, // Default to empty object
+            format: "JSONEachRow",
+          });
+          unparsedRows = await res.json();
+        } catch (err) {
+          console.error(err);
+          lastError = err;
+          if (attempt < QUERY_ATTEMPTS) {
+            await new Promise((resolve) => setTimeout(resolve, QUERY_RETRY_BACKOFF_MS));
+          }
+          continue;
+        }
+        const parsed = z.array(req.schema).safeParse(unparsedRows);
+        if (parsed.error) {
+          return Err(
+            new QueryError(`Malformed data: ${parsed.error.message}`, { query: req.query }),
+          );
+        }
+        return Ok(parsed.data);
       }
-      const parsed = z.array(req.schema).safeParse(unparsedRows);
-      if (parsed.error) {
-        return Err(new QueryError(`Malformed data: ${parsed.error.message}`, { query: req.query }));
-      }
-      return Ok(parsed.data);
+      const message = lastError instanceof Error ? lastError.message : JSON.stringify(lastError);
+      return Err(new QueryError(`Unable to query clickhouse: ${message}`, { query: req.query }));
     };
   }
 
