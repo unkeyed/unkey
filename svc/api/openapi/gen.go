@@ -6419,6 +6419,35 @@ type V2RatelimitSetOverrideResponseData struct {
 	OverrideId string `json:"overrideId"`
 }
 
+// V2RootKeysCreateKeyRequestBody defines model for V2RootKeysCreateKeyRequestBody.
+type V2RootKeysCreateKeyRequestBody struct {
+	// Expires Expiration as Unix milliseconds, strictly in the future. Null or omitted means no expiration.
+	Expires nullable.Nullable[int64] `json:"expires,omitempty"`
+
+	// Name Optional name for the root key.
+	Name *string `json:"name,omitempty"`
+
+	// Permissions Permissions to grant to the root key. Each permission must be within the caller's existing permissions.
+	Permissions []string `json:"permissions"`
+}
+
+// V2RootKeysCreateKeyResponseBody defines model for V2RootKeysCreateKeyResponseBody.
+type V2RootKeysCreateKeyResponseBody struct {
+	Data V2RootKeysCreateKeyResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2RootKeysCreateKeyResponseData defines model for V2RootKeysCreateKeyResponseData.
+type V2RootKeysCreateKeyResponseData struct {
+	// Key Root key secret, returned only once. Store it securely.
+	Key string `json:"key"`
+
+	// KeyId Identifier used to manage the root key.
+	KeyId string `json:"keyId"`
+}
+
 // V3DeploymentsCreateDeploymentRequestBody Create a deployment. Omit the source to use the app default, or provide one source override.
 type V3DeploymentsCreateDeploymentRequestBody struct {
 	// App Identifies a resource by either its unique ID or its slug.
@@ -6794,6 +6823,9 @@ type RatelimitMultiLimitJSONRequestBody = V2RatelimitMultiLimitRequestBody
 
 // RatelimitSetOverrideJSONRequestBody defines body for RatelimitSetOverride for application/json ContentType.
 type RatelimitSetOverrideJSONRequestBody = V2RatelimitSetOverrideRequestBody
+
+// RootKeysCreateKeyJSONRequestBody defines body for RootKeysCreateKey for application/json ContentType.
+type RootKeysCreateKeyJSONRequestBody = V2RootKeysCreateKeyRequestBody
 
 // DeploymentsCreateDeploymentV3JSONRequestBody defines body for DeploymentsCreateDeploymentV3 for application/json ContentType.
 type DeploymentsCreateDeploymentV3JSONRequestBody = V3DeploymentsCreateDeploymentRequestBody

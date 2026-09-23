@@ -92,13 +92,14 @@ target resource type.
 | `limit` | Check or use a rate limit |
 | `*` | Perform any action as a global administrator |
 
-`decrypt`, `verify`, and `limit` are special actions. Use them only on catalog
-resources that support them.
+`decrypt`, `verify`, and `limit` are special actions. Use them only on
+catalog resources that support them.
 
 ## Create and update rules
 
-Use `write` for create and update operations. Do not define separate create or
-update actions.
+Use `write` for create and update operations, including root key creation.
+Root key creation never bypasses the caller's permission ceiling. See
+[Create a root key](/architecture/authorization/resource-permission-catalog#create-a-root-key).
 
 Use the concrete resource ID when the resource exists:
 

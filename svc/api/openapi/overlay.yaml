@@ -6,6 +6,11 @@ info:
 actions:
   - target: $["openapi"]
     update: 3.0.0
+  - target: $["components"]["schemas"]["V2RootKeysCreateKeyRequestBody"]["properties"]["expires"]["type"]
+    update: integer
+  - target: $["components"]["schemas"]["V2RootKeysCreateKeyRequestBody"]["properties"]["expires"]
+    update:
+      nullable: true
   - target: $["components"]["schemas"]["V2KeysUpdateCreditsRequestBody"]["properties"]["value"]["type"]
     update: integer
   - target: $["components"]["schemas"]["V2KeysUpdateCreditsRequestBody"]["properties"]["value"]

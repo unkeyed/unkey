@@ -375,6 +375,10 @@ type Config struct {
 	// Auth configures the ordered authentication resolver chain.
 	Auth AuthConfigs `toml:"auth"`
 
+	// RootKeys identifies the internal storage owner used by rootKeys.createKey.
+	// An omitted section disables creation without affecting root-key authentication.
+	RootKeys RootKeysConfig `toml:"root_keys"`
+
 	// GitHub configures the GitHub App install flow. See [GitHubConfig].
 	// When unset, github.installApp reports the feature as unconfigured.
 	GitHub GitHubConfig `toml:"github"`
@@ -396,6 +400,13 @@ type Config struct {
 	// Test groups runtime-only overrides for integration tests. All fields are
 	// zero in production and cannot be set from TOML.
 	Test TestConfig `toml:"-"`
+}
+
+// RootKeysConfig identifies the internal owner for newly created system keys.
+type RootKeysConfig struct {
+	WorkspaceID string `toml:"workspace_id"`
+	KeyspaceID  string `toml:"keyspace_id"`
+	ProjectID   string `toml:"project_id"`
 }
 
 // TestConfig groups runtime-only flags and overrides used by integration
