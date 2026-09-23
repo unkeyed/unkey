@@ -245,7 +245,7 @@ func Run(ctx context.Context, cfg Config) error {
 	r.Go(func(ctx context.Context) error {
 		defer close(leadershipDone)
 
-		identity := cfg.InstanceID + "_" + uid.New(uid.InstancePrefix)
+		identity := uid.New(uid.InstancePrefix)
 		return runWithLeadership(ctx, leaseClient, namespace, identity, func(ctx context.Context) {
 			fingerprintCache.Clear(ctx)
 

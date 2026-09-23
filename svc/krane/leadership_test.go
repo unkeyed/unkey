@@ -2,6 +2,7 @@ package krane
 
 import (
 	"context"
+	"log/slog"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/logger/loggertest"
 	coordinationv1 "k8s.io/api/coordination/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,6 +22,8 @@ import (
 )
 
 func TestLeadershipHandoverWaitsForWorkers(t *testing.T) {
+	logs := loggertest.Install(t)
+
 	synctest.Test(t, func(t *testing.T) {
 		client, _ := leaseTestClient(t)
 		ctxA, cancelA := context.WithCancel(t.Context())
@@ -66,10 +70,16 @@ func TestLeadershipHandoverWaitsForWorkers(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, "a", *lease.Spec.HolderIdentity)
 		require.Empty(t, resultA)
+		for _, record := range logs.Records() {
+			require.NotEqual(t, "krane reconciliation stopped", record.Message)
+		}
 
 		close(drainA)
 		synctest.Wait()
 		require.NoError(t, <-resultA)
+		record := logs.Find(t, "krane reconciliation stopped")
+		require.Equal(t, "a", loggertest.FlatAttrs(record)["identity"])
+
 		time.Sleep(5 * time.Second)
 		require.Equal(t, int32(1), startsB.Load())
 		require.False(t, overlap.Load())
@@ -78,10 +88,15 @@ func TestLeadershipHandoverWaitsForWorkers(t *testing.T) {
 		synctest.Wait()
 		require.NoError(t, <-resultB)
 		require.Zero(t, active.Load())
+		for _, record := range logs.Records() {
+			require.NotEqual(t, "krane leadership lost", record.Message)
+		}
 	})
 }
 
 func TestLeadershipRecoversFromStartupAndRenewalOutages(t *testing.T) {
+	logs := loggertest.Install(t)
+
 	synctest.Test(t, func(t *testing.T) {
 		client, unavailable := leaseTestClient(t)
 		unavailable.Store(true)
@@ -102,6 +117,9 @@ func TestLeadershipRecoversFromStartupAndRenewalOutages(t *testing.T) {
 		time.Sleep(20 * time.Second)
 		require.Zero(t, starts.Load())
 		require.Empty(t, result)
+		for _, record := range logs.Records() {
+			require.NotEqual(t, "krane leadership lost", record.Message)
+		}
 
 		unavailable.Store(false)
 		time.Sleep(5 * time.Second)
@@ -111,6 +129,9 @@ func TestLeadershipRecoversFromStartupAndRenewalOutages(t *testing.T) {
 		time.Sleep(14 * time.Second)
 		require.Zero(t, active.Load())
 		require.Empty(t, result)
+		record := logs.Find(t, "krane leadership lost")
+		require.Equal(t, slog.LevelWarn, record.Level)
+		require.Equal(t, "a", loggertest.FlatAttrs(record)["identity"])
 
 		unavailable.Store(false)
 		time.Sleep(5 * time.Second)

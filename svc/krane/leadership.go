@@ -45,9 +45,14 @@ func runWithLeadership(ctx context.Context, client kubernetes.Interface, namespa
 
 					logger.Info("krane leadership acquired", "identity", identity)
 					run(leaderCtx)
+					logger.Info("krane reconciliation stopped", "identity", identity)
 				},
-				OnStoppedLeading: func() {},
-				OnNewLeader:      nil,
+				OnStoppedLeading: func() {
+					if ctx.Err() == nil {
+						logger.Warn("krane leadership lost", "identity", identity)
+					}
+				},
+				OnNewLeader: nil,
 			},
 			WatchDog:        nil,
 			ReleaseOnCancel: false,
