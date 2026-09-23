@@ -1,0 +1,167 @@
+package handler
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"slices"
+	"strings"
+
+	chquery "github.com/unkeyed/unkey/pkg/clickhouse/query-parser"
+	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
+)
+
+// legacyGatewayRequestsWildcard preserves the original workspace-wide grant.
+const legacyGatewayRequestsWildcard = "project.*.read_gateway_requests"
+
+// gatewayLogPathShape identifies the canonical gateway log resource segments.
+var gatewayLogPathShape = [...]string{"projects", "{id}", "apps", "{id}", "environments", "{id}", "gateway", "logs"}
+
+// gatewayScope is one project, app, or environment branch of a grant union.
+type gatewayScope struct {
+	projectID     string
+	appID         string
+	environmentID string
+}
+
+// gatewaySecurityScopes resolves canonical grants into OR scopes. A nil result
+// is unrestricted within the workspace, while a non-nil empty result denies all rows.
+func (h *Handler) gatewaySecurityScopes(ctx context.Context, workspaceID string, granted []string) ([]chquery.SecurityScope, bool, error) {
+	if slices.Contains(granted, legacyGatewayRequestsWildcard) {
+		return nil, true, nil
+	}
+
+	securityScopes := make([]chquery.SecurityScope, 0)
+	authorized := false
+	for _, permission := range granted {
+		scope, ok := parseGatewayScope(workspaceID, permission)
+		if !ok {
+			continue
+		}
+		authorized = true
+		if scope.projectID == "*" {
+			return nil, true, nil
+		}
+
+		valid, err := h.validateGatewayScope(ctx, workspaceID, scope)
+		if err != nil {
+			return nil, false, err
+		}
+		if !valid {
+			continue
+		}
+
+		filters := []chquery.SecurityFilter{{Column: "project_id", AllowedValues: []string{scope.projectID}}}
+		if scope.appID != "*" {
+			filters = append(filters, chquery.SecurityFilter{Column: "app_id", AllowedValues: []string{scope.appID}})
+		}
+		if scope.environmentID != "*" {
+			filters = append(filters, chquery.SecurityFilter{Column: "environment_id", AllowedValues: []string{scope.environmentID}})
+		}
+		securityScopes = append(securityScopes, chquery.SecurityScope{Filters: filters})
+	}
+
+	return securityScopes, authorized, nil
+}
+
+// parseGatewayScope accepts only canonical read grants that cover gateway logs
+// in the authorized workspace.
+func parseGatewayScope(workspaceID, permission string) (gatewayScope, bool) {
+	var zero gatewayScope
+
+	resourceValue, _, ok := strings.Cut(permission, "#")
+	if !ok {
+		return zero, false
+	}
+	resource, err := urn.ParseV1(resourceValue)
+	if err != nil {
+		return zero, false
+	}
+
+	if resource.Resource == "**" {
+		target := gatewayLogsURN(workspaceID, "project", "app", "environment")
+		return gatewayScope{projectID: "*", appID: "*", environmentID: "*"}, rbac.Check(rbac.U(target, permissions.Read), []string{permission}) == nil
+	}
+
+	segments := strings.Split(resource.Resource, "/")
+	descendants := segments[len(segments)-1] == "**"
+	if descendants {
+		segments = segments[:len(segments)-1]
+	}
+	if (!descendants && len(segments) != len(gatewayLogPathShape)) || len(segments) > len(gatewayLogPathShape) {
+		return zero, false
+	}
+	for i, segment := range segments {
+		if gatewayLogPathShape[i] != "{id}" && segment != gatewayLogPathShape[i] {
+			return zero, false
+		}
+	}
+
+	scope := gatewayScope{projectID: "*", appID: "*", environmentID: "*"}
+	if len(segments) > 1 {
+		scope.projectID = segments[1]
+	}
+	if len(segments) > 3 {
+		scope.appID = segments[3]
+	}
+	if len(segments) > 5 {
+		scope.environmentID = segments[5]
+	}
+	target := gatewayLogsURN(workspaceID, concreteID(scope.projectID, "project"), concreteID(scope.appID, "app"), concreteID(scope.environmentID, "environment"))
+	if rbac.Check(rbac.U(target, permissions.Read), []string{permission}) != nil {
+		return zero, false
+	}
+	return scope, true
+}
+
+// validateGatewayScope confirms that concrete IDs describe resources owned by
+// the authorized workspace and by each preceding ancestor in the grant path.
+func (h *Handler) validateGatewayScope(ctx context.Context, workspaceID string, scope gatewayScope) (bool, error) {
+	if scope.environmentID != "*" {
+		environment, err := db.Query.FindEnvironmentById(ctx, h.DB.RO(), scope.environmentID)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		if err != nil {
+			return false, fault.Wrap(err, fault.Internal("failed to resolve gateway log environment"))
+		}
+		return environment.WorkspaceID == workspaceID && environment.ProjectID == scope.projectID && environment.AppID == scope.appID, nil
+	}
+
+	if scope.appID != "*" {
+		app, err := db.Query.FindAppById(ctx, h.DB.RO(), scope.appID)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		if err != nil {
+			return false, fault.Wrap(err, fault.Internal("failed to resolve gateway log app"))
+		}
+		return app.WorkspaceID == workspaceID && app.ProjectID == scope.projectID, nil
+	}
+
+	project, err := db.Query.FindProjectById(ctx, h.DB.RO(), scope.projectID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fault.Wrap(err, fault.Internal("failed to resolve gateway log project"))
+	}
+	return project.WorkspaceID == workspaceID, nil
+}
+
+// gatewayLogsURN builds one concrete gateway log resource for authorization.
+func gatewayLogsURN(workspaceID, projectID, appID, environmentID string) urn.GatewayLogs {
+	return urn.New().Workspace(workspaceID).Project(projectID).App(appID).Environment(environmentID).Gateway().Logs()
+}
+
+// concreteID substitutes a concrete value when a grant segment is a wildcard.
+func concreteID(id, fallback string) string {
+	if id == "*" {
+		return fallback
+	}
+	return id
+}
