@@ -17,6 +17,23 @@ const sourceState = vi.hoisted(() => ({
   empty: false,
 }));
 const createDrain = vi.hoisted(() => vi.fn());
+vi.mock("@/hooks/use-project-environments", () => ({
+  useProjectEnvironments: () => ({
+    data: [
+      { id: "env", slug: "Production", kind: "production", projectId: "project", appId: "app" },
+      { id: "env_preview", slug: "Preview", kind: "preview", projectId: "project", appId: "app" },
+      {
+        id: "other-env",
+        slug: "Production",
+        kind: "production",
+        projectId: "other-project",
+        appId: "other-app",
+      },
+    ],
+    isLoading: false,
+    isError: false,
+  }),
+}));
 vi.mock("@/lib/trpc/client", () => ({
   trpc: {
     ratelimit: {
@@ -49,23 +66,6 @@ vi.mock("@/lib/trpc/client", () => ({
                 ],
             isLoading: sourceState.loading,
             error: sourceState.failed ? new Error("Unavailable") : null,
-          }),
-        },
-      },
-      environment: {
-        listAll: {
-          useQuery: () => ({
-            data: [
-              { id: "env", name: "Production", projectId: "project", appId: "app" },
-              { id: "env_preview", name: "Preview", projectId: "project", appId: "app" },
-              {
-                id: "other-env",
-                name: "Production",
-                projectId: "other-project",
-                appId: "other-app",
-              },
-            ],
-            isLoading: false,
           }),
         },
       },
