@@ -1,5 +1,6 @@
 import { env } from "@/lib/env";
 import { logOperation } from "@/lib/logging";
+import { unstable_rethrow } from "next/navigation";
 import type { NextRequest } from "next/server";
 import { type WorkOSUserProfile, mapWorkOSUser } from "./map-workos-user";
 import type { AuthenticatedUser, User } from "./types";
@@ -81,6 +82,7 @@ export async function getAuth(req?: NextRequest): Promise<GetAuthResult> {
 
       return session ?? ANONYMOUS;
     } catch (error) {
+      unstable_rethrow(error);
       logAuthResolutionFailure("local", error);
       return ANONYMOUS;
     }
@@ -89,6 +91,7 @@ export async function getAuth(req?: NextRequest): Promise<GetAuthResult> {
   try {
     return mapAuthkitSession(await getWorkOSSession());
   } catch (error) {
+    unstable_rethrow(error);
     logAuthResolutionFailure("workos", error);
     return ANONYMOUS;
   }
