@@ -1,7 +1,7 @@
 "use client";
 
-import { useAppEnvironmentSearchItems } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/use-app-environment-search-items";
 import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/requests/hooks/use-request-logs-filters";
+import { useAppEnvironmentSearchItems } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/use-app-environment-search-items";
 import { type FilterItemConfig, FiltersPopover } from "@/components/logs/checkbox/filters-popover";
 import type { RequestLogsFilterValue } from "@/lib/schemas/request-logs.filter.schema";
 import { IconBarsFilterOutline18 } from "@unkey/icons";

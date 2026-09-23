@@ -1,7 +1,7 @@
 "use client";
 
-import { AppEnvironmentFilter } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-environment-filter";
 import { useRequestLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/requests/hooks/use-request-logs-filters";
+import { AppEnvironmentFilter } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/app-environment-filter";
 import type { RequestLogsFilterValue } from "@/lib/schemas/request-logs.filter.schema";
 
 const createFilter = (field: "appId" | "environmentId", value: string): RequestLogsFilterValue => ({

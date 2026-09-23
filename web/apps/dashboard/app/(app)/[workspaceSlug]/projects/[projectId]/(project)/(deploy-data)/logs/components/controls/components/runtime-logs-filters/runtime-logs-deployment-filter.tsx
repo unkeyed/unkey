@@ -1,7 +1,7 @@
 "use client";
 
-import { DeploymentIdFilter } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/deployment-id-filter";
 import { useRuntimeLogsFilters } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/(deploy-data)/logs/hooks/use-runtime-logs-filters";
+import { DeploymentIdFilter } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/(project)/components/deployment-id-filter";
 import type { RuntimeLogsFilterValue } from "@/lib/schemas/runtime-logs.filter.schema";
 
 export const RuntimeLogsDeploymentFilter = () => {
