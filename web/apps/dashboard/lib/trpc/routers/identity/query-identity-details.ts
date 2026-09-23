@@ -26,7 +26,11 @@ export const queryIdentityDetails = workspaceProcedure
         columns: { id: true, projectId: true },
       })
       .catch((error) => {
-        console.error("Failed to fetch identity details", JSON.stringify(error));
+        console.error("Failed to fetch identity details", {
+          identityId: input.identityId,
+          workspaceId: ctx.workspace.id,
+          error: error instanceof Error ? error.message : error,
+        });
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to fetch identity details",
