@@ -14,7 +14,6 @@ import {
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { signOut } from "@/lib/auth/utils";
 import { routes } from "@/lib/navigation/routes";
-import { cn } from "@/lib/utils";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { useQueryClient } from "@tanstack/react-query";
 import {
