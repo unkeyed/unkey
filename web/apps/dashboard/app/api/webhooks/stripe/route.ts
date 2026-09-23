@@ -353,6 +353,10 @@ async function resolveApiSubscriptionContext(
 
 export const runtime = "nodejs";
 
+// If the memberlist is too big, we will process the downgrade but the revoking of team members
+// could take longer due to the size. So we increase this to make sure it can be processed.
+export const maxDuration = 300;
+
 export const POST = async (req: Request): Promise<Response> => {
   const signature = req.headers.get("stripe-signature");
   if (!signature) {

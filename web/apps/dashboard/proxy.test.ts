@@ -121,6 +121,22 @@ describe("proxy auth mode split", () => {
     ).toBe(false);
   });
 
+  it.each([
+    "/media/vendor/jquery/js/jquery.min.js",
+    "/wp-includes/js/jquery/jquery.js",
+    "/robots.txt",
+  ])("leaves probe %s uncovered, so the root provider must render it signed out", (path) => {
+    // These render the 404 page through the root layout with no AuthKit
+    // context. getWorkOSSession treats that as signed out rather than
+    // throwing "not covered by the AuthKit middleware".
+    expect(
+      unstable_doesMiddlewareMatch({
+        config,
+        url: `http://localhost:3000${path}`,
+      }),
+    ).toBe(false);
+  });
+
   it.each(["/monitoring", "/monitoring?o=123&p=456&r=us"])(
     "does not redirect the Sentry tunnel %s through authentication",
     (path) => {

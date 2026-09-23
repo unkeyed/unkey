@@ -1,4 +1,5 @@
 "use client";
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -24,6 +25,7 @@ type Props = {
 
 export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
   const { onDeleteSuccess, onError } = createMutationHandlers();
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -59,7 +61,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   const deleteApi = trpc.api.delete.useMutation({
     async onSuccess() {
       onDeleteSuccess(keys)();
-      router.push(routes.apis.list({ workspaceSlug: workspace.slug }));
+      router.push(routes.apis.list({ workspaceSlug: workspace.slug, ...scope }));
     },
     onError,
   });

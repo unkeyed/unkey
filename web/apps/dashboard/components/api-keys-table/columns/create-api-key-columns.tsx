@@ -2,6 +2,7 @@
 import { VerificationBarChart } from "@/components/api-keys-table/components/bar-chart";
 import { LastUsedCell } from "@/components/api-keys-table/components/last-used";
 import { StatusDisplay } from "@/components/api-keys-table/components/status-cell";
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
@@ -74,6 +75,7 @@ const KeyIdCell = ({
   onToggleSelection,
   onNavigate,
 }: KeyIdCellProps) => {
+  const scope = useProjectScope();
   const [isHovered, setIsHovered] = useState(false);
   const identity = keyData.identity?.external_id;
   const isKeySelected = selectedKeys.has(keyData.id);
@@ -138,6 +140,7 @@ const KeyIdCell = ({
                     className="font-mono group-hover:underline decoration-dotted"
                     href={routes.identities.detail({
                       workspaceSlug,
+                      ...scope,
                       identityId: keyData.identity_id,
                     })}
                     target="_blank"
@@ -164,6 +167,7 @@ const KeyIdCell = ({
             className="font-mono group-hover:underline decoration-dotted"
             href={routes.apis.keys.detail({
               workspaceSlug,
+              ...scope,
               apiId,
               keyAuthId: keyspaceId,
               keyId: keyData.id,

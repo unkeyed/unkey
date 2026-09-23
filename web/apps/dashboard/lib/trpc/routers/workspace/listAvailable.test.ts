@@ -62,7 +62,7 @@ describe("available workspaces", () => {
       },
     );
     expect(await caller.listAvailable()).toEqual([{ orgId: "org_disabled", name: "Disabled" }]);
-    expect(mocks.memberships).toHaveBeenCalledWith("session-user");
+    expect(mocks.memberships).toHaveBeenCalledWith("session-user", undefined);
     expect(query?.params).toEqual(["org_live", "org_disabled", "org_deleted", "org_missing"]);
     expect(query?.sql).toContain("`org_id` in (?, ?, ?, ?)");
     expect(query?.sql).toContain("`deleted_at_m` is null");

@@ -1,5 +1,5 @@
 import type { Project, ProjectApp } from "@/lib/collections/deploy/projects";
-import { and, db, desc, eq, inArray, not, sql } from "@/lib/db";
+import { and, db, desc, eq, inArray, sql } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import {
   apps,
@@ -10,13 +10,22 @@ import {
   githubRepoConnections,
   projects,
 } from "@unkey/db/src/schema";
+import { z } from "zod";
+
+const DEFAULT_PROJECT_SLUG = "default";
+
+// The public API refuses get/update/delete on the default project, so pickers
+// that hand a project id to it must never see it. Only the projects collection
+// (which drives the projects-first navigation) opts in.
+const listProjectsInput = z.object({ includeDefault: z.boolean().default(false) }).optional();
 
 export const listProjects = workspaceProcedure
   .use(withRatelimit(ratelimit.read))
-  .query(async ({ ctx }) => {
+  .input(listProjectsInput)
+  .query(async ({ ctx, input }) => {
     const workspaceId = ctx.workspace.id;
 
-    const projectRows = await db
+    const allProjectRows = await db
       .select({
         id: projects.id,
         name: projects.name,
@@ -24,8 +33,12 @@ export const listProjects = workspaceProcedure
         createdAt: projects.createdAt,
       })
       .from(projects)
-      .where(and(eq(projects.workspaceId, workspaceId), not(eq(projects.slug, "default"))))
+      .where(eq(projects.workspaceId, workspaceId))
       .orderBy(desc(projects.createdAt));
+
+    const projectRows = input?.includeDefault
+      ? allProjectRows
+      : allProjectRows.filter((project) => !isDefaultProject(project));
 
     if (projectRows.length === 0) {
       return [] satisfies Project[];
@@ -175,6 +188,7 @@ export const listProjects = workspaceProcedure
         id: project.id,
         name: project.name,
         slug: project.slug,
+        isDefault: isDefaultProject(project),
         apps: appsByProject.get(project.id) ?? [],
         repositoryFullName: primaryApp ? (repoByApp.get(primaryApp.appId) ?? null) : null,
         currentDeploymentId: primaryApp?.currentDeploymentId ?? null,
@@ -182,3 +196,7 @@ export const listProjects = workspaceProcedure
       };
     });
   });
+
+function isDefaultProject(project: { slug: string }): boolean {
+  return project.slug.toLowerCase() === DEFAULT_PROJECT_SLUG;
+}

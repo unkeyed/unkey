@@ -13,6 +13,7 @@ export const listRatelimitNamespaces = workspaceProcedure
         columns: {
           id: true,
           name: true,
+          projectId: true,
         },
       });
     } catch (error) {

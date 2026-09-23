@@ -1,8 +1,6 @@
-import { setLastUsedOrgCookie, setSessionCookie } from "@/lib/auth/cookies";
+import { setSessionCookie } from "@/lib/auth/cookies";
 import { getAuth as getBaseAuth } from "@/lib/auth/get-auth";
 import { localAuth } from "@/lib/auth/local";
-import { auth } from "@/lib/auth/server";
-import type { AuthenticatedUser } from "@/lib/auth/types";
 import { env, workosAuthEnv } from "@/lib/env";
 import { routes } from "@/lib/navigation/routes";
 import type { Route } from "next";
@@ -27,16 +25,18 @@ type GetAuthResult = {
 export async function getAuth(req?: NextRequest): Promise<GetAuthResult> {
   const authResult = await getBaseAuth(req);
   if (!authResult.userId) {
-    // Read the current path from the custom header set by the middleware (proxy.ts)
     let signInUrl = "/auth/sign-in";
     try {
-      const headersList = await headers();
-      const currentPath = headersList.get("x-current-path");
-      if (currentPath && currentPath !== "/") {
-        signInUrl = `/auth/sign-in?redirect=${encodeURIComponent(currentPath)}`;
+      const requestUrl = (await headers()).get("x-url");
+      if (requestUrl) {
+        const { pathname, search } = new URL(requestUrl);
+        const currentPath = `${pathname}${search}`;
+        if (currentPath !== "/") {
+          signInUrl = `/auth/sign-in?redirect=${encodeURIComponent(currentPath)}`;
+        }
       }
     } catch {
-      // Ignore header read errors
+      // A missing or unparseable header only costs the return path.
     }
     redirect(signInUrl as Route);
   }
@@ -46,20 +46,6 @@ export async function getAuth(req?: NextRequest): Promise<GetAuthResult> {
   }
 
   return authResult as GetAuthResult;
-}
-
-/**
- * Retrieves the provider-backed user and combines it with session organization
- * and impersonation details.
- */
-export async function getCurrentUser(): Promise<AuthenticatedUser> {
-  const { userId, orgId, impersonator, role } = await getAuth();
-
-  const user = await auth.getUser(userId); // getAuth will redirect if there's no userId
-  if (!user) {
-    redirect("/auth/sign-in" as Route);
-  }
-  return { ...user, orgId, role, impersonator };
 }
 
 /**
@@ -82,12 +68,5 @@ export async function switchToOrg(organizationId: string): Promise<void> {
       throw new Error("Invalid session data returned from auth provider");
     }
     await setSessionCookie({ token: newToken, expiresAt });
-  }
-
-  try {
-    await setLastUsedOrgCookie({ orgId: organizationId });
-  } catch (_error) {
-    // The switch itself succeeded. This cookie only preselects the org on the
-    // next sign-in, so losing it must not fail the switch.
   }
 }
