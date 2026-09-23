@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/internal/services/keys"
@@ -60,6 +61,7 @@ func (s *stubKeyService) CreateKeyV1(_ context.Context, _ keys.CreateKeyV1Reques
 // the verified root key.
 func TestResolver_ResolveRootKeyPrincipal(t *testing.T) {
 	t.Parallel()
+	expiresAt := time.Date(2027, time.January, 2, 3, 4, 5, 0, time.UTC)
 
 	keyService := &stubKeyService{
 		rootKey: &keys.KeyVerifier{
@@ -69,6 +71,7 @@ func TestResolver_ResolveRootKeyPrincipal(t *testing.T) {
 				WorkspaceID:    "ws_owner",
 				ForWorkspaceID: sql.NullString{String: "ws_authorized", Valid: true},
 				Name:           sql.NullString{String: "Production root key", Valid: true},
+				Expires:        sql.NullTime{Time: expiresAt, Valid: true},
 			},
 			Roles:                 []string{"admin"},
 			Permissions:           []string{"api.*.read_key"},
@@ -94,10 +97,32 @@ func TestResolver_ResolveRootKeyPrincipal(t *testing.T) {
 			KeySpaceID:  "ks_123",
 			WorkspaceID: "ws_owner",
 			Permissions: []string{"api.*.read_key"},
+			ExpiresAt:   &expiresAt,
 		},
 		AuthorizedWorkspaceID: "ws_authorized",
 		Permissions:           []string{"api.*.read_key"},
 	}, p)
+}
+
+// TestResolver_MapsNonexpiringRootKey guarantees a root key without a trusted
+// database expiry remains explicitly nonexpiring in the authenticated source.
+func TestResolver_MapsNonexpiringRootKey(t *testing.T) {
+	t.Parallel()
+
+	keyService := &stubKeyService{
+		rootKey: &keys.KeyVerifier{
+			Key:    keysdb.FindKeyForVerificationRow{ID: "key_nonexpiring"},
+			Status: keys.StatusValid,
+		},
+	}
+	resolver := NewResolver(keyService)
+
+	p, err := resolver.Resolve(context.Background(), newSessionWithAuth(t, "Bearer unkey_root_key"))
+
+	require.NoError(t, err)
+	source, ok := p.Source.(authprincipal.KeySource)
+	require.True(t, ok)
+	require.Nil(t, source.ExpiresAt)
 }
 
 // TestResolver_UsesFallbackRootKeyName guarantees audit data has a stable

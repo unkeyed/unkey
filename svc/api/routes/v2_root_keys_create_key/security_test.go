@@ -43,6 +43,7 @@ func TestCreateRejectsBroaderOrInvalidGrantsWithoutWrites(t *testing.T) {
 		{"foreign URN is rejected", []string{global}, []string{strings.Replace(grant, p.AuthorizedWorkspaceID, foreign.WorkspaceID, 1)}, 400},
 		{"multiple action separators", []string{global}, []string{grant + "#delete"}, 400},
 		{"partial wildcard is not a scope", []string{global}, []string{scope + "/keys/key_*#decrypt"}, 400},
+		{"fullwidth path cannot become a descendant grant", []string{"unkey:v1:" + p.AuthorizedWorkspaceID + ":projects/*/keyspaces/*#write"}, []string{scope + "／keys／＊#write"}, 400},
 		{"one unsupported grant rejects whole request", []string{global}, []string{grant, scope + "#rotate"}, 400},
 		{"null permissions", []string{global}, nil, 400},
 	} {
@@ -88,6 +89,36 @@ func TestPermissionProjectConflictRollsBackKeyGrantsAndAudit(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{Permissions: []string{grant}})
 	require.Equal(t, http.StatusInternalServerError, res.Status)
 	require.Equal(t, before, snapshot(t, h))
+}
+
+func TestPermissionCollationSubstitutionRollsBack(t *testing.T) {
+	h, route, p := newHarness(t)
+	projectID := uid.New(uid.ProjectPrefix)
+	permission := "unkey:v1:" + p.AuthorizedWorkspaceID + ":projects/" + projectID + "/keyspaces/ks_one#write"
+	stored := strings.Replace(permission, "ks_one", "ks_one\u200b", 1)
+	require.NoError(t, db.Query.InsertPermission(t.Context(), h.DB.RW(), db.InsertPermissionParams{
+		PermissionID: uid.New(uid.PermissionPrefix), WorkspaceID: route.InternalWorkspaceID,
+		ProjectID: route.InternalProjectID, Name: stored, Slug: stored,
+	}))
+	var equal bool
+	require.NoError(t, h.DB.RO().QueryRowContext(t.Context(), "SELECT slug = ? FROM permissions WHERE workspace_id = ? AND slug = ?", permission, route.InternalWorkspaceID, stored).Scan(&equal))
+	require.True(t, equal, "fixture must reproduce collation-equivalent but byte-distinct slugs")
+	p.Permissions = []string{"unkey:v1:" + p.AuthorizedWorkspaceID + ":rootKeys/*#write", permission}
+	before := snapshot(t, h)
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{Permissions: []string{permission}})
+	require.Equal(t, http.StatusInternalServerError, res.Status, "%s", res.RawBody)
+	require.Equal(t, before, snapshot(t, h))
+}
+
+func TestPermissionStoragePreservesCase(t *testing.T) {
+	h, route, p := newHarness(t)
+	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":projects/proj_one/keyspaces/"
+	requested := []string{base + "ks_one#read", base + "KS_one#read"}
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{Permissions: requested})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	stored, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: res.Body.Data.KeyId})
+	require.NoError(t, err)
+	require.ElementsMatch(t, requested, stored)
 }
 
 func snapshot(t *testing.T, h *testutil.Harness) []int {
