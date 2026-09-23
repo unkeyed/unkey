@@ -24,7 +24,7 @@ export const LogsFilters = (props: WorkspaceProps) => {
           id: "users",
           label: "Users",
           shortcut: "m",
-          component: <UsersFilter users={props.members} />,
+          component: <UsersFilter />,
         },
         {
           id: "rootKeys",
