@@ -28,6 +28,7 @@ func newRoute(t *testing.T, analytics bool) (*testutil.Harness, *Handler, string
 // runtimeLog describes one row to write. A test sets only the fields that it
 // asserts on. insertLog gives a value to the other fields.
 type runtimeLog struct {
+	logID         string
 	workspaceID   string
 	projectID     string
 	environmentID string
@@ -52,6 +53,9 @@ type runtimeLog struct {
 func insertLog(t *testing.T, h *testutil.Harness, row runtimeLog) runtimeLog {
 	t.Helper()
 
+	if row.logID == "" {
+		row.logID = uid.New("log")
+	}
 	if row.projectID == "" {
 		row.projectID = uid.New("proj")
 	}
@@ -81,7 +85,7 @@ func insertLog(t *testing.T, h *testutil.Harness, row runtimeLog) runtimeLog {
 		"INSERT INTO default.runtime_logs_raw_v1 (log_id, time, inserted_at, severity, message, "+
 			"workspace_id, project_id, environment_id, app_id, deployment_id, k8s_pod_name, region, "+
 			"platform, attributes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-		uid.New("log"), row.time, row.insertedAt, row.severity, row.message,
+		row.logID, row.time, row.insertedAt, row.severity, row.message,
 		row.workspaceID, row.projectID, row.environmentID, row.appID, row.deploymentID,
 		"pod-"+uid.New("rep"), "local", "k8s", row.attributes,
 	)
