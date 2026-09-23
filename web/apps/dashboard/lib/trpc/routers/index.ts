@@ -79,7 +79,6 @@ import { queryRequestLogs } from "./deploy/request-logs/query";
 import { listInstances } from "./deploy/runtime-logs/list-instances";
 import { llmSearch as runtimeLogsLlmSearch } from "./deploy/runtime-logs/llm-search";
 import { queryRuntimeLogs } from "./deploy/runtime-logs/query";
-import { listEnvironments } from "./environment/list";
 import { listAllEnvironments } from "./environment/list-all";
 import { githubRouter } from "./github";
 import { queryIdentityDetails } from "./identity/query-identity-details";
@@ -357,7 +356,6 @@ export const router = t.router({
       }),
     }),
     environment: t.router({
-      list: listEnvironments,
       listAll: listAllEnvironments,
     }),
     envVar: t.router({
