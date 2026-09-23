@@ -11,8 +11,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	queryparser "github.com/unkeyed/unkey/pkg/clickhouse/query-parser"
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -39,6 +42,7 @@ var (
 )
 
 type Handler struct {
+	DB                         db.Database
 	AnalyticsConnectionManager analytics.ConnectionManager
 }
 
@@ -55,13 +59,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 	wildcard := rbac.T(rbac.Tuple{ResourceType: rbac.Ratelimit, ResourceID: "*", Action: rbac.ReadAnalytics})
-	hasWildcard := slices.Contains(p.Permissions, "ratelimit.*.read_analytics")
+	hasLegacyWildcard := slices.Contains(p.Permissions, "ratelimit.*.read_analytics")
 	allowedNamespaceIDs := extractAllowedNamespaceIDs(p.Permissions)
-	if !hasWildcard && len(allowedNamespaceIDs) == 0 {
+	canonicalGrants, hasCanonicalWorkspaceWide := extractCanonicalLogGrants(p.Permissions, p.AuthorizedWorkspaceID)
+	if !hasLegacyWildcard && len(allowedNamespaceIDs) == 0 && len(canonicalGrants) == 0 {
 		return p.Authorize(wildcard)
 	}
+	if !hasLegacyWildcard && !hasCanonicalWorkspaceWide && len(canonicalGrants) > 0 {
+		namespaceRows, queryErr := db.Query.ListRatelimitNamespaceOwnershipByWorkspace(ctx, h.DB.RO(), p.AuthorizedWorkspaceID)
+		if queryErr != nil {
+			return fault.Wrap(queryErr,
+				fault.Code(codes.App.Internal.UnexpectedError.URN()),
+				fault.Public("An unexpected error occurred while loading your rate limit namespaces."),
+			)
+		}
+		allowedNamespaceIDs = append(allowedNamespaceIDs, authorizedNamespaceIDs(namespaceRows, canonicalGrants, p.AuthorizedWorkspaceID)...)
+	}
 	securityFilters := make([]queryparser.SecurityFilter, 0, 1)
-	if !hasWildcard {
+	if !hasLegacyWildcard && !hasCanonicalWorkspaceWide {
 		securityFilters = append(securityFilters, queryparser.SecurityFilter{Column: "namespace_id", AllowedValues: allowedNamespaceIDs})
 	}
 	rows, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{
@@ -99,4 +114,57 @@ func extractAllowedNamespaceIDs(permissions []string) []string {
 		namespaceIDs = append(namespaceIDs, pattern[1])
 	}
 	return namespaceIDs
+}
+
+func extractCanonicalLogGrants(granted []string, workspaceID string) ([]urn.V1, bool) {
+	grants := make([]urn.V1, 0)
+	workspaceLogs := ratelimitLogResource(workspaceID, "*", "*")
+	workspaceWide := false
+	for _, permission := range granted {
+		resourceValue, action, ok := strings.Cut(permission, "#")
+		if !ok || strings.Contains(action, "#") {
+			continue
+		}
+		resource, err := urn.ParseV1(resourceValue)
+		if err != nil || resource.WorkspaceID != workspaceID || !isLogReadAction(resource, action) || !canCoverRatelimitLogs(resource) {
+			continue
+		}
+		grants = append(grants, resource)
+		workspaceWide = workspaceWide || resource.Covers(workspaceLogs)
+	}
+	return grants, workspaceWide
+}
+
+func isLogReadAction(resource urn.V1, action string) bool {
+	return action == permissions.Read.String() || action == permissions.Wildcard && resource.Resource == "**"
+}
+
+func canCoverRatelimitLogs(resource urn.V1) bool {
+	segments := strings.Split(resource.Resource, "/")
+	projectID, namespaceID := "project", "namespace"
+	if len(segments) > 1 && segments[0] == "projects" && segments[1] != "*" {
+		projectID = segments[1]
+	}
+	if len(segments) > 4 && segments[3] == "namespaces" && segments[4] != "*" {
+		namespaceID = segments[4]
+	}
+	return resource.Covers(ratelimitLogResource(resource.WorkspaceID, projectID, namespaceID))
+}
+
+func authorizedNamespaceIDs(rows []db.ListRatelimitNamespaceOwnershipByWorkspaceRow, grants []urn.V1, workspaceID string) []string {
+	allowed := make([]string, 0, len(rows))
+	for _, row := range rows {
+		target := ratelimitLogResource(workspaceID, row.ProjectID, row.ID)
+		if slices.ContainsFunc(grants, func(grant urn.V1) bool { return grant.Covers(target) }) {
+			allowed = append(allowed, row.ID)
+		}
+	}
+	return allowed
+}
+
+func ratelimitLogResource(workspaceID, projectID, namespaceID string) urn.V1 {
+	return urn.V1{
+		WorkspaceID: workspaceID,
+		Resource:    "projects/" + projectID + "/ratelimits/namespaces/" + namespaceID + "/logs",
+	}
 }

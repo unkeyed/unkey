@@ -1,11 +1,28 @@
 package handler
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
+
+// Test403_CanonicalNamespaceReadDoesNotGrantLogRead guarantees parent resource
+// access does not imply access to rate limit analytics.
+func Test403_CanonicalNamespaceReadDoesNotGrantLogRead(t *testing.T) {
+	h, route, workspaceID := newRoute(t, false)
+	projectID := createProject(t, h, workspaceID)
+	namespaceID := createNamespaceInProject(t, h, workspaceID, projectID, uid.New("test"))
+	namespace := urn.New().Workspace(workspaceID).Project(projectID).RatelimitNamespace(namespaceID)
+	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("%s#%s", namespace.String(), permissions.Read))
+
+	res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: "SELECT namespace_id FROM ratelimits_v1"})
+	require.Equal(t, 403, res.Status)
+}
 
 // Test403_Permissions guarantees unrelated permissions cannot authorize rate
 // limit analytics queries.
