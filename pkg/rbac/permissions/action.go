@@ -11,8 +11,7 @@ func (a Action) String() string {
 }
 
 const (
-	// Read authorizes reading a resource. It applies to every concrete resource
-	// in the canonical permission catalog.
+	// Read authorizes reading a resource, except root keys.
 	Read Action = "read"
 
 	// Write authorizes creating or updating a resource. It applies to every
@@ -21,8 +20,8 @@ const (
 	Write Action = "write"
 
 	// Delete authorizes deleting a resource. It applies to every concrete
-	// resource except deployment logs, gateway logs, keyspace logs, and rate
-	// limit logs.
+	// resource except deployment logs, gateway logs, keyspace logs, rate limit
+	// logs, and root keys.
 	Delete Action = "delete"
 
 	// Decrypt authorizes decrypting protected resource data. It applies only to
