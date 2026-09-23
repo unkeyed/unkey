@@ -5,26 +5,29 @@ import { redirect } from "next/navigation";
 
 export const getWorkspace = async (orgId: string, role: string) => {
   try {
-    let members = null;
-
-    try {
-      const membersOfOrg = await auth.getOrganizationMemberList(orgId);
-      members = membersOfOrg.data.map((m) => ({
-        label: m.user.fullName ?? m.user.email,
-        value: m.user.id,
-      }));
-    } catch (memberError) {
-      console.error(
-        `Failed to fetch organization members for tenant ID ${orgId}: ${
-          memberError instanceof Error ? memberError.message : "Unknown error"
-        }`,
-      );
-    }
-
-    const workspace = await db.query.workspaces.findFirst({
-      where: (table, { eq, and, isNull }) => and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
-      columns: { id: true },
-    });
+    const [members, workspace] = await Promise.all([
+      auth
+        .getOrganizationMemberList(orgId)
+        .then((membersOfOrg) =>
+          membersOfOrg.data.map((m) => ({
+            label: m.user.fullName ?? m.user.email,
+            value: m.user.id,
+          })),
+        )
+        .catch((memberError: unknown) => {
+          console.error(
+            `Failed to fetch organization members for tenant ID ${orgId}: ${
+              memberError instanceof Error ? memberError.message : "Unknown error"
+            }`,
+          );
+          return null;
+        }),
+      db.query.workspaces.findFirst({
+        where: (table, { eq, and, isNull }) =>
+          and(eq(table.orgId, orgId), isNull(table.deletedAtM)),
+        columns: { id: true },
+      }),
+    ]);
 
     if (!workspace) {
       return redirect(routes.auth.signIn());
