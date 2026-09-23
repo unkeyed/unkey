@@ -1,6 +1,7 @@
 "use client";
 
 import { revalidate } from "@/app/actions";
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,6 +32,7 @@ type Props = {
 
 export function CreateApiButton({ defaultOpen, workspaceSlug }: Props) {
   const [isOpen, setIsOpen] = useState(defaultOpen ?? false);
+  const scope = useProjectScope();
   const router = useRouter();
   const { api } = trpc.useUtils();
   const {
@@ -45,9 +47,9 @@ export function CreateApiButton({ defaultOpen, workspaceSlug }: Props) {
   const create = trpc.api.create.useMutation({
     async onSuccess(res) {
       toast.success("Your keyspace has been created");
-      await revalidate(routes.apis.list({ workspaceSlug }));
+      await revalidate(routes.apis.list({ workspaceSlug, ...scope }));
       api.overview.query.invalidate();
-      router.push(routes.apis.detail({ workspaceSlug, apiId: res.id }));
+      router.push(routes.apis.detail({ workspaceSlug, ...scope, apiId: res.id }));
       setIsOpen(false);
     },
     onError(err) {

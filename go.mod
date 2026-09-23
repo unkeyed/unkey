@@ -58,8 +58,8 @@ require (
 	github.com/oapi-codegen/runtime v1.4.2
 	github.com/oasdiff/oasdiff v1.32.1
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/pb33f/libopenapi v0.36.0
-	github.com/pb33f/libopenapi-validator v0.13.4
+	github.com/pb33f/libopenapi v0.38.1
+	github.com/pb33f/libopenapi-validator v0.13.10
 	github.com/prometheus/client_golang v1.23.2
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/restatedev/sdk-go v1.0.4

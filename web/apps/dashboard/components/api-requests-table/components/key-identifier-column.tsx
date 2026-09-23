@@ -3,13 +3,14 @@ import {
   getErrorPercentage,
   getErrorSeverity,
 } from "@/components/api-requests-table/utils/calculate-blocked-percentage";
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { shortenId } from "@/lib/shorten-id";
-import { cn } from "@/lib/utils";
 import type { KeysOverviewLog } from "@unkey/clickhouse/src/keys/keys";
 import { IconTriangleWarningOutline18 } from "@unkey/icons";
 import { InfoTooltip, Loading } from "@unkey/ui";
+import { cn } from "cn";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
@@ -50,6 +51,7 @@ const getWarningMessage = (severity: string, errorRate: number) => {
 
 export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierColumnProps) => {
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
 
   const router = useRouter();
   const errorPercentage = getErrorPercentage(log);
@@ -61,6 +63,7 @@ export const KeyIdentifierColumn = ({ log, apiId, onNavigate }: KeyIdentifierCol
   const keyHref = keyAuthId
     ? routes.apis.keys.detail({
         workspaceSlug: workspace.slug,
+        ...scope,
         apiId,
         keyAuthId,
         keyId: log.key_id,

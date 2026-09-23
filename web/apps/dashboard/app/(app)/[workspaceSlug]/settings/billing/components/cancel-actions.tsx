@@ -2,7 +2,7 @@
 
 import { trpc } from "@/lib/trpc/client";
 import { IconTriangleWarningOutline12 } from "@unkey/icons";
-import { Button, DialogContainer, toast } from "@unkey/ui";
+import { AlertBanner, AlertBannerDescription, Button, DialogContainer, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { AdminGate } from "./admin-gate";
 
@@ -133,17 +133,15 @@ export function CancelApiDialog({
         </div>
       }
     >
-      <div className="flex items-center gap-4 rounded-xl border border-errorA-3 bg-errorA-2 px-[22px] py-6 dark:bg-black">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-error-9">
-          <IconTriangleWarningOutline12 className="text-white" />
-        </div>
-        <div className="text-[13px] text-error-12 leading-6">
+      <AlertBanner variant="error">
+        <IconTriangleWarningOutline12 aria-hidden="true" />
+        <AlertBannerDescription>
           <span className="font-medium">Warning:</span> cancelling your API plan will downgrade your
           workspace to the free tier at the end of the current billing period. You will lose access
           to paid features, usage limits will be reduced, and all team members other than you will
           be deactivated.
-        </div>
-      </div>
+        </AlertBannerDescription>
+      </AlertBanner>
     </DialogContainer>
   );
 }

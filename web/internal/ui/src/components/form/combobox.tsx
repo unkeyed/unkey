@@ -8,6 +8,7 @@ import {
 } from "@unkey/icons";
 import { type VariantProps, cva } from "class-variance-authority";
 import * as React from "react";
+import { popupTransition } from "../../lib/popup";
 import { cn } from "../../lib/utils";
 import {
   InputGroup,
@@ -148,8 +149,8 @@ function ComboboxContent({
           ref={ref}
           data-combobox-popup=""
           className={cn(
-            "isolate relative z-50 flex flex-col overflow-hidden rounded-lg border border-gray-5 bg-gray-2 text-gray-12 shadow-md min-w-(--anchor-width) origin-(--transform-origin)",
-            "transition-[opacity,scale,translate] data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95",
+            "isolate relative z-50 flex flex-col overflow-hidden rounded-lg bg-raised text-gray-12 shadow-floating min-w-(--anchor-width) origin-(--transform-origin)",
+            popupTransition,
             "data-[side=bottom]:data-starting-style:-translate-y-1 data-[side=top]:data-starting-style:translate-y-1",
             className,
           )}

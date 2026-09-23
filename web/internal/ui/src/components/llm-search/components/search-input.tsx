@@ -29,7 +29,7 @@ export const SearchInput = ({
   // Show loading state unless we're in allowTypeDuringSearch mode
   if (isProcessing && searchMode !== "allowTypeDuringSearch") {
     return (
-      <div className="text-accent-11 text-[13px] animate-pulse" data-testid="search-loading-state">
+      <div className="text-gray-11 text-[13px] animate-pulse" data-testid="search-loading-state">
         {isLoading ? loadingText : clearingText}
       </div>
     );
@@ -44,7 +44,7 @@ export const SearchInput = ({
       onChange={onChange}
       maxLength={LLM_LIMITS_MAX_QUERY_LENGTH}
       placeholder={placeholder}
-      className="truncate text-accent-12 font-medium text-[13px] leading-6 bg-transparent border-none outline-hidden focus:ring-0 focus:outline-hidden placeholder:text-accent-12 selection:bg-gray-6 w-full"
+      className="truncate text-gray-12 font-medium text-[13px] leading-6 bg-transparent border-none outline-hidden focus:ring-0 focus:outline-hidden placeholder:text-gray-12 selection:bg-gray-6 w-full"
       disabled={isProcessing && searchMode !== "allowTypeDuringSearch"}
       data-testid="search-input"
     />

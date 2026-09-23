@@ -75,15 +75,15 @@ describe("Settings widget styles", () => {
     expect(styles).toContain('[data-woswidgets-element="secondary-button"]');
     expect(styles).toContain('[data-woswidgets-element="destructive-button"]');
     expect(styles).toContain('[data-woswidgets-element="destructive-menu-item"]');
-    expect(styles).toContain("hsla(var(--grayA-");
-    expect(styles).toContain("hsl(var(--error-");
+    expect(styles).toContain("var(--color-grayA-");
+    expect(styles).toContain("var(--color-error-");
     expect(styles).toContain(":focus-visible");
     expect(styles).toContain(":disabled");
     expect(styles).toMatch(
       /\.woswidgets-save-button\[data-save-state="loading"\],\s*\.woswidgets-save-button\[data-save-state="done"\]\s*\{[^}]*color:\s*transparent;/,
     );
     expect(styles).toMatch(
-      /\.woswidgets-save-button\s*\{[^}]*--accent-contrast:\s*hsl\(var\(--background\)\);/,
+      /\.woswidgets-save-button\s*\{[^}]*--accent-contrast:\s*var\(--color-background\);/,
     );
   });
 });

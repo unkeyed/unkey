@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { IconBookmarkFill18, IconBookmarkOutline18, IconLayers2Outline18 } from "@unkey/icons";
-import { InfoTooltip, toast } from "@unkey/ui";
+import { InfoTooltip, Separator, toast } from "@unkey/ui";
+import { cn } from "cn";
 import { useEffect, useState } from "react";
 import { useQueries } from "./queries-context";
 import { QueriesItemRow } from "./queries-item-row";
@@ -90,7 +90,7 @@ export function ListGroup({
     <div className="w-full">
       <div
         className={cn(
-          "flex flex-row hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded-[8px] pb-[9px] w-full pl-1",
+          "flex flex-row hover:bg-gray-2 cursor-pointer whitespace-nowrap rounded-lg pb-[9px] w-full pl-1",
           index === selectedIndex ? "bg-gray-2" : "",
         )}
       >
@@ -148,10 +148,10 @@ export function ListGroup({
             <button
               type="button"
               className={cn(
-                "flex h-7 w-6 ml-px  justify-center items-center text-accent-9 rounded-md",
+                "flex h-7 w-6 ml-px  justify-center items-center text-gray-9 rounded-md",
                 filterList.bookmarked
                   ? "text-info-9 hover:bg-info-3"
-                  : "hover:bg-gray-3 hover:text-accent-12",
+                  : "hover:bg-gray-3 hover:text-gray-12",
                 `tabIndex-${0}`,
               )}
               onClick={() => handleBookmarkChanged()}
@@ -167,11 +167,8 @@ export function ListGroup({
           </InfoTooltip>
         </div>
       </div>
-      <div
-        className={cn(
-          "flex flex-row bg-white dark:bg-black h-px mt-[7px] mb-[8px] w-full",
-          index < total - 1 && "border-b border-b-gray-3",
-        )}
+      <Separator
+        className={cn("mt-[7px] mb-[8px]", index < total - 1 && "border-b border-b-gray-3")}
       />
     </div>
   );

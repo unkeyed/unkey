@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { Badge } from "@unkey/ui";
 import { STATUS_STYLES } from "@unkey/ui";
+import { cn } from "cn";
 import { useRef } from "react";
 
 type StatusBadgeProps = {

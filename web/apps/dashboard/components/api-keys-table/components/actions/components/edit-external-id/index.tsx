@@ -1,7 +1,7 @@
 import { ExternalIdField } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/components/external-id-field";
 import type { ActionComponentProps } from "@/components/logs/table-action.popover";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { Button, ConfirmPopover, DialogContainer } from "@unkey/ui";
+import { Button, ConfirmPopover, DialogContainer, Separator } from "@unkey/ui";
 import { type JSX, useRef, useState } from "react";
 import { useEditExternalId } from "../hooks/use-edit-external-id";
 import { KeyInfo } from "../key-info";
@@ -111,9 +111,7 @@ export const EditExternalId = ({
         }
       >
         <KeyInfo keyDetails={keyDetails} />
-        <div className="py-1 my-2">
-          <div className="h-px bg-grayA-3 w-full" />
-        </div>
+        <Separator className="my-3" />
         <ExternalIdField
           value={selectedIdentityId}
           onChange={(identityId: string | null, externalId: string | null) => {

@@ -2,9 +2,9 @@
 
 import { Sidebar, SidebarContent, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
-import { cn } from "@/lib/utils";
 import { IconSidebarLeftHideOutline18, IconSidebarLeftShowOutline18 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
+import { cn } from "cn";
 import { SidebarBody } from "./sidebar-body";
 import { UsageBanner } from "./usage-banner";
 import { UsageCard } from "./usage-card";
@@ -31,7 +31,7 @@ export function SidebarV2(props: Props) {
       collapsible="icon"
       // absolute, not the default viewport-fixed: the layout's relative content
       // row already starts below the top nav and the paused banner.
-      className={cn("absolute h-auto [&_[data-sidebar=sidebar]]:bg-gray-1", props.className)}
+      className={cn("absolute h-auto [&_[data-sidebar=sidebar]]:bg-background", props.className)}
     >
       <SidebarContent>
         <SidebarBody />
@@ -66,7 +66,7 @@ function CollapseButton() {
       <TooltipContent
         side="right"
         align="center"
-        className="dark:bg-white bg-black text-gray-1 px-2 py-1 border border-accent-6 shadow-md font-medium text-xs"
+        className="dark:bg-white bg-black text-gray-1 px-2 py-1 border border-gray-6 shadow-md font-medium text-xs"
       >
         {label}
       </TooltipContent>

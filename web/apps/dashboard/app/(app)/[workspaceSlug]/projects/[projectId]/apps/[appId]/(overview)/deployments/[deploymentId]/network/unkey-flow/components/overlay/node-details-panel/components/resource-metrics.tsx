@@ -181,7 +181,7 @@ export function ResourceMetrics({ resourceId, storageMib, instanceName }: Resour
     <div>
       <div className="flex items-center gap-3 px-4 pt-4 w-full">
         <div className="text-gray-10 text-xs whitespace-nowrap">Runtime metrics</div>
-        <div className="flex-1 min-w-0 border-t border-grayA-3" />
+        <div className="flex-1 min-w-0 border-t" />
         <Select
           value={window}
           onValueChange={(v) => setWindow(v as TimeWindow)}
@@ -189,7 +189,7 @@ export function ResourceMetrics({ resourceId, storageMib, instanceName }: Resour
         >
           <SelectTrigger
             wrapperClassName="w-fit shrink-0"
-            className="h-7 min-h-0! rounded-lg border-grayA-4 bg-transparent shadow-sm text-gray-12 text-xs focus:ring-0"
+            className="h-7 min-h-0! rounded-lg bg-transparent shadow-sm text-gray-12 text-xs focus:ring-0"
             rightIcon={<IconChevronExpandYOutline12 className="absolute right-2.5 text-gray-9" />}
           >
             <SelectValue className="text-xs" />
@@ -318,8 +318,8 @@ type NetworkSectionProps = {
   xAxisDomain: [number, number];
 };
 
-const EGRESS_COLOR = "hsl(var(--error-8))";
-const INGRESS_COLOR = "hsl(var(--success-8))";
+const EGRESS_COLOR = "var(--color-error-8)";
+const INGRESS_COLOR = "var(--color-success-8)";
 
 function NetworkSection({
   egressPoints,
@@ -333,7 +333,7 @@ function NetworkSection({
   const ingress = summarizeRateSeries(ingressPoints);
   const data = mergeNetworkSeries(egressPoints, ingressPoints);
   return (
-    <div className="flex flex-col gap-3 px-4 w-full border-t border-grayA-3 pt-6 mt-2">
+    <div className="flex flex-col gap-3 px-4 w-full border-t pt-6 mt-2">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="bg-error-3 text-error-11 rounded-md size-[22px] items-center flex justify-center">
           <IconArrowsOppositeDirectionYOutline12 className="shrink-0" />
@@ -375,10 +375,10 @@ function NetworkSection({
   );
 }
 
-const INSTANCES_COLOR = "hsl(var(--error-8))";
-const CPU_COLOR = "hsl(var(--feature-8))";
-const MEMORY_COLOR = "hsl(var(--info-8))";
-const DISK_COLOR = "hsl(var(--warning-8))";
+const INSTANCES_COLOR = "var(--color-error-8)";
+const CPU_COLOR = "var(--color-feature-8)";
+const MEMORY_COLOR = "var(--color-info-8)";
+const DISK_COLOR = "var(--color-warning-8)";
 
 type InstancesSectionProps = {
   points: Array<{ x: number; y: number }> | undefined;
@@ -474,7 +474,7 @@ function CpuSection({
       className={
         isFirst
           ? "flex flex-col gap-3 px-4 w-full mt-6"
-          : "flex flex-col gap-3 px-4 w-full border-t border-grayA-3 pt-6 mt-2"
+          : "flex flex-col gap-3 px-4 w-full border-t pt-6 mt-2"
       }
     >
       <div className="flex items-center gap-3 flex-wrap">
@@ -550,7 +550,7 @@ function MemorySection({
     memory_usage: p.y,
   }));
   return (
-    <div className="flex flex-col gap-3 px-4 w-full border-t border-grayA-3 pt-6 mt-2">
+    <div className="flex flex-col gap-3 px-4 w-full border-t pt-6 mt-2">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="bg-info-3 text-info-11 rounded-md size-[22px] items-center flex justify-center">
           <IconRamOutline18 className="size-3 shrink-0" />
@@ -623,7 +623,7 @@ function DiskSection({
     disk_usage: p.y,
   }));
   return (
-    <div className="flex flex-col gap-3 px-4 w-full border-t border-grayA-3 pt-6 mt-2">
+    <div className="flex flex-col gap-3 px-4 w-full border-t pt-6 mt-2">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="bg-warning-3 text-warning-11 rounded-md size-[22px] items-center flex justify-center">
           <IconHardDriveOutline18 className="size-3 shrink-0" />

@@ -3,7 +3,6 @@
 import { formatDollars } from "@/lib/fmt";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import type { DeployPlanOption } from "@/lib/trpc/routers/stripe/getDeployPlans";
-import { cn } from "@/lib/utils";
 import {
   IconArrowRightOutline18,
   IconArrowUpRightOutline12,
@@ -19,6 +18,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@unkey/ui";
+import { cn } from "cn";
 import {
   ALL_PLANS_INCLUDE,
   COMPUTE_PLANS_LINK_HREF,
@@ -47,7 +47,7 @@ export function ComputePlanDialog({
 }: ComputePlanDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] w-[90%] max-w-[560px] flex-col gap-0 overflow-hidden rounded-2xl! border-gray-4 bg-gray-1 p-0">
+      <DialogContent className="flex max-h-[90vh] w-[90%] max-w-[560px] flex-col gap-0 overflow-hidden rounded-2xl! bg-raised p-0">
         <div className="flex flex-col gap-1.5 px-[22px] pt-6 pb-3.5">
           <DialogTitle className="font-semibold text-[22px] text-gray-12 leading-none tracking-[-0.03em]">
             {title}
@@ -121,11 +121,11 @@ function Row({
     .exhaustive();
 
   const cardClassName =
-    "group flex w-full items-center gap-[13px] rounded-[11px] border border-gray-4 bg-gray-1 px-[15px] py-3 text-left transition-colors";
+    "group flex w-full items-center gap-[13px] rounded-xl border bg-raised px-[15px] py-3 text-left transition-colors";
 
   const details = (
     <>
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-[9px] bg-grayA-3 text-gray-12">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-grayA-3 text-gray-12">
         <PlanTierIcon plan={plan.plan} className="size-[19px]" />
       </span>
 
@@ -167,7 +167,7 @@ function Row({
           onClick={() => onSelect(plan.plan)}
           className={cn(
             cardClassName,
-            disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer hover:border-gray-6",
+            disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer hover:border-strong",
           )}
         >
           {details}
@@ -245,7 +245,7 @@ export function ComputePlansMoreInfo() {
 
 export function AllPlansInclude() {
   return (
-    <div className="rounded-[11px] border border-gray-4 bg-gray-1 px-4 py-3.5">
+    <div className="rounded-xl border bg-raised px-4 py-3.5">
       <span className="font-medium text-[13px] text-gray-12">Included in every plan</span>
       <ul className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2.5">
         {ALL_PLANS_INCLUDE.map((feature) => (
@@ -261,7 +261,7 @@ export function AllPlansInclude() {
 
 export function CreditsInfoStrip() {
   return (
-    <div className="flex items-start gap-2.5 rounded-[11px] border border-gray-4 bg-gray-1 px-3.5 py-3">
+    <div className="flex items-start gap-2.5 rounded-xl border bg-raised px-3.5 py-3">
       <IconCircleInfoOutline18 className="size-4 mt-px shrink-0 text-info-9" />
       <p className="text-[12.5px] text-gray-11 leading-relaxed">
         {CREDITS_INFO}{" "}

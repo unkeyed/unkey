@@ -8,11 +8,8 @@ const codeVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          "border-grayA-5 focus:outline-hidden focus:ring-0 bg-white dark:bg-black text-[11px] py-2",
+        default: "focus:outline-hidden focus:ring-0 bg-gray-3 text-[11px] py-2",
         ghost: "border-none bg-transparent text-[11px] py-2",
-        legacy:
-          "text-primary bg-background-subtle rounded-md hover:border-primary focus:outline-hidden focus:ring-0 border-grayA-4",
       },
     },
     defaultVariants: {
@@ -27,7 +24,7 @@ export interface CodeProps
   className?: string;
   buttonsClassName?: string;
   preClassName?: string;
-  variant?: "default" | "ghost" | "legacy";
+  variant?: "default" | "ghost";
   copyButton?: React.ReactNode;
   visibleButton?: React.ReactNode;
 }

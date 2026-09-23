@@ -1,15 +1,8 @@
-export const StartedAtColumnSkeleton = () => (
-  <div className="my-2 h-3 w-16 bg-grayA-3 rounded animate-pulse" />
-);
+import { Skeleton } from "@unkey/ui";
+export const StartedAtColumnSkeleton = () => <Skeleton className="my-2 h-3 w-16 rounded" />;
 
-export const StatusColumnSkeleton = () => (
-  <div className="my-2 size-4 bg-grayA-3 rounded-full animate-pulse" />
-);
+export const StatusColumnSkeleton = () => <Skeleton className="my-2 size-4 rounded-full" />;
 
-export const NameColumnSkeleton = () => (
-  <div className="my-2 h-3 w-125 bg-grayA-3 rounded animate-pulse" />
-);
+export const NameColumnSkeleton = () => <Skeleton className="my-2 h-3 w-125 rounded" />;
 
-export const DurationColumnSkeleton = () => (
-  <div className="my-2 h-3 w-14 bg-grayA-3 rounded animate-pulse" />
-);
+export const DurationColumnSkeleton = () => <Skeleton className="my-2 h-3 w-14 rounded" />;

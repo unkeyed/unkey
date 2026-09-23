@@ -10,7 +10,6 @@ import type { Column } from "@/components/virtual-table/types";
 import { shortenId } from "@/lib/shorten-id";
 import { trpc } from "@/lib/trpc/client";
 import type { IdentityLog } from "@/lib/trpc/routers/identity/query-logs";
-import { cn } from "@/lib/utils";
 import { useQueryTime } from "@/providers/query-time-provider";
 import type { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import {
@@ -37,6 +36,7 @@ import {
   InfoTooltip,
   TimestampInfo,
 } from "@unkey/ui";
+import { cn } from "cn";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIdentityDetailsLogsContext } from "../../context/logs";
 import { useIdentityLogsQuery } from "./hooks/use-logs-query";
@@ -146,7 +146,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
       style.base,
       style.hover,
       "group rounded-md cursor-pointer transition-colors",
-      "focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
+      "focus:outline-hidden focus:ring-1",
       style.focusRing,
       isSelected && style.selected,
     );
@@ -458,7 +458,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
           countInfoText: (
             <div className="flex gap-2">
               <span>Showing</span>{" "}
-              <span className="text-accent-12">
+              <span className="text-gray-12">
                 {new Intl.NumberFormat().format(historicalLogs.length)}
               </span>
               <span>of</span>{" "}

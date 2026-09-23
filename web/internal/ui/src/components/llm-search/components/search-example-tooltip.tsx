@@ -28,10 +28,10 @@ export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({
           <ul className="space-y-1.5 pl-1 [&_svg]:size-[10px] ">
             {examples.map((example) => (
               <li key={example} className="flex items-center gap-2">
-                <IconCaretRightOutline18 className="text-accent-9" />
+                <IconCaretRightOutline18 className="text-gray-9" />
                 <button
                   type="button"
-                  className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
+                  className="hover:text-gray-11 transition-colors cursor-pointer hover:underline"
                   onClick={() => onSelectExample(example)}
                   data-testid={`example-${example}`}
                 >
@@ -45,7 +45,7 @@ export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({
       delayDuration={150}
     >
       <div data-testid="info-icon">
-        <IconCircleInfoSparkleOutline18 className="size-4 text-accent-9" />
+        <IconCircleInfoSparkleOutline18 className="size-4 text-gray-9" />
       </div>
     </InfoTooltip>
   );

@@ -45,7 +45,7 @@ export const LogsSearch = ({ onSearch, onApiListChange, apiList }: Props) => {
   return (
     <LLMSearch
       fullWidth
-      className="border border-solid border-gray-4"
+      className="border border-solid"
       exampleQueries={[
         "Show rate limited requests today",
         "Show requests that were not rate limited today",

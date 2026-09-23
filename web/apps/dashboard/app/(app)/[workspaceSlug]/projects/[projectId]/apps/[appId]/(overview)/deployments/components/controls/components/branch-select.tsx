@@ -79,7 +79,7 @@ export function BranchSelect() {
                   checked={selectedBranches.includes(branch)}
                   tabIndex={-1}
                 />
-                <span className="text-accent-12 truncate">{branch}</span>
+                <span className="text-gray-12 truncate">{branch}</span>
               </button>
             ))
           )}

@@ -8,7 +8,7 @@ function SecondaryNav({ className, children, ...props }: React.ComponentProps<"n
   return (
     <nav
       className={cn(
-        "flex shrink-0 gap-1 overflow-x-auto border-b border-grayA-4 px-3 py-2",
+        "flex shrink-0 gap-1 overflow-x-auto border-b px-3 py-2",
         "md:w-60 md:flex-col md:gap-3 md:overflow-x-visible md:border-r md:border-b-0 md:px-3 md:py-4",
         className,
       )}
@@ -25,7 +25,7 @@ function SecondaryNavTitle({ className, ...props }: React.ComponentProps<"h2">) 
   return (
     <h2
       className={cn(
-        "hidden md:block px-2 text-[15px] font-semibold tracking-tight leading-tight text-accent-12 m-0",
+        "hidden md:block px-2 text-[15px] font-semibold tracking-tight leading-tight text-gray-12 m-0",
         className,
       )}
       {...props}
@@ -42,8 +42,8 @@ const secondaryNavItemVariants = cva(
   {
     variants: {
       active: {
-        true: "bg-grayA-3 text-accent-12 font-medium tracking-tight",
-        false: "text-accent-11 hover:bg-grayA-3 hover:text-accent-12",
+        true: "bg-grayA-3 text-gray-12 font-medium tracking-tight",
+        false: "text-gray-11 hover:bg-grayA-3 hover:text-gray-12",
       },
     },
     defaultVariants: {

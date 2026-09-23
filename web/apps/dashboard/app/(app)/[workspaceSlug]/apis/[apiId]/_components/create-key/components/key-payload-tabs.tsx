@@ -79,7 +79,7 @@ export function KeyPayloadTabs({ keyValue }: KeyPayloadTabsProps) {
             <Skeleton className="w-full h-[42px] rounded-xl" />
           ) : link ? (
             <>
-              <div className="w-full px-4 py-2 bg-white dark:bg-black border rounded-xl border-grayA-5">
+              <div className="w-full px-4 py-2 bg-raised border rounded-xl">
                 <div className="flex items-center justify-between w-full gap-3">
                   <IconLink4Outline12 className="text-gray-12 shrink-0" />
                   <p className="flex-1 min-w-0 truncate font-mono text-[13px] text-grayA-12">
@@ -91,7 +91,7 @@ export function KeyPayloadTabs({ keyValue }: KeyPayloadTabsProps) {
                 </div>
               </div>
               <div className="text-gray-9 text-[13px] flex items-center gap-1.5 self-center">
-                <IconClockOutline12 className="text-primary" />
+                <IconClockOutline12 className="text-gray-12" />
                 <span>
                   Expires after 72hrs.
                   <button

@@ -22,13 +22,17 @@ describe("organization switch route", () => {
     vi.clearAllMocks();
     mocks.switchToOrg.mockResolvedValue(undefined);
     mocks.getAuth.mockResolvedValue({ userId: "session-user" });
-    mocks.memberships.mockResolvedValue({
-      data: [
-        { status: "active", organization: { id: "org_123" } },
-        { status: "inactive", organization: { id: "org_inactive" } },
-        { status: "pending", organization: { id: "org_pending" } },
-      ],
-    });
+    const allMemberships = [
+      { status: "active", organization: { id: "org_123" } },
+      { status: "inactive", organization: { id: "org_inactive" } },
+      { status: "pending", organization: { id: "org_pending" } },
+    ];
+    mocks.memberships.mockImplementation(async (_userId: string, organizationId?: string) => ({
+      data: allMemberships.filter(
+        (membership) =>
+          organizationId === undefined || membership.organization.id === organizationId,
+      ),
+    }));
     mocks.findMany.mockResolvedValue([{ orgId: "org_123", name: "Disabled workspace" }]);
   });
 
@@ -42,7 +46,7 @@ describe("organization switch route", () => {
         "http://localhost:3000/auth/error?reason=session",
       );
       expect(response.headers.get("set-cookie")).toBeNull();
-      expect(mocks.memberships).toHaveBeenCalledWith("session-user");
+      expect(mocks.memberships).toHaveBeenCalledWith("session-user", orgId);
       expect(mocks.findMany).not.toHaveBeenCalled();
       expect(mocks.switchToOrg).not.toHaveBeenCalled();
     },

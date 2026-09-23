@@ -8,7 +8,7 @@ import { usePersistedForm } from "@/hooks/use-persisted-form";
 import type { DiscriminatedUnionResolver } from "@/lib/schemas/resolver-types";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, DialogContainer } from "@unkey/ui";
+import { Button, DialogContainer, Separator } from "@unkey/ui";
 import { useEffect } from "react";
 import { FormProvider } from "react-hook-form";
 import { useEditExpiration } from "../hooks/use-edit-expiration";
@@ -99,9 +99,7 @@ export const EditExpiration = ({ keyDetails, isOpen, onClose }: EditExpirationPr
           }
         >
           <KeyInfo keyDetails={keyDetails} />
-          <div className="py-1 my-2">
-            <div className="h-px bg-grayA-3 w-full" />
-          </div>
+          <Separator className="my-3" />
           <div className="[&>*:first-child]:p-0">
             <ExpirationSetup />
           </div>

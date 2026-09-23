@@ -1,5 +1,6 @@
 "use client";
 
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
@@ -34,6 +35,7 @@ export const DeleteNamespaceDialog = ({
 }: DeleteNamespaceProps) => {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
 
   const { register, handleSubmit, watch } = useForm<FormValues>({
     mode: "onChange",
@@ -46,7 +48,7 @@ export const DeleteNamespaceDialog = ({
 
   const onSubmit = async () => {
     collection.ratelimitNamespaces.delete(namespace.id);
-    router.push(routes.ratelimits.list({ workspaceSlug: workspace.slug }));
+    router.push(routes.ratelimits.list({ workspaceSlug: workspace.slug, ...scope }));
 
     //await deleteNamespace.mutateAsync({ namespaceId: namespace.id });
   };

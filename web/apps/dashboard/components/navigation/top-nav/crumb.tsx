@@ -1,6 +1,7 @@
 "use client";
 
 import { IconChevronExpandYOutline12 } from "@unkey/icons";
+import { Skeleton } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -44,7 +45,7 @@ export function Crumb({
       >
         <button
           type="button"
-          className="hidden size-6 shrink-0 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-accent-12 md:flex"
+          className="hidden size-6 shrink-0 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-gray-12 md:flex"
           aria-label={`Switch ${label}`}
         >
           <IconChevronExpandYOutline12 />
@@ -72,11 +73,11 @@ export function CrumbLink({
       href={href as Route}
       aria-label={label}
       aria-current={current ? "page" : undefined}
-      className="flex min-w-0 items-center gap-1.5 px-1 py-1 text-[13px] font-medium text-accent-12"
+      className="flex min-w-0 items-center gap-1.5 px-1 py-1 text-[13px] font-medium text-gray-12"
     >
       {icon}
       {loading ? (
-        <span aria-hidden="true" className="h-3 w-20 rounded-sm bg-gray-4 animate-pulse" />
+        <Skeleton className="h-3 w-20 bg-gray-4" />
       ) : (
         <span className="truncate max-w-[120px] md:max-w-[180px]">{label}</span>
       )}

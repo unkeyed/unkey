@@ -12,6 +12,7 @@ import { identityRoutes } from "./identities";
 import { logRoutes } from "./logs";
 import { projectRoutes } from "./projects";
 import { ratelimitRoutes } from "./ratelimits";
+import { rootKeyRoutes } from "./root-keys";
 import { settingsRoutes } from "./settings";
 import { workspaceRoutes } from "./workspaces";
 
@@ -22,6 +23,7 @@ export const routes = {
   account: accountRoutes,
   projects: projectRoutes,
   ratelimits: ratelimitRoutes,
+  rootKeys: rootKeyRoutes,
   settings: settingsRoutes,
   apis: apiRoutes,
   authorization: authorizationRoutes,

@@ -160,7 +160,7 @@ function Accordion({
     }
   }, [defaultExpanded, expanded, toggle]);
 
-  return <div className="mt-6 border-b border-gray-4">{children}</div>;
+  return <div className="mt-6 border-b">{children}</div>;
 }
 
 type SectionProps = {
@@ -194,7 +194,7 @@ function Section({
   }, [id, fields, catchAll, registerSection]);
 
   return (
-    <div className="border-t border-grayA-4">
+    <div className="border-t">
       <div className="flex items-center hover:bg-grayA-2 transition-colors">
         <button
           type="button"

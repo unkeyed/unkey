@@ -1,7 +1,7 @@
 "use client";
 
 import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
-import { Button } from "@unkey/ui";
+import { Button, Skeleton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 
 export const ConfigureDeploymentFallback = ({ settingsReady }: { settingsReady: boolean }) => {
@@ -22,7 +22,7 @@ export const ConfigureDeploymentFallback = ({ settingsReady }: { settingsReady: 
     <div className="w-225">
       <div className="flex flex-col gap-6">
         {/* SettingCardGroup skeleton */}
-        <div className="border border-grayA-4 rounded-lg overflow-hidden divide-y divide-grayA-4">
+        <div className="border bg-raised rounded-lg overflow-hidden divide-y divide-grayA-4">
           {cards.map(({ titleW, descW, badgeW }, i) => (
             <div
               // biome-ignore lint/suspicious/noArrayIndexKey: safe to leave
@@ -30,20 +30,15 @@ export const ConfigureDeploymentFallback = ({ settingsReady }: { settingsReady: 
               className="px-4 py-[18px] lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row"
             >
               <div className="flex gap-4 items-center">
-                <div className="bg-grayA-3 size-8 rounded-[10px] shrink-0 animate-pulse dark:ring-1 dark:ring-gray-4 shadow-sm shadow-grayA-8/20" />
+                <Skeleton className="size-8 rounded-xl shrink-0 dark:ring-1 dark:ring-gray-4 shadow-sm shadow-grayA-8/20" />
                 <div className="flex flex-col gap-1 text-sm w-fit">
-                  <div className={cn("h-[13px] rounded bg-grayA-3 animate-pulse", titleW)} />
-                  <div className={cn("h-3 rounded bg-grayA-3 animate-pulse mt-0.5", descW)} />
+                  <Skeleton className={cn("h-[13px] rounded", titleW)} />
+                  <Skeleton className={cn("h-3 rounded mt-0.5", descW)} />
                 </div>
               </div>
               <div className="flex w-full lg:w-[320px] items-center gap-4 justify-end">
-                <div
-                  className={cn(
-                    "h-7 rounded-md border border-grayA-4 bg-grayA-3 animate-pulse",
-                    badgeW,
-                  )}
-                />
-                <div className="size-3.5 rounded bg-grayA-3 animate-pulse" />
+                <Skeleton className={cn("h-7 rounded-md border", badgeW)} />
+                <Skeleton className="size-3.5 rounded" />
               </div>
             </div>
           ))}
@@ -55,12 +50,12 @@ export const ConfigureDeploymentFallback = ({ settingsReady }: { settingsReady: 
           <div key={i} className="flex flex-col">
             <div className="flex items-center justify-between mb-4 px-2">
               <div className="flex items-center gap-2.5">
-                <div className="size-4 rounded bg-grayA-3 animate-pulse" />
-                <div className={cn("h-3.5 rounded bg-grayA-3 animate-pulse", titleW)} />
+                <Skeleton className="size-4 rounded" />
+                <Skeleton className={cn("h-3.5 rounded", titleW)} />
               </div>
               <div className="flex items-center gap-1">
-                <div className="h-3 w-8 rounded bg-grayA-3 animate-pulse" />
-                <div className="size-3 rounded bg-grayA-3 animate-pulse" />
+                <Skeleton className="h-3 w-8 rounded" />
+                <Skeleton className="size-3 rounded" />
               </div>
             </div>
           </div>

@@ -29,7 +29,7 @@ export function TopNav() {
 
   return (
     <header
-      className="flex w-full shrink-0 items-center gap-1 border-b border-grayA-4 bg-gray-1 px-4"
+      className="flex w-full shrink-0 items-center gap-1 border-b bg-background px-4"
       style={{ height: TOP_NAV_HEIGHT }}
     >
       <Link
@@ -56,7 +56,7 @@ export function TopNav() {
           type="button"
           onClick={() => setOpenMobile(true)}
           aria-label="Open navigation"
-          className="flex size-8 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-accent-12 md:hidden"
+          className="flex size-8 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-gray-12 md:hidden"
         >
           <IconMenuOutline18 className="size-4" />
         </button>
@@ -72,15 +72,17 @@ function CrumbForDescriptor({ descriptor }: { descriptor: BreadcrumbDescriptor }
     case "account":
       return <AccountCrumb />;
     case "project":
-      return <ProjectCrumb projectId={descriptor.projectId} />;
+      return <ProjectCrumb owner={descriptor.owner} />;
     case "app":
       return <AppCrumb projectId={descriptor.projectId} appId={descriptor.appId} />;
     case "api":
-      return <ApiCrumb apiId={descriptor.apiId} />;
+      return <ApiCrumb apiId={descriptor.apiId} projectId={descriptor.projectId} />;
     case "namespace":
-      return <NamespaceCrumb namespaceId={descriptor.namespaceId} />;
+      return (
+        <NamespaceCrumb namespaceId={descriptor.namespaceId} projectId={descriptor.projectId} />
+      );
     case "identity":
-      return <IdentityCrumb identityId={descriptor.identityId} />;
+      return <IdentityCrumb identityId={descriptor.identityId} projectId={descriptor.projectId} />;
   }
 }
 
@@ -90,8 +92,10 @@ function crumbKey(descriptor: BreadcrumbDescriptor): string {
       return "workspace";
     case "account":
       return "account";
+    // One project crumb at most, and a stable key keeps it mounted while the
+    // owning-project lookup resolves.
     case "project":
-      return `project:${descriptor.projectId}`;
+      return "project";
     case "app":
       return `app:${descriptor.appId}`;
     case "api":
