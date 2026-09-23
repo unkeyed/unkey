@@ -15,6 +15,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -52,21 +54,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.DeleteAPI,
-		}),
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   req.ApiId,
-			Action:       rbac.DeleteAPI,
-		}),
-	))
-	if err != nil {
-		return err
-	}
 
 	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
 	if err != nil {
@@ -88,6 +75,47 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			fault.Code(codes.Data.Api.NotFound.URN()),
 			fault.Internal("wrong workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
 		)
+	}
+
+	requiredPermissions := []rbac.PermissionQuery{
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.DeleteAPI,
+		}),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   api.ID,
+			Action:       rbac.DeleteAPI,
+		}),
+	}
+	if api.KeyAuthID.Valid {
+		keyspace, keyspaceErr := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
+		if keyspaceErr != nil && !db.IsNotFound(keyspaceErr) {
+			return fault.Wrap(keyspaceErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+			)
+		}
+		if keyspaceErr == nil {
+			if keyspace.WorkspaceID != principal.AuthorizedWorkspaceID {
+				return fault.New("wrong workspace",
+					fault.Code(codes.Data.Api.NotFound.URN()),
+					fault.Internal("keyspace belongs to different workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
+				)
+			}
+			if !keyspace.DeletedAtM.Valid {
+				requiredPermissions = append(requiredPermissions, rbac.U(
+					urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keyspace.ProjectID).Keyspace(keyspace.ID),
+					permissions.Delete,
+				))
+			}
+		}
+	}
+
+	err = principal.Authorize(rbac.Or(requiredPermissions...))
+	if err != nil {
+		return err
 	}
 
 	// Check if API is deleted
