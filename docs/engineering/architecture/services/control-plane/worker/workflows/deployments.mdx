@@ -171,7 +171,9 @@ After `createTopologies`, the Deploy run enters `waitForDeployments`, which awai
 `waitForDeployments` flow:
 
 1. Build per-region min replicas from the topologies just inserted.
-2. Require `numRegions - 1` healthy regions (minimum 1, tolerating one regional outage).
+2. Require `numRegions - 1` healthy regions (minimum 1, tolerating one regional outage). A region counts
+   as healthy only when it runs at least one instance, or more when its `autoscaling_replicas_min` asks
+   for more.
 3. Check the database once for instances that are already healthy.
 4. Otherwise await the promise, racing it against `regionReadyTimeout`.
 
