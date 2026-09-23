@@ -1,10 +1,18 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/audit/hooks/use-filters";
 import { FilterCheckbox } from "@/components/logs/checkbox/filter-checkbox";
 import { trpc } from "@/lib/trpc/client";
+import { getErrorMessage } from "@/lib/unkey-client";
+import { Button } from "@unkey/ui";
 
 export const UsersFilter = () => {
   const { filters, updateFilters } = useFilters();
-  const { data: users, isLoading } = trpc.audit.members.useQuery();
+  const { data: users, isLoading, isError, error, refetch } = trpc.audit.members.useQuery();
+
+  const retry = () => {
+    refetch().catch((retryError: unknown) => {
+      console.error("Failed to retry audit members query", retryError);
+    });
+  };
 
   if (isLoading) {
     return (
@@ -16,6 +24,19 @@ export const UsersFilter = () => {
             <div className="h-4 w-[120px] bg-grayA-3 rounded animate-pulse" />
           </div>
         ))}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center gap-3 px-4 py-6 text-center">
+        <span role="alert" className="text-gray-11 text-xs">
+          {getErrorMessage(error, "We couldn't load workspace members.")}
+        </span>
+        <Button variant="outline" onClick={retry}>
+          Retry
+        </Button>
       </div>
     );
   }

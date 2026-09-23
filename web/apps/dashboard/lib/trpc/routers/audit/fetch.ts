@@ -187,7 +187,8 @@ async function getCachedUser(userId: string): Promise<User | null> {
   let user: User | null;
   try {
     user = await auth.getUser(userId);
-  } catch {
+  } catch (error) {
+    console.error("Failed to fetch WorkOS user for audit actor", { userId, error });
     return null;
   }
 
