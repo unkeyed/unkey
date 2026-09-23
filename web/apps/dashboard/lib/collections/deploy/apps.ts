@@ -19,7 +19,6 @@ const schema = z.object({
   isRolledBack: z.boolean(),
   updatedAt: z.number().nullable(),
   repositoryFullName: z.string().nullable(),
-  latestDeploymentId: z.string().nullable(),
   domain: z.string().nullable(),
   headlineDeployment: z
     .object({
@@ -88,7 +87,36 @@ export const apps = createCollection<App, string>(
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");
       }
 
-      return trpcClient.deploy.app.list.query({ projectId });
+      const [pages, headlines, displayDomains] = await Promise.all([
+        getUnkeyClient().apps.listApps({ project: projectId, limit: 100 }),
+        trpcClient.deploy.deployment.listHeadlines.query({ projectId }),
+        trpcClient.deploy.domain.listDisplayDomains.query({ projectId }),
+      ]);
+      const headlineByApp = new Map(headlines.map(({ appId, ...headline }) => [appId, headline]));
+      const domainByApp = new Map(displayDomains.map((d) => [d.appId, d.domain]));
+
+      const apps: App[] = [];
+      for await (const page of pages) {
+        for (const app of page.result.data) {
+          const currentDeploymentId = app.currentDeploymentId ?? null;
+          apps.push({
+            id: app.id,
+            projectId,
+            name: app.name,
+            slug: app.slug,
+            sourceType: app.sourceType ?? "unknown",
+            imageReference: app.oci?.image ?? null,
+            defaultBranch: app.git?.defaultBranch || "main",
+            currentDeploymentId,
+            isRolledBack: app.isRolledBack,
+            updatedAt: app.updatedAt ?? null,
+            repositoryFullName: app.git?.repository ?? null,
+            domain: currentDeploymentId ? (domainByApp.get(app.id) ?? null) : null,
+            headlineDeployment: headlineByApp.get(app.id) ?? null,
+          });
+        }
+      }
+      return apps;
     },
     getKey: (item) => item.id,
     id: "apps",

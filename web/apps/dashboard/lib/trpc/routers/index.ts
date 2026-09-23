@@ -36,7 +36,6 @@ import { queryDeployUsage } from "./billing/query-deploy-usage";
 import { queryDeployUsageBreakdown } from "./billing/query-deploy-usage-breakdown";
 import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeseries";
 import { queryUsage } from "./billing/query-usage";
-import { listApps } from "./deploy/app/list";
 import { countCustomDomains } from "./deploy/custom-domains/count";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
@@ -47,8 +46,10 @@ import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
 import { listDeployments } from "./deploy/deployment/list";
 import { listActiveBranches } from "./deploy/deployment/list-active-branches";
 import { listDeploymentBranches } from "./deploy/deployment/list-branches";
+import { listDeploymentHeadlines } from "./deploy/deployment/list-headlines";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
+import { listDisplayDomains } from "./deploy/domains/list-display-domains";
 import { makeSensitive } from "./deploy/env-vars/make-sensitive";
 import { renameEnvVars } from "./deploy/env-vars/rename";
 import { getAvailableKeyspaces } from "./deploy/environment-settings/get-available-keyspaces";
@@ -340,9 +341,6 @@ export const router = t.router({
       list: listProjects,
       creationContext,
     }),
-    app: t.router({
-      list: listApps,
-    }),
     environmentSettings: t.router({
       getAvailableRegions,
       getAvailableKeyspaces,
@@ -356,12 +354,14 @@ export const router = t.router({
     }),
     domain: t.router({
       list: listDomains,
+      listDisplayDomains,
     }),
     customDomain: t.router({
       count: countCustomDomains,
     }),
     deployment: t.router({
       list: listDeployments,
+      listHeadlines: listDeploymentHeadlines,
       listBranches: listDeploymentBranches,
       listActiveBranches,
       getById: getDeploymentById,
