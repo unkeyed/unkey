@@ -66,7 +66,6 @@ export const ChooseSourceStep = ({
       const nextCreatedApp = { id: appId, sourceKind: source.kind };
       setCreatedApp(nextCreatedApp);
       onAppCreated(appId);
-      await collection.projects.utils.refetch();
 
       if (source.kind === "git") {
         try {

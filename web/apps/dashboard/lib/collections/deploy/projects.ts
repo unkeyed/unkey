@@ -4,31 +4,12 @@ import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
-import { DEPLOYMENT_STATUSES } from "./deployment-status";
-
-const appSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  customDomain: z.string().nullable(),
-  headlineDeployment: z
-    .object({
-      id: z.string(),
-      status: z.enum(DEPLOYMENT_STATUSES),
-      commitMessage: z.string().nullable(),
-      branch: z.string().nullable(),
-      deployedAt: z.number().int(),
-    })
-    .nullable(),
-});
 
 const schema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string(),
   isDefault: z.boolean(),
-  apps: z.array(appSchema),
-  repositoryFullName: z.string().nullable(),
-  currentDeploymentId: z.string().nullable(),
   createdAt: z.number().int(),
 });
 
@@ -46,7 +27,6 @@ export const createProjectRequestSchema = z.object({
 });
 
 export type Project = z.infer<typeof schema>;
-export type ProjectApp = z.infer<typeof appSchema>;
 export type CreateProjectRequestSchema = z.infer<typeof createProjectRequestSchema>;
 
 export function projectDisplayName(
@@ -62,7 +42,23 @@ export const projects = createCollection<Project, string>(
     queryKey: ["projects"],
     retry: 3,
     queryFn: async () => {
-      return await trpcClient.deploy.project.list.query({ includeDefault: true });
+      const [pages, defaultProject] = await Promise.all([
+        getUnkeyClient().projects.listProjects({ limit: 100 }),
+        trpcClient.deploy.project.getDefault.query(),
+      ]);
+      const projects: Project[] = defaultProject ? [{ ...defaultProject, isDefault: true }] : [];
+      for await (const page of pages) {
+        for (const p of page.result.data) {
+          projects.push({
+            id: p.id,
+            name: p.name,
+            slug: p.slug,
+            isDefault: false,
+            createdAt: p.createdAt,
+          });
+        }
+      }
+      return projects;
     },
     getKey: (item) => item.id,
     onDelete: async ({ transaction }) => {
