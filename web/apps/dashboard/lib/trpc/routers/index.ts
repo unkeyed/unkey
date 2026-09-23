@@ -110,7 +110,6 @@ import { createNamespace } from "./ratelimit/createNamespace";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
 import { ratelimitLlmSearch } from "./ratelimit/llm-search";
 import { listRatelimitNamespaces } from "./ratelimit/namespaces_list";
-import { listRatelimitOverrides } from "./ratelimit/overrides_list";
 import { queryRatelimitLastUsed } from "./ratelimit/query-last-used-times";
 import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
@@ -285,9 +284,6 @@ export const router = t.router({
         name: updateNamespaceName,
       }),
       delete: deleteNamespace,
-    }),
-    override: t.router({
-      list: listRatelimitOverrides,
     }),
   }),
   logs: t.router({

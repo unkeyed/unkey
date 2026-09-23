@@ -1,10 +1,13 @@
 "use client";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
-import { queryCollectionOptions } from "@tanstack/query-db-collection";
+import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
+import type { RatelimitOverride as ApiRatelimitOverride } from "@unkey/api/models/components";
+import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
-import { queryClient, trpcClient } from "../client";
+import { queryClient } from "../client";
+import { extractStringFilter } from "../deploy/utils";
 
 const schema = z.object({
   id: z.string(),
@@ -15,13 +18,62 @@ const schema = z.object({
 });
 export type RatelimitOverride = z.infer<typeof schema>;
 
+/**
+ * Ratelimit overrides collection.
+ *
+ * IMPORTANT: All queries MUST filter by namespaceId:
+ * .where(({ override }) => eq(override.namespaceId, namespaceId))
+ *
+ * Add eq(override.identifier, identifier) to load one override instead of the
+ * whole namespace. Mutations need their row loaded, so a component that updates
+ * or deletes an override holds such a query, see `useOverride`.
+ */
 export const ratelimitOverrides = createCollection<RatelimitOverride, string>(
   queryCollectionOptions({
     queryClient,
-    queryKey: ["ratelimitOverrides"],
-    queryFn: async () => {
-      console.info("DB fetching ratelimitOverrides");
-      return await trpcClient.ratelimit.override.list.query();
+    queryKey: (opts) => {
+      const { filters } = parseLoadSubsetOptions(opts);
+      const namespaceId = extractStringFilter(filters, "namespaceId");
+      const identifier = extractStringFilter(filters, "identifier");
+      return namespaceId
+        ? ["ratelimitOverrides", namespaceId, identifier ?? null]
+        : ["ratelimitOverrides"];
+    },
+    syncMode: "on-demand",
+    queryFn: async (ctx) => {
+      const { filters } = parseLoadSubsetOptions(ctx.meta?.loadSubsetOptions);
+      const namespaceId = extractStringFilter(filters, "namespaceId");
+      if (!namespaceId) {
+        throw new Error("Query must include eq(collection.namespaceId, namespaceId) constraint");
+      }
+
+      const identifier = extractStringFilter(filters, "identifier");
+      if (identifier !== undefined) {
+        try {
+          const { data } = await getUnkeyClient().ratelimit.getOverride({
+            namespace: namespaceId,
+            identifier,
+          });
+          return [toOverride(namespaceId, data)];
+        } catch (error) {
+          if (error instanceof NotFoundErrorResponse) {
+            return [];
+          }
+          throw error;
+        }
+      }
+
+      const pages = await getUnkeyClient().ratelimit.listOverrides({
+        namespace: namespaceId,
+        limit: 100,
+      });
+      const all: RatelimitOverride[] = [];
+      for await (const page of pages) {
+        for (const o of page.result.data) {
+          all.push(toOverride(namespaceId, o));
+        }
+      }
+      return all;
     },
     getKey: (item) => item.id,
     onInsert: async ({ transaction }) => {
@@ -81,3 +133,13 @@ ratelimitOverrides.createIndex((row) => [row.namespaceId, row.identifier], {
     unique: true,
   },
 });
+
+function toOverride(namespaceId: string, o: ApiRatelimitOverride): RatelimitOverride {
+  return {
+    id: o.overrideId,
+    namespaceId,
+    identifier: o.identifier,
+    limit: o.limit,
+    duration: o.duration,
+  };
+}
