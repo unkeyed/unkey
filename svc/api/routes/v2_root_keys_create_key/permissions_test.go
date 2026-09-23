@@ -11,7 +11,7 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_key"
 )
 
-func TestCreateStoresEveryCanonicalResourceAction(t *testing.T) {
+func TestCreateStoresEveryResourceAction(t *testing.T) {
 	h, route, p := newHarness(t)
 	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":"
 	catalog := map[string][]string{
@@ -61,7 +61,7 @@ func TestCreateStoresEveryCanonicalResourceAction(t *testing.T) {
 	require.ElementsMatch(t, requested, grants)
 }
 
-func TestCreateRejectsInvalidCanonicalResourceActionsAtomically(t *testing.T) {
+func TestCreateRejectsInvalidResourceActionsAtomically(t *testing.T) {
 	h, route, p := newHarness(t)
 	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":"
 	for _, permission := range []string{

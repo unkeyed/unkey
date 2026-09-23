@@ -21,13 +21,13 @@ func TestRootKeyDelegatesCreationThroughBearerAuthentication(t *testing.T) {
 		InternalProjectID:   r.RootKeySpace.ProjectID,
 	}
 	h.Register(route)
-	canonical := "unkey:v1:" + r.UserWorkspace.ID + ":rootKeys/*#write"
-	for _, grant := range []string{canonical, "unkey:v1:" + r.UserWorkspace.ID + ":**#*"} {
+	permission := "unkey:v1:" + r.UserWorkspace.ID + ":rootKeys/*#write"
+	for _, grant := range []string{permission, "unkey:v1:" + r.UserWorkspace.ID + ":**#*"} {
 		t.Run(grant, func(t *testing.T) {
 			bearer := h.CreateRootKey(r.UserWorkspace.ID, grant)
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 				"Authorization": {"Bearer " + bearer}, "Content-Type": {"application/json"},
-			}, handler.Request{Permissions: []string{canonical, canonical}})
+			}, handler.Request{Permissions: []string{permission, permission}})
 			require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 			child, err := db.Query.FindKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
 			require.NoError(t, err)
@@ -36,14 +36,14 @@ func TestRootKeyDelegatesCreationThroughBearerAuthentication(t *testing.T) {
 			require.False(t, child.IdentityID.Valid)
 			grants, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: child.ID})
 			require.NoError(t, err)
-			require.Equal(t, []string{canonical}, grants)
+			require.Equal(t, []string{permission}, grants)
 			grandchild := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 				"Authorization": {"Bearer " + res.Body.Data.Key}, "Content-Type": {"application/json"},
-			}, handler.Request{Permissions: []string{canonical}})
+			}, handler.Request{Permissions: []string{permission}})
 			require.Equal(t, http.StatusOK, grandchild.Status, "%s", grandchild.RawBody)
 			grandchildGrants, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: grandchild.Body.Data.KeyId})
 			require.NoError(t, err)
-			require.ElementsMatch(t, []string{canonical}, grandchildGrants)
+			require.ElementsMatch(t, []string{permission}, grandchildGrants)
 			logs := h.FindAuditLogsByTargetID(t.Context(), t, grandchild.Body.Data.KeyId)
 			require.Len(t, logs, 2)
 			for _, log := range logs {
@@ -74,7 +74,7 @@ func TestRootKeyRejectsUnauthorizedCreationWithoutWrites(t *testing.T) {
 	}
 	h.Register(route)
 	base := "unkey:v1:" + r.UserWorkspace.ID + ":"
-	canonical := base + "rootKeys/*#write"
+	permission := base + "rootKeys/*#write"
 	foreign := h.CreateApi(seed.CreateApiRequest{WorkspaceID: h.CreateWorkspace().ID})
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: r.UserWorkspace.ID})
 	scope := base + "projects/" + api.ProjectID + "/keyspaces/" + api.KeyAuthID.String
@@ -85,20 +85,20 @@ func TestRootKeyRejectsUnauthorizedCreationWithoutWrites(t *testing.T) {
 		status            int
 	}{
 		{"no creation capability", []string{decrypt}, []string{decrypt}, 403},
-		{"read is not write", []string{base + "rootKeys/*#read"}, []string{canonical}, 403},
-		{"wrong workspace capability", []string{"unkey:v1:" + foreign.WorkspaceID + ":rootKeys/*#write"}, []string{canonical}, 403},
-		{"concrete key does not cover creation wildcard", []string{base + "rootKeys/key_one#write"}, []string{canonical}, 403},
-		{"concrete subtree does not cover creation wildcard", []string{base + "rootKeys/key_one/**#write"}, []string{canonical}, 403},
-		{"project subtree does not cover workspace root keys", []string{base + "projects/*/**#write"}, []string{canonical}, 403},
-		{"creation cannot grant canonical global", []string{canonical}, []string{base + "**#*"}, 403},
-		{"legacy star cannot grant canonical global", []string{canonical, "*"}, []string{base + "**#*"}, 403},
-		{"legacy star cannot grant descendant write", []string{canonical, "*"}, []string{base + "projects/" + api.ProjectID + "/**#write"}, 403},
-		{"legacy star cannot grant workspace write", []string{canonical, "*"}, []string{base + "**#write"}, 403},
+		{"read is not write", []string{base + "rootKeys/*#read"}, []string{permission}, 403},
+		{"wrong workspace capability", []string{"unkey:v1:" + foreign.WorkspaceID + ":rootKeys/*#write"}, []string{permission}, 403},
+		{"concrete key does not cover creation wildcard", []string{base + "rootKeys/key_one#write"}, []string{permission}, 403},
+		{"concrete subtree does not cover creation wildcard", []string{base + "rootKeys/key_one/**#write"}, []string{permission}, 403},
+		{"project subtree does not cover workspace root keys", []string{base + "projects/*/**#write"}, []string{permission}, 403},
+		{"creation cannot grant global access", []string{permission}, []string{base + "**#*"}, 403},
+		{"legacy star cannot grant global access", []string{permission, "*"}, []string{base + "**#*"}, 403},
+		{"legacy star cannot grant descendant write", []string{permission, "*"}, []string{base + "projects/" + api.ProjectID + "/**#write"}, 403},
+		{"legacy star cannot grant workspace write", []string{permission, "*"}, []string{base + "**#write"}, 403},
 		{"legacy requests are invalid even for admins", []string{base + "**#*", "*"}, []string{"*"}, 400},
-		{"creation cannot grant unrelated action", []string{canonical}, []string{decrypt}, 403},
-		{"single key cannot grant all keys", []string{canonical, scope + "/keys/key_one#decrypt"}, []string{decrypt}, 403},
-		{"canonical scope cannot expand", []string{canonical, decrypt}, []string{base + "projects/*/keyspaces/*/keys/*#decrypt"}, 403},
-		{"foreign requested creation", []string{canonical}, []string{"unkey:v1:" + foreign.WorkspaceID + ":rootKeys/*#write"}, 400},
+		{"creation cannot grant unrelated action", []string{permission}, []string{decrypt}, 403},
+		{"single key cannot grant all keys", []string{permission, scope + "/keys/key_one#decrypt"}, []string{decrypt}, 403},
+		{"permission scope cannot expand", []string{permission, decrypt}, []string{base + "projects/*/keyspaces/*/keys/*#decrypt"}, 403},
+		{"foreign requested creation", []string{permission}, []string{"unkey:v1:" + foreign.WorkspaceID + ":rootKeys/*#write"}, 400},
 		{"foreign legacy API", []string{base + "**#*"}, []string{"api." + foreign.ID + ".decrypt_key"}, 400},
 		{"no workspace ID legacy equivalence", []string{base + "**#*"}, []string{"workspace." + r.UserWorkspace.ID + ".create_root_key"}, 400},
 	} {
