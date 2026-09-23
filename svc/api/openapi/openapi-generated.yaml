@@ -3919,7 +3919,7 @@ components:
                 permissions:
                     type: array
                     minItems: 0
-                    maxItems: 10000
+                    maxItems: 1000
                     description: Permissions to grant to the root key. Each permission must be within the caller's existing permissions.
                     items:
                         type: string
@@ -3930,7 +3930,7 @@ components:
                         - integer
                         - "null"
                     format: int64
-                    description: Expiration as Unix milliseconds, strictly in the future. Null or omitted means no expiration.
+                    description: Expiration as Unix milliseconds, strictly in the future. Expiring root-key callers must provide a child expiry no later than their own. JWT admins and nonexpiring root-key callers may omit it or set null for no expiration.
         V2RootKeysCreateKeyResponseBody:
             type: object
             required:

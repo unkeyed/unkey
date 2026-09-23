@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -52,8 +53,8 @@ func TestCreatePermissionCountLimits(t *testing.T) {
 		status int
 	}{
 		{"empty", 0, http.StatusOK},
-		{"maximum", 10000, http.StatusOK},
-		{"above maximum", 10001, http.StatusBadRequest},
+		{"maximum", 1000, http.StatusOK},
+		{"above maximum", 1001, http.StatusBadRequest},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			requested := make([]string, tt.count)
@@ -101,6 +102,26 @@ func TestCreateRejectsLegacyPermissionsAtomically(t *testing.T) {
 			require.Equal(t, before, snapshot(t, h))
 		})
 	}
+}
+
+func TestCreateStoresMaximumDistinctPermissions(t *testing.T) {
+	h, route, p := newHarness(t)
+	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":"
+	requested := []string{base + "rootKeys/*#write"}
+	p.Permissions = []string{requested[0]}
+	for i := range 999 {
+		project := fmt.Sprintf("%sprojects/proj_%04d", base, i)
+		p.Permissions = append(p.Permissions, project+"/keyspaces/*#read")
+		requested = append(requested, project+"/keyspaces/ks_one#read")
+	}
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
+	}, handler.Request{Permissions: requested})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	stored, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: res.Body.Data.KeyId})
+	require.NoError(t, err)
+	require.ElementsMatch(t, requested, stored)
+	require.Len(t, h.FindAuditLogsByTargetID(t.Context(), t, res.Body.Data.KeyId), 1001)
 }
 
 func TestCreateStoresPermissionWithoutLegacyEquivalent(t *testing.T) {

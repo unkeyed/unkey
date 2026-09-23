@@ -3,13 +3,61 @@ package handler_test
 import (
 	"net/http"
 	"testing"
+	"time"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_key"
 )
+
+func TestExpiringRootKeyBoundsChildLifetime(t *testing.T) {
+	h := testutil.NewHarness(t)
+	r := h.Resources()
+	route := &handler.Handler{
+		DB: h.DB, Keys: h.Keys, Auditlogs: h.Auditlogs, Clock: h.Clock,
+		InternalWorkspaceID: r.RootWorkspace.ID,
+		InternalKeyspaceID:  r.RootKeySpace.ID, InternalProjectID: r.RootKeySpace.ProjectID,
+	}
+	h.Register(route)
+	permission := "unkey:v1:" + r.UserWorkspace.ID + ":rootKeys/*#write"
+	expires := h.Clock.Now().Add(time.Hour).Truncate(time.Second)
+	parent := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: r.RootWorkspace.ID, KeySpaceID: r.RootKeySpace.ID,
+		ForWorkspaceID: ptr.P(r.UserWorkspace.ID), Expires: &expires,
+		Permissions: []seed.CreatePermissionRequest{{WorkspaceID: r.RootWorkspace.ID, Name: permission, Slug: permission}},
+	})
+	for _, tt := range []struct {
+		name    string
+		expires nullable.Nullable[int64]
+		status  int
+	}{
+		{"omitted", nullable.Nullable[int64]{}, http.StatusBadRequest},
+		{"null", nullable.NewNullNullable[int64](), http.StatusBadRequest},
+		{"later", nullable.NewNullableWithValue(expires.UnixMilli() + 1), http.StatusBadRequest},
+		{"equal", nullable.NewNullableWithValue(expires.UnixMilli()), http.StatusOK},
+		{"earlier", nullable.NewNullableWithValue(expires.Add(-time.Minute).UnixMilli()), http.StatusOK},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			before := snapshot(t, h)
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+				"Authorization": {"Bearer " + parent.Key}, "Content-Type": {"application/json"},
+			}, handler.Request{Permissions: []string{permission}, Expires: tt.expires})
+			require.Equal(t, tt.status, res.Status, "%s", res.RawBody)
+			if tt.status != http.StatusOK {
+				require.Equal(t, before, snapshot(t, h))
+				return
+			}
+			child, err := db.Query.FindKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+			require.NoError(t, err)
+			require.True(t, child.Expires.Valid)
+			require.Equal(t, tt.expires.MustGet(), child.Expires.Time.UnixMilli())
+		})
+	}
+}
 
 func TestRootKeyDelegatesCreationThroughBearerAuthentication(t *testing.T) {
 	h := testutil.NewHarness(t)

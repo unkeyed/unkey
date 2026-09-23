@@ -99,6 +99,48 @@ func TestParseV1RejectsInvalidValues(t *testing.T) {
 	}
 }
 
+// TestParseV1RejectsUnsafeIDs guarantees IDs cannot contain characters that
+// databases or analytics systems may normalize or interpret.
+func TestParseV1RejectsUnsafeIDs(t *testing.T) {
+	t.Parallel()
+
+	for _, value := range []string{
+		"unkey:v1:ws／admin:projects/proj_123",
+		"unkey:v1:ws＊admin:projects/proj_123",
+		"unkey:v1:ws\u200badmin:projects/proj_123",
+		"unkey:v1:ws admin:projects/proj_123",
+		"unkey:v1:ws'admin:projects/proj_123",
+		`unkey:v1:ws"admin:projects/proj_123`,
+		`unkey:v1:ws\admin:projects/proj_123`,
+		"unkey:v1:wés:projects/proj_123",
+		"unkey:v1:ws_123:projects/proj／admin",
+		"unkey:v1:ws_123:projects/proj＊admin",
+		"unkey:v1:ws_123:projects/proj\u200badmin",
+		"unkey:v1:ws_123:projects/proj admin",
+		"unkey:v1:ws_123:projects/proj'admin",
+		`unkey:v1:ws_123:projects/proj"admin`,
+		`unkey:v1:ws_123:projects/proj\admin`,
+		"unkey:v1:ws_123:projects/équipe",
+	} {
+		value := value
+		t.Run(value, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := ParseV1(value)
+			require.ErrorIs(t, err, ErrInvalidResourceName)
+		})
+	}
+}
+
+func TestParseV1PreservesCaseAndAllowsASCIIIDs(t *testing.T) {
+	t.Parallel()
+
+	value := "unkey:v1:Ws_One-2:projects/Project_One-2"
+	parsed, err := ParseV1(value)
+	require.NoError(t, err)
+	require.Equal(t, value, parsed.String())
+}
+
 // TestResourceCatalogBuilders guarantees every typed builder produces a
 // canonical resource path.
 func TestResourceCatalogBuilders(t *testing.T) {

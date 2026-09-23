@@ -2,6 +2,7 @@ package principal
 
 import (
 	"log/slog"
+	"time"
 
 	"github.com/unkeyed/unkey/pkg/logger"
 	"github.com/unkeyed/unkey/pkg/rbac"
@@ -118,6 +119,9 @@ type KeySource struct {
 
 	// Permissions are the raw RBAC permission strings attached to the key.
 	Permissions []string
+
+	// ExpiresAt is the authenticated key's expiry. Nil means the key does not expire.
+	ExpiresAt *time.Time
 }
 
 func (KeySource) principalSource() {}
