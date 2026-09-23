@@ -15,7 +15,11 @@ import (
 // TestClassifyFailure locks the two classification paths: a build-step failure
 // is build_failed by step (its message is not stable across the Restate
 // boundary), and every other step is matched against the shared deployfail
-// constants the worker writes.
+// constants.
+//
+// The runtime-settings messages reach the classifier only on rows written
+// while the check still ran inside the starting step. ctrl Create refuses
+// those settings before a row exists, so nothing writes them today
 func TestClassifyFailure(t *testing.T) {
 	const deploying = db.DeploymentStepsStepDeploying
 	const starting = db.DeploymentStepsStepStarting

@@ -16,6 +16,11 @@ data:
     cname_domain = "unkey.local"
     database = "unkey:password@tcp(mysql:3306)/unkey?parseTime=true&interpolateParams=true"
 
+    [vstream]
+    address = "mysql:33575"
+    keyspace = "unkey"
+    insecure = true
+
     [restate]
     url = "http://restate:8080"
     admin_url = "http://restate:9070"

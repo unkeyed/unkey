@@ -1,3 +1,4 @@
+import { dns1035 } from "@unkey/id";
 import { relations } from "drizzle-orm";
 import { boolean, json, mysqlTable, varchar } from "drizzle-orm/mysql-core";
 import { apis } from "./apis";
@@ -29,7 +30,10 @@ export const workspaces = mysqlTable("workspaces", {
   // slug is used for the workspace URL
   slug: varchar("slug", { length: 64 }).notNull().unique(),
 
-  k8sNamespace: varchar("k8s_namespace", { length: 256 }).unique(),
+  k8sNamespace: varchar("k8s_namespace", { length: 256 })
+    .$defaultFn(() => dns1035())
+    .notNull()
+    .unique(),
 
   /**
    * feature flags

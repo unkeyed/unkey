@@ -66,6 +66,9 @@ type Controller struct {
 
 	// storageClassName is the Kubernetes StorageClass for ephemeral volumes.
 	storageClassName string
+
+	// disableGvisor drops the gVisor sandbox from user workloads.
+	disableGvisor bool
 }
 
 // Config holds the configuration required to create a new [Controller].
@@ -117,6 +120,10 @@ type Config struct {
 
 	// StorageClassName is the Kubernetes StorageClass for ephemeral volumes.
 	StorageClassName string
+
+	// DisableGvisor drops the gVisor sandbox from user workloads, leaving them
+	// on the node's default runtime.
+	DisableGvisor bool
 }
 
 // New creates a [Controller] ready to be started with [Controller.Start].
@@ -147,6 +154,7 @@ func New(cfg Config) *Controller {
 		reportLocks:      keymutex.KeyMutex{},
 		lagRecorder:      podstatus.NewLagRecorder("deployment", cfg.ObservedTransitions),
 		storageClassName: cfg.StorageClassName,
+		disableGvisor:    cfg.DisableGvisor,
 	}
 }
 
