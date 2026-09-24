@@ -111,7 +111,6 @@ export function RollbackDialog({
             )}
             {additional.length > 0 && (
               <InfoTooltip
-                variant="inverted"
                 position={{ side: "top" }}
                 triggerClassName="ml-1.5 inline-flex align-middle"
                 content={
