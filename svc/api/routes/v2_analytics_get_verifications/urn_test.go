@@ -14,9 +14,9 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
 
-// TestCanonicalLogReadScopesRowsByOwnership guarantees that exact, wildcard,
-// and union grants expose only rows covered by ownership-derived log URNs.
-func TestCanonicalLogReadScopesRowsByOwnership(t *testing.T) {
+// TestURNLogReadScopesRowsByOwnership guarantees that exact, wildcard,
+// and union permissions expose only rows covered by ownership-derived log URNs.
+func TestURNLogReadScopesRowsByOwnership(t *testing.T) {
 	h := testutil.NewHarness(t, testutil.HarnessConfig{ClickHouse: true})
 	workspace := h.CreateWorkspace()
 	allowedAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
