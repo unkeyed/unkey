@@ -4,7 +4,11 @@ import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-
 import { createCollection } from "@tanstack/react-db";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
-import { DEPLOYMENT_STATUSES, type DeploymentStatus } from "./deployment-status";
+import {
+  DEPLOYMENT_STATUSES,
+  DEPLOYMENT_STATUS_LABELS,
+  type DeploymentStatus,
+} from "./deployment-status";
 import { INSTANCE_STATUSES } from "./instance-status";
 import { type ParsedFilter, extractStringFilter, extractStringValues } from "./utils";
 
@@ -124,7 +128,7 @@ function readDeploymentSubset(opts: Parameters<typeof parseLoadSubsetOptions>[0]
     limit,
     projectIds: extractStringValues(filters, "projectId"),
     statuses: extractStringValues(filters, "status").filter((s): s is DeploymentStatus =>
-      (DEPLOYMENT_STATUSES as readonly string[]).includes(s),
+      Object.hasOwn(DEPLOYMENT_STATUS_LABELS, s),
     ),
     appId: extractStringFilter(filters, "appId"),
     deploymentIds: extractDeploymentIds(filters),

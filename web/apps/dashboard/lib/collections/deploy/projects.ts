@@ -46,19 +46,18 @@ export const projects = createCollection<Project, string>(
         getUnkeyClient().projects.listProjects({ limit: 100 }),
         trpcClient.deploy.project.getDefault.query(),
       ]);
-      const projects: Project[] = defaultProject ? [{ ...defaultProject, isDefault: true }] : [];
-      for await (const page of pages) {
-        for (const p of page.result.data) {
-          projects.push({
+      const listed = (await Array.fromAsync(pages)).flatMap((page) =>
+        page.result.data.map(
+          (p): Project => ({
             id: p.id,
             name: p.name,
             slug: p.slug,
             isDefault: false,
             createdAt: p.createdAt,
-          });
-        }
-      }
-      return projects;
+          }),
+        ),
+      );
+      return defaultProject ? [{ ...defaultProject, isDefault: true }, ...listed] : listed;
     },
     getKey: (item) => item.id,
     onDelete: async ({ transaction }) => {
