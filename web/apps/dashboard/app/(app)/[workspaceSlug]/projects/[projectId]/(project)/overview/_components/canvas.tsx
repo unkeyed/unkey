@@ -297,12 +297,28 @@ function AppCard({ app, href }: { app: OverviewApp; href: Route }) {
 
 const METRIC_COLS = "grid grid-cols-[minmax(0,1fr)_52px_72px] items-center gap-x-3";
 
-function MetricHead({ columns }: { columns: [string, string] }) {
+function MetricHeader({
+  icon,
+  title,
+  count,
+  href,
+  columns,
+}: {
+  icon: ReactNode;
+  title: string;
+  count: number;
+  href: Route;
+  columns: [string, string];
+}) {
   return (
-    <div className={cn(METRIC_COLS, "px-3 pt-2 pb-1 text-[11px] text-gray-9")}>
-      <span />
-      <span className="text-right">{columns[0]}</span>
-      <span className="text-right">{columns[1]}</span>
+    <div className={cn(METRIC_COLS, "px-3 py-2.5 not-last:border-b [border-color:inherit]")}>
+      <Link href={href} className="flex min-w-0 items-center gap-2 hover:text-gray-12">
+        <span className="text-gray-11 [&_svg]:size-4">{icon}</span>
+        <span className="truncate text-[13px] font-medium text-gray-12">{title}</span>
+        <span className="text-xs text-gray-9">{count}</span>
+      </Link>
+      <span className="text-right text-[11px] text-gray-9">{columns[0]}</span>
+      <span className="text-right text-[11px] text-gray-9">{columns[1]}</span>
     </div>
   );
 }
@@ -324,17 +340,14 @@ function MetricRow({
 function KeyspacesCard({ data, links }: { data: ProjectOverview; links: CanvasLinks }) {
   return (
     <Card>
-      <CardHeader
+      <MetricHeader
         icon={<IconNodesOutline18 />}
         title="Keyspaces"
-        right={
-          <Link href={links.allKeyspaces} className="text-xs text-gray-9 hover:text-gray-12">
-            {data.keyspaces.length}
-          </Link>
-        }
+        count={data.keyspaces.length}
+        href={links.allKeyspaces}
+        columns={["Keys", "Verified 7d"]}
       />
-      <div className="pb-1">
-        <MetricHead columns={["Keys", "Verified 7d"]} />
+      <div className="py-1">
         {data.keyspaces.slice(0, 3).map((ks) => (
           <KeyspaceRow
             key={ks.apiId}
@@ -391,17 +404,14 @@ function RatelimitsCard({ data, links }: { data: ProjectOverview; links: CanvasL
   });
   return (
     <Card>
-      <CardHeader
+      <MetricHeader
         icon={<IconGaugeOutline18 />}
         title="Ratelimits"
-        right={
-          <Link href={links.allRatelimits} className="text-xs text-gray-9 hover:text-gray-12">
-            {data.ratelimits.length}
-          </Link>
-        }
+        count={data.ratelimits.length}
+        href={links.allRatelimits}
+        columns={["Requests", "Blocked"]}
       />
-      <div className="pb-1">
-        <MetricHead columns={["Requests", "Blocked"]} />
+      <div className="py-1">
         {shown.map((ns) => {
           const series = ts?.timeseriesByNamespace[ns.id] ?? [];
           const total = series.reduce((a, p) => a + p.y.total, 0);
