@@ -55,7 +55,7 @@ describe("WorkspaceProvider", () => {
 
   it("does not refetch the current user after an unauthorized response", () => {
     render(
-      <WorkspaceProvider>
+      <WorkspaceProvider initialUser={null}>
         <div>Dashboard</div>
       </WorkspaceProvider>,
     );

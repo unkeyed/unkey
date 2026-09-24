@@ -1,4 +1,4 @@
-import { CopyButton, InfoTooltip } from "@unkey/ui";
+import { CopyButton, InfoHoverCard } from "@unkey/ui";
 
 type OverrideIdentifierCellProps = {
   identifier: string;
@@ -7,7 +7,7 @@ type OverrideIdentifierCellProps = {
 export const OverrideIdentifierCell = ({ identifier }: OverrideIdentifierCellProps) => {
   return (
     <div className="inline-flex items-start pl-2">
-      <InfoTooltip
+      <InfoHoverCard
         content={
           <div className="flex gap-3">
             <div className="flex justify-start items-center break-all max-w-[400px] secret">
@@ -23,7 +23,7 @@ export const OverrideIdentifierCell = ({ identifier }: OverrideIdentifierCellPro
         <pre className="text-[11px] text-gray-11 sm:max-w-[100px] md:max-w-[100px] lg:max-w-[320px] xl:max-w-[600px] truncate secret">
           {identifier}
         </pre>
-      </InfoTooltip>
+      </InfoHoverCard>
     </div>
   );
 };

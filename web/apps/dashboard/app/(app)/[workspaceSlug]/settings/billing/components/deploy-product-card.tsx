@@ -6,7 +6,7 @@ import { routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import { IconCubeOutline18 } from "@unkey/icons";
-import { Button, DialogContainer, InfoTooltip, Skeleton, toast } from "@unkey/ui";
+import { Button, DialogContainer, InfoHoverCard, InfoTooltip, Skeleton, toast } from "@unkey/ui";
 import { useState } from "react";
 import { ComputePausedBadge } from "./compute-paused";
 import {
@@ -440,7 +440,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                 </div>
                 <div className="mt-1 flex items-baseline justify-between gap-4 border-t pt-2">
                   <span className="text-[13px] text-gray-12">
-                    <InfoTooltip
+                    <InfoHoverCard
                       asChild
                       position={{ side: "top", align: "start" }}
                       content={
@@ -479,7 +479,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                         Next invoice
                         {renewsAtMillis !== null ? ` · ${formatRenewalDate(renewsAtMillis)}` : ""}
                       </span>
-                    </InfoTooltip>
+                    </InfoHoverCard>
                     {/* Projected adds the usage still expected before the period
                         closes, since the overage row only counts what has accrued. */}
                     {projectedOverageCents !== null &&
