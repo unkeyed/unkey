@@ -439,7 +439,7 @@ function CommandBar({ actions }: { actions: CanvasActions }) {
     { label: "Add ratelimit", icon: <IconGaugeOutline18 />, run: actions.createRatelimit },
   ];
   return (
-    <div className="absolute bottom-4 left-5 flex items-center gap-0.5 rounded-xl bg-raised p-1 shadow-floating">
+    <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-xl bg-raised p-1 shadow-floating">
       {items.map((item) => (
         <InfoTooltip key={item.label} content={item.label} asChild>
           <button
@@ -462,7 +462,7 @@ const AGENT_PROMPT =
 function AgentHint() {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="absolute bottom-5 left-40 flex items-center gap-3 text-xs text-gray-11">
+    <div className="absolute bottom-16 left-1/2 flex -translate-x-1/2 items-center gap-3 text-xs text-gray-11">
       <IconSquareTerminalOutline18 className="size-3.5 text-gray-9" />
       <span>Or paste one prompt into Claude, Cursor or Codex.</span>
       <button
