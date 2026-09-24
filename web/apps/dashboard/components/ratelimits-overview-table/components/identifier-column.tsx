@@ -6,7 +6,7 @@ import {
   IconFocusOutline18,
   IconTriangleWarningOutline18,
 } from "@unkey/icons";
-import { InfoTooltip } from "@unkey/ui";
+import { InfoHoverCard, InfoTooltip } from "@unkey/ui";
 import { cn } from "cn";
 import { getBlockedPercentage, isMostlyBlocked } from "../utils/calculate-blocked-percentage";
 import { getStatusStyle } from "../utils/get-row-class";
@@ -24,7 +24,6 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
   return (
     <div className="flex gap-6 items-center pl-2 min-w-0">
       <InfoTooltip
-        variant="inverted"
         content={
           <div className="text-xs">
             {isFullyBlocked ? (
@@ -61,7 +60,6 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
         </div>
         <InfoTooltip
           asChild
-          variant="inverted"
           content={<span className="font-mono text-xs break-all">{log.identifier}</span>}
         >
           <div
@@ -88,8 +86,7 @@ type OverrideIndicatorProps = {
 };
 
 const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProps) => (
-  <InfoTooltip
-    variant="muted"
+  <InfoHoverCard
     content={
       <div className="flex flex-row pl-1 pr-5 gap-3 py-0 items-center justify-center leading-none">
         <div
@@ -126,5 +123,5 @@ const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProp
         )}
       />
     </div>
-  </InfoTooltip>
+  </InfoHoverCard>
 );
