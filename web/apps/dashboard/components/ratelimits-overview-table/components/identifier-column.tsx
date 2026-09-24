@@ -6,7 +6,7 @@ import {
   IconFocusOutline18,
   IconTriangleWarningOutline18,
 } from "@unkey/icons";
-import { InfoTooltip } from "@unkey/ui";
+import { InfoHoverCard, InfoTooltip } from "@unkey/ui";
 import { cn } from "cn";
 import { getBlockedPercentage, isMostlyBlocked } from "../utils/calculate-blocked-percentage";
 import { getStatusStyle } from "../utils/get-row-class";
@@ -86,10 +86,16 @@ type OverrideIndicatorProps = {
 };
 
 const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProps) => (
-  <InfoTooltip
+  <InfoHoverCard
     content={
       <div className="flex flex-row pl-1 pr-5 gap-3 py-0 items-center justify-center leading-none">
-        <div className={cn(style.badge.default, "rounded-sm p-1", "bg-gray-1/15")}>
+        <div
+          className={cn(
+            style.badge.default,
+            "rounded-sm p-1",
+            "bg-gray-4 text-gray-12 group-hover:bg-gray-5",
+          )}
+        >
           <IconArrowDotRotateAnticlockwiseOutline18 className="size-3.5" />
         </div>
         <div className="flex flex-col gap-1">
@@ -98,9 +104,9 @@ const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProp
             <div className="size-[6px] rounded-full bg-warning-10" />
           </div>
           {log.override && (
-            <div className="text-xs">
-              <span className="opacity-75">Limit set to</span> {formatNumber(log.override.limit)}{" "}
-              <span className="opacity-75">requests per</span> {formatMs(log.override.duration)}
+            <div className="text-gray-9 text-xs">
+              Limit set to <span className="text-gray-12">{formatNumber(log.override.limit)} </span>
+              requests per <span className="text-gray-12">{formatMs(log.override.duration)}</span>
             </div>
           )}
         </div>
@@ -117,5 +123,5 @@ const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProp
         )}
       />
     </div>
-  </InfoTooltip>
+  </InfoHoverCard>
 );
