@@ -42,7 +42,9 @@ export const useWorkspace = () => {
   return context;
 };
 
-export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => {
+export const WorkspaceProvider: React.FC<
+  PropsWithChildren<{ initialUser: AuthenticatedUser | null }>
+> = ({ children, initialUser }) => {
   const pathname = usePathname();
 
   // This provider sits in the root layout, so it also wraps the auth pages.
@@ -54,6 +56,7 @@ export const WorkspaceProvider: React.FC<PropsWithChildren> = ({ children }) => 
   const userQuery = trpc.user.getCurrentUser.useQuery(undefined, {
     ...baseQueryOptions,
     enabled: !isAuthRoute,
+    initialData: initialUser ?? undefined,
     retry: createRetryFn(2),
     refetchInterval: 1000 * 60 * 10, // 10 minutes
   });

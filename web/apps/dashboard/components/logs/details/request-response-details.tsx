@@ -83,7 +83,6 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
 
     return (
       <InfoTooltip
-        variant="inverted"
         delayDuration={150}
         position={{ side: "bottom", align: "center" }}
         key={`${field.label}-${index}`}

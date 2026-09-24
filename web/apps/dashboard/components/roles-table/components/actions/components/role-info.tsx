@@ -13,7 +13,6 @@ export const RoleInfo = ({ roleDetails }: { roleDetails: RoleBasic }) => {
           {roleDetails.name ?? "Unnamed Role"}
         </div>
         <InfoTooltip
-          variant="inverted"
           content={roleDetails.name}
           position={{ side: "bottom", align: "center" }}
           asChild
