@@ -11,14 +11,14 @@ export function TopNavFeedbackButton({ className }: { className?: string }) {
   return (
     <Tooltip>
       <TooltipTrigger
-        aria-label="Feedback"
+        aria-label="Give feedback"
         onClick={() => openFeedback(true, "feedback")}
         className={cn(TOP_NAV_ICON_BUTTON_CLASS, className)}
       >
         <IconChatsOutline18 className="size-3.5" />
       </TooltipTrigger>
       <TooltipContent side="bottom" align="center" className={TOP_NAV_TOOLTIP_CLASS}>
-        Feedback
+        Give feedback
       </TooltipContent>
     </Tooltip>
   );
