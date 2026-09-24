@@ -1,16 +1,10 @@
 import { trpc } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
 
-export const useUpsertRole = (
-  onSuccess: (data: {
-    roleId?: string;
-    isUpdate: boolean;
-    message: string;
-  }) => void,
-) => {
+export const useUpdateRole = (onSuccess: () => void) => {
   const trpcUtils = trpc.useUtils();
 
-  const role = trpc.authorization.roles.upsert.useMutation({
+  const role = trpc.authorization.roles.update.useMutation({
     async onSuccess(data) {
       await Promise.all([
         trpcUtils.authorization.roles.query.invalidate(),
@@ -21,11 +15,11 @@ export const useUpsertRole = (
       ]);
 
       // Show success toast
-      toast.success(data.isUpdate ? "Role Updated" : "Role Created", {
+      toast.success("Role Updated", {
         description: data.message,
       });
 
-      onSuccess(data);
+      onSuccess();
     },
     onError(err) {
       if (err.data?.code === "CONFLICT") {
