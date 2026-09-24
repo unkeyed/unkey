@@ -5,6 +5,7 @@ import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { IconSidebarLeftHideOutline18, IconSidebarLeftShowOutline18 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { cn } from "cn";
+import { NAV_TOOLTIP_CLASS } from "../nav-tooltip";
 import { SidebarBody } from "./sidebar-body";
 import { UsageBanner } from "./usage-banner";
 import { UsageCard } from "./usage-card";
@@ -63,11 +64,7 @@ function CollapseButton() {
           </button>
         }
       />
-      <TooltipContent
-        side="right"
-        align="center"
-        className="dark:bg-white bg-black text-gray-1 px-2 py-1 border border-gray-6 shadow-md font-medium text-xs"
-      >
+      <TooltipContent side="right" align="center" className={NAV_TOOLTIP_CLASS}>
         {label}
       </TooltipContent>
     </Tooltip>

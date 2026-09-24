@@ -5,6 +5,7 @@ import { useRender } from "@base-ui/react/use-render";
 import { type VariantProps, cva } from "class-variance-authority";
 import * as React from "react";
 
+import { NAV_TOOLTIP_CLASS } from "@/components/navigation/nav-tooltip";
 import {
   Sheet,
   SheetContent,
@@ -432,7 +433,7 @@ const SidebarMenuButton = React.forwardRef<
       <Tooltip>
         <TooltipTrigger render={button as React.ReactElement} />
         <TooltipContent
-          className="dark:bg-white bg-black text-gray-1 px-2 py-1 border border-gray-6 shadow-md font-medium text-xs"
+          className={NAV_TOOLTIP_CLASS}
           side="right"
           align="center"
           hidden={state !== "collapsed" || isMobile}

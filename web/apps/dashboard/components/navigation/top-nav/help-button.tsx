@@ -19,7 +19,8 @@ import {
 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { useState } from "react";
-import { TOP_NAV_ICON_BUTTON_CLASS, TOP_NAV_TOOLTIP_CLASS } from "./icon-button";
+import { NAV_TOOLTIP_CLASS } from "../nav-tooltip";
+import { TOP_NAV_ICON_BUTTON_CLASS } from "./icon-button";
 import { StatusWidget } from "./status-widget";
 
 const ITEM_LINKS = [
@@ -47,7 +48,7 @@ export function HelpButton() {
         >
           <IconCircleQuestionOutline18 className="size-3.5" />
         </DropdownMenuTrigger>
-        <TooltipContent side="bottom" className={TOP_NAV_TOOLTIP_CLASS}>
+        <TooltipContent side="bottom" className={NAV_TOOLTIP_CLASS}>
           Help
         </TooltipContent>
       </Tooltip>
