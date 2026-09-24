@@ -12,11 +12,7 @@ export function ImageSource({
 
   if (!image) {
     return (
-      <InfoTooltip
-        content="No source info"
-        variant="inverted"
-        position={{ side: "top", align: "start" }}
-      >
+      <InfoTooltip content="No source info" position={{ side: "top", align: "start" }}>
         <span className="flex items-center gap-1 min-w-0">
           <IconLayers2Outline18 className="size-3 text-gray-12 shrink-0" />
           <span className="font-mono text-xs text-gray-12">unknown</span>
@@ -28,7 +24,6 @@ export function ImageSource({
   return (
     <InfoTooltip
       content={copyValue && copyValue !== image ? `Resolved image: ${copyValue}` : image}
-      variant="inverted"
       position={{ side: "top", align: "start" }}
       asChild
     >

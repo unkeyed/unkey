@@ -139,23 +139,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	projectResourceID := "*"
-	appResourceID := "*"
-	environmentResourceID := "*"
-	if projectID != "" {
-		projectResourceID = projectID
-	}
-	if appID != "" {
-		appResourceID = appID
-	}
-	if environmentID != "" {
-		environmentResourceID = environmentID
-	}
-
 	err = principal.Authorize(rbac.Or(
 		legacyPermission,
 		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectResourceID).App(appResourceID).Environment(environmentResourceID).Deployment("*"),
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).
+				Project(fallbackIfEmpty(projectID, "*")).
+				App(fallbackIfEmpty(appID, "*")).
+				Environment(fallbackIfEmpty(environmentID, "*")).
+				Deployment("*"),
 			permissions.Read,
 		),
 	))
@@ -284,4 +275,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		Data:       data,
 		Pagination: pg,
 	})
+}
+
+// fallbackIfEmpty returns fallback when value is empty.
+func fallbackIfEmpty(value, fallback string) string {
+	if value == "" {
+		return fallback
+	}
+	return value
 }

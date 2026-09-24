@@ -1,6 +1,7 @@
 "use client";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, FormInput, InfoTooltip, SettingCard, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
@@ -19,7 +20,7 @@ export function UpdateWorkspaceName() {
   // mutation; we mirror it on the client purely for UX so non-admin members
   // get a clear "admin required" affordance instead of a request that fails
   // with FORBIDDEN.
-  const { data: currentUser } = trpc.user.getCurrentUser.useQuery();
+  const { user: currentUser } = useWorkspace();
   const isAdmin = currentUser?.role === "admin";
 
   const formSchema = z.object({
@@ -54,7 +55,6 @@ export function UpdateWorkspaceName() {
       toast.success("Workspace name updated");
       // Force immediate refetch of all workspace-related queries
       await Promise.all([
-        utils.user.getCurrentUser.refetch(),
         utils.workspace.getCurrent.refetch(),
         utils.user.listMemberships.refetch(),
         utils.workspace.listAvailable.invalidate(),
