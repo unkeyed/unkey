@@ -50,7 +50,6 @@ export function IdChip({ deployment, href }: { deployment: Deployment; href: Rou
   return (
     <InfoTooltip
       content={DEPLOYMENT_STATUS_LABELS[deployment.status]}
-      variant="inverted"
       position={{ side: "top" }}
       asChild
     >
@@ -107,7 +106,6 @@ export function OriginCell({ deployment }: { deployment: Deployment }) {
   return (
     <InfoTooltip
       content={origin.tooltip}
-      variant="inverted"
       position={{ side: "top" }}
       triggerClassName="relative z-20 flex min-w-0 items-center gap-2"
     >
@@ -130,7 +128,6 @@ export function SourceChip({
     return (
       <InfoTooltip
         content={origin.tooltip}
-        variant="inverted"
         position={{ side: "top" }}
         triggerClassName={cn(CHIP_CLASS, "relative z-20")}
       >

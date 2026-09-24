@@ -446,26 +446,23 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                       content={
                         <div className="flex max-w-[240px] flex-col gap-2 text-[12px]">
                           <div className="flex flex-col gap-0.5">
-                            <p className="font-medium text-gray-12">How this is calculated</p>
-                            <p className="text-gray-11">
+                            <p className="font-medium">How this is calculated</p>
+                            <p className="opacity-75">
                               This period's {formatDollars(periodFeeCents)} fee is already invoiced
                               and covers {formatDollars(includedCreditCents)} of usage. The next
                               invoice charges what your usage went past that, plus the coming
                               period's fee.
                             </p>
-                            <p className="text-gray-11 tabular-nums">
+                            <p className="opacity-75 tabular-nums">
                               {formatPrice(overageCents)} + {formatDollars(planFee)} ={" "}
                               {formatPrice(nextInvoiceCents ?? overageCents + planFee)}
                             </p>
                           </div>
-                          <div className="flex flex-col gap-1 border-t pt-2">
-                            <p className="font-medium text-gray-12">Usage rates</p>
+                          <div className="flex flex-col gap-1 border-t border-gray-1/20 pt-2">
+                            <p className="font-medium">Usage rates</p>
                             <ul className="flex flex-col gap-0.5">
                               {DEPLOY_METER_RATE_LABELS.map((r) => (
-                                <li
-                                  key={r.label}
-                                  className="flex justify-between gap-3 text-gray-11"
-                                >
+                                <li key={r.label} className="flex justify-between gap-3 opacity-75">
                                   <span>{r.label}</span>
                                   <span className="tabular-nums">{r.rate}</span>
                                 </li>

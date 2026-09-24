@@ -9,7 +9,7 @@ export const OverrideIdCell = ({ id }: OverrideIdCellProps) => {
     <div className="pl-2">
       <InfoTooltip
         content={
-          <div className="inline-flex justify-center gap-3 items-center font-mono text-xs text-gray-11">
+          <div className="inline-flex justify-center gap-3 items-center font-mono text-xs">
             <span className="secret">{id}</span>
             <CopyButton className="secret" value={id} />
           </div>

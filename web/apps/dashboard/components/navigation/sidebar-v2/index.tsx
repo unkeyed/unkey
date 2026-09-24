@@ -63,11 +63,7 @@ function CollapseButton() {
           </button>
         }
       />
-      <TooltipContent
-        side="right"
-        align="center"
-        className="dark:bg-white bg-black text-gray-1 px-2 py-1 border border-gray-6 shadow-md font-medium text-xs"
-      >
+      <TooltipContent side="right" align="center">
         {label}
       </TooltipContent>
     </Tooltip>

@@ -22,14 +22,8 @@ import {
   IconSunOutline18,
   IconUserOutline18,
 } from "@unkey/icons";
-import { cn } from "cn";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-
-type UserButtonProps = {
-  isCollapsed?: boolean;
-  className?: string;
-};
 
 const THEMES = [
   { value: "system", label: "System", icon: IconLaptop2Outline18 },
@@ -37,7 +31,7 @@ const THEMES = [
   { value: "dark", label: "Dark", icon: IconMoonStarsOutline18 },
 ] as const;
 
-export function UserButton({ isCollapsed = false, className }: UserButtonProps) {
+export function UserButton() {
   const { user } = useWorkspace();
   const workspace = useWorkspaceNavigation();
   const { theme, setTheme } = useTheme();
@@ -47,18 +41,12 @@ export function UserButton({ isCollapsed = false, className }: UserButtonProps) 
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Account menu"
-        className={cn(
-          "px-2 py-1 flex hover:bg-grayA-4 rounded-lg min-w-0 cursor-pointer",
-          isCollapsed ? "justify-center size-8 p-0" : "justify-between gap-2 grow h-8",
-          className,
-        )}
+        className="group/user flex shrink-0 cursor-pointer rounded-full focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-gray-6"
       >
-        <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
-          <Avatar className="size-6 rounded-full border border-input">
-            {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt="Profile picture" />}
-            <AvatarFallback name={user?.email ?? "Username"} />
-          </Avatar>
-        </div>
+        <Avatar className="size-6 rounded-full border border-input transition-colors group-hover/user:border-strong group-data-[popup-open]/user:border-strong">
+          {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt="Profile picture" />}
+          <AvatarFallback name={user?.email ?? "Username"} />
+        </Avatar>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="bottom" align="end" className="w-56 p-0">
         {user?.email && (
