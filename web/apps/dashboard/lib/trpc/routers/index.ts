@@ -76,6 +76,7 @@ import { getInstanceRps } from "./deploy/network/get-instance-rps";
 import { getRegionRps } from "./deploy/network/get-region-rps";
 import { creationContext } from "./deploy/project/creation-context";
 import { listProjects } from "./deploy/project/list";
+import { projectOverview } from "./deploy/project/overview";
 import { createSharedSecret } from "./share/create";
 import { revealSharedSecret } from "./share/reveal";
 
@@ -395,6 +396,7 @@ export const router = t.router({
     project: t.router({
       list: listProjects,
       creationContext,
+      overview: projectOverview,
     }),
     app: t.router({
       list: listApps,

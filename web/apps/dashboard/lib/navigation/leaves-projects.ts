@@ -1,6 +1,7 @@
 // Kept apart from ./leaves.ts so deleting the flag deletes that file whole.
 import {
   IconArrowsOppositeDirectionYOutline18,
+  IconChartActivityOutline18,
   IconCubeOutline18,
   IconFingerprintOutline18,
   IconGaugeOutline18,
@@ -72,6 +73,13 @@ export function buildProjectLinks(
   const page = segments[2];
   const scope = { workspaceSlug: slug, projectId };
   return [
+    {
+      key: "overview",
+      label: "Overview",
+      href: routes.projects.overview(scope),
+      icon: IconChartActivityOutline18,
+      isActive: page === "overview",
+    },
     {
       key: "apps",
       label: "Apps",
