@@ -17,12 +17,10 @@ import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
 import { listAuditMembers } from "./audit/members";
-import { deletePermissionWithRelations } from "./authorization/permissions/delete";
 import { permissionsLlmSearch } from "./authorization/permissions/llm-search";
 import { queryPermissions } from "./authorization/permissions/query";
 import { upsertPermission } from "./authorization/permissions/upsert";
 import { getConnectedKeysAndPerms } from "./authorization/roles/connected-keys-and-perms";
-import { deleteRoleWithRelations } from "./authorization/roles/delete";
 import { queryKeys } from "./authorization/roles/keys/query-keys";
 import { searchKeys } from "./authorization/roles/keys/search-key";
 import { rolesLlmSearch } from "./authorization/roles/llm-search";
@@ -244,7 +242,6 @@ export const router = t.router({
     permissions: t.router({
       query: queryPermissions,
       upsert: upsertPermission,
-      delete: deletePermissionWithRelations,
       llmSearch: permissionsLlmSearch,
     }),
     roles: t.router({
@@ -258,7 +255,6 @@ export const router = t.router({
         query: queryRolesPermissions,
       }),
       upsert: upsertRole,
-      delete: deleteRoleWithRelations,
       llmSearch: rolesLlmSearch,
       connectedKeysAndPerms: getConnectedKeysAndPerms,
     }),
