@@ -139,16 +139,24 @@ func isLogReadAction(resource urn.V1, action string) bool {
 	return action == permissions.Read.String() || action == permissions.Wildcard && resource.Resource == "**"
 }
 
+// canCoverRatelimitLogs accepts log resources and subtree permissions rooted
+// at their ancestors. A namespace alone does not include its logs.
 func canCoverRatelimitLogs(resource urn.V1) bool {
-	segments := strings.Split(resource.Resource, "/")
-	projectID, namespaceID := "project", "namespace"
-	if len(segments) > 1 && segments[0] == "projects" && segments[1] != "*" {
-		projectID = segments[1]
+	if resource.Resource == "**" {
+		return true
 	}
-	if len(segments) > 4 && segments[3] == "namespaces" && segments[4] != "*" {
-		namespaceID = segments[4]
+	base, descendants := strings.CutSuffix(resource.String(), "/**")
+	if _, err := urn.ParseRatelimitLogs(base); err == nil {
+		return true
 	}
-	return resource.Covers(ratelimitLogResource(resource.WorkspaceID, projectID, namespaceID))
+	if !descendants {
+		return false
+	}
+	if _, err := urn.ParseRatelimitNamespace(base); err == nil {
+		return true
+	}
+	_, err := urn.ParseProject(base)
+	return err == nil
 }
 
 func authorizedNamespaceIDs(rows []db.ListRatelimitNamespaceOwnershipByWorkspaceRow, permissions []urn.V1, workspaceID string) []string {
