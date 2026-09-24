@@ -11,7 +11,7 @@ import (
 )
 
 // TestInstallGithubAuthorization guarantees that installation requires either
-// the canonical collection write grant or its legacy equivalent.
+// the URN collection write permission or its legacy equivalent.
 func TestInstallGithubAuthorization(t *testing.T) {
 	h := testutil.NewHarness(t)
 
@@ -31,17 +31,17 @@ func TestInstallGithubAuthorization(t *testing.T) {
 		{name: "wrong action", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "app-level permission", permissions: []string{"app.*.read_app"}, shouldPass: false},
 		{
-			name:        "canonical grant for another workspace",
+			name:        "URN permission for another workspace",
 			permissions: []string{fmt.Sprintf("unkey:v1:%s:github/apps/*#write", otherWorkspace.ID)},
 			shouldPass:  false,
 		},
 		{
-			name:        "canonical collection grant with wrong action",
+			name:        "URN collection permission with wrong action",
 			permissions: []string{fmt.Sprintf("unkey:v1:%s:github/apps/*#read", workspace.ID)},
 			shouldPass:  false,
 		},
 		{
-			name:        "canonical concrete app grant",
+			name:        "URN concrete app permission",
 			permissions: []string{fmt.Sprintf("unkey:v1:%s:github/apps/github_app_123#write", workspace.ID)},
 			shouldPass:  false,
 		},
