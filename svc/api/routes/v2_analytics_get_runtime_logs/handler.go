@@ -88,11 +88,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	return s.Send(http.StatusOK, responseBytes)
 }
 
-// runtimeLogSecurityScopes converts grants that cover runtime logs into row
-// scopes. It returns nil only when one grant covers every log in the workspace.
-func runtimeLogSecurityScopes(workspaceID string, granted []string) ([]queryparser.SecurityScope, bool) {
+// runtimeLogSecurityScopes converts permissions that cover runtime logs into row
+// scopes. It returns nil only when one permission covers every log in the workspace.
+func runtimeLogSecurityScopes(workspaceID string, permissionsToCheck []string) ([]queryparser.SecurityScope, bool) {
 	securityScopes := make([]queryparser.SecurityScope, 0)
-	for _, permission := range granted {
+	for _, permission := range permissionsToCheck {
 		if permission == "*" || permission == "project.*.read_runtime_logs" {
 			return nil, true
 		}
@@ -137,7 +137,7 @@ func runtimeLogSecurityScopes(workspaceID string, granted []string) ([]querypars
 }
 
 // runtimeLogAncestry returns the project-to-deployment prefix covered by a
-// canonical log resource or a canonical descendant grant.
+// URN log resource or a URN descendant permission.
 func runtimeLogAncestry(resource string) ([]string, bool) {
 	parts := strings.Split(resource, "/")
 	descendants := parts[len(parts)-1] == "**"

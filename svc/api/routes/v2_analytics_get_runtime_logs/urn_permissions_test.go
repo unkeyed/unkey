@@ -8,7 +8,9 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
-func Test200_CanonicalGlobalGrantReadsWorkspaceLogs(t *testing.T) {
+// Test200_URNGlobalPermissionReadsWorkspaceLogs verifies that **#* reads logs
+// from the authorized workspace but not from another workspace.
+func Test200_URNGlobalPermissionReadsWorkspaceLogs(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("unkey:v1:%s:**#*", workspaceID))
 
@@ -22,7 +24,9 @@ func Test200_CanonicalGlobalGrantReadsWorkspaceLogs(t *testing.T) {
 	require.Equal(t, []map[string]any{{"message": "mine"}}, res.Body.Data)
 }
 
-func Test200_CanonicalRuntimeLogWildcardReadsWorkspaceLogs(t *testing.T) {
+// Test200_URNRuntimeLogWildcardReadsWorkspaceLogs verifies that a wildcard
+// runtime-log permission reads all logs in its workspace.
+func Test200_URNRuntimeLogWildcardReadsWorkspaceLogs(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf(
 		"unkey:v1:%s:projects/*/apps/*/environments/*/deployments/*/logs#read",
@@ -39,12 +43,12 @@ func Test200_CanonicalRuntimeLogWildcardReadsWorkspaceLogs(t *testing.T) {
 	require.Equal(t, []map[string]any{{"message": "first"}, {"message": "second"}}, res.Body.Data)
 }
 
-// Test200_CanonicalDeploymentGrantUnionPreservesAncestry guarantees independent
+// Test200_URNDeploymentPermissionUnionPreservesAncestry guarantees independent
 // column value lists cannot turn two allowed deployment paths into a Cartesian
 // product that exposes crossed ancestry rows.
-func Test200_CanonicalDeploymentGrantUnionPreservesAncestry(t *testing.T) {
+func Test200_URNDeploymentPermissionUnionPreservesAncestry(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	grant := func(projectID, appID, environmentID, deploymentID string) string {
+	permissionFor := func(projectID, appID, environmentID, deploymentID string) string {
 		return fmt.Sprintf(
 			"unkey:v1:%s:projects/%s/apps/%s/environments/%s/deployments/%s/logs#read",
 			workspaceID,
@@ -55,8 +59,8 @@ func Test200_CanonicalDeploymentGrantUnionPreservesAncestry(t *testing.T) {
 		)
 	}
 	rootKey := h.CreateRootKey(workspaceID,
-		grant("proj_a", "app_a", "env_a", "dep_a"),
-		grant("proj_b", "app_b", "env_b", "dep_b"),
+		permissionFor("proj_a", "app_a", "env_a", "dep_a"),
+		permissionFor("proj_b", "app_b", "env_b", "dep_b"),
 	)
 
 	insertLog(t, h, runtimeLog{logID: "log_allowed_a", workspaceID: workspaceID, projectID: "proj_a", appID: "app_a", environmentID: "env_a", deploymentID: "dep_a"})
@@ -75,7 +79,9 @@ func Test200_CanonicalDeploymentGrantUnionPreservesAncestry(t *testing.T) {
 	}, res.Body.Data)
 }
 
-func Test200_CanonicalAncestorGrantScopesProjectLogs(t *testing.T) {
+// Test200_URNAncestorPermissionScopesProjectLogs verifies that a project
+// descendant permission reads that project's logs but not a sibling's logs.
+func Test200_URNAncestorPermissionScopesProjectLogs(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf(
 		"unkey:v1:%s:projects/proj_allowed/**#read",
@@ -92,7 +98,9 @@ func Test200_CanonicalAncestorGrantScopesProjectLogs(t *testing.T) {
 	require.Equal(t, []map[string]any{{"log_id": "log_allowed"}}, res.Body.Data)
 }
 
-func Test200_CanonicalGrantWithoutMatchingRowsReturnsEmpty(t *testing.T) {
+// Test200_URNPermissionWithoutMatchingRowsReturnsEmpty verifies that a valid
+// permission for a missing deployment returns no logs instead of all logs.
+func Test200_URNPermissionWithoutMatchingRowsReturnsEmpty(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf(
 		"unkey:v1:%s:projects/proj_missing/apps/app_missing/environments/env_missing/deployments/dep_missing/logs#read",
@@ -107,7 +115,9 @@ func Test200_CanonicalGrantWithoutMatchingRowsReturnsEmpty(t *testing.T) {
 	require.Empty(t, res.Body.Data)
 }
 
-func Test200_CanonicalLogDescendantsIncludeTheLogResource(t *testing.T) {
+// Test200_URNLogDescendantsIncludeTheLogResource verifies that logs/** includes
+// the logs resource itself while preserving deployment scope.
+func Test200_URNLogDescendantsIncludeTheLogResource(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf(
 		"unkey:v1:%s:projects/proj_a/apps/app_a/environments/env_a/deployments/dep_a/logs/**#read", workspaceID,
@@ -119,7 +129,9 @@ func Test200_CanonicalLogDescendantsIncludeTheLogResource(t *testing.T) {
 	require.Equal(t, []map[string]any{{"log_id": "allowed"}}, res.Body.Data)
 }
 
-func Test403_RejectsCanonicalGrantsOutsideRuntimeLogReadScope(t *testing.T) {
+// Test403_RejectsURNPermissionsOutsideRuntimeLogReadScope verifies that empty,
+// wrong-action, wrong-workspace, and wrong-resource permissions are rejected.
+func Test403_RejectsURNPermissionsOutsideRuntimeLogReadScope(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	otherWorkspaceID := h.CreateWorkspace().ID
 
