@@ -84,7 +84,7 @@ export function Canvas({
         backgroundSize: "14px 14px",
       }}
     >
-      <div className="flex min-h-[420px] w-full min-w-[860px] items-start justify-center px-6 pt-6 pb-24">
+      <div className="flex w-full min-w-[860px] items-start px-5 pt-5 pb-20">
         {hasApps ? (
           <>
             <Group label={`Apps · ${data.apps.length}`} href={links.allApps}>
@@ -153,7 +153,7 @@ export function Canvas({
 
 function Group({ label, href, children }: { label: string; href?: Route; children: ReactNode }) {
   return (
-    <div className="flex min-w-0 max-w-[340px] flex-1 flex-col gap-2 rounded-xl bg-grayA-4 p-2.5 backdrop-blur-sm">
+    <div className="flex min-w-0 max-w-[340px] flex-1 flex-col gap-2 rounded-xl bg-grayA-3 p-2.5 backdrop-blur-sm">
       <div className="flex items-center justify-between px-1 pb-0.5">
         <span className="text-xs text-gray-11">{label}</span>
         {href && (
@@ -207,7 +207,7 @@ function Card({
 
 function CardHeader({ icon, title, right }: { icon: ReactNode; title: string; right?: ReactNode }) {
   return (
-    <div className="flex items-center gap-2 border-b px-3 py-2.5 [border-color:inherit]">
+    <div className="flex items-center gap-2 px-3 py-2.5 not-last:border-b [border-color:inherit]">
       <span className="text-gray-11 [&_svg]:size-4">{icon}</span>
       <span className="min-w-0 truncate text-[13px] font-medium text-gray-12">{title}</span>
       {right && <span className="ml-auto shrink-0">{right}</span>}
@@ -263,9 +263,7 @@ function AppCard({ app, href }: { app: OverviewApp; href: Route }) {
           </span>
           <span className="shrink-0 text-gray-9">{ago(d.createdAt)}</span>
         </div>
-      ) : (
-        <div className="px-3 py-2 text-xs text-gray-9">Push to deploy, or deploy from here.</div>
-      )}
+      ) : null}
     </Card>
   );
 }
@@ -440,7 +438,7 @@ function CommandBar({ actions }: { actions: CanvasActions }) {
     { label: "Add ratelimit", icon: <IconGaugeOutline18 />, run: actions.createRatelimit },
   ];
   return (
-    <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-xl bg-raised p-1 shadow-floating">
+    <div className="absolute bottom-4 left-5 flex items-center gap-0.5 rounded-xl bg-raised p-1 shadow-floating">
       {items.map((item) => (
         <InfoTooltip key={item.label} content={item.label} asChild>
           <button
@@ -463,7 +461,7 @@ const AGENT_PROMPT =
 function AgentHint() {
   const [copied, setCopied] = useState(false);
   return (
-    <div className="absolute bottom-20 left-1/2 flex -translate-x-1/2 items-center gap-3 text-xs text-gray-11">
+    <div className="absolute bottom-5 left-40 flex items-center gap-3 text-xs text-gray-11">
       <IconSquareTerminalOutline18 className="size-3.5 text-gray-9" />
       <span>Or paste one prompt into Claude, Cursor or Codex.</span>
       <button
