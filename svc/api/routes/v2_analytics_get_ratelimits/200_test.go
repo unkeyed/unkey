@@ -17,16 +17,16 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
-// Test200_CanonicalExactGrantReturnsOnlyOwnedNamespace guarantees a canonical
-// log grant cannot read another project in the same workspace.
-func Test200_CanonicalExactGrantReturnsOnlyOwnedNamespace(t *testing.T) {
+// Test200_URNExactPermissionReturnsOnlyOwnedNamespace guarantees a URN
+// log permission cannot read another project in the same workspace.
+func Test200_URNExactPermissionReturnsOnlyOwnedNamespace(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	allowedProjectID := createProject(t, h, workspaceID)
 	otherProjectID := createProject(t, h, workspaceID)
 	allowedNamespaceID := createNamespaceInProject(t, h, workspaceID, allowedProjectID, uid.New("test"))
 	otherNamespaceID := createNamespaceInProject(t, h, workspaceID, otherProjectID, uid.New("test"))
-	grant := urn.New().Workspace(workspaceID).Project(allowedProjectID).RatelimitNamespace(allowedNamespaceID).Logs()
-	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("%s#%s", grant.String(), permissions.Read))
+	permission := urn.New().Workspace(workspaceID).Project(allowedProjectID).RatelimitNamespace(allowedNamespaceID).Logs()
+	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("%s#%s", permission.String(), permissions.Read))
 
 	for _, namespaceID := range []string{allowedNamespaceID, otherNamespaceID} {
 		h.RatelimitEvents.Buffer(schema.Ratelimit{
@@ -47,9 +47,9 @@ func Test200_CanonicalExactGrantReturnsOnlyOwnedNamespace(t *testing.T) {
 	}, 30*time.Second, time.Second)
 }
 
-// Test200_CanonicalProjectWildcardFiltersEveryUnionBranch guarantees a project
+// Test200_URNProjectWildcardFiltersEveryUnionBranch guarantees a project
 // wildcard returns all owned namespaces without leaking another project or workspace.
-func Test200_CanonicalProjectWildcardFiltersEveryUnionBranch(t *testing.T) {
+func Test200_URNProjectWildcardFiltersEveryUnionBranch(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	allowedProjectID := createProject(t, h, workspaceID)
 	otherProjectID := createProject(t, h, workspaceID)
@@ -63,8 +63,8 @@ func Test200_CanonicalProjectWildcardFiltersEveryUnionBranch(t *testing.T) {
 	foreign := createNamespaceInProject(t, h, foreignWorkspace.ID, foreignProjectID, uid.New("test"))
 	h.SetupAnalytics(foreignWorkspace.ID)
 
-	grant := urn.New().Workspace(workspaceID).Project(allowedProjectID).RatelimitNamespace("*").Logs()
-	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("%s#%s", grant.String(), permissions.Read))
+	permission := urn.New().Workspace(workspaceID).Project(allowedProjectID).RatelimitNamespace("*").Logs()
+	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("%s#%s", permission.String(), permissions.Read))
 	for eventWorkspaceID, namespaceIDs := range map[string][]string{
 		workspaceID:         append(allowed, other),
 		foreignWorkspace.ID: {foreign},
@@ -95,23 +95,23 @@ func Test200_CanonicalProjectWildcardFiltersEveryUnionBranch(t *testing.T) {
 	}, 30*time.Second, time.Second)
 }
 
-// Test200_LegacyAndCanonicalGrantsUnionAllowedNamespaces guarantees migration
+// Test200_LegacyAndURNPermissionsUnionAllowedNamespaces guarantees migration
 // can combine both permission formats without widening either scope.
-func Test200_LegacyAndCanonicalGrantsUnionAllowedNamespaces(t *testing.T) {
+func Test200_LegacyAndURNPermissionsUnionAllowedNamespaces(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	firstProjectID := createProject(t, h, workspaceID)
 	secondProjectID := createProject(t, h, workspaceID)
 	legacyNamespaceID := createNamespaceInProject(t, h, workspaceID, firstProjectID, uid.New("test"))
-	canonicalNamespaceID := createNamespaceInProject(t, h, workspaceID, secondProjectID, uid.New("test"))
+	urnNamespaceID := createNamespaceInProject(t, h, workspaceID, secondProjectID, uid.New("test"))
 	forbiddenNamespaceID := createNamespaceInProject(t, h, workspaceID, secondProjectID, uid.New("test"))
-	canonicalGrant := urn.New().Workspace(workspaceID).Project(secondProjectID).RatelimitNamespace(canonicalNamespaceID).Logs()
+	urnPermission := urn.New().Workspace(workspaceID).Project(secondProjectID).RatelimitNamespace(urnNamespaceID).Logs()
 	rootKey := h.CreateRootKey(
 		workspaceID,
 		"ratelimit."+legacyNamespaceID+".read_analytics",
-		fmt.Sprintf("%s#%s", canonicalGrant.String(), permissions.Read),
+		fmt.Sprintf("%s#%s", urnPermission.String(), permissions.Read),
 	)
 
-	for _, namespaceID := range []string{legacyNamespaceID, canonicalNamespaceID, forbiddenNamespaceID} {
+	for _, namespaceID := range []string{legacyNamespaceID, urnNamespaceID, forbiddenNamespaceID} {
 		h.RatelimitEvents.Buffer(schema.Ratelimit{
 			RequestID:   uid.New(uid.RequestPrefix),
 			Time:        time.Now().UnixMilli(),
@@ -128,21 +128,21 @@ func Test200_LegacyAndCanonicalGrantsUnionAllowedNamespaces(t *testing.T) {
 		require.Equal(c, 200, res.Status)
 		require.ElementsMatch(c, []map[string]any{
 			{"namespace_id": legacyNamespaceID},
-			{"namespace_id": canonicalNamespaceID},
+			{"namespace_id": urnNamespaceID},
 		}, res.Body.Data)
 	}, 30*time.Second, time.Second)
 }
 
-// Test200_CanonicalScopeRejectsWrongProjectAndNamespaceNameCollision guarantees
-// canonical IDs are checked as IDs and an empty resolution returns no rows.
-func Test200_CanonicalScopeRejectsWrongProjectAndNamespaceNameCollision(t *testing.T) {
+// Test200_URNScopeRejectsWrongProjectAndNamespaceNameCollision guarantees
+// URN IDs are checked as IDs and an empty resolution returns no rows.
+func Test200_URNScopeRejectsWrongProjectAndNamespaceNameCollision(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
-	grantedProjectID := createProject(t, h, workspaceID)
+	allowedProjectID := createProject(t, h, workspaceID)
 	wrongProjectID := createProject(t, h, workspaceID)
 	wrongProjectNamespaceID := createNamespaceInProject(t, h, workspaceID, wrongProjectID, uid.New("test"))
-	nameCollisionNamespaceID := createNamespaceInProject(t, h, workspaceID, grantedProjectID, wrongProjectNamespaceID)
-	grant := urn.New().Workspace(workspaceID).Project(grantedProjectID).RatelimitNamespace(wrongProjectNamespaceID).Logs()
-	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("%s#%s", grant.String(), permissions.Read))
+	nameCollisionNamespaceID := createNamespaceInProject(t, h, workspaceID, allowedProjectID, wrongProjectNamespaceID)
+	permission := urn.New().Workspace(workspaceID).Project(allowedProjectID).RatelimitNamespace(wrongProjectNamespaceID).Logs()
+	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("%s#%s", permission.String(), permissions.Read))
 
 	for _, namespaceID := range []string{wrongProjectNamespaceID, nameCollisionNamespaceID} {
 		h.RatelimitEvents.Buffer(schema.Ratelimit{
@@ -163,9 +163,9 @@ func Test200_CanonicalScopeRejectsWrongProjectAndNamespaceNameCollision(t *testi
 	}, 30*time.Second, time.Second)
 }
 
-// Test200_CanonicalWorkspaceWideGrantsPreserveMetadataFreeHistory guarantees
+// Test200_URNWorkspaceWidePermissionsPreserveMetadataFreeHistory guarantees
 // complete workspace scopes do not depend on namespace metadata but remain workspace-bound.
-func Test200_CanonicalWorkspaceWideGrantsPreserveMetadataFreeHistory(t *testing.T) {
+func Test200_URNWorkspaceWidePermissionsPreserveMetadataFreeHistory(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	foreignWorkspace := h.CreateWorkspace()
 	h.SetupAnalytics(foreignWorkspace.ID)
@@ -187,13 +187,13 @@ func Test200_CanonicalWorkspaceWideGrantsPreserveMetadataFreeHistory(t *testing.
 	}
 
 	workspaceLogs := urn.New().Workspace(workspaceID).Project("*").RatelimitNamespace("*").Logs()
-	grants := map[string]string{
+	permissionCases := map[string]string{
 		"workspace log wildcard": fmt.Sprintf("%s#%s", workspaceLogs.String(), permissions.Read),
 		"global admin":           fmt.Sprintf("unkey:v1:%s:**#*", workspaceID),
 	}
-	for name, grant := range grants {
+	for name, permission := range permissionCases {
 		t.Run(name, func(t *testing.T) {
-			rootKey := h.CreateRootKey(workspaceID, grant)
+			rootKey := h.CreateRootKey(workspaceID, permission)
 			require.EventuallyWithT(t, func(c *assert.CollectT) {
 				res := testutil.CallRoute[Request, Response](h, route, auth(rootKey), Request{Query: "SELECT namespace_id FROM ratelimits_v1"})
 				require.Equal(c, 200, res.Status)
@@ -322,8 +322,8 @@ func Test200_SoftDeletedNamespace(t *testing.T) {
 	projectID := createProject(t, h, workspaceID)
 	id := createNamespaceInProject(t, h, workspaceID, projectID, uid.New("test"))
 	require.NoError(t, db.Query.SoftDeleteRatelimitNamespace(context.Background(), h.DB.RW(), db.SoftDeleteRatelimitNamespaceParams{ID: id, Now: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true}}))
-	grant := urn.New().Workspace(workspaceID).Project(projectID).RatelimitNamespace(id).Logs()
-	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("%s#%s", grant.String(), permissions.Read))
+	permission := urn.New().Workspace(workspaceID).Project(projectID).RatelimitNamespace(id).Logs()
+	rootKey := h.CreateRootKey(workspaceID, fmt.Sprintf("%s#%s", permission.String(), permissions.Read))
 	h.RatelimitEvents.Buffer(schema.Ratelimit{
 		RequestID:   uid.New(uid.RequestPrefix),
 		Time:        time.Now().UnixMilli(),
