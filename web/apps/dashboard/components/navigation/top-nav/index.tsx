@@ -48,8 +48,8 @@ export function TopNav() {
           </Fragment>
         ))}
       </div>
-      <div className="ml-auto flex shrink-0 items-center gap-1">
-        <TopNavFeedbackButton className="hidden md:inline-flex" />
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        <TopNavFeedbackButton className="hidden md:flex" />
         <HelpButton />
         <UserButton />
         <button

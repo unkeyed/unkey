@@ -78,7 +78,6 @@ export function EnvironmentBadge({
           <span>{detail}</span>
         </span>
       }
-      variant="inverted"
       position={{ side: "top" }}
       triggerClassName="relative z-20 inline-flex items-center"
     >
