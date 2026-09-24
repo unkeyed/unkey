@@ -19,7 +19,7 @@ import { auditLogsSearch } from "./audit/llm-search";
 import { listAuditMembers } from "./audit/members";
 import { permissionsLlmSearch } from "./authorization/permissions/llm-search";
 import { queryPermissions } from "./authorization/permissions/query";
-import { upsertPermission } from "./authorization/permissions/upsert";
+import { updatePermission } from "./authorization/permissions/update";
 import { getConnectedKeysAndPerms } from "./authorization/roles/connected-keys-and-perms";
 import { queryKeys } from "./authorization/roles/keys/query-keys";
 import { searchKeys } from "./authorization/roles/keys/search-key";
@@ -27,7 +27,7 @@ import { rolesLlmSearch } from "./authorization/roles/llm-search";
 import { queryRolesPermissions } from "./authorization/roles/permissions/query-permissions";
 import { searchRolesPermissions } from "./authorization/roles/permissions/search-permissions";
 import { queryRoles } from "./authorization/roles/query";
-import { upsertRole } from "./authorization/roles/upsert";
+import { updateRole } from "./authorization/roles/update";
 import { getDeployBudget, setDeployBudget } from "./billing/deploy-budget";
 import { queryComputeAllocation } from "./billing/query-compute-allocation";
 import { queryDeployUsage } from "./billing/query-deploy-usage";
@@ -241,7 +241,7 @@ export const router = t.router({
   authorization: t.router({
     permissions: t.router({
       query: queryPermissions,
-      upsert: upsertPermission,
+      update: updatePermission,
       llmSearch: permissionsLlmSearch,
     }),
     roles: t.router({
@@ -254,7 +254,7 @@ export const router = t.router({
         search: searchRolesPermissions,
         query: queryRolesPermissions,
       }),
-      upsert: upsertRole,
+      update: updateRole,
       llmSearch: rolesLlmSearch,
       connectedKeysAndPerms: getConnectedKeysAndPerms,
     }),
