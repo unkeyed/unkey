@@ -22,13 +22,8 @@ import {
   IconSunOutline18,
   IconUserOutline18,
 } from "@unkey/icons";
-import { cn } from "cn";
 import { useTheme } from "next-themes";
 import Link from "next/link";
-
-type UserButtonProps = {
-  className?: string;
-};
 
 const THEMES = [
   { value: "system", label: "System", icon: IconLaptop2Outline18 },
@@ -36,7 +31,7 @@ const THEMES = [
   { value: "dark", label: "Dark", icon: IconMoonStarsOutline18 },
 ] as const;
 
-export function UserButton({ className }: UserButtonProps) {
+export function UserButton() {
   const { user } = useWorkspace();
   const workspace = useWorkspaceNavigation();
   const { theme, setTheme } = useTheme();
@@ -46,7 +41,7 @@ export function UserButton({ className }: UserButtonProps) {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="Account menu"
-        className={cn("group/user flex shrink-0 cursor-pointer rounded-full", className)}
+        className="group/user flex shrink-0 cursor-pointer rounded-full"
       >
         <Avatar className="size-6 rounded-full border border-input transition-colors group-hover/user:border-strong group-data-[popup-open]/user:border-strong">
           {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt="Profile picture" />}

@@ -46,7 +46,7 @@ export function HelpButton() {
         >
           <IconCircleQuestionOutline18 className="size-3.5" />
         </DropdownMenuTrigger>
-        <TooltipContent side="bottom" align="center" className={TOP_NAV_TOOLTIP_CLASS}>
+        <TooltipContent side="bottom" className={TOP_NAV_TOOLTIP_CLASS}>
           Help
         </TooltipContent>
       </Tooltip>
