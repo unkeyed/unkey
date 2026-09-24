@@ -295,6 +295,32 @@ function AppCard({ app, href }: { app: OverviewApp; href: Route }) {
   );
 }
 
+const METRIC_COLS = "grid grid-cols-[minmax(0,1fr)_52px_72px] items-center gap-x-3";
+
+function MetricHead({ columns }: { columns: [string, string] }) {
+  return (
+    <div className={cn(METRIC_COLS, "px-3 pt-2 pb-1 text-[11px] text-gray-9")}>
+      <span />
+      <span className="text-right">{columns[0]}</span>
+      <span className="text-right">{columns[1]}</span>
+    </div>
+  );
+}
+
+function MetricRow({
+  href,
+  name,
+  values,
+}: { href: Route; name: string; values: [string, string] }) {
+  return (
+    <Link href={href} className={cn(METRIC_COLS, "px-3 py-1.5 text-xs hover:bg-grayA-2")}>
+      <span className="truncate text-gray-12">{name}</span>
+      <span className="text-right text-gray-11 tabular-nums">{values[0]}</span>
+      <span className="text-right text-gray-11 tabular-nums">{values[1]}</span>
+    </Link>
+  );
+}
+
 function KeyspacesCard({ data, links }: { data: ProjectOverview; links: CanvasLinks }) {
   return (
     <Card>
@@ -307,7 +333,8 @@ function KeyspacesCard({ data, links }: { data: ProjectOverview; links: CanvasLi
           </Link>
         }
       />
-      <div className="py-1">
+      <div className="pb-1">
+        <MetricHead columns={["Keys", "Verified 7d"]} />
         {data.keyspaces.slice(0, 3).map((ks) => (
           <KeyspaceRow
             key={ks.apiId}
@@ -347,15 +374,11 @@ function KeyspaceRow({
   );
   const total = data?.timeseries?.reduce((a, p) => a + p.y.total, 0);
   return (
-    <Link href={href} className="block px-3 py-1.5 hover:bg-grayA-2">
-      <div className="truncate text-xs text-gray-12">{name}</div>
-      <Stats
-        items={[
-          { label: "Keys", value: compact(keyCount) },
-          { label: "Verifications", value: total == null ? "…" : compact(total) },
-        ]}
-      />
-    </Link>
+    <MetricRow
+      href={href}
+      name={name}
+      values={[compact(keyCount), total == null ? "…" : compact(total)]}
+    />
   );
 }
 
@@ -377,52 +400,24 @@ function RatelimitsCard({ data, links }: { data: ProjectOverview; links: CanvasL
           </Link>
         }
       />
-      <div className="py-1">
+      <div className="pb-1">
+        <MetricHead columns={["Requests", "Blocked"]} />
         {shown.map((ns) => {
           const series = ts?.timeseriesByNamespace[ns.id] ?? [];
           const total = series.reduce((a, p) => a + p.y.total, 0);
           const passed = series.reduce((a, p) => a + p.y.passed, 0);
           const blocked = total ? ((total - passed) / total) * 100 : 0;
           return (
-            <Link
+            <MetricRow
               key={ns.id}
               href={links.ratelimit(ns.id)}
-              className="block px-3 py-1.5 hover:bg-grayA-2"
-            >
-              <div className="truncate text-xs text-gray-12">{ns.name}</div>
-              <Stats
-                items={[
-                  { label: "Requests", value: ts ? compact(total) : "…" },
-                  {
-                    label: "Blocked",
-                    value: ts ? `${blocked.toFixed(1)}%` : "…",
-                    warn: blocked > 5,
-                  },
-                ]}
-              />
-            </Link>
+              name={ns.name}
+              values={ts ? [compact(total), `${blocked.toFixed(1)}%`] : ["…", "…"]}
+            />
           );
         })}
       </div>
     </Card>
-  );
-}
-
-function Stats({
-  items,
-}: {
-  items: Array<{ label: string; value: string; warn?: boolean }>;
-}) {
-  return (
-    <div className="flex items-center gap-1.5 text-[11px]">
-      {items.map((item, i) => (
-        <span key={item.label} className="flex items-center gap-1.5">
-          {i > 0 && <span className="text-gray-7">·</span>}
-          <span className="text-gray-11">{item.label}</span>
-          <span className={cn(item.warn ? "text-warning-11" : "text-gray-9")}>{item.value}</span>
-        </span>
-      ))}
-    </div>
   );
 }
 
