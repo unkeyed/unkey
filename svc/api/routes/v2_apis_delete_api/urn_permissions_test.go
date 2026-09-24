@@ -15,9 +15,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apis_delete_api"
 )
 
-// TestDeleteAPIWithCanonicalPermission guarantees that a canonical keyspace
-// delete grant authorizes deletion without a legacy API permission.
-func TestDeleteAPIWithCanonicalPermission(t *testing.T) {
+// TestDeleteAPIWithURNPermission guarantees that a URN keyspace
+// delete permission authorizes deletion without a legacy API permission.
+func TestDeleteAPIWithURNPermission(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
@@ -48,9 +48,9 @@ func TestDeleteAPIWithCanonicalPermission(t *testing.T) {
 	require.True(t, deleted.DeletedAtM.Valid)
 }
 
-// TestDeleteAPIRejectsNonmatchingCanonicalPermission guarantees that canonical
-// grants cannot delete APIs outside their exact resource, action, or workspace.
-func TestDeleteAPIRejectsNonmatchingCanonicalPermission(t *testing.T) {
+// TestDeleteAPIRejectsNonmatchingURNPermission guarantees that URN
+// permissions cannot delete APIs outside their exact resource, action, or workspace.
+func TestDeleteAPIRejectsNonmatchingURNPermission(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
@@ -69,8 +69,8 @@ func TestDeleteAPIRejectsNonmatchingCanonicalPermission(t *testing.T) {
 		{
 			name: "resource",
 			permission: func(_ db.Api) string {
-				granted := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
-				return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#delete", workspace.ID, granted.ProjectID, granted.KeyAuthID.String)
+				otherAPI := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
+				return fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s#delete", workspace.ID, otherAPI.ProjectID, otherAPI.KeyAuthID.String)
 			},
 		},
 		{
@@ -105,9 +105,9 @@ func TestDeleteAPIRejectsNonmatchingCanonicalPermission(t *testing.T) {
 	}
 }
 
-// TestDeleteAPIUsesKeyspaceProjectForCanonicalPermission guarantees that the
+// TestDeleteAPIUsesKeyspaceProjectForURNPermission guarantees that the
 // keyspace's project, not the API's denormalized project, owns the resource.
-func TestDeleteAPIUsesKeyspaceProjectForCanonicalPermission(t *testing.T) {
+func TestDeleteAPIUsesKeyspaceProjectForURNPermission(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{
@@ -172,7 +172,7 @@ func TestDeleteAPIUsesKeyspaceProjectForCanonicalPermission(t *testing.T) {
 }
 
 // TestDeleteAPIRejectsForeignWorkspaceKeyspace guarantees that inconsistent
-// keyspace ownership is masked as not found before canonical authorization.
+// keyspace ownership is masked as not found before URN authorization.
 func TestDeleteAPIRejectsForeignWorkspaceKeyspace(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
@@ -203,7 +203,7 @@ func TestDeleteAPIRejectsForeignWorkspaceKeyspace(t *testing.T) {
 }
 
 // TestDeleteAPIWithoutKeyspaceRetainsLegacyAuthorization guarantees that old
-// API rows with a nullable keyspace remain deletable through legacy grants.
+// API rows with a nullable keyspace remain deletable through legacy permissions.
 func TestDeleteAPIWithoutKeyspaceRetainsLegacyAuthorization(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)

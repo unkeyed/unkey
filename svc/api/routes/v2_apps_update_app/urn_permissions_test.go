@@ -18,9 +18,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_update_app"
 )
 
-// TestUpdateAppAuthorizesCanonicalWriteForSettings guarantees the canonical
-// app write grant can update app settings without legacy permissions.
-func TestUpdateAppAuthorizesCanonicalWriteForSettings(t *testing.T) {
+// TestUpdateAppAuthorizesURNWriteForSettings guarantees the URN
+// app write permission can update app settings without legacy permissions.
+func TestUpdateAppAuthorizesURNWriteForSettings(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
 	h.Register(route)
@@ -29,7 +29,7 @@ func TestUpdateAppAuthorizesCanonicalWriteForSettings(t *testing.T) {
 	project := h.CreateProject(seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
 		WorkspaceID: workspace.ID,
-		Name:        "Canonical Update",
+		Name:        "URN Update",
 		Slug:        appSlug(),
 	})
 	app := h.CreateApp(seed.CreateAppRequest{
@@ -59,9 +59,9 @@ func TestUpdateAppAuthorizesCanonicalWriteForSettings(t *testing.T) {
 	require.Equal(t, name, updated.Name)
 }
 
-// TestUpdateAppAuthorizesCanonicalWriteForGitDisconnect guarantees the
-// canonical app write grant can disconnect Git without legacy permissions.
-func TestUpdateAppAuthorizesCanonicalWriteForGitDisconnect(t *testing.T) {
+// TestUpdateAppAuthorizesURNWriteForGitDisconnect guarantees the
+// URN app write permission can disconnect Git without legacy permissions.
+func TestUpdateAppAuthorizesURNWriteForGitDisconnect(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
@@ -71,7 +71,7 @@ func TestUpdateAppAuthorizesCanonicalWriteForGitDisconnect(t *testing.T) {
 	project := h.CreateProject(seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
 		WorkspaceID: workspace.ID,
-		Name:        "Canonical Git Disconnect",
+		Name:        "URN Git Disconnect",
 		Slug:        appSlug(),
 	})
 	app := h.CreateApp(seed.CreateAppRequest{
@@ -111,9 +111,9 @@ func TestUpdateAppAuthorizesCanonicalWriteForGitDisconnect(t *testing.T) {
 	require.True(t, db.IsNotFound(err), "connection row should be deleted")
 }
 
-// TestUpdateAppRejectsMismatchedCanonicalWriteWithoutMutation guarantees a
-// canonical grant cannot cross app, project, workspace, or action boundaries.
-func TestUpdateAppRejectsMismatchedCanonicalWriteWithoutMutation(t *testing.T) {
+// TestUpdateAppRejectsMismatchedURNWriteWithoutMutation guarantees a
+// URN permission cannot cross app, project, workspace, or action boundaries.
+func TestUpdateAppRejectsMismatchedURNWriteWithoutMutation(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
@@ -123,7 +123,7 @@ func TestUpdateAppRejectsMismatchedCanonicalWriteWithoutMutation(t *testing.T) {
 	project := h.CreateProject(seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
 		WorkspaceID: workspace.ID,
-		Name:        "Canonical Boundaries",
+		Name:        "URN Boundaries",
 		Slug:        appSlug(),
 	})
 	app := h.CreateApp(seed.CreateAppRequest{

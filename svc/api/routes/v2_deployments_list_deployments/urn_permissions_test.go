@@ -14,7 +14,7 @@ import (
 )
 
 // TestListDeployments_AuthorizesEnvironmentCollectionURN guarantees an exact
-// environment deployment collection grant cannot expose sibling environments.
+// environment deployment collection permission cannot expose sibling environments.
 func TestListDeployments_AuthorizesEnvironmentCollectionURN(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h)
@@ -245,7 +245,7 @@ func TestListDeployments_AuthorizesEmptyURNCollection(t *testing.T) {
 	require.Empty(t, res.Body.Data)
 }
 
-// TestListDeployments_URNDoesNotBypassAncestryOrWorkspace guarantees canonical
+// TestListDeployments_URNDoesNotBypassAncestryOrWorkspace guarantees URN
 // permissions are built only from resources resolved inside the request scope.
 func TestListDeployments_URNDoesNotBypassAncestryOrWorkspace(t *testing.T) {
 	h := testutil.NewHarness(t)
@@ -379,7 +379,7 @@ func TestListDeployments_NarrowURNsCannotAuthorizeWiderCollections(t *testing.T)
 	}
 }
 
-// deploymentPermission returns a canonical deployment permission for a test grant.
+// deploymentPermission returns a URN deployment permission for a test permission.
 func deploymentPermission(workspaceID, projectID, appID, environmentID, deploymentID, action string) string {
 	return fmt.Sprintf(
 		"unkey:v1:%s:projects/%s/apps/%s/environments/%s/deployments/%s#%s",
