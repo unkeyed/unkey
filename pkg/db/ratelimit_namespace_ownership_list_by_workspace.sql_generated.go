@@ -20,7 +20,7 @@ type ListRatelimitNamespaceOwnershipByWorkspaceRow struct {
 	ProjectID string `db:"project_id"`
 }
 
-// Resolves canonical analytics grants to namespace IDs owned by one workspace.
+// Resolves URN analytics permissions to namespace IDs owned by one workspace.
 // Soft-deleted namespaces remain present because their historical ClickHouse
 // rows must stay queryable, and the unpaginated result prevents scope loss.
 //

@@ -11,9 +11,9 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 )
 
-// Test403_CanonicalNamespaceReadDoesNotGrantLogRead guarantees parent resource
+// Test403_URNNamespaceReadDoesNotAllowLogRead guarantees parent resource
 // access does not imply access to rate limit analytics.
-func Test403_CanonicalNamespaceReadDoesNotGrantLogRead(t *testing.T) {
+func Test403_URNNamespaceReadDoesNotAllowLogRead(t *testing.T) {
 	h, route, workspaceID := newRoute(t, false)
 	projectID := createProject(t, h, workspaceID)
 	namespaceID := createNamespaceInProject(t, h, workspaceID, projectID, uid.New("test"))
