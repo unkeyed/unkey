@@ -225,7 +225,6 @@ export function ActiveDeploymentCard({
             <div className="flex items-center gap-2 text-xs">
               <InfoTooltip
                 content={`CPU: ${cpu.value} ${cpu.unit}`}
-                variant="inverted"
                 position={{ side: "top", align: "center" }}
               >
                 <span>
@@ -236,7 +235,6 @@ export function ActiveDeploymentCard({
               <span className="text-gray-9">·</span>
               <InfoTooltip
                 content={`Memory: ${mem.value} ${mem.unit}`}
-                variant="inverted"
                 position={{ side: "top", align: "center" }}
               >
                 <span>
@@ -249,7 +247,6 @@ export function ActiveDeploymentCard({
                   <span className="text-gray-9">·</span>
                   <InfoTooltip
                     content={`Storage: ${storage.value} ${storage.unit}`}
-                    variant="inverted"
                     position={{ side: "top", align: "center" }}
                   >
                     <span>
@@ -276,7 +273,6 @@ export function ActiveDeploymentCard({
                     <InfoTooltip
                       key={instance.region.id}
                       content={instance.region.name}
-                      variant="inverted"
                       position={{ side: "top", align: "center" }}
                     >
                       <RegionFlag flagCode={instance.flagCode} size="xs" shape="rounded" />
@@ -307,7 +303,7 @@ export function LastExitBadge({ lastExit }: { lastExit: LastExit }) {
   const tooltip = explainExit(reason, lastExit.exitCode, lastExit.signal);
 
   return (
-    <InfoTooltip content={tooltip} variant="inverted" position={{ side: "top", align: "end" }}>
+    <InfoTooltip content={tooltip} position={{ side: "top", align: "end" }}>
       <Badge variant={variant} className="text-xs whitespace-nowrap">
         {reason}
         {(() => {
