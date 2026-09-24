@@ -15,29 +15,29 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 )
 
-// legacyGatewayRequestsWildcard preserves the original workspace-wide grant.
+// legacyGatewayRequestsWildcard preserves the original workspace-wide permission.
 const legacyGatewayRequestsWildcard = "project.*.read_gateway_requests"
 
-// gatewayLogPathShape identifies the canonical gateway log resource segments.
+// gatewayLogPathShape identifies the URN gateway log resource segments.
 var gatewayLogPathShape = [...]string{"projects", "{id}", "apps", "{id}", "environments", "{id}", "gateway", "logs"}
 
-// gatewayScope is one project, app, or environment branch of a grant union.
+// gatewayScope is one project, app, or environment branch of a permission union.
 type gatewayScope struct {
 	projectID     string
 	appID         string
 	environmentID string
 }
 
-// gatewaySecurityScopes resolves canonical grants into OR scopes. A nil result
+// gatewaySecurityScopes resolves URN permissions into OR scopes. A nil result
 // is unrestricted within the workspace, while a non-nil empty result denies all rows.
-func (h *Handler) gatewaySecurityScopes(ctx context.Context, workspaceID string, granted []string) ([]chquery.SecurityScope, bool, error) {
-	if slices.Contains(granted, legacyGatewayRequestsWildcard) {
+func (h *Handler) gatewaySecurityScopes(ctx context.Context, workspaceID string, permissionsToCheck []string) ([]chquery.SecurityScope, bool, error) {
+	if slices.Contains(permissionsToCheck, legacyGatewayRequestsWildcard) {
 		return nil, true, nil
 	}
 
 	securityScopes := make([]chquery.SecurityScope, 0)
 	authorized := false
-	for _, permission := range granted {
+	for _, permission := range permissionsToCheck {
 		scope, ok := parseGatewayScope(workspaceID, permission)
 		if !ok {
 			continue
@@ -68,7 +68,7 @@ func (h *Handler) gatewaySecurityScopes(ctx context.Context, workspaceID string,
 	return securityScopes, authorized, nil
 }
 
-// parseGatewayScope accepts only canonical read grants that cover gateway logs
+// parseGatewayScope accepts only URN read permissions that cover gateway logs
 // in the authorized workspace.
 func parseGatewayScope(workspaceID, permission string) (gatewayScope, bool) {
 	var zero gatewayScope
@@ -119,7 +119,7 @@ func parseGatewayScope(workspaceID, permission string) (gatewayScope, bool) {
 }
 
 // validateGatewayScope confirms that concrete IDs describe resources owned by
-// the authorized workspace and by each preceding ancestor in the grant path.
+// the authorized workspace and by each preceding ancestor in the permission path.
 func (h *Handler) validateGatewayScope(ctx context.Context, workspaceID string, scope gatewayScope) (bool, error) {
 	if scope.environmentID != "*" {
 		environment, err := db.Query.FindEnvironmentById(ctx, h.DB.RO(), scope.environmentID)
@@ -158,7 +158,7 @@ func gatewayLogsURN(workspaceID, projectID, appID, environmentID string) urn.Gat
 	return urn.New().Workspace(workspaceID).Project(projectID).App(appID).Environment(environmentID).Gateway().Logs()
 }
 
-// concreteID substitutes a concrete value when a grant segment is a wildcard.
+// concreteID substitutes a concrete value when a permission segment is a wildcard.
 func concreteID(id, fallback string) string {
 	if id == "*" {
 		return fallback

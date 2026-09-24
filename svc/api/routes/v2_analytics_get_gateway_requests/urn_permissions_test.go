@@ -14,9 +14,9 @@ import (
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
 
-// TestCanonicalEnvironmentGrantReturnsOnlyItsRows guarantees a narrow gateway
-// log grant cannot read sibling environments, apps, or projects.
-func TestCanonicalEnvironmentGrantReturnsOnlyItsRows(t *testing.T) {
+// TestURNEnvironmentPermissionReturnsOnlyItsRows guarantees a narrow gateway
+// log permission cannot read sibling environments, apps, or projects.
+func TestURNEnvironmentPermissionReturnsOnlyItsRows(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	allowed := createGatewayEnvironment(t, h, workspaceID, "allowed")
 	siblingEnvironment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
@@ -56,9 +56,9 @@ func TestCanonicalEnvironmentGrantReturnsOnlyItsRows(t *testing.T) {
 	}, 30*time.Second, time.Second)
 }
 
-// TestCanonicalGrantUnionPreservesAncestry guarantees project, app, and
-// environment grants form an OR union without permitting cross-combinations.
-func TestCanonicalGrantUnionPreservesAncestry(t *testing.T) {
+// TestURNPermissionUnionPreservesAncestry guarantees project, app, and
+// environment permissions form an OR union without permitting cross-combinations.
+func TestURNPermissionUnionPreservesAncestry(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	projectEnvironment := createGatewayEnvironment(t, h, workspaceID, "project-scope")
 	projectSibling := createGatewayEnvironmentInProject(t, h, workspaceID, projectEnvironment.ProjectID, "project-sibling")
@@ -116,9 +116,9 @@ func TestCanonicalGrantUnionPreservesAncestry(t *testing.T) {
 	}, 30*time.Second, time.Second)
 }
 
-// TestCanonicalWorkspaceWideGrantsReturnWorkspaceRows guarantees global and
-// gateway-wide grants remain workspace-isolated without extra route filters.
-func TestCanonicalWorkspaceWideGrantsReturnWorkspaceRows(t *testing.T) {
+// TestURNWorkspaceWidePermissionsReturnWorkspaceRows guarantees global and
+// gateway-wide permissions remain workspace-isolated without extra route filters.
+func TestURNWorkspaceWidePermissionsReturnWorkspaceRows(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	otherWorkspace := h.CreateWorkspace()
 	first := createGatewayEnvironment(t, h, workspaceID, "first")
@@ -154,9 +154,9 @@ func TestCanonicalWorkspaceWideGrantsReturnWorkspaceRows(t *testing.T) {
 	}
 }
 
-// TestCanonicalEmptyResolutionReturnsNoRows guarantees nonexistent and
+// TestURNEmptyResolutionReturnsNoRows guarantees nonexistent and
 // contradictory scopes never fall back to unfiltered workspace SQL.
-func TestCanonicalEmptyResolutionReturnsNoRows(t *testing.T) {
+func TestURNEmptyResolutionReturnsNoRows(t *testing.T) {
 	h, route, workspaceID := newRoute(t, true)
 	environment := createGatewayEnvironment(t, h, workspaceID, "existing")
 	otherWorkspace := h.CreateWorkspace()
