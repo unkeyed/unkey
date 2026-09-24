@@ -36,7 +36,7 @@ function TooltipContent({
         <TooltipPrimitive.Popup
           ref={ref}
           className={cn(
-            "z-50 overflow-hidden rounded-md border border-gray-6 bg-black px-2 py-1 text-xs font-medium text-gray-1 shadow-md dark:bg-white",
+            "z-50 overflow-hidden rounded-md bg-black px-2 py-1 text-xs font-medium text-gray-1 shadow-md dark:bg-white",
             popupTransition,
             "data-[side=bottom]:data-starting-style:-translate-y-2 data-[side=left]:data-starting-style:translate-x-2 data-[side=right]:data-starting-style:-translate-x-2 data-[side=top]:data-starting-style:translate-y-2",
             className,
