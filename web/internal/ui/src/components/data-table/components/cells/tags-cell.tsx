@@ -1,7 +1,7 @@
 import { cn } from "../../../../lib/utils";
 import { Badge } from "../../../badge";
 import { CopyButton } from "../../../buttons/copy-button";
-import { InfoTooltip } from "../../../info-tooltip";
+import { InfoHoverCard } from "../../../info-hover-card";
 import { STATUS_STYLES } from "../../constants/constants";
 
 export type TagsCellProps = {
@@ -77,8 +77,7 @@ export const TagsCell = ({ tags, isSelected, maxVisible = 3, shortenOptions }: T
   return (
     <div className="flex flex-wrap gap-1 items-center">
       {tags.slice(0, maxVisible).map((tag) => (
-        <InfoTooltip
-          className="px-2 py-1"
+        <InfoHoverCard
           key={tag}
           content={
             <div className="max-w-xs">
@@ -96,10 +95,10 @@ export const TagsCell = ({ tags, isSelected, maxVisible = 3, shortenOptions }: T
           >
             {shortenTag(tag, shortenOptions)}
           </Badge>
-        </InfoTooltip>
+        </InfoHoverCard>
       ))}
       {tags.length > maxVisible && (
-        <InfoTooltip
+        <InfoHoverCard
           content={
             <div className="flex flex-col gap-2 py-1 max-w-xs max-h-[300px] overflow-y-auto">
               <div className="text-xs opacity-75 font-medium">
@@ -120,7 +119,7 @@ export const TagsCell = ({ tags, isSelected, maxVisible = 3, shortenOptions }: T
           >
             +{tags.length - maxVisible}
           </Badge>
-        </InfoTooltip>
+        </InfoHoverCard>
       )}
     </div>
   );
