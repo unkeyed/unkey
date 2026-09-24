@@ -2,7 +2,9 @@
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
+import { useProject } from "@/hooks/use-project";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { projectDisplayName } from "@/lib/collections/deploy/projects";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import type { ProjectOverview } from "@/lib/trpc/routers/deploy/project/overview";
@@ -44,6 +46,7 @@ export function ProjectOverviewPage() {
 function Loaded({ data }: { data: ProjectOverview }) {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();
+  const { project } = useProject();
   const appHomeHref = useAppHomeHref();
   const { gated, openPaywall, planGate } = useDeployActionGate();
   const model = buildOverviewModel(data);
@@ -69,7 +72,9 @@ function Loaded({ data }: { data: ProjectOverview }) {
     <>
       <PageHeader>
         <PageHeaderContent>
-          <PageHeaderTitle>{data.project.name}</PageHeaderTitle>
+          <PageHeaderTitle>
+            {project ? projectDisplayName(project, workspace.name) : data.project.name}
+          </PageHeaderTitle>
         </PageHeaderContent>
       </PageHeader>
       <PageBody className="flex flex-col gap-6">
