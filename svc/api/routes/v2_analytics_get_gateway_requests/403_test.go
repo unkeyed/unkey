@@ -37,10 +37,10 @@ func Test403_UnrelatedPermissions(t *testing.T) {
 func Test403_ReturnsBeforeAnalyticsLookup(t *testing.T) {
 	for name, permission := range map[string]func(string) string{
 		"legacy unrelated action": func(string) string { return "project.*.read_project" },
-		"canonical wrong action": func(workspaceID string) string {
+		"URN wrong action": func(workspaceID string) string {
 			return fmt.Sprintf("unkey:v1:%s:projects/*/apps/*/environments/*/gateway/logs#write", workspaceID)
 		},
-		"canonical wrong workspace": func(string) string {
+		"URN wrong workspace": func(string) string {
 			return "unkey:v1:ws_foreign:projects/*/apps/*/environments/*/gateway/logs#read"
 		},
 	} {
