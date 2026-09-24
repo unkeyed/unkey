@@ -13,9 +13,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_create_deployment"
 )
 
-// TestCreateDeploymentAuthorizesCanonicalURN guarantees an exact environment's
-// deployment wildcard can create a deployment without a legacy grant.
-func TestCreateDeploymentAuthorizesCanonicalURN(t *testing.T) {
+// TestCreateDeploymentAuthorizesURN guarantees an exact environment's
+// deployment wildcard can create a deployment without a legacy permission.
+func TestCreateDeploymentAuthorizesURN(t *testing.T) {
 	h := testutil.NewHarness(t)
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
 		Permissions: []string{},
@@ -88,7 +88,7 @@ func TestCreateDeploymentRejectsURNForDifferentEnvironment(t *testing.T) {
 }
 
 // TestCreateDeploymentRejectsNonCoveringURNs guarantees every segment and the
-// action in a canonical grant must cover the resolved deployment target.
+// action in a URN permission must cover the resolved deployment target.
 func TestCreateDeploymentRejectsNonCoveringURNs(t *testing.T) {
 	h := testutil.NewHarness(t)
 	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{

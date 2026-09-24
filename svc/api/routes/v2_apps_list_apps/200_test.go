@@ -35,7 +35,7 @@ func TestListAppsSuccessfully(t *testing.T) {
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 	}
 
-	t.Run("canonical collection grant returns empty list for project with no apps", func(t *testing.T) {
+	t.Run("URN collection permission returns empty list for project with no apps", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Project: project.Slug})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body)

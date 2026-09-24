@@ -14,7 +14,7 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apis_get_api"
 )
 
-// TestGetApiAuthorizesExactKeyspaceReadURN guarantees that canonical keyspace
+// TestGetApiAuthorizesExactKeyspaceReadURN guarantees that URN keyspace
 // read access is sufficient without a legacy API permission.
 func TestGetApiAuthorizesExactKeyspaceReadURN(t *testing.T) {
 	h := testutil.NewHarness(t)
@@ -47,7 +47,7 @@ func TestGetApiAuthorizesExactKeyspaceReadURN(t *testing.T) {
 }
 
 // TestGetApiRejectsURNOutsideExactKeyspaceReadScope guarantees that every
-// canonical resource dimension and the action restrict access.
+// URN resource dimension and the action restrict access.
 func TestGetApiRejectsURNOutsideExactKeyspaceReadScope(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Caches: h.Caches}
@@ -111,7 +111,7 @@ func TestGetApiRejectsURNOutsideExactKeyspaceReadScope(t *testing.T) {
 	}
 }
 
-// TestGetApiAuthorizesWildcardURNs guarantees that canonical wildcard grants
+// TestGetApiAuthorizesWildcardURNs guarantees that URN wildcard permissions
 // cover the exact keyspace resource required by the route.
 func TestGetApiAuthorizesWildcardURNs(t *testing.T) {
 	h := testutil.NewHarness(t)
