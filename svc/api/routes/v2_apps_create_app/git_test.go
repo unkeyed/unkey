@@ -92,9 +92,9 @@ func TestCreateAppConnectRepository(t *testing.T) {
 	require.True(t, found, "should find an app.connect_repository audit log event")
 }
 
-// TestCreateAppConnectRepositoryWithCanonicalPermission guarantees that one
-// app-collection write grant authorizes creation and persists the connection.
-func TestCreateAppConnectRepositoryWithCanonicalPermission(t *testing.T) {
+// TestCreateAppConnectRepositoryWithURNPermission guarantees that one
+// app-collection write permission authorizes creation and persists the connection.
+func TestCreateAppConnectRepositoryWithURNPermission(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
 
@@ -146,10 +146,10 @@ func TestCreateAppConnectRepositoryWithCanonicalPermission(t *testing.T) {
 	require.Equal(t, "unkeyed/unkey", conn.RepositoryFullName)
 }
 
-// TestCreateAppConnectRepositoryRejectsCanonicalPermissionOutsideScope
+// TestCreateAppConnectRepositoryRejectsURNPermissionOutsideScope
 // guarantees that repository connection cannot cross project, workspace, or
 // action boundaries after base app creation authorization succeeds.
-func TestCreateAppConnectRepositoryRejectsCanonicalPermissionOutsideScope(t *testing.T) {
+func TestCreateAppConnectRepositoryRejectsURNPermissionOutsideScope(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	ctrlClient := &testutil.MockAppClient{
