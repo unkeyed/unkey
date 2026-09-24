@@ -18,9 +18,6 @@ import (
 // legacyGatewayRequestsWildcard preserves the original workspace-wide permission.
 const legacyGatewayRequestsWildcard = "project.*.read_gateway_requests"
 
-// gatewayLogPathShape identifies the URN gateway log resource segments.
-var gatewayLogPathShape = [...]string{"projects", "{id}", "apps", "{id}", "environments", "{id}", "gateway", "logs"}
-
 // gatewayScope is one project, app, or environment branch of a permission union.
 type gatewayScope struct {
 	projectID     string
@@ -87,29 +84,24 @@ func parseGatewayScope(workspaceID, permission string) (gatewayScope, bool) {
 		return gatewayScope{projectID: "*", appID: "*", environmentID: "*"}, rbac.Check(rbac.U(target, permissions.Read), []string{permission}) == nil
 	}
 
-	segments := strings.Split(resource.Resource, "/")
-	descendants := segments[len(segments)-1] == "**"
-	if descendants {
-		segments = segments[:len(segments)-1]
+	base, descendants := strings.CutSuffix(resourceValue, "/**")
+	scope := gatewayScope{
+		projectID:     "*",
+		appID:         "*",
+		environmentID: "*",
 	}
-	if (!descendants && len(segments) != len(gatewayLogPathShape)) || len(segments) > len(gatewayLogPathShape) {
+	if logs, err := urn.ParseGatewayLogs(base); err == nil {
+		scope.projectID, scope.appID, scope.environmentID = logs.ProjectID, logs.AppID, logs.EnvironmentID
+	} else if gateway, err := urn.ParseGateway(base); descendants && err == nil {
+		scope.projectID, scope.appID, scope.environmentID = gateway.ProjectID, gateway.AppID, gateway.EnvironmentID
+	} else if environment, err := urn.ParseEnvironment(base); descendants && err == nil {
+		scope.projectID, scope.appID, scope.environmentID = environment.ProjectID, environment.AppID, environment.EnvironmentID
+	} else if app, err := urn.ParseApp(base); descendants && err == nil {
+		scope.projectID, scope.appID = app.ProjectID, app.AppID
+	} else if project, err := urn.ParseProject(base); descendants && err == nil {
+		scope.projectID = project.ProjectID
+	} else {
 		return zero, false
-	}
-	for i, segment := range segments {
-		if gatewayLogPathShape[i] != "{id}" && segment != gatewayLogPathShape[i] {
-			return zero, false
-		}
-	}
-
-	scope := gatewayScope{projectID: "*", appID: "*", environmentID: "*"}
-	if len(segments) > 1 {
-		scope.projectID = segments[1]
-	}
-	if len(segments) > 3 {
-		scope.appID = segments[3]
-	}
-	if len(segments) > 5 {
-		scope.environmentID = segments[5]
 	}
 	target := gatewayLogsURN(workspaceID, concreteID(scope.projectID, "project"), concreteID(scope.appID, "app"), concreteID(scope.environmentID, "environment"))
 	if rbac.Check(rbac.U(target, permissions.Read), []string{permission}) != nil {
