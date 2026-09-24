@@ -3,22 +3,11 @@
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import {
-  DEPLOYMENT_STATUS_LABELS,
-  deploymentStatusColor,
-} from "@/lib/collections/deploy/deployment-status";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import type { ProjectOverview } from "@/lib/trpc/routers/deploy/project/overview";
+import { IconBook2Outline18, IconChatsOutline18, IconSquareTerminalOutline18 } from "@unkey/icons";
 import {
-  IconBook2Outline18,
-  IconChatsOutline18,
-  IconCheckOutline18,
-  IconCodeBranchOutline18,
-  IconSquareTerminalOutline18,
-} from "@unkey/icons";
-import {
-  Button,
   PageBody,
   PageContainer,
   PageHeader,
@@ -26,12 +15,10 @@ import {
   PageHeaderContent,
   PageHeaderTitle,
 } from "@unkey/ui";
-import { cn } from "@unkey/ui/src/lib/utils";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
 import { Canvas, type CanvasActions, type CanvasLinks } from "./canvas";
-import { type OverviewModel, ago, buildOverviewModel } from "./overview-model";
+import { type OverviewModel, buildOverviewModel } from "./overview-model";
 import { ScenarioSwitcher } from "./scenario-switcher";
 
 const AGENT_PROMPT =
@@ -95,14 +82,6 @@ function Loaded({ data }: { data: ProjectOverview }) {
       </PageHeader>
       <PageBody className="flex flex-col gap-6">
         <Canvas data={data} model={model} links={links} actions={actions} />
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
-          {data.recentDeployments.length > 0 ? (
-            <RecentDeployments data={data} links={links} />
-          ) : (
-            <FirstDeployHint shape={model.shape} onCreate={actions.createApp} />
-          )}
-          <SetupProgress model={model} />
-        </div>
         <HelpRow />
       </PageBody>
       {planGate}
@@ -125,124 +104,6 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
       <h2 className="text-[13px] font-medium text-gray-12">{title}</h2>
       {children}
     </section>
-  );
-}
-
-function RecentDeployments({ data, links }: { data: ProjectOverview; links: CanvasLinks }) {
-  const appName = new Map(data.apps.map((a) => [a.id, a.name]));
-  return (
-    <Section title="Latest deployments">
-      <div className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-raised">
-        {data.recentDeployments.map((d) => (
-          <Link
-            key={d.id}
-            href={links.app(d.appId)}
-            className="flex items-center gap-3 px-3 py-2 text-xs hover:bg-grayA-2"
-          >
-            <span
-              className={cn("size-1.5 shrink-0 rounded-full", deploymentStatusColor(d.status))}
-            />
-            <span className="w-24 shrink-0 truncate font-medium text-gray-12">
-              {appName.get(d.appId)}
-            </span>
-            <span className="min-w-0 flex-1 truncate text-gray-11">
-              {d.commitMessage?.split("\n")[0] ?? "Image deployment"}
-            </span>
-            <span className="hidden shrink-0 items-center gap-1 font-mono text-gray-9 md:flex">
-              <IconCodeBranchOutline18 className="size-3" />
-              <span className="max-w-28 truncate">{d.branch ?? "main"}</span>
-            </span>
-            <span className="w-20 shrink-0 text-right text-gray-9">
-              {DEPLOYMENT_STATUS_LABELS[d.status]}
-            </span>
-            <span className="w-14 shrink-0 text-right text-gray-9">{ago(d.createdAt)}</span>
-          </Link>
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-function FirstDeployHint({
-  shape,
-  onCreate,
-}: {
-  shape: OverviewModel["shape"];
-  onCreate: () => void;
-}) {
-  return (
-    <Section title="Latest deployments">
-      <div className="flex items-center gap-4 rounded-lg border border-dashed border-grayA-6 px-4 py-5">
-        <div className="min-w-0 flex-1">
-          <div className="text-[13px] text-gray-12">No deployments yet</div>
-          <div className="text-xs text-gray-9">
-            {shape === "api"
-              ? "Your keys are live. Deploy the service they protect and both sit in one project."
-              : "Connect a repo and every push to main ships here."}
-          </div>
-        </div>
-        <Button size="md" variant="outline" onClick={onCreate}>
-          Create app
-        </Button>
-      </div>
-    </Section>
-  );
-}
-
-function SetupProgress({ model }: { model: OverviewModel }) {
-  const done = model.steps.filter((s) => s.done).length;
-  if (done === model.steps.length) {
-    return <div />;
-  }
-  const next = model.steps.find((s) => !s.done);
-  return (
-    <Section title="Getting started">
-      <div className="rounded-lg border border-border bg-raised p-3">
-        <div className="mb-3 flex items-center gap-2">
-          <div className="flex flex-1 gap-1">
-            {model.steps.map((s) => (
-              <span
-                key={s.id}
-                className={cn("h-1 flex-1 rounded-full", s.done ? "bg-success-9" : "bg-grayA-4")}
-              />
-            ))}
-          </div>
-          <span className="text-xs text-gray-9">
-            {done}/{model.steps.length}
-          </span>
-        </div>
-        <ul className="flex flex-col gap-1.5">
-          {model.steps.map((s) => (
-            <li key={s.id} className="flex items-center gap-2 text-xs">
-              <span
-                className={cn(
-                  "flex size-4 items-center justify-center rounded-full border",
-                  s.done
-                    ? "border-success-9 bg-success-9 text-white"
-                    : s === next
-                      ? "border-gray-11"
-                      : "border-grayA-6",
-                )}
-              >
-                {s.done && <IconCheckOutline18 className="size-2.5" />}
-              </span>
-              <span
-                className={cn(
-                  s.done
-                    ? "text-gray-9 line-through"
-                    : s === next
-                      ? "text-gray-12"
-                      : "text-gray-11",
-                )}
-              >
-                {s.label}
-              </span>
-              {s === next && <span className="ml-auto text-[11px] text-gray-9">Next</span>}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </Section>
   );
 }
 

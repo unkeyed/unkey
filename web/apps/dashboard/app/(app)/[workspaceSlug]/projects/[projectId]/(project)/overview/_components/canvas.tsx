@@ -28,7 +28,7 @@ import { useMemo, useState } from "react";
 import { type OverviewModel, ago, compact } from "./overview-model";
 
 const WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
-const MAX_APPS = 5;
+const MAX_APPS = 4;
 
 const APP_ORDER: Record<DeploymentStatusGroup, number> = {
   failed: 0,
@@ -78,73 +78,74 @@ export function Canvas({
 
   return (
     <div
-      className="relative w-full overflow-x-auto rounded-xl border border-border bg-background"
+      className="relative h-[520px] w-full overflow-hidden rounded-xl border border-border bg-gray-2"
       style={{
         backgroundImage: "radial-gradient(var(--color-grayA-5) 1px, transparent 1px)",
         backgroundSize: "14px 14px",
       }}
     >
-      <div className="flex w-full min-w-[860px] items-start px-5 pt-5 pb-20">
-        {hasApps ? (
-          <>
-            <Group label={`Apps · ${data.apps.length}`} href={links.allApps}>
-              {[...data.apps]
-                .sort((a, b) => appRank(a) - appRank(b))
-                .slice(0, MAX_APPS)
-                .map((app) => (
-                  <AppCard key={app.id} app={app} href={links.app(app.id)} />
-                ))}
-              {data.apps.length > MAX_APPS && (
-                <Link
-                  href={links.allApps}
-                  className="rounded-lg border border-dashed border-border px-3 py-2 text-center text-xs text-gray-11 hover:text-gray-12"
-                >
-                  +{data.apps.length - MAX_APPS} more apps
-                </Link>
-              )}
+      <div className="h-full overflow-auto">
+        <div className="flex w-full min-w-[860px] items-start px-5 pt-5 pb-16">
+          {hasApps ? (
+            <>
+              <Group label={`Apps · ${data.apps.length}`} href={links.allApps}>
+                {[...data.apps]
+                  .sort((a, b) => appRank(a) - appRank(b))
+                  .slice(0, MAX_APPS)
+                  .map((app) => (
+                    <AppCard key={app.id} app={app} href={links.app(app.id)} />
+                  ))}
+                {data.apps.length > MAX_APPS && (
+                  <Link
+                    href={links.allApps}
+                    className="rounded-lg border border-dashed border-border px-3 py-2 text-center text-xs text-gray-11 hover:text-gray-12"
+                  >
+                    +{data.apps.length - MAX_APPS} more apps
+                  </Link>
+                )}
+              </Group>
+            </>
+          ) : (
+            <Group label="Apps">
+              <GhostCard
+                icon={<IconCubeOutline18 />}
+                title="Deploy an app"
+                description={
+                  model.shape === "api"
+                    ? "Run the service behind your keys on Unkey, next to them."
+                    : "From a GitHub repo or a container image."
+                }
+                onClick={actions.createApp}
+              />
             </Group>
-          </>
-        ) : (
-          <Group label="Apps">
-            <GhostCard
-              icon={<IconCubeOutline18 />}
-              title="Deploy an app"
-              description={
-                model.shape === "api"
-                  ? "Run the service behind your keys on Unkey, next to them."
-                  : "From a GitHub repo or a container image."
-              }
-              onClick={actions.createApp}
-            />
+          )}
+
+          <Connector dashed={!hasKeyspaces && !hasRatelimits} />
+
+          <Group label="Services">
+            {hasKeyspaces ? (
+              <KeyspacesCard data={data} links={links} />
+            ) : (
+              <GhostCard
+                icon={<IconNodesOutline18 />}
+                title="Protect it with keys"
+                description="Issue and verify API keys for your users."
+                onClick={actions.createKeyspace}
+              />
+            )}
+            {hasRatelimits ? (
+              <RatelimitsCard data={data} links={links} />
+            ) : (
+              <GhostCard
+                icon={<IconGaugeOutline18 />}
+                title="Add a ratelimit"
+                description="Cap requests per user, key, or IP."
+                onClick={actions.createRatelimit}
+              />
+            )}
           </Group>
-        )}
-
-        <Connector dashed={!hasKeyspaces && !hasRatelimits} />
-
-        <Group label="Services">
-          {hasKeyspaces ? (
-            <KeyspacesCard data={data} links={links} />
-          ) : (
-            <GhostCard
-              icon={<IconNodesOutline18 />}
-              title="Protect it with keys"
-              description="Issue and verify API keys for your users."
-              onClick={actions.createKeyspace}
-            />
-          )}
-          {hasRatelimits ? (
-            <RatelimitsCard data={data} links={links} />
-          ) : (
-            <GhostCard
-              icon={<IconGaugeOutline18 />}
-              title="Add a ratelimit"
-              description="Cap requests per user, key, or IP."
-              onClick={actions.createRatelimit}
-            />
-          )}
-        </Group>
+        </div>
       </div>
-
       {model.shape === "empty" && <AgentHint />}
       <CommandBar actions={actions} />
     </div>

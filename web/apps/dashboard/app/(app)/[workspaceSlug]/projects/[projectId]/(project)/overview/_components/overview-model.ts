@@ -2,15 +2,8 @@ import type { ProjectOverview } from "@/lib/trpc/routers/deploy/project/overview
 
 export type ProjectShape = "empty" | "api" | "deploy" | "full";
 
-export type SetupStep = {
-  id: "github" | "app" | "deploy" | "keyspace" | "ratelimit";
-  label: string;
-  done: boolean;
-};
-
 export type OverviewModel = {
   shape: ProjectShape;
-  steps: SetupStep[];
   liveApps: number;
 };
 
@@ -22,15 +15,7 @@ export function buildOverviewModel(data: ProjectOverview): OverviewModel {
 
   const liveApps = data.apps.filter((a) => a.hasCurrentDeployment).length;
 
-  const steps: SetupStep[] = [
-    { id: "app", label: "Create an app", done: hasApps },
-    { id: "github", label: "Connect GitHub", done: data.githubInstalled },
-    { id: "deploy", label: "Ship a deployment", done: liveApps > 0 },
-    { id: "keyspace", label: "Create a keyspace", done: data.keyspaces.length > 0 },
-    { id: "ratelimit", label: "Add a ratelimit", done: data.ratelimits.length > 0 },
-  ];
-
-  return { shape, steps, liveApps };
+  return { shape, liveApps };
 }
 
 export function ago(ms: number, now = Date.now()): string {

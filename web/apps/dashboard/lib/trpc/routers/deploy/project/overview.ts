@@ -6,7 +6,6 @@ import {
   apps,
   deployments,
   frontlineRoutes,
-  githubAppInstallations,
   githubRepoConnections,
   keyAuth,
   projects,
@@ -40,14 +39,10 @@ export type OverviewApp = {
 
 export type ProjectOverview = {
   project: { id: string; name: string; slug: string };
-  githubInstalled: boolean;
   apps: OverviewApp[];
   keyspaces: Array<{ apiId: string; keyAuthId: string; name: string; keyCount: number }>;
   ratelimits: Array<{ id: string; name: string }>;
-  recentDeployments: OverviewDeployment[];
 };
-
-const RECENT_DEPLOYMENTS = 6;
 
 export const projectOverview = workspaceProcedure
   .input(z.object({ projectId: z.string() }))
@@ -75,7 +70,7 @@ export const projectOverview = workspaceProcedure
       createdAt: deployments.createdAt,
     };
 
-    const [appRows, keyspaceRows, ratelimitRows, installation, recentRows] = await Promise.all([
+    const [appRows, keyspaceRows, ratelimitRows] = await Promise.all([
       db
         .select({
           id: apps.id,
@@ -115,16 +110,6 @@ export const projectOverview = workspaceProcedure
             isNull(ratelimitNamespaces.deletedAtM),
           ),
         ),
-      db.query.githubAppInstallations.findFirst({
-        where: eq(githubAppInstallations.workspaceId, workspaceId),
-        columns: { installationId: true },
-      }),
-      db
-        .select(deploymentColumns)
-        .from(deployments)
-        .where(and(eq(deployments.workspaceId, workspaceId), eq(deployments.projectId, project.id)))
-        .orderBy(desc(deployments.createdAt), desc(deployments.id))
-        .limit(RECENT_DEPLOYMENTS),
     ]);
 
     const appIds = appRows.map((a) => a.id);
@@ -170,7 +155,7 @@ export const projectOverview = workspaceProcedure
         ])
       : [[], [], []];
 
-    const toDeployment = (d: (typeof recentRows)[number]): OverviewDeployment => ({
+    const toDeployment = ({ rn: _, ...d }: (typeof latestRows)[number]): OverviewDeployment => ({
       ...d,
       createdAt: Number(d.createdAt),
     });
@@ -185,7 +170,6 @@ export const projectOverview = workspaceProcedure
 
     return {
       project,
-      githubInstalled: installation != null,
       apps: appRows.map((a) => ({
         id: a.id,
         name: a.name,
@@ -199,6 +183,5 @@ export const projectOverview = workspaceProcedure
       })),
       keyspaces: keyspaceRows,
       ratelimits: ratelimitRows,
-      recentDeployments: recentRows.map(toDeployment),
     };
   });
