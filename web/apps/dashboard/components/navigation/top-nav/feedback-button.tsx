@@ -4,7 +4,6 @@ import { useFeedback } from "@/components/dashboard/feedback-component";
 import { IconChatsOutline18 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { cn } from "cn";
-import { NAV_TOOLTIP_CLASS } from "../nav-tooltip";
 import { TOP_NAV_ICON_BUTTON_CLASS } from "./icon-button";
 
 export function TopNavFeedbackButton({ className }: { className?: string }) {
@@ -18,9 +17,7 @@ export function TopNavFeedbackButton({ className }: { className?: string }) {
       >
         <IconChatsOutline18 className="size-3.5" />
       </TooltipTrigger>
-      <TooltipContent side="bottom" className={NAV_TOOLTIP_CLASS}>
-        Give feedback
-      </TooltipContent>
+      <TooltipContent side="bottom">Give feedback</TooltipContent>
     </Tooltip>
   );
 }

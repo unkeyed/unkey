@@ -6,8 +6,7 @@ export const LiveIndicator = () => {
     <div className="absolute top-4 right-4 px-2 py-1.5 bg-raised rounded-full border flex items-center justify-between gap-2 h-6 pointer-events-auto shadow-[0_2px_8px_-2px_rgba(0,0,0,0.1)]">
       <InfoTooltip
         content="Live monitoring enabled. Metrics refresh every 10s"
-        variant="primary"
-        className="px-2.5 py-1 rounded-xl bg-black/90 text-xs z-30 text-white"
+        className="z-30"
         position={{ align: "center", side: "top", sideOffset: 5 }}
       >
         <div className="bg-raised flex items-center justify-between gap-2 cursor-pointer">

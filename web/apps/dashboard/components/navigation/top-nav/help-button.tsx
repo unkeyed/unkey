@@ -19,7 +19,6 @@ import {
 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { useState } from "react";
-import { NAV_TOOLTIP_CLASS } from "../nav-tooltip";
 import { TOP_NAV_ICON_BUTTON_CLASS } from "./icon-button";
 import { StatusWidget } from "./status-widget";
 
@@ -48,9 +47,7 @@ export function HelpButton() {
         >
           <IconCircleQuestionOutline18 className="size-3.5" />
         </DropdownMenuTrigger>
-        <TooltipContent side="bottom" className={NAV_TOOLTIP_CLASS}>
-          Help
-        </TooltipContent>
+        <TooltipContent side="bottom">Help</TooltipContent>
       </Tooltip>
       <DropdownMenuContent side="bottom" align="end" className="w-56 p-0">
         <DropdownMenuGroup className="p-1">

@@ -47,6 +47,7 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
     <InfoTooltip
       position={{ side: "top", align: "center" }}
       disabled={false}
+      className="rounded-lg bg-raised px-3 py-2 text-gray-12 shadow-floating dark:bg-raised"
       content={
         <div>
           {statuses && statuses.length > 1 && (
