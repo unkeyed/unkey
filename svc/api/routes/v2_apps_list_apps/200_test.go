@@ -3,6 +3,7 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 
@@ -261,6 +262,70 @@ func TestListAppsPagination(t *testing.T) {
 	}
 
 	require.Len(t, seen, total)
+}
+
+// TestListAppsRefillsPagesForSpecificPermissions guarantees that permission for
+// the second and fifth apps returns those apps across one-item pages, without
+// exposing denied apps in results or cursors. Searching for the first, denied
+// app returns an empty page rather than bypassing the permission check.
+func TestListAppsRefillsPagesForSpecificPermissions(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Sparse permissions",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
+	})
+	appIDs := make([]string, 5)
+	for i := range appIDs {
+		id := strings.ToLower(uid.New(uid.AppPrefix))
+		h.CreateApp(seed.CreateAppRequest{
+			ID: id, WorkspaceID: workspace.ID, ProjectID: project.ID, Name: id,
+			Slug: strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
+		})
+		appIDs[i] = id
+	}
+	slices.Sort(appIDs)
+	permissions := []string{
+		fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#read", workspace.ID, project.ID, appIDs[1]),
+		fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#read", workspace.ID, project.ID, appIDs[4]),
+	}
+	rootKey := h.CreateRootKey(workspace.ID, permissions...)
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey},
+	}, handler.Request{Project: project.ID, Limit: ptr.P(1)})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, res.Body.Data, 1)
+	require.Equal(t, appIDs[1], res.Body.Data[0].Id)
+	require.True(t, res.Body.Pagination.HasMore)
+	require.Equal(t, ptr.P(appIDs[4]), res.Body.Pagination.Cursor)
+	require.NotContains(t, res.RawBody, appIDs[0])
+	require.NotContains(t, res.RawBody, appIDs[2])
+	require.NotContains(t, res.RawBody, appIDs[3])
+
+	res = testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey},
+	}, handler.Request{Project: project.ID, Limit: ptr.P(1), Cursor: res.Body.Pagination.Cursor})
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Len(t, res.Body.Data, 1)
+	require.Equal(t, appIDs[4], res.Body.Data[0].Id)
+	require.False(t, res.Body.Pagination.HasMore)
+	require.Nil(t, res.Body.Pagination.Cursor)
+	for _, i := range []int{0, 2, 3} {
+		require.NotContains(t, res.RawBody, appIDs[i])
+	}
+	empty := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey},
+	}, handler.Request{Project: project.ID, Search: ptr.P(appIDs[0])})
+	require.Equal(t, http.StatusOK, empty.Status, "%s", empty.RawBody)
+	require.Empty(t, empty.Body.Data)
+	require.False(t, empty.Body.Pagination.HasMore)
+	require.Nil(t, empty.Body.Pagination.Cursor)
 }
 
 func TestListAppsSearch(t *testing.T) {

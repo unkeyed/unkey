@@ -14,6 +14,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_list_apps"
 )
 
+// TestListAppsForbidden guarantees that read permissions for this project's
+// apps work, while another project, workspace, or action receives a masked 404.
+// For example, app_1#read permits listing app_1 but apps/*#write does not.
 func TestListAppsForbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 
@@ -49,7 +52,7 @@ func TestListAppsForbidden(t *testing.T) {
 		{name: "permission and more", permissions: []string{"some.other.permission", "app.*.read_app"}, shouldPass: true},
 		{name: "URN project app collection read", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + project.ID + "/apps/*#read"}, shouldPass: true},
 		{name: "specific app does not satisfy list", permissions: []string{fmt.Sprintf("app.%s.read_app", app.ID)}, shouldPass: false},
-		{name: "URN concrete app does not satisfy list", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + project.ID + "/apps/" + app.ID + "#read"}, shouldPass: false},
+		{name: "specific app permission filters list", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + project.ID + "/apps/" + app.ID + "#read"}, shouldPass: true},
 		{name: "project scoped read does not match", permissions: []string{fmt.Sprintf("project.%s.read_app", project.ID)}, shouldPass: false},
 		{name: "URN other project does not satisfy list", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + uid.New(uid.ProjectPrefix) + "/apps/*#read"}, shouldPass: false},
 		{name: "URN other workspace does not satisfy list", permissions: []string{"unkey:v1:" + otherWorkspace.ID + ":projects/" + project.ID + "/apps/*#read"}, shouldPass: false},
