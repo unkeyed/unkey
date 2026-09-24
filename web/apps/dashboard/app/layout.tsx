@@ -1,4 +1,5 @@
 import { CommandMenu } from "@/components/dashboard/command-menu";
+import { getAuth, toAuthenticatedUser } from "@/lib/auth/get-auth";
 import { FlagsProvider } from "@/lib/flags/provider";
 import { resolveAll } from "@/lib/flags/resolve";
 import { WorkspaceProvider } from "@/providers/workspace-provider";
@@ -79,7 +80,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const flags = await resolveAll();
+  const [flags, auth] = await Promise.all([resolveAll(), getAuth()]);
   return (
     <html
       lang="en"
@@ -96,7 +97,7 @@ export default async function RootLayout({
               disableTransitionOnChange
             >
               <AuthProvider>
-                <WorkspaceProvider>
+                <WorkspaceProvider initialUser={toAuthenticatedUser(auth)}>
                   <Toaster />
                   {children}
                   <CommandMenu />

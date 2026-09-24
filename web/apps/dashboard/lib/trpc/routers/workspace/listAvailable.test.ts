@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/auth/server", () => ({
-  auth: { listMemberships: mocks.memberships },
+  auth: { listActiveOrganizationIds: mocks.memberships },
 }));
 vi.mock("@/lib/db", () => ({ db: { query: { workspaces: { findMany: mocks.findMany } } } }));
 vi.mock("../../trpc", async () => {
@@ -27,23 +27,10 @@ const caller = router({ listAvailable }).createCaller({
   tenant: null,
 });
 
-function membership(orgId: string, status = "active") {
-  return { organization: { id: orgId }, status };
-}
-
 beforeEach(() => {
   vi.resetAllMocks();
   vi.spyOn(console, "error").mockImplementation(() => {});
-  mocks.memberships.mockResolvedValue({
-    data: [
-      membership("org_live"),
-      membership("org_disabled"),
-      membership("org_deleted"),
-      membership("org_missing"),
-      membership("org_inactive", "inactive"),
-      membership("org_pending", "pending"),
-    ],
-  });
+  mocks.memberships.mockResolvedValue(["org_live", "org_disabled", "org_deleted", "org_missing"]);
   mocks.findMany.mockResolvedValue([
     { orgId: "org_live", name: "Live" },
     { orgId: "org_disabled", name: "Disabled" },
@@ -71,7 +58,7 @@ describe("available workspaces", () => {
   });
 
   it("does not query workspace details without active memberships", async () => {
-    mocks.memberships.mockResolvedValue({ data: [membership("org_inactive", "inactive")] });
+    mocks.memberships.mockResolvedValue([]);
     expect(await caller.listAvailable()).toEqual([]);
     expect(mocks.findMany).not.toHaveBeenCalled();
   });
