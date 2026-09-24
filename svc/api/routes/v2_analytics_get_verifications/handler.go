@@ -241,32 +241,26 @@ func extractAnalyticsPermissionScope(workspaceID string, permissionsToCheck []st
 			continue
 		}
 
-		segments := strings.Split(resource.Resource, "/")
-		if len(segments) == 6 && segments[4] == "logs" && segments[5] == "**" {
-			segments = segments[:5]
-		}
-		if len(segments) < 3 || segments[0] != "projects" {
+		base, descendants := strings.CutSuffix(resourceName, "/**")
+		var projectID, keySpaceID string
+		if logs, err := urn.ParseKeyspaceLogs(base); err == nil {
+			projectID, keySpaceID = logs.ProjectID, logs.KeyspaceID
+		} else if keyspace, err := urn.ParseKeyspace(base); descendants && err == nil {
+			projectID, keySpaceID = keyspace.ProjectID, keyspace.KeyspaceID
+		} else if project, err := urn.ParseProject(base); descendants && err == nil {
+			projectID, keySpaceID = project.ProjectID, "*"
+		} else {
 			continue
 		}
-		projectID := segments[1]
-		switch {
-		case len(segments) == 3 && segments[2] == "**":
-			scope.hasPermission = true
-			if projectID == "*" {
-				return analyticsPermissionScope{hasPermission: true, unrestricted: true, keySpaceIDs: nil, projectIDs: nil}
-			}
+
+		scope.hasPermission = true
+		if projectID == "*" {
+			return analyticsPermissionScope{hasPermission: true, unrestricted: true, keySpaceIDs: nil, projectIDs: nil}
+		}
+		if keySpaceID == "*" {
 			scope.projectIDs = append(scope.projectIDs, projectID)
-		case len(segments) == 5 && segments[2] == "keyspaces" && (segments[4] == "logs" || segments[4] == "**"):
-			scope.hasPermission = true
-			keySpaceID := segments[3]
-			if projectID == "*" {
-				return analyticsPermissionScope{hasPermission: true, unrestricted: true, keySpaceIDs: nil, projectIDs: nil}
-			}
-			if keySpaceID == "*" {
-				scope.projectIDs = append(scope.projectIDs, projectID)
-			} else {
-				scope.keySpaceIDs = append(scope.keySpaceIDs, keySpaceID)
-			}
+		} else {
+			scope.keySpaceIDs = append(scope.keySpaceIDs, keySpaceID)
 		}
 	}
 
