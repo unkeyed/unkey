@@ -1,4 +1,5 @@
 import { env } from "@/lib/env";
+import * as Sentry from "@sentry/nextjs";
 import { Resend } from "@unkey/resend";
 import { getWorkOS } from "@workos-inc/authkit-nextjs";
 import { type NextRequest, NextResponse } from "next/server";
@@ -22,12 +23,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ Error: "Empty payload" }, { status: 400 });
   }
 
+  // A failed signature check is a client error and must not be retried; a
+  // failure after the signature is verified is a transient downstream provider
+  // error and must be retried. Answer the two with different statuses.
+  let signatureVerified = false;
   try {
     const webhook = await getWorkOS().webhooks.constructEvent({
       payload,
       sigHeader,
       secret: WORKOS_WEBHOOK_SECRET,
     });
+    signatureVerified = true;
 
     if (webhook.event === "user.created" || webhook.event === "user.updated") {
       const { email, emailVerified } = webhook.data;
@@ -61,22 +67,33 @@ export async function POST(req: NextRequest) {
         throw new Error(`Failed to look up Resend contact: ${existingContact.error.message}`);
       }
 
+      // Send the email before recording audience membership. Membership is the
+      // "already welcomed" marker, so writing it first would permanently
+      // suppress the email for a user whose send then failed. The event-scoped
+      // idempotency key lets a redelivered event re-run the send without
+      // sending a second email.
+      await resend.sendWelcomeEmail({
+        email,
+        idempotencyKey: `workos-welcome:${webhook.data.id}`,
+      });
       await resend.client.contacts.create({
         audienceId: RESEND_AUDIENCE_ID,
-        email,
-      });
-      await resend.sendWelcomeEmail({
         email,
       });
     }
 
     return NextResponse.json({}, { status: 200 });
   } catch (err) {
-    // Log full error server-side. Return a generic body with a uniform status
-    // so unauthenticated callers cannot distinguish signature failures from
-    // downstream provider failures (Resend, WorkOS) and cannot harvest
-    // SDK error strings (URLs, audience IDs, rate-limit hints) for recon.
+    if (!signatureVerified) {
+      console.error("WorkOS webhook signature verification failed:", err);
+      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    }
+    // A downstream provider failure (Resend, WorkOS) is transient, so report
+    // it and return 5xx to have WorkOS redeliver. The body stays generic so an
+    // unauthenticated caller cannot harvest SDK error strings (URLs, audience
+    // IDs, rate-limit hints) for recon.
     console.error("WorkOS webhook processing failed:", err);
-    return NextResponse.json({ error: "Webhook processing failed" }, { status: 400 });
+    Sentry.captureException(err);
+    return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 });
   }
 }

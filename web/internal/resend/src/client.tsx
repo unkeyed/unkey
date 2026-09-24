@@ -15,25 +15,23 @@ export class Resend {
     this.client = new Client(opts.apiKey);
   }
 
-  public async sendWelcomeEmail(req: { email: string }) {
+  public async sendWelcomeEmail(req: { email: string; idempotencyKey?: string }) {
     const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
     const html = await render(<WelcomeEmail />);
-    try {
-      const result = await this.client.emails.send({
+    const result = await this.client.emails.send(
+      {
         to: req.email,
         from: "James from Unkey <james@updates.unkey.com>",
         replyTo: this.replyTo,
         subject: "Welcome to Unkey",
         html,
         scheduledAt: fiveMinutesFromNow,
-      });
-      if (!result.error) {
-        return;
-      }
+      },
+      req.idempotencyKey ? { idempotencyKey: req.idempotencyKey } : undefined,
+    );
+    if (result.error) {
       throw result.error;
-    } catch (error) {
-      console.error("Error occurred sending welcome email ", JSON.stringify(error));
     }
   }
 
