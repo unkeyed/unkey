@@ -238,7 +238,6 @@ export const PermissionField = ({
           permission.isInherited && (
             <InfoTooltip
               className="z-auto"
-              variant="primary"
               content={`Inherited from role: ${
                 assignedRoleDetails.find((r) => r.id === permission.roleId)?.name
               }`}

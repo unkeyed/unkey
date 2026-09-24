@@ -7,7 +7,7 @@ import { IconCubeOutline18 } from "@unkey/icons";
 import { HoverCard, HoverCardContent, HoverCardTrigger, InfoTooltip } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { AppDetailTooltip, AppRow } from "../apps/app-row";
+import { AppDetailHoverCard, AppRow } from "../apps/app-row";
 
 type ProjectCardProps = {
   name: string;
@@ -66,9 +66,9 @@ export function ProjectCard({ name, projectId, apps, actions }: ProjectCardProps
       ) : (
         <div ref={measureRef} className="relative z-10 flex flex-col gap-1.5">
           {visible.map((app) => (
-            <AppDetailTooltip key={app.id} app={app} width={width}>
+            <AppDetailHoverCard key={app.id} app={app} width={width}>
               <AppRow app={app} href={hrefFor(app)} className="-mx-2 px-2 py-0.5" />
-            </AppDetailTooltip>
+            </AppDetailHoverCard>
           ))}
           {rest.length > 0 ? (
             <HoverCard>

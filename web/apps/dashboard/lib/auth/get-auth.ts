@@ -1,8 +1,9 @@
 import { env } from "@/lib/env";
 import { logOperation } from "@/lib/logging";
+import { unstable_rethrow } from "next/navigation";
 import type { NextRequest } from "next/server";
 import { type WorkOSUserProfile, mapWorkOSUser } from "./map-workos-user";
-import type { User } from "./types";
+import type { AuthenticatedUser, User } from "./types";
 import { getWorkOSSession } from "./workos-session";
 
 export type GetAuthResult = {
@@ -57,6 +58,13 @@ export function mapAuthkitSession(session: AuthkitSession): GetAuthResult {
   };
 }
 
+export function toAuthenticatedUser(auth: GetAuthResult): AuthenticatedUser | null {
+  if (!auth.user) {
+    return null;
+  }
+  return { ...auth.user, orgId: auth.orgId, role: auth.role };
+}
+
 function logAuthResolutionFailure(provider: "local" | "workos", error: unknown): void {
   console.error("Failed to resolve session", { provider, error });
   logOperation("warn", "Session resolution failed", {
@@ -74,6 +82,7 @@ export async function getAuth(req?: NextRequest): Promise<GetAuthResult> {
 
       return session ?? ANONYMOUS;
     } catch (error) {
+      unstable_rethrow(error);
       logAuthResolutionFailure("local", error);
       return ANONYMOUS;
     }
@@ -82,6 +91,7 @@ export async function getAuth(req?: NextRequest): Promise<GetAuthResult> {
   try {
     return mapAuthkitSession(await getWorkOSSession());
   } catch (error) {
+    unstable_rethrow(error);
     logAuthResolutionFailure("workos", error);
     return ANONYMOUS;
   }
