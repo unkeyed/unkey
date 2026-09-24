@@ -174,10 +174,38 @@ function buildQueryArgs(
   };
 }
 
+const userCache = new Map<string, { user: User | null; timestamp: number }>();
+const USER_CACHE_TTL = 1000 * 60 * 5;
+const USER_CACHE_MAX_ENTRIES = 5_000;
+
+async function getCachedUser(userId: string): Promise<User | null> {
+  const cached = userCache.get(userId);
+  if (cached && Date.now() - cached.timestamp < USER_CACHE_TTL) {
+    return cached.user;
+  }
+
+  let user: User | null;
+  try {
+    user = await auth.getUser(userId);
+  } catch {
+    return null;
+  }
+
+  userCache.delete(userId);
+  if (userCache.size >= USER_CACHE_MAX_ENTRIES) {
+    const oldest = userCache.keys().next();
+    if (!oldest.done) {
+      userCache.delete(oldest.value);
+    }
+  }
+  userCache.set(userId, { user, timestamp: Date.now() });
+  return user;
+}
+
 async function fetchUsersByActorIds(actorIds: string[]): Promise<Record<string, User>> {
   try {
     const unique = [...new Set(actorIds)];
-    const users = await Promise.all(unique.map((userId) => auth.getUser(userId).catch(() => null)));
+    const users = await Promise.all(unique.map(getCachedUser));
 
     return users.reduce(
       (acc, user) => {

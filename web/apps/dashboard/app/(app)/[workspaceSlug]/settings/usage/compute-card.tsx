@@ -330,7 +330,6 @@ function ResourceBar({ usage }: { usage: UsageQuantities }) {
             key={meter.key}
             asChild
             delayDuration={120}
-            variant="inverted"
             position={{ side: "top" }}
             content={
               <span className="whitespace-nowrap tabular-nums">
@@ -369,7 +368,6 @@ function ResourceName({ name, id, deleted }: { name: string; id: string; deleted
       <InfoTooltip
         asChild
         delayDuration={120}
-        variant="inverted"
         position={{ side: "top" }}
         content={<span className="font-mono">{id}</span>}
       >
@@ -440,7 +438,6 @@ function MeterCosts({ usage, className }: { usage: UsageQuantities; className: s
             key={meter.key}
             asChild
             delayDuration={120}
-            variant="inverted"
             position={{ side: "top" }}
             content={<span className="whitespace-nowrap tabular-nums">{amount}</span>}
           >
@@ -490,7 +487,6 @@ function TotalCost({
     <InfoTooltip
       asChild
       delayDuration={120}
-      variant="inverted"
       position={{ side: "top" }}
       content={
         <div className="flex flex-col gap-1">
