@@ -115,14 +115,13 @@ func runtimeLogSecurityScopes(workspaceID string, permissionsToCheck []string) (
 			continue
 		}
 
-		ancestry, ok := runtimeLogAncestry(resource.Resource)
+		ancestry, ok := runtimeLogAncestry(resourceName)
 		if !ok {
 			continue
 		}
 		filters := make([]queryparser.SecurityFilter, 0, 4)
 		columns := []string{"project_id", "app_id", "environment_id", "deployment_id"}
-		for i := 0; i < len(ancestry)/2; i++ {
-			value := ancestry[i*2+1]
+		for i, value := range ancestry {
 			if value != "*" {
 				filters = append(filters, queryparser.SecurityFilter{Column: columns[i], AllowedValues: []string{value}})
 			}
@@ -136,29 +135,28 @@ func runtimeLogSecurityScopes(workspaceID string, permissionsToCheck []string) (
 	return securityScopes, len(securityScopes) > 0
 }
 
-// runtimeLogAncestry returns the project-to-deployment prefix covered by a
-// URN log resource or a URN descendant permission.
+// runtimeLogAncestry returns ordered project, app, environment, and deployment
+// IDs covered by a log URN or subtree pattern. For example, projects/p/**
+// returns only p; projects/p#read is not a log resource.
 func runtimeLogAncestry(resource string) ([]string, bool) {
-	parts := strings.Split(resource, "/")
-	descendants := parts[len(parts)-1] == "**"
-	if descendants {
-		parts = parts[:len(parts)-1]
+	base, descendants := strings.CutSuffix(resource, "/**")
+	if logs, err := urn.ParseDeploymentLogs(base); err == nil {
+		return []string{logs.ProjectID, logs.AppID, logs.EnvironmentID, logs.DeploymentID}, true
 	}
-	switch {
-	case len(parts) == 9 && parts[8] == "logs":
-		parts = parts[:8]
-	case !descendants:
+	if !descendants {
 		return nil, false
 	}
-
-	labels := []string{"projects", "apps", "environments", "deployments"}
-	if len(parts) < 2 || len(parts) > len(labels)*2 || len(parts)%2 != 0 {
-		return nil, false
+	if deployment, err := urn.ParseDeployment(base); err == nil {
+		return []string{deployment.ProjectID, deployment.AppID, deployment.EnvironmentID, deployment.DeploymentID}, true
 	}
-	for i := 0; i < len(parts)/2; i++ {
-		if parts[i*2] != labels[i] {
-			return nil, false
-		}
+	if environment, err := urn.ParseEnvironment(base); err == nil {
+		return []string{environment.ProjectID, environment.AppID, environment.EnvironmentID}, true
 	}
-	return parts, true
+	if app, err := urn.ParseApp(base); err == nil {
+		return []string{app.ProjectID, app.AppID}, true
+	}
+	if project, err := urn.ParseProject(base); err == nil {
+		return []string{project.ProjectID}, true
+	}
+	return nil, false
 }
