@@ -243,7 +243,9 @@ func TestGetDeploymentSpecificEnvironmentPermission(t *testing.T) {
 	require.Equal(t, dep.ID, res.Body.Data.Id)
 }
 
-func TestGetDeploymentCanonicalPermissions(t *testing.T) {
+// TestGetDeploymentURNPermissions verifies that concrete and wildcard URN
+// permissions can read a deployment in the authorized resource hierarchy.
+func TestGetDeploymentURNPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h)
 	h.Register(route)
