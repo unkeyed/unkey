@@ -78,7 +78,6 @@ export const TagsCell = ({ tags, isSelected, maxVisible = 3, shortenOptions }: T
     <div className="flex flex-wrap gap-1 items-center">
       {tags.slice(0, maxVisible).map((tag) => (
         <InfoTooltip
-          variant="inverted"
           className="px-2 py-1"
           key={tag}
           content={
@@ -101,7 +100,6 @@ export const TagsCell = ({ tags, isSelected, maxVisible = 3, shortenOptions }: T
       ))}
       {tags.length > maxVisible && (
         <InfoTooltip
-          variant="inverted"
           content={
             <div className="flex flex-col gap-2 py-1 max-w-xs max-h-[300px] overflow-y-auto">
               <div className="text-xs opacity-75 font-medium">
