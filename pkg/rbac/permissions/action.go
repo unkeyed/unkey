@@ -1,41 +1,32 @@
-// Package permissions defines actions for canonical URN resources.
+// Package permissions validates actions for URN resources.
 package permissions
 
-// Action identifies an operation on a canonical resource name. The resource
-// path identifies the resource type.
-type Action string
+import "github.com/unkeyed/unkey/pkg/urn"
 
-// String returns the serialized permission action.
-func (a Action) String() string {
-	return string(a)
-}
+// Action identifies an operation on a resource name.
+type Action = urn.PermissionAction
 
 const (
-	// Read authorizes reading a resource. It applies to every concrete resource
-	// in the canonical permission catalog.
-	Read Action = "read"
-
-	// Write authorizes creating or updating a resource. It applies to every
-	// concrete resource except deployment logs, gateway logs, keyspace logs,
-	// and rate limit logs.
-	Write Action = "write"
-
-	// Delete authorizes deleting a resource. It applies to every concrete
-	// resource except deployment logs, gateway logs, keyspace logs, and rate
-	// limit logs.
-	Delete Action = "delete"
-
-	// Decrypt authorizes decrypting protected resource data. It applies only to
-	// keys.
-	Decrypt Action = "decrypt"
-
-	// Verify authorizes verifying a resource. It applies only to keys.
-	Verify Action = "verify"
-
-	// Limit authorizes using a rate limit namespace. It applies only to rate
-	// limit namespaces.
-	Limit Action = "limit"
+	// Read authorizes reading a resource, except root keys.
+	Read = urn.PermissionRead
+	// Write authorizes creating or updating a resource.
+	Write = urn.PermissionWrite
+	// Delete authorizes deleting a resource.
+	Delete = urn.PermissionDelete
+	// Decrypt authorizes decrypting key data.
+	Decrypt = urn.PermissionDecrypt
+	// Verify authorizes verifying a key.
+	Verify = urn.PermissionVerify
+	// Limit authorizes using a rate limit namespace.
+	Limit = urn.PermissionLimit
 )
 
-// Wildcard is the action used by the global admin permission.
+// Wildcard is the action used by the global administrator permission.
 const Wildcard = "*"
+
+// IsValid reports whether action is supported by resource. It validates the
+// complete resource name, so a zero value or manually constructed invalid
+// [urn.V1] returns false.
+func IsValid(resource urn.V1, action Action) bool {
+	return resource.SupportsPermissionAction(action)
+}
