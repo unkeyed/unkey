@@ -18,6 +18,7 @@ import { updateAPIDeleteProtection } from "./api/updateDeleteProtection";
 import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
+import { listAuditMembers } from "./audit/members";
 import { deletePermissionWithRelations } from "./authorization/permissions/delete";
 import { permissionsLlmSearch } from "./authorization/permissions/llm-search";
 import { queryPermissions } from "./authorization/permissions/query";
@@ -360,6 +361,7 @@ export const router = t.router({
   audit: t.router({
     logs: fetchAuditLog,
     llmSearch: auditLogsSearch,
+    members: listAuditMembers,
   }),
   user: t.router({
     getCurrentUser,
