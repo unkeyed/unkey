@@ -98,7 +98,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			)
 		}
 
-		appURN := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(app.ProjectID).App(app.ID)
 		err = principal.Authorize(rbac.Or(
 			rbac.T(rbac.Tuple{
 				ResourceType: rbac.App,
@@ -110,7 +109,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ResourceID:   app.ID,
 				Action:       rbac.UpdateApp,
 			}),
-			rbac.U(appURN, permissions.Write),
+			rbac.U(
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(app.ProjectID).App(app.ID),
+				permissions.Write,
+			),
 		))
 		if err != nil {
 			return openapi.App{}, err
@@ -145,7 +147,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					ResourceID:   app.ID,
 					Action:       rbac.ConnectRepository,
 				}),
-				rbac.U(appURN, permissions.Write),
+				rbac.U(
+					urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(app.ProjectID).App(app.ID),
+					permissions.Write,
+				),
 			))
 			if err != nil {
 				return openapi.App{}, err
