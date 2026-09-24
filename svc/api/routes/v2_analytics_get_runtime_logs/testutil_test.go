@@ -48,7 +48,7 @@ type runtimeLog struct {
 // the next query. A test therefore needs no wait loop.
 //
 // platform and k8s_pod_name get a value that is not empty. If they were empty, a
-// probe in the tests for the column grant could get an empty result and look
+// probe in the tests for the column permission could get an empty result and look
 // successful when ClickHouse did not refuse it.
 func insertLog(t *testing.T, h *testutil.Harness, row runtimeLog) runtimeLog {
 	t.Helper()
