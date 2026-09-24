@@ -17,7 +17,9 @@ import {
   IconChatsOutline18,
   IconCircleQuestionOutline18,
 } from "@unkey/icons";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
 import { useState } from "react";
+import { TOP_NAV_ICON_BUTTON_CLASS } from "./icon-button";
 import { StatusWidget } from "./status-widget";
 
 const ITEM_LINKS = [
@@ -33,15 +35,20 @@ const ITEM_LINKS = [
 export function HelpButton() {
   const { openFeedback } = useFeedback();
   const [open, setOpen] = useState(false);
+  const [tooltipOpen, setTooltipOpen] = useState(false);
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger
-        aria-label="Help options"
-        className="group/help w-8 h-8 rounded-lg flex justify-center items-center shrink-0 hover:bg-grayA-4 cursor-pointer"
-      >
-        <IconCircleQuestionOutline18 className="text-gray-9 group-hover/help:text-gray-12 size-5" />
-      </DropdownMenuTrigger>
+      <Tooltip open={tooltipOpen && !open} onOpenChange={setTooltipOpen}>
+        <DropdownMenuTrigger
+          aria-label="Help options"
+          render={<TooltipTrigger />}
+          className={TOP_NAV_ICON_BUTTON_CLASS}
+        >
+          <IconCircleQuestionOutline18 className="size-3.5" />
+        </DropdownMenuTrigger>
+        <TooltipContent side="bottom">Help</TooltipContent>
+      </Tooltip>
       <DropdownMenuContent side="bottom" align="end" className="w-56 p-0">
         <DropdownMenuGroup className="p-1">
           {ITEM_LINKS.map(({ href, label, icon: Icon }) => (
