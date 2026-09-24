@@ -14,6 +14,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_create_role"
 )
 
+// TestCreateRolePreservesCaseDistinctPermissions guarantees role creation
+// merges only exact duplicates. For example, requesting Service.Read twice
+// and service.read once assigns two distinct permissions, not one or three.
 func TestCreateRolePreservesCaseDistinctPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}

@@ -99,12 +99,15 @@ func TestParseV1RejectsInvalidValues(t *testing.T) {
 	}
 }
 
-// TestParseV1RejectsUnsafeIDs guarantees IDs cannot contain characters that
-// databases or analytics systems may normalize or interpret.
+// TestParseV1RejectsUnsafeIDs guarantees workspace and resource IDs reject
+// unsupported punctuation and Unicode. For example, ws-admin, proj admin, and proj／admin
+// are invalid IDs rather than alternate spellings of valid IDs.
 func TestParseV1RejectsUnsafeIDs(t *testing.T) {
 	t.Parallel()
 
 	for _, value := range []string{
+		"unkey:v1:ws-admin:projects/proj_123",
+		"unkey:v1:ws_123:projects/proj-admin",
 		"unkey:v1:ws／admin:projects/proj_123",
 		"unkey:v1:ws＊admin:projects/proj_123",
 		"unkey:v1:ws\u200badmin:projects/proj_123",
@@ -132,10 +135,13 @@ func TestParseV1RejectsUnsafeIDs(t *testing.T) {
 	}
 }
 
+// TestParseV1PreservesCaseAndAllowsASCIIIDs guarantees letters, digits, and
+// underscores remain unchanged. For example, Ws_One2 and Project_One2 keep
+// their uppercase letters when a resource name is parsed and printed.
 func TestParseV1PreservesCaseAndAllowsASCIIIDs(t *testing.T) {
 	t.Parallel()
 
-	value := "unkey:v1:Ws_One-2:projects/Project_One-2"
+	value := "unkey:v1:Ws_One2:projects/Project_One2"
 	parsed, err := ParseV1(value)
 	require.NoError(t, err)
 	require.Equal(t, value, parsed.String())
