@@ -316,3 +316,38 @@ func TestDeleteApiCountsOnlyLiveKeys(t *testing.T) {
 	require.EqualValues(t, liveKeys, apiTarget.Meta["keysDeleted"], "only live keys are counted")
 	require.NotEmpty(t, apiTarget.Meta["deletedAtM"])
 }
+
+// TestDeleteApiWithScopedKeyspaceGrant verifies that a delete grant on the
+// API's own project and keyspace is enough to delete it.
+func TestDeleteApiWithScopedKeyspaceGrant(t *testing.T) {
+	ctx := context.Background()
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+		Caches:    h.Caches,
+	}
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
+	keySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
+	require.NoError(t, err)
+
+	grant := rbac.U(
+		urn.New().Workspace(workspaceID).Project(keySpace.ProjectID).Keyspace(keySpace.ID),
+		permissions.Delete,
+	).Value
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, grant))},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{ApiId: api.ID})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+
+	deleted, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
+	require.NoError(t, err)
+	require.True(t, deleted.DeletedAtM.Valid)
+}

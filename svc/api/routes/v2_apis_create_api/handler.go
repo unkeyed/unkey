@@ -50,27 +50,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	// The keyspace arm is wildcard scoped because neither the API nor its
-	// keyspace exists yet, so there is no concrete ID to grant against
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.Api,
-			ResourceID:   "*",
-			Action:       rbac.CreateAPI,
-		}),
-		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project("*").Keyspace("*"),
-			permissions.Write,
-		),
-	))
-	if err != nil {
-		return err
-	}
-
 	apiId, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
 		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.AuthorizedWorkspaceID)
 		if resolveErr != nil {
 			return "", resolveErr
+		}
+
+		// Authorizing inside the transaction rolls back a default project created
+		// for a caller who may not create APIs. The keyspace does not exist yet.
+		authErr := principal.Authorize(rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Api,
+				ResourceID:   "*",
+				Action:       rbac.CreateAPI,
+			}),
+			rbac.U(
+				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).Keyspace("*"),
+				permissions.Write,
+			),
+		))
+		if authErr != nil {
+			return "", authErr
 		}
 
 		keySpaceId := uid.New(uid.KeySpacePrefix)
