@@ -16,7 +16,6 @@ export const trpcClient = createTRPCProxyClient<Router>({
   links: [
     httpBatchLink({
       url: `${getBaseUrl()}/api/trpc`,
-      maxURLLength: 2_000,
       fetch(url, options) {
         return fetch(url, {
           ...options,
