@@ -1,6 +1,12 @@
 "use client";
 
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   DEPLOYMENT_STATUS_LABELS,
   type DeploymentStatusGroup,
   deploymentStatusColor,
@@ -10,21 +16,23 @@ import { trpc } from "@/lib/trpc/client";
 import type { OverviewApp, ProjectOverview } from "@/lib/trpc/routers/deploy/project/overview";
 import {
   Github,
+  IconChevronDownOutline18,
   IconCodeBranchOutline18,
   IconCubeOutline18,
+  IconFingerprintOutline18,
   IconGaugeOutline18,
+  IconGridOutline18,
   IconLayers2Outline18,
   IconNodesOutline18,
   IconPlusOutline18,
-  IconSquareTerminalOutline18,
+  IconShieldKeyOutline18,
   IconTerminalOutline18,
 } from "@unkey/icons";
-import { InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { type OverviewModel, ago, compact } from "./overview-model";
 
 const WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
@@ -59,6 +67,8 @@ export type CanvasActions = {
   createApp: () => void;
   createKeyspace: () => void;
   createRatelimit: () => void;
+  openIdentities: () => void;
+  openPermissions: () => void;
 };
 
 export function Canvas({
@@ -88,7 +98,11 @@ export function Canvas({
         <div className="flex w-full min-w-[860px] items-start px-5 pt-5 pb-16">
           {hasApps ? (
             <>
-              <Group label={`Apps · ${data.apps.length}`} href={links.allApps}>
+              <Group
+                icon={<IconCubeOutline18 />}
+                label={`Apps · ${data.apps.length}`}
+                href={links.allApps}
+              >
                 {[...data.apps]
                   .sort((a, b) => appRank(a) - appRank(b))
                   .slice(0, MAX_APPS)
@@ -106,7 +120,7 @@ export function Canvas({
               </Group>
             </>
           ) : (
-            <Group label="Apps">
+            <Group icon={<IconCubeOutline18 />} label="Apps">
               <GhostCard
                 icon={<IconCubeOutline18 />}
                 title="Deploy an app"
@@ -122,7 +136,7 @@ export function Canvas({
 
           <Connector dashed={!hasKeyspaces && !hasRatelimits} />
 
-          <Group label="Services">
+          <Group icon={<IconGridOutline18 />} label="Services">
             {hasKeyspaces ? (
               <KeyspacesCard data={data} links={links} />
             ) : (
@@ -146,17 +160,29 @@ export function Canvas({
           </Group>
         </div>
       </div>
-      {model.shape === "empty" && <AgentHint />}
       <CommandBar actions={actions} />
     </div>
   );
 }
 
-function Group({ label, href, children }: { label: string; href?: Route; children: ReactNode }) {
+function Group({
+  icon,
+  label,
+  href,
+  children,
+}: {
+  icon: ReactNode;
+  label: string;
+  href?: Route;
+  children: ReactNode;
+}) {
   return (
     <div className="flex min-w-0 max-w-[340px] flex-1 flex-col gap-2 rounded-xl bg-grayA-3 p-2.5 backdrop-blur-sm">
       <div className="flex items-center justify-between px-1 pb-0.5">
-        <span className="text-xs text-gray-11">{label}</span>
+        <span className="flex items-center gap-1.5 text-xs text-gray-11 [&_svg]:size-3.5">
+          {icon}
+          {label}
+        </span>
         {href && (
           <Link href={href} className="text-xs text-gray-9 hover:text-gray-12">
             View all
@@ -432,50 +458,92 @@ function GhostCard({
   );
 }
 
+type MenuEntry = { label: string; description: string; icon: ReactNode; run: () => void };
+
 function CommandBar({ actions }: { actions: CanvasActions }) {
-  const items = [
-    { label: "Add app", icon: <IconCubeOutline18 />, run: actions.createApp },
-    { label: "Add keyspace", icon: <IconNodesOutline18 />, run: actions.createKeyspace },
-    { label: "Add ratelimit", icon: <IconGaugeOutline18 />, run: actions.createRatelimit },
+  const apps: MenuEntry[] = [
+    {
+      label: "GitHub repository",
+      description: "Deploy on every push",
+      icon: <Github />,
+      run: actions.createApp,
+    },
+    {
+      label: "Container image",
+      description: "Deploy from any OCI registry",
+      icon: <IconLayers2Outline18 />,
+      run: actions.createApp,
+    },
+  ];
+  const services: MenuEntry[] = [
+    {
+      label: "Keyspace",
+      description: "Issue and verify API keys",
+      icon: <IconNodesOutline18 />,
+      run: actions.createKeyspace,
+    },
+    {
+      label: "Ratelimit",
+      description: "Cap requests per user, key or IP",
+      icon: <IconGaugeOutline18 />,
+      run: actions.createRatelimit,
+    },
+    {
+      label: "Identities",
+      description: "Group keys and limits by user",
+      icon: <IconFingerprintOutline18 />,
+      run: actions.openIdentities,
+    },
+    {
+      label: "Permissions",
+      description: "Roles and permissions on keys",
+      icon: <IconShieldKeyOutline18 />,
+      run: actions.openPermissions,
+    },
   ];
   return (
     <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-xl bg-raised p-1 shadow-floating">
-      {items.map((item) => (
-        <InfoTooltip key={item.label} content={item.label} asChild>
-          <button
-            type="button"
-            aria-label={item.label}
-            onClick={item.run}
-            className="flex size-8 items-center justify-center rounded-lg text-gray-11 hover:bg-grayA-3 hover:text-gray-12 [&_svg]:size-4"
-          >
-            {item.icon}
-          </button>
-        </InfoTooltip>
-      ))}
+      <AddMenu label="Add app" icon={<IconCubeOutline18 />} entries={apps} />
+      <AddMenu label="Add service" icon={<IconGridOutline18 />} entries={services} />
     </div>
   );
 }
 
-const AGENT_PROMPT =
-  "Set up Unkey in my project. Fetch https://unkey.com/agent/setup.md and follow it.";
-
-function AgentHint() {
-  const [copied, setCopied] = useState(false);
+function AddMenu({
+  label,
+  icon,
+  entries,
+}: {
+  label: string;
+  icon: ReactNode;
+  entries: MenuEntry[];
+}) {
   return (
-    <div className="absolute bottom-16 left-1/2 flex -translate-x-1/2 items-center gap-3 text-xs text-gray-11">
-      <IconSquareTerminalOutline18 className="size-3.5 text-gray-9" />
-      <span>Or paste one prompt into Claude, Cursor or Codex.</span>
-      <button
-        type="button"
-        onClick={() => {
-          navigator.clipboard?.writeText(AGENT_PROMPT);
-          setCopied(true);
-          window.setTimeout(() => setCopied(false), 1800);
-        }}
-        className="rounded-md border border-border bg-raised px-2 py-1 text-gray-12 hover:border-strong"
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label={label}
+        className="flex h-8 items-center gap-1 rounded-lg px-2 text-gray-11 hover:bg-grayA-3 hover:text-gray-12 data-popup-open:bg-grayA-3 data-popup-open:text-gray-12 [&_svg]:size-4"
       >
-        {copied ? "Copied" : "Copy prompt"}
-      </button>
-    </div>
+        {icon}
+        <IconChevronDownOutline18 className="size-3! text-gray-9" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="top" align="center" sideOffset={8} className="w-72 p-1">
+        {entries.map((e) => (
+          <DropdownMenuItem
+            key={e.label}
+            onClick={e.run}
+            className="cursor-pointer gap-3 px-2 py-2"
+          >
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-gray-11 [&_svg]:size-4">
+              {e.icon}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[13px] font-medium text-gray-12">{e.label}</span>
+              <span className="block text-xs text-gray-9">{e.description}</span>
+            </span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

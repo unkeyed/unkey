@@ -7,18 +7,11 @@ import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import type { ProjectOverview } from "@/lib/trpc/routers/deploy/project/overview";
 import { IconBook2Outline18, IconChatsOutline18, IconSquareTerminalOutline18 } from "@unkey/icons";
-import {
-  PageBody,
-  PageContainer,
-  PageHeader,
-  PageHeaderActions,
-  PageHeaderContent,
-  PageHeaderTitle,
-} from "@unkey/ui";
+import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
 import { Canvas, type CanvasActions, type CanvasLinks } from "./canvas";
-import { type OverviewModel, buildOverviewModel } from "./overview-model";
+import { buildOverviewModel } from "./overview-model";
 import { ScenarioSwitcher } from "./scenario-switcher";
 
 const AGENT_PROMPT =
@@ -68,6 +61,8 @@ function Loaded({ data }: { data: ProjectOverview }) {
     createApp: () => (gated ? openPaywall() : router.push(routes.projects.apps.new(scope))),
     createKeyspace: () => router.push(routes.apis.list({ ...scope, new: true })),
     createRatelimit: () => router.push(routes.ratelimits.list(scope)),
+    openIdentities: () => router.push(routes.identities.list(scope)),
+    openPermissions: () => router.push(routes.authorization.roles(scope)),
   };
 
   return (
@@ -76,9 +71,6 @@ function Loaded({ data }: { data: ProjectOverview }) {
         <PageHeaderContent>
           <PageHeaderTitle>{data.project.name}</PageHeaderTitle>
         </PageHeaderContent>
-        <PageHeaderActions>
-          <Summary data={data} model={model} />
-        </PageHeaderActions>
       </PageHeader>
       <PageBody className="flex flex-col gap-6">
         <Canvas data={data} model={model} links={links} actions={actions} />
@@ -87,15 +79,6 @@ function Loaded({ data }: { data: ProjectOverview }) {
       {planGate}
     </>
   );
-}
-
-function Summary({ data, model }: { data: ProjectOverview; model: OverviewModel }) {
-  const parts = [
-    data.apps.length && `${model.liveApps}/${data.apps.length} apps live`,
-    data.keyspaces.length && `${data.keyspaces.length} keyspaces`,
-    data.ratelimits.length && `${data.ratelimits.length} ratelimits`,
-  ].filter(Boolean);
-  return <span className="text-xs text-gray-9">{parts.join(" · ") || "Empty project"}</span>;
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {

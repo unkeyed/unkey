@@ -4,7 +4,6 @@ export type ProjectShape = "empty" | "api" | "deploy" | "full";
 
 export type OverviewModel = {
   shape: ProjectShape;
-  liveApps: number;
 };
 
 export function buildOverviewModel(data: ProjectOverview): OverviewModel {
@@ -13,9 +12,7 @@ export function buildOverviewModel(data: ProjectOverview): OverviewModel {
   const shape: ProjectShape =
     hasApps && hasApi ? "full" : hasApps ? "deploy" : hasApi ? "api" : "empty";
 
-  const liveApps = data.apps.filter((a) => a.hasCurrentDeployment).length;
-
-  return { shape, liveApps };
+  return { shape };
 }
 
 export function ago(ms: number, now = Date.now()): string {
