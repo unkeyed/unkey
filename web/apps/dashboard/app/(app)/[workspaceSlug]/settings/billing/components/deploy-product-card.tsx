@@ -6,7 +6,7 @@ import { routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import { IconCubeOutline18 } from "@unkey/icons";
-import { Button, DialogContainer, InfoTooltip, Skeleton, toast } from "@unkey/ui";
+import { Button, DialogContainer, InfoHoverCard, InfoTooltip, Skeleton, toast } from "@unkey/ui";
 import { useState } from "react";
 import { ComputePausedBadge } from "./compute-paused";
 import {
@@ -440,29 +440,32 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                 </div>
                 <div className="mt-1 flex items-baseline justify-between gap-4 border-t pt-2">
                   <span className="text-[13px] text-gray-12">
-                    <InfoTooltip
+                    <InfoHoverCard
                       asChild
                       position={{ side: "top", align: "start" }}
                       content={
                         <div className="flex max-w-[240px] flex-col gap-2 text-[12px]">
                           <div className="flex flex-col gap-0.5">
-                            <p className="font-medium">How this is calculated</p>
-                            <p className="opacity-75">
+                            <p className="font-medium text-gray-12">How this is calculated</p>
+                            <p className="text-gray-11">
                               This period's {formatDollars(periodFeeCents)} fee is already invoiced
                               and covers {formatDollars(includedCreditCents)} of usage. The next
                               invoice charges what your usage went past that, plus the coming
                               period's fee.
                             </p>
-                            <p className="opacity-75 tabular-nums">
+                            <p className="text-gray-11 tabular-nums">
                               {formatPrice(overageCents)} + {formatDollars(planFee)} ={" "}
                               {formatPrice(nextInvoiceCents ?? overageCents + planFee)}
                             </p>
                           </div>
-                          <div className="flex flex-col gap-1 border-t border-gray-1/20 pt-2">
-                            <p className="font-medium">Usage rates</p>
+                          <div className="flex flex-col gap-1 border-t pt-2">
+                            <p className="font-medium text-gray-12">Usage rates</p>
                             <ul className="flex flex-col gap-0.5">
                               {DEPLOY_METER_RATE_LABELS.map((r) => (
-                                <li key={r.label} className="flex justify-between gap-3 opacity-75">
+                                <li
+                                  key={r.label}
+                                  className="flex justify-between gap-3 text-gray-11"
+                                >
                                   <span>{r.label}</span>
                                   <span className="tabular-nums">{r.rate}</span>
                                 </li>
@@ -476,7 +479,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                         Next invoice
                         {renewsAtMillis !== null ? ` · ${formatRenewalDate(renewsAtMillis)}` : ""}
                       </span>
-                    </InfoTooltip>
+                    </InfoHoverCard>
                     {/* Projected adds the usage still expected before the period
                         closes, since the overage row only counts what has accrued. */}
                     {projectedOverageCents !== null &&

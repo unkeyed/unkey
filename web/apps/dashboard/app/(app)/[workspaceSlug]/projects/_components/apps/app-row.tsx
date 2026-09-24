@@ -10,7 +10,7 @@ import {
   IconEarthOutline18,
   type IconProps,
 } from "@unkey/icons";
-import { InfoTooltip } from "@unkey/ui";
+import { InfoHoverCard } from "@unkey/ui";
 import { cn } from "cn";
 import Link from "next/link";
 import type { ComponentPropsWithRef, FC, ReactElement, ReactNode } from "react";
@@ -39,7 +39,7 @@ export function AppRow({
   );
 }
 
-export function AppDetailTooltip({
+export function AppDetailHoverCard({
   app,
   width,
   children,
@@ -49,7 +49,7 @@ export function AppDetailTooltip({
   }
 
   return (
-    <InfoTooltip
+    <InfoHoverCard
       asChild
       delayDuration={100}
       style={{ width }}
@@ -57,7 +57,7 @@ export function AppDetailTooltip({
       content={<AppDetail app={app} deployment={app.headlineDeployment} />}
     >
       {children}
-    </InfoTooltip>
+    </InfoHoverCard>
   );
 }
 

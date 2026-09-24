@@ -1,6 +1,6 @@
 import { formatNumber } from "@/lib/fmt";
 
-import { InfoTooltip } from "@unkey/ui";
+import { InfoHoverCard } from "@unkey/ui";
 import { type JSX, useMemo } from "react";
 import type { ProcessedTimeseriesDataPoint } from "../use-fetch-timeseries";
 
@@ -105,9 +105,9 @@ export function OutcomeExplainer({
   }, [aggregatedData]);
 
   return (
-    <InfoTooltip
+    <InfoHoverCard
       asChild
-      className="bg-raised dark:bg-raised shadow-floating p-0 rounded-lg overflow-hidden px-4 pt-2 pb-1"
+      className="px-4 pt-2 pb-1"
       delayDuration={300}
       position={{ side: "bottom" }}
       content={
@@ -152,6 +152,6 @@ export function OutcomeExplainer({
       }
     >
       <div>{children}</div>
-    </InfoTooltip>
+    </InfoHoverCard>
   );
 }
