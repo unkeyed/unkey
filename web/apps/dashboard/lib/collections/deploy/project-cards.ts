@@ -22,22 +22,19 @@ export function pickPrimaryApp<T extends CardApp>(apps: ReadonlyArray<T>): T | u
 }
 
 export function buildProjectApps(projectId: string, input: CardInput): ProjectApp[] {
-  const deploymentById = new Map(input.deployments.map((d) => [d.id, d]));
-  const deploymentsByApp = Map.groupBy(input.deployments, (d) => d.appId);
+  const recentByApp = Map.groupBy(input.recentDeployments, (d) => d.appId);
   const domainsByApp = Map.groupBy(
     input.productionDomains.filter((d) => d.verificationStatus === "verified"),
     (d) => d.appId,
   );
 
   return input.apps
-    .filter((app) => app.projectId === projectId)
-    .toSorted(byLatestUpdate)
-    .map((app) => {
-      const productionEnvironmentId = app.currentDeploymentId
-        ? deploymentById.get(app.currentDeploymentId)?.environmentId
-        : undefined;
-      const deployments = deploymentsByApp.get(app.id) ?? [];
-      const production = deployments.filter((d) => d.environmentId === productionEnvironmentId);
+    .filter(({ app }) => app.projectId === projectId)
+    .toSorted((a, b) => byLatestUpdate(a.app, b.app))
+    .map(({ app, current }) => {
+      const recent = recentByApp.get(app.id) ?? [];
+      const deployments = current ? [current, ...recent] : recent;
+      const production = deployments.filter((d) => d.environmentId === current?.environmentId);
       const headline = (production.length > 0 ? production : deployments).toSorted(
         (a, b) => b.createdAt - a.createdAt || byIdDescending(a, b),
       )[0];
@@ -86,7 +83,7 @@ type CardDeployment = {
 type CardDomain = { appId: string; domain: string; verificationStatus: string };
 
 type CardInput = {
-  apps: ReadonlyArray<CardApp>;
-  deployments: ReadonlyArray<CardDeployment>;
+  apps: ReadonlyArray<{ app: CardApp; current?: CardDeployment }>;
+  recentDeployments: ReadonlyArray<CardDeployment>;
   productionDomains: ReadonlyArray<CardDomain>;
 };

@@ -18,10 +18,22 @@ export function useProjectCard(projectId: string, { nearViewport }: { nearViewpo
   const enabled = nearViewport && projectId !== SERVER_PLACEHOLDER;
 
   const projectApps = useLiveQuery(
-    (q) =>
-      enabled
-        ? q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId))
-        : null,
+    (q) => {
+      if (!enabled) {
+        return null;
+      }
+      // The filter lives in a subquery so it reaches the deployments load. On the
+      // nullable side of the join, an outer where would not.
+      const projectDeployments = q
+        .from({ current: collection.deployments })
+        .where(({ current }) => eq(current.projectId, projectId));
+      return q
+        .from({ app: collection.apps })
+        .where(({ app }) => eq(app.projectId, projectId))
+        .leftJoin({ current: projectDeployments }, ({ app, current }) =>
+          eq(app.currentDeploymentId, current.id),
+        );
+    },
     [projectId, enabled],
   );
   const recentDeployments = useLiveQuery(
@@ -41,30 +53,6 @@ export function useProjectCard(projectId: string, { nearViewport }: { nearViewpo
     [projectId, enabled],
   );
 
-  const recentIds = new Set((recentDeployments.data ?? []).map((d) => d.id));
-  const currentOutsideWindowIds = recentDeployments.isLoading
-    ? []
-    : (projectApps.data ?? [])
-        .flatMap((app) =>
-          app.currentDeploymentId && !recentIds.has(app.currentDeploymentId)
-            ? [app.currentDeploymentId]
-            : [],
-        )
-        .sort();
-  const currentOutsideWindow = useLiveQuery(
-    (q) =>
-      currentOutsideWindowIds.length === 0
-        ? null
-        : q
-            .from({ deployment: collection.deployments })
-            .where(({ deployment }) =>
-              and(
-                eq(deployment.projectId, projectId),
-                inArray(deployment.id, currentOutsideWindowIds),
-              ),
-            ),
-    [projectId, currentOutsideWindowIds.join(",")],
-  );
   const productionDomains = useLiveQuery(
     (q) =>
       enabled
@@ -79,23 +67,10 @@ export function useProjectCard(projectId: string, { nearViewport }: { nearViewpo
     () =>
       buildProjectApps(projectId, {
         apps: projectApps.data ?? [],
-        deployments: [
-          ...new Map(
-            [...(recentDeployments.data ?? []), ...(currentOutsideWindow.data ?? [])].map((d) => [
-              d.id,
-              d,
-            ]),
-          ).values(),
-        ],
+        recentDeployments: recentDeployments.data ?? [],
         productionDomains: productionDomains.data ?? [],
       }),
-    [
-      projectId,
-      projectApps.data,
-      recentDeployments.data,
-      currentOutsideWindow.data,
-      productionDomains.data,
-    ],
+    [projectId, projectApps.data, recentDeployments.data, productionDomains.data],
   );
 
   const inFlight = apps.some(
