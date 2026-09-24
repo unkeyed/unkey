@@ -82,9 +82,9 @@ func TestInstallGithubSuccessfully(t *testing.T) {
 	require.NotContains(t, state, "userId")
 }
 
-// TestInstallGithubWithCanonicalPermission guarantees that a URN-only root key
+// TestInstallGithubWithURNPermission guarantees that a URN-only root key
 // can start an installation for its authenticated workspace.
-func TestInstallGithubWithCanonicalPermission(t *testing.T) {
+func TestInstallGithubWithURNPermission(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := newRoute(h)
