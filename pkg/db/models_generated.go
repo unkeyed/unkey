@@ -938,7 +938,6 @@ type PortalSession struct {
 	PortalID              string          `db:"portal_id"`
 	ExternalID            string          `db:"external_id"`
 	Scopes                json.RawMessage `db:"scopes"`
-	Preview               bool            `db:"preview"`
 	ExchangeCodeHash      string          `db:"exchange_code_hash"`
 	ExchangeCodeExpiresAt int64           `db:"exchange_code_expires_at"`
 	AccessTokenHash       sql.NullString  `db:"access_token_hash"`
