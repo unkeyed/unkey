@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -68,18 +69,18 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.Or(
-		rbac.T(rbac.Tuple{
-			ResourceType: rbac.App,
-			ResourceID:   "*",
-			Action:       rbac.ReadApp,
-		}),
-		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(project.ID).App("*"),
-			permissions.Read,
-		),
-	))
+	legacyPermission := rbac.T(rbac.Tuple{
+		ResourceType: rbac.App,
+		ResourceID:   "*",
+		Action:       rbac.ReadApp,
+	})
+	legacyAllowed := rbac.Check(legacyPermission, principal.Permissions) == nil
+	collection := urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(project.ID).App("*")
+	collectionURN, err := urn.ParseV1(collection.String())
 	if err != nil {
+		return fault.Wrap(err, fault.Code(codes.App.Internal.ServiceUnavailable.URN()), fault.Internal("invalid app collection resource"), fault.Public("Failed to retrieve apps."))
+	}
+	if !legacyAllowed && !rbac.HasPermissionIn(collectionURN, permissions.Read, principal.Permissions) {
 		return fault.New(
 			"project not found",
 			fault.Code(codes.Data.Project.NotFound.URN()),
@@ -91,12 +92,27 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
-	rows, err := db.Query.ListAppsByProject(ctx, h.DB.RO(), db.ListAppsByProjectParams{
-		ProjectID: project.ID,
-		IDCursor:  p.Cursor,
-		Search:    search,
-		Limit:     p.FetchLimit(),
-	})
+	rows, err := pagination.FetchAuthorized(ctx, p, func(ctx context.Context, cursor string, limit int32) ([]db.ListAppsByProjectRow, error) {
+		return db.Query.ListAppsByProject(ctx, h.DB.RO(), db.ListAppsByProjectParams{
+			ProjectID: project.ID,
+			IDCursor:  cursor,
+			Search:    search,
+			Limit:     limit,
+		})
+	}, func(row db.ListAppsByProjectRow) bool {
+		if legacyAllowed {
+			return true
+		}
+		resource := urn.New().Workspace(row.WorkspaceID).Project(row.ProjectID).App(row.ID)
+		return rbac.Check(rbac.U(resource, permissions.Read), principal.Permissions) == nil
+	}, func(row db.ListAppsByProjectRow) string { return row.ID })
+	if errors.Is(err, pagination.ErrScanLimit) {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Internal("authorized app scan limit exceeded"),
+			fault.Public("The app scan limit was reached. Narrow the search filter and retry."),
+		)
+	}
 	if err != nil {
 		return fault.Wrap(
 			err,
