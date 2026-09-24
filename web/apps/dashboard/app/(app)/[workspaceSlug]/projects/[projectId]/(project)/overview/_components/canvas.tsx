@@ -177,7 +177,7 @@ function Group({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 max-w-[340px] flex-1 flex-col gap-2 rounded-xl bg-grayA-3 p-2.5 backdrop-blur-sm">
+    <div className="flex min-w-0 max-w-[340px] flex-1 flex-col gap-2 rounded-xl bg-grayA-2 p-2.5 backdrop-blur-sm">
       <div className="flex items-center justify-between px-1 pb-0.5">
         <span className="flex items-center gap-1.5 text-xs text-gray-11 [&_svg]:size-3.5">
           {icon}
