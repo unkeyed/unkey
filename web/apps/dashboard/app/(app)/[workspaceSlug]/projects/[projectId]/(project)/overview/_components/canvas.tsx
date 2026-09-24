@@ -345,17 +345,16 @@ function KeyspaceRow({
     { keyspaceId: keyAuthId, ...window, since: "" },
     { trpc: { context: { skipBatch: true } } },
   );
-  const points = data?.timeseries?.map((p) => p.y.total) ?? [];
-  const total = points.reduce((a, b) => a + b, 0);
+  const total = data?.timeseries?.reduce((a, p) => a + p.y.total, 0);
   return (
-    <Link href={href} className="flex items-center gap-3 px-3 py-1.5 hover:bg-grayA-2">
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-xs text-gray-12">{name}</div>
-        <div className="text-[11px] text-gray-9">
-          {compact(keyCount)} keys · {compact(total)} verifications
-        </div>
-      </div>
-      <Spark points={points} className="bg-success-9" />
+    <Link href={href} className="block px-3 py-1.5 hover:bg-grayA-2">
+      <div className="truncate text-xs text-gray-12">{name}</div>
+      <Stats
+        items={[
+          { label: "Keys", value: compact(keyCount) },
+          { label: "Verifications", value: total == null ? "…" : compact(total) },
+        ]}
+      />
     </Link>
   );
 }
@@ -388,21 +387,19 @@ function RatelimitsCard({ data, links }: { data: ProjectOverview; links: CanvasL
             <Link
               key={ns.id}
               href={links.ratelimit(ns.id)}
-              className="flex items-center gap-3 px-3 py-1.5 hover:bg-grayA-2"
+              className="block px-3 py-1.5 hover:bg-grayA-2"
             >
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-xs text-gray-12">{ns.name}</div>
-                <div className="text-[11px] text-gray-9">
-                  {compact(total)} requests
-                  {total > 0 && (
-                    <span className={cn(blocked > 5 && "text-warning-11")}>
-                      {" "}
-                      · {blocked.toFixed(1)}% blocked
-                    </span>
-                  )}
-                </div>
-              </div>
-              <Spark points={series.map((p) => p.y.total)} className="bg-info-9" />
+              <div className="truncate text-xs text-gray-12">{ns.name}</div>
+              <Stats
+                items={[
+                  { label: "Requests", value: ts ? compact(total) : "…" },
+                  {
+                    label: "Blocked",
+                    value: ts ? `${blocked.toFixed(1)}%` : "…",
+                    warn: blocked > 5,
+                  },
+                ]}
+              />
             </Link>
           );
         })}
@@ -411,21 +408,19 @@ function RatelimitsCard({ data, links }: { data: ProjectOverview; links: CanvasL
   );
 }
 
-function Spark({ points, className }: { points: number[]; className: string }) {
-  const tail = points.slice(-24);
-  const max = Math.max(1, ...tail);
-  if (tail.every((p) => p === 0)) {
-    return <span className="text-[11px] text-gray-8">No traffic</span>;
-  }
+function Stats({
+  items,
+}: {
+  items: Array<{ label: string; value: string; warn?: boolean }>;
+}) {
   return (
-    <div className="flex h-5 w-16 shrink-0 items-end gap-px">
-      {tail.map((p, i) => (
-        <span
-          // biome-ignore lint/suspicious/noArrayIndexKey: positional bars
-          key={i}
-          className={cn("flex-1 rounded-[1px]", p ? className : "bg-grayA-4")}
-          style={{ height: `${Math.max(8, (p / max) * 100)}%` }}
-        />
+    <div className="flex items-center gap-1.5 text-[11px]">
+      {items.map((item, i) => (
+        <span key={item.label} className="flex items-center gap-1.5">
+          {i > 0 && <span className="text-gray-7">·</span>}
+          <span className="text-gray-11">{item.label}</span>
+          <span className={cn(item.warn ? "text-warning-11" : "text-gray-9")}>{item.value}</span>
+        </span>
       ))}
     </div>
   );
