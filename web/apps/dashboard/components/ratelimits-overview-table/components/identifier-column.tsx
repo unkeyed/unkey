@@ -24,7 +24,6 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
   return (
     <div className="flex gap-6 items-center pl-2 min-w-0">
       <InfoTooltip
-        variant="inverted"
         content={
           <div className="text-xs">
             {isFullyBlocked ? (
@@ -61,7 +60,6 @@ export const IdentifierColumn = ({ log }: IdentifierColumnProps) => {
         </div>
         <InfoTooltip
           asChild
-          variant="inverted"
           content={<span className="font-mono text-xs break-all">{log.identifier}</span>}
         >
           <div
@@ -89,16 +87,9 @@ type OverrideIndicatorProps = {
 
 const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProps) => (
   <InfoTooltip
-    variant="muted"
     content={
       <div className="flex flex-row pl-1 pr-5 gap-3 py-0 items-center justify-center leading-none">
-        <div
-          className={cn(
-            style.badge.default,
-            "rounded-sm p-1",
-            "bg-gray-4 text-gray-12 group-hover:bg-gray-5",
-          )}
-        >
+        <div className={cn(style.badge.default, "rounded-sm p-1", "bg-gray-1/15")}>
           <IconArrowDotRotateAnticlockwiseOutline18 className="size-3.5" />
         </div>
         <div className="flex flex-col gap-1">
@@ -107,9 +98,9 @@ const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProp
             <div className="size-[6px] rounded-full bg-warning-10" />
           </div>
           {log.override && (
-            <div className="text-gray-9 text-xs">
-              Limit set to <span className="text-gray-12">{formatNumber(log.override.limit)} </span>
-              requests per <span className="text-gray-12">{formatMs(log.override.duration)}</span>
+            <div className="text-xs">
+              <span className="opacity-75">Limit set to</span> {formatNumber(log.override.limit)}{" "}
+              <span className="opacity-75">requests per</span> {formatMs(log.override.duration)}
             </div>
           )}
         </div>

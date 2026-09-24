@@ -23,15 +23,15 @@ export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({
         <div>
           <div className="font-medium mb-2 flex items-center gap-2 text-[13px]">
             <span>Try queries like:</span>
-            <span className="text-[11px] text-gray-11">(click to use)</span>
+            <span className="text-[11px] opacity-75">(click to use)</span>
           </div>
           <ul className="space-y-1.5 pl-1 [&_svg]:size-[10px] ">
             {examples.map((example) => (
               <li key={example} className="flex items-center gap-2">
-                <IconCaretRightOutline18 className="text-gray-9" />
+                <IconCaretRightOutline18 className="opacity-75" />
                 <button
                   type="button"
-                  className="hover:text-gray-11 transition-colors cursor-pointer hover:underline"
+                  className="hover:opacity-75 transition-opacity cursor-pointer hover:underline"
                   onClick={() => onSelectExample(example)}
                   data-testid={`example-${example}`}
                 >

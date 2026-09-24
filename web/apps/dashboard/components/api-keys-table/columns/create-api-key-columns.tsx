@@ -128,9 +128,7 @@ const KeyIdCell = ({
         {identity ? (
           <InfoTooltip
             delayDuration={100}
-            variant="muted"
             position={{ side: "right" }}
-            className="bg-raised px-4 py-2 border shadow-md font-medium text-xs text-gray-12"
             content={
               <>
                 This key is associated with the identity:{" "}
@@ -146,10 +144,10 @@ const KeyIdCell = ({
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <span className="font-mono bg-gray-4 p-1 rounded-sm">{identity}</span>
+                    <span className="font-mono bg-gray-1/15 p-1 rounded-sm">{identity}</span>
                   </Link>
                 ) : (
-                  <span className="font-mono bg-gray-4 p-1 rounded-sm">{identity}</span>
+                  <span className="font-mono bg-gray-1/15 p-1 rounded-sm">{identity}</span>
                 )}
               </>
             }
