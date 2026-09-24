@@ -4,7 +4,6 @@ packages:
   - "apps/*"
   - "tools/*"
 
-pmOnFail: error
 saveExact: true
 minimumReleaseAge: 10080
 minimumReleaseAgeStrict: true

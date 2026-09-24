@@ -81,8 +81,10 @@ checksum verification.
 
 Keep `go.mod`'s minimum Go version and `web/package.json`'s Node compatibility
 range. Update `packageManager` alongside mise's pnpm pin. Go uses
-`GOTOOLCHAIN=local`, and pnpm uses `pmOnFail: error`, so neither silently downloads
-a replacement toolchain. Module and package dependencies retain their native
+`GOTOOLCHAIN=local`. Mise supplies the pinned pnpm version in local, Depot, and
+container environments. External builders such as Vercel can start with another
+pnpm version. pnpm's default package manager handling then downloads and runs the
+version in `packageManager`. Module and package dependencies retain their native
 lockfiles. OS packages and container base images remain separate pins.
 
 ## CI setup and caching
