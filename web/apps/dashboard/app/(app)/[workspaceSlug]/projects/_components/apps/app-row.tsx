@@ -10,7 +10,7 @@ import {
   IconEarthOutline18,
   type IconProps,
 } from "@unkey/icons";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@unkey/ui";
+import { InfoHoverCard } from "@unkey/ui";
 import { cn } from "cn";
 import Link from "next/link";
 import type { ComponentPropsWithRef, FC, ReactElement, ReactNode } from "react";
@@ -49,12 +49,15 @@ export function AppDetailHoverCard({
   }
 
   return (
-    <HoverCard>
-      <HoverCardTrigger delay={100} render={children} />
-      <HoverCardContent side="right" style={{ width }} className="w-auto px-3 py-2">
-        <AppDetail app={app} deployment={app.headlineDeployment} />
-      </HoverCardContent>
-    </HoverCard>
+    <InfoHoverCard
+      asChild
+      delayDuration={100}
+      style={{ width }}
+      position={{ side: "right", align: "center" }}
+      content={<AppDetail app={app} deployment={app.headlineDeployment} />}
+    >
+      {children}
+    </InfoHoverCard>
   );
 }
 

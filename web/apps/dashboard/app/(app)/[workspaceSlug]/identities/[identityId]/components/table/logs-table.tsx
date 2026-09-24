@@ -33,6 +33,7 @@ import {
   EmptyStateHeader,
   EmptyStateIcon,
   EmptyStateTitle,
+  InfoHoverCard,
   InfoTooltip,
   TimestampInfo,
 } from "@unkey/ui";
@@ -316,8 +317,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
             <div className="flex flex-wrap gap-1 items-center">
               {log.tags && log.tags.length > 0 ? (
                 log.tags.slice(0, 3).map((tag) => (
-                  <InfoTooltip
-                    className="px-2 py-1"
+                  <InfoHoverCard
                     key={tag}
                     content={
                       <div className="max-w-xs">
@@ -366,13 +366,13 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                         startChars: 10,
                       })}
                     </Badge>
-                  </InfoTooltip>
+                  </InfoHoverCard>
                 ))
               ) : (
                 <span className="text-gray-8">—</span>
               )}
               {log.tags && log.tags.length > 3 && (
-                <InfoTooltip
+                <InfoHoverCard
                   content={
                     <div className="flex flex-col gap-2 py-1 max-w-xs max-h-[300px] overflow-y-auto">
                       <div className="text-xs opacity-75 font-medium">
@@ -423,7 +423,7 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
                   >
                     +{log.tags.length - 3}
                   </Badge>
-                </InfoTooltip>
+                </InfoHoverCard>
               )}
             </div>
           );
