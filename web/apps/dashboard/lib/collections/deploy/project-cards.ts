@@ -14,7 +14,7 @@ export type ProjectApp = {
 };
 
 export function byLatestUpdate(a: CardApp, b: CardApp): number {
-  return (b.updatedAt ?? -1) - (a.updatedAt ?? -1) || (b.id < a.id ? -1 : b.id > a.id ? 1 : 0);
+  return (b.updatedAt ?? -1) - (a.updatedAt ?? -1) || byIdDescending(a, b);
 }
 
 export function pickPrimaryApp<T extends CardApp>(apps: ReadonlyArray<T>): T | undefined {
@@ -23,8 +23,8 @@ export function pickPrimaryApp<T extends CardApp>(apps: ReadonlyArray<T>): T | u
 
 export function buildProjectApps(projectId: string, input: CardInput): ProjectApp[] {
   const deploymentById = new Map(input.deployments.map((d) => [d.id, d]));
-  const deploymentsByApp = groupBy(input.deployments, (d) => d.appId);
-  const domainsByApp = groupBy(
+  const deploymentsByApp = Map.groupBy(input.deployments, (d) => d.appId);
+  const domainsByApp = Map.groupBy(
     input.productionDomains.filter((d) => d.verificationStatus === "verified"),
     (d) => d.appId,
   );
@@ -36,12 +36,10 @@ export function buildProjectApps(projectId: string, input: CardInput): ProjectAp
       const productionEnvironmentId = app.currentDeploymentId
         ? deploymentById.get(app.currentDeploymentId)?.environmentId
         : undefined;
-      const headline = (deploymentsByApp.get(app.id) ?? []).toSorted(
-        (a, b) =>
-          Number(b.environmentId === productionEnvironmentId) -
-            Number(a.environmentId === productionEnvironmentId) ||
-          b.createdAt - a.createdAt ||
-          (b.id < a.id ? -1 : b.id > a.id ? 1 : 0),
+      const deployments = deploymentsByApp.get(app.id) ?? [];
+      const production = deployments.filter((d) => d.environmentId === productionEnvironmentId);
+      const headline = (production.length > 0 ? production : deployments).toSorted(
+        (a, b) => b.createdAt - a.createdAt || byIdDescending(a, b),
       )[0];
       const domain = app.currentDeploymentId
         ? (domainsByApp.get(app.id) ?? []).toSorted((a, b) => a.domain.localeCompare(b.domain))[0]
@@ -61,6 +59,10 @@ export function buildProjectApps(projectId: string, input: CardInput): ProjectAp
           : null,
       };
     });
+}
+
+function byIdDescending(a: { id: string }, b: { id: string }): number {
+  return b.id < a.id ? -1 : b.id > a.id ? 1 : 0;
 }
 
 type CardApp = {
@@ -88,16 +90,3 @@ type CardInput = {
   deployments: ReadonlyArray<CardDeployment>;
   productionDomains: ReadonlyArray<CardDomain>;
 };
-
-function groupBy<T>(items: ReadonlyArray<T>, key: (item: T) => string): Map<string, T[]> {
-  const groups = new Map<string, T[]>();
-  for (const item of items) {
-    const group = groups.get(key(item));
-    if (group) {
-      group.push(item);
-    } else {
-      groups.set(key(item), [item]);
-    }
-  }
-  return groups;
-}
