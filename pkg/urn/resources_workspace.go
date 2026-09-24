@@ -1,5 +1,7 @@
 package urn
 
+import "fmt"
+
 // workspace builds resource paths inside one workspace.
 //
 // Hierarchy:

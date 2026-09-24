@@ -222,6 +222,19 @@ func TestResourceSpecificParsersRoundTrip(t *testing.T) {
 	}
 }
 
+// TestRootKeyResource guarantees the workspace builder and parser agree that
+// rootKeys/key_123 identifies a workspace-scoped root key resource.
+func TestRootKeyResource(t *testing.T) {
+	t.Parallel()
+
+	value := New().Workspace("ws_123").RootKey("key_123").String()
+	require.Equal(t, "unkey:v1:ws_123:rootKeys/key_123", value)
+
+	resource, err := ParseV1(value)
+	require.NoError(t, err)
+	require.Equal(t, value, resource.String())
+}
+
 // TestParseV1AllowsCanonicalPatterns guarantees canonical resource patterns use
 // wildcards only in supported positions.
 func TestParseV1AllowsCanonicalPatterns(t *testing.T) {
@@ -229,6 +242,7 @@ func TestParseV1AllowsCanonicalPatterns(t *testing.T) {
 
 	for _, value := range []string{
 		"unkey:v1:ws_123:github/apps/*",
+		"unkey:v1:ws_123:rootKeys/*",
 		"unkey:v1:ws_123:projects/*",
 		"unkey:v1:ws_123:projects/*/portals/*",
 		"unkey:v1:ws_123:projects/*/portals/*/sessions/*",
