@@ -11,6 +11,9 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 )
 
+// TestAuthorizePermissionsIndexesDistinctGrants guarantees all 1,000 distinct
+// authorized grants survive sorting. For example, proj_0000 and proj_0999
+// remain separate grants even when requested in reverse order.
 func TestAuthorizePermissionsIndexesDistinctGrants(t *testing.T) {
 	const count = 1000
 	base := "unkey:v1:ws_one:projects/"
@@ -29,6 +32,9 @@ func TestAuthorizePermissionsIndexesDistinctGrants(t *testing.T) {
 	require.Equal(t, base+"proj_0999#read", got[count-1])
 }
 
+// TestAuthorizePermissionsRejectsMissingGrantAmongMaximumDistinctPermissions
+// guarantees one unauthorized grant rejects the whole set. For example, access
+// to 1,000 numbered projects does not allow granting access to projects/missing.
 func TestAuthorizePermissionsRejectsMissingGrantAmongMaximumDistinctPermissions(t *testing.T) {
 	const count = 1000
 	base := "unkey:v1:ws_one:projects/"
@@ -47,6 +53,9 @@ func TestAuthorizePermissionsRejectsMissingGrantAmongMaximumDistinctPermissions(
 	require.Equal(t, codes.Auth.Authorization.InsufficientPermissions.URN(), code)
 }
 
+// TestAuthorizePermissionsEnforcesContainmentBoundaries guarantees a child
+// cannot receive broader access. For example, projects/*#read covers one
+// project's read permission, but not write or a different workspace.
 func TestAuthorizePermissionsEnforcesContainmentBoundaries(t *testing.T) {
 	base := "unkey:v1:ws_one:"
 	tests := []struct {
@@ -83,6 +92,9 @@ func TestAuthorizePermissionsEnforcesContainmentBoundaries(t *testing.T) {
 	}
 }
 
+// TestAuthorizePermissionsHonorsCancellation guarantees canceled work stops
+// before granting permissions. For example, an already canceled request
+// returns context.Canceled instead of authorizing projects/proj_one#read.
 func TestAuthorizePermissionsHonorsCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
@@ -90,6 +102,9 @@ func TestAuthorizePermissionsHonorsCancellation(t *testing.T) {
 	require.ErrorIs(t, err, context.Canceled)
 }
 
+// BenchmarkAuthorizePermissions1000Distinct measures 1,000 distinct grant checks.
+// For example, each project's keyspaces/* grant covers its concrete keyspace;
+// replacing the last request with projects/missing must still deny the set.
 func BenchmarkAuthorizePermissions1000Distinct(b *testing.B) {
 	const count = 1000
 	p := &principal.Principal{AuthorizedWorkspaceID: "ws_one", Permissions: make([]string, count)}

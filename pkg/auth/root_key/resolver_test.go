@@ -106,6 +106,7 @@ func TestResolver_ResolveRootKeyPrincipal(t *testing.T) {
 
 // TestResolver_MapsNonexpiringRootKey guarantees a root key without a trusted
 // database expiry remains explicitly nonexpiring in the authenticated source.
+// For example, an unset database expiry produces KeySource.ExpiresAt == nil.
 func TestResolver_MapsNonexpiringRootKey(t *testing.T) {
 	t.Parallel()
 

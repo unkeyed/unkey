@@ -91,6 +91,9 @@ func TestPermissionProjectConflictRollsBackKeyGrantsAndAudit(t *testing.T) {
 	require.Equal(t, before, snapshot(t, h))
 }
 
+// TestPermissionCollationSubstitutionRollsBack guarantees SQL cannot substitute
+// a different permission. For example, a stored ks_one with a zero-width space
+// must not replace requested ks_one; the request fails without storing changes.
 func TestPermissionCollationSubstitutionRollsBack(t *testing.T) {
 	h, route, p := newHarness(t)
 	projectID := uid.New(uid.ProjectPrefix)
@@ -110,6 +113,9 @@ func TestPermissionCollationSubstitutionRollsBack(t *testing.T) {
 	require.Equal(t, before, snapshot(t, h))
 }
 
+// TestPermissionStoragePreservesCase guarantees differently cased IDs remain
+// separate permissions. For example, ks_one#read and KS_one#read are both
+// stored exactly as requested rather than merged into one grant.
 func TestPermissionStoragePreservesCase(t *testing.T) {
 	h, route, p := newHarness(t)
 	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":projects/proj_one/keyspaces/"

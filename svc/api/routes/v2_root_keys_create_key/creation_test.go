@@ -104,6 +104,9 @@ func TestCreateRejectsLegacyPermissionsAtomically(t *testing.T) {
 	}
 }
 
+// TestCreateStoresMaximumDistinctPermissions guarantees the full 1,000-grant
+// limit is stored and audited. For example, a creation grant plus 999 separate
+// project keyspace grants produces exactly those grants and 1,001 audit events.
 func TestCreateStoresMaximumDistinctPermissions(t *testing.T) {
 	h, route, p := newHarness(t)
 	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":"

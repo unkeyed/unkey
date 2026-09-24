@@ -18,7 +18,7 @@ const (
 // ErrInvalidResourceName is returned when a resource name cannot be parsed.
 var ErrInvalidResourceName = errors.New("invalid resource name")
 
-var idPattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
+var idPattern = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
 
 // resourcePathShapes defines every public v1 resource.
 // resourceIDSegment marks a segment that accepts one concrete ID or "*".
@@ -169,7 +169,7 @@ func compileResourcePattern(pathFormat string) *regexp.Regexp {
 
 func validateWorkspaceID(value string) error {
 	if !idPattern.MatchString(value) {
-		return errors.New("must contain only ASCII letters, digits, underscores, or hyphens")
+		return errors.New("must contain only ASCII letters, digits, or underscores")
 	}
 	return nil
 }

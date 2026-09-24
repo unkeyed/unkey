@@ -14,6 +14,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_key"
 )
 
+// TestExpiringRootKeyBoundsChildLifetime guarantees a child cannot outlive its
+// caller. For example, equal or earlier expiry succeeds, but one millisecond
+// later, null, or omitted expiry fails without storing a key or audit events.
 func TestExpiringRootKeyBoundsChildLifetime(t *testing.T) {
 	h := testutil.NewHarness(t)
 	r := h.Resources()
