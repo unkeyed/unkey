@@ -3,15 +3,63 @@ package handler_test
 import (
 	"fmt"
 	"net/http"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_projects_list_projects"
 )
+
+// TestListProjectsRefillsAuthorizedPages guarantees specific-project permissions
+// produce full pages without exposing denied IDs. For example, permission for
+// the fourth and seventh projects returns those two across one-item pages,
+// while a search matching only the first project returns an empty page.
+func TestListProjectsRefillsAuthorizedPages(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB}
+	h.Register(route)
+	workspace := h.CreateWorkspace()
+	ids := make([]string, 8)
+	for i := range ids {
+		ids[i] = h.CreateProject(seed.CreateProjectRequest{
+			ID: strings.ToLower(uid.New(uid.ProjectPrefix)), WorkspaceID: workspace.ID,
+			Name: "Visible project", Slug: uid.New("project"),
+		}).ID
+	}
+	slices.Sort(ids)
+	key := h.CreateRootKey(workspace.ID,
+		fmt.Sprintf("%s#read", urn.New().Workspace(workspace.ID).Project(ids[3])),
+		fmt.Sprintf("%s#read", urn.New().Workspace(workspace.ID).Project(ids[6])),
+	)
+	headers := http.Header{"Content-Type": {"application/json"}, "Authorization": {"Bearer " + key}}
+	first := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Limit: ptr.P(1)})
+	require.Equal(t, http.StatusOK, first.Status, "%s", first.RawBody)
+	require.Len(t, first.Body.Data, 1)
+	require.Equal(t, ids[3], first.Body.Data[0].Id)
+	require.True(t, first.Body.Pagination.HasMore)
+	require.Equal(t, ptr.P(ids[6]), first.Body.Pagination.Cursor)
+	last := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Limit: ptr.P(1), Cursor: first.Body.Pagination.Cursor})
+	require.Equal(t, http.StatusOK, last.Status, "%s", last.RawBody)
+	require.Len(t, last.Body.Data, 1)
+	require.Equal(t, ids[6], last.Body.Data[0].Id)
+	require.False(t, last.Body.Pagination.HasMore)
+	require.Nil(t, last.Body.Pagination.Cursor)
+	for _, i := range []int{0, 1, 2, 4, 5, 7} {
+		require.NotContains(t, first.RawBody, ids[i])
+		require.NotContains(t, last.RawBody, ids[i])
+	}
+	empty := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Search: ptr.P(ids[0])})
+	require.Equal(t, http.StatusOK, empty.Status, "%s", empty.RawBody)
+	require.Empty(t, empty.Body.Data)
+	require.False(t, empty.Body.Pagination.HasMore)
+	require.Nil(t, empty.Body.Pagination.Cursor)
+}
 
 // TestListProjectsAuthorizesCollectionURN guarantees a collection URN can list
 // projects only from its authorized workspace without a legacy tuple permission.
@@ -68,15 +116,14 @@ func TestListProjectsAuthorizesCollectionURNForEmptyList(t *testing.T) {
 	require.Empty(t, res.Body.Data)
 }
 
-// TestListProjectsRejectsInsufficientURNs guarantees a workspace list cannot be
-// authorized by a concrete project, another action, or another workspace.
+// TestListProjectsRejectsInsufficientURNs rejects another action or workspace.
 func TestListProjectsRejectsInsufficientURNs(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB}
 	h.Register(route)
 
 	workspace := h.CreateWorkspace()
-	project := h.CreateProject(seed.CreateProjectRequest{
+	h.CreateProject(seed.CreateProjectRequest{
 		ID:          uid.New(uid.ProjectPrefix),
 		WorkspaceID: workspace.ID,
 		Name:        "Project",
@@ -88,10 +135,6 @@ func TestListProjectsRejectsInsufficientURNs(t *testing.T) {
 		name       string
 		permission string
 	}{
-		{
-			name:       "concrete project",
-			permission: fmt.Sprintf("%s#read", urn.New().Workspace(workspace.ID).Project(project.ID)),
-		},
 		{
 			name:       "wrong action",
 			permission: fmt.Sprintf("%s#write", urn.New().Workspace(workspace.ID).Project("*")),
