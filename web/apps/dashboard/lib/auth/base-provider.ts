@@ -17,6 +17,7 @@ export abstract class BaseAuthProvider {
     userId: string,
     organizationId?: string,
   ): Promise<MembershipListResponse>;
+  abstract listActiveOrganizationIds(userId: string, organizationId?: string): Promise<string[]>;
   abstract getOrganizationMemberList(orgId: string): Promise<MembershipListResponse>;
   abstract deactivateMembership(membershipId: string, orgId: string): Promise<void>;
 

@@ -203,8 +203,7 @@ export function PolicyPanel(props: PolicyPanelProps) {
           fields={["matchConditions"]}
           tooltipContent={
             <span>
-              All conditions must match (<span className="text-gray-12 font-medium">AND</span>{" "}
-              logic).
+              All conditions must match (<span className="font-medium">AND</span> logic).
             </span>
           }
           collapsedAction={<MatchConditionsClearAll />}

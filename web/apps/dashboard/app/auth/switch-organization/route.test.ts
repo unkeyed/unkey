@@ -12,7 +12,7 @@ vi.mock("@/lib/auth", () => ({
   switchToOrg: mocks.switchToOrg,
 }));
 vi.mock("@/lib/auth/get-auth", () => ({ getAuth: mocks.getAuth }));
-vi.mock("@/lib/auth/server", () => ({ auth: { listMemberships: mocks.memberships } }));
+vi.mock("@/lib/auth/server", () => ({ auth: { listActiveOrganizationIds: mocks.memberships } }));
 vi.mock("@/lib/db", () => ({ db: { query: { workspaces: { findMany: mocks.findMany } } } }));
 
 import { GET } from "./route";
@@ -22,17 +22,10 @@ describe("organization switch route", () => {
     vi.clearAllMocks();
     mocks.switchToOrg.mockResolvedValue(undefined);
     mocks.getAuth.mockResolvedValue({ userId: "session-user" });
-    const allMemberships = [
-      { status: "active", organization: { id: "org_123" } },
-      { status: "inactive", organization: { id: "org_inactive" } },
-      { status: "pending", organization: { id: "org_pending" } },
-    ];
-    mocks.memberships.mockImplementation(async (_userId: string, organizationId?: string) => ({
-      data: allMemberships.filter(
-        (membership) =>
-          organizationId === undefined || membership.organization.id === organizationId,
-      ),
-    }));
+    const activeOrgIds = ["org_123"];
+    mocks.memberships.mockImplementation(async (_userId: string, organizationId?: string) =>
+      activeOrgIds.filter((orgId) => organizationId === undefined || orgId === organizationId),
+    );
     mocks.findMany.mockResolvedValue([{ orgId: "org_123", name: "Disabled workspace" }]);
   });
 
