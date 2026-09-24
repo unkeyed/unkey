@@ -1,5 +1,5 @@
 import { IconPage2Outline12 } from "@unkey/icons";
-import { Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import { Button, HoverCard, HoverCardContent, HoverCardTrigger } from "@unkey/ui";
 
 type Permission = {
   id: string;
@@ -23,72 +23,70 @@ export function createPermissionOptions({
 }: PermissionSelectorProps) {
   const options = permissions.map((permission) => ({
     label: (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <div className="flex w-full text-gray-8 text-xs gap-4 py-0.5 items-center group flex-row">
-                <div className="border rounded-full flex items-center justify-center size-5">
-                  <IconPage2Outline12 className="text-grayA-11" />
-                </div>
-                <div className="flex gap-1 flex-col truncate min-w-0 flex-1">
-                  <div className="flex gap-2 items-center min-w-0">
-                    <div className="flex flex-col gap-0.5 truncate min-w-0">
-                      <div className="flex items-center  gap-2">
-                        <span className="font-medium text-gray-12 text-left truncate">
-                          {permission.name}
-                        </span>
-                      </div>
-                      <span className="text-gray-10 text-xs font-mono truncate">
-                        {permission.slug}
+      <HoverCard>
+        <HoverCardTrigger
+          render={
+            <div className="flex w-full text-gray-8 text-xs gap-4 py-0.5 items-center group flex-row">
+              <div className="border rounded-full flex items-center justify-center size-5">
+                <IconPage2Outline12 className="text-grayA-11" />
+              </div>
+              <div className="flex gap-1 flex-col truncate min-w-0 flex-1">
+                <div className="flex gap-2 items-center min-w-0">
+                  <div className="flex flex-col gap-0.5 truncate min-w-0">
+                    <div className="flex items-center  gap-2">
+                      <span className="font-medium text-gray-12 text-left truncate">
+                        {permission.name}
                       </span>
                     </div>
-                  </div>
-                  {permission.description && (
-                    <span className="text-gray-9 text-xs leading-tight">
-                      {permission.description}
+                    <span className="text-gray-10 text-xs font-mono truncate">
+                      {permission.slug}
                     </span>
-                  )}
-                </div>
-              </div>
-            }
-          />
-          <TooltipContent
-            side="right"
-            align="start"
-            sideOffset={30}
-            className="shadow-floating overflow-hidden rounded-xl p-0 bg-raised dark:bg-raised text-gray-12 w-80 z-100"
-          >
-            <div className="flex flex-col h-full">
-              {/* Header */}
-              <div className="px-4 py-2 border-b text-gray-10 text-xs font-medium bg-grayA-2">
-                Permission Details
-              </div>
-              {/* Content */}
-              <div className="flex flex-col gap-3 px-4 py-3">
-                <div>
-                  <div className="text-xs font-medium text-gray-11 mb-1">Permission ID</div>
-                  <div className="text-xs text-gray-12 font-mono break-all">{permission.id}</div>
-                </div>
-                <div>
-                  <div className="text-xs font-medium text-gray-11 mb-1">Name</div>
-                  <div className="text-xs text-gray-12">{permission.name}</div>
-                </div>
-                <div>
-                  <div className="text-xs font-medium text-gray-11 mb-1">Slug</div>
-                  <div className="text-xs text-gray-12 font-mono">{permission.slug}</div>
+                  </div>
                 </div>
                 {permission.description && (
-                  <div>
-                    <div className="text-xs font-medium text-gray-11 mb-1">Description</div>
-                    <div className="text-xs text-gray-12">{permission.description}</div>
-                  </div>
+                  <span className="text-gray-9 text-xs leading-tight">
+                    {permission.description}
+                  </span>
                 )}
               </div>
             </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+          }
+        />
+        <HoverCardContent
+          side="right"
+          align="start"
+          sideOffset={30}
+          className="shadow-floating overflow-hidden rounded-xl p-0 w-80 z-100"
+        >
+          <div className="flex flex-col h-full">
+            {/* Header */}
+            <div className="px-4 py-2 border-b text-gray-10 text-xs font-medium bg-grayA-2">
+              Permission Details
+            </div>
+            {/* Content */}
+            <div className="flex flex-col gap-3 px-4 py-3">
+              <div>
+                <div className="text-xs font-medium text-gray-11 mb-1">Permission ID</div>
+                <div className="text-xs text-gray-12 font-mono break-all">{permission.id}</div>
+              </div>
+              <div>
+                <div className="text-xs font-medium text-gray-11 mb-1">Name</div>
+                <div className="text-xs text-gray-12">{permission.name}</div>
+              </div>
+              <div>
+                <div className="text-xs font-medium text-gray-11 mb-1">Slug</div>
+                <div className="text-xs text-gray-12 font-mono">{permission.slug}</div>
+              </div>
+              {permission.description && (
+                <div>
+                  <div className="text-xs font-medium text-gray-11 mb-1">Description</div>
+                  <div className="text-xs text-gray-12">{permission.description}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </HoverCardContent>
+      </HoverCard>
     ),
     selectedLabel: (
       <div className="flex w-full text-gray-8 text-xs gap-1.5 py-0.5 items-center">
