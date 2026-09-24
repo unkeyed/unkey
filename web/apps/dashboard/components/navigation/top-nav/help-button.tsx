@@ -35,10 +35,11 @@ const ITEM_LINKS = [
 export function HelpButton() {
   const { openFeedback } = useFeedback();
   const [open, setOpen] = useState(false);
+  const [tooltipOpen, setTooltipOpen] = useState(false);
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <Tooltip>
+      <Tooltip open={tooltipOpen && !open} onOpenChange={setTooltipOpen}>
         <DropdownMenuTrigger
           aria-label="Help options"
           render={<TooltipTrigger />}
