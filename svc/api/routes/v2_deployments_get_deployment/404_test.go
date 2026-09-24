@@ -79,7 +79,9 @@ func TestDeploymentInAnotherWorkspace(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 }
 
-func TestGetDeploymentRejectsCanonicalPermissionForAnotherResource(t *testing.T) {
+// TestGetDeploymentRejectsURNPermissionForAnotherResource verifies that a URN
+// for another project, app, environment, workspace, or action returns not found.
+func TestGetDeploymentRejectsURNPermissionForAnotherResource(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := newRoute(h)
 	h.Register(route)
@@ -92,7 +94,7 @@ func TestGetDeploymentRejectsCanonicalPermissionForAnotherResource(t *testing.T)
 		AppID:         setup.App.ID,
 		EnvironmentID: setup.Environment.ID,
 	})
-	permission := func(workspaceID, projectID, appID, environmentID, deploymentID, action string) string {
+	permissionFor := func(workspaceID, projectID, appID, environmentID, deploymentID, action string) string {
 		return fmt.Sprintf(
 			"unkey:v1:%s:projects/%s/apps/%s/environments/%s/deployments/%s#%s",
 			workspaceID,
@@ -110,27 +112,27 @@ func TestGetDeploymentRejectsCanonicalPermissionForAnotherResource(t *testing.T)
 	}{
 		{
 			name: "wrong project",
-			permission: permission(setup.Workspace.ID, uid.New(uid.ProjectPrefix), setup.App.ID,
+			permission: permissionFor(setup.Workspace.ID, uid.New(uid.ProjectPrefix), setup.App.ID,
 				setup.Environment.ID, dep.ID, "read"),
 		},
 		{
 			name: "wrong app",
-			permission: permission(setup.Workspace.ID, setup.Project.ID, uid.New(uid.AppPrefix),
+			permission: permissionFor(setup.Workspace.ID, setup.Project.ID, uid.New(uid.AppPrefix),
 				setup.Environment.ID, dep.ID, "read"),
 		},
 		{
 			name: "wrong environment",
-			permission: permission(setup.Workspace.ID, setup.Project.ID, setup.App.ID,
+			permission: permissionFor(setup.Workspace.ID, setup.Project.ID, setup.App.ID,
 				uid.New(uid.EnvironmentPrefix), dep.ID, "read"),
 		},
 		{
 			name: "wrong workspace",
-			permission: permission(uid.New(uid.WorkspacePrefix), setup.Project.ID, setup.App.ID,
+			permission: permissionFor(uid.New(uid.WorkspacePrefix), setup.Project.ID, setup.App.ID,
 				setup.Environment.ID, dep.ID, "read"),
 		},
 		{
 			name: "wrong action",
-			permission: permission(setup.Workspace.ID, setup.Project.ID, setup.App.ID,
+			permission: permissionFor(setup.Workspace.ID, setup.Project.ID, setup.App.ID,
 				setup.Environment.ID, dep.ID, "write"),
 		},
 	}
