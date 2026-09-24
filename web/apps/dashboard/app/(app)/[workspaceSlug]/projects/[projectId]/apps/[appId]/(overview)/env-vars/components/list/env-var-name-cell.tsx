@@ -59,7 +59,7 @@ export const EnvVarNameCell = ({
               ) : (
                 <div className="flex flex-col gap-0.5">
                   <span className="font-mono break-all">{variableKey}</span>
-                  <span className="text-gray-11">
+                  <span className="opacity-75">
                     {type === "recoverable" ? "Click to copy KEY=VALUE" : "Click to copy key"}
                   </span>
                 </div>

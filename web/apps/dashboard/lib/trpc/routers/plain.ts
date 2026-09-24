@@ -33,7 +33,7 @@ export const createPlainIssue = workspaceProcedure
 
     let user: Awaited<ReturnType<typeof auth.getUser>>;
     try {
-      user = await auth.getUser(ctx.user.id);
+      user = ctx.user.profile ?? (await auth.getUser(ctx.user.id));
     } catch (error) {
       console.error("Error fetching user for Plain issue:", error);
       throw new TRPCError({

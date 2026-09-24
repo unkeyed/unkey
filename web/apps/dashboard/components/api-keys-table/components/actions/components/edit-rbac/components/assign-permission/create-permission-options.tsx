@@ -57,7 +57,7 @@ export function createPermissionOptions({
             side="right"
             align="start"
             sideOffset={30}
-            className="shadow-floating overflow-hidden rounded-xl p-0 bg-raised w-80 z-100"
+            className="shadow-floating overflow-hidden rounded-xl p-0 bg-raised dark:bg-raised text-gray-12 w-80 z-100"
           >
             <div className="flex flex-col h-full">
               {/* Header */}

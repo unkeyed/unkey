@@ -109,6 +109,27 @@ describe("WorkOSAuthProvider server-side membership operations", () => {
     });
   });
 
+  it("lists active organization ids without fetching the user", async () => {
+    const provider = new WorkOSAuthProvider();
+    mocks.listOrganizationMemberships.mockResolvedValue({
+      data: [
+        { organizationId: "org_active", status: "active" },
+        { organizationId: "org_inactive", status: "inactive" },
+      ],
+      listMetadata: {},
+    });
+
+    await expect(provider.listActiveOrganizationIds("user_123", "org_active")).resolves.toEqual([
+      "org_active",
+    ]);
+    expect(mocks.getUser).not.toHaveBeenCalled();
+    expect(mocks.listOrganizationMemberships.mock.calls[0][0]).toMatchObject({
+      userId: "user_123",
+      organizationId: "org_active",
+      statuses: ["active"],
+    });
+  });
+
   it("reports a provider outage instead of reporting the user as missing", async () => {
     const provider = new WorkOSAuthProvider();
     mocks.getUser.mockRejectedValue(Object.assign(new Error("upstream down"), { status: 503 }));

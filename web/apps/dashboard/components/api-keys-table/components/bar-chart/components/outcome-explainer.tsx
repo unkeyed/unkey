@@ -107,9 +107,8 @@ export function OutcomeExplainer({
   return (
     <InfoTooltip
       asChild
-      className="bg-raised shadow-floating p-0 rounded-lg overflow-hidden px-4 pt-2 pb-1"
+      className="bg-raised dark:bg-raised shadow-floating p-0 rounded-lg overflow-hidden px-4 pt-2 pb-1"
       delayDuration={300}
-      variant="inverted"
       position={{ side: "bottom" }}
       content={
         <div className="flex flex-col gap-1 min-w-64 justify-start ">

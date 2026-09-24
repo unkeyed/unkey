@@ -243,7 +243,6 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
           const outcomeInfo = LOG_OUTCOME_DEFINITIONS[outcomeType];
           return (
             <InfoTooltip
-              variant="inverted"
               className="cursor-default"
               content={<p>{outcomeInfo.tooltip}</p>}
               position={{ side: "top", align: "center", sideOffset: 5 }}
@@ -271,7 +270,6 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
           <div className="flex items-center gap-2">
             <IconKeyOutline18 className="size-3 text-gray-9" />
             <InfoTooltip
-              variant="inverted"
               content={
                 <div className="flex flex-col gap-1">
                   <div className="text-xs font-medium">Key ID:</div>
@@ -319,7 +317,6 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
               {log.tags && log.tags.length > 0 ? (
                 log.tags.slice(0, 3).map((tag) => (
                   <InfoTooltip
-                    variant="inverted"
                     className="px-2 py-1"
                     key={tag}
                     content={
@@ -376,7 +373,6 @@ export const IdentityDetailsLogsTable = ({ identityId, selectedLog, onLogSelect 
               )}
               {log.tags && log.tags.length > 3 && (
                 <InfoTooltip
-                  variant="inverted"
                   content={
                     <div className="flex flex-col gap-2 py-1 max-w-xs max-h-[300px] overflow-y-auto">
                       <div className="text-xs opacity-75 font-medium">
