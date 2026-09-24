@@ -3,6 +3,8 @@ import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_compo
 import { useAppHomeHref } from "@/hooks/use-app-home-href";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
+import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { routes } from "@/lib/navigation/routes";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { IconCubeOutline18, IconPlusOutline18 } from "@unkey/icons";
@@ -26,6 +28,9 @@ import { AppsTable } from "./apps-table";
 // One row at the 3-column desktop width so loading doesn't tower over the
 // real list before it resolves.
 const MAX_SKELETON_COUNT = 3;
+
+const IDLE_POLL_MS = 60_000;
+const BUILDING_POLL_MS = 5_000;
 
 const queryOptions = { history: "replace", shallow: true, clearOnDefault: true } as const;
 
@@ -59,21 +64,16 @@ export function AppsList() {
     (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
     [projectId],
   );
-  const project = useLiveQuery(
-    (q) =>
-      q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
-    [projectId],
+  const hasInFlightDeployment = apps.data.some(
+    (app) => app.headlineDeployment && isDeploymentInFlight(app.headlineDeployment.status),
   );
-  const headlineByApp = new Map(
-    (project.data[0]?.apps ?? []).map((app) => [app.id, app.headlineDeployment]),
-  );
+  useCollectionPolling(() => collection.apps.utils.refetch(), {
+    intervalMs: hasInFlightDeployment ? BUILDING_POLL_MS : IDLE_POLL_MS,
+    enabled: true,
+  });
   const rows = filterApps(
     apps.data.map((app) =>
-      toAppRow(
-        app,
-        headlineByApp.get(app.id) ?? null,
-        appHomeHref({ workspaceSlug: workspace.slug, projectId, appId: app.id }),
-      ),
+      toAppRow(app, appHomeHref({ workspaceSlug: workspace.slug, projectId, appId: app.id })),
     ),
     search,
   );
@@ -112,7 +112,7 @@ export function AppsList() {
         onViewChange={setView}
       />
       <AppsListBody
-        isLoading={apps.isLoading || project.isLoading}
+        isLoading={apps.isLoading}
         rows={rows}
         search={search}
         view={view}

@@ -76,6 +76,7 @@ export const ChooseSourceStep = ({
         forkRepositoryFullName: null,
         prNumber: null,
         domain: null,
+        headlineDeployment: null,
       });
       await transaction.isPersisted.promise;
       const appId = z.object({ appId: z.string() }).parse(transaction.metadata).appId;

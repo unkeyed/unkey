@@ -5,7 +5,7 @@ import { InfoTooltip, Skeleton } from "@unkey/ui";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { AppRowData } from "./app-row-model";
-import { AppActionsButton, DeployedAgo, SourceIcon, SourceLabel } from "./app-source";
+import { AppActionsButton, DeployedAgo, LinkOrText, SourceIcon, SourceLabel } from "./app-source";
 
 const linkClass = "relative block min-w-0 truncate text-gray-12 hover:underline";
 
@@ -62,15 +62,10 @@ export function AppCard({ row, projectId }: { row: AppRowData; projectId: string
         </Line>
         {row.source === "git" ? (
           <Line icon={<IconCodeCommitOutline18 className="size-3" />}>
-            {app.commitTitle ? (
-              <a
-                href={row.commitUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={linkClass}
-              >
-                {app.commitTitle}
-              </a>
+            {deployment?.commitMessage ? (
+              <LinkOrText href={row.commitUrl} className={linkClass}>
+                {deployment.commitMessage}
+              </LinkOrText>
             ) : (
               <span className="text-gray-9">No commits deployed</span>
             )}

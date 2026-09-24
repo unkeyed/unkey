@@ -1,6 +1,6 @@
 import type { App } from "@/lib/collections/deploy/apps";
 import { describe, expect, test } from "vitest";
-import { appSource, filterApps } from "./app-row-model";
+import { appSource, filterApps, toAppRow } from "./app-row-model";
 
 function app(overrides: Partial<App>): App {
   return {
@@ -25,6 +25,7 @@ function app(overrides: Partial<App>): App {
     authorAvatar: null,
     commitTimestamp: null,
     domain: null,
+    headlineDeployment: null,
     ...overrides,
   };
 }
@@ -60,5 +61,56 @@ describe("filterApps", () => {
 
   test("returns nothing when no field matches", () => {
     expect(ids("nope")).toEqual([]);
+  });
+});
+
+describe("toAppRow", () => {
+  const deployment = {
+    id: "d_1",
+    status: "ready",
+    deployedAt: 0,
+    commitMessage: "fix: thing",
+    commitSha: "abc123",
+    branch: "main",
+    prNumber: null,
+    forkRepositoryFullName: null,
+  } satisfies NonNullable<App["headlineDeployment"]>;
+  const row = (overrides: Partial<App>) => toAppRow(app(overrides), "/");
+
+  test("links a git deployment to its commit and branch", () => {
+    const { commitUrl, branchUrl } = row({
+      repositoryFullName: "unkey/api",
+      headlineDeployment: deployment,
+    });
+    expect(commitUrl).toBe("https://github.com/unkey/api/commit/abc123");
+    expect(branchUrl).toBe("https://github.com/unkey/api/tree/main");
+  });
+
+  test("links a fork PR to the base repo PR and the fork branch", () => {
+    const { commitUrl, branchUrl } = row({
+      repositoryFullName: "unkey/api",
+      headlineDeployment: { ...deployment, prNumber: 42, forkRepositoryFullName: "dev/api" },
+    });
+    expect(commitUrl).toBe("https://github.com/unkey/api/pull/42");
+    expect(branchUrl).toBe("https://github.com/dev/api/tree/main");
+  });
+
+  test("has no links for a git app without a repo connection", () => {
+    const { source, commitUrl, branchUrl } = row({ headlineDeployment: deployment });
+    expect(source).toBe("git");
+    expect(commitUrl).toBeUndefined();
+    expect(branchUrl).toBeUndefined();
+  });
+
+  test("has no links for image and legacy apps or apps never deployed", () => {
+    for (const overrides of [
+      { sourceType: "oci", headlineDeployment: deployment },
+      { sourceType: "unknown", headlineDeployment: deployment },
+      { repositoryFullName: "unkey/api" },
+    ] satisfies Partial<App>[]) {
+      const { commitUrl, branchUrl } = row(overrides);
+      expect(commitUrl).toBeUndefined();
+      expect(branchUrl).toBeUndefined();
+    }
   });
 });

@@ -4,7 +4,7 @@ import { InfoTooltip, ResourceListBody, ResourceListContent, ResourceListItem } 
 import { cn } from "cn";
 import Link from "next/link";
 import type { AppRowData } from "./app-row-model";
-import { AppActionsButton, DeployedAgo, SourceIcon, SourceLabel } from "./app-source";
+import { AppActionsButton, DeployedAgo, LinkOrText, SourceIcon, SourceLabel } from "./app-source";
 
 const COLUMNS =
   "grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_32px] items-center gap-4";
@@ -69,15 +69,13 @@ function AppsTableRow({ row, projectId }: { row: AppRowData; projectId: string }
         )}
       </span>
       <span className="min-w-0">
-        {row.source === "git" ? (
-          <a
+        {row.source === "git" && deployment?.branch ? (
+          <LinkOrText
             href={row.branchUrl}
-            target="_blank"
-            rel="noopener noreferrer"
             className="relative z-10 inline-block max-w-full truncate rounded-sm bg-gray-3 px-1 align-middle font-mono text-[11px] leading-4 ring-1 ring-grayA-4"
           >
-            {app.branch}
-          </a>
+            {deployment.branch}
+          </LinkOrText>
         ) : (
           empty
         )}

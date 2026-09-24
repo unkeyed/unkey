@@ -1,5 +1,4 @@
 import type { App } from "@/lib/collections/deploy/apps";
-import type { ProjectApp } from "@/lib/collections/deploy/projects";
 import { githubUrl } from "@/lib/github-url";
 import type { Route } from "next";
 
@@ -8,7 +7,7 @@ export type AppSource = "git" | "image" | "legacy";
 export type AppRowData = {
   app: App;
   source: AppSource;
-  deployment: ProjectApp["headlineDeployment"];
+  deployment: App["headlineDeployment"];
   href: Route;
   commitUrl: string | undefined;
   branchUrl: string | undefined;
@@ -24,13 +23,10 @@ export function appSource(app: Pick<App, "sourceType" | "repositoryFullName">): 
   return app.repositoryFullName ? "git" : "legacy";
 }
 
-export function toAppRow(
-  app: App,
-  deployment: ProjectApp["headlineDeployment"],
-  href: Route,
-): AppRowData {
+export function toAppRow(app: App, href: Route): AppRowData {
   const source = appSource(app);
-  const isGit = source === "git";
+  const deployment = app.headlineDeployment;
+  const isGit = source === "git" && deployment !== null;
   return {
     app,
     source,
@@ -39,13 +35,16 @@ export function toAppRow(
     commitUrl: isGit
       ? githubUrl.deployment({
           repoFullName: app.repositoryFullName,
-          forkRepoFullName: app.forkRepositoryFullName,
-          prNumber: app.prNumber,
-          sha: app.commitSha,
+          forkRepoFullName: deployment.forkRepositoryFullName,
+          prNumber: deployment.prNumber,
+          sha: deployment.commitSha,
         })
       : undefined,
     branchUrl: isGit
-      ? githubUrl.branch(app.forkRepositoryFullName ?? app.repositoryFullName, app.branch)
+      ? githubUrl.branch(
+          deployment.forkRepositoryFullName || app.repositoryFullName,
+          deployment.branch,
+        )
       : undefined,
   };
 }

@@ -4,6 +4,7 @@ import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
+import { DEPLOYMENT_STATUSES } from "./deployment-status";
 import { extractStringFilter } from "./utils";
 
 const schema = z.object({
@@ -29,6 +30,19 @@ const schema = z.object({
   authorAvatar: z.string().nullable(),
   commitTimestamp: z.number().int().nullable(),
   domain: z.string().nullable(),
+  // Newest deployment, production first; what the app card reports on.
+  headlineDeployment: z
+    .object({
+      id: z.string(),
+      status: z.enum(DEPLOYMENT_STATUSES),
+      deployedAt: z.number().int(),
+      commitMessage: z.string().nullable(),
+      commitSha: z.string().nullable(),
+      branch: z.string().nullable(),
+      prNumber: z.number().int().nullable(),
+      forkRepositoryFullName: z.string().nullable(),
+    })
+    .nullable(),
 });
 
 export const ociImageReferenceSchema = z

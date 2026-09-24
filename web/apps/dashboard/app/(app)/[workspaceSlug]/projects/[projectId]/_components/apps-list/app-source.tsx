@@ -7,6 +7,8 @@ import {
 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Button, useElapsed } from "@unkey/ui";
+import { cn } from "cn";
+import type { ReactNode } from "react";
 import { AppActions } from "./app-actions";
 import type { AppRowData, AppSource } from "./app-row-model";
 
@@ -53,4 +55,23 @@ export function AppActionsButton({ projectId, appId }: { projectId: string; appI
 
 export function DeployedAgo({ value, className }: { value: number; className?: string }) {
   return <span className={className}>{useElapsed(value, "long")}</span>;
+}
+
+export function LinkOrText({
+  href,
+  className,
+  children,
+}: {
+  href: string | undefined;
+  className?: string;
+  children: ReactNode;
+}) {
+  if (!href) {
+    return <span className={cn(className, "hover:no-underline")}>{children}</span>;
+  }
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+      {children}
+    </a>
+  );
 }
