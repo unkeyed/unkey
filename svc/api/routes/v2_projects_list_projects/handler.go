@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -12,6 +13,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -49,24 +52,37 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = principal.Authorize(rbac.T(rbac.Tuple{
+	legacyPermission := rbac.T(rbac.Tuple{
 		ResourceType: rbac.Project,
 		ResourceID:   "*",
 		Action:       rbac.ReadProject,
-	}))
-	if err != nil {
-		return err
+	})
+	legacyAllowed := rbac.Check(legacyPermission, principal.Permissions) == nil
+	collection := urn.V1{WorkspaceID: principal.AuthorizedWorkspaceID, Resource: "projects/*"}
+	if !legacyAllowed && !rbac.HasPermissionIn(collection, permissions.Read, principal.Permissions) {
+		return principal.Authorize(legacyPermission)
 	}
 
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
-	rows, err := db.Query.ListProjectsByWorkspaceId(ctx, h.DB.RO(), db.ListProjectsByWorkspaceIdParams{
-		WorkspaceID: principal.AuthorizedWorkspaceID,
-		IDCursor:    p.Cursor,
-		Search:      search,
-		Limit:       p.FetchLimit(),
-	})
+	rows, err := pagination.FetchAuthorized(ctx, p, func(ctx context.Context, cursor string, limit int32) ([]db.ListProjectsByWorkspaceIdRow, error) {
+		return db.Query.ListProjectsByWorkspaceId(ctx, h.DB.RO(), db.ListProjectsByWorkspaceIdParams{
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			IDCursor:    cursor,
+			Search:      search,
+			Limit:       limit,
+		})
+	}, func(row db.ListProjectsByWorkspaceIdRow) bool {
+		resource := urn.New().Workspace(row.WorkspaceID).Project(row.ID)
+		return legacyAllowed || rbac.Check(rbac.U(resource, permissions.Read), principal.Permissions) == nil
+	}, func(row db.ListProjectsByWorkspaceIdRow) string { return row.ID })
+	if errors.Is(err, pagination.ErrScanLimit) {
+		return fault.Wrap(err,
+			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+			fault.Public("The project scan limit was reached. Narrow the search filter and retry."),
+		)
+	}
 	if err != nil {
 		return fault.Wrap(
 			err,
