@@ -1,6 +1,6 @@
 import { IconCaretRightOutline18, IconCircleInfoSparkleOutline18 } from "@unkey/icons";
 import type React from "react";
-import { InfoTooltip } from "../../info-tooltip";
+import { InfoHoverCard } from "../../info-hover-card";
 
 type SearchExampleTooltipProps = {
   onSelectExample: (query: string) => void;
@@ -18,7 +18,7 @@ export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({
   ];
 
   return (
-    <InfoTooltip
+    <InfoHoverCard
       content={
         <div>
           <div className="font-medium mb-2 flex items-center gap-2 text-[13px]">
@@ -47,6 +47,6 @@ export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({
       <div data-testid="info-icon">
         <IconCircleInfoSparkleOutline18 className="size-4 text-gray-9" />
       </div>
-    </InfoTooltip>
+    </InfoHoverCard>
   );
 };
