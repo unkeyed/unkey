@@ -14,7 +14,7 @@ import (
 )
 
 // TestListProjectsAuthorizesCollectionURN guarantees a collection URN can list
-// projects only from its authorized workspace without a legacy tuple grant.
+// projects only from its authorized workspace without a legacy tuple permission.
 func TestListProjectsAuthorizesCollectionURN(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB}
