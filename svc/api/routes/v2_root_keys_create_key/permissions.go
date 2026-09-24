@@ -8,36 +8,22 @@ import (
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/urn"
 )
 
-func authorizePermissions(ctx context.Context, p *principal.Principal, requested []string) ([]string, error) {
-	index := make(map[permissions.Action]*permissionNode)
-	for i, permission := range p.Permissions {
-		if i%64 == 0 {
-			if err := ctx.Err(); err != nil {
-				return nil, err
-			}
-		}
-		resource, action, err := parsePermission(permission, p.AuthorizedWorkspaceID)
-		if err != nil {
-			continue
-		}
-		root := index[action]
-		if root == nil {
-			root = new(permissionNode)
-			index[action] = root
-		}
-		root.insert(resource.Resource)
-	}
-
+// validateDelegatedPermissions returns sorted, deduplicated permissions that the
+// caller may grant to a child root key. Every request must be a supported URN in
+// the caller's workspace and fit within one of the caller's permissions.
+// For example, projects/*#read permits projects/proj_one#read, but not #write.
+// Invalid requests fail with 400; requests beyond the caller's access fail with
+// 403. Cancellation stops validation between permission checks.
+func validateDelegatedPermissions(ctx context.Context, p *principal.Principal, requested []string) ([]string, error) {
 	grants := make(map[string]struct{}, len(requested))
-	for i, permission := range requested {
-		if i%64 == 0 {
-			if err := ctx.Err(); err != nil {
-				return nil, err
-			}
+	for _, permission := range requested {
+		if err := ctx.Err(); err != nil {
+			return nil, err
 		}
 		if _, exists := grants[permission]; exists {
 			continue
@@ -46,8 +32,8 @@ func authorizePermissions(ctx context.Context, p *principal.Principal, requested
 		if err != nil {
 			return nil, err
 		}
-		if !index[action].covers(resource.Resource) && !index[permissions.Wildcard].covers(resource.Resource) {
-			return nil, insufficientPermissions()
+		if err := p.Authorize(rbac.U(resource, action)); err != nil {
+			return nil, err
 		}
 		grants[permission] = struct{}{}
 	}
@@ -60,59 +46,9 @@ func authorizePermissions(ctx context.Context, p *principal.Principal, requested
 	return result, nil
 }
 
-type permissionNode struct {
-	children map[string]*permissionNode
-	exact    bool
-	subtree  bool
-}
-
-func (n *permissionNode) insert(resource string) {
-	segments := strings.Split(resource, "/")
-	if segments[len(segments)-1] == "**" {
-		segments = segments[:len(segments)-1]
-		if len(segments) == 0 {
-			n.subtree = true
-			return
-		}
-	}
-	for _, segment := range segments {
-		if n.children == nil {
-			n.children = make(map[string]*permissionNode)
-		}
-		child := n.children[segment]
-		if child == nil {
-			child = new(permissionNode)
-			n.children[segment] = child
-		}
-		n = child
-	}
-	if strings.HasSuffix(resource, "/**") {
-		n.subtree = true
-	} else {
-		n.exact = true
-	}
-}
-
-func (n *permissionNode) covers(resource string) bool {
-	if n == nil {
-		return false
-	}
-	return n.coversSegments(strings.Split(resource, "/"))
-}
-
-func (n *permissionNode) coversSegments(segments []string) bool {
-	if n.subtree {
-		return true
-	}
-	if len(segments) == 0 {
-		return n.exact
-	}
-	if child := n.children[segments[0]]; child != nil && child.coversSegments(segments[1:]) {
-		return true
-	}
-	return segments[0] != "*" && segments[0] != "**" && n.children["*"] != nil && n.children["*"].coversSegments(segments[1:])
-}
-
+// parsePermission validates the URN, workspace, and resource/action combination.
+// For example, keyspace logs accept #read, not #write. It checks syntax and the
+// permission catalog, not whether the resource exists in the database.
 func parsePermission(permission, workspaceID string) (urn.V1, permissions.Action, error) {
 	resourceName, actionName, ok := strings.Cut(permission, "#")
 	if !ok || strings.Contains(actionName, "#") {
@@ -125,6 +61,10 @@ func parsePermission(permission, workspaceID string) (urn.V1, permissions.Action
 	return resource, permissions.Action(actionName), nil
 }
 
+// actionAllowed checks actions for a resource path already validated by ParseV1.
+// Resource kinds come from fixed path positions, never ID text: a project named
+// "keys" does not gain #decrypt. Subtree grants include descendant actions;
+// for example, projects/p/** may grant #decrypt for keys below that project.
 func actionAllowed(resource, action string) bool {
 	if resource == "**" {
 		return slices.Contains([]string{"read", "write", "delete", "decrypt", "verify", "limit", permissions.Wildcard}, action)
@@ -177,10 +117,4 @@ func invalidPermission() error {
 	return fault.New("invalid permission",
 		fault.Code(codes.App.Validation.InvalidInput.URN()),
 		fault.Public("A requested permission is not a supported URN permission in this workspace."))
-}
-
-func insufficientPermissions() error {
-	return fault.New("insufficient permissions",
-		fault.Code(codes.Auth.Authorization.InsufficientPermissions.URN()),
-		fault.Public("Insufficient permissions to grant the requested permission."))
 }

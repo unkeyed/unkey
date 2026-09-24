@@ -72,7 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("expires is required and must not be later than the calling root key's expiration."))
 		}
 	}
-	grants, err := authorizePermissions(ctx, p, req.Permissions)
+	grants, err := validateDelegatedPermissions(ctx, p, req.Permissions)
 	if err != nil {
 		return err
 	}
