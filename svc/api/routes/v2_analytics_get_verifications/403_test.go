@@ -36,7 +36,9 @@ func Test403_NoAnalyticsPermission(t *testing.T) {
 	require.Equal(t, 403, res.Status)
 }
 
-func Test403_CanonicalPermissionMustGrantLogRead(t *testing.T) {
+// Test403_URNPermissionMustAllowLogRead verifies that reading a keyspace does
+// not allow reading its analytics logs, for example when only #read is present.
+func Test403_URNPermissionMustAllowLogRead(t *testing.T) {
 	h := testutil.NewHarness(t)
 	workspace := h.CreateWorkspace()
 	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspace.ID})
