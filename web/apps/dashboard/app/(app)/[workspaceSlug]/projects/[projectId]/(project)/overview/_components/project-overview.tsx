@@ -14,7 +14,6 @@ import {
   IconBook2Outline18,
   IconChatsOutline18,
   IconCheckOutline18,
-  IconCircleWarningOutline18,
   IconCodeBranchOutline18,
   IconSquareTerminalOutline18,
 } from "@unkey/icons";
@@ -28,12 +27,11 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
-import type { Route } from "next";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
 import { Canvas, type CanvasActions, type CanvasLinks } from "./canvas";
-import { type Attention, type OverviewModel, ago, buildOverviewModel } from "./overview-model";
+import { type OverviewModel, ago, buildOverviewModel } from "./overview-model";
 import { ScenarioSwitcher } from "./scenario-switcher";
 
 const AGENT_PROMPT =
@@ -78,7 +76,6 @@ function Loaded({ data }: { data: ProjectOverview }) {
     allKeyspaces: routes.apis.list(scope),
     ratelimit: (namespaceId) => routes.ratelimits.detail({ ...scope, namespaceId }),
     allRatelimits: routes.ratelimits.list(scope),
-    logs: routes.projects.logs(scope),
   };
   const actions: CanvasActions = {
     createApp: () => (gated ? openPaywall() : router.push(routes.projects.apps.new(scope))),
@@ -97,9 +94,6 @@ function Loaded({ data }: { data: ProjectOverview }) {
         </PageHeaderActions>
       </PageHeader>
       <PageBody className="flex flex-col gap-6">
-        {model.attention.length > 0 && (
-          <AttentionStrip items={model.attention} links={links} logs={links.logs} />
-        )}
         <Canvas data={data} model={model} links={links} actions={actions} />
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
           {data.recentDeployments.length > 0 ? (
@@ -123,51 +117,6 @@ function Summary({ data, model }: { data: ProjectOverview; model: OverviewModel 
     data.ratelimits.length && `${data.ratelimits.length} ratelimits`,
   ].filter(Boolean);
   return <span className="text-xs text-gray-9">{parts.join(" · ") || "Empty project"}</span>;
-}
-
-function AttentionStrip({
-  items,
-  links,
-  logs,
-}: {
-  items: Attention[];
-  links: CanvasLinks;
-  logs: Route;
-}) {
-  const [first, ...rest] = items;
-  const tone = first.kind === "failed" ? "error" : first.kind === "awaiting" ? "warning" : "info";
-  const verb = {
-    failed: "failed to deploy",
-    awaiting: "is waiting for approval",
-    building: "is deploying",
-  }[first.kind];
-  return (
-    <div
-      className={cn(
-        "flex items-center gap-3 rounded-lg border px-3 py-2 text-[13px]",
-        tone === "error" && "border-error-6 bg-error-2 text-error-12",
-        tone === "warning" && "border-warning-6 bg-warning-2 text-warning-12",
-        tone === "info" && "border-info-6 bg-info-2 text-info-12",
-      )}
-    >
-      <IconCircleWarningOutline18 className="size-4 shrink-0" />
-      <span className="min-w-0 truncate">
-        <span className="font-medium">{first.app.name}</span> {verb}
-        <span className="opacity-70"> · {ago(first.deployment.createdAt)}</span>
-        {rest.length > 0 && <span className="opacity-70"> · {rest.length} more need a look</span>}
-      </span>
-      <span className="ml-auto flex shrink-0 gap-2">
-        {first.kind === "failed" && (
-          <Button size="sm" variant="outline" render={<Link href={logs} />}>
-            View logs
-          </Button>
-        )}
-        <Button size="sm" variant="outline" render={<Link href={links.app(first.app.id)} />}>
-          Open {first.app.name}
-        </Button>
-      </span>
-    </div>
-  );
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {

@@ -1,16 +1,6 @@
-import { statusGroupOf } from "@/lib/collections/deploy/deployment-status";
-import type {
-  OverviewApp,
-  OverviewDeployment,
-  ProjectOverview,
-} from "@/lib/trpc/routers/deploy/project/overview";
+import type { ProjectOverview } from "@/lib/trpc/routers/deploy/project/overview";
 
 export type ProjectShape = "empty" | "api" | "deploy" | "full";
-
-export type Attention =
-  | { kind: "failed"; app: OverviewApp; deployment: OverviewDeployment }
-  | { kind: "building"; app: OverviewApp; deployment: OverviewDeployment }
-  | { kind: "awaiting"; app: OverviewApp; deployment: OverviewDeployment };
 
 export type SetupStep = {
   id: "github" | "app" | "deploy" | "keyspace" | "ratelimit";
@@ -20,7 +10,6 @@ export type SetupStep = {
 
 export type OverviewModel = {
   shape: ProjectShape;
-  attention: Attention[];
   steps: SetupStep[];
   liveApps: number;
 };
@@ -30,23 +19,6 @@ export function buildOverviewModel(data: ProjectOverview): OverviewModel {
   const hasApi = data.keyspaces.length > 0 || data.ratelimits.length > 0;
   const shape: ProjectShape =
     hasApps && hasApi ? "full" : hasApps ? "deploy" : hasApi ? "api" : "empty";
-
-  const attention: Attention[] = [];
-  for (const app of data.apps) {
-    const d = app.latest;
-    if (!d) {
-      continue;
-    }
-    if (d.status === "failed") {
-      attention.push({ kind: "failed", app, deployment: d });
-    } else if (d.status === "awaiting_approval") {
-      attention.push({ kind: "awaiting", app, deployment: d });
-    } else if (statusGroupOf(d.status) === "building") {
-      attention.push({ kind: "building", app, deployment: d });
-    }
-  }
-  const order = { failed: 0, awaiting: 1, building: 2 } as const;
-  attention.sort((a, b) => order[a.kind] - order[b.kind]);
 
   const liveApps = data.apps.filter((a) => a.hasCurrentDeployment).length;
 
@@ -58,7 +30,7 @@ export function buildOverviewModel(data: ProjectOverview): OverviewModel {
     { id: "ratelimit", label: "Add a ratelimit", done: data.ratelimits.length > 0 },
   ];
 
-  return { shape, attention, steps, liveApps };
+  return { shape, steps, liveApps };
 }
 
 export function ago(ms: number, now = Date.now()): string {

@@ -12,15 +12,14 @@ import {
   Github,
   IconCodeBranchOutline18,
   IconCubeOutline18,
-  IconEarthOutline18,
   IconGaugeOutline18,
   IconLayers2Outline18,
   IconNodesOutline18,
   IconPlusOutline18,
-  IconShieldKeyOutline18,
   IconSquareTerminalOutline18,
   IconTerminalOutline18,
 } from "@unkey/icons";
+import { InfoTooltip } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { Route } from "next";
 import Link from "next/link";
@@ -54,7 +53,6 @@ export type CanvasLinks = {
   allKeyspaces: Route;
   ratelimit: (namespaceId: string) => Route;
   allRatelimits: Route;
-  logs: Route;
 };
 
 export type CanvasActions = {
@@ -89,10 +87,6 @@ export function Canvas({
       <div className="flex min-h-[420px] w-full min-w-[860px] items-start justify-center px-6 pt-6 pb-24">
         {hasApps ? (
           <>
-            <Group label="Network">
-              <EdgeCard data={data} />
-            </Group>
-            <Connector />
             <Group label={`Apps · ${data.apps.length}`} href={links.allApps}>
               {[...data.apps]
                 .sort((a, b) => appRank(a) - appRank(b))
@@ -127,7 +121,7 @@ export function Canvas({
 
         <Connector dashed={!hasKeyspaces && !hasRatelimits} />
 
-        <Group label="API">
+        <Group label="Services">
           {hasKeyspaces ? (
             <KeyspacesCard data={data} links={links} />
           ) : (
@@ -159,7 +153,7 @@ export function Canvas({
 
 function Group({ label, href, children }: { label: string; href?: Route; children: ReactNode }) {
   return (
-    <div className="flex min-w-0 max-w-[340px] flex-1 flex-col gap-2 rounded-xl bg-grayA-2 p-2.5">
+    <div className="flex min-w-0 max-w-[340px] flex-1 flex-col gap-2 rounded-xl bg-grayA-4 p-2.5 backdrop-blur-sm">
       <div className="flex items-center justify-between px-1 pb-0.5">
         <span className="text-xs text-gray-11">{label}</span>
         {href && (
@@ -184,9 +178,24 @@ function Connector({ dashed = false }: { dashed?: boolean }) {
   );
 }
 
-function Card({ children, href }: { children: ReactNode; href?: Route }) {
-  const cls =
-    "block rounded-lg border border-border bg-raised shadow-xs transition-colors hover:border-strong";
+type Tone = "default" | "error" | "warning";
+
+const TONE: Record<Tone, string> = {
+  default: "border-border bg-raised hover:border-strong",
+  error: "border-error-6 bg-error-2 hover:border-error-8",
+  warning: "border-warning-6 bg-warning-2 hover:border-warning-8",
+};
+
+function Card({
+  children,
+  href,
+  tone = "default",
+}: {
+  children: ReactNode;
+  href?: Route;
+  tone?: Tone;
+}) {
+  const cls = cn("block rounded-lg border shadow-xs transition-colors", TONE[tone]);
   return href ? (
     <Link href={href} className={cls}>
       {children}
@@ -198,48 +207,11 @@ function Card({ children, href }: { children: ReactNode; href?: Route }) {
 
 function CardHeader({ icon, title, right }: { icon: ReactNode; title: string; right?: ReactNode }) {
   return (
-    <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
+    <div className="flex items-center gap-2 border-b px-3 py-2.5 [border-color:inherit]">
       <span className="text-gray-11 [&_svg]:size-4">{icon}</span>
       <span className="min-w-0 truncate text-[13px] font-medium text-gray-12">{title}</span>
       {right && <span className="ml-auto shrink-0">{right}</span>}
     </div>
-  );
-}
-
-function Row({ icon, label, value }: { icon?: ReactNode; label: string; value: ReactNode }) {
-  return (
-    <div className="flex items-center gap-2 px-3 py-1.5 text-xs">
-      {icon && <span className="text-gray-9 [&_svg]:size-3.5">{icon}</span>}
-      <span className="min-w-0 truncate text-gray-11">{label}</span>
-      <span className="ml-auto shrink-0 text-gray-12">{value}</span>
-    </div>
-  );
-}
-
-function Enabled() {
-  return (
-    <span className="inline-flex items-center gap-1.5 text-success-11">
-      <span className="size-1.5 rounded-full bg-success-9" />
-      Enabled
-    </span>
-  );
-}
-
-function EdgeCard({ data }: { data: ProjectOverview }) {
-  const domains = data.apps.filter((a) => a.domain).length;
-  return (
-    <Card>
-      <CardHeader icon={<IconEarthOutline18 />} title="Unkey gateway" />
-      <div className="py-1">
-        <Row icon={<IconShieldKeyOutline18 />} label="TLS" value={<Enabled />} />
-        <Row icon={<IconEarthOutline18 />} label="Domains" value={domains || "None yet"} />
-        <Row
-          icon={<IconNodesOutline18 />}
-          label="Key verification"
-          value={data.keyspaces.length ? <Enabled /> : <span className="text-gray-9">Off</span>}
-        />
-      </div>
-    </Card>
   );
 }
 
@@ -253,14 +225,25 @@ function AppCard({ app, href }: { app: OverviewApp; href: Route }) {
     ) : (
       <IconTerminalOutline18 />
     );
+  const tone: Tone =
+    d?.status === "failed" ? "error" : d?.status === "awaiting_approval" ? "warning" : "default";
   return (
-    <Card href={href}>
+    <Card href={href} tone={tone}>
       <CardHeader
         icon={icon}
         title={app.name}
         right={
           d ? (
-            <span className="inline-flex items-center gap-1.5 text-xs text-gray-11">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 text-xs",
+                tone === "error"
+                  ? "text-error-11"
+                  : tone === "warning"
+                    ? "text-warning-11"
+                    : "text-gray-11",
+              )}
+            >
               <span className={cn("size-1.5 rounded-full", deploymentStatusColor(d.status))} />
               {DEPLOYMENT_STATUS_LABELS[d.status]}
             </span>
@@ -438,7 +421,7 @@ function GhostCard({
     <button
       type="button"
       onClick={onClick}
-      className="group flex items-start gap-2.5 rounded-lg border border-dashed border-grayA-6 bg-raised/60 px-3 py-3 text-left transition-colors hover:border-strong hover:bg-raised"
+      className="group flex items-start gap-2.5 rounded-lg border border-border bg-raised px-3 py-3 text-left transition-colors hover:border-strong"
     >
       <span className="mt-0.5 text-gray-9 group-hover:text-gray-12 [&_svg]:size-4">{icon}</span>
       <span className="min-w-0">
@@ -452,26 +435,23 @@ function GhostCard({
 
 function CommandBar({ actions }: { actions: CanvasActions }) {
   const items = [
-    { label: "App", icon: <IconCubeOutline18 />, run: actions.createApp },
-    { label: "Keyspace", icon: <IconNodesOutline18 />, run: actions.createKeyspace },
-    { label: "Ratelimit", icon: <IconGaugeOutline18 />, run: actions.createRatelimit },
+    { label: "Add app", icon: <IconCubeOutline18 />, run: actions.createApp },
+    { label: "Add keyspace", icon: <IconNodesOutline18 />, run: actions.createKeyspace },
+    { label: "Add ratelimit", icon: <IconGaugeOutline18 />, run: actions.createRatelimit },
   ];
   return (
-    <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-xl border border-border bg-raised p-1 shadow-floating">
-      <span className="flex items-center gap-1 px-2 text-xs text-gray-9">
-        <IconPlusOutline18 className="size-3.5" />
-        Add
-      </span>
+    <div className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-xl bg-raised p-1 shadow-floating">
       {items.map((item) => (
-        <button
-          key={item.label}
-          type="button"
-          onClick={item.run}
-          className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-gray-12 hover:bg-grayA-3 [&_svg]:size-3.5 [&_svg]:text-gray-11"
-        >
-          {item.icon}
-          {item.label}
-        </button>
+        <InfoTooltip key={item.label} content={item.label} asChild>
+          <button
+            type="button"
+            aria-label={item.label}
+            onClick={item.run}
+            className="flex size-8 items-center justify-center rounded-lg text-gray-11 hover:bg-grayA-3 hover:text-gray-12 [&_svg]:size-4"
+          >
+            {item.icon}
+          </button>
+        </InfoTooltip>
       ))}
     </div>
   );
