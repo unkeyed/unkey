@@ -18,7 +18,7 @@ export function byLatestUpdate(a: CardApp, b: CardApp): number {
 }
 
 export function pickPrimaryApp<T extends CardApp>(apps: ReadonlyArray<T>): T | undefined {
-  return [...apps].sort(byLatestUpdate).find((app) => app.currentDeploymentId !== null);
+  return apps.toSorted(byLatestUpdate).find((app) => app.currentDeploymentId !== null);
 }
 
 export function buildProjectApps(projectId: string, input: CardInput): ProjectApp[] {

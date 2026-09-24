@@ -31,14 +31,13 @@ export function useProjectsWithApps({ enabled = true }: { enabled?: boolean } = 
     if (!projects.data || projects.isLoading) {
       return undefined;
     }
-    const appRows = apps.data ?? [];
+    const appsByProject = Map.groupBy(apps.data ?? [], (app) => app.projectId);
     return projects.data
       .toSorted((a, b) => b.createdAt - a.createdAt)
       .map((project) => ({
         id: project.id,
         name: project.name,
-        apps: appRows
-          .filter((app) => app.projectId === project.id)
+        apps: (appsByProject.get(project.id) ?? [])
           .toSorted(byLatestUpdate)
           .map((app) => ({ id: app.id, name: app.name })),
       }));

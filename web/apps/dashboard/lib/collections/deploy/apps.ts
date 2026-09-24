@@ -156,18 +156,19 @@ export const apps = createCollection<App, string>(
 async function listProjectApps(projectId: string): Promise<App[]> {
   try {
     const [pages, headlines, displayDomains] = await Promise.all([
-      getUnkeyClient().apps.listApps({ project: projectId, limit: 100 }),
+      getUnkeyClient()
+        .apps.listApps({ project: projectId, limit: 100 })
+        .then((firstPage) => Array.fromAsync(firstPage)),
       trpcClient.deploy.deployment.listHeadlines.query({ projectId }),
       trpcClient.deploy.domain.listDisplayDomains.query({ projectId }),
     ]);
     const headlineByApp = new Map(headlines.map(({ appId, ...headline }) => [appId, headline]));
     const domainByApp = new Map(displayDomains.map((d) => [d.appId, d.domain]));
 
-    const apps: App[] = [];
-    for await (const page of pages) {
-      for (const app of page.result.data) {
+    return pages.flatMap((page) =>
+      page.result.data.map((app): App => {
         const currentDeploymentId = app.currentDeploymentId ?? null;
-        apps.push({
+        return {
           id: app.id,
           projectId,
           name: app.name,
@@ -181,10 +182,9 @@ async function listProjectApps(projectId: string): Promise<App[]> {
           repositoryFullName: app.git?.repository ?? null,
           domain: currentDeploymentId ? (domainByApp.get(app.id) ?? null) : null,
           headlineDeployment: headlineByApp.get(app.id) ?? null,
-        });
-      }
-    }
-    return apps;
+        };
+      }),
+    );
   } catch (error) {
     if (error instanceof NotFoundErrorResponse) {
       return [];
