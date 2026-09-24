@@ -50,14 +50,14 @@ func TestGetAppForbidden(t *testing.T) {
 		{name: "specific app permission", permissions: []string{fmt.Sprintf("app.%s.read_app", app.ID)}, shouldPass: true},
 		{name: "permission and more", permissions: []string{"some.other.permission", "app.*.read_app"}, shouldPass: true},
 		{
-			name:         "canonical exact app permission with slug lookup",
+			name:         "URN exact app permission with slug lookup",
 			permissions:  []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#read", workspace.ID, project.ID, app.ID)},
 			projectQuery: project.Slug,
 			appQuery:     app.Slug,
 			shouldPass:   true,
 		},
 		{
-			name:        "canonical project app wildcard permission",
+			name:        "URN project app wildcard permission",
 			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/*#read", workspace.ID, project.ID)},
 			shouldPass:  true,
 		},
@@ -66,17 +66,17 @@ func TestGetAppForbidden(t *testing.T) {
 		{name: "read does not match create", permissions: []string{"project.*.create_app"}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{
-			name:        "canonical permission for another app",
+			name:        "URN permission for another app",
 			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#read", workspace.ID, project.ID, uid.New(uid.AppPrefix))},
 			shouldPass:  false,
 		},
 		{
-			name:        "canonical permission for another workspace",
+			name:        "URN permission for another workspace",
 			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#read", uid.New(uid.WorkspacePrefix), project.ID, app.ID)},
 			shouldPass:  false,
 		},
 		{
-			name:        "canonical permission with wrong action",
+			name:        "URN permission with wrong action",
 			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#write", workspace.ID, project.ID, app.ID)},
 			shouldPass:  false,
 		},
@@ -148,7 +148,7 @@ func TestGetAppExistenceNotLeaked(t *testing.T) {
 
 	missingID := uid.New(uid.AppPrefix)
 
-	// Key in the same workspace with an unrelated grant but no read_app action.
+	// Key in the same workspace with an unrelated permission but no read_app action.
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_api")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
