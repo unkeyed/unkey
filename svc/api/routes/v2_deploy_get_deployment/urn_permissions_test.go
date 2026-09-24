@@ -12,7 +12,7 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deploy_get_deployment"
 )
 
-// deploymentAuthorizationFixture provides one owned deployment with no read grant.
+// deploymentAuthorizationFixture provides one owned deployment with no read permission.
 type deploymentAuthorizationFixture struct {
 	h            *testutil.Harness
 	route        *handler.Handler
@@ -20,9 +20,9 @@ type deploymentAuthorizationFixture struct {
 	deploymentID string
 }
 
-// TestGetDeploymentWithCanonicalPermission guarantees that concrete and wildcard
-// canonical grants propagate through root key authentication to this legacy route.
-func TestGetDeploymentWithCanonicalPermission(t *testing.T) {
+// TestGetDeploymentWithURNPermission guarantees that concrete and wildcard
+// URN permissions propagate through root key authentication to this legacy route.
+func TestGetDeploymentWithURNPermission(t *testing.T) {
 	t.Parallel()
 	fixture := newDeploymentAuthorizationFixture(t)
 
@@ -32,7 +32,7 @@ func TestGetDeploymentWithCanonicalPermission(t *testing.T) {
 	}{
 		{
 			name: "concrete",
-			permission: canonicalDeploymentPermission(
+			permission: deploymentPermission(
 				fixture.setup.Workspace.ID,
 				fixture.setup.Project.ID,
 				fixture.setup.App.ID,
@@ -43,7 +43,7 @@ func TestGetDeploymentWithCanonicalPermission(t *testing.T) {
 		},
 		{
 			name: "wildcard",
-			permission: canonicalDeploymentPermission(
+			permission: deploymentPermission(
 				fixture.setup.Workspace.ID,
 				"*",
 				"*",
@@ -65,9 +65,9 @@ func TestGetDeploymentWithCanonicalPermission(t *testing.T) {
 	}
 }
 
-// TestGetDeploymentRejectsCanonicalPermissionWithWrongAncestry guarantees that
+// TestGetDeploymentRejectsURNPermissionWithWrongAncestry guarantees that
 // every segment of the deployment's stored ownership path constrains access.
-func TestGetDeploymentRejectsCanonicalPermissionWithWrongAncestry(t *testing.T) {
+func TestGetDeploymentRejectsURNPermissionWithWrongAncestry(t *testing.T) {
 	t.Parallel()
 	fixture := newDeploymentAuthorizationFixture(t)
 
@@ -110,7 +110,7 @@ func TestGetDeploymentRejectsCanonicalPermissionWithWrongAncestry(t *testing.T) 
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			permission := canonicalDeploymentPermission(
+			permission := deploymentPermission(
 				fixture.setup.Workspace.ID,
 				tc.projectID,
 				tc.appID,
@@ -126,13 +126,13 @@ func TestGetDeploymentRejectsCanonicalPermissionWithWrongAncestry(t *testing.T) 
 	}
 }
 
-// TestGetDeploymentRejectsCanonicalWritePermission guarantees that an action on
+// TestGetDeploymentRejectsURNWritePermission guarantees that an action on
 // the correct resource cannot authorize a different operation.
-func TestGetDeploymentRejectsCanonicalWritePermission(t *testing.T) {
+func TestGetDeploymentRejectsURNWritePermission(t *testing.T) {
 	t.Parallel()
 	fixture := newDeploymentAuthorizationFixture(t)
 
-	permission := canonicalDeploymentPermission(
+	permission := deploymentPermission(
 		fixture.setup.Workspace.ID,
 		fixture.setup.Project.ID,
 		fixture.setup.App.ID,
@@ -146,13 +146,13 @@ func TestGetDeploymentRejectsCanonicalWritePermission(t *testing.T) {
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
 }
 
-// TestGetDeploymentRejectsCanonicalPermissionFromAnotherWorkspace guarantees
-// that canonical workspace scope is enforced independently of resource ancestry.
-func TestGetDeploymentRejectsCanonicalPermissionFromAnotherWorkspace(t *testing.T) {
+// TestGetDeploymentRejectsURNPermissionFromAnotherWorkspace guarantees
+// that URN workspace scope is enforced independently of resource ancestry.
+func TestGetDeploymentRejectsURNPermissionFromAnotherWorkspace(t *testing.T) {
 	t.Parallel()
 	fixture := newDeploymentAuthorizationFixture(t)
 
-	permission := canonicalDeploymentPermission(
+	permission := deploymentPermission(
 		uid.New(uid.WorkspacePrefix),
 		fixture.setup.Project.ID,
 		fixture.setup.App.ID,
@@ -166,9 +166,9 @@ func TestGetDeploymentRejectsCanonicalPermissionFromAnotherWorkspace(t *testing.
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
 }
 
-// TestGetDeploymentMasksCanonicalCrossWorkspaceAccess guarantees that an exact
-// foreign grant cannot bypass the workspace guard or reveal deployment metadata.
-func TestGetDeploymentMasksCanonicalCrossWorkspaceAccess(t *testing.T) {
+// TestGetDeploymentMasksURNCrossWorkspaceAccess guarantees that an exact
+// foreign permission cannot bypass the workspace guard or reveal deployment metadata.
+func TestGetDeploymentMasksURNCrossWorkspaceAccess(t *testing.T) {
 	t.Parallel()
 	fixture := newDeploymentAuthorizationFixture(t)
 
@@ -183,7 +183,7 @@ func TestGetDeploymentMasksCanonicalCrossWorkspaceAccess(t *testing.T) {
 		GitBranch:     "main",
 	})
 
-	permission := canonicalDeploymentPermission(
+	permission := deploymentPermission(
 		foreign.Workspace.ID,
 		foreign.Project.ID,
 		foreign.App.ID,
@@ -200,7 +200,7 @@ func TestGetDeploymentMasksCanonicalCrossWorkspaceAccess(t *testing.T) {
 }
 
 // newDeploymentAuthorizationFixture creates the owned deployment used by
-// canonical permission tests and registers the route under test.
+// URN permission tests and registers the route under test.
 func newDeploymentAuthorizationFixture(t *testing.T) deploymentAuthorizationFixture {
 	t.Helper()
 	h := testutil.NewHarness(t)
@@ -239,8 +239,8 @@ func (f deploymentAuthorizationFixture) callDeployment(rootKey, deploymentID str
 	}, handler.Request{DeploymentId: deploymentID})
 }
 
-// canonicalDeploymentPermission formats an independently expected deployment grant.
-func canonicalDeploymentPermission(workspaceID, projectID, appID, environmentID, deploymentID, action string) string {
+// deploymentPermission formats an independently expected deployment permission.
+func deploymentPermission(workspaceID, projectID, appID, environmentID, deploymentID, action string) string {
 	return fmt.Sprintf(
 		"unkey:v1:%s:projects/%s/apps/%s/environments/%s/deployments/%s#%s",
 		workspaceID,

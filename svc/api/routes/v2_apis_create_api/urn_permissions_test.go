@@ -13,9 +13,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apis_create_api"
 )
 
-// TestCreateApiAuthorizesCanonicalKeyspaceWrite guarantees that API creation
-// accepts a keyspace write grant for the workspace's default project.
-func TestCreateApiAuthorizesCanonicalKeyspaceWrite(t *testing.T) {
+// TestCreateApiAuthorizesURNKeyspaceWrite guarantees that API creation
+// accepts a keyspace write permission for the workspace's default project.
+func TestCreateApiAuthorizesURNKeyspaceWrite(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
 	h.Register(route)
@@ -31,7 +31,7 @@ func TestCreateApiAuthorizesCanonicalKeyspaceWrite(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 		"Content-Type":  {"application/json"},
 		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
-	}, handler.Request{Name: "canonical-api"})
+	}, handler.Request{Name: "URN-api"})
 
 	require.Equal(t, http.StatusOK, res.Status, res.RawBody)
 	api, err := db.Query.FindApiByID(t.Context(), h.DB.RO(), res.Body.Data.ApiId)
@@ -66,10 +66,10 @@ func TestCreateApiAuthorizesProjectWildcardBeforeDefaultProjectCreation(t *testi
 	require.Equal(t, projectID, api.ProjectID)
 }
 
-// TestCreateApiCanonicalPermissionBoundaries guarantees that canonical grants
+// TestCreateApiURNPermissionBoundaries guarantees that URN permissions
 // preserve workspace, project, and action boundaries while supporting broader
 // catalog wildcards.
-func TestCreateApiCanonicalPermissionBoundaries(t *testing.T) {
+func TestCreateApiURNPermissionBoundaries(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
 	h.Register(route)
