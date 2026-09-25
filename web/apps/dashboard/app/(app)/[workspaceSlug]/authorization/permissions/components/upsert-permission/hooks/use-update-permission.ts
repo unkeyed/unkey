@@ -1,23 +1,17 @@
 import { trpc } from "@/lib/trpc/client";
 import { toast } from "@unkey/ui";
 
-export const useUpsertPermission = (
-  onSuccess: (data: {
-    permissionId?: string;
-    isUpdate: boolean;
-    message: string;
-  }) => void,
-) => {
+export const useUpdatePermission = (onSuccess: () => void) => {
   const trpcUtils = trpc.useUtils();
-  const permission = trpc.authorization.permissions.upsert.useMutation({
+  const permission = trpc.authorization.permissions.update.useMutation({
     onSuccess(data) {
       trpcUtils.authorization.permissions.invalidate();
       trpcUtils.authorization.roles.invalidate();
       // Show success toast
-      toast.success(data.isUpdate ? "Permission Updated" : "Permission Created", {
+      toast.success("Permission Updated", {
         description: data.message,
       });
-      onSuccess(data);
+      onSuccess();
     },
     onError(err) {
       if (err.data?.code === "CONFLICT") {
