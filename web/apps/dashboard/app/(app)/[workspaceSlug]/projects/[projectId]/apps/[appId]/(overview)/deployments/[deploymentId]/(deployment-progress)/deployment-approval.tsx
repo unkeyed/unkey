@@ -60,7 +60,7 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
             <IconShieldAlertOutline18 className="text-white dark:text-black size-[22px]" />
           </div>
 
-          <h1 className="text-[22px] font-bold tracking-tight text-gray-12 mb-2">
+          <h1 className="text-xl font-bold tracking-tight text-gray-12 mb-2">
             {isFork ? "Authorize Fork Deployment" : "Authorize Deployment"}
           </h1>
 

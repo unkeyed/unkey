@@ -53,7 +53,7 @@ export function ComputePlanDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90vh] w-[90%] max-w-[560px] flex-col gap-0 overflow-hidden rounded-2xl! bg-raised p-0">
         <div className="flex flex-col gap-1.5 px-[22px] pt-6 pb-3.5">
-          <DialogTitle className="font-semibold text-[22px] text-gray-12 leading-none tracking-[-0.03em]">
+          <DialogTitle className="font-semibold text-xl text-gray-12 leading-none tracking-[-0.03em]">
             {title}
           </DialogTitle>
           {subTitle ? (

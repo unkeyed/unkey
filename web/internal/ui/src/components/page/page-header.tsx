@@ -23,7 +23,7 @@ function PageHeaderTitle({ className, ...props }: React.ComponentProps<"h1">) {
   return (
     <h1
       className={cn(
-        "text-[22px] font-semibold tracking-tight leading-tight text-gray-12 m-0",
+        "text-xl font-semibold tracking-tight leading-tight text-gray-12 m-0",
         className,
       )}
       {...props}
