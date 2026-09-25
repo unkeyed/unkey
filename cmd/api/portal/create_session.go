@@ -78,7 +78,7 @@ Your root key must be associated with a workspace that has an enabled portal con
 			for i, value := range values {
 				scopes[i] = components.Scope(value)
 			}
-			req := components.V2PortalCreateSessionRequestBody{Portal: cmd.String("portal"), ExternalID: cmd.String("external-id"), Scopes: scopes, Preview: nil, ReturnURL: nil}
+			req := components.V2PortalCreateSessionRequestBody{Portal: cmd.String("portal"), ExternalID: cmd.String("external-id"), Scopes: scopes, ReturnURL: nil}
 			if v := cmd.String("return-url"); v != "" {
 				req.ReturnURL = &v
 			}
