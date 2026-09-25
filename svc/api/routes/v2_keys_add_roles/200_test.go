@@ -272,3 +272,77 @@ func TestAddRolesConcurrent(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, finalRoles, numConcurrent)
 }
+
+func TestAddRolesConcurrentSameRole(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
+	}
+
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.add_role_to_key")
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+
+	keyResponse := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+	})
+
+	role := h.CreateRole(seed.CreateRoleRequest{
+		WorkspaceID: workspace.ID,
+		Name:        "kebap.same.role",
+	})
+
+	warmupKey := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+	})
+	warmup := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		KeyId: warmupKey.KeyID,
+		Roles: []string{role.Name},
+	})
+	require.Equal(t, 200, warmup.Status, "warmup request should succeed")
+
+	numConcurrent := 10
+	g := errgroup.Group{}
+	for i := range numConcurrent {
+		g.Go(func() error {
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+				KeyId: keyResponse.KeyID,
+				Roles: []string{role.Name},
+			})
+			if res.Status != 200 {
+				return fmt.Errorf("request %d: unexpected status %d", i, res.Status)
+			}
+			return nil
+		})
+	}
+	require.NoError(t, g.Wait(), "adding the same role concurrently must be idempotent")
+
+	finalRoles, err := db.Query.ListRolesByKeyID(t.Context(), h.DB.RO(), keyResponse.KeyID)
+	require.NoError(t, err)
+	require.Len(t, finalRoles, 1)
+
+	connectEvents := 0
+	for _, ev := range h.FindAuditLogsByTargetID(t.Context(), t, keyResponse.KeyID) {
+		if ev.Event == "authorization.connect_role_and_key" {
+			connectEvents++
+		}
+	}
+	require.Equal(t, 1, connectEvents)
+}
