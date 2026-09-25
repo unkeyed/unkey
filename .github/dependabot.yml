@@ -25,6 +25,11 @@ updates:
       interval: "daily"
     cooldown:
       default-days: 7
+    ignore:
+      # github.com/docker/docker is a deprecated module path: none of its open
+      # advisories have a patched version, so Dependabot's security update fails
+      # with security_update_not_found and aborts the whole gomod run.
+      - dependency-name: "github.com/docker/docker"
   - package-ecosystem: "docker"
     directories:
       - "/"
