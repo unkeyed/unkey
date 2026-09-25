@@ -3360,6 +3360,35 @@ components:
                 pagination:
                     "$ref": "#/components/schemas/Pagination"
             additionalProperties: false
+        V2PortalRevokeSessionRequestBody:
+            type: object
+            required:
+                - portal
+                - externalId
+            properties:
+                portal:
+                    "$ref": "#/components/schemas/ResourceIdentifier"
+                externalId:
+                    type: string
+                    minLength: 1
+                    maxLength: 256
+                    description: |
+                        The end user's identifier in your system, as passed to
+                        `portal.createSession`. Every live session this end user holds on the
+                        portal is revoked.
+                    example: user_123
+            additionalProperties: false
+        V2PortalRevokeSessionResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    "$ref": "#/components/schemas/Meta"
+                data:
+                    "$ref": "#/components/schemas/V2PortalRevokeSessionResponseData"
+            additionalProperties: false
         V2PortalUpdatePortalRequestBody:
             type: object
             required:
@@ -7137,6 +7166,20 @@ components:
             items:
                 "$ref": "#/components/schemas/KeyResponseData"
             description: Array of the portal end user's API keys.
+        V2PortalRevokeSessionResponseData:
+            type: object
+            required:
+                - sessionsRevoked
+            properties:
+                sessionsRevoked:
+                    type: integer
+                    format: int64
+                    minimum: 0
+                    description: |
+                        How many live sessions were revoked. Zero when the end user had none,
+                        including when an earlier call already revoked them.
+                    example: 2
+            additionalProperties: false
         V2ProjectsCreateProjectResponseData:
             type: object
             required:
@@ -14995,6 +15038,82 @@ paths:
                 - portal
             x-excluded: true
             x-speakeasy-name-override: rerollKey
+    /v2/portal.revokeSession:
+        post:
+            description: |
+                Revoke every live session an end user holds on a portal.
+
+                Unreleased and subject to change without notice.
+
+                Sessions that were created but not yet opened are revoked too, so their
+                portal URLs stop working. Revocation is not instantaneous: session lookups
+                are cached briefly, so a request already in flight may still succeed.
+
+                Revoking ends existing sessions only. To keep the end user out, also stop
+                calling `portal.createSession` for them.
+
+                Calling this again for the same end user is safe and revokes nothing.
+
+                **Required Permissions**
+
+                Your root key must have one of:
+                - `portal.*.create_portal_session` (for any portal in the workspace)
+                - `portal.<portal_id>.create_portal_session` (for a specific portal)
+
+                Without the permission this returns **404**, not 403.
+            operationId: portal.revokeSession
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2PortalRevokeSessionRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2PortalRevokeSessionResponseBody'
+                    description: |
+                        The end user's live sessions on the portal are revoked.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Bad request
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "404":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/NotFoundErrorResponse'
+                    description: |
+                        No such portal, or your root key may not revoke its sessions.
+                "429":
+                    content:
+                        application/problem+json:
+                            schema:
+                                $ref: '#/components/schemas/TooManyRequestsErrorResponse'
+                    description: Too Many Requests
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error
+            security:
+                - bearer: []
+            summary: Revoke portal sessions
+            tags:
+                - portal
+            x-excluded: true
+            x-speakeasy-name-override: revokeSession
     /v2/portal.updatePortal:
         post:
             description: |

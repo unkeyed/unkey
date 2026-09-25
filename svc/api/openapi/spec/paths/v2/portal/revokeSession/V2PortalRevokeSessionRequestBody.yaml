@@ -1,0 +1,28 @@
+type: object
+required:
+  - portal
+  - externalId
+properties:
+  portal:
+    "$ref": "../../../../common/ResourceIdentifier.yaml"
+  externalId:
+    type: string
+    minLength: 1
+    maxLength: 256
+    description: |
+      The end user's identifier in your system, as passed to
+      `portal.createSession`. Every live session this end user holds on the
+      portal is revoked.
+    example: user_123
+additionalProperties: false
+examples:
+  byId:
+    summary: Revoke by portal id
+    value:
+      portal: pc_1234abcd
+      externalId: user_123
+  bySlug:
+    summary: Revoke by portal slug
+    value:
+      portal: acme-portal
+      externalId: user_123

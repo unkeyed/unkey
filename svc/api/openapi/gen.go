@@ -5862,6 +5862,42 @@ type V2PortalListKeysResponseBody struct {
 // V2PortalListKeysResponseData Array of the portal end user's API keys.
 type V2PortalListKeysResponseData = []KeyResponseData
 
+// V2PortalRevokeSessionRequestBody defines model for V2PortalRevokeSessionRequestBody.
+type V2PortalRevokeSessionRequestBody struct {
+	// ExternalId The end user's identifier in your system, as passed to
+	// `portal.createSession`. Every live session this end user holds on the
+	// portal is revoked.
+	//
+	//
+	// Example: user_123
+	ExternalId string `json:"externalId"`
+
+	// Portal Identifies a resource by either its unique ID or its slug.
+	// Accepts a prefixed ID (such as 'proj_' or 'app_') or a slug.
+	//
+	//
+	// Example: proj_1234abcd
+	Portal ResourceIdentifier `json:"portal"`
+}
+
+// V2PortalRevokeSessionResponseBody defines model for V2PortalRevokeSessionResponseBody.
+type V2PortalRevokeSessionResponseBody struct {
+	Data V2PortalRevokeSessionResponseData `json:"data"`
+
+	// Meta Metadata object included in every API response. This provides context about the request and is essential for debugging, audit trails, and support inquiries. The `requestId` is particularly important when troubleshooting issues with the Unkey support team.
+	Meta Meta `json:"meta"`
+}
+
+// V2PortalRevokeSessionResponseData defines model for V2PortalRevokeSessionResponseData.
+type V2PortalRevokeSessionResponseData struct {
+	// SessionsRevoked How many live sessions were revoked. Zero when the end user had none,
+	// including when an earlier call already revoked them.
+	//
+	//
+	// Example: 2
+	SessionsRevoked int64 `json:"sessionsRevoked"`
+}
+
 // V2PortalUpdatePortalRequestBody defines model for V2PortalUpdatePortalRequestBody.
 type V2PortalUpdatePortalRequestBody struct {
 	// AppId Re-point the portal at a different app. Omit to leave the resource it
@@ -6758,6 +6794,9 @@ type PortalListKeysJSONRequestBody = V2PortalListKeysRequestBody
 
 // PortalRerollKeyJSONRequestBody defines body for PortalRerollKey for application/json ContentType.
 type PortalRerollKeyJSONRequestBody = V2KeysRerollKeyRequestBody
+
+// PortalRevokeSessionJSONRequestBody defines body for PortalRevokeSession for application/json ContentType.
+type PortalRevokeSessionJSONRequestBody = V2PortalRevokeSessionRequestBody
 
 // PortalUpdatePortalJSONRequestBody defines body for PortalUpdatePortal for application/json ContentType.
 type PortalUpdatePortalJSONRequestBody = V2PortalUpdatePortalRequestBody

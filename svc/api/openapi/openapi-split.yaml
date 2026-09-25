@@ -246,6 +246,8 @@ paths:
     $ref: "./spec/paths/v2/portal/deletePortal/index.yaml"
   /v2/portal.createSession:
     $ref: "./spec/paths/v2/portal/createSession/index.yaml"
+  /v2/portal.revokeSession:
+    $ref: "./spec/paths/v2/portal/revokeSession/index.yaml"
   /v2/portal.exchangeCode:
     $ref: "./spec/paths/v2/portal/exchangeCode/index.yaml"
   /v2/portal.listKeys:
