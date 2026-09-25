@@ -132,10 +132,11 @@ func TestRevokeSessionIsIdempotent(t *testing.T) {
 	require.Equal(t, http.StatusOK, first.Status, "expected 200, received: %s", first.RawBody)
 	require.Equal(t, int64(1), first.Body.Data.SessionsRevoked)
 
+	var sessionID string
 	var revokedAt int64
 	require.NoError(t, h.DB.RO().QueryRowContext(context.Background(),
-		"SELECT revoked_at FROM portal_sessions WHERE portal_id = ? AND external_id = ?", stored.ID, "user_1",
-	).Scan(&revokedAt))
+		"SELECT id, revoked_at FROM portal_sessions WHERE portal_id = ? AND external_id = ?", stored.ID, "user_1",
+	).Scan(&sessionID, &revokedAt))
 
 	h.Clock.Tick(time.Minute)
 
@@ -153,6 +154,7 @@ func TestRevokeSessionIsIdempotent(t *testing.T) {
 	require.Len(t, metas, 1, "only the call that revoked something is audited")
 	require.Equal(t, "user_1", metas[0]["externalId"])
 	require.Equal(t, float64(1), metas[0]["sessionsRevoked"])
+	require.Equal(t, []any{sessionID}, metas[0]["sessionIds"], "the audit entry names the revoked session")
 }
 
 // An end user with no sessions is not an error: the caller wants them logged
