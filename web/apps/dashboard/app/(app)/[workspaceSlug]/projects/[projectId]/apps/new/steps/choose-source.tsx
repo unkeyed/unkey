@@ -58,7 +58,6 @@ export const ChooseSourceStep = ({
         isRolledBack: false,
         updatedAt: null,
         id: SERVER_PLACEHOLDER,
-        latestDeploymentId: null,
         domain: null,
         headlineDeployment: null,
       });

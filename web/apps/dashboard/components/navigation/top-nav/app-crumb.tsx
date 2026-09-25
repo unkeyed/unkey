@@ -13,7 +13,12 @@ export function AppCrumb({ projectId, appId }: { projectId: string; appId: strin
   const workspace = useWorkspaceNavigation();
   const appHomeHref = useAppHomeHref();
   const appsQuery = useLiveQuery(
-    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
+    (q) =>
+      q
+        .from({ app: collection.apps })
+        .where(({ app }) => eq(app.projectId, projectId))
+        .orderBy(({ app }) => app.updatedAt, { direction: "desc", nulls: "last" })
+        .orderBy(({ app }) => app.id, "desc"),
     [projectId],
   );
   const apps = appsQuery.data ?? [];

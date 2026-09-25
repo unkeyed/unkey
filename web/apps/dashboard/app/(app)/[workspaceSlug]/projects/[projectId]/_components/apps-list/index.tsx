@@ -59,7 +59,12 @@ export function AppsList() {
         );
 
   const apps = useLiveQuery(
-    (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
+    (q) =>
+      q
+        .from({ app: collection.apps })
+        .where(({ app }) => eq(app.projectId, projectId))
+        .orderBy(({ app }) => app.updatedAt, { direction: "desc", nulls: "last" })
+        .orderBy(({ app }) => app.id, "desc"),
     [projectId],
   );
   const hasInFlightDeployment = apps.data.some(
