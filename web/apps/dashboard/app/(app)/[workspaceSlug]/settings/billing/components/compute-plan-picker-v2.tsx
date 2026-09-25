@@ -53,7 +53,7 @@ export function ComputePlanDialog({
             {title}
           </DialogTitle>
           {subTitle ? (
-            <DialogDescription className="text-base text-gray-11 leading-normal">
+            <DialogDescription className="text-sm text-gray-11 leading-normal">
               {subTitle}
             </DialogDescription>
           ) : null}

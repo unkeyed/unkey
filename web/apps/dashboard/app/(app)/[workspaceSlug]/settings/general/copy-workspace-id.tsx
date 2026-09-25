@@ -15,7 +15,7 @@ export const CopyWorkspaceId = ({ workspaceId }: { workspaceId: string }) => {
             "flex flex-row items-center justify-between min-w-[395px] pl-2 pr-2 py-2 bg-raised border rounded-lg"
           }
         >
-          <div className="text-base leading-5 text-gray-11">{workspaceId}</div>
+          <div className="text-sm leading-5 text-gray-11">{workspaceId}</div>
           <CopyButton
             value={workspaceId}
             variant="ghost"

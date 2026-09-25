@@ -15,7 +15,7 @@ export const CopyKeySpaceId = ({ keySpaceId }: { keySpaceId: string }) => {
             "flex flex-row justify-between min-w-[327px] pl-2 pr-2 py-2 bg-raised border rounded-lg"
           }
         >
-          <div className="text-base text-gray-11">{keySpaceId}</div>
+          <div className="text-sm text-gray-11">{keySpaceId}</div>
           <CopyButton value={keySpaceId} variant="ghost" toastMessage={keySpaceId} />
         </div>
       </div>

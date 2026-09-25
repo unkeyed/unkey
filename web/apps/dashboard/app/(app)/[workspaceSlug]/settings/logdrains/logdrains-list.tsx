@@ -97,7 +97,7 @@ export function LogdrainsList({
     return (
       <ResourceListContent>
         <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
-          <span role="alert" className="text-base text-gray-11">
+          <span role="alert" className="text-sm text-gray-11">
             We couldn't load log drains.
           </span>
           <Button variant="outline" onClick={() => query.refetch()}>

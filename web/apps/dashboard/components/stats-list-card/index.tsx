@@ -72,9 +72,7 @@ export function StatsListCard({
     >
       <div className="flex flex-col w-full gap-2 min-w-0">
         <InfoTooltip content={title} asChild position={{ align: "start", side: "top" }}>
-          <span className="font-medium text-base leading-[14px] text-gray-12 truncate">
-            {title}
-          </span>
+          <span className="font-medium text-sm leading-[14px] text-gray-12 truncate">{title}</span>
         </InfoTooltip>
         {subtitle ? (
           <InfoTooltip content={subtitle} asChild position={{ align: "start", side: "top" }}>

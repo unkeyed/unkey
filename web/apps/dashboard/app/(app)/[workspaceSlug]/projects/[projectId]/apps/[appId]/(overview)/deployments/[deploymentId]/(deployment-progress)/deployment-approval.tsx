@@ -64,7 +64,7 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
             {isFork ? "Authorize Fork Deployment" : "Authorize Deployment"}
           </h1>
 
-          <p className="text-base leading-relaxed text-gray-11 text-center mb-4 max-w-100">
+          <p className="text-sm leading-relaxed text-gray-11 text-center mb-4 max-w-100">
             {isFork ? "An external contributor pushed commit " : "Commit "}
             {commitUrl ? (
               <a

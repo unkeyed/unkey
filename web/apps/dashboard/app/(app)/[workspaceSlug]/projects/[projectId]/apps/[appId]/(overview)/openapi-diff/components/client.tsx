@@ -116,7 +116,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
           </div>
         </div>
         <div className="flex flex-col gap-1">
-          <h3 className="text-grayA-12 font-medium text-base">No noteworthy changes</h3>
+          <h3 className="text-grayA-12 font-medium text-sm">No noteworthy changes</h3>
           <p className="text-grayA-9 text-xs max-w-70 leading-relaxed">
             The specifications for <span className="text-grayA-11">{fromDeployment} </span>
             and <span className="text-grayA-11">{toDeployment} </span>

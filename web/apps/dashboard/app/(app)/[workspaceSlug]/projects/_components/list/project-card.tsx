@@ -53,7 +53,7 @@ export function ProjectCard({ name, projectId, apps, actions }: ProjectCardProps
         <InfoTooltip content={name} asChild position={{ align: "start", side: "top" }}>
           <Link
             href={projectPath}
-            className="min-w-0 flex-1 truncate text-base font-medium leading-5 text-gray-12"
+            className="min-w-0 flex-1 truncate text-sm font-medium leading-5 text-gray-12"
           >
             {name}
           </Link>

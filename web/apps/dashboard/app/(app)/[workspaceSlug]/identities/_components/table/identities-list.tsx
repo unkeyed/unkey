@@ -61,7 +61,7 @@ function IdentityRow({
         <IconFingerprintOutline18 className="size-3.5 text-featureA-11" />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="truncate font-medium text-gray-12 text-base" title={identity.externalId}>
+        <span className="truncate font-medium text-gray-12 text-sm" title={identity.externalId}>
           {identity.externalId}
         </span>
         <span className="truncate font-mono text-gray-9 text-xs" title={identity.id}>
@@ -153,7 +153,7 @@ function IdentityResults({ search }: { search: string }) {
     return (
       <ResourceListContent>
         <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
-          <span role="alert" className="text-gray-11 text-base">
+          <span role="alert" className="text-gray-11 text-sm">
             {getErrorMessage(error, "We couldn't load identities.")}
           </span>
           <Button variant="outline" onClick={retry}>
@@ -220,7 +220,7 @@ function IdentityResults({ search }: { search: string }) {
       {nextPageError ? (
         <ResourceListFooter>
           <div className="flex items-center gap-3">
-            <span role="alert" className="text-error-11 text-base">
+            <span role="alert" className="text-error-11 text-sm">
               {getErrorMessage(nextPageError, "We couldn't load more identities.")}
             </span>
             <Button
@@ -236,7 +236,7 @@ function IdentityResults({ search }: { search: string }) {
       ) : isError ? (
         <ResourceListFooter>
           <div className="flex items-center gap-3">
-            <span role="alert" className="text-error-11 text-base">
+            <span role="alert" className="text-error-11 text-sm">
               {getErrorMessage(error, "We couldn't refresh identities.")}
             </span>
             <Button variant="outline" onClick={retry}>

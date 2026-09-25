@@ -40,7 +40,7 @@ export const OverviewChartEmpty = ({
       {/* Chart area */}
       <div className="flex-1 min-h-0 flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
-          <span className="text-base text-gray-9">{message}</span>
+          <span className="text-sm text-gray-9">{message}</span>
         </div>
       </div>
       {/* Time labels footer */}

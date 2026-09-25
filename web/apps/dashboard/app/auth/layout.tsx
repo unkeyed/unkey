@@ -15,7 +15,7 @@ export default function AuthenticatedLayout({
           <Logo className="md:min-w-sm text-white" />
         </Link>
         <Link
-          className="flex items-center h-8 gap-2 px-4 text-base text-white duration-500 border rounded-lg bg-white/5 hover:bg-white hover:text-black border-white/10"
+          className="flex items-center h-8 gap-2 px-4 text-sm text-white duration-500 border rounded-lg bg-white/5 hover:bg-white hover:text-black border-white/10"
           href="https://www.unkey.com/docs"
           target="_blank"
         >

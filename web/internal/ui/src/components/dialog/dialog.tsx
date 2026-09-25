@@ -226,7 +226,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       ref={ref}
-      className={cn("text-base text-gray-11", className)}
+      className={cn("text-sm text-gray-11", className)}
       {...props}
     />
   );

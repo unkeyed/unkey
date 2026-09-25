@@ -233,7 +233,7 @@ export const DatetimePopover = ({
               <button
                 type="button"
                 onClick={() => setTimeRangeOpen(!timeRangeOpen)}
-                className="text-gray-11 h-9 border px-2 text-base w-full rounded-lg bg-gray-3 flex items-center justify-between"
+                className="text-gray-11 h-9 border px-2 text-sm w-full rounded-lg bg-gray-3 flex items-center justify-between"
               >
                 <span className="text-gray-9 text-sm">
                   {singleDateMode ? "Select a date" : "Filter by time range"}

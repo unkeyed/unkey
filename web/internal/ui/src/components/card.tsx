@@ -41,7 +41,7 @@ function CardDescription({
   ref,
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement> & { ref?: React.Ref<HTMLParagraphElement> }) {
-  return <p ref={ref} className={cn("text-base text-gray-11", className)} {...props} />;
+  return <p ref={ref} className={cn("text-sm text-gray-11", className)} {...props} />;
 }
 
 function CardContent({

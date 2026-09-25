@@ -45,7 +45,7 @@ export function DrainStepCard({
           )}
           <span
             className={cn(
-              "truncate text-base font-semibold",
+              "truncate text-sm font-semibold",
               state === "waiting" ? "text-gray-9" : "text-gray-12",
             )}
           >

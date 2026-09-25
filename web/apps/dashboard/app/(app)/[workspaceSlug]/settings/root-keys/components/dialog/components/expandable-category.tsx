@@ -41,7 +41,7 @@ const ExpandableCategory = forwardRef<
         )}
       >
         <div className="flex flex-col text-left min-w-48 w-full">
-          <p className="text-base w-full">{category}</p>
+          <p className="text-sm w-full">{category}</p>
           {description ? (
             <p className="text-xs text-gray-10 w-full truncate">{description}</p>
           ) : null}

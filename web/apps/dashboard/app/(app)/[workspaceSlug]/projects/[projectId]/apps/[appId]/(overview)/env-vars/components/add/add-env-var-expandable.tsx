@@ -270,7 +270,7 @@ export const AddEnvVarExpandable = ({
                 <IconCloudUploadOutline18 className="text-success-11" />
               </div>
               <div className="flex flex-col items-center gap-1">
-                <span className="text-base font-medium text-success-11">Drop your .env file</span>
+                <span className="text-sm font-medium text-success-11">Drop your .env file</span>
                 <span className="text-xs text-success-10">
                   We'll parse and import your variables
                 </span>

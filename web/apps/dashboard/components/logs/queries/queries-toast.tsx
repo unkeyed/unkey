@@ -9,7 +9,7 @@ export const QueriesToast = ({ children, message, undoBookmarked }: QueriesToast
   return (
     <div className="flex items-center w-full gap-4 px-1">
       <div className="flex">{children}</div>
-      <span className="flex-1 text-base font-medium leading-6 text-left bg-raised w-full">
+      <span className="flex-1 text-sm font-medium leading-6 text-left bg-raised w-full">
         {message}
       </span>
       <Button

@@ -78,7 +78,7 @@ export const ResourceCard = ({
           <InfoTooltip content={name} asChild position={{ align: "start", side: "top" }}>
             <Link
               href={href}
-              className="font-medium text-base leading-[14px] text-gray-12 truncate hover:underline"
+              className="font-medium text-sm leading-[14px] text-gray-12 truncate hover:underline"
             >
               {name}
             </Link>

@@ -135,7 +135,7 @@ export const Client: React.FC = () => {
                     <span>
                       <Button
                         variant="outline"
-                        className="py-2 px-3 text-gray-12 font-medium text-base bg-grayA-2 hover:bg-grayA-3"
+                        className="py-2 px-3 text-gray-12 font-medium text-sm bg-grayA-2 hover:bg-grayA-3"
                         aria-label="Open billing portal"
                         disabled={!isAdmin}
                         onClick={() => {

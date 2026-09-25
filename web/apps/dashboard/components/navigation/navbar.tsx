@@ -56,7 +56,7 @@ const BreadcrumbsLink = React.forwardRef<HTMLAnchorElement, LinkProps>(
     return (
       <li className="flex items-center gap-3">
         {renderAsLabel ? (
-          <span className={cn("text-base", active ? "text-gray-12" : "text-gray-10", className)}>
+          <span className={cn("text-sm", active ? "text-gray-12" : "text-gray-10", className)}>
             {children}
           </span>
         ) : (
@@ -64,7 +64,7 @@ const BreadcrumbsLink = React.forwardRef<HTMLAnchorElement, LinkProps>(
             ref={ref}
             href={href as Route}
             className={cn(
-              "text-base transition-colors",
+              "text-sm transition-colors",
               active ? "text-gray-12" : "text-gray-10 hover:text-gray-11",
               className,
             )}
@@ -88,7 +88,7 @@ BreadcrumbsLink.displayName = "GlobalNavbar.Breadcrumbs.Link";
 const BreadcrumbsEllipsis = React.forwardRef<HTMLLIElement, React.HTMLAttributes<HTMLLIElement>>(
   ({ className, ...props }, ref) => (
     <li ref={ref} className={cn("flex gap-3 items-end", className)} {...props}>
-      <span className="text-base text-gray-10" aria-label="More pages">
+      <span className="text-sm text-gray-10" aria-label="More pages">
         <IconDotsOutline18 className="h-4 w-4 text-gray-10" />
       </span>
       <div className="text-gray-10" aria-hidden="true">

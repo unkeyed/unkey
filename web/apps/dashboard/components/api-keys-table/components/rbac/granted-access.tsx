@@ -61,7 +61,7 @@ export const GrantedAccess = ({
       transition={{ duration: 0.3, ease: "easeInOut" }}
     >
       <motion.div layout className="flex gap-2 items-center">
-        <div className="font-medium text-base text-gray-12">Granted Access</div>
+        <div className="font-medium text-sm text-gray-12">Granted Access</div>
         <motion.div
           key={totalCount}
           initial={{ scale: 0.8, opacity: 0 }}

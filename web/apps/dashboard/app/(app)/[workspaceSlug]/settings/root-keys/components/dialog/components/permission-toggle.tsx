@@ -39,11 +39,11 @@ const PermissionToggle = forwardRef<HTMLDivElement, PermissionToggleProps>(
         />
         <div className="flex flex-col text-left min-w-48 max-w-full gap-1">
           <div className="inline-flex items-center gap-2 w-full">
-            <span id={`${id}-label`} className="text-base w-fit">
+            <span id={`${id}-label`} className="text-sm w-fit">
               {category}
             </span>
             <IconChevronRightOutline12 className="text-grayA-8" />
-            {<span className="text-base w-full">{label}</span>}
+            {<span className="text-sm w-full">{label}</span>}
           </div>
           <InfoTooltip content={description} className="w-full text-left">
             <p id={`${id}-description`} className="text-xs text-gray-10 text-left w-full truncate">

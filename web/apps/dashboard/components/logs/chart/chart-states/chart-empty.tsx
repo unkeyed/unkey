@@ -80,7 +80,7 @@ export const ChartEmpty = ({
       <div className={cn("flex flex-col h-full bg-grayA-2", className)}>
         <div className="flex-1 min-h-0 flex items-center justify-center">
           <div className="flex flex-col items-center gap-2">
-            <span className="text-base text-gray-9">{message}</span>
+            <span className="text-sm text-gray-9">{message}</span>
           </div>
         </div>
       </div>
@@ -104,7 +104,7 @@ export const ChartEmpty = ({
         <div style={{ height }} className="border-b">
           <div className="flex-1 flex items-center justify-center h-full">
             <div className="flex flex-col items-center gap-2">
-              <span className="text-base text-gray-9">{message}</span>
+              <span className="text-sm text-gray-9">{message}</span>
             </div>
           </div>
         </div>
@@ -167,7 +167,7 @@ export const ChartEmpty = ({
         {/* Chart area with empty message */}
         <div className="flex-1 min-h-0 flex items-center justify-center">
           <div className="flex flex-col items-center gap-2">
-            <span className="text-base text-gray-9">{message}</span>
+            <span className="text-sm text-gray-9">{message}</span>
           </div>
         </div>
 
@@ -191,7 +191,7 @@ export const ChartEmpty = ({
     <div className={cn("flex flex-col h-full bg-grayA-2", className)}>
       <div className="flex-1 min-h-0 flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
-          <span className="text-base text-gray-9">{message}</span>
+          <span className="text-sm text-gray-9">{message}</span>
         </div>
       </div>
     </div>

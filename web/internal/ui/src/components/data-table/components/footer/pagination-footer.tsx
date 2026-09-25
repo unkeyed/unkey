@@ -155,7 +155,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                           className={cn(
                             "w-7 h-7 flex items-center justify-center rounded-md text-xs font-medium cursor-pointer",
                             isCurrentPage
-                              ? "text-gray-12 pointer-events-none ring-0 border bg-grayA-4 text-base transition-all duration-300"
+                              ? "text-gray-12 pointer-events-none ring-0 border bg-grayA-4 text-sm transition-all duration-300"
                               : "text-grayA-9 hover:text-gray-12 hover:bg-grayA-3",
                             disabled && !isCurrentPage && "opacity-80 pointer-events-none",
                           )}

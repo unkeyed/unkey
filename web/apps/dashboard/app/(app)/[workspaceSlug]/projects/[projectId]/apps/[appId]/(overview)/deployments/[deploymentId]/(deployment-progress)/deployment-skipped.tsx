@@ -67,7 +67,7 @@ export function DeploymentSkipped() {
       <div className="border bg-grayA-2 rounded-lg p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex flex-col gap-0.5">
-            <span className="text-base font-medium text-gray-12">Deployment skipped</span>
+            <span className="text-sm font-medium text-gray-12">Deployment skipped</span>
             <span className="text-xs text-gray-11">
               {deployment.triggerReason ??
                 "This deployment was skipped. Check your watch paths and auto deploy settings."}

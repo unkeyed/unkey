@@ -55,7 +55,7 @@ export function DeploymentsCardList() {
     return (
       <ResourceListContent>
         <div className="flex w-full items-center justify-center gap-3 px-4 py-16">
-          <span role="alert" className="text-error-11 text-base">
+          <span role="alert" className="text-error-11 text-sm">
             We couldn't load deployments.
           </span>
           <Button size="md" variant="outline" onClick={() => refetch()}>

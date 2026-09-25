@@ -32,7 +32,7 @@ export const CanvasBoundary = ({ children }: PropsWithChildren) => {
                   <IconTriangleWarningOutline18 className="size-3.5 text-error-11" />
                 </div>
                 {/* Title */}
-                <span className="text-base font-medium text-gray-12">
+                <span className="text-sm font-medium text-gray-12">
                   Failed to render network tree
                 </span>
                 {/* Status dot */}

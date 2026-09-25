@@ -200,8 +200,8 @@ function AccountError({
       <h2 ref={headingRef} tabIndex={-1} className="font-medium outline-none">
         {heading}
       </h2>
-      <p className="mt-2 text-base text-gray-11">{description}</p>
-      <div className="mt-4 text-base font-medium">{action}</div>
+      <p className="mt-2 text-sm text-gray-11">{description}</p>
+      <div className="mt-4 text-sm font-medium">{action}</div>
     </section>
   );
 }

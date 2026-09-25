@@ -152,7 +152,7 @@ export function EnvVarEditRow({
           </summary>
           <div className="pt-1.5">
             <FormInput
-              className="[&_input]:text-base"
+              className="[&_input]:text-sm"
               placeholder="Optional description for this variable..."
               {...register("description")}
             />

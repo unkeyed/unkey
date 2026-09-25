@@ -64,6 +64,6 @@ export const ManageGitHubAppLink = ({
       void onInstall();
     }}
   >
-    <span className="text-base">{text}</span>
+    <span className="text-sm">{text}</span>
   </Button>
 );

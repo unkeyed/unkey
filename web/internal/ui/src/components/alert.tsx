@@ -50,7 +50,7 @@ function AlertDescription({
   ref,
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement> & { ref?: React.Ref<HTMLParagraphElement> }) {
-  return <div ref={ref} className={cn("text-base [&_p]:leading-relaxed ", className)} {...props} />;
+  return <div ref={ref} className={cn("text-sm [&_p]:leading-relaxed ", className)} {...props} />;
 }
 
 export { Alert, AlertTitle, AlertDescription };

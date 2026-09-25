@@ -52,7 +52,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
     return (
       <div className="flex w-full items-center justify-between gap-4 rounded-lg border bg-raised px-5 py-4">
         <div>
-          <p className="font-medium text-gray-12 text-base">No payment method</p>
+          <p className="font-medium text-gray-12 text-sm">No payment method</p>
           <p className="text-sm text-gray-10">
             Add one to subscribe. Each product bills on its own invoice.
           </p>
@@ -99,7 +99,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
     <div className="flex w-full flex-col gap-4 rounded-lg border bg-raised px-5 py-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="font-medium text-gray-12 text-base">Upcoming invoices</p>
+          <p className="font-medium text-gray-12 text-sm">Upcoming invoices</p>
           <p className="text-sm text-gray-10">Each product bills on its own invoice.</p>
         </div>
         <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
@@ -136,7 +136,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
                   {formatPeriodDate(row.half.periodStart)} – {formatPeriodDate(row.half.periodEnd)}
                 </span>
               </div>
-              <p className="font-medium text-gray-12 text-base leading-5 tabular-nums">
+              <p className="font-medium text-gray-12 text-sm leading-5 tabular-nums">
                 {formatPrice(row.half.total)}
                 {row.showUsage ? (
                   <span className="ml-1.5 font-normal text-gray-9 text-xs">
@@ -148,7 +148,7 @@ export const BillingSummary: React.FC<BillingSummaryProps> = ({
           ))}
         </div>
       ) : (
-        <p className="font-medium text-gray-12 text-base">—</p>
+        <p className="font-medium text-gray-12 text-sm">—</p>
       )}
     </div>
   );

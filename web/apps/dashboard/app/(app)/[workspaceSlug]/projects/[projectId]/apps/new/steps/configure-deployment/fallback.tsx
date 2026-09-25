@@ -31,7 +31,7 @@ export const ConfigureDeploymentFallback = ({ settingsReady }: { settingsReady: 
             >
               <div className="flex gap-4 items-center">
                 <Skeleton className="size-8 rounded-xl shrink-0 dark:ring-1 dark:ring-gray-4 shadow-sm shadow-grayA-8/20" />
-                <div className="flex flex-col gap-1 text-base w-fit">
+                <div className="flex flex-col gap-1 text-sm w-fit">
                   <Skeleton className={cn("h-[13px] rounded", titleW)} />
                   <Skeleton className={cn("h-3 rounded mt-0.5", descW)} />
                 </div>

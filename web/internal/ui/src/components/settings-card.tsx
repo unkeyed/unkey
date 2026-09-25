@@ -177,7 +177,7 @@ function SettingCard({
               {icon}
             </div>
           )}
-          <div className="flex flex-col gap-1 text-base w-fit">
+          <div className="flex flex-col gap-1 text-sm w-fit">
             <div className="font-medium text-gray-12 text-sm leading-4 tracking-normal">
               {title}
             </div>
@@ -333,7 +333,7 @@ function SettingsZoneRow({
   return (
     <div className="flex items-center justify-between p-4">
       <div className="space-y-1">
-        <p className="font-medium text-gray-12 text-base">{title}</p>
+        <p className="font-medium text-gray-12 text-sm">{title}</p>
         <p className="text-gray-11 text-sm">{description}</p>
       </div>
       <Button

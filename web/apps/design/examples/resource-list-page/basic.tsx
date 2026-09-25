@@ -71,12 +71,12 @@ export default function ResourceListPage() {
                   key={identity.externalId}
                   className="flex items-center justify-between px-4 py-3"
                 >
-                  <span className="font-mono text-gray-12 text-base">{identity.externalId}</span>
+                  <span className="font-mono text-gray-12 text-sm">{identity.externalId}</span>
                   <span className="text-gray-10 text-xs">{identity.rateLimits} rate limits</span>
                 </ResourceListItem>
               ))}
               {visibleIdentities.length === 0 ? (
-                <ResourceListItem className="px-4 py-8 text-center text-gray-10 text-base">
+                <ResourceListItem className="px-4 py-8 text-center text-gray-10 text-sm">
                   No identities found
                 </ResourceListItem>
               ) : null}

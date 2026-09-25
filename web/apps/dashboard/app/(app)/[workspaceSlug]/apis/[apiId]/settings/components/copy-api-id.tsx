@@ -17,7 +17,7 @@ export const CopyApiId = ({ apiId }: { apiId: string }) => {
             "flex flex-row justify-between min-w-[327px] pl-2 pr-2 py-2 bg-raised border rounded-lg"
           }
         >
-          <div className="text-base text-gray-11">{apiId}</div>
+          <div className="text-sm text-gray-11">{apiId}</div>
           <CopyButton value={apiId} variant="ghost" toastMessage={apiId} />
         </div>
       </div>

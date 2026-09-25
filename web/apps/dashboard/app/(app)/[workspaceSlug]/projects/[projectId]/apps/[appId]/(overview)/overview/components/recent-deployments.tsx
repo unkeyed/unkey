@@ -23,7 +23,7 @@ export function RecentDeployments() {
   return (
     <ResourceList>
       <ResourceListHeader className="flex-row items-center justify-between">
-        <h2 className="font-medium text-gray-12 text-base">Recent Deployments</h2>
+        <h2 className="font-medium text-gray-12 text-sm">Recent Deployments</h2>
         <Link
           href={routes.projects.apps.deployments({
             workspaceSlug: workspace.slug,
