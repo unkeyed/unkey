@@ -83,6 +83,7 @@ const (
 	HttpBodyFormat_HTTP_BODY_FORMAT_UNSPECIFIED HttpBodyFormat = 0
 	HttpBodyFormat_HTTP_BODY_FORMAT_JSON        HttpBodyFormat = 1
 	HttpBodyFormat_HTTP_BODY_FORMAT_NDJSON      HttpBodyFormat = 2
+	HttpBodyFormat_HTTP_BODY_FORMAT_HEC         HttpBodyFormat = 3
 )
 
 // Enum value maps for HttpBodyFormat.
@@ -91,11 +92,13 @@ var (
 		0: "HTTP_BODY_FORMAT_UNSPECIFIED",
 		1: "HTTP_BODY_FORMAT_JSON",
 		2: "HTTP_BODY_FORMAT_NDJSON",
+		3: "HTTP_BODY_FORMAT_HEC",
 	}
 	HttpBodyFormat_value = map[string]int32{
 		"HTTP_BODY_FORMAT_UNSPECIFIED": 0,
 		"HTTP_BODY_FORMAT_JSON":        1,
 		"HTTP_BODY_FORMAT_NDJSON":      2,
+		"HTTP_BODY_FORMAT_HEC":         3,
 	}
 )
 
@@ -838,11 +841,12 @@ const file_logdrain_v1_config_proto_rawDesc = "" +
 	"\x15HTTP_STATUS_CLASS_2XX\x10\x02\x12\x19\n" +
 	"\x15HTTP_STATUS_CLASS_3XX\x10\x03\x12\x19\n" +
 	"\x15HTTP_STATUS_CLASS_4XX\x10\x04\x12\x19\n" +
-	"\x15HTTP_STATUS_CLASS_5XX\x10\x05*j\n" +
+	"\x15HTTP_STATUS_CLASS_5XX\x10\x05*\x84\x01\n" +
 	"\x0eHttpBodyFormat\x12 \n" +
 	"\x1cHTTP_BODY_FORMAT_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15HTTP_BODY_FORMAT_JSON\x10\x01\x12\x1b\n" +
-	"\x17HTTP_BODY_FORMAT_NDJSON\x10\x02B\xa6\x01\n" +
+	"\x17HTTP_BODY_FORMAT_NDJSON\x10\x02\x12\x18\n" +
+	"\x14HTTP_BODY_FORMAT_HEC\x10\x03B\xa6\x01\n" +
 	"\x0fcom.logdrain.v1B\vConfigProtoP\x01Z9github.com/unkeyed/unkey/gen/proto/logdrain/v1;logdrainv1\xa2\x02\x03LXX\xaa\x02\vLogdrain.V1\xca\x02\vLogdrain\\V1\xe2\x02\x17Logdrain\\V1\\GPBMetadata\xea\x02\fLogdrain::V1b\x06proto3"
 
 var (

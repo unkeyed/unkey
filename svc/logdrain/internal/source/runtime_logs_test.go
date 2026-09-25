@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
+	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
 
 func TestRuntimeLogsRead_Payload(t *testing.T) {
@@ -32,9 +33,17 @@ func TestRuntimeLogsRead_Payload(t *testing.T) {
 	require.Equal(t, now-3600000, events[0].Time)
 	require.GreaterOrEqual(t, cursor.Time, now)
 	require.Equal(t, "rlog_1", cursor.EventID)
-	encoded, err := json.Marshal(events[0].Payload)
-	require.NoError(t, err)
-	require.JSONEq(t, `{"log_id":"rlog_1","severity":"fatal","message":"Payment failed","attributes":{"order":{"id":42},"retry":false},"project_id":"project_1","app_id":"app_1","environment_id":"env_1","deployment_id":"deployment_1","region":"eu-west-1"}`, string(encoded))
+	require.Equal(t, sink.RuntimeLogPayload{
+		LogID:         "rlog_1",
+		Severity:      "fatal",
+		Message:       "Payment failed",
+		Attributes:    json.RawMessage(`{"order":{"id":42},"retry":false}`),
+		ProjectID:     "project_1",
+		AppID:         "app_1",
+		EnvironmentID: "env_1",
+		DeploymentID:  "deployment_1",
+		Region:        "eu-west-1",
+	}, events[0].Payload)
 }
 
 func TestRuntimeLogsRead_FilteredCursorBounds(t *testing.T) {
