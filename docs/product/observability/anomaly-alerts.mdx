@@ -32,19 +32,21 @@ An alert belongs to the app and environment, not to a single deployment. It keep
 
 ## How detection works
 
-Unkey evaluates closed 5-minute windows and compares each one with up to 24 hours of history. It waits for a window to fully close before evaluating it, so normal telemetry delay doesn't look like a traffic drop. An alert typically appears 5 to 10 minutes after the window it covers ends.
+Unkey evaluates closed 5-minute windows and compares each one with up to 24 hours of history. It waits for a window to fully close before evaluating it, so normal telemetry delay doesn't look like a traffic drop. Unkey checks a window 5 minutes after it closes, so an event near the start of that window can be up to 10 minutes old by the time Unkey evaluates it, while an event near the end is closer to 5 minutes old. Confirmation windows and normal queueing delay can add more time on top of this.
 
 If Unkey misses a scheduled check, the next one catches up on missed windows in order, up to 1 hour back. A longer gap resets the two-window confirmation that moderate error and request-drop alerts require.
 
-When Unkey turns on anomaly detection for a workspace, it replays the last 7 days of history so existing apps start with a full 24-hour baseline. Only the single 5-minute window in progress during setup is skipped. A new app needs at least 1 hour of history before it can trigger a spike alert, and 6 hours before it can trigger a request-drop alert. Unkey measures this from the app's creation time, not from zero.
+Unkey installed anomaly detection's ClickHouse rollups by replaying 7 days of history, so apps that already existed at that point started with a full 24-hour baseline immediately. Only the single 5-minute window in progress during that installation was skipped. This replay was a one-time setup step, not something that repeats each time a workspace joins the beta. A newer app still needs to earn its own history: at least 1 hour before it can trigger a spike alert, and 6 hours before it can trigger a request-drop alert, measured from the app's creation time, not from zero.
 
-Request, egress, and CPU spikes can open after one unusual window. Moderate 4xx and 5xx increases, and request drops, need two consecutive windows. A severe 5xx spike, where at least half of requests fail and there are at least 50 failures, opens immediately.
+Request, egress, and CPU spikes can open on a single unusual window. Moderate 4xx and 5xx increases, and request drops, need two consecutive windows to confirm.
 
-Error alerts compare the percentage of failed requests to the baseline, and also require at least 20 more failures than the baseline predicts. This keeps a large percentage swing in a small number of requests from triggering an alert.
+For that baseline comparison, an error alert compares the percentage of failed requests to the baseline, and also requires at least 20 more failures than the baseline predicts. This keeps a large percentage swing in a small number of requests from triggering an alert.
 
-Unkey tracks how far data ingestion has progressed for each region a deployment runs in. Every region the deployment runs in must catch up to a window before Unkey evaluates it, though a region with no traffic for that deployment doesn't block it. A delayed region keeps that window incomplete, and Unkey can't open or resolve an alert from an incomplete window, even if other regions are current. A recent watermark doesn't guarantee every data point has already arrived.
+A severe 5xx spike skips the baseline comparison entirely: if at least half of requests fail and there are at least 50 failures in one window, Unkey opens the alert on that window, without waiting for a second confirming window or the 20-failure baseline check above.
 
-Instance failures are rare events. A single OOM or crash-loop report can open an alert right away, without waiting for a baseline or a second confirming window. When there is no such event, Unkey checks resource completeness to decide whether the window counts as clean for recovery.
+Unkey tracks how far data ingestion has progressed in each region a deployment runs in. Every region the deployment actually runs in must have ingested data through the window before Unkey evaluates it; only regions the deployment doesn't run in are excluded from this check. A delayed region keeps that window incomplete, and Unkey can't open or resolve an alert from an incomplete window, even if other regions are current. A recent watermark doesn't guarantee every data point has already arrived.
+
+Instance failures are rare events. A single OOM or crash-loop report can open an alert on the window it's evaluated in, without waiting for a baseline or a second confirming window. When there is no such event, Unkey checks resource completeness to decide whether the window counts as clean for recovery.
 
 A request-drop alert needs an active deployment with at least one running region. Unkey suppresses the alert if the deployment has no ID, is stopped, or has no running regions. Setting `autoscaling_replicas_min = 0` does not suppress it: the ability to scale to zero doesn't make an actual drop expected.
 
@@ -66,7 +68,9 @@ The 7-day overview strip shows hourly behavior. Use the range selector for the l
 
 The solid line is the observed value. The dashed line and shaded band show the expected baseline and its normal range. Requests also show a lower traffic boundary, and Memory shows a fixed 90% limit. The Health chart shows OOM and crash-loop events as bars.
 
-The chart uses the same calculations as the detector, so what you see matches why an alert fired or didn't. It needs 12 observed 5-minute buckets before it can show an expected band, and 72 buckets plus 9 active buckets out of the last 12 before it can show the request lower boundary. Error variation excludes buckets with no requests.
+The chart uses the same baseline and threshold calculations as the detector, so the expected band and boundaries reflect the same math. It needs 12 observed 5-minute buckets before it can show an expected band, and 72 buckets plus 9 active buckets out of the last 12 before it can show the request lower boundary. Error variation excludes buckets with no requests.
+
+The chart doesn't reproduce every reason an alert did or didn't fire. It doesn't check region-by-region topology and watermark completeness, apply the two-window confirmation rule, or use the fixed baseline snapshot the detector locks in for recovery. Use the alert's own focus card, not the chart, to see exactly why the detector opened or resolved it.
 
 Shaded regions mark every anomaly window. Markers on the line identify alerts for the selected metric. Toggle deployment markers to compare changes with rollouts, and drag across the chart to zoom in.
 
@@ -98,7 +102,7 @@ Alerts are read-only. Unkey resolves them automatically and shows the reason in 
 
 An alert resolves when its metric returns to the baseline captured when the alert opened, for three consecutive complete windows. Memory must fall below 85% to count as recovered. Unkey uses this fixed opening baseline rather than a rolling one, so a continuing incident can't satisfy recovery just because the rolling baseline has shifted to match it. A 5xx window with at least half of requests failing and at least 50 failures never counts as recovered, even inside the recovery range.
 
-If behavior holds at a new level for 24 hours, that level becomes the new baseline. Unkey closes the alert with `Baseline adapted after 24 hours`, so later changes are measured against the new normal. This can happen after an expected, permanent change, such as traffic doubling.
+An alert can also stay open for at most 24 hours. If it hasn't recovered by then, Unkey closes it anyway with `Baseline adapted after 24 hours`. This is a maximum-open cap, not proof the new level is expected or has settled down: by that point the rolling baseline already reflects the last 24 hours regardless of the alert, so Unkey stops comparing against the original opening baseline and lets a later change from the current level open a fresh alert. This can happen after an expected, permanent change, such as traffic doubling, or after an unresolved problem that simply hasn't recovered yet.
 
 A request-drop alert resolves with `Deployment stopped` when the deployment has no ID, is stopped, or has no running regions. The normal recovery message is `Metric returned to baseline for 3 consecutive windows`.
 

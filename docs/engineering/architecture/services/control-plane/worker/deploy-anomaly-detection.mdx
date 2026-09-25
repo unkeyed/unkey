@@ -55,7 +55,7 @@ Each tick evaluates one aligned 5-minute UTC window. The window start, in Unix s
 
 `floor(now / 300) * 300 - 600`
 
-For example, a tick at 12:07 evaluates `[11:55, 12:00)`, not `[12:00, 12:05)`. The window closed at least 5 minutes before evaluation, and this gap absorbs normal buffer and materialized-view lag. Alerts normally appear 5 to 10 minutes after the evaluated window closes.
+For example, a tick at 12:07 evaluates `[11:55, 12:00)`, not `[12:00, 12:05)`. The window closed at least 5 minutes before evaluation, and this gap absorbs normal buffer and materialized-view lag. At the nominal 5-minute cron cadence, a window is evaluated 5 minutes after it closes, so an anomalous request near the start of a window is up to 10 minutes old by evaluation time, and one near the end is closer to 5 minutes old. Two-window confirmation, catch-up after a missed tick, and normal queueing can extend this beyond the nominal cycle.
 
 The cron handler also rejects a window that hasn't aged enough: it returns without fanning out when `window_end > now - 5 minutes`. This stops a malformed or manually invoked key from skipping the settling period.
 
@@ -277,7 +277,7 @@ Resolved alerts remain available through the app focus route, whose details card
 
 The `alerts` tRPC router (`web/apps/dashboard/lib/trpc/routers/alerts/`) exposes `alerts.list`, `alerts.get`, `alerts.summary`, `alerts.series`, and `alerts.deployments`. There is no `resolve` or `timeseries` procedure. Dashboard ClickHouse queries live in `web/internal/clickhouse/src/alerts.ts`, and the complete typed `deployAnomalyThresholds` mirror lives in `web/internal/clickhouse/src/alert-thresholds.ts`. Its strict `alert-thresholds-contract.test.ts` parses the JSON and compares the full object with `toEqual`; a mutation test proves that a nested difference fails.
 
-The inbox uses the default `alerts.list` behavior, which returns open alerts. The app tab sets `includeResolved` so its range list includes both statuses. Both list 25 alerts per page using the immutable `(fired_at, pk)` cursor, so resolving a row doesn't move the page boundary. The `alerts.series` input limits a request to 8 days.
+The inbox uses the default `alerts.list` behavior, which returns open alerts, and requests 20 per page. The app tab sets `includeResolved` so its range list includes both statuses, and requests 25 per page. Both use the immutable `(fired_at, pk)` cursor, so resolving a row doesn't move the page boundary. The `alerts.series` input limits a request to 8 days.
 
 Alert row charts in both lists mount when their row comes within 150px of the viewport, and a mounted chart stays mounted once loaded. A row that hasn't entered that range shows a fixed-size skeleton and issues no query, which keeps long alert lists from starting one ClickHouse query per off-screen row.
 

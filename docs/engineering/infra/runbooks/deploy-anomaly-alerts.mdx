@@ -278,7 +278,7 @@ Use `window_start` and `window_end` to query the metric source. Confirm all of t
 2. The environment was production.
 3. ClickHouse grouping removed deployment identity but retained the correct workspace, project, app, and environment.
 4. `lifetime_start` matches the app's MySQL `created_at` value aligned down to 5 minutes, but is no earlier than the 24-hour lookback boundary.
-5. Error alerts used a ratio and at least 20 excess failures.
+5. For the baseline-comparison rule, error alerts used a ratio and at least 20 excess failures. A catastrophic 5xx alert (ratio at least 50%, at least 50 failures) bypasses this check entirely, so don't expect 20 excess failures on one.
 6. Request drops had 72 observed baseline buckets, nine active recent buckets, at least 200 lost requests, a `deployment_id` whose deployment was not marked `stopped`, and at least one topology region with `desired_status = 'running'`.
 7. The applied sensitivity and typed dashboard threshold mirror match the [detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math).
 8. The ClickHouse candidate filter used the minimum spike threshold across every lifetime from `max(observed_buckets, 1)` through 288, multiplied by `(1 - 1e-12)`. This rounding tolerance may over-include but must not exclude a Go anomaly. Run `TestAnomalyCandidateFilterToleratesFloat64Cancellation` after changing this filter.
