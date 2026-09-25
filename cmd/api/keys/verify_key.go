@@ -78,6 +78,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/ver
 			}
 			req := components.V2KeysVerifyKeyRequestBody{
 				Key:         cmd.String("key"),
+				Keyspaces:   nil,
 				Tags:        nil,
 				Permissions: nil,
 				Credits:     nil,

@@ -25,11 +25,9 @@ import { queryPermissions } from "./authorization/permissions/query";
 import { upsertPermission } from "./authorization/permissions/upsert";
 import { getConnectedKeysAndPerms } from "./authorization/roles/connected-keys-and-perms";
 import { deleteRoleWithRelations } from "./authorization/roles/delete";
-import { queryRoleKeys } from "./authorization/roles/keys/connected-keys";
 import { queryKeys } from "./authorization/roles/keys/query-keys";
 import { searchKeys } from "./authorization/roles/keys/search-key";
 import { rolesLlmSearch } from "./authorization/roles/llm-search";
-import { queryRolePermissions } from "./authorization/roles/permissions/connected-permissions";
 import { queryRolesPermissions } from "./authorization/roles/permissions/query-permissions";
 import { searchRolesPermissions } from "./authorization/roles/permissions/search-permissions";
 import { queryRoles } from "./authorization/roles/query";
@@ -49,11 +47,9 @@ import { cancelDeployment } from "./deploy/deployment/cancel";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getById as getDeploymentById } from "./deploy/deployment/getById";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
-import { getDeploymentInstanceEvents } from "./deploy/deployment/instance-events";
 import { listDeployments } from "./deploy/deployment/list";
 import { listActiveBranches } from "./deploy/deployment/list-active-branches";
 import { listDeploymentBranches } from "./deploy/deployment/list-branches";
-import { searchDeployments } from "./deploy/deployment/llm-search";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
 import { makeSensitive } from "./deploy/env-vars/make-sensitive";
@@ -134,15 +130,6 @@ import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { queryRatelimitTimeseriesBatch } from "./ratelimit/query-timeseries-batch";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
 import { updateOverride } from "./ratelimit/updateOverride";
-import { connectPermissionToRole } from "./rbac/connectPermissionToRole";
-import { connectRoleToKey } from "./rbac/connectRoleToKey";
-import { createPermission } from "./rbac/createPermission";
-import { createRole } from "./rbac/createRole";
-import { deletePermission } from "./rbac/deletePermission";
-import { disconnectPermissionFromRole } from "./rbac/disconnectPermissionFromRole";
-import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
-import { updatePermission } from "./rbac/updatePermission";
-import { updateRole } from "./rbac/updateRole";
 import { deleteRootKeys } from "./settings/root-keys/delete";
 import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
 import { queryRootKeys } from "./settings/root-keys/query";
@@ -194,7 +181,6 @@ export const router = t.router({
           query: queryKeysRoles,
         }),
         permissions: t.router({
-          search: searchRolesPermissions,
           query: queryKeysPermissions,
         }),
       }),
@@ -299,20 +285,7 @@ export const router = t.router({
       delete: deleteRoleWithRelations,
       llmSearch: rolesLlmSearch,
       connectedKeysAndPerms: getConnectedKeysAndPerms,
-      connectedKeys: queryRoleKeys,
-      connectedPerms: queryRolePermissions,
     }),
-  }),
-  rbac: t.router({
-    connectPermissionToRole: connectPermissionToRole,
-    connectRoleToKey: connectRoleToKey,
-    createPermission: createPermission,
-    createRole: createRole,
-    deletePermission: deletePermission,
-    disconnectPermissionFromRole: disconnectPermissionFromRole,
-    disconnectRoleFromKey: disconnectRoleFromKey,
-    updatePermission: updatePermission,
-    updateRole: updateRole,
   }),
   ratelimit: t.router({
     logs: t.router({
@@ -430,9 +403,7 @@ export const router = t.router({
       getById: getDeploymentById,
       buildSteps: getDeploymentBuildSteps,
       runtimeLogs: getDeploymentRuntimeLogs,
-      instanceEvents: getDeploymentInstanceEvents,
       steps: getDeploymentSteps,
-      search: searchDeployments,
       getOpenApiDiff: getOpenApiDiff,
       authorize: authorizeDeployment,
       cancel: cancelDeployment,
