@@ -12,10 +12,10 @@ import type { CrumbPopoverItem } from "./crumb-popover";
 
 export function WorkspaceCrumb({
   href,
-  compactOnMobile,
+  compactOnMobile = false,
 }: {
   href: string;
-  compactOnMobile: boolean;
+  compactOnMobile?: boolean;
 }) {
   const workspace = useWorkspaceNavigation();
   const available = trpc.workspace.listAvailable.useQuery();

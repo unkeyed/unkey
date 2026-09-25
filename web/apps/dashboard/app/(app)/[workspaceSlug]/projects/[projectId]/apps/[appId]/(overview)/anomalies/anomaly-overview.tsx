@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Skeleton } from "@unkey/ui";
+import { cn } from "cn";
 import { dayMs } from "./range";
 
 type Point = { time: number; value: number };

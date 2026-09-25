@@ -1,16 +1,19 @@
 // Kept apart from ./leaves.ts so deleting the flag deletes that file whole.
+import { AlertsNavBadge } from "@/components/navigation/sidebar-v2/alerts-nav-badge";
 import {
   IconArrowsOppositeDirectionYOutline18,
   IconCubeOutline18,
   IconFingerprintOutline18,
   IconGaugeOutline18,
   IconGearOutline18,
+  IconHeartPulseOutline18,
   IconInputSearchOutline18,
   IconKeyOutline18,
   IconLayers3Outline18,
   IconNodesOutline18,
   IconShieldKeyOutline18,
 } from "@unkey/icons";
+import { createElement } from "react";
 import { routes } from "./routes";
 import type { ResolvedNavLink } from "./types";
 
@@ -18,6 +21,7 @@ export function buildWorkspaceSections(
   slug: string,
   segments: string[],
   canSeeRootKeys: boolean,
+  deployAnomalyAlertsEnabled = false,
 ): ResolvedNavLink[] {
   const top = segments[0];
   const rootKeys: ResolvedNavLink[] = canSeeRootKeys
@@ -48,6 +52,14 @@ export function buildWorkspaceSections(
       isActive: top === "logs",
     },
     {
+      key: "alerts",
+      label: "Alerts",
+      href: routes.alerts.list({ workspaceSlug: slug }),
+      icon: IconHeartPulseOutline18,
+      isActive: top === "alerts",
+      tag: createElement(AlertsNavBadge),
+    },
+    {
       key: "audit",
       label: "Audit Log",
       href: routes.audit.list({ workspaceSlug: slug }),
@@ -61,7 +73,7 @@ export function buildWorkspaceSections(
       icon: IconGearOutline18,
       isActive: top === "settings",
     },
-  ];
+  ].filter((link) => deployAnomalyAlertsEnabled || link.key !== "alerts");
 }
 
 export function buildProjectLinks(

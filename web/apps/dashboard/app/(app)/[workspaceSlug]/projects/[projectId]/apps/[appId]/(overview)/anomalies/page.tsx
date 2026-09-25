@@ -11,11 +11,12 @@ import type { AlertSeriesMetric } from "@/components/alerts/types";
 import { Switch } from "@/components/ui/switch";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
-import { ChevronDown, Layers3 } from "@unkey/icons";
+import { IconChevronDownOutline18, IconLayers3Outline18 } from "@unkey/icons";
 import {
   Button,
-  Empty,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateTitle,
   PageBody,
   PageContainer,
   PageHeader,
@@ -39,6 +40,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@unkey/ui";
+import { cn } from "cn";
 import { parseAsString, useQueryStates } from "nuqs";
 import { useEffect, useRef, useState } from "react";
 import { useAppId, useProjectData } from "../data-provider";
@@ -173,8 +175,8 @@ export default function AnomaliesPage() {
           >
             <SelectTrigger
               className="h-9 min-w-44 bg-gray-1"
-              leftIcon={<Layers3 iconSize="md-medium" className="text-gray-9" />}
-              rightIcon={<ChevronDown iconSize="md-medium" className="absolute right-2" />}
+              leftIcon={<IconLayers3Outline18 className="text-gray-9" />}
+              rightIcon={<IconChevronDownOutline18 className="absolute right-2" />}
             >
               <SelectValue placeholder="Environment" />
             </SelectTrigger>
@@ -210,8 +212,7 @@ export default function AnomaliesPage() {
               className="flex h-8 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-medium text-gray-11 hover:bg-grayA-3 hover:text-accent-12 md:hidden"
             >
               {overviewExpanded ? "Hide" : "Show"}
-              <ChevronDown
-                iconSize="sm-regular"
+              <IconChevronDownOutline18
                 className={cn("transition-transform", overviewExpanded && "rotate-180")}
               />
             </button>
@@ -227,7 +228,7 @@ export default function AnomaliesPage() {
               >
                 <SelectTrigger
                   className="h-9 w-full bg-gray-1 md:w-44"
-                  rightIcon={<ChevronDown iconSize="md-medium" className="absolute right-2" />}
+                  rightIcon={<IconChevronDownOutline18 className="absolute right-2" />}
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -343,12 +344,12 @@ export default function AnomaliesPage() {
               </ResourceListBody>
             ) : alerts.length === 0 ? (
               <div className="p-3">
-                <Empty className="min-h-[220px] rounded-lg border border-dashed border-gray-4 bg-gray-1/50">
-                  <Empty.Title>No anomalies found</Empty.Title>
-                  <Empty.Description>
+                <EmptyState className="min-h-[220px] rounded-lg border border-dashed border-gray-4 bg-gray-1/50">
+                  <EmptyStateTitle>No anomalies found</EmptyStateTitle>
+                  <EmptyStateDescription>
                     Nothing deviated from the expected baseline during this time.
-                  </Empty.Description>
-                </Empty>
+                  </EmptyStateDescription>
+                </EmptyState>
               </div>
             ) : (
               <ResourceListBody aria-label="Anomalies in selected range">

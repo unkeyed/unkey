@@ -1,8 +1,8 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
 import { InfoTooltip, Skeleton } from "@unkey/ui";
+import { cn } from "cn";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { alertMetricLabel, formatAlertValue, seriesMetricForAlert } from "./format";
 import type { AlertMetric } from "./types";

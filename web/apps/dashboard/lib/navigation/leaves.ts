@@ -162,7 +162,7 @@ export function buildAppLinks(
       key: "anomalies",
       label: "Anomalies",
       href: routes.projects.apps.anomalies(scope),
-      icon: Pulse,
+      icon: IconHeartPulseOutline18,
       isActive: page === "anomalies",
     },
     {

@@ -6,10 +6,12 @@ import type { AlertMetric } from "@/components/alerts/types";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { ChevronDown, Cube, Pulse } from "@unkey/icons";
+import { IconChevronDownOutline18, IconCubeOutline18, IconHeartPulseOutline18 } from "@unkey/icons";
 import {
   Button,
-  Empty,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateTitle,
   ResourceListBody,
   ResourceListContent,
   ResourceListFooter,
@@ -66,8 +68,8 @@ export function AlertsList() {
           >
             <SelectTrigger
               className="w-full bg-gray-1 sm:w-48"
-              leftIcon={<Pulse iconSize="md-medium" className="text-gray-9" />}
-              rightIcon={<ChevronDown iconSize="md-medium" className="absolute right-2" />}
+              leftIcon={<IconHeartPulseOutline18 className="text-gray-9" />}
+              rightIcon={<IconChevronDownOutline18 className="absolute right-2" />}
             >
               <SelectValue placeholder="All metrics" />
             </SelectTrigger>
@@ -90,8 +92,8 @@ export function AlertsList() {
           >
             <SelectTrigger
               className="w-full bg-gray-1 sm:w-48"
-              leftIcon={<Cube iconSize="md-medium" className="text-gray-9" />}
-              rightIcon={<ChevronDown iconSize="md-medium" className="absolute right-2" />}
+              leftIcon={<IconCubeOutline18 className="text-gray-9" />}
+              rightIcon={<IconChevronDownOutline18 className="absolute right-2" />}
             >
               <SelectValue placeholder="All apps" />
             </SelectTrigger>
@@ -167,10 +169,10 @@ function AlertsSkeleton() {
 function EmptyContent({ title, description }: { title: string; description: string }) {
   return (
     <div className="p-3">
-      <Empty className="min-h-[240px] rounded-lg border border-dashed border-gray-4 bg-gray-1/50">
-        <Empty.Title>{title}</Empty.Title>
-        <Empty.Description className="max-w-md">{description}</Empty.Description>
-      </Empty>
+      <EmptyState className="min-h-[240px] rounded-lg border border-dashed border-gray-4 bg-gray-1/50">
+        <EmptyStateTitle>{title}</EmptyStateTitle>
+        <EmptyStateDescription className="max-w-md">{description}</EmptyStateDescription>
+      </EmptyState>
     </div>
   );
 }

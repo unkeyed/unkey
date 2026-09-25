@@ -1,7 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { ResourceListItem, TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import { formatDistanceToNowStrict } from "date-fns";
 import type { Route } from "next";
 import Link from "next/link";

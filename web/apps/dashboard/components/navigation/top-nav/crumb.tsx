@@ -1,8 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { IconChevronExpandYOutline12 } from "@unkey/icons";
 import { Skeleton } from "@unkey/ui";
+import { cn } from "cn";
 import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -91,7 +91,10 @@ export function CrumbLink({
         <Skeleton className={cn("h-3 w-20 bg-gray-4", compactOnMobile && "hidden md:block")} />
       ) : (
         <span
-          className={cn("truncate max-w-[120px] md:max-w-[180px]", compactOnMobile && "hidden md:inline")}
+          className={cn(
+            "truncate max-w-[120px] md:max-w-[180px]",
+            compactOnMobile && "hidden md:inline",
+          )}
         >
           {label}
         </span>

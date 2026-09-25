@@ -50,6 +50,18 @@ describe("projects-first workspace sections", () => {
   it("marks nothing active outside the five sections", () => {
     expect(buildWorkspaceSections(ws, ["apis"], true).filter((link) => link.isActive)).toEqual([]);
   });
+
+  it.each([true, false])("gates alerts independently of admin access (%s)", (isAdmin) => {
+    expect(
+      buildWorkspaceSections(ws, ["alerts"], isAdmin, false).some((link) => link.key === "alerts"),
+    ).toBe(false);
+    const links = buildWorkspaceSections(ws, ["alerts"], isAdmin, true);
+    expect(rows(links.filter((link) => link.isActive))).toEqual([
+      { key: "alerts", label: "Alerts", href: "/acme/alerts", isActive: true },
+    ]);
+    expect(links.some((link) => link.key === "root-keys")).toBe(isAdmin);
+    expect(links.find((link) => link.key === "alerts")?.tag).toBeDefined();
+  });
 });
 
 describe("projects-first project links", () => {

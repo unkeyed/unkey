@@ -35,7 +35,7 @@ export function SidebarBody() {
 
   const workspaceSections = (segs: string[]) =>
     projectsNav
-      ? buildProjectsNavWorkspaceSections(slug, segs, user?.role === "admin")
+      ? buildProjectsNavWorkspaceSections(slug, segs, user?.role === "admin", deployAnomalyAlerts)
       : buildWorkspaceSections(slug, segs, deployAnomalyAlerts);
   const projectLinks = projectsNav ? buildProjectsNavProjectLinks : buildProjectLinks;
 
