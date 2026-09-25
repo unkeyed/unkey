@@ -18,7 +18,7 @@ Change one or more fields on a [portal](/api-management/portal/overview). Only t
 Two changes affect your end users right away:
 
 - **Pointing the portal at a different keyspace or app** signs out every current [session](/api-management/portal/sessions). Sending the same keyspace or app it already has changes nothing. The new one must be in the same project as the old one, or the call fails with 412. Keyspaces are in the workspace's default project and apps are in the project you created them in, so moving between a keyspace and an app often hits this. Create a new portal instead.
-- **Disabling the portal** stops new sessions and lets current ones run until they expire. Use it to close a portal gradually. To close it at once, use [delete-portal](/api-management/cli/portal/delete-portal).
+- **Disabling the portal** stops new sessions and ends the current ones. Re-enabling it does not bring them back. To also free the slug, use [delete-portal](/api-management/cli/portal/delete-portal).
 
 ## Usage
 
