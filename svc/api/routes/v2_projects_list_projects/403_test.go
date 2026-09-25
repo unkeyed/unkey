@@ -10,7 +10,10 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_projects_list_projects"
 )
 
-func TestListProjectsForbidden(t *testing.T) {
+// TestListProjectsFiltersUnauthorizedRows guarantees unrelated permissions do
+// not reject a list request. For example, create_project alone returns no
+// projects because it does not permit reading any row.
+func TestListProjectsFiltersUnauthorizedRows(t *testing.T) {
 	h := testutil.NewHarness(t)
 
 	route := &handler.Handler{DB: h.DB}
@@ -36,10 +39,11 @@ func TestListProjectsForbidden(t *testing.T) {
 			}
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{})
-			if tc.shouldPass {
-				require.Equal(t, 200, res.Status, "expected 200 for %v, got: %s", tc.permissions, res.RawBody)
-			} else {
-				require.Equal(t, http.StatusForbidden, res.Status, "expected 403 for %v, got: %s", tc.permissions, res.RawBody)
+			require.Equal(t, http.StatusOK, res.Status, "permissions: %v, response: %s", tc.permissions, res.RawBody)
+			if !tc.shouldPass {
+				require.Empty(t, res.Body.Data)
+				require.Nil(t, res.Body.Pagination.Cursor)
+				require.False(t, res.Body.Pagination.HasMore)
 			}
 		})
 	}
