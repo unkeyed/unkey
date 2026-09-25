@@ -6,13 +6,16 @@ import { useMemo } from "react";
 
 // No need to fetch more than 10 items, because combobox allows seeing 6 items at a time so even if users scroll 10 items are more than enough.
 export const MAX_PERMS_FETCH_LIMIT = 10;
-export const KEYS_RBAC_PERMISSIONS_QUERY_KEY = "keys-rbac-permissions";
+
+export const keysRbacPermissionsQueryOptions = (limit = MAX_PERMS_FETCH_LIMIT) => ({
+  queryKey: ["keys-rbac-permissions", limit] as const,
+  queryFn: ({ pageParam }: { pageParam?: string }) =>
+    getUnkeyClient().permissions.listPermissions({ cursor: pageParam, limit }),
+});
 
 export const useFetchPermissions = (limit = MAX_PERMS_FETCH_LIMIT) => {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
-    queryKey: [KEYS_RBAC_PERMISSIONS_QUERY_KEY, limit],
-    queryFn: ({ pageParam }: { pageParam?: string }) =>
-      getUnkeyClient().permissions.listPermissions({ cursor: pageParam, limit }),
+    ...keysRbacPermissionsQueryOptions(limit),
     getNextPageParam: (lastPage) =>
       lastPage.result.pagination.hasMore ? lastPage.result.pagination.cursor : undefined,
     onError(err: unknown) {
