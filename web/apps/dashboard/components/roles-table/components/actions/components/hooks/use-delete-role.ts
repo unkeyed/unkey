@@ -1,58 +1,45 @@
 import { trpc } from "@/lib/trpc/client";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
+import * as errors from "@unkey/api/models/errors";
 import { toast } from "@unkey/ui";
 
-export const useDeleteRole = (
-  onSuccess: (data: { roleIds: string[] | string; message: string }) => void,
-) => {
+export const useDeleteRole = (onDone: (remainingRoleIds: string[]) => void) => {
   const trpcUtils = trpc.useUtils();
-  const deleteRole = trpc.authorization.roles.delete.useMutation({
-    onSuccess(data, variables) {
-      trpcUtils.authorization.roles.invalidate();
-
-      const roleCount = data.deletedCount;
-      const isPlural = roleCount > 1;
-
-      toast.success(isPlural ? "Roles Deleted" : "Role Deleted", {
-        description: isPlural
-          ? `${roleCount} roles have been successfully removed from your workspace.`
-          : "The role has been successfully removed from your workspace.",
-      });
-
-      onSuccess({
-        roleIds: variables.roleIds,
-        message: isPlural ? `${roleCount} roles deleted successfully` : "Role deleted successfully",
-      });
+  return useMutation({
+    mutationFn: async (roleIds: string[]) => {
+      const unkey = getUnkeyClient();
+      const results = await Promise.allSettled(
+        roleIds.map((role) => unkey.permissions.deleteRole({ role })),
+      );
+      const failures = results.flatMap<{ roleId: string; error: unknown }>((result, index) =>
+        result.status === "rejected" ? [{ roleId: roleIds[index], error: result.reason }] : [],
+      );
+      return { deletedCount: roleIds.length - failures.length, failures };
     },
-    onError(err) {
-      if (err.data?.code === "NOT_FOUND") {
-        toast.error("Role(s) Not Found", {
-          description:
-            "One or more roles you're trying to delete no longer exist or you don't have access to them.",
+    onSuccess({ deletedCount, failures }, roleIds) {
+      trpcUtils.authorization.invalidate();
+      onDone(
+        failures
+          .filter((failure) => !(failure.error instanceof errors.NotFoundErrorResponse))
+          .map((failure) => failure.roleId),
+      );
+
+      if (failures.length === 0) {
+        const isPlural = deletedCount > 1;
+        toast.success(isPlural ? "Roles Deleted" : "Role Deleted", {
+          description: isPlural
+            ? `${deletedCount} roles have been successfully removed from your workspace.`
+            : "The role has been successfully removed from your workspace.",
         });
-      } else if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid Request", {
-          description: err.message || "Please provide at least one role to delete.",
-        });
-      } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
-        toast.error("Server Error", {
-          description:
-            "We encountered an issue while deleting your roles. Please try again later or contact support.",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      } else {
-        toast.error("Failed to Delete Role(s)", {
-          description: err.message || "An unexpected error occurred. Please try again later.",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
+        return;
       }
+
+      const { message, description } = getErrorToast(failures[0].error, "Failed to Delete Role");
+      toast.error(
+        roleIds.length === 1 ? message : `Deleted ${deletedCount} of ${roleIds.length} Roles`,
+        { description },
+      );
     },
   });
-
-  return deleteRole;
 };

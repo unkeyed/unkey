@@ -1,59 +1,52 @@
 import { trpc } from "@/lib/trpc/client";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
+import { useMutation } from "@tanstack/react-query";
+import * as errors from "@unkey/api/models/errors";
 import { toast } from "@unkey/ui";
 
-export const useDeletePermission = (
-  onSuccess: (data: {
-    permissionIds: string[] | string;
-    message: string;
-  }) => void,
-) => {
+export const useDeletePermission = (onDone: (remainingPermissionIds: string[]) => void) => {
   const trpcUtils = trpc.useUtils();
-  const deletePermission = trpc.authorization.permissions.delete.useMutation({
-    onSuccess(data, variables) {
-      trpcUtils.authorization.permissions.invalidate();
-      const permissionCount = data.deletedCount;
-      const isPlural = permissionCount > 1;
-      toast.success(isPlural ? "Permissions Deleted" : "Permission Deleted", {
-        description: isPlural
-          ? `${permissionCount} permissions have been successfully removed from your workspace.`
-          : "The permission has been successfully removed from your workspace.",
-      });
-      onSuccess({
-        permissionIds: variables.permissionIds,
-        message: isPlural
-          ? `${permissionCount} permissions deleted successfully`
-          : "Permission deleted successfully",
-      });
+  return useMutation({
+    mutationFn: async (permissionIds: string[]) => {
+      const unkey = getUnkeyClient();
+      const results = await Promise.allSettled(
+        permissionIds.map((permission) => unkey.permissions.deletePermission({ permission })),
+      );
+      const failures = results.flatMap<{ permissionId: string; error: unknown }>((result, index) =>
+        result.status === "rejected"
+          ? [{ permissionId: permissionIds[index], error: result.reason }]
+          : [],
+      );
+      return { deletedCount: permissionIds.length - failures.length, failures };
     },
-    onError(err) {
-      if (err.data?.code === "NOT_FOUND") {
-        toast.error("Permission(s) Not Found", {
-          description:
-            "One or more permissions you're trying to delete no longer exist or you don't have access to them.",
+    onSuccess({ deletedCount, failures }, permissionIds) {
+      trpcUtils.authorization.invalidate();
+      onDone(
+        failures
+          .filter((failure) => !(failure.error instanceof errors.NotFoundErrorResponse))
+          .map((failure) => failure.permissionId),
+      );
+
+      if (failures.length === 0) {
+        const isPlural = deletedCount > 1;
+        toast.success(isPlural ? "Permissions Deleted" : "Permission Deleted", {
+          description: isPlural
+            ? `${deletedCount} permissions have been successfully removed from your workspace.`
+            : "The permission has been successfully removed from your workspace.",
         });
-      } else if (err.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid Request", {
-          description: err.message || "Please provide at least one permission to delete.",
-        });
-      } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
-        toast.error("Server Error", {
-          description:
-            "We encountered an issue while deleting your permissions. Please try again later or contact support.",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
-      } else {
-        toast.error("Failed to Delete Permission(s)", {
-          description: err.message || "An unexpected error occurred. Please try again later.",
-          action: {
-            label: "Contact Support",
-            onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-          },
-        });
+        return;
       }
+
+      const { message, description } = getErrorToast(
+        failures[0].error,
+        "Failed to Delete Permission",
+      );
+      toast.error(
+        permissionIds.length === 1
+          ? message
+          : `Deleted ${deletedCount} of ${permissionIds.length} Permissions`,
+        { description },
+      );
     },
   });
-  return deletePermission;
 };
