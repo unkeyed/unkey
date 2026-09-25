@@ -50,7 +50,7 @@ A user only sees keys whose identity `externalId` matches the one in their sessi
   The app to serve. Mutually exclusive with `keyspaceId`.
 </ParamField>
 <ParamField body="enabled" type="boolean" default="true">
-  Whether new sessions can be created. Disabling doesn't end sessions that are already live.
+  Whether new sessions can be created. Disabling also ends sessions that are already live.
 </ParamField>
 <ParamField body="logoUrl" type="string">
   `https://` URL of the logo in the portal header, up to 500 characters. Your users' browsers load it directly, so that host sees their IP address. Set `null` on update to remove it.
@@ -83,7 +83,7 @@ You get the portal back with its `pc_` ID. Next, [create a session](/api-managem
 
 ## Change or remove a portal
 
-`portal.updatePortal` takes the same fields, all optional. Leave a field out to keep it. Pointing the portal at a different keyspace or app ends every live session. Disabling it doesn't.
+`portal.updatePortal` takes the same fields, all optional. Leave a field out to keep it. Pointing the portal at a different keyspace or app, or disabling it, ends every live session.
 
 `portal.deletePortal` deletes the portal, ends all its live sessions, and frees the slug. Both write an [audit log](/platform/workspace/audit-logs/overview) entry (`portal.update` or `portal.delete`).
 
