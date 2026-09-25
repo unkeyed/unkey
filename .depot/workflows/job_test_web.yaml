@@ -17,20 +17,19 @@ jobs:
           sudo chmod 660 /var/run/docker.sock
           sudo chown root:$(id -gn) /var/run/docker.sock
           docker version
-      - name: Setup Node
-        uses: ./.depot/actions/setup-node
+      - uses: ./.depot/actions/setup-mise
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
-        run: pnpm turbo run build --filter='./internal/*'
+        run: mise run build-web -- --filter='./internal/*'
         env:
           CI: 1
-        working-directory: web
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Test
-        run: pnpm turbo run test
+        run: mise run test-web
         env:
           CI: 1
+          NPM_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TESTCONTAINERS_RYUK_DISABLED: true
           DOCKER_HOST: unix:///var/run/docker.sock
           TESTCONTAINERS_HOST_OVERRIDE: localhost
-        working-directory: web

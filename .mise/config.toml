@@ -10,6 +10,9 @@ pin = true
 provenance_api_failures_fatal = true
 task.run_auto_install = false
 
+[env]
+GOTOOLCHAIN = "local"
+
 [tools]
 node = "24.19.0"
 go = "1.26.7"
@@ -23,6 +26,7 @@ go = "1.26.7"
 "github:depot/cli" = "2.101.67"
 "github:chronark/rask" = "0.5.0"
 "github:golangci/golangci-lint" = "2.12.2"
+"github:goreleaser/goreleaser-pro" = "2.15.4"
 "github:pnpm/pnpm" = "11.5.0"
 "github:speakeasy-api/speakeasy" = "1.790.1"
 # stripe CLI: only used by the local-dev billing-flow runbooks (stripe login /
