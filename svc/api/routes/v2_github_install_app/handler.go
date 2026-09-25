@@ -13,6 +13,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -57,14 +59,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Installing the GitHub App is a workspace-wide operation, so it is gated by
-	// a workspace-level permission (workspace.*.install_github) rather than any
-	// app or project scope.
-	err = principal.Authorize(rbac.T(rbac.Tuple{
-		ResourceType: rbac.Workspace,
-		ResourceID:   "*",
-		Action:       rbac.InstallGithub,
-	}))
+	err = principal.Authorize(rbac.Or(
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).GitHubApp("*"),
+			permissions.Write,
+		),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Workspace,
+			ResourceID:   "*",
+			Action:       rbac.InstallGithub,
+		}),
+	))
 	if err != nil {
 		return err
 	}
