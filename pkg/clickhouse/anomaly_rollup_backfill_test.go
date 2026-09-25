@@ -128,9 +128,7 @@ func insertAnomalyBackfillSourceRows(t *testing.T, ctx context.Context, conn ch.
 func executeAnomalyRollupMigrations(t *testing.T, ctx context.Context, conn ch.Conn, ignoreExisting bool) {
 	t.Helper()
 	for _, path := range []string{
-		"schema/044_anomaly_source_watermarks_v1.sql",
-		"schema/048_frontline_requests_anomaly_per_5m_v1.sql",
-		"schema/049_instance_resources_container_per_5m_v1.sql",
+		"migrations/20260912000000_deploy_anomaly_rollups.sql",
 	} {
 		contents, err := os.ReadFile(path)
 		require.NoError(t, err)
