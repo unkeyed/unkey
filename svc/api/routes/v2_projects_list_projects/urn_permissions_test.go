@@ -116,8 +116,10 @@ func TestListProjectsAuthorizesCollectionURNForEmptyList(t *testing.T) {
 	require.Empty(t, res.Body.Data)
 }
 
-// TestListProjectsRejectsInsufficientURNs rejects another action or workspace.
-func TestListProjectsRejectsInsufficientURNs(t *testing.T) {
+// TestListProjectsFiltersInsufficientPermissions guarantees a wrong action or
+// workspace returns an empty page. For example, projects/*#write cannot reveal
+// a project's ID or produce a pagination cursor.
+func TestListProjectsFiltersInsufficientPermissions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route := &handler.Handler{DB: h.DB}
 	h.Register(route)
@@ -154,7 +156,10 @@ func TestListProjectsRejectsInsufficientURNs(t *testing.T) {
 			}
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{})
-			require.Equal(t, http.StatusForbidden, res.Status, "received: %s", res.RawBody)
+			require.Equal(t, http.StatusOK, res.Status, "received: %s", res.RawBody)
+			require.Empty(t, res.Body.Data)
+			require.Nil(t, res.Body.Pagination.Cursor)
+			require.False(t, res.Body.Pagination.HasMore)
 		})
 	}
 }

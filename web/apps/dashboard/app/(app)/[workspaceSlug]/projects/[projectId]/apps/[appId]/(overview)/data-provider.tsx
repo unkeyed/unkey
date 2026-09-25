@@ -152,7 +152,9 @@ export const ProjectDataProvider = ({
   );
   const refetchDeployments = useCallback(() => {
     collection.deployments.utils.refetch();
-    trpcUtils.deploy.deployment.invalidate();
+    trpcUtils.deploy.deployment.list.invalidate();
+    trpcUtils.deploy.deployment.listActiveBranches.invalidate();
+    trpcUtils.deploy.deployment.listBranches.invalidate();
   }, [trpcUtils]);
 
   const refetchAll = useCallback(() => {

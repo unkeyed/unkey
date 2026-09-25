@@ -9,6 +9,7 @@ import {
   githubRepoConnections,
 } from "@unkey/db/src/schema";
 import { z } from "zod";
+import { queryHeadlineDeployments } from "../headline-deployments";
 
 export const listApps = workspaceProcedure
   .input(z.object({ projectId: z.string() }))
@@ -67,16 +68,13 @@ export const listApps = workspaceProcedure
       )
       .as("ranked_routes");
 
-    const currentDeploymentIds = Array.from(
-      new Set(appRows.map((a) => a.currentDeploymentId).filter((id): id is string => Boolean(id))),
-    );
-
-    const [latestDeploymentRows, routeRows, repoRows, ociSourceRows, currentDeploymentRows] =
+    const [latestDeploymentRows, headlineDeploymentRows, routeRows, repoRows, ociSourceRows] =
       await Promise.all([
         db
           .select({ appId: rankedDeployments.appId, id: rankedDeployments.id })
           .from(rankedDeployments)
           .where(eq(rankedDeployments.rn, 1)),
+        queryHeadlineDeployments(workspaceId, inArray(deployments.appId, appIds)),
         db
           .select({
             appId: rankedRoutes.appId,
@@ -106,43 +104,29 @@ export const listApps = workspaceProcedure
           .where(
             and(eq(appSourceOci.workspaceId, workspaceId), inArray(appSourceOci.appId, appIds)),
           ),
-        currentDeploymentIds.length
-          ? db
-              .select({
-                id: deployments.id,
-                gitCommitMessage: deployments.gitCommitMessage,
-                gitCommitSha: deployments.gitCommitSha,
-                gitBranch: deployments.gitBranch,
-                gitCommitAuthorHandle: deployments.gitCommitAuthorHandle,
-                gitCommitAuthorAvatarUrl: deployments.gitCommitAuthorAvatarUrl,
-                gitCommitTimestamp: deployments.gitCommitTimestamp,
-                prNumber: deployments.prNumber,
-                forkRepositoryFullName: deployments.forkRepositoryFullName,
-              })
-              .from(deployments)
-              .where(
-                and(
-                  eq(deployments.workspaceId, workspaceId),
-                  inArray(deployments.id, currentDeploymentIds),
-                ),
-              )
-          : Promise.resolve([]),
       ]);
 
     const latestDeploymentByApp = new Map(latestDeploymentRows.map((r) => [r.appId, r]));
+    const headlineDeploymentByApp = new Map(
+      headlineDeploymentRows.map((r): [string, App["headlineDeployment"]] => [
+        r.appId,
+        {
+          id: r.id,
+          status: r.status,
+          deployedAt: Number(r.createdAt),
+          commitMessage: r.gitCommitMessage ?? null,
+          commitSha: r.gitCommitSha ?? null,
+          branch: r.gitBranch ?? null,
+          prNumber: r.prNumber ?? null,
+          forkRepositoryFullName: r.forkRepositoryFullName ?? null,
+        },
+      ]),
+    );
     const domainByApp = new Map(routeRows.map((r) => [r.appId, r]));
     const repoByApp = new Map(repoRows.map((r) => [r.appId, r]));
     const ociSourceByApp = new Map(ociSourceRows.map((r) => [r.appId, r]));
 
-    const currentDeploymentById = new Map(currentDeploymentRows.map((d) => [d.id, d]));
-
     return appRows.map((app): App => {
-      const currentDeployment = app.currentDeploymentId
-        ? currentDeploymentById.get(app.currentDeploymentId)
-        : undefined;
-      // Image-based deployments carry no git metadata, so gate on the
-      // deployment itself, not on commit fields.
-      const hasDeployment = currentDeployment != null;
       const repository = repoByApp.get(app.id);
       const repositoryFullName = repository?.repositoryFullName ?? null;
       const defaultBranch = repository?.defaultBranch ?? "main";
@@ -160,18 +144,10 @@ export const listApps = workspaceProcedure
         updatedAt: app.updatedAt ?? null,
         repositoryFullName,
         latestDeploymentId: latestDeploymentByApp.get(app.id)?.id ?? null,
-        commitTitle: currentDeployment?.gitCommitMessage ?? null,
-        commitSha: currentDeployment?.gitCommitSha ?? null,
-        forkRepositoryFullName: currentDeployment?.forkRepositoryFullName ?? null,
-        prNumber: currentDeployment?.prNumber ?? null,
-        branch: currentDeployment?.gitBranch ?? defaultBranch,
-        author: currentDeployment?.gitCommitAuthorHandle ?? null,
-        authorAvatar: currentDeployment?.gitCommitAuthorAvatarUrl ?? null,
-        commitTimestamp:
-          currentDeployment?.gitCommitTimestamp == null
-            ? null
-            : Number(currentDeployment.gitCommitTimestamp),
-        domain: hasDeployment ? (domainByApp.get(app.id)?.fullyQualifiedDomainName ?? null) : null,
+        domain: app.currentDeploymentId
+          ? (domainByApp.get(app.id)?.fullyQualifiedDomainName ?? null)
+          : null,
+        headlineDeployment: headlineDeploymentByApp.get(app.id) ?? null,
       };
     });
   });

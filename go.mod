@@ -72,7 +72,7 @@ require (
 	github.com/stripe/stripe-go/v86 v86.1.1
 	github.com/tonistiigi/fsutil v0.0.0-20250605211040-586307ad452f
 	github.com/unkeyed/sdks/api/go/v2 v2.7.1
-	github.com/unkeyed/sdks/api/go/v3 v3.0.1
+	github.com/unkeyed/sdks/api/go/v3 v3.0.2
 	github.com/vishvananda/netlink v1.3.1
 	go.opentelemetry.io/contrib/bridges/otelslog v0.14.0
 	go.opentelemetry.io/contrib/bridges/prometheus v0.64.0
