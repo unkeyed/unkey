@@ -3,7 +3,7 @@
 import { POLICY_LIMITS } from "@/lib/collections/deploy/policies.schema";
 import { parseDuration } from "@/lib/duration";
 import { formatMs } from "@/lib/ms";
-import { ChevronDown, Plus, Trash } from "@unkey/icons";
+import { IconChevronDownOutline18, IconPlusOutline18, IconTrashOutline18 } from "@unkey/icons";
 import {
   Button,
   FormDescription,
@@ -191,7 +191,7 @@ export function RateLimitFields() {
             disabled={fields.length >= POLICY_LIMITS.maxIdentifiersPerRatelimit}
             onClick={() => append({ id: crypto.randomUUID(), source: "path", value: "" })}
           >
-            <Plus iconSize="sm-regular" />
+            <IconPlusOutline18 />
             Add
           </Button>
         </div>
@@ -217,7 +217,7 @@ export function RateLimitFields() {
                     <SelectTrigger
                       aria-label="Identifier source"
                       className="shrink-0 whitespace-pre"
-                      rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+                      rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
                     >
                       <SelectValue />
                     </SelectTrigger>
@@ -256,7 +256,7 @@ export function RateLimitFields() {
                   disabled={fields.length === 1}
                   onClick={() => remove(index)}
                 >
-                  <Trash iconSize="sm-regular" />
+                  <IconTrashOutline18 />
                 </Button>
               </div>
               {rowError && (

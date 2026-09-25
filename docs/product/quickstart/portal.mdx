@@ -156,12 +156,6 @@ to keep against your own records of the visit.
 | `externalId` | `string` | Your user's identifier in your system |
 | `scopes` | `string[]` | Capabilities granted to the end user |
 
-### Optional parameters
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `preview` | `boolean` | Shows a "Preview mode" banner, useful for testing as a specific user |
-
 ```bash
 curl -X POST https://api.unkey.com/v2/portal.createSession \
   -H "Authorization: Bearer YOUR_ROOT_KEY" \
@@ -169,8 +163,7 @@ curl -X POST https://api.unkey.com/v2/portal.createSession \
   -d '{
     "portal": "my-portal",
     "externalId": "user_123",
-    "scopes": ["keys:read", "keys:reroll"],
-    "preview": true
+    "scopes": ["keys:read", "keys:reroll"]
   }'
 ```
 
@@ -196,8 +189,9 @@ Scopes come from a fixed vocabulary. Every scope is bound to the end user in the
 |-------|--------|
 | `keys:read` | List their own keys |
 | `keys:reroll` | Roll a key they own |
+| `analytics:read` | See their own key usage over time |
 
-The portal currently exposes only the keys page, so these scopes gate what the end user can do there rather than which pages they see. Rerolling is reached from that page, so `keys:reroll` requires `keys:read` in the same session and is rejected on its own.
+The portal exposes one page, the keys page, so these scopes gate what the end user can do there rather than which pages they see. Rerolling and usage are both reached from that page, so `keys:reroll` and `analytics:read` each require `keys:read` in the same session and are rejected on their own.
 
 The API requires at least one scope. An empty `scopes` array is rejected with HTTP 400, as is any value outside the vocabulary above.
 
@@ -249,6 +243,7 @@ Second, a session can never carry a capability your root key does not itself hol
 |-----------------|---------------|
 | `keys:read` | `api.*.read_key` and `api.*.read_api` |
 | `keys:reroll` | `api.*.create_key`, plus `api.*.encrypt_key` if the keyspace stores encrypted keys |
+| `analytics:read` | `api.*.read_analytics`, or read on the keyspace's log resource |
 
 Requesting a scope you do not hold returns 403 for the whole request rather than a session with fewer capabilities, so a missing grant shows up immediately instead of as an end user who cannot do what you expected.
 
@@ -277,6 +272,7 @@ You can grant these on the root key in the Unkey dashboard under Settings, Root 
 |----------|--------|---------|
 | Missing or invalid JSON body | 400 | `Bad Request` |
 | `keys:reroll` requested without `keys:read` | 400 | `The "keys:reroll" scope requires "keys:read" in the same session.` |
+| `analytics:read` requested without `keys:read` | 400 | `The "analytics:read" scope requires "keys:read" in the same session.` |
 | Invalid root key | 401 | `Unauthorized` |
 | Portal disabled | 403 | `Portal is disabled.` |
 | Root key lacks a permission for a requested scope | 403 | `You do not have permission to grant the "<scope>" scope to a portal session.` |

@@ -4,7 +4,7 @@ import { ORGANIZATION_ROLES } from "@/lib/auth/roles";
 import type { Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, XMark } from "@unkey/icons";
+import { IconPlusOutline18, IconXmarkOutline18 } from "@unkey/icons";
 import {
   Button,
   Card,
@@ -140,7 +140,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
     <Card>
       <CardContent className="p-6">
         <div className="mb-6">
-          <h3 className="text-base font-medium text-content">
+          <h3 className="text-base font-medium text-gray-12">
             Invite new members by email address
           </h3>
         </div>
@@ -170,7 +170,6 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                         value={roleField.value}
                         items={[
                           { value: "developer", label: "Developer" },
-                          { value: "viewer", label: "Viewer" },
                           { value: "admin", label: "Admin" },
                         ]}
                       >
@@ -179,7 +178,6 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="developer">Developer</SelectItem>
-                          <SelectItem value="viewer">Viewer</SelectItem>
                           <SelectItem value="admin">Admin</SelectItem>
                         </SelectContent>
                       </Select>
@@ -195,14 +193,14 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                     onClick={() => remove(index)}
                     aria-label={`Remove invite ${index + 1}`}
                   >
-                    <XMark className="w-4 h-4" aria-hidden="true" />
+                    <IconXmarkOutline18 className="w-4 h-4" aria-hidden="true" />
                   </Button>
                 )}
               </div>
             ))}
           </div>
 
-          <div className="border-t border-border pt-4">
+          <div className="border-t pt-4">
             <div className="flex items-center justify-between">
               <Button
                 type="button"
@@ -210,7 +208,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                 size="sm"
                 onClick={() => append({ email: "", role: "developer" as const })}
               >
-                <Plus className="w-4 h-4" />
+                <IconPlusOutline18 className="w-4 h-4" />
                 <span>Add more</span>
               </Button>
 

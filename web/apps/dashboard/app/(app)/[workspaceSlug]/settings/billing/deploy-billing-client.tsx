@@ -2,9 +2,13 @@
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import {
   Button,
-  Empty,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   PageBody,
   PageContainer,
   PageHeader,
@@ -12,6 +16,7 @@ import {
   PageHeaderContent,
   PageHeaderDescription,
   PageHeaderTitle,
+  Skeleton,
 } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -91,7 +96,7 @@ export const DeployBillingClient: React.FC = () => {
   // mutation; we mirror it on the client purely for UX so non-admin members
   // get a clear "admin required" affordance instead of a request that fails
   // with FORBIDDEN.
-  const { data: currentUser } = trpc.user.getCurrentUser.useQuery();
+  const { user: currentUser } = useWorkspace();
   const isAdmin = currentUser?.role === "admin";
 
   const {
@@ -127,14 +132,16 @@ export const DeployBillingClient: React.FC = () => {
         />
 
         {billingError ? (
-          <Empty>
-            <Empty.Title>Failed to load API billing information</Empty.Title>
-            <Empty.Description>
-              There was an error loading your API billing information. Please try again later.
-            </Empty.Description>
-          </Empty>
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Failed to load API billing information</EmptyStateTitle>
+              <EmptyStateDescription>
+                There was an error loading your API billing information. Please try again later.
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
         ) : billingLoading || !billingInfo ? (
-          <div className="h-[120px] w-full animate-pulse rounded-lg bg-grayA-3" />
+          <Skeleton className="h-[120px] w-full rounded-lg" />
         ) : (
           <ApiAddOnCard
             isAdmin={isAdmin}

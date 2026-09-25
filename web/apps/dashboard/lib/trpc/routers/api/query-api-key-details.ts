@@ -13,6 +13,7 @@ const apiLayoutResponse = z.object({
     id: z.string(),
     name: z.string(),
     workspaceId: z.string(),
+    projectId: z.string(),
     keyAuthId: z.string().nullable(),
     keyspaceDefaults: z
       .object({
@@ -79,6 +80,7 @@ export const queryApiKeyDetails = workspaceProcedure
           id: true,
           name: true,
           workspaceId: true,
+          projectId: true,
           keyAuthId: true,
           deleteProtection: true,
           ipWhitelist: true,
@@ -104,6 +106,7 @@ export const queryApiKeyDetails = workspaceProcedure
           id: currentApi.id,
           name: currentApi.name,
           workspaceId: currentApi.workspaceId,
+          projectId: currentApi.projectId,
           keyAuthId: currentApi.keyAuthId,
           deleteProtection: currentApi.deleteProtection,
           ipWhitelist: currentApi.ipWhitelist,

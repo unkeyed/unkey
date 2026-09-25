@@ -21,11 +21,11 @@
     "drizzle-kit": "0.31.4",
     "mysql2": "catalog:",
     "typescript": "5.5.3",
-    "vitest": "1.6.1"
+    "vitest": "5.0.1"
   },
   "dependencies": {
     "@unkey/id": "workspace:^",
-    "mysql2": "catalog:",
-    "drizzle-orm": "0.45.1"
+    "drizzle-orm": "0.45.1",
+    "mysql2": "catalog:"
   }
 }

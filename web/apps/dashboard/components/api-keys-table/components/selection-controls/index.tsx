@@ -1,5 +1,13 @@
+import { RECENTLY_USED_WINDOW_LABEL, isRecentlyUsed } from "@/lib/recently-used-key";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { ArrowOppositeDirectionY, Ban, CircleCheck, Trash, XMark } from "@unkey/icons";
+import {
+  IconArrowsOppositeDirectionYOutline18,
+  IconBanOutline18,
+  IconCircleCheckOutline18,
+  IconTrashOutline18,
+  IconTriangleWarningOutline18,
+  IconXmarkOutline18,
+} from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
@@ -73,13 +81,25 @@ export const SelectionControls = ({
     (key) => selectedKeys.has(key.id) && key.identity_id,
   ).length;
 
+  const recentlyUsedCount = keys.filter(
+    (key) => selectedKeys.has(key.id) && isRecentlyUsed(key.last_used_at),
+  ).length;
+
+  const recentlyUsedSubject =
+    selectedKeys.size === 1
+      ? "This key was"
+      : `${recentlyUsedCount} of the selected keys ${recentlyUsedCount > 1 ? "were" : "was"}`;
+  const recentlyUsedSummary = `${recentlyUsedSubject} used in the last ${RECENTLY_USED_WINDOW_LABEL}`;
+  const recentlyUsedNotice =
+    recentlyUsedCount > 0 ? `${recentlyUsedSummary} and may still be live. ` : "";
+
   return (
     <>
       <AnimatePresence>
         {selectedKeys.size > 0 && (
           <motion.div
             key="selection-controls"
-            className="border-b border-grayA-3 w-full overflow-hidden"
+            className="border-b w-full overflow-hidden"
             initial={{ opacity: 0, height: 0 }}
             animate={{
               opacity: 1,
@@ -98,73 +118,83 @@ export const SelectionControls = ({
               },
             }}
           >
-            <div className="flex justify-between items-center w-full p-[18px]">
-              <div className="items-center flex gap-2">
-                <AnimatedCounter value={selectedKeys.size} />
-                <div className="text-accent-9 text-[13px] leading-6">selected</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-12 font-medium text-[13px]"
-                  onClick={() => setIsBatchEditExternalIdOpen(true)}
-                >
-                  <ArrowOppositeDirectionY iconSize="sm-regular" /> Change External ID
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-12 font-medium text-[13px]"
-                  disabled={getSelectedKeysState() !== "all-disabled" || updateKeyStatus.isLoading}
-                  loading={updateKeyStatus.isLoading}
-                  onClick={() => {
-                    const keyIds = Array.from(selectedKeys);
-                    if (keyIds.length === 0) {
-                      return;
+            <div className="flex flex-col gap-3 w-full p-[18px]">
+              <div className="flex justify-between items-center w-full">
+                <div className="items-center flex gap-2">
+                  <AnimatedCounter value={selectedKeys.size} />
+                  <div className="text-gray-9 text-[13px] leading-6">selected</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-gray-12 font-medium text-[13px]"
+                    onClick={() => setIsBatchEditExternalIdOpen(true)}
+                  >
+                    <IconArrowsOppositeDirectionYOutline18 /> Change External ID
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-gray-12 font-medium text-[13px]"
+                    disabled={
+                      getSelectedKeysState() !== "all-disabled" || updateKeyStatus.isLoading
                     }
-                    updateKeyStatus.mutate({
-                      enabled: true,
-                      keyIds,
-                    });
-                  }}
-                >
-                  <CircleCheck iconSize="sm-regular" />
-                  Enable key
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-12 font-medium text-[13px]"
-                  disabled={getSelectedKeysState() !== "all-enabled" || updateKeyStatus.isLoading}
-                  loading={updateKeyStatus.isLoading}
-                  onClick={handleDisableButtonClick}
-                  ref={disableButtonRef}
-                >
-                  <Ban iconSize="sm-regular" />
-                  Disable key
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-12 font-medium text-[13px]"
-                  disabled={deleteKey.isLoading}
-                  loading={deleteKey.isLoading}
-                  onClick={handleDeleteButtonClick}
-                  ref={deleteButtonRef}
-                >
-                  <Trash iconSize="sm-regular" />
-                  Delete key
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="[&_svg]:size-[14px] ml-3"
-                  onClick={() => setSelectedKeys(new Set())}
-                >
-                  <XMark />
-                </Button>
+                    loading={updateKeyStatus.isLoading}
+                    onClick={() => {
+                      const keyIds = Array.from(selectedKeys);
+                      if (keyIds.length === 0) {
+                        return;
+                      }
+                      updateKeyStatus.mutate({
+                        enabled: true,
+                        keyIds,
+                      });
+                    }}
+                  >
+                    <IconCircleCheckOutline18 />
+                    Enable key
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-gray-12 font-medium text-[13px]"
+                    disabled={getSelectedKeysState() !== "all-enabled" || updateKeyStatus.isLoading}
+                    loading={updateKeyStatus.isLoading}
+                    onClick={handleDisableButtonClick}
+                    ref={disableButtonRef}
+                  >
+                    <IconBanOutline18 />
+                    Disable key
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-gray-12 font-medium text-[13px]"
+                    disabled={deleteKey.isLoading}
+                    loading={deleteKey.isLoading}
+                    onClick={handleDeleteButtonClick}
+                    ref={deleteButtonRef}
+                  >
+                    <IconTrashOutline18 />
+                    Delete key
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="[&_svg]:size-[14px] ml-3"
+                    onClick={() => setSelectedKeys(new Set())}
+                  >
+                    <IconXmarkOutline18 />
+                  </Button>
+                </div>
               </div>
+              {recentlyUsedCount > 0 && (
+                <div className="flex items-center gap-2 text-warning-11 text-[13px] leading-6">
+                  <IconTriangleWarningOutline18 className="size-3.5 shrink-0" />
+                  <span>{recentlyUsedSummary}</span>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -190,7 +220,7 @@ export const SelectionControls = ({
         onConfirm={performKeyDeletion}
         triggerRef={deleteButtonRef}
         title="Confirm key deletion"
-        description={`This action is irreversible. All data associated with ${
+        description={`${recentlyUsedNotice}This action is irreversible. All data associated with ${
           selectedKeys.size > 1 ? "these keys" : "this key"
         } will be permanently deleted.`}
         confirmButtonText={`Delete key${selectedKeys.size > 1 ? "s" : ""}`}
@@ -217,7 +247,7 @@ export const AnimatedCounter = ({ value }: { value: number }) => {
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="size-[18px] text-[11px] leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-accent-12 hover:bg-accent-12/90 focus:hover:bg-accent-12 rounded-md border border-grayA-4"
+      className="size-[18px] text-[11px] leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-gray-12 hover:bg-gray-12/90 focus:hover:bg-gray-12 rounded-md border"
     >
       <span className="flex items-center justify-center">{value}</span>
     </motion.div>

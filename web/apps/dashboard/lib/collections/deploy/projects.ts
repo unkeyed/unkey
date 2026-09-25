@@ -4,36 +4,32 @@ import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
+import { DEPLOYMENT_STATUSES } from "./deployment-status";
+
+const appSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  customDomain: z.string().nullable(),
+  headlineDeployment: z
+    .object({
+      id: z.string(),
+      status: z.enum(DEPLOYMENT_STATUSES),
+      commitMessage: z.string().nullable(),
+      branch: z.string().nullable(),
+      deployedAt: z.number().int(),
+    })
+    .nullable(),
+});
 
 const schema = z.object({
   id: z.string(),
   name: z.string(),
   slug: z.string(),
-  // Apps inside the project, newest first, for the card's app stack.
-  appCount: z.number().int(),
-  apps: z.array(
-    z.object({
-      id: z.string(),
-      name: z.string(),
-      source: z.enum(["github", "code"]),
-      repository: z.string().nullable(),
-    }),
-  ),
+  isDefault: z.boolean(),
+  apps: z.array(appSchema),
   repositoryFullName: z.string().nullable(),
-  latestDeploymentId: z.string().nullable(),
   currentDeploymentId: z.string().nullable(),
-  isRolledBack: z.boolean(),
-  // Flattened deployment fields for UI
-  commitTitle: z.string().nullable(),
-  commitSha: z.string().nullable(),
-  forkRepositoryFullName: z.string().nullable(),
-  prNumber: z.number().int().nullable(),
-  branch: z.string(),
-  author: z.string().nullable(),
-  authorAvatar: z.string().nullable(),
-  commitTimestamp: z.number().int().nullable(),
-  // Domain field
-  domain: z.string().nullable(),
+  createdAt: z.number().int(),
 });
 
 export const createProjectRequestSchema = z.object({
@@ -50,7 +46,15 @@ export const createProjectRequestSchema = z.object({
 });
 
 export type Project = z.infer<typeof schema>;
+export type ProjectApp = z.infer<typeof appSchema>;
 export type CreateProjectRequestSchema = z.infer<typeof createProjectRequestSchema>;
+
+export function projectDisplayName(
+  project: Pick<Project, "name" | "isDefault">,
+  workspaceName: string,
+): string {
+  return project.isDefault ? workspaceName : project.name;
+}
 
 export const projects = createCollection<Project, string>(
   queryCollectionOptions({
@@ -58,14 +62,16 @@ export const projects = createCollection<Project, string>(
     queryKey: ["projects"],
     retry: 3,
     queryFn: async () => {
-      return await trpcClient.deploy.project.list.query();
+      return await trpcClient.deploy.project.list.query({ includeDefault: true });
     },
     getKey: (item) => item.id,
     onDelete: async ({ transaction }) => {
       const mutation = transaction.mutations[0];
       const projectId = mutation.original.id;
 
-      const deleteMutation = getUnkeyClient().projects.deleteProject({ project: projectId });
+      const deleteMutation = getUnkeyClient().projects.deleteProject({
+        project: projectId,
+      });
 
       toast.promise(deleteMutation, {
         loading: "Deleting project...",

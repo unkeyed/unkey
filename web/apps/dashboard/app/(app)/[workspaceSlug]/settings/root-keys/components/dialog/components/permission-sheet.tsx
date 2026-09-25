@@ -127,12 +127,13 @@ export const PermissionSheet = ({
       <SheetPortal>
         <SheetOverlay className="bg-black/30 backdrop-blur-xs" />
         <SheetContent
+          data-docs-target="root-key-permissions"
           disableClose={false}
-          className="flex flex-col p-0 m-0 h-full gap-0 border-l border-l-gray-4 w-[420px] bg-gray-1 dark:bg-black overflow-hidden"
+          className="flex flex-col p-0 m-0 h-full gap-0 border-l w-[420px] bg-raised overflow-hidden"
           side="right"
           overlay="transparent"
         >
-          <SheetHeader className="flex flex-row min-w-full border-b border-gray-4 gap-2 shrink-0">
+          <SheetHeader className="flex flex-row min-w-full border-b gap-2 shrink-0">
             <SheetTitle className="sr-only">Select Permissions</SheetTitle>
             <SearchPermissions
               isProcessing={isProcessing}
@@ -246,7 +247,7 @@ export const PermissionSheet = ({
             </div>
           </ScrollArea>
           {hasNextPage && (
-            <div className="shrink-0 bg-gray-1 dark:bg-black border-t border-gray-4 w-full py-4">
+            <div className="shrink-0 bg-raised border-t w-full py-4">
               <div className="flex flex-row justify-center items-center">
                 <Button
                   className="mx-auto rounded-lg"

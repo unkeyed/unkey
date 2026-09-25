@@ -2,7 +2,14 @@
 
 import { PageLoading } from "@/components/dashboard/page-loading";
 import { trpc } from "@/lib/trpc/client";
-import { Empty } from "@unkey/ui";
+import {
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+  PageBody,
+  PageContainer,
+} from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { SuccessClient } from "./client";
@@ -353,10 +360,16 @@ function SuccessContent() {
 
   if (error) {
     return (
-      <Empty>
-        <Empty.Title>Payment Processing Error</Empty.Title>
-        <Empty.Description>{error}</Empty.Description>
-      </Empty>
+      <PageContainer>
+        <PageBody>
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>Payment Processing Error</EmptyStateTitle>
+              <EmptyStateDescription>{error}</EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
+        </PageBody>
+      </PageContainer>
     );
   }
 

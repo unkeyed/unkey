@@ -1,4 +1,4 @@
-import { Heart } from "@unkey/icons";
+import { IconHeartOutline12 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { type HealthStatus, STATUS_CONFIG } from "../status/status-config";
 import { StatusIndicator } from "../status/status-indicator";
@@ -31,15 +31,12 @@ export function CardHeader({
 
   return (
     <div
-      className={cn(
-        "flex w-full",
-        isCard && "border-b border-grayA-4 rounded-t-[14px] px-3 py-2.5 ",
-      )}
+      className={cn("flex w-full", isCard && "border-b rounded-t-2xl px-3 py-2.5 ")}
       style={
         isCard
           ? {
               background:
-                "radial-gradient(circle at 5% 15%, hsl(var(--grayA-3)) 0%, transparent 20%), light-dark(#FFF, #000)",
+                "radial-gradient(circle at 5% 15%, var(--color-grayA-3) 0%, transparent 20%), var(--background-color-raised)",
             }
           : undefined
       }
@@ -47,14 +44,14 @@ export function CardHeader({
       <div className="flex items-center justify-between gap-3">
         {icon}
         <div className="flex flex-col gap-0.75 justify-center h-9 py-2">
-          <div className="text-accent-12 font-medium text-[13px] font-mono">{title}</div>
+          <div className="text-gray-12 font-medium text-[13px] font-mono">{title}</div>
           <div className="text-gray-9 text-[11px]">{subtitle}</div>
         </div>
       </div>
       {isCard && (
         <div className="flex gap-2 items-center ml-auto">
           <StatusIndicator
-            icon={<Heart className={colors.dotTextColor} iconSize="sm-regular" />}
+            icon={<IconHeartOutline12 className={colors.dotTextColor} />}
             healthStatus={health}
             tooltip={type === "region" ? "Region health status" : "Instance health status"}
             showGlow={health !== "normal"}

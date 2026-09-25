@@ -3,8 +3,14 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { AuthenticatedUser, Membership, Organization } from "@/lib/auth/types";
 import { trpc } from "@/lib/trpc/client";
-import { Card, CardContent } from "@unkey/ui";
-import { Button, ConfirmPopover, Empty, Loading, toast } from "@unkey/ui";
+import {
+  Card,
+  CardContent,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+} from "@unkey/ui";
+import { Button, ConfirmPopover, EmptyState, Loading, toast } from "@unkey/ui";
 import { memo, useMemo, useState } from "react";
 import { RoleSwitcher } from "./role-switcher";
 
@@ -57,10 +63,12 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
     return (
       <Card>
         <CardContent className="p-0">
-          <Empty>
-            <Empty.Title>No team members</Empty.Title>
-            <Empty.Description>Invite members using the form above</Empty.Description>
-          </Empty>
+          <EmptyState frame="none">
+            <EmptyStateHeader>
+              <EmptyStateTitle>No team members</EmptyStateTitle>
+              <EmptyStateDescription>Invite members using the form above</EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
         </CardContent>
       </Card>
     );
@@ -93,7 +101,7 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
 
       <Card>
         <CardContent className="p-0">
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-grayA-4">
             {memberships.map((membership) => {
               const { id, role, user: member } = membership;
               const isCurrentUser = member.id === user.id;
@@ -107,16 +115,14 @@ export const Members = memo<MembersProps>(({ organization, user, userMembership 
                     </Avatar>
                     <div className="flex flex-col min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-content truncate secret">
+                        <span className="text-sm text-gray-12 truncate secret">
                           {member.firstName
                             ? `${member.firstName}${member.lastName ? ` ${member.lastName}` : ""}`
                             : member.email}
                         </span>
                       </div>
                       {member.firstName && (
-                        <span className="text-sm text-content-subtle truncate secret">
-                          {member.email}
-                        </span>
+                        <span className="text-sm text-gray-11 truncate secret">{member.email}</span>
                       )}
                     </div>
                   </div>

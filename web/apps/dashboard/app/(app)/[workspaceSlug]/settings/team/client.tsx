@@ -4,7 +4,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import { Button, Empty, InfoTooltip, Loading } from "@unkey/ui";
+import { useWorkspace } from "@/providers/workspace-provider";
+import {
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateHeader,
+  EmptyStateTitle,
+  InfoTooltip,
+  Loading,
+} from "@unkey/ui";
 import Link from "next/link";
 import { Suspense, useMemo, useState } from "react";
 import { Invitations } from "./invitations";
@@ -14,7 +23,7 @@ import { Members } from "./members";
 export function TeamPageClient({ team }: { team: boolean }) {
   const workspace = useWorkspaceNavigation();
 
-  const { data: user } = trpc.user.getCurrentUser.useQuery();
+  const { user } = useWorkspace();
 
   const { data: memberships, isLoading: isUserMembershipsLoading } =
     trpc.user.listMemberships.useQuery(user?.id || "", {
@@ -52,17 +61,19 @@ export function TeamPageClient({ team }: { team: boolean }) {
 
   if (!team) {
     return (
-      <div className="flex items-center justify-center w-full min-h-[60vh]">
-        <Empty className="w-full">
-          <Empty.Title>Upgrade Your Plan to Add Team Members</Empty.Title>
-          <Empty.Actions>
+      <div className="w-full">
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>Upgrade Your Plan to Add Team Members</EmptyStateTitle>
+          </EmptyStateHeader>
+          <EmptyStateActions>
             <Suspense fallback={<Loading type="spinner" />}>
               <Link href={routes.settings.billing({ workspaceSlug: workspace.slug })}>
-                <Button>Upgrade</Button>
+                <Button variant="primary">Upgrade</Button>
               </Link>
             </Suspense>
-          </Empty.Actions>
-        </Empty>
+          </EmptyStateActions>
+        </EmptyState>
       </div>
     );
   }
@@ -70,30 +81,30 @@ export function TeamPageClient({ team }: { team: boolean }) {
   return (
     <div className="flex flex-col gap-8 w-full">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-content">Members</h1>
-        <p className="text-sm text-content-subtle">Manage team members and invitations</p>
+        <h1 className="text-2xl font-semibold text-gray-12">Members</h1>
+        <p className="text-sm text-gray-11">Manage team members and invitations</p>
       </div>
 
       {isAdmin && <InviteForm organization={organization} />}
 
       <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)} className="w-full">
-        <TabsList className="inline-flex h-auto items-center justify-start bg-transparent p-0 border-b border-border w-full">
+        <TabsList className="inline-flex h-auto items-center justify-start bg-transparent p-0 border-b w-full">
           <TabsTrigger
             value="members"
-            className="rounded-none border-b-2 border-transparent px-4 py-2 data-active:bg-transparent data-active:border-content data-active:shadow-none"
+            className="rounded-none border-b-2 border-transparent px-4 py-2 data-active:bg-transparent data-active:border-gray-12 data-active:shadow-none"
           >
             Team Members
           </TabsTrigger>
           {isAdmin ? (
             <TabsTrigger
               value="invitations"
-              className="rounded-none border-b-2 border-transparent px-4 py-2 data-active:bg-transparent data-active:border-content data-active:shadow-none"
+              className="rounded-none border-b-2 border-transparent px-4 py-2 data-active:bg-transparent data-active:border-gray-12 data-active:shadow-none"
             >
               Pending Invitations
             </TabsTrigger>
           ) : (
             <InfoTooltip content="Admin access required to manage invitations">
-              <div className="rounded-none border-b-2 border-transparent px-4 py-2 text-content-subtle opacity-50 cursor-not-allowed">
+              <div className="rounded-none border-b-2 border-transparent px-4 py-2 text-gray-11 opacity-50 cursor-not-allowed">
                 Pending Invitations
               </div>
             </InfoTooltip>

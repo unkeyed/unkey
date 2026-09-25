@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Connections } from "@unkey/icons";
+import { IconConnectionsOutline18 } from "@unkey/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@unkey/ui";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
@@ -52,7 +52,7 @@ export const UpstreamProtocol = () => {
 
   return (
     <FormSettingCard
-      icon={<Connections className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconConnectionsOutline18 className="text-gray-12" />}
       title="Upstream Protocol"
       description={
         <>
@@ -62,7 +62,7 @@ export const UpstreamProtocol = () => {
             href="https://www.unkey.com/docs/platform/apps/settings#upstream-protocol"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline text-accent-11"
+            className="underline text-gray-11"
           >
             Learn more
           </a>

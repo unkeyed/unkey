@@ -1,3 +1,4 @@
+import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { Combobox, toast } from "@unkey/ui";
 import { useMemo, useState } from "react";
@@ -29,6 +30,7 @@ export const GitHubNoRepo = ({
       toast.success("Repository connected");
       await utils.github.getInstallations.invalidate();
       await utils.github.getRepoTree.invalidate();
+      await collection.apps.utils.refetch();
     },
     onError: (error) => {
       toast.error(error.message);
@@ -67,7 +69,7 @@ export const GitHubNoRepo = ({
         <ComboboxSkeleton />
       ) : repoOptions.length ? (
         <Combobox
-          className="w-[200px] text-left h-7 border-grayA-4"
+          className="w-[200px] text-left h-7"
           options={repoOptions}
           value={selectedRepo}
           onSelect={handleSelectRepository}

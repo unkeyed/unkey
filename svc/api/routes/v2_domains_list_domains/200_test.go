@@ -184,12 +184,11 @@ func TestListDomainsOptionalScopes(t *testing.T) {
 	first := attachDomain(t, h, env, nil)
 
 	siblingApp := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   env.workspaceID,
-		ProjectID:     env.projectID,
-		Name:          "Sibling API",
-		Slug:          randomSlug(),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: env.workspaceID,
+		ProjectID:   env.projectID,
+		Name:        "Sibling API",
+		Slug:        randomSlug(),
 	})
 	siblingEnvironment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),

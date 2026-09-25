@@ -1,5 +1,5 @@
 "use client";
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { useState } from "react";
@@ -15,7 +15,7 @@ export function CreatePermissionButton() {
   return (
     <div className="relative">
       <Button variant="primary" size="md" onClick={() => setIsOpen(true)}>
-        <Plus iconSize="sm-regular" />
+        <IconPlusOutline18 />
         New permission
       </Button>
       <UpsertPermissionDialog isOpen={isOpen} onClose={() => setIsOpen(false)} />

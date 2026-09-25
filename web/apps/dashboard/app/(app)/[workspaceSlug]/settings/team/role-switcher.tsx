@@ -65,7 +65,6 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
             items={[
               { value: "admin", label: "Admin" },
               { value: "developer", label: "Developer" },
-              { value: "viewer", label: "Viewer" },
             ]}
             disabled={isCurrentUser || updateMember.isLoading}
             onValueChange={(newRole) => {
@@ -81,7 +80,6 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
               <SelectGroup>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="developer">Developer</SelectItem>
-                <SelectItem value="viewer">Viewer</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -89,7 +87,7 @@ export const RoleSwitcher = memo<RoleSwitcherProps>(
       );
     }
 
-    return <span className="text-content">{organizationRoleLabel(role)}</span>;
+    return <span className="text-gray-12">{organizationRoleLabel(role)}</span>;
   },
 );
 

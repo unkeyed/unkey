@@ -6,7 +6,6 @@ INSERT INTO apps (
     name,
     slug,
     source_type,
-    default_branch,
     delete_protection,
     created_at,
     updated_at
@@ -17,7 +16,6 @@ INSERT INTO apps (
     sqlc.arg(name),
     sqlc.arg(slug),
     sqlc.arg(source_type),
-    sqlc.arg(default_branch),
     sqlc.arg(delete_protection),
     sqlc.arg(created_at),
     sqlc.arg(updated_at)

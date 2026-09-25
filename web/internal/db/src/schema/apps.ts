@@ -15,7 +15,6 @@ import { lifecycleDates } from "./util/lifecycle_dates";
 import { workspaces } from "./workspaces";
 
 import { projects } from "./projects";
-import { caseSensitiveVarchar } from "./util/case_sensitive_varchar";
 import { id } from "./util/id";
 import { primaryKey } from "./util/primary_key";
 
@@ -30,9 +29,6 @@ export const apps = mysqlTable(
     slug: varchar("slug", { length: 256 }).notNull(),
     sourceType: mysqlEnum("source_type", ["unknown", "git", "oci"]).notNull().default("unknown"),
 
-    defaultBranch: caseSensitiveVarchar("default_branch", { length: 256 })
-      .notNull()
-      .default("main"),
     currentDeploymentId: id("current_deployment_id"),
     isRolledBack: boolean("is_rolled_back").notNull().default(false),
 

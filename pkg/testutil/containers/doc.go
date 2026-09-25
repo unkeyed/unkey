@@ -39,7 +39,7 @@
 // Currently supported:
 //   - [MySQL]: MySQL with dev schema preloaded
 //   - [Redis]: Redis 8.0
-//   - [S3]: MinIO S3-compatible object storage
+//   - [S3]: Garage S3-compatible object storage
 //   - [Restate]: Restate server (ingress + admin)
 //   - [ClickHouse]: ClickHouse with dev schema preloaded
 package containers

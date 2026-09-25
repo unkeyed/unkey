@@ -4,11 +4,14 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
 import { useLiveQuery } from "@tanstack/react-db";
-import { Gauge, Plus } from "@unkey/icons";
+import { IconGaugeOutline18, IconPlusOutline18 } from "@unkey/icons";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
 
-export function NamespaceCrumb({ namespaceId }: { namespaceId: string }) {
+export function NamespaceCrumb({
+  namespaceId,
+  projectId,
+}: { namespaceId: string; projectId?: string }) {
   const workspace = useWorkspaceNavigation();
   const namespacesQuery = useLiveQuery((q) =>
     q.from({ namespace: collection.ratelimitNamespaces }).select(({ namespace }) => ({
@@ -23,23 +26,23 @@ export function NamespaceCrumb({ namespaceId }: { namespaceId: string }) {
   const items: CrumbPopoverItem[] = namespaces.map((n) => ({
     id: n.id,
     label: n.name,
-    href: routes.ratelimits.detail({ workspaceSlug: workspace.slug, namespaceId: n.id }),
+    href: routes.ratelimits.detail({ workspaceSlug: workspace.slug, projectId, namespaceId: n.id }),
   }));
 
   return (
     <Crumb
-      icon={<Gauge className="size-3.5 text-accent-11" iconSize="sm-regular" />}
+      icon={<IconGaugeOutline18 className="size-3.5 text-gray-11" />}
       label={current?.name ?? namespaceId}
       loading={loading}
-      href={routes.ratelimits.detail({ workspaceSlug: workspace.slug, namespaceId })}
+      href={routes.ratelimits.detail({ workspaceSlug: workspace.slug, projectId, namespaceId })}
       items={items}
       currentId={namespaceId}
       searchPlaceholder="Find namespace..."
       emptyText="No namespaces found"
       footer={{
-        icon: Plus,
+        icon: IconPlusOutline18,
         label: "All namespaces",
-        href: routes.ratelimits.list({ workspaceSlug: workspace.slug }),
+        href: routes.ratelimits.list({ workspaceSlug: workspace.slug, projectId }),
       }}
     />
   );

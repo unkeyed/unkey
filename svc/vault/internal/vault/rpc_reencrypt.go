@@ -10,7 +10,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/otel/tracing"
 )
 
-func (s *Service) ReEncrypt(ctx context.Context, req *connect.Request[vaultv1.ReEncryptRequest]) (*connect.Response[vaultv1.ReEncryptResponse], error) {
+func (s *Service) ReEncrypt(ctx context.Context, req *connect.Request[vaultv1.ReEncryptRequest]) (_ *connect.Response[vaultv1.ReEncryptResponse], err error) {
+	defer func() { observeOperation("reencrypt", err) }()
 	if err := s.authenticate(req); err != nil {
 		return nil, err
 	}

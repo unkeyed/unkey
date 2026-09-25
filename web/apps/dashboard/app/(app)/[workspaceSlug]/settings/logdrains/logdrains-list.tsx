@@ -2,18 +2,22 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
+import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
-import { CloudUp, Database, Earth, Layers3, ShareUpRight } from "@unkey/icons";
 import {
   Button,
-  EmptyHero,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   InfoTooltip,
   ResourceListBody,
   ResourceListContent,
   ResourceListItem,
   Skeleton,
+  useElapsed,
 } from "@unkey/ui";
-import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { CreateLogdrainButton } from "./create-logdrain-button";
 import { DrainMedia } from "./drain-destinations";
@@ -23,6 +27,8 @@ import { DrainStatusBadge } from "./drain-status-badge";
 const SKELETON_ROWS = 5;
 
 function DrainRow({ drain, workspaceSlug }: { drain: DrainListItem; workspaceSlug: string }) {
+  const createdAgo = useElapsed(drain.createdAt);
+
   return (
     <ResourceListItem>
       <Link
@@ -34,7 +40,7 @@ function DrainRow({ drain, workspaceSlug }: { drain: DrainListItem; workspaceSlu
 
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <InfoTooltip content={drain.name} asChild position={{ align: "start", side: "top" }}>
-            <span className="truncate text-[13px] font-medium text-accent-12">{drain.name}</span>
+            <span className="truncate text-[13px] font-medium text-gray-12">{drain.name}</span>
           </InfoTooltip>
           <span className="shrink-0">
             <DrainStatusBadge status={drain.status} />
@@ -42,10 +48,8 @@ function DrainRow({ drain, workspaceSlug }: { drain: DrainListItem; workspaceSlu
         </div>
 
         {/* A plain string, not TimestampInfo: its popover trigger is a button and this row is
-            already a link. Same wording as TimestampInfo's relative display. */}
-        <span className="shrink-0 text-xs text-gray-9">
-          {formatDistanceToNow(new Date(drain.createdAt), { addSuffix: true })}
-        </span>
+            already a link. */}
+        <span className="shrink-0 text-xs text-gray-9">{createdAgo}</span>
       </Link>
     </ResourceListItem>
   );
@@ -62,7 +66,7 @@ function DrainListSkeleton() {
             key={index}
             className="flex items-center gap-3 px-4 py-3"
           >
-            <Skeleton className="size-8 rounded-[10px]" />
+            <Skeleton className="size-8 rounded-xl" />
             <Skeleton className="h-3.5 w-40" />
             <Skeleton className="h-5 w-20 rounded-md" />
             <Skeleton className="ml-auto h-3 w-24" />
@@ -73,7 +77,15 @@ function DrainListSkeleton() {
   );
 }
 
-export function LogdrainsList({ onCreate }: { onCreate: () => void }) {
+export function LogdrainsList({
+  onCreate,
+  canCreate,
+  needsEnablement,
+}: {
+  onCreate: () => void;
+  canCreate: boolean;
+  needsEnablement: boolean;
+}) {
   const workspace = useWorkspaceNavigation();
   const query = trpc.logdrain.list.useQuery();
 
@@ -98,22 +110,27 @@ export function LogdrainsList({ onCreate }: { onCreate: () => void }) {
 
   if (!query.data?.length) {
     return (
-      <EmptyHero>
-        <EmptyHero.Icons>
-          <Layers3 iconSize="md-medium" />
-          <ShareUpRight iconSize="md-medium" />
-          <CloudUp iconSize="md-thin" />
-          <Earth iconSize="md-medium" />
-          <Database iconSize="md-medium" />
-        </EmptyHero.Icons>
-        <EmptyHero.Title>Create your first log drain</EmptyHero.Title>
-        <EmptyHero.Description>
-          Send audit logs to an HTTPS endpoint or an Axiom dataset.
-        </EmptyHero.Description>
-        <EmptyHero.Actions>
-          <CreateLogdrainButton onClick={onCreate} />
-        </EmptyHero.Actions>
-      </EmptyHero>
+      <EmptyState>
+        <EmptyStateHeader>
+          <EmptyStateTitle>
+            {needsEnablement ? "Log drains" : "Create your first log drain"}
+          </EmptyStateTitle>
+          <EmptyStateDescription>
+            {needsEnablement
+              ? "Contact support to enable log drains for this workspace."
+              : "Send audit logs, key verifications, gateway HTTP requests, or runtime logs to an HTTPS endpoint or an Axiom dataset."}
+          </EmptyStateDescription>
+        </EmptyStateHeader>
+        <EmptyStateActions>
+          {needsEnablement ? (
+            <Button variant="outline" render={<Link href={SUPPORT_MAILTO} />}>
+              Contact support
+            </Button>
+          ) : (
+            <CreateLogdrainButton onClick={onCreate} disabled={!canCreate} />
+          )}
+        </EmptyStateActions>
+      </EmptyState>
     );
   }
 

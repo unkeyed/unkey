@@ -1,6 +1,6 @@
 "use client";
-import { cn } from "@/lib/utils";
 import { Input } from "@unkey/ui";
+import { cn } from "cn";
 import type { ChangeEvent, RefObject } from "react";
 
 export const SEARCH_MODES = {
@@ -38,7 +38,7 @@ export const SearchInput = ({
 }: SearchInputProps) => {
   if (isProcessing && searchMode !== SEARCH_MODES.ALLOW_TYPE) {
     return (
-      <div className="text-accent-11 text-[13px] animate-pulse" data-testid="search-loading-state">
+      <div className="text-gray-11 text-[13px] animate-pulse" data-testid="search-loading-state">
         {isLoading ? loadingText : clearingText}
       </div>
     );

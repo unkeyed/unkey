@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
 import { cva } from "class-variance-authority";
 import type { VariantProps } from "class-variance-authority";
+import { cn } from "cn";
 import type { HTMLAttributes, ReactNode } from "react";
 
 const statusBadgeVariants = cva(

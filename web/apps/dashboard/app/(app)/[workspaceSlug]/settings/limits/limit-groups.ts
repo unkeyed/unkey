@@ -139,6 +139,10 @@ function logsGroup(limits: Limits): LimitGroup {
         name: "Audit log retention",
         limit: days(limits.logsAuditRetentionDaysMax),
       }),
+      ceiling({
+        name: "Log drains",
+        limit: count(limits.logdrainsMax),
+      }),
     ],
   };
 }

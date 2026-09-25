@@ -3,10 +3,27 @@ package main
 import (
 	"bytes"
 	"io"
+	"os"
+	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestRunIgnoresDeletedTrackedFiles(t *testing.T) {
+	root := t.TempDir()
+	require.NoError(t, os.WriteFile(root+"/deleted.ts", []byte("SELECT * FROM users"), 0o600))
+
+	cmd := exec.Command("git", "init", "--quiet")
+	cmd.Dir = root
+	require.NoError(t, cmd.Run())
+	cmd = exec.Command("git", "add", "deleted.ts")
+	cmd.Dir = root
+	require.NoError(t, cmd.Run())
+	require.NoError(t, os.Remove(root+"/deleted.ts"))
+
+	require.NoError(t, run(root, io.Discard))
+}
 
 // TestScannerRejectsAllColumnQueries protects every production query syntax
 // covered by the repository-wide lint task.

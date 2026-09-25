@@ -1,4 +1,4 @@
-import { CircleCheck, TriangleWarning2 } from "@unkey/icons";
+import { IconCircleCheckOutline18, IconTriangleWarningOutline18 } from "@unkey/icons";
 import type { HealthStatus } from "../types";
 
 type StatusColors = {
@@ -14,7 +14,7 @@ type StatusColors = {
 
 type StatusConfig = {
   label: string;
-  icon: typeof TriangleWarning2;
+  icon: typeof IconTriangleWarningOutline18;
   message: string;
   colors: StatusColors;
   showBanner: boolean;
@@ -23,12 +23,12 @@ type StatusConfig = {
 const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
   normal: {
     label: "Normal",
-    icon: CircleCheck,
+    icon: IconCircleCheckOutline18,
     message: "",
     showBanner: false,
     colors: {
       dotBg: "bg-success-9",
-      dotRing: "hsl(var(--successA-4))",
+      dotRing: "var(--color-successA-4)",
       dotTextColor: "text-gray-9",
       bannerBg: "bg-success-2",
       bannerBorder: "border-successA-2",
@@ -39,12 +39,12 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
   },
   unhealthy: {
     label: "Unhealthy",
-    icon: TriangleWarning2,
+    icon: IconTriangleWarningOutline18,
     message: "Instance crashed or unavailable.",
     showBanner: true,
     colors: {
       dotBg: "bg-error-9",
-      dotRing: "hsl(var(--errorA-4))",
+      dotRing: "var(--color-errorA-4)",
       dotTextColor: "text-errorA-7",
       bannerBg: "bg-error-2",
       bannerBorder: "border-errorA-3",
@@ -55,12 +55,12 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
   },
   health_syncing: {
     label: "Starting",
-    icon: TriangleWarning2,
+    icon: IconTriangleWarningOutline18,
     message: "Instance is starting up.",
     showBanner: true,
     colors: {
       dotBg: "bg-info-9",
-      dotRing: "hsl(var(--infoA-4))",
+      dotRing: "var(--color-infoA-4)",
       dotTextColor: "text-infoA-7",
       bannerBg: "bg-info-2",
       bannerBorder: "border-infoA-2",
@@ -71,12 +71,12 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
   },
   unknown: {
     label: "Unknown",
-    icon: TriangleWarning2,
+    icon: IconTriangleWarningOutline18,
     message: "Unable to determine health status. Investigating.",
     showBanner: true,
     colors: {
       dotBg: "bg-gray-9",
-      dotRing: "hsl(var(--grayA-4))",
+      dotRing: "var(--color-grayA-4)",
       dotTextColor: "text-grayA-7",
       bannerBg: "bg-gray-2",
       bannerBorder: "border-grayA-3",
@@ -87,12 +87,12 @@ const STATUS_CONFIG: Record<HealthStatus, StatusConfig> = {
   },
   disabled: {
     label: "Disabled",
-    icon: TriangleWarning2,
+    icon: IconTriangleWarningOutline18,
     message: "Instance is inactive or unavailable.",
     showBanner: true,
     colors: {
       dotBg: "bg-gray-9",
-      dotRing: "hsl(var(--grayA-4))",
+      dotRing: "var(--color-grayA-4)",
       dotTextColor: "text-grayA-7",
       bannerBg: "bg-gray-2",
       bannerBorder: "border-grayA-3",

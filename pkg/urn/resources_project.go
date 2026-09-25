@@ -11,6 +11,7 @@ import "fmt"
 //	    ├── apps/{app_id}
 //	    ├── identities/{identity_id}
 //	    ├── keyspaces/{keyspace_id}
+//	    ├── portals/{portal_id}
 //	    ├── ratelimits/namespaces/{namespace_id}
 //	    └── rbac
 type Project struct {
@@ -51,6 +52,16 @@ func (p Project) Identity(identityID string) Identity {
 //	└── keyspaces/{keyspace_id}
 func (p Project) Keyspace(keyspaceID string) Keyspace {
 	return Keyspace{workspaceID: p.workspaceID, path: fmt.Sprintf("%s/keyspaces/%s", p.path, keyspaceID)}
+}
+
+// Portal returns builders for portal resource paths.
+//
+// Subresource:
+//
+//	projects/{project_id}
+//	└── portals/{portal_id}
+func (p Project) Portal(portalID string) Portal {
+	return Portal{workspaceID: p.workspaceID, path: fmt.Sprintf("%s/portals/%s", p.path, portalID)}
 }
 
 // RatelimitNamespace returns builders for rate limit namespace resource paths.

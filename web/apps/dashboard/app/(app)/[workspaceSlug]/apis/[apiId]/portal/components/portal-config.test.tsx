@@ -55,7 +55,7 @@ vi.mock("./portal-preview", () => ({
 }));
 
 vi.mock("@unkey/icons", () => ({
-  TriangleWarning2: () => null,
+  IconTriangleWarningOutline12: () => null,
 }));
 
 vi.mock("@unkey/ui", () => {

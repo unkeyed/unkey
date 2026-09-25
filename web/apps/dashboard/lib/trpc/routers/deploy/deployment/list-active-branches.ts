@@ -31,6 +31,7 @@ export const listActiveBranches = workspaceProcedure
           eq(deployments.workspaceId, ctx.workspace.id),
           eq(deployments.projectId, input.projectId),
           eq(deployments.appId, input.appId),
+          ne(deployments.source, "oci"),
           isNotNull(deployments.gitBranch),
           ne(deployments.gitBranch, ""),
           // Filtered before the row number is assigned, so a branch whose most

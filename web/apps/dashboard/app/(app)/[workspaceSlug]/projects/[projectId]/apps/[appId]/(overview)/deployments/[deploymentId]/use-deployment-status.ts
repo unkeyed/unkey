@@ -1,18 +1,8 @@
-import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
+import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { trpc } from "@/lib/trpc/client";
 import { useMemo } from "react";
 import { deriveStatusFromSteps } from "./deployment-utils";
-
-// Steps stop changing once the deployment authorizes (awaiting_approval) or
-// reaches a terminal state, so polling pauses there.
-const STABLE_STATUSES: DeploymentStatus[] = [
-  "ready",
-  "skipped",
-  "superseded",
-  "cancelled",
-  "awaiting_approval",
-];
 
 /**
  * Owns the deployment's step polling and the status derived from it. The
@@ -22,12 +12,11 @@ const STABLE_STATUSES: DeploymentStatus[] = [
  */
 export function useDeploymentStatus(deployment: Deployment) {
   const skipped = deployment.status === "skipped";
-  const stepsAreStable = STABLE_STATUSES.includes(deployment.status);
 
   const steps = trpc.deploy.deployment.steps.useQuery(
     { deploymentId: deployment.id },
     {
-      refetchInterval: stepsAreStable ? false : 1_000,
+      refetchInterval: isDeploymentInFlight(deployment.status) ? 1_000 : false,
       refetchOnWindowFocus: false,
       enabled: !skipped && deployment.status !== "superseded" && deployment.status !== "cancelled",
     },

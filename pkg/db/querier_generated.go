@@ -195,7 +195,7 @@ type Querier interface {
 	FindAppBuildSettingByAppEnv(ctx context.Context, db DBTX, arg FindAppBuildSettingByAppEnvParams) (AppBuildSetting, error)
 	//FindAppById
 	//
-	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.default_branch, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
+	//  SELECT apps.pk, apps.id, apps.workspace_id, apps.project_id, apps.name, apps.slug, apps.source_type, apps.current_deployment_id, apps.is_rolled_back, apps.delete_protection, apps.created_at, apps.updated_at
 	//  FROM apps
 	//  WHERE id = ?
 	FindAppById(ctx context.Context, db DBTX, id string) (App, error)
@@ -206,16 +206,18 @@ type Querier interface {
 	// Anything validating that a caller owns the app it named must scope the lookup,
 	// so this exists as the scoped single-app read.
 	//
-	// Selects the id alone: every caller discards the row and keeps only whether it
-	// exists, so there is no reason to carry the rest of the columns.
+	// The project id comes back with it because an app's resource permissions are
+	// addressed as projects/{project_id}/apps/{app_id}: a caller that arrived with
+	// an app id alone would otherwise need a second read to say anything about the
+	// app it just proved it owns.
 	//
-	//  SELECT id FROM apps
+	//  SELECT id, project_id FROM apps
 	//  WHERE id = ?
 	//    AND workspace_id = ?
-	FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (string, error)
+	FindAppByIdAndWorkspace(ctx context.Context, db DBTX, arg FindAppByIdAndWorkspaceParams) (FindAppByIdAndWorkspaceRow, error)
 	//FindAppByProjectAndIdOrSlug
 	//
-	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.default_branch, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
+	//  SELECT a.pk, a.id, a.workspace_id, a.project_id, a.name, a.slug, a.source_type, a.current_deployment_id, a.is_rolled_back, a.delete_protection, a.created_at, a.updated_at
 	//  FROM apps a
 	//  JOIN projects p ON a.project_id = p.id AND a.workspace_id = p.workspace_id
 	//  WHERE a.workspace_id = ?
@@ -407,11 +409,11 @@ type Querier interface {
 	FindDefaultProjectByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (string, error)
 	//FindDeploymentById
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE id = ?
+	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE id = ?
 	FindDeploymentById(ctx context.Context, db DBTX, id string) (Deployment, error)
 	//FindDeploymentWithEnvironment
 	//
-	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind
+	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind
 	//  FROM deployments d
 	//  JOIN environments e ON d.environment_id = e.id
 	//  WHERE d.id = ?
@@ -957,7 +959,7 @@ type Querier interface {
 	// Workspace-scoped on purpose: `idx_app_id` is unique across the whole table, so
 	// an unscoped lookup would return another workspace's portal.
 	//
-	//  SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
+	//  SELECT pk, id, workspace_id, project_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
 	//  WHERE app_id = ?
 	//    AND workspace_id = ?
 	//  LIMIT 1
@@ -968,7 +970,7 @@ type Querier interface {
 	// UNION ALL of two index seeks instead of `id = ? OR slug = ?`, which would
 	// force a scan: `portals_id_unique` and `idx_workspace_slug` each serve one arm.
 	//
-	//  SELECT p.pk, p.id, p.workspace_id, p.slug, p.display_name, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
+	//  SELECT p.pk, p.id, p.workspace_id, p.project_id, p.slug, p.display_name, p.app_id, p.key_auth_id, p.enabled, p.logo_url, p.primary_color, p.created_at, p.updated_at
 	//  FROM portals p
 	//  JOIN (
 	//      SELECT p1.id
@@ -984,7 +986,7 @@ type Querier interface {
 	// Resolves the portal mapped to a keyspace within a workspace. See
 	// portal_find_by_app.sql for why this is workspace-scoped.
 	//
-	//  SELECT pk, id, workspace_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
+	//  SELECT pk, id, workspace_id, project_id, slug, display_name, app_id, key_auth_id, enabled, logo_url, primary_color, created_at, updated_at FROM portals
 	//  WHERE key_auth_id = ?
 	//    AND workspace_id = ?
 	//  LIMIT 1
@@ -1017,7 +1019,7 @@ type Querier interface {
 	// true at fill time. The caller derives session state from the row against the
 	// current clock instead.
 	//
-	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
+	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 	//  WHERE access_token_hash = ?
 	FindPortalSessionByAccessTokenHash(ctx context.Context, db DBTX, accessTokenHash sql.NullString) (PortalSession, error)
 	// Reads back the row a redemption just claimed, to build the response and the
@@ -1025,7 +1027,7 @@ type Querier interface {
 	// reported one affected row: the hash is UNIQUE, so this is the same row, and
 	// the caller already established it won the race.
 	//
-	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, preview, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
+	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 	//  WHERE exchange_code_hash = ?
 	FindPortalSessionByExchangeCodeHash(ctx context.Context, db DBTX, exchangeCodeHash string) (PortalSession, error)
 	//FindProjectById
@@ -1260,12 +1262,10 @@ type Querier interface {
 	//      name,
 	//      slug,
 	//      source_type,
-	//      default_branch,
 	//      delete_protection,
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1806,6 +1806,7 @@ type Querier interface {
 	//  INSERT INTO portals (
 	//      id,
 	//      workspace_id,
+	//      project_id,
 	//      slug,
 	//      display_name,
 	//      app_id,
@@ -1816,6 +1817,7 @@ type Querier interface {
 	//      created_at,
 	//      updated_at
 	//  ) VALUES (
+	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -1839,13 +1841,11 @@ type Querier interface {
 	//      portal_id,
 	//      external_id,
 	//      scopes,
-	//      preview,
 	//      exchange_code_hash,
 	//      exchange_code_expires_at,
 	//      return_url,
 	//      created_at
 	//  ) VALUES (
-	//      ?,
 	//      ?,
 	//      ?,
 	//      ?,
@@ -2057,7 +2057,6 @@ type Querier interface {
 	//    apps.name,
 	//    apps.slug,
 	//    apps.source_type,
-	//    apps.default_branch,
 	//    apps.current_deployment_id,
 	//    apps.is_rolled_back,
 	//    apps.delete_protection,
@@ -2176,7 +2175,7 @@ type Querier interface {
 	// has_status_filter gates the status clause; without it sqlc renders an empty
 	// status set as IN (NULL), which matches nothing.
 	//
-	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at FROM `deployments` d
+	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at FROM `deployments` d
 	//  WHERE d.workspace_id = ?
 	//    AND (? = '' OR d.project_id = ?)
 	//    AND (? = '' OR d.app_id = ?)
@@ -2949,8 +2948,7 @@ type Querier interface {
 	//UpdateDeploymentImage
 	//
 	//  UPDATE deployments
-	//  SET image = ?,
-	//      image_resolved = ?,
+	//  SET image_resolved = ?,
 	//      updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentImage(ctx context.Context, db DBTX, arg UpdateDeploymentImageParams) error
@@ -3063,9 +3061,13 @@ type Querier interface {
 	// remove the row between resolving it and this statement.
 	//
 	// Each field carries a `_specified` flag so an omitted field keeps its stored
-	// value. `slug`, `display_name` and `enabled` are NOT NULL and take sqlc.arg; the two
-	// associations and the two branding columns are nullable and take sqlc.narg, so
-	// an explicit null clears them.
+	// value. `slug`, `display_name` and `enabled` are NOT NULL and take sqlc.arg;
+	// the two associations and the two branding columns are nullable and take
+	// sqlc.narg, so an explicit null clears them.
+	//
+	// `project_id` is absent because a portal cannot change project: a remap to
+	// another project is refused before this runs, so the stored value always
+	// already matches the mapping.
 	//
 	//  UPDATE portals p
 	//  SET
@@ -3411,7 +3413,8 @@ type Querier interface {
 	//  )
 	//  ON DUPLICATE KEY UPDATE name = name
 	UpsertRegion(ctx context.Context, db DBTX, arg UpsertRegionParams) error
-	//UpsertWorkspace
+	// UpsertWorkspace seeds local workspaces while preserving fields that local tooling does not manage.
+	// New rows receive a caller-generated Kubernetes namespace; existing rows retain their namespace.
 	//
 	//  INSERT INTO workspaces (
 	//      id,
@@ -3420,9 +3423,10 @@ type Querier interface {
 	//      slug,
 	//      created_at_m,
 	//      beta_features,
+	//      k8s_namespace,
 	//      enabled,
 	//      delete_protection
-	//  ) VALUES (?, ?, ?, ?, ?, ?, true, false)
+	//  ) VALUES (?, ?, ?, ?, ?, ?, ?, true, false)
 	//  ON DUPLICATE KEY UPDATE
 	//      beta_features = VALUES(beta_features),
 	//      name = VALUES(name)

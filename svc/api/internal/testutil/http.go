@@ -149,6 +149,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 		TLS:               nil,
 		EnableH2C:         false,
 		StreamRequestBody: false,
+		TrustedProxyCIDRs: []string{"192.0.2.0/24"},
 		ReadTimeout:       0,
 		WriteTimeout:      0,
 	})
@@ -461,7 +462,6 @@ func (h *Harness) CreatePortalSessionForPortal(portalID, workspaceID, externalID
 		PortalID:              portalID,
 		ExternalID:            externalID,
 		Scopes:                scopesJSON,
-		Preview:               false,
 		ExchangeCodeHash:      hash.Sha256(exchangeCode),
 		ExchangeCodeExpiresAt: now.Add(15 * time.Minute).UnixMilli(),
 		ReturnUrl:             sql.NullString{Valid: false, String: ""},
@@ -652,7 +652,6 @@ func (h *Harness) CreateTestDeploymentSetup(opts ...CreateTestDeploymentSetupOpt
 		Slug:             "default",
 		SourceType:       db.AppsSourceTypeUnknown,
 		ImageReference:   "",
-		DefaultBranch:    "main",
 		DeleteProtection: false,
 	})
 

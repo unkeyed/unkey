@@ -1,19 +1,15 @@
 "use client";
 
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { XMark } from "@unkey/icons";
+import { IconXmarkOutline18 } from "@unkey/icons";
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
 import { Button } from "../buttons/button";
 
-/**
- * Dismiss coordination between `DialogContent` (which owns the
- * `showCloseWarning` / `preventOutsideClose` props) and the root
- * `onOpenChange` handler, which is where Base UI surfaces dismissal reasons
- * (escape key / outside press / focus out). Radix handled these per-part on
- * `Content`; Base UI consolidates them onto `Root.onOpenChange`.
- */
+// Base UI surfaces dismissal reasons (escape, outside press, focus out) only
+// on `Root.onOpenChange`, so `DialogContent` publishes its dismiss props up
+// through this ref.
 type DialogDismissConfig = {
   showCloseWarning: boolean;
   onAttemptClose?: () => void;
@@ -41,9 +37,8 @@ const Dialog = ({ children, onOpenChange, ...props }: DialogProps) => {
         const { reason } = eventDetails;
         const isOutside = reason === "outside-press" || reason === "focus-out";
 
-        // Keep the dialog open when the interaction happens inside a nested
-        // portal such as a Combobox listbox or a cmdk root (these render
-        // outside the dialog DOM subtree, so Base UI treats them as outside).
+        // Combobox listboxes and cmdk roots portal outside the dialog subtree,
+        // so Base UI reports them as outside presses.
         if (isOutside) {
           const target = eventDetails.event?.target as HTMLElement | null;
           if (
@@ -128,22 +123,18 @@ function DialogContent({
   ref?: React.Ref<React.ComponentRef<typeof DialogPrimitive.Popup>>;
 }) {
   const dismissRef = React.useContext(DialogDismissContext);
-  // Publish this content's dismiss preferences so the root `onOpenChange`
-  // handler can honour them (escape / outside-press / focus-out).
   if (dismissRef) {
     dismissRef.current = { showCloseWarning, onAttemptClose, preventOutsideClose };
   }
 
   const handleCloseAttempt = React.useCallback(() => {
-    // This handler is now only called when showCloseWarning is true
     if (showCloseWarning) {
       onAttemptClose?.();
     }
   }, [showCloseWarning, onAttemptClose]);
 
-  // Common class names for both button types
   const buttonClassNames =
-    "absolute right-4 top-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:rounded-lg disabled:pointer-events-none data-open:bg-accent text-muted-foreground z-51 [&_svg]:size-[14px] hover:rounded-lg";
+    "absolute right-4 top-4 rounded-xs opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-hidden focus:ring-2 focus:ring-gray-6 focus:ring-offset-2 focus:rounded-lg disabled:pointer-events-none data-open:bg-grayA-3 text-gray-11 z-51 [&_svg]:size-[14px] hover:rounded-lg";
 
   return (
     <DialogPortal>
@@ -151,16 +142,13 @@ function DialogContent({
       <DialogPrimitive.Popup
         ref={ref}
         className={cn(
-          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 transition-[opacity,scale,translate] data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95 sm:rounded-lg",
+          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 bg-raised p-6 shadow-floating duration-200 transition-[opacity,scale,translate] data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95 sm:rounded-lg",
           className,
         )}
         onKeyDown={(e) => {
-          // Allow keyboard navigation for nested interactive elements
           if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter") {
-            // Let these events propagate to nested components like Combobox
             return;
           }
-          // Prevent Tab key from closing the dialog
           if (e.key === "Tab") {
             e.stopPropagation();
           }
@@ -169,19 +157,17 @@ function DialogContent({
       >
         {children}
 
-        {/* Conditionally render the close button */}
         {showCloseWarning ? (
           <button
-            ref={xButtonRef} // Attach ref only needed for anchoring the custom popover
+            ref={xButtonRef}
             type="button"
-            onClick={handleCloseAttempt} // Call attempt handler
+            onClick={handleCloseAttempt}
             className={buttonClassNames}
             aria-label="Close dialog with confirmation"
           >
-            <XMark iconSize="md-medium" />
+            <IconXmarkOutline18 className="size-3.5" />
           </button>
         ) : (
-          // Use DialogPrimitive.Close for standard behavior
           <DialogPrimitive.Close
             render={
               <Button
@@ -191,7 +177,7 @@ function DialogContent({
                 className={buttonClassNames}
                 aria-label="Close dialog"
               >
-                <XMark iconSize="md-medium" />
+                <IconXmarkOutline18 className="size-4" />
               </Button>
             }
           />
@@ -240,7 +226,7 @@ function DialogDescription({
   return (
     <DialogPrimitive.Description
       ref={ref}
-      className={cn("text-sm text-content-subtle", className)}
+      className={cn("text-sm text-gray-11", className)}
       {...props}
     />
   );

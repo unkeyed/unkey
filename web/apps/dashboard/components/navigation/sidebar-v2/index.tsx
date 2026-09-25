@@ -2,9 +2,9 @@
 
 import { Sidebar, SidebarContent, SidebarFooter, useSidebar } from "@/components/ui/sidebar";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
-import { cn } from "@/lib/utils";
-import { SidebarLeftHide, SidebarLeftShow } from "@unkey/icons";
+import { IconSidebarLeftHideOutline18, IconSidebarLeftShowOutline18 } from "@unkey/icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@unkey/ui";
+import { cn } from "cn";
 import { SidebarBody } from "./sidebar-body";
 import { UsageBanner } from "./usage-banner";
 import { UsageCard } from "./usage-card";
@@ -31,7 +31,7 @@ export function SidebarV2(props: Props) {
       collapsible="icon"
       // absolute, not the default viewport-fixed: the layout's relative content
       // row already starts below the top nav and the paused banner.
-      className={cn("absolute h-auto [&_[data-sidebar=sidebar]]:bg-gray-1", props.className)}
+      className={cn("absolute h-auto [&_[data-sidebar=sidebar]]:bg-background", props.className)}
     >
       <SidebarContent>
         <SidebarBody />
@@ -47,7 +47,7 @@ export function SidebarV2(props: Props) {
 function CollapseButton() {
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
-  const Icon = collapsed ? SidebarLeftShow : SidebarLeftHide;
+  const Icon = collapsed ? IconSidebarLeftShowOutline18 : IconSidebarLeftHideOutline18;
   const label = collapsed ? "Expand sidebar" : "Collapse sidebar";
   return (
     <Tooltip>
@@ -59,15 +59,11 @@ function CollapseButton() {
             aria-label={label}
             className="flex size-8 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-gray-12"
           >
-            <Icon iconSize="md-regular" className="shrink-0" />
+            <Icon className="size-3.5 shrink-0" />
           </button>
         }
       />
-      <TooltipContent
-        side="right"
-        align="center"
-        className="dark:bg-white bg-black text-gray-1 px-2 py-1 border border-accent-6 shadow-md font-medium text-xs"
-      >
+      <TooltipContent side="right" align="center">
         {label}
       </TooltipContent>
     </Tooltip>

@@ -50,6 +50,21 @@ const (
 	// token to github.com; BuildKit's git source looks up the host-suffixed
 	// name first. Shared by the Dockerfile and Railpack build paths.
 	gitAuthTokenSecretID = "GIT_AUTH_TOKEN.github.com"
+
+	// buildBackendDeadline bounds one attempt at acquiring a build machine and
+	// solving on it. Say Depot stops answering mid-build: without this the Run
+	// never returns, the workspace's one build slot stays taken, and every
+	// other deployment in that workspace queues behind it forever. At 30
+	// minutes the build fails instead. Equal to buildImageRetryCeiling, so a
+	// build that hits it is not retried either
+	buildBackendDeadline = 30 * time.Minute
+
+	// BuildKeepAliveWindow keeps Restate from suspending a running Build. Say a
+	// build takes ten minutes and the user cancels at minute five: a suspended
+	// Build never hears about it, so it keeps building and holds the workspace's
+	// build slot for the other five. Must stay above buildBackendDeadline, or
+	// cancel silently stops working for every build that runs longer than this
+	BuildKeepAliveWindow = buildBackendDeadline + 5*time.Minute
 )
 
 // knownBuildError maps a BuildKit error pattern to a user-friendly message.
@@ -234,7 +249,7 @@ func (w *Workflow) runGitBuild(
 	buildFn func(runCtx restate.RunContext, bctx gitBuildContext) (*buildResult, error),
 ) (*buildResult, error) {
 	if err := validateGitBuildParams(params); err != nil {
-		return nil, restate.TerminalError(fmt.Errorf("invalid git build params: %w", err))
+		return nil, restate.ToTerminalError(fmt.Errorf("invalid git build params: %w", err))
 	}
 
 	depotProjectID := ""
@@ -273,11 +288,11 @@ func (w *Workflow) runGitBuild(
 		// surfaced to the user fast than burned inside a retry loop.
 		envVars, err := w.decryptEnvVars(runCtx, params.EncryptedEnvironmentVariables, params.EnvironmentID)
 		if err != nil {
-			return nil, restate.TerminalError(fmt.Errorf("failed to decrypt env vars for build: %w", err))
+			return nil, restate.ToTerminalError(fmt.Errorf("failed to decrypt env vars for build: %w", err))
 		}
 
 		if err := validateShellEnvKeys(envVars); err != nil {
-			return nil, restate.TerminalError(err)
+			return nil, restate.ToTerminalError(err)
 		}
 
 		return buildFn(runCtx, gitBuildContext{
@@ -323,10 +338,11 @@ func (w *Workflow) buildDockerImageFromGit(
 		// routing bug, so assert instead.
 		dockerfilePath := params.DockerfilePath
 		if assertErr := assert.NotEmpty(dockerfilePath, "dockerfile path must be set for dockerfile builds"); assertErr != nil {
-			return nil, restate.TerminalError(assertErr)
+			return nil, restate.ToTerminalError(assertErr)
 		}
 
-		logger.Info("Starting build execution",
+		logger.Info(
+			"Starting build execution",
 			"image_name", bctx.ImageName,
 			"dockerfile", dockerfilePath,
 			"platform", platform,
@@ -396,16 +412,23 @@ func buildGitContextURL(params gitBuildParams) string {
 // build backend and invokes fn with it. Returns the backend's build ID
 // alongside fn's error. The backend value is validated at config load, so
 // anything but the two known backends is unreachable.
+//
+// fn must use the context it is given rather than the caller's: it carries
+// [buildBackendDeadline], which is what stops a backend that never answers
+// from holding the workspace's build slot forever.
 func (w *Workflow) withBuildkit(
 	runCtx context.Context,
 	depotProjectID string,
 	params gitBuildParams,
-	fn func(buildClient *client.Client) error,
+	fn func(buildCtx context.Context, buildClient *client.Client) error,
 ) (string, error) {
+	buildCtx, cancel := context.WithTimeout(runCtx, buildBackendDeadline)
+	defer cancel()
+
 	if w.buildConfig.Backend == BuildBackendKubernetes {
-		return w.withKubernetesBuildkit(runCtx, params, fn)
+		return w.withKubernetesBuildkit(buildCtx, params, fn)
 	}
-	return w.withDepotBuildkit(runCtx, depotProjectID, params, fn)
+	return w.withDepotBuildkit(buildCtx, depotProjectID, params, fn)
 }
 
 // withDepotBuildkit creates a Depot build, acquires a remote BuildKit
@@ -413,12 +436,12 @@ func (w *Workflow) withBuildkit(
 // build is finalized and the machine released regardless of fn's outcome.
 // Returns the Depot build ID alongside fn's error.
 func (w *Workflow) withDepotBuildkit(
-	runCtx context.Context,
+	buildCtx context.Context,
 	depotProjectID string,
 	params gitBuildParams,
-	fn func(buildClient *client.Client) error,
+	fn func(buildCtx context.Context, buildClient *client.Client) error,
 ) (_ string, err error) {
-	depotBuild, err := build.NewBuild(runCtx, &cliv1.CreateBuildRequest{
+	depotBuild, err := build.NewBuild(buildCtx, &cliv1.CreateBuildRequest{
 		Options:   nil,
 		ProjectId: depotProjectID,
 	}, w.registryConfig.Password)
@@ -437,7 +460,7 @@ func (w *Workflow) withDepotBuildkit(
 		"architecture", w.buildPlatform.Architecture,
 		"project_id", params.ProjectID)
 
-	buildkit, err := machine.Acquire(runCtx, depotBuild.ID, depotBuild.Token, w.buildPlatform.Architecture)
+	buildkit, err := machine.Acquire(buildCtx, depotBuild.ID, depotBuild.Token, w.buildPlatform.Architecture)
 	if err != nil {
 		return "", fmt.Errorf("failed to acquire machine: %w", err)
 	}
@@ -451,7 +474,7 @@ func (w *Workflow) withDepotBuildkit(
 		"build_id", depotBuild.ID,
 		"project_id", params.ProjectID)
 
-	buildClient, err := buildkit.Connect(runCtx)
+	buildClient, err := buildkit.Connect(buildCtx)
 	if err != nil {
 		return "", fmt.Errorf("unable to create build client: %w", err)
 	}
@@ -461,7 +484,7 @@ func (w *Workflow) withDepotBuildkit(
 		}
 	}()
 
-	err = fn(buildClient)
+	err = fn(buildCtx, buildClient)
 	return depotBuild.ID, err
 }
 
@@ -489,7 +512,7 @@ func (w *Workflow) solveWithStatus(
 		if isTransientSolveError(err) {
 			return fmt.Errorf("build hit a transient registry error: %w", err)
 		}
-		return restate.TerminalError(fmt.Errorf("build failed: %w", err))
+		return restate.ToTerminalError(fmt.Errorf("build failed: %w", err))
 	}
 	return nil
 }
@@ -529,8 +552,8 @@ func (w *Workflow) solveOnBuildMachine(
 	params gitBuildParams,
 	solverOptions client.SolveOpt,
 ) (*buildResult, error) {
-	buildID, err := w.withBuildkit(runCtx, depotProjectID, params, func(buildClient *client.Client) error {
-		return w.solveWithStatus(runCtx, buildClient, params, solverOptions)
+	buildID, err := w.withBuildkit(runCtx, depotProjectID, params, func(buildCtx context.Context, buildClient *client.Client) error {
+		return w.solveWithStatus(buildCtx, buildClient, params, solverOptions)
 	})
 	if err != nil {
 		return nil, err
@@ -852,7 +875,7 @@ func (w *Workflow) resolveCloneToken(params gitBuildParams, isForkBuild bool) (g
 				return noToken, false, fmt.Errorf("could not determine visibility of fork repository %s: %w", scopeRepo, err)
 			}
 			// Confirmed private: terminal, retrying never helps.
-			return noToken, false, restate.TerminalError(fmt.Errorf(
+			return noToken, false, restate.ToTerminalError(fmt.Errorf(
 				"cannot access private fork repository %s: it is outside this GitHub App installation", scopeRepo,
 			))
 		}

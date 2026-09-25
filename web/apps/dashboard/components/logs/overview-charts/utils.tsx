@@ -90,7 +90,7 @@ export function createTimeIntervalFormatter(
     if (!currentTimestamp || !data?.length) {
       return (
         <div className="px-4">
-          <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
+          <span className="font-mono text-gray-9 text-xs whitespace-nowrap">
             {formattedCurrentTimestamp} ({timezoneAbbr})
           </span>
         </div>
@@ -117,7 +117,7 @@ export function createTimeIntervalFormatter(
     if (currentIndex === -1 || currentIndex >= data.length - 1) {
       return (
         <div className="px-4">
-          <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
+          <span className="font-mono text-gray-9 text-xs whitespace-nowrap">
             {formattedCurrentTimestamp} ({timezoneAbbr})
           </span>
         </div>
@@ -129,7 +129,7 @@ export function createTimeIntervalFormatter(
     if (!nextPoint) {
       return (
         <div>
-          <span className="font-mono text-accent-9 text-xs px-4">{formattedCurrentTimestamp}</span>
+          <span className="font-mono text-gray-9 text-xs px-4">{formattedCurrentTimestamp}</span>
         </div>
       );
     }
@@ -153,7 +153,7 @@ export function createTimeIntervalFormatter(
     // Return formatted interval with timezone info
     return (
       <div className="px-4">
-        <span className="font-mono text-accent-9 text-xs whitespace-nowrap">
+        <span className="font-mono text-gray-9 text-xs whitespace-nowrap">
           {formattedCurrentTimestamp} - {formattedNextTimestamp} ({timezoneDisplay})
         </span>
       </div>

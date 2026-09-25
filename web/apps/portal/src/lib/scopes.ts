@@ -19,11 +19,17 @@ export function canRerollKeys(scopes: ReadonlyArray<string>): boolean {
 }
 
 /**
- * Landing destination after session exchange.
- *
- * The portal currently exposes only the Keys page; Analytics and Docs are
- * deferred to v2 and blocked at the route layer. Returns null when the session
- * can't read keys so the caller can surface an appropriate state.
+ * Whether a session may read verification analytics. `portal.getVerifications`
+ * authorizes `read_analytics`, so the keys page must only render its metrics,
+ * chart and per-key request counts for sessions granted `analytics:read`.
+ */
+export function canReadAnalytics(scopes: ReadonlyArray<string>): boolean {
+  return scopes.includes("analytics:read");
+}
+
+/**
+ * Landing destination after session exchange. Null when the session can reach
+ * no page, so the caller can surface an appropriate state.
  */
 export function getDefaultTabHref(scopes: ReadonlyArray<string>): string | null {
   return canReadKeys(scopes) ? "/keys" : null;

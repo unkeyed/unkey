@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 	"time"
 
@@ -36,13 +35,15 @@ func (s *service) makeInstanceDirector(sess *zen.Session, startTime time.Time) f
 		// Preserve original Host so the upstream sees what the client asked for.
 		req.Host = sess.Request().Host
 
-		if clientIP, _, err := net.SplitHostPort(sess.Request().RemoteAddr); err == nil {
-			req.Header.Set("X-Forwarded-For", clientIP)
-		} else if loc := sess.Location(); loc != "" {
+		if loc := sess.Location(); loc != "" {
 			req.Header.Set("X-Forwarded-For", loc)
 		}
 		req.Header.Set("X-Forwarded-Host", sess.Request().Host)
-		req.Header.Set("X-Forwarded-Proto", "https")
+		scheme := "http"
+		if sess.Request().TLS != nil {
+			scheme = "https"
+		}
+		req.Header.Set("X-Forwarded-Proto", scheme)
 	}
 }
 

@@ -1,6 +1,6 @@
-import { CaretRightOutline, CircleInfoSparkle } from "@unkey/icons";
+import { IconCaretRightOutline18, IconCircleInfoSparkleOutline18 } from "@unkey/icons";
 import type React from "react";
-import { InfoTooltip } from "../../info-tooltip";
+import { InfoHoverCard } from "../../info-hover-card";
 
 type SearchExampleTooltipProps = {
   onSelectExample: (query: string) => void;
@@ -18,7 +18,7 @@ export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({
   ];
 
   return (
-    <InfoTooltip
+    <InfoHoverCard
       content={
         <div>
           <div className="font-medium mb-2 flex items-center gap-2 text-[13px]">
@@ -28,10 +28,10 @@ export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({
           <ul className="space-y-1.5 pl-1 [&_svg]:size-[10px] ">
             {examples.map((example) => (
               <li key={example} className="flex items-center gap-2">
-                <CaretRightOutline className="text-accent-9" />
+                <IconCaretRightOutline18 className="text-gray-9" />
                 <button
                   type="button"
-                  className="hover:text-accent-11 transition-colors cursor-pointer hover:underline"
+                  className="hover:text-gray-11 transition-colors cursor-pointer hover:underline"
                   onClick={() => onSelectExample(example)}
                   data-testid={`example-${example}`}
                 >
@@ -45,8 +45,8 @@ export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({
       delayDuration={150}
     >
       <div data-testid="info-icon">
-        <CircleInfoSparkle className="size-4 text-accent-9" />
+        <IconCircleInfoSparkleOutline18 className="size-4 text-gray-9" />
       </div>
-    </InfoTooltip>
+    </InfoHoverCard>
   );
 };

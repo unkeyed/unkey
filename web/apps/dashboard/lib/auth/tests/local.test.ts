@@ -14,15 +14,10 @@ describe("LocalAuthProvider", () => {
     expect(session.role).toBe(LOCAL_ORG_ROLE);
   });
 
-  it("sanitizes the OAuth redirect target instead of echoing it verbatim", () => {
+  it("keeps the fixed local organization administrative behavior", async () => {
     const auth = new LocalAuthProvider();
 
-    expect(auth.signInViaOAuth({ provider: "github", redirectUrlComplete: "/apis" })).toBe("/apis");
-    expect(
-      auth.signInViaOAuth({ provider: "github", redirectUrlComplete: "https://evil.com" }),
-    ).toBe("/apis");
-    expect(auth.signInViaOAuth({ provider: "github", redirectUrlComplete: "//evil.com" })).toBe(
-      "/apis",
-    );
+    await expect(auth.getOrg(LOCAL_ORG_ID)).resolves.toMatchObject({ id: LOCAL_ORG_ID });
+    await expect(auth.getOrg("org_unknown")).rejects.toThrow("not found");
   });
 });

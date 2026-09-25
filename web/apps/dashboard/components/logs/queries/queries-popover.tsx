@@ -1,10 +1,21 @@
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
 import type { User } from "@/lib/auth/types";
-import { trpc } from "@/lib/trpc/client";
-import { KeyboardButton, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import { useWorkspace } from "@/providers/workspace-provider";
+import { IconBook2Outline18 } from "@unkey/icons";
+import {
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
+  KeyboardButton,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@unkey/ui";
 import { useEffect, useRef, useState } from "react";
 import type { FilterValue } from "../validation/filter.types";
-import { EmptyQueries } from "./empty";
 import { ListGroup } from "./list-group";
 import { QueriesProvider, type QueryParamsTypes, useQueries } from "./queries-context";
 import { QueriesTabs } from "./queries-tabs";
@@ -31,7 +42,7 @@ export function QueriesPopover<T extends FilterValue, U extends QueryParamsTypes
   getFilterFieldIcon,
   shouldTruncateRow,
 }: QueriesPopoverProps<T, U>) {
-  const { data: user } = trpc.user.getCurrentUser.useQuery();
+  const { user } = useWorkspace();
   const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [focusedTabIndex, setFocusedTabIndex] = useState(0);
@@ -96,7 +107,7 @@ export function QueriesPopover<T extends FilterValue, U extends QueryParamsTypes
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger render={children as React.ReactElement} />
         <PopoverContent
-          className="flex flex-col min-w-107 max-w-200 h-[calc(100dvh-120px)] max-h-190 bg-white dark:bg-black rounded-lg p-2 pb-0 shadow-lg border-r border-gray-4"
+          className="flex flex-col min-w-107 max-w-200 h-[calc(100dvh-120px)] max-h-190 bg-raised rounded-lg p-2 pb-0"
           align="start"
           onKeyDown={handleKeyNavigation}
         >
@@ -123,13 +134,10 @@ export function QueriesPopover<T extends FilterValue, U extends QueryParamsTypes
 const PopoverHeader = () => {
   return (
     <div className="flex justify-between w-full h-8 ">
-      <span className="text-text text-gray-9 text-[13px] w-full leading-6 text-normal tracking-[0.1px] mt-1 ml-1.5">
+      <span className="text-gray-9 text-[13px] w-full leading-6 font-normal tracking-[0.1px] mt-1 ml-1.5">
         Select a query...
       </span>
-      <KeyboardButton
-        shortcut="Q"
-        className="p-0 m-0 min-w-5 w-5 h-5 rounded-[5px] mt-1.5 mr-1.5"
-      />
+      <KeyboardButton shortcut="Q" className="p-0 m-0 min-w-5 w-5 h-5 rounded-sm mt-1.5 mr-1.5" />
     </div>
   );
 };
@@ -162,16 +170,46 @@ const QueriesContent = ({ focusedTabIndex, selectedQueryIndex, user }: QueriesCo
   const transformFilters = (filters: QueryParamsTypes) => {
     return formatValues(filters);
   };
+
+  const isRecentTab = focusedTabIndex === 0;
+  const isEmpty = isRecentTab
+    ? localFilterGroups.length === 0
+    : localFilterGroups.filter((filter) => filter.bookmarked).length === 0;
+
   return (
     <>
-      <EmptyQueries
-        selectedTab={focusedTabIndex}
-        isEmpty={
-          focusedTabIndex === 0
-            ? localFilterGroups.length === 0
-            : localFilterGroups.filter((filter) => filter.bookmarked).length === 0
-        }
-      />
+      {isEmpty && (
+        <div className="flex items-center justify-between w-full h-full p-2 -mt-3.75">
+          <EmptyState frame="none">
+            <EmptyStateHeader>
+              <EmptyStateTitle>
+                {isRecentTab ? "No recent queries" : "No saved queries"}
+              </EmptyStateTitle>
+              <EmptyStateDescription>
+                {isRecentTab
+                  ? "Query using the filters, and they will show up here"
+                  : "Save your recent queries and they will remain here"}
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+            <EmptyStateActions>
+              <a
+                href="https://www.unkey.com/docs/introduction"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button
+                  variant="outline"
+                  size="md"
+                  className="flex items-center justify-center px-2"
+                >
+                  <IconBook2Outline18 className="py-0.5" />
+                  Documentation
+                </Button>
+              </a>
+            </EmptyStateActions>
+          </EmptyState>
+        </div>
+      )}
 
       {focusedTabIndex === 0 &&
         localFilterGroups?.map((filterItem, index: number) => {

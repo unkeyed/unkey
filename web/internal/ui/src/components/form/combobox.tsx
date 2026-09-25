@@ -1,9 +1,14 @@
 "use client";
 
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
-import { Check, ChevronExpandY, Magnifier } from "@unkey/icons";
+import {
+  IconCheckOutline12,
+  IconChevronExpandYOutline12,
+  IconMagnifierOutline12,
+} from "@unkey/icons";
 import { type VariantProps, cva } from "class-variance-authority";
 import * as React from "react";
+import { popupTransition } from "../../lib/popup";
 import { cn } from "../../lib/utils";
 import {
   InputGroup,
@@ -72,7 +77,7 @@ function ComboboxIcon({
       className={cn("flex shrink-0 items-center text-gray-11", className)}
       {...props}
     >
-      {children ?? <ChevronExpandY iconSize="sm-regular" />}
+      {children ?? <IconChevronExpandYOutline12 />}
     </ComboboxPrimitive.Icon>
   );
 }
@@ -103,7 +108,7 @@ function ComboboxInput({ className, icon, wrapperClassName, ref, ...props }: Com
   return (
     <InputGroup className={cn("h-8", wrapperClassName)}>
       <InputGroupAddon className="text-gray-9">
-        {icon ?? <Magnifier iconSize="sm-regular" />}
+        {icon ?? <IconMagnifierOutline12 />}
       </InputGroupAddon>
       <ComboboxPrimitive.Input
         ref={ref}
@@ -144,8 +149,8 @@ function ComboboxContent({
           ref={ref}
           data-combobox-popup=""
           className={cn(
-            "isolate relative z-50 flex flex-col overflow-hidden rounded-lg border border-gray-5 bg-gray-2 text-gray-12 shadow-md min-w-(--anchor-width) origin-(--transform-origin)",
-            "transition-[opacity,scale,translate] data-starting-style:opacity-0 data-starting-style:scale-95 data-ending-style:opacity-0 data-ending-style:scale-95",
+            "isolate relative z-50 flex flex-col overflow-hidden rounded-lg bg-raised text-gray-12 shadow-floating min-w-(--anchor-width) origin-(--transform-origin)",
+            popupTransition,
             "data-[side=bottom]:data-starting-style:-translate-y-1 data-[side=top]:data-starting-style:translate-y-1",
             className,
           )}
@@ -238,7 +243,7 @@ function ComboboxItemIndicator({
       className={cn("ml-auto flex shrink-0 items-center", className)}
       {...props}
     >
-      {children ?? <Check iconSize="sm-regular" />}
+      {children ?? <IconCheckOutline12 />}
     </ComboboxPrimitive.ItemIndicator>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { routes } from "@/lib/navigation/routes";
@@ -57,6 +58,7 @@ export const IdentifierDialog = ({
   isLoading = false,
 }: Props) => {
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
 
   const {
     register,
@@ -103,7 +105,9 @@ export const IdentifierDialog = ({
           duration: values.duration,
         });
         onOpenChange(false);
-        router.push(routes.ratelimits.overrides({ workspaceSlug: workspace.slug, namespaceId }));
+        router.push(
+          routes.ratelimits.overrides({ workspaceSlug: workspace.slug, ...scope, namespaceId }),
+        );
       }
     } catch (error) {
       if (error instanceof DuplicateKeyError) {
@@ -181,7 +185,7 @@ export const IdentifierDialog = ({
                 placeholder="Enter milliseconds (60000, 100000, 1200000…)"
               />
               <InputGroupAddon align="inline-end">
-                <Badge className="pointer-events-none rounded-md font-mono whitespace-nowrap gap-[6px] font-medium bg-accent-4 text-accent-11 hover:bg-accent-6">
+                <Badge className="pointer-events-none rounded-md font-mono whitespace-nowrap gap-[6px] font-medium bg-gray-4 text-gray-11 hover:bg-gray-6">
                   MS
                 </Badge>
               </InputGroupAddon>

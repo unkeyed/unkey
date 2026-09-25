@@ -1,11 +1,11 @@
 import { CommandMenu } from "@/components/dashboard/command-menu";
+import { getAuth, toAuthenticatedUser } from "@/lib/auth/get-auth";
 import { FlagsProvider } from "@/lib/flags/provider";
 import { resolveAll } from "@/lib/flags/resolve";
 import { WorkspaceProvider } from "@/providers/workspace-provider";
 import { Toaster } from "@unkey/ui";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
-import "@unkey/ui/css";
 import "@/styles/tailwind.css";
 import * as Sentry from "@sentry/nextjs";
 import { Analytics } from "@vercel/analytics/next";
@@ -14,6 +14,7 @@ import type { Metadata } from "next";
 import dynamic from "next/dynamic";
 import type React from "react";
 import { Suspense } from "react";
+import { AuthProvider } from "./auth-provider";
 import { ReactQueryProvider } from "./react-query-provider";
 import { ThemeProvider } from "./theme-provider";
 
@@ -62,6 +63,7 @@ export function generateMetadata(): Metadata {
         },
       ],
       shortcut: "/favicon/favicon.ico",
+      apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
     },
     other: {
       ...Sentry.getTraceData(),
@@ -78,7 +80,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const flags = await resolveAll();
+  const [flags, auth] = await Promise.all([resolveAll(), getAuth()]);
   return (
     <html
       lang="en"
@@ -94,16 +96,18 @@ export default async function RootLayout({
               enableSystem
               disableTransitionOnChange
             >
-              <WorkspaceProvider>
-                <Toaster />
-                {children}
-                <CommandMenu />
-                <Suspense fallback={null}>
-                  <Feedback />
-                </Suspense>
-                <Analytics />
-                {process.env.NODE_ENV === "development" && <VercelToolbar />}
-              </WorkspaceProvider>
+              <AuthProvider>
+                <WorkspaceProvider initialUser={toAuthenticatedUser(auth)}>
+                  <Toaster />
+                  {children}
+                  <CommandMenu />
+                  <Suspense fallback={null}>
+                    <Feedback />
+                  </Suspense>
+                  <Analytics />
+                  {process.env.NODE_ENV === "development" && <VercelToolbar />}
+                </WorkspaceProvider>
+              </AuthProvider>
             </ThemeProvider>
           </ReactQueryProvider>
         </FlagsProvider>

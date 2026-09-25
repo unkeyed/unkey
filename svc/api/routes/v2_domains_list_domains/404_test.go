@@ -28,7 +28,7 @@ func TestListDomainsIDSlugCollisionsMatchBoth(t *testing.T) {
 	})
 	projectApp := h.CreateApp(seed.CreateAppRequest{
 		ID: uid.New(uid.AppPrefix), WorkspaceID: base.workspaceID, ProjectID: projectBySlug.ID,
-		Name: "Project collision app", Slug: randomSlug(), DefaultBranch: "main",
+		Name: "Project collision app", Slug: randomSlug(),
 	})
 	projectEnvironment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID: uid.New(uid.EnvironmentPrefix), WorkspaceID: base.workspaceID, ProjectID: projectBySlug.ID,
@@ -40,7 +40,7 @@ func TestListDomainsIDSlugCollisionsMatchBoth(t *testing.T) {
 
 	appBySlug := h.CreateApp(seed.CreateAppRequest{
 		ID: uid.New(uid.AppPrefix), WorkspaceID: base.workspaceID, ProjectID: base.projectID,
-		Name: "App slug collision", Slug: base.appID, DefaultBranch: "main",
+		Name: "App slug collision", Slug: base.appID,
 	})
 	appEnvironment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID: uid.New(uid.EnvironmentPrefix), WorkspaceID: base.workspaceID, ProjectID: base.projectID,
@@ -130,7 +130,7 @@ func TestListDomainsCrossWorkspaceFiltersReturnEmpty(t *testing.T) {
 	})
 	otherApp := h.CreateApp(seed.CreateAppRequest{
 		ID: uid.New(uid.AppPrefix), WorkspaceID: otherWorkspace.ID, ProjectID: otherProject.ID,
-		Name: "Other app", Slug: randomSlug(), DefaultBranch: "main",
+		Name: "Other app", Slug: randomSlug(),
 	})
 	otherEnvironment := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID: uid.New(uid.EnvironmentPrefix), WorkspaceID: otherWorkspace.ID, ProjectID: otherProject.ID,

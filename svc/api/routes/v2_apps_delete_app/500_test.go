@@ -40,12 +40,11 @@ func assertRestateFailure(t *testing.T, restate *restateingress.Client) {
 		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("project"), "_", "-")),
 	})
 	app := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   workspace.ID,
-		ProjectID:     project.ID,
-		Name:          "Restate Failure",
-		Slug:          strings.ToLower(strings.ReplaceAll(uid.New("app"), "_", "-")),
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "Restate Failure",
+		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("app"), "_", "-")),
 	})
 	rootKey := h.CreateRootKey(workspace.ID, "app.*.delete_app")
 	headers := http.Header{

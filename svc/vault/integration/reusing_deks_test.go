@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"fmt"
-	"time"
 
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
@@ -29,7 +28,7 @@ func TestReuseDEKsForSameKeyring(t *testing.T) {
 
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.URL,
-		S3Bucket:          fmt.Sprintf("%d", time.Now().UnixMilli()),
+		S3Bucket:          s3.CreateBucket(t),
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.SecretAccessKey,
 	})
@@ -77,7 +76,7 @@ func TestIndividualDEKsPerKeyring(t *testing.T) {
 
 	storage, err := storage.NewS3(storage.S3Config{
 		S3URL:             s3.URL,
-		S3Bucket:          fmt.Sprintf("%d", time.Now().UnixMilli()),
+		S3Bucket:          s3.CreateBucket(t),
 		S3AccessKeyID:     s3.AccessKeyID,
 		S3AccessKeySecret: s3.SecretAccessKey,
 	})

@@ -208,7 +208,6 @@ func ensureApp(ctx context.Context, tx db.DBTX, workspaceID, projectID string, p
 		Name:             profile.name,
 		Slug:             profile.slug,
 		SourceType:       db.AppsSourceTypeGit,
-		DefaultBranch:    "main",
 		DeleteProtection: sql.NullBool{},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{},

@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
-import { XMark } from "@unkey/icons";
+import { IconXmarkOutline12 } from "@unkey/icons";
+import { cn } from "cn";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface BaseItem {
@@ -77,25 +77,25 @@ export function SelectedItemsList<T extends BaseItem>({
               <ItemComponent
                 key={item.id}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-black border border-gray-5 rounded-md text-xs w-full",
+                  "flex items-center gap-2 px-3 py-1.5 bg-raised border rounded-md text-xs w-full",
                   itemHeight,
                 )}
                 {...itemProps}
               >
-                <div className="border rounded-sm flex items-center justify-center border-grayA-4 bg-gray-4 shrink-0 size-5">
+                <div className="border rounded-sm flex items-center justify-center bg-gray-4 shrink-0 size-5">
                   {renderIcon(item)}
                 </div>
                 <div className="flex flex-col gap-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span
-                      className="font-medium text-accent-12 text-left truncate max-w-[60px]"
+                      className="font-medium text-gray-12 text-left truncate max-w-[60px]"
                       title={item.name}
                     >
                       {renderPrimaryText(item)}
                     </span>
                     <span className="truncate z-auto">{renderBadge?.(item)}</span>
                   </div>
-                  <span className="text-accent-9 text-[11px] font-mono truncate">
+                  <span className="text-gray-9 text-[11px] font-mono truncate">
                     {renderSecondaryText(item)}
                   </span>
                 </div>
@@ -103,17 +103,17 @@ export function SelectedItemsList<T extends BaseItem>({
                   <button
                     type="button"
                     onClick={() => onRemoveItem(item.id)}
-                    className="p-0.5 hover:bg-grayA-4 rounded-sm text-grayA-11 hover:text-accent-12 transition-colors shrink-0 ml-auto"
+                    className="p-0.5 hover:bg-grayA-4 rounded-sm text-grayA-11 hover:text-gray-12 transition-colors shrink-0 ml-auto"
                     aria-label={`Remove ${renderPrimaryText(item)}`}
                   >
-                    <XMark iconSize="sm-regular" />
+                    <IconXmarkOutline12 />
                   </button>
                 ) : (
                   <div
                     className="p-0.5 rounded-sm text-grayA-6 shrink-0 ml-auto opacity-50"
                     title="Cannot remove - inherited from selected role"
                   >
-                    <XMark iconSize="sm-regular" />
+                    <IconXmarkOutline12 />
                   </div>
                 )}
               </ItemComponent>

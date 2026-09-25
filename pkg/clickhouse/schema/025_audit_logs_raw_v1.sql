@@ -83,10 +83,15 @@ CREATE TABLE IF NOT EXISTS default.audit_logs_raw_v1
     -- because correlation_id is empty on most rows; bloom handles that
     -- gracefully (whole-granule no-match for the empty bucket).
     INDEX idx_correlation_id    correlation_id    TYPE bloom_filter(0.01)      GRANULARITY 4,
-    -- Log drains page by inserted_at. The partition key prunes whole months;
-    -- this minmax index prunes granules inside the month because rows in a
-    -- granule were inserted within seconds of each other.
-    INDEX idx_inserted_at       inserted_at       TYPE minmax                  GRANULARITY 1
+    -- Log drains filter by workspace and page by (inserted_at, event_id).
+    -- This projection indexes that access order instead of the base table's
+    -- (workspace_id, bucket, time, event_id) order. _part_offset points to the
+    -- full rows.
+    PROJECTION proj_logdrain
+    (
+        SELECT workspace_id, inserted_at, event_id, _part_offset
+        ORDER BY workspace_id, inserted_at, event_id
+    )
 )
 ENGINE = ReplacingMergeTree()
 PARTITION BY toYYYYMM(fromUnixTimestamp64Milli(inserted_at))
@@ -100,4 +105,6 @@ ORDER BY (workspace_id, bucket, time, event_id)
 -- grows past 90d.
 TTL toDateTime(fromUnixTimestamp64Milli(inserted_at)) + INTERVAL 90 DAY DELETE
 SETTINGS index_granularity = 8192,
-         non_replicated_deduplication_window = 10000;
+         non_replicated_deduplication_window = 10000,
+         allow_part_offset_column_in_projections = 1,
+         deduplicate_merge_projection_mode = 'rebuild';

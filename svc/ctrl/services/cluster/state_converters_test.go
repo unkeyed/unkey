@@ -19,29 +19,26 @@ func TestDeploymentRowToState_Running(t *testing.T) {
 		ProjectID:              "prj_1",
 		EnvironmentID:          "env_1",
 		AppID:                  "app_1",
-		Image:                  sql.NullString{Valid: true, String: "registry.io/app:v1"},
-		ImageResolved:          sql.NullString{Valid: false, String: "registry.io/invalid:v2"},
+		ImageResolved:          sql.NullString{Valid: true, String: "registry.io/app:v1"},
 		CpuMillicores:          250,
 		MemoryMib:              256,
 		Port:                   8080,
 		ShutdownSignal:         db.DeploymentsShutdownSignalSIGTERM,
-		K8sNamespace:           sql.NullString{Valid: true, String: "ws-namespace"},
+		K8sNamespace:           "ws-namespace",
 		EnvironmentSlug:        "production",
 		RegionName:             "us-east-1",
 	}
 
-	state, err := deploymentRowToState(row, 42)
+	state, err := deploymentRowToState(row)
 	require.NoError(t, err)
 	require.NotNil(t, state)
-
-	require.Equal(t, uint64(42), state.GetVersion())
 
 	apply := state.GetApply()
 	require.NotNil(t, apply, "running status should produce an ApplyDeployment")
 	require.Equal(t, "deploy_123", apply.GetDeploymentId())
 	require.Equal(t, "my-app", apply.GetK8SName())
 	require.Equal(t, "ws-namespace", apply.GetK8SNamespace())
-	require.Equal(t, "registry.io/app:v1", apply.GetImage(), "legacy image remains readable during rollout")
+	require.Equal(t, "registry.io/app:v1", apply.GetImage())
 	require.Equal(t, int64(250), apply.GetCpuMillicores())
 	require.Equal(t, uint32(1), apply.GetAutoscaling().GetMinReplicas())
 	require.Equal(t, uint32(3), apply.GetAutoscaling().GetMaxReplicas())
@@ -51,14 +48,12 @@ func TestDeploymentRowToState_Stopped(t *testing.T) {
 	row := db.FindDeploymentTopologyByDeploymentAndRegionRow{
 		DesiredStatus: db.DeploymentTopologyDesiredStatusStopped,
 		K8sName:       "my-app",
-		K8sNamespace:  sql.NullString{Valid: true, String: "ws-namespace"},
+		K8sNamespace:  "ws-namespace",
 	}
 
-	state, err := deploymentRowToState(row, 7)
+	state, err := deploymentRowToState(row)
 	require.NoError(t, err)
 	require.NotNil(t, state)
-
-	require.Equal(t, uint64(7), state.GetVersion())
 
 	del := state.GetDelete()
 	require.NotNil(t, del, "stopped status should produce a DeleteDeployment")

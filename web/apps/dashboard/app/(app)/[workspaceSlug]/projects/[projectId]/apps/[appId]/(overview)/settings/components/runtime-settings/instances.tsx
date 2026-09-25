@@ -1,12 +1,13 @@
 "use client";
 
+import { rampColorVar } from "@/components/charts/chart-colors";
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { freeTierLimits } from "@/lib/limits";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Connections3 } from "@unkey/icons";
+import { IconConnections3Outline18 } from "@unkey/icons";
 import { Slider } from "@unkey/ui";
 import { useContext, useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -56,7 +57,7 @@ const buildSliderRangeStyle = (replicasMin: number, replicasMax: number, limit: 
   const left = span > 0 ? (replicasMin - REPLICAS_MIN) / span : 0;
   const right = span > 0 ? (replicasMax - REPLICAS_MIN) / span : 0;
   return {
-    background: `linear-gradient(to right, hsla(var(--${COLOR_VAR}-4)), hsla(var(--${COLOR_VAR}-12)))`,
+    background: `linear-gradient(to right, ${rampColorVar(`${COLOR_VAR}-4`)}, ${rampColorVar(`${COLOR_VAR}-12`)})`,
     backgroundSize: `${right > left ? 100 / (right - left) : 10000}% 100%`,
     backgroundPosition: `${left > 0 ? (100 * left) / (1 - left) : 0}% 0`,
     backgroundRepeat: "no-repeat",
@@ -173,7 +174,7 @@ const SingleMode = () => {
 
   return (
     <FormSettingCard
-      icon={<Connections3 className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconConnections3Outline18 className="text-gray-12" />}
       title="Instances"
       description={description}
       displayValue={<span className="font-medium text-gray-12">{displayParts.value}</span>}
@@ -368,7 +369,7 @@ const DualInner = ({ production, preview }: DualInnerProps) => {
 
   return (
     <FormSettingCard
-      icon={<Connections3 className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconConnections3Outline18 className="text-gray-12" />}
       title="Instances"
       description={description}
       displayValue={

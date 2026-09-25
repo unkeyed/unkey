@@ -171,7 +171,8 @@ func (s *service) ForwardToRegion(ctx context.Context, sess *zen.Session, target
 		Claims: paseto.Claims{
 			ExpiresAt: now.Add(frontlineMetadataTTL),
 		},
-		Hops: hops,
+		Hops:     hops,
+		ClientIP: sess.Location(),
 	}
 	signedMetadata, err := s.metadata.Marshal(metadata)
 	if err != nil {

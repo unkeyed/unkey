@@ -1,6 +1,6 @@
 import { safeParseJson } from "@/app/(app)/[workspaceSlug]/logs/utils";
-import { cn } from "@/lib/utils";
 import { TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import type { EnrichedRatelimitLog } from "../../hooks/use-ratelimit-logs-query";
 import { EnrichmentSkeleton } from "./enrichment-skeleton";
 

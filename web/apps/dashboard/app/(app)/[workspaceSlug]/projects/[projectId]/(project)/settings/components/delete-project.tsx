@@ -2,24 +2,30 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
+import type { Project } from "@/lib/collections/deploy/projects";
 import { routes } from "@/lib/navigation/routes";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { TriangleWarning2 } from "@unkey/icons";
-import { Button, DialogContainer, Input, SettingsZoneRow } from "@unkey/ui";
+import { IconTriangleWarningOutline12 } from "@unkey/icons";
+import {
+  AlertBanner,
+  AlertBannerDescription,
+  Button,
+  DialogContainer,
+  Input,
+  SettingsZoneRow,
+} from "@unkey/ui";
 
-import { useProjectData } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/data-provider";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-export function DeleteProject() {
-  const { projectId, project } = useProjectData();
+export function DeleteProject({ project }: { project: Project }) {
   const workspace = useWorkspaceNavigation();
   const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const projectName = project?.name ?? "";
+  const projectName = project.name;
 
   const formSchema = z.object({
     name: z.string().refine((v) => v === projectName, "Please confirm the project name"),
@@ -45,19 +51,13 @@ export function DeleteProject() {
   const onSubmit = async () => {
     // Non-optimistic: keep the project in the collection until the server delete
     // resolves. An optimistic removal empties the local project while this page
-    // is still mounted and trips the data provider's notFound() guard, 404ing
-    // before navigation lands.
-    const tx = collection.projects.delete(projectId, { optimistic: false });
+    // is still mounted and trips ProjectGuard's notFound(), 404ing before
+    // navigation lands.
+    const tx = collection.projects.delete(project.id, { optimistic: false });
     await tx.isPersisted.promise;
     setIsDialogOpen(false);
     router.push(routes.projects.list({ workspaceSlug: workspace.slug }));
   };
-
-  // Without a loaded project, projectName is "" and an empty confirmation
-  // input would pass validation, enabling the delete button.
-  if (!project) {
-    return null;
-  }
 
   return (
     <>
@@ -95,18 +95,16 @@ export function DeleteProject() {
           </div>
         }
       >
-        <div className="rounded-xl bg-errorA-2 dark:bg-black border border-errorA-3 flex items-center gap-4 px-[22px] py-6">
-          <div className="bg-error-9 size-8 rounded-full flex items-center justify-center shrink-0">
-            <TriangleWarning2 iconSize="sm-regular" className="text-white" />
-          </div>
-          <div className="text-error-12 text-[13px] leading-6">
+        <AlertBanner variant="error">
+          <IconTriangleWarningOutline12 aria-hidden="true" />
+          <AlertBannerDescription>
             <span className="font-medium">Warning:</span> deleting{" "}
             <span className="font-medium">{projectName}</span> will remove all of its apps,
             deployments, environments, custom domains, and associated data. This action cannot be
             undone. Any monitoring, logs, and historical data tied to this project will be
             permanently lost.
-          </div>
-        </div>
+          </AlertBannerDescription>
+        </AlertBanner>
         <form id="delete-project-form" onSubmit={handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-1 mt-4">
             <p className="text-gray-11 text-[13px]">

@@ -197,6 +197,7 @@ type Limit struct {
 	ApiRequestsCountMaxPerMinute          sql.NullInt32 `db:"api_requests_count_max_per_minute"`
 	LogsRetentionDaysMax                  uint16        `db:"logs_retention_days_max"`
 	LogsAuditRetentionDaysMax             uint16        `db:"logs_audit_retention_days_max"`
+	LogdrainsMax                          uint32        `db:"logdrains_max"`
 	TeamEnabled                           bool          `db:"team_enabled"`
 	CpuCoresMax                           uint32        `db:"cpu_cores_max"`
 	CpuCoresMaxPerInstance                uint32        `db:"cpu_cores_max_per_instance"`
@@ -261,7 +262,7 @@ type Workspace struct {
 	OrgID            string          `db:"org_id"`
 	Name             string          `db:"name"`
 	Slug             string          `db:"slug"`
-	K8sNamespace     sql.NullString  `db:"k8s_namespace"`
+	K8sNamespace     string          `db:"k8s_namespace"`
 	BetaFeatures     json.RawMessage `db:"beta_features"`
 	Subscriptions    []byte          `db:"subscriptions"`
 	Enabled          bool            `db:"enabled"`

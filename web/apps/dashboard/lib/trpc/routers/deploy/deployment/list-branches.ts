@@ -20,6 +20,7 @@ export const listDeploymentBranches = workspaceProcedure
           eq(deployments.workspaceId, ctx.workspace.id),
           eq(deployments.projectId, input.projectId),
           eq(deployments.appId, input.appId),
+          ne(deployments.source, "oci"),
           isNotNull(deployments.gitBranch),
           ne(deployments.gitBranch, ""),
           excludeSkipped(),

@@ -62,7 +62,7 @@ func (s *Seeder) CreateWorkspace(ctx context.Context) db.Workspace {
 		Name:         uid.New("test_name"),
 		Slug:         uid.New("slug"),
 		CreatedAt:    time.Now().UnixMilli(),
-		K8sNamespace: sql.NullString{Valid: true, String: uid.DNS1035()},
+		K8sNamespace: uid.DNS1035(),
 	}
 
 	err := db.Query.InsertWorkspace(ctx, s.DB.RW(), params)
@@ -224,7 +224,6 @@ type CreateAppRequest struct {
 	Slug             string
 	SourceType       db.AppsSourceType
 	ImageReference   string
-	DefaultBranch    string
 	DeleteProtection bool
 }
 
@@ -243,7 +242,6 @@ func (s *Seeder) CreateApp(ctx context.Context, req CreateAppRequest) db.App {
 		Name:             req.Name,
 		Slug:             req.Slug,
 		SourceType:       sourceType,
-		DefaultBranch:    req.DefaultBranch,
 		DeleteProtection: sql.NullBool{Valid: true, Bool: req.DeleteProtection},
 		CreatedAt:        now,
 		UpdatedAt:        sql.NullInt64{Valid: false},
@@ -935,6 +933,7 @@ func (s *Seeder) CreatePermission(ctx context.Context, req CreatePermissionReque
 type CreatePortalRequest struct {
 	ID           string
 	WorkspaceID  string
+	ProjectID    string
 	Slug         string
 	DisplayName  string
 	AppID        sql.NullString
@@ -953,6 +952,10 @@ func (s *Seeder) CreatePortal(ctx context.Context, req CreatePortalRequest) db.P
 	}
 	now := time.Now().UnixMilli()
 
+	// A portal with no project cannot be authorized at all, and every seeding
+	// path funnels through this literal.
+	require.NotEmpty(s.t, req.ProjectID, "a seeded portal needs the project of the resource it maps to")
+
 	displayName := req.DisplayName
 	if displayName == "" {
 		displayName = req.Slug
@@ -961,6 +964,7 @@ func (s *Seeder) CreatePortal(ctx context.Context, req CreatePortalRequest) db.P
 	err := db.Query.InsertPortal(ctx, s.DB.RW(), db.InsertPortalParams{
 		ID:           portalID,
 		WorkspaceID:  req.WorkspaceID,
+		ProjectID:    req.ProjectID,
 		Slug:         req.Slug,
 		DisplayName:  displayName,
 		AppID:        req.AppID,

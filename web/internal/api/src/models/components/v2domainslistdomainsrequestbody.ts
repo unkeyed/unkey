@@ -4,19 +4,32 @@
 
 import * as z from "zod/v3";
 
+/**
+ * Filter domains within a workspace. All filters are optional and combine with AND. Each resource
+ *
+ * @remarks
+ * filter matches its ID or slug directly, even when its parent filters are omitted. A missing
+ * resource or a resource that does not match the other filters produces an empty list.
+ */
 export type V2DomainsListDomainsRequestBody = {
   /**
    * Match domains whose project ID or slug equals this value. This filter does not require
+   *
+   * @remarks
    * an app or environment filter.
    */
   project?: string | undefined;
   /**
    * Match domains whose app ID or slug equals this value. This filter does not require a
+   *
+   * @remarks
    * project or environment filter.
    */
   app?: string | undefined;
   /**
    * Match domains whose environment ID or slug equals this value. This filter does not require
+   *
+   * @remarks
    * a project or app filter.
    */
   environment?: string | undefined;

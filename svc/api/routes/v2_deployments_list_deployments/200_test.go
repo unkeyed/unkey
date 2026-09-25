@@ -144,12 +144,11 @@ func TestListFilterByProject(t *testing.T) {
 		Slug:        "other-project",
 	})
 	otherApp := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   setup.Workspace.ID,
-		ProjectID:     otherProject.ID,
-		Name:          "other",
-		Slug:          "other-app",
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: setup.Workspace.ID,
+		ProjectID:   otherProject.ID,
+		Name:        "other",
+		Slug:        "other-app",
 	})
 	otherEnv := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),
@@ -188,12 +187,11 @@ func TestListFilterByApp(t *testing.T) {
 
 	// A second app in the same project whose deployments must be excluded.
 	otherApp := h.CreateApp(seed.CreateAppRequest{
-		ID:            uid.New(uid.AppPrefix),
-		WorkspaceID:   setup.Workspace.ID,
-		ProjectID:     setup.Project.ID,
-		Name:          "other",
-		Slug:          "other-app",
-		DefaultBranch: "main",
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: setup.Workspace.ID,
+		ProjectID:   setup.Project.ID,
+		Name:        "other",
+		Slug:        "other-app",
 	})
 	otherEnv := h.CreateEnvironment(seed.CreateEnvironmentRequest{
 		ID:          uid.New(uid.EnvironmentPrefix),

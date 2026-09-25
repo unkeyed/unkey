@@ -123,10 +123,10 @@ type RoutingServiceServer interface {
 type UnimplementedRoutingServiceServer struct{}
 
 func (UnimplementedRoutingServiceServer) AssignFrontlineRoutes(ctx sdk_go.ObjectContext, req *AssignFrontlineRoutesRequest) (*AssignFrontlineRoutesResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method AssignFrontlineRoutes not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method AssignFrontlineRoutes not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedRoutingServiceServer) SwapLiveDeployment(ctx sdk_go.ObjectContext, req *SwapLiveDeploymentRequest) (*SwapLiveDeploymentResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method SwapLiveDeployment not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method SwapLiveDeployment not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedRoutingServiceServer) testEmbeddedByValue() {}
 

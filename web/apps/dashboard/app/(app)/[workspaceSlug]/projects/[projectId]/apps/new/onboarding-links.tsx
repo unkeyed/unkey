@@ -1,11 +1,11 @@
-import { BookBookmark, Discord } from "@unkey/icons";
+import { Discord, IconBookBookmarkOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 
 export const OnboardingLinks = () => (
   <div className="flex gap-3 items-center">
     <Button
       variant="outline"
-      className="text-gray-12 text-[13px] font-medium border border-grayA-4 rounded-full px-3 py-1.5 transition-all  shadow-sm hover:shadow-md"
+      className="text-gray-12 text-[13px] font-medium border rounded-full px-3 py-1.5 transition-all  shadow-sm hover:shadow-md"
     >
       <a
         href="https://www.unkey.com/docs/introduction"
@@ -13,13 +13,13 @@ export const OnboardingLinks = () => (
         rel="noopener noreferrer"
         className="flex items-center  w-full gap-2"
       >
-        <BookBookmark className="text-gray-12 shrink-0 size-[18px]" iconSize="sm-regular" />
+        <IconBookBookmarkOutline18 className="text-gray-12 shrink-0" />
         View documentation
       </a>
     </Button>
     <Button
       variant="outline"
-      className="text-gray-12 text-[13px] font-medium border border-grayA-4 rounded-full px-3 py-1.5 transition-all  shadow-sm hover:shadow-md"
+      className="text-gray-12 text-[13px] font-medium border rounded-full px-3 py-1.5 transition-all  shadow-sm hover:shadow-md"
     >
       <a
         href="https://unkey.com/discord"
@@ -28,11 +28,7 @@ export const OnboardingLinks = () => (
         className="flex items-center  w-full gap-2"
       >
         <div className="size-[18px] overflow-hidden flex items-center justify-center">
-          <Discord
-            className="text-feature-11 shrink-0"
-            style={{ width: 18, height: 18 }}
-            iconSize="sm-regular"
-          />
+          <Discord className="text-feature-11 shrink-0" style={{ width: 18, height: 18 }} />
         </div>
         Join community
       </a>

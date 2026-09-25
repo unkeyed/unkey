@@ -9,6 +9,7 @@ function project(projectId: string, name: string): UsageProject {
   return {
     projectId,
     name,
+    deleted: false,
     apps: [],
     gateway: { activeKeys: 0, microCents: 0 },
     cpuHours: 0,
@@ -38,8 +39,8 @@ describe("buildSpendSeries", () => {
     });
 
     expect(series).toEqual([
-      { key: "proj_a", label: "Platform", color: "hsl(var(--info-9))" },
-      { key: "unattributed", label: "Unattributed", color: "hsl(var(--feature-9))" },
+      { key: "proj_a", label: "Platform", color: "var(--color-info-9)" },
+      { key: "unattributed", label: "Unattributed", color: "var(--color-feature-9)" },
     ]);
     expect(points).toEqual([
       { time: START, proj_a: 15, unattributed: 0 },

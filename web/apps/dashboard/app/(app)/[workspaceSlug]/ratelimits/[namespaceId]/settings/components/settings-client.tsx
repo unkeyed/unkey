@@ -5,7 +5,11 @@ import { eq, useLiveQuery } from "@tanstack/react-db";
 import {
   Button,
   CopyButton,
-  Empty,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   Input,
   SettingCard,
   SettingCardGroup,
@@ -46,14 +50,15 @@ export const SettingsClient = ({ namespaceId }: Props) => {
 
   if (!namespace) {
     return (
-      <Empty>
-        <Empty.Icon />
-        <Empty.Title>404</Empty.Title>
-        <Empty.Description>This namespace does not exist</Empty.Description>
-        <Empty.Actions>
+      <EmptyState>
+        <EmptyStateHeader>
+          <EmptyStateTitle>404</EmptyStateTitle>
+          <EmptyStateDescription>This namespace does not exist</EmptyStateDescription>
+        </EmptyStateHeader>
+        <EmptyStateActions>
           <CreateNamespaceButton />
-        </Empty.Actions>
-      </Empty>
+        </EmptyStateActions>
+      </EmptyState>
     );
   }
 
@@ -124,7 +129,7 @@ export const SettingsClient = ({ namespaceId }: Props) => {
             description="An identifier for the namespace, used in some API calls."
             contentWidth="w-full lg:w-[320px] h-full justify-end items-end"
           >
-            <div className="flex flex-row justify-end items-center pl-2 pr-2 py-2 w-full border border-gray-5 hover:border-gray-8 bg-gray-2 dark:bg-black rounded-lg min-w-[327px]">
+            <div className="flex flex-row justify-end items-center pl-2 pr-2 py-2 w-full border hover:border-strong bg-raised rounded-lg min-w-[327px]">
               <pre className="flex-1 text-xs text-left overflow-x-auto">
                 <code>{namespace.id}</code>
               </pre>

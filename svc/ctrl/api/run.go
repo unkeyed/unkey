@@ -11,7 +11,6 @@ import (
 
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
-	restate "github.com/restatedev/sdk-go"
 	restateIngress "github.com/restatedev/sdk-go/ingress"
 	stripesdk "github.com/stripe/stripe-go/v86"
 	"github.com/unkeyed/unkey/gen/proto/ctrl/v1/ctrlv1connect"
@@ -37,6 +36,7 @@ import (
 	stripewebhook "github.com/unkeyed/unkey/svc/ctrl/api/webhooks/stripe"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auditlogs"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
+	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
 	"github.com/unkeyed/unkey/svc/ctrl/services/acme"
 	"github.com/unkeyed/unkey/svc/ctrl/services/app"
 	"github.com/unkeyed/unkey/svc/ctrl/services/cluster"
@@ -119,10 +119,15 @@ func Run(ctx context.Context, cfg Config) error {
 
 	r.Defer(database.Close)
 
+	deploymentStream, err := deploymentstream.New(cfg.VStream)
+	if err != nil {
+		return fmt.Errorf("unable to configure deployment stream: %w", err)
+	}
+
 	// Restate ingress client for invoking workflows
-	restateClientOpts := []restate.IngressClientOption{}
+	restateClientOpts := []restateIngress.ClientOption{}
 	if cfg.Restate.APIKey != "" {
-		restateClientOpts = append(restateClientOpts, restate.WithAuthKey(cfg.Restate.APIKey))
+		restateClientOpts = append(restateClientOpts, restateIngress.WithAuthKey(cfg.Restate.APIKey))
 	}
 	restateClient := restateIngress.NewClient(cfg.Restate.URL, restateClientOpts...)
 
@@ -176,13 +181,15 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	c, err := cluster.New(cluster.Config{
-		Database:       database,
-		Restate:        restateClient,
-		Bearer:         cfg.AuthToken,
-		Clock:          clk,
-		TopologyCache:  topologyCache,
-		InstanceEvents: instanceEvents,
-		RegionalDomain: cfg.RegionalDomain,
+		DeploymentStream: deploymentStream,
+		Database:         database,
+		Restate:          restateClient,
+		RestateAdmin:     restateAdminClient,
+		Bearer:           cfg.AuthToken,
+		Clock:            clk,
+		TopologyCache:    topologyCache,
+		InstanceEvents:   instanceEvents,
+		RegionalDomain:   cfg.RegionalDomain,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create cluster service: %w", err)
@@ -241,13 +248,12 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 
 	deploymentSvc := deployment.New(deployment.Config{
-		Database:                        database,
-		Restate:                         restateClient,
-		RestateAdmin:                    restateAdminClient,
-		GitHub:                          ghClient,
-		Auditlogs:                       auditlogSvc,
-		AllowUnauthenticatedDeployments: cfg.GitHub.AllowUnauthenticatedDeployments,
-		Bearer:                          cfg.AuthToken,
+		Database:     database,
+		Auditlogs:    auditlogSvc,
+		Restate:      restateClient,
+		RestateAdmin: restateAdminClient,
+		GitHub:       ghClient,
+		Bearer:       cfg.AuthToken,
 	})
 	mux.Handle(ctrlv1connect.NewDeployServiceHandler(deploymentSvc))
 	mux.Handle(ctrlv1connect.NewOpsServiceHandler(ops.New(ops.Config{

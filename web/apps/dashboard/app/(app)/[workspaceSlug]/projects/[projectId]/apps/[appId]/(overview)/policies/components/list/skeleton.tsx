@@ -1,5 +1,5 @@
-import { Dots, GripDotsVertical } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { IconDotsOutline18, IconGripDotsVerticalOutline18 } from "@unkey/icons";
+import { Button, Skeleton } from "@unkey/ui";
 
 /**
  * Loading skeleton for PoliciesList. Mirrors the row layout in
@@ -7,7 +7,7 @@ import { Button } from "@unkey/ui";
  */
 export function PoliciesListSkeleton({ rows = 10 }: { rows?: number }) {
   return (
-    <div className="border border-grayA-4 rounded-lg overflow-hidden">
+    <div className="border bg-raised rounded-lg overflow-hidden">
       <div>
         {Array.from({ length: rows }).map((_, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items are static placeholders with no stable id
@@ -20,34 +20,34 @@ export function PoliciesListSkeleton({ rows = 10 }: { rows?: number }) {
 
 function PolicyRowSkeleton({ index, isLast }: { index: number; isLast: boolean }) {
   return (
-    <div className={isLast ? undefined : "border-b border-grayA-4"}>
+    <div className={isLast ? undefined : "border-b"}>
       <div className="flex items-center">
         {/* Step number */}
         <div className="w-10 shrink-0 py-5 pl-4 flex items-center">
-          <div className="size-6 rounded-full border bg-grayA-2 border-grayA-5 text-gray-10 flex items-center justify-center text-[11px] font-medium">
+          <div className="size-6 rounded-full border bg-grayA-2 text-gray-10 flex items-center justify-center text-[11px] font-medium">
             {index + 1}
           </div>
         </div>
 
         {/* Drag handle */}
         <div className="w-10 shrink-0 flex items-center justify-center py-5">
-          <GripDotsVertical iconSize="lg-medium" className="opacity-20" />
+          <IconGripDotsVerticalOutline18 className="size-4 opacity-20" />
         </div>
 
         {/* Name */}
         <div className="flex-4 min-w-0 py-5 flex items-center pr-5">
-          <div className="h-[13px] w-32 bg-grayA-3 rounded-sm animate-pulse" />
+          <Skeleton className="h-[13px] w-32" />
         </div>
 
         {/* Type */}
         <div className="flex-4 min-w-0 py-5 flex items-center pr-3">
-          <div className="h-[13px] w-16 bg-grayA-3 rounded-sm animate-pulse" />
+          <Skeleton className="h-[13px] w-16" />
         </div>
 
         {/* Env badges */}
         <div className="flex-2 min-w-0 py-5 flex items-center gap-1.5 pr-3">
-          <div className="h-[22px] w-full rounded-full border border-dashed border-grayA-4 bg-grayA-2 animate-pulse" />
-          <div className="h-[22px] w-full rounded-full border border-dashed border-grayA-4 bg-grayA-2 animate-pulse" />
+          <Skeleton className="h-[22px] w-full rounded-full border border-dashed bg-grayA-2" />
+          <Skeleton className="h-[22px] w-full rounded-full border border-dashed bg-grayA-2" />
         </div>
 
         {/* Actions */}
@@ -57,7 +57,7 @@ function PolicyRowSkeleton({ index, isLast }: { index: number; isLast: boolean }
             className="size-5 [&_svg]:size-3 rounded-sm border-transparent"
             disabled
           >
-            <Dots className="text-gray-11 opacity-30" iconSize="sm-regular" />
+            <IconDotsOutline18 className="text-gray-11 opacity-30" />
           </Button>
         </div>
       </div>

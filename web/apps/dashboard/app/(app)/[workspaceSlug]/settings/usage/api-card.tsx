@@ -1,7 +1,7 @@
 "use client";
 
 import { formatDollars, formatNumber, formatPrice } from "@/lib/fmt";
-import { Gauge, Key2, Nodes } from "@unkey/icons";
+import { IconGaugeOutline18, IconKey2Outline18, IconNodesOutline18 } from "@unkey/icons";
 import {
   Item,
   ItemActions,
@@ -39,8 +39,8 @@ function fee(feeCents: number | null): string | null {
 
 export function ApiCard({ verifications, ratelimits, quota, feeCents, isLoading }: ApiCardProps) {
   const rows: Array<{ icon: ReactNode; title: string; value: number | null }> = [
-    { icon: <Key2 />, title: "Key verifications", value: verifications },
-    { icon: <Gauge />, title: "Rate limit operations", value: ratelimits },
+    { icon: <IconKey2Outline18 />, title: "Key verifications", value: verifications },
+    { icon: <IconGaugeOutline18 />, title: "Rate limit operations", value: ratelimits },
   ];
   const used = verifications === null || ratelimits === null ? null : verifications + ratelimits;
 
@@ -48,7 +48,7 @@ export function ApiCard({ verifications, ratelimits, quota, feeCents, isLoading 
     <ItemGroup variant="outline">
       <ItemHeader>
         <ItemMedia className="bg-infoA-3 text-info-11">
-          <Nodes />
+          <IconNodesOutline18 />
         </ItemMedia>
         <ItemContent>
           <ItemTitle>API management</ItemTitle>
@@ -63,7 +63,7 @@ export function ApiCard({ verifications, ratelimits, quota, feeCents, isLoading 
         <Quota used={used} quota={quota} />
       </div>
 
-      <div className="flex items-center gap-3 border-gray-4 border-b bg-gray-2 px-4 py-2 font-semibold text-[10px] text-gray-9 uppercase tracking-wider">
+      <div className="flex items-center gap-3 border-b bg-gray-2 px-4 py-2 font-semibold text-[10px] text-gray-9 uppercase tracking-wider">
         <div className="min-w-0 flex-1">Operation</div>
         <div className="w-28 text-right">Requests</div>
       </div>
@@ -71,7 +71,7 @@ export function ApiCard({ verifications, ratelimits, quota, feeCents, isLoading 
         <Fragment key={row.title}>
           {index === 0 ? null : <ItemSeparator />}
           <Item>
-            <ItemMedia className="size-5 border border-grayA-4 bg-gray-1">{row.icon}</ItemMedia>
+            <ItemMedia className="size-5 border bg-raised">{row.icon}</ItemMedia>
             <ItemContent>
               <ItemTitle className="truncate">{row.title}</ItemTitle>
             </ItemContent>

@@ -5,12 +5,12 @@ import { SIDEBAR_WIDTH_VARS, SidebarV2 } from "@/components/navigation/sidebar-v
 import { MobileNavDrawer } from "@/components/navigation/sidebar-v2/mobile-nav-drawer";
 import { TopNav } from "@/components/navigation/top-nav";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import type { Route } from "next";
 
 import { LoadingState } from "@/components/loading-state";
+import { redirectToSignIn } from "@/lib/auth/redirect-utils";
 import { routes } from "@/lib/navigation/routes";
 import { useWorkspace } from "@/providers/workspace-provider";
-import { Empty } from "@unkey/ui";
+import { EmptyState, EmptyStateDescription, EmptyStateHeader, EmptyStateTitle } from "@unkey/ui";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -34,32 +34,23 @@ function WorkspaceContent({
       {workspace.enabled ? (
         <QueryTimeProvider>{children}</QueryTimeProvider>
       ) : (
-        <div className="flex items-center justify-center w-full h-full">
-          <Empty>
-            <Empty.Icon />
-            <Empty.Title>This workspace is disabled</Empty.Title>
-            <Empty.Description>
-              Contact{" "}
-              <Link
-                href={`mailto:support@unkey.com?body=workspaceId: ${workspace.id}`}
-                className="underline"
-              >
-                support@unkey.com
-              </Link>
-            </Empty.Description>
-          </Empty>
+        <div className="flex flex-1 items-center justify-center p-12">
+          <EmptyState>
+            <EmptyStateHeader>
+              <EmptyStateTitle>This workspace is disabled</EmptyStateTitle>
+              <EmptyStateDescription>
+                Contact{" "}
+                <Link
+                  href={`mailto:support@unkey.com?body=workspaceId: ${workspace.id}`}
+                  className="underline"
+                >
+                  support@unkey.com
+                </Link>
+              </EmptyStateDescription>
+            </EmptyStateHeader>
+          </EmptyState>
         </div>
       )}
-    </div>
-  );
-}
-
-function ImpersonationBanner() {
-  return (
-    <div className="fixed top-0 inset-x-0 z-50 flex justify-center border-t-2 border-error-9">
-      <div className="bg-error-9 flex -mt-1 font-mono items-center gap-2 text-white text-xs rounded-b overflow-hidden shadow-lg select-none pointer-events-none px-1.5 py-0.5">
-        Impersonation Mode. Do not change anything and log out after you are done.
-      </div>
     </div>
   );
 }
@@ -82,12 +73,7 @@ export default function Layout({ children }: LayoutProps) {
     const isAuthError = error?.data?.code === "UNAUTHORIZED" || error?.data?.code === "FORBIDDEN";
 
     if (isAuthError) {
-      const currentPath = window.location.pathname + window.location.search;
-      const signInUrl =
-        currentPath && currentPath !== "/"
-          ? `/auth/sign-in?redirect=${encodeURIComponent(currentPath)}`
-          : "/auth/sign-in";
-      router.push(signInUrl as Route);
+      redirectToSignIn(window.location);
       return;
     }
 
@@ -111,24 +97,23 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <SidebarProvider style={SIDEBAR_WIDTH_VARS}>
-      <div className="h-dvh w-full flex flex-col overflow-hidden bg-white dark:bg-base-12">
+      <div className="h-dvh w-full flex flex-col overflow-hidden bg-background">
         <ComputePausedBanner />
         <TopNav />
         <MobileNavDrawer />
         <div className="relative flex flex-1 overflow-hidden">
-          {!isCreationWizard && <SidebarV2 className="bg-gray-1 border-grayA-4" />}
+          {!isCreationWizard && <SidebarV2 className="bg-background" />}
           {/* Reserve the scrollbar gutter so content doesn't shift horizontally
               when the scrollbar appears/disappears (e.g. a dialog locking scroll
               or content height changing). Without this the centered layout
               "shakes" and buttons move out from under the cursor (ENG-2884). */}
           <div className="flex-1 overflow-auto" style={{ scrollbarGutter: "stable" }}>
             <div
-              className="isolate bg-base-12 w-full min-h-full flex flex-col items-center"
+              className="isolate bg-background w-full min-h-full flex flex-col items-center"
               id="layout-wrapper"
             >
               <WorkspaceContent workspace={workspace}>{children}</WorkspaceContent>
             </div>
-            {user?.impersonator ? <ImpersonationBanner /> : null}
           </div>
         </div>
       </div>

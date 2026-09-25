@@ -109,7 +109,7 @@ func TestDeploymentRowToState_PopulatesProtoFields(t *testing.T) {
 		ProjectID:                     "prj_sentinel",
 		EnvironmentID:                 "env_sentinel",
 		AppID:                         "app_sentinel",
-		Image:                         sql.NullString{Valid: true, String: "registry.io/sentinel:v1"},
+		ImageResolved:                 sql.NullString{Valid: true, String: "registry.io/sentinel:v1"},
 		CpuMillicores:                 250,
 		MemoryMib:                     256,
 		StorageMib:                    2048,
@@ -125,13 +125,13 @@ func TestDeploymentRowToState_PopulatesProtoFields(t *testing.T) {
 			Valid:       true,
 			Healthcheck: &dbtype.Healthcheck{Method: "GET", Path: "/sentinel-healthz"},
 		},
-		K8sNamespace:    sql.NullString{Valid: true, String: "ns-sentinel"},
+		K8sNamespace:    "ns-sentinel",
 		EnvironmentSlug: "production",
 		RegionName:      "us-east-1",
 		GitRepo:         sql.NullString{Valid: true, String: "github.com/test/sentinel"},
 	}
 
-	state, err := deploymentRowToState(row, 1)
+	state, err := deploymentRowToState(row)
 	require.NoError(t, err)
 
 	apply := state.GetApply()

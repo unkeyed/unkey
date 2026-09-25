@@ -3,8 +3,8 @@ title: "update-app"
 description: "Update an existing app"
 ---
 
-Update an app by ID or slug. You can change its name, slug, GitHub repository
-configuration, and delete protection. Omitted fields remain unchanged. A new
+Update an app by ID or slug. You can change its name, slug, source configuration,
+and delete protection. Omitted fields remain unchanged. A new
 slug must not collide with another app in the project.
 
 ## Usage
@@ -20,6 +20,9 @@ unkey api apps update-app [flags]
 Connect or reconfigure a GitHub repository with `repository` and
 `defaultBranch` fields. Set the value to `null` to disconnect the repository.
 </ParamField>
+<ParamField body="--oci" type="JSON string">
+Change the default image reference for an OCI-sourced app. The JSON object must contain `image` with an explicit tag or digest. This doesn't create a deployment or switch the app's source.
+</ParamField>
 <ParamField body="--delete-protection" type="bool">Enable or disable delete protection. Omit to leave unchanged.</ParamField>
 ## Global Flags
 | Flag | Type | Description |
@@ -34,4 +37,8 @@ Connect or reconfigure a GitHub repository with `repository` and
 unkey api apps update-app --project=payments --app=app_1234abcd \
   --git='{"repository":"unkeyed/api","defaultBranch":"main"}'
 ```
-See the [API reference](https://www.unkey.com/docs/api-reference/v2/apps/update-app).
+```bash OCI image
+unkey api apps update-app --project=payments --app=app_1234abcd \
+  --oci='{"image":"ghcr.io/acme/payments:v2"}'
+```
+See the [API reference](https://www.unkey.com/docs/api-reference/apps/update-app).

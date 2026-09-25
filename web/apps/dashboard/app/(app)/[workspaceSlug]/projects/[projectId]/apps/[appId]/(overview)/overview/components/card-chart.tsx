@@ -3,16 +3,16 @@
 import { type AreaChartPoint, AreaTimeseriesChart } from "@/components/charts/area-timeseries";
 import type { ChartConfig } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
-import { cn } from "@/lib/utils";
 import { Loading, Skeleton } from "@unkey/ui";
+import { cn } from "cn";
 import { useMemo, useState } from "react";
 import { formatStamp } from "./g-pulse";
 import { useProductionCard } from "./production-card-context";
 
-const BLUE = "hsl(var(--activity))";
-const BLUE_FILL = "hsl(var(--info-3))";
-const ERROR = "hsl(var(--error-9))";
-const ERROR_FILL = "hsl(var(--error-3))";
+const BLUE = "var(--color-activity)";
+const BLUE_FILL = "var(--color-info-3)";
+const ERROR = "var(--color-error-9)";
+const ERROR_FILL = "var(--color-error-3)";
 
 const CHART_CONFIG: ChartConfig = {
   total: { label: "Requests/s", color: BLUE },
@@ -50,21 +50,21 @@ function LegendStat({
     <span className="flex items-center gap-1.5 whitespace-nowrap tabular-nums">
       <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
       <span className="text-gray-9">{label}</span>
-      <span className={cn("font-medium", alert ? "text-error-11" : "text-accent-12")}>{value}</span>
+      <span className={cn("font-medium", alert ? "text-error-11" : "text-gray-12")}>{value}</span>
     </span>
   );
 }
 
 export function BuildInProgressChart() {
   return (
-    <div className="flex flex-col gap-2 p-4 md:border-r border-gray-4">
+    <div className="flex flex-col gap-2 p-4 md:border-r">
       <div className="flex flex-col gap-1">
         <Skeleton className="h-6 w-20" />
         <Skeleton className="h-3 w-28" />
       </div>
       <Skeleton className="h-[120px] w-full rounded-md" />
       <div className="flex items-center gap-2 text-[13px] text-gray-9">
-        <Loading type="dots" size={16} />
+        <Loading size={16} className="text-gray-12" />
         Waiting for build to finish…
       </div>
     </div>
@@ -90,10 +90,10 @@ export function ProductionCardChart() {
   );
 
   return (
-    <div className="flex flex-col gap-2 p-4 md:border-r border-gray-4">
+    <div className="flex flex-col gap-2 p-4 md:border-r">
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col">
-          <span className="text-2xl font-semibold text-accent-12 tabular-nums leading-tight">
+          <span className="text-2xl font-semibold text-gray-12 tabular-nums leading-tight">
             {formatNumber(pulse.cumulative)}
           </span>
           <span className="text-[13px] text-gray-9">requests {pulse.windowLabel}</span>

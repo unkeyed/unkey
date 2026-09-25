@@ -1,48 +1,58 @@
 "use client";
 
-import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
-import { cn } from "@/lib/utils";
+import {
+  DEPLOYMENT_STATUS_LABELS,
+  type DeploymentStatus,
+  deploymentStatusColor,
+  statusGroupOf,
+} from "@/lib/collections/deploy/deployment-status";
 import { Loading } from "@unkey/ui";
+import { cn } from "cn";
+import type { PropsWithChildren } from "react";
 
-const SPINNING = new Set<DeploymentStatus>([
-  "starting",
-  "building",
-  "deploying",
-  "network",
-  "finalizing",
-]);
+function isBuilding(status: DeploymentStatus): boolean {
+  return statusGroupOf(status) === "building";
+}
 
-const DOT_CLASS: Record<DeploymentStatus, string> = {
-  pending: "bg-gray-9",
-  starting: "bg-info-9",
-  building: "bg-info-9",
-  deploying: "bg-info-9",
-  network: "bg-info-9",
-  finalizing: "bg-info-9",
-  ready: "bg-success-9",
-  failed: "bg-error-9",
-  skipped: "bg-gray-9",
-  awaiting_approval: "bg-warning-9",
-  stopped: "bg-gray-9",
-  superseded: "bg-gray-9",
-  cancelled: "bg-gray-9",
-};
-
-export function DeploymentStatusDot({ status }: { status: DeploymentStatus }) {
+export function StatusDot({ colorClass, pulse = false }: { colorClass: string; pulse?: boolean }) {
   return (
     <span
       className={cn(
         "size-2 shrink-0 rounded-full",
-        DOT_CLASS[status],
-        SPINNING.has(status) && "motion-safe:animate-pulse",
+        colorClass,
+        pulse && "motion-safe:animate-pulse",
       )}
     />
   );
 }
 
+export function DeploymentStatusDot({ status }: { status: DeploymentStatus }) {
+  return <StatusDot colorClass={deploymentStatusColor(status)} pulse={isBuilding(status)} />;
+}
+
 export function DeploymentStatusIndicator({ status }: { status: DeploymentStatus }) {
-  if (SPINNING.has(status)) {
-    return <Loading size={12} className="shrink-0 text-accent-12" />;
+  if (isBuilding(status)) {
+    return <Loading size={12} className="shrink-0 text-gray-12" />;
   }
   return <DeploymentStatusDot status={status} />;
+}
+
+export function StatusLabel({ className, children }: PropsWithChildren<{ className?: string }>) {
+  return (
+    <span className={cn("flex items-center gap-2 text-[13px] text-gray-12", className)}>
+      {children}
+    </span>
+  );
+}
+
+export function DeploymentStatusLabel({
+  status,
+  className,
+}: { status: DeploymentStatus; className?: string }) {
+  return (
+    <StatusLabel className={className}>
+      <DeploymentStatusIndicator status={status} />
+      {DEPLOYMENT_STATUS_LABELS[status]}
+    </StatusLabel>
+  );
 }

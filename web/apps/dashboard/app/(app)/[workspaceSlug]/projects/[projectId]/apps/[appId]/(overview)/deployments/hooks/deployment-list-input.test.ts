@@ -38,7 +38,7 @@ describe("buildDeploymentListInput", () => {
 
   test("maps the previous filter bar's status values onto their groups", () => {
     const { input } = buildDeploymentListInput(
-      [filter("status", "deploying"), filter("status", "skipped")],
+      [filter("status", "deploying"), filter("status", "pending")],
       environments,
     );
     expect(input.statuses).toEqual([
@@ -47,9 +47,13 @@ describe("buildDeploymentListInput", () => {
       "deploying",
       "network",
       "finalizing",
-      "cancelled",
-      "skipped",
+      "pending",
     ]);
+  });
+
+  test("keeps skipped separate from cancelled", () => {
+    const { input } = buildDeploymentListInput([filter("status", "skipped")], environments);
+    expect(input.statuses).toEqual(["skipped"]);
   });
 
   test("flags a status that is not a group as unable to match", () => {

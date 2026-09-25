@@ -1,5 +1,5 @@
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import { CircleCaretRight } from "@unkey/icons";
+import { IconCircleCaretRightOutline18 } from "@unkey/icons";
 import { Button, KeyboardButton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 
@@ -20,7 +20,7 @@ export const LiveSwitchButton = ({ isLive, onToggle }: LiveSwitchProps) => {
         "px-2 relative rounded-lg group overflow-hidden",
         isLive
           ? "bg-info-3 text-info-11 hover:bg-info-3 hover:text-info-11 border border-solid border-info-7"
-          : "text-accent-12 [&_svg]:text-accent-9",
+          : "text-gray-12 [&_svg]:text-gray-9",
       )}
     >
       {isLive && (
@@ -28,7 +28,7 @@ export const LiveSwitchButton = ({ isLive, onToggle }: LiveSwitchProps) => {
           <div className="absolute inset-0 bg-info-6 rounded-sm opacity-15 animate-[ping_3s_cubic-bezier(0,0,0.2,1)_infinite]" />
         </div>
       )}
-      <CircleCaretRight className="size-4 relative z-10" />
+      <IconCircleCaretRightOutline18 className="size-4 relative z-10" />
       <span className="font-medium text-[13px]">Live</span>
       <div className="max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 transition-all duration-300 ease-in-out overflow-hidden">
         <KeyboardButton shortcut="⌥+⇧+Q" className="ml-1" />
