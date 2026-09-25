@@ -10,6 +10,7 @@ import { portalGetPortal } from "../funcs/portalGetPortal.js";
 import { portalGetVerifications } from "../funcs/portalGetVerifications.js";
 import { portalListKeys } from "../funcs/portalListKeys.js";
 import { portalRerollKey } from "../funcs/portalRerollKey.js";
+import { portalRevokeSession } from "../funcs/portalRevokeSession.js";
 import { portalUpdatePortal } from "../funcs/portalUpdatePortal.js";
 import { ClientSDK, RequestOptions } from "../lib/sdks.js";
 import * as components from "../models/components/index.js";
@@ -259,6 +260,42 @@ export class Portal extends ClientSDK {
     return unwrapAsync(portalRerollKey(
       this,
       security,
+      request,
+      options,
+    ));
+  }
+
+  /**
+   * Revoke portal sessions
+   *
+   * @remarks
+   * Revoke every live session an end user holds on a portal.
+   *
+   * Unreleased and subject to change without notice.
+   *
+   * Sessions that were created but not yet opened are revoked too, so their
+   * portal URLs stop working. Revocation is not instantaneous: session lookups
+   * are cached briefly, so a request already in flight may still succeed.
+   *
+   * Revoking ends existing sessions only. To keep the end user out, also stop
+   * calling `portal.createSession` for them.
+   *
+   * Calling this again for the same end user is safe and revokes nothing.
+   *
+   * **Required Permissions**
+   *
+   * Your root key must have one of:
+   * - `portal.*.create_portal_session` (for any portal in the workspace)
+   * - `portal.<portal_id>.create_portal_session` (for a specific portal)
+   *
+   * Without the permission this returns **404**, not 403.
+   */
+  async revokeSession(
+    request: components.V2PortalRevokeSessionRequestBody,
+    options?: RequestOptions,
+  ): Promise<components.V2PortalRevokeSessionResponseBody> {
+    return unwrapAsync(portalRevokeSession(
+      this,
       request,
       options,
     ));
