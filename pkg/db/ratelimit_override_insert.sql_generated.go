@@ -32,7 +32,8 @@ VALUES (
 ON DUPLICATE KEY UPDATE
     ` + "`" + `limit` + "`" + ` = VALUES(` + "`" + `limit` + "`" + `),
     duration = VALUES(duration),
-    updated_at_m = ?
+    updated_at_m = ?,
+    deleted_at_m = NULL
 `
 
 type InsertRatelimitOverrideParams struct {
@@ -69,7 +70,8 @@ type InsertRatelimitOverrideParams struct {
 //	ON DUPLICATE KEY UPDATE
 //	    `limit` = VALUES(`limit`),
 //	    duration = VALUES(duration),
-//	    updated_at_m = ?
+//	    updated_at_m = ?,
+//	    deleted_at_m = NULL
 func (q *Queries) InsertRatelimitOverride(ctx context.Context, db DBTX, arg InsertRatelimitOverrideParams) error {
 	_, err := db.ExecContext(ctx, insertRatelimitOverride,
 		arg.ID,
