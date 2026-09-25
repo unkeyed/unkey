@@ -9,6 +9,7 @@ export * from "./limits";
 export * from "./workspace_billing";
 export * from "./billing_subscriptions";
 export * from "./clickhouse_outbox";
+export * from "./backoffice_audit_outbox";
 export * from "./environments";
 export * from "./clickhouse_workspace_settings";
 export * from "./shared_secrets";

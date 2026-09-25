@@ -1222,6 +1222,16 @@ type AppSourceOci struct {
 	UpdatedAt      sql.NullInt64 `db:"updated_at"`
 }
 
+type BackofficeAuditOutbox struct {
+	Pk        uint64          `db:"pk"`
+	EventID   string          `db:"event_id"`
+	Payload   json.RawMessage `db:"payload"`
+	CreatedAt int64           `db:"created_at"`
+	DrainedAt sql.NullInt64   `db:"drained_at"`
+	Attempts  uint32          `db:"attempts"`
+	LastError sql.NullString  `db:"last_error"`
+}
+
 type BillingSubscription struct {
 	Pk                   uint64                      `db:"pk"`
 	WorkspaceID          string                      `db:"workspace_id"`
