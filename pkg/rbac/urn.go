@@ -43,52 +43,6 @@ func U(resource fmt.Stringer, action permissions.Action) PermissionQuery {
 	}
 }
 
-// HasPermissionIn reports whether a permission can authorize any member of a
-// valid fixed-depth collection such as projects/*/apps/*. It ignores legacy
-// permissions and does not check whether resources exist. Callers must still
-// authorize each row before returning it.
-func HasPermissionIn(resource urn.V1, action permissions.Action, callerPermissions []string) bool {
-	for _, value := range callerPermissions {
-		permission, err := parseUrnPermission(value)
-		if err != nil || permission.Resource.WorkspaceID != resource.WorkspaceID {
-			continue
-		}
-		if permission.Action != ActionType(action.String()) && permission.Action != permissions.Wildcard {
-			continue
-		}
-		if resourcePatternsOverlap(resource.Resource, permission.Resource.Resource) {
-			return true
-		}
-	}
-	return false
-}
-
-// resourcePatternsOverlap reports whether a permission contains a resource at the
-// collection's fixed depth.
-func resourcePatternsOverlap(collection string, permission string) bool {
-	collectionSegments := strings.Split(collection, "/")
-	permissionSegments := strings.Split(permission, "/")
-	if permission == "**" {
-		return true
-	}
-	if permissionSegments[len(permissionSegments)-1] == "**" {
-		permissionSegments = permissionSegments[:len(permissionSegments)-1]
-		if len(permissionSegments) > len(collectionSegments) {
-			return false
-		}
-		collectionSegments = collectionSegments[:len(permissionSegments)]
-	}
-	if len(collectionSegments) != len(permissionSegments) {
-		return false
-	}
-	for i := range collectionSegments {
-		if collectionSegments[i] != "*" && permissionSegments[i] != "*" && collectionSegments[i] != permissionSegments[i] {
-			return false
-		}
-	}
-	return true
-}
-
 // isUnkeyPermission reports whether a granted string is a canonical Unkey
 // permission URN, so the evaluator never applies wildcard semantics to legacy
 // or customer-defined permission strings.
