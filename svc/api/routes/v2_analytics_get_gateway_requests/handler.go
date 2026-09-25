@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"slices"
 
 	"github.com/unkeyed/unkey/internal/services/analytics"
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -34,6 +35,7 @@ var (
 )
 
 type Handler struct {
+	DB                         db.Database
 	AnalyticsConnectionManager analytics.ConnectionManager
 }
 
@@ -53,8 +55,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	wildcard := rbac.Tuple{ResourceType: rbac.Project, ResourceID: "*", Action: rbac.ReadGatewayRequests}
-	if !slices.Contains(p.Permissions, wildcard.String()) {
-		return p.Authorize(rbac.T(wildcard))
+	securityScopes, authorized, err := h.gatewaySecurityScopes(ctx, p.AuthorizedWorkspaceID, p.Permissions)
+	if err != nil {
+		return err
+	}
+	if !authorized {
+		return p.Authorize(rbac.Or(
+			rbac.T(wildcard),
+			rbac.U(gatewayLogsURN(p.AuthorizedWorkspaceID, "project", "app", "environment"), permissions.Read),
+		))
 	}
 
 	rows, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{
@@ -63,7 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		TableAliases:    tableAliases,
 		AllowedTables:   allowedTables,
 		SecurityFilters: nil,
-		SecurityScopes:  nil,
+		SecurityScopes:  securityScopes,
 	})
 	if err != nil {
 		return err
