@@ -117,7 +117,11 @@ const buttonVariants = cva(
       {
         variant: "primary",
         color: "default",
-        className: "dark:bg-gray-7",
+        className: [
+          "dark:bg-white dark:text-black dark:hover:after:bg-black/5 dark:active:after:bg-black/5",
+          "[&_svg]:text-white/60 hover:[&_svg]:text-white/80 active:[&_svg]:text-white/80",
+          "dark:[&_svg]:text-black/55 dark:hover:[&_svg]:text-black/40 dark:active:[&_svg]:text-black/40",
+        ],
       },
       {
         variant: "primary",
@@ -271,7 +275,7 @@ const keyboardIconVariants = cva(
     variants: {
       variant: {
         default: "bg-gray-4 border-gray-7 text-gray-12",
-        primary: "bg-white/10 border-white/20 text-white group-hover:bg-white/20",
+        primary: "bg-gray-12/10 border-gray-8 text-white dark:text-black group-hover:bg-gray-12/20",
         outline:
           "bg-gray-3 border-gray-6 text-gray-11 group-hover:bg-gray-4 group-hover:border-gray-7",
         ghost:
