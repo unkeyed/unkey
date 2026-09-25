@@ -266,10 +266,8 @@ export const SelectRepo = ({
             <IconClockOutline18 className="text-gray-12" />
           </div>
           <div className="flex flex-col gap-3">
-            <span className="font-medium text-gray-12 text-sm leading-[9px]">
-              Skip GitHub setup
-            </span>
-            <span className="text-gray-10 text-sm leading-[9px]">
+            <span className="font-medium text-gray-12 text-sm leading-2.25">Skip GitHub setup</span>
+            <span className="text-gray-10 text-sm leading-2.25">
               Continue without a repository. You can connect GitHub later from app settings.
             </span>
           </div>

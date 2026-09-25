@@ -141,8 +141,8 @@ export const ChooseSourceStep = ({
               <IconCodeBranchOutline18 className="size-[18px] text-gray-12" />
             </div>
             <div className="flex flex-col gap-3">
-              <span className="font-medium text-gray-12 text-sm leading-[9px]">Connect a repo</span>
-              <span className="text-gray-10 text-sm leading-[9px]">
+              <span className="font-medium text-gray-12 text-sm leading-2.25">Connect a repo</span>
+              <span className="text-gray-10 text-sm leading-2.25">
                 Add a repo from your GitHub account
               </span>
             </div>

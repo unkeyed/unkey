@@ -39,7 +39,7 @@ function DomainHero() {
             openOnHover
             delay={0}
             closeDelay={100}
-            className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-2xs leading-[18px] font-mono tabular-nums shrink-0"
+            className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-2xs leading-4.5 font-mono tabular-nums shrink-0"
             aria-label={`Show ${additionalDomains.length} more domains`}
           >
             +{additionalDomains.length}

@@ -4,7 +4,7 @@ import { cn } from "cn";
 import type { HTMLAttributes, ReactNode } from "react";
 
 const statusBadgeVariants = cva(
-  "inline-flex items-center rounded-md px-[7px] text-3xs leading-[20px] uppercase h-[22px] gap-1",
+  "inline-flex items-center rounded-md px-[7px] text-3xs leading-5 uppercase h-[22px] gap-1",
   {
     variants: {
       variant: {

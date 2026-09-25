@@ -111,9 +111,9 @@ export const DeployImageCard = ({
           <IconLayers2Outline18 className="size-[18px] text-gray-12" />
         </div>
         <div className="flex flex-col gap-3">
-          <span className="font-medium text-gray-12 text-sm leading-[9px]">Deploy an image</span>
+          <span className="font-medium text-gray-12 text-sm leading-2.25">Deploy an image</span>
           {expanded ? null : (
-            <span className="text-gray-10 text-sm leading-[9px]">
+            <span className="text-gray-10 text-sm leading-2.25">
               Pull an image from any public registry
             </span>
           )}
