@@ -1,6 +1,6 @@
 import { expireLegacySession } from "@/lib/auth/legacy-session";
 import { sanitizeRedirectPath } from "@/lib/auth/redirect-utils";
-import { logManagedAuthOutcome } from "@/lib/auth/telemetry";
+import { logManagedAuthOutcome, logUnauthenticatedRedirect } from "@/lib/auth/telemetry";
 import { env, workosAuthEnv } from "@/lib/env";
 import { getBaseUrl } from "@/lib/utils";
 import { NextRequest, NextResponse } from "next/server";
@@ -77,7 +77,7 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  workosAuthEnv();
+  const { WORKOS_COOKIE_NAME } = workosAuthEnv();
   const { authkit, handleAuthkitHeaders } = await import("@workos-inc/authkit-nextjs");
   const isAuthEntry =
     req.method === "GET" &&
@@ -126,6 +126,7 @@ export default async function proxy(req: NextRequest) {
 
   const isApiPath = url.pathname.startsWith("/api/") || url.pathname.startsWith("/proxy/");
   if (!session.user && !isApiPath && !isPublicPath(url.pathname)) {
+    logUnauthenticatedRedirect(req.cookies.has(WORKOS_COOKIE_NAME));
     return expireLegacySession(
       req,
       handleAuthkitHeaders(req, headers, {

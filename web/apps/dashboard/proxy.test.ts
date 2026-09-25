@@ -29,15 +29,17 @@ const mocks = vi.hoisted(() => ({
   handleAuthkitHeaders:
     vi.fn<(request: NextRequest, headers: Headers, options?: HeaderOptions) => NextResponse>(),
   logManagedAuthOutcome: vi.fn(),
+  logUnauthenticatedRedirect: vi.fn(),
 }));
 
 vi.mock("@/lib/env", () => ({
   env: () => ({ AUTH_PROVIDER: mocks.authProvider, VERCEL_URL: mocks.vercelUrl }),
-  workosAuthEnv: vi.fn(),
+  workosAuthEnv: vi.fn(() => ({ WORKOS_COOKIE_NAME: "wos-session" })),
 }));
 
 vi.mock("@/lib/auth/telemetry", () => ({
   logManagedAuthOutcome: mocks.logManagedAuthOutcome,
+  logUnauthenticatedRedirect: mocks.logUnauthenticatedRedirect,
 }));
 
 vi.mock("@/lib/utils", () => ({
@@ -241,8 +243,19 @@ describe("proxy auth mode split", () => {
     );
 
     expect(response.headers.get("location")).toBe("https://authkit.example.com/authorize");
+    expect(mocks.logUnauthenticatedRedirect).toHaveBeenCalledWith(false);
     expect(response.headers.get("set-cookie")).toContain("unkey-session=");
     expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
+  });
+
+  it("records a signed-out redirect when the caller carried a session cookie", async () => {
+    await proxy(
+      new NextRequest("http://localhost:3000/mike-unkey/apis", {
+        headers: { cookie: "wos-session=sealed" },
+      }),
+    );
+
+    expect(mocks.logUnauthenticatedRedirect).toHaveBeenCalledWith(true);
   });
 
   it.each(["/api/example", "/proxy/v2/keys.updateKey"])(
@@ -255,6 +268,7 @@ describe("proxy auth mode split", () => {
       expect(response.headers.get("location")).toBeNull();
       expect(mocks.authkit).toHaveBeenCalledWith(request, expect.any(Object));
       expect(mocks.handleAuthkitHeaders).toHaveBeenCalledWith(request, expect.any(Headers));
+      expect(mocks.logUnauthenticatedRedirect).not.toHaveBeenCalled();
     },
   );
 
