@@ -81,7 +81,7 @@ export function CrumbPopover({
         >
           <CommandInput
             placeholder={searchPlaceholder}
-            className="text-sm placeholder:text-sm placeholder:text-gray-8"
+            className="text-sm placeholder:text-gray-8"
           />
           <CommandList>
             {listStatus ?? <CommandEmpty className="py-6">{emptyText}</CommandEmpty>}

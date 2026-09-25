@@ -73,7 +73,7 @@ const buttonVariants = cva(
           "dark:after:-inset-px dark:after:rounded-md",
           "hover:after:bg-white/10 active:after:bg-white/10 dark:hover:after:bg-white/5 dark:active:after:bg-white/5",
           "focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:border disabled:border-solid disabled:bg-grayA-6 disabled:border-grayA-4 disabled:text-white/85 disabled:shadow-none disabled:after:hidden",
+          "disabled:border disabled:border-solid disabled:bg-grayA-6 disabled:border-grayA-4 disabled:text-white/85 disabled:shadow-none disabled:after:hidden aria-disabled:after:hidden",
         ],
         outline: [
           "p-2 text-gray-12 bg-transparent border dark:border-input hover:bg-grayA-3 focus:hover:bg-transparent rounded-md",
@@ -121,6 +121,7 @@ const buttonVariants = cva(
           "dark:bg-white dark:text-black dark:hover:after:bg-black/5 dark:active:after:bg-black/5",
           "[&_svg]:text-white/60 hover:[&_svg]:text-white/80 active:[&_svg]:text-white/80",
           "dark:[&_svg]:text-black/55 dark:hover:[&_svg]:text-black/40 dark:active:[&_svg]:text-black/40",
+          "disabled:[&_svg]:text-white/60",
         ],
       },
       {
