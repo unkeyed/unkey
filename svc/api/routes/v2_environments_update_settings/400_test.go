@@ -110,6 +110,19 @@ func TestUpdateSettings400(t *testing.T) {
 		})
 	}
 
+	t.Run("replica limit error explains the mismatch and recovery", func(t *testing.T) {
+		req := handler.Request{
+			Project:     env.projectID,
+			App:         env.appID,
+			Environment: env.environmentID,
+			Regions:     ptr([]openapi.EnvironmentRegion{regionSetting("us-west-2", 1, 4)}),
+		}
+
+		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)
+		require.Equal(t, http.StatusBadRequest, res.Status, "raw body: %s", res.RawBody)
+		require.Equal(t, "This workspace has a replica limit of 1 per region, but 'us-west-2' is configured for up to 4. Reduce the replica range or contact support to check your workspace limit.", res.Body.Error.Detail)
+	})
+
 	t.Run("watchPaths error names the offending pattern", func(t *testing.T) {
 		req := handler.Request{
 			Project:     env.projectID,
