@@ -11,6 +11,7 @@ import {
   projects,
 } from "@unkey/db/src/schema";
 import { z } from "zod";
+import { queryHeadlineDeployments } from "../headline-deployments";
 
 const DEFAULT_PROJECT_SLUG = "default";
 
@@ -45,27 +46,6 @@ export const listProjects = workspaceProcedure
     }
 
     const projectIds = projectRows.map((p) => p.id);
-
-    const rankedDeployments = db
-      .select({
-        appId: deployments.appId,
-        id: deployments.id,
-        rn: sql<number>`ROW_NUMBER() OVER (PARTITION BY ${deployments.appId} ORDER BY (${environments.kind} = 'production') DESC, ${deployments.createdAt} DESC, ${deployments.id} DESC)`.as(
-          "rn",
-        ),
-      })
-      .from(deployments)
-      .innerJoin(
-        environments,
-        and(
-          eq(environments.id, deployments.environmentId),
-          eq(environments.workspaceId, workspaceId),
-        ),
-      )
-      .where(
-        and(eq(deployments.workspaceId, workspaceId), inArray(deployments.projectId, projectIds)),
-      )
-      .as("ranked_deployments");
 
     const rankedDomains = db
       .select({
@@ -113,21 +93,7 @@ export const listProjects = workspaceProcedure
         .from(apps)
         .where(and(eq(apps.workspaceId, workspaceId), inArray(apps.projectId, projectIds)))
         .orderBy(apps.projectId, desc(apps.updatedAt), desc(apps.id)),
-      db
-        .select({
-          appId: rankedDeployments.appId,
-          id: deployments.id,
-          status: deployments.status,
-          gitCommitMessage: deployments.gitCommitMessage,
-          gitBranch: deployments.gitBranch,
-          createdAt: deployments.createdAt,
-        })
-        .from(rankedDeployments)
-        .innerJoin(
-          deployments,
-          and(eq(deployments.id, rankedDeployments.id), eq(deployments.workspaceId, workspaceId)),
-        )
-        .where(eq(rankedDeployments.rn, 1)),
+      queryHeadlineDeployments(workspaceId, inArray(deployments.projectId, projectIds)),
       db
         .select({
           appId: githubRepoConnections.appId,
