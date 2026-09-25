@@ -7,15 +7,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: [
-          "relative isolate border border-transparent text-white",
-          "[--btn-bg:var(--portal-primary,var(--color-gray-12))] [--btn-border:color-mix(in_oklab,var(--btn-bg)_90%,black)]",
-          "bg-(--btn-border)",
-          "before:absolute before:inset-0 before:-z-10 before:rounded-[calc(var(--radius-md)-1px)] before:bg-(--btn-bg) before:shadow-sm",
-          "after:absolute after:inset-0 after:-z-10 after:rounded-[calc(var(--radius-md)-1px)] after:shadow-[inset_0_1px_rgb(255_255_255/0.15)]",
-          "hover:after:bg-white/10 active:after:bg-white/10",
-          "disabled:before:shadow-none disabled:after:shadow-none",
-        ],
+        default: "bg-[var(--portal-primary,var(--color-gray-12))] text-white hover:opacity-90",
         outline: "border border-primary/15 bg-background shadow-xs hover:bg-gray-2",
         ghost: "text-gray-12 hover:bg-gray-3",
         destructive: "bg-error-9 text-white hover:bg-error-11",
