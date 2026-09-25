@@ -3,7 +3,7 @@ import { getDeploymentActionEligibility } from "./deployment-action-eligibility"
 
 describe("getDeploymentActionEligibility", () => {
   const baseCtx = {
-    selectedDeployment: { id: "dep-1", status: "ready" as const },
+    selectedDeployment: { id: "dep-1", status: "ready" as const, desiredState: "running" as const },
     currentDeploymentId: "dep-current",
     isRolledBack: false,
     environmentKind: "production" as const,
@@ -16,6 +16,25 @@ describe("getDeploymentActionEligibility", () => {
       expected: {
         canRollback: true,
         canPromote: true,
+        canRedeploy: true,
+        canCancel: false,
+        canStop: false,
+        canWake: false,
+      },
+    },
+    {
+      name: "ready + production + not current + scaling down → rollback=false, promote=false",
+      ctx: {
+        ...baseCtx,
+        selectedDeployment: {
+          id: "dep-1",
+          status: "ready" as const,
+          desiredState: "stopped" as const,
+        },
+      },
+      expected: {
+        canRollback: false,
+        canPromote: false,
         canRedeploy: true,
         canCancel: false,
         canStop: false,
@@ -38,7 +57,11 @@ describe("getDeploymentActionEligibility", () => {
       name: "ready + production + is current + not rolled back → promote=false, rollback=false, redeploy=true",
       ctx: {
         ...baseCtx,
-        selectedDeployment: { id: "dep-current", status: "ready" as const },
+        selectedDeployment: {
+          id: "dep-current",
+          status: "ready" as const,
+          desiredState: "running" as const,
+        },
       },
       expected: {
         canRollback: false,
@@ -53,7 +76,11 @@ describe("getDeploymentActionEligibility", () => {
       name: "ready + production + is current + rolled back → rollback=false, promote=true, redeploy=true",
       ctx: {
         ...baseCtx,
-        selectedDeployment: { id: "dep-current", status: "ready" as const },
+        selectedDeployment: {
+          id: "dep-current",
+          status: "ready" as const,
+          desiredState: "running" as const,
+        },
         isRolledBack: true,
       },
       expected: {
@@ -81,7 +108,11 @@ describe("getDeploymentActionEligibility", () => {
       name: "failed → only redeploy",
       ctx: {
         ...baseCtx,
-        selectedDeployment: { id: "dep-1", status: "failed" as const },
+        selectedDeployment: {
+          id: "dep-1",
+          status: "failed" as const,
+          desiredState: "running" as const,
+        },
       },
       expected: {
         canRollback: false,
@@ -96,7 +127,11 @@ describe("getDeploymentActionEligibility", () => {
       name: "pending → all false",
       ctx: {
         ...baseCtx,
-        selectedDeployment: { id: "dep-1", status: "pending" as const },
+        selectedDeployment: {
+          id: "dep-1",
+          status: "pending" as const,
+          desiredState: "running" as const,
+        },
       },
       expected: {
         canRollback: false,
@@ -111,7 +146,11 @@ describe("getDeploymentActionEligibility", () => {
       name: "building → all false",
       ctx: {
         ...baseCtx,
-        selectedDeployment: { id: "dep-1", status: "building" as const },
+        selectedDeployment: {
+          id: "dep-1",
+          status: "building" as const,
+          desiredState: "running" as const,
+        },
       },
       expected: {
         canRollback: false,
@@ -150,7 +189,11 @@ describe("getDeploymentActionEligibility", () => {
       name: "stopped + preview → wake and redeploy",
       ctx: {
         ...baseCtx,
-        selectedDeployment: { id: "dep-1", status: "stopped" as const },
+        selectedDeployment: {
+          id: "dep-1",
+          status: "stopped" as const,
+          desiredState: "running" as const,
+        },
         environmentKind: "preview" as const,
       },
       expected: {
@@ -166,7 +209,11 @@ describe("getDeploymentActionEligibility", () => {
       name: "stopped + production → redeploy only",
       ctx: {
         ...baseCtx,
-        selectedDeployment: { id: "dep-1", status: "stopped" as const },
+        selectedDeployment: {
+          id: "dep-1",
+          status: "stopped" as const,
+          desiredState: "running" as const,
+        },
       },
       expected: {
         canRollback: false,
