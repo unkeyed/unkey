@@ -2,7 +2,6 @@ import { useNearViewport } from "@/hooks/use-near-viewport";
 import { useVisibleProjects } from "@/hooks/use-visible-projects";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { type Project, collection } from "@/lib/collections";
-import { queryClient } from "@/lib/collections/client";
 import { projectDisplayName } from "@/lib/collections/deploy/projects";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { IconDotsOutline18, IconTriangleWarningOutline18 } from "@unkey/icons";
@@ -27,12 +26,7 @@ export const ProjectsList = () => {
   const projects = useVisibleProjects();
 
   useCollectionPolling(
-    () =>
-      Promise.all([
-        collection.projects.utils.refetch(),
-        queryClient.refetchQueries({ queryKey: ["deployments"], type: "active" }),
-        collection.productionDomains.utils.refetch(),
-      ]),
+    () => Promise.all([collection.projects.utils.refetch(), collection.apps.utils.refetch()]),
     { intervalMs: IDLE_POLL_MS, enabled: true },
   );
 

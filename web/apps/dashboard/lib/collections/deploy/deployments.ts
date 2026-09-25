@@ -106,32 +106,21 @@ function extractNumberFilter(filters: ParsedFilter[], fieldName: string, operato
   return typeof value === "number" ? value : undefined;
 }
 
-function extractDeploymentIds(filters: ParsedFilter[]): string[] | undefined {
-  const id = extractStringFilter(filters, "id");
-  if (id !== undefined) {
-    return [id];
-  }
-  const ids = filters.find((f) => f.field.at(-1) === "id" && f.operator === "in")?.value;
-  return Array.isArray(ids)
-    ? ids.filter((v): v is string => typeof v === "string").sort()
-    : undefined;
-}
-
 // The same reading feeds queryKey and queryFn so the two can never disagree
-// about which server subset a live query maps to. A live query on ids (an app's
-// current deployment, a request log's deployment) loads those rows on their own,
-// however old they are; the paged /deployments list does not go through
+// about which server subset a live query maps to. A live query on a single id
+// (the app's current deployment, a request log's deployment) loads that row on
+// its own, however old it is; the paged /deployments list does not go through
 // the collection at all.
 function readDeploymentSubset(opts: Parameters<typeof parseLoadSubsetOptions>[0]) {
   const { filters, limit } = parseLoadSubsetOptions(opts);
   return {
     limit,
-    projectIds: extractStringValues(filters, "projectId"),
+    projectId: extractStringFilter(filters, "projectId"),
     statuses: extractStringValues(filters, "status").filter((s): s is DeploymentStatus =>
       Object.hasOwn(DEPLOYMENT_STATUS_LABELS, s),
     ),
     appId: extractStringFilter(filters, "appId"),
-    deploymentIds: extractDeploymentIds(filters),
+    deploymentId: extractStringFilter(filters, "id"),
     startTime: extractNumberFilter(filters, "createdAt", "gte"),
     endTime: extractNumberFilter(filters, "createdAt", "lte"),
   };
@@ -140,9 +129,8 @@ function readDeploymentSubset(opts: Parameters<typeof parseLoadSubsetOptions>[0]
 /**
  * Global deployments collection.
  *
- * IMPORTANT: All queries MUST filter by projectId with eq or inArray:
+ * IMPORTANT: All queries MUST filter by projectId:
  * .where(({ deployment }) => eq(deployment.projectId, projectId))
-
  */
 export const deployments = createCollection<Deployment, string>(
   queryCollectionOptions({
@@ -152,16 +140,16 @@ export const deployments = createCollection<Deployment, string>(
         return ["deployments", "next-page"];
       }
       const subset = readDeploymentSubset(opts);
-      return subset.projectIds.length > 0
+      return subset.projectId
         ? [
             "deployments",
-            subset.projectIds.join(","),
+            subset.projectId,
             subset.appId ?? null,
             subset.startTime ?? null,
             subset.endTime ?? null,
             subset.statuses.join(",") || null,
             subset.limit ?? null,
-            subset.deploymentIds?.join(",") ?? null,
+            subset.deploymentId ?? null,
           ]
         : ["deployments"];
     },
@@ -171,30 +159,23 @@ export const deployments = createCollection<Deployment, string>(
       if (ctx.meta?.loadSubsetOptions?.cursor) {
         return [];
       }
-      const { projectIds, appId, deploymentIds, statuses, startTime, endTime, limit } =
+      const { projectId, appId, deploymentId, statuses, startTime, endTime, limit } =
         readDeploymentSubset(ctx.meta?.loadSubsetOptions);
 
-      if (projectIds.length === 0) {
-        throw new Error("Query must include an eq or inArray constraint on collection.projectId");
-      }
-      if (deploymentIds?.length === 0) {
-        return [];
+      if (!projectId) {
+        throw new Error("Query must include eq(collection.projectId, projectId) constraint");
       }
 
-      const perProject = await Promise.all(
-        projectIds.map((projectId) =>
-          trpcClient.deploy.deployment.list.query({
-            projectId,
-            ...(appId !== undefined && { appId }),
-            ...(deploymentIds !== undefined && { deploymentIds }),
-            ...(statuses.length > 0 && { statuses }),
-            ...(startTime !== undefined && { startTime }),
-            ...(endTime !== undefined && { endTime }),
-            ...(limit !== undefined && { limit }),
-          }),
-        ),
-      );
-      return perProject.flatMap((result) => result.deployments);
+      const result = await trpcClient.deploy.deployment.list.query({
+        projectId,
+        ...(appId !== undefined && { appId }),
+        ...(deploymentId !== undefined && { deploymentIds: [deploymentId] }),
+        ...(statuses.length > 0 && { statuses }),
+        ...(startTime !== undefined && { startTime }),
+        ...(endTime !== undefined && { endTime }),
+        ...(limit !== undefined && { limit }),
+      });
+      return result.deployments;
     },
     getKey: (item) => item.id,
     id: "deployments",

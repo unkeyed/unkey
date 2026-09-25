@@ -21,6 +21,7 @@ const schema = z.object({
   updatedAt: z.number().nullable(),
   repositoryFullName: z.string().nullable(),
   domain: z.string().nullable(),
+  customDomain: z.string().nullable(),
   headlineDeployment: z
     .object({
       id: z.string(),
@@ -163,7 +164,7 @@ async function listProjectApps(projectId: string): Promise<App[]> {
       trpcClient.deploy.domain.listDisplayDomains.query({ projectId }),
     ]);
     const headlineByApp = new Map(headlines.map(({ appId, ...headline }) => [appId, headline]));
-    const domainByApp = new Map(displayDomains.map((d) => [d.appId, d.domain]));
+    const domainsByApp = new Map(displayDomains.map((d) => [d.appId, d]));
 
     return pages.flatMap((page) =>
       page.result.data.map((app): App => {
@@ -180,7 +181,10 @@ async function listProjectApps(projectId: string): Promise<App[]> {
           isRolledBack: app.isRolledBack,
           updatedAt: app.updatedAt ?? null,
           repositoryFullName: app.git?.repository ?? null,
-          domain: currentDeploymentId ? (domainByApp.get(app.id) ?? null) : null,
+          domain: currentDeploymentId ? (domainsByApp.get(app.id)?.domain ?? null) : null,
+          customDomain: currentDeploymentId
+            ? (domainsByApp.get(app.id)?.customDomain ?? null)
+            : null,
           headlineDeployment: headlineByApp.get(app.id) ?? null,
         };
       }),
