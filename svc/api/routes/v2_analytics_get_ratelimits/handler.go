@@ -11,8 +11,11 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	queryparser "github.com/unkeyed/unkey/pkg/clickhouse/query-parser"
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -39,6 +42,7 @@ var (
 )
 
 type Handler struct {
+	DB                         db.Database
 	AnalyticsConnectionManager analytics.ConnectionManager
 }
 
@@ -55,13 +59,24 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 	wildcard := rbac.T(rbac.Tuple{ResourceType: rbac.Ratelimit, ResourceID: "*", Action: rbac.ReadAnalytics})
-	hasWildcard := slices.Contains(p.Permissions, "ratelimit.*.read_analytics")
+	hasLegacyWildcard := slices.Contains(p.Permissions, "ratelimit.*.read_analytics")
 	allowedNamespaceIDs := extractAllowedNamespaceIDs(p.Permissions)
-	if !hasWildcard && len(allowedNamespaceIDs) == 0 {
+	logPermissions, hasWorkspaceWidePermission := extractLogPermissions(p.Permissions, p.AuthorizedWorkspaceID)
+	if !hasLegacyWildcard && len(allowedNamespaceIDs) == 0 && len(logPermissions) == 0 {
 		return p.Authorize(wildcard)
 	}
+	if !hasLegacyWildcard && !hasWorkspaceWidePermission && len(logPermissions) > 0 {
+		namespaceRows, queryErr := db.Query.ListRatelimitNamespaceOwnershipByWorkspace(ctx, h.DB.RO(), p.AuthorizedWorkspaceID)
+		if queryErr != nil {
+			return fault.Wrap(queryErr,
+				fault.Code(codes.App.Internal.UnexpectedError.URN()),
+				fault.Public("An unexpected error occurred while loading your rate limit namespaces."),
+			)
+		}
+		allowedNamespaceIDs = append(allowedNamespaceIDs, authorizedNamespaceIDs(namespaceRows, logPermissions, p.AuthorizedWorkspaceID)...)
+	}
 	securityFilters := make([]queryparser.SecurityFilter, 0, 1)
-	if !hasWildcard {
+	if !hasLegacyWildcard && !hasWorkspaceWidePermission {
 		securityFilters = append(securityFilters, queryparser.SecurityFilter{Column: "namespace_id", AllowedValues: allowedNamespaceIDs})
 	}
 	rows, err := analytics.Execute(ctx, h.AnalyticsConnectionManager, analytics.ExecuteRequest{
@@ -99,4 +114,65 @@ func extractAllowedNamespaceIDs(permissions []string) []string {
 		namespaceIDs = append(namespaceIDs, pattern[1])
 	}
 	return namespaceIDs
+}
+
+func extractLogPermissions(permissionsToCheck []string, workspaceID string) ([]urn.V1, bool) {
+	permissions := make([]urn.V1, 0)
+	workspaceLogs := ratelimitLogResource(workspaceID, "*", "*")
+	workspaceWide := false
+	for _, permission := range permissionsToCheck {
+		resourceValue, action, ok := strings.Cut(permission, "#")
+		if !ok || strings.Contains(action, "#") {
+			continue
+		}
+		resource, err := urn.ParseV1(resourceValue)
+		if err != nil || resource.WorkspaceID != workspaceID || !isLogReadAction(resource, action) || !canCoverRatelimitLogs(resource) {
+			continue
+		}
+		permissions = append(permissions, resource)
+		workspaceWide = workspaceWide || resource.Covers(workspaceLogs)
+	}
+	return permissions, workspaceWide
+}
+
+func isLogReadAction(resource urn.V1, action string) bool {
+	return action == permissions.Read.String() || action == permissions.Wildcard && resource.Resource == "**"
+}
+
+// canCoverRatelimitLogs accepts log resources and subtree permissions rooted
+// at their ancestors. A namespace alone does not include its logs.
+func canCoverRatelimitLogs(resource urn.V1) bool {
+	if resource.Resource == "**" {
+		return true
+	}
+	base, descendants := strings.CutSuffix(resource.String(), "/**")
+	if _, err := urn.ParseRatelimitLogs(base); err == nil {
+		return true
+	}
+	if !descendants {
+		return false
+	}
+	if _, err := urn.ParseRatelimitNamespace(base); err == nil {
+		return true
+	}
+	_, err := urn.ParseProject(base)
+	return err == nil
+}
+
+func authorizedNamespaceIDs(rows []db.ListRatelimitNamespaceOwnershipByWorkspaceRow, permissions []urn.V1, workspaceID string) []string {
+	allowed := make([]string, 0, len(rows))
+	for _, row := range rows {
+		target := ratelimitLogResource(workspaceID, row.ProjectID, row.ID)
+		if slices.ContainsFunc(permissions, func(permission urn.V1) bool { return permission.Covers(target) }) {
+			allowed = append(allowed, row.ID)
+		}
+	}
+	return allowed
+}
+
+func ratelimitLogResource(workspaceID, projectID, namespaceID string) urn.V1 {
+	return urn.V1{
+		WorkspaceID: workspaceID,
+		Resource:    "projects/" + projectID + "/ratelimits/namespaces/" + namespaceID + "/logs",
+	}
 }
