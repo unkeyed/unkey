@@ -7,6 +7,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 
+	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/prometheus/lazy"
 )
 
@@ -17,7 +18,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-const rejectionsMetric = "unkey_key_verification_rejections_total"
+const verificationsMetric = "unkey_key_verifications_total"
 
 func counterValue(t *testing.T, name string, labels map[string]string) float64 {
 	t.Helper()
@@ -57,7 +58,32 @@ func counterValue(t *testing.T, name string, labels map[string]string) float64 {
 	return 0
 }
 
-func TestKeyVerifier_RecordsLateRejections(t *testing.T) {
+func TestKeyVerifier_VerifyRecordsTerminalStatus(t *testing.T) {
+	t.Run("passed verification", func(t *testing.T) {
+		labels := map[string]string{"type": "key", "code": string(StatusValid)}
+		before := counterValue(t, verificationsMetric, labels)
+
+		k := &KeyVerifier{Status: StatusValid}
+		require.NoError(t, k.Verify(t.Context()))
+
+		require.Equal(t, 1.0, counterValue(t, verificationsMetric, labels)-before)
+	})
+
+	t.Run("rejected during verification", func(t *testing.T) {
+		labels := map[string]string{"type": "key", "code": string(StatusNotFound)}
+		before := counterValue(t, verificationsMetric, labels)
+
+		k := &KeyVerifier{
+			Key:    keysdb.FindKeyForVerificationRow{KeyAuthID: "ks_actual"},
+			Status: StatusValid,
+		}
+		require.NoError(t, k.Verify(t.Context(), WithKeyspaces("ks_other")))
+
+		require.Equal(t, 1.0, counterValue(t, verificationsMetric, labels)-before)
+	})
+}
+
+func TestKeyVerifier_VerifyRecordsLateRejections(t *testing.T) {
 	for _, status := range []KeyStatus{
 		StatusForbidden,
 		StatusInsufficientPermissions,
@@ -66,53 +92,34 @@ func TestKeyVerifier_RecordsLateRejections(t *testing.T) {
 	} {
 		t.Run(string(status), func(t *testing.T) {
 			labels := map[string]string{"type": "key", "code": string(status)}
-			before := counterValue(t, rejectionsMetric, labels)
+			before := counterValue(t, verificationsMetric, labels)
 
 			k := &KeyVerifier{Status: status}
-			k.recordRejection(StatusValid)
+			k.recordVerifyOutcome(StatusValid)
 
-			require.Equal(t, 1.0, counterValue(t, rejectionsMetric, labels)-before)
+			require.Equal(t, 1.0, counterValue(t, verificationsMetric, labels)-before)
 		})
 	}
 }
 
-func TestKeyVerifier_RecordsRootKeyType(t *testing.T) {
-	labels := map[string]string{"type": "root_key", "code": string(StatusRateLimited)}
-	before := counterValue(t, rejectionsMetric, labels)
+func TestKeyVerifier_VerifyLeavesStatusesGetOwns(t *testing.T) {
+	t.Run("root key is recorded by Get", func(t *testing.T) {
+		labels := map[string]string{"type": "root_key", "code": string(StatusValid)}
+		before := counterValue(t, verificationsMetric, labels)
 
-	k := &KeyVerifier{Status: StatusRateLimited, isRootKey: true}
-	k.recordRejection(StatusValid)
+		k := &KeyVerifier{Status: StatusValid, isRootKey: true}
+		k.recordVerifyOutcome(StatusValid)
 
-	require.Equal(t, 1.0, counterValue(t, rejectionsMetric, labels)-before)
-}
+		require.Equal(t, 0.0, counterValue(t, verificationsMetric, labels)-before)
+	})
 
-func TestKeyVerifier_IgnoresGetTimeStatuses(t *testing.T) {
-	for _, status := range []KeyStatus{
-		StatusValid,
-		StatusNotFound,
-		StatusDisabled,
-		StatusExpired,
-		StatusWorkspaceDisabled,
-		StatusWorkspaceNotFound,
-	} {
-		t.Run(string(status), func(t *testing.T) {
-			labels := map[string]string{"type": "key", "code": string(status)}
-			before := counterValue(t, rejectionsMetric, labels)
+	t.Run("status already decided at Get", func(t *testing.T) {
+		labels := map[string]string{"type": "key", "code": string(StatusExpired)}
+		before := counterValue(t, verificationsMetric, labels)
 
-			k := &KeyVerifier{Status: status}
-			k.recordRejection(StatusValid)
+		k := &KeyVerifier{Status: StatusExpired}
+		k.recordVerifyOutcome(StatusExpired)
 
-			require.Equal(t, 0.0, counterValue(t, rejectionsMetric, labels)-before)
-		})
-	}
-}
-
-func TestKeyVerifier_IgnoresRejectionOnAlreadyInvalidKey(t *testing.T) {
-	labels := map[string]string{"type": "key", "code": string(StatusRateLimited)}
-	before := counterValue(t, rejectionsMetric, labels)
-
-	k := &KeyVerifier{Status: StatusRateLimited}
-	k.recordRejection(StatusExpired)
-
-	require.Equal(t, 0.0, counterValue(t, rejectionsMetric, labels)-before)
+		require.Equal(t, 0.0, counterValue(t, verificationsMetric, labels)-before)
+	})
 }

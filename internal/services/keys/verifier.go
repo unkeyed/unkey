@@ -77,7 +77,7 @@ func (k *KeyVerifier) VerifyRootKey(ctx context.Context, opts ...VerifyOption) e
 // For normal keys: returns error only for system problems, check k.Valid and k.Status for validation results.
 func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 	before := k.Status
-	defer k.recordRejection(before)
+	defer k.recordVerifyOutcome(before)
 
 	// nolint:exhaustruct
 	config := &verifyConfig{}
@@ -130,19 +130,24 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 	return nil
 }
 
-// recordRejection increments KeyVerificationRejectionsTotal when Verify moved the
-// key from VALID to one of the rejection statuses that keys.Get cannot see.
-func (k *KeyVerifier) recordRejection(before KeyStatus) {
-	if before != StatusValid || !k.Status.isVerifyRejection() {
+// recordVerifyOutcome records the terminal status of a verification that was
+// still undecided when it entered Verify. Statuses Get already decided, and
+// root keys, which never run through Verify, are recorded there instead.
+func (k *KeyVerifier) recordVerifyOutcome(before KeyStatus) {
+	if before != StatusValid || k.isRootKey {
 		return
 	}
 
+	k.recordStatus(k.Status)
+}
+
+func (k *KeyVerifier) recordStatus(status KeyStatus) {
 	keyType := "key"
 	if k.isRootKey {
 		keyType = "root_key"
 	}
 
-	metrics.KeyVerificationRejectionsTotal.WithLabelValues(keyType, string(k.Status)).Inc()
+	metrics.KeyVerificationsTotal.WithLabelValues(keyType, string(status)).Inc()
 }
 
 // TelemetrySnapshot captures the final verification outcome for downstream
