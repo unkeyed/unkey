@@ -179,11 +179,13 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// Written through rather than removed: a removed entry refills from the
 	// read replica, which may not have the revocation yet.
+	cached := make(map[string]db.PortalSession, len(revoked))
 	for _, session := range revoked {
 		if session.AccessTokenHash.Valid {
-			h.SessionCache.Set(ctx, session.AccessTokenHash.String, session)
+			cached[session.AccessTokenHash.String] = session
 		}
 	}
+	h.SessionCache.SetMany(ctx, cached)
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{
