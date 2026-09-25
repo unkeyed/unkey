@@ -69,10 +69,10 @@ export const DeployImageCard = ({
     startSubmit(async () => {
       try {
         const appId = await onCreateApp(imageRef);
-        await collection.environments.utils.refetch();
-        const appEnvironments = collection.environments.toArray.filter(
-          (environment) => environment.appId === appId,
-        );
+        const { data: appEnvironments } = await getUnkeyClient().environments.listEnvironments({
+          project: projectId,
+          app: appId,
+        });
         const environmentSlug =
           appEnvironments.find((environment) => environment.kind === "preview")?.slug ??
           appEnvironments[0]?.slug;

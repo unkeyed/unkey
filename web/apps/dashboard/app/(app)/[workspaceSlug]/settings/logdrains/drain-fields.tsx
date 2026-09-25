@@ -13,6 +13,7 @@ import {
   MultiboxTrigger,
   useMultiboxAnchor,
 } from "@/components/ui/multibox";
+import { useProjectEnvironments } from "@/hooks/use-project-environments";
 import { trpc } from "@/lib/trpc/client";
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
@@ -208,8 +209,11 @@ function SourcesField({ stream }: { stream: "gateway_requests" | "runtime_logs" 
     null,
   );
   const projects = trpc.deploy.project.list.useQuery();
-  const environments = trpc.deploy.environment.listAll.useQuery();
-  const tree = buildSourceTree(projects.data ?? [], environments.data ?? []);
+  const environments = useProjectEnvironments(projects.data);
+  const tree = buildSourceTree(
+    projects.data ?? [],
+    (environments.data ?? []).map((e) => ({ id: e.id, name: e.slug, appId: e.appId })),
+  );
   const allIds = environmentIdsOf(tree);
   const unavailableFilters = [
     ...projectIds
@@ -238,7 +242,7 @@ function SourcesField({ stream }: { stream: "gateway_requests" | "runtime_logs" 
   );
   const error = formState.errors[environmentField]?.message;
   const unavailable =
-    Boolean(projects.error || environments.error) || projects.isLoading || environments.isLoading;
+    Boolean(projects.error || environments.isError) || projects.isLoading || environments.isLoading;
 
   const applySelection = (selection: SourceFilters & { mode: "all" | "some" }) => {
     if (unavailable) {
@@ -293,7 +297,7 @@ function SourcesField({ stream }: { stream: "gateway_requests" | "runtime_logs" 
     .filter(({ apps }) => apps.length > 0);
 
   const notice = sourcesNotice({
-    failed: Boolean(projects.error || environments.error),
+    failed: Boolean(projects.error || environments.isError),
     loading: projects.isLoading || environments.isLoading,
     empty: visible.length === 0,
   });

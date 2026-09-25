@@ -64,6 +64,7 @@ export const OverridesTableAction = ({
             <DeleteDialog
               isModalOpen={props.isOpen}
               onOpenChange={(open) => !open && props.onClose()}
+              namespaceId={namespaceId}
               overrideId={overrideDetails.overrideId}
               identifier={identifier}
             />

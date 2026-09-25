@@ -1,26 +1,12 @@
 import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/status-badge";
+import type { Role } from "@unkey/api/models/components";
 import { IconLockOutline12, IconTagOutline12 } from "@unkey/icons";
 import { Badge, Button, HoverCard, HoverCardContent, HoverCardTrigger } from "@unkey/ui";
-
-type Role = {
-  id: string;
-  name: string;
-  description?: string | null;
-  keys: {
-    id: string;
-    name: string | null;
-  }[];
-  permissions: {
-    id: string;
-    name: string;
-  }[];
-};
 
 type RoleSelectorProps = {
   roles: Role[];
   hasNextPage?: boolean;
   isFetchingNextPage: boolean;
-  keyId?: string;
   previouslySelectedRoleNames: string[];
   loadMore: () => void;
 };
@@ -30,7 +16,6 @@ export function createRoleOptions({
   hasNextPage,
   isFetchingNextPage,
   previouslySelectedRoleNames,
-  keyId,
   loadMore,
 }: RoleSelectorProps) {
   const options = roles.map((role) => ({
@@ -45,8 +30,7 @@ export function createRoleOptions({
               <div className="flex gap-1 flex-col truncate">
                 <div className="flex gap-2 items-center">
                   <span className="font-medium text-gray-12 text-left">{role.name}</span>
-                  {(previouslySelectedRoleNames.includes(role.name) ||
-                    role.keys.find((item) => item.id === keyId)) && (
+                  {previouslySelectedRoleNames.includes(role.name) && (
                     <StatusBadge
                       variant="locked"
                       text="Already assigned"
@@ -55,7 +39,7 @@ export function createRoleOptions({
                   )}
                 </div>
                 <span className="text-gray-9 text-xs truncate">
-                  {role.description || `${role.permissions.length} permissions`}
+                  {role.description || `${role.permissions?.length ?? 0} permissions`}
                 </span>
               </div>
             </div>
@@ -88,11 +72,11 @@ export function createRoleOptions({
                 <div className="text-xs font-medium text-gray-11 mb-1">Role ID</div>
                 <div className="text-xs text-gray-12 font-mono break-all">{role.id}</div>
               </div>
-              {role.permissions.length > 0 && (
+              {(role.permissions?.length ?? 0) > 0 && (
                 <div>
                   <div className="text-xs font-medium text-gray-11 mb-2">Permissions</div>
                   <div className="flex flex-wrap gap-1">
-                    {role.permissions.map((permission) => (
+                    {role.permissions?.map((permission) => (
                       <Badge key={permission.id} variant="secondary" className="text-xs">
                         {permission.name}
                       </Badge>
@@ -116,7 +100,7 @@ export function createRoleOptions({
           </span>
         </div>
         <span className="w-[200px] truncate text-gray-8 text-left">
-          {role.description || `${role.permissions.length} permissions`}
+          {role.description || `${role.permissions?.length ?? 0} permissions`}
         </span>
       </div>
     ),

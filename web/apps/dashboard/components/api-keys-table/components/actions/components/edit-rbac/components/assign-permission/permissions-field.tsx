@@ -138,6 +138,9 @@ export const PermissionField = ({
       if (loadedPerm) {
         permissionsList.push({
           ...loadedPerm,
+          // KeyPermission still comes from tRPC, which spells an absent
+          // description as null rather than undefined
+          description: loadedPerm.description ?? null,
           source: "direct" as const,
           isInherited: false,
         });
