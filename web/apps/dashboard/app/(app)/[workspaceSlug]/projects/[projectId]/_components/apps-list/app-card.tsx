@@ -7,8 +7,6 @@ import type { ReactNode } from "react";
 import type { AppRowData } from "./app-row-model";
 import { AppActionsButton, DeployedAgo, LinkOrText, SourceIcon, SourceLabel } from "./app-source";
 
-const linkClass = "relative block min-w-0 truncate text-gray-12 hover:underline";
-
 function Line({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
     <div className="flex min-h-5 min-w-0 items-center gap-2 text-xs text-gray-12">
@@ -58,12 +56,18 @@ export function AppCard({ row, projectId }: { row: AppRowData; projectId: string
 
       <div className="flex flex-col gap-1.5">
         <Line icon={<SourceIcon source={row.source} className="size-3" />}>
-          <SourceLabel row={row} className={linkClass} />
+          <SourceLabel
+            row={row}
+            className="relative block min-w-0 truncate text-gray-12 hover:underline"
+          />
         </Line>
         {row.source === "git" ? (
           <Line icon={<IconCodeCommitOutline18 className="size-3" />}>
             {deployment?.commitMessage ? (
-              <LinkOrText href={row.commitUrl} className={linkClass}>
+              <LinkOrText
+                href={row.commitUrl}
+                className="relative block min-w-0 truncate text-gray-12 hover:underline"
+              >
                 {deployment.commitMessage}
               </LinkOrText>
             ) : (

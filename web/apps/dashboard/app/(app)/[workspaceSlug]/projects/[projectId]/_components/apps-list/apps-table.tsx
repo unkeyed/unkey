@@ -1,25 +1,16 @@
 import { DeploymentStatusIndicator } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
 import { InfoTooltip, ResourceListBody, ResourceListContent, ResourceListItem } from "@unkey/ui";
-import { cn } from "cn";
 import Link from "next/link";
 import type { AppRowData } from "./app-row-model";
 import { AppActionsButton, DeployedAgo, LinkOrText, SourceIcon, SourceLabel } from "./app-source";
-
-const COLUMNS =
-  "grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_32px] items-center gap-4";
 
 const empty = <span className="text-gray-9">—</span>;
 
 export function AppsTable({ rows, projectId }: { rows: AppRowData[]; projectId: string }) {
   return (
     <ResourceListContent>
-      <div
-        className={cn(
-          COLUMNS,
-          "border-b bg-table-header px-4 py-[7px] text-xs font-medium text-gray-12",
-        )}
-      >
+      <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_32px] items-center gap-4 border-b bg-table-header px-4 py-[7px] text-xs font-medium text-gray-12">
         <span>App</span>
         <span>Repository</span>
         <span>Domain</span>
@@ -40,9 +31,7 @@ function AppsTableRow({ row, projectId }: { row: AppRowData; projectId: string }
   const { app, deployment } = row;
 
   return (
-    <ResourceListItem
-      className={cn(COLUMNS, "h-12 px-4 text-xs text-gray-12 transition-colors hover:bg-grayA-2")}
-    >
+    <ResourceListItem className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_32px] items-center gap-4 h-12 px-4 text-xs text-gray-12 transition-colors hover:bg-grayA-2">
       <Link href={row.href} className="absolute inset-0 z-0" aria-label={`View ${app.name}`} />
       <span className="flex min-w-0 items-center gap-2.5">
         <span className="flex size-6 shrink-0 items-center justify-center rounded-md border bg-raised">
