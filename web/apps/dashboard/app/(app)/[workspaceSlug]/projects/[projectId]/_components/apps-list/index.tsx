@@ -147,7 +147,7 @@ function AppsListBody({
     );
   }
   if (rows.length === 0) {
-    return <p className="py-12 text-center text-[13px] text-gray-9">No apps match "{search}"</p>;
+    return <p className="py-12 text-center text-sm text-gray-9">No apps match "{search}"</p>;
   }
   if (view === "list") {
     return <AppsTable rows={rows} projectId={projectId} />;
