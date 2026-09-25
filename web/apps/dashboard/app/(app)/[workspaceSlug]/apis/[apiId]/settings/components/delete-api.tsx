@@ -42,12 +42,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
 
   type FormValues = z.infer<typeof formSchema>;
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { isSubmitting },
-  } = useForm<FormValues>({
+  const { register, handleSubmit, watch } = useForm<FormValues>({
     ...createApiFormConfig(formSchema),
     resolver: zodResolver(formSchema),
     mode: "onChange",
@@ -111,8 +106,8 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
               variant="primary"
               color="danger"
               size="xlg"
-              disabled={api.deleteProtection || !isValid || isSubmitting}
-              loading={isSubmitting}
+              disabled={api.deleteProtection || !isValid || deleteApi.isLoading}
+              loading={deleteApi.isLoading}
               className="w-full"
             >
               Delete Keyspace
