@@ -123,8 +123,9 @@ export function useRootKeyDialog({
     );
   }, [projectsData]);
 
-  const { data: environmentsData, isLoading: environmentsLoading } =
-    useProjectEnvironments(projectsData);
+  const { data: environmentsData, isLoading: environmentsLoading } = useProjectEnvironments(
+    isOpen ? projectsData : undefined,
+  );
 
   const allEnvironments = useMemo(() => {
     if (!environmentsData) {

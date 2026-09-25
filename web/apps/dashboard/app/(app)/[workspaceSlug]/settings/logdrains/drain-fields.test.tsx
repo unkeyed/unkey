@@ -13,6 +13,7 @@ vi.stubGlobal("PointerEvent", MouseEvent);
 const sourceState = vi.hoisted(() => ({
   loading: false,
   failed: false,
+  environmentsFailed: false,
   combined: false,
   empty: false,
 }));
@@ -31,7 +32,7 @@ vi.mock("@/hooks/use-project-environments", () => ({
       },
     ],
     isLoading: false,
-    isError: false,
+    isError: sourceState.environmentsFailed,
   }),
 }));
 vi.mock("@/lib/trpc/client", () => ({
@@ -86,6 +87,7 @@ afterEach(() => {
   cleanup();
   sourceState.loading = false;
   sourceState.failed = false;
+  sourceState.environmentsFailed = false;
   sourceState.combined = false;
   sourceState.empty = false;
   createDrain.mockClear();
@@ -534,15 +536,18 @@ it("shows nothing selected after clearing every source", () => {
   );
 });
 
-it.each(["loading", "failed"] as const)("does not change sources while queries are %s", (state) => {
-  sourceState[state] = true;
-  render(<Form />);
-  fireEvent.click(screen.getByText("Gateway"));
-  fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
-  expect(screen.getByRole("radio", { name: "All sources" }).getAttribute("aria-checked")).toBe(
-    "true",
-  );
-});
+it.each(["loading", "failed", "environmentsFailed"] as const)(
+  "does not change sources while queries are %s",
+  (state) => {
+    sourceState[state] = true;
+    render(<Form />);
+    fireEvent.click(screen.getByText("Gateway"));
+    fireEvent.click(screen.getByRole("radio", { name: "Specific sources" }));
+    expect(screen.getByRole("radio", { name: "All sources" }).getAttribute("aria-checked")).toBe(
+      "true",
+    );
+  },
+);
 
 it("keeps a searched project checkbox bound to every app in that project", () => {
   sourceState.combined = true;
