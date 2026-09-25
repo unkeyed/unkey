@@ -17,6 +17,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
@@ -73,21 +75,49 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	wildcard := rbac.T(rbac.Tuple{ResourceType: rbac.Api, ResourceID: "*", Action: rbac.ReadAnalytics})
-	hasWildcard := slices.Contains(principal.Permissions, "api.*.read_analytics")
+	hasLegacyWildcard := slices.Contains(principal.Permissions, "api.*.read_analytics")
 	allowedAPIIDs := extractAllowedAPIIDs(principal.Permissions)
-	if !hasWildcard && len(allowedAPIIDs) == 0 {
+	analyticsPermissionScope := extractAnalyticsPermissionScope(
+		principal.AuthorizedWorkspaceID,
+		principal.Permissions,
+	)
+	if !hasLegacyWildcard && len(allowedAPIIDs) == 0 && !analyticsPermissionScope.hasPermission {
 		return principal.Authorize(wildcard)
 	}
 
 	securityFilters := make([]chquery.SecurityFilter, 0, 1)
-	if !hasWildcard {
+	if !hasLegacyWildcard && !analyticsPermissionScope.unrestricted {
 		keySpaces, fetchErr := h.fetchKeyAuthsByAPIIDs(ctx, principal.AuthorizedWorkspaceID, allowedAPIIDs)
 		if fetchErr != nil {
 			return fetchErr
 		}
-		allowedKeySpaceIDs := make([]string, 0, len(keySpaces))
+		allowedKeySpaces := make(map[string]struct{}, len(keySpaces)+len(analyticsPermissionScope.keySpaceIDs))
 		for _, keySpace := range keySpaces {
-			allowedKeySpaceIDs = append(allowedKeySpaceIDs, keySpace.KeyAuthID)
+			allowedKeySpaces[keySpace.KeyAuthID] = struct{}{}
+		}
+
+		if analyticsPermissionScope.hasPermission {
+			ownership, err := db.Query.FindKeySpaceAnalyticsOwnership(ctx, h.DB.RO(), db.FindKeySpaceAnalyticsOwnershipParams{
+				WorkspaceID: principal.AuthorizedWorkspaceID,
+				KeySpaceIds: analyticsPermissionScope.keySpaceIDs,
+				ProjectIds:  analyticsPermissionScope.projectIDs,
+			})
+			if err != nil {
+				return err
+			}
+			for _, keySpace := range ownership {
+				query := rbac.U(
+					urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keySpace.ProjectID).Keyspace(keySpace.ID).Logs(),
+					permissions.Read,
+				)
+				if rbac.Check(query, principal.Permissions) == nil {
+					allowedKeySpaces[keySpace.ID] = struct{}{}
+				}
+			}
+		}
+		allowedKeySpaceIDs := make([]string, 0, len(allowedKeySpaces))
+		for keySpaceID := range allowedKeySpaces {
+			allowedKeySpaceIDs = append(allowedKeySpaceIDs, keySpaceID)
 		}
 		securityFilters = append(securityFilters, chquery.SecurityFilter{Column: "key_space_id", AllowedValues: allowedKeySpaceIDs})
 	}
@@ -175,4 +205,64 @@ func extractAllowedAPIIDs(permissions []string) []string {
 	}
 
 	return apiIDs
+}
+
+// analyticsPermissionScope identifies the ownership rows needed to evaluate
+// URN log permissions without treating an empty result as unrestricted.
+type analyticsPermissionScope struct {
+	hasPermission bool
+	unrestricted  bool
+	keySpaceIDs   []string
+	projectIDs    []string
+}
+
+// extractAnalyticsPermissionScope finds candidate ownership rows for URN
+// log permissions. The handler validates every candidate against its actual owner.
+func extractAnalyticsPermissionScope(workspaceID string, permissionsToCheck []string) analyticsPermissionScope {
+	scope := analyticsPermissionScope{
+		hasPermission: false,
+		unrestricted:  false,
+		keySpaceIDs:   nil,
+		projectIDs:    nil,
+	}
+	for _, permission := range permissionsToCheck {
+		resourceName, action, ok := strings.Cut(permission, "#")
+		if !ok || strings.Contains(action, "#") || (action != permissions.Read.String() && action != permissions.Wildcard) {
+			continue
+		}
+		resource, err := urn.ParseV1(resourceName)
+		if err != nil || resource.WorkspaceID != workspaceID {
+			continue
+		}
+		if resource.Resource == "**" {
+			return analyticsPermissionScope{hasPermission: true, unrestricted: true, keySpaceIDs: nil, projectIDs: nil}
+		}
+		if action == permissions.Wildcard {
+			continue
+		}
+
+		base, descendants := strings.CutSuffix(resourceName, "/**")
+		var projectID, keySpaceID string
+		if logs, err := urn.ParseKeyspaceLogs(base); err == nil {
+			projectID, keySpaceID = logs.ProjectID, logs.KeyspaceID
+		} else if keyspace, err := urn.ParseKeyspace(base); descendants && err == nil {
+			projectID, keySpaceID = keyspace.ProjectID, keyspace.KeyspaceID
+		} else if project, err := urn.ParseProject(base); descendants && err == nil {
+			projectID, keySpaceID = project.ProjectID, "*"
+		} else {
+			continue
+		}
+
+		scope.hasPermission = true
+		if projectID == "*" {
+			return analyticsPermissionScope{hasPermission: true, unrestricted: true, keySpaceIDs: nil, projectIDs: nil}
+		}
+		if keySpaceID == "*" {
+			scope.projectIDs = append(scope.projectIDs, projectID)
+		} else {
+			scope.keySpaceIDs = append(scope.keySpaceIDs, keySpaceID)
+		}
+	}
+
+	return scope
 }
