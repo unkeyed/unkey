@@ -76,9 +76,9 @@ func TestKilledWindowDoesNotDoubleCountQuietMetricOnRedispatch(t *testing.T) {
 	handler, err := deployanomaly.NewCheckHandler(deployanomaly.CheckConfig{DB: database})
 	require.NoError(t, err)
 	retry := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(10*time.Millisecond),
-		restate.WithMaxInterval(10*time.Millisecond),
-		restate.WithMaxAttempts(2),
+		restate.WithInitialRetryInterval(10*time.Millisecond),
+		restate.WithMaxRetryInterval(10*time.Millisecond),
+		restate.WithMaxRetryAttempts(2),
 		restate.KillOnMaxAttempts(),
 	)
 	testEnv := containers.Restate(t,

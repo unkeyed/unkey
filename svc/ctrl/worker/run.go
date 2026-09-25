@@ -709,10 +709,10 @@ func Run(ctx context.Context, cfg Config) error {
 		restate.KillOnMaxAttempts(),
 	)
 	cronDeployAnomalyRetry := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(100*time.Millisecond),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(5*time.Second),
-		restate.WithMaxAttempts(5),
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
 	// Without a cap the SDK default retries a failing quota check forever,
@@ -810,10 +810,10 @@ func Run(ctx context.Context, cfg Config) error {
 	logger.Info("DeploySpendCheckService enabled")
 
 	deployAnomalyShardRetry := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(100*time.Millisecond),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(5*time.Second),
-		restate.WithMaxAttempts(5),
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
 	restateSrv.Bind(hydrav1.NewDeployAnomalyShardServiceServer(cronSvc.DeployAnomalyShardServer()).
@@ -821,10 +821,10 @@ func Run(ctx context.Context, cfg Config) error {
 	logger.Info("DeployAnomalyShardService enabled")
 
 	deployAnomalyGroupRetry := restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(100*time.Millisecond),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(5*time.Second),
-		restate.WithMaxAttempts(5),
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
 	restateSrv.Bind(hydrav1.NewDeployAnomalyServiceServer(cronSvc.DeployAnomalyServer()).

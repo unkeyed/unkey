@@ -22,7 +22,7 @@ func (h *CheckHandler) OpenObservedEvents(ctx restate.ObjectContext, req *hydrav
 	if group.GetWorkspaceId() == "" || group.GetProjectId() == "" || group.GetAppId() == "" || group.GetEnvironmentId() == "" ||
 		restate.Key(ctx) != GroupKey(group.GetWorkspaceId(), group.GetAppId(), group.GetEnvironmentId()) ||
 		len(req.GetEventIds()) == 0 || len(req.GetEventIds()) > eventPageSize {
-		return nil, restate.TerminalError(fault.New("invalid anomaly event group or batch"))
+		return nil, restate.ToTerminalError(fault.New("invalid anomaly event group or batch"))
 	}
 	if !slices.Contains(h.fastWorkspaces, group.GetWorkspaceId()) {
 		return &hydrav1.OpenObservedDeployAnomalyEventsResponse{}, nil
@@ -79,7 +79,7 @@ func (h *CheckHandler) processEvents(ctx context.Context, req *hydrav1.OpenObser
 				return nil, err
 			}
 			if event.ProjectID != group.GetProjectId() || event.AppID != group.GetAppId() || event.EnvironmentID != group.GetEnvironmentId() {
-				return nil, restate.TerminalError(fault.New("anomaly event does not belong to group"))
+				return nil, restate.ToTerminalError(fault.New("anomaly event does not belong to group"))
 			}
 			if !event.ProcessedAt.Valid {
 				pending = append(pending, event)

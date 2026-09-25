@@ -186,8 +186,8 @@ func TestDeployAnomalyEventsKill_Integration(t *testing.T) {
 			check, err := deployanomaly.NewCheckHandler(deployanomaly.CheckConfig{DB: database, FastWorkspaces: []string{app.workspaceID}})
 			require.NoError(t, err)
 			retry := restate.WithInvocationRetryPolicy(
-				restate.WithInitialInterval(10*time.Millisecond), restate.WithMaxInterval(10*time.Millisecond),
-				restate.WithMaxAttempts(2), restate.KillOnMaxAttempts(),
+				restate.WithInitialRetryInterval(10*time.Millisecond), restate.WithMaxRetryInterval(10*time.Millisecond),
+				restate.WithMaxRetryAttempts(2), restate.KillOnMaxAttempts(),
 			)
 			worker := containers.Restate(t, hydrav1.NewDeployAnomalyServiceServer(check).
 				ConfigureHandler("OpenObservedEvents", retry).ConfigureHandler("Evaluate", retry))

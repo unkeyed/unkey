@@ -105,10 +105,10 @@ type DeployAnomalyServiceServer interface {
 type UnimplementedDeployAnomalyServiceServer struct{}
 
 func (UnimplementedDeployAnomalyServiceServer) Evaluate(ctx sdk_go.ObjectContext, req *EvaluateDeployAnomalyRequest) (*EvaluateDeployAnomalyResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method Evaluate not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method Evaluate not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployAnomalyServiceServer) OpenObservedEvents(ctx sdk_go.ObjectContext, req *OpenObservedDeployAnomalyEventsRequest) (*OpenObservedDeployAnomalyEventsResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method OpenObservedEvents not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method OpenObservedEvents not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployAnomalyServiceServer) testEmbeddedByValue() {}
 
@@ -218,7 +218,7 @@ type DeployAnomalyShardServiceServer interface {
 type UnimplementedDeployAnomalyShardServiceServer struct{}
 
 func (UnimplementedDeployAnomalyShardServiceServer) EvaluateShard(ctx sdk_go.ObjectContext, req *EvaluateDeployAnomalyShardRequest) (*EvaluateDeployAnomalyShardResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method EvaluateShard not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method EvaluateShard not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedDeployAnomalyShardServiceServer) testEmbeddedByValue() {}
 

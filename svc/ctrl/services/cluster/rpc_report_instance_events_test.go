@@ -17,6 +17,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
+	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 )
@@ -261,6 +262,7 @@ func newInstanceEventTestService(t *testing.T, database db.Database, inserter de
 		Database:                    database,
 		Bearer:                      "test-token",
 		TopologyCache:               topologyCache,
+		RestateAdmin:                restateadmin.New(restateadmin.Config{BaseURL: "http://127.0.0.1:1"}),
 		InstanceEvents:              batch.NewNoop[schema.InstanceEventV1](),
 		DeployAnomalyFastWorkspaces: workspaces,
 	})

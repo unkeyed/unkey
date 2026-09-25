@@ -53,17 +53,17 @@ func NewEventsHandler(cfg EventsConfig) (*EventsHandler, error) {
 
 func EventsRetryPolicy() restate.HandlerOption {
 	return restate.WithInvocationRetryPolicy(
-		restate.WithInitialInterval(100*time.Millisecond),
-		restate.WithExponentiationFactor(2.0),
-		restate.WithMaxInterval(5*time.Second),
-		restate.WithMaxAttempts(5),
+		restate.WithInitialRetryInterval(100*time.Millisecond),
+		restate.WithRetryIntervalFactor(2.0),
+		restate.WithMaxRetryInterval(5*time.Second),
+		restate.WithMaxRetryAttempts(5),
 		restate.KillOnMaxAttempts(),
 	)
 }
 
 func (h *EventsHandler) Handle(ctx restate.ObjectContext, _ *hydrav1.RunDeployAnomalyEventsRequest) (*hydrav1.RunDeployAnomalyEventsResponse, error) {
 	if restate.Key(ctx) != "deploy-anomaly-events" {
-		return nil, restate.TerminalError(fault.New("invalid deploy anomaly events key"))
+		return nil, restate.ToTerminalError(fault.New("invalid deploy anomaly events key"))
 	}
 	response := &hydrav1.RunDeployAnomalyEventsResponse{}
 	var failures error

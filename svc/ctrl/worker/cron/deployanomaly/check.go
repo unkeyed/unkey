@@ -70,9 +70,9 @@ func (h *CheckHandler) Evaluate(
 	ctx restate.ObjectContext,
 	req *hydrav1.EvaluateDeployAnomalyRequest,
 ) (*hydrav1.EvaluateDeployAnomalyResponse, error) {
-	lastWindowEnd, err := restate.Get[int64](ctx, lastWindowEndStateKey)
-	if err != nil {
-		return nil, fault.Wrap(err, fault.Internal("get last deploy anomaly window"))
+	lastWindowEnd, stateErr := restate.Get[int64](ctx, lastWindowEndStateKey)
+	if stateErr != nil {
+		return nil, fault.Wrap(stateErr, fault.Internal("get last deploy anomaly window"))
 	}
 	if req.GetWindowEnd() <= lastWindowEnd {
 		logger.Warn("deploy anomaly window skipped because it is not newer",
@@ -96,12 +96,12 @@ func (h *CheckHandler) Evaluate(
 	for _, metricValue := range req.GetMetrics() {
 		metric := Metric(metricValue.GetMetric())
 		if !validMetric(metric) {
-			return nil, restate.TerminalError(fault.New(fmt.Sprintf("unsupported deploy anomaly metric %q", metric)))
+			return nil, restate.ToTerminalError(fault.New(fmt.Sprintf("unsupported deploy anomaly metric %q", metric)))
 		}
 
-		openID, err := restate.Get[string](ctx, openAlertKey(metric))
-		if err != nil {
-			return nil, fault.Wrap(err, fault.Internal(fmt.Sprintf("get open alert for %s", metric)))
+		openID, stateErr := restate.Get[string](ctx, openAlertKey(metric))
+		if stateErr != nil {
+			return nil, fault.Wrap(stateErr, fault.Internal(fmt.Sprintf("get open alert for %s", metric)))
 		}
 		if metricValue.GetDataState() == hydrav1.DeployAnomalyMetricDataState_DEPLOY_ANOMALY_METRIC_DATA_STATE_INCOMPLETE &&
 			!(metric == MetricRequestsDrop && requestDropSuppressed(req)) {
@@ -174,7 +174,7 @@ func (h *CheckHandler) Evaluate(
 			restate.Clear(ctx, candidateKey(metric))
 			restate.Clear(ctx, candidateWindowKey(metric))
 		default:
-			return nil, restate.TerminalError(fault.New(fmt.Sprintf("unsupported detector outcome %q", result.Outcome)))
+			return nil, restate.ToTerminalError(fault.New(fmt.Sprintf("unsupported detector outcome %q", result.Outcome)))
 		}
 		restate.Set(ctx, progressKey(metric), metricProgress{
 			WindowEnd: req.GetWindowEnd(), QuietWindows: 0,

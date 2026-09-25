@@ -123,7 +123,7 @@ func (h *ShardHandler) EvaluateShard(
 ) (*hydrav1.EvaluateDeployAnomalyShardResponse, error) {
 	windowStart, shard, shardCount, err := ParseShardKey(restate.Key(ctx))
 	if err != nil {
-		return nil, restate.TerminalError(err)
+		return nil, restate.ToTerminalError(err)
 	}
 	windowEnd := windowStart + windowDurationMillis
 

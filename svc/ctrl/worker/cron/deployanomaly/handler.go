@@ -57,7 +57,7 @@ func (h *Handler) Handle(
 ) (*hydrav1.RunDeployAnomalyCheckResponse, error) {
 	windowStart, err := ParseWindowStart(restate.Key(ctx))
 	if err != nil {
-		return nil, restate.TerminalError(err)
+		return nil, restate.ToTerminalError(err)
 	}
 	now, err := restateutil.Now(ctx)
 	if err != nil {
