@@ -5,6 +5,7 @@ import { Button, DialogContainer, Input } from "@unkey/ui";
 import type { PropsWithChildren } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useOverride } from "./use-override";
 
 const formSchema = z.object({
   identifier: z
@@ -18,12 +19,24 @@ type FormValues = z.infer<typeof formSchema>;
 type Props = PropsWithChildren<{
   isModalOpen: boolean;
   onOpenChange: (value: boolean) => void;
+  namespaceId: string;
   overrideId: string;
   identifier: string;
 }>;
 
-export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier }: Props) => {
-  const { register, handleSubmit, watch } = useForm<FormValues>({
+export const DeleteDialog = ({
+  isModalOpen,
+  onOpenChange,
+  namespaceId,
+  overrideId,
+  identifier,
+}: Props) => {
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { isSubmitting },
+  } = useForm<FormValues>({
     mode: "onChange",
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -33,7 +46,10 @@ export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier
 
   const isValid = watch("identifier") === identifier;
 
+  const override = useOverride(namespaceId, identifier);
+
   const onSubmit = async () => {
+    await override.collection?.toArrayWhenReady();
     collection.ratelimitOverrides.delete(overrideId);
     onOpenChange(false);
   };
@@ -51,7 +67,8 @@ export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier
             variant="primary"
             color="danger"
             size="xlg"
-            disabled={!isValid}
+            disabled={!isValid || isSubmitting}
+            loading={isSubmitting}
             className="w-full rounded-lg"
           >
             Delete Override
