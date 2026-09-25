@@ -23,7 +23,7 @@ Only the fields you send change. Omitting a field leaves it as it is, and for br
 
 Two changes affect your end users immediately:
 - Re-pointing at a different resource revokes the portal's live sessions, because a session carries the scope it was minted with.
-- Disabling stops new sessions but leaves live ones running until they expire.
+- Disabling stops new sessions and revokes the live ones. Re-enabling does not restore them.
 
 Required Permissions
 

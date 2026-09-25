@@ -73,10 +73,7 @@ Change it with `portal.updatePortal`, which touches only the fields you send. Om
 
 ### Turning a portal off
 
-Two operations affect end users who are already signed in, and they differ:
-
-- **Disabling** a portal (`"enabled": false`) stops new sessions from being minted. Sessions already in progress keep working until they expire.
-- **Deleting** a portal, or re-pointing it at a different app or keyspace with `keyspaceId` or `appId`, revokes its sessions. Those end users lose access on their next request rather than at token expiry.
+Disabling a portal (`"enabled": false`), deleting it, or re-pointing it at a different app or keyspace with `keyspaceId` or `appId` revokes its live sessions. Those end users lose access on their next request rather than at token expiry. Disabling also stops new sessions from being minted, and re-enabling the portal does not bring the old sessions back.
 
 Revocation is not instantaneous. Session lookups are cached for a few seconds and served from a slightly stale cache for a few minutes while they refresh, so a request already in flight can still succeed. If you need access cut off immediately, revoke the underlying keys as well.
 

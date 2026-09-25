@@ -5919,7 +5919,8 @@ type V2PortalUpdatePortalRequestBody struct {
 
 	// Enabled Whether new sessions can be minted. Omit to leave unchanged.
 	//
-	// Disabling does not end sessions that are already live.
+	// Disabling also revokes the portal's live sessions. Re-enabling does not
+	// restore them.
 	//
 	//
 	// Example: false
