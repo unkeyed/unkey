@@ -2,6 +2,7 @@
 import { getUnkeyClient } from "@/lib/unkey-client";
 import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
+import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import type { environments as environmentsTable } from "@unkey/db/src/schema";
 import { z } from "zod";
 import { queryClient } from "../client";
@@ -58,11 +59,19 @@ export const environments = createCollection<Environment, string>(
 
       const perApp = await Promise.all(
         appIds.map(async (appId) => {
-          const { data } = await getUnkeyClient().environments.listEnvironments({
-            project: projectId,
-            app: appId,
-          });
-          return data.map((e) => ({ id: e.id, projectId, appId, slug: e.slug, kind: e.kind }));
+          try {
+            const { data } = await getUnkeyClient().environments.listEnvironments({
+              project: projectId,
+              app: appId,
+            });
+            return data.map((e) => ({ id: e.id, projectId, appId, slug: e.slug, kind: e.kind }));
+          } catch (error) {
+            // A deleted app or one without read permission must not hide the other apps' environments
+            if (error instanceof NotFoundErrorResponse) {
+              return [];
+            }
+            throw error;
+          }
         }),
       );
 
