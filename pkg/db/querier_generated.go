@@ -1030,6 +1030,17 @@ type Querier interface {
 	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
 	//  WHERE exchange_code_hash = ?
 	FindPortalSessionByExchangeCodeHash(ctx context.Context, db DBTX, exchangeCodeHash string) (PortalSession, error)
+	// Reads back the rows RevokePortalSessionsByExternalID just revoked, matched by
+	// the exact revoked_at it wrote, so the caller can write their revoked state
+	// into the session cache. Run it on the same transaction as the revoke: it then
+	// returns exactly the rows that update touched.
+	//
+	//  SELECT pk, id, workspace_id, portal_id, external_id, scopes, exchange_code_hash, exchange_code_expires_at, access_token_hash, access_token_created_at, access_token_expires_at, revoked_at, return_url, created_at FROM portal_sessions
+	//  WHERE workspace_id = ?
+	//    AND portal_id = ?
+	//    AND external_id = ?
+	//    AND revoked_at = ?
+	FindPortalSessionsRevokedAtByExternalID(ctx context.Context, db DBTX, arg FindPortalSessionsRevokedAtByExternalIDParams) ([]PortalSession, error)
 	//FindProjectById
 	//
 	//  SELECT projects.pk, projects.id, projects.workspace_id, projects.name, projects.slug, projects.depot_project_id, projects.delete_protection, projects.created_at, projects.updated_at
@@ -2769,6 +2780,26 @@ type Querier interface {
 	//      AND (e.id = ? OR e.slug = ?)
 	//  LIMIT 1
 	ResolveDeploymentScope(ctx context.Context, db DBTX, arg ResolveDeploymentScopeParams) (ResolveDeploymentScopeRow, error)
+	// Revokes every live session one end user holds on a portal, scoped to the
+	// workspace.
+	//
+	// Live means a session that could still authenticate: an access token that has
+	// not expired, or a pending exchange code that has not. Expired rows are left
+	// untouched so the returned count, and the audit log built from it, reflect
+	// access that was actually cut. Pending rows are included so a code issued
+	// before the revoke cannot be redeemed after it.
+	//
+	//  UPDATE portal_sessions
+	//  SET revoked_at = ?
+	//  WHERE workspace_id = ?
+	//    AND portal_id = ?
+	//    AND external_id = ?
+	//    AND revoked_at IS NULL
+	//    AND (
+	//      (access_token_hash IS NOT NULL AND access_token_expires_at > ?)
+	//      OR (access_token_hash IS NULL AND exchange_code_expires_at > ?)
+	//    )
+	RevokePortalSessionsByExternalID(ctx context.Context, db DBTX, arg RevokePortalSessionsByExternalIDParams) (int64, error)
 	// Revokes every live session belonging to a portal, scoped to the workspace.
 	//
 	// A session's keyspace scope is frozen in `scopes` at mint time and the session
