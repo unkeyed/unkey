@@ -67,15 +67,8 @@ export const ChooseSourceStep = ({
         updatedAt: null,
         id: SERVER_PLACEHOLDER,
         latestDeploymentId: null,
-        author: null,
-        authorAvatar: null,
-        branch: source.kind === "git" ? "main" : "",
-        commitTimestamp: null,
-        commitTitle: null,
-        commitSha: null,
-        forkRepositoryFullName: null,
-        prNumber: null,
         domain: null,
+        headlineDeployment: null,
       });
       await transaction.isPersisted.promise;
       const appId = z.object({ appId: z.string() }).parse(transaction.metadata).appId;
