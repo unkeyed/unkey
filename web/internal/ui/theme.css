@@ -22,16 +22,22 @@ When to use certain tokens:
   --text-xs--line-height: 1rem;
   --text-sm: 0.8125rem;
   --text-sm--line-height: 1.25rem;
+  --text-sm--letter-spacing: -0.01em;
   --text-base: 0.9375rem;
   --text-base--line-height: 1.5rem;
+  --text-base--letter-spacing: -0.011em;
   --text-lg: 1.125rem;
   --text-lg--line-height: 1.75rem;
+  --text-lg--letter-spacing: -0.012em;
   --text-xl: 1.25rem;
   --text-xl--line-height: 2rem;
+  --text-xl--letter-spacing: -0.012em;
   --text-2xl: 1.5rem;
   --text-2xl--line-height: 2.25rem;
+  --text-2xl--letter-spacing: -0.012em;
   --text-3xl: 1.75rem;
   --text-3xl--line-height: 2.25rem;
+  --text-3xl--letter-spacing: -0.022em;
 
   --shadow-floating: var(--elevation-floating);
 
