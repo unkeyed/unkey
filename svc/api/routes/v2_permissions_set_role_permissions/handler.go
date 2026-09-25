@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
@@ -64,11 +63,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	requestedSlugs := make([]string, 0, len(req.Permissions))
 	seen := make(map[string]struct{}, len(req.Permissions))
 	for _, slug := range req.Permissions {
-		normalizedSlug := strings.ToLower(slug)
-		if _, ok := seen[normalizedSlug]; ok {
+		if _, ok := seen[slug]; ok {
 			continue
 		}
-		seen[normalizedSlug] = struct{}{}
+		seen[slug] = struct{}{}
 		requestedSlugs = append(requestedSlugs, slug)
 	}
 	slices.Sort(requestedSlugs)
@@ -117,11 +115,11 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 		bySlug := make(map[string]rolePermission, len(found))
 		for _, permission := range found {
-			bySlug[strings.ToLower(permission.Slug)] = rolePermission(permission)
+			bySlug[permission.Slug] = rolePermission(permission)
 		}
 		missing := make([]string, 0)
 		for _, slug := range requestedSlugs {
-			if _, ok := bySlug[strings.ToLower(slug)]; !ok {
+			if _, ok := bySlug[slug]; !ok {
 				missing = append(missing, slug)
 			}
 		}
@@ -148,7 +146,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 					Description:  dbtype.NullString{String: "", Valid: false},
 					CreatedAtM:   now,
 				}
-				candidates[strings.ToLower(slug)] = candidate
+				candidates[slug] = candidate
 				if err = db.Query.UpsertPermission(ctx, tx, candidate); err != nil {
 					return fault.Wrap(err, fault.Code(codes.App.Internal.ServiceUnavailable.URN()), fault.Internal("database error"), fault.Public("Failed to create permissions."))
 				}
@@ -165,9 +163,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			bySlug = make(map[string]rolePermission, len(found))
 			logs := make([]auditlog.AuditLog, 0, len(candidates))
 			for _, permission := range found {
-				normalizedSlug := strings.ToLower(permission.Slug)
-				bySlug[normalizedSlug] = rolePermission(permission)
-				candidate, ok := candidates[normalizedSlug]
+				bySlug[permission.Slug] = rolePermission(permission)
+				candidate, ok := candidates[permission.Slug]
 				if ok && candidate.PermissionID == permission.ID {
 					logs = append(logs, audit(principal, s, auditlog.PermissionCreateEvent, fmt.Sprintf("Created %s (%s)", permission.Slug, permission.ID), permissionResource(permission.ID, permission.Slug, permission.Name)))
 				}
@@ -180,7 +177,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			}
 		}
 		for _, slug := range requestedSlugs {
-			if _, ok := bySlug[strings.ToLower(slug)]; !ok {
+			if _, ok := bySlug[slug]; !ok {
 				return fault.New("permission not found",
 					fault.Code(codes.Data.Permission.NotFound.URN()),
 					fault.Internal("permission belongs to a different project"),
@@ -192,7 +189,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		result = result[:0]
 		requestedIDs := make(map[string]struct{}, len(requestedSlugs))
 		for _, slug := range requestedSlugs {
-			permission := bySlug[strings.ToLower(slug)]
+			permission := bySlug[slug]
 			result = append(result, permission)
 			requestedIDs[permission.ID] = struct{}{}
 		}

@@ -14,6 +14,27 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_permissions_create_role"
 )
 
+// TestCreateRolePreservesCaseDistinctPermissions guarantees role creation
+// merges only exact duplicates. For example, requesting Service.Read twice
+// and service.read once assigns two distinct permissions, not one or three.
+func TestCreateRolePreservesCaseDistinctPermissions(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := &handler.Handler{DB: h.DB, Auditlogs: h.Auditlogs}
+	h.Register(route)
+	workspace := h.Resources().UserWorkspace
+	rootKey := h.CreateRootKey(workspace.ID, "rbac.*.create_role", "rbac.*.add_permission_to_role", "rbac.*.create_permission")
+	existing := h.CreatePermission(seed.CreatePermissionRequest{WorkspaceID: workspace.ID, Name: "service.read", Slug: "service.read"})
+	permissions := []string{"Service.Read", existing.Slug, "Service.Read"}
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Authorization": {"Bearer " + rootKey}, "Content-Type": {"application/json"},
+	}, handler.Request{Name: "case.distinct", Permissions: &permissions})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	assigned, err := db.Query.ListDirectPermissionsByRoleID(t.Context(), h.DB.RO(), res.Body.Data.RoleId)
+	require.NoError(t, err)
+	require.Len(t, assigned, 2)
+	require.ElementsMatch(t, []string{"service.read", "Service.Read"}, []string{assigned[0].Slug, assigned[1].Slug})
+}
+
 func TestSuccess(t *testing.T) {
 	ctx := context.Background()
 	h := testutil.NewHarness(t)
@@ -164,7 +185,7 @@ func TestSuccess(t *testing.T) {
 		permissionSlugs := []string{
 			existingPermission.Slug,
 			"documents.write.create.role",
-			"Documents.Write.Create.Role",
+			"documents.write.create.role",
 		}
 		rootKeyWithPermissions := h.CreateRootKey(
 			workspace.ID,
@@ -219,7 +240,7 @@ func TestSuccess(t *testing.T) {
 			Name:        "Documents.Read.Existing.Only",
 			Slug:        "Documents.Read.Existing.Only",
 		})
-		permissionSlugs := []string{"documents.read.existing.only"}
+		permissionSlugs := []string{existingPermission.Slug}
 		rootKeyWithoutCreatePermission := h.CreateRootKey(
 			workspace.ID,
 			"rbac.*.create_role",

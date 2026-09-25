@@ -1,0 +1,47 @@
+post:
+  tags:
+    - rootKeys
+  summary: Create root key
+  description: |
+    Creates a root key for the authenticated workspace.
+    Requires `unkey:v1:<workspace_id>:rootKeys/*#write`.
+    The created root key cannot have more permissions than the caller.
+  operationId: rootKeys.createKey
+  x-speakeasy-name-override: createKey
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ./V2RootKeysCreateKeyRequestBody.yaml
+  responses:
+    "200":
+      description: Root key created. Save the secret now; it cannot be retrieved later.
+      content:
+        application/json:
+          schema:
+            $ref: ./V2RootKeysCreateKeyResponseBody.yaml
+    "400":
+      description: Invalid input or unsupported permission.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/BadRequestErrorResponse.yaml
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/UnauthorizedErrorResponse.yaml
+    "403":
+      description: Requires a workspace admin or an authorized root key, and grants within the caller's permissions.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/ForbiddenErrorResponse.yaml
+    "500":
+      description: Internal server error, including missing or invalid root-key storage configuration.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../error/InternalServerErrorResponse.yaml

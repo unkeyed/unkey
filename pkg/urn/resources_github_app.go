@@ -6,8 +6,6 @@ package urn
 //
 //	workspace
 //	└── github/apps/{github_app_id}
-//
-// A GitHub app is the only public resource that does not belong to a project.
 type GitHubApp struct {
 	workspaceID string
 	path        string

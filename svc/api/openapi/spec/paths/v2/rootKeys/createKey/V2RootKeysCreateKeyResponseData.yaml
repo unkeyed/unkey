@@ -1,0 +1,12 @@
+type: object
+required:
+  - keyId
+  - key
+properties:
+  keyId:
+    type: string
+    description: Identifier used to manage the root key.
+  key:
+    type: string
+    x-unkey-redact: true
+    description: Root key secret, returned only once. Store it securely.

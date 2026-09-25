@@ -3901,6 +3901,41 @@ components:
                     "$ref": "#/components/schemas/Meta"
                 data:
                     "$ref": "#/components/schemas/V2RatelimitSetOverrideResponseData"
+        V2RootKeysCreateKeyRequestBody:
+            type: object
+            additionalProperties: false
+            required:
+                - permissions
+            properties:
+                name:
+                    type: string
+                    maxLength: 255
+                    description: Optional name for the root key.
+                permissions:
+                    type: array
+                    minItems: 0
+                    maxItems: 1000
+                    description: Permissions to grant to the root key. Each permission must be within the caller's existing permissions.
+                    items:
+                        type: string
+                        minLength: 1
+                        maxLength: 255
+                expires:
+                    type:
+                        - integer
+                        - "null"
+                    format: int64
+                    description: Expiration as Unix milliseconds, strictly in the future. Expiring root-key callers must provide a child expiry no later than their own. JWT admins and nonexpiring root-key callers may omit it or set null for no expiration.
+        V2RootKeysCreateKeyResponseBody:
+            type: object
+            required:
+                - meta
+                - data
+            properties:
+                meta:
+                    $ref: '#/components/schemas/Meta'
+                data:
+                    $ref: '#/components/schemas/V2RootKeysCreateKeyResponseData'
         V3DeploymentsCreateDeploymentRequestBody:
             type: object
             required:
@@ -7417,6 +7452,19 @@ components:
                     type: string
             required:
                 - overrideId
+        V2RootKeysCreateKeyResponseData:
+            type: object
+            required:
+                - keyId
+                - key
+            properties:
+                keyId:
+                    type: string
+                    description: Identifier used to manage the root key.
+                key:
+                    type: string
+                    x-unkey-redact: true
+                    description: Root key secret, returned only once. Store it securely.
         DeploymentSourceOCI:
             type: object
             required:
@@ -16400,6 +16448,54 @@ paths:
             tags:
                 - ratelimit
             x-speakeasy-name-override: setOverride
+    /v2/rootKeys.createKey:
+        post:
+            description: |
+                Creates a root key for the authenticated workspace.
+                Requires `unkey:v1:<workspace_id>:rootKeys/*#write`.
+                The created root key cannot have more permissions than the caller.
+            operationId: rootKeys.createKey
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/V2RootKeysCreateKeyRequestBody'
+                required: true
+            responses:
+                "200":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/V2RootKeysCreateKeyResponseBody'
+                    description: Root key created. Save the secret now; it cannot be retrieved later.
+                "400":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/BadRequestErrorResponse'
+                    description: Invalid input or unsupported permission.
+                "401":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/UnauthorizedErrorResponse'
+                    description: Unauthorized
+                "403":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ForbiddenErrorResponse'
+                    description: Requires a workspace admin or an authorized root key, and grants within the caller's permissions.
+                "500":
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/InternalServerErrorResponse'
+                    description: Internal server error, including missing or invalid root-key storage configuration.
+            summary: Create root key
+            tags:
+                - rootKeys
+            x-speakeasy-name-override: createKey
     /v3/deployments.createDeployment:
         post:
             description: |

@@ -4,8 +4,8 @@ description: "Canonical resource hierarchy, paths, and actions"
 ---
 
 The resource permission catalog lists every canonical resource path and its
-supported actions. GitHub apps are workspace-scoped. Every other catalog
-resource is project-scoped.
+supported actions. GitHub apps and root keys are workspace-scoped. Every other
+catalog resource is project-scoped.
 
 Read [Unkey Resource Names](/architecture/resources/unkey-resource-names) for
 URN format and pattern rules. Read
@@ -23,6 +23,9 @@ Workspace
 │
 ├── GitHub app [read, write, delete]
 │   github/apps/{github_app_id}
+│
+├── Root key [write]
+│   rootKeys/{key_id}
 │
 └── Project [read, write, delete]
     projects/{project_id}
@@ -97,6 +100,17 @@ not concrete resources and cannot be permission targets.
 ## Examples
 
 These examples show how concrete IDs and wildcards use the same catalog.
+
+### Create a root key
+
+`POST /v2/rootKeys.createKey` requires this permission:
+
+```plaintext
+unkey:v1:ws_123:rootKeys/*#write
+```
+
+The created root key cannot have more permissions than the caller. Only
+URN permissions are accepted. Legacy permissions are not translated.
 
 ### Create a key
 

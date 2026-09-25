@@ -3,6 +3,7 @@ package urn
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -15,10 +16,13 @@ const (
 // ErrInvalidResourceName is returned when a resource name cannot be parsed.
 var ErrInvalidResourceName = errors.New("invalid resource name")
 
+var idPattern = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
+
 // resourcePathShapes defines every public v1 resource.
 // resourceIDSegment marks a segment that accepts one concrete ID or "*".
 var resourcePathShapes = [][]string{
 	{"github", "apps", resourceIDSegment},
+	{"rootKeys", resourceIDSegment},
 	{"projects", resourceIDSegment},
 	{"projects", resourceIDSegment, "apps", resourceIDSegment},
 	{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment},
@@ -154,17 +158,9 @@ func ParseV1(value string) (V1, error) {
 	}, nil
 }
 
-// validateWorkspaceID enforces two invariants on the workspace field:
-//
-//  1. It is not empty.
-//  2. It contains none of the reserved characters ":" (URN field separator),
-//     "#" (permission action separator), and "/" (path segment separator).
 func validateWorkspaceID(value string) error {
-	if value == "" {
-		return errors.New("must not be empty")
-	}
-	if strings.ContainsAny(value, ":#/") {
-		return errors.New(`must not contain ":", "#", or "/"`)
+	if !idPattern.MatchString(value) {
+		return errors.New("must contain only ASCII letters, digits, or underscores")
 	}
 	return nil
 }
@@ -246,6 +242,9 @@ func resourcePathMatchesShape(path []string, shape []string) bool {
 		if path[i] == "*" {
 			wildcardIDSeen = true
 			continue
+		}
+		if !idPattern.MatchString(path[i]) {
+			return false
 		}
 		if wildcardIDSeen {
 			return false

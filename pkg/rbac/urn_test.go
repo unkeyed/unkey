@@ -40,6 +40,32 @@ func TestUnkeyPermissionQuery_BuildsCanonicalPermission(t *testing.T) {
 	require.True(t, result.Valid)
 }
 
+func TestRootKeyCreationWildcardCoverage(t *testing.T) {
+	t.Parallel()
+	query := U(urn.New().Workspace("ws_123").RootKey("*"), permissions.Write)
+	require.Equal(t, "unkey:v1:ws_123:rootKeys/*#write", query.Value)
+	for grant, allowed := range map[string]bool{
+		"unkey:v1:ws_123:rootKeys/*#write":        true,
+		"unkey:v1:ws_123:rootKeys/*/**#write":     true,
+		"unkey:v1:ws_123:**#write":                true,
+		"unkey:v1:ws_123:**#*":                    true,
+		"unkey:v1:ws_123:rootKeys/key_1#write":    false,
+		"unkey:v1:ws_123:rootKeys/key_1/**#write": false,
+		"unkey:v1:ws_123:rootKeys/*#read":         false,
+		"unkey:v1:ws_other:rootKeys/*#write":      false,
+		"unkey:v1:ws_123:projects/*/**#write":     false,
+	} {
+		t.Run(grant, func(t *testing.T) {
+			err := Check(query, []string{grant})
+			if allowed {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+			}
+		})
+	}
+}
+
 // TestStringQuery_DoesNotOptIntoUnkeyWildcardMatching guarantees callers must
 // choose U() before canonical Unkey permission grants can expand wildcards.
 func TestStringQuery_DoesNotOptIntoUnkeyWildcardMatching(t *testing.T) {
