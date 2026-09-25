@@ -79,7 +79,7 @@ export const DeleteDialog = ({
         </div>
       }
     >
-      <p className="text-gray-11 text-[13px]">
+      <p className="text-gray-11 text-sm">
         <span className="font-medium">Warning: </span>
         Are you sure you want to delete this override? The identifier associated with this override
         will now use the default limits.
@@ -87,7 +87,7 @@ export const DeleteDialog = ({
 
       <form id="delete-override-form" onSubmit={handleSubmit(onSubmit)}>
         <div className="flex flex-col gap-1">
-          <p className="text-gray-11 text-[13px]">
+          <p className="text-gray-11 text-sm">
             Type <span className="text-gray-12 font-medium">{identifier}</span> to confirm
           </p>
 

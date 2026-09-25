@@ -227,7 +227,7 @@ function SpendTooltip({
       role="tooltip"
       className="grid w-max min-w-[200px] animate-in gap-1.5 rounded-xl bg-raised/80 px-3 py-2.5 text-xs shadow-floating backdrop-blur-md duration-150 fade-in-0 zoom-in-95 select-none"
     >
-      <div className="font-medium text-[11px] text-gray-11">
+      <div className="font-medium text-2xs text-gray-11">
         {formatDay(point.time)}
         {partial ? <span className="pl-1 font-normal text-gray-10">so far</span> : null}
       </div>

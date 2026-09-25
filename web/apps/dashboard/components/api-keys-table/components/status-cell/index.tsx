@@ -51,7 +51,7 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
           {statuses && statuses.length > 1 && (
             <div className="border-b">
               <div className="flex flex-col px-px py-px gap-1 w-65 p-1">
-                <div className="text-gray-12 font-medium text-[13px]">Key status overview</div>
+                <div className="text-gray-12 font-medium text-sm">Key status overview</div>
                 <div className="text-gray-10 text-xs ">
                   This key has <span className="font-semibold text-gray-12">{statuses.length}</span>{" "}
                   active flags{" "}

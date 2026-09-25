@@ -73,7 +73,7 @@ function AppsTableRow({ row, projectId }: { row: AppRowData; projectId: string }
         <span className="flex size-6 shrink-0 items-center justify-center rounded-md border bg-raised">
           <SourceIcon source={row.source} className="size-3 text-gray-12" />
         </span>
-        <span className="truncate text-[13px] font-medium">{app.name}</span>
+        <span className="truncate text-sm font-medium">{app.name}</span>
       </span>
       <span className="flex min-w-0 items-center gap-1.5">
         <SourceIcon source={row.source} className="size-3 shrink-0 text-gray-11" />
@@ -95,7 +95,7 @@ function AppsTableRow({ row, projectId }: { row: AppRowData; projectId: string }
         {row.source === "git" && deployment?.branch ? (
           <LinkOrText
             href={row.branchUrl}
-            className="relative z-10 inline-block max-w-full truncate rounded-sm bg-gray-3 px-1 align-middle font-mono text-[11px] leading-4 ring-1 ring-grayA-4"
+            className="relative z-10 inline-block max-w-full truncate rounded-sm bg-gray-3 px-1 align-middle font-mono text-2xs leading-4 ring-1 ring-grayA-4"
           >
             {deployment.branch}
           </LinkOrText>

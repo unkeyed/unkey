@@ -50,11 +50,11 @@ function DeployPlanGateDialogView({
     if (plans.length === 0) {
       return (
         <div className="rounded-xl border bg-raised px-4 py-6 text-center">
-          <p className="text-[13px] text-gray-11">Compute plans aren't available right now.</p>
+          <p className="text-sm text-gray-11">Compute plans aren't available right now.</p>
           <Link
             href={billingHref}
             onClick={() => onOpenChange(false)}
-            className="mt-2 inline-block font-medium text-[13px] text-info-11 hover:underline"
+            className="mt-2 inline-block font-medium text-sm text-info-11 hover:underline"
           >
             Go to billing
           </Link>
@@ -83,7 +83,7 @@ function DeployPlanGateDialogView({
       </div>
       <div className="mt-0">{renderPlanSection()}</div>
       {isAdmin ? null : (
-        <p className="text-center text-[12px] text-gray-11">
+        <p className="text-center text-xs text-gray-11">
           Only workspace admins can manage billing.
         </p>
       )}

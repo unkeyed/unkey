@@ -55,7 +55,7 @@ export function EnvVarsToolbar({
             placeholder="Search..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="h-9 text-[13px]"
+            className="h-9 text-sm"
           />
         </InputGroup>
       </div>

@@ -19,10 +19,8 @@ export const DefaultDialogHeader = ({ title, subTitle, className }: DefaultDialo
   return (
     <ShadcnDialogHeader className={cn("border-b bg-raised", className)}>
       <ShadcnDialogTitle className="px-6 py-4 text-gray-12 font-medium text-base flex flex-col">
-        <span className="leading-[32px]">{title}</span>
-        {subTitle && (
-          <span className="text-gray-9 leading-[20px] text-[13px] font-normal">{subTitle}</span>
-        )}
+        <span className="leading-8">{title}</span>
+        {subTitle && <span className="text-gray-9 leading-5 text-sm font-normal">{subTitle}</span>}
       </ShadcnDialogTitle>
     </ShadcnDialogHeader>
   );

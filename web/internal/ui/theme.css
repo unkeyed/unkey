@@ -14,22 +14,33 @@ When to use certain tokens:
 
 @theme {
   --text-*: initial;
-  --text-xxs: 10px;
-  --text-xxs--line-height: 16px;
+  --text-3xs: 0.625rem;
+  --text-3xs--line-height: 1rem;
+  --text-3xs--letter-spacing: 0em;
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-2xs--letter-spacing: 0em;
   --text-xs: 0.75rem;
   --text-xs--line-height: 1rem;
-  --text-sm: 0.875rem;
-  --text-sm--line-height: 1.5rem;
-  --text-base: 1rem;
-  --text-base--line-height: 1.75rem;
+  --text-xs--letter-spacing: 0em;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
+  --text-sm--letter-spacing: -0.01em;
+  --text-base: 0.9375rem;
+  --text-base--line-height: 1.5rem;
+  --text-base--letter-spacing: -0.011em;
   --text-lg: 1.125rem;
   --text-lg--line-height: 1.75rem;
+  --text-lg--letter-spacing: -0.012em;
   --text-xl: 1.25rem;
   --text-xl--line-height: 2rem;
+  --text-xl--letter-spacing: -0.012em;
   --text-2xl: 1.5rem;
   --text-2xl--line-height: 2.25rem;
+  --text-2xl--letter-spacing: -0.012em;
   --text-3xl: 1.75rem;
   --text-3xl--line-height: 2.25rem;
+  --text-3xl--letter-spacing: -0.022em;
 
   --shadow-floating: var(--elevation-floating);
 
@@ -356,6 +367,15 @@ When to use certain tokens:
 }
 
 @layer base {
+  body {
+    @apply text-sm;
+  }
+
+  :where(.font-mono) {
+    --tw-tracking: 0em;
+    letter-spacing: 0em;
+  }
+
   :root {
     --hairline: var(--color-grayA-4);
     --elevation-floating:

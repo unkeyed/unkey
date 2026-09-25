@@ -217,7 +217,7 @@ export const ApiAddOnCard: React.FC<ApiAddOnCardProps> = ({
               <span>
                 <button
                   type="button"
-                  className="text-[13px] text-gray-9 transition-colors hover:text-gray-11 disabled:cursor-not-allowed"
+                  className="text-sm text-gray-9 transition-colors hover:text-gray-11 disabled:cursor-not-allowed"
                   disabled={!isAdmin}
                   onClick={() => setCancelOpen(true)}
                 >

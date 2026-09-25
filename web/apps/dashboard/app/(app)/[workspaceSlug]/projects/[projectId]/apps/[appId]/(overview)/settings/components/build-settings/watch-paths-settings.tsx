@@ -180,7 +180,7 @@ export const WatchPaths = () => {
       saveState={saveState}
     >
       <SettingField>
-        <span className="text-gray-11 text-[13px] flex items-center">Watch paths</span>
+        <span className="text-gray-11 text-sm flex items-center">Watch paths</span>
         {fields.map((field, index) => {
           const { ref: rhfRef, ...fieldProps } = register(`paths.${index}.value`);
           return (

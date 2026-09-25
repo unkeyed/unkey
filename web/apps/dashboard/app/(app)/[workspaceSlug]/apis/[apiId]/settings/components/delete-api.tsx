@@ -118,7 +118,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
           </div>
         }
       >
-        <p className="text-gray-11 text-[13px]">
+        <p className="text-gray-11 text-sm">
           <span className="font-medium">Warning: </span>
           Deleting this keyspace will delete all keys and data associated with it. This action
           cannot be undone. Any tracking, enforcement, and historical insights tied to this keyspace
@@ -126,13 +126,13 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
         </p>
         <form id="delete-api-form" onSubmit={handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-1">
-            <p className="text-gray-11 text-[13px]">
+            <p className="text-gray-11 text-sm">
               Type <span className="text-gray-12 font-medium">{api.name}</span> to confirm
             </p>
             <Input {...register("name")} placeholder={`Enter "${api.name}" to confirm`} />
           </div>
           <div className="flex flex-col gap-1 mt-6">
-            <p className="text-gray-11 text-[13px]">
+            <p className="text-gray-11 text-sm">
               To verify, type <span className="text-gray-12 font-medium">{intent}</span> to confirm
             </p>
             <Input {...register("intent")} placeholder={`Enter "${intent}" to confirm`} />

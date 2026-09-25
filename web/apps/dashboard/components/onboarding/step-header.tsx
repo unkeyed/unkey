@@ -41,7 +41,7 @@ export const OnboardingStepHeader = ({
           variant="ghost"
           type="button"
           onClick={back}
-          className="absolute top-3 left-3 z-50 flex items-center gap-1 hover:text-gray-11 group text-[13px] transition-colors text-gray-10"
+          className="absolute top-3 left-3 z-50 flex items-center gap-1 hover:text-gray-11 group text-sm transition-colors text-gray-10"
         >
           <IconChevronLeftOutline18 className="! group-hover:text-gray-11" />
           Back
@@ -49,7 +49,7 @@ export const OnboardingStepHeader = ({
       )}
       <div className="flex flex-col items-center justify-center gap-2">
         <div className="font-semibold text-lg text-gray-12">{title}</div>
-        {subtitle && <div className="text-[13px] text-gray-11 text-center">{subtitle}</div>}
+        {subtitle && <div className="text-sm text-gray-11 text-center">{subtitle}</div>}
       </div>
     </div>
   );

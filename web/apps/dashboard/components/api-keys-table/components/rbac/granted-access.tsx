@@ -69,7 +69,7 @@ export const GrantedAccess = ({
           transition={{ type: "spring", stiffness: 400, damping: 25 }}
           className={`
             rounded-full border bg-grayA-3 border-grayA-3 w-[22px] h-[18px]
-            flex items-center justify-center font-medium text-[11px] text-grayA-12
+            flex items-center justify-center font-medium text-2xs text-grayA-12
             ${isLoading ? "animate-pulse" : ""}
           `}
         >

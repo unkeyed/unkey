@@ -39,7 +39,7 @@ export function DeploymentStatusIndicator({ status }: { status: DeploymentStatus
 
 export function StatusLabel({ className, children }: PropsWithChildren<{ className?: string }>) {
   return (
-    <span className={cn("flex items-center gap-2 text-[13px] text-gray-12", className)}>
+    <span className={cn("flex items-center gap-2 text-sm text-gray-12", className)}>
       {children}
     </span>
   );
