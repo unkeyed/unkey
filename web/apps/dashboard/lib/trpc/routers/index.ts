@@ -38,7 +38,6 @@ import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeser
 import { queryUsage } from "./billing/query-usage";
 import { listApps } from "./deploy/app/list";
 import { countCustomDomains } from "./deploy/custom-domains/count";
-import { listDomainConnectHints } from "./deploy/custom-domains/hints";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
 import { cancelDeployment } from "./deploy/deployment/cancel";
@@ -370,7 +369,6 @@ export const router = t.router({
     }),
     customDomain: t.router({
       count: countCustomDomains,
-      hints: listDomainConnectHints,
     }),
     deployment: t.router({
       list: listDeployments,
