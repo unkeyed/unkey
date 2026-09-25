@@ -7,13 +7,13 @@ import type { Deployment, Environment } from "@/lib/collections";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import { routes } from "@/lib/navigation/routes";
 import {
-  ArrowDottedRotateAnticlockwise,
-  ArrowOppositeDirectionY,
-  Bolt,
-  BoltSlash,
-  ChevronUp,
-  Hammer2,
-  Layers3,
+  IconArrowDottedRotateAnticlockwiseOutline18,
+  IconArrowsOppositeDirectionYOutline18,
+  IconBoltOutline18,
+  IconBoltSlashOutline18,
+  IconChevronUpOutline18,
+  IconHammer2Outline18,
+  IconLayers3Outline18,
 } from "@unkey/icons";
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
@@ -75,7 +75,7 @@ export function useDeploymentHeaderActions({
   // biome-ignore lint/correctness/useExhaustiveDependencies: matches the list menu
   const items = useMemo((): MenuItem[] => {
     const { canRollback, canPromote, canStop, canWake } = getDeploymentActionEligibility({
-      selectedDeployment: { id: deployment.id, status },
+      selectedDeployment: { id: deployment.id, status, desiredState: deployment.desiredState },
       currentDeploymentId,
       isRolledBack,
       environmentKind: environment?.kind ?? null,
@@ -96,7 +96,7 @@ export function useDeploymentHeaderActions({
       gateAction({
         id: "rollback",
         label: "Rollback",
-        icon: <ArrowDottedRotateAnticlockwise iconSize="md-regular" />,
+        icon: <IconArrowDottedRotateAnticlockwiseOutline18 className="size-3.5" />,
         disabled: !canRollback || !hasCurrentDeployment,
         prefetch: async () => {
           await import("../components/table/components/actions/rollback-dialog");
@@ -114,7 +114,7 @@ export function useDeploymentHeaderActions({
       gateAction({
         id: "promote",
         label: "Promote",
-        icon: <ChevronUp iconSize="md-regular" />,
+        icon: <IconChevronUpOutline18 className="size-3.5" />,
         disabled: !canPromote || !hasCurrentDeployment,
         prefetch: async () => {
           await import("../components/table/components/actions/promotion-dialog");
@@ -132,7 +132,7 @@ export function useDeploymentHeaderActions({
       gateAction({
         id: "wake",
         label: "Wake deployment",
-        icon: <Bolt iconSize="md-regular" />,
+        icon: <IconBoltOutline18 className="size-3.5" />,
         disabled: !canWake,
         prefetch: async () => {
           await import("../components/table/components/actions/wake-dialog");
@@ -142,7 +142,7 @@ export function useDeploymentHeaderActions({
       {
         id: "stop",
         label: "Stop deployment",
-        icon: <BoltSlash iconSize="md-regular" />,
+        icon: <IconBoltSlashOutline18 className="size-3.5" />,
         disabled: !canStop,
         prefetch: async () => {
           await import("../components/table/components/actions/stop-dialog");
@@ -156,19 +156,19 @@ export function useDeploymentHeaderActions({
       {
         id: "runtime-logs",
         label: "Go to logs",
-        icon: <Layers3 iconSize="md-regular" />,
+        icon: <IconLayers3Outline18 className="size-3.5" />,
         href: routes.projects.logs(deploymentScope),
       },
       {
         id: "request-logs",
         label: "Go to requests",
-        icon: <ArrowOppositeDirectionY iconSize="md-regular" />,
+        icon: <IconArrowsOppositeDirectionYOutline18 className="size-3.5" />,
         href: routes.projects.requests({ ...deploymentScope, since: "6h" }),
       },
       {
         id: "build-steps",
         label: "Go to build logs",
-        icon: <Hammer2 iconSize="md-regular" />,
+        icon: <IconHammer2Outline18 className="size-3.5" />,
         href: routes.projects.apps.deployment({
           ...deploymentScope,
           appId: deployment.appId,
@@ -185,6 +185,7 @@ export function useDeploymentHeaderActions({
     ];
   }, [
     deployment.id,
+    deployment.desiredState,
     status,
     currentDeploymentId,
     isRolledBack,

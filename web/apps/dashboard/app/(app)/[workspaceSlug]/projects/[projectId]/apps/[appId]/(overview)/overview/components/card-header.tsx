@@ -1,7 +1,12 @@
 "use client";
 
 import { githubUrl } from "@/lib/github-url";
-import { ArrowDottedRotateAnticlockwise, ArrowUpRight, Plus, TriangleWarning2 } from "@unkey/icons";
+import {
+  IconArrowDottedRotateAnticlockwiseOutline18,
+  IconArrowUpRightOutline12,
+  IconPlusOutline18,
+  IconTriangleWarningOutline18,
+} from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
 import Link from "next/link";
@@ -17,7 +22,7 @@ function DomainHero() {
           href={primaryDomain.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="font-mono tracking-tight text-base font-semibold text-accent-12 truncate hover:underline decoration-dashed underline-offset-3"
+          className="font-mono tracking-tight text-base font-semibold text-gray-12 truncate hover:underline decoration-dashed underline-offset-3"
         >
           {primaryDomain.hostname}
         </a>
@@ -50,7 +55,7 @@ function DomainHero() {
                   className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 font-mono text-[13px] text-gray-12 hover:bg-grayA-3 transition-colors"
                 >
                   <span className="truncate">{domain.hostname}</span>
-                  <ArrowUpRight iconSize="sm-regular" className="shrink-0 text-gray-9" />
+                  <IconArrowUpRightOutline12 className="shrink-0 text-gray-9" />
                 </a>
               ))}
             </div>
@@ -64,7 +69,7 @@ function DomainHero() {
           render={<Link href={addCustomDomainHref} />}
           className="shrink-0 border-dashed"
         >
-          <Plus iconSize="sm-regular" />
+          <IconPlusOutline18 />
           Add custom domain
         </Button>
       )}
@@ -87,7 +92,7 @@ export function ProductionCardHeader() {
   } = useProductionCard();
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 border-b border-gray-4 bg-background rounded-t-lg">
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 border-b bg-raised rounded-t-lg">
       <DomainHero />
       <div className="flex items-center gap-2 shrink-0">
         {diagnostic && (
@@ -97,13 +102,13 @@ export function ProductionCardHeader() {
             render={<Link href={diagnostic.href} />}
             className="border-errorA-4 text-error-11"
           >
-            <TriangleWarning2 iconSize="sm-regular" />
+            <IconTriangleWarningOutline18 />
             {diagnostic.label}
           </Button>
         )}
         {!isRolledBack && rollbackTarget && (
           <Button variant="outline" size="sm" onClick={openRollback}>
-            <ArrowDottedRotateAnticlockwise iconSize="sm-regular" />
+            <IconArrowDottedRotateAnticlockwiseOutline18 />
             Instant Rollback
           </Button>
         )}

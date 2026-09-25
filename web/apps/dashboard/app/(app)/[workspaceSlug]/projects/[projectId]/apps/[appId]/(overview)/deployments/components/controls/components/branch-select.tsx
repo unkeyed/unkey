@@ -1,7 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { CodeBranch, Magnifier } from "@unkey/icons";
+import { IconCodeBranchOutline18, IconMagnifierOutline18 } from "@unkey/icons";
 import {
   Checkbox,
   InputGroup,
@@ -39,7 +39,7 @@ export function BranchSelect() {
       <PopoverTrigger
         render={
           <FilterTriggerButton
-            icon={<CodeBranch iconSize="md-medium" className="text-gray-9 shrink-0" />}
+            icon={<IconCodeBranchOutline18 className="size-4 text-gray-9 shrink-0" />}
             label="Branch"
             count={selectedBranches.length}
             isActive={selectedBranches.length > 0}
@@ -50,7 +50,7 @@ export function BranchSelect() {
         <div className="p-1">
           <InputGroup className="h-8">
             <InputGroupAddon className="pointer-events-none">
-              <Magnifier iconSize="md-medium" className="text-gray-9" />
+              <IconMagnifierOutline18 className="size-3.5 text-gray-9" />
             </InputGroupAddon>
             <InputGroupInput
               placeholder="Search branches..."
@@ -79,7 +79,7 @@ export function BranchSelect() {
                   checked={selectedBranches.includes(branch)}
                   tabIndex={-1}
                 />
-                <span className="text-accent-12 truncate">{branch}</span>
+                <span className="text-gray-12 truncate">{branch}</span>
               </button>
             ))
           )}

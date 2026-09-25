@@ -919,6 +919,7 @@ type Portal struct {
 	Pk           uint64         `db:"pk"`
 	ID           string         `db:"id"`
 	WorkspaceID  string         `db:"workspace_id"`
+	ProjectID    string         `db:"project_id"`
 	Slug         string         `db:"slug"`
 	DisplayName  string         `db:"display_name"`
 	AppID        sql.NullString `db:"app_id"`
@@ -937,7 +938,6 @@ type PortalSession struct {
 	PortalID              string          `db:"portal_id"`
 	ExternalID            string          `db:"external_id"`
 	Scopes                json.RawMessage `db:"scopes"`
-	Preview               bool            `db:"preview"`
 	ExchangeCodeHash      string          `db:"exchange_code_hash"`
 	ExchangeCodeExpiresAt int64           `db:"exchange_code_expires_at"`
 	AccessTokenHash       sql.NullString  `db:"access_token_hash"`
@@ -1032,7 +1032,7 @@ type Workspace struct {
 	OrgID            string          `db:"org_id"`
 	Name             string          `db:"name"`
 	Slug             string          `db:"slug"`
-	K8sNamespace     sql.NullString  `db:"k8s_namespace"`
+	K8sNamespace     string          `db:"k8s_namespace"`
 	BetaFeatures     json.RawMessage `db:"beta_features"`
 	Subscriptions    []byte          `db:"subscriptions"`
 	Enabled          bool            `db:"enabled"`

@@ -71,14 +71,13 @@ service ClusterService {
 
 message WatchDeploymentChangesRequest {
   ClusterKey cluster = 1;
-  reserved 2;
 
   // Ignore the resume token and copy current desired state before watching.
-  bool replay = 3;
+  bool replay = 2;
 
   // The last token saved after applying all earlier events in this region.
   // Send it unchanged. Leave it empty to copy current rows again.
-  bytes resume_token = 4;
+  bytes resume_token = 3;
 }
 
 message SyncDesiredStateRequest {
@@ -86,13 +85,12 @@ message SyncDesiredStateRequest {
 }
 
 message DeploymentChangeEvent {
-  reserved 1;
   oneof event {
-    DeploymentState deployment = 2;
+    DeploymentState deployment = 1;
   }
   // A checkpoint has a token but no deployment.
   // Save the token only after all earlier deployment events have been applied.
-  bytes resume_token = 3;
+  bytes resume_token = 2;
 }
 
 message GetDesiredDeploymentStateRequest {
@@ -241,8 +239,6 @@ message ReportInstanceEventsResponse {}
 // that can be scaled horizontally. The event follows a declarative model where
 // the cluster agent ensures the cluster state matches the desired configuration.
 message DeploymentState {
-  reserved 3;
-
   // state contains the specific deployment operation to perform.
   // Only one state type is set per message, determining the action the agent should take.
   oneof state {
@@ -353,11 +349,7 @@ message AutoscalingPolicy {
   optional int32 memory_threshold = 4;
 }
 
-// DeleteDeployment identifies a deployment to remove from the cluster.
-//
-// The deployment and all its pods will be terminated gracefully according to
-// the configured termination grace period. All associated resources (services,
-// configmaps specific to this deployment) will also be cleaned up.
+// DeleteDeployment identifies a ReplicaSet to remove by namespace and name.
 message DeleteDeployment {
   string k8s_namespace = 1;
   string k8s_name = 2;

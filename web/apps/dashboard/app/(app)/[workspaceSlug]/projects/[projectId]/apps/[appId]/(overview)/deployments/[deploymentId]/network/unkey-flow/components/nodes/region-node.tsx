@@ -41,8 +41,7 @@ export function RegionNode({ node, deploymentId }: RegionNodeProps) {
         icon={
           <InfoTooltip
             content={`${regionInfo.name} (${regionInfo.location})`}
-            variant="primary"
-            className="px-2.5 py-1 rounded-[10px] bg-white dark:bg-blackA-12 text-xs z-30"
+            className="z-30"
             position={{ align: "center", side: "top", sideOffset: 5 }}
           >
             <RegionFlag flagCode={flagCode} size="md" shape="rounded" />

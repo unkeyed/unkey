@@ -5,6 +5,8 @@ import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import type { DeployPlanOption } from "@/lib/trpc/routers/stripe/getDeployPlans";
+import { useWorkspace } from "@/providers/workspace-provider";
+import { Skeleton } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -39,15 +41,15 @@ function DeployPlanGateDialogView({
     if (plansLoading) {
       return (
         <div className="flex flex-col gap-2.5" aria-hidden="true">
-          <div className="h-[62px] animate-pulse rounded-[11px] border border-gray-4 bg-grayA-2" />
-          <div className="h-[62px] animate-pulse rounded-[11px] border border-gray-4 bg-grayA-2" />
-          <div className="h-[62px] animate-pulse rounded-[11px] border border-gray-4 bg-grayA-2" />
+          <Skeleton className="h-[62px] rounded-xl border bg-grayA-2" />
+          <Skeleton className="h-[62px] rounded-xl border bg-grayA-2" />
+          <Skeleton className="h-[62px] rounded-xl border bg-grayA-2" />
         </div>
       );
     }
     if (plans.length === 0) {
       return (
-        <div className="rounded-[11px] border border-gray-4 bg-gray-1 px-4 py-6 text-center">
+        <div className="rounded-xl border bg-raised px-4 py-6 text-center">
           <p className="text-[13px] text-gray-11">Compute plans aren't available right now.</p>
           <Link
             href={billingHref}
@@ -111,7 +113,7 @@ export function DeployPlanGateDialog({ isOpen, onOpenChange, from }: Props) {
     undefined,
     { staleTime: 60_000 },
   );
-  const { data: currentUser } = trpc.user.getCurrentUser.useQuery();
+  const { user: currentUser } = useWorkspace();
   const isAdmin = currentUser?.role === "admin";
   const plans = plansData?.plans ?? [];
 

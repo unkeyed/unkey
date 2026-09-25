@@ -14,6 +14,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
+	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_set_permissions"
 )
@@ -32,12 +33,19 @@ func TestAuthenticationErrors(t *testing.T) {
 
 	// Create a workspace
 	workspace := h.Resources().UserWorkspace
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Auth test project",
+		Slug:        uid.New("project"),
+	})
 
 	// Create test data
 	keySpaceID := uid.New(uid.KeySpacePrefix)
 	err := db.Query.InsertKeySpace(ctx, h.DB.RW(), db.InsertKeySpaceParams{
 		ID:                 keySpaceID,
 		WorkspaceID:        workspace.ID,
+		ProjectID:          project.ID,
 		StoreEncryptedKeys: false,
 		DefaultPrefix:      sql.NullString{Valid: true, String: "test"},
 		DefaultBytes:       sql.NullInt32{Valid: true, Int32: 16},
@@ -68,6 +76,7 @@ func TestAuthenticationErrors(t *testing.T) {
 	err = db.Query.InsertPermission(ctx, h.DB.RW(), db.InsertPermissionParams{
 		PermissionID: permissionID,
 		WorkspaceID:  workspace.ID,
+		ProjectID:    project.ID,
 		Name:         "documents.read.auth",
 		Slug:         "documents.read.auth",
 		Description:  dbtype.NullString{Valid: true, String: "Read documents permission"},

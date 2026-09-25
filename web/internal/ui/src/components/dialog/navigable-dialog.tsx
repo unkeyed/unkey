@@ -1,6 +1,6 @@
 "use client";
-import type { IconProps } from "@unkey/icons/src/props";
-// biome-ignore lint: React in this context is used throughout, so biome will change to types because no APIs are used even though React is needed.
+import type { IconProps } from "@unkey/icons";
+// biome-ignore lint/style/useImportType: the package compiles JSX with the classic runtime, so React must be in scope as a value.
 import * as React from "react";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { FC, ReactNode } from "react";
@@ -22,15 +22,11 @@ const createNavigableDialogContext = <TStepName extends string>() => {
   return createContext<NavigableDialogContextType<TStepName> | undefined>(undefined);
 };
 
-// We're using a type assertion with 'any' here as a deliberate design choice.
-// The actual type safety is enforced later by the typed hooks
-// (useNavigableDialog<T>) that properly cast this context to the correct generic type.
 // @ts-expect-error Type 'Context<NavigableDialogContextType<string> | undefined>' is not assignable to 'Context<NavigableDialogContextType<any>>'
 // biome-ignore lint/suspicious/noExplicitAny: safe to leave
 const NavigableDialogContext: React.Context<NavigableDialogContextType<any>> =
   createNavigableDialogContext();
 
-// Hook to use the NavigableDialog context
 const useNavigableDialog = <TStepName extends string>() => {
   const context = useContext(NavigableDialogContext) as NavigableDialogContextType<TStepName>;
   if (context === undefined) {
@@ -39,10 +35,8 @@ const useNavigableDialog = <TStepName extends string>() => {
   return context;
 };
 
-// Helper type to extract valid step names when using the component
 export type StepNamesFrom<T extends readonly { id: string }[]> = T[number]["id"];
 
-// Root component that provides context and structure
 const NavigableDialogRoot = <TStepName extends string>({
   children,
   isOpen,
@@ -69,7 +63,6 @@ const NavigableDialogRoot = <TStepName extends string>({
         <DialogPortal>
           <DialogContent
             onKeyDown={(e) => {
-              // Allow keyboard events to propagate to nested components like Combobox
               if (
                 e.key === "ArrowDown" ||
                 e.key === "ArrowUp" ||
@@ -81,7 +74,7 @@ const NavigableDialogRoot = <TStepName extends string>({
               e.stopPropagation();
             }}
             className={cn(
-              "drop-shadow-2xl transform-gpu border-grayA-4 overflow-hidden rounded-2xl! p-0 gap-0 flex flex-col max-h-[90vh]",
+              "overflow-hidden rounded-2xl! p-0 gap-0 flex flex-col max-h-[90vh]",
               dialogClassName,
             )}
             initialFocus={preventAutoFocus ? false : undefined}
@@ -94,7 +87,6 @@ const NavigableDialogRoot = <TStepName extends string>({
   );
 };
 
-// Header component
 const NavigableDialogHeader = ({
   title,
   subTitle,
@@ -105,12 +97,10 @@ const NavigableDialogHeader = ({
   return <DefaultDialogHeader title={title} subTitle={subTitle} />;
 };
 
-// Footer component
 const NavigableDialogFooter = ({ children }: { children: ReactNode }) => {
   return <DefaultDialogFooter>{children}</DefaultDialogFooter>;
 };
 
-// Navigation sidebar component
 const NavigableDialogNav = <TStepName extends string>({
   items,
   className,
@@ -132,7 +122,6 @@ const NavigableDialogNav = <TStepName extends string>({
 }) => {
   const { activeId, setActiveId } = useNavigableDialog<TStepName>();
 
-  // Initialize activeId if it's not set and we have items
   useEffect(() => {
     const allIds = items.map((i) => i.id);
     if (!activeId || !allIds.includes(activeId)) {
@@ -144,19 +133,16 @@ const NavigableDialogNav = <TStepName extends string>({
 
   const handleItemNavigation = useCallback(
     async (newId: TStepName) => {
-      // Skip if navigating to the same tab
       if (newId === activeId) {
         return;
       }
 
-      // If onNavigate is provided, use it to validate navigation
       if (onNavigate && activeId) {
         const canNavigate = await onNavigate(activeId);
         if (canNavigate) {
           setActiveId(newId);
         }
       } else {
-        // No validation needed, just navigate
         setActiveId(newId);
       }
     },
@@ -166,14 +152,13 @@ const NavigableDialogNav = <TStepName extends string>({
   return (
     <div
       className={cn(
-        "border-r border-grayA-4 bg-white dark:bg-black p-6 flex flex-col items-start justify-start gap-3",
+        "border-r bg-raised p-6 flex flex-col items-start justify-start gap-3",
         "shrink-0",
         navWidthClass,
         className,
       )}
     >
       {items.map((item) => {
-        // Check if item is in disabled list
         const isDisabled = disabledIds?.includes(item.id);
 
         const IconComponent = item.icon;
@@ -184,7 +169,7 @@ const NavigableDialogNav = <TStepName extends string>({
             key={item.id}
             variant="outline"
             className={cn(
-              "rounded-lg w-full px-3 py-1 [&>*:first-child]:justify-start focus:ring-0 [&_svg]:size-auto hover:bg-grayA-3 border-none",
+              "rounded-lg w-full px-3 py-1 [&>*:first-child]:justify-start focus:ring-0 [&_svg]:size-3.5 hover:bg-grayA-3 border-none",
               isActive ? "bg-grayA-3" : "",
               isDisabled && "opacity-50 cursor-not-allowed pointer-events-none",
             )}
@@ -196,8 +181,8 @@ const NavigableDialogNav = <TStepName extends string>({
             {IconComponent && (
               <div>
                 <IconComponent
-                  iconSize="md-medium"
                   className={cn(
+                    "size-3.5",
                     isDisabled ? "text-gray-7" : isActive ? "text-gray-12" : "text-gray-9",
                   )}
                 />
@@ -257,7 +242,6 @@ const NavigableDialogContent = <TStepName extends string>({
   );
 };
 
-// Main container for the nav and content
 const NavigableDialogBody = ({
   children,
   className,

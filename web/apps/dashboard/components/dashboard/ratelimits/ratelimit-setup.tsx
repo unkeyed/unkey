@@ -3,7 +3,7 @@ import { ProtectionSwitch } from "@/components/dashboard/metadata/protection-swi
 import { parseDuration } from "@/lib/duration";
 import { formatMs } from "@/lib/ms";
 import type { RatelimitItem } from "@/lib/schemas/ratelimit";
-import { Gauge, Trash } from "@unkey/icons";
+import { IconGaugeOutline12, IconTrashOutline18 } from "@unkey/icons";
 import { Button, FormCheckbox, FormInput, InlineLink } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useRef, useState } from "react";
@@ -187,7 +187,7 @@ export const RatelimitSetup = ({
         <ProtectionSwitch
           description={description}
           title="Ratelimit"
-          icon={<Gauge className="text-gray-12" iconSize="sm-regular" />}
+          icon={<IconGaugeOutline12 className="text-gray-12" />}
           checked={ratelimitEnabled}
           onCheckedChange={handleSwitchChange}
         />
@@ -201,7 +201,7 @@ export const RatelimitSetup = ({
           </span>
         </div>
         <Button
-          className="rounded-lg bg-white dark:bg-black text-gray-12 font-medium"
+          className="rounded-lg bg-raised text-gray-12 font-medium"
           variant="outline"
           onClick={handleAddRatelimit}
           type="button"
@@ -213,7 +213,7 @@ export const RatelimitSetup = ({
 
       <div>
         {fields.map((field, index) => (
-          <div key={field.id} className="flex flex-col gap-4 w-full border-t border-grayA-3 py-6">
+          <div key={field.id} className="flex flex-col gap-4 w-full border-t py-6">
             <div className="flex items-center gap-3.5 w-full">
               <FormInput
                 className={cn(
@@ -239,7 +239,7 @@ export const RatelimitSetup = ({
                   type="button"
                   aria-label={`Remove rate limit ${index + 1}`}
                 >
-                  <Trash iconSize="sm-regular" className="text-error-11" />
+                  <IconTrashOutline18 className="text-error-11" />
                 </Button>
               ) : null}
             </div>

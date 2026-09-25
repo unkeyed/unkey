@@ -1,7 +1,7 @@
 import { useFilters } from "@/app/(app)/[workspaceSlug]/audit/hooks/use-filters";
 import { FiltersPopover } from "@/components/logs/checkbox/filters-popover";
-import { BarsFilter } from "@unkey/icons";
-import { Button } from "@unkey/ui";
+import { IconBarsFilterOutline18 } from "@unkey/icons";
+import { Badge, Button } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type { WorkspaceProps } from "../../../logs-client";
 import { BucketFilter } from "./components/bucket-filter";
@@ -24,7 +24,7 @@ export const LogsFilters = (props: WorkspaceProps) => {
           id: "users",
           label: "Users",
           shortcut: "m",
-          component: <UsersFilter users={props.members} />,
+          component: <UsersFilter />,
         },
         {
           id: "rootKeys",
@@ -53,13 +53,9 @@ export const LogsFilters = (props: WorkspaceProps) => {
           aria-haspopup="true"
           title="Press 'F' to toggle filters"
         >
-          <BarsFilter className="text-accent-9 size-4" />
-          <span className="text-accent-12 font-medium text-[13px]">Filter</span>
-          {filters.length > 0 && (
-            <div className="bg-gray-7 rounded-sm h-4 px-1 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">
-              {filters.length}
-            </div>
-          )}
+          <IconBarsFilterOutline18 className="text-gray-9 size-4" />
+          <span className="text-gray-12 font-medium text-[13px]">Filter</span>
+          {filters.length > 0 && <Badge variant="count">{filters.length}</Badge>}
         </Button>
       </div>
     </FiltersPopover>

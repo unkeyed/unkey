@@ -10,17 +10,15 @@
 // and configures domain routing, all durably, so a crash at any point resumes
 // from the last completed step rather than restarting from scratch.
 //
-// # Virtual Object Keying
+// # Workflow Keying
 //
-// DeployService is a Restate virtual object keyed by deployment_id. Each
-// deployment runs as its own isolated workflow, so multiple deployments per
-// environment can build in parallel. The contended resource
+// DeployWorkflow is a Restate workflow keyed by deployment_id. Each deployment
+// is one run, so multiple deployments per environment can build in parallel.
+// The contended resource
 // (apps.current_deployment_id) is serialized inside RoutingService via
 // SwapLiveDeployment, which is keyed by env_id. Promotion and rollback, which
 // read that pointer before they swap it, live on the env-keyed
 // EnvironmentService in the environment package.
-//
-// Workspace-wide concurrency is capped by [buildslot.Service].
 //
 // # Why Restate Workflows
 //
@@ -33,17 +31,22 @@
 //
 // # Build Queue and Dedup
 //
-// Before starting the actual build, [Workflow.Deploy] goes through two gates:
+// [Workflow.Deploy] first runs [Workflow.skipIfSuperseded], which checks
+// [db.Queries.HasNewerActiveDeployment] for a newer sibling on the same
+// (app, env, branch). If one exists in any non-terminal status, this
+// deployment marks itself superseded and returns.
 //
-//  1. Self-skip: [Workflow.skipIfSuperseded] checks
-//     [db.Queries.HasNewerActiveDeployment] for a newer sibling on the same
-//     (app, env, branch). If one exists in any non-terminal status, this
-//     deployment marks itself superseded and returns.
-//  2. Concurrency gate: [Workflow.waitForBuildSlot] creates a Restate
-//     awakeable and calls [hydrav1.BuildSlotService.AcquireOrWait]. The
-//     handler parks on the awakeable until BuildSlotService resolves it —
-//     either immediately (slot available or the environment is production) or
-//     later when a held slot is released. Production deployments bypass the limit.
+// It then calls [Workflow.Build] on the same workflow key, the deployment id,
+// in the Restate scope "builds" with the workspace id as the limit key. The
+// concurrency rules that CronService.RunBuildLimitSync writes from
+// limits.builds_concurrent_max cap how many Builds per workspace run at once.
+// Restate queues the rest in the order they became ready and lets the next
+// one run when a running Build returns, which a cancel brings forward: it
+// aborts the image build and frees the slot at once. [BuildKeepAliveWindow]
+// is what keeps that possible, and [buildBackendDeadline] bounds a Build whose
+// backend never answers. There is no queue timeout. Build ends the queued step
+// and runs the building step, so a deployment stays pending while it waits.
+// Production and preview share the workspace's queue.
 //
 // On the creation side, [Workflow.Create] calls [Workflow.cancelOlderSiblings]
 // once the new row and its invocation id are recorded: it moves older
@@ -69,23 +72,26 @@
 //
 // # Instance Readiness
 //
-// [Workflow.waitForDeployments] loads the deployment topology, creates a
-// Restate awakeable, and stores the awakeable ID on the deployment virtual
-// object. Krane reports instance status through the control plane. When enough
-// regions have at least their minimum running replica count, the report handler
-// resolves the awakeable through [Workflow.NotifyInstancesReady].
+// [Workflow.waitForDeployments] awaits the durable promise named
+// instances_ready. Krane reports instance status through the control plane.
+// When enough regions have at least their minimum running replica count, the
+// report handler resolves the promise through [Workflow.NotifyInstancesReady].
+// A resolve that lands before the run awaits is kept, so there is no state to
+// stash or clear.
 //
 // # Cancellation
 //
 // The CancelDeployment RPC, sibling dedup, and environment deletion all abort a
 // deployment through deploycancel.Cancel: write the reason on the open
 // deployment step, move the row to cancelled or superseded, then cancel the
-// Restate invocation running [Workflow.Deploy]. Restate makes Deploy's next SDK
-// call return a TerminalError, which runs the compensations Deploy registered:
-// release the build slot, set every topology's desired_status to stopped, and
-// try to set the status to failed with UpdateDeploymentStatusIfActive. That
-// query changes only a row whose status is still progressing, so the cancelled
-// or superseded status stays.
+// Restate invocation running [Workflow.Deploy]. Restate cancels Deploy's Build
+// with it: a queued Build never runs, and a running one has its image build
+// aborted through the Run context and frees its slot. The cancel makes
+// Deploy's next SDK call return a TerminalError, which runs the compensations
+// Deploy registered: set every topology's desired_status to stopped, and try
+// to set the status to failed with UpdateDeploymentStatusIfActive. That query
+// changes only a row whose status is still progressing, so the cancelled or
+// superseded status stays.
 //
 // # Image Builds
 //

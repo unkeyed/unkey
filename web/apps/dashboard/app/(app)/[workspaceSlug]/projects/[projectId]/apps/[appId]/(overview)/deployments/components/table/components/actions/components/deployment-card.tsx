@@ -1,9 +1,13 @@
 import type { Deployment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
-import { cn } from "@/lib/utils";
-import { CodeBranch, CodeCommit, Layers2 } from "@unkey/icons";
+import {
+  IconCodeBranchOutline18,
+  IconCodeCommitOutline18,
+  IconLayers2Outline18,
+} from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge } from "@unkey/ui";
+import { cn } from "cn";
 import type { ComponentProps, ReactNode } from "react";
 
 type DeploymentCardProps = {
@@ -13,11 +17,11 @@ type DeploymentCardProps = {
 
 export const DeploymentCard = ({ deployment, isCurrent }: DeploymentCardProps) => {
   return (
-    <div className="bg-white dark:bg-black border border-grayA-4 rounded-[14px] p-4 relative">
+    <div className="bg-raised border rounded-2xl p-4 relative">
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-accent-12 font-semibold font-mono">{deployment.id}</span>
+            <span className="text-xs text-gray-12 font-semibold font-mono">{deployment.id}</span>
             <Badge
               variant={isCurrent ? "success" : "primary"}
               className={`px-1.5 capitalize ${isCurrent ? "text-successA-11" : "text-grayA-11"}`}
@@ -40,7 +44,7 @@ const DeploymentDescription = ({
   return match(deployment.source)
     .with("oci", () => (
       <SourceDescription>
-        <Layers2 iconSize="sm-regular" className="shrink-0 text-gray-12" />
+        <IconLayers2Outline18 className="size-3 shrink-0 text-gray-12" />
         <span
           className="truncate"
           title={deployment.requestedImage ?? deployment.resolvedImage ?? undefined}
@@ -51,7 +55,7 @@ const DeploymentDescription = ({
     ))
     .with("git", () => (
       <SourceDescription>
-        <CodeCommit iconSize="sm-regular" className="shrink-0 text-gray-12" />
+        <IconCodeCommitOutline18 className="size-3 shrink-0 text-gray-12" />
         <span className="truncate">
           {deployment.gitCommitMessage || `${isCurrent ? "Current active" : "Target"} deployment`}
         </span>
@@ -59,7 +63,7 @@ const DeploymentDescription = ({
     ))
     .with("unknown", () => (
       <SourceDescription>
-        <Layers2 iconSize="sm-regular" className="shrink-0 text-gray-12" />
+        <IconLayers2Outline18 className="size-3 shrink-0 text-gray-12" />
         <span>{isCurrent ? "Current active deployment" : "Target deployment"}</span>
       </SourceDescription>
     ))
@@ -91,7 +95,7 @@ const DeploymentMetadata = ({ deployment }: Pick<DeploymentCardProps, "deploymen
       const digestLabel = digest.startsWith("sha256:") ? `sha256:${digest.slice(7, 19)}` : digest;
       return (
         <MetadataPill className="max-w-[180px]" title={deployment.resolvedImage}>
-          <Layers2 iconSize="sm-regular" className="shrink-0 text-gray-12" />
+          <IconLayers2Outline18 className="size-3 shrink-0 text-gray-12" />
           <span className="truncate font-mono">{digestLabel}</span>
         </MetadataPill>
       );
@@ -100,13 +104,13 @@ const DeploymentMetadata = ({ deployment }: Pick<DeploymentCardProps, "deploymen
       <div className="flex gap-1.5">
         {deployment.gitBranch && (
           <MetadataPill className="max-w-[100px]">
-            <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
+            <IconCodeBranchOutline18 className="size-3 shrink-0 text-gray-12" />
             <span className="truncate">{deployment.gitBranch}</span>
           </MetadataPill>
         )}
         {deployment.gitCommitSha && (
           <MetadataPill>
-            <CodeCommit iconSize="sm-regular" className="shrink-0 text-gray-12" />
+            <IconCodeCommitOutline18 className="size-3 shrink-0 text-gray-12" />
             <span>{shortenId(deployment.gitCommitSha)}</span>
           </MetadataPill>
         )}

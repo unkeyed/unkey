@@ -2,7 +2,7 @@ import { useRoleLimits } from "@/components/roles-table/hooks/use-role-limits";
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
 import type { RolePermission } from "@/lib/trpc/routers/authorization/roles/connected-keys-and-perms";
-import { Page2 } from "@unkey/icons";
+import { IconPage2Outline12 } from "@unkey/icons";
 import { useMemo, useState } from "react";
 import { RoleWarningCallout } from "../warning-callout";
 import { createPermissionOptions } from "./create-permission-options";
@@ -167,7 +167,7 @@ export const PermissionField = ({
         emptyMessage={
           isComboboxLoading ? (
             <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
-              <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
+              <div className="animate-spin h-3 w-3 border border-t-gray-11 rounded-full" />
               {isSearching ? "Searching..." : "Loading permissions..."}
             </div>
           ) : (
@@ -197,7 +197,7 @@ export const PermissionField = ({
             }))}
             disabled={disabled}
             onRemoveItem={handleRemovePermission}
-            renderIcon={() => <Page2 iconSize="sm-regular" className="text-grayA-11" />}
+            renderIcon={() => <IconPage2Outline12 className="text-grayA-11" />}
             renderPrimaryText={(permission) => permission.name}
             enableTransitions
             renderSecondaryText={(permission) => permission.slug ?? "Unnamed Slug"}

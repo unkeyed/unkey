@@ -1,6 +1,6 @@
 "use client";
 import { Popover as PopoverPrimitive } from "@base-ui/react/popover";
-import { TriangleWarning2 } from "@unkey/icons";
+import { IconTriangleWarningOutline18 } from "@unkey/icons";
 import React from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "../buttons/button";
@@ -28,13 +28,13 @@ const VARIANT_STYLES = {
     iconBg: "bg-warningA-4",
     iconColor: "text-warning-11",
     buttonColor: "warning" as const,
-    icon: TriangleWarning2,
+    icon: IconTriangleWarningOutline18,
   },
   danger: {
     iconBg: "bg-error-4",
     iconColor: "text-error-11",
     buttonColor: "danger" as const,
-    icon: TriangleWarning2,
+    icon: IconTriangleWarningOutline18,
   },
 };
 
@@ -43,7 +43,7 @@ const DEFAULT_POPOVER_PROPS = {
   side: "bottom" as const,
   align: "center" as const,
   className:
-    "bg-white dark:bg-black flex flex-col items-center justify-center border-grayA-4 overflow-hidden rounded-[10px]! p-0 gap-0 min-w-[344px]",
+    "flex flex-col items-center justify-center overflow-hidden rounded-xl! p-0 gap-0 min-w-[344px]",
   initialFocus: false,
 };
 
@@ -66,15 +66,12 @@ export const ConfirmPopover = ({
 
   const { iconBg, iconColor, buttonColor, icon: Icon } = VARIANT_STYLES[variant];
 
-  // Merge default props with user-provided props, with user props taking precedence
   const mergedPopoverProps = {
     ...DEFAULT_POPOVER_PROPS,
     ...popoverProps,
-    // Special handling for className to allow combining classes
     className: cn(DEFAULT_POPOVER_PROPS.className, popoverProps.className),
   };
 
-  // Create a safe anchor ref for the positioner (expects a non-null current)
   const safeRef = React.useMemo(
     () => ({
       get current() {
@@ -96,7 +93,7 @@ export const ConfirmPopover = ({
                 iconColor,
               )}
             >
-              <Icon iconSize="sm-regular" />
+              <Icon className="size-3" />
             </div>
             <div className="font-medium text-[13px] leading-7 text-gray-12">{title}</div>
           </div>

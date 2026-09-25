@@ -1,5 +1,10 @@
 import type { App } from "@/lib/collections/deploy/apps";
-import { CodeBranch, Cube, Layers2, Terminal } from "@unkey/icons";
+import {
+  IconCodeBranchOutline18,
+  IconCubeOutline18,
+  IconLayers2Outline18,
+  IconTerminalOutline18,
+} from "@unkey/icons";
 import { match } from "@unkey/match";
 import { InfoTooltip, Loading, TimestampInfo } from "@unkey/ui";
 import type { Route } from "next";
@@ -24,7 +29,7 @@ type ResourceCardProps = {
   actions?: ReactNode;
   /** Card link target. Projects link to their home; apps link to deployments. */
   href: Route;
-  /** Icon shown in the card's avatar slot. Defaults to Cube. */
+  /** Icon shown in the card's avatar slot. Defaults to IconCubeOutline18. */
   icon?: ReactNode;
 };
 
@@ -51,7 +56,7 @@ export const ResourceCard = ({
   }, []);
 
   return (
-    <div className="relative p-5 flex flex-col border border-grayA-4 hover:border-grayA-7 rounded-lg w-full h-full gap-5 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
+    <div className="relative p-5 flex flex-col border hover:border-strong bg-raised shadow-xs rounded-lg w-full h-full gap-5 group transition-all duration-300 [&_a]:z-10 [&_button]:z-10">
       {/* Invisible base clickable layer - covers entire card */}
       <Link
         href={href}
@@ -61,11 +66,11 @@ export const ResourceCard = ({
       />
       {/*Top Section*/}
       <div className="flex gap-4 items-center min-h-11">
-        <div className="size-10 bg-gray-3 rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4">
+        <div className="size-10 bg-gray-3 rounded-xl flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4">
           {isNavigating ? (
             <Loading size={20} className="text-grayA-11" />
           ) : (
-            (icon ?? <Cube iconSize="xl-medium" className="shrink-0 size-5" />)
+            (icon ?? <IconCubeOutline18 className="shrink-0 size-5" />)
           )}
         </div>
         <div className="flex flex-col w-full gap-2 py-[5px] min-w-0">
@@ -73,7 +78,7 @@ export const ResourceCard = ({
           <InfoTooltip content={name} asChild position={{ align: "start", side: "top" }}>
             <Link
               href={href}
-              className="font-medium text-sm leading-[14px] text-accent-12 truncate hover:underline"
+              className="font-medium text-sm leading-[14px] text-gray-12 truncate hover:underline"
             >
               {name}
             </Link>
@@ -85,7 +90,7 @@ export const ResourceCard = ({
                 href={`https://${domain}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="relative font-medium text-xs leading-[12px] text-gray-11 truncate max-w-[150px] hover:text-accent-12 transition-colors hover:underline"
+                className="relative font-medium text-xs leading-[12px] text-gray-11 truncate max-w-[150px] hover:text-gray-12 transition-colors hover:underline"
               >
                 {domain}
               </a>
@@ -151,12 +156,12 @@ const GitSourceMetadata = ({
             href={sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate cursor-pointer hover:underline"
+            className="text-[13px] font-medium text-gray-12 leading-5 min-w-0 truncate cursor-pointer hover:underline"
           >
             {commitTitle}
           </a>
         ) : (
-          <span className="text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate">
+          <span className="text-[13px] font-medium text-gray-12 leading-5 min-w-0 truncate">
             {commitTitle}
           </span>
         )}
@@ -175,7 +180,7 @@ const GitSourceMetadata = ({
           <span className="sr-only">No deployments</span>
         )}
         <div className="flex items-center gap-1">
-          <CodeBranch className="text-gray-12 shrink-0" iconSize="sm-regular" />
+          <IconCodeBranchOutline18 className="size-3 text-gray-12 shrink-0" />
           <InfoTooltip content={branch} asChild position={{ align: "start", side: "top" }}>
             <span className="text-xs text-gray-12 truncate max-w-[70px]">{branch}</span>
           </InfoTooltip>
@@ -208,12 +213,12 @@ const OCISourceMetadata = ({ imageReference }: { imageReference: string | null }
       asChild
       position={{ align: "start", side: "top" }}
     >
-      <span className="h-5 font-mono text-[13px] font-medium text-accent-12 leading-5 min-w-0 truncate">
+      <span className="h-5 font-mono text-[13px] font-medium text-gray-12 leading-5 min-w-0 truncate">
         {imageReference ?? "No image configured"}
       </span>
     </InfoTooltip>
     <div className="flex items-center gap-1 min-h-5">
-      <Layers2 className="text-gray-12 shrink-0" iconSize="sm-regular" />
+      <IconLayers2Outline18 className="size-3 text-gray-12 shrink-0" />
       <span className="text-xs text-gray-12">Container image</span>
     </div>
   </div>
@@ -225,7 +230,7 @@ const LegacySourceMetadata = () => (
       <span className="sr-only">No source details</span>
     </div>
     <div className="flex items-center gap-1 min-h-5">
-      <Terminal className="text-gray-12 shrink-0" iconSize="sm-regular" />
+      <IconTerminalOutline18 className="size-3 text-gray-12 shrink-0" />
       <span className="text-xs text-gray-12">Legacy app</span>
     </div>
   </div>

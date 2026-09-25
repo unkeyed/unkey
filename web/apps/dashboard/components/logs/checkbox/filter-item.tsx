@@ -1,4 +1,4 @@
-import { CaretRight } from "@unkey/icons";
+import { IconCaretRightOutline18 } from "@unkey/icons";
 import { Button, Drover, KeyboardButton } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import type React from "react";
@@ -102,7 +102,7 @@ export const FilterItem = ({
           className={cn(
             "flex w-full items-center px-2 py-1.5 justify-between rounded-lg group cursor-pointer",
             "hover:bg-gray-3 data-popup-open:bg-gray-3",
-            "focus:outline-hidden focus:ring-2 focus:ring-accent-7",
+            "focus:outline-hidden focus:ring-2 focus:ring-gray-7",
             isFocused && !isActive ? "bg-gray-4" : "",
             isActive ? "bg-gray-3" : "",
           )}
@@ -120,11 +120,11 @@ export const FilterItem = ({
                 title={`Press '${shortcut?.toUpperCase()}' to toggle ${label} options`}
               />
             )}
-            <span className="text-[13px] text-accent-12 font-medium select-none">{label}</span>
+            <span className="text-[13px] text-gray-12 font-medium select-none">{label}</span>
           </div>
           <div className="flex items-center gap-1.5 pointer-events-none">
             {filterCount > 0 && (
-              <div className="bg-gray-6 rounded-sm size-4 text-[11px] font-medium text-accent-12 text-center flex items-center justify-center">
+              <div className="bg-gray-6 rounded-sm size-4 text-[11px] font-medium text-gray-12 text-center flex items-center justify-center">
                 {filterCount}
               </div>
             )}
@@ -135,14 +135,14 @@ export const FilterItem = ({
               className="size-5 [&_svg]:size-2"
               aria-hidden="true"
             >
-              <CaretRight className="text-gray-7 group-hover:text-gray-10" />
+              <IconCaretRightOutline18 className="text-gray-7 group-hover:text-gray-10" />
             </Button>
           </div>
         </div>
       </Drover.Trigger>
       <Drover.Content
         ref={contentRef}
-        className="min-w-60 w-full bg-gray-1 dark:bg-black drop-shadow-2xl transform-gpu p-0 border-gray-6 rounded-lg"
+        className="min-w-60 w-full bg-raised p-0 rounded-lg"
         side="right"
         align="start"
         sideOffset={12}

@@ -86,7 +86,7 @@ export function DeploymentRow({
 
       <span className="flex min-w-0 flex-1 items-center gap-2">
         <span
-          className="min-w-0 truncate text-[13px] text-accent-12"
+          className="min-w-0 truncate text-[13px] text-gray-12"
           title={title ?? (deployment.source === "oci" ? image : null) ?? undefined}
         >
           {title ??
@@ -103,7 +103,7 @@ export function DeploymentRow({
 
       <span className="flex min-w-0 shrink-0 items-center gap-2 md:w-44">
         <DeploymentStatusDot status={deployment.status} />
-        <span className="truncate text-[13px] font-medium text-accent-12">{statusLabel}</span>
+        <span className="truncate text-[13px] font-medium text-gray-12">{statusLabel}</span>
         <DeploymentDuration
           status={deployment.status}
           createdAt={deployment.createdAt}

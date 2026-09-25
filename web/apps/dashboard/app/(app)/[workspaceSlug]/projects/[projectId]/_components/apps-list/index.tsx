@@ -8,9 +8,24 @@ import { collection } from "@/lib/collections";
 import { githubUrl } from "@/lib/github-url";
 import { routes } from "@/lib/navigation/routes";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { Dots, Github, Layers2, Plus, Terminal } from "@unkey/icons";
+import {
+  Github,
+  IconCubeOutline18,
+  IconDotsOutline18,
+  IconLayers2Outline18,
+  IconPlusOutline18,
+  IconTerminalOutline18,
+} from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Button, Empty } from "@unkey/ui";
+import {
+  Button,
+  EmptyState,
+  EmptyStateActions,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateIcon,
+  EmptyStateTitle,
+} from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
 import { AppActions } from "./app-actions";
 
@@ -51,32 +66,34 @@ export const AppsList = () => {
           ))}
         </div>
       ) : apps.data.length === 0 ? (
-        <div className="flex-1 flex justify-center items-center px-4 py-16 border border-grayA-4 rounded-lg overflow-hidden">
-          <Empty className="w-[400px] flex items-start">
-            <Empty.Icon className="w-auto" />
-            <Empty.Title>No Apps Found</Empty.Title>
-            <Empty.Description className="text-left">
+        <EmptyState>
+          <EmptyStateIcon>
+            <IconCubeOutline18 />
+          </EmptyStateIcon>
+          <EmptyStateHeader>
+            <EmptyStateTitle>No Apps Found</EmptyStateTitle>
+            <EmptyStateDescription>
               This project has no apps yet. Create an app to start deploying.
-            </Empty.Description>
-            <Empty.Actions className="mt-4 justify-start">
-              <Button size="md" onClick={openCreateApp}>
-                <Plus />
-                Create app
-              </Button>
-            </Empty.Actions>
-          </Empty>
-        </div>
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+          <EmptyStateActions>
+            <Button variant="primary" size="md" onClick={openCreateApp}>
+              <IconPlusOutline18 />
+              Create app
+            </Button>
+          </EmptyStateActions>
+        </EmptyState>
       ) : (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           {apps.data.map((app) => {
             const icon = match(app.sourceType)
-              .with("git", () => <Github iconSize="xl-medium" className="shrink-0 size-5" />)
-              .with("oci", () => <Layers2 iconSize="xl-medium" className="shrink-0 size-5" />)
+              .with("git", () => <Github className="shrink-0 size-5" />)
+              .with("oci", () => <IconLayers2Outline18 className="shrink-0 size-5" />)
               .with("unknown", () =>
                 app.repositoryFullName ? (
-                  <Github iconSize="xl-medium" className="shrink-0 size-5" />
+                  <Github className="shrink-0 size-5" />
                 ) : (
-                  <Terminal iconSize="xl-medium" className="shrink-0 size-5" />
+                  <IconTerminalOutline18 className="shrink-0 size-5" />
                 ),
               )
               .exhaustive();
@@ -130,7 +147,7 @@ export const AppsList = () => {
                       className="mb-auto shrink-0"
                       title="App actions"
                     >
-                      <Dots iconSize="sm-regular" />
+                      <IconDotsOutline18 />
                     </Button>
                   </AppActions>
                 }

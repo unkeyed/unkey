@@ -16,71 +16,81 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
-func TestWatch_VitessSnapshotLiveFilteringAndResume(t *testing.T) {
-	vitess := containers.Vitess(t)
-	database, err := sql.Open("mysql", vitess.DSN)
-	require.NoError(t, err)
-	t.Cleanup(func() { require.NoError(t, database.Close()) })
-	region := uid.New(uid.RegionPrefix)
-	t.Cleanup(func() {
-		_, err := database.ExecContext(context.Background(), "DELETE FROM deployment_topology WHERE region_id IN (?, ?)", region, region+"_other")
-		require.NoError(t, err)
-	})
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
-	defer cancel()
-	_, err = database.ExecContext(ctx, `INSERT INTO deployment_topology
+func TestWatch_VitessDeletesFilteringAndResume(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		query string
+	}{
+		{name: "soft delete", query: "UPDATE deployment_topology SET desired_status = 'stopped' WHERE region_id IN (?, ?)"},
+		{name: "hard delete", query: "DELETE FROM deployment_topology WHERE region_id IN (?, ?)"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			vitess := containers.Vitess(t)
+			database, err := sql.Open("mysql", vitess.DSN)
+			require.NoError(t, err)
+			t.Cleanup(func() { require.NoError(t, database.Close()) })
+			region := uid.New(uid.RegionPrefix)
+			t.Cleanup(func() {
+				_, err := database.ExecContext(context.Background(), "DELETE FROM deployment_topology WHERE region_id IN (?, ?)", region, region+"_other")
+				require.NoError(t, err)
+			})
+			ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+			defer cancel()
+			_, err = database.ExecContext(ctx, `INSERT INTO deployment_topology
 		(workspace_id, deployment_id, region_id, desired_status, created_at)
-		VALUES ('poc', 'included', ?, 'running', 1), ('poc', 'excluded', ?, 'running', 1),
-		('poc', 'historical', ?, 'stopped', 1)`, region, region+"_other", region)
-	require.NoError(t, err)
-	client, err := New(cdc.Config{Address: vitess.Address, Keyspace: "unkey", Insecure: true})
-	require.NoError(t, err)
-	var delivered []string
-	var token []byte
-	updated := false
-	err = client.Watch(ctx, region, nil, func(event Event) error {
-		if event.DeploymentID != "" {
-			require.Empty(t, event.ResumeToken)
-			delivered = append(delivered, event.DeploymentID)
-			return nil
-		}
-		require.NotEmpty(t, event.ResumeToken)
-		token = event.ResumeToken
-		if len(delivered) == 1 && !updated {
-			updated = true
-			_, err := database.ExecContext(ctx, "UPDATE deployment_topology SET desired_status = 'stopped' WHERE region_id IN (?, ?)", region, region+"_other")
-			return err
-		}
-		if len(delivered) >= 2 {
-			cancel()
-		}
-		return nil
-	})
-	require.ErrorIs(t, err, context.Canceled)
-	require.Equal(t, []string{"included", "included"}, delivered, "a non-projected status change must still be delivered")
-	require.NotEmpty(t, token)
+		VALUES ('test', 'included', ?, 'running', 1), ('test', 'excluded', ?, 'running', 1),
+		('test', 'historical', ?, 'stopped', 1)`, region, region+"_other", region)
+			require.NoError(t, err)
+			client, err := New(cdc.Config{Address: vitess.Address, Keyspace: "unkey", Insecure: true})
+			require.NoError(t, err)
+			var delivered []string
+			var token []byte
+			updated := false
+			err = client.Watch(ctx, region, nil, func(event Event) error {
+				if event.DeploymentID != "" {
+					require.Empty(t, event.ResumeToken)
+					delivered = append(delivered, event.DeploymentID)
+					return nil
+				}
+				require.NotEmpty(t, event.ResumeToken)
+				token = event.ResumeToken
+				if len(delivered) == 1 && !updated {
+					updated = true
+					_, err := database.ExecContext(ctx, test.query, region, region+"_other")
+					return err
+				}
+				if len(delivered) >= 2 {
+					cancel()
+				}
+				return nil
+			})
+			require.ErrorIs(t, err, context.Canceled)
+			require.Equal(t, []string{"included", "included"}, delivered, "deletion must emit the matching deployment ID, but not stopped or other-region IDs")
+			require.NotEmpty(t, token)
 
-	resumeCtx, resumeCancel := context.WithTimeout(t.Context(), 30*time.Second)
-	defer resumeCancel()
-	err = client.Watch(resumeCtx, region+"_other", token, func(Event) error { return errors.New("unexpected cross-region event") })
-	require.ErrorIs(t, err, cdc.ErrInvalidToken)
-	_, err = database.ExecContext(resumeCtx, `INSERT INTO deployment_topology
+			resumeCtx, resumeCancel := context.WithTimeout(t.Context(), 30*time.Second)
+			defer resumeCancel()
+			err = client.Watch(resumeCtx, region+"_other", token, func(Event) error { return errors.New("unexpected cross-region event") })
+			require.ErrorIs(t, err, cdc.ErrInvalidToken)
+			_, err = database.ExecContext(resumeCtx, `INSERT INTO deployment_topology
 		(workspace_id, deployment_id, region_id, desired_status, created_at)
-		VALUES ('poc', 'while_offline', ?, 'running', 2)`, region)
-	require.NoError(t, err)
-	delivered = nil
-	err = client.Watch(resumeCtx, region, token, func(event Event) error {
-		if event.DeploymentID != "" {
-			delivered = append(delivered, event.DeploymentID)
-			return nil
-		}
-		if len(delivered) > 0 {
-			resumeCancel()
-		}
-		return nil
-	})
-	require.ErrorIs(t, err, context.Canceled)
-	require.Equal(t, []string{"while_offline"}, delivered, "resume must not copy the existing rows again")
+		VALUES ('test', 'while_offline', ?, 'running', 2)`, region)
+			require.NoError(t, err)
+			delivered = nil
+			err = client.Watch(resumeCtx, region, token, func(event Event) error {
+				if event.DeploymentID != "" {
+					delivered = append(delivered, event.DeploymentID)
+					return nil
+				}
+				if len(delivered) > 0 {
+					resumeCancel()
+				}
+				return nil
+			})
+			require.ErrorIs(t, err, context.Canceled)
+			require.Equal(t, []string{"while_offline"}, delivered, "resume must not copy the existing rows again")
+		})
+	}
 }
 
 func TestWatch_VitessRetriesFailedDeliveryAndResumesPartialSnapshot(t *testing.T) {
@@ -109,7 +119,7 @@ func TestWatch_VitessRetriesFailedDeliveryAndResumesPartialSnapshot(t *testing.T
 	}
 	_, err = database.ExecContext(ctx, `INSERT INTO deployment_topology
 		(workspace_id, deployment_id, region_id, desired_status, created_at) VALUES `+
-		strings.TrimSuffix(strings.Repeat("('poc', ?, ?, 'running', 1),", total), ","), args...)
+		strings.TrimSuffix(strings.Repeat("('test', ?, ?, 'running', 1),", total), ","), args...)
 	require.NoError(t, err)
 	client, err := New(cdc.Config{Address: vitess.Address, Keyspace: "unkey", Insecure: true})
 	require.NoError(t, err)

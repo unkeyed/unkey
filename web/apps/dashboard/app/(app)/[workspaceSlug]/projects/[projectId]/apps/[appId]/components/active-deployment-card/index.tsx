@@ -11,10 +11,9 @@ import {
   formatStorageParts,
 } from "@/lib/utils/deployment-formatters";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { CodeBranch, CodeCommit } from "@unkey/icons";
+import { IconCodeBranchOutline18, IconCodeCommitOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Badge, InfoTooltip, TimestampInfo } from "@unkey/ui";
-import { Card } from "../../(overview)/components/card";
+import { Badge, Card, InfoTooltip, TimestampInfo } from "@unkey/ui";
 import { useProjectData } from "../../(overview)/data-provider";
 import { DeploymentTriggerBadge } from "../../../../components/deployment-trigger-badge";
 import { Avatar } from "../../components/git-avatar";
@@ -97,7 +96,7 @@ export function ActiveDeploymentCard({
       <div className="px-4 pt-3 pb-2.5">
         <div className="flex w-full justify-between items-center gap-4">
           <div className="flex items-baseline gap-2">
-            <span className="font-mono text-[13px] text-accent-12 font-semibold shrink-0">
+            <span className="font-mono text-[13px] text-gray-12 font-semibold shrink-0">
               {deployment.id}
             </span>
             {isCurrent && (
@@ -113,8 +112,8 @@ export function ActiveDeploymentCard({
                 deployment.gitCommitMessage ? (
                   <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
                     <div className="flex items-center gap-1.5 min-w-0">
-                      <CodeCommit iconSize="sm-regular" className="text-accent-12 shrink-0" />
-                      <span className="text-xs text-accent-12 truncate">
+                      <IconCodeCommitOutline18 className="size-3 text-gray-12 shrink-0" />
+                      <span className="text-xs text-gray-12 truncate">
                         {deployment.gitCommitMessage}
                       </span>
                     </div>
@@ -131,7 +130,7 @@ export function ActiveDeploymentCard({
         </div>
       </div>
 
-      <div className="border-t border-gray-4 px-4 py-3">
+      <div className="border-t px-4 py-3">
         <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-6 items-start">
           <MetadataCell label="Created">
             {match(deployment.source)
@@ -140,7 +139,7 @@ export function ActiveDeploymentCard({
                   <Avatar src={deployment.gitCommitAuthorAvatarUrl} alt="Author" />
                   {deployment.gitCommitAuthorHandle && (
                     <>
-                      <span className="font-medium text-accent-12 text-xs">
+                      <span className="font-medium text-gray-12 text-xs">
                         {deployment.gitCommitAuthorHandle}
                       </span>
                       <span className="text-gray-9 text-xs">·</span>
@@ -177,8 +176,8 @@ export function ActiveDeploymentCard({
                     {deployment.gitBranch && (
                       <GitHubLink href={githubUrl.branch(sourceRepo, deployment.gitBranch)}>
                         <span className="flex items-center gap-1">
-                          <CodeBranch iconSize="sm-regular" className="text-accent-12 shrink-0" />
-                          <span className="font-mono text-xs text-accent-12 truncate max-w-32">
+                          <IconCodeBranchOutline18 className="size-3 text-gray-12 shrink-0" />
+                          <span className="font-mono text-xs text-gray-12 truncate max-w-32">
                             {deployment.gitBranch}
                           </span>
                         </span>
@@ -190,12 +189,9 @@ export function ActiveDeploymentCard({
                         <GitHubLink href={githubUrl.commit(sourceRepo, deployment.gitCommitSha)}>
                           <span className="flex items-center gap-1">
                             {!deployment.gitBranch && (
-                              <CodeCommit
-                                iconSize="sm-regular"
-                                className="text-accent-12 shrink-0"
-                              />
+                              <IconCodeCommitOutline18 className="size-3 text-gray-12 shrink-0" />
                             )}
-                            <span className="font-mono text-xs text-accent-12">
+                            <span className="font-mono text-xs text-gray-12">
                               {deployment.gitCommitSha.slice(0, 7)}
                             </span>
                           </span>
@@ -211,7 +207,7 @@ export function ActiveDeploymentCard({
 
           {environmentSlug && (
             <MetadataCell label="Environment">
-              <span className="text-xs text-accent-12 capitalize">{environmentSlug}</span>
+              <span className="text-xs text-gray-12 capitalize">{environmentSlug}</span>
             </MetadataCell>
           )}
 
@@ -229,7 +225,6 @@ export function ActiveDeploymentCard({
             <div className="flex items-center gap-2 text-xs">
               <InfoTooltip
                 content={`CPU: ${cpu.value} ${cpu.unit}`}
-                variant="inverted"
                 position={{ side: "top", align: "center" }}
               >
                 <span>
@@ -240,7 +235,6 @@ export function ActiveDeploymentCard({
               <span className="text-gray-9">·</span>
               <InfoTooltip
                 content={`Memory: ${mem.value} ${mem.unit}`}
-                variant="inverted"
                 position={{ side: "top", align: "center" }}
               >
                 <span>
@@ -253,7 +247,6 @@ export function ActiveDeploymentCard({
                   <span className="text-gray-9">·</span>
                   <InfoTooltip
                     content={`Storage: ${storage.value} ${storage.unit}`}
-                    variant="inverted"
                     position={{ side: "top", align: "center" }}
                   >
                     <span>
@@ -280,7 +273,6 @@ export function ActiveDeploymentCard({
                     <InfoTooltip
                       key={instance.region.id}
                       content={instance.region.name}
-                      variant="inverted"
                       position={{ side: "top", align: "center" }}
                     >
                       <RegionFlag flagCode={instance.flagCode} size="xs" shape="rounded" />
@@ -311,7 +303,7 @@ export function LastExitBadge({ lastExit }: { lastExit: LastExit }) {
   const tooltip = explainExit(reason, lastExit.exitCode, lastExit.signal);
 
   return (
-    <InfoTooltip content={tooltip} variant="inverted" position={{ side: "top", align: "end" }}>
+    <InfoTooltip content={tooltip} position={{ side: "top", align: "end" }}>
       <Badge variant={variant} className="text-xs whitespace-nowrap">
         {reason}
         {(() => {

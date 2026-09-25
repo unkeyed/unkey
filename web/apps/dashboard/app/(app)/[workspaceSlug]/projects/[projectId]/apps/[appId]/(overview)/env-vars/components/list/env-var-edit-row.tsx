@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { collection } from "@/lib/collections";
 import { envVarKeySchema, envVarValueSchema } from "@/lib/schemas/env-var";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CircleInfo, Plus } from "@unkey/icons";
+import { IconCircleInfoOutline18, IconPlusOutline12 } from "@unkey/icons";
 import { Button, FormInput, FormTextarea, InfoTooltip } from "@unkey/ui";
 import { type ClipboardEvent, useCallback } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -116,7 +116,7 @@ export function EnvVarEditRow({
   );
 
   return (
-    <div className="bg-gray-1 px-12 pb-6 pt-5 border-t border-grayA-4" onKeyDown={handleKeyDown}>
+    <div className="bg-raised px-12 pb-6 pt-5 border-t" onKeyDown={handleKeyDown}>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
         <FormInput
           label="Key"
@@ -145,10 +145,7 @@ export function EnvVarEditRow({
         <details className="group" open={Boolean(note)}>
           <summary className="w-fit text-[13px] text-gray-11 hover:text-gray-12 transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center gap-1.5 group">
             <span className="group-open:hidden flex items-center gap-2">
-              <Plus
-                iconSize="sm-medium"
-                className="text-gray-9 group-hover:text-gray-12 transition-colors"
-              />
+              <IconPlusOutline12 className="text-gray-9 group-hover:text-gray-12 transition-colors" />
               Add Note
             </span>
             <span className="hidden group-open:inline">Note</span>
@@ -178,7 +175,7 @@ export function EnvVarEditRow({
               asChild
             >
               <span className="text-grayA-9">
-                <CircleInfo iconSize="md-regular" />
+                <IconCircleInfoOutline18 className="size-3.5" />
               </span>
             </InfoTooltip>
           </div>

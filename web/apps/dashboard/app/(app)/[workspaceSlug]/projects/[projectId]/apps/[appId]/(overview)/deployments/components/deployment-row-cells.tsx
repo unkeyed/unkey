@@ -6,19 +6,19 @@ import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-st
 import { imageRefTag } from "@/lib/docker-image-ref";
 import { githubUrl } from "@/lib/github-url";
 import { shortenId } from "@/lib/shorten-id";
-import { cn } from "@/lib/utils";
 import {
-  BracketsCurly,
-  CircleQuestion,
-  CodeBranch,
-  CodeCommit,
   Github,
-  Laptop2,
-  Layers2,
-  SquareTerminal,
+  IconBracketsCurlyOutline18,
+  IconCircleQuestionOutline18,
+  IconCodeBranchOutline18,
+  IconCodeCommitOutline18,
+  IconLaptop2Outline18,
+  IconLayers2Outline18,
+  type IconProps,
+  IconSquareTerminalOutline18,
 } from "@unkey/icons";
-import type { IconProps } from "@unkey/icons/src/props";
 import { InfoTooltip, TimestampInfo } from "@unkey/ui";
+import { cn } from "cn";
 import type { Route } from "next";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -38,7 +38,7 @@ const DeploymentListTableActions = dynamic(
 );
 
 const CHIP_CLASS =
-  "inline-flex h-5.5 min-w-0 items-center gap-1.5 rounded-md border border-grayA-5 px-2 text-xs leading-none text-accent-12";
+  "inline-flex h-5.5 min-w-0 items-center gap-1.5 rounded-md border px-2 text-xs leading-none text-gray-12";
 
 function Interactive({ children, className }: { children: ReactNode; className?: string }) {
   return (
@@ -50,7 +50,6 @@ export function IdChip({ deployment, href }: { deployment: Deployment; href: Rou
   return (
     <InfoTooltip
       content={DEPLOYMENT_STATUS_LABELS[deployment.status]}
-      variant="inverted"
       position={{ side: "top" }}
       asChild
     >
@@ -70,10 +69,26 @@ type Origin = { icon: FC<IconProps>; label: string; tooltip: string };
 const ORIGINS: Record<Deployment["trigger"], Origin | "git"> = {
   github: "git",
   unknown: "git",
-  cli: { icon: SquareTerminal, label: "Unkey CLI", tooltip: "Deployed via the Unkey CLI" },
-  api: { icon: BracketsCurly, label: "Unkey API", tooltip: "Deployed via API (root key)" },
-  dashboard: { icon: Laptop2, label: "via Dashboard", tooltip: "Deployed via dashboard" },
-  unkey: { icon: CircleQuestion, label: "Unkey Team", tooltip: "Deployed by the Unkey team" },
+  cli: {
+    icon: IconSquareTerminalOutline18,
+    label: "Unkey CLI",
+    tooltip: "Deployed via the Unkey CLI",
+  },
+  api: {
+    icon: IconBracketsCurlyOutline18,
+    label: "Unkey API",
+    tooltip: "Deployed via API (root key)",
+  },
+  dashboard: {
+    icon: IconLaptop2Outline18,
+    label: "via Dashboard",
+    tooltip: "Deployed via dashboard",
+  },
+  unkey: {
+    icon: IconCircleQuestionOutline18,
+    label: "Unkey Team",
+    tooltip: "Deployed by the Unkey team",
+  },
 };
 
 function nonGitOrigin(deployment: Deployment): Origin | undefined {
@@ -91,12 +106,11 @@ export function OriginCell({ deployment }: { deployment: Deployment }) {
   return (
     <InfoTooltip
       content={origin.tooltip}
-      variant="inverted"
       position={{ side: "top" }}
       triggerClassName="relative z-20 flex min-w-0 items-center gap-2"
     >
-      <Icon iconSize="sm-regular" className="shrink-0 text-gray-9" />
-      <span className="truncate font-mono text-[13px] text-accent-12">{origin.label}</span>
+      <Icon className="size-3 shrink-0 text-gray-9" />
+      <span className="truncate font-mono text-[13px] text-gray-12">{origin.label}</span>
     </InfoTooltip>
   );
 }
@@ -114,11 +128,10 @@ export function SourceChip({
     return (
       <InfoTooltip
         content={origin.tooltip}
-        variant="inverted"
         position={{ side: "top" }}
         triggerClassName={cn(CHIP_CLASS, "relative z-20")}
       >
-        <Icon iconSize="sm-regular" className="shrink-0 text-gray-9" />
+        <Icon className="size-3 shrink-0 text-gray-9" />
         <span className="truncate font-mono">{origin.label}</span>
       </InfoTooltip>
     );
@@ -147,7 +160,7 @@ export function SourceChip({
         rel="noopener noreferrer"
         className={cn(CHIP_CLASS, "transition-colors hover:bg-grayA-2")}
       >
-        <Github iconSize="sm-regular" className="shrink-0 text-gray-9" />
+        <Github className="size-3 shrink-0 text-gray-9" />
         <span className="truncate" title={label}>
           {label}
         </span>
@@ -165,14 +178,14 @@ export function BranchCell({
 }) {
   const href = githubUrl.branch(repoFullName, branch);
   const text = (
-    <span className="truncate font-mono text-[13px] text-accent-12" title={branch}>
+    <span className="truncate font-mono text-[13px] text-gray-12" title={branch}>
       {branch}
     </span>
   );
 
   return (
     <span className="flex min-w-0 items-center gap-2">
-      <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-9" />
+      <IconCodeBranchOutline18 className="size-3 shrink-0 text-gray-9" />
       {href ? (
         <Interactive className="min-w-0">
           <a
@@ -207,10 +220,8 @@ export function CommitSha({
   );
   const body = (
     <>
-      <CodeCommit iconSize="sm-regular" className="shrink-0 text-gray-9" />
-      <span className="font-mono text-xs text-accent-12">
-        {deployment.gitCommitSha.slice(0, 7)}
-      </span>
+      <IconCodeCommitOutline18 className="size-3 shrink-0 text-gray-9" />
+      <span className="font-mono text-xs text-gray-12">{deployment.gitCommitSha.slice(0, 7)}</span>
     </>
   );
 
@@ -235,8 +246,8 @@ export function CommitSha({
 export function ImageRef({ image }: { image: string }) {
   return (
     <span className="flex min-w-0 items-center gap-1.5" title={image}>
-      <Layers2 iconSize="sm-regular" className="shrink-0 text-gray-9" />
-      <span className="truncate font-mono text-xs text-accent-12">{imageRefTag(image)}</span>
+      <IconLayers2Outline18 className="size-3 shrink-0 text-gray-9" />
+      <span className="truncate font-mono text-xs text-gray-12">{imageRefTag(image)}</span>
     </span>
   );
 }
@@ -259,7 +270,7 @@ export function AuthorCell({
         alt={deployment.gitCommitAuthorHandle ?? "Author"}
       />
       {withHandle && deployment.gitCommitAuthorHandle && (
-        <span className="max-w-28 truncate text-[13px] text-accent-12">
+        <span className="max-w-28 truncate text-[13px] text-gray-12">
           {deployment.gitCommitAuthorHandle}
         </span>
       )}

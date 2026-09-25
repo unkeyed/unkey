@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
-import { Trash } from "@unkey/icons";
+import { IconTrashOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
+import { cn } from "cn";
 import type { RefObject } from "react";
 
 type RemoveButtonProps = {
@@ -21,6 +21,6 @@ export const RemoveButton = ({ onClick, className, ref }: RemoveButtonProps) => 
     )}
     onClick={onClick}
   >
-    <Trash iconSize="sm-regular" />
+    <IconTrashOutline18 />
   </Button>
 );

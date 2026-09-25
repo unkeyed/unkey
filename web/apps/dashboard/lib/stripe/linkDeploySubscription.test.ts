@@ -91,6 +91,7 @@ const starterLimitValues = {
   apiRequestsCountMaxPerMinute: null,
   logsRetentionDaysMax: 3,
   logsAuditRetentionDaysMax: 7,
+  logdrainsMax: 0,
   teamEnabled: false,
   cpuCoresMax: 30,
   cpuCoresMaxPerInstance: 2,

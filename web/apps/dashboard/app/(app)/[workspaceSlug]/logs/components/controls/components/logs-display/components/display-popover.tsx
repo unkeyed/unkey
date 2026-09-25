@@ -57,7 +57,7 @@ const DisplayPropertyItem = ({
     data-item-index={index}
     className={`font-medium text-xs p-1.5 rounded-md hover:bg-gray-4 cursor-pointer whitespace-nowrap
       ${selected ? "bg-gray-4 text-gray-12" : "text-gray-9"}
-      ${isFocused ? "ring-2 ring-accent-7" : ""}`}
+      ${isFocused ? "ring-2 ring-gray-7" : ""}`}
     onClick={onClick}
     tabIndex={isFocused ? 0 : -1}
     // biome-ignore lint/a11y/useSemanticElements: its okay
@@ -156,7 +156,7 @@ export const DisplayPopover = ({ children }: PropsWithChildren) => {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger render={children as React.ReactElement} />
       <PopoverContent
-        className="bg-gray-1 dark:bg-black drop-shadow-2xl transform-gpu p-2 border-gray-6 rounded-lg w-96"
+        className="bg-raised p-2 rounded-lg w-96"
         align="start"
         onKeyDown={handleKeyNavigation}
       >

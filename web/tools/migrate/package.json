@@ -5,7 +5,9 @@
     "environment-kind": "tsx ./environment-kind.ts",
     "key-prefix": "tsx ./key-prefix.ts",
     "logging-policy": "tsx ./logging-policy.ts",
-    "migrate": "dotenv -e .env npx tsx ./main.ts"
+    "migrate": "dotenv -e .env npx tsx ./main.ts",
+    "test": "tsx --test ./*.test.ts",
+    "workspace-k8s-namespace": "tsx ./workspace-k8s-namespace.ts"
   },
   "keywords": [],
   "author": "Andreas Thomas",

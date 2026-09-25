@@ -205,10 +205,10 @@ type WatchDeploymentChangesRequest struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Cluster *ClusterKey            `protobuf:"bytes,1,opt,name=cluster,proto3" json:"cluster,omitempty"`
 	// Ignore the resume token and copy current desired state before watching.
-	Replay bool `protobuf:"varint,3,opt,name=replay,proto3" json:"replay,omitempty"`
+	Replay bool `protobuf:"varint,2,opt,name=replay,proto3" json:"replay,omitempty"`
 	// The last token saved after applying all earlier events in this region.
 	// Send it unchanged. Leave it empty to copy current rows again.
-	ResumeToken   []byte `protobuf:"bytes,4,opt,name=resume_token,json=resumeToken,proto3" json:"resume_token,omitempty"`
+	ResumeToken   []byte `protobuf:"bytes,3,opt,name=resume_token,json=resumeToken,proto3" json:"resume_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -316,7 +316,7 @@ type DeploymentChangeEvent struct {
 	Event isDeploymentChangeEvent_Event `protobuf_oneof:"event"`
 	// A checkpoint has a token but no deployment.
 	// Save the token only after all earlier deployment events have been applied.
-	ResumeToken   []byte `protobuf:"bytes,3,opt,name=resume_token,json=resumeToken,proto3" json:"resume_token,omitempty"`
+	ResumeToken   []byte `protobuf:"bytes,2,opt,name=resume_token,json=resumeToken,proto3" json:"resume_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -379,7 +379,7 @@ type isDeploymentChangeEvent_Event interface {
 }
 
 type DeploymentChangeEvent_Deployment struct {
-	Deployment *DeploymentState `protobuf:"bytes,2,opt,name=deployment,proto3,oneof"`
+	Deployment *DeploymentState `protobuf:"bytes,1,opt,name=deployment,proto3,oneof"`
 }
 
 func (*DeploymentChangeEvent_Deployment) isDeploymentChangeEvent_Event() {}
@@ -1511,11 +1511,7 @@ func (x *AutoscalingPolicy) GetMemoryThreshold() int32 {
 	return 0
 }
 
-// DeleteDeployment identifies a deployment to remove from the cluster.
-//
-// The deployment and all its pods will be terminated gracefully according to
-// the configured termination grace period. All associated resources (services,
-// configmaps specific to this deployment) will also be cleaned up.
+// DeleteDeployment identifies a ReplicaSet to remove by namespace and name.
 type DeleteDeployment struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	K8SNamespace  string                 `protobuf:"bytes,1,opt,name=k8s_namespace,json=k8sNamespace,proto3" json:"k8s_namespace,omitempty"`
@@ -1832,19 +1828,19 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"ClusterKey\x12\x1a\n" +
 	"\bplatform\x18\x01 \x01(\tR\bplatform\x12\x16\n" +
 	"\x06region\x18\x02 \x01(\tR\x06region\x12\x17\n" +
-	"\acell_id\x18\x03 \x01(\tR\x06cellId\"\x8f\x01\n" +
+	"\acell_id\x18\x03 \x01(\tR\x06cellId\"\x89\x01\n" +
 	"\x1dWatchDeploymentChangesRequest\x12-\n" +
 	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\x12\x16\n" +
-	"\x06replay\x18\x03 \x01(\bR\x06replay\x12!\n" +
-	"\fresume_token\x18\x04 \x01(\fR\vresumeTokenJ\x04\b\x02\x10\x03\"H\n" +
+	"\x06replay\x18\x02 \x01(\bR\x06replay\x12!\n" +
+	"\fresume_token\x18\x03 \x01(\fR\vresumeToken\"H\n" +
 	"\x17SyncDesiredStateRequest\x12-\n" +
-	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\"\x85\x01\n" +
+	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\"\x7f\n" +
 	"\x15DeploymentChangeEvent\x12:\n" +
 	"\n" +
-	"deployment\x18\x02 \x01(\v2\x18.ctrl.v1.DeploymentStateH\x00R\n" +
+	"deployment\x18\x01 \x01(\v2\x18.ctrl.v1.DeploymentStateH\x00R\n" +
 	"deployment\x12!\n" +
-	"\fresume_token\x18\x03 \x01(\fR\vresumeTokenB\a\n" +
-	"\x05eventJ\x04\b\x01\x10\x02\"v\n" +
+	"\fresume_token\x18\x02 \x01(\fR\vresumeTokenB\a\n" +
+	"\x05event\"v\n" +
 	" GetDesiredDeploymentStateRequest\x12-\n" +
 	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\x12#\n" +
 	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\"\xc7\x05\n" +
@@ -1912,11 +1908,11 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x1bReportInstanceEventsRequest\x12.\n" +
 	"\x06events\x18\x01 \x03(\v2\x16.ctrl.v1.InstanceEventR\x06events\x12-\n" +
 	"\acluster\x18\x02 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\"\x1e\n" +
-	"\x1cReportInstanceEventsResponse\"\x87\x01\n" +
+	"\x1cReportInstanceEventsResponse\"\x81\x01\n" +
 	"\x0fDeploymentState\x120\n" +
 	"\x05apply\x18\x01 \x01(\v2\x18.ctrl.v1.ApplyDeploymentH\x00R\x05apply\x123\n" +
 	"\x06delete\x18\x02 \x01(\v2\x19.ctrl.v1.DeleteDeploymentH\x00R\x06deleteB\a\n" +
-	"\x05stateJ\x04\b\x03\x10\x04\"\xcb\b\n" +
+	"\x05state\"\xcb\b\n" +
 	"\x0fApplyDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +

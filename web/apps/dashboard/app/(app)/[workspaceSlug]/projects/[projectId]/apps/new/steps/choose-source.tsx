@@ -5,7 +5,7 @@ import { applyDefaultSettings } from "@/lib/collections/deploy/environment-setti
 import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
 import { trpc } from "@/lib/trpc/client";
 import { eq, useLiveQuery } from "@tanstack/react-db";
-import { CodeBranch, Github } from "@unkey/icons";
+import { Github, IconCodeBranchOutline18 } from "@unkey/icons";
 import { Button, toast, useStepWizard } from "@unkey/ui";
 import { useState } from "react";
 import { z } from "zod";
@@ -143,9 +143,9 @@ export const ChooseSourceStep = ({
     <div className="flex flex-col items-center">
       <div className="flex flex-col gap-3 w-[600px]">
         {imageMode ? null : (
-          <div className="border border-grayA-5 rounded-lg flex justify-start items-center gap-4 py-[18px] px-4">
-            <div className="size-8 rounded-[10px] grid place-items-center ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none shrink-0">
-              <CodeBranch className="size-[18px] text-gray-12" iconSize="md-medium" />
+          <div className="border bg-raised rounded-lg flex justify-start items-center gap-4 py-[18px] px-4">
+            <div className="size-8 rounded-xl grid place-items-center border shadow-sm shadow-grayA-8/20 dark:shadow-none shrink-0">
+              <IconCodeBranchOutline18 className="size-[18px] text-gray-12" />
             </div>
             <div className="flex flex-col gap-3">
               <span className="font-medium text-gray-12 text-[13px] leading-[9px]">
@@ -157,7 +157,7 @@ export const ChooseSourceStep = ({
             </div>
             <Button
               variant="outline"
-              className="ml-auto rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
+              className="ml-auto rounded-lg hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
               onClick={handleClick}
               loading={isPreparing}
               disabled={selectedSource === "oci"}

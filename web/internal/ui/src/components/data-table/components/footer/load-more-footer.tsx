@@ -1,8 +1,9 @@
 "use client";
-import { ArrowsToAllDirections, ArrowsToCenter } from "@unkey/icons";
+import { IconArrowsAllDirectionsOutline18, IconArrowsToCenterOutline18 } from "@unkey/icons";
 import { useCallback, useState } from "react";
 import { cn } from "../../../../lib/utils";
 import { Button } from "../../../buttons/button";
+import { FOOTER_PANEL } from "../../constants/constants";
 
 export interface LoadMoreFooterComponentProps {
   onLoadMore?: () => void;
@@ -57,7 +58,7 @@ export function LoadMoreFooter({
         <button
           type="button"
           onClick={handleOpen}
-          className="bg-gray-1 dark:bg-black border border-gray-6 rounded-lg shadow-lg p-3 transition-all duration-200 hover:shadow-xl hover:scale-105 group"
+          className="bg-raised rounded-lg shadow-floating p-3 transition-all duration-200 hover:scale-105 group"
           title={`${buttonText} • ${totalVisible} of ${totalCount} ${itemLabel}`}
         >
           <div className="flex items-center gap-2">
@@ -72,7 +73,7 @@ export function LoadMoreFooter({
               aria-hidden="true"
               className="inline-flex items-center justify-center [&_svg]:size-[14px] transition-all duration-200 rounded transform hover:scale-110"
             >
-              <ArrowsToAllDirections iconSize="sm-regular" />
+              <IconArrowsAllDirectionsOutline18 className="size-3" />
             </span>
           </div>
         </button>
@@ -89,26 +90,23 @@ export function LoadMoreFooter({
       )}
     >
       <div
-        className={`w-[740px] border bg-gray-1 dark:bg-black border-gray-6 min-h-[60px] flex items-center justify-center rounded-[10px] drop-shadow-lg transform-gpu shadow-sm mb-5 transition-all duration-200 hover:shadow-lg ${
-          shouldShow ? "pointer-events-auto" : "pointer-events-none"
-        }`}
+        className={cn(
+          FOOTER_PANEL,
+          "transition-all duration-200",
+          shouldShow ? "pointer-events-auto" : "pointer-events-none",
+        )}
         aria-hidden={!shouldShow}
       >
         <div className="flex flex-col w-full">
           {/* Header content */}
           {headerContent && <div className="flex items-center w-full">{headerContent}</div>}
 
-          <div
-            className="flex w-full justify-between items-center text-[13px] text-accent-9 p-[18px] transition-all duration-200 animate-fade-in-up"
-            style={{ animationDelay: "0.3s" }}
-          >
+          <div className="flex w-full justify-between items-center text-[13px] text-gray-9 p-[18px] transition-all duration-200 animate-fade-slide-in [animation-delay:0.3s] [animation-fill-mode:backwards]">
             {countInfoText && <div className="transition-all duration-200">{countInfoText}</div>}
             {!countInfoText && (
               <div className="flex gap-2 transition-all duration-200">
                 <span>Viewing</span>
-                <span className="text-accent-12 transition-colors duration-200">
-                  {totalVisible}
-                </span>
+                <span className="text-gray-12 transition-colors duration-200">{totalVisible}</span>
                 <span>of</span>
                 <span className="text-grayA-12 transition-colors duration-200">{totalCount}</span>
                 <span>{itemLabel}</span>
@@ -137,7 +135,7 @@ export function LoadMoreFooter({
                   onClick={handleClose}
                   title="Minimize"
                 >
-                  <ArrowsToCenter iconSize="lg-regular" />
+                  <IconArrowsToCenterOutline18 className="size-4" />
                 </Button>
               </div>
             </div>

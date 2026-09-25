@@ -1,0 +1,42 @@
+---
+title: "delete-portal"
+description: "Delete a portal and revoke the sessions it minted"
+---
+
+Delete a portal and revoke the sessions it minted.
+
+Unreleased and subject to change without notice.
+
+End users lose access rather than retaining it until their tokens expire. Revocation isn't instantaneous because session lookups are cached briefly, so a request already in flight may still succeed.
+
+The app or keyspace it served is untouched, and its slug becomes free for a new portal.
+
+Your root key must have `portal.*.delete_portal` or `portal.<portal_id>.delete_portal`. Without permission, this endpoint returns **404**, not 403.
+
+## Usage
+
+```bash
+unkey api portal delete-portal [flags]
+```
+
+## Flags
+
+<ParamField body="--portal" type="string" required>Portal ID or slug.</ParamField>
+
+## Global Flags
+
+| Flag | Type | Description |
+|------|------|-------------|
+| `--root-key` | string | Override root key (`$UNKEY_ROOT_KEY`) |
+| `--api-url` | string | Override API base URL (default: `https://api.unkey.com`) |
+| `--config` | string | Path to config file (default: `~/.unkey/config.toml`) |
+| `--output` | string | Output format. Use `json` for raw JSON |
+| `--body` | string | Send this JSON string as the request body. You cannot combine it with request-building flags. |
+
+## Examples
+
+```bash
+unkey api portal delete-portal --portal=acme-portal
+```
+
+See the [API reference](https://www.unkey.com/docs/api-reference/portal/delete-portal).

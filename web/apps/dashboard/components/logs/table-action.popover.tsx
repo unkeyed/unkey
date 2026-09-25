@@ -1,9 +1,10 @@
-import { Dots } from "@unkey/icons";
+import { IconDotsOutline18 } from "@unkey/icons";
 import {
   Button,
   Popover,
   PopoverContent,
   PopoverTrigger,
+  Separator,
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -120,7 +121,7 @@ export const TableActionPopover = ({
           }
         />
         <PopoverContent
-          className="min-w-60 max-w-full bg-gray-1 dark:bg-black drop-shadow-2xl transform-gpu border-gray-6 rounded-lg p-0"
+          className="min-w-60 max-w-full bg-raised rounded-lg p-0"
           align={align}
           initialFocus={() => {
             const firstEnabledIndex = items.findIndex((item) => !isItemDisabled(item));
@@ -189,7 +190,7 @@ export const TableActionPopover = ({
                       control
                     )}
                   </div>
-                  {item.divider && <div aria-hidden className="h-px bg-grayA-3 w-full my-2" />}
+                  {item.divider && <Separator className="my-2" />}
                 </div>
               );
             })}
@@ -236,7 +237,7 @@ export const TableActionPopoverDefaultTrigger = forwardRef<
       aria-label="Open actions"
       {...buttonProps}
     >
-      <Dots className="group-hover:text-gray-12 text-gray-11" iconSize="sm-regular" />
+      <IconDotsOutline18 className="group-hover:text-gray-12 text-gray-11" />
     </Button>
   );
 });

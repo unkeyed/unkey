@@ -3,11 +3,11 @@
 import type { Deployment } from "@/lib/collections";
 import { shortenId } from "@/lib/shorten-id";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
-import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
-import { CodeBranch, Layers2 } from "@unkey/icons";
+import { IconCodeBranchOutline18, IconLayers2Outline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, Button, DialogContainer, TimestampInfo, toast } from "@unkey/ui";
+import { cn } from "cn";
 import { useEffect, useState } from "react";
 import { Avatar } from "../../../components/git-avatar";
 import { useProjectData } from "../../data-provider";
@@ -105,7 +105,7 @@ function DeploymentOption({ deployment, isCurrent, selected, onSelect }: Deploym
   const description = match(deployment.source)
     .with("git", () => (
       <>
-        <span className="font-mono text-xs font-semibold text-accent-12 shrink-0">
+        <span className="font-mono text-xs font-semibold text-gray-12 shrink-0">
           {deployment.gitCommitSha ? shortenId(deployment.gitCommitSha) : deployment.id}
         </span>
         {deployment.gitCommitMessage && (
@@ -114,9 +114,7 @@ function DeploymentOption({ deployment, isCurrent, selected, onSelect }: Deploym
       </>
     ))
     .with("oci", "unknown", () => (
-      <span className="font-mono text-xs font-semibold text-accent-12 shrink-0">
-        {deployment.id}
-      </span>
+      <span className="font-mono text-xs font-semibold text-gray-12 shrink-0">{deployment.id}</span>
     ))
     .exhaustive();
 
@@ -125,18 +123,18 @@ function DeploymentOption({ deployment, isCurrent, selected, onSelect }: Deploym
       type="button"
       onClick={onSelect}
       className={cn(
-        "w-full text-left rounded-[14px] border p-3 transition-colors",
-        selected ? "border-grayA-8 bg-grayA-2" : "border-grayA-4 hover:border-grayA-6",
+        "w-full text-left rounded-2xl border p-3 transition-colors",
+        selected ? "border-grayA-8 bg-grayA-2" : "hover:border-strong",
       )}
     >
       <div className="flex items-start gap-3">
         <span
           className={cn(
             "mt-0.5 size-4 shrink-0 rounded-full border flex items-center justify-center",
-            selected ? "border-accent-12" : "border-grayA-6",
+            selected ? "border-gray-12" : "border-grayA-6",
           )}
         >
-          {selected && <span className="size-2 rounded-full bg-accent-12" />}
+          {selected && <span className="size-2 rounded-full bg-gray-12" />}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
@@ -165,7 +163,7 @@ function DeploymentSource({ deployment }: { deployment: Deployment }) {
   return match(deployment.source)
     .with("oci", () => (
       <span className="flex items-center gap-1.5 min-w-0">
-        <Layers2 iconSize="sm-regular" className="shrink-0 text-gray-12" />
+        <IconLayers2Outline18 className="size-3 shrink-0 text-gray-12" />
         <span
           className="truncate"
           title={deployment.requestedImage ?? deployment.resolvedImage ?? undefined}
@@ -178,7 +176,7 @@ function DeploymentSource({ deployment }: { deployment: Deployment }) {
       <>
         {deployment.gitBranch && (
           <span className="flex items-center gap-1.5 min-w-0">
-            <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
+            <IconCodeBranchOutline18 className="size-3 shrink-0 text-gray-12" />
             <span className="truncate">{deployment.gitBranch}</span>
           </span>
         )}
@@ -196,7 +194,7 @@ function DeploymentSource({ deployment }: { deployment: Deployment }) {
     ))
     .with("unknown", () => (
       <span className="flex items-center gap-1.5 min-w-0">
-        <Layers2 iconSize="sm-regular" className="shrink-0 text-gray-12" />
+        <IconLayers2Outline18 className="size-3 shrink-0 text-gray-12" />
         <span>Deployment artifact</span>
       </span>
     ))

@@ -1,12 +1,13 @@
 import { formatNumber } from "@/lib/fmt";
 
-import { InfoTooltip } from "@unkey/ui";
+import { InfoHoverCard } from "@unkey/ui";
 import { type JSX, useMemo } from "react";
 import type { ProcessedTimeseriesDataPoint } from "../use-fetch-timeseries";
 
 type OutcomeExplainerProps = {
   children: React.ReactNode;
   timeseries: ProcessedTimeseriesDataPoint[];
+  title: string;
 };
 
 type ErrorType = {
@@ -15,7 +16,11 @@ type ErrorType = {
   color: string;
 };
 
-export function OutcomeExplainer({ children, timeseries }: OutcomeExplainerProps): JSX.Element {
+export function OutcomeExplainer({
+  children,
+  timeseries,
+  title,
+}: OutcomeExplainerProps): JSX.Element {
   // Aggregate all timeseries data for the tooltip
   const aggregatedData = useMemo(() => {
     if (!timeseries || timeseries.length === 0) {
@@ -100,15 +105,14 @@ export function OutcomeExplainer({ children, timeseries }: OutcomeExplainerProps
   }, [aggregatedData]);
 
   return (
-    <InfoTooltip
+    <InfoHoverCard
       asChild
-      className="bg-gray-1 dark:bg-black shadow-2xl p-0 border border-grayA-2 rounded-lg overflow-hidden px-4 pt-2 pb-1"
+      className="px-4 pt-2 pb-1"
       delayDuration={300}
-      variant="inverted"
       position={{ side: "bottom" }}
       content={
         <div className="flex flex-col gap-1 min-w-64 justify-start ">
-          <div className="text-gray-12 font-medium text-[13px] pr-2">API Key Activity</div>
+          <div className="text-gray-12 font-medium text-[13px] pr-2">{title}</div>
           <div className="text-xs text-grayA-9 pr-2 font-normal">Last 36 hours</div>
 
           {/* Valid count */}
@@ -148,6 +152,6 @@ export function OutcomeExplainer({ children, timeseries }: OutcomeExplainerProps
       }
     >
       <div>{children}</div>
-    </InfoTooltip>
+    </InfoHoverCard>
   );
 }

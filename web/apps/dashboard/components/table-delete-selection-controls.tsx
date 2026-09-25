@@ -1,6 +1,6 @@
 "use client";
 import { AnimatedCounter } from "@/components/api-keys-table/components/selection-controls";
-import { Trash, XMark } from "@unkey/icons";
+import { IconTrashOutline18, IconXmarkOutline18 } from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRef, useState } from "react";
@@ -36,7 +36,7 @@ export const TableDeleteSelectionControls = ({
         {selectedCount > 0 && (
           <motion.div
             key="selection-controls"
-            className="border-b border-grayA-3 w-full overflow-hidden"
+            className="border-b w-full overflow-hidden"
             initial={{ opacity: 0, height: 0 }}
             animate={{
               opacity: 1,
@@ -58,7 +58,7 @@ export const TableDeleteSelectionControls = ({
             <div className="flex justify-between items-center w-full p-[18px]">
               <div className="items-center flex gap-2">
                 <AnimatedCounter value={selectedCount} />
-                <div className="text-accent-9 text-[13px] leading-6">selected</div>
+                <div className="text-gray-9 text-[13px] leading-6">selected</div>
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -70,7 +70,7 @@ export const TableDeleteSelectionControls = ({
                   onClick={() => setIsDeleteConfirmOpen(true)}
                   ref={deleteButtonRef}
                 >
-                  <Trash iconSize="sm-regular" />
+                  <IconTrashOutline18 />
                   Delete {plural}
                 </Button>
                 <Button
@@ -80,7 +80,7 @@ export const TableDeleteSelectionControls = ({
                   onClick={onClearSelection}
                   aria-label="Clear selection"
                 >
-                  <XMark />
+                  <IconXmarkOutline18 />
                 </Button>
               </div>
             </div>

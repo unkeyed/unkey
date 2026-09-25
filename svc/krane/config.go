@@ -78,6 +78,13 @@ type Config struct {
 	// Defaults to "ebs-csi-gp3" (prod). Set to "standard" for local Minikube development.
 	StorageClassName string `toml:"storage_class_name" config:"default=ebs-csi-gp3"`
 
+	// DisableGvisor puts user workloads on the node's default runtime instead
+	// of the gVisor sandbox. Local development sets it because minikube's
+	// gvisor addon installs no working runsc. The zero value keeps the
+	// sandbox, so a config that never mentions it still isolates untrusted
+	// code
+	DisableGvisor bool `toml:"disable_gvisor"`
+
 	// K8s tunes the client-go REST config. See [K8sConfig].
 	K8s K8sConfig `toml:"k8s"`
 

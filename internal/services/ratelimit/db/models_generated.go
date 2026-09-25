@@ -438,49 +438,6 @@ func (ns NullCustomDomainsVerificationStatus) Value() (driver.Value, error) {
 	return string(ns.CustomDomainsVerificationStatus), nil
 }
 
-type DeploymentChangesResourceType string
-
-const (
-	DeploymentChangesResourceTypeDeploymentTopology  DeploymentChangesResourceType = "deployment_topology"
-	DeploymentChangesResourceTypeSentinel            DeploymentChangesResourceType = "sentinel"
-	DeploymentChangesResourceTypeCiliumNetworkPolicy DeploymentChangesResourceType = "cilium_network_policy"
-)
-
-func (e *DeploymentChangesResourceType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = DeploymentChangesResourceType(s)
-	case string:
-		*e = DeploymentChangesResourceType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for DeploymentChangesResourceType: %T", src)
-	}
-	return nil
-}
-
-type NullDeploymentChangesResourceType struct {
-	DeploymentChangesResourceType DeploymentChangesResourceType
-	Valid                         bool // Valid is true if DeploymentChangesResourceType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullDeploymentChangesResourceType) Scan(value interface{}) error {
-	if value == nil {
-		ns.DeploymentChangesResourceType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.DeploymentChangesResourceType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullDeploymentChangesResourceType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.DeploymentChangesResourceType), nil
-}
-
 type DeploymentStepsStep string
 
 const (
@@ -1356,14 +1313,6 @@ type Deployment struct {
 	UpdatedAt                     sql.NullInt64               `db:"updated_at"`
 }
 
-type DeploymentChange struct {
-	Pk           uint64                        `db:"pk"`
-	ResourceType DeploymentChangesResourceType `db:"resource_type"`
-	ResourceID   string                        `db:"resource_id"`
-	RegionID     string                        `db:"region_id"`
-	CreatedAt    int64                         `db:"created_at"`
-}
-
 type DeploymentStep struct {
 	Pk            uint64              `db:"pk"`
 	WorkspaceID   string              `db:"workspace_id"`
@@ -1566,6 +1515,7 @@ type Limit struct {
 	ApiRequestsCountMaxPerMinute          sql.NullInt32 `db:"api_requests_count_max_per_minute"`
 	LogsRetentionDaysMax                  uint16        `db:"logs_retention_days_max"`
 	LogsAuditRetentionDaysMax             uint16        `db:"logs_audit_retention_days_max"`
+	LogdrainsMax                          uint32        `db:"logdrains_max"`
 	TeamEnabled                           bool          `db:"team_enabled"`
 	CpuCoresMax                           uint32        `db:"cpu_cores_max"`
 	CpuCoresMaxPerInstance                uint32        `db:"cpu_cores_max_per_instance"`
@@ -1624,6 +1574,7 @@ type Portal struct {
 	Pk           uint64         `db:"pk"`
 	ID           string         `db:"id"`
 	WorkspaceID  string         `db:"workspace_id"`
+	ProjectID    string         `db:"project_id"`
 	Slug         string         `db:"slug"`
 	DisplayName  string         `db:"display_name"`
 	AppID        sql.NullString `db:"app_id"`
@@ -1642,7 +1593,6 @@ type PortalSession struct {
 	PortalID              string          `db:"portal_id"`
 	ExternalID            string          `db:"external_id"`
 	Scopes                json.RawMessage `db:"scopes"`
-	Preview               bool            `db:"preview"`
 	ExchangeCodeHash      string          `db:"exchange_code_hash"`
 	ExchangeCodeExpiresAt int64           `db:"exchange_code_expires_at"`
 	AccessTokenHash       sql.NullString  `db:"access_token_hash"`
@@ -1760,7 +1710,7 @@ type Workspace struct {
 	OrgID            string          `db:"org_id"`
 	Name             string          `db:"name"`
 	Slug             string          `db:"slug"`
-	K8sNamespace     sql.NullString  `db:"k8s_namespace"`
+	K8sNamespace     string          `db:"k8s_namespace"`
 	BetaFeatures     json.RawMessage `db:"beta_features"`
 	Subscriptions    json.RawMessage `db:"subscriptions"`
 	Enabled          bool            `db:"enabled"`

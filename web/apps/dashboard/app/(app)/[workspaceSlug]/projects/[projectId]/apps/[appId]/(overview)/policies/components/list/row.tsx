@@ -3,9 +3,14 @@
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { Switch } from "@/components/ui/switch";
 import type { Policy } from "@/lib/collections/deploy/policies.schema";
-import { cn } from "@/lib/utils";
-import { Dots, GripDotsVertical, PenWriting3, Trash } from "@unkey/icons";
+import {
+  IconDotsOutline18,
+  IconGripDotsVerticalOutline18,
+  IconPenWriting3Outline18,
+  IconTrashOutline18,
+} from "@unkey/icons";
 import { Button, ConfirmPopover } from "@unkey/ui";
+import { cn } from "cn";
 import { useRef, useState } from "react";
 
 type MergedPolicyRow = {
@@ -69,7 +74,7 @@ export function PolicyRow({
     {
       id: "edit",
       label: "Edit",
-      icon: <PenWriting3 iconSize="md-regular" />,
+      icon: <IconPenWriting3Outline18 className="size-3.5" />,
       divider: true,
       onClick: (e) => {
         e.stopPropagation();
@@ -82,7 +87,7 @@ export function PolicyRow({
     {
       id: "delete",
       label: "Delete",
-      icon: <Trash iconSize="md-regular" />,
+      icon: <IconTrashOutline18 className="size-3.5" />,
       onClick: (e) => {
         e.stopPropagation();
         setIsDeleteConfirmOpen(true);
@@ -122,7 +127,7 @@ export function PolicyRow({
         // If text under the pointer is selected, the browser drags the
         // selection and not this row. It then shows a large page area.
         "select-none",
-        !isLast && "border-b border-grayA-4",
+        !isLast && "border-b",
         isDragOver && "bg-grayA-3",
       )}
     >
@@ -155,7 +160,7 @@ export function PolicyRow({
                 "size-6 rounded-full border flex items-center justify-center text-[11px] font-medium",
                 isActiveAnywhere
                   ? "bg-info-3 border-info-7 text-info-11"
-                  : "bg-grayA-2 border-grayA-5 text-gray-10",
+                  : "bg-grayA-2 text-gray-10",
               )}
             >
               {index + 1}
@@ -171,7 +176,7 @@ export function PolicyRow({
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <GripDotsVertical iconSize="lg-medium" className="opacity-40 hover:opacity-70" />
+            <IconGripDotsVerticalOutline18 className="size-4 opacity-40 hover:opacity-70" />
           </button>
 
           {/* Name */}
@@ -217,10 +222,10 @@ export function PolicyRow({
               <Button
                 ref={deleteButtonRef}
                 variant="outline"
-                className="size-5 [&_svg]:size-3 rounded-sm border-transparent group-hover:border-grayA-6"
+                className="size-5 [&_svg]:size-3 rounded-sm border-transparent group-hover:border-strong"
                 onClick={(e) => e.stopPropagation()}
               >
-                <Dots className="group-hover:text-gray-12 text-gray-11" iconSize="sm-regular" />
+                <IconDotsOutline18 className="group-hover:text-gray-12 text-gray-11" />
               </Button>
             </TableActionPopover>
 
@@ -271,7 +276,7 @@ function EnvSwitch({
   return (
     <button
       type="button"
-      className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-dashed border-grayA-4 text-gray-8 hover:text-gray-10 hover:border-grayA-6 transition-all cursor-pointer w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-6 focus-visible:ring-offset-1"
+      className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-dashed text-gray-8 hover:text-gray-10 hover:border-strong transition-all cursor-pointer w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-6 focus-visible:ring-offset-1"
       onClick={(e) => {
         e.stopPropagation();
         onAdd(policyKey);
@@ -300,7 +305,7 @@ function setRowDragImage(e: React.DragEvent<HTMLDivElement>) {
   // and the corners. The copy is outside that container, so give the copy a
   // frame and a background.
   clone.classList.remove("border-b");
-  clone.classList.add("border", "border-grayA-4", "rounded-lg", "bg-gray-1", "shadow-lg");
+  clone.classList.add("rounded-lg", "bg-raised", "shadow-floating");
 
   clone.style.position = "fixed";
   // Keep the copy off-screen but laid out. The browser captures a blank

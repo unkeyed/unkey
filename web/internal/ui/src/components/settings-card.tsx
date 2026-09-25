@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight } from "@unkey/icons";
+import { IconChevronRightOutline12 } from "@unkey/icons";
 import * as React from "react";
 import { cn } from "../lib/utils";
 import { Button } from "./buttons/button";
@@ -32,7 +32,7 @@ const SettingCardGroupContext = React.createContext(false);
 function SettingCardGroup({ children }: { children: React.ReactNode }) {
   return (
     <SettingCardGroupContext.Provider value={true}>
-      <div className="border border-grayA-4 rounded-lg overflow-hidden divide-y divide-grayA-4">
+      <div className="border rounded-lg overflow-hidden divide-y divide-grayA-4 bg-raised">
         {children}
       </div>
     </SettingCardGroupContext.Provider>
@@ -108,7 +108,7 @@ function SettingCard({
   const borderClass = inGroup
     ? {}
     : {
-        "border border-grayA-4": border !== "none",
+        border: border !== "none",
         "border-t-0": border === "bottom",
         "border-b-0": border === "top",
       };
@@ -146,7 +146,9 @@ function SettingCard({
   };
 
   return (
-    <div className={cn("w-full", getBorderRadiusClass(), borderClass, expandedBottomRadius)}>
+    <div
+      className={cn("w-full bg-raised", getBorderRadiusClass(), borderClass, expandedBottomRadius)}
+    >
       <div
         className={cn(
           "px-4 py-[18px] lg:w-full flex gap-6 lg:justify-between lg:items-center flex-col lg:flex-row group",
@@ -168,7 +170,7 @@ function SettingCard({
           {icon && (
             <div
               className={cn(
-                "bg-gray-3 size-8 rounded-[10px] flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20",
+                "bg-gray-3 size-8 rounded-xl flex items-center justify-center shrink-0 dark:ring-1 dark:ring-gray-4 dark:shadow-none shadow-sm shadow-grayA-8/20",
                 iconClassName,
               )}
             >
@@ -201,14 +203,13 @@ function SettingCard({
         <div className={cn("flex w-full items-center gap-4", contentWidth)}>
           {children}
           {shouldShowChevron && (
-            <ChevronRight
+            <IconChevronRightOutline12
               className={cn(
                 "text-gray-10 transition-all duration-300 ease-out shrink-0",
                 isExpanded && "rotate-90",
                 effectiveChevronState !== "disabled" && "group-hover:text-gray-11",
                 effectiveChevronState === "disabled" && "opacity-40 cursor-not-allowed",
               )}
-              iconSize="sm-medium"
             />
           )}
         </div>
@@ -224,7 +225,7 @@ function SettingCard({
           <div
             ref={innerRef}
             className={cn(
-              "border-t border-grayA-4 transition-all duration-300 ease-out",
+              "border-t transition-all duration-300 ease-out",
               isExpanded ? "opacity-100 translate-y-0 delay-75" : "opacity-0 -translate-y-2",
             )}
           >
@@ -278,7 +279,7 @@ function SettingsZone({
     <SettingsZoneContext.Provider value={variant}>
       <div className={cn("w-full", className)}>
         <h2 className={cn("font-semibold text-lg mb-4", styles.heading)}>{title}</h2>
-        <div className={cn("rounded-lg border overflow-hidden divide-y", styles.border)}>
+        <div className={cn("rounded-lg border overflow-hidden divide-y bg-raised", styles.border)}>
           {children}
         </div>
       </div>

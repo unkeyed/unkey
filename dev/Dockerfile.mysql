@@ -1,9 +1,9 @@
 FROM vitess/vttestserver:v24.0.3-mysql80@sha256:230586284ba936139d0f9afb3e7ef8d2494e0fc752cc6ed3f243bcc5082ef485
 
-COPY --chown=vitess:vitess pkg/mysql/schema/ /poc-schema/unkey/
-COPY --chown=vitess:vitess dev/04-seed-workspace.sql /poc-schema/unkey/zzz-seed.sql
+COPY --chown=vitess:vitess pkg/mysql/schema/ /schema/unkey/
+COPY --chown=vitess:vitess dev/04-seed-workspace.sql /schema/unkey/zzz-seed.sql
 
 # The loader already selects the shard database, vt_unkey_0.
-RUN sed -i '/^USE unkey;$/d' /poc-schema/unkey/zzz-seed.sql
+RUN sed -i '/^USE unkey;$/d' /schema/unkey/zzz-seed.sql
 
-CMD ["/vt/bin/vttestserver", "--port=33574", "--keyspaces=unkey", "--num_shards=1", "--mysql_bind_host=0.0.0.0", "--vtcombo-bind-host=0.0.0.0", "--schema_dir=/poc-schema", "--persistent_mode", "--data_dir=/vt/vtdataroot"]
+CMD ["/vt/bin/vttestserver", "--port=33574", "--keyspaces=unkey", "--num_shards=1", "--mysql_bind_host=0.0.0.0", "--vtcombo-bind-host=0.0.0.0", "--schema_dir=/schema", "--persistent_mode", "--data_dir=/vt/vtdataroot"]

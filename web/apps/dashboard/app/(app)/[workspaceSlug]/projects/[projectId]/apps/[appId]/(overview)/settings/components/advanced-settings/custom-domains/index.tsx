@@ -10,7 +10,7 @@ import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { routes } from "@/lib/navigation/routes";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, Link4 } from "@unkey/icons";
+import { IconChevronDownOutline12, IconLink4Outline18 } from "@unkey/icons";
 import {
   AlertBanner,
   AlertBannerActions,
@@ -144,7 +144,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
 
   return (
     <FormSettingCard
-      icon={<Link4 className="text-gray-12" iconSize="xl-medium" />}
+      icon={<IconLink4Outline18 className="text-gray-12" />}
       title="Custom Domains"
       description="Serve your deployment from your own domain name"
       displayValue={displayValue}
@@ -168,7 +168,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
                 <SelectTrigger
                   wrapperClassName="w-[140px]"
                   variant={errors.environmentId ? "error" : "default"}
-                  rightIcon={<ChevronDown className="absolute right-3 size-3 opacity-70" />}
+                  rightIcon={<IconChevronDownOutline12 className="absolute right-3 opacity-70" />}
                 >
                   <SelectValue placeholder="Environment">
                     {environments.find((e) => e.id === field.value)?.slug ?? ""}
@@ -194,7 +194,7 @@ const CustomDomainSettings: React.FC<CustomDomainSettingsProps> = ({
       </SettingField>
       <WideContent>
         {customDomains.length > 0 && (
-          <div className="border border-gray-4 rounded-lg overflow-hidden mt-1 dark:bg-black bg-white">
+          <div className="border rounded-lg overflow-hidden mt-1 bg-raised">
             {customDomains.map((d) => (
               <CustomDomainRow
                 key={d.id}

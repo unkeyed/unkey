@@ -1,6 +1,6 @@
 "use client";
 
-import { TriangleWarning2 } from "@unkey/icons";
+import { IconTriangleWarningOutline18 } from "@unkey/icons";
 import { AlertBanner, AlertBannerDescription, AlertBannerTitle } from "@unkey/ui";
 import type { DrainDetail } from "./drain-schema";
 
@@ -11,7 +11,7 @@ export function DrainErrorBanner({ status }: { status: DrainDetail["status"] }) 
 
   return (
     <AlertBanner variant="error">
-      <TriangleWarning2 iconSize="md-regular" aria-hidden="true" />
+      <IconTriangleWarningOutline18 className="size-3.5" aria-hidden="true" />
       <AlertBannerTitle>Deliveries are failing</AlertBannerTitle>
       <AlertBannerDescription>
         Unkey paused this log drain after too many failed deliveries in a row. Fix the endpoint,

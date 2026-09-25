@@ -20,16 +20,13 @@ export function HealthBanner({ healthStatus }: HealthBannerProps) {
     <div className={`mx-auto w-[${DEFAULT_NODE_WIDTH}px] -m-[20px]`}>
       <div
         className={cn(
-          "h-12 border rounded-t-[14px]",
+          "h-12 border rounded-t-2xl",
           config.colors.bannerBg,
           config.colors.bannerBorder,
         )}
       >
         <div className="py-1.5 px-2.5 flex items-center">
-          <Icon
-            className={cn(config.colors.textColor, "shrink-0 mr-2 mb-0.5")}
-            iconSize="md-regular"
-          />
+          <Icon className={cn("size-3.5 shrink-0 mr-2 mb-0.5", config.colors.textColor)} />
           <span className={cn("text-xs font-medium mr-4", config.colors.textColor)}>
             {config.label}
           </span>

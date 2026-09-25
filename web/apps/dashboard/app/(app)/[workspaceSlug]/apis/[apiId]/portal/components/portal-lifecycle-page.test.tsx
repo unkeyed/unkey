@@ -46,9 +46,10 @@ vi.mock("./setup-hero", () => ({
 }));
 
 vi.mock("@unkey/icons", () => ({
-  BookBookmark: () => null,
-  CircleWarning: () => null,
-  TriangleWarning2: () => null,
+  IconBookBookmarkOutline18: () => null,
+  IconCircleWarningOutline18: () => null,
+  IconTriangleWarningOutline18: () => null,
+  IconTriangleWarningOutline12: () => null,
 }));
 
 vi.mock("@unkey/ui", () => {

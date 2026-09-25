@@ -6,91 +6,103 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { signOut } from "@/lib/auth/utils";
-import { trpc } from "@/lib/trpc/client";
-import { cn } from "@/lib/utils";
+import { routes } from "@/lib/navigation/routes";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { useQueryClient } from "@tanstack/react-query";
-import { Laptop2, MoonStars, Sun } from "@unkey/icons";
+import {
+  IconLaptop2Outline18,
+  IconMoonStarsOutline18,
+  IconSunOutline18,
+  IconUserOutline18,
+} from "@unkey/icons";
 import { useTheme } from "next-themes";
-import type React from "react";
+import Link from "next/link";
 
-type UserButtonProps = {
-  isCollapsed?: boolean;
-  isMobile?: boolean;
-  isMobileSidebarOpen?: boolean;
-  className?: string;
-};
+const THEMES = [
+  { value: "system", label: "System", icon: IconLaptop2Outline18 },
+  { value: "light", label: "Light", icon: IconSunOutline18 },
+  { value: "dark", label: "Dark", icon: IconMoonStarsOutline18 },
+] as const;
 
-export const UserButton: React.FC<UserButtonProps> = ({ isCollapsed = false, className }) => {
-  const { data: user } = trpc.user.getCurrentUser.useQuery();
+export function UserButton() {
+  const { user } = useWorkspace();
+  const workspace = useWorkspaceNavigation();
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className={cn(
-          "px-2 py-1 flex hover:bg-grayA-4 rounded-lg min-w-0 cursor-pointer",
-          isCollapsed ? "justify-center size-8 p-0" : "justify-between gap-2 grow h-8",
-          className,
-        )}
+        aria-label="Account menu"
+        className="group/user flex shrink-0 cursor-pointer rounded-full focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-gray-6"
       >
-        <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
-          <Avatar className="size-6 rounded-full border border-grayA-6">
-            {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt="Profile picture" />}
-            <AvatarFallback name={user?.email ?? "Username"} />
-          </Avatar>
-        </div>
+        <Avatar className="size-6 rounded-full border border-input transition-colors group-hover/user:border-strong group-data-[popup-open]/user:border-strong">
+          {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt="Profile picture" />}
+          <AvatarFallback name={user?.email ?? "Username"} />
+        </Avatar>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="bottom" className="flex w-min-44 flex-col gap-2" align="end">
+      <DropdownMenuContent side="bottom" align="end" className="w-56 p-0">
         {user?.email && (
-          <>
-            <DropdownMenuGroup>
-              <DropdownMenuLabel className="font-normal">
-                <span
-                  title={user.email}
-                  className="text-accent-11 text-xs truncate max-w-44 secret"
-                >
-                  {user.email}
-                </span>
-              </DropdownMenuLabel>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-          </>
+          <DropdownMenuGroup className="border-b px-2 py-2">
+            <DropdownMenuLabel
+              title={user.email}
+              className="secret block truncate px-0 py-0 text-[13px] text-gray-12"
+            >
+              {user.email}
+            </DropdownMenuLabel>
+          </DropdownMenuGroup>
         )}
-        <DropdownMenuGroup className="w-full">
-          <DropdownMenuLabel>Theme</DropdownMenuLabel>
-          <Tabs value={theme} onValueChange={setTheme}>
-            <TabsList className="w-full">
-              <TabsTrigger className="w-full cursor-pointer" value="light">
-                <Sun className="size-4" />
-              </TabsTrigger>
-              <TabsTrigger className="w-full cursor-pointer" value="dark">
-                <MoonStars className="size-4" />
-              </TabsTrigger>
-              <TabsTrigger className="w-full cursor-pointer" value="system">
-                <Laptop2 className="size-4" />
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-
-        <DropdownMenuGroup className="w-full">
+        <DropdownMenuGroup className="p-1">
           <DropdownMenuItem
-            render={<span className="text-accent-12 text-sm font-medium">Sign out</span>}
-            className="cursor-pointer"
+            className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-gray-12"
+            render={
+              <Link href={routes.account.overview({ workspaceSlug: workspace.slug })}>
+                <IconUserOutline18 className="size-4 shrink-0 text-gray-11" />
+                Account settings
+              </Link>
+            }
+          />
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator className="mx-0" />
+        <DropdownMenuGroup className="p-1">
+          <DropdownMenuLabel className="px-2">Theme</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            aria-label="Theme"
+            value={theme ?? "system"}
+            onValueChange={setTheme}
+          >
+            {THEMES.map(({ value, label, icon: Icon }) => (
+              <DropdownMenuRadioItem
+                key={value}
+                value={value}
+                className="h-8 cursor-pointer px-2 text-[13px] font-medium text-gray-12"
+              >
+                <Icon className="size-4 shrink-0 text-gray-11" />
+                {label}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator className="mx-0" />
+        <DropdownMenuGroup className="p-1">
+          <DropdownMenuItem
+            className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-gray-12"
             onClick={async () => {
               queryClient.clear();
               await signOut();
             }}
-          />
+          >
+            Sign out
+          </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
-};
+}

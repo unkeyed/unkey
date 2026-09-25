@@ -13,7 +13,7 @@ import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
-import { ChevronDown, CodeBranch, Plus } from "@unkey/icons";
+import { IconChevronDownOutline12, IconCodeBranchOutline18, IconPlusOutline12 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   Button,
@@ -26,6 +26,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Skeleton,
   TimestampInfo,
   toast,
 } from "@unkey/ui";
@@ -305,7 +306,7 @@ export const CreateDeploymentButton = ({
           className="size-7"
           onClick={openDeploymentDialog}
         >
-          <Plus iconSize="sm-regular" />
+          <IconPlusOutline12 />
         </NavbarActionButton>
       )}
       {planGate}
@@ -359,7 +360,7 @@ export const CreateDeploymentButton = ({
                   />
                 </span>
               ) : repoDetails.isLoading ? (
-                <div className="h-4 w-16 bg-grayA-3 rounded animate-pulse" />
+                <Skeleton className="h-4 w-16 rounded" />
               ) : null}
             </div>
           )}
@@ -380,7 +381,9 @@ export const CreateDeploymentButton = ({
                       id="environment-select"
                       className="capitalize"
                       variant={errors.environment ? "error" : "default"}
-                      rightIcon={<ChevronDown className="absolute right-3 size-3 opacity-70" />}
+                      rightIcon={
+                        <IconChevronDownOutline12 className="absolute right-3 size-3 opacity-70" />
+                      }
                     >
                       <SelectValue placeholder="Select environment" />
                     </SelectTrigger>
@@ -439,11 +442,11 @@ export const CreateDeploymentButton = ({
                 <output className="text-warning-11 text-[13px]">{imageValidation.warning}</output>
               ) : null}
               {forkRepoName && (
-                <div className="flex items-center gap-1.5 bg-amber-3 border border-amber-6 rounded-md px-2.5 py-1.5 w-fit">
-                  <CodeBranch iconSize="sm-regular" className="shrink-0 text-amber-11" />
-                  <span className="text-xs text-amber-11">
+                <div className="flex items-center gap-1.5 bg-warning-3 border border-warning-6 rounded-md px-2.5 py-1.5 w-fit">
+                  <IconCodeBranchOutline18 className="size-3 shrink-0 text-warning-11" />
+                  <span className="text-xs text-warning-11">
                     Deploying from fork:{" "}
-                    <span className="font-medium text-amber-12">{forkRepoName}</span>
+                    <span className="font-medium text-warning-12">{forkRepoName}</span>
                   </span>
                 </div>
               )}
@@ -451,7 +454,7 @@ export const CreateDeploymentButton = ({
           </form>
 
           {isImageApp && imageRows.length > 0 && (
-            <div className="flex flex-col divide-y divide-gray-4 rounded-md border border-gray-4 overflow-hidden">
+            <div className="flex flex-col divide-y divide-gray-4 rounded-md border overflow-hidden">
               {imageRows.map((deployment) => (
                 // TimestampInfo renders its own popover trigger button, so it
                 // must be a sibling of the row button rather than nested in it.
@@ -488,7 +491,7 @@ export const CreateDeploymentButton = ({
           )}
 
           {isGitApp && repositoryFullName && (
-            <div className="flex flex-col divide-y divide-gray-4 rounded-md border border-gray-4">
+            <div className="flex flex-col divide-y divide-gray-4 rounded-md border">
               {repoDetails.isLoading &&
                 Array.from({ length: 5 }).map((_, i) => (
                   <div
@@ -517,7 +520,7 @@ export const CreateDeploymentButton = ({
                     onClick={() => setValue("name", branch.name, { shouldValidate: true })}
                     className="flex items-center gap-1.5 min-w-0 max-w-[300px] cursor-pointer text-left"
                   >
-                    <CodeBranch iconSize="sm-regular" className="shrink-0 text-gray-12" />
+                    <IconCodeBranchOutline18 className="size-3 shrink-0 text-gray-12" />
                     <span className="truncate">{branch.name}</span>
                   </button>
                   {branch.lastPushDate && (

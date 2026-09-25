@@ -1,8 +1,8 @@
 "use client";
 
 import { isHexColor, logoUrlSchema } from "@/lib/portal/validation";
-import { cn } from "@/lib/utils";
 import { onPrimaryColor } from "@unkey/ui/src/lib/branding";
+import { cn } from "cn";
 import { useState } from "react";
 import { DEFAULT_BRAND_COLOR, type PortalBrandingValue } from "./portal-branding";
 

@@ -4,7 +4,12 @@ import { FormCombobox } from "@/components/ui/form-combobox";
 import { Switch } from "@/components/ui/switch";
 import { POLICY_LIMITS } from "@/lib/collections/deploy/policies.schema";
 import { trpc } from "@/lib/trpc/client";
-import { ChevronDown, Plus, Trash, XMark } from "@unkey/icons";
+import {
+  IconChevronDownOutline18,
+  IconPlusOutline18,
+  IconTrashOutline18,
+  IconXmarkOutline12,
+} from "@unkey/icons";
 import { match } from "@unkey/match";
 import {
   Button,
@@ -167,7 +172,7 @@ export function KeyAuthFields() {
                 {keyspaceIds.map((id) => (
                   <span
                     key={id}
-                    className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-grayA-3 border border-grayA-4 text-xs text-accent-12"
+                    className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-grayA-3 border text-xs text-gray-12"
                   >
                     {availableKeyspaces[id]?.api?.name ?? id}
                     {/* biome-ignore lint/a11y/useSemanticElements: nested inside a <button> (combobox trigger), so <button> is invalid here */}
@@ -185,9 +190,9 @@ export function KeyAuthFields() {
                           setKeyspaceIds(keyspaceIds.filter((k) => k !== id));
                         }
                       }}
-                      className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-accent-12 transition-colors cursor-pointer"
+                      className="p-0.5 hover:bg-grayA-4 rounded text-grayA-9 hover:text-gray-12 transition-colors cursor-pointer"
                     >
-                      <XMark iconSize="sm-regular" />
+                      <IconXmarkOutline12 />
                     </span>
                   </span>
                 ))}
@@ -214,7 +219,7 @@ export function KeyAuthFields() {
               className="font-medium"
               onClick={addLocation}
             >
-              <Plus iconSize="sm-regular" />
+              <IconPlusOutline18 />
               Add
             </Button>
           )}
@@ -238,7 +243,7 @@ export function KeyAuthFields() {
                   <SelectTrigger
                     aria-label="Location type"
                     className="shrink-0 whitespace-pre"
-                    rightIcon={<ChevronDown className="absolute right-2" iconSize="md-medium" />}
+                    rightIcon={<IconChevronDownOutline18 className="size-3.5 absolute right-2" />}
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -281,7 +286,7 @@ export function KeyAuthFields() {
                 className="size-9 shrink-0 px-0 justify-center text-gray-11 hover:text-gray-12 hover:bg-grayA-3 rounded-lg"
                 onClick={removeLocation}
               >
-                <Trash iconSize="sm-regular" />
+                <IconTrashOutline18 />
               </Button>
             </div>
             <FormDescription
@@ -324,7 +329,7 @@ export function KeyAuthFields() {
               className="font-medium"
               onClick={() => setCredits(0)}
             >
-              <Plus iconSize="sm-regular" />
+              <IconPlusOutline18 />
               Add
             </Button>
           )}
@@ -353,7 +358,7 @@ export function KeyAuthFields() {
                 className="size-9 shrink-0 px-0 justify-center text-gray-11 hover:text-gray-12 hover:bg-grayA-3 rounded-lg"
                 onClick={() => setCredits(undefined)}
               >
-                <Trash iconSize="sm-regular" />
+                <IconTrashOutline18 />
               </Button>
             </div>
             <FormDescription
@@ -381,7 +386,7 @@ export function KeyAuthFields() {
               className="font-medium"
               onClick={addRatelimit}
             >
-              <Plus iconSize="sm-regular" />
+              <IconPlusOutline18 />
               Add
             </Button>
           )}
@@ -422,7 +427,7 @@ export function KeyAuthFields() {
                   className="size-9 shrink-0 px-0 justify-center text-gray-11 hover:text-gray-12 hover:bg-grayA-3 rounded-lg"
                   onClick={() => removeRatelimit(rl.id)}
                 >
-                  <Trash iconSize="sm-regular" />
+                  <IconTrashOutline18 />
                 </Button>
               </div>
               {rl.override && (

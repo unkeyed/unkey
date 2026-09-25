@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/chart";
 import { formatNumber } from "@/lib/fmt";
 import type { TimeseriesGranularity } from "@/lib/trpc/routers/utils/granularity";
-import { Grid } from "@unkey/icons";
+import { IconGridOutline18 } from "@unkey/icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ReferenceArea, YAxis } from "recharts";
 import { parseTimestamp } from "../parse-timestamp";
@@ -253,8 +253,8 @@ export function OverviewBarChart({
     <div className="flex flex-col h-full" ref={chartRef}>
       <div className="pl-5 pt-4 py-3 pr-10 w-full flex justify-between font-sans items-start gap-10 ">
         <div className="flex flex-col gap-1">
-          <div className="text-accent-10 text-[11px] leading-4">{labels.title}</div>
-          <div className="text-accent-12 text-[18px] font-semibold leading-7">
+          <div className="text-gray-10 text-[11px] leading-4">{labels.title}</div>
+          <div className="text-gray-12 text-[18px] font-semibold leading-7">
             {formatNumber(totalCount)}
           </div>
         </div>
@@ -262,19 +262,19 @@ export function OverviewBarChart({
         <div className="flex gap-10 items-center">
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
-              <div className="bg-accent-8 rounded-sm h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">{labels.primaryLabel}</div>
+              <div className="bg-gray-8 rounded-sm h-[10px] w-1" />
+              <div className="text-gray-10 text-[11px] leading-4">{labels.primaryLabel}</div>
             </div>
-            <div className="text-accent-12 text-[18px] font-semibold leading-7">
+            <div className="text-gray-12 text-[18px] font-semibold leading-7">
               {formatNumber(primaryCount)}
             </div>
           </div>
           <div className="flex flex-col gap-1">
             <div className="flex gap-2 items-center">
               <div className="bg-orange-9 rounded-sm h-[10px] w-1" />
-              <div className="text-accent-10 text-[11px] leading-4">{labels.secondaryLabel}</div>
+              <div className="text-gray-10 text-[11px] leading-4">{labels.secondaryLabel}</div>
             </div>
-            <div className="text-accent-12 text-[18px] font-semibold leading-7">
+            <div className="text-gray-12 text-[18px] font-semibold leading-7">
               {formatNumber(secondaryCount)}
             </div>
           </div>
@@ -304,7 +304,7 @@ export function OverviewBarChart({
               horizontal
               vertical={false}
               strokeDasharray="3 3"
-              stroke="hsl(var(--gray-6))"
+              stroke="var(--color-gray-6)"
               strokeOpacity={0.3}
               strokeWidth={1}
             />
@@ -313,7 +313,7 @@ export function OverviewBarChart({
               isAnimationActive
               wrapperStyle={{ zIndex: 1000 }}
               cursor={{
-                fill: "hsl(var(--accent-3))",
+                fill: "var(--color-gray-3)",
                 strokeWidth: 1,
                 strokeDasharray: "5 5",
                 strokeOpacity: 0.7,
@@ -328,18 +328,18 @@ export function OverviewBarChart({
                     label={label}
                     active={active}
                     bottomExplainer={
-                      <div className="grid gap-1.5 pt-2 border-t border-gray-4 select-none">
+                      <div className="grid gap-1.5 pt-2 border-t select-none">
                         <div className="flex w-full [&>svg]:size-4 gap-4 px-4 items-center">
-                          <Grid className="text-gray-6" />
+                          <IconGridOutline18 className="text-gray-6" />
                           <div className="flex gap-4 leading-none justify-between w-full py-1 items-center">
                             <div className="flex gap-4 items-center min-w-[80px]">
-                              <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
+                              <span className="capitalize text-gray-9 text-xs w-[2ch] inline-block">
                                 All
                               </span>
-                              <span className="capitalize text-accent-12 text-xs">Total</span>
+                              <span className="capitalize text-gray-12 text-xs">Total</span>
                             </div>
                             <div className="ml-auto">
-                              <span className="font-mono tabular-nums text-accent-12">
+                              <span className="font-mono tabular-nums text-gray-12">
                                 {formatNumber(payload[0]?.payload?.total)}
                               </span>
                             </div>
@@ -352,18 +352,18 @@ export function OverviewBarChart({
                             key={`${item.label}-${index}`}
                             className="flex w-full [&>svg]:size-4 gap-4 px-4 items-center"
                           >
-                            <Grid className="text-gray-6" />
+                            <IconGridOutline18 className="text-gray-6" />
                             <div className="flex gap-4 leading-none justify-between w-full py-1 items-center">
                               <div className="flex gap-4 items-center min-w-[80px]">
-                                <span className="capitalize text-accent-9 text-xs w-[2ch] inline-block">
+                                <span className="capitalize text-gray-9 text-xs w-[2ch] inline-block">
                                   All
                                 </span>
-                                <span className="capitalize text-accent-12 text-xs">
+                                <span className="capitalize text-gray-12 text-xs">
                                   {item.label}
                                 </span>
                               </div>
                               <div className="ml-auto">
-                                <span className="font-mono tabular-nums text-accent-12">
+                                <span className="font-mono tabular-nums text-gray-12">
                                   {formatNumber(payload[0]?.payload?.[item.dataKey] ?? 0)}
                                 </span>
                               </div>
@@ -372,7 +372,6 @@ export function OverviewBarChart({
                         ))}
                       </div>
                     }
-                    className="rounded-lg shadow-lg border border-gray-4"
                     labelFormatter={(_, tooltipPayload) => {
                       const payloadTimestamp = tooltipPayload?.[0]?.payload?.originalTimestamp;
                       return formatTooltipInterval(
@@ -401,7 +400,7 @@ export function OverviewBarChart({
                     ? Math.max(Number(selection.start), Number(selection.end))
                     : selection.end
                 }
-                fill="hsl(var(--chart-selection))"
+                fill="var(--color-chart-selection)"
                 radius={[4, 4, 0, 0]}
               />
             )}
@@ -409,7 +408,7 @@ export function OverviewBarChart({
         </ChartContainer>
       </div>
 
-      <div className="h-max border-t border-b border-gray-4 px-1 py-2 text-accent-9 font-mono text-xxs w-full flex justify-between ">
+      <div className="h-max border-t border-b px-1 py-2 text-gray-9 font-mono text-xxs w-full flex justify-between ">
         {data
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),

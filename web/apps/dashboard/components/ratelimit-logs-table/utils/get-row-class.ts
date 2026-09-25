@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import { STATUS_STYLES, type StatusStyle } from "@unkey/ui";
+import { cn } from "cn";
 import type { EnrichedRatelimitLog } from "../hooks/use-ratelimit-logs-query";
 
 // A blocked ratelimit request is encoded as status === 0.
@@ -42,7 +42,7 @@ export const getRowClassName = (
     style.base,
     style.hover,
     "group rounded-md",
-    "focus:outline-hidden focus:ring-1 focus:ring-opacity-40",
+    "focus:outline-hidden focus:ring-1",
     style.focusRing,
     isSelected && style.selected,
   );

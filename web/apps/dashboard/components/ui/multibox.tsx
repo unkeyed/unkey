@@ -1,8 +1,8 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { Combobox as ComboboxPrimitive } from "@base-ui/react/combobox";
-import { Check, ChevronExpandY, XMark } from "@unkey/icons";
+import { IconCheckOutline12, IconChevronExpandYOutline12, IconXmarkOutline12 } from "@unkey/icons";
+import { cn } from "cn";
 import * as React from "react";
 
 /**
@@ -31,9 +31,9 @@ export function MultiboxChips({ className, ...props }: ComboboxPrimitive.Chips.P
   return (
     <ComboboxPrimitive.Chips
       className={cn(
-        "relative flex min-h-9 w-full flex-wrap items-center gap-1.5 rounded-lg border border-gray-5 bg-white px-1.5 py-1 pr-8 text-[13px] leading-5 text-grayA-12 transition-colors duration-300 dark:bg-black",
-        "hover:border-gray-8",
-        "focus-within:border-accent-12 focus-within:ring-2 focus-within:ring-gray-5",
+        "relative flex min-h-9 w-full flex-wrap items-center gap-1.5 rounded-lg border bg-raised px-1.5 py-1 pr-8 text-[13px] leading-5 text-grayA-12 transition-colors duration-300",
+        "hover:border-strong",
+        "focus-within:border-gray-12 focus-within:ring-2 focus-within:ring-gray-5",
         "data-disabled:cursor-not-allowed data-disabled:opacity-50",
         className,
       )}
@@ -46,7 +46,7 @@ export function MultiboxChip({ className, ...props }: ComboboxPrimitive.Chip.Pro
   return (
     <ComboboxPrimitive.Chip
       className={cn(
-        "flex items-center gap-1 rounded-md border border-grayA-4 bg-grayA-3 px-1.5 py-0.5 text-xs text-accent-12",
+        "flex items-center gap-1 rounded-md border bg-grayA-3 px-1.5 py-0.5 text-xs text-gray-12",
         className,
       )}
       {...props}
@@ -62,13 +62,13 @@ export function MultiboxChipRemove({
   return (
     <ComboboxPrimitive.ChipRemove
       className={cn(
-        "rounded p-0.5 text-grayA-9 transition-colors hover:bg-grayA-4 hover:text-accent-12",
+        "rounded p-0.5 text-grayA-9 transition-colors hover:bg-grayA-4 hover:text-gray-12",
         className,
       )}
       aria-label="Remove"
       {...props}
     >
-      {children ?? <XMark iconSize="sm-regular" />}
+      {children ?? <IconXmarkOutline12 />}
     </ComboboxPrimitive.ChipRemove>
   );
 }
@@ -99,7 +99,7 @@ export function MultiboxTrigger({
       aria-label="Open list"
       {...props}
     >
-      {children ?? <ChevronExpandY iconSize="sm-regular" />}
+      {children ?? <IconChevronExpandYOutline12 />}
     </ComboboxPrimitive.Trigger>
   );
 }
@@ -115,7 +115,7 @@ export function MultiboxContent({
       <ComboboxPrimitive.Positioner className="isolate z-200" sideOffset={sideOffset} {...props}>
         <ComboboxPrimitive.Popup
           className={cn(
-            "max-h-[min(var(--available-height),300px)] w-(--anchor-width) overflow-y-auto overflow-x-hidden rounded-lg border border-grayA-4 bg-white p-1 shadow-md scrollbar-thin dark:bg-black",
+            "max-h-[min(var(--available-height),300px)] w-(--anchor-width) overflow-y-auto overflow-x-hidden rounded-lg bg-raised p-1 shadow-floating [scrollbar-width:thin]",
             className,
           )}
         >
@@ -152,7 +152,7 @@ export function MultiboxItem({ className, children, ...props }: ComboboxPrimitiv
     >
       {children}
       <ComboboxPrimitive.ItemIndicator className="ml-auto shrink-0">
-        <Check iconSize="sm-regular" />
+        <IconCheckOutline12 />
       </ComboboxPrimitive.ItemIndicator>
     </ComboboxPrimitive.Item>
   );

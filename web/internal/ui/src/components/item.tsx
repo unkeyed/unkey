@@ -12,12 +12,12 @@ const interactiveClassName =
 const rowClassName = "flex w-full items-center gap-3 px-4 py-3 text-left";
 
 const itemVariants = cva(
-  `group/item ${rowClassName} rounded-lg border border-transparent transition-colors focus-visible:outline-hidden ${interactiveClassName}`,
+  `group/item ${rowClassName} rounded-lg border transition-colors focus-visible:outline-hidden ${interactiveClassName}`,
   {
     variants: {
       variant: {
-        default: "bg-transparent",
-        outline: "border-grayA-4",
+        default: "bg-transparent border-transparent",
+        outline: "",
       },
     },
     defaultVariants: {
@@ -57,7 +57,7 @@ const itemGroupVariants = cva("flex w-full flex-col", {
   variants: {
     variant: {
       default: "",
-      outline: "rounded-lg border border-grayA-4",
+      outline: "rounded-lg border bg-raised",
     },
   },
   defaultVariants: {

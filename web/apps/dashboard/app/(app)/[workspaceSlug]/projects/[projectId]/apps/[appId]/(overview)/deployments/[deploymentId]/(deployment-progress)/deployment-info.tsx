@@ -2,9 +2,10 @@
 
 import type { DeploymentStatus } from "@/lib/collections";
 import { ActiveDeploymentCard } from "../../../../components/active-deployment-card";
-import { DeploymentStatusBadge } from "../../../../components/deployment-status-badge";
+import { DeploymentStatusLabel } from "../../../../components/deployment-status-dot";
 import { useProjectData } from "../../../data-provider";
 import { useAppCurrentDeployment } from "../../../hooks/use-app-current-deployment";
+import { InstantRollbackRow } from "../instant-rollback-row";
 import { useDeployment } from "../layout-provider";
 
 type DeploymentInfoProps = {
@@ -28,7 +29,8 @@ export function DeploymentInfo({ statusOverride }: DeploymentInfoProps) {
       isCurrent={isCurrent}
       isRolledBack={isRolledBack}
       environmentSlug={environment?.slug}
-      statusBadge={<DeploymentStatusBadge status={deploymentStatus} />}
+      statusBadge={<DeploymentStatusLabel status={deploymentStatus} className="shrink-0 text-xs" />}
+      expandableContent={<InstantRollbackRow key={deployment.id} />}
     />
   );
 }

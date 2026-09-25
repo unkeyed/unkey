@@ -25,11 +25,12 @@ type Querier interface {
 
 	GetBillableVerifications(ctx context.Context, workspaceID string, year, month int) (int64, error)
 
-	// GetVerificationsByExternalID returns a zero-filled verification timeseries
-	// for a single end user (workspace_id + external_id), optionally narrowed to
-	// one key. Used by the portal getVerifications endpoint. Bucket granularity
-	// is chosen from the window size.
-	GetVerificationsByExternalID(ctx context.Context, req VerificationTimeseriesRequest) ([]VerificationTimeseriesDataPoint, error)
+	// GetVerificationsByExternalIDPerKey returns one verification timeseries per
+	// key a portal end user used in the window, each zero-filled across it.
+	// Callers sum them for the account-wide view. Returns
+	// ErrTooManyVerificationKeys when the end user has more keys with traffic
+	// in the window than req.MaxKeys allows.
+	GetVerificationsByExternalIDPerKey(ctx context.Context, req VerificationTimeseriesPerKeyRequest) ([]VerificationTimeseriesPerKey, error)
 
 	GetBillableRatelimits(ctx context.Context, workspaceID string, year, month int) (int64, error)
 

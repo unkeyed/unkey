@@ -18,13 +18,13 @@ export function OpenApiFields() {
         are rejected with HTTP <Strong className="font-mono">400 Bad Request</Strong>.
       </div>
 
-      <div className="flex items-center gap-2 rounded-md border border-grayA-4 bg-grayA-2 px-3 py-2 text-[13px] text-gray-11">
+      <div className="flex items-center gap-2 rounded-md border bg-grayA-2 px-3 py-2 text-[13px] text-gray-11">
         <span className="size-2 rounded-full shrink-0 bg-success-11" />
         <span>
           {"Using auto-scraped spec. "}
           <Link
             href={routes.projects.settings({ workspaceSlug, projectId })}
-            className="text-accent-12 decoration-dotted underline underline-offset-3 font-medium"
+            className="text-gray-12 decoration-dotted underline underline-offset-3 font-medium"
           >
             Configure scrape path
           </Link>

@@ -17,7 +17,14 @@ import { trpc } from "@/lib/trpc/client";
 import { Radio } from "@base-ui/react/radio";
 import { RadioGroup } from "@base-ui/react/radio-group";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
-import { CaretRight, Check, Magnifier, Minus, Plus, Trash } from "@unkey/icons";
+import {
+  IconCaretRightOutline12,
+  IconCheckOutline12,
+  IconMagnifierOutline12,
+  IconMinusOutline12,
+  IconPlusOutline12,
+  IconTrashOutline12,
+} from "@unkey/icons";
 import { match } from "@unkey/match";
 import { unkeyAuditLogEvents } from "@unkey/schema/src/auditlog";
 import {
@@ -325,25 +332,25 @@ function SourcesField({ stream }: { stream: "gateway_requests" | "runtime_logs" 
           <Radio.Root
             key={option.id}
             value={option.id}
-            className="group flex items-center gap-3 rounded-lg border border-grayA-4 px-3 py-2.5 transition-colors duration-150 ease-out focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-7 data-checked:border-grayA-8 data-checked:bg-grayA-2"
+            className="group flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors duration-150 ease-out focus:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7 data-checked:border-grayA-8 data-checked:bg-grayA-2"
           >
-            <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-gray-7 transition-colors duration-150 ease-out group-data-checked:border-accent-12">
-              <Radio.Indicator className="size-2 rounded-full bg-accent-12" />
+            <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-input transition-colors duration-150 ease-out group-data-checked:border-gray-12">
+              <Radio.Indicator className="size-2 rounded-full bg-gray-12" />
             </span>
-            <span className="text-[13px] text-accent-12">{option.title}</span>
+            <span className="text-[13px] text-gray-12">{option.title}</span>
           </Radio.Root>
         ))}
       </RadioGroup>
       {sourceMode === "some" ? (
-        <div className="mt-1.5 overflow-hidden rounded-lg border border-gray-5">
-          <div className="flex items-center gap-2 border-b border-gray-4 px-2.5 py-2">
-            <Magnifier iconSize="sm-regular" className="shrink-0 text-gray-9" />
+        <div className="mt-1.5 overflow-hidden rounded-lg border">
+          <div className="flex items-center gap-2 border-b px-2.5 py-2">
+            <IconMagnifierOutline12 className="shrink-0 text-gray-9" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search projects, apps, environments"
               aria-label="Search sources"
-              className="w-full bg-transparent text-[13px] text-accent-12 placeholder:text-gray-9 focus:outline-hidden"
+              className="w-full bg-transparent text-[13px] text-gray-12 placeholder:text-gray-9 focus:outline-hidden"
             />
           </div>
 
@@ -403,7 +410,7 @@ function SourcesField({ stream }: { stream: "gateway_requests" | "runtime_logs" 
             })}
           </div>
 
-          <div className="flex items-center justify-between border-t border-gray-4 bg-grayA-2 px-3 py-2">
+          <div className="flex items-center justify-between border-t bg-grayA-2 px-3 py-2">
             <span className="text-xs text-gray-11">
               {`${selected.size} of ${countLabel(allIds.length, "environment")}`}
             </span>
@@ -411,14 +418,14 @@ function SourcesField({ stream }: { stream: "gateway_requests" | "runtime_logs" 
               <button
                 type="button"
                 onClick={() => choose(new Set(allIds))}
-                className="text-xs text-gray-11 underline underline-offset-2 hover:text-accent-12"
+                className="text-xs text-gray-11 underline underline-offset-2 hover:text-gray-12"
               >
                 Select all
               </button>
               <button
                 type="button"
                 onClick={() => choose(new Set())}
-                className="text-xs text-gray-11 underline underline-offset-2 hover:text-accent-12"
+                className="text-xs text-gray-11 underline underline-offset-2 hover:text-gray-12"
               >
                 Clear all
               </button>
@@ -536,10 +543,9 @@ function SourceRow({
           type="button"
           aria-label={expanded ? `Collapse ${label}` : `Expand ${label}`}
           onClick={onExpand}
-          className="flex size-4 shrink-0 items-center justify-center text-gray-9 hover:text-accent-12"
+          className="flex size-4 shrink-0 items-center justify-center text-gray-9 hover:text-gray-12"
         >
-          <CaretRight
-            iconSize="sm-regular"
+          <IconCaretRightOutline12
             className={cn("transition-transform duration-150 ease-out", expanded && "rotate-90")}
           />
         </button>
@@ -559,16 +565,14 @@ function SourceRow({
           className={cn(
             "flex size-4 shrink-0 items-center justify-center rounded border transition-colors duration-150 ease-out",
             checked === "off"
-              ? "border-gray-7"
-              : "border-accent-12 bg-accent-12 text-white dark:text-black",
+              ? "border-input"
+              : "border-gray-12 bg-gray-12 text-white dark:text-black",
           )}
         >
-          {checked === "on" ? <Check iconSize="sm-regular" /> : null}
-          {checked === "some" ? <Minus iconSize="sm-regular" /> : null}
+          {checked === "on" ? <IconCheckOutline12 /> : null}
+          {checked === "some" ? <IconMinusOutline12 /> : null}
         </span>
-        <span
-          className={cn("truncate text-[13px]", depth === 0 ? "text-accent-12" : "text-gray-11")}
-        >
+        <span className={cn("truncate text-[13px]", depth === 0 ? "text-gray-12" : "text-gray-11")}>
           {label}
         </span>
         {meta ? <span className="ml-auto shrink-0 text-[11px] text-gray-9">{meta}</span> : null}
@@ -656,19 +660,19 @@ function ModeCard({
       aria-checked={active}
       onClick={onSelect}
       className={cn(
-        "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition-colors duration-150 ease-out focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-7",
-        active ? "border-grayA-8 bg-grayA-2" : "border-grayA-4",
+        "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition-colors duration-150 ease-out focus:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7",
+        active && "border-grayA-8 bg-grayA-2",
       )}
     >
       <span
         className={cn(
           "flex size-4 shrink-0 items-center justify-center rounded-full border transition-colors duration-150 ease-out",
-          active ? "border-accent-12" : "border-gray-7",
+          active ? "border-gray-12" : "border-input",
         )}
       >
-        {active ? <span className="size-2 rounded-full bg-accent-12" /> : null}
+        {active ? <span className="size-2 rounded-full bg-gray-12" /> : null}
       </span>
-      <span className="truncate text-[13px] text-accent-12">{title}</span>
+      <span className="truncate text-[13px] text-gray-12">{title}</span>
     </button>
   );
 }
@@ -747,21 +751,21 @@ function AuditEventTypesField() {
           <Radio.Root
             key={option.id}
             value={option.id}
-            className="group flex items-center gap-3 rounded-lg border border-grayA-4 px-3 py-2.5 transition-colors duration-150 ease-out focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent-7 data-checked:border-grayA-8 data-checked:bg-grayA-2"
+            className="group flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors duration-150 ease-out focus:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-7 data-checked:border-grayA-8 data-checked:bg-grayA-2"
           >
-            <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-gray-7 transition-colors duration-150 ease-out group-data-checked:border-accent-12">
-              <Radio.Indicator className="size-2 rounded-full bg-accent-12" />
+            <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-input transition-colors duration-150 ease-out group-data-checked:border-gray-12">
+              <Radio.Indicator className="size-2 rounded-full bg-gray-12" />
             </span>
-            <span className="text-[13px] text-accent-12">{option.title}</span>
+            <span className="text-[13px] text-gray-12">{option.title}</span>
           </Radio.Root>
         ))}
       </RadioGroup>
 
       {mode === "specific" ? (
         <div className="mt-1.5 flex flex-col gap-1.5 duration-200 ease-out animate-in fade-in motion-reduce:animate-none">
-          <div className="overflow-hidden rounded-lg border border-gray-5">
-            <div className="flex items-center gap-2 border-b border-gray-4 px-2.5 py-2">
-              <Magnifier iconSize="sm-regular" className="shrink-0 text-gray-9" />
+          <div className="overflow-hidden rounded-lg border">
+            <div className="flex items-center gap-2 border-b px-2.5 py-2">
+              <IconMagnifierOutline12 className="shrink-0 text-gray-9" />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
@@ -769,7 +773,7 @@ function AuditEventTypesField() {
                 aria-label="Search event types"
                 aria-invalid={Boolean(error)}
                 aria-describedby={status ? statusId : undefined}
-                className="w-full bg-transparent text-[13px] text-accent-12 placeholder:text-gray-9 focus:outline-hidden"
+                className="w-full bg-transparent text-[13px] text-gray-12 placeholder:text-gray-9 focus:outline-hidden"
               />
             </div>
             <div className="max-h-[264px] overflow-y-auto py-1">
@@ -1002,7 +1006,7 @@ export function HeaderFields() {
               aria-label={`Remove header ${index + 1}`}
               onClick={() => remove(index)}
             >
-              <Trash iconSize="sm-regular" />
+              <IconTrashOutline12 />
             </Button>
           </div>
         ))}
@@ -1013,7 +1017,7 @@ export function HeaderFields() {
           disabled={fields.length >= 32}
           onClick={() => append({ ...emptyHeaderRow })}
         >
-          <Plus iconSize="sm-regular" />
+          <IconPlusOutline12 />
           Add header
         </Button>
       </div>

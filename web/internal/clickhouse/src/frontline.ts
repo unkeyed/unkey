@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { Querier } from "./client";
-import { escapeLikePattern } from "./util";
+import { assertOrderedTimeRange, escapeLikePattern } from "./util";
 
 export const TIMESERIES_WINDOW_HOURS = 6;
 export const TIMESERIES_INTERVAL_MINUTES = 15;
@@ -231,6 +231,46 @@ export function getRequestLogs(ch: Querier) {
       totalQuery: totalQuery({ ...args, ...pathValues } as never),
       logsQuery: logsQuery({ ...args, ...pathValues, offset } as never),
     };
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Single request lookup
+// ─────────────────────────────────────────────────────────────
+
+export const requestDetailsRequestSchema = z.object({
+  workspaceId: z.string(),
+  requestId: z.string().min(1).max(512),
+  startTime: z.int(),
+  endTime: z.int(),
+});
+
+export type RequestDetailsRequest = z.infer<typeof requestDetailsRequestSchema>;
+
+// Resolves one request by id for a detail drawer that only knows the id and
+// roughly when it happened. Deliberately not scoped to a project: callers such
+// as the key logs drawer hold a verification row, not a deployment.
+export function getRequestDetails(ch: Querier) {
+  return async (args: RequestDetailsRequest) => {
+    assertOrderedTimeRange(args.startTime, args.endTime);
+
+    const query = ch.query({
+      query: `
+        SELECT request_id, time, deployment_id, region, method, path, host,
+               response_status, total_latency, instance_latency, gateway_latency,
+               query_string, query_params, request_headers, request_body,
+               response_headers, response_body, user_agent, ip_address
+        FROM ${TABLE}
+        WHERE workspace_id = {workspaceId: String}
+          AND request_id = {requestId: String}
+          AND time BETWEEN {startTime: UInt64} AND {endTime: UInt64}
+        ORDER BY time DESC
+        LIMIT 1`,
+      params: requestDetailsRequestSchema,
+      schema: requestLogsResponseSchema,
+    });
+
+    return query(args);
   };
 }
 

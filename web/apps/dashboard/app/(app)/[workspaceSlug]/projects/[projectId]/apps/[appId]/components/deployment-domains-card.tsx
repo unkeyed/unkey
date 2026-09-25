@@ -1,15 +1,25 @@
 "use client";
 
 import type { Domain } from "@/lib/collections";
-import { ChevronDown, Cube, Earth, Link4 } from "@unkey/icons";
+import {
+  IconChevronDownOutline18,
+  IconCubeOutline18,
+  IconEarthOutline18,
+  IconLink4Outline12,
+} from "@unkey/icons";
 import {
   Button,
   CopyButton,
+  EmptyState,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateTitle,
   Popover,
   PopoverContent,
   PopoverTrigger,
   SettingCard,
   SettingCardGroup,
+  Skeleton,
 } from "@unkey/ui";
 import { type ReactNode, useState } from "react";
 import { useProjectData } from "../(overview)/data-provider";
@@ -20,10 +30,9 @@ import { GlowIcon } from "./glow-icon";
 import { TagBadge } from "./tag-badge";
 
 export function DeploymentDomainsCard({
-  emptyState,
   glow,
   domainFilter,
-}: { emptyState?: ReactNode; glow?: boolean; domainFilter?: (d: Domain) => boolean }) {
+}: { glow?: boolean; domainFilter?: (d: Domain) => boolean }) {
   const [urlsOpen, setUrlsOpen] = useState(false);
   const { deployment } = useDeployment();
   const {
@@ -51,36 +60,37 @@ export function DeploymentDomainsCard({
   const isLoading = isDomainsLoading || isCustomDomainsLoading;
 
   if (!isLoading && primaryDomain === null) {
-    return emptyState ?? null;
+    return (
+      <DomainsGroup>
+        <EmptyState>
+          <EmptyStateHeader>
+            <EmptyStateTitle>No domains yet</EmptyStateTitle>
+            <EmptyStateDescription>
+              Add a domain to make this deployment reachable.
+            </EmptyStateDescription>
+          </EmptyStateHeader>
+        </EmptyState>
+      </DomainsGroup>
+    );
   }
 
   return (
-    <SettingsGroup
-      icon={<Earth iconSize="md-medium" />}
-      title={<span className="font-medium text-gray-12 text-[13px] leading-4">Domains</span>}
-      hideChevron
-    >
+    <DomainsGroup>
       <SettingCardGroup>
         {isLoading || primaryDomain === null ? (
           <SettingCard
             icon={
-              <div className="w-full h-full rounded-[10px] flex items-center justify-center shrink-0">
-                <Earth iconSize="sm-medium" className="size-[18px]" />
+              <div className="w-full h-full rounded-xl flex items-center justify-center shrink-0">
+                <IconEarthOutline18 />
               </div>
             }
-            title={<div className="h-4 w-36 bg-grayA-3 rounded animate-pulse" />}
+            title={<Skeleton className="h-4 w-36 rounded" />}
             description="Loading domains..."
           />
         ) : (
           <SettingCard
             iconClassName={glow ? "bg-transparent shadow-none dark:ring-0" : undefined}
-            icon={
-              <GlowIcon
-                icon={<Cube iconSize="md-medium" className="size-[18px]" />}
-                glow={glow}
-                className="w-full h-full"
-              />
-            }
+            icon={<GlowIcon icon={<IconCubeOutline18 />} glow={glow} className="w-full h-full" />}
             title={project?.name}
             description={
               <div className="flex items-center justify-center gap-2 ">
@@ -112,11 +122,11 @@ export function DeploymentDomainsCard({
                   <PopoverTrigger
                     render={
                       <Button
-                        className="text-gray-12 font-medium bg-grayA-2 rounded-[8px]"
+                        className="text-gray-12 font-medium bg-grayA-2 rounded-lg"
                         variant="outline"
                       >
                         Show URLs
-                        <ChevronDown className="text-gray-9 size-3!" iconSize="sm-regular" />
+                        <IconChevronDownOutline18 className="text-gray-9 !" />
                       </Button>
                     }
                   />
@@ -124,9 +134,9 @@ export function DeploymentDomainsCard({
                     {allDomains.map((d) => (
                       <div
                         key={d.id}
-                        className="flex items-center justify-left w-full h-10 border-b border-gray-4 px-3 py-[14px] gap-2"
+                        className="flex items-center justify-start w-full h-10 border-b px-3 py-[14px] gap-2"
                       >
-                        <Link4 className="text-gray-9 size-3! shrink-0" iconSize="sm-regular" />
+                        <IconLink4Outline12 className="text-gray-9 ! shrink-0" />
                         <a
                           href={d.url}
                           target="_blank"
@@ -146,6 +156,18 @@ export function DeploymentDomainsCard({
           </SettingCard>
         )}
       </SettingCardGroup>
+    </DomainsGroup>
+  );
+}
+
+function DomainsGroup({ children }: { children: ReactNode }) {
+  return (
+    <SettingsGroup
+      icon={<IconEarthOutline18 className="size-3.5" />}
+      title={<span className="font-medium text-gray-12 text-[13px] leading-4">Domains</span>}
+      hideChevron
+    >
+      {children}
     </SettingsGroup>
   );
 }

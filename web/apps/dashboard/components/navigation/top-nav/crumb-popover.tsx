@@ -9,10 +9,9 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
-import { Check } from "@unkey/icons";
-import type { IconProps } from "@unkey/icons";
+import { IconCheckOutline12, type IconProps } from "@unkey/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@unkey/ui";
+import { cn } from "cn";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -41,6 +40,7 @@ type CrumbPopoverProps = {
   emptyText: string;
   footer: CrumbPopoverFooter;
   children: ReactNode;
+  listStatus?: ReactNode;
 };
 
 export function CrumbPopover({
@@ -50,6 +50,7 @@ export function CrumbPopover({
   emptyText,
   footer,
   children,
+  listStatus,
 }: CrumbPopoverProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -80,10 +81,10 @@ export function CrumbPopover({
         >
           <CommandInput
             placeholder={searchPlaceholder}
-            className="text-[13px] placeholder:text-[13px] placeholder:text-accent-8"
+            className="text-[13px] placeholder:text-[13px] placeholder:text-gray-8"
           />
           <CommandList>
-            <CommandEmpty className="py-6">{emptyText}</CommandEmpty>
+            {listStatus ?? <CommandEmpty className="py-6">{emptyText}</CommandEmpty>}
             <CommandGroup>
               {items.map((item) => {
                 const isCurrent = item.id === currentId;
@@ -96,10 +97,9 @@ export function CrumbPopover({
                   >
                     <span className="flex-1 truncate">{item.label}</span>
                     {item.badge ? <span className="shrink-0">{item.badge}</span> : null}
-                    <Check
-                      iconSize="sm-regular"
+                    <IconCheckOutline12
                       className={cn(
-                        "shrink-0 text-accent-12",
+                        "shrink-0 text-gray-12",
                         isCurrent ? "opacity-100" : "opacity-0",
                       )}
                     />
@@ -138,7 +138,7 @@ function FooterRow({
   const Icon = footer.icon;
   const body = (
     <>
-      <Icon iconSize="sm-regular" className="size-3.5 shrink-0 text-accent-11" />
+      <Icon className="size-3.5 shrink-0 text-gray-11" />
       <span className="flex-1 truncate">{footer.label}</span>
     </>
   );

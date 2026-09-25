@@ -1,9 +1,10 @@
 "use client";
+import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Lock } from "@unkey/icons";
+import { IconLockOutline12 } from "@unkey/icons";
 import { Button, DialogContainer, Input, SettingsZoneRow } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
@@ -24,6 +25,7 @@ type Props = {
 
 export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   const workspace = useWorkspaceNavigation();
+  const scope = useProjectScope();
   const { onDeleteSuccess, onError } = createMutationHandlers();
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -59,7 +61,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   const deleteApi = trpc.api.delete.useMutation({
     async onSuccess() {
       onDeleteSuccess(keys)();
-      router.push(routes.apis.list({ workspaceSlug: workspace.slug }));
+      router.push(routes.apis.list({ workspaceSlug: workspace.slug, ...scope }));
     },
     onError,
   });
@@ -75,7 +77,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
           <div className="inline-flex gap-2">
             <span>Delete Keyspace</span>
             {api.deleteProtection && (
-              <StatusBadge variant="locked" text="Locked" icon={<Lock iconSize="sm-thin" />} />
+              <StatusBadge variant="locked" text="Locked" icon={<IconLockOutline12 />} />
             )}
           </div>
         }

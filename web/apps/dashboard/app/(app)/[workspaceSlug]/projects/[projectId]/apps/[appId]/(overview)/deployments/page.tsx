@@ -1,5 +1,5 @@
 "use client";
-import { Plus } from "@unkey/icons";
+import { IconPlusOutline18 } from "@unkey/icons";
 import {
   Button,
   PageBody,
@@ -25,7 +25,7 @@ export default function Deployments() {
           <CreateDeploymentButton
             renderTrigger={({ onClick }) => (
               <Button size="md" variant="primary" onClick={onClick}>
-                <Plus iconSize="sm-regular" />
+                <IconPlusOutline18 />
                 Create deployment
               </Button>
             )}

@@ -1,0 +1,32 @@
+---
+title: Empty state
+description: Use this Empty component to display an empty state.
+---
+
+<Component path="empty-state/basic" />
+
+## Examples
+
+### In a table
+
+An example of how to use an empty component from within a table element.
+
+<Component path="empty-state/table" />
+
+## Best practices
+
+### Variants
+
+Use the dashed card when the empty state is the only thing in an unbordered region. Use `frame="none"` inside anything that already has a border, such as a `DataTable`, `ResourceList`, `Card` or `Popover`.
+
+### Icon
+
+Icons are optional, if the feature does not have a clearly defined Icon, do not include an icon.
+
+### Actions
+
+If the feature has a clear create action, use a `primary` button. If the empty state only contains a link to docs, use `outline`. If in doubt, just use an outline variant.
+
+### Content
+
+Keep descriptions as minimal as possible. No more than two extremely short sentences.

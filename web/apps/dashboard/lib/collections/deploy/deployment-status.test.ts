@@ -5,6 +5,7 @@ import {
   DEPLOYMENT_STATUS_GROUPS,
   DEPLOYMENT_STATUS_GROUP_NAMES,
   expandDeploymentStatusGroups,
+  isDeploymentInFlight,
 } from "./deployment-status";
 
 describe("DEPLOYMENT_STATUS_GROUPS", () => {
@@ -15,7 +16,7 @@ describe("DEPLOYMENT_STATUS_GROUPS", () => {
   });
 
   test("expands a selection of groups into their raw statuses", () => {
-    expect(expandDeploymentStatusGroups(["building", "cancelled"])).toEqual([
+    expect(expandDeploymentStatusGroups(["building", "cancelled", "skipped"])).toEqual([
       "starting",
       "building",
       "deploying",
@@ -35,6 +36,7 @@ describe("DEPLOYMENT_STATUS_GROUPS", () => {
       "queued",
       "blocked",
       "cancelled",
+      "skipped",
       "superseded",
       "stopped",
     ]);
@@ -50,5 +52,14 @@ describe("DEFAULT_DEPLOYMENT_STATUS_GROUPS", () => {
       "queued",
       "blocked",
     ]);
+  });
+});
+
+describe("isDeploymentInFlight", () => {
+  test("is true for exactly the statuses that still move on their own", () => {
+    const inFlight = DEPLOYMENT_STATUSES.filter(isDeploymentInFlight);
+    expect([...inFlight].sort()).toEqual(
+      [...DEPLOYMENT_STATUS_GROUPS.building, ...DEPLOYMENT_STATUS_GROUPS.queued].sort(),
+    );
   });
 });

@@ -1,4 +1,4 @@
-import { Check } from "@unkey/icons";
+import { IconCheckOutline18 } from "@unkey/icons";
 import { Button, Textarea } from "@unkey/ui";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { useEffect, useRef, useState } from "react";
@@ -97,7 +97,7 @@ export const FilterOperatorInput = <T extends string>({
 
   return (
     <div className="flex max-md:flex-col w-full md:w-[500px]">
-      <div className="flex flex-col gap-2 p-2 w-full md:w-[180px] md:border-r border-gray-4 items-center">
+      <div className="flex flex-col gap-2 p-2 w-full md:w-[180px] md:border-r items-center">
         {options.map((option, index) => (
           <div
             key={option.id}
@@ -115,9 +115,9 @@ export const FilterOperatorInput = <T extends string>({
               className={cn(
                 "w-full inline-flex items-center justify-between",
                 "px-2 py-1.5 rounded-lg",
-                "text-[13px] font-medium text-accent-12 text-left",
+                "text-[13px] font-medium text-gray-12 text-left",
                 "hover:bg-gray-3",
-                "focus:outline-hidden focus:ring-2 focus:ring-accent-7",
+                "focus:outline-hidden focus:ring-2 focus:ring-gray-7",
                 "focus:bg-gray-3",
                 selectedOption === option.id && "bg-gray-3",
               )}
@@ -125,7 +125,7 @@ export const FilterOperatorInput = <T extends string>({
               <span>{option.label}</span>
               {selectedOption === option.id && (
                 <div className="h-4 w-4" aria-hidden="true">
-                  <Check className="text-gray-12/90 h-4 w-4" />
+                  <IconCheckOutline18 className="text-gray-12/90 h-4 w-4" />
                 </div>
               )}
             </button>

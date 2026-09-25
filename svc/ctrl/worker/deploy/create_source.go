@@ -77,7 +77,7 @@ func (w *Workflow) resolveSource(
 		// would rebuild nothing. A user redeploying asked for what that deployment
 		// runs, which is its image once the repository is gone.
 		asked := redeploy
-		if req.GetTrigger() == ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY {
+		if req.GetTrigger().GetSource() == ctrlv1.DeploymentTrigger_DEPLOYMENT_TRIGGER_UNKEY {
 			asked = rebuild
 		}
 		return w.resolveExistingDeployment(ctx, target,

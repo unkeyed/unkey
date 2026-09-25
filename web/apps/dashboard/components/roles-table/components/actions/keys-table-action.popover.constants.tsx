@@ -8,7 +8,7 @@ import {
 } from "@/components/logs/table-action.popover";
 import { trpc } from "@/lib/trpc/client";
 import type { RoleBasic } from "@/lib/trpc/routers/authorization/roles/query";
-import { Clone, PenWriting3, Trash } from "@unkey/icons";
+import { IconCloneOutline18, IconPenWriting3Outline18, IconTrashOutline18 } from "@unkey/icons";
 import { toast } from "@unkey/ui";
 import dynamic from "next/dynamic";
 import { DeleteRole } from "./components/delete-role";
@@ -43,7 +43,7 @@ const getRolesTableActionItems = (
     {
       id: "edit-role",
       label: "Edit role...",
-      icon: <PenWriting3 iconSize="md-medium" />,
+      icon: <IconPenWriting3Outline18 className="size-3.5" />,
       ActionComponent: (props) => <EditRole role={role} {...props} />,
       prefetch: async () => {
         await Promise.all([
@@ -63,7 +63,7 @@ const getRolesTableActionItems = (
       id: "copy",
       label: "Copy role",
       className: "mt-1",
-      icon: <Clone iconSize="md-medium" />,
+      icon: <IconCloneOutline18 className="size-3.5" />,
       onClick: () => {
         navigator.clipboard
           .writeText(JSON.stringify(role))
@@ -80,7 +80,7 @@ const getRolesTableActionItems = (
     {
       id: "delete-role",
       label: "Delete role",
-      icon: <Trash iconSize="md-medium" />,
+      icon: <IconTrashOutline18 className="size-3.5" />,
       ActionComponent: (props) => <DeleteRole {...props} roleDetails={role} />,
     },
   ];

@@ -116,10 +116,10 @@ type CertificateServiceServer interface {
 type UnimplementedCertificateServiceServer struct{}
 
 func (UnimplementedCertificateServiceServer) ProcessChallenge(ctx sdk_go.ObjectContext, req *ProcessChallengeRequest) (*ProcessChallengeResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method ProcessChallenge not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method ProcessChallenge not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCertificateServiceServer) RenewExpiringCertificates(ctx sdk_go.ObjectContext, req *RenewExpiringCertificatesRequest) (*RenewExpiringCertificatesResponse, error) {
-	return nil, sdk_go.TerminalError(fmt.Errorf("method RenewExpiringCertificates not implemented"), 501)
+	return nil, sdk_go.ToTerminalError(fmt.Errorf("method RenewExpiringCertificates not implemented"), sdk_go.WithErrorCode(501))
 }
 func (UnimplementedCertificateServiceServer) testEmbeddedByValue() {}
 

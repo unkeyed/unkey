@@ -1,7 +1,7 @@
 "use client";
 
 import { useSidebar } from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { UsagePanel } from "./usage-panel";
 import { useUsageSummary } from "./use-usage-summary";
 

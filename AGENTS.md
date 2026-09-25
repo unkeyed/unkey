@@ -81,7 +81,6 @@ mise run unkey -- ...   # run the Unkey CLI
 ```bash
 mise exec -- rask ./pkg/cache
 mise exec -- pnpm --dir=web test
-mise exec -- pnpm --dir=web/apps/dashboard exec vitest run
 mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 ```
 
@@ -95,6 +94,8 @@ mise exec -- go test -fuzz=FuzzInRange -fuzztime=30s ./pkg/assert/
 - Avoid new dependencies unless the local implementation would be worse.
 - Keep variable scope small. Use clear names with units or bounds where useful.
 - Handle every error. If a state is impossible, assert it rather than ignoring it.
+- Add tests for Go behavior and pure TypeScript functions. Do not add React
+  component, hook, or render tests unless asked.
 - Be extremely conservative with code comments. 
 
 ## Code comments
@@ -149,6 +150,8 @@ and pre-push requirements below still apply.
   scoped task. Use repository-wide `mise run fmt` only when that scope is needed.
 - Docs-only change: link/content review. Note if no formatter applies.
 - Before pushing: `mise run test`, as required by the testing standard.
+- Never install tooling or build an environment to verify a change. If the
+  existing checks cannot cover it, say so instead.
 
 After applicable checks pass, repeat or broaden verification only for subsequent
 changes, failures, or unresolved risks. Report failed or skipped verification

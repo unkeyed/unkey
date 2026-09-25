@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, EyeSlash } from "@unkey/icons";
+import { IconEyeOutline12, IconEyeSlashOutline18 } from "@unkey/icons";
 import { InfoTooltip, toast } from "@unkey/ui";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 
@@ -83,7 +83,7 @@ export const EnvVarValueCell = memo(function EnvVarValueCell({
           onClick={handleToggleReveal}
           className="text-gray-10 hover:text-gray-11 transition-colors cursor-pointer hover:bg-gray-3 rounded-md px-1.5 py-0.5 h-[22px]"
         >
-          {visible ? <EyeSlash iconSize="sm-regular" /> : <Eye iconSize="sm-regular" />}
+          {visible ? <IconEyeSlashOutline18 className="size-3" /> : <IconEyeOutline12 />}
         </button>
       </div>
       {visible ? (
@@ -91,7 +91,7 @@ export const EnvVarValueCell = memo(function EnvVarValueCell({
           <button
             type="button"
             onClick={handleCopy}
-            className="font-mono bg-gray-3 px-1.5 py-0.5 truncate text-[13px] text-accent-12 cursor-pointer transition-colors min-w-0 rounded-md h-5.5 max-w-70"
+            className="font-mono bg-gray-3 px-1.5 py-0.5 truncate text-[13px] text-gray-12 cursor-pointer transition-colors min-w-0 rounded-md h-5.5 max-w-70"
           >
             {value}
           </button>

@@ -9,7 +9,7 @@ import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { getErrorMessage, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
-import { ChevronLeft, Layers2 } from "@unkey/icons";
+import { IconChevronLeftOutline18, IconLayers2Outline18 } from "@unkey/icons";
 import { Button, Input, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
@@ -105,10 +105,10 @@ export const DeployImageCard = ({
   };
 
   return (
-    <div className="border border-grayA-5 rounded-lg flex flex-col gap-4 py-[18px] px-4">
+    <div className="border bg-raised rounded-lg flex flex-col gap-4 py-[18px] px-4">
       <div className="flex justify-start items-center gap-4">
-        <div className="size-8 rounded-[10px] grid place-items-center ring-1 ring-grayA-4 shadow-sm shadow-grayA-8/20 dark:shadow-none shrink-0">
-          <Layers2 className="size-[18px] text-gray-12" iconSize="md-medium" />
+        <div className="size-8 rounded-xl grid place-items-center border shadow-sm shadow-grayA-8/20 dark:shadow-none shrink-0">
+          <IconLayers2Outline18 className="size-[18px] text-gray-12" />
         </div>
         <div className="flex flex-col gap-3">
           <span className="font-medium text-gray-12 text-[13px] leading-[9px]">
@@ -126,17 +126,17 @@ export const DeployImageCard = ({
             className="ml-auto rounded-lg"
             onClick={() => onExpandedChange(false)}
           >
-            <ChevronLeft className="size-[14px]! text-gray-12 shrink-0" />
+            <IconChevronLeftOutline18 className="size-[14px]! text-gray-12 shrink-0" />
             <span className="text-[13px] text-gray-12 font-medium">Back</span>
           </Button>
         ) : (
           <Button
             variant="outline"
-            className="ml-auto rounded-lg border-grayA-4 hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
+            className="ml-auto rounded-lg hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
             onClick={() => onExpandedChange(true)}
             disabled={disabled}
           >
-            <Layers2 className="size-[18px]! text-gray-12 shrink-0" />
+            <IconLayers2Outline18 className="size-[18px]! text-gray-12 shrink-0" />
             <span className="text-[13px] text-gray-12 font-medium">Use a container image</span>
           </Button>
         )}
@@ -162,7 +162,7 @@ export const DeployImageCard = ({
               placeholder="ghcr.io/acme/mcp-server:v1.4.2"
               aria-label="Image reference"
               aria-describedby={hintId}
-              className="h-9 bg-transparent border-grayA-4 font-mono text-xs flex-1 min-w-0"
+              className="h-9 bg-transparent font-mono text-xs flex-1 min-w-0"
               data-1p-ignore
             />
             <Button

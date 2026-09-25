@@ -5,8 +5,8 @@ import { formatCompactQuantity, formatDollars, formatPrice } from "@/lib/fmt";
 import { routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
-import { Cube } from "@unkey/icons";
-import { Button, DialogContainer, InfoTooltip, toast } from "@unkey/ui";
+import { IconCubeOutline18 } from "@unkey/icons";
+import { Button, DialogContainer, InfoHoverCard, InfoTooltip, Skeleton, toast } from "@unkey/ui";
 import { useState } from "react";
 import { ComputePausedBadge } from "./compute-paused";
 import {
@@ -122,7 +122,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   });
 
   if (subscriptionLoading || plansLoading) {
-    return <div className="h-[150px] w-full animate-pulse rounded-lg bg-grayA-3" />;
+    return <Skeleton className="h-[150px] w-full rounded-lg" />;
   }
 
   // Deploy billing not configured server-side: hide the card entirely.
@@ -287,7 +287,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   return (
     <>
       <ProductCard
-        icon={<Cube iconSize="md-regular" />}
+        icon={<IconCubeOutline18 className="size-3.5" />}
         iconClassName="bg-orangeA-3 text-orange-11"
         className="[&>div:nth-child(2)]:border-t-0 [&>div:nth-child(2)]:pt-0"
         name="Compute"
@@ -357,7 +357,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
             {meterStats ? (
               <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-grayA-3 sm:grid-cols-5">
                 {meterStats.map((stat) => (
-                  <div key={stat.label} className="bg-white px-3 py-2 first:pl-0 dark:bg-black">
+                  <div key={stat.label} className="bg-raised px-3 py-2 first:pl-0">
                     <InfoTooltip content={stat.hint} asChild>
                       <p className="w-fit cursor-help text-[11px] text-gray-10 uppercase tracking-wide underline decoration-dotted decoration-grayA-6 underline-offset-2">
                         {stat.label}
@@ -417,7 +417,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                   </div>
                 ) : null}
                 {includedCreditCents > 0 ? (
-                  <div className="mt-1 flex items-baseline justify-between gap-4 border-grayA-3 border-t pt-2">
+                  <div className="mt-1 flex items-baseline justify-between gap-4 border-t pt-2">
                     <span className="text-[13px] text-gray-10">
                       Overage
                       <span className="ml-1.5 text-[12px] text-gray-9">usage past credit</span>
@@ -438,9 +438,9 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                     {formatDollars(planFee)}
                   </span>
                 </div>
-                <div className="mt-1 flex items-baseline justify-between gap-4 border-grayA-3 border-t pt-2">
+                <div className="mt-1 flex items-baseline justify-between gap-4 border-t pt-2">
                   <span className="text-[13px] text-gray-12">
-                    <InfoTooltip
+                    <InfoHoverCard
                       asChild
                       position={{ side: "top", align: "start" }}
                       content={
@@ -458,7 +458,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                               {formatPrice(nextInvoiceCents ?? overageCents + planFee)}
                             </p>
                           </div>
-                          <div className="flex flex-col gap-1 border-grayA-4 border-t pt-2">
+                          <div className="flex flex-col gap-1 border-t pt-2">
                             <p className="font-medium text-gray-12">Usage rates</p>
                             <ul className="flex flex-col gap-0.5">
                               {DEPLOY_METER_RATE_LABELS.map((r) => (
@@ -479,7 +479,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                         Next invoice
                         {renewsAtMillis !== null ? ` · ${formatRenewalDate(renewsAtMillis)}` : ""}
                       </span>
-                    </InfoTooltip>
+                    </InfoHoverCard>
                     {/* Projected adds the usage still expected before the period
                         closes, since the overage row only counts what has accrued. */}
                     {projectedOverageCents !== null &&

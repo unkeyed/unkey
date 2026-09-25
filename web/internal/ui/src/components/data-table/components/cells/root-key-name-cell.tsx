@@ -1,4 +1,4 @@
-import { Key2 } from "@unkey/icons";
+import { IconKey2Outline12 } from "@unkey/icons";
 import { cn } from "../../../../lib/utils";
 
 export type RootKeyNameCellProps = {
@@ -17,13 +17,13 @@ export const RootKeyNameCell = ({ name, isSelected = false }: RootKeyNameCellPro
             isSelected && "bg-grayA-5",
           )}
         >
-          <Key2 iconSize="sm-regular" className="text-gray-12" />
+          <IconKey2Outline12 className="text-gray-12" />
         </div>
         <div className="w-[150px]">
           <div
             className={cn(
               "font-medium truncate leading-4 text-[13px]",
-              name ? "text-accent-12" : "text-gray-9 italic font-normal",
+              name ? "text-gray-12" : "text-gray-9 italic font-normal",
             )}
           >
             {name ?? "Unnamed Root Key"}
