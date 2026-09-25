@@ -67,7 +67,7 @@ export const customDomains = createCollection<CustomDomain, string>(
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");
       }
 
-      return (await listAllDomains({ project: projectId })).map(toCustomDomain);
+      return (await listAllDomains(projectId)).map(toCustomDomain);
     },
     getKey: (item) => item.id,
     id: "customDomains",
@@ -197,25 +197,15 @@ function dnsSetupHint(records: DnsRecord[]): string {
     : "Add the DNS records shown below";
 }
 
-export const productionDomains = createCollection<CustomDomain, string>(
-  queryCollectionOptions({
-    queryClient,
-    queryKey: ["productionDomains"],
-    retry: 3,
-    queryFn: async () => (await listAllDomains({ environment: "production" })).map(toCustomDomain),
-    getKey: (item) => item.id,
-    id: "productionDomains",
-  }),
-);
-
-async function listAllDomains(
-  filter: { project: string } | { environment: string },
-): Promise<ApiDomain[]> {
+async function listAllDomains(projectId: string): Promise<ApiDomain[]> {
   const all: ApiDomain[] = [];
   let cursor: string | undefined;
 
   do {
-    const page = await getUnkeyClient().domains.listDomains({ ...filter, cursor });
+    const page = await getUnkeyClient().domains.listDomains({
+      project: projectId,
+      cursor,
+    });
     all.push(...page.data);
     cursor = page.pagination?.hasMore ? page.pagination.cursor : undefined;
   } while (cursor);

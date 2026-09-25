@@ -58,8 +58,8 @@ const listHeadlines = vi.fn(async (_input: { projectId: string }) => [
   { appId: "app_b", ...headlineB },
 ]);
 const listDisplayDomains = vi.fn(async (_input: { projectId: string }) => [
-  { appId: "app_a", domain: "api.KEBAP.app" },
-  { appId: "app_b", domain: "web.KEBAP.app" },
+  { appId: "app_a", domain: "api.KEBAP.app", customDomain: "KEBAP.com" },
+  { appId: "app_b", domain: "web.KEBAP.app", customDomain: "web.KEBAP.com" },
 ]);
 
 vi.mock("@/lib/unkey-client", () => ({
@@ -100,8 +100,10 @@ describe("apps collection", () => {
 
     expect(byId.get("app_a")?.headlineDeployment).toEqual(headlineA);
     expect(byId.get("app_a")?.domain).toBe("api.KEBAP.app");
+    expect(byId.get("app_a")?.customDomain).toBe("KEBAP.com");
     expect(byId.get("app_b")?.headlineDeployment).toEqual(headlineB);
     expect(byId.get("app_b")?.domain).toBeNull();
+    expect(byId.get("app_b")?.customDomain).toBeNull();
     expect(byId.get("app_b")?.imageReference).toBe("KEBAP:latest");
     expect(byId.get("app_c")?.headlineDeployment).toBeNull();
     expect(byId.get("app_c")?.defaultBranch).toBe("main");
