@@ -1,10 +1,12 @@
 "use client";
-import { queryCollectionOptions } from "@tanstack/query-db-collection";
+import { getUnkeyClient } from "@/lib/unkey-client";
+import { parseLoadSubsetOptions, queryCollectionOptions } from "@tanstack/query-db-collection";
 import { createCollection } from "@tanstack/react-db";
+import { NotFoundErrorResponse } from "@unkey/api/models/errors";
 import type { environments as environmentsTable } from "@unkey/db/src/schema";
 import { z } from "zod";
-import { queryClient, trpcClient } from "../client";
-import { parseProjectIdFromWhere, validateProjectIdInQuery } from "./utils";
+import { queryClient } from "../client";
+import { extractStringFilter, extractStringsFilter } from "./utils";
 
 const kind = z.enum(["production", "preview"] as const satisfies readonly KindColumn[]);
 
@@ -24,31 +26,56 @@ const schema = z.object({
 export type Environment = z.infer<typeof schema>;
 
 /**
- * Global environments collection.
+ * Global environments collection. The API lists the environments of one app,
+ * so every query names its apps.
  *
- * IMPORTANT: All queries MUST filter by projectId:
- * .where(({ environment }) => eq(environment.projectId, projectId))
+ * IMPORTANT: All queries MUST filter by projectId and by appId with eq or inArray:
+ * .where(({ env }) => and(eq(env.projectId, projectId), inArray(env.appId, appIds)))
+ *
+ * Do not reach it through the nullable side of an outer join. TanStack DB does
+ * not push that side's where clause into the load, so the projectId is lost.
  */
 export const environments = createCollection<Environment, string>(
   queryCollectionOptions({
     queryClient,
     queryKey: (opts) => {
-      const projectId = parseProjectIdFromWhere(opts.where);
-      return projectId ? ["environments", projectId] : ["environments"];
+      const { filters } = parseLoadSubsetOptions(opts);
+      const projectId = extractStringFilter(filters, "projectId");
+      const appIds = extractStringsFilter(filters, "appId").sort();
+      return projectId ? ["environments", projectId, ...appIds] : ["environments"];
     },
     syncMode: "on-demand",
     retry: 3,
     queryFn: async (ctx) => {
-      const options = ctx.meta?.loadSubsetOptions;
+      const { filters } = parseLoadSubsetOptions(ctx.meta?.loadSubsetOptions);
+      const projectId = extractStringFilter(filters, "projectId");
+      const appIds = extractStringsFilter(filters, "appId");
 
-      validateProjectIdInQuery(options?.where);
-      const projectId = parseProjectIdFromWhere(options?.where);
-
-      if (!projectId) {
-        throw new Error("Query must include eq(collection.projectId, projectId) constraint");
+      if (!projectId || appIds.length === 0) {
+        throw new Error(
+          "Query must include eq(collection.projectId, projectId) and an eq or inArray constraint on collection.appId",
+        );
       }
 
-      return trpcClient.deploy.environment.list.query({ projectId });
+      const perApp = await Promise.all(
+        appIds.map(async (appId) => {
+          try {
+            const { data } = await getUnkeyClient().environments.listEnvironments({
+              project: projectId,
+              app: appId,
+            });
+            return data.map((e) => ({ id: e.id, projectId, appId, slug: e.slug, kind: e.kind }));
+          } catch (error) {
+            // A deleted app or one without read permission must not hide the other apps' environments
+            if (error instanceof NotFoundErrorResponse) {
+              return [];
+            }
+            throw error;
+          }
+        }),
+      );
+
+      return perApp.flat();
     },
     getKey: (item) => item.id,
     id: "environments",
