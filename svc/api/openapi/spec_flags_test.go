@@ -66,6 +66,7 @@ func TestSpecExcludesUnlaunchedPortalOperations(t *testing.T) {
 		"portal.getVerifications",
 		"portal.listKeys",
 		"portal.rerollKey",
+		"portal.revokeSession",
 		"portal.updatePortal",
 	}, excluded, "every excluded operation is accounted for")
 
