@@ -1,8 +1,10 @@
+import type { Deployment } from "@/lib/collections";
 import type { DeploymentStatus } from "@/lib/collections/deploy/deployment-status";
 import type { EnvironmentKind } from "@/lib/collections/deploy/environments";
+import { isRollbackTarget } from "@/lib/collections/deploy/rollback";
 
 type DeploymentActionContext = {
-  selectedDeployment: { id: string; status: DeploymentStatus };
+  selectedDeployment: Pick<Deployment, "id" | "status" | "desiredState">;
   currentDeploymentId: string | null;
   isRolledBack: boolean;
   environmentKind: EnvironmentKind | null;
@@ -54,16 +56,15 @@ export function getDeploymentActionEligibility(
   ctx: DeploymentActionContext,
 ): DeploymentActionEligibility {
   const status = ctx.selectedDeployment.status;
-  const isActionable = status === "ready";
   const isProduction = ctx.environmentKind === "production";
   const isPreview = ctx.environmentKind === "preview";
   const hasCurrent = ctx.currentDeploymentId !== null;
   const isCurrent = hasCurrent && ctx.currentDeploymentId === ctx.selectedDeployment.id;
 
-  // Rollback: available for non-current, ready deployments in production
-  const canRollback = isProduction && isActionable && hasCurrent && !isCurrent;
+  const canTakeTraffic = isProduction && hasCurrent && isRollbackTarget(ctx.selectedDeployment);
+  const canRollback = canTakeTraffic && !isCurrent;
   // Promote: same as rollback, but also allowed on the current deployment when rolled back.
-  const canPromote = isProduction && isActionable && hasCurrent && (!isCurrent || ctx.isRolledBack);
+  const canPromote = canTakeTraffic && (!isCurrent || ctx.isRolledBack);
   const canRedeploy = isRedeployableDeploymentStatus(status);
   // Cancel: available for any in-flight deployment.
   const canCancel = isCancellableDeploymentStatus(status);

@@ -1,13 +1,13 @@
 "use client";
 
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
 import { IconHammer2Outline18 } from "@unkey/icons";
 import { Button, SettingCardGroup } from "@unkey/ui";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useProjectData } from "../../../data-provider";
 import { useDeployment } from "../layout-provider";
+import { useBuildSteps } from "../use-build-steps";
 import { DeploymentBuildStepsTable } from "./build-steps-table/deployment-build-steps-table";
 import { DeploymentStep } from "./deployment-step";
 
@@ -24,15 +24,7 @@ export function DeploymentBuild() {
     deploymentId: deployment.id,
   });
 
-  const buildSteps = trpc.deploy.deployment.buildSteps.useQuery(
-    {
-      deploymentId: deployment.id,
-      includeStepLogs: true,
-    },
-    {
-      refetchInterval: 1_000,
-    },
-  );
+  const buildSteps = useBuildSteps(deployment);
 
   router.prefetch(deploymentUrl);
 
