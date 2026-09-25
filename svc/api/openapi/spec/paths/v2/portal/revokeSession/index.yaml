@@ -1,0 +1,75 @@
+post:
+  x-excluded: true
+  tags:
+    - portal
+  summary: Revoke portal sessions
+  description: |
+    Revoke every live session an end user holds on a portal.
+
+    Unreleased and subject to change without notice.
+
+    Sessions that were created but not yet opened are revoked too, so their
+    portal URLs stop working. Revocation is not instantaneous: session lookups
+    are cached briefly, so a request already in flight may still succeed.
+
+    Revoking ends existing sessions only. To keep the end user out, also stop
+    calling `portal.createSession` for them.
+
+    Calling this again for the same end user is safe and revokes nothing.
+
+    **Required Permissions**
+
+    Your root key must have one of:
+    - `portal.*.create_portal_session` (for any portal in the workspace)
+    - `portal.<portal_id>.create_portal_session` (for a specific portal)
+
+    Without the permission this returns **404**, not 403.
+  operationId: portal.revokeSession
+  x-speakeasy-name-override: revokeSession
+  security:
+    - bearer: []
+  requestBody:
+    content:
+      application/json:
+        schema:
+          "$ref": "./V2PortalRevokeSessionRequestBody.yaml"
+    required: true
+  responses:
+    "200":
+      description: |
+        The end user's live sessions on the portal are revoked.
+      content:
+        application/json:
+          schema:
+            "$ref": "./V2PortalRevokeSessionResponseBody.yaml"
+    "400":
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/BadRequestErrorResponse.yaml"
+    "401":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/UnauthorizedErrorResponse.yaml"
+    "404":
+      description: |
+        No such portal, or your root key may not revoke its sessions.
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/NotFoundErrorResponse.yaml"
+    "429":
+      description: Too Many Requests
+      content:
+        application/problem+json:
+          schema:
+            "$ref": "../../../../error/TooManyRequestsErrorResponse.yaml"
+    "500":
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            "$ref": "../../../../error/InternalServerErrorResponse.yaml"

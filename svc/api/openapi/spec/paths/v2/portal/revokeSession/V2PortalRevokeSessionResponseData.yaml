@@ -1,0 +1,13 @@
+type: object
+required:
+  - sessionsRevoked
+properties:
+  sessionsRevoked:
+    type: integer
+    format: int64
+    minimum: 0
+    description: |
+      How many live sessions were revoked. Zero when the end user had none,
+      including when an earlier call already revoked them.
+    example: 2
+additionalProperties: false
