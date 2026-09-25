@@ -94,13 +94,3 @@ export function extractStringFilter(
   const value = filters.find((f) => f.field.at(-1) === fieldName && f.operator === operator)?.value;
   return typeof value === "string" ? value : undefined;
 }
-
-/** Reads the values of an eq or an in filter on one string field. */
-export function extractStringsFilter(filters: ParsedFilter[], fieldName: string): string[] {
-  const eqValue = extractStringFilter(filters, fieldName);
-  if (eqValue !== undefined) {
-    return [eqValue];
-  }
-  const inValue = filters.find((f) => f.field.at(-1) === fieldName && f.operator === "in")?.value;
-  return Array.isArray(inValue) ? inValue.filter((v): v is string => typeof v === "string") : [];
-}
