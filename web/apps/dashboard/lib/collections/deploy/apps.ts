@@ -4,6 +4,7 @@ import { createCollection } from "@tanstack/react-db";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
+import { DEPLOYMENT_STATUSES } from "./deployment-status";
 import { extractStringFilter } from "./utils";
 
 const schema = z.object({
@@ -19,16 +20,19 @@ const schema = z.object({
   updatedAt: z.number().nullable(),
   repositoryFullName: z.string().nullable(),
   latestDeploymentId: z.string().nullable(),
-  // Flattened current-deployment fields for the shared deployable card.
-  commitTitle: z.string().nullable(),
-  commitSha: z.string().nullable(),
-  forkRepositoryFullName: z.string().nullable(),
-  prNumber: z.number().int().nullable(),
-  branch: z.string(),
-  author: z.string().nullable(),
-  authorAvatar: z.string().nullable(),
-  commitTimestamp: z.number().int().nullable(),
   domain: z.string().nullable(),
+  headlineDeployment: z
+    .object({
+      id: z.string(),
+      status: z.enum(DEPLOYMENT_STATUSES),
+      deployedAt: z.number().int(),
+      commitMessage: z.string().nullable(),
+      commitSha: z.string().nullable(),
+      branch: z.string().nullable(),
+      prNumber: z.number().int().nullable(),
+      forkRepositoryFullName: z.string().nullable(),
+    })
+    .nullable(),
 });
 
 export const ociImageReferenceSchema = z
