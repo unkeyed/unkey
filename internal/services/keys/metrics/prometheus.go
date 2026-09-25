@@ -33,6 +33,26 @@ var (
 		[]string{"type", "code"},
 	)
 
+	// KeyVerificationRejectionsTotal counts the key verifications that
+	// KeyVerifier.Verify rejected. FORBIDDEN, INSUFFICIENT_PERMISSIONS,
+	// RATE_LIMITED, and USAGE_EXCEEDED are set only during Verify, so
+	// KeyVerificationsTotal records them as VALID; this counter is their
+	// Prometheus signal. Emission is owned by KeyVerifier.Verify via a deferred
+	// increment, so each rejection is counted once, at the point the final
+	// status is known.
+	//
+	// Example usage:
+	//   metrics.KeyVerificationRejectionsTotal.WithLabelValues("key", "RATE_LIMITED").Inc()
+	KeyVerificationRejectionsTotal = lazy.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: "unkey",
+			Subsystem: "key",
+			Name:      "verification_rejections_total",
+			Help:      "Total number of key verifications rejected during Verify.",
+		},
+		[]string{"type", "code"},
+	)
+
 	// KeyVerificationErrorsTotal tracks the number of errors in key verifications.
 	// These are not errors in the keys themselves like "FORBIDDEN", or "RATE_LIMITED" but errors in
 	// program functionality. Use this with the unkey_key_verifications_total metric to calculate

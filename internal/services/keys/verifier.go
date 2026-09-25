@@ -6,6 +6,7 @@ import (
 	"time"
 
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
+	"github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -75,6 +76,9 @@ func (k *KeyVerifier) VerifyRootKey(ctx context.Context, opts ...VerifyOption) e
 // For root keys: returns fault errors for validation failures.
 // For normal keys: returns error only for system problems, check k.Valid and k.Status for validation results.
 func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
+	before := k.Status
+	defer k.recordRejection(before)
+
 	// nolint:exhaustruct
 	config := &verifyConfig{}
 	for _, opt := range opts {
@@ -124,6 +128,27 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 	}
 
 	return nil
+}
+
+// recordRejection increments KeyVerificationRejectionsTotal when Verify moved the
+// key from VALID to one of the rejection statuses that keys.Get cannot see.
+func (k *KeyVerifier) recordRejection(before KeyStatus) {
+	if before != StatusValid {
+		return
+	}
+
+	switch k.Status {
+	case StatusForbidden, StatusInsufficientPermissions, StatusRateLimited, StatusUsageExceeded:
+	default:
+		return
+	}
+
+	keyType := "key"
+	if k.isRootKey {
+		keyType = "root_key"
+	}
+
+	metrics.KeyVerificationRejectionsTotal.WithLabelValues(keyType, string(k.Status)).Inc()
 }
 
 // TelemetrySnapshot captures the final verification outcome for downstream
