@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strings"
 
@@ -52,17 +51,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	legacyPermission := rbac.T(rbac.Tuple{
-		ResourceType: rbac.Project,
-		ResourceID:   "*",
-		Action:       rbac.ReadProject,
-	})
-	legacyAllowed := rbac.Check(legacyPermission, principal.Permissions) == nil
-	collection := urn.V1{WorkspaceID: principal.AuthorizedWorkspaceID, Resource: "projects/*"}
-	if !legacyAllowed && !rbac.HasPermissionIn(collection, permissions.Read, principal.Permissions) {
-		return principal.Authorize(legacyPermission)
-	}
-
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
@@ -74,15 +62,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			Limit:       limit,
 		})
 	}, func(row db.ListProjectsByWorkspaceIdRow) bool {
-		resource := urn.New().Workspace(row.WorkspaceID).Project(row.ID)
-		return legacyAllowed || rbac.Check(rbac.U(resource, permissions.Read), principal.Permissions) == nil
+		return rbac.Check(rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Project,
+				ResourceID:   "*",
+				Action:       rbac.ReadProject,
+			}),
+			rbac.U(urn.New().Workspace(row.WorkspaceID).Project(row.ID), permissions.Read),
+		), principal.Permissions) == nil
 	}, func(row db.ListProjectsByWorkspaceIdRow) string { return row.ID })
-	if errors.Is(err, pagination.ErrScanLimit) {
-		return fault.Wrap(err,
-			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
-			fault.Public("The project scan limit was reached. Narrow the search filter and retry."),
-		)
-	}
 	if err != nil {
 		return fault.Wrap(
 			err,
