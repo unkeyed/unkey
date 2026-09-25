@@ -60,7 +60,12 @@ export async function POST(req: NextRequest, ctx: RouteContext): Promise<NextRes
     }
   }
 
-  const baseURL = new URL(env().UNKEY_API_URL);
+  const apiUrl = env().UNKEY_API_URL;
+  if (!apiUrl) {
+    return NextResponse.json({ error: "UNKEY_API_URL is not configured." }, { status: 500 });
+  }
+
+  const baseURL = new URL(apiUrl);
   const upstreamURL = new URL(`/${path.join("/")}`, baseURL);
   upstreamURL.search = req.nextUrl.search;
 
