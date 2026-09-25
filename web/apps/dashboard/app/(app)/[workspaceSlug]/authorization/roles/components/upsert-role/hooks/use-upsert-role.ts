@@ -18,12 +18,6 @@ export const useUpsertRole = (
         trpcUtils.authorization.roles.connectedKeysAndPerms.invalidate({
           roleId: data.roleId,
         }),
-        trpcUtils.authorization.roles.connectedKeys.invalidate({
-          roleId: data.roleId,
-        }),
-        trpcUtils.authorization.roles.connectedPerms.invalidate({
-          roleId: data.roleId,
-        }),
       ]);
 
       // Show success toast

@@ -31,8 +31,8 @@ export const LogDetailsSkeleton = ({ distanceToTop, onClose }: Props) => {
         width: `${DEFAULT_DRAGGABLE_WIDTH}px`,
       }}
     >
-      <div role="status" aria-live="polite" aria-busy="true">
-        <span className="sr-only">Loading request details</span>
+      <div>
+        <output className="sr-only">Loading request details</output>
 
         <div className="border-b flex justify-between items-center h-[50px] px-4 py-2">
           <div className="flex gap-2 items-center min-w-0 flex-1">
