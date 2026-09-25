@@ -51,7 +51,7 @@
     "@unkey/workos-widgets": "workspace:^",
     "@vercel/analytics": "2.0.1",
     "@vercel/toolbar": "0.2.2",
-    "@workos-inc/authkit-nextjs": "4.3.0",
+    "@workos-inc/authkit-nextjs": "4.3.2",
     "boring-avatars": "2.0.4",
     "class-variance-authority": "0.7.0",
     "cmdk": "1.0.0",

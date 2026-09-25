@@ -178,8 +178,8 @@ importers:
         specifier: 0.2.2
         version: 0.2.2(@vercel/analytics@2.0.1(next@16.3.5(@opentelemetry/api@1.9.1)(@types/node@22.14.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4))(next@16.3.5(@opentelemetry/api@1.9.1)(@types/node@22.14.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(vite@8.3.0(@types/node@22.14.0)(esbuild@0.18.20)(jiti@2.7.0)(terser@5.51.2)(tsx@4.19.1)(yaml@2.9.0))
       '@workos-inc/authkit-nextjs':
-        specifier: 4.3.0
-        version: 4.3.0(@workos-inc/node@10.8.0)(next@16.3.5(@opentelemetry/api@1.9.1)(@types/node@22.14.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.7.3)
+        specifier: 4.3.2
+        version: 4.3.2(@workos-inc/node@10.8.0)(next@16.3.5(@opentelemetry/api@1.9.1)(@types/node@22.14.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.7.3)
       boring-avatars:
         specifier: 2.0.4
         version: 2.0.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -6114,8 +6114,8 @@ packages:
   '@workflow/serde@4.1.0':
     resolution: {integrity: sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ==}
 
-  '@workos-inc/authkit-nextjs@4.3.0':
-    resolution: {integrity: sha512-4qqaQoMP50spTBbcUraftRdLdnBkU5kDVpehX0oqMJRcalCBXwNt0J4hREooTJQS0ZnXwbeGo+5NaVKTG8PTGg==}
+  '@workos-inc/authkit-nextjs@4.3.2':
+    resolution: {integrity: sha512-vTMjTy2KUzCf8PQfVPG3i66n1xNvKoJzF4EK4g01Kj7z3C/DfTBuNh/nfPHJEc1UqUmKF0bYmCh9RZ6TI8BiWA==}
     engines: {node: '>=22.11.0'}
     peerDependencies:
       '@workos-inc/node': ^9.0.0 || ^10.0.0
@@ -16240,7 +16240,7 @@ snapshots:
 
   '@workflow/serde@4.1.0': {}
 
-  '@workos-inc/authkit-nextjs@4.3.0(@workos-inc/node@10.8.0)(next@16.3.5(@opentelemetry/api@1.9.1)(@types/node@22.14.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.7.3)':
+  '@workos-inc/authkit-nextjs@4.3.2(@workos-inc/node@10.8.0)(next@16.3.5(@opentelemetry/api@1.9.1)(@types/node@22.14.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.7.3)':
     dependencies:
       '@sindresorhus/fnv1a': 3.1.0
       '@workos-inc/node': 10.8.0
