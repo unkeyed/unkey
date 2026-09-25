@@ -112,7 +112,7 @@
 .woswidgets-widget {
   color: var(--color-gray-12);
   font-family: var(--font-geist-sans);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   line-height: 1.25rem;
 }
 
@@ -163,7 +163,7 @@
   border-radius: 0.375rem;
   box-shadow: 0 1px 2px var(--color-grayA-3);
   font-family: var(--font-geist-sans);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.25rem;
   transition:
@@ -317,7 +317,7 @@
   border-radius: 0.375rem;
   color: var(--color-gray-12);
   font-family: var(--font-geist-sans);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   line-height: 1.25rem;
   transition:
     background-color 150ms,
@@ -385,7 +385,7 @@
   background-color: var(--color-background);
   color: var(--color-gray-12);
   font-family: var(--font-geist-sans);
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 500;
   line-height: 2rem;
 }
@@ -394,7 +394,7 @@
 .woswidgets-dialog .rt-AlertDialogDescription {
   color: var(--color-grayA-11);
   font-family: var(--font-geist-sans);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   line-height: 1.25rem;
 }
 
