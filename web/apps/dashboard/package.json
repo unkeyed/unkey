@@ -50,6 +50,7 @@
     "@unkey/validation": "workspace:^",
     "@unkey/workos-widgets": "workspace:^",
     "@vercel/analytics": "2.0.1",
+    "@vercel/speed-insights": "2.0.0",
     "@vercel/toolbar": "0.2.2",
     "@workos-inc/authkit-nextjs": "4.3.0",
     "boring-avatars": "2.0.4",

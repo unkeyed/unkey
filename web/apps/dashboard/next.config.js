@@ -37,6 +37,9 @@ const connectSrc = [
   // three sentry.*.config/instrumentation files — drift shows up as
   // connect-src report-only violations.
   "https://*.ingest.us.sentry.io",
+  // Speed Insights serves its script from the deployment origin but beacons
+  // vitals to this fixed host.
+  "https://vitals.vercel-insights.com",
   // The preview toolbar talks to vercel.live and Pusher websockets.
   ...(allowVercelToolbar ? ["https://vercel.live", "wss://*.pusher.com"] : []),
 ].join(" ");
