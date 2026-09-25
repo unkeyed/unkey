@@ -31,7 +31,7 @@ const VIEWS = [
 
 export function AppsListControls({ search, onSearchChange, view, onViewChange }: Props) {
   return (
-    <ResourceListHeader className="items-center">
+    <ResourceListHeader className="md:items-center">
       <div className="flex h-8 w-full items-center md:w-80">
         <InputGroup className="h-8">
           <InputGroupAddon className="pointer-events-none">
