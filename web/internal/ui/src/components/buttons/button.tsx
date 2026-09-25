@@ -67,10 +67,13 @@ const buttonVariants = cva(
         default: "",
         destructive: "",
         primary: [
-          "p-2 text-white dark:text-black bg-gray-12 hover:bg-gray-12/90 focus:hover:bg-gray-12 rounded-md border border-grayA-4",
+          "p-2 text-white bg-gray-12 rounded-md border border-black/15 shadow-sm isolate",
+          "dark:border-white/5 dark:shadow-none",
+          "after:absolute after:inset-0 after:-z-10 after:rounded-[calc(var(--radius-md)-1px)] after:shadow-[inset_0_1px_rgb(255_255_255/0.15)]",
+          "dark:after:-inset-px dark:after:rounded-md",
+          "hover:after:bg-white/10 active:after:bg-white/10 dark:hover:after:bg-white/5 dark:active:after:bg-white/5",
           "focus:ring-3 focus:ring-gray-5 focus-visible:outline-hidden focus:ring-offset-0",
-          "disabled:border disabled:border-solid disabled:bg-grayA-6 disabled:border-grayA-4 disabled:text-white/85 dark:disabled:text-white/85",
-          "active:bg-gray-12/80",
+          "disabled:border disabled:border-solid disabled:bg-grayA-6 disabled:border-grayA-4 disabled:text-white/85 disabled:shadow-none disabled:after:hidden",
         ],
         outline: [
           "p-2 text-gray-12 bg-transparent border dark:border-input hover:bg-grayA-3 focus:hover:bg-transparent rounded-md",
@@ -111,6 +114,11 @@ const buttonVariants = cva(
       size: "sm",
     },
     compoundVariants: [
+      {
+        variant: "primary",
+        color: "default",
+        className: "dark:bg-gray-7",
+      },
       {
         variant: "primary",
         color: "danger",
@@ -263,7 +271,7 @@ const keyboardIconVariants = cva(
     variants: {
       variant: {
         default: "bg-gray-4 border-gray-7 text-gray-12",
-        primary: "bg-gray-12/10 border-gray-8 text-white dark:text-black group-hover:bg-gray-12/20",
+        primary: "bg-white/10 border-white/20 text-white group-hover:bg-white/20",
         outline:
           "bg-gray-3 border-gray-6 text-gray-11 group-hover:bg-gray-4 group-hover:border-gray-7",
         ghost:
