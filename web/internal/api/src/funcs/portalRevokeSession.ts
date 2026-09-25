@@ -27,44 +27,42 @@ import { APICall, APIPromise } from "../types/async.js";
 import { Result } from "../types/fp.js";
 
 /**
- * Update portal
+ * Revoke portal sessions
  *
  * @remarks
- * Change a portal's slug, display name, the resource it serves, its enabled
- * state, or its branding.
+ * Revoke every live session an end user holds on a portal.
  *
  * Unreleased and subject to change without notice.
  *
- * Only the fields you send change. Omitting a field leaves it as it is, and for
- * branding, sending null clears it. Send at most one of `keyspaceId` or `appId`.
+ * Sessions that were created but not yet opened are revoked too, so their
+ * portal URLs stop working. Revocation is not instantaneous: session lookups
+ * are cached briefly, so a request already in flight may still succeed.
  *
- * Two changes affect your end users immediately:
- * - Re-pointing at a different resource revokes the portal's live sessions,
- *   because a session carries the scope it was minted with.
- * - Disabling stops new sessions and revokes the live ones. Re-enabling does
- *   not restore them.
+ * Revoking ends existing sessions only. To keep the end user out, also stop
+ * calling `portal.createSession` for them.
+ *
+ * Calling this again for the same end user is safe and revokes nothing.
  *
  * **Required Permissions**
  *
  * Your root key must have one of:
- * - `portal.*.update_portal` (to update any portal in the workspace)
- * - `portal.<portal_id>.update_portal` (to update a specific portal)
+ * - `portal.*.create_portal_session` (for any portal in the workspace)
+ * - `portal.<portal_id>.create_portal_session` (for a specific portal)
  *
  * Without the permission this returns **404**, not 403.
  *
  * If set, this operation will use {@link Security.rootKey} from the global security.
  */
-export function portalUpdatePortal(
+export function portalRevokeSession(
   client: UnkeyCore,
-  request: components.V2PortalUpdatePortalRequestBody,
+  request: components.V2PortalRevokeSessionRequestBody,
   options?: RequestOptions,
 ): APIPromise<
   Result<
-    components.V2PortalUpdatePortalResponseBody,
+    components.V2PortalRevokeSessionResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.NotFoundErrorResponse
-    | errors.ConflictErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -86,16 +84,15 @@ export function portalUpdatePortal(
 
 async function $do(
   client: UnkeyCore,
-  request: components.V2PortalUpdatePortalRequestBody,
+  request: components.V2PortalRevokeSessionRequestBody,
   options?: RequestOptions,
 ): Promise<
   [
     Result<
-      components.V2PortalUpdatePortalResponseBody,
+      components.V2PortalRevokeSessionResponseBody,
       | errors.BadRequestErrorResponse
       | errors.UnauthorizedErrorResponse
       | errors.NotFoundErrorResponse
-      | errors.ConflictErrorResponse
       | errors.TooManyRequestsErrorResponse
       | errors.InternalServerErrorResponse
       | UnkeyError
@@ -113,7 +110,7 @@ async function $do(
   const parsed = safeParse(
     request,
     (value) =>
-      components.V2PortalUpdatePortalRequestBody$outboundSchema.parse(value),
+      components.V2PortalRevokeSessionRequestBody$outboundSchema.parse(value),
     "Input validation failed",
   );
   if (!parsed.ok) {
@@ -122,7 +119,7 @@ async function $do(
   const payload = parsed.value;
   const body = encodeJSON("body", payload, { explode: true });
 
-  const path = pathToFunc("/v2/portal.updatePortal")();
+  const path = pathToFunc("/v2/portal.revokeSession")();
 
   const headers = new Headers(compactMap({
     "Content-Type": "application/json",
@@ -136,7 +133,7 @@ async function $do(
   const context = {
     options: client._options,
     baseURL: options?.serverURL ?? client._baseURL ?? "",
-    operationID: "portal.updatePortal",
+    operationID: "portal.revokeSession",
     oAuth2Scopes: null,
 
     resolvedSecurity: requestSecurity,
@@ -190,11 +187,10 @@ async function $do(
   };
 
   const [result] = await M.match<
-    components.V2PortalUpdatePortalResponseBody,
+    components.V2PortalRevokeSessionResponseBody,
     | errors.BadRequestErrorResponse
     | errors.UnauthorizedErrorResponse
     | errors.NotFoundErrorResponse
-    | errors.ConflictErrorResponse
     | errors.TooManyRequestsErrorResponse
     | errors.InternalServerErrorResponse
     | UnkeyError
@@ -206,11 +202,10 @@ async function $do(
     | UnexpectedClientError
     | SDKValidationError
   >(
-    M.json(200, components.V2PortalUpdatePortalResponseBody$inboundSchema),
+    M.json(200, components.V2PortalRevokeSessionResponseBody$inboundSchema),
     M.jsonErr(400, errors.BadRequestErrorResponse$inboundSchema),
     M.jsonErr(401, errors.UnauthorizedErrorResponse$inboundSchema),
     M.jsonErr(404, errors.NotFoundErrorResponse$inboundSchema),
-    M.jsonErr(409, errors.ConflictErrorResponse$inboundSchema),
     M.jsonErr(429, errors.TooManyRequestsErrorResponse$inboundSchema, {
       ctype: "application/problem+json",
     }),

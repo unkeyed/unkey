@@ -454,8 +454,8 @@ func TestUpdatePortalRepointsMappingAndRevokesSessions(t *testing.T) {
 		"another portal's sessions must be untouched")
 }
 
-// Revocation is tied to the mapping changing, not to the request touching
-// the row. Disabling a portal in particular must not cut live sessions.
+// Revocation is tied to the mapping changing or the portal being switched
+// off, not to the request touching the row.
 func TestUpdatePortalWithoutMappingChangeKeepsSessions(t *testing.T) {
 	h := testutil.NewHarness(t)
 	route, headers := newRoute(t, h, "portal.*.update_portal")
@@ -465,10 +465,6 @@ func TestUpdatePortalWithoutMappingChangeKeepsSessions(t *testing.T) {
 	stored := h.SeedPortal(t, workspace.ID, "steady", "steady", mapping, nil, nil)
 
 	testCases := map[string]func(handler.Request) handler.Request{
-		"disable only": func(r handler.Request) handler.Request {
-			r.Enabled = ptr.P(false)
-			return r
-		},
 		"slug only": func(r handler.Request) handler.Request {
 			r.Slug = ptr.P("steady-renamed")
 			return r
@@ -494,6 +490,55 @@ func TestUpdatePortalWithoutMappingChangeKeepsSessions(t *testing.T) {
 				"sessions must survive an update that leaves the mapping alone")
 		})
 	}
+}
+
+// A disabled portal must not keep serving end users, and the session resolver
+// never reads `portals`, so switching a portal off revokes its sessions.
+// Switching it back on does not bring them back.
+func TestUpdatePortalDisableRevokesSessions(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route, headers := newRoute(t, h, "portal.*.update_portal")
+	workspace := h.Resources().UserWorkspace
+
+	mapping := keyspaceMapping(t, h, workspace.ID)
+	stored := h.SeedPortal(t, workspace.ID, "switched-off", "switched-off", mapping, nil, nil)
+	bystander := h.SeedPortal(t, workspace.ID, "still-on", "still-on", keyspaceMapping(t, h, workspace.ID), nil, nil)
+	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys.read"})
+	h.CreatePortalSessionForPortal(bystander.ID, workspace.ID, "user_2", []string{mapping.ID}, []string{"keys.read"})
+	require.Equal(t, 1, liveSessions(t, h, stored.ID), "the fixture must have a live session to lose")
+
+	disable := baseRequest(stored.ID)
+	disable.Enabled = ptr.P(false)
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, disable)
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Equal(t, 0, liveSessions(t, h, stored.ID), "disabling revokes the portal's sessions")
+	require.Equal(t, 1, liveSessions(t, h, bystander.ID), "another portal's sessions must be untouched")
+
+	enable := baseRequest(stored.ID)
+	enable.Enabled = ptr.P(true)
+	res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, enable)
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Equal(t, 0, liveSessions(t, h, stored.ID), "re-enabling does not restore revoked sessions")
+}
+
+// Sending enabled:false to a portal that is already off is not a change, so it
+// must not revoke anything.
+func TestUpdatePortalAlreadyDisabledKeepsSessions(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route, headers := newRoute(t, h, "portal.*.update_portal")
+	workspace := h.Resources().UserWorkspace
+
+	mapping := keyspaceMapping(t, h, workspace.ID)
+	stored := h.SeedPortal(t, workspace.ID, "already-off", "already-off", mapping, nil, nil)
+	_, err := h.DB.RW().ExecContext(context.Background(), "UPDATE portals SET enabled = false WHERE id = ?", stored.ID)
+	require.NoError(t, err)
+	h.CreatePortalSessionForPortal(stored.ID, workspace.ID, "user_1", []string{mapping.ID}, []string{"keys.read"})
+
+	req := baseRequest(stored.ID)
+	req.Enabled = ptr.P(false)
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+	require.Equal(t, 1, liveSessions(t, h, stored.ID), "a no-op disable must not revoke")
 }
 
 // The target is an id or a slug, and both must reach the same row.

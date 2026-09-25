@@ -77,6 +77,7 @@ export const unkeyAuditLogEvents = z.enum([
   "portal.delete",
   "portal.session.create",
   "portal.session.exchange",
+  "portal.session.revoke",
 ]);
 
 export const auditLogSchemaV1 = z.object({

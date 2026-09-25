@@ -69,6 +69,7 @@ const (
 	PortalDeleteEvent          AuditLogEvent = "portal.delete"
 	PortalSessionCreateEvent   AuditLogEvent = "portal.session.create"
 	PortalSessionExchangeEvent AuditLogEvent = "portal.session.exchange"
+	PortalSessionRevokeEvent   AuditLogEvent = "portal.session.revoke"
 
 	// Deployment events
 	DeploymentCreateEvent   AuditLogEvent = "deployment.create"

@@ -9,7 +9,7 @@ Unreleased and subject to change without notice.
 
 Only the fields you send change. Omitting a field leaves it unchanged. For branding fields, sending `null` clears the value. Send at most one of `keyspaceId` or `appId`.
 
-Re-pointing the portal at another resource revokes its live sessions because each session carries the scope it was minted with. Disabling the portal stops new sessions but leaves live sessions running until they expire.
+Re-pointing the portal at another resource revokes its live sessions because each session carries the scope it was minted with. Disabling the portal stops new sessions and revokes the live ones. Re-enabling it does not restore them.
 
 Your root key must have `portal.*.update_portal` or `portal.<portal_id>.update_portal`. Without permission, this endpoint returns **404**, not 403.
 
