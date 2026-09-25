@@ -2,6 +2,7 @@ import { MAX_KEYS_FETCH_LIMIT } from "@/app/(app)/[workspaceSlug]/authorization/
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
+import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconArrowsOppositeDirectionYOutline18,
@@ -26,8 +27,11 @@ import { EditKeyName } from "./components/edit-key-name";
 import { EditMetadata } from "./components/edit-metadata";
 import { EditRatelimits } from "./components/edit-ratelimits";
 import { KeyRbacDialog } from "./components/edit-rbac";
-import { MAX_PERMS_FETCH_LIMIT } from "./components/edit-rbac/components/assign-permission/hooks/use-fetch-keys-permissions";
-import { MAX_ROLES_FETCH_LIMIT } from "./components/edit-rbac/components/assign-role/hooks/use-fetch-keys-roles";
+import {
+  MAX_PERMS_FETCH_LIMIT,
+  keysRbacPermissionsQueryOptions,
+} from "./components/edit-rbac/components/assign-permission/hooks/use-fetch-keys-permissions";
+import { keysRbacRolesQueryOptions } from "./components/edit-rbac/components/assign-role/hooks/use-fetch-keys-roles";
 import { RotateKey } from "./components/rotate-key/rotate-key";
 
 type KeyContext = {
@@ -38,6 +42,7 @@ type KeyContext = {
 export const getKeysTableActionItems = (
   key: KeyDetails,
   trpcUtils: ReturnType<typeof trpc.useUtils>,
+  queryClient: QueryClient,
   context: KeyContext = {},
 ): MenuItem[] => {
   const { apiId } = context;
@@ -158,12 +163,8 @@ export const getKeysTableActionItems = (
 
           // Always prefetch combobox data - independent of connectedData
           const comboboxDataPromise = Promise.all([
-            trpcUtils.key.update.rbac.permissions.query.prefetchInfinite({
-              limit: MAX_PERMS_FETCH_LIMIT,
-            }),
-            trpcUtils.key.update.rbac.roles.query.prefetchInfinite({
-              limit: MAX_ROLES_FETCH_LIMIT,
-            }),
+            queryClient.prefetchInfiniteQuery(keysRbacPermissionsQueryOptions()),
+            queryClient.prefetchInfiniteQuery(keysRbacRolesQueryOptions()),
             trpcUtils.authorization.roles.keys.query.prefetchInfinite({
               limit: MAX_KEYS_FETCH_LIMIT,
             }),
@@ -177,12 +178,8 @@ export const getKeysTableActionItems = (
           // Fallback: prefetch only the combobox data which doesn't depend on connectedData
           try {
             await Promise.all([
-              trpcUtils.key.update.rbac.permissions.query.prefetchInfinite({
-                limit: MAX_PERMS_FETCH_LIMIT,
-              }),
-              trpcUtils.key.update.rbac.roles.query.prefetchInfinite({
-                limit: MAX_ROLES_FETCH_LIMIT,
-              }),
+              queryClient.prefetchInfiniteQuery(keysRbacPermissionsQueryOptions()),
+              queryClient.prefetchInfiniteQuery(keysRbacRolesQueryOptions()),
               trpcUtils.authorization.roles.keys.query.prefetchInfinite({
                 limit: MAX_KEYS_FETCH_LIMIT,
               }),
@@ -236,6 +233,7 @@ type KeysTableActionsProps = {
 
 export const KeysTableActions = ({ keyData, apiId, keyspaceId }: KeysTableActionsProps) => {
   const trpcUtils = trpc.useUtils();
-  const items = getKeysTableActionItems(keyData, trpcUtils, { apiId, keyspaceId });
+  const queryClient = useQueryClient();
+  const items = getKeysTableActionItems(keyData, trpcUtils, queryClient, { apiId, keyspaceId });
   return <TableActionPopover items={items} />;
 };
