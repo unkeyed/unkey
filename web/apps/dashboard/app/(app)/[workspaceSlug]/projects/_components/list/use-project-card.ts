@@ -1,17 +1,20 @@
 "use client";
 import { collection } from "@/lib/collections";
-import { queryClient } from "@/lib/collections/client";
+import { queryClient, trpcClient } from "@/lib/collections/client";
 import {
   DEPLOYMENT_STATUSES,
   isDeploymentInFlight,
 } from "@/lib/collections/deploy/deployment-status";
+import type { Deployment } from "@/lib/collections/deploy/deployments";
 import { buildProjectApps } from "@/lib/collections/deploy/project-cards";
 import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
-import { and, eq, inArray, useLiveQuery } from "@tanstack/react-db";
+import { useCollectionQuery } from "@/lib/collections/use-collection-query";
+import { keepPreviousData } from "@tanstack/query-core";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 
-const RECENT_DEPLOYMENTS_PER_PROJECT = 10;
+const RECENT_DEPLOYMENTS_PER_APP = 5;
 const IN_FLIGHT_POLL_MS = 5_000;
 
 export function useProjectCard(projectId: string, { nearViewport }: { nearViewport: boolean }) {
@@ -36,22 +39,25 @@ export function useProjectCard(projectId: string, { nearViewport }: { nearViewpo
     },
     [projectId, enabled],
   );
-  const recentDeployments = useLiveQuery(
-    (q) =>
-      enabled
-        ? q
-            .from({ deployment: collection.deployments })
-            .where(({ deployment }) =>
-              and(
-                eq(deployment.projectId, projectId),
-                inArray(deployment.status, [...DEPLOYMENT_STATUSES]),
-              ),
-            )
-            .orderBy(({ deployment }) => deployment.createdAt, "desc")
-            .limit(RECENT_DEPLOYMENTS_PER_PROJECT)
-        : null,
-    [projectId, enabled],
-  );
+  const appIds = (projectApps.data ?? []).map(({ app }) => app.id).sort();
+  const recentDeployments = useCollectionQuery<Deployment[]>({
+    queryKey: ["deployments", projectId, "recent-per-app", ...appIds],
+    queryFn: async () => {
+      const perApp = await Promise.all(
+        appIds.map((appId) =>
+          trpcClient.deploy.deployment.list.query({
+            projectId,
+            appId,
+            statuses: [...DEPLOYMENT_STATUSES],
+            limit: RECENT_DEPLOYMENTS_PER_APP,
+          }),
+        ),
+      );
+      return perApp.flatMap((result) => result.deployments);
+    },
+    enabled: enabled && appIds.length > 0,
+    placeholderData: keepPreviousData,
+  });
 
   const productionDomains = useLiveQuery(
     (q) =>
@@ -85,8 +91,10 @@ export function useProjectCard(projectId: string, { nearViewport }: { nearViewpo
     { intervalMs: IN_FLIGHT_POLL_MS, enabled: enabled && inFlight },
   );
 
+  const recentLoading = appIds.length > 0 && recentDeployments.isPending;
   return {
     apps,
-    isLoading: !nearViewport || (enabled && (projectApps.isLoading || recentDeployments.isLoading)),
+    isLoading:
+      !nearViewport || projectApps.isLoading || productionDomains.isLoading || recentLoading,
   };
 }
