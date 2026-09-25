@@ -195,8 +195,8 @@ export const RatelimitSetup = ({
 
       <div className="flex w-full justify-between items-center px-1">
         <div className="flex gap-2 items-center">
-          <span className="font-medium text-sm text-gray-12">Ratelimits</span>
-          <span className="rounded-full border border-grayA-3 justify-center items-center flex bg-grayA-3 w-[22px] h-[18px] text-gray-12 text-[11px]">
+          <span className="font-medium text-base text-gray-12">Ratelimits</span>
+          <span className="rounded-full border border-grayA-3 justify-center items-center flex bg-grayA-3 w-[22px] h-[18px] text-gray-12 text-2xs">
             {fields.length}
           </span>
         </div>

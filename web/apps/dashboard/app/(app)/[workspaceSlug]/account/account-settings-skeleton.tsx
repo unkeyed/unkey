@@ -32,7 +32,7 @@ export function AccountSettingsSkeleton() {
           <h2 id="security-loading-heading" className="m-0 text-lg font-medium">
             Security
           </h2>
-          <p className="m-0 text-sm text-gray-11">
+          <p className="m-0 text-base text-gray-11">
             Enroll in MFA here even when your organization does not require it.
           </p>
         </div>

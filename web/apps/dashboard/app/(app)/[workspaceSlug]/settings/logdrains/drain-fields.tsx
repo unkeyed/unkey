@@ -300,7 +300,7 @@ function SourcesField({ stream }: { stream: "gateway_requests" | "runtime_logs" 
 
   return (
     <fieldset disabled={unavailable} className="flex flex-col gap-1.5">
-      <legend className="text-[13px] text-gray-11">Sources</legend>
+      <legend className="text-sm text-gray-11">Sources</legend>
       <span className="text-xs text-gray-9">
         {sourceMode === "all"
           ? "All sources in this workspace. No project, app, or environment restrictions."
@@ -337,7 +337,7 @@ function SourcesField({ stream }: { stream: "gateway_requests" | "runtime_logs" 
             <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-input transition-colors duration-150 ease-out group-data-checked:border-gray-12">
               <Radio.Indicator className="size-2 rounded-full bg-gray-12" />
             </span>
-            <span className="text-[13px] text-gray-12">{option.title}</span>
+            <span className="text-sm text-gray-12">{option.title}</span>
           </Radio.Root>
         ))}
       </RadioGroup>
@@ -350,7 +350,7 @@ function SourcesField({ stream }: { stream: "gateway_requests" | "runtime_logs" 
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search projects, apps, environments"
               aria-label="Search sources"
-              className="w-full bg-transparent text-[13px] text-gray-12 placeholder:text-gray-9 focus:outline-hidden"
+              className="w-full bg-transparent text-sm text-gray-12 placeholder:text-gray-9 focus:outline-hidden"
             />
           </div>
 
@@ -572,10 +572,10 @@ function SourceRow({
           {checked === "on" ? <IconCheckOutline12 /> : null}
           {checked === "some" ? <IconMinusOutline12 /> : null}
         </span>
-        <span className={cn("truncate text-[13px]", depth === 0 ? "text-gray-12" : "text-gray-11")}>
+        <span className={cn("truncate text-sm", depth === 0 ? "text-gray-12" : "text-gray-11")}>
           {label}
         </span>
-        {meta ? <span className="ml-auto shrink-0 text-[11px] text-gray-9">{meta}</span> : null}
+        {meta ? <span className="ml-auto shrink-0 text-2xs text-gray-9">{meta}</span> : null}
       </button>
     </div>
   );
@@ -601,7 +601,7 @@ function GatewayStatusesField() {
 
   return (
     <fieldset className="flex flex-col gap-1.5">
-      <legend className="text-[13px] text-gray-11">HTTP statuses</legend>
+      <legend className="text-sm text-gray-11">HTTP statuses</legend>
 
       <div role="radiogroup" aria-label="Status scope" className="mt-1.5 grid grid-cols-2 gap-2">
         {STATUS_MODES.map((option) => (
@@ -672,7 +672,7 @@ function ModeCard({
       >
         {active ? <span className="size-2 rounded-full bg-gray-12" /> : null}
       </span>
-      <span className="truncate text-[13px] text-gray-12">{title}</span>
+      <span className="truncate text-sm text-gray-12">{title}</span>
     </button>
   );
 }
@@ -727,7 +727,7 @@ function AuditEventTypesField() {
 
   return (
     <fieldset className="flex flex-col gap-1.5">
-      <legend className="text-[13px] text-gray-11">Event types</legend>
+      <legend className="text-sm text-gray-11">Event types</legend>
       <span className="text-xs text-gray-9">
         Choose which audit events to send.{" "}
         <a
@@ -756,7 +756,7 @@ function AuditEventTypesField() {
             <span className="flex size-4 shrink-0 items-center justify-center rounded-full border border-input transition-colors duration-150 ease-out group-data-checked:border-gray-12">
               <Radio.Indicator className="size-2 rounded-full bg-gray-12" />
             </span>
-            <span className="text-[13px] text-gray-12">{option.title}</span>
+            <span className="text-sm text-gray-12">{option.title}</span>
           </Radio.Root>
         ))}
       </RadioGroup>
@@ -773,7 +773,7 @@ function AuditEventTypesField() {
                 aria-label="Search event types"
                 aria-invalid={Boolean(error)}
                 aria-describedby={status ? statusId : undefined}
-                className="w-full bg-transparent text-[13px] text-gray-12 placeholder:text-gray-9 focus:outline-hidden"
+                className="w-full bg-transparent text-sm text-gray-12 placeholder:text-gray-9 focus:outline-hidden"
               />
             </div>
             <div className="max-h-[264px] overflow-y-auto py-1">
@@ -956,7 +956,7 @@ function FilterChoices({
 }) {
   return (
     <fieldset className="flex flex-col gap-1.5">
-      <legend className="text-[13px] text-gray-11">{label}</legend>
+      <legend className="text-sm text-gray-11">{label}</legend>
       {description ? <span className="text-xs text-gray-9">{description}</span> : null}
       <ChoiceMultibox {...choices} className="mt-1.5" />
     </fieldset>
@@ -973,7 +973,7 @@ export function HeaderFields() {
 
   return (
     <fieldset className="flex flex-col gap-1.5">
-      <legend className="text-[13px] text-gray-11">Headers</legend>
+      <legend className="text-sm text-gray-11">Headers</legend>
       <span className="text-xs text-gray-9">
         Optional. Unkey encrypts header values before storing them, and hides them afterwards.
       </span>

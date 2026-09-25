@@ -53,7 +53,7 @@ export function ComputePlanDialog({
             {title}
           </DialogTitle>
           {subTitle ? (
-            <DialogDescription className="text-[14px] text-gray-11 leading-normal">
+            <DialogDescription className="text-base text-gray-11 leading-normal">
               {subTitle}
             </DialogDescription>
           ) : null}
@@ -130,20 +130,20 @@ function Row({
       </span>
 
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="font-medium text-[15px] text-gray-12">{plan.name}</span>
-        {blurb ? <span className="text-[13px] text-gray-11">{blurb}</span> : null}
+        <span className="font-medium text-base text-gray-12">{plan.name}</span>
+        {blurb ? <span className="text-sm text-gray-11">{blurb}</span> : null}
       </span>
 
       <span className="shrink-0 text-right">
         {plan.amount !== null ? (
           <>
-            <span className="font-semibold text-[15px] text-gray-12 tabular-nums">
+            <span className="font-semibold text-base text-gray-12 tabular-nums">
               {formatDollars(plan.amount)}
             </span>
-            <span className="text-[12px] text-gray-11">{intervalSuffix(plan.interval)}</span>
+            <span className="text-xs text-gray-11">{intervalSuffix(plan.interval)}</span>
           </>
         ) : (
-          <span className="font-semibold text-[15px] text-gray-12">Contact us</span>
+          <span className="font-semibold text-base text-gray-12">Contact us</span>
         )}
       </span>
     </>
@@ -154,7 +154,7 @@ function Row({
       {isCurrent ? (
         <div className={cardClassName}>
           {details}
-          <span className="shrink-0 rounded-md bg-info-3 px-2.5 py-1.5 text-[13px] text-info-11 leading-none">
+          <span className="shrink-0 rounded-md bg-info-3 px-2.5 py-1.5 text-sm text-info-11 leading-none">
             Current
           </span>
         </div>
@@ -175,7 +175,7 @@ function Row({
             render={<span />}
             variant={change === "downgrade" ? "outline" : "primary"}
             size="md"
-            className="shrink-0 rounded-lg px-3 text-[13px]"
+            className="shrink-0 rounded-lg px-3 text-sm"
           >
             {isSubmitting ? (
               <>
@@ -195,7 +195,7 @@ function Row({
         </button>
       )}
 
-      {warning ? <p className="text-[13px] text-warning-11 leading-5">{warning}</p> : null}
+      {warning ? <p className="text-sm text-warning-11 leading-5">{warning}</p> : null}
     </div>
   );
 }
@@ -217,9 +217,9 @@ export function ComputePlanFeatures() {
         <div key={title}>
           <div className="flex items-center gap-[9px]">
             <Icon className="size-4 shrink-0 text-gray-12" />
-            <span className="font-medium text-[13px] text-gray-12">{title}</span>
+            <span className="font-medium text-sm text-gray-12">{title}</span>
           </div>
-          <p className="mt-1 text-[12.5px] text-gray-11 leading-relaxed">{description}</p>
+          <p className="mt-1 text-xs text-gray-11 leading-relaxed">{description}</p>
         </div>
       ))}
     </div>
@@ -228,7 +228,7 @@ export function ComputePlanFeatures() {
 
 export function ComputePlansMoreInfo() {
   return (
-    <p className="text-[13px] text-gray-11 leading-normal">
+    <p className="text-sm text-gray-11 leading-normal">
       Get more information about{" "}
       <a
         href={COMPUTE_PLANS_LINK_HREF}
@@ -246,10 +246,10 @@ export function ComputePlansMoreInfo() {
 export function AllPlansInclude() {
   return (
     <div className="rounded-xl border bg-raised px-4 py-3.5">
-      <span className="font-medium text-[13px] text-gray-12">Included in every plan</span>
+      <span className="font-medium text-sm text-gray-12">Included in every plan</span>
       <ul className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2.5">
         {ALL_PLANS_INCLUDE.map((feature) => (
-          <li key={feature} className="flex items-center gap-2.5 text-[13px] text-gray-11">
+          <li key={feature} className="flex items-center gap-2.5 text-sm text-gray-11">
             <IconCheckOutline18 className="size-3.5 shrink-0 text-gray-10" />
             {feature}
           </li>
@@ -263,7 +263,7 @@ export function CreditsInfoStrip() {
   return (
     <div className="flex items-start gap-2.5 rounded-xl border bg-raised px-3.5 py-3">
       <IconCircleInfoOutline18 className="size-4 mt-px shrink-0 text-info-9" />
-      <p className="text-[12.5px] text-gray-11 leading-relaxed">
+      <p className="text-xs text-gray-11 leading-relaxed">
         {CREDITS_INFO}{" "}
         <a
           href={CREDITS_LINK_HREF}
@@ -318,11 +318,11 @@ export function ComputePlanConfirmDialog({
           >
             {currentPlanName ? "Confirm change" : "Subscribe"}
           </Button>
-          {note ? <p className="text-center text-[12px] text-gray-9 leading-5">{note}</p> : null}
+          {note ? <p className="text-center text-xs text-gray-9 leading-5">{note}</p> : null}
         </div>
       }
     >
-      <div className="text-[13px] text-gray-11 leading-6">
+      <div className="text-sm text-gray-11 leading-6">
         {currentPlanName
           ? `You're moving from ${currentPlanName} to ${plan?.name ?? "the selected plan"}.`
           : `You're subscribing to ${plan?.name ?? "the selected plan"}.`}

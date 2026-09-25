@@ -145,7 +145,7 @@ export const PermissionSheet = ({
           <ScrollArea className="flex-1 min-h-0">
             <div className="flex flex-col gap-1 pt-2 pb-6">
               {hasNoResults ? (
-                <p className="text-sm text-gray-10 ml-6 py-1.5 mt-1.5">
+                <p className="text-base text-gray-10 ml-6 py-1.5 mt-1.5">
                   {ROOT_KEY_MESSAGES.UI.NO_RESULTS}
                 </p>
               ) : (
@@ -158,7 +158,7 @@ export const PermissionSheet = ({
                     onPermissionChange={handleWorkspacePermissionChange}
                   />
                   {apiScopes.length > 0 && (
-                    <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
+                    <p className="text-base text-gray-10 ml-6 py-1.5 mb-2">
                       {ROOT_KEY_MESSAGES.UI.FROM_APIS}
                     </p>
                   )}
@@ -174,7 +174,7 @@ export const PermissionSheet = ({
                     />
                   ))}
                   {projectScopes.length > 0 && (
-                    <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
+                    <p className="text-base text-gray-10 ml-6 py-1.5 mb-2">
                       {ROOT_KEY_MESSAGES.UI.FROM_PROJECTS}
                     </p>
                   )}
@@ -190,7 +190,7 @@ export const PermissionSheet = ({
                     />
                   ))}
                   {appScopes.length > 0 && (
-                    <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
+                    <p className="text-base text-gray-10 ml-6 py-1.5 mb-2">
                       {ROOT_KEY_MESSAGES.UI.FROM_APPS}
                     </p>
                   )}
@@ -206,7 +206,7 @@ export const PermissionSheet = ({
                     >
                       {environments.length > 0 && (
                         <div className="flex flex-col">
-                          <p className="text-sm text-gray-10 py-1.5">Environments</p>
+                          <p className="text-base text-gray-10 py-1.5">Environments</p>
                           {environments.map((environment) => (
                             <PermissionContentList
                               selected={selectedPermissions}
@@ -227,7 +227,7 @@ export const PermissionSheet = ({
                     </PermissionContentList>
                   ))}
                   {orphanEnvironmentScopes.length > 0 && (
-                    <p className="text-sm text-gray-10 ml-6 py-1.5 mb-2">
+                    <p className="text-base text-gray-10 ml-6 py-1.5 mb-2">
                       {ROOT_KEY_MESSAGES.UI.FROM_ENVIRONMENTS}
                     </p>
                   )}

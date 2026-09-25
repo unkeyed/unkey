@@ -91,7 +91,7 @@ export function DeletePortalRow({ portal, keyAuthId }: { portal: Portal; keyAuth
           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-error-9">
             <IconTriangleWarningOutline12 className="text-white" />
           </div>
-          <div className="text-[13px] leading-6 text-error-12">
+          <div className="text-sm leading-6 text-error-12">
             <span className="font-medium">Warning:</span> deleting{" "}
             <span className="font-medium">{portal.slug}</span> is permanent. Every live end-user
             session ends immediately, and the slug becomes available for reuse. Your users' API keys
@@ -100,7 +100,7 @@ export function DeletePortalRow({ portal, keyAuthId }: { portal: Portal; keyAuth
         </div>
         <form id="delete-portal-form" onSubmit={handleSubmit(onSubmit)}>
           <div className="mt-4 flex flex-col gap-1">
-            <p className="text-[13px] text-gray-11">
+            <p className="text-sm text-gray-11">
               Type <span className="font-medium text-gray-12">{portal.slug}</span> to confirm
             </p>
             <Input

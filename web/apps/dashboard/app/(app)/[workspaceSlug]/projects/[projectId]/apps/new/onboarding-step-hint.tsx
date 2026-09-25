@@ -6,7 +6,7 @@ type OnboardingStepHintProps = {
 
 export const OnboardingStepHint = ({ children }: OnboardingStepHintProps) => (
   <div className="mt-8 flex justify-center">
-    <span className="text-sm text-gray-11">{children}</span>
+    <span className="text-base text-gray-11">{children}</span>
   </div>
 );
 

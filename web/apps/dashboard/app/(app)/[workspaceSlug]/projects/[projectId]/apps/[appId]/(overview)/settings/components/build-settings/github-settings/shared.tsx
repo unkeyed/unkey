@@ -39,8 +39,8 @@ export const RepoNameLabel = ({ fullName }: { fullName: string }) => {
   return (
     // This max-w-[185px] and w-[185px] in ComboboxSkeleton should match
     <div className="max-w-[185px] truncate">
-      <span className="text-[13px] text-gray-12 font-medium">{handle}</span>
-      <span className="text-[13px] text-gray-11">/{repoName}</span>
+      <span className="text-sm text-gray-12 font-medium">{handle}</span>
+      <span className="text-sm text-gray-11">/{repoName}</span>
     </div>
   );
 };
@@ -64,6 +64,6 @@ export const ManageGitHubAppLink = ({
       void onInstall();
     }}
   >
-    <span className="text-sm">{text}</span>
+    <span className="text-base">{text}</span>
   </Button>
 );

@@ -67,7 +67,7 @@ export function UsageBanner() {
               />
               <span>Usage {Math.round(percentage).toLocaleString()}%</span>
               {shouldUpgrade && !collapsed ? (
-                <div className="ml-auto inline-flex h-7 items-center justify-center rounded-md border bg-gray-12 px-2 text-sm font-medium text-white dark:text-black">
+                <div className="ml-auto inline-flex h-7 items-center justify-center rounded-md border bg-gray-12 px-2 text-base font-medium text-white dark:text-black">
                   Upgrade
                 </div>
               ) : null}

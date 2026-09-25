@@ -122,13 +122,13 @@ export const SelectionControls = ({
               <div className="flex justify-between items-center w-full">
                 <div className="items-center flex gap-2">
                   <AnimatedCounter value={selectedKeys.size} />
-                  <div className="text-gray-9 text-[13px] leading-6">selected</div>
+                  <div className="text-gray-9 text-sm leading-6">selected</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-gray-12 font-medium text-[13px]"
+                    className="text-gray-12 font-medium text-sm"
                     onClick={() => setIsBatchEditExternalIdOpen(true)}
                   >
                     <IconArrowsOppositeDirectionYOutline18 /> Change External ID
@@ -136,7 +136,7 @@ export const SelectionControls = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-gray-12 font-medium text-[13px]"
+                    className="text-gray-12 font-medium text-sm"
                     disabled={
                       getSelectedKeysState() !== "all-disabled" || updateKeyStatus.isLoading
                     }
@@ -158,7 +158,7 @@ export const SelectionControls = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-gray-12 font-medium text-[13px]"
+                    className="text-gray-12 font-medium text-sm"
                     disabled={getSelectedKeysState() !== "all-enabled" || updateKeyStatus.isLoading}
                     loading={updateKeyStatus.isLoading}
                     onClick={handleDisableButtonClick}
@@ -170,7 +170,7 @@ export const SelectionControls = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-gray-12 font-medium text-[13px]"
+                    className="text-gray-12 font-medium text-sm"
                     disabled={deleteKey.isLoading}
                     loading={deleteKey.isLoading}
                     onClick={handleDeleteButtonClick}
@@ -190,7 +190,7 @@ export const SelectionControls = ({
                 </div>
               </div>
               {recentlyUsedCount > 0 && (
-                <div className="flex items-center gap-2 text-warning-11 text-[13px] leading-6">
+                <div className="flex items-center gap-2 text-warning-11 text-sm leading-6">
                   <IconTriangleWarningOutline18 className="size-3.5 shrink-0" />
                   <span>{recentlyUsedSummary}</span>
                 </div>
@@ -247,7 +247,7 @@ export const AnimatedCounter = ({ value }: { value: number }) => {
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="size-[18px] text-[11px] leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-gray-12 hover:bg-gray-12/90 focus:hover:bg-gray-12 rounded-md border"
+      className="size-[18px] text-2xs leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-gray-12 hover:bg-gray-12/90 focus:hover:bg-gray-12 rounded-md border"
     >
       <span className="flex items-center justify-center">{value}</span>
     </motion.div>

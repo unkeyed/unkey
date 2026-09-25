@@ -46,7 +46,7 @@ export function MatchConditionEditorBody() {
           <IconPlusOutline18 />
           {fields.length === 0 ? "Add First Condition" : "Add"}
         </Button>
-        <span className="text-[12px] text-gray-11">
+        <span className="text-xs text-gray-11">
           {fields.length} / {POLICY_LIMITS.maxMatchExprsPerPolicy}
           {atCap && " · maximum reached"}
         </span>

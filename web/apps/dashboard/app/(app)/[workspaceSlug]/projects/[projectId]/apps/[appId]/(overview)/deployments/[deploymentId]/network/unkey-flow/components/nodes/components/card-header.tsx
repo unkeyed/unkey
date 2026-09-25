@@ -44,8 +44,8 @@ export function CardHeader({
       <div className="flex items-center justify-between gap-3">
         {icon}
         <div className="flex flex-col gap-0.75 justify-center h-9 py-2">
-          <div className="text-gray-12 font-medium text-[13px] font-mono">{title}</div>
-          <div className="text-gray-9 text-[11px]">{subtitle}</div>
+          <div className="text-gray-12 font-medium text-sm font-mono">{title}</div>
+          <div className="text-gray-9 text-2xs">{subtitle}</div>
         </div>
       </div>
       {isCard && (

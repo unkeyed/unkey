@@ -79,7 +79,7 @@ export function LogdrainDetail({ drain }: { drain: DrainDetail }) {
         <PageHeaderContent className="flex-1">
           <Link
             href={listHref}
-            className="-ml-1 flex w-fit items-center gap-1 rounded-md px-1 py-0.5 text-[13px] text-gray-10 transition-colors hover:text-gray-12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7"
+            className="-ml-1 flex w-fit items-center gap-1 rounded-md px-1 py-0.5 text-sm text-gray-10 transition-colors hover:text-gray-12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-7"
           >
             <IconChevronLeftOutline12 />
             Log Drains

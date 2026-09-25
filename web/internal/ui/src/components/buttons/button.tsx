@@ -60,7 +60,7 @@ export type DocumentedButtonProps = VariantProps<typeof buttonVariants> & {
 };
 
 const buttonVariants = cva(
-  "inline-flex group relative duration-150 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-gray-6 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed cursor-pointer",
+  "inline-flex group relative duration-150 items-center justify-center gap-2 whitespace-nowrap rounded-md text-base font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-gray-6 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 disabled:cursor-not-allowed cursor-pointer",
   {
     variants: {
       variant: {
@@ -270,7 +270,7 @@ export type ButtonProps = VariantProps<typeof buttonVariants> &
   };
 
 const keyboardIconVariants = cva(
-  "items-center transition duration-150 text-center justify-center shadow-none text-sm flex justify-center font-mono text-xs font-medium border rounded-sm h-5 px-1.5 min-w-[24px]",
+  "items-center transition duration-150 text-center justify-center shadow-none text-base flex justify-center font-mono text-xs font-medium border rounded-sm h-5 px-1.5 min-w-[24px]",
   {
     variants: {
       variant: {

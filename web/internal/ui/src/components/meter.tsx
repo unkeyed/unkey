@@ -48,7 +48,7 @@ export function MeterHeader({ className, ...props }: React.HTMLAttributes<HTMLDi
 export function MeterLabel({ className, ...props }: MeterPrimitive.Label.Props) {
   return (
     <MeterPrimitive.Label
-      className={cn("text-[13px] text-gray-11", className)}
+      className={cn("text-sm text-gray-11", className)}
       data-slot="meter-label"
       {...props}
     />
@@ -81,7 +81,7 @@ export function MeterIndicator({ className, ...props }: MeterPrimitive.Indicator
 export function MeterValue({ className, ...props }: MeterPrimitive.Value.Props) {
   return (
     <MeterPrimitive.Value
-      className={cn("font-medium text-[13px] text-gray-12 tabular-nums", className)}
+      className={cn("font-medium text-sm text-gray-12 tabular-nums", className)}
       data-slot="meter-value"
       {...props}
     />

@@ -18,7 +18,7 @@ export const LogFooter = ({ log }: Props) => {
           {log.user?.imageUrl && <AvatarImage src={log.user.imageUrl} />}
           <AvatarFallback name={log.user?.username ?? log.auditLog.actor.id} />
         </Avatar>
-        <span className="text-sm">{log.user?.username ?? "Unknown Username"}</span>
+        <span className="text-base">{log.user?.username ?? "Unknown Username"}</span>
       </div>
     ) : log.auditLog.actor.type === "key" ? (
       <div className="flex items-center gap-2">

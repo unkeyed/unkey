@@ -195,7 +195,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     <th
                       key={column.key}
                       className={cn(
-                        "text-sm font-medium text-gray-12 py-1 text-left",
+                        "text-base font-medium text-gray-12 py-1 text-left",
                         column.headerClassName,
                         column.cellClassName,
                       )}
@@ -244,7 +244,7 @@ export const VirtualTable = forwardRef<VirtualTableRef, VirtualTableProps<any>>(
                     <th
                       key={column.key}
                       className={cn(
-                        "text-sm font-medium text-gray-12 py-1 text-left relative",
+                        "text-base font-medium text-gray-12 py-1 text-left relative",
                         column.headerClassName,
                         column.cellClassName,
                       )}

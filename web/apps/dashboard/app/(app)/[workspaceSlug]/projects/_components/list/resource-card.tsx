@@ -78,7 +78,7 @@ export const ResourceCard = ({
           <InfoTooltip content={name} asChild position={{ align: "start", side: "top" }}>
             <Link
               href={href}
-              className="font-medium text-sm leading-[14px] text-gray-12 truncate hover:underline"
+              className="font-medium text-base leading-[14px] text-gray-12 truncate hover:underline"
             >
               {name}
             </Link>
@@ -156,12 +156,12 @@ const GitSourceMetadata = ({
             href={sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[13px] font-medium text-gray-12 leading-5 min-w-0 truncate cursor-pointer hover:underline"
+            className="text-sm font-medium text-gray-12 leading-5 min-w-0 truncate cursor-pointer hover:underline"
           >
             {commitTitle}
           </a>
         ) : (
-          <span className="text-[13px] font-medium text-gray-12 leading-5 min-w-0 truncate">
+          <span className="text-sm font-medium text-gray-12 leading-5 min-w-0 truncate">
             {commitTitle}
           </span>
         )}
@@ -213,7 +213,7 @@ const OCISourceMetadata = ({ imageReference }: { imageReference: string | null }
       asChild
       position={{ align: "start", side: "top" }}
     >
-      <span className="h-5 font-mono text-[13px] font-medium text-gray-12 leading-5 min-w-0 truncate">
+      <span className="h-5 font-mono text-sm font-medium text-gray-12 leading-5 min-w-0 truncate">
         {imageReference ?? "No image configured"}
       </span>
     </InfoTooltip>

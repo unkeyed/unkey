@@ -54,7 +54,7 @@ export function HelpButton() {
           {ITEM_LINKS.map(({ href, label, icon: Icon }) => (
             <DropdownMenuItem
               key={href}
-              className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-gray-12"
+              className="h-8 cursor-pointer gap-2 px-2 text-sm font-medium text-gray-12"
               render={
                 <Link href={href} target="_blank" rel="noreferrer">
                   <Icon className="size-4 shrink-0 text-gray-11" />
@@ -64,7 +64,7 @@ export function HelpButton() {
             />
           ))}
           <DropdownMenuItem
-            className="h-8 cursor-pointer gap-2 px-2 text-[13px] font-medium text-gray-12"
+            className="h-8 cursor-pointer gap-2 px-2 text-sm font-medium text-gray-12"
             onClick={() => {
               setOpen(false);
               openFeedback(true);
@@ -79,7 +79,7 @@ export function HelpButton() {
           <DropdownMenuLabel className="px-2">Platform status</DropdownMenuLabel>
           <DropdownMenuItem
             className="h-8 cursor-pointer px-2"
-            render={<StatusWidget className="gap-2 text-[13px]" />}
+            render={<StatusWidget className="gap-2 text-sm" />}
           />
         </DropdownMenuGroup>
       </DropdownMenuContent>

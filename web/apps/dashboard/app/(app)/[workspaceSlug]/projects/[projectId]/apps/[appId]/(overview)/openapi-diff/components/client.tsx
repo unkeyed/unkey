@@ -116,7 +116,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
           </div>
         </div>
         <div className="flex flex-col gap-1">
-          <h3 className="text-grayA-12 font-medium text-sm">No noteworthy changes</h3>
+          <h3 className="text-grayA-12 font-medium text-base">No noteworthy changes</h3>
           <p className="text-grayA-9 text-xs max-w-70 leading-relaxed">
             The specifications for <span className="text-grayA-11">{fromDeployment} </span>
             and <span className="text-grayA-11">{toDeployment} </span>
@@ -132,7 +132,7 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
       <div className="px-6 pt-5 pb-4">
         <div className="flex justify-between items-center">
           <div className="flex flex-col gap-1">
-            <div className="text-grayA-12 font-medium text-[13px]">API Changes</div>
+            <div className="text-grayA-12 font-medium text-sm">API Changes</div>
             <div className="text-grayA-9 text-xs">
               {stats.total} changes • {stats.paths.length} endpoints
             </div>
@@ -297,11 +297,11 @@ export const DiffViewerContent: React.FC<DiffViewerContentProps> = ({
                                   <div className="flex-1 min-w-0">
                                     <p className="text-xs text-grayA-12">{change.text}</p>
                                     <div className="mt-1 flex items-center gap-2 flex-wrap">
-                                      <code className="text-[10px] text-grayA-10 font-mono">
+                                      <code className="text-3xs text-grayA-10 font-mono">
                                         {change.id}
                                       </code>
                                       {change.operationId && (
-                                        <span className="text-[10px] text-grayA-10">
+                                        <span className="text-3xs text-grayA-10">
                                           • {change.operationId}
                                         </span>
                                       )}

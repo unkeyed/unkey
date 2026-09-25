@@ -164,7 +164,7 @@ function DomainsGroup({ children }: { children: ReactNode }) {
   return (
     <SettingsGroup
       icon={<IconEarthOutline18 className="size-3.5" />}
-      title={<span className="font-medium text-gray-12 text-[13px] leading-4">Domains</span>}
+      title={<span className="font-medium text-gray-12 text-sm leading-4">Domains</span>}
       hideChevron
     >
       {children}

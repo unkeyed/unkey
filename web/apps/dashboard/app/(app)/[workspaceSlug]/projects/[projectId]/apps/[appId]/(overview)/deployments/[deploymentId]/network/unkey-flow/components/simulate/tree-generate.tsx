@@ -123,7 +123,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
       <div className="flex items-center justify-between p-3 border-b">
         <div className="flex items-center gap-2">
           <IconLayers3Outline18 className="size-3 text-gray-9" />
-          <span className="font-medium text-sm">Tree Generator</span>
+          <span className="font-medium text-base">Tree Generator</span>
         </div>
         <Button onClick={() => setIsOpen(false)}>
           <IconXmarkOutline18 />
@@ -133,7 +133,7 @@ export function InternalDevTreeGenerator({ onGenerate, onReset }: DevTreeGenerat
         {/* Loading State */}
         {generateMutation.isLoading && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
-            <div className="text-white text-sm">Generating...</div>
+            <div className="text-white text-base">Generating...</div>
           </div>
         )}
 

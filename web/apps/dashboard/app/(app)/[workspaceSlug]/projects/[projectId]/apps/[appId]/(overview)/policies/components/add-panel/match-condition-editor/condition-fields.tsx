@@ -49,7 +49,7 @@ export function ConditionFields({
           <div className="w-28 shrink-0">
             <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
               {/* h-[22px] needed to match the same height as Input below otherwise Require tag on input causing layout issues*/}
-              <label htmlFor={`path-mode-${c.id}`} className="text-gray-11 text-[13px] h-[22px]">
+              <label htmlFor={`path-mode-${c.id}`} className="text-gray-11 text-sm h-[22px]">
                 Mode
               </label>
               <Select
@@ -176,7 +176,7 @@ export function ConditionFields({
               <div className="flex gap-2">
                 <div className="w-28 shrink-0">
                   <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-                    <label htmlFor={`hq-mode-${c.id}`} className="text-gray-11 text-[13px]">
+                    <label htmlFor={`hq-mode-${c.id}`} className="text-gray-11 text-sm">
                       Mode
                     </label>
                     <Select

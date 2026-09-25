@@ -41,14 +41,14 @@ function EmptyStateHeader({ className, ...props }: React.ComponentProps<"div">) 
 
 function EmptyStateTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <div className={cn("text-[15px] font-semibold leading-6 text-gray-12", className)} {...props} />
+    <div className={cn("text-base font-semibold leading-6 text-gray-12", className)} {...props} />
   );
 }
 
 function EmptyStateDescription({ className, ...props }: React.ComponentProps<"p">) {
   return (
     <p
-      className={cn("max-w-md text-[13px] leading-5 text-balance text-gray-11", className)}
+      className={cn("max-w-md text-sm leading-5 text-balance text-gray-11", className)}
       {...props}
     />
   );

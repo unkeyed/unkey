@@ -94,7 +94,7 @@ export const ApiListClient = ({ workspaceSlug }: { workspaceSlug: string }) => {
 
           {!isSearching && hasNextPage && (
             <div className="flex flex-col items-center justify-center mt-8 pb-8 gap-4">
-              <div className="text-center text-sm text-gray-11">
+              <div className="text-center text-base text-gray-11">
                 Showing {apiList.length} of {apisData?.pages[0]?.total || 0} keyspaces
               </div>
 

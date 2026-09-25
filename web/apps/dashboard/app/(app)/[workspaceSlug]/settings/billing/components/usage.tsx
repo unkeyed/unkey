@@ -49,11 +49,11 @@ export const Usage: React.FC<{
         contentWidth="w-full lg:w-[320px]"
       >
         <div className="w-full flex flex-col gap-2">
-          <p className="text-sm text-error-11">Failed to load usage: {error.message}</p>
+          <p className="text-base text-error-11">Failed to load usage: {error.message}</p>
           <button
             type="button"
             onClick={() => refetch()}
-            className="text-sm text-gray-11 hover:text-gray-12 transition-colors text-left"
+            className="text-base text-gray-11 hover:text-gray-12 transition-colors text-left"
           >
             Retry
           </button>
@@ -71,7 +71,7 @@ export const Usage: React.FC<{
         contentWidth="w-full lg:w-[320px]"
       >
         <div className="w-full flex flex-col gap-2">
-          <p className="text-sm text-gray-11">No usage data available</p>
+          <p className="text-base text-gray-11">No usage data available</p>
         </div>
       </SettingCard>
     );
@@ -99,7 +99,7 @@ export const Usage: React.FC<{
       contentWidth="w-full lg:w-[320px]"
     >
       <div className="w-full flex h-full items-center justify-end gap-4">
-        <p className="text-sm font-semibold text-gray-12">
+        <p className="text-base font-semibold text-gray-12">
           {formatNumber(current)} / {formatNumber(max)} ({percent}%)
         </p>
       </div>

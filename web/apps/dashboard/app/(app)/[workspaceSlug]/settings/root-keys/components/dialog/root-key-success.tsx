@@ -56,10 +56,10 @@ export const RootKeySuccess = ({ keyValue, onClose }: RootKeySuccessProps) => {
             </div>
           </div>
           <div className="mt-5 flex flex-col gap-2 items-center">
-            <div className="font-semibold text-gray-12 text-[16px] leading-[24px]">
+            <div className="font-semibold text-gray-12 text-base leading-[24px]">
               {ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_CREATED}
             </div>
-            <div className="text-gray-10 text-[13px] leading-[24px] text-center" ref={dividerRef}>
+            <div className="text-gray-10 text-sm leading-[24px] text-center" ref={dividerRef}>
               {ROOT_KEY_MESSAGES.SUCCESS.ROOT_KEY_GENERATED}
             </div>
           </div>

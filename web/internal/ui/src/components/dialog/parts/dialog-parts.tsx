@@ -21,7 +21,7 @@ export const DefaultDialogHeader = ({ title, subTitle, className }: DefaultDialo
       <ShadcnDialogTitle className="px-6 py-4 text-gray-12 font-medium text-base flex flex-col">
         <span className="leading-[32px]">{title}</span>
         {subTitle && (
-          <span className="text-gray-9 leading-[20px] text-[13px] font-normal">{subTitle}</span>
+          <span className="text-gray-9 leading-[20px] text-sm font-normal">{subTitle}</span>
         )}
       </ShadcnDialogTitle>
     </ShadcnDialogHeader>

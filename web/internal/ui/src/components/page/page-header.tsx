@@ -35,7 +35,7 @@ function PageHeaderDescription({ className, ...props }: React.ComponentProps<"p"
   return (
     <p
       data-slot="page-header-description"
-      className={cn("text-[13px] leading-5 text-gray-11 m-0", className)}
+      className={cn("text-sm leading-5 text-gray-11 m-0", className)}
       {...props}
     />
   );

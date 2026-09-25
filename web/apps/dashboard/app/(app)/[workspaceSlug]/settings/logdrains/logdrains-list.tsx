@@ -40,7 +40,7 @@ function DrainRow({ drain, workspaceSlug }: { drain: DrainListItem; workspaceSlu
 
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <InfoTooltip content={drain.name} asChild position={{ align: "start", side: "top" }}>
-            <span className="truncate text-[13px] font-medium text-gray-12">{drain.name}</span>
+            <span className="truncate text-sm font-medium text-gray-12">{drain.name}</span>
           </InfoTooltip>
           <span className="shrink-0">
             <DrainStatusBadge status={drain.status} />
@@ -97,7 +97,7 @@ export function LogdrainsList({
     return (
       <ResourceListContent>
         <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
-          <span role="alert" className="text-sm text-gray-11">
+          <span role="alert" className="text-base text-gray-11">
             We couldn't load log drains.
           </span>
           <Button variant="outline" onClick={() => query.refetch()}>

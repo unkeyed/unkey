@@ -99,8 +99,8 @@ const OverrideIndicator = ({ log, style, hasMoreBlocked }: OverrideIndicatorProp
           <IconArrowDotRotateAnticlockwiseOutline18 className="size-3.5" />
         </div>
         <div className="flex flex-col gap-1">
-          <div className="text-sm flex gap-[10px] items-center">
-            <span className="font-medium text-sm">Custom override in effect</span>
+          <div className="text-base flex gap-[10px] items-center">
+            <span className="font-medium text-base">Custom override in effect</span>
             <div className="size-[6px] rounded-full bg-warning-10" />
           </div>
           {log.override && (

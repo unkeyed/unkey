@@ -86,10 +86,10 @@ export const RepoListItem = ({
     <div className="flex px-4 py-5 items-center">
       <LanguageIcon language={repo.language} />
       <div className="flex flex-col gap-1 w-52">
-        <div className="font-medium text-[13px] text-gray-12 leading-4 truncate max-w-40">
+        <div className="font-medium text-sm text-gray-12 leading-4 truncate max-w-40">
           {repoName}
         </div>
-        <div className="flex items-center gap-0 text-[13px] text-gray-10 leading-3 max-w-52">
+        <div className="flex items-center gap-0 text-sm text-gray-10 leading-3 max-w-52">
           <span className="truncate shrink min-w-0">{owner}</span>
           <span className="shrink-0">
             &nbsp;·&nbsp;
@@ -111,7 +111,7 @@ export const RepoListItem = ({
               }}
               onChange={(e) => setSearchValue(e.currentTarget.value)}
               placeholder={
-                <span className="flex items-center gap-1.5 text-gray-9 text-[13px]">
+                <span className="flex items-center gap-1.5 text-gray-9 text-sm">
                   <IconCodeBranchOutline18 className="size-3 shrink-0" />
                   <span className="truncate">{repo.defaultBranch}</span>
                 </span>
@@ -126,7 +126,7 @@ export const RepoListItem = ({
                   <IconMagnifierOutline12 className="text-gray-9" />
                 )
               }
-              className="min-h-7! h-7! rounded-lg text-[13px] bg-transparent font-medium shadow-md"
+              className="min-h-7! h-7! rounded-lg text-sm bg-transparent font-medium shadow-md"
               wrapperClassName="w-full"
               popoverClassName="w-[400px]"
             />
@@ -139,7 +139,7 @@ export const RepoListItem = ({
           loading={loading}
           onClick={() => onSelect(repo, selectedBranch)}
         >
-          <span className="text-[13px] text-gray-12 font-medium">Select</span>
+          <span className="text-sm text-gray-12 font-medium">Select</span>
         </Button>
       </div>
     </div>

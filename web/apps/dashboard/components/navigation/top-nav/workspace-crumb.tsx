@@ -50,7 +50,7 @@ export function WorkspaceCrumb({ href }: { href: string }) {
       emptyText="No workspaces found"
       listStatus={
         available.isError ? (
-          <div role="alert" className="flex flex-col items-center gap-2 px-3 py-4 text-sm">
+          <div role="alert" className="flex flex-col items-center gap-2 px-3 py-4 text-base">
             <span>Unable to load workspaces</span>
             <Button
               variant="outline"
@@ -62,9 +62,9 @@ export function WorkspaceCrumb({ href }: { href: string }) {
             </Button>
           </div>
         ) : available.isLoading ? (
-          <output className="block px-3 py-4 text-sm">Loading workspaces...</output>
+          <output className="block px-3 py-4 text-base">Loading workspaces...</output>
         ) : orgs.length === 0 ? (
-          <output className="block px-3 py-4 text-sm">No workspaces found</output>
+          <output className="block px-3 py-4 text-base">No workspaces found</output>
         ) : undefined
       }
       footer={{ icon: IconPlusOutline18, label: "New workspace", href: routes.workspaces.create() }}

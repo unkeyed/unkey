@@ -120,8 +120,8 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
       <div className="w-full divide-y divide-grayA-4 overflow-hidden rounded-lg border bg-raised">
         <div className="grid gap-x-8 px-6 pt-6 lg:grid-cols-2">
           <div className="flex flex-col pb-6">
-            <h2 className="text-sm font-medium text-gray-12">Branding</h2>
-            <p className="mt-1 text-[13px] leading-5 text-gray-11">
+            <h2 className="text-base font-medium text-gray-12">Branding</h2>
+            <p className="mt-1 text-sm leading-5 text-gray-11">
               Customize how the portal looks to your users.
             </p>
             <form onSubmit={handleSubmit(save)} className="mt-6 flex flex-col gap-6">
@@ -158,7 +158,7 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
                   )}
                 </FormField>
                 {dirtyFields.slug ? (
-                  <p className="text-[13px] leading-5 text-warning-11">
+                  <p className="text-sm leading-5 text-warning-11">
                     Changing the slug breaks every <span className="font-mono">createSession</span>{" "}
                     call that still passes the old one. Live sessions keep working.
                   </p>
@@ -173,7 +173,7 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
                 {...register("logoUrl")}
               />
               <div className="flex flex-col gap-1.5">
-                <span className="text-[13px] text-gray-11">Primary color</span>
+                <span className="text-sm text-gray-11">Primary color</span>
                 <BrandColorField
                   color={values.primaryColor}
                   onChange={(primaryColor) =>
@@ -184,7 +184,7 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
                   }
                 />
                 {errors.primaryColor?.message && (
-                  <span className="text-[13px] leading-5 text-error-11">
+                  <span className="text-sm leading-5 text-error-11">
                     {errors.primaryColor.message}
                   </span>
                 )}
@@ -214,8 +214,8 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
       {portal.enabled ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-raised p-4">
           <div className="space-y-1">
-            <p className="text-sm font-medium text-gray-12">Disable portal</p>
-            <p className="text-[13px] text-gray-11">
+            <p className="text-base font-medium text-gray-12">Disable portal</p>
+            <p className="text-sm text-gray-11">
               By disabling this users will lose access to the portal immediately. Their keys will
               keep working.
             </p>
@@ -259,7 +259,7 @@ export function PortalConfig({ portal, keyAuthId }: Props) {
           </div>
         }
       >
-        <p className="text-[13px] text-gray-11">
+        <p className="text-sm text-gray-11">
           The portal <span className="font-medium text-gray-12">{portal.slug}</span> stops working
           immediately and existing sessions end. Your users' API keys keep working.
         </p>

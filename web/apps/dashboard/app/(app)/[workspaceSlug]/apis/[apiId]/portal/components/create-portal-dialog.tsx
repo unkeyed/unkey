@@ -186,7 +186,7 @@ export function CreatePortalDialog({ keyAuthId, resourceName, isOpen, onOpenChan
           {...register("slug")}
         />
         {dialogError ? (
-          <p className="rounded-lg border border-error-6 bg-error-2 p-3 text-[13px] leading-5 text-error-11">
+          <p className="rounded-lg border border-error-6 bg-error-2 p-3 text-sm leading-5 text-error-11">
             {dialogError}
           </p>
         ) : null}

@@ -111,11 +111,9 @@ export const DeployImageCard = ({
           <IconLayers2Outline18 className="size-[18px] text-gray-12" />
         </div>
         <div className="flex flex-col gap-3">
-          <span className="font-medium text-gray-12 text-[13px] leading-[9px]">
-            Deploy an image
-          </span>
+          <span className="font-medium text-gray-12 text-sm leading-[9px]">Deploy an image</span>
           {expanded ? null : (
-            <span className="text-gray-10 text-[13px] leading-[9px]">
+            <span className="text-gray-10 text-sm leading-[9px]">
               Pull an image from any public registry
             </span>
           )}
@@ -127,7 +125,7 @@ export const DeployImageCard = ({
             onClick={() => onExpandedChange(false)}
           >
             <IconChevronLeftOutline18 className="size-[14px]! text-gray-12 shrink-0" />
-            <span className="text-[13px] text-gray-12 font-medium">Back</span>
+            <span className="text-sm text-gray-12 font-medium">Back</span>
           </Button>
         ) : (
           <Button
@@ -137,7 +135,7 @@ export const DeployImageCard = ({
             disabled={disabled}
           >
             <IconLayers2Outline18 className="size-[18px]! text-gray-12 shrink-0" />
-            <span className="text-[13px] text-gray-12 font-medium">Use a container image</span>
+            <span className="text-sm text-gray-12 font-medium">Use a container image</span>
           </Button>
         )}
       </div>
@@ -176,11 +174,11 @@ export const DeployImageCard = ({
               Deploy
             </Button>
           </div>
-          <span id={hintId} className="text-gray-10 text-[13px]">
+          <span id={hintId} className="text-gray-10 text-sm">
             Include a tag or digest, e.g. <span className="font-mono text-xs">:v1.4.2</span>
           </span>
           {(error ?? warning) ? (
-            <output className={`text-[13px] ${error ? "text-error-11" : "text-warning-11"}`}>
+            <output className={`text-sm ${error ? "text-error-11" : "text-warning-11"}`}>
               {error ?? warning}
             </output>
           ) : null}

@@ -7,7 +7,7 @@ import { AdminGate } from "./admin-gate";
 
 export function PlanTableHeader() {
   return (
-    <div className="flex items-center gap-3 bg-grayA-2 px-4 py-2 font-semibold text-[10px] text-gray-9 uppercase tracking-wider">
+    <div className="flex items-center gap-3 bg-grayA-2 px-4 py-2 font-semibold text-3xs text-gray-9 uppercase tracking-wider">
       <div className="min-w-0 flex-1">Product</div>
       <div className="w-28">Plan</div>
       <div className="w-36">Price</div>
@@ -17,7 +17,7 @@ export function PlanTableHeader() {
 }
 
 export function PlanName({ children }: { children: string | null }) {
-  return <span className="w-28 truncate text-[13px] text-gray-11">{children ?? "—"}</span>;
+  return <span className="w-28 truncate text-sm text-gray-11">{children ?? "—"}</span>;
 }
 
 export function PlanPrice({
@@ -34,18 +34,18 @@ export function PlanPrice({
   usageCreditProrated?: boolean;
 }) {
   if (feeCents === null) {
-    return <span className="w-36 text-[13px] text-gray-9">—</span>;
+    return <span className="w-36 text-sm text-gray-9">—</span>;
   }
 
   return (
-    <span className="w-36 whitespace-nowrap text-[13px] tabular-nums">
+    <span className="w-36 whitespace-nowrap text-sm tabular-nums">
       <span className="font-medium text-gray-12">{formatDollars(feeCents)}</span>
       <span className="text-gray-10">/{interval}</span>
       {usageCreditCents === null ? null : (
         <InfoTooltip
           asChild
           content={
-            <p className="max-w-[220px] text-[12px]">
+            <p className="max-w-[220px] text-xs">
               Includes {formatDollars(usageCreditCents)} of usage
               {usageCreditProrated ? " this period, prorated" : ""}. Extra usage is billed on top.
             </p>

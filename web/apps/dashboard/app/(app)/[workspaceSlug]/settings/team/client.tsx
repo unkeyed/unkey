@@ -82,7 +82,7 @@ export function TeamPageClient({ team }: { team: boolean }) {
     <div className="flex flex-col gap-8 w-full">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold text-gray-12">Members</h1>
-        <p className="text-sm text-gray-11">Manage team members and invitations</p>
+        <p className="text-base text-gray-11">Manage team members and invitations</p>
       </div>
 
       {isAdmin && <InviteForm organization={organization} />}

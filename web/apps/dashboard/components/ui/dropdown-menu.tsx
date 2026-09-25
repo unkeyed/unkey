@@ -27,7 +27,7 @@ const DropdownMenuSubTrigger = React.forwardRef<
   <DropdownMenuPrimitive.SubmenuTrigger
     ref={ref}
     className={cn(
-      "flex cursor-default select-none items-center rounded-xs px-2 py-1.5 text-sm outline-hidden focus:bg-gray-12 focus:text-gray-1 data-popup-open:bg-gray-12 data-popup-open:text-gray-1",
+      "flex cursor-default select-none items-center rounded-xs px-2 py-1.5 text-base outline-hidden focus:bg-gray-12 focus:text-gray-1 data-popup-open:bg-gray-12 data-popup-open:text-gray-1",
       inset && "pl-8",
       className,
     )}
@@ -105,7 +105,7 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-md px-1.5 py-1 text-sm outline-hidden transition-colors focus:bg-grayA-3 focus:text-gray-12 data-disabled:pointer-events-none data-disabled:opacity-50",
+      "relative flex cursor-default select-none items-center rounded-md px-1.5 py-1 text-base outline-hidden transition-colors focus:bg-grayA-3 focus:text-gray-12 data-disabled:pointer-events-none data-disabled:opacity-50",
       inset && "pl-8",
       className,
     )}
@@ -121,7 +121,7 @@ const DropdownMenuCheckboxItem = React.forwardRef<
   <DropdownMenuPrimitive.CheckboxItem
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-xs py-1.5 pl-8 pr-2 text-sm outline-hidden transition-colors focus:bg-gray-12 focus:text-gray-1 data-disabled:pointer-events-none data-disabled:opacity-50",
+      "relative flex cursor-default select-none items-center rounded-xs py-1.5 pl-8 pr-2 text-base outline-hidden transition-colors focus:bg-gray-12 focus:text-gray-1 data-disabled:pointer-events-none data-disabled:opacity-50",
       className,
     )}
     checked={checked}
@@ -144,7 +144,7 @@ const DropdownMenuRadioItem = React.forwardRef<
   <DropdownMenuPrimitive.RadioItem
     ref={ref}
     className={cn(
-      "flex cursor-default select-none items-center gap-2 rounded-md px-1.5 py-1 text-sm outline-hidden transition-colors focus:bg-grayA-3 focus:text-gray-12 data-disabled:pointer-events-none data-disabled:opacity-50",
+      "flex cursor-default select-none items-center gap-2 rounded-md px-1.5 py-1 text-base outline-hidden transition-colors focus:bg-grayA-3 focus:text-gray-12 data-disabled:pointer-events-none data-disabled:opacity-50",
       className,
     )}
     {...props}

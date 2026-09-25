@@ -146,7 +146,7 @@ function ManagedTeamWidgets() {
         <h2 id="members-heading" className="m-0 text-lg font-medium">
           Members
         </h2>
-        <p className="m-0 text-sm text-gray-11">Manage workspace members and invitations.</p>
+        <p className="m-0 text-base text-gray-11">Manage workspace members and invitations.</p>
       </div>
       <ManagedUsersWidget getAccessToken={getWidgetAccessToken} />
     </section>
@@ -167,7 +167,7 @@ function ManagedTeamSkeleton() {
         <h2 id="members-loading-heading" className="m-0 text-lg font-medium">
           Members
         </h2>
-        <p className="m-0 text-sm text-gray-11">Manage workspace members and invitations.</p>
+        <p className="m-0 text-base text-gray-11">Manage workspace members and invitations.</p>
       </div>
       <div aria-hidden="true" className="flex flex-col gap-3">
         <div className="flex gap-2">
@@ -210,8 +210,8 @@ function ManagedTeamError({
   return (
     <section className="rounded-lg border bg-raised p-6" role="alert">
       <h2 className="m-0 font-medium">{heading}</h2>
-      <p className="mt-2 mb-0 text-sm text-gray-11">{description}</p>
-      {action ? <div className="mt-4 text-sm font-medium">{action}</div> : null}
+      <p className="mt-2 mb-0 text-base text-gray-11">{description}</p>
+      {action ? <div className="mt-4 text-base font-medium">{action}</div> : null}
     </section>
   );
 }

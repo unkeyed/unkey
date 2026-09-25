@@ -96,9 +96,9 @@ export const SelectRepo = ({
     );
     return [...owners].map((owner) => ({
       value: owner,
-      label: <span className="text-[13px] text-gray-12 font-medium">{owner}</span>,
+      label: <span className="text-sm text-gray-12 font-medium">{owner}</span>,
       searchValue: owner,
-      selectedLabel: <span className="text-[13px] text-gray-12 font-medium">{owner}</span>,
+      selectedLabel: <span className="text-sm text-gray-12 font-medium">{owner}</span>,
     }));
   }, [reposData?.repositories]);
 
@@ -160,10 +160,10 @@ export const SelectRepo = ({
         <div className="absolute top-2 left-2 right-2 z-50 rounded-xl p-3 gap-2.5 flex items-center shadow-[inset_0_0_0_0.75px_rgba(0,0,0,0.10)] bg-linear-to-r from-successA-4 via-successA-1 to-success-1">
           <IconCheckOutline12 className="text-successA-12" />
           <div className="flex items-center gap-1">
-            <span className="font-medium text-[13px] text-success-12">
+            <span className="font-medium text-sm text-success-12">
               GitHub connected successfully.
             </span>
-            <span className="text-[13px] text-success-12">
+            <span className="text-sm text-success-12">
               You can now select a repository to deploy
             </span>
           </div>
@@ -178,8 +178,8 @@ export const SelectRepo = ({
           <SelectRepoSkeleton />
         ) : reposError ? (
           <div className="mt-3 flex flex-col items-center justify-center min-w-[var(--repo-list-w)] h-[462px] gap-3 border border-dashed rounded-lg">
-            <p className="text-[15px] text-gray-12 font-semibold">Failed to load repositories</p>
-            <p className="text-[13px] text-gray-11 text-center whitespace-pre-line w-[350px]">
+            <p className="text-base text-gray-12 font-semibold">Failed to load repositories</p>
+            <p className="text-sm text-gray-11 text-center whitespace-pre-line w-[350px]">
               {reposError.message}
             </p>
             <Button
@@ -266,10 +266,10 @@ export const SelectRepo = ({
             <IconClockOutline18 className="text-gray-12" />
           </div>
           <div className="flex flex-col gap-3">
-            <span className="font-medium text-gray-12 text-[13px] leading-[9px]">
+            <span className="font-medium text-gray-12 text-sm leading-[9px]">
               Skip GitHub setup
             </span>
-            <span className="text-gray-10 text-[13px] leading-[9px]">
+            <span className="text-gray-10 text-sm leading-[9px]">
               Continue without a repository. You can connect GitHub later from app settings.
             </span>
           </div>
@@ -278,7 +278,7 @@ export const SelectRepo = ({
             onClick={onSkip}
             className="ml-auto rounded-lg hover:bg-grayA-2 shadow-sm hover:shadow-md transition-all"
           >
-            <span className="text-[13px] text-gray-12 font-medium">Skip for now</span>
+            <span className="text-sm text-gray-12 font-medium">Skip for now</span>
           </Button>
         </div>
       )}

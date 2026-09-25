@@ -105,7 +105,7 @@ export default function DiffPage() {
           <div className="px-4 pt-6 pb-4">
             <div className="flex gap-3">
               <div className="flex flex-col gap-1.5 flex-1">
-                <span className="text-[11px] font-medium text-grayA-9">Baseline</span>
+                <span className="text-2xs font-medium text-grayA-9">Baseline</span>
                 <DeploymentSelect
                   value={selectedFromDeployment}
                   onValueChange={(value) => {
@@ -124,7 +124,7 @@ export default function DiffPage() {
               <IconArrowRightOutline18 className="shrink-0 text-gray-9 size-[14px] mt-8.5" />
 
               <div className="flex flex-col gap-1.5 flex-1">
-                <span className="text-[11px] font-medium text-grayA-9">Comparison</span>
+                <span className="text-2xs font-medium text-grayA-9">Comparison</span>
                 <DeploymentSelect
                   value={selectedToDeployment}
                   onValueChange={(value) => {
@@ -156,7 +156,7 @@ export default function DiffPage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <h3 className="text-grayA-12 font-medium text-sm">No deployments selected</h3>
+                  <h3 className="text-grayA-12 font-medium text-base">No deployments selected</h3>
                   <p className="text-grayA-9 text-xs max-w-70 leading-relaxed">
                     Select two deployments above to compare their OpenAPI specifications and see
                     what changed between versions.
@@ -170,7 +170,7 @@ export default function DiffPage() {
                 {diffLoading && (
                   <div className="text-center py-12 px-8">
                     <Loading className="w-6 h-6 mx-auto mb-3 text-grayA-9" />
-                    <p className="text-[13px] text-grayA-11 font-medium">Analyzing changes...</p>
+                    <p className="text-sm text-grayA-11 font-medium">Analyzing changes...</p>
                     <p className="text-xs text-grayA-9 mt-1">Comparing API specifications</p>
                   </div>
                 )}
@@ -188,7 +188,7 @@ export default function DiffPage() {
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">
-                        <h3 className="text-error-11 font-medium text-sm">
+                        <h3 className="text-error-11 font-medium text-base">
                           Unable to compare deployments
                         </h3>
                         <p className="text-error-11 text-xs max-w-[280px] leading-relaxed opacity-90">

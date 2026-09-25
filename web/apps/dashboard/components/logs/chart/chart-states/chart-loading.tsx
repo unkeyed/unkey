@@ -105,7 +105,7 @@ export const ChartLoading = ({
   if (variant === "compact") {
     return (
       <div className={cn("w-full relative", className)}>
-        <div className="px-2 text-gray-11 font-mono absolute top-0 text-xxs w-full flex justify-between">
+        <div className="px-2 text-gray-11 font-mono absolute top-0 text-3xs w-full flex justify-between">
           {calculateTimePoints(currentTime, currentTime).map((time, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: static time display array
             <div key={i} className="z-10">
@@ -254,11 +254,9 @@ function FullChartLoader({
                   style={{ backgroundColor: metric.color }}
                 />
               ))}
-            <div className="text-gray-10 text-[11px] leading-4">
-              {labelsWithDefaults.rangeLabel}
-            </div>
+            <div className="text-gray-10 text-2xs leading-4">{labelsWithDefaults.rangeLabel}</div>
           </div>
-          <div className="text-gray-12 text-[18px] font-semibold leading-7 bg-gray-4 rounded-sm w-full">
+          <div className="text-gray-12 text-lg font-semibold leading-7 bg-gray-4 rounded-sm w-full">
             &nbsp;
           </div>
         </div>
@@ -273,9 +271,9 @@ function FullChartLoader({
                     className="rounded-sm h-[10px] w-1"
                     style={{ backgroundColor: metric.color }}
                   />
-                  <div className="text-gray-10 text-[11px] leading-4">{metric.label}</div>
+                  <div className="text-gray-10 text-2xs leading-4">{metric.label}</div>
                 </div>
-                <div className="text-gray-12 text-[18px] font-semibold leading-7 bg-gray-4 rounded-sm w-full">
+                <div className="text-gray-12 text-lg font-semibold leading-7 bg-gray-4 rounded-sm w-full">
                   &nbsp;
                 </div>
               </div>
@@ -323,7 +321,7 @@ function FullChartLoader({
       </div>
 
       {/* Time labels footer */}
-      <div className="border-t border-b px-1 py-2 text-gray-9 font-mono text-xxs w-full flex justify-between">
+      <div className="border-t border-b px-1 py-2 text-gray-9 font-mono text-3xs w-full flex justify-between">
         {timePoints.map((time, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: static time display array
           <div key={i} className="z-10">

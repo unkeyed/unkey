@@ -26,7 +26,7 @@ export function ComputePausedBanner() {
       : undefined;
 
   return (
-    <div className="flex h-9 w-full shrink-0 items-center justify-center gap-2 bg-warning-9 px-4 text-center font-medium text-[13px] text-black">
+    <div className="flex h-9 w-full shrink-0 items-center justify-center gap-2 bg-warning-9 px-4 text-center font-medium text-sm text-black">
       <IconTriangleWarningOutline12 className="shrink-0" />
       <span>
         <span className="font-semibold">Compute paused.</span> {pausedBody(budgetLabel)}{" "}

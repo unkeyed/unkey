@@ -58,13 +58,13 @@ export const PaginationFooter = memo(function PaginationFooter({
           title={`Page ${page} of ${totalPages} • ${start}-${end} of ${totalCount} ${itemLabel}`}
         >
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-medium">
+            <span className="text-2xs font-medium">
               {start}-{end} of {totalCount}
             </span>
             {totalPages === 1 ? null : (
               <>
                 <div className="w-px h-3 bg-gray-6" />
-                <span className="text-[12px] font-medium mr-2">
+                <span className="text-xs font-medium mr-2">
                   Page {page}/{totalPages}
                 </span>
               </>
@@ -90,7 +90,7 @@ export const PaginationFooter = memo(function PaginationFooter({
           <div className="flex flex-col w-full">
             {/* Header content */}
             {headerContent && <div className="flex items-center w-full">{headerContent}</div>}
-            <div className="flex w-full justify-between items-center text-[13px] text-grayA-9 p-[18px] min-h-[60px]">
+            <div className="flex w-full justify-between items-center text-sm text-grayA-9 p-[18px] min-h-[60px]">
               {/* Item count */}
               <div className="flex gap-2">
                 <span>Viewing</span>
@@ -132,7 +132,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                           <span
                             key={idx < pageNumbers.length / 2 ? "ellipsis-start" : "ellipsis-end"}
                             aria-hidden="true"
-                            className="w-7 h-7 flex items-center justify-center text-grayA-9 text-[10px] tracking-widest select-none"
+                            className="w-7 h-7 flex items-center justify-center text-grayA-9 text-3xs tracking-widest select-none"
                           >
                             ···
                           </span>
@@ -155,7 +155,7 @@ export const PaginationFooter = memo(function PaginationFooter({
                           className={cn(
                             "w-7 h-7 flex items-center justify-center rounded-md text-xs font-medium cursor-pointer",
                             isCurrentPage
-                              ? "text-gray-12 pointer-events-none ring-0 border bg-grayA-4 text-sm transition-all duration-300"
+                              ? "text-gray-12 pointer-events-none ring-0 border bg-grayA-4 text-base transition-all duration-300"
                               : "text-grayA-9 hover:text-gray-12 hover:bg-grayA-3",
                             disabled && !isCurrentPage && "opacity-80 pointer-events-none",
                           )}
