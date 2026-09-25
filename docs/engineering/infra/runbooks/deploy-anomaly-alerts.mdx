@@ -16,7 +16,9 @@ This opt-in path opens dashboard alerts for `OOMKilled` and `CrashLoopBackOff` w
 3. Set the same top-level `deploy_anomaly_fast_workspaces` list on ctrl API and worker, starting with an internal workspace. This flag is separate from the dashboard's `deploy-anomaly-alerts` feature flag, which must also be enabled for participants to see alerts.
 
    ```toml
-   deploy_anomaly_fast_workspaces = ["ws_APPROVED_BETA"]
+   deploy_anomaly_fast_workspaces = [
+     "ws_APPROVED_BETA",
+   ]
    ```
 
 4. Configure the worker's `[heartbeat].deploy_anomaly_fast_url` with a dedicated health check, alerting on a missing successful tick for 3 minutes. A successful Kubernetes `/send` response is not the same as successful processing.

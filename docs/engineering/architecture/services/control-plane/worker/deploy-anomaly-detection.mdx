@@ -35,7 +35,8 @@ The pipeline separates fleet scheduling, partitioned ClickHouse scans, and state
   ClickHouse      ClickHouse      ClickHouse
   candidates      candidates      candidates
        └──────────────┬──────────────┘
-                      │ candidates, prior pending, and open alerts
+                      │ candidates, prior pending,
+                      │ and open alerts
                       ▼
 ┌──────────────────────────────────────────┐
 │ DeployAnomalyService.Evaluate            │
@@ -172,34 +173,33 @@ This backfill gives existing apps a full 24-hour baseline and 72-bucket request-
 The exact opening, confirmation, and recovery rules live on the [detector math page](/architecture/services/control-plane/worker/deploy-anomaly-detection-math). This section covers what the evaluator persists to make those rules durable and replay-safe.
 
 ```diagram
-          INCOMPLETE                          OUT OF ORDER
-        ┌────────────┐                 ┌──────────────────────┐
-        │ strict     │                 │ window_end <=        │
-        │ no-op      │                 │ last_window_end      │
-        └────────────┘                 │ strict no-op         │
-                                       └──────────────────────┘
+┌──────────────┐
+│ No alert     │
+└──────┬───────┘
+       │ first sustained window
+       ▼
+┌──────────────┐
+│ Candidate    │
+└──────┬───────┘
+       │ next consecutive anomalous window
+       ▼
+┌──────────────┐
+│ Open alert   │◀── one-window rules enter here
+└──────┬───────┘
+       │ complete recovered window
+       ▼
+┌──────────────┐
+│ Quiet 1 or 2 │
+└──────┬───────┘
+       │ third consecutive recovered window
+       ▼
+┌──────────────┐
+│ Resolved     │
+└──────────────┘
 
-┌──────────────┐  first sustained window  ┌──────────────┐
-│ No alert     │──────────────────────────▶│ Candidate    │
-└──────┬───────┘                           └──────┬───────┘
-       │ one-window anomaly                       │ next consecutive anomaly
-       │                                          │
-       └────────────────────┬─────────────────────┘
-                            ▼
-                     ┌──────────────┐
-              ┌─────▶│ Open alert   │──── open 24 hours ──────┐
-              │      └──────┬───────┘                          │
-              │             │ recovered window                │
-              │             ▼                                 │
-              │      ┌──────────────┐                         │
-              │      │ Quiet 1 or 2 │──── third recovered ────┤
-              │      └──────┬───────┘                         │
-              │             │ anomalous window                │
-              └─────────────┘                                 │
-                                                              ▼
-                                                       ┌──────────────┐
-                                                       │ Resolved     │
-                                                       └──────────────┘
+Anomalous window: reset the quiet count to zero.
+Open 24 hours + complete evaluation: resolve.
+Incomplete or stale window: do not count as quiet.
 ```
 
 After processing at least one complete metric, the evaluator stores the window's end in `last_window_end`. Any later delivery with `window_end <= last_window_end` is a strict no-op, which stops a retried or delayed old window from changing candidate, open-alert, or recovery state. Each metric also stores its completed window and quiet count together, so a killed invocation can resume unfinished metrics without double-counting a completed window.
