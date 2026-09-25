@@ -1,3 +1,4 @@
+import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
@@ -75,6 +76,7 @@ export const SelectRepo = ({
     onSuccess: async (_data, variables) => {
       trpcUtils.github.getInstallations.invalidate();
       trpcUtils.github.getRepoTree.invalidate();
+      collection.apps.utils.refetch();
       const name =
         variables.repositoryFullName.length > 40
           ? `${variables.repositoryFullName.slice(0, 37)}...`
