@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/stretchr/testify/require"
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
+	"github.com/unkeyed/unkey/pkg/cache"
 )
 
 func TestReEncrypt_WithValidAuth(t *testing.T) {
@@ -95,4 +96,55 @@ func TestReEncrypt_WithInvalidScheme(t *testing.T) {
 	_, err := service.ReEncrypt(ctx, req)
 	require.Error(t, err)
 	require.Equal(t, connect.CodeUnauthenticated, connect.CodeOf(err))
+}
+
+// TestReEncrypt_InvalidatesOnlyItsKeyring verifies that re-encrypting a value
+// invalidates only the LATEST DEK entry for its own keyring, instead of
+// flushing the entire process-wide cache. Cached DEKs belonging to another
+// keyring, and the keyring's own key-id DEK used on the decrypt path, must
+// survive so concurrent requests keep their cached keys.
+func TestReEncrypt_InvalidatesOnlyItsKeyring(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+
+	ringA := "test-keyring-reencrypt-isolation-a"
+	ringB := "test-keyring-reencrypt-isolation-b"
+
+	encReqA := connect.NewRequest(&vaultv1.EncryptRequest{
+		Keyring: ringA,
+		Data:    "secret-a",
+	})
+	encReqA.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
+	encResA, err := service.Encrypt(ctx, encReqA)
+	require.NoError(t, err)
+
+	encReqB := connect.NewRequest(&vaultv1.EncryptRequest{
+		Keyring: ringB,
+		Data:    "secret-b",
+	})
+	encReqB.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
+	_, err = service.Encrypt(ctx, encReqB)
+	require.NoError(t, err)
+
+	latestB := fmt.Sprintf("%s-%s", ringB, LATEST)
+	dekA := fmt.Sprintf("%s-%s", ringA, encResA.Msg.GetKeyId())
+
+	_, hit := service.keyCache.Get(ctx, latestB)
+	require.Equal(t, cache.Hit, hit, "other keyring's DEK should be cached before re-encrypt")
+
+	reencryptReq := connect.NewRequest(&vaultv1.ReEncryptRequest{
+		Keyring:   ringA,
+		Encrypted: encResA.Msg.GetEncrypted(),
+	})
+	reencryptReq.Header().Set("Authorization", fmt.Sprintf("Bearer %s", service.bearer))
+	_, err = service.ReEncrypt(ctx, reencryptReq)
+	require.NoError(t, err)
+
+	_, hit = service.keyCache.Get(ctx, latestB)
+	require.Equal(t, cache.Hit, hit,
+		"re-encrypting one keyring must not evict another keyring's cached DEK")
+
+	_, hit = service.keyCache.Get(ctx, dekA)
+	require.Equal(t, cache.Hit, hit,
+		"re-encrypting must not evict the keyring's own cached decryption DEK")
 }
