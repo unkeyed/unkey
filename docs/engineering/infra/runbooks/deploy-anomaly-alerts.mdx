@@ -3,60 +3,29 @@ title: "Operate Deploy anomaly alerts"
 description: "Diagnose the Deploy anomaly cron, ingest watermarks, and alert state"
 ---
 
-Deploy anomaly alerts depend on Kubernetes cron delivery, Restate execution,
-ClickHouse completeness, and MySQL persistence. Diagnose those layers in that
-order. Do not edit Restate state or change `alert_events.status` to hide a
-failing detector.
+Deploy anomaly alerts depend on Kubernetes cron delivery, Restate execution, ClickHouse completeness, and MySQL persistence, in that order. Diagnose those layers in sequence. Never edit Restate state or change `alert_events.status` to hide a failing detector.
 
-The [architecture page](/architecture/services/control-plane/worker/deploy-anomaly-detection)
-defines the pipeline. The
-[detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math)
-defines every expected threshold.
+See the [architecture page](/architecture/services/control-plane/worker/deploy-anomaly-detection) for the pipeline and the [detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math) for every threshold.
 
 ## Enable the fast instance-failure beta
 
-This opt-in path opens dashboard alerts for `OOMKilled` and `CrashLoopBackOff`
-without waiting for the normal 5-minute evaluator. It does not add generic
-restart alerts, statistical fast paths, or notifications. Both allowlists
-default to empty, and the local CronJob defaults to suspended. Obtain rollout
-approval for a named environment and workspace cohort before these steps.
+This opt-in path opens dashboard alerts for `OOMKilled` and `CrashLoopBackOff` without waiting for the normal 5-minute evaluator. It adds no generic restart alerts, no statistical fast paths, and no notifications. Both allowlists default to empty, and the local CronJob defaults to suspended. Get rollout approval for a named environment and workspace cohort before these steps.
 
-1. Apply the additive MySQL schema through the approved schema workflow:
-   `deploy_anomaly_events` with its unique identity and pending indexes, and
-   nullable `alert_events.last_observed_event_at`. The Drizzle sources are
-   `web/internal/db/src/schema/{deploy_anomaly_events,alert_events}.ts`.
-   Do not enable code that queries the column before the schema is present.
-2. Deploy compatible ctrl API and worker versions with empty allowlists. Keep
-   the regular anomaly evaluator running and confirm its heartbeat.
-3. Set the same top-level `deploy_anomaly_fast_workspaces` list on ctrl API and
-   worker. Start with an internal workspace. This flag is separate from the
-   dashboard's `deploy-anomaly-alerts` feature flag, which must also be enabled
-   for participants to see alerts.
+1. Apply the additive MySQL schema through the approved schema workflow: `deploy_anomaly_events` with its unique identity and pending indexes, and nullable `alert_events.last_observed_event_at`. Drizzle sources: `web/internal/db/src/schema/{deploy_anomaly_events,alert_events}.ts`. Don't enable code that queries the new column before the schema exists.
+2. Deploy compatible ctrl API and worker versions with empty allowlists, keeping the regular anomaly evaluator running and its heartbeat healthy.
+3. Set the same top-level `deploy_anomaly_fast_workspaces` list on ctrl API and worker, starting with an internal workspace. This flag is separate from the dashboard's `deploy-anomaly-alerts` feature flag, which must also be enabled for participants to see alerts.
 
    ```toml
    deploy_anomaly_fast_workspaces = ["ws_APPROVED_BETA"]
    ```
 
-4. Configure the worker's `[heartbeat].deploy_anomaly_fast_url` with a dedicated
-   health check. Alert on a missing successful tick for 3 minutes. Do not treat
-   the Kubernetes `/send` response as successful processing.
-5. Configure one caller in the approved environment. Use schedule
-   `* * * * *`, fixed path
-   `hydra.v1.CronService/deploy-anomaly-events/RunDeployAnomalyEvents/send`,
-   and idempotency key `deploy-anomaly-events-YYYY-MM-DDTHH:MM` for each UTC
-   minute. The local reference is `jobs.deploy-anomaly-events` in
-   `dev/k8s/charts/restate-cronjobs/values.yaml`. Production callers belong in
-   the selected `unkeyed/infra` environment, not every environment.
-6. In the approved test app, generate one OOM and one crash-loop event. Verify
-   durable inbox rows, one open alert per metric, and the dashboard deep link.
-   Replay the same identity and confirm no duplicate. Record source-to-receipt
-   and receipt-to-processing times separately. Do not promise a 60-second
-   end-to-end bound from a 1-minute polling schedule.
+4. Configure the worker's `[heartbeat].deploy_anomaly_fast_url` with a dedicated health check, alerting on a missing successful tick for 3 minutes. A successful Kubernetes `/send` response is not the same as successful processing.
+5. Configure one caller in the approved environment: schedule `* * * * *`, fixed path `hydra.v1.CronService/deploy-anomaly-events/RunDeployAnomalyEvents/send`, and idempotency key `deploy-anomaly-events-YYYY-MM-DDTHH:MM` for each UTC minute. The local reference is `jobs.deploy-anomaly-events` in `dev/k8s/charts/restate-cronjobs/values.yaml`. Production callers belong in the selected `unkeyed/infra` environment only, not every environment.
+6. In the approved test app, generate one OOM and one crash-loop event. Verify durable inbox rows, one open alert per metric, and the dashboard deep link. Replay the same identity and confirm no duplicate. Record source-to-receipt and receipt-to-processing times separately. Don't promise a 60-second end-to-end bound from a 1-minute polling schedule.
 
 ### Check the backlog and retained identities
 
-Read pending rows for each opted-in workspace. `received_at` and `processed_at`
-are Unix milliseconds. Event-time age does not exclude a pending row.
+Read pending rows for each opted-in workspace. `received_at` and `processed_at` are Unix milliseconds; event-time age doesn't exclude a pending row.
 
 ```sql
 SELECT COUNT(*) AS pending,
@@ -72,54 +41,25 @@ ORDER BY pk
 LIMIT 100;
 ```
 
-Investigate pending age above 2 minutes, missed heartbeats, the warning
-`fast anomaly event scan reached per-tick capacity`, or repeated
-`report instance events: insert anomaly event failed` errors. The nominal cap
-is 1,000 scanned events per workspace per invocation, not a throughput SLA.
-Group queueing and retries can extend a tick beyond one minute. Do not expand
-the cohort while backlog age grows.
+Investigate pending age above 2 minutes, missed heartbeats, the warning `fast anomaly event scan reached per-tick capacity`, or repeated `report instance events: insert anomaly event failed` errors. The nominal cap is 1,000 scanned events per workspace per invocation, not a throughput SLA. Group queueing and retries can extend a tick beyond one minute. Don't expand the cohort while backlog age is growing.
 
-Inspect `RunDeployAnomalyEvents` on key `deploy-anomaly-events` and
-`OpenObservedEvents` on the normal group key. Both must kill after five failed
-attempts. The `events_cursor:<workspace_id>` fields `after` and `through` mark
-scan position and the sweep's fixed upper bound, not acknowledgement. Failed
-rows remain pending and return in the next sweep. A successful heartbeat proves
-the scanned work completed, not that the backlog is empty.
+Inspect `RunDeployAnomalyEvents` on key `deploy-anomaly-events` and `OpenObservedEvents` on the normal group key. Both must kill after five failed attempts. The `events_cursor:<workspace_id>` fields `after` and `through` mark scan position and the sweep's fixed upper bound, not acknowledgement: failed rows remain pending and return in the next sweep. A successful heartbeat proves the scanned work completed, not that the backlog is empty.
 
-Processed identities are retained without TTL for this beta. Do not delete
-them, including after disabling the feature: deleting a handled identity can
-let an old report reopen an alert. Monitor table row count, data/index size,
-and MySQL write latency daily. Storage follows unique container failure lives,
-not HTTP request volume. Expansion requires a measured storage budget; this
-beta makes no capacity claim for 1 million requests per second.
+Processed identities are retained without expiry for this beta. Don't delete them, including after disabling the feature: deleting a handled identity can let an old report reopen an alert. Monitor table row count, data/index size, and MySQL write latency daily. Storage follows unique container failure lives, not HTTP request volume, and expansion requires a measured storage budget.
 
 ### Disable or roll back the fast path
 
-For a controlled stop, remove the cohort from the API allowlist first, let
-pending rows drain, then suspend the caller and clear the worker allowlist.
-For an immediate stop, suspend the caller and clear both allowlists. Pending
-rows remain durable and can run after re-enablement if their deployment is
-still active. In-flight invocations can finish during either procedure.
+For a controlled stop, remove the cohort from the API allowlist first, let pending rows drain, then suspend the caller and clear the worker allowlist. For an immediate stop, suspend the caller and clear both allowlists. Pending rows remain durable and can run after re-enablement if their deployment is still active. In-flight invocations can finish during either procedure.
 
-Leave the additive schema and handled identities in place when rolling back
-code. Keep the regular 5-minute evaluator running for recovery. Disabling the
-fast path does not resolve existing alerts or disable normal health alerts.
+Leave the additive schema and handled identities in place when rolling back code, and keep the regular 5-minute evaluator running for recovery. Disabling the fast path does not resolve existing alerts or disable normal health alerts.
 
-While a workspace remains on the worker allowlist, only the inbox opens OOM
-and crash-loop alerts. Suspending its caller pauses those openings, with no
-regular-window fallback. Removing the workspace restores raw-event detection,
-which does not consult handled inbox identities and can alert on repeated
-ClickHouse reports. The fast-path replay guarantee applies only while opted in.
+While a workspace remains on the worker allowlist, only the inbox opens OOM and crash-loop alerts. Suspending its caller pauses those openings, with no regular-window fallback. Removing the workspace restores raw-event detection, which does not consult handled inbox identities and can alert on repeated ClickHouse reports; the fast-path replay guarantee applies only while opted in.
 
-The chart event buffer remains lossy. A durable alert need not have a matching
-ClickHouse bar. Krane can retry an RPC failure on a later pod-watch tick, but
-capture before the control-plane acknowledgement is not durable. A deleted pod
-or overwritten container state can still hide an event.
+The chart event buffer remains lossy, so a durable alert doesn't need a matching ClickHouse bar. Krane can retry an RPC failure on a later pod-watch tick, but capture before the control-plane acknowledgement is not durable, and a deleted pod or overwritten container state can still hide an event.
 
 ## Identify the expected window
 
-Calculate the window that a cron tick must evaluate. All values are UTC Unix
-seconds.
+Calculate the window that a cron tick must evaluate. All values are UTC Unix seconds.
 
 ```bash
 now=$(date -u +%s)
@@ -134,15 +74,11 @@ printf 'window=[%s, %s) key=%s\n' \
   "${cron_key}"
 ```
 
-Use the exact window in logs, Restate invocations, and ClickHouse watermark
-comparisons. A later cron key does not prove that an earlier window completed.
-The expected window ended at least 5 minutes ago. The handler returns a no-op
-when `window_end > now - 5 minutes`, even if a caller constructs a newer key.
+Use this exact window in logs, Restate invocations, and ClickHouse watermark comparisons. A later cron key does not prove that an earlier window completed. The expected window ended at least 5 minutes ago, and the handler returns a no-op when `window_end > now - 5 minutes`, even if a caller constructs a newer key.
 
 ## Diagnose a cron that is not firing
 
-The first symptom is no `RunDeployAnomalyCheck` invocation for the expected
-key. Check Kubernetes before the worker.
+The first symptom is no `RunDeployAnomalyCheck` invocation for the expected key. Check Kubernetes before the worker.
 
 1. Confirm that the CronJob exists and uses `*/5 * * * *`.
 
@@ -164,16 +100,11 @@ key. Check Kubernetes before the worker.
    kubectl -n unkey logs "job/${job_name}" --all-containers
    ```
 
-3. Confirm that the request path contains the expected cron key and handler:
-   `hydra.v1.CronService/<cron_key>/RunDeployAnomalyCheck/send`.
+3. Confirm that the request path contains the expected cron key and handler: `hydra.v1.CronService/<cron_key>/RunDeployAnomalyCheck/send`.
 4. Confirm that Restate ingress and the control-plane worker are ready.
-5. Compare the local chart entry in
-   `dev/k8s/charts/restate-cronjobs/values.yaml` with the production
-   `deploy-anomaly-check` job in the `unkeyed/infra` repository at
-   `eks-cluster/helm-chart/restate/environments/{canary,production001}/us-east-1.yaml`.
+5. Compare the local chart entry in `dev/k8s/charts/restate-cronjobs/values.yaml` with the production `deploy-anomaly-check` job in the `unkeyed/infra` repository at `eks-cluster/helm-chart/restate/environments/{canary,production001}/us-east-1.yaml`.
 
-After configuring the Restate CLI for the affected cluster, inspect the exact
-cron object:
+After configuring the Restate CLI for the affected cluster, inspect the exact cron object:
 
 ```bash
 restate invocations list \
@@ -181,23 +112,15 @@ restate invocations list \
   --key "${cron_key}"
 ```
 
-Use `restate invocations describe <invocation_id>` to inspect the journal. A
-cron invocation that reaches its maximum attempts must be killed by its retry
-policy, not paused. If it is paused, correct the deployed retry configuration
-before relying on later ticks.
+Use `restate invocations describe <invocation_id>` to inspect the journal. A cron invocation that reaches its maximum attempts must be killed by its retry policy, not paused. If it's paused, correct the deployed retry configuration before relying on later ticks.
 
-Do not manually invoke production to test a fix without separate operational
-approval. A manual call creates shared state and can overlap scheduled work.
+Don't manually invoke production to test a fix without separate operational approval. A manual call creates shared state and can overlap scheduled work.
 
 ## Diagnose incomplete windows
 
-Start with the structured shard warning. It identifies the affected workspace,
-app, environment, source, and running region with `shard`, `source`, `region`,
-`watermark`, and `window_end`. The source values are `requests` and `resources`.
-Compare the named region's watermark with `window_end`.
+Start with the structured shard warning. It identifies the affected workspace, app, environment, source, and running region with `shard`, `source`, `region`, `watermark`, and `window_end`. The source values are `requests` and `resources`. Compare the named region's watermark with `window_end`.
 
-`GetAnomalySourceWatermarks` reads `{Source, Region, Watermark}` rows from
-`anomaly_source_watermarks_v1`. Inspect every region directly:
+`GetAnomalySourceWatermarks` reads `{Source, Region, Watermark}` rows from `anomaly_source_watermarks_v1`. Inspect every region directly:
 
 ```sql
 SELECT
@@ -218,15 +141,9 @@ GROUP BY source, region
 ORDER BY source, region;
 ```
 
-A watermark row is available when that source and region received ingest in the
-last 2 hours. Compare the expected window end with every running topology region
-for the affected deployment. Every running region must have a watermark that
-reaches the end. A missing row is incomplete. Do not include regions that do not
-run the affected deployment. This scope prevents an unrelated sparse region
-from blocking healthy groups.
+A watermark row is available when that source and region received ingest in the last 2 hours. Compare the expected window end with every running topology region for the affected deployment; every running region must have a watermark that reaches the end, and a missing row is incomplete. Don't include regions that don't run the affected deployment, so an unrelated sparse region can't block healthy groups.
 
-The table is keyed by `(source, region)` and receives rows through materialized
-views on these raw sources:
+The table is keyed by `(source, region)` and receives rows through materialized views on these raw sources:
 
 | Source | Raw table |
 | --- | --- |
@@ -253,28 +170,13 @@ The combined results must contain these seven objects:
 
 There is no instance-event watermark materialized view.
 
-Inspect the producer and materialized view for the delayed pair. If a running
-region has no row, check why it has produced no ingest for 2 hours. Confirm that
-the Frontline and Heimdall region configurations match `regions.name`. Confirm
-that decommissioned regions are stopped or removed from deployment topology. Do
-not reinterpret `INCOMPLETE` as `ZERO_COMPLETE`. An incomplete metric cannot
-open, advance, touch, or resolve an alert from telemetry. A stopped deployment
-can still resolve a request-drop alert at or after its firing time.
+If a running region has no row, check why it has produced no ingest for 2 hours. Confirm that the Frontline and Heimdall region configurations match `regions.name`, and confirm that decommissioned regions are stopped or removed from deployment topology. Don't reinterpret `INCOMPLETE` as `ZERO_COMPLETE`: an incomplete metric can't open, advance, touch, or resolve an alert from telemetry, though a stopped deployment can still resolve a request-drop alert at or after its firing time.
 
-Instance-event completeness is different because OOM and crash-loop rows are
-sparse. A row in `instance_events_raw_v1` is actionable even when the resources
-watermark is incomplete. When no event row exists, the resources source
-watermark decides whether the zero is complete. The ctrl API instance-event
-buffer uses `Drop: true`. If a known lifecycle event has no raw row, inspect
-buffer pressure and flush errors. A dropped event can cause a missed alert on
-the standard path. It does not create a stuck incomplete source. For a fast-path
-workspace, inspect the durable inbox as well: a dropped chart event does not
-erase an acknowledged inbox identity.
+Instance-event completeness works differently, since OOM and crash-loop rows are sparse. A row in `instance_events_raw_v1` is actionable even when the resources watermark is incomplete. When no event row exists, the resources source watermark decides whether the zero is complete. The ctrl API instance-event buffer uses `Drop: true`, so if a known lifecycle event has no raw row, inspect buffer pressure and flush errors; a dropped event can cause a missed alert on the standard path, but it doesn't create a stuck incomplete source. For a fast-path workspace, also inspect the durable inbox: a dropped chart event doesn't erase an acknowledged inbox identity.
 
 ## Diagnose a failed shard or child
 
-The cron fans out to 16 shard virtual objects by default. For an expected shard,
-build the key and inspect its invocation.
+The cron fans out to 16 shard virtual objects by default. For an expected shard, build the key and inspect its invocation.
 
 ```bash
 shard=0
@@ -298,43 +200,17 @@ restate kv get hydra.v1.DeployAnomalyShardService \
   "${previous_shard_key}"
 ```
 
-Before the current shard queries or dispatches, it calls the prior key's
-exclusive `EvaluateShard` handler. If the predecessor finished, it returns its
-stored result without querying ClickHouse or MySQL. If it is running, the
-current shard waits. If it never ran, it evaluates and first calls its own
-predecessor.
+Before the current shard queries or dispatches, it calls the prior key's exclusive `EvaluateShard` handler. A finished predecessor returns its stored result without querying ClickHouse or MySQL. A running one makes the current shard wait. An unrun one evaluates now, chasing its own predecessor first. This recursive chase is limited to 12 predecessors, a 1-hour catch-up horizon: a predecessor beyond that limit counts as absent and the current shard proceeds, restarting consecutive-window candidate evidence. The group object's `last_window_end` guard still rejects duplicate or stale evaluations.
 
-The recursive chase is limited to 12 predecessors. Confirm chronological
-execution and catch-up across gaps of at most 1 hour. A predecessor beyond that
-limit counts as absent, and the current shard proceeds. A longer outage
-restarts consecutive-window candidate evidence. The group object's
-`last_window_end` guard still rejects duplicate or stale evaluations.
+`EvaluateShard` retries are bounded and must kill the invocation on exhaustion. A paused invocation would wedge the chain, since a later predecessor call queues behind it.
 
-`EvaluateShard` retries are bounded. Exhaustion must kill the invocation. A
-paused invocation would wedge the chain because a later predecessor call queues
-behind it.
+For the current shard, look for journal failures in watermark reads, candidate queries, batched MySQL metadata resolution, and per-group calls. Metadata batches contain at most 500 groups. The parent awaits every child, and any failed child withholds the heartbeat even if other groups succeed.
 
-For the current shard, look for journal failures in watermark reads, candidate
-queries, batched MySQL metadata resolution, and per-group calls. Metadata
-batches contain at most 500 groups. The parent awaits every child. Any failed
-child withholds the heartbeat even if other groups succeed.
+Metadata resolution also identifies open-alert groups whose app or environment no longer exists. The shard resolves each orphaned batch of at most 500 groups with `Deployment stopped`; inspect that batched resolution step when a deleted group remains open.
 
-Metadata resolution also identifies open-alert groups whose app or environment
-no longer exists. The shard resolves each orphaned batch of at most 500 groups
-with `Deployment stopped`. Inspect that batched resolution step when a deleted
-group remains open.
+Inspect the shard object's evaluated marker, stored dispatched and pending counts, and `pending_groups` keys, comparing the key count with `groups_pending`. A repeat call must return these stored results without new ClickHouse or MySQL steps. The next window receives the pending keys from its predecessor's `EvaluateShard` result.
 
-Inspect the shard object's evaluated marker, stored dispatched and pending
-counts, and `pending_groups` keys. Compare the key count with `groups_pending`.
-A repeat call must return these stored results without new ClickHouse or MySQL
-steps. The next window receives the pending keys from its predecessor's
-`EvaluateShard` result.
-
-`ListOpenAlertEventGroups` reads all `status = 'open'` groups through the plain
-`status_idx` index. Every shard repeats this small, cheap MySQL scan and keeps
-rows where `city.CH64(workspace_id) % shardCount == shard`. That result must
-match ClickHouse `cityHash64(workspace_id) % shard_count`. Use these known
-vectors when diagnosing a hash mismatch:
+`ListOpenAlertEventGroups` reads all `status = 'open'` groups through the plain `status_idx` index. Every shard repeats this small, cheap MySQL scan and keeps rows where `city.CH64(workspace_id) % shardCount == shard`, which must match ClickHouse's `cityHash64(workspace_id) % shard_count`. Use these known vectors when diagnosing a hash mismatch:
 
 | Workspace ID | CityHash64 |
 | --- | ---: |
@@ -355,34 +231,17 @@ restate invocations list \
 restate kv get hydra.v1.DeployAnomalyService "${group_key}"
 ```
 
-Expected state keys are `candidate:<metric>`, `candidate_window:<metric>`,
-`open_alert:<metric>`, `fired_at:<metric>`, `progress:<metric>`,
-`snapshot:<metric>`, `observed_event_at:<metric>` for fast evidence, and
-`open_alerts_reconciled`, plus the group-level
-`last_window_end`. `quiet:<metric>` can remain while older state migrates into
-`progress:<metric>`.
+Expected state keys are `candidate:<metric>`, `candidate_window:<metric>`, `open_alert:<metric>`, `fired_at:<metric>`, `progress:<metric>`, `snapshot:<metric>`, `observed_event_at:<metric>` for fast evidence, `open_alerts_reconciled`, and the group-level `last_window_end`. `quiet:<metric>` can remain while older state migrates into `progress:<metric>`.
 
-The evaluator does not persist a prior detector `Input`. For a `ZERO_COMPLETE`
-request window, inspect the current rolling median and active-bucket count in
-the request payload. Those fresh values must clear request-drop eligibility
-when an old active bucket leaves the preceding 12 buckets. A reconciled open
-request-drop alert retains its metric identity and still resolves at the
-24-hour maximum duration.
+The evaluator does not persist a prior detector input. For a `ZERO_COMPLETE` request window, inspect the current rolling median and active-bucket count in the request payload. Those fresh values must clear request-drop eligibility when an old active bucket leaves the preceding 12 buckets. A reconciled open request-drop alert retains its metric identity and still resolves at the 24-hour maximum duration.
 
-Compare the requested `window_end` with `last_window_end`. The evaluator returns
-a strict no-op when the requested end is equal to or older than the stored end.
-The warning `deploy anomaly window skipped because it is not newer` includes
-both fields. A delayed old invocation must not change current state.
+Compare the requested `window_end` with `last_window_end`. The evaluator returns a strict no-op when the requested end is equal to or older than the stored end. The warning `deploy anomaly window skipped because it is not newer` includes both fields.
 
-Treat MySQL as the customer-facing source of truth and Restate as detector
-execution state. Do not use `restate kv edit` during diagnosis. A state edit can
-break the one-open-alert invariant or discard the opening recovery snapshot.
+Treat MySQL as the customer-facing source of truth and Restate as detector execution state. Don't use `restate kv edit` during diagnosis: a state edit can break the one-open-alert invariant or discard the opening recovery snapshot.
 
 ## Investigate a false positive
 
-Start with the stored alert. It preserves the observed ratio and baseline values
-used when the detector opened. Raw error and request counts exist only in the
-structured opening log.
+Start with the stored alert. It preserves the observed ratio and baseline values used when the detector opened. Raw error and request counts exist only in the structured opening log.
 
 ```sql
 SELECT
@@ -409,106 +268,45 @@ FROM alert_events
 WHERE id = 'alert_XXX';
 ```
 
-For fast-path alerts, compare the group's inbox identities and processing times
-with `last_observed_event_at`. Opening time is processing time, not event time.
-The observed count describes novel events in that processed batch, not a
-5-minute chart total. Confirm that the deployment was active and the environment
-was production when the handler processed the row.
+For fast-path alerts, compare the group's inbox identities and processing times with `last_observed_event_at`. Opening time is processing time, not event time, and the observed count describes novel events in that processed batch, not a 5-minute chart total. Confirm that the deployment was active and the environment was production when the handler processed the row.
 
-For regular window alerts, find the `deploy anomaly alert opened` log for the ID.
-Record these structured fields before recalculating the rule:
+For regular window alerts, find the `deploy anomaly alert opened` log for the ID and record these structured fields before recalculating the rule: `alert_id`, `metric`, `current`, `baseline_mean`, `baseline_stddev`, `observed_buckets`, `baseline_window_buckets`, `lifetime_start`, `sigma`, `threshold`.
 
-- `alert_id`
-- `metric`
-- `current`
-- `baseline_mean`
-- `baseline_stddev`
-- `observed_buckets`
-- `baseline_window_buckets`
-- `lifetime_start`
-- `sigma`
-- `threshold`
+Use `window_start` and `window_end` to query the metric source. Confirm all of these conditions:
 
-Use `window_start` and `window_end` to query the metric source. Confirm all of
-these conditions:
-
-1. Every running topology region had a request or resource watermark that
-   reached the window end. Ignore unrelated regions. For a lifecycle event row,
-   confirm that the detector treated it as actionable without a separate event
-   watermark.
+1. Every running topology region had a request or resource watermark that reached the window end. Ignore unrelated regions. For a lifecycle event row, confirm that the detector treated it as actionable without a separate event watermark.
 2. The environment was production.
-3. ClickHouse grouping removed deployment identity but retained the correct
-   workspace, project, app, and environment.
-4. `lifetime_start` matches the app's MySQL `created_at` value aligned down to 5
-   minutes, but is no earlier than the 24-hour lookback boundary.
+3. ClickHouse grouping removed deployment identity but retained the correct workspace, project, app, and environment.
+4. `lifetime_start` matches the app's MySQL `created_at` value aligned down to 5 minutes, but is no earlier than the 24-hour lookback boundary.
 5. Error alerts used a ratio and at least 20 excess failures.
-6. Request drops had 72 observed baseline buckets, nine active recent buckets,
-   at least 200 lost requests, a `deployment_id` whose deployment was not marked
-   `stopped`, and at least one topology region with
-   `desired_status = 'running'`.
-7. The applied sensitivity and typed dashboard threshold mirror match the
-   [detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math).
-8. The ClickHouse candidate filter used the minimum spike threshold across
-   every lifetime from `max(observed_buckets, 1)` through 288, multiplied by
-   `(1 - 1e-12)`. This rounding tolerance may over-include but must not exclude
-   a Go anomaly. Run
-   `TestAnomalyCandidateFilterToleratesFloat64Cancellation` after changing this
-   filter.
-9. An older app received its backfilled baseline. If it did not, confirm that
-   the deploy anomaly migration in `pkg/clickhouse/migrations` completed for
-   `anomaly_source_watermarks_v1`,
-   `frontline_requests_anomaly_per_5m_v1`, and
-   `instance_resources_container_per_5m_v1`.
+6. Request drops had 72 observed baseline buckets, nine active recent buckets, at least 200 lost requests, a `deployment_id` whose deployment was not marked `stopped`, and at least one topology region with `desired_status = 'running'`.
+7. The applied sensitivity and typed dashboard threshold mirror match the [detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math).
+8. The ClickHouse candidate filter used the minimum spike threshold across every lifetime from `max(observed_buckets, 1)` through 288, multiplied by `(1 - 1e-12)`. This rounding tolerance may over-include but must not exclude a Go anomaly. Run `TestAnomalyCandidateFilterToleratesFloat64Cancellation` after changing this filter.
+9. An older app received its backfilled baseline. If it did not, confirm that the deploy anomaly migration in `pkg/clickhouse/migrations` completed for `anomaly_source_watermarks_v1`, `frontline_requests_anomaly_per_5m_v1`, and `instance_resources_container_per_5m_v1`.
 
-Each 7-day backfill runs over closed buckets before its materialized view is
-created. At most, the in-progress 5-minute bucket at migration time can be
-absent. Apply the migration once in this order. The `NOT IN` replay guard is
-race-free during the initial migration because the matching materialized view
-does not exist yet.
+Each 7-day backfill runs over closed buckets before its materialized view is created. At most, the in-progress 5-minute bucket at migration time can be absent. Apply the migration once, in this order. The `NOT IN` replay guard is race-free during the initial migration because the matching materialized view does not exist yet.
 
-Do not let a migration applier or operator rerun a backfill statement after its
-materialized view exists while ingest continues. A source key that arrives
-between the guard snapshot and insert can be counted by both paths. Stop ingest
-for the rerun or deduplicate the affected rollup keys. Investigate migration
-completion instead of inserting replacement rows without a deduplication plan.
+Don't let a migration applier or operator rerun a backfill statement after its materialized view exists while ingest continues. A source key that arrives between the guard snapshot and insert can be counted by both paths. Stop ingest for the rerun or deduplicate the affected rollup keys, rather than inserting replacement rows without a deduplication plan.
 
 ### Investigate zero CPU or egress
 
-The resource materialized view must read raw `instance_checkpoints_v1` rows and
-preserve per-container counter bounds for each 5-minute bucket. Inspect its
-definition:
+The resource materialized view must read raw `instance_checkpoints_v1` rows and preserve per-container counter bounds for each 5-minute bucket. Inspect its definition:
 
 ```sql
 SHOW CREATE TABLE default.instance_resources_container_per_5m_mv_v1;
 ```
 
-The definition must select from `instance_checkpoints_v1` and aggregate
-`cpu_usage_usec_min`, `cpu_usage_usec_max`,
-`network_egress_public_bytes_min`, and
-`network_egress_public_bytes_max`. The detector calculates a non-negative
-`max - min` per container before summing containers to the app.
+The definition must select from `instance_checkpoints_v1` and aggregate `cpu_usage_usec_min`, `cpu_usage_usec_max`, `network_egress_public_bytes_min`, and `network_egress_public_bytes_max`. The detector calculates a non-negative `max - min` per container before summing containers to the app.
 
-Do not restore a materialized view chained from a per-minute table. A live
-insert block can contain one 5-second sample. Computing a delta inside that
-block makes its minimum and maximum equal, which writes zero CPU and egress for
-live traffic.
+Don't restore a materialized view chained from a per-minute table. A live insert block normally contains one 5-second sample, so computing the difference inside that block makes its minimum and maximum equal, writing zero CPU and egress for live traffic.
 
-If detector values are correct but the dashboard differs, inspect
-`instance_resources_per_minute_v1`. Dashboard CPU and egress calculate
-non-negative per-container deltas in each 5-minute bucket, then sum those app
-values for hourly points. Dashboard memory instead reads
-`instance_resources_container_per_5m_v1`, divides `utilization_sum` by
-`utilization_samples` per container, averages container values into instances,
-and averages instances into the app. Hourly memory is the average of 5-minute
-app values.
+If detector values are correct but the dashboard differs, inspect `instance_resources_per_minute_v1`. Dashboard CPU and egress calculate non-negative per-container deltas in each 5-minute bucket, then sum those app values for hourly points. Dashboard memory instead reads `instance_resources_container_per_5m_v1`, divides `utilization_sum` by `utilization_samples` per container, averages container values into instances, and averages instances into the app; an hourly memory point averages the 5-minute app values.
 
-Do not compare an open alert with the latest rolling baseline. Recovery uses
-the snapshot stored when the alert opened.
+Don't compare an open alert with the latest rolling baseline. Recovery uses the snapshot stored when the alert opened.
 
 ## Respond to an alert storm
 
-An alert storm is a sudden increase in open rows across many independent groups.
-Measure its scope before changing thresholds.
+An alert storm is a sudden increase in open rows across many independent groups. Measure its scope before changing thresholds.
 
 ```sql
 SELECT metric, COUNT(*) AS open_count
@@ -518,47 +316,29 @@ GROUP BY metric
 ORDER BY open_count DESC;
 ```
 
-Group affected rows by workspace, environment, and 5-minute `window_start`.
-Then compare the result with source watermarks and platform incidents.
+Group affected rows by workspace, environment, and 5-minute `window_start`, then compare the result with source watermarks and platform incidents.
 
-- One metric and one source: inspect that telemetry producer and query change.
+- One metric and one source: inspect that telemetry producer and any recent query change.
 - Many metrics in one region: inspect regional ingestion and workload health.
-- Request drops after a control-plane action: verify the `deployment_id`,
-  `deployments.desired_state`, and `deployment_topology.desired_status` rows.
-  The rule is suppressed when every topology region is stopped, but not only
-  because `autoscaling_replicas_min = 0`.
-- Alerts immediately after a sensitivity change: restore code and dashboard
-  constants to the last reviewed values through the normal deployment process.
+- Request drops after a control-plane action: verify the `deployment_id`, `deployments.desired_state`, and `deployment_topology.desired_status` rows. The rule is suppressed when every topology region is stopped, but not only because `autoscaling_replicas_min = 0`.
+- Alerts immediately after a sensitivity change: restore code and dashboard constants to the last reviewed values through the normal deployment process.
 
-Do not change alert status rows before correcting the cause. That hides active
-rows but does not correct candidate generation or future windows. Notifications
-are not part of this phase, so stopping an email, Slack, or webhook integration
-cannot stop detector writes.
+Don't change alert status rows before correcting the cause. That hides active rows but does not correct candidate generation or future windows. Notifications are not part of this phase, so stopping an email, Slack, or webhook integration cannot stop detector writes.
 
 ## Diagnose an alert that stays open
 
-Alerts are read-only in the dashboard. The detector closes an alert at the first
-complete evaluation after it has been open for 24 hours.
+Alerts are read-only in the dashboard. The detector closes an alert at the first complete evaluation after it has been open for 24 hours. `DefaultConfig` decodes `maxOpenDurationSeconds = 86400` as a 24-hour `Config.MaxOpenDuration`.
 
-`DefaultConfig` decodes `maxOpenDurationSeconds = 86400` as a 24-hour
-`Config.MaxOpenDuration`. If a row remains open past that limit:
+If a row remains open past that limit:
 
 1. Compare `fired_at` plus 24 hours with the latest selected window end.
-2. Confirm that the metric's request or resource watermark reached that window
-   end. An absent OOM or crash-loop row uses the resources watermark. An
-   `INCOMPLETE` input is a strict no-op and cannot resolve the alert.
-3. Inspect the group virtual object for `open_alert:<metric>` and its latest
-   invocation for a failed MySQL resolution step.
+2. Confirm that the metric's request or resource watermark reached that window end. An absent OOM or crash-loop row uses the resources watermark. An `INCOMPLETE` input is a strict no-op and cannot resolve the alert.
+3. Inspect the group virtual object for `open_alert:<metric>` and its latest invocation for a failed MySQL resolution step.
 4. Confirm that the deployed `Config.MaxOpenDuration` is 24 hours.
 
-If the app or environment was deleted, inspect its deletion workflow first. It
-must durably resolve open alerts with `Deployment stopped` before deleting the
-metadata. If deletion completed without that transition, inspect the next shard
-run. Its batched orphan reconciliation must resolve any remaining open group
-whose app or environment cannot be found.
+If the app or environment was deleted, inspect its deletion workflow first. It must durably resolve open alerts with `Deployment stopped` before deleting the metadata. If deletion completed without that transition, inspect the next shard run's batched orphan reconciliation, which must resolve any remaining open group whose app or environment cannot be found.
 
-Do not update MySQL or Restate state to close the alert. Correct the failed
-evaluation path and let the detector persist the transition.
+Don't update MySQL or Restate state to close the alert. Correct the failed evaluation path and let the detector persist the transition.
 
 Use `resolution_message` to interpret a resolved row:
 
@@ -568,36 +348,20 @@ Use `resolution_message` to interpret a resolved row:
 | `Deployment stopped` | A request-drop alert closed because its deployment stopped, or an app or environment deletion resolved the alert. Shard reconciliation uses the same message for orphaned metadata. |
 | `Baseline adapted after 24 hours` | The alert stayed open for 24 hours, so the rolling baseline now represents the new level. |
 
-The last message describes baseline adaptation, not proof that the new level is
-healthy. Continue the incident investigation when the behavior is unexpected.
+The last message describes baseline adaptation, not proof that the new level is healthy. Continue the incident investigation when the behavior is unexpected.
 
 ## Change sensitivity
 
-Sensitivity is code-configured in this phase. There is no per-app sensitivity
-UI. `DefaultConfig` uses `SensitivityNormal`, where `k = 4`. Low sensitivity
-uses 5, and high sensitivity uses 3.
+Sensitivity is code-configured in this phase. There is no per-app sensitivity UI. `DefaultConfig` uses `SensitivityNormal`, where `k = 4`. Low sensitivity uses 5, and high sensitivity uses 3.
 
-`svc/ctrl/worker/cron/deployanomaly/thresholds.json` is the canonical source for
-the complete production rule inventory. The Go decoder calls
-`DisallowUnknownFields` and rejects trailing JSON values. Configuration loading
-uses per-value range checks and the cross-field invariants listed in the
-[detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math),
-including duration safety, recovery ordering, finite positive sigma values, and
-non-finite number rejection. An invalid embedded file causes a clear panic
-during package initialization.
+`svc/ctrl/worker/cron/deployanomaly/thresholds.json` is the canonical source for the complete production rule inventory. The Go decoder calls `DisallowUnknownFields`, rejects trailing JSON values and non-finite numbers, and applies the cross-field invariants listed on the [detector math](/architecture/services/control-plane/worker/deploy-anomaly-detection-math) page, including duration safety, recovery ordering, and finite positive sigma values. An invalid embedded file causes a clear panic during package initialization.
 
-The dashboard stores one complete typed `deployAnomalyThresholds` mirror in
-`web/internal/clickhouse/src/alert-thresholds.ts`. Its strict
-`alert-thresholds-contract.test.ts` strictly parses the JSON and uses `toEqual`
-for full deep equality. A mutation test proves that a nested difference fails.
+The dashboard stores one complete typed `deployAnomalyThresholds` mirror in `web/internal/clickhouse/src/alert-thresholds.ts`. Its strict `alert-thresholds-contract.test.ts` strictly parses the JSON and uses `toEqual` for full deep equality; a mutation test proves that a nested difference fails.
 
-To change the selected `Sensitivity`, update the detector call sites together
-and keep the dashboard's displayed sigma consistent. To change a production
-threshold:
+To change the selected `Sensitivity`, update the detector call sites together and keep the dashboard's displayed sigma consistent. To change a production threshold:
 
 1. Edit `svc/ctrl/worker/cron/deployanomaly/thresholds.json`.
-2. Run the Go package tests, including
-   `TestDefaultConfigMatchesSharedThresholds`.
+2. Run the Go package tests, including `TestDefaultConfigMatchesSharedThresholds`.
 
    ```bash
    mise exec -- rask ./svc/ctrl/worker/cron/deployanomaly
@@ -610,47 +374,31 @@ threshold:
      internal/clickhouse/src/alert-thresholds-contract.test.ts
    ```
 
-4. Update `web/internal/clickhouse/src/alert-thresholds.ts` if the contract
-   reports a difference, then rerun both tests.
+4. Update `web/internal/clickhouse/src/alert-thresholds.ts` if the contract reports a difference, then rerun both tests.
 5. Review expected alert volume before deploying.
 
-A lower `k` increases alert sensitivity.
-
-Do not change the 5-minute window, minimum baseline buckets, or metric floors as
-part of a sensitivity-only change.
+A lower `k` increases alert sensitivity. Don't change the 5-minute window, minimum baseline buckets, or metric floors as part of a sensitivity-only change.
 
 ## Change the shard count
 
-The default shard count is 16. Change it only when measured shard query latency
-or concurrency supports the change.
+The default shard count is 16. Change it only when measured shard query latency or concurrency supports the change.
 
 1. Update the default used by `RunDeployAnomalyCheck`.
 2. Keep `<window_start_ms>/<shard>/<shard_count>` as the shard key format.
 3. Verify that every shard index from zero through `shard_count - 1` is invoked.
-4. Verify that ClickHouse applies
-   `cityHash64(workspace_id) % shard_count` with the same count.
-5. Verify that the Go filter applies
-   `city.CH64(workspace_id) % shardCount == shard` with the same count.
-6. Verify that a window calls the previous window with the new shard count. An
-   absent predecessor must evaluate under the new partition. Group objects
-   reject windows that they already evaluated under the old partition.
-7. Measure candidate rows, per-shard query p95, end-to-end cron p95, and peak
-   child concurrency.
+4. Verify that ClickHouse applies `cityHash64(workspace_id) % shard_count` with the same count.
+5. Verify that the Go filter applies `city.CH64(workspace_id) % shardCount == shard` with the same count.
+6. Verify that a window calls the previous window with the new shard count. An absent predecessor must evaluate under the new partition. Group objects reject windows they already evaluated under the old partition.
+7. Measure candidate rows, per-shard query p95, end-to-end cron p95, and peak child concurrency.
 8. Deploy the code before changing any production cron assumptions.
 
-A count change applies to the new window and any predecessor shard keys that it
-evaluates during catch-up. Do not restart an in-flight window with a different
-count.
+A count change applies to the new window and any predecessor shard keys that it evaluates during catch-up. Don't restart an in-flight window with a different count.
 
 ## Verify the production cron
 
-The local chart is not the production source of truth. The production
-`deploy-anomaly-check` job is in the `unkeyed/infra` repository at
-`eks-cluster/helm-chart/restate/environments/{canary,production001}/us-east-1.yaml`.
-Both environments use `*/5 * * * *` and a fresh idempotency key for each window.
+The local chart is not the production source of truth. The production `deploy-anomaly-check` job is in the `unkeyed/infra` repository at `eks-cluster/helm-chart/restate/environments/{canary,production001}/us-east-1.yaml`. Both environments use `*/5 * * * *` and a fresh idempotency key for each window.
 
-The request must calculate the window that closed one full bucket earlier and
-invoke this path:
+The request must calculate the window that closed one full bucket earlier and invoke this path:
 
 ```bash
 window_start=$(($(date -u +%s) / 300 * 300 - 600))
@@ -663,7 +411,4 @@ curl --fail-with-body \
   -d '{}'
 ```
 
-Configure a 5-minute cadence, forbidden concurrent Kubernetes jobs, bounded
-caller retries, and the kill-on-max-attempts Restate policy. After deployment,
-confirm one cron invocation, all shard invocations, all child results, and a
-success heartbeat for the same window.
+Configure a 5-minute cadence, forbidden concurrent Kubernetes jobs, bounded caller retries, and the kill-on-max-attempts Restate policy. After deployment, confirm one cron invocation, all shard invocations, all child results, and a success heartbeat for the same window.

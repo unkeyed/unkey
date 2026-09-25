@@ -3,158 +3,74 @@ title: "Anomaly alerts"
 description: "Detect unusual traffic, resource use, and instance failures in production apps"
 ---
 
-Anomaly alerts identify behavior in an Unkey Deploy production app that differs
-from its recent baseline or crosses a health limit. Use them to find traffic
-changes, error spikes, resource pressure, and failed instances without setting
-a fixed limit for every app.
+Anomaly alerts flag app behavior that differs from its recent baseline or crosses a fixed health limit. Use them to catch traffic shifts, error spikes, resource pressure, and failed instances without setting a manual limit for every app.
 
 <Note>
   Anomaly alerts are in beta and enabled per workspace. If your workspace does
   not show **Alerts** or the **Anomalies** tab, ask Unkey to enable the beta.
 </Note>
 
-Alerts apply only to production environments. Preview activity does not create
-alerts.
+Alerts apply only to production environments. Preview activity never creates alerts.
 
-## Understand detected metrics
+## Metrics Unkey monitors
 
-Each alert identifies one metric for one app and production environment.
+Each alert covers one metric for one app and its production environment.
 
-| Metric | What the alert means |
+| Metric | What it means |
 | --- | --- |
-| 5xx errors | The server-error ratio increased above its recent level. |
-| 4xx errors | The client-error ratio increased above its recent level. |
-| Requests | Request volume increased above its recent level. |
-| Request drop | Request volume stayed far below a recent active level. |
-| Egress | Outbound network bytes increased above their recent level. |
-| CPU | CPU seconds increased above their recent level. |
-| Memory | Average memory utilization across instances reached 90%. |
-| OOM killed | At least one instance was terminated because it ran out of memory. |
-| Crash loop | At least one instance entered `CrashLoopBackOff`. |
+| 5xx errors | The server-error ratio rose above its recent level. |
+| 4xx errors | The client-error ratio rose above its recent level. |
+| Requests | Request volume rose above its recent level. |
+| Request drop | Request volume fell far below a recent active level. |
+| Egress | Outbound network traffic rose above its recent level. |
+| CPU | CPU usage rose above its recent level. |
+| Memory | Average memory use across instances reached 90%. |
+| OOM killed | An instance was terminated for running out of memory. |
+| Crash loop | An instance entered `CrashLoopBackOff`. |
 
-An alert belongs to the app and environment, not one deployment. The alert
-records the active deployment as context and stays open across a redeploy. This
-lets you see whether a rollout helped without splitting one incident into
-separate alerts.
+An alert belongs to the app and environment, not to a single deployment. It keeps the active deployment as context and stays open across a redeploy, so you can see whether a rollout helped instead of getting a new alert for every deploy.
 
-## Understand the baseline
+## How detection works
 
-Unkey evaluates closed 5-minute windows and compares them with up to 24 hours of
-earlier activity. It waits one full bucket before evaluating a window so normal
-telemetry delivery lag does not look like missing traffic. An alert normally
-appears 5 to 10 minutes after the affected bucket closes.
+Unkey evaluates closed 5-minute windows and compares each one with up to 24 hours of history. It waits for a window to fully close before evaluating it, so normal telemetry delay doesn't look like a traffic drop. An alert typically appears 5 to 10 minutes after the window it covers ends.
 
-If a scheduled check is missed, the next check evaluates missing windows in
-order for up to a 1-hour catch-up horizon. A longer interruption restarts the
-two-window confirmation required by moderate error and request-drop alerts.
+If Unkey misses a scheduled check, the next one catches up on missed windows in order, up to 1 hour back. A longer gap resets the two-window confirmation that moderate error and request-drop alerts require.
 
-When anomaly rollups are installed, Unkey replays the latest 7 days of closed
-telemetry before live collection starts. Only the 5-minute bucket in progress
-during setup can be absent. Existing apps therefore start with a full 24-hour
-baseline and enough history for request-drop detection. An app younger than 1
-hour cannot create a baseline-based spike alert. An app younger than 6 hours
-cannot create a request-drop alert. Unkey uses the app creation time and does
-not treat earlier time as zero.
+When Unkey turns on anomaly detection for a workspace, it replays the last 7 days of history so existing apps start with a full 24-hour baseline. Only the single 5-minute window in progress during setup is skipped. A new app needs at least 1 hour of history before it can trigger a spike alert, and 6 hours before it can trigger a request-drop alert. Unkey measures this from the app's creation time, not from zero.
 
-Request, egress, and CPU spikes can open after one unusual window. Moderate 4xx
-and 5xx error increases must continue for two windows. Request drops must also
-continue for two windows. A severe 5xx window can open immediately when at least
-half of requests fail and there are at least 50 failures.
+Request, egress, and CPU spikes can open after one unusual window. Moderate 4xx and 5xx increases, and request drops, need two consecutive windows. A severe 5xx spike, where at least half of requests fail and there are at least 50 failures, opens immediately.
 
-Error alerts use the percentage of requests that failed. They also require at
-least 20 more failures than the recent baseline predicts. This avoids an alert
-when a large percentage change affects only a few requests.
+Error alerts compare the percentage of failed requests to the baseline, and also require at least 20 more failures than the baseline predicts. This keeps a large percentage swing in a small number of requests from triggering an alert.
 
-Unkey tracks request and resource ingestion progress separately for the regions
-where each deployment runs. Every running region must have a watermark that
-reaches the window end. An unrelated sparse region does not block the deployment.
-A missing or delayed watermark keeps that source incomplete. An incomplete
-window cannot open or resolve an alert from metric values. A recent watermark
-does not prove that all earlier data arrived.
+Unkey tracks how far data ingestion has progressed for each region a deployment runs in. Every region the deployment runs in must catch up to a window before Unkey evaluates it, though a region with no traffic for that deployment doesn't block it. A delayed region keeps that window incomplete, and Unkey can't open or resolve an alert from an incomplete window, even if other regions are current. A recent watermark doesn't guarantee every data point has already arrived.
 
-Instance failures are sparse events. A received OOM or crash-loop event can
-open an alert without a baseline or a second confirming window. The standard
-path still waits for its scheduled 5-minute evaluation. When there is no event,
-resource completeness tells the detector whether to use the empty window for
-recovery. Watermarks track recent ingestion, not lossless delivery.
+Instance failures are rare events. A single OOM or crash-loop report can open an alert right away, without waiting for a baseline or a second confirming window. When there is no such event, Unkey checks resource completeness to decide whether the window counts as clean for recovery.
 
-Request-drop alerts require an active deployment ID and at least one topology
-region set to running. No deployment ID, a stopped deployment, or every
-topology region being stopped suppresses the alert. Setting
-`autoscaling_replicas_min = 0` does not suppress detection. Scale-to-zero
-capability alone does not make a traffic drop expected.
+A request-drop alert needs an active deployment with at least one running region. Unkey suppresses the alert if the deployment has no ID, is stopped, or has no running regions. Setting `autoscaling_replicas_min = 0` does not suppress it: the ability to scale to zero doesn't make an actual drop expected.
 
-When a complete window has no requests, Unkey recalculates the drop rule from
-the latest rolling values. Old active buckets can age out of the 12-bucket
-window and remove drop eligibility. Unkey does not reuse eligibility from an
-earlier zero-request window.
+When a complete window has no requests, Unkey recalculates drop eligibility from the latest rolling values instead of reusing an earlier zero-request window's eligibility. Old buckets age out of the 12-bucket window Unkey uses for this calculation.
 
-### Faster instance-failure beta
+### Faster failure detection (opt-in beta)
 
-Separately opted-in workspaces use a 1-minute poll for `OOMKilled` and
-`CrashLoopBackOff`. The control plane stores reported failures before
-acknowledging them, so alert creation does not depend on the chart event buffer.
-A successfully stored failure is normally processed at the next poll. Queueing,
-retries, and source delivery can add delay. This is not an end-to-end latency
-guarantee.
+Workspaces that opt in separately get 1-minute polling for `OOMKilled` and `CrashLoopBackOff` events, instead of waiting for the 5-minute cycle. The control plane stores each reported failure durably before acknowledging it, so this path doesn't depend on the same event buffer that feeds the health charts. A stored failure is normally processed on the next poll, but queueing, retries, and delivery delays can add time. This is not a guaranteed end-to-end delivery time.
 
-The faster path opens alerts only for the active production deployment with a
-running region. Duplicate reports do not reopen resolved alerts. A new failure
-resets recovery evidence, but resolution still requires three complete quiet
-5-minute windows. Request, error-ratio, CPU, egress, and memory detection keep
-their existing cadence. Generic restart-count alerts are not included.
+This path opens alerts only for the active production deployment in a running region. A duplicate report never reopens a resolved alert. A new failure resets the recovery count, but resolving the alert still needs three complete quiet 5-minute windows, the same as every other metric. Other metrics keep their normal 5-minute cadence, and this path adds no email, Slack, or webhook notifications.
 
-Health charts still use ClickHouse event history. A failure alert can appear
-before its chart bar, or without a bar if that separate history write was lost.
-The faster path adds no email, Slack, or webhook notifications.
+Health charts still read from ClickHouse event history, which is separate from this durable inbox. A failure alert can appear before its chart bar, or without a bar at all if that separate write is lost.
 
 ## Read the Anomalies tab
 
-Open a project, select an app, and click **Anomalies**. Select the production
-environment with the environment control.
+Open a project, select an app, and click **Anomalies**. Use the environment control to select the production environment.
 
-The 7-day overview strip shows hourly behavior. Use the range selector to view
-the last 24 hours, 6 hours, or 7 days in detail. Select 5xx, 4xx, Requests,
-Egress, CPU, Memory, or Health to change the chart.
+The 7-day overview strip shows hourly behavior. Use the range selector for the last 24 hours, 6 hours, or 7 days in more detail, and switch between 5xx, 4xx, Requests, Egress, CPU, Memory, or Health.
 
-The solid line is the observed value. The dashed expected line and band show
-the recent baseline and normal range for that bucket. Requests also show a
-lower traffic boundary. Memory shows a fixed 90% limit. The Health chart shows
-OOM and crash-loop events as bars.
+The solid line is the observed value. The dashed line and shaded band show the expected baseline and its normal range. Requests also show a lower traffic boundary, and Memory shows a fixed 90% limit. The Health chart shows OOM and crash-loop events as bars.
 
-The chart follows the same calculations as the detector. It pads the baseline
-from the app creation time, aligned to 5 minutes and limited to the latest 24
-hours. Eligibility counts observed 5-minute buckets even on the hourly chart.
-The expected spike band needs 12 observed buckets. The request lower boundary
-appears after 72 observed buckets and 9 active buckets among the previous 12.
-It combines the 25% recent-level fraction and 200-request minimum loss into the
-boundary value. The chart does not inspect the current value's loss before it
-draws the line. The upper spike band remains visible before the lower boundary
-becomes eligible.
+The chart uses the same calculations as the detector, so what you see matches why an alert fired or didn't. It needs 12 observed 5-minute buckets before it can show an expected band, and 72 buckets plus 9 active buckets out of the last 12 before it can show the request lower boundary. Error variation excludes buckets with no requests.
 
-Error variation excludes buckets with no requests. The request lower boundary
-uses the inclusive median of the previous 12 buckets, which averages the two
-middle values. CPU and egress use non-negative counter changes from per-minute
-container samples. The chart calculates each 5-minute container change, sums
-containers into the app, and sums those app values for an hourly point. Memory
-uses 5-minute container samples. It averages containers into instances and
-instances into the app, then averages the 5-minute app values for an hourly
-point.
+Shaded regions mark every anomaly window. Markers on the line identify alerts for the selected metric. Toggle deployment markers to compare changes with rollouts, and drag across the chart to zoom in.
 
-Shaded regions mark all anomaly windows. Markers attached to the line identify
-alerts for the selected metric. Toggle deployment markers to compare changes
-with rollouts, and drag across the chart to zoom into a smaller time range.
-
-The range list includes open and resolved alerts and loads 25 at a time. Use
-**Load more** to retrieve another page. A visible notice tells you when
-additional rows exist beyond the pages loaded so far. Select an alert to open
-focus mode. The details card shows its status, metric, observed value, expected
-baseline, detection window, and deployment context. For a resolved alert, it
-also shows the resolution message.
-
-Each alert row loads its chart when it comes within 150 px of the viewport. A
-row farther away shows a fixed-size skeleton and does not request series data.
-After a chart loads, it stays mounted when you scroll away.
+The alert list below the chart includes open and resolved alerts, loading 25 at a time. Click **Load more** for additional rows. Select an alert to open focus mode, which shows its status, metric, observed value, expected baseline, detection window, and deployment context, plus the resolution message for a resolved alert.
 
 <Frame caption="Anomalies tab with expected ranges and alert windows">
   <img
@@ -165,14 +81,9 @@ After a chart loads, it stays mounted when you scroll away.
 
 ## Use the alerts inbox
 
-Open **Alerts** in the workspace navigation to see open anomalies across
-production apps. The inbox does not include resolved alerts. Use the metric and
-app filters to narrow the list. Each row includes recent context and a
-sparkline. Inbox sparklines use the same lazy loading behavior as app alert rows.
+Open **Alerts** in the workspace navigation to see open anomalies across every production app. The inbox does not include resolved alerts. Filter by metric or app, and use the sparkline on each row for quick context.
 
-Select an alert to open the affected app, environment, metric, and time range in
-focus mode. When the detector resolves it, the alert leaves the workspace inbox.
-Its app-level focus URL remains available with `?alert=<id>`.
+Select an alert to open its app, environment, metric, and time range in focus mode. Once the detector resolves the alert, it leaves the inbox, but its app-level link (`?alert=<id>`) still works.
 
 <Frame caption="Workspace alerts inbox showing open alerts">
   <img
@@ -183,60 +94,32 @@ Its app-level focus URL remains available with `?alert=<id>`.
 
 ## Understand alert resolution
 
-Alerts are read-only in the dashboard. The detector resolves an alert without a
-user action and displays the reason in the alert details.
+Alerts are read-only. Unkey resolves them automatically and shows the reason in the alert details.
 
-An alert resolves when the metric returns to its opening baseline for three
-consecutive complete windows. Memory must fall below 85% for recovery. Unkey
-uses the baseline captured when the alert opened, so a continuing incident
-cannot satisfy this recovery rule as its rolling baseline changes.
+An alert resolves when its metric returns to the baseline captured when the alert opened, for three consecutive complete windows. Memory must fall below 85% to count as recovered. Unkey uses this fixed opening baseline rather than a rolling one, so a continuing incident can't satisfy recovery just because the rolling baseline has shifted to match it. A 5xx window with at least half of requests failing and at least 50 failures never counts as recovered, even inside the recovery range.
 
-A 5xx window with at least half of its requests failing and at least 50 failures
-never counts as a recovered window, even when it is inside the recovery band.
+If behavior holds at a new level for 24 hours, that level becomes the new baseline. Unkey closes the alert with `Baseline adapted after 24 hours`, so later changes are measured against the new normal. This can happen after an expected, permanent change, such as traffic doubling.
 
-When behavior stays at a new level for 24 hours, the rolling baseline contains
-only that new level. This can happen after a permanent and expected change, such
-as traffic doubling. The detector closes the old alert with
-`Baseline adapted after 24 hours` so later changes can be compared with the new
-baseline.
+A request-drop alert resolves with `Deployment stopped` when the deployment has no ID, is stopped, or has no running regions. The normal recovery message is `Metric returned to baseline for 3 consecutive windows`.
 
-An open request-drop alert resolves with `Deployment stopped` when there is no
-deployment ID, the deployment is stopped, or every topology region is stopped.
-A historical window from before the alert fired does not resolve it. A normal
-recovery uses `Metric returned to baseline for 3 consecutive windows`.
+Deleting an app or environment resolves its open alerts with `Deployment stopped` before removing it. If Unkey finds an alert whose app or environment metadata is already gone, it resolves that alert on the next check.
 
-Deleting an app or environment also resolves its open alerts with
-`Deployment stopped` before removing it. If metadata is already missing, the
-detector finds and resolves the orphaned alerts during a later check.
-
-Open a resolved alert through its app Anomalies deep link with `?alert=<id>`.
-The focus card shows its **Resolved** status, resolution timestamp, and
-resolution message.
+Open a resolved alert through its Anomalies deep link (`?alert=<id>`) to see its **Resolved** status, resolution time, and resolution message.
 
 ## Know the beta limits
 
-Anomaly alerts provide evidence for investigation, not a diagnosis. A traffic
-or resource change can be expected for your workload.
+Anomaly alerts are evidence for investigation, not a diagnosis. A traffic or resource change can be expected for your workload.
 
 This beta does not include:
 
-- A notification service. Alerts, including 4xx alerts, are persisted but do
-  not send email, Slack, or webhook notifications.
+- Notifications. Alerts, including 4xx alerts, don't send email, Slack, or webhook messages.
 - Per-app mute controls.
 - A sensitivity control in the dashboard.
 - Seasonal baselines for daily or weekly patterns.
 - Latency anomalies.
-- Guaranteed capture of every OOM or crash-loop event. A source failure can
-  disappear before it reaches the control plane. For faster-path workspaces,
-  acknowledged failure identities are durable. Other workspaces still depend
-  on the event buffer, which can drop rows under pressure.
-- Persisted raw error and request counts. Error alerts store the ratio, while raw
-  counts appear only in internal logs.
-- Measured capacity results for 1 million monitored groups. Current figures are
-  extrapolated from the 100,000-group test.
+- Guaranteed capture of every OOM or crash-loop event. A brief failure can disappear before it reaches the control plane. For faster-path workspaces, an acknowledged failure is durable; other workspaces depend on an event buffer that can drop rows under load.
+- Raw error and request counts. Error alerts store the ratio, while raw counts appear only in internal logs.
+- Measured results at 1 million monitored groups. Current figures at that scale are extrapolated from testing at 100,000 groups.
 - Automatic before-and-after deployment comparison.
 
-Use [runtime logs](/observability/logs),
-[request details](/observability/requests), and
-[deployment metrics](/observability/metrics) to investigate the affected
-window.
+To investigate an alert further, use [runtime logs](/observability/logs), [request details](/observability/requests), and [deployment metrics](/observability/metrics).
