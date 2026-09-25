@@ -19,15 +19,16 @@ import {
   ResourceList,
 } from "@unkey/ui";
 import { useParams, useRouter } from "next/navigation";
-import { parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
+import { parseAsString, useQueryState } from "nuqs";
 import { AppCard, AppCardSkeleton } from "./app-card";
 import { type AppRowData, filterApps, toAppRow } from "./app-row-model";
-import { APPS_VIEWS, AppsListControls, type AppsView } from "./apps-list-controls";
+import { AppsListControls, type AppsView } from "./apps-list-controls";
 import { AppsTable } from "./apps-table";
+import { useAppsView } from "./use-apps-view";
 
 // One row at the 3-column desktop width so loading doesn't tower over the
 // real list before it resolves.
-const MAX_SKELETON_COUNT = 3;
+const SKELETON_KEYS = ["skeleton-1", "skeleton-2", "skeleton-3"];
 
 const IDLE_POLL_MS = 60_000;
 const BUILDING_POLL_MS = 5_000;
@@ -45,10 +46,7 @@ export function AppsList() {
     "search",
     parseAsString.withDefault("").withOptions(queryOptions),
   );
-  const [view, setView] = useQueryState(
-    "view",
-    parseAsStringLiteral(APPS_VIEWS).withDefault("grid").withOptions(queryOptions),
-  );
+  const [view, setView] = useAppsView();
   // Without a Compute plan, creating an app opens the paywall instead.
   const openCreateApp = () =>
     gated
@@ -139,9 +137,8 @@ function AppsListBody({
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {Array.from({ length: MAX_SKELETON_COUNT }).map((_, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: skeleton items don't need stable keys
-          <AppCardSkeleton key={i} />
+        {SKELETON_KEYS.map((key) => (
+          <AppCardSkeleton key={key} />
         ))}
       </div>
     );

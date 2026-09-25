@@ -30,7 +30,6 @@ const schema = z.object({
   authorAvatar: z.string().nullable(),
   commitTimestamp: z.number().int().nullable(),
   domain: z.string().nullable(),
-  // Newest deployment, production first; what the app card reports on.
   headlineDeployment: z
     .object({
       id: z.string(),
