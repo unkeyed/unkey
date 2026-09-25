@@ -19,6 +19,11 @@ const getOverride = vi.fn(async ({ identifier }: { namespace: string; identifier
   if (identifier === "missing") {
     throw new NotFound();
   }
+  if (identifier === "alice@KEBAP.com") {
+    return {
+      data: { overrideId: "ovr_wildcard", identifier: "*@KEBAP.com", limit: 3, duration: 1000 },
+    };
+  }
   return { data: { overrideId: "ovr_9", identifier, limit: 3, duration: 1000 } };
 });
 
@@ -85,5 +90,22 @@ describe("ratelimit overrides collection", () => {
     );
 
     expect(await query.toArrayWhenReady()).toEqual([]);
+  });
+
+  it("keeps a wildcard match out of the collection when asked for an exact identifier", async () => {
+    const query = createLiveQueryCollection((q) =>
+      q
+        .from({ override: ratelimitOverrides })
+        .where(({ override }) =>
+          and(eq(override.namespaceId, "rlns_3"), eq(override.identifier, "alice@KEBAP.com")),
+        ),
+    );
+
+    expect(await query.toArrayWhenReady()).toEqual([]);
+    expect(getOverride).toHaveBeenCalledWith({
+      namespace: "rlns_3",
+      identifier: "alice@KEBAP.com",
+    });
+    expect(ratelimitOverrides.has("ovr_wildcard")).toBe(false);
   });
 });

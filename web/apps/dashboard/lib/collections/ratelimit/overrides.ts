@@ -54,7 +54,7 @@ export const ratelimitOverrides = createCollection<RatelimitOverride, string>(
             namespace: namespaceId,
             identifier,
           });
-          return [toOverride(namespaceId, data)];
+          return data.identifier === identifier ? [toOverride(namespaceId, data)] : [];
         } catch (error) {
           if (error instanceof NotFoundErrorResponse) {
             return [];

@@ -31,7 +31,12 @@ export const DeleteDialog = ({
   overrideId,
   identifier,
 }: Props) => {
-  const { register, handleSubmit, watch } = useForm<FormValues>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { isSubmitting },
+  } = useForm<FormValues>({
     mode: "onChange",
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -62,7 +67,8 @@ export const DeleteDialog = ({
             variant="primary"
             color="danger"
             size="xlg"
-            disabled={!isValid}
+            disabled={!isValid || isSubmitting}
+            loading={isSubmitting}
             className="w-full rounded-lg"
           >
             Delete Override
