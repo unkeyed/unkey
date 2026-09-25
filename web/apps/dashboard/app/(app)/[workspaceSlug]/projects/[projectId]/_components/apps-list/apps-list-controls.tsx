@@ -15,9 +15,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@unkey/ui";
-
-export const APPS_VIEWS = ["grid", "list"] as const;
-export type AppsView = (typeof APPS_VIEWS)[number];
+import { type AppsView, parseAppsView } from "./use-apps-view";
 
 type Props = {
   search: string;
@@ -44,7 +42,7 @@ export function AppsListControls({ search, onSearchChange, view, onViewChange }:
             type="text"
             value={search}
             maxLength={256}
-            placeholder="Search apps by name, repo or domain..."
+            placeholder="Search by name, repo, image or domain"
             className="h-8 text-[13px] font-medium"
             onChange={(event) => onSearchChange(event.target.value)}
             onKeyDown={(event) => {
@@ -71,7 +69,7 @@ export function AppsListControls({ search, onSearchChange, view, onViewChange }:
       <Tabs
         value={view}
         onValueChange={(value) => {
-          const next = APPS_VIEWS.find((option) => option === value);
+          const next = parseAppsView(value);
           if (next) {
             onViewChange(next);
           }

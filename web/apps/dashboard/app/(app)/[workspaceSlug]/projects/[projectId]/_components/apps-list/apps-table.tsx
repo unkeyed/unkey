@@ -1,29 +1,65 @@
 import { DeploymentStatusIndicator } from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/deployment-status-dot";
 import { DEPLOYMENT_STATUS_LABELS } from "@/lib/collections/deploy/deployment-status";
-import { InfoTooltip, ResourceListBody, ResourceListContent, ResourceListItem } from "@unkey/ui";
+import {
+  InfoTooltip,
+  ResourceListBody,
+  ResourceListContent,
+  ResourceListItem,
+  Skeleton,
+} from "@unkey/ui";
 import Link from "next/link";
 import type { AppRowData } from "./app-row-model";
 import { AppActionsButton, DeployedAgo, LinkOrText, SourceIcon, SourceLabel } from "./app-source";
 
-const empty = <span className="text-gray-9">—</span>;
-
 export function AppsTable({ rows, projectId }: { rows: AppRowData[]; projectId: string }) {
   return (
     <ResourceListContent>
-      <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_32px] items-center gap-4 border-b bg-table-header px-4 py-[7px] text-xs font-medium text-gray-12">
-        <span>App</span>
-        <span>Repository</span>
-        <span>Domain</span>
-        <span>Branch</span>
-        <span>Deployed</span>
-        <span />
+      <div className="overflow-x-auto">
+        <div className="min-w-[760px]">
+          <AppsTableHeader />
+          <ResourceListBody>
+            {rows.map((row) => (
+              <AppsTableRow key={row.app.id} row={row} projectId={projectId} />
+            ))}
+          </ResourceListBody>
+        </div>
       </div>
-      <ResourceListBody>
-        {rows.map((row) => (
-          <AppsTableRow key={row.app.id} row={row} projectId={projectId} />
-        ))}
-      </ResourceListBody>
     </ResourceListContent>
+  );
+}
+
+export function AppsTableSkeleton() {
+  return (
+    <ResourceListContent aria-busy="true">
+      <div className="overflow-x-auto">
+        <div className="min-w-[760px]">
+          <AppsTableHeader />
+          <ResourceListBody aria-hidden="true">
+            {["skeleton-1", "skeleton-2", "skeleton-3"].map((key) => (
+              <ResourceListItem key={key} className="flex h-12 items-center gap-4 px-4">
+                <Skeleton className="size-6 shrink-0 rounded-md" />
+                <Skeleton className="h-3 w-28" />
+                <Skeleton className="h-3 w-32" />
+                <Skeleton className="h-3 w-40" />
+              </ResourceListItem>
+            ))}
+          </ResourceListBody>
+        </div>
+      </div>
+    </ResourceListContent>
+  );
+}
+
+function AppsTableHeader() {
+  return (
+    <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_32px] items-center gap-4 border-b bg-table-header px-4 py-[7px] text-xs font-medium text-gray-12">
+      <span>App</span>
+      <span>Repository</span>
+      <span>Domain</span>
+      <span>Branch</span>
+      <span>Deployed</span>
+      <span />
+    </div>
   );
 }
 
@@ -45,16 +81,14 @@ function AppsTableRow({ row, projectId }: { row: AppRowData; projectId: string }
       </span>
       <span className="min-w-0">
         {app.domain ? (
-          <a
+          <LinkOrText
             href={`https://${app.domain}`}
-            target="_blank"
-            rel="noopener noreferrer"
             className="relative z-10 block truncate font-medium hover:underline"
           >
             {app.domain}
-          </a>
+          </LinkOrText>
         ) : (
-          empty
+          <span className="text-gray-9">—</span>
         )}
       </span>
       <span className="min-w-0">
@@ -66,7 +100,7 @@ function AppsTableRow({ row, projectId }: { row: AppRowData; projectId: string }
             {deployment.branch}
           </LinkOrText>
         ) : (
-          empty
+          <span className="text-gray-9">—</span>
         )}
       </span>
       <span className="flex min-w-0 items-center gap-1.5">
@@ -81,6 +115,7 @@ function AppsTableRow({ row, projectId }: { row: AppRowData; projectId: string }
                 <DeploymentStatusIndicator status={deployment.status} />
               </span>
             </InfoTooltip>
+            <span className="sr-only">{DEPLOYMENT_STATUS_LABELS[deployment.status]}</span>
             <DeployedAgo value={deployment.deployedAt} className="truncate" />
           </>
         ) : (

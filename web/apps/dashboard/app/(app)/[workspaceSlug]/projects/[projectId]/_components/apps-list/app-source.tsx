@@ -6,9 +6,8 @@ import {
   IconTerminalOutline18,
 } from "@unkey/icons";
 import { match } from "@unkey/match";
-import { Button, useElapsed } from "@unkey/ui";
+import { Button, InfoTooltip, useElapsed } from "@unkey/ui";
 import { cn } from "cn";
-import type { ReactNode } from "react";
 import { AppActions } from "./app-actions";
 import type { AppRowData, AppSource } from "./app-row-model";
 
@@ -22,24 +21,22 @@ export function SourceIcon({ source, className }: { source: AppSource; className
 
 export function SourceLabel({ row, className }: { row: AppRowData; className?: string }) {
   const { app } = row;
-  if (row.source === "git") {
-    return app.repositoryFullName ? (
-      <a
-        href={githubUrl.repo(app.repositoryFullName)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={className}
-      >
-        {app.repositoryFullName}
-      </a>
-    ) : (
-      <span className="text-gray-9">No repository connected</span>
+  if (row.source !== "git") {
+    const label =
+      app.imageReference ?? (row.source === "image" ? "No image configured" : "Legacy app");
+    return (
+      <InfoTooltip content={label} asChild position={{ align: "start", side: "top" }}>
+        <span className="min-w-0 truncate">{label}</span>
+      </InfoTooltip>
     );
   }
+  if (!app.repositoryFullName) {
+    return <span className="text-gray-9">No repository connected</span>;
+  }
   return (
-    <span className="min-w-0 truncate">
-      {app.imageReference ?? (row.source === "image" ? "No image configured" : "Legacy app")}
-    </span>
+    <LinkOrText href={githubUrl.repo(app.repositoryFullName)} className={className}>
+      {app.repositoryFullName}
+    </LinkOrText>
   );
 }
 
@@ -64,14 +61,17 @@ export function LinkOrText({
 }: {
   href: string | undefined;
   className?: string;
-  children: ReactNode;
+  children: string;
 }) {
-  if (!href) {
-    return <span className={cn(className, "hover:no-underline")}>{children}</span>;
-  }
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
-      {children}
-    </a>
+    <InfoTooltip content={children} asChild position={{ align: "start", side: "top" }}>
+      {href ? (
+        <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+          {children}
+        </a>
+      ) : (
+        <span className={cn(className, "hover:no-underline")}>{children}</span>
+      )}
+    </InfoTooltip>
   );
 }

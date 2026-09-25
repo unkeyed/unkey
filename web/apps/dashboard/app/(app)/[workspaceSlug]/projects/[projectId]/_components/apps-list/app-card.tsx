@@ -21,7 +21,7 @@ export function AppCard({ row, projectId }: { row: AppRowData; projectId: string
 
   return (
     <div className="relative flex h-full w-full flex-col gap-4 rounded-lg border bg-raised p-5 shadow-xs transition-all duration-300 hover:border-strong [&_a]:z-10 [&_button]:z-10">
-      <Link href={row.href} className="absolute inset-0 z-0" aria-label={`View ${app.name}`} />
+      <Link href={row.href} className="absolute inset-0 z-0" tabIndex={-1} aria-hidden="true" />
 
       <div className="flex items-center gap-2.5">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-raised">
@@ -37,14 +37,12 @@ export function AppCard({ row, projectId }: { row: AppRowData; projectId: string
             </Link>
           </InfoTooltip>
           {app.domain ? (
-            <a
+            <LinkOrText
               href={`https://${app.domain}`}
-              target="_blank"
-              rel="noopener noreferrer"
               className="relative min-w-0 truncate text-xs leading-3 text-gray-11 hover:text-gray-12 hover:underline"
             >
               {app.domain}
-            </a>
+            </LinkOrText>
           ) : (
             <span className="text-xs leading-3 text-gray-9">No domain yet</span>
           )}

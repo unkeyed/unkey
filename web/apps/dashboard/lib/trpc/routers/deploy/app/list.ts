@@ -5,11 +5,11 @@ import {
   appSourceOci,
   apps,
   deployments,
-  environments,
   frontlineRoutes,
   githubRepoConnections,
 } from "@unkey/db/src/schema";
 import { z } from "zod";
+import { queryHeadlineDeployments } from "../headline-deployments";
 
 export const listApps = workspaceProcedure
   .input(z.object({ projectId: z.string() }))
@@ -54,25 +54,6 @@ export const listApps = workspaceProcedure
       .where(and(eq(deployments.workspaceId, workspaceId), inArray(deployments.appId, appIds)))
       .as("ranked_deployments");
 
-    const rankedHeadlineDeployments = db
-      .select({
-        appId: deployments.appId,
-        id: deployments.id,
-        rn: sql<number>`ROW_NUMBER() OVER (PARTITION BY ${deployments.appId} ORDER BY (${environments.kind} = 'production') DESC, ${deployments.createdAt} DESC, ${deployments.id} DESC)`.as(
-          "rn",
-        ),
-      })
-      .from(deployments)
-      .innerJoin(
-        environments,
-        and(
-          eq(environments.id, deployments.environmentId),
-          eq(environments.workspaceId, workspaceId),
-        ),
-      )
-      .where(and(eq(deployments.workspaceId, workspaceId), inArray(deployments.appId, appIds)))
-      .as("ranked_headline_deployments");
-
     const rankedRoutes = db
       .select({
         appId: frontlineRoutes.appId,
@@ -87,92 +68,43 @@ export const listApps = workspaceProcedure
       )
       .as("ranked_routes");
 
-    const currentDeploymentIds = Array.from(
-      new Set(appRows.map((a) => a.currentDeploymentId).filter((id): id is string => Boolean(id))),
-    );
-
-    const [
-      latestDeploymentRows,
-      headlineDeploymentRows,
-      routeRows,
-      repoRows,
-      ociSourceRows,
-      currentDeploymentRows,
-    ] = await Promise.all([
-      db
-        .select({ appId: rankedDeployments.appId, id: rankedDeployments.id })
-        .from(rankedDeployments)
-        .where(eq(rankedDeployments.rn, 1)),
-      db
-        .select({
-          appId: rankedHeadlineDeployments.appId,
-          id: deployments.id,
-          status: deployments.status,
-          createdAt: deployments.createdAt,
-          gitCommitMessage: deployments.gitCommitMessage,
-          gitCommitSha: deployments.gitCommitSha,
-          gitBranch: deployments.gitBranch,
-          prNumber: deployments.prNumber,
-          forkRepositoryFullName: deployments.forkRepositoryFullName,
-        })
-        .from(rankedHeadlineDeployments)
-        .innerJoin(
-          deployments,
-          and(
-            eq(deployments.id, rankedHeadlineDeployments.id),
-            eq(deployments.workspaceId, workspaceId),
+    const [latestDeploymentRows, headlineDeploymentRows, routeRows, repoRows, ociSourceRows] =
+      await Promise.all([
+        db
+          .select({ appId: rankedDeployments.appId, id: rankedDeployments.id })
+          .from(rankedDeployments)
+          .where(eq(rankedDeployments.rn, 1)),
+        queryHeadlineDeployments(workspaceId, inArray(deployments.appId, appIds)),
+        db
+          .select({
+            appId: rankedRoutes.appId,
+            fullyQualifiedDomainName: rankedRoutes.fullyQualifiedDomainName,
+          })
+          .from(rankedRoutes)
+          .where(eq(rankedRoutes.rn, 1)),
+        db
+          .select({
+            appId: githubRepoConnections.appId,
+            repositoryFullName: githubRepoConnections.repositoryFullName,
+            defaultBranch: githubRepoConnections.defaultBranch,
+          })
+          .from(githubRepoConnections)
+          .where(
+            and(
+              eq(githubRepoConnections.workspaceId, workspaceId),
+              inArray(githubRepoConnections.appId, appIds),
+            ),
           ),
-        )
-        .where(eq(rankedHeadlineDeployments.rn, 1)),
-      db
-        .select({
-          appId: rankedRoutes.appId,
-          fullyQualifiedDomainName: rankedRoutes.fullyQualifiedDomainName,
-        })
-        .from(rankedRoutes)
-        .where(eq(rankedRoutes.rn, 1)),
-      db
-        .select({
-          appId: githubRepoConnections.appId,
-          repositoryFullName: githubRepoConnections.repositoryFullName,
-          defaultBranch: githubRepoConnections.defaultBranch,
-        })
-        .from(githubRepoConnections)
-        .where(
-          and(
-            eq(githubRepoConnections.workspaceId, workspaceId),
-            inArray(githubRepoConnections.appId, appIds),
+        db
+          .select({
+            appId: appSourceOci.appId,
+            imageReference: appSourceOci.imageReference,
+          })
+          .from(appSourceOci)
+          .where(
+            and(eq(appSourceOci.workspaceId, workspaceId), inArray(appSourceOci.appId, appIds)),
           ),
-        ),
-      db
-        .select({
-          appId: appSourceOci.appId,
-          imageReference: appSourceOci.imageReference,
-        })
-        .from(appSourceOci)
-        .where(and(eq(appSourceOci.workspaceId, workspaceId), inArray(appSourceOci.appId, appIds))),
-      currentDeploymentIds.length
-        ? db
-            .select({
-              id: deployments.id,
-              gitCommitMessage: deployments.gitCommitMessage,
-              gitCommitSha: deployments.gitCommitSha,
-              gitBranch: deployments.gitBranch,
-              gitCommitAuthorHandle: deployments.gitCommitAuthorHandle,
-              gitCommitAuthorAvatarUrl: deployments.gitCommitAuthorAvatarUrl,
-              gitCommitTimestamp: deployments.gitCommitTimestamp,
-              prNumber: deployments.prNumber,
-              forkRepositoryFullName: deployments.forkRepositoryFullName,
-            })
-            .from(deployments)
-            .where(
-              and(
-                eq(deployments.workspaceId, workspaceId),
-                inArray(deployments.id, currentDeploymentIds),
-              ),
-            )
-        : Promise.resolve([]),
-    ]);
+      ]);
 
     const latestDeploymentByApp = new Map(latestDeploymentRows.map((r) => [r.appId, r]));
     const headlineDeploymentByApp = new Map(
@@ -194,15 +126,7 @@ export const listApps = workspaceProcedure
     const repoByApp = new Map(repoRows.map((r) => [r.appId, r]));
     const ociSourceByApp = new Map(ociSourceRows.map((r) => [r.appId, r]));
 
-    const currentDeploymentById = new Map(currentDeploymentRows.map((d) => [d.id, d]));
-
     return appRows.map((app): App => {
-      const currentDeployment = app.currentDeploymentId
-        ? currentDeploymentById.get(app.currentDeploymentId)
-        : undefined;
-      // Image-based deployments carry no git metadata, so gate on the
-      // deployment itself, not on commit fields.
-      const hasDeployment = currentDeployment != null;
       const repository = repoByApp.get(app.id);
       const repositoryFullName = repository?.repositoryFullName ?? null;
       const defaultBranch = repository?.defaultBranch ?? "main";
@@ -220,18 +144,9 @@ export const listApps = workspaceProcedure
         updatedAt: app.updatedAt ?? null,
         repositoryFullName,
         latestDeploymentId: latestDeploymentByApp.get(app.id)?.id ?? null,
-        commitTitle: currentDeployment?.gitCommitMessage ?? null,
-        commitSha: currentDeployment?.gitCommitSha ?? null,
-        forkRepositoryFullName: currentDeployment?.forkRepositoryFullName ?? null,
-        prNumber: currentDeployment?.prNumber ?? null,
-        branch: currentDeployment?.gitBranch ?? defaultBranch,
-        author: currentDeployment?.gitCommitAuthorHandle ?? null,
-        authorAvatar: currentDeployment?.gitCommitAuthorAvatarUrl ?? null,
-        commitTimestamp:
-          currentDeployment?.gitCommitTimestamp == null
-            ? null
-            : Number(currentDeployment.gitCommitTimestamp),
-        domain: hasDeployment ? (domainByApp.get(app.id)?.fullyQualifiedDomainName ?? null) : null,
+        domain: app.currentDeploymentId
+          ? (domainByApp.get(app.id)?.fullyQualifiedDomainName ?? null)
+          : null,
         headlineDeployment: headlineDeploymentByApp.get(app.id) ?? null,
       };
     });

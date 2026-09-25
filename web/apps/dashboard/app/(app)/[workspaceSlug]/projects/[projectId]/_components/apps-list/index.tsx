@@ -22,9 +22,9 @@ import { useParams, useRouter } from "next/navigation";
 import { parseAsString, useQueryState } from "nuqs";
 import { AppCard, AppCardSkeleton } from "./app-card";
 import { type AppRowData, filterApps, toAppRow } from "./app-row-model";
-import { AppsListControls, type AppsView } from "./apps-list-controls";
-import { AppsTable } from "./apps-table";
-import { useAppsView } from "./use-apps-view";
+import { AppsListControls } from "./apps-list-controls";
+import { AppsTable, AppsTableSkeleton } from "./apps-table";
+import { type AppsView, useAppsView } from "./use-apps-view";
 
 // One row at the 3-column desktop width so loading doesn't tower over the
 // real list before it resolves.
@@ -134,9 +134,12 @@ function AppsListBody({
   view: AppsView;
   projectId: string;
 }) {
+  if (isLoading && view === "list") {
+    return <AppsTableSkeleton />;
+  }
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div aria-busy="true" className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {SKELETON_KEYS.map((key) => (
           <AppCardSkeleton key={key} />
         ))}
