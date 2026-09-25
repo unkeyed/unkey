@@ -15,7 +15,7 @@ type Scenario = {
 };
 
 // Real seeded projects in the shared local DB, one per state the overview has to handle.
-const SCENARIOS: Scenario[] = [
+export const SCENARIOS: Scenario[] = [
   {
     group: "New",
     label: "Empty project",
@@ -66,11 +66,27 @@ const SCENARIOS: Scenario[] = [
   },
   {
     group: "Active",
-    label: "Apps + keyspaces + ratelimits",
-    note: "steamsets · no deploys",
+    label: "SteamSets backend (real shape)",
+    note: "16 apps · 2 ks · 7 rl",
     orgId: "org_steamsets",
     workspaceSlug: "steamsets",
-    projectId: "proj_steamsets",
+    projectId: "proj_steamsets_1",
+  },
+  {
+    group: "Active",
+    label: "SteamSets farminspect",
+    note: "2 apps · 1 ks",
+    orgId: "org_steamsets",
+    workspaceSlug: "steamsets",
+    projectId: "proj_steamsets_2",
+  },
+  {
+    group: "Active",
+    label: "App linked to keyspace",
+    note: "pro · platform",
+    orgId: "org_pro",
+    workspaceSlug: "pro",
+    projectId: "proj_pro_platform",
   },
   {
     group: "Problems",

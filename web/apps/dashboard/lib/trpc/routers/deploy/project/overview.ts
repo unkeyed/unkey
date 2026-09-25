@@ -3,6 +3,7 @@ import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import {
   apis,
+  appRuntimeSettings,
   apps,
   deployments,
   frontlineRoutes,
@@ -42,6 +43,7 @@ export type ProjectOverview = {
   apps: OverviewApp[];
   keyspaces: Array<{ apiId: string; keyAuthId: string; name: string; keyCount: number }>;
   ratelimits: Array<{ id: string; name: string }>;
+  keyspaceLinks: Array<{ appId: string; keyAuthId: string }>;
 };
 
 export const projectOverview = workspaceProcedure
@@ -124,7 +126,7 @@ export const projectOverview = workspaceProcedure
       .where(and(eq(deployments.workspaceId, workspaceId), eq(deployments.projectId, project.id)))
       .as("ranked");
 
-    const [latestRows, repoRows, routeRows] = appIds.length
+    const [latestRows, repoRows, routeRows, runtimeRows] = appIds.length
       ? await Promise.all([
           db.select().from(ranked).where(eq(ranked.rn, 1)),
           db
@@ -152,8 +154,20 @@ export const projectOverview = workspaceProcedure
                 inArray(frontlineRoutes.appId, appIds),
               ),
             ),
+          db
+            .select({
+              appId: appRuntimeSettings.appId,
+              sentinelConfig: appRuntimeSettings.sentinelConfig,
+            })
+            .from(appRuntimeSettings)
+            .where(
+              and(
+                eq(appRuntimeSettings.workspaceId, workspaceId),
+                inArray(appRuntimeSettings.appId, appIds),
+              ),
+            ),
         ])
-      : [[], [], []];
+      : [[], [], [], []];
 
     const toDeployment = ({ rn: _, ...d }: (typeof latestRows)[number]): OverviewDeployment => ({
       ...d,
@@ -183,5 +197,48 @@ export const projectOverview = workspaceProcedure
       })),
       keyspaces: keyspaceRows,
       ratelimits: ratelimitRows,
+      keyspaceLinks: keyspaceLinksFrom(runtimeRows, new Set(keyspaceRows.map((k) => k.keyAuthId))),
     };
   });
+
+const sentinelConfigSchema = z.object({
+  policies: z
+    .array(
+      z.object({
+        keyauth: z.object({ keySpaceIds: z.array(z.string()) }).optional(),
+      }),
+    )
+    .optional(),
+});
+
+function keyspaceLinksFrom(
+  rows: Array<{ appId: string; sentinelConfig: unknown }>,
+  projectKeyspaces: Set<string>,
+): ProjectOverview["keyspaceLinks"] {
+  const seen = new Set<string>();
+  const links: ProjectOverview["keyspaceLinks"] = [];
+  for (const row of rows) {
+    const config = parseSentinelConfig(row.sentinelConfig);
+    for (const policy of config?.policies ?? []) {
+      for (const keyAuthId of policy.keyauth?.keySpaceIds ?? []) {
+        const key = `${row.appId}:${keyAuthId}`;
+        if (projectKeyspaces.has(keyAuthId) && !seen.has(key)) {
+          seen.add(key);
+          links.push({ appId: row.appId, keyAuthId });
+        }
+      }
+    }
+  }
+  return links;
+}
+
+function parseSentinelConfig(raw: unknown) {
+  const text =
+    typeof raw === "string" ? raw : raw instanceof Uint8Array ? Buffer.from(raw).toString() : "";
+  try {
+    const parsed = sentinelConfigSchema.safeParse(JSON.parse(text));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
