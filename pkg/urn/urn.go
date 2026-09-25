@@ -15,37 +15,44 @@ const (
 // ErrInvalidResourceName is returned when a resource name cannot be parsed.
 var ErrInvalidResourceName = errors.New("invalid resource name")
 
+// resourcePathShape binds one valid path shape to its resource permissions.
+type resourcePathShape struct {
+	resource permissionResource
+	segments []string
+}
+
 // resourcePathShapes defines every public v1 resource.
 // resourceIDSegment marks a segment that accepts one concrete ID or "*".
-var resourcePathShapes = [][]string{
-	{"github", "apps", resourceIDSegment},
-	{"projects", resourceIDSegment},
-	{"projects", resourceIDSegment, "apps", resourceIDSegment},
-	{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment},
-	{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "deployments", resourceIDSegment},
-	{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "deployments", resourceIDSegment, "logs"},
-	{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "domains", resourceIDSegment},
-	{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "variables", resourceIDSegment},
-	{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "gateway", "logs"},
-	{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "gateway", "policies", resourceIDSegment},
-	{"projects", resourceIDSegment, "identities", resourceIDSegment},
-	{"projects", resourceIDSegment, "keyspaces", resourceIDSegment},
-	{"projects", resourceIDSegment, "keyspaces", resourceIDSegment, "logs"},
-	{"projects", resourceIDSegment, "keyspaces", resourceIDSegment, "keys", resourceIDSegment},
-	{"projects", resourceIDSegment, "portals", resourceIDSegment},
-	{"projects", resourceIDSegment, "portals", resourceIDSegment, "sessions", resourceIDSegment},
-	{"projects", resourceIDSegment, "ratelimits", "namespaces", resourceIDSegment},
-	{"projects", resourceIDSegment, "ratelimits", "namespaces", resourceIDSegment, "logs"},
-	{"projects", resourceIDSegment, "ratelimits", "namespaces", resourceIDSegment, "overrides", resourceIDSegment},
-	{"projects", resourceIDSegment, "rbac", "roles", resourceIDSegment},
-	{"projects", resourceIDSegment, "rbac", "permissions", resourceIDSegment},
+var resourcePathShapes = []resourcePathShape{
+	{resource: new(GitHubApp), segments: []string{"github", "apps", resourceIDSegment}},
+	{resource: rootKey{}, segments: []string{"rootKeys", resourceIDSegment}},
+	{resource: new(Project), segments: []string{"projects", resourceIDSegment}},
+	{resource: new(App), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment}},
+	{resource: new(Environment), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment}},
+	{resource: new(Deployment), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "deployments", resourceIDSegment}},
+	{resource: new(DeploymentLogs), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "deployments", resourceIDSegment, "logs"}},
+	{resource: new(Domain), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "domains", resourceIDSegment}},
+	{resource: new(EnvironmentVariable), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "variables", resourceIDSegment}},
+	{resource: new(GatewayLogs), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "gateway", "logs"}},
+	{resource: new(GatewayPolicy), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "gateway", "policies", resourceIDSegment}},
+	{resource: new(Identity), segments: []string{"projects", resourceIDSegment, "identities", resourceIDSegment}},
+	{resource: new(Keyspace), segments: []string{"projects", resourceIDSegment, "keyspaces", resourceIDSegment}},
+	{resource: new(KeyspaceLogs), segments: []string{"projects", resourceIDSegment, "keyspaces", resourceIDSegment, "logs"}},
+	{resource: new(Key), segments: []string{"projects", resourceIDSegment, "keyspaces", resourceIDSegment, "keys", resourceIDSegment}},
+	{resource: new(Portal), segments: []string{"projects", resourceIDSegment, "portals", resourceIDSegment}},
+	{resource: portalSession{}, segments: []string{"projects", resourceIDSegment, "portals", resourceIDSegment, "sessions", resourceIDSegment}},
+	{resource: new(RatelimitNamespace), segments: []string{"projects", resourceIDSegment, "ratelimits", "namespaces", resourceIDSegment}},
+	{resource: new(RatelimitLogs), segments: []string{"projects", resourceIDSegment, "ratelimits", "namespaces", resourceIDSegment, "logs"}},
+	{resource: new(RatelimitOverride), segments: []string{"projects", resourceIDSegment, "ratelimits", "namespaces", resourceIDSegment, "overrides", resourceIDSegment}},
+	{resource: new(Role), segments: []string{"projects", resourceIDSegment, "rbac", "roles", resourceIDSegment}},
+	{resource: new(Permission), segments: []string{"projects", resourceIDSegment, "rbac", "permissions", resourceIDSegment}},
 }
 
 // resourceContainerPathShapes defines path containers that can anchor a
 // descendant pattern but cannot identify a concrete resource.
-var resourceContainerPathShapes = [][]string{
-	{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "gateway"},
-	{"projects", resourceIDSegment, "rbac"},
+var resourceContainerPathShapes = []resourcePathShape{
+	{resource: new(gateway), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "gateway"}},
+	{resource: new(rbac), segments: []string{"projects", resourceIDSegment, "rbac"}},
 }
 
 // V1 is a parsed v1 Unkey resource name.
@@ -212,13 +219,13 @@ func validateResourcePath(path string) error {
 	}
 
 	for _, shape := range resourcePathShapes {
-		if resourcePathMatchesShape(segments, shape) {
+		if resourcePathMatchesShape(segments, shape.segments) {
 			return nil
 		}
 	}
 	if descendantPattern {
 		for _, shape := range resourceContainerPathShapes {
-			if resourcePathMatchesShape(segments, shape) {
+			if resourcePathMatchesShape(segments, shape.segments) {
 				return nil
 			}
 		}
