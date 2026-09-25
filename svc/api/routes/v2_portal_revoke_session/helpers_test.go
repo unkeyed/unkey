@@ -3,7 +3,6 @@ package handler_test
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -121,28 +120,18 @@ func sessionsFor(t *testing.T, h *testutil.Harness, portalID, externalID, predic
 	return count
 }
 
-// revokeAuditMetas returns the meta of every portal.session.revoke entry in the
-// workspace.
-func revokeAuditMetas(t *testing.T, h *testutil.Harness, workspaceID string) []map[string]any {
+// revokeAuditMetas returns the portal target's meta from every
+// portal.session.revoke entry naming the portal.
+func revokeAuditMetas(t *testing.T, h *testutil.Harness, portalID string) []map[string]any {
 	t.Helper()
 
-	rows, err := db.Query.ListClickhouseOutboxByWorkspace(context.Background(), h.DB.RO(), workspaceID)
-	require.NoError(t, err)
-
 	var metas []map[string]any
-	for _, row := range rows {
-		var payload struct {
-			Event   string `json:"event"`
-			Targets []struct {
-				Meta map[string]any `json:"meta"`
-			} `json:"targets"`
-		}
-		require.NoError(t, json.Unmarshal(row.Payload, &payload))
-		if payload.Event != string(auditlog.PortalSessionRevokeEvent) {
+	for _, ev := range h.FindAuditLogsByTargetID(context.Background(), t, portalID) {
+		if ev.Event != string(auditlog.PortalSessionRevokeEvent) {
 			continue
 		}
-		require.Len(t, payload.Targets, 1, "a revoke names exactly one portal target")
-		metas = append(metas, payload.Targets[0].Meta)
+		require.Len(t, ev.Targets, 1, "a revoke names exactly one portal target")
+		metas = append(metas, ev.Targets[0].Meta)
 	}
 	return metas
 }

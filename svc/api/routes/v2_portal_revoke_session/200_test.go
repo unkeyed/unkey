@@ -149,7 +149,7 @@ func TestRevokeSessionIsIdempotent(t *testing.T) {
 	).Scan(&after))
 	require.Equal(t, revokedAt, after, "an already-revoked row keeps its original timestamp")
 
-	metas := revokeAuditMetas(t, h, workspace.ID)
+	metas := revokeAuditMetas(t, h, stored.ID)
 	require.Len(t, metas, 1, "only the call that revoked something is audited")
 	require.Equal(t, "user_1", metas[0]["externalId"])
 	require.Equal(t, float64(1), metas[0]["sessionsRevoked"])
@@ -167,7 +167,7 @@ func TestRevokeSessionWithNoSessions(t *testing.T) {
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, request(stored.ID, "nobody"))
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Equal(t, int64(0), res.Body.Data.SessionsRevoked)
-	require.Empty(t, revokeAuditMetas(t, h, workspace.ID))
+	require.Empty(t, revokeAuditMetas(t, h, stored.ID))
 }
 
 // Disabling a portal stops new sessions but leaves live ones working, so revoking
