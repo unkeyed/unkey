@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -213,4 +214,53 @@ func TestCreateKeyMissingPermissionsDoNotLeakAPIOrKeyspaceState(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestCreateKeyOnDeletedApi covers the two rows a delete tombstones. Issuing a
+// key against either one produced a 200 and a key that could never verify,
+// leaving a live key under a dead keyspace.
+func TestCreateKeyOnDeletedApi(t *testing.T) {
+	ctx := context.Background()
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Keys:      h.Keys,
+		Auditlogs: h.Auditlogs,
+		Vault:     h.Vault,
+	}
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, "api.*.create_key"))},
+	}
+	now := sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()}
+
+	t.Run("deleted api", func(t *testing.T) {
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
+		require.NoError(t, db.Query.SoftDeleteApi(ctx, h.DB.RW(), db.SoftDeleteApiParams{
+			ApiID: api.ID,
+			Now:   now,
+		}))
+
+		res := testutil.CallRoute[handler.Request, openapi.V2KeysCreateKeyResponseBody](
+			h, route, headers, handler.Request{ApiId: api.ID, Name: ptr.P("KEBAP")},
+		)
+		require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
+	})
+
+	t.Run("deleted keyspace", func(t *testing.T) {
+		api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
+		require.NoError(t, db.Query.SoftDeleteKeySpace(ctx, h.DB.RW(), db.SoftDeleteKeySpaceParams{
+			KeySpaceID: api.KeyAuthID.String,
+			Now:        now,
+		}))
+
+		res := testutil.CallRoute[handler.Request, openapi.V2KeysCreateKeyResponseBody](
+			h, route, headers, handler.Request{ApiId: api.ID, Name: ptr.P("KEBAP")},
+		)
+		require.Equal(t, http.StatusNotFound, res.Status, "%s", res.RawBody)
+	})
 }
