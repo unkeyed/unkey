@@ -438,49 +438,6 @@ func (ns NullCustomDomainsVerificationStatus) Value() (driver.Value, error) {
 	return string(ns.CustomDomainsVerificationStatus), nil
 }
 
-type DeploymentChangesResourceType string
-
-const (
-	DeploymentChangesResourceTypeDeploymentTopology  DeploymentChangesResourceType = "deployment_topology"
-	DeploymentChangesResourceTypeSentinel            DeploymentChangesResourceType = "sentinel"
-	DeploymentChangesResourceTypeCiliumNetworkPolicy DeploymentChangesResourceType = "cilium_network_policy"
-)
-
-func (e *DeploymentChangesResourceType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = DeploymentChangesResourceType(s)
-	case string:
-		*e = DeploymentChangesResourceType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for DeploymentChangesResourceType: %T", src)
-	}
-	return nil
-}
-
-type NullDeploymentChangesResourceType struct {
-	DeploymentChangesResourceType DeploymentChangesResourceType
-	Valid                         bool // Valid is true if DeploymentChangesResourceType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullDeploymentChangesResourceType) Scan(value interface{}) error {
-	if value == nil {
-		ns.DeploymentChangesResourceType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.DeploymentChangesResourceType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullDeploymentChangesResourceType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.DeploymentChangesResourceType), nil
-}
-
 type DeploymentStepsStep string
 
 const (
@@ -1354,14 +1311,6 @@ type Deployment struct {
 	TriggerReason                 sql.NullString              `db:"trigger_reason"`
 	CreatedAt                     int64                       `db:"created_at"`
 	UpdatedAt                     sql.NullInt64               `db:"updated_at"`
-}
-
-type DeploymentChange struct {
-	Pk           uint64                        `db:"pk"`
-	ResourceType DeploymentChangesResourceType `db:"resource_type"`
-	ResourceID   string                        `db:"resource_id"`
-	RegionID     string                        `db:"region_id"`
-	CreatedAt    int64                         `db:"created_at"`
 }
 
 type DeploymentStep struct {
