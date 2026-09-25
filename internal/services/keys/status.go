@@ -148,6 +148,26 @@ func (k *KeyVerifier) ToOpenAPIStatus() openapi.V2KeysVerifyKeyResponseDataCode 
 	}
 }
 
+// isVerifyRejection reports whether status is assigned during KeyVerifier.Verify
+// rather than keys.Get, so KeyVerificationsTotal records it as VALID instead.
+func (s KeyStatus) isVerifyRejection() bool {
+	switch s {
+	case StatusForbidden,
+		StatusInsufficientPermissions,
+		StatusRateLimited,
+		StatusUsageExceeded:
+		return true
+	case StatusValid,
+		StatusNotFound,
+		StatusDisabled,
+		StatusExpired,
+		StatusWorkspaceDisabled,
+		StatusWorkspaceNotFound:
+		return false
+	}
+	return false
+}
+
 // setInvalid marks the key as invalid with the specified status and message.
 // This is used internally by validation methods to indicate validation failures.
 func (k *KeyVerifier) setInvalid(status KeyStatus, message string) {

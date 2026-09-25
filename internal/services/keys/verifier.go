@@ -133,13 +133,7 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 // recordRejection increments KeyVerificationRejectionsTotal when Verify moved the
 // key from VALID to one of the rejection statuses that keys.Get cannot see.
 func (k *KeyVerifier) recordRejection(before KeyStatus) {
-	if before != StatusValid {
-		return
-	}
-
-	switch k.Status {
-	case StatusForbidden, StatusInsufficientPermissions, StatusRateLimited, StatusUsageExceeded:
-	default:
+	if before != StatusValid || !k.Status.isVerifyRejection() {
 		return
 	}
 
