@@ -1,7 +1,7 @@
 package source_test
 
 import (
-	"encoding/json"
+	"context"
 	"strconv"
 	"strings"
 	"testing"
@@ -15,6 +15,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
 	"github.com/unkeyed/unkey/svc/logdrain/sink"
+	"github.com/unkeyed/unkey/svc/logdrain/sink/axiom"
+	"github.com/unkeyed/unkey/svc/logdrain/sink/httpdrain"
 )
 
 func TestGatewayRequestsRead_ByteBoundedPrefix(t *testing.T) {
@@ -43,10 +45,25 @@ func TestGatewayRequestsRead_ByteBoundedPrefix(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, body, payload.Request.Body)
 	require.Equal(t, body, payload.Response.Body)
-	for _, axiom := range []bool{false, true} {
-		encoded, err := events[0].MarshalRecord(axiom)
-		require.NoError(t, err)
-		require.Less(t, len(encoded)+2, 16<<20)
+	httpSink, err := httpdrain.New(httpdrain.Config{
+		Endpoint: "https://example.com/logs",
+		Format:   logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON,
+	})
+	require.NoError(t, err)
+	axiomSink, err := axiom.New(axiom.Config{
+		Dataset: "test",
+		Token:   "test",
+	})
+	require.NoError(t, err)
+	deliveryCtx, cancel := context.WithCancel(t.Context())
+	cancel()
+	for _, destination := range []sink.Sink{httpSink, axiomSink} {
+		result, err := destination.Deliver(deliveryCtx, sink.Batch{
+			Events: events,
+		})
+		require.ErrorIs(t, err, context.Canceled)
+		require.Positive(t, result.RequestBodyBytes)
+		require.Less(t, result.RequestBodyBytes, int64(16<<20))
 	}
 
 	// Server result counters distinguish a bounded fetch from truncation after Select.
@@ -171,14 +188,37 @@ func TestGatewayRequestsRead_Payload(t *testing.T) {
 	require.Equal(t, now-3600000, events[0].Time)
 	require.GreaterOrEqual(t, cursor.Time, now)
 	require.Equal(t, "req_1", cursor.EventID)
-	encoded, err := json.Marshal(events[0].Payload)
-	require.NoError(t, err)
-	require.JSONEq(t, `{"request_id":"req_1","project_id":"project_1","app_id":"app_1","environment_id":"env_1","deployment_id":"deployment_1","region":"eu-west-1",
-		"request":{"method":"POST","host":"api.example.com","path":"/orders",
-		"headers":["Authorization: [REDACTED]", "X-Custom: value"], "body":"{\"input\":\"[REDACTED]\"}",
-		"query_string":"tag=a&tag=b", "query_params":{"tag":["a","b"]}, "ip_address":"192.0.2.1", "user_agent":"test-agent"},
-		"response":{"status":201,"headers":["Content-Type: application/json"],"body":"{\"ok\":true}"},
-		"latency":{"total":53,"instance":41,"gateway":12}}`, string(encoded))
+	require.Equal(t, sink.GatewayRequestPayload{
+		RequestID:     "req_1",
+		ProjectID:     "project_1",
+		AppID:         "app_1",
+		EnvironmentID: "env_1",
+		DeploymentID:  "deployment_1",
+		Region:        "eu-west-1",
+		Request: sink.GatewayRequest{
+			Method:      "POST",
+			Host:        "api.example.com",
+			Path:        "/orders",
+			QueryString: "tag=a&tag=b",
+			QueryParams: map[string][]string{
+				"tag": {"a", "b"},
+			},
+			Headers:   []string{"Authorization: [REDACTED]", "X-Custom: value"},
+			Body:      `{"input":"[REDACTED]"}`,
+			UserAgent: "test-agent",
+			IPAddress: "192.0.2.1",
+		},
+		Response: sink.GatewayResponse{
+			Status:  201,
+			Headers: []string{"Content-Type: application/json"},
+			Body:    `{"ok":true}`,
+		},
+		Latency: sink.GatewayRequestLatency{
+			Total:    53,
+			Instance: 41,
+			Gateway:  12,
+		},
+	}, events[0].Payload)
 }
 
 func TestGatewayRequestsRead_FilteredCursorBounds(t *testing.T) {

@@ -13,6 +13,36 @@ const vault = vi.hoisted(() => ({ encryptBulk: vi.fn() }));
 vi.mock("@/lib/vault-client", () => ({ createVaultClient: () => vault }));
 
 describe("log drain protobuf config", () => {
+  it("preserves HEC encoding and keeps authorization private", () => {
+    const config = {
+      kind: "http" as const,
+      stream: {
+        kind: "audit_logs" as const,
+        eventTypes: [],
+      },
+      url: "https://example.com/services/collector/event",
+      format: "hec" as const,
+      headers: [
+        {
+          name: "Authorization",
+          encryptedValue: "encrypted-token",
+        },
+      ],
+    };
+    const encoded = encodeLogdrainConfig(config);
+    expect(fromBinary(ConfigSchema, encoded).destination).toMatchObject({
+      case: "http",
+      value: { format: 3 },
+    });
+    expect(decodeLogdrainConfig(encoded)).toEqual(config);
+    const publicConfig = toPublicLogdrainConfig(decodeLogdrainConfig(encoded));
+    expect(publicConfig.config).toEqual({
+      url: config.url,
+      format: "hec",
+      headers: ["Authorization"],
+    });
+  });
+
   it("preserves a per-drain batch size through a config round trip", () => {
     const config = {
       kind: "axiom" as const,

@@ -1,7 +1,6 @@
 package source_test
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
+	"github.com/unkeyed/unkey/svc/logdrain/sink"
 )
 
 func TestKeyVerificationsRead_Payload(t *testing.T) {
@@ -33,9 +33,23 @@ func TestKeyVerificationsRead_Payload(t *testing.T) {
 	require.Equal(t, now-3600000, events[0].Time)
 	require.GreaterOrEqual(t, cursor.Time, now)
 	require.Equal(t, events[0].EventID, cursor.EventID)
-	encoded, err := json.Marshal(events[0].Payload)
-	require.NoError(t, err)
-	require.JSONEq(t, `{"request_id":"req_1","key_space_id":"ks_1","identity":{"id":"id_1","externalId":"customer_1"},"key_id":"key_1","region":"eu-west-1","source":{"type":"gateway","appId":"app_1"},"outcome":"VALID","tags":["paid","production"],"spent_credits":7}`, string(encoded))
+	require.Equal(t, sink.KeyVerificationPayload{
+		RequestID:  "req_1",
+		KeySpaceID: "ks_1",
+		Identity: &sink.KeyVerificationIdentity{
+			ID:         "id_1",
+			ExternalID: "customer_1",
+		},
+		KeyID:  "key_1",
+		Region: "eu-west-1",
+		Source: sink.KeyVerificationSource{
+			Type:  "gateway",
+			AppID: "app_1",
+		},
+		Outcome:      "VALID",
+		Tags:         []string{"paid", "production"},
+		SpentCredits: 7,
+	}, events[0].Payload)
 
 	require.NoError(t, client.Conn().Exec(t.Context(), `INSERT INTO key_verifications_raw_v2
 		(workspace_id, request_id, time, source, app_id, outcome)
@@ -44,9 +58,20 @@ func TestKeyVerificationsRead_Payload(t *testing.T) {
 	events, _, err = source.NewKeyVerifications(client).Read(t.Context(), workspaceID, source.Cursor{Time: now - 1}, time.Now().UnixMilli()+1000, 10, filter)
 	require.NoError(t, err)
 	require.Len(t, events, 1)
-	encoded, err = json.Marshal(events[0].Payload)
-	require.NoError(t, err)
-	require.JSONEq(t, `{"request_id":"req_api","key_space_id":"","key_id":"","region":"","source":{"type":"api"},"outcome":"NOT_FOUND","tags":[],"spent_credits":0}`, string(encoded))
+	require.Equal(t, sink.KeyVerificationPayload{
+		RequestID:  "req_api",
+		KeySpaceID: "",
+		Identity:   nil,
+		KeyID:      "",
+		Region:     "",
+		Source: sink.KeyVerificationSource{
+			Type:  "api",
+			AppID: "",
+		},
+		Outcome:      "NOT_FOUND",
+		Tags:         []string{},
+		SpentCredits: 0,
+	}, events[0].Payload)
 }
 
 func TestKeyVerificationsRead_FilteredCursorBounds(t *testing.T) {

@@ -22,37 +22,28 @@ import (
 	"time"
 )
 
-// TimestampLayout is the RFC3339 UTC layout with fixed millisecond precision
-// used for every timestamp in exported payloads. The fixed width keeps the
-// wire format stable regardless of the event's sub-second precision.
-const TimestampLayout = "2006-01-02T15:04:05.000Z"
-
-// maxDiagnosticBodyBytes caps how much of a destination response is kept for
+// diagnosticBodyBytesMax caps how much of a destination response is kept for
 // diagnostics. Destinations control the response, so reads must be bounded.
-const maxDiagnosticBodyBytes = 4 << 10
+const diagnosticBodyBytesMax = 4 << 10
 
-// FormatTime renders a unix-millisecond event time in [TimestampLayout].
-func FormatTime(unixMilli int64) string {
-	return time.UnixMilli(unixMilli).UTC().Format(TimestampLayout)
-}
-
-// ReadDiagnostic reads up to maxDiagnosticBodyBytes of the response body for
+// ReadDiagnostic reads up to diagnosticBodyBytesMax of the response body for
 // error diagnostics, then drains and closes the body so the underlying HTTP
-// connection can be reused.
-func ReadDiagnostic(body io.ReadCloser) ([]byte, error) {
-	diagnostic, readErr := io.ReadAll(io.LimitReader(body, maxDiagnosticBodyBytes))
+// connection can be reused. The boolean reports whether the body was truncated.
+func ReadDiagnostic(body io.ReadCloser) ([]byte, bool, error) {
+	diagnostic, readErr := io.ReadAll(io.LimitReader(body, diagnosticBodyBytesMax+1))
 	_, drainErr := io.Copy(io.Discard, body)
 	closeErr := body.Close()
 	if readErr != nil {
-		return nil, fmt.Errorf("read response body: %w", readErr)
+		return nil, false, fmt.Errorf("read response body: %w", readErr)
 	}
 	if drainErr != nil {
-		return nil, fmt.Errorf("drain response body: %w", drainErr)
+		return nil, false, fmt.Errorf("drain response body: %w", drainErr)
 	}
 	if closeErr != nil {
-		return nil, fmt.Errorf("close response body: %w", closeErr)
+		return nil, false, fmt.Errorf("close response body: %w", closeErr)
 	}
-	return diagnostic, nil
+	truncated := len(diagnostic) > diagnosticBodyBytesMax
+	return diagnostic[:min(len(diagnostic), diagnosticBodyBytesMax)], truncated, nil
 }
 
 // Payload is the stream-specific event body. Each stream defines one
@@ -82,14 +73,11 @@ type AuditLogContext struct {
 	UserAgent string `json:"user_agent"`
 }
 
-// AuditLogPayload is the "audit_logs" stream payload. This shape is public API
-// surface for customers and must only change with a new SchemaVersion.
-// The field names follow the WorkOS audit log event schema; description
-// and correlation_id are Unkey extensions.
+// AuditLogPayload carries the data for the "audit_logs" stream.
 type AuditLogPayload struct {
 	ID     string `json:"id"`
 	Action string `json:"action"`
-	// OccurredAt is the event time rendered in [TimestampLayout].
+	// OccurredAt is the event time in RFC3339 UTC with millisecond precision.
 	OccurredAt    string           `json:"occurred_at"`
 	Actor         AuditLogActor    `json:"actor"`
 	Targets       []AuditLogTarget `json:"targets"`
@@ -99,83 +87,37 @@ type AuditLogPayload struct {
 	CorrelationID string           `json:"correlation_id"`
 }
 
-// isPayload keeps stream payloads constrained to sink-owned wire types.
 func (AuditLogPayload) isPayload() {}
 
-// Event is one log record in the versioned export envelope. It is
-// deliberately decoupled from ClickHouse row types: this shape is public API
-// surface for customers and must only change with a new SchemaVersion.
+// Event carries one log record for a destination to encode.
 type Event struct {
 	// EventID uniquely identifies the event within its stream. Consumers use
 	// it to deduplicate redeliveries.
-	EventID string `json:"event_id"`
+	EventID string
 
 	// Stream names the source, e.g. "audit_logs".
-	Stream string `json:"stream"`
+	Stream string
 
 	// Time is the event time in unix milliseconds.
-	Time int64 `json:"time"`
+	Time int64
 
 	// Payload is the typed stream-specific event body. For
 	// audit_logs this is the audit event envelope (actor, action, resources).
-	Payload Payload `json:"payload"`
-}
-
-type recordMetadata struct {
-	Stream    string `json:"stream"`
-	Time      string `json:"time"`
-	AxiomTime string `json:"_time,omitempty"`
-}
-
-// MarshalRecord encodes a flat record, adding Axiom's timestamp field when requested.
-func (e Event) MarshalRecord(axiom bool) (json.RawMessage, error) {
-	metadata := recordMetadata{Stream: e.Stream, Time: FormatTime(e.Time), AxiomTime: ""}
-	if axiom {
-		metadata.AxiomTime = metadata.Time
-	}
-	switch payload := e.Payload.(type) {
-	case AuditLogPayload:
-		return json.Marshal(struct {
-			recordMetadata
-			AuditLogPayload
-		}{metadata, payload})
-	case KeyVerificationPayload:
-		return json.Marshal(struct {
-			recordMetadata
-			KeyVerificationPayload
-		}{metadata, payload})
-	case GatewayRequestPayload:
-		return json.Marshal(struct {
-			recordMetadata
-			GatewayRequestPayload
-		}{metadata, payload})
-	case RuntimeLogPayload:
-		return json.Marshal(struct {
-			recordMetadata
-			RuntimeLogPayload
-		}{metadata, payload})
-	case RatelimitPayload:
-		return json.Marshal(struct {
-			recordMetadata
-			RatelimitPayload
-		}{metadata, payload})
-	default:
-		return nil, fmt.Errorf("unsupported logdrain payload %T", e.Payload)
-	}
+	Payload Payload
 }
 
 // Batch is what one Deliver call ships.
 type Batch struct {
 	// SchemaVersion versions the export envelope, starting at "v1".
-	SchemaVersion string `json:"schema_version"`
+	SchemaVersion string
 
 	// DrainID identifies the logdrain configuration this delivery belongs to.
-	DrainID string `json:"drain_id"`
+	DrainID string
 
 	// WorkspaceID owning the drain and all events in the batch.
-	WorkspaceID string `json:"workspace_id"`
+	WorkspaceID string
 
-	Events []Event `json:"events"`
+	Events []Event
 }
 
 // Result describes a completed delivery attempt. It keeps expected destination
