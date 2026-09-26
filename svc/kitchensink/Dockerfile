@@ -25,7 +25,7 @@ RUN --mount=type=secret,id=${UNKEY_SECRETS_ID},target=/run/secrets/.env \
       -ldflags "-X 'github.com/unkeyed/unkey/svc/kitchensink/buildinfo.Version=${VERSION:-unset}'" \
       -o /kitchensink ./svc/kitchensink
 
-FROM gcr.io/distroless/static-debian13:nonroot@sha256:d29e660cc75a5b6b1334e03c5c81ccf9bc0884a002c6000dbf0fb96034814478
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:e2e927ec666bae08560abb3c55d0659eceabb657f56b6782ab500a9fc7f555e3
 
 COPY --from=builder /kitchensink /kitchensink
 
