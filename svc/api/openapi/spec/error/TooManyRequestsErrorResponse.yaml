@@ -6,7 +6,7 @@ properties:
   meta:
     $ref: "../common/Meta.yaml"
   error:
-    $ref: "./BaseError.yaml"
+    $ref: "./BaseError.yaml#/components/schemas/BaseError"
 description: |-
   Error response when the client has sent too many requests in a given time period. This occurs when you've exceeded a rate limit or quota for the resource you're accessing.
 

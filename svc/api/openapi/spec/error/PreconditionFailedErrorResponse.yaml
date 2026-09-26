@@ -6,7 +6,7 @@ properties:
   meta:
     $ref: "../common/Meta.yaml"
   error:
-    $ref: "./BaseError.yaml"
+    $ref: "./BaseError.yaml#/components/schemas/BaseError"
 description: |-
   Error response when one or more conditions specified in the request headers are not met. This typically occurs when:
   - Using conditional requests with If-Match or If-None-Match headers
