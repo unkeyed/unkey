@@ -26,7 +26,7 @@ func TestReserveTopologies(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, database.Close()) })
 	seeder := seed.New(t, database, nil)
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	w := &Workflow{db: database}
 
 	t.Run("two deployments that together exceed the quota cannot both reserve", func(t *testing.T) {
