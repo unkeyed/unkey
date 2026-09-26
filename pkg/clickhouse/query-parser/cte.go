@@ -60,7 +60,7 @@ func (p *Parser) validateCTEAliases() error {
 	}
 
 	var conflictingAlias string
-	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
+	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
 		query, ok := node.(*clickhouse.SelectQuery)
 		if !ok || query.With == nil {
 			return true
