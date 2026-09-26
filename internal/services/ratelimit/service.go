@@ -421,8 +421,8 @@ func NewLocal(clk clock.Clock) *service {
 
 	s := &service{
 		clock:                      clk,
-		counters:                   sync.Map{}, //nolint:exhaustruct // sync.Map zero value is ready to use
-		strictUntils:               sync.Map{}, //nolint:exhaustruct // sync.Map zero value is ready to use
+		counters:                   sync.Map{}, //nolint:exhaustruct_v5 // sync.Map zero value is ready to use
+		strictUntils:               sync.Map{}, //nolint:exhaustruct_v5 // sync.Map zero value is ready to use
 		origin:                     nil,
 		replayBuffer:               buffer.NewNoop[RatelimitRequest](),
 		originCircuitBreaker:       nil,
