@@ -27,7 +27,7 @@ function byRecency(apps: ProjectApp[]): ProjectApp[] {
 export function ProjectCard({ name, projectId, apps, actions }: ProjectCardProps) {
   const workspace = useWorkspaceNavigation();
   const appHomeHref = useAppHomeHref();
-  const projectPath = routes.projects.detail({ workspaceSlug: workspace.slug, projectId });
+  const projectPath = routes.projects.overview({ workspaceSlug: workspace.slug, projectId });
   const hrefFor = (app: ProjectApp) =>
     appHomeHref({ workspaceSlug: workspace.slug, projectId, appId: app.id });
 

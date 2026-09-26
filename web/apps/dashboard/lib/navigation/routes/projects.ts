@@ -32,6 +32,10 @@ export const projectRoutes = {
     return buildRoute("/[workspaceSlug]/projects/[projectId]", projectParams(scope));
   },
 
+  overview(scope: ProjectScope): Route {
+    return buildRoute("/[workspaceSlug]/projects/[projectId]/overview", projectParams(scope));
+  },
+
   settings(scope: ProjectScope): Route {
     return buildRoute("/[workspaceSlug]/projects/[projectId]/settings", projectParams(scope));
   },
