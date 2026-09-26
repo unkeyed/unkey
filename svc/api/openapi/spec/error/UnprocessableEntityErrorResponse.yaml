@@ -6,7 +6,7 @@ properties:
   meta:
     $ref: "../common/Meta.yaml"
   error:
-    $ref: "./BaseError.yaml"
+    $ref: "./BaseError.yaml#/components/schemas/BaseError"
 description: |-
   Error response when the request is syntactically valid but cannot be processed due to semantic constraints or resource limitations. This occurs when:
   - A query exceeds execution time limits
