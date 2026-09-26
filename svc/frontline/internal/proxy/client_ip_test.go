@@ -25,7 +25,7 @@ func TestForwardToInstanceReplacesSpoofedForwardedFor(t *testing.T) {
 	var forwarded http.Header
 	transport := roundTripperFunc(func(req *http.Request) (*http.Response, error) {
 		forwarded = req.Header.Clone()
-		return &http.Response{ //nolint:exhaustruct_v5
+		return &http.Response{
 			StatusCode: http.StatusNoContent,
 			Header:     make(http.Header),
 			Body:       io.NopCloser(http.NoBody),
@@ -41,7 +41,7 @@ func TestForwardToInstanceReplacesSpoofedForwardedFor(t *testing.T) {
 	clk := clock.NewTestClock(time.Now())
 	metadata, err := meta.New(testMetadataSigningKey)
 	require.NoError(t, err)
-	service, err := New(Config{ //nolint:exhaustruct_v5
+	service, err := New(Config{
 		InstanceID:         "frontline_test",
 		Platform:           "aws",
 		Region:             "us-east-1",
@@ -55,11 +55,11 @@ func TestForwardToInstanceReplacesSpoofedForwardedFor(t *testing.T) {
 	req.RemoteAddr = clientIP + ":12345"
 	req.Header.Set("X-Forwarded-For", "203.0.113.77")
 	recorder := httptest.NewRecorder()
-	sess := &zen.Session{} //nolint:exhaustruct_v5
+	sess := &zen.Session{}
 	require.NoError(t, sess.Init(recorder, req, 0))
 
 	ctx := WithRequestStartTime(context.Background(), clk.Now())
-	err = service.ForwardToInstance(ctx, sess, db.DeploymentsUpstreamProtocolHttp1, db.FindInstancesByDeploymentIDRow{ //nolint:exhaustruct_v5
+	err = service.ForwardToInstance(ctx, sess, db.DeploymentsUpstreamProtocolHttp1, db.FindInstancesByDeploymentIDRow{
 		Address: "customer.internal:8080",
 	})
 	require.NoError(t, err)
@@ -68,7 +68,7 @@ func TestForwardToInstanceReplacesSpoofedForwardedFor(t *testing.T) {
 	require.Equal(t, "https", forwarded.Get("X-Forwarded-Proto"))
 
 	sess.SetClientIP(netip.MustParseAddr("2001:db8::42"))
-	err = service.ForwardToInstance(ctx, sess, db.DeploymentsUpstreamProtocolHttp1, db.FindInstancesByDeploymentIDRow{ //nolint:exhaustruct_v5
+	err = service.ForwardToInstance(ctx, sess, db.DeploymentsUpstreamProtocolHttp1, db.FindInstancesByDeploymentIDRow{
 		Address: "customer.internal:8080",
 	})
 	require.NoError(t, err)
@@ -95,8 +95,8 @@ func TestForwardPreservesRequestAndResponse(t *testing.T) {
 			t.Cleanup(upstream.Close)
 			target, err := url.Parse(upstream.URL)
 			require.NoError(t, err)
-			svc := &service{clock: clock.NewTestClock(), instanceID: "test", platform: "aws", region: "us-east-1"} //nolint:exhaustruct_v5
-			server, err := zen.New(zen.Config{StreamRequestBody: true})                                            //nolint:exhaustruct_v5
+			svc := &service{clock: clock.NewTestClock(), instanceID: "test", platform: "aws", region: "us-east-1"}
+			server, err := zen.New(zen.Config{StreamRequestBody: true})
 			require.NoError(t, err)
 			server.RegisterRoute(nil, zen.NewRoute(http.MethodPost, "/", func(ctx context.Context, sess *zen.Session) error {
 				start := svc.clock.Now()
