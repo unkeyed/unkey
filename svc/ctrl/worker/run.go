@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
-	"github.com/go-acme/lego/v4/challenge"
+	"github.com/go-acme/lego/v5/challenge"
 	promclient "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	restate "github.com/restatedev/sdk-go"
