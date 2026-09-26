@@ -4,13 +4,27 @@ import { collection } from "@/lib/collections";
 import { trpc } from "@/lib/trpc/client";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import { match } from "@unkey/match";
-import { SettingsZoneRow, toast } from "@unkey/ui";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  SettingsZoneRow,
+  toast,
+} from "@unkey/ui";
+import { useState } from "react";
 import { useAppId, useProjectData } from "../../data-provider";
 
 export function DisconnectGitHub() {
   const { projectId } = useProjectData();
   const appId = useAppId();
   const utils = trpc.useUtils();
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [pendingRepo, setPendingRepo] = useState<string | null>(null);
   const appQuery = useLiveQuery(
     (q) =>
       q
@@ -32,7 +46,7 @@ export function DisconnectGitHub() {
     { enabled: shouldLoadGitHub, staleTime: 0 },
   );
 
-  const isConnected = shouldLoadGitHub && Boolean(data?.repoConnection?.repositoryFullName);
+  const repositoryFullName = data?.repoConnection?.repositoryFullName;
 
   const disconnectRepoMutation = trpc.github.disconnectRepo.useMutation({
     onSuccess: async () => {
@@ -46,19 +60,44 @@ export function DisconnectGitHub() {
     },
   });
 
-  if (!isConnected) {
-    return null;
-  }
-
   return (
-    <SettingsZoneRow
-      title="Disconnect repository"
-      description="Deployments will no longer be triggered by pushes to this repository."
-      action={{
-        label: "Disconnect repository",
-        onClick: () => disconnectRepoMutation.mutate({ appId }),
-        loading: disconnectRepoMutation.isLoading,
-      }}
-    />
+    <>
+      {shouldLoadGitHub && repositoryFullName ? (
+        <SettingsZoneRow
+          title="Disconnect repository"
+          description="Deployments will no longer be triggered by pushes to this repository."
+          action={{
+            label: "Disconnect repository",
+            onClick: () => {
+              setPendingRepo(repositoryFullName);
+              setIsConfirmOpen(true);
+            },
+            loading: disconnectRepoMutation.isLoading,
+            disabled: disconnectRepoMutation.isLoading,
+          }}
+        />
+      ) : null}
+
+      <AlertDialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disconnect {pendingRepo}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Unkey will stop building pushes to this repository. Running deployments stay live.
+              Builds awaiting approval stay blocked until you connect a repository again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              color="danger"
+              onClick={() => disconnectRepoMutation.mutate({ appId })}
+            >
+              Disconnect repository
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
