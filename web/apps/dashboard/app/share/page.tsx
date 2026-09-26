@@ -19,7 +19,7 @@ export default function SharePage() {
         </main>
       </FullScreenContent>
       <div className="flex items-center gap-1.5 pb-6 text-gray-9">
-        <span className="text-[13px] leading-5 opacity-50">Powered by</span>
+        <span className="text-sm leading-5 opacity-50">Powered by</span>
         <a
           href="https://www.unkey.com"
           target="_blank"

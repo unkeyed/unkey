@@ -71,7 +71,7 @@ export const LogsFilters = () => {
           title="Press 'F' to toggle filters"
         >
           <IconBarsFilterOutline18 className="text-gray-9 size-4" />
-          <span className="text-gray-12 font-medium text-[13px] max-md:hidden">Filter</span>
+          <span className="text-gray-12 font-medium text-sm max-md:hidden">Filter</span>
           {filters.length > 0 && <Badge variant="count">{filters.length}</Badge>}
         </Button>
       </div>

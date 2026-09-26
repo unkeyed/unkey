@@ -52,7 +52,7 @@ export function NewerDeploymentRow({ deployment, href }: { deployment: Deploymen
 
   return (
     <div className="flex items-center justify-between gap-3 border-t px-4 py-2.5">
-      <div className="flex min-w-0 items-center gap-2 text-[13px]">
+      <div className="flex min-w-0 items-center gap-2 text-sm">
         <DeploymentStatusIndicator status={deployment.status} />
         <span className="shrink-0 text-gray-12">{DEPLOYMENT_STATUS_LABELS[deployment.status]}</span>
         <span aria-hidden className="shrink-0 text-gray-9">
@@ -62,7 +62,7 @@ export function NewerDeploymentRow({ deployment, href }: { deployment: Deploymen
       </div>
       <div className="flex shrink-0 items-center gap-2 text-xs text-gray-11">
         {buildTime ? (
-          <span className="text-[13px] tabular-nums text-gray-9">{buildTime}</span>
+          <span className="text-sm tabular-nums text-gray-9">{buildTime}</span>
         ) : (
           <RowTime value={deployment.createdAt} />
         )}

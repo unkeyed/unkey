@@ -270,11 +270,9 @@ export const OverviewAreaChart = ({
                   style={{ backgroundColor: metric.color }}
                 />
               ))}
-            <div className="text-gray-10 text-[11px] leading-4">
-              {labelsWithDefaults.rangeLabel}
-            </div>
+            <div className="text-gray-10 text-2xs leading-4">{labelsWithDefaults.rangeLabel}</div>
           </div>
-          <div className="text-gray-12 text-[18px] font-semibold leading-7">
+          <div className="text-gray-12 text-lg font-semibold leading-7">
             {primaryMetric.formatter
               ? `${primaryMetric.formatter(
                   ranges[primaryMetric.key].min,
@@ -294,9 +292,9 @@ export const OverviewAreaChart = ({
                     className="rounded-sm h-[10px] w-1"
                     style={{ backgroundColor: metric.color }}
                   />
-                  <div className="text-gray-10 text-[11px] leading-4">{metric.label}</div>
+                  <div className="text-gray-10 text-2xs leading-4">{metric.label}</div>
                 </div>
-                <div className="text-gray-12 text-[18px] font-semibold leading-7">
+                <div className="text-gray-12 text-lg font-semibold leading-7">
                   {metric.formatter
                     ? metric.formatter(ranges[metric.key].avg)
                     : formatNumber(ranges[metric.key].avg)}
@@ -407,7 +405,7 @@ export const OverviewAreaChart = ({
         </ChartContainer>
       </div>
 
-      <div className="h-max border-t border-b px-1 py-2 text-gray-9 font-mono text-xxs w-full flex justify-between ">
+      <div className="h-max border-t border-b px-1 py-2 text-gray-9 font-mono text-3xs w-full flex justify-between ">
         {data.length > 0
           ? (() => {
               const lastItem = data.at(-1);

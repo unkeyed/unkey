@@ -149,14 +149,14 @@ export const RootKeyDialog = ({
           />
         </div>
         <div className="flex flex-col gap-2 mr-0">
-          <Label className="text-[13px] font-normal text-gray-10">
+          <Label className="text-sm font-normal text-gray-10">
             {ROOT_KEY_MESSAGES.DESCRIPTIONS.PERMISSIONS}
           </Label>
           <Button
             type="button"
             variant="outline"
             size="lg"
-            className="rounded-lg font-light text-grayA-8 text-[13px] border hover:border-strong bg-raised focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-5 focus-visible:ring-offset-0"
+            className="rounded-lg font-light text-grayA-8 text-sm border hover:border-strong bg-raised focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-gray-5 focus-visible:ring-offset-0"
             disabled={isBusy}
             onClick={handleOpenSheet}
           >

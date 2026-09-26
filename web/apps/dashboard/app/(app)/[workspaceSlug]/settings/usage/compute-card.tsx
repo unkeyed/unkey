@@ -293,13 +293,13 @@ function ProjectRow({
             <div className="w-20 text-right">Cost</div>
           </Band>
           <div className="flex items-center gap-3 px-4 py-2.5">
-            <span className="min-w-0 flex-1 truncate font-medium text-[13px] text-gray-12">
+            <span className="min-w-0 flex-1 truncate font-medium text-sm text-gray-12">
               Verified keys
             </span>
-            <span className="w-24 text-right text-[13px] text-gray-11 tabular-nums">
+            <span className="w-24 text-right text-sm text-gray-11 tabular-nums">
               {project.gateway.activeKeys.toLocaleString("en-US")}
             </span>
-            <span className="w-20 text-right font-medium text-[13px] text-gray-12 tabular-nums">
+            <span className="w-20 text-right font-medium text-sm text-gray-12 tabular-nums">
               {formatPrice(microCentsToDisplayCents(project.gateway.microCents))}
             </span>
           </div>
@@ -314,7 +314,7 @@ function ResourceBar({ usage }: { usage: UsageQuantities }) {
 
   return (
     <div className="px-4 pt-3 pb-3.5">
-      <div className="pb-2 text-[13px] text-gray-12">Spend by resource</div>
+      <div className="pb-2 text-sm text-gray-12">Spend by resource</div>
       <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-grayA-3">
         {METERS.map((meter) => (
           <div
@@ -338,7 +338,7 @@ function ResourceBar({ usage }: { usage: UsageQuantities }) {
               </span>
             }
           >
-            <span className="flex items-center gap-2 text-[13px]">
+            <span className="flex items-center gap-2 text-sm">
               <span
                 className={`size-2 shrink-0 rounded-full ${meter.barClass}`}
                 aria-hidden="true"
@@ -384,14 +384,14 @@ function AppRows({ app }: { app: UsageApp }) {
   return (
     <div>
       <div className="flex items-center gap-3 px-4 pt-2.5 pb-1">
-        <span className="min-w-0 flex-1 truncate font-medium text-[13px] text-gray-12">
+        <span className="min-w-0 flex-1 truncate font-medium text-sm text-gray-12">
           <ResourceName name={app.name} id={app.appId} deleted={app.deleted} />
         </span>
-        <MeterCosts usage={app} className="text-[13px] text-gray-12" />
+        <MeterCosts usage={app} className="text-sm text-gray-12" />
         <TotalCost
           cents={microCentsToDisplayCents(app.microCents)}
           usage={app}
-          className="w-20 text-right font-medium text-[13px] text-gray-12"
+          className="w-20 text-right font-medium text-sm text-gray-12"
         />
       </div>
       {app.environments.map((environment) => (
@@ -420,7 +420,7 @@ function AppRows({ app }: { app: UsageApp }) {
 
 function Band({ children }: { children: ReactNode }) {
   return (
-    <div className="flex items-center gap-3 border-y bg-gray-2 px-4 py-2 font-semibold text-[10px] text-gray-9 uppercase tracking-wider">
+    <div className="flex items-center gap-3 border-y bg-gray-2 px-4 py-2 font-semibold text-3xs text-gray-9 uppercase tracking-wider">
       {children}
     </div>
   );

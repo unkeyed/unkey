@@ -106,7 +106,7 @@ export function DeploymentDomainsCard({
                 {additionalDomains.length > 0 && (
                   <button
                     type="button"
-                    className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-xs leading-[18px] font-mono tabular-nums hover:bg-grayA-4 transition-colors cursor-pointer"
+                    className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-xs leading-4.5 font-mono tabular-nums hover:bg-grayA-4 transition-colors cursor-pointer"
                     onClick={() => setUrlsOpen(true)}
                   >
                     +{additionalDomains.length}
@@ -164,7 +164,7 @@ function DomainsGroup({ children }: { children: ReactNode }) {
   return (
     <SettingsGroup
       icon={<IconEarthOutline18 className="size-3.5" />}
-      title={<span className="font-medium text-gray-12 text-[13px] leading-4">Domains</span>}
+      title={<span className="font-medium text-gray-12 text-sm leading-4">Domains</span>}
       hideChevron
     >
       {children}

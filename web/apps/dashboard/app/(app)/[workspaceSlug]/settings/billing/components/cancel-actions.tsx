@@ -20,7 +20,7 @@ export function CancelPlanLink({
       {(disabled) => (
         <button
           type="button"
-          className="text-[13px] text-gray-9 transition-colors hover:text-gray-11 disabled:cursor-not-allowed"
+          className="text-sm text-gray-9 transition-colors hover:text-gray-11 disabled:cursor-not-allowed"
           disabled={disabled}
           onClick={onClick}
         >
@@ -75,7 +75,7 @@ export function CancelComputeDialog({
         </Button>
       }
     >
-      <div className="text-[13px] text-gray-11 leading-6">
+      <div className="text-sm text-gray-11 leading-6">
         Cancelling stops Compute immediately: your deployments stop and no further usage is billed.
         Usage up to now is still charged, and the plan fee already paid is not refunded.
       </div>

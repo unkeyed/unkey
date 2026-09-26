@@ -15,7 +15,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	github "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -482,4 +485,58 @@ func requireAuditEvent(ctx context.Context, t *testing.T, h *testutil.Harness, t
 		}
 	}
 	require.Failf(t, "audit event not found", "expected event %q for target %s", event, targetID)
+}
+
+func TestUpdateAppConnectRepositoryWithAppURN(t *testing.T) {
+	ctx := context.Background()
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:            h.DB,
+		Auditlogs:     h.Auditlogs,
+		GitHubAppName: "unkey-app",
+		GitHubClient: testutil.FakeGitHub{
+			Noop:       github.NewNoop(),
+			Repo:       github.RepoInfo{ID: 42, FullName: "unkeyed/unkey", DefaultBranch: "main"},
+			Accessible: true,
+		},
+	}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Payments",
+		Slug:        appSlug(),
+	})
+	h.SeedGitHubInstallation(t, workspace.ID, 12345)
+	app := h.CreateApp(seed.CreateAppRequest{
+		ID:          uid.New(uid.AppPrefix),
+		WorkspaceID: workspace.ID,
+		ProjectID:   project.ID,
+		Name:        "App",
+		Slug:        appSlug(),
+	})
+
+	// App write is the whole grant: it covers both the update and the repository gate.
+	rootKey := h.CreateRootKey(workspace.ID,
+		rbac.U(urn.New().Workspace(workspace.ID).Project(project.ID).App(app.ID), permissions.Write).Value,
+	)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		Project: project.ID,
+		App:     app.ID,
+		Git:     nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey")}),
+	})
+	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+
+	conn, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), app.ID)
+	require.NoError(t, err)
+	require.Equal(t, "unkeyed/unkey", conn.RepositoryFullName)
+	requireAuditEvent(ctx, t, h, app.ID, "app.connect_repository")
 }

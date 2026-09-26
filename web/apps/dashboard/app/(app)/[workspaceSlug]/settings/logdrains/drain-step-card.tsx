@@ -36,7 +36,7 @@ export function DrainStepCard({
           ) : (
             <span
               className={cn(
-                "flex size-6 shrink-0 items-center justify-center rounded-full text-[12px] font-medium tabular-nums",
+                "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium tabular-nums",
                 state === "waiting" ? "bg-grayA-2 text-gray-9" : "bg-grayA-3 text-gray-12",
               )}
             >
@@ -45,7 +45,7 @@ export function DrainStepCard({
           )}
           <span
             className={cn(
-              "truncate text-[14px] font-semibold",
+              "truncate text-sm font-semibold",
               state === "waiting" ? "text-gray-9" : "text-gray-12",
             )}
           >

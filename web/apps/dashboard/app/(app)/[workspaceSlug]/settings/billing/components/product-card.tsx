@@ -56,13 +56,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             <div className="flex items-center gap-2">
               <span className="font-medium text-gray-12 text-sm">{name}</span>
               {tag ? (
-                <span className="rounded-full bg-grayA-3 px-2 py-0.5 font-medium text-[11px] text-gray-11">
+                <span className="rounded-full bg-grayA-3 px-2 py-0.5 font-medium text-2xs text-gray-11">
                   {tag}
                 </span>
               ) : null}
               {badge}
             </div>
-            <div className="truncate text-[13px] text-gray-10">{subtitle}</div>
+            <div className="truncate text-sm text-gray-10">{subtitle}</div>
           </div>
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}

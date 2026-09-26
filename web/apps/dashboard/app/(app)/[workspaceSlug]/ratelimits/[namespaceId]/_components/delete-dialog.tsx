@@ -5,6 +5,7 @@ import { Button, DialogContainer, Input } from "@unkey/ui";
 import type { PropsWithChildren } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { useOverride } from "./use-override";
 
 const formSchema = z.object({
   identifier: z
@@ -18,12 +19,24 @@ type FormValues = z.infer<typeof formSchema>;
 type Props = PropsWithChildren<{
   isModalOpen: boolean;
   onOpenChange: (value: boolean) => void;
+  namespaceId: string;
   overrideId: string;
   identifier: string;
 }>;
 
-export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier }: Props) => {
-  const { register, handleSubmit, watch } = useForm<FormValues>({
+export const DeleteDialog = ({
+  isModalOpen,
+  onOpenChange,
+  namespaceId,
+  overrideId,
+  identifier,
+}: Props) => {
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { isSubmitting },
+  } = useForm<FormValues>({
     mode: "onChange",
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -33,7 +46,10 @@ export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier
 
   const isValid = watch("identifier") === identifier;
 
+  const override = useOverride(namespaceId, identifier);
+
   const onSubmit = async () => {
+    await override.collection?.toArrayWhenReady();
     collection.ratelimitOverrides.delete(overrideId);
     onOpenChange(false);
   };
@@ -51,7 +67,8 @@ export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier
             variant="primary"
             color="danger"
             size="xlg"
-            disabled={!isValid}
+            disabled={!isValid || isSubmitting}
+            loading={isSubmitting}
             className="w-full rounded-lg"
           >
             Delete Override
@@ -62,7 +79,7 @@ export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier
         </div>
       }
     >
-      <p className="text-gray-11 text-[13px]">
+      <p className="text-gray-11 text-sm">
         <span className="font-medium">Warning: </span>
         Are you sure you want to delete this override? The identifier associated with this override
         will now use the default limits.
@@ -70,7 +87,7 @@ export const DeleteDialog = ({ isModalOpen, onOpenChange, overrideId, identifier
 
       <form id="delete-override-form" onSubmit={handleSubmit(onSubmit)}>
         <div className="flex flex-col gap-1">
-          <p className="text-gray-11 text-[13px]">
+          <p className="text-gray-11 text-sm">
             Type <span className="text-gray-12 font-medium">{identifier}</span> to confirm
           </p>
 

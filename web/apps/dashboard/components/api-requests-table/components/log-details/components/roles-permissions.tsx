@@ -14,7 +14,7 @@ export const RolesSection: React.FC<RolesSectionProps> = ({ roles }) => {
     return (
       <div className="flex flex-col gap-1 mt-4 px-4">
         <div className="border bg-raised rounded-xl">
-          <div className="text-gray-11 text-[12px] leading-6 px-3.5 py-1.5 font-sans">Roles</div>
+          <div className="text-gray-11 text-xs leading-6 px-3.5 py-1.5 font-sans">Roles</div>
           <div className="border-t rounded-xl bg-raised px-4 py-2">
             <span className="text-xs text-gray-11">No roles assigned</span>
           </div>
@@ -70,9 +70,7 @@ export const PermissionsSection = ({ permissions }: PermissionsSectionProps) => 
     return (
       <div className="flex flex-col gap-1 mt-4 px-4">
         <div className="border bg-raised rounded-xl">
-          <div className="text-gray-11 text-[12px] leading-6 px-3.5 py-1.5 font-sans">
-            Permissions
-          </div>
+          <div className="text-gray-11 text-xs leading-6 px-3.5 py-1.5 font-sans">Permissions</div>
           <div className="border-t rounded-xl bg-raised px-4 py-2">
             <span className="text-xs text-gray-11">No permissions assigned</span>
           </div>

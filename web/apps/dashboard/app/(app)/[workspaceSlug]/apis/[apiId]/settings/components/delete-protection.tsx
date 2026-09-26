@@ -104,14 +104,14 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
                 ? "Disable Keyspace Delete Protection"
                 : "Enable Keyspace Delete Protection"}
             </Button>
-            <div className="font-normal text-[12px] text-gray-9 text-center">
+            <div className="font-normal text-xs text-gray-9 text-center">
               This setting can be {api.deleteProtection ? "disabled" : "enabled"} at any time
             </div>
           </div>
         }
       >
         <div className="flex flex-col gap-4">
-          <p className="text-gray-11 text-[13px]">
+          <p className="text-gray-11 text-sm">
             <span className="font-medium">Important: </span>
             {api.deleteProtection
               ? "Disabling this allows keyspace deletion. This setting can be re-enabled at any time. "
@@ -126,7 +126,7 @@ export const DeleteProtection: React.FC<Props> = ({ api }) => {
           </p>
           <form id="delete-protection-form" onSubmit={handleSubmit(onSubmit)}>
             <div className="flex flex-col gap-1">
-              <p className="text-gray-11 text-[13px]">
+              <p className="text-gray-11 text-sm">
                 Type <span className="text-gray-12 font-medium">{api.name}</span> to confirm
               </p>
               <Input {...register("name")} placeholder={`Enter "${api.name}" to confirm`} />

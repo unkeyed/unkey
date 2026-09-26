@@ -148,7 +148,7 @@ function SelectLabel({
   return (
     <SelectPrimitive.GroupLabel
       ref={ref}
-      className={cn("py-1.5 pl-2 pr-2 text-[13px] font-medium text-gray-11", className)}
+      className={cn("py-1.5 pl-2 pr-2 text-sm font-medium text-gray-11", className)}
       {...props}
     />
   );
@@ -166,7 +166,7 @@ function SelectItem({
     <SelectPrimitive.Item
       ref={ref}
       className={cn(
-        "relative flex w-full cursor-default select-none items-center rounded-md py-1.5 pl-2 pr-8 text-[13px] outline-hidden",
+        "relative flex w-full cursor-default select-none items-center rounded-md py-1.5 pl-2 pr-8 text-sm outline-hidden",
         "text-gray-12 hover:bg-gray-4 focus:bg-gray-5 data-highlighted:bg-gray-5 data-disabled:opacity-50",
         className,
       )}

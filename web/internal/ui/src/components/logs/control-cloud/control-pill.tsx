@@ -73,6 +73,7 @@ export const ControlPill = <TFilter extends FilterValue>({
       </div>
       <div ref={pillRef} className="contents">
         <Button
+          variant="ghost"
           onClick={() => onRemove(filter.id)}
           onFocus={onFocus}
           onKeyDown={handleKeyDown}

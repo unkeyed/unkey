@@ -66,7 +66,7 @@ export const DeployAction = ({
       >
         Deploy
       </Button>
-      <span className="text-gray-10 text-[13px] text-center">
+      <span className="text-gray-10 text-sm text-center">
         We'll build your image, provision infrastructure, and more.
       </span>
       {planGate}

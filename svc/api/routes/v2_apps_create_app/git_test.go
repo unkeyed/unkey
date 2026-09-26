@@ -12,7 +12,10 @@ import (
 	"github.com/unkeyed/unkey/pkg/db"
 	github "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/ptr"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -169,4 +172,58 @@ func TestCreateAppConnectRepositoryForbidden(t *testing.T) {
 		Git:     &openapi.AppGitCreateInput{Repository: ptr.P("unkeyed/unkey")},
 	})
 	require.Equal(t, http.StatusForbidden, res.Status, "expected 403, received: %s", res.RawBody)
+}
+
+func TestCreateAppConnectRepositoryWithAppURN(t *testing.T) {
+	ctx := context.Background()
+	h := testutil.NewHarness(t)
+
+	appID := uid.New(uid.AppPrefix)
+	ctrlClient := &testutil.MockAppClient{
+		CreateAppFunc: func(_ context.Context, _ *ctrlv1.CreateAppRequest) (*ctrlv1.CreateAppResponse, error) {
+			return &ctrlv1.CreateAppResponse{Id: appID}, nil
+		},
+	}
+	route := &handler.Handler{
+		DB:            h.DB,
+		CtrlClient:    ctrlClient,
+		Auditlogs:     h.Auditlogs,
+		GitHubAppName: "unkey-app",
+		GitHubClient: testutil.FakeGitHub{
+			Noop:       github.NewNoop(),
+			Repo:       github.RepoInfo{ID: 42, FullName: "unkeyed/unkey", DefaultBranch: "main"},
+			Accessible: true,
+		},
+	}
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	project := h.CreateProject(seed.CreateProjectRequest{
+		ID:          uid.New(uid.ProjectPrefix),
+		WorkspaceID: workspace.ID,
+		Name:        "Payments",
+		Slug:        slug(),
+	})
+	h.SeedGitHubInstallation(t, workspace.ID, 12345)
+
+	// Write on the project's apps covers both the create and the repository gate.
+	rootKey := h.CreateRootKey(workspace.ID,
+		rbac.U(urn.New().Workspace(workspace.ID).Project(project.ID).App("*"), permissions.Write).Value,
+	)
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		Project: project.ID,
+		Name:    "Payments API",
+		Slug:    slug(),
+		Git:     &openapi.AppGitCreateInput{Repository: ptr.P("unkeyed/unkey")},
+	})
+	require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+
+	conn, err := db.Query.FindGithubRepoConnectionByAppId(ctx, h.DB.RO(), appID)
+	require.NoError(t, err)
+	require.Equal(t, "unkeyed/unkey", conn.RepositoryFullName)
 }

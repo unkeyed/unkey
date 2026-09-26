@@ -439,7 +439,7 @@ export const CreateDeploymentButton = ({
                 }
               />
               {isImageApp && imageValidation.ok && imageValidation.warning ? (
-                <output className="text-warning-11 text-[13px]">{imageValidation.warning}</output>
+                <output className="text-warning-11 text-sm">{imageValidation.warning}</output>
               ) : null}
               {forkRepoName && (
                 <div className="flex items-center gap-1.5 bg-warning-3 border border-warning-6 rounded-md px-2.5 py-1.5 w-fit">
@@ -460,7 +460,7 @@ export const CreateDeploymentButton = ({
                 // must be a sibling of the row button rather than nested in it.
                 <div
                   key={deployment.id}
-                  className="flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors text-[13px] text-grayA-11"
+                  className="flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors text-sm text-grayA-11"
                 >
                   <button
                     type="button"
@@ -513,7 +513,7 @@ export const CreateDeploymentButton = ({
                 // must be a sibling of the row button rather than nested in it.
                 <div
                   key={branch.name}
-                  className="flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors text-[13px] text-grayA-11"
+                  className="flex items-center justify-between px-3 py-2 bg-grayA-2 hover:bg-grayA-3 transition-colors text-sm text-grayA-11"
                 >
                   <button
                     type="button"

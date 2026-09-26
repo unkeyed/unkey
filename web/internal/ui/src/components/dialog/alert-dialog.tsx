@@ -91,7 +91,7 @@ function AlertDialogTitle({ className, ...props }: AlertDialogPrimitive.Title.Pr
     <AlertDialogPrimitive.Title
       data-slot="alert-dialog-title"
       className={cn(
-        "text-[18px] font-semibold leading-tight tracking-tight text-gray-12",
+        "text-lg font-semibold leading-tight tracking-tight text-gray-12",
         "sm:group-data-[size=default]/alert-dialog-content:group-has-data-[slot=alert-dialog-media]/alert-dialog-content:col-start-2",
         className,
       )}
@@ -105,7 +105,7 @@ function AlertDialogDescription({ className, ...props }: AlertDialogPrimitive.De
     <AlertDialogPrimitive.Description
       data-slot="alert-dialog-description"
       className={cn(
-        "text-[13px] leading-5 text-balance text-gray-11 md:text-pretty",
+        "text-sm leading-5 text-balance text-gray-11 md:text-pretty",
         "*:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-gray-12",
         className,
       )}

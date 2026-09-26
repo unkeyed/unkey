@@ -98,11 +98,25 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
+	if api.DeletedAtM.Valid {
+		return fault.New("api not found",
+			fault.Code(codes.Data.Api.NotFound.URN()),
+			fault.Internal("api is deleted"), fault.Public("The specified API was not found."),
+		)
+	}
+
 	keySpace, keySpaceErr := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
 	if keySpaceErr != nil && !db.IsNotFound(keySpaceErr) {
 		return fault.Wrap(keySpaceErr,
 			fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 			fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+		)
+	}
+
+	if keySpaceErr == nil && keySpace.DeletedAtM.Valid {
+		return fault.New("keyspace not found",
+			fault.Code(codes.Data.Api.NotFound.URN()),
+			fault.Internal("keyspace is deleted"), fault.Public("The specified API was not found."),
 		)
 	}
 

@@ -2,10 +2,11 @@
 import { useProjectScope } from "@/hooks/use-project-scope";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import { IconLockOutline12 } from "@unkey/icons";
-import { Button, DialogContainer, Input, SettingsZoneRow } from "@unkey/ui";
+import { Button, DialogContainer, Input, SettingsZoneRow, toast } from "@unkey/ui";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useState } from "react";
@@ -26,7 +27,7 @@ type Props = {
 export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
   const workspace = useWorkspaceNavigation();
   const scope = useProjectScope();
-  const { onDeleteSuccess, onError } = createMutationHandlers();
+  const { onDeleteSuccess } = createMutationHandlers();
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const intent =
@@ -41,12 +42,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
 
   type FormValues = z.infer<typeof formSchema>;
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { isSubmitting },
-  } = useForm<FormValues>({
+  const { register, handleSubmit, watch } = useForm<FormValues>({
     ...createApiFormConfig(formSchema),
     resolver: zodResolver(formSchema),
     mode: "onChange",
@@ -58,16 +54,22 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
 
   const isValid = watch("name") === api.name && watch("intent") === intent;
 
-  const deleteApi = trpc.api.delete.useMutation({
+  const deleteApi = useMutation({
+    mutationFn: async () => {
+      await getUnkeyClient().apis.deleteApi({ apiId: api.id });
+    },
     async onSuccess() {
       onDeleteSuccess(keys)();
       router.push(routes.apis.list({ workspaceSlug: workspace.slug, ...scope }));
     },
-    onError,
+    onError(err) {
+      const { message, description } = getErrorToast(err, "Failed to Delete Keyspace");
+      toast.error(message, { description });
+    },
   });
 
   async function onSubmit(_values: z.infer<typeof formSchema>) {
-    deleteApi.mutate({ apiId: api.id });
+    deleteApi.mutate();
   }
 
   return (
@@ -104,8 +106,8 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
               variant="primary"
               color="danger"
               size="xlg"
-              disabled={api.deleteProtection || !isValid || isSubmitting}
-              loading={isSubmitting}
+              disabled={api.deleteProtection || !isValid || deleteApi.isLoading}
+              loading={deleteApi.isLoading}
               className="w-full"
             >
               Delete Keyspace
@@ -116,7 +118,7 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
           </div>
         }
       >
-        <p className="text-gray-11 text-[13px]">
+        <p className="text-gray-11 text-sm">
           <span className="font-medium">Warning: </span>
           Deleting this keyspace will delete all keys and data associated with it. This action
           cannot be undone. Any tracking, enforcement, and historical insights tied to this keyspace
@@ -124,13 +126,13 @@ export const DeleteApi: React.FC<Props> = ({ api, keys }) => {
         </p>
         <form id="delete-api-form" onSubmit={handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-1">
-            <p className="text-gray-11 text-[13px]">
+            <p className="text-gray-11 text-sm">
               Type <span className="text-gray-12 font-medium">{api.name}</span> to confirm
             </p>
             <Input {...register("name")} placeholder={`Enter "${api.name}" to confirm`} />
           </div>
           <div className="flex flex-col gap-1 mt-6">
-            <p className="text-gray-11 text-[13px]">
+            <p className="text-gray-11 text-sm">
               To verify, type <span className="text-gray-12 font-medium">{intent}</span> to confirm
             </p>
             <Input {...register("intent")} placeholder={`Enter "${intent}" to confirm`} />

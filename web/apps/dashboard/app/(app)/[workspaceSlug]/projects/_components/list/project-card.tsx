@@ -62,7 +62,7 @@ export function ProjectCard({ name, projectId, apps, actions }: ProjectCardProps
       </div>
 
       {apps.length === 0 ? (
-        <span className="text-[13px] text-gray-9">No apps yet</span>
+        <span className="text-sm text-gray-9">No apps yet</span>
       ) : (
         <div ref={measureRef} className="relative z-10 flex flex-col gap-1.5">
           {visible.map((app) => (
