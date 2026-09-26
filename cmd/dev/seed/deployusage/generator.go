@@ -175,7 +175,7 @@ func hourlyTrafficShare(hour, appIndex int) float64 {
 		return 0.7 + 0.3*math.Sin((float64(hour)-6+float64(appIndex%5))*math.Pi/12)
 	}
 	total := 0.0
-	for currentHour := 0; currentHour < 24; currentHour++ {
+	for currentHour := range 24 {
 		total += weight(currentHour)
 	}
 	return weight(hour) / total
