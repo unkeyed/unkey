@@ -17,7 +17,7 @@
 // and [TailSampler] in production to reduce volume while preserving errors and slow
 // requests.
 //
-// [MultiHandler] fans out log records to multiple [slog.Handler] implementations,
+// [AddHandler] fans out log records to multiple [slog.Handler] implementations,
 // enabling simultaneous output to console and structured backends.
 //
 // # Usage
