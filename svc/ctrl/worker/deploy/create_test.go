@@ -12,6 +12,7 @@ import (
 
 	restate "github.com/restatedev/sdk-go"
 	restateingress "github.com/restatedev/sdk-go/ingress"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
@@ -1520,8 +1521,10 @@ func (h *createHarness) queuedSibling(t *testing.T, ctx context.Context, branch 
 
 func (h *createHarness) requireSuperseded(t *testing.T, ctx context.Context, deploymentID string) {
 	t.Helper()
-	require.Eventually(t, func() bool {
-		return h.deployment(t, ctx, deploymentID).Status == mysqltype.DeploymentsStatusSuperseded
+	require.EventuallyWithT(t, func(collect *assert.CollectT) {
+		row, err := h.database.FindDeploymentById(ctx, deploymentID)
+		require.NoError(collect, err)
+		require.Equal(collect, mysqltype.DeploymentsStatusSuperseded, row.Status)
 	}, 15*time.Second, 100*time.Millisecond, "deployment %s must be superseded", deploymentID)
 }
 
@@ -1529,9 +1532,19 @@ func (h *createHarness) requireSuperseded(t *testing.T, ctx context.Context, dep
 // wrong reason: dedup runs after Create has already dispatched Deploy.
 func (h *createHarness) requireNotSuperseded(t *testing.T, ctx context.Context, deploymentID string) {
 	t.Helper()
-	require.Never(t, func() bool {
-		return h.deployment(t, ctx, deploymentID).Status == mysqltype.DeploymentsStatusSuperseded
-	}, 5*time.Second, 200*time.Millisecond, "deployment %s must not be superseded", deploymentID)
+	timer := time.NewTimer(5 * time.Second)
+	defer timer.Stop()
+	ticker := time.NewTicker(200 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		require.NotEqual(t, mysqltype.DeploymentsStatusSuperseded, h.deployment(t, ctx, deploymentID).Status,
+			"deployment %s must not be superseded", deploymentID)
+		select {
+		case <-timer.C:
+			return
+		case <-ticker.C:
+		}
+	}
 }
 
 func (h *createHarness) awaitDeploy(t *testing.T, deploymentID string) *hydrav1.DeployRequest {
