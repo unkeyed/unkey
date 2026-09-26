@@ -84,7 +84,7 @@ func (p *Parser) injectSecurityScopes() {
 		return
 	}
 
-	walkQueryIncludingExcept(p.stmt, func(node clickhouse.Expr) bool {
+	clickhouse.Walk(p.stmt, func(node clickhouse.Expr) bool {
 		if selectQuery, ok := node.(*clickhouse.SelectQuery); ok {
 			for _, source := range p.directTableSources(selectQuery) {
 				p.injectSecurityScopeOnSelect(selectQuery, source)
