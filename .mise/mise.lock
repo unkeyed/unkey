@@ -110,40 +110,6 @@ checksum = "sha256:097b0ba51f424fc6811ea30ba3a0a70a75c457126ca09fa45cc5da4cfefcb
 url = "https://github.com/bufbuild/buf/releases/download/v1.64.0/buf-Windows-x86_64.zip"
 url_api = "https://api.github.com/repos/bufbuild/buf/releases/assets/342895506"
 
-[[tools."github:chronark/rask"]]
-version = "0.6.0"
-backend = "github:chronark/rask"
-
-[tools."github:chronark/rask"."platforms.linux-arm64"]
-checksum = "sha256:219fb6e8aa622795813061afd325190da9bed221344e523e3c296bbd92373ead"
-url = "https://github.com/chronark/rask/releases/download/v0.6.0/rask_0.6.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/475406263"
-
-[tools."github:chronark/rask"."platforms.linux-arm64-musl"]
-checksum = "sha256:219fb6e8aa622795813061afd325190da9bed221344e523e3c296bbd92373ead"
-url = "https://github.com/chronark/rask/releases/download/v0.6.0/rask_0.6.0_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/475406263"
-
-[tools."github:chronark/rask"."platforms.linux-x64"]
-checksum = "sha256:8359dd3b9af27bc7166d61ab522f5f6612519def3af8412d38fb100f6af5e29a"
-url = "https://github.com/chronark/rask/releases/download/v0.6.0/rask_0.6.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/475406257"
-
-[tools."github:chronark/rask"."platforms.linux-x64-musl"]
-checksum = "sha256:8359dd3b9af27bc7166d61ab522f5f6612519def3af8412d38fb100f6af5e29a"
-url = "https://github.com/chronark/rask/releases/download/v0.6.0/rask_0.6.0_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/475406257"
-
-[tools."github:chronark/rask"."platforms.macos-arm64"]
-checksum = "sha256:de735649db883685f44f30ee8411a8077358d5d8e90fd5223ba5574531c36aea"
-url = "https://github.com/chronark/rask/releases/download/v0.6.0/rask_0.6.0_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/475406256"
-
-[tools."github:chronark/rask"."platforms.macos-x64"]
-checksum = "sha256:8fce8beb7d79f0641411b073b6cd375cd8cb782d1befa9d81fd69adff045d73a"
-url = "https://github.com/chronark/rask/releases/download/v0.6.0/rask_0.6.0_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/chronark/rask/releases/assets/475406260"
-
 [[tools."github:depot/cli"]]
 version = "2.101.67"
 backend = "github:depot/cli"
@@ -586,6 +552,10 @@ url = "https://dl.google.com/go/go1.27.1.darwin-amd64.tar.gz"
 [tools.go."platforms.windows-x64"]
 checksum = "sha256:a3911b5e0e1b1053f25ed0675f4c1c6aad1e2bfcf253df2b9be4caabd2edd95d"
 url = "https://dl.google.com/go/go1.27.1.windows-amd64.zip"
+
+[[tools."go:github.com/chronark/rask"]]
+version = "0.6.0"
+backend = "go:github.com/chronark/rask"
 
 [[tools."http:helm"]]
 version = "3.21.0"
