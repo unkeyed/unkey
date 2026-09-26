@@ -76,7 +76,7 @@ func isProtocolUpgrade(r *http.Request) bool {
 	if r == nil || r.Header.Get("Upgrade") == "" {
 		return false
 	}
-	for _, token := range strings.Split(r.Header.Get("Connection"), ",") {
+	for token := range strings.SplitSeq(r.Header.Get("Connection"), ",") {
 		if strings.EqualFold(strings.TrimSpace(token), "upgrade") {
 			return true
 		}

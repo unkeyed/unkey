@@ -51,7 +51,7 @@ func generateAction(ctx context.Context, cmd *cli.Command) error {
 
 	// Generate keys
 	var keys []*prefixedapikey.APIKey
-	for i := 0; i < count; i++ {
+	for range count {
 		key, err := prefixedapikey.GenerateAPIKey(opts)
 		if err != nil {
 			return fmt.Errorf("failed to generate key: %w", err)

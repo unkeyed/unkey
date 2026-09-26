@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -21,7 +22,7 @@ func parseTag(tag string) []directive {
 	}
 
 	var directives []directive
-	for _, part := range strings.Split(tag, ",") {
+	for part := range strings.SplitSeq(tag, ",") {
 		part = strings.TrimSpace(part)
 		if part == "" {
 			continue
@@ -102,7 +103,7 @@ func applyDefaultsRecursive(rv reflect.Value) error {
 
 func setFieldFromString(field reflect.Value, raw string) error {
 	// Handle time.Duration specially before switching on kind.
-	if field.Type() == reflect.TypeOf(time.Duration(0)) {
+	if field.Type() == reflect.TypeFor[time.Duration]() {
 		d, err := time.ParseDuration(raw)
 		if err != nil {
 			return err
@@ -265,13 +266,7 @@ func validateDirective(field reflect.Value, fieldPath string, d directive) error
 		if field.Kind() == reflect.String {
 			options := strings.Split(d.value, "|")
 			val := field.String()
-			found := false
-			for _, opt := range options {
-				if val == opt {
-					found = true
-					break
-				}
-			}
+			found := slices.Contains(options, val)
 			if !found {
 				return fmt.Errorf("field %q: value %q must be one of [%s]", fieldPath, val, strings.Join(options, ", "))
 			}
@@ -388,11 +383,11 @@ func validateCustomRecursive(rv reflect.Value) []error {
 }
 
 func hasConfigTags(t reflect.Type) bool {
-	for i := range t.NumField() {
-		if t.Field(i).Tag.Get("config") != "" {
+	for field := range t.Fields() {
+		if field.Tag.Get("config") != "" {
 			return true
 		}
-		ft := t.Field(i).Type
+		ft := field.Type
 		if ft.Kind() == reflect.Struct && hasConfigTags(ft) {
 			return true
 		}

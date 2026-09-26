@@ -50,13 +50,13 @@ func TestValidationErrors(t *testing.T) {
 		require.NoError(t, err)
 
 		// Use map to completely omit the keyId field (not just empty string)
-		reqMap := map[string]interface{}{
-			"roles": []map[string]interface{}{
+		reqMap := map[string]any{
+			"roles": []map[string]any{
 				{"id": roleID},
 			},
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,
@@ -144,11 +144,11 @@ func TestValidationErrors(t *testing.T) {
 		keyID := keyResponse.KeyID
 
 		// Use map to completely omit the roles field
-		reqMap := map[string]interface{}{
+		reqMap := map[string]any{
 			"keyId": keyID,
 		}
 
-		res := testutil.CallRoute[map[string]interface{}, openapi.BadRequestErrorResponse](
+		res := testutil.CallRoute[map[string]any, openapi.BadRequestErrorResponse](
 			h,
 			route,
 			headers,

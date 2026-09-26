@@ -129,7 +129,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		// Test 1: Set to specific value
 		req := handler.Request{
 			KeyId: keyResponse.KeyID,
-			Meta:  nullable.NewNullableWithValue(map[string]interface{}{"updated": "value"}),
+			Meta:  nullable.NewNullableWithValue(map[string]any{"updated": "value"}),
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -144,7 +144,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		// Test 2: Set to NULL (clear value)
 		req = handler.Request{
 			KeyId: keyResponse.KeyID,
-			Meta:  nullable.NewNullNullable[map[string]interface{}](),
+			Meta:  nullable.NewNullNullable[map[string]any](),
 		}
 
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -159,7 +159,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		// First set a value
 		req = handler.Request{
 			KeyId: keyResponse.KeyID,
-			Meta:  nullable.NewNullableWithValue(map[string]interface{}{"preserved": "value"}),
+			Meta:  nullable.NewNullableWithValue(map[string]any{"preserved": "value"}),
 		}
 
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)

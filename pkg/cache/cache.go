@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"strings"
 	"sync"
 	"time"
@@ -275,11 +276,7 @@ func (c *cache[K, V]) Remove(ctx context.Context, keys ...K) {
 }
 
 func (c *cache[K, V]) Dump(ctx context.Context) ([]byte, error) {
-	data := make(map[K]swrEntry[V])
-
-	for key, entry := range c.otter.All() {
-		data[key] = entry
-	}
+	data := maps.Collect(c.otter.All())
 
 	b, err := json.Marshal(data)
 	if err != nil {

@@ -171,48 +171,48 @@ func TestSuccess(t *testing.T) {
 		largeMetaExternalID := "test_user_large_meta"
 
 		// Create large metadata map
-		largeMetaMap := map[string]interface{}{
-			"user_profile": map[string]interface{}{
+		largeMetaMap := map[string]any{
+			"user_profile": map[string]any{
 				"name": "Large Metadata User",
 				"bio": "This is a very long biography with lots of text " +
 					strings.Repeat("Lorem ipsum dolor sit amet ", 50),
-				"preferences": map[string]interface{}{
+				"preferences": map[string]any{
 					"theme":         "dark",
 					"notifications": true,
 					"languages":     []string{"en", "fr", "es", "de", "it", "pt", "ru", "zh", "ja", "ko"},
-					"display_options": map[string]interface{}{
+					"display_options": map[string]any{
 						"show_avatar": true,
 						"show_email":  false,
 						"show_name":   true,
 					},
 				},
-				"stats": map[string]interface{}{
+				"stats": map[string]any{
 					"logins":           1274,
 					"last_active":      time.Now().Format(time.RFC3339),
 					"account_age_days": 365,
 					"activity_score":   98.7,
 				},
 			},
-			"subscription": map[string]interface{}{
+			"subscription": map[string]any{
 				"plan":   "enterprise",
 				"status": "active",
-				"features": map[string]interface{}{
+				"features": map[string]any{
 					"feature1": true,
 					"feature2": true,
 					"feature3": true,
 				},
-				"limits": map[string]interface{}{
+				"limits": map[string]any{
 					"api_calls":  100000,
 					"storage_gb": 500,
 					"users":      250,
 				},
-				"history": []map[string]interface{}{
+				"history": []map[string]any{
 					{"date": "2021-01-01", "plan": "free"},
 					{"date": "2021-06-01", "plan": "pro"},
 					{"date": "2022-01-01", "plan": "enterprise"},
 				},
 			},
-			"devices": []map[string]interface{}{
+			"devices": []map[string]any{
 				{"type": "mobile", "os": "iOS", "lastLogin": time.Now().Add(-24 * time.Hour).Format(time.RFC3339)},
 				{"type": "desktop", "os": "Windows", "lastLogin": time.Now().Add(-7 * 24 * time.Hour).Format(time.RFC3339)},
 				{"type": "tablet", "os": "Android", "lastLogin": time.Now().Add(-14 * 24 * time.Hour).Format(time.RFC3339)},
@@ -258,15 +258,15 @@ func TestSuccess(t *testing.T) {
 		returnedMetaBytes, err := json.Marshal(res.Body.Data.Meta)
 		require.NoError(t, err)
 
-		var returnedMetaMap map[string]interface{}
+		var returnedMetaMap map[string]any
 		err = json.Unmarshal(returnedMetaBytes, &returnedMetaMap)
 		require.NoError(t, err)
 
 		// Compare the two maps
-		require.Equal(t, largeMetaMap["user_profile"].(map[string]interface{})["name"],
-			returnedMetaMap["user_profile"].(map[string]interface{})["name"])
-		require.Equal(t, largeMetaMap["subscription"].(map[string]interface{})["plan"],
-			returnedMetaMap["subscription"].(map[string]interface{})["plan"])
+		require.Equal(t, largeMetaMap["user_profile"].(map[string]any)["name"],
+			returnedMetaMap["user_profile"].(map[string]any)["name"])
+		require.Equal(t, largeMetaMap["subscription"].(map[string]any)["plan"],
+			returnedMetaMap["subscription"].(map[string]any)["plan"])
 	})
 
 	t.Run("retrieve identity with many rate limits", func(t *testing.T) {

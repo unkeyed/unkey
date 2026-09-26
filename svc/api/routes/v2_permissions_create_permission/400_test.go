@@ -178,7 +178,7 @@ func TestValidationErrors(t *testing.T) {
 	t.Run("slug too long", func(t *testing.T) {
 		// Create a slug longer than 128 characters
 		veryLongSlug := ""
-		for i := 0; i < 130; i++ { // 130 characters, over the 128 limit
+		for range 130 { // 130 characters, over the 128 limit
 			veryLongSlug += "a"
 		}
 

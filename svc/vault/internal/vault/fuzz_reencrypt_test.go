@@ -211,7 +211,7 @@ func FuzzReEncryptMultipleTimes(f *testing.F) {
 		currentCiphertext := encRes.Msg.GetEncrypted()
 
 		// Re-encrypt multiple times
-		for i := 0; i < iterations; i++ {
+		for i := range iterations {
 			reencReq := connect.NewRequest(&vaultv1.ReEncryptRequest{
 				Keyring:   keyring,
 				Encrypted: currentCiphertext,

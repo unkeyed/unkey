@@ -294,7 +294,7 @@ func TestRatelimitResponse(t *testing.T) {
 		}
 
 		// Make 5 requests - should use up api_requests limit
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, 200, res.Status)
 			require.Equal(t, openapi.VALID, res.Body.Data.Code, "Request %d should be valid", i+1)

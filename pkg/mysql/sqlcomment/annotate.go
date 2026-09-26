@@ -63,11 +63,11 @@ func stripSQLCHeader(query string) (body, operation string) {
 	}
 	operation = rest[:end]
 
-	newline := strings.IndexByte(rest, '\n')
-	if newline < 0 {
+	_, after, ok := strings.Cut(rest, "\n")
+	if !ok {
 		return query, ""
 	}
-	return rest[newline+1:], operation
+	return after, operation
 }
 
 func formatComment(static Static, mode string, dynamic Dynamic, operation string) string {

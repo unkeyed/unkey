@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"maps"
 	"net/http"
 	"strings"
 	"testing"
@@ -29,9 +30,7 @@ func TestValidationErrors(t *testing.T) {
 			"app":         setup.App.Slug,
 			"environment": setup.Environment.Slug,
 		}
-		for k, v := range fields {
-			m[k] = v
-		}
+		maps.Copy(m, fields)
 		return m
 	}
 
