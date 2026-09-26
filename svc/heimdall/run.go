@@ -57,7 +57,7 @@ func Run(ctx context.Context, cfg Config) error {
 	// explicitly to preserve the scrape output.
 	reg := promclient.NewRegistry()
 	reg.MustRegister(collectors.NewGoCollector())
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	reg.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	lazy.SetRegistry(reg)
 	buildinfometrics.Register("heimdall")
@@ -206,7 +206,7 @@ func Run(ctx context.Context, cfg Config) error {
 		// started and isn't shutting down, which already captures the
 		// "collector is live and initialized" condition.
 		mux := http.NewServeMux()
-		//nolint:exhaustruct
+		//nolint:exhaustruct_v5
 		mux.Handle("GET /metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{}))
 		r.RegisterHealth(mux, "/health")
 

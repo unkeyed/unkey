@@ -24,7 +24,7 @@ type TransportRegistry struct {
 // NewTransportRegistry creates transports for http1 and h2c. Unknown or
 // unimplemented protocols (h2, h3) fall back to http1.
 func NewTransportRegistry() *TransportRegistry {
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	h1 := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout:   10 * time.Second,
@@ -35,7 +35,7 @@ func NewTransportRegistry() *TransportRegistry {
 		IdleConnTimeout:     90 * time.Second,
 	}
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	h2c := &http2.Transport{
 		AllowHTTP: true,
 		DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {

@@ -43,7 +43,7 @@ func TestExtractKey_BearerLocation(t *testing.T) {
 	req := &http.Request{Header: http.Header{}}
 	req.Header.Set("Authorization", "Bearer my_key")
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	locations := []*frontlinev1.KeyLocation{
 		{Location: &frontlinev1.KeyLocation_Bearer{Bearer: &frontlinev1.BearerTokenLocation{}}},
 	}
@@ -58,7 +58,7 @@ func TestExtractKey_HeaderLocation(t *testing.T) {
 	req := &http.Request{Header: http.Header{}}
 	req.Header.Set("X-API-Key", "custom_key_123")
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	locations := []*frontlinev1.KeyLocation{
 		{Location: &frontlinev1.KeyLocation_Header{
 			Header: &frontlinev1.HeaderKeyLocation{Name: "X-API-Key"},
@@ -75,7 +75,7 @@ func TestExtractKey_HeaderWithStripPrefix(t *testing.T) {
 	req := &http.Request{Header: http.Header{}}
 	req.Header.Set("Authorization", "ApiKey sk_live_abc123")
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	locations := []*frontlinev1.KeyLocation{
 		{Location: &frontlinev1.KeyLocation_Header{
 			Header: &frontlinev1.HeaderKeyLocation{
@@ -95,7 +95,7 @@ func TestExtractKey_HeaderStripPrefixMismatch(t *testing.T) {
 	req := &http.Request{Header: http.Header{}}
 	req.Header.Set("Authorization", "Bearer sk_live_abc123")
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	locations := []*frontlinev1.KeyLocation{
 		{Location: &frontlinev1.KeyLocation_Header{
 			Header: &frontlinev1.HeaderKeyLocation{
@@ -117,7 +117,7 @@ func TestExtractKey_QueryParam(t *testing.T) {
 		URL:    &url.URL{RawQuery: "api_key=query_key_123"},
 	}
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	locations := []*frontlinev1.KeyLocation{
 		{Location: &frontlinev1.KeyLocation_QueryParam{
 			QueryParam: &frontlinev1.QueryParamKeyLocation{Name: "api_key"},
@@ -137,7 +137,7 @@ func TestExtractKey_FallbackOrder(t *testing.T) {
 		URL:    &url.URL{RawQuery: "token=fallback_key"},
 	}
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	locations := []*frontlinev1.KeyLocation{
 		{Location: &frontlinev1.KeyLocation_Header{
 			Header: &frontlinev1.HeaderKeyLocation{Name: "X-API-Key"},
@@ -160,7 +160,7 @@ func TestExtractKey_FirstLocationWins(t *testing.T) {
 	}
 	req.Header.Set("X-API-Key", "header_key")
 
-	//nolint:exhaustruct
+	//nolint:exhaustruct_v5
 	locations := []*frontlinev1.KeyLocation{
 		{Location: &frontlinev1.KeyLocation_Header{
 			Header: &frontlinev1.HeaderKeyLocation{Name: "X-API-Key"},

@@ -48,7 +48,7 @@ func FuzzClassifier(f *testing.F) {
 	f.Fuzz(func(t *testing.T, frame []byte) {
 		objs := loadFuzzObjects(t)
 		for _, prog := range []*ebpf.Program{objs.CountEgress, objs.CountIngress} {
-			ret, err := prog.Run(&ebpf.RunOptions{Data: frame}) //nolint:exhaustruct
+			ret, err := prog.Run(&ebpf.RunOptions{Data: frame}) //nolint:exhaustruct_v5
 			if err != nil {
 				// EINVAL covers the "skb too small" / "context shape rejected"
 				// cases the kernel emits before our program runs. Those are
@@ -70,9 +70,9 @@ func FuzzClassifier(f *testing.F) {
 // (CI runners without CAP_BPF should skip the fuzz harness, not fail).
 func loadFuzzObjects(t *testing.T) *bpfObjects {
 	t.Helper()
-	objs := &bpfObjects{}            //nolint:exhaustruct
-	opts := &ebpf.CollectionOptions{ //nolint:exhaustruct
-		Maps: ebpf.MapOptions{PinPath: bpffsTempDir(t)}, //nolint:exhaustruct
+	objs := &bpfObjects{}            //nolint:exhaustruct_v5
+	opts := &ebpf.CollectionOptions{ //nolint:exhaustruct_v5
+		Maps: ebpf.MapOptions{PinPath: bpffsTempDir(t)}, //nolint:exhaustruct_v5
 	}
 	if err := loadBpfObjects(objs, opts); err != nil {
 		if isEnvSkipError(err) {

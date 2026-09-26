@@ -112,7 +112,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	// The CLI built the image itself, so the commit is metadata to record, not
 	// something to build. The branch alone still scopes sibling dedup.
-	// nolint: exhaustruct // optional fields, only what the caller sent
 	commit := &ctrlv1.GitCommitInfo{Branch: req.Branch}
 	if req.GitCommit != nil {
 		commit.CommitSha = ptr.SafeDeref(req.GitCommit.CommitSha)
@@ -122,7 +121,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		commit.Timestamp = ptr.SafeDeref(req.GitCommit.Timestamp)
 	}
 
-	// nolint: exhaustruct // the source oneof is set above
 	createReq := &hydrav1.DeployCreateRequest{
 		ProjectId:     row.ProjectID,
 		AppId:         row.AppID,

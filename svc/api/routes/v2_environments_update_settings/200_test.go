@@ -24,7 +24,7 @@ func TestUpdateSettingsSuccessfully(t *testing.T) {
 	err := db.Query.UpsertLimit(ctx, h.DB.RW(), db.UpsertLimitParams{
 		WorkspaceID:                           workspace.ID,
 		ApiBillableOperationsCountMaxPerMonth: 1_000_000,
-		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct
+		ApiRequestsCountMaxPerMinute:          sql.NullInt32{}, //nolint:exhaustruct_v5
 		LogsRetentionDaysMax:                  30,
 		LogsAuditRetentionDaysMax:             30,
 		TeamEnabled:                           false,
