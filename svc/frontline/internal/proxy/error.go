@@ -25,12 +25,10 @@ func IsDialError(err error) bool {
 	if err == nil {
 		return false
 	}
-	var netErr *net.OpError
-	if errors.As(err, &netErr) && netErr.Op == "dial" {
+	if netErr, ok := errors.AsType[*net.OpError](err); ok && netErr.Op == "dial" {
 		return true
 	}
-	var dnsErr *net.DNSError
-	if errors.As(err, &dnsErr) {
+	if _, ok := errors.AsType[*net.DNSError](err); ok {
 		return true
 	}
 	return false
@@ -57,8 +55,7 @@ func categorizeProxyError(err error, target string) (codes.URN, string) {
 			fmt.Sprintf("The %s did not respond in time. Please try again later.", target)
 	}
 
-	var netErr *net.OpError
-	if errors.As(err, &netErr) {
+	if netErr, ok := errors.AsType[*net.OpError](err); ok {
 		if netErr.Timeout() {
 			return codes.Frontline.Proxy.GatewayTimeout.URN(),
 				fmt.Sprintf("The %s did not respond in time. Please try again later.", target)
@@ -80,8 +77,7 @@ func categorizeProxyError(err error, target string) (codes.URN, string) {
 		}
 	}
 
-	var dnsErr *net.DNSError
-	if errors.As(err, &dnsErr) {
+	if dnsErr, ok := errors.AsType[*net.DNSError](err); ok {
 		if dnsErr.IsNotFound {
 			return codes.Frontline.Proxy.ServiceUnavailable.URN(),
 				fmt.Sprintf("DNS resolution failed for the %s. Please check your configuration or contact support at support@unkey.com.", target)

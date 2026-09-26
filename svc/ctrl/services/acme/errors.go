@@ -58,8 +58,7 @@ func ParseACMEError(err error) *ParsedACMEError {
 	}
 
 	// Check for rate limit error (lego wraps this nicely)
-	var rateLimitErr *acme.RateLimitedError
-	if errors.As(err, &rateLimitErr) {
+	if rateLimitErr, ok := errors.AsType[*acme.RateLimitedError](err); ok {
 		parsed.Type = ACMEErrorRateLimited
 		parsed.IsRetryable = false
 		parsed.Message = fmt.Sprintf("Let's Encrypt rate limit exceeded: %s", rateLimitErr.Detail)
@@ -75,8 +74,7 @@ func ParseACMEError(err error) *ParsedACMEError {
 	}
 
 	// Check for general ACME problem details
-	var problemErr *acme.ProblemDetails
-	if errors.As(err, &problemErr) {
+	if problemErr, ok := errors.AsType[*acme.ProblemDetails](err); ok {
 		parsed.Message = fmt.Sprintf("ACME error [%s]: %s", problemErr.Type, problemErr.Detail)
 
 		// Check problem type
@@ -177,15 +175,6 @@ func NewRateLimitError(parsed *ParsedACMEError) *RateLimitError {
 		Message:    parsed.Message,
 		RetryAfter: parsed.RetryAfter,
 	}
-}
-
-// AsRateLimitError checks if err is a RateLimitError and returns it.
-func AsRateLimitError(err error) (*RateLimitError, bool) {
-	var rle *RateLimitError
-	if errors.As(err, &rle) {
-		return rle, true
-	}
-	return nil, false
 }
 
 // ShouldRetry returns true if the error is transient and the operation should be retried.
