@@ -199,4 +199,23 @@ describe("dashboard proxy POST", () => {
     expect(mockedAuthProvider.getUser).not.toHaveBeenCalled();
     expect(fetch).not.toHaveBeenCalled();
   });
+
+  it("fails closed when UNKEY_API_URL is not configured", async () => {
+    // A missing upstream must not resolve to a hardcoded production host; the
+    // proxy refuses instead of silently routing to production.
+    mockedEnv.mockReturnValue({
+      UNKEY_JWT_SECRET: "test-secret-with-at-least-32-bytes-of-entropy",
+    } as ReturnType<typeof env>);
+    mockedGetAuth.mockResolvedValue({
+      userId: "user_1",
+      orgId: "org_1",
+      accessToken: "workos_access_token",
+      role: "owner",
+    });
+
+    const res = await POST(makeRequest({ accept: "application/json" }), { params });
+
+    expect(res.status).toBe(500);
+    expect(fetch).not.toHaveBeenCalled();
+  });
 });
