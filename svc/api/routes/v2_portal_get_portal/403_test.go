@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_get_portal"
@@ -49,7 +48,7 @@ func TestGetPortalAuthorizationMatrix(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			rootKey := h.CreateRootKey(workspace.ID, tc.permissions...)
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), handler.Request{
-				Portal:     ptr.P(stored.Slug),
+				Portal:     new(stored.Slug),
 				KeyspaceId: nil,
 				AppId:      nil,
 			})

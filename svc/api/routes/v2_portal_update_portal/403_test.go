@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_portal_update_portal"
@@ -55,7 +54,7 @@ func TestUpdatePortalAuthorizationMatrix(t *testing.T) {
 			auditBefore := countAuditEntriesMentioning(t, h, workspace.ID, "portal.update")
 
 			req := baseRequest(stored.ID)
-			req.Slug = ptr.P(fmt.Sprintf("gated-%d", i))
+			req.Slug = new(fmt.Sprintf("gated-%d", i))
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headersFor(rootKey), req)
 
@@ -137,7 +136,7 @@ func TestUpdatePortalRequiresPermissionOnTheRemapTarget(t *testing.T) {
 		}
 
 		req := baseRequest(stored.ID)
-		req.Enabled = ptr.P(false)
+		req.Enabled = new(false)
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	})

@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func TestCreateKey_ReturnsFetchableKey(t *testing.T) {
@@ -13,7 +12,7 @@ func TestCreateKey_ReturnsFetchableKey(t *testing.T) {
 
 	ctx, client := externalClient(t)
 	api := createAPI(t, ctx, client)
-	response, err := client.Keys.CreateKey(ctx, components.V2KeysCreateKeyRequestBody{APIID: api.APIID, Enabled: ptr.P(true)})
+	response, err := client.Keys.CreateKey(ctx, components.V2KeysCreateKeyRequestBody{APIID: api.APIID, Enabled: new(true)})
 	require.NoError(t, err)
 	require.NotNil(t, response.V2KeysCreateKeyResponseBody)
 	key := response.V2KeysCreateKeyResponseBody.Data
@@ -21,7 +20,7 @@ func TestCreateKey_ReturnsFetchableKey(t *testing.T) {
 	require.NotEmpty(t, key.Key)
 	waitForPropagation()
 	t.Cleanup(func() {
-		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{KeyID: key.KeyID, Permanent: ptr.P(true)})
+		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{KeyID: key.KeyID, Permanent: new(true)})
 		require.NoError(t, err)
 	})
 	get, err := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: key.KeyID})

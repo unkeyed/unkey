@@ -129,7 +129,7 @@ func (e *APIExecutor) Execute(ctx context.Context, sess *zen.Session, req *http.
 func newAPIVerificationRequest(rawKey string, cfg *frontlinev1.KeyAuth) (openapi.V2KeysVerifyKeyRequestBody, error) {
 	body := openapi.V2KeysVerifyKeyRequestBody{
 		Key:         rawKey,
-		Keyspaces:   ptr.P(append([]string{}, cfg.GetKeySpaceIds()...)),
+		Keyspaces:   new(append([]string{}, cfg.GetKeySpaceIds()...)),
 		Credits:     &openapi.KeysVerifyKeyCredits{Cost: ptr.SafeDeref(cfg.Credits, 1)},
 		Permissions: nil,
 		Ratelimits:  nil,
@@ -147,10 +147,10 @@ func newAPIVerificationRequest(rawKey string, cfg *frontlinev1.KeyAuth) (openapi
 				fault.Code(codes.Frontline.Internal.InvalidConfiguration.URN()),
 				fault.Public("Service configuration error."))
 		}
-		body.Permissions = ptr.P(query)
+		body.Permissions = new(query)
 	}
 	if len(cfg.GetRatelimits()) > 0 {
-		body.Ratelimits = ptr.P(toVerifyRatelimits(cfg.GetRatelimits()))
+		body.Ratelimits = new(toVerifyRatelimits(cfg.GetRatelimits()))
 	}
 	return body, nil
 }
@@ -211,10 +211,10 @@ func keyPrincipalFromAPI(data openapi.V2KeysVerifyKeyResponseData) *principal.Pr
 		key.Meta = map[string]any{}
 	}
 	if data.Name != "" {
-		key.Name = ptr.P(data.Name)
+		key.Name = new(data.Name)
 	}
 	if data.Expires != 0 {
-		key.ExpiresAt = ptr.P(data.Expires)
+		key.ExpiresAt = new(data.Expires)
 	}
 	p := &principal.Principal{
 		Version: principal.PrincipalVersion, Type: principal.PrincipalTypeAPIKey,

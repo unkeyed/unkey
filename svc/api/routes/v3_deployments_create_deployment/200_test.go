@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -71,7 +70,7 @@ func TestCreateGitDeployment(t *testing.T) {
 		Project:     setup.Project.Slug,
 		App:         setup.App.Slug,
 		Environment: setup.Environment.Slug,
-		Git:         &openapi.DeploymentSourceGit{Branch: ptr.P("main")},
+		Git:         &openapi.DeploymentSourceGit{Branch: new("main")},
 	})
 	require.Equal(t, http.StatusCreated, res.Status, "received: %s", res.RawBody)
 

@@ -24,7 +24,7 @@ func TestUpdateSettingsEnvironmentNotFound(t *testing.T) {
 		Project:     env.projectID,
 		App:         env.appID,
 		Environment: uid.New(uid.EnvironmentPrefix),
-		AutoDeploy:  ptr(true),
+		AutoDeploy:  new(true),
 	})
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
 }

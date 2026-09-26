@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -31,14 +30,14 @@ func TestListDomainsOmitsUnauthorizedRows(t *testing.T) {
 		{name: "no permissions unfiltered", permissions: nil, req: handler.Request{}},
 		{name: "no permissions filtered", permissions: nil, req: makeRequest(env)},
 		{name: "create action", permissions: []string{"environment.*.create_domain"}, req: makeRequest(env)},
-		{name: "unrelated legacy permission", permissions: []string{"api.*.read_api"}, req: handler.Request{Environment: ptr.P(env.environmentID)}},
+		{name: "unrelated legacy permission", permissions: []string{"api.*.read_api"}, req: handler.Request{Environment: new(env.environmentID)}},
 		{
 			name: "canonical write action",
 			permissions: []string{rbac.U(
 				urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID).Domain(domain.ID),
 				permissions.Write,
 			).Value},
-			req: handler.Request{Search: ptr.P(domain.Domain)},
+			req: handler.Request{Search: new(domain.Domain)},
 		},
 		{
 			name: "canonical read in another workspace",

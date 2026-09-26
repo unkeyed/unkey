@@ -206,8 +206,8 @@ func stripeMeterValues(ctx context.Context, sc *stripesdk.Client, customer strin
 		summaries := sc.V1BillingMeterEventSummaries.List(ctx, &stripesdk.BillingMeterEventSummaryListParams{
 			ID:        stripesdk.String(meter.ID),
 			Customer:  stripesdk.String(customer),
-			StartTime: stripesdk.Int64(startUnix),
-			EndTime:   stripesdk.Int64(endUnix),
+			StartTime: new(startUnix),
+			EndTime:   new(endUnix),
 		})
 		var value float64
 		for summary, sErr := range summaries.All(ctx) {

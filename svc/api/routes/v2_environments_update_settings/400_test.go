@@ -42,25 +42,25 @@ func TestUpdateSettings400(t *testing.T) {
 		req  handler.Request
 	}{
 		// Resource quota (handler).
-		{name: "cpu over quota", req: handler.Request{VCpus: ptr(5.0)}},
-		{name: "memory over quota", req: handler.Request{MemoryMib: ptr(8192)}},
-		{name: "storage over quota", req: handler.Request{StorageMib: ptr(20480)}},
+		{name: "cpu over quota", req: handler.Request{VCpus: new(5.0)}},
+		{name: "memory over quota", req: handler.Request{MemoryMib: new(8192)}},
+		{name: "storage over quota", req: handler.Request{StorageMib: new(20480)}},
 
 		// Resource shape: floor and step (spec).
-		{name: "cpu below floor", req: handler.Request{VCpus: ptr(0.1)}},
-		{name: "cpu off step", req: handler.Request{VCpus: ptr(1.3)}},
-		{name: "memory below floor", req: handler.Request{MemoryMib: ptr(128)}},
-		{name: "memory off step", req: handler.Request{MemoryMib: ptr(1000)}},
-		{name: "storage off step", req: handler.Request{StorageMib: ptr(1000)}},
+		{name: "cpu below floor", req: handler.Request{VCpus: new(0.1)}},
+		{name: "cpu off step", req: handler.Request{VCpus: new(1.3)}},
+		{name: "memory below floor", req: handler.Request{MemoryMib: new(128)}},
+		{name: "memory off step", req: handler.Request{MemoryMib: new(1000)}},
+		{name: "storage off step", req: handler.Request{StorageMib: new(1000)}},
 
 		// Path validation. Dockerfile is constrained by the spec; rootDirectory is
 		// additionally checked by the handler against the control-plane contract.
 		{name: "dockerfile empty", req: handler.Request{Dockerfile: nullable.NewNullableWithValue("")}},
-		{name: "rootDirectory empty", req: handler.Request{RootDirectory: ptr("")}},
-		{name: "rootDirectory absolute", req: handler.Request{RootDirectory: ptr("/api")}},
-		{name: "rootDirectory dot prefix", req: handler.Request{RootDirectory: ptr("./api")}},
-		{name: "rootDirectory traversal", req: handler.Request{RootDirectory: ptr("services/../api")}},
-		{name: "rootDirectory fragment", req: handler.Request{RootDirectory: ptr("services/api#main")}},
+		{name: "rootDirectory empty", req: handler.Request{RootDirectory: new("")}},
+		{name: "rootDirectory absolute", req: handler.Request{RootDirectory: new("/api")}},
+		{name: "rootDirectory dot prefix", req: handler.Request{RootDirectory: new("./api")}},
+		{name: "rootDirectory traversal", req: handler.Request{RootDirectory: new("services/../api")}},
+		{name: "rootDirectory fragment", req: handler.Request{RootDirectory: new("services/api#main")}},
 		{name: "buildCommand empty", req: handler.Request{BuildCommand: nullable.NewNullableWithValue("")}},
 		{name: "buildCommand over maxLength", req: handler.Request{BuildCommand: nullable.NewNullableWithValue(strings.Repeat("x", 1001))}},
 		{name: "openapiSpecPath no slash", req: handler.Request{OpenapiSpecPath: nullable.NewNullableWithValue("openapi.yaml")}},
@@ -74,28 +74,28 @@ func TestUpdateSettings400(t *testing.T) {
 		{name: "healthcheck path traversal", req: handler.Request{Healthcheck: nullable.NewNullableWithValue(openapi.EnvironmentHealthcheck{Method: "GET", Path: "/../etc/passwd"})}},
 
 		// Watch path glob validation (handler).
-		{name: "watchPaths invalid glob", req: handler.Request{WatchPaths: ptr([]string{"src/["})}},
-		{name: "watchPaths invalid among valid", req: handler.Request{WatchPaths: ptr([]string{"src/**", "{src,lib"})}},
+		{name: "watchPaths invalid glob", req: handler.Request{WatchPaths: new([]string{"src/["})}},
+		{name: "watchPaths invalid among valid", req: handler.Request{WatchPaths: new([]string{"src/**", "{src,lib"})}},
 
 		// Array caps (spec).
-		{name: "watchPaths over limit", req: handler.Request{WatchPaths: ptr(overLimit(11))}},
-		{name: "command over limit", req: handler.Request{Command: ptr(overLimit(11))}},
-		{name: "regions over limit", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{
+		{name: "watchPaths over limit", req: handler.Request{WatchPaths: new(overLimit(11))}},
+		{name: "command over limit", req: handler.Request{Command: new(overLimit(11))}},
+		{name: "regions over limit", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{
 			regionSetting("r1", 1, 2), regionSetting("r2", 1, 2), regionSetting("r3", 1, 2),
 			regionSetting("r4", 1, 2), regionSetting("r5", 1, 2), regionSetting("r6", 1, 2),
 		})}},
 
 		// Region replica bounds (handler).
-		{name: "replicas max above limit", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 5)})}},
-		{name: "replicas min below one", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("us-east-1", 0, 2)})}},
-		{name: "empty regions list", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{})}},
+		{name: "replicas max above limit", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 5)})}},
+		{name: "replicas min below one", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting("us-east-1", 0, 2)})}},
+		{name: "empty regions list", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{})}},
 
 		// Region logic (handler).
-		{name: "replicas min greater than max", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("us-east-1", 3, 1)})}},
-		{name: "unknown region", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("ap-south-1", 1, 2)})}},
-		{name: "unschedulable region", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("eu-west-1", 1, 2)})}},
-		{name: "duplicate region", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 2), regionSetting("us-east-1", 1, 3)})}},
-		{name: "mismatched replica bounds", req: handler.Request{Regions: ptr([]openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 3), regionSetting("us-west-2", 2, 4)})}},
+		{name: "replicas min greater than max", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting("us-east-1", 3, 1)})}},
+		{name: "unknown region", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting("ap-south-1", 1, 2)})}},
+		{name: "unschedulable region", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting("eu-west-1", 1, 2)})}},
+		{name: "duplicate region", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 2), regionSetting("us-east-1", 1, 3)})}},
+		{name: "mismatched replica bounds", req: handler.Request{Regions: new([]openapi.EnvironmentRegion{regionSetting("us-east-1", 1, 3), regionSetting("us-west-2", 2, 4)})}},
 	}
 
 	for _, tc := range testCases {
@@ -115,7 +115,7 @@ func TestUpdateSettings400(t *testing.T) {
 			Project:     env.projectID,
 			App:         env.appID,
 			Environment: env.environmentID,
-			WatchPaths:  ptr([]string{"src/["}),
+			WatchPaths:  new([]string{"src/["}),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)

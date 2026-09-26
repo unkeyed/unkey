@@ -273,7 +273,7 @@ func prepareDraftInvoice(ctx context.Context, client *stripe.Client, workspaceID
 // that excludes unrelated pending customer items.
 func newStripeInvoiceParams(workspaceID string, input invoiceInput) *stripe.InvoiceCreateParams {
 	params := &stripe.InvoiceCreateParams{
-		AutoAdvance:                 stripe.Bool(false),
+		AutoAdvance:                 new(false),
 		CollectionMethod:            stripe.String(string(stripe.InvoiceCollectionMethodChargeAutomatically)),
 		Customer:                    stripe.String(input.customerID),
 		PendingInvoiceItemsBehavior: stripe.String("exclude"),
@@ -316,17 +316,17 @@ func newStripeInvoiceItemParams(customerID, invoiceID, workspaceID, period strin
 		Currency:     stripe.String(string(stripe.CurrencyUSD)),
 		Customer:     stripe.String(customerID),
 		Description:  stripe.String(item.Description),
-		Discountable: stripe.Bool(false),
+		Discountable: new(false),
 		Invoice:      stripe.String(invoiceID),
 		Period: &stripe.InvoiceItemCreatePeriodParams{
-			Start: stripe.Int64(periodStart.Unix()),
-			End:   stripe.Int64(periodEnd.Unix()),
+			Start: new(periodStart.Unix()),
+			End:   new(periodEnd.Unix()),
 		},
 		PriceData: &stripe.InvoiceItemCreatePriceDataParams{
 			Currency: stripe.String(string(stripe.CurrencyUSD)),
 			Product:  stripe.String(item.ProductID),
 		},
-		Quantity: stripe.Int64(item.Quantity),
+		Quantity: new(item.Quantity),
 		Metadata: map[string]string{
 			"source":         invoiceSource,
 			"workspace_id":   workspaceID,

@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/deploy/projectgate"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -74,7 +73,7 @@ func TestListProjectsSuccessfully(t *testing.T) {
 
 	t.Run("non-existent cursor returns 200 without error", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Cursor: ptr.P("proj_doesnotexist"),
+			Cursor: new("proj_doesnotexist"),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body.Pagination)
@@ -122,7 +121,7 @@ func TestListProjectsHidesDefaultProject(t *testing.T) {
 
 	t.Run("omits default without breaking pagination", func(t *testing.T) {
 		firstPage := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Limit: ptr.P(1),
+			Limit: new(1),
 		})
 		require.Equal(t, http.StatusOK, firstPage.Status, "expected 200, received: %s", firstPage.RawBody)
 		require.Len(t, firstPage.Body.Data, 1)
@@ -130,7 +129,7 @@ func TestListProjectsHidesDefaultProject(t *testing.T) {
 		require.NotNil(t, firstPage.Body.Pagination.Cursor)
 
 		secondPage := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Limit:  ptr.P(1),
+			Limit:  new(1),
 			Cursor: firstPage.Body.Pagination.Cursor,
 		})
 		require.Equal(t, http.StatusOK, secondPage.Status, "expected 200, received: %s", secondPage.RawBody)
@@ -147,7 +146,7 @@ func TestListProjectsHidesDefaultProject(t *testing.T) {
 
 	t.Run("does not return default in search", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Search: ptr.P(projectgate.DefaultSlug),
+			Search: new(projectgate.DefaultSlug),
 		})
 		require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 		require.Empty(t, res.Body.Data)
@@ -182,7 +181,7 @@ func TestListProjectsPagination(t *testing.T) {
 	cursor := (*string)(nil)
 	pages := 0
 	for {
-		req := handler.Request{Limit: ptr.P(2)}
+		req := handler.Request{Limit: new(2)}
 		if cursor != nil {
 			req.Cursor = cursor
 		}
@@ -245,7 +244,7 @@ func TestListProjectsWorkspaceIsolation(t *testing.T) {
 
 	t.Run("foreign cursor does not leak across workspaces", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Cursor: ptr.P(theirs.ID),
+			Cursor: new(theirs.ID),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		for _, p := range res.Body.Data {
@@ -256,7 +255,7 @@ func TestListProjectsWorkspaceIsolation(t *testing.T) {
 
 	t.Run("malformed cursor terminates cleanly", func(t *testing.T) {
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Cursor: ptr.P("not-a-valid-cursor-@@@"),
+			Cursor: new("not-a-valid-cursor-@@@"),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		require.NotNil(t, res.Body.Pagination)
@@ -302,7 +301,7 @@ func TestListProjectsSearch(t *testing.T) {
 	list := func(t *testing.T, search string) []string {
 		t.Helper()
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			Search: ptr.P(search),
+			Search: new(search),
 		})
 		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
 		names := make([]string, 0, len(res.Body.Data))

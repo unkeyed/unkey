@@ -26,7 +26,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/mysql/sqlcomment"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/testutil/containers"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -375,7 +374,7 @@ func newSessionWithRecorder(t *testing.T, req *http.Request) (*zen.Session, *htt
 func keyAuthPolicy(id string, keySpaceIDs []string) *frontlinev1.Policy {
 	return &frontlinev1.Policy{
 		Id:      id,
-		Enabled: proto.Bool(true),
+		Enabled: new(true),
 		Config: &frontlinev1.Policy_Keyauth{
 			Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: keySpaceIDs},
 		},
@@ -385,7 +384,7 @@ func keyAuthPolicy(id string, keySpaceIDs []string) *frontlinev1.Policy {
 func rateLimitPolicy(id string, limit int64, windowMs int64, identifier *frontlinev1.RateLimitIdentifier) *frontlinev1.Policy {
 	return &frontlinev1.Policy{
 		Id:      id,
-		Enabled: proto.Bool(true),
+		Enabled: new(true),
 		Config: &frontlinev1.Policy_Ratelimit{
 			Ratelimit: &frontlinev1.RateLimit{
 				Limit:      limit,
@@ -410,7 +409,7 @@ func TestKeyAuth_ValidKey(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{s.KeySpaceID}},
 			},
@@ -460,7 +459,7 @@ func TestKeyAuth_ValidKey_WithIdentity(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{s.KeySpaceID}},
 			},
@@ -525,7 +524,7 @@ func TestKeyAuth_CreditsOverrideZero_DoesNotSpend(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{
 					KeySpaceIds: []string{s.KeySpaceID},
@@ -571,7 +570,7 @@ func TestKeyAuth_CreditsOverride_ChargesConfiguredCost(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{
 					KeySpaceIds: []string{s.KeySpaceID},
@@ -600,7 +599,7 @@ func TestKeyAuth_MissingKey_Reject(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{
 					KeySpaceIds: []string{s.KeySpaceID},
@@ -627,7 +626,7 @@ func TestKeyAuth_InvalidKey_NotFound(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{s.KeySpaceID}},
 			},
@@ -651,7 +650,7 @@ func TestKeyAuth_InvalidKey_Disabled(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{base.KeySpaceID}},
 			},
@@ -695,7 +694,7 @@ func TestKeyAuth_WrongKeySpace(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: keyauth,
 			},
@@ -720,7 +719,7 @@ func TestKeyAuth_WrongKeySpace(t *testing.T) {
 	result, err = h.engine.Evaluate(ctx, newSession(t, req), req, s.WorkspaceID, policies)
 	require.NoError(t, err)
 	require.NotNil(t, result.Principal)
-	require.Equal(t, ptr.P(int64(1)), result.Principal.Source.Key.Credits)
+	require.Equal(t, new(int64(1)), result.Principal.Source.Key.Credits)
 }
 
 func TestKeyAuth_MultipleKeySpaceIds(t *testing.T) {
@@ -738,7 +737,7 @@ func TestKeyAuth_MultipleKeySpaceIds(t *testing.T) {
 		policies := []*frontlinev1.Policy{
 			{
 				Id:      "auth",
-				Enabled: proto.Bool(true),
+				Enabled: new(true),
 				Config: &frontlinev1.Policy_Keyauth{
 					Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{s1.KeySpaceID, s2.KeySpaceID}},
 				},
@@ -759,7 +758,7 @@ func TestKeyAuth_MultipleKeySpaceIds(t *testing.T) {
 		policies := []*frontlinev1.Policy{
 			{
 				Id:      "auth",
-				Enabled: proto.Bool(true),
+				Enabled: new(true),
 				Config: &frontlinev1.Policy_Keyauth{
 					Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{s1.KeySpaceID, s2.KeySpaceID}},
 				},
@@ -782,7 +781,7 @@ func TestKeyAuth_MultipleKeySpaceIds(t *testing.T) {
 		policies := []*frontlinev1.Policy{
 			{
 				Id:      "auth",
-				Enabled: proto.Bool(true),
+				Enabled: new(true),
 				Config: &frontlinev1.Policy_Keyauth{
 					Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{s1.KeySpaceID, s2.KeySpaceID}},
 				},
@@ -811,7 +810,7 @@ func TestEvaluate_DisabledPoliciesSkipped(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "disabled",
-			Enabled: proto.Bool(false),
+			Enabled: new(false),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{s.KeySpaceID}},
 			},
@@ -836,7 +835,7 @@ func TestEvaluate_MatchFiltering(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "api-auth",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Match: []*frontlinev1.MatchExpr{
 				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/api"}},
@@ -901,7 +900,7 @@ func TestKeyAuth_EnforcesNamedKeyRatelimit(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{
 					KeySpaceIds: []string{s.KeySpaceID},
@@ -943,7 +942,7 @@ func TestKeyAuth_NamedRatelimitNotFound(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{
 					KeySpaceIds: []string{s.KeySpaceID},
@@ -972,15 +971,15 @@ func TestKeyAuth_InlineRatelimitOverride(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "auth",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{
 					KeySpaceIds: []string{s.KeySpaceID},
 					Ratelimits: []*frontlinev1.KeyRatelimit{
 						{
 							Name:     "inline",
-							Limit:    ptr.P(int64(1)),
-							Duration: ptr.P(int64(60000)),
+							Limit:    new(int64(1)),
+							Duration: new(int64(60000)),
 						},
 					},
 				},
@@ -1162,7 +1161,7 @@ func TestFirewall_DenyByPath(t *testing.T) {
 		{
 			Id:      "block-xxx",
 			Name:    "Block /xxx",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Match: []*frontlinev1.MatchExpr{
 				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/xxx"}},
@@ -1191,7 +1190,7 @@ func TestFirewall_DenyByPath_NonMatchPasses(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "block-xxx",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Match: []*frontlinev1.MatchExpr{
 				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/xxx"}},
@@ -1220,7 +1219,7 @@ func TestLogging_EnabledMatchingPolicySetsCaptureFlags(t *testing.T) {
 		{
 			Id:      "log-api",
 			Name:    "Log /api",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Match: []*frontlinev1.MatchExpr{
 				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/api"}},
@@ -1253,7 +1252,7 @@ func TestLogging_CaptureFlagsAreIndependent(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "log-response-body",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{ResponseBody: true}},
 		},
 	}
@@ -1281,7 +1280,7 @@ func TestLogging_NoMatchConditionsCapturesEveryRequest(t *testing.T) {
 		{
 			Id:      "log-everything",
 			Name:    "Log everything",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true, Query: true}},
 		},
 	}
@@ -1308,12 +1307,12 @@ func TestLogging_MultipleMatchingPoliciesUnionFlags(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "log-request-headers",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{RequestHeaders: true}},
 		},
 		{
 			Id:      "log-response-body",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{ResponseBody: true, Query: true}},
 		},
 	}
@@ -1337,7 +1336,7 @@ func TestLogging_NonMatchingPolicyLeavesCaptureOff(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "log-api",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Match: []*frontlinev1.MatchExpr{
 				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/api"}},
@@ -1366,7 +1365,7 @@ func TestLogging_DisabledPolicyLeavesCaptureOff(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "log-api",
-			Enabled: proto.Bool(false),
+			Enabled: new(false),
 			Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{RequestHeaders: true, ResponseHeaders: true, RequestBody: true, ResponseBody: true, Query: true}},
 		},
 	}
@@ -1394,7 +1393,7 @@ func TestFirewall_DenyRunsBeforeKeyAuth(t *testing.T) {
 	policies := []*frontlinev1.Policy{
 		{
 			Id:      "block-xxx",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Match: []*frontlinev1.MatchExpr{
 				{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{
 					Path: &frontlinev1.StringMatch{Match: &frontlinev1.StringMatch_Prefix{Prefix: "/xxx"}},
@@ -1406,7 +1405,7 @@ func TestFirewall_DenyRunsBeforeKeyAuth(t *testing.T) {
 		},
 		{
 			Id:      "auth",
-			Enabled: proto.Bool(true),
+			Enabled: new(true),
 			Config: &frontlinev1.Policy_Keyauth{
 				Keyauth: &frontlinev1.KeyAuth{KeySpaceIds: []string{s.KeySpaceID}},
 			},

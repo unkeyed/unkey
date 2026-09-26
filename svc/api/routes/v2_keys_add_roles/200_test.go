@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_add_roles"
@@ -50,7 +49,7 @@ func TestSuccess(t *testing.T) {
 		role := h.CreateRole(seed.CreateRoleRequest{
 			WorkspaceID: workspace.ID,
 			Name:        "editor_urn_add_role",
-			Description: ptr.P("editor_urn_add_role"),
+			Description: new("editor_urn_add_role"),
 		})
 
 		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID)
@@ -86,7 +85,7 @@ func TestSuccess(t *testing.T) {
 				{
 					WorkspaceID: workspace.ID,
 					Name:        "editor_single_name",
-					Description: ptr.P(roleName),
+					Description: new(roleName),
 				},
 			},
 		})
@@ -132,14 +131,14 @@ func TestSuccess(t *testing.T) {
 		admin := h.CreateRole(seed.CreateRoleRequest{
 			WorkspaceID: workspace.ID,
 			Name:        adminName,
-			Description: ptr.P("admin_idempotent"),
+			Description: new("admin_idempotent"),
 		})
 
 		editorName := "editor_idempotent"
 		h.CreateRole(seed.CreateRoleRequest{
 			WorkspaceID: workspace.ID,
 			Name:        editorName,
-			Description: ptr.P("editor_idempotent"),
+			Description: new("editor_idempotent"),
 		})
 
 		// First, add admin role to the key
@@ -224,7 +223,7 @@ func TestAddRolesConcurrent(t *testing.T) {
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Name:        ptr.P("concurrent-add-roles-test-key"),
+		Name:        new("concurrent-add-roles-test-key"),
 	})
 
 	// Create roles that will be added concurrently
@@ -234,7 +233,7 @@ func TestAddRolesConcurrent(t *testing.T) {
 		role := h.CreateRole(seed.CreateRoleRequest{
 			WorkspaceID: workspace.ID,
 			Name:        fmt.Sprintf("concurrent.add.role.%d", i),
-			Description: ptr.P(fmt.Sprintf("Concurrent role %d", i)),
+			Description: new(fmt.Sprintf("Concurrent role %d", i)),
 		})
 		roles[i] = role.Name
 	}

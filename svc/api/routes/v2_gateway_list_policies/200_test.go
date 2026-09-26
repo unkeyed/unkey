@@ -73,7 +73,7 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 			{
 				Id:      keyauthPolicyID,
 				Name:    "keyauth KEBAP",
-				Enabled: proto.Bool(true),
+				Enabled: new(true),
 				Match: []*frontlinev1.MatchExpr{
 					{Expr: &frontlinev1.MatchExpr_Path{Path: &frontlinev1.PathMatch{Path: &frontlinev1.StringMatch{
 						IgnoreCase: true,
@@ -98,7 +98,7 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 						{Location: &frontlinev1.KeyLocation_Header{Header: &frontlinev1.HeaderKeyLocation{Name: "X-Api-Key", StripPrefix: "Key "}}},
 						{Location: &frontlinev1.KeyLocation_QueryParam{QueryParam: &frontlinev1.QueryParamKeyLocation{Name: "api_key"}}},
 					},
-					PermissionQuery: proto.String("documents.read"),
+					PermissionQuery: new("documents.read"),
 					Ratelimits: []*frontlinev1.KeyRatelimit{
 						{Name: "tokens"},
 						{Name: "burst", Limit: proto.Int64(100), Duration: proto.Int64(60_000), Cost: proto.Int64(2)},
@@ -108,7 +108,7 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 			{
 				Id:      ratelimitPolicyID,
 				Name:    "ratelimit",
-				Enabled: proto.Bool(true),
+				Enabled: new(true),
 				Config: &frontlinev1.Policy_Ratelimit{Ratelimit: &frontlinev1.RateLimit{
 					Limit:    100,
 					WindowMs: 60_000,
@@ -120,7 +120,7 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 			{
 				Id:      firewallPolicyID,
 				Name:    "firewall",
-				Enabled: proto.Bool(false),
+				Enabled: new(false),
 				Config: &frontlinev1.Policy_Firewall{Firewall: &frontlinev1.Firewall{
 					Action: frontlinev1.Action_ACTION_DENY,
 				}},
@@ -133,7 +133,7 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 			{
 				Id:      loggingPolicyID,
 				Name:    "logging",
-				Enabled: proto.Bool(true),
+				Enabled: new(true),
 				Config:  &frontlinev1.Policy_Logging{Logging: &frontlinev1.Logging{}},
 			},
 		}})
@@ -150,14 +150,14 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 		require.Nil(t, keyauth.Firewall)
 		require.Nil(t, keyauth.Openapi)
 		require.Equal(t, []string{keySpaceID}, keyauth.Keyauth.Keyspaces)
-		require.Equal(t, ptr.P("documents.read"), keyauth.Keyauth.PermissionQuery)
+		require.Equal(t, new("documents.read"), keyauth.Keyauth.PermissionQuery)
 
 		locations := ptr.SafeDeref(keyauth.Keyauth.Locations)
 		require.Len(t, locations, 3)
 		require.NotNil(t, locations[0].Bearer)
 		require.NotNil(t, locations[1].Header)
 		require.Equal(t, "X-Api-Key", locations[1].Header.Name)
-		require.Equal(t, ptr.P("Key "), locations[1].Header.StripPrefix)
+		require.Equal(t, new("Key "), locations[1].Header.StripPrefix)
 		require.NotNil(t, locations[2].QueryParam)
 		require.Equal(t, "api_key", locations[2].QueryParam.Name)
 
@@ -168,25 +168,25 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 		require.Nil(t, ratelimits[0].Duration)
 		require.Nil(t, ratelimits[0].Cost)
 		require.Equal(t, "burst", ratelimits[1].Name)
-		require.Equal(t, ptr.P(int64(100)), ratelimits[1].Limit)
-		require.Equal(t, ptr.P(int64(60000)), ratelimits[1].Duration)
-		require.Equal(t, ptr.P(int64(2)), ratelimits[1].Cost)
+		require.Equal(t, new(int64(100)), ratelimits[1].Limit)
+		require.Equal(t, new(int64(60000)), ratelimits[1].Duration)
+		require.Equal(t, new(int64(2)), ratelimits[1].Cost)
 
 		match := ptr.SafeDeref(keyauth.Match)
 		require.Len(t, match, 4)
 		require.NotNil(t, match[0].Path)
-		require.Equal(t, ptr.P("/internal/"), match[0].Path.Path.Prefix)
-		require.Equal(t, ptr.P(true), match[0].Path.Path.IgnoreCase)
+		require.Equal(t, new("/internal/"), match[0].Path.Path.Prefix)
+		require.Equal(t, new(true), match[0].Path.Path.IgnoreCase)
 		require.NotNil(t, match[1].Method)
 		require.Equal(t, []openapi.MethodMatchMethods{"GET", "POST"}, match[1].Method.Methods)
 		require.NotNil(t, match[2].Header)
 		require.Equal(t, "X-Debug", match[2].Header.Name)
-		require.Equal(t, ptr.P(openapi.FieldMatchPresent(true)), match[2].Header.Present)
+		require.Equal(t, new(openapi.FieldMatchPresent(true)), match[2].Header.Present)
 		require.Nil(t, match[2].Header.Value)
 		require.NotNil(t, match[3].QueryParam)
 		require.Equal(t, "v", match[3].QueryParam.Name)
 		require.NotNil(t, match[3].QueryParam.Value)
-		require.Equal(t, ptr.P("1"), match[3].QueryParam.Value.Exact)
+		require.Equal(t, new("1"), match[3].QueryParam.Value.Exact)
 		require.Nil(t, match[3].QueryParam.Value.IgnoreCase)
 
 		ratelimit := res.Body.Data[1]
@@ -239,7 +239,7 @@ func TestListPoliciesSuccessfully(t *testing.T) {
 			policies = append(policies, &frontlinev1.Policy{
 				Id:      uid.New(uid.PolicyPrefix),
 				Name:    name,
-				Enabled: proto.Bool(true),
+				Enabled: new(true),
 				Config: &frontlinev1.Policy_Ratelimit{Ratelimit: &frontlinev1.RateLimit{
 					Limit:      1,
 					WindowMs:   1_000,

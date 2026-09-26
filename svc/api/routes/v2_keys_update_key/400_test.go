@@ -7,7 +7,6 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -44,7 +43,7 @@ func TestUpdateKeyInvalidRefillConfig(t *testing.T) {
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Name:        ptr.P("test"),
+		Name:        new("test"),
 	})
 
 	t.Run("reject invalid refill config", func(t *testing.T) {
@@ -56,7 +55,7 @@ func TestUpdateKeyInvalidRefillConfig(t *testing.T) {
 				Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
 					Interval:  openapi.UpdateKeyCreditsRefillIntervalDaily,
 					Amount:    100,
-					RefillDay: ptr.P(int(4)), // Invalid: can't set refillDay for daily
+					RefillDay: new(int(4)), // Invalid: can't set refillDay for daily
 
 				}),
 			}),

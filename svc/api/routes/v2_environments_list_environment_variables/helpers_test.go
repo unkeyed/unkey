@@ -36,10 +36,6 @@ func makeRequest(env seededEnv, limit *int, cursor *string) handler.Request {
 	}
 }
 
-func ptr[T any](v T) *T {
-	return &v
-}
-
 func seedEnvironment(t *testing.T, h *testutil.Harness) seededEnv {
 	t.Helper()
 

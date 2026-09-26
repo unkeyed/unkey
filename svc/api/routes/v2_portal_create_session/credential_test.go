@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -141,20 +140,20 @@ func TestDashboardTokensStillManagePortals(t *testing.T) {
 	createRes := testutil.CallRoute[createportal.Request, createportal.Response](h, create, jwtHeaders(), createportal.Request{
 		Slug:        "managed-portal",
 		DisplayName: "Managed",
-		KeyspaceId:  ptr.P(openapi.PortalKeyspaceId(api.KeyAuthID.String)),
-		Enabled:     ptr.P(true),
+		KeyspaceId:  new(openapi.PortalKeyspaceId(api.KeyAuthID.String)),
+		Enabled:     new(true),
 	})
 	require.Equal(t, http.StatusOK, createRes.Status, "got: %s", createRes.RawBody)
 	portalID := createRes.Body.Data.PortalId
 
 	getRes := testutil.CallRoute[getportal.Request, getportal.Response](h, get, jwtHeaders(), getportal.Request{
-		Portal: ptr.P(openapi.ResourceIdentifier(portalID)),
+		Portal: new(openapi.ResourceIdentifier(portalID)),
 	})
 	require.Equal(t, http.StatusOK, getRes.Status, "got: %s", getRes.RawBody)
 
 	updateRes := testutil.CallRoute[updateportal.Request, updateportal.Response](h, update, jwtHeaders(), updateportal.Request{
 		Portal:      openapi.ResourceIdentifier(portalID),
-		DisplayName: ptr.P("Renamed"),
+		DisplayName: new("Renamed"),
 	})
 	require.Equal(t, http.StatusOK, updateRes.Status, "got: %s", updateRes.RawBody)
 

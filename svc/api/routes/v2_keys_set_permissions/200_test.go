@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -51,7 +50,7 @@ func TestSuccess(t *testing.T) {
 		key := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			Name:        ptr.P("urn-set-permission-key"),
+			Name:        new("urn-set-permission-key"),
 		})
 		permission := h.CreatePermission(seed.CreatePermissionRequest{
 			WorkspaceID: workspace.ID,
@@ -510,7 +509,7 @@ func TestSetPermissionsConcurrent(t *testing.T) {
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Name:        ptr.P("concurrent-set-permissions-test-key"),
+		Name:        new("concurrent-set-permissions-test-key"),
 	})
 
 	// Create permissions that will be set concurrently

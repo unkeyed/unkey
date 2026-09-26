@@ -6,7 +6,6 @@ import (
 	"database/sql"
 
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -49,16 +48,16 @@ func ToResponse(p Params) openapi.Environment {
 			OpenapiSpecPath:  nil,
 		}
 		if rs.OpenapiSpecPath.Valid {
-			rt.OpenapiSpecPath = ptr.P(rs.OpenapiSpecPath.String)
+			rt.OpenapiSpecPath = new(rs.OpenapiSpecPath.String)
 		}
 		if hc := rs.Healthcheck.Healthcheck; hc != nil {
 			rt.Healthcheck = &openapi.EnvironmentHealthcheck{
 				Method:              openapi.EnvironmentHealthcheckMethod(hc.Method),
 				Path:                hc.Path,
-				IntervalSeconds:     ptr.P(hc.IntervalSeconds),
-				TimeoutSeconds:      ptr.P(hc.TimeoutSeconds),
-				FailureThreshold:    ptr.P(hc.FailureThreshold),
-				InitialDelaySeconds: ptr.P(hc.InitialDelaySeconds),
+				IntervalSeconds:     new(hc.IntervalSeconds),
+				TimeoutSeconds:      new(hc.TimeoutSeconds),
+				FailureThreshold:    new(hc.FailureThreshold),
+				InitialDelaySeconds: new(hc.InitialDelaySeconds),
 			}
 		}
 		env.Runtime = &rt
@@ -73,16 +72,16 @@ func ToResponse(p Params) openapi.Environment {
 			BuildCommand:  nil,
 		}
 		if bs.Dockerfile.Valid {
-			b.Dockerfile = ptr.P(bs.Dockerfile.String)
+			b.Dockerfile = new(bs.Dockerfile.String)
 		}
 		if bs.BuildCommand.Valid {
-			b.BuildCommand = ptr.P(bs.BuildCommand.String)
+			b.BuildCommand = new(bs.BuildCommand.String)
 		}
 		env.Build = &b
 	}
 
 	if len(p.Regions) > 0 {
-		env.Regions = ptr.P(p.Regions)
+		env.Regions = new(p.Regions)
 	}
 
 	return env

@@ -12,7 +12,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/clickhouse"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/integration"
 	"github.com/unkeyed/unkey/svc/api/internal/projects"
@@ -78,7 +77,7 @@ func RunRateLimitTest(
 		Identifier: identifier,
 		Limit:      limit,
 		Duration:   duration,
-		Cost:       ptr.P[int64](1),
+		Cost:       new(int64(1)),
 	}
 
 	// Step 3: Calculate expected limits

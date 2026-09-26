@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -35,7 +34,7 @@ func TestListDomainsScanBudget(t *testing.T) {
 	resource := urn.New().Workspace(env.workspaceID).Project(env.projectID).App(env.appID).Environment(env.environmentID)
 	grant := rbac.U(resource.Domain(firstID), permissions.Read).Value
 	headers := authHeaders(h.CreateRootKey(env.workspaceID, grant))
-	req := handler.Request{Limit: ptr.P(1)}
+	req := handler.Request{Limit: new(1)}
 	exhausted := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, exhausted.Status, "%s", exhausted.RawBody)
 	require.Len(t, exhausted.Body.Data, 1)
@@ -56,6 +55,6 @@ func TestListDomainsScanBudget(t *testing.T) {
 	require.Equal(t, http.StatusOK, boundary.Status, "%s", boundary.RawBody)
 	require.Len(t, boundary.Body.Data, 1)
 	require.Equal(t, firstID, boundary.Body.Data[0].Id)
-	require.Equal(t, ptr.P(lastID), boundary.Body.Pagination.Cursor)
+	require.Equal(t, new(lastID), boundary.Body.Pagination.Cursor)
 	require.True(t, boundary.Body.Pagination.HasMore)
 }

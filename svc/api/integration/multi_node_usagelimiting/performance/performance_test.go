@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/integration"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -59,7 +58,7 @@ func runPerformanceTest(t *testing.T, nodeCount int, totalCredits, cost int64) {
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Remaining:   ptr.P(int64(totalCredits)),
+		Remaining:   new(int64(totalCredits)),
 	})
 
 	keyStart := keyResponse.Key
@@ -125,7 +124,7 @@ func TestUsageLimitThroughput(t *testing.T) {
 	keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Remaining:   ptr.P(int64(totalCredits)),
+		Remaining:   new(int64(totalCredits)),
 	})
 
 	keyStart := keyResponse.Key

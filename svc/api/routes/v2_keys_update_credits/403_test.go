@@ -7,7 +7,6 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -41,7 +40,7 @@ func TestKeyUpdateCreditsForbidden(t *testing.T) {
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: api.WorkspaceID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Remaining:   ptr.P(int64(100)),
+		Remaining:   new(int64(100)),
 	})
 
 	req := handler.Request{
