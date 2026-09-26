@@ -30,6 +30,7 @@ func TestContextCancellation(t *testing.T) {
 
 	// Create a cancellable context
 	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
 
 	// Configure the API server
 	config := api.Config{
@@ -69,15 +70,11 @@ func TestContextCancellation(t *testing.T) {
 		resultCh <- runErr
 	}()
 
-	// Wait for the server to start up
-	require.Eventually(t, func() bool {
-		res, livenessErr := http.Get(fmt.Sprintf("http://%s/v2/liveness", ln.Addr()))
-		if livenessErr != nil {
-			return false
-		}
-		defer func() { _ = res.Body.Close() }()
-		return res.StatusCode == http.StatusOK
-	}, 10*time.Second, 100*time.Millisecond, "API server failed to start")
+	client := &http.Client{Timeout: time.Minute}
+	res, err := client.Get(fmt.Sprintf("http://%s/v2/liveness", ln.Addr()))
+	require.NoError(t, err, "API server failed to start")
+	require.NoError(t, res.Body.Close())
+	require.Equal(t, http.StatusOK, res.StatusCode)
 
 	// Verify the server is running
 	t.Log("API server started successfully")
@@ -96,6 +93,6 @@ func TestContextCancellation(t *testing.T) {
 	}
 
 	// Verify the server is no longer responding
-	_, err = http.Get(fmt.Sprintf("http://%s/v2/liveness", ln.Addr()))
+	_, err = client.Get(fmt.Sprintf("http://%s/v2/liveness", ln.Addr()))
 	require.Error(t, err, "Server should no longer be responding after shutdown")
 }
