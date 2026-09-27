@@ -88,12 +88,12 @@ func TestListEnvironmentVariablesSuccessfully(t *testing.T) {
 		seedVar(t, h, env, "KEBAP", "3", db.AppEnvironmentVariablesTypeRecoverable, "")
 		seedVar(t, h, env, "XYZ", "4", db.AppEnvironmentVariablesTypeWriteonly, "")
 
-		first := call(t, makeRequest(env, ptr(2), nil))
+		first := call(t, makeRequest(env, new(2), nil))
 		require.Len(t, first.Data, 2)
 		require.True(t, first.Pagination.HasMore)
 		require.NotNil(t, first.Pagination.Cursor)
 
-		second := call(t, makeRequest(env, ptr(2), first.Pagination.Cursor))
+		second := call(t, makeRequest(env, new(2), first.Pagination.Cursor))
 		require.Len(t, second.Data, 2)
 		require.False(t, second.Pagination.HasMore)
 

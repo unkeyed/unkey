@@ -215,7 +215,7 @@ export function LogsTimeseriesBarChart({
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="px-2 text-gray-11 font-mono absolute top-0 text-xxs w-full flex justify-between pointer-events-none z-10">
+      <div className="px-2 text-gray-11 font-mono absolute top-0 text-3xs w-full flex justify-between pointer-events-none z-10">
         {data
           ? calculateTimePoints(
               data[0]?.originalTimestamp ?? Date.now(),

@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func TestUpdateCredits_SetsRemainingCredits(t *testing.T) {
@@ -66,7 +65,7 @@ func TestUpdateCredits_IncrementsRemainingCredits(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, response.V2KeysUpdateCreditsResponseBody)
-	require.Equal(t, ptr.P(int64(15)), response.V2KeysUpdateCreditsResponseBody.Data.Remaining)
+	require.Equal(t, new(int64(15)), response.V2KeysUpdateCreditsResponseBody.Data.Remaining)
 }
 
 func TestUpdateCredits_DecrementsRemainingCredits(t *testing.T) {
@@ -99,7 +98,7 @@ func TestUpdateCredits_DecrementsRemainingCredits(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, response.V2KeysUpdateCreditsResponseBody)
-	require.Equal(t, ptr.P(int64(6)), response.V2KeysUpdateCreditsResponseBody.Data.Remaining)
+	require.Equal(t, new(int64(6)), response.V2KeysUpdateCreditsResponseBody.Data.Remaining)
 }
 
 func TestUpdateCredits_CanMakeKeyUnlimited(t *testing.T) {

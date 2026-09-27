@@ -197,7 +197,7 @@ export const ExpirationSetup = ({
 const ExpirationHeader = () => {
   return (
     <div className="flex justify-between w-full h-8 px-2">
-      <span className="text-gray-9 text-[13px] w-full">Choose expiration date</span>
+      <span className="text-gray-9 text-sm w-full">Choose expiration date</span>
     </div>
   );
 };

@@ -162,7 +162,7 @@ export const InviteForm = ({ organization }: InviteFormProps) => {
                   name={`invites.${index}.role`}
                   render={({ field: roleField }) => (
                     <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0 w-48">
-                      <label htmlFor={`invites.${index}.role`} className="text-gray-11 text-[13px]">
+                      <label htmlFor={`invites.${index}.role`} className="text-gray-11 text-sm">
                         Role
                       </label>
                       <Select

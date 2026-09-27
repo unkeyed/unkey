@@ -96,7 +96,7 @@ export function ActiveDeploymentCard({
       <div className="px-4 pt-3 pb-2.5">
         <div className="flex w-full justify-between items-center gap-4">
           <div className="flex items-baseline gap-2">
-            <span className="font-mono text-[13px] text-gray-12 font-semibold shrink-0">
+            <span className="font-mono text-sm text-gray-12 font-semibold shrink-0">
               {deployment.id}
             </span>
             {isCurrent && (

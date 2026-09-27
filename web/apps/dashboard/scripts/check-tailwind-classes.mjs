@@ -31,9 +31,18 @@ const bannedReasonByToken = new Map(BANNED_CLASSES.map(({ token, reason }) => [t
 
 const BANNED_PATTERNS = [
   {
-    pattern: /^rounded(?:-[a-z]{1,2})?-[[(]/,
+    pattern: /^rounded(?:-[a-z]{1,2})?-[[(](?!calc\(var\(--radius-)/,
     reason:
       "arbitrary radius: use the Tailwind scale (xs 2px, sm 4px, md 6px, lg 8px, xl 12px, 2xl 16px, 3xl 24px)",
+  },
+  {
+    pattern: /^text-\[(?:length:)?[\d.]+(?:px|r?em)\]/,
+    reason:
+      "arbitrary font size: use the type scale in web/internal/ui/theme.css (3xs 10px, 2xs 11px, xs 12px, sm 13px, base 15px, lg 18px, xl 20px, 2xl 24px, 3xl 28px)",
+  },
+  {
+    pattern: /^leading-\[[\d.]+(?:px|r?em)\]/,
+    reason: "arbitrary line height: use leading-<n> (n × 4px), e.g. leading-5 for 20px",
   },
 ];
 

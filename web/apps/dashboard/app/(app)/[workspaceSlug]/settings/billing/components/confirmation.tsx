@@ -46,7 +46,7 @@ export const Confirm: React.FC<Props> = (props) => {
           </div>
         }
       >
-        <p className="text-gray-11 text-[13px]">{props.description}</p>
+        <p className="text-gray-11 text-sm">{props.description}</p>
       </DialogContainer>
     </>
   );
