@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/sdks/api/go/v3/optionalnullable"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func updatePortalCmd() *cli.Command {
@@ -71,7 +70,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/portal/upda
 				req.AppID = &v
 			}
 			if cmd.FlagIsSet("enabled") {
-				req.Enabled = ptr.P(cmd.Bool("enabled"))
+				req.Enabled = new(cmd.Bool("enabled"))
 			}
 			if cmd.FlagIsSet("logo-url") {
 				v := cmd.String("logo-url")

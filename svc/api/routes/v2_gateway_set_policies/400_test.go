@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -53,7 +52,7 @@ func TestSetPoliciesBadRequest(t *testing.T) {
 	t.Run("more than 10 match expressions", func(t *testing.T) {
 		match := make([]openapi.MatchExpr, 11)
 		for i := range match {
-			match[i] = openapi.MatchExpr{Path: &openapi.PathMatch{Path: openapi.StringMatch{Prefix: ptr.P(fmt.Sprintf("/p%d", i))}}}
+			match[i] = openapi.MatchExpr{Path: &openapi.PathMatch{Path: openapi.StringMatch{Prefix: new(fmt.Sprintf("/p%d", i))}}}
 		}
 		p := firewallPolicy("too many matches", true)
 		p.Match = &match
@@ -89,7 +88,7 @@ func TestSetPoliciesBadRequest(t *testing.T) {
 			Enabled: true,
 			Keyauth: &openapi.KeyauthPolicy{
 				Keyspaces:       []string{api.KeyAuthID.String},
-				PermissionQuery: ptr.P(strings.Repeat("a", 1001)),
+				PermissionQuery: new(strings.Repeat("a", 1001)),
 			},
 		}})
 		require.Equal(t, http.StatusBadRequest, res.Status, "received: %s", res.RawBody)

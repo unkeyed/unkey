@@ -222,7 +222,6 @@ export const KeyRbacDialog = ({
                     value={field.value ?? []}
                     onChange={field.onChange}
                     error={fieldState.error?.message}
-                    keyId={existingKey.id}
                     assignedRoleDetails={connectedRolesAndPerms?.roles ?? []}
                   />
                 )}

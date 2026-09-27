@@ -10,9 +10,7 @@ export default function InlineMeter() {
       <MeterTrack>
         <MeterIndicator />
       </MeterTrack>
-      <span className="w-24 shrink-0 text-right text-[13px] text-gray-12 tabular-nums">
-        10,000,000
-      </span>
+      <span className="w-24 shrink-0 text-right text-gray-12 text-sm tabular-nums">10,000,000</span>
     </Meter>
   );
 }

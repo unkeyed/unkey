@@ -285,7 +285,7 @@ function UtilizationBar({
   const pct = Math.round(ratio * 100);
 
   return (
-    <div className="flex items-center gap-2 text-[12px] tabular-nums">
+    <div className="flex items-center gap-2 text-xs tabular-nums">
       <span className="text-gray-12 font-medium">{usedLabel}</span>
       <span className="text-grayA-9">/</span>
       <span className="text-grayA-9">{allocatedLabel}</span>
@@ -338,8 +338,8 @@ function NetworkSection({
         <div className="bg-error-3 text-error-11 rounded-md size-[22px] items-center flex justify-center">
           <IconArrowsOppositeDirectionYOutline12 className="shrink-0" />
         </div>
-        <span className="text-gray-12 text-[13px]">Network</span>
-        <div className="ml-auto flex items-center gap-3 text-[12px] tabular-nums">
+        <span className="text-gray-12 text-sm">Network</span>
+        <div className="ml-auto flex items-center gap-3 text-xs tabular-nums">
           <span className="flex items-center gap-1">
             <span className="text-error-9">↑</span>
             <span className="text-gray-12 font-medium">
@@ -411,9 +411,9 @@ function InstancesSection({
         <div className="bg-error-3 text-error-11 rounded-md size-[22px] items-center flex justify-center">
           <IconGridOutline12 className="shrink-0" />
         </div>
-        <span className="text-gray-12 text-[13px]">Active instances</span>
+        <span className="text-gray-12 text-sm">Active instances</span>
         <div className="ml-auto">
-          <span className="text-gray-12 font-medium text-[13px] tabular-nums">
+          <span className="text-gray-12 font-medium text-sm tabular-nums">
             {currentCount}
             <span className="font-normal text-grayA-10"> vm</span>
           </span>
@@ -481,7 +481,7 @@ function CpuSection({
         <div className="bg-feature-3 text-feature-11 rounded-md size-[22px] items-center flex justify-center">
           <IconMicrochipOutline18 className="size-3 shrink-0" />
         </div>
-        <span className="text-gray-12 text-[13px]">CPU usage</span>
+        <span className="text-gray-12 text-sm">CPU usage</span>
         <div className="ml-auto">
           <UtilizationBar
             used={usedMilli}
@@ -555,7 +555,7 @@ function MemorySection({
         <div className="bg-info-3 text-info-11 rounded-md size-[22px] items-center flex justify-center">
           <IconRamOutline18 className="size-3 shrink-0" />
         </div>
-        <span className="text-gray-12 text-[13px]">Memory usage</span>
+        <span className="text-gray-12 text-sm">Memory usage</span>
         <div className="ml-auto">
           <UtilizationBar
             used={usedBytes}
@@ -628,7 +628,7 @@ function DiskSection({
         <div className="bg-warning-3 text-warning-11 rounded-md size-[22px] items-center flex justify-center">
           <IconHardDriveOutline18 className="size-3 shrink-0" />
         </div>
-        <span className="text-gray-12 text-[13px]">Disk usage</span>
+        <span className="text-gray-12 text-sm">Disk usage</span>
         <div className="ml-auto">
           <UtilizationBar
             used={usedBytes}

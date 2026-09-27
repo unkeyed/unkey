@@ -11,7 +11,6 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -55,7 +54,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			Name:        ptr.P("initial-name"),
+			Name:        new("initial-name"),
 		})
 
 		// Test 1: Set to specific value
@@ -77,7 +76,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		req = handler.Request{
 			KeyId:   keyResponse.KeyID,
 			Name:    nullable.NewNullNullable[string](),
-			Enabled: ptr.P(true), // Add a valid field to avoid empty request
+			Enabled: new(true), // Add a valid field to avoid empty request
 		}
 
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -101,7 +100,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		// Now update something else without specifying name
 		req = handler.Request{
 			KeyId:   keyResponse.KeyID,
-			Enabled: ptr.P(false),
+			Enabled: new(false),
 			// Name is not specified, should keep existing value
 		}
 
@@ -124,7 +123,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			Meta:        ptr.P(string(initialMeta)),
+			Meta:        new(string(initialMeta)),
 		})
 
 		// Test 1: Set to specific value
@@ -169,7 +168,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		// Now update something else without specifying meta
 		req = handler.Request{
 			KeyId:   keyResponse.KeyID,
-			Enabled: ptr.P(true),
+			Enabled: new(true),
 			// Meta is not specified, should keep existing value
 		}
 
@@ -190,7 +189,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			Expires:     ptr.P(futureTime),
+			Expires:     new(futureTime),
 		})
 
 		// Test 1: Set to specific value
@@ -237,7 +236,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		// Now update something else without specifying expires
 		req = handler.Request{
 			KeyId:   keyResponse.KeyID,
-			Enabled: ptr.P(false),
+			Enabled: new(false),
 			// Expires is not specified, should keep existing value
 		}
 
@@ -257,7 +256,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			Name:        ptr.P("identity-test-key"),
+			Name:        new("identity-test-key"),
 		})
 
 		// Test 1: Set to specific value (create new identity)
@@ -309,7 +308,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		// Now update something else without specifying external ID
 		req = handler.Request{
 			KeyId:   keyResponse.KeyID,
-			Enabled: ptr.P(true),
+			Enabled: new(true),
 			// ExternalId is not specified, should keep existing value
 		}
 
@@ -338,10 +337,10 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
-				Name:         ptr.P("credits-null-test"),
-				Remaining:    ptr.P(int64(100)),
-				RefillAmount: ptr.P(int64(50)),
-				RefillDay:    ptr.P(int16(15)),
+				Name:         new("credits-null-test"),
+				Remaining:    new(int64(100)),
+				RefillAmount: new(int64(50)),
+				RefillDay:    new(int16(15)),
 			})
 
 			// Verify initial state
@@ -377,10 +376,10 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
-				Name:         ptr.P("remaining-null-test"),
-				Remaining:    ptr.P(int64(200)),
-				RefillAmount: ptr.P(int64(75)),
-				RefillDay:    ptr.P(int16(10)),
+				Name:         new("remaining-null-test"),
+				Remaining:    new(int64(200)),
+				RefillAmount: new(int64(75)),
+				RefillDay:    new(int16(10)),
 			})
 
 			// Verify initial state
@@ -418,10 +417,10 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
-				Name:         ptr.P("refill-null-test"),
-				Remaining:    ptr.P(int64(300)),
-				RefillAmount: ptr.P(int64(100)),
-				RefillDay:    ptr.P(int16(25)),
+				Name:         new("refill-null-test"),
+				Remaining:    new(int64(300)),
+				RefillAmount: new(int64(100)),
+				RefillDay:    new(int16(25)),
 			})
 
 			// Verify initial state
@@ -460,10 +459,10 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
-				Name:         ptr.P("update-refill-only"),
-				Remaining:    ptr.P(int64(500)),
-				RefillAmount: ptr.P(int64(50)),
-				RefillDay:    ptr.P(int16(5)),
+				Name:         new("update-refill-only"),
+				Remaining:    new(int64(500)),
+				RefillAmount: new(int64(50)),
+				RefillDay:    new(int16(5)),
 			})
 
 			// Update only refill
@@ -473,7 +472,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 					Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
 						Amount:    150,
 						Interval:  openapi.UpdateKeyCreditsRefillIntervalMonthly,
-						RefillDay: ptr.P(20),
+						RefillDay: new(20),
 					}),
 				}),
 			}
@@ -498,10 +497,10 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
-				Name:         ptr.P("update-remaining-only"),
-				Remaining:    ptr.P(int64(100)),
-				RefillAmount: ptr.P(int64(200)),
-				RefillDay:    ptr.P(int16(12)),
+				Name:         new("update-remaining-only"),
+				Remaining:    new(int64(100)),
+				RefillAmount: new(int64(200)),
+				RefillDay:    new(int16(12)),
 			})
 
 			// Update only remaining
@@ -532,16 +531,16 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID:  h.Resources().UserWorkspace.ID,
 				KeySpaceID:   api.KeyAuthID.String,
-				Name:         ptr.P("undefined-credits-test"),
-				Remaining:    ptr.P(int64(777)),
-				RefillAmount: ptr.P(int64(111)),
-				RefillDay:    ptr.P(int16(28)),
+				Name:         new("undefined-credits-test"),
+				Remaining:    new(int64(777)),
+				RefillAmount: new(int64(111)),
+				RefillDay:    new(int16(28)),
 			})
 
 			// Update something else without specifying credits
 			req := handler.Request{
 				KeyId:   keyResponse.KeyID,
-				Enabled: ptr.P(false),
+				Enabled: new(false),
 				// Credits not specified at all
 			}
 
@@ -566,8 +565,8 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: h.Resources().UserWorkspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				Name:        ptr.P("daily-refill-test"),
-				Remaining:   ptr.P(int64(50)),
+				Name:        new("daily-refill-test"),
+				Remaining:   new(int64(50)),
 			})
 
 			// Set daily refill
@@ -601,7 +600,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: h.Resources().UserWorkspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				Name:        ptr.P("complex-sequence"),
+				Name:        new("complex-sequence"),
 			})
 
 			// Step 1: Add credits with refill
@@ -612,7 +611,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 					Refill: nullable.NewNullableWithValue(openapi.UpdateKeyCreditsRefill{
 						Amount:    500,
 						Interval:  openapi.UpdateKeyCreditsRefillIntervalMonthly,
-						RefillDay: ptr.P(1),
+						RefillDay: new(1),
 					}),
 				}),
 			}
@@ -679,9 +678,9 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 		keyResponse := h.CreateKey(seed.CreateKeyRequest{
 			WorkspaceID: h.Resources().UserWorkspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			Name:        ptr.P("initial-name"),
-			Meta:        ptr.P(string(initialMeta)),
-			Expires:     ptr.P(time.Now().Add(24 * time.Hour)),
+			Name:        new("initial-name"),
+			Meta:        new(string(initialMeta)),
+			Expires:     new(time.Now().Add(24 * time.Hour)),
 		})
 
 		// First add an identity to the key
@@ -699,7 +698,7 @@ func TestThreeStateUpdateLogic(t *testing.T) {
 			ExternalId: nullable.NewNullNullable[string](),              // Set to NULL
 			Meta:       nullable.NewNullableWithValue(map[string]any{}), // Set to empty object
 			Expires:    nullable.NewNullNullable[int64](),               // Set to NULL
-			Enabled:    ptr.P(false),                                    // Set to specific value
+			Enabled:    new(false),                                      // Set to specific value
 		}
 
 		res = testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
