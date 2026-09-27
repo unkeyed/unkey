@@ -6,7 +6,7 @@ import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import type { EnvironmentVariable } from "@unkey/api/models/components";
 import { toast } from "@unkey/ui";
 import { z } from "zod";
-import { queryClient, trpcClient } from "../client";
+import { queryClient } from "../client";
 import { trackSave } from "./environment-settings";
 import { extractStringFilter } from "./utils";
 
@@ -57,8 +57,10 @@ export const envVars = createCollection<EnvVar, string>(
 
       // The API lists the variables of one environment, so get the app's
       // environments first.
-      const environments = await trpcClient.deploy.environment.list.query({ projectId });
-      const appEnvironments = environments.filter((e) => e.appId === appId);
+      const { data: appEnvironments } = await getUnkeyClient().environments.listEnvironments({
+        project: projectId,
+        app: appId,
+      });
 
       const perEnvironment = await Promise.all(
         appEnvironments.map(async (environment) => {

@@ -30,7 +30,7 @@ export const SecretKey = ({
         </div>
         <div className="flex-1 overflow-x-auto min-w-0">
           {" "}
-          <p className="whitespace-pre-wrap break-all font-mono text-[13px] text-grayA-12 pr-2">
+          <p className="whitespace-pre-wrap break-all font-mono text-sm text-grayA-12 pr-2">
             {displayValue}
           </p>
         </div>

@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 type row struct {
@@ -121,7 +120,7 @@ func TestParse(t *testing.T) {
 	})
 
 	t.Run("explicit values", func(t *testing.T) {
-		p := Parse(ptr.P(20), ptr.P("KEBAP"), 100)
+		p := Parse(new(20), new("KEBAP"), 100)
 		require.Equal(t, Params{Limit: 20, Cursor: "KEBAP"}, p)
 	})
 }
@@ -170,7 +169,7 @@ func TestPaginate(t *testing.T) {
 			rows:        []row{{ID: "a"}, {ID: "b"}, {ID: "c"}, {ID: "KEBAP"}},
 			limit:       3,
 			wantIDs:     []string{"a", "b", "c"},
-			wantCursor:  ptr.P("KEBAP"),
+			wantCursor:  new("KEBAP"),
 			wantHasMore: true,
 		},
 		{
@@ -178,7 +177,7 @@ func TestPaginate(t *testing.T) {
 			rows:        []row{{ID: "a"}, {ID: "b"}, {ID: "c"}, {ID: "d"}, {ID: "e"}, {ID: "f"}},
 			limit:       3,
 			wantIDs:     []string{"a", "b", "c"},
-			wantCursor:  ptr.P("d"),
+			wantCursor:  new("d"),
 			wantHasMore: true,
 		},
 	}

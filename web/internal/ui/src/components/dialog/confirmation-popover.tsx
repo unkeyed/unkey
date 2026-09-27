@@ -95,13 +95,13 @@ export const ConfirmPopover = ({
             >
               <Icon className="size-3" />
             </div>
-            <div className="font-medium text-[13px] leading-7 text-gray-12">{title}</div>
+            <div className="font-medium text-sm leading-7 text-gray-12">{title}</div>
           </div>
         </div>
         <div className="w-full">
           <div className="h-px bg-grayA-3 w-full" />
         </div>
-        <div className="px-4 w-full text-gray-11 text-[13px] leading-6 my-4">{description}</div>
+        <div className="px-4 w-full text-gray-11 text-sm leading-6 my-4">{description}</div>
         <div className="space-x-3 w-full px-4 pb-4">
           <Button
             color={buttonColor}

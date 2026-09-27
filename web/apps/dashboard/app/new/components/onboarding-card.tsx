@@ -25,9 +25,7 @@ export function OnboardingCardDescription({
   className,
   ...props
 }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return (
-    <p className={cn("text-gray-11 font-normal text-[13px] leading-6", className)} {...props} />
-  );
+  return <p className={cn("text-gray-11 font-normal text-sm leading-6", className)} {...props} />;
 }
 
 export function OnboardingCardContent({
