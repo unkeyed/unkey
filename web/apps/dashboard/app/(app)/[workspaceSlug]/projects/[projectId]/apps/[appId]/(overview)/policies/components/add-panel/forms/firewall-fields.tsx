@@ -11,7 +11,7 @@ import { Strong } from "./summary-helpers";
  */
 export function FirewallFields() {
   return (
-    <div className="text-gray-11 text-[13px] leading-5">
+    <div className="text-gray-11 text-sm leading-5">
       Matching requests are denied with HTTP <Strong className="font-mono">403 Forbidden</Strong>.
       Use match conditions below to scope which requests this rule blocks.
     </div>

@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -33,7 +32,7 @@ func TestInternalError(t *testing.T) {
 		require.NoError(t, err)
 		req := handler.Request{
 			KeyId:   uid.New(uid.KeyPrefix),
-			Decrypt: ptr.P(false),
+			Decrypt: new(false),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.InternalServerErrorResponse](h, route, headers, req)

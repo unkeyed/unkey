@@ -99,12 +99,10 @@ function Shell({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-baseline gap-2">
-        <span
-          className={cn("flex-1 truncate text-[11px]", atRisk ? "text-error-9" : "text-gray-9")}
-        >
+        <span className={cn("flex-1 truncate text-2xs", atRisk ? "text-error-9" : "text-gray-9")}>
           {label}
         </span>
-        <span className="whitespace-nowrap text-[11px] tabular-nums">{value}</span>
+        <span className="whitespace-nowrap text-2xs tabular-nums">{value}</span>
       </div>
       {children}
     </div>

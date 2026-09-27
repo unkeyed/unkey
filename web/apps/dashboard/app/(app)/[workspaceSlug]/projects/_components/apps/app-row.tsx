@@ -31,7 +31,7 @@ export function AppRow({
         className,
       )}
     >
-      <span className="min-w-0 flex-1 truncate text-[13px] font-medium leading-5 text-gray-12">
+      <span className="min-w-0 flex-1 truncate text-sm font-medium leading-5 text-gray-12">
         {app.name}
       </span>
       {app.headlineDeployment ? <DeploymentMeta deployment={app.headlineDeployment} /> : null}
@@ -90,7 +90,7 @@ function AppDetail({ app, deployment }: { app: ProjectApp; deployment: AppDeploy
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
-        <span className="min-w-0 truncate text-[13px] font-medium text-gray-12">{app.name}</span>
+        <span className="min-w-0 truncate text-sm font-medium text-gray-12">{app.name}</span>
         <DeploymentStatusLabel
           status={deployment.status}
           className="ml-auto shrink-0 text-xs text-gray-11"

@@ -13,7 +13,7 @@ export function pausedBody(budgetLabel?: string): string {
 
 export function ComputePausedBadge() {
   return (
-    <span className="rounded-full bg-warning-9 px-2 py-0.5 font-medium text-[11px] text-black">
+    <span className="rounded-full bg-warning-9 px-2 py-0.5 font-medium text-2xs text-black">
       Paused
     </span>
   );

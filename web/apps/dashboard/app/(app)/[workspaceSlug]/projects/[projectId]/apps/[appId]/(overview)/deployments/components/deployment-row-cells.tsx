@@ -110,7 +110,7 @@ export function OriginCell({ deployment }: { deployment: Deployment }) {
       triggerClassName="relative z-20 flex min-w-0 items-center gap-2"
     >
       <Icon className="size-3 shrink-0 text-gray-9" />
-      <span className="truncate font-mono text-[13px] text-gray-12">{origin.label}</span>
+      <span className="truncate font-mono text-sm text-gray-12">{origin.label}</span>
     </InfoTooltip>
   );
 }
@@ -178,7 +178,7 @@ export function BranchCell({
 }) {
   const href = githubUrl.branch(repoFullName, branch);
   const text = (
-    <span className="truncate font-mono text-[13px] text-gray-12" title={branch}>
+    <span className="truncate font-mono text-sm text-gray-12" title={branch}>
       {branch}
     </span>
   );
@@ -270,7 +270,7 @@ export function AuthorCell({
         alt={deployment.gitCommitAuthorHandle ?? "Author"}
       />
       {withHandle && deployment.gitCommitAuthorHandle && (
-        <span className="max-w-28 truncate text-[13px] text-gray-12">
+        <span className="max-w-28 truncate text-sm text-gray-12">
           {deployment.gitCommitAuthorHandle}
         </span>
       )}
@@ -286,7 +286,7 @@ export function RowTime({ value }: { value: number }) {
         displayType="relative"
         side="left"
         align="center"
-        className="text-[13px] text-gray-9"
+        className="text-sm text-gray-9"
       />
     </Interactive>
   );

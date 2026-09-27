@@ -75,7 +75,7 @@ const DisplayPropertyItem = ({
 
 const PopoverHeader = () => (
   <div className="flex w-full justify-between items-center px-1 py-1">
-    <span className="text-gray-9 text-[13px]">Display Properties...</span>
+    <span className="text-gray-9 text-sm">Display Properties...</span>
     <KeyboardButton shortcut="D" />
   </div>
 );

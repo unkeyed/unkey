@@ -1,6 +1,4 @@
 import { t } from "../trpc";
-import { createApi } from "./api/create";
-import { deleteApi } from "./api/delete";
 import { keysLlmSearch } from "./api/keys/llm-search";
 import { apiKeysLlmSearch } from "./api/keys/llm-search-api-keys";
 import { activeKeysTimeseries } from "./api/keys/query-active-keys-timeseries";
@@ -40,7 +38,6 @@ import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeser
 import { queryUsage } from "./billing/query-usage";
 import { listApps } from "./deploy/app/list";
 import { countCustomDomains } from "./deploy/custom-domains/count";
-import { listDomainConnectHints } from "./deploy/custom-domains/hints";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
 import { cancelDeployment } from "./deploy/deployment/cancel";
@@ -82,8 +79,6 @@ import { queryRequestLogs } from "./deploy/request-logs/query";
 import { listInstances } from "./deploy/runtime-logs/list-instances";
 import { llmSearch as runtimeLogsLlmSearch } from "./deploy/runtime-logs/llm-search";
 import { queryRuntimeLogs } from "./deploy/runtime-logs/query";
-import { listEnvironments } from "./environment/list";
-import { listAllEnvironments } from "./environment/list-all";
 import { githubRouter } from "./github";
 import { queryIdentityDetails } from "./identity/query-identity-details";
 import { queryIdentityLogs } from "./identity/query-logs";
@@ -94,9 +89,6 @@ import { queryKeyDetailsLogs } from "./key/query-logs";
 import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
 import { getConnectedRolesAndPerms } from "./key/rbac/connected-roles-and-perms";
 import { getPermissionSlugs } from "./key/rbac/get-permission-slugs";
-import { queryKeysPermissions } from "./key/rbac/permissions/query";
-import { queryKeysRoles } from "./key/rbac/roles/query-keys-roles";
-import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
 import { rerollRootKey } from "./key/reroll";
 import { updateRootKeyName } from "./key/updateRootKeyName";
 import { updateRootKeyPermissions } from "./key/updateRootKeyPermissions";
@@ -115,12 +107,9 @@ import {
 } from "./org";
 import { createPlainIssue } from "./plain";
 import { createNamespace } from "./ratelimit/createNamespace";
-import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
-import { deleteOverride } from "./ratelimit/deleteOverride";
 import { ratelimitLlmSearch } from "./ratelimit/llm-search";
 import { listRatelimitNamespaces } from "./ratelimit/namespaces_list";
-import { listRatelimitOverrides } from "./ratelimit/overrides_list";
 import { queryRatelimitLastUsed } from "./ratelimit/query-last-used-times";
 import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
@@ -129,7 +118,6 @@ import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { queryRatelimitTimeseriesBatch } from "./ratelimit/query-timeseries-batch";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
-import { updateOverride } from "./ratelimit/updateOverride";
 import { deleteRootKeys } from "./settings/root-keys/delete";
 import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
 import { queryRootKeys } from "./settings/root-keys/query";
@@ -174,17 +162,6 @@ export const router = t.router({
       query: queryKeyDetailsLogs,
       timeseries: keyDetailsVerificationsTimeseries,
     }),
-    update: t.router({
-      rbac: t.router({
-        roles: t.router({
-          search: searchKeysRoles,
-          query: queryKeysRoles,
-        }),
-        permissions: t.router({
-          query: queryKeysPermissions,
-        }),
-      }),
-    }),
     queryPermissionSlugs: getPermissionSlugs,
     connectedRolesAndPerms: getConnectedRolesAndPerms,
   }),
@@ -206,8 +183,6 @@ export const router = t.router({
     }),
   }),
   api: t.router({
-    create: createApi,
-    delete: deleteApi,
     updateName: updateApiName,
     setDefaultPrefix: setDefaultApiPrefix,
     setDefaultBytes: setDefaultApiBytes,
@@ -310,12 +285,6 @@ export const router = t.router({
       }),
       delete: deleteNamespace,
     }),
-    override: t.router({
-      list: listRatelimitOverrides,
-      create: createOverride,
-      update: updateOverride,
-      delete: deleteOverride,
-    }),
   }),
   logs: t.router({
     queryLogs,
@@ -381,10 +350,6 @@ export const router = t.router({
         generateRegex,
       }),
     }),
-    environment: t.router({
-      list: listEnvironments,
-      listAll: listAllEnvironments,
-    }),
     envVar: t.router({
       rename: renameEnvVars,
       makeSensitive,
@@ -394,7 +359,6 @@ export const router = t.router({
     }),
     customDomain: t.router({
       count: countCustomDomains,
-      hints: listDomainConnectHints,
     }),
     deployment: t.router({
       list: listDeployments,

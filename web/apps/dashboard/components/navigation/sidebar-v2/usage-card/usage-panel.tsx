@@ -27,7 +27,7 @@ export function UsagePanel({ summary }: { summary: UsageSummary }) {
       )}
       <div
         className={cn(
-          "pointer-events-none relative flex items-center gap-2 text-[11px]",
+          "pointer-events-none relative flex items-center gap-2 text-2xs",
           !folded && "px-2.5 pt-2 pb-1.5",
         )}
       >
@@ -42,7 +42,7 @@ export function UsagePanel({ summary }: { summary: UsageSummary }) {
             className={cn(
               "pointer-events-auto flex items-center rounded text-gray-9 hover:text-gray-12",
               folded
-                ? "w-full gap-2 px-2.5 pt-2 pb-1.5 text-left text-[11px] transition-colors hover:bg-grayA-2"
+                ? "w-full gap-2 px-2.5 pt-2 pb-1.5 text-left text-2xs transition-colors hover:bg-grayA-2"
                 : "-mr-1 ml-auto size-5 justify-center",
             )}
           >

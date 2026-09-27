@@ -138,6 +138,9 @@ export const PermissionField = ({
       if (loadedPerm) {
         permissionsList.push({
           ...loadedPerm,
+          // KeyPermission still comes from tRPC, which spells an absent
+          // description as null rather than undefined
+          description: loadedPerm.description ?? null,
           source: "direct" as const,
           isInherited: false,
         });
@@ -197,19 +200,19 @@ export const PermissionField = ({
         onChange={(e) => setSearchValue(e.currentTarget.value)}
         onSelect={handleAddPermission}
         placeholder={
-          <div className="flex w-full text-grayA-8 text-[13px] gap-1.5 items-center py-2">
+          <div className="flex w-full text-grayA-8 text-sm gap-1.5 items-center py-2">
             Select permissions
           </div>
         }
         searchPlaceholder="Search permissions by name, ID, slug, or description..."
         emptyMessage={
           isComboboxLoading ? (
-            <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
+            <div className="px-3 py-3 text-gray-10 text-sm flex items-center gap-2">
               <div className="animate-spin h-3 w-3 border border-gray-6 border-t-gray-11 rounded-full" />
               {isSearching ? "Searching..." : "Loading permissions..."}
             </div>
           ) : (
-            <div className="px-3 py-3 text-gray-10 text-[13px]">No permissions found</div>
+            <div className="px-3 py-3 text-gray-10 text-sm">No permissions found</div>
           )
         }
         variant="default"
@@ -245,7 +248,7 @@ export const PermissionField = ({
               <StatusBadge
                 variant="locked"
                 text="Inherited via role"
-                className="normal-case text-[11px]"
+                className="normal-case text-2xs"
               />
             </InfoTooltip>
           )
