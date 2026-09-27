@@ -71,10 +71,10 @@ export const LoadMoreFooter = ({
         >
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-gray-9 font-medium">{countInfoText}</span>
+              <span className="text-2xs text-gray-9 font-medium">{countInfoText}</span>
             </div>
             <div className="w-px h-3 bg-gray-6" />
-            <span className="text-[12px] font-medium text-gray-11 group-hover:text-gray-12 transition-colors">
+            <span className="text-xs font-medium text-gray-11 group-hover:text-gray-12 transition-colors">
               {buttonText}
             </span>
             <div
@@ -111,7 +111,7 @@ export const LoadMoreFooter = ({
             </div>
           )}
 
-          <div className="flex w-full justify-between items-center text-[13px] text-gray-9 p-[18px] transition-all duration-200 animate-fade-slide-in [animation-delay:0.3s] [animation-fill-mode:backwards]">
+          <div className="flex w-full justify-between items-center text-sm text-gray-9 p-[18px] transition-all duration-200 animate-fade-slide-in [animation-delay:0.3s] [animation-fill-mode:backwards]">
             {countInfoText && <div className="transition-all duration-200">{countInfoText}</div>}
             {!countInfoText && (
               <div className="flex gap-2 transition-all duration-200">

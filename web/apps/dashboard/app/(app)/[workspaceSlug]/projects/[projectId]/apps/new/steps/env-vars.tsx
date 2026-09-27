@@ -21,7 +21,7 @@ export const EnvVarsStep = ({ projectId, appId, onDeploymentCreated }: EnvVarsSt
         variant="ghost"
         type="button"
         onClick={back}
-        className="absolute top-3 left-3 z-50 flex items-center gap-1 hover:text-gray-11 group text-[13px] transition-colors text-gray-10"
+        className="absolute top-3 left-3 z-50 flex items-center gap-1 hover:text-gray-11 group text-sm transition-colors text-gray-10"
       >
         <IconChevronLeftOutline18 className="!" />
         Back

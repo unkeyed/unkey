@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -20,7 +19,7 @@ func TestDeleteKey(t *testing.T) {
 			args: "keys delete-key --key-id=key_1234abcd",
 			want: openapi.V2KeysDeleteKeyRequestBody{
 				KeyId:     "key_1234abcd",
-				Permanent: ptr.P(false),
+				Permanent: new(false),
 			},
 		},
 		{
@@ -28,7 +27,7 @@ func TestDeleteKey(t *testing.T) {
 			args: "keys delete-key --key-id=key_1234abcd --permanent",
 			want: openapi.V2KeysDeleteKeyRequestBody{
 				KeyId:     "key_1234abcd",
-				Permanent: ptr.P(true),
+				Permanent: new(true),
 			},
 		},
 	}

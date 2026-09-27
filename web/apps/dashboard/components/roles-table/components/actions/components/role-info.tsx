@@ -9,9 +9,7 @@ export const RoleInfo = ({ roleDetails }: { roleDetails: RoleBasic }) => {
         <IconKey2Outline12 />
       </div>
       <div className="flex flex-col gap-1">
-        <div className="text-gray-12 text-[13px] font-medium">
-          {roleDetails.name ?? "Unnamed Role"}
-        </div>
+        <div className="text-gray-12 text-sm font-medium">{roleDetails.name ?? "Unnamed Role"}</div>
         <InfoTooltip
           content={roleDetails.name}
           position={{ side: "bottom", align: "center" }}

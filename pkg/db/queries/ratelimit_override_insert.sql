@@ -20,4 +20,5 @@ VALUES (
 ON DUPLICATE KEY UPDATE
     `limit` = VALUES(`limit`),
     duration = VALUES(duration),
-    updated_at_m = sqlc.arg('updated_at')
+    updated_at_m = sqlc.arg('updated_at'),
+    deleted_at_m = NULL

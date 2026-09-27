@@ -139,7 +139,7 @@ export const UsageSetup = ({
         name="limit.data.refill.interval"
         render={({ field }) => (
           <div className="gap-y-1.5">
-            <div className="text-gray-11 text-[13px] flex items-center">Refill Rate</div>
+            <div className="text-gray-11 text-sm flex items-center">Refill Rate</div>
             <Select
               onValueChange={(value) => {
                 handleRefillIntervalChange(value as "none" | "daily" | "monthly");

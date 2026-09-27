@@ -39,7 +39,7 @@ function DomainHero() {
             openOnHover
             delay={0}
             closeDelay={100}
-            className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-[11px] leading-[18px] font-mono tabular-nums shrink-0"
+            className="rounded-full px-1.5 py-0.5 bg-grayA-3 text-gray-12 text-2xs leading-4.5 font-mono tabular-nums shrink-0"
             aria-label={`Show ${additionalDomains.length} more domains`}
           >
             +{additionalDomains.length}
@@ -52,7 +52,7 @@ function DomainHero() {
                   href={domain.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 font-mono text-[13px] text-gray-12 hover:bg-grayA-3 transition-colors"
+                  className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 font-mono text-sm text-gray-12 hover:bg-grayA-3 transition-colors"
                 >
                   <span className="truncate">{domain.hostname}</span>
                   <IconArrowUpRightOutline12 className="shrink-0 text-gray-9" />

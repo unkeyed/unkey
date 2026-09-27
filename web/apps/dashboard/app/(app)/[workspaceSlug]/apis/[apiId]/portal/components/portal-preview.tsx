@@ -45,7 +45,7 @@ export function PortalPreview({
             <span key={dot} className="size-2 rounded-full bg-[hsl(0_0%_85%)]" />
           ))}
         </div>
-        <div className="flex-1 truncate rounded-md border border-[hsl(0_0%_91%)] bg-[hsl(0_0%_99%)] px-2 py-0.5 text-center text-[10px] text-[hsl(0_0%_55%)]">
+        <div className="flex-1 truncate rounded-md border border-[hsl(0_0%_91%)] bg-[hsl(0_0%_99%)] px-2 py-0.5 text-center text-3xs text-[hsl(0_0%_55%)]">
           {MOCK_ADDRESS}
         </div>
       </div>
@@ -63,7 +63,7 @@ export function PortalPreview({
               className="size-6 shrink-0 rounded-md object-contain"
             />
           )}
-          <span className="truncate text-[13px] font-semibold" style={{ color: onColor }}>
+          <span className="truncate text-sm font-semibold" style={{ color: onColor }}>
             {displayName}
           </span>
         </div>
@@ -77,7 +77,7 @@ export function PortalPreview({
             <div className="h-2 w-44 max-w-full rounded bg-[hsl(0_0%_91%)]" />
           </div>
           <div
-            className="shrink-0 rounded-md px-3 py-1.5 text-[11px] font-medium"
+            className="shrink-0 rounded-md px-3 py-1.5 text-2xs font-medium"
             style={{ backgroundColor: color }}
           >
             <div className="h-2 w-8 rounded-sm" style={{ backgroundColor: `${onColor}33` }} />
@@ -102,7 +102,7 @@ export function PortalPreview({
         </div>
       </div>
 
-      <div className="border-t border-[hsl(0_0%_91%)] px-4 py-2 text-center text-[10px] text-[hsl(0_0%_55%)]">
+      <div className="border-t border-[hsl(0_0%_91%)] px-4 py-2 text-center text-3xs text-[hsl(0_0%_55%)]">
         Powered by Unkey
       </div>
     </div>

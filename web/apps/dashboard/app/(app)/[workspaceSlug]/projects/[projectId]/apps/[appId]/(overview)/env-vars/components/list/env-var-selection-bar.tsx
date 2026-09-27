@@ -39,13 +39,13 @@ export function EnvVarSelectionBar({
           <div className="flex justify-between items-center w-full p-4.5">
             <div className="items-center flex gap-2">
               <AnimatedCounter value={selectedCount} />
-              <div className="text-gray-11 text-[13px] leading-6">selected</div>
+              <div className="text-gray-11 text-sm leading-6">selected</div>
             </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                className="font-medium text-[13px] [&_svg]:size-3.5"
+                className="font-medium text-sm [&_svg]:size-3.5"
                 onClick={() => setIsSensitiveConfirmOpen(true)}
                 ref={sensitiveButtonRef}
               >
@@ -55,7 +55,7 @@ export function EnvVarSelectionBar({
               <Button
                 variant="outline"
                 size="sm"
-                className="font-medium text-[13px] [&_svg]:size-3.5"
+                className="font-medium text-sm [&_svg]:size-3.5"
                 onClick={() => setIsDeleteConfirmOpen(true)}
                 ref={deleteButtonRef}
               >
@@ -102,7 +102,7 @@ function AnimatedCounter({ value }: { value: number }) {
     <div
       key={`counter-${value}`}
       className={cn(
-        "size-[18px] text-[11px] leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-gray-12 hover:bg-gray-12/90 focus:hover:bg-gray-12 rounded-md border",
+        "size-[18px] text-2xs leading-6 ring-2 ring-gray-6 flex items-center justify-center font-medium overflow-hidden p-2 text-white dark:text-black bg-gray-12 hover:bg-gray-12/90 focus:hover:bg-gray-12 rounded-md border",
         "animate-bounce-in",
       )}
     >

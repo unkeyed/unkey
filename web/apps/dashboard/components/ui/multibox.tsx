@@ -31,7 +31,7 @@ export function MultiboxChips({ className, ...props }: ComboboxPrimitive.Chips.P
   return (
     <ComboboxPrimitive.Chips
       className={cn(
-        "relative flex min-h-9 w-full flex-wrap items-center gap-1.5 rounded-lg border bg-raised px-1.5 py-1 pr-8 text-[13px] leading-5 text-grayA-12 transition-colors duration-300",
+        "relative flex min-h-9 w-full flex-wrap items-center gap-1.5 rounded-lg border bg-raised px-1.5 py-1 pr-8 text-sm leading-5 text-grayA-12 transition-colors duration-300",
         "hover:border-strong",
         "focus-within:border-gray-12 focus-within:ring-2 focus-within:ring-gray-5",
         "data-disabled:cursor-not-allowed data-disabled:opacity-50",
@@ -129,7 +129,7 @@ export function MultiboxContent({
 export function MultiboxEmpty({ className, ...props }: ComboboxPrimitive.Empty.Props) {
   return (
     <ComboboxPrimitive.Empty
-      className={cn("py-6 text-center text-[13px] text-grayA-9 empty:p-0", className)}
+      className={cn("py-6 text-center text-sm text-grayA-9 empty:p-0", className)}
       {...props}
     />
   );
@@ -143,7 +143,7 @@ export function MultiboxItem({ className, children, ...props }: ComboboxPrimitiv
   return (
     <ComboboxPrimitive.Item
       className={cn(
-        "relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-[13px] text-gray-12 outline-hidden",
+        "relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-gray-12 outline-hidden",
         "data-highlighted:bg-grayA-3 data-highlighted:text-grayA-12",
         "data-disabled:pointer-events-none data-disabled:opacity-50",
         className,

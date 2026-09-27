@@ -4,7 +4,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"testing"
 )
 
@@ -25,14 +24,14 @@ func TestUpdateApp(t *testing.T) {
 		components.V2AppsUpdateAppRequestBody{
 			Project: "payments",
 			App:     "app_1",
-			Name:    ptr.P("Pay"),
-			Slug:    ptr.P("pay"),
+			Name:    new("Pay"),
+			Slug:    new("pay"),
 			Git: map[bool]*components.AppGitUpdateInput{true: {
-				Repository:    ptr.P("unkeyed/api"),
-				DefaultBranch: ptr.P("trunk"),
+				Repository:    new("unkeyed/api"),
+				DefaultBranch: new("trunk"),
 			}},
 			Oci:              &components.AppOCI{Image: "ghcr.io/acme/payments:v2"},
-			DeleteProtection: ptr.P(false),
+			DeleteProtection: new(false),
 		},
 	}, {
 		"disconnect git",

@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -58,8 +57,8 @@ func TestMultiLimit(t *testing.T) {
 			req := handler.Request{
 				Key: key.Key,
 				Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
-					{Name: "10/10s", Cost: ptr.P(4)},
-					{Name: "1/1min", Cost: ptr.P(1)},
+					{Name: "10/10s", Cost: new(4)},
+					{Name: "1/1min", Cost: new(1)},
 				},
 			}
 
@@ -93,8 +92,8 @@ func TestMultiLimit(t *testing.T) {
 			req := handler.Request{
 				Key: key.Key,
 				Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
-					{Name: "10/10s-test", Cost: ptr.P(4)},
-					{Name: "1/1min-test", Cost: ptr.P(2)}, // Exceeds limit of 1
+					{Name: "10/10s-test", Cost: new(4)},
+					{Name: "1/1min-test", Cost: new(2)}, // Exceeds limit of 1
 				},
 			}
 
@@ -130,7 +129,7 @@ func TestMultiLimit(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity.ID),
+				IdentityID:  new(identity.ID),
 				Ratelimits: []seed.CreateRatelimitRequest{
 					{
 						Name:        "limit1",
@@ -180,7 +179,7 @@ func TestMultiLimit(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity.ID),
+				IdentityID:  new(identity.ID),
 				Ratelimits: []seed.CreateRatelimitRequest{
 					{
 						Name:        "limit1-reject",
@@ -235,7 +234,7 @@ func TestMultiLimit(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity.ID),
+				IdentityID:  new(identity.ID),
 				Ratelimits: []seed.CreateRatelimitRequest{
 					{
 						Name:        "limit1-fallback",
@@ -295,13 +294,13 @@ func TestMultiLimit(t *testing.T) {
 			key1 := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity.ID),
+				IdentityID:  new(identity.ID),
 			})
 
 			key2 := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity.ID),
+				IdentityID:  new(identity.ID),
 			})
 
 			// Use up some quota with key1
@@ -410,14 +409,14 @@ func TestMultiLimit(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				IdentityID:  ptr.P(identity.ID),
+				IdentityID:  new(identity.ID),
 			})
 
 			// First request with cost 4 should pass
 			req1 := handler.Request{
 				Key: key.Key,
 				Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
-					{Name: "tokens-identity", Cost: ptr.P(4)},
+					{Name: "tokens-identity", Cost: new(4)},
 					{Name: "10_per_10m-identity"},
 				},
 			}
@@ -432,7 +431,7 @@ func TestMultiLimit(t *testing.T) {
 			req2 := handler.Request{
 				Key: key.Key,
 				Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
-					{Name: "tokens-identity", Cost: ptr.P(6)},
+					{Name: "tokens-identity", Cost: new(6)},
 					{Name: "10_per_10m-identity"},
 				},
 			}
@@ -447,7 +446,7 @@ func TestMultiLimit(t *testing.T) {
 			req3 := handler.Request{
 				Key: key.Key,
 				Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
-					{Name: "tokens-identity", Cost: ptr.P(1)},
+					{Name: "tokens-identity", Cost: new(1)},
 					{Name: "10_per_10m-identity"},
 				},
 			}
