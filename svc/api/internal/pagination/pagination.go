@@ -17,9 +17,18 @@
 package pagination
 
 import (
+	"context"
+	"errors"
+
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
+
+const scanLimit = 10_000
+
+// ErrScanLimit is returned when authorization filtering cannot fill a page
+// within the maximum number of examined rows.
+var ErrScanLimit = errors.New("authorized pagination scan limit exceeded")
 
 // Params carries the parsed pagination inputs of a list request so the same
 // limit drives both the over-fetch (FetchLimit) and the trim (Paginate).
@@ -40,6 +49,47 @@ func Parse(limit *int, cursor *string, defaultLimit int) Params {
 // FetchLimit returns the query limit including the extra look-ahead row.
 func (p Params) FetchLimit() int32 {
 	return int32(p.Limit + 1) // nolint:gosec // request validation bounds Limit far below int32 max
+}
+
+// FetchAuthorized fills a page plus its authorized lookahead while keeping
+// denied row cursors out of the response. The fetch callback must return at
+// most its requested limit in stable order, starting at the inclusive cursor.
+// Params.Limit must be positive and cursor must return a nonempty row ID.
+// For example, denied rows between two allowed projects do not shorten the
+// page. Pass the returned rows to Paginate to create the response cursor.
+// Fetch errors and scans requiring more than 10,000 examined rows return no rows.
+func FetchAuthorized[T any](ctx context.Context, p Params, fetch func(context.Context, string, int32) ([]T, error), allowed func(T) bool, cursor func(T) string) ([]T, error) {
+	wanted := p.Limit + 1
+	rows := make([]T, 0, wanted)
+	batchSize := wanted
+	nextCursor := p.Cursor
+	for scanned := 0; scanned < scanLimit; {
+		batchSize = min(batchSize, scanLimit-scanned)
+		batch, err := fetch(ctx, nextCursor, int32(batchSize+1)) // nolint:gosec // bounded by scanLimit
+		if err != nil {
+			return nil, err
+		}
+
+		nextCursor = ""
+		if len(batch) > batchSize {
+			nextCursor = cursor(batch[batchSize])
+			batch = batch[:batchSize]
+		}
+		for _, item := range batch {
+			scanned++
+			if allowed(item) {
+				rows = append(rows, item)
+				if len(rows) == wanted {
+					return rows, nil
+				}
+			}
+		}
+		if nextCursor == "" {
+			return rows, nil
+		}
+		batchSize = max(batchSize*2, 100)
+	}
+	return nil, ErrScanLimit
 }
 
 // Paginate trims rows over-fetched with FetchLimit back to the requested page
