@@ -297,19 +297,19 @@ func TestListAppsRefillsPagesForSpecificPermissions(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 		"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey},
-	}, handler.Request{Project: project.ID, Limit: ptr.P(1)})
+	}, handler.Request{Project: project.ID, Limit: new(1)})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Len(t, res.Body.Data, 1)
 	require.Equal(t, appIDs[1], res.Body.Data[0].Id)
 	require.True(t, res.Body.Pagination.HasMore)
-	require.Equal(t, ptr.P(appIDs[4]), res.Body.Pagination.Cursor)
+	require.Equal(t, new(appIDs[4]), res.Body.Pagination.Cursor)
 	require.NotContains(t, res.RawBody, appIDs[0])
 	require.NotContains(t, res.RawBody, appIDs[2])
 	require.NotContains(t, res.RawBody, appIDs[3])
 
 	res = testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 		"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey},
-	}, handler.Request{Project: project.ID, Limit: ptr.P(1), Cursor: res.Body.Pagination.Cursor})
+	}, handler.Request{Project: project.ID, Limit: new(1), Cursor: res.Body.Pagination.Cursor})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
 	require.Len(t, res.Body.Data, 1)
 	require.Equal(t, appIDs[4], res.Body.Data[0].Id)
@@ -320,7 +320,7 @@ func TestListAppsRefillsPagesForSpecificPermissions(t *testing.T) {
 	}
 	empty := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
 		"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey},
-	}, handler.Request{Project: project.ID, Search: ptr.P(appIDs[0])})
+	}, handler.Request{Project: project.ID, Search: new(appIDs[0])})
 	require.Equal(t, http.StatusOK, empty.Status, "%s", empty.RawBody)
 	require.Empty(t, empty.Body.Data)
 	require.False(t, empty.Body.Pagination.HasMore)

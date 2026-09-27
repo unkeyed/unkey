@@ -71,7 +71,7 @@ func TestListAppsForbidden(t *testing.T) {
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 		{name: "urn on every app in the project", permissions: []string{grant(project.ID, "*", permissions.Read)}, shouldPass: true},
 		{name: "urn on every project", permissions: []string{grant("*", "*", permissions.Read)}, shouldPass: true},
-		{name: "urn on one app does not satisfy list", permissions: []string{grant(project.ID, app.ID, permissions.Read)}, shouldPass: false},
+		{name: "urn on one app filters list", permissions: []string{grant(project.ID, app.ID, permissions.Read)}, shouldPass: true},
 		{name: "urn on another project", permissions: []string{grant(uid.New(uid.ProjectPrefix), "*", permissions.Read)}, shouldPass: false},
 	}
 
