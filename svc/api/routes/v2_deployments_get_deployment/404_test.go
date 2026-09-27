@@ -34,9 +34,9 @@ func TestDeploymentURNPermissions(t *testing.T) {
 	})
 	environment := urn.New().Workspace(setup.Workspace.ID).Project(setup.Project.ID).App(setup.App.ID).Environment(setup.Environment.ID)
 	for _, tc := range []struct {
-		name string
+		name       string
 		permission string
-		found bool
+		found      bool
 	}{
 		{name: "this deployment", permission: rbac.U(environment.Deployment(dep.ID), permissions.Read).Value, found: true},
 		{name: "every deployment in the environment", permission: rbac.U(environment.Deployment("*"), permissions.Read).Value, found: true},
