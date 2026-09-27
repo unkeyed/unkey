@@ -103,3 +103,35 @@ roleRef:
   kind: ClusterRole
   name: krane-vm-manager
   apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: krane-lease
+  namespace: unkey
+  labels:
+    app: unkey
+    component: krane
+rules:
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "create", "update"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: krane-lease
+  namespace: unkey
+  labels:
+    app: unkey
+    component: krane
+subjects:
+  - kind: ServiceAccount
+    name: unkey-serviceaccount
+    namespace: unkey
+roleRef:
+  kind: Role
+  name: krane-lease
+  apiGroup: rbac.authorization.k8s.io

@@ -2,10 +2,14 @@
 
 import { useDeployActionGate } from "@/app/(app)/[workspaceSlug]/projects/_components/hooks/use-deploy-action-gate";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { collection } from "@/lib/collections";
+import { type Deployment, collection } from "@/lib/collections";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
-import { findRolledBackFrom } from "@/lib/collections/deploy/rollback";
+import {
+  findRolledBackFrom,
+  previousRollbackTarget,
+  rollbackCandidates,
+} from "@/lib/collections/deploy/rollback";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
@@ -69,6 +73,7 @@ export function AppProductionCard() {
     : undefined;
 
   const deployment = currentDeployment ?? latestProductionDeployment;
+  const [rollbackTargetSnapshot, setRollbackTargetSnapshot] = useState<Deployment>();
   const isCurrent = Boolean(currentDeployment);
   const newerDeployment =
     deployment &&
@@ -132,17 +137,11 @@ export function AppProductionCard() {
     currentDeploymentId,
   });
 
-  const readySiblings = deployments.filter(
-    (d) =>
-      d.environmentId === deployment.environmentId &&
-      d.status === "ready" &&
-      d.id !== deployment.id,
-  );
-  const rollbackTarget = readySiblings
-    .filter((d) => d.createdAt < deployment.createdAt)
-    .sort((a, b) => b.createdAt - a.createdAt)[0];
+  const rollbackTarget = previousRollbackTarget(deployments, deployment);
   const undoCandidates = isRolledBack
-    ? [...readySiblings, deployment].sort((a, b) => b.createdAt - a.createdAt)
+    ? [...rollbackCandidates(deployments, deployment), deployment].sort(
+        (a, b) => b.createdAt - a.createdAt,
+      )
     : [];
   const rolledBackFromDeployment = isRolledBack
     ? findRolledBackFrom(deployments, deployment)
@@ -229,7 +228,14 @@ export function AppProductionCard() {
     isChartLoading: metrics.isLoading,
     isChartError: metrics.isError,
     // Without a Compute plan these open the paywall instead of switching traffic.
-    openRollback: () => (gated ? openPaywall() : setRollbackOpen(true)),
+    openRollback: () => {
+      if (gated) {
+        openPaywall();
+        return;
+      }
+      setRollbackTargetSnapshot(rollbackTarget);
+      setRollbackOpen(true);
+    },
     openUndo: () => (gated ? openPaywall() : setUndoOpen(true)),
   };
 
@@ -277,11 +283,11 @@ export function AppProductionCard() {
         </Card>
       </div>
 
-      {rollbackTarget && (
+      {rollbackOpen && rollbackTargetSnapshot && (
         <RollbackDialog
           isOpen={rollbackOpen}
           onClose={() => setRollbackOpen(false)}
-          targetDeployment={rollbackTarget}
+          targetDeployment={rollbackTargetSnapshot}
           currentDeployment={deployment}
         />
       )}

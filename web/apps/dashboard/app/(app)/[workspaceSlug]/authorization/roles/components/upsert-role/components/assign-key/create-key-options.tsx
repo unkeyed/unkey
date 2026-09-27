@@ -1,6 +1,6 @@
 import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/status-badge";
 import { IconKey2Outline12, IconLockOutline12 } from "@unkey/icons";
-import { Badge, Button, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@unkey/ui";
+import { Badge, Button, HoverCard, HoverCardContent, HoverCardTrigger } from "@unkey/ui";
 
 type Key = {
   id: string;
@@ -28,72 +28,70 @@ export function createKeyOptions({
 }: KeySelectorProps) {
   const options = keys.map((key) => ({
     label: (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <div className="flex w-full text-gray-8 text-xs gap-4 py-0.5 items-center group flex-row">
-                <div className="border rounded-full flex items-center justify-center size-5">
-                  <IconKey2Outline12 className="text-grayA-11" />
-                </div>
-                <div className="flex gap-1 flex-col truncate">
-                  <div className="flex gap-2 items-center">
-                    <span className="font-medium text-gray-12 text-left">
-                      {key.name || "Unnamed Key"}
-                    </span>
-                    {key.roles.find((item) => item.id === roleId) && (
-                      <StatusBadge
-                        variant="locked"
-                        text="Already assigned"
-                        icon={<IconLockOutline12 />}
-                      />
-                    )}
-                  </div>
-                  <span className="text-gray-9 text-xs">
-                    {key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id}
+      <HoverCard>
+        <HoverCardTrigger
+          render={
+            <div className="flex w-full text-gray-8 text-xs gap-4 py-0.5 items-center group flex-row">
+              <div className="border rounded-full flex items-center justify-center size-5">
+                <IconKey2Outline12 className="text-grayA-11" />
+              </div>
+              <div className="flex gap-1 flex-col truncate">
+                <div className="flex gap-2 items-center">
+                  <span className="font-medium text-gray-12 text-left">
+                    {key.name || "Unnamed Key"}
                   </span>
+                  {key.roles.find((item) => item.id === roleId) && (
+                    <StatusBadge
+                      variant="locked"
+                      text="Already assigned"
+                      icon={<IconLockOutline12 />}
+                    />
+                  )}
                 </div>
-              </div>
-            }
-          />
-          <TooltipContent
-            side="right"
-            align="start"
-            sideOffset={30}
-            className="shadow-floating overflow-hidden rounded-xl p-0 bg-raised w-[320px] z-100"
-          >
-            <div className="flex flex-col h-full">
-              {/* Header */}
-              <div className="px-4 py-2 border-b text-gray-10 text-xs font-medium bg-grayA-2">
-                Key Details
-              </div>
-              {/* Content */}
-              <div className="flex flex-col px-4 py-3 gap-3">
-                <div>
-                  <div className="text-xs font-medium text-gray-11 mb-1">Key ID</div>
-                  <div className="text-xs text-gray-12 font-mono break-all">{key.id}</div>
-                </div>
-                <div>
-                  <div className="text-xs font-medium text-gray-11 mb-1">Name</div>
-                  <div className="text-xs text-gray-12">{key.name || "No name set"}</div>
-                </div>
-                {key.roles.length > 0 && (
-                  <div>
-                    <div className="text-xs font-medium text-gray-11 mb-2">Roles</div>
-                    <div className="flex flex-wrap gap-1">
-                      {key.roles.map((role) => (
-                        <Badge key={role.id} variant="secondary" className="text-xs">
-                          {role.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <span className="text-gray-9 text-xs">
+                  {key.id.length > 15 ? `${key.id.slice(0, 8)}...${key.id.slice(-4)}` : key.id}
+                </span>
               </div>
             </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+          }
+        />
+        <HoverCardContent
+          side="right"
+          align="start"
+          sideOffset={30}
+          className="shadow-floating overflow-hidden rounded-xl p-0 w-[320px] z-100"
+        >
+          <div className="flex flex-col h-full">
+            {/* Header */}
+            <div className="px-4 py-2 border-b text-gray-10 text-xs font-medium bg-grayA-2">
+              Key Details
+            </div>
+            {/* Content */}
+            <div className="flex flex-col px-4 py-3 gap-3">
+              <div>
+                <div className="text-xs font-medium text-gray-11 mb-1">Key ID</div>
+                <div className="text-xs text-gray-12 font-mono break-all">{key.id}</div>
+              </div>
+              <div>
+                <div className="text-xs font-medium text-gray-11 mb-1">Name</div>
+                <div className="text-xs text-gray-12">{key.name || "No name set"}</div>
+              </div>
+              {key.roles.length > 0 && (
+                <div>
+                  <div className="text-xs font-medium text-gray-11 mb-2">Roles</div>
+                  <div className="flex flex-wrap gap-1">
+                    {key.roles.map((role) => (
+                      <Badge key={role.id} variant="secondary" className="text-xs">
+                        {role.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </HoverCardContent>
+      </HoverCard>
     ),
     selectedLabel: (
       <div className="flex w-full text-gray-8 text-xs gap-1.5 py-0.5 items-center">

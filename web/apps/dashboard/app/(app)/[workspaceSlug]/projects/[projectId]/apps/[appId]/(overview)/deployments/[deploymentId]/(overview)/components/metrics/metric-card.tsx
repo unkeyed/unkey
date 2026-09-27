@@ -122,19 +122,17 @@ export function MetricCard({
               onValueChange={onPercentileChange}
             />
           ) : (
-            <span className="text-gray-12 text-[13px]">{config.label}</span>
+            <span className="text-gray-12 text-sm">{config.label}</span>
           )}
         </div>
         <div className="ml-auto flex items-baseline gap-1">
-          <span className="text-gray-12 font-medium text-[13px] tabular-nums">{valueText}</span>
-          <span className="text-grayA-10 text-[11px]">{parts.unit}</span>
+          <span className="text-gray-12 font-medium text-sm tabular-nums">{valueText}</span>
+          <span className="text-grayA-10 text-2xs">{parts.unit}</span>
           {secondaryValue && (
             <>
-              <span className="text-grayA-9 text-[11px]">·</span>
-              <span className="text-gray-12 font-medium text-[12px] tabular-nums">
-                {secondaryText}
-              </span>
-              <span className="text-grayA-10 text-[11px]">{secondaryValue.unit}</span>
+              <span className="text-grayA-9 text-2xs">·</span>
+              <span className="text-gray-12 font-medium text-xs tabular-nums">{secondaryText}</span>
+              <span className="text-grayA-10 text-2xs">{secondaryValue.unit}</span>
             </>
           )}
         </div>
@@ -178,7 +176,7 @@ export function MetricCard({
           />
         )}
         {timeWindow?.chart && (
-          <span className="text-grayA-11 text-[10px] px-[14px] my-1">{timeWindow.chart}</span>
+          <span className="text-grayA-11 text-3xs px-[14px] my-1">{timeWindow.chart}</span>
         )}
       </div>
     </div>

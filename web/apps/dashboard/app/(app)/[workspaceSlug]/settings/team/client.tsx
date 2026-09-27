@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import {
   Button,
   EmptyState,
@@ -22,7 +23,7 @@ import { Members } from "./members";
 export function TeamPageClient({ team }: { team: boolean }) {
   const workspace = useWorkspaceNavigation();
 
-  const { data: user } = trpc.user.getCurrentUser.useQuery();
+  const { user } = useWorkspace();
 
   const { data: memberships, isLoading: isUserMembershipsLoading } =
     trpc.user.listMemberships.useQuery(user?.id || "", {

@@ -41,7 +41,7 @@ function getCachedCount(key: string): number | null {
 
 const AuditLogsResponse = z.object({
   auditLogs: z.array(auditLog),
-  total: z.number(),
+  total: z.number().nullable(),
 });
 
 type AuditLogsResponse = z.infer<typeof AuditLogsResponse>;
@@ -84,15 +84,32 @@ export const fetchAuditLog = workspaceProcedure
       getLogsQuery(),
     ]);
 
-    if (countResult.err || logsResult.err) {
+    if (logsResult.err) {
+      console.error("Clickhouse audit logs query failed", {
+        error: logsResult.err.message,
+        workspaceId: ctx.workspace.id,
+        startTime: queryArgs.startTime,
+        endTime: queryArgs.endTime,
+      });
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",
         message: "Something went wrong when fetching audit logs from clickhouse.",
+        cause: logsResult.err,
       });
     }
 
-    const totalCount = countResult.val[0]?.totalCount ?? 0;
-    if (cachedCount === null) {
+    // A slow or failed count query must not fail the page: the rows are already
+    // fetched, so return them without a total and let the client fall back to
+    // the proven-page count. Mirrors ratelimit/query-logs.
+    if (countResult.err) {
+      console.warn("Clickhouse audit count query failed, returning logs without total", {
+        error: countResult.err.message,
+        workspaceId: ctx.workspace.id,
+      });
+    }
+
+    const totalCount = countResult.err ? null : (countResult.val[0]?.totalCount ?? 0);
+    if (cachedCount === null && totalCount !== null) {
       countCache.set(cacheKey, { count: totalCount, timestamp: Date.now() });
     }
 
@@ -174,10 +191,38 @@ function buildQueryArgs(
   };
 }
 
+const userCache = new Map<string, { user: User | null; timestamp: number }>();
+const USER_CACHE_TTL = 1000 * 60 * 5;
+const USER_CACHE_MAX_ENTRIES = 5_000;
+
+async function getCachedUser(userId: string): Promise<User | null> {
+  const cached = userCache.get(userId);
+  if (cached && Date.now() - cached.timestamp < USER_CACHE_TTL) {
+    return cached.user;
+  }
+
+  let user: User | null;
+  try {
+    user = await auth.getUser(userId);
+  } catch {
+    return null;
+  }
+
+  userCache.delete(userId);
+  if (userCache.size >= USER_CACHE_MAX_ENTRIES) {
+    const oldest = userCache.keys().next();
+    if (!oldest.done) {
+      userCache.delete(oldest.value);
+    }
+  }
+  userCache.set(userId, { user, timestamp: Date.now() });
+  return user;
+}
+
 async function fetchUsersByActorIds(actorIds: string[]): Promise<Record<string, User>> {
   try {
     const unique = [...new Set(actorIds)];
-    const users = await Promise.all(unique.map((userId) => auth.getUser(userId).catch(() => null)));
+    const users = await Promise.all(unique.map(getCachedUser));
 
     return users.reduce(
       (acc, user) => {

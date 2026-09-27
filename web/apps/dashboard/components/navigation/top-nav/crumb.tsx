@@ -73,7 +73,7 @@ export function CrumbLink({
       href={href as Route}
       aria-label={label}
       aria-current={current ? "page" : undefined}
-      className="flex min-w-0 items-center gap-1.5 px-1 py-1 text-[13px] font-medium text-gray-12"
+      className="flex min-w-0 items-center gap-1.5 px-1 py-1 text-sm font-medium text-gray-12"
     >
       {icon}
       {loading ? (

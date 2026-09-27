@@ -398,7 +398,7 @@ export const FiltersPopover = ({
                         <span className="truncate font-medium text-gray-12">{item.label}</span>
                       </span>
                       {item.description ? (
-                        <span className="ml-auto max-w-28 shrink-0 truncate font-mono text-[10px] text-gray-8">
+                        <span className="ml-auto max-w-28 shrink-0 truncate font-mono text-3xs text-gray-8">
                           {item.description}
                         </span>
                       ) : null}
@@ -434,7 +434,7 @@ export const FiltersPopover = ({
 
 const PopoverHeader = () => (
   <div className="flex w-full justify-between items-center px-2 py-1">
-    <span className="text-gray-9 text-[13px]">Filters...</span>
+    <span className="text-gray-9 text-sm">Filters...</span>
     <KeyboardButton shortcut="F" />
   </div>
 );

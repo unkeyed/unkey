@@ -12,7 +12,7 @@ import type { Environment } from "@/lib/collections/deploy/environments";
 import type { Project } from "@/lib/collections/deploy/projects";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { trpc } from "@/lib/trpc/client";
-import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { and, eq, inArray, useLiveQuery } from "@tanstack/react-db";
 import { useParams } from "next/navigation";
 import {
   type PropsWithChildren,
@@ -121,21 +121,25 @@ export const ProjectDataProvider = ({
 
   const projectQuery = useLiveQuery(
     (q) =>
-      q.from({ project: collection.projects }).where(({ project }) => eq(project.id, projectId)),
+      q
+        .from({ project: collection.projects })
+        .where(({ project }) => eq(project.id, projectId))
+        .findOne(),
     [projectId],
   );
 
-  const project = projectQuery.data?.at(0);
+  const project = projectQuery.data;
   const appQuery = useLiveQuery(
     (q) =>
       appId
         ? q
             .from({ app: collection.apps })
             .where(({ app }) => and(eq(app.projectId, projectId), eq(app.id, appId)))
+            .findOne()
         : null,
     [projectId, appId],
   );
-  const app = appQuery.data?.at(0);
+  const app = appQuery.data;
   const currentDeploymentId = appId ? app?.currentDeploymentId : project?.currentDeploymentId;
 
   const domainsQuery = useLiveQuery(
@@ -152,7 +156,9 @@ export const ProjectDataProvider = ({
   );
   const refetchDeployments = useCallback(() => {
     collection.deployments.utils.refetch();
-    trpcUtils.deploy.deployment.invalidate();
+    trpcUtils.deploy.deployment.list.invalidate();
+    trpcUtils.deploy.deployment.listActiveBranches.invalidate();
+    trpcUtils.deploy.deployment.listBranches.invalidate();
   }, [trpcUtils]);
 
   const refetchAll = useCallback(() => {
@@ -192,16 +198,27 @@ export const ProjectDataProvider = ({
     prevDeploymentIdRef.current = currentDeploymentId;
   }, [currentDeploymentId]);
 
+  const projectAppsQuery = useLiveQuery(
+    (q) =>
+      appId
+        ? null
+        : q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
+    [projectId, appId],
+  );
+  const environmentAppIds = useMemo(
+    () => (appId ? [appId] : (projectAppsQuery.data ?? []).map((a) => a.id).sort()),
+    [appId, projectAppsQuery.data],
+  );
   const environmentsQuery = useLiveQuery(
     (q) =>
-      q
-        .from({ env: collection.environments })
-        .where(({ env }) =>
-          appId
-            ? and(eq(env.projectId, projectId), eq(env.appId, appId))
-            : eq(env.projectId, projectId),
-        ),
-    [projectId, appId],
+      environmentAppIds.length === 0
+        ? null
+        : q
+            .from({ env: collection.environments })
+            .where(({ env }) =>
+              and(eq(env.projectId, projectId), inArray(env.appId, environmentAppIds)),
+            ),
+    [projectId, environmentAppIds.join(",")],
   );
 
   const customDomainsQuery = useLiveQuery(
@@ -239,7 +256,7 @@ export const ProjectDataProvider = ({
     const deployments = deploymentsQuery.data ?? [];
     const environments = environmentsQuery.data ?? [];
     const customDomains = customDomainsQuery.data ?? [];
-    const project = projectQuery.data?.at(0);
+    const project = projectQuery.data;
 
     return {
       projectId,
@@ -255,7 +272,7 @@ export const ProjectDataProvider = ({
       isDeploymentsLoading: deploymentsQuery.isLoading,
 
       environments,
-      isEnvironmentsLoading: environmentsQuery.isLoading,
+      isEnvironmentsLoading: projectAppsQuery.isLoading || environmentsQuery.isLoading,
 
       customDomains,
       isCustomDomainsLoading: customDomainsQuery.isLoading,
@@ -283,6 +300,7 @@ export const ProjectDataProvider = ({
     domainsQuery,
     deploymentsQuery,
     projectQuery,
+    projectAppsQuery.isLoading,
     environmentsQuery,
     customDomainsQuery,
     refetchDeployments,

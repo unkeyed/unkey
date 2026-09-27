@@ -1,6 +1,4 @@
 import { t } from "../trpc";
-import { createApi } from "./api/create";
-import { deleteApi } from "./api/delete";
 import { keysLlmSearch } from "./api/keys/llm-search";
 import { apiKeysLlmSearch } from "./api/keys/llm-search-api-keys";
 import { activeKeysTimeseries } from "./api/keys/query-active-keys-timeseries";
@@ -18,17 +16,16 @@ import { updateAPIDeleteProtection } from "./api/updateDeleteProtection";
 import { updateApiName } from "./api/updateName";
 import { fetchAuditLog } from "./audit/fetch";
 import { auditLogsSearch } from "./audit/llm-search";
+import { listAuditMembers } from "./audit/members";
 import { deletePermissionWithRelations } from "./authorization/permissions/delete";
 import { permissionsLlmSearch } from "./authorization/permissions/llm-search";
 import { queryPermissions } from "./authorization/permissions/query";
 import { upsertPermission } from "./authorization/permissions/upsert";
 import { getConnectedKeysAndPerms } from "./authorization/roles/connected-keys-and-perms";
 import { deleteRoleWithRelations } from "./authorization/roles/delete";
-import { queryRoleKeys } from "./authorization/roles/keys/connected-keys";
 import { queryKeys } from "./authorization/roles/keys/query-keys";
 import { searchKeys } from "./authorization/roles/keys/search-key";
 import { rolesLlmSearch } from "./authorization/roles/llm-search";
-import { queryRolePermissions } from "./authorization/roles/permissions/connected-permissions";
 import { queryRolesPermissions } from "./authorization/roles/permissions/query-permissions";
 import { searchRolesPermissions } from "./authorization/roles/permissions/search-permissions";
 import { queryRoles } from "./authorization/roles/query";
@@ -41,18 +38,15 @@ import { queryDeployUsageTimeseries } from "./billing/query-deploy-usage-timeser
 import { queryUsage } from "./billing/query-usage";
 import { listApps } from "./deploy/app/list";
 import { countCustomDomains } from "./deploy/custom-domains/count";
-import { listDomainConnectHints } from "./deploy/custom-domains/hints";
 import { authorizeDeployment } from "./deploy/deployment/authorize";
 import { getDeploymentBuildSteps } from "./deploy/deployment/build-steps";
 import { cancelDeployment } from "./deploy/deployment/cancel";
 import { getDeploymentSteps } from "./deploy/deployment/deployment-steps";
 import { getById as getDeploymentById } from "./deploy/deployment/getById";
 import { getOpenApiDiff } from "./deploy/deployment/getOpenApiDiff";
-import { getDeploymentInstanceEvents } from "./deploy/deployment/instance-events";
 import { listDeployments } from "./deploy/deployment/list";
 import { listActiveBranches } from "./deploy/deployment/list-active-branches";
 import { listDeploymentBranches } from "./deploy/deployment/list-branches";
-import { searchDeployments } from "./deploy/deployment/llm-search";
 import { getDeploymentRuntimeLogs } from "./deploy/deployment/runtime-logs";
 import { listDomains } from "./deploy/domains/list";
 import { makeSensitive } from "./deploy/env-vars/make-sensitive";
@@ -85,8 +79,6 @@ import { queryRequestLogs } from "./deploy/request-logs/query";
 import { listInstances } from "./deploy/runtime-logs/list-instances";
 import { llmSearch as runtimeLogsLlmSearch } from "./deploy/runtime-logs/llm-search";
 import { queryRuntimeLogs } from "./deploy/runtime-logs/query";
-import { listEnvironments } from "./environment/list";
-import { listAllEnvironments } from "./environment/list-all";
 import { githubRouter } from "./github";
 import { queryIdentityDetails } from "./identity/query-identity-details";
 import { queryIdentityLogs } from "./identity/query-logs";
@@ -97,9 +89,6 @@ import { queryKeyDetailsLogs } from "./key/query-logs";
 import { keyDetailsVerificationsTimeseries } from "./key/query-timeseries";
 import { getConnectedRolesAndPerms } from "./key/rbac/connected-roles-and-perms";
 import { getPermissionSlugs } from "./key/rbac/get-permission-slugs";
-import { queryKeysPermissions } from "./key/rbac/permissions/query";
-import { queryKeysRoles } from "./key/rbac/roles/query-keys-roles";
-import { searchKeysRoles } from "./key/rbac/roles/search-keys-roles";
 import { rerollRootKey } from "./key/reroll";
 import { updateRootKeyName } from "./key/updateRootKeyName";
 import { updateRootKeyPermissions } from "./key/updateRootKeyPermissions";
@@ -118,12 +107,9 @@ import {
 } from "./org";
 import { createPlainIssue } from "./plain";
 import { createNamespace } from "./ratelimit/createNamespace";
-import { createOverride } from "./ratelimit/createOverride";
 import { deleteNamespace } from "./ratelimit/deleteNamespace";
-import { deleteOverride } from "./ratelimit/deleteOverride";
 import { ratelimitLlmSearch } from "./ratelimit/llm-search";
 import { listRatelimitNamespaces } from "./ratelimit/namespaces_list";
-import { listRatelimitOverrides } from "./ratelimit/overrides_list";
 import { queryRatelimitLastUsed } from "./ratelimit/query-last-used-times";
 import { queryRatelimitLatencyTimeseries } from "./ratelimit/query-latency-timeseries";
 import { queryRatelimitLogs } from "./ratelimit/query-logs";
@@ -132,16 +118,6 @@ import { queryRatelimitOverviewLogs } from "./ratelimit/query-overview-logs";
 import { queryRatelimitTimeseries } from "./ratelimit/query-timeseries";
 import { queryRatelimitTimeseriesBatch } from "./ratelimit/query-timeseries-batch";
 import { updateNamespaceName } from "./ratelimit/updateNamespaceName";
-import { updateOverride } from "./ratelimit/updateOverride";
-import { connectPermissionToRole } from "./rbac/connectPermissionToRole";
-import { connectRoleToKey } from "./rbac/connectRoleToKey";
-import { createPermission } from "./rbac/createPermission";
-import { createRole } from "./rbac/createRole";
-import { deletePermission } from "./rbac/deletePermission";
-import { disconnectPermissionFromRole } from "./rbac/disconnectPermissionFromRole";
-import { disconnectRoleFromKey } from "./rbac/disconnectRoleFromKey";
-import { updatePermission } from "./rbac/updatePermission";
-import { updateRole } from "./rbac/updateRole";
 import { deleteRootKeys } from "./settings/root-keys/delete";
 import { rootKeysLlmSearch } from "./settings/root-keys/llm-search";
 import { queryRootKeys } from "./settings/root-keys/query";
@@ -186,18 +162,6 @@ export const router = t.router({
       query: queryKeyDetailsLogs,
       timeseries: keyDetailsVerificationsTimeseries,
     }),
-    update: t.router({
-      rbac: t.router({
-        roles: t.router({
-          search: searchKeysRoles,
-          query: queryKeysRoles,
-        }),
-        permissions: t.router({
-          search: searchRolesPermissions,
-          query: queryKeysPermissions,
-        }),
-      }),
-    }),
     queryPermissionSlugs: getPermissionSlugs,
     connectedRolesAndPerms: getConnectedRolesAndPerms,
   }),
@@ -219,8 +183,6 @@ export const router = t.router({
     }),
   }),
   api: t.router({
-    create: createApi,
-    delete: deleteApi,
     updateName: updateApiName,
     setDefaultPrefix: setDefaultApiPrefix,
     setDefaultBytes: setDefaultApiBytes,
@@ -298,20 +260,7 @@ export const router = t.router({
       delete: deleteRoleWithRelations,
       llmSearch: rolesLlmSearch,
       connectedKeysAndPerms: getConnectedKeysAndPerms,
-      connectedKeys: queryRoleKeys,
-      connectedPerms: queryRolePermissions,
     }),
-  }),
-  rbac: t.router({
-    connectPermissionToRole: connectPermissionToRole,
-    connectRoleToKey: connectRoleToKey,
-    createPermission: createPermission,
-    createRole: createRole,
-    deletePermission: deletePermission,
-    disconnectPermissionFromRole: disconnectPermissionFromRole,
-    disconnectRoleFromKey: disconnectRoleFromKey,
-    updatePermission: updatePermission,
-    updateRole: updateRole,
   }),
   ratelimit: t.router({
     logs: t.router({
@@ -336,12 +285,6 @@ export const router = t.router({
       }),
       delete: deleteNamespace,
     }),
-    override: t.router({
-      list: listRatelimitOverrides,
-      create: createOverride,
-      update: updateOverride,
-      delete: deleteOverride,
-    }),
   }),
   logs: t.router({
     queryLogs,
@@ -360,6 +303,7 @@ export const router = t.router({
   audit: t.router({
     logs: fetchAuditLog,
     llmSearch: auditLogsSearch,
+    members: listAuditMembers,
   }),
   user: t.router({
     getCurrentUser,
@@ -406,10 +350,6 @@ export const router = t.router({
         generateRegex,
       }),
     }),
-    environment: t.router({
-      list: listEnvironments,
-      listAll: listAllEnvironments,
-    }),
     envVar: t.router({
       rename: renameEnvVars,
       makeSensitive,
@@ -419,7 +359,6 @@ export const router = t.router({
     }),
     customDomain: t.router({
       count: countCustomDomains,
-      hints: listDomainConnectHints,
     }),
     deployment: t.router({
       list: listDeployments,
@@ -428,9 +367,7 @@ export const router = t.router({
       getById: getDeploymentById,
       buildSteps: getDeploymentBuildSteps,
       runtimeLogs: getDeploymentRuntimeLogs,
-      instanceEvents: getDeploymentInstanceEvents,
       steps: getDeploymentSteps,
-      search: searchDeployments,
       getOpenApiDiff: getOpenApiDiff,
       authorize: authorizeDeployment,
       cancel: cancelDeployment,

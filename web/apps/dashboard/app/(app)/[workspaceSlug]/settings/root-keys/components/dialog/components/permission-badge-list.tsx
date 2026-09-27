@@ -144,13 +144,13 @@ const ListTitle = ({
   category: string;
 }) => {
   return (
-    <span className="text-[13px] flex-1 text-grayA-10 text-left flex items-center">
+    <span className="text-sm flex-1 text-grayA-10 text-left flex items-center">
       {title}
       <span className="font-normal text-grayA-12 ml-1 font-mono">{category}</span>
       <Badge
         variant="primary"
         size="sm"
-        className="text-[11px] font-normal text-gray-11 rounded-full px-2 ml-1 py-1 h-[18px] min-w-[22px] border "
+        className="text-2xs font-normal text-gray-11 rounded-full px-2 ml-1 py-1 h-[18px] min-w-[22px] border "
       >
         {count}
       </Badge>

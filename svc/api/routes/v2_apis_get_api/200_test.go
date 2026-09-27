@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apis_get_api"
@@ -264,8 +263,8 @@ func TestGetApiSuccessfully(t *testing.T) {
 			Name:          &apiName,
 			EncryptedKeys: true,
 			CreatedAt:     &creationTime,
-			DefaultPrefix: ptr.P("test_"),
-			DefaultBytes:  ptr.P(int32(16)),
+			DefaultPrefix: new("test_"),
+			DefaultBytes:  new(int32(16)),
 		})
 
 		// Set delete protection after API creation

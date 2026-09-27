@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -24,7 +23,7 @@ func TestMigrateKeys(t *testing.T) {
 				Keys: []openapi.V2KeysMigrateKeyData{
 					{
 						Hash:    "abc123",
-						Enabled: ptr.P(true),
+						Enabled: new(true),
 					},
 				},
 			},

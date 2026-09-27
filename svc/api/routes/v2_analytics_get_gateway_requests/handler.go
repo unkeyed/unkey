@@ -63,6 +63,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		TableAliases:    tableAliases,
 		AllowedTables:   allowedTables,
 		SecurityFilters: nil,
+		SecurityScopes:  nil,
 	})
 	if err != nil {
 		return err

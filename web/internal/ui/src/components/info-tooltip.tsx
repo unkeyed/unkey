@@ -1,17 +1,6 @@
 import type React from "react";
 import type { PropsWithChildren } from "react";
-import { cn } from "../lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./tooltip";
-
-const baseVariant =
-  "px-3 py-2 text-xs font-medium rounded-lg focus:border focus:border-gray-12 focus:ring-2 focus:ring-grayA-4 focus-visible:outline-hidden focus:ring-offset-0";
-const variants = {
-  primary: ["bg-raised"],
-  inverted: ["bg-black dark:bg-white text-gray-1 border border-transparent"],
-  muted: ["bg-raised text-gray-12 text-sm"],
-} as const;
-
-type TooltipVariant = keyof typeof variants;
 
 type TooltipPosition = {
   side?: "top" | "right" | "bottom" | "left";
@@ -28,10 +17,8 @@ const InfoTooltip = ({
   asChild = false,
   className,
   style,
-  variant = "primary",
   triggerClassName,
 }: PropsWithChildren<{
-  variant?: TooltipVariant;
   delayDuration?: number;
   content: React.ReactNode;
   position?: TooltipPosition;
@@ -53,7 +40,7 @@ const InfoTooltip = ({
           <TooltipTrigger className={triggerClassName}>{children}</TooltipTrigger>
         )}
         <TooltipContent
-          className={cn(baseVariant, variants[variant], className)}
+          className={className}
           style={style}
           side={position?.side || "right"}
           align={position?.align || "center"}

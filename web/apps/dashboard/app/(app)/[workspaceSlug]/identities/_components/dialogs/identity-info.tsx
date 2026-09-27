@@ -11,7 +11,6 @@ export const IdentityInfo = ({ identity }: { identity: Identity }) => {
       <div className="flex flex-col gap-1">
         <div className="text-gray-12 text-xs font-mono">{identity.id}</div>
         <InfoTooltip
-          variant="inverted"
           content={identity.externalId}
           position={{ side: "bottom", align: "center" }}
           asChild

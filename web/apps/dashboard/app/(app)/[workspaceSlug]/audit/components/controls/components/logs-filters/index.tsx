@@ -24,7 +24,7 @@ export const LogsFilters = (props: WorkspaceProps) => {
           id: "users",
           label: "Users",
           shortcut: "m",
-          component: <UsersFilter users={props.members} />,
+          component: <UsersFilter />,
         },
         {
           id: "rootKeys",
@@ -54,7 +54,7 @@ export const LogsFilters = (props: WorkspaceProps) => {
           title="Press 'F' to toggle filters"
         >
           <IconBarsFilterOutline18 className="text-gray-9 size-4" />
-          <span className="text-gray-12 font-medium text-[13px]">Filter</span>
+          <span className="text-gray-12 font-medium text-sm">Filter</span>
           {filters.length > 0 && <Badge variant="count">{filters.length}</Badge>}
         </Button>
       </div>

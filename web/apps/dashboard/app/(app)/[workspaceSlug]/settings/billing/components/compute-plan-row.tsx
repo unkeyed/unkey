@@ -121,7 +121,7 @@ export function ComputePlanRow({
     return (
       <Item>
         <ProductCell />
-        <p className="text-[13px] text-gray-11">
+        <p className="text-sm text-gray-11">
           Compute plans could not be loaded. Reload the page or contact support@unkey.com.
         </p>
       </Item>

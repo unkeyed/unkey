@@ -5,6 +5,7 @@ import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import type { DeployPlanOption } from "@/lib/trpc/routers/stripe/getDeployPlans";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { Skeleton } from "@unkey/ui";
 import type { Route } from "next";
 import Link from "next/link";
@@ -49,11 +50,11 @@ function DeployPlanGateDialogView({
     if (plans.length === 0) {
       return (
         <div className="rounded-xl border bg-raised px-4 py-6 text-center">
-          <p className="text-[13px] text-gray-11">Compute plans aren't available right now.</p>
+          <p className="text-sm text-gray-11">Compute plans aren't available right now.</p>
           <Link
             href={billingHref}
             onClick={() => onOpenChange(false)}
-            className="mt-2 inline-block font-medium text-[13px] text-info-11 hover:underline"
+            className="mt-2 inline-block font-medium text-sm text-info-11 hover:underline"
           >
             Go to billing
           </Link>
@@ -82,7 +83,7 @@ function DeployPlanGateDialogView({
       </div>
       <div className="mt-0">{renderPlanSection()}</div>
       {isAdmin ? null : (
-        <p className="text-center text-[12px] text-gray-11">
+        <p className="text-center text-xs text-gray-11">
           Only workspace admins can manage billing.
         </p>
       )}
@@ -112,7 +113,7 @@ export function DeployPlanGateDialog({ isOpen, onOpenChange, from }: Props) {
     undefined,
     { staleTime: 60_000 },
   );
-  const { data: currentUser } = trpc.user.getCurrentUser.useQuery();
+  const { user: currentUser } = useWorkspace();
   const isAdmin = currentUser?.role === "admin";
   const plans = plansData?.plans ?? [];
 

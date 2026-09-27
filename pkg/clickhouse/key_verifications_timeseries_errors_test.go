@@ -43,6 +43,10 @@ func TestClassifyPortalQueryErrorAdoptsResourceLimits(t *testing.T) {
 			code, ok := fault.GetCode(classifyPortalQueryError(tt.exception))
 			require.True(t, ok, "a resource limit must carry a code")
 			require.Equal(t, tt.expected, code)
+			wrapped := errors.Join(errors.New("query failed"), tt.exception)
+			code, ok = fault.GetCode(classifyPortalQueryError(wrapped))
+			require.True(t, ok, "a wrapped resource limit must carry a code")
+			require.Equal(t, tt.expected, code)
 		})
 	}
 }
@@ -57,6 +61,10 @@ func TestClassifyPortalQueryErrorPreservesOperationalFailures(t *testing.T) {
 		name string
 		err  error
 	}{
+		{
+			name: "no error",
+			err:  nil,
+		},
 		{
 			name: "missing table",
 			err:  &ch.Exception{Code: 60, Name: "DB::Exception", Message: "Table default.key_verifications_per_minute_v3 does not exist"},

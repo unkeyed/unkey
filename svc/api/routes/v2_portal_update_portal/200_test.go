@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -263,10 +262,10 @@ func TestUpdatePortalOnlyEnabled(t *testing.T) {
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := h.SeedPortal(t, workspace.ID, "acme-portal", "acme-portal", mapping,
-		ptr.P("https://cdn.example.com/logo.svg"), ptr.P("#6366f1"))
+		new("https://cdn.example.com/logo.svg"), new("#6366f1"))
 
 	req := baseRequest(stored.ID)
-	req.Enabled = ptr.P(false)
+	req.Enabled = new(false)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -293,10 +292,10 @@ func TestUpdatePortalOnlySlug(t *testing.T) {
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := h.SeedPortal(t, workspace.ID, "old-slug", "old-slug", mapping,
-		ptr.P("https://cdn.example.com/logo.svg"), nil)
+		new("https://cdn.example.com/logo.svg"), nil)
 
 	req := baseRequest(stored.ID)
-	req.Slug = ptr.P("new-slug")
+	req.Slug = new("new-slug")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -324,7 +323,7 @@ func TestUpdatePortalOnlyDisplayName(t *testing.T) {
 		nil, nil)
 
 	req := baseRequest(stored.ID)
-	req.DisplayName = ptr.P("Acme Payments")
+	req.DisplayName = new("Acme Payments")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -342,7 +341,7 @@ func TestUpdatePortalOneBrandingFieldLeavesTheOther(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	stored := h.SeedPortal(t, workspace.ID, "branded", "branded", keyspaceMapping(t, h, workspace.ID),
-		ptr.P("https://cdn.example.com/logo.svg"), ptr.P("#6366f1"))
+		new("https://cdn.example.com/logo.svg"), new("#6366f1"))
 
 	req := baseRequest(stored.ID)
 	req.PrimaryColor = nullable.NewNullableWithValue("#000000")
@@ -366,9 +365,9 @@ func TestUpdatePortalDistinguishesNullFromOmitted(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	cleared := h.SeedPortal(t, workspace.ID, "cleared", "cleared", keyspaceMapping(t, h, workspace.ID),
-		ptr.P("https://cdn.example.com/logo.svg"), ptr.P("#6366f1"))
+		new("https://cdn.example.com/logo.svg"), new("#6366f1"))
 	kept := h.SeedPortal(t, workspace.ID, "kept", "kept", keyspaceMapping(t, h, workspace.ID),
-		ptr.P("https://cdn.example.com/logo.svg"), ptr.P("#6366f1"))
+		new("https://cdn.example.com/logo.svg"), new("#6366f1"))
 
 	nullReq := baseRequest(cleared.ID)
 	nullReq.LogoUrl = nullable.NewNullNullable[string]()
@@ -399,7 +398,7 @@ func TestUpdatePortalClearingAllBrandingOmitsTheObject(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	stored := h.SeedPortal(t, workspace.ID, "unbranded", "unbranded", keyspaceMapping(t, h, workspace.ID),
-		ptr.P("https://cdn.example.com/logo.svg"), ptr.P("#6366f1"))
+		new("https://cdn.example.com/logo.svg"), new("#6366f1"))
 
 	req := baseRequest(stored.ID)
 	req.LogoUrl = nullable.NewNullNullable[string]()
@@ -466,11 +465,11 @@ func TestUpdatePortalWithoutMappingChangeKeepsSessions(t *testing.T) {
 
 	testCases := map[string]func(handler.Request) handler.Request{
 		"disable only": func(r handler.Request) handler.Request {
-			r.Enabled = ptr.P(false)
+			r.Enabled = new(false)
 			return r
 		},
 		"slug only": func(r handler.Request) handler.Request {
-			r.Slug = ptr.P("steady-renamed")
+			r.Slug = new("steady-renamed")
 			return r
 		},
 		// Re-sending the mapping it already has is not a change, so it must not
@@ -510,7 +509,7 @@ func TestUpdatePortalAddressedBySlug(t *testing.T) {
 		nil, nil)
 
 	req := baseRequest(stored.Slug)
-	req.Enabled = ptr.P(false)
+	req.Enabled = new(false)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -536,7 +535,7 @@ func TestUpdatePortalWritesOneAuditEntry(t *testing.T) {
 	req := baseRequest(stored.ID)
 	req.KeyspaceId = ksOf(keyspace)
 	req.AppId = appOf(keyspace)
-	req.Slug = ptr.P("audited-renamed")
+	req.Slug = new("audited-renamed")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)

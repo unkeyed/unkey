@@ -7,7 +7,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -39,6 +42,10 @@ func TestListAppsForbidden(t *testing.T) {
 		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 	})
 
+	grant := func(projectID, appID string, action permissions.Action) string {
+		return rbac.U(urn.New().Workspace(workspace.ID).Project(projectID).App(appID), action).Value
+	}
+
 	testCases := []struct {
 		name        string
 		permissions []string
@@ -53,6 +60,10 @@ func TestListAppsForbidden(t *testing.T) {
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
 		{name: "urn style does not satisfy legacy check", permissions: []string{"unkey:v1:" + workspace.ID + ":apps/*#read"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
+		{name: "urn on every app in the project", permissions: []string{grant(project.ID, "*", permissions.Read)}, shouldPass: true},
+		{name: "urn on every project", permissions: []string{grant("*", "*", permissions.Read)}, shouldPass: true},
+		{name: "urn on one app does not satisfy list", permissions: []string{grant(project.ID, app.ID, permissions.Read)}, shouldPass: false},
+		{name: "urn on another project", permissions: []string{grant(uid.New(uid.ProjectPrefix), "*", permissions.Read)}, shouldPass: false},
 	}
 
 	for _, tc := range testCases {

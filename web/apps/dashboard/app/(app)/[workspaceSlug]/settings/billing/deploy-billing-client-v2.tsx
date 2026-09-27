@@ -5,6 +5,7 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { routes } from "@/lib/navigation/routes";
 import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
+import { useWorkspace } from "@/providers/workspace-provider";
 import { IconPhoneOutline18 } from "@unkey/icons";
 import {
   Button,
@@ -69,7 +70,7 @@ export function DeployBillingClientV2() {
     routes.settings.billing({ workspaceSlug: workspace.slug }),
   );
 
-  const { data: currentUser } = trpc.user.getCurrentUser.useQuery();
+  const { user: currentUser } = useWorkspace();
   const isAdmin = currentUser ? currentUser.role === "admin" : undefined;
 
   const { data: billingInfo, error: billingError } = trpc.stripe.getBillingInfo.useQuery(

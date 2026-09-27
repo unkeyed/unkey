@@ -11,6 +11,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/githubapp"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
@@ -66,11 +68,17 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	err = principal.Authorize(rbac.T(rbac.Tuple{
-		ResourceType: rbac.App,
-		ResourceID:   "*",
-		Action:       rbac.ReadApp,
-	}))
+	err = principal.Authorize(rbac.Or(
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.App,
+			ResourceID:   "*",
+			Action:       rbac.ReadApp,
+		}),
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(project.ID).App("*"),
+			permissions.Read,
+		),
+	))
 	if err != nil {
 		return fault.New(
 			"project not found",

@@ -70,7 +70,7 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
         )}
         onClick={field.skipTooltip ? undefined : () => handleClick(field)}
       >
-        <span className="text-gray-11 text-[13px] lg:text-nowrap text-left">{field.label}</span>
+        <span className="text-gray-11 text-sm lg:text-nowrap text-left">{field.label}</span>
         <span className="text-gray-12 text-right w-3/4">
           {field.description(field.content as NonNullable<T[number]>)}
         </span>
@@ -83,7 +83,6 @@ export const RequestResponseDetails = <T extends unknown[]>({ fields, className 
 
     return (
       <InfoTooltip
-        variant="inverted"
         delayDuration={150}
         position={{ side: "bottom", align: "center" }}
         key={`${field.label}-${index}`}

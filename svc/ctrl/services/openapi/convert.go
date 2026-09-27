@@ -4,7 +4,6 @@ import (
 	"github.com/oasdiff/oasdiff/checker"
 	"github.com/oasdiff/oasdiff/diff"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func convertSummaryToProto(summary *diff.Summary) *ctrlv1.DiffSummary {
@@ -50,7 +49,7 @@ func convertChangesToProto(changes checker.Changes) []*ctrlv1.ChangelogEntry {
 			Level:       level,
 			Operation:   change.GetOperation(),
 			Path:        change.GetPath(),
-			OperationId: ptr.P(change.GetOperationId()),
+			OperationId: new(change.GetOperationId()),
 		}
 	}
 
