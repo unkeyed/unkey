@@ -57,6 +57,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
+
 	api, err := db.Query.FindApiByID(ctx, h.DB.RO(), req.ApiId)
 	if err != nil {
 		if db.IsNotFound(err) {
@@ -79,15 +80,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		)
 	}
 
-	// Check if API is deleted
-	if api.DeletedAtM.Valid {
-		return fault.New("api not found",
-			fault.Code(codes.Data.Api.NotFound.URN()),
-			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
-		)
-	}
-
-	err = principal.Authorize(rbac.Or(
+	requiredPermissions := []rbac.PermissionQuery{
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
 			ResourceID:   "*",
@@ -95,16 +88,45 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.Api,
-			ResourceID:   req.ApiId,
+			ResourceID:   api.ID,
 			Action:       rbac.DeleteAPI,
 		}),
-		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(api.ProjectID).Keyspace(api.KeyAuthID.String),
-			permissions.Delete,
-		),
-	))
+	}
+	if api.KeyAuthID.Valid {
+		keyspace, keyspaceErr := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), api.KeyAuthID.String)
+		if keyspaceErr != nil && !db.IsNotFound(keyspaceErr) {
+			return fault.Wrap(keyspaceErr,
+				fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
+				fault.Internal("database error"), fault.Public("Failed to retrieve API information."),
+			)
+		}
+		if keyspaceErr == nil {
+			if keyspace.WorkspaceID != principal.AuthorizedWorkspaceID {
+				return fault.New("wrong workspace",
+					fault.Code(codes.Data.Api.NotFound.URN()),
+					fault.Internal("keyspace belongs to different workspace, masking as 404"), fault.Public("The requested API does not exist or has been deleted."),
+				)
+			}
+			if !keyspace.DeletedAtM.Valid {
+				requiredPermissions = append(requiredPermissions, rbac.U(
+					urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(keyspace.ProjectID).Keyspace(keyspace.ID),
+					permissions.Delete,
+				))
+			}
+		}
+	}
+
+	err = principal.Authorize(rbac.Or(requiredPermissions...))
 	if err != nil {
 		return err
+	}
+
+	// Check if API is deleted
+	if api.DeletedAtM.Valid {
+		return fault.New("api not found",
+			fault.Code(codes.Data.Api.NotFound.URN()),
+			fault.Internal("api not found"), fault.Public("The requested API does not exist or has been deleted."),
+		)
 	}
 
 	// 5. Check delete protection
