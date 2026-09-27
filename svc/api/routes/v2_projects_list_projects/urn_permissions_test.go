@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -38,13 +37,13 @@ func TestListProjectsRefillsAuthorizedPages(t *testing.T) {
 		fmt.Sprintf("%s#read", urn.New().Workspace(workspace.ID).Project(ids[6])),
 	)
 	headers := http.Header{"Content-Type": {"application/json"}, "Authorization": {"Bearer " + key}}
-	first := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Limit: ptr.P(1)})
+	first := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Limit: new(1)})
 	require.Equal(t, http.StatusOK, first.Status, "%s", first.RawBody)
 	require.Len(t, first.Body.Data, 1)
 	require.Equal(t, ids[3], first.Body.Data[0].Id)
 	require.True(t, first.Body.Pagination.HasMore)
-	require.Equal(t, ptr.P(ids[6]), first.Body.Pagination.Cursor)
-	last := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Limit: ptr.P(1), Cursor: first.Body.Pagination.Cursor})
+	require.Equal(t, new(ids[6]), first.Body.Pagination.Cursor)
+	last := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Limit: new(1), Cursor: first.Body.Pagination.Cursor})
 	require.Equal(t, http.StatusOK, last.Status, "%s", last.RawBody)
 	require.Len(t, last.Body.Data, 1)
 	require.Equal(t, ids[6], last.Body.Data[0].Id)
@@ -54,7 +53,7 @@ func TestListProjectsRefillsAuthorizedPages(t *testing.T) {
 		require.NotContains(t, first.RawBody, ids[i])
 		require.NotContains(t, last.RawBody, ids[i])
 	}
-	empty := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Search: ptr.P(ids[0])})
+	empty := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{Search: new(ids[0])})
 	require.Equal(t, http.StatusOK, empty.Status, "%s", empty.RawBody)
 	require.Empty(t, empty.Body.Data)
 	require.False(t, empty.Body.Pagination.HasMore)
