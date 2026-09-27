@@ -40,6 +40,54 @@ func TestUnkeyPermissionQuery_BuildsCanonicalPermission(t *testing.T) {
 	require.True(t, result.Valid)
 }
 
+// TestHasPermissionIn_ReportsPermissionOverlapWithCollection guarantees that
+// app_1#read can permit listing apps, but project#read or app_1#write cannot.
+func TestHasPermissionIn_ReportsPermissionOverlapWithCollection(t *testing.T) {
+	t.Parallel()
+
+	apps := urn.V1{WorkspaceID: "ws_123", Resource: "projects/*/apps/*"}
+	tests := []struct {
+		name              string
+		callerPermissions []string
+		want              bool
+	}{
+		{name: "concrete member", callerPermissions: []string{"unkey:v1:ws_123:projects/proj_1/apps/app_1#read"}, want: true},
+		{name: "collection wildcard", callerPermissions: []string{"unkey:v1:ws_123:projects/*/apps/*#read"}, want: true},
+		{name: "strict descendant from collection prefix", callerPermissions: []string{"unkey:v1:ws_123:projects/proj_1/**#read"}, want: true},
+		{name: "member and descendants", callerPermissions: []string{"unkey:v1:ws_123:projects/proj_1/apps/app_1/**#read"}, want: true},
+		{name: "global wildcard", callerPermissions: []string{"unkey:v1:ws_123:**#*"}, want: true},
+		{name: "parent does not authorize children", callerPermissions: []string{"unkey:v1:ws_123:projects/proj_1#read"}},
+		{name: "child logs do not authorize parent collection", callerPermissions: []string{"unkey:v1:ws_123:projects/proj_1/apps/app_1/environments/env_1/deployments/dep_1/logs#read"}},
+		{name: "wrong ancestry", callerPermissions: []string{"unkey:v1:ws_123:projects/proj_1/keyspaces/ks_1#read"}},
+		{name: "wrong action", callerPermissions: []string{"unkey:v1:ws_123:projects/proj_1/apps/app_1#write"}},
+		{name: "wrong workspace", callerPermissions: []string{"unkey:v1:ws_other:projects/proj_1/apps/app_1#read"}},
+		{name: "malformed and legacy", callerPermissions: []string{"unkey:v1:ws_123:projects/proj_1/apps/app_1", "api.*.read_api"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, HasPermissionIn(apps, permissions.Read, tt.callerPermissions))
+		})
+	}
+}
+
+// TestHasPermissionInKeepsSelectedAncestry guarantees that permissions under
+// proj_b cannot permit listing apps under proj_a, even with descendant wildcards.
+func TestHasPermissionInKeepsSelectedAncestry(t *testing.T) {
+	collection := urn.V1{WorkspaceID: "ws_123", Resource: "projects/proj_a/apps/*"}
+	for _, permission := range []string{
+		"unkey:v1:ws_123:projects/proj_b/**#read",
+		"unkey:v1:ws_123:projects/proj_b/apps/app_a#read",
+		"unkey:v1:ws_123:projects/proj_a/apps/app_a/environments/env_a/**#read",
+		"unkey:v1:ws_123:projects/proj_a/apps/*#*",
+	} {
+		t.Run(permission, func(t *testing.T) {
+			require.False(t, HasPermissionIn(collection, permissions.Read, []string{permission}))
+		})
+	}
+}
+
 // TestStringQuery_DoesNotOptIntoUnkeyWildcardMatching guarantees callers must
 // choose U() before canonical Unkey permission grants can expand wildcards.
 func TestStringQuery_DoesNotOptIntoUnkeyWildcardMatching(t *testing.T) {

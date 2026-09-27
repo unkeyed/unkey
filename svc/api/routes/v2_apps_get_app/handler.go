@@ -66,6 +66,10 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	err = principal.Authorize(rbac.Or(
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(app.ProjectID).App(app.ID),
+			permissions.Read,
+		),
 		rbac.T(rbac.Tuple{
 			ResourceType: rbac.App,
 			ResourceID:   "*",
@@ -76,10 +80,6 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ResourceID:   app.ID,
 			Action:       rbac.ReadApp,
 		}),
-		rbac.U(
-			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(app.ProjectID).App(app.ID),
-			permissions.Read,
-		),
 	))
 	if err != nil {
 		return fault.New(
