@@ -43,7 +43,7 @@ export function AppsListControls({ search, onSearchChange, view, onViewChange }:
             value={search}
             maxLength={256}
             placeholder="Search by name, repo, image or domain"
-            className="h-8 text-[13px] font-medium"
+            className="h-8 text-sm font-medium"
             onChange={(event) => onSearchChange(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Escape") {

@@ -15,7 +15,7 @@ export const MethodBadge: React.FC<{ method: string }> = ({ method }) => (
   <Badge
     variant={getMethodVariant(method)}
     size="sm"
-    className="text-[11px] font-medium w-10 h-4.5 flex items-center justify-center"
+    className="text-2xs font-medium w-10 h-4.5 flex items-center justify-center"
   >
     {method}
   </Badge>

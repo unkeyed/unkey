@@ -6,7 +6,6 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -28,7 +27,7 @@ func TestUpdateKey(t *testing.T) {
 			args: "keys update-key --key-id=key_123 --enabled=false",
 			want: openapi.V2KeysUpdateKeyRequestBody{
 				KeyId:   "key_123",
-				Enabled: ptr.P(false),
+				Enabled: new(false),
 			},
 		},
 		{
@@ -36,7 +35,7 @@ func TestUpdateKey(t *testing.T) {
 			args: "keys update-key --key-id=key_123 --enabled=true",
 			want: openapi.V2KeysUpdateKeyRequestBody{
 				KeyId:   "key_123",
-				Enabled: ptr.P(true),
+				Enabled: new(true),
 			},
 		},
 		{
@@ -60,8 +59,8 @@ func TestUpdateKey(t *testing.T) {
 			args: "keys update-key --key-id=key_123 --roles=admin,billing --permissions=docs.read",
 			want: openapi.V2KeysUpdateKeyRequestBody{
 				KeyId:       "key_123",
-				Roles:       ptr.P([]string{"admin", "billing"}),
-				Permissions: ptr.P([]string{"docs.read"}),
+				Roles:       new([]string{"admin", "billing"}),
+				Permissions: new([]string{"docs.read"}),
 			},
 		},
 		{
@@ -78,8 +77,8 @@ func TestUpdateKey(t *testing.T) {
 			want: openapi.V2KeysUpdateKeyRequestBody{
 				KeyId:   "key_123",
 				Name:    nullable.NewNullableWithValue("updated"),
-				Enabled: ptr.P(false),
-				Roles:   ptr.P([]string{"admin"}),
+				Enabled: new(false),
+				Roles:   new([]string{"admin"}),
 				Meta:    nullable.NewNullableWithValue(map[string]any{"plan": "pro"}),
 			},
 		},

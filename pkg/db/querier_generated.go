@@ -1917,7 +1917,8 @@ type Querier interface {
 	//  ON DUPLICATE KEY UPDATE
 	//      `limit` = VALUES(`limit`),
 	//      duration = VALUES(duration),
-	//      updated_at_m = ?
+	//      updated_at_m = ?,
+	//      deleted_at_m = NULL
 	InsertRatelimitOverride(ctx context.Context, db DBTX, arg InsertRatelimitOverrideParams) error
 	//InsertRole
 	//

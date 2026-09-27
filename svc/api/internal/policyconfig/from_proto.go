@@ -4,7 +4,6 @@ import (
 	frontlinev1 "github.com/unkeyed/unkey/gen/proto/frontline/v1"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -94,15 +93,15 @@ func PolicyFromProto(p *frontlinev1.Policy) (openapi.PolicyResponse, error) {
 		}
 
 	case *frontlinev1.Policy_Openapi:
-		out.Openapi = ptr.P(openapi.OpenapiPolicy{})
+		out.Openapi = new(openapi.OpenapiPolicy{})
 
 	case *frontlinev1.Policy_Logging:
 		out.Logging = &openapi.LoggingPolicy{
-			RequestHeaders:  ptr.P(config.Logging.GetRequestHeaders()),
-			ResponseHeaders: ptr.P(config.Logging.GetResponseHeaders()),
-			RequestBody:     ptr.P(config.Logging.GetRequestBody()),
-			ResponseBody:    ptr.P(config.Logging.GetResponseBody()),
-			Query:           ptr.P(config.Logging.GetQuery()),
+			RequestHeaders:  new(config.Logging.GetRequestHeaders()),
+			ResponseHeaders: new(config.Logging.GetResponseHeaders()),
+			RequestBody:     new(config.Logging.GetRequestBody()),
+			ResponseBody:    new(config.Logging.GetResponseBody()),
+			Query:           new(config.Logging.GetQuery()),
 		}
 
 	default:
@@ -226,7 +225,7 @@ func mapMatchExprFromProto(m *frontlinev1.MatchExpr) (openapi.MatchExpr, error) 
 			if !match.Present {
 				return out, unmappable("", "header absent-match")
 			}
-			field.Present = ptr.P(openapi.FieldMatchPresent(match.Present))
+			field.Present = new(openapi.FieldMatchPresent(match.Present))
 		case *frontlinev1.HeaderMatch_Value:
 			sm, err := mapStringMatchFromProto(match.Value)
 			if err != nil {
@@ -245,7 +244,7 @@ func mapMatchExprFromProto(m *frontlinev1.MatchExpr) (openapi.MatchExpr, error) 
 			if !match.Present {
 				return out, unmappable("", "queryParam absent-match")
 			}
-			field.Present = ptr.P(openapi.FieldMatchPresent(match.Present))
+			field.Present = new(openapi.FieldMatchPresent(match.Present))
 		case *frontlinev1.QueryParamMatch_Value:
 			sm, err := mapStringMatchFromProto(match.Value)
 			if err != nil {
@@ -274,7 +273,7 @@ func mapStringMatchFromProto(s *frontlinev1.StringMatch) (openapi.StringMatch, e
 	// Proto's zero value and an absent flag are indistinguishable; omit
 	// false so responses stay minimal and roundtrip-stable with setPolicies.
 	if s.GetIgnoreCase() {
-		out.IgnoreCase = ptr.P(true)
+		out.IgnoreCase = new(true)
 	}
 	switch match := s.GetMatch().(type) {
 	case *frontlinev1.StringMatch_Exact:

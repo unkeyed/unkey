@@ -107,8 +107,7 @@ func (rec *Receiver) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	event, err := rec.verifier.Verify(r)
 	if err != nil {
-		var tooLarge *http.MaxBytesError
-		if errors.As(err, &tooLarge) {
+		if _, ok := errors.AsType[*http.MaxBytesError](err); ok {
 			rec.count("none", "too_large")
 			logger.Warn("webhook rejected: body too large", "provider", rec.provider)
 			http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)

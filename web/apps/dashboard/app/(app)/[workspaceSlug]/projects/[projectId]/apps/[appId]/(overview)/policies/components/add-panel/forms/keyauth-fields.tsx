@@ -262,7 +262,7 @@ export function KeyAuthFields() {
               </div>
               {match(location.locationType)
                 .with("bearer", () => (
-                  <span className="flex-1 text-[12px] text-gray-9">
+                  <span className="flex-1 text-xs text-gray-9">
                     Authorization: Bearer &lt;key&gt;
                   </span>
                 ))
@@ -410,7 +410,7 @@ export function KeyAuthFields() {
                   variant={rowErr?.name ? "error" : undefined}
                   aria-invalid={Boolean(rowErr?.name)}
                 />
-                <div className="flex items-center gap-1.5 shrink-0 text-[12px] text-gray-9">
+                <div className="flex items-center gap-1.5 shrink-0 text-xs text-gray-9">
                   <Switch
                     size="sm"
                     checked={rl.override}

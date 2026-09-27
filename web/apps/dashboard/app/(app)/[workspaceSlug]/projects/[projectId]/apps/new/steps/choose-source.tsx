@@ -4,7 +4,7 @@ import type { CreateAppRequestSchema } from "@/lib/collections/deploy/apps";
 import { applyDefaultSettings } from "@/lib/collections/deploy/environment-settings";
 import { SERVER_PLACEHOLDER } from "@/lib/collections/deploy/utils";
 import { trpc } from "@/lib/trpc/client";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { getUnkeyClient } from "@/lib/unkey-client";
 import { Github, IconCodeBranchOutline18 } from "@unkey/icons";
 import { Button, toast, useStepWizard } from "@unkey/ui";
 import { useState } from "react";
@@ -36,14 +36,6 @@ export const ChooseSourceStep = ({
   const [imageMode, setImageMode] = useState(false);
   const [createdApp, setCreatedApp] = useState<CreatedApp | null>(null);
   const [selectedSource, setSelectedSource] = useState<CreatedApp["sourceKind"] | null>(null);
-
-  useLiveQuery(
-    (q) =>
-      q
-        .from({ environment: collection.environments })
-        .where(({ environment }) => eq(environment.projectId, projectId)),
-    [projectId],
-  );
 
   const ensureApp = async (source: CreateAppRequestSchema["source"]): Promise<string> => {
     if (createdApp) {
@@ -80,16 +72,17 @@ export const ChooseSourceStep = ({
       if (source.kind === "git") {
         try {
           const regions = await utils.deploy.environmentSettings.getAvailableRegions.fetch();
-          await collection.environments.utils.refetch();
+          const { data: appEnvironments } = await getUnkeyClient().environments.listEnvironments({
+            project: projectId,
+            app: appId,
+          });
           const regionNames = regions
             .filter((region) => region.canSchedule)
             .map((region) => region.name);
           await Promise.all(
-            collection.environments.toArray
-              .filter((environment) => environment.appId === appId)
-              .map((environment) =>
-                applyDefaultSettings(projectId, appId, environment.id, regionNames),
-              ),
+            appEnvironments.map((environment) =>
+              applyDefaultSettings(projectId, appId, environment.id, regionNames),
+            ),
           );
         } catch (error) {
           toast.error("Failed to initialize settings", {
@@ -141,10 +134,8 @@ export const ChooseSourceStep = ({
               <IconCodeBranchOutline18 className="size-[18px] text-gray-12" />
             </div>
             <div className="flex flex-col gap-3">
-              <span className="font-medium text-gray-12 text-[13px] leading-[9px]">
-                Connect a repo
-              </span>
-              <span className="text-gray-10 text-[13px] leading-[9px]">
+              <span className="font-medium text-gray-12 text-sm leading-2.25">Connect a repo</span>
+              <span className="text-gray-10 text-sm leading-2.25">
                 Add a repo from your GitHub account
               </span>
             </div>
@@ -156,7 +147,7 @@ export const ChooseSourceStep = ({
               disabled={selectedSource === "oci"}
             >
               <Github className="size-[18px]! text-gray-12 shrink-0" />
-              <span className="text-[13px] text-gray-12 font-medium">Import from GitHub</span>
+              <span className="text-sm text-gray-12 font-medium">Import from GitHub</span>
             </Button>
           </div>
         )}

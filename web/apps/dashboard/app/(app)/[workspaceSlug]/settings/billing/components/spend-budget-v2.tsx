@@ -149,8 +149,8 @@ export function SpendBudgetDialog({ open, onOpenChange }: SpendBudgetDialogProps
         </FormField>
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <span className="text-[13px] text-gray-12">Stop workloads at the budget</span>
-            <span className="text-[12px] text-gray-10">
+            <span className="text-sm text-gray-12">Stop workloads at the budget</span>
+            <span className="text-xs text-gray-10">
               {budgetCents != null
                 ? `Workloads stop for the rest of the month when usage spend reaches ${formatDollars(budgetCents)}.`
                 : "Workloads stop for the rest of the month when usage spend reaches the budget."}
