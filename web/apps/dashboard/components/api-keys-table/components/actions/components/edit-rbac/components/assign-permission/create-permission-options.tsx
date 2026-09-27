@@ -1,12 +1,6 @@
+import type { Permission } from "@unkey/api/models/components";
 import { IconPage2Outline12 } from "@unkey/icons";
 import { Button, HoverCard, HoverCardContent, HoverCardTrigger } from "@unkey/ui";
-
-type Permission = {
-  id: string;
-  name: string;
-  description: string | null;
-  slug: string;
-};
 
 type PermissionSelectorProps = {
   permissions: Permission[];

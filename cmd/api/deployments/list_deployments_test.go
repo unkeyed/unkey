@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -17,8 +16,8 @@ func TestListDeployments(t *testing.T) {
 		name, args string
 		want       openapi.V2DeploymentsListDeploymentsRequestBody
 	}{
-		{"request", "deployments list-deployments ", openapi.V2DeploymentsListDeploymentsRequestBody{Project: nil, App: nil, Environment: nil, Status: nil, Limit: ptr.P(100), Cursor: nil}},
-		{"valid statuses", "deployments list-deployments --status=ready,failed", openapi.V2DeploymentsListDeploymentsRequestBody{Project: nil, App: nil, Environment: nil, Status: ptr.P([]openapi.DeploymentStatus{openapi.DeploymentStatusReady, openapi.DeploymentStatusFailed}), Limit: ptr.P(100), Cursor: nil}},
+		{"request", "deployments list-deployments ", openapi.V2DeploymentsListDeploymentsRequestBody{Project: nil, App: nil, Environment: nil, Status: nil, Limit: new(100), Cursor: nil}},
+		{"valid statuses", "deployments list-deployments --status=ready,failed", openapi.V2DeploymentsListDeploymentsRequestBody{Project: nil, App: nil, Environment: nil, Status: new([]openapi.DeploymentStatus{openapi.DeploymentStatusReady, openapi.DeploymentStatusFailed}), Limit: new(100), Cursor: nil}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

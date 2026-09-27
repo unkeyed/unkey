@@ -161,7 +161,7 @@ func clockAdvance(ctx context.Context, cmd *cli.Command) error {
 	out := tui.New(os.Stdout)
 	out.Printf("Advancing %s: %s -> %s ...\n", out.Bold(clockID), formatTime(clock.FrozenTime), formatTime(target))
 	_, err = sc.V1TestHelpersTestClocks.Advance(ctx, clockID, &stripesdk.TestHelpersTestClockAdvanceParams{
-		FrozenTime: stripesdk.Int64(target),
+		FrozenTime: new(target),
 	})
 	if err != nil {
 		return fmt.Errorf("advance clock: %w", err)

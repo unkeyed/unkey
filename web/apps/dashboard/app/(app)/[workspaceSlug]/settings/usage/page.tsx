@@ -156,7 +156,7 @@ function Shell({ children }: { children: ReactNode }) {
           <PageHeaderTitle>Usage</PageHeaderTitle>
         </PageHeaderContent>
         <PageHeaderActions>
-          <span className="text-[13px] text-gray-10">{currentPeriod()}</span>
+          <span className="text-sm text-gray-10">{currentPeriod()}</span>
         </PageHeaderActions>
       </PageHeader>
       <PageBody>{children}</PageBody>
