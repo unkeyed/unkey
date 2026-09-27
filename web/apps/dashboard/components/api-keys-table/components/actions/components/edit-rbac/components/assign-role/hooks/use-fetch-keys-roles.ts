@@ -1,49 +1,34 @@
 "use client";
-import { trpc } from "@/lib/trpc/client";
+import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
 import { useMemo } from "react";
 
 // No need to fetch more than 10 items, because combobox allows seeing 6 items at a time so even if users scroll 10 items are more than enough.
 export const MAX_ROLES_FETCH_LIMIT = 10;
+
+export const keysRbacRolesQueryOptions = (limit = MAX_ROLES_FETCH_LIMIT) => ({
+  queryKey: ["keys-rbac-roles", limit] as const,
+  queryFn: ({ pageParam }: { pageParam?: string }) =>
+    getUnkeyClient().permissions.listRoles({ cursor: pageParam, limit }),
+});
+
 export const useFetchKeysRoles = (limit = MAX_ROLES_FETCH_LIMIT) => {
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    trpc.key.update.rbac.roles.query.useInfiniteQuery(
-      {
-        limit,
-      },
-      {
-        getNextPageParam: (lastPage) => lastPage.nextCursor,
-        onError(err) {
-          if (err.data?.code === "NOT_FOUND") {
-            toast.error("Failed to Load Roles", {
-              description:
-                "We couldn't find any roles for this workspace. Please try again or contact support@unkey.com.",
-            });
-          } else if (err.data?.code === "INTERNAL_SERVER_ERROR") {
-            toast.error("Server Error", {
-              description:
-                "We were unable to load roles. Please try again or contact support@unkey.com",
-            });
-          } else {
-            toast.error("Failed to Load Roles", {
-              description:
-                err.message ||
-                "An unexpected error occurred. Please try again or contact support@unkey.com",
-              action: {
-                label: "Contact Support",
-                onClick: () => window.open("mailto:support@unkey.com", "_blank"),
-              },
-            });
-          }
-        },
-      },
-    );
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
+    ...keysRbacRolesQueryOptions(limit),
+    getNextPageParam: (lastPage) =>
+      lastPage.result.pagination.hasMore ? lastPage.result.pagination.cursor : undefined,
+    onError(err: unknown) {
+      const { message, description } = getErrorToast(err, "Failed to Load Roles");
+      toast.error(message, { description });
+    },
+  });
 
   const roles = useMemo(() => {
     if (!data?.pages) {
       return [];
     }
-    return data.pages.flatMap((page) => page.roles);
+    return data.pages.flatMap((page) => page.result.data);
   }, [data?.pages]);
 
   const loadMore = () => {

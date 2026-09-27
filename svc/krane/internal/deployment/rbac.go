@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,7 +27,7 @@ func (c *Controller) ensureDeploymentServiceAccount(ctx context.Context, namespa
 			Namespace: namespace,
 			Labels:    commonLabels,
 		},
-		AutomountServiceAccountToken: ptr.P(false),
+		AutomountServiceAccountToken: new(false),
 	}
 	if err := serverSideApplyResource(ctx, c.clientSet.CoreV1().RESTClient(), "serviceaccounts", namespace, saName, sa); err != nil {
 		return fmt.Errorf("failed to apply service account: %w", err)

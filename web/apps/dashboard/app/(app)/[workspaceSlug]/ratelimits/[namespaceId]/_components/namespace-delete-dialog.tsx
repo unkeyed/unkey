@@ -77,7 +77,7 @@ export const DeleteNamespaceDialog = ({
           </div>
         }
       >
-        <p className="text-gray-11 text-[13px]">
+        <p className="text-gray-11 text-sm">
           <span className="font-medium">Warning: </span>
           Deleting this namespace while it is in use may cause your current requests to fail. You
           will lose access to analytical data.
@@ -85,7 +85,7 @@ export const DeleteNamespaceDialog = ({
 
         <form id="delete-namespace-form" onSubmit={handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-1">
-            <p className="text-gray-11 text-[13px]">
+            <p className="text-gray-11 text-sm">
               Type <span className="text-gray-12 font-medium">{namespace.name}</span> to confirm
             </p>
 

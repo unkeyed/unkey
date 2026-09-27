@@ -113,7 +113,7 @@ func (p *stripePusher) Push(ctx context.Context, req PushRequest) (int, error) {
 		}
 		_, err := p.client.V1BillingMeterEvents.Create(ctx, &stripe.BillingMeterEventCreateParams{
 			EventName: stripe.String(m.name),
-			Timestamp: stripe.Int64(req.Timestamp),
+			Timestamp: new(req.Timestamp),
 			Payload: map[string]string{
 				payloadKeyCustomer: req.StripeCustomerID,
 				payloadKeyValue:    m.value,
@@ -153,8 +153,8 @@ func (p *stripePusher) Push(ctx context.Context, req PushRequest) (int, error) {
 // terminal fails the push invocation immediately instead. Rate limits (429),
 // request timeouts (408), and 5xx/network errors stay retryable.
 func terminalMeterErr(err error) bool {
-	var sErr *stripe.Error
-	return errors.As(err, &sErr) &&
+	sErr, ok := errors.AsType[*stripe.Error](err)
+	return ok &&
 		sErr.HTTPStatusCode >= 400 && sErr.HTTPStatusCode < 500 &&
 		sErr.HTTPStatusCode != 408 && sErr.HTTPStatusCode != 429
 }

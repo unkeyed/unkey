@@ -163,21 +163,21 @@ export const PlanChangeModal: React.FC<PlanChangeModalProps> = ({
                   >
                     {isSelected ? <div className="size-2 rounded-full bg-white" /> : null}
                   </div>
-                  <span className="min-w-[120px] font-medium text-[15px] text-gray-12">
+                  <span className="min-w-[120px] font-medium text-base text-gray-12">
                     {option.name}
                   </span>
-                  <span className="truncate text-[12px] text-gray-11">{option.detail}</span>
+                  <span className="truncate text-xs text-gray-11">{option.detail}</span>
                   {isCurrent ? (
-                    <span className="rounded-full bg-info-3 px-2 text-[11px] text-info-11 leading-4">
+                    <span className="rounded-full bg-info-3 px-2 text-2xs text-info-11 leading-4">
                       Current
                     </span>
                   ) : null}
                 </div>
-                <span className="shrink-0 font-medium text-[15px] text-gray-12 tabular-nums">
+                <span className="shrink-0 font-medium text-base text-gray-12 tabular-nums">
                   {option.amount !== null ? (
                     <>
                       {formatDollars(option.amount)}
-                      <span className="font-normal text-[12px] text-gray-11">
+                      <span className="font-normal text-xs text-gray-11">
                         {intervalSuffix(option.interval)}
                       </span>
                     </>
@@ -190,7 +190,7 @@ export const PlanChangeModal: React.FC<PlanChangeModalProps> = ({
           );
         })}
 
-        {warning ? <p className="text-[13px] text-warning-11 leading-5">{warning}</p> : null}
+        {warning ? <p className="text-sm text-warning-11 leading-5">{warning}</p> : null}
       </div>
     </DialogContainer>
   );
