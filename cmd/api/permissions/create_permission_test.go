@@ -5,7 +5,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/cmd/api/internal/testutil"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
@@ -29,7 +28,7 @@ func TestCreatePermission(t *testing.T) {
 			want: openapi.V2PermissionsCreatePermissionRequestBody{
 				Name:        "billing.write",
 				Slug:        "billing-write",
-				Description: ptr.P("write-access-to-billing"),
+				Description: new("write-access-to-billing"),
 			},
 		},
 		{

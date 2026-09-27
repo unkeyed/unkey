@@ -8,7 +8,6 @@ import (
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func createKeyCmd() *cli.Command {
@@ -95,8 +94,8 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/cre
 				Expires:     nil,
 				Credits:     nil,
 				Ratelimits:  nil,
-				Enabled:     ptr.P(cmd.Bool("enabled")),
-				Recoverable: ptr.P(cmd.Bool("recoverable")),
+				Enabled:     new(cmd.Bool("enabled")),
+				Recoverable: new(cmd.Bool("recoverable")),
 			}
 
 			if v := cmd.String("prefix"); v != "" {

@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	hydrav1 "github.com/unkeyed/unkey/gen/proto/hydra/v1"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/harness"
 	"github.com/unkeyed/unkey/svc/ctrl/integration/seed"
 )
@@ -73,7 +72,7 @@ func TestConfigureUser_Integration(t *testing.T) {
 
 		// Call ConfigureUser again with different settings
 		_, err = client.ConfigureUser().Request(h.Ctx, &hydrav1.ConfigureUserRequest{
-			MaxQueriesPerWindow: ptr.P[int32](2000),
+			MaxQueriesPerWindow: new(int32(2000)),
 		})
 		require.NoError(t, err)
 

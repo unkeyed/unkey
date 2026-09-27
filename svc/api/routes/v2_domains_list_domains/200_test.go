@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
 	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -45,19 +44,19 @@ func TestListDomainsRefillsAuthorizedPages(t *testing.T) {
 		req  handler.Request
 	}{
 		{name: "workspace", req: handler.Request{}},
-		{name: "project", req: handler.Request{Project: ptr.P(env.projectSlug)}},
-		{name: "app", req: handler.Request{Project: ptr.P(env.projectSlug), App: ptr.P(env.appSlug)}},
-		{name: "environment", req: handler.Request{Environment: ptr.P("production")}},
+		{name: "project", req: handler.Request{Project: new(env.projectSlug)}},
+		{name: "app", req: handler.Request{Project: new(env.projectSlug), App: new(env.appSlug)}},
+		{name: "environment", req: handler.Request{Environment: new("production")}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			req := tc.req
-			req.Limit = ptr.P(1)
+			req.Limit = new(1)
 			first := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, http.StatusOK, first.Status, "%s", first.RawBody)
 			require.Len(t, first.Body.Data, 1)
 			require.Equal(t, allowed[3], first.Body.Data[0].Id)
 			require.True(t, first.Body.Pagination.HasMore)
-			require.Equal(t, ptr.P(allowed[7]), first.Body.Pagination.Cursor)
+			require.Equal(t, new(allowed[7]), first.Body.Pagination.Cursor)
 			req.Cursor = first.Body.Pagination.Cursor
 			last := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, http.StatusOK, last.Status, "%s", last.RawBody)
@@ -215,15 +214,15 @@ func TestListDomainsOptionalScopes(t *testing.T) {
 		wantIDs []string
 	}{
 		{name: "workspace", req: handler.Request{}, wantIDs: []string{first.ID, sibling.ID, other.ID}},
-		{name: "standalone project slug", req: handler.Request{Project: ptr.P(env.projectSlug)}, wantIDs: []string{first.ID, sibling.ID}},
-		{name: "project", req: handler.Request{Project: ptr.P(env.projectID)}, wantIDs: []string{first.ID, sibling.ID}},
-		{name: "app ID without project", req: handler.Request{App: ptr.P(env.appID)}, wantIDs: []string{first.ID}},
-		{name: "app slug without project", req: handler.Request{App: ptr.P(env.appSlug)}, wantIDs: []string{first.ID}},
-		{name: "app slug with project", req: handler.Request{Project: ptr.P(env.projectSlug), App: ptr.P(env.appSlug)}, wantIDs: []string{first.ID}},
-		{name: "environment ID without parents", req: handler.Request{Environment: ptr.P(env.environmentID)}, wantIDs: []string{first.ID}},
-		{name: "environment slug without parents", req: handler.Request{Environment: ptr.P("production")}, wantIDs: []string{first.ID, sibling.ID, other.ID}},
-		{name: "environment ID with project", req: handler.Request{Project: ptr.P(env.projectID), Environment: ptr.P(env.environmentID)}, wantIDs: []string{first.ID}},
-		{name: "environment slug with app ID", req: handler.Request{App: ptr.P(env.appID), Environment: ptr.P("production")}, wantIDs: []string{first.ID}},
+		{name: "standalone project slug", req: handler.Request{Project: new(env.projectSlug)}, wantIDs: []string{first.ID, sibling.ID}},
+		{name: "project", req: handler.Request{Project: new(env.projectID)}, wantIDs: []string{first.ID, sibling.ID}},
+		{name: "app ID without project", req: handler.Request{App: new(env.appID)}, wantIDs: []string{first.ID}},
+		{name: "app slug without project", req: handler.Request{App: new(env.appSlug)}, wantIDs: []string{first.ID}},
+		{name: "app slug with project", req: handler.Request{Project: new(env.projectSlug), App: new(env.appSlug)}, wantIDs: []string{first.ID}},
+		{name: "environment ID without parents", req: handler.Request{Environment: new(env.environmentID)}, wantIDs: []string{first.ID}},
+		{name: "environment slug without parents", req: handler.Request{Environment: new("production")}, wantIDs: []string{first.ID, sibling.ID, other.ID}},
+		{name: "environment ID with project", req: handler.Request{Project: new(env.projectID), Environment: new(env.environmentID)}, wantIDs: []string{first.ID}},
+		{name: "environment slug with app ID", req: handler.Request{App: new(env.appID), Environment: new("production")}, wantIDs: []string{first.ID}},
 		{name: "environment with all parents", req: makeRequest(env), wantIDs: []string{first.ID}},
 	}
 
@@ -254,8 +253,8 @@ func TestListDomainsFiltersAreCumulative(t *testing.T) {
 	headers := authHeaders(h.CreateRootKey(first.workspaceID, "environment.*.read_domain"))
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		Project: ptr.P(first.projectID),
-		App:     ptr.P(second.appID),
+		Project: new(first.projectID),
+		App:     new(second.appID),
 	})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 	require.Empty(t, res.Body.Data, "%s", res.RawBody)
@@ -324,7 +323,7 @@ func TestListDomainsPagination(t *testing.T) {
 	pages := 0
 	for {
 		req := makeRequest(env)
-		req.Limit = ptr.P(2)
+		req.Limit = new(2)
 		req.Cursor = cursor
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -363,7 +362,7 @@ func TestListDomainsUnknownCursor(t *testing.T) {
 	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
 
 	req := makeRequest(env)
-	req.Cursor = ptr.P("dom_doesnotexist")
+	req.Cursor = new("dom_doesnotexist")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -407,7 +406,7 @@ func TestListDomainsCursorStaysScoped(t *testing.T) {
 	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
 
 	req := makeRequest(env)
-	req.Cursor = ptr.P(siblingDomain.ID)
+	req.Cursor = new(siblingDomain.ID)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), req)
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -440,9 +439,9 @@ func TestListDomainsBySlugs(t *testing.T) {
 	rootKey := h.CreateRootKey(env.workspaceID, "environment.*.read_domain")
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{
-		Project:     ptr.P(env.projectSlug),
-		App:         ptr.P(env.appSlug),
-		Environment: ptr.P("production"),
+		Project:     new(env.projectSlug),
+		App:         new(env.appSlug),
+		Environment: new("production"),
 		Search:      nil,
 	})
 	require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
@@ -630,7 +629,7 @@ func TestListDomainsSearch(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			req := makeRequest(env)
-			req.Search = ptr.P(tc.search)
+			req.Search = new(tc.search)
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
 			require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)

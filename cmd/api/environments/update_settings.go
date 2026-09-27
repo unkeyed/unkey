@@ -10,7 +10,6 @@ import (
 	"github.com/unkeyed/sdks/api/go/v3/optionalnullable"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func updateSettingsCmd() *cli.Command {
@@ -51,19 +50,19 @@ func updateSettingsCmd() *cli.Command {
 			req.WatchPaths = cmd.StringSlice("watch-paths")
 		}
 		if cmd.FlagIsSet("auto-deploy") {
-			req.AutoDeploy = ptr.P(cmd.Bool("auto-deploy"))
+			req.AutoDeploy = new(cmd.Bool("auto-deploy"))
 		}
 		if cmd.FlagIsSet("port") {
-			req.Port = ptr.P(cmd.Int64("port"))
+			req.Port = new(cmd.Int64("port"))
 		}
 		if cmd.FlagIsSet("v-cpus") {
-			req.VCpus = ptr.P(cmd.Float("v-cpus"))
+			req.VCpus = new(cmd.Float("v-cpus"))
 		}
 		if cmd.FlagIsSet("memory-mib") {
-			req.MemoryMib = ptr.P(cmd.Int64("memory-mib"))
+			req.MemoryMib = new(cmd.Int64("memory-mib"))
 		}
 		if cmd.FlagIsSet("storage-mib") {
-			req.StorageMib = ptr.P(cmd.Int64("storage-mib"))
+			req.StorageMib = new(cmd.Int64("storage-mib"))
 		}
 		if cmd.FlagIsSet("command") {
 			req.Command = cmd.StringSlice("command")

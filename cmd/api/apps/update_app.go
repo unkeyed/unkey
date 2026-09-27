@@ -7,7 +7,6 @@ import (
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func updateAppCmd() *cli.Command {
@@ -67,7 +66,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/apps/update
 				}
 			}
 			if cmd.FlagIsSet("delete-protection") {
-				req.DeleteProtection = ptr.P(cmd.Bool("delete-protection"))
+				req.DeleteProtection = new(cmd.Bool("delete-protection"))
 			}
 			res, err := client.Apps.UpdateApp(ctx, req)
 			if err != nil {

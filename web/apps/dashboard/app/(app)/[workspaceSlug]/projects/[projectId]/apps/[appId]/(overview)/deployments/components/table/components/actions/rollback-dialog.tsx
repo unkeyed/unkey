@@ -136,7 +136,7 @@ export function RollbackDialog({
                 onClick={() => setPicking((p) => !p)}
                 aria-expanded={picking}
                 aria-controls={pickerId}
-                className="flex cursor-pointer items-center justify-center gap-1.5 px-3 py-2 text-[13px] font-medium text-gray-12 transition-colors hover:bg-grayA-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-grayA-7"
+                className="flex cursor-pointer items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-12 transition-colors hover:bg-grayA-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-grayA-7"
               >
                 Choose another deployment
                 <IconChevronDownOutline12
@@ -159,7 +159,7 @@ export function RollbackDialog({
                         }}
                         className="absolute inset-0 z-10 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-grayA-7"
                       />
-                      <span className="min-w-0 flex-1 truncate text-[13px] text-gray-12">
+                      <span className="min-w-0 flex-1 truncate text-sm text-gray-12">
                         {deploymentTitle(d)}
                       </span>
                       <CommitMeta deployment={d} />
@@ -187,7 +187,7 @@ export function RollbackDialog({
 }
 
 function Label({ children }: { children: ReactNode }) {
-  return <h3 className="text-[13px] text-gray-11">{children}</h3>;
+  return <h3 className="text-sm text-gray-11">{children}</h3>;
 }
 
 function CommitMeta({ deployment }: { deployment: Deployment }) {

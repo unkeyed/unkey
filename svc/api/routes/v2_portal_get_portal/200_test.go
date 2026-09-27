@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/portal"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -137,7 +136,7 @@ func TestGetPortalByIdAndSlug(t *testing.T) {
 
 	mapping := keyspaceMapping(t, h, workspace.ID)
 	stored := h.SeedPortal(t, workspace.ID, "acme-portal", "acme-portal", mapping,
-		ptr.P("https://cdn.example.com/logo.svg"), ptr.P("#6366f1"))
+		new("https://cdn.example.com/logo.svg"), new("#6366f1"))
 
 	for name, target := range map[string]string{
 		"by id":   stored.ID,
@@ -145,7 +144,7 @@ func TestGetPortalByIdAndSlug(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-				Portal:     ptr.P(target),
+				Portal:     new(target),
 				KeyspaceId: nil,
 				AppId:      nil,
 			})
@@ -228,7 +227,7 @@ func TestGetPortalOmitsAbsentBranding(t *testing.T) {
 		nil, nil)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		Portal:     ptr.P(stored.ID),
+		Portal:     new(stored.ID),
 		KeyspaceId: nil,
 		AppId:      nil,
 	})
@@ -246,10 +245,10 @@ func TestGetPortalCarriesDisplayNameButNoReturnURL(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 
 	stored := h.SeedPortal(t, workspace.ID, "no-extras", "no-extras", keyspaceMapping(t, h, workspace.ID),
-		ptr.P("https://cdn.example.com/logo.svg"), nil)
+		new("https://cdn.example.com/logo.svg"), nil)
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-		Portal:     ptr.P(stored.ID),
+		Portal:     new(stored.ID),
 		KeyspaceId: nil,
 		AppId:      nil,
 	})
