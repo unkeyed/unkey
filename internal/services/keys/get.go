@@ -91,6 +91,7 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 		metrics.KeyVerificationsTotal.WithLabelValues(
 			keyType,
 			string(kv.Status),
+			kv.AuthorizedWorkspaceID,
 		).Inc()
 	}()
 

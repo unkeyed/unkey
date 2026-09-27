@@ -11,9 +11,12 @@ import (
 )
 
 var (
-	// KeyVerificationsTotal tracks the number of key verifications handled, labeled by type and outcome.
-	// The type should be either "root_key" or "key"
-	// Use this counter to monitor API traffic patterns.
+	// KeyVerificationsTotal tracks the number of key verifications handled,
+	// labeled by type, outcome, and workspace.
+	// The type should be either "root_key" or "key".
+	// workspace_id attributes each verification to the tenant that owns the key,
+	// so per-tenant rejection waves can be alerted on; it is empty for requests
+	// that resolve to no key. Use this counter to monitor API traffic patterns.
 	//
 	// Emission is owned by keys.Get via a deferred increment, so every caller
 	// gets the counter for free without remembering to flush. The trade-off is
@@ -22,7 +25,7 @@ var (
 	// as VALID; use the key_verifications ClickHouse stream for the final outcome.
 	//
 	// Example usage:
-	//   metrics.KeyVerificationsTotal.WithLabelValues("root_key", "VALID").Inc()
+	//   metrics.KeyVerificationsTotal.WithLabelValues("root_key", "VALID", workspaceID).Inc()
 	KeyVerificationsTotal = lazy.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "unkey",
@@ -30,7 +33,7 @@ var (
 			Name:      "verifications_total",
 			Help:      "Total number of Key verifications processed.",
 		},
-		[]string{"type", "code"},
+		[]string{"type", "code", "workspace_id"},
 	)
 
 	// KeyVerificationErrorsTotal tracks the number of errors in key verifications.
