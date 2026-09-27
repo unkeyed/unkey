@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -59,9 +58,9 @@ func TestBadRequest(t *testing.T) {
 				Ratelimits: &[]openapi.KeysVerifyKeyRatelimit{
 					{
 						Name:     "test",
-						Cost:     ptr.P(-1), // Invalid negative cost
-						Limit:    ptr.P(10),
-						Duration: ptr.P(60000),
+						Cost:     new(-1), // Invalid negative cost
+						Limit:    new(10),
+						Duration: new(60000),
 					},
 				},
 			}
@@ -219,7 +218,7 @@ func TestBadRequest(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				req := handler.Request{
 					Key:         key.Key,
-					Permissions: ptr.P(tc.permissions),
+					Permissions: new(tc.permissions),
 				}
 
 				res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, validHeaders, req)

@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"testing"
@@ -155,6 +156,44 @@ func TestSetOverrideSuccessfully(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, namespaceID, override.NamespaceID)
 		require.EqualValues(t, req2.Identifier, override.Identifier)
+		require.EqualValues(t, req2.Limit, override.Limit)
+		require.EqualValues(t, req2.Duration, override.Duration)
+	})
+
+	t.Run("set override after delete restores the record", func(t *testing.T) {
+		req := handler.Request{
+			Namespace:  namespaceID,
+			Identifier: uid.New("KEBAP"),
+			Limit:      5,
+			Duration:   2000,
+		}
+
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
+		require.Equal(t, 200, res.Status, "expected 200, received: %s", res.RawBody)
+
+		err := db.Query.SoftDeleteRatelimitOverride(ctx, h.DB.RW(), db.SoftDeleteRatelimitOverrideParams{
+			ID:  res.Body.Data.OverrideId,
+			Now: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
+		})
+		require.NoError(t, err)
+
+		req2 := handler.Request{
+			Namespace:  namespaceID,
+			Identifier: req.Identifier,
+			Limit:      100,
+			Duration:   60000,
+		}
+
+		res2 := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req2)
+		require.Equal(t, 200, res2.Status, "expected 200, received: %s", res2.RawBody)
+		require.Equal(t, res.Body.Data.OverrideId, res2.Body.Data.OverrideId)
+
+		override, err := db.Query.FindRatelimitOverrideByID(ctx, h.DB.RO(), db.FindRatelimitOverrideByIDParams{
+			WorkspaceID: h.Resources().UserWorkspace.ID,
+			OverrideID:  res2.Body.Data.OverrideId,
+		})
+		require.NoError(t, err)
+		require.False(t, override.DeletedAtM.Valid)
 		require.EqualValues(t, req2.Limit, override.Limit)
 		require.EqualValues(t, req2.Duration, override.Duration)
 	})

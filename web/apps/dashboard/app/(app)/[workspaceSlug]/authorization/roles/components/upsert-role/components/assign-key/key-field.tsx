@@ -139,19 +139,19 @@ export const KeyField = ({
           handleAddKey(val);
         }}
         placeholder={
-          <div className="flex w-full text-grayA-8 text-[13px] gap-1.5 items-center py-2">
+          <div className="flex w-full text-grayA-8 text-sm gap-1.5 items-center py-2">
             Select keys
           </div>
         }
         searchPlaceholder="Search keys by name or ID..."
         emptyMessage={
           isComboboxLoading ? (
-            <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
+            <div className="px-3 py-3 text-gray-10 text-sm flex items-center gap-2">
               <div className="animate-spin h-3 w-3 border border-t-gray-11 rounded-full" />
               {isSearching ? "Searching..." : "Loading keys..."}
             </div>
           ) : (
-            <div className="px-3 py-3 text-gray-10 text-[13px]">No keys found</div>
+            <div className="px-3 py-3 text-gray-10 text-sm">No keys found</div>
           )
         }
         variant="default"

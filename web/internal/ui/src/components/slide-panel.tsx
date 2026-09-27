@@ -110,10 +110,7 @@ export type SlidePanelTitleProps = DialogPrimitive.Title.Props & {
 export function SlidePanelTitle({ className, ...props }: SlidePanelTitleProps) {
   return (
     <DialogPrimitive.Title
-      className={cn(
-        "text-[18px] font-semibold leading-tight tracking-tight text-gray-12",
-        className,
-      )}
+      className={cn("text-lg font-semibold leading-tight tracking-tight text-gray-12", className)}
       {...props}
     />
   );
@@ -126,7 +123,7 @@ export type SlidePanelDescriptionProps = DialogPrimitive.Description.Props & {
 export function SlidePanelDescription({ className, ...props }: SlidePanelDescriptionProps) {
   return (
     <DialogPrimitive.Description
-      className={cn("text-[13px] leading-5 text-gray-11", className)}
+      className={cn("text-sm leading-5 text-gray-11", className)}
       {...props}
     />
   );

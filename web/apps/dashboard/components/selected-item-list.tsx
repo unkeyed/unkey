@@ -95,7 +95,7 @@ export function SelectedItemsList<T extends BaseItem>({
                     </span>
                     <span className="truncate z-auto">{renderBadge?.(item)}</span>
                   </div>
-                  <span className="text-gray-9 text-[11px] font-mono truncate">
+                  <span className="text-gray-9 text-2xs font-mono truncate">
                     {renderSecondaryText(item)}
                   </span>
                 </div>
