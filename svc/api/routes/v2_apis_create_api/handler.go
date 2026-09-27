@@ -50,34 +50,45 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	apiId, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
-		projectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.AuthorizedWorkspaceID)
-		if resolveErr != nil {
-			return "", resolveErr
-		}
+	projectID, projectFound, err := projects.FindDefaultProject(ctx, h.DB.RW(), principal.AuthorizedWorkspaceID)
+	if err != nil {
+		return err
+	}
 
-		// Authorizing inside the transaction rolls back a default project created
-		// for a caller who may not create APIs. The keyspace does not exist yet.
-		authErr := principal.Authorize(rbac.Or(
-			rbac.T(rbac.Tuple{
-				ResourceType: rbac.Api,
-				ResourceID:   "*",
-				Action:       rbac.CreateAPI,
-			}),
-			rbac.U(
-				urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectID).Keyspace("*"),
-				permissions.Write,
-			),
-		))
-		if authErr != nil {
-			return "", authErr
+	projectIDRequired := projectID
+	if !projectFound {
+		projectIDRequired = "*"
+	}
+	err = principal.Authorize(rbac.Or(
+		rbac.U(
+			urn.New().Workspace(principal.AuthorizedWorkspaceID).Project(projectIDRequired).Keyspace("*"),
+			permissions.Write,
+		),
+		rbac.T(rbac.Tuple{
+			ResourceType: rbac.Api,
+			ResourceID:   "*",
+			Action:       rbac.CreateAPI,
+		}),
+	))
+	if err != nil {
+		return err
+	}
+
+	apiId, err := db.TxWithResultRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) (string, error) {
+		resolvedProjectID := projectID
+		if !projectFound {
+			createdProjectID, resolveErr := projects.EnsureDefaultProject(ctx, tx, principal.AuthorizedWorkspaceID)
+			if resolveErr != nil {
+				return "", resolveErr
+			}
+			resolvedProjectID = createdProjectID
 		}
 
 		keySpaceId := uid.New(uid.KeySpacePrefix)
 		err = db.Query.InsertKeySpace(ctx, tx, db.InsertKeySpaceParams{
 			ID:                 keySpaceId,
 			WorkspaceID:        principal.AuthorizedWorkspaceID,
-			ProjectID:          projectID,
+			ProjectID:          resolvedProjectID,
 			CreatedAtM:         time.Now().UnixMilli(),
 			DefaultPrefix:      sql.NullString{Valid: false, String: ""},
 			DefaultBytes:       sql.NullInt32{Valid: false, Int32: 0},
@@ -95,7 +106,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			ID:          apiId,
 			Name:        req.Name,
 			WorkspaceID: principal.AuthorizedWorkspaceID,
-			ProjectID:   projectID,
+			ProjectID:   resolvedProjectID,
 			AuthType:    db.NullApisAuthType{Valid: true, ApisAuthType: db.ApisAuthTypeKey},
 			KeyAuthID:   sql.NullString{Valid: true, String: keySpaceId},
 			IpWhitelist: sql.NullString{Valid: false, String: ""},
