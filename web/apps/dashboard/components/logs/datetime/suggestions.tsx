@@ -99,7 +99,7 @@ export const DateTimeSuggestions = ({ className, options, onChange }: Suggestion
                 className={cn(
                   "w-full inline-flex items-center justify-between",
                   "px-2 py-1.5 rounded-lg",
-                  "text-[13px] font-medium text-gray-12 text-left",
+                  "text-sm font-medium text-gray-12 text-left",
                   "hover:bg-gray-3",
                   "focus:outline-hidden focus:ring-2 focus:ring-gray-7",
                   "focus:bg-gray-3",

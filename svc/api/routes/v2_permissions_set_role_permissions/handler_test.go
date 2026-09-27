@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -81,7 +80,7 @@ func TestSetRolePermissions(t *testing.T) {
 	t.Run("accepts deprecated roleId", func(t *testing.T) {
 		role := h.CreateRole(seed.CreateRoleRequest{WorkspaceID: workspace.ID, Name: "legacy-role-id"})
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-			RoleId:      ptr.P(role.ID),
+			RoleId:      new(role.ID),
 			Permissions: []string{},
 		})
 
@@ -220,5 +219,5 @@ func TestConcurrentMissingPermission(t *testing.T) {
 }
 
 func roleRequest(role string, permissions []string) handler.Request {
-	return handler.Request{Role: ptr.P(role), Permissions: permissions}
+	return handler.Request{Role: new(role), Permissions: permissions}
 }

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -32,7 +31,7 @@ func TestVerifyKey_KeyspaceRejectionsDoNotConsumeQuota(t *testing.T) {
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Remaining:   ptr.P(int64(7)),
+		Remaining:   new(int64(7)),
 		Ratelimits: []seed.CreateRatelimitRequest{{
 			Name: "requests", WorkspaceID: workspace.ID, AutoApply: true,
 			Duration: uint64(time.Minute.Milliseconds()), Limit: 5,
@@ -64,7 +63,7 @@ func TestVerifyKey_KeyspaceRejectionsDoNotConsumeQuota(t *testing.T) {
 		"Content-Type": {"application/json"}, "Authorization": {"Bearer " + rootKey},
 	}, handler.Request{
 		Key: key.Key, Credits: &openapi.KeysVerifyKeyCredits{Cost: 2},
-		Keyspaces: ptr.P([]string{
+		Keyspaces: new([]string{
 			otherAPI.KeyAuthID.String, "ks_second", "ks_third", strings.Repeat("x", 100), api.KeyAuthID.String,
 		}),
 	})
@@ -72,7 +71,7 @@ func TestVerifyKey_KeyspaceRejectionsDoNotConsumeQuota(t *testing.T) {
 	require.Equal(t, openapi.VALID, res.Body.Data.Code)
 	require.True(t, res.Body.Data.Valid)
 	require.Equal(t, api.KeyAuthID.String, res.Body.Data.KeyspaceId)
-	require.Equal(t, ptr.P(int64(5)), res.Body.Data.Credits)
+	require.Equal(t, new(int64(5)), res.Body.Data.Credits)
 	require.Len(t, res.Body.Data.Ratelimits, 1)
 	require.Equal(t, int64(4), res.Body.Data.Ratelimits[0].Remaining)
 }
@@ -98,21 +97,21 @@ func TestVerifyKey_KeyspaceAllowlistHidesInvalidKeys(t *testing.T) {
 		code     openapi.V2KeysVerifyKeyResponseDataCode
 	}{
 		{name: "disabled", disabled: true, code: openapi.DISABLED},
-		{name: "expired", expires: ptr.P(time.UnixMilli(1)), code: openapi.EXPIRED},
+		{name: "expired", expires: new(time.UnixMilli(1)), code: openapi.EXPIRED},
 	} {
 		t.Run(state.name, func(t *testing.T) {
 			key := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID, KeySpaceID: api.KeyAuthID.String,
 				Disabled: state.disabled, Expires: state.expires,
-				Name: ptr.P("private key"), Meta: ptr.P(`{"private":"metadata"}`), Remaining: ptr.P(int64(7)),
+				Name: new("private key"), Meta: new(`{"private":"metadata"}`), Remaining: new(int64(7)),
 			})
 			for _, tt := range []struct {
 				name      string
 				keyspaces *[]string
 				hidden    bool
 			}{
-				{name: "mismatch", keyspaces: ptr.P([]string{otherAPI.KeyAuthID.String}), hidden: true},
-				{name: "matching", keyspaces: ptr.P([]string{api.KeyAuthID.String})},
+				{name: "mismatch", keyspaces: new([]string{otherAPI.KeyAuthID.String}), hidden: true},
+				{name: "matching", keyspaces: new([]string{api.KeyAuthID.String})},
 				{name: "omitted"},
 			} {
 				t.Run(tt.name, func(t *testing.T) {
@@ -130,7 +129,7 @@ func TestVerifyKey_KeyspaceAllowlistHidesInvalidKeys(t *testing.T) {
 					require.Equal(t, api.KeyAuthID.String, res.Body.Data.KeyspaceId)
 					require.Equal(t, "private key", res.Body.Data.Name)
 					require.Equal(t, map[string]any{"private": "metadata"}, res.Body.Data.Meta)
-					require.Equal(t, ptr.P(int64(7)), res.Body.Data.Credits)
+					require.Equal(t, new(int64(7)), res.Body.Data.Credits)
 				})
 			}
 		})

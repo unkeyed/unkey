@@ -114,8 +114,7 @@ func fetchTag(ctx context.Context, client *github.Client, owner, repo string) (s
 
 	release, _, err := client.Repositories.GetLatestRelease(ctx, owner, repo)
 	if err != nil {
-		var errResp *github.ErrorResponse
-		if errors.As(err, &errResp) {
+		if errResp, ok := errors.AsType[*github.ErrorResponse](err); ok {
 			if errResp.Response != nil && errResp.Response.StatusCode == 404 {
 				return "", fmt.Errorf("no latest release found. Check available releases at: https://github.com/%s/%s/releases", owner, repo)
 			}
@@ -124,8 +123,7 @@ func fetchTag(ctx context.Context, client *github.Client, owner, repo string) (s
 			}
 		}
 
-		var rateLimitErr *github.RateLimitError
-		if errors.As(err, &rateLimitErr) {
+		if rateLimitErr, ok := errors.AsType[*github.RateLimitError](err); ok {
 			return "", fmt.Errorf("GitHub API rate limit exceeded. Resets at %v. Set GITHUB_TOKEN environment variable",
 				rateLimitErr.Rate.Reset.Time)
 		}
@@ -143,8 +141,7 @@ func fetchTag(ctx context.Context, client *github.Client, owner, repo string) (s
 func fetchCommitSHA(ctx context.Context, client *github.Client, owner, repo, tag string) (string, error) {
 	commit, _, err := client.Repositories.GetCommit(ctx, owner, repo, tag, nil)
 	if err != nil {
-		var errResp *github.ErrorResponse
-		if errors.As(err, &errResp) && errResp.Response != nil && errResp.Response.StatusCode == 404 {
+		if errResp, ok := errors.AsType[*github.ErrorResponse](err); ok && errResp.Response != nil && errResp.Response.StatusCode == 404 {
 			return "", fmt.Errorf("tag '%s' not found in repository %s/%s", tag, owner, repo)
 		}
 		return "", fmt.Errorf("error fetching commit for tag %s: %w", tag, err)

@@ -163,7 +163,7 @@ export const TableActionPopover = ({
                   <div className="text-gray-9 group-hover:text-gray-12 group-focus:text-gray-12">
                     {item.icon}
                   </div>
-                  <span className="text-[13px] font-medium">{item.label}</span>
+                  <span className="text-sm font-medium">{item.label}</span>
                 </>
               );
               const control =

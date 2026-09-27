@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 	unkey "github.com/unkeyed/sdks/api/go/v2"
 	"github.com/unkeyed/sdks/api/go/v2/models/components"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 )
 
@@ -62,7 +61,7 @@ func createKey(t *testing.T, ctx context.Context, client *unkey.Unkey, apiID str
 	response, err := client.Keys.CreateKey(ctx, components.V2KeysCreateKeyRequestBody{
 		APIID:   apiID,
 		Name:    &name,
-		Enabled: ptr.P(true),
+		Enabled: new(true),
 	})
 	require.NoError(t, err)
 	require.NotNil(t, response.V2KeysCreateKeyResponseBody)
@@ -72,7 +71,7 @@ func createKey(t *testing.T, ctx context.Context, client *unkey.Unkey, apiID str
 	t.Cleanup(func() {
 		_, err := client.Keys.DeleteKey(ctx, components.V2KeysDeleteKeyRequestBody{
 			KeyID:     key.KeyID,
-			Permanent: ptr.P(true),
+			Permanent: new(true),
 		})
 		require.NoError(t, err)
 	})

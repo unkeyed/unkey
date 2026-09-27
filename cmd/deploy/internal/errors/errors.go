@@ -116,23 +116,19 @@ func FormatError(err error) string {
 		return ""
 	}
 
-	var forbiddenErr *apierrors.ForbiddenErrorResponse
-	if errors.As(err, &forbiddenErr) {
+	if forbiddenErr, ok := errors.AsType[*apierrors.ForbiddenErrorResponse](err); ok {
 		return formatPermissionError(forbiddenErr)
 	}
 
-	var unauthorizedErr *apierrors.UnauthorizedErrorResponse
-	if errors.As(err, &unauthorizedErr) {
+	if unauthorizedErr, ok := errors.AsType[*apierrors.UnauthorizedErrorResponse](err); ok {
 		return formatAuthenticationError(unauthorizedErr)
 	}
 
-	var notFoundErr *apierrors.NotFoundErrorResponse
-	if errors.As(err, &notFoundErr) {
+	if notFoundErr, ok := errors.AsType[*apierrors.NotFoundErrorResponse](err); ok {
 		return formatNotFoundError(notFoundErr)
 	}
 
-	var badRequestErr *apierrors.BadRequestErrorResponse
-	if errors.As(err, &badRequestErr) {
+	if badRequestErr, ok := errors.AsType[*apierrors.BadRequestErrorResponse](err); ok {
 		return formatValidationError(badRequestErr)
 	}
 
