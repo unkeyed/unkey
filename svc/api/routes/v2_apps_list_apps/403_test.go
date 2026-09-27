@@ -17,6 +17,9 @@ import (
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_list_apps"
 )
 
+// TestListAppsForbidden guarantees that read permissions for this project's
+// apps work, while another project, workspace, or action receives a masked 404.
+// For example, app_1#read permits listing app_1 but apps/*#write does not.
 func TestListAppsForbidden(t *testing.T) {
 	h := testutil.NewHarness(t)
 
@@ -41,6 +44,7 @@ func TestListAppsForbidden(t *testing.T) {
 		Name:        "Payments API",
 		Slug:        strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-")),
 	})
+	otherWorkspace := h.CreateWorkspace()
 
 	grant := func(projectID, appID string, action permissions.Action) string {
 		return rbac.U(urn.New().Workspace(workspace.ID).Project(projectID).App(appID), action).Value
@@ -53,16 +57,21 @@ func TestListAppsForbidden(t *testing.T) {
 	}{
 		{name: "wildcard app permission", permissions: []string{"app.*.read_app"}, shouldPass: true},
 		{name: "permission and more", permissions: []string{"some.other.permission", "app.*.read_app"}, shouldPass: true},
+		{name: "URN project app collection read", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + project.ID + "/apps/*#read"}, shouldPass: true},
 		{name: "specific app does not satisfy list", permissions: []string{fmt.Sprintf("app.%s.read_app", app.ID)}, shouldPass: false},
+		{name: "specific app permission filters list", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + project.ID + "/apps/" + app.ID + "#read"}, shouldPass: true},
 		{name: "project scoped read does not match", permissions: []string{fmt.Sprintf("project.%s.read_app", project.ID)}, shouldPass: false},
+		{name: "URN other project does not satisfy list", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + uid.New(uid.ProjectPrefix) + "/apps/*#read"}, shouldPass: false},
+		{name: "URN other workspace does not satisfy list", permissions: []string{"unkey:v1:" + otherWorkspace.ID + ":projects/" + project.ID + "/apps/*#read"}, shouldPass: false},
 		{name: "wrong action", permissions: []string{"app.*.create_app"}, shouldPass: false},
+		{name: "URN write does not satisfy list", permissions: []string{"unkey:v1:" + workspace.ID + ":projects/" + project.ID + "/apps/*#write"}, shouldPass: false},
 		{name: "read does not match create", permissions: []string{"project.*.create_app"}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
-		{name: "urn style does not satisfy legacy check", permissions: []string{"unkey:v1:" + workspace.ID + ":apps/*#read"}, shouldPass: false},
+		{name: "non-catalog app path does not satisfy list", permissions: []string{"unkey:v1:" + workspace.ID + ":apps/*#read"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
 		{name: "urn on every app in the project", permissions: []string{grant(project.ID, "*", permissions.Read)}, shouldPass: true},
 		{name: "urn on every project", permissions: []string{grant("*", "*", permissions.Read)}, shouldPass: true},
-		{name: "urn on one app does not satisfy list", permissions: []string{grant(project.ID, app.ID, permissions.Read)}, shouldPass: false},
+		{name: "urn on one app filters list", permissions: []string{grant(project.ID, app.ID, permissions.Read)}, shouldPass: true},
 		{name: "urn on another project", permissions: []string{grant(uid.New(uid.ProjectPrefix), "*", permissions.Read)}, shouldPass: false},
 	}
 
@@ -120,7 +129,7 @@ func TestListAppsExistenceNotLeaked(t *testing.T) {
 
 	missingSlug := strings.ToLower(strings.ReplaceAll(uid.New("test"), "_", "-"))
 
-	// Key in the same workspace with an unrelated grant but no read_app action.
+	// Key in the same workspace with an unrelated permission but no read_app action.
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_api")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},
