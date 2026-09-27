@@ -60,11 +60,11 @@ export function DeploymentApproval({ isOpen, onClose, deployment }: DeploymentAp
             <IconShieldAlertOutline18 className="text-white dark:text-black size-[22px]" />
           </div>
 
-          <h1 className="text-[22px] font-bold tracking-tight text-gray-12 mb-2">
+          <h1 className="text-xl font-bold tracking-tight text-gray-12 mb-2">
             {isFork ? "Authorize Fork Deployment" : "Authorize Deployment"}
           </h1>
 
-          <p className="text-[14px] leading-relaxed text-gray-11 text-center mb-4 max-w-100">
+          <p className="text-sm leading-relaxed text-gray-11 text-center mb-4 max-w-100">
             {isFork ? "An external contributor pushed commit " : "Commit "}
             {commitUrl ? (
               <a

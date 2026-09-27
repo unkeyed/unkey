@@ -1,6 +1,6 @@
 module github.com/unkeyed/unkey/tools/pricing
 
-go 1.25.1
+go 1.27.1
 
 require (
 	github.com/stripe/stripe-go/v86 v86.1.1

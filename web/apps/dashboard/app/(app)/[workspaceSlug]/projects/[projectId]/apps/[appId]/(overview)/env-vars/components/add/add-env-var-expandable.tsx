@@ -317,7 +317,7 @@ export const AddEnvVarExpandable = ({
                 name="environmentId"
                 render={({ field }) => (
                   <fieldset className="flex flex-col gap-1.5 border-0 m-0 p-0">
-                    <label htmlFor="environment-select" className="text-gray-11 text-[13px]">
+                    <label htmlFor="environment-select" className="text-gray-11 text-sm">
                       Environment
                     </label>
                     <Select
@@ -347,7 +347,7 @@ export const AddEnvVarExpandable = ({
                       </SelectContent>
                     </Select>
                     {errors.environmentId?.message && (
-                      <p className="text-error-11 text-[13px]">{errors.environmentId.message}</p>
+                      <p className="text-error-11 text-sm">{errors.environmentId.message}</p>
                     )}
                   </fieldset>
                 )}
@@ -361,7 +361,7 @@ export const AddEnvVarExpandable = ({
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   )}
                 />
-                <span className="text-[13px] text-gray-12 font-medium">Sensitive</span>
+                <span className="text-sm text-gray-12 font-medium">Sensitive</span>
                 <InfoTooltip
                   content="Permanently hides values after saving. Use for API keys and secrets."
                   position={{ side: "top" }}
@@ -394,9 +394,7 @@ export const AddEnvVarExpandable = ({
                 <IconCloudUploadOutline18 className="size-3" />
                 Import <span className="font-medium">.env</span>
               </Button>
-              <span className="text-[13px] text-gray-11">
-                or drag & drop / paste (⌘V) your .env
-              </span>
+              <span className="text-sm text-gray-11">or drag & drop / paste (⌘V) your .env</span>
             </div>
             <Button
               type="submit"

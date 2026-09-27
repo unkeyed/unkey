@@ -159,19 +159,19 @@ export const PermissionField = ({
           handleAddPermission(val);
         }}
         placeholder={
-          <div className="flex w-full text-grayA-8 text-[13px] gap-1.5 items-center py-2">
+          <div className="flex w-full text-grayA-8 text-sm gap-1.5 items-center py-2">
             Select permissions
           </div>
         }
         searchPlaceholder="Search permissions by name, ID, slug, or description..."
         emptyMessage={
           isComboboxLoading ? (
-            <div className="px-3 py-3 text-gray-10 text-[13px] flex items-center gap-2">
+            <div className="px-3 py-3 text-gray-10 text-sm flex items-center gap-2">
               <div className="animate-spin h-3 w-3 border border-t-gray-11 rounded-full" />
               {isSearching ? "Searching..." : "Loading permissions..."}
             </div>
           ) : (
-            <div className="px-3 py-3 text-gray-10 text-[13px]">No permissions found</div>
+            <div className="px-3 py-3 text-gray-10 text-sm">No permissions found</div>
           )
         }
         variant="default"

@@ -1,12 +1,17 @@
 package handler_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -113,4 +118,40 @@ func TestAuthorizationErrors(t *testing.T) {
 		require.NotNil(t, res.Body.Error)
 		require.Equal(t, "The provided root key is invalid. The requested workspace does not exist.", res.Body.Error.Detail)
 	})
+}
+
+// TestDeleteApi_ForbiddenForOtherKeyspaceGrant verifies that a delete grant on
+// another keyspace does not cover this API.
+func TestDeleteApi_ForbiddenForOtherKeyspaceGrant(t *testing.T) {
+	ctx := context.Background()
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+		Caches:    h.Caches,
+	}
+	h.Register(route)
+
+	workspaceID := h.Resources().UserWorkspace.ID
+	api := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
+	other := h.CreateApi(seed.CreateApiRequest{WorkspaceID: workspaceID})
+	otherKeySpace, err := db.Query.FindKeySpaceByID(ctx, h.DB.RO(), other.KeyAuthID.String)
+	require.NoError(t, err)
+
+	grant := rbac.U(
+		urn.New().Workspace(workspaceID).Project(otherKeySpace.ProjectID).Keyspace(otherKeySpace.ID),
+		permissions.Delete,
+	).Value
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", h.CreateRootKey(workspaceID, grant))},
+	}
+
+	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, handler.Request{ApiId: api.ID})
+	require.Equal(t, http.StatusForbidden, res.Status)
+
+	notDeleted, err := db.Query.FindApiByID(ctx, h.DB.RO(), api.ID)
+	require.NoError(t, err)
+	require.False(t, notDeleted.DeletedAtM.Valid)
 }

@@ -21,9 +21,9 @@ export const SearchExampleTooltip: React.FC<SearchExampleTooltipProps> = ({
     <InfoHoverCard
       content={
         <div>
-          <div className="font-medium mb-2 flex items-center gap-2 text-[13px]">
+          <div className="font-medium mb-2 flex items-center gap-2 text-sm">
             <span>Try queries like:</span>
-            <span className="text-[11px] text-gray-11">(click to use)</span>
+            <span className="text-2xs text-gray-11">(click to use)</span>
           </div>
           <ul className="space-y-1.5 pl-1 [&_svg]:size-[10px] ">
             {examples.map((example) => (

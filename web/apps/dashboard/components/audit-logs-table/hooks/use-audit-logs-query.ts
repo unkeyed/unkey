@@ -4,6 +4,7 @@ import {
   PAGINATED_LIST_QUERY_OPTIONS,
   computeTotalPages,
   paginationFilterKey,
+  useFallbackTotalPages,
   usePaginatedNavigation,
   usePaginatedPage,
 } from "@/hooks/use-paginated-list-query";
@@ -89,8 +90,23 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
     PAGINATED_LIST_QUERY_OPTIONS,
   );
 
-  const totalCount = data?.total ?? 0;
-  const totalPages = computeTotalPages(totalCount, pageSize);
+  // When the ClickHouse count query fails the tRPC handler returns `total:
+  // null`. Fall back to the proven-page count so the footer stays usable
+  // instead of collapsing to a single page.
+  const pageRowCount = data?.auditLogs.length ?? 0;
+  const knownTotal = data?.total ?? null;
+  const totalCount =
+    knownTotal !== null ? Math.max(0, knownTotal) : (page - 1) * pageSize + pageRowCount;
+  const fallbackTotalPages = useFallbackTotalPages({
+    isFetching,
+    hasData: data != null,
+    pageRowCount,
+    queryPage: page,
+    limit: pageSize,
+    resetKey: filtersKey,
+  });
+  const totalPages =
+    knownTotal !== null ? computeTotalPages(totalCount, pageSize) : fallbackTotalPages;
 
   const { onPageChange, isInitialLoading, isNavigating } = usePaginatedNavigation({
     data,

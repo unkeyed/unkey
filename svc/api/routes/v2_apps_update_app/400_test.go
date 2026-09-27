@@ -9,7 +9,6 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_update_app"
@@ -48,9 +47,9 @@ func TestUpdateAppBadRequest(t *testing.T) {
 		{name: "app too long", req: handler.Request{Project: validProject, App: strings.Repeat("a", 256)}},
 		{name: "project with invalid chars", req: handler.Request{Project: "pay.ments", App: validID}},
 		{name: "project too long", req: handler.Request{Project: strings.Repeat("a", 256), App: validID}},
-		{name: "slug too short", req: handler.Request{Project: validProject, App: validID, Slug: ptr.P("ab")}},
-		{name: "slug with invalid chars", req: handler.Request{Project: validProject, App: validID, Slug: ptr.P("payments api")}},
-		{name: "slug too long", req: handler.Request{Project: validProject, App: validID, Slug: ptr.P(strings.Repeat("a", 256))}},
+		{name: "slug too short", req: handler.Request{Project: validProject, App: validID, Slug: new("ab")}},
+		{name: "slug with invalid chars", req: handler.Request{Project: validProject, App: validID, Slug: new("payments api")}},
+		{name: "slug too long", req: handler.Request{Project: validProject, App: validID, Slug: new(strings.Repeat("a", 256))}},
 		{name: "empty name", req: handler.Request{Project: validProject, App: validID, Name: &emptyName}},
 		{name: "name too long", req: handler.Request{Project: validProject, App: validID, Name: &longName}},
 		{
@@ -62,10 +61,10 @@ func TestUpdateAppBadRequest(t *testing.T) {
 			},
 		},
 		{name: "git empty object", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{})}},
-		{name: "git repository empty", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("")})}},
-		{name: "git repository too long", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P(strings.Repeat("a", 256))})}},
-		{name: "git default branch empty", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey"), DefaultBranch: ptr.P("")})}},
-		{name: "git default branch too long", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: ptr.P("unkeyed/unkey"), DefaultBranch: ptr.P(strings.Repeat("a", 257))})}},
+		{name: "git repository empty", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: new("")})}},
+		{name: "git repository too long", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: new(strings.Repeat("a", 256))})}},
+		{name: "git default branch empty", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: new("unkeyed/unkey"), DefaultBranch: new("")})}},
+		{name: "git default branch too long", req: handler.Request{Project: validProject, App: validID, Git: nullable.NewNullableWithValue(openapi.AppGitUpdateInput{Repository: new("unkeyed/unkey"), DefaultBranch: new(strings.Repeat("a", 257))})}},
 	}
 
 	for _, tc := range testCases {
