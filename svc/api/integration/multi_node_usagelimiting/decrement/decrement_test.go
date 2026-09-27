@@ -12,7 +12,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/integration"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -75,7 +74,7 @@ func TestDecrementAccuracy(t *testing.T) {
 			keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 				WorkspaceID: workspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				Remaining:   ptr.P(int64(tc.totalCredits)),
+				Remaining:   new(int64(tc.totalCredits)),
 			})
 
 			// Set up request
@@ -223,7 +222,7 @@ func TestDecrementEdgeCases(t *testing.T) {
 		keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			Remaining:   ptr.P(int64(0)),
+			Remaining:   new(int64(0)),
 		})
 
 		req := handler.Request{Key: keyResponse.Key}
@@ -259,7 +258,7 @@ func TestDecrementEdgeCases(t *testing.T) {
 		keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			Remaining:   ptr.P(int64(10)),
+			Remaining:   new(int64(10)),
 		})
 
 		req := handler.Request{Key: keyResponse.Key}
@@ -309,7 +308,7 @@ func TestDecrementEdgeCases(t *testing.T) {
 		keyResponse := h.Seed.CreateKey(ctx, seed.CreateKeyRequest{
 			WorkspaceID: workspace.ID,
 			KeySpaceID:  api.KeyAuthID.String,
-			Remaining:   ptr.P(int64(25)),
+			Remaining:   new(int64(25)),
 		})
 
 		headers := http.Header{

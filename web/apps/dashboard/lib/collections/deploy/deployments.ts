@@ -6,7 +6,7 @@ import { z } from "zod";
 import { queryClient, trpcClient } from "../client";
 import { DEPLOYMENT_STATUSES } from "./deployment-status";
 import { INSTANCE_STATUSES } from "./instance-status";
-import { type ParsedFilter, extractStringFilter, validateProjectIdInQuery } from "./utils";
+import { type ParsedFilter, extractStringFilter } from "./utils";
 
 export const deploymentSchema = z.object({
   id: z.string(),
@@ -143,10 +143,9 @@ export const deployments = createCollection<Deployment, string>(
     retry: 3,
     syncMode: "on-demand",
     queryFn: async (ctx) => {
-      const options = ctx.meta?.loadSubsetOptions;
-
-      validateProjectIdInQuery(options?.where);
-      const { projectId, appId, deploymentId, startTime, endTime } = readDeploymentSubset(options);
+      const { projectId, appId, deploymentId, startTime, endTime } = readDeploymentSubset(
+        ctx.meta?.loadSubsetOptions,
+      );
 
       if (!projectId) {
         throw new Error("Query must include eq(collection.projectId, projectId) constraint");

@@ -7,7 +7,6 @@ import (
 	"github.com/unkeyed/sdks/api/go/v3/models/components"
 	"github.com/unkeyed/unkey/cmd/api/util"
 	"github.com/unkeyed/unkey/pkg/cli"
-	"github.com/unkeyed/unkey/pkg/ptr"
 )
 
 func getKeyCmd() *cli.Command {
@@ -60,7 +59,7 @@ For full documentation, see https://www.unkey.com/docs/api-reference/v2/keys/get
 
 			req := components.V2KeysGetKeyRequestBody{
 				KeyID:   cmd.String("key-id"),
-				Decrypt: ptr.P(cmd.Bool("decrypt")),
+				Decrypt: new(cmd.Bool("decrypt")),
 			}
 
 			res, err := client.Keys.GetKey(ctx, req)

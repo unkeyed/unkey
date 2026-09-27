@@ -128,8 +128,7 @@ var portalQueryLimitCodes = map[int32]bool{
 // failure like "read tcp ...: i/o timeout" would otherwise be served as a query
 // limit. Both belong in the 5xx metrics instead, where an outage is visible.
 func classifyPortalQueryError(err error) error {
-	var chErr *ch.Exception
-	if !errors.As(err, &chErr) || !portalQueryLimitCodes[chErr.Code] {
+	if chErr, ok := errors.AsType[*ch.Exception](err); !ok || !portalQueryLimitCodes[chErr.Code] {
 		return err
 	}
 

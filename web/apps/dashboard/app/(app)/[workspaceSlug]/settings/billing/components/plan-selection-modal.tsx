@@ -241,14 +241,14 @@ export const PlanSelectionModal = ({
                     </div>
                     <div>
                       <div className="flex flex-row items-center gap-3">
-                        <h3 className="w-[120px] font-medium text-gray-12 text-[15px]">
+                        <h3 className="w-[120px] font-medium text-gray-12 text-base">
                           {product.name}
                         </h3>
-                        <p className="text-[12px] text-gray-11 text-center mt-[2px]">
+                        <p className="text-xs text-gray-11 text-center mt-[2px]">
                           {formatNumber(product.quotas.requestsPerMonth)} requests/month
                         </p>
                         {currentProductId === product.id && (
-                          <span className="text-[12px] bg-info-3 text-info-11 px-2 rounded-full mt-px">
+                          <span className="text-xs bg-info-3 text-info-11 px-2 rounded-full mt-px">
                             Current
                           </span>
                         )}
@@ -257,9 +257,9 @@ export const PlanSelectionModal = ({
                   </div>
                 </div>
                 <div className="text-right mt-[2px]">
-                  <div className="font-medium text-[15px] text-gray-12">
+                  <div className="font-medium text-base text-gray-12">
                     ${product.dollar}
-                    <span className="text-[12px] font-normal text-gray-11">/mo</span>
+                    <span className="text-xs font-normal text-gray-11">/mo</span>
                   </div>
                 </div>
               </div>

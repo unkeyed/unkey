@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -53,7 +52,7 @@ func TestUpdateKeyCorrectPermissions(t *testing.T) {
 			keyResponse := h.CreateKey(seed.CreateKeyRequest{
 				WorkspaceID: h.Resources().UserWorkspace.ID,
 				KeySpaceID:  api.KeyAuthID.String,
-				Name:        ptr.P("test"),
+				Name:        new("test"),
 			})
 
 			// Set up permissions
@@ -71,7 +70,7 @@ func TestUpdateKeyCorrectPermissions(t *testing.T) {
 
 			req := handler.Request{
 				KeyId:   keyResponse.KeyID,
-				Enabled: ptr.P(false),
+				Enabled: new(false),
 			}
 
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -104,7 +103,7 @@ func TestUpdateKeyInsufficientPermissions(t *testing.T) {
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Name:        ptr.P("test"),
+		Name:        new("test"),
 	})
 
 	// Create root key with insufficient permissions
@@ -117,7 +116,7 @@ func TestUpdateKeyInsufficientPermissions(t *testing.T) {
 
 	req := handler.Request{
 		KeyId:   keyResponse.KeyID,
-		Enabled: ptr.P(false),
+		Enabled: new(false),
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.ForbiddenErrorResponse](h, route, headers, req)
@@ -148,7 +147,7 @@ func TestUpdateKeyCrossWorkspaceIsolation(t *testing.T) {
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: h.Resources().UserWorkspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Name:        ptr.P("test"),
+		Name:        new("test"),
 	})
 
 	// Create different workspace
@@ -164,7 +163,7 @@ func TestUpdateKeyCrossWorkspaceIsolation(t *testing.T) {
 
 	req := handler.Request{
 		KeyId:   keyResponse.KeyID,
-		Enabled: ptr.P(false),
+		Enabled: new(false),
 	}
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)

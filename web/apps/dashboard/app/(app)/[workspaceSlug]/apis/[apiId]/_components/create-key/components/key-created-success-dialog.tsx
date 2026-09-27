@@ -120,13 +120,8 @@ export const KeyCreatedSuccessDialog: FC<KeyCreatedSuccessDialogProps> = ({
             </div>
           </div>
           <div className="mt-5 flex flex-col gap-2 items-center">
-            <div className="font-semibold text-gray-12 text-[16px] leading-[24px]">
-              {copy.title}
-            </div>
-            <div
-              className="text-gray-10 text-[13px] leading-[24px] text-center"
-              ref={popoverAnchorRef}
-            >
+            <div className="font-semibold text-gray-12 text-base leading-6">{copy.title}</div>
+            <div className="text-gray-10 text-sm leading-6 text-center" ref={popoverAnchorRef}>
               {copy.body}
             </div>
           </div>

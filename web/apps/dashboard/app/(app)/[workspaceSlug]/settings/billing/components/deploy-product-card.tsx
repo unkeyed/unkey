@@ -341,7 +341,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
               <span>
                 <button
                   type="button"
-                  className="text-[13px] text-gray-9 transition-colors hover:text-gray-11 disabled:cursor-not-allowed"
+                  className="text-sm text-gray-9 transition-colors hover:text-gray-11 disabled:cursor-not-allowed"
                   disabled={!isAdmin}
                   onClick={() => setCancelOpen(true)}
                 >
@@ -359,16 +359,12 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                 {meterStats.map((stat) => (
                   <div key={stat.label} className="bg-raised px-3 py-2 first:pl-0">
                     <InfoTooltip content={stat.hint} asChild>
-                      <p className="w-fit cursor-help text-[11px] text-gray-10 uppercase tracking-wide underline decoration-dotted decoration-grayA-6 underline-offset-2">
+                      <p className="w-fit cursor-help text-2xs text-gray-10 uppercase tracking-wide underline decoration-dotted decoration-grayA-6 underline-offset-2">
                         {stat.label}
                       </p>
                     </InfoTooltip>
-                    <p className="font-medium text-[13px] text-gray-12 tabular-nums">
-                      {stat.value}
-                    </p>
-                    <p className="text-[12px] text-gray-10 tabular-nums">
-                      {formatPrice(stat.cost)}
-                    </p>
+                    <p className="font-medium text-sm text-gray-12 tabular-nums">{stat.value}</p>
+                    <p className="text-xs text-gray-10 tabular-nums">{formatPrice(stat.cost)}</p>
                   </div>
                 ))}
               </div>
@@ -391,26 +387,26 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                     because a credit subtracted from a total is the reading that
                     makes a $0 line look like a missing grant. */}
                 <div className="flex items-baseline justify-between gap-4">
-                  <span className="text-[13px] text-gray-10">
+                  <span className="text-sm text-gray-10">
                     Plan fee
                     {feeProrated ? (
-                      <span className="ml-1.5 text-[12px] text-gray-9">prorated</span>
+                      <span className="ml-1.5 text-xs text-gray-9">prorated</span>
                     ) : null}
                   </span>
-                  <span className="text-[13px] text-gray-9 tabular-nums">
+                  <span className="text-sm text-gray-9 tabular-nums">
                     {formatDollars(periodFeeCents)} paid
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between gap-4">
-                  <span className="text-[13px] text-gray-10">Usage</span>
-                  <span className="text-[13px] text-gray-9 tabular-nums">
+                  <span className="text-sm text-gray-10">Usage</span>
+                  <span className="text-sm text-gray-9 tabular-nums">
                     {formatPrice(usageAmount ?? 0)}
                   </span>
                 </div>
                 {includedCreditCents > 0 && creditRemainingCents !== null ? (
                   <div className="flex items-baseline justify-between gap-4">
-                    <span className="text-[13px] text-gray-10">Included credit</span>
-                    <span className="text-[13px] text-gray-9 tabular-nums">
+                    <span className="text-sm text-gray-10">Included credit</span>
+                    <span className="text-sm text-gray-9 tabular-nums">
                       {formatPrice(creditRemainingCents)} of {formatDollars(includedCreditCents)}{" "}
                       remaining
                     </span>
@@ -418,33 +414,33 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                 ) : null}
                 {includedCreditCents > 0 ? (
                   <div className="mt-1 flex items-baseline justify-between gap-4 border-t pt-2">
-                    <span className="text-[13px] text-gray-10">
+                    <span className="text-sm text-gray-10">
                       Overage
-                      <span className="ml-1.5 text-[12px] text-gray-9">usage past credit</span>
+                      <span className="ml-1.5 text-xs text-gray-9">usage past credit</span>
                     </span>
-                    <span className="text-[13px] text-gray-11 tabular-nums">
+                    <span className="text-sm text-gray-11 tabular-nums">
                       {formatPrice(overageCents)}
                     </span>
                   </div>
                 ) : null}
                 <div className="flex items-baseline justify-between gap-4">
-                  <span className="text-[13px] text-gray-10">
+                  <span className="text-sm text-gray-10">
                     Next plan fee
-                    <span className="ml-1.5 text-[12px] text-gray-9">
+                    <span className="ml-1.5 text-xs text-gray-9">
                       {currentPlanOption?.interval ?? "month"} ahead
                     </span>
                   </span>
-                  <span className="text-[13px] text-gray-11 tabular-nums">
+                  <span className="text-sm text-gray-11 tabular-nums">
                     {formatDollars(planFee)}
                   </span>
                 </div>
                 <div className="mt-1 flex items-baseline justify-between gap-4 border-t pt-2">
-                  <span className="text-[13px] text-gray-12">
+                  <span className="text-sm text-gray-12">
                     <InfoHoverCard
                       asChild
                       position={{ side: "top", align: "start" }}
                       content={
-                        <div className="flex max-w-[240px] flex-col gap-2 text-[12px]">
+                        <div className="flex max-w-[240px] flex-col gap-2 text-xs">
                           <div className="flex flex-col gap-0.5">
                             <p className="font-medium text-gray-12">How this is calculated</p>
                             <p className="text-gray-11">
@@ -486,18 +482,18 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                     overageCents !== null &&
                     nextInvoiceCents !== null &&
                     projectedOverageCents > overageCents ? (
-                      <span className="ml-1.5 text-[12px] text-gray-9">
+                      <span className="ml-1.5 text-xs text-gray-9">
                         (~
                         {formatPrice(nextInvoiceCents + (projectedOverageCents - overageCents))}{" "}
                         projected)
                       </span>
                     ) : null}
                   </span>
-                  <span className="font-medium text-[15px] text-gray-12 tabular-nums">
+                  <span className="font-medium text-base text-gray-12 tabular-nums">
                     {nextInvoiceCents !== null ? formatPrice(nextInvoiceCents) : "—"}
                   </span>
                 </div>
-                <p className="text-[12px] text-gray-9">
+                <p className="text-xs text-gray-9">
                   This period's {formatDollars(periodFeeCents)} fee is already paid. Total cost for
                   this period is {formatPrice(currentBillCents)}.
                 </p>
@@ -562,7 +558,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
           </Button>
         }
       >
-        <div className="text-[13px] text-gray-11 leading-6">
+        <div className="text-sm text-gray-11 leading-6">
           Cancelling stops Compute immediately: your deployments stop and no further usage is
           billed. Usage up to now is still charged, and the plan fee already paid is not refunded.
         </div>
