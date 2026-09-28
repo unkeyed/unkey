@@ -15,7 +15,10 @@ import (
 
 const transitionKey = "transition"
 
-const pinnedTransitionRetryDelay = time.Minute
+const (
+	pinnedRetryDelayMin = time.Minute
+	pinnedRetryDelayMax = 15 * time.Minute
+)
 
 // transition is the Restate-persisted state for a pending desired state change.
 // Only the most recently written transition is considered active; older ones are
@@ -24,6 +27,7 @@ type transition struct {
 	Nonce            string
 	To               hydrav1.DeploymentDesiredState
 	DeferWhilePinned bool
+	PinnedRetries    int
 }
 
 // ScheduleDesiredStateChange records a future desired state transition for this
@@ -49,6 +53,7 @@ func (v *VirtualObject) ScheduleDesiredStateChange(ctx restate.ObjectContext, re
 		Nonce:            nonce,
 		To:               req.GetState(),
 		DeferWhilePinned: req.GetDeferWhilePinned(),
+		PinnedRetries:    0,
 	}
 
 	restate.Set(ctx, transitionKey, &t)
@@ -99,11 +104,25 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 		}
 	}
 	if deferred {
-		hydrav1.NewDeploymentServiceClient(ctx, deploymentID).ChangeDesiredState().Send(req, restate.WithDelay(pinnedTransitionRetryDelay))
+		delay := pinnedRetryDelay(t.PinnedRetries)
+		t.PinnedRetries++
+		restate.Set(ctx, transitionKey, t)
+		hydrav1.NewDeploymentServiceClient(ctx, deploymentID).ChangeDesiredState().Send(req, restate.WithDelay(delay))
 		return &hydrav1.ChangeDesiredStateResponse{}, nil
 	}
 	restate.Clear(ctx, transitionKey)
 	return &hydrav1.ChangeDesiredStateResponse{}, nil
+}
+
+func pinnedRetryDelay(retries int) time.Duration {
+	delay := pinnedRetryDelayMin
+	for range retries {
+		if delay >= pinnedRetryDelayMax/2 {
+			return pinnedRetryDelayMax
+		}
+		delay *= 2
+	}
+	return delay
 }
 
 func (v *VirtualObject) setDesiredState(ctx restate.ObjectContext, deploymentID string, state hydrav1.DeploymentDesiredState, deferWhilePinned bool) (bool, error) {
