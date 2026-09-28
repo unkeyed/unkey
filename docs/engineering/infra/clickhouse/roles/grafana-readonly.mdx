@@ -67,10 +67,19 @@ GRANT SELECT ON system.asynchronous_metric_log_1 TO grafana_readonly;
 GRANT SELECT ON system.asynchronous_metric_log_2 TO grafana_readonly;
 GRANT SELECT ON system.asynchronous_metric_log_3 TO grafana_readonly;
 
+-- Server metrics (resource usage: CPU, memory, merge/mutation pool, cache, uptime)
+GRANT SELECT ON system.metrics TO grafana_readonly;
+
+-- Server error counters (Keeper, S3, network, ...)
+GRANT SELECT ON system.errors TO grafana_readonly;
+
+-- Currently running queries
+GRANT SELECT ON system.processes TO grafana_readonly;
+
 -- Query log (performance dashboards)
 GRANT SELECT(
     event_time, query_start_time, query_duration_ms, type,
-    initial_user, query_kind, query_id, query, normalized_query_hash,
+    user, initial_user, query_kind, query_id, query, normalized_query_hash,
     memory_usage, read_rows, read_bytes, written_rows, written_bytes,
     result_rows, result_bytes
 ) ON system.query_log TO grafana_readonly;
