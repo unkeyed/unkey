@@ -84,7 +84,16 @@ func (h *handler) ServeDNS(ctx context.Context, w dnswire.ResponseWriter, reques
 
 		if err := packTruncated(response, size); err != nil {
 			logger.Warn("pack DNS response", "error", err)
-		} else if _, err := io.Copy(w, response); err != nil {
+			response = new(dnswire.Msg)
+			dnsutil.SetReply(response, request)
+			response.RecursionAvailable = true
+			response.Rcode = dnswire.RcodeServerFailure
+			if err := response.Pack(); err != nil {
+				logger.Warn("pack DNS failure response", "error", err)
+				return
+			}
+		}
+		if _, err := io.Copy(w, response); err != nil {
 			logger.Warn("write DNS response", "error", err)
 		}
 

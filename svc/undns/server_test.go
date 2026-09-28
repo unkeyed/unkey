@@ -94,6 +94,73 @@ func TestServerUDPTruncationTCPAndCallerDeploymentIsolation(t *testing.T) {
 	}
 }
 
+func TestServerReturnsServfailWhenAnswerExceedsWireLimit(t *testing.T) {
+	featuretesting.SetFeatureDuringTest(t, features.WatchListClient, false)
+	for _, count := range []int{4093, 4094} {
+		t.Run(fmt.Sprint(count), func(t *testing.T) {
+			objects := discoveryObjects(t)
+			slice := objects[3].(*discoveryv1.EndpointSlice)
+			slice.Endpoints = nil
+			for i := range count {
+				slice.Endpoints = append(slice.Endpoints, discoveryv1.Endpoint{
+					Addresses:  []string{netip.AddrFrom4([4]byte{10, 1, byte(i >> 8), byte(i)}).String()},
+					Conditions: discoveryv1.EndpointConditions{Ready: new(true)},
+				})
+			}
+			c, err := newCatalog(fake.NewSimpleClientset(objects...), 30*time.Second)
+			require.NoError(t, err)
+			cfg, err := config.LoadBytes[Config]([]byte(`upstream = "10.96.0.10:53"`))
+			require.NoError(t, err)
+			cfg.ListenAddress, cfg.HealthAddress = unusedTCPAddress(t), unusedTCPAddress(t)
+			ctx, cancel := context.WithCancel(t.Context())
+			done := make(chan error, 1)
+			go func() { done <- serve(ctx, cfg, c) }()
+			t.Cleanup(func() {
+				cancel()
+				select {
+				case err := <-done:
+					require.NoError(t, err)
+				case <-time.After(5 * time.Second):
+					t.Error("DNS server did not shut down")
+				}
+			})
+			require.Eventually(t, c.ready, 5*time.Second, 10*time.Millisecond)
+
+			for _, transport := range []string{"udp", "tcp"} {
+				for _, udpSize := range []uint16{0, 1232} {
+					t.Run(fmt.Sprintf("%s/edns-%d", transport, udpSize), func(t *testing.T) {
+						question := dnswire.NewMsg("payments.unkey.internal.", dnswire.TypeA)
+						question.UDPSize = udpSize
+						response, _, err := testDNSClient(time.Second).Exchange(t.Context(), question, transport, cfg.ListenAddress)
+						require.NoError(t, err)
+						require.Equal(t, question.ID, response.ID)
+						require.Equal(t, question.Question[0].Header().Name, response.Question[0].Header().Name)
+						if count == 4094 {
+							require.Equal(t, uint16(dnswire.RcodeServerFailure), response.Rcode)
+							require.Empty(t, response.Answer)
+							require.Empty(t, response.Ns)
+							require.Empty(t, response.Extra)
+							require.False(t, response.Truncated)
+							require.False(t, response.Authoritative)
+							return
+						}
+						require.Equal(t, uint16(dnswire.RcodeSuccess), response.Rcode)
+						want := 4093
+						if transport == "udp" {
+							want = 29
+							if udpSize != 0 {
+								want = 74
+							}
+						}
+						require.Len(t, response.Answer, want)
+						require.Equal(t, transport == "udp", response.Truncated)
+					})
+				}
+			}
+		})
+	}
+}
+
 func TestColdStartServesPublishedBindingWhileReplacementIsStaged(t *testing.T) {
 	featuretesting.SetFeatureDuringTest(t, features.WatchListClient, false)
 	objects := discoveryObjects(t)
