@@ -20,8 +20,6 @@ import {
   IconUserOutline18,
 } from "@unkey/icons";
 import {
-  AlertBanner,
-  AlertBannerDescription,
   Button,
   Dialog,
   DialogContent,
@@ -227,17 +225,22 @@ function FullPlanFeatureList({
 
 function IncludedInEveryPlan() {
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-gray-11 text-sm">
-      <span className="font-medium text-gray-12">Included in every plan</span>
-      {BASE_FEATURES.map((feature) => {
-        const Icon = FEATURE_ICONS[feature.kind];
-        return (
-          <span key={feature.label} className="flex items-center gap-2">
-            <Icon className="size-4 shrink-0" />
-            {feature.label}
-          </span>
-        );
-      })}
+    <div className="flex flex-col items-center justify-between gap-3 rounded-xl border bg-raised px-6 py-4 md:flex-row">
+      <span className="font-medium text-gray-12 text-sm">Included in every plan</span>
+      <ul className="flex flex-wrap items-center justify-center gap-2">
+        {BASE_FEATURES.map((feature) => {
+          const Icon = FEATURE_ICONS[feature.kind];
+          return (
+            <li
+              key={feature.label}
+              className="flex items-center gap-2 rounded-full border bg-grayA-2 px-3 py-1 text-gray-12 text-sm"
+            >
+              <Icon className="size-4 shrink-0 text-gray-11" />
+              {feature.label}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -391,14 +394,17 @@ function ComputePlans({
         })}
       </div>
       {cardVariant === "v3" ? <IncludedInEveryPlan /> : null}
-      <AlertBanner className="w-auto self-center px-3 py-2">
-        <AlertBannerDescription className="text-xs">
-          {CREDITS_INFO}{" "}
-          <a href={CREDITS_LINK_HREF} target="_blank" rel="noopener noreferrer">
-            {CREDITS_LINK_LABEL}
-          </a>
-        </AlertBannerDescription>
-      </AlertBanner>
+      <p className="text-center text-gray-11 text-xs">
+        {CREDITS_INFO}{" "}
+        <a
+          href={CREDITS_LINK_HREF}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2 hover:text-gray-12"
+        >
+          {CREDITS_LINK_LABEL}
+        </a>
+      </p>
 
       <ComputePlanConfirmDialog
         plan={pendingPlan}
