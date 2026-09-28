@@ -120,10 +120,10 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
           onValueChange={(value) =>
             setSelectedProduct(products.find((product) => product === value) ?? null)
           }
-          className="relative mx-auto flex min-h-dvh w-full max-w-[1040px] flex-col items-center justify-center px-6 py-16"
+          className="relative mx-auto flex min-h-dvh w-full max-w-[1040px] flex-col items-center justify-start px-4 pt-14 pb-10 md:justify-center md:px-6 md:pt-36 md:pb-16"
         >
           {products.length > 1 ? (
-            <TabsList className="absolute top-4 left-1/2 w-64 -translate-x-1/2">
+            <TabsList className="mb-8 w-64 md:absolute md:top-24 md:left-1/2 md:mb-0 md:-translate-x-1/2">
               {products.map((product) => (
                 <TabsTrigger key={product} value={product} className="flex-1">
                   {PRODUCT_LABELS[product]}
@@ -131,7 +131,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
               ))}
             </TabsList>
           ) : null}
-          <DialogTitle className="text-center font-semibold text-2xl text-gray-12 tracking-[-0.03em]">
+          <DialogTitle className="text-center font-semibold text-gray-12 text-xl tracking-[-0.03em] md:text-2xl">
             {copy.title}
           </DialogTitle>
           <DialogDescription className="mt-2 max-w-md text-balance text-center text-gray-11 text-sm leading-6">
@@ -236,13 +236,13 @@ function IncludedInEveryPlan() {
   return (
     <div className="flex flex-col items-center justify-between gap-3 rounded-xl border bg-raised px-6 py-4 md:flex-row">
       <span className="font-medium text-gray-12 text-sm">Included in every plan</span>
-      <ul className="flex flex-wrap items-center justify-center gap-2">
+      <ul className="flex flex-col divide-y md:flex-row md:divide-x md:divide-y-0">
         {BASE_FEATURES.map((feature) => {
           const Icon = FEATURE_ICONS[feature.kind];
           return (
             <li
               key={feature.label}
-              className="flex items-center gap-2 rounded-full border bg-grayA-2 px-3 py-1 text-gray-12 text-sm"
+              className="flex items-center gap-2 py-2 text-gray-12 text-sm md:px-4 md:py-0 md:last:pr-0"
             >
               <Icon className="size-4 shrink-0 text-gray-11" />
               {feature.label}
@@ -342,7 +342,7 @@ function ComputePlans({
             <div
               key={option.plan}
               className={cn(
-                "flex flex-col gap-5 rounded-xl border bg-raised p-6",
+                "flex flex-col gap-5 rounded-xl border bg-raised p-5 md:p-6",
                 isRecommended && "border-info-7 ring-1 ring-info-7",
               )}
             >
