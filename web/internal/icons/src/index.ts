@@ -135,6 +135,7 @@ export * from "./icons/laptop2-outline-18";
 export * from "./icons/layer-front-outline-18";
 export * from "./icons/layers2-outline-18";
 export * from "./icons/layers3-outline-18";
+export * from "./icons/link-outline-18";
 export * from "./icons/link4-outline-12";
 export * from "./icons/link4-outline-18";
 export * from "./icons/location2-outline-18";
