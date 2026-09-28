@@ -28,12 +28,27 @@ func (s *Service) SwapLiveDeployment(
 	req *hydrav1.SwapLiveDeploymentRequest,
 ) (*hydrav1.SwapLiveDeploymentResponse, error) {
 	deploymentID := req.GetDeploymentId()
+	environmentID := restate.Key(ctx)
+
+	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
+		target, err := s.db.FindDeploymentWithEnvironmentAndApp(runCtx, deploymentID)
+		if err != nil {
+			return fmt.Errorf("find target deployment environment: %w", err)
+		}
+		if target.EnvironmentID != environmentID || !target.EnvironmentKind.IsProduction() || target.EnvironmentSlug != "production" {
+			return restate.ToTerminalError(fmt.Errorf("target deployment must belong to the keyed built-in production environment"), restate.WithErrorCode(400))
+		}
+		return nil
+	}, restate.WithName("validate live deployment target"))
+	if err != nil {
+		return nil, err
+	}
 
 	// Reassign routes first — if the update fails, the live-deployment
 	// marker stays pointing at the previous deployment so traffic is
 	// unaffected.
 	for _, frontlineRouteID := range req.GetFrontlineRouteIds() {
-		_, err := restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
+		_, err = restate.Run(ctx, func(stepCtx restate.RunContext) (restate.Void, error) {
 			return restate.Void{}, s.db.ReassignFrontlineRoute(stepCtx, db.ReassignFrontlineRouteParams{
 				ID:           frontlineRouteID,
 				DeploymentID: deploymentID,
@@ -78,7 +93,7 @@ func (s *Service) SwapLiveDeployment(
 	}
 
 	logger.Info("swapped live deployment",
-		"env_id", restate.Key(ctx),
+		"env_id", environmentID,
 		"new_deployment_id", deploymentID,
 		"previous_deployment_id", previous.String,
 		"is_rolled_back", req.GetSetRollbackFlag(),

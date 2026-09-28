@@ -13,6 +13,7 @@ import (
 type ociImageResolver struct {
 	internalRepository string
 	internalAuth       authn.Authenticator
+	internalInsecure   bool
 	publicTransport    http.RoundTripper
 	internalTransport  http.RoundTripper
 	options            []remote.Option
@@ -24,6 +25,7 @@ func NewImageResolver(config RegistryConfig) (ImageResolver, error) {
 	resolver := &ociImageResolver{
 		internalRepository: "",
 		internalAuth:       authn.Anonymous,
+		internalInsecure:   config.Insecure,
 		publicTransport:    newRegistryTransport(""),
 		internalTransport:  nil,
 		options:            nil,
@@ -61,6 +63,12 @@ func (r *ociImageResolver) Resolve(ctx context.Context, imageReference string) (
 	if reference.Context().Name() == r.internalRepository {
 		authenticator = r.internalAuth
 		transport = r.internalTransport
+		if r.internalInsecure {
+			reference, err = name.ParseReference(imageReference, name.WeakValidation, name.Insecure)
+			if err != nil {
+				return "", fault.Wrap(err, fault.Internal("invalid internal OCI image reference"))
+			}
+		}
 	}
 	options := make([]remote.Option, 0, len(r.options)+3)
 	if transport != nil {

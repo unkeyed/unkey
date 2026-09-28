@@ -15,12 +15,15 @@ import (
 
 const transitionKey = "transition"
 
+const pinnedTransitionRetryDelay = time.Minute
+
 // transition is the Restate-persisted state for a pending desired state change.
 // Only the most recently written transition is considered active; older ones are
 // identified and discarded by nonce mismatch in ChangeDesiredState.
 type transition struct {
-	Nonce string
-	To    hydrav1.DeploymentDesiredState
+	Nonce            string
+	To               hydrav1.DeploymentDesiredState
+	DeferWhilePinned bool
 }
 
 // ScheduleDesiredStateChange records a future desired state transition for this
@@ -43,8 +46,9 @@ func (v *VirtualObject) ScheduleDesiredStateChange(ctx restate.ObjectContext, re
 	nonce := restate.UUID(ctx).String()
 
 	t := transition{
-		Nonce: nonce,
-		To:    req.GetState(),
+		Nonce:            nonce,
+		To:               req.GetState(),
+		DeferWhilePinned: req.GetDeferWhilePinned(),
 	}
 
 	restate.Set(ctx, transitionKey, &t)
@@ -88,21 +92,21 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 		return &hydrav1.ChangeDesiredStateResponse{}, nil
 	}
 
-	if err := v.setDesiredState(ctx, deploymentID, req.GetState()); err != nil {
-		// Deleted while pending: nothing left to apply
-		if te := restate.AsTerminalError(err); te == nil || te.Code() != 404 {
-			return nil, err
+	deferred, changeErr := v.setDesiredState(ctx, deploymentID, req.GetState(), t.DeferWhilePinned)
+	if changeErr != nil {
+		if te := restate.AsTerminalError(changeErr); te == nil || te.Code() != 404 {
+			return nil, changeErr
 		}
 	}
-
+	if deferred {
+		hydrav1.NewDeploymentServiceClient(ctx, deploymentID).ChangeDesiredState().Send(req, restate.WithDelay(pinnedTransitionRetryDelay))
+		return &hydrav1.ChangeDesiredStateResponse{}, nil
+	}
 	restate.Clear(ctx, transitionKey)
-
 	return &hydrav1.ChangeDesiredStateResponse{}, nil
 }
 
-// setDesiredState refuses the app's live deployment and returns a terminal 404
-// for a missing one
-func (v *VirtualObject) setDesiredState(ctx restate.ObjectContext, deploymentID string, state hydrav1.DeploymentDesiredState) error {
+func (v *VirtualObject) setDesiredState(ctx restate.ObjectContext, deploymentID string, state hydrav1.DeploymentDesiredState, deferWhilePinned bool) (bool, error) {
 	var desiredState mysqltype.DeploymentsDesiredState
 	var topologyDesiredStatus db.DeploymentTopologyDesiredStatus
 
@@ -114,41 +118,50 @@ func (v *VirtualObject) setDesiredState(ctx restate.ObjectContext, deploymentID 
 		desiredState = mysqltype.DeploymentsDesiredStateStopped
 		topologyDesiredStatus = db.DeploymentTopologyDesiredStatusStopped
 	case hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_UNSPECIFIED:
-		return restate.TerminalErrorf("invalid state: %s", state)
+		return false, restate.TerminalErrorf("invalid state: %s", state)
 	default:
-		return restate.TerminalErrorf("unhandled state: %s", state)
+		return false, restate.TerminalErrorf("unhandled state: %s", state)
 	}
 
-	// Guard and the desired-state write share one transaction so a concurrent
-	// promote cannot make this deployment the app's current one between the
-	// check and the write: the invariant is that we never change the desired
-	// state of the deployment that is currently serving the app.
-	err := restate.RunVoid(ctx, func(runCtx restate.RunContext) error {
-		return db.Tx(runCtx, v.db.RW(), func(txCtx context.Context, tx db.DBTX) error {
-			deployment, err := db.NewQueries(tx).FindDeploymentWithApp(txCtx, deploymentID)
+	deferred, err := restate.Run(ctx, func(runCtx restate.RunContext) (bool, error) {
+		return db.TxWithResult(runCtx, v.db.RW(), func(txCtx context.Context, tx db.DBTX) (bool, error) {
+			queries := db.NewQueries(tx)
+			deployment, err := queries.LockDeploymentWithApp(txCtx, deploymentID)
 			if err != nil {
 				if db.IsNotFound(err) {
-					return restate.ToTerminalError(fmt.Errorf("deployment not found"), restate.WithErrorCode(404))
+					return false, restate.ToTerminalError(fmt.Errorf("deployment not found"), restate.WithErrorCode(404))
 				}
-				return err
+				return false, err
+			}
+
+			pinned, err := queries.ExistsAppBindingPinningDeployment(txCtx, sql.NullString{String: deploymentID, Valid: true})
+			if err != nil {
+				return false, err
+			}
+			if pinned && desiredState == mysqltype.DeploymentsDesiredStateStopped && deferWhilePinned {
+				return true, nil
 			}
 
 			if deployment.CurrentDeploymentID.Valid && deployment.CurrentDeploymentID.String == deploymentID {
-				return restate.TerminalErrorf("not allowed to modify the current deployment")
+				return false, restate.TerminalErrorf("not allowed to modify the current deployment")
 			}
 
-			return db.NewQueries(tx).UpdateDeploymentDesiredState(txCtx, db.UpdateDeploymentDesiredStateParams{
+			err = queries.UpdateDeploymentDesiredState(txCtx, db.UpdateDeploymentDesiredStateParams{
 				ID:           deploymentID,
 				DesiredState: desiredState,
 				UpdatedAt:    sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 			})
+			return false, err
 		})
 	}, restate.WithName("updating desired state"))
 	if err != nil {
-		return err
+		return false, err
+	}
+	if deferred {
+		return true, nil
 	}
 
-	return applyTopologyDesiredStatus(ctx, v.db, deploymentID, topologyDesiredStatus)
+	return false, applyTopologyDesiredStatus(ctx, v.db, deploymentID, topologyDesiredStatus)
 }
 
 // ApplyDesiredState updates the deployment and its topology in each region.
