@@ -1,9 +1,16 @@
+import { limitsByPlan } from "@/lib/limits";
 import { describe, expect, it } from "vitest";
 import { availableProducts, defaultProduct, paywallCopy } from "./paywall-copy";
 
 describe("paywallCopy", () => {
   it("offers both products for team members", () => {
     expect(paywallCopy("team").products).toEqual(["compute", "api"]);
+  });
+
+  it("offers only Compute plans that include team members on the team wall", () => {
+    const plans = paywallCopy("team").computePlans;
+    expect(plans).toEqual(["pro", "business"]);
+    expect(plans.every((plan) => limitsByPlan[plan].teamEnabled)).toBe(true);
   });
 
   it("limits deploy and custom domains to Compute plans", () => {

@@ -36,6 +36,7 @@ const CHANGE_NOTE =
   "Takes effect immediately. Upgrades are charged now and add the difference as usage credits; downgrades keep this period's credits, with the new fee starting next period.";
 
 type ComputePlansProps = {
+  plans: readonly DeployPlan[];
   options: DeployPlanOption[] | undefined;
   current: CurrentPlan;
   usageCents: number | null;
@@ -46,6 +47,7 @@ type ComputePlansProps = {
 };
 
 export function ComputePlans({
+  plans,
   options,
   current,
   usageCents,
@@ -121,8 +123,13 @@ export function ComputePlans({
 
   return (
     <div className="flex w-full flex-col gap-6">
-      <div className="grid w-full gap-4 md:grid-cols-3">
-        {planCardStates({ options, current, usageCents }).map((card) => (
+      <div
+        className={cn(
+          "mx-auto grid w-full gap-4",
+          plans.length === 2 ? "max-w-[720px] md:grid-cols-2" : "md:grid-cols-3",
+        )}
+      >
+        {planCardStates({ plans, options, current, usageCents }).map((card) => (
           <PlanCard
             key={card.plan}
             card={card}

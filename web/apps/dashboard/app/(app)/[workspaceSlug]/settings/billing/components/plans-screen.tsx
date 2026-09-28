@@ -103,6 +103,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
   const panels: Record<PaywallProduct, ReactNode> = {
     compute: (
       <ComputePlans
+        plans={copy.computePlans}
         options={plansQuery.data?.plans}
         current={current}
         usageCents={deployUsageQuery.data?.grossCents ?? null}

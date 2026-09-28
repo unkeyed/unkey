@@ -54,10 +54,12 @@ export function planName(plan: DeployPlan, options: DeployPlanOption[] | undefin
 }
 
 export function planCardStates({
+  plans = DEPLOY_PLANS,
   options,
   current,
   usageCents,
 }: {
+  plans?: readonly DeployPlan[];
   options: DeployPlanOption[] | undefined;
   current: CurrentPlan;
   usageCents: number | null;
@@ -65,7 +67,7 @@ export function planCardStates({
   const currentPlan = current.status === "plan" ? current.plan : null;
   const currentAmount = options?.find((option) => option.plan === currentPlan)?.amount ?? null;
 
-  return DEPLOY_PLANS.map((plan) => {
+  return plans.map((plan) => {
     const option = options?.find((o) => o.plan === plan);
     const name = option?.name ?? planLabel(plan);
     const isCurrent = plan === currentPlan;
