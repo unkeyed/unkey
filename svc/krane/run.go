@@ -30,6 +30,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/runner"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/krane/internal/deployment"
+	"github.com/unkeyed/unkey/svc/krane/internal/privatenetwork"
 	"github.com/unkeyed/unkey/svc/krane/internal/watcher"
 	"github.com/unkeyed/unkey/svc/krane/pkg/controlplane"
 	"k8s.io/client-go/dynamic"
@@ -214,21 +215,27 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	r.Defer(func() error { deploymentTransitionsCache.Close(); return nil })
 
+	privateResolverIP := ""
+	if cfg.PrivateNetwork.Enabled {
+		privateResolverIP = cfg.PrivateNetwork.ResolverIP
+	}
+
 	// Start the deployment controller (independent control loop)
 	deploymentCtrl := deployment.New(deployment.Config{
-		ClientSet:           clientset,
-		DynamicClient:       dynamicClient,
-		Cluster:             cluster,
-		CellID:              cfg.Cluster.CellID,
-		Region:              cfg.Cluster.Region,
-		Platform:            cfg.Cluster.Platform,
-		Vault:               vaultClient,
-		Registry:            registryCfg,
-		Fingerprints:        fingerprintCache,
-		EventDedup:          instanceEventDedupCache,
-		ObservedTransitions: deploymentTransitionsCache,
-		StorageClassName:    cfg.StorageClassName,
-		DisableGvisor:       cfg.DisableGvisor,
+		ClientSet:                clientset,
+		DynamicClient:            dynamicClient,
+		Cluster:                  cluster,
+		CellID:                   cfg.Cluster.CellID,
+		Region:                   cfg.Cluster.Region,
+		Platform:                 cfg.Cluster.Platform,
+		Vault:                    vaultClient,
+		Registry:                 registryCfg,
+		Fingerprints:             fingerprintCache,
+		EventDedup:               instanceEventDedupCache,
+		ObservedTransitions:      deploymentTransitionsCache,
+		StorageClassName:         cfg.StorageClassName,
+		PrivateNetworkResolverIP: privateResolverIP,
+		DisableGvisor:            cfg.DisableGvisor,
 	})
 
 	// Start the unified syncer that consumes WatchDeploymentChanges and
@@ -240,6 +247,25 @@ func Run(ctx context.Context, cfg Config) error {
 		Region:      cfg.Cluster.Region,
 		Platform:    cfg.Cluster.Platform,
 	})
+
+	if cfg.PrivateNetwork.Enabled {
+		privateNetwork, err := privatenetwork.New(privatenetwork.Config{
+			Client:  clientset,
+			Dynamic: dynamicClient,
+			Cluster: cluster,
+			ClusterKey: &ctrlv1.ClusterKey{
+				CellId:   cfg.Cluster.CellID,
+				Platform: cfg.Cluster.Platform,
+				Region:   cfg.Cluster.Region,
+			},
+			Identity:       cfg.InstanceID,
+			LeaseNamespace: cfg.PrivateNetwork.LeaseNamespace,
+		})
+		if err != nil {
+			return fmt.Errorf("configure private network reconciler: %w", err)
+		}
+		r.Go(privateNetwork.Run)
+	}
 
 	leadershipDone := make(chan struct{})
 	r.Go(func(ctx context.Context) error {
