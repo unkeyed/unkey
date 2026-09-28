@@ -1,6 +1,7 @@
 import { getAuth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { env, workosAuthEnv } from "@/lib/env";
+import { parseDeployPlan } from "@/lib/stripe/deployPlan";
 import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 
 export const revalidate = 0;
@@ -14,10 +15,16 @@ export default async function SettingTeamPage() {
       limits: {
         columns: { teamEnabled: true },
       },
+      billing: {
+        columns: { plan: true, planOverride: true },
+      },
     },
   });
 
   const team = workspace?.limits?.teamEnabled ?? false;
+  const currentPlan =
+    parseDeployPlan(workspace?.billing?.plan ?? null) ??
+    parseDeployPlan(workspace?.billing?.planOverride ?? null);
   let teamContent: React.ReactNode = <div>Workspace not found</div>;
 
   if (workspace) {
@@ -25,13 +32,13 @@ export default async function SettingTeamPage() {
       const { TeamPageClient } = await import("./client");
       teamContent = (
         <div className="flex w-full flex-col">
-          <TeamPageClient team={team} />
+          <TeamPageClient team={team} currentPlan={currentPlan} />
         </div>
       );
     } else {
       workosAuthEnv();
       const { ManagedTeam } = await import("./managed-team");
-      teamContent = <ManagedTeam team={team} />;
+      teamContent = <ManagedTeam team={team} currentPlan={currentPlan} />;
     }
   }
 

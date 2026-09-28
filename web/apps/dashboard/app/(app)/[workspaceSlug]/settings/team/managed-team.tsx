@@ -1,47 +1,29 @@
 "use client";
 
 import "@unkey/workos-widgets/styles.css";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { logManagedAuthOutcome } from "@/lib/auth/telemetry";
 import { routes } from "@/lib/navigation/routes";
-import {
-  Button,
-  EmptyState,
-  EmptyStateActions,
-  EmptyStateDescription,
-  EmptyStateHeader,
-  EmptyStateTitle,
-  Skeleton,
-} from "@unkey/ui";
+import type { DeployPlan } from "@/lib/stripe/deployPlan";
+import { Button, Skeleton } from "@unkey/ui";
 import { ManagedUsersWidget } from "@unkey/workos-widgets";
 import { useAccessToken, useAuth } from "@workos-inc/authkit-nextjs/components";
 import Link from "next/link";
 import { useCallback, useState } from "react";
+import { TeamUpgrade } from "./team-upgrade";
 
 const MANAGE_USERS_PERMISSION = "widgets:users-table:manage";
 
-export function ManagedTeam({ team }: { team: boolean }) {
-  const workspace = useWorkspaceNavigation();
+export function ManagedTeam({
+  team,
+  currentPlan,
+}: {
+  team: boolean;
+  currentPlan: DeployPlan | null;
+}) {
   const { user, impersonator, permissions, loading } = useAuth();
 
   if (!team) {
-    return (
-      <div className="flex min-h-[60vh] w-full items-center justify-center">
-        <EmptyState className="w-full">
-          <EmptyStateHeader>
-            <EmptyStateTitle>Upgrade Your Plan to Add Team Members</EmptyStateTitle>
-            <EmptyStateDescription>You can try it out for free for 14 days.</EmptyStateDescription>
-          </EmptyStateHeader>
-          <EmptyStateActions>
-            <Button
-              render={<Link href={routes.settings.billing({ workspaceSlug: workspace.slug })} />}
-            >
-              Upgrade
-            </Button>
-          </EmptyStateActions>
-        </EmptyState>
-      </div>
-    );
+    return <TeamUpgrade currentPlan={currentPlan} />;
   }
 
   if (loading) {

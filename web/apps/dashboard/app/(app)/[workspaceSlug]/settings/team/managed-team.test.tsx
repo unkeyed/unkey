@@ -51,6 +51,12 @@ vi.mock("@/lib/navigation/routes", () => ({
   },
 }));
 
+vi.mock("./team-upgrade", () => ({
+  TeamUpgrade: ({ currentPlan }: { currentPlan: string | null }) => (
+    <div data-testid="team-upgrade">{currentPlan}</div>
+  ),
+}));
+
 vi.mock("@unkey/workos-widgets", () => ({
   ManagedUsersWidget: ({ getAccessToken }: { getAccessToken: () => Promise<string> }) => {
     mocks.widgetTokenGetter = getAccessToken;
@@ -103,7 +109,7 @@ describe("ManagedTeam", () => {
   });
 
   it("renders WorkOS user management with the AuthKit token getter", async () => {
-    render(<ManagedTeam team />);
+    render(<ManagedTeam team currentPlan={null} />);
 
     expect(screen.getByRole("heading", { name: "Members" })).toBeTruthy();
     expect(screen.getByTestId("managed-users-widget")).toBeTruthy();
@@ -113,7 +119,7 @@ describe("ManagedTeam", () => {
 
   it("shows the managed-team skeleton while AuthKit or its token is loading", () => {
     mocks.authLoading = true;
-    const view = render(<ManagedTeam team />);
+    const view = render(<ManagedTeam team currentPlan={null} />);
 
     expect(screen.getAllByTestId("skeleton").length).toBeGreaterThan(0);
     expect(screen.queryByTestId("managed-users-widget")).toBeNull();
@@ -121,34 +127,29 @@ describe("ManagedTeam", () => {
     mocks.authLoading = false;
     mocks.accessToken = undefined;
     mocks.tokenLoading = true;
-    view.rerender(<ManagedTeam team />);
+    view.rerender(<ManagedTeam team currentPlan={null} />);
 
     expect(screen.getAllByTestId("skeleton").length).toBeGreaterThan(0);
     expect(screen.queryByTestId("managed-users-widget")).toBeNull();
   });
 
   it("preserves the team-plan entitlement gate", () => {
-    render(<ManagedTeam team={false} />);
+    render(<ManagedTeam team={false} currentPlan="starter" />);
 
-    expect(
-      screen.getByRole("heading", { name: "Upgrade Your Plan to Add Team Members" }),
-    ).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Upgrade" }).getAttribute("href")).toBe(
-      "/acme/settings/billing",
-    );
+    expect(screen.getByTestId("team-upgrade").textContent).toBe("starter");
     expect(screen.queryByTestId("managed-users-widget")).toBeNull();
   });
 
   it("does not mount administrative controls without a user or during impersonation", () => {
     mocks.user = null;
-    const view = render(<ManagedTeam team />);
+    const view = render(<ManagedTeam team currentPlan={null} />);
 
     expect(screen.getByRole("heading", { name: "Your session has expired" })).toBeTruthy();
     expect(screen.queryByTestId("managed-users-widget")).toBeNull();
 
     mocks.user = { id: "user_123" };
     mocks.impersonator = { email: "admin@example.com" };
-    view.rerender(<ManagedTeam team />);
+    view.rerender(<ManagedTeam team currentPlan={null} />);
 
     expect(screen.getByRole("heading", { name: "Team management unavailable" })).toBeTruthy();
     expect(screen.queryByTestId("managed-users-widget")).toBeNull();
@@ -157,7 +158,7 @@ describe("ManagedTeam", () => {
   it("requires the WorkOS user-management permission", () => {
     mocks.permissions = [];
 
-    render(<ManagedTeam team />);
+    render(<ManagedTeam team currentPlan={null} />);
 
     expect(screen.getByRole("heading", { name: "Admin access required" })).toBeTruthy();
     expect(screen.queryByTestId("managed-users-widget")).toBeNull();
@@ -165,7 +166,7 @@ describe("ManagedTeam", () => {
 
   it("retries a failed widget token without a page reload", async () => {
     mocks.tokenError = new Error("token unavailable");
-    render(<ManagedTeam team />);
+    render(<ManagedTeam team currentPlan={null} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 

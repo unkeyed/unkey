@@ -136,62 +136,82 @@ export const PlanChangeModal: React.FC<PlanChangeModalProps> = ({
       }
     >
       <div className="flex flex-col gap-3">
-        {options.map((option) => {
-          const isCurrent = option.id === currentId;
-          const isSelected = option.id === selected;
-          return (
-            <button
-              type="button"
-              key={option.id}
-              onClick={() => setSelected(option.id)}
-              className={cn(
-                "w-full rounded-lg border px-4 py-2 text-left transition-all",
-                isSelected
-                  ? "border-info-7 bg-info-2 ring-1 ring-info-7"
-                  : isCurrent
-                    ? "bg-gray-2 hover:border-strong"
-                    : "hover:border-strong",
-              )}
-            >
-              <div className="flex items-center justify-between gap-3 py-1">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div
-                    className={cn(
-                      "flex size-4 shrink-0 items-center justify-center rounded-full border-2",
-                      isSelected && "border-info-9 bg-info-9",
-                    )}
-                  >
-                    {isSelected ? <div className="size-2 rounded-full bg-white" /> : null}
-                  </div>
-                  <span className="min-w-[120px] font-medium text-base text-gray-12">
-                    {option.name}
-                  </span>
-                  <span className="truncate text-xs text-gray-11">{option.detail}</span>
-                  {isCurrent ? (
-                    <span className="rounded-full bg-info-3 px-2 text-2xs text-info-11 leading-4">
-                      Current
-                    </span>
-                  ) : null}
-                </div>
-                <span className="shrink-0 font-medium text-base text-gray-12 tabular-nums">
-                  {option.amount !== null ? (
-                    <>
-                      {formatDollars(option.amount)}
-                      <span className="font-normal text-xs text-gray-11">
-                        {intervalSuffix(option.interval)}
-                      </span>
-                    </>
-                  ) : (
-                    "Contact us"
-                  )}
-                </span>
-              </div>
-            </button>
-          );
-        })}
+        <PlanOptionList
+          options={options}
+          currentId={currentId}
+          selectedId={selected}
+          onSelect={setSelected}
+        />
 
         {warning ? <p className="text-sm text-warning-11 leading-5">{warning}</p> : null}
       </div>
     </DialogContainer>
   );
 };
+
+type PlanOptionListProps = {
+  options: PlanOption[];
+  currentId: string | null;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+};
+
+export function PlanOptionList({ options, currentId, selectedId, onSelect }: PlanOptionListProps) {
+  return (
+    <div className="flex flex-col gap-3">
+      {options.map((option) => {
+        const isCurrent = option.id === currentId;
+        const isSelected = option.id === selectedId;
+        return (
+          <button
+            type="button"
+            key={option.id}
+            onClick={() => onSelect(option.id)}
+            className={cn(
+              "w-full rounded-lg border px-4 py-2 text-left transition-all",
+              isSelected
+                ? "border-info-7 bg-info-2 ring-1 ring-info-7"
+                : isCurrent
+                  ? "bg-gray-2 hover:border-strong"
+                  : "hover:border-strong",
+            )}
+          >
+            <div className="flex items-center justify-between gap-3 py-1">
+              <div className="flex min-w-0 items-center gap-3">
+                <div
+                  className={cn(
+                    "flex size-4 shrink-0 items-center justify-center rounded-full border-2",
+                    isSelected && "border-info-9 bg-info-9",
+                  )}
+                >
+                  {isSelected ? <div className="size-2 rounded-full bg-white" /> : null}
+                </div>
+                <span className="min-w-[120px] font-medium text-base text-gray-12">
+                  {option.name}
+                </span>
+                <span className="truncate text-xs text-gray-11">{option.detail}</span>
+                {isCurrent ? (
+                  <span className="rounded-full bg-info-3 px-2 text-2xs text-info-11 leading-4">
+                    Current
+                  </span>
+                ) : null}
+              </div>
+              <span className="shrink-0 font-medium text-base text-gray-12 tabular-nums">
+                {option.amount !== null ? (
+                  <>
+                    {formatDollars(option.amount)}
+                    <span className="font-normal text-xs text-gray-11">
+                      {intervalSuffix(option.interval)}
+                    </span>
+                  </>
+                ) : (
+                  "Contact us"
+                )}
+              </span>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
