@@ -250,19 +250,19 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 		// handler only learns of it at its next Restate call. A plain update
 		// would then overwrite cancelled with ready while the compensations
 		// stop the pods
-		err := restate.RunVoid(stepCtx, func(runCtx restate.RunContext) error {
+		if err := restate.RunVoid(stepCtx, func(runCtx restate.RunContext) error {
 			return w.db.UpdateDeploymentStatusIfActive(runCtx, db.UpdateDeploymentStatusIfActiveParams{
 				ID:                  deployment.ID,
 				Status:              mysqltype.DeploymentsStatusReady,
 				UpdatedAt:           sql.NullInt64{Valid: true, Int64: time.Now().UnixMilli()},
 				ProgressingStatuses: mysqltype.ProgressingDeploymentStatuses,
 			})
-		}, restate.WithName("updating deployment status to ready"), restate.WithMaxRetryAttempts(runMaxAttempts))
-		if err != nil {
+		}, restate.WithName("updating deployment status to ready"), restate.WithMaxRetryAttempts(runMaxAttempts)); err != nil {
 			return fault.Wrap(err, fault.Public("Deployment completed but final status could not be saved."))
 		}
 
 		if shouldAutoPromote {
+			var err error
 			promotionSkipReason, err = w.swapLiveDeployment(stepCtx, deployment, liveRouteIDs)
 			if err != nil {
 				return fault.Wrap(err, fault.Public("Deployment is ready but could not be promoted to live."))
