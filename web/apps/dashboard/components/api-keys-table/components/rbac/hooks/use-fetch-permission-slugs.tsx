@@ -25,7 +25,7 @@ export const useFetchPermissionSlugs = (
   const isLoading = roleQueries.some((query) => query.isLoading);
   const hasError = roleQueries.some((query) => query.isError);
 
-  if (!enabled || isLoading || hasError) {
+  if (isLoading || hasError) {
     return { data: undefined, isLoading };
   }
 
