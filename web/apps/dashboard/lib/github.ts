@@ -111,6 +111,11 @@ const userInstallationsSchema = z.object({
   installations: z.array(z.object({ id: z.number() })),
 });
 
+const userInstallationRepositoriesSchema = z.object({
+  total_count: z.number(),
+  repositories: z.array(z.object({ id: z.number() })),
+});
+
 // Exchange the short-lived OAuth `code` from the install callback for a
 // user-to-server access token. GitHub returns HTTP 200 with an `error` field
 // (not a non-2xx status) when the code is invalid or expired, so we treat any
@@ -170,6 +175,38 @@ export async function userCanAccessInstallation(
     }
     if (data.installations.length < perPage) {
       return false;
+    }
+    page++;
+  }
+}
+
+// Confirm the authenticated GitHub user (via their user-to-server token) can
+// reach the repositories covered by an installation. userCanAccessInstallation
+// only proves installation-level membership, so a collaborator who can reach one
+// repository in an installation that also covers private repositories they cannot
+// reach would otherwise bind it and read the rest through the app-minted token.
+export async function getUserAccessibleRepositoryIds(
+  userToken: string,
+  installationId: number,
+): Promise<Set<number>> {
+  const accessible = new Set<number>();
+  let page = 1;
+  const perPage = 100;
+
+  while (true) {
+    const data = userInstallationRepositoriesSchema.parse(
+      await fetchGitHubApi(
+        `https://api.github.com/user/installations/${installationId}/repositories?per_page=${perPage}&page=${page}`,
+        userToken,
+      ),
+    );
+
+    for (const repository of data.repositories) {
+      accessible.add(repository.id);
+    }
+
+    if (data.repositories.length < perPage) {
+      return accessible;
     }
     page++;
   }

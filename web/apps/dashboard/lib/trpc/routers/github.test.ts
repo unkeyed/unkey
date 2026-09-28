@@ -49,6 +49,8 @@ const state = vi.hoisted(() => ({
   checkedInstallationIds: [] as number[],
   canAccessInstallation: true,
   exchangeError: null as Error | null,
+  installationRepositories: [] as Array<{ id: number }>,
+  accessibleRepositoryIds: [] as number[],
 }));
 
 vi.mock("@/lib/db", () => {
@@ -139,7 +141,9 @@ vi.mock("@/lib/github", () => ({
     state.checkedInstallationIds.push(installationId);
     return state.canAccessInstallation;
   },
-  getInstallationRepositories: async () => [],
+  getUserAccessibleRepositoryIds: async (_userToken: string, _installationId: number) =>
+    new Set<number>(state.accessibleRepositoryIds),
+  getInstallationRepositories: async () => state.installationRepositories,
   getMostActiveBranches: async () => [],
   getRepository: async () => null,
   getRepositoryBranches: async () => [],
@@ -199,6 +203,8 @@ describe("registerInstallation", () => {
     state.checkedInstallationIds = [];
     state.canAccessInstallation = true;
     state.exchangeError = null;
+    state.installationRepositories = [];
+    state.accessibleRepositoryIds = [];
   });
 
   it("binds one GitHub installation to another workspace after verifying the user", async () => {
@@ -256,6 +262,35 @@ describe("registerInstallation", () => {
 
   it("rejects a new workspace binding when the GitHub user cannot access the installation", async () => {
     state.canAccessInstallation = false;
+    const signedState = await prepareWorkspaceState();
+
+    await expect(
+      registerInstallation({
+        state: signedState.state,
+        installationId: 42,
+        code: "oauth-code",
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" } satisfies Partial<TRPCError>);
+    expect(state.inserted).toEqual([]);
+  });
+
+  it("binds a new workspace when the GitHub user can reach every repository in the installation", async () => {
+    state.installationRepositories = [{ id: 1 }, { id: 2 }];
+    state.accessibleRepositoryIds = [1, 2];
+    const signedState = await prepareWorkspaceState();
+
+    await registerInstallation({
+      state: signedState.state,
+      installationId: 42,
+      code: "oauth-code",
+    });
+
+    expect(state.inserted).toEqual([{ workspaceId: "ws_destination", installationId: 42 }]);
+  });
+
+  it("rejects a new workspace binding when the GitHub user cannot reach every repository in the installation", async () => {
+    state.installationRepositories = [{ id: 1 }, { id: 2 }];
+    state.accessibleRepositoryIds = [1];
     const signedState = await prepareWorkspaceState();
 
     await expect(
