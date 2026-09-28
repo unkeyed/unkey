@@ -1,37 +1,41 @@
 import { describe, expect, it } from "vitest";
 import { computePlanFeatures } from "./plan-features";
 
+const labels = (plan: "starter" | "pro" | "business") =>
+  computePlanFeatures(plan).features.map((feature) => feature.label);
+
 describe("computePlanFeatures", () => {
-  it("marks team members and custom domains missing on starter", () => {
-    const features = computePlanFeatures("starter");
-
-    expect(features).toContainEqual({ kind: "team", label: "No team members", included: false });
-    expect(features).toContainEqual({ kind: "domains", label: "1 custom domain", included: true });
+  it("lists the base deploy features and limits on starter", () => {
+    expect(computePlanFeatures("starter").inheritsFrom).toBeNull();
+    expect(labels("starter")).toEqual([
+      "Git push to deploy",
+      "Preview deploy per PR",
+      "Instant rollback",
+      "2 vCPU per instance",
+      "2 GiB memory per instance",
+      "1 custom domain",
+      "Autoscale to 4 instances",
+      "3-day log retention",
+    ]);
   });
 
-  it("includes team members and unlimited domains on pro and business", () => {
-    for (const plan of ["pro", "business"] as const) {
-      const features = computePlanFeatures(plan);
-
-      expect(features).toContainEqual({
-        kind: "team",
-        label: "Unlimited team members",
-        included: true,
-      });
-      expect(features).toContainEqual({
-        kind: "domains",
-        label: "Unlimited custom domains",
-        included: true,
-      });
-    }
-  });
-
-  it("reads resource ceilings from the plan limits", () => {
-    expect(computePlanFeatures("business").map((f) => f.label)).toEqual([
+  it("lists only what pro adds over starter", () => {
+    expect(computePlanFeatures("pro").inheritsFrom).toBe("starter");
+    expect(labels("pro")).toEqual([
       "Unlimited team members",
+      "8 vCPU per instance",
+      "8 GiB memory per instance",
+      "Unlimited custom domains",
+      "Autoscale to 8 instances",
+      "7-day log retention",
+    ]);
+  });
+
+  it("drops features business shares with pro", () => {
+    expect(computePlanFeatures("business").inheritsFrom).toBe("pro");
+    expect(labels("business")).toEqual([
       "16 vCPU per instance",
       "32 GiB memory per instance",
-      "Unlimited custom domains",
       "Autoscale to 16 instances",
       "14-day log retention",
     ]);

@@ -8,8 +8,11 @@ import { trpc } from "@/lib/trpc/client";
 import type { DeployPlanOption } from "@/lib/trpc/routers/stripe/getDeployPlans";
 import { useWorkspace } from "@/providers/workspace-provider";
 import {
+  IconArrowDottedRotateAnticlockwiseOutline18,
   IconClockRotateClockwiseOutline18,
+  IconCodeBranchOutline18,
   IconEarthOutline18,
+  IconEyeOutline18,
   IconLayers3Outline18,
   IconMicrochipOutline18,
   type IconProps,
@@ -45,7 +48,7 @@ import { ComputePlanConfirmDialog } from "./compute-plan-picker-v2";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { type PaywallProduct, type PaywallReason, paywallCopy } from "./paywall-copy";
 import { PlanOptionList } from "./plan-change-modal";
-import { type PlanFeatureKind, computePlanFeatures } from "./plan-features";
+import { type PlanFeatureKind, type PlanFeatureSet, computePlanFeatures } from "./plan-features";
 import { PlanTierIcon } from "./plan-tier-icons";
 
 type PlansScreenProps = {
@@ -134,6 +137,9 @@ const PRODUCT_LABELS: Record<PaywallProduct, string> = {
 };
 
 const FEATURE_ICONS: Record<PlanFeatureKind, ComponentType<IconProps>> = {
+  git: IconCodeBranchOutline18,
+  preview: IconEyeOutline18,
+  rollback: IconArrowDottedRotateAnticlockwiseOutline18,
   team: IconUserOutline18,
   cpu: IconMicrochipOutline18,
   memory: IconRamOutline18,
@@ -141,6 +147,35 @@ const FEATURE_ICONS: Record<PlanFeatureKind, ComponentType<IconProps>> = {
   autoscale: IconLayers3Outline18,
   logs: IconClockRotateClockwiseOutline18,
 };
+
+function PlanFeatureList({
+  featureSet,
+  planName,
+}: {
+  featureSet: PlanFeatureSet;
+  planName: (plan: DeployPlan) => string;
+}) {
+  return (
+    <div className="flex flex-col gap-2.5">
+      {featureSet.inheritsFrom ? (
+        <span className="text-gray-11 text-sm">
+          Everything in {planName(featureSet.inheritsFrom)}, plus
+        </span>
+      ) : null}
+      <ul className="flex flex-col gap-2.5">
+        {featureSet.features.map((feature) => {
+          const Icon = FEATURE_ICONS[feature.kind];
+          return (
+            <li key={feature.label} className="flex items-center gap-2.5 text-gray-12 text-sm">
+              <Icon className="size-4 shrink-0 text-gray-11" />
+              {feature.label}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
 
 function intervalSuffix(interval: string | null): string {
   return interval === "year" ? "/yr" : "/mo";
@@ -272,28 +307,10 @@ function ComputePlans({
                 {label}
               </Button>
 
-              <ul className="flex flex-col gap-2.5">
-                {computePlanFeatures(option.plan).map((feature) => {
-                  const Icon = FEATURE_ICONS[feature.kind];
-                  return (
-                    <li
-                      key={feature.label}
-                      className={cn(
-                        "flex items-center gap-2.5 text-sm",
-                        feature.included ? "text-gray-12" : "text-gray-9 line-through",
-                      )}
-                    >
-                      <Icon
-                        className={cn(
-                          "size-4 shrink-0",
-                          feature.included ? "text-gray-11" : "text-gray-8",
-                        )}
-                      />
-                      {feature.label}
-                    </li>
-                  );
-                })}
-              </ul>
+              <PlanFeatureList
+                featureSet={computePlanFeatures(option.plan)}
+                planName={(plan) => plans.find((p) => p.plan === plan)?.name ?? plan}
+              />
             </div>
           );
         })}
