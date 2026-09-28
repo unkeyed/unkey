@@ -11,41 +11,33 @@ export type PaywallCopy = {
   recommendedPlan?: DeployPlan;
 };
 
-export function paywallCopy(reason: PaywallReason, currentPlan: DeployPlan | null): PaywallCopy {
+export function paywallCopy(reason: PaywallReason): PaywallCopy {
   switch (reason) {
     case "team":
       return {
         title: "Invite your team",
-        description:
-          currentPlan === "starter"
-            ? "Starter doesn't include team members. Upgrade to Pro or Business, or add any API plan."
-            : "Team members come with the Pro and Business Compute plans, and with every API plan.",
+        description: "Upgrade your plan to add team members.",
         products: ["compute", "api"],
         recommendedPlan: "pro",
       };
     case "deploy":
       return {
         title: "Choose a Compute plan",
-        description:
-          "Deploying on Unkey requires a Compute plan. Every plan includes usage credits equal to its fee.",
+        description: "Upgrade your plan to deploy on Unkey.",
         products: ["compute"],
         recommendedPlan: "pro",
       };
     case "custom-domains":
       return {
         title: "Add more custom domains",
-        description:
-          currentPlan === "starter"
-            ? "Starter includes 1 custom domain. Pro and Business include unlimited custom domains."
-            : "Custom domains start on Starter. Pro and Business include unlimited custom domains.",
+        description: "Upgrade your plan to add more custom domains.",
         products: ["compute"],
         recommendedPlan: "pro",
       };
     case "api-limit":
       return {
         title: "Raise your API limit",
-        description:
-          "Pick a plan with more monthly key verifications and ratelimits. Every API plan includes team members.",
+        description: "Upgrade your plan to raise your monthly API limit.",
         products: ["api"],
       };
   }

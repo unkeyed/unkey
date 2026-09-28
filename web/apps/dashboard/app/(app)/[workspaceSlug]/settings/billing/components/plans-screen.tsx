@@ -70,7 +70,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
     trpc: { context: { skipBatch: true } },
   });
 
-  const copy = paywallCopy(reason, currentPlan);
+  const copy = paywallCopy(reason);
   const products = copy.products.filter(
     (product) => product !== "compute" || plansData?.configured !== false,
   );

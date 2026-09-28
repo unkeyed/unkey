@@ -1,6 +1,5 @@
 "use client";
 
-import { trpc } from "@/lib/trpc/client";
 import {
   Button,
   EmptyState,
@@ -15,10 +14,7 @@ import { PlansScreen } from "../billing/components/plans-screen";
 
 export function TeamUpgrade() {
   const [plansOpen, setPlansOpen] = useState(true);
-  const { data: subscription } = trpc.stripe.getDeploySubscription.useQuery(undefined, {
-    staleTime: 30_000,
-  });
-  const copy = paywallCopy("team", subscription?.plan ?? null);
+  const copy = paywallCopy("team");
 
   return (
     <>
