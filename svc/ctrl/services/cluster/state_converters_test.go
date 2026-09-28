@@ -60,3 +60,30 @@ func TestDeploymentRowToState_Stopped(t *testing.T) {
 	require.Equal(t, "my-app", del.GetK8SName())
 	require.Equal(t, "ws-namespace", del.GetK8SNamespace())
 }
+
+// TestDeploymentRowToState_PrivateNetworkReplicaHost guarantees that only
+// deployments of enrolled workspaces receive a replica host, which is what
+// makes Krane point their Pods at undns, and that the host is the app slug.
+func TestDeploymentRowToState_PrivateNetworkReplicaHost(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		enrolled bool
+		slug     string
+		want     string
+	}{
+		{name: "enrolled", enrolled: true, slug: "api", want: "api.unkey.internal"},
+		{name: "not_enrolled", enrolled: false, slug: "api", want: ""},
+		{name: "enrolled_invalid_slug", enrolled: true, slug: "Bad_Slug", want: ""},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			state, err := deploymentRowToState(db.ListAllDeploymentTopologiesByRegionRow{
+				TopologyDesiredStatus:  db.DeploymentTopologyDesiredStatusRunning,
+				DeploymentID:           "deploy_123",
+				AppSlug:                tt.slug,
+				PrivateNetworkEnrolled: tt.enrolled,
+			})
+			require.NoError(t, err)
+			require.Equal(t, tt.want, state.GetApply().GetPrivateNetworkReplicaHost())
+		})
+	}
+}

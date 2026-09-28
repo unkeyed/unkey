@@ -436,27 +436,27 @@ func (x *GetDesiredDeploymentStateRequest) GetDeploymentId() string {
 	return ""
 }
 
-type GetPrivateNetworkStateRequest struct {
+type StreamPrivateNetworkStateRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Cluster       *ClusterKey            `protobuf:"bytes,1,opt,name=cluster,proto3" json:"cluster,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetPrivateNetworkStateRequest) Reset() {
-	*x = GetPrivateNetworkStateRequest{}
+func (x *StreamPrivateNetworkStateRequest) Reset() {
+	*x = StreamPrivateNetworkStateRequest{}
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetPrivateNetworkStateRequest) String() string {
+func (x *StreamPrivateNetworkStateRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetPrivateNetworkStateRequest) ProtoMessage() {}
+func (*StreamPrivateNetworkStateRequest) ProtoMessage() {}
 
-func (x *GetPrivateNetworkStateRequest) ProtoReflect() protoreflect.Message {
+func (x *StreamPrivateNetworkStateRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -468,39 +468,42 @@ func (x *GetPrivateNetworkStateRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetPrivateNetworkStateRequest.ProtoReflect.Descriptor instead.
-func (*GetPrivateNetworkStateRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use StreamPrivateNetworkStateRequest.ProtoReflect.Descriptor instead.
+func (*StreamPrivateNetworkStateRequest) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *GetPrivateNetworkStateRequest) GetCluster() *ClusterKey {
+func (x *StreamPrivateNetworkStateRequest) GetCluster() *ClusterKey {
 	if x != nil {
 		return x.Cluster
 	}
 	return nil
 }
 
-type GetPrivateNetworkStateResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Apps          []*PrivateNetworkApp   `protobuf:"bytes,1,rep,name=apps,proto3" json:"apps,omitempty"`
+type PrivateNetworkStateChunk struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Apps     []*PrivateNetworkApp   `protobuf:"bytes,1,rep,name=apps,proto3" json:"apps,omitempty"`
+	Complete bool                   `protobuf:"varint,2,opt,name=complete,proto3" json:"complete,omitempty"`
+	// total is the number of apps in the whole snapshot, set on the complete chunk.
+	Total         uint64 `protobuf:"varint,3,opt,name=total,proto3" json:"total,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetPrivateNetworkStateResponse) Reset() {
-	*x = GetPrivateNetworkStateResponse{}
+func (x *PrivateNetworkStateChunk) Reset() {
+	*x = PrivateNetworkStateChunk{}
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetPrivateNetworkStateResponse) String() string {
+func (x *PrivateNetworkStateChunk) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetPrivateNetworkStateResponse) ProtoMessage() {}
+func (*PrivateNetworkStateChunk) ProtoMessage() {}
 
-func (x *GetPrivateNetworkStateResponse) ProtoReflect() protoreflect.Message {
+func (x *PrivateNetworkStateChunk) ProtoReflect() protoreflect.Message {
 	mi := &file_ctrl_v1_cluster_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -512,16 +515,30 @@ func (x *GetPrivateNetworkStateResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetPrivateNetworkStateResponse.ProtoReflect.Descriptor instead.
-func (*GetPrivateNetworkStateResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use PrivateNetworkStateChunk.ProtoReflect.Descriptor instead.
+func (*PrivateNetworkStateChunk) Descriptor() ([]byte, []int) {
 	return file_ctrl_v1_cluster_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *GetPrivateNetworkStateResponse) GetApps() []*PrivateNetworkApp {
+func (x *PrivateNetworkStateChunk) GetApps() []*PrivateNetworkApp {
 	if x != nil {
 		return x.Apps
 	}
 	return nil
+}
+
+func (x *PrivateNetworkStateChunk) GetComplete() bool {
+	if x != nil {
+		return x.Complete
+	}
+	return false
+}
+
+func (x *PrivateNetworkStateChunk) GetTotal() uint64 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
 }
 
 type PrivateNetworkApp struct {
@@ -1446,8 +1463,12 @@ type ApplyDeployment struct {
 	// When absent, no ephemeral volume is attached.
 	EphemeralStorage *EphemeralStorage `protobuf:"bytes,29,opt,name=ephemeral_storage,json=ephemeralStorage,proto3,oneof" json:"ephemeral_storage,omitempty"`
 	EnvironmentKind  string            `protobuf:"bytes,30,opt,name=environment_kind,json=environmentKind,proto3" json:"environment_kind,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// private_network_replica_host is the private DNS name of this deployment's
+	// own replicas. Empty means the workspace is not enrolled in private
+	// networking and the Pod keeps cluster DNS.
+	PrivateNetworkReplicaHost string `protobuf:"bytes,32,opt,name=private_network_replica_host,json=privateNetworkReplicaHost,proto3" json:"private_network_replica_host,omitempty"`
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *ApplyDeployment) Reset() {
@@ -1651,6 +1672,13 @@ func (x *ApplyDeployment) GetEphemeralStorage() *EphemeralStorage {
 func (x *ApplyDeployment) GetEnvironmentKind() string {
 	if x != nil {
 		return x.EnvironmentKind
+	}
+	return ""
+}
+
+func (x *ApplyDeployment) GetPrivateNetworkReplicaHost() string {
+	if x != nil {
+		return x.PrivateNetworkReplicaHost
 	}
 	return ""
 }
@@ -2063,11 +2091,13 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x05event\"v\n" +
 	" GetDesiredDeploymentStateRequest\x12-\n" +
 	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\x12#\n" +
-	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\"N\n" +
-	"\x1dGetPrivateNetworkStateRequest\x12-\n" +
-	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\"P\n" +
-	"\x1eGetPrivateNetworkStateResponse\x12.\n" +
-	"\x04apps\x18\x01 \x03(\v2\x1a.ctrl.v1.PrivateNetworkAppR\x04apps\"\x86\x03\n" +
+	"\rdeployment_id\x18\x02 \x01(\tR\fdeploymentId\"Q\n" +
+	" StreamPrivateNetworkStateRequest\x12-\n" +
+	"\acluster\x18\x01 \x01(\v2\x13.ctrl.v1.ClusterKeyR\acluster\"|\n" +
+	"\x18PrivateNetworkStateChunk\x12.\n" +
+	"\x04apps\x18\x01 \x03(\v2\x1a.ctrl.v1.PrivateNetworkAppR\x04apps\x12\x1a\n" +
+	"\bcomplete\x18\x02 \x01(\bR\bcomplete\x12\x14\n" +
+	"\x05total\x18\x03 \x01(\x04R\x05total\"\x86\x03\n" +
 	"\x11PrivateNetworkApp\x12!\n" +
 	"\fworkspace_id\x18\x01 \x01(\tR\vworkspaceId\x12\x1d\n" +
 	"\n" +
@@ -2152,7 +2182,7 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x0fDeploymentState\x120\n" +
 	"\x05apply\x18\x01 \x01(\v2\x18.ctrl.v1.ApplyDeploymentH\x00R\x05apply\x123\n" +
 	"\x06delete\x18\x02 \x01(\v2\x19.ctrl.v1.DeleteDeploymentH\x00R\x06deleteB\a\n" +
-	"\x05state\"\x90\t\n" +
+	"\x05state\"\xd1\t\n" +
 	"\x0fApplyDeployment\x12#\n" +
 	"\rk8s_namespace\x18\x01 \x01(\tR\fk8sNamespace\x12\x19\n" +
 	"\bk8s_name\x18\x02 \x01(\tR\ak8sName\x12!\n" +
@@ -2182,7 +2212,8 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x12git_commit_message\x18\x1a \x01(\tH\aR\x10gitCommitMessage\x88\x01\x01\x12<\n" +
 	"\vautoscaling\x18\x1b \x01(\v2\x1a.ctrl.v1.AutoscalingPolicyR\vautoscaling\x12K\n" +
 	"\x11ephemeral_storage\x18\x1d \x01(\v2\x19.ctrl.v1.EphemeralStorageH\bR\x10ephemeralStorage\x88\x01\x01\x12)\n" +
-	"\x10environment_kind\x18\x1e \x01(\tR\x0fenvironmentKindB\v\n" +
+	"\x10environment_kind\x18\x1e \x01(\tR\x0fenvironmentKind\x12?\n" +
+	"\x1cprivate_network_replica_host\x18  \x01(\tR\x19privateNetworkReplicaHostB\v\n" +
 	"\t_build_idB\x0e\n" +
 	"\f_healthcheckB\x13\n" +
 	"\x11_environment_slugB\t\n" +
@@ -2209,12 +2240,12 @@ const file_ctrl_v1_cluster_proto_rawDesc = "" +
 	"\x12HEALTH_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eHEALTH_HEALTHY\x10\x01\x12\x14\n" +
 	"\x10HEALTH_UNHEALTHY\x10\x02\x12\x11\n" +
-	"\rHEALTH_PAUSED\x10\x032\xad\x05\n" +
+	"\rHEALTH_PAUSED\x10\x032\xaf\x05\n" +
 	"\x0eClusterService\x12b\n" +
 	"\x16WatchDeploymentChanges\x12&.ctrl.v1.WatchDeploymentChangesRequest\x1a\x1e.ctrl.v1.DeploymentChangeEvent0\x01\x12V\n" +
 	"\x10SyncDesiredState\x12 .ctrl.v1.SyncDesiredStateRequest\x1a\x1e.ctrl.v1.DeploymentChangeEvent0\x01\x12`\n" +
-	"\x19GetDesiredDeploymentState\x12).ctrl.v1.GetDesiredDeploymentStateRequest\x1a\x18.ctrl.v1.DeploymentState\x12i\n" +
-	"\x16GetPrivateNetworkState\x12&.ctrl.v1.GetPrivateNetworkStateRequest\x1a'.ctrl.v1.GetPrivateNetworkStateResponse\x12i\n" +
+	"\x19GetDesiredDeploymentState\x12).ctrl.v1.GetDesiredDeploymentStateRequest\x1a\x18.ctrl.v1.DeploymentState\x12k\n" +
+	"\x19StreamPrivateNetworkState\x12).ctrl.v1.StreamPrivateNetworkStateRequest\x1a!.ctrl.v1.PrivateNetworkStateChunk0\x01\x12i\n" +
 	"\x16ReportDeploymentStatus\x12&.ctrl.v1.ReportDeploymentStatusRequest\x1a'.ctrl.v1.ReportDeploymentStatusResponse\x12c\n" +
 	"\x14ReportInstanceEvents\x12$.ctrl.v1.ReportInstanceEventsRequest\x1a%.ctrl.v1.ReportInstanceEventsResponse\x12B\n" +
 	"\tHeartbeat\x12\x19.ctrl.v1.HeartbeatRequest\x1a\x1a.ctrl.v1.HeartbeatResponseB\x8b\x01\n" +
@@ -2242,8 +2273,8 @@ var file_ctrl_v1_cluster_proto_goTypes = []any{
 	(*SyncDesiredStateRequest)(nil),                       // 4: ctrl.v1.SyncDesiredStateRequest
 	(*DeploymentChangeEvent)(nil),                         // 5: ctrl.v1.DeploymentChangeEvent
 	(*GetDesiredDeploymentStateRequest)(nil),              // 6: ctrl.v1.GetDesiredDeploymentStateRequest
-	(*GetPrivateNetworkStateRequest)(nil),                 // 7: ctrl.v1.GetPrivateNetworkStateRequest
-	(*GetPrivateNetworkStateResponse)(nil),                // 8: ctrl.v1.GetPrivateNetworkStateResponse
+	(*StreamPrivateNetworkStateRequest)(nil),              // 7: ctrl.v1.StreamPrivateNetworkStateRequest
+	(*PrivateNetworkStateChunk)(nil),                      // 8: ctrl.v1.PrivateNetworkStateChunk
 	(*PrivateNetworkApp)(nil),                             // 9: ctrl.v1.PrivateNetworkApp
 	(*ReportDeploymentStatusRequest)(nil),                 // 10: ctrl.v1.ReportDeploymentStatusRequest
 	(*ReportDeploymentStatusResponse)(nil),                // 11: ctrl.v1.ReportDeploymentStatusResponse
@@ -2270,8 +2301,8 @@ var file_ctrl_v1_cluster_proto_depIdxs = []int32{
 	2,  // 1: ctrl.v1.SyncDesiredStateRequest.cluster:type_name -> ctrl.v1.ClusterKey
 	18, // 2: ctrl.v1.DeploymentChangeEvent.deployment:type_name -> ctrl.v1.DeploymentState
 	2,  // 3: ctrl.v1.GetDesiredDeploymentStateRequest.cluster:type_name -> ctrl.v1.ClusterKey
-	2,  // 4: ctrl.v1.GetPrivateNetworkStateRequest.cluster:type_name -> ctrl.v1.ClusterKey
-	9,  // 5: ctrl.v1.GetPrivateNetworkStateResponse.apps:type_name -> ctrl.v1.PrivateNetworkApp
+	2,  // 4: ctrl.v1.StreamPrivateNetworkStateRequest.cluster:type_name -> ctrl.v1.ClusterKey
+	9,  // 5: ctrl.v1.PrivateNetworkStateChunk.apps:type_name -> ctrl.v1.PrivateNetworkApp
 	2,  // 6: ctrl.v1.ReportDeploymentStatusRequest.cluster:type_name -> ctrl.v1.ClusterKey
 	24, // 7: ctrl.v1.ReportDeploymentStatusRequest.update:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Update
 	25, // 8: ctrl.v1.ReportDeploymentStatusRequest.delete:type_name -> ctrl.v1.ReportDeploymentStatusRequest.Delete
@@ -2291,14 +2322,14 @@ var file_ctrl_v1_cluster_proto_depIdxs = []int32{
 	3,  // 22: ctrl.v1.ClusterService.WatchDeploymentChanges:input_type -> ctrl.v1.WatchDeploymentChangesRequest
 	4,  // 23: ctrl.v1.ClusterService.SyncDesiredState:input_type -> ctrl.v1.SyncDesiredStateRequest
 	6,  // 24: ctrl.v1.ClusterService.GetDesiredDeploymentState:input_type -> ctrl.v1.GetDesiredDeploymentStateRequest
-	7,  // 25: ctrl.v1.ClusterService.GetPrivateNetworkState:input_type -> ctrl.v1.GetPrivateNetworkStateRequest
+	7,  // 25: ctrl.v1.ClusterService.StreamPrivateNetworkState:input_type -> ctrl.v1.StreamPrivateNetworkStateRequest
 	10, // 26: ctrl.v1.ClusterService.ReportDeploymentStatus:input_type -> ctrl.v1.ReportDeploymentStatusRequest
 	16, // 27: ctrl.v1.ClusterService.ReportInstanceEvents:input_type -> ctrl.v1.ReportInstanceEventsRequest
 	22, // 28: ctrl.v1.ClusterService.Heartbeat:input_type -> ctrl.v1.HeartbeatRequest
 	5,  // 29: ctrl.v1.ClusterService.WatchDeploymentChanges:output_type -> ctrl.v1.DeploymentChangeEvent
 	5,  // 30: ctrl.v1.ClusterService.SyncDesiredState:output_type -> ctrl.v1.DeploymentChangeEvent
 	18, // 31: ctrl.v1.ClusterService.GetDesiredDeploymentState:output_type -> ctrl.v1.DeploymentState
-	8,  // 32: ctrl.v1.ClusterService.GetPrivateNetworkState:output_type -> ctrl.v1.GetPrivateNetworkStateResponse
+	8,  // 32: ctrl.v1.ClusterService.StreamPrivateNetworkState:output_type -> ctrl.v1.PrivateNetworkStateChunk
 	11, // 33: ctrl.v1.ClusterService.ReportDeploymentStatus:output_type -> ctrl.v1.ReportDeploymentStatusResponse
 	17, // 34: ctrl.v1.ClusterService.ReportInstanceEvents:output_type -> ctrl.v1.ReportInstanceEventsResponse
 	23, // 35: ctrl.v1.ClusterService.Heartbeat:output_type -> ctrl.v1.HeartbeatResponse

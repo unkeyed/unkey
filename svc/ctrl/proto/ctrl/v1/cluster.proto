@@ -53,9 +53,11 @@ service ClusterService {
   // Used by the resync loop to verify consistency for existing resources.
   rpc GetDesiredDeploymentState(GetDesiredDeploymentStateRequest) returns (DeploymentState);
 
-  // GetPrivateNetworkState returns the complete production and preview network catalog
-  // for the caller's platform, including apps without replicas in its region.
-  rpc GetPrivateNetworkState(GetPrivateNetworkStateRequest) returns (GetPrivateNetworkStateResponse);
+  // StreamPrivateNetworkState sends the complete private network catalog for
+  // the caller's platform in pages read from one database snapshot, then a
+  // final chunk with complete set. A stream that ends without that chunk is
+  // partial and must not be reconciled, because omission authorizes deletion.
+  rpc StreamPrivateNetworkState(StreamPrivateNetworkStateRequest) returns (stream PrivateNetworkStateChunk);
 
   // ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
   // Called when K8s watch events indicate ReplicaSet changes.
@@ -102,12 +104,15 @@ message GetDesiredDeploymentStateRequest {
   string deployment_id = 2;
 }
 
-message GetPrivateNetworkStateRequest {
+message StreamPrivateNetworkStateRequest {
   ClusterKey cluster = 1;
 }
 
-message GetPrivateNetworkStateResponse {
+message PrivateNetworkStateChunk {
   repeated PrivateNetworkApp apps = 1;
+  bool complete = 2;
+  // total is the number of apps in the whole snapshot, set on the complete chunk.
+  uint64 total = 3;
 }
 
 message PrivateNetworkApp {
@@ -363,6 +368,11 @@ message ApplyDeployment {
   string environment_kind = 30;
   reserved 31;
   reserved "preview_network_id";
+
+  // private_network_replica_host is the private DNS name of this deployment's
+  // own replicas. Empty means the workspace is not enrolled in private
+  // networking and the Pod keeps cluster DNS.
+  string private_network_replica_host = 32;
 }
 
 // AutoscalingPolicy configures horizontal pod autoscaling for a deployment.
