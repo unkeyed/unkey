@@ -10,6 +10,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/privatenetwork"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	appsv1 "k8s.io/api/apps/v1"
@@ -57,6 +58,8 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		assert.NotEmpty(req.GetWorkspaceId(), "Workspace ID is required"),
 		assert.NotEmpty(req.GetProjectId(), "Project ID is required"),
 		assert.NotEmpty(req.GetEnvironmentId(), "Environment ID is required"),
+		assert.True(req.GetEnvironmentKind() == "production" || req.GetEnvironmentKind() == "preview" ||
+			(req.GetEnvironmentKind() == "" && c.privateNetworkResolverIP == ""), "Environment kind is required for private networking"),
 		assert.NotEmpty(req.GetDeploymentId(), "Deployment ID is required"),
 		assert.NotEmpty(req.GetK8SNamespace(), "Namespace is required"),
 		assert.NotEmpty(req.GetK8SName(), "K8s CRD name is required"),
@@ -87,6 +90,10 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 	hasSecrets := len(plaintext) > 0
 
 	desired := c.buildReplicaSet(req, hasSecrets)
+
+	if err := c.ensureCiliumNetworkPolicy(ctx, req, nil); err != nil {
+		return fmt.Errorf("failed to ensure cilium network policy before replicaset: %w", err)
+	}
 
 	// Create the Secret and ServiceAccount before the ReplicaSet so they
 	// exist by the time pods are scheduled. This prevents the
@@ -290,6 +297,20 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 		Tolerations:                  []corev1.Toleration{untrustedToleration},
 		TopologySpreadConstraints:    deploymentTopologySpread(req.GetDeploymentId()),
 		Containers:                   []corev1.Container{container},
+	}
+
+	if c.privateNetworkResolverIP != "" {
+		podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, corev1.EnvVar{
+			Name: "UNKEY_REPLICA_HOST", Value: privatenetwork.ReplicaHost,
+		})
+		podSpec.DNSPolicy = corev1.DNSNone
+		podSpec.DNSConfig = &corev1.PodDNSConfig{
+			Nameservers: []string{c.privateNetworkResolverIP},
+			Options: []corev1.PodDNSConfigOption{{
+				Name:  "ndots",
+				Value: new("1"),
+			}},
+		}
 	}
 
 	if len(volumes) > 0 {
@@ -523,6 +544,7 @@ func deploymentLabels(req *ctrlv1.ApplyDeployment) labels.Labels {
 		ProjectID(req.GetProjectId()).
 		AppID(req.GetAppId()).
 		EnvironmentID(req.GetEnvironmentId()).
+		EnvironmentKind(req.GetEnvironmentKind()).
 		DeploymentID(req.GetDeploymentId()).
 		ManagedByKrane().
 		ComponentDeployment()

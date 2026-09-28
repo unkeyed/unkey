@@ -65,7 +65,8 @@ type Controller struct {
 	lagRecorder *podstatus.LagRecorder
 
 	// storageClassName is the Kubernetes StorageClass for ephemeral volumes.
-	storageClassName string
+	storageClassName         string
+	privateNetworkResolverIP string
 
 	// disableGvisor drops the gVisor sandbox from user workloads.
 	disableGvisor bool
@@ -124,6 +125,11 @@ type Config struct {
 	// DisableGvisor drops the gVisor sandbox from user workloads, leaving them
 	// on the node's default runtime.
 	DisableGvisor bool
+
+	// PrivateNetworkResolverIP is the regional undns Service IP. When set,
+	// customer Pods use it as their only nameserver and deployments must carry
+	// an environment kind.
+	PrivateNetworkResolverIP string
 }
 
 // New creates a [Controller] ready to be run with [Controller.Run].
@@ -138,22 +144,23 @@ func New(cfg Config) *Controller {
 	}
 
 	return &Controller{
-		clientSet:        cfg.ClientSet,
-		dynamicClient:    cfg.DynamicClient,
-		cluster:          cfg.Cluster,
-		vault:            cfg.Vault,
-		registry:         cfg.Registry,
-		imagePullSecrets: pullSecrets,
-		cb:               circuitbreaker.New[any]("deployment_state_update"),
-		cellID:           cfg.CellID,
-		region:           cfg.Region,
-		platform:         cfg.Platform,
-		fingerprints:     cfg.Fingerprints,
-		eventDedup:       cfg.EventDedup,
-		reportLocks:      keymutex.KeyMutex{},
-		lagRecorder:      podstatus.NewLagRecorder("deployment", cfg.ObservedTransitions),
-		storageClassName: cfg.StorageClassName,
-		disableGvisor:    cfg.DisableGvisor,
+		clientSet:                cfg.ClientSet,
+		dynamicClient:            cfg.DynamicClient,
+		cluster:                  cfg.Cluster,
+		vault:                    cfg.Vault,
+		registry:                 cfg.Registry,
+		imagePullSecrets:         pullSecrets,
+		cb:                       circuitbreaker.New[any]("deployment_state_update"),
+		cellID:                   cfg.CellID,
+		region:                   cfg.Region,
+		platform:                 cfg.Platform,
+		fingerprints:             cfg.Fingerprints,
+		eventDedup:               cfg.EventDedup,
+		reportLocks:              keymutex.KeyMutex{},
+		lagRecorder:              podstatus.NewLagRecorder("deployment", cfg.ObservedTransitions),
+		storageClassName:         cfg.StorageClassName,
+		privateNetworkResolverIP: cfg.PrivateNetworkResolverIP,
+		disableGvisor:            cfg.DisableGvisor,
 	}
 }
 
