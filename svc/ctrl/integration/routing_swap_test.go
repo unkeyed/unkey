@@ -28,12 +28,11 @@ func TestSwapLiveDeployment_OlderCompletionCannotReplaceNewer(t *testing.T) {
 		Slug:        uid.New("slug"),
 	})
 	app := h.Seed.CreateApp(ctx, seed.CreateAppRequest{
-		ID:            uid.New("app"),
-		WorkspaceID:   workspaceID,
-		ProjectID:     project.ID,
-		Name:          "routing-race-app",
-		Slug:          "default",
-		DefaultBranch: "main",
+		ID:          uid.New("app"),
+		WorkspaceID: workspaceID,
+		ProjectID:   project.ID,
+		Name:        "routing-race-app",
+		Slug:        "default",
 	})
 	environment := h.Seed.CreateEnvironment(ctx, seed.CreateEnvironmentRequest{
 		ID:             uid.New("env"),
@@ -46,8 +45,6 @@ func TestSwapLiveDeployment_OlderCompletionCannotReplaceNewer(t *testing.T) {
 		SentinelConfig: []byte("{}"),
 	})
 
-	// All deployments intentionally share the same millisecond timestamp. Their
-	// auto-increment primary keys must still provide a strict creation order.
 	now := h.Now()
 	baseline := h.Seed.CreateDeployment(ctx, seed.CreateDeploymentRequest{
 		WorkspaceID:   workspaceID,
