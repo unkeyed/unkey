@@ -19,11 +19,12 @@ type trackedInformer struct {
 	timeout     time.Duration
 }
 
-func newTrackedInformer(name string, object runtime.Object, indexes cache.Indexers, timeout time.Duration, list cache.ListWithContextFunc, watchFunc cache.WatchFuncWithContext) (*trackedInformer, error) {
+func newTrackedInformer(name string, object runtime.Object, indexes cache.Indexers, timeout time.Duration, labelSelector string, list cache.ListWithContextFunc, watchFunc cache.WatchFuncWithContext) (*trackedInformer, error) {
 	t := &trackedInformer{SharedIndexInformer: nil, lastContact: atomic.Int64{}, timeout: timeout}
 	lw := &cache.ListWatch{
 		ListFunc: nil, WatchFunc: nil, DisableChunking: false,
 		ListWithContextFunc: func(ctx context.Context, options metav1.ListOptions) (runtime.Object, error) {
+			options.LabelSelector = labelSelector
 			result, err := list(ctx, options)
 			if err == nil {
 				t.lastContact.Store(time.Now().UnixNano())
@@ -34,6 +35,7 @@ func newTrackedInformer(name string, object runtime.Object, indexes cache.Indexe
 			seconds := int64(timeout / time.Second)
 			options.TimeoutSeconds = &seconds
 			options.AllowWatchBookmarks = true
+			options.LabelSelector = labelSelector
 			result, err := watchFunc(ctx, options)
 			if err == nil {
 				t.lastContact.Store(time.Now().UnixNano())

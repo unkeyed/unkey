@@ -1,6 +1,7 @@
 package undns
 
 import (
+	"context"
 	"net/netip"
 	"testing"
 	"time"
@@ -12,6 +13,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/features"
+	featuretesting "k8s.io/client-go/features/testing"
+	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -207,4 +211,34 @@ func addSlice(t *testing.T, c *catalog, service *corev1.Service, name, address s
 		AddressType: discoveryv1.AddressTypeIPv4,
 		Endpoints:   []discoveryv1.Endpoint{{Addresses: []string{address}, Conditions: discoveryv1.EndpointConditions{Ready: &ready}}},
 	}))
+}
+
+// TestCatalogWatchesOnlyKraneObjects guarantees that undns caches only the
+// Pods and discovery objects Krane publishes, so its memory tracks private
+// networking instead of every object in the cluster.
+func TestCatalogWatchesOnlyKraneObjects(t *testing.T) {
+	featuretesting.SetFeatureDuringTest(t, features.WatchListClient, false)
+	unrelated := metav1.ObjectMeta{Name: "unrelated", Namespace: "default", Labels: map[string]string{"app": "other"}}
+	objects := append(discoveryObjects(t),
+		&corev1.Pod{ObjectMeta: unrelated, Status: corev1.PodStatus{Phase: corev1.PodRunning, PodIP: "10.9.0.1"}},
+		&corev1.ConfigMap{ObjectMeta: unrelated},
+		&corev1.Service{ObjectMeta: unrelated},
+		&discoveryv1.EndpointSlice{ObjectMeta: unrelated, AddressType: discoveryv1.AddressTypeIPv4},
+	)
+	c, err := newCatalog(fake.NewClientset(objects...), 30*time.Second)
+	require.NoError(t, err)
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	go func() { done <- c.run(ctx) }()
+	t.Cleanup(func() {
+		cancel()
+		require.NoError(t, <-done)
+	})
+	require.Eventually(t, c.readyDiscovery, 5*time.Second, 10*time.Millisecond)
+
+	for name, informer := range map[string]*trackedInformer{"pods": c.pods, "bindings": c.bindings, "services": c.services, "endpointslices": c.slices} {
+		keys := informer.GetStore().ListKeys()
+		require.Len(t, keys, 1, "%s cache keys: %v", name, keys)
+		require.NotEqual(t, "default/unrelated", keys[0], "%s cached an object Krane did not publish", name)
+	}
 }

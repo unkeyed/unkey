@@ -16,11 +16,14 @@
 // resolver doesn't infer reverse access and doesn't fall back to bindings for
 // another deployment, app, project, or workspace.
 //
-// Ctrl also publishes unkey-replicas.unkey.internal for every active deployment,
-// without a stored app binding. It resolves that deployment's ready replicas
-// across regions, excluding other versions of the app. When private DNS is
-// configured, Krane injects this hostname as UNKEY_REPLICA_HOST and grants
-// unicast TCP and UDP connectivity between those replicas.
+// Ctrl also publishes <app-slug>.unkey.internal for every active deployment in
+// a workspace enrolled in private networking, without a stored app binding. A
+// workspace is enrolled while it has an app binding to another app. The name
+// resolves that deployment's ready replicas across regions, excluding other
+// versions of the app. Krane injects it as UNKEY_REPLICA_HOST, points the
+// deployment's Pods at undns, and grants unicast TCP and UDP connectivity
+// between those replicas. Pods of other workspaces keep cluster DNS. Binding
+// names can't reuse the caller app's slug or start with unkey.
 //
 // # Answers
 //
@@ -93,7 +96,9 @@
 // Restrict resolver access to cluster workloads; unknown callers can forward
 // public queries and are not authenticated by DNS.
 //
-// Local watches renew every watch_timeout. A reported watch error closes
+// Watches select only Krane deployment Pods and objects labeled
+// component=private-dns; Cilium copies those labels onto the EndpointSlices it
+// imports from other clusters. Local watches renew every watch_timeout. A reported watch error closes
 // private discovery immediately; a silent stall does so after twice watch_timeout.
 // Endpoint availability reflects Kubernetes and Cilium EndpointSlice state,
 // not a direct health check of a remote Pod. DNS doesn't provide transport
