@@ -2,6 +2,7 @@
 
 import { PageLoading } from "@/components/dashboard/page-loading";
 import type { CheckoutOutcome } from "@/lib/billing/upgrade-result";
+import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import {
   EmptyState,
@@ -53,6 +54,7 @@ function SuccessContent() {
     trpc.stripe.updateWorkspaceStripeCustomer.useMutation();
   const linkApiSubscriptionMutation = trpc.stripe.linkApiSubscription.useMutation();
   const linkDeploySubscriptionMutation = trpc.stripe.linkDeploySubscription.useMutation();
+  const subscribeDeployMutation = trpc.stripe.subscribeDeploy.useMutation();
 
   const trpcUtils = trpc.useUtils();
 
@@ -71,6 +73,7 @@ function SuccessContent() {
       updateWorkspaceFn: typeof updateWorkspaceStripeCustomerMutation.mutateAsync,
       linkApiFn: typeof linkApiSubscriptionMutation.mutateAsync,
       linkDeployFn: typeof linkDeploySubscriptionMutation.mutateAsync,
+      subscribeDeployFn: typeof subscribeDeployMutation.mutateAsync,
     ) => {
       try {
         if (!isMounted) {
@@ -274,6 +277,28 @@ function SuccessContent() {
           return;
         }
 
+        // A setup-mode deploy checkout (the workspace still had a live Compute
+        // subscription) only saved the card. Subscribe here so the user can go
+        // back to where they started. On failure the projects hand-off retries
+        // and owns the decline and permission recovery.
+        const deployPlan =
+          intent === "deploy" ? DEPLOY_PLANS.find((known) => known === plan) : undefined;
+        if (deployPlan) {
+          const subscribed = await subscribeDeployFn({ plan: deployPlan })
+            .then(() => true)
+            .catch(() => false);
+          if (!isMounted) {
+            return;
+          }
+          if (subscribed) {
+            await trpcUtils.stripe.invalidate();
+            await trpcUtils.workspace.invalidate();
+            setProcessedData({ workspaceSlug: workspace.slug, outcome: "subscribed" });
+            setLoading(false);
+            return;
+          }
+        }
+
         // Check if this is a first-time user by getting billing info
         try {
           const billingInfo = await trpcUtils.stripe.getBillingInfo.fetch();
@@ -325,6 +350,7 @@ function SuccessContent() {
       updateWorkspaceStripeCustomerMutation.mutateAsync,
       linkApiSubscriptionMutation.mutateAsync,
       linkDeploySubscriptionMutation.mutateAsync,
+      subscribeDeployMutation.mutateAsync,
     );
 
     // Cleanup function to prevent state updates after unmount
@@ -339,6 +365,8 @@ function SuccessContent() {
     updateWorkspaceStripeCustomerMutation.mutateAsync,
     linkApiSubscriptionMutation.mutateAsync,
     linkDeploySubscriptionMutation.mutateAsync,
+    subscribeDeployMutation.mutateAsync,
+    plan,
   ]);
 
   if (loading) {
