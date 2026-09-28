@@ -26,7 +26,6 @@ import Stripe from "stripe";
 
 export const dynamic = "force-dynamic";
 
-/** "payment" means the card itself was the goal, so /success skips the legacy forced API plan modal. */
 const CHECKOUT_INTENTS = ["payment", "deploy"] as const;
 
 export default async function StripeRedirect(props: {

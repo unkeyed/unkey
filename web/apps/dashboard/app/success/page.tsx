@@ -39,7 +39,6 @@ type ProcessedData = {
 function SuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams?.get("session_id") ?? null;
-  // Any intent skips the legacy forced API plan modal below.
   const intent = searchParams?.get("intent") ?? null;
   const plan = searchParams?.get("plan") ?? null;
   const from = searchParams?.get("from") ?? null;
@@ -149,9 +148,7 @@ function SuccessContent() {
         }
 
         // Subscription-mode deploy checkout: Stripe already created and charged
-        // the subscription, so there is no setup intent to process. Link it onto
-        // the workspace via the server-verified mutation, then hand back through
-        // checkoutReturnPath.
+        // the subscription, so there is no setup intent to process.
         // The checkout.session.completed webhook may have linked it already; the
         // shared linker is idempotent, so this is a safe fast-path.
         if (
@@ -277,10 +274,8 @@ function SuccessContent() {
           return;
         }
 
-        // A setup-mode deploy checkout (the workspace still had a live Compute
-        // subscription) only saved the card. Subscribe here so the user can go
-        // back to where they started. On failure the projects hand-off retries
-        // and owns the decline and permission recovery.
+        // Setup mode only saved the card. A failed subscribe falls through to the
+        // projects hand-off, which retries and owns the decline recovery.
         const deployPlan =
           intent === "deploy" ? DEPLOY_PLANS.find((known) => known === plan) : undefined;
         if (deployPlan) {

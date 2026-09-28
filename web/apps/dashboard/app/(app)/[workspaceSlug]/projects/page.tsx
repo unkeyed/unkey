@@ -55,14 +55,6 @@ export default function ProjectsPage() {
   );
 }
 
-/**
- * Handles the Compute-plan gate hand-off: reads ?pendingPlan&from from the URL
- * and shows the welcome dialog, then the create-project dialog on `from=create`.
- *
- * The setup-mode checkout fallback (the workspace already had a subscription)
- * only vaults a card, so the workspace is not yet entitled and subscribeDeploy
- * must still run here.
- */
 function usePendingSubscribe() {
   const router = useRouter();
   const workspace = useWorkspaceNavigation();

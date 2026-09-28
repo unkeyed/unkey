@@ -11,7 +11,7 @@
 
 /* Radix's dark tokens select a bare .dark, so they also hit the dashboard's
    <html class="dark"> and point --color-background at --gray-1, which only
-   exists inside .radix-themes. Restore the dashboard value on that element. */
+   exists inside .radix-themes. */
 .dark {
   --color-background: var(--color-gray-1);
 }
