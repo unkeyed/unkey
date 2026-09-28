@@ -178,23 +178,23 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 		bindingsByKey[binding.Namespace+"/"+binding.Name] = binding
 	}
 
-	response, err := r.cluster.GetPrivateNetworkState(ctx, &ctrlv1.GetPrivateNetworkStateRequest{Cluster: r.clusterKey})
-	if err != nil {
-		return fmt.Errorf("get complete private network snapshot: %w", err)
-	}
-
-	if response == nil {
-		return fmt.Errorf("private network snapshot is missing")
-	}
-
-	apps, err := validateSnapshot(response.GetApps())
+	snapshot, err := r.snapshot(ctx)
 	if err != nil {
 		return err
 	}
+	apps, rejected := validateSnapshot(snapshot)
 
 	r.endpointMu.Lock()
 	defer r.endpointMu.Unlock()
 	pods, err := r.localPods(ctx)
+	if err != nil {
+		return err
+	}
+	sourceSlices, err := r.sourceSlices(ctx)
+	if err != nil {
+		return err
+	}
+	namespaces, err := r.namespaces(ctx)
 	if err != nil {
 		return err
 	}
@@ -203,27 +203,39 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 	desiredBindings := make(map[string]struct{}, len(apps))
 	desiredPolicies := make(map[string]struct{}, len(apps))
 	ensuredServices := make(map[string]struct{}, len(apps))
-	namespaces := make(map[string]struct{})
-	var appErrs []error
+	retain := func(bindingKey string) {
+		desiredBindings[bindingKey] = struct{}{}
+		desiredPolicies[bindingKey] = struct{}{}
+		if existing := bindingsByKey[bindingKey]; existing != nil && existing.Data["serviceName"] != "" {
+			desiredServices[existing.Namespace+"/"+existing.Data["serviceName"]] = struct{}{}
+		}
+	}
+	appErrs := make([]error, 0, len(rejected))
+	for _, rejection := range rejected {
+		appErrs = append(appErrs, rejection.err)
+		if rejection.retainedBindingKey != "" {
+			retain(rejection.retainedBindingKey)
+		}
+	}
 	for _, app := range apps {
 		if err := ctx.Err(); err != nil {
 			return errors.Join(append(appErrs, err)...)
 		}
 
+		bindingName := bindingResourceName(app)
+		bindingKey := app.GetK8SNamespace() + "/" + bindingName
 		if _, exists := namespaces[app.GetK8SNamespace()]; !exists {
 			_, err := r.client.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{Name: app.GetK8SNamespace()},
 			}, metav1.CreateOptions{})
 			if err != nil && !apierrors.IsAlreadyExists(err) {
 				appErrs = append(appErrs, fmt.Errorf("ensure private network namespace %s: %w", app.GetK8SNamespace(), err))
+				retain(bindingKey)
 				continue
 			}
 			namespaces[app.GetK8SNamespace()] = struct{}{}
 		}
 
-		bindingID := app.GetBindingId() + "/" + app.GetCallerDeploymentId()
-		bindingName := resourceName("unkey-pn-binding", bindingID)
-		bindingKey := app.GetK8SNamespace() + "/" + bindingName
 		var service *corev1.Service
 		if app.GetDeploymentId() != "" {
 			name := discoveryName(app.GetDeploymentId(), app.GetPort())
@@ -232,11 +244,14 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 				ensuredService, err := r.ensureService(ctx, app, name, servicesByKey[serviceKey])
 				if err != nil {
 					appErrs = append(appErrs, err)
+					retain(bindingKey)
 					continue
 				}
 				servicesByKey[serviceKey] = ensuredService
-				if err := r.ensureEndpoints(ctx, ensuredService, pods); err != nil {
+				if err := r.ensureEndpoints(ctx, ensuredService, pods, sourceSlices[serviceKey]); err != nil {
 					appErrs = append(appErrs, err)
+					desiredServices[serviceKey] = struct{}{}
+					retain(bindingKey)
 					continue
 				}
 				ensuredServices[serviceKey] = struct{}{}
@@ -246,11 +261,13 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 		}
 		if err := r.ensurePolicy(ctx, app, bindingName, bindingsByKey[bindingKey]); err != nil {
 			appErrs = append(appErrs, err)
+			retain(bindingKey)
 			continue
 		}
 		binding, err := r.ensureBinding(ctx, app, bindingName, service, bindingsByKey[bindingKey])
 		if err != nil {
 			appErrs = append(appErrs, err)
+			retain(bindingKey)
 			continue
 		}
 		if binding.Data["serviceName"] != "" {
@@ -260,24 +277,64 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 		desiredPolicies[bindingKey] = struct{}{}
 	}
 
-	if len(appErrs) > 0 {
-		return fmt.Errorf("reconcile private network apps, cleanup skipped: %w", errors.Join(appErrs...))
-	}
 	if err := r.cleanupPolicies(ctx, desiredPolicies); err != nil {
-		return err
+		appErrs = append(appErrs, err)
+	} else if err := r.cleanup(ctx, services, bindings, desiredServices, desiredBindings); err != nil {
+		appErrs = append(appErrs, err)
 	}
-	return r.cleanup(ctx, services, bindings, desiredServices, desiredBindings)
+	if len(appErrs) > 0 {
+		return fmt.Errorf("reconcile private network apps, failed apps kept their published objects: %w", errors.Join(appErrs...))
+	}
+	return nil
 }
 
-func validateSnapshot(apps []*ctrlv1.PrivateNetworkApp) ([]*ctrlv1.PrivateNetworkApp, error) {
-	seen := make(map[string]struct{}, len(apps))
+func (r *Reconciler) snapshot(ctx context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+	stream, err := r.cluster.StreamPrivateNetworkState(ctx, &ctrlv1.StreamPrivateNetworkStateRequest{Cluster: r.clusterKey})
+	if err != nil {
+		return nil, fmt.Errorf("get complete private network snapshot: %w", err)
+	}
+	defer func() {
+		if err := stream.Close(); err != nil {
+			logger.Warn("close private network snapshot stream", "error", err)
+		}
+	}()
+
+	var apps []*ctrlv1.PrivateNetworkApp
+	for stream.Receive() {
+		chunk := stream.Msg()
+		if chunk.GetComplete() {
+			if chunk.GetTotal() != uint64(len(apps)) || len(chunk.GetApps()) != 0 {
+				return nil, fmt.Errorf("private network snapshot has %d apps, complete chunk reports %d", len(apps), chunk.GetTotal())
+			}
+			return apps, nil
+		}
+		apps = append(apps, chunk.GetApps()...)
+	}
+	if err := stream.Err(); err != nil {
+		return nil, fmt.Errorf("get complete private network snapshot: %w", err)
+	}
+	return nil, fmt.Errorf("private network snapshot ended before it was complete")
+}
+
+type snapshotRejection struct {
+	retainedBindingKey string
+	err                error
+}
+
+func validateSnapshot(apps []*ctrlv1.PrivateNetworkApp) ([]*ctrlv1.PrivateNetworkApp, []snapshotRejection) {
+	identities := make(map[string]int, len(apps))
+	for _, app := range apps {
+		if app != nil {
+			identities[appIdentity(app)]++
+		}
+	}
 	eligible := make([]*ctrlv1.PrivateNetworkApp, 0, len(apps))
+	var rejected []snapshotRejection
 	for i, app := range apps {
 		if app == nil {
-			return nil, fmt.Errorf("invalid private network snapshot app %d: app is nil", i)
+			rejected = append(rejected, snapshotRejection{retainedBindingKey: "", err: fmt.Errorf("invalid private network snapshot app %d: app is nil", i)})
+			continue
 		}
-		key := app.GetWorkspaceId() + "/" + app.GetProjectId() + "/" + app.GetCallerDeploymentId() + "/" + app.GetBindingName()
-		_, duplicate := seen[key]
 		err := assert.All(
 			assert.NotEmpty(app.GetWorkspaceId(), "workspace ID is required"),
 			assert.NotEmpty(app.GetProjectId(), "project ID is required"),
@@ -291,15 +348,45 @@ func validateSnapshot(apps []*ctrlv1.PrivateNetworkApp) ([]*ctrlv1.PrivateNetwor
 			assert.True(app.GetDeploymentId() == "" || app.GetPort() > 0, "resolved target port must be positive"),
 			assert.GreaterOrEqual(app.GetPort(), int32(0), "port must not be negative"),
 			assert.LessOrEqual(app.GetPort(), int32(65535), "port must be at most 65535"),
-			assert.False(duplicate, "duplicate app identity"),
+			assert.Equal(identities[appIdentity(app)], 1, "duplicate app identity"),
 		)
 		if err != nil {
-			return nil, fmt.Errorf("invalid private network snapshot app %d: %w", i, err)
+			rejected = append(rejected, snapshotRejection{
+				retainedBindingKey: publishedBindingKey(app),
+				err:                fmt.Errorf("invalid private network snapshot app %d: %w", i, err),
+			})
+			continue
 		}
-		seen[key] = struct{}{}
 		eligible = append(eligible, app)
 	}
-	return eligible, nil
+	return eligible, rejected
+}
+
+func appIdentity(app *ctrlv1.PrivateNetworkApp) string {
+	return app.GetWorkspaceId() + "/" + app.GetProjectId() + "/" + app.GetCallerDeploymentId() + "/" + app.GetBindingName()
+}
+
+func publishedBindingKey(app *ctrlv1.PrivateNetworkApp) string {
+	if len(validation.IsDNS1123Label(app.GetK8SNamespace())) != 0 || app.GetBindingId() == "" || app.GetCallerDeploymentId() == "" {
+		return ""
+	}
+	return app.GetK8SNamespace() + "/" + bindingResourceName(app)
+}
+
+func bindingResourceName(app *ctrlv1.PrivateNetworkApp) string {
+	return resourceName("unkey-pn-binding", app.GetBindingId()+"/"+app.GetCallerDeploymentId())
+}
+
+func (r *Reconciler) namespaces(ctx context.Context) (map[string]struct{}, error) {
+	list, err := r.client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("list namespaces: %w", err)
+	}
+	namespaces := make(map[string]struct{}, len(list.Items))
+	for i := range list.Items {
+		namespaces[list.Items[i].Name] = struct{}{}
+	}
+	return namespaces, nil
 }
 
 func appLabels(app *ctrlv1.PrivateNetworkApp) labels.Labels {

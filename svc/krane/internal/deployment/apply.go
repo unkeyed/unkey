@@ -10,7 +10,6 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
 	"github.com/unkeyed/unkey/pkg/logger"
-	"github.com/unkeyed/unkey/pkg/privatenetwork"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	"github.com/unkeyed/unkey/svc/krane/pkg/metrics"
 	appsv1 "k8s.io/api/apps/v1"
@@ -59,7 +58,7 @@ func (c *Controller) ApplyDeployment(ctx context.Context, req *ctrlv1.ApplyDeplo
 		assert.NotEmpty(req.GetProjectId(), "Project ID is required"),
 		assert.NotEmpty(req.GetEnvironmentId(), "Environment ID is required"),
 		assert.True(req.GetEnvironmentKind() == "production" || req.GetEnvironmentKind() == "preview" ||
-			(req.GetEnvironmentKind() == "" && c.privateNetworkResolverIP == ""), "Environment kind is required for private networking"),
+			(req.GetEnvironmentKind() == "" && !c.privateNetworkEnabled(req)), "Environment kind is required for private networking"),
 		assert.NotEmpty(req.GetDeploymentId(), "Deployment ID is required"),
 		assert.NotEmpty(req.GetK8SNamespace(), "Namespace is required"),
 		assert.NotEmpty(req.GetK8SName(), "K8s CRD name is required"),
@@ -299,9 +298,9 @@ func (c *Controller) buildReplicaSet(req *ctrlv1.ApplyDeployment, hasSecrets boo
 		Containers:                   []corev1.Container{container},
 	}
 
-	if c.privateNetworkResolverIP != "" {
+	if c.privateNetworkEnabled(req) {
 		podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, corev1.EnvVar{
-			Name: "UNKEY_REPLICA_HOST", Value: privatenetwork.ReplicaHost,
+			Name: "UNKEY_REPLICA_HOST", Value: req.GetPrivateNetworkReplicaHost(),
 		})
 		podSpec.DNSPolicy = corev1.DNSNone
 		podSpec.DNSConfig = &corev1.PodDNSConfig{
@@ -536,6 +535,10 @@ func buildPodDisruptionBudget(req *ctrlv1.ApplyDeployment, rs *appsv1.ReplicaSet
 		},
 	}
 	return pdb
+}
+
+func (c *Controller) privateNetworkEnabled(req *ctrlv1.ApplyDeployment) bool {
+	return c.privateNetworkResolverIP != "" && req.GetPrivateNetworkReplicaHost() != ""
 }
 
 func deploymentLabels(req *ctrlv1.ApplyDeployment) labels.Labels {

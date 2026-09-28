@@ -249,7 +249,8 @@ var fieldAssertions = map[string]func(t *testing.T, rs *appsv1.ReplicaSet){
 // fieldsRenderedElsewhere lists proto fields that intentionally do not surface
 // in the ReplicaSet, with the reason.
 var fieldsRenderedElsewhere = map[string]string{
-	"autoscaling": "rendered into a HorizontalPodAutoscaler by ensureHPAExists, not the ReplicaSet",
+	"autoscaling":                  "rendered into a HorizontalPodAutoscaler by ensureHPAExists, not the ReplicaSet",
+	"private_network_replica_host": "rendered only with a regional resolver; asserted by TestBuildReplicaSet_PrivateNetworkDNS",
 }
 
 // labelDeploymentIDKey returns the label key used for the deployment id by
@@ -335,18 +336,39 @@ func TestBuildReplicaSet_GvisorToggle(t *testing.T) {
 	require.Nil(t, rs.Spec.Template.Spec.RuntimeClassName)
 }
 
+// TestBuildReplicaSet_PrivateNetworkDNS guarantees that a Pod resolves
+// through undns and receives its replica host only when the region runs a
+// resolver and Ctrl enrolled the workspace; every other Pod keeps cluster DNS.
 func TestBuildReplicaSet_PrivateNetworkDNS(t *testing.T) {
-	controller := testController()
-	_, exists := envValue(mainContainer(t, controller.buildReplicaSet(fullApplyRequest(t), false)), "UNKEY_REPLICA_HOST")
-	require.False(t, exists)
-	controller.privateNetworkResolverIP = "10.0.0.53"
+	for _, tt := range []struct {
+		name       string
+		resolverIP string
+		host       string
+		wantDNS    bool
+	}{
+		{name: "enrolled_with_resolver", resolverIP: "10.0.0.53", host: "api.unkey.internal", wantDNS: true},
+		{name: "not_enrolled", resolverIP: "10.0.0.53", host: "", wantDNS: false},
+		{name: "no_resolver", resolverIP: "", host: "api.unkey.internal", wantDNS: false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			controller := testController()
+			controller.privateNetworkResolverIP = tt.resolverIP
+			req := fullApplyRequest(t)
+			req.PrivateNetworkReplicaHost = tt.host
 
-	rs := controller.buildReplicaSet(fullApplyRequest(t), false)
-	host, exists := envValue(mainContainer(t, rs), "UNKEY_REPLICA_HOST")
-	require.True(t, exists)
-	require.Equal(t, "unkey-replicas.unkey.internal", host)
-	require.Equal(t, corev1.DNSNone, rs.Spec.Template.Spec.DNSPolicy)
-	require.Equal(t, []string{"10.0.0.53"}, rs.Spec.Template.Spec.DNSConfig.Nameservers)
-	require.Equal(t, "ndots", rs.Spec.Template.Spec.DNSConfig.Options[0].Name)
-	require.Equal(t, new("1"), rs.Spec.Template.Spec.DNSConfig.Options[0].Value)
+			rs := controller.buildReplicaSet(req, false)
+			host, exists := envValue(mainContainer(t, rs), "UNKEY_REPLICA_HOST")
+			require.Equal(t, tt.wantDNS, exists)
+			if !tt.wantDNS {
+				require.NotEqual(t, corev1.DNSNone, rs.Spec.Template.Spec.DNSPolicy)
+				require.Nil(t, rs.Spec.Template.Spec.DNSConfig)
+				return
+			}
+			require.Equal(t, tt.host, host)
+			require.Equal(t, corev1.DNSNone, rs.Spec.Template.Spec.DNSPolicy)
+			require.Equal(t, []string{tt.resolverIP}, rs.Spec.Template.Spec.DNSConfig.Nameservers)
+			require.Equal(t, "ndots", rs.Spec.Template.Spec.DNSConfig.Options[0].Name)
+			require.Equal(t, new("1"), rs.Spec.Template.Spec.DNSConfig.Options[0].Value)
+		})
+	}
 }
