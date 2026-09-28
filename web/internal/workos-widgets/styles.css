@@ -9,6 +9,13 @@
 @import "@radix-ui/themes/utilities.css";
 @import "@workos-inc/widgets/styles.css";
 
+/* Radix's dark tokens select a bare .dark, so they also hit the dashboard's
+   <html class="dark"> and point --color-background at --gray-1, which only
+   exists inside .radix-themes. Restore the dashboard value on that element. */
+.dark {
+  --color-background: var(--color-gray-1);
+}
+
 /* Dialogs and menus portal outside the provider, so each scope is remapped. */
 .unkey-workos-widgets.woswidgets-root,
 .woswidgets-dialog,
