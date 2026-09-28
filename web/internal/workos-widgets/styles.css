@@ -260,9 +260,9 @@
 .woswidgets-text-field,
 .woswidgets-select {
   min-height: 2.25rem;
-  border: 1px solid var(--color-gray-5);
+  border: 1px solid var(--border-color-input);
   border-radius: 0.5rem;
-  background-color: light-dark(var(--color-gray-2), black);
+  background-color: var(--background-color-raised);
   color: var(--color-gray-12);
   box-shadow: none;
   font-family: var(--font-geist-sans);
@@ -276,7 +276,7 @@
 
 .woswidgets-text-field:hover:not(:has(input:disabled)),
 .woswidgets-select:hover:not(:disabled) {
-  border-color: var(--color-gray-8);
+  border-color: var(--border-color-strong);
 }
 
 .woswidgets-text-field:has(input:focus-visible),
@@ -357,8 +357,8 @@
 }
 
 /*
- * The inner DOM belongs to WorkOS, so the body tint is painted on the dialog
- * and the header and footer lay opaque strips over it with negative margins.
+ * The inner DOM belongs to WorkOS, so the body colour is painted on the dialog
+ * and the header and footer lay raised strips over it with negative margins.
  */
 .woswidgets-dialog {
   --unkey-dialog-pad-x: 1.5rem;
@@ -366,12 +366,10 @@
   max-width: min(37.5rem, calc(100vw - 2rem));
   max-height: 90svh;
   padding: var(--unkey-dialog-pad-y) var(--unkey-dialog-pad-x);
-  border: 1px solid var(--color-grayA-4);
   border-radius: 1rem;
   background-color: var(--color-background);
-  background-image: linear-gradient(var(--color-grayA-3), var(--color-grayA-3));
-  color: var(--color-gray-12);
-  box-shadow: 0 25px 25px rgb(0 0 0 / 0.15);
+  color: var(--color-gray-11);
+  box-shadow: var(--elevation-floating);
 }
 
 /* Dialog.Title is a plain Radix Heading, so it is matched by position. */
@@ -381,8 +379,8 @@
     var(--unkey-dialog-pad-y);
   padding: 1rem var(--unkey-dialog-pad-x);
   border-bottom: 1px solid var(--color-grayA-4);
-  border-radius: calc(1rem - 1px) calc(1rem - 1px) 0 0;
-  background-color: var(--color-background);
+  border-radius: 1rem 1rem 0 0;
+  background-color: var(--background-color-raised);
   color: var(--color-gray-12);
   font-family: var(--font-geist-sans);
   font-size: 0.9375rem;
@@ -390,9 +388,11 @@
   line-height: 2rem;
 }
 
+/* Dialog.Description renders without its rt-* class, so size-2 would win. */
+.woswidgets-dialog > .rt-Text,
 .woswidgets-dialog .rt-DialogDescription,
 .woswidgets-dialog .rt-AlertDialogDescription {
-  color: var(--color-grayA-11);
+  color: var(--color-gray-11);
   font-family: var(--font-geist-sans);
   font-size: 0.8125rem;
   line-height: 1.25rem;
@@ -410,7 +410,21 @@
   margin-left: calc(var(--unkey-dialog-pad-x) * -1);
   padding: 1.5rem var(--unkey-dialog-pad-x);
   border-top: 1px solid var(--color-grayA-4);
-  background-color: var(--color-background);
+  background-color: var(--background-color-raised);
+}
+
+.woswidgets-dialog
+  :is(.rt-r-jc-end, .rt-r-jc-space-between)
+  > .woswidgets-button {
+  height: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border-radius: 0.5rem;
+}
+
+.woswidgets-dialog .woswidgets-label {
+  color: var(--color-gray-11);
+  font-weight: 400;
 }
 
 /*
@@ -420,7 +434,7 @@
 .woswidgets-dialog:not(:has(> form))
   > :is(.rt-r-jc-end, .rt-r-jc-space-between):last-child:has(> .woswidgets-button) {
   margin-bottom: calc(var(--unkey-dialog-pad-y) * -1);
-  border-radius: 0 0 calc(1rem - 1px) calc(1rem - 1px);
+  border-radius: 0 0 1rem 1rem;
 }
 
 .woswidgets-dialog:has(> form) {
@@ -429,7 +443,7 @@
 
 .woswidgets-dialog:has(> form)
   :is(.rt-r-jc-end, .rt-r-jc-space-between):has(> .woswidgets-button) {
-  border-radius: 0 0 calc(1rem - 1px) calc(1rem - 1px);
+  border-radius: 0 0 1rem 1rem;
 }
 
 .woswidgets-avatar {
@@ -503,6 +517,11 @@
 .unkey-workos-widgets .rt-TableCell {
   --table-row-box-shadow: inset 0 -1px var(--color-grayA-4);
   padding: 0.75rem 1rem;
+}
+
+/* The table root already draws the outer border. */
+.unkey-workos-widgets .rt-TableBody .rt-TableRow:last-child .rt-TableCell {
+  --table-row-box-shadow: none;
 }
 
 .unkey-workos-widgets .rt-TableColumnHeaderCell {
