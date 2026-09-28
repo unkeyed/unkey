@@ -86,6 +86,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
     trpc: { context: { skipBatch: true } },
   });
 
+  const [selectedProduct, setSelectedProduct] = useState<PaywallProduct | null>(null);
   const copy = paywallCopy(reason);
   const products = copy.products.filter(
     (product) => product !== "compute" || plansData?.configured !== false,
@@ -100,7 +101,6 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
         recommendedPlan={copy.recommendedPlan}
         from={from}
         cardVariant={cardVariantOf(searchParams.get("plans"))}
-        highlight={copy.highlight}
       />
     ),
     api: (
@@ -110,17 +110,35 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
     ),
   };
 
+  const activeProduct =
+    selectedProduct && products.includes(selectedProduct) ? selectedProduct : products[0];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="top-0 left-0 block h-dvh w-screen max-w-none translate-x-0 translate-y-0 overflow-y-auto rounded-none bg-background p-0 sm:rounded-none">
-        <div className="mx-auto flex min-h-dvh w-full max-w-[1040px] flex-col items-center justify-center px-6 py-16">
+        <Tabs
+          value={activeProduct}
+          onValueChange={(value) =>
+            setSelectedProduct(products.find((product) => product === value) ?? null)
+          }
+          className="relative mx-auto flex min-h-dvh w-full max-w-[1040px] flex-col items-center justify-center px-6 py-16"
+        >
+          {products.length > 1 ? (
+            <TabsList className="absolute top-4 left-1/2 -translate-x-1/2">
+              {products.map((product) => (
+                <TabsTrigger key={product} value={product}>
+                  {PRODUCT_LABELS[product]}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          ) : null}
           <Logo className="mb-6 h-6 w-auto" aria-hidden="true" />
           <DialogTitle className="text-center font-semibold text-2xl text-gray-12 tracking-[-0.03em]">
             {copy.title}
           </DialogTitle>
           <DialogDescription className="mt-2 max-w-md text-balance text-center text-gray-11 text-sm leading-6">
             {copy.description}
-            {products.includes("compute") ? (
+            {activeProduct === "compute" ? (
               <>
                 {" "}
                 {CREDITS_INFO}{" "}
@@ -135,26 +153,12 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
               </>
             ) : null}
           </DialogDescription>
-
-          {products.length > 1 ? (
-            <Tabs defaultValue={products[0]} className="mt-8 flex w-full flex-col items-center">
-              <TabsList>
-                {products.map((product) => (
-                  <TabsTrigger key={product} value={product}>
-                    {PRODUCT_LABELS[product]}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              {products.map((product) => (
-                <TabsContent key={product} value={product} className="mt-8 w-full">
-                  {panels[product]}
-                </TabsContent>
-              ))}
-            </Tabs>
-          ) : (
-            <div className="mt-8 w-full">{products[0] ? panels[products[0]] : null}</div>
-          )}
-        </div>
+          {products.map((product) => (
+            <TabsContent key={product} value={product} className="mt-8 w-full">
+              {panels[product]}
+            </TabsContent>
+          ))}
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
@@ -206,13 +210,7 @@ function PlanFeatureList({
   );
 }
 
-function FullPlanFeatureList({
-  rows,
-  highlight,
-}: {
-  rows: PlanFeatureRow[];
-  highlight?: PlanFeatureKind;
-}) {
+function FullPlanFeatureList({ rows }: { rows: PlanFeatureRow[] }) {
   return (
     <ul className="flex flex-col gap-2.5">
       {rows.map((row) => {
@@ -223,7 +221,6 @@ function FullPlanFeatureList({
             className={cn(
               "flex items-center gap-2.5 text-sm",
               row.included ? "text-gray-12" : "text-gray-9 line-through",
-              row.kind === highlight && "-mx-2 rounded-md bg-grayA-3 px-2 py-1 font-medium",
             )}
           >
             <Icon
@@ -270,10 +267,8 @@ function ComputePlans({
   recommendedPlan,
   from,
   cardVariant,
-  highlight,
 }: {
   cardVariant: CardVariant;
-  highlight?: PlanFeatureKind;
   plans: DeployPlanOption[] | undefined;
   currentPlan: DeployPlan | null;
   isAdmin: boolean;
@@ -394,7 +389,7 @@ function ComputePlans({
               </Button>
 
               {cardVariant === "v3" ? (
-                <FullPlanFeatureList rows={fullPlanFeatures(option.plan)} highlight={highlight} />
+                <FullPlanFeatureList rows={fullPlanFeatures(option.plan)} />
               ) : cardVariant === "v1" ? (
                 <FullPlanFeatureList rows={fullPlanFeatures(option.plan)} />
               ) : (
