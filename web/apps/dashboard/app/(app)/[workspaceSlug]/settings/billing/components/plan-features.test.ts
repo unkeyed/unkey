@@ -13,7 +13,11 @@ describe("computePlanFeatures", () => {
     for (const plan of ["pro", "business"] as const) {
       const features = computePlanFeatures(plan);
 
-      expect(features).toContainEqual({ kind: "team", label: "Team members", included: true });
+      expect(features).toContainEqual({
+        kind: "team",
+        label: "Unlimited team members",
+        included: true,
+      });
       expect(features).toContainEqual({
         kind: "domains",
         label: "Unlimited custom domains",
@@ -24,7 +28,7 @@ describe("computePlanFeatures", () => {
 
   it("reads resource ceilings from the plan limits", () => {
     expect(computePlanFeatures("business").map((f) => f.label)).toEqual([
-      "Team members",
+      "Unlimited team members",
       "16 vCPU per instance",
       "32 GiB memory per instance",
       "Unlimited custom domains",

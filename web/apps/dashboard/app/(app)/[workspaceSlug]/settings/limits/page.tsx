@@ -2,7 +2,6 @@
 
 import { PageLoading } from "@/components/dashboard/page-loading";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
-import { routes } from "@/lib/navigation/routes";
 import { SUPPORT_MAILTO } from "@/lib/support";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
@@ -112,12 +111,7 @@ export default function LimitsPage() {
 
   return (
     <Shell>
-      {breached.length > 0 ? (
-        <BreachBanner
-          breached={breached}
-          billingHref={routes.settings.billing({ workspaceSlug: workspace.slug, intent: "api" })}
-        />
-      ) : null}
+      {breached.length > 0 ? <BreachBanner breached={breached} /> : null}
       {groups.map((group) => (
         <Group key={group.key} group={group} />
       ))}

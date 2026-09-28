@@ -2,7 +2,7 @@
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { formatDollars, formatNumber } from "@/lib/fmt";
-import { routes } from "@/lib/navigation/routes";
+import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import type { DeployPlanOption } from "@/lib/trpc/routers/stripe/getDeployPlans";
@@ -24,6 +24,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogTitle,
+  Logo,
   Skeleton,
   Tabs,
   TabsContent,
@@ -32,7 +33,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { cn } from "cn";
-import { type ComponentType, useState } from "react";
+import { type ComponentType, type ReactNode, useState } from "react";
 import { currentApiProduct } from "./api-plan";
 import {
   CREDITS_INFO,
@@ -42,6 +43,7 @@ import {
 } from "./compute-plan-copy";
 import { ComputePlanConfirmDialog } from "./compute-plan-picker-v2";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
+import { type PaywallProduct, type PaywallReason, paywallCopy } from "./paywall-copy";
 import { PlanOptionList } from "./plan-change-modal";
 import { type PlanFeatureKind, computePlanFeatures } from "./plan-features";
 import { PlanTierIcon } from "./plan-tier-icons";
@@ -49,65 +51,87 @@ import { PlanTierIcon } from "./plan-tier-icons";
 type PlansScreenProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title: string;
-  description: string;
-  recommendedPlan?: DeployPlan;
+  reason: PaywallReason;
+  from?: DeployCheckoutOrigin;
 };
 
-export function PlansScreen({
-  open,
-  onOpenChange,
-  title,
-  description,
-  recommendedPlan,
-}: PlansScreenProps) {
+export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: PlansScreenProps) {
   const { user } = useWorkspace();
   const isAdmin = user?.role === "admin";
+
+  const { data: subscription } = trpc.stripe.getDeploySubscription.useQuery(undefined, {
+    staleTime: 30_000,
+  });
+  const currentPlan = subscription?.plan ?? null;
 
   const { data: plansData } = trpc.stripe.getDeployPlans.useQuery(undefined, {
     enabled: open,
     staleTime: 60_000,
     trpc: { context: { skipBatch: true } },
   });
-  const computeAvailable = plansData?.configured !== false;
+
+  const copy = paywallCopy(reason, currentPlan);
+  const products = copy.products.filter(
+    (product) => product !== "compute" || plansData?.configured !== false,
+  );
+
+  const panels: Record<PaywallProduct, ReactNode> = {
+    compute: (
+      <ComputePlans
+        plans={plansData?.plans}
+        currentPlan={currentPlan}
+        isAdmin={isAdmin}
+        recommendedPlan={copy.recommendedPlan}
+        from={from}
+      />
+    ),
+    api: (
+      <div className="mx-auto w-full max-w-[560px]">
+        <ApiPlans isAdmin={isAdmin} enabled={open} />
+      </div>
+    ),
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="top-0 left-0 block h-dvh w-screen max-w-none translate-x-0 translate-y-0 overflow-y-auto rounded-none bg-background p-0 sm:rounded-none">
         <div className="mx-auto flex min-h-dvh w-full max-w-[1040px] flex-col items-center justify-center px-6 py-16">
+          <Logo className="mb-6 h-6 w-auto" aria-hidden="true" />
           <DialogTitle className="text-center font-semibold text-2xl text-gray-12 tracking-[-0.03em]">
-            {title}
+            {copy.title}
           </DialogTitle>
           <DialogDescription className="mt-2 max-w-lg text-balance text-center text-gray-11 text-sm leading-6">
-            {description}
+            {copy.description}
           </DialogDescription>
 
-          <Tabs
-            defaultValue={computeAvailable ? "compute" : "api"}
-            className="mt-8 flex w-full flex-col items-center"
-          >
-            <TabsList>
-              {computeAvailable ? <TabsTrigger value="compute">Compute</TabsTrigger> : null}
-              <TabsTrigger value="api">API</TabsTrigger>
-            </TabsList>
-            {computeAvailable ? (
-              <TabsContent value="compute" className="mt-8 w-full">
-                <ComputePlans
-                  plans={plansData?.plans}
-                  isAdmin={isAdmin}
-                  recommendedPlan={recommendedPlan}
-                />
-              </TabsContent>
-            ) : null}
-            <TabsContent value="api" className="mt-8 w-full max-w-[560px]">
-              <ApiPlans isAdmin={isAdmin} enabled={open} />
-            </TabsContent>
-          </Tabs>
+          {products.length > 1 ? (
+            <Tabs defaultValue={products[0]} className="mt-8 flex w-full flex-col items-center">
+              <TabsList>
+                {products.map((product) => (
+                  <TabsTrigger key={product} value={product}>
+                    {PRODUCT_LABELS[product]}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              {products.map((product) => (
+                <TabsContent key={product} value={product} className="mt-8 w-full">
+                  {panels[product]}
+                </TabsContent>
+              ))}
+            </Tabs>
+          ) : (
+            <div className="mt-8 w-full">{products[0] ? panels[products[0]] : null}</div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
   );
 }
+
+const PRODUCT_LABELS: Record<PaywallProduct, string> = {
+  compute: "Compute",
+  api: "API",
+};
 
 const FEATURE_ICONS: Record<PlanFeatureKind, ComponentType<IconProps>> = {
   team: IconUserOutline18,
@@ -124,22 +148,21 @@ function intervalSuffix(interval: string | null): string {
 
 function ComputePlans({
   plans,
+  currentPlan,
   isAdmin,
   recommendedPlan,
+  from,
 }: {
   plans: DeployPlanOption[] | undefined;
+  currentPlan: DeployPlan | null;
   isAdmin: boolean;
   recommendedPlan?: DeployPlan;
+  from: DeployCheckoutOrigin;
 }) {
   const workspace = useWorkspaceNavigation();
   const trpcUtils = trpc.useUtils();
   const [pendingPlan, setPendingPlan] = useState<DeployPlanOption | null>(null);
   const [startingCheckout, setStartingCheckout] = useState<DeployPlan | null>(null);
-
-  const { data: subscription } = trpc.stripe.getDeploySubscription.useQuery(undefined, {
-    staleTime: 30_000,
-  });
-  const currentPlan = subscription?.plan ?? null;
 
   const change = trpc.stripe.changeDeployPlan.useMutation({
     onSuccess: async (result) => {
@@ -182,7 +205,7 @@ function ComputePlans({
         workspaceSlug: workspace.slug,
         intent: "deploy",
         plan: option.plan,
-        from: "billing",
+        from,
       }),
     );
   };

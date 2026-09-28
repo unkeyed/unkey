@@ -3,7 +3,6 @@
 import "@unkey/workos-widgets/styles.css";
 import { logManagedAuthOutcome } from "@/lib/auth/telemetry";
 import { routes } from "@/lib/navigation/routes";
-import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { Button, Skeleton } from "@unkey/ui";
 import { ManagedUsersWidget } from "@unkey/workos-widgets";
 import { useAccessToken, useAuth } from "@workos-inc/authkit-nextjs/components";
@@ -13,17 +12,11 @@ import { TeamUpgrade } from "./team-upgrade";
 
 const MANAGE_USERS_PERMISSION = "widgets:users-table:manage";
 
-export function ManagedTeam({
-  team,
-  currentPlan,
-}: {
-  team: boolean;
-  currentPlan: DeployPlan | null;
-}) {
+export function ManagedTeam({ team }: { team: boolean }) {
   const { user, impersonator, permissions, loading } = useAuth();
 
   if (!team) {
-    return <TeamUpgrade currentPlan={currentPlan} />;
+    return <TeamUpgrade />;
   }
 
   if (loading) {

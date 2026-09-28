@@ -1,7 +1,6 @@
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import { InfoTooltip, Loading } from "@unkey/ui";
@@ -11,13 +10,7 @@ import { InviteForm } from "./invite-form";
 import { Members } from "./members";
 import { TeamUpgrade } from "./team-upgrade";
 
-export function TeamPageClient({
-  team,
-  currentPlan,
-}: {
-  team: boolean;
-  currentPlan: DeployPlan | null;
-}) {
+export function TeamPageClient({ team }: { team: boolean }) {
   const { user } = useWorkspace();
 
   const { data: memberships, isLoading: isUserMembershipsLoading } =
@@ -55,7 +48,7 @@ export function TeamPageClient({
   }
 
   if (!team) {
-    return <TeamUpgrade currentPlan={currentPlan} />;
+    return <TeamUpgrade />;
   }
 
   return (

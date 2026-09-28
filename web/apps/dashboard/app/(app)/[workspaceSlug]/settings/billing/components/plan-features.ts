@@ -25,7 +25,7 @@ export function computePlanFeatures(plan: DeployPlan): PlanFeature[] {
   const limits = limitsByPlan[plan];
   return [
     limits.teamEnabled
-      ? { kind: "team", label: "Team members", included: true }
+      ? { kind: "team", label: "Unlimited team members", included: true }
       : { kind: "team", label: "No team members", included: false },
     { kind: "cpu", label: `${limits.cpuCoresMaxPerInstance} vCPU per instance`, included: true },
     {

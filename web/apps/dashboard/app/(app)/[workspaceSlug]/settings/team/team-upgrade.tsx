@@ -1,6 +1,6 @@
 "use client";
 
-import type { DeployPlan } from "@/lib/stripe/deployPlan";
+import { trpc } from "@/lib/trpc/client";
 import {
   Button,
   EmptyState,
@@ -10,22 +10,22 @@ import {
   EmptyStateTitle,
 } from "@unkey/ui";
 import { useState } from "react";
+import { paywallCopy } from "../billing/components/paywall-copy";
 import { PlansScreen } from "../billing/components/plans-screen";
 
-export function TeamUpgrade({ currentPlan }: { currentPlan: DeployPlan | null }) {
+export function TeamUpgrade() {
   const [plansOpen, setPlansOpen] = useState(true);
-
-  const description =
-    currentPlan === "starter"
-      ? "Starter doesn't include team members. Upgrade to Pro or Business, or add any API plan."
-      : "Team members come with the Pro and Business Compute plans, and with every API plan.";
+  const { data: subscription } = trpc.stripe.getDeploySubscription.useQuery(undefined, {
+    staleTime: 30_000,
+  });
+  const copy = paywallCopy("team", subscription?.plan ?? null);
 
   return (
     <>
       <EmptyState className="w-full">
         <EmptyStateHeader className="gap-1">
-          <EmptyStateTitle>Invite your team</EmptyStateTitle>
-          <EmptyStateDescription>{description}</EmptyStateDescription>
+          <EmptyStateTitle>{copy.title}</EmptyStateTitle>
+          <EmptyStateDescription>{copy.description}</EmptyStateDescription>
         </EmptyStateHeader>
         <EmptyStateActions>
           <Button variant="primary" onClick={() => setPlansOpen(true)}>
@@ -33,13 +33,7 @@ export function TeamUpgrade({ currentPlan }: { currentPlan: DeployPlan | null })
           </Button>
         </EmptyStateActions>
       </EmptyState>
-      <PlansScreen
-        open={plansOpen}
-        onOpenChange={setPlansOpen}
-        title="Invite your team"
-        description={description}
-        recommendedPlan="pro"
-      />
+      <PlansScreen open={plansOpen} onOpenChange={setPlansOpen} reason="team" />
     </>
   );
 }
