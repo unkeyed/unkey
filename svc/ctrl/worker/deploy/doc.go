@@ -64,7 +64,9 @@
 // The previous live deployment is scheduled to stop after 30 minutes via
 // DeploymentService.ScheduleDesiredStateChange.
 // Preview deployments schedule the deployment displaced from the sticky
-// branch route to stop after a short grace period.
+// branch route to stop after a short grace period. Production canaries do not
+// become live; they replace same-branch, same-fork canaries after the private
+// network overlap period.
 //
 // [cron.Service.RunScaleDownIdlePreviewDeployments] paginates through preview
 // environments and schedules idle deployments to stop when they have received

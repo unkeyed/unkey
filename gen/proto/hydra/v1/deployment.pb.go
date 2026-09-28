@@ -158,9 +158,12 @@ type ScheduleDesiredStateChangeRequest struct {
 	State       DeploymentDesiredState `protobuf:"varint,2,opt,name=state,proto3,enum=hydra.v1.DeploymentDesiredState" json:"state,omitempty"`
 	// if true, existing schedules get overwritten
 	// if false and a statechange is scheduled, this is a noop
-	Overwrite     bool `protobuf:"varint,3,opt,name=overwrite,proto3" json:"overwrite,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Overwrite bool `protobuf:"varint,3,opt,name=overwrite,proto3" json:"overwrite,omitempty"`
+	// Keep an automatic stop pending while a directed app binding targets this
+	// deployment. Explicit user and teardown stops must leave this false.
+	DeferWhilePinned bool `protobuf:"varint,4,opt,name=defer_while_pinned,json=deferWhilePinned,proto3" json:"defer_while_pinned,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ScheduleDesiredStateChangeRequest) Reset() {
@@ -210,6 +213,13 @@ func (x *ScheduleDesiredStateChangeRequest) GetState() DeploymentDesiredState {
 func (x *ScheduleDesiredStateChangeRequest) GetOverwrite() bool {
 	if x != nil {
 		return x.Overwrite
+	}
+	return false
+}
+
+func (x *ScheduleDesiredStateChangeRequest) GetDeferWhilePinned() bool {
+	if x != nil {
+		return x.DeferWhilePinned
 	}
 	return false
 }
@@ -541,11 +551,12 @@ const file_hydra_v1_deployment_proto_rawDesc = "" +
 	"\n" +
 	"\x19hydra/v1/deployment.proto\x12\bhydra.v1\x1a\x13ctrl/v1/actor.proto\x1a\x18dev/restate/sdk/go.proto\"#\n" +
 	"!ClearScheduledStateChangesRequest\"$\n" +
-	"\"ClearScheduledStateChangesResponse\"\x9c\x01\n" +
+	"\"ClearScheduledStateChangesResponse\"\xca\x01\n" +
 	"!ScheduleDesiredStateChangeRequest\x12!\n" +
 	"\fdelay_millis\x18\x01 \x01(\x03R\vdelayMillis\x126\n" +
 	"\x05state\x18\x02 \x01(\x0e2 .hydra.v1.DeploymentDesiredStateR\x05state\x12\x1c\n" +
-	"\toverwrite\x18\x03 \x01(\bR\toverwrite\"$\n" +
+	"\toverwrite\x18\x03 \x01(\bR\toverwrite\x12,\n" +
+	"\x12defer_while_pinned\x18\x04 \x01(\bR\x10deferWhilePinned\"$\n" +
 	"\"ScheduleDesiredStateChangeResponse\"i\n" +
 	"\x19ChangeDesiredStateRequest\x12\x14\n" +
 	"\x05nonce\x18\x01 \x01(\tR\x05nonce\x126\n" +

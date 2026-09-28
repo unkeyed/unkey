@@ -86,6 +86,10 @@ message ScheduleDesiredStateChangeRequest {
   // if true, existing schedules get overwritten
   // if false and a statechange is scheduled, this is a noop
   bool overwrite = 3;
+
+  // Keep an automatic stop pending while a directed app binding targets this
+  // deployment. Explicit user and teardown stops must leave this false.
+  bool defer_while_pinned = 4;
 }
 
 message ScheduleDesiredStateChangeResponse {}

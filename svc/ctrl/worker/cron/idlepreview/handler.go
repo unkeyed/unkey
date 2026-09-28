@@ -119,8 +119,9 @@ func (h *Handler) Handle(
 					_, err = hydrav1.NewDeploymentServiceClient(ctx, deployment.ID).
 						ScheduleDesiredStateChange().
 						Request(&hydrav1.ScheduleDesiredStateChangeRequest{
-							DelayMillis: 0,
-							State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
+							DelayMillis:      0,
+							State:            hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
+							DeferWhilePinned: true,
 							// Never clobber a user-initiated pending transition (e.g. a
 							// manual wake): idle scaledown yields to explicit intent.
 							Overwrite: false,

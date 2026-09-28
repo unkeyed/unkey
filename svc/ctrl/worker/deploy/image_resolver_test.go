@@ -2,6 +2,7 @@ package deploy
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -138,4 +139,47 @@ func TestImageResolverScopesInternalRegistryCredentialsToConfiguredRepository(t 
 
 	_, err = resolver.Resolve(context.Background(), otherTag.Name())
 	require.Error(t, err, "credentials must not be sent to another repository on the same registry")
+}
+
+func TestImageResolverUsesHTTPOnlyForConfiguredInsecureRepository(t *testing.T) {
+	server := httptest.NewServer(registry.New())
+	t.Cleanup(server.Close)
+	transport := server.Client().Transport.(*http.Transport).Clone()
+	transport.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {
+		dialer := &net.Dialer{}
+		return dialer.DialContext(ctx, network, server.Listener.Addr().String())
+	}
+	t.Cleanup(transport.CloseIdleConnections)
+	for _, repository := range []string{"internal", "other"} {
+		tag, err := name.NewTag("registry.example:5000/"+repository+":v1", name.Insecure)
+		require.NoError(t, err)
+		require.NoError(t, remote.Write(tag, empty.Image, remote.WithTransport(transport)))
+	}
+	for _, tc := range []struct {
+		name       string
+		insecure   bool
+		repository string
+		wantError  bool
+	}{
+		{name: "configured HTTP", insecure: true, repository: "internal", wantError: false},
+		{name: "TLS remains default", insecure: false, repository: "internal", wantError: true},
+		{name: "other repository remains TLS", insecure: true, repository: "other", wantError: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resolver, err := NewImageResolver(RegistryConfig{
+				Repository: "registry.example:5000/internal", Insecure: tc.insecure,
+			})
+			require.NoError(t, err)
+			resolver.(*ociImageResolver).options = []remote.Option{remote.WithTransport(transport)}
+			resolved, err := resolver.Resolve(t.Context(), "registry.example:5000/"+tc.repository+":v1")
+			if tc.wantError {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			digest, err := empty.Image.Digest()
+			require.NoError(t, err)
+			require.Equal(t, "registry.example:5000/internal@"+digest.String(), resolved)
+		})
+	}
 }
