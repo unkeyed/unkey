@@ -55,62 +55,10 @@ func parsePermission(permission, workspaceID string) (urn.V1, permissions.Action
 		return urn.V1{}, "", invalidPermission()
 	}
 	resource, err := urn.ParseV1(resourceName)
-	if err != nil || resource.WorkspaceID != workspaceID || !actionAllowed(resource.Resource, actionName) {
+	if err != nil || resource.WorkspaceID != workspaceID || !permissions.IsValid(resource, permissions.Action(actionName)) {
 		return urn.V1{}, "", invalidPermission()
 	}
 	return resource, permissions.Action(actionName), nil
-}
-
-// actionAllowed checks actions for a resource path already validated by ParseV1.
-// Resource kinds come from fixed path positions, never ID text: a project named
-// "keys" does not gain #decrypt. Subtree grants include descendant actions;
-// for example, projects/p/** may grant #decrypt for keys below that project.
-func actionAllowed(resource, action string) bool {
-	if resource == "**" {
-		return slices.Contains([]string{"read", "write", "delete", "decrypt", "verify", "limit", permissions.Wildcard}, action)
-	}
-	if action == permissions.Wildcard {
-		return false
-	}
-
-	parts := strings.Split(resource, "/")
-	recursive := parts[len(parts)-1] == "**"
-	if recursive {
-		parts = parts[:len(parts)-1]
-	}
-	allowed := []string{"read", "write", "delete"}
-	switch {
-	case parts[0] == "rootKeys":
-		allowed = []string{"write"}
-	case len(parts) == 6 && parts[0] == "projects" && parts[2] == "portals" && parts[4] == "sessions":
-		allowed = []string{"write"}
-	case isLog(parts):
-		allowed = []string{"read"}
-	case isKey(parts):
-		allowed = append(allowed, "decrypt", "verify")
-	case isNamespace(parts):
-		allowed = append(allowed, "limit")
-	case parts[0] == "projects" && recursive && len(parts) == 2:
-		allowed = append(allowed, "decrypt", "verify", "limit")
-	case recursive && len(parts) == 4 && parts[0] == "projects" && parts[2] == "keyspaces":
-		allowed = append(allowed, "decrypt", "verify")
-	}
-	return slices.Contains(allowed, action)
-}
-
-func isLog(parts []string) bool {
-	return len(parts) == 5 && parts[0] == "projects" && parts[2] == "keyspaces" && parts[4] == "logs" ||
-		len(parts) == 6 && parts[0] == "projects" && parts[2] == "ratelimits" && parts[3] == "namespaces" && parts[5] == "logs" ||
-		len(parts) == 8 && parts[0] == "projects" && parts[2] == "apps" && parts[4] == "environments" && parts[6] == "gateway" && parts[7] == "logs" ||
-		len(parts) == 9 && parts[0] == "projects" && parts[2] == "apps" && parts[4] == "environments" && parts[6] == "deployments" && parts[8] == "logs"
-}
-
-func isKey(parts []string) bool {
-	return len(parts) == 6 && parts[0] == "projects" && parts[2] == "keyspaces" && parts[4] == "keys"
-}
-
-func isNamespace(parts []string) bool {
-	return len(parts) == 5 && parts[0] == "projects" && parts[2] == "ratelimits" && parts[3] == "namespaces"
 }
 
 func invalidPermission() error {
