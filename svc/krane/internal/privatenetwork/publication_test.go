@@ -22,9 +22,9 @@ func TestPublicationRetainsBindingUntilRemoteDiscoveryIsReady(t *testing.T) {
 	other := testApp("other_a")
 	other.AppId, other.AppSlug = "app_2", "metrics"
 	other.BindingId, other.BindingName, other.CallerDeploymentId = "binding_2", "metrics-api", "caller_2"
-	control := &testutil.MockClusterClient{GetPrivateNetworkStateFunc: func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
-		return &ctrlv1.GetPrivateNetworkStateResponse{Apps: []*ctrlv1.PrivateNetworkApp{selected, other}}, nil
-	}}
+	control := &testutil.MockClusterClient{StreamPrivateNetworkStateFunc: snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+		return []*ctrlv1.PrivateNetworkApp{selected, other}, nil
+	})}
 	dynamic := testDynamicClient()
 	r := &Reconciler{client: client, dynamic: dynamic, cluster: control}
 	require.NoError(t, r.reconcile(ctx))
