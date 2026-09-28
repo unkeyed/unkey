@@ -29,6 +29,7 @@ export function SidebarBody() {
   const { slug } = useWorkspaceNavigation();
   const { keyAuthId } = useApiKeyAuthId(context.type === "api" ? context.apiId : undefined);
   const portalManagement = useFlag("portalManagement");
+  const privateNetworking = useFlag("privateNetworking");
   const projectsNav = useFlag("projectsNav");
   const { user } = useWorkspace();
 
@@ -50,7 +51,7 @@ export function SidebarBody() {
         return workspaceSections(segments);
       case "project":
         return context.appId
-          ? buildAppLinks(slug, context.projectId, context.appId, segments)
+          ? buildAppLinks(slug, context.projectId, context.appId, segments, privateNetworking)
           : projectLinks(slug, context.projectId, segments);
       case "api":
         return buildApiLinks(
