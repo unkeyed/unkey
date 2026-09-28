@@ -118,7 +118,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
           <DialogTitle className="text-center font-semibold text-2xl text-gray-12 tracking-[-0.03em]">
             {copy.title}
           </DialogTitle>
-          <DialogDescription className="mt-2 max-w-xl text-balance text-center text-gray-11 text-sm leading-6">
+          <DialogDescription className="mt-2 max-w-md text-balance text-center text-gray-11 text-sm leading-6">
             {copy.description}
             {products.includes("compute") ? (
               <>
