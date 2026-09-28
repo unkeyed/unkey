@@ -89,6 +89,28 @@ func TestBuildDomainsLeavesShortLabelsUnchanged(t *testing.T) {
 		domainBySticky(t, domains, db.FrontlineRoutesStickyEnvironment))
 }
 
+func TestBuildDomainsKeepsWorkspaceSlugWhenCut(t *testing.T) {
+	domains := buildDomains(
+		"stagejune26", "homestead-home-tracking", "default", "preview",
+		"", "MichaelUnkey/phase-8-ui-foundation", "", "canary.unkey.app",
+		false, false, uid.New(uid.DeploymentPrefix),
+	)
+
+	require.Equal(t, "homestead-home-tracking-git-michaelunkey-p-9141f508-stagejune26.canary.unkey.app",
+		domainBySticky(t, domains, db.FrontlineRoutesStickyBranch))
+}
+
+func TestCappedDomainEveryWorkspaceLength(t *testing.T) {
+	for length := 3; length <= 64; length++ {
+		workspaceSlug := strings.Repeat("w", length)
+		label, _, _ := strings.Cut(cappedDomain(strings.Repeat("kebap", 12), workspaceSlug, "unkey.app"), ".")
+
+		require.LessOrEqual(t, len(label), 63, label)
+		require.Regexp(t, dnsLabelRegex, label)
+		require.Contains(t, label, workspaceSlug[:min(length, 52)], "the workspace slug must survive the cut")
+	}
+}
+
 func domainBySticky(t *testing.T, domains []newDomain, sticky db.FrontlineRoutesSticky) string {
 	t.Helper()
 	for _, d := range domains {

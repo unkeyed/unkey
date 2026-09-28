@@ -2,7 +2,6 @@ package deploy
 
 import (
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"regexp"
 	"strings"
@@ -108,7 +107,7 @@ func buildDomains(
 		short += disambiguator
 		domains = append(domains,
 			newDomain{
-				domain: cappedDomain(fmt.Sprintf("%s-git-%s-%s", prefix, short, workspaceSlug), apex),
+				domain: cappedDomain(prefix+"-git-"+short, workspaceSlug, apex),
 				//nolint: exhaustruct
 				sticky: db.FrontlineRoutesStickyNone,
 			},
@@ -119,7 +118,7 @@ func buildDomains(
 		domains = append(
 			domains,
 			newDomain{
-				domain: cappedDomain(fmt.Sprintf("%s-git-%s-%s", prefix, sluggify(branchName), workspaceSlug), apex),
+				domain: cappedDomain(prefix+"-git-"+sluggify(branchName), workspaceSlug, apex),
 				sticky: db.FrontlineRoutesStickyBranch,
 			},
 		)
@@ -128,7 +127,7 @@ func buildDomains(
 	domains = append(
 		domains,
 		newDomain{
-			domain: cappedDomain(fmt.Sprintf("%s-%s-%s", prefix, environmentSlug, workspaceSlug), apex),
+			domain: cappedDomain(prefix+"-"+environmentSlug, workspaceSlug, apex),
 			sticky: db.FrontlineRoutesStickyEnvironment,
 		},
 	)
@@ -136,14 +135,14 @@ func buildDomains(
 	if isProduction {
 		domains = append(domains,
 			newDomain{
-				domain: cappedDomain(fmt.Sprintf("%s-%s", prefix, workspaceSlug), apex),
+				domain: cappedDomain(prefix, workspaceSlug, apex),
 				sticky: db.FrontlineRoutesStickyLive,
 			})
 	}
 
 	// deployment-specific domain for stable public access.
 	domains = append(domains, newDomain{
-		domain: cappedDomain(fmt.Sprintf("%s-%s-%s", prefix, sluggify(deploymentID), workspaceSlug), apex),
+		domain: cappedDomain(prefix+"-"+sluggify(deploymentID), workspaceSlug, apex),
 		//nolint: exhaustruct
 		sticky: db.FrontlineRoutesStickyDeployment,
 	})
@@ -159,20 +158,32 @@ func buildDomains(
 const dnsLabelMaxLength = 63
 
 // labelHashLength is the number of hex characters of the hash that
-// [cappedDomain] appends to a cut label
+// [cappedDomain] puts in a cut label
 const labelHashLength = 8
 
-// cappedDomain joins label and apex into a domain. When label is longer than
-// [dnsLabelMaxLength], it keeps the start of label and appends a hash of the
-// full label. The hash keeps two long labels with the same start apart, and
-// because it is deterministic a branch keeps its sticky domain across deploys
-func cappedDomain(label, apex string) string {
-	if len(label) > dnsLabelMaxLength {
-		sum := sha256.Sum256([]byte(label))
-		hash := hex.EncodeToString(sum[:])[:labelHashLength]
-		label = strings.TrimRight(label[:dnsLabelMaxLength-len(hash)-1], "-") + "-" + hash
+// workspaceSlugMaxLength is the longest workspace slug a cut label keeps. It
+// leaves room for the hash, two hyphens, and one character of head
+const workspaceSlugMaxLength = dnsLabelMaxLength - labelHashLength - 3
+
+// cappedDomain returns `<head>-<workspaceSlug>.<apex>`. A label longer than
+// [dnsLabelMaxLength] becomes `<cut head>-<hash of full label>-<workspaceSlug>`.
+// The hash keeps long labels apart and is stable, so a branch keeps its sticky
+// domain across deploys
+func cappedDomain(head, workspaceSlug, apex string) string {
+	label := head + "-" + workspaceSlug
+	if len(label) <= dnsLabelMaxLength {
+		return label + "." + apex
 	}
-	return label + "." + apex
+
+	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(label)))[:labelHashLength]
+	tail := "-" + hash + "-" + cutLabel(workspaceSlug, workspaceSlugMaxLength)
+	return cutLabel(head, dnsLabelMaxLength-len(tail)) + tail + "." + apex
+}
+
+// cutLabel shortens s to at most length characters and drops the hyphens
+// left at the cut
+func cutLabel(s string, length int) string {
+	return strings.TrimRight(s[:min(len(s), length)], "-")
 }
 
 var (

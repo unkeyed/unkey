@@ -118,8 +118,9 @@
 //
 // A DNS label has at most 63 characters, see [RFC 1034 section 3.1] and
 // [RFC 1035 section 2.3.4]. When a generated label is longer, [buildDomains]
-// cuts it and appends a hash of the full label. The hash keeps long labels
-// unique, and a branch keeps the same domain across deploys.
+// cuts the part before the workspace slug and puts a hash of the full label
+// there. The hash keeps long labels unique, and a branch keeps the same
+// domain across deploys.
 //
 // # Network Policy
 //
