@@ -20,11 +20,9 @@ import {
 import { cn } from "cn";
 import {
   ALL_PLANS_INCLUDE,
-  COMPUTE_PLANS_LINK_HREF,
   CREDITS_INFO,
   CREDITS_LINK_HREF,
   CREDITS_LINK_LABEL,
-  FEATURES,
   PLAN_BLURBS,
 } from "./compute-plan-copy";
 import { PlanTierIcon } from "./plan-tier-icons";
@@ -191,39 +189,6 @@ export function ComputePlanRows(props: ComputePlanRowsProps) {
         <Row key={plan.plan} {...props} plan={plan} />
       ))}
     </div>
-  );
-}
-
-export function ComputePlanFeatures() {
-  return (
-    <div className="grid grid-cols-2 gap-x-6 gap-y-6 py-2">
-      {FEATURES.map(({ Icon, title, description }) => (
-        <div key={title}>
-          <div className="flex items-center gap-[9px]">
-            <Icon className="size-4 shrink-0 text-gray-12" />
-            <span className="font-medium text-sm text-gray-12">{title}</span>
-          </div>
-          <p className="mt-1 text-xs text-gray-11 leading-relaxed">{description}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export function ComputePlansMoreInfo() {
-  return (
-    <p className="text-sm text-gray-11 leading-normal">
-      Get more information about {/* @dh todo - add docs */}
-      <a
-        href={COMPUTE_PLANS_LINK_HREF}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="font-medium text-info-11 hover:underline"
-      >
-        Compute plans
-      </a>
-      .
-    </p>
   );
 }
 
