@@ -3,7 +3,7 @@
 import { IconPlusOutline18 } from "@unkey/icons";
 import { Button } from "@unkey/ui";
 import { useReducer } from "react";
-import { Controller, useFormContext, useFormState } from "react-hook-form";
+import { Controller, type FieldErrors, useFormContext, useFormState } from "react-hook-form";
 import { type Policy, isPolicyComplete } from "./lib/policy";
 import { PolicyEditor, PolicySummaryRow } from "./policy-card";
 import type { RootKeyFormValues } from "./schema";
@@ -64,24 +64,30 @@ function reduce(state: PolicyListState, action: PolicyListAction): PolicyListSta
 
 export function PolicyList() {
   const { control } = useFormContext<RootKeyFormValues>();
+  const { errors } = useFormState({ control, name: "policies" });
 
   return (
     <Controller
       control={control}
       name="policies"
-      render={({ field }) => <PolicyListBody policies={field.value} onChange={field.onChange} />}
+      render={({ field }) => (
+        <PolicyListEditor
+          policies={field.value}
+          onChange={field.onChange}
+          errors={errors.policies}
+        />
+      )}
     />
   );
 }
 
-type PolicyListBodyProps = {
+type PolicyListEditorProps = {
   policies: Policy[];
   onChange: (policies: Policy[]) => void;
+  errors?: FieldErrors<RootKeyFormValues>["policies"];
 };
 
-function PolicyListBody({ policies, onChange }: PolicyListBodyProps) {
-  const { control } = useFormContext<RootKeyFormValues>();
-  const { errors } = useFormState({ control, name: "policies" });
+export function PolicyListEditor({ policies, onChange, errors }: PolicyListEditorProps) {
   const [state, dispatch] = useReducer(reduce, policies, (initial) => ({
     entries: initial.map((policy) =>
       entryOf(policy, initial.length > 1 && isPolicyComplete(policy)),
@@ -112,7 +118,7 @@ function PolicyListBody({ policies, onChange }: PolicyListBodyProps) {
           <PolicyEditor
             key={entry.id}
             policy={entry.policy}
-            error={errors.policies?.[index]?.message}
+            error={errors?.[index]?.message}
             onChange={(policy) => send({ type: "update", id: entry.id, policy })}
             onCollapse={() => send({ type: "collapse", id: entry.id, collapsed: true })}
             onRemove={() => send({ type: "remove", id: entry.id })}
@@ -120,8 +126,8 @@ function PolicyListBody({ policies, onChange }: PolicyListBodyProps) {
         ),
       )}
 
-      {errors.policies?.message ? (
-        <span className="text-sm leading-5 text-error-11">{errors.policies.message}</span>
+      {errors?.message ? (
+        <span className="text-sm leading-5 text-error-11">{errors.message}</span>
       ) : null}
 
       {showGallery ? (
