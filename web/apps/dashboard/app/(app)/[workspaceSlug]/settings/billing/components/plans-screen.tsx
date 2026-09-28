@@ -25,7 +25,6 @@ import {
   DialogContent,
   DialogDescription,
   DialogTitle,
-  Logo,
   Skeleton,
   Tabs,
   TabsContent,
@@ -124,15 +123,14 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
           className="relative mx-auto flex min-h-dvh w-full max-w-[1040px] flex-col items-center justify-center px-6 py-16"
         >
           {products.length > 1 ? (
-            <TabsList className="absolute top-4 left-1/2 -translate-x-1/2">
+            <TabsList className="absolute top-4 left-1/2 w-64 -translate-x-1/2">
               {products.map((product) => (
-                <TabsTrigger key={product} value={product}>
+                <TabsTrigger key={product} value={product} className="flex-1">
                   {PRODUCT_LABELS[product]}
                 </TabsTrigger>
               ))}
             </TabsList>
           ) : null}
-          <Logo className="mb-6 h-6 w-auto" aria-hidden="true" />
           <DialogTitle className="text-center font-semibold text-2xl text-gray-12 tracking-[-0.03em]">
             {copy.title}
           </DialogTitle>
