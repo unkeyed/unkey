@@ -66,7 +66,10 @@ var producerFieldAssertions = map[string]func(t *testing.T, a *ctrlv1.ApplyDeplo
 		require.Equal(t, "app_sentinel", a.GetAppId())
 	},
 	"environment_slug": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
-		require.Equal(t, "production", a.GetEnvironmentSlug())
+		require.Equal(t, "preview", a.GetEnvironmentSlug())
+	},
+	"environment_kind": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
+		require.Equal(t, "preview", a.GetEnvironmentKind())
 	},
 	"region": func(t *testing.T, a *ctrlv1.ApplyDeployment) {
 		require.Equal(t, "us-east-1", a.GetRegion())
@@ -126,7 +129,8 @@ func TestDeploymentRowToState_PopulatesProtoFields(t *testing.T) {
 			Healthcheck: &dbtype.Healthcheck{Method: "GET", Path: "/sentinel-healthz"},
 		},
 		K8sNamespace:    "ns-sentinel",
-		EnvironmentSlug: "production",
+		EnvironmentSlug: "preview",
+		EnvironmentKind: dbtype.EnvironmentKindPreview,
 		RegionName:      "us-east-1",
 		GitRepo:         sql.NullString{Valid: true, String: "github.com/test/sentinel"},
 	}
