@@ -1,4 +1,5 @@
 import type { TimeUnit } from "@unkey/ui";
+import { parseDuration } from "./duration";
 
 export const isBrowser = typeof window !== "undefined";
 
@@ -136,25 +137,7 @@ export const getTimestampFromRelative = (
       'Invalid relative time format. Expected format: combination of numbers followed by w, h, d, or m (e.g., "1h", "2d", "30m", "1w", "1w2d")',
     );
   }
-  let totalMilliseconds = 0;
-  for (const [, amount, unit] of relativeTime.matchAll(/(\d+)([whdm])/g)) {
-    const value = Number.parseInt(amount, 10);
-    switch (unit) {
-      case "w":
-        totalMilliseconds += value * 7 * 24 * 60 * 60 * 1000;
-        break;
-      case "h":
-        totalMilliseconds += value * 60 * 60 * 1000;
-        break;
-      case "d":
-        totalMilliseconds += value * 24 * 60 * 60 * 1000;
-        break;
-      case "m":
-        totalMilliseconds += value * 60 * 1000;
-        break;
-    }
-  }
-  return now - totalMilliseconds;
+  return now - parseDuration(relativeTime);
 };
 
 export const processTimeFilters = (date?: Date, newTime?: TimeUnit) => {
