@@ -14,7 +14,7 @@ describe("computePlanFeatures", () => {
       "2 vCPU per instance",
       "2 GiB memory per instance",
       "1 custom domain",
-      "Autoscale to 4 instances",
+      "Up to 4 instances per region",
       "3-day log retention",
     ]);
   });
@@ -26,7 +26,7 @@ describe("computePlanFeatures", () => {
       "8 vCPU per instance",
       "8 GiB memory per instance",
       "Unlimited custom domains",
-      "Autoscale to 8 instances",
+      "Up to 8 instances per region",
       "7-day log retention",
     ]);
   });
@@ -36,7 +36,7 @@ describe("computePlanFeatures", () => {
     expect(labels("business")).toEqual([
       "16 vCPU per instance",
       "32 GiB memory per instance",
-      "Autoscale to 16 instances",
+      "Up to 16 instances per region",
       "14-day log retention",
     ]);
   });

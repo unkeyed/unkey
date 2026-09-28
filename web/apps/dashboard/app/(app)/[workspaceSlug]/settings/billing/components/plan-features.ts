@@ -50,7 +50,7 @@ function limitFeatures(plan: DeployPlan): PlanFeature[] {
     features.push({ kind: "domains", label: `${max} custom domain${max === 1 ? "" : "s"}` });
   }
   features.push(
-    { kind: "autoscale", label: `Autoscale to ${limits.autoscalingReplicasMax} instances` },
+    { kind: "autoscale", label: `Up to ${limits.autoscalingReplicasMax} instances per region` },
     { kind: "logs", label: `${limits.logsRetentionDaysMax}-day log retention` },
   );
   return features;
