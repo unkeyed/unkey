@@ -449,9 +449,14 @@ func TestEngine_Integration(t *testing.T) {
 		seedDrain(t, mysqlDB, workspaceID, drainID, httpSink.server.URL, start)
 		cleanupDrain(t, mysqlDB, drainID)
 		encoded, err := proto.Marshal(&logdrainv1.Config{
-			BatchSize:   10_000,
-			Destination: &logdrainv1.Config_Http{Http: &logdrainv1.HttpConfig{Url: httpSink.server.URL}},
-			Stream:      &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{}},
+			BatchSize: 10_000,
+			Destination: &logdrainv1.Config_Http{
+				Http: &logdrainv1.HttpConfig{
+					Url:    httpSink.server.URL,
+					Format: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON,
+				},
+			},
+			Stream: &logdrainv1.Config_GatewayRequests{GatewayRequests: &logdrainv1.GatewayRequestStreamConfig{}},
 		})
 		require.NoError(t, err)
 		_, err = mysqlDB.Exec("UPDATE logdrains SET config = ? WHERE id = ?", encoded, drainID)
