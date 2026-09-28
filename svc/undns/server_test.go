@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"net/netip"
 	"testing"
@@ -353,13 +354,24 @@ func discoveryObjects(t *testing.T) []runtime.Object {
 	}
 	slice := &discoveryv1.EndpointSlice{
 		ObjectMeta: metav1.ObjectMeta{Name: "imported", Namespace: "default",
-			Labels:          map[string]string{discoveryv1.LabelServiceName: service.Name},
+			Labels:          ciliumImportedSliceLabels(service),
 			OwnerReferences: []metav1.OwnerReference{{APIVersion: "v1", Kind: "Service", Name: service.Name, UID: service.UID, Controller: &controller}},
 		},
 		AddressType: discoveryv1.AddressTypeIPv4,
 		Endpoints:   endpoints,
 	}
 	return []runtime.Object{pod, binding, service, slice}
+}
+
+// ciliumImportedSliceLabels returns the labels Cilium ClusterMesh puts on an
+// EndpointSlice it imports for a global Service: the Service's own labels
+// plus its reserved EndpointSlice labels.
+func ciliumImportedSliceLabels(service *corev1.Service) map[string]string {
+	sliceLabels := maps.Clone(service.Labels)
+	sliceLabels[discoveryv1.LabelServiceName] = service.Name
+	sliceLabels[discoveryv1.LabelManagedBy] = "endpointslice-mesh-controller.cilium.io"
+	sliceLabels["multicluster.kubernetes.io/source-cluster"] = "remote"
+	return sliceLabels
 }
 
 func callerPod(address, kind string) *corev1.Pod {

@@ -12,19 +12,19 @@ import (
 func TestReplicaDiscoveryResolvesReadyPeersAcrossRegions(t *testing.T) {
 	c := catalogForTest()
 	identity := testCaller()
-	addBinding(t, c, "self-"+identity.deployment, "workspace-a", "project-a", "app-caller", "unkey-replicas", identity.deployment, "self-service", "1")
+	addBinding(t, c, "self-"+identity.deployment, "workspace-a", "project-a", "app-caller", "caller", identity.deployment, "self-service", "1")
 	service := addServiceAndSlice(t, c, "self-service", identity.deployment, "app-caller", types.UID("self-uid"), "10.0.0.2", true)
 	addSlice(t, c, service, "imported-from-other-region", "10.1.0.7", true)
 	addSlice(t, c, service, "unready-peer", "10.1.0.8", false)
 
-	addresses, exists, err := c.resolve(identity, "unkey-replicas")
+	addresses, exists, err := c.resolve(identity, "caller")
 	require.NoError(t, err)
 	require.True(t, exists)
 	require.Equal(t, []netip.Addr{netip.MustParseAddr("10.0.0.2"), netip.MustParseAddr("10.1.0.7")}, addresses)
 
 	otherRevision := identity
 	otherRevision.deployment = "caller-deployment-b"
-	_, exists, err = c.resolve(otherRevision, "unkey-replicas")
+	_, exists, err = c.resolve(otherRevision, "caller")
 	require.NoError(t, err)
 	require.False(t, exists, "another deployment of the same app must not discover these peers")
 }

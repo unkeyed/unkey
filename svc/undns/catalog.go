@@ -66,8 +66,13 @@ func newCatalog(client kubernetes.Interface, timeout time.Duration) (*catalog, e
 	c.now = time.Now
 	var err error
 
+	callers := labels.New().ManagedByKrane().ComponentDeployment().ToString()
+	discovery := labels.New().ManagedByKrane()
+	discovery[labels.LabelKeyComponent] = bindingComponent
+	published := discovery.ToString()
+
 	pods := client.CoreV1().Pods("")
-	c.pods, err = newTrackedInformer("pods", &corev1.Pod{}, cache.Indexers{podIPIndex: indexPodIP}, timeout,
+	c.pods, err = newTrackedInformer("pods", &corev1.Pod{}, cache.Indexers{podIPIndex: indexPodIP}, timeout, callers,
 		func(ctx context.Context, options metav1.ListOptions) (runtime.Object, error) {
 			return pods.List(ctx, options)
 		}, pods.Watch)
@@ -76,7 +81,7 @@ func newCatalog(client kubernetes.Interface, timeout time.Duration) (*catalog, e
 	}
 
 	configs := client.CoreV1().ConfigMaps("")
-	c.bindings, err = newTrackedInformer("bindings", &corev1.ConfigMap{}, cache.Indexers{appIndex: indexBinding}, timeout,
+	c.bindings, err = newTrackedInformer("bindings", &corev1.ConfigMap{}, cache.Indexers{appIndex: indexBinding}, timeout, published,
 		func(ctx context.Context, options metav1.ListOptions) (runtime.Object, error) {
 			return configs.List(ctx, options)
 		}, configs.Watch)
@@ -85,7 +90,7 @@ func newCatalog(client kubernetes.Interface, timeout time.Duration) (*catalog, e
 	}
 
 	services := client.CoreV1().Services("")
-	c.services, err = newTrackedInformer("services", &corev1.Service{}, nil, timeout,
+	c.services, err = newTrackedInformer("services", &corev1.Service{}, nil, timeout, published,
 		func(ctx context.Context, options metav1.ListOptions) (runtime.Object, error) {
 			return services.List(ctx, options)
 		}, services.Watch)
@@ -100,7 +105,7 @@ func newCatalog(client kubernetes.Interface, timeout time.Duration) (*catalog, e
 		AddressType: discoveryv1.AddressTypeIPv4,
 		Endpoints:   nil,
 		Ports:       nil,
-	}, cache.Indexers{serviceIndex: indexSlice}, timeout,
+	}, cache.Indexers{serviceIndex: indexSlice}, timeout, published,
 		func(ctx context.Context, options metav1.ListOptions) (runtime.Object, error) {
 			return endpoints.List(ctx, options)
 		}, endpoints.Watch)
