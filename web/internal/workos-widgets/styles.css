@@ -424,7 +424,6 @@
   background-color: var(--background-color-raised);
 }
 
-/* Dashboard dialogs end in one full-width action; cancel sits under it. */
 .woswidgets-dialog
   :is(.rt-r-jc-end, .rt-r-jc-space-between)
   > .woswidgets-button {
@@ -486,7 +485,6 @@
 }
 
 .woswidgets-badge {
-  border: 1px solid transparent;
   border-radius: 0.375rem;
   background-color: var(--color-grayA-3);
   color: var(--color-grayA-11);
@@ -547,7 +545,7 @@
 }
 
 .unkey-workos-widgets .rt-TableCell {
-  --table-row-box-shadow: inset 0 -1px var(--color-grayA-4);
+  --table-row-box-shadow: none;
   height: 3rem;
   padding: 0.375rem 1rem;
   font-size: 0.75rem;
@@ -558,13 +556,9 @@
   background-color: var(--color-grayA-2);
 }
 
-/* WorkOS pins the user cell stack to 40px and the badge to 22px. */
+/* WorkOS pins the user cell stack to 40px. */
 .unkey-workos-widgets .rt-TableBody .rt-Flex:where(.rt-r-h) {
   height: auto;
-}
-
-.unkey-workos-widgets .rt-TableBody .woswidgets-badge {
-  height: 1.25rem;
 }
 
 .unkey-workos-widgets .rt-TableBody .rt-Text {
@@ -577,9 +571,10 @@
   line-height: 1.25rem;
 }
 
-/* The table root already draws the outer border. */
-.unkey-workos-widgets .rt-TableBody .rt-TableRow:last-child .rt-TableCell {
-  --table-row-box-shadow: none;
+.unkey-workos-widgets
+  :is(.rt-TableHeader, .rt-TableBody .rt-TableRow:not(:last-child))
+  .rt-TableCell {
+  --table-row-box-shadow: inset 0 -1px var(--color-grayA-4);
 }
 
 .unkey-workos-widgets .rt-TableColumnHeaderCell {
