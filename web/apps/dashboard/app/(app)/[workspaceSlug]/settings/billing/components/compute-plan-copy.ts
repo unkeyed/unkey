@@ -8,13 +8,6 @@ export const PLAN_BLURBS: Record<DeployPlan, string> = {
   business: "For teams scaling with confidence",
 };
 
-export const ALL_PLANS_INCLUDE = [
-  "Git push to deploy",
-  "Preview deploy per PR",
-  "Instant rollback",
-  "Auto-scaling",
-] as const;
-
 export const CREDITS_INFO = "Every plan includes monthly usage credit.";
 export const CREDITS_LINK_LABEL = "See how credits work";
 export const CREDITS_LINK_HREF = `${COMPUTE_BILLING_DOCS}#how-the-bill-works`;

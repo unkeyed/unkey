@@ -1,64 +1,35 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { currentPlanState } from "@/lib/billing/plan-card-state";
 import { useFlag } from "@/lib/flags/provider";
-import { formatDollars, formatNumber } from "@/lib/fmt";
 import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
-import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
-import type { DeployPlanOption } from "@/lib/trpc/routers/stripe/getDeployPlans";
 import { useWorkspace } from "@/providers/workspace-provider";
 import {
-  IconArrowDottedRotateAnticlockwiseOutline18,
-  IconClockRotateClockwiseOutline18,
-  IconCodeBranchOutline18,
-  IconEarthOutline18,
-  IconEyeOutline18,
-  IconLayers3Outline18,
-  IconMicrochipOutline18,
-  type IconProps,
-  IconRamOutline18,
-  IconUserOutline18,
-} from "@unkey/icons";
-import {
-  Button,
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
+  Logo,
   Skeleton,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-  toast,
 } from "@unkey/ui";
-import { cn } from "cn";
 import Link from "next/link";
-import { type ComponentType, type ReactNode, useState } from "react";
-import { currentApiProduct } from "./api-plan";
-import {
-  CREDITS_INFO,
-  CREDITS_LINK_HREF,
-  CREDITS_LINK_LABEL,
-  PLAN_BLURBS,
-} from "./compute-plan-copy";
-import { ComputePlanConfirmDialog } from "./compute-plan-picker-v2";
-import { ADMIN_ONLY_TOOLTIP } from "./constants";
+import { type ReactNode, useState } from "react";
+import { ApiPlans } from "./api-plans";
+import { CREDITS_INFO, CREDITS_LINK_HREF, CREDITS_LINK_LABEL } from "./compute-plan-copy";
+import { ComputePlans } from "./compute-plans";
 import {
   type PaywallProduct,
   type PaywallReason,
   availableProducts,
+  defaultProduct,
   paywallCopy,
 } from "./paywall-copy";
-import { PlanOptionList } from "./plan-change-modal";
-import {
-  BASE_FEATURES,
-  type PlanFeatureKind,
-  type PlanFeatureRow,
-  planFeatures,
-} from "./plan-features";
-import { PlanTierIcon } from "./plan-tier-icons";
 
 type PlansScreenProps = {
   open: boolean;
@@ -73,99 +44,158 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
   const deployBilling = useFlag("deployBilling");
   const workspace = useWorkspaceNavigation();
 
-  const { data: subscription } = trpc.stripe.getDeploySubscription.useQuery(undefined, {
+  const copy = paywallCopy(reason);
+  const wantsCompute = open && deployBilling && copy.products.includes("compute");
+  const wantsApi = open && copy.products.includes("api");
+
+  const subscriptionQuery = trpc.stripe.getDeploySubscription.useQuery(undefined, {
+    enabled: wantsCompute,
     staleTime: 30_000,
   });
-  const currentPlan = subscription?.plan ?? null;
+  const current = currentPlanState({
+    isError: subscriptionQuery.isError,
+    isLoading: subscriptionQuery.isLoading,
+    plan: subscriptionQuery.data?.plan ?? null,
+  });
 
-  const { data: plansData } = trpc.stripe.getDeployPlans.useQuery(undefined, {
-    enabled: open,
+  const plansQuery = trpc.stripe.getDeployPlans.useQuery(undefined, {
+    enabled: wantsCompute,
     staleTime: 60_000,
     trpc: { context: { skipBatch: true } },
   });
-
-  const [selectedProduct, setSelectedProduct] = useState<PaywallProduct | null>(null);
-  const copy = paywallCopy(reason);
-  const products = availableProducts(copy.products, {
-    computeEnabled: deployBilling && plansData?.configured !== false,
+  const deployUsageQuery = trpc.billing.queryDeployUsage.useQuery(undefined, {
+    enabled: wantsCompute,
+    staleTime: 60_000,
+    retry: 1,
+    trpc: { context: { skipBatch: true } },
+  });
+  const apiUsageQuery = trpc.billing.queryUsage.useQuery(undefined, {
+    enabled: wantsApi,
+    staleTime: 60_000,
+    retry: 1,
+    trpc: { context: { skipBatch: true } },
   });
 
+  const products = availableProducts(copy.products, {
+    computeEnabled: deployBilling && !plansQuery.isError && plansQuery.data?.configured !== false,
+  });
+
+  const [selectedProduct, setSelectedProduct] = useState<PaywallProduct | null>(null);
+  const [initialProduct, setInitialProduct] = useState<PaywallProduct | null>(null);
+  const choiceSettled =
+    open &&
+    (!wantsCompute || (!plansQuery.isLoading && !deployUsageQuery.isLoading)) &&
+    (!wantsApi || !apiUsageQuery.isLoading);
+  if (initialProduct === null && products.length > 0 && choiceSettled) {
+    setInitialProduct(
+      defaultProduct(products, {
+        compute: deployUsageQuery.data?.grossCents ?? 0,
+        api: apiUsageQuery.data?.billableTotal ?? 0,
+      }) ?? null,
+    );
+  }
+  const chosenProduct = [selectedProduct, initialProduct].find(
+    (product): product is PaywallProduct => product !== null && products.includes(product),
+  );
+  const activeProduct = products.length > 1 ? (chosenProduct ?? null) : (products[0] ?? null);
+
+  const close = () => onOpenChange(false);
   const panels: Record<PaywallProduct, ReactNode> = {
     compute: (
       <ComputePlans
-        plans={plansData?.plans}
-        currentPlan={currentPlan}
+        options={plansQuery.data?.plans}
+        current={current}
+        usageCents={deployUsageQuery.data?.grossCents ?? null}
         isAdmin={isAdmin}
-        recommendedPlan={copy.recommendedPlan}
         from={from}
+        manage={copy.manage}
+        onChanged={close}
       />
     ),
     api: (
       <div className="mx-auto w-full max-w-[560px]">
-        <ApiPlans isAdmin={isAdmin} enabled={open} />
+        <ApiPlans
+          isAdmin={isAdmin}
+          manage={copy.manage}
+          usedThisMonth={apiUsageQuery.data?.billableTotal ?? null}
+          onChanged={close}
+        />
       </div>
     ),
   };
 
-  const activeProduct =
-    selectedProduct && products.includes(selectedProduct) ? selectedProduct : products[0];
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="top-0 left-0 block h-dvh w-screen max-w-none translate-x-0 translate-y-0 overflow-y-auto rounded-none bg-background p-0 sm:rounded-none">
-        <Tabs
-          value={activeProduct}
-          onValueChange={(value) =>
-            setSelectedProduct(products.find((product) => product === value) ?? null)
-          }
-          className="mx-auto flex min-h-dvh w-full max-w-[1040px] flex-col items-center justify-start px-4 pt-14 pb-10 md:justify-center md:px-6 md:py-16"
-        >
-          <DialogTitle className="text-center font-semibold text-gray-12 text-xl tracking-[-0.03em] md:text-2xl">
-            {copy.title}
-          </DialogTitle>
-          <DialogDescription className="mt-2 max-w-md text-balance text-center text-gray-11 text-sm leading-6">
-            {copy.description}
-            {activeProduct === "compute" ? (
-              <>
-                {" "}
-                {CREDITS_INFO}{" "}
-                <a
-                  href={CREDITS_LINK_HREF}
-                  target="_blank"
-                  rel="noopener noreferrer"
+      <DialogContent className="group/plans top-0 left-0 block h-dvh w-screen max-w-none translate-x-0 translate-y-0 overflow-y-auto rounded-none bg-background p-0 transition-opacity duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] data-ending-style:scale-100 data-starting-style:scale-100 data-ending-style:duration-150 motion-reduce:transition-none sm:rounded-none">
+        <div className="overflow-clip">
+          <Tabs
+            value={activeProduct}
+            onValueChange={(value) =>
+              setSelectedProduct(products.find((product) => product === value) ?? null)
+            }
+            className="mx-auto flex min-h-dvh w-full max-w-[1040px] flex-col items-center justify-start px-4 pt-24 pb-10 transition-[translate] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] group-data-starting-style/plans:translate-y-3 motion-reduce:transition-none md:justify-center md:px-6 md:py-16"
+          >
+            <div className="relative">
+              <Logo
+                aria-hidden="true"
+                className="absolute bottom-full left-1/2 mb-10 h-6 w-auto -translate-x-1/2"
+              />
+              <DialogTitle className="text-center font-semibold text-gray-12 text-xl tracking-[-0.03em] md:text-2xl">
+                {copy.title}
+              </DialogTitle>
+            </div>
+            <DialogDescription className="mt-2 max-w-md text-balance text-center text-gray-11 text-sm leading-6">
+              {copy.description}
+              {activeProduct === "compute" ? (
+                <>
+                  {" "}
+                  {CREDITS_INFO}{" "}
+                  <a
+                    href={CREDITS_LINK_HREF}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 hover:text-gray-12"
+                  >
+                    {CREDITS_LINK_LABEL}
+                  </a>
+                </>
+              ) : null}
+            </DialogDescription>
+            {isAdmin ? null : (
+              <p className="mt-3 rounded-lg bg-grayA-3 px-3 py-1.5 text-center text-gray-12 text-sm">
+                Only workspace admins can change plans. Ask an admin to upgrade.
+              </p>
+            )}
+            {products.length > 1 ? (
+              <TabsList className="mt-8 w-64">
+                {products.map((product) => (
+                  <TabsTrigger key={product} value={product} className="flex-1">
+                    {PRODUCT_LABELS[product]}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            ) : null}
+            {products.map((product) => (
+              <TabsContent key={product} value={product} className="mt-8 w-full">
+                {panels[product]}
+              </TabsContent>
+            ))}
+            {activeProduct === null && products.length > 1 ? (
+              <Skeleton className="mt-8 h-96 w-full max-w-[560px] rounded-xl" />
+            ) : null}
+            {products.length === 0 ? (
+              <p className="mt-8 text-center text-gray-11 text-sm">
+                Plans aren't available right now.{" "}
+                <Link
+                  href={routes.settings.billing({ workspaceSlug: workspace.slug })}
                   className="underline underline-offset-2 hover:text-gray-12"
                 >
-                  {CREDITS_LINK_LABEL}
-                </a>
-              </>
+                  Go to billing
+                </Link>
+              </p>
             ) : null}
-          </DialogDescription>
-          {products.length > 1 ? (
-            <TabsList className="mt-8 w-64">
-              {products.map((product) => (
-                <TabsTrigger key={product} value={product} className="flex-1">
-                  {PRODUCT_LABELS[product]}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          ) : null}
-          {products.map((product) => (
-            <TabsContent key={product} value={product} className="mt-8 w-full">
-              {panels[product]}
-            </TabsContent>
-          ))}
-          {products.length === 0 ? (
-            <p className="mt-8 text-center text-gray-11 text-sm">
-              Plans aren't available right now.{" "}
-              <Link
-                href={routes.settings.billing({ workspaceSlug: workspace.slug })}
-                className="underline underline-offset-2 hover:text-gray-12"
-              >
-                Go to billing
-              </Link>
-            </p>
-          ) : null}
-        </Tabs>
+          </Tabs>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -175,314 +205,3 @@ const PRODUCT_LABELS: Record<PaywallProduct, string> = {
   compute: "Compute",
   api: "API",
 };
-
-const FEATURE_ICONS: Record<PlanFeatureKind, ComponentType<IconProps>> = {
-  git: IconCodeBranchOutline18,
-  preview: IconEyeOutline18,
-  rollback: IconArrowDottedRotateAnticlockwiseOutline18,
-  team: IconUserOutline18,
-  cpu: IconMicrochipOutline18,
-  memory: IconRamOutline18,
-  domains: IconEarthOutline18,
-  autoscale: IconLayers3Outline18,
-  logs: IconClockRotateClockwiseOutline18,
-};
-
-function PlanFeatureList({ rows }: { rows: PlanFeatureRow[] }) {
-  return (
-    <ul className="flex flex-col gap-2.5">
-      {rows.map((row) => {
-        const Icon = FEATURE_ICONS[row.kind];
-        return (
-          <li
-            key={row.label}
-            className={cn(
-              "flex items-center gap-2.5 text-sm",
-              row.included ? "text-gray-12" : "text-gray-9 line-through",
-            )}
-          >
-            <Icon
-              className={cn("size-4 shrink-0", row.included ? "text-gray-11" : "text-gray-8")}
-            />
-            {row.label}
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function IncludedInEveryPlan() {
-  return (
-    <div className="flex flex-col items-center justify-between gap-3 rounded-xl border bg-raised px-6 py-4 md:flex-row">
-      <span className="font-medium text-gray-12 text-sm">Included in every plan</span>
-      <ul className="flex flex-col divide-y md:flex-row md:divide-x md:divide-y-0">
-        {BASE_FEATURES.map((feature) => {
-          const Icon = FEATURE_ICONS[feature.kind];
-          return (
-            <li
-              key={feature.label}
-              className="flex items-center gap-2 py-2 text-gray-12 text-sm md:px-4 md:py-0 md:last:pr-0"
-            >
-              <Icon className="size-4 shrink-0 text-gray-11" />
-              {feature.label}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
-function intervalSuffix(interval: string | null): string {
-  return interval === "year" ? "/yr" : "/mo";
-}
-
-function ComputePlans({
-  plans,
-  currentPlan,
-  isAdmin,
-  recommendedPlan,
-  from,
-}: {
-  plans: DeployPlanOption[] | undefined;
-  currentPlan: DeployPlan | null;
-  isAdmin: boolean;
-  recommendedPlan?: DeployPlan;
-  from: DeployCheckoutOrigin;
-}) {
-  const workspace = useWorkspaceNavigation();
-  const trpcUtils = trpc.useUtils();
-  const [pendingPlan, setPendingPlan] = useState<DeployPlanOption | null>(null);
-  const [startingCheckout, setStartingCheckout] = useState<DeployPlan | null>(null);
-
-  const change = trpc.stripe.changeDeployPlan.useMutation({
-    onSuccess: async (result) => {
-      if (result.kind === "payment_required") {
-        window.location.assign(result.paymentUrl);
-        return;
-      }
-      setPendingPlan(null);
-      toast.success("Compute plan changed");
-      await Promise.all([
-        trpcUtils.stripe.getDeploySubscription.invalidate(),
-        trpcUtils.stripe.getDeployEntitlement.invalidate(),
-        trpcUtils.workspace.getCurrent.invalidate(),
-      ]);
-      window.location.reload();
-    },
-    onError: (err) => toast.error(err.message),
-  });
-
-  if (!plans) {
-    return (
-      <div className="grid w-full gap-4 md:grid-cols-3">
-        {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className="h-[420px] rounded-xl" />
-        ))}
-      </div>
-    );
-  }
-
-  const currentAmount = plans.find((p) => p.plan === currentPlan)?.amount ?? null;
-
-  const select = (option: DeployPlanOption) => {
-    if (currentPlan) {
-      setPendingPlan(option);
-      return;
-    }
-    setStartingCheckout(option.plan);
-    window.location.assign(
-      routes.settings.stripe.checkout({
-        workspaceSlug: workspace.slug,
-        intent: "deploy",
-        plan: option.plan,
-        from,
-      }),
-    );
-  };
-
-  return (
-    <div className="flex w-full flex-col gap-6">
-      <div className="grid w-full gap-4 md:grid-cols-3">
-        {plans.map((option) => {
-          const isCurrent = option.plan === currentPlan;
-          const isRecommended = option.plan === recommendedPlan && !isCurrent;
-          const isDowngrade =
-            currentAmount !== null && option.amount !== null && option.amount < currentAmount;
-          const label = isCurrent
-            ? "Current plan"
-            : currentPlan
-              ? `${isDowngrade ? "Downgrade" : "Upgrade"} to ${option.name}`
-              : `Choose ${option.name}`;
-
-          return (
-            <div
-              key={option.plan}
-              className={cn(
-                "flex flex-col gap-5 rounded-xl border bg-raised p-5 md:p-6",
-                isRecommended && "border-info-7 ring-1 ring-info-7",
-              )}
-            >
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-2 font-medium text-base text-gray-12">
-                    <PlanTierIcon plan={option.plan} className="size-4" />
-                    {option.name}
-                  </span>
-                  {isRecommended ? (
-                    <span className="rounded-full bg-info-3 px-2 py-0.5 text-info-11 text-xs">
-                      Recommended
-                    </span>
-                  ) : null}
-                </div>
-                <span className="text-gray-11 text-sm">{PLAN_BLURBS[option.plan]}</span>
-              </div>
-
-              <div className="flex items-baseline gap-1">
-                {option.amount !== null ? (
-                  <>
-                    <span className="font-semibold text-3xl text-gray-12 tabular-nums">
-                      {formatDollars(option.amount)}
-                    </span>
-                    <span className="text-gray-11 text-sm">{intervalSuffix(option.interval)}</span>
-                  </>
-                ) : (
-                  <span className="font-semibold text-3xl text-gray-12">Contact us</span>
-                )}
-              </div>
-
-              <Button
-                variant={isRecommended ? "primary" : "outline"}
-                size="lg"
-                className="w-full"
-                disabled={isCurrent || !isAdmin || startingCheckout !== null}
-                loading={startingCheckout === option.plan}
-                title={isAdmin ? undefined : ADMIN_ONLY_TOOLTIP}
-                onClick={() => select(option)}
-              >
-                {label}
-              </Button>
-
-              <PlanFeatureList rows={planFeatures(option.plan)} />
-            </div>
-          );
-        })}
-      </div>
-      <IncludedInEveryPlan />
-
-      <ComputePlanConfirmDialog
-        plan={pendingPlan}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
-            setPendingPlan(null);
-          }
-        }}
-        onConfirm={() => {
-          if (pendingPlan) {
-            change.mutate({ plan: pendingPlan.plan });
-          }
-        }}
-        isLoading={change.isLoading}
-        currentPlanName={plans.find((p) => p.plan === currentPlan)?.name}
-        note="Takes effect immediately. Upgrades are charged now and add the difference as usage credits; downgrades keep this period's credits, with the new fee starting next period."
-      />
-    </div>
-  );
-}
-
-function ApiPlans({ isAdmin, enabled }: { isAdmin: boolean; enabled: boolean }) {
-  const workspace = useWorkspaceNavigation();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  const { data: billingInfo } = trpc.stripe.getBillingInfo.useQuery(undefined, {
-    enabled,
-    staleTime: 30_000,
-    trpc: { context: { skipBatch: true } },
-  });
-
-  const onDone = (paymentUrl?: string | null) => {
-    if (paymentUrl) {
-      window.location.assign(paymentUrl);
-      return;
-    }
-    toast.success("API plan activated");
-    window.location.reload();
-  };
-
-  const createSubscription = trpc.stripe.createSubscription.useMutation({
-    onSuccess: (result) => {
-      if (result.status === "checkout") {
-        window.location.assign(result.checkoutUrl);
-        return;
-      }
-      onDone(result.status === "payment_required" ? result.paymentUrl : null);
-    },
-    onError: (err) => toast.error(err.message),
-  });
-  const updateSubscription = trpc.stripe.updateSubscription.useMutation({
-    onSuccess: (result) => onDone(result.kind === "payment_required" ? result.paymentUrl : null),
-    onError: (err) => toast.error(err.message),
-  });
-
-  if (!billingInfo) {
-    return <Skeleton className="h-[360px] w-full rounded-xl" />;
-  }
-
-  const currentProduct = currentApiProduct({
-    products: billingInfo.products,
-    subscription: billingInfo.subscription,
-    currentProductId: billingInfo.currentProductId,
-  });
-  const currentId = currentProduct?.id ?? null;
-  const selected = selectedId ?? currentId;
-  const isSubmitting = createSubscription.isLoading || updateSubscription.isLoading;
-
-  const subscribe = () => {
-    if (!selected) {
-      return;
-    }
-    if (!workspace.stripeCustomerId) {
-      window.location.assign(
-        routes.settings.stripe.checkout({ workspaceSlug: workspace.slug, intent: "api" }),
-      );
-      return;
-    }
-    if (currentProduct) {
-      updateSubscription.mutate({ newProductId: selected });
-      return;
-    }
-    createSubscription.mutate({ productId: selected });
-  };
-
-  return (
-    <div className="flex flex-col gap-4">
-      <p className="text-center text-gray-11 text-sm">
-        Tiered plans for key verifications and ratelimits. Every API plan includes team members.
-      </p>
-      <PlanOptionList
-        options={billingInfo.products.map((product) => ({
-          id: product.id,
-          name: product.name,
-          amount: product.dollar * 100,
-          interval: "month",
-          detail: `${formatNumber(product.quotas.requestsPerMonth)} requests/month`,
-        }))}
-        currentId={currentId}
-        selectedId={selected}
-        onSelect={setSelectedId}
-      />
-      <Button
-        variant="primary"
-        size="xlg"
-        className="w-full rounded-lg"
-        disabled={!isAdmin || !selected || selected === currentId || isSubmitting}
-        loading={isSubmitting}
-        title={isAdmin ? undefined : ADMIN_ONLY_TOOLTIP}
-        onClick={subscribe}
-      >
-        {currentProduct ? "Change plan" : "Subscribe"}
-      </Button>
-    </div>
-  );
-}

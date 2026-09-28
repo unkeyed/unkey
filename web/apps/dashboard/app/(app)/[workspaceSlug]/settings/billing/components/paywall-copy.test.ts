@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { availableProducts, paywallCopy } from "./paywall-copy";
+import { availableProducts, defaultProduct, paywallCopy } from "./paywall-copy";
 
 describe("paywallCopy", () => {
   it("offers both products for team members", () => {
@@ -22,5 +22,28 @@ describe("paywallCopy", () => {
       "api",
     ]);
     expect(availableProducts(["compute"], { computeEnabled: false })).toEqual([]);
+  });
+
+  it("opens on the product the workspace already uses", () => {
+    const both = ["compute", "api"] as const;
+    expect(defaultProduct([...both], { compute: 1200, api: 0 })).toBe("compute");
+    expect(defaultProduct([...both], { compute: 1200, api: 90_000 })).toBe("compute");
+    expect(defaultProduct([...both], { compute: 0, api: 90_000 })).toBe("api");
+    expect(defaultProduct([...both], { compute: 0, api: 0 })).toBe("compute");
+  });
+
+  it("falls back to the first offered product", () => {
+    expect(defaultProduct(["api"], { compute: 1200, api: 0 })).toBe("api");
+    expect(defaultProduct([], { compute: 0, api: 0 })).toBeUndefined();
+  });
+
+  it("offers cancel and change controls only on the billing page pickers", () => {
+    expect(paywallCopy("compute-plan")).toMatchObject({ products: ["compute"], manage: true });
+    expect(paywallCopy("api-plan")).toMatchObject({ products: ["api"], manage: true });
+    expect(paywallCopy("team").manage).toBe(false);
+    expect(paywallCopy("choose-plan")).toMatchObject({
+      products: ["compute", "api"],
+      manage: false,
+    });
   });
 });

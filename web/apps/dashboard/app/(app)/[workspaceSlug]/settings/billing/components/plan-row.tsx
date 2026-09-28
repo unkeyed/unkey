@@ -64,16 +64,12 @@ export function PlanPrice({
 export function PlanRowAction({
   isAdmin,
   hasPlan,
-  hasPaymentMethod,
-  needsPaymentReason,
   emphasize,
   onClick,
   chooseLabel,
 }: {
   isAdmin: boolean | undefined;
   hasPlan: boolean;
-  hasPaymentMethod: boolean;
-  needsPaymentReason: string;
   emphasize: boolean;
   onClick: () => void;
   chooseLabel: string;
@@ -91,7 +87,7 @@ export function PlanRowAction({
   }
 
   return (
-    <AdminGate isAdmin={isAdmin} blocked={!hasPaymentMethod} blockedReason={needsPaymentReason}>
+    <AdminGate isAdmin={isAdmin}>
       {(disabled) => (
         <Button
           variant={emphasize ? "primary" : "outline"}
