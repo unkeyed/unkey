@@ -1,9 +1,10 @@
 "use client";
 
+import { ComputeUpgradeCelebration } from "@/components/billing/upgrade-success/upgrade-success-dialog";
 import { useVisibleProjects } from "@/hooks/use-visible-projects";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
-import { DEPLOY_PLANS } from "@/lib/stripe/deployPlan";
+import { DEPLOY_CHECKOUT_ORIGINS, routes } from "@/lib/navigation/routes";
+import { DEPLOY_PLANS, type DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import {
   PageBody,
@@ -27,7 +28,7 @@ export default function ProjectsPage() {
   const isNewProject = searchParams.get("new") === "true";
   const projects = useVisibleProjects();
 
-  const { createDialogOpen, setCreateDialogOpen } = usePendingSubscribe();
+  const { createDialogOpen, setCreateDialogOpen, welcome, closeWelcome } = usePendingSubscribe();
 
   const isEmpty = !projects.isLoading && projects.data.length === 0;
 
@@ -44,6 +45,7 @@ export default function ProjectsPage() {
         </PageHeader>
         <PageBody>{isEmpty ? <EmptyProjects /> : <ProjectsList />}</PageBody>
       </PageContainer>
+      {welcome ? <ComputeUpgradeCelebration plan={welcome.plan} onClose={closeWelcome} /> : null}
       <CreateProjectDialog
         isOpen={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
@@ -55,24 +57,11 @@ export default function ProjectsPage() {
 
 /**
  * Handles the Compute-plan gate hand-off: reads ?pendingPlan&from from the URL
- * and toasts the result, opening the create-project dialog on `from=create`.
+ * and shows the welcome dialog, then the create-project dialog on `from=create`.
  *
- * Two entry conditions land here, and the entitlement-first check absorbs both:
- * - Card on file (has-card path): the workspace is not yet subscribed, so
- *   subscribeDeploy runs here (no Stripe round-trip — the card is vaulted).
- * - Returning from a subscription-mode Compute checkout: /success (and the
- *   checkout.session.completed webhook) already linked the subscription, so the
- *   workspace is entitled and the entitlement check short-circuits to the
- *   toast/dialog with no subscribeDeploy call.
- *
- * subscribeDeploy and its BAD_REQUEST decline-recovery stay for the has-card
- * path and the setup-mode fallback (workspace already has a subscription, so it
- * vaults a card and attaches Compute items on return). Params are stripped
- * after capture so a refresh doesn't re-fire, and a ref guards double-firing.
- *
- * The params must be read reactively, not captured at mount: the has-card path
- * pushes ?pendingPlan&from while the user is ALREADY on the projects page (the
- * gate dialog lives here), so there is no remount — only a searchParams change.
+ * The setup-mode checkout fallback (the workspace already had a subscription)
+ * only vaults a card, so the workspace is not yet entitled and subscribeDeploy
+ * must still run here.
  */
 function usePendingSubscribe() {
   const router = useRouter();
@@ -81,6 +70,13 @@ function usePendingSubscribe() {
   const trpcUtils = trpc.useUtils();
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [welcome, setWelcome] = useState<{ plan: DeployPlan; thenCreate: boolean } | null>(null);
+  const closeWelcome = () => {
+    setWelcome(null);
+    if (welcome?.thenCreate) {
+      setCreateDialogOpen(true);
+    }
+  };
 
   // The pendingPlan+from pair currently being subscribed, so re-renders (and
   // strict-mode double effects) don't re-fire it. Cleared when the params are
@@ -99,7 +95,7 @@ function usePendingSubscribe() {
     // Carry the raw origin (not a boolean) so a card-decline retry preserves
     // it verbatim instead of rewriting e.g. "billing" to "banner".
     const rawFrom = searchParams.get("from");
-    const from = DEPLOY_ORIGINS.find((known) => known === rawFrom) ?? "banner";
+    const from = DEPLOY_CHECKOUT_ORIGINS.find((known) => known === rawFrom) ?? "banner";
     const pending = { plan, from };
     const key = `${pending.plan}:${pending.from}`;
     if (firedFor.current === key) {
@@ -110,15 +106,12 @@ function usePendingSubscribe() {
     router.replace(routes.projects.list({ workspaceSlug: workspace.slug }));
 
     const markActive = async () => {
-      toast.success(`${planLabel(pending.plan)} plan active`);
       await Promise.all([
         trpcUtils.stripe.getDeployEntitlement.invalidate(),
         trpcUtils.stripe.getDeploySubscription.invalidate(),
         trpcUtils.workspace.getCurrent.invalidate(),
       ]);
-      if (pending.from === "create") {
-        setCreateDialogOpen(true);
-      }
+      setWelcome({ plan: pending.plan, thenCreate: pending.from === "create" });
     };
 
     // Re-entering this URL (bookmark, reshare, history remount) or a race can
@@ -184,11 +177,5 @@ function usePendingSubscribe() {
     })();
   }, [searchParams, router, workspace.slug, subscribe, trpcUtils]);
 
-  return { createDialogOpen, setCreateDialogOpen };
-}
-
-const DEPLOY_ORIGINS: readonly DeployCheckoutOrigin[] = ["create", "banner", "billing", "deploy"];
-
-function planLabel(plan: string): string {
-  return plan.charAt(0).toUpperCase() + plan.slice(1);
+  return { createDialogOpen, setCreateDialogOpen, welcome, closeWelcome };
 }
