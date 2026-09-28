@@ -1,4 +1,5 @@
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
+import { permissionsQueryOptions } from "@/hooks/use-fetch-permissions";
 import { trpc } from "@/lib/trpc/client";
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
 import { type QueryClient, useQueryClient } from "@tanstack/react-query";
@@ -27,7 +28,6 @@ import { EditKeyName } from "./components/edit-key-name";
 import { EditMetadata } from "./components/edit-metadata";
 import { EditRatelimits } from "./components/edit-ratelimits";
 import { KeyRbacDialog } from "./components/edit-rbac";
-import { keysRbacPermissionsQueryOptions } from "./components/edit-rbac/components/assign-permission/hooks/use-fetch-keys-permissions";
 import { keysRbacRolesQueryOptions } from "./components/edit-rbac/components/assign-role/hooks/use-fetch-keys-roles";
 import { RotateKey } from "./components/rotate-key/rotate-key";
 
@@ -150,7 +150,7 @@ export const getKeysTableActionItems = (
 
           // Always prefetch combobox data - independent of connectedData
           const comboboxDataPromise = Promise.all([
-            queryClient.prefetchInfiniteQuery(keysRbacPermissionsQueryOptions()),
+            queryClient.prefetchInfiniteQuery(permissionsQueryOptions()),
             queryClient.prefetchInfiniteQuery(keysRbacRolesQueryOptions()),
           ]);
 
@@ -159,7 +159,7 @@ export const getKeysTableActionItems = (
           // Fallback: prefetch only the combobox data which doesn't depend on connectedData
           try {
             await Promise.all([
-              queryClient.prefetchInfiniteQuery(keysRbacPermissionsQueryOptions()),
+              queryClient.prefetchInfiniteQuery(permissionsQueryOptions()),
               queryClient.prefetchInfiniteQuery(keysRbacRolesQueryOptions()),
             ]);
           } catch (fallbackError) {

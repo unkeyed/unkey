@@ -1,14 +1,14 @@
 import { StatusBadge } from "@/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/status-badge";
 import { SelectedItemsList } from "@/components/selected-item-list";
 import { FormCombobox } from "@/components/ui/form-combobox";
+import { useFetchPermissions } from "@/hooks/use-fetch-permissions";
+import { useSearchPermissions } from "@/hooks/use-search-permissions";
 import type { KeyPermission, KeyRole } from "@/lib/trpc/routers/key/rbac/connected-roles-and-perms";
 import { IconPage2Outline12 } from "@unkey/icons";
 import { InfoTooltip } from "@unkey/ui";
 import { useMemo, useState } from "react";
 import { useWatch } from "react-hook-form";
 import { createPermissionOptions } from "./create-permission-options";
-import { useFetchPermissions } from "./hooks/use-fetch-keys-permissions";
-import { useSearchPermissions } from "./hooks/use-search-keys-permissions";
 
 type PermissionFieldProps = {
   value: string[];
