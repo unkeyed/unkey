@@ -258,7 +258,6 @@ function PlanFeatureList({ rows }: { rows: PlanFeatureRow[] }) {
             <Icon
               className={cn("size-4 shrink-0", row.included ? "text-gray-11" : "text-gray-8")}
             />
-            {row.included ? null : <span className="sr-only">Not included: </span>}
             {row.label}
           </li>
         );
