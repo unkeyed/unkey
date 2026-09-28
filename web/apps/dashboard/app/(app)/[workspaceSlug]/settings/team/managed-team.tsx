@@ -141,13 +141,7 @@ function ManagedTeamWidgets() {
   }
 
   return (
-    <section aria-labelledby="members-heading" className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1">
-        <h2 id="members-heading" className="m-0 text-lg font-medium">
-          Members
-        </h2>
-        <p className="m-0 text-sm text-gray-11">Manage workspace members and invitations.</p>
-      </div>
+    <section aria-label="Members" className="flex flex-col gap-3">
       <ManagedUsersWidget getAccessToken={getWidgetAccessToken} />
     </section>
   );
@@ -155,20 +149,10 @@ function ManagedTeamWidgets() {
 
 function ManagedTeamSkeleton() {
   return (
-    <section
-      aria-busy="true"
-      aria-labelledby="members-loading-heading"
-      className="flex flex-col gap-3"
-    >
+    <section aria-busy="true" aria-label="Members" className="flex flex-col gap-3">
       <output aria-live="polite" className="sr-only">
         Loading workspace members...
       </output>
-      <div className="flex flex-col gap-1">
-        <h2 id="members-loading-heading" className="m-0 text-lg font-medium">
-          Members
-        </h2>
-        <p className="m-0 text-sm text-gray-11">Manage workspace members and invitations.</p>
-      </div>
       <div aria-hidden="true" className="flex flex-col gap-3">
         <div className="flex gap-2">
           <Skeleton className="h-8 w-80 max-w-full" />
