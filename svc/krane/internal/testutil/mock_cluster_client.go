@@ -20,12 +20,20 @@ var _ ctrl.ClusterServiceClient = (*MockClusterClient)(nil)
 type MockClusterClient struct {
 	WatchDeploymentChangesFunc    func(context.Context, *ctrlv1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error)
 	GetDesiredDeploymentStateFunc func(context.Context, *ctrlv1.GetDesiredDeploymentStateRequest) (*ctrlv1.DeploymentState, error)
+	GetPrivateNetworkStateFunc    func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error)
 	ReportDeploymentStatusFunc    func(context.Context, *ctrlv1.ReportDeploymentStatusRequest) (*ctrlv1.ReportDeploymentStatusResponse, error)
 	ReportInstanceEventsFunc      func(context.Context, *ctrlv1.ReportInstanceEventsRequest) (*ctrlv1.ReportInstanceEventsResponse, error)
 	HeartbeatFunc                 func(context.Context, *ctrlv1.HeartbeatRequest) (*ctrlv1.HeartbeatResponse, error)
 	SyncDesiredStateFunc          func(context.Context, *ctrlv1.SyncDesiredStateRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error)
 	ReportDeploymentStatusCalls   []*ctrlv1.ReportDeploymentStatusRequest
 	ReportInstanceEventsCalls     []*ctrlv1.ReportInstanceEventsRequest
+}
+
+func (m *MockClusterClient) GetPrivateNetworkState(ctx context.Context, req *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
+	if m.GetPrivateNetworkStateFunc != nil {
+		return m.GetPrivateNetworkStateFunc(ctx, req)
+	}
+	return &ctrlv1.GetPrivateNetworkStateResponse{}, nil
 }
 
 func (m *MockClusterClient) WatchDeploymentChanges(ctx context.Context, req *ctrlv1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[ctrlv1.DeploymentChangeEvent], error) {

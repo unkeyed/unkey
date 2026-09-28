@@ -53,6 +53,10 @@ service ClusterService {
   // Used by the resync loop to verify consistency for existing resources.
   rpc GetDesiredDeploymentState(GetDesiredDeploymentStateRequest) returns (DeploymentState);
 
+  // GetPrivateNetworkState returns the complete production and preview network catalog
+  // for the caller's platform, including apps without replicas in its region.
+  rpc GetPrivateNetworkState(GetPrivateNetworkStateRequest) returns (GetPrivateNetworkStateResponse);
+
   // ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
   // Called when K8s watch events indicate ReplicaSet changes.
   rpc ReportDeploymentStatus(ReportDeploymentStatusRequest) returns (ReportDeploymentStatusResponse);
@@ -96,6 +100,29 @@ message DeploymentChangeEvent {
 message GetDesiredDeploymentStateRequest {
   ClusterKey cluster = 1;
   string deployment_id = 2;
+}
+
+message GetPrivateNetworkStateRequest {
+  ClusterKey cluster = 1;
+}
+
+message GetPrivateNetworkStateResponse {
+  repeated PrivateNetworkApp apps = 1;
+}
+
+message PrivateNetworkApp {
+  string workspace_id = 1;
+  string project_id = 2;
+  string app_id = 3;
+  string app_slug = 4;
+  string k8s_namespace = 5;
+  string deployment_id = 6;
+  int32 port = 7;
+  string environment_id = 8;
+  reserved 9;
+  string caller_deployment_id = 10;
+  string binding_id = 11;
+  string binding_name = 12;
 }
 
 // ReportDeploymentStatusRequest reports the actual state of a deployment from the agent.
@@ -332,6 +359,10 @@ message ApplyDeployment {
   // The volume is created when the pod starts and deleted when the pod terminates.
   // When absent, no ephemeral volume is attached.
   optional EphemeralStorage ephemeral_storage = 29;
+
+  string environment_kind = 30;
+  reserved 31;
+  reserved "preview_network_id";
 }
 
 // AutoscalingPolicy configures horizontal pod autoscaling for a deployment.
