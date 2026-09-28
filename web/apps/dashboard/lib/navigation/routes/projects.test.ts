@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { buildAppLinks, buildProjectLinks } from "../leaves";
 import { routes } from "./index";
 
 const ws = "acme";
@@ -75,9 +76,30 @@ describe("routes.projects.apps.new", () => {
 describe("app-scoped paths", () => {
   const scope = { workspaceSlug: ws, projectId, appId };
 
+  it("shows Bindings only in app navigation and marks it active", () => {
+    const links = buildAppLinks(ws, projectId, appId, [
+      "projects",
+      projectId,
+      "apps",
+      appId,
+      "bindings",
+    ]);
+    expect(links.find((link) => link.key === "bindings")).toMatchObject({
+      label: "Bindings",
+      href: "/acme/projects/proj_123/apps/app_456/bindings",
+      isActive: true,
+    });
+    expect(
+      buildProjectLinks(ws, projectId, ["projects", projectId]).map((link) => link.key),
+    ).not.toContain("bindings");
+  });
+
   it("builds app leaf paths", () => {
     expect(routes.projects.apps.settings(scope)).toBe(
       "/acme/projects/proj_123/apps/app_456/settings",
+    );
+    expect(routes.projects.apps.bindings(scope)).toBe(
+      "/acme/projects/proj_123/apps/app_456/bindings",
     );
     expect(routes.projects.apps.deployments(scope)).toBe(
       "/acme/projects/proj_123/apps/app_456/deployments",

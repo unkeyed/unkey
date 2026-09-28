@@ -77,6 +77,13 @@ export const projectRoutes = {
       );
     },
 
+    bindings(scope: AppScope): Route {
+      return buildRoute(
+        "/[workspaceSlug]/projects/[projectId]/apps/[appId]/bindings",
+        appParams(scope),
+      );
+    },
+
     policies(scope: AppScope): Route {
       return buildRoute(
         "/[workspaceSlug]/projects/[projectId]/apps/[appId]/policies",
