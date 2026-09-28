@@ -108,11 +108,11 @@ export const KeyRbacDialog = ({
   const watchedRoleNames = watch("roleNames", []);
   const watchedDirectPermissionSlugs = watch("directPermissionSlugs", []);
 
-  const {
-    data: dataSlugs,
-    isLoading: isSlugsLoading,
-    refetch: refetchPermissionSlugs,
-  } = useFetchPermissionSlugs(watchedRoleNames, watchedDirectPermissionSlugs, isDialogOpen);
+  const { data: dataSlugs, isLoading: isSlugsLoading } = useFetchPermissionSlugs(
+    watchedRoleNames,
+    watchedDirectPermissionSlugs,
+    isDialogOpen,
+  );
 
   // Reset form data when dialog opens
   useEffect(() => {
@@ -137,13 +137,10 @@ export const KeyRbacDialog = ({
     setIsDialogOpen(false);
   });
 
-  const onSubmit = async (data: FormValues) => {
-    const resolved = await refetchPermissionSlugs();
-
+  const onSubmit = (data: FormValues) => {
     updateKeyRbacMutation.mutate({
       ...data,
-      totalEffectivePermissions:
-        resolved.data?.totalCount ?? dataSlugs?.totalCount ?? data.directPermissionSlugs.length,
+      totalEffectivePermissions: dataSlugs?.totalCount ?? data.directPermissionSlugs.length,
     });
   };
 

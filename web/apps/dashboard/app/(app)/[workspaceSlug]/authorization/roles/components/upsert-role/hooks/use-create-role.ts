@@ -1,11 +1,11 @@
-import { trpc } from "@/lib/trpc/client";
+import { useInvalidateRbacQueries } from "@/hooks/use-invalidate-rbac-queries";
 import { getErrorToast, getUnkeyClient } from "@/lib/unkey-client";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "@unkey/ui";
 import type { FormValues } from "../upsert-role.schema";
 
 export const useCreateRole = (onSuccess: () => void) => {
-  const trpcUtils = trpc.useUtils();
+  const invalidateRbacQueries = useInvalidateRbacQueries();
   return useMutation({
     mutationFn: async ({
       roleName,
@@ -34,7 +34,7 @@ export const useCreateRole = (onSuccess: () => void) => {
       return { keyCount: keyIds.length, failures };
     },
     onSuccess({ keyCount, failures }) {
-      trpcUtils.authorization.invalidate();
+      invalidateRbacQueries();
       onSuccess();
 
       if (failures.length === 0) {
