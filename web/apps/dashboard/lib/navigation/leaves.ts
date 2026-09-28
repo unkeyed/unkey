@@ -9,6 +9,7 @@ import {
   IconInputSearchOutline18,
   IconKeyOutline18,
   IconLayers3Outline18,
+  IconLinkOutline18,
   IconNodesOutline18,
   IconShieldKeyOutline18,
   IconSquareBulletListOutline18,
@@ -148,6 +149,13 @@ export function buildAppLinks(
       href: routes.projects.apps.envVars(scope),
       icon: IconBracketsSquareDotsOutline18,
       isActive: page === "env-vars",
+    },
+    {
+      key: "bindings",
+      label: "Bindings",
+      href: routes.projects.apps.bindings(scope),
+      icon: IconLinkOutline18,
+      isActive: page === "bindings",
     },
     {
       key: "policies",
