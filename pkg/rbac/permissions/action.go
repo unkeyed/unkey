@@ -1,4 +1,4 @@
-// Package permissions validates actions for URN resources.
+// Package permissions defines actions for URN resources.
 package permissions
 
 import "github.com/unkeyed/unkey/pkg/urn"
@@ -23,10 +23,3 @@ const (
 
 // Wildcard is the action used by the global administrator permission.
 const Wildcard = "*"
-
-// IsValid reports whether action is supported by resource. It validates the
-// complete resource name, so a zero value or manually constructed invalid
-// [urn.V1] returns false.
-func IsValid(resource urn.V1, action Action) bool {
-	return resource.SupportsPermissionAction(action)
-}

@@ -101,10 +101,10 @@ func TestActions_BuildDataPermissions(t *testing.T) {
 	requirePermission(t, permission, permissions.Delete, "unkey:v1:ws_123:projects/proj_123/rbac/permissions/perm_123#delete")
 }
 
-// TestIsValid_RejectsUnsupportedActions guarantees each special resource type
+// TestSupportsPermissionAction_RejectsUnsupportedActions guarantees each special resource type
 // rejects actions from another type. For example, logs reject write, portal
 // sessions reject read, and only the global resource accepts the * action.
-func TestIsValid_RejectsUnsupportedActions(t *testing.T) {
+func TestSupportsPermissionAction_RejectsUnsupportedActions(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -127,16 +127,16 @@ func TestIsValid_RejectsUnsupportedActions(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			resource, err := urn.ParseV1("unkey:v1:ws_123:" + testCase.resource)
 			require.NoError(t, err)
-			require.False(t, permissions.IsValid(resource, testCase.action))
+			require.False(t, resource.SupportsPermissionAction(testCase.action))
 		})
 	}
 }
 
-// TestIsValid_ValidatesGlobalAndDescendantPatterns guarantees a pattern accepts
+// TestSupportsPermissionAction_ValidatesGlobalAndDescendantPatterns guarantees a pattern accepts
 // only actions used by its selected resources. For example, a project subtree
 // accepts limit, a keyspace subtree accepts decrypt but not limit, and **#*
 // remains the global administrator permission.
-func TestIsValid_ValidatesGlobalAndDescendantPatterns(t *testing.T) {
+func TestSupportsPermissionAction_ValidatesGlobalAndDescendantPatterns(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -165,15 +165,15 @@ func TestIsValid_ValidatesGlobalAndDescendantPatterns(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			resource, err := urn.ParseV1("unkey:v1:ws_123:" + testCase.resource)
 			require.NoError(t, err)
-			require.Equal(t, testCase.valid, permissions.IsValid(resource, testCase.action))
+			require.Equal(t, testCase.valid, resource.SupportsPermissionAction(testCase.action))
 		})
 	}
 }
 
-// TestIsValid_RejectsMalformedResources guarantees manually constructed urn.V1
+// TestSupportsPermissionAction_RejectsMalformedResources guarantees manually constructed urn.V1
 // values cannot bypass URN validation or cause a panic. For example, an empty
 // resource and projects//apps/app_123 both return false.
-func TestIsValid_RejectsMalformedResources(t *testing.T) {
+func TestSupportsPermissionAction_RejectsMalformedResources(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range []struct {
@@ -188,15 +188,15 @@ func TestIsValid_RejectsMalformedResources(t *testing.T) {
 		{name: "middle descendant wildcard", resource: urn.V1{WorkspaceID: "ws_123", Resource: "projects/**/apps/*"}},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
-			require.False(t, permissions.IsValid(testCase.resource, permissions.Read))
+			require.False(t, testCase.resource.SupportsPermissionAction(permissions.Read))
 		})
 	}
 }
 
-// TestIsValid_ClassifiesStructuralPathPositions guarantees ID text cannot
+// TestSupportsPermissionAction_ClassifiesStructuralPathPositions guarantees ID text cannot
 // change the resource type. For example, a keyspace ID named logs is still a
 // keyspace, while a key ID named overrides still supports decrypt.
-func TestIsValid_ClassifiesStructuralPathPositions(t *testing.T) {
+func TestSupportsPermissionAction_ClassifiesStructuralPathPositions(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -216,7 +216,7 @@ func TestIsValid_ClassifiesStructuralPathPositions(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			resource, err := urn.ParseV1("unkey:v1:ws_123:" + testCase.resource)
 			require.NoError(t, err)
-			require.Equal(t, testCase.valid, permissions.IsValid(resource, testCase.action))
+			require.Equal(t, testCase.valid, resource.SupportsPermissionAction(testCase.action))
 		})
 	}
 }
@@ -228,5 +228,5 @@ func requirePermission(t *testing.T, resource fmt.Stringer, action permissions.A
 	require.Equal(t, want, rbac.U(resource, action).Value)
 	parsed, err := urn.ParseV1(resource.String())
 	require.NoError(t, err)
-	require.True(t, permissions.IsValid(parsed, action))
+	require.True(t, parsed.SupportsPermissionAction(action))
 }

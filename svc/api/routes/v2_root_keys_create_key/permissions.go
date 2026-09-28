@@ -55,7 +55,7 @@ func parsePermission(permission, workspaceID string) (urn.V1, permissions.Action
 		return urn.V1{}, "", invalidPermission()
 	}
 	resource, err := urn.ParseV1(resourceName)
-	if err != nil || resource.WorkspaceID != workspaceID || !permissions.IsValid(resource, permissions.Action(actionName)) {
+	if err != nil || resource.WorkspaceID != workspaceID || !resource.SupportsPermissionAction(permissions.Action(actionName)) {
 		return urn.V1{}, "", invalidPermission()
 	}
 	return resource, permissions.Action(actionName), nil
