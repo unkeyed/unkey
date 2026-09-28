@@ -11,6 +11,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/cdc"
 	"github.com/unkeyed/unkey/pkg/logger"
+	"github.com/unkeyed/unkey/pkg/privatenetwork"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/auth"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/db"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/deploymentstream"
@@ -129,6 +130,8 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 			K8sNamespace:                  row.K8sNamespace,
 			EnvironmentSlug:               row.EnvironmentSlug,
 			EnvironmentKind:               row.EnvironmentKind,
+			AppSlug:                       row.AppSlug,
+			PrivateNetworkEnrolled:        row.PrivateNetworkEnrolled,
 			RegionName:                    row.RegionName,
 			GitRepo:                       row.GitRepo,
 		}
@@ -171,6 +174,11 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 			EnvironmentSlug:               &deployment.EnvironmentSlug,
 			EnvironmentKind:               string(deployment.EnvironmentKind),
 			Region:                        &deployment.RegionName,
+		}
+		if deployment.PrivateNetworkEnrolled {
+			if host, ok := privatenetwork.ReplicaHost(deployment.AppSlug); ok {
+				apply.PrivateNetworkReplicaHost = host
+			}
 		}
 
 		if deployment.GitCommitSha.Valid {

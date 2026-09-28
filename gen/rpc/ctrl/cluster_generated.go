@@ -17,7 +17,7 @@ type ClusterServiceClient interface {
 	WatchDeploymentChanges(ctx context.Context, req *v1.WatchDeploymentChangesRequest) (*connect.ServerStreamForClient[v1.DeploymentChangeEvent], error)
 	SyncDesiredState(ctx context.Context, req *v1.SyncDesiredStateRequest) (*connect.ServerStreamForClient[v1.DeploymentChangeEvent], error)
 	GetDesiredDeploymentState(ctx context.Context, req *v1.GetDesiredDeploymentStateRequest) (*v1.DeploymentState, error)
-	GetPrivateNetworkState(ctx context.Context, req *v1.GetPrivateNetworkStateRequest) (*v1.GetPrivateNetworkStateResponse, error)
+	StreamPrivateNetworkState(ctx context.Context, req *v1.StreamPrivateNetworkStateRequest) (*connect.ServerStreamForClient[v1.PrivateNetworkStateChunk], error)
 	ReportDeploymentStatus(ctx context.Context, req *v1.ReportDeploymentStatusRequest) (*v1.ReportDeploymentStatusResponse, error)
 	ReportInstanceEvents(ctx context.Context, req *v1.ReportInstanceEventsRequest) (*v1.ReportInstanceEventsResponse, error)
 	Heartbeat(ctx context.Context, req *v1.HeartbeatRequest) (*v1.HeartbeatResponse, error)
@@ -56,17 +56,8 @@ func (c *ConnectClusterServiceClient) GetDesiredDeploymentState(ctx context.Cont
 	return resp.Msg, nil
 }
 
-func (c *ConnectClusterServiceClient) GetPrivateNetworkState(ctx context.Context, req *v1.GetPrivateNetworkStateRequest) (*v1.GetPrivateNetworkStateResponse, error) {
-	ctx, span := tracing.Start(ctx, "ClusterService.GetPrivateNetworkState")
-	defer span.End()
-	resp, err := c.inner.GetPrivateNetworkState(ctx, connect.NewRequest(req))
-	if err != nil {
-		if connect.CodeOf(err) != connect.CodeNotFound {
-			tracing.RecordError(span, err)
-		}
-		return nil, err
-	}
-	return resp.Msg, nil
+func (c *ConnectClusterServiceClient) StreamPrivateNetworkState(ctx context.Context, req *v1.StreamPrivateNetworkStateRequest) (*connect.ServerStreamForClient[v1.PrivateNetworkStateChunk], error) {
+	return c.inner.StreamPrivateNetworkState(ctx, connect.NewRequest(req))
 }
 
 func (c *ConnectClusterServiceClient) ReportDeploymentStatus(ctx context.Context, req *v1.ReportDeploymentStatusRequest) (*v1.ReportDeploymentStatusResponse, error) {

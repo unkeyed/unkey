@@ -51,9 +51,9 @@ const (
 	// ClusterServiceGetDesiredDeploymentStateProcedure is the fully-qualified name of the
 	// ClusterService's GetDesiredDeploymentState RPC.
 	ClusterServiceGetDesiredDeploymentStateProcedure = "/ctrl.v1.ClusterService/GetDesiredDeploymentState"
-	// ClusterServiceGetPrivateNetworkStateProcedure is the fully-qualified name of the ClusterService's
-	// GetPrivateNetworkState RPC.
-	ClusterServiceGetPrivateNetworkStateProcedure = "/ctrl.v1.ClusterService/GetPrivateNetworkState"
+	// ClusterServiceStreamPrivateNetworkStateProcedure is the fully-qualified name of the
+	// ClusterService's StreamPrivateNetworkState RPC.
+	ClusterServiceStreamPrivateNetworkStateProcedure = "/ctrl.v1.ClusterService/StreamPrivateNetworkState"
 	// ClusterServiceReportDeploymentStatusProcedure is the fully-qualified name of the ClusterService's
 	// ReportDeploymentStatus RPC.
 	ClusterServiceReportDeploymentStatusProcedure = "/ctrl.v1.ClusterService/ReportDeploymentStatus"
@@ -78,9 +78,11 @@ type ClusterServiceClient interface {
 	// GetDesiredDeploymentState returns the current desired state for a single deployment.
 	// Used by the resync loop to verify consistency for existing resources.
 	GetDesiredDeploymentState(context.Context, *connect.Request[v1.GetDesiredDeploymentStateRequest]) (*connect.Response[v1.DeploymentState], error)
-	// GetPrivateNetworkState returns the complete production and preview network catalog
-	// for the caller's platform, including apps without replicas in its region.
-	GetPrivateNetworkState(context.Context, *connect.Request[v1.GetPrivateNetworkStateRequest]) (*connect.Response[v1.GetPrivateNetworkStateResponse], error)
+	// StreamPrivateNetworkState sends the complete private network catalog for
+	// the caller's platform in pages read from one database snapshot, then a
+	// final chunk with complete set. A stream that ends without that chunk is
+	// partial and must not be reconciled, because omission authorizes deletion.
+	StreamPrivateNetworkState(context.Context, *connect.Request[v1.StreamPrivateNetworkStateRequest]) (*connect.ServerStreamForClient[v1.PrivateNetworkStateChunk], error)
 	// ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
 	// Called when K8s watch events indicate ReplicaSet changes.
 	ReportDeploymentStatus(context.Context, *connect.Request[v1.ReportDeploymentStatusRequest]) (*connect.Response[v1.ReportDeploymentStatusResponse], error)
@@ -125,10 +127,10 @@ func NewClusterServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(clusterServiceMethods.ByName("GetDesiredDeploymentState")),
 			connect.WithClientOptions(opts...),
 		),
-		getPrivateNetworkState: connect.NewClient[v1.GetPrivateNetworkStateRequest, v1.GetPrivateNetworkStateResponse](
+		streamPrivateNetworkState: connect.NewClient[v1.StreamPrivateNetworkStateRequest, v1.PrivateNetworkStateChunk](
 			httpClient,
-			baseURL+ClusterServiceGetPrivateNetworkStateProcedure,
-			connect.WithSchema(clusterServiceMethods.ByName("GetPrivateNetworkState")),
+			baseURL+ClusterServiceStreamPrivateNetworkStateProcedure,
+			connect.WithSchema(clusterServiceMethods.ByName("StreamPrivateNetworkState")),
 			connect.WithClientOptions(opts...),
 		),
 		reportDeploymentStatus: connect.NewClient[v1.ReportDeploymentStatusRequest, v1.ReportDeploymentStatusResponse](
@@ -157,7 +159,7 @@ type clusterServiceClient struct {
 	watchDeploymentChanges    *connect.Client[v1.WatchDeploymentChangesRequest, v1.DeploymentChangeEvent]
 	syncDesiredState          *connect.Client[v1.SyncDesiredStateRequest, v1.DeploymentChangeEvent]
 	getDesiredDeploymentState *connect.Client[v1.GetDesiredDeploymentStateRequest, v1.DeploymentState]
-	getPrivateNetworkState    *connect.Client[v1.GetPrivateNetworkStateRequest, v1.GetPrivateNetworkStateResponse]
+	streamPrivateNetworkState *connect.Client[v1.StreamPrivateNetworkStateRequest, v1.PrivateNetworkStateChunk]
 	reportDeploymentStatus    *connect.Client[v1.ReportDeploymentStatusRequest, v1.ReportDeploymentStatusResponse]
 	reportInstanceEvents      *connect.Client[v1.ReportInstanceEventsRequest, v1.ReportInstanceEventsResponse]
 	heartbeat                 *connect.Client[v1.HeartbeatRequest, v1.HeartbeatResponse]
@@ -178,9 +180,9 @@ func (c *clusterServiceClient) GetDesiredDeploymentState(ctx context.Context, re
 	return c.getDesiredDeploymentState.CallUnary(ctx, req)
 }
 
-// GetPrivateNetworkState calls ctrl.v1.ClusterService.GetPrivateNetworkState.
-func (c *clusterServiceClient) GetPrivateNetworkState(ctx context.Context, req *connect.Request[v1.GetPrivateNetworkStateRequest]) (*connect.Response[v1.GetPrivateNetworkStateResponse], error) {
-	return c.getPrivateNetworkState.CallUnary(ctx, req)
+// StreamPrivateNetworkState calls ctrl.v1.ClusterService.StreamPrivateNetworkState.
+func (c *clusterServiceClient) StreamPrivateNetworkState(ctx context.Context, req *connect.Request[v1.StreamPrivateNetworkStateRequest]) (*connect.ServerStreamForClient[v1.PrivateNetworkStateChunk], error) {
+	return c.streamPrivateNetworkState.CallServerStream(ctx, req)
 }
 
 // ReportDeploymentStatus calls ctrl.v1.ClusterService.ReportDeploymentStatus.
@@ -211,9 +213,11 @@ type ClusterServiceHandler interface {
 	// GetDesiredDeploymentState returns the current desired state for a single deployment.
 	// Used by the resync loop to verify consistency for existing resources.
 	GetDesiredDeploymentState(context.Context, *connect.Request[v1.GetDesiredDeploymentStateRequest]) (*connect.Response[v1.DeploymentState], error)
-	// GetPrivateNetworkState returns the complete production and preview network catalog
-	// for the caller's platform, including apps without replicas in its region.
-	GetPrivateNetworkState(context.Context, *connect.Request[v1.GetPrivateNetworkStateRequest]) (*connect.Response[v1.GetPrivateNetworkStateResponse], error)
+	// StreamPrivateNetworkState sends the complete private network catalog for
+	// the caller's platform in pages read from one database snapshot, then a
+	// final chunk with complete set. A stream that ends without that chunk is
+	// partial and must not be reconciled, because omission authorizes deletion.
+	StreamPrivateNetworkState(context.Context, *connect.Request[v1.StreamPrivateNetworkStateRequest], *connect.ServerStream[v1.PrivateNetworkStateChunk]) error
 	// ReportDeploymentStatus reports actual deployment state from the agent to the control plane.
 	// Called when K8s watch events indicate ReplicaSet changes.
 	ReportDeploymentStatus(context.Context, *connect.Request[v1.ReportDeploymentStatusRequest]) (*connect.Response[v1.ReportDeploymentStatusResponse], error)
@@ -254,10 +258,10 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 		connect.WithSchema(clusterServiceMethods.ByName("GetDesiredDeploymentState")),
 		connect.WithHandlerOptions(opts...),
 	)
-	clusterServiceGetPrivateNetworkStateHandler := connect.NewUnaryHandler(
-		ClusterServiceGetPrivateNetworkStateProcedure,
-		svc.GetPrivateNetworkState,
-		connect.WithSchema(clusterServiceMethods.ByName("GetPrivateNetworkState")),
+	clusterServiceStreamPrivateNetworkStateHandler := connect.NewServerStreamHandler(
+		ClusterServiceStreamPrivateNetworkStateProcedure,
+		svc.StreamPrivateNetworkState,
+		connect.WithSchema(clusterServiceMethods.ByName("StreamPrivateNetworkState")),
 		connect.WithHandlerOptions(opts...),
 	)
 	clusterServiceReportDeploymentStatusHandler := connect.NewUnaryHandler(
@@ -286,8 +290,8 @@ func NewClusterServiceHandler(svc ClusterServiceHandler, opts ...connect.Handler
 			clusterServiceSyncDesiredStateHandler.ServeHTTP(w, r)
 		case ClusterServiceGetDesiredDeploymentStateProcedure:
 			clusterServiceGetDesiredDeploymentStateHandler.ServeHTTP(w, r)
-		case ClusterServiceGetPrivateNetworkStateProcedure:
-			clusterServiceGetPrivateNetworkStateHandler.ServeHTTP(w, r)
+		case ClusterServiceStreamPrivateNetworkStateProcedure:
+			clusterServiceStreamPrivateNetworkStateHandler.ServeHTTP(w, r)
 		case ClusterServiceReportDeploymentStatusProcedure:
 			clusterServiceReportDeploymentStatusHandler.ServeHTTP(w, r)
 		case ClusterServiceReportInstanceEventsProcedure:
@@ -315,8 +319,8 @@ func (UnimplementedClusterServiceHandler) GetDesiredDeploymentState(context.Cont
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.GetDesiredDeploymentState is not implemented"))
 }
 
-func (UnimplementedClusterServiceHandler) GetPrivateNetworkState(context.Context, *connect.Request[v1.GetPrivateNetworkStateRequest]) (*connect.Response[v1.GetPrivateNetworkStateResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.GetPrivateNetworkState is not implemented"))
+func (UnimplementedClusterServiceHandler) StreamPrivateNetworkState(context.Context, *connect.Request[v1.StreamPrivateNetworkStateRequest], *connect.ServerStream[v1.PrivateNetworkStateChunk]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("ctrl.v1.ClusterService.StreamPrivateNetworkState is not implemented"))
 }
 
 func (UnimplementedClusterServiceHandler) ReportDeploymentStatus(context.Context, *connect.Request[v1.ReportDeploymentStatusRequest]) (*connect.Response[v1.ReportDeploymentStatusResponse], error) {
