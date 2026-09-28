@@ -769,6 +769,7 @@ type Deployment struct {
 	GithubDeploymentID            sql.NullInt64                     `db:"github_deployment_id"`
 	InvocationID                  sql.NullString                    `db:"invocation_id"`
 	Status                        mysqltype.DeploymentsStatus       `db:"status"`
+	FirstReadyAt                  sql.NullInt64                     `db:"first_ready_at"`
 	Trigger                       DeploymentsTrigger                `db:"trigger"`
 	TriggeredBy                   sql.NullString                    `db:"triggered_by"`
 	TriggerReason                 sql.NullString                    `db:"trigger_reason"`

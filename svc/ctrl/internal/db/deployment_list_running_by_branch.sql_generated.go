@@ -11,16 +11,22 @@ import (
 )
 
 const listRunningDeploymentsByBranch = `-- name: ListRunningDeploymentsByBranch :many
-SELECT id
-FROM deployments
-WHERE git_branch = ?
-  AND workspace_id = ?
-  AND project_id = ?
-  AND app_id = ?
-  AND environment_id = ?
-  AND desired_state = 'running'
-  AND id != ?
-ORDER BY created_at ASC
+SELECT d.id
+FROM deployments d
+WHERE d.git_branch <=> ?
+  AND d.workspace_id = ?
+  AND d.project_id = ?
+  AND d.app_id = ?
+  AND d.environment_id = ?
+  AND d.fork_repository_full_name <=> (
+      SELECT newer.fork_repository_full_name FROM deployments newer WHERE newer.id = ?
+  )
+  AND d.desired_state = 'running'
+  AND d.id != ?
+  AND NOT EXISTS (
+      SELECT 1 FROM apps a WHERE a.id = d.app_id AND a.current_deployment_id = d.id
+  )
+ORDER BY d.created_at ASC
 `
 
 type ListRunningDeploymentsByBranchParams struct {
@@ -34,19 +40,27 @@ type ListRunningDeploymentsByBranchParams struct {
 
 // ListRunningDeploymentsByBranch returns deployments in the same app,
 // environment, and branch whose desired state is running, excluding one
-// deployment id. Used to find sibling running deployments without including
-// the caller's own deployment or unrelated deployments from another scope.
+// deployment id and the app's current deployment. Used to find sibling running
+// deployments without including the caller's own deployment, the live
+// deployment, or deployments from another source fork. Pinned deployments are
+// included so their scheduled transition can retry until the binding is removed.
 //
-//	SELECT id
-//	FROM deployments
-//	WHERE git_branch = ?
-//	  AND workspace_id = ?
-//	  AND project_id = ?
-//	  AND app_id = ?
-//	  AND environment_id = ?
-//	  AND desired_state = 'running'
-//	  AND id != ?
-//	ORDER BY created_at ASC
+//	SELECT d.id
+//	FROM deployments d
+//	WHERE d.git_branch <=> ?
+//	  AND d.workspace_id = ?
+//	  AND d.project_id = ?
+//	  AND d.app_id = ?
+//	  AND d.environment_id = ?
+//	  AND d.fork_repository_full_name <=> (
+//	      SELECT newer.fork_repository_full_name FROM deployments newer WHERE newer.id = ?
+//	  )
+//	  AND d.desired_state = 'running'
+//	  AND d.id != ?
+//	  AND NOT EXISTS (
+//	      SELECT 1 FROM apps a WHERE a.id = d.app_id AND a.current_deployment_id = d.id
+//	  )
+//	ORDER BY d.created_at ASC
 func (q *Queries) ListRunningDeploymentsByBranch(ctx context.Context, arg ListRunningDeploymentsByBranchParams) ([]string, error) {
 	rows, err := q.db.QueryContext(ctx, listRunningDeploymentsByBranch,
 		arg.GitBranch,
@@ -54,6 +68,7 @@ func (q *Queries) ListRunningDeploymentsByBranch(ctx context.Context, arg ListRu
 		arg.ProjectID,
 		arg.AppID,
 		arg.EnvironmentID,
+		arg.NotDeploymentID,
 		arg.NotDeploymentID,
 	)
 	if err != nil {

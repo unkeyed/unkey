@@ -40,6 +40,7 @@ SELECT
     d.healthcheck,
     w.k8s_namespace,
     e.slug AS environment_slug,
+    e.kind AS environment_kind,
     r.name AS region_name,
     grc.repository_full_name AS git_repo
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
@@ -84,6 +85,7 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 	Healthcheck                   mysqltype.NullHealthcheck       `db:"healthcheck"`
 	K8sNamespace                  string                          `db:"k8s_namespace"`
 	EnvironmentSlug               string                          `db:"environment_slug"`
+	EnvironmentKind               mysqltype.EnvironmentKind       `db:"environment_kind"`
 	RegionName                    string                          `db:"region_name"`
 	GitRepo                       sql.NullString                  `db:"git_repo"`
 }
@@ -118,6 +120,7 @@ type FindDeploymentTopologyByDeploymentAndRegionRow struct {
 //	    d.healthcheck,
 //	    w.k8s_namespace,
 //	    e.slug AS environment_slug,
+//	    e.kind AS environment_kind,
 //	    r.name AS region_name,
 //	    grc.repository_full_name AS git_repo
 //	FROM `deployment_topology` dt
@@ -158,6 +161,7 @@ func (q *Queries) FindDeploymentTopologyByDeploymentAndRegion(ctx context.Contex
 		&i.Healthcheck,
 		&i.K8sNamespace,
 		&i.EnvironmentSlug,
+		&i.EnvironmentKind,
 		&i.RegionName,
 		&i.GitRepo,
 	)

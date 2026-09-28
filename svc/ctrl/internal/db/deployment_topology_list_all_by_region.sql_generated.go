@@ -41,6 +41,7 @@ SELECT
     d.healthcheck AS deployment_healthcheck,
     w.k8s_namespace,
     e.slug AS environment_slug,
+    e.kind AS environment_kind,
     r.name AS region_name,
     grc.repository_full_name AS git_repo
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
@@ -88,6 +89,7 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 	DeploymentHealthcheck                   mysqltype.NullHealthcheck       `db:"deployment_healthcheck"`
 	K8sNamespace                            string                          `db:"k8s_namespace"`
 	EnvironmentSlug                         string                          `db:"environment_slug"`
+	EnvironmentKind                         mysqltype.EnvironmentKind       `db:"environment_kind"`
 	RegionName                              string                          `db:"region_name"`
 	GitRepo                                 sql.NullString                  `db:"git_repo"`
 }
@@ -123,6 +125,7 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 //	    d.healthcheck AS deployment_healthcheck,
 //	    w.k8s_namespace,
 //	    e.slug AS environment_slug,
+//	    e.kind AS environment_kind,
 //	    r.name AS region_name,
 //	    grc.repository_full_name AS git_repo
 //	FROM `deployment_topology` dt
@@ -171,6 +174,7 @@ func (q *Queries) ListAllDeploymentTopologiesByRegion(ctx context.Context, arg L
 			&i.DeploymentHealthcheck,
 			&i.K8sNamespace,
 			&i.EnvironmentSlug,
+			&i.EnvironmentKind,
 			&i.RegionName,
 			&i.GitRepo,
 		); err != nil {

@@ -124,6 +124,8 @@ export const deployments = mysqlTable(
       .notNull()
       .default("pending"),
 
+    firstReadyAt: bigint("first_ready_at", { mode: "number" }),
+
     // What surface triggered this deployment.
     // "unknown" is used for historical rows inserted before this column existed.
     trigger: mysqlEnum("trigger", ["unknown", "github", "api", "cli", "dashboard", "unkey"])

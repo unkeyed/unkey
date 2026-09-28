@@ -139,6 +139,49 @@ func (ns NullApisAuthType) Value() (driver.Value, error) {
 	return string(ns.ApisAuthType), nil
 }
 
+type AppBindingsSelectionMode string
+
+const (
+	AppBindingsSelectionModeAutomatic   AppBindingsSelectionMode = "automatic"
+	AppBindingsSelectionModeEnvironment AppBindingsSelectionMode = "environment"
+	AppBindingsSelectionModeDeployment  AppBindingsSelectionMode = "deployment"
+)
+
+func (e *AppBindingsSelectionMode) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AppBindingsSelectionMode(s)
+	case string:
+		*e = AppBindingsSelectionMode(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AppBindingsSelectionMode: %T", src)
+	}
+	return nil
+}
+
+type NullAppBindingsSelectionMode struct {
+	AppBindingsSelectionMode AppBindingsSelectionMode
+	Valid                    bool // Valid is true if AppBindingsSelectionMode is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAppBindingsSelectionMode) Scan(value interface{}) error {
+	if value == nil {
+		ns.AppBindingsSelectionMode, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AppBindingsSelectionMode.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAppBindingsSelectionMode) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AppBindingsSelectionMode), nil
+}
+
 type AppEnvironmentVariablesType string
 
 const (
@@ -1153,6 +1196,23 @@ type App struct {
 	UpdatedAt           sql.NullInt64  `db:"updated_at"`
 }
 
+type AppBinding struct {
+	Pk                  uint64                       `db:"pk"`
+	ID                  string                       `db:"id"`
+	WorkspaceID         string                       `db:"workspace_id"`
+	ProjectID           string                       `db:"project_id"`
+	AppID               string                       `db:"app_id"`
+	EnvironmentID       string                       `db:"environment_id"`
+	ResourceType        string                       `db:"resource_type"`
+	ResourceID          string                       `db:"resource_id"`
+	Name                string                       `db:"name"`
+	SelectionMode       NullAppBindingsSelectionMode `db:"selection_mode"`
+	TargetEnvironmentID sql.NullString               `db:"target_environment_id"`
+	TargetDeploymentID  sql.NullString               `db:"target_deployment_id"`
+	CreatedAt           int64                        `db:"created_at"`
+	UpdatedAt           sql.NullInt64                `db:"updated_at"`
+}
+
 type AppBuildSetting struct {
 	Pk            uint64          `db:"pk"`
 	WorkspaceID   string          `db:"workspace_id"`
@@ -1349,6 +1409,7 @@ type Deployment struct {
 	GithubDeploymentID            sql.NullInt64               `db:"github_deployment_id"`
 	InvocationID                  sql.NullString              `db:"invocation_id"`
 	Status                        DeploymentsStatus           `db:"status"`
+	FirstReadyAt                  sql.NullInt64               `db:"first_ready_at"`
 	Trigger                       DeploymentsTrigger          `db:"trigger"`
 	TriggeredBy                   sql.NullString              `db:"triggered_by"`
 	TriggerReason                 sql.NullString              `db:"trigger_reason"`

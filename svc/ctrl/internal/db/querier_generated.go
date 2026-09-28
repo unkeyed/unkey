@@ -68,7 +68,10 @@ type Querier interface {
 	DeleteAppBuildSettingsByEnvironmentId(ctx context.Context, environmentID string) error
 	//DeleteAppById
 	//
-	//  DELETE FROM apps WHERE id = ?
+	//  DELETE a, b
+	//  FROM apps a
+	//  LEFT JOIN app_bindings b ON b.app_id = a.id OR (b.resource_type = 'app' AND b.resource_id = a.id)
+	//  WHERE a.id = ?
 	DeleteAppById(ctx context.Context, id string) error
 	//DeleteAppEnvVarsByEnvironmentId
 	//
@@ -122,7 +125,10 @@ type Querier interface {
 	DeleteDeploymentsByEnvironmentId(ctx context.Context, environmentID string) error
 	//DeleteEnvironmentById
 	//
-	//  DELETE FROM environments WHERE id = ?
+	//  DELETE e, b
+	//  FROM environments e
+	//  LEFT JOIN app_bindings b ON b.environment_id = e.id
+	//  WHERE e.id = ?
 	DeleteEnvironmentById(ctx context.Context, id string) error
 	// DeleteExportedClickhouseOutbox hard-deletes a bounded batch of outbox rows
 	// that were already exported to ClickHouse (deleted_at stamped) before the
@@ -167,7 +173,10 @@ type Querier interface {
 	DeleteInstance(ctx context.Context, arg DeleteInstanceParams) error
 	//DeleteProjectById
 	//
-	//  DELETE FROM projects WHERE id = ?
+	//  DELETE p, b
+	//  FROM projects p
+	//  LEFT JOIN app_bindings b ON b.project_id = p.id
+	//  WHERE p.id = ?
 	DeleteProjectById(ctx context.Context, id string) error
 	// Removes the given workspaces along with everything scoped to them.
 	//
@@ -176,13 +185,14 @@ type Querier interface {
 	// Rows a test leaves behind are rescanned by every later run, so the seeder
 	// deletes what it created once the test finishes.
 	//
-	//  DELETE w, wb, p, a, e, d
+	//  DELETE w, wb, p, a, e, d, b
 	//  FROM workspaces w
 	//  LEFT JOIN workspace_billing wb ON wb.workspace_id = w.id
 	//  LEFT JOIN projects p ON p.workspace_id = w.id
 	//  LEFT JOIN apps a ON a.workspace_id = w.id
 	//  LEFT JOIN environments e ON e.workspace_id = w.id
 	//  LEFT JOIN deployments d ON d.workspace_id = w.id
+	//  LEFT JOIN app_bindings b ON b.workspace_id = w.id
 	//  WHERE w.id IN (/*SLICE:ids*/?)
 	DeleteWorkspacesWithChildren(ctx context.Context, ids []string) error
 	//EndActiveDeploymentStepsForDeployments
@@ -459,11 +469,25 @@ type Querier interface {
 	FindDeploymentAppAndStatus(ctx context.Context, id string) (FindDeploymentAppAndStatusRow, error)
 	//FindDeploymentById
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE id = ?
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id,
+	//      source, image_requested, image_resolved, build_id, git_commit_sha, git_branch,
+	//      git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp,
+	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
+	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck,
+	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
+	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
+	//  FROM deployments WHERE id = ?
 	FindDeploymentById(ctx context.Context, id string) (Deployment, error)
 	//FindDeploymentByK8sName
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments` WHERE k8s_name = ?
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id,
+	//      source, image_requested, image_resolved, build_id, git_commit_sha, git_branch,
+	//      git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp,
+	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
+	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck,
+	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
+	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
+	//  FROM deployments WHERE k8s_name = ?
 	FindDeploymentByK8sName(ctx context.Context, k8sName string) (Deployment, error)
 	//FindDeploymentForBuild
 	//
@@ -533,6 +557,7 @@ type Querier interface {
 	//      d.healthcheck,
 	//      w.k8s_namespace,
 	//      e.slug AS environment_slug,
+	//      e.kind AS environment_kind,
 	//      r.name AS region_name,
 	//      grc.repository_full_name AS git_repo
 	//  FROM `deployment_topology` dt
@@ -832,13 +857,13 @@ type Querier interface {
 	// bypass the guardrail for non-git apps.
 	//
 	//  SELECT EXISTS (
-	//      SELECT 1 FROM deployments
-	//      WHERE app_id = ?
-	//        AND environment_id = ?
-	//        AND git_branch <=> ?
-	//        AND status NOT IN ('failed', 'skipped', 'stopped', 'superseded', 'cancelled')
-	//        AND created_at > ?
-	//        AND id != ?
+	//      SELECT 1 FROM deployments d
+	//      WHERE d.app_id = ?
+	//        AND d.environment_id = ?
+	//        AND d.git_branch <=> ?
+	//        AND d.status NOT IN ('failed', 'skipped', 'stopped', 'superseded', 'cancelled')
+	//        AND d.created_at > ?
+	//        AND d.id != ?
 	//  ) AS has_newer
 	HasNewerActiveDeployment(ctx context.Context, arg HasNewerActiveDeploymentParams) (bool, error)
 	//InsertAcmeChallenge
@@ -1559,6 +1584,7 @@ type Querier interface {
 	//      d.healthcheck AS deployment_healthcheck,
 	//      w.k8s_namespace,
 	//      e.slug AS environment_slug,
+	//      e.kind AS environment_kind,
 	//      r.name AS region_name,
 	//      grc.repository_full_name AS git_repo
 	//  FROM `deployment_topology` dt
@@ -1571,6 +1597,18 @@ type Querier interface {
 	//  ORDER BY dt.pk ASC
 	//  LIMIT ?
 	ListAllDeploymentTopologiesByRegion(ctx context.Context, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error)
+	//ListAppBindingsByApp
+	//
+	//  SELECT id, name
+	//  FROM app_bindings
+	//  WHERE workspace_id = ?
+	//      AND project_id = ?
+	//      AND app_id = ?
+	//      AND environment_id = ?
+	//      AND resource_type = 'app'
+	//      AND resource_id <> app_id
+	//  ORDER BY pk
+	ListAppBindingsByApp(ctx context.Context, arg ListAppBindingsByAppParams) ([]ListAppBindingsByAppRow, error)
 	//ListAppIdsByProject
 	//
 	//  SELECT id FROM apps WHERE project_id = ?
@@ -1646,11 +1684,18 @@ type Querier interface {
 	ListDeploymentChangesByRegionAll(ctx context.Context, arg ListDeploymentChangesByRegionAllParams) ([]DeploymentChange, error)
 	//ListDeploymentsByEnvironmentIdAndStatus
 	//
-	//  SELECT deployments.pk, deployments.id, deployments.k8s_name, deployments.workspace_id, deployments.project_id, deployments.environment_id, deployments.app_id, deployments.source, deployments.image_requested, deployments.image_resolved, deployments.build_id, deployments.git_commit_sha, deployments.git_branch, deployments.git_commit_message, deployments.git_commit_author_handle, deployments.git_commit_author_avatar_url, deployments.git_commit_timestamp, deployments.sentinel_config, deployments.cpu_millicores, deployments.memory_mib, deployments.storage_mib, deployments.desired_state, deployments.encrypted_environment_variables, deployments.command, deployments.port, deployments.shutdown_signal, deployments.upstream_protocol, deployments.healthcheck, deployments.pr_number, deployments.fork_repository_full_name, deployments.github_deployment_id, deployments.invocation_id, deployments.status, deployments.`trigger`, deployments.triggered_by, deployments.trigger_reason, deployments.created_at, deployments.updated_at FROM `deployments`
+	//  SELECT pk, id, k8s_name, workspace_id, project_id, environment_id, app_id,
+	//      source, image_requested, image_resolved, build_id, git_commit_sha, git_branch,
+	//      git_commit_message, git_commit_author_handle, git_commit_author_avatar_url, git_commit_timestamp,
+	//      sentinel_config, cpu_millicores, memory_mib, storage_mib, desired_state,
+	//      encrypted_environment_variables, command, port, shutdown_signal, upstream_protocol, healthcheck,
+	//      pr_number, fork_repository_full_name, github_deployment_id, invocation_id, status,
+	//      first_ready_at, `trigger`, triggered_by, trigger_reason, created_at, updated_at
+	//  FROM deployments
 	//  WHERE environment_id = ?
 	//    AND status = ?
 	//    AND created_at < ?
-	//    AND (updated_at IS null OR updated_at < ? )
+	//    AND (updated_at IS NULL OR updated_at < ?)
 	ListDeploymentsByEnvironmentIdAndStatus(ctx context.Context, arg ListDeploymentsByEnvironmentIdAndStatusParams) ([]Deployment, error)
 	//ListEnvironmentIdsByApp
 	//
@@ -1717,6 +1762,11 @@ type Querier interface {
 	//  WHERE older.app_id = ?
 	//    AND older.environment_id = ?
 	//    AND older.git_branch = ?
+	//    AND older.fork_repository_full_name <=> (
+	//      SELECT src.fork_repository_full_name
+	//      FROM deployments src
+	//      WHERE src.id = ?
+	//    )
 	//    AND older.status IN ('pending', 'awaiting_approval')
 	//    AND older.created_at < (
 	//      SELECT src.created_at
@@ -1735,6 +1785,146 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListPreviewEnvironments(ctx context.Context, arg ListPreviewEnvironmentsParams) ([]Environment, error)
+	//ListPrivateNetworkApps
+	//
+	//  WITH binding_candidates AS (
+	//      SELECT
+	//          b.pk,
+	//          b.id AS binding_id,
+	//          b.name AS binding_name,
+	//          b.workspace_id,
+	//          b.project_id,
+	//          b.resource_id AS target_app_id,
+	//          caller.id AS caller_deployment_id,
+	//          caller.environment_id AS caller_environment_id,
+	//          caller.git_branch AS caller_git_branch,
+	//          caller.fork_repository_full_name AS caller_fork_repository,
+	//          caller_env.kind AS caller_environment_kind,
+	//          CASE
+	//              WHEN b.selection_mode = 'deployment' THEN b.target_deployment_id
+	//              WHEN b.selection_mode = 'automatic'
+	//                  AND caller_env.kind = 'production'
+	//                  AND caller_env.slug = 'production'
+	//                  THEN target_app.current_deployment_id
+	//              WHEN b.selection_mode = 'automatic'
+	//                  AND caller.source = 'git'
+	//                  AND COALESCE(caller.git_branch, '') <> ''
+	//                  THEN (
+	//                  SELECT candidate.id
+	//                  FROM deployments candidate
+	//                  INNER JOIN environments candidate_env ON candidate_env.id = candidate.environment_id
+	//                      AND candidate_env.app_id = candidate.app_id
+	//                  WHERE candidate.app_id = b.resource_id
+	//                      AND candidate.workspace_id = b.workspace_id
+	//                      AND candidate.project_id = b.project_id
+	//                      AND NOT (candidate_env.kind = 'production' AND candidate_env.slug = 'production')
+	//                      AND candidate.source = 'git'
+	//                      AND candidate.git_branch = caller.git_branch
+	//                      AND COALESCE(candidate.fork_repository_full_name, '') = COALESCE(caller.fork_repository_full_name, '')
+	//                      AND candidate.first_ready_at IS NOT NULL
+	//                  ORDER BY candidate.created_at DESC, candidate.id DESC
+	//                  LIMIT 1
+	//              )
+	//              WHEN b.selection_mode = 'environment' THEN COALESCE(
+	//                  (
+	//                      SELECT live.id
+	//                      FROM deployments live
+	//                      INNER JOIN environments live_env ON live_env.id = live.environment_id
+	//                          AND live_env.app_id = live.app_id
+	//                      WHERE live.id = target_app.current_deployment_id
+	//                          AND live.environment_id = b.target_environment_id
+	//                  ),
+	//                  (
+	//                      SELECT candidate.id
+	//                      FROM deployments candidate
+	//                      INNER JOIN environments candidate_env ON candidate_env.id = candidate.environment_id
+	//                          AND candidate_env.app_id = candidate.app_id
+	//                      WHERE candidate.app_id = b.resource_id
+	//                          AND candidate.workspace_id = b.workspace_id
+	//                          AND candidate.project_id = b.project_id
+	//                          AND candidate.environment_id = b.target_environment_id
+	//                          AND NOT (candidate_env.kind = 'production' AND candidate_env.slug = 'production')
+	//                          AND candidate.first_ready_at IS NOT NULL
+	//                      ORDER BY candidate.created_at DESC, candidate.id DESC
+	//                      LIMIT 1
+	//                  )
+	//              )
+	//          END AS selected_deployment_id
+	//      FROM app_bindings b
+	//      INNER JOIN apps caller_app ON caller_app.id = b.app_id
+	//          AND caller_app.workspace_id = b.workspace_id AND caller_app.project_id = b.project_id
+	//      INNER JOIN apps target_app ON target_app.id = b.resource_id AND b.resource_type = 'app'
+	//          AND target_app.workspace_id = b.workspace_id AND target_app.project_id = b.project_id
+	//      INNER JOIN deployments caller ON caller.app_id = b.app_id
+	//          AND caller.workspace_id = b.workspace_id AND caller.project_id = b.project_id
+	//          AND caller.environment_id = b.environment_id
+	//          AND caller.status IN ('deploying', 'ready') AND caller.desired_state = 'running'
+	//      INNER JOIN environments caller_env ON caller_env.id = caller.environment_id
+	//          AND caller_env.app_id = caller.app_id
+	//      WHERE b.resource_id <> b.app_id AND EXISTS (
+	//          SELECT 1 FROM deployment_topology dt
+	//          INNER JOIN regions r ON r.id = dt.region_id
+	//          WHERE dt.deployment_id = caller.id
+	//              AND dt.desired_status = 'running'
+	//              AND r.platform = ?
+	//      )
+	//      UNION ALL
+	//      SELECT
+	//          0,
+	//          CONCAT('self-', caller.id),
+	//          'unkey-replicas',
+	//          caller.workspace_id,
+	//          caller.project_id,
+	//          caller.app_id,
+	//          caller.id,
+	//          caller.environment_id,
+	//          caller.git_branch,
+	//          caller.fork_repository_full_name,
+	//          caller_env.kind,
+	//          caller.id
+	//      FROM deployments caller
+	//      INNER JOIN environments caller_env ON caller_env.id = caller.environment_id
+	//          AND caller_env.app_id = caller.app_id
+	//      WHERE caller.status IN ('deploying', 'ready') AND caller.desired_state = 'running'
+	//          AND EXISTS (
+	//              SELECT 1 FROM deployment_topology dt
+	//              INNER JOIN regions r ON r.id = dt.region_id
+	//              WHERE dt.deployment_id = caller.id
+	//                  AND dt.desired_status = 'running'
+	//                  AND r.platform = ?
+	//          )
+	//  )
+	//  SELECT
+	//      c.workspace_id,
+	//      c.project_id,
+	//      c.target_app_id AS app_id,
+	//      target_app.slug AS app_slug,
+	//      w.k8s_namespace,
+	//      COALESCE(target.id, '') AS deployment_id,
+	//      COALESCE(target.port, 0) AS port,
+	//      COALESCE(target.environment_id, '') AS environment_id,
+	//      c.caller_deployment_id,
+	//      c.binding_id,
+	//      c.binding_name
+	//  FROM binding_candidates c
+	//  INNER JOIN apps target_app ON target_app.id = c.target_app_id
+	//      AND target_app.workspace_id = c.workspace_id AND target_app.project_id = c.project_id
+	//  INNER JOIN workspaces w ON w.id = c.workspace_id
+	//  LEFT JOIN deployments target ON target.id = c.selected_deployment_id
+	//      AND target.app_id = c.target_app_id
+	//      AND target.workspace_id = c.workspace_id AND target.project_id = c.project_id
+	//      AND (target.status = 'ready' OR target.id = c.caller_deployment_id)
+	//      AND target.desired_state = 'running'
+	//      AND EXISTS (
+	//          SELECT 1 FROM deployment_topology target_dt
+	//          INNER JOIN regions target_region ON target_region.id = target_dt.region_id
+	//          WHERE target_dt.deployment_id = target.id
+	//              AND target_dt.desired_status = 'running'
+	//              AND target_region.platform = ?
+	//      )
+	//  ORDER BY c.pk, c.caller_deployment_id
+	//  LIMIT ?
+	ListPrivateNetworkApps(ctx context.Context, arg ListPrivateNetworkAppsParams) ([]ListPrivateNetworkAppsRow, error)
 	// Returns deployments in a non-terminal (progressing) status for an
 	// environment. The environment delete workflow uses this to cancel
 	// in-flight Restate invocations before the cascade drops deployment
@@ -1777,19 +1967,27 @@ type Querier interface {
 	ListRepoConnectionDeployContexts(ctx context.Context, arg ListRepoConnectionDeployContextsParams) ([]ListRepoConnectionDeployContextsRow, error)
 	// ListRunningDeploymentsByBranch returns deployments in the same app,
 	// environment, and branch whose desired state is running, excluding one
-	// deployment id. Used to find sibling running deployments without including
-	// the caller's own deployment or unrelated deployments from another scope.
+	// deployment id and the app's current deployment. Used to find sibling running
+	// deployments without including the caller's own deployment, the live
+	// deployment, or deployments from another source fork. Pinned deployments are
+	// included so their scheduled transition can retry until the binding is removed.
 	//
-	//  SELECT id
-	//  FROM deployments
-	//  WHERE git_branch = ?
-	//    AND workspace_id = ?
-	//    AND project_id = ?
-	//    AND app_id = ?
-	//    AND environment_id = ?
-	//    AND desired_state = 'running'
-	//    AND id != ?
-	//  ORDER BY created_at ASC
+	//  SELECT d.id
+	//  FROM deployments d
+	//  WHERE d.git_branch <=> ?
+	//    AND d.workspace_id = ?
+	//    AND d.project_id = ?
+	//    AND d.app_id = ?
+	//    AND d.environment_id = ?
+	//    AND d.fork_repository_full_name <=> (
+	//        SELECT newer.fork_repository_full_name FROM deployments newer WHERE newer.id = ?
+	//    )
+	//    AND d.desired_state = 'running'
+	//    AND d.id != ?
+	//    AND NOT EXISTS (
+	//        SELECT 1 FROM apps a WHERE a.id = d.app_id AND a.current_deployment_id = d.id
+	//    )
+	//  ORDER BY d.created_at ASC
 	ListRunningDeploymentsByBranch(ctx context.Context, arg ListRunningDeploymentsByBranchParams) ([]string, error)
 	// Running deployments for a workspace that still have (or will soon have) live
 	// compute: desired_state 'running' and either a status that carries compute or
@@ -2177,7 +2375,12 @@ type Querier interface {
 	//UpdateDeploymentStatus
 	//
 	//  UPDATE deployments
-	//  SET status = ?, updated_at = ?
+	//  SET first_ready_at = COALESCE(first_ready_at, CASE
+	//          WHEN status IN ('ready', 'stopped') THEN COALESCE(updated_at, created_at)
+	//          WHEN ? = 'ready' THEN COALESCE(?, created_at)
+	//          ELSE NULL
+	//      END),
+	//      status = ?, updated_at = ?
 	//  WHERE id = ?
 	UpdateDeploymentStatus(ctx context.Context, arg UpdateDeploymentStatusParams) error
 	// Batch form of UpdateDeploymentStatusIfActive.

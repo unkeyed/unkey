@@ -21,6 +21,7 @@ export * from "./app_source_oci";
 export * from "./app_build_settings";
 export * from "./app_runtime_settings";
 export * from "./app_regional_settings";
+export * from "./app_bindings";
 
 export * from "./app_environment_variables";
 export * from "./deployments";
