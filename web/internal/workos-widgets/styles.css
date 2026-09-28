@@ -142,7 +142,7 @@
 }
 
 .unkey-workos-widgets .rt-Card::before {
-  background-color: var(--color-background);
+  background-color: var(--background-color-raised);
   backdrop-filter: none;
 }
 
