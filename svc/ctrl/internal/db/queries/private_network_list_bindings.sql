@@ -1,4 +1,11 @@
--- name: ListPrivateNetworkApps :many
+-- name: ListPrivateNetworkBindings :many
+-- ListPrivateNetworkBindings returns one page of directed app bindings, one row
+-- per binding and active caller deployment on the platform, ordered by
+-- (binding pk, caller deployment ID). Callers page with the last row's pair and
+-- must read every page in one transaction so the snapshot is consistent.
+-- Every filter sits inside binding_candidates, before its LIMIT, so a short
+-- page always means the last page.
+-- Names starting with unkey and the caller app's own slug are reserved.
 WITH binding_candidates AS (
     SELECT
         b.pk,
@@ -7,11 +14,9 @@ WITH binding_candidates AS (
         b.workspace_id,
         b.project_id,
         b.resource_id AS target_app_id,
+        target_app.slug AS target_app_slug,
+        w.k8s_namespace,
         caller.id AS caller_deployment_id,
-        caller.environment_id AS caller_environment_id,
-        caller.git_branch AS caller_git_branch,
-        caller.fork_repository_full_name AS caller_fork_repository,
-        caller_env.kind AS caller_environment_kind,
         CASE
             WHEN b.selection_mode = 'deployment' THEN b.target_deployment_id
             WHEN b.selection_mode = 'automatic'
@@ -73,31 +78,11 @@ WITH binding_candidates AS (
         AND caller.status IN ('deploying', 'ready') AND caller.desired_state = 'running'
     INNER JOIN environments caller_env ON caller_env.id = caller.environment_id
         AND caller_env.app_id = caller.app_id
-    WHERE b.resource_id <> b.app_id AND EXISTS (
-        SELECT 1 FROM deployment_topology dt
-        INNER JOIN regions r ON r.id = dt.region_id
-        WHERE dt.deployment_id = caller.id
-            AND dt.desired_status = 'running'
-            AND r.platform = sqlc.arg(platform)
-    )
-    UNION ALL
-    SELECT
-        0,
-        CONCAT('self-', caller.id),
-        'unkey-replicas',
-        caller.workspace_id,
-        caller.project_id,
-        caller.app_id,
-        caller.id,
-        caller.environment_id,
-        caller.git_branch,
-        caller.fork_repository_full_name,
-        caller_env.kind,
-        caller.id
-    FROM deployments caller
-    INNER JOIN environments caller_env ON caller_env.id = caller.environment_id
-        AND caller_env.app_id = caller.app_id
-    WHERE caller.status IN ('deploying', 'ready') AND caller.desired_state = 'running'
+    INNER JOIN workspaces w ON w.id = b.workspace_id AND w.k8s_namespace <> ''
+    WHERE b.resource_id <> b.app_id
+        AND b.name NOT LIKE 'unkey%'
+        AND b.name <> caller_app.slug COLLATE utf8mb4_0900_as_cs
+        AND (b.pk > sqlc.arg(after_pk) OR (b.pk = sqlc.arg(after_pk) AND caller.id > sqlc.arg(after_caller_deployment_id)))
         AND EXISTS (
             SELECT 1 FROM deployment_topology dt
             INNER JOIN regions r ON r.id = dt.region_id
@@ -105,13 +90,16 @@ WITH binding_candidates AS (
                 AND dt.desired_status = 'running'
                 AND r.platform = sqlc.arg(platform)
         )
+    ORDER BY b.pk, caller.id
+    LIMIT ?
 )
 SELECT
+    c.pk,
     c.workspace_id,
     c.project_id,
     c.target_app_id AS app_id,
-    target_app.slug AS app_slug,
-    w.k8s_namespace,
+    c.target_app_slug AS app_slug,
+    c.k8s_namespace,
     COALESCE(target.id, '') AS deployment_id,
     COALESCE(target.port, 0) AS port,
     COALESCE(target.environment_id, '') AS environment_id,
@@ -119,13 +107,10 @@ SELECT
     c.binding_id,
     c.binding_name
 FROM binding_candidates c
-INNER JOIN apps target_app ON target_app.id = c.target_app_id
-    AND target_app.workspace_id = c.workspace_id AND target_app.project_id = c.project_id
-INNER JOIN workspaces w ON w.id = c.workspace_id
 LEFT JOIN deployments target ON target.id = c.selected_deployment_id
     AND target.app_id = c.target_app_id
     AND target.workspace_id = c.workspace_id AND target.project_id = c.project_id
-    AND (target.status = 'ready' OR target.id = c.caller_deployment_id)
+    AND target.status = 'ready'
     AND target.desired_state = 'running'
     AND EXISTS (
         SELECT 1 FROM deployment_topology target_dt
@@ -134,5 +119,4 @@ LEFT JOIN deployments target ON target.id = c.selected_deployment_id
             AND target_dt.desired_status = 'running'
             AND target_region.platform = sqlc.arg(platform)
     )
-ORDER BY c.pk, c.caller_deployment_id
-LIMIT ?;
+ORDER BY c.pk, c.caller_deployment_id;

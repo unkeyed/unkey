@@ -10,15 +10,17 @@ import (
 )
 
 const listAppBindingsByApp = `-- name: ListAppBindingsByApp :many
-SELECT id, name
-FROM app_bindings
-WHERE workspace_id = ?
-    AND project_id = ?
-    AND app_id = ?
-    AND environment_id = ?
-    AND resource_type = 'app'
-    AND resource_id <> app_id
-ORDER BY pk
+SELECT b.id, b.name
+FROM app_bindings b
+INNER JOIN apps a ON a.id = b.app_id
+WHERE b.workspace_id = ?
+    AND b.project_id = ?
+    AND b.app_id = ?
+    AND b.environment_id = ?
+    AND b.resource_type = 'app'
+    AND b.resource_id <> b.app_id
+    AND b.name <> a.slug COLLATE utf8mb4_0900_as_cs
+ORDER BY b.pk
 `
 
 type ListAppBindingsByAppParams struct {
@@ -35,15 +37,17 @@ type ListAppBindingsByAppRow struct {
 
 // ListAppBindingsByApp
 //
-//	SELECT id, name
-//	FROM app_bindings
-//	WHERE workspace_id = ?
-//	    AND project_id = ?
-//	    AND app_id = ?
-//	    AND environment_id = ?
-//	    AND resource_type = 'app'
-//	    AND resource_id <> app_id
-//	ORDER BY pk
+//	SELECT b.id, b.name
+//	FROM app_bindings b
+//	INNER JOIN apps a ON a.id = b.app_id
+//	WHERE b.workspace_id = ?
+//	    AND b.project_id = ?
+//	    AND b.app_id = ?
+//	    AND b.environment_id = ?
+//	    AND b.resource_type = 'app'
+//	    AND b.resource_id <> b.app_id
+//	    AND b.name <> a.slug COLLATE utf8mb4_0900_as_cs
+//	ORDER BY b.pk
 func (q *Queries) ListAppBindingsByApp(ctx context.Context, arg ListAppBindingsByAppParams) ([]ListAppBindingsByAppRow, error) {
 	rows, err := q.db.QueryContext(ctx, listAppBindingsByApp,
 		arg.WorkspaceID,

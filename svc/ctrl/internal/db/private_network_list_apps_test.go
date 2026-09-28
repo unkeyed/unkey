@@ -86,28 +86,42 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 	exec(`UPDATE deployments SET port = 7946 WHERE id = 'target-live'`)
 	exec(`UPDATE deployments SET port = 4000 WHERE id IN ('caller-prod-live', 'caller-prod-deploying')`)
 
-	peers, err := NewQueries(tx).ListPrivateNetworkApps(t.Context(), ListPrivateNetworkAppsParams{Platform: "kubernetes", Limit: 100})
-	require.NoError(t, err)
-	peerDeployments := make([]string, 0, len(peers))
-	for _, peer := range peers {
-		require.Equal(t, "unkey-replicas", peer.BindingName)
-		require.Equal(t, "self-"+peer.CallerDeploymentID, peer.BindingID)
-		require.Equal(t, peer.CallerDeploymentID, peer.DeploymentID)
-		peerDeployments = append(peerDeployments, peer.DeploymentID)
+	replicas := func() []ListPrivateNetworkReplicasRow {
+		t.Helper()
+		var all []ListPrivateNetworkReplicasRow
+		params := ListPrivateNetworkReplicasParams{Platform: "kubernetes", Limit: 4}
+		for {
+			rows, listErr := NewQueries(tx).ListPrivateNetworkReplicas(t.Context(), params)
+			require.NoError(t, listErr)
+			all = append(all, rows...)
+			if len(rows) < int(params.Limit) {
+				return all
+			}
+			params.AfterDeploymentID = rows[len(rows)-1].DeploymentID
+		}
 	}
-	require.ElementsMatch(t, []string{
-		"caller-prod-deploying", "caller-prod-live", "caller-canary-oci",
-		"caller-preview-own", "caller-preview-fork", "caller-preview-missing",
-		"caller-manual-dep", "caller-pin-dep", "caller-rollback-dep",
-		"target-live", "target-canary-ready", "target-new-prod", "target-preview-old",
-		"target-preview-never", "target-preview-fork", "target-manual-old", "foreign-live",
-	}, peerDeployments, "every active deployment gets discovery without any app bindings")
+	require.Empty(t, replicas(), "a workspace without app bindings is not enrolled in private networking")
 
 	insertBinding := func(id, name, environment, target, targetType string, targetEnvironment, targetDeployment any) {
 		t.Helper()
 		exec(`INSERT INTO app_bindings (id,workspace_id,project_id,app_id,environment_id,resource_type,resource_id,name,selection_mode,target_environment_id,target_deployment_id,created_at)
 			VALUES (?,'ws','project','caller',?,'app',?,?,?,?,?,1)`, id, environment, target, name, targetType, targetEnvironment, targetDeployment)
 	}
+	exec(`INSERT INTO workspaces (id,org_id,name,slug,k8s_namespace,beta_features) VALUES
+		('unscheduled-ws','org-unscheduled-binding-test','Unscheduled','unscheduled-binding-test','','{}')`)
+	exec(`INSERT INTO projects (id,workspace_id,name,slug,created_at) VALUES ('unscheduled-project','unscheduled-ws','Unscheduled','unscheduled',1)`)
+	exec(`INSERT INTO apps (id,workspace_id,project_id,name,slug,source_type,created_at) VALUES
+		('unscheduled-caller','unscheduled-ws','unscheduled-project','Caller','caller','git',1),
+		('unscheduled-target','unscheduled-ws','unscheduled-project','Target','target','git',1)`)
+	exec(`INSERT INTO environments (id,workspace_id,project_id,app_id,slug,kind,created_at) VALUES
+		('unscheduled-env','unscheduled-ws','unscheduled-project','unscheduled-caller','preview','preview',1)`)
+	for _, id := range []string{"unscheduled-caller-1", "unscheduled-caller-2"} {
+		exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,created_at)
+			VALUES (?,?,'unscheduled-ws','unscheduled-project','unscheduled-env','unscheduled-caller','{}',100,128,'running','{}','ready',1)`, id, id)
+		exec(`INSERT INTO deployment_topology (workspace_id,deployment_id,region_id,desired_status,created_at) VALUES ('unscheduled-ws',?,'r','running',1)`, id)
+	}
+	exec(`INSERT INTO app_bindings (id,workspace_id,project_id,app_id,environment_id,resource_type,resource_id,name,selection_mode,created_at)
+		VALUES ('unscheduled','unscheduled-ws','unscheduled-project','unscheduled-caller','unscheduled-env','app','unscheduled-target','target','automatic',1)`)
 	insertBinding("production", "target", "caller-prod", "target", "automatic", nil, nil)
 	insertBinding("self-prod", "caller", "caller-prod", "caller", "automatic", nil, nil)
 	insertBinding("cross-workspace", "foreign", "caller-prod", "foreign", "automatic", nil, nil)
@@ -121,24 +135,50 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 	insertBinding("explicit-prod", "target", "caller-rollback", "target", "environment", "target-prod", nil)
 	exec(`INSERT INTO app_bindings (id,workspace_id,project_id,app_id,environment_id,resource_type,resource_id,name,selection_mode,created_at)
 		VALUES ('other-project','ws','other-project','caller','caller-prod','app','other-target','leak','automatic',1)`)
+	insertBinding("reserved-own-slug", "caller", "caller-pin", "other-target", "automatic", nil, nil)
+	insertBinding("reserved-prefix", "unkey-internal", "caller-manual", "other-target", "automatic", nil, nil)
 
-	list := func() map[string]ListPrivateNetworkAppsRow {
+	replicaDeployments := make([]string, 0)
+	for _, replica := range replicas() {
+		require.Equal(t, "ws", replica.WorkspaceID, "only the enrolled workspace publishes replicas")
+		require.NotEmpty(t, replica.AppSlug)
+		replicaDeployments = append(replicaDeployments, replica.DeploymentID)
+	}
+	require.ElementsMatch(t, []string{
+		"caller-prod-deploying", "caller-prod-live", "caller-canary-oci",
+		"caller-preview-own", "caller-preview-fork", "caller-preview-missing",
+		"caller-manual-dep", "caller-pin-dep", "caller-rollback-dep",
+		"target-live", "target-canary-ready", "target-new-prod", "target-preview-old",
+		"target-preview-never", "target-preview-fork", "target-manual-old",
+	}, replicaDeployments, "every active deployment of an enrolled workspace publishes its replicas")
+
+	listPlatform := func(platform string) map[string]ListPrivateNetworkBindingsRow {
 		t.Helper()
-		rows, listErr := NewQueries(tx).ListPrivateNetworkApps(t.Context(), ListPrivateNetworkAppsParams{Platform: "kubernetes", Limit: 100})
-		require.NoError(t, listErr)
-		byBindingCaller := make(map[string]ListPrivateNetworkAppsRow, len(rows))
-		for _, row := range rows {
-			if row.BindingName == "unkey-replicas" {
-				continue
+		byBindingCaller := make(map[string]ListPrivateNetworkBindingsRow)
+		// The first page holds two candidates of a workspace without a
+		// namespace, so a page shortened after its limit would end paging early.
+		params := ListPrivateNetworkBindingsParams{Platform: platform, Limit: 3}
+		for {
+			rows, listErr := NewQueries(tx).ListPrivateNetworkBindings(t.Context(), params)
+			require.NoError(t, listErr)
+			for _, row := range rows {
+				key := row.BindingID + "/" + row.CallerDeploymentID
+				require.NotContains(t, byBindingCaller, key, "one row per binding and caller deployment, even across regions and pages")
+				byBindingCaller[key] = row
+				require.Equal(t, row.DeploymentID == "", row.Port == 0, "port is known exactly when %s is resolved", key)
+				require.Equal(t, "ws", row.WorkspaceID)
+				require.Equal(t, "project", row.ProjectID)
 			}
-			key := row.BindingID + "/" + row.CallerDeploymentID
-			require.NotContains(t, byBindingCaller, key, "one row per binding and caller deployment, even across regions")
-			byBindingCaller[key] = row
-			require.Equal(t, row.DeploymentID == "", row.Port == 0, "port is known exactly when %s is resolved", key)
-			require.Equal(t, "ws", row.WorkspaceID)
-			require.Equal(t, "project", row.ProjectID)
+			if len(rows) < int(params.Limit) {
+				return byBindingCaller
+			}
+			last := rows[len(rows)-1]
+			params.AfterPk, params.AfterCallerDeploymentID = last.Pk, last.CallerDeploymentID
 		}
-		return byBindingCaller
+	}
+	list := func() map[string]ListPrivateNetworkBindingsRow {
+		t.Helper()
+		return listPlatform("kubernetes")
 	}
 	selected := list()
 	require.Len(t, selected, 10)
@@ -162,6 +202,7 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 		"cross-workspace/caller-prod-live", "other-project/caller-prod-live",
 		"preview/caller-unapproved", "preview/caller-wrong-platform",
 		"self-preview/caller-unapproved", "self-preview/caller-wrong-platform",
+		"reserved-own-slug/caller-pin-dep", "reserved-prefix/caller-manual-dep",
 	} {
 		require.NotContains(t, selected, excluded)
 	}
@@ -203,14 +244,12 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 		require.ElementsMatch(t, expectedIDs, ids, "secret injection for %s", environment)
 	}
 
-	rows, err := NewQueries(tx).ListPrivateNetworkApps(t.Context(), ListPrivateNetworkAppsParams{Platform: "missing", Limit: 100})
-	require.NoError(t, err)
-	require.Empty(t, rows)
+	require.Empty(t, listPlatform("missing"))
 
 	var remaining int
 	require.NoError(t, NewQueries(tx).DeleteEnvironmentById(t.Context(), "target-canary"))
-	require.NoError(t, tx.QueryRowContext(t.Context(), `SELECT COUNT(*) FROM app_bindings`).Scan(&remaining))
-	require.Equal(t, 12, remaining, "deleting a target environment keeps the binding visible")
+	require.NoError(t, tx.QueryRowContext(t.Context(), `SELECT COUNT(*) FROM app_bindings WHERE workspace_id = 'ws'`).Scan(&remaining))
+	require.Equal(t, 14, remaining, "deleting a target environment keeps the binding visible")
 	selected = list()
 	require.Contains(t, selected, "canary/caller-canary-oci")
 	require.Empty(t, selected["canary/caller-canary-oci"].DeploymentID, "a deleted target environment fails closed even while its deployments linger")
@@ -220,8 +259,8 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 	require.Empty(t, selected["canary/caller-canary-oci"].DeploymentID, "recreating the slug must not revive the binding")
 
 	require.NoError(t, NewQueries(tx).DeleteEnvironmentById(t.Context(), "caller-prod"))
-	require.NoError(t, tx.QueryRowContext(t.Context(), `SELECT COUNT(*) FROM app_bindings`).Scan(&remaining))
-	require.Equal(t, 8, remaining, "deleting a caller environment removes its bindings")
+	require.NoError(t, tx.QueryRowContext(t.Context(), `SELECT COUNT(*) FROM app_bindings WHERE workspace_id = 'ws'`).Scan(&remaining))
+	require.Equal(t, 10, remaining, "deleting a caller environment removes its bindings")
 	selected = list()
 	require.Len(t, selected, 8)
 
@@ -245,6 +284,6 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 	require.NoError(t, tx.QueryRowContext(t.Context(), `SELECT COUNT(*) FROM app_bindings WHERE resource_id = 'target'`).Scan(&remaining))
 	require.Equal(t, 2, remaining, "deleting an app must preserve other resource types with the same ID")
 	require.NoError(t, NewQueries(tx).DeleteAppById(t.Context(), "caller"))
-	require.NoError(t, tx.QueryRowContext(t.Context(), `SELECT COUNT(*) FROM app_bindings`).Scan(&remaining))
+	require.NoError(t, tx.QueryRowContext(t.Context(), `SELECT COUNT(*) FROM app_bindings WHERE workspace_id = 'ws'`).Scan(&remaining))
 	require.Zero(t, remaining, "deleting the caller removes bindings of every resource type")
 }

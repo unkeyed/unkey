@@ -22,3 +22,8 @@ CREATE TABLE `app_bindings` (
 CREATE INDEX `app_bindings_project_idx` ON `app_bindings` (`project_id`);
 
 CREATE INDEX `app_bindings_resource_idx` ON `app_bindings` (`resource_type`,`resource_id`);
+
+CREATE INDEX `app_bindings_workspace_idx` ON `app_bindings` (`workspace_id`,`resource_type`);
+
+CREATE INDEX `app_bindings_target_deployment_idx` ON `app_bindings` (`target_deployment_id`);
+

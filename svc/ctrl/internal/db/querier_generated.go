@@ -558,6 +558,13 @@ type Querier interface {
 	//      w.k8s_namespace,
 	//      e.slug AS environment_slug,
 	//      e.kind AS environment_kind,
+	//      COALESCE(a.slug, '') AS app_slug,
+	//      EXISTS (
+	//          SELECT 1 FROM app_bindings pb
+	//          WHERE pb.workspace_id = d.workspace_id
+	//              AND pb.resource_type = 'app'
+	//              AND pb.resource_id <> pb.app_id
+	//      ) AS private_network_enrolled,
 	//      r.name AS region_name,
 	//      grc.repository_full_name AS git_repo
 	//  FROM `deployment_topology` dt
@@ -565,6 +572,7 @@ type Querier interface {
 	//  INNER JOIN `workspaces` w ON w.id = d.workspace_id
 	//  INNER JOIN `regions` r ON r.id = dt.region_id
 	//  INNER JOIN `environments` e ON e.id = d.environment_id
+	//  LEFT JOIN `apps` a ON a.id = d.app_id
 	//  LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
 	//  WHERE dt.deployment_id = ? AND dt.region_id = ?
 	//  LIMIT 1
@@ -1585,6 +1593,13 @@ type Querier interface {
 	//      w.k8s_namespace,
 	//      e.slug AS environment_slug,
 	//      e.kind AS environment_kind,
+	//      COALESCE(a.slug, '') AS app_slug,
+	//      EXISTS (
+	//          SELECT 1 FROM app_bindings pb
+	//          WHERE pb.workspace_id = d.workspace_id
+	//              AND pb.resource_type = 'app'
+	//              AND pb.resource_id <> pb.app_id
+	//      ) AS private_network_enrolled,
 	//      r.name AS region_name,
 	//      grc.repository_full_name AS git_repo
 	//  FROM `deployment_topology` dt
@@ -1592,6 +1607,7 @@ type Querier interface {
 	//  INNER JOIN `workspaces` w ON w.id = d.workspace_id
 	//  INNER JOIN `regions` r ON r.id = dt.region_id
 	//  INNER JOIN `environments` e ON e.id = d.environment_id
+	//  LEFT JOIN `apps` a ON a.id = d.app_id
 	//  LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
 	//  WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
 	//  ORDER BY dt.pk ASC
@@ -1599,15 +1615,17 @@ type Querier interface {
 	ListAllDeploymentTopologiesByRegion(ctx context.Context, arg ListAllDeploymentTopologiesByRegionParams) ([]ListAllDeploymentTopologiesByRegionRow, error)
 	//ListAppBindingsByApp
 	//
-	//  SELECT id, name
-	//  FROM app_bindings
-	//  WHERE workspace_id = ?
-	//      AND project_id = ?
-	//      AND app_id = ?
-	//      AND environment_id = ?
-	//      AND resource_type = 'app'
-	//      AND resource_id <> app_id
-	//  ORDER BY pk
+	//  SELECT b.id, b.name
+	//  FROM app_bindings b
+	//  INNER JOIN apps a ON a.id = b.app_id
+	//  WHERE b.workspace_id = ?
+	//      AND b.project_id = ?
+	//      AND b.app_id = ?
+	//      AND b.environment_id = ?
+	//      AND b.resource_type = 'app'
+	//      AND b.resource_id <> b.app_id
+	//      AND b.name <> a.slug COLLATE utf8mb4_0900_as_cs
+	//  ORDER BY b.pk
 	ListAppBindingsByApp(ctx context.Context, arg ListAppBindingsByAppParams) ([]ListAppBindingsByAppRow, error)
 	//ListAppIdsByProject
 	//
@@ -1785,7 +1803,13 @@ type Querier interface {
 	//  ORDER BY pk ASC
 	//  LIMIT ?
 	ListPreviewEnvironments(ctx context.Context, arg ListPreviewEnvironmentsParams) ([]Environment, error)
-	//ListPrivateNetworkApps
+	// ListPrivateNetworkBindings returns one page of directed app bindings, one row
+	// per binding and active caller deployment on the platform, ordered by
+	// (binding pk, caller deployment ID). Callers page with the last row's pair and
+	// must read every page in one transaction so the snapshot is consistent.
+	// Every filter sits inside binding_candidates, before its LIMIT, so a short
+	// page always means the last page.
+	// Names starting with unkey and the caller app's own slug are reserved.
 	//
 	//  WITH binding_candidates AS (
 	//      SELECT
@@ -1795,11 +1819,9 @@ type Querier interface {
 	//          b.workspace_id,
 	//          b.project_id,
 	//          b.resource_id AS target_app_id,
+	//          target_app.slug AS target_app_slug,
+	//          w.k8s_namespace,
 	//          caller.id AS caller_deployment_id,
-	//          caller.environment_id AS caller_environment_id,
-	//          caller.git_branch AS caller_git_branch,
-	//          caller.fork_repository_full_name AS caller_fork_repository,
-	//          caller_env.kind AS caller_environment_kind,
 	//          CASE
 	//              WHEN b.selection_mode = 'deployment' THEN b.target_deployment_id
 	//              WHEN b.selection_mode = 'automatic'
@@ -1861,31 +1883,11 @@ type Querier interface {
 	//          AND caller.status IN ('deploying', 'ready') AND caller.desired_state = 'running'
 	//      INNER JOIN environments caller_env ON caller_env.id = caller.environment_id
 	//          AND caller_env.app_id = caller.app_id
-	//      WHERE b.resource_id <> b.app_id AND EXISTS (
-	//          SELECT 1 FROM deployment_topology dt
-	//          INNER JOIN regions r ON r.id = dt.region_id
-	//          WHERE dt.deployment_id = caller.id
-	//              AND dt.desired_status = 'running'
-	//              AND r.platform = ?
-	//      )
-	//      UNION ALL
-	//      SELECT
-	//          0,
-	//          CONCAT('self-', caller.id),
-	//          'unkey-replicas',
-	//          caller.workspace_id,
-	//          caller.project_id,
-	//          caller.app_id,
-	//          caller.id,
-	//          caller.environment_id,
-	//          caller.git_branch,
-	//          caller.fork_repository_full_name,
-	//          caller_env.kind,
-	//          caller.id
-	//      FROM deployments caller
-	//      INNER JOIN environments caller_env ON caller_env.id = caller.environment_id
-	//          AND caller_env.app_id = caller.app_id
-	//      WHERE caller.status IN ('deploying', 'ready') AND caller.desired_state = 'running'
+	//      INNER JOIN workspaces w ON w.id = b.workspace_id AND w.k8s_namespace <> ''
+	//      WHERE b.resource_id <> b.app_id
+	//          AND b.name NOT LIKE 'unkey%'
+	//          AND b.name <> caller_app.slug COLLATE utf8mb4_0900_as_cs
+	//          AND (b.pk > ? OR (b.pk = ? AND caller.id > ?))
 	//          AND EXISTS (
 	//              SELECT 1 FROM deployment_topology dt
 	//              INNER JOIN regions r ON r.id = dt.region_id
@@ -1893,13 +1895,16 @@ type Querier interface {
 	//                  AND dt.desired_status = 'running'
 	//                  AND r.platform = ?
 	//          )
+	//      ORDER BY b.pk, caller.id
+	//      LIMIT ?
 	//  )
 	//  SELECT
+	//      c.pk,
 	//      c.workspace_id,
 	//      c.project_id,
 	//      c.target_app_id AS app_id,
-	//      target_app.slug AS app_slug,
-	//      w.k8s_namespace,
+	//      c.target_app_slug AS app_slug,
+	//      c.k8s_namespace,
 	//      COALESCE(target.id, '') AS deployment_id,
 	//      COALESCE(target.port, 0) AS port,
 	//      COALESCE(target.environment_id, '') AS environment_id,
@@ -1907,13 +1912,10 @@ type Querier interface {
 	//      c.binding_id,
 	//      c.binding_name
 	//  FROM binding_candidates c
-	//  INNER JOIN apps target_app ON target_app.id = c.target_app_id
-	//      AND target_app.workspace_id = c.workspace_id AND target_app.project_id = c.project_id
-	//  INNER JOIN workspaces w ON w.id = c.workspace_id
 	//  LEFT JOIN deployments target ON target.id = c.selected_deployment_id
 	//      AND target.app_id = c.target_app_id
 	//      AND target.workspace_id = c.workspace_id AND target.project_id = c.project_id
-	//      AND (target.status = 'ready' OR target.id = c.caller_deployment_id)
+	//      AND target.status = 'ready'
 	//      AND target.desired_state = 'running'
 	//      AND EXISTS (
 	//          SELECT 1 FROM deployment_topology target_dt
@@ -1923,8 +1925,44 @@ type Querier interface {
 	//              AND target_region.platform = ?
 	//      )
 	//  ORDER BY c.pk, c.caller_deployment_id
+	ListPrivateNetworkBindings(ctx context.Context, arg ListPrivateNetworkBindingsParams) ([]ListPrivateNetworkBindingsRow, error)
+	// ListPrivateNetworkReplicas returns one page of active deployments in
+	// workspaces enrolled in private networking, ordered by deployment ID. Each
+	// deployment resolves its own replicas under its app's slug. A workspace is
+	// enrolled while it has at least one app binding to another app.
+	//
+	//  SELECT
+	//      d.workspace_id,
+	//      d.project_id,
+	//      d.app_id,
+	//      a.slug AS app_slug,
+	//      w.k8s_namespace,
+	//      d.id AS deployment_id,
+	//      d.port,
+	//      d.environment_id
+	//  FROM deployments d
+	//  INNER JOIN apps a ON a.id = d.app_id
+	//      AND a.workspace_id = d.workspace_id AND a.project_id = d.project_id
+	//  INNER JOIN environments e ON e.id = d.environment_id AND e.app_id = d.app_id
+	//  INNER JOIN workspaces w ON w.id = d.workspace_id AND w.k8s_namespace <> ''
+	//  WHERE d.id > ?
+	//      AND d.status IN ('deploying', 'ready') AND d.desired_state = 'running'
+	//      AND EXISTS (
+	//          SELECT 1 FROM app_bindings b
+	//          WHERE b.workspace_id = d.workspace_id
+	//              AND b.resource_type = 'app'
+	//              AND b.resource_id <> b.app_id
+	//      )
+	//      AND EXISTS (
+	//          SELECT 1 FROM deployment_topology dt
+	//          INNER JOIN regions r ON r.id = dt.region_id
+	//          WHERE dt.deployment_id = d.id
+	//              AND dt.desired_status = 'running'
+	//              AND r.platform = ?
+	//      )
+	//  ORDER BY d.id
 	//  LIMIT ?
-	ListPrivateNetworkApps(ctx context.Context, arg ListPrivateNetworkAppsParams) ([]ListPrivateNetworkAppsRow, error)
+	ListPrivateNetworkReplicas(ctx context.Context, arg ListPrivateNetworkReplicasParams) ([]ListPrivateNetworkReplicasRow, error)
 	// Returns deployments in a non-terminal (progressing) status for an
 	// environment. The environment delete workflow uses this to cancel
 	// in-flight Restate invocations before the cascade drops deployment

@@ -31,5 +31,7 @@ export const appBindings = mysqlTable(
     ),
     index("app_bindings_project_idx").on(table.projectId),
     index("app_bindings_resource_idx").on(table.resourceType, table.resourceId),
+    index("app_bindings_workspace_idx").on(table.workspaceId, table.resourceType),
+    index("app_bindings_target_deployment_idx").on(table.targetDeploymentId),
   ],
 );

@@ -42,6 +42,13 @@ SELECT
     w.k8s_namespace,
     e.slug AS environment_slug,
     e.kind AS environment_kind,
+    COALESCE(a.slug, '') AS app_slug,
+    EXISTS (
+        SELECT 1 FROM app_bindings pb
+        WHERE pb.workspace_id = d.workspace_id
+            AND pb.resource_type = 'app'
+            AND pb.resource_id <> pb.app_id
+    ) AS private_network_enrolled,
     r.name AS region_name,
     grc.repository_full_name AS git_repo
 FROM ` + "`" + `deployment_topology` + "`" + ` dt
@@ -49,6 +56,7 @@ INNER JOIN ` + "`" + `deployments` + "`" + ` d ON d.id = dt.deployment_id
 INNER JOIN ` + "`" + `workspaces` + "`" + ` w ON w.id = d.workspace_id
 INNER JOIN ` + "`" + `regions` + "`" + ` r ON r.id = dt.region_id
 INNER JOIN ` + "`" + `environments` + "`" + ` e ON e.id = d.environment_id
+LEFT JOIN ` + "`" + `apps` + "`" + ` a ON a.id = d.app_id
 LEFT JOIN ` + "`" + `github_repo_connections` + "`" + ` grc ON grc.app_id = d.app_id
 WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
 ORDER BY dt.pk ASC
@@ -90,6 +98,8 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 	K8sNamespace                            string                          `db:"k8s_namespace"`
 	EnvironmentSlug                         string                          `db:"environment_slug"`
 	EnvironmentKind                         mysqltype.EnvironmentKind       `db:"environment_kind"`
+	AppSlug                                 string                          `db:"app_slug"`
+	PrivateNetworkEnrolled                  bool                            `db:"private_network_enrolled"`
 	RegionName                              string                          `db:"region_name"`
 	GitRepo                                 sql.NullString                  `db:"git_repo"`
 }
@@ -126,6 +136,13 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 //	    w.k8s_namespace,
 //	    e.slug AS environment_slug,
 //	    e.kind AS environment_kind,
+//	    COALESCE(a.slug, '') AS app_slug,
+//	    EXISTS (
+//	        SELECT 1 FROM app_bindings pb
+//	        WHERE pb.workspace_id = d.workspace_id
+//	            AND pb.resource_type = 'app'
+//	            AND pb.resource_id <> pb.app_id
+//	    ) AS private_network_enrolled,
 //	    r.name AS region_name,
 //	    grc.repository_full_name AS git_repo
 //	FROM `deployment_topology` dt
@@ -133,6 +150,7 @@ type ListAllDeploymentTopologiesByRegionRow struct {
 //	INNER JOIN `workspaces` w ON w.id = d.workspace_id
 //	INNER JOIN `regions` r ON r.id = dt.region_id
 //	INNER JOIN `environments` e ON e.id = d.environment_id
+//	LEFT JOIN `apps` a ON a.id = d.app_id
 //	LEFT JOIN `github_repo_connections` grc ON grc.app_id = d.app_id
 //	WHERE r.id = ? AND dt.pk > ? AND dt.desired_status = 'running'
 //	ORDER BY dt.pk ASC
@@ -175,6 +193,8 @@ func (q *Queries) ListAllDeploymentTopologiesByRegion(ctx context.Context, arg L
 			&i.K8sNamespace,
 			&i.EnvironmentSlug,
 			&i.EnvironmentKind,
+			&i.AppSlug,
+			&i.PrivateNetworkEnrolled,
 			&i.RegionName,
 			&i.GitRepo,
 		); err != nil {
