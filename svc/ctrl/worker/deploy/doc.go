@@ -116,6 +116,11 @@
 // SHA. Live-traffic routing is handled separately by sticky route reassignment
 // in RoutingService, not by a dedicated "live" domain type.
 //
+// A DNS label has at most 63 characters, see [RFC 1034 section 3.1] and
+// [RFC 1035 section 2.3.4]. When a generated label is longer, [buildDomains]
+// cuts it and appends a hash of the full label. The hash keeps long labels
+// unique, and a branch keeps the same domain across deploys.
+//
 // # Network Policy
 //
 // Per-deployment Cilium network policies are installed by krane during
@@ -129,4 +134,7 @@
 // found) are returned with appropriate HTTP status codes so Restate does not
 // retry them; transient failures are returned as regular errors for automatic
 // retry.
+//
+// [RFC 1034 section 3.1]: https://www.rfc-editor.org/rfc/rfc1034.html#section-3.1
+// [RFC 1035 section 2.3.4]: https://www.rfc-editor.org/rfc/rfc1035.html#section-2.3.4
 package deploy

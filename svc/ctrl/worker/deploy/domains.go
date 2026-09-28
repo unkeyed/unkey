@@ -1,6 +1,8 @@
 package deploy
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"regexp"
 	"strings"
@@ -55,6 +57,9 @@ type newDomain struct {
 // successive deploys collide on the per-commit domain. Git-driven deploys never
 // repeat a SHA so they don't need it. Callers derive this from the deployment's
 // trigger column.
+//
+// Every domain goes through [cappedDomain], so no label is longer than
+// [dnsLabelMaxLength]
 func buildDomains(
 	workspaceSlug, projectSlug, appSlug, environmentSlug,
 	gitSha, branchName, forkOwner, apex string,
@@ -103,7 +108,7 @@ func buildDomains(
 		short += disambiguator
 		domains = append(domains,
 			newDomain{
-				domain: fmt.Sprintf("%s-git-%s-%s.%s", prefix, short, workspaceSlug, apex),
+				domain: cappedDomain(fmt.Sprintf("%s-git-%s-%s", prefix, short, workspaceSlug), apex),
 				//nolint: exhaustruct
 				sticky: db.FrontlineRoutesStickyNone,
 			},
@@ -114,7 +119,7 @@ func buildDomains(
 		domains = append(
 			domains,
 			newDomain{
-				domain: fmt.Sprintf("%s-git-%s-%s.%s", prefix, sluggify(branchName), workspaceSlug, apex),
+				domain: cappedDomain(fmt.Sprintf("%s-git-%s-%s", prefix, sluggify(branchName), workspaceSlug), apex),
 				sticky: db.FrontlineRoutesStickyBranch,
 			},
 		)
@@ -123,7 +128,7 @@ func buildDomains(
 	domains = append(
 		domains,
 		newDomain{
-			domain: fmt.Sprintf("%s-%s-%s.%s", prefix, environmentSlug, workspaceSlug, apex),
+			domain: cappedDomain(fmt.Sprintf("%s-%s-%s", prefix, environmentSlug, workspaceSlug), apex),
 			sticky: db.FrontlineRoutesStickyEnvironment,
 		},
 	)
@@ -131,19 +136,43 @@ func buildDomains(
 	if isProduction {
 		domains = append(domains,
 			newDomain{
-				domain: fmt.Sprintf("%s-%s.%s", prefix, workspaceSlug, apex),
+				domain: cappedDomain(fmt.Sprintf("%s-%s", prefix, workspaceSlug), apex),
 				sticky: db.FrontlineRoutesStickyLive,
 			})
 	}
 
 	// deployment-specific domain for stable public access.
 	domains = append(domains, newDomain{
-		domain: fmt.Sprintf("%s-%s-%s.%s", prefix, sluggify(deploymentID), workspaceSlug, apex),
+		domain: cappedDomain(fmt.Sprintf("%s-%s-%s", prefix, sluggify(deploymentID), workspaceSlug), apex),
 		//nolint: exhaustruct
 		sticky: db.FrontlineRoutesStickyDeployment,
 	})
 
 	return domains
+}
+
+// dnsLabelMaxLength is the length limit for one label of a domain name, from
+// [RFC 1035 section 2.3.4]. DNS clients reject a longer label, so a domain
+// with one never resolves
+//
+// [RFC 1035 section 2.3.4]: https://www.rfc-editor.org/rfc/rfc1035.html#section-2.3.4
+const dnsLabelMaxLength = 63
+
+// labelHashLength is the number of hex characters of the hash that
+// [cappedDomain] appends to a cut label
+const labelHashLength = 8
+
+// cappedDomain joins label and apex into a domain. When label is longer than
+// [dnsLabelMaxLength], it keeps the start of label and appends a hash of the
+// full label. The hash keeps two long labels with the same start apart, and
+// because it is deterministic a branch keeps its sticky domain across deploys
+func cappedDomain(label, apex string) string {
+	if len(label) > dnsLabelMaxLength {
+		sum := sha256.Sum256([]byte(label))
+		hash := hex.EncodeToString(sum[:])[:labelHashLength]
+		label = strings.TrimRight(label[:dnsLabelMaxLength-len(hash)-1], "-") + "-" + hash
+	}
+	return label + "." + apex
 }
 
 var (
@@ -163,7 +192,6 @@ var (
 // - Collapses multiple spaces into single space
 // - Replaces spaces with hyphens
 // - Converts to lowercase
-// - Limits to 80 characters
 // - Removes trailing hyphens
 //
 // This is used to convert Git branch names into URL-safe domain components.
@@ -184,11 +212,6 @@ func sluggify(s string) string {
 
 	// Convert to lowercase
 	s = strings.ToLower(s)
-
-	// Limit to 80 characters
-	if len(s) > 80 {
-		s = s[:80]
-	}
 
 	// Remove trailing hyphen if present
 	s = strings.TrimSuffix(s, "-")
