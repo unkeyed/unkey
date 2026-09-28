@@ -30,6 +30,8 @@ export function DeploymentsCardList() {
     isError,
     refetch,
     isFiltered,
+    isHidingOlderFailedDeployments,
+    showOlderFailedDeployments,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
@@ -38,6 +40,15 @@ export function DeploymentsCardList() {
   const { projectId } = useProjectData();
   const { app, currentDeployment, isRolledBack } = useAppCurrentDeployment();
   const workspace = useWorkspaceNavigation();
+
+  const olderFailedDeploymentsControl = isHidingOlderFailedDeployments && (
+    <ResourceListFooter className="flex-col gap-2 sm:flex-row sm:justify-between sm:gap-4">
+      <span className="text-gray-11 text-xs">Failed deployments older than 7 days are hidden.</span>
+      <Button size="md" variant="ghost" onClick={showOlderFailedDeployments}>
+        Show older failed deployments
+      </Button>
+    </ResourceListFooter>
+  );
 
   const rolledBackFromId =
     isRolledBack && currentDeployment
@@ -114,6 +125,7 @@ export function DeploymentsCardList() {
             </EmptyStateActions>
           </EmptyState>
         )}
+        {olderFailedDeploymentsControl}
       </ResourceListContent>
     );
   }
@@ -153,6 +165,7 @@ export function DeploymentsCardList() {
           </Button>
         </ResourceListFooter>
       )}
+      {olderFailedDeploymentsControl}
     </ResourceListContent>
   );
 }

@@ -1,5 +1,5 @@
 import { DEPLOYMENT_STATUSES } from "@/lib/collections/deploy/deployment-status";
-import { and, db, desc, eq, gte, inArray, lt, lte, or } from "@/lib/db";
+import { and, db, desc, eq, gte, inArray, lt, lte, ne, or } from "@/lib/db";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { deployments } from "@unkey/db/src/schema";
@@ -20,6 +20,7 @@ export const listDeployments = workspaceProcedure
       branches: z.array(z.string()).min(1).max(50).optional(),
       startTime: z.number().int().optional(),
       endTime: z.number().int().optional(),
+      failedSince: z.number().int().optional(),
       limit: z.number().int().min(1).max(MAX_LIMIT).default(100),
       // The last row of the previous page. A keyset rather than a row offset,
       // so a deployment created between two page loads cannot shift a row out
@@ -53,6 +54,9 @@ export const listDeployments = workspaceProcedure
             input.branches ? inArray(deployments.gitBranch, input.branches) : undefined,
             input.startTime !== undefined ? gte(deployments.createdAt, input.startTime) : undefined,
             input.endTime !== undefined ? lte(deployments.createdAt, input.endTime) : undefined,
+            input.failedSince !== undefined
+              ? or(ne(deployments.status, "failed"), gte(deployments.createdAt, input.failedSince))
+              : undefined,
             input.cursor
               ? or(
                   lt(deployments.createdAt, input.cursor.createdAt),

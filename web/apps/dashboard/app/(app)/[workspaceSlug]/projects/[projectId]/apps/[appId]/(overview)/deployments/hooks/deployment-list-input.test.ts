@@ -14,9 +14,44 @@ const filter = (
 ): DeploymentListFilterValue => ({ id: `${field}:${value}`, field, operator: "is", value });
 
 describe("buildDeploymentListInput", () => {
-  test("no filters yields an empty input", () => {
-    expect(buildDeploymentListInput([], environments)).toEqual({
-      input: {},
+  test("no filters limits only failures to seven days", () => {
+    expect(buildDeploymentListInput([], environments, Date.UTC(2026, 8, 28, 12, 0, 35))).toEqual({
+      input: { failedSince: Date.UTC(2026, 8, 21, 12) },
+      cannotMatch: false,
+    });
+  });
+
+  test("keeps the cutoff with default statuses, branch and environment filters", () => {
+    const filters = [
+      ...["blocked", "queued", "building", "failed", "ready"].map((status) =>
+        filter("status", status),
+      ),
+      filter("branch", "main"),
+      filter("environment", "production"),
+    ];
+    const { input } = buildDeploymentListInput(filters, environments, Date.UTC(2026, 8, 28));
+    expect(input.failedSince).toBe(Date.UTC(2026, 8, 21));
+    expect(input.startTime).toBeUndefined();
+    expect(input.statuses).toContain("ready");
+    expect(input.statuses).toContain("failed");
+    expect(input.environmentIds).toEqual(["env_prod"]);
+    expect(input.branches).toEqual(["main"]);
+  });
+
+  test.each([
+    [filter("status", "failed")],
+    [filter("status", "failed"), filter("status", "ready")],
+    [filter("since", "30d")],
+    [filter("startTime", 0)],
+    [filter("endTime", 1_000)],
+  ])("does not hide older failures for explicit status or time filters: %j", (...filters) => {
+    expect(buildDeploymentListInput(filters, environments).input.failedSince).toBeUndefined();
+  });
+
+  test("show older failures removes only the failure cutoff", () => {
+    const filters = [filter("branch", "main"), filter("environment", "production")];
+    expect(buildDeploymentListInput(filters, environments, Date.UTC(2026, 8, 28), true)).toEqual({
+      input: { branches: ["main"], environmentIds: ["env_prod"] },
       cannotMatch: false,
     });
   });

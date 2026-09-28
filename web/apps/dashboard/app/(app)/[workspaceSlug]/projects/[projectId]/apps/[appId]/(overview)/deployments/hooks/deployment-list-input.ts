@@ -1,4 +1,5 @@
 import {
+  DEFAULT_DEPLOYMENT_STATUS_GROUPS,
   type DeploymentStatus,
   type DeploymentStatusGroup,
   expandDeploymentStatusGroups,
@@ -14,6 +15,7 @@ export type DeploymentListInput = {
   branches?: string[];
   startTime?: number;
   endTime?: number;
+  failedSince?: number;
 };
 
 export type DeploymentListFilterInput = {
@@ -54,6 +56,7 @@ export function buildDeploymentListInput(
   filters: DeploymentListFilterValue[],
   environments: Environment[],
   now: number = Date.now(),
+  showOlderFailedDeployments = false,
 ): DeploymentListFilterInput {
   const statusValues = stringValues(filters, "status").map(
     (value) => LEGACY_STATUS_GROUPS[value] ?? value,
@@ -79,6 +82,15 @@ export function buildDeploymentListInput(
     sinceStart !== undefined && explicitStart !== undefined
       ? Math.max(sinceStart, explicitStart)
       : (sinceStart ?? explicitStart);
+  const isDefaultStatusSelection =
+    groups.length === 0 ||
+    (groups.length === DEFAULT_DEPLOYMENT_STATUS_GROUPS.length &&
+      DEFAULT_DEPLOYMENT_STATUS_GROUPS.every((group) => groups.includes(group)));
+  const hideOlderFailedDeployments =
+    !showOlderFailedDeployments &&
+    isDefaultStatusSelection &&
+    startTime === undefined &&
+    endTime === undefined;
 
   return {
     input: {
@@ -87,6 +99,9 @@ export function buildDeploymentListInput(
       ...(branches.length > 0 && { branches }),
       ...(startTime !== undefined && { startTime }),
       ...(endTime !== undefined && { endTime }),
+      ...(hideOlderFailedDeployments && {
+        failedSince: Math.floor((now - parseDuration("7d")) / MINUTE_MS) * MINUTE_MS,
+      }),
     },
     cannotMatch:
       (slugs.length > 0 && environmentIds.length === 0) ||

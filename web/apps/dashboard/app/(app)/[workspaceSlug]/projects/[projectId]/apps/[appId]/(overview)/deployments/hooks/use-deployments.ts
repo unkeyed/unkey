@@ -1,6 +1,7 @@
 import type { Deployment } from "@/lib/collections";
 import type { Environment } from "@/lib/collections/deploy/environments";
 import { trpc } from "@/lib/trpc/client";
+import { parseAsBoolean, useQueryState } from "nuqs";
 import { useMemo } from "react";
 import { useAppId, useProjectData } from "../../data-provider";
 import { buildDeploymentListInput } from "./deployment-list-input";
@@ -17,10 +18,14 @@ export function useDeployments() {
   const { projectId, environments, isEnvironmentsLoading } = useProjectData();
   const appId = useAppId();
   const { filters, isFiltered } = useFilters();
+  const [showOlderFailedDeployments, setShowOlderFailedDeployments] = useQueryState(
+    "showOlderFailedDeployments",
+    parseAsBoolean.withDefault(false).withOptions({ history: "push" }),
+  );
 
   const { input, cannotMatch } = useMemo(
-    () => buildDeploymentListInput(filters, environments),
-    [filters, environments],
+    () => buildDeploymentListInput(filters, environments, Date.now(), showOlderFailedDeployments),
+    [filters, environments, showOlderFailedDeployments],
   );
 
   const query = trpc.deploy.deployment.list.useInfiniteQuery(
@@ -50,6 +55,8 @@ export function useDeployments() {
     isError: query.isError,
     refetch: query.refetch,
     isFiltered,
+    isHidingOlderFailedDeployments: input.failedSince !== undefined,
+    showOlderFailedDeployments: () => setShowOlderFailedDeployments(true),
     hasNextPage: query.hasNextPage ?? false,
     isFetchingNextPage: query.isFetchingNextPage,
     fetchNextPage: query.fetchNextPage,
