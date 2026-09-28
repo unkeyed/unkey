@@ -16,6 +16,7 @@ function app(overrides: Partial<App>): App {
     updatedAt: null,
     repositoryFullName: null,
     domain: null,
+    customDomain: null,
     headlineDeployment: null,
     ...overrides,
   };

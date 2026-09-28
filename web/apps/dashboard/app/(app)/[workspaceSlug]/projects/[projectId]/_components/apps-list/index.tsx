@@ -6,7 +6,7 @@ import { collection } from "@/lib/collections";
 import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { useCollectionPolling } from "@/lib/collections/use-collection-polling";
 import { routes } from "@/lib/navigation/routes";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { useLiveQuery } from "@tanstack/react-db";
 import { IconCubeOutline18, IconPlusOutline18 } from "@unkey/icons";
 import {
   Button,
@@ -24,6 +24,7 @@ import { AppCard, AppCardSkeleton } from "./app-card";
 import { type AppRowData, filterApps, toAppRow } from "./app-row-model";
 import { AppsListControls } from "./apps-list-controls";
 import { AppsTable, AppsTableSkeleton } from "./apps-table";
+import { projectAppsQueryFor } from "./queries";
 import { type AppsView, useAppsView } from "./use-apps-view";
 
 // One row at the 3-column desktop width so loading doesn't tower over the
@@ -58,15 +59,7 @@ export function AppsList() {
           }),
         );
 
-  const apps = useLiveQuery(
-    (q) =>
-      q
-        .from({ app: collection.apps })
-        .where(({ app }) => eq(app.projectId, projectId))
-        .orderBy(({ app }) => app.updatedAt, { direction: "desc", nulls: "last" })
-        .orderBy(({ app }) => app.id, "desc"),
-    [projectId],
-  );
+  const apps = useLiveQuery(projectAppsQueryFor(projectId), [projectId]);
   const hasInFlightDeployment = apps.data.some(
     (app) => app.headlineDeployment && isDeploymentInFlight(app.headlineDeployment.status),
   );
