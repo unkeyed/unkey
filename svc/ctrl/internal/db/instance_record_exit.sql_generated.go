@@ -16,6 +16,7 @@ UPDATE instances
 SET container_status = ?
 WHERE k8s_name = ?
 	AND region_id = ?
+	AND COALESCE(CAST(JSON_VALUE(container_status, '$.statusObservedAt') AS UNSIGNED), 0) <= CAST(? AS UNSIGNED)
 	AND (
 		CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) < CAST(? AS UNSIGNED)
 		OR (
@@ -29,12 +30,13 @@ WHERE k8s_name = ?
 `
 
 type RecordInstanceExitParams struct {
-	ContainerStatus mysqltype.ContainerStatus `db:"container_status"`
-	K8sName         string                    `db:"k8s_name"`
-	RegionID        string                    `db:"region_id"`
-	RestartCount    int64                     `db:"restart_count"`
-	RestartCount_2  int64                     `db:"restart_count_2"`
-	FinishedAt      int64                     `db:"finished_at"`
+	ContainerStatus  mysqltype.ContainerStatus `db:"container_status"`
+	K8sName          string                    `db:"k8s_name"`
+	RegionID         string                    `db:"region_id"`
+	StatusObservedAt int64                     `db:"status_observed_at"`
+	RestartCount     int64                     `db:"restart_count"`
+	RestartCount_2   int64                     `db:"restart_count_2"`
+	FinishedAt       int64                     `db:"finished_at"`
 }
 
 // Denormalizes the most recent container exit info onto the instances row's
@@ -60,6 +62,7 @@ type RecordInstanceExitParams struct {
 //	SET container_status = ?
 //	WHERE k8s_name = ?
 //		AND region_id = ?
+//		AND COALESCE(CAST(JSON_VALUE(container_status, '$.statusObservedAt') AS UNSIGNED), 0) <= CAST(? AS UNSIGNED)
 //		AND (
 //			CAST(JSON_VALUE(container_status, '$.restartCount') AS UNSIGNED) < CAST(? AS UNSIGNED)
 //			OR (
@@ -75,6 +78,7 @@ func (q *Queries) RecordInstanceExit(ctx context.Context, arg RecordInstanceExit
 		arg.ContainerStatus,
 		arg.K8sName,
 		arg.RegionID,
+		arg.StatusObservedAt,
 		arg.RestartCount,
 		arg.RestartCount_2,
 		arg.FinishedAt,

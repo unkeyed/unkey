@@ -1,6 +1,6 @@
 import type { InstanceStatus } from "@/lib/collections/deploy/instance-status";
-import { type InferSelectModel, ne } from "@/lib/db";
 import type { LastExit } from "@/lib/types/deploy";
+import { type InferSelectModel, ne } from "@unkey/db";
 import { type ContainerStatus, deployments } from "@unkey/db/src/schema";
 import { mapRegionToFlag } from "../network/utils";
 
@@ -41,6 +41,7 @@ export const deploymentSelectFields = {
   shutdownSignal: deployments.shutdownSignal,
   createdAt: deployments.createdAt,
   updatedAt: deployments.updatedAt,
+  lastPodFailure: deployments.lastPodFailure,
 } as const;
 
 export const deploymentListSelect = {
@@ -72,35 +73,35 @@ export function mapInstanceRow(row: {
   };
 }
 
-// computeLastExit picks the most recent exit across all instances of a
-// deployment so that a multi-region rollout with one OOM-ing pod still
-// surfaces the failure even when others are healthy. Tie-break by
-// finishedAt (preferred) and fall back to the live waiting reason
-// (CrashLoopBackOff, ImagePullBackOff, …) when there's no exit yet.
-// Returns null when no instance has reported a termination or waiting
-// reason (healthy deployments). Shared by the list and getById routes so
-// both surface the same header badge data.
 export function computeLastExit(
   rows: { containerStatus: ContainerStatus | null }[],
 ): LastExit | null {
   let result: LastExit | null = null;
   for (const row of rows) {
-    const status = row.containerStatus ?? ({} as ContainerStatus);
-    const term = status.lastTerminationState ?? null;
-    const waiting = status.waiting ?? null;
+    const status = row.containerStatus;
+    const term = status?.lastTerminationState;
+    const waiting = status?.waiting;
     const candidate: LastExit = {
-      restartCount: status.restartCount ?? 0,
+      restartCount: status?.restartCount ?? 0,
       exitCode: term?.exitCode ?? null,
       signal: term?.signal ?? null,
       reason: term?.reason ?? null,
       finishedAt: term?.finishedAt ?? null,
       statusReason: waiting?.reason ?? null,
+      statusMessage: waiting?.message ?? null,
     };
     if (candidate.reason === null && candidate.statusReason === null) {
       continue;
     }
     if (!result) {
       result = candidate;
+      continue;
+    }
+    if (candidate.statusReason !== null && result.statusReason === null) {
+      result = candidate;
+      continue;
+    }
+    if (candidate.statusReason === null && result.statusReason !== null) {
       continue;
     }
     // Prefer the candidate with a more recent finishedAt; if neither has

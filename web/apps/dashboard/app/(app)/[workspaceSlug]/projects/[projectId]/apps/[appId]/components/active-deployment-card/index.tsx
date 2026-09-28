@@ -11,6 +11,7 @@ import {
   formatStorageParts,
 } from "@/lib/utils/deployment-formatters";
 import { eq, useLiveQuery } from "@tanstack/react-db";
+import type { LastPodFailure } from "@unkey/db/src/schema";
 import { IconCodeBranchOutline18, IconCodeCommitOutline18 } from "@unkey/icons";
 import { match } from "@unkey/match";
 import { Badge, Card, InfoTooltip, TimestampInfo } from "@unkey/ui";
@@ -87,9 +88,10 @@ export function ActiveDeploymentCard({
     ? [...new Map(actualInstances.map((i) => [i.region.id, i])).values()]
     : deployment.desiredRegions;
   // Hide the badge once the deployment has converged on ready: an old
-  // OOMKill that was resolved by the next push isn't useful context here.
-  const showLastExit =
-    deployment.lastExit && deployment.status !== "ready" && deployment.status !== "superseded";
+  // process exit that was resolved by the next push isn't useful context.
+  // Active kubelet errors remain visible because evictions commonly happen
+  // after a deployment first reaches ready.
+  const showLastExit = shouldShowLastExit(deployment);
 
   return (
     <Card className="flex flex-col">
@@ -124,6 +126,9 @@ export function ActiveDeploymentCard({
               .exhaustive()}
             {showLastExit && deployment.lastExit && (
               <LastExitBadge lastExit={deployment.lastExit} />
+            )}
+            {deployment.lastPodFailure && (
+              <LastPodFailureBadge failure={deployment.lastPodFailure} />
             )}
             {statusBadge}
           </div>
@@ -291,30 +296,88 @@ export function ActiveDeploymentCard({
   );
 }
 
-// LastExitBadge renders a compact "OOMKilled · exit=137" pill.
-// CrashLoopBackOff is warning, terminations are error.
+export function shouldShowLastExit({ lastExit, status }: Pick<Deployment, "lastExit" | "status">) {
+  return Boolean(
+    lastExit && (lastExit.statusReason !== null || (status !== "ready" && status !== "superseded")),
+  );
+}
+
+export function LastPodFailureBadge({ failure }: { failure: LastPodFailure }) {
+  return (
+    <InfoTooltip
+      content={
+        <div className="flex w-full flex-col">
+          <div className="flex flex-col gap-2.5 p-3">
+            <div>
+              <div className="text-[13px] leading-5 font-medium text-gray-12">
+                Historical instance failure
+              </div>
+              <div className="mt-0.5 text-xs leading-5 font-normal text-gray-10">
+                This is the last observed failure, not the deployment's current health.
+              </div>
+            </div>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs leading-5">
+              <dt className="text-gray-9">Instance</dt>
+              <dd className="font-mono text-gray-11 break-all">{failure.podName}</dd>
+              <dt className="text-gray-9">Observed</dt>
+              <dd className="text-gray-11">
+                <time dateTime={new Date(failure.observedAt).toISOString()}>
+                  {new Date(failure.observedAt).toLocaleString()}
+                </time>
+              </dd>
+            </dl>
+          </div>
+          <div className="border-t border-grayA-4 bg-grayA-2 px-3 py-2.5">
+            <div className="text-[10px] leading-4 font-medium uppercase tracking-wide text-gray-9">
+              Technical details
+            </div>
+            <pre className="mt-1 max-h-28 overflow-y-auto whitespace-pre-wrap break-all font-mono text-[11px] leading-4 font-normal text-gray-11 scrollbar-thin">
+              {failure.message}
+            </pre>
+          </div>
+        </div>
+      }
+      className="w-[360px] max-w-[calc(100vw-24px)] overflow-hidden border border-gray-4 bg-gray-1 p-0 text-left font-normal text-gray-12 dark:bg-gray-1"
+      position={{ side: "top", align: "end" }}
+    >
+      <Badge variant="secondary" className="text-xs whitespace-nowrap">
+        Last instance failure · {failure.reason}
+      </Badge>
+    </InfoTooltip>
+  );
+}
+
+// LastExitBadge renders a compact "OOMKilled · exit=137" or runtime-status
+// pill. Current infrastructure errors take precedence over the previous
+// process exit because they explain why the instance cannot recover.
 // Exported so the deployments list row + network instance card can reuse
 // it next to the status badge — same surface, same data, different page.
 export function LastExitBadge({ lastExit }: { lastExit: LastExit }) {
   const isCrashloop = lastExit.statusReason === "CrashLoopBackOff";
-  const reason = isCrashloop ? "CrashLoopBackOff" : (lastExit.reason ?? "Error");
+  const reason = lastExit.statusReason ?? lastExit.reason ?? "Error";
   const variant = isCrashloop ? "warning" : "error";
+  const showExitCode =
+    lastExit.statusReason === null && lastExit.exitCode !== null && lastExit.exitCode !== 0;
 
-  const tooltip = explainExit(reason, lastExit.exitCode, lastExit.signal);
+  const tooltip = explainExit(
+    reason,
+    lastExit.exitCode,
+    lastExit.signal,
+    lastExit.statusMessage,
+    lastExit.statusReason !== null,
+  );
 
   return (
-    <InfoTooltip content={tooltip} position={{ side: "top", align: "end" }}>
+    <InfoTooltip
+      content={tooltip}
+      className="w-[360px] max-w-[calc(100vw-24px)] overflow-hidden border border-gray-4 bg-gray-1 p-0 text-left font-normal text-gray-12 dark:bg-gray-1"
+      position={{ side: "top", align: "end" }}
+    >
       <Badge variant={variant} className="text-xs whitespace-nowrap">
         {reason}
-        {(() => {
-          const showExitCode =
-            !isCrashloop && lastExit.exitCode !== null && lastExit.exitCode !== 0;
-          return (
-            showExitCode && (
-              <span className="ml-1 font-mono tabular-nums">· exit={lastExit.exitCode}</span>
-            )
-          );
-        })()}
+        {showExitCode && (
+          <span className="ml-1 font-mono tabular-nums">· exit={lastExit.exitCode}</span>
+        )}
       </Badge>
     </InfoTooltip>
   );
@@ -325,27 +388,16 @@ function explainExit(
   reason: string,
   exitCode: number | null,
   signal: number | null,
+  statusMessage: string | null,
+  isRuntimeStatus: boolean,
 ): React.ReactNode {
-  // CrashLoopBackOff: point users at the exit code for diagnosis.
-  if (reason === "CrashLoopBackOff") {
-    return (
-      <div className="flex flex-col gap-1.5 max-w-[280px]">
-        <div className="font-medium">App keeps crashing on startup</div>
-        <div>
-          Your app has exited too many times in a row, so we're slowing down restart attempts to
-          give it room to recover.
-        </div>
-        <div>
-          Check the recent crash entries below for the exit code that's causing the loop, and your
-          logs for the underlying error.
-        </div>
-      </div>
-    );
-  }
-
   const lines: { label: string; body: string }[] = [];
 
   const reasonLine = match(reason)
+    .with("CrashLoopBackOff", () => ({
+      label: "App keeps crashing on startup",
+      body: "Your app has exited repeatedly, so restart attempts are being slowed down. Check the latest crash and your logs for the underlying error.",
+    }))
     .with("OOMKilled", () => ({
       label: "Out of memory",
       body: "Your app used more memory than its configured limit. Either it has a memory leak, or the limit is set too low for what it actually needs at peak.",
@@ -358,6 +410,26 @@ function explainExit(
       label: "Couldn't start your app",
       body: "We were unable to start your app at all. Usually means the start command, entrypoint, or image is broken. Check the command and build settings of your app.",
     }))
+    .with("ErrImagePull", "ImagePullBackOff", () => ({
+      label: "Couldn't pull your image",
+      body: "We couldn't download the configured image. Check that the image exists and that your registry credentials allow access.",
+    }))
+    .with("InvalidImageName", () => ({
+      label: "Invalid image name",
+      body: "The configured image reference is invalid. Check the registry, repository, and tag.",
+    }))
+    .with("CreateContainerConfigError", "CreateContainerError", () => ({
+      label: "Couldn't start your app",
+      body: "We couldn't start your app because its runtime configuration is invalid.",
+    }))
+    .with("Evicted", () => ({
+      label: "Instance was stopped",
+      body: "Kubernetes removed this instance. The message below explains why.",
+    }))
+    .with("Unschedulable", () => ({
+      label: "Couldn't start your instance",
+      body: "We couldn't find enough compatible resources to start this instance.",
+    }))
     .with("Completed", () => ({
       label: "Exited cleanly",
       body: "Your app shut down without an error. Normal for one-off jobs; unusual for a service that's supposed to keep running. Check whether your main loop returned early.",
@@ -366,7 +438,9 @@ function explainExit(
       (r) => Boolean(r),
       (r) => ({
         label: r,
-        body: "Your app exited. The exit code below has more detail.",
+        body: isRuntimeStatus
+          ? "The instance reported an error while starting or running."
+          : "Your app exited. The exit code below has more detail.",
       }),
     )
     .otherwise(() => null);
@@ -375,7 +449,7 @@ function explainExit(
     lines.push(reasonLine);
   }
 
-  if (exitCode !== null && exitCode !== 0) {
+  if (exitCode !== null && exitCode !== 0 && (!isRuntimeStatus || reason === "CrashLoopBackOff")) {
     const exitLine = describeExitCode(exitCode, signal);
     if (exitLine) {
       lines.push(exitLine);
@@ -387,13 +461,25 @@ function explainExit(
   }
 
   return (
-    <div className="flex flex-col gap-1.5 max-w-[280px]">
-      {lines.map((line) => (
-        <div key={line.label} className="flex flex-col gap-0.5">
-          <div className="font-medium">{line.label}</div>
-          <div>{line.body}</div>
+    <div className="flex w-full flex-col">
+      <div className="flex flex-col gap-2.5 p-3">
+        {lines.map((line) => (
+          <div key={line.label}>
+            <div className="text-[13px] leading-5 font-medium text-gray-12">{line.label}</div>
+            <div className="mt-0.5 text-xs leading-5 font-normal text-gray-10">{line.body}</div>
+          </div>
+        ))}
+      </div>
+      {statusMessage && (
+        <div className="border-t border-grayA-4 bg-grayA-2 px-3 py-2.5">
+          <div className="text-[10px] leading-4 font-medium uppercase tracking-wide text-gray-9">
+            Technical details
+          </div>
+          <pre className="mt-1 max-h-28 overflow-y-auto whitespace-pre-wrap break-all font-mono text-[11px] leading-4 font-normal text-gray-11 scrollbar-thin">
+            {statusMessage}
+          </pre>
         </div>
-      ))}
+      )}
     </div>
   );
 }

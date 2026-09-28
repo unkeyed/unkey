@@ -68,6 +68,7 @@ func TestBuildDeploymentStatus_PodStatuses(t *testing.T) {
 
 	pending := podBase("pod-pending")
 	pending.Status.Phase = corev1.PodPending
+	pending.Status.PodIP = ""
 
 	failed := podBase("pod-failed")
 	failed.Status.Phase = corev1.PodFailed
@@ -114,6 +115,7 @@ func TestBuildDeploymentStatus_PodStatuses(t *testing.T) {
 	require.Equal(t,
 		ctrlv1.ReportDeploymentStatusRequest_Update_Instance_STATUS_PENDING,
 		byName["pod-pending"],
+		"Pending pods without an IP must remain visible for startup error reporting",
 	)
 	require.NotContains(t, byName, "pod-failed", "failed pods must not remain active instances")
 	require.NotContains(t, byName, "pod-succeeded", "succeeded pods must not remain active instances")
