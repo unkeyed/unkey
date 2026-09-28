@@ -30,6 +30,14 @@ updates:
       # advisories have a patched version, so Dependabot's security update fails
       # with security_update_not_found and aborts the whole gomod run.
       - dependency-name: "github.com/docker/docker"
+      # k8s.io/api moves in lockstep with k8s.io/apimachinery and
+      # k8s.io/client-go; updating it alone makes Go resolution fail on the
+      # beta API packages the pinned client-go imports
+      # (dependency_file_not_resolvable) and aborts the whole gomod run.
+      - dependency-name: "k8s.io/api"
+      # Dependabot's Go updater cannot reconcile vitess.io/vitess's module path
+      # (go_module_path_mismatch), which aborts the whole gomod run.
+      - dependency-name: "vitess.io/vitess"
   - package-ecosystem: "docker"
     directories:
       - "/"
