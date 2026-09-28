@@ -67,3 +67,18 @@ export function computePlanFeatures(plan: DeployPlan): PlanFeatureSet {
     features: limitFeatures(plan).filter((feature) => !inherited.has(feature.label)),
   };
 }
+
+export type PlanFeatureRow = PlanFeature & { included: boolean };
+
+export function fullPlanFeatures(plan: DeployPlan): PlanFeatureRow[] {
+  const limits = limitsByPlan[plan];
+  const included = limitFeatures(plan).map((feature) => ({ ...feature, included: true }));
+  const missing: PlanFeatureRow[] = [];
+  if (!limits.teamEnabled) {
+    missing.push({ kind: "team", label: "No team members", included: false });
+  }
+  if (limits.customDomainsMax === 0) {
+    missing.push({ kind: "domains", label: "No custom domains", included: false });
+  }
+  return [...missing, ...included];
+}

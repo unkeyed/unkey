@@ -36,6 +36,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { cn } from "cn";
+import { useSearchParams } from "next/navigation";
 import { type ComponentType, type ReactNode, useState } from "react";
 import { currentApiProduct } from "./api-plan";
 import {
@@ -48,8 +49,16 @@ import { ComputePlanConfirmDialog } from "./compute-plan-picker-v2";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { type PaywallProduct, type PaywallReason, paywallCopy } from "./paywall-copy";
 import { PlanOptionList } from "./plan-change-modal";
-import { type PlanFeatureKind, type PlanFeatureSet, computePlanFeatures } from "./plan-features";
+import {
+  type PlanFeatureKind,
+  type PlanFeatureRow,
+  type PlanFeatureSet,
+  computePlanFeatures,
+  fullPlanFeatures,
+} from "./plan-features";
 import { PlanTierIcon } from "./plan-tier-icons";
+
+type CardVariant = "v1" | "v2";
 
 type PlansScreenProps = {
   open: boolean;
@@ -61,6 +70,7 @@ type PlansScreenProps = {
 export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: PlansScreenProps) {
   const { user } = useWorkspace();
   const isAdmin = user?.role === "admin";
+  const searchParams = useSearchParams();
 
   const { data: subscription } = trpc.stripe.getDeploySubscription.useQuery(undefined, {
     staleTime: 30_000,
@@ -86,6 +96,7 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
         isAdmin={isAdmin}
         recommendedPlan={copy.recommendedPlan}
         from={from}
+        cardVariant={searchParams.get("plans") === "v1" ? "v1" : "v2"}
       />
     ),
     api: (
@@ -177,6 +188,30 @@ function PlanFeatureList({
   );
 }
 
+function FullPlanFeatureList({ rows }: { rows: PlanFeatureRow[] }) {
+  return (
+    <ul className="flex flex-col gap-2.5">
+      {rows.map((row) => {
+        const Icon = FEATURE_ICONS[row.kind];
+        return (
+          <li
+            key={row.label}
+            className={cn(
+              "flex items-center gap-2.5 text-sm",
+              row.included ? "text-gray-12" : "text-gray-9 line-through",
+            )}
+          >
+            <Icon
+              className={cn("size-4 shrink-0", row.included ? "text-gray-11" : "text-gray-8")}
+            />
+            {row.label}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function intervalSuffix(interval: string | null): string {
   return interval === "year" ? "/yr" : "/mo";
 }
@@ -187,7 +222,9 @@ function ComputePlans({
   isAdmin,
   recommendedPlan,
   from,
+  cardVariant,
 }: {
+  cardVariant: CardVariant;
   plans: DeployPlanOption[] | undefined;
   currentPlan: DeployPlan | null;
   isAdmin: boolean;
@@ -307,10 +344,14 @@ function ComputePlans({
                 {label}
               </Button>
 
-              <PlanFeatureList
-                featureSet={computePlanFeatures(option.plan)}
-                planName={(plan) => plans.find((p) => p.plan === plan)?.name ?? plan}
-              />
+              {cardVariant === "v1" ? (
+                <FullPlanFeatureList rows={fullPlanFeatures(option.plan)} />
+              ) : (
+                <PlanFeatureList
+                  featureSet={computePlanFeatures(option.plan)}
+                  planName={(plan) => plans.find((p) => p.plan === plan)?.name ?? plan}
+                />
+              )}
             </div>
           );
         })}
