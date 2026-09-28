@@ -30,7 +30,7 @@ func (v *VirtualObject) StopDeployment(ctx restate.ObjectContext, req *hydrav1.S
 		return nil, gatefault.Terminal(err)
 	}
 
-	if err := v.setDesiredState(ctx, deploymentID, hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED); err != nil {
+	if _, err := v.setDesiredState(ctx, deploymentID, hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED, false); err != nil {
 		return nil, err
 	}
 

@@ -20,6 +20,7 @@ import (
 	"github.com/unkeyed/unkey/pkg/deploy/imageref"
 	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/pkg/logger"
+	privatecontract "github.com/unkeyed/unkey/pkg/privatenetwork"
 	restateadmin "github.com/unkeyed/unkey/pkg/restate/admin"
 	"github.com/unkeyed/unkey/pkg/restate/compensation"
 	"github.com/unkeyed/unkey/pkg/uid"
@@ -254,17 +255,7 @@ func (w *Workflow) Deploy(ctx restate.WorkflowContext, req *hydrav1.DeployReques
 			return fault.Wrap(err, fault.Public("Deployment completed but final status could not be saved."))
 		}
 
-		if deployment.EnvironmentKind.IsProduction() {
-			if err = w.swapLiveDeployment(stepCtx, deployment); err != nil {
-				return fault.Wrap(err, fault.Public("Deployment is ready but could not be promoted to live."))
-			}
-		} else if deployment.EnvironmentKind.IsPreview() {
-			if err = w.spinDownPreviousDeployments(stepCtx, deployment); err != nil {
-				// This isn't a real issue, our cron job will eventually spin the preview deployments down anyways
-				logger.Error("unable to spin down previous preview deployments", "error", err)
-			}
-		}
-		return nil
+		return w.replacePreviousDeployments(stepCtx, deployment)
 	})
 	if err != nil {
 		ghStatus.ReportStatus(&hydrav1.GitHubStatusReportRequest{
@@ -690,12 +681,41 @@ func (w *Workflow) configureRouting(
 	return nil
 }
 
+func (w *Workflow) replacePreviousDeployments(ctx restate.ObjectContext, deployment db.FindDeploymentForDeployRow) error {
+	promoteLive, replacementDelay := replacementPolicy(deployment.EnvironmentKind, deployment.EnvironmentSlug)
+	if promoteLive {
+		return w.swapLiveDeployment(ctx, deployment)
+	}
+
+	if replacementDelay > 0 {
+		if err := w.spinDownPreviousDeployments(ctx, deployment, replacementDelay); err != nil {
+			logger.Error("unable to spin down previous deployments", "error", err)
+		}
+	}
+
+	return nil
+}
+
+func replacementPolicy(environmentKind mysqltype.EnvironmentKind, environmentSlug string) (promoteLive bool, replacementDelay time.Duration) {
+	switch {
+	case environmentKind.IsProduction() && environmentSlug == "production":
+		return true, 0
+	case environmentKind.IsProduction():
+		return false, privatecontract.ReplacementOverlap
+	case environmentKind.IsPreview():
+		return false, privatecontract.ReplacementOverlap
+	default:
+		return false, 0
+	}
+}
+
 func (w *Workflow) spinDownPreviousDeployments(
 	ctx restate.ObjectContext,
 	deployment db.FindDeploymentForDeployRow,
+	delay time.Duration,
 ) error {
-	previousDeploymentIDs, err := restate.Run(ctx, func(ctx restate.RunContext) ([]string, error) {
-		return w.db.ListRunningDeploymentsByBranch(ctx, db.ListRunningDeploymentsByBranchParams{
+	previousDeploymentIDs, err := restate.Run(ctx, func(stepCtx restate.RunContext) ([]string, error) {
+		return w.db.ListRunningDeploymentsByBranch(stepCtx, db.ListRunningDeploymentsByBranchParams{
 			GitBranch:       deployment.GitBranch,
 			WorkspaceID:     deployment.WorkspaceID,
 			ProjectID:       deployment.ProjectID,
@@ -711,9 +731,10 @@ func (w *Workflow) spinDownPreviousDeployments(
 		_, err := hydrav1.NewDeploymentServiceClient(ctx, previousDeploymentID).
 			ScheduleDesiredStateChange().Request(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
-				DelayMillis: time.Minute.Milliseconds(), // give frontline a graceperiod to clear their caches
-				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
-				Overwrite:   false, // do not overwrite a previously scheduled transition
+				DelayMillis:      delay.Milliseconds(),
+				State:            hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
+				Overwrite:        false,
+				DeferWhilePinned: true,
 			},
 			restate.WithIdempotencyKey(previousDeploymentID),
 		)
@@ -736,7 +757,7 @@ func (w *Workflow) swapLiveDeployment(
 	ctx restate.ObjectContext,
 	deployment db.FindDeploymentForDeployRow,
 ) error {
-	if deployment.AppIsRolledBack || !deployment.EnvironmentKind.IsProduction() {
+	if deployment.AppIsRolledBack || !deployment.EnvironmentKind.IsProduction() || deployment.EnvironmentSlug != "production" {
 		return nil
 	}
 
@@ -753,9 +774,10 @@ func (w *Workflow) swapLiveDeployment(
 		_, err = hydrav1.NewDeploymentServiceClient(ctx, swapResp.GetPreviousDeploymentId()).
 			ScheduleDesiredStateChange().Request(
 			&hydrav1.ScheduleDesiredStateChangeRequest{
-				DelayMillis: (30 * time.Minute).Milliseconds(),
-				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
-				Overwrite:   true,
+				DelayMillis:      privatecontract.ReplacementOverlap.Milliseconds(),
+				State:            hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
+				Overwrite:        true,
+				DeferWhilePinned: true,
 			},
 			restate.WithIdempotencyKey(swapResp.GetPreviousDeploymentId()),
 		)

@@ -207,6 +207,15 @@ type Querier interface {
 	//  SET ended_at = ?, error = ?
 	//  WHERE deployment_id = ? AND step = ? AND ended_at IS NULL
 	EndDeploymentStep(ctx context.Context, arg EndDeploymentStepParams) error
+	//ExistsAppBindingPinningDeployment
+	//
+	//  SELECT EXISTS(
+	//      SELECT 1 FROM app_bindings
+	//      WHERE resource_type = 'app'
+	//          AND selection_mode = 'deployment'
+	//          AND target_deployment_id = ?
+	//  ) AS pinned
+	ExistsAppBindingPinningDeployment(ctx context.Context, deploymentID sql.NullString) (bool, error)
 	// Returns the challenge row for a domain, if one exists. domain_id is unique on
 	// acme_challenges, so there is at most one. Used as the idempotency check for
 	// infra certificate provisioning: once a challenge exists the renewal cron owns
@@ -585,16 +594,6 @@ type Querier interface {
 	//  FROM deployment_topology
 	//  WHERE deployment_id = ?
 	FindDeploymentTopologyMinReplicas(ctx context.Context, deploymentID string) ([]FindDeploymentTopologyMinReplicasRow, error)
-	// FindDeploymentWithApp returns what the desired-state guard needs: the
-	// deployment and its app's current deployment pointer. It joins only apps, so a
-	// deployment whose environment row is already gone still resolves and a pending
-	// transition can still be applied to it.
-	//
-	//  SELECT d.id, d.app_id, a.current_deployment_id
-	//  FROM deployments d
-	//  JOIN apps a ON a.id = d.app_id
-	//  WHERE d.id = ?
-	FindDeploymentWithApp(ctx context.Context, id string) (FindDeploymentWithAppRow, error)
 	//FindDeploymentWithEnvironmentAndApp
 	//
 	//  SELECT d.pk, d.id, d.k8s_name, d.workspace_id, d.project_id, d.environment_id, d.app_id, d.source, d.image_requested, d.image_resolved, d.build_id, d.git_commit_sha, d.git_branch, d.git_commit_message, d.git_commit_author_handle, d.git_commit_author_avatar_url, d.git_commit_timestamp, d.sentinel_config, d.cpu_millicores, d.memory_mib, d.storage_mib, d.desired_state, d.encrypted_environment_variables, d.command, d.port, d.shutdown_signal, d.upstream_protocol, d.healthcheck, d.pr_number, d.fork_repository_full_name, d.github_deployment_id, d.invocation_id, d.status, d.`trigger`, d.triggered_by, d.trigger_reason, d.created_at, d.updated_at, e.slug AS environment_slug, e.kind AS environment_kind, a.current_deployment_id, a.is_rolled_back
@@ -2092,6 +2091,17 @@ type Querier interface {
 	//    AND w.enabled = true
 	//    AND w.deleted_at_m IS NULL
 	ListWorkspacesWithDeployBudget(ctx context.Context) ([]ListWorkspacesWithDeployBudgetRow, error)
+	// LockDeploymentWithApp locks a deployment and its app for a desired-state
+	// change, so a concurrent promotion cannot make the deployment current between
+	// the guard and the write. It joins only apps, so a deployment whose
+	// environment row is already gone still resolves.
+	//
+	//  SELECT d.id, d.app_id, a.current_deployment_id
+	//  FROM deployments d
+	//  JOIN apps a ON a.id = d.app_id
+	//  WHERE d.id = ?
+	//  FOR UPDATE
+	LockDeploymentWithApp(ctx context.Context, id string) (LockDeploymentWithAppRow, error)
 	// Must be the first statement of its transaction: the quota sum that follows
 	// relies on the read view opening after this lock is held
 	//

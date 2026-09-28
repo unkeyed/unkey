@@ -72,8 +72,9 @@ func (s *Service) PromoteDeployment(ctx restate.ObjectContext, req *hydrav1.Prom
 		hydrav1.NewDeploymentServiceClient(ctx, demotedID).
 			ScheduleDesiredStateChange().
 			Send(&hydrav1.ScheduleDesiredStateChangeRequest{
-				State:       hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
-				DelayMillis: standbyDelay.Milliseconds(),
+				State:            hydrav1.DeploymentDesiredState_DEPLOYMENT_DESIRED_STATE_STOPPED,
+				DelayMillis:      standbyDelay.Milliseconds(),
+				DeferWhilePinned: true,
 			})
 	}
 
