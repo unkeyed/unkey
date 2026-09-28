@@ -30,9 +30,9 @@ func TestReconcileOmitsIneligibleSourceAddressesBeforeMeshExport(t *testing.T) {
 	draining.DeletionTimestamp = &now
 	client := fake.NewClientset(ready, unready, draining)
 	control := &testutil.MockClusterClient{}
-	control.GetPrivateNetworkStateFunc = func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
-		return &ctrlv1.GetPrivateNetworkStateResponse{Apps: []*ctrlv1.PrivateNetworkApp{app}}, nil
-	}
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+		return []*ctrlv1.PrivateNetworkApp{app}, nil
+	})
 	r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
 	require.NoError(t, r.reconcile(t.Context()))
 	services, err := client.CoreV1().Services(app.GetK8SNamespace()).List(t.Context(), metav1.ListOptions{})
@@ -106,11 +106,11 @@ func TestEndpointRefreshDoesNotWaitForControlPlane(t *testing.T) {
 	_, err = client.CoreV1().Pods(pod.Namespace).UpdateStatus(t.Context(), pod, metav1.UpdateOptions{})
 	require.NoError(t, err)
 	entered := make(chan struct{})
-	control.GetPrivateNetworkStateFunc = func(ctx context.Context, _ *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(ctx context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
 		close(entered)
 		<-ctx.Done()
 		return nil, ctx.Err()
-	}
+	})
 	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan struct{})
 	go func() { defer close(done); r.run(ctx) }()
@@ -137,7 +137,7 @@ func TestSourceSliceChunksShrinkAndRejectForeignOwnership(t *testing.T) {
 	for i := range pods {
 		pods[i] = *endpointPod(app, fmt.Sprintf("pod-%d", i), fmt.Sprintf("10.72.0.%d", i+1))
 	}
-	require.NoError(t, r.ensureEndpoints(t.Context(), service, pods))
+	require.NoError(t, ensureEndpointsNow(t, r, service, pods))
 	items, err := client.DiscoveryV1().EndpointSlices(service.Namespace).List(t.Context(), metav1.ListOptions{})
 	require.NoError(t, err)
 	require.Len(t, items.Items, 2)
@@ -145,14 +145,14 @@ func TestSourceSliceChunksShrinkAndRejectForeignOwnership(t *testing.T) {
 	require.Len(t, items.Items[1].Endpoints, 1)
 	service.UID = "recreated-service"
 	slices.Reverse(pods)
-	require.NoError(t, r.ensureEndpoints(t.Context(), service, pods[:2]))
+	require.NoError(t, ensureEndpointsNow(t, r, service, pods[:2]))
 	items, err = client.DiscoveryV1().EndpointSlices(service.Namespace).List(t.Context(), metav1.ListOptions{})
 	require.NoError(t, err)
 	require.Len(t, items.Items, 1)
 	require.Equal(t, service.UID, metav1.GetControllerOf(&items.Items[0]).UID)
 	require.Equal(t, []string{"10.72.0.100", "10.72.0.101"}, sourceAddresses(t, client, service))
 	client.ClearActions()
-	require.NoError(t, r.ensureEndpoints(t.Context(), service, pods[:2]))
+	require.NoError(t, ensureEndpointsNow(t, r, service, pods[:2]))
 	for _, action := range client.Actions() {
 		require.Equal(t, "list", action.GetVerb())
 	}
@@ -160,16 +160,16 @@ func TestSourceSliceChunksShrinkAndRejectForeignOwnership(t *testing.T) {
 	foreign.Labels[labels.LabelKeyAppID] = "other-app"
 	_, err = client.DiscoveryV1().EndpointSlices(service.Namespace).Update(t.Context(), foreign, metav1.UpdateOptions{})
 	require.NoError(t, err)
-	require.ErrorContains(t, r.ensureEndpoints(t.Context(), service, nil), "foreign source EndpointSlice")
+	require.ErrorContains(t, ensureEndpointsNow(t, r, service, nil), "foreign source EndpointSlice")
 }
 
 func TestSourceMigrationPublishesSlicesBeforeBinding(t *testing.T) {
 	app := testApp("dep_a")
 	client := fake.NewClientset(endpointPod(app, "a", "10.72.0.87"))
 	control := &testutil.MockClusterClient{}
-	control.GetPrivateNetworkStateFunc = func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
-		return &ctrlv1.GetPrivateNetworkStateResponse{Apps: []*ctrlv1.PrivateNetworkApp{app}}, nil
-	}
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+		return []*ctrlv1.PrivateNetworkApp{app}, nil
+	})
 	r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control}
 	oldName := resourceName("unkey-pn", app.GetDeploymentId())
 	oldService, err := r.ensureService(t.Context(), app, oldName, nil)
@@ -272,4 +272,13 @@ func endpointPod(app *ctrlv1.PrivateNetworkApp, name, ip string) *corev1.Pod {
 			Conditions: []corev1.PodCondition{{Type: corev1.PodReady, Status: corev1.ConditionTrue}},
 		},
 	}
+}
+
+func ensureEndpointsNow(t *testing.T, r *Reconciler, service *corev1.Service, pods []corev1.Pod) error {
+	t.Helper()
+	published, err := r.sourceSlices(t.Context())
+	if err != nil {
+		return err
+	}
+	return r.ensureEndpoints(t.Context(), service, pods, published[service.Namespace+"/"+service.Name])
 }

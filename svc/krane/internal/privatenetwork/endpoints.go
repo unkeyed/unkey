@@ -54,6 +54,10 @@ func (r *Reconciler) reconcileEndpoints(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	sourceSlices, err := r.sourceSlices(ctx)
+	if err != nil {
+		return err
+	}
 	var errs []error
 	for i := range services.Items {
 		service := &services.Items[i]
@@ -61,7 +65,7 @@ func (r *Reconciler) reconcileEndpoints(ctx context.Context) error {
 			len(service.Spec.Ports) != 1 || service.Name != discoveryName(service.Labels[labels.LabelKeyDeploymentID], service.Spec.Ports[0].Port) {
 			continue
 		}
-		if err := r.ensureEndpoints(ctx, service, pods); err != nil {
+		if err := r.ensureEndpoints(ctx, service, pods, sourceSlices[service.Namespace+"/"+service.Name]); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -78,7 +82,23 @@ func (r *Reconciler) localPods(ctx context.Context) ([]corev1.Pod, error) {
 	return pods.Items, nil
 }
 
-func (r *Reconciler) ensureEndpoints(ctx context.Context, service *corev1.Service, pods []corev1.Pod) error {
+func (r *Reconciler) sourceSlices(ctx context.Context) (map[string][]discoveryv1.EndpointSlice, error) {
+	list, err := r.client.DiscoveryV1().EndpointSlices("").List(ctx, metav1.ListOptions{
+		LabelSelector: discoveryv1.LabelManagedBy + "=" + sourceSliceManager,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list source EndpointSlices: %w", err)
+	}
+	byService := make(map[string][]discoveryv1.EndpointSlice)
+	for i := range list.Items {
+		item := list.Items[i]
+		key := item.Namespace + "/" + item.Labels[discoveryv1.LabelServiceName]
+		byService[key] = append(byService[key], item)
+	}
+	return byService, nil
+}
+
+func (r *Reconciler) ensureEndpoints(ctx context.Context, service *corev1.Service, pods []corev1.Pod, existing []discoveryv1.EndpointSlice) error {
 	if service.DeletionTimestamp != nil || service.Spec.ClusterIP != corev1.ClusterIPNone ||
 		len(service.Spec.Selector) != 0 || service.Spec.PublishNotReadyAddresses || len(service.Spec.Ports) != 1 ||
 		service.Spec.Ports[0].Port < 1 || service.Spec.Ports[0].Port > 65535 {
@@ -88,16 +108,9 @@ func (r *Reconciler) ensureEndpoints(ctx context.Context, service *corev1.Servic
 	sliceLabels := maps.Clone(service.Labels)
 	sliceLabels[discoveryv1.LabelServiceName] = service.Name
 	sliceLabels[discoveryv1.LabelManagedBy] = sourceSliceManager
-	existing, err := client.List(ctx, metav1.ListOptions{LabelSelector: labels.Labels{
-		discoveryv1.LabelServiceName: service.Name,
-		discoveryv1.LabelManagedBy:   sourceSliceManager,
-	}.ToString()})
-	if err != nil {
-		return fmt.Errorf("list source EndpointSlices for %s/%s: %w", service.Namespace, service.Name, err)
-	}
-	byName := make(map[string]*discoveryv1.EndpointSlice, len(existing.Items))
-	for i := range existing.Items {
-		item := &existing.Items[i]
+	byName := make(map[string]*discoveryv1.EndpointSlice, len(existing))
+	for i := range existing {
+		item := &existing[i]
 		owner := metav1.GetControllerOf(item)
 		if !maps.Equal(item.Labels, sliceLabels) || owner == nil || owner.APIVersion != "v1" ||
 			owner.Kind != "Service" || owner.Name != service.Name {

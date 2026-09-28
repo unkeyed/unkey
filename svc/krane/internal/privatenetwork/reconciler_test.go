@@ -42,15 +42,15 @@ func TestReconcileRPCErrorPreservesPublishedObjects(t *testing.T) {
 	ctx := t.Context()
 	client := fake.NewClientset()
 	control := &testutil.MockClusterClient{}
-	control.GetPrivateNetworkStateFunc = func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
-		return &ctrlv1.GetPrivateNetworkStateResponse{Apps: []*ctrlv1.PrivateNetworkApp{testApp("dep_a")}}, nil
-	}
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+		return []*ctrlv1.PrivateNetworkApp{testApp("dep_a")}, nil
+	})
 	r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
 	require.NoError(t, r.reconcile(ctx))
 
-	control.GetPrivateNetworkStateFunc = func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
 		return nil, fmt.Errorf("unavailable")
-	}
+	})
 	require.Error(t, r.reconcile(ctx))
 	bindings, err := client.CoreV1().ConfigMaps("customer-1").List(ctx, metav1.ListOptions{})
 	require.NoError(t, err)
@@ -69,9 +69,9 @@ func TestReconcileBindingPromotionRollback(t *testing.T) {
 
 	for i, deployment := range []string{"dep_a", "dep_b", "dep_a"} {
 		app := testApp(deployment)
-		control.GetPrivateNetworkStateFunc = func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
-			return &ctrlv1.GetPrivateNetworkStateResponse{Apps: []*ctrlv1.PrivateNetworkApp{app}}, nil
-		}
+		control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+			return []*ctrlv1.PrivateNetworkApp{app}, nil
+		})
 		serviceName := discoveryName(deployment, app.GetPort())
 		bindingName := resourceName("unkey-pn-binding", "binding_1/caller_1")
 		require.NoError(t, r.reconcile(ctx))
@@ -97,9 +97,9 @@ func TestReconcileBindingPromotionRollback(t *testing.T) {
 		require.Equal(t, deployment, service.Labels[labels.LabelKeyDeploymentID])
 	}
 
-	control.GetPrivateNetworkStateFunc = func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
-		return &ctrlv1.GetPrivateNetworkStateResponse{}, nil
-	}
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+		return nil, nil
+	})
 	require.NoError(t, r.reconcile(ctx))
 	services, err := client.CoreV1().Services("customer-1").List(ctx, metav1.ListOptions{})
 	require.NoError(t, err)
@@ -133,16 +133,16 @@ func TestServiceRetirementDeadlineSurvivesReconcilerRestart(t *testing.T) {
 	pod := endpointPod(app, "a", "10.72.0.84")
 	client := fake.NewClientset(pod)
 	control := &testutil.MockClusterClient{}
-	control.GetPrivateNetworkStateFunc = func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
-		return &ctrlv1.GetPrivateNetworkStateResponse{Apps: []*ctrlv1.PrivateNetworkApp{app}}, nil
-	}
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+		return []*ctrlv1.PrivateNetworkApp{app}, nil
+	})
 	started := time.Date(2026, 9, 21, 12, 0, 0, 0, time.UTC)
 	dynamic := testDynamicClient()
 	r := &Reconciler{client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{}, now: func() time.Time { return started }}
 	require.NoError(t, r.reconcile(ctx))
-	control.GetPrivateNetworkStateFunc = func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
-		return &ctrlv1.GetPrivateNetworkStateResponse{}, nil
-	}
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+		return nil, nil
+	})
 	require.NoError(t, r.reconcile(ctx))
 
 	restartedAt := started.Add(10 * time.Minute)
@@ -201,14 +201,14 @@ func TestReconcileRejectsBindingChangedDuringSnapshotFetch(t *testing.T) {
 	ctx := t.Context()
 	client := fake.NewClientset(endpointPod(testApp("dep_b"), "b", "10.72.0.22"))
 	control := &testutil.MockClusterClient{}
-	control.GetPrivateNetworkStateFunc = func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
-		return &ctrlv1.GetPrivateNetworkStateResponse{Apps: []*ctrlv1.PrivateNetworkApp{testApp("dep_a")}}, nil
-	}
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+		return []*ctrlv1.PrivateNetworkApp{testApp("dep_a")}, nil
+	})
 	r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
 	require.NoError(t, r.reconcile(ctx))
 	bindingName := resourceName("unkey-pn-binding", "binding_1/caller_1")
 
-	control.GetPrivateNetworkStateFunc = func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
 		binding, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, bindingName, metav1.GetOptions{})
 		require.NoError(t, err)
 		binding.ResourceVersion = "2"
@@ -223,8 +223,8 @@ func TestReconcileRejectsBindingChangedDuringSnapshotFetch(t *testing.T) {
 			}
 			return false, nil, nil
 		})
-		return &ctrlv1.GetPrivateNetworkStateResponse{Apps: []*ctrlv1.PrivateNetworkApp{testApp("dep_b")}}, nil
-	}
+		return []*ctrlv1.PrivateNetworkApp{testApp("dep_b")}, nil
+	})
 
 	require.True(t, apierrors.IsConflict(r.reconcile(ctx)))
 	binding, err := client.CoreV1().ConfigMaps("customer-1").Get(ctx, bindingName, metav1.GetOptions{})
@@ -245,9 +245,9 @@ func TestCleanupPreservesForeignResources(t *testing.T) {
 	}, Data: map[string]string{"revision": "1"}}
 	client := fake.NewClientset(foreign, managed)
 	control := &testutil.MockClusterClient{}
-	control.GetPrivateNetworkStateFunc = func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
-		return &ctrlv1.GetPrivateNetworkStateResponse{}, nil
-	}
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+		return nil, nil
+	})
 	r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
 
 	require.NoError(t, r.reconcile(ctx))
@@ -257,14 +257,31 @@ func TestCleanupPreservesForeignResources(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestValidateSnapshotRejectsEntireInvalidSnapshot(t *testing.T) {
+// TestValidateSnapshotRejectsOnlyInvalidApps guarantees that one bad row, for
+// example from one tenant's corrupt data, only affects its own binding: the
+// valid rows still reconcile, and the rejected row names the binding whose
+// published objects must be kept.
+func TestValidateSnapshotRejectsOnlyInvalidApps(t *testing.T) {
 	valid := testApp("dep_a")
 	invalid := testApp("dep_b")
 	invalid.Port = 0
+	invalid.BindingId, invalid.CallerDeploymentId = "binding_2", "caller_2"
+	duplicate := testApp("dep_c")
+	duplicate.BindingId = "binding_3"
+	duplicateCopy := testApp("dep_c")
+	duplicateCopy.BindingId = "binding_4"
+	duplicate.CallerDeploymentId, duplicateCopy.CallerDeploymentId = "caller_3", "caller_3"
+	duplicate.BindingName, duplicateCopy.BindingName = "shared", "shared"
 
-	apps, err := validateSnapshot([]*ctrlv1.PrivateNetworkApp{valid, invalid})
-	require.Error(t, err)
-	require.Nil(t, apps)
+	apps, rejected := validateSnapshot([]*ctrlv1.PrivateNetworkApp{valid, invalid, duplicate, duplicateCopy, nil})
+	require.Equal(t, []*ctrlv1.PrivateNetworkApp{valid}, apps)
+	require.Len(t, rejected, 4)
+	require.Equal(t, publishedBindingKey(invalid), rejected[0].retainedBindingKey)
+	require.ErrorContains(t, rejected[0].err, "resolved target port must be positive")
+	require.Equal(t, publishedBindingKey(duplicate), rejected[1].retainedBindingKey)
+	require.Equal(t, publishedBindingKey(duplicateCopy), rejected[2].retainedBindingKey)
+	require.ErrorContains(t, rejected[1].err, "duplicate app identity")
+	require.Empty(t, rejected[3].retainedBindingKey, "a nil row identifies no published binding")
 }
 
 func TestReconcileRejectsInvalidBindingAliases(t *testing.T) {
@@ -277,19 +294,24 @@ func TestReconcileRejectsInvalidBindingAliases(t *testing.T) {
 			incompatible.AppId = "app_2"
 			incompatible.BindingName = slug
 			incompatible.BindingId, incompatible.CallerDeploymentId = "binding_2", "caller_2"
-			control.GetPrivateNetworkStateFunc = func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
-				return &ctrlv1.GetPrivateNetworkStateResponse{Apps: []*ctrlv1.PrivateNetworkApp{incompatible, testApp("dep_a")}}, nil
-			}
+			control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+				return []*ctrlv1.PrivateNetworkApp{incompatible, testApp("dep_a")}, nil
+			})
 			r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
 			require.ErrorContains(t, r.reconcile(ctx), "invalid binding name")
 			bindings, err := client.CoreV1().ConfigMaps("customer-1").List(ctx, metav1.ListOptions{})
 			require.NoError(t, err)
-			require.Empty(t, bindings.Items)
+			require.Len(t, bindings.Items, 1, "the valid app still publishes its binding")
+			require.Equal(t, "binding_1", bindings.Items[0].Labels[labels.LabelKeyBindingID])
 		})
 	}
 }
 
-func TestReconcileRejectedAppDoesNotBlockOtherAppsOrPruneState(t *testing.T) {
+// TestReconcileFailedAppKeepsItsObjectsWithoutBlockingOthers guarantees that
+// one app failing to reconcile keeps its published binding, policy, and
+// Service, while every other app still converges and apps missing from the
+// complete snapshot are still revoked in the same pass.
+func TestReconcileFailedAppKeepsItsObjectsWithoutBlockingOthers(t *testing.T) {
 	for _, tc := range []struct {
 		stage, verb, resource string
 	}{
@@ -322,14 +344,17 @@ func TestReconcileRejectedAppDoesNotBlockOtherAppsOrPruneState(t *testing.T) {
 			})
 			snapshot := []*ctrlv1.PrivateNetworkApp{rejected, obsolete}
 			control := &testutil.MockClusterClient{}
-			control.GetPrivateNetworkStateFunc = func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
-				return &ctrlv1.GetPrivateNetworkStateResponse{Apps: snapshot}, nil
-			}
+			control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+				return snapshot, nil
+			})
 			r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
 			binding := func(app *ctrlv1.PrivateNetworkApp) (*corev1.ConfigMap, error) {
 				return client.CoreV1().ConfigMaps(app.GetK8SNamespace()).Get(ctx, resourceName("unkey-pn-binding", app.GetBindingId()+"/"+app.GetCallerDeploymentId()), metav1.GetOptions{})
 			}
 			require.NoError(t, r.reconcile(ctx))
+			if tc.resource == "namespaces" {
+				require.NoError(t, client.CoreV1().Namespaces().Delete(ctx, rejected.GetK8SNamespace(), metav1.DeleteOptions{}))
+			}
 
 			failing = true
 			snapshot = []*ctrlv1.PrivateNetworkApp{replacement, healthy}
@@ -342,8 +367,8 @@ func TestReconcileRejectedAppDoesNotBlockOtherAppsOrPruneState(t *testing.T) {
 			require.Equal(t, "dep_a1", kept.Data["deploymentId"])
 			require.Equal(t, "1", kept.Data["revision"])
 			_, err = binding(obsolete)
-			require.NoError(t, err, "cleanup deleted an omitted app's binding during a partial pass")
-			require.Empty(t, retiringDeployments(t, client))
+			require.True(t, apierrors.IsNotFound(err), "an app missing from a complete snapshot is revoked even when another app fails; binding(obsolete) error = %v", err)
+			require.Equal(t, []string{"dep_c"}, retiringDeployments(t, client), "the failed app keeps the Service its binding still uses")
 			require.True(t, apierrors.IsForbidden(reconcileErr), "reconcile() error = %v, want Forbidden", reconcileErr)
 			require.ErrorContains(t, reconcileErr, rejected.GetK8SNamespace())
 
@@ -353,8 +378,6 @@ func TestReconcileRejectedAppDoesNotBlockOtherAppsOrPruneState(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, "dep_a2", switched.Data["deploymentId"])
 			require.Equal(t, "2", switched.Data["revision"])
-			_, err = binding(obsolete)
-			require.True(t, apierrors.IsNotFound(err), "binding(obsolete) error = %v, want NotFound", err)
 			require.ElementsMatch(t, []string{"dep_a1", "dep_c"}, retiringDeployments(t, client))
 		})
 	}
@@ -371,9 +394,9 @@ func TestReconcileStopsWhenContextEnds(t *testing.T) {
 	later.AppId, later.AppSlug, later.K8SNamespace = "app_2", "ledger", "customer-2"
 	later.BindingId, later.BindingName, later.CallerDeploymentId = "binding_2", "ledger-api", "caller_2"
 	control := &testutil.MockClusterClient{}
-	control.GetPrivateNetworkStateFunc = func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
-		return &ctrlv1.GetPrivateNetworkStateResponse{Apps: []*ctrlv1.PrivateNetworkApp{testApp("dep_a"), later}}, nil
-	}
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+		return []*ctrlv1.PrivateNetworkApp{testApp("dep_a"), later}, nil
+	})
 	r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
 
 	require.ErrorIs(t, r.reconcile(ctx), context.Canceled)
@@ -411,14 +434,15 @@ func TestValidateSnapshotRequiresPortOnlyForResolvedTargets(t *testing.T) {
 	unresolved.Port = 0
 	legacyUnresolved := testApp("")
 	legacyUnresolved.BindingId, legacyUnresolved.BindingName = "binding_legacy", "legacy"
-	apps, err := validateSnapshot([]*ctrlv1.PrivateNetworkApp{unresolved, legacyUnresolved})
-	require.NoError(t, err)
+	apps, rejected := validateSnapshot([]*ctrlv1.PrivateNetworkApp{unresolved, legacyUnresolved})
+	require.Empty(t, rejected)
 	require.Len(t, apps, 2)
 
 	resolvedWithoutPort := testApp("dep_a")
 	resolvedWithoutPort.Port = 0
-	_, err = validateSnapshot([]*ctrlv1.PrivateNetworkApp{resolvedWithoutPort})
-	require.ErrorContains(t, err, "resolved target port must be positive")
+	_, rejected = validateSnapshot([]*ctrlv1.PrivateNetworkApp{resolvedWithoutPort})
+	require.Len(t, rejected, 1)
+	require.ErrorContains(t, rejected[0].err, "resolved target port must be positive")
 }
 
 func TestReconcileReplicaDiscoveryPublishesCallerDeploymentForPeers(t *testing.T) {
@@ -426,19 +450,19 @@ func TestReconcileReplicaDiscoveryPublishesCallerDeploymentForPeers(t *testing.T
 	client := fake.NewClientset()
 	dynamic := testDynamicClient()
 	self := testApp("caller_1")
-	self.AppId, self.AppSlug, self.BindingName = "app_caller", "caller", "unkey-replicas"
+	self.AppId, self.AppSlug, self.BindingName = "app_caller", "caller", "caller"
 	self.BindingId = "self-caller_1"
 	control := &testutil.MockClusterClient{}
-	control.GetPrivateNetworkStateFunc = func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
-		return &ctrlv1.GetPrivateNetworkStateResponse{Apps: []*ctrlv1.PrivateNetworkApp{self}}, nil
-	}
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+		return []*ctrlv1.PrivateNetworkApp{self}, nil
+	})
 	r := &Reconciler{client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
 	require.NoError(t, r.reconcile(ctx))
 
 	bindings, err := client.CoreV1().ConfigMaps("customer-1").List(ctx, metav1.ListOptions{})
 	require.NoError(t, err)
 	require.Len(t, bindings.Items, 1)
-	require.Equal(t, "unkey-replicas", bindings.Items[0].Data["appSlug"])
+	require.Equal(t, "caller", bindings.Items[0].Data["appSlug"])
 	require.Equal(t, "caller_1", bindings.Items[0].Data["deploymentId"])
 	require.Equal(t, "caller_1", bindings.Items[0].Labels[labels.LabelKeyCallerDeploymentID])
 	service, err := client.CoreV1().Services("customer-1").Get(ctx, bindings.Items[0].Data["serviceName"], metav1.GetOptions{})
@@ -449,10 +473,10 @@ func TestReconcileReplicaDiscoveryPublishesCallerDeploymentForPeers(t *testing.T
 	require.Equal(t, []flow{{"caller_1", "caller_1"}}, effectiveFlows(t, dynamic, "customer-1"))
 }
 
-// TestReconcileEnsuresSharedTargetOncePerPass guarantees that a reconcile pass
-// refreshes each target Service's EndpointSlices once, however many caller
-// deployments bind to it. The pass runs every poll interval against the
-// Kubernetes API server.
+// TestReconcileEnsuresSharedTargetOncePerPass guarantees that a steady-state
+// reconcile pass lists EndpointSlices and namespaces once, however many caller
+// deployments and targets it covers, and writes no namespaces. The pass runs
+// every poll interval against the Kubernetes API server.
 func TestReconcileEnsuresSharedTargetOncePerPass(t *testing.T) {
 	ctx := t.Context()
 	first := testApp("dep_a")
@@ -461,26 +485,68 @@ func TestReconcileEnsuresSharedTargetOncePerPass(t *testing.T) {
 	second.BindingId = "binding_2"
 	client := fake.NewClientset(endpointPod(first, "a", "10.72.0.11"))
 	control := &testutil.MockClusterClient{}
-	control.GetPrivateNetworkStateFunc = func(context.Context, *ctrlv1.GetPrivateNetworkStateRequest) (*ctrlv1.GetPrivateNetworkStateResponse, error) {
-		return &ctrlv1.GetPrivateNetworkStateResponse{Apps: []*ctrlv1.PrivateNetworkApp{first, second}}, nil
-	}
+	control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+		return []*ctrlv1.PrivateNetworkApp{first, second}, nil
+	})
 	r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
 	require.NoError(t, r.reconcile(ctx))
 	client.ClearActions()
 
 	require.NoError(t, r.reconcile(ctx))
-	sliceLists := 0
+	calls := map[string]int{}
 	for _, action := range client.Actions() {
-		if action.GetVerb() == "list" && action.GetResource().Resource == "endpointslices" {
-			sliceLists++
-		}
+		calls[action.GetVerb()+" "+action.GetResource().Resource]++
 	}
-	require.Equal(t, 1, sliceLists, "EndpointSlice lists for one shared target Service")
+	require.Equal(t, 1, calls["list endpointslices"], "EndpointSlice lists for one shared target Service")
+	require.Equal(t, 1, calls["list namespaces"], "namespace lists")
+	require.Zero(t, calls["create namespaces"], "namespace creates for namespaces that exist")
 
 	bindings, err := client.CoreV1().ConfigMaps(first.GetK8SNamespace()).List(ctx, metav1.ListOptions{})
 	require.NoError(t, err)
 	require.Len(t, bindings.Items, 2)
 	for _, binding := range bindings.Items {
 		require.Equal(t, discoveryName("dep_a", first.GetPort()), binding.Data["serviceName"])
+	}
+}
+
+// TestReconcileRejectsPartialSnapshotStream guarantees that a snapshot stream
+// cut off before its complete chunk, or whose count disagrees with the apps
+// received, never reconciles: omission would otherwise revoke live bindings.
+func TestReconcileRejectsPartialSnapshotStream(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		chunks []*ctrlv1.PrivateNetworkStateChunk
+		want   string
+	}{
+		{
+			name:   "missing_complete_chunk",
+			chunks: []*ctrlv1.PrivateNetworkStateChunk{{Apps: []*ctrlv1.PrivateNetworkApp{testApp("dep_a")}}},
+			want:   "ended before it was complete",
+		},
+		{
+			name: "count_mismatch",
+			chunks: []*ctrlv1.PrivateNetworkStateChunk{
+				{Apps: []*ctrlv1.PrivateNetworkApp{testApp("dep_a")}},
+				{Complete: true, Total: 2},
+			},
+			want: "complete chunk reports 2",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := t.Context()
+			client := fake.NewClientset()
+			control := &testutil.MockClusterClient{}
+			control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
+				return []*ctrlv1.PrivateNetworkApp{testApp("dep_a")}, nil
+			})
+			r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+			require.NoError(t, r.reconcile(ctx))
+
+			control.StreamPrivateNetworkStateFunc = chunkStream(t, tc.chunks...)
+			require.ErrorContains(t, r.reconcile(ctx), tc.want)
+			bindings, err := client.CoreV1().ConfigMaps("customer-1").List(ctx, metav1.ListOptions{})
+			require.NoError(t, err)
+			require.Len(t, bindings.Items, 1, "a partial snapshot must not revoke published bindings")
+		})
 	}
 }
