@@ -1,5 +1,6 @@
 import { type UnkeyAuditLog, insertAuditLogs } from "@/lib/audit";
 import { and, db, desc, eq, isNotNull, ne, schema } from "@/lib/db";
+import { privateNetworking } from "@/lib/flags";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -134,6 +135,7 @@ export const createAppBinding = workspaceProcedure
   .input(projectInput.and(bindingEndpointsSchema).and(optionalName).and(target))
   .use(withRatelimit(ratelimit.create))
   .mutation(async ({ ctx, input }) => {
+    await requirePrivateNetworking();
     const { targetSlug } = await validateEndpoints(ctx.workspace.id, input.projectId, input);
     await validateTarget(ctx.workspace.id, input.projectId, input.targetAppId, input);
     const name = input.name
@@ -170,6 +172,7 @@ export const updateAppBinding = workspaceProcedure
   )
   .use(withRatelimit(ratelimit.update))
   .mutation(async ({ ctx, input }) => {
+    await requirePrivateNetworking();
     const binding = await requireBinding(ctx.workspace.id, input.projectId, input.id);
     await validateTarget(ctx.workspace.id, input.projectId, binding.resourceId, input);
     const name = await requireUnusedName(
@@ -309,12 +312,21 @@ async function validateTarget(
   }
 }
 
+async function requirePrivateNetworking() {
+  if (!(await privateNetworking())) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Private networking isn't enabled for this workspace.",
+    });
+  }
+}
+
 async function takenNames(
   workspaceId: string,
   scope: { appId: string; environmentId: string },
   excludeId?: string,
 ) {
-  const [bindings, variables] = await Promise.all([
+  const [bindings, variables, callerApp] = await Promise.all([
     db.query.appBindings.findMany({
       columns: { id: true, name: true },
       where: (t, { and, eq }) =>
@@ -333,10 +345,15 @@ async function takenNames(
           eq(t.environmentId, scope.environmentId),
         ),
     }),
+    db.query.apps.findFirst({
+      columns: { slug: true },
+      where: (t, { and, eq }) => and(eq(t.id, scope.appId), eq(t.workspaceId, workspaceId)),
+    }),
   ]);
   const names = new Set(bindings.filter((b) => b.id !== excludeId).map((b) => b.name));
   const keys = new Set(variables.map((v) => v.key));
-  return (name: string) => names.has(name) || keys.has(bindingHostVariable(name));
+  return (name: string) =>
+    name === callerApp?.slug || names.has(name) || keys.has(bindingHostVariable(name));
 }
 
 async function pickDefaultName(workspaceId: string, scope: Endpoints, targetSlug: string) {
