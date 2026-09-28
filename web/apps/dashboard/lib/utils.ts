@@ -127,7 +127,10 @@ export function throttle<T extends (...args: unknown[]) => unknown>(
 
 export const DEFAULT_LOGS_SINCE = "6h";
 
-export const getTimestampFromRelative = (relativeTime: string): number => {
+export const getTimestampFromRelative = (
+  relativeTime: string,
+  now: number = Date.now(),
+): number => {
   if (!relativeTime.match(/^(\d+[whdm])+$/)) {
     throw new Error(
       'Invalid relative time format. Expected format: combination of numbers followed by w, h, d, or m (e.g., "1h", "2d", "30m", "1w", "1w2d")',
@@ -151,7 +154,7 @@ export const getTimestampFromRelative = (relativeTime: string): number => {
         break;
     }
   }
-  return Date.now() - totalMilliseconds;
+  return now - totalMilliseconds;
 };
 
 export const processTimeFilters = (date?: Date, newTime?: TimeUnit) => {
