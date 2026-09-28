@@ -27,7 +27,8 @@ const (
 	testPort             = int32(8080)
 	testShutdownSignal   = "SIGINT"
 	testAppID            = "app_sentinel"
-	testEnvironmentSlug  = "production"
+	testEnvironmentSlug  = "preview"
+	testEnvironmentKind  = "preview"
 	testRegion           = "us-east-1"
 	testGitCommitSha     = "abc123sha"
 	testGitBranch        = "main-sentinel"
@@ -73,6 +74,7 @@ func fullApplyRequest(t *testing.T) *ctrlv1.ApplyDeployment {
 		Healthcheck:                   hc,
 		AppId:                         testAppID,
 		EnvironmentSlug:               new(testEnvironmentSlug),
+		EnvironmentKind:               testEnvironmentKind,
 		Region:                        new(testRegion),
 		GitCommitSha:                  new(testGitCommitSha),
 		GitBranch:                     new(testGitBranch),
@@ -197,6 +199,9 @@ var fieldAssertions = map[string]func(t *testing.T, rs *appsv1.ReplicaSet){
 		v, ok := envValue(mainContainer(t, rs), "UNKEY_ENVIRONMENT_SLUG")
 		require.True(t, ok)
 		require.Equal(t, testEnvironmentSlug, v)
+	},
+	"environment_kind": func(t *testing.T, rs *appsv1.ReplicaSet) {
+		require.Equal(t, testEnvironmentKind, rs.Labels["unkey.com/environment.kind"])
 	},
 	"region": func(t *testing.T, rs *appsv1.ReplicaSet) {
 		v, ok := envValue(mainContainer(t, rs), "UNKEY_REGION")
@@ -328,4 +333,20 @@ func TestBuildReplicaSet_GvisorToggle(t *testing.T) {
 	c.disableGvisor = true
 	rs = c.buildReplicaSet(fullApplyRequest(t), true)
 	require.Nil(t, rs.Spec.Template.Spec.RuntimeClassName)
+}
+
+func TestBuildReplicaSet_PrivateNetworkDNS(t *testing.T) {
+	controller := testController()
+	_, exists := envValue(mainContainer(t, controller.buildReplicaSet(fullApplyRequest(t), false)), "UNKEY_REPLICA_HOST")
+	require.False(t, exists)
+	controller.privateNetworkResolverIP = "10.0.0.53"
+
+	rs := controller.buildReplicaSet(fullApplyRequest(t), false)
+	host, exists := envValue(mainContainer(t, rs), "UNKEY_REPLICA_HOST")
+	require.True(t, exists)
+	require.Equal(t, "unkey-replicas.unkey.internal", host)
+	require.Equal(t, corev1.DNSNone, rs.Spec.Template.Spec.DNSPolicy)
+	require.Equal(t, []string{"10.0.0.53"}, rs.Spec.Template.Spec.DNSConfig.Nameservers)
+	require.Equal(t, "ndots", rs.Spec.Template.Spec.DNSConfig.Options[0].Name)
+	require.Equal(t, new("1"), rs.Spec.Template.Spec.DNSConfig.Options[0].Value)
 }
