@@ -118,22 +118,23 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
           <DialogTitle className="text-center font-semibold text-2xl text-gray-12 tracking-[-0.03em]">
             {copy.title}
           </DialogTitle>
-          <DialogDescription className="mt-2 max-w-lg text-balance text-center text-gray-11 text-sm leading-6">
+          <DialogDescription className="mt-2 max-w-xl text-balance text-center text-gray-11 text-sm leading-6">
             {copy.description}
+            {products.includes("compute") ? (
+              <>
+                {" "}
+                {CREDITS_INFO}{" "}
+                <a
+                  href={CREDITS_LINK_HREF}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 hover:text-gray-12"
+                >
+                  {CREDITS_LINK_LABEL}
+                </a>
+              </>
+            ) : null}
           </DialogDescription>
-          {products.includes("compute") ? (
-            <p className="text-center text-gray-11 text-sm leading-6">
-              {CREDITS_INFO}{" "}
-              <a
-                href={CREDITS_LINK_HREF}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-2 hover:text-gray-12"
-              >
-                {CREDITS_LINK_LABEL}
-              </a>
-            </p>
-          ) : null}
 
           {products.length > 1 ? (
             <Tabs defaultValue={products[0]} className="mt-8 flex w-full flex-col items-center">
