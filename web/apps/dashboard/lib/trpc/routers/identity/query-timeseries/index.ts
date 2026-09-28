@@ -1,7 +1,7 @@
 import { clickhouse } from "@/lib/clickhouse";
 import { db } from "@/lib/db";
+import { getTimestampFromRelative } from "@/lib/duration";
 import { ratelimit, withRatelimit, workspaceProcedure } from "@/lib/trpc/trpc";
-import { getTimestampFromRelative } from "@/lib/utils";
 import { TRPCError } from "@trpc/server";
 import { KEY_VERIFICATION_OUTCOMES } from "@unkey/clickhouse/src/keys/keys";
 import type { VerificationTimeseriesDataPoint } from "@unkey/clickhouse/src/verifications";

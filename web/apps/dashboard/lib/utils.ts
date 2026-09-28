@@ -1,5 +1,4 @@
 import type { TimeUnit } from "@unkey/ui";
-import { parseDuration } from "./duration";
 
 export const isBrowser = typeof window !== "undefined";
 
@@ -127,18 +126,6 @@ export function throttle<T extends (...args: unknown[]) => unknown>(
 }
 
 export const DEFAULT_LOGS_SINCE = "6h";
-
-export const getTimestampFromRelative = (
-  relativeTime: string,
-  now: number = Date.now(),
-): number => {
-  if (!relativeTime.match(/^(\d+[whdm])+$/)) {
-    throw new Error(
-      'Invalid relative time format. Expected format: combination of numbers followed by w, h, d, or m (e.g., "1h", "2d", "30m", "1w", "1w2d")',
-    );
-  }
-  return now - parseDuration(relativeTime);
-};
 
 export const processTimeFilters = (date?: Date, newTime?: TimeUnit) => {
   if (date) {

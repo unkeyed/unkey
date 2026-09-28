@@ -1,6 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { parseDuration } from "./duration";
-import { getTimestampFromRelative } from "./utils";
+import { getTimestampFromRelative, parseDuration } from "./duration";
 
 describe("parseDuration", () => {
   test.each([

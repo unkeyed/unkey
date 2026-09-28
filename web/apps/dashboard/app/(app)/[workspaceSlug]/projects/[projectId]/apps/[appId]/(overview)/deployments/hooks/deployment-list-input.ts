@@ -5,7 +5,7 @@ import {
   isDeploymentStatusGroup,
 } from "@/lib/collections/deploy/deployment-status";
 import type { Environment } from "@/lib/collections/deploy/environments";
-import { getTimestampFromRelative } from "@/lib/utils";
+import { getTimestampFromRelative } from "@/lib/duration";
 import type { DeploymentListFilterValue } from "../filters.schema";
 
 export type DeploymentListInput = {

@@ -1,5 +1,5 @@
+import { getTimestampFromRelative } from "@/lib/duration";
 import type { TimeseriesRequestSchema } from "@/lib/schemas/logs.schema";
-import { getTimestampFromRelative } from "@/lib/utils";
 import type { LogsTimeseriesParams } from "@unkey/clickhouse/src/logs";
 import {
   type TimeseriesConfig,
