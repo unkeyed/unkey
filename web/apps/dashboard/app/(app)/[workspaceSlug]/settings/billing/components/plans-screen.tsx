@@ -120,17 +120,8 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
           onValueChange={(value) =>
             setSelectedProduct(products.find((product) => product === value) ?? null)
           }
-          className="relative mx-auto flex min-h-dvh w-full max-w-[1040px] flex-col items-center justify-start px-4 pt-14 pb-10 md:justify-center md:px-6 md:pt-36 md:pb-16"
+          className="mx-auto flex min-h-dvh w-full max-w-[1040px] flex-col items-center justify-start px-4 pt-14 pb-10 md:justify-center md:px-6 md:py-16"
         >
-          {products.length > 1 ? (
-            <TabsList className="mb-8 w-64 md:absolute md:top-24 md:left-1/2 md:mb-0 md:-translate-x-1/2">
-              {products.map((product) => (
-                <TabsTrigger key={product} value={product} className="flex-1">
-                  {PRODUCT_LABELS[product]}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          ) : null}
           <DialogTitle className="text-center font-semibold text-gray-12 text-xl tracking-[-0.03em] md:text-2xl">
             {copy.title}
           </DialogTitle>
@@ -151,6 +142,15 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
               </>
             ) : null}
           </DialogDescription>
+          {products.length > 1 ? (
+            <TabsList className="mt-8 w-64">
+              {products.map((product) => (
+                <TabsTrigger key={product} value={product} className="flex-1">
+                  {PRODUCT_LABELS[product]}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          ) : null}
           {products.map((product) => (
             <TabsContent key={product} value={product} className="mt-8 w-full">
               {panels[product]}
