@@ -1,27 +1,18 @@
 import { CUSTOM_DOMAINS_UNLIMITED, limitsByPlan } from "@/lib/limits";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
 
-export type PlanFeatureKind =
-  | "git"
-  | "preview"
-  | "rollback"
-  | "team"
-  | "cpu"
-  | "memory"
-  | "domains"
-  | "autoscale"
-  | "logs";
+export type PlanFeatureKind = "team" | "cpu" | "memory" | "domains" | "autoscale" | "logs";
 
 export type PlanFeature = {
   kind: PlanFeatureKind;
   label: string;
 };
 
-export const BASE_FEATURES: PlanFeature[] = [
-  { kind: "git", label: "Git push to deploy" },
-  { kind: "preview", label: "Preview deploy per PR" },
-  { kind: "rollback", label: "Instant rollback" },
-];
+export const EVERY_PLAN_INCLUDES = [
+  "Git push to deploy",
+  "Preview deploy per PR",
+  "Instant rollback",
+] as const;
 
 const MIB_PER_GIB = 1024;
 
@@ -45,7 +36,10 @@ function limitFeatures(plan: DeployPlan): PlanFeature[] {
     features.push({ kind: "domains", label: `${max} custom domain${max === 1 ? "" : "s"}` });
   }
   features.push(
-    { kind: "autoscale", label: `Up to ${limits.autoscalingReplicasMax} instances per region` },
+    {
+      kind: "autoscale",
+      label: `Auto scale up to ${limits.autoscalingReplicasMax} instances per region`,
+    },
     { kind: "logs", label: `${limits.logsRetentionDaysMax}-day log retention` },
   );
   return features;
