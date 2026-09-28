@@ -1,6 +1,7 @@
 "use client";
 
 import { PageLoading } from "@/components/dashboard/page-loading";
+import type { CheckoutOutcome } from "@/lib/billing/upgrade-result";
 import { trpc } from "@/lib/trpc/client";
 import {
   EmptyState,
@@ -30,30 +31,18 @@ const toUserFacingError = (error: unknown, context: string): string => {
 
 type ProcessedData = {
   workspaceSlug?: string;
+  outcome?: CheckoutOutcome;
   showPlanSelection?: boolean;
-  products?: Array<{
-    id: string;
-    name: string;
-    priceId: string;
-    dollar: number;
-    quotas: {
-      requestsPerMonth: number;
-    };
-  }>;
 };
 
 function SuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams?.get("session_id") ?? null;
-  // Set by the two-product billing page's checkout links. Its presence means
-  // the user came from a specific flow (subscribe to Compute, upgrade API, or
-  // just add a card), so we hand them back to the billing page with that
-  // intent instead of forcing the legacy API plan modal below.
+  // Any intent skips the legacy forced API plan modal below.
   const intent = searchParams?.get("intent") ?? null;
-  // Threaded through for the "deploy" intent so /success can hand the user back
-  // to the projects page, where the subscription is created.
   const plan = searchParams?.get("plan") ?? null;
   const from = searchParams?.get("from") ?? null;
+  const returnTo = searchParams?.get("returnTo") ?? null;
 
   const [processedData, setProcessedData] = useState<ProcessedData>({});
   const [loading, setLoading] = useState(true);
@@ -151,15 +140,15 @@ function SuccessContent() {
           await trpcUtils.workspace.invalidate();
           await trpcUtils.stripe.invalidate();
           await trpcUtils.billing.invalidate();
-          setProcessedData({ workspaceSlug: workspace.slug });
+          setProcessedData({ workspaceSlug: workspace.slug, outcome: "subscribed" });
           setLoading(false);
           return;
         }
 
         // Subscription-mode deploy checkout: Stripe already created and charged
         // the subscription, so there is no setup intent to process. Link it onto
-        // the workspace via the server-verified mutation, then hand back to the
-        // projects landing (SuccessClient redirects on intent === "deploy").
+        // the workspace via the server-verified mutation, then hand back through
+        // checkoutReturnPath.
         // The checkout.session.completed webhook may have linked it already; the
         // shared linker is idempotent, so this is a safe fast-path.
         if (
@@ -198,7 +187,7 @@ function SuccessContent() {
           await trpcUtils.stripe.invalidate();
           await trpcUtils.billing.invalidate();
 
-          setProcessedData({ workspaceSlug: workspace.slug });
+          setProcessedData({ workspaceSlug: workspace.slug, outcome: "subscribed" });
           setLoading(false);
           return;
         }
@@ -296,12 +285,10 @@ function SuccessContent() {
           const isFirstTimeUser = !billingInfo.hasPreviousSubscriptions;
 
           if (isFirstTimeUser && !intent) {
-            // Use products from billingInfo instead of making a redundant fetch
             if (billingInfo.products && billingInfo.products.length > 0) {
               setProcessedData({
                 workspaceSlug: workspace.slug,
                 showPlanSelection: true,
-                products: billingInfo.products,
               });
             } else {
               // Fall back to regular billing page if products are empty or undefined
@@ -376,11 +363,12 @@ function SuccessContent() {
   return (
     <SuccessClient
       workSpaceSlug={processedData.workspaceSlug}
+      outcome={processedData.outcome ?? "none"}
       showPlanSelection={processedData.showPlanSelection}
-      products={processedData.products}
       intent={intent ?? undefined}
       plan={plan ?? undefined}
       from={from ?? undefined}
+      returnTo={returnTo ?? undefined}
     />
   );
 }
