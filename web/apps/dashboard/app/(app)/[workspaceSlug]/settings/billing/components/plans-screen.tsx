@@ -50,6 +50,7 @@ import { ADMIN_ONLY_TOOLTIP } from "./constants";
 import { type PaywallProduct, type PaywallReason, paywallCopy } from "./paywall-copy";
 import { PlanOptionList } from "./plan-change-modal";
 import {
+  BASE_FEATURES,
   type PlanFeatureKind,
   type PlanFeatureRow,
   type PlanFeatureSet,
@@ -58,7 +59,11 @@ import {
 } from "./plan-features";
 import { PlanTierIcon } from "./plan-tier-icons";
 
-type CardVariant = "v1" | "v2";
+type CardVariant = "v1" | "v2" | "v3";
+
+function cardVariantOf(value: string | null): CardVariant {
+  return value === "v1" || value === "v2" ? value : "v3";
+}
 
 type PlansScreenProps = {
   open: boolean;
@@ -96,7 +101,8 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
         isAdmin={isAdmin}
         recommendedPlan={copy.recommendedPlan}
         from={from}
-        cardVariant={searchParams.get("plans") === "v1" ? "v1" : "v2"}
+        cardVariant={cardVariantOf(searchParams.get("plans"))}
+        highlight={copy.highlight}
       />
     ),
     api: (
@@ -188,7 +194,13 @@ function PlanFeatureList({
   );
 }
 
-function FullPlanFeatureList({ rows }: { rows: PlanFeatureRow[] }) {
+function FullPlanFeatureList({
+  rows,
+  highlight,
+}: {
+  rows: PlanFeatureRow[];
+  highlight?: PlanFeatureKind;
+}) {
   return (
     <ul className="flex flex-col gap-2.5">
       {rows.map((row) => {
@@ -199,6 +211,7 @@ function FullPlanFeatureList({ rows }: { rows: PlanFeatureRow[] }) {
             className={cn(
               "flex items-center gap-2.5 text-sm",
               row.included ? "text-gray-12" : "text-gray-9 line-through",
+              row.kind === highlight && "-mx-2 rounded-md bg-grayA-3 px-2 py-1 font-medium",
             )}
           >
             <Icon
@@ -209,6 +222,23 @@ function FullPlanFeatureList({ rows }: { rows: PlanFeatureRow[] }) {
         );
       })}
     </ul>
+  );
+}
+
+function IncludedInEveryPlan() {
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-gray-11 text-sm">
+      <span className="font-medium text-gray-12">Included in every plan</span>
+      {BASE_FEATURES.map((feature) => {
+        const Icon = FEATURE_ICONS[feature.kind];
+        return (
+          <span key={feature.label} className="flex items-center gap-2">
+            <Icon className="size-4 shrink-0" />
+            {feature.label}
+          </span>
+        );
+      })}
+    </div>
   );
 }
 
@@ -223,8 +253,10 @@ function ComputePlans({
   recommendedPlan,
   from,
   cardVariant,
+  highlight,
 }: {
   cardVariant: CardVariant;
+  highlight?: PlanFeatureKind;
   plans: DeployPlanOption[] | undefined;
   currentPlan: DeployPlan | null;
   isAdmin: boolean;
@@ -344,7 +376,9 @@ function ComputePlans({
                 {label}
               </Button>
 
-              {cardVariant === "v1" ? (
+              {cardVariant === "v3" ? (
+                <FullPlanFeatureList rows={fullPlanFeatures(option.plan)} highlight={highlight} />
+              ) : cardVariant === "v1" ? (
                 <FullPlanFeatureList rows={fullPlanFeatures(option.plan)} />
               ) : (
                 <PlanFeatureList
@@ -356,6 +390,7 @@ function ComputePlans({
           );
         })}
       </div>
+      {cardVariant === "v3" ? <IncludedInEveryPlan /> : null}
       <AlertBanner className="w-auto self-center px-3 py-2">
         <AlertBannerDescription className="text-xs">
           {CREDITS_INFO}{" "}

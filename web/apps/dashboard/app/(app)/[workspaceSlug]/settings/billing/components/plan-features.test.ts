@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computePlanFeatures } from "./plan-features";
+import { computePlanFeatures, fullPlanFeatures } from "./plan-features";
 
 const labels = (plan: "starter" | "pro" | "business") =>
   computePlanFeatures(plan).features.map((feature) => feature.label);
@@ -39,5 +39,23 @@ describe("computePlanFeatures", () => {
       "Up to 16 instances per region",
       "14-day log retention",
     ]);
+  });
+
+  it("keeps full-list rows in the same order on every plan", () => {
+    for (const plan of ["starter", "pro", "business"] as const) {
+      expect(fullPlanFeatures(plan).map((row) => row.kind)).toEqual([
+        "team",
+        "cpu",
+        "memory",
+        "domains",
+        "autoscale",
+        "logs",
+      ]);
+    }
+    expect(fullPlanFeatures("starter")[0]).toEqual({
+      kind: "team",
+      label: "No team members",
+      included: false,
+    });
   });
 });

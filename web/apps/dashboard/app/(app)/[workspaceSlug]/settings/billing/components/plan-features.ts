@@ -22,7 +22,7 @@ export type PlanFeatureSet = {
   features: PlanFeature[];
 };
 
-const BASE_FEATURES: PlanFeature[] = [
+export const BASE_FEATURES: PlanFeature[] = [
   { kind: "git", label: "Git push to deploy" },
   { kind: "preview", label: "Preview deploy per PR" },
   { kind: "rollback", label: "Instant rollback" },
@@ -70,6 +70,8 @@ export function computePlanFeatures(plan: DeployPlan): PlanFeatureSet {
 
 export type PlanFeatureRow = PlanFeature & { included: boolean };
 
+const ROW_ORDER: PlanFeatureKind[] = ["team", "cpu", "memory", "domains", "autoscale", "logs"];
+
 export function fullPlanFeatures(plan: DeployPlan): PlanFeatureRow[] {
   const limits = limitsByPlan[plan];
   const included = limitFeatures(plan).map((feature) => ({ ...feature, included: true }));
@@ -80,5 +82,7 @@ export function fullPlanFeatures(plan: DeployPlan): PlanFeatureRow[] {
   if (limits.customDomainsMax === 0) {
     missing.push({ kind: "domains", label: "No custom domains", included: false });
   }
-  return [...missing, ...included];
+  return [...missing, ...included].sort(
+    (a, b) => ROW_ORDER.indexOf(a.kind) - ROW_ORDER.indexOf(b.kind),
+  );
 }

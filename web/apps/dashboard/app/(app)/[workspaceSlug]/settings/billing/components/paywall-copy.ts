@@ -1,4 +1,5 @@
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
+import type { PlanFeatureKind } from "./plan-features";
 
 export type PaywallReason = "team" | "deploy" | "custom-domains" | "api-limit";
 
@@ -9,6 +10,7 @@ export type PaywallCopy = {
   description: string;
   products: PaywallProduct[];
   recommendedPlan?: DeployPlan;
+  highlight?: PlanFeatureKind;
 };
 
 export function paywallCopy(reason: PaywallReason): PaywallCopy {
@@ -19,6 +21,7 @@ export function paywallCopy(reason: PaywallReason): PaywallCopy {
         description: "Upgrade your plan to add team members.",
         products: ["compute", "api"],
         recommendedPlan: "pro",
+        highlight: "team",
       };
     case "deploy":
       return {
@@ -33,6 +36,7 @@ export function paywallCopy(reason: PaywallReason): PaywallCopy {
         description: "Upgrade your plan to add more custom domains.",
         products: ["compute"],
         recommendedPlan: "pro",
+        highlight: "domains",
       };
     case "api-limit":
       return {
