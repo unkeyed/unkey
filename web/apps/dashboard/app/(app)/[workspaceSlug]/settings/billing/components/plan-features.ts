@@ -1,5 +1,5 @@
 import { CUSTOM_DOMAINS_UNLIMITED, limitsByPlan } from "@/lib/limits";
-import { DEPLOY_PLANS, type DeployPlan } from "@/lib/stripe/deployPlan";
+import type { DeployPlan } from "@/lib/stripe/deployPlan";
 
 export type PlanFeatureKind =
   | "git"
@@ -15,11 +15,6 @@ export type PlanFeatureKind =
 export type PlanFeature = {
   kind: PlanFeatureKind;
   label: string;
-};
-
-export type PlanFeatureSet = {
-  inheritsFrom: DeployPlan | null;
-  features: PlanFeature[];
 };
 
 export const BASE_FEATURES: PlanFeature[] = [
@@ -56,23 +51,11 @@ function limitFeatures(plan: DeployPlan): PlanFeature[] {
   return features;
 }
 
-export function computePlanFeatures(plan: DeployPlan): PlanFeatureSet {
-  const previous = DEPLOY_PLANS[DEPLOY_PLANS.indexOf(plan) - 1];
-  if (previous === undefined) {
-    return { inheritsFrom: null, features: [...BASE_FEATURES, ...limitFeatures(plan)] };
-  }
-  const inherited = new Set(limitFeatures(previous).map((feature) => feature.label));
-  return {
-    inheritsFrom: previous,
-    features: limitFeatures(plan).filter((feature) => !inherited.has(feature.label)),
-  };
-}
-
 export type PlanFeatureRow = PlanFeature & { included: boolean };
 
 const ROW_ORDER: PlanFeatureKind[] = ["team", "cpu", "memory", "domains", "autoscale", "logs"];
 
-export function fullPlanFeatures(plan: DeployPlan): PlanFeatureRow[] {
+export function planFeatures(plan: DeployPlan): PlanFeatureRow[] {
   const limits = limitsByPlan[plan];
   const included = limitFeatures(plan).map((feature) => ({ ...feature, included: true }));
   const missing: PlanFeatureRow[] = [];

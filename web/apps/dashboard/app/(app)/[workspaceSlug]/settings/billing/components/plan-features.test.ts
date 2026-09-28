@@ -1,49 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { computePlanFeatures, fullPlanFeatures } from "./plan-features";
+import { planFeatures } from "./plan-features";
 
-const labels = (plan: "starter" | "pro" | "business") =>
-  computePlanFeatures(plan).features.map((feature) => feature.label);
-
-describe("computePlanFeatures", () => {
-  it("lists the base deploy features and limits on starter", () => {
-    expect(computePlanFeatures("starter").inheritsFrom).toBeNull();
-    expect(labels("starter")).toEqual([
-      "Git push to deploy",
-      "Preview deploy per PR",
-      "Instant rollback",
-      "2 vCPU per instance",
-      "2 GiB memory per instance",
-      "1 custom domain",
-      "Up to 4 instances per region",
-      "3-day log retention",
+describe("planFeatures", () => {
+  it("lists starter's limits and strikes the features it lacks", () => {
+    expect(planFeatures("starter")).toEqual([
+      { kind: "team", label: "No team members", included: false },
+      { kind: "cpu", label: "2 vCPU per instance", included: true },
+      { kind: "memory", label: "2 GiB memory per instance", included: true },
+      { kind: "domains", label: "1 custom domain", included: true },
+      { kind: "autoscale", label: "Up to 4 instances per region", included: true },
+      { kind: "logs", label: "3-day log retention", included: true },
     ]);
   });
 
-  it("lists only what pro adds over starter", () => {
-    expect(computePlanFeatures("pro").inheritsFrom).toBe("starter");
-    expect(labels("pro")).toEqual([
+  it("includes team members and unlimited domains on business", () => {
+    expect(planFeatures("business").map((row) => row.label)).toEqual([
       "Unlimited team members",
-      "8 vCPU per instance",
-      "8 GiB memory per instance",
-      "Unlimited custom domains",
-      "Up to 8 instances per region",
-      "7-day log retention",
-    ]);
-  });
-
-  it("drops features business shares with pro", () => {
-    expect(computePlanFeatures("business").inheritsFrom).toBe("pro");
-    expect(labels("business")).toEqual([
       "16 vCPU per instance",
       "32 GiB memory per instance",
+      "Unlimited custom domains",
       "Up to 16 instances per region",
       "14-day log retention",
     ]);
   });
 
-  it("keeps full-list rows in the same order on every plan", () => {
+  it("keeps rows in the same order on every plan", () => {
     for (const plan of ["starter", "pro", "business"] as const) {
-      expect(fullPlanFeatures(plan).map((row) => row.kind)).toEqual([
+      expect(planFeatures(plan).map((row) => row.kind)).toEqual([
         "team",
         "cpu",
         "memory",
@@ -52,10 +35,5 @@ describe("computePlanFeatures", () => {
         "logs",
       ]);
     }
-    expect(fullPlanFeatures("starter")[0]).toEqual({
-      kind: "team",
-      label: "No team members",
-      included: false,
-    });
   });
 });

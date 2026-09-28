@@ -42,3 +42,10 @@ export function paywallCopy(reason: PaywallReason): PaywallCopy {
       };
   }
 }
+
+export function availableProducts(
+  products: PaywallProduct[],
+  { computeEnabled }: { computeEnabled: boolean },
+): PaywallProduct[] {
+  return products.filter((product) => product !== "compute" || computeEnabled);
+}

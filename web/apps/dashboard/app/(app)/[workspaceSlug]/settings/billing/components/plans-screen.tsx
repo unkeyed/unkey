@@ -1,6 +1,7 @@
 "use client";
 
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
+import { useFlag } from "@/lib/flags/provider";
 import { formatDollars, formatNumber } from "@/lib/fmt";
 import { type DeployCheckoutOrigin, routes } from "@/lib/navigation/routes";
 import type { DeployPlan } from "@/lib/stripe/deployPlan";
@@ -33,7 +34,7 @@ import {
   toast,
 } from "@unkey/ui";
 import { cn } from "cn";
-import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { type ComponentType, type ReactNode, useState } from "react";
 import { currentApiProduct } from "./api-plan";
 import {
@@ -44,23 +45,20 @@ import {
 } from "./compute-plan-copy";
 import { ComputePlanConfirmDialog } from "./compute-plan-picker-v2";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
-import { type PaywallProduct, type PaywallReason, paywallCopy } from "./paywall-copy";
+import {
+  type PaywallProduct,
+  type PaywallReason,
+  availableProducts,
+  paywallCopy,
+} from "./paywall-copy";
 import { PlanOptionList } from "./plan-change-modal";
 import {
   BASE_FEATURES,
   type PlanFeatureKind,
   type PlanFeatureRow,
-  type PlanFeatureSet,
-  computePlanFeatures,
-  fullPlanFeatures,
+  planFeatures,
 } from "./plan-features";
 import { PlanTierIcon } from "./plan-tier-icons";
-
-type CardVariant = "v1" | "v2" | "v3";
-
-function cardVariantOf(value: string | null): CardVariant {
-  return value === "v1" || value === "v2" ? value : "v3";
-}
 
 type PlansScreenProps = {
   open: boolean;
@@ -72,7 +70,8 @@ type PlansScreenProps = {
 export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: PlansScreenProps) {
   const { user } = useWorkspace();
   const isAdmin = user?.role === "admin";
-  const searchParams = useSearchParams();
+  const deployBilling = useFlag("deployBilling");
+  const workspace = useWorkspaceNavigation();
 
   const { data: subscription } = trpc.stripe.getDeploySubscription.useQuery(undefined, {
     staleTime: 30_000,
@@ -87,9 +86,9 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
 
   const [selectedProduct, setSelectedProduct] = useState<PaywallProduct | null>(null);
   const copy = paywallCopy(reason);
-  const products = copy.products.filter(
-    (product) => product !== "compute" || plansData?.configured !== false,
-  );
+  const products = availableProducts(copy.products, {
+    computeEnabled: deployBilling && plansData?.configured !== false,
+  });
 
   const panels: Record<PaywallProduct, ReactNode> = {
     compute: (
@@ -99,7 +98,6 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
         isAdmin={isAdmin}
         recommendedPlan={copy.recommendedPlan}
         from={from}
-        cardVariant={cardVariantOf(searchParams.get("plans"))}
       />
     ),
     api: (
@@ -156,6 +154,17 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
               {panels[product]}
             </TabsContent>
           ))}
+          {products.length === 0 ? (
+            <p className="mt-8 text-center text-gray-11 text-sm">
+              Plans aren't available right now.{" "}
+              <Link
+                href={routes.settings.billing({ workspaceSlug: workspace.slug })}
+                className="underline underline-offset-2 hover:text-gray-12"
+              >
+                Go to billing
+              </Link>
+            </p>
+          ) : null}
         </Tabs>
       </DialogContent>
     </Dialog>
@@ -179,36 +188,7 @@ const FEATURE_ICONS: Record<PlanFeatureKind, ComponentType<IconProps>> = {
   logs: IconClockRotateClockwiseOutline18,
 };
 
-function PlanFeatureList({
-  featureSet,
-  planName,
-}: {
-  featureSet: PlanFeatureSet;
-  planName: (plan: DeployPlan) => string;
-}) {
-  return (
-    <div className="flex flex-col gap-2.5">
-      {featureSet.inheritsFrom ? (
-        <span className="text-gray-11 text-sm">
-          Everything in {planName(featureSet.inheritsFrom)}, plus
-        </span>
-      ) : null}
-      <ul className="flex flex-col gap-2.5">
-        {featureSet.features.map((feature) => {
-          const Icon = FEATURE_ICONS[feature.kind];
-          return (
-            <li key={feature.label} className="flex items-center gap-2.5 text-gray-12 text-sm">
-              <Icon className="size-4 shrink-0 text-gray-11" />
-              {feature.label}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
-function FullPlanFeatureList({ rows }: { rows: PlanFeatureRow[] }) {
+function PlanFeatureList({ rows }: { rows: PlanFeatureRow[] }) {
   return (
     <ul className="flex flex-col gap-2.5">
       {rows.map((row) => {
@@ -264,9 +244,7 @@ function ComputePlans({
   isAdmin,
   recommendedPlan,
   from,
-  cardVariant,
 }: {
-  cardVariant: CardVariant;
   plans: DeployPlanOption[] | undefined;
   currentPlan: DeployPlan | null;
   isAdmin: boolean;
@@ -386,21 +364,12 @@ function ComputePlans({
                 {label}
               </Button>
 
-              {cardVariant === "v3" ? (
-                <FullPlanFeatureList rows={fullPlanFeatures(option.plan)} />
-              ) : cardVariant === "v1" ? (
-                <FullPlanFeatureList rows={fullPlanFeatures(option.plan)} />
-              ) : (
-                <PlanFeatureList
-                  featureSet={computePlanFeatures(option.plan)}
-                  planName={(plan) => plans.find((p) => p.plan === plan)?.name ?? plan}
-                />
-              )}
+              <PlanFeatureList rows={planFeatures(option.plan)} />
             </div>
           );
         })}
       </div>
-      {cardVariant === "v3" ? <IncludedInEveryPlan /> : null}
+      <IncludedInEveryPlan />
 
       <ComputePlanConfirmDialog
         plan={pendingPlan}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { paywallCopy } from "./paywall-copy";
+import { availableProducts, paywallCopy } from "./paywall-copy";
 
 describe("paywallCopy", () => {
   it("offers both products for team members", () => {
@@ -13,5 +13,14 @@ describe("paywallCopy", () => {
 
   it("limits the API quota wall to API plans", () => {
     expect(paywallCopy("api-limit").products).toEqual(["api"]);
+  });
+
+  it("drops Compute when Compute billing is off", () => {
+    expect(availableProducts(["compute", "api"], { computeEnabled: false })).toEqual(["api"]);
+    expect(availableProducts(["compute", "api"], { computeEnabled: true })).toEqual([
+      "compute",
+      "api",
+    ]);
+    expect(availableProducts(["compute"], { computeEnabled: false })).toEqual([]);
   });
 });
