@@ -21,6 +21,7 @@ const prefixes = {
   event: "evt",
   webhookDelivery: "whd",
   logdrain: "ld",
+  oidcVercel: "vco",
   identity: "id",
   ratelimit: "rl",
   auditLog: "log",
