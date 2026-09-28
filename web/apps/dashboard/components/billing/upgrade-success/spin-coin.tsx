@@ -50,13 +50,16 @@ export function SpinCoin({
       tabIndex={-1}
       onClick={spin}
       aria-label="Spin"
-      className="coin block cursor-pointer rounded-full outline-none"
+      className="block cursor-pointer rounded-full outline-none perspective-[600px]"
     >
-      <span ref={innerRef} className="coin-inner relative block size-16">
-        <span className="coin-face absolute inset-0 flex items-center justify-center rounded-full border border-grayA-4 bg-background shadow-[0_1px_2px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.12)]">
+      <span
+        ref={innerRef}
+        className="relative block size-16 animate-coin-flip transform-3d motion-reduce:animate-none motion-reduce:rotate-y-180"
+      >
+        <span className="absolute inset-0 backface-hidden flex items-center justify-center rounded-full border border-grayA-4 bg-background shadow-[0_1px_2px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.12)]">
           {front}
         </span>
-        <span className="coin-face coin-back absolute inset-0 flex items-center justify-center rounded-full border border-grayA-4 bg-background shadow-[0_1px_2px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.12)]">
+        <span className="absolute inset-0 rotate-y-180 backface-hidden flex items-center justify-center rounded-full border border-grayA-4 bg-background shadow-[0_1px_2px_rgba(0,0,0,0.08),0_8px_24px_rgba(0,0,0,0.12)]">
           {back}
         </span>
       </span>
