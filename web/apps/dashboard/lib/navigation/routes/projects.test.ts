@@ -77,13 +77,11 @@ describe("app-scoped paths", () => {
   const scope = { workspaceSlug: ws, projectId, appId };
 
   it("shows Bindings only in app navigation and marks it active", () => {
-    const links = buildAppLinks(ws, projectId, appId, [
-      "projects",
-      projectId,
-      "apps",
-      appId,
+    const segments = ["projects", projectId, "apps", appId, "bindings"];
+    expect(buildAppLinks(ws, projectId, appId, segments, false).map((link) => link.key)).not.toContain(
       "bindings",
-    ]);
+    );
+    const links = buildAppLinks(ws, projectId, appId, segments, true);
     expect(links.find((link) => link.key === "bindings")).toMatchObject({
       label: "Bindings",
       href: "/acme/projects/proj_123/apps/app_456/bindings",
