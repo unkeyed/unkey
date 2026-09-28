@@ -56,8 +56,8 @@ var resourcePathShapes = []resourcePathShape{
 // resourceContainerPathShapes defines path containers that can anchor a
 // descendant pattern but cannot identify a concrete resource.
 var resourceContainerPathShapes = []resourcePathShape{
-	{resource: new(gateway), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "gateway"}},
-	{resource: new(rbac), segments: []string{"projects", resourceIDSegment, "rbac"}},
+	{resource: new(Gateway), segments: []string{"projects", resourceIDSegment, "apps", resourceIDSegment, "environments", resourceIDSegment, "gateway"}},
+	{resource: new(RBAC), segments: []string{"projects", resourceIDSegment, "rbac"}},
 }
 
 // V1 is a parsed v1 Unkey resource name.

@@ -8,7 +8,6 @@ import (
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_key"
@@ -30,7 +29,7 @@ func TestExpiringRootKeyBoundsChildLifetime(t *testing.T) {
 	expires := h.Clock.Now().Add(time.Hour).Truncate(time.Second)
 	parent := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: r.RootWorkspace.ID, KeySpaceID: r.RootKeySpace.ID,
-		ForWorkspaceID: ptr.P(r.UserWorkspace.ID), Expires: &expires,
+		ForWorkspaceID: new(r.UserWorkspace.ID), Expires: &expires,
 		Permissions: []seed.CreatePermissionRequest{{WorkspaceID: r.RootWorkspace.ID, Name: permission, Slug: permission}},
 	})
 	for _, tt := range []struct {

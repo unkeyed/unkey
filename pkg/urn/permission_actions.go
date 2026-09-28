@@ -132,7 +132,7 @@ func (Domain) permissionActions(bool) permissionActionSet { return readWriteDele
 func (EnvironmentVariable) permissionActions(bool) permissionActionSet { return readWriteDelete }
 
 // permissionActions returns all actions selected below the gateway container.
-func (gateway) permissionActions(bool) permissionActionSet { return readWriteDelete }
+func (Gateway) permissionActions(bool) permissionActionSet { return readWriteDelete }
 
 // permissionActions returns read for gateway logs.
 func (GatewayLogs) permissionActions(bool) permissionActionSet {
@@ -181,7 +181,7 @@ func (RatelimitLogs) permissionActions(bool) permissionActionSet {
 func (RatelimitOverride) permissionActions(bool) permissionActionSet { return readWriteDelete }
 
 // permissionActions returns all actions selected below the RBAC container.
-func (rbac) permissionActions(bool) permissionActionSet { return readWriteDelete }
+func (RBAC) permissionActions(bool) permissionActionSet { return readWriteDelete }
 
 // permissionActions returns the read, write, and delete actions for roles.
 func (Role) permissionActions(bool) permissionActionSet { return readWriteDelete }
