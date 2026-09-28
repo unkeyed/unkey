@@ -412,7 +412,7 @@ function explainExit(
     }))
     .with("ErrImagePull", "ImagePullBackOff", () => ({
       label: "Couldn't pull your image",
-      body: "We couldn't download the configured image. Check that the image exists and that your registry credentials allow access.",
+      body: "We couldn't download the image. If you provided an image URL, check that the image and tag exist and are public.",
     }))
     .with("InvalidImageName", () => ({
       label: "Invalid image name",
