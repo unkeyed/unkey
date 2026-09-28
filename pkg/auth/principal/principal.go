@@ -34,6 +34,9 @@ const (
 
 	// SubjectTypeUser indicates the request was authenticated as an end user.
 	SubjectTypeUser SubjectType = "user"
+
+	// SubjectTypeOIDCVercel indicates a Vercel integration authenticated the request.
+	SubjectTypeOIDCVercel SubjectType = "oidcVercel"
 )
 
 // Principal is the normalized authenticated subject used by API handlers.
@@ -141,6 +144,28 @@ type JWTSource struct {
 }
 
 func (JWTSource) principalSource() {}
+
+// OIDCVercelSource carries the deployment identity verified from a Vercel OIDC token.
+type OIDCVercelSource struct {
+	IntegrationID string
+	Owner          OIDCVercelOwner
+	Project        OIDCVercelProject
+	Environment   string
+}
+
+func (OIDCVercelSource) principalSource() {}
+
+// OIDCVercelOwner identifies the Vercel team that owns the deployment.
+type OIDCVercelOwner struct {
+	ID   string
+	Slug string
+}
+
+// OIDCVercelProject identifies the Vercel project that produced the deployment.
+type OIDCVercelProject struct {
+	ID   string
+	Name string
+}
 
 // PortalSessionSource carries the portal session detail that authenticated the request.
 //

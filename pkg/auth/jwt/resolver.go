@@ -7,13 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
-	"sync/atomic"
-	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
-	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/pkg/codes"
 	"github.com/unkeyed/unkey/pkg/fault"
 	tokenjwt "github.com/unkeyed/unkey/pkg/jwt"
@@ -107,16 +103,13 @@ func NewResolverWithJWKSURL(workspaceLookup WorkspaceLookup, issuer string, audi
 		return nil, err
 	}
 
+	verifier, err := NewJWKSVerifier[Claims](issuer, audience, jwksURL)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Resolver{
-		verifier: &jwksVerifier{
-			jwksURL:     jwksURL,
-			issuer:      issuer,
-			audience:    audience,
-			clock:       clock.New(),
-			current:     atomic.Pointer[keySet]{},
-			fetchMu:     sync.Mutex{},
-			lastAttempt: time.Time{},
-		},
+		verifier:        &jwksVerifier{JWKSVerifier: verifier},
 		workspaceLookup: workspaceLookup,
 	}, nil
 }

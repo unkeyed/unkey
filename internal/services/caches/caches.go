@@ -4,6 +4,7 @@ import (
 	"time"
 
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
+	oidcvercel "github.com/unkeyed/unkey/pkg/auth/oidc/vercel"
 	"github.com/unkeyed/unkey/pkg/cache"
 	"github.com/unkeyed/unkey/pkg/cache/middleware"
 	"github.com/unkeyed/unkey/pkg/clock"
@@ -52,6 +53,9 @@ type Caches struct {
 	// JWT principals quickly; long stale window keeps the effectively
 	// immutable org-to-workspace mapping served from memory.
 	WorkspaceByOrgID cache.Cache[string, db.Workspace]
+
+	// OIDCVercelIntegration caches Vercel trust policies and permission grants by audience.
+	OIDCVercelIntegration cache.Cache[string, oidcvercel.Integration]
 }
 
 // Close stops the background revalidation workers and metrics reporters of
@@ -66,6 +70,7 @@ func (c *Caches) Close() error {
 	c.WorkspaceLimits.Close()
 	c.PortalSession.Close()
 	c.WorkspaceByOrgID.Close()
+	c.OIDCVercelIntegration.Close()
 	return nil
 }
 
@@ -179,6 +184,17 @@ func New(config Config) (Caches, error) {
 		return Caches{}, err
 	}
 
+	oidcVercelIntegration, err := cache.New(cache.Config[string, oidcvercel.Integration]{
+		Fresh:    10 * time.Second,
+		Stale:    5 * time.Minute,
+		MaxSize:  100_000,
+		Resource: "oidc_vercel_integration",
+		Clock:    config.Clock,
+	})
+	if err != nil {
+		return Caches{}, err
+	}
+
 	return Caches{
 		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
 		LiveApiByID:           middleware.WithTracing(liveApiByID),
@@ -189,5 +205,6 @@ func New(config Config) (Caches, error) {
 		WorkspaceLimits:       middleware.WithTracing(workspaceLimits),
 		PortalSession:         middleware.WithTracing(portalSession),
 		WorkspaceByOrgID:      middleware.WithTracing(workspaceByOrgID),
+		OIDCVercelIntegration: middleware.WithTracing(oidcVercelIntegration),
 	}, nil
 }

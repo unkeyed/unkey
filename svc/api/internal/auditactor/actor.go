@@ -51,6 +51,9 @@ func FromPrincipal(p *principal.Principal) Actor {
 	if _, ok := p.Source.(principal.PortalSessionSource); ok {
 		actor.Type = auditlog.PortalEndUserActor
 	}
+	if _, ok := p.Source.(principal.OIDCVercelSource); ok {
+		actor.Type = auditlog.OIDCVercelActor
+	}
 
 	return actor
 }
