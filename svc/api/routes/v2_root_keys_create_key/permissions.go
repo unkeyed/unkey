@@ -14,36 +14,36 @@ import (
 )
 
 // validateDelegatedPermissions returns sorted, deduplicated permissions that the
-// caller may grant to a child root key. Every request must be a supported URN in
+// caller may assign to a child root key. Every request must be a supported URN in
 // the caller's workspace and fit within one of the caller's permissions.
 // For example, projects/*#read permits projects/proj_one#read, but not #write.
 // Invalid requests fail with 400; requests beyond the caller's access fail with
 // 403. Cancellation stops validation between permission checks.
-func validateDelegatedPermissions(ctx context.Context, p *principal.Principal, requested []string) ([]string, error) {
-	grants := make(map[string]struct{}, len(requested))
-	for _, permission := range requested {
+func validateDelegatedPermissions(ctx context.Context, p *principal.Principal, requestedPermissions []string) ([]string, error) {
+	validatedPermissionSet := make(map[string]struct{}, len(requestedPermissions))
+	for _, requestedPermission := range requestedPermissions {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		if _, exists := grants[permission]; exists {
+		if _, exists := validatedPermissionSet[requestedPermission]; exists {
 			continue
 		}
-		resource, action, err := parsePermission(permission, p.AuthorizedWorkspaceID)
+		resource, action, err := parsePermission(requestedPermission, p.AuthorizedWorkspaceID)
 		if err != nil {
 			return nil, err
 		}
 		if err := p.Authorize(rbac.U(resource, action)); err != nil {
 			return nil, err
 		}
-		grants[permission] = struct{}{}
+		validatedPermissionSet[requestedPermission] = struct{}{}
 	}
 
-	result := make([]string, 0, len(grants))
-	for grant := range grants {
-		result = append(result, grant)
+	validatedPermissions := make([]string, 0, len(validatedPermissionSet))
+	for validatedPermission := range validatedPermissionSet {
+		validatedPermissions = append(validatedPermissions, validatedPermission)
 	}
-	slices.Sort(result)
-	return result, nil
+	slices.Sort(validatedPermissions)
+	return validatedPermissions, nil
 }
 
 // parsePermission validates the URN, workspace, and resource/action combination.

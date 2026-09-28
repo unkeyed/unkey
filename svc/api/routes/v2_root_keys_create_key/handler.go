@@ -72,7 +72,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				fault.Public("expires is required and must not be later than the calling root key's expiration."))
 		}
 	}
-	grants, err := validateDelegatedPermissions(ctx, p, req.Permissions)
+	validatedPermissions, err := validateDelegatedPermissions(ctx, p, req.Permissions)
 	if err != nil {
 		return err
 	}
@@ -124,8 +124,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		if err != nil {
 			return err
 		}
-		permissionRows := make([]db.UpsertPermissionParams, 0, len(grants))
-		for _, slug := range grants {
+		permissionRows := make([]db.UpsertPermissionParams, 0, len(validatedPermissions))
+		for _, slug := range validatedPermissions {
 			permissionRows = append(permissionRows, db.UpsertPermissionParams{
 				PermissionID: uid.New(uid.PermissionPrefix),
 				WorkspaceID:  h.InternalWorkspaceID,
@@ -145,16 +145,16 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		permissions, err := db.Query.FindPermissionsBySlugsForUpdate(ctx, tx, db.FindPermissionsBySlugsForUpdateParams{
 			WorkspaceID: h.InternalWorkspaceID,
 			ProjectID:   h.InternalProjectID,
-			Slugs:       grants,
+			Slugs:       validatedPermissions,
 		})
 		if err != nil {
 			return err
 		}
-		if len(permissions) != len(grants) {
+		if len(permissions) != len(validatedPermissions) {
 			return fault.New("root permission belongs to another project", fault.Code(codes.App.Internal.UnexpectedError.URN()))
 		}
 		for _, permission := range permissions {
-			if _, ok := slices.BinarySearch(grants, permission.Slug); !ok {
+			if _, ok := slices.BinarySearch(validatedPermissions, permission.Slug); !ok {
 				return fault.New("stored permission differs from authorized permission", fault.Code(codes.App.Internal.UnexpectedError.URN()))
 			}
 		}
