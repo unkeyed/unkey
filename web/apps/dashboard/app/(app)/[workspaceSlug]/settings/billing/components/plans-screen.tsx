@@ -121,6 +121,19 @@ export function PlansScreen({ open, onOpenChange, reason, from = "billing" }: Pl
           <DialogDescription className="mt-2 max-w-lg text-balance text-center text-gray-11 text-sm leading-6">
             {copy.description}
           </DialogDescription>
+          {products.includes("compute") ? (
+            <p className="text-center text-gray-11 text-sm leading-6">
+              {CREDITS_INFO}{" "}
+              <a
+                href={CREDITS_LINK_HREF}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 hover:text-gray-12"
+              >
+                {CREDITS_LINK_LABEL}
+              </a>
+            </p>
+          ) : null}
 
           {products.length > 1 ? (
             <Tabs defaultValue={products[0]} className="mt-8 flex w-full flex-col items-center">
@@ -394,17 +407,6 @@ function ComputePlans({
         })}
       </div>
       {cardVariant === "v3" ? <IncludedInEveryPlan /> : null}
-      <p className="text-center text-gray-11 text-xs">
-        {CREDITS_INFO}{" "}
-        <a
-          href={CREDITS_LINK_HREF}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline underline-offset-2 hover:text-gray-12"
-        >
-          {CREDITS_LINK_LABEL}
-        </a>
-      </p>
 
       <ComputePlanConfirmDialog
         plan={pendingPlan}
