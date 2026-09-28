@@ -85,7 +85,7 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
 
   const utils = trpc.useUtils();
 
-  const { data, isLoading, isFetching } = trpc.audit.logs.useQuery(
+  const { data, isLoading, isFetching, isError, refetch } = trpc.audit.logs.useQuery(
     queryParams,
     PAGINATED_LIST_QUERY_OPTIONS,
   );
@@ -123,6 +123,8 @@ export function useAuditLogsQuery(pageSize = DEFAULT_PAGE_SIZE) {
     auditLogs: data?.auditLogs ?? [],
     isLoading: isInitialLoading,
     isNavigating,
+    isError,
+    refetch,
     page,
     pageSize,
     totalPages,

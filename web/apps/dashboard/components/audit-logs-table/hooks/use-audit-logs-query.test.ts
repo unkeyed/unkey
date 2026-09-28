@@ -76,4 +76,22 @@ describe("useAuditLogsQuery pagination", () => {
     expect(result.current.totalCount).toBe(120);
     expect(result.current.totalPages).toBe(3);
   });
+
+  it("surfaces the query error and a refetch so the view can offer a retry", () => {
+    const refetch = vi.fn();
+    mockedUseQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isFetching: false,
+      isError: true,
+      refetch,
+    } as never);
+
+    const { result } = renderHook(() => useAuditLogsQuery());
+
+    expect(result.current.isError).toBe(true);
+    expect(result.current.auditLogs).toEqual([]);
+    result.current.refetch();
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
 });
