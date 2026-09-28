@@ -1,4 +1,5 @@
 "use client";
+import { queryKeys } from "@/lib/query-keys";
 
 import { getPortalByKeyspace } from "@/lib/portal/client";
 import {
@@ -9,7 +10,7 @@ import {
   portalConflict,
 } from "@/lib/portal/conflicts";
 import { slugifyPortalName } from "@/lib/portal/slugify";
-import { type PortalQueryResult, portalQueryKey, useCreatePortal } from "@/lib/portal/use-portal";
+import { type PortalQueryResult, useCreatePortal } from "@/lib/portal/use-portal";
 import { portalDisplayNameSchema, portalSlugSchema } from "@/lib/portal/validation";
 import { getErrorMessage } from "@/lib/unkey-client";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -83,7 +84,7 @@ export function CreatePortalDialog({ keyAuthId, resourceName, isOpen, onOpenChan
   };
 
   const adopt = (portal: Portal) => {
-    queryClient.setQueryData<PortalQueryResult>(portalQueryKey(keyAuthId), {
+    queryClient.setQueryData<PortalQueryResult>(queryKeys.portal.detail(keyAuthId), {
       found: true,
       portal,
     });

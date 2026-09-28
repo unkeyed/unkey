@@ -1,4 +1,5 @@
 "use client";
+import { queryKeys } from "@/lib/query-keys";
 
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "cn";
@@ -52,7 +53,7 @@ export const StatusWidget = forwardRef<HTMLAnchorElement, StatusWidgetProps>(fun
   ref,
 ) {
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["status-page-summary"],
+    queryKey: queryKeys.statusPage.summary,
     queryFn: async (): Promise<StatusSummary> => {
       const res = await fetch(SUMMARY_URL, { headers: { Accept: "application/json" } });
       if (!res.ok) {
