@@ -113,18 +113,17 @@ func TestPermissionCollationSubstitutionRollsBack(t *testing.T) {
 	require.Equal(t, before, snapshot(t, h))
 }
 
-// TestPermissionStoragePreservesCase guarantees differently cased IDs remain
-// separate permissions. For example, ks_one#read and KS_one#read are both
-// stored exactly as requested rather than merged into one grant.
-func TestPermissionStoragePreservesCase(t *testing.T) {
+// TestPermissionCaseCollisionRollsBack guarantees case-insensitive storage
+// cannot silently merge requested permissions. For example, ks_one#read and
+// KS_one#read fail together without storing a key, permissions, or audit events.
+func TestPermissionCaseCollisionRollsBack(t *testing.T) {
 	h, route, p := newHarness(t)
 	base := "unkey:v1:" + p.AuthorizedWorkspaceID + ":projects/proj_one/keyspaces/"
 	requested := []string{base + "ks_one#read", base + "KS_one#read"}
+	before := snapshot(t, h)
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{Permissions: requested})
-	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-	stored, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: res.Body.Data.KeyId})
-	require.NoError(t, err)
-	require.ElementsMatch(t, requested, stored)
+	require.Equal(t, http.StatusInternalServerError, res.Status, "%s", res.RawBody)
+	require.Equal(t, before, snapshot(t, h))
 }
 
 func snapshot(t *testing.T, h *testutil.Harness) []int {

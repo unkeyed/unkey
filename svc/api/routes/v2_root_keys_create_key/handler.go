@@ -59,7 +59,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if req.Expires.IsSpecified() && !req.Expires.IsNull() {
 		if req.Expires.MustGet() <= h.Clock.Now().UnixMilli() {
 			return fault.New("expiration must be in the future", fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Public("expires must be a Unix millisecond timestamp in the future."))
+				fault.Public("Expires must be a Unix millisecond timestamp in the future."))
 		}
 		expires = sql.NullTime{
 			Time:  time.UnixMilli(req.Expires.MustGet()),
@@ -69,7 +69,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if source, ok := p.Source.(principal.KeySource); ok && source.ExpiresAt != nil {
 		if !expires.Valid || expires.Time.After(*source.ExpiresAt) {
 			return fault.New("child root key exceeds caller expiration", fault.Code(codes.App.Validation.InvalidInput.URN()),
-				fault.Public("expires is required and must not be later than the calling root key's expiration."))
+				fault.Public("Expires is required and must not be later than the calling root key's expiration."))
 		}
 	}
 	validatedPermissions, err := validateDelegatedPermissions(ctx, p, req.Permissions)
@@ -84,7 +84,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 	keyID := uid.New(uid.KeyPrefix)
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
-	err = db.Tx(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
+	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		keyspace, err := db.Query.FindKeySpaceByID(ctx, tx, h.InternalKeyspaceID)
 		if err != nil {
 			return fault.Wrap(err, fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
