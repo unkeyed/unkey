@@ -26,7 +26,7 @@ export type V2KeysRerollKeyRequestBody = {
    * This parameter controls the overlap period for key rotation:
    * - Set to `0` to revoke the original key immediately
    * - Positive values keep the original key active for the specified duration
-   * - Omit it to keep the original key active; it keeps its current expiration, if any
+   * - Set to `null` to keep the original key active; it keeps its current expiration, if any
    * - Allows graceful migration by giving users time to update their credentials
    *
    * Common overlap periods:
@@ -36,13 +36,13 @@ export type V2KeysRerollKeyRequestBody = {
    * - 7 days grace period: 604800000
    * - 30 days grace period: 2592000000
    */
-  expiration?: number | undefined;
+  expiration: number | null;
 };
 
 /** @internal */
 export type V2KeysRerollKeyRequestBody$Outbound = {
   keyId: string;
-  expiration?: number | undefined;
+  expiration: number | null;
 };
 
 /** @internal */
@@ -52,7 +52,7 @@ export const V2KeysRerollKeyRequestBody$outboundSchema: z.ZodType<
   V2KeysRerollKeyRequestBody
 > = z.object({
   keyId: z.string(),
-  expiration: z.number().int().optional(),
+  expiration: z.nullable(z.number().int()),
 });
 
 export function v2KeysRerollKeyRequestBodyToJSON(

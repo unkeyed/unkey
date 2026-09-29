@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -64,7 +65,7 @@ func TestRerollKeyNotFound(t *testing.T) {
 
 		req := handler.Request{
 			KeyId:      otherKey.KeyID,
-			Expiration: new(int64(0)),
+			Expiration: nullable.NewNullableWithValue(int64(0)),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)

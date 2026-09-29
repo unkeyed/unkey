@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
@@ -121,7 +122,7 @@ func TestRerollKeySuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId:      key.KeyID,
-			Expiration: new(int64(0)),
+			Expiration: nullable.NewNullableWithValue(int64(0)),
 		}
 
 		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, req)
@@ -244,7 +245,7 @@ func TestRerollKeySuccess(t *testing.T) {
 
 				res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 					KeyId:      key.KeyID,
-					Expiration: new(int64(0)),
+					Expiration: nullable.NewNullableWithValue(int64(0)),
 				})
 				require.Equal(t, http.StatusOK, res.Status, "response: %s", res.RawBody)
 				require.True(t, strings.HasPrefix(res.Body.Data.Key, "prod_sk_"))
@@ -271,7 +272,7 @@ func TestRerollKeySuccess(t *testing.T) {
 
 		req := handler.Request{
 			KeyId:      key.KeyID,
-			Expiration: &ttlMs,
+			Expiration: nullable.NewNullableWithValue(ttlMs),
 		}
 
 		now := time.Now().UnixMilli()
@@ -298,7 +299,7 @@ func TestRerollKeySuccess(t *testing.T) {
 		require.False(t, rolledKeyRow.KeyExpires.Valid, "rolled key should not have expiration set but its set to %s %t", rolledKeyRow.KeyExpires.Time.String(), rolledKeyRow.KeyExpires.Valid)
 	})
 
-	t.Run("reroll without expiration keeps original key without expiry", func(t *testing.T) {
+	t.Run("reroll with null expiration keeps original key without expiry", func(t *testing.T) {
 		t.Parallel()
 
 		key := h.CreateKey(seed.CreateKeyRequest{
@@ -306,7 +307,7 @@ func TestRerollKeySuccess(t *testing.T) {
 			KeySpaceID:  api.KeyAuthID.String,
 		}) // nolint:exhaustruct
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{KeyId: key.KeyID}) // nolint:exhaustruct
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{KeyId: key.KeyID, Expiration: nullable.NewNullNullable[int64]()})
 		require.Equal(t, 200, res.Status)
 
 		original, err := db.Query.FindLiveKeyByID(ctx, h.DB.RW(), key.KeyID)
@@ -314,7 +315,7 @@ func TestRerollKeySuccess(t *testing.T) {
 		require.False(t, original.KeyExpires.Valid, "original key should not expire")
 	})
 
-	t.Run("reroll without expiration keeps original key's existing expiry", func(t *testing.T) {
+	t.Run("reroll with null expiration keeps original key's existing expiry", func(t *testing.T) {
 		t.Parallel()
 
 		expires := time.Now().Add(time.Hour).Truncate(time.Second)
@@ -324,7 +325,7 @@ func TestRerollKeySuccess(t *testing.T) {
 			Expires:     &expires,
 		}) // nolint:exhaustruct
 
-		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{KeyId: key.KeyID}) // nolint:exhaustruct
+		res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{KeyId: key.KeyID, Expiration: nullable.NewNullNullable[int64]()})
 		require.Equal(t, 200, res.Status)
 
 		original, err := db.Query.FindLiveKeyByID(ctx, h.DB.RW(), key.KeyID)
@@ -366,7 +367,7 @@ func TestRerollKeyWithURNPermission(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
 		KeyId:      key.KeyID,
-		Expiration: new(int64(0)),
+		Expiration: nullable.NewNullableWithValue(int64(0)),
 	})
 	require.Equal(t, 200, res.Status)
 	require.NotNil(t, res.Body)

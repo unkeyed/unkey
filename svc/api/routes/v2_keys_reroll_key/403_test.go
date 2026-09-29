@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -52,7 +53,7 @@ func TestRerollKeyForbidden(t *testing.T) {
 
 	req := handler.Request{
 		KeyId:      key.KeyID,
-		Expiration: new(int64(0)),
+		Expiration: nullable.NewNullableWithValue(int64(0)),
 	}
 
 	t.Run("no permissions", func(t *testing.T) {
@@ -121,7 +122,7 @@ func TestRerollKeyForbidden(t *testing.T) {
 
 		req := handler.Request{
 			KeyId:      encryptedKey.KeyID,
-			Expiration: new(int64(0)),
+			Expiration: nullable.NewNullableWithValue(int64(0)),
 		}
 
 		headers := http.Header{
