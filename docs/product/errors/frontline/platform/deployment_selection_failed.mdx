@@ -1,7 +1,22 @@
 ---
 title: "deployment_selection_failed"
-description: "DeploymentSelectionFailed represents a 500 error - failed to select an available deployment"
+sidebarTitle: "deployment_selection_failed"
+description: "A reserved gateway code that no request returns."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/router/routing.go
 ---
 
 <Danger>`err:frontline:platform:deployment_selection_failed`</Danger>
 
+This code is reserved, and the gateway doesn't return it. When there's no instance to serve a request, you get [`err:frontline:capacity:no_running_instances`](/errors/frontline/capacity/no_running_instances). Other failures inside the gateway show up as [`err:frontline:platform:internal_server_error`](/errors/frontline/platform/internal_server_error).
+
+## How to fix
+
+There's nothing to fix. If a request didn't reach an instance, start from the two errors below.
+
+## Related errors
+
+- [`err:frontline:capacity:no_running_instances`](/errors/frontline/capacity/no_running_instances): what the gateway returns when there's no instance to send the request to.
+- [`err:frontline:platform:internal_server_error`](/errors/frontline/platform/internal_server_error): the general gateway failure.

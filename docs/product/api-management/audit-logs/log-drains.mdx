@@ -1,0 +1,67 @@
+---
+title: Log drains
+description: "Stream audit log entries to your own HTTP endpoint or Axiom dataset."
+sources:
+  - web/internal/db/src/schema/logdrains.ts
+  - proto/logdrain/v1/config.proto
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/logdrains/page.tsx
+  - web/apps/dashboard/lib/trpc/routers/logdrain/create.ts
+  - web/apps/dashboard/lib/trpc/routers/logdrain/validation.ts
+  - web/apps/dashboard/lib/limits.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/logdrains/drain-fields.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/logdrains/logdrains-list.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/logdrains/[drainId]/logdrain-detail.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/logdrains/header-fields.ts
+  - svc/logdrain/config.go
+  - svc/logdrain/internal/engine/engine.go
+---
+
+A log drain sends audit log entries to your own HTTP endpoint or Axiom dataset as they happen. Use one to keep history past your plan's [retention](/api-management/audit-logs/overview), feed a SIEM, or alert on events such as `key.delete`.
+
+<Note>
+  Every plan starts with a `Log drains` limit of 0, so **Settings > Log Drains** won't let you create one yet. Ask [support@unkey.com](mailto:support@unkey.com) to raise the limit for your workspace.
+</Note>
+
+## What is delivered
+
+An audit log drain sends the `audit_logs` stream: the entries described on [Audit logs](/api-management/audit-logs/overview), with the names in [Audit log event types](/api-management/audit-logs/event-types). You can limit it to certain events, such as only `key.delete`.
+
+Every entry is delivered at least once and in order. A failed delivery is retried, not skipped.
+
+## Destinations
+
+<ParamField path="HTTP" type="destination">
+  Unkey posts batches to an HTTPS URL you provide. Don't put a username or password in the URL. Use a header instead. Pick a format: **JSON** sends an array of events per request, and **NDJSON** sends one event per line. Add up to 32 unique headers, such as an `Authorization` header your endpoint checks. Names can be up to 256 characters and values up to 8192. Header values are stored encrypted and never shown again after you save.
+</ParamField>
+
+<ParamField path="Axiom" type="destination">
+  Unkey sends events to an Axiom dataset you name, using an Axiom API token you provide. The token is stored encrypted.
+</ParamField>
+
+## Create a drain
+
+<Steps titleSize="h3">
+  <Step title="Name it and pick the destination">
+    Under **Settings > Log Drains**, create a drain, give it a name (shown in the list), and choose HTTP or Axiom. Fill in the URL, format, and headers, or the dataset and token.
+  </Step>
+  <Step title="Narrow the stream">
+    Leave the event type filter empty to get every audit event, including new ones we add later. Or list the events you want: up to 256 names, each up to 256 characters.
+  </Step>
+  <Step title="Watch the first deliveries">
+    A drain starts when you create it. Earlier entries aren't sent. The drain's detail page shows events delivered and failed in the past 24 hours, the success rate, and recent deliveries with your endpoint's response, so you can see why it's rejecting them.
+  </Step>
+</Steps>
+
+## Pause a drain, or fix a failing one
+
+A drain shows one of three states:
+
+- **Running:** it's delivering.
+- **Paused** (`paused_by_user`): you clicked **Pause deliveries**. Click **Resume deliveries** to pick up where it stopped, including events that arrived in between (within retention).
+- **Failing** (`paused_by_failure`): 50 deliveries in a row failed and Unkey stopped trying. Fix the destination, then click **Resume deliveries**.
+
+Between failed attempts, the wait grows from one minute to about two hours, then settles at every four hours, so it takes about a week of a dead endpoint to reach 50 failures. Because an event can arrive more than once, make your endpoint ignore duplicates.
+
+## Delete a drain
+
+Deleting a drain stops all deliveries and removes its settings. Events already delivered stay where you sent them. Events not yet delivered aren't sent.

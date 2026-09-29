@@ -1,0 +1,85 @@
+---
+title: Plans
+description: "See what the API Management tiers and Compute plans include and how a change takes effect."
+sources:
+  - web/internal/db/src/schema/workspace_billing.ts
+  - web/internal/db/src/schema/billing_subscriptions.ts
+  - web/apps/dashboard/lib/stripe/deployPlan.ts
+  - web/apps/dashboard/lib/trpc/routers/stripe/changeDeployPlan.ts
+  - web/apps/dashboard/lib/trpc/routers/stripe/updateSubscription.ts
+  - web/apps/dashboard/lib/trpc/routers/stripe/cancelDeploy.ts
+  - web/apps/dashboard/lib/trpc/routers/stripe/subscribeDeploy.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/_components/deploy-plan-gate-dialog.tsx
+  - web/apps/dashboard/lib/stripe/linkApiSubscription.ts
+  - web/apps/dashboard/lib/stripe/productUtils.ts
+  - web/apps/dashboard/lib/limits.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/free-tier-alert.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/compute-plan-copy.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/constants.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/cancel-plan.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/billing-summary.tsx
+---
+
+Your workspace pays for the two products separately. API Management has a tier and Compute has a plan, and you can have either one without the other. Both use one payment method and one set of invoices.
+
+Manage both under **Settings > Billing**. Only [admins](/platform/workspace/team) can change plans or payment details. Everyone else sees the controls disabled with "Admin access required to manage billing".
+
+<Frame>
+  <img src="/images/dashboard/platform--billing-plans--billing.png" alt="Billing settings page showing the Compute and API management plans with Change and Upgrade buttons, and the Compute cost control budget with its email alerts" />
+</Frame>
+
+## API Management tier
+
+Every workspace starts on the **Free** tier: 150,000 billable operations per month, 1,000 API keys, 1 day of request log retention, and 3 days of audit log retention. Billable operations are key verifications and rate limit operations. See [Usage](/platform/billing/usage) for what counts.
+
+A paid tier raises the monthly quota and both retention periods, and includes [team members](/platform/workspace/team). Each tier's numbers are on [Limits](/platform/billing/limits) and [unkey.com/pricing](https://unkey.com/pricing), and the billing page shows them when you choose.
+
+## Compute plan
+
+You need a Compute plan before you can deploy an <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>. There are three:
+
+- **Starter** for hobby projects and testing ideas.
+- **Pro** for growing apps in production.
+- **Business** for teams scaling up.
+
+Every plan includes git push to deploy, a preview <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> per pull request, instant rollback, autoscaling, and a monthly usage credit. The plans differ in their resource limits (CPU, memory, disk, replicas, and custom domains), listed on [Limits](/platform/billing/limits). Pro and Business also include team members, so they give a team to a workspace on the free API tier.
+
+Pick a plan under **Settings > Billing** in the **Choose a Compute plan** dialog. If you try to create a project or deploy without one, the dashboard opens the same dialog.
+
+<Frame>
+  <img src="/images/dashboard/platform--billing-plans--change-compute-plan.png" alt="Change Compute plan dialog listing Starter, Pro, and Business with their monthly prices and what every plan includes" />
+</Frame>
+
+Usage above the included credit is billed by CPU hours, memory GiB-hours, disk GiB-hours, and egress. To cap it, set a monthly [spend budget](/compute/configure/spend-budget). It emails you at 50, 75, and 100 percent and can stop your usage at 100 percent.
+
+## Add a payment method
+
+You need a card on file before you can upgrade. Under **Settings > Billing**, click **Add payment method** and enter the card in Stripe checkout. Both products charge that card. To see invoices or change the card later, click **Open Portal** on the **Billing Portal** card.
+
+## Change or cancel the API tier
+
+Choose a tier under **Settings > Billing**.
+
+- **Upgrade.** Applies immediately.
+- **Downgrade or cancel.** Takes effect at the end of the current period. The page shows the date, and you can resume your current tier until then. While a cancellation is pending you can't pick another tier, and you'll see "Resume your API plan before changing it."
+
+When a cancellation takes effect, the workspace moves to the free tier, and the free tier's quota and retention apply.
+
+## Change or cancel Compute
+
+Choose a new plan in the **Change Compute plan** dialog under **Settings > Billing**. The timing is different from the API tier:
+
+- **Upgrade.** You're charged the prorated fee difference right away and get more usage credit for the rest of the period.
+- **Downgrade.** Your [limits](/platform/billing/limits) drop right away. The fee difference isn't refunded, and you keep the usage credit the old fee gave you. The lower fee and credit start at the next renewal.
+- **Cancel.** Click **Cancel Compute**. It takes effect immediately, not at the end of the period. We tear down your running deployments right away and stop billing further usage. Usage up to that point is billed as normal, and the fee isn't refunded.
+
+If you pick a Compute plan again before the canceled period ends, we resume that subscription instead of charging a new fee. Picking a higher plan than the one you canceled charges the prorated difference. Your deployments don't come back on their own, so deploy again once the plan is active.
+
+Canceling one product doesn't affect the other. You can drop Compute and keep a paid API tier, or the reverse.
+
+## What happens to your team when you downgrade
+
+Team members come with any paid API tier, or with Compute Pro or Business. If the workspace loses all of these, we deactivate every member except the one who created the workspace. That happens when:
+
+- A paid API tier ends at the end of its period, and you don't have Compute Pro or Business.
+- You're on the free API tier and downgrade Compute to Starter or cancel it.

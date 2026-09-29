@@ -1,6 +1,39 @@
 ---
 title: "analytics_connection_failed"
-description: "The connection to the Unkey analytics database failed. Learn about retry strategies, timeout settings, and how to check analytics service status."
+sidebarTitle: "analytics_connection_failed"
+description: "Analytics queries couldn't run because of a failure on our side, so retry with backoff."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - internal/services/analytics/service.go
 ---
 
 <Danger>`err:unkey:data:analytics_connection_failed`</Danger>
+
+Your analytics query couldn't run because of a failure on our side. Nothing about the query caused it. You get HTTP 503.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "Failed to connect to ClickHouse analytics database",
+    "status": 503,
+    "title": "Service Unavailable",
+    "type": "/errors/unkey/data/analytics_connection_failed"
+  }
+}
+```
+
+## How to fix
+
+1. Retry with exponential backoff. It usually clears quickly.
+2. Check the Unkey status page for an incident.
+3. If it keeps failing, contact support with the `requestId`.
+
+## Related errors
+
+- [`err:unkey:data:analytics_not_configured`](/errors/unkey/data/analytics_not_configured): analytics isn't enabled for your workspace.
+- [`err:unkey:application:service_unavailable`](/errors/unkey/application/service_unavailable): other failures on our side, reported as 500.
+- [`err:user:unprocessable_entity:query_execution_timeout`](/errors/user/unprocessable_entity/query_execution_timeout): the query ran but timed out.

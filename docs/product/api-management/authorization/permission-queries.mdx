@@ -1,0 +1,82 @@
+---
+title: Permission queries
+description: "Ask for the permissions a request needs when you verify a key."
+sources:
+  - pkg/rbac/parser.go
+  - pkg/rbac/lexer.go
+  - pkg/rbac/rbac.go
+  - pkg/rbac/doc.go
+  - svc/api/routes/v2_keys_verify_key/handler.go
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/index.yaml
+  - internal/services/keys/validation.go
+  - pkg/codes/user_request.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+---
+
+Send a permission query in the `permissions` field of `keys.verifyKey` to check that a key has the permissions a request needs. A query combines permission slugs with `AND`, `OR`, and parentheses. If the key's permissions (its own plus its roles') don't satisfy it, verification fails with `code: INSUFFICIENT_PERMISSIONS` and no rate limit or credits are used.
+
+## Grammar
+
+```text
+expression    -> andExpression (OR andExpression)*
+andExpression -> primary (AND primary)*
+primary       -> PERMISSION | "(" expression ")"
+```
+
+A `PERMISSION` is a slug made of letters, digits, `.`, `_`, `-`, `:`, `*`, and `/`. `AND` and `OR` can be any case. `AND` is evaluated before `OR`, as in SQL, and parentheses change that. The whole query can be up to 1000 characters.
+
+| Query | Passes when the key has |
+| --- | --- |
+| `documents.read` | `documents.read` |
+| `documents.read AND documents.write` | both |
+| `admin OR editor` | either |
+| `admin OR documents.read AND documents.write` | `admin`, or both document permissions (`AND` groups first) |
+| `(admin OR editor) AND billing:view` | `billing:view` plus one of the two |
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "key": "sk_live_...", "permissions": "(admin OR editor) AND billing:view" }'
+```
+
+## Matching is exact
+
+Each slug in the query must match one of the key's permissions exactly, including case. There are no wildcards: a key with `documents.*` does **not** pass a query for `documents.read`. A query for `documents.*` only passes for a key that has a permission literally named `documents.*`.
+
+<Warning>
+Case matters when you query but not when you attach. If a permission is stored as `Documents.Read`, attaching `documents.read` finds it and attaches it, but a query for `documents.read` fails. Pick one casing and use it everywhere.
+</Warning>
+
+To grant a family of permissions, attach them to a role and assign the role. See [Roles and permissions](/api-management/authorization/roles-and-permissions).
+
+## Outcomes and errors
+
+| Situation | Result |
+| --- | --- |
+| Expression is true for the key | Verification continues; `data.permissions` and `data.roles` list what the key holds. |
+| Expression is false | HTTP 200, `valid: false`, `code: INSUFFICIENT_PERMISSIONS`. |
+| Expression does not parse: unbalanced parentheses, empty parentheses, a dangling operator, or an illegal character | HTTP 400 [`err:user:bad_request:permissions_query_syntax_error`](/errors/user/bad_request/permissions_query_syntax_error) with the position of the problem in `detail`. |
+| Query is empty or longer than 1000 characters | HTTP 400. |
+| No `permissions` field | No permission check; the response still lists the key's permissions and roles. |
+
+## Checking in your own code
+
+When the decision needs data Unkey doesn't have, verify without a query and read `data.permissions`:
+
+```typescript authorize.ts
+const { data } = await unkey.keys.verifyKey({ key: incomingKey });
+if (!data.valid) {
+  return deny(data.code);
+}
+
+const permissions = data.permissions ?? [];
+const document = await db.documents.find(documentId);
+
+const canDelete =
+  permissions.includes("admin") ||
+  (permissions.includes("documents.delete") && document.ownerId === data.identity?.externalId);
+```
+
+You can combine both: send a query for the part Unkey can decide, and use the returned list for the rest.

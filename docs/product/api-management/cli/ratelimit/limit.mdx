@@ -1,0 +1,88 @@
+---
+title: unkey api ratelimit limit
+sidebarTitle: "limit"
+description: "Check and consume a rate limit for an identifier in a namespace."
+sources:
+  - cmd/api/ratelimit/limit.go
+  - svc/api/routes/v2_ratelimit_limit/handler.go
+  - svc/api/openapi/spec/paths/v2/ratelimit/limit/V2RatelimitLimitRequestBody.yaml
+  - docs/product/scripts/manifest.json
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Check a <Tooltip tip="Here: the standalone rate limiting API and its overrides. Not key rate limits or gateway policies.">rate limit</Tooltip> for any identifier, such as a user ID or IP address. The response says whether the request passed and how much is left in the window. The namespace is created on first use. If an [override](/api-management/ratelimiting/overrides) matches the identifier, its limit and window are used instead of yours. A deleted namespace isn't recreated. The call fails with 410 Gone and [`err:unkey:data:ratelimit_namespace_gone`](/errors/unkey/data/ratelimit_namespace_gone). Calls `POST /v2/ratelimit.limit`. See [Limit and multi-limit](/api-management/ratelimiting/limit-and-multi-limit).
+
+## Usage
+
+```bash
+unkey api ratelimit limit --duration=<duration> --identifier=<identifier> --limit=<limit> --namespace=<namespace> [flags]
+```
+
+## Flags
+
+<ParamField body="--duration" type="integer" required>
+  Window length in milliseconds, from 1000 (one second) to 2592000000 (30 days).
+</ParamField>
+
+<ParamField body="--identifier" type="string" required>
+  The thing being limited, for example a user id or IP address. Up to 512 characters.
+</ParamField>
+
+<ParamField body="--limit" type="integer" required>
+  Maximum operations allowed in the window. At least 1.
+</ParamField>
+
+<ParamField body="--namespace" type="string" required>
+  Namespace id or name, up to 512 characters. A new name creates the namespace.
+</ParamField>
+
+<ParamField body="--cost" type="integer">
+  How much of the limit this call uses. Defaults to 1. A cost of 0 checks the limit without using any, but `--cost=0` is treated as leaving the flag off, so it charges 1. Use `--body` to send a cost of 0.
+</ParamField>
+
+### Shared flags
+
+Every `unkey api` command takes these. See [CLI output and shared flags](/platform/cli/output-and-flags).
+
+<ParamField body="--root-key" type="string">
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then to the key stored by `unkey auth login`.
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the config file written by `unkey auth login`. Falls back to `UNKEY_CONFIG`.
+</ParamField>
+
+<ParamField body="--output" type="string">
+  Output format. Falls back to `UNKEY_OUTPUT`. `json` prints the full response. Any other value prints the request ID and `data`.
+</ParamField>
+
+<ParamField body="--body" type="string">
+  Send this JSON as the whole request body instead of using the command's flags. You can't combine it with them.
+</ParamField>
+
+## Required permissions
+
+`ratelimit.*.limit` or `ratelimit.<namespace_id>.limit`. Creating a namespace on first use also needs `ratelimit.*.create_namespace`. See [Root key permissions](/platform/root-keys/permissions).
+
+## Examples
+
+```bash 100 requests per minute
+unkey api ratelimit limit --namespace=api.requests --identifier=user_abc123 --limit=100 --duration=60000
+```
+
+```bash Expensive operation costing 5
+unkey api ratelimit limit --namespace=api.heavy --identifier=user_def456 --limit=50 --duration=3600000 --cost=5
+```
+
+Or send the whole request as JSON:
+
+```bash Raw body
+unkey api ratelimit limit --body='{"namespace":"api.requests","identifier":"user_abc123","limit":100,"duration":60000}'
+```

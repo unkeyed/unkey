@@ -1,7 +1,50 @@
 ---
-title: "deployment_not_found"
-description: "NotFound indicates the requested deployment does not exist."
+title: "unkey/data/deployment_not_found"
+sidebarTitle: "deployment_not_found"
+description: "The deployment does not exist in your workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_deployments_get_deployment/handler.go
+  - svc/api/routes/v2_deployments_create_deployment/handler.go
+  - svc/api/internal/deployment/preflight.go
 ---
 
 <Danger>`err:unkey:data:deployment_not_found`</Danger>
 
+The deployment you referenced doesn't exist in your workspace. You get HTTP 404.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The requested deployment does not exist.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/deployment_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- The deployment ID has a typo. Deployment IDs start with `d_`.
+- Your root key doesn't have the permission the call needs. The get, promote, rollback, stop, and start endpoints return this 404 instead of a 403, so it's as likely a permission problem as a wrong ID.
+- For a redeploy with `deployments.createDeployment`, the source deployment is from a different app or environment.
+- The deployment is in another workspace.
+
+## How to fix
+
+1. List deployments with `deployments.listDeployments` and use the returned ID.
+2. Check that the root key has the right permission: `read_deployment` for `deployments.getDeployment`, or `promote_deployment`, `rollback_deployment`, `stop_deployment`, or `start_deployment` for the matching call.
+3. For a redeploy, pick a deployment from the same app and environment you're deploying to.
+
+A deployment that exists but can't take traffic returns a precondition error instead.
+
+## Related errors
+
+- [`err:unkey:application:deployment_not_ready`](/errors/unkey/application/deployment_not_ready): the deployment exists but isn't ready.
+- [`err:unkey:data:environment_not_found`](/errors/unkey/data/environment_not_found): the environment doesn't exist.
+- [`err:unkey:data:app_not_found`](/errors/unkey/data/app_not_found): the app doesn't exist.

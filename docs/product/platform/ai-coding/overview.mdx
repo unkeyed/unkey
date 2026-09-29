@@ -1,0 +1,53 @@
+---
+title: AI coding
+sidebarTitle: "Overview"
+description: "Connect your AI coding assistant to Unkey so it can manage your workspace and read the docs."
+sources:
+  - docs/product/docs.json
+  - https://mcp.unkey.com/mcp/v2/install
+  - https://mcp.unkey.com/mcp/compute/install
+---
+
+You can connect an AI coding assistant like Claude Code, Cursor, or VS Code to Unkey in two ways. It can act on your workspace through Unkey's MCP servers, and it can read these docs while it writes code for you.
+
+## Let your assistant act on Unkey
+
+Unkey hosts two MCP servers. Add one to your assistant with a root key, and it can call the Unkey API for you.
+
+- **Unkey**: every v2 API endpoint, so keys, keyspaces, identities, permissions, rate limits, analytics, portals, and Compute.
+- **Compute**: only the Compute endpoints, for projects, apps, environments, deployments, domains, and gateway policies.
+
+See [Unkey MCP servers](/platform/ai-coding/mcp-servers) for the URLs, the root key to use, and example prompts.
+
+## Give your assistant the docs
+
+- **Docs MCP server**: lets your assistant search these docs while it works. Its URL is below. You can also add it from the menu next to **Copy page** at the top of any page, which has **Connect to Cursor**, **Connect to VS Code**, **Copy MCP Server**, and **Copy MCP install command**.
+- **Markdown**: **Copy page** copies the page as Markdown you can paste into a chat. Add `.md` to the end of any docs URL to get the same thing as plain text.
+- **llms.txt**: an index of every page, built for language models. `llms-full.txt` has the full text of the docs in one file.
+
+```text
+https://www.unkey.com/docs/mcp
+https://www.unkey.com/docs/llms.txt
+https://www.unkey.com/docs/llms-full.txt
+```
+
+## Use the CLI
+
+Assistants that run terminal commands can also use the `unkey` CLI. Pass `--output=json` so they get the full API response. See [Install the CLI](/platform/cli/install).
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Unkey MCP servers" icon="plug" href="/platform/ai-coding/mcp-servers">
+    Pick a server, create a root key for it, and try some prompts.
+  </Card>
+  <Card title="Claude Code" icon="terminal" href="/platform/ai-coding/claude-code">
+    Add Unkey to Claude Code with one command.
+  </Card>
+  <Card title="Cursor" icon="arrow-pointer" href="/platform/ai-coding/cursor">
+    Add Unkey to Cursor's `mcp.json`.
+  </Card>
+  <Card title="Other clients" icon="grid-2" href="/platform/ai-coding/other-clients">
+    VS Code, Claude Desktop, Codex CLI, and any other MCP client.
+  </Card>
+</Columns>

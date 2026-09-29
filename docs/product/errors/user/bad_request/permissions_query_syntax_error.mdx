@@ -1,270 +1,51 @@
 ---
 title: "permissions_query_syntax_error"
-description: "Your verifyKey permissions query contains invalid syntax or unsupported characters. Review the permissions query format and fix the expression."
+sidebarTitle: "permissions_query_syntax_error"
+description: "The permissions query passed to keys.verifyKey could not be parsed."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_keys_verify_key/handler.go
+  - pkg/rbac/lexer.go
+  - pkg/rbac/parser.go
 ---
 
 <Danger>`err:user:bad_request:permissions_query_syntax_error`</Danger>
 
-```json Example
+The `permissions` string you sent to `keys.verifyKey` isn't a valid permission query. You get HTTP 400 before the key is checked, and `detail` gives the position of the problem and what was expected there.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "Syntax error in permission query: unexpected token 'AND' at position 15. Expected permission name or opening parenthesis.",
+    "detail": "Missing closing parenthesis ')' at position 24. Every opening parenthesis must have a matching closing parenthesis.",
     "status": 400,
     "title": "Bad Request",
-    "type": "https://unkey.com/docs/errors/user/bad_request/permissions_query_syntax_error",
-    "errors": [
-      {
-        "location": "body.permissions",
-        "message": "unexpected token 'AND' at position 15",
-        "fix": "Check your query syntax. AND/OR operators must be between permissions, not at the start or end"
-      }
-    ]
+    "type": "/errors/user/bad_request/permissions_query_syntax_error",
+    "errors": []
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-This error occurs when the permissions query in your `verifyKey` request contains invalid syntax or characters. This can happen due to:
+- You wrote `&&` or `||` instead of `AND` or `OR`.
+- You put quotes around slugs.
+- A `(` has no matching `)`, or a group is empty: `()`.
+- A slug has a character outside the allowed set: letters, numbers, dots, underscores, hyphens, slashes, colons, asterisks, and parentheses.
+- A token is where an operator or slug was expected, or the query is blank.
 
-- **Invalid characters** in permission names (lexical errors)
-- **Incorrect query structure** like missing operands or unmatched parentheses (syntax errors)
-- **Malformed expressions** that don't follow the expected grammar
+If you pass an array of slugs instead of a string, you get [`err:unkey:application:invalid_input`](/errors/unkey/application/invalid_input) instead.
 
-## Permissions Query Requirements
+## How to fix
 
-The `verifyKey` endpoint accepts a permissions query string that must follow these rules:
+1. Fix the query at the position named in `detail`.
+2. Write it as slugs joined with `AND` and `OR`, grouped with parentheses. For example: `documents.read AND (billing.read OR billing.write)`.
+3. If you build the query from user input, validate it first. A syntax error fails the whole request instead of returning `valid: false`.
 
-### Valid Characters
+## Related errors
 
-The query parser accepts these characters:
-
-- **Permissions**: Must follow the permission slug format (alphanumeric, dots, underscores, hyphens)
-  - **Letters**: `a-z`, `A-Z`
-  - **Numbers**: `0-9`
-  - **Dots**: `.` for permission namespacing
-  - **Underscores**: `_` in identifiers
-  - **Hyphens**: `-` in identifiers
-- **Query operators**: `AND`, `OR` (case insensitive)
-- **Grouping**: `(` `)` for parentheses
-- **Whitespace**: Spaces, tabs and new lines for separation (ignored by parser)
-
-Everything else is not allowed.
-
-### Query Structure
-
-A permissions query can be:
-
-1. **A single permission**: `permission_1`
-2. **Multiple permissions with AND**: `permission_1 AND permission_2`
-3. **Multiple permissions with OR**: `permission_1 OR permission_2`
-4. **Grouped expressions**: `(permission_1 OR permission_2) AND permission_3`
-
-**Key rules:**
-
-- Permission names must be valid permission slugs (letters, numbers, dots, underscores, hyphens)
-- Use `AND` when all permissions are required
-- Use `OR` when any of the permissions is sufficient
-- Use parentheses `()` to group expressions and control precedence
-- Operators are case insensitive: `AND`, `AnD`, `and` all work.
-
-## Common Errors and Solutions
-
-### 1. Invalid Characters
-
-```bash
-# ❌ Invalid - contains special characters
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_XXXX" \
-  -d '{
-    "key": "sk_123",
-    "permissions": "permission$1 OR permission@2"
-  }'
-
-# ✅ Valid - use underscores or hyphens
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_XXXX" \
-  -d '{
-    "key": "sk_123",
-    "permissions": "permission_1 OR permission_2"
-  }'
-```
-
-### 2. Missing Operands
-
-```bash
-# ❌ Invalid - AND without right operand
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_XXXX" \
-  -d '{
-    "key": "sk_123",
-    "permissions": "permission_1 AND"
-  }'
-
-# ✅ Valid - complete AND expression
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_XXXX" \
-  -d '{
-    "key": "sk_123",
-    "permissions": "permission_1 AND permission_2"
-  }'
-```
-
-### 3. Unmatched Parentheses
-
-```bash
-# ❌ Invalid - missing closing parenthesis
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_XXXX" \
-  -d '{
-    "key": "sk_123",
-    "permissions": "(permission_1 AND permission_2"
-  }'
-
-# ✅ Valid - balanced parentheses
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_XXXX" \
-  -d '{
-    "key": "sk_123",
-    "permissions": "(permission_1 AND permission_2)"
-  }'
-```
-
-### 4. Empty Parentheses
-
-```bash
-# ❌ Invalid - empty parentheses
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_XXXX" \
-  -d '{
-    "key": "sk_123",
-    "permissions": "permission_1 AND ()"
-  }'
-
-# ✅ Valid - parentheses with content
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_XXXX" \
-  -d '{
-    "key": "sk_123",
-    "permissions": "permission_1 AND (permission_2 OR permission_3)"
-  }'
-```
-
-### 5. Incorrect Operator Placement
-
-```bash
-# ❌ Invalid - operator at start
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_XXXX" \
-  -d '{
-    "key": "sk_123",
-    "permissions": "OR permission_1"
-  }'
-
-# ✅ Valid - operators between permissions
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_XXXX" \
-  -d '{
-    "key": "sk_123",
-    "permissions": "permission_1 OR permission_2"
-  }'
-```
-
-## Valid Query Examples
-
-### Simple Permission
-
-```bash
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_XXXX" \
-  -d '{
-    "key": "sk_123",
-    "permissions": "permission_1"
-  }'
-```
-
-### AND Operation
-
-```bash
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_XXXX" \
-  -d '{
-    "key": "sk_123",
-    "permissions": "permission_1 AND permission_2"
-  }'
-```
-
-### OR Operation
-
-```bash
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_XXXX" \
-  -d '{
-    "key": "sk_123",
-    "permissions": "permission_1 OR permission_2"
-  }'
-```
-
-### Complex Expressions
-
-```bash
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_XXXX" \
-  -d '{
-    "key": "sk_123",
-    "permissions": "(permission_1 OR permission_2) AND permission_3"
-  }'
-```
-
-### Nested Expressions
-
-```bash
-curl -X POST https://api.unkey.com/v2/keys.verifyKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_XXXX" \
-  -d '{
-    "key": "sk_123",
-    "permissions": "((permission_1 OR permission_2) AND permission_3) OR permission_4"
-  }'
-```
-
-## Valid Permission Formats
-
-### Simple Names
-
-- `permission_1`
-- `user_read`
-- `admin-access`
-
-### Namespaced Permissions
-
-- `api.users.read`
-- `billing.invoices.create`
-- `workspace.settings.update`
-
-### Mixed Formats
-
-- `user_management.create`
-- `billing-service.view`
-- `service123.feature_a.read`
-
-## Context
-
-This error is specific to the `verifyKey` endpoint's permissions query parsing. The query is validated at the application level to ensure it conforms to the expected permission query language syntax. Basic validation like empty strings and length limits are handled at the OpenAPI level before reaching this parser.
+- [`err:unkey:authorization:insufficient_permissions`](/errors/unkey/authorization/insufficient_permissions): the query parsed but your root key lacks a permission the endpoint needs.
+- [`err:unkey:application:invalid_input`](/errors/unkey/application/invalid_input): another field of the request failed validation.

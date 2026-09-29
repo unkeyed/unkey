@@ -1,0 +1,58 @@
+---
+title: Workspaces
+sidebarTitle: "Overview"
+description: "Understand what a workspace holds and how to create or switch between them."
+sources:
+  - web/internal/db/src/schema/workspaces.ts
+  - web/internal/id/src/generate.ts
+  - web/apps/dashboard/lib/trpc/routers/workspace/create.ts
+  - web/apps/dashboard/app/new/hooks/use-workspace-step.tsx
+  - web/apps/dashboard/lib/slugify.ts
+  - web/apps/dashboard/lib/limits.ts
+  - web/apps/dashboard/lib/support.ts
+---
+
+A workspace is the top-level container. Everything you create sits in exactly one. Whether you deploy an <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> with Compute or only issue API keys, it's the same workspace with different parts in use.
+
+Most teams need one workspace. Make a second when you need hard isolation: separate billing for two business units, or a client whose data must never sit next to yours.
+
+## What sits in a workspace
+
+Everything on this site is scoped to a workspace: the [team](/platform/workspace/team) and roles, [billing plans](/platform/billing/plans) and [limits](/platform/billing/limits), root keys, keyspaces and keys, and Compute projects with their apps and <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environments</Tooltip>. A root key from one workspace can't touch another.
+
+## Slug and ID
+
+A workspace has two identifiers. They do different jobs.
+
+<ParamField path="slug" type="string" required>
+  The URL handle you choose when creating the workspace. It appears in every dashboard URL as `app.unkey.com/<slug>/...`, must be unique across Unkey, and can't be changed later. It's 3 to 64 characters of lowercase letters, digits, and hyphens, and can't start or end with a hyphen. The dashboard derives a slug from the workspace name as you type and lets you edit it before creating.
+</ParamField>
+
+<ParamField path="id" type="string">
+  A generated identifier prefixed with `ws_`. Use it when an API call or a support request needs to name the workspace. Copy it from **Settings > General**. See [Workspace settings](/platform/workspace/settings).
+</ParamField>
+
+## Create a workspace
+
+<Steps titleSize="h3">
+  <Step title="Open the creation page">
+    Go to [app.unkey.com/new](https://app.unkey.com/new). Signing in with a new account lands you here automatically.
+  </Step>
+  <Step title="Name the workspace">
+    Enter a name between 3 and 50 characters. The name isn't shown to your users, so choose one your team recognizes.
+  </Step>
+  <Step title="Confirm the slug">
+    The dashboard fills in a slug derived from the name. Edit it if you want a shorter handle. If the slug is already taken, the form tells you and you pick another.
+
+    <Frame>
+      <img src="/images/dashboard/platform--workspace-overview--create-workspace.png" alt="Create Company Workspace form with a workspace name entered and the URL handle filled in from it" />
+    </Frame>
+  </Step>
+  <Step title="Create">
+    Click **Create workspace**. The workspace starts on the free tier with the [free limits](/platform/billing/limits) and no Compute plan. You can deploy once you pick one under [Plans](/platform/billing/plans).
+  </Step>
+</Steps>
+
+## Delete a workspace
+
+The dashboard and the API don't offer workspace deletion. To close a workspace, email [support@unkey.com](mailto:support@unkey.com) from an address that belongs to a workspace admin. Make sure you cancel any paid plans under **Settings > Billing** so nothing renews while the request is handled.

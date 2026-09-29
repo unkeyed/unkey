@@ -1,7 +1,46 @@
 ---
 title: "domain_not_found"
-description: "NotFound indicates the requested domain does not exist."
+sidebarTitle: "domain_not_found"
+description: "The custom domain is not attached to your workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_domains_get_domain/handler.go
+  - svc/api/routes/v2_domains_delete_domain/handler.go
+  - svc/api/routes/v2_domains_verify_domain/handler.go
 ---
 
 <Danger>`err:unkey:data:domain_not_found`</Danger>
 
+The custom domain you referenced isn't attached to your workspace. You get HTTP 404.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_2c9a0jf23l4k567"
+  },
+  "error": {
+    "detail": "The requested domain does not exist.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/domain_not_found"
+  }
+}
+```
+
+## Likely causes
+
+- The domain ID or name is wrong, or the domain was never added to this workspace.
+- Your root key doesn't have permission. `domains.getDomain`, `domains.deleteDomain`, and `domains.verifyDomain` return this 404 instead of a 403, so it's as likely a permission problem as a missing domain.
+
+Names are compared in lowercase and with Unicode converted to Punycode, so `MÜNCHEN.de` and `xn--mnchen-3ya.de` are the same domain.
+
+## How to fix
+
+1. List domains with `domains.listDomains` and use the returned ID.
+2. If the ID is right, check the root key's permissions before you decide the domain is gone.
+
+## Related errors
+
+- [`err:unkey:data:domain_already_exists`](/errors/unkey/data/domain_already_exists): the domain is already attached.
+- [`err:unkey:data:environment_not_found`](/errors/unkey/data/environment_not_found): the environment the domain should belong to doesn't exist.

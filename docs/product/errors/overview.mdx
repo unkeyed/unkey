@@ -1,78 +1,152 @@
 ---
-title: "Error Codes"
-description: "Understand Unkey's structured error code system with categories for authentication, authorization, data, and application errors with fix guidance."
+title: "Error codes"
+sidebarTitle: "Overview"
+description: "What every Unkey error code means and how to fix it."
+sources:
+  - pkg/codes/codes.go
+  - pkg/codes/constants_gen.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/openapi/gen.go
+  - svc/frontline/middleware/observability.go
 ---
 
-## Introduction
+Every Unkey error has a code shaped like `err:{system}:{category}:{specific}`, and every code has a page here at `/errors/{system}/{category}/{specific}`. Each page tells you what the error means, shows an example response, and lists the likely causes and how to fix them.
 
-Unkey's error system uses a structured approach to organize and identify errors across the platform. This system makes it easier to understand, debug, and handle errors consistently.
+## Reading an error code
 
-## Error Code Format
+The first part tells you where the error came from.
 
-All Unkey error codes follow a consistent URN-like format:
+| System | Meaning | Returned by |
+| --- | --- | --- |
+| `user` | Your request can't be processed as sent: a malformed body, a query that breaks a rule, or a rate limit you went over. | The API at `api.unkey.com` |
+| `unkey` | The API understood the request but couldn't complete it: authentication, permissions, a missing or conflicting resource, a failed precondition, or a failure on our side. | The API at `api.unkey.com` |
+| `frontline` | The gateway in front of an app on Compute rejected a request or couldn't forward it. Often the person who sees it is calling your API, not you. | The gateway on your app's domains |
 
-```text
-err:system:category:specific
-```
+The second part groups codes by kind, and the third names the exact problem. Always read the whole code, because some names appear in two categories. `err:unkey:authentication:key_not_found` is about the root key you authenticated with. `err:unkey:data:key_not_found` is about a key you referenced in the request.
 
-For example: `err:unkey:authentication:missing`
+## What the API error body looks like
 
-This format breaks down as follows:
+The API returns errors as JSON:
 
-- **err**: Standard prefix for all error codes
-- **system**: The service area or responsibility domain (e.g., unkey, user)
-- **category**: The error type or classification (e.g., authentication, data)
-- **specific**: The exact error condition (e.g., missing, malformed)
+- `meta.requestId` identifies the request. Include it when you contact support.
+- `error.type` is the error's page in this catalog.
+- `error.status` repeats the HTTP status.
+- `error.title` is a short label. Match on `error.type`, never on the title.
+- `error.detail` explains what went wrong this time, often with the exact value or permission.
 
-## Systems
-
-The "system" component identifies where the error originated:
-
-- **unkey**: Errors originating from Unkey's internal systems
-- **github**: Errors related to GitHub integration
-- **aws**: Errors related to AWS integration
-
-## Categories
-
-The "category" component provides a second level of classification, for example:
-
-- **authentication**: Errors related to the authentication process
-- **authorization**: Errors related to permissions and access control
-- **application**: Errors related to application operations and system integrity
-- **data**: Errors related to data operations and resources
-- **limits**: Rate limiting or quota-related errors
-
-## Error Response Format
-
-When an error occurs, the API returns a consistent JSON response format:
-
-```json
+```json Not found
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "Authentication credentials were not provided",
-    "status": 401,
-    "title": "Unauthorized",
-    "type": "https://unkey.com/docs/errors/unkey/authentication/missing"
+    "detail": "We could not find the requested key.",
+    "status": 404,
+    "title": "Not Found",
+    "type": "/errors/unkey/data/key_not_found"
   }
 }
 ```
 
-Key fields:
+Validation failures (`err:unkey:application:invalid_input`) add an `errors` array. Each entry has a `location`, such as `/required`, and a `message`, such as `missing property 'apiId'`. Some entries also have a `fix` that says what to change.
 
-- **requestId**: Unique identifier for the request (important for support)
-- **detail**: Human-readable explanation of the error
-- **status**: HTTP status code
-- **title**: Short summary of the error type
-- **type**: URL to detailed documentation about this error
+```json Validation failure
+{
+  "meta": {
+    "requestId": "req_8f7g6h5j4k3l2m1n"
+  },
+  "error": {
+    "detail": "POST request body for '/v2/keys.createKey' failed to validate schema",
+    "errors": [
+      {
+        "location": "/required",
+        "message": "missing property 'apiId'"
+      }
+    ],
+    "status": 400,
+    "title": "Bad Request",
+    "type": "/errors/unkey/application/invalid_input"
+  }
+}
+```
 
-## Documentation Integration
+Don't guess the status from the code's name. Every `err:unkey:data:*_not_found` code is 404, but [`err:unkey:authentication:key_not_found`](/errors/unkey/authentication/key_not_found) and [`err:unkey:authentication:portal_session_not_found`](/errors/unkey/authentication/portal_session_not_found) are 401, because what's missing is your credential.
 
-All error codes have a corresponding documentation page accessible via the `type` URL in the error response. These pages provide detailed information about:
+A 5xx status means the failure is on our side, not in your request. Retry with backoff if the request is safe to repeat, and contact support with the request ID if it keeps happening.
 
-- What caused the error
-- How to fix the issue
-- Common mistakes that lead to this error
-- Related errors you might encounter
+## What the gateway error body looks like
+
+The gateway in front of apps on Compute returns a smaller body: a request ID, a `code`, and a `message`. Each error's page gives its status.
+
+```json Gateway error
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:client:invalid_key",
+    "message": "Authentication failed. The provided API key is invalid."
+  }
+}
+```
+
+You get this JSON when your request asks for it: an `Accept` header of `application/json`, `application/*`, or `*/*` without `text/html`. Plain `curl` sends `*/*`, so it gets JSON. Everything else, including a browser, gets an HTML page with the same code, message, and request ID.
+
+## Categories
+
+### Unkey errors
+
+<Columns cols={2}>
+  <Card title="Authentication" icon="key" href="/errors/unkey/authentication/missing">
+    The root key or session token is missing, malformed, or unknown. Platform.
+  </Card>
+  <Card title="Authorization" icon="lock" href="/errors/unkey/authorization/insufficient_permissions">
+    You are identified but not allowed: missing permission, disabled key or workspace, expired key. Platform.
+  </Card>
+  <Card title="Data" icon="database" href="/errors/unkey/data/key_not_found">
+    A resource does not exist, was deleted, or already exists. API Management and Compute.
+  </Card>
+  <Card title="Application" icon="gears" href="/errors/unkey/application/precondition_failed">
+    Validation beyond the schema, preconditions including the deployment lifecycle, delete protection, and failures on our side.
+  </Card>
+  <Card title="Limits" icon="gauge-high" href="/errors/unkey/limits/custom_domain_limit_exceeded">
+    A plan allowance is exhausted. Today that only covers Compute custom domains.
+  </Card>
+</Columns>
+
+### User errors
+
+<Columns cols={2}>
+  <Card title="Bad request" icon="circle-exclamation" href="/errors/user/bad_request/request_body_too_large">
+    Body size, timeouts, disconnects, permission query syntax, and analytics query rules.
+  </Card>
+  <Card title="Unprocessable entity" icon="hourglass-half" href="/errors/user/unprocessable_entity/query_execution_timeout">
+    An analytics query was valid but exceeded its time, memory, or row budget.
+  </Card>
+  <Card title="Too many requests" icon="traffic-light" href="/errors/user/too_many_requests/query_quota_exceeded">
+    The analytics query quota.
+  </Card>
+</Columns>
+
+### Gateway errors
+
+<Columns cols={2}>
+  <Card title="Client" icon="user" href="/errors/frontline/client/invalid_key">
+    The request to your app was rejected by a gateway policy: missing or invalid key, permissions, rate limit, firewall, schema.
+  </Card>
+  <Card title="Capacity" icon="server" href="/errors/frontline/capacity/no_running_instances">
+    The deployment is offline, has no running instances, or the workspace reached its spend limit.
+  </Card>
+  <Card title="Routing" icon="signs-post" href="/errors/frontline/routing/config_not_found">
+    No deployment or configuration matches the requested host.
+  </Card>
+  <Card title="Upstream" icon="cloud-arrow-up" href="/errors/frontline/upstream/bad_gateway">
+    Your app did not answer, answered badly, or took too long.
+  </Card>
+  <Card title="Config" icon="sliders" href="/errors/frontline/config/invalid_configuration">
+    The gateway configuration for the deployment is invalid.
+  </Card>
+  <Card title="Platform" icon="triangle-exclamation" href="/errors/frontline/platform/internal_server_error">
+    The gateway failed on our side.
+  </Card>
+</Columns>

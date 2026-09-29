@@ -1,0 +1,80 @@
+---
+title: Keyspace settings
+sidebarTitle: "Settings"
+description: "Set the defaults and protections that apply to every key in a keyspace."
+sources:
+  - web/internal/db/src/schema/keyAuth.ts
+  - web/internal/db/src/schema/apis.ts
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_reroll_key/handler.go
+  - svc/api/routes/v2_apis_delete_api/handler.go
+  - internal/services/keys/get.go
+  - internal/services/keys/validation.go
+  - svc/api/openapi/spec/paths/v2/apis/getApi/V2ApisGetApiResponseData.yaml
+  - web/apps/dashboard/lib/trpc/routers/api/create.ts
+  - web/apps/dashboard/lib/trpc/routers/api/query-api-key-details.ts
+  - web/apps/dashboard/lib/trpc/routers/workspace/onboarding.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/default-prefix.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/default-bytes.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/apis/[apiId]/settings/components/delete-protection.tsx
+---
+
+These settings apply to every key in a keyspace. Change them on the keyspace's **Settings** page in the dashboard. There's no API for this. For encrypted key storage and the IP allow list, contact support.
+
+<Frame>
+  <img src="/images/dashboard/platform--security-delete-protection--keyspace-settings.png" alt="Keyspace settings page with the name, API ID, keyspace ID, key defaults, and a Danger Zone holding the Delete Protection card and the Delete Keyspace button" />
+</Frame>
+
+## Name and identifiers
+
+<ParamField path="name" type="string" required>
+  The label shown in the dashboard. You can change it any time.
+</ParamField>
+
+<ParamField path="API ID" type="string">
+  Read-only, `api_...`. Pass it as `apiId` when creating or listing keys.
+</ParamField>
+
+<ParamField path="Keyspace ID" type="string">
+  Read-only, `ks_...`. Used by analytics (`key_space_id`) and the customer portal.
+</ParamField>
+
+## Key generation defaults
+
+These apply when a `keys.createKey` request leaves out `prefix` or `byteLength`.
+
+<ParamField path="Default prefix" type="string" default="none">
+  Up to 16 characters. New keys without their own `prefix` look like `<prefix>_<random>`. Rerolling a key with no prefix also uses it.
+</ParamField>
+
+<ParamField path="Default bytes" type="integer" default="16">
+  Random bytes in a new key when the request leaves out `byteLength`. The API accepts 16 to 255. Rerolled keys always use this value (or 16 if unset), not the original key's length.
+</ParamField>
+
+## Store encrypted keys
+
+<ParamField path="Store encrypted keys" type="boolean" default="false">
+  When on, you can create recoverable keys and read them back with `decrypt: true`. When off, `keys.createKey` with `recoverable: true` fails with HTTP 412 "This API does not support key encryption." There's no dashboard toggle. Contact support to turn it on. See [Recoverable keys](/api-management/keys/recoverable-keys).
+</ParamField>
+
+## IP allow list
+
+<ParamField path="IP allow list" type="string" default="none">
+  A comma-separated list of IP addresses, up to 512 characters. When set, a verification of any key in this keyspace fails with `code: FORBIDDEN` unless it comes from an IP on the list.
+</ParamField>
+
+Matching is exact, for IPv4 and IPv6. CIDR ranges such as `10.0.0.0/8` don't work. A request with no client IP is also rejected with `FORBIDDEN`.
+
+New keyspaces have no allow list. Contact support to set or change one. You can't see the list in the dashboard or the API, so if verifications return `FORBIDDEN` and you don't know why, ask support whether an allow list is set.
+
+## Delete protection
+
+<ParamField path="Delete protection" type="boolean" default="false">
+  When on, **Delete Keyspace** in the dashboard and `apis.deleteApi` both fail with HTTP 412 `err:unkey:application:protected_resource`. Switch it on the **Delete Protection** card and type the keyspace name to confirm. The change shows in the audit log as `api.update`.
+</ParamField>
+
+Protection covers the keyspace only. You can still delete keys inside it. [Delete protection](/platform/security/delete-protection) describes the same flag on the other resource types.
+
+## Delete keyspace
+
+The **Delete Keyspace** card in the danger zone deletes the keyspace after you type its name and the confirmation word. Every key in it then verifies as `NOT_FOUND`. You can't undo this from the dashboard.

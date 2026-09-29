@@ -1,0 +1,28 @@
+---
+title: Build logs
+description: "Read the steps and output Unkey records while building a deployment."
+sources:
+  - pkg/clickhouse/schema/020_build_steps_v1.sql
+  - pkg/clickhouse/schema/021_build_step_logs_v1.sql
+  - web/internal/clickhouse/src/build-steps.ts
+  - web/apps/dashboard/lib/trpc/routers/deploy/deployment/build-steps.ts
+  - pkg/clickhouse/user.go
+---
+
+Build logs show each step of building a <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> and its output. Open the <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>, click **Deployments**, and open the deployment. The steps appear as the build runs and stay afterwards. A deployment from a prebuilt image has no build, so it has no build logs. See [Deploy a container image](/compute/get-started/deploy-an-image).
+
+## What a step shows
+
+Each step shows its name, start and end time, whether it came from the cache, and an error message if it failed. Click a step to see its output. A cached step didn't run, because nothing it depends on changed since an earlier build. See [Builds](/compute/build/overview) for what the cache covers.
+
+## Find why a build failed
+
+Look for the step with the error. Its last lines of output usually name the cause, such as a missing dependency, a compile error, or a Dockerfile instruction that failed. See [Deployments](/compute/concepts/deployments).
+
+<Frame>
+  <img src="/images/dashboard/compute--observe-build-logs--failed-build.png" alt="Build logs of a failed deployment with the failing step's output in red and the later steps skipped" />
+</Frame>
+
+## Retention and access
+
+Build logs are kept for 3 months, and are only in the dashboard.

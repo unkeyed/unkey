@@ -1,11 +1,19 @@
 ---
 title: "deployment_is_stopping"
-description: "A stop is already in progress for this deployment; it is finishing in-flight work and does not need to be stopped again."
+sidebarTitle: "deployment_is_stopping"
+description: "A stop is already in progress for this deployment."
+sources:
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/deploy/deploygate/deploygate.go
+  - svc/api/routes/v2_deployments_stop_deployment/handler.go
 ---
 
 <Danger>`err:unkey:application:deployment_is_stopping`</Danger>
 
-```json Example
+You asked to stop a deployment that's already stopping. You get HTTP 412.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
@@ -14,36 +22,21 @@ description: "A stop is already in progress for this deployment; it is finishing
     "detail": "The deployment is already stopping.",
     "status": 412,
     "title": "Precondition Failed",
-    "type": "https://unkey.com/docs/errors/unkey/application/deployment_is_stopping"
+    "type": "/errors/unkey/application/deployment_is_stopping"
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-You called `stopDeployment` on a deployment whose stop is already in progress. A stopping deployment keeps `ready` status until its last instance is removed, so `status` alone does not reveal that a stop is underway. `getDeployment` reflects this through `availableActions`: a running deployment offers `stop`, but once a stop is in progress it offers no lifecycle actions at all. `start` appears only after the deployment has fully reached `stopped` status.
+- You called `deployments.stopDeployment` again before the first stop finished. A stop takes effect right away, but the status only reads stopped once the last instance has shut down.
 
-## How To Fix
+## How to fix
 
-1. Fetch the deployment with `getDeployment` and inspect `availableActions`.
-2. If the deployment reports `status: ready` but `stop` is not listed, a stop is already in progress; wait for it to finish.
-3. Once the deployment reaches `stopped`, `start` becomes available; use `startDeployment` to bring it back.
+1. Nothing to do: the first stop is already in progress. Poll `deployments.getDeployment` until the status reads stopped.
+2. If you want the deployment back, call `deployments.startDeployment`. You don't have to wait for the stop to finish.
 
-```bash
-# Check the available actions before issuing another stop
-curl -X POST https://api.unkey.com/v2/deployments.getDeployment \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
-  -d '{ "deploymentId": "d_1234abcd" }'
-```
+## Related errors
 
-## Common Mistakes
-
-- **Double-stopping**: Issuing a second `stop` while the first is still in progress.
-- **Relying on status alone**: A deployment can still report `ready` while it is stopping; use `availableActions` to see which operations apply.
-
-## Related Errors
-
-- [err:unkey:application:deployment_not_running](./deployment_not_running) - When the deployment is not running
-- [err:unkey:application:deployment_not_stopped](./deployment_not_stopped) - When starting a deployment that is not stopped
-- [err:unkey:application:deployment_is_production](./deployment_is_production) - When the deployment is in production
+- [`err:unkey:application:deployment_not_running`](/errors/unkey/application/deployment_not_running): the deployment isn't running at all.
+- [`err:unkey:application:deployment_not_stopped`](/errors/unkey/application/deployment_not_stopped): start was called on a deployment that isn't stopped.

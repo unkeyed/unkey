@@ -1,0 +1,82 @@
+---
+title: Builds
+sidebarTitle: "Overview"
+description: "Choose how your app is built, and work out why a build is waiting or has failed."
+sources:
+  - svc/ctrl/worker/deploy/deploy_handler.go
+  - svc/ctrl/worker/deploy/build.go
+  - svc/ctrl/worker/deploy/railpack.go
+  - svc/api/openapi/spec/common/EnvironmentBuild.yaml
+  - svc/api/openapi/spec/common/DeploymentErrorCode.yaml
+  - svc/api/openapi/spec/paths/v2/environments/updateSettings/V2EnvironmentsUpdateSettingsRequestBody.yaml
+  - web/internal/db/src/schema/app_build_settings.ts
+  - web/apps/dashboard/lib/limits.ts
+  - svc/ctrl/worker/deploy/build_handler.go
+  - svc/ctrl/worker/cron/buildlimitsync/handler.go
+---
+
+A build turns the source of a git-connected <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> into the container image your <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> runs. Builds happen on our infrastructure, so you don't need Docker installed to deploy.
+
+Only git-connected apps build. If you deploy a prebuilt image, there is nothing to build: the deployment records the image you named and runs it, and none of the settings on this page apply.
+
+## Choose how your app is built
+
+There is one decision, and it is the Dockerfile path in your <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>'s [build settings](/compute/configure/build-settings).
+
+Leave it empty, the default the dashboard calls **Automatic (no Dockerfile)**, and we detect your language and toolchain from the root directory and build it for you. Set a path and we run a normal Docker build with that file, using the root directory as the build context. See [Dockerfile builds](/compute/build/dockerfile).
+
+To get an automatic build right:
+
+- **Pin your tool versions** in the files your ecosystem already uses. Detection reads them to decide which toolchain to install, so a project that pins nothing can move versions underneath you between builds.
+- **In a monorepo, set the root directory** to the app's own directory, so detection looks at the right project rather than the repository root.
+- **Set a build command** when the detected one is wrong. It can be up to 1000 characters, and it is ignored when a Dockerfile is set.
+
+If detection can't work out how to build your app, the deployment fails with "Unkey could not build this app automatically. For a monorepo, set the root directory to your app and a custom build command in settings, or review the build logs for details." The fix is one of the three above.
+
+## Why your build is waiting
+
+A workspace runs one build at a time on every plan today, so a second deployment sits in `pending` until the first finishes. Deployments from a prebuilt image queue too, even though they don't build.
+
+Production deployments jump ahead of preview deployments in the queue, so a hot-fix doesn't wait behind a backlog of pull request builds.
+
+A deployment that has waited an hour for its turn fails rather than waiting longer, so a jammed queue surfaces instead of hanging. Deploy again once the queue has drained.
+
+## Why your build failed
+
+A failed build ends the deployment as `failed` with the error code `build_failed`. Read the build output on the deployment's detail page in the dashboard, where it streams live and stays afterwards. Common causes are rewritten in plain language above the log, for example a Dockerfile that couldn't be read or a file the build referenced that doesn't exist, and the full log is always underneath.
+
+Problems in your own source, such as a Dockerfile syntax error or a build command that exits non-zero, fail immediately. Retrying them without changing anything gives the same result.
+
+Infrastructure blips are retried for you, up to five attempts and no longer than 30 minutes in total, whichever comes first. A build that takes unusually long and then fails has normally spent that time in retries.
+
+## Make builds faster, or skip them
+
+Build layers are cached per project, up to 25 GB, with layers older than 7 days evicted. Repeat builds of a project whose dependencies haven't changed reuse that cache. A project you haven't deployed in over a week builds from scratch again.
+
+Because every deployment produces its own image, promoting and rolling back never rebuild. They run an image that already exists, which is why a rollback is fast.
+
+Two settings stop a push from building at all:
+
+- **Watch paths** builds only when a changed file matches one of the environment's glob patterns, so a documentation-only commit doesn't start a build.
+- **Auto deploy**, turned off, stops pushes from deploying entirely, leaving you to deploy from the dashboard or the API when you choose.
+
+A push that isn't built still appears as a `skipped` deployment with the reason, so you can tell the difference between a push we ignored and one we never saw. Both settings live on [Build settings](/compute/configure/build-settings), and the order they're evaluated in is on [GitHub integration](/compute/build/github).
+
+Your environment variables are available while the build runs without being baked into the image. See [Build-time secrets](/compute/build/build-secrets).
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Dockerfile builds" icon="file-code" href="/compute/build/dockerfile">
+    Take control of the image when detection isn't enough.
+  </Card>
+  <Card title="Build-time secrets" icon="key" href="/compute/build/build-secrets">
+    Use environment variables during the build without baking them into layers.
+  </Card>
+  <Card title="Build settings" icon="sliders" href="/compute/configure/build-settings">
+    Root directory, Dockerfile, build command, watch paths, auto deploy.
+  </Card>
+  <Card title="Deployments" icon="rocket" href="/compute/concepts/deployments">
+    Where the build sits in the deployment lifecycle.
+  </Card>
+</Columns>

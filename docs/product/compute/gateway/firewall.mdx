@@ -1,0 +1,59 @@
+---
+title: Firewall policy
+description: "Block matching requests at the gateway with a 403 before they reach your app."
+sources:
+  - svc/api/openapi/spec/common/FirewallPolicy.yaml
+  - svc/api/openapi/spec/common/Policy.yaml
+  - svc/frontline/internal/policies/firewall/executor.go
+  - svc/frontline/internal/policies/engine.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/middleware/clickhouse_logging.go
+---
+
+A firewall policy tells the [gateway](/compute/gateway/overview) to block every request that matches its match expressions. Use it to close internal paths, block a method on a route, or refuse requests with a certain header, without changing your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>.
+
+To add one, open the app, go to **Policies**, click **Add Policy**, and pick **Firewall**. You only need a name, an environment, and match conditions.
+
+## Settings
+
+<ParamField body="action" type="string" required>
+  Always `ACTION_DENY`. A request the firewall doesn't match moves on to the next policy.
+</ParamField>
+
+```json Example: block writes to an admin prefix from outside
+{
+  "name": "Block admin writes",
+  "enabled": true,
+  "match": [
+    { "path": { "path": { "prefix": "/admin/", "ignoreCase": true } } },
+    { "method": { "methods": ["POST", "PUT", "PATCH", "DELETE"] } },
+    { "header": { "name": "X-Internal-Call", "present": true } }
+  ],
+  "firewall": { "action": "ACTION_DENY" }
+}
+```
+
+A request must match all the expressions, so the example only blocks requests that match all three. To block two unrelated kinds of request, create two firewall policies.
+
+A firewall policy with no match expressions blocks every request to the <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>. That's a quick way to take a preview environment offline.
+
+<Visibility for="agents">
+  In the dashboard this is the **Firewall** type in **Policies > Add Policy**. The form only asks for a name, an environment, and match conditions because `ACTION_DENY` is the only action. Programmatically, include the object above in the `policies` array of `POST /v2/gateway.setPolicies`. The change applies to the next deployment.
+</Visibility>
+
+## What the client sees
+
+A blocked request gets `403 Forbidden` with the code [`err:frontline:client:firewall_denied`](/errors/frontline/client/firewall_denied) and the message `Forbidden`. The body is JSON or an HTML page depending on the caller's `Accept` header. See [Gateway errors](/compute/gateway/errors). The caller isn't told which policy matched.
+
+No later policies run, and the request doesn't appear in your request log.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Gateway policies" icon="list-check" href="/compute/gateway/policies">
+    Every match expression type and how they combine.
+  </Card>
+  <Card title="Rate limit policy" icon="gauge-high" href="/compute/gateway/rate-limiting">
+    Slow callers down instead of blocking them.
+  </Card>
+</Columns>

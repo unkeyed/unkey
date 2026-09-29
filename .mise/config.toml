@@ -25,6 +25,8 @@ go = "1.27.1"
 "github:golangci/golangci-lint" = "2.13.2"
 "github:pnpm/pnpm" = "11.5.0"
 "github:speakeasy-api/speakeasy" = "1.790.1"
+# Mintlify CLI for the product docs site (docs/product); see mise tasks docs-*.
+"npm:mint" = "4.2.866"
 # stripe CLI: only used by the local-dev billing-flow runbooks (stripe login /
 # stripe listen). The pricing tool itself is pure SDK and does not need it.
 "aqua:stripe/stripe-cli" = "1.42.13"
