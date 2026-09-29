@@ -15,12 +15,12 @@ import (
 	vaultv1 "github.com/unkeyed/unkey/gen/proto/vault/v1"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/auditlog"
+	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
 	"github.com/unkeyed/unkey/pkg/deploy/deployfail"
 	"github.com/unkeyed/unkey/pkg/deploy/deploygate"
 	githubclient "github.com/unkeyed/unkey/pkg/github"
 	"github.com/unkeyed/unkey/pkg/logger"
 	mysqltype "github.com/unkeyed/unkey/pkg/mysql/types"
-	"github.com/unkeyed/unkey/pkg/privatenetwork"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/validation"
 	"github.com/unkeyed/unkey/svc/ctrl/internal/actor"
@@ -676,7 +676,7 @@ func (w *Workflow) buildSecretsBlob(ctx context.Context, environmentID string, e
 
 	bindingValues := make(map[string]string, len(bindings))
 	for _, binding := range bindings {
-		key, host := privatenetwork.HostVariable(binding.Name)
+		key, host := appbinding.HostVariable(binding.Name)
 		if !validation.IsValidEnvVarKey(key) || strings.HasPrefix(key, "UNKEY_") {
 			return nil, restate.ToTerminalError(fmt.Errorf("binding %q produces invalid or reserved environment variable %q", binding.Name, key))
 		}
