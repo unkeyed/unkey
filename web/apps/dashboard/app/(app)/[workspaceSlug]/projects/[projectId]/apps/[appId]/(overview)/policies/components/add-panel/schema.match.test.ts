@@ -14,11 +14,9 @@ function firewallWithRemoteIp(operator: "in" | "notIn", ranges: string): PolicyF
 
 describe("remote ip condition", () => {
   it("serializes in ranges split on commas, spaces and newlines", () => {
-    const wire = toPolicy(
-      firewallWithRemoteIp("in", "203.0.113.0/24, 198.51.100.7\n2001:db8::/32"),
-    );
+    const wire = toPolicy(firewallWithRemoteIp("in", "203.0.113.0/24, 198.51.100.7\n192.0.2.0/24"));
     expect(wire.match).toEqual([
-      { remoteIp: { in: ["203.0.113.0/24", "198.51.100.7", "2001:db8::/32"] } },
+      { remoteIp: { in: ["203.0.113.0/24", "198.51.100.7", "192.0.2.0/24"] } },
     ]);
   });
 
@@ -50,7 +48,17 @@ describe("remote ip condition", () => {
   it("rejects an entry that is not an IP or CIDR and names it", () => {
     const r = policyFormSchema.safeParse(firewallWithRemoteIp("in", "203.0.113.0/24\nkebap"));
     expect(r.success).toBe(false);
-    expect(r.error?.issues.map((i) => i.message)).toContain("kebap is not a valid IP or CIDR");
+    expect(r.error?.issues.map((i) => i.message)).toContain(
+      "kebap is not a valid IPv4 address or CIDR",
+    );
+  });
+
+  it("rejects an IPv6 entry", () => {
+    const r = policyFormSchema.safeParse(firewallWithRemoteIp("notIn", "2001:db8::/32"));
+    expect(r.success).toBe(false);
+    expect(r.error?.issues.map((i) => i.message)).toContain(
+      "2001:db8::/32 is not a valid IPv4 address or CIDR",
+    );
   });
 
   it("rejects more than 100 ranges", () => {

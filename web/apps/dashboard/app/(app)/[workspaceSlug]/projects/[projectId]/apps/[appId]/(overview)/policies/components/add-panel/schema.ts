@@ -61,9 +61,9 @@ const remoteIpConditionSchema = z.object({
   ranges: z.string(),
 });
 
-const ipOrCidrSchema = z.union([z.ipv4(), z.ipv6(), z.cidrv4(), z.cidrv6()]);
+const ipv4OrCidrSchema = z.union([z.ipv4(), z.cidrv4()]);
 
-// "203.0.113.0/24, 198.51.100.7\n2001:db8::/32" -> ["203.0.113.0/24", "198.51.100.7", "2001:db8::/32"]
+// "203.0.113.0/24, 198.51.100.7\n192.0.2.0/24" -> ["203.0.113.0/24", "198.51.100.7", "192.0.2.0/24"]
 function splitRanges(ranges: string): string[] {
   return ranges.split(/[\s,]+/).filter((r) => r.length > 0);
 }
@@ -86,7 +86,7 @@ export const matchConditionSchema = z
       if (entries.length === 0) {
         ctx.addIssue({
           code: "custom",
-          message: "Enter at least one IP or CIDR",
+          message: "Enter at least one IPv4 address or CIDR",
           path: ["ranges"],
         });
       }
@@ -97,11 +97,11 @@ export const matchConditionSchema = z
           path: ["ranges"],
         });
       }
-      const invalid = entries.find((entry) => !ipOrCidrSchema.safeParse(entry).success);
+      const invalid = entries.find((entry) => !ipv4OrCidrSchema.safeParse(entry).success);
       if (invalid !== undefined) {
         ctx.addIssue({
           code: "custom",
-          message: `${invalid} is not a valid IP or CIDR`,
+          message: `${invalid} is not a valid IPv4 address or CIDR`,
           path: ["ranges"],
         });
       }
