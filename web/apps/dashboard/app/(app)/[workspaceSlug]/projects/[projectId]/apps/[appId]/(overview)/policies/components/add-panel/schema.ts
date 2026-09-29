@@ -61,6 +61,8 @@ const remoteIpConditionSchema = z.object({
   ranges: z.string(),
 });
 
+const ipOrCidrSchema = z.union([z.ipv4(), z.ipv6(), z.cidrv4(), z.cidrv6()]);
+
 function splitRanges(ranges: string): string[] {
   return ranges.split(/[\s,]+/).filter((r) => r.length > 0);
 }
@@ -79,18 +81,26 @@ export const matchConditionSchema = z
   ])
   .superRefine((c, ctx) => {
     if (c.type === "remoteIp") {
-      const count = splitRanges(c.ranges).length;
-      if (count === 0) {
+      const entries = splitRanges(c.ranges);
+      if (entries.length === 0) {
         ctx.addIssue({
           code: "custom",
           message: "Enter at least one IP or CIDR",
           path: ["ranges"],
         });
       }
-      if (count > POLICY_LIMITS.maxCidrsPerMatch) {
+      if (entries.length > POLICY_LIMITS.maxCidrsPerMatch) {
         ctx.addIssue({
           code: "custom",
           message: `At most ${POLICY_LIMITS.maxCidrsPerMatch} ranges`,
+          path: ["ranges"],
+        });
+      }
+      const invalid = entries.find((entry) => !ipOrCidrSchema.safeParse(entry).success);
+      if (invalid !== undefined) {
+        ctx.addIssue({
+          code: "custom",
+          message: `${invalid} is not a valid IP or CIDR`,
           path: ["ranges"],
         });
       }

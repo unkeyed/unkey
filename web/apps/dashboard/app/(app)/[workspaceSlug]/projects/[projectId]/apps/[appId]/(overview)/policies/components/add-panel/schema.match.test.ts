@@ -47,6 +47,12 @@ describe("remote ip condition", () => {
     expect(r.success).toBe(false);
   });
 
+  it("rejects an entry that is not an IP or CIDR and names it", () => {
+    const r = policyFormSchema.safeParse(firewallWithRemoteIp("in", "203.0.113.0/24\nkebap"));
+    expect(r.success).toBe(false);
+    expect(r.error?.issues.map((i) => i.message)).toContain("kebap is not a valid IP or CIDR");
+  });
+
   it("rejects more than 100 ranges", () => {
     const ranges = Array.from({ length: 101 }, () => "203.0.113.0/24").join("\n");
     const r = policyFormSchema.safeParse(firewallWithRemoteIp("in", ranges));
