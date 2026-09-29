@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	privatecontract "github.com/unkeyed/unkey/pkg/privatenetwork"
+	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
 	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
@@ -50,7 +50,7 @@ func TestPublicationRetainsBindingUntilRemoteDiscoveryIsReady(t *testing.T) {
 
 	a, err := client.CoreV1().Services("customer-1").Get(ctx, original.Data["serviceName"], metav1.GetOptions{})
 	require.NoError(t, err)
-	require.NotContains(t, a.Annotations, privatecontract.RetireAfterAnnotation)
+	require.NotContains(t, a.Annotations, appbinding.RetireAfterAnnotation)
 	require.Equal(t, []string{"10.72.0.11"}, sourceAddresses(t, client, a))
 
 	b, err := client.CoreV1().Services("customer-1").Get(ctx, discoveryName("dep_b", selected.GetPort()), metav1.GetOptions{})
@@ -106,5 +106,5 @@ func TestPublicationRetainsBindingUntilRemoteDiscoveryIsReady(t *testing.T) {
 
 	a, err = client.CoreV1().Services("customer-1").Get(ctx, original.Data["serviceName"], metav1.GetOptions{})
 	require.NoError(t, err)
-	require.Contains(t, a.Annotations, privatecontract.RetireAfterAnnotation)
+	require.Contains(t, a.Annotations, appbinding.RetireAfterAnnotation)
 }

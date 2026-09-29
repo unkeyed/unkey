@@ -9,7 +9,7 @@ import (
 	"time"
 
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	privatecontract "github.com/unkeyed/unkey/pkg/privatenetwork"
+	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -58,7 +58,7 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, app *ctrlv1.PrivateNetwor
 				continue
 			}
 			if deadline.IsZero() {
-				targets[target] = r.clock().Add(privatecontract.ReplacementOverlap)
+				targets[target] = r.clock().Add(appbinding.ReplacementOverlap)
 			} else if !r.clock().Before(deadline) {
 				delete(targets, target)
 			}
