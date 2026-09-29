@@ -1,0 +1,175 @@
+---
+title: Go SDK
+sidebarTitle: "Go"
+description: "Manage keys, rate limits, and deployments from Go with the v3 client."
+sources:
+  - go.mod
+  - cmd/api/util/client.go
+  - cmd/api/util/errors.go
+  - cmd/api/keys/verify_key.go
+  - cmd/api/keys/create_key.go
+  - cmd/api/ratelimit/limit.go
+  - cmd/api/deployments/create_deployment.go
+  - https://github.com/unkeyed/sdks/blob/49e455e0e6a3204f57ef325054438cf1bd7d6586/api/go/README.md
+  - https://github.com/unkeyed/sdks/blob/49e455e0e6a3204f57ef325054438cf1bd7d6586/api/go/go.mod
+  - https://pkg.go.dev/github.com/unkeyed/sdks/api/go/v3
+---
+
+import { versions } from "/snippets/versions.mdx";
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+Use the Go SDK, `github.com/unkeyed/sdks/api/go/v3` (current release {versions.goSdk}), to call the Unkey API from Go. The older `v1` and `v2` module paths are no longer updated.
+
+<RootKeyPrereq />
+
+## Install
+
+```bash
+go get github.com/unkeyed/sdks/api/go/v3
+```
+
+It needs a recent Go toolchain (currently Go 1.25).
+
+## Construct the client
+
+```go
+import (
+	unkey "github.com/unkeyed/sdks/api/go/v3"
+)
+
+client := unkey.New(
+	unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")),
+)
+```
+
+`WithSecurity` sets your root key. To change retries for every call, add `unkey.WithRetryConfig(retry.Config{...})`. For one call, pass `operations.WithRetries(...)` as the last argument. Request and response types are in `github.com/unkeyed/sdks/api/go/v3/models/components`, and typed errors in `.../models/apierrors`.
+
+## Verify a key
+
+```go
+import (
+	"errors"
+
+	"github.com/unkeyed/sdks/api/go/v3/models/components"
+)
+
+res, err := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{
+	Key:         "prod_abc123",
+	Permissions: unkey.String("documents.read"), // optional permission query
+})
+if err != nil {
+	return err
+}
+if res.V2KeysVerifyKeyResponseBody == nil {
+	return errors.New("unkey: empty response body")
+}
+
+data := res.V2KeysVerifyKeyResponseBody.Data
+if !data.Valid {
+	// data.Code says why: NOT_FOUND, DISABLED, EXPIRED, RATE_LIMITED, ...
+}
+```
+
+The response field, here `V2KeysVerifyKeyResponseBody`, is a pointer, so check it for `nil` even when `err` is `nil`. Optional request fields are pointers or slices. Use helpers such as `unkey.String` and `unkey.Bool` for pointer values. An invalid key is a successful call with `Valid` false, not an `error`. The meaning of each field is covered in [Verifying keys](/api-management/keys/verifying-keys) and the schema in [keys.verifyKey](/api-management/api-reference/keys/verify-api-key).
+
+## Create a key
+
+```go
+res, err := client.Keys.CreateKey(ctx, components.V2KeysCreateKeyRequestBody{
+	APIID:       "api_1234abcd",
+	Prefix:      unkey.String("prod"),
+	Name:        unkey.String("Payment service"),
+	ExternalID:  unkey.String("user_42"),
+	Permissions: []string{"documents.read"},
+	Enabled:     unkey.Bool(true),
+})
+if err != nil {
+	return err
+}
+
+created := res.V2KeysCreateKeyResponseBody.Data
+fmt.Println(created.KeyID)
+fmt.Println(created.Key) // returned once; store it or hand it to the user now
+```
+
+`ByteLength`, `Meta`, `Roles`, `Expires`, `Credits`, `Ratelimits`, and `Recoverable` are the remaining fields. [Creating keys](/api-management/keys/creating-keys) explains them and [keys.createKey](/api-management/api-reference/keys/create-api-key) lists the schema.
+
+## Apply a rate limit
+
+```go
+res, err := client.Ratelimit.Limit(ctx, components.V2RatelimitLimitRequestBody{
+	Namespace:  "email.send",
+	Identifier: "user_42",
+	Limit:      10,
+	Duration:   60_000, // milliseconds
+})
+if err != nil {
+	return err
+}
+if !res.V2RatelimitLimitResponseBody.Data.Success {
+	// Data.Remaining and Data.Reset (Unix ms) tell the caller when to retry
+}
+```
+
+The endpoint is [ratelimit.limit](/api-management/api-reference/ratelimit/apply-rate-limiting).
+
+## Create a deployment
+
+The client covers Compute too. Name the project, app, and environment, and optionally set the source with one of `Oci`, `Git`, or `Deployment`. Leave all three out to use the app's default:
+
+```go
+res, err := client.Deployments.CreateDeploymentV3(ctx, components.V3DeploymentsCreateDeploymentRequestBody{
+	Project:     "my-project",
+	App:         "api",
+	Environment: "production",
+	Oci:         &components.DeploymentSourceOCI{Image: "ghcr.io/acme/api:v1.0.0"},
+})
+if err != nil {
+	return err
+}
+fmt.Println(res.V3DeploymentsCreateDeploymentResponseBody.Data.DeploymentID)
+```
+
+The endpoint is [deployments.createDeploymentV3](/compute/api-reference/deployments/create-deployment). Don't use the `CreateDeployment` method. It calls the deprecated v2 endpoint. For projects, apps, and environments, see [Projects, apps, and environments](/compute/concepts/projects-apps-environments).
+
+## Handle errors
+
+Every method returns a response or an error, never both. API errors have a type per status that you can match with `errors.As`. Anything else is an `*apierrors.APIError`.
+
+```go
+import (
+	"errors"
+
+	"github.com/unkeyed/sdks/api/go/v3/models/apierrors"
+)
+
+res, err := client.Keys.GetKey(ctx, components.V2KeysGetKeyRequestBody{KeyID: "key_1234abcd"})
+if err != nil {
+	var notFound *apierrors.NotFoundErrorResponse
+	var unauthorized *apierrors.UnauthorizedErrorResponse
+	var apiErr *apierrors.APIError
+	switch {
+	case errors.As(err, &notFound):
+		fmt.Println("not found:", notFound.Error_.GetDetail())
+	case errors.As(err, &unauthorized):
+		fmt.Println("check the root key:", unauthorized.Error_.GetDetail())
+	case errors.As(err, &apiErr):
+		fmt.Println(apiErr.StatusCode, apiErr.Message)
+	default:
+		return err // transport failure
+	}
+}
+```
+
+The typed errors are `BadRequestErrorResponse` (400, whose `Error_` is a `components.BadRequestErrorDetails` with a per-field `GetErrors()` list), `UnauthorizedErrorResponse` (401), `ForbiddenErrorResponse` (403), `NotFoundErrorResponse` (404), `ConflictErrorResponse` (409), `GoneErrorResponse` (410), `PreconditionFailedErrorResponse` (412), `UnprocessableEntityErrorResponse` (422), `TooManyRequestsErrorResponse` (429), `InternalServerErrorResponse` (500), and `ServiceUnavailableErrorResponse` (503). Each endpoint page in the API reference, for example [keys.getKey](/api-management/api-reference/keys/get-api-key), lists which ones apply.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="The unkey CLI" icon="terminal" href="/platform/cli/overview">
+    The same calls from a shell, built on this module.
+  </Card>
+  <Card title="API reference" icon="code" href="/api-management/api-reference/keys/verify-api-key">
+    Request and response fields for every method.
+  </Card>
+</Columns>

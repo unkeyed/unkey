@@ -1,0 +1,94 @@
+---
+title: unkey api portal create-session
+sidebarTitle: "create-session"
+description: "Create a short-lived customer portal session for an end user."
+sources:
+  - cmd/api/portal/create_session.go
+  - svc/api/routes/v2_portal_create_session/handler.go
+  - svc/api/internal/portal/portal.go
+  - docs/product/scripts/manifest.json
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Create a portal session so one of your end users can sign in to the portal. Redirect them to `data.url`. It works once and expires after 15 minutes. After they sign in, their session lasts 24 hours. The scopes you pass decide what they can do. `data.id` identifies the session. It isn't a credential, so it's safe to log. A disabled portal returns 403 "Portal is disabled". A portal that doesn't exist, or that your root key can't reach, returns 404. Calls `POST /v2/portal.createSession`. See [Portal sessions](/api-management/portal/sessions).
+
+## Usage
+
+```bash
+unkey api portal create-session --external-id=<external id> --portal=<portal> --scopes=<keys:read,...> [flags]
+```
+
+## Flags
+
+<ParamField body="--external-id" type="string" required>
+  The end user's ID in your system. The session only sees that identity's keys.
+</ParamField>
+
+<ParamField body="--portal" type="string" required>
+  Portal id or slug.
+</ParamField>
+
+<ParamField body="--scopes" type="string[]" required>
+  Comma-separated capabilities from `keys:read`, `keys:reroll`, and `analytics:read`. `keys:reroll` and `analytics:read` each need `keys:read` too, because both are reached from the keys page. The command rejects them without it.
+</ParamField>
+
+<ParamField body="--preview" type="boolean" default="false">
+  Create a preview session for testing the portal without a real end user.
+</ParamField>
+
+<ParamField body="--return-url" type="string">
+  Full `https://` URL the portal sends the user back to when they're done, up to 500 characters. An `http://` URL, a `//host/path`, or a bare path fails with 400.
+</ParamField>
+
+### Shared flags
+
+Every `unkey api` command takes these. See [CLI output and shared flags](/platform/cli/output-and-flags).
+
+<ParamField body="--root-key" type="string">
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then to the key stored by `unkey auth login`.
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the config file written by `unkey auth login`. Falls back to `UNKEY_CONFIG`.
+</ParamField>
+
+<ParamField body="--output" type="string">
+  Output format. Falls back to `UNKEY_OUTPUT`. `json` prints the full response. Any other value prints the request ID and `data`.
+</ParamField>
+
+<ParamField body="--body" type="string">
+  Send this JSON as the whole request body instead of using the command's flags. You can't combine it with them.
+</ParamField>
+
+## Required permissions
+
+`portal.*.create_portal_session` or `portal.<portalId>.create_portal_session`. Permissions to manage a portal don't include this one. You also need the matching permission on the APIs behind the portal for each scope:
+
+- `keys:read` needs `read_key` and `read_api`.
+- `keys:reroll` needs `create_key`, plus `encrypt_key` when the keyspace stores recoverable keys.
+- `analytics:read` needs `read_analytics`.
+
+Without the session permission, you get a 404 as if the portal didn't exist. With it but missing a scope's permission, the whole request fails with 403. We never create a session with fewer scopes than you asked for. See [Root key permissions](/platform/root-keys/permissions).
+
+## Examples
+
+```bash Read and reroll keys
+unkey api portal create-session --portal=my-portal --external-id=user_123 --scopes=keys:read,keys:reroll
+```
+
+```bash Analytics with a return URL
+unkey api portal create-session --portal=my-portal --external-id=user_123 --scopes=keys:read,analytics:read --return-url=https://app.example.com/settings/api-keys
+```
+
+Or send the whole request as JSON:
+
+```bash Raw body
+unkey api portal create-session --body='{"portal":"my-portal","externalId":"user_123","scopes":["keys:read","keys:reroll"],"returnUrl":"https://app.example.com/settings/api-keys"}'
+```

@@ -1,0 +1,101 @@
+---
+title: "@unkey/nextjs"
+description: "Wrap a Next.js route handler so only valid API keys reach it."
+sources:
+  - web/internal/api/src/models/components/v2keysverifykeyresponsedata.ts
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/nextjs/README.md
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/nextjs/src/index.ts
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/nextjs/package.json
+  - https://www.npmjs.com/package/@unkey/nextjs
+---
+
+import { versions } from "/snippets/versions.mdx";
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+`@unkey/nextjs` (version {versions.tsNextjs}) exports `withUnkey`, a wrapper for App Router route handlers that <Tooltip tip="Here: checking an API key on a request with keys.verifyKey. Not domain verification.">verifies</Tooltip> the API key before your code runs. Unlike the Hono middleware, it rejects invalid keys by default, so your handler only runs for valid keys.
+
+<RootKeyPrereq />
+
+## Install
+
+```bash
+npm install @unkey/nextjs
+```
+
+## Protect a route handler
+
+```typescript app/api/hello/route.ts
+import { type NextRequestWithUnkeyContext, withUnkey } from "@unkey/nextjs";
+
+export const POST = withUnkey(
+  async (req: NextRequestWithUnkeyContext) => {
+    const { keyId, meta } = req.unkey.data;
+    return Response.json({ message: "your key is valid", keyId, meta });
+  },
+  { rootKey: process.env.UNKEY_ROOT_KEY ?? "" },
+);
+```
+
+The wrapper reads the bearer token from the `authorization` header and calls `keys.verifyKey`:
+
+- **No key:** it responds `401 {"error":"unauthorized"}`.
+- **Invalid key:** it responds `401 Unauthorized`.
+- **Valid key:** it puts the full result in `req.unkey` and runs your handler. The second `context` argument (route params) works as usual.
+
+If the verify call gets an unexpected response, such as a 502 from a proxy, the wrapper logs it and responds `500 Internal Server Error`. Other failures (a rejected root key, a throttled request, a 500, a connection failure or timeout) aren't caught, so Next.js returns its own 500. To control that response, verify with [@unkey/api](/api-management/sdks/typescript/api) directly.
+
+## Options
+
+<ParamField body="rootKey" type="string" required>
+  Root key used to call `keys.verifyKey`.
+</ParamField>
+
+<ParamField body="permissions" type="string">
+  A permission query the key must satisfy for the verification to be valid.
+</ParamField>
+
+<ParamField body="tags" type="string[]">
+  Tags recorded with the verification for analytics filtering.
+</ParamField>
+
+<ParamField body="getKey" type="(req: NextRequest) => string | null | Response | NextResponse">
+  Read the key yourself, for example `new URL(req.url).searchParams.get("key")`. Return a response to send it instead. Return `null` for the default 401.
+</ParamField>
+
+<ParamField body="handleInvalidKey" type="(req: NextRequest, result: UnkeyContext) => Response | NextResponse | Promise<...>">
+  Replace the default `401 Unauthorized` for keys that verify as invalid. `result.data.code` says why.
+</ParamField>
+
+<ParamField body="onError" type="(req: NextRequest, err: errors.APIError) => Response | NextResponse | Promise<...>">
+  Replace the default logged error and `500`. Only called for unexpected responses, not for the other failures described above.
+</ParamField>
+
+## Customize the responses
+
+```typescript
+export const GET = withUnkey(
+  async (req) => Response.json({ ok: true }),
+  {
+    rootKey: process.env.UNKEY_ROOT_KEY ?? "",
+    permissions: "reports.read",
+    getKey: (req) => new URL(req.url).searchParams.get("key"),
+    handleInvalidKey: (req, result) =>
+      Response.json({ error: "invalid key", code: result.data.code }, { status: 401 }),
+    onError: (req, err) => {
+      console.error(`unkey error ${err.statusCode}: ${err.message}`);
+      return Response.json({ error: "authentication unavailable" }, { status: 503 });
+    },
+  },
+);
+```
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Verifying keys" icon="key" href="/api-management/keys/verifying-keys">
+    What the verification result contains.
+  </Card>
+  <Card title="@unkey/api" icon="js" href="/api-management/sdks/typescript/api">
+    Create keys and call other endpoints from server code.
+  </Card>
+</Columns>

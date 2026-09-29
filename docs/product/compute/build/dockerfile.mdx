@@ -1,0 +1,78 @@
+---
+title: Dockerfile builds
+description: "Build with your own Dockerfile when automatic detection is not enough."
+sources:
+  - svc/ctrl/worker/deploy/deploy_handler.go
+  - svc/ctrl/worker/deploy/build.go
+  - svc/krane/internal/deployment/apply.go
+  - svc/api/openapi/spec/paths/v2/environments/updateSettings/V2EnvironmentsUpdateSettingsRequestBody.yaml
+  - svc/api/routes/v2_environments_update_settings/handler.go
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/build-settings/dockerfile-settings.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/settings/components/build-settings/root-directory-settings.tsx
+---
+
+By default, we [build your app](/compute/build/overview) without a Dockerfile. Use your own Dockerfile when you need something automatic detection can't do, such as system packages, custom build stages, an unusual toolchain, or full control of the image.
+
+## Switch an environment to a Dockerfile
+
+1. Open the <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>, go to **App Settings**, and find the **Dockerfile** card.
+2. Pick a Dockerfile from the list of ones we found in your repository, or type its path. The path is relative to the root directory and can be 1 to 500 characters. If the file isn't on the tracked branch, you'll see "File not found on this branch".
+3. Deploy. The setting applies from the next deployment.
+
+With the API, set `dockerfile` on `environments.updateSettings`.
+
+Production and preview have separate build settings, so one <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> can use a Dockerfile while the other builds automatically.
+
+To go back to automatic builds, choose **Automatic (no Dockerfile)** in the dashboard, or set `dockerfile` to `null` in the API.
+
+## Set the build context
+
+The root directory is the build context. `COPY` and `ADD` paths, and the Dockerfile path, are resolved from it. The default `.` is the repository root.
+
+For a service in `services/api`, you have two options:
+
+- Set the root directory to `services/api` and the Dockerfile path to `Dockerfile`.
+- Keep the root at `.` and set the Dockerfile path to `services/api/Dockerfile`, if the build needs files from elsewhere in the repository.
+
+The root directory must be a relative path like `services/api`. It can't start with `/` or `./`, or contain `..`, backslashes, or spaces.
+
+## What your container must do
+
+- **Listen on `PORT`.** We set this environment variable to the environment's port (8080 by default), and it overrides any `ENV PORT` in your image.
+- **Exit cleanly on the shutdown signal**, `SIGTERM` unless you change it, so instances can drain when they're replaced.
+- **Keep local writes under 128 MiB.** That's the cap on the container's own filesystem. Use the optional disk at `/data` for anything larger.
+
+If your image's default command isn't what you want, set the **command** in [runtime settings](/compute/configure/runtime-settings) instead of keeping a second Dockerfile.
+
+## Why your Dockerfile build failed
+
+A failed build ends the deployment as `failed` with the code `build_failed`. The deployment page shows a plain message for common causes, with the full build log underneath:
+
+| What went wrong | Message you see |
+| --- | --- |
+| The Dockerfile path points at an empty file | The Dockerfile appears to be empty. Please verify the file path in settings. |
+| The Dockerfile could not be read at the configured path | Dockerfile could not be read. Please check that the file path is correct in settings. |
+| A file the Dockerfile references is missing from the build context | A file or directory referenced in the build was not found. Please check the root directory in settings. |
+| A `COPY` or `ADD` source is missing | A file referenced in the Dockerfile was not found. Please check the root directory in settings. |
+| The requested build target stage doesn't exist | The specified build target stage was not found. Please check the target name in settings. |
+| The Dockerfile has a syntax error | Dockerfile has a syntax error. Please check the Dockerfile for typos. |
+| There is no `FROM` instruction | Dockerfile has no valid build stage. Please add a FROM instruction. |
+| A `FROM` image reference is malformed | A Docker image reference is invalid. Please check your FROM lines. |
+| The base image has no build for the target platform | The base image does not support the target platform. Please use a multi-platform image or change the platform. |
+| An undeclared `ARG` is referenced | Dockerfile references an undefined variable. Please check your ARG declarations. |
+| A `RUN` command exited non-zero | A build command failed. Please check the build logs for details. |
+
+Errors we don't recognize show the raw build error.
+
+If your Dockerfile clones another private repository or a private submodule, it gets a 404 from GitHub. We only have read access to the repository being built. Vendor those dependencies, or fetch them with credentials passed as [build-time secrets](/compute/build/build-secrets).
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Build-time secrets" icon="key" href="/compute/build/build-secrets">
+    Mount your environment variables into `RUN` steps safely.
+  </Card>
+  <Card title="Runtime settings" icon="sliders" href="/compute/configure/runtime-settings">
+    Port, command, shutdown signal, CPU, memory, and disk.
+  </Card>
+</Columns>

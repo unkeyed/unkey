@@ -55,7 +55,7 @@ func TestDeliverHECBatch(t *testing.T) {
 	lines := strings.Split(strings.TrimSuffix(string(receivedBody), "\n"), "\n")
 	require.Len(t, lines, 2)
 	require.JSONEq(t, `{"time":1790251200.123,"source":"unkey","sourcetype":"runtime_logs","event":{"stream":"runtime_logs","time":"2026-09-24T12:00:00.123Z","log_id":"log_1","severity":"","message":"first\nsecond","attributes":{"nested":{"count":3}},"project_id":"","app_id":"","environment_id":"","deployment_id":"","region":""}}`, lines[0])
-	require.JSONEq(t, `{"time":0.456,"source":"unkey","sourcetype":"audit_logs","event":{"stream":"audit_logs","time":"1970-01-01T00:00:00.456Z","id":"evt_2","action":"deleted","occurred_at":"","actor":{"id":"","type":"","name":"","metadata":null},"targets":null,"context":{"location":"","user_agent":""},"metadata":null,"description":"","correlation_id":""}}`, lines[1])
+	require.JSONEq(t, `{"time":0.456,"source":"unkey","sourcetype":"audit_logs","event":{"stream":"audit_logs","time":"1970-01-01T00:00:00.456Z","id":"evt_2","action":"deleted","actor":{"id":"","type":"","name":"","metadata":null},"targets":null,"context":{"location":"","user_agent":""},"metadata":null,"description":"","correlation_id":""}}`, lines[1])
 }
 
 func TestHECRejectsApplicationErrors(t *testing.T) {

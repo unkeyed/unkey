@@ -1,0 +1,103 @@
+---
+title: "@unkey/cache"
+description: "Add typed, tiered caching with stale-while-revalidate to your own TypeScript services."
+sources:
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/cache/README.md
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/cache/src/cache.ts
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/cache/src/namespace.ts
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/cache/src/swr.ts
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/cache/src/context.ts
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/cache/src/stores/index.ts
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/cache/src/middleware/index.ts
+  - https://github.com/unkeyed/sdks/blob/3bb124498270d8aff36e358dc2e0010e9991869a/cache/package.json
+  - https://www.npmjs.com/package/@unkey/cache
+---
+
+import { versions } from "/snippets/versions.mdx";
+
+Use `@unkey/cache` (version {versions.tsCache}) to add a typed cache to your own services, with several layers such as memory in front of Redis. It doesn't call the Unkey API and needs no root key. You define typed namespaces, give each a list of stores, and get `get`, `set`, `remove`, and `swr` with fresh and stale times handled for you.
+
+## Install
+
+```bash
+npm install @unkey/cache
+```
+
+## Quickstart
+
+```typescript
+import { createCache, DefaultStatefulContext, Namespace } from "@unkey/cache";
+import { MemoryStore } from "@unkey/cache/stores";
+
+type User = { id: string; email: string };
+
+// Cloudflare Workers and Vercel hand you an execution context; elsewhere use this one.
+const ctx = new DefaultStatefulContext();
+
+const memory = new MemoryStore({ persistentMap: new Map() });
+
+const cache = createCache({
+  user: new Namespace<User>(ctx, {
+    stores: [memory],
+    fresh: 60_000,   // serve without revalidating for 60 s
+    stale: 900_000,  // serve stale and revalidate in the background for up to 15 min
+  }),
+});
+
+await cache.user.set("user_42", { id: "user_42", email: "ada@example.com" });
+
+const { val: user, err } = await cache.user.get("user_42");
+if (err) {
+  // a CacheError from a store; decide whether to fall through to the origin
+}
+```
+
+Reads and writes return `{ val, err }` instead of throwing, so a failing store acts like a cache miss instead of breaking your request.
+
+## Concepts
+
+### Namespaces
+
+A namespace holds one type: `Namespace<User>` only accepts and returns `User`. `createCache` returns an object with one entry per namespace, each with `get(key)`, `set(key, value, opts?)`, `remove(key)` (which also takes an array), and `swr(key, loadFromOrigin)`.
+
+### Tiered stores
+
+`stores` is a list in order. Reads try each store and return the first hit, copying it back to the earlier stores. Writes go to every store. A common setup is memory first, then a shared store such as Cloudflare or Redis.
+
+### Fresh and stale
+
+`fresh` and `stale` are in milliseconds. Before `fresh`, a value is returned as is. Between `fresh` and `stale`, it's still returned, and `swr` reloads it in the background through `ctx.waitUntil` (that's why a context is required). After `stale`, it counts as a miss.
+
+### Stale-while-revalidate
+
+```typescript
+const { val: user } = await cache.user.swr("user_42", async (id) => {
+  return await db.users.findById(id);
+});
+```
+
+`swr` returns the cached value if there is one, refreshes it in the background if it's past `fresh`, and only waits for `loadFromOrigin` on a miss. Several misses for the same key at once load the origin only once.
+
+## Stores and middlewares
+
+The `@unkey/cache/stores` entry point exports `MemoryStore`, `CloudflareStore` (the Cloudflare Cache API, configured with an API key, zone ID, and domain), `UpstashRedisStore`, and `LibSQLStore` for Turso and other libSQL databases. Any object implementing the exported `Store` interface (`name`, `get`, `set`, `remove`) can be used as a tier.
+
+`@unkey/cache/middleware` exports `withEncryption(base64Key)`, which encrypts values before they reach a store, and `withMetrics(metrics)`, which reports hits, misses, and latency. Each returns an object with a `wrap(store)` method. Put the wrapped store in `stores`, not the middleware. `withEncryption` is async and takes 32 random bytes in base64 (`openssl rand -base64 32`). Changing the key makes every entry it wrote unreadable, so they become misses.
+
+```typescript
+import { withEncryption } from "@unkey/cache/middleware";
+
+const encrypted = await withEncryption(process.env.CACHE_ENCRYPTION_KEY ?? "");
+
+const cache = createCache({
+  user: new Namespace<User>(ctx, {
+    stores: [encrypted.wrap(memory)],
+    fresh: 60_000,
+    stale: 900_000,
+  }),
+});
+```
+
+## Source
+
+The package is in the [unkeyed/sdks](https://github.com/unkeyed/sdks/tree/main/cache) repository. `src/examples/` has runnable samples.

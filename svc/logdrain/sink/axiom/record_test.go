@@ -17,9 +17,8 @@ func TestMarshalRecordNestedFields(t *testing.T) {
 		{
 			name: "audit",
 			payload: sink.AuditLogPayload{
-				ID:         "event",
-				Action:     "updated",
-				OccurredAt: "earlier",
+				ID:     "event",
+				Action: "updated",
 				Actor: sink.AuditLogActor{
 					ID:       "actor",
 					Type:     "user",
@@ -40,7 +39,7 @@ func TestMarshalRecordNestedFields(t *testing.T) {
 				Description:   "description",
 				CorrelationID: "correlation",
 			},
-			want: `{"id":"event","action":"updated","occurred_at":"earlier","actor":{"id":"actor","type":"user","name":"Alice","metadata":{"actor":1}},"targets":[{"id":"target","type":"key","name":"Production","metadata":{"target":2}}],"context":{"location":"region","user_agent":"agent"},"metadata":{"event":3},"description":"description","correlation_id":"correlation"}`,
+			want: `{"id":"event","action":"updated","actor":{"id":"actor","type":"user","name":"Alice","metadata":{"actor":1}},"targets":[{"id":"target","type":"key","name":"Production","metadata":{"target":2}}],"context":{"location":"region","user_agent":"agent"},"metadata":{"event":3},"description":"description","correlation_id":"correlation"}`,
 		},
 		{
 			name: "verification",

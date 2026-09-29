@@ -1,73 +1,45 @@
 ---
 title: "portal_session_not_found"
-description: "The provided exchange code or access token was not found, has expired, or has already been redeemed. Create a new session from your backend and redirect the user again."
+sidebarTitle: "portal_session_not_found"
+description: "The portal session token or exchange code is unknown, expired, or already used."
+sources:
+  - pkg/codes/unkey_portal.go
+  - svc/api/internal/middleware/errors.go
+  - internal/services/portal/get_session.go
+  - svc/api/routes/v2_portal_exchange_code/handler.go
 ---
 
 <Danger>`err:unkey:authentication:portal_session_not_found`</Danger>
 
-```json Example
+The portal session token or exchange code you sent doesn't match an active session. You get HTTP 401.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "Session is invalid, expired, or has already been used.",
+    "detail": "The portal session is invalid or has expired.",
     "status": 401,
     "title": "Unauthorized",
-    "type": "https://unkey.com/docs/errors/unkey/authentication/portal_session_not_found"
+    "type": "/errors/unkey/authentication/portal_session_not_found"
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-This error is returned by `POST /v2/portal.exchangeCode` and any portal-authenticated endpoint when the supplied credential cannot be resolved to a usable session. There are four common reasons:
+- The session in the `portal_session` cookie expired or was revoked. The message is the same for an unknown token, so it doesn't say which.
+- On `portal.exchangeCode`, the code was already used, has expired, or was never issued. The message is `Session is invalid, expired, or has already been used.` A code works once, so a second exchange fails even if the first succeeded.
 
-- **Expired code**: The exchange code carried by the portal URL is valid for **15 minutes**. After that it can no longer be redeemed.
-- **Already-redeemed code**: Codes are **single-use**. Once the portal redeems one, the same code cannot be redeemed again.
-- **Expired access token**: After exchange, the access token is valid for **24 hours**. Once it expires, requests using it return this error.
-- **Revoked session**: A session that has been explicitly revoked returns this error even before its natural expiry.
+## How to fix
 
-The exchange endpoint deliberately does not distinguish between these cases in its response. An unknown code, an expired one, and one that was already redeemed all produce the same message, so a caller cannot probe which codes exist.
+1. Start a new session from your backend with `portal.createSession` and complete the exchange promptly.
+2. If your frontend retries `portal.exchangeCode` on a slow network, keep the access token from the first success instead of exchanging again.
+3. If an active session starts returning this error, send the user back through your login flow.
 
-## How To Fix
+## Related errors
 
-Create a fresh session from your backend and redirect the user again:
-
-```bash
-curl -X POST https://api.unkey.com/v2/portal.createSession \
-  -H "Authorization: Bearer YOUR_ROOT_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "portal": "my-portal",
-    "externalId": "user_123",
-    "scopes": ["keys:read", "keys:reroll"]
-  }'
-```
-
-Then redirect the user to the returned `url`. The portal will redeem the new code for a 24-hour access token.
-
-Re-authenticating always mints a new session rather than extending the existing one, so this is the correct response to every case above.
-
-If you passed a `returnUrl` when creating the session, expired sessions will automatically redirect there with `?reason=session_expired`. Use that hook to re-mint a session and bounce the user back into the portal seamlessly.
-
-```typescript
-// In your backend route handler
-if (request.url.searchParams.get("reason") === "session_expired") {
-  const { data } = await createPortalSession(currentUser);
-  return Response.redirect(data.url, 302);
-}
-```
-
-## Common Mistakes
-
-- **Reusing a code**: Codes are single-use. Generate a new session for every redirect.
-- **Storing codes**: Don't persist exchange codes. They are short-lived credentials meant to be consumed immediately, and they are not recoverable from Unkey once issued.
-- **Confusing `id` with the code**: `portal.createSession` returns a non-secret `id` alongside the `url`. The `id` identifies the session for your own records; it is not a credential and cannot be exchanged.
-- **Long-running tabs**: Users who keep the portal open beyond 24 hours need a fresh session.
-
-## Related Errors
-
-- [err:unkey:authentication:portal_token_missing](./portal_token_missing) - When no portal access token is supplied at all
-- [err:unkey:data:portal_not_found](../data/portal_not_found) - When the portal referenced by `portal` does not exist
-- [err:unkey:authentication:missing](./missing) - When no authentication credentials are provided to a non-portal endpoint
+- [`err:unkey:authentication:portal_token_missing`](/errors/unkey/authentication/portal_token_missing): no token was sent at all.
+- [`err:unkey:data:portal_not_found`](/errors/unkey/data/portal_not_found): the portal itself doesn't exist or isn't visible to your root key.
+- [`err:unkey:authorization:forbidden`](/errors/unkey/authorization/forbidden): the portal is disabled or can't serve sessions right now.

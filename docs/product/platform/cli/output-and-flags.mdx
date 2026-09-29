@@ -1,0 +1,89 @@
+---
+title: CLI output and shared flags
+sidebarTitle: "Output and flags"
+description: "Use the flags every unkey api command shares to pipe JSON or send a raw body."
+sources:
+  - cmd/api/util/flags.go
+  - cmd/api/util/output.go
+  - cmd/api/util/body.go
+  - cmd/api/util/errors.go
+  - cmd/api/util/client.go
+  - cmd/api/keys/create_key.go
+  - pkg/cli/parser.go
+  - build/cli/main.go
+---
+
+Every `unkey api` command accepts these five flags on top of its own. Four of them can also be set with an environment variable, which is the usual way in CI.
+
+<ParamField body="--root-key" type="string">
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then to the config file. See [CLI authentication](/platform/cli/authentication).
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the TOML config file that `unkey api` commands read the root key from. Falls back to `UNKEY_CONFIG`. `unkey auth login` always writes `~/.unkey/config.toml`, so only point this elsewhere if you write that other file yourself.
+</ParamField>
+
+<ParamField body="--output" type="string">
+  Output format. Falls back to `UNKEY_OUTPUT`. Set it to `json` for the full response. Any other value gives the default layout. See [Output formats](#output-formats).
+</ParamField>
+
+<ParamField body="--body" type="string">
+  A JSON request body to send instead of building one from the command's flags. See [Send a raw body](#send-a-raw-body).
+</ParamField>
+
+## Output formats
+
+By default a successful command prints the request ID, a blank line, and then the response's `data` as indented JSON:
+
+```text
+req_1234abcd
+
+{
+  "keyId": "key_1234abcd",
+  "key": "prod_abc..."
+}
+```
+
+With `--output=json`, the CLI prints the whole response, `meta` and `data`, exactly as the API returned it. Use this when you pipe into `jq` or another tool, because the default layout mixes a plain-text line with JSON:
+
+```bash
+unkey api keys get-key --key-id=key_1234abcd --output=json | jq '.data.enabled'
+```
+
+Set `UNKEY_OUTPUT=json` once in a script to do the same for every command.
+
+## Send a raw body
+
+Normally a command builds its request from its flags, one per request field, and checks them before sending. If you already have the request as JSON, for example from a file or another tool, pass it with `--body` instead:
+
+```bash
+unkey api keys create-key --body='{"apiId":"api_1234abcd","name":"Payment service","enabled":true}'
+```
+
+Rules for `--body`:
+
+- It must be one JSON object that matches the endpoint's request.
+- Unknown fields fail before anything is sent, so a typo in a field name doesn't get silently ignored.
+- You can't combine it with the command's request flags. Required flags aren't needed either, so `keys create-key --body='...'` doesn't also need `--api-id`.
+- The five shared flags above still work.
+
+## Errors and exit codes
+
+A failed command prints one message and exits with status 1. API errors are shortened:
+
+| Status | Message |
+| --- | --- |
+| 400 | The detail, then one line per invalid field with its location. |
+| 401 | `Authentication failed: ...` and a hint to run `unkey auth login`. |
+| 403 | `Permission denied: ...` |
+| 404 | `Not found: ...` |
+
+Other failures print the error text as is. Help and version requests (`--help`, `-h`, `help <command>`, `--version`) exit 0 without calling the API.
+
+## Flag syntax
+
+`--api-id=api_123` and `--api-id api_123` are the same. A boolean flag on its own (`--enabled`) means true, and you can write `--enabled=false`. Flags can go before or after positional arguments. An unknown flag fails right away, and the message lists the flags the command accepts.

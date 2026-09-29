@@ -1,0 +1,112 @@
+---
+title: Rate limit overrides
+sidebarTitle: "Overrides"
+description: "Give one identifier or a pattern its own limit without changing code."
+sources:
+  - svc/api/openapi/spec/paths/v2/ratelimit/setOverride/V2RatelimitSetOverrideRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/ratelimit/setOverride/V2RatelimitSetOverrideResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/ratelimit/getOverride/V2RatelimitGetOverrideRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/ratelimit/listOverrides/V2RatelimitListOverridesRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/ratelimit/deleteOverride/V2RatelimitDeleteOverrideRequestBody.yaml
+  - svc/api/openapi/spec/common/RatelimitOverride.yaml
+  - svc/api/routes/v2_ratelimit_set_override/handler.go
+  - svc/api/routes/v2_ratelimit_limit/handler.go
+  - pkg/match/wildcard.go
+  - pkg/db/queries/ratelimit_override_insert.sql
+  - web/internal/db/src/schema/ratelimit.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/ratelimits/[namespaceId]/_components/identifier-dialog.tsx
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+An override gives particular identifiers a different limit from the one your code sends. Your app keeps calling `ratelimit.limit` with its default numbers, and when the identifier matches an override, Unkey uses the override's numbers instead. Use it to raise a partner's limit or throttle an abuser without deploying.
+
+<RootKeyPrereq />
+
+Setting an override needs `ratelimit.*.set_override` or `ratelimit.<namespace_id>.set_override`. Reading and listing need `ratelimit.*.read_override`, and deleting needs `ratelimit.*.delete_override`.
+
+## Set an override
+
+<ParamField body="namespace" type="string" required>
+  Namespace name or ID, 1 to 512 characters. Unlike `ratelimit.limit`, this doesn't create a missing namespace. It returns HTTP 404 `err:unkey:data:ratelimit_namespace_not_found`.
+</ParamField>
+
+<ParamField body="identifier" type="string" required>
+  The exact identifier, or a pattern containing `*`, 1 to 512 characters. Case-sensitive.
+</ParamField>
+
+<ParamField body="limit" type="integer" required>
+  Tokens per window for matching identifiers, 1 or more. Don't use `0` to ban someone: the API accepts it, but checks against it fail with a server error. Use `1` with a long duration instead.
+</ParamField>
+
+<ParamField body="duration" type="integer" required>
+  Window length in milliseconds, 1000 or more. It may differ from the duration your code sends.
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/ratelimit.setOverride \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "namespace": "api.requests",
+    "identifier": "org_acme",
+    "limit": 10000,
+    "duration": 60000
+  }'
+```
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": { "overrideId": "rlor_..." }
+}
+```
+
+Setting an override on an identifier that already has one replaces it. The change shows in the audit log as `ratelimit.set_override`. It takes up to about a minute to apply everywhere.
+
+<Visibility for="agents">
+  The endpoint is `/v2/ratelimit.setOverride` (singular `ratelimit`) and the namespace is passed as `namespace`, by name or ID. The request has no separate namespace-id or namespace-name field and no asynchronous mode.
+</Visibility>
+
+## How a match is chosen
+
+An override on the exact identifier always wins. If there isn't one, a matching wildcard override applies. In a pattern, `*` matches any run of characters (including none), and the pattern must match the whole identifier.
+
+| Override | Matches | Does not match |
+| --- | --- | --- |
+| `*@acme.com` | `alice@acme.com`, `@acme.com` | `alice@acme.com.evil.io` |
+| `enterprise:*` | `enterprise:123`, `enterprise:` | `pro:123` |
+| `user_*_prod` | `user_1_prod`, `user__prod` | `user_1_staging` |
+| `*suspicious*` | anything containing `suspicious` | |
+
+With `*@acme.com` at 500 per minute and `ceo@acme.com` at 10,000, `ceo@acme.com` gets 10,000, everyone else at `acme.com` gets 500, and `user@other.com` gets the numbers your code sent. If two wildcards match the same identifier, there's no rule for which wins, so avoid overlapping wildcards in one namespace.
+
+## Read, list, and delete
+
+- **`ratelimit.getOverride`** takes `namespace` and `identifier` and returns the override that would apply, using the same matching rules: `overrideId`, `identifier` (the stored pattern), `limit`, and `duration`. If nothing matches, it returns HTTP 404 `err:unkey:data:ratelimit_override_not_found`.
+- **`ratelimit.listOverrides`** takes `namespace`, `limit` (1 to 100, default 50), and `cursor`, and returns the same objects with pagination.
+- **`ratelimit.deleteOverride`** takes `namespace` and `identifier`. Matching identifiers go back to your code's numbers (or another matching wildcard) within about a minute.
+
+```bash
+curl -X POST https://api.unkey.com/v2/ratelimit.deleteOverride \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "namespace": "api.requests", "identifier": "org_acme" }'
+```
+
+## From the dashboard
+
+Under **Ratelimit**, open the namespace and its **Overrides** tab to add, edit, or delete overrides. You can also choose **Delete Override** on a row in the namespace's logs. In the dashboard, the identifier must be at least 2 characters and the limit can't go over 10,000. Overrides set through the API outside those bounds still work.
+
+<Frame>
+  <img src="/images/dashboard/api-management--ratelimiting-overrides--list.png" alt="Ratelimit namespace Overrides page listing overrides by identifier with their limits, and an Override Identifier button" />
+</Frame>
+
+<Frame>
+  <img src="/images/dashboard/api-management--ratelimiting-overrides--add-override.png" alt="Override Identifier dialog with Identifier, Limit, and Duration fields" />
+</Frame>
+
+## Patterns that work well
+
+- **Per-plan limits.** Build identifiers as `${plan}:${userId}` and set one wildcard override per plan (`free:*`, `pro:*`, `enterprise:*`). Update overrides from your billing webhooks when customers change plans.
+- **Stop an attack.** Set the identifier to a limit of `1` over a long duration, and delete the override when the incident ends.

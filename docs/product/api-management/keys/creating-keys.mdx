@@ -1,0 +1,132 @@
+---
+title: Creating keys
+description: "Every field you can set when you create a key, with its limits."
+sources:
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyResponseData.yaml
+  - svc/api/openapi/spec/common/KeyCreditsData.yaml
+  - svc/api/openapi/spec/common/KeyCreditsRefill.yaml
+  - svc/api/openapi/spec/common/RatelimitRequest.yaml
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/config.go
+  - internal/services/keys/create.go
+  - web/internal/db/src/schema/keyAuth.ts
+  - web/internal/db/src/schema/keys.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema.ts
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+Create a key with `keys.createKey`. The only required field is the keyspace's API ID. Everything else is optional and you can change it later with `keys.updateKey`. You get the key back once, in the response.
+
+<RootKeyPrereq />
+
+The root key needs `api.*.create_key` or `api.<api_id>.create_key`. Creating a recoverable key also needs `api.*.encrypt_key` or `api.<api_id>.encrypt_key`. Without it you get HTTP 404 [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found), not a permission error, so a missing grant looks like a missing API. See [Root key permissions](/platform/root-keys/permissions).
+
+## Request fields
+
+<ParamField body="apiId" type="string" required>
+  The keyspace that owns the key, by API ID (`api_...`). 3 to 255 characters matching `^[a-zA-Z0-9_]+$`. You can't move a key to another keyspace later.
+</ParamField>
+
+<ParamField body="prefix" type="string">
+  1 to 16 characters matching `^[a-zA-Z0-9_]+$`. Becomes the start of the key as `<prefix>_<random>`, so users can tell keys apart in logs. When omitted, the key uses the keyspace's default prefix if one is set, and otherwise has no prefix. Don't put secrets or customer names in a prefix. It's visible wherever the key is.
+</ParamField>
+
+<ParamField body="name" type="string">
+  1 to 255 characters. An internal label returned by `keys.getKey`, `apis.listKeys`, and `keys.verifyKey`. Unkey never shows it to your users.
+</ParamField>
+
+<ParamField body="byteLength" type="integer" default="16">
+  16 to 255 random bytes, base58-encoded into the key. When omitted, the key uses the keyspace's default bytes value, or 16 if that's unset. 16 bytes gives 2^128 possibilities, and 32 is plenty for the most sensitive uses.
+</ParamField>
+
+<ParamField body="externalId" type="string">
+  1 to 255 characters matching `^[a-zA-Z0-9_.-]+$`: your identifier for the user, organization, or tenant that owns the key. Unkey creates an identity with this `externalId` if none exists and links the key to it, so every verification returns `identity.externalId` and any metadata or shared rate limits set on the identity. See [Identities](/api-management/identities/overview).
+</ParamField>
+
+<ParamField body="meta" type="object">
+  Arbitrary JSON returned in full on every verification. At most 100 top-level properties. Keep it small: it travels with every `keys.verifyKey` response, and the whole request body is capped at 10 MiB. Don't store secrets here. See [Metadata and tags](/api-management/keys/metadata-and-tags).
+</ParamField>
+
+<ParamField body="roles" type="string[]">
+  Up to 100 role names, each 1 to 128 characters. Every role must already exist in the workspace or the request fails. Roles bundle permissions, and the key gains all of them.
+</ParamField>
+
+<ParamField body="permissions" type="string[]">
+  Up to 1000 permission slugs, each 1 to 128 characters matching `^[a-zA-Z0-9_:\-\.\*]+$`. Added to the key on top of what its roles grant. Unlike roles, a slug that doesn't exist yet is created for you. An asterisk is a literal character, not a wildcard.
+</ParamField>
+
+<ParamField body="expires" type="integer">
+  Unix timestamp in milliseconds, at most `4102444800000` (1 January 2100). After this instant verification returns `code: EXPIRED`. Omit for a key that never expires. See [Key expiration](/api-management/keys/expiration).
+</ParamField>
+
+<ParamField body="credits" type="object">
+  Usage metering. `credits.remaining` (integer, 0 or more) is the number of verifications the key can still afford. `credits.refill` optionally restores it on a schedule with `interval` (`daily` or `monthly`), `amount` (1 or more), and `refillDay` (1 to 31, required for `monthly`). `remaining` must be set whenever `refill` is set. Omit the whole object for unlimited usage. See [Credits and refill](/api-management/keys/credits-and-refill).
+</ParamField>
+
+<ParamField body="ratelimits" type="object[]">
+  Up to 50 named rate limits, each with `name` (3 to 128 characters), `limit` (1 or more), `duration` in milliseconds (1000 or more), and `autoApply` (boolean, required). Limits with `autoApply: true` are checked on every verification. The others are checked only when a verification names them. See [Key and identity rate limits](/api-management/ratelimiting/key-and-identity-limits).
+</ParamField>
+
+<ParamField body="enabled" type="boolean" default="true">
+  Set to `false` to create the key in a disabled state. Verification returns `code: DISABLED` until you enable it. See [Disabling and deleting keys](/api-management/keys/enable-disable-delete).
+</ParamField>
+
+<ParamField body="recoverable" type="boolean" default="false">
+  Store an encrypted copy of the key so `keys.getKey` and `apis.listKeys` can show it later with `decrypt: true`. If the keyspace doesn't have encrypted storage turned on, you get HTTP 412 [`err:unkey:application:precondition_failed`](/errors/unkey/application/precondition_failed). If the root key lacks the encrypt permission, you get HTTP 404 [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found). See [Recoverable keys](/api-management/keys/recoverable-keys).
+</ParamField>
+
+## Example
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_...",
+    "prefix": "sk_live",
+    "name": "Acme production",
+    "externalId": "org_acme",
+    "meta": { "plan": "pro" },
+    "expires": 1767225600000,
+    "credits": {
+      "remaining": 10000,
+      "refill": { "interval": "monthly", "amount": 10000, "refillDay": 1 }
+    },
+    "ratelimits": [
+      { "name": "requests", "limit": 100, "duration": 60000, "autoApply": true }
+    ],
+    "permissions": ["documents.read", "documents.write"]
+  }'
+```
+
+## Response
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": {
+    "keyId": "key_...",
+    "key": "sk_live_..."
+  }
+}
+```
+
+`keyId` is the identifier you use for every later management call. `key` is the key itself, and this is the only time it's returned. Unkey keeps only a hash, plus an encrypted copy if you asked for a recoverable key. Send it to your user over a secure channel and don't log it.
+
+## Key format
+
+A key looks like `<prefix>_<random>`, or just `<random>` without a prefix. The random part is `byteLength` random bytes in base58. `keys.getKey` and `apis.listKeys` return a `start` field, `<prefix>_<first four characters>`, so you can recognize a key without seeing all of it.
+
+## From the dashboard
+
+The keyspace's **Create key** dialog has the same fields in six steps: general setup, rate limits, credits, expiration, permissions, and metadata. Two things differ from the API. Expiry must be at least two minutes in the future, and the general step has an <Tooltip tip="An optional free-text label stored on a key in the dashboard, such as live or test. Unkey attaches no behavior to it, and it is unrelated to Compute environments.">environment</Tooltip> field, a free-text label of up to 256 characters. The API can't set it and verification doesn't return it, so use `meta` if your backend needs the label.
+
+<Frame>
+  <img src="/images/dashboard/api-management--keys-creating-keys--create-key.png" alt="Create key dialog on the General Setup step with Name, Prefix, and External ID fields, and the other steps listed on the left" />
+</Frame>
+
+<Visibility for="agents">
+  There's no `environment` field on `keys.createKey`, and the v1 names `remaining`, `refill`, and `ratelimit` aren't accepted. Credits live under `credits.remaining` and `credits.refill`, and rate limits under `ratelimits`.
+</Visibility>

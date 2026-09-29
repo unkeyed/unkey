@@ -1,0 +1,53 @@
+---
+title: unkey auth login
+description: "Store a root key locally so unkey api commands stop asking for it."
+sources:
+  - cmd/auth/main.go
+  - cmd/api/util/client.go
+  - cmd/deploy/main.go
+  - pkg/cli/config.go
+  - pkg/config/config.go
+---
+
+Store a root key locally so the `unkey api` commands can authenticate without `--root-key` on every call.
+
+## Usage
+
+```bash
+unkey auth login
+```
+
+The command takes no flags or arguments. It prompts `Enter your root key:` and doesn't show what you type. An empty answer fails with `root key cannot be empty`. On success it saves the key to `~/.unkey/config.toml` and prints `Authentication successful. Key stored in <path>`.
+
+## What gets written
+
+```toml ~/.unkey/config.toml
+root_key = "unkey_xxx"
+```
+
+Only your user can read the file (mode `0600`, in a `0700` directory). Running the command again replaces the file, which is how you change the stored key.
+
+The command doesn't check the key with the API, so it saves whatever you type. A wrong key only shows up on your next `unkey api` call.
+
+Only `unkey api` commands read this file, and only when neither `--root-key` nor `UNKEY_ROOT_KEY` is set. `unkey deploy` ignores it. See [CLI authentication](/platform/cli/authentication) for which key wins.
+
+## Examples
+
+Log in, then run commands without a key flag:
+
+```bash
+unkey auth login
+unkey api apis list-keys --api-id=api_1234abcd
+```
+
+Replace the stored key with a new one:
+
+```bash
+unkey auth login
+```
+
+Bypass the stored key for a single command:
+
+```bash
+unkey api apis list-keys --api-id=api_1234abcd --root-key=unkey_other
+```

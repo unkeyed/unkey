@@ -1,84 +1,49 @@
 ---
 title: "api_not_found"
-description: "The requested API namespace was not found in Unkey. Verify the API ID is correct, the API exists in your workspace, and has not been deleted."
+sidebarTitle: "api_not_found"
+description: "The apiId does not match a live API in your workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_apis_get_api/handler.go
+  - svc/api/routes/v2_apis_delete_api/handler.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_apis_list_keys/handler.go
 ---
 
-<Danger>err:unkey:data:api_not_found</Danger>
+<Danger>`err:unkey:data:api_not_found`</Danger>
 
-```json Example
+The `apiId` you sent doesn't match an API in your workspace. You get HTTP 404.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "The requested API could not be found",
+    "detail": "The specified API was not found.",
     "status": 404,
     "title": "Not Found",
-    "type": "https://unkey.com/docs/errors/unkey/data/api_not_found"
+    "type": "/errors/unkey/data/api_not_found"
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-This error occurs when you're trying to perform an operation on an API that doesn't exist in the Unkey system. In Unkey, APIs are resources that you create to organize and manage your keys.
+- The ID has a typo, or isn't an API ID. API IDs start with `api_`.
+- The API was deleted.
+- The API is in another workspace.
+- Your root key doesn't have permission on the API. `apis.getApi`, `apis.listKeys`, and `keys.createKey` return this 404 instead of a 403, so a 404 doesn't prove the API is gone.
 
-Common scenarios that trigger this error:
+## How to fix
 
-- Using an incorrect API ID in your requests
-- Referencing an API that has been deleted
-- Attempting to access an API in a workspace you don't have access to
-- Typos in API names when using name-based lookups
+1. Copy the ID from the dashboard or from the `apis.createApi` response.
+2. If the ID is right, check that the root key has the permission the endpoint needs on that API.
+3. If the API was deleted, create a new one. Deleting an API from the dashboard also deletes its keyspace and all its keys. Deleting it with `apis.deleteApi` removes only the API, and its keys can't be reached through that `apiId` any more.
 
-Here's an example of a request that would trigger this error:
+## Related errors
 
-```bash
-# Attempting to create a key for a non-existent API
-curl -X POST https://api.unkey.com/v2/keys.createKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
-  -d '{
-    "apiId": "api_nonexistent",
-    "name": "hello world"
-  }'
-```
-
-## How To Fix
-
-Verify that you're using the correct API ID and that the API still exists in your workspace:
-
-1. List all APIs in your workspace to find the correct ID
-2. Check if the API has been deleted and recreate it if necessary
-3. Verify you're working in the correct workspace
-4. Ensure proper permissions to access the API
-
-Here's how to list all APIs in your workspace:
-
-```bash
-curl -X POST https://api.unkey.com/v2/apis.listApis \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY"
-```
-
-If you need to create a new API, use the `apis.createApi` endpoint:
-
-```bash
-curl -X POST https://api.unkey.com/v2/apis.createApi \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
-  -d '{
-    "name": "My New API"
-  }'
-```
-
-## Common Mistakes
-
-- **Copy-paste errors**: Using incorrect API IDs from documentation examples
-- **Deleted APIs**: Attempting to reference APIs that have been deleted
-- **Environment confusion**: Looking for an API in production that only exists in development
-- **Workspace boundaries**: Trying to access an API that exists in another workspace
-
-## Related Errors
-
-- [err:unkey:data:workspace_not_found](./workspace_not_found) - When the requested workspace doesn't exist
-- [err:unkey:data:key_not_found](./key_not_found) - When the requested key doesn't exist
-- [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to access an API
+- [`err:unkey:data:key_not_found`](/errors/unkey/data/key_not_found): a key within the API doesn't exist.
+- [`err:unkey:application:precondition_failed`](/errors/unkey/application/precondition_failed): the API exists but isn't set up for keys or for key recovery.
+- [`err:unkey:application:protected_resource`](/errors/unkey/application/protected_resource): the API can't be deleted while delete protection is on.

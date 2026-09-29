@@ -1,7 +1,53 @@
 ---
 title: "internal_server_error"
-description: "InternalServerError represents a 500 error - internal server error"
+sidebarTitle: "internal_server_error"
+description: "Unkey's gateway failed on our side while handling the request."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/policies/keyauth/executor.go
+  - svc/frontline/internal/policies/ratelimit/executor.go
+  - svc/frontline/internal/proxy/service.go
+  - svc/frontline/routes/proxy/handler.go
 ---
 
 <Danger>`err:frontline:platform:internal_server_error`</Danger>
 
+import { ProductLink } from "/snippets/product-link.jsx";
+
+Something failed on our side, inside Unkey's gateway. It isn't caused by the request or by the owner's configuration. You get `500 Internal Server Error`.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:platform:internal_server_error",
+    "message": "An unexpected error occurred. Please try again later."
+  }
+}
+```
+
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+Retry with backoff if the request is safe to repeat. If it keeps failing, contact the API owner or Unkey support with the request ID.
+
+## If you own this API
+
+Nothing in your deployment causes this.
+
+### How to fix
+
+There's nothing to change on your side. If it lasts more than a few minutes, check the Unkey status page and contact support with a few request IDs and the hostname.
+
+<ProductLink product="compute" href="/compute/gateway/errors" title="Compute gateway">
+  Gateway policies, deployments, and domains are Compute features. The Compute docs explain how to configure them.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:platform:config_load_failed`](/errors/frontline/platform/config_load_failed): the gateway couldn't load the app's configuration.
+- [`err:frontline:upstream:bad_gateway`](/errors/frontline/upstream/bad_gateway): the connection to your app failed, rather than the gateway itself.

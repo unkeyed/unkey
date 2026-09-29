@@ -1,0 +1,122 @@
+---
+title: Query gateway requests and runtime logs
+sidebarTitle: "Analytics API"
+description: "Query gateway requests and runtime logs with SQL through the analytics API."
+sources:
+  - svc/api/routes/v2_analytics_get_gateway_requests/handler.go
+  - svc/api/routes/v2_analytics_get_runtime_logs/handler.go
+  - svc/api/openapi/spec/paths/v2/analytics/getGatewayRequests/index.yaml
+  - svc/api/openapi/spec/paths/v2/analytics/getGatewayRequests/V2AnalyticsGetGatewayRequestsRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/analytics/getRuntimeLogs/V2AnalyticsGetRuntimeLogsRequestBody.yaml
+  - pkg/rbac/permissions.go
+  - pkg/clickhouse/user.go
+  - pkg/clickhouse/schema/022_frontline_requests_raw_v1.sql
+  - pkg/clickhouse/schema/023_runtime_logs_raw_v1.sql
+  - pkg/clickhouse/query-parser/time_range.go
+  - cmd/api/analytics/get_gateway_requests.go
+  - cmd/api/analytics/get_runtime_logs.go
+---
+
+import { ProductLink } from "/snippets/product-link.jsx";
+
+<ProductLink product="api-management" href="/api-management/analytics/query-language" title="Analytics query language">
+  The SQL you can use, query quotas, and query errors are documented in API Management. Here we cover the two Compute tables.
+</ProductLink>
+
+You can query your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>'s [request log](/compute/observe/requests) and [runtime logs](/compute/observe/runtime-logs) with SQL, to build your own dashboards, alerts, or exports. Each table has its own endpoint and permission.
+
+| Table | Endpoint | Root key permission |
+| --- | --- | --- |
+| `gateway_requests_v1` | `POST /v2/analytics.getGatewayRequests` | `project.*.read_gateway_requests` |
+| `runtime_logs_v1` | `POST /v2/analytics.getRuntimeLogs` | `project.*.read_runtime_logs` |
+
+<Note>
+  You need a root key with the wildcard (`project.*`) permission for the table. A permission for a single project doesn't work here. Create the key under **Settings > Root Keys** and send it as `Authorization: Bearer <root key>`. See [Root keys](/platform/root-keys/overview).
+</Note>
+
+## Query rules
+
+- Only `SELECT` runs. CTEs, subqueries, `UNION`, and `EXCEPT` are fine.
+- You only ever see your own workspace's data. To narrow further, filter on `project_id`, `app_id`, or `environment_id`.
+- The time range can't reach back further than your plan's log query range (3 days on Starter, 7 on Pro, 14 on Business), or the query fails with [`query_range_exceeds_retention`](/errors/user/bad_request/query_range_exceeds_retention). See [Compute limits](/compute/configure/limits#log-query-range).
+- A result larger than 4 MiB fails with [`query_memory_limit_exceeded`](/errors/user/unprocessable_entity/query_memory_limit_exceeded).
+
+The response is `{"meta":{"requestId":...},"data":[...]}` with one object per row.
+
+## Examples
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.unkey.com/v2/analytics.getGatewayRequests \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"SELECT path, count() AS total FROM gateway_requests_v1 WHERE response_status >= 500 AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) GROUP BY path ORDER BY total DESC LIMIT 10"}'
+```
+
+```bash CLI
+unkey api analytics get-gateway-requests \
+  --query="SELECT path, count() AS total FROM gateway_requests_v1 WHERE response_status >= 500 AND time >= toUnixTimestamp64Milli(now64(3) - INTERVAL 24 HOUR) GROUP BY path ORDER BY total DESC LIMIT 10"
+```
+</CodeGroup>
+
+<CodeGroup>
+```bash curl
+curl -X POST https://api.unkey.com/v2/analytics.getRuntimeLogs \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"SELECT time, severity, message FROM runtime_logs_v1 WHERE lower(message) LIKE '"'"'%timeout%'"'"' ORDER BY time DESC LIMIT 100"}'
+```
+
+```bash CLI
+unkey api analytics get-runtime-logs \
+  --query="SELECT time, severity, message FROM runtime_logs_v1 WHERE lower(message) LIKE '%timeout%' ORDER BY time DESC LIMIT 100"
+```
+</CodeGroup>
+
+`time` is a Unix timestamp in milliseconds in both tables, so the examples compare it with `toUnixTimestamp64Milli(...)`.
+
+## gateway_requests_v1
+
+One row per request that reached your app. Requests a policy rejected aren't here. See [Request logs](/compute/observe/requests).
+
+<ResponseField name="request_id" type="String">The request ID, also sent as `X-Unkey-Request-Id`.</ResponseField>
+<ResponseField name="time" type="Int64">Unix timestamp in milliseconds when the gateway received the request.</ResponseField>
+<ResponseField name="workspace_id" type="String">Your workspace, the one the root key belongs to.</ResponseField>
+<ResponseField name="project_id" type="String">The project.</ResponseField>
+<ResponseField name="app_id" type="String">The app.</ResponseField>
+<ResponseField name="environment_id" type="String">The environment.</ResponseField>
+<ResponseField name="deployment_id" type="String">The deployment that served the request.</ResponseField>
+<ResponseField name="instance_id" type="String">The instance that served the request.</ResponseField>
+<ResponseField name="region" type="String">The region of the gateway that served the request.</ResponseField>
+<ResponseField name="method" type="String">Upper-case HTTP method.</ResponseField>
+<ResponseField name="host" type="String">The requested hostname.</ResponseField>
+<ResponseField name="path" type="String">The request path without the query string.</ResponseField>
+<ResponseField name="query_string" type="String">The raw query string. Empty unless a logging policy captured query data.</ResponseField>
+<ResponseField name="query_params" type="Map(String, Array(String))">Parsed query parameters. Empty unless a logging policy captured query data.</ResponseField>
+<ResponseField name="request_headers" type="Array(String)">`Key: Value` strings. Empty unless a logging policy captured request headers. API keys are redacted.</ResponseField>
+<ResponseField name="request_body" type="String">Up to 1 MiB. Empty unless a logging policy captured the request body.</ResponseField>
+<ResponseField name="response_status" type="Int32">The status the client received.</ResponseField>
+<ResponseField name="response_headers" type="Array(String)">`Key: Value` strings. Empty unless a logging policy captured response headers.</ResponseField>
+<ResponseField name="response_body" type="String">Up to 1 MiB. Empty unless a logging policy captured the response body.</ResponseField>
+<ResponseField name="user_agent" type="String">Empty unless a logging policy captured request headers.</ResponseField>
+<ResponseField name="ip_address" type="String">The client IP. Empty unless a logging policy captured request headers.</ResponseField>
+<ResponseField name="total_latency" type="Int64">Milliseconds from receipt to the end of the response.</ResponseField>
+<ResponseField name="instance_latency" type="Int64">Milliseconds spent by your instance.</ResponseField>
+<ResponseField name="gateway_latency" type="Int64">`total_latency` minus `instance_latency`.</ResponseField>
+
+## runtime_logs_v1
+
+One row per log line from your instances. Structured attributes are in `attributes_text`, as a JSON string.
+
+<ResponseField name="log_id" type="String">Stable identifier of the log line.</ResponseField>
+<ResponseField name="time" type="Int64">Unix timestamp in milliseconds when the line was written.</ResponseField>
+<ResponseField name="inserted_at" type="Int64">Unix timestamp in milliseconds when the line was stored. Filter on it as well as on `time` to make queries over a wide range faster.</ResponseField>
+<ResponseField name="severity" type="String">Lower-case severity parsed from the line, `info` when none was found.</ResponseField>
+<ResponseField name="message" type="String">The message, with color codes removed.</ResponseField>
+<ResponseField name="workspace_id" type="String">Your workspace.</ResponseField>
+<ResponseField name="project_id" type="String">The project.</ResponseField>
+<ResponseField name="environment_id" type="String">The environment.</ResponseField>
+<ResponseField name="app_id" type="String">The app.</ResponseField>
+<ResponseField name="deployment_id" type="String">The deployment whose instance wrote the line.</ResponseField>
+<ResponseField name="region" type="String">The region the instance ran in.</ResponseField>
+<ResponseField name="attributes_text" type="String">The parsed attributes as a JSON string. Search it with `lower(attributes_text) LIKE '%...%'`, which the table indexes.</ResponseField>

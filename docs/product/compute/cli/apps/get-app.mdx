@@ -1,0 +1,84 @@
+---
+title: unkey api apps get-app
+sidebarTitle: "get-app"
+description: "Look up one app in a project by ID or slug."
+sources:
+  - cmd/api/apps/get_app.go
+  - svc/api/routes/v2_apps_get_app/handler.go
+  - svc/api/openapi/openapi-generated.yaml
+  - docs/product/scripts/manifest.json
+  - cmd/api/util/flags.go
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Retrieve one <Tooltip tip="A Compute app: a deployable service inside a project. Not your application in general.">app</Tooltip> by its ID or slug within a project.
+
+## Usage
+
+```bash
+unkey api apps get-app --project=<project> --app=<app>
+```
+
+## Flags
+
+<ParamField body="--app" type="string" required>
+  App ID or slug.
+</ParamField>
+
+<ParamField body="--project" type="string" required>
+  Project ID or slug. Both forms resolve to the same project.
+</ParamField>
+
+### Shared flags
+
+Every `unkey api` command accepts these; [CLI output and shared flags](/platform/cli/output-and-flags) describes them in full.
+
+<ParamField body="--body" type="string">
+  A JSON document sent as the request body instead of building it from the flags above. It is mutually exclusive with the request-building flags, and unknown fields are rejected locally. See [Send a raw body](/platform/cli/output-and-flags#send-a-raw-body).
+</ParamField>
+
+<ParamField body="--root-key" type="string">
+  Root key for the request. Falls back to `UNKEY_ROOT_KEY`, then to the config file written by `unkey auth login`. See [CLI authentication](/platform/cli/authentication).
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the TOML file that `unkey auth login` writes. Falls back to `UNKEY_CONFIG`.
+</ParamField>
+
+<ParamField body="--output" type="string">
+  Output format. Falls back to `UNKEY_OUTPUT`. Set `json` to print the full response envelope (`meta` and `data`) for piping; any other value prints the request ID followed by `data`.
+</ParamField>
+
+## Required permissions
+
+Your root key needs one of:
+
+- `app.*.read_app` (any app)
+- `app.<app_id>.read_app` (a specific app)
+
+If the app doesn't exist or your key doesn't have the permission, you get the same 404: `The requested app does not exist.` See [Root key permissions](/platform/root-keys/permissions) for the full catalog.
+
+## Examples
+
+Get an app:
+
+```bash
+unkey api apps get-app --project=payments --app=app_1234abcd
+```
+
+Send the request body as JSON:
+
+```bash
+unkey api apps get-app --body='{"project":"payments","app":"payments-api"}' --output=json
+```
+
+## API endpoint
+
+The command calls [`POST /v2/apps.getApp`](/compute/api-reference/apps/get-app) and prints its response. The request fields carry the same names as the flags in camelCase, which is the shape `--body` expects.

@@ -1,0 +1,873 @@
+{
+  "$comment": "One entry per capability from plan Appendix A (docs/plans/2026-09-03-001-docs-product-docs-rebuild-plan.md). `pages` are page refs under docs/product without .mdx; every listed page must exist and be in docs.json (or hidden). Checked by coverage-report.mjs.",
+  "capabilities": [
+    {
+      "id": "compute.hierarchy",
+      "product": "compute",
+      "capability": "workspace, project, app, environment hierarchy",
+      "pages": [
+        "compute/concepts/projects-apps-environments"
+      ]
+    },
+    {
+      "id": "compute.project-crud",
+      "product": "compute",
+      "capability": "project CRUD and slugs",
+      "pages": [
+        "compute/concepts/projects-apps-environments",
+        "compute/cli/projects/create-project"
+      ]
+    },
+    {
+      "id": "compute.app-crud",
+      "product": "compute",
+      "capability": "app CRUD, git connection, default branch",
+      "pages": [
+        "compute/concepts/projects-apps-environments",
+        "compute/build/github",
+        "compute/cli/apps/create-app"
+      ]
+    },
+    {
+      "id": "compute.environments",
+      "product": "compute",
+      "capability": "environments (two fixed per app)",
+      "pages": [
+        "compute/concepts/projects-apps-environments",
+        "compute/concepts/production-and-preview"
+      ]
+    },
+    {
+      "id": "compute.build-settings",
+      "product": "compute",
+      "capability": "build settings: root directory, Dockerfile path, build command, watch paths, auto deploy",
+      "pages": [
+        "compute/configure/build-settings"
+      ]
+    },
+    {
+      "id": "compute.builds",
+      "product": "compute",
+      "capability": "builds: Railpack or Dockerfile, build slots",
+      "pages": [
+        "compute/build/overview",
+        "compute/build/dockerfile"
+      ]
+    },
+    {
+      "id": "compute.build-secrets",
+      "product": "compute",
+      "capability": "build-time secrets",
+      "pages": [
+        "compute/build/build-secrets"
+      ]
+    },
+    {
+      "id": "compute.deployment-create",
+      "product": "compute",
+      "capability": "deployment create from git, image, or existing deployment",
+      "pages": [
+        "compute/concepts/deployments",
+        "compute/get-started/deploy-an-image",
+        "compute/cli/deployments/create-deployment"
+      ]
+    },
+    {
+      "id": "compute.unkey-deploy",
+      "product": "compute",
+      "capability": "unkey deploy",
+      "pages": [
+        "compute/cli/deploy"
+      ]
+    },
+    {
+      "id": "compute.deployment-lifecycle",
+      "product": "compute",
+      "capability": "lifecycle statuses, cancel, supersede, approval, error codes, readiness",
+      "pages": [
+        "compute/concepts/deployments"
+      ]
+    },
+    {
+      "id": "compute.promote-rollback",
+      "product": "compute",
+      "capability": "promote, rollback, confirm rollback",
+      "pages": [
+        "compute/concepts/production-and-preview",
+        "compute/cli/deployments/promote-deployment",
+        "compute/cli/deployments/rollback-deployment"
+      ]
+    },
+    {
+      "id": "compute.stop-wake",
+      "product": "compute",
+      "capability": "stop and wake, idle preview shutdown, production standby",
+      "pages": [
+        "compute/concepts/production-and-preview",
+        "compute/cli/deployments/stop-deployment",
+        "compute/cli/deployments/start-deployment"
+      ]
+    },
+    {
+      "id": "compute.github-integration",
+      "product": "compute",
+      "capability": "GitHub integration: install, mapping, watch paths, fork approval, statuses, PR comments, fork domain prefix",
+      "pages": [
+        "compute/build/github",
+        "compute/get-started/deploy-from-github"
+      ]
+    },
+    {
+      "id": "compute.environment-variables",
+      "product": "compute",
+      "capability": "environment variables: kinds, limits, freezing, system variables",
+      "pages": [
+        "compute/configure/environment-variables"
+      ]
+    },
+    {
+      "id": "compute.runtime-settings",
+      "product": "compute",
+      "capability": "runtime settings: port, vCPU, memory, storage, command, shutdown signal, upstream protocol, OpenAPI spec path",
+      "pages": [
+        "compute/configure/runtime-settings"
+      ]
+    },
+    {
+      "id": "compute.health-check",
+      "product": "compute",
+      "capability": "health check setting",
+      "pages": [
+        "compute/configure/health-checks"
+      ]
+    },
+    {
+      "id": "compute.regions-replicas",
+      "product": "compute",
+      "capability": "regions and replicas",
+      "pages": [
+        "compute/concepts/regions",
+        "compute/concepts/instances-and-autoscaling"
+      ]
+    },
+    {
+      "id": "compute.automatic-domains",
+      "product": "compute",
+      "capability": "automatic domains",
+      "pages": [
+        "compute/networking/automatic-domains"
+      ]
+    },
+    {
+      "id": "compute.custom-domains",
+      "product": "compute",
+      "capability": "custom domains and certificates",
+      "pages": [
+        "compute/networking/custom-domains",
+        "compute/cli/domains/create-domain"
+      ]
+    },
+    {
+      "id": "compute.gateway-policy-model",
+      "product": "compute",
+      "capability": "gateway policy structure, match expressions, evaluation order, limits",
+      "pages": [
+        "compute/gateway/overview",
+        "compute/gateway/policies"
+      ]
+    },
+    {
+      "id": "compute.gateway-snapshot",
+      "product": "compute",
+      "capability": "gateway policy snapshot semantics (edits apply on the next deployment)",
+      "pages": [
+        "compute/gateway/overview",
+        "compute/gateway/policies"
+      ]
+    },
+    {
+      "id": "compute.gateway-keyauth",
+      "product": "compute",
+      "capability": "gateway keyauth policy",
+      "pages": [
+        "compute/gateway/api-key-auth"
+      ]
+    },
+    {
+      "id": "compute.gateway-ratelimit",
+      "product": "compute",
+      "capability": "gateway ratelimit policy",
+      "pages": [
+        "compute/gateway/rate-limiting"
+      ]
+    },
+    {
+      "id": "compute.gateway-firewall",
+      "product": "compute",
+      "capability": "gateway firewall policy",
+      "pages": [
+        "compute/gateway/firewall"
+      ]
+    },
+    {
+      "id": "compute.gateway-openapi",
+      "product": "compute",
+      "capability": "gateway openapi validation policy",
+      "pages": [
+        "compute/gateway/openapi-validation"
+      ]
+    },
+    {
+      "id": "compute.gateway-logging",
+      "product": "compute",
+      "capability": "gateway logging policy",
+      "pages": [
+        "compute/gateway/logging"
+      ]
+    },
+    {
+      "id": "compute.principal-header",
+      "product": "compute",
+      "capability": "principal header",
+      "pages": [
+        "compute/gateway/principal",
+        "compute/gateway/local-development"
+      ]
+    },
+    {
+      "id": "compute.request-response-headers",
+      "product": "compute",
+      "capability": "request and response headers added by the gateway",
+      "pages": [
+        "compute/gateway/overview",
+        "compute/networking/request-lifecycle"
+      ]
+    },
+    {
+      "id": "compute.routing-tls-timeouts",
+      "product": "compute",
+      "capability": "routing, TLS, timeouts",
+      "pages": [
+        "compute/networking/request-lifecycle"
+      ]
+    },
+    {
+      "id": "compute.websockets",
+      "product": "compute",
+      "capability": "WebSockets",
+      "pages": [
+        "compute/networking/websockets"
+      ]
+    },
+    {
+      "id": "compute.private-networking",
+      "product": "compute",
+      "capability": "private networking",
+      "pages": [
+        "compute/networking/private-networking"
+      ]
+    },
+    {
+      "id": "compute.frontline-errors",
+      "product": "compute",
+      "capability": "frontline error codes",
+      "pages": [
+        "compute/gateway/errors",
+        "errors/overview"
+      ]
+    },
+    {
+      "id": "compute.spend-budget",
+      "product": "compute",
+      "capability": "spend budget and suspension",
+      "pages": [
+        "compute/configure/spend-budget"
+      ]
+    },
+    {
+      "id": "compute.plan-gate",
+      "product": "compute",
+      "capability": "Compute plan gate and plan matrix",
+      "pages": [
+        "compute/get-started/plans"
+      ]
+    },
+    {
+      "id": "compute.limits",
+      "product": "compute",
+      "capability": "Compute limits",
+      "pages": [
+        "compute/configure/limits"
+      ]
+    },
+    {
+      "id": "compute.observability",
+      "product": "compute",
+      "capability": "observability: runtime logs, requests, metrics, build logs",
+      "pages": [
+        "compute/observe/overview",
+        "compute/observe/runtime-logs",
+        "compute/observe/requests",
+        "compute/observe/metrics",
+        "compute/observe/build-logs"
+      ]
+    },
+    {
+      "id": "compute.analytics-tables",
+      "product": "compute",
+      "capability": "Compute-owned analytics tables (gateway requests, runtime logs)",
+      "pages": [
+        "compute/observe/analytics-api",
+        "compute/cli/analytics/get-gateway-requests",
+        "compute/cli/analytics/get-runtime-logs"
+      ]
+    },
+    {
+      "id": "compute.trigger-attribution",
+      "product": "compute",
+      "capability": "deployment trigger attribution",
+      "pages": [
+        "compute/concepts/deployments"
+      ]
+    },
+    {
+      "id": "apim.keyspaces-crud",
+      "product": "api-management",
+      "capability": "keyspaces: create, get, delete",
+      "pages": [
+        "api-management/keyspaces/overview",
+        "api-management/cli/apis/create-api"
+      ]
+    },
+    {
+      "id": "apim.keyspaces-list-keys",
+      "product": "api-management",
+      "capability": "keyspaces: list keys",
+      "pages": [
+        "api-management/keyspaces/listing-keys",
+        "api-management/cli/apis/list-keys"
+      ]
+    },
+    {
+      "id": "apim.keyspaces-settings",
+      "product": "api-management",
+      "capability": "keyspaces: defaults, encrypted key storage, IP whitelist, delete protection",
+      "pages": [
+        "api-management/keyspaces/settings"
+      ]
+    },
+    {
+      "id": "apim.keys-create",
+      "product": "api-management",
+      "capability": "keys: create with all fields",
+      "pages": [
+        "api-management/keys/creating-keys",
+        "api-management/cli/keys/create-key"
+      ]
+    },
+    {
+      "id": "apim.keys-verify",
+      "product": "api-management",
+      "capability": "keys: verify",
+      "pages": [
+        "api-management/keys/verifying-keys",
+        "api-management/cli/keys/verify-key"
+      ]
+    },
+    {
+      "id": "apim.keys-get-whoami",
+      "product": "api-management",
+      "capability": "keys: get, whoami, lastUsedAt",
+      "pages": [
+        "api-management/keys/looking-up-keys",
+        "api-management/cli/keys/get-key",
+        "api-management/cli/keys/whoami"
+      ]
+    },
+    {
+      "id": "apim.keys-update",
+      "product": "api-management",
+      "capability": "keys: update",
+      "pages": [
+        "api-management/keys/metadata-and-tags",
+        "api-management/cli/keys/update-key"
+      ]
+    },
+    {
+      "id": "apim.keys-update-credits",
+      "product": "api-management",
+      "capability": "keys: update credits",
+      "pages": [
+        "api-management/keys/credits-and-refill",
+        "api-management/cli/keys/update-credits"
+      ]
+    },
+    {
+      "id": "apim.keys-delete",
+      "product": "api-management",
+      "capability": "keys: delete soft and permanent, enabled flag",
+      "pages": [
+        "api-management/keys/enable-disable-delete",
+        "api-management/cli/keys/delete-key"
+      ]
+    },
+    {
+      "id": "apim.keys-reroll",
+      "product": "api-management",
+      "capability": "keys: reroll",
+      "pages": [
+        "api-management/keys/rerolling-keys",
+        "api-management/cli/keys/reroll-key"
+      ]
+    },
+    {
+      "id": "apim.keys-migrate",
+      "product": "api-management",
+      "capability": "keys: migrate (migrations)",
+      "pages": [
+        "api-management/keys/migrating-keys",
+        "api-management/cli/keys/migrate-keys"
+      ]
+    },
+    {
+      "id": "apim.keys-permissions-roles",
+      "product": "api-management",
+      "capability": "keys: permissions and roles management",
+      "pages": [
+        "api-management/authorization/managing-key-permissions",
+        "api-management/cli/keys/set-permissions",
+        "api-management/cli/keys/set-roles"
+      ]
+    },
+    {
+      "id": "apim.keys-recoverable",
+      "product": "api-management",
+      "capability": "keys: recoverable keys",
+      "pages": [
+        "api-management/keys/recoverable-keys"
+      ]
+    },
+    {
+      "id": "apim.keys-expiry",
+      "product": "api-management",
+      "capability": "keys: expiry",
+      "pages": [
+        "api-management/keys/expiration"
+      ]
+    },
+    {
+      "id": "apim.keys-tags-meta",
+      "product": "api-management",
+      "capability": "keys: metadata and tags",
+      "pages": [
+        "api-management/keys/metadata-and-tags"
+      ]
+    },
+    {
+      "id": "apim.credits-refill",
+      "product": "api-management",
+      "capability": "credits and refill",
+      "pages": [
+        "api-management/keys/credits-and-refill"
+      ]
+    },
+    {
+      "id": "apim.ratelimit-key-identity",
+      "product": "api-management",
+      "capability": "rate limiting per key and identity",
+      "pages": [
+        "api-management/ratelimiting/key-and-identity-limits"
+      ]
+    },
+    {
+      "id": "apim.ratelimit-limit-multilimit",
+      "product": "api-management",
+      "capability": "rate limiting: limit, multiLimit",
+      "pages": [
+        "api-management/ratelimiting/limit-and-multi-limit",
+        "api-management/cli/ratelimit/limit",
+        "api-management/cli/ratelimit/multi-limit"
+      ]
+    },
+    {
+      "id": "apim.ratelimit-overrides",
+      "product": "api-management",
+      "capability": "rate limiting: overrides",
+      "pages": [
+        "api-management/ratelimiting/overrides",
+        "api-management/cli/ratelimit/set-override"
+      ]
+    },
+    {
+      "id": "apim.ratelimit-algorithm-namespaces",
+      "product": "api-management",
+      "capability": "rate limiting: algorithm, namespaces",
+      "pages": [
+        "api-management/ratelimiting/overview",
+        "api-management/ratelimiting/how-it-works"
+      ]
+    },
+    {
+      "id": "apim.identities-crud",
+      "product": "api-management",
+      "capability": "identities: CRUD, externalId rules, auto-upsert",
+      "pages": [
+        "api-management/identities/overview",
+        "api-management/cli/identities/create-identity"
+      ]
+    },
+    {
+      "id": "apim.identities-shared-limits",
+      "product": "api-management",
+      "capability": "identities: shared limits",
+      "pages": [
+        "api-management/identities/shared-rate-limits"
+      ]
+    },
+    {
+      "id": "apim.authorization-permissions-roles",
+      "product": "api-management",
+      "capability": "authorization: permissions, roles",
+      "pages": [
+        "api-management/authorization/overview",
+        "api-management/authorization/roles-and-permissions",
+        "api-management/cli/permissions/create-role"
+      ]
+    },
+    {
+      "id": "apim.permission-queries",
+      "product": "api-management",
+      "capability": "authorization: permission queries, literal wildcards",
+      "pages": [
+        "api-management/authorization/permission-queries"
+      ]
+    },
+    {
+      "id": "apim.root-key-grammars",
+      "product": "api-management",
+      "capability": "root key permissions: the resource.id.action grammar and catalog",
+      "pages": [
+        "platform/root-keys/permissions",
+        "platform/root-keys/permissions-legacy"
+      ]
+    },
+    {
+      "id": "apim.workspace-api-rate-limit",
+      "product": "api-management",
+      "capability": "workspace API rate limit",
+      "pages": [
+        "platform/api/rate-limits"
+      ]
+    },
+    {
+      "id": "apim.analytics-endpoints",
+      "product": "api-management",
+      "capability": "analytics: four endpoints",
+      "pages": [
+        "api-management/analytics/overview",
+        "api-management/cli/analytics/get-verifications",
+        "api-management/cli/analytics/get-ratelimits",
+        "compute/observe/analytics-api"
+      ]
+    },
+    {
+      "id": "apim.analytics-grammar",
+      "product": "api-management",
+      "capability": "analytics: query grammar",
+      "pages": [
+        "api-management/analytics/query-language",
+        "api-management/analytics/examples"
+      ]
+    },
+    {
+      "id": "apim.analytics-allowlist-quotas-retention",
+      "product": "api-management",
+      "capability": "analytics: allow-list, quotas, retention",
+      "pages": [
+        "api-management/analytics/restrictions-and-quotas",
+        "api-management/analytics/troubleshooting"
+      ]
+    },
+    {
+      "id": "apim.analytics-tables",
+      "product": "api-management",
+      "capability": "analytics: tables",
+      "pages": [
+        "api-management/analytics/tables/key-verifications",
+        "api-management/analytics/tables/ratelimits"
+      ]
+    },
+    {
+      "id": "apim.analytics-permissions",
+      "product": "api-management",
+      "capability": "analytics: permissions",
+      "pages": [
+        "api-management/analytics/overview"
+      ]
+    },
+    {
+      "id": "apim.audit-events",
+      "product": "api-management",
+      "capability": "audit logs: events",
+      "pages": [
+        "api-management/audit-logs/event-types"
+      ]
+    },
+    {
+      "id": "apim.audit-retention",
+      "product": "api-management",
+      "capability": "audit logs: retention",
+      "pages": [
+        "api-management/audit-logs/overview"
+      ]
+    },
+    {
+      "id": "apim.audit-drains",
+      "product": "api-management",
+      "capability": "audit logs: drains",
+      "pages": [
+        "platform/workspace/log-drains"
+      ]
+    },
+    {
+      "id": "apim.portal-crud",
+      "product": "api-management",
+      "capability": "developer portal: CRUD",
+      "pages": [
+        "api-management/portal/overview",
+        "api-management/cli/portal/create-portal",
+        "api-management/cli/portal/get-portal",
+        "api-management/cli/portal/update-portal",
+        "api-management/cli/portal/delete-portal"
+      ]
+    },
+    {
+      "id": "apim.portal-sessions",
+      "product": "api-management",
+      "capability": "developer portal: sessions",
+      "pages": [
+        "api-management/portal/sessions",
+        "api-management/cli/portal/create-session"
+      ]
+    },
+    {
+      "id": "apim.portal-end-user",
+      "product": "api-management",
+      "capability": "developer portal: end-user actions",
+      "pages": [
+        "api-management/portal/end-user-experience"
+      ]
+    },
+    {
+      "id": "apim.github-secret-scanning",
+      "product": "api-management",
+      "capability": "GitHub secret scanning",
+      "pages": [
+        "platform/security/github-secret-scanning"
+      ]
+    },
+    {
+      "id": "apim.key-recovery",
+      "product": "api-management",
+      "capability": "key recovery",
+      "pages": [
+        "api-management/security/recovering-keys",
+        "api-management/security/overview"
+      ]
+    },
+    {
+      "id": "apim.framework-guides",
+      "product": "api-management",
+      "capability": "framework guides",
+      "pages": [
+        "api-management/guides/nextjs",
+        "api-management/guides/express",
+        "api-management/guides/bun",
+        "api-management/guides/hono",
+        "api-management/guides/go",
+        "api-management/guides/python",
+        "api-management/guides/cloudflare-workers"
+      ]
+    },
+    {
+      "id": "apim.cookbook",
+      "product": "api-management",
+      "capability": "cookbook recipes",
+      "pages": [
+        "api-management/cookbook/index"
+      ]
+    },
+    {
+      "id": "apim.sdks",
+      "product": "api-management",
+      "capability": "SDKs at current versions including Go v3",
+      "pages": [
+        "api-management/sdks/overview",
+        "api-management/sdks/go",
+        "api-management/sdks/python",
+        "api-management/sdks/typescript/api"
+      ]
+    },
+    {
+      "id": "platform.workspace",
+      "product": "platform",
+      "capability": "workspace and workspace settings",
+      "pages": [
+        "platform/workspace/overview",
+        "platform/workspace/settings"
+      ]
+    },
+    {
+      "id": "platform.team-roles",
+      "product": "platform",
+      "capability": "team roles (admin, developer, viewer)",
+      "pages": [
+        "platform/workspace/team"
+      ]
+    },
+    {
+      "id": "platform.two-factor-auth",
+      "product": "platform",
+      "capability": "two-factor auth",
+      "pages": [
+        "platform/workspace/two-factor-auth"
+      ]
+    },
+    {
+      "id": "platform.billing-plans",
+      "product": "platform",
+      "capability": "billing plans",
+      "pages": [
+        "platform/billing/plans"
+      ]
+    },
+    {
+      "id": "platform.billing-limits",
+      "product": "platform",
+      "capability": "billing limits",
+      "pages": [
+        "platform/billing/limits"
+      ]
+    },
+    {
+      "id": "platform.billing-usage",
+      "product": "platform",
+      "capability": "billing usage",
+      "pages": [
+        "platform/billing/usage"
+      ]
+    },
+    {
+      "id": "platform.delete-protection",
+      "product": "platform",
+      "capability": "delete protection across six resource types",
+      "pages": [
+        "platform/security/delete-protection"
+      ]
+    },
+    {
+      "id": "platform.security-overview",
+      "product": "platform",
+      "capability": "security overview and key storage",
+      "pages": [
+        "platform/security/overview",
+        "platform/security/key-storage"
+      ]
+    },
+    {
+      "id": "platform.root-keys",
+      "product": "platform",
+      "capability": "root keys",
+      "pages": [
+        "platform/root-keys/overview",
+        "platform/root-keys/permissions"
+      ]
+    },
+    {
+      "id": "platform.api-base-url-rpc",
+      "product": "platform",
+      "capability": "API basics: base URL, RPC convention",
+      "pages": [
+        "platform/api/overview",
+        "platform/api/rpc-convention"
+      ]
+    },
+    {
+      "id": "platform.api-auth",
+      "product": "platform",
+      "capability": "API basics: auth",
+      "pages": [
+        "platform/api/authentication"
+      ]
+    },
+    {
+      "id": "platform.api-envelope-request-id",
+      "product": "platform",
+      "capability": "API basics: envelope, request ID, errors",
+      "pages": [
+        "platform/api/errors"
+      ]
+    },
+    {
+      "id": "platform.api-rate-limit-headers",
+      "product": "platform",
+      "capability": "API basics: rate limit headers",
+      "pages": [
+        "platform/api/rate-limits"
+      ]
+    },
+    {
+      "id": "platform.cli-install",
+      "product": "platform",
+      "capability": "CLI install",
+      "pages": [
+        "platform/cli/overview",
+        "platform/cli/install"
+      ]
+    },
+    {
+      "id": "platform.cli-auth",
+      "product": "platform",
+      "capability": "CLI auth",
+      "pages": [
+        "platform/cli/authentication",
+        "platform/cli/auth/login"
+      ]
+    },
+    {
+      "id": "platform.cli-output-flags",
+      "product": "platform",
+      "capability": "CLI output and flags",
+      "pages": [
+        "platform/cli/output-and-flags"
+      ]
+    },
+    {
+      "id": "platform.error-catalog",
+      "product": "platform",
+      "capability": "error catalog (90 codes, three systems)",
+      "pages": [
+        "errors/overview"
+      ]
+    },
+    {
+      "id": "platform.glossary",
+      "product": "platform",
+      "capability": "glossary",
+      "pages": [
+        "platform/glossary"
+      ]
+    },
+    {
+      "id": "platform.landing",
+      "product": "platform",
+      "capability": "site and product landing pages",
+      "pages": [
+        "index",
+        "compute/index",
+        "api-management/index",
+        "platform/index"
+      ]
+    }
+  ]
+}

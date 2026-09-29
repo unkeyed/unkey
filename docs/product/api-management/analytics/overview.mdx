@@ -1,0 +1,82 @@
+---
+title: Analytics
+sidebarTitle: "Overview"
+description: "Query your key verification and rate limit data with SQL."
+sources:
+  - svc/api/routes/v2_analytics_get_verifications/handler.go
+  - svc/api/routes/v2_analytics_get_ratelimits/handler.go
+  - svc/api/routes/v2_analytics_get_gateway_requests/handler.go
+  - svc/api/routes/v2_analytics_get_runtime_logs/handler.go
+  - internal/services/analytics/service.go
+  - internal/services/analytics/executor.go
+  - pkg/clickhouse/query-parser/tables.go
+---
+
+import { ProductLink } from "/snippets/product-link.jsx";
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<ProductLink product="compute" href="/compute/observe/analytics-api" title="Gateway request and runtime log analytics">
+  `analytics.getGatewayRequests` and `analytics.getRuntimeLogs` query Compute tables and are documented there. The query language, restrictions, and quotas on the pages here apply to them too.
+</ProductLink>
+
+Every key <Tooltip tip="Here: keys.verifyKey checking one of your users' API keys. Not domain verification and not the gateway's key-auth policy.">verification</Tooltip> and every <Tooltip tip="Here: the standalone ratelimit API and the limits attached to keys and identities. Not the gateway policy.">rate limit</Tooltip> decision is recorded, and you can query those records with SQL. Write a `SELECT` and get rows back. You only ever see your own workspace's data. Use it to build usage dashboards, bill on verifications, find keys that are hitting limits, or answer a one-off question.
+
+## Get access
+
+Ask [support@unkey.com](mailto:support@unkey.com) to turn on analytics for your workspace. There's no plan gate and no self-serve switch. Until it's on, the endpoints return HTTP 412 with `err:unkey:data:analytics_not_configured`. Once it's on, the [restrictions and quotas](/api-management/analytics/restrictions-and-quotas) apply.
+
+<RootKeyPrereq />
+
+## The endpoints
+
+There are four, one per data set. Each takes `{"query": "<SQL>"}` and returns `data` as an array of rows, keyed by the column names you selected.
+
+| Endpoint | Public tables | Root key permission |
+| --- | --- | --- |
+| `analytics.getVerifications` | `key_verifications_v1` and its per-minute, per-hour, per-day, and per-month rollups | `api.*.read_analytics`, or `api.<api_id>.read_analytics` for specific keyspaces |
+| `analytics.getRatelimits` | `ratelimits_v1` and its rollups | `ratelimit.*.read_analytics`, or `ratelimit.<namespace_id>.read_analytics` for specific namespaces |
+| `analytics.getGatewayRequests` | `gateway_requests_v1` | `project.*.read_gateway_requests` |
+| `analytics.getRuntimeLogs` | `runtime_logs_v1` | `project.*.read_runtime_logs` |
+
+A root key with `read_analytics` for specific keyspaces (or namespaces) instead of `*` only sees rows for those.
+
+```bash
+curl -X POST https://api.unkey.com/v2/analytics.getVerifications \
+  -H "Authorization: Bearer <root key>" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "SELECT outcome, count() AS n FROM key_verifications_v1 WHERE time > toUnixTimestamp64Milli(now() - toIntervalDay(1)) GROUP BY outcome ORDER BY n DESC"}'
+```
+
+```json Response
+{
+  "meta": { "requestId": "req_2c9a0jf23l4k567" },
+  "data": [
+    { "outcome": "VALID", "n": 48213 },
+    { "outcome": "RATE_LIMITED", "n": 1207 },
+    { "outcome": "USAGE_EXCEEDED", "n": 88 }
+  ]
+}
+```
+
+## Public tables
+
+`key_verifications_v1` has one row per verification. `key_verifications_per_minute_v1`, `_per_hour_v1`, `_per_day_v1`, and `_per_month_v1` are rollups, much faster for charts and totals. The ratelimits tables follow the same pattern. Any other table name fails with `err:user:bad_request:invalid_analytics_table`. Columns and types are on [key_verifications tables](/api-management/analytics/tables/key-verifications) and [ratelimits tables](/api-management/analytics/tables/ratelimits).
+
+## Where to go next
+
+<Columns cols={2}>
+  <Card title="Analytics query language" icon="code" href="/api-management/analytics/query-language">
+    What SQL is accepted and which functions you can call.
+  </Card>
+  <Card title="Analytics restrictions and quotas" icon="gauge" href="/api-management/analytics/restrictions-and-quotas">
+    Size limits, timeouts, retention, and every error code.
+  </Card>
+  <Card title="Analytics query examples" icon="lightbulb" href="/api-management/analytics/examples">
+    Copy-ready queries for the common questions.
+  </Card>
+  <Card title="Analytics troubleshooting" icon="wrench" href="/api-management/analytics/troubleshooting">
+    Empty results, timeouts, and rejected queries.
+  </Card>
+</Columns>
+
+You can run the same queries from the CLI with `unkey api analytics get-verifications` and `unkey api analytics get-ratelimits`. The CLI reference starts at [get-verifications](/api-management/cli/analytics/get-verifications).

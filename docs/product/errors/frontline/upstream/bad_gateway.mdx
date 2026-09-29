@@ -1,7 +1,60 @@
 ---
 title: "bad_gateway"
-description: "BadGateway represents a 502 error - invalid response from upstream server"
+sidebarTitle: "bad_gateway"
+description: "The app behind the gateway reset the connection or returned an unusable response."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/proxy/error.go
+  - svc/frontline/internal/proxy/forward.go
+  - svc/frontline/routes/proxy/handler.go
 ---
 
 <Danger>`err:frontline:upstream:bad_gateway`</Danger>
 
+import { ProductLink } from "/snippets/product-link.jsx";
+
+The gateway sent the request to a running instance of the <Tooltip tip="A Compute app: a deployable service inside a project. Not your application in general.">app</Tooltip>, and the connection broke. The cause is almost always the app itself. You get `502 Bad Gateway`.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:upstream:bad_gateway",
+    "message": "Unable to connect. Please try again in a few moments."
+  }
+}
+```
+
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+Retry with backoff. A single 502 during a rollout is normal. If every request fails this way, the app is unhealthy and only the API owner can fix it. Send them the request ID and the time.
+
+## If you own this API
+
+Your app accepted the connection and then closed it. If the gateway can't connect at all, it tries your other instances first. It never retries a request your app already accepted, so your handlers don't run twice for one request. Common causes:
+
+- The app crashed while handling the request.
+- The instance was killed for running out of memory.
+- The app closes idle connections too quickly.
+- The app doesn't speak the upstream protocol set for the deployment.
+
+### How to fix
+
+1. Read the runtime logs around the time of the request. Look for a crash, an out-of-memory kill, or a panic on the failing route.
+2. Make sure your app keeps connections open long enough for the gateway to reuse them.
+3. Check that your app handles the upstream protocol set for the deployment.
+
+<ProductLink product="compute" href="/compute/gateway/errors" title="Compute gateway">
+  Runtime logs, runtime settings, and the request lifecycle are Compute features.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:upstream:service_unavailable`](/errors/frontline/upstream/service_unavailable): the instance refused the connection or couldn't be reached.
+- [`err:frontline:upstream:gateway_timeout`](/errors/frontline/upstream/gateway_timeout): the instance didn't answer in time.
+- [`err:frontline:capacity:no_running_instances`](/errors/frontline/capacity/no_running_instances): there was no running instance to connect to.

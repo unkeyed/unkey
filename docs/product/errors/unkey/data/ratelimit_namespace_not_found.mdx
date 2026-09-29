@@ -1,79 +1,47 @@
 ---
 title: "ratelimit_namespace_not_found"
-description: "The requested rate limit namespace was not found in Unkey. Verify the namespace ID or name is correct and the namespace has not been deleted."
+sidebarTitle: "ratelimit_namespace_not_found"
+description: "The rate limit namespace does not exist in your workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_ratelimit_set_override/handler.go
+  - svc/api/routes/v2_ratelimit_get_override/handler.go
+  - svc/api/routes/v2_ratelimit_list_overrides/handler.go
+  - svc/api/routes/v2_ratelimit_delete_override/handler.go
+  - svc/api/routes/v2_ratelimit_limit/handler.go
 ---
 
-<Danger>err:unkey:data:ratelimit_namespace_not_found</Danger>
+<Danger>`err:unkey:data:ratelimit_namespace_not_found`</Danger>
 
-```json Example
+The <Tooltip tip="The standalone rate limiting API (ratelimit.limit and overrides), not key rate limits or gateway policies.">rate limit</Tooltip> namespace you referenced doesn't exist in your workspace. You get HTTP 404.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "The requested rate limit namespace could not be found",
+    "detail": "This namespace does not exist.",
     "status": 404,
     "title": "Not Found",
-    "type": "https://unkey.com/docs/errors/unkey/data/ratelimit_namespace_not_found"
+    "type": "/errors/unkey/data/ratelimit_namespace_not_found"
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-This error occurs when you're trying to perform an operation on a rate limit namespace that doesn't exist in the Unkey system. Rate limit namespaces are used to organize and manage rate limits for different resources or operations.
+- You set an override before the namespace existed. Namespaces are created the first time you call `ratelimit.limit` or `ratelimit.multiLimit` with a new name. The override endpoints (`ratelimit.setOverride`, `ratelimit.getOverride`, `ratelimit.listOverrides`, `ratelimit.deleteOverride`) don't create them.
+- The name has a typo. Names are matched exactly.
+- The namespace was deleted. `ratelimit.setOverride` returns this 404 for it, while `ratelimit.limit` returns [`err:unkey:data:ratelimit_namespace_gone`](/errors/unkey/data/ratelimit_namespace_gone).
 
-Common scenarios that trigger this error:
+## How to fix
 
-- Using an incorrect namespace ID or name
-- Referencing a namespace that has been deleted
-- Trying to modify a namespace that doesn't exist in the current workspace
-- Typos in namespace names when using name-based lookups
+1. Call `ratelimit.limit` with the namespace once to create it, then set overrides.
+2. Check the spelling. If you pass an ID, use the `rlns_` ID from the dashboard.
 
-Here's an example of a request that would trigger this error:
+## Related errors
 
-```bash
-# Attempting to get overrides for a non-existent namespace
-curl -X POST https://api.unkey.com/v2/ratelimit.listOverrides \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
-  -d '{
-    "namespaceName": "nonexistent_namespace"
-  }'
-```
-
-## How To Fix
-
-Verify that you're using the correct namespace ID or name and that the namespace still exists in your workspace:
-
-1. Check the namespace ID or name in your request for typos or formatting errors
-2. List all namespaces in your workspace to find the correct ID or name
-3. If the namespace has been deleted, you may need to recreate it
-
-Here's how to use the correct namespace in a rate limit operation:
-
-```bash
-# Creating a rate limit using a valid namespace
-curl -X POST https://api.unkey.com/v2/ratelimit.limit \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
-  -d '{
-    "namespace": "your_valid_namespace",
-    "identifier": "user_123",
-    "limit": 100,
-    "duration": 60000
-  }'
-```
-
-## Common Mistakes
-
-- **Typos in namespace names**: Small typographical errors in namespace names
-- **Case sensitivity**: Namespace names might be case-sensitive
-- **Deleted namespaces**: Referencing namespaces that have been removed
-- **Workspace boundaries**: Trying to use namespaces from another workspace
-
-## Related Errors
-
-- [err:unkey:data:ratelimit_override_not_found](./ratelimit_override_not_found) - When the requested rate limit override doesn't exist
-- [err:unkey:authorization:insufficient_permissions](../authorization/insufficient_permissions) - When you don't have permission to perform operations on rate limits
-- [err:unkey:data:workspace_not_found](./workspace_not_found) - When the requested workspace doesn't exist
+- [`err:unkey:data:ratelimit_namespace_gone`](/errors/unkey/data/ratelimit_namespace_gone): the namespace existed and was deleted.
+- [`err:unkey:data:ratelimit_override_not_found`](/errors/unkey/data/ratelimit_override_not_found): the namespace exists but the override doesn't.

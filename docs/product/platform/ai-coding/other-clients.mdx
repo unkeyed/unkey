@@ -1,0 +1,85 @@
+---
+title: Connect other MCP clients
+sidebarTitle: "Other clients"
+description: "Set up the Unkey MCP servers in VS Code, Claude Desktop, Codex CLI, or any other MCP client."
+sources:
+  - https://mcp.unkey.com/mcp/v2/install
+  - https://mcp.unkey.com/mcp/compute/install
+  - https://code.visualstudio.com/docs/copilot/reference/mcp-configuration
+---
+
+Each example adds the Unkey server. For the Compute server, swap in `https://mcp.unkey.com/mcp/compute`. You need a root key for your assistant. See [Create a root key](/platform/ai-coding/mcp-servers#create-a-root-key).
+
+## VS Code
+
+Add the server to `.vscode/mcp.json` in your project:
+
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "unkey-root-key",
+      "description": "Unkey root key",
+      "password": true
+    }
+  ],
+  "servers": {
+    "unkey": {
+      "type": "http",
+      "url": "https://mcp.unkey.com/mcp/v2",
+      "headers": {
+        "Mcp-Unkey-V2-Bearer": "${input:unkey-root-key}"
+      }
+    }
+  }
+}
+```
+
+VS Code asks for your root key the first time the server starts and stores it for you. To add the docs, open the menu next to **Copy page** on any docs page and choose **Connect to VS Code**.
+
+## Claude Desktop
+
+Claude Desktop's custom connectors can't send headers, so it connects through `mcp-remote`, which needs Node.js.
+
+1. Go to **Settings > Developer > Local MCP Servers > Edit config** to open `claude_desktop_config.json`.
+2. Add the server and replace the placeholder with your root key:
+
+```json
+{
+  "mcpServers": {
+    "unkey": {
+      "command": "npx",
+      "args": [
+        "mcp-remote@0.1.25",
+        "https://mcp.unkey.com/mcp/v2",
+        "--header",
+        "Mcp-Unkey-V2-Bearer:${UNKEY_ROOT_KEY}"
+      ],
+      "env": {
+        "UNKEY_ROOT_KEY": "<your root key>"
+      }
+    }
+  }
+}
+```
+
+3. Save the file and restart Claude Desktop.
+
+## Codex CLI
+
+```bash
+codex mcp add unkey --url "https://mcp.unkey.com/mcp/v2"
+```
+
+Codex can't set headers from the command line. Open `~/.codex/config.toml` and add this line to the `[mcp_servers.unkey]` entry the command created, so Codex reads the key from `UNKEY_ROOT_KEY`:
+
+```toml
+env_http_headers = { "Mcp-Unkey-V2-Bearer" = "UNKEY_ROOT_KEY" }
+```
+
+Restart Codex to load the server.
+
+## Any other client
+
+Any client that connects to remote MCP servers over HTTP and can send a custom header works. Give it the server URL and the `Mcp-Unkey-V2-Bearer` header with your root key. The [install page](https://mcp.unkey.com/mcp/v2/install) also has snippets for opencode and Antigravity.

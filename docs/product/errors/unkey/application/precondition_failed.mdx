@@ -1,104 +1,65 @@
 ---
 title: "precondition_failed"
-description: "A precondition check failed before the operation could proceed. Learn common causes like conflicting state or unmet resource requirements."
+sidebarTitle: "precondition_failed"
+description: "The request was valid but the current state does not allow the operation yet."
+sources:
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - internal/services/keys/validation.go
+  - svc/api/routes/v2_deployments_create_deployment/handler.go
+  - svc/api/internal/githubapp/githubapp.go
+  - pkg/deploy/deploygate/deploygate.go
+  - pkg/domain/domaingate/domaingate.go
 ---
 
 <Danger>`err:unkey:application:precondition_failed`</Danger>
 
-```json Example
+Your request is valid, but something about your setup has to change first. You get HTTP 412, and `detail` says what.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "Vault hasn't been set up.",
+    "detail": "The requested API is not set up to handle keys.",
     "status": 412,
     "title": "Precondition Failed",
-    "type": "https://unkey.com/docs/errors/unkey/application/precondition_failed"
+    "type": "/errors/unkey/application/precondition_failed"
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-This error occurs when your request is valid, but a precondition required to fulfill it is not met. Unlike validation errors where your input is invalid, precondition failures indicate that the system or resource is not configured correctly to handle your request.
+In API Management:
 
-Common scenarios that trigger this error:
+- The API isn't set up for keys (`The requested API is not set up to handle keys.`).
+- You asked for key recovery (`recoverable: true` or `decrypt: true`) on an API that doesn't store recoverable keys.
+- A rate limit you named in `keys.verifyKey` isn't set on the key or its identity.
 
-- **API not configured for keys**: The API you're trying to create keys for doesn't have key authentication set up
-- **Vault not configured**: You're trying to create recoverable keys or decrypt keys, but the vault service isn't set up for your workspace
-- **Encryption not enabled**: You're requesting key encryption/decryption on an API that doesn't have encryption enabled
-- **Rate limit configuration missing**: You're checking a rate limit that doesn't exist for the key or its associated identity
+In Compute:
 
-Here's an example of a request that would trigger this error:
+- The workspace has no active Compute plan, or compute is paused because the workspace reached its spend limit.
+- You asked for a git deployment, but the app has no connected GitHub repository, or the Unkey GitHub App isn't installed or can't access the repository.
+- You redeployed a deployment that never produced an image.
+- The domain you're verifying is already verified.
 
-```bash
-# Attempting to create a recoverable key when vault isn't configured
-curl -X POST https://api.unkey.com/v2/keys.createKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_ROOT_KEY" \
-  -d '{
-    "apiId": "api_1234567890",
-    "prefix": "test",
-    "recoverable": true
-  }'
-```
+## How to fix
 
-## How To Fix
+Do what `detail` says, then retry:
 
-The fix depends on which precondition failed. Check the error's `detail` field for specific information:
+- Use an API with key support, or check the API ID.
+- Turn on recoverable keys for the API before you ask for `recoverable: true` or `decrypt: true`.
+- Set the named rate limit on the key or identity before you check it.
+- Connect the repository, or install the GitHub App from the link in the message.
+- Choose a Compute plan under [Plans](/platform/billing/plans), or raise or remove the spend budget under **Settings > Billing**.
+- For an already verified domain, there's nothing to do.
 
-### Vault Not Set Up
+## Related errors
 
-If you see "Vault hasn't been set up", you have two options:
-
-1. **Configure the vault service** for your workspace (contact Unkey support if you need assistance)
-2. **Remove the encryption requirement** from your request:
-
-```bash
-# Create a non-recoverable key instead
-curl -X POST https://api.unkey.com/v2/keys.createKey \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_ROOT_KEY" \
-  -d '{
-    "apiId": "api_1234567890",
-    "prefix": "test",
-    "recoverable": false
-  }'
-```
-
-### API Not Set Up for Keys
-
-If you see "The requested API is not set up to handle keys", you need to:
-
-1. Verify the API ID is correct
-2. Ensure the API has key authentication configured in your Unkey dashboard
-3. Create or configure the key authentication settings for your API
-
-### API Not Set Up for Encryption
-
-If you see "This API does not support key encryption", either:
-
-1. Enable encrypted key storage for the API in your Unkey dashboard settings
-2. Remove the `recoverable: true` option or `decrypt: true` parameter from your request
-
-### Rate Limit Not Found
-
-If you see a message about a requested rate limit not existing:
-
-1. Verify the rate limit name is correct
-2. Create the rate limit configuration for the key or its identity
-3. Ensure the rate limit is associated with the correct resource
-
-## Common Mistakes
-
-- **Assuming features are enabled by default**: Features like vault encryption and rate limits require explicit configuration
-- **Wrong API configuration**: Trying to use encryption features on an API that wasn't set up for it
-- **Missing rate limit setup**: Referencing rate limits that haven't been created yet
-- **Workspace-level configuration issues**: Some features need to be enabled at the workspace level before they can be used
-
-## Related Errors
-
-- [err:unkey:application:invalid_input](./invalid_input) - When your request input fails validation
-- [err:unkey:data:api_not_found](../data/api_not_found) - When the API itself doesn't exist
-- [err:unkey:application:service_unavailable](./service_unavailable) - When a required service is temporarily unavailable
+- [`err:unkey:application:deployment_not_ready`](/errors/unkey/application/deployment_not_ready): a deployment lifecycle precondition on promote or rollback.
+- [`err:unkey:application:invalid_environment_settings`](/errors/unkey/application/invalid_environment_settings): the environment's settings block the deployment.
+- [`err:unkey:data:analytics_not_configured`](/errors/unkey/data/analytics_not_configured): analytics isn't set up for the workspace.
+- [`err:unkey:application:protected_resource`](/errors/unkey/application/protected_resource): a delete was blocked by delete protection.

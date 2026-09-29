@@ -1,0 +1,74 @@
+---
+title: Analytics troubleshooting
+sidebarTitle: "Troubleshooting"
+description: "Fix empty results, rejected queries, and timeouts."
+sources:
+  - pkg/clickhouse/query-parser/parser.go
+  - pkg/clickhouse/query-parser/validation.go
+  - pkg/clickhouse/query-parser/tables.go
+  - pkg/clickhouse/query-parser/time_range.go
+  - pkg/clickhouse/errors.go
+  - pkg/clickhouse/user.go
+  - internal/services/analytics/service.go
+  - svc/api/routes/v2_analytics_get_verifications/handler.go
+---
+
+Start with the HTTP status:
+
+- **200 with no rows:** the query worked but matched nothing.
+- **400:** the query was rejected.
+- **422 or 429:** the query ran and hit a limit.
+- **412:** analytics isn't turned on.
+- **403:** the root key is missing a permission.
+
+## No rows came back
+
+**Check the time filter.** Raw tables store `time` in milliseconds, so `WHERE time >= now() - INTERVAL 1 DAY` matches nothing. Write `time >= toUnixTimestamp64Milli(now() - INTERVAL 1 DAY)` instead. Rollup tables take `DateTime` or `Date` values directly.
+
+**Check IDs.** `key_space_id` is the keyspace's `ks_` ID, not the `api_` ID. `namespace_id` is an `rlns_` ID, not the namespace name. Values are case-sensitive, and `outcome` values are upper case (`VALID`, not `valid`).
+
+**Check retention.** Data older than your plan's log retention is left out, often without an error. See [Working with time](/api-management/analytics/query-language#working-with-time).
+
+**Check the root key.** If it has `read_analytics` for specific keyspaces or namespaces only, rows outside them are left out without an error.
+
+## The query was rejected (400)
+
+| Detail | Cause | Fix |
+| --- | --- | --- |
+| Invalid SQL syntax | The query couldn't be parsed. | Check quoting, commas, and parentheses. Remember that string literals use single quotes. |
+| Only SELECT queries are allowed (`invalid_analytics_query_type`) | The statement is not a `SELECT`. | Analytics is read-only; there is no `INSERT`, `SHOW`, or `DESCRIBE`. Columns are listed on the table pages. |
+| Analytics queries must contain exactly one statement | Two statements, or a trailing statement after a semicolon. | Send one `SELECT` per request. |
+| Query must have a FROM clause | `SELECT 1` or a bare expression. | Every query reads from a public table. |
+| Access to table 'x' is not allowed (`invalid_analytics_table`) | A table that isn't one of the public names, a `system` or `information_schema` table, or a typo in a public name. | Use the public names on the [overview](/api-management/analytics/overview), such as `key_verifications_v1`. |
+| Function 'x' is not allowed (`invalid_analytics_function`) | A function that isn't allowed, including `row_number`, `rank`, and every `-Merge` function. | Rewrite with an allowed function; see [Analytics query language](/api-management/analytics/query-language). For latency, aggregate the raw table. |
+| SETTINGS clauses are not allowed | A `SETTINGS` clause. | Remove it. Execution limits are fixed per workspace. |
+| Table-backed IN expressions are not supported | `x IN some_table`. | Write `x IN (SELECT x FROM some_table)`. |
+| Analytics query projects too many columns | More than 64 selected columns across all `SELECT`s. | Select fewer columns or split the query. |
+| Analytics query is too complex | More than 2,000 parsed expression nodes. | Simplify; long `IN` lists are the usual culprit. |
+| Analytics query exceeds the maximum length | The query text is over 16 KiB. | Shorten it, usually by replacing a long `IN` list with a subquery. |
+| The query reads a column that is not available | `SELECT *` on `gateway_requests_v1` or `runtime_logs_v1`. Only their documented columns can be read. | Name the columns you want instead of `*`. They are listed on [Gateway request and runtime log analytics](/compute/observe/analytics-api). |
+| Cannot query data older than N days (`query_range_exceeds_retention`) | A lower bound on `time` is before your retention window. | Move the bound forward. The detail names the earliest allowed date. Retention per plan is on [Analytics restrictions and quotas](/api-management/analytics/restrictions-and-quotas). |
+
+## The query ran but failed (422 or 429)
+
+| Code | Fix |
+| --- | --- |
+| `query_execution_timeout` | The query exceeded 10 seconds. Switch from the raw table to a rollup, add or tighten the `time` bound, and aggregate rather than selecting raw rows. |
+| `query_memory_limit_exceeded` with "exceeds the maximum response size" | The encoded result is over 4 MiB. Add `LIMIT`, aggregate, or page with `LIMIT` and `OFFSET`. |
+| `query_memory_limit_exceeded` otherwise | The query needed more than 1 GB. `groupArray` over many rows and high-cardinality `GROUP BY` on the raw table are the common causes; aggregate on a rollup. |
+| `query_rows_limit_exceeded` | More than 10,000,000 result rows. Aggregate or narrow. |
+| `query_quota_exceeded` (429) | More than 1,000 queries or 1,800 seconds of execution in the current hour. Cache results on your side and retry after the window rolls over. |
+
+## Analytics isn't configured (412)
+
+`err:unkey:data:analytics_not_configured` means analytics isn't turned on for your workspace. Email [support@unkey.com](mailto:support@unkey.com) with your workspace ID to turn it on. A 503 with `analytics_connection_failed` is different: analytics was briefly unavailable, so retry with backoff.
+
+## Permission denied (403)
+
+`insufficient_permissions` names the permission the root key needs: `api.*.read_analytics` or `api.<api_id>.read_analytics` for verifications, `ratelimit.*.read_analytics` or `ratelimit.<namespace_id>.read_analytics` for rate limits. Grant it under **Settings > Root Keys**. See [Root key permissions](/platform/root-keys/permissions).
+
+## Numbers that look wrong
+
+- **A rollup total is far too low.** You probably wrote `count()` instead of `sum(count)`. Each rollup row sums many verifications.
+- **A percentage is `null`.** It divided by zero.
+- **`external_id` is empty for many rows.** Those keys have no identity. Group by `key_id` instead, or attach identities when you create keys.

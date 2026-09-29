@@ -1,0 +1,149 @@
+---
+title: Looking up keys
+description: "Read a key's configuration by its id or from the key itself."
+sources:
+  - svc/api/openapi/spec/paths/v2/keys/getKey/V2KeysGetKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/whoami/V2KeysWhoamiRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/whoami/V2KeysWhoamiResponseBody.yaml
+  - svc/api/openapi/spec/common/KeyResponseData.yaml
+  - svc/api/openapi/spec/common/KeyCreditsData.yaml
+  - svc/api/openapi/spec/common/RatelimitResponse.yaml
+  - svc/api/openapi/spec/common/Identity.yaml
+  - svc/api/routes/v2_keys_get_key/handler.go
+  - svc/api/routes/v2_keys_whoami/handler.go
+  - svc/ctrl/worker/cron/cron.go
+  - svc/ctrl/worker/cron/keylastusedsync/handler.go
+  - dev/k8s/charts/restate-cronjobs/values.yaml
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+Look up a key's settings without verifying it or spending anything. Use `keys.getKey` when you have the key's ID, for example on a management screen. Use `keys.whoami` when you have the key itself, for example when a user pastes it into a support form. Both return the same fields, except `keys.whoami` can't return the decrypted key.
+
+<RootKeyPrereq />
+
+Both endpoints need `api.*.read_key` or `api.<api_id>.read_key`. Adding `decrypt: true` to `keys.getKey` additionally needs `api.*.decrypt_key` or `api.<api_id>.decrypt_key`. See [Root key permissions](/platform/root-keys/permissions).
+
+## By identifier
+
+<ParamField body="keyId" type="string" required>
+  The `key_...` identifier from `keys.createKey`, a verification response, a listing, or the dashboard. 3 to 255 characters matching `^[a-zA-Z0-9_]+$`.
+</ParamField>
+
+<ParamField body="decrypt" type="boolean" default="false">
+  Include the plaintext for a key created as recoverable. See [Recoverable keys](/api-management/keys/recoverable-keys).
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.getKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "keyId": "key_..." }'
+```
+
+A key that doesn't exist, is deleted, or belongs to another workspace returns HTTP 404 `err:unkey:data:key_not_found`.
+
+## By plaintext
+
+<ParamField body="key" type="string" required>
+  The full key including its prefix, 1 to 512 characters. Any change to it gives a not-found error.
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.whoami \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "key": "sk_live_..." }'
+```
+
+`keys.whoami` doesn't check whether the key is enabled, expired, or within its limits, and it doesn't record a verification. Use `keys.verifyKey` when you need a verdict.
+
+## Response fields
+
+<ResponseField name="keyId" type="string" required>
+  The key's identifier.
+</ResponseField>
+
+<ResponseField name="start" type="string" required>
+  The prefix and first characters of the key, for display in lists.
+</ResponseField>
+
+<ResponseField name="enabled" type="boolean" required>
+  Whether the key is enabled.
+</ResponseField>
+
+<ResponseField name="createdAt" type="integer" required>
+  Creation time as Unix milliseconds.
+</ResponseField>
+
+<ResponseField name="updatedAt" type="integer">
+  Last update as Unix milliseconds, when the key has been updated.
+</ResponseField>
+
+<ResponseField name="lastUsedAt" type="integer">
+  Last successful verification as Unix milliseconds. It updates about once a minute, so it can lag real usage by up to a minute.
+</ResponseField>
+
+<ResponseField name="name" type="string">
+  The internal name.
+</ResponseField>
+
+<ResponseField name="meta" type="object">
+  The key's metadata.
+</ResponseField>
+
+<ResponseField name="expires" type="integer">
+  Expiry as Unix milliseconds, when set.
+</ResponseField>
+
+<ResponseField name="credits" type="object">
+  `remaining` (integer or `null` for unlimited) and, when configured, `refill` with `interval`, `amount`, and `refillDay`.
+</ResponseField>
+
+<ResponseField name="ratelimits" type="object[]">
+  Each key-level rate limit: `id`, `name`, `limit`, `duration`, `autoApply`.
+</ResponseField>
+
+<ResponseField name="permissions" type="string[]">
+  Permission slugs the key holds directly or through roles.
+</ResponseField>
+
+<ResponseField name="roles" type="string[]">
+  Role names assigned to the key.
+</ResponseField>
+
+<ResponseField name="identity" type="object">
+  When linked: `id`, `externalId`, the identity's `meta`, and its `ratelimits`.
+</ResponseField>
+
+<ResponseField name="plaintext" type="string">
+  The decrypted key. Returned only by `keys.getKey` with `decrypt: true` on a recoverable key. `keys.whoami` never returns it.
+</ResponseField>
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": {
+    "keyId": "key_...",
+    "start": "sk_live_abc1",
+    "enabled": true,
+    "name": "Acme production",
+    "createdAt": 1704067200000,
+    "lastUsedAt": 1704153600000,
+    "expires": 1767225600000,
+    "meta": { "plan": "pro" },
+    "credits": {
+      "remaining": 9420,
+      "refill": { "interval": "monthly", "amount": 10000, "refillDay": 1 }
+    },
+    "ratelimits": [
+      { "id": "rl_...", "name": "requests", "limit": 100, "duration": 60000, "autoApply": true }
+    ],
+    "permissions": ["documents.read", "documents.write"],
+    "roles": ["editor"],
+    "identity": { "id": "id_...", "externalId": "org_acme", "meta": {} }
+  }
+}
+```
+
+To page through many keys at once, use `apis.listKeys`, which returns the same objects. See [Listing keys](/api-management/keyspaces/listing-keys).
