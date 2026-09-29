@@ -7,7 +7,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -39,32 +42,79 @@ func TestGetAppForbidden(t *testing.T) {
 		Slug:        appSlug,
 	})
 
+	grant := func(projectID, appID string, action permissions.Action) string {
+		return rbac.U(urn.New().Workspace(workspace.ID).Project(projectID).App(appID), action).Value
+	}
+
 	testCases := []struct {
-		name        string
-		permissions []string
-		shouldPass  bool
+		name         string
+		permissions  []string
+		projectQuery string
+		appQuery     string
+		shouldPass   bool
 	}{
 		{name: "wildcard app permission", permissions: []string{"app.*.read_app"}, shouldPass: true},
 		{name: "specific app permission", permissions: []string{fmt.Sprintf("app.%s.read_app", app.ID)}, shouldPass: true},
 		{name: "permission and more", permissions: []string{"some.other.permission", "app.*.read_app"}, shouldPass: true},
+		{
+			name:         "URN exact app permission with slug lookup",
+			permissions:  []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#read", workspace.ID, project.ID, app.ID)},
+			projectQuery: project.Slug,
+			appQuery:     app.Slug,
+			shouldPass:   true,
+		},
+		{
+			name:        "URN project app wildcard permission",
+			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/*#read", workspace.ID, project.ID)},
+			shouldPass:  true,
+		},
 		{name: "project scoped read does not match", permissions: []string{fmt.Sprintf("project.%s.read_app", project.ID)}, shouldPass: false},
 		{name: "wrong action", permissions: []string{"project.*.create_project"}, shouldPass: false},
 		{name: "read does not match create", permissions: []string{"project.*.create_app"}, shouldPass: false},
 		{name: "unrelated permission", permissions: []string{"api.*.read_api"}, shouldPass: false},
-		{name: "urn style does not satisfy legacy check", permissions: []string{"unkey:v1:" + workspace.ID + ":apps/*#read"}, shouldPass: false},
+		{
+			name:        "URN permission for another app",
+			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#read", workspace.ID, project.ID, uid.New(uid.AppPrefix))},
+			shouldPass:  false,
+		},
+		{
+			name:        "URN permission for another workspace",
+			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#read", uid.New(uid.WorkspacePrefix), project.ID, app.ID)},
+			shouldPass:  false,
+		},
+		{
+			name:        "URN permission with wrong action",
+			permissions: []string{fmt.Sprintf("unkey:v1:%s:projects/%s/apps/%s#write", workspace.ID, project.ID, app.ID)},
+			shouldPass:  false,
+		},
+		{name: "non-catalog URN path", permissions: []string{"unkey:v1:" + workspace.ID + ":apps/*#read"}, shouldPass: false},
 		{name: "no permissions", permissions: []string{}, shouldPass: false},
+		{name: "urn on this app", permissions: []string{grant(project.ID, app.ID, permissions.Read)}, shouldPass: true},
+		{name: "urn on every app in the project", permissions: []string{grant(project.ID, "*", permissions.Read)}, shouldPass: true},
+		{name: "urn on every project", permissions: []string{grant("*", "*", permissions.Read)}, shouldPass: true},
+		{name: "urn on another app", permissions: []string{grant(project.ID, uid.New(uid.AppPrefix), permissions.Read)}, shouldPass: false},
+		{name: "urn with the wrong action", permissions: []string{grant(project.ID, app.ID, permissions.Delete)}, shouldPass: false},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			projectQuery := project.ID
+			if tc.projectQuery != "" {
+				projectQuery = tc.projectQuery
+			}
+			appQuery := app.ID
+			if tc.appQuery != "" {
+				appQuery = tc.appQuery
+			}
+
 			rootKey := h.CreateRootKey(workspace.ID, tc.permissions...)
 			headers := http.Header{
 				"Content-Type":  {"application/json"},
 				"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
 			}
 			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
-				Project: project.ID,
-				App:     app.ID,
+				Project: projectQuery,
+				App:     appQuery,
 			})
 			if tc.shouldPass {
 				require.Equal(t, 200, res.Status, "expected 200 for %v, got: %s", tc.permissions, res.RawBody)
@@ -110,7 +160,7 @@ func TestGetAppExistenceNotLeaked(t *testing.T) {
 
 	missingID := uid.New(uid.AppPrefix)
 
-	// Key in the same workspace with an unrelated grant but no read_app action.
+	// Key in the same workspace with an unrelated permission but no read_app action.
 	rootKey := h.CreateRootKey(workspace.ID, "api.*.read_api")
 	headers := http.Header{
 		"Content-Type":  {"application/json"},

@@ -1,0 +1,107 @@
+---
+title: Listing keys
+description: "Page through the keys in a keyspace or find the ones a user owns."
+sources:
+  - svc/api/openapi/spec/paths/v2/apis/listKeys/V2ApisListKeysRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/apis/listKeys/V2ApisListKeysResponseBody.yaml
+  - svc/api/openapi/spec/common/KeyResponseData.yaml
+  - svc/api/openapi/spec/common/Pagination.yaml
+  - svc/api/routes/v2_apis_list_keys/handler.go
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/apis/[apiId]/keys/[keyAuthId]/_components/filters.schema.ts
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+Use `apis.listKeys` to list the keys in a keyspace, up to 100 per page. It's handy for a "your API keys" screen, for finding every key a user owns, or for auditing a keyspace. It only returns the full key for recoverable keys, and only when you ask.
+
+<RootKeyPrereq />
+
+The root key needs two permissions: `api.*.read_key` or `api.<api_id>.read_key`, **and** `api.*.read_api` or `api.<api_id>.read_api`. Adding `decrypt: true` additionally needs `api.*.decrypt_key` or `api.<api_id>.decrypt_key`. See [Root key permissions](/platform/root-keys/permissions).
+
+A missing permission isn't a 403. You get HTTP 404 [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found), "The requested API does not exist or has been deleted." If you see this for an ID you know is correct, check both permissions on the root key.
+
+## Request
+
+<ParamField body="apiId" type="string" required>
+  The keyspace to list, by API ID.
+</ParamField>
+
+<ParamField body="limit" type="integer" default="100">
+  Keys per page, 1 to 100.
+</ParamField>
+
+<ParamField body="cursor" type="string">
+  The `pagination.cursor` from the previous response. Omit for the first page.
+</ParamField>
+
+<ParamField body="externalId" type="string">
+  Only keys linked to the identity with this exact `externalId`. Use it to list one user's keys.
+</ParamField>
+
+<ParamField body="decrypt" type="boolean" default="false">
+  Include `plaintext` for keys created with `recoverable: true`. Requires the decrypt permission and a keyspace with encrypted storage enabled. See [Recoverable keys](/api-management/keys/recoverable-keys).
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/apis.listKeys \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "apiId": "api_...", "externalId": "user_123", "limit": 50 }'
+```
+
+## Response
+
+`data` is an array of key objects, and `pagination` tells you whether to continue.
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": [
+    {
+      "keyId": "key_...",
+      "start": "sk_prod_abc1",
+      "enabled": true,
+      "name": "Production key",
+      "createdAt": 1704067200000,
+      "expires": 1735689600000,
+      "meta": { "plan": "premium" },
+      "credits": { "remaining": 950 },
+      "identity": { "id": "id_...", "externalId": "user_123" }
+    }
+  ],
+  "pagination": { "cursor": "...", "hasMore": true }
+}
+```
+
+Each item has the same fields `keys.getKey` returns. `start` is the prefix and first few characters, so a user can recognize the key. `plaintext` appears only when `decrypt: true` worked for that key. [Looking up keys](/api-management/keys/looking-up-keys) lists every field.
+
+## Paging
+
+Send `pagination.cursor` back until `hasMore` is false. Cursors expire, so don't store them.
+
+```typescript list-all-keys.ts
+let cursor: string | undefined;
+do {
+  const { data, pagination } = await unkey.apis.listKeys({
+    apiId: "api_...",
+    externalId: "user_123",
+    cursor,
+  });
+  for (const key of data) {
+    console.log(key.keyId, key.start);
+  }
+  cursor = pagination.hasMore ? pagination.cursor : undefined;
+} while (cursor);
+```
+
+## In the dashboard
+
+The keyspace's **Keys** tab shows the same list. You can filter by key ID, name, identity, and tags (is, contains, starts with, ends with). Select several rows to change their external ID, enable or disable them, or delete them in bulk.
+
+<Frame>
+  <img src="/images/dashboard/api-management--keyspaces-listing-keys--filter.png" alt="Keys tab with the filter menu open, offering Name, Identity, Key ID, and Tags" />
+</Frame>
+
+<Frame>
+  <img src="/images/dashboard/api-management--keyspaces-listing-keys--bulk-actions.png" alt="Keys tab with two keys selected and the bulk action bar offering Change External ID, Disable key, and Delete key" />
+</Frame>

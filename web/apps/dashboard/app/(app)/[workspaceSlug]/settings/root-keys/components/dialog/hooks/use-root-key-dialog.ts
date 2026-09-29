@@ -1,3 +1,5 @@
+import { useProjectEnvironments } from "@/hooks/use-project-environments";
+import { useProjectsWithApps } from "@/hooks/use-projects-with-apps";
 import { trpc } from "@/lib/trpc/client";
 import type { UnkeyPermission } from "@unkey/rbac";
 import { toast } from "@unkey/ui";
@@ -98,10 +100,9 @@ export function useRootKeyDialog({
     });
   }, [apisData]);
 
-  const { data: projectsData, isLoading: projectsLoading } = trpc.deploy.project.list.useQuery(
-    undefined,
-    { enabled: isOpen },
-  );
+  const { data: projectsData, isLoading: projectsLoading } = useProjectsWithApps({
+    enabled: isOpen,
+  });
 
   const allProjects = useMemo(() => {
     if (!projectsData) {
@@ -122,8 +123,9 @@ export function useRootKeyDialog({
     );
   }, [projectsData]);
 
-  const { data: environmentsData, isLoading: environmentsLoading } =
-    trpc.deploy.environment.listAll.useQuery(undefined, { enabled: isOpen });
+  const { data: environmentsData, isLoading: environmentsLoading } = useProjectEnvironments(
+    isOpen ? projectsData : undefined,
+  );
 
   const allEnvironments = useMemo(() => {
     if (!environmentsData) {
@@ -131,7 +133,7 @@ export function useRootKeyDialog({
     }
     return environmentsData.map((environment) => ({
       id: environment.id,
-      name: environment.name,
+      name: environment.slug,
       appId: environment.appId,
     }));
   }, [environmentsData]);

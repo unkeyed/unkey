@@ -1,16 +1,59 @@
 ---
 title: "deployment_offline"
-description: "The deployment is stopped or its project was cancelled, so it is not serving traffic."
+sidebarTitle: "deployment_offline"
+description: "The deployment behind this hostname was stopped or its project canceled."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/router/service.go
+  - svc/frontline/internal/db/models_generated.go
+  - svc/api/routes/v2_deployments_start_deployment/handler.go
 ---
 
 <Danger>`err:frontline:capacity:deployment_offline`</Danger>
 
-The gateway resolved this hostname to a deployment that is intentionally offline. It was stopped, superseded, or its project was cancelled, so there is no running compute to serve the request. The gateway returns `503 Service Unavailable`.
+import { ProductLink } from "/snippets/product-link.jsx";
 
-This is not the transient gap you see mid-deploy or mid-scale (that is [`no_running_instances`](/errors/frontline/capacity/no_running_instances)). An offline deployment does not come back on its own.
+The hostname points at a Compute deployment that was stopped, or whose project was canceled. It stays offline until someone starts it. You get `503 Service Unavailable`.
 
-## What to do
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:capacity:deployment_offline",
+    "message": "This deployment is offline."
+  }
+}
+```
 
-- If the project is still active, deploy again or promote a running deployment so the hostname points at live compute.
-- If the project was cancelled, re-subscribe to Compute to bring it back.
-- If you hit your spend limit, you will see [`spend_limit_reached`](/errors/frontline/capacity/spend_limit_reached) instead, which resumes automatically once you raise the budget.
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+Retrying won't help. The owner has taken this deployment offline. If you expected it to be up, contact the API owner with the hostname and the request ID.
+
+## If you own this API
+
+A hostname still points at a deployment that isn't running. It starts the moment you stop the deployment, even while instances are still shutting down. Common causes:
+
+- You stopped the deployment.
+- The project was canceled.
+
+### How to fix
+
+1. Start the deployment from the dashboard or with `deployments.startDeployment`.
+2. Or promote a different deployment so the hostname points at one that's running.
+
+You can't start a deployment while the workspace is paused at its Compute spend limit. If callers also see [`spend_limit_reached`](/errors/frontline/capacity/spend_limit_reached), fix that first.
+
+<ProductLink product="compute" href="/compute/gateway/errors" title="Compute gateway">
+  Starting, stopping, promoting, and the deployment lifecycle are Compute features.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:capacity:no_running_instances`](/errors/frontline/capacity/no_running_instances): the deployment should be running but has no instance yet.
+- [`err:frontline:capacity:spend_limit_reached`](/errors/frontline/capacity/spend_limit_reached): compute is paused by a spend budget.
+- [`err:unkey:application:deployment_not_stopped`](/errors/unkey/application/deployment_not_stopped): the API refused to start a deployment that isn't stopped.

@@ -1,0 +1,111 @@
+---
+title: Request lifecycle and headers
+description: "What callers and your app see on every request: HTTPS, which deployment answers, timeouts, headers, and errors."
+sources:
+  - svc/frontline/tls.go
+  - svc/frontline/routes/redirect/handler.go
+  - svc/frontline/routes/register.go
+  - svc/frontline/routes/proxy/handler.go
+  - svc/frontline/middleware/sanitize_headers.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/caches/caches.go
+  - svc/frontline/internal/router/routing.go
+  - svc/frontline/internal/proxy/director.go
+  - svc/frontline/internal/proxy/forward.go
+  - svc/frontline/internal/proxy/headers.go
+  - svc/frontline/internal/proxy/error.go
+  - svc/frontline/internal/proxy/transport.go
+  - svc/frontline/internal/policies/keyauth/headers.go
+  - svc/frontline/internal/policies/ratelimit/headers.go
+  - svc/frontline/config.go
+  - svc/frontline/run.go
+  - pkg/zen/server.go
+  - pkg/zen/session.go
+  - pkg/zen/middleware_timeout.go
+  - pkg/timing/doc.go
+  - svc/krane/internal/deployment/apply.go
+---
+
+Every request to your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> goes through Unkey's gateway. It handles HTTPS, finds the right <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip>, runs your [gateway policies](/compute/gateway/policies), and forwards the request. Here's what that means for your callers and your code.
+
+## HTTPS and redirects
+
+Every [automatic hostname](/compute/networking/automatic-domains) and every verified [custom domain](/compute/networking/custom-domains) gets a valid certificate with no configuration. The minimum TLS version is 1.2.
+
+A plain HTTP request gets a `308 Permanent Redirect` to the `https://` URL. A 308 keeps the method and body, so a client that follows it resends a `POST` as a `POST`. Your app never sees plain HTTP traffic.
+
+## Which deployment answers
+
+The hostname decides. Each hostname points at one deployment. Promote and rollback move the hostnames that follow the live deployment, and the change reaches every region within a few seconds. So a few requests can still reach the old deployment right after you promote. [Automatic domains](/compute/networking/automatic-domains) lists which hostnames move.
+
+A hostname that doesn't point at any deployment gets `404` and [`config_not_found`](/errors/frontline/routing/config_not_found).
+
+A request is served in the region that received it, if the deployment has running instances there. Otherwise it goes to the nearest region that does. If no region has one, the caller gets `503` and [`no_running_instances`](/errors/frontline/capacity/no_running_instances). See [Regions](/compute/concepts/regions).
+
+A request only moves to another instance if the first couldn't be reached at all. Your handler never runs twice for one request.
+
+## Policies run first
+
+Before the request is forwarded, the deployment's policies run. A request a policy rejects never reaches your app and doesn't appear in the [request log](/compute/observe/requests). See [Gateway policies](/compute/gateway/policies).
+
+## Protocols, timeouts, and sizes
+
+The gateway talks to your app over HTTP/1.1 or h2c, set by the upstream protocol in [runtime settings](/compute/configure/runtime-settings). Responses stream to the caller as your app writes them, so server-sent events work without buffering.
+
+A request has 15 minutes to finish. After that, the caller gets `504` with [`err:user:bad_request:request_timeout`](/errors/user/bad_request/request_timeout). (That code's own page describes the Unkey API's shorter limit and `408`, which don't apply here.) If the gateway times out waiting for your app, the caller gets `504` [`gateway_timeout`](/errors/frontline/upstream/gateway_timeout) instead. Neither limit applies to [WebSockets](/compute/networking/websockets).
+
+There's no limit on request or response body size. A [logging policy](/compute/gateway/logging) saves at most 1 MiB of each body, but that only affects the log.
+
+Your app's responses pass through unchanged, including your own `4xx` and `5xx` responses.
+
+## Headers your app receives
+
+| Header | Value |
+| --- | --- |
+| `Host` | The hostname the client asked for, unchanged. |
+| `X-Forwarded-For` | The client's IP address, as a single value. Any `X-Forwarded-For` the client sent is replaced, not appended to. If you need a chain from a proxy in front of Unkey, send it in your own header. |
+| `X-Forwarded-Host` | The same hostname as `Host`. |
+| `X-Forwarded-Proto` | Always `https`. |
+| `X-Unkey-Request-Id` | The request ID. The same value is returned to the client and stored in the request log. |
+| `X-Unkey-Region` | The gateway's platform and region as `<platform>::<region>`, for example `aws::us-east-1`. |
+| `X-Unkey-Frontline-Id` | The ID of the gateway that handled the request. |
+| `X-Unkey-Principal` | Who's calling, as JSON. Only present when an API key authentication policy verified the request. See [the principal header](/compute/gateway/principal). |
+
+Callers can't fake the `X-Unkey-*` headers, including `X-Unkey-Principal`: we remove any they send. Every other header arrives unchanged. To know which deployment you're in, read the `UNKEY_DEPLOYMENT_ID` environment variable.
+
+## Headers the client receives
+
+| Header | Value |
+| --- | --- |
+| `X-Unkey-Request-Id` | The request ID. Quote it when you contact support. |
+| `X-Unkey-Region` | The gateway's `<platform>::<region>`. |
+| `X-Unkey-Frontline-Id` | The gateway ID. |
+| `X-Unkey-Timing` | Time spent in the gateway, such as `frontline_routing{scope=frontline}=1.25ms`, `frontline{scope=frontline}=...` before forwarding, and `total{scope=frontline}=...` for the whole request. Can appear more than once. |
+| `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` | Present when a per-key rate limit or a rate limit policy applied. `Reset` is Unix seconds. If several limits apply, the strictest one is shown. |
+| `Retry-After` | Only when rate limited. Whole seconds until the limit resets, at least 1. |
+
+Headers your app sets are passed to the client unchanged.
+
+## Errors callers can get
+
+When the gateway rejects a request or can't reach your app, it responds with JSON if the client accepts it, or an HTML page if the client prefers `text/html`:
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "error": {
+    "code": "err:frontline:upstream:service_unavailable",
+    "message": "The service is temporarily unavailable. Please try again later."
+  }
+}
+```
+
+Each code has a fixed message that never reveals your app's address, and its own page under [`/errors/frontline`](/errors/frontline/upstream/service_unavailable). When the gateway can't reach your app, the caller gets one of these:
+
+| What happened | Response |
+| --- | --- |
+| Your instance refused the connection or couldn't be reached | `503` [`service_unavailable`](/errors/frontline/upstream/service_unavailable) |
+| The connection to your instance was reset | `502` [`bad_gateway`](/errors/frontline/upstream/bad_gateway) |
+| Your instance didn't answer in time | `504` [`gateway_timeout`](/errors/frontline/upstream/gateway_timeout) |
+
+A client that disconnects before the response starts is logged as [`client_closed_request`](/errors/user/bad_request/client_closed_request). [Gateway errors](/compute/gateway/errors) lists every code.

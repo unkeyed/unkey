@@ -1,21 +1,61 @@
 ---
 title: "spend_limit_reached"
-description: "Compute is paused because the workspace hit its spend limit. Raise or remove the budget to resume."
+sidebarTitle: "spend_limit_reached"
+description: "Compute is paused because the workspace reached its monthly spend budget."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/router/service.go
+  - svc/frontline/internal/db/ingress_route_find_by_fqdn.sql_generated.go
+  - svc/ctrl/worker/cron/deployspendcheck/check.go
+  - svc/ctrl/worker/cron/deployspendcheck/thresholds.go
+  - svc/ctrl/services/deployment/deploy_gate.go
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/billing/components/spend-budget-v2.tsx
 ---
 
 <Danger>`err:frontline:capacity:spend_limit_reached`</Danger>
 
-The workspace reached the monthly Compute spend budget it set, with "stop workloads at the budget" enabled, so its running compute was paused. Requests to its deployments return `402 Payment Required` until the pause is lifted.
+import { ProductLink } from "/snippets/product-link.jsx";
 
-This is a billing gate, not an outage. Nothing is broken and no data is lost. Compute resumes automatically, usually within about a minute, once spend is no longer over the budget.
+The workspace that owns this API reached its monthly Compute spend budget, so its compute is paused. Nothing is broken and no data is lost. You get `402 Payment Required`.
 
-## How to resume
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:capacity:spend_limit_reached",
+    "message": "Compute for this workspace is paused because it reached its spend limit. Raise or remove the spend budget to resume."
+  }
+}
+```
 
-Any of these lifts the pause automatically:
+Browsers get the same error as an HTML page.
 
-- Raise the spend budget above current usage.
-- Remove the spend budget.
-- Turn off **Stop workloads at the budget**.
-- Wait for the next billing period, when usage resets.
+## If you're calling an API hosted on Unkey
 
-All of these live under **Settings > Billing** on the Compute card. See [Spend budget](/platform/workspaces/billing/spend-budget) for details.
+You can't fix this, and retrying returns the same 402. The API owner has to raise or remove their spend budget, or wait for the next billing month. Tell them you're seeing this error, in case they missed our email.
+
+## If you own this API
+
+You set a monthly Compute budget with **Stop workloads at the budget** turned on, and this month's spend reached it. We email workspace admins at 50, 75, and 100 percent of the budget. Spend is measured before credits are subtracted.
+
+While compute is paused, your deployments are torn down and every request gets this 402. You also can't start, promote, roll back, or wake a deployment, and pushes to GitHub don't deploy.
+
+### How to fix
+
+1. Open **Settings > Billing** in the dashboard.
+2. Raise the **Monthly budget** above your current spend, remove the budget, or turn off **Stop workloads at the budget**.
+3. Allow a few minutes. Removing the budget or turning off the stop resumes compute on the next check. Raising the budget resumes it once two checks in a row see spend under the new budget.
+
+A new billing month resets month-to-date spend, and a paused workspace resumes the same way.
+
+<ProductLink product="compute" href="/compute/gateway/errors" title="Compute gateway">
+  Spend budgets, alerts, and Compute billing are documented in Compute.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:capacity:deployment_offline`](/errors/frontline/capacity/deployment_offline): a deployment stopped by you rather than by the spend cap.
+- [`err:frontline:capacity:no_running_instances`](/errors/frontline/capacity/no_running_instances): a short gap while instances start after a resume.

@@ -10,9 +10,6 @@ const { rows } = vi.hoisted(() => {
     name: "Default",
     slug: "default",
     isDefault: true,
-    apps: [],
-    repositoryFullName: null,
-    currentDeploymentId: null,
     createdAt: 1,
   };
   const platformProject: Project = {

@@ -18,6 +18,7 @@ type ExecuteRequest struct {
 	TableAliases    map[string]string
 	AllowedTables   []string
 	SecurityFilters []queryparser.SecurityFilter
+	SecurityScopes  []queryparser.SecurityScope
 }
 
 // Execute resolves the connection, applies mandatory workspace and route-level
@@ -36,6 +37,7 @@ func Execute(ctx context.Context, manager ConnectionManager, req ExecuteRequest)
 		TableAliases:      req.TableAliases,
 		AllowedTables:     req.AllowedTables,
 		SecurityFilters:   append([]queryparser.SecurityFilter(nil), req.SecurityFilters...),
+		SecurityScopes:    cloneSecurityScopes(req.SecurityScopes),
 		Limit:             int(settings.ClickhouseMaxQueryResultRows),
 		QueryRangeDaysMax: int32(settings.QuotaLogsRetentionDays),
 	})
@@ -60,6 +62,18 @@ func Execute(ctx context.Context, manager ConnectionManager, req ExecuteRequest)
 	}
 
 	return rows, nil
+}
+
+func cloneSecurityScopes(scopes []queryparser.SecurityScope) []queryparser.SecurityScope {
+	if scopes == nil {
+		return nil
+	}
+
+	cloned := make([]queryparser.SecurityScope, len(scopes))
+	for i, scope := range scopes {
+		cloned[i].Filters = append([]queryparser.SecurityFilter(nil), scope.Filters...)
+	}
+	return cloned
 }
 
 // nullifyNonFinite replaces a NaN or Inf value with nil.

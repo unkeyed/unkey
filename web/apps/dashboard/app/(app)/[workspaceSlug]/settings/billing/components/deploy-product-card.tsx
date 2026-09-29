@@ -2,21 +2,13 @@
 
 import { DEPLOY_METER_RATE_LABELS, priceDeployMetersCents } from "@/lib/billing/deployPricing";
 import { formatCompactQuantity, formatDollars, formatPrice } from "@/lib/fmt";
-import { routes } from "@/lib/navigation/routes";
-import type { DeployPlan } from "@/lib/stripe/deployPlan";
 import { trpc } from "@/lib/trpc/client";
 import { IconCubeOutline18 } from "@unkey/icons";
-import { Button, DialogContainer, InfoTooltip, Skeleton, toast } from "@unkey/ui";
+import { Button, DialogContainer, InfoHoverCard, InfoTooltip, Skeleton, toast } from "@unkey/ui";
 import { useState } from "react";
 import { ComputePausedBadge } from "./compute-paused";
-import {
-  AllPlansInclude,
-  ComputePlanConfirmDialog,
-  ComputePlanDialog,
-  ComputePlanRows,
-  CreditsInfoStrip,
-} from "./compute-plan-picker";
 import { ADMIN_ONLY_TOOLTIP } from "./constants";
+import { PlansScreen } from "./plans-screen";
 import { ProductCard } from "./product-card";
 import { SpendManagement } from "./spend-management";
 
@@ -28,9 +20,6 @@ function formatRenewalDate(millis: number): string {
 type DeployProductCardProps = {
   isAdmin: boolean;
   hasPaymentMethod: boolean;
-  workspaceSlug: string;
-  /** Open the plan picker on mount (post-checkout intent hand-off). */
-  autoOpenPlanModal?: boolean;
 };
 
 /**
@@ -42,14 +31,10 @@ type DeployProductCardProps = {
 export const DeployProductCard: React.FC<DeployProductCardProps> = ({
   isAdmin,
   hasPaymentMethod,
-  workspaceSlug,
-  autoOpenPlanModal = false,
 }) => {
   const trpcUtils = trpc.useUtils();
-  const [isPlanModalOpen, setPlanModalOpen] = useState(autoOpenPlanModal);
+  const [isPlanModalOpen, setPlanModalOpen] = useState(false);
   const [isCancelOpen, setCancelOpen] = useState(false);
-  const [pendingPlan, setPendingPlan] = useState<DeployPlan | null>(null);
-  const [isStartingCheckout, setIsStartingCheckout] = useState(false);
 
   const { data: subscription, isLoading: subscriptionLoading } =
     trpc.stripe.getDeploySubscription.useQuery(undefined, { staleTime: 30_000 });
@@ -99,19 +84,6 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
     ]);
   };
 
-  const change = trpc.stripe.changeDeployPlan.useMutation({
-    onSuccess: async (result) => {
-      if (result.kind === "payment_required") {
-        window.location.assign(result.paymentUrl);
-        return;
-      }
-      setPendingPlan(null);
-      setPlanModalOpen(false);
-      toast.success("Compute plan changed");
-      await revalidate();
-    },
-    onError: (err) => toast.error(err.message),
-  });
   const cancel = trpc.stripe.cancelDeploy.useMutation({
     onSuccess: async () => {
       setCancelOpen(false);
@@ -244,46 +216,6 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
         ]
       : null;
 
-  const submittingPlan = isStartingCheckout
-    ? pendingPlan
-    : change.isLoading
-      ? (change.variables?.plan ?? null)
-      : null;
-
-  const selectLabel = (option: (typeof plans)[number]): string => {
-    if (!currentPlan || planFee === null || option.amount === null) {
-      return "Select";
-    }
-    return option.amount > planFee ? "Upgrade" : "Downgrade";
-  };
-
-  const warningFor = (option: (typeof plans)[number]): string | null =>
-    option.amount !== null && usageAmount !== null && usageAmount > option.amount
-      ? `Your usage this period (${formatPrice(usageAmount)}) already exceeds the ${formatDollars(
-          option.amount,
-        )} of monthly credits ${option.name} includes. This period keeps your current credits; from next period, usage at this level is billed as overage.`
-      : null;
-
-  const pendingPlanOption = plans.find((p) => p.plan === pendingPlan);
-  const commitPending = () => {
-    if (!pendingPlan) {
-      return;
-    }
-    if (currentPlan) {
-      change.mutate({ plan: pendingPlan });
-    } else {
-      setIsStartingCheckout(true);
-      window.location.assign(
-        routes.settings.stripe.checkout({
-          workspaceSlug,
-          intent: "deploy",
-          plan: pendingPlan,
-          from: "billing",
-        }),
-      );
-    }
-  };
-
   return (
     <>
       <ProductCard
@@ -317,16 +249,12 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
               </span>
             </InfoTooltip>
           ) : (
-            <InfoTooltip
-              content={hasPaymentMethod ? ADMIN_ONLY_TOOLTIP : "Add a payment method first"}
-              disabled={isAdmin && hasPaymentMethod}
-              asChild
-            >
+            <InfoTooltip content={ADMIN_ONLY_TOOLTIP} disabled={isAdmin} asChild>
               <span>
                 <Button
                   variant="primary"
                   size="md"
-                  disabled={!isAdmin || !hasPaymentMethod}
+                  disabled={!isAdmin}
                   onClick={() => setPlanModalOpen(true)}
                 >
                   Choose a plan
@@ -341,7 +269,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
               <span>
                 <button
                   type="button"
-                  className="text-[13px] text-gray-9 transition-colors hover:text-gray-11 disabled:cursor-not-allowed"
+                  className="text-sm text-gray-9 transition-colors hover:text-gray-11 disabled:cursor-not-allowed"
                   disabled={!isAdmin}
                   onClick={() => setCancelOpen(true)}
                 >
@@ -359,16 +287,12 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                 {meterStats.map((stat) => (
                   <div key={stat.label} className="bg-raised px-3 py-2 first:pl-0">
                     <InfoTooltip content={stat.hint} asChild>
-                      <p className="w-fit cursor-help text-[11px] text-gray-10 uppercase tracking-wide underline decoration-dotted decoration-grayA-6 underline-offset-2">
+                      <p className="w-fit cursor-help text-2xs text-gray-10 uppercase tracking-wide underline decoration-dotted decoration-grayA-6 underline-offset-2">
                         {stat.label}
                       </p>
                     </InfoTooltip>
-                    <p className="font-medium text-[13px] text-gray-12 tabular-nums">
-                      {stat.value}
-                    </p>
-                    <p className="text-[12px] text-gray-10 tabular-nums">
-                      {formatPrice(stat.cost)}
-                    </p>
+                    <p className="font-medium text-sm text-gray-12 tabular-nums">{stat.value}</p>
+                    <p className="text-xs text-gray-10 tabular-nums">{formatPrice(stat.cost)}</p>
                   </div>
                 ))}
               </div>
@@ -391,26 +315,26 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                     because a credit subtracted from a total is the reading that
                     makes a $0 line look like a missing grant. */}
                 <div className="flex items-baseline justify-between gap-4">
-                  <span className="text-[13px] text-gray-10">
+                  <span className="text-sm text-gray-10">
                     Plan fee
                     {feeProrated ? (
-                      <span className="ml-1.5 text-[12px] text-gray-9">prorated</span>
+                      <span className="ml-1.5 text-xs text-gray-9">prorated</span>
                     ) : null}
                   </span>
-                  <span className="text-[13px] text-gray-9 tabular-nums">
+                  <span className="text-sm text-gray-9 tabular-nums">
                     {formatDollars(periodFeeCents)} paid
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between gap-4">
-                  <span className="text-[13px] text-gray-10">Usage</span>
-                  <span className="text-[13px] text-gray-9 tabular-nums">
+                  <span className="text-sm text-gray-10">Usage</span>
+                  <span className="text-sm text-gray-9 tabular-nums">
                     {formatPrice(usageAmount ?? 0)}
                   </span>
                 </div>
                 {includedCreditCents > 0 && creditRemainingCents !== null ? (
                   <div className="flex items-baseline justify-between gap-4">
-                    <span className="text-[13px] text-gray-10">Included credit</span>
-                    <span className="text-[13px] text-gray-9 tabular-nums">
+                    <span className="text-sm text-gray-10">Included credit</span>
+                    <span className="text-sm text-gray-9 tabular-nums">
                       {formatPrice(creditRemainingCents)} of {formatDollars(includedCreditCents)}{" "}
                       remaining
                     </span>
@@ -418,33 +342,33 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                 ) : null}
                 {includedCreditCents > 0 ? (
                   <div className="mt-1 flex items-baseline justify-between gap-4 border-t pt-2">
-                    <span className="text-[13px] text-gray-10">
+                    <span className="text-sm text-gray-10">
                       Overage
-                      <span className="ml-1.5 text-[12px] text-gray-9">usage past credit</span>
+                      <span className="ml-1.5 text-xs text-gray-9">usage past credit</span>
                     </span>
-                    <span className="text-[13px] text-gray-11 tabular-nums">
+                    <span className="text-sm text-gray-11 tabular-nums">
                       {formatPrice(overageCents)}
                     </span>
                   </div>
                 ) : null}
                 <div className="flex items-baseline justify-between gap-4">
-                  <span className="text-[13px] text-gray-10">
+                  <span className="text-sm text-gray-10">
                     Next plan fee
-                    <span className="ml-1.5 text-[12px] text-gray-9">
+                    <span className="ml-1.5 text-xs text-gray-9">
                       {currentPlanOption?.interval ?? "month"} ahead
                     </span>
                   </span>
-                  <span className="text-[13px] text-gray-11 tabular-nums">
+                  <span className="text-sm text-gray-11 tabular-nums">
                     {formatDollars(planFee)}
                   </span>
                 </div>
                 <div className="mt-1 flex items-baseline justify-between gap-4 border-t pt-2">
-                  <span className="text-[13px] text-gray-12">
-                    <InfoTooltip
+                  <span className="text-sm text-gray-12">
+                    <InfoHoverCard
                       asChild
                       position={{ side: "top", align: "start" }}
                       content={
-                        <div className="flex max-w-[240px] flex-col gap-2 text-[12px]">
+                        <div className="flex max-w-[240px] flex-col gap-2 text-xs">
                           <div className="flex flex-col gap-0.5">
                             <p className="font-medium text-gray-12">How this is calculated</p>
                             <p className="text-gray-11">
@@ -479,25 +403,25 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
                         Next invoice
                         {renewsAtMillis !== null ? ` · ${formatRenewalDate(renewsAtMillis)}` : ""}
                       </span>
-                    </InfoTooltip>
+                    </InfoHoverCard>
                     {/* Projected adds the usage still expected before the period
                         closes, since the overage row only counts what has accrued. */}
                     {projectedOverageCents !== null &&
                     overageCents !== null &&
                     nextInvoiceCents !== null &&
                     projectedOverageCents > overageCents ? (
-                      <span className="ml-1.5 text-[12px] text-gray-9">
+                      <span className="ml-1.5 text-xs text-gray-9">
                         (~
                         {formatPrice(nextInvoiceCents + (projectedOverageCents - overageCents))}{" "}
                         projected)
                       </span>
                     ) : null}
                   </span>
-                  <span className="font-medium text-[15px] text-gray-12 tabular-nums">
+                  <span className="font-medium text-base text-gray-12 tabular-nums">
                     {nextInvoiceCents !== null ? formatPrice(nextInvoiceCents) : "—"}
                   </span>
                 </div>
-                <p className="text-[12px] text-gray-9">
+                <p className="text-xs text-gray-9">
                   This period's {formatDollars(periodFeeCents)} fee is already paid. Total cost for
                   this period is {formatPrice(currentBillCents)}.
                 </p>
@@ -508,40 +432,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
         ) : null}
       </ProductCard>
 
-      <ComputePlanDialog
-        isOpen={isPlanModalOpen}
-        onOpenChange={setPlanModalOpen}
-        title={currentPlan ? "Change Compute plan" : "Choose a Compute plan"}
-        subTitle="The monthly plan fee includes the same amount of usage credits; usage beyond them is billed on top."
-      >
-        <ComputePlanRows
-          plans={plans}
-          currentPlan={currentPlan}
-          submittingPlan={submittingPlan}
-          onSelect={(plan) => {
-            setPendingPlan(plan);
-            setPlanModalOpen(false);
-          }}
-          selectLabel={selectLabel}
-          warningFor={warningFor}
-          disabledReason={isAdmin ? undefined : ADMIN_ONLY_TOOLTIP}
-        />
-        <AllPlansInclude />
-        <CreditsInfoStrip />
-      </ComputePlanDialog>
-
-      <ComputePlanConfirmDialog
-        plan={pendingPlanOption ?? null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setPendingPlan(null);
-          }
-        }}
-        onConfirm={commitPending}
-        isLoading={isStartingCheckout || change.isLoading}
-        currentPlanName={currentPlan ? (currentPlanOption?.name ?? currentPlan) : undefined}
-        note="Takes effect immediately. Upgrades are charged now and add the difference as usage credits; downgrades keep this period's credits, with the new fee starting next period."
-      />
+      <PlansScreen open={isPlanModalOpen} onOpenChange={setPlanModalOpen} reason="compute-plan" />
 
       <DialogContainer
         isOpen={isCancelOpen}
@@ -562,7 +453,7 @@ export const DeployProductCard: React.FC<DeployProductCardProps> = ({
           </Button>
         }
       >
-        <div className="text-[13px] text-gray-11 leading-6">
+        <div className="text-sm text-gray-11 leading-6">
           Cancelling stops Compute immediately: your deployments stop and no further usage is
           billed. Usage up to now is still charged, and the plan fee already paid is not refunded.
         </div>

@@ -1,16 +1,61 @@
 package handler_test
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_deployments_get_deployment"
 )
+
+// TestDeploymentURNPermissions guarantees that exact and wildcard read permissions
+// allow access. For example, a permission for another deployment returns 404.
+func TestDeploymentURNPermissions(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+	setup := h.CreateTestDeploymentSetup(testutil.CreateTestDeploymentSetupOptions{
+		Permissions: []string{},
+	})
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+	})
+	environment := urn.New().Workspace(setup.Workspace.ID).Project(setup.Project.ID).App(setup.App.ID).Environment(setup.Environment.ID)
+	for _, tc := range []struct {
+		name       string
+		permission string
+		found      bool
+	}{
+		{name: "this deployment", permission: rbac.U(environment.Deployment(dep.ID), permissions.Read).Value, found: true},
+		{name: "every deployment in the environment", permission: rbac.U(environment.Deployment("*"), permissions.Read).Value, found: true},
+		{name: "every deployment in the workspace", permission: rbac.U(urn.New().Workspace(setup.Workspace.ID).Project("*").App("*").Environment("*").Deployment("*"), permissions.Read).Value, found: true},
+		{name: "another deployment", permission: rbac.U(environment.Deployment(uid.New(uid.DeploymentPrefix)), permissions.Read).Value, found: false},
+		{name: "wrong action", permission: rbac.U(environment.Deployment(dep.ID), permissions.Delete).Value, found: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rootKey := h.CreateRootKey(setup.Workspace.ID, tc.permission)
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, authHeaders(rootKey), handler.Request{DeploymentId: dep.ID})
+			if tc.found {
+				require.Equal(t, http.StatusOK, res.Status, "expected 200, received: %s", res.RawBody)
+				return
+			}
+			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
+			require.NotContains(t, res.RawBody, dep.ID)
+		})
+	}
+}
 
 func TestDeploymentNotFound(t *testing.T) {
 	h := testutil.NewHarness(t)
@@ -76,4 +121,76 @@ func TestDeploymentInAnotherWorkspace(t *testing.T) {
 
 	res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, authHeaders(caller.RootKey), req)
 	require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
+}
+
+// TestGetDeploymentRejectsURNPermissionForAnotherResource verifies that a URN
+// for another project, app, environment, workspace, or action returns not found.
+func TestGetDeploymentRejectsURNPermissionForAnotherResource(t *testing.T) {
+	h := testutil.NewHarness(t)
+	route := newRoute(h)
+	h.Register(route)
+
+	setup := h.CreateTestDeploymentSetup()
+	dep := h.CreateDeployment(seed.CreateDeploymentRequest{
+		ID:            uid.New(uid.DeploymentPrefix),
+		WorkspaceID:   setup.Workspace.ID,
+		ProjectID:     setup.Project.ID,
+		AppID:         setup.App.ID,
+		EnvironmentID: setup.Environment.ID,
+	})
+	permissionFor := func(workspaceID, projectID, appID, environmentID, deploymentID, action string) string {
+		return fmt.Sprintf(
+			"unkey:v1:%s:projects/%s/apps/%s/environments/%s/deployments/%s#%s",
+			workspaceID,
+			projectID,
+			appID,
+			environmentID,
+			deploymentID,
+			action,
+		)
+	}
+
+	tests := []struct {
+		name       string
+		permission string
+	}{
+		{
+			name: "wrong project",
+			permission: permissionFor(setup.Workspace.ID, uid.New(uid.ProjectPrefix), setup.App.ID,
+				setup.Environment.ID, dep.ID, "read"),
+		},
+		{
+			name: "wrong app",
+			permission: permissionFor(setup.Workspace.ID, setup.Project.ID, uid.New(uid.AppPrefix),
+				setup.Environment.ID, dep.ID, "read"),
+		},
+		{
+			name: "wrong environment",
+			permission: permissionFor(setup.Workspace.ID, setup.Project.ID, setup.App.ID,
+				uid.New(uid.EnvironmentPrefix), dep.ID, "read"),
+		},
+		{
+			name: "wrong workspace",
+			permission: permissionFor(uid.New(uid.WorkspacePrefix), setup.Project.ID, setup.App.ID,
+				setup.Environment.ID, dep.ID, "read"),
+		},
+		{
+			name: "wrong action",
+			permission: permissionFor(setup.Workspace.ID, setup.Project.ID, setup.App.ID,
+				setup.Environment.ID, dep.ID, "write"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			rootKey := h.CreateRootKey(setup.Workspace.ID, test.permission)
+			res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](
+				h,
+				route,
+				authHeaders(rootKey),
+				handler.Request{DeploymentId: dep.ID},
+			)
+			require.Equal(t, http.StatusNotFound, res.Status, "expected 404, received: %s", res.RawBody)
+		})
+	}
 }

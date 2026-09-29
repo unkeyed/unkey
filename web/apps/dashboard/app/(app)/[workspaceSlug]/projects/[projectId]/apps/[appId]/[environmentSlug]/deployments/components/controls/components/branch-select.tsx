@@ -56,13 +56,13 @@ export function BranchSelect() {
               placeholder="Search branches..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-8 text-[13px]"
+              className="h-8 text-sm"
             />
           </InputGroup>
         </div>
         <div className="max-h-64 overflow-y-auto">
           {visibleBranches.length === 0 ? (
-            <div className="px-2 py-3 text-[13px] text-gray-9 text-center">
+            <div className="px-2 py-3 text-sm text-gray-9 text-center">
               {branches.length === 0 ? "No branches yet" : "No matching branches"}
             </div>
           ) : (
@@ -70,7 +70,7 @@ export function BranchSelect() {
               <button
                 type="button"
                 key={branch}
-                className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-3 cursor-pointer text-[13px] w-full"
+                className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-3 cursor-pointer text-sm w-full"
                 onClick={() => toggleArrayFilter("branch", branch)}
               >
                 <Checkbox

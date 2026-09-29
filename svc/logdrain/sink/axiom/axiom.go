@@ -52,7 +52,11 @@ func New(cfg Config) (*Sink, error) {
 	if err := ssrf.ValidateEndpoint(endpoint, opts...); err != nil {
 		return nil, err
 	}
-	return &Sink{endpoint: endpoint, token: cfg.Token, client: ssrf.New(opts...)}, nil
+	return &Sink{
+		endpoint: endpoint,
+		token:    cfg.Token,
+		client:   ssrf.New(opts...),
+	}, nil
 }
 
 // Deliver acknowledges the batch only after Axiom accepts every event.
@@ -80,7 +84,7 @@ func (a *Sink) Deliver(ctx context.Context, batch sink.Batch) (sink.Result, erro
 		return delivery, fmt.Errorf("deliver Axiom request: %w", err)
 	}
 	delivery.HTTPStatus = resp.StatusCode
-	diagnostic, err := sink.ReadDiagnostic(resp.Body)
+	diagnostic, _, err := sink.ReadDiagnostic(resp.Body)
 	if err != nil {
 		return delivery, err
 	}
@@ -121,7 +125,7 @@ func marshalEvents(events []sink.Event) ([]byte, error) {
 	var body bytes.Buffer
 	encoder := json.NewEncoder(&body)
 	for _, event := range events {
-		line, err := event.MarshalRecord(true)
+		line, err := marshalRecord(event)
 		if err != nil {
 			return nil, err
 		}

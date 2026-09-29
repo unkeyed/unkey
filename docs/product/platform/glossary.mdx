@@ -1,0 +1,114 @@
+---
+title: Glossary
+description: "Look up the terms Unkey uses and which product each one belongs to."
+sources:
+  - web/internal/db/src/schema/keys.ts
+  - web/internal/db/src/schema/limits.ts
+  - web/internal/db/src/schema/workspaces.ts
+  - web/internal/db/src/schema/keyAuth.ts
+  - web/apps/dashboard/lib/auth/roles.ts
+  - pkg/hash/sha256.go
+  - web/apps/dashboard/lib/stripe/deployPlan.ts
+---
+
+Look up a term here. Some terms mean different things in different products, so each entry starts with the product that owns it.
+
+## Terms with more than one meaning
+
+### App
+
+**Compute.** A service you deploy, inside a project. It has a GitHub repository or an image as its source, two environments, build and runtime settings, and a history of deployments. On this site, "app" always means this. When we mean the software you run anywhere, including outside Unkey, we say "your application".
+
+### Environment
+
+**Compute.** Every app has two environments, production and preview, and each deployment belongs to one. Environment variables, runtime settings, and gateway policies are set per environment. **API Management** uses the same word for an optional label on a key, the key's `environment` field, so you can tag keys as `live` or `test`. The label doesn't change how the key behaves, and it has nothing to do with Compute environments.
+
+### Rate limiting
+
+Three different features share this name:
+
+- **API Management**: the standalone ratelimit API. You call `ratelimit.limit` with your own identifier and namespace and get an allow or deny.
+- **API Management**: key and identity rate limits. They're attached to a key or an identity and checked when the key is verified.
+- **Compute**: the gateway rate limit policy. The gateway applies it to requests before they reach your app.
+
+### Verify
+
+**API Management.** Key verification is `keys.verifyKey`: you send a key, and we tell you whether it's valid and, if not, why. **Compute** uses the word twice more: custom domain verification, where you prove you control a domain before the gateway serves it, and the gateway key-auth policy, which verifies keys on incoming requests so your app only sees verified callers.
+
+## Platform
+
+### Workspace
+
+**Platform.** The top-level container for everything else. It has a slug used in dashboard URLs, a `ws_` ID used in the API, and its own team, billing, and limits. Workspaces are fully separate from each other. See [Workspaces](/platform/workspace/overview).
+
+### Root key
+
+**Platform.** The credential for calling the Unkey API and using the CLI. A root key belongs to one workspace, has a list of permissions, and is stored as a SHA-256 hash like every other key. See [Root keys](/platform/root-keys/overview).
+
+### Role
+
+**Platform.** Admin or developer, given to each dashboard user per workspace. Developers can work with every resource in the workspace. Admins can also manage members, rename the workspace, manage root keys, and change billing. These aren't the roles you attach to API keys in API Management, which group permissions for your own users. See [Team](/platform/workspace/team).
+
+### Tier and plan
+
+**Platform.** The billing page says "tier" for API Management (Free by default) and "plan" for Compute (Starter, Pro, or Business). They're billed separately to the same payment method. See [Plans](/platform/billing/plans).
+
+### Limits
+
+**Platform.** Your workspace's ceilings, shown under **Settings > Limits**: monthly API operations, log and audit log retention, log drains, team members, and Compute resources. Most come from your API tier and Compute plan. See [Limits](/platform/billing/limits).
+
+### Delete protection
+
+**Platform.** A setting on keyspaces, projects, and apps that blocks deletion while it's on. A delete attempt returns `err:unkey:application:protected_resource`. See [Delete protection](/platform/security/delete-protection).
+
+## API Management
+
+### Keyspace
+
+**API Management.** A container for API keys, called an API in endpoint names (`apis.createApi`). Each key belongs to one keyspace. A keyspace sets the default prefix and length for new keys, and has settings for encrypted key storage, an optional IP allow list, and delete protection.
+
+### Key
+
+**API Management.** A credential you give to a user of your application and verify on each request. A key has a prefix and can have a name, metadata, an expiry, credits, rate limits, permissions and roles, and an identity. We store only its hash, unless it's a recoverable key.
+
+### Identity
+
+**API Management.** One of your users or tenants, identified by your own `externalId`, that several keys can belong to. Rate limits on an identity are shared by all of its keys.
+
+### Credits
+
+**API Management.** The number of uses a key has left. Each verification uses one, and credits can refill on a schedule. At zero, verification reports the key as out of usage.
+
+### Permission and role (keys)
+
+**API Management.** Permissions are strings you define and attach to keys, directly or through roles. Verification can check that a key has a permission or matches a permission query. These are separate from dashboard roles.
+
+### Recoverable key
+
+**API Management.** A key created with `recoverable: true` in a keyspace with encrypted storage turned on. We keep an encrypted copy, so you can read the key again later. See [Key storage](/platform/security/key-storage).
+
+## Compute
+
+### Project
+
+**Compute.** A group of apps, usually one per codebase or product. Compute usage is billed and reported per project, and a project can have delete protection.
+
+### Deployment
+
+**Compute.** One built version of an app, running in one environment. It's created from a git commit, an image, or an existing deployment. You can promote it or roll back to it, and it keeps the gateway policies that were in place when it was created.
+
+### Gateway
+
+**Compute.** What sits in front of every deployment and receives its traffic. It handles HTTPS, routes requests by domain, and applies the environment's policies: key authentication, rate limiting, firewall rules, OpenAPI validation, and logging.
+
+### Gateway policy
+
+**Compute.** A rule the gateway applies to requests for an environment. The key-auth policy uses a keyspace from API Management, which is where the two products connect.
+
+### Replica
+
+**Compute.** One running instance of a deployment in a region. Autoscaling can add replicas up to your plan's replicas-per-region limit. See [Limits](/platform/billing/limits).
+
+### Spend budget
+
+**Compute.** A monthly dollar cap on Compute usage, set by an admin. It emails you at 50, 75, and 100 percent and can optionally stop your workloads at 100 percent. See [Spend budget](/compute/configure/spend-budget).

@@ -27,7 +27,7 @@ export function RecentDeployments() {
         <h2 className="font-medium text-gray-12 text-sm">Recent Deployments</h2>
         <Link
           href={routes.projects.apps.deployments(scope)}
-          className="text-[13px] text-gray-11 transition-colors hover:text-gray-12"
+          className="text-sm text-gray-11 transition-colors hover:text-gray-12"
         >
           View all deployments
         </Link>

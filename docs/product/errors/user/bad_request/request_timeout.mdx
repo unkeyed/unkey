@@ -1,74 +1,48 @@
 ---
 title: "request_timeout"
-description: "The request exceeded the Unkey server timeout before processing could complete. Simplify your request, reduce payload size, or retry later."
+sidebarTitle: "request_timeout"
+description: "The request did not finish within the API's one minute deadline."
+sources:
+  - pkg/codes/user_request.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/zen/middleware_timeout.go
+  - svc/api/routes/register.go
 ---
 
 <Danger>`err:user:bad_request:request_timeout`</Danger>
 
-```json Example
+Your request didn't finish within the API's one-minute limit, so the API canceled it. You get HTTP 408 on any endpoint.
+
+```json Example response
 {
   "meta": {
-    "requestId": "req_4dgzrNP3Je5mU1tD"
+    "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
     "detail": "Request timeout",
     "status": 408,
     "title": "Request Timeout",
-    "type": "https://unkey.com/docs/errors/user/bad_request/request_timeout",
+    "type": "/errors/user/bad_request/request_timeout",
     "errors": []
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-Your request took too long to process and was automatically terminated by the server. This typically happens when:
+- A brief slowdown. Most timeouts don't repeat.
+- The request asks for too much at once, such as a large list without paging.
 
-- Database queries are running slowly
-- External services are responding slowly
-- The API is under heavy load
-- Network connectivity issues are causing delays
+If your client gives up first, the request is recorded as [`client_closed_request`](/errors/user/bad_request/client_closed_request) instead. Analytics queries have their own, shorter limit, reported as [`query_execution_timeout`](/errors/user/unprocessable_entity/query_execution_timeout), so a 408 on an analytics endpoint isn't about the query itself.
 
-## How to Fix It
+## How to fix
 
-### 1. Retry the Request
+1. Retry the request.
+2. If one endpoint keeps timing out, ask for less: page through large lists with `cursor` and `limit`.
+3. If it still happens, contact support with the `requestId`.
 
-Most timeout errors are temporary. Simply retry your request after a short delay with exponential backoff (wait longer after each failed attempt).
+## Related errors
 
-### 2. Check Your Network
-
-Slow or unstable network connections can cause timeouts:
-
-- Test from a different network or location
-- Check if you're experiencing high latency to our servers
-
-## When This Happens Often
-
-If you're seeing frequent timeout errors:
-
-### Check Our Status Page
-
-Visit [status.unkey.com](https://status.unkey.com) to see if we're experiencing any service issues.
-
-### Contact Support
-
-<Note>
-**Still having issues?** We're here to help!
-
-[Contact our support team](mailto:support@unkey.com) and include:
-
-- Your request IDs from the error responses
-- The approximate time the errors occurred
-- Your typical request patterns and volume
-
-We can investigate what might be causing the slowdowns and help optimize your integration.
-
-</Note>
-
-## Difference from Other Timeout Errors
-
-- **408 Request Timeout**: The server took too long to process your request (this error)
-- **499 Client Closed Request**: Your client cancelled the request before the server finished
-- **504 Gateway Timeout**: An upstream service (like a database) timed out
-
-If you're seeing 408 errors, the issue is usually on our side or with network connectivity.
+- [`err:user:bad_request:client_closed_request`](/errors/user/bad_request/client_closed_request): your client closed the connection first.
+- [`err:user:unprocessable_entity:query_execution_timeout`](/errors/user/unprocessable_entity/query_execution_timeout): an analytics query hit its own time limit.
+- [`err:unkey:application:service_unavailable`](/errors/unkey/application/service_unavailable): a dependency failed without timing out.

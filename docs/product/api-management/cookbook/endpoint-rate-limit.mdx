@@ -1,0 +1,87 @@
+---
+title: Per-endpoint rate limits
+description: "Give each endpoint its own rate limit budget."
+sources:
+  - svc/api/openapi/spec/common/RatelimitRequest.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/KeysVerifyKeyRatelimit.yaml
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/ratelimit/limit/V2RatelimitLimitRequestBody.yaml
+  - internal/services/keys/validation.go
+---
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+**Outcome:** a burst of reads can't starve writes, and one expensive endpoint can't exhaust the budget of cheap ones, because each route checks its own <Tooltip tip="Here: limits enforced by keys.verifyKey on a key or identity, or by the standalone ratelimit API. Not a Compute gateway policy.">rate limit</Tooltip>.
+
+<RootKeyPrereq />
+
+## Named limits on the key
+
+Give the key one limit per kind of request, with `autoApply: false`. Those limits are only checked when a verification names them, so each route names its own limit and the others aren't touched.
+
+```bash create a key with two limits
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_...",
+    "ratelimits": [
+      { "name": "reads",  "limit": 1000, "duration": 60000, "autoApply": false },
+      { "name": "writes", "limit": 100,  "duration": 60000, "autoApply": false }
+    ]
+  }'
+```
+
+```ts name the limit per route
+import { Unkey } from "@unkey/api";
+
+const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY ?? "" });
+
+export async function verifyFor(key: string, method: string) {
+  const name = method === "GET" ? "reads" : "writes";
+  const result = await unkey.keys.verifyKey({ key, ratelimits: [{ name }] });
+  return result.data;
+}
+```
+
+Naming a limit that isn't on the key or its identity fails the request with HTTP 412, so keep the names in one place in your code. To add a limit later, use `keys.updateKey`. Its `ratelimits` field replaces the whole list, so send every limit, not just the new one.
+
+## Weight expensive operations
+
+`cost` is how much of the limit one call uses, 1 by default. If search costs 10, a client can make a tenth as many searches as list calls from the same limit.
+
+To give a route its own limit without saving one on the key, pass both `limit` and `duration` in the entry. The name doesn't have to exist on the key, and the count is kept against the key, not the identity. If you pass only one of the two, it's ignored and the saved limit is used. See [Inline limits](/api-management/ratelimiting/key-and-identity-limits#inline-limits) for the minimum values.
+
+```bash charge 10 against the reads limit
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "key": "sk_live_...", "ratelimits": [{ "name": "reads", "cost": 10 }] }'
+```
+
+## Alternative: a namespace per endpoint
+
+When the caller has no API key, or you want the limit in code next to the route, call `ratelimit.limit` with a namespace named after the route. Each route sends its own numbers, and `cost` works the same way.
+
+```ts one namespace per route
+const rl = await unkey.ratelimit.limit({
+  namespace: "POST /v1/items",
+  identifier: userId,
+  limit: 100,
+  duration: 60_000,
+  cost: 1,
+});
+if (!rl.data.success) {
+  return Response.json({ error: "rate limited" }, { status: 429 });
+}
+```
+
+Namespaces are created on first use. To check a per-user and a per-endpoint limit on the same request, use `ratelimit.multiLimit`. `data.passed` is true only when every check passed.
+
+## Related
+
+- [Creating keys](/api-management/keys/creating-keys) for the `ratelimits` field and its bounds.
+- [Verifying keys](/api-management/keys/verifying-keys) for the `ratelimits` request entries and the 412 on unknown names.
+- Standalone rate limiting and `multiLimit` are documented under [limit and multiLimit](/api-management/ratelimiting/limit-and-multi-limit).

@@ -1,0 +1,71 @@
+---
+title: unkey api ratelimit delete-override
+sidebarTitle: "delete-override"
+description: "Remove an override so an identifier falls back to the default limit."
+sources:
+  - cmd/api/ratelimit/delete_override.go
+  - svc/api/routes/v2_ratelimit_delete_override/handler.go
+  - docs/product/scripts/manifest.json
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+<RootKeyPrereq />
+
+Delete an override. After that, the identifier gets the limit that `ratelimit limit` sends. Calls `POST /v2/ratelimit.deleteOverride`. See [Rate limit overrides](/api-management/ratelimiting/overrides).
+
+## Usage
+
+```bash
+unkey api ratelimit delete-override --identifier=<identifier> --namespace=<namespace> [flags]
+```
+
+## Flags
+
+<ParamField body="--identifier" type="string" required>
+  The override's identifier, exactly as stored. For a wildcard override, pass the pattern, such as `premium_*`, not an identifier it matches.
+</ParamField>
+
+<ParamField body="--namespace" type="string" required>
+  Namespace id or name.
+</ParamField>
+
+### Shared flags
+
+Every `unkey api` command takes these. See [CLI output and shared flags](/platform/cli/output-and-flags).
+
+<ParamField body="--root-key" type="string">
+  Root key used for the request. Falls back to `UNKEY_ROOT_KEY`, then to the key stored by `unkey auth login`.
+</ParamField>
+
+<ParamField body="--api-url" type="string" default="https://api.unkey.com">
+  Base URL of the API. Falls back to `UNKEY_API_BASE_URL`. You don't normally need to set it.
+</ParamField>
+
+<ParamField body="--config" type="string" default="~/.unkey/config.toml">
+  Path of the config file written by `unkey auth login`. Falls back to `UNKEY_CONFIG`.
+</ParamField>
+
+<ParamField body="--output" type="string">
+  Output format. Falls back to `UNKEY_OUTPUT`. `json` prints the full response. Any other value prints the request ID and `data`.
+</ParamField>
+
+<ParamField body="--body" type="string">
+  Send this JSON as the whole request body instead of using the command's flags. You can't combine it with them.
+</ParamField>
+
+## Required permissions
+
+`ratelimit.*.delete_override` or `ratelimit.<namespace_id>.delete_override`. Without the permission you get a 404, not a 403, so the response doesn't reveal whether the resource exists. See [Root key permissions](/platform/root-keys/permissions).
+
+## Examples
+
+```bash Delete
+unkey api ratelimit delete-override --namespace=api.requests --identifier=premium_user_123
+```
+
+Or send the whole request as JSON:
+
+```bash Raw body
+unkey api ratelimit delete-override --body='{"namespace":"api.requests","identifier":"premium_user_123"}'
+```

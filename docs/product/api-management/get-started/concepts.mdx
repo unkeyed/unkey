@@ -1,0 +1,62 @@
+---
+title: Keyspaces, keys, identities, and root keys
+sidebarTitle: "Concepts"
+description: "The four objects you work with and how they fit together."
+sources:
+  - web/internal/db/src/schema/apis.ts
+  - web/internal/db/src/schema/keyAuth.ts
+  - web/internal/db/src/schema/keys.ts
+  - web/internal/db/src/schema/identity.ts
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - internal/services/keys/get.go
+  - pkg/rbac/permissions.go
+  - web/apps/dashboard/lib/trpc/routers/key/createRootKey.ts
+---
+
+API Management has four objects. A keyspace groups keys. A key is what your user sends you. An identity ties several keys to one user or organization. A root key is what you send to Unkey. Credits, rate limits, permissions, and analytics are all settings on, or views of, these four.
+
+## Keyspace
+
+A keyspace is the container for related keys. You might have one per product, one per <Tooltip tip="An optional free-text label stored on a key in the dashboard, such as live or test. Unkey attaches no behavior to it, and it is unrelated to Compute environments.">environment</Tooltip> such as production and staging, or one per pricing tier. Every key belongs to exactly one keyspace, and you name the keyspace by its API ID (`api_...`) whenever you create a key.
+
+A keyspace sets defaults for new keys (a prefix and a key length). It can also have delete protection and an IP allow list that applies to every key in it. It has a second identifier, the Keyspace ID (`ks_...`), which analytics and the customer portal use. You'll find both IDs on the keyspace's settings page. [Keyspaces](/api-management/keyspaces/overview) explains when to create more than one.
+
+## Key
+
+A key is a random string, with an optional prefix, that you give to a user of your application. Unkey stores only a hash of the key, never the key itself, unless you turn on [recoverable keys](/api-management/keys/recoverable-keys). On every request, your backend sends the key to `keys.verifyKey` and Unkey runs the checks set on it.
+
+Every check is optional: whether the key is enabled, when it expires, how many credits it has left, which rate limits apply, and which permissions and roles it has. A key can also carry JSON metadata that comes back on every verification, so your backend can read a plan tier or feature flag without a database lookup. [Creating keys](/api-management/keys/creating-keys) lists each field with its bounds.
+
+## Identity
+
+An identity is one user, organization, or service account in your system, named by an `externalId` you choose. Keys linked to an identity share its rate limits and metadata. Pass `externalId` when you create a key, and Unkey creates the identity if needed and links the key, so most apps never call the identity endpoints directly. [Identities](/api-management/identities/overview) covers shared rate limits and metadata in detail.
+
+## Root key
+
+A root key authenticates you, not your users. Every call to `api.unkey.com` sends a root key in the `Authorization: Bearer` header, and its permissions decide which calls succeed. Create root keys in the dashboard under **Settings > Root Keys**. Permissions such as `api.*.create_key` or `api.<api_id>.verify_key` apply to every keyspace or to one. See [Root keys](/platform/root-keys/overview) for how permissions are granted and rotated.
+
+## How the objects relate
+
+```text
+Workspace
+└── Keyspace (api_..., ks_...)
+    ├── defaults: prefix, bytes, encrypted storage, IP allow list, delete protection
+    └── Key (key_...)
+        ├── enabled, expires, credits, rate limits, permissions, roles, meta
+        └── Identity (externalId)          shared rate limits and meta across keys
+
+Root key (unkey_...)  authenticates your calls; permissions name keyspaces by api_ id
+```
+
+So one request from your user involves two keys: their key, which they send to you, and your root key, which you send to Unkey to verify theirs. Your user's key never grants access to the Unkey API, and your root key should never leave your servers.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Issue and verify your first key" icon="rocket" href="/api-management/get-started/quickstart">
+    Put the four objects to work in a few minutes.
+  </Card>
+  <Card title="Keyspaces" icon="folder-tree" href="/api-management/keyspaces/overview">
+    Decide how many keyspaces you need and what they store.
+  </Card>
+</Columns>

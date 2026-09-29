@@ -3,13 +3,16 @@ package urn
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
 const (
-	prefix            = "unkey"
-	version           = "v1"
-	resourceIDSegment = "{id}"
+	prefix             = "unkey"
+	version            = "v1"
+	resourceIDSegment  = "{id}"
+	resourceIDPattern  = `(\*|[^:/#*]+)` // Captures one resource ID or "*".
+	workspaceIDPattern = `([^:/#]+)`     // Captures one workspace ID.
 )
 
 // ErrInvalidResourceName is returned when a resource name cannot be parsed.
@@ -152,6 +155,13 @@ func ParseV1(value string) (V1, error) {
 		WorkspaceID: parts[2],
 		Resource:    parts[3],
 	}, nil
+}
+
+// compileResourcePattern builds one anchored v1 resource parser from the same
+// path format used by fmt.Sprintf. Each %s captures one concrete ID or "*".
+func compileResourcePattern(pathFormat string) *regexp.Regexp {
+	pathPattern := strings.ReplaceAll(regexp.QuoteMeta(pathFormat), "%s", resourceIDPattern)
+	return regexp.MustCompile(`^` + prefix + `:` + version + `:` + workspaceIDPattern + `:` + pathPattern + `$`)
 }
 
 // validateWorkspaceID enforces two invariants on the workspace field:

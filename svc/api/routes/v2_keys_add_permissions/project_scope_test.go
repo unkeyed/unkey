@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	dbtype "github.com/unkeyed/unkey/pkg/db/types"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -40,7 +39,7 @@ func TestAddPermissionsRejectsPermissionFromAnotherProject(t *testing.T) {
 	key := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  keyProjectAPI.KeyAuthID.String,
-		Name:        ptr.P("project-scoped-key"),
+		Name:        new("project-scoped-key"),
 	})
 
 	permissionSlug := "documents.read.add.wrong-project"

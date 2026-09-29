@@ -142,18 +142,9 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
       throw new Error("User Id is required.");
     }
     try {
-      const provider = await this.getProvider();
       const [user, memberships] = await Promise.all([
         this.getUser(userId),
-        this.collectPages((after) =>
-          provider.userManagement.listOrganizationMemberships({
-            userId,
-            organizationId,
-            limit: PAGE_SIZE,
-            statuses: ["active"],
-            after,
-          }),
-        ),
+        this.listActiveUserMemberships(userId, organizationId),
       ]);
       if (!user) {
         return { data: [], metadata: {} };
@@ -176,6 +167,33 @@ export class WorkOSAuthProvider extends BaseAuthProvider {
     } catch (error) {
       throw this.providerError(error);
     }
+  }
+
+  async listActiveOrganizationIds(userId: string, organizationId?: string): Promise<string[]> {
+    if (!userId) {
+      throw new Error("User Id is required.");
+    }
+    try {
+      const memberships = await this.listActiveUserMemberships(userId, organizationId);
+      return memberships
+        .filter((membership) => membership.status === "active")
+        .map((membership) => membership.organizationId);
+    } catch (error) {
+      throw this.providerError(error);
+    }
+  }
+
+  private async listActiveUserMemberships(userId: string, organizationId?: string) {
+    const provider = await this.getProvider();
+    return this.collectPages((after) =>
+      provider.userManagement.listOrganizationMemberships({
+        userId,
+        organizationId,
+        limit: PAGE_SIZE,
+        statuses: ["active"],
+        after,
+      }),
+    );
   }
 
   async getOrganizationMemberList(orgId: string): Promise<MembershipListResponse> {

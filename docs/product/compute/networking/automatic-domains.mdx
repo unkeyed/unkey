@@ -1,0 +1,49 @@
+---
+title: Automatic domains
+description: "The unkey.app hostnames every deployment gets and which ones follow new deployments."
+sources:
+  - svc/ctrl/worker/deploy/domains.go
+  - svc/ctrl/worker/config.go
+  - svc/ctrl/worker/deploy/deploy_handler.go
+---
+
+Every <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> gets a set of `unkey.app` hostnames, so you can reach it as soon as it's ready, with no DNS setup. Some hostnames always point at that one deployment. Others move to newer deployments. You can't create, rename, or delete them. To use your own name, add a [custom domain](/compute/networking/custom-domains).
+
+## How hostnames are named
+
+Each hostname starts with a prefix made from your project and <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>, and ends with your workspace slug:
+
+| App slug | Prefix | Example |
+| --- | --- | --- |
+| `default` | `<project>` | `payments` |
+| anything else | `<project>-<app>` | `payments-api` |
+
+For a pull request from a fork, the fork owner's name is added, so its deployments don't clash with yours: `payments-fork-contributor-...`.
+
+## The five hostnames
+
+For a deployment in workspace `acme`, project `payments`, app `default`, <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> `production`, built from commit `1a2b3c4d5e6f` on branch `feature/new_checkout` with deployment ID `d_3f9kq2x7`, the deployment gets these hostnames:
+
+| Kind | Pattern | Example | Follows |
+| --- | --- | --- | --- |
+| Commit | `<prefix>-git-<sha>-<workspace>.unkey.app` | `payments-git-1a2b3c4-acme.unkey.app` | Nothing. Pinned to this deployment. |
+| Branch | `<prefix>-git-<branch>-<workspace>.unkey.app` | `payments-git-feature-new-checkout-acme.unkey.app` | The newest deployment of that branch. |
+| Environment | `<prefix>-<environment>-<workspace>.unkey.app` | `payments-production-acme.unkey.app` | The environment's current deployment. Rollback moves it back. |
+| Live | `<prefix>-<workspace>.unkey.app` | `payments-acme.unkey.app` | The active production deployment. Production only. |
+| Deployment | `<prefix>-<deployment id>-<workspace>.unkey.app` | `payments-d-3f9kq2x7-acme.unkey.app` | Nothing. Pinned to this deployment. |
+
+The commit hostname uses the first seven characters of the SHA. Commit and branch hostnames only exist when the deployment has a commit and branch, which GitHub deployments always do. A preview deployment gets `payments-preview-acme.unkey.app` as its environment hostname, and no live hostname.
+
+Use the two pinned hostnames in bug reports and pull request comments, because they always show that exact build. Use the three moving hostnames in configuration. See [Production and preview](/compute/concepts/production-and-preview) for how promote and rollback move them.
+
+## CLI deployments get a longer commit hostname
+
+You can run `unkey deploy` several times on the same commit, so for CLI deployments we add the last four characters of the deployment ID to the commit hostname. For deployment `d_3f9kq2x7` it becomes `payments-git-1a2b3c4-q2x7-acme.unkey.app`. Redeploying the same deployment keeps the same hostnames.
+
+## How branch names appear in hostnames
+
+Branch names and deployment IDs are lowercased, every character that isn't a letter or digit becomes a hyphen, repeated hyphens become one, and the result is cut at 80 characters. So `feature/new_checkout` becomes `feature-new-checkout`, and `d_3f9kq2x7` becomes `d-3f9kq2x7`. Two branches that differ only in punctuation or case share one branch hostname.
+
+## Custom domains follow their environment
+
+A verified custom domain follows the current deployment of the environment it's attached to. So a custom domain on a preview environment follows preview, not production. See [Custom domains](/compute/networking/custom-domains).

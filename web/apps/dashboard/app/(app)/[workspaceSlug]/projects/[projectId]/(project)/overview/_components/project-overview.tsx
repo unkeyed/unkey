@@ -66,17 +66,15 @@ function HelpRow() {
     window.setTimeout(() => setCopied(false), 1800);
   };
   const tile =
-    "flex flex-col gap-2 rounded-lg border border-border bg-raised p-3 text-left transition-colors hover:border-strong";
+    "flex flex-col gap-2 rounded-lg border bg-raised p-3 text-left transition-colors hover:border-strong";
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-[13px] font-medium text-gray-12">Need help?</h2>
+      <h2 className="text-sm font-medium text-gray-12">Need help?</h2>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <button type="button" onClick={copy} className={tile}>
           <IconSquareTerminalOutline18 className="size-4 text-gray-9" />
           <span>
-            <span className="block text-[13px] font-medium text-gray-12">
-              Set up with your agent
-            </span>
+            <span className="block text-sm font-medium text-gray-12">Set up with your agent</span>
             <span className="block text-xs text-gray-9">
               {copied ? "Prompt copied. Paste it into your agent." : "Claude, Cursor, Codex"}
             </span>
@@ -121,11 +119,11 @@ function HelpLink({
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="flex flex-col gap-2 rounded-lg border border-border bg-raised p-3 transition-colors hover:border-strong"
+      className="flex flex-col gap-2 rounded-lg border bg-raised p-3 transition-colors hover:border-strong"
     >
       <span className="text-gray-9 [&_svg]:size-4">{icon}</span>
       <span>
-        <span className="block text-[13px] font-medium text-gray-12">{title}</span>
+        <span className="block text-sm font-medium text-gray-12">{title}</span>
         <span className="block text-xs text-gray-9">{description}</span>
       </span>
     </a>

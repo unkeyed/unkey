@@ -61,7 +61,7 @@ export function DeploymentStep({
               <Badge
                 variant="error"
                 size="sm"
-                className="transition-all duration-300 font-normal text-[11px] rounded-md h-[18px] opacity-100 scale-100"
+                className="transition-all duration-300 font-normal text-2xs rounded-md h-[18px] opacity-100 scale-100"
               >
                 Failed
               </Badge>
@@ -70,7 +70,7 @@ export function DeploymentStep({
                 variant="success"
                 size="sm"
                 className={cn(
-                  "transition-all duration-300 font-normal text-[11px] rounded-md h-[18px]",
+                  "transition-all duration-300 font-normal text-2xs rounded-md h-[18px]",
                   status === "completed" ? "opacity-100 scale-100" : "opacity-0 scale-95",
                 )}
               >

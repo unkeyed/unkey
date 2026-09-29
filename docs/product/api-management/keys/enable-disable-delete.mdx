@@ -1,0 +1,105 @@
+---
+title: Disabling and deleting keys
+description: "Suspend a key for now or delete it so it never works again."
+sources:
+  - svc/api/openapi/spec/paths/v2/keys/updateKey/V2KeysUpdateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/deleteKey/V2KeysDeleteKeyRequestBody.yaml
+  - svc/api/routes/v2_keys_update_key/handler.go
+  - svc/api/routes/v2_keys_delete_key/handler.go
+  - internal/services/keys/get.go
+  - internal/services/keys/status.go
+  - internal/services/caches/caches.go
+  - pkg/cache/cache.go
+  - web/apps/dashboard/components/api-keys-table/components/actions/keys-table-action.popover.constants.tsx
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+To stop a key from working, disable it or delete it. Disable when it might be temporary, like a failed payment or an investigation. The key keeps its settings and works again when you enable it. Delete when the key should never work again.
+
+<RootKeyPrereq />
+
+Disabling and enabling use `keys.updateKey` and need `api.*.update_key` or `api.<api_id>.update_key`. Deleting uses `keys.deleteKey` and needs `api.*.delete_key` or `api.<api_id>.delete_key`. See [Root key permissions](/platform/root-keys/permissions).
+
+## Disable or enable a key
+
+<Frame>
+  <img src="/images/dashboard/api-management--keys-enable-disable-delete--actions-menu.png" alt="Keys tab with a key's actions menu open, including Disable Key, Rotate key, and Delete key" />
+</Frame>
+
+In the dashboard, open the actions menu on the key's row or on its detail page and choose **Disable Key** or **Enable Key**. From the API, set `enabled` on `keys.updateKey`:
+
+<ParamField body="enabled" type="boolean">
+  `false` suspends the key and `true` restores it. Omitting the field leaves the state unchanged.
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.updateKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "keyId": "key_...", "enabled": false }'
+```
+
+While a key is disabled, every verification returns `valid: false` with `code: DISABLED`, and it doesn't use up rate limits or credits.
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": { "valid": false, "code": "DISABLED", "keyId": "key_...", "enabled": false }
+}
+```
+
+Send `"enabled": true` to restore the key with all its settings as they were. You can also create a key disabled, with `"enabled": false` on `keys.createKey`, for example when access needs approval first.
+
+## Delete a key
+
+In the dashboard, choose **Delete key** from the same actions menu. From the API, call `keys.deleteKey`:
+
+<ParamField body="keyId" type="string" required>
+  The key to delete.
+</ParamField>
+
+<ParamField body="permanent" type="boolean" default="false">
+  `false`, the default, deletes the key but keeps a record of it for your audit trail. `true` erases it completely, so the same key string could be issued again later. Use `true` for regulatory erasure requests. The dashboard always uses the default.
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.deleteKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "keyId": "key_..." }'
+```
+
+After deletion, verification returns `code: NOT_FOUND` and the key disappears from listings. The `key.delete` audit log event says whether it was permanent. **Deletion can't be undone.**
+
+## How quickly it takes effect
+
+A disable, enable, or delete takes about 10 seconds to reach verification, and a few verifications just after that can still see the old state. You can't speed it up. If a key must stop working the instant you say so, your own service has to stop accepting it too.
+
+## Revoke everything a user owns
+
+To find the keys linked to an identity, filter `apis.listKeys` by `externalId`, then delete them one by one.
+
+```typescript revoke-user-keys.ts
+let cursor: string | undefined;
+do {
+  const { data, pagination } = await unkey.apis.listKeys({
+    apiId: "api_...",
+    externalId: "user_123",
+    cursor,
+  });
+  for (const key of data) {
+    await unkey.keys.deleteKey({ keyId: key.keyId });
+  }
+  cursor = pagination.hasMore ? pagination.cursor : undefined;
+} while (cursor);
+```
+
+## Disable, delete, or reroll
+
+| Situation | Use |
+| --- | --- |
+| Billing problem, investigation, pause | Disable, then enable later. |
+| User left, key no longer needed | Delete. |
+| Key leaked but the user should keep working | [Reroll](/api-management/keys/rerolling-keys): a new key with the same configuration and a grace period for the old one. |
+| Erasure request, or you must reuse the exact key string | Delete with `permanent: true`. |

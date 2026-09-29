@@ -1,13 +1,13 @@
 "use client";
 
 import { routes } from "@/lib/navigation/routes";
-import { trpc } from "@/lib/trpc/client";
 import { IconHammer2Outline18 } from "@unkey/icons";
 import { Button, SettingCardGroup } from "@unkey/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppScope } from "../../../environment-context";
 import { useDeployment } from "../layout-provider";
+import { useBuildSteps } from "../use-build-steps";
 import { DeploymentBuildStepsTable } from "./build-steps-table/deployment-build-steps-table";
 import { DeploymentStep } from "./deployment-step";
 
@@ -17,15 +17,7 @@ export function DeploymentBuild() {
   const scope = useAppScope();
   const deploymentUrl = routes.projects.apps.deployment({ ...scope, deploymentId: deployment.id });
 
-  const buildSteps = trpc.deploy.deployment.buildSteps.useQuery(
-    {
-      deploymentId: deployment.id,
-      includeStepLogs: true,
-    },
-    {
-      refetchInterval: 1_000,
-    },
-  );
+  const buildSteps = useBuildSteps(deployment);
 
   router.prefetch(deploymentUrl);
 
@@ -56,7 +48,7 @@ export function DeploymentBuild() {
             Continue to deployment
           </Button>
         </Link>
-        <span className="text-gray-10 text-[13px] text-center">
+        <span className="text-gray-10 text-sm text-center">
           Continue to view live status, domains, and metrics.
         </span>
       </div>

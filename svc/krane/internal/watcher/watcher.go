@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand/v2"
+	"sync"
 	"time"
 
 	"connectrpc.com/connect"
@@ -61,13 +62,13 @@ func (s *Watcher) clusterKey() *ctrlv1.ClusterKey {
 // Both share a limit on calls to the Kubernetes API.
 // It returns nil when the context is canceled.
 func (s *Watcher) Watch(ctx context.Context) error {
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		s.runPeriodicFullSync(ctx)
-	}()
-	s.runStream(ctx)
-	<-done
+	var loops sync.WaitGroup
+	var dispatches sync.WaitGroup
+	loops.Go(func() { s.runPeriodicFullSync(ctx, &dispatches) })
+	loops.Go(func() { s.runStream(ctx) })
+
+	loops.Wait()
+	dispatches.Wait()
 	return nil
 }
 
@@ -77,11 +78,8 @@ func (s *Watcher) runStream(ctx context.Context) {
 	failures := 0
 
 	for {
-		jitter := reconnectMin + time.Millisecond*time.Duration(rand.Float64()*float64(reconnectMax.Milliseconds()-reconnectMin.Milliseconds()))
-		select {
-		case <-ctx.Done():
+		if !waitReconnect(ctx) {
 			return
-		case <-time.After(jitter):
 		}
 
 		stream, err := s.cluster.WatchDeploymentChanges(ctx, &ctrlv1.WatchDeploymentChangesRequest{
@@ -156,9 +154,22 @@ func (s *Watcher) consumeStream(ctx context.Context, stream *connect.ServerStrea
 	return resumeToken, checkpointAccepted
 }
 
+func waitReconnect(ctx context.Context) bool {
+	jitter := reconnectMin + time.Millisecond*time.Duration(rand.Float64()*float64(reconnectMax.Milliseconds()-reconnectMin.Milliseconds()))
+	timer := time.NewTimer(jitter)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
+}
+
 // runPeriodicFullSync repairs missed changes on startup and every fullSyncInterval.
-func (s *Watcher) runPeriodicFullSync(ctx context.Context) {
-	s.doFullSync(ctx)
+func (s *Watcher) runPeriodicFullSync(ctx context.Context, dispatches *sync.WaitGroup) {
+	s.doFullSync(ctx, dispatches)
 
 	ticker := time.NewTicker(fullSyncInterval)
 	defer ticker.Stop()
@@ -168,12 +179,12 @@ func (s *Watcher) runPeriodicFullSync(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			s.doFullSync(ctx)
+			s.doFullSync(ctx, dispatches)
 		}
 	}
 }
 
-func (s *Watcher) doFullSync(ctx context.Context) {
+func (s *Watcher) doFullSync(ctx context.Context, dispatches *sync.WaitGroup) {
 	metrics.WatcherFullSyncsTotal.Inc()
 	start := time.Now()
 
@@ -192,8 +203,9 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 		if err := s.sem.Acquire(ctx, 1); err != nil {
 			break
 		}
-		go func() {
+		dispatches.Go(func() {
 			defer s.sem.Release(1)
+
 			resourceType := eventResourceType(event)
 			if err := s.dispatch(ctx, event); err != nil {
 				metrics.DispatchTotal.WithLabelValues("full_sync", resourceType, "error").Inc()
@@ -201,7 +213,7 @@ func (s *Watcher) doFullSync(ctx context.Context) {
 			} else {
 				metrics.DispatchTotal.WithLabelValues("full_sync", resourceType, "success").Inc()
 			}
-		}()
+		})
 	}
 
 	if err := stream.Close(); err != nil && ctx.Err() == nil {

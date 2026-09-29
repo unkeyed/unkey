@@ -1,0 +1,69 @@
+---
+title: Metrics
+description: "The traffic, latency, and resource charts on a deployment and what they measure."
+sources:
+  - web/internal/clickhouse/src/frontline.ts
+  - web/internal/clickhouse/src/resources.ts
+  - web/internal/clickhouse/src/instance-events.ts
+  - web/apps/dashboard/lib/trpc/routers/deploy/metrics/get-deployment-rps-metrics.ts
+  - web/apps/dashboard/lib/trpc/routers/deploy/metrics/get-deployment-latency-metrics.ts
+  - web/apps/dashboard/lib/trpc/routers/deploy/metrics/get-deployment-cpu-timeseries.ts
+  - web/apps/dashboard/lib/trpc/routers/deploy/metrics/get-deployment-memory-timeseries.ts
+  - web/apps/dashboard/lib/trpc/routers/deploy/metrics/get-deployment-disk-timeseries.ts
+  - web/apps/dashboard/lib/trpc/routers/deploy/metrics/get-deployment-instance-count-timeseries.ts
+  - web/apps/dashboard/lib/trpc/routers/deploy/metrics/get-deployment-network-egress-timeseries.ts
+  - web/apps/dashboard/lib/trpc/routers/deploy/metrics/get-deployment-network-ingress-timeseries.ts
+  - web/apps/dashboard/lib/trpc/routers/deploy/network/get.ts
+  - web/apps/dashboard/lib/trpc/routers/deploy/network/get-region-rps.ts
+  - web/apps/dashboard/lib/trpc/routers/deploy/network/get-instance-rps.ts
+  - pkg/clickhouse/schema/036_frontline_requests_per_minute_v1.sql
+  - pkg/clickhouse/schema/027_instance_resources_per_minute_v1.sql
+  - pkg/clickhouse/schema/028_instance_resources_per_hour_v1.sql
+  - pkg/clickhouse/schema/033_instance_resources_per_15s_v1.sql
+  - pkg/clickhouse/schema/034_instance_resources_per_day_v1.sql
+  - pkg/clickhouse/schema/029_instance_events_raw_v1.sql
+---
+
+Metrics show how much traffic a <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> gets, how fast it responds, and how much CPU and memory it uses. You don't need to add anything to your code. Open the <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>, click **Deployments**, and open a deployment. Its overview has the charts, and its **Network** view shows where requests are going.
+
+## Traffic
+
+Traffic charts cover the last 6 hours in 15 minute buckets.
+
+- **Requests per second:** the average over the last 6 hours.
+- **Latency:** the total time of each request, as in the [request log](/compute/observe/requests). Pick p50, p75, p90, p95, or p99.
+
+Like the request log, these don't count requests a policy rejected.
+
+## Resources
+
+Resource charts add up all the deployment's instances. You can pick a time window from 15 minutes to a year.
+
+| Chart | What a point means |
+| --- | --- |
+| CPU | Millicores used on average during each point's time span |
+| Memory | Peak memory in use per instance, added up |
+| Disk | Peak disk in use per instance, added up |
+| Instances | Number of instances running |
+| Network ingress, network egress | Bytes per second in each direction, public and private traffic combined |
+
+Compare CPU and memory with the limits in [runtime settings](/compute/configure/runtime-settings) to decide whether to raise them or add instances. See [Instances and autoscaling](/compute/concepts/instances-and-autoscaling).
+
+Longer windows show coarser points: 15 seconds up to an hour, 1 minute up to a day, 1 hour up to 30 days, and 1 day beyond that. Fine-grained points are deleted first. See [retention](/compute/observe/overview#retention).
+
+## Why an instance restarted
+
+The deployment lists instance events: an instance becoming `running`, `waiting`, or `terminated`, with its restart count, exit code, and a reason. Two reasons to know:
+
+- **`OOMKilled`** (often with exit code `137`): the instance ran out of memory. Raise the memory limit.
+- **`CrashLoopBackOff`:** the process keeps exiting before the [health check](/compute/configure/health-checks) passes. The [runtime logs](/compute/observe/runtime-logs) for that instance say why.
+
+Events are kept for 90 days.
+
+## Network view
+
+The **Network** view shows each region and running instance with its request rate over the last 15 minutes. Use it to check that every region gets traffic and that load is spread across instances. See [Regions](/compute/concepts/regions).
+
+<Frame>
+  <img src="/images/dashboard/compute--observe-metrics--network.png" alt="Deployment page Network view showing a region and its running instance" />
+</Frame>

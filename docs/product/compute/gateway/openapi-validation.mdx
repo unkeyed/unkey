@@ -1,0 +1,93 @@
+---
+title: OpenAPI validation policy
+description: "Reject requests that do not match your OpenAPI spec before they reach your app."
+sources:
+  - svc/api/openapi/spec/common/OpenapiPolicy.yaml
+  - svc/api/openapi/spec/paths/v2/environments/updateSettings/V2EnvironmentsUpdateSettingsRequestBody.yaml
+  - svc/ctrl/worker/deploy/deploy_handler.go
+  - svc/ctrl/worker/openapi/scrape_handler.go
+  - svc/frontline/internal/router/lookup.go
+  - svc/frontline/internal/policies/openapi/executor.go
+  - svc/frontline/proto/frontline/policies/v1/openapi.proto
+  - pkg/openapi/validation/validator.go
+  - pkg/redaction/doc.go
+  - pkg/redaction/openapi.go
+  - svc/frontline/middleware/observability.go
+---
+
+An OpenAPI validation policy tells the [gateway](/compute/gateway/overview) to check each matching request against your <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>'s OpenAPI spec. Requests that don't match get a `400`, so your code only sees requests the spec allows. The path, query parameters, headers, and body are all checked. OpenAPI 3.0 and 3.1 are supported.
+
+## Set it up
+
+1. Serve your OpenAPI document from your app, for example at `/openapi.yaml`.
+2. Set that path as `openapiSpecPath` in the <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>'s [runtime settings](/compute/configure/runtime-settings), in the app's settings or with `environments.updateSettings`. It must start with `/` and be at most 512 characters.
+3. Add the policy: open the app, go to **Policies**, click **Add Policy**, and pick **OpenAPI Validation**. There's nothing else to configure.
+4. Deploy. When the <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> succeeds, we fetch the spec from it over HTTPS and save it with that deployment.
+
+The policy has no settings. In the API it's an empty object:
+
+```json Example
+{
+  "name": "Validate the public API",
+  "enabled": true,
+  "match": [{ "path": { "path": { "prefix": "/v1/" } } }],
+  "openapi": {}
+}
+```
+
+<Visibility for="agents">
+  In the dashboard this is the **OpenAPI Validation** type in **Policies > Add Policy**. The form has no type-specific fields. Programmatically, include the object above in the `policies` array of `POST /v2/gateway.setPolicies`, and set `openapiSpecPath` with `POST /v2/environments.updateSettings` so the next deployment is scraped. Both changes apply to the next deployment.
+</Visibility>
+
+Each deployment checks requests against the spec it was deployed with. A spec change applies when you deploy the version that serves it.
+
+## What callers see
+
+A request that fails the check gets `400` [`openapi_validation_failed`](/errors/frontline/client/openapi_validation_failed). The message describes the first problem and, when there is one, the field that caused it. No later policies run, and the request isn't logged.
+
+An `Authorization` header with the wrong scheme isn't reported here, because the [API key authentication policy](/compute/gateway/api-key-auth) gives a clearer error. A missing `Authorization` header that the spec requires still fails.
+
+## Troubleshooting
+
+### Requests aren't being checked
+
+If the deployment has no spec, the policy does nothing and requests pass through. A deployment has no spec when:
+
+- `openapiSpecPath` isn't set.
+- The path returns a `404` or an empty response.
+- The document is over 10 MiB.
+- Another policy blocked the request for the spec. We fetch it through the gateway like any other request, so keep the spec path out of your API key and firewall policies' match expressions.
+
+A missing spec never fails the deployment. Fix the cause and redeploy.
+
+### Every request fails with 422
+
+If the spec is invalid, for example it has a broken schema, every matching request gets `422` [`invalid_configuration`](/errors/frontline/config/invalid_configuration). Fix the spec and redeploy.
+
+## Hide fields in request logs
+
+Add `x-unkey-redact: true` to a property in your spec, and its value is hidden in request and response bodies saved by a [logging policy](/compute/gateway/logging). Only that property is hidden, not others with the same name elsewhere in your schemas. Your app still receives the full request.
+
+```yaml
+components:
+  schemas:
+    CreateUser:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+          x-unkey-redact: true
+```
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Logging policy" icon="file-lines" href="/compute/gateway/logging">
+    Capture bodies so redaction has something to protect.
+  </Card>
+  <Card title="Gateway errors" icon="triangle-exclamation" href="/compute/gateway/errors">
+    The shape of the 400 and 422 responses.
+  </Card>
+</Columns>

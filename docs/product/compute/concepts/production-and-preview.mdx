@@ -1,0 +1,76 @@
+---
+title: Production and preview
+description: "What you can do with a deployment in production and in preview."
+sources:
+  - svc/api/openapi/spec/common/EnvironmentKind.yaml
+  - svc/api/openapi/spec/common/Deployment.yaml
+  - svc/api/openapi/spec/common/DeploymentAction.yaml
+  - svc/api/openapi/spec/paths/v2/deployments/promoteDeployment/V2DeploymentsPromoteDeploymentRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/deployments/rollbackDeployment/V2DeploymentsRollbackDeploymentRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/deployments/stopDeployment/V2DeploymentsStopDeploymentRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/deployments/startDeployment/V2DeploymentsStartDeploymentRequestBody.yaml
+  - svc/api/internal/deployment/actions.go
+  - pkg/deploy/deploygate/deploygate.go
+  - svc/ctrl/worker/deploy/deploy_handler.go
+  - svc/ctrl/worker/environment/promote_handler.go
+  - svc/ctrl/worker/environment/rollback_handler.go
+  - svc/ctrl/worker/deployment/stop_handler.go
+  - svc/ctrl/worker/deployment/wake_handler.go
+  - svc/ctrl/worker/cron/idlepreview/handler.go
+  - svc/ctrl/worker/cron/cron.go
+  - svc/ctrl/internal/db/github_repo_connection_list_deploy_context.sql_generated.go
+  - web/internal/db/src/schema/apps.ts
+  - web/internal/db/src/schema/frontline_routes.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/(overview)/deployments/components/table/components/actions/deployment-action-eligibility.ts
+---
+
+Every <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip> has a production <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip> and a preview environment. Production has one live <Tooltip tip="One built and running version of an app in one environment.">deployment</Tooltip> that you promote and roll back. Preview has many short-lived deployments that you can stop and start, and we stop them for you when they go quiet.
+
+## Where a push lands
+
+For a git-connected app, a push to the default branch creates a production deployment. A push to any other branch, or a pull request from a fork, creates a preview deployment. When you deploy from the API, CLI, or dashboard, you pick the environment.
+
+## Production
+
+### The live deployment
+
+An app has one live production deployment. The environment domain, the shorter live domain, and any verified custom domains all point at it. When a new production deployment reaches `ready`, it goes live and those domains move to it, unless the app is rolled back (see [Rollback](#rollback)). The deployment it replaced keeps running for 30 minutes as a standby, then stops.
+
+### Promote
+
+**Promote** in the dashboard, or `deployments.promoteDeployment` in the API, makes a `ready` production deployment the live one. Use it to ship a deployment that was built while the app was rolled back, or to move traffic to an earlier deployment on purpose. The deployment it replaces stops after 30 minutes.
+
+You can promote a deployment when it's `ready` and not stopped, and the app already has a live deployment. Promoting the deployment that's already live only works while the app is rolled back. That's a **confirm rollback**: nothing moves, but the rolled-back state ends and new pushes go live again.
+
+### Rollback
+
+**Rollback** in the dashboard, or `deployments.rollbackDeployment` in the API, moves traffic back to the deployment you pick. The domains move in one step and the app is marked as rolled back.
+
+While an app is rolled back, new production deployments still build and reach `ready`, but they don't go live. So a push can't undo your rollback. To end the rolled-back state, promote the deployment you rolled back to (confirm rollback) or promote a newer one.
+
+You can roll back to a deployment that's `ready`, not stopped, and not the live one. A stopped deployment, including an old live one after its 30 minute standby, can't be a rollback target. To get back to it, click **Redeploy** on it, wait for `ready`, and promote it if the app is rolled back. Or roll forward with a fixed commit.
+
+You can't stop or start production deployments by hand, because stopping the live one would take your app offline.
+
+## Preview
+
+### Stop and start
+
+**Stop deployment** in the dashboard, or `deployments.stopDeployment` in the API, stops a `ready` preview deployment and frees its resources. It shows `stopped` once no instance is left.
+
+**Wake deployment** in the dashboard, or `deployments.startDeployment` in the API, starts a stopped preview deployment again. It goes through `deploying` and back to `ready`. You can't start one while the workspace is suspended by its Compute spend budget.
+
+### Automatic stops
+
+We stop deployments for you in these cases. A stopped preview deployment can be started again at any time.
+
+| Trigger | What stops | When |
+| --- | --- | --- |
+| New live production deployment, or a promote | The previous live deployment | 30 minutes later |
+| New preview deployment on a branch | The deployment that was on that branch domain | 1 minute later |
+| Preview deployment gets no requests | That deployment | After 1 hour idle |
+| You stop it | A `ready` preview deployment | Right away |
+
+## What callers see during a switch
+
+Promote and rollback don't restart anything. The domains move to the other deployment, and the old one keeps serving until they have. The switch reaches every region within a few seconds, so a few requests can still reach the old deployment right after. A request to a stopped deployment gets `503` with [`deployment_offline`](/errors/frontline/capacity/deployment_offline).

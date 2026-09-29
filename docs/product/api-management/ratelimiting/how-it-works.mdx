@@ -1,0 +1,65 @@
+---
+title: How rate limiting works
+sidebarTitle: "How it works"
+description: "Know how requests are counted, what a rate limit response tells you, and how exact the counts are across regions."
+sources:
+  - internal/services/ratelimit/doc.go
+  - internal/services/ratelimit/ratelimit.go
+  - internal/services/ratelimit/interface.go
+  - internal/services/keys/validation.go
+  - svc/api/routes/v2_ratelimit_limit/handler.go
+  - svc/api/openapi/spec/paths/v2/ratelimit/limit/V2RatelimitLimitResponseData.yaml
+---
+
+Every Unkey rate limit works the same way, whether you call `ratelimit.limit` or attach it to a key. Here's how requests are counted, what the response means, and how exact the counts are.
+
+## How requests are counted
+
+A limit is `limit` requests per `duration` milliseconds. Unkey uses a sliding window, so a caller can't use a full limit at the end of one window and another full limit right after. It counts the current window plus part of the previous one, based on how much of the current window is left.
+
+```text
+previous window                 current window
+|-------------------------------|-------------------------------|
+                                       ^ now, 25% into the window
+
+effective count = current + previous * (1 - 0.25)
+allowed if effective count + cost <= limit
+```
+
+For example, with a limit of 100 per minute, a caller who made 100 requests at the end of one minute still counts as 75 fifteen seconds into the next (100 × 0.75), so the burst can't repeat right away. Denied requests don't count, so retrying while limited doesn't push the reset further away.
+
+## Make some requests cost more
+
+Each check spends `cost` tokens, 1 by default, so a heavy operation can use more of the limit than a light one. With `limit: 100`, a caller can make 100 checks at cost 1, 20 at cost 5, or any mix. A cost of 0 reads the current state without spending anything.
+
+When one call checks several limits, a request denied by one limit doesn't use up the others.
+
+## How exact the counts are across regions
+
+Each region decides quickly using the traffic it has seen, and regions share counts within moments. In practice:
+
+| Situation | What to expect |
+| --- | --- |
+| One region receives most of an identifier's traffic | Enforcement is tight. |
+| Traffic is split across regions | A short burst can get through in more than one region before the counts catch up. |
+| Part of our infrastructure is down | Limits stay on in each region, but a limit can let through more than usual until counts catch up. |
+
+Rate limits protect you from bursts. They aren't an exact count. Use credits when you need an exact total. See [Credits and refill](/api-management/keys/credits-and-refill).
+
+## What you get back
+
+| Field | Meaning |
+| --- | --- |
+| `success` | Whether this request fit within the limit. In `ratelimit.multiLimit` the per-check field is `passed`. |
+| `limit` | The limit that applied: yours, or an override's if one matched. |
+| `remaining` | Tokens left in the current window, as an estimate; 0 when the check failed. |
+| `reset` | Unix milliseconds when the current window ends. Capacity comes back gradually after this, not all at once. |
+| `overrideId` | The override that supplied `limit` and `duration`, when one matched; empty otherwise. |
+
+Trust `success` as the answer. Treat `remaining` as a close estimate, because another region may have accepted requests that aren't counted yet.
+
+## What happens on errors
+
+`ratelimit.limit` and `ratelimit.multiLimit` reject an empty identifier, a limit below 1, or a duration under 1000 milliseconds. If the check can't run, they return an error, and your code decides whether to allow or deny.
+
+`keys.verifyKey` is different. If the rate limit check can't run, the verification carries on as if the limits passed, so an outage can't lock your users out. The same happens with an inline limit below 1 or a duration under 1000 milliseconds, so check those values before you send them. See [Verifying keys](/api-management/keys/verifying-keys).

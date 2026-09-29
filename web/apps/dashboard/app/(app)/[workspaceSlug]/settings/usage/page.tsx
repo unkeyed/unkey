@@ -3,7 +3,6 @@
 import { PageLoading } from "@/components/dashboard/page-loading";
 import { useBillingUIUpgrades } from "@/lib/flags/use-billing-ui-upgrades";
 import { formatPeriod } from "@/lib/fmt";
-import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import { useWorkspace } from "@/providers/workspace-provider";
 import {
@@ -20,9 +19,9 @@ import {
   PageHeaderContent,
   PageHeaderTitle,
 } from "@unkey/ui";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
+import { PlansScreen } from "../billing/components/plans-screen";
 import { ApiCard } from "./api-card";
 import { ComputeCard, ComputeCardShell, ComputeCardSkeleton } from "./compute-card";
 import { buildComputeTree } from "./compute-tree";
@@ -93,7 +92,7 @@ export default function UsagePage() {
       <ComputeCard tree={computeTree} />
     )
   ) : (
-    <NoComputePlan workspaceSlug={workspace.slug} />
+    <NoComputePlan />
   );
 
   const info = billingInfo.data;
@@ -156,7 +155,7 @@ function Shell({ children }: { children: ReactNode }) {
           <PageHeaderTitle>Usage</PageHeaderTitle>
         </PageHeaderContent>
         <PageHeaderActions>
-          <span className="text-[13px] text-gray-10">{currentPeriod()}</span>
+          <span className="text-sm text-gray-10">{currentPeriod()}</span>
         </PageHeaderActions>
       </PageHeader>
       <PageBody>{children}</PageBody>
@@ -164,7 +163,8 @@ function Shell({ children }: { children: ReactNode }) {
   );
 }
 
-function NoComputePlan({ workspaceSlug }: { workspaceSlug: string }) {
+function NoComputePlan() {
+  const [plansOpen, setPlansOpen] = useState(false);
   return (
     <ComputeCardShell description="Usage per app and environment this period">
       <div className="px-4 py-8">
@@ -174,15 +174,12 @@ function NoComputePlan({ workspaceSlug }: { workspaceSlug: string }) {
             <EmptyStateDescription>Pick a plan to deploy your first app.</EmptyStateDescription>
           </EmptyStateHeader>
           <EmptyStateActions>
-            <Button
-              variant="primary"
-              size="md"
-              render={<Link href={routes.settings.billing({ workspaceSlug })} />}
-            >
-              Go to billing
+            <Button variant="primary" size="md" onClick={() => setPlansOpen(true)}>
+              Choose a plan
             </Button>
           </EmptyStateActions>
         </EmptyState>
+        <PlansScreen open={plansOpen} onOpenChange={setPlansOpen} reason="deploy" />
       </div>
     </ComputeCardShell>
   );

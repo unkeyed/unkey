@@ -12,6 +12,8 @@ import (
 	"github.com/unkeyed/unkey/pkg/mysql"
 	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/rbac"
+	"github.com/unkeyed/unkey/pkg/rbac/permissions"
+	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/pagination"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -49,24 +51,26 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	err = principal.Authorize(rbac.T(rbac.Tuple{
-		ResourceType: rbac.Project,
-		ResourceID:   "*",
-		Action:       rbac.ReadProject,
-	}))
-	if err != nil {
-		return err
-	}
-
 	p := pagination.Parse(req.Limit, req.Cursor, 100)
 	search := mysql.SearchContains(strings.TrimSpace(ptr.SafeDeref(req.Search)))
 
-	rows, err := db.Query.ListProjectsByWorkspaceId(ctx, h.DB.RO(), db.ListProjectsByWorkspaceIdParams{
-		WorkspaceID: principal.AuthorizedWorkspaceID,
-		IDCursor:    p.Cursor,
-		Search:      search,
-		Limit:       p.FetchLimit(),
-	})
+	rows, err := pagination.FetchAuthorized(ctx, p, func(ctx context.Context, cursor string, limit int32) ([]db.ListProjectsByWorkspaceIdRow, error) {
+		return db.Query.ListProjectsByWorkspaceId(ctx, h.DB.RO(), db.ListProjectsByWorkspaceIdParams{
+			WorkspaceID: principal.AuthorizedWorkspaceID,
+			IDCursor:    cursor,
+			Search:      search,
+			Limit:       limit,
+		})
+	}, func(row db.ListProjectsByWorkspaceIdRow) bool {
+		return rbac.Check(rbac.Or(
+			rbac.T(rbac.Tuple{
+				ResourceType: rbac.Project,
+				ResourceID:   "*",
+				Action:       rbac.ReadProject,
+			}),
+			rbac.U(urn.New().Workspace(row.WorkspaceID).Project(row.ID), permissions.Read),
+		), principal.Permissions) == nil
+	}, func(row db.ListProjectsByWorkspaceIdRow) string { return row.ID })
 	if err != nil {
 		return fault.Wrap(
 			err,

@@ -312,7 +312,7 @@ export const AddEnvVarExpandable = ({
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   )}
                 />
-                <span className="text-[13px] text-gray-12 font-medium">Sensitive</span>
+                <span className="text-sm text-gray-12 font-medium">Sensitive</span>
                 <InfoTooltip
                   content="Permanently hides values after saving. Use for API keys and secrets."
                   position={{ side: "top" }}
@@ -345,9 +345,7 @@ export const AddEnvVarExpandable = ({
                 <IconCloudUploadOutline18 className="size-3" />
                 Import <span className="font-medium">.env</span>
               </Button>
-              <span className="text-[13px] text-gray-11">
-                or drag & drop / paste (⌘V) your .env
-              </span>
+              <span className="text-sm text-gray-11">or drag & drop / paste (⌘V) your .env</span>
             </div>
             <Button
               type="submit"

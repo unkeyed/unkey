@@ -1,0 +1,136 @@
+---
+title: Credits and refill
+description: "Give keys a spendable balance that refills on a schedule."
+sources:
+  - svc/api/openapi/spec/common/KeyCreditsData.yaml
+  - svc/api/openapi/spec/common/KeyCreditsRefill.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/KeysVerifyKeyCredits.yaml
+  - svc/api/openapi/spec/paths/v2/keys/updateCredits/V2KeysUpdateCreditsRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/updateKey/UpdateKeyCreditsData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/updateKey/UpdateKeyCreditsRefill.yaml
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_update_key/handler.go
+  - svc/api/routes/v2_keys_verify_key/handler.go
+  - internal/services/keys/validation.go
+  - internal/services/usagelimiter/limit.go
+  - internal/services/usagelimiter/redis.go
+  - svc/api/routes/v2_keys_update_credits/handler.go
+  - svc/ctrl/worker/cron/keyrefill/handler.go
+  - dev/k8s/charts/restate-cronjobs/values.yaml
+  - svc/ctrl/internal/db/queries/key_list_for_refill.sql
+---
+
+Credits cap how much a key can be used in total. (Rate limits cap how often.) A key starts with a balance, and each verification spends some of it. When the balance can't cover a request, the key stops working until you add more or a scheduled refill restores it. Use credits for "1,000 requests included" plans, trials, and pay-per-use APIs.
+
+## How spending works
+
+A key has credits when `credits.remaining` is a number. If it's `null` or missing, the key is unlimited. Each `keys.verifyKey` call costs 1 unless the request sets `credits.cost`, any integer from 0 to 1,000,000,000,000.
+
+Credits are checked last, so a key that fails any other check (disabled, expired, rate limited, missing permissions) doesn't lose credits. What happens next depends on the balance:
+
+- **Enough credits.** The cost is deducted and the response's `credits` field shows the new balance.
+- **Not enough.** Nothing is deducted, the verification fails with `code: USAGE_EXCEEDED`, and `credits` shows the unchanged balance.
+
+The balance never goes below zero. A cost of `0` checks the key without spending anything, so you can check a key or read its metadata for free.
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "key": "sk_live_...", "credits": { "cost": 10 } }'
+```
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": { "valid": true, "code": "VALID", "keyId": "key_...", "credits": 990 }
+}
+```
+
+Verifications in every region spend from the same balance, so no spend is lost.
+
+## Add credits to a key
+
+Set `credits.remaining` when creating the key, or later with `keys.updateKey`.
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "apiId": "api_...", "credits": { "remaining": 1000 } }'
+```
+
+<ParamField body="credits.remaining" type="integer | null">
+  Starting balance, 0 or more. On `keys.updateKey`, `null` removes the limit entirely and also clears any refill schedule. On `keys.createKey`, `null` isn't allowed, so omit `credits` instead.
+</ParamField>
+
+## Refill on a schedule
+
+A refill resets the balance to a fixed amount on a schedule. It replaces the balance rather than adding to it: a key with 50 credits left and a refill of 1000 has 1000 afterward, not 1050. You must set `credits.remaining` in the same request.
+
+<ParamField body="credits.refill.interval" type="string" required>
+  `daily` or `monthly`.
+</ParamField>
+
+<ParamField body="credits.refill.amount" type="integer" required>
+  The balance after each refill, 1 or more.
+</ParamField>
+
+<ParamField body="credits.refill.refillDay" type="integer">
+  1 to 31. Required when `interval` is `monthly`. Leaving it out fails with HTTP 400 `err:unkey:application:invalid_input`. With `daily`, `keys.updateKey` rejects it with the same error and `keys.createKey` ignores it. If the month is shorter, the refill runs on its last day, so `31` works in February.
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "apiId": "api_...",
+    "credits": {
+      "remaining": 10000,
+      "refill": { "interval": "monthly", "amount": 10000, "refillDay": 1 }
+    }
+  }'
+```
+
+Refills run once a day at 00:00 UTC, whatever your customer's time zone. Daily keys refill every day, and monthly keys refill on their `refillDay`. A key that's already at or above its `amount` is left alone.
+
+To stop refilling but keep the current balance, send `credits.refill: null` on `keys.updateKey`. To change the schedule, send the whole `refill` object again.
+
+## Change a balance directly
+
+Use `keys.updateCredits` for top-ups, purchases, and refunds. It changes the balance and leaves the refill schedule alone.
+
+<ParamField body="keyId" type="string" required>
+  The key to change.
+</ParamField>
+
+<ParamField body="operation" type="string" required>
+  `set` replaces the balance with `value`, `increment` adds `value`, and `decrement` subtracts `value` and clamps at zero.
+</ParamField>
+
+<ParamField body="value" type="integer | null">
+  0 or more. Required for `increment` and `decrement`. With `set`, `null` makes the key unlimited.
+</ParamField>
+
+On a key with unlimited credits, `increment` and `decrement` fail with HTTP 400 [`err:unkey:application:invalid_input`](/errors/unkey/application/invalid_input). To give an unlimited key a quota, send `set` first.
+
+```bash
+curl -X POST https://api.unkey.com/v2/keys.updateCredits \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "keyId": "key_...", "operation": "increment", "value": 5000 }'
+```
+
+The root key needs `api.*.update_key` or `api.<api_id>.update_key` for both `keys.updateKey` and `keys.updateCredits`. See [Root key permissions](/platform/root-keys/permissions).
+
+## Credits vs rate limits
+
+| | Credits | Rate limits |
+| --- | --- | --- |
+| Controls | Total usage | Usage per time window |
+| Resets | Only by refill or `updateCredits` | Automatically as the window slides |
+| Failure code | `USAGE_EXCEEDED` | `RATE_LIMITED` |
+| Checked | Last, and spent only on success | Before credits |
+
+Use both when you sell a quota and also want burst protection. The rate limit stops a client from burning the quota in a second, and credits enforce the quota. See [Key and identity rate limits](/api-management/ratelimiting/key-and-identity-limits).

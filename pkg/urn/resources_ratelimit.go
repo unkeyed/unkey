@@ -2,6 +2,10 @@ package urn
 
 import "fmt"
 
+const ratelimitNamespacePathFormat = "projects/%s/ratelimits/namespaces/%s"
+
+var ratelimitNamespacePattern = compileResourcePattern(ratelimitNamespacePathFormat)
+
 // RatelimitNamespace builds rate limit namespace resource paths.
 //
 // Hierarchy:
@@ -12,18 +16,47 @@ import "fmt"
 //	        ├── logs
 //	        └── overrides/{override_id}
 type RatelimitNamespace struct {
-	workspaceID string
-	path        string
+	WorkspaceID string
+	ProjectID   string
+	NamespaceID string
 }
 
-// String returns this rate limit namespace resource path.
+// String returns the complete URN for this rate limit namespace.
 //
 // Subresource:
 //
 //	workspace
 //	└── ratelimits/namespaces/{namespace_id}
 func (r RatelimitNamespace) String() string {
-	return V1{WorkspaceID: r.workspaceID, Resource: r.path}.String()
+	return V1{
+		WorkspaceID: r.WorkspaceID,
+		Resource:    fmt.Sprintf(ratelimitNamespacePathFormat, r.ProjectID, r.NamespaceID),
+	}.String()
+}
+
+// ParseRatelimitNamespace parses:
+//
+//	unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123
+//
+// into:
+//
+//	RatelimitNamespace{
+//		WorkspaceID: "ws_123",
+//		ProjectID:   "proj_123",
+//		NamespaceID: "ns_123",
+//	}
+//
+// Resource ID positions may contain "*".
+func ParseRatelimitNamespace(urn string) (RatelimitNamespace, error) {
+	matches := ratelimitNamespacePattern.FindStringSubmatch(urn)
+	if matches == nil {
+		return RatelimitNamespace{}, fmt.Errorf("%w: resource does not match rate limit namespace", ErrInvalidResourceName)
+	}
+	return RatelimitNamespace{
+		WorkspaceID: matches[1],
+		ProjectID:   matches[2],
+		NamespaceID: matches[3],
+	}, nil
 }
 
 // Logs returns the rate limit log resource path.
@@ -33,23 +66,11 @@ func (r RatelimitNamespace) String() string {
 //	ratelimits/namespaces/{namespace_id}
 //	└── logs
 func (r RatelimitNamespace) Logs() RatelimitLogs {
-	return RatelimitLogs{workspaceID: r.workspaceID, path: r.path + "/logs"}
-}
-
-// RatelimitOverride is a rate limit override resource path.
-type RatelimitOverride struct {
-	workspaceID string
-	path        string
-}
-
-// String returns this rate limit override resource path.
-func (r RatelimitOverride) String() string {
-	return V1{WorkspaceID: r.workspaceID, Resource: r.path}.String()
-}
-
-// V1 returns this rate limit override as a parsed v1 resource name.
-func (r RatelimitOverride) V1() V1 {
-	return V1{WorkspaceID: r.workspaceID, Resource: r.path}
+	return RatelimitLogs{
+		WorkspaceID: r.WorkspaceID,
+		ProjectID:   r.ProjectID,
+		NamespaceID: r.NamespaceID,
+	}
 }
 
 // Override returns a rate limit override resource path.
@@ -59,31 +80,10 @@ func (r RatelimitOverride) V1() V1 {
 //	ratelimits/namespaces/{namespace_id}
 //	└── overrides/{override_id}
 func (r RatelimitNamespace) Override(overrideID string) RatelimitOverride {
-	return RatelimitOverride{workspaceID: r.workspaceID, path: fmt.Sprintf("%s/overrides/%s", r.path, overrideID)}
-}
-
-// Any returns a descendant pattern below this rate limit namespace.
-func (r RatelimitNamespace) Any() V1 {
-	return V1{
-		WorkspaceID: r.workspaceID,
-		Resource:    r.path + "/**",
+	return RatelimitOverride{
+		WorkspaceID: r.WorkspaceID,
+		ProjectID:   r.ProjectID,
+		NamespaceID: r.NamespaceID,
+		OverrideID:  overrideID,
 	}
-}
-
-// RatelimitLogs builds rate limit log resource paths.
-//
-// Hierarchy:
-//
-//	workspace
-//	└── projects/{project_id}
-//	    └── ratelimits/namespaces/{namespace_id}
-//	        └── logs
-type RatelimitLogs struct {
-	workspaceID string
-	path        string
-}
-
-// String returns this rate limit log resource path.
-func (r RatelimitLogs) String() string {
-	return V1{WorkspaceID: r.workspaceID, Resource: r.path}.String()
 }

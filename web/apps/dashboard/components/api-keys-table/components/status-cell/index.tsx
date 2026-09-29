@@ -1,5 +1,5 @@
 import type { KeyDetails } from "@/lib/trpc/routers/api/keys/query-api-keys/schema";
-import { InfoTooltip, Skeleton, toast } from "@unkey/ui";
+import { InfoHoverCard, Skeleton, toast } from "@unkey/ui";
 import { cn } from "cn";
 import { useUpdateKeyStatus } from "../actions/components/hooks/use-update-key-status";
 import { StatusBadge } from "./components/status-badge";
@@ -44,15 +44,14 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
   }
 
   return (
-    <InfoTooltip
+    <InfoHoverCard
       position={{ side: "top", align: "center" }}
-      disabled={false}
       content={
         <div>
           {statuses && statuses.length > 1 && (
             <div className="border-b">
               <div className="flex flex-col px-px py-px gap-1 w-65 p-1">
-                <div className="text-gray-12 font-medium text-[13px]">Key status overview</div>
+                <div className="text-gray-12 font-medium text-sm">Key status overview</div>
                 <div className="text-gray-10 text-xs ">
                   This key has <span className="font-semibold text-gray-12">{statuses.length}</span>{" "}
                   active flags{" "}
@@ -119,6 +118,6 @@ export const StatusDisplay = ({ keyAuthId, keyData, isSelected }: StatusDisplayP
       }
     >
       <StatusBadge primary={primary} count={count} isSelected={isSelected} />
-    </InfoTooltip>
+    </InfoHoverCard>
   );
 };

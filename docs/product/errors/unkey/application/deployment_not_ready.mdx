@@ -1,11 +1,20 @@
 ---
 title: "deployment_not_ready"
-description: "The target deployment has not reached ready status, or it is shutting down and can no longer serve traffic, so it cannot be promoted or rolled back to."
+sidebarTitle: "deployment_not_ready"
+description: "The deployment to promote or roll back to is not ready to serve traffic."
+sources:
+  - pkg/codes/unkey_application.go
+  - svc/api/internal/middleware/errors.go
+  - pkg/deploy/deploygate/deploygate.go
+  - svc/api/routes/v2_deployments_promote_deployment/handler.go
+  - svc/api/routes/v2_deployments_rollback_deployment/handler.go
 ---
 
 <Danger>`err:unkey:application:deployment_not_ready`</Danger>
 
-```json Example
+The deployment you're promoting or rolling back to can't take traffic yet. You get HTTP 412.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
@@ -14,43 +23,27 @@ description: "The target deployment has not reached ready status, or it is shutt
     "detail": "The deployment is not ready.",
     "status": 412,
     "title": "Precondition Failed",
-    "type": "https://unkey.com/docs/errors/unkey/application/deployment_not_ready"
+    "type": "/errors/unkey/application/deployment_not_ready"
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-You tried to promote or roll back to a deployment that cannot serve traffic. A deployment is only eligible once it has finished building and reached `ready` status. This error is returned in two cases:
+- The deployment is still building. The message is `The deployment is not ready.`
+- The deployment failed to build or never passed its health checks. Same message.
+- The deployment is shutting down. The message is `The deployment is shutting down and cannot serve traffic.`
 
-- The deployment never reached `ready` status (it is still building, or it failed, was skipped, or was superseded).
-- The deployment reached `ready` but is now shutting down after being demoted, so routing it live again would send traffic to a deployment that is going away.
+## How to fix
 
-`getDeployment` reports the current `status`, and `availableActions` omits `promote` and `rollback` while a deployment is in either state.
+1. Read the deployment with `deployments.getDeployment`. If `promote` or `rollback` isn't in its `availableActions`, the call will fail.
+2. If it's still building, wait for `status` to reach `ready`.
+3. If it failed, fix the build and deploy again.
+4. If it's shutting down, promote a different deployment.
 
-## How To Fix
+## Related errors
 
-1. Fetch the deployment with `getDeployment` and check its `status`.
-2. If it is still building, wait for `ready` and retry.
-3. If it `failed`, inspect the `error` object for the reason, fix the underlying issue, and create a new deployment.
-4. If `status` is `ready` but `promote` or `rollback` is not listed in `availableActions`, the deployment is shutting down; pick a different one.
-
-```bash
-# Confirm the deployment is ready before promoting
-curl -X POST https://api.unkey.com/v2/deployments.getDeployment \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer unkey_YOUR_API_KEY" \
-  -d '{ "deploymentId": "d_1234abcd" }'
-```
-
-## Common Mistakes
-
-- **Promoting before the build finishes**: Acting on a deployment that is still building instead of waiting for `ready`.
-- **Ignoring `availableActions`**: Calling `promote` or `rollback` when the action is not listed for the current state.
-- **Reusing a demoted deployment**: Routing live traffic back onto a deployment that is already shutting down.
-
-## Related Errors
-
-- [err:unkey:application:deployment_is_current](./deployment_is_current) - When the target is already the current deployment
-- [err:unkey:application:deployment_no_current](./deployment_no_current) - When the app has no current deployment to act over
-- [err:unkey:application:deployment_not_production](./deployment_not_production) - When the action requires a production deployment
+- [`err:unkey:application:deployment_not_production`](/errors/unkey/application/deployment_not_production): the deployment is in a preview environment.
+- [`err:unkey:application:deployment_no_current`](/errors/unkey/application/deployment_no_current): the app has no current deployment yet.
+- [`err:unkey:application:deployment_is_current`](/errors/unkey/application/deployment_is_current): the deployment is already live.
+- [`err:unkey:data:deployment_not_found`](/errors/unkey/data/deployment_not_found): the deployment id doesn't exist in this workspace.

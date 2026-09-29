@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_keys_add_roles"
@@ -50,7 +49,7 @@ func TestSuccess(t *testing.T) {
 		role := h.CreateRole(seed.CreateRoleRequest{
 			WorkspaceID: workspace.ID,
 			Name:        "editor_urn_add_role",
-			Description: ptr.P("editor_urn_add_role"),
+			Description: new("editor_urn_add_role"),
 		})
 
 		updateKeyPermission := fmt.Sprintf("unkey:v1:%s:projects/%s/keyspaces/%s/keys/%s#write", workspace.ID, api.ProjectID, api.KeyAuthID.String, key.KeyID)
@@ -86,7 +85,7 @@ func TestSuccess(t *testing.T) {
 				{
 					WorkspaceID: workspace.ID,
 					Name:        "editor_single_name",
-					Description: ptr.P(roleName),
+					Description: new(roleName),
 				},
 			},
 		})
@@ -132,14 +131,14 @@ func TestSuccess(t *testing.T) {
 		admin := h.CreateRole(seed.CreateRoleRequest{
 			WorkspaceID: workspace.ID,
 			Name:        adminName,
-			Description: ptr.P("admin_idempotent"),
+			Description: new("admin_idempotent"),
 		})
 
 		editorName := "editor_idempotent"
 		h.CreateRole(seed.CreateRoleRequest{
 			WorkspaceID: workspace.ID,
 			Name:        editorName,
-			Description: ptr.P("editor_idempotent"),
+			Description: new("editor_idempotent"),
 		})
 
 		// First, add admin role to the key
@@ -224,7 +223,7 @@ func TestAddRolesConcurrent(t *testing.T) {
 	keyResponse := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		Name:        ptr.P("concurrent-add-roles-test-key"),
+		Name:        new("concurrent-add-roles-test-key"),
 	})
 
 	// Create roles that will be added concurrently
@@ -234,7 +233,7 @@ func TestAddRolesConcurrent(t *testing.T) {
 		role := h.CreateRole(seed.CreateRoleRequest{
 			WorkspaceID: workspace.ID,
 			Name:        fmt.Sprintf("concurrent.add.role.%d", i),
-			Description: ptr.P(fmt.Sprintf("Concurrent role %d", i)),
+			Description: new(fmt.Sprintf("Concurrent role %d", i)),
 		})
 		roles[i] = role.Name
 	}
@@ -271,4 +270,78 @@ func TestAddRolesConcurrent(t *testing.T) {
 	finalRoles, err := db.Query.ListRolesByKeyID(t.Context(), h.DB.RO(), keyResponse.KeyID)
 	require.NoError(t, err)
 	require.Len(t, finalRoles, numConcurrent)
+}
+
+func TestAddRolesConcurrentSameRole(t *testing.T) {
+	t.Parallel()
+
+	h := testutil.NewHarness(t)
+
+	route := &handler.Handler{
+		DB:        h.DB,
+		Auditlogs: h.Auditlogs,
+		KeyCache:  h.Caches.VerificationKeyByHash,
+	}
+
+	h.Register(route)
+
+	workspace := h.Resources().UserWorkspace
+	rootKey := h.CreateRootKey(workspace.ID, "api.*.update_key", "rbac.*.add_role_to_key")
+
+	headers := http.Header{
+		"Content-Type":  {"application/json"},
+		"Authorization": {fmt.Sprintf("Bearer %s", rootKey)},
+	}
+
+	api := h.CreateApi(seed.CreateApiRequest{
+		WorkspaceID: workspace.ID,
+	})
+
+	keyResponse := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+	})
+
+	role := h.CreateRole(seed.CreateRoleRequest{
+		WorkspaceID: workspace.ID,
+		Name:        "kebap.same.role",
+	})
+
+	warmupKey := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID: workspace.ID,
+		KeySpaceID:  api.KeyAuthID.String,
+	})
+	warmup := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+		KeyId: warmupKey.KeyID,
+		Roles: []string{role.Name},
+	})
+	require.Equal(t, 200, warmup.Status, "warmup request should succeed")
+
+	numConcurrent := 10
+	g := errgroup.Group{}
+	for i := range numConcurrent {
+		g.Go(func() error {
+			res := testutil.CallRoute[handler.Request, handler.Response](h, route, headers, handler.Request{
+				KeyId: keyResponse.KeyID,
+				Roles: []string{role.Name},
+			})
+			if res.Status != 200 {
+				return fmt.Errorf("request %d: unexpected status %d", i, res.Status)
+			}
+			return nil
+		})
+	}
+	require.NoError(t, g.Wait(), "adding the same role concurrently must be idempotent")
+
+	finalRoles, err := db.Query.ListRolesByKeyID(t.Context(), h.DB.RO(), keyResponse.KeyID)
+	require.NoError(t, err)
+	require.Len(t, finalRoles, 1)
+
+	connectEvents := 0
+	for _, ev := range h.FindAuditLogsByTargetID(t.Context(), t, keyResponse.KeyID) {
+		if ev.Event == "authorization.connect_role_and_key" {
+			connectEvents++
+		}
+	}
+	require.Equal(t, 1, connectEvents)
 }

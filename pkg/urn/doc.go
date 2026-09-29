@@ -18,7 +18,7 @@
 // Resource paths follow the hierarchy in the resource permission catalog.
 // [New] exposes typed resource builders for this hierarchy. For example:
 //
-//	urn.New().Workspace("ws_123").Project("proj_123").App("app_123").Any()
+//	urn.New().Workspace("ws_123").Project("proj_123").App("app_123").String()
 //
 // See:
 //   - docs/engineering/architecture/resources/unkey-resource-names.mdx

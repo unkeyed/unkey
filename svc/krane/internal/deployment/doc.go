@@ -8,14 +8,14 @@
 //
 // # Architecture
 //
-// The controller runs two concurrent loops plus receives dispatched events:
+// The controller runs three concurrent loops plus receives dispatched events:
 //
 // [Controller.runPodWatchLoop] watches Kubernetes for pod changes and reports actual
 // state back to the control plane via ReportDeploymentStatus. Watching pods directly
 // (rather than ReplicaSets) means IP assignments and readiness changes are reported
 // immediately without waiting for the RS status to roll up.
 //
-// [Controller.runResyncLoop] runs every minute as a consistency safety net. While the
+// The resync loops run periodically as a consistency safety net. While the
 // other loops handle real-time events, they can miss updates during network partitions,
 // controller restarts, or buffer overflows. The resync loop queries the control plane
 // for each existing ReplicaSet and applies any drift.
@@ -44,8 +44,5 @@
 //	    Region:        "us-east-1",
 //	})
 //
-//	if err := ctrl.Start(ctx); err != nil {
-//	    return fmt.Errorf("start deployment controller: %w", err)
-//	}
-//	defer ctrl.Stop()
+//	ctrl.Run(ctx)
 package deployment

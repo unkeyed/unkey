@@ -1,0 +1,43 @@
+---
+title: Usage
+description: "Check what your workspace has used this month before the invoice arrives."
+sources:
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/usage/page.tsx
+  - web/apps/dashboard/lib/flags/index.ts
+  - web/apps/dashboard/lib/flags/use-billing-ui-upgrades.ts
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/usage/api-card.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/usage/compute-card.tsx
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/settings/usage/compute-tree.ts
+  - web/apps/dashboard/lib/trpc/routers/billing/query-usage/index.ts
+  - web/internal/clickhouse/src/billing.ts
+---
+Usage covers one calendar month (UTC), with one total per product: API for every workspace, Compute once you have a Compute plan.
+
+## API management
+
+Usage has two parts, **Key verifications** and **standalone rate limit operations**, metered against your monthly operations quota. Only successful calls count: invalid, expired, or over-limit requests aren't billed. These two are the billable operations that [Limits](/platform/billing/limits) caps and that a paid API tier prices.
+
+<Frame>
+  <img src="/images/dashboard/platform--billing-usage--api.png" alt="Usage page showing Compute cost per app and, below it, API management requests this period split into key verifications and rate limit operations" />
+</Frame>
+
+## Compute
+
+Compute usage totals cost for the period, broken down by project, then <Tooltip tip="A Compute app: a deployable service inside a project. Not 'your application' in general.">app</Tooltip>, then <Tooltip tip="A production or preview environment of a Compute app, not the dashboard label on a key.">environment</Tooltip>. Each level shows four quantities and a cost.
+
+<Frame>
+  <img src="/images/dashboard/platform--billing-usage--compute.png" alt="Usage page with a daily Compute cost chart and a project expanded to show spend by resource and cost per app" />
+</Frame>
+
+
+| Quantity          | Meaning                                                      |
+| ----------------- | ------------------------------------------------------------ |
+| CPU (vCPU-hrs)    | vCPU allocated to running instances, integrated over time.   |
+| Memory (GiB-hrs)  | Memory allocated to running instances, integrated over time. |
+| Egress (GiB)      | Bytes sent out of the platform.                              |
+| Storage (GiB-hrs) | Ephemeral disk allocated, integrated over time.              |
+
+
+If a project uses gateway key auth, it also carries **Verified keys**: those verifications bill to the project, not a keyspace.
+
+Usage is what you consumed. [Limits](/platform/billing/limits) are the ceilings. Costs here are the metered part of the bill. The plan fee and included credit are on [Plans](/platform/billing/plans).

@@ -1,0 +1,109 @@
+---
+title: Roles and permissions
+description: "Define the permissions your API checks and group them into roles."
+sources:
+  - svc/api/openapi/spec/paths/v2/permissions/createPermission/V2PermissionsCreatePermissionRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/permissions/createRole/V2PermissionsCreateRoleRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/permissions/setRolePermissions/V2PermissionsSetRolePermissionsRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/permissions/listPermissions/V2PermissionsListPermissionsRequestBody.yaml
+  - svc/api/openapi/spec/common/Permission.yaml
+  - svc/api/openapi/spec/common/Role.yaml
+  - svc/api/routes/v2_permissions_create_permission/handler.go
+  - svc/api/routes/v2_permissions_create_role/handler.go
+  - svc/api/routes/v2_permissions_set_role_permissions/handler.go
+  - svc/api/routes/v2_permissions_delete_role/handler.go
+  - svc/api/routes/v2_permissions_delete_permission/handler.go
+  - svc/api/routes/v2_permissions_list_permissions/handler.go
+  - svc/api/routes/v2_permissions_list_roles/handler.go
+  - internal/services/caches/caches.go
+  - pkg/cache/cache.go
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/authorization/permissions/components/upsert-permission/upsert-permission.schema.ts
+---
+
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+Create a permission for each action your API checks, and group them into roles for the access levels you offer. Permissions and roles belong to the workspace, so one set covers every keyspace. To attach them to keys, see [Managing key roles and permissions](/api-management/authorization/managing-key-permissions).
+
+<RootKeyPrereq />
+
+The endpoints need the matching `rbac.*` permission: `create_permission`, `read_permission`, `delete_permission`, `create_role`, `read_role`, `delete_role`, and `add_permission_to_role` together with `remove_permission_from_role` for `permissions.setRolePermissions`.
+
+## Permissions
+
+<ParamField body="name" type="string" required>
+  1 to 512 characters. A readable label shown in the dashboard.
+</ParamField>
+
+<ParamField body="slug" type="string" required>
+  1 to 128 characters matching `^[a-zA-Z0-9_:\-\.\*]+$`, unique within the workspace. This is the string keys hold and queries check. `documents.read` and `billing:write` are both fine. An asterisk is allowed but is a literal character, not a wildcard. See [Permission queries](/api-management/authorization/permission-queries).
+</ParamField>
+
+<ParamField body="description" type="string">
+  Up to 512 characters of internal documentation.
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/permissions.createPermission \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "Read documents", "slug": "documents.read", "description": "List and fetch documents" }'
+```
+
+The response has `permissionId` (`perm_...`). A duplicate slug fails with HTTP 409 [`err:unkey:data:permission_already_exists`](/errors/unkey/data/permission_already_exists).
+
+- `permissions.getPermission` takes the ID or slug.
+- `permissions.listPermissions` takes `limit` (1 to 100, default 100), `cursor` (up to 1024 characters), and `search` (up to 256 characters, matched against ID, name, slug, or description, ignoring case).
+- `permissions.deletePermission` deletes the permission and removes it from every role and key.
+
+## Roles
+
+<ParamField body="name" type="string" required>
+  1 to 128 characters, unique within the workspace. Keys refer to roles by name. Spaces are allowed.
+</ParamField>
+
+<ParamField body="description" type="string">
+  Up to 512 characters.
+</ParamField>
+
+<ParamField body="permissions" type="string[]">
+  Permission slugs to attach. Slugs that don't exist yet are created if the root key also has `rbac.*.create_permission`. Without it, an unknown slug fails with HTTP 403 `err:unkey:authorization:insufficient_permissions`. Leave it out or send `[]` for an empty role.
+</ParamField>
+
+```bash
+curl -X POST https://api.unkey.com/v2/permissions.createRole \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "editor",
+    "description": "Read and write documents",
+    "permissions": ["documents.read", "documents.write"]
+  }'
+```
+
+The response has `roleId` (`role_...`). A duplicate name fails with HTTP 409 [`err:unkey:data:role_already_exists`](/errors/unkey/data/role_already_exists). `permissions.getRole` and `permissions.listRoles` return roles with their permissions. `permissions.deleteRole` deletes the role, and keys lose its permissions unless they get them another way.
+
+### Change a role's permissions
+
+`permissions.setRolePermissions` takes `role` (ID or name) and the full list of slugs. Anything not in the list is removed, and `[]` empties the role. (The older `roleId` field still works but is deprecated. Send one or the other.) New slugs are created under the same rule as `createRole`. Every key with the role picks up the change within about 10 seconds, and a few verifications just after that can still see the old permissions. [Verifying keys](/api-management/keys/verifying-keys#how-quickly-changes-take-effect) describes the timing.
+
+```bash
+curl -X POST https://api.unkey.com/v2/permissions.setRolePermissions \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "role": "editor", "permissions": ["documents.read", "documents.write", "documents.delete"] }'
+```
+
+## Designing the set
+
+- **Name permissions after actions**, not customers: `invoices.read`, `invoices.write`, `invoices.void`.
+- **Name roles the way you talk to customers**: `viewer`, `editor`, `admin`, or plan names.
+- **Attach roles to keys**, and save direct permissions for one-off grants. Then changing what "editor" means is one `setRolePermissions` call, not an update to every key.
+- **Use a role for "everything under documents".** An asterisk isn't a wildcard, so list each `documents.*` permission in the role.
+
+## From the dashboard
+
+Open **Authorization** in the sidebar. On the **Permissions** tab, create and edit permissions. On the **Roles** tab, create and edit roles, pick their permissions (or create new ones), and assign the role to keys.
+
+<Frame>
+  <img src="/images/dashboard/api-management--authorization-roles-and-permissions--edit-role.png" alt="Edit role dialog showing the keys assigned to the role and its assigned permissions" />
+</Frame>

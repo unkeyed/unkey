@@ -25,19 +25,6 @@ func TestCreateSession(t *testing.T) {
 	}
 }
 
-// The pinned SDK declares Preview with a `default` and no omitempty, so it puts
-// `preview` on the wire whatever the CLI sets. The request schema therefore has
-// to keep accepting the property. When a regenerated SDK stops sending it, this
-// test fails, which is the signal to drop the deprecated property from
-// V2PortalCreateSessionRequestBody.yaml.
-func TestCreateSessionWireBody(t *testing.T) {
-	body := testutil.CaptureRequest[map[string]any](t, Cmd(),
-		"portal create-session --portal=my-portal --external-id=u --scopes=keys:read")
-
-	_, ok := body["preview"]
-	require.True(t, ok, "SDK no longer sends preview; the deprecated property can now be removed from the request schema")
-}
-
 func TestCreateSessionPermissionValidation(t *testing.T) {
 	root := &cli.Command{Name: "unkey", Commands: []*cli.Command{Cmd()}}
 	err := root.Run(context.Background(), strings.Fields("unkey portal create-session --portal=my-portal --external-id=u --scopes=keys:read,keys:delete --root-key=test"))

@@ -1,0 +1,34 @@
+---
+title: Recovering keys
+description: "What you give up when a keyspace lets plaintext keys be read back."
+sources:
+  - web/internal/db/src/schema/keyAuth.ts
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_get_key/handler.go
+  - svc/api/routes/v2_apis_list_keys/handler.go
+  - pkg/rbac/permissions.go
+  - pkg/hash/sha256.go
+---
+
+Recoverable keys let you show a key again after it's created. That comes with extra risk, so turn recovery on only when you need it: a dashboard that must show a key again, a migration that moves keys, or a support flow that reads a key back for a customer. By default you see a key only once, when it's created, and that's the right setup for most products. For the steps, see [Recoverable keys](/api-management/keys/recoverable-keys).
+
+## What changes
+
+A recoverable key is still verified by its hash. We also store an encrypted copy, using encryption keys unique to your workspace, and `keys.getKey` and `apis.listKeys` decrypt it when you pass `decrypt: true`.
+
+A key is only recoverable if its keyspace has **Store encrypted keys** turned on (ask [support@unkey.com](mailto:support@unkey.com)) and the key was created with `recoverable: true` after that. Older keys can't be recovered.
+
+## Two separate permissions
+
+Creating a recoverable key needs `api.*.encrypt_key` or `api.<api_id>.encrypt_key` on top of `create_key`. Reading a key back needs `api.*.decrypt_key` or `api.<api_id>.decrypt_key` on top of `read_key`. Without `decrypt_key`, a root key can create and list keys but never read them back. Give `decrypt_key` only to the one service that needs to show keys, for the one keyspace that needs it.
+
+## Limiting the exposure
+
+With recovery on, a copy of our database is no longer useless on its own. Someone who also got your workspace's encryption keys, or a leaked root key with `decrypt_key`, could read your keys. To limit that:
+
+- Only turn on recovery for keyspaces that need it.
+- Never pass `decrypt: true` in code that serves end users.
+- Use the [developer portal](/api-management/portal/overview), where users roll their own keys instead of reading them back.
+- Watch the [audit log](/api-management/audit-logs/overview) for unexpected `key.create` entries in keyspaces with encryption on.
+
+If [rerolling](/api-management/keys/rerolling-keys) meets your need, use it instead. The user gets a fresh key and nobody reads the old one.

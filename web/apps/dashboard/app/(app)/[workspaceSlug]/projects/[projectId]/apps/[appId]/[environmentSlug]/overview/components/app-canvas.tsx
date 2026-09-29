@@ -69,7 +69,7 @@ export function AppCanvas({ domains, emptyDomain, app }: AppCanvasProps) {
   const serviceCount = policies.length + keyAuthIds.length;
 
   return (
-    <div className="w-full border-b border-border bg-gray-3/40 last:rounded-b-lg last:border-b-0">
+    <div className="w-full border-b bg-gray-3/40 last:rounded-b-lg last:border-b-0">
       <CanvasViewport
         label="App canvas"
         className="flex w-full min-w-[980px] items-start px-5 py-5"

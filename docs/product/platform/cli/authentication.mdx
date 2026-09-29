@@ -1,0 +1,59 @@
+---
+title: CLI authentication
+sidebarTitle: "Authentication"
+description: "Give the CLI a root key by flag, environment variable, or stored config."
+sources:
+  - cmd/api/util/client.go
+  - cmd/api/util/flags.go
+  - cmd/api/util/errors.go
+  - cmd/auth/main.go
+  - cmd/deploy/main.go
+  - pkg/cli/config.go
+  - pkg/cli/flag.go
+  - pkg/config/config.go
+---
+
+Every CLI command that calls the API needs a root key, the same one you'd send in `Authorization: Bearer`. The easiest way is to store it once with `unkey auth login`. You can also pass it with a flag or an environment variable.
+
+## Store a key with `unkey auth login`
+
+```bash
+unkey auth login
+```
+
+It asks for your root key (`Enter your root key:`) and doesn't show what you type, so the key stays out of your screen and shell history. It saves the key to `~/.unkey/config.toml`, which only your user can read. Run it again to replace the stored key. See [unkey auth login](/platform/cli/auth/login) for the full reference.
+
+The file holds the key in plain text, so treat it like the key. Keep it out of version control and off shared machines. It's best to create a root key just for the CLI, with only the permissions your scripts need. See [Root key permissions](/platform/root-keys/permissions).
+
+## Override the stored key
+
+For one command, pass `--root-key`:
+
+```bash
+unkey api keys get-key --key-id=key_1234abcd --root-key=unkey_xxx
+```
+
+For a whole shell session, set `UNKEY_ROOT_KEY`:
+
+```bash
+export UNKEY_ROOT_KEY=unkey_xxx
+unkey api keys get-key --key-id=key_1234abcd
+```
+
+## Which key `unkey api` uses
+
+`unkey api` commands use the first key they find:
+
+1. The `--root-key` flag.
+2. The `UNKEY_ROOT_KEY` environment variable.
+3. The `root_key` value in the config file. That's `~/.unkey/config.toml` unless you set `--config` or `UNKEY_CONFIG`.
+
+If there's no key anywhere, the command stops before calling the API with `no root key provided`. If the API rejects the key, you get `Authentication failed: ...` and a hint to run `unkey auth login`.
+
+## `unkey deploy` doesn't read the config file
+
+`unkey deploy` only takes a key from `--root-key` or `UNKEY_ROOT_KEY`. It never reads `~/.unkey/config.toml`, so `unkey auth login` doesn't help it. In CI, set `UNKEY_ROOT_KEY` as a secret. Locally, export it in the shell you deploy from. See [unkey deploy](/compute/cli/deploy).
+
+## Point at a different API host
+
+`--api-url` (or `UNKEY_API_BASE_URL`) sets the base URL for `unkey api` commands, and `unkey deploy` has `--api-base-url`. The default is `https://api.unkey.com`. You don't normally need to change it.

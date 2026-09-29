@@ -126,7 +126,7 @@ export function PolicyRow({
           <div className="w-10 shrink-0 py-5 pl-4 flex items-center">
             <div
               className={cn(
-                "size-6 rounded-full border flex items-center justify-center text-[11px] font-medium",
+                "size-6 rounded-full border flex items-center justify-center text-2xs font-medium",
                 policy.enabled ? "bg-info-3 border-info-7 text-info-11" : "bg-grayA-2 text-gray-10",
               )}
             >
@@ -150,7 +150,7 @@ export function PolicyRow({
           <div className="flex-4 min-w-0 py-5 flex items-center pr-5">
             <span
               className={cn(
-                "text-[13px] truncate",
+                "text-sm truncate",
                 policy.name ? "text-gray-12" : "text-gray-9 italic",
               )}
             >
@@ -160,9 +160,7 @@ export function PolicyRow({
 
           {/* Type */}
           <div className="flex-4 min-w-0 py-5 flex items-center pr-3">
-            <span className="text-[13px] text-gray-11 truncate">
-              {POLICY_TYPE_LABELS[policy.type]}
-            </span>
+            <span className="text-sm text-gray-11 truncate">{POLICY_TYPE_LABELS[policy.type]}</span>
           </div>
 
           {/* Enabled */}
@@ -172,7 +170,7 @@ export function PolicyRow({
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.stopPropagation()}
             >
-              <span className="text-[13px] text-gray-11 whitespace-nowrap">
+              <span className="text-sm text-gray-11 whitespace-nowrap">
                 {policy.enabled ? "Enabled" : "Disabled"}
               </span>
               <Switch

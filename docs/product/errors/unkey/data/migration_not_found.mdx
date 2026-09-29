@@ -1,50 +1,43 @@
 ---
 title: "migration_not_found"
-description: "The requested key migration was not found in Unkey. Verify the migration ID is correct and the migration exists within your current workspace."
+sidebarTitle: "migration_not_found"
+description: "The migrationId passed to keys.migrateKeys does not exist in your workspace."
+sources:
+  - pkg/codes/unkey_data.go
+  - svc/api/internal/middleware/errors.go
+  - svc/api/routes/v2_keys_migrate_keys/handler.go
 ---
 
-<Danger>err:unkey:data:migration_not_found</Danger>
+<Danger>`err:unkey:data:migration_not_found`</Danger>
 
-```json Example
+The `migrationId` you sent to `keys.migrateKeys` doesn't exist in your workspace. You get HTTP 404.
+
+```json Example response
 {
   "meta": {
     "requestId": "req_2c9a0jf23l4k567"
   },
   "error": {
-    "detail": "The requested Migration could not be found",
+    "detail": "The requested Migration does not exist or has been deleted.",
     "status": 404,
     "title": "Not Found",
-    "type": "https://unkey.com/docs/errors/unkey/data/migration_not_found"
+    "type": "/errors/unkey/data/migration_not_found"
   }
 }
 ```
 
-## What Happened?
+## Likely causes
 
-This error occurs when you're trying to migrate API keys for a migration that doesn't exist in the Unkey system.
+- The migration ID is for another workspace, such as a staging ID used with a production root key.
+- You don't have a migration ID yet. There's no endpoint to create one: our support team sets up the migration and gives you the ID.
 
-Common scenarios that trigger this error:
+## How to fix
 
-- Using a migrationId that has not been set up for your workspace
-- The migration belongs to a different workspace
-- Typos in the migrationId
+1. Use the `migrationId` we gave you, with a root key from the same workspace. Use the same ID for every batch of the import.
+2. If you don't have one, contact support before you import.
 
-Here's an example of a request that would trigger this error:
+## Related errors
 
-```bash
-# Attempting to migrate keys with a non-existent migrationId
-curl -X POST https://api.unkey.com/v2/keys.migrateKeys \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <UNKEY_ROOT_KEY>" \
-  -d '{
-    "apiId": "api_123",
-    "migrationId": "mig_456",
-    "keys": [{ "hash": "deadbeef" }]
-  }'
-```
-
-## How To Fix
-
-<Info>
-  If you're unsure about your migrationId or setup, contact [support@unkey.com](mailto:support@unkey.com).
-</Info>
+- [`err:unkey:data:api_not_found`](/errors/unkey/data/api_not_found): the target API doesn't exist.
+- [`err:unkey:data:identity_not_found`](/errors/unkey/data/identity_not_found): an identity named in the batch doesn't exist.
+- [`err:unkey:data:permission_not_found`](/errors/unkey/data/permission_not_found): a permission named in the batch doesn't exist.

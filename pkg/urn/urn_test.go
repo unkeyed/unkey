@@ -2,6 +2,7 @@ package urn
 
 import (
 	"encoding/binary"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -20,6 +21,205 @@ func TestParseV1(t *testing.T) {
 		Resource:    "projects/proj_123/apps/app_456",
 	}, resource)
 	require.Equal(t, value, resource.String())
+}
+
+// TestParseRatelimitLogs guarantees analytics consumers can parse a rate limit
+// log resource and access every relevant ID. For example, "ns_123" is returned
+// as NamespaceID instead of remaining inside an opaque resource path.
+func TestParseRatelimitLogs(t *testing.T) {
+	t.Parallel()
+
+	value := "unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/logs"
+	resource, err := ParseRatelimitLogs(value)
+	require.NoError(t, err)
+	require.Equal(t, RatelimitLogs{
+		WorkspaceID: "ws_123",
+		ProjectID:   "proj_123",
+		NamespaceID: "ns_123",
+	}, resource)
+	require.Equal(t, value, resource.String())
+}
+
+// TestParseRatelimitLogsAllowsWildcardIDs guarantees the parser extracts
+// single-segment permission wildcards without applying permission coverage
+// rules. For example, a concrete namespace can follow a wildcard project.
+func TestParseRatelimitLogsAllowsWildcardIDs(t *testing.T) {
+	t.Parallel()
+
+	resource, err := ParseRatelimitLogs("unkey:v1:ws_123:projects/*/ratelimits/namespaces/ns_123/logs")
+	require.NoError(t, err)
+	require.Equal(t, RatelimitLogs{
+		WorkspaceID: "ws_123",
+		ProjectID:   "*",
+		NamespaceID: "ns_123",
+	}, resource)
+}
+
+// TestParseRatelimitLogsRejectsOtherResources guarantees the parser accepts only
+// the rate limit log shape. For example, a namespace and a gateway log cannot
+// be interpreted as rate limit logs.
+func TestParseRatelimitLogsRejectsOtherResources(t *testing.T) {
+	t.Parallel()
+
+	for _, value := range []string{
+		"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123",
+		"unkey:v1:ws_123:projects/proj_123/apps/app_123/environments/env_123/gateway/logs",
+		"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/**",
+		"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_*/logs",
+		"unkey:v1:ws_123:projects/proj_123/ratelimits/namespaces/ns_123/logs#read",
+	} {
+		_, err := ParseRatelimitLogs(value)
+		require.ErrorIs(t, err, ErrInvalidResourceName)
+	}
+}
+
+// TestResourceSpecificParsersRoundTrip guarantees every resource-specific
+// parser accepts its builder output and preserves all IDs. For example, parsing
+// and serializing deployment logs returns the original resource name.
+func TestResourceSpecificParsersRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	workspace := New().Workspace("ws_123")
+	project := workspace.Project("proj_123")
+	app := project.App("app_123")
+	environment := app.Environment("env_123")
+	deployment := environment.Deployment("dep_123")
+	keyspace := project.Keyspace("ks_123")
+	namespace := project.RatelimitNamespace("ns_123")
+	portal := project.Portal("portal_123")
+
+	tests := []struct {
+		name  string
+		value fmt.Stringer
+		parse func(string) (fmt.Stringer, error)
+	}{
+		{
+			name:  "GitHub app",
+			value: workspace.GitHubApp("github_123"),
+			parse: func(value string) (fmt.Stringer, error) { return ParseGitHubApp(value) },
+		},
+		{
+			name:  "project",
+			value: project,
+			parse: func(value string) (fmt.Stringer, error) { return ParseProject(value) },
+		},
+		{
+			name:  "app",
+			value: app,
+			parse: func(value string) (fmt.Stringer, error) { return ParseApp(value) },
+		},
+		{
+			name:  "environment",
+			value: environment,
+			parse: func(value string) (fmt.Stringer, error) { return ParseEnvironment(value) },
+		},
+		{
+			name:  "deployment",
+			value: deployment,
+			parse: func(value string) (fmt.Stringer, error) { return ParseDeployment(value) },
+		},
+		{
+			name:  "deployment logs",
+			value: deployment.Logs(),
+			parse: func(value string) (fmt.Stringer, error) { return ParseDeploymentLogs(value) },
+		},
+		{
+			name:  "domain",
+			value: environment.Domain("domain_123"),
+			parse: func(value string) (fmt.Stringer, error) { return ParseDomain(value) },
+		},
+		{
+			name:  "environment variable",
+			value: environment.Variable("var_123"),
+			parse: func(value string) (fmt.Stringer, error) { return ParseEnvironmentVariable(value) },
+		},
+		{
+			name:  "gateway",
+			value: environment.Gateway(),
+			parse: func(value string) (fmt.Stringer, error) { return ParseGateway(value) },
+		},
+		{
+			name:  "gateway logs",
+			value: environment.Gateway().Logs(),
+			parse: func(value string) (fmt.Stringer, error) { return ParseGatewayLogs(value) },
+		},
+		{
+			name:  "gateway policy",
+			value: environment.Gateway().Policy("policy_123"),
+			parse: func(value string) (fmt.Stringer, error) { return ParseGatewayPolicy(value) },
+		},
+		{
+			name:  "identity",
+			value: project.Identity("identity_123"),
+			parse: func(value string) (fmt.Stringer, error) { return ParseIdentity(value) },
+		},
+		{
+			name:  "keyspace",
+			value: keyspace,
+			parse: func(value string) (fmt.Stringer, error) { return ParseKeyspace(value) },
+		},
+		{
+			name:  "keyspace logs",
+			value: keyspace.Logs(),
+			parse: func(value string) (fmt.Stringer, error) { return ParseKeyspaceLogs(value) },
+		},
+		{
+			name:  "key",
+			value: keyspace.Key("key_123"),
+			parse: func(value string) (fmt.Stringer, error) { return ParseKey(value) },
+		},
+		{
+			name:  "portal",
+			value: portal,
+			parse: func(value string) (fmt.Stringer, error) { return ParsePortal(value) },
+		},
+		{
+			name:  "portal session",
+			value: portal.Session("session_123"),
+			parse: func(value string) (fmt.Stringer, error) { return ParsePortalSession(value) },
+		},
+		{
+			name:  "rate limit namespace",
+			value: namespace,
+			parse: func(value string) (fmt.Stringer, error) { return ParseRatelimitNamespace(value) },
+		},
+		{
+			name:  "rate limit logs",
+			value: namespace.Logs(),
+			parse: func(value string) (fmt.Stringer, error) { return ParseRatelimitLogs(value) },
+		},
+		{
+			name:  "rate limit override",
+			value: namespace.Override("override_123"),
+			parse: func(value string) (fmt.Stringer, error) { return ParseRatelimitOverride(value) },
+		},
+		{
+			name:  "RBAC",
+			value: project.RBAC(),
+			parse: func(value string) (fmt.Stringer, error) { return ParseRBAC(value) },
+		},
+		{
+			name:  "role",
+			value: project.RBAC().Role("role_123"),
+			parse: func(value string) (fmt.Stringer, error) { return ParseRole(value) },
+		},
+		{
+			name:  "permission",
+			value: project.RBAC().Permission("permission_123"),
+			parse: func(value string) (fmt.Stringer, error) { return ParsePermission(value) },
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			parsed, err := tt.parse(tt.value.String())
+			require.NoError(t, err)
+			require.Equal(t, tt.value, parsed)
+			require.Equal(t, tt.value.String(), parsed.String())
+		})
+	}
 }
 
 // TestParseV1AllowsCanonicalPatterns guarantees canonical resource patterns use
@@ -152,29 +352,6 @@ func TestResourceCatalogBuilders(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, tt.got, parsed.String())
 		})
-	}
-}
-
-// TestResourceCatalogDescendantBuilders guarantees resource builders produce
-// valid descendant patterns.
-func TestResourceCatalogDescendantBuilders(t *testing.T) {
-	t.Parallel()
-
-	project := New().Workspace("ws_123").Project("proj_123")
-	app := project.App("app_123")
-	environment := app.Environment("env_123")
-
-	for _, value := range []string{
-		project.Any().String(),
-		app.Any().String(),
-		environment.Any().String(),
-		environment.Deployment("dep_123").Any().String(),
-		project.Keyspace("ks_123").Any().String(),
-		project.RatelimitNamespace("ns_123").Any().String(),
-		project.Portal("portal_123").Any().String(),
-	} {
-		_, err := ParseV1(value)
-		require.NoError(t, err, value)
 	}
 }
 

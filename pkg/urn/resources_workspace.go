@@ -1,7 +1,5 @@
 package urn
 
-import "fmt"
-
 // workspace builds resource paths inside one workspace.
 //
 // Hierarchy:
@@ -20,7 +18,10 @@ type workspace struct {
 //	workspace
 //	└── github/apps/{github_app_id}
 func (w workspace) GitHubApp(githubAppID string) GitHubApp {
-	return GitHubApp{workspaceID: w.workspaceID, path: fmt.Sprintf("github/apps/%s", githubAppID)}
+	return GitHubApp{
+		WorkspaceID: w.workspaceID,
+		GitHubAppID: githubAppID,
+	}
 }
 
 // Project returns builders for project resource paths.
@@ -30,5 +31,8 @@ func (w workspace) GitHubApp(githubAppID string) GitHubApp {
 //	workspace
 //	└── projects/{project_id}
 func (w workspace) Project(projectID string) Project {
-	return Project{workspaceID: w.workspaceID, path: fmt.Sprintf("projects/%s", projectID)}
+	return Project{
+		WorkspaceID: w.workspaceID,
+		ProjectID:   projectID,
+	}
 }

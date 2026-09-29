@@ -82,7 +82,7 @@ export function CrumbPopover({
           {searchPlaceholder && (
             <CommandInput
               placeholder={searchPlaceholder}
-              className="text-[13px] placeholder:text-[13px] placeholder:text-gray-8"
+              className="text-sm placeholder:text-gray-8"
             />
           )}
           <CommandList>

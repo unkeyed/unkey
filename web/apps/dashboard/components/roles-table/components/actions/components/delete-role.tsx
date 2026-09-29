@@ -51,8 +51,10 @@ export const DeleteRole = ({ roleDetails, isOpen, onClose }: DeleteRoleProps) =>
 
   const confirmDeletion = watch("confirmDeletion");
 
-  const deleteRole = useDeleteRole(() => {
-    onClose();
+  const deleteRole = useDeleteRole((remainingRoleIds) => {
+    if (remainingRoleIds.length === 0) {
+      onClose();
+    }
   });
 
   const handleDialogOpenChange = (open: boolean) => {
@@ -75,12 +77,7 @@ export const DeleteRole = ({ roleDetails, isOpen, onClose }: DeleteRoleProps) =>
   const performRoleDeletion = async () => {
     try {
       setIsLoading(true);
-      await deleteRole.mutateAsync({
-        roleIds: roleDetails.roleId,
-      });
-    } catch {
-      // `useDeleteRole` already shows a toast, but we still need to
-      // prevent unhandled‐rejection noise in the console.
+      await deleteRole.mutateAsync([roleDetails.roleId]);
     } finally {
       setIsLoading(false);
     }

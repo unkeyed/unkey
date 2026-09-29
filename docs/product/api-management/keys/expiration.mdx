@@ -1,0 +1,89 @@
+---
+title: Key expiration
+sidebarTitle: "Expiration"
+description: "Give a key an expiry so it stops working at a moment you choose."
+sources:
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/updateKey/V2KeysUpdateKeyRequestBody.yaml
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_update_key/handler.go
+  - internal/services/keys/get.go
+  - internal/services/keys/status.go
+  - internal/services/caches/caches.go
+  - pkg/cache/cache.go
+  - svc/ctrl/worker/cron/cron.go
+  - web/apps/dashboard/app/(app)/[workspaceSlug]/apis/[apiId]/_components/create-key/create-key.schema.ts
+---
+
+Set an expiry to make a key stop working at a time you choose. After that time, every verification returns `code: EXPIRED`. Nothing else about the key changes, so you can extend an expired trial key and it keeps its metadata, credits, and permissions.
+
+## Set an expiry
+
+<ParamField body="expires" type="integer | null">
+  Unix timestamp in milliseconds. The maximum is `4102444800000` (1 January 2100). On `keys.updateKey`, omitting the field keeps the current expiry and `null` removes it. A timestamp in the past is accepted and makes the key expired at once.
+</ParamField>
+
+```bash
+# expire 24 hours from now
+EXPIRES=$(( $(date +%s) * 1000 + 86400000 ))
+
+curl -X POST https://api.unkey.com/v2/keys.createKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{ \"apiId\": \"api_...\", \"expires\": $EXPIRES }"
+```
+
+In the dashboard's **Create key** dialog, the expiry must be at least two minutes in the future.
+
+## What happens at expiry
+
+Expiry is checked against Unkey's clock, not your server's. An expired key uses no rate limits or credits. The response looks like this:
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": {
+    "valid": false,
+    "code": "EXPIRED",
+    "keyId": "key_...",
+    "enabled": true,
+    "expires": 1704067200000
+  }
+}
+```
+
+The `expires` value is also returned on valid verifications, so your backend can warn a user that their key is about to lapse.
+
+## Expired keys are kept
+
+Expired keys aren't deleted. They stay in the keyspace, show up in `apis.listKeys` and the dashboard, and keep returning `EXPIRED`. You can extend one and keep its analytics history. To remove expired keys, delete them yourself. See [Disabling and deleting keys](/api-management/keys/enable-disable-delete).
+
+## Extend or remove an expiry
+
+```bash
+# extend by 7 days from now
+EXPIRES=$(( $(date +%s) * 1000 + 604800000 ))
+
+curl -X POST https://api.unkey.com/v2/keys.updateKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{ \"keyId\": \"key_...\", \"expires\": $EXPIRES }"
+```
+
+```bash
+# make the key permanent
+curl -X POST https://api.unkey.com/v2/keys.updateKey \
+  -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "keyId": "key_...", "expires": null }'
+```
+
+Extending an expired key takes about 10 seconds to apply, and a few verifications just after that can still return `EXPIRED`. [Verifying keys](/api-management/keys/verifying-keys#how-quickly-changes-take-effect) explains the timing.
+
+## Expiry and rerolling
+
+Rerolling a key copies its expiry to the new key and sets the old key to expire after the grace period you choose. In the dashboard you can't reroll an expired key, and the grace period can't go past the original expiry. The API applies the grace period as requested. See [Rerolling keys](/api-management/keys/rerolling-keys).
+
+## Expiry compared with credits
+
+An expiry ends access at a time. Credits end it after an amount of use. For a trial that ends after seven days or 1,000 requests, whichever comes first, set both. See [Credits and refill](/api-management/keys/credits-and-refill).

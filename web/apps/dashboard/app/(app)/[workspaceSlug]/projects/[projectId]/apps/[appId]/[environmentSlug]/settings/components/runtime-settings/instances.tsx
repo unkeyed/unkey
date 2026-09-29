@@ -199,7 +199,7 @@ export const Instances = () => {
             )}
           />
           <RegionFlags settings={settings} />
-          <span className="text-[13px] font-medium text-gray-12">
+          <span className="text-sm font-medium text-gray-12">
             {formatRangeParts(currentReplicasMin, currentReplicasMax).value}
           </span>
         </div>

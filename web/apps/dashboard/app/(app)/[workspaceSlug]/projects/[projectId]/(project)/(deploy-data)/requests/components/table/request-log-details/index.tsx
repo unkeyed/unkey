@@ -16,7 +16,7 @@ import { githubUrl } from "@/lib/github-url";
 import { shortenId } from "@/lib/shorten-id";
 import { mapRegionToFlag } from "@/lib/trpc/routers/deploy/network/utils";
 import { formatLatency } from "@/lib/utils/metric-formatters";
-import { eq, useLiveQuery } from "@tanstack/react-db";
+import { and, eq, useLiveQuery } from "@tanstack/react-db";
 import type { RequestLogsResponse } from "@unkey/clickhouse/src/frontline";
 import {
   IconCodeBranchOutline18,
@@ -35,30 +35,28 @@ type Props = {
 
 export const RequestLogDetails = ({ distanceToTop }: Props) => {
   const { setSelectedLog, selectedLog: log } = useRequestLogsContext();
-  const { projectId, project } = useProjectData();
+  const { projectId, project, environments } = useProjectData();
 
   const handleClose = () => {
     setSelectedLog(null);
   };
 
   const deploymentId = log?.deployment_id;
-  const { data } = useLiveQuery(
+  const { data: deployment } = useLiveQuery(
     (q) => {
       if (!deploymentId) {
         return null;
       }
       return q
         .from({ deployment: collection.deployments })
-        .where(({ deployment }) => eq(deployment.projectId, projectId))
-        .join({ environment: collection.environments }, ({ deployment, environment }) =>
-          eq(deployment.environmentId, environment.id),
+        .where(({ deployment }) =>
+          and(eq(deployment.projectId, projectId), eq(deployment.id, deploymentId)),
         )
-        .where(({ deployment }) => eq(deployment.id, deploymentId));
+        .findOne();
     },
     [projectId, deploymentId],
   );
-  const deployment = data?.at(0)?.deployment;
-  const environment = data?.at(0)?.environment;
+  const environment = environments.find((e) => e.id === deployment?.environmentId);
 
   if (!log) {
     // Shouldn't happen

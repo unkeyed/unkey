@@ -10,9 +10,12 @@ pin = true
 provenance_api_failures_fatal = true
 task.run_auto_install = false
 
+[env]
+GOTOOLCHAIN = "local"
+
 [tools]
 node = "24.19.0"
-go = "1.26.7"
+go = "1.27.1"
 "github:dprint/dprint" = "0.51.1"
 "github:bufbuild/buf" = "1.64.0"
 "github:jqlang/jq" = "jq-1.8.1"
@@ -21,10 +24,13 @@ go = "1.26.7"
 "github:FiloSottile/mkcert" = "1.4.4"
 "github:planetscale/cli" = "0.284.0"
 "github:depot/cli" = "2.101.67"
-"github:chronark/rask" = "0.5.0"
-"github:golangci/golangci-lint" = "2.12.2"
+"github:chronark/rask" = "0.6.0"
+"github:golangci/golangci-lint" = "2.13.2"
+"github:goreleaser/goreleaser-pro" = "2.15.4"
 "github:pnpm/pnpm" = "11.5.0"
 "github:speakeasy-api/speakeasy" = "1.790.1"
+# Mintlify CLI for the product docs site (docs/product); see mise tasks docs-*.
+"npm:mint" = "4.2.866"
 # stripe CLI: only used by the local-dev billing-flow runbooks (stripe login /
 # stripe listen). The pricing tool itself is pure SDK and does not need it.
 "aqua:stripe/stripe-cli" = "1.42.13"

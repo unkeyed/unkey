@@ -1,7 +1,66 @@
 ---
 title: "invalid_key"
-description: "InvalidKey represents a 401 error - key not found, disabled, or expired."
+sidebarTitle: "invalid_key"
+description: "The API key in the request did not verify."
+sources:
+  - pkg/codes/frontline.go
+  - svc/frontline/middleware/observability.go
+  - svc/frontline/internal/policies/keyauth/executor.go
+  - internal/services/keys/verifier.go
+  - internal/services/keys/status.go
 ---
 
 <Danger>`err:frontline:client:invalid_key`</Danger>
 
+import { ProductLink } from "/snippets/product-link.jsx";
+
+The API you called runs on Unkey, and it checks API keys. You sent a key, but it isn't valid for this API. You get `401 Unauthorized`, and the message is the same whatever the reason.
+
+```json Example response
+{
+  "meta": {
+    "requestId": "req_3k2j1h0g9f8e7d6c"
+  },
+  "error": {
+    "code": "err:frontline:client:invalid_key",
+    "message": "Authentication failed. The provided API key is invalid."
+  }
+}
+```
+
+Browsers get the same error as an HTML page.
+
+## If you're calling an API hosted on Unkey
+
+Check that you're sending the whole key, with no extra whitespace or quotes, and that it's the key for this API rather than another service. If the key used to work, the API owner may have disabled, expired, rolled, or deleted it. Only they can tell you which, so contact them with the request ID.
+
+## If you own this API
+
+The gateway returns this code for any key that isn't valid for this API, unless another code fits better (missing permissions, rate limited, or out of credits). Common causes:
+
+- The key doesn't exist or was deleted.
+- The key is disabled or expired.
+- The key is from a keyspace your key-auth policy doesn't list.
+- The workspace that owns the key is disabled.
+
+The gateway doesn't enforce a keyspace's IP allow list. That only applies to your own `keys.verifyKey` calls.
+
+### How to fix
+
+1. Look the key up in the dashboard or with `keys.getKey`. Check that it's enabled, not expired, and in a keyspace the policy accepts.
+2. If callers hold keys from a keyspace you added recently, add that keyspace to the policy and create a new deployment. Policy changes only apply to deployments created after the change.
+3. If the key looks fine, check whether the workspace that owns it is disabled.
+
+<ProductLink product="compute" href="/compute/gateway/errors" title="Compute gateway">
+  Gateway policies, deployments, and domains are Compute features. The Compute docs explain how to configure them.
+</ProductLink>
+
+<ProductLink product="api-management" href="/api-management/keys/enable-disable-delete" title="API Management keys">
+  Key state, expiry, and keyspace membership are managed in API Management.
+</ProductLink>
+
+## Related errors
+
+- [`err:frontline:client:missing_credentials`](/errors/frontline/client/missing_credentials): no key was found at all.
+- [`err:frontline:client:insufficient_permissions`](/errors/frontline/client/insufficient_permissions): the key is valid but lacks permissions.
+- [`err:unkey:data:key_not_found`](/errors/unkey/data/key_not_found): the equivalent when you look a key up through the Unkey API rather than the gateway.

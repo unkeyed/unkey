@@ -100,7 +100,7 @@ export function PolicyPanel(props: PolicyPanelProps) {
         <div className="flex gap-2 items-center">
           {isEdit ? "Update this gateway policy." : "Configure and add a new gateway policy."}
           <DocsLink href="https://www.unkey.com/docs/platform/gateway/policies/overview">
-            <span className="text-[13px]">See docs for more</span>
+            <span className="text-sm">See docs for more</span>
           </DocsLink>
         </div>
       }
@@ -190,8 +190,7 @@ export function PolicyPanel(props: PolicyPanelProps) {
           fields={["matchConditions"]}
           tooltipContent={
             <span>
-              All conditions must match (<span className="text-gray-12 font-medium">AND</span>{" "}
-              logic).
+              All conditions must match (<span className="font-medium">AND</span> logic).
             </span>
           }
           collapsedAction={<MatchConditionsClearAll />}
@@ -214,7 +213,7 @@ export function PolicyPanel(props: PolicyPanelProps) {
                     className="mt-0.5 size-4 rounded-sm [&_svg]:size-3"
                   />
                   <span className="flex flex-col gap-0.5">
-                    <span className="text-[13px] text-gray-12">
+                    <span className="text-sm text-gray-12">
                       Also apply to <span className="capitalize">{otherEnvironmentSlug}</span>
                     </span>
                     <span className="text-xs text-gray-9">

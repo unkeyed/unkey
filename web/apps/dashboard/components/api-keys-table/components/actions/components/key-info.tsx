@@ -14,7 +14,6 @@ export const KeyInfo = ({
       <div className="flex flex-col gap-1">
         <div className="text-gray-12 text-xs font-mono">{keyDetails.id}</div>
         <InfoTooltip
-          variant="inverted"
           content={keyDetails.name}
           position={{ side: "bottom", align: "center" }}
           asChild

@@ -50,7 +50,7 @@ export function CanvasViewport({
           onClick={() => setExpanded((e) => !e)}
           aria-expanded={expanded}
           aria-label={expanded ? "Collapse canvas" : "Expand canvas"}
-          className="absolute bottom-2 left-1/2 z-10 flex size-6 -translate-x-1/2 items-center justify-center rounded-full border border-border bg-raised text-gray-11 shadow-xs transition-colors hover:border-gray-10 hover:text-gray-12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-7"
+          className="absolute bottom-2 left-1/2 z-10 flex size-6 -translate-x-1/2 items-center justify-center rounded-full border bg-raised text-gray-11 shadow-xs transition-colors hover:border-gray-10 hover:text-gray-12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-7"
         >
           <IconChevronDownOutline12
             className={cn(

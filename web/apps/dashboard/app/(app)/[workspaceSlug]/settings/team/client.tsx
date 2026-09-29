@@ -1,28 +1,17 @@
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
-import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
-import {
-  Button,
-  EmptyState,
-  EmptyStateActions,
-  EmptyStateHeader,
-  EmptyStateTitle,
-  InfoTooltip,
-  Loading,
-} from "@unkey/ui";
-import Link from "next/link";
-import { Suspense, useMemo, useState } from "react";
+import { useWorkspace } from "@/providers/workspace-provider";
+import { InfoTooltip, Loading } from "@unkey/ui";
+import { useMemo, useState } from "react";
 import { Invitations } from "./invitations";
 import { InviteForm } from "./invite-form";
 import { Members } from "./members";
+import { TeamUpgrade } from "./team-upgrade";
 
 export function TeamPageClient({ team }: { team: boolean }) {
-  const workspace = useWorkspaceNavigation();
-
-  const { data: user } = trpc.user.getCurrentUser.useQuery();
+  const { user } = useWorkspace();
 
   const { data: memberships, isLoading: isUserMembershipsLoading } =
     trpc.user.listMemberships.useQuery(user?.id || "", {
@@ -59,22 +48,7 @@ export function TeamPageClient({ team }: { team: boolean }) {
   }
 
   if (!team) {
-    return (
-      <div className="w-full">
-        <EmptyState>
-          <EmptyStateHeader>
-            <EmptyStateTitle>Upgrade Your Plan to Add Team Members</EmptyStateTitle>
-          </EmptyStateHeader>
-          <EmptyStateActions>
-            <Suspense fallback={<Loading type="spinner" />}>
-              <Link href={routes.settings.billing({ workspaceSlug: workspace.slug })}>
-                <Button variant="primary">Upgrade</Button>
-              </Link>
-            </Suspense>
-          </EmptyStateActions>
-        </EmptyState>
-      </div>
-    );
+    return <TeamUpgrade />;
   }
 
   return (

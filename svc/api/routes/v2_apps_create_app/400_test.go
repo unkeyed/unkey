@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_apps_create_app"
@@ -50,7 +49,7 @@ func TestCreateAppValidationErrors(t *testing.T) {
 				Project: validProject,
 				Name:    "App",
 				Slug:    "app-slug",
-				Git:     &openapi.AppGitCreateInput{DefaultBranch: ptr.P("main")},
+				Git:     &openapi.AppGitCreateInput{DefaultBranch: new("main")},
 			},
 		},
 		{
@@ -68,7 +67,7 @@ func TestCreateAppValidationErrors(t *testing.T) {
 				Project: validProject,
 				Name:    "App",
 				Slug:    "app-slug",
-				Git:     &openapi.AppGitCreateInput{Repository: ptr.P("unkeyed/unkey")},
+				Git:     &openapi.AppGitCreateInput{Repository: new("unkeyed/unkey")},
 				Oci:     &openapi.AppOCI{Image: "nginx:stable"},
 			},
 		},

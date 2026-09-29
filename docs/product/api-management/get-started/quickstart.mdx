@@ -1,0 +1,245 @@
+---
+title: Issue and verify your first key
+sidebarTitle: "Quickstart"
+description: "Create a keyspace and verify your first key in a few minutes."
+sources:
+  - svc/api/routes/v2_keys_create_key/handler.go
+  - svc/api/routes/v2_keys_verify_key/handler.go
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/createKey/V2KeysCreateKeyResponseData.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyRequestBody.yaml
+  - svc/api/openapi/spec/paths/v2/keys/verifyKey/V2KeysVerifyKeyResponseData.yaml
+  - web/apps/dashboard/lib/trpc/routers/api/create.ts
+  - web/internal/api/src/sdk/sdk.ts
+  - web/internal/api/src/sdk/keys.ts
+  - https://github.com/unkeyed/sdks/tree/main/api/go/v3
+  - https://github.com/unkeyed/sdks/blob/main/api/py/README.md
+---
+
+import { ProductLink } from "/snippets/product-link.jsx";
+import RootKeyPrereq from "/snippets/root-key-prereq.mdx";
+
+Create a keyspace, issue a key, and <Tooltip tip="Key verification: keys.verifyKey hashes the presented key, finds it, runs the configured checks, and reports whether it is valid and why not. Not domain verification or the Compute gateway policy.">verify</Tooltip> it from your backend. Every step is an HTTPS call to `api.unkey.com`, so it works from any host or language.
+
+<RootKeyPrereq />
+
+The root key you create needs `api.*.create_key` and `api.*.verify_key`. Pick your language with the switcher. Only the steps that call the API change.
+
+<Steps titleSize="h3">
+  <Step title="Create a keyspace">
+    A keyspace holds the keys for one product, environment, or tier. In the dashboard, open **Keyspaces (APIs)** in the sidebar, click **Create keyspace**, and give it a name. Copy the **API ID** (`api_...`) from its settings page. You pass it when you create keys.
+
+    <Frame>
+      <img src="/images/dashboard/api-management--get-started-quickstart--create-keyspace.png" alt="Create keyspace dialog with a name entered and the Create Keyspace button" />
+    </Frame>
+  </Step>
+</Steps>
+
+<View title="curl">
+  <Steps titleSize="h3">
+    <Step title="Create a key">
+      Call `keys.createKey` with the API ID. The `name` is only for you. Your users never see it.
+
+      ```bash
+      curl -X POST https://api.unkey.com/v2/keys.createKey \
+        -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+        -H "Content-Type: application/json" \
+        -d '{
+          "apiId": "api_...",
+          "name": "My first key"
+        }'
+      ```
+
+      This is the only time you see the key. Copy `data.key` now and give it to your user.
+
+      ```json
+      {
+        "meta": { "requestId": "req_..." },
+        "data": {
+          "keyId": "key_...",
+          "key": "..."
+        }
+      }
+      ```
+    </Step>
+    <Step title="Verify the key">
+      This is the call your backend makes on every incoming request. There's no `apiId` field because the key alone identifies its keyspace.
+
+      ```bash
+      curl -X POST https://api.unkey.com/v2/keys.verifyKey \
+        -H "Authorization: Bearer $UNKEY_ROOT_KEY" \
+        -H "Content-Type: application/json" \
+        -d '{ "key": "<the key from the previous step>" }'
+      ```
+    </Step>
+  </Steps>
+</View>
+
+<View title="TypeScript">
+  <Steps titleSize="h3">
+    <Step title="Install the SDK">
+      ```bash
+      npm install @unkey/api
+      ```
+    </Step>
+    <Step title="Create a key">
+      ```typescript create-key.ts
+      import { Unkey } from "@unkey/api";
+
+      const unkey = new Unkey({ rootKey: process.env.UNKEY_ROOT_KEY });
+
+      const { data } = await unkey.keys.createKey({
+        apiId: "api_...",
+        name: "My first key",
+      });
+
+      // Shown once. Store it or send it to your user now.
+      console.log(data.key);
+      ```
+    </Step>
+    <Step title="Verify the key">
+      There's no `apiId` field because the key alone identifies its keyspace.
+
+      ```typescript verify-key.ts
+      const { data } = await unkey.keys.verifyKey({ key: incomingKey });
+
+      if (!data.valid) {
+        // data.code says why: NOT_FOUND, EXPIRED, RATE_LIMITED, ...
+        throw new Error(`denied: ${data.code}`);
+      }
+
+      console.log(data.keyId);
+      ```
+    </Step>
+  </Steps>
+</View>
+
+<View title="Go">
+  <Steps titleSize="h3">
+    <Step title="Install the SDK">
+      ```bash
+      go get github.com/unkeyed/sdks/api/go/v3@latest
+      ```
+    </Step>
+    <Step title="Create a key">
+      ```go main.go
+      package main
+
+      import (
+      	"context"
+      	"fmt"
+      	"os"
+
+      	unkey "github.com/unkeyed/sdks/api/go/v3"
+      	"github.com/unkeyed/sdks/api/go/v3/models/components"
+      )
+
+      func main() {
+      	client := unkey.New(unkey.WithSecurity(os.Getenv("UNKEY_ROOT_KEY")))
+
+      	res, err := client.Keys.CreateKey(context.Background(), components.V2KeysCreateKeyRequestBody{
+      		APIID: "api_...",
+      		Name:  unkey.String("My first key"),
+      	})
+      	if err != nil {
+      		panic(err)
+      	}
+
+      	// Shown once. Store it or send it to your user now.
+      	fmt.Println(res.V2KeysCreateKeyResponseBody.Data.Key)
+      }
+      ```
+    </Step>
+    <Step title="Verify the key">
+      There's no `apiId` field because the key alone identifies its keyspace.
+
+      ```go verify.go
+      res, err := client.Keys.VerifyKey(ctx, components.V2KeysVerifyKeyRequestBody{
+      	Key: incomingKey,
+      })
+      if err != nil {
+      	return err
+      }
+
+      data := res.V2KeysVerifyKeyResponseBody.Data
+      if !data.Valid {
+      	// data.Code says why: NOT_FOUND, EXPIRED, RATE_LIMITED, ...
+      	return fmt.Errorf("denied: %s", data.Code)
+      }
+      ```
+    </Step>
+  </Steps>
+</View>
+
+<View title="Python">
+  <Steps titleSize="h3">
+    <Step title="Install the SDK">
+      ```bash
+      pip install unkey.py
+      ```
+    </Step>
+    <Step title="Create a key">
+      ```python create_key.py
+      import os
+      from unkey.py import Unkey
+
+      with Unkey(root_key=os.environ["UNKEY_ROOT_KEY"]) as unkey:
+          res = unkey.keys.create_key(api_id="api_...", name="My first key")
+
+          # Shown once. Store it or send it to your user now.
+          print(res.data.key)
+      ```
+    </Step>
+    <Step title="Verify the key">
+      There's no `api_id` argument because the key alone identifies its keyspace.
+
+      ```python verify_key.py
+      res = unkey.keys.verify_key(key=incoming_key)
+
+      if not res.data.valid:
+          # res.data.code says why: NOT_FOUND, EXPIRED, RATE_LIMITED, ...
+          raise PermissionError(f"denied: {res.data.code}")
+      ```
+    </Step>
+  </Steps>
+</View>
+
+## How you read the verification response
+
+Verification returns HTTP 200 even when the key is rejected. `data.valid` tells you whether the key passed. When it didn't, `data.code` says why.
+
+```json
+{
+  "meta": { "requestId": "req_..." },
+  "data": {
+    "valid": true,
+    "code": "VALID",
+    "keyId": "key_...",
+    "name": "My first key",
+    "enabled": true
+  }
+}
+```
+
+The response gets more fields as you set more on the key, such as `credits`, `ratelimits`, `meta`, and `identity`. [Verifying keys](/api-management/keys/verifying-keys) lists every field and every `code` value.
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Creating keys" icon="key" href="/api-management/keys/creating-keys">
+    Prefixes, expiry, credits, rate limits, permissions, and metadata on one key.
+  </Card>
+  <Card title="Verifying keys" icon="shield-check" href="/api-management/keys/verifying-keys">
+    The order of checks, the `code` enum, and caching behavior.
+  </Card>
+  <Card title="Credits and refill" icon="coins" href="/api-management/keys/credits-and-refill">
+    Sell a fixed number of requests and refill them on a schedule.
+  </Card>
+  <Card title="Keyspaces, keys, identities, and root keys" icon="sitemap" href="/api-management/get-started/concepts">
+    How the objects you just used fit together.
+  </Card>
+</Columns>
+
+<ProductLink product="compute" href="/compute/gateway/api-key-auth" title="Verify at the gateway instead">
+  If you host your app on Unkey, the gateway's key-auth policy can run this verification before a request reaches your code.
+</ProductLink>

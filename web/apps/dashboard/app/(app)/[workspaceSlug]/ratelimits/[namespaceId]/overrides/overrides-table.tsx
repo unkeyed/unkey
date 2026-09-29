@@ -31,20 +31,20 @@ const TABLE_CONFIG: Partial<DataTableConfig> = {
 
 const PAGE_SIZE = 50;
 
-// Overrides are backed by a TanStack DB live collection rather than a paginated
-// tRPC query: the backend returns every override for the workspace at once and
-// the collection stays reactive to local insert/update/delete. Since the full
-// set already lives in memory we paginate on the client — slicing into pages of
-// PAGE_SIZE and driving navigation with PaginationFooter — rather than
-// round-tripping per page. Sorting stays disabled.
+// The collection loads every override of the namespace and stays reactive to
+// local insert, update, and delete. The full set is in memory, so pages are
+// slices of PAGE_SIZE on the client instead of a request per page. Sorting
+// stays disabled.
 export const OverridesTable = ({ namespaceId }: Props) => {
   const [selectedOverride, setSelectedOverride] = useState<RatelimitOverride | null>(null);
   const [page, setPage] = useState(1);
 
-  const { data: overrides, isLoading } = useLiveQuery((q) =>
-    q
-      .from({ override: collection.ratelimitOverrides })
-      .where(({ override }) => eq(override.namespaceId, namespaceId)),
+  const { data: overrides, isLoading } = useLiveQuery(
+    (q) =>
+      q
+        .from({ override: collection.ratelimitOverrides })
+        .where(({ override }) => eq(override.namespaceId, namespaceId)),
+    [namespaceId],
   );
 
   const totalCount = overrides.length;

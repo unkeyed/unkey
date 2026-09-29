@@ -12,7 +12,7 @@ import {
   Checkbox,
   ExpiresCell,
   HiddenValueCell,
-  InfoTooltip,
+  InfoHoverCard,
   Loading,
   RowActionSkeleton,
   SortableHeader,
@@ -126,11 +126,9 @@ const KeyIdCell = ({
     <div className="flex flex-col items-start px-4.5 py-1.5">
       <div className="flex gap-4 items-center">
         {identity ? (
-          <InfoTooltip
+          <InfoHoverCard
             delayDuration={100}
-            variant="muted"
             position={{ side: "right" }}
-            className="bg-raised px-4 py-2 border shadow-md font-medium text-xs text-gray-12"
             content={
               <>
                 This key is associated with the identity:{" "}
@@ -156,7 +154,7 @@ const KeyIdCell = ({
             asChild
           >
             {iconContainer}
-          </InfoTooltip>
+          </InfoHoverCard>
         ) : (
           iconContainer
         )}

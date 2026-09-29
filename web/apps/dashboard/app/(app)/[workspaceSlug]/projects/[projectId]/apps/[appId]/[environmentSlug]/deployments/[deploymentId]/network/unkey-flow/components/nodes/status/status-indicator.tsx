@@ -28,9 +28,8 @@ export function StatusIndicator({
     return (
       <InfoTooltip
         content={tooltip}
-        variant="primary"
         asChild
-        className="px-2.5 py-1 rounded-xl text-white bg-black/90 text-xs z-30"
+        className="z-30"
         position={{ align: "center", side: "top", sideOffset: 5 }}
       >
         <div
@@ -51,9 +50,8 @@ export function StatusIndicator({
   return (
     <InfoTooltip
       content={tooltip}
-      variant="primary"
       asChild
-      className="px-2.5 py-1 rounded-xl text-white bg-black/90 text-xs z-30"
+      className="z-30"
       position={{ align: "center", side: "top", sideOffset: 5 }}
     >
       <div

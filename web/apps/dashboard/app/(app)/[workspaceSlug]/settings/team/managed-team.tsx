@@ -1,47 +1,22 @@
 "use client";
 
 import "@unkey/workos-widgets/styles.css";
-import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { logManagedAuthOutcome } from "@/lib/auth/telemetry";
 import { routes } from "@/lib/navigation/routes";
-import {
-  Button,
-  EmptyState,
-  EmptyStateActions,
-  EmptyStateDescription,
-  EmptyStateHeader,
-  EmptyStateTitle,
-  Skeleton,
-} from "@unkey/ui";
+import { Button, Skeleton } from "@unkey/ui";
 import { ManagedUsersWidget } from "@unkey/workos-widgets";
 import { useAccessToken, useAuth } from "@workos-inc/authkit-nextjs/components";
 import Link from "next/link";
 import { useCallback, useState } from "react";
+import { TeamUpgrade } from "./team-upgrade";
 
 const MANAGE_USERS_PERMISSION = "widgets:users-table:manage";
 
 export function ManagedTeam({ team }: { team: boolean }) {
-  const workspace = useWorkspaceNavigation();
   const { user, impersonator, permissions, loading } = useAuth();
 
   if (!team) {
-    return (
-      <div className="flex min-h-[60vh] w-full items-center justify-center">
-        <EmptyState className="w-full">
-          <EmptyStateHeader>
-            <EmptyStateTitle>Upgrade Your Plan to Add Team Members</EmptyStateTitle>
-            <EmptyStateDescription>You can try it out for free for 14 days.</EmptyStateDescription>
-          </EmptyStateHeader>
-          <EmptyStateActions>
-            <Button
-              render={<Link href={routes.settings.billing({ workspaceSlug: workspace.slug })} />}
-            >
-              Upgrade
-            </Button>
-          </EmptyStateActions>
-        </EmptyState>
-      </div>
-    );
+    return <TeamUpgrade />;
   }
 
   if (loading) {
@@ -141,13 +116,7 @@ function ManagedTeamWidgets() {
   }
 
   return (
-    <section aria-labelledby="members-heading" className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1">
-        <h2 id="members-heading" className="m-0 text-lg font-medium">
-          Members
-        </h2>
-        <p className="m-0 text-sm text-gray-11">Manage workspace members and invitations.</p>
-      </div>
+    <section aria-label="Members" className="flex flex-col gap-3">
       <ManagedUsersWidget getAccessToken={getWidgetAccessToken} />
     </section>
   );
@@ -155,20 +124,10 @@ function ManagedTeamWidgets() {
 
 function ManagedTeamSkeleton() {
   return (
-    <section
-      aria-busy="true"
-      aria-labelledby="members-loading-heading"
-      className="flex flex-col gap-3"
-    >
+    <section aria-busy="true" aria-label="Members" className="flex flex-col gap-3">
       <output aria-live="polite" className="sr-only">
         Loading workspace members...
       </output>
-      <div className="flex flex-col gap-1">
-        <h2 id="members-loading-heading" className="m-0 text-lg font-medium">
-          Members
-        </h2>
-        <p className="m-0 text-sm text-gray-11">Manage workspace members and invitations.</p>
-      </div>
       <div aria-hidden="true" className="flex flex-col gap-3">
         <div className="flex gap-2">
           <Skeleton className="h-8 w-80 max-w-full" />

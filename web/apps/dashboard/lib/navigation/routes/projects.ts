@@ -7,7 +7,6 @@
  */
 import type { Route } from "next";
 import type { QueryParams } from "../url";
-import type { DeployCheckoutOrigin, DeployCheckoutPlan } from "./settings";
 import { type WorkspaceScope, buildRoute } from "./shared";
 
 type ProjectScope = WorkspaceScope & { projectId: string };
@@ -38,17 +37,6 @@ const APP_ROOT = "/[workspaceSlug]/projects/[projectId]/apps/[appId]/[environmen
 export const projectRoutes = {
   list({ workspaceSlug, new: isNew }: WorkspaceScope & { new?: boolean }): Route {
     return buildRoute("/[workspaceSlug]/projects", { workspaceSlug }, { new: isNew || undefined });
-  },
-
-  // Compute-plan gate hand-off: the projects landing reads these params,
-  // subscribes the chosen plan (card already on file), and on `from=create`
-  // opens the create-project dialog.
-  pendingSubscribe({
-    workspaceSlug,
-    plan,
-    from,
-  }: WorkspaceScope & { plan: DeployCheckoutPlan; from: DeployCheckoutOrigin }): Route {
-    return buildRoute("/[workspaceSlug]/projects", { workspaceSlug }, { pendingPlan: plan, from });
   },
 
   detail(scope: ProjectScope): Route {

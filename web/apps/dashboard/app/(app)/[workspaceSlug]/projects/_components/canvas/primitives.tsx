@@ -57,7 +57,7 @@ export type Tone = "default" | "error" | "warning";
 
 const TONE: Record<Tone, string> = {
   default:
-    "border-border bg-raised [--divider:var(--hairline)] hover:border-gray-10 hover:shadow-[0_0_0_3px_var(--color-grayA-3)]",
+    "bg-raised [--divider:var(--hairline)] hover:border-gray-10 hover:shadow-[0_0_0_3px_var(--color-grayA-3)]",
   error:
     "border-error-6 bg-error-2 [--divider:var(--color-error-6)] hover:border-error-9 hover:shadow-[0_0_0_3px_var(--color-errorA-3)]",
   warning:
@@ -117,7 +117,7 @@ export function CanvasCardHeader({
       <span className="text-gray-11 [&_svg]:size-4">{icon}</span>
       <span
         className={cn(
-          "min-w-0 truncate text-[13px] font-medium text-gray-12",
+          "min-w-0 truncate text-sm font-medium text-gray-12",
           mono && "font-mono tracking-tight",
         )}
       >
@@ -147,10 +147,10 @@ export function MetricHeader({
     <div className={cn(cols, "px-3 py-2.5 not-last:border-b [border-color:var(--divider)]")}>
       <Link href={href} className="flex min-w-0 items-center gap-2 hover:text-gray-12">
         <span className="text-gray-11 [&_svg]:size-4">{icon}</span>
-        <span className="truncate text-[13px] font-medium text-gray-12">{title}</span>
+        <span className="truncate text-sm font-medium text-gray-12">{title}</span>
       </Link>
       {columns.map((c) => (
-        <span key={c} className="text-right text-[11px] text-gray-9">
+        <span key={c} className="text-right text-2xs text-gray-9">
           {c}
         </span>
       ))}
@@ -208,11 +208,11 @@ export function GhostCard({
     <button
       type="button"
       onClick={onClick}
-      className="group flex items-start gap-2.5 rounded-lg border border-border bg-raised px-3 py-3 text-left shadow-xs transition-[border-color,box-shadow] hover:border-gray-10 hover:shadow-[0_0_0_3px_var(--color-grayA-3)]"
+      className="group flex items-start gap-2.5 rounded-lg border bg-raised px-3 py-3 text-left shadow-xs transition-[border-color,box-shadow] hover:border-gray-10 hover:shadow-[0_0_0_3px_var(--color-grayA-3)]"
     >
       <span className="mt-0.5 text-gray-9 group-hover:text-gray-12 [&_svg]:size-4">{icon}</span>
       <span className="min-w-0">
-        <span className="block text-[13px] font-medium text-gray-12">{title}</span>
+        <span className="block text-sm font-medium text-gray-12">{title}</span>
         <span className="block text-xs text-gray-9">{description}</span>
       </span>
       <IconPlusOutline18 className="ml-auto mt-0.5 size-3.5 text-gray-9 group-hover:text-gray-12" />

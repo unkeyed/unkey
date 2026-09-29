@@ -6,6 +6,7 @@ import (
 	"time"
 
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
+	"github.com/unkeyed/unkey/internal/services/keys/metrics"
 	"github.com/unkeyed/unkey/internal/services/ratelimit"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
@@ -75,6 +76,9 @@ func (k *KeyVerifier) VerifyRootKey(ctx context.Context, opts ...VerifyOption) e
 // For root keys: returns fault errors for validation failures.
 // For normal keys: returns error only for system problems, check k.Valid and k.Status for validation results.
 func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
+	before := k.Status
+	defer k.recordVerifyOutcome(before)
+
 	// nolint:exhaustruct
 	config := &verifyConfig{}
 	for _, opt := range opts {
@@ -124,6 +128,26 @@ func (k *KeyVerifier) Verify(ctx context.Context, opts ...VerifyOption) error {
 	}
 
 	return nil
+}
+
+// recordVerifyOutcome records the terminal status of a verification that was
+// still undecided when it entered Verify. Statuses Get already decided, and
+// root keys, which never run through Verify, are recorded there instead.
+func (k *KeyVerifier) recordVerifyOutcome(before KeyStatus) {
+	if before != StatusValid || k.isRootKey {
+		return
+	}
+
+	k.recordStatus(k.Status)
+}
+
+func (k *KeyVerifier) recordStatus(status KeyStatus) {
+	keyType := "key"
+	if k.isRootKey {
+		keyType = "root_key"
+	}
+
+	metrics.KeyVerificationsTotal.WithLabelValues(keyType, string(status)).Inc()
 }
 
 // TelemetrySnapshot captures the final verification outcome for downstream

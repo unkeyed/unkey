@@ -99,7 +99,6 @@ export const FormSettingCard = ({
                   saveState.status !== "disabled" || !("reason" in saveState && saveState.reason)
                 }
                 asChild
-                variant="inverted"
               >
                 <Button
                   type="submit"

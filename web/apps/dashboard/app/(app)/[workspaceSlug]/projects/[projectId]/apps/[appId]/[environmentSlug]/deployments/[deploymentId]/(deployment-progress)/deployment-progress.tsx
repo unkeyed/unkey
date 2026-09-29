@@ -1,5 +1,6 @@
 "use client";
 
+import { isDeploymentInFlight } from "@/lib/collections/deploy/deployment-status";
 import { routes } from "@/lib/navigation/routes";
 import { trpc } from "@/lib/trpc/client";
 import type { Router } from "@/lib/trpc/routers";
@@ -19,6 +20,7 @@ import { DeploymentDomainsCard } from "../../../../components/deployment-domains
 import { useProjectData } from "../../../../data-provider";
 import { useAppScope } from "../../../environment-context";
 import { useDeployment } from "../layout-provider";
+import { useBuildSteps } from "../use-build-steps";
 import { DeploymentBuildStepsTable } from "./build-steps-table/deployment-build-steps-table";
 import { DeploymentContainerLogsTable } from "./container-logs-table/deployment-container-logs-table";
 import { DeploymentStep } from "./deployment-step";
@@ -36,15 +38,7 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
   const scope = useAppScope();
   const isFailed = deployment.status === "failed";
 
-  const buildSteps = trpc.deploy.deployment.buildSteps.useQuery(
-    {
-      deploymentId: deployment.id,
-      includeStepLogs: true,
-    },
-    {
-      refetchInterval: 1_000,
-    },
-  );
+  const buildSteps = useBuildSteps(deployment);
 
   const { getDomainsForDeployment } = useProjectData();
 
@@ -63,7 +57,10 @@ export function DeploymentProgress({ stepsData }: { stepsData?: StepsData }) {
 
   const deploymentRuntimeLogs = trpc.deploy.deployment.runtimeLogs.useQuery(
     { deploymentId: deployment.id, limit: 50 },
-    { refetchInterval: deploying && !deploying.endedAt ? 2_000 : false },
+    {
+      refetchInterval:
+        isDeploymentInFlight(deployment.status) && deploying && !deploying.endedAt ? 2_000 : false,
+    },
   );
 
   const queuedImplicitlyComplete =

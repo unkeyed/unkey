@@ -13,7 +13,7 @@ export const ConfigureDeploymentContent = () => {
         <Button type="button" variant="primary" size="xlg" className="rounded-lg" onClick={next}>
           Next
         </Button>
-        <span className="text-gray-10 text-[13px] text-center">
+        <span className="text-gray-10 text-sm text-center">
           Start configuring your environment variables
         </span>
       </div>

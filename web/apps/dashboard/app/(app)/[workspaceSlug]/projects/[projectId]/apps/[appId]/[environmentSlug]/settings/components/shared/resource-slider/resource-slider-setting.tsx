@@ -300,7 +300,7 @@ const SliderForm = ({ config }: { config: ResourceSliderConfig }) => {
             )}
           />
           {config.sliderAdornment?.(settings)}
-          <span className="text-[13px]">
+          <span className="text-sm">
             <span className="font-medium text-gray-12">
               {config.formatValue(currentValue).value}
             </span>{" "}

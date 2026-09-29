@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
-	"github.com/unkeyed/unkey/pkg/ptr"
 	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -100,7 +99,7 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 	keyA := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		IdentityID:  ptr.P(identityA.ID),
+		IdentityID:  new(identityA.ID),
 	})
 
 	// A also has a soft-deleted key; its events carry A's external_id and must
@@ -108,7 +107,7 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 	keyADeleted := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		IdentityID:  ptr.P(identityA.ID),
+		IdentityID:  new(identityA.ID),
 	})
 	require.NoError(t, db.Query.SoftDeleteKeyByID(context.Background(), h.DB.RW(), db.SoftDeleteKeyByIDParams{
 		Now: sql.NullInt64{Int64: time.Now().UnixMilli(), Valid: true},
@@ -123,14 +122,14 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 	keyB := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		IdentityID:  ptr.P(identityB.ID),
+		IdentityID:  new(identityB.ID),
 	})
 
 	// A also owns a key in a keyspace the session is not scoped to.
 	keyAOutOfScope := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  otherApi.KeyAuthID.String,
-		IdentityID:  ptr.P(identityA.ID),
+		IdentityID:  new(identityA.ID),
 	})
 
 	now := time.Now().UnixMilli()
@@ -203,7 +202,7 @@ func TestPortalSessionAnalyticsScopedToOwnKeys(t *testing.T) {
 	// keyspace bound closes: the key belongs to this identity, so only the
 	// keyspace predicate keeps its events out.
 	namedReq := req
-	namedReq.KeyId = ptr.P(keyAOutOfScope.KeyID)
+	namedReq.KeyId = new(keyAOutOfScope.KeyID)
 
 	named := testutil.CallRoute[Request, Response](h, route, headers, namedReq)
 	require.Equal(t, 200, named.Status)
@@ -232,12 +231,12 @@ func TestPortalSessionAnalyticsKeyIdFilter(t *testing.T) {
 	targetKey := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		IdentityID:  ptr.P(identityA.ID),
+		IdentityID:  new(identityA.ID),
 	})
 	otherKey := h.CreateKey(seed.CreateKeyRequest{
 		WorkspaceID: workspace.ID,
 		KeySpaceID:  api.KeyAuthID.String,
-		IdentityID:  ptr.P(identityA.ID),
+		IdentityID:  new(identityA.ID),
 	})
 
 	now := time.Now().UnixMilli()
@@ -275,7 +274,7 @@ func TestPortalSessionAnalyticsKeyIdFilter(t *testing.T) {
 	req := Request{
 		StartTime: now - int64(time.Hour/time.Millisecond),
 		EndTime:   now + int64(time.Minute/time.Millisecond),
-		KeyId:     ptr.P(targetKey.KeyID),
+		KeyId:     new(targetKey.KeyID),
 	}
 
 	require.EventuallyWithT(t, func(c *assert.CollectT) {

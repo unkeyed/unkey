@@ -672,6 +672,8 @@ github.com/unkeyed/sdks/api/go/v2 v2.7.1 h1:qLsrVYZZC71VjSDOWkBIqQ6DPEasHu0L9gNe
 github.com/unkeyed/sdks/api/go/v2 v2.7.1/go.mod h1:gt+BiRjnnAR6Q/4r6xhxeZ9KBp6r6O2egC8njM86IOw=
 github.com/unkeyed/sdks/api/go/v3 v3.0.1 h1:DwvhYsfYjtIoimlfZAa2DjsX8/kdBMornfTDrqAUbrA=
 github.com/unkeyed/sdks/api/go/v3 v3.0.1/go.mod h1:cA+03tmYNq+48SYbMrDpozcZ7/fLpywIbIPuV6M0ykw=
+github.com/unkeyed/sdks/api/go/v3 v3.0.2 h1:M4iXjmze0nu6ukh5UKiaSF9ere1ryJ8bAmLcqzA4RyU=
+github.com/unkeyed/sdks/api/go/v3 v3.0.2/go.mod h1:cA+03tmYNq+48SYbMrDpozcZ7/fLpywIbIPuV6M0ykw=
 github.com/vbatts/tar-split v0.12.2 h1:w/Y6tjxpeiFMR47yzZPlPj/FcPLpXbTUi/9H7d3CPa4=
 github.com/vbatts/tar-split v0.12.2/go.mod h1:eF6B6i6ftWQcDqEn3/iGFRFRo8cBIMSJVOpnNdfTMFA=
 github.com/vishvananda/netlink v1.3.1 h1:3AEMt62VKqz90r0tmNhog0r/PpWKmrEShJU0wJW6bV0=

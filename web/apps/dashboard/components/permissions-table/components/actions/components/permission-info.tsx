@@ -13,10 +13,9 @@ export const PermissionInfo = ({
         <IconPage2Outline12 />
       </div>
       <div className="flex flex-col gap-1">
-        <div className="text-gray-12 text-[13px] font-medium">{permissionDetails.name}</div>
+        <div className="text-gray-12 text-sm font-medium">{permissionDetails.name}</div>
         {permissionDetails.description && (
           <InfoTooltip
-            variant="inverted"
             content={permissionDetails.description}
             position={{ side: "bottom", align: "center" }}
             asChild

@@ -20,7 +20,6 @@ export const OutcomeCell = ({ log, isSelected }: OutcomeCellProps) => {
 
   return (
     <InfoTooltip
-      variant="inverted"
       className="cursor-default"
       content={<p>{outcomeInfo.tooltip}</p>}
       position={{ side: "top", align: "center", sideOffset: 5 }}
