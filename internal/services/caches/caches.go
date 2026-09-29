@@ -112,7 +112,6 @@ func New(config Config) (Caches, error) {
 	if err != nil {
 		return Caches{}, err
 	}
-	rootKeyByHashWithTracing := middleware.WithTracing(rootKeyByHash)
 
 	liveApiByID, err := cache.New(cache.Config[cache.ScopedKey, db.FindLiveApiByIDRow]{
 		Fresh:    10 * time.Second,
@@ -181,17 +180,14 @@ func New(config Config) (Caches, error) {
 	}
 
 	return Caches{
-		RatelimitNamespace: middleware.WithTracing(ratelimitNamespace),
-		LiveApiByID:        middleware.WithTracing(liveApiByID),
-		VerificationKeyByHash: &cacheWithLinkedRemoval[keysdb.CachedKeyData, keysdb.CachedRootKeyData]{
-			Cache:  middleware.WithTracing(verificationKeyByHash),
-			linked: rootKeyByHashWithTracing,
-		},
-		RootKeyByHash:     rootKeyByHashWithTracing,
-		ClickhouseSetting: middleware.WithTracing(clickhouseSetting),
-		ApiToKeyAuthRow:   middleware.WithTracing(apiToKeyAuthRow),
-		WorkspaceLimits:   middleware.WithTracing(workspaceLimits),
-		PortalSession:     middleware.WithTracing(portalSession),
-		WorkspaceByOrgID:  middleware.WithTracing(workspaceByOrgID),
+		RatelimitNamespace:    middleware.WithTracing(ratelimitNamespace),
+		LiveApiByID:           middleware.WithTracing(liveApiByID),
+		VerificationKeyByHash: middleware.WithTracing(verificationKeyByHash),
+		RootKeyByHash:         middleware.WithTracing(rootKeyByHash),
+		ClickhouseSetting:     middleware.WithTracing(clickhouseSetting),
+		ApiToKeyAuthRow:       middleware.WithTracing(apiToKeyAuthRow),
+		WorkspaceLimits:       middleware.WithTracing(workspaceLimits),
+		PortalSession:         middleware.WithTracing(portalSession),
+		WorkspaceByOrgID:      middleware.WithTracing(workspaceByOrgID),
 	}, nil
 }

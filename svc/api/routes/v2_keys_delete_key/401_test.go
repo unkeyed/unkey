@@ -20,9 +20,10 @@ func TestKeyDeleteUnauthorized(t *testing.T) {
 	ctx := t.Context()
 
 	route := &handler.Handler{
-		DB:        h.DB,
-		Auditlogs: h.Auditlogs,
-		KeyCache:  h.Caches.VerificationKeyByHash,
+		DB:           h.DB,
+		Auditlogs:    h.Auditlogs,
+		KeyCache:     h.Caches.VerificationKeyByHash,
+		RootKeyCache: h.Caches.RootKeyByHash,
 	}
 
 	h.Register(route)

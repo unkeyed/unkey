@@ -27,9 +27,10 @@ type (
 )
 
 type Handler struct {
-	DB        db.Database
-	Auditlogs auditlogs.AuditLogService
-	KeyCache  cache.Cache[string, keysdb.CachedKeyData]
+	DB           db.Database
+	Auditlogs    auditlogs.AuditLogService
+	KeyCache     cache.Cache[string, keysdb.CachedKeyData]
+	RootKeyCache cache.Cache[string, keysdb.CachedRootKeyData]
 }
 
 type txResult struct {
@@ -250,6 +251,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 
 	if len(result.rolesToAdd) > 0 {
 		h.KeyCache.Remove(ctx, key.Key.Hash)
+		h.RootKeyCache.Remove(ctx, key.Key.Hash)
 	}
 
 	responseData := make(openapi.V2KeysAddRolesResponseData, 0)

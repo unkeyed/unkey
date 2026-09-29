@@ -28,9 +28,10 @@ type (
 
 // Handler implements zen.Route interface for the v2 keys set roles endpoint
 type Handler struct {
-	DB        db.Database
-	Auditlogs auditlogs.AuditLogService
-	KeyCache  cache.Cache[string, keysdb.CachedKeyData]
+	DB           db.Database
+	Auditlogs    auditlogs.AuditLogService
+	KeyCache     cache.Cache[string, keysdb.CachedKeyData]
+	RootKeyCache cache.Cache[string, keysdb.CachedRootKeyData]
 }
 
 // Method returns the HTTP method this route responds to
@@ -299,6 +300,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	}
 
 	h.KeyCache.Remove(ctx, key.Key.Hash)
+	h.RootKeyCache.Remove(ctx, key.Key.Hash)
 
 	responseData := make(openapi.V2KeysSetRolesResponseData, 0)
 	for _, role := range foundRoles {

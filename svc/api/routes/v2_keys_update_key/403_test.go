@@ -38,6 +38,7 @@ func TestUpdateKeyCorrectPermissions(t *testing.T) {
 				DB:           h.DB,
 				Auditlogs:    h.Auditlogs,
 				KeyCache:     h.Caches.VerificationKeyByHash,
+				RootKeyCache: h.Caches.RootKeyByHash,
 				UsageLimiter: h.UsageLimiter,
 			}
 
@@ -89,6 +90,7 @@ func TestUpdateKeyInsufficientPermissions(t *testing.T) {
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
+		RootKeyCache: h.Caches.RootKeyByHash,
 		UsageLimiter: h.UsageLimiter,
 	}
 
@@ -133,6 +135,7 @@ func TestUpdateKeyCrossWorkspaceIsolation(t *testing.T) {
 		DB:           h.DB,
 		Auditlogs:    h.Auditlogs,
 		KeyCache:     h.Caches.VerificationKeyByHash,
+		RootKeyCache: h.Caches.RootKeyByHash,
 		UsageLimiter: h.UsageLimiter,
 	}
 
