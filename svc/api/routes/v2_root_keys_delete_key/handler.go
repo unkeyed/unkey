@@ -24,7 +24,7 @@ import (
 type Request = openapi.V2RootKeysDeleteKeyRequestBody
 type Response = openapi.V2RootKeysDeleteKeyResponseBody
 
-// Handler deletes root keys from both credential stores.
+// Handler deletes root keys from the new credential store.
 type Handler struct {
 	DB           db.Database
 	Auditlogs    auditlogs.AuditLogService
@@ -37,7 +37,7 @@ func (h *Handler) Method() string { return http.MethodPost }
 
 func (h *Handler) Path() string { return "/v2/rootKeys.deleteKey" }
 
-// Handle deletes every live row with the requested ID so a migration twin cannot remain active.
+// Handle tombstones one new root key in the authenticated customer workspace.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	p, err := s.GetPrincipal()
 	if err != nil {
@@ -51,38 +51,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	var keys []db.FindRootKeysForManagementRow
+	var key db.UnkeyRootKey
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		keys, err = db.Query.FindRootKeysForManagement(ctx, tx, db.FindRootKeysForManagementParams{
-			ID:          req.KeyId,
-			WorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
-		})
+		key, err = db.Query.FindUnkeyRootKeyByID(ctx, tx, req.KeyId)
+		if db.IsNotFound(err) || err == nil && key.WorkspaceID != p.AuthorizedWorkspaceID {
+			return rootKeyNotFound()
+		}
 		if err != nil {
 			return err
 		}
-		if len(keys) == 0 {
-			return rootKeyNotFound()
+		if _, err := db.Query.SoftDeleteUnkeyRootKey(ctx, tx, db.SoftDeleteUnkeyRootKeyParams{
+			Now:         sql.NullInt64{Int64: h.Clock.Now().UnixMilli(), Valid: true},
+			ID:          key.ID,
+			WorkspaceID: p.AuthorizedWorkspaceID,
+		}); err != nil {
+			return err
 		}
-		now := h.Clock.Now().UnixMilli()
-		for _, key := range keys {
-			if key.IsLegacy == 1 {
-				_, err = db.Query.SoftDeleteLegacyRootKey(ctx, tx, db.SoftDeleteLegacyRootKeyParams{
-					Now:         sql.NullInt64{Int64: now, Valid: true},
-					ID:          key.ID,
-					WorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
-				})
-			} else {
-				_, err = db.Query.SoftDeleteUnkeyRootKey(ctx, tx, db.SoftDeleteUnkeyRootKeyParams{
-					Now:         sql.NullInt64{Int64: now, Valid: true},
-					ID:          key.ID,
-					WorkspaceID: p.AuthorizedWorkspaceID,
-				})
-			}
-			if err != nil {
-				return err
-			}
-		}
-		key := keys[0]
 		name := key.Name.String
 		if name == "" {
 			name = key.Start
@@ -100,21 +84,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			UserAgent:     s.UserAgent(),
 			CorrelationID: "",
 			Resources: []auditlog.AuditLogResource{{
-				Type:        auditlog.KeyResourceType,
-				ID:          key.ID,
-				Name:        name,
-				DisplayName: name,
-				Meta:        map[string]any{},
+				Type: auditlog.KeyResourceType, ID: key.ID, Name: name, DisplayName: name, Meta: map[string]any{},
 			}},
 		}})
 	})
 	if err != nil {
 		return err
 	}
-	for _, key := range keys {
-		h.KeyCache.Remove(ctx, key.Hash)
-		h.RootKeyCache.Remove(ctx, key.Hash)
-	}
+	h.KeyCache.Remove(ctx, key.Hash)
+	h.RootKeyCache.Remove(ctx, key.Hash)
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
 		Data: openapi.EmptyResponse{},

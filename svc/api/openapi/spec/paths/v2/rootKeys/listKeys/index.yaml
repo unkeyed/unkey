@@ -8,7 +8,7 @@ post:
     Use `rootKeys/*#read` to read all root keys. Write permission does not imply read.
     A caller with no readable keys receives an empty page.
 
-    Includes disabled and expired keys from both root-key storage tables.
+    Includes disabled and expired keys from the new root-key store.
     Deleted keys are excluded. Secrets and hashes are never returned.
     Pass the returned cursor when hasMore is true to retrieve the next page.
   operationId: rootKeys.listKeys

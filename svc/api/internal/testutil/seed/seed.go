@@ -491,6 +491,49 @@ func (s *Seeder) CreateRootKey(ctx context.Context, workspaceID string, permissi
 	return key
 }
 
+// CreateUnkeyRootKeyRequest configures a root key in the new root-key store.
+// WorkspaceID is the customer workspace that owns and is authorized by the key.
+type CreateUnkeyRootKeyRequest struct {
+	WorkspaceID string
+	Name        *string
+	Disabled    bool
+	Expires     *time.Time
+	Permissions []string
+}
+
+// CreateUnkeyRootKey creates a root key and its principal permissions in the new
+// root-key store. Returns the key ID and the raw key for Authorization headers.
+func (s *Seeder) CreateUnkeyRootKey(ctx context.Context, req CreateUnkeyRootKeyRequest) CreateKeyResponse {
+	keyID := uid.New(uid.KeyPrefix)
+	key := "unkey_" + uid.New("")
+	now := time.Now().UnixMilli()
+	err := db.Query.InsertUnkeyRootKey(ctx, s.DB.RW(), db.InsertUnkeyRootKeyParams{
+		ID:          keyID,
+		WorkspaceID: req.WorkspaceID,
+		Hash:        hash.Sha256(key),
+		Name:        sql.NullString{String: ptr.SafeDeref(req.Name, ""), Valid: req.Name != nil},
+		Prefix:      "unkey",
+		Start:       key[6:10],
+		End:         key[len(key)-4:],
+		Enabled:     !req.Disabled,
+		Expires:     sql.NullTime{Time: ptr.SafeDeref(req.Expires, time.Time{}), Valid: req.Expires != nil},
+		CreatedAt:   now,
+	})
+	require.NoError(s.t, err)
+	for _, permission := range req.Permissions {
+		err = db.Query.InsertUnkeyPermission(ctx, s.DB.RW(), db.InsertUnkeyPermissionParams{
+			ID:            uid.New(uid.PermissionPrefix),
+			WorkspaceID:   req.WorkspaceID,
+			PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
+			PrincipalID:   keyID,
+			Slug:          permission,
+			CreatedAt:     now,
+		})
+		require.NoError(s.t, err)
+	}
+	return CreateKeyResponse{KeyID: keyID, Key: key, RolesIds: []string{}, PermissionIds: []string{}}
+}
+
 // CreateKeyRequest configures the key to create. WorkspaceID and KeySpaceID are
 // required. The key is enabled by default unless Disabled is true.
 type CreateKeyRequest struct {

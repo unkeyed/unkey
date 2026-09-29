@@ -27,7 +27,7 @@ import (
 type Request = openapi.V2RootKeysUpdateKeyRequestBody
 type Response = openapi.V2RootKeysUpdateKeyResponseBody
 
-// Handler updates root keys in both credential stores.
+// Handler updates root keys in the new credential store.
 type Handler struct {
 	DB           db.Database
 	Auditlogs    auditlogs.AuditLogService
@@ -40,7 +40,7 @@ func (h *Handler) Method() string { return http.MethodPost }
 
 func (h *Handler) Path() string { return "/v2/rootKeys.updateKey" }
 
-// Handle updates every live row with the requested ID so migration twins keep the same state.
+// Handle updates one new root key in the authenticated customer workspace.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	p, err := s.GetPrincipal()
 	if err != nil {
@@ -61,56 +61,49 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	var keys []db.FindRootKeysForManagementRow
+	var key db.UnkeyRootKey
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		keys, err = db.Query.FindRootKeysForManagement(ctx, tx, db.FindRootKeysForManagementParams{
-			ID:          req.KeyId,
-			WorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
-		})
-		if err != nil {
-			return err
-		}
-		if len(keys) == 0 {
+		key, err = db.Query.FindUnkeyRootKeyByID(ctx, tx, req.KeyId)
+		if db.IsNotFound(err) || err == nil && key.WorkspaceID != p.AuthorizedWorkspaceID {
 			return fault.New("root key not found",
 				fault.Code(codes.Data.Key.NotFound.URN()),
 				fault.Public("The specified root key was not found."),
 			)
 		}
-		if source, ok := p.Source.(principal.KeySource); ok && source.ExpiresAt != nil {
-			for _, key := range keys {
-				if !key.Expires.Valid || key.Expires.Time.After(*source.ExpiresAt) {
-					return fault.New("target root key outlives caller",
-						fault.Code(codes.App.Validation.InvalidInput.URN()),
-						fault.Public("An expiring root key can only update root keys that expire no later than itself."),
-					)
-				}
-			}
-		}
-		if err := h.updateFields(ctx, tx, p.AuthorizedWorkspaceID, req, keys); err != nil {
-			return err
-		}
-		permissionRows, err := h.replacePermissions(ctx, tx, p.AuthorizedWorkspaceID, req.KeyId, validatedPermissions, req.Permissions != nil, keys)
 		if err != nil {
 			return err
 		}
-		return h.Auditlogs.Insert(ctx, tx, updateAuditLogs(s, auditactor.FromPrincipal(p), p.AuthorizedWorkspaceID, keys[0], permissionRows))
+		if source, ok := p.Source.(principal.KeySource); ok && source.ExpiresAt != nil {
+			if !key.Expires.Valid || key.Expires.Time.After(*source.ExpiresAt) {
+				return fault.New("target root key outlives caller",
+					fault.Code(codes.App.Validation.InvalidInput.URN()),
+					fault.Public("An expiring root key can only update root keys that expire no later than itself."),
+				)
+			}
+		}
+		if err := h.updateFields(ctx, tx, p.AuthorizedWorkspaceID, req); err != nil {
+			return err
+		}
+		permissionRows, err := h.replacePermissions(ctx, tx, p.AuthorizedWorkspaceID, req.KeyId, validatedPermissions, req.Permissions != nil)
+		if err != nil {
+			return err
+		}
+		return h.Auditlogs.Insert(ctx, tx, updateAuditLogs(s, auditactor.FromPrincipal(p), p.AuthorizedWorkspaceID, key, permissionRows))
 	})
 	if err != nil {
 		return err
 	}
-	for _, key := range keys {
-		h.KeyCache.Remove(ctx, key.Hash)
-		h.RootKeyCache.Remove(ctx, key.Hash)
-	}
+	h.KeyCache.Remove(ctx, key.Hash)
+	h.RootKeyCache.Remove(ctx, key.Hash)
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
 		Data: openapi.EmptyResponse{},
 	})
 }
 
-// updateFields applies optional scalar changes to every store that has the key.
-func (h *Handler) updateFields(ctx context.Context, tx db.DBTX, workspaceID string, req Request, keys []db.FindRootKeysForManagementRow) error {
+// updateFields applies optional scalar changes to a new root key.
+func (h *Handler) updateFields(ctx context.Context, tx db.DBTX, workspaceID string, req Request) error {
 	var nameSpecified, enabledSpecified int64
 	name := sql.NullString{}
 	if req.Name.IsSpecified() {
@@ -127,29 +120,14 @@ func (h *Handler) updateFields(ctx context.Context, tx db.DBTX, workspaceID stri
 	if nameSpecified == 0 && enabledSpecified == 0 {
 		return nil
 	}
-	for _, key := range keys {
-		var err error
-		if key.IsLegacy == 1 {
-			err = db.Query.UpdateLegacyRootKey(ctx, tx, db.UpdateLegacyRootKeyParams{
-				NameSpecified: nameSpecified, Name: name, EnabledSpecified: enabledSpecified, Enabled: enabled,
-				Now: sql.NullInt64{Int64: h.Clock.Now().UnixMilli(), Valid: true}, ID: key.ID,
-				WorkspaceID: sql.NullString{String: workspaceID, Valid: true},
-			})
-		} else {
-			err = db.Query.UpdateUnkeyRootKey(ctx, tx, db.UpdateUnkeyRootKeyParams{
-				NameSpecified: nameSpecified, Name: name, EnabledSpecified: enabledSpecified, Enabled: enabled,
-				ID: key.ID, WorkspaceID: workspaceID,
-			})
-		}
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return db.Query.UpdateUnkeyRootKey(ctx, tx, db.UpdateUnkeyRootKeyParams{
+		NameSpecified: nameSpecified, Name: name, EnabledSpecified: enabledSpecified, Enabled: enabled,
+		ID: req.KeyId, WorkspaceID: workspaceID,
+	})
 }
 
-// replacePermissions makes URN principal permissions the complete permission set.
-func (h *Handler) replacePermissions(ctx context.Context, tx db.DBTX, workspaceID, keyID string, slugs []string, specified bool, keys []db.FindRootKeysForManagementRow) ([]db.InsertUnkeyPermissionParams, error) {
+// replacePermissions makes principal permissions the complete permission set.
+func (h *Handler) replacePermissions(ctx context.Context, tx db.DBTX, workspaceID, keyID string, slugs []string, specified bool) ([]db.InsertUnkeyPermissionParams, error) {
 	if !specified {
 		return nil, nil
 	}
@@ -159,17 +137,6 @@ func (h *Handler) replacePermissions(ctx context.Context, tx db.DBTX, workspaceI
 		PrincipalID:   keyID,
 	}); err != nil {
 		return nil, err
-	}
-	for _, key := range keys {
-		if key.IsLegacy != 1 {
-			continue
-		}
-		if err := db.Query.DeleteAllKeyPermissionsByKeyID(ctx, tx, key.ID); err != nil {
-			return nil, err
-		}
-		if err := db.Query.DeleteAllKeyRolesByKeyID(ctx, tx, key.ID); err != nil {
-			return nil, err
-		}
 	}
 	rows := make([]db.InsertUnkeyPermissionParams, 0, len(slugs))
 	now := h.Clock.Now().UnixMilli()
@@ -187,7 +154,7 @@ func (h *Handler) replacePermissions(ctx context.Context, tx db.DBTX, workspaceI
 }
 
 // updateAuditLogs records the key update and every newly granted permission.
-func updateAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string, key db.FindRootKeysForManagementRow, permissionRows []db.InsertUnkeyPermissionParams) []auditlog.AuditLog {
+func updateAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string, key db.UnkeyRootKey, permissionRows []db.InsertUnkeyPermissionParams) []auditlog.AuditLog {
 	name := key.Name.String
 	if name == "" {
 		name = key.Start

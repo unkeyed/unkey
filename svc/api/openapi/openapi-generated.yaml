@@ -7655,11 +7655,7 @@ components:
                     description: Expiration time in Unix milliseconds, or null for no expiration.
                 permissions:
                     type: array
-                    description: |
-                        Sorted, deduplicated effective permission strings, including role-derived
-                        permissions for legacy keys. Legacy permissions are returned without
-                        translation to URNs. These strings are not expanded into accessible resources.
-                        Results containing legacy permissions cannot be passed unchanged to rootKeys.createKey.
+                    description: Sorted, deduplicated URN permission strings. These strings are not expanded into accessible resources.
                     items:
                         type: string
         DeploymentSourceOCI:
@@ -16701,7 +16697,7 @@ paths:
                 Use `rootKeys/*#read` to read all root keys. Write permission does not imply read.
                 A caller with no readable keys receives an empty page.
 
-                Includes disabled and expired keys from both root-key storage tables.
+                Includes disabled and expired keys from the new root-key store.
                 Deleted keys are excluded. Secrets and hashes are never returned.
                 Pass the returned cursor when hasMore is true to retrieve the next page.
             operationId: rootKeys.listKeys
@@ -16825,11 +16821,11 @@ paths:
                 Creates a new root key secret with the same name, enabled state, expiration, and
                 effective permissions as an existing root key in the authenticated workspace.
                 Requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#write`, and the caller must
-                already hold every permission of the original key.
+                already hold every permission of the original key. When `expiration` is not null,
+                it also requires `unkey:v1:<workspace_id>:rootKeys/<key_id>#delete`.
 
                 `expiration` controls the original key: 0 revokes it immediately, a positive value
                 keeps it valid for that many milliseconds, and null keeps its current expiration.
-                Legacy root keys are rerolled into the new root-key store.
             operationId: rootKeys.rerollKey
             requestBody:
                 content:

@@ -122,7 +122,8 @@ unkey:v1:ws_123:rootKeys/key_123#delete
 ```
 
 A permission replacement or reroll cannot give a root key more permissions than
-the caller.
+the caller. Rerolling with a non-null `expiration` also requires `delete`
+because it shortens or revokes the original key.
 
 ### Create a key
 

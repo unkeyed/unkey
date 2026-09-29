@@ -1195,49 +1195,6 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND name IN (/*SLICE:names*/?)
 	FindRolesByNamesInWorkspace(ctx context.Context, db DBTX, arg FindRolesByNamesInWorkspaceParams) ([]FindRolesByNamesInWorkspaceRow, error)
-	// FindRootKeysForManagement locates live root keys with one ID in either store.
-	// New keys sort first, so updates use them when a migration leaves a legacy twin.
-	//
-	//  SELECT
-	//      id,
-	//      hash,
-	//      name,
-	//      prefix,
-	//      start,
-	//      enabled,
-	//      expires,
-	//      is_legacy
-	//  FROM (
-	//      SELECT
-	//          id,
-	//          hash,
-	//          name,
-	//          prefix,
-	//          start,
-	//          enabled,
-	//          expires,
-	//          FALSE AS is_legacy
-	//      FROM unkey_root_keys
-	//      WHERE unkey_root_keys.id = ?
-	//          AND unkey_root_keys.workspace_id = ?
-	//          AND unkey_root_keys.deleted_at IS NULL
-	//      UNION ALL
-	//      SELECT
-	//          id,
-	//          hash,
-	//          name,
-	//          prefix,
-	//          start,
-	//          enabled,
-	//          expires,
-	//          TRUE AS is_legacy
-	//      FROM `keys`
-	//      WHERE `keys`.id = ?
-	//          AND `keys`.for_workspace_id = ?
-	//          AND `keys`.deleted_at_m IS NULL
-	//  ) AS root_keys
-	//  ORDER BY is_legacy ASC
-	FindRootKeysForManagement(ctx context.Context, db DBTX, arg FindRootKeysForManagementParams) ([]FindRootKeysForManagementRow, error)
 	// FindUnkeyRootKeyByID reads a new-format root key, excluding soft-deleted keys.
 	// It does not fall back to the legacy keys table.
 	//
@@ -2727,58 +2684,19 @@ type Querier interface {
 	//  WHERE kr.key_id = ?
 	//  ORDER BY r.name
 	ListRolesByKeyID(ctx context.Context, db DBTX, keyID string) ([]ListRolesByKeyIDRow, error)
-	// ListRootKeyPermissions loads effective permissions for an authorized page.
-	// Legacy role and direct assignments require a legacy root key in the target
-	// workspace and no live new key with the same ID. Callers deduplicate exact strings,
-	// not collation-equivalent strings.
+	// ListRootKeyPermissions loads principal permissions for a page of new root keys.
+	// Callers deduplicate exact strings, not collation-equivalent strings.
 	//
 	//  SELECT
-	//      up.principal_id AS key_id,
-	//      up.slug
-	//  FROM unkey_principal_permissions up
-	//  WHERE up.workspace_id = ?
-	//      AND up.principal_type = 'root_key'
-	//      AND up.principal_id IN (/*SLICE:key_ids*/?)
-	//  UNION ALL
-	//  SELECT
-	//      k.id AS key_id,
-	//      p.slug
-	//  FROM `keys` k
-	//  JOIN keys_permissions kp ON kp.key_id = k.id
-	//  JOIN permissions p ON p.id = kp.permission_id
-	//  WHERE k.for_workspace_id = ?
-	//      AND k.deleted_at_m IS NULL
-	//      AND k.id IN (/*SLICE:key_ids*/?)
-	//      AND NOT EXISTS (
-	//          SELECT 1
-	//          FROM unkey_root_keys shadow
-	//          WHERE shadow.id = k.id
-	//              AND shadow.workspace_id = k.for_workspace_id
-	//              AND shadow.deleted_at IS NULL
-	//      )
-	//  UNION ALL
-	//  SELECT
-	//      k.id AS key_id,
-	//      p.slug
-	//  FROM `keys` k
-	//  JOIN keys_roles kr ON kr.key_id = k.id
-	//  JOIN roles_permissions rp ON rp.role_id = kr.role_id
-	//  JOIN permissions p ON p.id = rp.permission_id
-	//  WHERE k.for_workspace_id = ?
-	//      AND k.deleted_at_m IS NULL
-	//      AND k.id IN (/*SLICE:key_ids*/?)
-	//      AND NOT EXISTS (
-	//          SELECT 1
-	//          FROM unkey_root_keys shadow
-	//          WHERE shadow.id = k.id
-	//              AND shadow.workspace_id = k.for_workspace_id
-	//              AND shadow.deleted_at IS NULL
-	//      )
+	//      principal_id AS key_id,
+	//      slug
+	//  FROM unkey_principal_permissions
+	//  WHERE workspace_id = ?
+	//      AND principal_type = 'root_key'
+	//      AND principal_id IN (/*SLICE:key_ids*/?)
 	ListRootKeyPermissions(ctx context.Context, db DBTX, arg ListRootKeyPermissionsParams) ([]ListRootKeyPermissionsRow, error)
-	// ListRootKeys merges both root-key stores into one workspace-scoped ID stream.
+	// ListRootKeys returns live root keys from the new store for one customer workspace.
 	// The cursor is inclusive: a cursor of key_b returns key_b before key_c.
-	// Disabled and expired keys remain visible; soft-deleted keys are excluded.
-	// A new key hides a legacy key with the same ID during migration.
 	//
 	//  SELECT
 	//      id,
@@ -2790,30 +2708,9 @@ type Querier interface {
 	//      expires,
 	//      created_at
 	//  FROM unkey_root_keys
-	//  WHERE unkey_root_keys.workspace_id = ?
-	//      AND unkey_root_keys.deleted_at IS NULL
-	//      AND unkey_root_keys.id >= ?
-	//  UNION ALL
-	//  SELECT
-	//      id,
-	//      name,
-	//      prefix,
-	//      start,
-	//      end,
-	//      enabled,
-	//      expires,
-	//      created_at_m AS created_at
-	//  FROM `keys`
-	//  WHERE `keys`.for_workspace_id = ?
-	//      AND `keys`.deleted_at_m IS NULL
-	//      AND `keys`.id >= ?
-	//      AND NOT EXISTS (
-	//          SELECT 1
-	//          FROM unkey_root_keys shadow
-	//          WHERE shadow.id = `keys`.id
-	//              AND shadow.workspace_id = `keys`.for_workspace_id
-	//              AND shadow.deleted_at IS NULL
-	//      )
+	//  WHERE workspace_id = ?
+	//      AND deleted_at IS NULL
+	//      AND id >= ?
 	//  ORDER BY id ASC
 	//  LIMIT ?
 	ListRootKeys(ctx context.Context, db DBTX, arg ListRootKeysParams) ([]ListRootKeysRow, error)
@@ -3057,14 +2954,6 @@ type Querier interface {
 	//    AND deleted_at_m IS NULL
 	//  LIMIT ?
 	SoftDeleteKeysByKeySpaceID(ctx context.Context, db DBTX, arg SoftDeleteKeysByKeySpaceIDParams) (int64, error)
-	// SoftDeleteLegacyRootKey tombstones a live legacy root key in one workspace.
-	//
-	//  UPDATE `keys`
-	//  SET deleted_at_m = ?
-	//  WHERE id = ?
-	//      AND for_workspace_id = ?
-	//      AND deleted_at_m IS NULL
-	SoftDeleteLegacyRootKey(ctx context.Context, db DBTX, arg SoftDeleteLegacyRootKeyParams) (int64, error)
 	//SoftDeleteRatelimitNamespace
 	//
 	//  UPDATE `ratelimit_namespaces`
@@ -3321,30 +3210,6 @@ type Querier interface {
 	//
 	//  UPDATE `key_auth` SET store_encrypted_keys = ? WHERE id = ?
 	UpdateKeySpaceKeyEncryption(ctx context.Context, db DBTX, arg UpdateKeySpaceKeyEncryptionParams) error
-	// UpdateLegacyRootKey changes mutable fields on a live legacy root key.
-	//
-	//  UPDATE `keys` SET
-	//      name = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-	//          ELSE name
-	//      END,
-	//      enabled = CASE
-	//          WHEN CAST(? AS UNSIGNED) = 1 THEN ?
-	//          ELSE enabled
-	//      END,
-	//      updated_at_m = ?
-	//  WHERE id = ?
-	//      AND for_workspace_id = ?
-	//      AND deleted_at_m IS NULL
-	UpdateLegacyRootKey(ctx context.Context, db DBTX, arg UpdateLegacyRootKeyParams) error
-	// UpdateLegacyRootKeyExpiration sets when a live legacy root key expires.
-	//
-	//  UPDATE `keys`
-	//  SET expires = ?, updated_at_m = ?
-	//  WHERE id = ?
-	//      AND for_workspace_id = ?
-	//      AND deleted_at_m IS NULL
-	UpdateLegacyRootKeyExpiration(ctx context.Context, db DBTX, arg UpdateLegacyRootKeyExpirationParams) error
 	// Updates a portal's mutable fields, scoped to the workspace so one workspace can
 	// never mutate another's portal.
 	//

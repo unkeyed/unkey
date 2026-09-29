@@ -35,10 +35,6 @@ properties:
     description: Expiration time in Unix milliseconds, or null for no expiration.
   permissions:
     type: array
-    description: |
-      Sorted, deduplicated effective permission strings, including role-derived
-      permissions for legacy keys. Legacy permissions are returned without
-      translation to URNs. These strings are not expanded into accessible resources.
-      Results containing legacy permissions cannot be passed unchanged to rootKeys.createKey.
+    description: Sorted, deduplicated URN permission strings. These strings are not expanded into accessible resources.
     items:
       type: string

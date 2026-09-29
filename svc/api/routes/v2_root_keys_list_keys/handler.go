@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"database/sql"
 	"net/http"
 	"slices"
 
@@ -21,7 +20,7 @@ import (
 type Request = openapi.V2RootKeysListKeysRequestBody
 type Response = openapi.V2RootKeysListKeysResponseBody
 
-// Handler lists readable root keys across both credential stores.
+// Handler lists readable root keys from the new credential store.
 type Handler struct {
 	DB db.Database
 }
@@ -43,7 +42,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	params := pagination.Parse(req.Limit, req.Cursor, 100)
 	rows, err := pagination.FetchAuthorized(ctx, params, func(ctx context.Context, cursor string, limit int32) ([]db.ListRootKeysRow, error) {
 		return db.Query.ListRootKeys(ctx, h.DB.RO(), db.ListRootKeysParams{
-			WorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
+			WorkspaceID: p.AuthorizedWorkspaceID,
 			IDCursor:    cursor,
 			Limit:       limit,
 		})
@@ -62,7 +61,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			permissionsByKey[row.ID] = []string{}
 		}
 		storedPermissions, err := db.Query.ListRootKeyPermissions(ctx, h.DB.RO(), db.ListRootKeyPermissionsParams{
-			WorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
+			WorkspaceID: p.AuthorizedWorkspaceID,
 			KeyIds:      ids,
 		})
 		if err != nil {

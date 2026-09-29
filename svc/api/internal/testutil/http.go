@@ -496,6 +496,12 @@ func (h *Harness) CreateRootKey(workspaceID string, permissions ...string) strin
 	return h.seeder.CreateRootKey(context.Background(), workspaceID, permissions...)
 }
 
+// CreateUnkeyRootKey creates a root key in the new root-key store. See
+// [seed.CreateUnkeyRootKeyRequest].
+func (h *Harness) CreateUnkeyRootKey(req seed.CreateUnkeyRootKeyRequest) seed.CreateKeyResponse {
+	return h.seeder.CreateUnkeyRootKey(context.Background(), req)
+}
+
 // CreateWorkspace creates a new workspace with auto-generated IDs and names.
 func (h *Harness) CreateWorkspace() db.Workspace {
 	return h.seeder.CreateWorkspace(context.Background())

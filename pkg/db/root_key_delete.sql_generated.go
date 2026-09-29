@@ -10,35 +10,6 @@ import (
 	"database/sql"
 )
 
-const softDeleteLegacyRootKey = `-- name: SoftDeleteLegacyRootKey :execrows
-UPDATE ` + "`" + `keys` + "`" + `
-SET deleted_at_m = ?
-WHERE id = ?
-    AND for_workspace_id = ?
-    AND deleted_at_m IS NULL
-`
-
-type SoftDeleteLegacyRootKeyParams struct {
-	Now         sql.NullInt64  `db:"now"`
-	ID          string         `db:"id"`
-	WorkspaceID sql.NullString `db:"workspace_id"`
-}
-
-// SoftDeleteLegacyRootKey tombstones a live legacy root key in one workspace.
-//
-//	UPDATE `keys`
-//	SET deleted_at_m = ?
-//	WHERE id = ?
-//	    AND for_workspace_id = ?
-//	    AND deleted_at_m IS NULL
-func (q *Queries) SoftDeleteLegacyRootKey(ctx context.Context, db DBTX, arg SoftDeleteLegacyRootKeyParams) (int64, error) {
-	result, err := db.ExecContext(ctx, softDeleteLegacyRootKey, arg.Now, arg.ID, arg.WorkspaceID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected()
-}
-
 const softDeleteUnkeyRootKey = `-- name: SoftDeleteUnkeyRootKey :execrows
 UPDATE unkey_root_keys
 SET deleted_at = ?

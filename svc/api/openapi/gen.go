@@ -6503,10 +6503,7 @@ type V2RootKeysListKeysResponseData struct {
 	// Name User-supplied name, or null when absent.
 	Name nullable.Nullable[string] `json:"name"`
 
-	// Permissions Sorted, deduplicated effective permission strings, including role-derived
-	// permissions for legacy keys. Legacy permissions are returned without
-	// translation to URNs. These strings are not expanded into accessible resources.
-	// Results containing legacy permissions cannot be passed unchanged to rootKeys.createKey.
+	// Permissions Sorted, deduplicated URN permission strings. These strings are not expanded into accessible resources.
 	Permissions []string `json:"permissions"`
 
 	// Start Stored display fragment, including the prefix when present.

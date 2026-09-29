@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"net/http"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
@@ -25,13 +24,14 @@ import (
 	"github.com/unkeyed/unkey/pkg/urn"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/auditactor"
+	"github.com/unkeyed/unkey/svc/api/internal/rootkeys"
 	"github.com/unkeyed/unkey/svc/api/openapi"
 )
 
 type Request = openapi.V2RootKeysRerollKeyRequestBody
 type Response = openapi.V2RootKeysRerollKeyResponseBody
 
-// Handler rotates root keys into the new credential store.
+// Handler rotates root keys in the new credential store.
 type Handler struct {
 	DB           db.Database
 	Keys         keys.KeyService
@@ -45,8 +45,7 @@ func (h *Handler) Method() string { return http.MethodPost }
 
 func (h *Handler) Path() string { return "/v2/rootKeys.rerollKey" }
 
-// Handle creates the replacement before shortening the original so a failure
-// never leaves a workspace without its existing credential.
+// Handle creates a replacement and optionally shortens the original in one transaction.
 func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	p, err := s.GetPrincipal()
 	if err != nil {
@@ -59,51 +58,41 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err := assert.True(req.Expiration.IsSpecified(), "request validation must require expiration"); err != nil {
 		return err
 	}
-	if err := p.Authorize(rbac.U(urn.New().Workspace(p.AuthorizedWorkspaceID).RootKey(req.KeyId), permissions.Write)); err != nil {
+	resource := urn.New().Workspace(p.AuthorizedWorkspaceID).RootKey(req.KeyId)
+	query := rbac.U(resource, permissions.Write)
+	if !req.Expiration.IsNull() {
+		query = rbac.And(query, rbac.U(resource, permissions.Delete))
+	}
+	if err := p.Authorize(query); err != nil {
 		return err
 	}
 
-	sources, err := db.Query.FindRootKeysForManagement(ctx, h.DB.RO(), db.FindRootKeysForManagementParams{
-		ID:          req.KeyId,
-		WorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
-	})
+	source, err := db.Query.FindUnkeyRootKeyByID(ctx, h.DB.RO(), req.KeyId)
+	if db.IsNotFound(err) || err == nil && source.WorkspaceID != p.AuthorizedWorkspaceID {
+		return rootKeyNotFound()
+	}
 	if err != nil {
 		return err
 	}
-	if len(sources) == 0 {
-		return fault.New("root key not found",
-			fault.Code(codes.Data.Key.NotFound.URN()),
-			fault.Public("The specified root key was not found."),
-		)
-	}
-	source := sources[0]
 	if err := authorizeLifetime(p, source.Expires); err != nil {
 		return err
 	}
-	storedPermissions, err := db.Query.ListRootKeyPermissions(ctx, h.DB.RO(), db.ListRootKeyPermissionsParams{
-		WorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
-		KeyIds:      []string{source.ID},
+	grants, err := db.Query.ListUnkeyPermissionsByPrincipal(ctx, h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{
+		WorkspaceID:   p.AuthorizedWorkspaceID,
+		PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
+		PrincipalID:   source.ID,
 	})
 	if err != nil {
 		return err
 	}
-	grants := make([]string, 0, len(storedPermissions))
-	for _, permission := range storedPermissions {
-		grants = append(grants, permission.Slug)
-	}
 	slices.Sort(grants)
 	grants = slices.Compact(grants)
-	for _, grant := range grants {
-		if err := p.Authorize(heldPermissionQuery(grant)); err != nil {
-			return err
-		}
+	grants, err = rootkeys.ValidateDelegatedPermissions(ctx, p, grants)
+	if err != nil {
+		return err
 	}
 
-	prefix := source.Prefix
-	if prefix == "" {
-		prefix = "unkey"
-	}
-	generated, err := h.Keys.CreateKeyV1(ctx, keys.CreateKeyV1Request{Prefix: prefix})
+	generated, err := h.Keys.CreateKeyV1(ctx, keys.CreateKeyV1Request{Prefix: source.Prefix})
 	if err != nil {
 		return err
 	}
@@ -111,20 +100,14 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	now := h.Clock.Now()
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
-		current, err := db.Query.FindRootKeysForManagement(ctx, tx, db.FindRootKeysForManagementParams{
-			ID:          req.KeyId,
-			WorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
-		})
+		current, err := db.Query.FindUnkeyRootKeyByID(ctx, tx, req.KeyId)
+		if db.IsNotFound(err) || err == nil && current.WorkspaceID != p.AuthorizedWorkspaceID {
+			return rootKeyNotFound()
+		}
 		if err != nil {
 			return err
 		}
-		if len(current) == 0 {
-			return fault.New("root key not found",
-				fault.Code(codes.Data.Key.NotFound.URN()),
-				fault.Public("The specified root key was not found."),
-			)
-		}
-		sources = current
+		source = current
 		if err := db.Query.InsertUnkeyRootKey(ctx, tx, db.InsertUnkeyRootKeyParams{
 			ID:          keyID,
 			WorkspaceID: p.AuthorizedWorkspaceID,
@@ -155,11 +138,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 		if !req.Expiration.IsNull() {
 			expires := now.Add(time.Duration(req.Expiration.MustGet()) * time.Millisecond)
-			for _, key := range sources {
-				if key.Expires.Valid && key.Expires.Time.Before(expires) {
-					continue
-				}
-				if err := expireOriginal(ctx, tx, p.AuthorizedWorkspaceID, key, expires, now); err != nil {
+			if !source.Expires.Valid || !source.Expires.Time.Before(expires) {
+				if err := db.Query.UpdateUnkeyRootKeyExpiration(ctx, tx, db.UpdateUnkeyRootKeyExpirationParams{
+					Expires:     sql.NullTime{Time: expires, Valid: true},
+					ID:          source.ID,
+					WorkspaceID: p.AuthorizedWorkspaceID,
+				}); err != nil {
 					return err
 				}
 			}
@@ -169,10 +153,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	if err != nil {
 		return err
 	}
-	for _, key := range sources {
-		h.KeyCache.Remove(ctx, key.Hash)
-		h.RootKeyCache.Remove(ctx, key.Hash)
-	}
+	h.KeyCache.Remove(ctx, source.Hash)
+	h.RootKeyCache.Remove(ctx, source.Hash)
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{RequestId: s.RequestID()},
 		Data: openapi.V2RootKeysRerollKeyResponseData{KeyId: keyID, Key: generated.Key},
@@ -194,38 +176,15 @@ func authorizeLifetime(p *principal.Principal, expires sql.NullTime) error {
 	)
 }
 
-// heldPermissionQuery requires the caller to hold a copied grant. URN grants
-// use containment; legacy grants must match exactly because they have no hierarchy.
-func heldPermissionQuery(grant string) rbac.PermissionQuery {
-	resourceName, actionName, ok := strings.Cut(grant, "#")
-	if ok && !strings.Contains(actionName, "#") {
-		resource, err := urn.ParseV1(resourceName)
-		if err == nil {
-			return rbac.U(resource, permissions.Action(actionName))
-		}
-	}
-	return rbac.S(grant)
-}
-
-// expireOriginal shortens one store's copy of the original root key.
-func expireOriginal(ctx context.Context, tx db.DBTX, workspaceID string, key db.FindRootKeysForManagementRow, expires, now time.Time) error {
-	if key.IsLegacy == 1 {
-		return db.Query.UpdateLegacyRootKeyExpiration(ctx, tx, db.UpdateLegacyRootKeyExpirationParams{
-			Expires:     sql.NullTime{Time: expires, Valid: true},
-			Now:         sql.NullInt64{Int64: now.UnixMilli(), Valid: true},
-			ID:          key.ID,
-			WorkspaceID: sql.NullString{String: workspaceID, Valid: true},
-		})
-	}
-	return db.Query.UpdateUnkeyRootKeyExpiration(ctx, tx, db.UpdateUnkeyRootKeyExpirationParams{
-		Expires:     sql.NullTime{Time: expires, Valid: true},
-		ID:          key.ID,
-		WorkspaceID: workspaceID,
-	})
+func rootKeyNotFound() error {
+	return fault.New("root key not found",
+		fault.Code(codes.Data.Key.NotFound.URN()),
+		fault.Public("The specified root key was not found."),
+	)
 }
 
 // rerollAuditLogs records the rotation and every permission copied to the new key.
-func rerollAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string, source db.FindRootKeysForManagementRow, keyID string, permissionRows []db.InsertUnkeyPermissionParams) []auditlog.AuditLog {
+func rerollAuditLogs(s *zen.Session, actor auditactor.Actor, workspaceID string, source db.UnkeyRootKey, keyID string, permissionRows []db.InsertUnkeyPermissionParams) []auditlog.AuditLog {
 	name := source.Name.String
 	if name == "" {
 		name = source.Start

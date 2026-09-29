@@ -7,58 +7,22 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"strings"
 )
 
 const listRootKeyPermissions = `-- name: ListRootKeyPermissions :many
 SELECT
-    up.principal_id AS key_id,
-    up.slug
-FROM unkey_principal_permissions up
-WHERE up.workspace_id = ?
-    AND up.principal_type = 'root_key'
-    AND up.principal_id IN (/*SLICE:key_ids*/?)
-UNION ALL
-SELECT
-    k.id AS key_id,
-    p.slug
-FROM ` + "`" + `keys` + "`" + ` k
-JOIN keys_permissions kp ON kp.key_id = k.id
-JOIN permissions p ON p.id = kp.permission_id
-WHERE k.for_workspace_id = ?
-    AND k.deleted_at_m IS NULL
-    AND k.id IN (/*SLICE:key_ids*/?)
-    AND NOT EXISTS (
-        SELECT 1
-        FROM unkey_root_keys shadow
-        WHERE shadow.id = k.id
-            AND shadow.workspace_id = k.for_workspace_id
-            AND shadow.deleted_at IS NULL
-    )
-UNION ALL
-SELECT
-    k.id AS key_id,
-    p.slug
-FROM ` + "`" + `keys` + "`" + ` k
-JOIN keys_roles kr ON kr.key_id = k.id
-JOIN roles_permissions rp ON rp.role_id = kr.role_id
-JOIN permissions p ON p.id = rp.permission_id
-WHERE k.for_workspace_id = ?
-    AND k.deleted_at_m IS NULL
-    AND k.id IN (/*SLICE:key_ids*/?)
-    AND NOT EXISTS (
-        SELECT 1
-        FROM unkey_root_keys shadow
-        WHERE shadow.id = k.id
-            AND shadow.workspace_id = k.for_workspace_id
-            AND shadow.deleted_at IS NULL
-    )
+    principal_id AS key_id,
+    slug
+FROM unkey_principal_permissions
+WHERE workspace_id = ?
+    AND principal_type = 'root_key'
+    AND principal_id IN (/*SLICE:key_ids*/?)
 `
 
 type ListRootKeyPermissionsParams struct {
-	WorkspaceID sql.NullString `db:"workspace_id"`
-	KeyIds      []string       `db:"key_ids"`
+	WorkspaceID string   `db:"workspace_id"`
+	KeyIds      []string `db:"key_ids"`
 }
 
 type ListRootKeyPermissionsRow struct {
@@ -66,74 +30,19 @@ type ListRootKeyPermissionsRow struct {
 	Slug  string `db:"slug"`
 }
 
-// ListRootKeyPermissions loads effective permissions for an authorized page.
-// Legacy role and direct assignments require a legacy root key in the target
-// workspace and no live new key with the same ID. Callers deduplicate exact strings,
-// not collation-equivalent strings.
+// ListRootKeyPermissions loads principal permissions for a page of new root keys.
+// Callers deduplicate exact strings, not collation-equivalent strings.
 //
 //	SELECT
-//	    up.principal_id AS key_id,
-//	    up.slug
-//	FROM unkey_principal_permissions up
-//	WHERE up.workspace_id = ?
-//	    AND up.principal_type = 'root_key'
-//	    AND up.principal_id IN (/*SLICE:key_ids*/?)
-//	UNION ALL
-//	SELECT
-//	    k.id AS key_id,
-//	    p.slug
-//	FROM `keys` k
-//	JOIN keys_permissions kp ON kp.key_id = k.id
-//	JOIN permissions p ON p.id = kp.permission_id
-//	WHERE k.for_workspace_id = ?
-//	    AND k.deleted_at_m IS NULL
-//	    AND k.id IN (/*SLICE:key_ids*/?)
-//	    AND NOT EXISTS (
-//	        SELECT 1
-//	        FROM unkey_root_keys shadow
-//	        WHERE shadow.id = k.id
-//	            AND shadow.workspace_id = k.for_workspace_id
-//	            AND shadow.deleted_at IS NULL
-//	    )
-//	UNION ALL
-//	SELECT
-//	    k.id AS key_id,
-//	    p.slug
-//	FROM `keys` k
-//	JOIN keys_roles kr ON kr.key_id = k.id
-//	JOIN roles_permissions rp ON rp.role_id = kr.role_id
-//	JOIN permissions p ON p.id = rp.permission_id
-//	WHERE k.for_workspace_id = ?
-//	    AND k.deleted_at_m IS NULL
-//	    AND k.id IN (/*SLICE:key_ids*/?)
-//	    AND NOT EXISTS (
-//	        SELECT 1
-//	        FROM unkey_root_keys shadow
-//	        WHERE shadow.id = k.id
-//	            AND shadow.workspace_id = k.for_workspace_id
-//	            AND shadow.deleted_at IS NULL
-//	    )
+//	    principal_id AS key_id,
+//	    slug
+//	FROM unkey_principal_permissions
+//	WHERE workspace_id = ?
+//	    AND principal_type = 'root_key'
+//	    AND principal_id IN (/*SLICE:key_ids*/?)
 func (q *Queries) ListRootKeyPermissions(ctx context.Context, db DBTX, arg ListRootKeyPermissionsParams) ([]ListRootKeyPermissionsRow, error) {
 	query := listRootKeyPermissions
 	var queryParams []interface{}
-	queryParams = append(queryParams, arg.WorkspaceID)
-	if len(arg.KeyIds) > 0 {
-		for _, v := range arg.KeyIds {
-			queryParams = append(queryParams, v)
-		}
-		query = strings.Replace(query, "/*SLICE:key_ids*/?", strings.Repeat(",?", len(arg.KeyIds))[1:], 1)
-	} else {
-		query = strings.Replace(query, "/*SLICE:key_ids*/?", "NULL", 1)
-	}
-	queryParams = append(queryParams, arg.WorkspaceID)
-	if len(arg.KeyIds) > 0 {
-		for _, v := range arg.KeyIds {
-			queryParams = append(queryParams, v)
-		}
-		query = strings.Replace(query, "/*SLICE:key_ids*/?", strings.Repeat(",?", len(arg.KeyIds))[1:], 1)
-	} else {
-		query = strings.Replace(query, "/*SLICE:key_ids*/?", "NULL", 1)
-	}
 	queryParams = append(queryParams, arg.WorkspaceID)
 	if len(arg.KeyIds) > 0 {
 		for _, v := range arg.KeyIds {
