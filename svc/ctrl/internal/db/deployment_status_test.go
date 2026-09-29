@@ -32,11 +32,13 @@ func TestDeploymentStatusPreservesFirstReadyAt(t *testing.T) {
 			tx, err := database.BeginTx(t.Context(), nil)
 			require.NoError(t, err)
 			t.Cleanup(func() { require.NoError(t, tx.Rollback()) })
+
 			id := uid.New("dep")
 			_, err = tx.ExecContext(t.Context(), `INSERT INTO deployments
 (id,k8s_name,workspace_id,project_id,app_id,environment_id,sentinel_config,cpu_millicores,memory_mib,encrypted_environment_variables,status,created_at,updated_at)
 VALUES (?,?,'ws','project','app','preview','{}',100,128,'{}',?,10,?)`, id, id, tt.status, tt.updatedAt)
 			require.NoError(t, err)
+
 			q := NewQueries(tx)
 			update := func(status mysqltype.DeploymentsStatus, timestamp int64, expected sql.NullInt64) {
 				t.Helper()
@@ -51,6 +53,7 @@ VALUES (?,?,'ws','project','app','preview','{}',100,128,'{}',?,10,?)`, id, id, t
 				require.Equal(t, status, deployment.Status)
 				require.Equal(t, timestamp, deployment.UpdatedAt.Int64)
 			}
+
 			update(mysqltype.DeploymentsStatusDeploying, 100, tt.firstWake)
 			update(mysqltype.DeploymentsStatusFailed, 150, tt.firstWake)
 			readyAt := sql.NullInt64{Int64: tt.firstReady, Valid: true}

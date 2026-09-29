@@ -22,6 +22,7 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 		_, execErr := tx.ExecContext(t.Context(), query, args...)
 		require.NoError(t, execErr)
 	}
+
 	exec(`INSERT INTO workspaces (id,org_id,name,slug,k8s_namespace,beta_features) VALUES
 		('ws','org-binding-test','Workspace','binding-test','namespace','{}'),
 		('other-ws','other-org-binding-test','Other','other-binding-test','other-namespace','{}')`)
@@ -60,6 +61,7 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 			exec(`INSERT INTO deployment_topology (workspace_id,deployment_id,region_id,desired_status,created_at) VALUES (?,?,?, 'running',1)`, workspace, id, region)
 		}
 	}
+
 	insertDeployment("caller-prod-deploying", "caller", "caller-prod", "git", "main", nil, "deploying", "running", nil, 10, "r")
 	insertDeployment("caller-prod-live", "caller", "caller-prod", "git", "main", nil, "ready", "running", 1, 9, "r", "r2")
 	insertDeployment("caller-canary-oci", "caller", "caller-canary", "oci", "", nil, "ready", "running", 1, 11, "r")
@@ -107,6 +109,7 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 		exec(`INSERT INTO app_bindings (id,workspace_id,project_id,app_id,environment_id,resource_type,resource_id,name,selection_mode,target_environment_id,target_deployment_id,created_at)
 			VALUES (?,'ws','project','caller',?,'app',?,?,?,?,?,1)`, id, environment, target, name, targetType, targetEnvironment, targetDeployment)
 	}
+
 	exec(`INSERT INTO workspaces (id,org_id,name,slug,k8s_namespace,beta_features) VALUES
 		('unscheduled-ws','org-unscheduled-binding-test','Unscheduled','unscheduled-binding-test','','{}')`)
 	exec(`INSERT INTO projects (id,workspace_id,name,slug,created_at) VALUES ('unscheduled-project','unscheduled-ws','Unscheduled','unscheduled',1)`)
@@ -122,6 +125,7 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 	}
 	exec(`INSERT INTO app_bindings (id,workspace_id,project_id,app_id,environment_id,resource_type,resource_id,name,selection_mode,created_at)
 		VALUES ('unscheduled','unscheduled-ws','unscheduled-project','unscheduled-caller','unscheduled-env','app','unscheduled-target','target','automatic',1)`)
+
 	insertBinding("production", "target", "caller-prod", "target", "automatic", nil, nil)
 	insertBinding("self-prod", "caller", "caller-prod", "caller", "automatic", nil, nil)
 	insertBinding("cross-workspace", "foreign", "caller-prod", "foreign", "automatic", nil, nil)
@@ -169,6 +173,7 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 				require.Equal(t, "ws", row.WorkspaceID)
 				require.Equal(t, "project", row.ProjectID)
 			}
+
 			if len(rows) < int(params.Limit) {
 				return byBindingCaller
 			}
@@ -180,8 +185,10 @@ func TestListPrivateNetworkAppsSelection(t *testing.T) {
 		t.Helper()
 		return listPlatform("kubernetes")
 	}
+
 	selected := list()
 	require.Len(t, selected, 10)
+
 	for key, want := range map[string]string{
 		"production/caller-prod-deploying":  "target-live",
 		"production/caller-prod-live":       "target-live",

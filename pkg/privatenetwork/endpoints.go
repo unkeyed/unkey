@@ -18,6 +18,7 @@ func AppendReadyAddresses(addresses []netip.Addr, service *corev1.Service, slice
 	if slice.AddressType != discoveryv1.AddressTypeIPv4 {
 		return addresses
 	}
+
 	for _, endpoint := range slice.Endpoints {
 		if endpoint.Conditions.Ready == nil || !*endpoint.Conditions.Ready ||
 			(endpoint.Conditions.Terminating != nil && *endpoint.Conditions.Terminating) {
