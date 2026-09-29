@@ -63,6 +63,7 @@ const remoteIpConditionSchema = z.object({
 
 const ipOrCidrSchema = z.union([z.ipv4(), z.ipv6(), z.cidrv4(), z.cidrv6()]);
 
+// "203.0.113.0/24, 198.51.100.7\n2001:db8::/32" -> ["203.0.113.0/24", "198.51.100.7", "2001:db8::/32"]
 function splitRanges(ranges: string): string[] {
   return ranges.split(/[\s,]+/).filter((r) => r.length > 0);
 }
