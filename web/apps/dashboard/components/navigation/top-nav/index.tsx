@@ -12,7 +12,6 @@ import { AccountCrumb } from "./account-crumb";
 import { ApiCrumb } from "./api-crumb";
 import { AppCrumb } from "./app-crumb";
 import { CrumbSeparator } from "./crumb";
-import { EnvironmentCrumb } from "./environment-crumb";
 import { TopNavFeedbackButton } from "./feedback-button";
 import { HelpButton } from "./help-button";
 import { IdentityCrumb } from "./identity-crumb";
@@ -75,10 +74,8 @@ function CrumbForDescriptor({ descriptor }: { descriptor: BreadcrumbDescriptor }
     case "project":
       return <ProjectCrumb owner={descriptor.owner} />;
     case "app":
-      return <AppCrumb projectId={descriptor.projectId} appId={descriptor.appId} />;
-    case "environment":
       return (
-        <EnvironmentCrumb
+        <AppCrumb
           projectId={descriptor.projectId}
           appId={descriptor.appId}
           environmentSlug={descriptor.environmentSlug}
@@ -107,9 +104,6 @@ function crumbKey(descriptor: BreadcrumbDescriptor): string {
       return "project";
     case "app":
       return `app:${descriptor.appId}`;
-    // Stable across environment switches so the popover stays mounted.
-    case "environment":
-      return `environment:${descriptor.appId}`;
     case "api":
       return `api:${descriptor.apiId}`;
     case "namespace":

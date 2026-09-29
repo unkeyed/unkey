@@ -4,16 +4,20 @@ import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { PRODUCTION_ENVIRONMENT_SLUG } from "@/lib/collections/deploy/environments";
 import { routes } from "@/lib/navigation/routes";
-import { isAppPage } from "@/lib/navigation/routes/projects";
 import { eq, useLiveQuery } from "@tanstack/react-db";
 import { Github, IconPlusOutline18, IconTerminalOutline18 } from "@unkey/icons";
-import { useParams } from "next/navigation";
 import { Crumb } from "./crumb";
 import type { CrumbPopoverItem } from "./crumb-popover";
+import { EnvironmentSwitcher } from "./environment-switcher";
 
-export function AppCrumb({ projectId, appId }: { projectId: string; appId: string }) {
+type AppCrumbProps = {
+  projectId: string;
+  appId: string;
+  environmentSlug?: string;
+};
+
+export function AppCrumb({ projectId, appId, environmentSlug }: AppCrumbProps) {
   const workspace = useWorkspaceNavigation();
-  const params = useParams<{ environmentSlug?: string }>();
   const appsQuery = useLiveQuery(
     (q) => q.from({ app: collection.apps }).where(({ app }) => eq(app.projectId, projectId)),
     [projectId],
@@ -29,18 +33,15 @@ export function AppCrumb({ projectId, appId }: { projectId: string; appId: strin
 
   // Stay in the same environment across apps when the target has one by that
   // slug; otherwise fall back to production.
-  const currentSlug =
-    params.environmentSlug && !isAppPage(params.environmentSlug)
-      ? params.environmentSlug
-      : undefined;
   const hrefFor = (targetAppId: string) =>
     routes.projects.apps.overview({
       workspaceSlug: workspace.slug,
       projectId,
       appId: targetAppId,
       environmentSlug:
-        currentSlug && environments.some((e) => e.appId === targetAppId && e.slug === currentSlug)
-          ? currentSlug
+        environmentSlug &&
+        environments.some((e) => e.appId === targetAppId && e.slug === environmentSlug)
+          ? environmentSlug
           : PRODUCTION_ENVIRONMENT_SLUG,
     });
 
@@ -64,6 +65,15 @@ export function AppCrumb({ projectId, appId }: { projectId: string; appId: strin
       href={hrefFor(appId)}
       items={items}
       currentId={appId}
+      badge={
+        environmentSlug ? (
+          <EnvironmentSwitcher
+            projectId={projectId}
+            appId={appId}
+            environmentSlug={environmentSlug}
+          />
+        ) : undefined
+      }
       searchPlaceholder="Find app..."
       emptyText="No apps found"
       footer={{

@@ -18,6 +18,7 @@ type CrumbProps = {
   footer?: CrumbPopoverFooter;
   loading?: boolean;
   listStatus?: ReactNode;
+  badge?: ReactNode;
 };
 
 export function Crumb({
@@ -31,10 +32,12 @@ export function Crumb({
   footer,
   loading = false,
   listStatus,
+  badge,
 }: CrumbProps) {
   return (
     <div className="flex min-w-0 items-center gap-0.5">
       <CrumbLink icon={icon} label={label} href={href} loading={loading} />
+      {badge}
       <CrumbPopover
         items={items}
         currentId={currentId}
