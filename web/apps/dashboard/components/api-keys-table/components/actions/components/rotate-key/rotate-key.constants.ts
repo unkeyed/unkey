@@ -47,8 +47,8 @@ export function gracePeriodMsFromValue<V extends GracePeriodValue>(
 const DEFAULT_GRACE_PERIOD_MS: GracePeriodMs = 86_400_000;
 export const DEFAULT_GRACE_PERIOD: GracePeriodValue = `${DEFAULT_GRACE_PERIOD_MS}`;
 
-// Rotation omits `expiration` for this choice, so the original key keeps its
-// current expiry instead of being revoked.
+// Rotation sends `expiration: null` for this choice, so the original key keeps
+// its current expiry instead of being revoked.
 export const NEVER_GRACE_PERIOD = "never";
 
 export const NEVER_GRACE_PERIOD_OPTION: FormSelectOption = {

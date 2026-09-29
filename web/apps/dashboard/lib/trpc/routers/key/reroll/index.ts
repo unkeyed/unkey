@@ -26,7 +26,7 @@ const rerollInputSchema = z.object({
     .refine((v): v is GracePeriodMs => allowedExpirations.has(v), {
       error: "expiration must be one of the supported grace periods",
     })
-    .optional(),
+    .nullable(),
 });
 
 // Rotates a root key. Root keys live in the Unkey-owned workspace
@@ -59,7 +59,7 @@ type RerollKeyContext = {
 
 type RerollKeyArgs = {
   keyId: string;
-  expiration?: number;
+  expiration: number | null;
   scopedWorkspaceId: string;
   forWorkspaceId?: string;
   ctx: RerollKeyContext;
@@ -218,7 +218,7 @@ async function rerollKeyCore({
       // permanent key. The old key's grace period is capped against that
       // same expiry.
       const oldKeyExpiresAt =
-        expiration === undefined
+        expiration === null
           ? source.expires
           : capGracePeriodAtSourceExpiry(source.expires, new Date(now + expiration));
 

@@ -17,7 +17,7 @@ import {
 
 type RotatedKeyData = { id: string; key: string; name?: string };
 
-type RotateInput = { keyId: string; expiration?: GracePeriodMs };
+type RotateInput = { keyId: string; expiration: GracePeriodMs | null };
 
 type RotateMutation = {
   mutateAsync: (input: RotateInput) => Promise<{ keyId: string; key: string; name?: string }>;
@@ -120,9 +120,7 @@ export const RotateKeyDialog = ({
       // value into a request the server would reject anyway.
       return;
     }
-    const expiration = isGracePeriodValue(gracePeriod)
-      ? gracePeriodMsFromValue(gracePeriod)
-      : undefined;
+    const expiration = isGracePeriodValue(gracePeriod) ? gracePeriodMsFromValue(gracePeriod) : null;
     try {
       setIsLoading(true);
       const result = await mutation.mutateAsync({ keyId, expiration });
