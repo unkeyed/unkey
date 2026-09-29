@@ -15,7 +15,7 @@ export const MATCH_TYPE_OPTIONS: { value: MatchConditionFormValues["type"]; labe
   { value: "method", label: "Method" },
   { value: "header", label: "Header" },
   { value: "queryParam", label: "Query Param" },
-  { value: "remoteIp", label: "Client IP" },
+  { value: "remoteIp", label: "Remote IP" },
 ];
 
 export const REMOTE_IP_OPERATORS: { value: "in" | "notIn"; label: string }[] = [
