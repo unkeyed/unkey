@@ -90,7 +90,7 @@ func TestLegacyProjectPermissionDoesNotBlockCreation(t *testing.T) {
 	}))
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{Permissions: []string{grant}})
 	require.Equal(t, http.StatusOK, res.Status)
-	stored, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
+	stored, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{WorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
 	require.NoError(t, err)
 	require.Equal(t, []string{grant}, stored)
 }
@@ -113,7 +113,7 @@ func TestLegacyCollationCannotSubstitutePermission(t *testing.T) {
 	p.Permissions = []string{"unkey:v1:" + p.AuthorizedWorkspaceID + ":rootKeys/*#write", permission}
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{Permissions: []string{permission}})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-	storedPermissions, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
+	storedPermissions, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{WorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
 	require.NoError(t, err)
 	require.Equal(t, []string{permission}, storedPermissions)
 }
@@ -127,7 +127,7 @@ func TestPermissionStoragePreservesCase(t *testing.T) {
 	requested := []string{base + "ks_one#read", base + "KS_one#read"}
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer test"}, "Content-Type": {"application/json"}}, handler.Request{Permissions: requested})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-	stored, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
+	stored, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{WorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
 	require.NoError(t, err)
 	require.ElementsMatch(t, requested, stored)
 }
@@ -137,10 +137,10 @@ func snapshot(t *testing.T, h *testutil.Harness) []int {
 	var counts []int
 	for _, query := range []struct{ sql, workspaceID string }{
 		{"SELECT COUNT(*) FROM `keys` WHERE workspace_id = ?", h.Resources().RootWorkspace.ID},
-		{"SELECT COUNT(*) FROM unkey_root_keys WHERE for_workspace_id = ?", h.Resources().UserWorkspace.ID},
+		{"SELECT COUNT(*) FROM unkey_root_keys WHERE workspace_id = ?", h.Resources().UserWorkspace.ID},
 		{"SELECT COUNT(*) FROM permissions WHERE workspace_id = ?", h.Resources().RootWorkspace.ID},
 		{"SELECT COUNT(*) FROM keys_permissions WHERE workspace_id = ?", h.Resources().RootWorkspace.ID},
-		{"SELECT COUNT(*) FROM unkey_principal_permissions WHERE for_workspace_id = ?", h.Resources().UserWorkspace.ID},
+		{"SELECT COUNT(*) FROM unkey_principal_permissions WHERE workspace_id = ?", h.Resources().UserWorkspace.ID},
 		{"SELECT COUNT(*) FROM clickhouse_outbox WHERE workspace_id = ?", h.Resources().UserWorkspace.ID},
 	} {
 		var count int

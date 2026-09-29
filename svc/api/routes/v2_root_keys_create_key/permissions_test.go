@@ -58,7 +58,7 @@ func TestCreateStoresEveryResourceAction(t *testing.T) {
 		"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
 	}, handler.Request{Permissions: requested})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-	storedPermissions, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
+	storedPermissions, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{WorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
 	require.NoError(t, err)
 	require.ElementsMatch(t, requested, storedPermissions)
 }

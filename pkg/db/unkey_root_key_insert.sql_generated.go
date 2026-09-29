@@ -13,7 +13,7 @@ import (
 const insertUnkeyRootKey = `-- name: InsertUnkeyRootKey :exec
 INSERT INTO unkey_root_keys (
     id,
-    for_workspace_id,
+    workspace_id,
     hash,
     name,
     prefix,
@@ -37,16 +37,16 @@ INSERT INTO unkey_root_keys (
 `
 
 type InsertUnkeyRootKeyParams struct {
-	ID             string         `db:"id"`
-	ForWorkspaceID string         `db:"for_workspace_id"`
-	Hash           string         `db:"hash"`
-	Name           sql.NullString `db:"name"`
-	Prefix         string         `db:"prefix"`
-	Start          string         `db:"start"`
-	End            string         `db:"end"`
-	Enabled        bool           `db:"enabled"`
-	Expires        sql.NullTime   `db:"expires"`
-	CreatedAt      int64          `db:"created_at"`
+	ID          string         `db:"id"`
+	WorkspaceID string         `db:"workspace_id"`
+	Hash        string         `db:"hash"`
+	Name        sql.NullString `db:"name"`
+	Prefix      string         `db:"prefix"`
+	Start       string         `db:"start"`
+	End         string         `db:"end"`
+	Enabled     bool           `db:"enabled"`
+	Expires     sql.NullTime   `db:"expires"`
+	CreatedAt   int64          `db:"created_at"`
 }
 
 // InsertUnkeyRootKey creates an administrative credential outside the regular
@@ -54,7 +54,7 @@ type InsertUnkeyRootKeyParams struct {
 //
 //	INSERT INTO unkey_root_keys (
 //	    id,
-//	    for_workspace_id,
+//	    workspace_id,
 //	    hash,
 //	    name,
 //	    prefix,
@@ -78,7 +78,7 @@ type InsertUnkeyRootKeyParams struct {
 func (q *Queries) InsertUnkeyRootKey(ctx context.Context, db DBTX, arg InsertUnkeyRootKeyParams) error {
 	_, err := db.ExecContext(ctx, insertUnkeyRootKey,
 		arg.ID,
-		arg.ForWorkspaceID,
+		arg.WorkspaceID,
 		arg.Hash,
 		arg.Name,
 		arg.Prefix,

@@ -40,16 +40,16 @@ func TestListRootKeysPaginatesBothStores(t *testing.T) {
 			require.NoError(t, err)
 		} else {
 			require.NoError(t, db.Query.InsertUnkeyRootKey(t.Context(), h.DB.RW(), db.InsertUnkeyRootKeyParams{
-				ID:             id,
-				ForWorkspaceID: workspace.ID,
-				Hash:           uid.New("hash"),
-				Name:           sql.NullString{},
-				Prefix:         "unkey",
-				Start:          "visible",
-				End:            "tail",
-				Enabled:        true,
-				Expires:        sql.NullTime{},
-				CreatedAt:      1700000000000,
+				ID:          id,
+				WorkspaceID: workspace.ID,
+				Hash:        uid.New("hash"),
+				Name:        sql.NullString{},
+				Prefix:      "unkey",
+				Start:       "visible",
+				End:         "tail",
+				Enabled:     true,
+				Expires:     sql.NullTime{},
+				CreatedAt:   1700000000000,
 			}))
 		}
 	}
@@ -98,16 +98,16 @@ func TestListRootKeysReturnsEffectivePermissions(t *testing.T) {
 	require.NoError(t, err)
 	id := uid.New(uid.KeyPrefix)
 	require.NoError(t, db.Query.InsertUnkeyRootKey(t.Context(), h.DB.RW(), db.InsertUnkeyRootKeyParams{
-		ID:             id,
-		ForWorkspaceID: workspace.ID,
-		Hash:           "never-return-this-hash",
-		Name:           sql.NullString{String: "", Valid: true},
-		Prefix:         "unkey",
-		Start:          "display",
-		End:            "tail",
-		Enabled:        false,
-		Expires:        sql.NullTime{Time: time.UnixMilli(1600000000123), Valid: true},
-		CreatedAt:      1500000000456,
+		ID:          id,
+		WorkspaceID: workspace.ID,
+		Hash:        "never-return-this-hash",
+		Name:        sql.NullString{String: "", Valid: true},
+		Prefix:      "unkey",
+		Start:       "display",
+		End:         "tail",
+		Enabled:     false,
+		Expires:     sql.NullTime{Time: time.UnixMilli(1600000000123), Valid: true},
+		CreatedAt:   1500000000456,
 	}))
 	permission := "unkey:v1:" + workspace.ID + ":rootKeys/*#read"
 	for _, row := range []struct {
@@ -122,12 +122,12 @@ func TestListRootKeysReturnsEffectivePermissions(t *testing.T) {
 		{h.CreateWorkspace().ID, db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, id, "wrong-workspace"},
 	} {
 		require.NoError(t, db.Query.InsertUnkeyPermission(t.Context(), h.DB.RW(), db.InsertUnkeyPermissionParams{
-			ID:             uid.New(uid.PermissionPrefix),
-			ForWorkspaceID: row.workspace,
-			PrincipalType:  row.kind,
-			PrincipalID:    row.id,
-			Slug:           row.permission,
-			CreatedAt:      1500000000456,
+			ID:            uid.New(uid.PermissionPrefix),
+			WorkspaceID:   row.workspace,
+			PrincipalType: row.kind,
+			PrincipalID:   row.id,
+			Slug:          row.permission,
+			CreatedAt:     1500000000456,
 		}))
 	}
 	caller := h.CreateRootKey(workspace.ID,
@@ -243,16 +243,16 @@ func TestListRootKeysExcludesForeignAndDeletedKeys(t *testing.T) {
 	for _, target := range []string{workspace.ID, foreign.ID} {
 		id := uid.New(uid.KeyPrefix)
 		require.NoError(t, db.Query.InsertUnkeyRootKey(t.Context(), h.DB.RW(), db.InsertUnkeyRootKeyParams{
-			ID:             id,
-			ForWorkspaceID: target,
-			Hash:           uid.New("hash"),
-			Name:           sql.NullString{},
-			Prefix:         "unkey",
-			Start:          "hidden",
-			End:            "tail",
-			Enabled:        true,
-			Expires:        sql.NullTime{},
-			CreatedAt:      1700000000000,
+			ID:          id,
+			WorkspaceID: target,
+			Hash:        uid.New("hash"),
+			Name:        sql.NullString{},
+			Prefix:      "unkey",
+			Start:       "hidden",
+			End:         "tail",
+			Enabled:     true,
+			Expires:     sql.NullTime{},
+			CreatedAt:   1700000000000,
 		}))
 		if target == workspace.ID {
 			_, err := h.DB.RW().ExecContext(t.Context(), "UPDATE unkey_root_keys SET deleted_at = 1 WHERE id = ?", id)
@@ -279,12 +279,12 @@ func TestListRootKeysPrefersNewTwin(t *testing.T) {
 		Permissions: []seed.CreatePermissionRequest{{WorkspaceID: h.Resources().RootWorkspace.ID, Name: "api.*.read_key", Slug: "api.*.read_key"}},
 	})
 	require.NoError(t, db.Query.InsertUnkeyRootKey(t.Context(), h.DB.RW(), db.InsertUnkeyRootKeyParams{
-		ID: legacy.KeyID, ForWorkspaceID: workspace.ID, Hash: uid.New("hash"), Name: sql.NullString{String: "new", Valid: true},
+		ID: legacy.KeyID, WorkspaceID: workspace.ID, Hash: uid.New("hash"), Name: sql.NullString{String: "new", Valid: true},
 		Prefix: "unkey", Start: "new", End: "tail", Enabled: true, Expires: sql.NullTime{}, CreatedAt: 1700000000000,
 	}))
 	permission := "unkey:v1:" + workspace.ID + ":rootKeys/*#read"
 	require.NoError(t, db.Query.InsertUnkeyPermission(t.Context(), h.DB.RW(), db.InsertUnkeyPermissionParams{
-		ID: uid.New(uid.PermissionPrefix), ForWorkspaceID: workspace.ID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
+		ID: uid.New(uid.PermissionPrefix), WorkspaceID: workspace.ID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
 		PrincipalID: legacy.KeyID, Slug: permission, CreatedAt: 1700000000000,
 	}))
 	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/"+legacy.KeyID+"#read")

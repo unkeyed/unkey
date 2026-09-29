@@ -21,7 +21,7 @@ SELECT
     expires,
     created_at
 FROM unkey_root_keys
-WHERE unkey_root_keys.for_workspace_id = ?
+WHERE unkey_root_keys.workspace_id = ?
     AND unkey_root_keys.deleted_at IS NULL
     AND unkey_root_keys.id >= ?
 UNION ALL
@@ -42,7 +42,7 @@ WHERE ` + "`" + `keys` + "`" + `.for_workspace_id = ?
         SELECT 1
         FROM unkey_root_keys shadow
         WHERE shadow.id = ` + "`" + `keys` + "`" + `.id
-            AND shadow.for_workspace_id = ` + "`" + `keys` + "`" + `.for_workspace_id
+            AND shadow.workspace_id = ` + "`" + `keys` + "`" + `.for_workspace_id
             AND shadow.deleted_at IS NULL
     )
 ORDER BY id ASC
@@ -50,9 +50,9 @@ LIMIT ?
 `
 
 type ListRootKeysParams struct {
-	ForWorkspaceID sql.NullString `db:"for_workspace_id"`
-	IDCursor       string         `db:"id_cursor"`
-	Limit          int32          `db:"limit"`
+	WorkspaceID sql.NullString `db:"workspace_id"`
+	IDCursor    string         `db:"id_cursor"`
+	Limit       int32          `db:"limit"`
 }
 
 type ListRootKeysRow struct {
@@ -81,7 +81,7 @@ type ListRootKeysRow struct {
 //	    expires,
 //	    created_at
 //	FROM unkey_root_keys
-//	WHERE unkey_root_keys.for_workspace_id = ?
+//	WHERE unkey_root_keys.workspace_id = ?
 //	    AND unkey_root_keys.deleted_at IS NULL
 //	    AND unkey_root_keys.id >= ?
 //	UNION ALL
@@ -102,16 +102,16 @@ type ListRootKeysRow struct {
 //	        SELECT 1
 //	        FROM unkey_root_keys shadow
 //	        WHERE shadow.id = `keys`.id
-//	            AND shadow.for_workspace_id = `keys`.for_workspace_id
+//	            AND shadow.workspace_id = `keys`.for_workspace_id
 //	            AND shadow.deleted_at IS NULL
 //	    )
 //	ORDER BY id ASC
 //	LIMIT ?
 func (q *Queries) ListRootKeys(ctx context.Context, db DBTX, arg ListRootKeysParams) ([]ListRootKeysRow, error) {
 	rows, err := db.QueryContext(ctx, listRootKeys,
-		arg.ForWorkspaceID,
+		arg.WorkspaceID,
 		arg.IDCursor,
-		arg.ForWorkspaceID,
+		arg.WorkspaceID,
 		arg.IDCursor,
 		arg.Limit,
 	)

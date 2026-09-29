@@ -27,7 +27,7 @@ SELECT
         FROM (
             SELECT p.slug
             FROM unkey_principal_permissions p
-            WHERE p.for_workspace_id = k.for_workspace_id
+            WHERE p.workspace_id = k.for_workspace_id
                 AND p.principal_type = 'root_key'
                 AND p.principal_id = k.id
             UNION ALL
@@ -87,7 +87,7 @@ type FindLegacyRootKeyForAuthenticationRow struct {
 //	        FROM (
 //	            SELECT p.slug
 //	            FROM unkey_principal_permissions p
-//	            WHERE p.for_workspace_id = k.for_workspace_id
+//	            WHERE p.workspace_id = k.for_workspace_id
 //	                AND p.principal_type = 'root_key'
 //	                AND p.principal_id = k.id
 //	            UNION ALL
@@ -134,70 +134,70 @@ func (q *Queries) FindLegacyRootKeyForAuthentication(ctx context.Context, db DBT
 const findUnkeyRootKeyForAuthentication = `-- name: FindUnkeyRootKeyForAuthentication :one
 SELECT
     k.id,
-    k.for_workspace_id,
+    k.workspace_id,
     k.name,
     k.expires,
     k.enabled,
     k.deleted_at,
-    fws.enabled AS for_workspace_enabled,
+    fws.enabled AS workspace_enabled,
     COALESCE(
         (SELECT JSON_ARRAYAGG(p.slug)
         FROM unkey_principal_permissions p
-        WHERE p.for_workspace_id = k.for_workspace_id
+        WHERE p.workspace_id = k.workspace_id
             AND p.principal_type = 'root_key'
             AND p.principal_id = k.id),
         JSON_ARRAY()
     ) AS permissions
 FROM unkey_root_keys k
-LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
+LEFT JOIN workspaces fws ON fws.id = k.workspace_id
 WHERE k.hash = ?
 `
 
 type FindUnkeyRootKeyForAuthenticationRow struct {
-	ID                  string         `db:"id"`
-	ForWorkspaceID      string         `db:"for_workspace_id"`
-	Name                sql.NullString `db:"name"`
-	Expires             sql.NullTime   `db:"expires"`
-	Enabled             bool           `db:"enabled"`
-	DeletedAt           sql.NullInt64  `db:"deleted_at"`
-	ForWorkspaceEnabled sql.NullBool   `db:"for_workspace_enabled"`
-	Permissions         interface{}    `db:"permissions"`
+	ID               string         `db:"id"`
+	WorkspaceID      string         `db:"workspace_id"`
+	Name             sql.NullString `db:"name"`
+	Expires          sql.NullTime   `db:"expires"`
+	Enabled          bool           `db:"enabled"`
+	DeletedAt        sql.NullInt64  `db:"deleted_at"`
+	WorkspaceEnabled sql.NullBool   `db:"workspace_enabled"`
+	Permissions      interface{}    `db:"permissions"`
 }
 
 // FindUnkeyRootKeyForAuthentication loads a root key from the new store,
 // including tombstones so callers do not fall back to a legacy row with the same hash.
-// Permissions are scoped to the target workspace and root-key principal.
+// Permissions are scoped to the owning customer workspace and root-key principal.
 //
 //	SELECT
 //	    k.id,
-//	    k.for_workspace_id,
+//	    k.workspace_id,
 //	    k.name,
 //	    k.expires,
 //	    k.enabled,
 //	    k.deleted_at,
-//	    fws.enabled AS for_workspace_enabled,
+//	    fws.enabled AS workspace_enabled,
 //	    COALESCE(
 //	        (SELECT JSON_ARRAYAGG(p.slug)
 //	        FROM unkey_principal_permissions p
-//	        WHERE p.for_workspace_id = k.for_workspace_id
+//	        WHERE p.workspace_id = k.workspace_id
 //	            AND p.principal_type = 'root_key'
 //	            AND p.principal_id = k.id),
 //	        JSON_ARRAY()
 //	    ) AS permissions
 //	FROM unkey_root_keys k
-//	LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
+//	LEFT JOIN workspaces fws ON fws.id = k.workspace_id
 //	WHERE k.hash = ?
 func (q *Queries) FindUnkeyRootKeyForAuthentication(ctx context.Context, db DBTX, hash string) (FindUnkeyRootKeyForAuthenticationRow, error) {
 	row := db.QueryRowContext(ctx, findUnkeyRootKeyForAuthentication, hash)
 	var i FindUnkeyRootKeyForAuthenticationRow
 	err := row.Scan(
 		&i.ID,
-		&i.ForWorkspaceID,
+		&i.WorkspaceID,
 		&i.Name,
 		&i.Expires,
 		&i.Enabled,
 		&i.DeletedAt,
-		&i.ForWorkspaceEnabled,
+		&i.WorkspaceEnabled,
 		&i.Permissions,
 	)
 	return i, err

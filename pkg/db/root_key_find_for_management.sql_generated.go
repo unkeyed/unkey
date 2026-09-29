@@ -28,7 +28,7 @@ FROM (
         FALSE AS is_legacy
     FROM unkey_root_keys
     WHERE unkey_root_keys.id = ?
-        AND unkey_root_keys.for_workspace_id = ?
+        AND unkey_root_keys.workspace_id = ?
         AND unkey_root_keys.deleted_at IS NULL
     UNION ALL
     SELECT
@@ -47,8 +47,8 @@ ORDER BY is_legacy ASC
 `
 
 type FindRootKeysForManagementParams struct {
-	ID             string         `db:"id"`
-	ForWorkspaceID sql.NullString `db:"for_workspace_id"`
+	ID          string         `db:"id"`
+	WorkspaceID sql.NullString `db:"workspace_id"`
 }
 
 type FindRootKeysForManagementRow struct {
@@ -80,7 +80,7 @@ type FindRootKeysForManagementRow struct {
 //	        FALSE AS is_legacy
 //	    FROM unkey_root_keys
 //	    WHERE unkey_root_keys.id = ?
-//	        AND unkey_root_keys.for_workspace_id = ?
+//	        AND unkey_root_keys.workspace_id = ?
 //	        AND unkey_root_keys.deleted_at IS NULL
 //	    UNION ALL
 //	    SELECT
@@ -99,9 +99,9 @@ type FindRootKeysForManagementRow struct {
 func (q *Queries) FindRootKeysForManagement(ctx context.Context, db DBTX, arg FindRootKeysForManagementParams) ([]FindRootKeysForManagementRow, error) {
 	rows, err := db.QueryContext(ctx, findRootKeysForManagement,
 		arg.ID,
-		arg.ForWorkspaceID,
+		arg.WorkspaceID,
 		arg.ID,
-		arg.ForWorkspaceID,
+		arg.WorkspaceID,
 	)
 	if err != nil {
 		return nil, err

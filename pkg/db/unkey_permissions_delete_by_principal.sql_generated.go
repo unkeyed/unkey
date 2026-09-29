@@ -11,24 +11,24 @@ import (
 
 const deleteUnkeyPermissionsByPrincipal = `-- name: DeleteUnkeyPermissionsByPrincipal :exec
 DELETE FROM unkey_principal_permissions
-WHERE for_workspace_id = ?
+WHERE workspace_id = ?
     AND principal_type = ?
     AND principal_id = ?
 `
 
 type DeleteUnkeyPermissionsByPrincipalParams struct {
-	ForWorkspaceID string                                 `db:"for_workspace_id"`
-	PrincipalType  UnkeyPrincipalPermissionsPrincipalType `db:"principal_type"`
-	PrincipalID    string                                 `db:"principal_id"`
+	WorkspaceID   string                                 `db:"workspace_id"`
+	PrincipalType UnkeyPrincipalPermissionsPrincipalType `db:"principal_type"`
+	PrincipalID   string                                 `db:"principal_id"`
 }
 
 // DeleteUnkeyPermissionsByPrincipal removes principal permissions before a replacement.
 //
 //	DELETE FROM unkey_principal_permissions
-//	WHERE for_workspace_id = ?
+//	WHERE workspace_id = ?
 //	    AND principal_type = ?
 //	    AND principal_id = ?
 func (q *Queries) DeleteUnkeyPermissionsByPrincipal(ctx context.Context, db DBTX, arg DeleteUnkeyPermissionsByPrincipalParams) error {
-	_, err := db.ExecContext(ctx, deleteUnkeyPermissionsByPrincipal, arg.ForWorkspaceID, arg.PrincipalType, arg.PrincipalID)
+	_, err := db.ExecContext(ctx, deleteUnkeyPermissionsByPrincipal, arg.WorkspaceID, arg.PrincipalType, arg.PrincipalID)
 	return err
 }

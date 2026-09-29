@@ -82,8 +82,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		err := db.Query.InsertUnkeyRootKey(ctx, tx, db.InsertUnkeyRootKeyParams{
-			ID:             keyID,
-			ForWorkspaceID: p.AuthorizedWorkspaceID,
+			ID:          keyID,
+			WorkspaceID: p.AuthorizedWorkspaceID,
 			Name: sql.NullString{
 				String: ptr.SafeDeref(req.Name),
 				Valid:  req.Name != nil,
@@ -102,12 +102,12 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		permissionRows := make([]db.InsertUnkeyPermissionParams, 0, len(validatedPermissions))
 		for _, slug := range validatedPermissions {
 			permissionRows = append(permissionRows, db.InsertUnkeyPermissionParams{
-				ID:             uid.New(uid.PermissionPrefix),
-				ForWorkspaceID: p.AuthorizedWorkspaceID,
-				PrincipalType:  db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
-				PrincipalID:    keyID,
-				Slug:           slug,
-				CreatedAt:      h.Clock.Now().UnixMilli(),
+				ID:            uid.New(uid.PermissionPrefix),
+				WorkspaceID:   p.AuthorizedWorkspaceID,
+				PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
+				PrincipalID:   keyID,
+				Slug:          slug,
+				CreatedAt:     h.Clock.Now().UnixMilli(),
 			})
 		}
 		if err := db.BulkQuery.InsertUnkeyPermissions(ctx, tx, permissionRows); err != nil {

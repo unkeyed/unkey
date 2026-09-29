@@ -54,8 +54,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	var keys []db.FindRootKeysForManagementRow
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		keys, err = db.Query.FindRootKeysForManagement(ctx, tx, db.FindRootKeysForManagementParams{
-			ID:             req.KeyId,
-			ForWorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
+			ID:          req.KeyId,
+			WorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
 		})
 		if err != nil {
 			return err
@@ -67,15 +67,15 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		for _, key := range keys {
 			if key.IsLegacy == 1 {
 				_, err = db.Query.SoftDeleteLegacyRootKey(ctx, tx, db.SoftDeleteLegacyRootKeyParams{
-					Now:            sql.NullInt64{Int64: now, Valid: true},
-					ID:             key.ID,
-					ForWorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
+					Now:         sql.NullInt64{Int64: now, Valid: true},
+					ID:          key.ID,
+					WorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
 				})
 			} else {
 				_, err = db.Query.SoftDeleteUnkeyRootKey(ctx, tx, db.SoftDeleteUnkeyRootKeyParams{
-					Now:            sql.NullInt64{Int64: now, Valid: true},
-					ID:             key.ID,
-					ForWorkspaceID: p.AuthorizedWorkspaceID,
+					Now:         sql.NullInt64{Int64: now, Valid: true},
+					ID:          key.ID,
+					WorkspaceID: p.AuthorizedWorkspaceID,
 				})
 			}
 			if err != nil {

@@ -8,7 +8,7 @@ export const unkeyRootKeys = mysqlTable(
   {
     pk: primaryKey(),
     id: id("id").notNull().unique(),
-    forWorkspaceId: id("for_workspace_id").notNull(),
+    workspaceId: id("workspace_id").notNull(),
     hash: caseSensitiveVarchar("hash", { length: 256 }).notNull().unique(),
     name: varchar("name", { length: 256 }),
     prefix: varchar("prefix", { length: 16 }).notNull(),
@@ -20,6 +20,6 @@ export const unkeyRootKeys = mysqlTable(
     deletedAt: bigint("deleted_at", { mode: "number" }),
   },
   (table) => ({
-    forWorkspaceIdIdx: index("for_workspace_id_idx").on(table.forWorkspaceId),
+    workspaceIdIdx: index("workspace_id_idx").on(table.workspaceId),
   }),
 );

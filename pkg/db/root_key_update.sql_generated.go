@@ -33,7 +33,7 @@ type UpdateLegacyRootKeyParams struct {
 	Enabled          sql.NullBool   `db:"enabled"`
 	Now              sql.NullInt64  `db:"now"`
 	ID               string         `db:"id"`
-	ForWorkspaceID   sql.NullString `db:"for_workspace_id"`
+	WorkspaceID      sql.NullString `db:"workspace_id"`
 }
 
 // UpdateLegacyRootKey changes mutable fields on a live legacy root key.
@@ -59,7 +59,7 @@ func (q *Queries) UpdateLegacyRootKey(ctx context.Context, db DBTX, arg UpdateLe
 		arg.Enabled,
 		arg.Now,
 		arg.ID,
-		arg.ForWorkspaceID,
+		arg.WorkspaceID,
 	)
 	return err
 }
@@ -75,7 +75,7 @@ UPDATE unkey_root_keys SET
         ELSE enabled
     END
 WHERE id = ?
-    AND for_workspace_id = ?
+    AND workspace_id = ?
     AND deleted_at IS NULL
 `
 
@@ -85,7 +85,7 @@ type UpdateUnkeyRootKeyParams struct {
 	EnabledSpecified int64          `db:"enabled_specified"`
 	Enabled          sql.NullBool   `db:"enabled"`
 	ID               string         `db:"id"`
-	ForWorkspaceID   string         `db:"for_workspace_id"`
+	WorkspaceID      string         `db:"workspace_id"`
 }
 
 // UpdateUnkeyRootKey changes mutable fields on a live new-format root key.
@@ -100,7 +100,7 @@ type UpdateUnkeyRootKeyParams struct {
 //	        ELSE enabled
 //	    END
 //	WHERE id = ?
-//	    AND for_workspace_id = ?
+//	    AND workspace_id = ?
 //	    AND deleted_at IS NULL
 func (q *Queries) UpdateUnkeyRootKey(ctx context.Context, db DBTX, arg UpdateUnkeyRootKeyParams) error {
 	_, err := db.ExecContext(ctx, updateUnkeyRootKey,
@@ -109,7 +109,7 @@ func (q *Queries) UpdateUnkeyRootKey(ctx context.Context, db DBTX, arg UpdateUnk
 		arg.EnabledSpecified,
 		arg.Enabled,
 		arg.ID,
-		arg.ForWorkspaceID,
+		arg.WorkspaceID,
 	)
 	return err
 }

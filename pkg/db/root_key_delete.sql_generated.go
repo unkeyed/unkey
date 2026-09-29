@@ -19,9 +19,9 @@ WHERE id = ?
 `
 
 type SoftDeleteLegacyRootKeyParams struct {
-	Now            sql.NullInt64  `db:"now"`
-	ID             string         `db:"id"`
-	ForWorkspaceID sql.NullString `db:"for_workspace_id"`
+	Now         sql.NullInt64  `db:"now"`
+	ID          string         `db:"id"`
+	WorkspaceID sql.NullString `db:"workspace_id"`
 }
 
 // SoftDeleteLegacyRootKey tombstones a live legacy root key in one workspace.
@@ -32,7 +32,7 @@ type SoftDeleteLegacyRootKeyParams struct {
 //	    AND for_workspace_id = ?
 //	    AND deleted_at_m IS NULL
 func (q *Queries) SoftDeleteLegacyRootKey(ctx context.Context, db DBTX, arg SoftDeleteLegacyRootKeyParams) (int64, error) {
-	result, err := db.ExecContext(ctx, softDeleteLegacyRootKey, arg.Now, arg.ID, arg.ForWorkspaceID)
+	result, err := db.ExecContext(ctx, softDeleteLegacyRootKey, arg.Now, arg.ID, arg.WorkspaceID)
 	if err != nil {
 		return 0, err
 	}
@@ -43,14 +43,14 @@ const softDeleteUnkeyRootKey = `-- name: SoftDeleteUnkeyRootKey :execrows
 UPDATE unkey_root_keys
 SET deleted_at = ?
 WHERE id = ?
-    AND for_workspace_id = ?
+    AND workspace_id = ?
     AND deleted_at IS NULL
 `
 
 type SoftDeleteUnkeyRootKeyParams struct {
-	Now            sql.NullInt64 `db:"now"`
-	ID             string        `db:"id"`
-	ForWorkspaceID string        `db:"for_workspace_id"`
+	Now         sql.NullInt64 `db:"now"`
+	ID          string        `db:"id"`
+	WorkspaceID string        `db:"workspace_id"`
 }
 
 // SoftDeleteUnkeyRootKey tombstones a live new-format root key in one workspace.
@@ -58,10 +58,10 @@ type SoftDeleteUnkeyRootKeyParams struct {
 //	UPDATE unkey_root_keys
 //	SET deleted_at = ?
 //	WHERE id = ?
-//	    AND for_workspace_id = ?
+//	    AND workspace_id = ?
 //	    AND deleted_at IS NULL
 func (q *Queries) SoftDeleteUnkeyRootKey(ctx context.Context, db DBTX, arg SoftDeleteUnkeyRootKeyParams) (int64, error) {
-	result, err := db.ExecContext(ctx, softDeleteUnkeyRootKey, arg.Now, arg.ID, arg.ForWorkspaceID)
+	result, err := db.ExecContext(ctx, softDeleteUnkeyRootKey, arg.Now, arg.ID, arg.WorkspaceID)
 	if err != nil {
 		return 0, err
 	}

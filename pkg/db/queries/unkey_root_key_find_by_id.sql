@@ -4,7 +4,7 @@
 SELECT
     pk,
     id,
-    for_workspace_id,
+    workspace_id,
     hash,
     name,
     prefix,

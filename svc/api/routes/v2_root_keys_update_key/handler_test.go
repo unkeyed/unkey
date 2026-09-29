@@ -72,7 +72,7 @@ func TestUpdateRootKeyReplacesLegacyAndNewPermissions(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, legacy)
 	stored, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{
-		ForWorkspaceID: workspace.ID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: target.KeyID,
+		WorkspaceID: workspace.ID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: target.KeyID,
 	})
 	require.NoError(t, err)
 	require.Equal(t, []string{permission}, stored)
@@ -89,7 +89,7 @@ func TestUpdateRootKeyRejectsBroaderPermissionsWithoutWrites(t *testing.T) {
 	res := call(h, route, caller, handler.Request{KeyId: target.KeyID, Permissions: &[]string{"unkey:v1:" + workspace.ID + ":**#*"}})
 	require.Equal(t, http.StatusForbidden, res.Status, "%s", res.RawBody)
 	stored, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{
-		ForWorkspaceID: workspace.ID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: target.KeyID,
+		WorkspaceID: workspace.ID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: target.KeyID,
 	})
 	require.NoError(t, err)
 	require.Empty(t, stored)
@@ -123,7 +123,7 @@ func TestUpdateRootKeyChangesNewAndLegacyRowsWithSameID(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	legacy := h.CreateKey(seed.CreateKeyRequest{WorkspaceID: h.Resources().RootWorkspace.ID, KeySpaceID: h.Resources().RootKeySpace.ID, ForWorkspaceID: &workspace.ID})
 	require.NoError(t, db.Query.InsertUnkeyRootKey(t.Context(), h.DB.RW(), db.InsertUnkeyRootKeyParams{
-		ID: legacy.KeyID, ForWorkspaceID: workspace.ID, Hash: hash.Sha256(legacy.Key), Name: sql.NullString{},
+		ID: legacy.KeyID, WorkspaceID: workspace.ID, Hash: hash.Sha256(legacy.Key), Name: sql.NullString{},
 		Prefix: "unkey", Start: "test", End: "test", Enabled: true, Expires: sql.NullTime{}, CreatedAt: h.Clock.Now().UnixMilli(),
 	}))
 	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/*#write")

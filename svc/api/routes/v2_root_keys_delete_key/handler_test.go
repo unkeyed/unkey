@@ -46,16 +46,16 @@ func TestDeleteRootKeyRevokesNewAndLegacyRowsWithSameID(t *testing.T) {
 	workspace := h.Resources().UserWorkspace
 	legacy := h.CreateKey(seed.CreateKeyRequest{WorkspaceID: h.Resources().RootWorkspace.ID, KeySpaceID: h.Resources().RootKeySpace.ID, ForWorkspaceID: &workspace.ID})
 	require.NoError(t, db.Query.InsertUnkeyRootKey(t.Context(), h.DB.RW(), db.InsertUnkeyRootKeyParams{
-		ID:             legacy.KeyID,
-		ForWorkspaceID: workspace.ID,
-		Hash:           hash.Sha256(legacy.Key),
-		Name:           sql.NullString{},
-		Prefix:         "unkey",
-		Start:          "test",
-		End:            "test",
-		Enabled:        true,
-		Expires:        sql.NullTime{},
-		CreatedAt:      h.Clock.Now().UnixMilli(),
+		ID:          legacy.KeyID,
+		WorkspaceID: workspace.ID,
+		Hash:        hash.Sha256(legacy.Key),
+		Name:        sql.NullString{},
+		Prefix:      "unkey",
+		Start:       "test",
+		End:         "test",
+		Enabled:     true,
+		Expires:     sql.NullTime{},
+		CreatedAt:   h.Clock.Now().UnixMilli(),
 	}))
 	caller := h.CreateRootKey(workspace.ID, "unkey:v1:"+workspace.ID+":rootKeys/*#delete")
 	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{"Authorization": {"Bearer " + caller}, "Content-Type": {"application/json"}}, handler.Request{KeyId: legacy.KeyID})

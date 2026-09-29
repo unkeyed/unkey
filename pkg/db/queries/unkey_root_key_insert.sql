@@ -3,7 +3,7 @@
 -- API-key table. Callers insert its permissions and audit events in the same transaction.
 INSERT INTO unkey_root_keys (
     id,
-    for_workspace_id,
+    workspace_id,
     hash,
     name,
     prefix,
@@ -14,7 +14,7 @@ INSERT INTO unkey_root_keys (
     created_at
 ) VALUES (
     sqlc.arg(id),
-    sqlc.arg(for_workspace_id),
+    sqlc.arg(workspace_id),
     sqlc.arg(hash),
     sqlc.arg(name),
     sqlc.arg(prefix),

@@ -145,7 +145,7 @@ type Querier interface {
 	// DeleteUnkeyPermissionsByPrincipal removes principal permissions before a replacement.
 	//
 	//  DELETE FROM unkey_principal_permissions
-	//  WHERE for_workspace_id = ?
+	//  WHERE workspace_id = ?
 	//      AND principal_type = ?
 	//      AND principal_id = ?
 	DeleteUnkeyPermissionsByPrincipal(ctx context.Context, db DBTX, arg DeleteUnkeyPermissionsByPrincipalParams) error
@@ -1215,7 +1215,7 @@ type Querier interface {
 	//          FALSE AS is_legacy
 	//      FROM unkey_root_keys
 	//      WHERE unkey_root_keys.id = ?
-	//          AND unkey_root_keys.for_workspace_id = ?
+	//          AND unkey_root_keys.workspace_id = ?
 	//          AND unkey_root_keys.deleted_at IS NULL
 	//      UNION ALL
 	//      SELECT
@@ -1238,7 +1238,7 @@ type Querier interface {
 	//  SELECT
 	//      pk,
 	//      id,
-	//      for_workspace_id,
+	//      workspace_id,
 	//      hash,
 	//      name,
 	//      prefix,
@@ -2029,11 +2029,11 @@ type Querier interface {
 	//  )
 	InsertRolePermission(ctx context.Context, db DBTX, arg InsertRolePermissionParams) error
 	// InsertUnkeyPermission assigns a permission directly to a principal in the
-	// workspace it authorizes. Duplicate permissions for that principal are rejected.
+	// customer workspace that owns it. Duplicate permissions for that principal are rejected.
 	//
 	//  INSERT INTO unkey_principal_permissions (
 	//      id,
-	//      for_workspace_id,
+	//      workspace_id,
 	//      principal_type,
 	//      principal_id,
 	//      slug,
@@ -2052,7 +2052,7 @@ type Querier interface {
 	//
 	//  INSERT INTO unkey_root_keys (
 	//      id,
-	//      for_workspace_id,
+	//      workspace_id,
 	//      hash,
 	//      name,
 	//      prefix,
@@ -2730,7 +2730,7 @@ type Querier interface {
 	//      up.principal_id AS key_id,
 	//      up.slug
 	//  FROM unkey_principal_permissions up
-	//  WHERE up.for_workspace_id = ?
+	//  WHERE up.workspace_id = ?
 	//      AND up.principal_type = 'root_key'
 	//      AND up.principal_id IN (/*SLICE:key_ids*/?)
 	//  UNION ALL
@@ -2747,7 +2747,7 @@ type Querier interface {
 	//          SELECT 1
 	//          FROM unkey_root_keys shadow
 	//          WHERE shadow.id = k.id
-	//              AND shadow.for_workspace_id = k.for_workspace_id
+	//              AND shadow.workspace_id = k.for_workspace_id
 	//              AND shadow.deleted_at IS NULL
 	//      )
 	//  UNION ALL
@@ -2765,7 +2765,7 @@ type Querier interface {
 	//          SELECT 1
 	//          FROM unkey_root_keys shadow
 	//          WHERE shadow.id = k.id
-	//              AND shadow.for_workspace_id = k.for_workspace_id
+	//              AND shadow.workspace_id = k.for_workspace_id
 	//              AND shadow.deleted_at IS NULL
 	//      )
 	ListRootKeyPermissions(ctx context.Context, db DBTX, arg ListRootKeyPermissionsParams) ([]ListRootKeyPermissionsRow, error)
@@ -2784,7 +2784,7 @@ type Querier interface {
 	//      expires,
 	//      created_at
 	//  FROM unkey_root_keys
-	//  WHERE unkey_root_keys.for_workspace_id = ?
+	//  WHERE unkey_root_keys.workspace_id = ?
 	//      AND unkey_root_keys.deleted_at IS NULL
 	//      AND unkey_root_keys.id >= ?
 	//  UNION ALL
@@ -2805,7 +2805,7 @@ type Querier interface {
 	//          SELECT 1
 	//          FROM unkey_root_keys shadow
 	//          WHERE shadow.id = `keys`.id
-	//              AND shadow.for_workspace_id = `keys`.for_workspace_id
+	//              AND shadow.workspace_id = `keys`.for_workspace_id
 	//              AND shadow.deleted_at IS NULL
 	//      )
 	//  ORDER BY id ASC
@@ -2815,7 +2815,7 @@ type Querier interface {
 	// and authorized workspace. The same ID under another type or workspace is excluded.
 	//
 	//  SELECT slug FROM unkey_principal_permissions
-	//  WHERE for_workspace_id = ?
+	//  WHERE workspace_id = ?
 	//    AND principal_type = ?
 	//    AND principal_id = ?
 	ListUnkeyPermissionsByPrincipal(ctx context.Context, db DBTX, arg ListUnkeyPermissionsByPrincipalParams) ([]string, error)
@@ -3078,7 +3078,7 @@ type Querier interface {
 	//  UPDATE unkey_root_keys
 	//  SET deleted_at = ?
 	//  WHERE id = ?
-	//      AND for_workspace_id = ?
+	//      AND workspace_id = ?
 	//      AND deleted_at IS NULL
 	SoftDeleteUnkeyRootKey(ctx context.Context, db DBTX, arg SoftDeleteUnkeyRootKeyParams) (int64, error)
 	//UpdateApiDeleteProtection
@@ -3431,7 +3431,7 @@ type Querier interface {
 	//          ELSE enabled
 	//      END
 	//  WHERE id = ?
-	//      AND for_workspace_id = ?
+	//      AND workspace_id = ?
 	//      AND deleted_at IS NULL
 	UpdateUnkeyRootKey(ctx context.Context, db DBTX, arg UpdateUnkeyRootKeyParams) error
 	//UpdateWorkspaceEnabled

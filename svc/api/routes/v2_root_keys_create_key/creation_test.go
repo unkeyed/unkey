@@ -93,7 +93,7 @@ func TestCreatePermissionCountLimits(t *testing.T) {
 				require.Equal(t, before, snapshot(t, h))
 				return
 			}
-			grants, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
+			grants, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{WorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
 			require.NoError(t, err)
 			if tt.count == 0 {
 				require.Empty(t, grants)
@@ -144,7 +144,7 @@ func TestCreateStoresMaximumDistinctPermissions(t *testing.T) {
 		"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
 	}, handler.Request{Permissions: requested})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-	stored, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
+	stored, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{WorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
 	require.NoError(t, err)
 	require.ElementsMatch(t, requested, stored)
 	require.Len(t, h.FindAuditLogsByTargetID(t.Context(), t, res.Body.Data.KeyId), 1001)
@@ -159,7 +159,7 @@ func TestCreateStoresPermissionWithoutLegacyEquivalent(t *testing.T) {
 	}, handler.Request{Permissions: []string{grant}})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 
-	grants, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
+	grants, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{WorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
 	require.NoError(t, err)
 	require.Equal(t, []string{grant}, grants)
 }
@@ -178,7 +178,7 @@ func TestCreateStoresV1SystemKeyAndPermissions(t *testing.T) {
 	require.Regexp(t, `^unkey_[1-9A-HJ-NP-Za-km-z]{8}unkeyv1[1-9A-HJ-NP-Za-km-z]{42}$`, res.Body.Data.Key)
 	key, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
 	require.NoError(t, err)
-	require.Equal(t, resources.UserWorkspace.ID, key.ForWorkspaceID)
+	require.Equal(t, resources.UserWorkspace.ID, key.WorkspaceID)
 	require.False(t, key.Expires.Valid)
 	grants, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: key.ID})
 	require.NoError(t, err)
@@ -208,7 +208,7 @@ func TestCreateStoresV1SystemKeyAndPermissions(t *testing.T) {
 		Permissions: []string{urn, urn},
 	})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-	grants, err = db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
+	grants, err = db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{WorkspaceID: p.AuthorizedWorkspaceID, PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey, PrincipalID: res.Body.Data.KeyId})
 	require.NoError(t, err)
 	require.Equal(t, []string{urn}, grants)
 

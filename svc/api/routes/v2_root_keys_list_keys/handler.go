@@ -43,9 +43,9 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	params := pagination.Parse(req.Limit, req.Cursor, 100)
 	rows, err := pagination.FetchAuthorized(ctx, params, func(ctx context.Context, cursor string, limit int32) ([]db.ListRootKeysRow, error) {
 		return db.Query.ListRootKeys(ctx, h.DB.RO(), db.ListRootKeysParams{
-			ForWorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
-			IDCursor:       cursor,
-			Limit:          limit,
+			WorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
+			IDCursor:    cursor,
+			Limit:       limit,
 		})
 	}, func(row db.ListRootKeysRow) bool {
 		return rbac.Check(rbac.U(urn.New().Workspace(p.AuthorizedWorkspaceID).RootKey(row.ID), permissions.Read), p.Permissions) == nil
@@ -62,8 +62,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			permissionsByKey[row.ID] = []string{}
 		}
 		storedPermissions, err := db.Query.ListRootKeyPermissions(ctx, h.DB.RO(), db.ListRootKeyPermissionsParams{
-			ForWorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
-			KeyIds:         ids,
+			WorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
+			KeyIds:      ids,
 		})
 		if err != nil {
 			return fault.Wrap(err, fault.Code(codes.App.Internal.ServiceUnavailable.URN()), fault.Public("Failed to retrieve root key permissions."))

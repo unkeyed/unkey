@@ -20,7 +20,7 @@ export const unkeyPrincipalPermissions = mysqlTable(
   {
     pk: primaryKey(),
     id: id("id").notNull().unique(),
-    forWorkspaceId: id("for_workspace_id").notNull(),
+    workspaceId: id("workspace_id").notNull(),
     principalType: mysqlEnum("principal_type", ["root_key", "oidc"]).notNull(),
     principalId: id("principal_id").notNull(),
     slug: caseSensitiveVarchar("slug", { length: 512 }).notNull(),
@@ -28,7 +28,7 @@ export const unkeyPrincipalPermissions = mysqlTable(
   },
   (table) => [
     unique("unkey_principal_permissions_principal_slug_idx").on(
-      table.forWorkspaceId,
+      table.workspaceId,
       table.principalType,
       table.principalId,
       table.slug,

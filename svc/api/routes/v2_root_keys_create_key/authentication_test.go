@@ -31,16 +31,16 @@ func TestRootKeyAuthenticationPrefersNewStore(t *testing.T) {
 	})
 	newID := uid.New(uid.KeyPrefix)
 	require.NoError(t, db.Query.InsertUnkeyRootKey(t.Context(), h.DB.RW(), db.InsertUnkeyRootKeyParams{
-		ID:             newID,
-		ForWorkspaceID: r.UserWorkspace.ID,
-		Hash:           hash.Sha256(legacy.Key),
-		Name:           sql.NullString{},
-		Prefix:         "unkey",
-		Start:          "test",
-		End:            "test",
-		Enabled:        true,
-		Expires:        sql.NullTime{},
-		CreatedAt:      1_700_000_000_000,
+		ID:          newID,
+		WorkspaceID: r.UserWorkspace.ID,
+		Hash:        hash.Sha256(legacy.Key),
+		Name:        sql.NullString{},
+		Prefix:      "unkey",
+		Start:       "test",
+		End:         "test",
+		Enabled:     true,
+		Expires:     sql.NullTime{},
+		CreatedAt:   1_700_000_000_000,
 	}))
 
 	request := httptest.NewRequest(http.MethodPost, "/", nil)
@@ -134,7 +134,7 @@ func TestNewRootKeyAuthenticationChecksLifecycle(t *testing.T) {
 		{"disabled", "UPDATE unkey_root_keys SET enabled = FALSE WHERE id = ?", "key", codes.Auth.Authorization.KeyDisabled.URN()},
 		{"expired", "UPDATE unkey_root_keys SET expires = '2000-01-01' WHERE id = ?", "key", codes.Auth.Authorization.Forbidden.URN()},
 		{"deleted", "UPDATE unkey_root_keys SET deleted_at = 1 WHERE id = ?", "key", codes.Auth.Authentication.KeyNotFound.URN()},
-		{"missing target", "UPDATE unkey_root_keys SET for_workspace_id = 'ws_missing' WHERE id = ?", "key", codes.Data.Workspace.NotFound.URN()},
+		{"missing target", "UPDATE unkey_root_keys SET workspace_id = 'ws_missing' WHERE id = ?", "key", codes.Data.Workspace.NotFound.URN()},
 		{"disabled target", "UPDATE workspaces SET enabled = FALSE WHERE id = ?", "target", codes.Auth.Authorization.WorkspaceDisabled.URN()},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

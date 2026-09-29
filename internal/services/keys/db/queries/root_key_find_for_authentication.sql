@@ -1,25 +1,25 @@
 -- name: FindUnkeyRootKeyForAuthentication :one
 -- FindUnkeyRootKeyForAuthentication loads a root key from the new store,
 -- including tombstones so callers do not fall back to a legacy row with the same hash.
--- Permissions are scoped to the target workspace and root-key principal.
+-- Permissions are scoped to the owning customer workspace and root-key principal.
 SELECT
     k.id,
-    k.for_workspace_id,
+    k.workspace_id,
     k.name,
     k.expires,
     k.enabled,
     k.deleted_at,
-    fws.enabled AS for_workspace_enabled,
+    fws.enabled AS workspace_enabled,
     COALESCE(
         (SELECT JSON_ARRAYAGG(p.slug)
         FROM unkey_principal_permissions p
-        WHERE p.for_workspace_id = k.for_workspace_id
+        WHERE p.workspace_id = k.workspace_id
             AND p.principal_type = 'root_key'
             AND p.principal_id = k.id),
         JSON_ARRAY()
     ) AS permissions
 FROM unkey_root_keys k
-LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
+LEFT JOIN workspaces fws ON fws.id = k.workspace_id
 WHERE k.hash = sqlc.arg(hash);
 
 -- name: FindLegacyRootKeyForAuthentication :one
@@ -41,7 +41,7 @@ SELECT
         FROM (
             SELECT p.slug
             FROM unkey_principal_permissions p
-            WHERE p.for_workspace_id = k.for_workspace_id
+            WHERE p.workspace_id = k.for_workspace_id
                 AND p.principal_type = 'root_key'
                 AND p.principal_id = k.id
             UNION ALL

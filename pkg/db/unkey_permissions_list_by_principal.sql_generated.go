@@ -11,26 +11,26 @@ import (
 
 const listUnkeyPermissionsByPrincipal = `-- name: ListUnkeyPermissionsByPrincipal :many
 SELECT slug FROM unkey_principal_permissions
-WHERE for_workspace_id = ?
+WHERE workspace_id = ?
   AND principal_type = ?
   AND principal_id = ?
 `
 
 type ListUnkeyPermissionsByPrincipalParams struct {
-	ForWorkspaceID string                                 `db:"for_workspace_id"`
-	PrincipalType  UnkeyPrincipalPermissionsPrincipalType `db:"principal_type"`
-	PrincipalID    string                                 `db:"principal_id"`
+	WorkspaceID   string                                 `db:"workspace_id"`
+	PrincipalType UnkeyPrincipalPermissionsPrincipalType `db:"principal_type"`
+	PrincipalID   string                                 `db:"principal_id"`
 }
 
 // ListUnkeyPermissionsByPrincipal loads permissions for exactly one principal
 // and authorized workspace. The same ID under another type or workspace is excluded.
 //
 //	SELECT slug FROM unkey_principal_permissions
-//	WHERE for_workspace_id = ?
+//	WHERE workspace_id = ?
 //	  AND principal_type = ?
 //	  AND principal_id = ?
 func (q *Queries) ListUnkeyPermissionsByPrincipal(ctx context.Context, db DBTX, arg ListUnkeyPermissionsByPrincipalParams) ([]string, error) {
-	rows, err := db.QueryContext(ctx, listUnkeyPermissionsByPrincipal, arg.ForWorkspaceID, arg.PrincipalType, arg.PrincipalID)
+	rows, err := db.QueryContext(ctx, listUnkeyPermissionsByPrincipal, arg.WorkspaceID, arg.PrincipalType, arg.PrincipalID)
 	if err != nil {
 		return nil, err
 	}

@@ -16,7 +16,7 @@ SELECT
     up.principal_id AS key_id,
     up.slug
 FROM unkey_principal_permissions up
-WHERE up.for_workspace_id = ?
+WHERE up.workspace_id = ?
     AND up.principal_type = 'root_key'
     AND up.principal_id IN (/*SLICE:key_ids*/?)
 UNION ALL
@@ -33,7 +33,7 @@ WHERE k.for_workspace_id = ?
         SELECT 1
         FROM unkey_root_keys shadow
         WHERE shadow.id = k.id
-            AND shadow.for_workspace_id = k.for_workspace_id
+            AND shadow.workspace_id = k.for_workspace_id
             AND shadow.deleted_at IS NULL
     )
 UNION ALL
@@ -51,14 +51,14 @@ WHERE k.for_workspace_id = ?
         SELECT 1
         FROM unkey_root_keys shadow
         WHERE shadow.id = k.id
-            AND shadow.for_workspace_id = k.for_workspace_id
+            AND shadow.workspace_id = k.for_workspace_id
             AND shadow.deleted_at IS NULL
     )
 `
 
 type ListRootKeyPermissionsParams struct {
-	ForWorkspaceID sql.NullString `db:"for_workspace_id"`
-	KeyIds         []string       `db:"key_ids"`
+	WorkspaceID sql.NullString `db:"workspace_id"`
+	KeyIds      []string       `db:"key_ids"`
 }
 
 type ListRootKeyPermissionsRow struct {
@@ -75,7 +75,7 @@ type ListRootKeyPermissionsRow struct {
 //	    up.principal_id AS key_id,
 //	    up.slug
 //	FROM unkey_principal_permissions up
-//	WHERE up.for_workspace_id = ?
+//	WHERE up.workspace_id = ?
 //	    AND up.principal_type = 'root_key'
 //	    AND up.principal_id IN (/*SLICE:key_ids*/?)
 //	UNION ALL
@@ -92,7 +92,7 @@ type ListRootKeyPermissionsRow struct {
 //	        SELECT 1
 //	        FROM unkey_root_keys shadow
 //	        WHERE shadow.id = k.id
-//	            AND shadow.for_workspace_id = k.for_workspace_id
+//	            AND shadow.workspace_id = k.for_workspace_id
 //	            AND shadow.deleted_at IS NULL
 //	    )
 //	UNION ALL
@@ -110,13 +110,13 @@ type ListRootKeyPermissionsRow struct {
 //	        SELECT 1
 //	        FROM unkey_root_keys shadow
 //	        WHERE shadow.id = k.id
-//	            AND shadow.for_workspace_id = k.for_workspace_id
+//	            AND shadow.workspace_id = k.for_workspace_id
 //	            AND shadow.deleted_at IS NULL
 //	    )
 func (q *Queries) ListRootKeyPermissions(ctx context.Context, db DBTX, arg ListRootKeyPermissionsParams) ([]ListRootKeyPermissionsRow, error) {
 	query := listRootKeyPermissions
 	var queryParams []interface{}
-	queryParams = append(queryParams, arg.ForWorkspaceID)
+	queryParams = append(queryParams, arg.WorkspaceID)
 	if len(arg.KeyIds) > 0 {
 		for _, v := range arg.KeyIds {
 			queryParams = append(queryParams, v)
@@ -125,7 +125,7 @@ func (q *Queries) ListRootKeyPermissions(ctx context.Context, db DBTX, arg ListR
 	} else {
 		query = strings.Replace(query, "/*SLICE:key_ids*/?", "NULL", 1)
 	}
-	queryParams = append(queryParams, arg.ForWorkspaceID)
+	queryParams = append(queryParams, arg.WorkspaceID)
 	if len(arg.KeyIds) > 0 {
 		for _, v := range arg.KeyIds {
 			queryParams = append(queryParams, v)
@@ -134,7 +134,7 @@ func (q *Queries) ListRootKeyPermissions(ctx context.Context, db DBTX, arg ListR
 	} else {
 		query = strings.Replace(query, "/*SLICE:key_ids*/?", "NULL", 1)
 	}
-	queryParams = append(queryParams, arg.ForWorkspaceID)
+	queryParams = append(queryParams, arg.WorkspaceID)
 	if len(arg.KeyIds) > 0 {
 		for _, v := range arg.KeyIds {
 			queryParams = append(queryParams, v)

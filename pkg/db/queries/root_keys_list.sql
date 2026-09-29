@@ -13,7 +13,7 @@ SELECT
     expires,
     created_at
 FROM unkey_root_keys
-WHERE unkey_root_keys.for_workspace_id = sqlc.narg(for_workspace_id)
+WHERE unkey_root_keys.workspace_id = sqlc.narg(workspace_id)
     AND unkey_root_keys.deleted_at IS NULL
     AND unkey_root_keys.id >= sqlc.arg(id_cursor)
 UNION ALL
@@ -27,14 +27,14 @@ SELECT
     expires,
     created_at_m AS created_at
 FROM `keys`
-WHERE `keys`.for_workspace_id = sqlc.narg(for_workspace_id)
+WHERE `keys`.for_workspace_id = sqlc.narg(workspace_id)
     AND `keys`.deleted_at_m IS NULL
     AND `keys`.id >= sqlc.arg(id_cursor)
     AND NOT EXISTS (
         SELECT 1
         FROM unkey_root_keys shadow
         WHERE shadow.id = `keys`.id
-            AND shadow.for_workspace_id = `keys`.for_workspace_id
+            AND shadow.workspace_id = `keys`.for_workspace_id
             AND shadow.deleted_at IS NULL
     )
 ORDER BY id ASC

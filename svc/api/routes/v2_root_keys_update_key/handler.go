@@ -65,8 +65,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 	ctx = auditlog.WithCorrelation(ctx, auditlog.NewCorrelationID())
 	err = db.TxRetry(ctx, h.DB.RW(), func(ctx context.Context, tx db.DBTX) error {
 		keys, err = db.Query.FindRootKeysForManagement(ctx, tx, db.FindRootKeysForManagementParams{
-			ID:             req.KeyId,
-			ForWorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
+			ID:          req.KeyId,
+			WorkspaceID: sql.NullString{String: p.AuthorizedWorkspaceID, Valid: true},
 		})
 		if err != nil {
 			return err
@@ -133,12 +133,12 @@ func (h *Handler) updateFields(ctx context.Context, tx db.DBTX, workspaceID stri
 			err = db.Query.UpdateLegacyRootKey(ctx, tx, db.UpdateLegacyRootKeyParams{
 				NameSpecified: nameSpecified, Name: name, EnabledSpecified: enabledSpecified, Enabled: enabled,
 				Now: sql.NullInt64{Int64: h.Clock.Now().UnixMilli(), Valid: true}, ID: key.ID,
-				ForWorkspaceID: sql.NullString{String: workspaceID, Valid: true},
+				WorkspaceID: sql.NullString{String: workspaceID, Valid: true},
 			})
 		} else {
 			err = db.Query.UpdateUnkeyRootKey(ctx, tx, db.UpdateUnkeyRootKeyParams{
 				NameSpecified: nameSpecified, Name: name, EnabledSpecified: enabledSpecified, Enabled: enabled,
-				ID: key.ID, ForWorkspaceID: workspaceID,
+				ID: key.ID, WorkspaceID: workspaceID,
 			})
 		}
 		if err != nil {
@@ -154,9 +154,9 @@ func (h *Handler) replacePermissions(ctx context.Context, tx db.DBTX, workspaceI
 		return nil, nil
 	}
 	if err := db.Query.DeleteUnkeyPermissionsByPrincipal(ctx, tx, db.DeleteUnkeyPermissionsByPrincipalParams{
-		ForWorkspaceID: workspaceID,
-		PrincipalType:  db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
-		PrincipalID:    keyID,
+		WorkspaceID:   workspaceID,
+		PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
+		PrincipalID:   keyID,
 	}); err != nil {
 		return nil, err
 	}
@@ -175,12 +175,12 @@ func (h *Handler) replacePermissions(ctx context.Context, tx db.DBTX, workspaceI
 	now := h.Clock.Now().UnixMilli()
 	for _, slug := range slugs {
 		rows = append(rows, db.InsertUnkeyPermissionParams{
-			ID:             uid.New(uid.PermissionPrefix),
-			ForWorkspaceID: workspaceID,
-			PrincipalType:  db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
-			PrincipalID:    keyID,
-			Slug:           slug,
-			CreatedAt:      now,
+			ID:            uid.New(uid.PermissionPrefix),
+			WorkspaceID:   workspaceID,
+			PrincipalType: db.UnkeyPrincipalPermissionsPrincipalTypeRootKey,
+			PrincipalID:   keyID,
+			Slug:          slug,
+			CreatedAt:     now,
 		})
 	}
 	return rows, db.BulkQuery.InsertUnkeyPermissions(ctx, tx, rows)
