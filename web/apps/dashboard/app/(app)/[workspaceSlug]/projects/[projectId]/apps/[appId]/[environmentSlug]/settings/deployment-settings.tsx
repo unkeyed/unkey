@@ -19,6 +19,7 @@ import { Dockerfile } from "./components/build-settings/dockerfile-settings";
 import { GitHub } from "./components/build-settings/github-settings";
 import { RootDirectory } from "./components/build-settings/root-directory-settings";
 import { WatchPaths } from "./components/build-settings/watch-paths-settings";
+import { useEnvironmentSettings } from "./environment-provider";
 
 import { Command } from "./components/runtime-settings/command";
 import { Cpu } from "./components/runtime-settings/cpu";
@@ -29,11 +30,7 @@ import { Port } from "./components/runtime-settings/port-settings";
 import { Regions } from "./components/runtime-settings/regions";
 import { Storage } from "./components/runtime-settings/storage";
 
-import {
-  IconCircleHalfDottedClockOutline18,
-  IconGearOutline18,
-  IconLayers2Outline18,
-} from "@unkey/icons";
+import { IconCubeOutline18, IconLayers2Outline18, IconLayers3Outline18 } from "@unkey/icons";
 import { CustomDomains } from "./components/advanced-settings/custom-domains";
 import { OpenapiSpecPath } from "./components/advanced-settings/openapi-spec-path";
 import { UpstreamProtocol } from "./components/advanced-settings/upstream-protocol";
@@ -41,8 +38,12 @@ import { SettingField } from "./components/shared/form-blocks";
 import { FormSettingCard, resolveSaveState } from "./components/shared/form-setting-card";
 import { SettingsGroup } from "./components/shared/settings-group";
 
-// build is only required to invalidate other defaults. E.g onboarding settings, passes build=true to prevent expanding other sections.
-type DeploymentSection = "advanced" | "runtime" | "build";
+/**
+ * Environment settings hold one value per environment and write only to the
+ * environment in scope. Application settings are shared and write to every
+ * environment.
+ */
+type DeploymentSection = "environment" | "application";
 
 type DeploymentSettingsProps = {
   githubReadOnly?: boolean;
@@ -52,11 +53,13 @@ type DeploymentSettingsProps = {
 
 export const DeploymentSettings = ({
   githubReadOnly = false,
-  sections = { build: true, runtime: true, advanced: true },
+  sections = { environment: true, application: true },
   onBeforeNavigate,
 }: DeploymentSettingsProps) => {
-  const { projectId } = useProjectData();
+  const { projectId, environments } = useProjectData();
   const appId = useAppId();
+  const { settings } = useEnvironmentSettings();
+  const environmentSlug = environments.find((e) => e.id === settings.environmentId)?.slug;
   const appQuery = useLiveQuery(
     (q) =>
       q
@@ -105,20 +108,16 @@ export const DeploymentSettings = ({
               ))
               .exhaustive()
           : null}
-        {showBuildSettings ? (
-          <>
-            <RootDirectory />
-            <Dockerfile />
-            <BuildCommand />
-            <WatchPaths />
-            <AutoDeploy />
-          </>
-        ) : null}
       </SettingCardGroup>
       <SettingsGroup
-        icon={<IconCircleHalfDottedClockOutline18 className="size-3.5" />}
-        title="Runtime settings"
-        defaultExpanded={Boolean(sections.runtime)}
+        icon={<IconLayers3Outline18 className="size-3.5" />}
+        title={
+          <>
+            <span className="capitalize">{environmentSlug}</span> environment
+            <span className="font-normal text-gray-9"> · only this environment</span>
+          </>
+        }
+        defaultExpanded={Boolean(sections.environment)}
       >
         <SettingCardGroup>
           <Regions />
@@ -126,22 +125,34 @@ export const DeploymentSettings = ({
           <Cpu />
           <Memory />
           <Storage />
-          <Healthcheck />
-          <Port />
-          <Command />
-          {/* Temporarily disabled */}
-          {/* <Scaling /> */}
-        </SettingCardGroup>
-      </SettingsGroup>
-      <SettingsGroup
-        icon={<IconGearOutline18 className="size-3.5" />}
-        title="Advanced configurations"
-        defaultExpanded={Boolean(sections.advanced)}
-      >
-        <SettingCardGroup>
+          {showBuildSettings ? <AutoDeploy /> : null}
           <div id="custom-domains" className="scroll-mt-24">
             <CustomDomains />
           </div>
+        </SettingCardGroup>
+      </SettingsGroup>
+      <SettingsGroup
+        icon={<IconCubeOutline18 className="size-3.5" />}
+        title={
+          <>
+            Application
+            <span className="font-normal text-gray-9"> · shared by all environments</span>
+          </>
+        }
+        defaultExpanded={Boolean(sections.application)}
+      >
+        <SettingCardGroup>
+          {showBuildSettings ? (
+            <>
+              <RootDirectory />
+              <Dockerfile />
+              <BuildCommand />
+              <WatchPaths />
+            </>
+          ) : null}
+          <Port />
+          <Command />
+          <Healthcheck />
           <OpenapiSpecPath />
           <UpstreamProtocol />
         </SettingCardGroup>

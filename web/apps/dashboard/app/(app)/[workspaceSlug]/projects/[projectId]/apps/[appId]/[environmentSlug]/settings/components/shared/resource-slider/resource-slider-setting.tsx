@@ -1,6 +1,5 @@
 "use client";
 
-import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
 import { freeTierLimits } from "@/lib/limits";
 import type { FormattedParts } from "@/lib/utils/deployment-formatters";
@@ -9,16 +8,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { Limits } from "@unkey/db";
 import { Slider } from "@unkey/ui";
 import type React from "react";
-import { useContext, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
-import { EnvironmentContext, useEnvironmentSettings } from "../../../environment-provider";
-import { useMultiEnvironmentSettings } from "../../../hooks/use-multi-environment-settings";
-import { useUpdateAllEnvironments } from "../../../hooks/use-update-all-environments";
+import { useEnvironmentSettings } from "../../../environment-provider";
+import { useUpdateEnvironment } from "../../../hooks/use-update-environment";
 import { SettingDescription, WideContent } from "../form-blocks";
 import { FormSettingCard, type SaveState, resolveSaveState } from "../form-setting-card";
-import { EnvironmentDisplayValue } from "./environment-display-value";
-import { EnvironmentSliderSection } from "./environment-slider-section";
 import { buildSliderRangeStyle, indexToValue, valueToIndex } from "./slider-utils";
 
 type SliderStrategy =
@@ -39,7 +35,7 @@ export type ResourceSliderConfig = {
   formatValue: (n: number) => FormattedParts;
   readValue: (s: EnvironmentSettings) => number;
   writeValue: (draft: EnvironmentSettings, value: number) => void;
-  extraSaveChecks?: (settings: EnvironmentSettings[]) => SaveState | null;
+  extraSaveChecks?: (settings: EnvironmentSettings) => SaveState | null;
   sliderAdornment?: (s: EnvironmentSettings) => React.ReactNode;
   /**
    * Returns the per-instance limit that caps this resource. Index-mapped sliders
@@ -193,9 +189,7 @@ function getSliderProps(strategy: SliderStrategy, currentValue: number) {
 }
 
 export const ResourceSliderSetting = ({ config }: { config: ResourceSliderConfig }) => {
-  const envContext = useContext(EnvironmentContext);
   const { limits } = useWorkspace();
-
   const effectiveConfig = useMemo<ResourceSliderConfig>(
     () => ({
       ...config,
@@ -203,24 +197,15 @@ export const ResourceSliderSetting = ({ config }: { config: ResourceSliderConfig
     }),
     [config, limits],
   );
-
-  if (!envContext) {
-    throw new Error("ResourceSliderSetting must be used within EnvironmentProvider");
-  }
-
-  if (envContext.variant === "onboarding") {
-    return <SingleMode config={effectiveConfig} />;
-  }
-
-  return <DualMode config={effectiveConfig} />;
+  return <SliderForm config={effectiveConfig} />;
 };
 
-const singleSchema = z.object({ value: z.number() });
-type SingleFormValues = z.infer<typeof singleSchema>;
+const schema = z.object({ value: z.number() });
+type FormValues = z.infer<typeof schema>;
 
-const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
+const SliderForm = ({ config }: { config: ResourceSliderConfig }) => {
   const { settings, variant } = useEnvironmentSettings();
-  const updateAllEnvironments = useUpdateAllEnvironments();
+  const updateEnvironment = useUpdateEnvironment();
   const defaultValue = config.readValue(settings);
 
   const {
@@ -229,8 +214,8 @@ const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
     formState: { isValid, isSubmitting },
     control,
     reset,
-  } = useForm<SingleFormValues>({
-    resolver: zodResolver(singleSchema),
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
     mode: "onChange",
     defaultValues: { value: defaultValue },
   });
@@ -241,8 +226,8 @@ const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
 
   const currentValue = useWatch({ control, name: "value" });
 
-  const onSubmit = async (values: SingleFormValues) => {
-    updateAllEnvironments((draft) => {
+  const onSubmit = async (values: FormValues) => {
+    updateEnvironment((draft) => {
       config.writeValue(draft, values.value);
     });
   };
@@ -255,7 +240,7 @@ const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
   const hasChanges = currentValue !== defaultValue;
   const sp = getSliderProps(slider, currentValue);
 
-  const extraCheck = config.extraSaveChecks?.([settings]);
+  const extraCheck = config.extraSaveChecks?.(settings);
   const saveState = resolveSaveState([
     ...(extraCheck ? [[true, extraCheck] as [boolean, SaveState]] : []),
     [isSubmitting, { status: "saving" }],
@@ -278,7 +263,7 @@ const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
       }
       onSubmit={handleSubmit(onSubmit)}
       saveState={saveState}
-      autoSave
+      autoSave={variant === "onboarding"}
     >
       <WideContent>
         <div className="flex items-center gap-3">
@@ -298,7 +283,7 @@ const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
                     if (v !== undefined) {
                       const newValue = sp.toFormValue(v);
                       if (newValue !== defaultValue) {
-                        updateAllEnvironments((draft) => {
+                        updateEnvironment((draft) => {
                           config.writeValue(draft, newValue);
                         });
                       }
@@ -327,167 +312,3 @@ const SingleMode = ({ config }: { config: ResourceSliderConfig }) => {
     </FormSettingCard>
   );
 };
-
-const dualSchema = z.object({ production: z.number(), preview: z.number() });
-type DualFormValues = z.infer<typeof dualSchema>;
-
-const DualMode = ({ config }: { config: ResourceSliderConfig }) => {
-  const multiSettings = useMultiEnvironmentSettings();
-
-  if (!multiSettings) {
-    return null;
-  }
-
-  return (
-    <DualInner
-      config={config}
-      production={multiSettings.production}
-      preview={multiSettings.preview}
-    />
-  );
-};
-
-type DualInnerProps = {
-  config: ResourceSliderConfig;
-  production: EnvironmentSettings;
-  preview: EnvironmentSettings;
-};
-
-const DualInner = ({ config, production, preview }: DualInnerProps) => {
-  const defaultProd = config.readValue(production);
-  const defaultPreview = config.readValue(preview);
-
-  const {
-    handleSubmit,
-    setValue,
-    formState: { isValid, isSubmitting },
-    control,
-    reset,
-  } = useForm<DualFormValues>({
-    resolver: zodResolver(dualSchema),
-    mode: "onChange",
-    defaultValues: { production: defaultProd, preview: defaultPreview },
-  });
-
-  useEffect(() => {
-    reset({ production: defaultProd, preview: defaultPreview });
-  }, [defaultProd, defaultPreview, reset]);
-
-  const currentProd = useWatch({ control, name: "production" });
-  const currentPreview = useWatch({ control, name: "preview" });
-
-  const onSubmit = async (values: DualFormValues) => {
-    // One transaction for both environments. The collection refetches every
-    // loaded environment after a transaction settles.
-    const targets: { id: string; value: number }[] = [];
-    if (values.production !== defaultProd) {
-      targets.push({ id: production.environmentId, value: values.production });
-    }
-    if (values.preview !== defaultPreview) {
-      targets.push({ id: preview.environmentId, value: values.preview });
-    }
-    if (targets.length === 0) {
-      return;
-    }
-
-    collection.environmentSettings.update(
-      targets.map((t) => t.id),
-      (drafts) =>
-        drafts.forEach((draft, i) => {
-          config.writeValue(draft, targets[i].value);
-        }),
-    );
-  };
-
-  const hasChanges = currentProd !== defaultProd || currentPreview !== defaultPreview;
-
-  const extraCheck = config.extraSaveChecks?.([production, preview]);
-  const saveState = resolveSaveState([
-    ...(extraCheck ? [[true, extraCheck] as [boolean, SaveState]] : []),
-    [isSubmitting, { status: "saving" }],
-    [!isValid, { status: "disabled" }],
-    [!hasChanges, { status: "disabled", reason: "No changes to save" }],
-  ]);
-
-  const slider = useMemo(
-    () => ensureValuesSelectable(config.slider, [defaultProd, defaultPreview], config.formatValue),
-    [config.slider, config.formatValue, defaultProd, defaultPreview],
-  );
-
-  const prodSp = useMemo(() => getSliderProps(slider, currentProd), [slider, currentProd]);
-  const previewSp = useMemo(() => getSliderProps(slider, currentPreview), [slider, currentPreview]);
-
-  return (
-    <FormSettingCard
-      icon={config.icon}
-      title={config.title}
-      description={config.description}
-      displayValue={
-        <div className="flex items-center gap-3">
-          <EnvironmentDisplayValue label="Production" parts={config.formatValue(defaultProd)} />
-          <span className="text-gray-8">|</span>
-          <EnvironmentDisplayValue label="Preview" parts={config.formatValue(defaultPreview)} />
-        </div>
-      }
-      onSubmit={handleSubmit(onSubmit)}
-      saveState={saveState}
-    >
-      <WideContent>
-        <DualSliderSection
-          label="Production"
-          config={config}
-          sp={prodSp}
-          settings={production}
-          onSliderChange={(v) => setValue("production", v, { shouldValidate: true })}
-        />
-
-        <DualSliderSection
-          label="Preview"
-          config={config}
-          sp={previewSp}
-          settings={preview}
-          onSliderChange={(v) => setValue("preview", v, { shouldValidate: true })}
-        />
-
-        <SettingDescription>{config.settingDescription}</SettingDescription>
-      </WideContent>
-    </FormSettingCard>
-  );
-};
-
-type SliderSectionProps = {
-  label: string;
-  config: ResourceSliderConfig;
-  sp: ReturnType<typeof getSliderProps>;
-  settings: EnvironmentSettings;
-  onSliderChange: (value: number) => void;
-};
-
-const DualSliderSection = ({ label, config, sp, settings, onSliderChange }: SliderSectionProps) => (
-  <EnvironmentSliderSection label={label}>
-    <div className="flex items-center gap-3">
-      <Slider
-        min={sp.min}
-        max={sp.max}
-        step={sp.step}
-        value={[sp.sliderValue]}
-        onValueChange={([v]) => {
-          if (v !== undefined) {
-            onSliderChange(sp.toFormValue(v));
-          }
-        }}
-        className="flex-1 max-w-(--setting-w)"
-        rangeStyle={buildSliderRangeStyle(sp.rangeIndex, sp.rangeMax, sp.rangeMin, config.colorVar)}
-      />
-      {config.sliderAdornment?.(settings)}
-      <span className="text-[13px]">
-        <span className="font-medium text-gray-12">
-          {config.formatValue(sp.toFormValue(sp.sliderValue)).value}
-        </span>{" "}
-        <span className="text-gray-11">
-          {config.formatValue(sp.toFormValue(sp.sliderValue)).unit}
-        </span>
-      </span>
-    </div>
-  </EnvironmentSliderSection>
-);

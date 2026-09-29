@@ -21,7 +21,6 @@ import { DnsRecordTable } from "./dns-record-table";
 
 type CustomDomainRowProps = {
   domain: CustomDomain;
-  environmentSlug?: string;
 };
 
 const statusConfig: Record<
@@ -78,7 +77,7 @@ function ProviderIcon({ provider, className }: { provider: string; className?: s
   return Icon ? <Icon className={className} /> : null;
 }
 
-export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProps) {
+export function CustomDomainRow({ domain }: CustomDomainRowProps) {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const deleteButtonRef = useRef<HTMLButtonElement>(null);
@@ -110,11 +109,6 @@ export function CustomDomainRow({ domain, environmentSlug }: CustomDomainRowProp
           >
             {domain.domain}
           </a>
-          {environmentSlug && (
-            <Badge variant="secondary" size="sm" font="mono" className="shrink-0">
-              {environmentSlug}
-            </Badge>
-          )}
         </div>
 
         <div className="flex items-center gap-2">

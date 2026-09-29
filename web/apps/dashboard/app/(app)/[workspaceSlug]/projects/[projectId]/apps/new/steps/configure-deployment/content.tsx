@@ -8,7 +8,7 @@ export const ConfigureDeploymentContent = () => {
 
   return (
     <div className="w-225">
-      <DeploymentSettings githubReadOnly sections={{ build: true }} />
+      <DeploymentSettings githubReadOnly sections={{ application: true }} />
       <div className="flex justify-end mt-6 mb-10 flex-col gap-4">
         <Button type="button" variant="primary" size="xlg" className="rounded-lg" onClick={next}>
           Next

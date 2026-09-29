@@ -2,11 +2,10 @@
 
 import { collection } from "@/lib/collections";
 import type { EnvironmentSettings } from "@/lib/collections/deploy/environment-settings";
-import { ENVIRONMENT_KIND } from "@/lib/collections/deploy/environments";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
-import { useSearchParams } from "next/navigation";
-import { type PropsWithChildren, createContext, useContext, useMemo } from "react";
-import { useProjectData } from "../../data-provider";
+import { type PropsWithChildren, createContext, useContext } from "react";
+import { useAppId, useProjectData } from "../../data-provider";
+import { useAppEnvironment } from "../environment-context";
 import { SettingsSkeleton } from "./components/settings-skeleton";
 
 type EnvironmentContextType = {
@@ -17,40 +16,13 @@ type EnvironmentContextType = {
 
 export const EnvironmentContext = createContext<EnvironmentContextType | null>(null);
 
-/**
- * Resolves the environment to show, then hands off to the inner provider.
- *
- * The settings query needs a project, an app, and an environment, and the query
- * builder rejects an undefined value. Waiting here keeps the inner query free of
- * placeholder ids.
- */
 export const EnvironmentSettingsProvider = ({ children }: PropsWithChildren) => {
-  const { environments, isEnvironmentsLoading, projectId, appId } = useProjectData();
-  const searchParams = useSearchParams();
-  const envIdParam = searchParams.get("environmentId");
-
-  const activeEnvironmentId = useMemo(() => {
-    if (envIdParam) {
-      const match = environments.find((e) => e.id === envIdParam);
-      if (match) {
-        return match.id;
-      }
-    }
-    return (
-      environments.find((e) => e.kind === ENVIRONMENT_KIND.production)?.id ?? environments.at(0)?.id
-    );
-  }, [envIdParam, environments]);
-
-  if (isEnvironmentsLoading || !activeEnvironmentId || !appId) {
-    return <SettingsSkeleton />;
-  }
+  const { projectId } = useProjectData();
+  const appId = useAppId();
+  const { environment } = useAppEnvironment();
 
   return (
-    <EnvironmentSettingsInner
-      projectId={projectId}
-      appId={appId}
-      environmentId={activeEnvironmentId}
-    >
+    <EnvironmentSettingsInner projectId={projectId} appId={appId} environmentId={environment.id}>
       {children}
     </EnvironmentSettingsInner>
   );
