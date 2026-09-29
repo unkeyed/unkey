@@ -17,7 +17,7 @@ import (
 // ToProto parses request policies into the protos frontline evaluates,
 // generating an id per policy. Conversion is also the validation pass: it
 // enforces the rules the OpenAPI schema cannot express (exactly-one variants,
-// valid regex and permission queries), and its errors are user-facing,
+// valid regex, CIDRs and permission queries), and its errors are user-facing,
 // naming the offending field.
 func ToProto(policies []openapi.Policy) ([]*frontlinev1.Policy, error) {
 	out := make([]*frontlinev1.Policy, 0, len(policies))
@@ -305,8 +305,8 @@ func mapMatchExprToProto(path string, m openapi.MatchExpr) (*frontlinev1.MatchEx
 	}
 }
 
-// maxCidrsPerMatch caps one remoteIp list. Mirrors the OpenAPI schema's
-// maxItems, like maxCompoundIdentifiers.
+// maxCidrsPerMatch caps one remoteIp list and mirrors the OpenAPI schema's
+// maxItems
 const maxCidrsPerMatch = 100
 
 func mapRemoteIpMatchToProto(path string, m openapi.RemoteIpMatch) (*frontlinev1.RemoteIpMatch, error) {
@@ -331,8 +331,8 @@ func mapRemoteIpMatchToProto(path string, m openapi.RemoteIpMatch) (*frontlinev1
 }
 
 // normalizeCidrs stores every entry as a canonical prefix, so frontline only
-// parses prefixes and an unchanged policy round-trips byte for byte. Entries
-// that would never match are rejected instead of silently rewritten.
+// parses prefixes and an unchanged policy round-trips byte for byte. Ambiguous
+// entries are rejected instead of silently rewritten
 func normalizeCidrs(path string, entries []string) ([]string, error) {
 	if len(entries) > maxCidrsPerMatch {
 		return nil, invalid(fmt.Sprintf("%s must not have more than %d entries.", path, maxCidrsPerMatch))

@@ -26,7 +26,8 @@ properties:
 additionalProperties: false
 description: |-
   Matches the client IP against CIDR ranges. Exactly one of `in` or `notIn`
-  must be set. Entries with host bits set, such as `10.1.2.3/8`, are rejected.
+  must be set. Entries with host bits set, such as `10.1.2.3/8`, IPv4-mapped IPv6
+  addresses and zones are rejected.
 example:
   notIn:
     - 198.51.100.0/24

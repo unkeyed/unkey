@@ -11,7 +11,8 @@ import { SDKValidationError } from "../errors/sdkvalidationerror.js";
  * Matches the client IP against CIDR ranges. Exactly one of `in` or `notIn`
  *
  * @remarks
- * must be set. Entries with host bits set, such as `10.1.2.3/8`, are rejected.
+ * must be set. Entries with host bits set, such as `10.1.2.3/8`, IPv4-mapped IPv6
+ * addresses and zones are rejected.
  */
 export type RemoteIpMatch = {
   /**
