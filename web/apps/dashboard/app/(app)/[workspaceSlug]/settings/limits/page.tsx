@@ -73,6 +73,10 @@ export default function LimitsPage() {
     trpc: { context: { skipBatch: true } },
     retry: 1,
   });
+  const logdrains = trpc.logdrain.list.useQuery(undefined, {
+    enabled: Boolean(workspace) && billingUpgrades,
+    retry: 1,
+  });
 
   if (!billingUpgrades) {
     notFound();
@@ -107,6 +111,7 @@ export default function LimitsPage() {
     apiOperations: measured({ data: usage.data?.billableTotal, isError: usage.isError }),
     allocation: measured(allocation),
     customDomains: measured(customDomains),
+    logdrains: measured({ data: logdrains.data?.length, isError: logdrains.isError }),
   });
   const breached = breachedKeys(groups);
 
