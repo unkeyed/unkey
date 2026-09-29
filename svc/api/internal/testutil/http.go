@@ -296,6 +296,7 @@ func NewHarness(t *testing.T, configs ...HarnessConfig) *Harness {
 	keyService, err := keys.New(keys.Config{
 		DB:           db.ToMySQL(database),
 		KeyCache:     caches.VerificationKeyByHash,
+		RootKeyCache: caches.RootKeyByHash,
 		RateLimiter:  ratelimitService,
 		RBAC:         rbac.New(),
 		Region:       "test",

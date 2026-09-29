@@ -113,44 +113,9 @@ type Querier interface {
 	//  WHERE id = ?
 	//  and workspace_id = ?
 	FindKeyMigrationByID(ctx context.Context, db DBTX, arg FindKeyMigrationByIDParams) (FindKeyMigrationByIDRow, error)
-	// FindLimitsByWorkspaceID returns the limits row for a workspace, used to
-	// enforce per-workspace API rate limits on root key requests. NULL
-	// api_requests_count_max_per_minute means unlimited; zero means explicitly
-	// blocked.
+	// FindLegacyRootKeyForAuthentication loads an active root key from the legacy store.
+	// It combines principal permissions with legacy direct and role assignments.
 	//
-	//  SELECT pk, workspace_id, api_billable_operations_count_max_per_month, api_requests_count_max_per_minute, logs_retention_days_max, logs_audit_retention_days_max, logdrains_max, team_enabled, cpu_cores_max, cpu_cores_max_per_instance, memory_mib_max, memory_mib_max_per_instance, storage_mib_max, storage_mib_max_per_instance, builds_concurrent_max, custom_domains_max, autoscaling_replicas_max
-	//  FROM `limits`
-	//  WHERE workspace_id = ?
-	FindLimitsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Limit, error)
-	// FindRootKeyForAuthentication loads new and legacy root keys in one round trip.
-	// Regular API keys are excluded. Legacy assignments and roles are read only for
-	// legacy keys; direct permissions are scoped to the target workspace and principal.
-	//
-	//  WITH root_keys AS (
-	//      SELECT
-	//          id,
-	//          key_auth_id,
-	//          workspace_id,
-	//          for_workspace_id,
-	//          name,
-	//          expires,
-	//          enabled,
-	//          FALSE AS legacy
-	//      FROM unkey_root_keys
-	//      WHERE unkey_root_keys.hash = ? AND unkey_root_keys.deleted_at IS NULL
-	//      UNION ALL
-	//      SELECT
-	//          id,
-	//          key_auth_id,
-	//          workspace_id,
-	//          for_workspace_id,
-	//          name,
-	//          expires,
-	//          enabled,
-	//          TRUE AS legacy
-	//      FROM `keys`
-	//      WHERE `keys`.hash = ? AND `keys`.deleted_at_m IS NULL AND `keys`.for_workspace_id IS NOT NULL
-	//  )
 	//  SELECT
 	//      k.id,
 	//      k.key_auth_id,
@@ -165,7 +130,7 @@ type Querier interface {
 	//      COALESCE(
 	//          (SELECT JSON_ARRAYAGG(slug)
 	//          FROM (
-	//              SELECT slug
+	//              SELECT p.slug
 	//              FROM unkey_principal_permissions p
 	//              WHERE p.for_workspace_id = k.for_workspace_id
 	//                  AND p.principal_type = 'root_key'
@@ -174,22 +139,63 @@ type Querier interface {
 	//              SELECT p.slug
 	//              FROM keys_permissions kp
 	//              JOIN permissions p ON p.id = kp.permission_id
-	//              WHERE k.legacy AND kp.key_id = k.id
+	//              WHERE kp.key_id = k.id
 	//              UNION ALL
 	//              SELECT p.slug
 	//              FROM keys_roles kr
 	//              JOIN roles_permissions rp ON rp.role_id = kr.role_id
 	//              JOIN permissions p ON p.id = rp.permission_id
-	//              WHERE k.legacy AND kr.key_id = k.id
+	//              WHERE kr.key_id = k.id
 	//          ) AS combined_permissions),
 	//          JSON_ARRAY()
 	//      ) AS permissions
-	//  FROM root_keys k
+	//  FROM `keys` k
 	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
 	//  JOIN key_auth ka ON ka.id = k.key_auth_id
 	//  JOIN workspaces ws ON ws.id = k.workspace_id
 	//  LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
-	FindRootKeyForAuthentication(ctx context.Context, db DBTX, arg FindRootKeyForAuthenticationParams) (FindRootKeyForAuthenticationRow, error)
+	//  WHERE k.hash = ?
+	//      AND k.deleted_at_m IS NULL
+	//      AND k.for_workspace_id IS NOT NULL
+	FindLegacyRootKeyForAuthentication(ctx context.Context, db DBTX, hash string) (FindLegacyRootKeyForAuthenticationRow, error)
+	// FindLimitsByWorkspaceID returns the limits row for a workspace, used to
+	// enforce per-workspace API rate limits on root key requests. NULL
+	// api_requests_count_max_per_minute means unlimited; zero means explicitly
+	// blocked.
+	//
+	//  SELECT pk, workspace_id, api_billable_operations_count_max_per_month, api_requests_count_max_per_minute, logs_retention_days_max, logs_audit_retention_days_max, logdrains_max, team_enabled, cpu_cores_max, cpu_cores_max_per_instance, memory_mib_max, memory_mib_max_per_instance, storage_mib_max, storage_mib_max_per_instance, builds_concurrent_max, custom_domains_max, autoscaling_replicas_max
+	//  FROM `limits`
+	//  WHERE workspace_id = ?
+	FindLimitsByWorkspaceID(ctx context.Context, db DBTX, workspaceID string) (Limit, error)
+	// FindUnkeyRootKeyForAuthentication loads an active root key from the new store.
+	// Permissions are scoped to the target workspace and root-key principal.
+	//
+	//  SELECT
+	//      k.id,
+	//      k.key_auth_id,
+	//      k.workspace_id,
+	//      k.for_workspace_id,
+	//      k.name,
+	//      k.expires,
+	//      k.enabled,
+	//      a.deleted_at_m AS api_deleted_at_m,
+	//      ws.enabled AS workspace_enabled,
+	//      fws.enabled AS for_workspace_enabled,
+	//      COALESCE(
+	//          (SELECT JSON_ARRAYAGG(p.slug)
+	//          FROM unkey_principal_permissions p
+	//          WHERE p.for_workspace_id = k.for_workspace_id
+	//              AND p.principal_type = 'root_key'
+	//              AND p.principal_id = k.id),
+	//          JSON_ARRAY()
+	//      ) AS permissions
+	//  FROM unkey_root_keys k
+	//  JOIN apis a ON a.key_auth_id = k.key_auth_id
+	//  JOIN key_auth ka ON ka.id = k.key_auth_id
+	//  JOIN workspaces ws ON ws.id = k.workspace_id
+	//  LEFT JOIN workspaces fws ON fws.id = k.for_workspace_id
+	//  WHERE k.hash = ? AND k.deleted_at IS NULL
+	FindUnkeyRootKeyForAuthentication(ctx context.Context, db DBTX, hash string) (FindUnkeyRootKeyForAuthenticationRow, error)
 	// UpdateKeyHashAndMigration re-hashes a key to SHA-256 after a successful
 	// on-demand migration and clears the pending migration marker so future
 	// lookups use the standard hash path.

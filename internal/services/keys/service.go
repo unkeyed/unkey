@@ -21,7 +21,8 @@ type Config struct {
 	Source       string
 	UsageLimiter usagelimiter.Service // Redis Counter for usage limiting
 
-	KeyCache cache.Cache[string, db.CachedKeyData] // Cache for key lookups with pre-parsed data
+	KeyCache     cache.Cache[string, db.CachedKeyData]     // Cache for key lookups with pre-parsed data
+	RootKeyCache cache.Cache[string, db.CachedRootKeyData] // Cache for root-key authentication lookups
 }
 
 type service struct {
@@ -33,7 +34,8 @@ type service struct {
 	source       string
 
 	// hash -> cached key data (includes pre-parsed IP whitelist)
-	keyCache cache.Cache[string, db.CachedKeyData]
+	keyCache     cache.Cache[string, db.CachedKeyData]
+	rootKeyCache cache.Cache[string, db.CachedRootKeyData]
 }
 
 // New creates a new keys service instance with the provided configuration.
@@ -46,6 +48,7 @@ func New(config Config) (*service, error) {
 		region:       config.Region,
 		source:       config.Source,
 		keyCache:     config.KeyCache,
+		rootKeyCache: config.RootKeyCache,
 	}, nil
 }
 

@@ -503,6 +503,17 @@ func buildEngine(
 		return nil, fmt.Errorf("failed to create key cache: %w", err)
 	}
 	r.Defer(func() error { keyCache.Close(); return nil })
+	rootKeyCache, err := cache.New(cache.Config[string, keysdb.CachedRootKeyData]{
+		Fresh:    10 * time.Second,
+		Stale:    10 * time.Minute,
+		MaxSize:  100_000,
+		Resource: "frontline_root_key_cache",
+		Clock:    clk,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create root key cache: %w", err)
+	}
+	r.Defer(func() error { rootKeyCache.Close(); return nil })
 
 	keyService, err := keys.New(keys.Config{
 		DB:           pkgdb.ToMySQL(database),
@@ -512,6 +523,7 @@ func buildEngine(
 		UsageLimiter: usageLimiter,
 		Source:       schema.SourceGateway,
 		KeyCache:     keyCache,
+		RootKeyCache: rootKeyCache,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create key service: %w", err)

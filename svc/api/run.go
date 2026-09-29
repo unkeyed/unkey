@@ -341,6 +341,7 @@ func Run(ctx context.Context, cfg Config) error {
 	keySvc, err := keys.New(keys.Config{
 		DB:           db.ToMySQL(database),
 		KeyCache:     caches.VerificationKeyByHash,
+		RootKeyCache: caches.RootKeyByHash,
 		RateLimiter:  rlSvc,
 		RBAC:         rbac.New(),
 		Region:       cfg.Region,

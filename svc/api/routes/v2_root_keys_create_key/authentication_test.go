@@ -1,19 +1,59 @@
 package handler_test
 
 import (
+	"database/sql"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/codes"
+	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/fault"
+	"github.com/unkeyed/unkey/pkg/hash"
+	"github.com/unkeyed/unkey/pkg/uid"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 	updatekey "github.com/unkeyed/unkey/svc/api/routes/v2_keys_update_key"
 	handler "github.com/unkeyed/unkey/svc/api/routes/v2_root_keys_create_key"
 )
+
+// TestRootKeyAuthenticationPrefersNewStore guarantees migration overlap resolves
+// to the new root-key row before the legacy fallback is queried.
+func TestRootKeyAuthenticationPrefersNewStore(t *testing.T) {
+	h := testutil.NewHarness(t)
+	r := h.Resources()
+	legacy := h.CreateKey(seed.CreateKeyRequest{
+		WorkspaceID:    r.RootWorkspace.ID,
+		KeySpaceID:     r.RootKeySpace.ID,
+		ForWorkspaceID: &r.UserWorkspace.ID,
+	})
+	newID := uid.New(uid.KeyPrefix)
+	require.NoError(t, db.Query.InsertUnkeyRootKey(t.Context(), h.DB.RW(), db.InsertUnkeyRootKeyParams{
+		ID:             newID,
+		WorkspaceID:    r.RootWorkspace.ID,
+		KeyAuthID:      r.RootKeySpace.ID,
+		ForWorkspaceID: r.UserWorkspace.ID,
+		Hash:           hash.Sha256(legacy.Key),
+		Name:           sql.NullString{},
+		Prefix:         "unkey",
+		Start:          "test",
+		End:            "test",
+		Enabled:        true,
+		Expires:        sql.NullTime{},
+		CreatedAt:      1_700_000_000_000,
+	}))
+
+	request := httptest.NewRequest(http.MethodPost, "/", nil)
+	request.Header.Set("Authorization", "Bearer "+legacy.Key)
+	session := &zen.Session{}
+	require.NoError(t, session.Init(httptest.NewRecorder(), request, 0))
+
+	rootKey, err := h.Keys.GetRootKey(t.Context(), session)
+	require.NoError(t, err)
+	require.Equal(t, newID, rootKey.Key.ID)
+}
 
 // TestLegacyRootKeyDisableInvalidatesAuthentication guarantees an authorized
 // update removes cached root authentication. For example, a legacy root key

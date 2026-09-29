@@ -78,6 +78,7 @@ func seedVerifications(ctx context.Context, cmd *cli.Command) error {
 		UsageLimiter: nil,
 		Source:       schema.SourceAPI,
 		KeyCache:     nil,
+		RootKeyCache: nil,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create key service: %w", err)
