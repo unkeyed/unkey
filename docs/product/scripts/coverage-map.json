@@ -607,18 +607,18 @@
     },
     {
       "id": "apim.audit-events",
-      "product": "api-management",
+      "product": "platform",
       "capability": "audit logs: events",
       "pages": [
-        "api-management/audit-logs/event-types"
+        "platform/workspace/audit-logs/event-types"
       ]
     },
     {
       "id": "apim.audit-retention",
-      "product": "api-management",
+      "product": "platform",
       "capability": "audit logs: retention",
       "pages": [
-        "api-management/audit-logs/overview"
+        "platform/workspace/audit-logs/overview"
       ]
     },
     {

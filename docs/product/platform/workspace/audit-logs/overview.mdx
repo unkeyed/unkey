@@ -19,7 +19,7 @@ The audit log records every change made through the API or the dashboard: who di
 
 Each entry has:
 
-- **An event**, such as `key.create` or `portal.session.exchange`. See [Audit log event types](/api-management/audit-logs/event-types).
+- **An event**, such as `key.create` or `portal.session.exchange`. See [Audit log event types](/platform/workspace/audit-logs/event-types).
 - **An actor**, with a type, ID, and name. The type is `user` (someone in the dashboard), `rootkey` (an API call), `portalEndUser` (one of your customers in a [developer portal](/api-management/portal/overview)), `github` (a push or pull request on a connected repository), or `system` (Unkey itself).
 - **The resources** it touched, each with a type, ID, name, and optional details such as the fields that changed.
 - **The caller's IP address and user agent**, and a readable description.

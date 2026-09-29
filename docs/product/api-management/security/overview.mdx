@@ -25,7 +25,7 @@ If your product must show a key more than once, we can turn on encrypted storage
 
 ## Verification doesn't leak
 
-`keys.verifyKey` returns `NOT_FOUND` for several failures, including a root key without permission for the keyspace, so nobody can use it to find out which keys exist. Every verification is recorded in [analytics](/api-management/analytics/overview), and verifications made with a root key are also in the [audit log](/api-management/audit-logs/overview).
+`keys.verifyKey` returns `NOT_FOUND` for several failures, including a root key without permission for the keyspace, so nobody can use it to find out which keys exist. Every verification is recorded in [analytics](/api-management/analytics/overview), and verifications made with a root key are also in the [audit log](/platform/workspace/audit-logs/overview).
 
 ## IP allow lists
 
@@ -45,4 +45,4 @@ GitHub's secret scanning recognizes root keys by their `unkey_` prefix. If one i
 
 ## Everything is audited
 
-Every change to keyspaces, keys, identities, roles, permissions, and portals is in the audit log, with who did it and from where. You can stream it to your own systems. See [Audit logs](/api-management/audit-logs/overview).
+Every change to keyspaces, keys, identities, roles, permissions, and portals is in the audit log, with who did it and from where. You can stream it to your own systems. See [Audit logs](/platform/workspace/audit-logs/overview).

@@ -29,6 +29,6 @@ With recovery on, a copy of our database is no longer useless on its own. Someon
 - Only turn on recovery for keyspaces that need it.
 - Never pass `decrypt: true` in code that serves end users.
 - Use the [developer portal](/api-management/portal/overview), where users roll their own keys instead of reading them back.
-- Watch the [audit log](/api-management/audit-logs/overview) for unexpected `key.create` entries in keyspaces with encryption on.
+- Watch the [audit log](/platform/workspace/audit-logs/overview) for unexpected `key.create` entries in keyspaces with encryption on.
 
 If [rerolling](/api-management/keys/rerolling-keys) meets your need, use it instead. The user gets a fresh key and nobody reads the old one.

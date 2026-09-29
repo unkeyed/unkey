@@ -28,7 +28,7 @@ Each drain sends exactly one stream. Create another drain if you need a second s
 
 | Stream | What arrives | Filters |
 | --- | --- | --- |
-| Audit logs | Workspace change events (`key.create`, `portal.session.exchange`, and the rest). See [Audit logs](/api-management/audit-logs/overview) and [event types](/api-management/audit-logs/event-types). | **Event types**: all events, or specific names by category |
+| Audit logs | Workspace change events (`key.create`, `portal.session.exchange`, and the rest). See [Audit logs](/platform/workspace/audit-logs/overview) and [event types](/platform/workspace/audit-logs/event-types). | **Event types**: all events, or specific names by category |
 | Key verifications | Results from verifying API keys | **Keyspaces** and **Outcomes** (for example `VALID`, `RATE_LIMITED`, `EXPIRED`) |
 | Gateway HTTP requests | HTTP requests your Compute gateway handled | **Sources** (projects, apps, environments) and **HTTP statuses** (`2xx`, `3xx`, `4xx`, `5xx`) |
 | Runtime logs | Application log lines from Compute | **Sources** (projects, apps, environments) and **Severity** (`error`, `warn`, `info`, `debug`) |
@@ -48,7 +48,7 @@ Unkey sends events in batches after they happen. Your destination must accept th
 
 Delivery is at least once, so retries can send an event more than once. Deduplicate in your system: use `id` for audit logs, `request_id` for key verifications and gateway requests, and `log_id` for runtime logs. Rate-limit checks in one multi-limit request share `request_id`, so that field alone does not uniquely identify each decision.
 
-A drain starts when you create it. Earlier events are not backfilled. After a pause or failure, delivery resumes from the last committed position, as long as the events are still within retention. Verification logs are kept for 90 days, gateway requests for seven days, and audit logs for your plan's [audit log retention](/api-management/audit-logs/overview#retention) (up to 90 days).
+A drain starts when you create it. Earlier events are not backfilled. After a pause or failure, delivery resumes from the last committed position, as long as the events are still within retention. Verification logs are kept for 90 days, gateway requests for seven days, and audit logs for your plan's [audit log retention](/platform/workspace/audit-logs/overview#retention) (up to 90 days).
 
 ## Destinations
 

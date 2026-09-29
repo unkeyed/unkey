@@ -153,6 +153,13 @@
                 ]
               },
               {
+                "group": "Audit logs",
+                "pages": [
+                  "platform/workspace/audit-logs/overview",
+                  "platform/workspace/audit-logs/event-types"
+                ]
+              },
+              {
                 "group": "Billing",
                 "pages": [
                   "platform/billing/plans",
@@ -911,13 +918,6 @@
                 ]
               },
               {
-                "group": "Audit logs",
-                "pages": [
-                  "api-management/audit-logs/overview",
-                  "api-management/audit-logs/event-types"
-                ]
-              },
-              {
                 "group": "Developer portal",
                 "pages": [
                   "api-management/portal/overview",
@@ -1228,11 +1228,11 @@
     },
     {
       "source": "/audit-log/introduction",
-      "destination": "/api-management/audit-logs/overview"
+      "destination": "/platform/workspace/audit-logs/overview"
     },
     {
       "source": "/audit-log/types",
-      "destination": "/api-management/audit-logs/event-types"
+      "destination": "/platform/workspace/audit-logs/event-types"
     },
     {
       "source": "/build-and-deploy/cli",
@@ -2009,6 +2009,18 @@
     {
       "source": "/api-management/audit-logs/log-drains",
       "destination": "/platform/workspace/log-drains"
+    },
+    {
+      "source": "/api-management/audit-logs/overview",
+      "destination": "/platform/workspace/audit-logs/overview"
+    },
+    {
+      "source": "/api-management/audit-logs/event-types",
+      "destination": "/platform/workspace/audit-logs/event-types"
+    },
+    {
+      "source": "/api-management/audit-logs",
+      "destination": "/platform/workspace/audit-logs/overview"
     }
   ],
   "seo": {
