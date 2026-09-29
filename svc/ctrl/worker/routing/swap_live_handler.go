@@ -35,9 +35,10 @@ func (s *Service) SwapLiveDeployment(
 		if err != nil {
 			return fmt.Errorf("find target deployment environment: %w", err)
 		}
-		if target.EnvironmentID != environmentID || !target.EnvironmentKind.IsProduction() || target.EnvironmentSlug != "production" {
-			return restate.ToTerminalError(fmt.Errorf("target deployment must belong to the keyed built-in production environment"), restate.WithErrorCode(400))
+		if target.EnvironmentID != environmentID || !target.EnvironmentKind.IsProduction() {
+			return restate.ToTerminalError(fmt.Errorf("target deployment must belong to the keyed production environment"), restate.WithErrorCode(400))
 		}
+
 		return nil
 	}, restate.WithName("validate live deployment target"))
 	if err != nil {
