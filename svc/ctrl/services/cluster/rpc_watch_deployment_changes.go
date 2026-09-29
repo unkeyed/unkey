@@ -175,6 +175,7 @@ func deploymentRowToState[T deploymentStateRow](row T) (*ctrlv1.DeploymentState,
 			EnvironmentKind:               string(deployment.EnvironmentKind),
 			Region:                        &deployment.RegionName,
 		}
+
 		if deployment.PrivateNetworkEnrolled {
 			if host, ok := privatenetwork.ReplicaHost(deployment.AppSlug); ok {
 				apply.PrivateNetworkReplicaHost = host

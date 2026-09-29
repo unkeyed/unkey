@@ -33,10 +33,12 @@ func (s *Service) StreamPrivateNetworkState(ctx context.Context, req *connect.Re
 		if err != nil {
 			return nil, err
 		}
+
 		replicas, err := listPrivateNetworkReplicas(txCtx, queries, cluster.RegionPlatform)
 		if err != nil {
 			return nil, err
 		}
+
 		return append(bindings, replicas...), nil
 	})
 	if err != nil {
@@ -49,6 +51,7 @@ func (s *Service) StreamPrivateNetworkState(ctx context.Context, req *connect.Re
 			return err
 		}
 	}
+
 	return stream.Send(&ctrlv1.PrivateNetworkStateChunk{Complete: true, Total: uint64(len(apps))})
 }
 
@@ -60,6 +63,7 @@ func listPrivateNetworkBindings(ctx context.Context, queries *db.Queries, platfo
 		if err != nil {
 			return nil, err
 		}
+
 		for _, row := range rows {
 			apps = append(apps, &ctrlv1.PrivateNetworkApp{
 				WorkspaceId:        row.WorkspaceID,
@@ -75,6 +79,7 @@ func listPrivateNetworkBindings(ctx context.Context, queries *db.Queries, platfo
 				BindingName:        row.BindingName,
 			})
 		}
+
 		if len(rows) < privateNetworkPageSize {
 			return apps, nil
 		}
@@ -91,6 +96,7 @@ func listPrivateNetworkReplicas(ctx context.Context, queries *db.Queries, platfo
 		if err != nil {
 			return nil, err
 		}
+
 		for _, row := range rows {
 			if _, ok := privatenetwork.ReplicaHost(row.AppSlug); !ok {
 				continue
@@ -109,6 +115,7 @@ func listPrivateNetworkReplicas(ctx context.Context, queries *db.Queries, platfo
 				BindingName:        row.AppSlug,
 			})
 		}
+
 		if len(rows) < privateNetworkPageSize {
 			return apps, nil
 		}

@@ -85,14 +85,17 @@ func TestPrivateNetworkSnapshotStreamsEveryPageThenCompletes(t *testing.T) {
 			bindings[app.GetCallerDeploymentId()] = app
 		}
 	}
+
 	require.Equal(t, uint64(len(bindings)+len(replicas)), last.GetTotal())
 	require.Len(t, bindings, callers, "every caller deployment across both binding pages")
 	require.Len(t, replicas, callers+1, "every caller and the target publish replicas; the app with an invalid slug does not")
+
 	for caller, app := range bindings {
 		require.Equal(t, "database", app.GetBindingName(), "binding for %s", caller)
 		require.Equal(t, target, app.GetDeploymentId(), "binding for %s", caller)
 		require.Equal(t, int32(5432), app.GetPort(), "binding for %s", caller)
 	}
+
 	for deployment, app := range replicas {
 		require.Equal(t, deployment, app.GetDeploymentId())
 		require.Equal(t, "self-"+deployment, app.GetBindingId())
@@ -104,11 +107,13 @@ func seedPrivateNetwork(t *testing.T, database db.Database, platform, cell strin
 	t.Helper()
 	const callers = privateNetworkPageSize + 1
 	workspace, project, region, target := uid.New("ws"), uid.New("proj"), uid.New("reg"), uid.New("dep")
+
 	exec := func(query string, args ...any) {
 		t.Helper()
 		_, err := database.RW().ExecContext(t.Context(), query, args...)
 		require.NoError(t, err)
 	}
+
 	// The seed is committed so the RPC's own transaction sees it. t.Context is
 	// already canceled when cleanup runs.
 	t.Cleanup(func() {
@@ -129,6 +134,7 @@ func seedPrivateNetwork(t *testing.T, database db.Database, platform, cell strin
 		_, err = database.RW().ExecContext(context.Background(), `DELETE FROM regions WHERE id = ?`, region)
 		require.NoError(t, err)
 	})
+
 	exec(`INSERT INTO regions (id,name,platform) VALUES (?,?,?)`, region, "region-"+platform, platform)
 	exec(`INSERT INTO clusters (id,cell_id,region_id,last_heartbeat_at) VALUES (?,?,?,0)`, uid.New("cluster"), cell, region)
 	exec(`INSERT INTO workspaces (id,org_id,name,slug,k8s_namespace,beta_features) VALUES (?,?,'Workspace',?,?,'{}')`,
@@ -140,14 +146,17 @@ func seedPrivateNetwork(t *testing.T, database db.Database, platform, cell strin
 		exec(`INSERT INTO environments (id,workspace_id,project_id,app_id,slug,kind,created_at) VALUES (?,?,?,?,'preview','preview',1)`,
 			workspace+"-"+app+"-env", workspace, project, workspace+"-"+app)
 	}
+
 	insertDeployment := func(id, app string, port int) {
 		t.Helper()
 		exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,port,created_at)
 			VALUES (?,?,?,?,?,?,'{}',100,128,'running','{}','ready',?,1)`, id, id, workspace, project, workspace+"-"+app+"-env", workspace+"-"+app, port)
 		exec(`INSERT INTO deployment_topology (workspace_id,deployment_id,region_id,desired_status,created_at) VALUES (?,?,?,'running',1)`, workspace, id, region)
 	}
+
 	insertDeployment(target, "db", 5432)
 	insertDeployment(uid.New("dep"), "Bad_Slug", 8080)
+
 	exec(`INSERT INTO deployments (id,k8s_name,workspace_id,project_id,environment_id,app_id,sentinel_config,cpu_millicores,memory_mib,desired_state,encrypted_environment_variables,status,port,created_at)
 		SELECT CONCAT(?, n), CONCAT(?, n), ?, ?, ?, ?, '{}', 100, 128, 'running', '{}', 'ready', 8080, 1
 		FROM (SELECT a.n + 10 * b.n + 100 * c.n + 1000 * d.n AS n
@@ -159,8 +168,10 @@ func seedPrivateNetwork(t *testing.T, database db.Database, platform, cell strin
 		workspace+"-caller-", workspace+"-caller-", workspace, project, workspace+"-api-env", workspace+"-api", callers)
 	exec(`INSERT INTO deployment_topology (workspace_id,deployment_id,region_id,desired_status,created_at)
 		SELECT workspace_id, id, ?, 'running', 1 FROM deployments WHERE app_id = ?`, region, workspace+"-api")
+
 	exec(`INSERT INTO app_bindings (id,workspace_id,project_id,app_id,environment_id,resource_type,resource_id,name,selection_mode,target_deployment_id,created_at)
 		VALUES (?,?,?,?,?,'app',?,'database','deployment',?,1)`,
 		uid.New("binding"), workspace, project, workspace+"-api", workspace+"-api-env", workspace+"-db", target)
+
 	return callers, target
 }
