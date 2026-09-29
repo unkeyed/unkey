@@ -150,11 +150,13 @@ func TestImageResolverUsesHTTPOnlyForConfiguredInsecureRepository(t *testing.T) 
 		return dialer.DialContext(ctx, network, server.Listener.Addr().String())
 	}
 	t.Cleanup(transport.CloseIdleConnections)
+
 	for _, repository := range []string{"internal", "other"} {
 		tag, err := name.NewTag("registry.example:5000/"+repository+":v1", name.Insecure)
 		require.NoError(t, err)
 		require.NoError(t, remote.Write(tag, empty.Image, remote.WithTransport(transport)))
 	}
+
 	for _, tc := range []struct {
 		name       string
 		insecure   bool
@@ -171,6 +173,7 @@ func TestImageResolverUsesHTTPOnlyForConfiguredInsecureRepository(t *testing.T) 
 			})
 			require.NoError(t, err)
 			resolver.(*ociImageResolver).options = []remote.Option{remote.WithTransport(transport)}
+
 			resolved, err := resolver.Resolve(t.Context(), "registry.example:5000/"+tc.repository+":v1")
 			if tc.wantError {
 				require.Error(t, err)

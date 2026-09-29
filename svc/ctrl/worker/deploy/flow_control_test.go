@@ -434,12 +434,14 @@ func holdInvocationStatus(ctx context.Context, adminURL, key string) (status str
 	if err != nil {
 		return "", false, err
 	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, adminURL+"/query", bytes.NewReader(query))
 	if err != nil {
 		return "", false, err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", false, err
@@ -448,6 +450,7 @@ func holdInvocationStatus(ctx context.Context, adminURL, key string) (status str
 	if resp.StatusCode != http.StatusOK {
 		return "", false, fmt.Errorf("query Hold invocation %s: status %d", key, resp.StatusCode)
 	}
+
 	var result struct {
 		Rows []struct {
 			Status string `json:"status"`
@@ -456,6 +459,7 @@ func holdInvocationStatus(ctx context.Context, adminURL, key string) (status str
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return "", false, err
 	}
+
 	switch len(result.Rows) {
 	case 0:
 		return "", false, nil

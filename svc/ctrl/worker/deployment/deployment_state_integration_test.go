@@ -114,6 +114,7 @@ func TestChangeDesiredState_PinnedDeploymentLifecycle(t *testing.T) {
 			Status:        mysqltype.DeploymentsStatusReady,
 		})
 	}
+
 	bind := func(deploymentID, resourceType string) string {
 		t.Helper()
 		bindingID := uid.New("binding")
@@ -124,6 +125,7 @@ func TestChangeDesiredState_PinnedDeploymentLifecycle(t *testing.T) {
 		require.NoError(t, err)
 		return bindingID
 	}
+
 	waitForDesiredState := func(deploymentID string, state mysqltype.DeploymentsDesiredState) {
 		t.Helper()
 		require.Eventually(t, func() bool {
