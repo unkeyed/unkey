@@ -83,27 +83,17 @@ export const matchConditionSchema = z
   .superRefine((c, ctx) => {
     if (c.type === "remoteIp") {
       const entries = splitRanges(c.ranges);
-      if (entries.length === 0) {
-        ctx.addIssue({
-          code: "custom",
-          message: "Enter at least one IPv4 address or CIDR",
-          path: ["ranges"],
-        });
-      }
-      if (entries.length > POLICY_LIMITS.maxCidrsPerMatch) {
-        ctx.addIssue({
-          code: "custom",
-          message: `At most ${POLICY_LIMITS.maxCidrsPerMatch} ranges`,
-          path: ["ranges"],
-        });
-      }
       const invalid = entries.find((entry) => !ipv4OrCidrSchema.safeParse(entry).success);
-      if (invalid !== undefined) {
-        ctx.addIssue({
-          code: "custom",
-          message: `${invalid} is not a valid IPv4 address or CIDR`,
-          path: ["ranges"],
-        });
+      const message = match({ count: entries.length, invalid })
+        .with({ count: 0 }, () => "Enter at least one IPv4 address or CIDR")
+        .when(
+          ({ count }) => count > POLICY_LIMITS.maxCidrsPerMatch,
+          () => `At most ${POLICY_LIMITS.maxCidrsPerMatch} ranges`,
+        )
+        .with({ invalid: P.string }, (v) => `${v.invalid} is not a valid IPv4 address or CIDR`)
+        .otherwise(() => null);
+      if (message !== null) {
+        ctx.addIssue({ code: "custom", message, path: ["ranges"] });
       }
     }
     if (
