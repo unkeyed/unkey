@@ -1,5 +1,6 @@
 "use client";
 
+import { UpgradeSuccessDialog } from "@/components/billing/upgrade-success/upgrade-success-dialog";
 import { ComputePausedBanner } from "@/components/navigation/compute-paused-banner";
 import { SIDEBAR_WIDTH_VARS, SidebarV2 } from "@/components/navigation/sidebar-v2";
 import { MobileNavDrawer } from "@/components/navigation/sidebar-v2/mobile-nav-drawer";
@@ -13,7 +14,7 @@ import { useWorkspace } from "@/providers/workspace-provider";
 import { EmptyState, EmptyStateDescription, EmptyStateHeader, EmptyStateTitle } from "@unkey/ui";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { QueryTimeProvider } from "../../providers/query-time-provider";
 
 interface LayoutProps {
@@ -97,6 +98,9 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <SidebarProvider style={SIDEBAR_WIDTH_VARS}>
+      <Suspense fallback={null}>
+        <UpgradeSuccessDialog />
+      </Suspense>
       <div className="h-dvh w-full flex flex-col overflow-hidden bg-background">
         <ComputePausedBanner />
         <TopNav />
