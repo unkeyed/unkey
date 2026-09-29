@@ -110,6 +110,7 @@ func (v *VirtualObject) ChangeDesiredState(ctx restate.ObjectContext, req *hydra
 		hydrav1.NewDeploymentServiceClient(ctx, deploymentID).ChangeDesiredState().Send(req, restate.WithDelay(delay))
 		return &hydrav1.ChangeDesiredStateResponse{}, nil
 	}
+
 	restate.Clear(ctx, transitionKey)
 	return &hydrav1.ChangeDesiredStateResponse{}, nil
 }
