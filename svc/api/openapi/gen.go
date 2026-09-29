@@ -4682,6 +4682,7 @@ type V2KeysRerollKeyRequestBody struct {
 	// This parameter controls the overlap period for key rotation:
 	// - Set to `0` to revoke the original key immediately
 	// - Positive values keep the original key active for the specified duration
+	// - Omit it to keep the original key active; it keeps its current expiration, if any
 	// - Allows graceful migration by giving users time to update their credentials
 	//
 	// Common overlap periods:
@@ -4693,7 +4694,7 @@ type V2KeysRerollKeyRequestBody struct {
 	//
 	//
 	// Example: 86400000
-	Expiration int64 `json:"expiration"`
+	Expiration *int64 `json:"expiration,omitempty"`
 
 	// KeyId The database identifier of the key to reroll.
 	//

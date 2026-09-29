@@ -64,7 +64,7 @@ func TestRerollKeyNotFound(t *testing.T) {
 
 		req := handler.Request{
 			KeyId:      otherKey.KeyID,
-			Expiration: 0,
+			Expiration: new(int64(0)),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.NotFoundErrorResponse](h, route, headers, req)

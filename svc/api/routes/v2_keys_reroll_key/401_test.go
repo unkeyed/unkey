@@ -45,7 +45,7 @@ func TestRerollKeyUnauthorized(t *testing.T) {
 	// Basic request body
 	req := handler.Request{
 		KeyId:      key.KeyID,
-		Expiration: 0,
+		Expiration: new(int64(0)),
 	}
 
 	t.Run("invalid bearer token", func(t *testing.T) {

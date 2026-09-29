@@ -24,8 +24,8 @@ The root key needs `api.*.create_key` or `api.<api_id>.create_key`. When the ori
   The identifier of the key to reroll (`key_...`), not the key string itself.
 </ParamField>
 
-<ParamField body="expiration" type="integer" required>
-  Milliseconds from now until the old key stops working. The maximum is `4102444800000`. The time is rounded up to the next whole minute, so `expiration: 1` can leave the old key working for up to a minute. Only `0` revokes it immediately.
+<ParamField body="expiration" type="integer">
+  Milliseconds from now until the old key stops working. The maximum is `4102444800000`. The time is rounded up to the next whole minute, so `expiration: 1` can leave the old key working for up to a minute. Only `0` revokes it immediately. Omit it to keep the old key working; it keeps its current expiry, if it has one.
 </ParamField>
 
 ```bash
@@ -59,7 +59,7 @@ Analytics by identity carry on across the reroll. Analytics by `keyId` start fre
 
 ## What happens to the original
 
-The old key's expiry becomes now plus `expiration`, rounded up to the next minute. With `0`, its next verification returns `code: EXPIRED`. The API applies the grace period even if the old key was due to expire sooner, so a reroll can extend its life. Check the old key's `expires` first if that matters.
+The old key's expiry becomes now plus `expiration`, rounded up to the next minute. If you omit `expiration`, the old key's expiry does not change. With `0`, its next verification returns `code: EXPIRED`. The API applies the grace period even if the old key was due to expire sooner, so a reroll can extend its life. Check the old key's `expires` first if that matters.
 
 The event is recorded in the audit log as `key.reroll`.
 

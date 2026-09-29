@@ -65,7 +65,7 @@ func TestRerollKeyBadRequest(t *testing.T) {
 	t.Run("negative expiration", func(t *testing.T) {
 		req := handler.Request{
 			KeyId:      uid.New(uid.KeyPrefix),
-			Expiration: -1,
+			Expiration: new(int64(-1)),
 		}
 
 		res := testutil.CallRoute[handler.Request, openapi.BadRequestErrorResponse](h, route, headers, req)

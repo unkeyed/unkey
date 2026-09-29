@@ -52,7 +52,7 @@ func TestRerollKeyForbidden(t *testing.T) {
 
 	req := handler.Request{
 		KeyId:      key.KeyID,
-		Expiration: 0,
+		Expiration: new(int64(0)),
 	}
 
 	t.Run("no permissions", func(t *testing.T) {
@@ -121,7 +121,7 @@ func TestRerollKeyForbidden(t *testing.T) {
 
 		req := handler.Request{
 			KeyId:      encryptedKey.KeyID,
-			Expiration: 0,
+			Expiration: new(int64(0)),
 		}
 
 		headers := http.Header{
