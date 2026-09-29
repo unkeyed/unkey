@@ -32,6 +32,7 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, app *ctrlv1.PrivateNetwor
 	if apierrors.IsNotFound(err) {
 		current = nil
 	}
+
 	targets := make(map[string]time.Time)
 	if current != nil {
 		l := current.GetLabels()
@@ -46,6 +47,7 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, app *ctrlv1.PrivateNetwor
 			}
 		}
 	}
+
 	if app.GetDeploymentId() != "" {
 		active := ""
 		if binding != nil && maps.Equal(binding.Labels, bindingLabels(app)) && binding.Data["appSlug"] == app.GetBindingName() {
@@ -66,10 +68,12 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, app *ctrlv1.PrivateNetwor
 			targets[active] = time.Time{}
 		}
 	}
+
 	encoded, err := json.Marshal(targets)
 	if err != nil {
 		return fmt.Errorf("encode binding policy targets: %w", err)
 	}
+
 	specs := make([]interface{}, 0, 2*len(targets))
 	for _, target := range slices.Sorted(maps.Keys(targets)) {
 		caller := bindingEndpoint(app, app.GetCallerDeploymentId(), false)
@@ -88,6 +92,7 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, app *ctrlv1.PrivateNetwor
 			},
 		)
 	}
+
 	if len(specs) == 0 {
 		if current == nil {
 			return nil
@@ -97,6 +102,7 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, app *ctrlv1.PrivateNetwor
 		}
 		return nil
 	}
+
 	desired := &unstructured.Unstructured{Object: map[string]interface{}{
 		"apiVersion": "cilium.io/v2", "kind": "CiliumNetworkPolicy", "specs": specs,
 	}}
@@ -104,6 +110,7 @@ func (r *Reconciler) ensurePolicy(ctx context.Context, app *ctrlv1.PrivateNetwor
 	desired.SetNamespace(app.GetK8SNamespace())
 	desired.SetLabels(bindingLabels(app))
 	desired.SetAnnotations(map[string]string{policyTargetsAnnotation: string(encoded)})
+
 	if current != nil {
 		if maps.Equal(current.GetLabels(), desired.GetLabels()) && maps.Equal(current.GetAnnotations(), desired.GetAnnotations()) &&
 			equality.Semantic.DeepEqual(current.Object["specs"], desired.Object["specs"]) {

@@ -27,6 +27,7 @@ const (
 func (r *Reconciler) runEndpoints(ctx context.Context) {
 	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
+
 	for {
 		if err := r.reconcileEndpoints(ctx); err != nil {
 			logger.Warn("private network endpoint reconciliation failed", "error", err)
@@ -44,6 +45,7 @@ func (r *Reconciler) reconcileEndpoints(ctx context.Context) error {
 	defer cancel()
 	r.endpointMu.Lock()
 	defer r.endpointMu.Unlock()
+
 	selector := labels.New().ManagedByKrane()
 	selector[labels.LabelKeyComponent] = component
 	services, err := r.client.CoreV1().Services("").List(ctx, metav1.ListOptions{LabelSelector: selector.ToString()})
@@ -58,6 +60,7 @@ func (r *Reconciler) reconcileEndpoints(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	var errs []error
 	for i := range services.Items {
 		service := &services.Items[i]
@@ -89,6 +92,7 @@ func (r *Reconciler) sourceSlices(ctx context.Context) (map[string][]discoveryv1
 	if err != nil {
 		return nil, fmt.Errorf("list source EndpointSlices: %w", err)
 	}
+
 	byService := make(map[string][]discoveryv1.EndpointSlice)
 	for i := range list.Items {
 		item := list.Items[i]
@@ -104,10 +108,12 @@ func (r *Reconciler) ensureEndpoints(ctx context.Context, service *corev1.Servic
 		service.Spec.Ports[0].Port < 1 || service.Spec.Ports[0].Port > 65535 {
 		return fmt.Errorf("invalid source discovery Service %s/%s", service.Namespace, service.Name)
 	}
+
 	client := r.client.DiscoveryV1().EndpointSlices(service.Namespace)
 	sliceLabels := maps.Clone(service.Labels)
 	sliceLabels[discoveryv1.LabelServiceName] = service.Name
 	sliceLabels[discoveryv1.LabelManagedBy] = sourceSliceManager
+
 	byName := make(map[string]*discoveryv1.EndpointSlice, len(existing))
 	for i := range existing {
 		item := &existing[i]
@@ -156,6 +162,7 @@ func (r *Reconciler) ensureEndpoints(ctx context.Context, service *corev1.Servic
 			return fmt.Errorf("create source EndpointSlice %s/%s: %w", service.Namespace, name, err)
 		}
 	}
+
 	for _, item := range byName {
 		if err := client.Delete(ctx, item.Name, deleteOptions(item)); err != nil && !apierrors.IsNotFound(err) {
 			return fmt.Errorf("delete obsolete source EndpointSlice %s/%s: %w", item.Namespace, item.Name, err)
@@ -199,6 +206,7 @@ func readyEndpoints(service *corev1.Service, pods []corev1.Pod) []discoveryv1.En
 			}
 		}
 	}
+
 	ordered := slices.SortedFunc(maps.Keys(addresses), func(a, b netip.Addr) int { return a.Compare(b) })
 	endpoints := make([]discoveryv1.Endpoint, 0, len(ordered))
 	for _, address := range ordered {
