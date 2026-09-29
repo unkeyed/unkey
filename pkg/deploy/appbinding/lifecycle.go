@@ -1,6 +1,6 @@
-// Package privatenetwork holds the discovery contract shared by Krane, which
-// publishes private network discovery objects, and undns, which reads them.
-package privatenetwork
+// Package appbinding defines the app binding discovery contract shared by
+// Ctrl, Krane, and undns.
+package appbinding
 
 import "time"
 

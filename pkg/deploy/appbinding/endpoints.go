@@ -1,4 +1,4 @@
-package privatenetwork
+package appbinding
 
 import (
 	"net/netip"
