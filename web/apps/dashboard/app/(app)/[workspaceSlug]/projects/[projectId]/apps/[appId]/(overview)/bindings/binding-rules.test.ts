@@ -13,6 +13,7 @@ const environments: Environment[] = [
   { id: "caller-canary", appId: "caller", slug: "canary", kind: "production" },
   { id: "db-prod", appId: "db", slug: "production", kind: "production" },
   { id: "db-canary", appId: "db", slug: "canary", kind: "production" },
+  { id: "db-preview", appId: "db", slug: "test", kind: "preview" },
 ];
 const deployments: Deployment[] = [
   { id: "db-pinned", appId: "db", environmentId: "db-canary", status: "ready" },
@@ -46,6 +47,9 @@ describe("describeTarget", () => {
     expect(
       describeTarget({ ...common, binding: binding({}), callerEnvironment: callerPreview }).text,
     ).toBe("Connects to db’s preview from the same Git branch, if there is one.");
+    expect(
+      describeTarget({ ...common, binding: binding({}), callerEnvironment: callerCanary }).text,
+    ).toBe("Follows db’s live production deployment, including rollbacks.");
   });
 
   it("describes explicit environments and pins by what they connect to", () => {
@@ -55,7 +59,14 @@ describe("describeTarget", () => {
         binding: binding({ targetType: "environment", targetEnvironmentId: "db-canary" }),
         callerEnvironment: callerProd,
       }).text,
-    ).toBe("Connects to db’s latest canary version.");
+    ).toBe("Follows db’s live production deployment, including rollbacks.");
+    expect(
+      describeTarget({
+        ...common,
+        binding: binding({ targetType: "environment", targetEnvironmentId: "db-preview" }),
+        callerEnvironment: callerProd,
+      }).text,
+    ).toBe("Connects to db’s latest test version.");
     expect(
       describeTarget({
         ...common,
