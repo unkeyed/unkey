@@ -7,37 +7,52 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const insertUnkeyPermission = `-- name: InsertUnkeyPermission :exec
 INSERT INTO unkey_permissions (
-    id, for_workspace_id, principal_type, principal_id, name, slug, description, created_at_m
+    id,
+    for_workspace_id,
+    principal_type,
+    principal_id,
+    slug,
+    created_at
 ) VALUES (
-    ?, ?, ?, ?,
-    ?, ?, ?, ?
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?
 )
 `
 
 type InsertUnkeyPermissionParams struct {
-	ID             string         `db:"id"`
-	ForWorkspaceID string         `db:"for_workspace_id"`
-	PrincipalType  string         `db:"principal_type"`
-	PrincipalID    string         `db:"principal_id"`
-	Name           string         `db:"name"`
-	Slug           string         `db:"slug"`
-	Description    sql.NullString `db:"description"`
-	CreatedAtM     int64          `db:"created_at_m"`
+	ID             string `db:"id"`
+	ForWorkspaceID string `db:"for_workspace_id"`
+	PrincipalType  string `db:"principal_type"`
+	PrincipalID    string `db:"principal_id"`
+	Slug           string `db:"slug"`
+	CreatedAt      int64  `db:"created_at"`
 }
 
 // InsertUnkeyPermission assigns a permission directly to a principal in the
 // workspace it authorizes. Duplicate permissions for that principal are rejected.
 //
 //	INSERT INTO unkey_permissions (
-//	    id, for_workspace_id, principal_type, principal_id, name, slug, description, created_at_m
+//	    id,
+//	    for_workspace_id,
+//	    principal_type,
+//	    principal_id,
+//	    slug,
+//	    created_at
 //	) VALUES (
-//	    ?, ?, ?, ?,
-//	    ?, ?, ?, ?
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?,
+//	    ?
 //	)
 func (q *Queries) InsertUnkeyPermission(ctx context.Context, db DBTX, arg InsertUnkeyPermissionParams) error {
 	_, err := db.ExecContext(ctx, insertUnkeyPermission,
@@ -45,10 +60,8 @@ func (q *Queries) InsertUnkeyPermission(ctx context.Context, db DBTX, arg Insert
 		arg.ForWorkspaceID,
 		arg.PrincipalType,
 		arg.PrincipalID,
-		arg.Name,
 		arg.Slug,
-		arg.Description,
-		arg.CreatedAtM,
+		arg.CreatedAt,
 	)
 	return err
 }

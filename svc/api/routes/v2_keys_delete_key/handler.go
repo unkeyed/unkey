@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	authprincipal "github.com/unkeyed/unkey/pkg/auth/principal"
@@ -190,7 +191,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	h.KeyCache.Remove(ctx, key.Key.Hash)
+	h.KeyCache.Remove(ctx, key.Key.Hash, caches.RootKeyCacheKey(key.Key.Hash))
 
 	return s.JSON(http.StatusOK, Response{
 		Meta: openapi.Meta{

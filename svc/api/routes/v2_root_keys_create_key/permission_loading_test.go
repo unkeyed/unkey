@@ -1,13 +1,15 @@
 package handler_test
 
 import (
-	"database/sql"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/unkeyed/unkey/pkg/db"
 	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/uid"
+	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
 )
@@ -56,20 +58,25 @@ func TestUnkeyPermissionLoadingIsScoped(t *testing.T) {
 					ForWorkspaceID: row.workspaceID,
 					PrincipalType:  row.principalType,
 					PrincipalID:    row.principalID,
-					Name:           row.slug,
 					Slug:           row.slug,
-					Description:    sql.NullString{},
-					CreatedAtM:     h.Clock.Now().UnixMilli(),
+					CreatedAt:      h.Clock.Now().UnixMilli(),
 				}))
 			}
-			want := []string{"api.*.read_key"}
-			if isRootKey {
-				want = append(want, permission)
-			}
+			request := httptest.NewRequest(http.MethodPost, "/", nil)
+			request.Header.Set("Authorization", "Bearer "+key.Key)
+			session := &zen.Session{}
+			require.NoError(t, session.Init(httptest.NewRecorder(), request, 0))
 			for range 2 {
 				loaded, err := h.Keys.Get(t.Context(), nil, hash.Sha256(key.Key))
 				require.NoError(t, err)
-				require.ElementsMatch(t, want, loaded.Permissions)
+				require.Equal(t, []string{"api.*.read_key"}, loaded.Permissions)
+				root, err := h.Keys.GetRootKey(t.Context(), session)
+				if isRootKey {
+					require.NoError(t, err)
+					require.ElementsMatch(t, []string{"api.*.read_key", permission}, root.Permissions)
+				} else {
+					require.Error(t, err)
+				}
 			}
 		})
 	}
@@ -88,10 +95,8 @@ func TestUnkeyPermissionUniquenessIncludesPrincipalScope(t *testing.T) {
 		ForWorkspaceID: workspaceID,
 		PrincipalType:  "root_key",
 		PrincipalID:    principalID,
-		Name:           permission,
 		Slug:           permission,
-		Description:    sql.NullString{},
-		CreatedAtM:     h.Clock.Now().UnixMilli(),
+		CreatedAt:      h.Clock.Now().UnixMilli(),
 	}
 	require.NoError(t, db.Query.InsertUnkeyPermission(t.Context(), h.DB.RW(), row))
 	row.ID = uid.New(uid.PermissionPrefix)

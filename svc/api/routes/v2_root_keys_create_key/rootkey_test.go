@@ -53,7 +53,7 @@ func TestExpiringRootKeyBoundsChildLifetime(t *testing.T) {
 				require.Equal(t, before, snapshot(t, h))
 				return
 			}
-			child, err := db.Query.FindKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+			child, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
 			require.NoError(t, err)
 			require.True(t, child.Expires.Valid)
 			require.Equal(t, tt.expires.MustGet(), child.Expires.Time.UnixMilli())
@@ -79,11 +79,10 @@ func TestRootKeyDelegatesCreationThroughBearerAuthentication(t *testing.T) {
 				"Authorization": {"Bearer " + bearer}, "Content-Type": {"application/json"},
 			}, handler.Request{Permissions: []string{permission, permission}})
 			require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
-			child, err := db.Query.FindKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+			child, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
 			require.NoError(t, err)
-			require.Equal(t, r.UserWorkspace.ID, child.ForWorkspaceID.String)
+			require.Equal(t, r.UserWorkspace.ID, child.ForWorkspaceID)
 			require.Equal(t, r.RootWorkspace.ID, child.WorkspaceID)
-			require.False(t, child.IdentityID.Valid)
 			grants, err := db.Query.ListUnkeyPermissionsByPrincipal(t.Context(), h.DB.RO(), db.ListUnkeyPermissionsByPrincipalParams{ForWorkspaceID: r.UserWorkspace.ID, PrincipalType: "root_key", PrincipalID: child.ID})
 			require.NoError(t, err)
 			require.Equal(t, []string{permission}, grants)

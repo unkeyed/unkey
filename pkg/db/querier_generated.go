@@ -1188,6 +1188,27 @@ type Querier interface {
 	//  WHERE workspace_id = ?
 	//    AND name IN (/*SLICE:names*/?)
 	FindRolesByNamesInWorkspace(ctx context.Context, db DBTX, arg FindRolesByNamesInWorkspaceParams) ([]FindRolesByNamesInWorkspaceRow, error)
+	// FindUnkeyRootKeyByID reads a new-format root key, excluding soft-deleted keys.
+	// It does not fall back to the legacy keys table.
+	//
+	//  SELECT
+	//      pk,
+	//      id,
+	//      workspace_id,
+	//      key_auth_id,
+	//      for_workspace_id,
+	//      hash,
+	//      name,
+	//      prefix,
+	//      start,
+	//      end,
+	//      enabled,
+	//      expires,
+	//      created_at,
+	//      deleted_at
+	//  FROM unkey_root_keys
+	//  WHERE id = ? AND deleted_at IS NULL
+	FindUnkeyRootKeyByID(ctx context.Context, db DBTX, id string) (UnkeyRootKey, error)
 	// Reads a workspace's billing row directly (Stripe linkage, tier, Compute plan,
 	// spend budget and spend-cap state). Use this when only billing state is needed;
 	// when a workspace is already being fetched, prefer joining workspace_billing in
@@ -1969,12 +1990,52 @@ type Querier interface {
 	// workspace it authorizes. Duplicate permissions for that principal are rejected.
 	//
 	//  INSERT INTO unkey_permissions (
-	//      id, for_workspace_id, principal_type, principal_id, name, slug, description, created_at_m
+	//      id,
+	//      for_workspace_id,
+	//      principal_type,
+	//      principal_id,
+	//      slug,
+	//      created_at
 	//  ) VALUES (
-	//      ?, ?, ?, ?,
-	//      ?, ?, ?, ?
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
 	//  )
 	InsertUnkeyPermission(ctx context.Context, db DBTX, arg InsertUnkeyPermissionParams) error
+	// InsertUnkeyRootKey creates an administrative credential outside the regular
+	// API-key table. Callers insert its permissions and audit events in the same transaction.
+	//
+	//  INSERT INTO unkey_root_keys (
+	//      id,
+	//      workspace_id,
+	//      key_auth_id,
+	//      for_workspace_id,
+	//      hash,
+	//      name,
+	//      prefix,
+	//      start,
+	//      end,
+	//      enabled,
+	//      expires,
+	//      created_at
+	//  ) VALUES (
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?,
+	//      ?
+	//  )
+	InsertUnkeyRootKey(ctx context.Context, db DBTX, arg InsertUnkeyRootKeyParams) error
 	//InsertWorkspace
 	//
 	//  INSERT INTO `workspaces` (

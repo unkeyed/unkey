@@ -93,31 +93,22 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 			return fault.New("invalid internal root key ownership", fault.Code(codes.App.Internal.ServiceUnavailable.URN()),
 				fault.Public("Root key creation is not available."))
 		}
-		err = db.Query.InsertKey(ctx, tx, db.InsertKeyParams{
-			ID:          keyID,
-			KeySpaceID:  h.InternalKeyspaceID,
-			WorkspaceID: h.InternalWorkspaceID,
-			ForWorkspaceID: sql.NullString{
-				String: p.AuthorizedWorkspaceID,
-				Valid:  true,
-			},
+		err = db.Query.InsertUnkeyRootKey(ctx, tx, db.InsertUnkeyRootKeyParams{
+			ID:             keyID,
+			KeyAuthID:      h.InternalKeyspaceID,
+			WorkspaceID:    h.InternalWorkspaceID,
+			ForWorkspaceID: p.AuthorizedWorkspaceID,
 			Name: sql.NullString{
 				String: ptr.SafeDeref(req.Name),
 				Valid:  req.Name != nil,
 			},
-			Hash:               key.Hash,
-			Prefix:             key.Prefix,
-			Start:              key.Start,
-			End:                key.End,
-			Enabled:            true,
-			CreatedAtM:         h.Clock.Now().UnixMilli(),
-			Expires:            expires,
-			IdentityID:         sql.NullString{},
-			Meta:               sql.NullString{},
-			RemainingRequests:  sql.NullInt64{},
-			RefillDay:          sql.NullInt16{},
-			RefillAmount:       sql.NullInt64{},
-			PendingMigrationID: sql.NullString{},
+			Hash:      key.Hash,
+			Prefix:    key.Prefix,
+			Start:     key.Start,
+			End:       key.End,
+			Enabled:   true,
+			CreatedAt: h.Clock.Now().UnixMilli(),
+			Expires:   expires,
 		})
 		if err != nil {
 			return err
@@ -129,10 +120,8 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 				ForWorkspaceID: p.AuthorizedWorkspaceID,
 				PrincipalType:  "root_key",
 				PrincipalID:    keyID,
-				Name:           slug,
 				Slug:           slug,
-				CreatedAtM:     h.Clock.Now().UnixMilli(),
-				Description:    sql.NullString{},
+				CreatedAt:      h.Clock.Now().UnixMilli(),
 			})
 		}
 		if err := db.BulkQuery.InsertUnkeyPermissions(ctx, tx, permissionRows); err != nil {

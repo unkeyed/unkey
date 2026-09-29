@@ -2,6 +2,7 @@ package keys
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -37,7 +38,7 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 		)
 	}
 
-	key, err := s.Get(ctx, sess, hash.Sha256(rootKey))
+	key, err := s.get(ctx, sess, hash.Sha256(rootKey), true)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +76,13 @@ func (s *service) GetRootKey(ctx context.Context, sess *zen.Session) (*KeyVerifi
 // Get retrieves a key from the database and performs basic validation checks.
 // It returns a KeyVerifier that can be used for further validation with specific options.
 // For normal keys, validation failures are indicated by KeyVerifier.Valid=false.
-func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string) (kv *KeyVerifier, err error) {
+func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string) (*KeyVerifier, error) {
+	return s.get(ctx, sess, sha256Hash, false)
+}
+
+// get selects the credential query and cache entry before loading the key, then
+// applies shared lifecycle checks. Root authentication never reuses API-key data.
+func (s *service) get(ctx context.Context, sess *zen.Session, sha256Hash string, rootKey bool) (kv *KeyVerifier, err error) {
 	ctx, span := tracing.Start(ctx, "keys.Get")
 	defer span.End()
 
@@ -101,10 +108,17 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 		return nil, fault.Wrap(err, fault.Internal("sha256Hash is empty"))
 	}
 
-	key, hit, err := s.keyCache.SWR(ctx, sha256Hash, func(ctx context.Context) (keysdb.CachedKeyData, error) {
+	cacheKey := sha256Hash
+	if rootKey {
+		cacheKey = caches.RootKeyCacheKey(sha256Hash)
+	}
+	key, hit, err := s.keyCache.SWR(ctx, cacheKey, func(ctx context.Context) (keysdb.CachedKeyData, error) {
 		// Use database retry with exponential backoff, skipping non-transient errors
 		var row keysdb.FindKeyForVerificationRow
 		row, err = mysql.WithRetryContext(ctx, func() (keysdb.FindKeyForVerificationRow, error) {
+			if rootKey {
+				return s.findRootKey(ctx, sha256Hash)
+			}
 			return keysdb.Query.FindKeyForVerification(ctx, s.db.RO(), sha256Hash)
 		})
 		if err != nil {
@@ -280,4 +294,32 @@ func (s *service) Get(ctx context.Context, sess *zen.Session, sha256Hash string)
 	}
 
 	return kv, nil
+}
+
+// findRootKey maps the dedicated authentication query into the shared lifecycle
+// validator's row. API-key-only fields remain empty because root auth does not use them.
+func (s *service) findRootKey(ctx context.Context, sha256Hash string) (keysdb.FindKeyForVerificationRow, error) {
+	row, err := keysdb.Query.FindRootKeyForAuthentication(ctx, s.db.RO(), keysdb.FindRootKeyForAuthenticationParams{
+		Hash: sha256Hash,
+	})
+	if err != nil {
+		return keysdb.FindKeyForVerificationRow{}, err
+	}
+	//nolint:exhaustruct
+	return keysdb.FindKeyForVerificationRow{
+		ID:          row.ID,
+		KeyAuthID:   row.KeyAuthID,
+		WorkspaceID: row.WorkspaceID,
+		ForWorkspaceID: sql.NullString{
+			String: row.ForWorkspaceID,
+			Valid:  true,
+		},
+		Name:                row.Name,
+		Expires:             row.Expires,
+		Enabled:             row.Enabled,
+		ApiDeletedAtM:       row.ApiDeletedAtM,
+		WorkspaceEnabled:    row.WorkspaceEnabled,
+		ForWorkspaceEnabled: row.ForWorkspaceEnabled,
+		Permissions:         row.Permissions,
+	}, nil
 }

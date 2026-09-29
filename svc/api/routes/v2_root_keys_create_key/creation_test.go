@@ -9,9 +9,11 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/stretchr/testify/require"
+	"github.com/unkeyed/unkey/internal/services/keys"
 	"github.com/unkeyed/unkey/pkg/auth/principal"
 	rootkey "github.com/unkeyed/unkey/pkg/auth/root_key"
 	"github.com/unkeyed/unkey/pkg/db"
+	"github.com/unkeyed/unkey/pkg/hash"
 	"github.com/unkeyed/unkey/pkg/zen"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil"
 	"github.com/unkeyed/unkey/svc/api/internal/testutil/seed"
@@ -43,6 +45,30 @@ func newHarness(t *testing.T) (*testutil.Harness, *handler.Handler, *principal.P
 	})
 	h.Register(route, middlewares...)
 	return h, route, p
+}
+
+// TestNewRootKeyIsNotAnAPIKey guarantees that a newly created root key only
+// authenticates through root-key authentication. For example, warming the API-key
+// cache with its hash must not prevent root authentication, or expose it as an API key.
+func TestNewRootKeyIsNotAnAPIKey(t *testing.T) {
+	h, route, p := newHarness(t)
+	res := testutil.CallRoute[handler.Request, handler.Response](h, route, http.Header{
+		"Authorization": {"Bearer test"}, "Content-Type": {"application/json"},
+	}, handler.Request{Permissions: p.Permissions})
+	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
+	request := httptest.NewRequest(http.MethodPost, route.Path(), nil)
+	request.Header.Set("Authorization", "Bearer "+res.Body.Data.Key)
+	session := &zen.Session{}
+	require.NoError(t, session.Init(httptest.NewRecorder(), request, 0))
+	for range 2 {
+		regular, err := h.Keys.Get(t.Context(), session, hash.Sha256(res.Body.Data.Key))
+		require.NoError(t, err)
+		require.Equal(t, keys.StatusNotFound, regular.Status)
+		resolved, err := rootkey.NewResolver(h.Keys).Resolve(t.Context(), session)
+		require.NoError(t, err)
+		require.Equal(t, p.AuthorizedWorkspaceID, resolved.AuthorizedWorkspaceID)
+		require.Equal(t, p.Permissions, resolved.Permissions)
+	}
 }
 
 func TestCreatePermissionCountLimits(t *testing.T) {
@@ -153,12 +179,11 @@ func TestCreateStoresV1SystemKeyAndPermissions(t *testing.T) {
 	})
 	require.Equal(t, http.StatusOK, res.Status, "%s", res.RawBody)
 	require.Regexp(t, `^unkey_[1-9A-HJ-NP-Za-km-z]{8}unkeyv1[1-9A-HJ-NP-Za-km-z]{42}$`, res.Body.Data.Key)
-	key, err := db.Query.FindKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+	key, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
 	require.NoError(t, err)
 	require.Equal(t, resources.RootWorkspace.ID, key.WorkspaceID)
 	require.Equal(t, resources.RootKeySpace.ID, key.KeyAuthID)
-	require.Equal(t, resources.UserWorkspace.ID, key.ForWorkspaceID.String)
-	require.False(t, key.IdentityID.Valid)
+	require.Equal(t, resources.UserWorkspace.ID, key.ForWorkspaceID)
 	require.False(t, key.Expires.Valid)
 	grants, err := db.Query.ListPermissionsByKeyID(t.Context(), h.DB.RO(), db.ListPermissionsByKeyIDParams{KeyID: key.ID})
 	require.NoError(t, err)
@@ -204,7 +229,7 @@ func TestCreateStoresV1SystemKeyAndPermissions(t *testing.T) {
 			Permissions: []string{urn}, Expires: nullable.NewNullableWithValue(expires),
 		})
 		require.Equal(t, http.StatusOK, res.Status)
-		key, err := db.Query.FindKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+		key, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
 		require.NoError(t, err)
 		require.True(t, key.Expires.Valid)
 		require.Equal(t, expires, key.Expires.Time.UnixMilli())

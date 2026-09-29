@@ -1026,6 +1026,23 @@ type RolesPermission struct {
 	UpdatedAtM   sql.NullInt64 `db:"updated_at_m"`
 }
 
+type UnkeyRootKey struct {
+	Pk             uint64         `db:"pk"`
+	ID             string         `db:"id"`
+	WorkspaceID    string         `db:"workspace_id"`
+	KeyAuthID      string         `db:"key_auth_id"`
+	ForWorkspaceID string         `db:"for_workspace_id"`
+	Hash           string         `db:"hash"`
+	Name           sql.NullString `db:"name"`
+	Prefix         string         `db:"prefix"`
+	Start          string         `db:"start"`
+	End            string         `db:"end"`
+	Enabled        bool           `db:"enabled"`
+	Expires        sql.NullTime   `db:"expires"`
+	CreatedAt      int64          `db:"created_at"`
+	DeletedAt      sql.NullInt64  `db:"deleted_at"`
+}
+
 type Workspace struct {
 	Pk               uint64          `db:"pk"`
 	ID               string          `db:"id"`

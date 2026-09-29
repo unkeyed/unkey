@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/assert"
 	"github.com/unkeyed/unkey/pkg/codes"
@@ -144,6 +145,8 @@ func (s *service) GetMigrated(ctx context.Context, sess *zen.Session, rawKey str
 			ctx,
 			h,
 			newHash,
+			caches.RootKeyCacheKey(h),
+			caches.RootKeyCacheKey(newHash),
 		)
 	}
 

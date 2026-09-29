@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/pkg/auditlog"
 	"github.com/unkeyed/unkey/pkg/cache"
@@ -403,7 +404,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return err
 	}
 
-	h.KeyCache.Remove(ctx, key.Key.Hash)
+	h.KeyCache.Remove(ctx, key.Key.Hash, caches.RootKeyCacheKey(key.Key.Hash))
 
 	responseData := make(openapi.V2KeysSetPermissionsResponseData, 0)
 	for _, permission := range permissionsToSet {

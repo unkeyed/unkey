@@ -69,7 +69,7 @@ func TestCreateAcceptsContainedDescendants(t *testing.T) {
 				Expires:     nullable.NewNullNullable[int64](),
 			})
 			require.Equal(t, http.StatusOK, res.Status)
-			key, err := db.Query.FindKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
+			key, err := db.Query.FindUnkeyRootKeyByID(t.Context(), h.DB.RO(), res.Body.Data.KeyId)
 			require.NoError(t, err)
 			require.False(t, key.Expires.Valid)
 		})
@@ -137,6 +137,7 @@ func snapshot(t *testing.T, h *testutil.Harness) []int {
 	var counts []int
 	for _, query := range []struct{ sql, workspaceID string }{
 		{"SELECT COUNT(*) FROM `keys` WHERE workspace_id = ?", h.Resources().RootWorkspace.ID},
+		{"SELECT COUNT(*) FROM unkey_root_keys WHERE for_workspace_id = ?", h.Resources().UserWorkspace.ID},
 		{"SELECT COUNT(*) FROM permissions WHERE workspace_id = ?", h.Resources().RootWorkspace.ID},
 		{"SELECT COUNT(*) FROM keys_permissions WHERE workspace_id = ?", h.Resources().RootWorkspace.ID},
 		{"SELECT COUNT(*) FROM unkey_permissions WHERE for_workspace_id = ?", h.Resources().UserWorkspace.ID},

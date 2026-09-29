@@ -8,6 +8,7 @@ import (
 
 	"github.com/oapi-codegen/nullable"
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/pkg/auditlog"
@@ -270,7 +271,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		}
 	}
 
-	h.KeyCache.Remove(ctx, keyData.Key.Hash)
+	h.KeyCache.Remove(ctx, keyData.Key.Hash, caches.RootKeyCacheKey(keyData.Key.Hash))
 	if err := h.UsageLimiter.Invalidate(ctx, keyData.Key.ID); err != nil {
 		logger.Error("Failed to invalidate usage limit",
 			"error", err.Error(),

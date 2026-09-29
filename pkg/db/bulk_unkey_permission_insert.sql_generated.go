@@ -9,7 +9,7 @@ import (
 )
 
 // bulkInsertUnkeyPermission is the base query for bulk insert
-const bulkInsertUnkeyPermission = `INSERT INTO unkey_permissions ( id, for_workspace_id, principal_type, principal_id, name, slug, description, created_at_m ) VALUES %s`
+const bulkInsertUnkeyPermission = `INSERT INTO unkey_permissions ( id, for_workspace_id, principal_type, principal_id, slug, created_at ) VALUES %s`
 
 // InsertUnkeyPermissions performs bulk insert in a single query
 func (q *BulkQueries) InsertUnkeyPermissions(ctx context.Context, db DBTX, args []InsertUnkeyPermissionParams) error {
@@ -21,7 +21,7 @@ func (q *BulkQueries) InsertUnkeyPermissions(ctx context.Context, db DBTX, args 
 	// Build the bulk insert query
 	valueClauses := make([]string, len(args))
 	for i := range args {
-		valueClauses[i] = "( ?, ?, ?, ?, ?, ?, ?, ? )"
+		valueClauses[i] = "( ?, ?, ?, ?, ?, ? )"
 	}
 
 	bulkQuery := fmt.Sprintf(bulkInsertUnkeyPermission, strings.Join(valueClauses, ", "))
@@ -33,10 +33,8 @@ func (q *BulkQueries) InsertUnkeyPermissions(ctx context.Context, db DBTX, args 
 		allArgs = append(allArgs, arg.ForWorkspaceID)
 		allArgs = append(allArgs, arg.PrincipalType)
 		allArgs = append(allArgs, arg.PrincipalID)
-		allArgs = append(allArgs, arg.Name)
 		allArgs = append(allArgs, arg.Slug)
-		allArgs = append(allArgs, arg.Description)
-		allArgs = append(allArgs, arg.CreatedAtM)
+		allArgs = append(allArgs, arg.CreatedAt)
 	}
 
 	// Execute the bulk insert

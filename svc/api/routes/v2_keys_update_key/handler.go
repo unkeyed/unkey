@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/internal/services/auditlogs"
+	"github.com/unkeyed/unkey/internal/services/caches"
 	keysdb "github.com/unkeyed/unkey/internal/services/keys/db"
 	"github.com/unkeyed/unkey/internal/services/usagelimiter"
 	"github.com/unkeyed/unkey/svc/api/openapi"
@@ -657,7 +658,7 @@ func (h *Handler) Handle(ctx context.Context, s *zen.Session) error {
 		return txErr
 	}
 
-	h.KeyCache.Remove(ctx, key.Key.Hash)
+	h.KeyCache.Remove(ctx, key.Key.Hash, caches.RootKeyCacheKey(key.Key.Hash))
 	if req.Credits.IsSpecified() {
 		if err := h.UsageLimiter.Invalidate(ctx, key.Key.ID); err != nil {
 			logger.Error("Failed to invalidate usage limit",
