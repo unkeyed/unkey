@@ -49,16 +49,15 @@ describe("remote ip condition", () => {
     const r = policyFormSchema.safeParse(firewallWithRemoteIp("in", "203.0.113.0/24\nkebap"));
     expect(r.success).toBe(false);
     expect(r.error?.issues.map((i) => i.message)).toContain(
-      "kebap is not a valid IPv4 address or CIDR",
+      "kebap is not a valid IP address or CIDR",
     );
   });
 
-  it("rejects an IPv6 entry", () => {
-    const r = policyFormSchema.safeParse(firewallWithRemoteIp("notIn", "2001:db8::/32"));
-    expect(r.success).toBe(false);
-    expect(r.error?.issues.map((i) => i.message)).toContain(
-      "2001:db8::/32 is not a valid IPv4 address or CIDR",
+  it("accepts IPv6 entries", () => {
+    const r = policyFormSchema.safeParse(
+      firewallWithRemoteIp("notIn", "2001:db8::/32\n2001:db8::1"),
     );
+    expect(r.success).toBe(true);
   });
 
   it("rejects more than 100 ranges", () => {

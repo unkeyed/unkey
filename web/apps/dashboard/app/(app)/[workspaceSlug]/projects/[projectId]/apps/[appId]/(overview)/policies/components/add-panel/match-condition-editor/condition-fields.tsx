@@ -262,14 +262,14 @@ export function ConditionFields({
           </fieldset>
         </div>
         <FormTextarea
-          label="IPv4 ranges"
+          label="IP ranges"
           requirement="required"
           placeholder={"203.0.113.0/24\n198.51.100.7"}
           value={c.ranges}
           onChange={(e) => patch({ ...c, ranges: e.target.value })}
           className="flex-1"
           descriptionPosition="label"
-          description="One IPv4 address or CIDR per line, or comma separated."
+          description="One IP address or CIDR per line, or comma separated."
           error={errors?.ranges?.message}
         />
       </div>

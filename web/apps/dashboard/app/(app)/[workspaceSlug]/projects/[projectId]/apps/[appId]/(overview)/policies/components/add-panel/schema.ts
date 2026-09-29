@@ -61,7 +61,7 @@ const remoteIpConditionSchema = z.object({
   ranges: z.string(),
 });
 
-const ipv4OrCidrSchema = z.union([z.ipv4(), z.cidrv4()]);
+const ipOrCidrSchema = z.union([z.ipv4(), z.ipv6(), z.cidrv4(), z.cidrv6()]);
 
 // "203.0.113.0/24, 198.51.100.7\n192.0.2.0/24" -> ["203.0.113.0/24", "198.51.100.7", "192.0.2.0/24"]
 function splitRanges(ranges: string): string[] {
@@ -83,14 +83,14 @@ export const matchConditionSchema = z
   .superRefine((c, ctx) => {
     if (c.type === "remoteIp") {
       const entries = splitRanges(c.ranges);
-      const invalid = entries.find((entry) => !ipv4OrCidrSchema.safeParse(entry).success);
+      const invalid = entries.find((entry) => !ipOrCidrSchema.safeParse(entry).success);
       const message = match({ count: entries.length, invalid })
-        .with({ count: 0 }, () => "Enter at least one IPv4 address or CIDR")
+        .with({ count: 0 }, () => "Enter at least one IP address or CIDR")
         .when(
           ({ count }) => count > POLICY_LIMITS.maxCidrsPerMatch,
           () => `At most ${POLICY_LIMITS.maxCidrsPerMatch} ranges`,
         )
-        .with({ invalid: P.string }, (v) => `${v.invalid} is not a valid IPv4 address or CIDR`)
+        .with({ invalid: P.string }, (v) => `${v.invalid} is not a valid IP address or CIDR`)
         .otherwise(() => null);
       if (message !== null) {
         ctx.addIssue({ code: "custom", message, path: ["ranges"] });
