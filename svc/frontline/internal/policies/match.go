@@ -172,16 +172,16 @@ func evalRemoteIpMatch(clientIP netip.Addr, rm *frontlinev1.RemoteIpMatch) (bool
 	return true, nil
 }
 
-func listContainsIP(cidrs []string, ip netip.Addr) (bool, error) {
-	for _, cidr := range cidrs {
-		prefix, err := netip.ParsePrefix(cidr)
+func listContainsIP(entries []string, ip netip.Addr) (bool, error) {
+	for _, entry := range entries {
+		prefix, err := netip.ParsePrefix(entry)
 		if err != nil {
-			addr, addrErr := netip.ParseAddr(cidr)
+			addr, addrErr := netip.ParseAddr(entry)
 			if addrErr != nil || addr.Zone() != "" {
 				return false, fault.Wrap(
 					err,
 					fault.Code(codes.Frontline.Internal.InvalidConfiguration.URN()),
-					fault.Internal(fmt.Sprintf("invalid cidr %q", cidr)),
+					fault.Internal(fmt.Sprintf("invalid ip or cidr %q", entry)),
 					fault.Public("Service configuration error."),
 				)
 			}

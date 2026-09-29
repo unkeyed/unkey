@@ -183,8 +183,9 @@ func (s *Session) Location() string {
 	return ""
 }
 
-// ClientIP returns the address that [Session.Location] formats. The zero value
-// means no valid client address was captured
+// ClientIP returns the TCP peer address, or the address set by
+// [Session.SetClientIP]. The zero value means no valid client address was
+// captured
 func (s *Session) ClientIP() netip.Addr {
 	return s.clientIP
 }

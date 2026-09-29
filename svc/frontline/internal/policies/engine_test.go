@@ -265,7 +265,7 @@ func TestEvaluate_FirewallDeniesOutsideRemoteIpRange(t *testing.T) {
 			require.NoError(t, sess.Init(httptest.NewRecorder(), req, 0))
 			engine := &Engine{firewall: firewallExec.New(), regexCache: newRegexCache()}
 
-			_, err := engine.Evaluate(t.Context(), sess, req, "ws_admin", "app_admin", policies)
+			_, err := engine.Evaluate(t.Context(), sess, req, uid.New(uid.WorkspacePrefix), uid.New(uid.AppPrefix), policies)
 			if !tt.denied {
 				require.NoError(t, err)
 				return
