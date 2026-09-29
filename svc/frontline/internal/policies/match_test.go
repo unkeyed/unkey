@@ -326,6 +326,8 @@ func TestMatchesRequest_RemoteIp(t *testing.T) {
 		{name: "not in hit", clientIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{NotIn: []string{"198.51.100.0/24"}}, matched: false},
 		{name: "not in miss", clientIP: "198.51.101.10", match: &frontlinev1.RemoteIpMatch{NotIn: []string{"198.51.100.0/24"}}, matched: true},
 		{name: "in second range", clientIP: "10.8.3.9", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/24", "10.8.0.0/16"}}, matched: true},
+		{name: "bare ipv4 entry", clientIP: "198.51.100.10", match: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.10"}}, matched: true},
+		{name: "bare ipv6 entry", clientIP: "2001:db8::1", match: &frontlinev1.RemoteIpMatch{NotIn: []string{"2001:db8::1"}}, matched: false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
@@ -350,6 +352,10 @@ func TestMatchesRequest_InvalidConfiguration(t *testing.T) {
 		{
 			name: "invalid cidr",
 			expr: &frontlinev1.MatchExpr{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: &frontlinev1.RemoteIpMatch{In: []string{"198.51.100.0/33"}}}},
+		},
+		{
+			name: "zoned address",
+			expr: &frontlinev1.MatchExpr{Expr: &frontlinev1.MatchExpr_RemoteIp{RemoteIp: &frontlinev1.RemoteIpMatch{In: []string{"fe80::1%eth0"}}}},
 		},
 		{
 			name: "invalid regex",

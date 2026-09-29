@@ -176,12 +176,16 @@ func listContainsIP(cidrs []string, ip netip.Addr) (bool, error) {
 	for _, cidr := range cidrs {
 		prefix, err := netip.ParsePrefix(cidr)
 		if err != nil {
-			return false, fault.Wrap(
-				err,
-				fault.Code(codes.Frontline.Internal.InvalidConfiguration.URN()),
-				fault.Internal(fmt.Sprintf("invalid cidr %q", cidr)),
-				fault.Public("Service configuration error."),
-			)
+			addr, addrErr := netip.ParseAddr(cidr)
+			if addrErr != nil || addr.Zone() != "" {
+				return false, fault.Wrap(
+					err,
+					fault.Code(codes.Frontline.Internal.InvalidConfiguration.URN()),
+					fault.Internal(fmt.Sprintf("invalid cidr %q", cidr)),
+					fault.Public("Service configuration error."),
+				)
+			}
+			prefix = netip.PrefixFrom(addr, addr.BitLen())
 		}
 		if prefix.Contains(ip) {
 			return true, nil
