@@ -57,6 +57,7 @@ func (r *Reconciler) ensureService(ctx context.Context, app *ctrlv1.PrivateNetwo
 			PublishNotReadyAddresses: false,
 		},
 	}
+
 	if existing != nil {
 		if !ownedByApp(existing.Labels, app) {
 			return nil, fmt.Errorf("refuse to replace foreign Service %s/%s", app.GetK8SNamespace(), name)
@@ -99,6 +100,7 @@ func (r *Reconciler) ensureBinding(ctx context.Context, app *ctrlv1.PrivateNetwo
 	if service != nil {
 		desiredData["serviceName"] = service.Name
 	}
+
 	if existing != nil {
 		if !owned(existing.Labels) || existing.Labels[labels.LabelKeyWorkspaceID] != app.GetWorkspaceId() ||
 			existing.Labels[labels.LabelKeyProjectID] != app.GetProjectId() ||

@@ -78,6 +78,7 @@ func New(cfg Config) (*Reconciler, error) {
 		endpointMu: sync.Mutex{},
 		now:        time.Now,
 	}
+
 	lock := &resourcelock.LeaseLock{
 		LeaseMeta:  metav1.ObjectMeta{Name: leaseName, Namespace: cfg.LeaseNamespace},
 		Labels:     nil,
@@ -202,6 +203,7 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 			desiredServices[existing.Namespace+"/"+existing.Data["serviceName"]] = struct{}{}
 		}
 	}
+
 	appErrs := make([]error, 0, len(rejected))
 	for _, rejection := range rejected {
 		appErrs = append(appErrs, rejection.err)
@@ -209,6 +211,7 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 			retain(rejection.retainedBindingKey)
 		}
 	}
+
 	for _, app := range apps {
 		if err := ctx.Err(); err != nil {
 			return errors.Join(append(appErrs, err)...)
@@ -216,6 +219,7 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 
 		bindingName := bindingResourceName(app)
 		bindingKey := app.GetK8SNamespace() + "/" + bindingName
+
 		if _, exists := namespaces[app.GetK8SNamespace()]; !exists {
 			_, err := r.client.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{Name: app.GetK8SNamespace()},
@@ -251,6 +255,7 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 			}
 			service = servicesByKey[serviceKey]
 		}
+
 		if err := r.ensurePolicy(ctx, app, bindingName, bindingsByKey[bindingKey]); err != nil {
 			appErrs = append(appErrs, err)
 			retain(bindingKey)
@@ -262,6 +267,7 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 			retain(bindingKey)
 			continue
 		}
+
 		if binding.Data["serviceName"] != "" {
 			desiredServices[binding.Namespace+"/"+binding.Data["serviceName"]] = struct{}{}
 		}
@@ -274,6 +280,7 @@ func (r *Reconciler) reconcile(ctx context.Context) error {
 	} else if err := r.cleanup(ctx, services, bindings, desiredServices, desiredBindings); err != nil {
 		appErrs = append(appErrs, err)
 	}
+
 	if len(appErrs) > 0 {
 		return fmt.Errorf("reconcile private network apps, failed apps kept their published objects: %w", errors.Join(appErrs...))
 	}

@@ -148,6 +148,7 @@ func TestServiceRetirementDeadlineSurvivesReconcilerRestart(t *testing.T) {
 	restartedAt := started.Add(10 * time.Minute)
 	r = &Reconciler{client: client, dynamic: dynamic, cluster: control, clusterKey: &ctrlv1.ClusterKey{}, now: func() time.Time { return restartedAt }}
 	require.NoError(t, r.reconcile(ctx))
+
 	services, err := client.CoreV1().Services("customer-1").List(ctx, metav1.ListOptions{})
 	require.NoError(t, err)
 	require.Len(t, services.Items, 1)
@@ -155,11 +156,13 @@ func TestServiceRetirementDeadlineSurvivesReconcilerRestart(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, started.Add(30*time.Minute), deadline)
 	require.Equal(t, []string{"10.72.0.84"}, sourceAddresses(t, client, &services.Items[0]))
+
 	pod.Status.Conditions[0].Status = corev1.ConditionFalse
 	_, err = client.CoreV1().Pods(pod.Namespace).UpdateStatus(ctx, pod, metav1.UpdateOptions{})
 	require.NoError(t, err)
 	require.NoError(t, r.reconcileEndpoints(ctx))
 	require.Empty(t, sourceAddresses(t, client, &services.Items[0]))
+
 	pod.Status.Conditions[0].Status = corev1.ConditionTrue
 	_, err = client.CoreV1().Pods(pod.Namespace).UpdateStatus(ctx, pod, metav1.UpdateOptions{})
 	require.NoError(t, err)
@@ -298,7 +301,9 @@ func TestReconcileRejectsInvalidBindingAliases(t *testing.T) {
 				return []*ctrlv1.PrivateNetworkApp{incompatible, testApp("dep_a")}, nil
 			})
 			r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+
 			require.ErrorContains(t, r.reconcile(ctx), "invalid binding name")
+
 			bindings, err := client.CoreV1().ConfigMaps("customer-1").List(ctx, metav1.ListOptions{})
 			require.NoError(t, err)
 			require.Len(t, bindings.Items, 1, "the valid app still publishes its binding")
@@ -330,6 +335,7 @@ func TestReconcileFailedAppKeepsItsObjectsWithoutBlockingOthers(t *testing.T) {
 			obsolete := testApp("dep_c")
 			obsolete.AppId, obsolete.AppSlug, obsolete.K8SNamespace = "app_3", "audit", "customer-2"
 			obsolete.BindingId, obsolete.BindingName, obsolete.CallerDeploymentId = "binding_3", "audit-api", "caller_3"
+
 			client := fake.NewClientset(endpointPod(replacement, "a2", "10.72.0.12"))
 			failing := false
 			client.PrependReactor(tc.verb, tc.resource, func(action clienttesting.Action) (bool, runtime.Object, error) {
@@ -342,15 +348,18 @@ func TestReconcileFailedAppKeepsItsObjectsWithoutBlockingOthers(t *testing.T) {
 				}
 				return true, nil, apierrors.NewForbidden(schema.GroupResource{Resource: tc.resource}, "", fmt.Errorf("namespace is being terminated"))
 			})
+
 			snapshot := []*ctrlv1.PrivateNetworkApp{rejected, obsolete}
 			control := &testutil.MockClusterClient{}
 			control.StreamPrivateNetworkStateFunc = snapshotFunc(t, func(context.Context) ([]*ctrlv1.PrivateNetworkApp, error) {
 				return snapshot, nil
 			})
 			r := &Reconciler{client: client, dynamic: testDynamicClient(), cluster: control, clusterKey: &ctrlv1.ClusterKey{}}
+
 			binding := func(app *ctrlv1.PrivateNetworkApp) (*corev1.ConfigMap, error) {
 				return client.CoreV1().ConfigMaps(app.GetK8SNamespace()).Get(ctx, resourceName("unkey-pn-binding", app.GetBindingId()+"/"+app.GetCallerDeploymentId()), metav1.GetOptions{})
 			}
+
 			require.NoError(t, r.reconcile(ctx))
 			if tc.resource == "namespaces" {
 				require.NoError(t, client.CoreV1().Namespaces().Delete(ctx, rejected.GetK8SNamespace(), metav1.DeleteOptions{}))

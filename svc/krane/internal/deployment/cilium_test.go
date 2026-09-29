@@ -29,11 +29,13 @@ func TestCiliumPolicyOnlyAllowsFrontlineIngress(t *testing.T) {
 			controller := &Controller{dynamicClient: client, privateNetworkResolverIP: "10.0.0.53"}
 			req := fullApplyRequest(t)
 			req.EnvironmentKind = tc.kind
+
 			require.NoError(t, controller.ensureCiliumNetworkPolicy(t.Context(), req, nil))
 			rules, found, err := unstructured.NestedSlice(policy.Object, "spec", "ingress")
 			require.NoError(t, err)
 			require.True(t, found)
 			require.Len(t, rules, 1)
+
 			_, found, err = unstructured.NestedSlice(policy.Object, "spec", "egress")
 			require.NoError(t, err)
 			require.False(t, found, "deployment policy must not grant implicit peer egress")
