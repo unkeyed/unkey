@@ -177,14 +177,14 @@ func listContainsIP(entries []string, ip netip.Addr) (bool, error) {
 		prefix, err := netip.ParsePrefix(entry)
 		if err != nil {
 			addr, addrErr := netip.ParseAddr(entry)
-			if addrErr == nil {
+			if addrErr == nil && addr.Zone() == "" {
 				prefix, err = netip.PrefixFrom(addr, addr.BitLen()), nil
 			}
 		}
-		if err != nil || !prefix.Addr().Is4() {
+		if err != nil {
 			return false, fault.New("invalid remote ip entry",
 				fault.Code(codes.Frontline.Internal.InvalidConfiguration.URN()),
-				fault.Internal(fmt.Sprintf("not an ipv4 address or cidr: %q", entry)),
+				fault.Internal(fmt.Sprintf("not an ip address or cidr: %q", entry)),
 				fault.Public("Service configuration error."),
 			)
 		}

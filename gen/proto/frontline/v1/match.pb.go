@@ -600,8 +600,8 @@ func (*QueryParamMatch_Value) isQueryParamMatch_Match() {}
 //	in:     matches clients inside any of the ranges
 //	not_in: matches clients outside all of the ranges
 //
-// Entries are IPv4 addresses or CIDRs, such as "203.0.113.7" or
-// "203.0.113.0/24". IPv6 entries are rejected
+// Entries are IP addresses or CIDRs, such as "203.0.113.7", "203.0.113.0/24",
+// or "2001:db8::/32"
 //
 // If both lists are set, only `in` is used. If neither is set, every client
 // matches
