@@ -2,18 +2,20 @@ package undns
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net"
 
 	dnswire "codeberg.org/miekg/dns"
 	"codeberg.org/miekg/dns/dnsutil"
 )
 
-func (h *handler) acquireForward(workspace string) bool {
+func (h *handler) acquireForward(workspace string) (string, bool) {
 	select {
 	case h.forwards <- struct{}{}:
 	default:
 		h.shed.WithLabelValues("forwards").Inc()
-		return false
+		return "forwards", false
 	}
 
 	h.workspaceMu.Lock()
@@ -25,10 +27,10 @@ func (h *handler) acquireForward(workspace string) bool {
 	if h.workspaceForwards[workspace] >= limit {
 		<-h.forwards
 		h.shed.WithLabelValues(metric).Inc()
-		return false
+		return metric, false
 	}
 	h.workspaceForwards[workspace]++
-	return true
+	return "", true
 }
 
 func (h *handler) releaseForward(workspace string) {
@@ -42,15 +44,19 @@ func (h *handler) releaseForward(workspace string) {
 	<-h.forwards
 }
 
-func (h *handler) forward(ctx context.Context, request *dnswire.Msg, transport, workspace string) *dnswire.Msg {
-	if !h.acquireForward(workspace) {
+func (h *handler) forward(ctx context.Context, request *dnswire.Msg, transport string, identity caller) (*dnswire.Msg, outcome) {
+	failure := func(why reason, err error) (*dnswire.Msg, outcome) {
 		response := new(dnswire.Msg)
 		dnsutil.SetReply(response, request)
 		response.Rcode = dnswire.RcodeServerFailure
 		response.RecursionAvailable = true
-		return response
+		return response, outcome{reason: why, err: err, caller: identity}
 	}
-	defer h.releaseForward(workspace)
+
+	if limit, ok := h.acquireForward(identity.workspace); !ok {
+		return failure(reasonShed, fmt.Errorf("%s concurrency limit is full", limit))
+	}
+	defer h.releaseForward(identity.workspace)
 
 	query := dnswire.NewMsg(request.Question[0].Header().Name, dnswire.RRToType(request.Question[0]))
 	query.RecursionDesired = request.RecursionDesired
@@ -73,17 +79,20 @@ func (h *handler) forward(ctx context.Context, request *dnswire.Msg, transport, 
 		response, _, err = client.Exchange(ctx, query, "tcp", h.config.Upstream)
 	}
 
-	if err != nil || response == nil || !response.Response || response.Opcode != dnswire.OpcodeQuery ||
+	if err != nil {
+		why := reasonUpstreamError
+		if netErr, ok := errors.AsType[net.Error](err); ok && netErr.Timeout() || errors.Is(err, context.DeadlineExceeded) {
+			why = reasonUpstreamTimeout
+		}
+		return failure(why, err)
+	}
+	if response == nil || !response.Response || response.Opcode != dnswire.OpcodeQuery ||
 		len(response.Question) != 1 || !sameQuestion(response.Question[0], query.Question[0]) {
-		response = new(dnswire.Msg)
-		dnsutil.SetReply(response, request)
-		response.Rcode = dnswire.RcodeServerFailure
-		response.RecursionAvailable = true
-		return response
+		return failure(reasonUpstreamInvalid, errors.New("upstream response does not answer the forwarded question"))
 	}
 
 	response.ID = request.ID
-	return response
+	return response, outcome{reason: reasonUpstream, err: nil, caller: identity}
 }
 
 func sameQuestion(a, b dnswire.RR) bool {

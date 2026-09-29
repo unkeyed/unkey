@@ -33,8 +33,8 @@ func TestIdentifyWithReusedPodIP(t *testing.T) {
 			require.NoError(t, c.pods.GetStore().Add(other))
 			require.NoError(t, c.pods.GetStore().Add(callerPod("10.0.0.99", "production")))
 
-			identity, ok := c.identify(netipAddress("10.0.0.99"))
-			require.Equal(t, tc.wantOK, ok, "identify(10.0.0.99) with a running caller and a %s", tc.name)
+			identity, err := c.identify(netipAddress("10.0.0.99"))
+			require.Equal(t, tc.wantOK, err == nil, "identify(10.0.0.99) with a running caller and a %s: %v", tc.name, err)
 			if tc.wantOK {
 				require.Equal(t, "production", identity.kind)
 			}
@@ -47,19 +47,19 @@ func TestIdentifyReindexesPodThatBecomesTerminal(t *testing.T) {
 	old := callerPod("10.0.0.99", "preview")
 	old.Name, old.UID = "old", "old"
 	require.NoError(t, c.pods.GetStore().Add(old))
-	identity, ok := c.identify(netipAddress("10.0.0.99"))
-	require.True(t, ok)
+	identity, err := c.identify(netipAddress("10.0.0.99"))
+	require.NoError(t, err)
 	require.Equal(t, "preview", identity.kind)
 
 	evicted := old.DeepCopy()
 	evicted.Status.Phase, evicted.Status.Reason = corev1.PodFailed, "Evicted"
 	require.NoError(t, c.pods.GetStore().Update(evicted))
-	_, ok = c.identify(netipAddress("10.0.0.99"))
-	require.False(t, ok, "identify(10.0.0.99) accepted an evicted pod")
+	_, err = c.identify(netipAddress("10.0.0.99"))
+	require.ErrorIs(t, err, errUnknownCaller, "identify(10.0.0.99) accepted an evicted pod")
 
 	require.NoError(t, c.pods.GetStore().Add(callerPod("10.0.0.99", "production")))
-	identity, ok = c.identify(netipAddress("10.0.0.99"))
-	require.True(t, ok, "identify(10.0.0.99) rejected the pod that reused an evicted pod's IP")
+	identity, err = c.identify(netipAddress("10.0.0.99"))
+	require.NoError(t, err, "identify(10.0.0.99) rejected the pod that reused an evicted pod's IP")
 	require.Equal(t, "production", identity.kind)
 }
 
@@ -68,6 +68,6 @@ func TestIdentifyRequiresDeploymentID(t *testing.T) {
 	pod := callerPod("10.0.0.99", "production")
 	delete(pod.Labels, labels.LabelKeyDeploymentID)
 	require.NoError(t, c.pods.GetStore().Add(pod))
-	_, ok := c.identify(netipAddress("10.0.0.99"))
-	require.False(t, ok)
+	_, err := c.identify(netipAddress("10.0.0.99"))
+	require.ErrorIs(t, err, errIneligibleCaller)
 }

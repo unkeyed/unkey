@@ -97,7 +97,7 @@ func TestPublicDNSAndReadinessSurviveDiscoveryFailure(t *testing.T) {
 		require.Equal(collect, http.StatusOK, response.StatusCode)
 	}, 5*time.Second, 10*time.Millisecond)
 
-	check := func(phase string, privateCode uint16, discoveryMetric string) {
+	check := func(phase string, privateCode uint16, discoveryMetric string) string {
 		t.Helper()
 		response, getErr := httpClient.Get("http://" + cfg.HealthAddress + "/health/ready")
 		require.NoError(t, getErr)
@@ -129,6 +129,7 @@ func TestPublicDNSAndReadinessSurviveDiscoveryFailure(t *testing.T) {
 			}
 		}
 		require.Equal(t, before+2, forwarded.Load(), "only public questions reach upstream")
+		return string(body)
 	}
 
 	require.False(t, c.ready())
@@ -139,10 +140,17 @@ func TestPublicDNSAndReadinessSurviveDiscoveryFailure(t *testing.T) {
 	check("synchronized", dnswire.RcodeSuccess, "1")
 
 	for name, informer := range map[string]*trackedInformer{
-		"pods": c.pods, "bindings": c.bindings, "services": c.services, "slices": c.slices,
+		"pods": c.pods, "bindings": c.bindings, "services": c.services, "endpointslices": c.slices,
 	} {
 		informer.lastContact.Store(0)
-		check(name+"-failed", dnswire.RcodeServerFailure, "0")
+		metrics := check(name+"-failed", dnswire.RcodeServerFailure, "0")
+		for _, resource := range []string{"pods", "bindings", "services", "endpointslices"} {
+			healthy := "1"
+			if resource == name {
+				healthy = "0"
+			}
+			require.Contains(t, metrics, `unkey_dns_discovery_watch_healthy{resource="`+resource+`"} `+healthy+"\n", "%s watch health while the %s watch failed", resource, name)
+		}
 		informer.lastContact.Store(time.Now().Add(-3 * time.Minute).UnixNano())
 		check(name+"-stale", dnswire.RcodeServerFailure, "0")
 		informer.lastContact.Store(time.Now().UnixNano())

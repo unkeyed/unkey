@@ -92,7 +92,13 @@
 // Health endpoints are /health/live, /health/ready, and /health/startup.
 // Readiness checks the UDP and TCP listeners, not private discovery or the
 // upstream resolver. Prometheus metrics are available at /metrics;
-// unkey_dns_discovery_ready reports private discovery health separately.
+// unkey_dns_discovery_ready and unkey_dns_discovery_watch_healthy report
+// private discovery health separately. unkey_dns_queries_total labels every
+// response with its path and a bounded reason, such as no_ready_endpoints or
+// upstream_timeout, and unkey_dns_bindings reports the answer each published
+// binding would get. Logs carry the binding and caller IDs that metrics omit:
+// binding state changes are logged once per change, and query failures are
+// sampled once per reason per minute.
 // Restrict resolver access to cluster workloads; unknown callers can forward
 // public queries and are not authenticated by DNS.
 //

@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/unkeyed/unkey/pkg/assert"
-	"github.com/unkeyed/unkey/pkg/fault"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -42,7 +41,7 @@ func (c *catalog) resolve(identity caller, app string) ([]netip.Addr, bool, erro
 	}
 	if len(objects) != 1 {
 		delete(c.active, key)
-		return nil, true, fmt.Errorf("ambiguous app binding")
+		return nil, true, errBindingAmbiguous
 	}
 
 	config := objects[0].(*corev1.ConfigMap)
@@ -55,42 +54,90 @@ func (c *catalog) resolve(identity caller, app string) ([]netip.Addr, bool, erro
 }
 
 func (c *catalog) activate() {
+	activations := c.activateAll()
+	statuses := make(map[string]bindingStatus, len(activations))
+	for _, a := range activations {
+		statuses[a.config.Namespace+"/"+a.config.Name] = c.servingStatus(a.config, a.active, a.err)
+	}
+
+	c.statusMu.Lock()
+	changes := bindingChanges(c.statuses, statuses)
+	c.statuses = statuses
+	c.statusMu.Unlock()
+	for _, change := range changes {
+		change.log()
+	}
+}
+
+type activation struct {
+	config *corev1.ConfigMap
+	active *corev1.ConfigMap
+	err    error
+}
+
+func (c *catalog) activateAll() []activation {
 	c.activeMu.Lock()
 	defer c.activeMu.Unlock()
 
-	desired := make(map[string]*corev1.ConfigMap)
-	ambiguous := make(map[string]bool)
+	published := make(map[string][]*corev1.ConfigMap)
+	var activations []activation
 	for _, object := range c.bindings.GetStore().List() {
 		config := object.(*corev1.ConfigMap)
 		keys, err := indexBinding(config)
-		if err != nil || len(keys) == 0 {
+		if err != nil || len(keys) != 1 {
+			activations = append(activations, activation{config: config, active: nil, err: errBindingInvalid})
 			continue
 		}
-		if len(keys) != 1 {
-			continue
-		}
-		if _, exists := desired[keys[0]]; exists {
-			ambiguous[keys[0]] = true
-		}
-		desired[keys[0]] = config
+		published[keys[0]] = append(published[keys[0]], config)
 	}
 
 	for key, active := range c.active {
-		config := desired[key]
-		if ambiguous[key] || !sameBinding(active, config) {
+		configs := published[key]
+		if len(configs) != 1 || !sameBinding(active, configs[0]) {
 			delete(c.active, key)
 		}
 	}
 
-	for key, config := range desired {
-		if ambiguous[key] {
+	for key, configs := range published {
+		if len(configs) != 1 {
+			for _, config := range configs {
+				activations = append(activations, activation{config: config, active: nil, err: errBindingAmbiguous})
+			}
 			continue
 		}
-		if _, err := c.activateBinding(key, config); err != nil {
-			continue
-		}
+		active, err := c.activateBinding(key, configs[0])
+		activations = append(activations, activation{config: configs[0], active: active, err: err})
 	}
 	c.activated = true
+	return activations
+}
+
+func (c *catalog) servingStatus(config, active *corev1.ConfigMap, err error) bindingStatus {
+	if err != nil {
+		return newBindingStatus(config, failureReason(err), err)
+	}
+	if _, err := c.resolveBinding(bindingCaller(active), active); err != nil {
+		return newBindingStatus(config, failureReason(err), err)
+	}
+
+	candidate, candidateErr := parseBinding(config)
+	serving, servingErr := parseBinding(active)
+	if candidateErr == nil && servingErr == nil && serving.revision < candidate.revision {
+		status := newBindingStatus(config, statePendingRevision, nil)
+		status.servingDeployment = serving.deployment
+		return status
+	}
+	return newBindingStatus(config, stateActive, nil)
+}
+
+func bindingCaller(config *corev1.ConfigMap) caller {
+	return caller{
+		workspace:  config.Labels[labels.LabelKeyWorkspaceID],
+		project:    config.Labels[labels.LabelKeyProjectID],
+		kind:       "",
+		deployment: config.Labels[labels.LabelKeyCallerDeploymentID],
+		namespace:  config.Namespace,
+	}
 }
 
 func sameBinding(a, b *corev1.ConfigMap) bool {
@@ -121,7 +168,7 @@ func (c *catalog) activateBinding(key string, config *corev1.ConfigMap) (*corev1
 			return nil, err
 		}
 		if candidate.revision == current.revision && !maps.Equal(active.Data, config.Data) {
-			return nil, fmt.Errorf("binding changed without advancing revision")
+			return nil, fmt.Errorf("%w: data changed without advancing revision", errBindingInvalid)
 		}
 		if candidate.revision <= current.revision {
 			return active, nil
@@ -130,17 +177,10 @@ func (c *catalog) activateBinding(key string, config *corev1.ConfigMap) (*corev1
 
 	if !candidate.resolved {
 		delete(c.active, key)
-		return nil, fmt.Errorf("binding target is unresolved")
+		return nil, errBindingUnresolved
 	}
 
-	identity := caller{
-		workspace:  config.Labels[labels.LabelKeyWorkspaceID],
-		project:    config.Labels[labels.LabelKeyProjectID],
-		kind:       "",
-		deployment: config.Labels[labels.LabelKeyCallerDeploymentID],
-		namespace:  config.Namespace,
-	}
-	if _, err := c.resolveBinding(identity, config); err != nil {
+	if _, err := c.resolveBinding(bindingCaller(config), config); err != nil {
 		if active != nil {
 			return active, nil
 		}
@@ -157,7 +197,7 @@ func (c *catalog) activateBinding(key string, config *corev1.ConfigMap) (*corev1
 func parseBinding(config *corev1.ConfigMap) (binding, error) {
 	revision, err := strconv.ParseUint(config.Data["revision"], 10, 64)
 	if err != nil {
-		return binding{}, fault.Wrap(err, fault.Internal("invalid binding revision"))
+		return binding{}, fmt.Errorf("%w: revision: %w", errBindingInvalid, err)
 	}
 
 	err = assert.All(
@@ -173,7 +213,7 @@ func parseBinding(config *corev1.ConfigMap) (binding, error) {
 		err = assert.All(err, assert.Equal(len(validation.IsDNS1035Label(config.Data["serviceName"])), 0, "invalid service name"))
 	}
 	if err != nil {
-		return binding{}, fault.Wrap(err, fault.Internal("invalid app binding"))
+		return binding{}, fmt.Errorf("%w: %w", errBindingInvalid, err)
 	}
 
 	return binding{

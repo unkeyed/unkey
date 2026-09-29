@@ -39,16 +39,25 @@ func Run(ctx context.Context, cfg Config) error {
 
 func serve(ctx context.Context, cfg Config, c *catalog) error {
 	registry := prometheus.NewRegistry()
-	registry.MustRegister(collectors.NewGoCollector())
+	registry.MustRegister(collectors.NewGoCollector(), collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
 	registry.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{
 		Name: "unkey_dns_discovery_ready",
 		Help: "Whether private discovery is synchronized, fresh, and activated.",
 	}, func() float64 {
-		if c.ready() {
-			return 1
-		}
-		return 0
+		return boolGauge(c.ready())
 	}))
+	for resource, informer := range map[string]*trackedInformer{
+		"pods": c.pods, "bindings": c.bindings, "services": c.services, "endpointslices": c.slices,
+	} {
+		registry.MustRegister(prometheus.NewGaugeFunc(prometheus.GaugeOpts{
+			Name:        "unkey_dns_discovery_watch_healthy",
+			Help:        "Whether a discovery watch is synchronized and renewed within twice watch_timeout.",
+			ConstLabels: prometheus.Labels{"resource": resource},
+		}, func() float64 {
+			return boolGauge(informer.healthy())
+		}))
+	}
+	registry.MustRegister(newBindingCollector(c))
 	h := newHandler(c, cfg, registry)
 
 	tcp, err := net.Listen("tcp", cfg.ListenAddress)
@@ -123,4 +132,11 @@ func serve(ctx context.Context, cfg Config, c *catalog) error {
 	}
 
 	return r.Wait(ctx)
+}
+
+func boolGauge(value bool) float64 {
+	if value {
+		return 1
+	}
+	return 0
 }

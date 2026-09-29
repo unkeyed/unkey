@@ -30,6 +30,8 @@ type catalog struct {
 	activeMu  sync.RWMutex
 	active    map[string]*corev1.ConfigMap
 	activated bool
+	statusMu  sync.Mutex
+	statuses  map[string]bindingStatus
 	now       func() time.Time
 }
 
