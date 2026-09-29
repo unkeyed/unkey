@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	privatecontract "github.com/unkeyed/unkey/pkg/privatenetwork"
+	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -179,7 +179,7 @@ func TestActivationExpiryAndColdRestart(t *testing.T) {
 	updateBinding(t, c, "binding", "b", "missing-b", "2")
 
 	deadline := time.Date(2026, 9, 21, 12, 30, 0, 0, time.UTC)
-	service.Annotations = map[string]string{privatecontract.RetireAfterAnnotation: deadline.Format(time.RFC3339Nano)}
+	service.Annotations = map[string]string{appbinding.RetireAfterAnnotation: deadline.Format(time.RFC3339Nano)}
 	require.NoError(t, c.services.GetStore().Update(service))
 	c.now = func() time.Time { return deadline.Add(-time.Nanosecond) }
 	addresses, found, err = c.resolve(identity, "payments")

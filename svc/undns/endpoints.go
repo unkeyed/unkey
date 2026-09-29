@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/unkeyed/unkey/pkg/assert"
+	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
 	"github.com/unkeyed/unkey/pkg/fault"
-	privatecontract "github.com/unkeyed/unkey/pkg/privatenetwork"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
@@ -29,7 +29,7 @@ func (c *catalog) resolveBinding(identity caller, config *corev1.ConfigMap) ([]n
 	}
 
 	service := object.(*corev1.Service)
-	if expiry := service.Annotations[privatecontract.RetireAfterAnnotation]; expiry != "" {
+	if expiry := service.Annotations[appbinding.RetireAfterAnnotation]; expiry != "" {
 		deadline, err := time.Parse(time.RFC3339Nano, expiry)
 		if err != nil {
 			return nil, fmt.Errorf("invalid discovery retirement deadline: %w", err)
@@ -70,7 +70,7 @@ func (c *catalog) endpoints(service *corev1.Service) ([]netip.Addr, error) {
 
 	var addresses []netip.Addr
 	for _, object := range objects {
-		addresses = privatecontract.AppendReadyAddresses(addresses, service, object.(*discoveryv1.EndpointSlice))
+		addresses = appbinding.AppendReadyAddresses(addresses, service, object.(*discoveryv1.EndpointSlice))
 	}
 
 	slices.SortFunc(addresses, func(a, b netip.Addr) int { return a.Compare(b) })
