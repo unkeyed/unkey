@@ -10,7 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	ctrlv1 "github.com/unkeyed/unkey/gen/proto/ctrl/v1"
-	privatecontract "github.com/unkeyed/unkey/pkg/privatenetwork"
+	"github.com/unkeyed/unkey/pkg/deploy/appbinding"
 	"github.com/unkeyed/unkey/svc/krane/internal/testutil"
 	"github.com/unkeyed/unkey/svc/krane/pkg/labels"
 	corev1 "k8s.io/api/core/v1"
@@ -92,7 +92,7 @@ func TestReconcileBindingPromotionRollback(t *testing.T) {
 		require.False(t, service.Spec.PublishNotReadyAddresses)
 		require.Equal(t, "true", service.Annotations[ciliumGlobal])
 		require.Equal(t, "true", service.Annotations[ciliumGlobalSlices])
-		require.NotContains(t, service.Annotations, privatecontract.RetireAfterAnnotation)
+		require.NotContains(t, service.Annotations, appbinding.RetireAfterAnnotation)
 		require.Empty(t, service.Spec.Selector)
 		require.Equal(t, deployment, service.Labels[labels.LabelKeyDeploymentID])
 	}
@@ -107,13 +107,13 @@ func TestReconcileBindingPromotionRollback(t *testing.T) {
 	for _, service := range services.Items {
 		deadline, ok := retirementDeadline(&service)
 		require.True(t, ok)
-		require.Equal(t, now.Add(privatecontract.ReplacementOverlap), deadline)
+		require.Equal(t, now.Add(appbinding.ReplacementOverlap), deadline)
 	}
 	bindings, err := client.CoreV1().ConfigMaps("customer-1").List(ctx, metav1.ListOptions{})
 	require.NoError(t, err)
 	require.Empty(t, bindings.Items)
 
-	now = now.Add(privatecontract.ReplacementOverlap - time.Nanosecond)
+	now = now.Add(appbinding.ReplacementOverlap - time.Nanosecond)
 	require.NoError(t, r.reconcile(ctx))
 	services, err = client.CoreV1().Services("customer-1").List(ctx, metav1.ListOptions{})
 	require.NoError(t, err)
