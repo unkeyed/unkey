@@ -18,7 +18,7 @@ type CrumbProps = {
   footer?: CrumbPopoverFooter;
   loading?: boolean;
   listStatus?: ReactNode;
-  badge?: ReactNode;
+  trailing?: ReactNode;
 };
 
 export function Crumb({
@@ -32,12 +32,11 @@ export function Crumb({
   footer,
   loading = false,
   listStatus,
-  badge,
+  trailing,
 }: CrumbProps) {
   return (
     <div className="flex min-w-0 items-center gap-0.5">
       <CrumbLink icon={icon} label={label} href={href} loading={loading} />
-      {badge}
       <CrumbPopover
         items={items}
         currentId={currentId}
@@ -46,17 +45,17 @@ export function Crumb({
         footer={footer}
         listStatus={listStatus}
       >
-        <button
-          type="button"
-          className="hidden size-6 shrink-0 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-gray-12 md:flex"
-          aria-label={`Switch ${label}`}
-        >
+        <button type="button" className={CRUMB_TRIGGER_CLASS} aria-label={`Switch ${label}`}>
           <IconChevronExpandYOutline12 />
         </button>
       </CrumbPopover>
+      {trailing}
     </div>
   );
 }
+
+export const CRUMB_TRIGGER_CLASS =
+  "hidden size-6 shrink-0 items-center justify-center rounded-md text-gray-11 hover:bg-grayA-3 hover:text-gray-12 data-[popup-open]:bg-grayA-3 md:flex";
 
 export function CrumbLink({
   icon,

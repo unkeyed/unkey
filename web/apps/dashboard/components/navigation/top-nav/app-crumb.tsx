@@ -65,7 +65,7 @@ export function AppCrumb({ projectId, appId, environmentSlug }: AppCrumbProps) {
       href={hrefFor(appId)}
       items={items}
       currentId={appId}
-      badge={
+      trailing={
         environmentSlug ? (
           <EnvironmentSwitcher
             projectId={projectId}

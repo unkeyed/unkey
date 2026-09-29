@@ -1,6 +1,10 @@
 "use client";
 
-import { ENVIRONMENT_KIND, type Environment } from "@/lib/collections/deploy/environments";
+import {
+  ENVIRONMENT_KIND,
+  type Environment,
+  type EnvironmentKind,
+} from "@/lib/collections/deploy/environments";
 import {
   IconArrowDotRotateAnticlockwiseOutline12,
   IconCircleXmarkOutline12,
@@ -20,8 +24,23 @@ type EnvironmentBadgeProps = {
   liveSince?: number | null;
 };
 
-const BASE_CLASS =
+export const ENVIRONMENT_BADGE_CLASS =
   "inline-flex h-5.5 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-2 text-xs leading-none";
+const BASE_CLASS = ENVIRONMENT_BADGE_CLASS;
+
+export function EnvironmentKindIcon({
+  kind,
+  className,
+}: {
+  kind: EnvironmentKind;
+  className?: string;
+}) {
+  return kind === ENVIRONMENT_KIND.production ? (
+    <IconCloudOutline12 className={cn("shrink-0", className)} />
+  ) : (
+    <IconEyeOutline12 className={cn("shrink-0", className)} />
+  );
+}
 const OUTLINED_CLASS = "text-gray-12";
 const LIVE_CLASS = "border-transparent bg-info-11 text-white dark:bg-info-9 dark:text-gray-1";
 const ROLLED_BACK_FROM_CLASS = "border-transparent bg-errorA-3 text-error-11";

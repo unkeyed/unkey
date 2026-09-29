@@ -1,13 +1,19 @@
 "use client";
 
+import {
+  ENVIRONMENT_BADGE_CLASS,
+  EnvironmentKindIcon,
+} from "@/app/(app)/[workspaceSlug]/projects/[projectId]/apps/[appId]/components/environment-badge";
 import { useWorkspaceNavigation } from "@/hooks/use-workspace-navigation";
 import { collection } from "@/lib/collections";
 import { ENVIRONMENT_KIND, type EnvironmentKind } from "@/lib/collections/deploy/environments";
 import { withEnvironmentSlug } from "@/lib/navigation/environment-route";
 import { routes } from "@/lib/navigation/routes";
 import { and, eq, useLiveQuery } from "@tanstack/react-db";
+import { IconChevronExpandYOutline12, IconGearOutline18 } from "@unkey/icons";
 import { cn } from "cn";
 import { useParams, usePathname } from "next/navigation";
+import { CRUMB_TRIGGER_CLASS } from "./crumb";
 import { CrumbPopover, type CrumbPopoverItem } from "./crumb-popover";
 
 type EnvironmentSwitcherProps = {
@@ -17,8 +23,8 @@ type EnvironmentSwitcherProps = {
 };
 
 /**
- * The environment pill inside the app crumb. Clicking it lists the app's
- * environments; picking one keeps the current sub-page.
+ * The environment pill and its switcher inside the app crumb. Picking another
+ * environment keeps the current sub-page.
  */
 export function EnvironmentSwitcher({
   projectId,
@@ -36,47 +42,57 @@ export function EnvironmentSwitcher({
     [projectId, appId],
   );
   const environments = environmentsQuery.data ?? [];
-  const current = environments.find((env) => env.slug === environmentSlug);
+  const kind = environments.find((env) => env.slug === environmentSlug)?.kind;
+  const scope = { workspaceSlug: workspace.slug, projectId, appId, environmentSlug };
 
   // A deployment belongs to one environment, so switching from its detail
   // page lands on the other environment's list instead of a 404.
   const hrefFor = (slug: string) =>
     deploymentId
-      ? routes.projects.apps.deployments({
-          workspaceSlug: workspace.slug,
-          projectId,
-          appId,
-          environmentSlug: slug,
-        })
+      ? routes.projects.apps.deployments({ ...scope, environmentSlug: slug })
       : withEnvironmentSlug(pathname, appId, slug);
 
   const items: CrumbPopoverItem[] = environments.map((env) => ({
     id: env.slug,
-    label: env.slug,
+    label: capitalize(env.slug),
     href: hrefFor(env.slug),
+    icon: <EnvironmentKindIcon kind={env.kind} className={KIND_ICON_CLASS[env.kind]} />,
   }));
 
   return (
-    <CrumbPopover items={items} currentId={environmentSlug} emptyText="No environments">
-      <button
-        type="button"
-        aria-label={`Switch environment (${environmentSlug})`}
-        className={environmentBadgeClass(current?.kind ?? ENVIRONMENT_KIND.preview)}
-      >
+    <>
+      <span className={cn(ENVIRONMENT_BADGE_CLASS, "h-5 capitalize", pillClass(kind))}>
         {environmentSlug}
-      </button>
-    </CrumbPopover>
+      </span>
+      <CrumbPopover
+        items={items}
+        currentId={environmentSlug}
+        emptyText="No environments"
+        footer={{
+          icon: IconGearOutline18,
+          label: "Environment settings",
+          href: routes.projects.apps.settings(scope),
+        }}
+      >
+        <button type="button" className={CRUMB_TRIGGER_CLASS} aria-label="Switch environment">
+          <IconChevronExpandYOutline12 />
+        </button>
+      </CrumbPopover>
+    </>
   );
 }
 
-const BADGE_CLASS =
-  "inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-full border px-[5.5px] py-[3px] font-medium text-[9px] uppercase leading-none tracking-[0.07em] transition-colors";
+function capitalize(slug: string): string {
+  return slug.charAt(0).toUpperCase() + slug.slice(1);
+}
 
-function environmentBadgeClass(kind: EnvironmentKind): string {
-  return cn(
-    BADGE_CLASS,
-    kind === ENVIRONMENT_KIND.production
-      ? "border-warningA-6 bg-warningA-3 text-warningA-11 hover:bg-warningA-4"
-      : "border-successA-6 bg-successA-3 text-successA-11 hover:bg-successA-4",
-  );
+const KIND_ICON_CLASS: Record<EnvironmentKind, string> = {
+  production: "text-warning-11",
+  preview: "text-success-11",
+};
+
+function pillClass(kind: EnvironmentKind | undefined): string {
+  return kind === ENVIRONMENT_KIND.production
+    ? "border-warningA-4 bg-warningA-2 text-warning-11"
+    : "border-successA-4 bg-successA-2 text-success-11";
 }
