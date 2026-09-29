@@ -16,6 +16,13 @@ export type Binding = {
 export type Environment = { id: string; appId: string; slug: string; kind: string };
 export type Deployment = { id: string; appId: string; environmentId: string; status: string };
 
+export type BindingTargets = {
+  apps: { id: string; name: string; slug: string }[];
+  environments: Environment[];
+  deployments: (Deployment & { gitBranch: string | null; image: string | null })[];
+};
+export type ListedBinding = Binding & { name: string; targetAppName: string };
+
 export function isProduction(environment: Pick<Environment, "slug" | "kind">): boolean {
   return environment.kind === "production" && environment.slug === "production";
 }
