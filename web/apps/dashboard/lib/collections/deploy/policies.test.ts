@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type PolicyRow, replacePolicyLists, rowKey } from "./policies";
-import { type Policy, policyMatchKey } from "./policies.schema";
+import { type Policy, fromWirePolicy, policyMatchKey } from "./policies.schema";
 
 const LABELS = { loading: "Saving...", success: "Saved", error: "Failed" };
 
@@ -134,5 +134,32 @@ describe("policyMatchKey", () => {
   it("folds surrounding space but not case", () => {
     expect(policyMatchKey("firewall", "  Guard ")).toBe(policyMatchKey("firewall", "Guard"));
     expect(policyMatchKey("firewall", "Guard")).not.toBe(policyMatchKey("firewall", "guard"));
+  });
+});
+
+describe("fromWirePolicy remoteIp match", () => {
+  const wire = (remoteIp: unknown) => ({
+    id: "pol_1",
+    name: "office only",
+    enabled: true,
+    firewall: { action: "ACTION_DENY" },
+    match: [{ remoteIp }],
+  });
+
+  it("accepts in and notIn lists", () => {
+    expect(fromWirePolicy(wire({ in: ["203.0.113.0/24"] })).match).toEqual([
+      { remoteIp: { in: ["203.0.113.0/24"] } },
+    ]);
+    expect(fromWirePolicy(wire({ notIn: ["198.51.100.7/32"] })).match).toEqual([
+      { remoteIp: { notIn: ["198.51.100.7/32"] } },
+    ]);
+  });
+
+  it("rejects both lists, neither list, and an empty list", () => {
+    expect(() =>
+      fromWirePolicy(wire({ in: ["203.0.113.0/24"], notIn: ["198.51.100.0/24"] })),
+    ).toThrow();
+    expect(() => fromWirePolicy(wire({}))).toThrow();
+    expect(() => fromWirePolicy(wire({ in: [] }))).toThrow();
   });
 });

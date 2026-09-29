@@ -54,6 +54,17 @@ const queryParamConditionSchema = z.object({
   value: z.string().optional(),
 });
 
+const remoteIpConditionSchema = z.object({
+  id: z.string(),
+  type: z.literal("remoteIp"),
+  operator: z.enum(["in", "notIn"]),
+  ranges: z.string(),
+});
+
+function splitRanges(ranges: string): string[] {
+  return ranges.split(/[\s,]+/).filter((r) => r.length > 0);
+}
+
 // Header/queryParam conditions match against a stringMatch whose value must be
 // non-empty (canonical stringMatchValue = min(1)) unless `present` is set.
 // Refine on the union so the error attaches to the `value` field — users see a
@@ -64,8 +75,26 @@ export const matchConditionSchema = z
     methodConditionSchema,
     headerConditionSchema,
     queryParamConditionSchema,
+    remoteIpConditionSchema,
   ])
   .superRefine((c, ctx) => {
+    if (c.type === "remoteIp") {
+      const count = splitRanges(c.ranges).length;
+      if (count === 0) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Enter at least one IP or CIDR",
+          path: ["ranges"],
+        });
+      }
+      if (count > POLICY_LIMITS.maxCidrsPerMatch) {
+        ctx.addIssue({
+          code: "custom",
+          message: `At most ${POLICY_LIMITS.maxCidrsPerMatch} ranges`,
+          path: ["ranges"],
+        });
+      }
+    }
     if (
       (c.type === "header" || c.type === "queryParam") &&
       !c.present &&
@@ -299,6 +328,12 @@ export function getDefaultCondition(
     }))
     .with("header", () => ({ ...base, type: "header" as const, name: "" }))
     .with("queryParam", () => ({ ...base, type: "queryParam" as const, name: "" }))
+    .with("remoteIp", () => ({
+      ...base,
+      type: "remoteIp" as const,
+      operator: "in" as const,
+      ranges: "",
+    }))
     .exhaustive();
 }
 
@@ -395,6 +430,11 @@ function toMatchExpr(condition: MatchConditionFormValues): MatchExpr {
               value: toStringMatch(c.mode ?? "exact", c.value ?? ""),
             },
           },
+    )
+    .with({ type: "remoteIp" }, (c) =>
+      c.operator === "in"
+        ? { remoteIp: { in: splitRanges(c.ranges) } }
+        : { remoteIp: { notIn: splitRanges(c.ranges) } },
     )
     .exhaustive();
 }
@@ -550,6 +590,21 @@ function fromMatchExpr(raw: unknown): MatchConditionFormValues | null {
       const { mode, value } = stringMatchToMode(e.queryParam.value);
       return { id, type: "queryParam" as const, name: e.queryParam.name, mode, value };
     })
+    .with({ remoteIp: P._ }, (e) =>
+      "in" in e.remoteIp
+        ? {
+            id,
+            type: "remoteIp" as const,
+            operator: "in" as const,
+            ranges: e.remoteIp.in.join("\n"),
+          }
+        : {
+            id,
+            type: "remoteIp" as const,
+            operator: "notIn" as const,
+            ranges: e.remoteIp.notIn.join("\n"),
+          },
+    )
     .exhaustive();
 }
 
