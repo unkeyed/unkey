@@ -339,9 +339,8 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 		if page.caughtUp {
 			nextAttemptDelay = pollInterval
 		}
-		var delivery deliveryAttempt
 		if len(events) > 0 {
-			delivery, err = e.deliverEvents(ctx, drain, events)
+			delivery, err := e.deliverEvents(ctx, drain, events)
 			if err != nil {
 				logger.Error("deliver logdrain events failed", "error", err, "drain_id", item.id)
 				return
@@ -349,6 +348,7 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			if !delivery.result.Acknowledged {
 				return
 			}
+			e.recordDelivery(drain, stream, delivery.completed, "success", len(events), delivery.duration, delivery.result, nil)
 		}
 		rowsAffected, err := e.cfg.DB.RecordLogdrainSuccess(ctx, db.RecordLogdrainSuccessParams{
 			CommittedOffsetInsertedAt: page.next.Time,
@@ -358,23 +358,15 @@ func (e *Engine) process(ctx context.Context, item workItem) {
 			FencingToken:              drain.FencingToken,
 		})
 		if err != nil {
-			if len(events) > 0 && !delivery.completed.IsZero() {
-				e.recordDelivery(drain, stream, delivery.completed, "error", len(events), delivery.duration, delivery.result, err)
-			}
 			logger.Error("record logdrain success failed", "error", err, "drain_id", item.id)
 			return
 		}
 		if rowsAffected == 0 {
 			cause := fmt.Errorf("%w before cursor advance to (%d, %q)", errLeaseLost, page.next.Time, page.next.EventID)
-			if len(events) > 0 && !delivery.completed.IsZero() {
-				e.recordDelivery(drain, stream, delivery.completed, "error", len(events), delivery.duration, delivery.result, cause)
-			}
 			logger.Error("record logdrain success rejected", "error", cause, "drain_id", item.id)
 			return
 		}
-		if len(events) > 0 && !delivery.completed.IsZero() {
-			// The delivery succeeded and its new offset is now committed.
-			e.recordDelivery(drain, stream, delivery.completed, "success", len(events), delivery.duration, delivery.result, nil)
+		if len(events) > 0 {
 			oldestEventTime := events[0].Time
 			for _, event := range events[1:] {
 				oldestEventTime = min(oldestEventTime, event.Time)

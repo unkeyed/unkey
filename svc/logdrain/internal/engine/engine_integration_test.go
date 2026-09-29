@@ -413,9 +413,9 @@ func TestEngine_Integration(t *testing.T) {
 			require.EventuallyWithT(t, func(c *assert.CollectT) {
 				attempts := deliveries.snapshot()
 				require.Len(c, attempts, 1)
-				require.Equal(c, "error", attempts[0].Outcome)
+				require.Equal(c, "success", attempts[0].Outcome)
 				require.Equal(c, stream, attempts[0].Stream)
-				require.Contains(c, attempts[0].Error, "logdrain lease lost")
+				require.Empty(c, attempts[0].Error)
 			}, 5*time.Second, 20*time.Millisecond)
 			var cursorTime int64
 			var cursorID string

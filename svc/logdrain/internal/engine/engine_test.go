@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	logdrainv1 "github.com/unkeyed/unkey/gen/proto/logdrain/v1"
+	"github.com/unkeyed/unkey/pkg/clickhouse/schema"
 	"github.com/unkeyed/unkey/pkg/clock"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/db"
 	"github.com/unkeyed/unkey/svc/logdrain/internal/source"
@@ -112,6 +114,35 @@ func TestProcess_DeliveryFailure(t *testing.T) {
 	require.Len(t, database.failures, 1)
 	require.Empty(t, database.commits)
 	require.Equal(t, start, database.drain.CommittedOffsetInsertedAt)
+}
+
+// TestProcess_CursorWriteFailureDoesNotFailAcknowledgedDelivery guarantees
+// internal persistence errors do not appear as customer endpoint failures.
+func TestProcess_CursorWriteFailureDoesNotFailAcknowledgedDelivery(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+	encoded, err := proto.Marshal(&logdrainv1.Config{Destination: &logdrainv1.Config_Http{Http: &logdrainv1.HttpConfig{
+		Url: server.URL, Format: logdrainv1.HttpBodyFormat_HTTP_BODY_FORMAT_JSON,
+	}}})
+	require.NoError(t, err)
+	database := &windowDatabase{
+		drain:     db.GetLeasedAndDueLogdrainRow{ID: "drain", WorkspaceID: "workspace", Config: encoded},
+		commitErr: errors.New("database unavailable"),
+	}
+	reader := windowSource{read: func(_ context.Context, _ string, _ source.Cursor, _ int64, _ int, _ *logdrainv1.Config) ([]sink.Event, source.Cursor, error) {
+		return []sink.Event{{EventID: "event", Stream: "audit_logs", Payload: sink.AuditLogPayload{ID: "event"}}}, source.Cursor{Time: 1, EventID: "event"}, nil
+	}}
+	deliveries := &deliveryCollector{}
+	eng, err := New(Config{DB: database, LeaseID: "lease", AuditLogs: reader, Deliveries: deliveries, UnsafeAllowPrivateEndpoints: true})
+	require.NoError(t, err)
+
+	eng.process(t.Context(), workItem{id: "drain", now: time.UnixMilli(360001)})
+
+	require.Len(t, deliveries.attempts, 1)
+	require.Equal(t, "success", deliveries.attempts[0].Outcome)
+	require.Empty(t, deliveries.attempts[0].Error)
 }
 
 // TestProcess_LogsCommittedBatch captures process output without changing the global logger.
@@ -246,9 +277,20 @@ func TestProcess_KeyVerificationOutcomes(t *testing.T) {
 // windowDatabase models cursor persistence and due-time gating between reads.
 type windowDatabase struct {
 	db.Database
-	drain    db.GetLeasedAndDueLogdrainRow
-	commits  []db.RecordLogdrainSuccessParams
-	failures []db.RecordLogdrainFailureParams
+	drain     db.GetLeasedAndDueLogdrainRow
+	commits   []db.RecordLogdrainSuccessParams
+	failures  []db.RecordLogdrainFailureParams
+	commitErr error
+}
+
+// deliveryCollector captures customer-visible delivery telemetry.
+type deliveryCollector struct {
+	attempts []schema.LogdrainDeliveryV1
+}
+
+// Buffer stores one delivery attempt.
+func (c *deliveryCollector) Buffer(delivery schema.LogdrainDeliveryV1) {
+	c.attempts = append(c.attempts, delivery)
 }
 
 // GetLeasedAndDueLogdrain respects the delay recorded by the previous batch.
@@ -262,6 +304,9 @@ func (d *windowDatabase) GetLeasedAndDueLogdrain(context.Context, db.GetLeasedAn
 // RecordLogdrainSuccess makes committed progress visible to the next read.
 func (d *windowDatabase) RecordLogdrainSuccess(_ context.Context, params db.RecordLogdrainSuccessParams) (int64, error) {
 	d.commits = append(d.commits, params)
+	if d.commitErr != nil {
+		return 0, d.commitErr
+	}
 	d.drain.CommittedOffsetInsertedAt = params.CommittedOffsetInsertedAt
 	d.drain.CommittedOffsetEventID = params.CommittedOffsetEventID
 	return 1, nil
