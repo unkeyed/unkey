@@ -1,5 +1,6 @@
 "use client";
 
+import { ago, compact } from "@/app/(app)/[workspaceSlug]/projects/_components/canvas/format";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,7 +43,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { type OverviewModel, ago, compact } from "../../overview/_components/overview-model";
+import type { OverviewModel } from "../../overview/_components/overview-model";
 import { WINDOW, useKeyspaceTotal } from "./totals";
 
 const APP_ORDER: Record<DeploymentStatusGroup, number> = {

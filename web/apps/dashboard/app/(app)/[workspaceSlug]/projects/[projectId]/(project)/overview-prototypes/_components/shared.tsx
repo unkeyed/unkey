@@ -1,10 +1,10 @@
 "use client";
 
+import { compact } from "@/app/(app)/[workspaceSlug]/projects/_components/canvas/format";
 import type { ProjectOverview } from "@/lib/trpc/routers/deploy/project/overview";
 import { IconBook2Outline18, IconChatsOutline18, IconSquareTerminalOutline18 } from "@unkey/icons";
 import { cn } from "@unkey/ui/src/lib/utils";
 import { type ReactNode, useState } from "react";
-import { compact } from "../../overview/_components/overview-model";
 import type { OverviewModel } from "../../overview/_components/overview-model";
 import type { CanvasActions, CanvasLinks, MenuEntry } from "./proto-canvas";
 import type { Totals } from "./totals";

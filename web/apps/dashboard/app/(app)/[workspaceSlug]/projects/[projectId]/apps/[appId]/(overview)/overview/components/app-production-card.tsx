@@ -19,10 +19,9 @@ import { getDomainPriority } from "../../../components/domain-priority";
 import { useAppId, useProjectData } from "../../data-provider";
 import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
 import { CreateDeploymentButton } from "../../navigations/create-deployment-button";
+import { AppCanvas } from "./app-canvas";
 import { AppProductionCardSkeleton } from "./app-production-card-skeleton";
-import { BuildInProgressChart, ProductionCardChart } from "./card-chart";
 import { ProductionCardHeader } from "./card-header";
-import { ProductionCardMetadata } from "./card-metadata";
 import { NewerDeploymentRow, hasVisibleBuildState } from "./card-newer-deployment";
 import { ProductionCardRollbackBanner } from "./card-rollback-banner";
 import { buildPulse } from "./g-pulse";
@@ -206,8 +205,14 @@ export function AppProductionCard() {
         }
       : null,
     sourceRepo,
-    primaryDomain: primary ? { hostname: primary.hostname, url: primary.url } : null,
-    additionalDomains: additional.map((d) => ({ hostname: d.hostname, url: d.url })),
+    primaryDomain: primary
+      ? { hostname: primary.hostname, url: primary.url, source: primary.source }
+      : null,
+    additionalDomains: additional.map((d) => ({
+      hostname: d.hostname,
+      url: d.url,
+      source: d.source,
+    })),
     addCustomDomainHref,
     diagnostic,
     deploymentHref: routes.projects.apps.deployment({
@@ -239,16 +244,7 @@ export function AppProductionCard() {
         {isRolledBack && <ProductionCardRollbackBanner />}
         <Card className="relative z-10 flex flex-col">
           <ProductionCardHeader />
-          <div className="grid grid-cols-1 md:grid-cols-2">
-            {!isCurrent && status === "deploying" ? (
-              <BuildInProgressChart />
-            ) : (
-              <ProductionCardChart />
-            )}
-            <div className="p-4">
-              <ProductionCardMetadata />
-            </div>
-          </div>
+          <AppCanvas />
           <AnimatePresence initial={false} mode="wait">
             {newerDeployment && (
               <motion.div

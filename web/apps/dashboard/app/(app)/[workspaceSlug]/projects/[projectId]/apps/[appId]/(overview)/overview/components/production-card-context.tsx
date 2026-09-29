@@ -6,7 +6,7 @@ import { createContext, use } from "react";
 import type { Pulse } from "./g-pulse";
 import type { DeploymentDisplayStatus } from "./status";
 
-export type CardDomain = { hostname: string; url: string };
+export type CardDomain = { hostname: string; url: string; source: "custom" | "platform" };
 
 export type ProductionCardContextValue = {
   deployment: Deployment;

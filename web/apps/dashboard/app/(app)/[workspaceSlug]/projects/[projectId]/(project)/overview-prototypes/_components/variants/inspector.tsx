@@ -1,5 +1,6 @@
 "use client";
 
+import { ago } from "@/app/(app)/[workspaceSlug]/projects/_components/canvas/format";
 import {
   IconArrowUpRightOutline12,
   IconCodeBranchOutline18,
@@ -9,7 +10,6 @@ import {
 import { PageBody, PageContainer, PageHeader, PageHeaderContent, PageHeaderTitle } from "@unkey/ui";
 import Link from "next/link";
 import { type ReactNode, useEffect, useState } from "react";
-import { ago } from "../../../overview/_components/overview-model";
 import { ProtoCanvas, StatusLabel, sourceIcon } from "../proto-canvas";
 import {
   HELP_LINKS,
