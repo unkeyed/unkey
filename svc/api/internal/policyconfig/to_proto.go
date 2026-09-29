@@ -305,9 +305,9 @@ func mapMatchExprToProto(path string, m openapi.MatchExpr) (*frontlinev1.MatchEx
 	}
 }
 
-// maxCidrsPerMatch caps one remoteIp list and mirrors the OpenAPI schema's
+// maxRemoteIpEntries caps one remoteIp list and mirrors the OpenAPI schema's
 // maxItems
-const maxCidrsPerMatch = 100
+const maxRemoteIpEntries = 100
 
 func mapRemoteIpMatchToProto(path string, m openapi.RemoteIpMatch) (*frontlinev1.RemoteIpMatch, error) {
 	in, notIn := ptr.SafeDeref(m.In), ptr.SafeDeref(m.NotIn)
@@ -330,12 +330,11 @@ func mapRemoteIpMatchToProto(path string, m openapi.RemoteIpMatch) (*frontlinev1
 	return &frontlinev1.RemoteIpMatch{In: nil, NotIn: cidrs}, nil
 }
 
-// normalizeCidrs stores every entry as a canonical prefix, so frontline only
-// parses prefixes and an unchanged policy round-trips byte for byte. Ambiguous
-// entries are rejected instead of silently rewritten
+// normalizeCidrs stores every entry in canonical prefix form, so an unchanged
+// policy round-trips byte for byte
 func normalizeCidrs(path string, entries []string) ([]string, error) {
-	if len(entries) > maxCidrsPerMatch {
-		return nil, invalid(fmt.Sprintf("%s must not have more than %d entries.", path, maxCidrsPerMatch))
+	if len(entries) > maxRemoteIpEntries {
+		return nil, invalid(fmt.Sprintf("%s must not have more than %d entries.", path, maxRemoteIpEntries))
 	}
 
 	out := make([]string, 0, len(entries))
