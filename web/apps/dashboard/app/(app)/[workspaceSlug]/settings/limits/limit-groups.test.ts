@@ -20,6 +20,7 @@ function groupsFor(plan: LimitsPlan, attached: number, overrides?: Partial<Limit
       value: { totalCpuMillicores: 0, totalMemoryMib: 0, totalStorageMib: 0 },
     },
     customDomains: ready,
+    logdrains: { state: "loading" },
   });
 }
 
@@ -28,17 +29,19 @@ function domainsRow(groups: LimitGroup[]) {
 }
 
 describe("log drains row", () => {
-  it.each([0, 3])("shows the workspace allowance of %i without a compute plan", (logdrainsMax) => {
+  it("meters the current count against the workspace allowance", () => {
     const groups = buildLimitGroups({
-      limits: limitsFor("free", { logdrainsMax }),
+      limits: limitsFor("free", { logdrainsMax: 3 }),
       hasComputePlan: false,
       apiOperations: { state: "loading" },
       allocation: { state: "loading" },
       customDomains: { state: "loading" },
+      logdrains: { state: "ready", value: 1 },
     });
     expect(groups.find((group) => group.key === "logs")?.rows).toContainEqual({
       name: "Log drains",
-      limit: String(logdrainsMax),
+      limit: "3",
+      usage: { state: "ready", value: 1, max: 3, label: "1" },
       status: "ok",
     });
   });
@@ -55,6 +58,7 @@ describe("custom domains row", () => {
       apiOperations: { state: "ready", value: 0 },
       allocation: { state: "loading" },
       customDomains: { state: "ready", value: 0 },
+      logdrains: { state: "loading" },
     });
     expect(domainsRow(withoutPlan)).toBeUndefined();
   });
@@ -107,6 +111,7 @@ describe("breachedKeys", () => {
         value: { totalCpuMillicores: 0, totalMemoryMib: 0, totalStorageMib: 512 },
       },
       customDomains: { state: "ready", value: 0 },
+      logdrains: { state: "loading" },
     });
     expect(breachedKeys(groups)).toEqual(["compute"]);
   });
