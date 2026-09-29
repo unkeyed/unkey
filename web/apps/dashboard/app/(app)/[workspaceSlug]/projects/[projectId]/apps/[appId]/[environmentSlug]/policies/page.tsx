@@ -1,5 +1,5 @@
 "use client";
-import { policyMatchKey } from "@/lib/collections/deploy/policies.schema";
+import { type Policy, policyMatchKey } from "@/lib/collections/deploy/policies.schema";
 import { IconPlusOutline18, IconShieldKeyOutline18 } from "@unkey/icons";
 import {
   Button,
@@ -17,9 +17,11 @@ import {
   PageHeaderTitle,
 } from "@unkey/ui";
 import { useAppId, useProjectData } from "../../data-provider";
+import { useAppEnvironment } from "../environment-context";
 import { PolicyPanel } from "./components/add-panel";
 import { PoliciesList } from "./components/list";
 import { PoliciesError } from "./components/list/error";
+import type { Env, MergedPolicy } from "./components/list/merge";
 import { PoliciesListSkeleton } from "./components/list/skeleton";
 import { usePoliciesData } from "./hooks/use-policies-data";
 import { usePolicyActions } from "./hooks/use-policy-actions";
@@ -28,6 +30,9 @@ import { usePolicyPanels } from "./hooks/use-policy-panels";
 export default function PoliciesPage() {
   const { projectId } = useProjectData();
   const appId = useAppId();
+  const { environment } = useAppEnvironment();
+  const env: Env = environment.kind;
+  const other: Env = env === "production" ? "preview" : "production";
   const {
     productionId,
     previewId,
@@ -38,41 +43,23 @@ export default function PoliciesPage() {
     isLoading,
     isError,
   } = usePoliciesData();
-  const actions = usePolicyActions({
-    productionId,
-    previewId,
-    projectId,
-    appId,
-    merged,
-    rowsByEnv,
-  });
+  const otherSlug = other === "production" ? productionSlug : previewSlug;
+  const actions = usePolicyActions({ env, productionId, previewId, projectId, appId, rowsByEnv });
   const panels = usePolicyPanels();
+  const rows = rowsByEnv[env];
 
   const editingRow = panels.editing
-    ? merged.find(
-        (m) => m.production?.id === panels.editing?.id || m.preview?.id === panels.editing?.id,
-      )
+    ? merged.find((m) => m[env]?.id === panels.editing?.id)
     : undefined;
-  const editingEnabled = {
-    a: editingRow?.production?.enabled ?? false,
-    b: editingRow?.preview?.enabled ?? false,
-  };
-
   const existingMatchKeys = merged.map((m) => policyMatchKey(m.type, m.name));
 
-  const editingInitialEnvId =
-    editingEnabled.a && editingEnabled.b
-      ? "__all__"
-      : editingEnabled.a
-        ? productionSlug
-        : editingEnabled.b
-          ? previewSlug
-          : "__all__";
-
-  const editingPolicy =
-    editingInitialEnvId === previewSlug
-      ? (editingRow?.preview ?? panels.editing)
-      : (editingRow?.production ?? panels.editing);
+  // The current environment always receives the policy; the other one only
+  // when asked, and an existing copy there is switched off otherwise.
+  const save = (policy: Policy, applyToOther: boolean, editing?: MergedPolicy) => {
+    const here = { ...policy, enabled: true };
+    const there = applyToOther ? { ...policy, enabled: true } : null;
+    actions.save(env === "production" ? here : there, env === "production" ? there : here, editing);
+  };
 
   return (
     <PageContainer>
@@ -96,13 +83,13 @@ export default function PoliciesPage() {
           <PoliciesError />
         ) : isLoading ? (
           <PoliciesListSkeleton />
-        ) : merged.length === 0 ? (
+        ) : rows.length === 0 ? (
           <EmptyState>
             <EmptyStateIcon>
               <IconShieldKeyOutline18 />
             </EmptyStateIcon>
             <EmptyStateHeader>
-              <EmptyStateTitle>No policies</EmptyStateTitle>
+              <EmptyStateTitle>No policies in {environment.slug}</EmptyStateTitle>
               <EmptyStateDescription>
                 Add policies to protect your API with authentication, rate limiting, and more.
                 Policies are evaluated sequentially on each incoming request.
@@ -111,11 +98,8 @@ export default function PoliciesPage() {
           </EmptyState>
         ) : (
           <PoliciesList
-            productionSlug={productionSlug}
-            previewSlug={previewSlug}
-            merged={merged}
-            onToggleEnv={actions.toggleEnv}
-            onAddToEnv={actions.addToEnv}
+            rows={rows}
+            onToggle={actions.toggle}
             onReorder={actions.reorder}
             onDelete={actions.delete}
             onEdit={panels.openEdit}
@@ -123,26 +107,24 @@ export default function PoliciesPage() {
         )}
         <PolicyPanel
           mode="add"
-          productionSlug={productionSlug}
-          previewSlug={previewSlug}
+          otherEnvironmentSlug={otherSlug}
           isOpen={panels.isAddPanelOpen}
           onClose={panels.closeAdd}
           existingMatchKeys={existingMatchKeys}
-          onSave={actions.save}
+          onSave={(policy, applyToOther) => save(policy, applyToOther)}
         />
-        {editingPolicy !== null && (
+        {panels.editing !== null && (
           <PolicyPanel
-            key={editingPolicy.id}
+            key={panels.editing.id}
             mode="edit"
-            productionSlug={productionSlug}
-            previewSlug={previewSlug}
+            otherEnvironmentSlug={otherSlug}
             isOpen={panels.isEditPanelOpen}
             onClose={panels.closeEdit}
             existingMatchKeys={existingMatchKeys}
-            initialPolicy={editingPolicy}
-            initialEnvironmentId={editingInitialEnvId}
-            onSave={(prodPolicy, previewPolicy) => {
-              actions.save(prodPolicy, previewPolicy, editingRow);
+            initialPolicy={panels.editing}
+            initialApplyToOther={editingRow?.[other]?.enabled ?? false}
+            onSave={(policy, applyToOther) => {
+              save(policy, applyToOther, editingRow);
               panels.closeEdit();
             }}
           />

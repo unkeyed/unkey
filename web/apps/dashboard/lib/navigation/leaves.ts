@@ -1,4 +1,3 @@
-import { PRODUCTION_ENVIRONMENT_SLUG } from "@/lib/collections/deploy/environments";
 import {
   IconArrowDottedRotateAnticlockwiseOutline18,
   IconArrowsOppositeDirectionYOutline18,
@@ -16,6 +15,7 @@ import {
   IconWindowLayoutOutline18,
 } from "@unkey/icons";
 import { routes } from "./routes";
+import type { AppScope } from "./routes/projects";
 import type { ResourceScope } from "./routes/shared";
 import type { ResolvedNavLink } from "./types";
 
@@ -121,19 +121,10 @@ export function buildProjectLinks(
 }
 
 export function buildAppLinks(
-  slug: string,
-  projectId: string,
-  appId: string,
-  environmentSlug: string | undefined,
+  { environmentId, ...scope }: AppScope & { environmentId?: string },
   segments: string[],
 ): ResolvedNavLink[] {
   const page = segments[5];
-  const scope = {
-    workspaceSlug: slug,
-    projectId,
-    appId,
-    environmentSlug: environmentSlug ?? PRODUCTION_ENVIRONMENT_SLUG,
-  };
   return [
     {
       key: "overview",
@@ -173,7 +164,7 @@ export function buildAppLinks(
     {
       key: "logs",
       label: "Go to Logs",
-      href: routes.projects.logs(scope),
+      href: routes.projects.logs({ ...scope, environmentId }),
       icon: IconLayers3Outline18,
       isActive: page === "logs",
       separatorAbove: true,
@@ -181,7 +172,7 @@ export function buildAppLinks(
     {
       key: "requests",
       label: "Go to Requests",
-      href: routes.projects.requests(scope),
+      href: routes.projects.requests({ ...scope, environmentId }),
       icon: IconArrowsOppositeDirectionYOutline18,
       isActive: page === "requests",
     },

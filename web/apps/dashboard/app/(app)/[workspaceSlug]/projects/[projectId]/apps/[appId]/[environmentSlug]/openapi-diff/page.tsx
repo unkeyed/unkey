@@ -15,14 +15,16 @@ import {
 } from "@unkey/ui";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { useProjectData } from "../../data-provider";
+import { useAppCurrentDeployment } from "../../hooks/use-app-current-deployment";
+import { useAppEnvironment } from "../environment-context";
 import { DiffViewerContent } from "./components/client";
 import { DeploymentSelect } from "./components/deployment-select";
 import { useDiffDeployments } from "./hooks/use-diff-deployments";
 
 export default function DiffPage() {
-  const { project } = useProjectData();
-  const currentDeploymentId = project?.currentDeploymentId;
+  const { app } = useAppCurrentDeployment();
+  const { environment } = useAppEnvironment();
+  const currentDeploymentId = app?.currentDeploymentId;
   const searchParams = useSearchParams();
 
   const [selectedFromDeployment, setSelectedFromDeployment] = useState<string>("");
@@ -53,14 +55,24 @@ export default function DiffPage() {
       return;
     }
 
-    // Otherwise, fall back to live deployment if no params
+    // Otherwise compare production's live deployment with the newest one in
+    // the current environment that has a spec.
     if (currentDeploymentId) {
       const exists = sortedDeployments.some((d) => d.deployment.id === currentDeploymentId);
       if (exists) {
         setSelectedFromDeployment(currentDeploymentId);
       }
     }
-  }, [currentDeploymentId, sortedDeployments, deploymentsLoading, searchParams]);
+    const latestHere = sortedDeployments.find(
+      (d) =>
+        d.environment.id === environment.id &&
+        d.deployment.hasOpenApiSpec &&
+        d.deployment.id !== currentDeploymentId,
+    );
+    if (latestHere) {
+      setSelectedToDeployment(latestHere.deployment.id);
+    }
+  }, [currentDeploymentId, environment.id, sortedDeployments, deploymentsLoading, searchParams]);
 
   const {
     data: diffData,

@@ -2,6 +2,7 @@
 
 import { type MenuItem, TableActionPopover } from "@/components/logs/table-action.popover";
 import { Switch } from "@/components/ui/switch";
+import type { PolicyRow as PolicyRowData } from "@/lib/collections/deploy/policies";
 import type { Policy } from "@/lib/collections/deploy/policies.schema";
 import {
   IconDotsOutline18,
@@ -13,26 +14,13 @@ import { Button, ConfirmPopover } from "@unkey/ui";
 import { cn } from "cn";
 import { useRef, useState } from "react";
 
-type MergedPolicyRow = {
-  key: string;
-  name: string;
-  type: Policy["type"];
-  production: Policy | null;
-  preview: Policy | null;
-};
-
 type PolicyRowProps = {
-  policy: MergedPolicyRow;
+  policy: PolicyRowData;
   index: number;
   isLast: boolean;
   isDragOver: boolean;
-  productionSlug: string;
-  previewSlug: string;
-  onToggleProduction: (key: string) => void;
-  onTogglePreview: (key: string) => void;
-  onAddToProduction: (key: string) => void;
-  onAddToPreview: (key: string) => void;
-  onDelete: (key: string) => void;
+  onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
   onEdit: (policy: Policy) => void;
   onDragStart: (index: number) => void;
   onDragOver: (index: number) => void;
@@ -53,12 +41,7 @@ export function PolicyRow({
   index,
   isLast,
   isDragOver,
-  productionSlug,
-  previewSlug,
-  onToggleProduction,
-  onTogglePreview,
-  onAddToProduction,
-  onAddToPreview,
+  onToggle,
   onDelete,
   onEdit,
   onDragStart,
@@ -78,10 +61,7 @@ export function PolicyRow({
       divider: true,
       onClick: (e) => {
         e.stopPropagation();
-        const target = policy.production ?? policy.preview;
-        if (target) {
-          onEdit(target);
-        }
+        onEdit(policy);
       },
     },
     {
@@ -94,9 +74,6 @@ export function PolicyRow({
       },
     },
   ];
-
-  const isActiveAnywhere =
-    (policy.production?.enabled ?? false) || (policy.preview?.enabled ?? false);
 
   return (
     <div
@@ -131,25 +108,17 @@ export function PolicyRow({
         isDragOver && "bg-grayA-3",
       )}
     >
-      <div className={cn(!isActiveAnywhere && "opacity-55")}>
+      <div className={cn(!policy.enabled && "opacity-55")}>
         {/* biome-ignore lint/a11y/useSemanticElements: intentionally a div (not a native button) so the nested drag-handle and action buttons remain valid HTML */}
         <div
           role="button"
           tabIndex={0}
           className="group flex items-center hover:bg-grayA-2 transition-colors cursor-pointer w-full text-left"
-          onClick={() => {
-            const target = policy.production ?? policy.preview;
-            if (target) {
-              onEdit(target);
-            }
-          }}
+          onClick={() => onEdit(policy)}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              const target = policy.production ?? policy.preview;
-              if (target) {
-                onEdit(target);
-              }
+              onEdit(policy);
             }
           }}
         >
@@ -158,9 +127,7 @@ export function PolicyRow({
             <div
               className={cn(
                 "size-6 rounded-full border flex items-center justify-center text-[11px] font-medium",
-                isActiveAnywhere
-                  ? "bg-info-3 border-info-7 text-info-11"
-                  : "bg-grayA-2 text-gray-10",
+                policy.enabled ? "bg-info-3 border-info-7 text-info-11" : "bg-grayA-2 text-gray-10",
               )}
             >
               {index + 1}
@@ -198,22 +165,22 @@ export function PolicyRow({
             </span>
           </div>
 
-          {/* Env badges */}
-          <div className="flex-3 min-w-0 py-5 flex items-center gap-3 pr-3">
-            <EnvSwitch
-              policyKey={policy.key}
-              slug={productionSlug}
-              envPolicy={policy.production}
-              onToggle={onToggleProduction}
-              onAdd={onAddToProduction}
-            />
-            <EnvSwitch
-              policyKey={policy.key}
-              slug={previewSlug}
-              envPolicy={policy.preview}
-              onToggle={onTogglePreview}
-              onAdd={onAddToPreview}
-            />
+          {/* Enabled */}
+          <div className="flex-3 min-w-0 py-5 flex items-center gap-2 pr-3">
+            <span
+              className="flex items-center gap-2 shrink-0"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              <span className="text-[13px] text-gray-11 whitespace-nowrap">
+                {policy.enabled ? "Enabled" : "Disabled"}
+              </span>
+              <Switch
+                checked={policy.enabled}
+                onCheckedChange={() => onToggle(policy.id)}
+                size="sm"
+              />
+            </span>
           </div>
 
           {/* Actions */}
@@ -232,7 +199,7 @@ export function PolicyRow({
             <ConfirmPopover
               isOpen={isDeleteConfirmOpen}
               onOpenChange={setIsDeleteConfirmOpen}
-              onConfirm={() => onDelete(policy.key)}
+              onConfirm={() => onDelete(policy.id)}
               triggerRef={deleteButtonRef}
               title="Confirm deletion"
               description={`This will permanently delete "${policy.name}". This action cannot be undone.`}
@@ -244,47 +211,6 @@ export function PolicyRow({
         </div>
       </div>
     </div>
-  );
-}
-
-function EnvSwitch({
-  policyKey,
-  slug,
-  envPolicy,
-  onToggle,
-  onAdd,
-}: {
-  policyKey: string;
-  slug: string;
-  envPolicy: Policy | null;
-  onToggle: (key: string) => void;
-  onAdd: (key: string) => void;
-}) {
-  if (envPolicy !== null) {
-    return (
-      <span
-        className="flex items-center gap-2 shrink-0"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
-      >
-        <span className="text-[13px] text-gray-11 capitalize whitespace-nowrap">{slug}</span>
-        <Switch checked={envPolicy.enabled} onCheckedChange={() => onToggle(policyKey)} size="sm" />
-      </span>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border border-dashed text-gray-8 hover:text-gray-10 hover:border-strong transition-all cursor-pointer w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-grayA-6 focus-visible:ring-offset-1"
-      onClick={(e) => {
-        e.stopPropagation();
-        onAdd(policyKey);
-      }}
-    >
-      <span className="flex-shrink-0">+</span>
-      <span className="truncate capitalize">{slug}</span>
-    </button>
   );
 }
 

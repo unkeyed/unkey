@@ -10,7 +10,7 @@ function keyauthWithRatelimit(rl: Record<string, unknown>) {
   return {
     type: "keyauth" as const,
     name: "p",
-    environmentId: "__all__",
+    applyToOtherEnvironment: false,
     matchConditions: [],
     keyspaceIds: ["ks_1"],
     locations: [],
@@ -66,7 +66,7 @@ function ratelimitForm(
   return {
     type: "ratelimit",
     name: "rl",
-    environmentId: "__all__",
+    applyToOtherEnvironment: false,
     matchConditions: [],
     limit: 100,
     windowMs: 60000,
@@ -107,7 +107,7 @@ describe("ratelimit identifier serialization", () => {
       type: "ratelimit",
       ratelimit: { limit: 100, windowMs: 60000, identifier: { path: {} } },
     };
-    const form = fromPolicy(stored, "__all__");
+    const form = fromPolicy(stored, false);
     expect(form).toMatchObject({
       type: "ratelimit",
       identifiers: [{ source: "path", value: "" }],
@@ -126,7 +126,7 @@ describe("ratelimit identifier serialization", () => {
         identifiers: [{ authenticatedSubject: {} }, { header: { name: "x-tenant" } }],
       },
     };
-    const form = fromPolicy(stored, "__all__");
+    const form = fromPolicy(stored, false);
     expect(form).toMatchObject({
       type: "ratelimit",
       identifiers: [

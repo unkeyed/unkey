@@ -3,7 +3,8 @@
 import { type Policy, policyMatchKey } from "@/lib/collections/deploy/policies.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { match } from "@unkey/match";
-import { Button, FormInput, FormSelect } from "@unkey/ui";
+import { Button, Checkbox, FormInput, FormSelect } from "@unkey/ui";
+import { useId } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { FirewallFields, FirewallPolicySummary } from "./forms/firewall-fields";
 import { KeyAuthFields, KeyauthPolicySummary } from "./forms/keyauth-fields";
@@ -28,8 +29,7 @@ import {
 } from "./schema";
 
 type CommonProps = {
-  productionSlug: string;
-  previewSlug: string;
+  otherEnvironmentSlug: string;
   isOpen: boolean;
   onClose: () => void;
   /**
@@ -40,38 +40,35 @@ type CommonProps = {
   existingMatchKeys: string[];
 };
 
+type OnSave = (policy: Policy, applyToOtherEnvironment: boolean) => void;
+
 type AddProps = CommonProps & {
   mode: "add";
-  onSave: (prodPolicy: Policy | null, previewPolicy: Policy | null) => void;
+  onSave: OnSave;
 };
 
 type EditProps = CommonProps & {
   mode: "edit";
   initialPolicy: Policy;
-  initialEnvironmentId: string;
-  onSave: (prodPolicy: Policy | null, previewPolicy: Policy | null) => void;
+  initialApplyToOther: boolean;
+  onSave: OnSave;
 };
 
 export type PolicyPanelProps = AddProps | EditProps;
 
 export function PolicyPanel(props: PolicyPanelProps) {
-  const { productionSlug, previewSlug, isOpen, onClose, existingMatchKeys } = props;
+  const { otherEnvironmentSlug, isOpen, onClose, existingMatchKeys } = props;
   const isEdit = props.mode === "edit";
-
-  const envOptions = [
-    { value: "__all__", label: "All Environments" },
-    { value: productionSlug, label: productionSlug },
-    { value: previewSlug, label: previewSlug },
-  ];
 
   const form = useForm<PolicyFormValues>({
     resolver: zodResolver(policyFormSchema),
     defaultValues: isEdit
-      ? fromPolicy(props.initialPolicy, props.initialEnvironmentId)
+      ? fromPolicy(props.initialPolicy, props.initialApplyToOther)
       : getDefaultValues("keyauth"),
   });
   const { control } = form;
   const policyType = useWatch({ control, name: "type" });
+  const applyToOtherId = useId();
 
   const onSubmit = (values: PolicyFormValues) => {
     const nextMatchKey = policyMatchKey(values.type, values.name);
@@ -89,17 +86,7 @@ export function PolicyPanel(props: PolicyPanelProps) {
     }
 
     const id = props.mode === "edit" ? props.initialPolicy.id : undefined;
-    const policy = toPolicy(values, id);
-    const prodPolicy =
-      values.environmentId === "__all__" || values.environmentId === productionSlug
-        ? { ...policy, enabled: true }
-        : null;
-    const previewPolicy =
-      values.environmentId === "__all__" || values.environmentId === previewSlug
-        ? { ...policy, enabled: true }
-        : null;
-
-    props.onSave(prodPolicy, previewPolicy);
+    props.onSave(toPolicy(values, id), values.applyToOtherEnvironment);
     onClose();
     if (props.mode === "add") {
       form.reset(getDefaultValues("keyauth"));
@@ -151,9 +138,9 @@ export function PolicyPanel(props: PolicyPanelProps) {
               onValueChange={(next) => {
                 // Reset the form to the defaults of the newly-chosen type so
                 // type-specific fields don't leak between branches of the
-                // discriminated union. Shared fields (name, environmentId,
-                // matchConditions) are preserved so the user doesn't lose
-                // work when they switch types after starting to configure.
+                // discriminated union. Shared fields (name, the other
+                // environment choice, matchConditions) are preserved so the
+                // user doesn't lose work when they switch types.
                 if (isEdit) {
                   return;
                 }
@@ -161,7 +148,7 @@ export function PolicyPanel(props: PolicyPanelProps) {
                 form.reset({
                   ...defaults,
                   name: form.getValues("name"),
-                  environmentId: form.getValues("environmentId"),
+                  applyToOtherEnvironment: form.getValues("applyToOtherEnvironment"),
                   matchConditions: form.getValues("matchConditions"),
                 });
                 field.onChange(next);
@@ -217,18 +204,25 @@ export function PolicyPanel(props: PolicyPanelProps) {
           <div className="px-6 py-6">
             <Controller
               control={control}
-              name="environmentId"
+              name="applyToOtherEnvironment"
               render={({ field }) => (
-                <FormSelect
-                  label="Environment"
-                  options={envOptions}
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  description="Which environments this policy will be added to."
-                  descriptionPosition="label"
-                  triggerClassName="capitalize"
-                  contentClassName="capitalize"
-                />
+                <label htmlFor={applyToOtherId} className="flex items-start gap-3 cursor-pointer">
+                  <Checkbox
+                    id={applyToOtherId}
+                    checked={field.value}
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                    className="mt-0.5 size-4 rounded-sm [&_svg]:size-3"
+                  />
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-[13px] text-gray-12">
+                      Also apply to <span className="capitalize">{otherEnvironmentSlug}</span>
+                    </span>
+                    <span className="text-xs text-gray-9">
+                      Adds or enables the same policy there. Left unchecked, a copy there is
+                      switched off.
+                    </span>
+                  </span>
+                </label>
               )}
             />
           </div>

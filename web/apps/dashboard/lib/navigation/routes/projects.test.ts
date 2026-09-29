@@ -57,6 +57,15 @@ describe("routes.projects.requests", () => {
       routes.projects.requests({ workspaceSlug: ws, projectId, since: "6h", deploymentId }),
     ).toBe("/acme/projects/proj_123/requests?since=6h&deploymentId=is:d_789");
   });
+
+  it("prefixes an environment id filter with is:", () => {
+    expect(
+      routes.projects.requests({ workspaceSlug: ws, projectId, appId, environmentId: "env_1" }),
+    ).toBe("/acme/projects/proj_123/requests?appId=is:app_456&environmentId=is:env_1");
+    expect(routes.projects.logs({ workspaceSlug: ws, projectId, environmentId: "env_1" })).toBe(
+      "/acme/projects/proj_123/logs?environmentId=is:env_1",
+    );
+  });
 });
 
 describe("routes.projects.apps.new", () => {

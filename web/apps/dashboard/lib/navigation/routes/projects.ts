@@ -11,6 +11,7 @@ import type { DeployCheckoutOrigin, DeployCheckoutPlan } from "./settings";
 import { type WorkspaceScope, buildRoute } from "./shared";
 
 type ProjectScope = WorkspaceScope & { projectId: string };
+type LogFilters = { appId?: string; environmentId?: string; deploymentId?: string };
 export type AppScope = ProjectScope & { appId: string; environmentSlug: string };
 
 /**
@@ -62,13 +63,10 @@ export const projectRoutes = {
     return buildRoute("/[workspaceSlug]/projects/[projectId]/settings", projectParams(scope));
   },
 
-  logs({
-    appId,
-    deploymentId,
-    ...scope
-  }: ProjectScope & { appId?: string; deploymentId?: string }): Route {
+  logs({ appId, environmentId, deploymentId, ...scope }: ProjectScope & LogFilters): Route {
     return buildRoute("/[workspaceSlug]/projects/[projectId]/logs", projectParams(scope), {
       appId: appId ? isFilter(appId) : undefined,
+      environmentId: environmentId ? isFilter(environmentId) : undefined,
       deploymentId: deploymentId ? isFilter(deploymentId) : undefined,
     });
   },
@@ -76,12 +74,14 @@ export const projectRoutes = {
   requests({
     since,
     appId,
+    environmentId,
     deploymentId,
     ...scope
-  }: ProjectScope & { since?: string; appId?: string; deploymentId?: string }): Route {
+  }: ProjectScope & LogFilters & { since?: string }): Route {
     return buildRoute("/[workspaceSlug]/projects/[projectId]/requests", projectParams(scope), {
       since,
       appId: appId ? isFilter(appId) : undefined,
+      environmentId: environmentId ? isFilter(environmentId) : undefined,
       deploymentId: deploymentId ? isFilter(deploymentId) : undefined,
     });
   },

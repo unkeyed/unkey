@@ -8,7 +8,7 @@ function keyauthWithCredits(credits: unknown) {
   return {
     type: "keyauth" as const,
     name: "p",
-    environmentId: "__all__",
+    applyToOtherEnvironment: false,
     matchConditions: [],
     keyspaceIds: ["ks_1"],
     locations: [],
@@ -54,7 +54,7 @@ describe("keyauth credits override", () => {
   it("round-trips a credits override through the wire form", () => {
     const parsed = policyFormSchema.parse(keyauthWithCredits(3));
     const wire = toPolicy(parsed) as Policy;
-    const back = fromPolicy(wire, "__all__");
+    const back = fromPolicy(wire, false);
     expect(back.type).toBe("keyauth");
     if (back.type === "keyauth") {
       expect(back.credits).toBe(3);

@@ -125,7 +125,7 @@ const basePolicyFields = {
       POLICY_LIMITS.maxNameLength,
       `Name must be at most ${POLICY_LIMITS.maxNameLength} characters`,
     ),
-  environmentId: z.string(),
+  applyToOtherEnvironment: z.boolean(),
   matchConditions: z.array(matchConditionSchema),
 };
 
@@ -305,7 +305,7 @@ export function getDefaultCondition(
 export function getDefaultValues(type: PolicyType): PolicyFormValues {
   const base = {
     name: "",
-    environmentId: "__all__",
+    applyToOtherEnvironment: false,
     matchConditions: [],
   };
 
@@ -577,7 +577,7 @@ function fromRateLimitIdentifier(key: RateLimitIdentifier): RatelimitIdentifierR
     .exhaustive();
 }
 
-export function fromPolicy(policy: Policy, environmentId: string): PolicyFormValues {
+export function fromPolicy(policy: Policy, applyToOtherEnvironment: boolean): PolicyFormValues {
   const matchConditions: MatchConditionFormValues[] = (policy.match ?? [])
     .map(fromMatchExpr)
     .filter((c): c is MatchConditionFormValues => c !== null);
@@ -615,7 +615,7 @@ export function fromPolicy(policy: Policy, environmentId: string): PolicyFormVal
       return {
         type: "keyauth" as const,
         name: p.name,
-        environmentId,
+        applyToOtherEnvironment,
         matchConditions,
         keyspaceIds: p.keyauth.keyspaces,
         locations,
@@ -632,7 +632,7 @@ export function fromPolicy(policy: Policy, environmentId: string): PolicyFormVal
       return {
         type: "ratelimit" as const,
         name: p.name,
-        environmentId,
+        applyToOtherEnvironment,
         matchConditions,
         limit: p.ratelimit.limit,
         windowMs: p.ratelimit.windowMs,
@@ -647,7 +647,7 @@ export function fromPolicy(policy: Policy, environmentId: string): PolicyFormVal
       return {
         type: "firewall" as const,
         name: p.name,
-        environmentId,
+        applyToOtherEnvironment,
         matchConditions,
         action: p.firewall.action,
       };
@@ -655,13 +655,13 @@ export function fromPolicy(policy: Policy, environmentId: string): PolicyFormVal
     .with({ type: "openapi" }, (p) => ({
       type: "openapi" as const,
       name: p.name,
-      environmentId,
+      applyToOtherEnvironment,
       matchConditions,
     }))
     .with({ type: "logging" }, (p) => ({
       type: "logging" as const,
       name: p.name,
-      environmentId,
+      applyToOtherEnvironment,
       matchConditions,
       requestHeaders: p.logging.requestHeaders ?? false,
       responseHeaders: p.logging.responseHeaders ?? false,

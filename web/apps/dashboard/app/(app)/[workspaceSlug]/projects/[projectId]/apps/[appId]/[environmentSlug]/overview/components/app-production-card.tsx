@@ -194,11 +194,17 @@ export function AppProductionCard() {
     addCustomDomainHref,
     diagnostic,
     deploymentHref: routes.projects.apps.deployment({ ...scope, deploymentId: deployment.id }),
-    logsHref: routes.projects.logs({ workspaceSlug: scope.workspaceSlug, projectId, appId }),
+    logsHref: routes.projects.logs({
+      workspaceSlug: scope.workspaceSlug,
+      projectId,
+      appId,
+      environmentId: environment.id,
+    }),
     requestsHref: routes.projects.requests({
       workspaceSlug: scope.workspaceSlug,
       projectId,
       appId,
+      environmentId: environment.id,
       since: "6h",
     }),
     rollbackTarget,
